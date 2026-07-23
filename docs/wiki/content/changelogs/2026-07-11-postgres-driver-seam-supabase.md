@@ -9,16 +9,28 @@ description: The Postgres connector now supports two interchangeable drivers, sh
 
 <Badge type="warning" text="Breaking Change" /> <Badge type="danger" text="Security" /> <Badge type="tip" text="New Feature" /> <Badge type="info" text="Bug Fix" />
 
-**In one line.** The Postgres connector now supports two interchangeable drivers (`node-postgres` and `postgres-js`), ships a Supabase submodule, and makes `commit()`/`rollback()` throw on failure instead of silently succeeding.
+**In one line.** The Postgres connector now supports two interchangeable drivers, `node-postgres` and `postgres-js`, and ships a Supabase submodule. `commit()`/`rollback()` now throw on failure instead of silently succeeding.
+
+## The problem it solves
+
+A failed `COMMIT` used to resolve successfully. The transaction looked committed, but nothing was written - and a failed `BEGIN` leaked the acquired connection.
+
+```typescript
+const transaction = await dataSource.beginTransaction();
+await userRepository.create({ data: user, options: { transaction } });
+await transaction.commit(); // resolved even when COMMIT failed
+```
+
+`commit()` and `rollback()` now throw when the underlying database operation fails. A poisoned connection is destroyed instead of returned to the pool.
 
 ## What changed
 
 - **Two drivers, one connector.** Postgres connections now go through a neutral `IRelationalDriver` contract. Both `node-postgres` (`pg`) and `postgres-js` (`postgres`) implement it, so either can back a datasource without forking it.
-- **Transactions fail loudly.** `commit()` and `rollback()` now throw when the underlying database operation fails, instead of resolving successfully. The connection behind a failed commit/rollback is destroyed instead of being returned to the pool. A failed `BEGIN` no longer leaks the acquired connection either.
+- **Transactions fail loudly.** `commit()` and `rollback()` now throw when the underlying database operation fails, instead of resolving successfully. IGNIS destroys the connection behind a failed commit/rollback instead of returning it to the pool. A failed `BEGIN` no longer leaks the acquired connection either.
 - **`pg` and `postgres` are genuinely optional now.** Both database client packages are optional peer dependencies - an app that uses one never needs to install the other.
 - **New package sub-paths.** `@venizia/ignis/postgres/node-postgres`, `@venizia/ignis/postgres/postgres-js`, and `@venizia/ignis/postgres/supabase`.
-- **New Supabase submodule.** Pooler-mode presets for Supavisor (`PoolerModes`, `buildPostgresJsOptions`) and a transaction-scoped RLS helper (`withAuthContext`) that sets `request.jwt.claims` and `SET LOCAL ROLE` safely under a transaction pooler.
-- **Security fix.** The RLS role helper now validates the role against a strict identifier pattern before use, closing a SQL-injection path through a JWT-supplied role claim.
+- **New Supabase submodule.** Pooler-mode presets for Supavisor (`PoolerModes`, `buildPostgresJsOptions`). A transaction-scoped RLS helper (`withAuthContext`) sets `request.jwt.claims` and `SET LOCAL ROLE` safely under a transaction pooler.
+- **Security fix.** The RLS role helper now validates the role against a strict identifier pattern before use. This closes a SQL-injection path through a JWT-supplied role claim.
 - **Fixed.** The `@venizia/ignis/grpc` export pointed at a directory that no longer existed and threw `ERR_MODULE_NOT_FOUND`.
 
 ## Who is affected
@@ -99,10 +111,10 @@ bun add postgres  # postgres-js (needed for the Supabase transaction pooler)
 
 - **Driver contract:** `IRelationalDriver` (`createConnector`, `acquire`, `getClient`, `end`), `IRelationalConnection` (`execute`, `release`), `IStatementResult` (`{ count }`). Each driver maps its native result shape (`pg`'s `rowCount`, postgres-js's `count`) onto this shared vocabulary.
 - **`useDriver({ driver, schema? })`** assigns `this.driver` and rebuilds `this.connector` from it in one call, so a datasource can never end up half-wired.
-- **`resolveDatabaseDriver({ client })`** structurally detects the client (postgres-js vs node-postgres) and dynamically imports only the matching driver - the losing package is never loaded.
-- **Supabase pooler presets:** `buildPostgresJsOptions({ mode: PoolerModes.TRANSACTION })` returns `{ prepare: false }`, required under Supavisor's transaction pool mode since a prepared statement does not survive a backend swap.
-- **`withAuthContext({ transaction, claims, role? })`** binds `request.jwt.claims` as a parameter and sets a transaction-scoped `SET LOCAL ROLE` so `auth.uid()` resolves inside RLS policies. `role` defaults to the JWT's own `role` claim; the value is validated before any statement runs.
-- **Driver asymmetry, deliberate:** after a failed `COMMIT`, `node-postgres` can discard the poisoned connection; `postgres-js`'s reserved-connection API cannot, so it returns the connection to its pool. `release({ destroy: true })` is accepted by both drivers and honored by the one that can act on it.
+- **`resolveDatabaseDriver({ client })`** structurally detects the client (postgres-js vs node-postgres) and dynamically imports only the matching driver. The losing package never loads.
+- **Supabase pooler presets:** `buildPostgresJsOptions({ mode: PoolerModes.TRANSACTION })` returns `{ prepare: false }`. Supavisor's transaction pool mode requires it, since a prepared statement does not survive a backend swap.
+- **`withAuthContext({ transaction, claims, role? })`** binds `request.jwt.claims` as a parameter and sets a transaction-scoped `SET LOCAL ROLE` so `auth.uid()` resolves inside RLS policies. `role` defaults to the JWT's own `role` claim. The value is validated before any statement runs.
+- **Driver asymmetry, deliberate:** after a failed `COMMIT`, `node-postgres` can discard the poisoned connection. `postgres-js`'s reserved-connection API cannot, so it returns the connection to its pool instead. Both drivers accept `release({ destroy: true })`, but only the one that can act on it honors the flag.
 
 <details>
 <summary>Files changed</summary>
@@ -125,5 +137,8 @@ bun add postgres  # postgres-js (needed for the Supabase transaction pooler)
 
 </details>
 
-> [!TIP]
-> The how-to lives in the guide [Postgres Drivers & Supabase](/guides/core-concepts/persistent/postgres-drivers) and the transaction lifecycle detail in [Transactions](/guides/core-concepts/persistent/transactions).
+## See also
+
+- [Postgres Drivers & Supabase](/guides/core-concepts/persistent/postgres-drivers) - the how-to guide
+- [Transactions](/guides/core-concepts/persistent/transactions) - the transaction lifecycle in full
+- [Connectors Consistency Hardening](/changelogs/2026-07-11-connectors-consistency-hardening) - the same-day connector review

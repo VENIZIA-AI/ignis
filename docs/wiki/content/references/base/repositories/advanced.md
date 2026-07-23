@@ -6,7 +6,7 @@ difficulty: intermediate
 
 # Advanced Repository Features
 
-Exhaustive reference for everything beyond basic CRUD - transactions, row-level locking, hidden-property exclusion, performance tuning, return-type inference, debugging, and the built-in safety guards. For the common tasks, start with the [Repositories overview](/references/base/repositories/).
+Everything beyond basic CRUD - transactions, row-level locking, hidden-property exclusion, performance tuning, return-type inference, debugging, and the built-in safety guards. For the common tasks, start with the [Repositories overview](/references/base/repositories/).
 
 **Files:**
 
@@ -22,9 +22,7 @@ Exhaustive reference for everything beyond basic CRUD - transactions, row-level 
 
 ## Transactions
 
-Orchestrate atomic operations across multiple repositories. `repository.beginTransaction()` delegates to `dataSource.beginTransaction()` and returns an `IDatabaseTransaction` (`isActive`, `commit()`, `rollback()`, `connector`, `isolationLevel`).
-
-### Basic transaction
+Operations on separate repositories only become one atomic unit when they share a transaction handle. Start one and pass it to every call that must succeed or fail together:
 
 ```typescript
 const tx = await repository.beginTransaction();
@@ -49,12 +47,18 @@ try {
 }
 ```
 
+### The rules
+
+- `beginTransaction()` delegates to `dataSource.beginTransaction()`.
+- The returned `IDatabaseTransaction` exposes `isActive`, `commit()`, `rollback()`, `connector`, and `isolationLevel`.
+- Pass the same `tx` as `options.transaction` on every call that belongs to the unit of work.
+
 > [!WARNING] `rollback()` can throw
-> A failed `COMMIT` or `ROLLBACK` **throws** rather than resolving as success - a poisoned connection is destroyed rather than returned to the pool. Because `rollback()` can throw and is normally called from a `catch`, nest it in its own `try...catch` if the rollback error matters; a `rollback()` called after the transaction already failed is a silent no-op, so the `catch { await tx.rollback(); throw error; }` pattern shown above is always safe. See [DataSources - Full Reference](/references/base/datasources-reference#transaction-support) for the full commit/rollback lifecycle.
+> A failed `COMMIT` or `ROLLBACK` throws rather than resolving as success - a poisoned connection is destroyed rather than returned to the pool. Because `rollback()` can throw and is normally called from a `catch`, nest it in its own `try...catch` if the rollback error matters. A `rollback()` called after the transaction already failed is a silent no-op, so the `catch { await tx.rollback(); throw error; }` pattern in the basic transaction example is always safe. See [DataSources - Full Reference](/references/base/datasources-reference#transaction-support) for the full commit/rollback lifecycle.
 
 ### Isolation levels
 
-Control how transactions interact with concurrent operations using the `IsolationLevels` const class:
+Pass `isolationLevel` to control how the transaction sees concurrent changes:
 
 ```typescript
 import { IsolationLevels } from '@venizia/ignis/postgres';
@@ -64,15 +68,17 @@ const tx = await repository.beginTransaction({
 });
 ```
 
-| Level | Description | Use case |
-|-------|-------------|----------|
-| `IsolationLevels.READ_COMMITTED` | Default. See committed data only | Most applications |
-| `IsolationLevels.REPEATABLE_READ` | Consistent reads within transaction | Reports, analytics |
-| `IsolationLevels.SERIALIZABLE` | Full isolation, prevents anomalies | Financial, inventory |
+| Level | SQL | Use case |
+|---|---|---|
+| `IsolationLevels.READ_COMMITTED` | `READ COMMITTED` | Default. Sees committed data only |
+| `IsolationLevels.REPEATABLE_READ` | `REPEATABLE READ` | Consistent reads within the transaction |
+| `IsolationLevels.SERIALIZABLE` | `SERIALIZABLE` | Full isolation, prevents anomalies |
 
 A plain string literal (`'SERIALIZABLE'`) works too - `isolationLevel` is typed `TIsolationLevel`, a string union the const class's values satisfy.
 
-### Transaction with multiple repositories
+### Raw SQL inside a transaction
+
+A transaction also covers Drizzle's `sql` template for atomic column updates:
 
 ```typescript
 async function transferFunds(fromId: string, toId: string, amount: number) {
@@ -91,11 +97,6 @@ async function transferFunds(fromId: string, toId: string, amount: number) {
       options: { transaction: tx },
     });
 
-    await transferRepository.create({
-      data: { fromId, toId, amount, status: 'completed' },
-      options: { transaction: tx },
-    });
-
     await tx.commit();
   } catch (error) {
     await tx.rollback();
@@ -106,11 +107,7 @@ async function transferFunds(fromId: string, toId: string, amount: number) {
 
 ## Row-Level Locking
 
-Acquire pessimistic locks on selected rows within a transaction using PostgreSQL's `SELECT ... FOR UPDATE/SHARE` syntax.
-
-### Basic usage
-
-Pass `lock` in `options` alongside a `transaction`:
+Acquire pessimistic locks on selected rows inside a transaction with PostgreSQL's `SELECT ... FOR UPDATE/SHARE`. Pass `lock` alongside `transaction`:
 
 ```typescript
 const tx = await repository.beginTransaction();
@@ -119,10 +116,7 @@ try {
   // Lock the row - other transactions will wait
   const item = await repository.findOne({
     filter: { where: { id: '123' } },
-    options: {
-      transaction: tx,
-      lock: { strength: 'update' },
-    },
+    options: { transaction: tx, lock: { strength: 'update' } },
   });
 
   // Safe to modify - no concurrent changes possible
@@ -139,22 +133,22 @@ try {
 }
 ```
 
+**Supported methods:** `find`, `findOne`, `findById` (delegates to `findOne`). Not `count`/`existsWith`.
+
 ### Lock strengths
 
-Use the `LockStrengths` const class or string literals:
+Use the `LockStrengths` const class or an equivalent string literal:
 
 ```typescript
 import { LockStrengths } from '@venizia/ignis';
 
-// Using constant
 lock: { strength: LockStrengths.UPDATE }
-
-// Using string literal
+// same as
 lock: { strength: 'update' }
 ```
 
 | Strength | SQL | Use case |
-|----------|-----|----------|
+|---|---|---|
 | `update` | `FOR UPDATE` | Exclusive lock for writes |
 | `no key update` | `FOR NO KEY UPDATE` | Exclusive lock, allows concurrent `FOR KEY SHARE` |
 | `share` | `FOR SHARE` | Shared read lock, prevents writes |
@@ -162,125 +156,102 @@ lock: { strength: 'update' }
 
 ### Wait behavior
 
-Control what happens when rows are already locked via `lock.config`:
+Control what happens when a targeted row is already locked via `lock.config`:
 
 ```typescript
 // Skip locked rows (queue-style worker pattern)
 const items = await repository.find({
   filter: { where: { status: 'pending' }, limit: 10 },
-  options: {
-    transaction: tx,
-    lock: { strength: 'update', config: { skipLocked: true } },
-  },
+  options: { transaction: tx, lock: { strength: 'update', config: { skipLocked: true } } },
 });
 
 // Fail immediately instead of waiting
 const item = await repository.findOne({
   filter: { where: { id: '123' } },
-  options: {
-    transaction: tx,
-    lock: { strength: 'update', config: { noWait: true } },
-  },
+  options: { transaction: tx, lock: { strength: 'update', config: { noWait: true } } },
 });
 ```
 
 | Config | SQL | Behavior |
-|--------|-----|----------|
-| *(none)* | `FOR UPDATE` | Wait until lock is released |
-| `{ noWait: true }` | `FOR UPDATE NOWAIT` | Throw error immediately if locked |
+|---|---|---|
+| *(none)* | `FOR UPDATE` | Wait until the lock is released |
+| `{ noWait: true }` | `FOR UPDATE NOWAIT` | Throw immediately if locked |
 | `{ skipLocked: true }` | `FOR UPDATE SKIP LOCKED` | Silently skip locked rows |
 
 `noWait` and `skipLocked` are mutually exclusive at the type level (`TLockConfig`).
 
-### Constraints
-
-> [!WARNING]
-> Row-level locking requires a **transaction** and is **incompatible with `include`/`fields`** in the filter (these force the Drizzle Query API, which does not support `.for()`).
-
-```typescript
-// Error - no transaction
-await repository.findOne({
-  filter: { where: { id: '123' } },
-  options: { lock: { strength: 'update' } },
-});
-
-// Error - include forces the Query API
-await repository.findOne({
-  filter: { where: { id: '123' }, include: [{ relation: 'posts' }] },
-  options: { transaction: tx, lock: { strength: 'update' } },
-});
-```
-
-**Supported methods:** `find`, `findOne`, `findById` (delegates to `findOne`). Not `count`/`existsWith`.
+> [!WARNING] Requires a transaction, incompatible with `include`/`fields`
+> Row-level locking needs a transaction and cannot combine with `include`/`fields` in the filter - both force the Drizzle Query API, which has no `.for()`.
+>
+> ```typescript
+> // Error - no transaction
+> await repository.findOne({
+>   filter: { where: { id: '123' } },
+>   options: { lock: { strength: 'update' } },
+> });
+>
+> // Error - include forces the Query API
+> await repository.findOne({
+>   filter: { where: { id: '123' }, include: [{ relation: 'posts' }] },
+>   options: { transaction: tx, lock: { strength: 'update' } },
+> });
+> ```
 
 ## Read Retry (Replica Lag)
 
-Behind a replicated pool (e.g. PgDog primary + replicas), a read that follows a write can land on a replica that has not caught up yet - the classic read-after-write staleness problem. Pass `retry` in `options` on `find`, `findOne`, or `findById` to re-read with backoff until a predicate passes, instead of hand-rolling a polling loop.
-
-This works identically on the PostgreSQL chain (`ReadableRelationalRepository` and everything extending it) and the search chain (`ReadableSearchRepository`, both Typesense and Meilisearch) - see [Search & Typesense - Repository Tiers](/guides/core-concepts/persistent/search-typesense#repository-tiers) for the search-side notes.
-
-### Basic usage
-
-Without `until`, each verb falls back to a sensible default predicate:
+Behind a replicated pool (e.g. PgDog), a read right after a write can land on a replica that has not caught up. The row looks missing or stale. Pass `retry` to re-read until it is fresh:
 
 ```typescript
-// create -> find: default "non-null" predicate is enough
+// create -> read: default predicate ("result is non-null") is enough
 const user = await userRepository.findById({
   id,
   options: { retry: { maxAttempts: 4 } },
 });
-```
 
-### Custom predicate
-
-Supply `until` for anything sharper than "non-null" - it is **typed per verb**, so the predicate always sees exactly what that verb returns:
-
-```typescript
-// update -> find: caller supplies the freshness predicate
+// update -> read: tell retry what "fresh" means
 const order = await orderRepository.findById({
   id,
   options: { retry: { until: result => result?.status === 'PAID' } },
 });
 ```
 
-| Verb | `until` sees | Default predicate (no `until` passed) |
+Works the same on PostgreSQL and search (Typesense, Meilisearch) repositories.
+
+### The rules
+
+- Retry happens only when the read succeeded but `until(result)` says "not yet".
+- A real database error is never retried. It throws immediately, same as without `retry`.
+- Out of attempts? You get the last result as-is. No new error.
+- Inside a transaction, retry is skipped - transactions already go to the primary. Locked reads (`lock`) require a transaction, so they never retry either.
+- Write verbs do not have this option. `retry` on a write is a compile error.
+
+### Options
+
+| Option | Type | Default | Meaning |
+|--------|------|---------|---------|
+| `maxAttempts` | `number` | `3` | Total reads, including the first. Below `1` throws. |
+| `until` | `(result) => boolean` | per verb (below) | Return `true` to stop: "fresh enough". |
+| `maxTotalMs` | `number` | unlimited | Stop starting new attempts after this much time. Never cuts a running read short. |
+| `backoff` | `IRetryBackoffOptions` | 50ms up to 500ms, jittered | Wait between attempts. Details: [Retry Utility](/references/utilities/retry). |
+| `signal` | `AbortSignal` | - | Cancel the loop. An abort rejects the call. |
+
+`until` is typed per verb - the predicate sees exactly what the verb returns:
+
+| Verb | `until` sees | Default: stops when |
 |---|---|---|
-| `findOne` / `findById` | `TNullable<R>` | Result is neither `null` nor `undefined` |
-| `find` | `Array<R>` | Array is non-empty |
-| `find` with `options.shouldQueryRange: true` | `{ data: R[]; range: ... }` | `data.length > 0` |
+| `findOne` / `findById` | `TNullable<R>` | result is not `null`/`undefined` |
+| `find` | `Array<R>` | array is non-empty |
+| `find` + `shouldQueryRange: true` | `{ data: R[]; range: ... }` | `data` is non-empty |
 
-### Option reference
-
-| Option | Type | Default | Description |
-|--------|------|---------|-------------|
-| `maxAttempts` | `number` | `3` | Total read attempts, including the first. A value below `1` throws immediately, before any read runs - it is a nonsensical configuration. |
-| `maxTotalMs` | `number` | Unlimited | Bounds only whether a NEW attempt may start - an in-flight read is never interrupted, so the first read always runs to completion. A non-positive budget (`0` or negative) simply means "no retries": exactly one read still happens. |
-| `signal` | `AbortSignal` | - | Aborts the retry loop between attempts and during backoff sleeps - pass the incoming request's signal so a cancelled request stops retrying instead of finishing on a connection nobody is reading. |
-| `backoff` | `IRetryBackoffOptions` | EXPONENTIAL from 50ms, capped at 500ms, EQUAL jitter | Tuned for short replica-lag waits - see [Retry Utility](/references/utilities/retry) for the full strategy/jitter reference. |
-| `until` | `(result) => boolean` | Per-verb default above | Return `true` when the result is fresh enough to stop retrying. |
-
-> [!WARNING] `find`'s default predicate treats "no results" as "not yet"
-> The default `until` for `find` is "array is non-empty," so a `find` that legitimately matches nothing retries the full attempt budget with backoff sleeps before returning an empty array. On endpoints where "no results" is a normal answer, pass an explicit `until` or skip `retry` there. `findOne`/`findById` do not have this problem - "just written, therefore must exist" is the normal expectation for those verbs.
-
-### Behavior
-
-- **The read is retried while `until(result)` is `false`.** A real database error is **never** retried - it propagates immediately, exactly as it would without `retry`.
-- **On exhaustion, the LAST result is returned as-is.** No new error is fabricated and no "not found" is invented - a stale-but-successful read after exhausting attempts is still handed back to the caller to handle.
-- **Two configurations reject instead of returning a result.** An invalid `maxAttempts` (below `1`) throws immediately, before any read runs. An aborted `signal` rejects the call once the abort fires - the caller cancelled and no longer wants a result, so `retry` does not fall back to the last (stale) result the way exhaustion does.
-- **Skipped inside a transaction.** Pools route transactions to the primary, so there is no replica lag to wait out - `retry` is a no-op there, not an error.
-- **Locked reads are never retried.** `lock` requires a transaction (see [Row-Level Locking](#row-level-locking) above), and transactions already skip retry.
-- **Write verbs do not accept `retry`.** An inline `options: { retry: ... }` literal is rejected by TypeScript's excess-property check at compile time. A pre-built variable carrying an extra `retry` key passes structurally instead of being rejected, but the key is inert there - it is never read. Routing stays pooler-owned either way: IGNIS never targets a primary or a replica directly.
+> [!WARNING] Empty is a normal answer for `find`
+> `find`'s default predicate is "array is non-empty". A `find` that legitimately matches nothing will burn all attempts before returning `[]`. Where "no results" is normal, pass your own `until` - or do not use `retry` there.
 
 > [!TIP]
-> `retry` is built on the `executeWithRetryUntil` helper from `@venizia/ignis-helpers`, exported for direct use outside repositories - see [Retry Utility](/references/utilities/retry).
+> `retry` runs on `executeWithRetryUntil` from `@venizia/ignis-helpers` - use it directly for any non-repository polling. See [Retry Utility](/references/utilities/retry).
 
 ## Hidden Properties
 
-Automatically exclude sensitive fields from query results.
-
-### Configuration
-
-Define hidden properties in your model:
+Fields like `password` must never leave the database by accident. Declare them once on the model and every read path drops them for you:
 
 ```typescript
 @model({
@@ -294,130 +265,72 @@ export class User extends BaseEntity<typeof User.schema> {
 }
 ```
 
-### Automatic exclusion
-
-Hidden properties are excluded at the **SQL level** for maximum security:
-
 ```typescript
-// Read operations exclude hidden properties
 const user = await userRepository.findById({ id: '123' });
-// Result: { id: '123', email: 'john@example.com', name: 'John' }
-// Note: password, secret, apiKey are NOT included
-
-// Write operations exclude hidden from RETURNING clause
-const created = await userRepository.create({
-  data: { email: 'new@example.com', password: 'hashed_secret' },
-});
-// Result: { count: 1, data: { id: '456', email: 'new@example.com' } }
-// Note: password stored in DB but not returned
+// { id: '123', email: 'john@example.com', name: 'John' } - no password, secret, apiKey
 ```
 
-### Filtering by hidden properties
+### The rules
 
-You **can** filter by hidden properties - you just can't see them in results:
-
-```typescript
-// This works! Finds user but password not in result
-const user = await userRepository.findOne({
-  filter: { where: { password: 'hashed_value' } },
-});
-```
-
-### Relations with hidden properties
-
-Hidden properties are also excluded from included relations - see [Relations & Includes](./relations#hidden-properties-in-relations).
-
-```typescript
-const post = await postRepository.findOne({
-  filter: { include: [{ relation: 'author' }] },
-});
-// post.author will NOT include password, secret, etc.
-```
-
-### Accessing hidden data
-
-When you need hidden fields (e.g., for authentication), bypass the repository via the `connector` getter:
-
-```typescript
-// Direct connector access - includes all fields
-const connector = userRepository.connector;
-const [fullUser] = await connector
-  .select()
-  .from(User.schema)
-  .where(eq(User.schema.email, 'john@example.com'));
-// fullUser includes password, secret, apiKey
-```
+- Exclusion happens at the **SQL level** - hidden columns are never selected, not filtered out afterward.
+- Read operations exclude hidden properties from the result.
+- Write operations exclude hidden properties from the `RETURNING` clause - the value is still written, only not echoed back.
+- You **can** filter `where` on a hidden property; you still cannot see it in the result.
+- Hidden properties are also excluded from included relations - see [Relations & Includes](./relations#hidden-properties-in-relations).
+- Need a hidden field anyway (e.g. to verify a password hash)? Use `repository.connector` to bypass the exclusion - see [Direct Connector Access](#direct-connector-access).
 
 ## Performance Optimization
 
 ### Core API for flat queries
 
-The repository automatically uses Drizzle's Core API (faster) for simple queries; a query with `include` or `fields` forces the Query API instead:
+A query with no `include`/`fields` runs on Drizzle's Core API, which is faster than the Query API a relation forces:
 
 ```typescript
 // Automatically optimized - uses Core API
 const users = await repository.find({
-  filter: {
-    where: { status: 'active' },
-    limit: 10,
-    order: ['createdAt DESC'],
-  },
+  filter: { where: { status: 'active' }, limit: 10, order: ['createdAt DESC'] },
 });
-// Uses: db.select().from(table).where(...).orderBy(...).limit(10)
+// db.select().from(table).where(...).orderBy(...).limit(10)
 
-// Uses Query API (has relations)
+// Has a relation - uses Query API
 const usersWithPosts = await repository.find({
-  filter: {
-    where: { status: 'active' },
-    include: [{ relation: 'posts' }],
-  },
+  filter: { where: { status: 'active' }, include: [{ relation: 'posts' }] },
 });
-// Uses: db.query.tableName.findMany({ with: { posts: true }, ... })
+// db.query.tableName.findMany({ with: { posts: true }, ... })
 ```
 
 | Filter options | API used | Performance |
-|----------------|----------|-------------|
+|---|---|---|
 | `where`, `limit`, `order`, `offset`/`skip` only | Core API | ~15-20% faster |
 | Has `include` (relations) | Query API | Standard |
 | Has `fields` selection | Query API | Standard |
 
-### Always use limit
+### Always set a limit
 
-Prevent memory exhaustion on large tables:
+An unbounded `find` can return millions of rows:
 
 ```typescript
-// Good - bounded result set
-await repository.find({
-  filter: { where: { status: 'active' }, limit: 100 },
-});
+// Bounded result set
+await repository.find({ filter: { where: { status: 'active' }, limit: 100 } });
 
-// Dangerous - could return millions of rows
-await repository.find({
-  filter: { where: { status: 'active' } },
-});
+// Dangerous - no limit in the filter
+await repository.find({ filter: { where: { status: 'active' } } });
 ```
 
 > [!NOTE]
-> `find()` always applies a default limit when no `limit` is set in the filter - the model's `@model({ settings: { defaultLimit } })` if declared, otherwise the global default of `10`. Pass an explicit `limit` in the filter to override either default. `findOne`/`findById` are unaffected - they force `limit: 1` on the Core API path regardless.
+> `find()` always applies a default limit when the filter has none - the model's `@model({ settings: { defaultLimit } })` if declared, otherwise the global default of `10`. Pass an explicit `limit` to override either default. `findOne`/`findById` are unaffected - they force `limit: 1` on the Core API path regardless.
 
 ### Pagination with data range
 
-Use `shouldQueryRange` to get both data and total count in a single call:
+Pass `shouldQueryRange` to get data and total count from a single call:
 
 ```typescript
 const result = await userRepository.find({
-  filter: {
-    where: { status: 'active' },
-    limit: 20,
-    skip: 40,
-    order: ['createdAt DESC'],
-  },
+  filter: { where: { status: 'active' }, limit: 20, skip: 40, order: ['createdAt DESC'] },
   options: { shouldQueryRange: true },
 });
-
-// Result type: { data: User[], range: { start: number, end: number, total: number } }
-// range follows HTTP Content-Range standard (inclusive end index)
-// Example: { data: [...20 users], range: { start: 40, end: 59, total: 150 } }
+// { data: User[], range: { start: 40, end: 59, total: 150 } }
+// range follows the HTTP Content-Range standard (inclusive end index)
 ```
 
 - **Parallel by default.** `find` and `count` execute concurrently via `Promise.all`.
@@ -426,14 +339,14 @@ const result = await userRepository.find({
 ### WeakMap cache
 
 - **Column metadata is cached per schema.** The filter builder caches table column metadata (`getCachedColumns`) to avoid repeated reflection.
-- **Populated on first access.** The first access calls Drizzle's `getTableColumns()` and caches the result; subsequent queries retrieve it from the `WeakMap`.
+- **Populated on first access.** The first access calls Drizzle's `getTableColumns()` and caches the result; later queries read the `WeakMap` instead.
 - **No configuration needed.** The cache is automatic.
 
 ## TypeScript Return Types
 
 ### shouldReturn inference
 
-Repository methods infer return types based on `shouldReturn`:
+`shouldReturn` decides the result shape at the type level, no manual casting needed:
 
 ```typescript
 // shouldReturn: false - TypeScript knows data is null
@@ -441,38 +354,24 @@ const result1 = await repository.create({
   data: { name: 'John' },
   options: { shouldReturn: false },
 });
-// Type: Promise<{ count: number; data: undefined | null }>
+// Promise<{ count: number; data: undefined | null }>
 
 // shouldReturn: true (default) - TypeScript knows data is the entity
-const result2 = await repository.create({
-  data: { name: 'John' },
-  options: { shouldReturn: true },
-});
-// Type: Promise<{ count: number; data: User }>
-console.log(result2.data.name); // 'John' - fully typed!
-
-// Array operations
-const results = await repository.createAll({
-  data: [{ name: 'John' }, { name: 'Jane' }],
-  options: { shouldReturn: true },
-});
-// Type: Promise<{ count: number; data: User[] }>
+const result2 = await repository.create({ data: { name: 'John' } });
+console.log(result2.data.name); // 'John' - fully typed
 ```
+
+The same inference applies to `createAll`, `updateById`, `updateAll`, `updateBy`, `deleteById`, `deleteAll`, `deleteBy`.
 
 ### Generic return types
 
-Override return types for queries with relations:
+Pass a type argument to widen the result for a query with relations:
 
 ```typescript
-type UserWithPosts = User & {
-  posts: Post[];
-};
+type UserWithPosts = User & { posts: Post[] };
 
 const user = await userRepository.findOne<UserWithPosts>({
-  filter: {
-    where: { id: '123' },
-    include: [{ relation: 'posts' }],
-  },
+  filter: { where: { id: '123' }, include: [{ relation: 'posts' }] },
 });
 
 if (user) {
@@ -480,149 +379,131 @@ if (user) {
 }
 ```
 
-**Supported methods:**
-- `find<R>()`, `findOne<R>()`, `findById<R>()`
-- `create<R>()`, `createAll<R>()`
-- `updateById<R>()`, `updateAll<R>()`, `updateBy<R>()`
-- `deleteById<R>()`, `deleteAll<R>()`, `deleteBy<R>()`
+**Supported on:** `find<R>()`, `findOne<R>()`, `findById<R>()`, `create<R>()`, `createAll<R>()`, `updateById<R>()`, `updateAll<R>()`, `updateBy<R>()`, `deleteById<R>()`, `deleteAll<R>()`, `deleteBy<R>()`.
 
 ## Debugging
 
 ### Log option
 
-Enable logging for specific operations via `TRepositoryLogOptions` (`{ use: boolean; level?: TLogLevel }`):
+Pass `log` to trace a single operation without turning on logging globally:
 
 ```typescript
 await repository.create({
   data: { name: 'John', email: 'john@example.com' },
   options: { log: { use: true, level: 'debug' } },
 });
-// Output: [_create] Executing with opts: { data: [...], options: {...} }
-
-// Available levels: 'debug', 'info', 'warn', 'error'
-await repository.updateById({
-  id: '123',
-  data: { name: 'Jane' },
-  options: { log: { use: true, level: 'info' } },
-});
+// [_create] Executing with opts: { data: [...], options: {...} }
 ```
 
-**Available on:** `create`, `createAll`, `updateById`, `updateAll`, `updateBy`, `deleteById`, `deleteAll`, `deleteBy` - every write operation that goes through the internal `_create`, `_update`, or `_delete` methods.
+| Level | Meaning |
+|---|---|
+| `debug` | Verbose - opts and intermediate state |
+| `info` | Default when `level` is omitted |
+| `warn` | Notable but non-fatal conditions |
+| `error` | Failure paths |
+
+**Supported on:** `create`, `createAll`, `updateById`, `updateAll`, `updateBy`, `deleteById`, `deleteAll`, `deleteBy` - every write operation that goes through the internal `_create`, `_update`, or `_delete` methods.
 
 ### Query interface validation
 
-The repository validates schema registration on first Query API access:
+The repository validates schema registration the first time it touches the Query API. A mismatch fails with a pointer to the problem instead of a raw Drizzle error:
 
-```typescript
-// If schema key doesn't match, you get a helpful error:
-// Error: [UserRepository] Schema key mismatch
-// | Entity name 'User' not found in connector.query
-// | Available keys: [Configuration, Post]
-// | Ensure the model's TABLE_NAME matches the schema registration key
+```
+Error: [UserRepository] Schema key mismatch
+| Entity name 'User' not found in connector.query
+| Available keys: [Configuration, Post]
+| Ensure the model's TABLE_NAME matches the schema registration key
 ```
 
 ## Safety Features
 
 ### Empty where protection
 
-`updateAll`/`updateBy`/`deleteAll`/`deleteBy` refuse an empty `where` unless `force: true` is passed - prevents accidental mass updates/deletes:
+`updateAll`/`updateBy`/`deleteAll`/`deleteBy` refuse an empty `where` unless `force: true` is passed, to block accidental mass updates and deletes:
 
 ```typescript
-// Throws error - empty where without force
+// Throws - empty where without force
 await repository.deleteAll({ where: {} });
 
-// Explicit force flag - logs warning, proceeds
-await repository.deleteAll({
-  where: {},
-  options: { force: true },
-});
+// Explicit force - logs a warning, proceeds
+await repository.deleteAll({ where: {}, options: { force: true } });
 // Warning: [_delete] Entity: User | Performing delete with empty condition
 ```
 
 | Scenario | `force: false` (default) | `force: true` |
-|----------|-------------------------|---------------|
-| Empty `where` | Throws error | Logs warning, proceeds |
+|---|---|---|
+| Empty `where` | Throws | Logs a warning, proceeds |
 | Valid `where` | Executes normally | Executes normally |
 
 > [!NOTE]
-> `updateById` and `deleteById` always have a non-empty where (`{ id }`) so they are not affected by this guard.
+> `updateById` and `deleteById` always have a non-empty where (`{ id }`), so this guard never applies to them.
 
 ### Transaction safety
 
-`resolveConnector` validates transaction state before use:
+`resolveConnector` validates transaction state before every use. A transaction already committed or rolled back fails fast instead of running against a dead connection:
 
-```typescript
-// If a transaction has already been committed or rolled back:
-// Error: [UserRepository][resolveConnector] Transaction is no longer active
+```
+Error: [UserRepository][resolveConnector] Transaction is no longer active
 ```
 
 ## Direct Connector Access
 
-For advanced queries not supported by the repository API, `repository.connector` is a getter (not a method) that resolves the datasource's Drizzle connector:
+`repository.connector` is a getter (not a method) that resolves the datasource's Drizzle connector, for queries the repository API does not cover:
 
 ```typescript
 const connector = repository.connector;
 
-// Raw Drizzle query
 const results = await connector
-  .select({
-    userId: userTable.id,
-    postCount: sql<number>`count(${postTable.id})`,
-  })
+  .select({ userId: userTable.id, postCount: sql<number>`count(${postTable.id})` })
   .from(userTable)
   .leftJoin(postTable, eq(userTable.id, postTable.authorId))
   .groupBy(userTable.id)
   .having(sql`count(${postTable.id}) > 5`);
-
-// Use with caution - bypasses repository features like hidden properties
 ```
+
+> [!WARNING]
+> Queries through `connector` bypass repository features - hidden-property exclusion included. Use it with intent, not as a default escape hatch.
 
 ## Repository Class Hierarchy
 
-The PostgreSQL connector's canonical names carry the engine in the class name; the historical `*Repository` names remain available as compatibility aliases re-exporting the exact same classes.
+The PostgreSQL connector's canonical names carry the engine in the class name; the historical `*Repository` names remain as compatibility aliases re-exporting the exact same classes.
 
 | Canonical class | Alias | Scope | Description |
 |---|---|---|---|
-| `AbstractRepository` | - | N/A | Engine-neutral abstract base (`src/base`), defines all method signatures, lazy `dataSource`/`entity` resolution. Plain `BaseHelper` subclass, no mixin composition. |
+| `AbstractRepository` | - | N/A | Engine-neutral abstract base (`src/base`), defines every method signature, lazy `dataSource`/`entity` resolution. Plain `BaseHelper` subclass, no mixin composition. |
 | `RelationalBaseRepository` | `PostgresBaseRepository` | N/A | PostgreSQL connector base. Adds `FilterBuilder`/`UpdateBuilder`, hidden-column exclusion (`getHiddenProperties`/`getVisibleProperties`), default-filter application (`getDefaultFilter`/`applyDefaultFilter`) - the behavior formerly provided by the now-removed `FieldsVisibilityMixin`/`DefaultFilterMixin` (see [Repository Mixins](./mixins)). |
-| `ReadableRelationalRepository` | `ReadableRepository` | `READ_ONLY` | Read-only operations (`find`, `findOne`, `findById`, `count`, `existsWith`). Write operations throw errors. |
+| `ReadableRelationalRepository` | `ReadableRepository` | `READ_ONLY` | Read-only operations (`find`, `findOne`, `findById`, `count`, `existsWith`). Write operations throw. |
 | `PersistableRelationalRepository` | `PersistableRepository` | `READ_WRITE` | Adds write operations (`create`, `update`, `delete`) with `UpdateBuilder`. |
 | `DefaultRelationalRepository` | `DefaultCRUDRepository` | `READ_WRITE` | Extends `PersistableRelationalRepository` with no additional logic - **recommended default**. |
-| `SoftDeletableRelationalRepository` | `SoftDeletableRepository` | `READ_WRITE` | Extends `DefaultRelationalRepository` with soft delete + restore operations - see [SoftDeletableRepository](./soft-deletable). |
+| `SoftDeletableRelationalRepository` | `SoftDeletableRepository` | `READ_WRITE` | Extends `DefaultRelationalRepository` with soft delete and restore - see [SoftDeletableRepository](./soft-deletable). |
 
-Code samples throughout the docs use the alias names (`DefaultCRUDRepository`, `ReadableRepository`) since that is what `@venizia/ignis/postgres` code most commonly imports today.
-
-### Creating a read-only repository
+Code samples throughout the docs use the alias names (`DefaultCRUDRepository`, `ReadableRepository`), since that is what `@venizia/ignis/postgres` code most commonly imports today.
 
 ```typescript
 @repository({ model: AuditLog, dataSource: PostgresDataSource })
 export class AuditLogRepository extends ReadableRepository<typeof AuditLog.schema> {
   // Only has: find, findOne, findById, count, existsWith
-  // Write operations throw "NOT ALLOWED" error
+  // Write operations throw a "NOT ALLOWED" error
 }
 ```
 
 ### Alias methods
 
-`AbstractRepository` provides two alias methods for convenience:
+`AbstractRepository` provides two alias methods for convenience, both delegating directly and supporting the same `shouldReturn`/`force` options:
 
-- `updateBy(opts)` - Alias for `updateAll(opts)`. Delegates directly.
-- `deleteBy(opts)` - Alias for `deleteAll(opts)`. Delegates directly.
-
-Both accept the same parameters (`where`, `data`/`options`) and support `shouldReturn` and `force` options.
+- `updateBy(opts)` - alias for `updateAll(opts)`.
+- `deleteBy(opts)` - alias for `deleteAll(opts)`.
 
 ## Default Filter Bypass
 
-When models have a `defaultFilter` configured, you can bypass it for admin/maintenance operations:
+A model's `defaultFilter` (e.g. soft-delete's `isDeleted = false`) applies to every query unless you opt out for an admin or maintenance path:
 
 ```typescript
 // Normal query - default filter applies
-await repository.find({
-  filter: { where: { status: 'active' } },
-});
-// WHERE isDeleted = false AND status = 'active' (if model has soft-delete default)
+await repository.find({ filter: { where: { status: 'active' } } });
+// WHERE isDeleted = false AND status = 'active' (if the model has a soft-delete default)
 
-// Admin query - bypass default filter
+// Admin query - bypass the default filter
 await repository.find({
   filter: { where: { status: 'active' } },
   options: { shouldSkipDefaultFilter: true },
@@ -630,122 +511,67 @@ await repository.find({
 // WHERE status = 'active' (includes deleted records)
 ```
 
-**Supported on all operations:**
+**Supported on every operation:**
 
 ```typescript
-// Read operations
 await repository.find({ filter, options: { shouldSkipDefaultFilter: true } });
 await repository.findOne({ filter, options: { shouldSkipDefaultFilter: true } });
 await repository.count({ where, options: { shouldSkipDefaultFilter: true } });
-
-// Write operations
 await repository.updateAll({ where, data, options: { shouldSkipDefaultFilter: true } });
 await repository.deleteAll({ where, options: { shouldSkipDefaultFilter: true, force: true } });
 ```
 
-**Combined with transactions:**
-
-```typescript
-const tx = await repository.beginTransaction();
-await repository.updateAll({
-  where: { status: 'archived' },
-  data: { isDeleted: true },
-  options: {
-    transaction: tx,
-    shouldSkipDefaultFilter: true,
-  },
-});
-await tx.commit();
-```
-
 > [!TIP]
-> See [Default Filter](../filter-system/default-filter) for full documentation on configuring model default filters.
+> Combine it with a transaction for an atomic admin operation:
+> ```typescript
+> const tx = await repository.beginTransaction();
+> await repository.updateAll({
+>   where: { status: 'archived' },
+>   data: { isDeleted: true },
+>   options: { transaction: tx, shouldSkipDefaultFilter: true },
+> });
+> await tx.commit();
+> ```
+> See [Default Filter](../filter-system/default-filter) for configuring model default filters.
 
 ## Nested JSON Updates
 
-Repositories support updating specific fields within `json`/`jsonb` columns without overwriting the entire object, via **JSON path notation** in the update data - handled by `UpdateBuilder`.
-
-### Basic usage
-
-Use dot notation keys to target nested properties:
+`json`/`jsonb` columns update in place with dot-notation keys - `UpdateBuilder` compiles them into chained `jsonb_set` calls instead of overwriting the whole column:
 
 ```typescript
-// Assume 'metadata' is a JSONB column
-// Current value: { theme: 'light', notifications: { email: true } }
-
+// 'metadata' is a jsonb column: { theme: 'light', notifications: { email: true } }
 await repository.updateById({
   id: '123',
   data: {
-    // Update only the theme, preserving other fields
-    'metadata.theme': 'dark',
+    status: 'active',                    // regular column
+    'metadata.theme': 'dark',            // JSON path, any depth
+    'metadata.addresses[0].primary': true, // array element by index
   },
 });
-
-// New value: { theme: 'dark', notifications: { email: true } }
+// metadata becomes: { theme: 'dark', notifications: { email: true }, addresses: [{ primary: true }, ...] }
 ```
 
-### Supported features
+### The rules
 
-- **Deep nesting:** update properties at any depth (e.g., `settings.display.font.size`).
-- **Array access:** update array elements by index (e.g., `tags[0]`).
-- **Auto-creation:** creates missing intermediate keys automatically (`jsonb_set` with `create_missing = true`).
-- **Type safety:** validates that the target column is a JSON/JSONB type.
-- **Multiple updates:** multiple updates to the same column are chained as nested `jsonb_set` calls.
-- **Mixed updates:** combine regular column updates with JSON path updates in a single call.
+- **Deep nesting:** target a property at any depth (`settings.display.font.size`).
+- **Array access:** update an array element by index (`tags[0]`).
+- **Auto-creation:** missing intermediate keys are created automatically (`jsonb_set` with `create_missing = true`).
+- **Type safety:** the target column must be `json`/`jsonb`. Any other column type throws.
+- **Multiple paths on one column:** chained as nested `jsonb_set` calls in a single statement.
+- **Mixed updates:** regular columns and JSON paths combine in the same `data` object, as in the basic usage example.
 
-### Examples
+### Security and validation
 
-#### Deeply nested updates
-
-```typescript
-await repository.updateById({
-  id: '123',
-  data: {
-    'metadata.settings.display.fontSize': 16,
-    'metadata.settings.display.showSidebar': true,
-  },
-});
-```
-
-#### Array element updates
-
-```typescript
-await repository.updateById({
-  id: '123',
-  data: {
-    // Set the first address as primary
-    'metadata.addresses[0].primary': true,
-  },
-});
-```
-
-#### Mixed updates (regular + JSON)
-
-```typescript
-await repository.updateById({
-  id: '123',
-  data: {
-    status: 'active',           // Regular column
-    'metadata.lastLogin': now,  // JSON path
-    'preferences.lang': 'en',   // Another JSON path
-  },
-});
-```
-
-### Security & validation
-
-The framework validates JSON paths to prevent SQL injection:
-
-- **Allowed characters:** path components must match `/^[a-zA-Z_][a-zA-Z0-9_-]*$|^\d+$/` (identifiers, kebab-case, or array indices).
-- **Column type validation:** only `json` and `jsonb` columns are allowed. Other column types throw an error.
-- **Values:** values are serialized to JSONB literals with proper escaping.
+- **Allowed characters:** each path component must match `/^[a-zA-Z_][a-zA-Z0-9_-]*$|^\d+$/` (identifiers, kebab-case, or array indices) - this is what blocks SQL injection through a path.
+- **Column type validation:** only `json` and `jsonb` columns are allowed.
+- **Values:** serialized to JSONB literals with proper escaping.
 
 > [!NOTE]
-> This feature uses PostgreSQL's `jsonb_set` function. It is only available for columns defined as `json` or `jsonb`.
+> This feature uses PostgreSQL's `jsonb_set` function and only applies to columns defined as `json` or `jsonb`.
 
 ## ExtraOptions Reference
 
-All repository operations accept an `options` parameter (`IExtraOptions`/its postgres narrowing `IDatabaseExtraOptions`) with these fields:
+Every repository operation accepts an `options` parameter (`IExtraOptions`, narrowed by postgres to `IDatabaseExtraOptions`):
 
 | Option | Type | Default | Description |
 |--------|------|---------|-------------|
@@ -765,7 +591,7 @@ Write operations additionally support:
 | Option | Type | Default | Description |
 |--------|------|---------|-------------|
 | `shouldReturn` | `boolean` | `true` | Return the created/updated/deleted data |
-| `force` | `boolean` | `false` | Allow empty `where` condition on bulk operations |
+| `force` | `boolean` | `false` | Allow an empty `where` condition on bulk operations |
 | `shouldQueryRange` | `boolean` | `false` | Return `{ data, range }` with total count (find only) |
 
 ## Quick Reference

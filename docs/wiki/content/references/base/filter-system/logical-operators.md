@@ -8,26 +8,27 @@ difficulty: intermediate
 
 Combine multiple conditions with AND and OR logic.
 
+| Form | Where shape | SQL |
+|------|-------------|-----|
+| Implicit AND | multiple keys in one object | `AND` between each key |
+| Explicit AND | `{ and: [...] }` | `AND` between grouped clauses |
+| OR | `{ or: [...] }` | `OR` between grouped clauses |
+| NOT | `{ field: { not: ... } }` | `NOT (...)` around the negated condition |
+
 
 ## Implicit AND
 
-Multiple conditions in the same object are combined with AND:
+Multiple conditions in the same object combine with AND.
 
 ```typescript
-{
-  where: {
-    status: 'active',
-    role: 'admin',
-    verified: true,
-  }
-}
+{ where: { status: 'active', role: 'admin', verified: true } }
 // SQL: WHERE "status" = 'active' AND "role" = 'admin' AND "verified" = true
 ```
 
 
 ## Explicit AND
 
-Use `and` array for explicit AND conditions:
+Use an `and` array to group conditions explicitly.
 
 ```typescript
 {
@@ -35,19 +36,16 @@ Use `and` array for explicit AND conditions:
     and: [
       { status: 'active' },
       { role: { in: ['admin', 'moderator'] } },
-      { createdAt: { gte: new Date('2024-01-01') } },
     ]
   }
 }
-// SQL: WHERE ("status" = 'active')
-//        AND ("role" IN ('admin', 'moderator'))
-//        AND ("created_at" >= '2024-01-01')
+// SQL: WHERE ("status" = 'active') AND ("role" IN ('admin', 'moderator'))
 ```
 
 
-## OR Operator
+## OR
 
-Use `or` array for OR conditions:
+Use an `or` array to match any of several conditions.
 
 ```typescript
 {
@@ -55,147 +53,91 @@ Use `or` array for OR conditions:
     or: [
       { status: 'active' },
       { isPublished: true },
-      { featured: true },
     ]
   }
 }
-// SQL: WHERE ("status" = 'active')
-//         OR ("is_published" = true)
-//         OR ("featured" = true)
+// SQL: WHERE ("status" = 'active') OR ("is_published" = true)
 ```
+
+
+## NOT
+
+`not` negates whatever it wraps: a bare value negates `eq`, a nested operator object negates that operator.
+
+```typescript
+{ where: { status: { not: 'archived' } } }
+// SQL: WHERE NOT ("status" = 'archived')
+
+{ where: { views: { not: { gt: 100 } } } }
+// SQL: WHERE NOT ("views" > 100)
+```
+
+> [!NOTE]
+> `not` is supported on the PostgreSQL connector. The dedicated negation operators below are often clearer for a single condition.
+
+
+## Dedicated Negation Operators
+
+| Operator | Example | SQL |
+|----------|---------|-----|
+| `ne` / `neq` | `{ status: { ne: 'deleted' } }` | `!=` |
+| `nin` | `{ status: { nin: ['deleted', 'banned'] } }` | `NOT IN` |
+| `nlike` | `{ email: { nlike: '%@test.com' } }` | `NOT LIKE` |
+| `nilike` | `{ email: { nilike: '%@test.com' } }` | `NOT ILIKE` |
+| `isn` / `ne: null` | `{ verifiedAt: { isn: null } }` | `IS NOT NULL` |
+| `notBetween` | `{ score: { notBetween: [40, 60] } }` | `NOT BETWEEN` |
+
+> [!NOTE]
+> `ne`/`neq`/`nin` follow SQL three-valued logic - a row whose field is `NULL` never matches them (`NULL <> value` is UNKNOWN, not TRUE). Use `exists`/`notExists` or an explicit `{ field: null }` branch to include NULL rows.
 
 
 ## Nested AND/OR
 
-Combine AND and OR for complex logic:
+Combine AND and OR for multi-level logic.
 
 ```typescript
 // (status = 'active' AND verified = true) OR (role = 'admin')
 {
   where: {
     or: [
-      {
-        and: [
-          { status: 'active' },
-          { verified: true },
-        ]
-      },
+      { and: [{ status: 'active' }, { verified: true }] },
       { role: 'admin' },
     ]
   }
 }
+```
 
+A top-level key alongside `or` ANDs with it - these two filters are equivalent:
+
+```typescript
 // status = 'active' AND (role = 'admin' OR role = 'moderator')
-{
-  where: {
-    status: 'active',
-    or: [
-      { role: 'admin' },
-      { role: 'moderator' },
-    ]
-  }
-}
-// Equivalent to:
-{
-  where: {
-    status: 'active',
-    role: { in: ['admin', 'moderator'] },
-  }
-}
+{ where: { status: 'active', or: [{ role: 'admin' }, { role: 'moderator' }] } }
+
+// Same result, using in instead
+{ where: { status: 'active', role: { in: ['admin', 'moderator'] } } }
 ```
 
 
 ## Empty Groups
 
-An empty `and`/`or` array is not a no-op -- each empty case resolves to what the operator means with zero conditions:
+An empty `and`/`or` array is not a no-op - each resolves to what the operator means with zero conditions.
 
 ```typescript
-// Empty AND is vacuously TRUE - dropped from the query entirely
 { where: { and: [] } }
-// SQL: (no condition added)
+// Vacuously TRUE - dropped from the query entirely, no condition added
 
-// Empty OR is vacuously FALSE - compiles to a condition that matches nothing
 { where: { or: [] } }
-// SQL: WHERE false
-```
-
-This matters when the array is built from a caller-supplied list, e.g. `{ or: permittedOrgIds.map(id => ({ orgId: id })) }`: an empty permission list must return zero rows, not every row, so `or: []` matching nothing is the safe default.
-
-
-## NOT Logic
-
-IGNIS has a general-purpose `not` operator that negates whatever condition it wraps - a bare value negates `eq`, and a nested operator object negates that operator. It is supported on the PostgreSQL connector:
-
-```typescript
-// NOT equal (bare value negates eq)
-{ where: { status: { not: 'archived' } } }
-// SQL: WHERE NOT ("status" = 'archived')
-
-// Negate a nested operator condition
-{ where: { views: { not: { gt: 100 } } } }
-// SQL: WHERE NOT ("views" > 100)
-```
-
-The dedicated negation operators remain available and are often clearer for a single condition:
-
-```typescript
-// NOT equal
-{ where: { status: { ne: 'deleted' } } }
-{ where: { status: { neq: 'deleted' } } }
-
-// NOT IN
-{ where: { status: { nin: ['deleted', 'banned'] } } }
-
-// NOT LIKE
-{ where: { email: { nlike: '%@test.com' } } }
-
-// NOT ILIKE
-{ where: { email: { nilike: '%@test.com' } } }
-
-// IS NOT NULL
-{ where: { verifiedAt: { isn: null } } }
-{ where: { verifiedAt: { ne: null } } }
-
-// NOT BETWEEN
-{ where: { score: { notBetween: [40, 60] } } }
+// SQL: WHERE false - vacuously FALSE, matches nothing
 ```
 
 > [!NOTE]
-> `ne`/`neq`/`nin` follow SQL three-valued logic - a row whose field is `NULL` never matches them (`NULL <> value` is UNKNOWN, not TRUE). Use `exists`/`notExists` or an explicit `{ field: null }` branch when you need NULL rows in the result.
+> This matters for a caller-built list, e.g. `{ or: permittedOrgIds.map(id => ({ orgId: id })) }`: an empty permission list must return zero rows, so `or: []` matching nothing is the safe default.
 
-
-## Complex Example
-
-```typescript
-// Find active products that are either:
-// - Featured with high rating, OR
-// - On sale with good stock
-{
-  where: {
-    status: 'active',
-    deletedAt: { is: null },
-    or: [
-      {
-        and: [
-          { featured: true },
-          { rating: { gte: 4.5 } }
-        ]
-      },
-      {
-        and: [
-          { onSale: true },
-          { stock: { gte: 10 } }
-        ]
-      }
-    ]
-  }
-}
-```
 
 ## See also
 
 - [Filter System Overview](./) - the `filter` shape and the full `where` operator table
-- [Null Operators](./null-operators) - `isn`, one of the dedicated negation operators referenced above
+- [Null Operators](./null-operators) - `isn`, one of the dedicated negation operators above
 - [Comparison Operators](./comparison-operators) - `ne`/`neq`, the other dedicated negation operators
 - [Quick Reference](./quick-reference) - every operator, one line each
 

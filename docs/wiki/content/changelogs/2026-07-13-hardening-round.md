@@ -1,6 +1,6 @@
 ---
 title: Security and Reliability Hardening - SQL Injection, Filter Scope, and 11 More Fixes
-description: A full audit across the framework closed a live SQL injection in array filters, two ways a default filter's scope could be bypassed, hidden fields leaking from search results, and ten other bugs in errors, logging, uploads, and boot.
+description: A full audit across the framework closed a live SQL injection in array filters and two ways a default filter's scope could be bypassed. It also fixed hidden fields leaking from search results and ten other bugs in errors, logging, uploads, and boot.
 ---
 
 # Changelog - 2026-07-13
@@ -9,30 +9,37 @@ description: A full audit across the framework closed a live SQL injection in ar
 
 <Badge type="danger" text="Security" /> <Badge type="warning" text="Breaking Change" /> <Badge type="info" text="Bug Fix" /> <Badge type="tip" text="Enhancement" />
 
-**In one line.** A security and reliability audit fixed a live SQL injection, closed two ways a default filter's scope could be bypassed, and fixed ten other bugs across search, logging, uploads, and boot - two of the fixes change existing behavior.
+**In one line.** A security and reliability audit closed a live SQL injection and two ways a default filter's scope could be bypassed. Ten other bugs across search, logging, uploads, and boot are fixed alongside them - two of the fixes change existing behavior.
+
+## The problem it solves
+
+A framework-wide audit found a query path that built SQL by string-concatenating filter values instead of binding them. It also found a `where` clause that could widen a repository's built-in scope instead of narrowing it. Both are closed here, along with ten smaller bugs the same audit turned up.
 
 ## What changed
 
 ### Security
 
-- **SQL injection through array filters, closed.** The `overlaps` and `contains` operators built raw SQL by string-concatenating filter values instead of binding them, so a crafted array value could run arbitrary SQL.
+- **SQL injection through array filters, closed.** The `overlaps` and `contains` operators built raw SQL by string-concatenating filter values instead of binding them. A crafted array value could run arbitrary SQL.
 - **Default filters can no longer be widened by a caller.** A repository with a built-in scope (for example, a soft-delete filter) could previously be bypassed by passing an `or` clause. Filters now compose with the default instead of overriding it.
-- **Search results now hide the fields they're told to hide.** `hiddenProperties` (for example, `password`) was already enforced for Postgres reads, but the Typesense and Meilisearch connectors were returning those fields anyway.
+- **Search results now hide the fields they're told to hide.** `hiddenProperties` (for example, `password`) was already enforced for Postgres reads. The Typesense and Meilisearch connectors were returning those fields anyway.
 - **Underlying dependency errors no longer leak onto the wire.** A wrapped connector error could previously expose the raw driver message in the HTTP response's `extra` field. It is now only visible in development.
 
 ### Bug fixes
 
-- **`deleteAll({})` no longer wipes the whole collection.** Calling it with no arguments used to delete every row - now it throws, and truncation requires saying so explicitly. See Breaking changes.
-- **A constructor missing `@inject` now fails immediately at boot**, with a message naming the class and parameter, instead of causing a confusing mis-wired dependency somewhere else. See Breaking changes.
+- **`deleteAll({})` no longer wipes the whole collection.** Calling it with no arguments used to delete every row. Now it throws, and truncation requires saying so explicitly. See Breaking changes.
+- **A constructor missing `@inject` now fails immediately at boot**, with a message naming the class and parameter. Previously it caused a confusing mis-wired dependency somewhere else. See Breaking changes.
 - **Meilisearch errors are now classified correctly.** A bug in error-shape detection meant a normal "does this already exist" check on `create()` could be misread as the search engine being down.
 - **A rejected email is now retried, not marked as delivered.** An SMTP rejection was previously treated as a successful queue job, so the message silently disappeared with no retry.
-- **Logs no longer drop the object you're printing.** `logger.debug('failed: %j', error)` used to print `{}` for an `Error`, and nested objects logged one level in as `[Object]`.
-- **Uploads can no longer escape their target folder**, and legitimately empty (zero-byte) files are now accepted instead of rejected.
+- **Logs no longer drop the error you're printing.** `logger.debug('failed: %j', error)` used to print `{}` for an `Error`.
+- **Nested objects now log past one level.** The same `%j` bug logged nested objects as `[Object]` instead of their contents.
+- **Uploads can no longer escape their target folder.**
+- **Legitimately empty (zero-byte) files are now accepted**, instead of rejected.
 
 ### Enhancements
 
 - **`NODE_ENV=dev` now behaves like a development environment.** It previously fell through to sanitized production-style error responses.
-- **Boot now reports what actually happened.** The boot report used to be empty; it now lists the booters that ran, per-phase timing, and total duration.
+- **Boot now reports what actually happened.** The boot report used to be empty.
+- **The report now lists the booters that ran**, per-phase timing, and total duration.
 
 ## Who is affected
 
@@ -75,7 +82,7 @@ Mixing decorated and undecorated constructor parameters was never supported. Dec
 ## Details
 
 - Every fix in this round was written test-first, then mutation-checked: the fix was reverted and the test confirmed to fail. Several existing tests were found to stay green even against the broken code and were corrected first.
-- The array-filter fix keeps operator names as framework constants (never user input) and binds only the values, preserving the previous element-type behavior via an explicit cast.
+- The array-filter fix keeps operator names as framework constants (never user input). It binds only the values, preserving the previous element-type behavior via an explicit cast.
 - The uploads fix also removes a double-decode in the static-asset controller that could turn an encoded `%2F` in a filename into a real path separator.
 
 | Metric | Value |
@@ -85,3 +92,8 @@ Mixing decorated and undecorated constructor parameters was never supported. Dec
 | Tests passing | 2714 (inversion 96, helpers 1014, boot 81, core 1523) |
 
 Zero lint findings and zero type errors across all four packages; all nine examples type-check; the dual CJS + ESM build of `inversion` is intact.
+
+## See also
+
+- [Default Filter reference](/references/base/filter-system/default-filter) - how `defaultFilter` composes with a caller's `where`
+- [Array Operators reference](/references/base/filter-system/array-operators) - the parameterized `overlaps`/`contains`/`containedBy` behavior this fix put in place

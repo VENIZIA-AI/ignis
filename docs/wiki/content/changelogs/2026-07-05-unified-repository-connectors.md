@@ -1,6 +1,6 @@
 ---
 title: Unified Repository & Connectors Architecture
-description: The persistence layer splits into an engine-neutral base plus Postgres, Typesense, and memory connectors, unlocking new storage engines while keeping the Postgres API almost entirely backward compatible.
+description: The persistence layer splits into an engine-neutral base plus Postgres, Typesense, and memory connectors. New storage engines slot in without touching the core repository contract.
 ---
 
 # Changelog - 2026-07-05
@@ -9,25 +9,37 @@ description: The persistence layer splits into an engine-neutral base plus Postg
 
 <Badge type="warning" text="Breaking Change" /> <Badge type="tip" text="New Feature" /> <Badge type="info" text="Enhancement" />
 
-**In one line.** The persistence layer is restructured into an engine-neutral base plus three connectors (Postgres, Typesense, memory), so new storage engines can be added without touching the core repository contract - existing Postgres code keeps working almost unchanged.
+**In one line.** The persistence layer splits into an engine-neutral base plus three connectors: Postgres, Typesense, and memory. New storage engines slot in without touching the core repository contract, and existing Postgres code keeps working almost unchanged.
+
+## The problem it solves
+
+`AbstractRepository`, `AbstractDataSource`, and `AbstractEntity` used to import Drizzle and `pg` types directly. Adding a second storage engine meant reworking those core types, not writing an independent connector.
+
+The base layer is now engine-neutral, so a new connector plugs in without touching the repository contract:
+
+```typescript
+import { TypesenseDataSource, DefaultSearchRepository } from '@venizia/ignis/typesense';
+```
+
+Postgres becomes one connector among several - existing Postgres code keeps working almost unchanged.
 
 ## What changed
 
 - **Engine-neutral base.** `AbstractRepository`, `AbstractDataSource`, and `AbstractEntity` no longer import Drizzle, `pg`, or any SQL-shaped type. Every connector implements the same neutral contract independently.
-- **New Typesense connector.** Full-text and faceted search with its own entity DSL (`defineSearchCollection` / `field`), a repository ladder mirroring the Postgres one, and a query dialect that translates `TFilter` / `TWhere` into Typesense's native syntax.
-- **New memory connector.** A zero-dependency, `Map`-backed engine with full `TWhere` operator coverage (Postgres-parity semantics), meant for prototyping and tests with no external database.
+- **New Typesense connector.** Full-text and faceted search, with its own entity DSL (`defineSearchCollection` / `field`). A repository ladder mirrors the Postgres one, and a query dialect translates `TFilter` / `TWhere` into Typesense's native syntax.
+- **New memory connector.** A zero-dependency, `Map`-backed engine with full `TWhere` operator coverage (Postgres-parity semantics). Built for prototyping and tests with no external database.
   > [!NOTE]
   > The memory connector was later removed on 2026-07-11 for having no known consumers. See the [Connectors Consistency Hardening](/changelogs/2026-07-11-connectors-consistency-hardening) changelog.
-- **Capabilities model.** Every datasource now exposes `getCapabilities(): { transactions: boolean }`; unsupported operations (transactions, row-level locks) uniformly throw a `NotSupported` error (HTTP 501) instead of failing in engine-specific ways.
-- **Dual-door exports.** The root `@venizia/ignis` package keeps re-exporting Postgres and memory for backward compatibility; `@venizia/ignis/postgres`, `@venizia/ignis/memory`, and `@venizia/ignis/typesense` are also available as explicit sub-paths. Typesense is sub-path-only, so it is never pulled into a bundle that doesn't use it.
+- **Capabilities model.** Every datasource now exposes `getCapabilities(): { transactions: boolean }`. Unsupported operations (transactions, row-level locks) throw a `NotSupported` error (HTTP 501) instead of failing in engine-specific ways.
+- **Dual-door exports.** The root `@venizia/ignis` package keeps re-exporting Postgres and memory for backward compatibility. `@venizia/ignis/postgres`, `@venizia/ignis/memory`, and `@venizia/ignis/typesense` are also available as explicit sub-paths. Typesense is sub-path-only, so it never enters a bundle that doesn't use it.
 - **Naming symmetry, with compatibility aliases.** Canonical class names are now paradigm-family names (`Relational`, `Search`) rather than engine names. Every previous name (`BaseDataSource`, `BaseEntity`, `BasePostgresDataSource`, `BasePostgresEntity`, `PostgresQueryOperators`/`RDBQueryOperators`) still resolves to the identical class.
-- **`applicationEnvironment.get` is now options-based**, and ships with two companion transforms (`toDelimitedArray`, `toTrimmed`) for parsing list-shaped environment values in a single read.
+- **`applicationEnvironment.get` is now options-based.** It ships two companion transforms, `toDelimitedArray` and `toTrimmed`, for parsing list-shaped environment values in a single read.
 - **Auth controller responses standardized.** Unimplemented-endpoint responses (`/token/refresh`, `/who-am-i`, `/me`) now go through the same `NotSupported` convention as every other engine capability gap.
-- **Typesense cluster-validation fixes**, found during live validation against a real 3-node cluster: no more malformed `filter_by` fragments on an empty `where`, and no more read-after-write race on collection provisioning.
+- **Typesense cluster-validation fixes**, found during live validation against a real 3-node cluster. An empty `where` no longer produces a malformed `filter_by` fragment, and collection provisioning no longer races a read-after-write check.
 
 ## Who is affected
 
-- **Existing Postgres-only applications.** Almost no changes needed - old class names, `BaseDataSource`/`BaseEntity`, and the previous `ITransaction`/`applicationEnvironment.get` shapes required updates; see Breaking changes below.
+- **Existing Postgres-only applications.** Almost nothing changes. Old class names still resolve through compatibility aliases, but the `ITransaction` and `applicationEnvironment.get` shapes changed - see Breaking changes below.
 - **Anyone using the previous `@venizia/ignis-helpers` search-engine module.** Search moved to core - update your imports; see Breaking change 2.
 - **Anyone whose code reads `.connector` or `.isolationLevel` off a transaction object.** Type annotation change required; see Breaking change 1.
 - **Anyone calling `applicationEnvironment.get(key, defaultValue)` with a positional second argument.** Now a compile error; see Breaking change 4.
@@ -70,7 +82,7 @@ grep -rln "ITransaction" src/ | xargs grep -l "\.connector\b\|\.isolationLevel\b
 
 ### 2. Search symbols moved from `@venizia/ignis-helpers` to `@venizia/ignis/typesense`
 
-The `search-engine` helper module is removed from `@venizia/ignis-helpers` entirely and folded into core as the Typesense connector. There is no compatibility re-export.
+The `search-engine` helper module is gone from `@venizia/ignis-helpers`; it is now the Typesense connector in core. There is no compatibility re-export.
 
 **Before**
 ```typescript
@@ -93,7 +105,7 @@ See the [Search & Typesense guide](/guides/core-concepts/persistent/search-types
 
 ### 3. Auth controller unimplemented-endpoint responses changed shape
 
-The HTTP status code is unchanged (501), but the response `messageCode` and message text changed for `/token/refresh`, `/who-am-i`, and `/me` when the underlying auth service doesn't implement the method.
+The HTTP status code stays 501 when the underlying auth service doesn't implement a method. The response `messageCode` and message text changed, for `/token/refresh`, `/who-am-i`, and `/me`.
 
 **Before**
 ```json
@@ -105,7 +117,7 @@ The HTTP status code is unchanged (501), but the response `messageCode` and mess
 { "statusCode": 501, "messageCode": "core.not_supported", "message": "[AuthController] refreshToken is not supported." }
 ```
 
-If client code pattern-matches on the literal `"Method not implemented"` string, switch to matching on `messageCode === 'core.not_supported'` - message text is not a stable contract.
+If client code pattern-matches on the literal `"Method not implemented"` string, switch to matching on `messageCode === 'core.not_supported'`. Message text is not a stable contract.
 
 ### 4. `applicationEnvironment.get` takes an options object instead of a positional `defaultValue`
 
@@ -137,7 +149,7 @@ grep -rn "applicationEnvironment\.get(\|Envs\.get(" src/ | grep -v "{ *defaultVa
 
 ### New engine-neutral base
 
-`AbstractRepository<TDataObject, TPersistObject, TOptions>` has no Drizzle types; `AbstractDataSource` has no `pool` / `connector` and declares `getCapabilities()` / `beginTransaction()` with safe "not supported" defaults; `AbstractEntity` has just a `name` and `getIdType()`. Postgres's real behavior (pool, transactions, isolation levels) is entirely opt-in, layered on by `AbstractRelationalDataSource` / `BaseRelationalDataSource`.
+`AbstractRepository<TDataObject, TPersistObject, TOptions>` has no Drizzle types. `AbstractDataSource` has no `pool` or `connector`; it declares `getCapabilities()` and `beginTransaction()` with safe "not supported" defaults. `AbstractEntity` has just a `name` and `getIdType()`. `AbstractRelationalDataSource` and `BaseRelationalDataSource` layer Postgres's real behavior (pool, transactions, isolation levels) on top, entirely opt-in.
 
 ### Naming symmetry example
 
@@ -151,7 +163,7 @@ import { BaseDataSource } from '@venizia/ignis';
 ### Known gotcha: bun can silently drop `@inject` decorators
 
 > [!WARNING]
-> Bun 1.3.14 silently drops `@inject` constructor-parameter decorators when an app's `tsconfig.json` only inherits `experimentalDecorators` through a package-style `extends` that bun cannot resolve at compile time. Dependency injection then returns `undefined` at runtime for the affected parameters - with no compile error and no startup failure to point at the cause.
+> When an app's `tsconfig.json` only inherits `experimentalDecorators` through a package-style `extends` that bun cannot resolve at compile time, bun 1.3.14 silently drops `@inject` constructor-parameter decorators. Dependency injection then returns `undefined` at runtime for the affected parameters, with no compile error and no startup failure to point at the cause.
 
 Declare the decorator flags directly in every bun-run app's `tsconfig.json`, in addition to `extends`:
 
@@ -186,3 +198,9 @@ All IGNIS example apps already declare both flags directly for this reason.
 | `packages/helpers/src/utilities/parse.utility.ts` | New. `toDelimitedArray`, `toTrimmed` transforms |
 
 </details>
+
+## See also
+
+- [Search & Typesense guide](/guides/core-concepts/persistent/search-typesense) - full Typesense connector API
+- [Typesense Advanced Search](/changelogs/2026-07-08-typesense-advanced-search) - vector search, multi-search, and synonyms added on top of this connector
+- [Connectors Consistency Hardening](/changelogs/2026-07-11-connectors-consistency-hardening) - removed the memory connector introduced here

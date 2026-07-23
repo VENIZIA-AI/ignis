@@ -2,14 +2,12 @@
 title: Default Filter
 description: Automatically apply filter conditions to all repository queries
 difficulty: intermediate
-lastUpdated: 2026-03-15
+lastUpdated: 2026-07-23
 ---
 
 # Default Filter <Badge type="tip" text="v0.0.5+" />
 
-A model's `settings.defaultFilter` merges into every `find`/`findOne`/`findById`/`count`/`updateAll`/`deleteAll` call for that model - the standard way to implement soft delete, multi-tenancy, active-record scoping, and query-limit protection without repeating a `where` clause at every call site.
-
-## Quick start
+A model's `settings.defaultFilter` merges into every `find`/`findOne`/`findById`/`count`/`updateById`/`updateAll`/`deleteById`/`deleteAll` call for that model - the standard way to implement soft delete, multi-tenancy, active-record scoping, and query-limit protection without repeating a `where` clause at every call site.
 
 ```typescript
 import { model, BaseEntity } from '@venizia/ignis';
@@ -17,14 +15,20 @@ import { userTable } from '@/schemas';
 
 @model({
   type: 'entity',
-  settings: {
-    defaultFilter: { where: { isDeleted: false }, limit: 100 },
-  },
+  settings: { defaultFilter: { where: { isDeleted: false }, limit: 100 } },
 })
 export class User extends BaseEntity<typeof User.schema> {
   static override schema = userTable;
 }
 ```
+
+## Options
+
+| Option | Type | Default | Meaning |
+|---|---|---|---|
+| `settings.defaultFilter` | `TFilter` | none | Filter merged into every query for the model - `where`, `limit`, `offset`, `order`, `fields`, `include` are all valid inside it. |
+| `settings.defaultLimit` | `number` (positive integer) | `DEFAULT_LIMIT` (`10`) | Per-model row cap. Independent of `defaultFilter` - see [Fields, Order & Pagination -> Default limit resolution](./fields-order-pagination#default-limit-resolution). |
+| `options.shouldSkipDefaultFilter` | `boolean` | `false` | Skips the `defaultFilter` merge for one call. Does not drop `defaultLimit`. |
 
 ```typescript
 import { userRepository } from '@/repositories';
@@ -47,7 +51,7 @@ await userRepository.find({ filter: { where: { status: 'active' } } });
 
 ### The `where` narrowing law
 
-Keys present on only one side pass through untouched. When the **same key** appears on both sides, the outcome depends on shape:
+Keys present on only one side pass through untouched. When the same key appears on both sides, the outcome depends on shape:
 
 | Default | Caller | Result |
 |---|---|---|
@@ -80,7 +84,7 @@ Non-colliding keys still combine with an implicit AND, exactly like two `where` 
 
 ## Bypassing the default filter
 
-Pass `shouldSkipDefaultFilter: true` in `options` to skip the merge entirely. It is honored by every repository verb - `find`, `findOne`, `findById`, `count`, `updateById`, `updateAll`, `deleteById`, `deleteAll`:
+Pass `shouldSkipDefaultFilter: true` in `options` to skip the merge entirely. Every repository verb honors it - `find`, `findOne`, `findById`, `count`, `updateById`, `updateAll`, `deleteById`, `deleteAll`:
 
 ```typescript
 // Normal - default filter applies
@@ -93,6 +97,17 @@ await repository.find({
   options: { shouldSkipDefaultFilter: true },
 });
 // WHERE "role" = 'admin' (includes soft-deleted rows)
+```
+
+`updateById` and `deleteById` merge the default filter into their `{ id }` condition the same way `updateAll`/`deleteAll` merge it into their `where` - the bypass applies to all four identically:
+
+```typescript
+// Also merges the default filter into { id: postId } - skip to update a soft-deleted row
+await postRepository.updateById({
+  id: postId,
+  data: { title: 'Restored' },
+  options: { shouldSkipDefaultFilter: true },
+});
 ```
 
 It composes with a transaction the same way any other option does:
@@ -121,9 +136,25 @@ try {
 | Cross-tenant analytics | Count/aggregate across every tenant |
 | Data migration | Update rows regardless of status |
 
+`shouldSkipDefaultFilter` lives on the same options interface every repository verb accepts:
+
+```typescript
+interface IExtraOptions extends IWithTransaction {
+  shouldSkipDefaultFilter?: boolean;
+  log?: TRepositoryLogOptions;
+  lock?: TLockOptions;
+}
+
+interface IWithTransaction {
+  transaction?: ITransaction;
+}
+```
+
+`log` and `lock` are documented in [Advanced Repository Features](../repositories/advanced.md) - `log` only takes effect on write verbs (`create`/`updateById`/`updateAll`/`deleteById`/`deleteAll`), not on reads.
+
 ## Configuring a default filter
 
-Any `TFilter` property is valid inside `defaultFilter` - `where`, `limit`, `offset`, `order`, `fields`, `include` (see [Filter System Overview](./)). The two recurring shapes:
+Any `TFilter` property is valid inside `defaultFilter` - `where`, `limit`, `offset`, `order`, `fields`, `include` (see [Filter System Overview](./)). Two shapes cover most cases.
 
 **Soft delete or multi-tenant scoping** - a `where` clause that every query must carry:
 
@@ -144,7 +175,7 @@ await postRepository.updateById({
 });
 ```
 
-**Query-limit protection** - prefer the dedicated `settings.defaultLimit` over a `limit` inside `defaultFilter`. It resolves independently (`query.limit ?? defaultLimit ?? 10`, see [Fields, Order & Pagination -> Default Limit](./fields-order-pagination#default-limit)) and, unlike `defaultFilter`, is **not** dropped by `shouldSkipDefaultFilter`:
+**Query-limit protection** - prefer the dedicated `settings.defaultLimit` over a `limit` inside `defaultFilter`. It resolves independently (`query.limit ?? defaultLimit ?? 10`, see [Fields, Order & Pagination -> Default limit resolution](./fields-order-pagination#default-limit-resolution)) and, unlike `defaultFilter`, is not dropped by `shouldSkipDefaultFilter`:
 
 ```typescript
 @model({
@@ -153,7 +184,7 @@ await postRepository.updateById({
 })
 export class LogEntry extends BaseEntity<typeof LogEntry.schema> {}
 
-await logEntryRepository.find({ filter: {} });           // LIMIT 1000
+await logEntryRepository.find({ filter: {} }); // LIMIT 1000
 await logEntryRepository.find({ filter: { limit: 50 } }); // LIMIT 50
 ```
 
@@ -199,7 +230,9 @@ getDefaultLimit(): number | undefined
 applyDefaultFilter(opts: { userFilter?: TFilter; shouldSkipDefaultFilter?: boolean }): TFilter
 ```
 
-`getDefaultFilter()` reads `this.modelSettings?.defaultFilter`, where `modelSettings` is a protected getter on `AbstractRepository` (`src/base/repositories/core/abstract.ts`) resolved from `MetadataRegistry` by the entity's constructor (not by name string) on first access, then memoized.
+`getDefaultFilter()` reads `this.modelSettings?.defaultFilter`, where `modelSettings` is a protected getter on `AbstractRepository` (`src/base/repositories/core/abstract.ts`) resolved from `MetadataRegistry` by the entity's constructor, not by name string, on first access, then memoized.
+
+Read verbs (`find`/`findOne`/`findById`/`count`) call `applyDefaultFilter()` directly. Write verbs (`updateById`/`updateAll`/`deleteById`/`deleteAll`) route through the shared `_update`/`_delete` helpers, which call it against `{ where: opts.where }` (or `{ id }` for the `ById` forms) before building the SQL condition.
 
 > [!NOTE]
 > An older `DefaultFilterMixin` implemented this same behavior via mixin composition. It is no longer composed onto any repository class - see [Repository Mixins (Removed)](../repositories/mixins.md) for history.
@@ -216,36 +249,6 @@ filterBuilder.mergeFilter({
 // { where: { isDeleted: false, status: 'active' }, limit: 10 }
 ```
 
-### `IExtraOptions`
-
-`shouldSkipDefaultFilter` lives on the same options interface every repository verb accepts:
-
-```typescript
-interface IExtraOptions extends IWithTransaction {
-  shouldSkipDefaultFilter?: boolean;
-  log?: TRepositoryLogOptions;
-  lock?: TLockOptions;
-}
-
-interface IWithTransaction {
-  transaction?: ITransaction;
-}
-```
-
-`log` and `lock` are documented in [Advanced Repository Features](../repositories/advanced.md) - `log` only takes effect on write verbs (`create`/`updateById`/`updateAll`/`deleteById`/`deleteAll`), not on reads.
-
-## Quick reference
-
-| Want to... | Code |
-|---|---|
-| Configure a default filter | `@model({ settings: { defaultFilter: { ... } } })` |
-| Bypass the default filter | `options: { shouldSkipDefaultFilter: true }` |
-| Bypass for one relation | `include: [{ relation: 'x', shouldSkipDefaultFilter: true }]` |
-| Combine with a transaction | `options: { transaction: tx, shouldSkipDefaultFilter: true }` |
-| Check if a model has a default | `repository.hasDefaultFilter()` |
-| Read the raw default filter | `repository.getDefaultFilter()` |
-| Read the raw default limit | `repository.getDefaultLimit()` |
-
 ## See also
 
 - [Filter System Overview](./) - the `filter` shape and every operator family
@@ -257,5 +260,7 @@ interface IWithTransaction {
 
 - [`packages/core/src/connectors/postgres/repositories/dialect/filter.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core/src/connectors/postgres/repositories/dialect/filter.ts) - `FilterBuilder.mergeFilter()`/`mergeWhere()`, the narrowing merge
 - [`packages/core/src/connectors/postgres/repositories/core/base.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core/src/connectors/postgres/repositories/core/base.ts) - `RelationalBaseRepository`, `applyDefaultFilter`/`getDefaultFilter`/`getDefaultLimit`
+- [`packages/core/src/connectors/postgres/repositories/core/readable.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core/src/connectors/postgres/repositories/core/readable.ts) - `find`/`findOne`/`count` calling `applyDefaultFilter`
+- [`packages/core/src/connectors/postgres/repositories/core/persistable.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core/src/connectors/postgres/repositories/core/persistable.ts) - `_update`/`_delete` calling `applyDefaultFilter` for `updateById`/`updateAll`/`deleteById`/`deleteAll`
 - [`packages/core/src/base/metadata/persistents.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core/src/base/metadata/persistents.ts) - `@model` decorator, `defaultLimit` validation
 - [`packages/core/src/base/repositories/common/types.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core/src/base/repositories/common/types.ts) - `IExtraOptions`, `IWithTransaction`

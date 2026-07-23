@@ -9,16 +9,31 @@ description: Redis module restructured into folder-per-topology with segregated 
 
 <Badge type="warning" text="Breaking Change" /> <Badge type="tip" text="New Feature" />
 
-**In one line.** Redis helpers are reorganized by topology (single, cluster, sentinel) with renamed classes, a segregated `IRedisHelper` interface, and a new factory - existing Single and Cluster connection behavior is unchanged, but every consumer needs an import update.
+**In one line.** Redis helpers are reorganized by topology (single, cluster, sentinel) with renamed classes, a segregated `IRedisHelper` interface, and a new factory. Existing Single and Cluster connection behavior is unchanged, but every consumer needs an import update.
+
+## The problem it solves
+
+Before this release, `RedisHelper` covered only a single Redis node. An application that needed Sentinel failover had nothing to reach for, and every consumer typed against a concrete class instead of a capability contract.
+
+Pick a topology from one factory call instead of importing a specific class:
+
+```typescript
+const redis = createRedisHelper({
+  mode: RedisModes.SENTINEL,
+  name: 'cache',
+  masterName: 'mymaster',
+  sentinels: [{ host: '10.0.0.1', port: 26379 }],
+});
+```
 
 ## What changed
 
 - **Renamed classes and types** - `DefaultRedisHelper` -> `AbstractRedisHelper`, `RedisHelper` -> `RedisSingleHelper`, `IRedisHelperOptions` -> `IRedisSingleHelperOptions`. No aliases are provided.
 - **New `RedisSentinelHelper`** - connects through a Redis Sentinel quorum for automatic failover.
 - **New `createRedisHelper({ mode })` factory** - picks the right helper (`RedisModes.SINGLE | CLUSTER | SENTINEL`) from config instead of importing all three classes.
-- **New `IRedisHelper` interface** - a segregated capability contract composed of nine sub-interfaces (connection, key-value, hash, pub/sub, JSON, raw command, key, set, list). Consumers should type against this instead of a concrete class.
-- **Expanded data API** - new key operations (`exists`, `expire`, `ttl`, `incr`/`decr`, ...), set operations (`sAdd`, `sMembers`, ...), and list operations (`lPush`, `rPush`, `lRange`, ...); the hash interface gains `hGet`, `hDel`, `hExists`, `hKeys`, `hVals`, `hIncrBy`, `hLen`.
-- **camelCase-only method names** - the lowercase aliases `mset`, `mget`, `hset`, `hgetall` are removed; only `mSet`, `mGet`, `hSet`, `hGetAll` remain.
+- **New `IRedisHelper` interface** - a segregated capability contract composed of nine sub-interfaces (connection, key-value, hash, pub/sub, JSON, raw command, key, set, list). Type consumers against this instead of a concrete class.
+- **Expanded data API** - new key operations (`exists`, `expire`, `ttl`, `incr`/`decr`, ...), set operations (`sAdd`, `sMembers`, ...), and list operations (`lPush`, `rPush`, `lRange`, ...). The hash interface gains `hGet`, `hDel`, `hExists`, `hKeys`, `hVals`, `hIncrBy`, `hLen`.
+- **camelCase-only method names** - the lowercase aliases `mset`, `mget`, `hset`, `hgetall` are removed. Only `mSet`, `mGet`, `hSet`, `hGetAll` remain.
 - **`set()` gains `expiresIn`** - an optional millisecond TTL (uses Redis `PX`).
 - **`onError` callback narrowed** - the `error` argument is now `unknown` instead of `any`, so accessing `.message` requires a type guard.
 - **No behavioral change** to the Cluster connection or to any existing data method beyond the renames above.
@@ -127,7 +142,7 @@ const redis = new RedisSentinelHelper({
 await redis.connect();
 ```
 
-`masterName` maps to the ioredis `name` field (the Sentinel group name), distinct from the helper's own `name`. Pass `redisOptions` for any extra ioredis option; first-class fields always win.
+`masterName` maps to the ioredis `name` field (the Sentinel group name), distinct from the helper's own `name`. Pass `redisOptions` for any extra ioredis option - first-class fields always win.
 
 ### `createRedisHelper` factory
 
@@ -165,7 +180,12 @@ The factory is overloaded so TypeScript infers the concrete return type when `mo
 
 - Array-input methods (`exists`, `hDel`, `sAdd`, `sRem`, `lPush`, `rPush`) return `0` immediately on an empty array, without calling ioredis.
 - Boolean-returning methods (`expire`, `expireAt`, `persist`, `hExists`, `sIsMember`) compare the ioredis numeric reply `=== 1`.
-- `expireAt` takes epoch **seconds** (ioredis `expireat`); `set`'s `expiresIn` takes **milliseconds** (`PX`).
+- `expireAt` takes epoch **seconds** (ioredis `expireat`). `set`'s `expiresIn` takes **milliseconds** (`PX`).
+
+## See also
+
+- [Migrating to the new Redis Helper API](/guides/migrations/redis-helpers-migration) - step-by-step import updates
+- [Redis - Full Reference](/extensions/helpers/redis/reference) - every method on `IRedisHelper`
 
 <details>
 <summary>Files changed</summary>

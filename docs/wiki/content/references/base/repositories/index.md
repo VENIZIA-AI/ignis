@@ -6,7 +6,7 @@ difficulty: intermediate
 
 # Repositories
 
-A repository is the typed data-access object for one model - it turns a `@model` schema into `find`, `create`, `updateById`, `deleteById`, and friends, with the query shape validated at compile time.
+A repository is the typed data-access object for one model. It turns a `@model` schema into `find`, `create`, `updateById`, `deleteById`, and friends, with the query shape validated at compile time.
 
 ## In one example
 
@@ -26,8 +26,8 @@ That's it - `UserRepository` already has `find`, `findOne`, `findById`, `create`
 ## How it works
 
 - **Engine-neutral contract, PostgreSQL implementation.** `AbstractRepository` (engine-neutral, `src/base`) declares the CRUD contract - no SQL, no Drizzle. The PostgreSQL connector implements it as a chain of classes, each layer adding one capability (see table below).
-- **Datasource is auto-injected.** `@repository({ model, dataSource })` auto-injects the datasource at constructor param[0] and lazily resolves the entity class from its own metadata - a plain `extends DefaultCRUDRepository<...> {}` needs no constructor at all.
-- **One options object per verb.** Reads and updates carry a `filter` (`where`, `fields`, `include`, `order`, `limit`, `offset`); writes carry `data`; all of them accept an `options` bag for `transaction`, `shouldReturn`, and `shouldSkipDefaultFilter`.
+- **Datasource is auto-injected.** `@repository({ model, dataSource })` auto-injects the datasource at constructor param[0] and lazily resolves the entity class from its own metadata. A plain `extends DefaultCRUDRepository<...> {}` needs no constructor at all.
+- **One options object per verb.** Reads and updates carry a `filter` (`where`, `fields`, `include`, `order`, `limit`, `offset`). Writes carry `data`. Every verb also accepts an `options` bag for `transaction`, `shouldReturn`, and `shouldSkipDefaultFilter`.
 
 **PostgreSQL class chain**
 
@@ -126,7 +126,7 @@ See [DataSources](/references/base/datasources) for the rollback-safe pattern (`
 
 ### Retry a read behind a replicated pool
 
-Pass `retry` in `options` on `find`, `findOne`, or `findById` to re-read until a predicate passes - useful for read-after-write staleness behind a replicated pool (e.g. PgDog primary + replicas).
+A read right after a write can hit a replica that has not caught up. Pass `retry` to re-read until the result is fresh:
 
 ```typescript
 const user = await userRepository.findById({
@@ -135,7 +135,7 @@ const user = await userRepository.findById({
 });
 ```
 
-See [Advanced Features - Read Retry](./advanced#read-retry-replica-lag) for the typed-per-verb `until` predicate, defaults, and the transaction-skip rule.
+Full options and rules: [Advanced Features - Read Retry](./advanced#read-retry-replica-lag).
 
 ## See also
 

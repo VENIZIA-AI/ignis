@@ -6,72 +6,44 @@ difficulty: intermediate
 
 # Range Operators
 
-Operators for matching values within or outside a range.
+Matches a field against a `[min, max]` range.
 
+| Operator | SQL | Meaning |
+|----------|-----|---------|
+| `between` | `BETWEEN ... AND ...` | Value is within the range (inclusive) |
+| `notBetween` | `NOT (... BETWEEN ... AND ...)` | Value is outside the range |
 
 ## between
 
-Find values within a range (inclusive):
-
 ```typescript
-// Numeric range
 { where: { price: { between: [100, 500] } } }
 // SQL: WHERE "price" BETWEEN 100 AND 500
-
-// Date range
-{
-  where: {
-    createdAt: {
-      between: [new Date('2024-01-01'), new Date('2024-12-31')]
-    }
-  }
-}
-// SQL: WHERE "created_at" BETWEEN '2024-01-01' AND '2024-12-31'
-
-// String range (lexicographic)
-{ where: { lastName: { between: ['A', 'M'] } } }
-// SQL: WHERE "last_name" BETWEEN 'A' AND 'M'
 ```
 
-> [!WARNING]
-> The value MUST be an array with exactly 2 elements `[min, max]`. Invalid values throw an error:
-> ```
-> Error: [BETWEEN] Invalid value: expected array of 2 elements, got ...
-> ```
+**Notice:** both bounds are inclusive.
 
+**Edge cases:**
+- The value must be a 2-element array `[min, max]`; anything else throws `[PostgresQueryOperators][BETWEEN] Invalid value: expected array of 2 elements, got ...`.
+- If either bound is `null`, the condition matches no rows (SQL `NULL` comparison).
+- If `min > max`, the condition matches no rows.
 
 ## notBetween
-
-Find values outside a range:
 
 ```typescript
 { where: { score: { notBetween: [40, 60] } } }
 // SQL: WHERE NOT ("score" BETWEEN 40 AND 60)
-// Matches: scores < 40 OR scores > 60
 ```
 
-> [!WARNING]
-> Same validation as `between` -- the value MUST be an array with exactly 2 elements.
+**Notice:** matches values strictly outside the range.
 
-
-## Alternative: Using gte/lte
-
-You can also express ranges using comparison operators:
-
-```typescript
-// Equivalent to between: [100, 500]
-{ where: { price: { gte: 100, lte: 500 } } }
-// SQL: WHERE "price" >= 100 AND "price" <= 500
-
-// Exclusive range (not including boundaries)
-{ where: { price: { gt: 100, lt: 500 } } }
-// SQL: WHERE "price" > 100 AND "price" < 500
-```
+**Edge cases:**
+- Same 2-element array validation as `between`, throwing `[PostgresQueryOperators][NOT_BETWEEN] Invalid value: expected array of 2 elements, got ...`.
+- A `NULL` column matches neither `between` nor `notBetween`.
 
 ## See also
 
 - [Filter System Overview](./) - the `filter` shape and the full `where` operator table
-- [Comparison Operators](./comparison-operators) - `gt`/`gte`/`lt`/`lte`, the building blocks of the `gte`/`lte` equivalent above
+- [Comparison Operators](./comparison-operators) - `gt`/`gte`/`lt`/`lte`, which can express the same range as an alternative to `between`/`notBetween`
 - [Quick Reference](./quick-reference) - every operator, one line each
 
 **Files:**

@@ -28,7 +28,7 @@ Before the connectors restructure, `AbstractRepository` composed two mixins onto
 
 ## Where the Behavior Lives Now
 
-The functionality was not dropped - it was folded directly into the repository hierarchy.
+IGNIS didn't drop the functionality - it folded it directly into the repository hierarchy.
 
 ### Engine-neutral: `AbstractRepository`
 
@@ -59,7 +59,7 @@ applyDefaultFilter(opts: {
 }): TFilter;                                              // merges via queryDialect.mergeFilter
 ```
 
-Hidden columns are excluded from `select()` and `returning()` calls at query time - the same SQL-level guarantee the mixins provided. The typesense connector implements its own equivalent natively since it is not Drizzle-aware.
+The query builder excludes hidden columns from `select()` and `returning()` calls at query time - the same SQL-level guarantee the mixins provided. The typesense connector implements its own equivalent natively, since it is not Drizzle-aware.
 
 ## Migration
 
@@ -72,7 +72,7 @@ Hidden columns are excluded from `select()` and `returning()` calls at query tim
 | `DefaultFilterMixin` -> `hasDefaultFilter()` | `RelationalBaseRepository.hasDefaultFilter()` |
 | `DefaultFilterMixin` -> `applyDefaultFilter()` | `RelationalBaseRepository.applyDefaultFilter()` |
 
-If you extended `DefaultCRUDRepository` (or any class in the PostgreSQL hierarchy), no change is needed - these methods have always been available on your repository instances; only the internal composition changed.
+If you extended `DefaultCRUDRepository` (or any class in the PostgreSQL hierarchy), you don't need to change anything - these methods have always been available on your repository instances. Only the internal composition changed.
 
 ## Custom Mixins Still Work
 

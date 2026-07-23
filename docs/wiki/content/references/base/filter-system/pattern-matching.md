@@ -6,106 +6,91 @@ difficulty: intermediate
 
 # Pattern Matching Operators
 
-Operators for string pattern matching and regular expressions.
+Matches string fields against SQL `LIKE` patterns or POSIX regular expressions.
 
+| Operator | SQL | Meaning |
+|----------|-----|---------|
+| `like` | `LIKE` | Case-sensitive pattern match |
+| `nlike` | `NOT LIKE` | Negated case-sensitive pattern match |
+| `ilike` | `ILIKE` | Case-insensitive pattern match (PostgreSQL-only) |
+| `nilike` | `NOT ILIKE` | Negated case-insensitive pattern match (PostgreSQL-only) |
+| `regexp` | `~` | Case-sensitive POSIX regex match |
+| `iregexp` | `~*` | Case-insensitive POSIX regex match |
 
-## like - Pattern Matching (Case-Sensitive)
-
-Matches strings using SQL LIKE patterns.
+## like
 
 ```typescript
-// Starts with
 { where: { email: { like: '%@gmail.com' } } }
 // SQL: WHERE "email" LIKE '%@gmail.com'
-
-// Contains
-{ where: { name: { like: '%john%' } } }
-// SQL: WHERE "name" LIKE '%john%'
-
-// Ends with
-{ where: { filename: { like: '%.pdf' } } }
-// SQL: WHERE "filename" LIKE '%.pdf'
-
-// Single character wildcard
-{ where: { code: { like: 'A_B' } } }  // Matches 'A1B', 'AXB', etc.
-// SQL: WHERE "code" LIKE 'A_B'
 ```
 
-**Pattern Characters:**
-- `%` - Matches any sequence of characters (including empty)
-- `_` - Matches exactly one character
+**Notice:** `%` matches any sequence of characters (including none); `_` matches exactly one character.
 
+**Edge cases:**
+- A `null` operand compiles to `LIKE NULL`, which is never true - no rows match.
+- Case sensitivity follows the column's collation; the default is case-sensitive.
 
-## nlike - Not Like
+## nlike
 
 ```typescript
 { where: { email: { nlike: '%@test.com' } } }
 // SQL: WHERE "email" NOT LIKE '%@test.com'
 ```
 
+**Notice:** `NOT LIKE` excludes rows where the column is `NULL`, the same as `NOT IN`.
 
-## ilike - Case-Insensitive Pattern Matching
+**Edge cases:**
+- Same pattern-character rules as `like`.
 
-PostgreSQL-specific case-insensitive LIKE.
+## ilike
 
 ```typescript
 { where: { name: { ilike: '%john%' } } }
 // SQL: WHERE "name" ILIKE '%john%'
-// Matches: 'John', 'JOHN', 'john', 'JoHn'
-
-{ where: { email: { ilike: '%@GMAIL.COM' } } }
-// Matches: 'user@gmail.com', 'USER@Gmail.Com'
 ```
 
+**Notice:** matches `'John'`, `'JOHN'`, and `'john'` alike.
 
-## nilike - Not ILike
+**Edge cases:**
+- `ILIKE` is a PostgreSQL extension, not standard SQL.
+- Same pattern-character rules as `like`.
+
+## nilike
 
 ```typescript
 { where: { email: { nilike: '%@example%' } } }
 // SQL: WHERE NOT ("email" ILIKE '%@example%')
 ```
 
+**Notice:** built as a negated `ILIKE`, not a dedicated SQL operator.
 
-## regexp - Regular Expression (Case-Sensitive)
+**Edge cases:**
+- Same `NULL`-excludes-nothing behavior as `nlike`.
 
-PostgreSQL POSIX regex matching.
+## regexp
 
 ```typescript
-// Starts with letter
 { where: { code: { regexp: '^[A-Z]' } } }
 // SQL: WHERE "code" ~ '^[A-Z]'
-
-// Email pattern
-{ where: { email: { regexp: '^[a-z]+@[a-z]+\\.[a-z]+$' } } }
-// SQL: WHERE "email" ~ '^[a-z]+@[a-z]+\.[a-z]+$'
-
-// Phone number pattern
-{ where: { phone: { regexp: '^\\+?[0-9]{10,15}$' } } }
 ```
 
-> [!NOTE]
-> Escape backslashes in TypeScript strings: `\\d` for regex `\d`.
+**Notice:** `~` is PostgreSQL's case-sensitive POSIX regex operator.
 
+**Edge cases:**
+- Escape backslashes in TypeScript strings: `\\d` for regex `\d`.
+- No shape validation - any string operand is passed through as the pattern.
 
-## iregexp - Case-Insensitive Regular Expression
+## iregexp
 
 ```typescript
 { where: { name: { iregexp: '^john' } } }
 // SQL: WHERE "name" ~* '^john'
-// Matches: 'John Doe', 'JOHN SMITH', 'john'
 ```
 
+**Notice:** same as `regexp`, but case-insensitive (`~*`).
 
-## Summary
-
-| Operator | SQL | Case | Description |
-|----------|-----|------|-------------|
-| `like` | `LIKE` | Sensitive | Pattern with wildcards |
-| `nlike` | `NOT LIKE` | Sensitive | Negative pattern |
-| `ilike` | `ILIKE` | Insensitive | PostgreSQL only |
-| `nilike` | `NOT ILIKE` | Insensitive | PostgreSQL only |
-| `regexp` | `~` | Sensitive | POSIX regex match |
-| `iregexp` | `~*` | Insensitive | POSIX regex match |
+**Edge cases:**
+- Matches `'John Doe'`, `'JOHN SMITH'`, and `'john'` alike.
 
 ## See also
 

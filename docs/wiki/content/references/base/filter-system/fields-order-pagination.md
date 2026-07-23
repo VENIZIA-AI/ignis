@@ -6,145 +6,115 @@ difficulty: intermediate
 
 # Fields, Ordering & Pagination
 
-Control which fields are returned, how results are sorted, and how to paginate.
-
-
-## Field Selection
-
-Control which fields are returned using `fields`:
-
-### Array Format (Recommended)
+The `filter` object controls which columns come back, in what order, and how many rows - through the `fields`, `order`, `limit`, and `skip`/`offset` properties.
 
 ```typescript
 import { userRepository } from '@/repositories';
 
 await userRepository.find({
-  filter: {
-    where: { status: 'active' },
-    fields: ['id', 'email', 'name']
-  }
+  filter: { fields: ['id', 'email'], order: ['createdAt DESC'], limit: 10 },
 });
-// Returns only: { id, email, name }
 ```
 
-### Object Format
+## Options
+
+| Option | Type | Default | Meaning |
+|---|---|---|---|
+| `fields` | `string[] \| Record<string, boolean>` | every column | Inclusion-only column selection. |
+| `order` | `string[]` (`'column ASC\|DESC'`) | insertion order | Sort columns; `ASC` if no direction is given. |
+| `limit` | `number` | `settings.defaultLimit ?? 10` | Row cap. An explicit value always wins. |
+| `skip` / `offset` | `number` | `0` | Rows to skip. Aliases for the same `OFFSET` clause; `skip` wins if both are set. |
+| `options.shouldQueryRange` | `boolean` | `false` | Adds a `range` envelope (`start`/`end`/`total`) to the result. |
+
+## Field selection
+
+`fields` accepts an array or an object. Both select the same columns:
 
 ```typescript
-// Include specific fields (only keys with `true` are selected)
+// Array format (recommended)
 await userRepository.find({
-  filter: {
-    fields: { id: true, email: true, name: true }
-  }
+  filter: { where: { status: 'active' }, fields: ['id', 'email', 'name'] },
+});
+// Returns only: { id, email, name }
+
+// Object format - only keys set to `true` are selected
+await userRepository.find({
+  filter: { fields: { id: true, email: true, name: true } },
 });
 ```
 
 > [!NOTE]
-> The object format only supports inclusion (`true` values). Keys set to `false` are simply ignored -- they do not exclude fields. To select specific fields, list the ones you want with `true` or use the array format.
-
+> The object format is inclusion-only. A key set to `false` is ignored, not excluded - it neither adds nor removes the column. To exclude a column, omit its key or use the array format.
 
 ## Ordering
 
-### Basic Ordering
+Each entry in `order` is a `'column DIRECTION'` string. Direction defaults to `ASC` and only `ASC`/`DESC` (case-insensitive) are valid:
 
 ```typescript
-// Single column, descending
-await userRepository.find({
-  filter: { order: ['createdAt DESC'] }
-});
-
-// Multiple columns
-await userRepository.find({
-  filter: { order: ['status ASC', 'createdAt DESC'] }
-});
-
-// Default direction is ASC
-await userRepository.find({
-  filter: { order: ['name'] }  // Same as 'name ASC'
-});
+await userRepository.find({ filter: { order: ['createdAt DESC'] } });
+await userRepository.find({ filter: { order: ['status ASC', 'createdAt DESC'] } });
+await userRepository.find({ filter: { order: ['name'] } }); // same as 'name ASC'
 ```
 
-### Valid Directions
-
-Only `ASC` and `DESC` (case-insensitive) are accepted. Invalid directions throw an error:
+An invalid direction throws before the query runs:
 
 ```
 Error: Invalid direction: 'RANDOM' | Expected: 'ASC' or 'DESC'
 ```
 
-### JSON Path Ordering
-
-Order by nested fields in JSON columns:
+Order by a nested key inside a JSON column with dot-path notation:
 
 ```typescript
-await userRepository.find({
-  filter: { order: ['metadata.priority DESC'] }
-});
+await userRepository.find({ filter: { order: ['metadata.priority DESC'] } });
 // SQL: ORDER BY "metadata" #> '{priority}' DESC
 
-await userRepository.find({
-  filter: { order: ['settings.display.theme ASC'] }
-});
+await userRepository.find({ filter: { order: ['settings.display.theme ASC'] } });
 ```
 
-### JSONB Sort Order
+JSONB values sort by type first, then by value within the type:
 
-| JSONB Type | Sort Order |
-|------------|------------|
+| JSONB type | Sort position |
+|---|---|
 | `null` | First (lowest) |
-| `boolean` | `false` < `true` |
+| `boolean` | `false` before `true` |
 | `number` | Numeric order |
-| `string` | Lexicographic |
+| `string` | Lexicographic order |
 | `array` | Element-wise |
-| `object` | Key-value |
+| `object` | Key-value order |
 
+See [JSON Filtering](./json-filtering) for the full path syntax.
 
 ## Pagination
 
-### Limit and Skip/Offset
-
-Both `skip` and `offset` are supported as aliases -- they both map to the SQL `OFFSET` clause. When both are provided, `skip` takes precedence.
+`limit` caps the row count; `skip` (or its alias `offset`) sets how many rows to skip. Combine them for page N:
 
 ```typescript
-// First 10 results (default limit is 10)
-await userRepository.find({
-  filter: { limit: 10 }
-});
+await userRepository.find({ filter: { limit: 10 } }); // first 10
+await userRepository.find({ filter: { limit: 10, skip: 10 } }); // page 2
 
-// Page 2 (skip first 10, get next 10)
-await userRepository.find({
-  filter: { limit: 10, skip: 10 }
-});
-
-// Using offset (equivalent to skip)
-await userRepository.find({
-  filter: { limit: 10, offset: 10 }
-});
-
-// Page N formula: skip = (page - 1) * limit
 const page = 3;
 const pageSize = 20;
 await userRepository.find({
-  filter: {
-    limit: pageSize,
-    skip: (page - 1) * pageSize
-  }
+  filter: { limit: pageSize, skip: (page - 1) * pageSize },
 });
 ```
 
 > [!TIP]
-> Always use `limit` for public-facing endpoints to prevent memory exhaustion. The default limit is 10 if not specified.
+> Set `limit` on every public-facing endpoint. An unbounded query can exhaust memory - the repository always falls back to a default of `10`, never to "no limit".
 
-### Default Limit
+### Default limit resolution
 
-When a query omits `limit`, the repository resolves one with this precedence:
+A query that omits `limit` gets one from this precedence chain:
 
 ```
-query.limit  ??  model settings.defaultLimit  ??  DEFAULT_LIMIT (10)
+query.limit  ??  settings.defaultLimit  ??  DEFAULT_LIMIT (10)
 ```
 
-- **`query.limit`** - an explicit `limit` in the filter always wins.
-- **`settings.defaultLimit`** - a per-model default set on the `@model` decorator. Must be a positive integer (validated at decoration time). Applies to top-level `find()` and to every to-many relation (using the related model's own `defaultLimit`).
-- **`DEFAULT_LIMIT`** - the global fallback, `10`.
+| Source | Meaning |
+|---|---|
+| `query.limit` | An explicit `limit` in the caller's filter. Always wins. |
+| `settings.defaultLimit` | A per-model default on the `@model` decorator. Must be a positive integer - `@model` validates it at decoration time. Applies to top-level `find()` and to every to-many relation, using the related model's own `defaultLimit`. |
+| `DEFAULT_LIMIT` | The global fallback, `10`. |
 
 ```typescript
 import { model, BaseEntity } from '@venizia/ignis';
@@ -153,105 +123,80 @@ import { countryRepository } from '@/repositories';
 
 @model({
   type: 'entity',
-  settings: { defaultLimit: 200 },  // Small lookup table - default to 200 rows
+  settings: { defaultLimit: 200 }, // small lookup table - default to 200 rows
 })
 export class Country extends BaseEntity<typeof Country.schema> {
   static override schema = countryTable;
 }
 
-await countryRepository.find({ filter: {} });            // LIMIT 200
-await countryRepository.find({ filter: { limit: 10 } }); // LIMIT 10  (explicit wins)
+await countryRepository.find({ filter: {} }); // LIMIT 200
+await countryRepository.find({ filter: { limit: 10 } }); // LIMIT 10 (explicit wins)
 ```
 
 > [!NOTE]
-> `defaultLimit` is independent of `defaultFilter`: passing `shouldSkipDefaultFilter` to bypass the default `where` clause does **not** drop the default limit. There is no "unbounded" sentinel - to fetch more rows, pass an explicit `limit`.
+> `defaultLimit` is independent of `defaultFilter`. Passing `shouldSkipDefaultFilter` bypasses the default `where` clause but never drops the default limit. There is no "unbounded" sentinel - to fetch more rows, pass an explicit `limit`.
 
-### Pagination Helper
+A small helper keeps page-to-filter math in one place:
 
 ```typescript
 function getPaginationFilter(page: number, pageSize: number = 20) {
-  return {
-    limit: pageSize,
-    skip: (page - 1) * pageSize
-  };
+  return { limit: pageSize, skip: (page - 1) * pageSize };
 }
 
-// Usage
-const filter = {
-  where: { status: 'active' },
-  ...getPaginationFilter(3, 20)
-};
+const filter = { where: { status: 'active' }, ...getPaginationFilter(3, 20) };
 // { where: {...}, limit: 20, skip: 40 }
 ```
 
+## Range queries (Content-Range header)
 
-## Range Queries (Content-Range Header)
-
-When building paginated APIs, you often need to return the total count alongside the data for pagination UI. Use `shouldQueryRange: true` to get range information following the HTTP Content-Range standard.
-
-### Basic Usage
+Set `options.shouldQueryRange: true` to get the total row count alongside the data, formatted for the HTTP `Content-Range` header:
 
 ```typescript
 const result = await userRepository.find({
   filter: { limit: 10, skip: 20 },
-  options: { shouldQueryRange: true }
+  options: { shouldQueryRange: true },
 });
 
-// Result structure:
-// {
-//   data: [...],  // Array of records
-//   range: {
-//     start: 20,   // Starting index (inclusive)
-//     end: 29,     // Ending index (inclusive)
-//     total: 100   // Total matching records
-//   }
-// }
+// result.data  -> the matching rows
+// result.range -> { start: 20, end: 29, total: 100 }
 ```
 
-### Setting HTTP Headers
+`range` has this shape:
 
-Use the range information to set standard HTTP headers:
+```typescript
+type TDataRange = {
+  start: number; // starting index, 0-based, inclusive
+  end: number; // ending index, 0-based, inclusive
+  total: number; // total rows matching the query
+};
+```
+
+Build the header value from `range`:
 
 ```typescript
 const { data, range } = await userRepository.find({
   filter: { limit: 10, skip: 20, where: { status: 'active' } },
-  options: { shouldQueryRange: true }
+  options: { shouldQueryRange: true },
 });
 
-// Format: "records start-end/total"
-const contentRange = data.length > 0
-  ? `records ${range.start}-${range.end}/${range.total}`
-  : `records */${range.total}`;
+const contentRange =
+  data.length > 0 ? `records ${range.start}-${range.end}/${range.total}` : `records */${range.total}`;
 
 res.setHeader('Content-Range', contentRange);
 // -> "records 20-29/100"
 ```
 
-### TDataRange Type
-
-```typescript
-type TDataRange = {
-  start: number;  // Starting index (0-based, inclusive)
-  end: number;    // Ending index (0-based, inclusive)
-  total: number;  // Total count matching the query
-};
-```
-
-### Content-Range Format Reference
-
-| Scenario | Content-Range Header |
-|----------|---------------------|
+| Scenario | Content-Range header |
+|---|---|
 | Items 0-9 of 100 | `records 0-9/100` |
 | Items 20-29 of 100 | `records 20-29/100` |
 | No items found | `records */0` |
 | Last page (items 90-99) | `records 90-99/100` |
 
-### Performance Note
+> [!NOTE]
+> With `shouldQueryRange: true`, the repository runs the data query and the count query in parallel via `Promise.all`.
 
-When `shouldQueryRange: true`, the repository executes the data query and count query **in parallel** using `Promise.all` for optimal performance.
-
-
-## Combined Example
+## Combined example
 
 ```typescript
 await userRepository.find({
@@ -260,12 +205,12 @@ await userRepository.find({
     fields: ['id', 'name', 'price', 'createdAt'],
     order: ['price ASC', 'createdAt DESC'],
     limit: 20,
-    skip: 0
-  }
+    skip: 0,
+  },
 });
 ```
 
-### With Range Information
+With range information:
 
 ```typescript
 const { data, range } = await userRepository.find({
@@ -274,9 +219,9 @@ const { data, range } = await userRepository.find({
     fields: ['id', 'name', 'price', 'createdAt'],
     order: ['price ASC', 'createdAt DESC'],
     limit: 20,
-    skip: 0
+    skip: 0,
   },
-  options: { shouldQueryRange: true }
+  options: { shouldQueryRange: true },
 });
 
 console.log(`Showing ${range.start}-${range.end} of ${range.total}`);
@@ -293,6 +238,7 @@ console.log(`Showing ${range.start}-${range.end} of ${range.total}`);
 **Files:**
 
 - [`packages/core/src/connectors/postgres/repositories/dialect/filter.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core/src/connectors/postgres/repositories/dialect/filter.ts) - `FilterBuilder`, `toColumns`/`toOrderBy`
+- [`packages/core/src/connectors/postgres/repositories/core/readable.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core/src/connectors/postgres/repositories/core/readable.ts) - `find()`'s `query.limit ?? getDefaultLimit() ?? DEFAULT_LIMIT` resolution
 - [`packages/core/src/base/repositories/common/operators.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core/src/base/repositories/common/operators.ts) - `Sorts` constants
 - [`packages/core/src/base/repositories/common/constants.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core/src/base/repositories/common/constants.ts) - `DEFAULT_LIMIT`
 - [`packages/core/src/base/repositories/common/types.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core/src/base/repositories/common/types.ts) - `TDataRange`, `buildDataRange`

@@ -9,16 +9,37 @@ description: Rework of the authorize module around a single PolicyDefinition edg
 
 <Badge type="warning" text="Breaking Change" /> <Badge type="tip" text="Enhancement" />
 
-**In one line.** The `authorize` module is rebuilt around a single edge table and a scoped Casbin model that supports role, resource, action, and domain hierarchies, replacing the per-app adapter with a generic, configuration-driven one and closing a concurrency race in the enforcer.
+**In one line.** The `authorize` module is rebuilt around a single edge table and a scoped Casbin model with role, resource, action, and domain hierarchies - replacing the per-app adapter with a generic, configuration-driven one and closing a concurrency race in the enforcer.
+
+## The problem it solves
+
+Before this release, every application added Casbin RBAC by subclassing `DrizzleCasbinAdapter` and sharing one Casbin enforcer across requests. Concurrent requests could interleave on that shared enforcer and corrupt policy state mid-check.
+
+Turn on the new model with three options on `ICasbinEnforcerOptions`:
+
+```typescript
+{ isScoped: true, poolSize: 16, poolAcquireTimeoutMs: 5000 }
+```
+
+Each request now borrows its own enforcer from a pool instead of racing on a shared one.
 
 ## What changed
 
-- **`ScopedCasbinAdapter`** - a generic, read-only `FilteredAdapter` that reads one principal's edges (role assignments, memberships, grants) plus the shared structural hierarchy from a single `PolicyDefinition` edge table. Configured via `IScopedCasbinEntities`; no subclassing required.
-- **Scoped Casbin model** (`CASBIN_RBAC_DOMAIN_SCOPED_MODEL`) - `r = sub, dom, obj, act`, default-deny with explicit-deny-wins, and five grouping relations (`g` role, `g2` domain membership, `g3` domain hierarchy, `g4` resource hierarchy, `g5` action hierarchy). Domain scoping uses `SYSTEM_WIDE` and `ANY_MEMBER` sentinels.
-- **`BaseFilteredAdapter<TFilter>` rewritten thin** - owns datasource/connector plumbing, the `isFiltered()` flag, and the no-op write methods; subclasses implement only `loadFilteredPolicy`.
-- **Per-request enforcer pool** - each request borrows an enforcer from a pool, loads only that user's lines, and enforces - all inside one atomic `pool.use`. The pool destroys the enforcer on any error (fail-closed). This closes the shared-model concurrency race present in the previous design.
-- **Redis-only line cache** - per-user Casbin lines are cached in Redis with a TTL, with single-flight dedup of concurrent cache misses. Corrupt entries are discarded and refetched rather than causing a 500. Optional `invalidateUserCache` / `rebuildUserCache` evict or rebuild a user's cached lines.
-- **New `ICasbinEnforcerOptions` fields** - `isScoped?: boolean` (enables the 4-token scoped model), `poolSize?: number` (default 16), `poolAcquireTimeoutMs?: number` (default 5000, fails closed on timeout).
+- **`ScopedCasbinAdapter`** - a generic, read-only `FilteredAdapter`. It reads one principal's edges (role assignments, memberships, grants) plus the shared structural hierarchy from a single `PolicyDefinition` edge table. Configure it via `IScopedCasbinEntities` - no subclassing required.
+- **Scoped Casbin model** (`CASBIN_RBAC_DOMAIN_SCOPED_MODEL`) - `r = sub, dom, obj, act`, default-deny with explicit-deny-wins, and five grouping relations: `g` role, `g2` domain membership, `g3` domain hierarchy, `g4` resource hierarchy, `g5` action hierarchy. Domain scoping uses `SYSTEM_WIDE` and `ANY_MEMBER` sentinels.
+- **`BaseFilteredAdapter<TFilter>` rewritten thin** - it owns datasource/connector plumbing, the `isFiltered()` flag, and the no-op write methods. Subclasses implement only `loadFilteredPolicy`.
+- **Per-request enforcer pool** - each request borrows an enforcer from a pool, loads only that user's lines, and enforces - all inside one atomic `pool.use`. The pool destroys the enforcer on any error (fail-closed).
+- **Redis-only line cache** - per-user Casbin lines are cached in Redis with a TTL and single-flight dedup of concurrent cache misses. A corrupt entry is discarded and refetched rather than causing a 500. Optional `invalidateUserCache` / `rebuildUserCache` evict or rebuild a user's cached lines.
+
+## Options
+
+New fields on `ICasbinEnforcerOptions`:
+
+| Option | Default | Meaning |
+|---|---|---|
+| `isScoped` | `false` | Enables the 4-token scoped model |
+| `poolSize` | `16` | Enforcers held in the per-request pool |
+| `poolAcquireTimeoutMs` | `5000` | Wait for a pooled enforcer before failing closed |
 
 ## Who is affected
 
@@ -34,7 +55,7 @@ description: Rework of the authorize module around a single PolicyDefinition edg
 > [!WARNING]
 > Apps that subclassed `DrizzleCasbinAdapter`, used the in-memory cache driver, or referenced
 > `CasbinRuleVariants.GROUP`/`.POLICY` must migrate. See the
-> [Scoped RBAC Migration Guide](../guides/migrations/scoped-rbac-migration) for both supported migration paths with full before/after code.
+> [Scoped RBAC Migration Guide](/guides/migrations/scoped-rbac-migration) for both supported migration paths with full before/after code.
 
 ### 1. `DrizzleCasbinAdapter` removed
 
@@ -77,6 +98,7 @@ Provide Redis for caching, or `{ use: false }` for none.
 
 `IAuthorizationCacheInvalidator` / `TAuthorizationCacheInvalidator` are gone. Cache management is now expressed as optional members of `IAuthorizationEnforcer` (`invalidateUserCache?`, `rebuildUserCache?`), which the registry feature-detects.
 
-## Details
+## See also
 
-See the **[Scoped RBAC Migration Guide](../guides/migrations/scoped-rbac-migration)** for the two supported paths - bridging with no data migration, or adopting the scoped model - with exact before/after code for each.
+- [Scoped RBAC Migration Guide](/guides/migrations/scoped-rbac-migration) - the two supported paths, bridging with no data migration or adopting the scoped model, with exact before/after code for each
+- [Authorization](/extensions/components/authorization/) - the `AuthorizeComponent` overview

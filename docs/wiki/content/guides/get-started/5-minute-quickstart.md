@@ -1,21 +1,27 @@
 # 5-Minute Quickstart
 
-Build your first IGNIS API endpoint in 5 minutes. No database, no complex setup - just a working "Hello World" API.
+Build a working IGNIS API: one controller, one route, dependency injection, and generated API docs - no database required.
 
-**Time to Complete:** ~5 minutes
+**Time to complete:** ~5 minutes
 
-> **Prerequisites:** [Bun installed](./setup) and basic TypeScript knowledge.
+> **Prerequisite:** [Install Bun](./setup) 1.3 or later before you start.
 
-## Step 1: Create Project (30 seconds)
+## 1. Create the project
+
+Scaffold a project and install IGNIS:
 
 ```bash
 mkdir my-app && cd my-app
 bun init -y
 bun add hono @hono/zod-openapi @scalar/hono-api-reference @venizia/ignis @venizia/ignis-helpers
-bun add -d typescript @types/bun @venizia/dev-configs eslint prettier tsc-alias
+bun add -d typescript @types/bun @venizia/dev-configs
 ```
 
-## Step 2: Configure Development Tools (30 seconds)
+Both commands finish in a few seconds. You now have a `package.json` with IGNIS in `dependencies`.
+
+## 2. Configure TypeScript for decorators
+
+IGNIS controllers use TypeScript's legacy decorators (`@controller`, `@get`). Set the two decorator flags directly in your own `tsconfig.json`. Bun does not reliably resolve them through an `extends` chain, and a missing flag drops your routes silently.
 
 Create `tsconfig.json`:
 
@@ -26,59 +32,23 @@ Create `tsconfig.json`:
   "compilerOptions": {
     "outDir": "dist",
     "rootDir": "src",
-    "baseUrl": "src",
     "paths": {
-      "@/*": ["./*"]
-    }
+      "@/*": ["./src/*"]
+    },
+    "experimentalDecorators": true,
+    "emitDecoratorMetadata": true
   },
   "include": ["src"],
   "exclude": ["node_modules", "dist"]
 }
 ```
 
-Create `eslint.config.mjs`:
-
-```javascript
-import { eslintConfigs } from "@venizia/dev-configs";
-
-export default eslintConfigs;
-```
-
-Create `.prettierrc.mjs`:
-
-```javascript
-import { prettierConfigs } from "@venizia/dev-configs";
-
-export default prettierConfigs;
-```
-
-Create `.prettierignore`:
-
-```
-dist
-node_modules
-*.log
-.*-audit.json
-```
-
-## Step 3: Write Your API (2 minutes)
-
-:::info What is a Decorator?
-A decorator is a TypeScript feature that adds behavior to classes, methods, or properties. It's the `@something` syntax you see before definitions (like `@controller`, `@get`, `@inject`). Decorators in IGNIS handle routing, dependency injection, and API documentation automatically.
-
-[Learn more →](/guides/reference/glossary#decorators)
-:::
-
-:::info What is Binding?
-"Binding" means registering a component (like a service or repository) with the application's dependency injection container. Think of it as telling the app: "Hey, this service exists and here's how to create it." Once bound, you can inject it anywhere using `@inject`.
-
-[Learn more →](/guides/core-concepts/dependency-injection)
-:::
+## 3. Write the API
 
 Create `src/index.ts`:
 
 ```typescript
-import { z } from "@hono/zod-openapi";
+import { z } from '@hono/zod-openapi';
 import {
   BaseApplication,
   BaseRestController,
@@ -87,224 +57,107 @@ import {
   IApplicationInfo,
   jsonContent,
   ApiReferenceComponent,
-} from "@venizia/ignis";
-import { HTTP } from "@venizia/ignis-helpers";
-import { Context } from "hono";
-import appInfo from "./../package.json";
+} from '@venizia/ignis';
+import { HTTP } from '@venizia/ignis-helpers';
+import { Context } from 'hono';
+import appInfo from './../package.json';
 
-// 1. Define a controller
-@controller({ path: "/hello" })
+@controller({ path: '/hello' })
 class HelloController extends BaseRestController {
   constructor() {
-    super({ scope: "HelloController", path: "/hello" });
+    super({ scope: 'HelloController', path: '/hello' });
   }
 
-  // Override binding() to register custom routes via bindRoute() or defineRoute().
-  // For decorator-based routes (@get, @post), this can be empty.
+  // binding() is abstract - leave it empty when every route uses @get/@post decorators.
   override binding() {}
 
   @get({
     configs: {
-      path: "/",
+      path: '/',
       responses: {
         [HTTP.ResultCodes.RS_2.Ok]: jsonContent({
-          description: "Says hello",
+          description: 'Says hello',
           schema: z.object({ message: z.string() }),
         }),
       },
     },
   })
   sayHello(c: Context) {
-    return c.json({ message: "Hello from IGNIS!" }, HTTP.ResultCodes.RS_2.Ok);
+    return c.json({ message: 'Hello from IGNIS!' }, HTTP.ResultCodes.RS_2.Ok);
   }
 }
 
-// 2. Create the application
 class App extends BaseApplication {
   getAppInfo(): IApplicationInfo {
     return appInfo;
   }
 
-  staticConfigure() {
-    // Static configuration before dependency injection
-  }
+  staticConfigure() {}
 
   preConfigure() {
     this.component(ApiReferenceComponent);
     this.controller(HelloController);
   }
 
-  postConfigure() {
-    // Configuration after all bindings are complete
-  }
+  postConfigure() {}
 
-  setupMiddlewares() {
-    // Custom middleware setup (optional)
-  }
+  setupMiddlewares() {}
 }
 
-// 3. Start the server
 const app = new App({
-  scope: "App",
+  scope: 'App',
   config: {
-    host: "0.0.0.0",
+    host: '0.0.0.0',
     port: 3000,
-    path: { base: "/api", isStrict: false },
-    debug: { shouldShowRoutes: true }, // Prints all registered routes on startup
+    path: { base: '/api', isStrict: false },
   },
 });
 
-// start() runs the full lifecycle: preConfigure → register resources → setupMiddlewares → HTTP server
-app.start();
+app.init();
+await app.start();
 ```
 
-Update `package.json` to add build scripts:
+`@controller` groups routes under `/hello`. `@get` registers a GET route together with its OpenAPI schema. `preConfigure()` wires the controller and the API docs component into dependency injection before the server starts. `app.init()` registers the application's core bindings - call it before `app.start()`.
 
-```json
-{
-  "name": "5-mins-qs",
-  "version": "1.0.0",
-  "description": "5-minute quickstart example",
-  "private": true,
-  "scripts": {
-    "start": "bun run src/index.ts",
-    "lint": "eslint --report-unused-disable-directives . && prettier \"**/*.{js,ts}\" -l",
-    "lint:fix": "eslint --report-unused-disable-directives . --fix && prettier \"**/*.{js,ts}\" --write",
-    "build": "tsc -p tsconfig.json && tsc-alias -p tsconfig.json",
-    "clean": "sh ./scripts/clean.sh",
-    "rebuild": "bun run clean && bun run build",
-    "server:dev": "NODE_ENV=development bun run src/index.ts",
-    "server:prod": "NODE_ENV=production bun run dist/index.js"
-  },
-  "dependencies": {
-    "hono": "^4.12.25",
-    "@hono/zod-openapi": "latest",
-    "@scalar/hono-api-reference": "latest",
-    "@venizia/ignis": "latest",
-    "@venizia/ignis-helpers": "latest"
-  },
-  "devDependencies": {
-    "typescript": "^6.0.3",
-    "@types/bun": "latest",
-    "@venizia/dev-configs": "latest",
-    "eslint": "^10.5.0",
-    "prettier": "^3.8.4",
-    "tsc-alias": "^1.8.10"
-  }
-}
-```
+New to decorators or dependency injection? See the [glossary](/guides/reference/glossary#decorators) and [Dependency Injection](../core-concepts/dependency-injection.md).
 
-Create `scripts/clean.sh`:
+## 4. Run it
 
-```bash
-#!/bin/bash
-
-# Remove build artifacts
-rm -rf dist/
-rm -rf node_modules/.cache/
-
-# Remove log files
-rm -f *.log
-rm -f .*.log
-rm -f .*-audit.json
-
-echo "Cleaned build artifacts and logs"
-```
-
-## Step 4: Run It (30 seconds)
+Start the server:
 
 ```bash
 bun run src/index.ts
 ```
 
-Visit `http://localhost:3000/api/hello` in your browser!
+After a moment you'll see:
 
-**Response:**
-
-```json
-{ "message": "Hello from IGNIS!" }
+```
+[App-start] Server STARTED | Address: 0.0.0.0:3000
 ```
 
-## View API Docs
-
-Open `http://localhost:3000/doc/explorer` to see interactive Swagger UI documentation!
-
-## What Just Happened?
-
-### Framework Patterns
-
-| Component | What It Does |
-|-----------|--------------|
-| `@controller` | Registers a class as an API controller at `/api/hello`. Supports `transport` field for REST (default) or gRPC |
-| `@get` | Defines a GET endpoint with OpenAPI metadata (auto-sets HTTP method) |
-| `Zod schema` | Validates request/response and auto-generates OpenAPI docs |
-| `BaseRestController` | Provides lifecycle hooks, route binding, and OpenAPI integration for REST controllers |
-| `BaseApplication` | Manages dependency injection, middleware, and server startup |
-| `ApiReferenceComponent` | Generates interactive API docs at `/doc/explorer` |
-| `app.start()` | Runs the full lifecycle (preConfigure → register resources → middlewares) then starts HTTP server on port 3000 |
-
-### Why Development Configs?
-
-You might wonder why we set up TypeScript, ESLint, and Prettier configs in a "quickstart". Here's why:
-
-**IGNIS is opinionated about code quality.** We believe clean, consistent code from day one prevents technical debt later. The `@venizia/dev-configs` package provides pre-configured settings that:
-
-| Config | Purpose |
-|--------|---------|
-| `tsconfig.json` | Strict TypeScript settings optimized for IGNIS decorators and path aliases |
-| `eslint.config.mjs` | Catches common errors, enforces best practices, works with TypeScript |
-| `.prettierrc.mjs` | Consistent formatting across your team - no more style debates |
-
-**Benefits of starting with IGNIS code style:**
-
-- **Consistency** - Same patterns across all IGNIS projects
-- **IDE Support** - Better autocomplete, error detection, and refactoring
-- **Team Ready** - New developers can onboard faster with familiar structure
-- **CI/CD Friendly** - Lint and format checks work out of the box
-
-> [!TIP]
-> All configs extend from `@venizia/dev-configs`, so you get updates automatically. Customize by overriding specific rules in your local config files.
-
-## Next Steps
-
-**You have a working API!**
-
-**Want more?**
-
-- **Add a database?** → [Building a CRUD API](../tutorials/building-a-crud-api.md)
-- **Production setup?** → [Complete Setup Guide](../tutorials/complete-installation.md) (ESLint, Prettier, etc.)
-- **Understand the architecture?** → [Core Concepts](../core-concepts/application/)
-
-**Quick additions:**
-
-**Add a POST endpoint:**
-
-```typescript
-@post({
-  configs: {
-    path: '/greet',
-    request: {
-      body: jsonContent({
-        schema: z.object({ name: z.string() }),
-      }),
-    },
-    responses: {
-      [HTTP.ResultCodes.RS_2.Ok]: jsonContent({
-        schema: z.object({ greeting: z.string() }),
-      }),
-    },
-  },
-})
-async greet(c: Context) {
-  const { name } = c.req.valid('json');
-  return c.json({ greeting: `Hello, ${name}!` }, HTTP.ResultCodes.RS_2.Ok);
-}
-```
-
-Test it:
+In a new terminal, request the endpoint:
 
 ```bash
-curl -X POST http://localhost:3000/api/hello/greet \
-  -H "Content-Type: application/json" \
-  -d '{"name":"World"}'
+curl http://localhost:3000/api/hello
 ```
+
+You get:
+
+```json
+{"message":"Hello from IGNIS!"}
+```
+
+## 5. View the API docs
+
+Open `http://localhost:3000/api/doc/explorer` in your browser. You'll see an interactive Scalar API reference listing `GET /hello`, generated from the Zod schema you wrote.
+
+## What you built
+
+A running IGNIS REST API: one controller, one route, dependency injection wired through `BaseApplication`, and OpenAPI docs served automatically - all in a single file.
+
+## Next steps
+
+- Add a database: [Building a CRUD API](../tutorials/building-a-crud-api.md)
+- Add lint, formatting, and build scripts: [Complete Installation](../tutorials/complete-installation.md)
+- Add more routes and methods: [REST Controllers](../core-concepts/rest-controllers.md)
+- Understand the application lifecycle: [Core Concepts: Application](../core-concepts/application/)

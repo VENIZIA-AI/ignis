@@ -91,7 +91,7 @@ const result = await repository.deleteById({
 
 ### deleteAll
 
-`where` only needs `options.force: true` when it is empty - a non-empty condition never needs it.
+`where` only needs `options.force: true` when `where` is empty - a non-empty condition never needs `force`.
 
 ```typescript
 // Soft delete matching records - non-empty where, no force needed
@@ -132,7 +132,7 @@ const result = await repository.deleteBy({
 ## Restore Operations
 
 - **Restore clears the timestamp.** Restore methods set `deletedAt = null`.
-- **Default filter is bypassed automatically.** They internally pass `shouldSkipDefaultFilter: true` so they can find the soft-deleted records the default filter would otherwise hide - you do not need to set this yourself.
+- **Default filter is bypassed automatically.** Restore methods internally pass `shouldSkipDefaultFilter: true`, so they can find the soft-deleted records the default filter would otherwise hide. You don't need to set this yourself.
 
 ### restoreById
 
@@ -190,7 +190,7 @@ const category = await repository.findById({
 ```
 
 - **Everything else is inherited unchanged.** `find`, `findOne`, `count`, `existsWith` behave exactly as on `DefaultCRUDRepository`.
-- **The default filter excludes soft-deleted rows.** `{ deletedAt: null }` is applied automatically - pass `options: { shouldSkipDefaultFilter: true }` to include them.
+- **The default filter excludes soft-deleted rows.** IGNIS applies `{ deletedAt: null }` automatically - pass `options: { shouldSkipDefaultFilter: true }` to include them.
 
 ## Options Reference
 

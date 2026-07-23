@@ -6,11 +6,11 @@ difficulty: intermediate
 
 # Filter System
 
-A filter is the object every repository read, update, and delete verb accepts to shape a query - which rows (`where`), which columns (`fields`), what order (`order`), and how much (`limit`/`skip`).
+Every repository read, update, and delete verb takes the same `filter` object. It picks rows (`where`), columns (`fields`), order (`order`), and how many (`limit`/`skip`).
 
 ## In one example
 
-A filter shapes one query - `where` picks rows, `fields` picks columns, `order` sorts, `limit` bounds the result:
+`where` picks rows, `fields` picks columns, `order` sorts, `limit` bounds the result:
 
 ```typescript
 import { postRepository } from '@/repositories';
@@ -28,7 +28,7 @@ const posts = await postRepository.find({
 });
 ```
 
-`postRepository` is a `@repository({ model: Post, dataSource })`-bound repository - `Post`'s schema comes from `@/schemas`. See [Models](/references/base/models) and [Repositories](../repositories/).
+`postRepository` is a `@repository({ model: Post, dataSource })`-bound repository. `Post`'s schema comes from `@/schemas` - see [Models](/references/base/models) and [Repositories](../repositories/).
 
 ```sql
 -- Equivalent SQL
@@ -42,9 +42,9 @@ LIMIT 20
 ## How it works
 
 - **`TFilter` maps straight to SQL.** Every property corresponds to one clause of the generated query - see the table below.
-- **`where` takes a bare value or an operator object.** A bare value is implicit equality (`null` becomes `IS NULL`, an array becomes `IN`); an operator object keys into one of the operator families.
-- **Multiple `where` keys are an implicit AND.** A dot-notation key (`'metadata.path'`) targets a JSON/JSONB column instead of a top-level column and accepts the same operators, with automatic numeric casting when the operand is a number.
-- **A model's `settings.defaultFilter` merges into every query for that model**, narrowing-only - see [Default filter](#default-filter) below.
+- **`where` takes a bare value or an operator object.** A bare value is implicit equality (`null` becomes `IS NULL`, an array becomes `IN`). An operator object keys into one of the operator families.
+- **Multiple `where` keys are an implicit AND.** A dot-notation key (`'metadata.path'`) targets a JSON/JSONB column instead of a top-level column, and accepts the same operators. IGNIS casts the operand automatically when it's a number.
+- **A model's `settings.defaultFilter` merges into every query for that model** - see [Default filter](#default-filter) below.
 
 | Filter property | SQL equivalent | Purpose |
 |---|---|---|
@@ -68,6 +68,8 @@ LIMIT 20
 | Array (PostgreSQL) | `contains`, `containedBy`, `overlaps` | `{ tags: { contains: ['typescript'] } }` |
 | JSON path | comparison, null, list, range, and pattern operators, on a `'column.path'` key | `{ 'metadata.score': { gt: 80 } }` |
 
+Full operator-by-operator tables, one line each, live on the [Quick Reference](./quick-reference) page.
+
 ### Fields, order, and pagination
 
 - **`fields`** selects columns - an array, or a `{ field: true }` object (inclusion-only; `false` is ignored).
@@ -78,7 +80,8 @@ LIMIT 20
 ### Default filter
 
 - **Applies automatically.** A model's `settings.defaultFilter` merges into every read, update, and delete for that model.
-- **Narrowing only.** When both the default and the caller's filter constrain the same field, the two conditions are AND-composed rather than one replacing the other - a caller can never widen or drop a scope like soft-delete or multi-tenancy by accident.
+- **AND-composes on collision.** When the default and the caller's filter constrain the same field, IGNIS AND-composes the two conditions instead of one replacing the other.
+- **One override escape.** Setting that same field to a plain scalar (not an operator object) replaces the default outright - the one intentional opt-out, and it needs no `shouldSkipDefaultFilter`. The full collision table lives on the [Default Filter](./default-filter) page.
 
 ```typescript
 import { model, BaseEntity } from '@venizia/ignis';
@@ -93,13 +96,13 @@ export class Post extends BaseEntity<typeof Post.schema> {
 }
 
 await postRepository.find({ filter: { where: { status: 'published' } } });
-// WHERE "isDeleted" = false AND "status" = 'published' - both conditions apply
+// WHERE "isDeleted" = false AND "status" = 'published' - different keys, both apply
 
 await postRepository.find({
   filter: { where: { status: 'published' } },
   options: { shouldSkipDefaultFilter: true },
 });
-// WHERE "status" = 'published' - default filter skipped
+// WHERE "status" = 'published' - default filter skipped entirely
 ```
 
 ## Operators
@@ -118,7 +121,7 @@ Each operator family and every long-form topic has its own page:
 | [Array Operators](./array-operators) | `contains`, `containedBy`, `overlaps` (PostgreSQL array columns) |
 | [JSON Filtering](./json-filtering) | Dot-path queries into JSON/JSONB columns |
 | [Fields, Order & Pagination](./fields-order-pagination) | `fields`, `order`, `limit`/`skip`/`offset`, `defaultLimit` |
-| [Default Filter](./default-filter) | `settings.defaultFilter`, merge semantics, `shouldSkipDefaultFilter` |
+| [Default Filter](./default-filter) | `settings.defaultFilter`, the collision/narrowing law, `shouldSkipDefaultFilter` |
 | [Application Usage](./application-usage) | How a filter flows controller -> service -> repository |
 | [Use Case Gallery](./use-cases) | Real-world filters with the SQL they produce |
 | [Tips & Edge Cases](./tips) | Performance notes and common gotchas |

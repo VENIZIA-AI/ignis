@@ -6,135 +6,65 @@ difficulty: intermediate
 
 # Null Check Operators
 
-Operators for checking null and non-null values.
+Checks whether a field is `NULL` or has a value, without comparing to a specific value.
 
+| Operator | SQL | Meaning |
+|----------|-----|---------|
+| `is` | `IS NULL` / `=` | Null check or equality |
+| `isn` | `IS NOT NULL` / `!=` | Not-null check or inequality |
+| `exists` | `IS NOT NULL` / `IS NULL` | Presence check |
+| `notExists` | `IS NULL` / `IS NOT NULL` | Inverse presence check |
 
-## Direct Null Assignment
-
-The simplest way to check for NULL:
-
-```typescript
-// IS NULL (implicit)
-{ where: { deletedAt: null } }
-// SQL: WHERE "deleted_at" IS NULL
-```
-
-
-## eq with Null
+## is
 
 ```typescript
-{ where: { deletedAt: { eq: null } } }
-// SQL: WHERE "deleted_at" IS NULL
-
-{ where: { status: { eq: 'active' } } }
-// SQL: WHERE "status" = 'active'
-```
-
-
-## ne / neq with Null
-
-```typescript
-// IS NOT NULL
-{ where: { deletedAt: { ne: null } } }
-{ where: { deletedAt: { neq: null } } }
-// SQL: WHERE "deleted_at" IS NOT NULL
-
-// Not equal to value
-{ where: { status: { ne: 'deleted' } } }
-// SQL: WHERE "status" != 'deleted'
-```
-
-
-## is - IS NULL / Equality
-
-```typescript
-// NULL check
 { where: { deletedAt: { is: null } } }
 // SQL: WHERE "deleted_at" IS NULL
-
-// Value check (same as eq)
-{ where: { status: { is: 'active' } } }
-// SQL: WHERE "status" = 'active'
 ```
 
+**Notice:** `is` behaves exactly like `eq` - `is: null` compiles to `IS NULL`, `is: <value>` compiles to `=`.
 
-## isn - IS NOT NULL / Not Equality
+**Edge cases:**
+- The bare shorthand `{ deletedAt: null }` (no operator key) is identical to `{ deletedAt: { is: null } }`.
+- `{ is: 'active' }` compiles to `"status" = 'active'`, the same as `eq`.
+
+## isn
 
 ```typescript
-// NOT NULL check
 { where: { verifiedAt: { isn: null } } }
 // SQL: WHERE "verified_at" IS NOT NULL
-
-// Value check (same as ne)
-{ where: { status: { isn: 'deleted' } } }
-// SQL: WHERE "status" != 'deleted'
 ```
 
+**Notice:** `isn` behaves exactly like `ne`/`neq` - `isn: null` compiles to `IS NOT NULL`, `isn: <value>` compiles to `!=`.
 
-## exists / notExists - Presence Check
+**Edge cases:**
+- Same three-valued-logic caveat as `ne`: `{ isn: value }` for a real `value` never matches a `NULL` row.
 
-`exists` and `notExists` are presence operators - they take a boolean rather than a value, and read more naturally than `is`/`isn` against `null`. They work on the PostgreSQL connector, and `exists` also works over JSON paths there.
+## exists
 
 ```typescript
-// Field is present (IS NOT NULL)
-{ where: { deletedAt: { exists: false } } }  // no deletedAt -> IS NULL
-{ where: { verifiedAt: { exists: true } } }  // has verifiedAt -> IS NOT NULL
-
-// notExists is the inverse
-{ where: { verifiedAt: { notExists: true } } }  // IS NULL
-
-// exists over a JSON path (PostgreSQL)
-{ where: { 'metadata.score': { exists: true } } }
+{ where: { verifiedAt: { exists: true } } }
+// SQL: WHERE "verified_at" IS NOT NULL
 ```
 
-| Syntax | SQL | Description |
-|--------|-----|-------------|
-| `{ field: { exists: true } }` | `IS NOT NULL` | Field is present |
-| `{ field: { exists: false } }` | `IS NULL` | Field is missing/null |
-| `{ field: { notExists: true } }` | `IS NULL` | Inverse of exists |
-| `{ field: { notExists: false } }` | `IS NOT NULL` | Inverse of exists |
+**Notice:** `exists` takes a boolean, not a value - `exists: false` compiles to `IS NULL`, anything else compiles to `IS NOT NULL`.
 
+**Edge cases:**
+- Only the literal `false` selects the `IS NULL` branch.
+- Any other operand, including `0` or a truthy string, selects `IS NOT NULL`.
+- Also works over a JSON path key, for example `{ 'metadata.score': { exists: true } }`.
 
-## Null Check Summary
-
-| Syntax | SQL | Description |
-|--------|-----|-------------|
-| `{ field: null }` | `IS NULL` | Direct null check |
-| `{ field: { eq: null } }` | `IS NULL` | Explicit null equality |
-| `{ field: { is: null } }` | `IS NULL` | IS operator with null |
-| `{ field: { exists: false } }` | `IS NULL` | Presence check (false = missing) |
-| `{ field: { ne: null } }` | `IS NOT NULL` | Not-equal null check |
-| `{ field: { neq: null } }` | `IS NOT NULL` | Alias for ne with null |
-| `{ field: { isn: null } }` | `IS NOT NULL` | IS NOT operator with null |
-| `{ field: { exists: true } }` | `IS NOT NULL` | Presence check (true = present) |
-
-All the IS NULL / IS NOT NULL syntaxes above are equivalent -- use whichever reads best in context.
-
-> [!NOTE]
-> `ne`/`neq` follow SQL three-valued logic: a row whose field is `NULL` never matches `{ field: { neq: value } }`. This is intentional (`NULL <> value` is UNKNOWN, not TRUE). Reach for `exists`/`notExists` or an explicit `{ field: null }` branch when you want NULL rows included.
-
-
-## Common Patterns
-
-### Soft Delete Pattern
+## notExists
 
 ```typescript
-// Find active records (not deleted)
-{ where: { deletedAt: { is: null } } }
-
-// Find deleted records only
-{ where: { deletedAt: { isn: null } } }
+{ where: { verifiedAt: { notExists: true } } }
+// SQL: WHERE "verified_at" IS NULL
 ```
 
-### Verified Users
+**Notice:** the inverse of `exists` - `notExists: false` compiles to `IS NOT NULL`, anything else compiles to `IS NULL`.
 
-```typescript
-// Find verified users
-{ where: { emailVerifiedAt: { isn: null } } }
-
-// Find unverified users
-{ where: { emailVerifiedAt: { is: null } } }
-```
+**Edge cases:**
+- Same `false`-only branch rule as `exists`.
 
 ## See also
 

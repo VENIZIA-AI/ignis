@@ -6,11 +6,11 @@ difficulty: intermediate
 
 # Pro Tips & Edge Cases
 
-Behavior that is easy to assume incorrectly when writing a `filter` - each one verified against `FilterBuilder`/`PostgresQueryOperators`.
+A filter can return the wrong rows even when every operator name looks right. Each entry below is verified against `FilterBuilder`/`PostgresQueryOperators` in `packages/core`.
 
 ## `NOT IN` and `!=` silently exclude `NULL`
 
-SQL three-valued logic, not an IGNIS quirk: a row whose column is `NULL` never matches `nin`, `ne`, or `neq`, because `NULL <> value` evaluates to UNKNOWN rather than TRUE.
+This is SQL three-valued logic, not an IGNIS quirk. A row whose column is `NULL` never matches `nin`, `ne`, or `neq`, because `NULL <> value` evaluates to UNKNOWN rather than TRUE.
 
 ```typescript
 { where: { status: { nin: ['deleted'] } } }
@@ -38,7 +38,7 @@ if (ids.length === 0) {
 
 ## JSON numeric comparisons need actual JSON numbers
 
-A JSON path comparison casts safely with `CASE WHEN (...) ~ '^-?[0-9]+(\.[0-9]+)?$' THEN (...)::numeric ELSE NULL END` - the regex has to match or the cast yields `NULL` and the row is excluded:
+A JSON path comparison casts safely with `CASE WHEN (...) ~ '^-?[0-9]+(\.[0-9]+)?$' THEN (...)::numeric ELSE NULL END`. The regex has to match, or the cast yields `NULL` and the row is excluded:
 
 ```typescript
 // { "priority": "3" } (string) - regex matches "3" -> casts to numeric 3 -> 3 > 2 matches
@@ -84,7 +84,7 @@ Store numbers as JSON numbers (`{ "priority": 3 }`), not numeric strings, to avo
 ```typescript
 { fields: { id: true, name: true, email: true } }
 
-// Setting a key to `false` does NOT exclude it - the key is simply ignored.
+// Setting a key to `false` does NOT exclude it - the key is ignored.
 // To exclude fields, list only the ones you want, as an array:
 { fields: ['id', 'name', 'email'] }
 ```

@@ -9,7 +9,7 @@ description: The logger was rebuilt behind an ILogger contract - five levels, tw
 
 <Badge type="warning" text="Breaking Change" /> <Badge type="tip" text="New Feature" /> <Badge type="tip" text="Enhancement" /> <Badge type="info" text="Bug Fix" />
 
-**In one line.** Consumers now type against `ILogger` and never name a provider; the app picks winston or pino with one line at the entrypoint and loads only that one; `HfLogger` emits correct output and implements `ILogger`.
+**In one line.** Consumers now type against `ILogger` and never name a provider. The app picks winston or pino with one line at the entrypoint, and loads only that one. `HfLogger` emits correct output and implements `ILogger`.
 
 ## Architecture
 
@@ -38,7 +38,7 @@ import { PinoLogger } from '@venizia/ignis-helpers/pino';
 LoggerFactory.use({ provider: PinoLogger });
 ```
 
-- **Swap-on-use.** The factory hands out stable wrappers and re-points every one at `use()`, so a module-level `const logger = LoggerFactory.getLogger([...])` captured at import time still follows the registration. Wrapper cost: one property read.
+- **Swap-on-use.** The factory hands out stable wrappers and re-points every one at `use()`. A module-level `const logger = LoggerFactory.getLogger([...])`, captured at import time, still follows the registration. Wrapper cost: one property read.
 - **Exactly ONE provider loads.** Wrappers resolve their delegate at the first log call, and the winston default sits behind a `createRequire` boundary a bundler cannot resolve. An app registering pino never loads or bundles winston.
 - **Both providers are sub-path only.** The root barrel is provider-free; all winston names live at `@venizia/ignis-helpers/winston`, pino at `/pino`. All provider packages are optional peers.
 - **Compiled binaries** (`bun build --compile`) MUST register explicitly - only a class reference carries a provider into a bundle.
@@ -62,13 +62,13 @@ LoggerFactory.use({ provider: PinoLogger });
 - **Correct output.** Entries carry explicit scope/message length bytes - no NUL padding, no stale tails from a longer overwritten message.
 - **`ILogger` conformance.** All five level methods plus `log` and `for`; args are formatted (deep inspection + redaction), never dropped. The pre-encoded bytes hot path survives as an overload.
 - **Exact lap accounting.** Every drain batch reports how many entries the ring overwrote; the default sink emits a `warn` marker.
-- **Lazy 16MB ring** (allocated on first `HfLogger.get()`, not at import) on a plain `ArrayBuffer` - the design was always single-thread, so `SharedArrayBuffer` shared nothing.
+- **Lazy 16MB ring** - allocated on first `HfLogger.get()`, not at import - lives on a plain `ArrayBuffer`. The design was always single-thread, so `SharedArrayBuffer` shared nothing.
 - **Flusher lifecycle:** `stop()`, an unref'd interval, batched yielding drains, and pluggable `sink` / `filePath` options.
 - Measured ~46-66ns per enqueue, ~14x faster than pino sync on the same machine; heap flat over 1M logs.
 
 ## Secret redaction kill-switch
 
-`APP_ENV_LOGGER_DO_REDACT=false` (that literal only - fail-closed) turns redaction into a pass-through for local debugging, covering log arguments, fetcher request logs, and connection URLs. Unset or any other value keeps today's behavior. Never disable in production.
+`APP_ENV_LOGGER_DO_REDACT=false` (that literal only - fail-closed) turns redaction into a pass-through for local debugging. It covers log arguments, fetcher request logs, and connection URLs. Unset or any other value keeps today's behavior. Never disable in production.
 
 ## Breaking changes
 
@@ -88,6 +88,6 @@ Untyped call sites (`this.logger.info(...)`, `LoggerFactory.getLogger([...])`, `
 
 ## Details
 
-- **HfLogger entry layout v2** (256 bytes): `float64` epoch-ms timestamp at 0-7, level code at 8, scope length at 9, scope at 10-41, message length at 42, message at 43-255 (cap 213 bytes). Encode cache is FIFO-bounded at 4096.
-- **Winston pipeline:** two-stage formatting - shared prep on the logger, per-transport assembly - so console colorizes while file and UDP lines stay ANSI-free. File transports remain opt-in via `APP_ENV_LOGGER_FOLDER_PATH`.
+- **HfLogger entry layout v2** (256 bytes): `float64` epoch-ms timestamp at bytes 0-7, level code at byte 8, scope length at byte 9, scope at bytes 10-41, message length at byte 42, message at bytes 43-255 (cap 213 bytes). Encode cache is FIFO-bounded at 4096.
+- **Winston pipeline:** two-stage formatting - shared prep on the logger, per-transport assembly. Console colorizes; file and UDP lines stay ANSI-free. File transports remain opt-in via `APP_ENV_LOGGER_FOLDER_PATH`.
 - Environment variables, the level guide, and every API signature: [Full reference](/extensions/helpers/logger/reference).

@@ -9,18 +9,33 @@ description: Zod 422 responses now derive messageCode/message from the schema; D
 
 <Badge type="danger" text="Security" /> <Badge type="warning" text="Breaking Change" /> <Badge type="tip" text="Enhancement" />
 
-**In one line.** Validation errors now carry a stable, localizable `messageCode`, database errors are classified more broadly and more correctly, and production error responses no longer leak database internals or raw system error text.
+**In one line.** Validation errors now carry a stable, localizable `messageCode`, database errors classify more broadly and more correctly, and production error responses no longer leak database internals or raw system error text.
 
 > [!NOTE]
-> Builds on [Error Responses - messageCode & Extra Fields](./2026-04-23-error-response-extra-fields), which added `error.messageCode` for domain errors. This release derives `messageCode`/`message` for validation errors directly from the failing Zod issue.
+> Builds on [Error Responses - messageCode & Extra Fields](/changelogs/2026-04-23-error-response-extra-fields), which added `error.messageCode` for domain errors. This release derives `messageCode`/`message` for validation errors directly from the failing Zod issue.
+
+## The problem it solves
+
+A 422 response used to carry the literal string `message: "ValidationError"` for every failed check, so a frontend could not tell which rule failed without parsing `details.cause`. A database error in production could also leak row values and schema names through its `message`.
+
+Attach a stable code to a custom Zod check, and it now surfaces on the response:
+
+```typescript
+schema.refine(fn, {
+  message: 'Must not exceed 4 decimal places',
+  params: { code: 'numeric.decimal.too_many_places' },
+});
+```
+
+The 422 response now carries `messageCode: "numeric.decimal.too_many_places"` instead of the generic `"ValidationError"`.
 
 ## What changed
 
-- **Zod validation (422) responses now carry a real `messageCode`** - derived from the failing issue: a schema-author-attached `params.code` wins, otherwise the raw Zod code (for example `invalid_type`). `message` becomes that issue's human-readable text.
+- **422 responses carry a real `messageCode`** - a schema-author `params.code` wins; otherwise the raw Zod code (for example `invalid_type`). `message` becomes that issue's human-readable text.
 - **`params.code` schema convention** - attach a stable code to a custom check via `.refine(fn, { params: { code } })` or `superRefine`.
-- **Database errors classified by SQLSTATE class, not exact code** - any code in class `22` (data exception), `23` (integrity constraint), or `44` maps to `400`, with a specific message when known or a safe fallback message otherwise. Programming/infra classes (`42` syntax, `53` resources, `0A`, `25`, `28`) still return `500`.
-- **Retryable database conflicts now return `409`** - transient conflicts (`40001` serialization failure, `40P01` deadlock) return `409 Conflict` with `messageCode: "database.conflict"` and a "please retry" message, instead of a misleading `500`.
-- **Production responses no longer leak database internals** - DB client errors expose only the base message (no `detail`/`table`/`constraint`); any error without an explicit `statusCode` returns a generic `"Internal Server Error"`. Non-production is unchanged.
+- **Database errors classify by SQLSTATE class, not exact code** - class `22` (data exception), `23` (integrity constraint), or `44` maps to `400`. Programming/infra classes (`42` syntax, `53` resources, `0A`, `25`, `28`) still return `500`.
+- **Retryable database conflicts return `409`** - `40001` serialization failure and `40P01` deadlock return `409 Conflict` with `messageCode: "database.conflict"`, instead of a misleading `500`.
+- **Production responses no longer leak database internals** - a DB client error exposes only the base message, never `detail`/`table`/`constraint`. Any error without an explicit `statusCode` returns a generic `"Internal Server Error"`. Non-production is unchanged.
 - **`rootKey` now applies to validation responses** - 422 responses wrap under `error.rootKey`, consistent with every other error response.
 - **Crash-proofing** - a non-string error `code` (for example a gRPC numeric code) no longer throws inside the handler.
 - **Internal restructure** - `app-error` middleware split into `app-error.middleware.ts` (orchestrator), `zod.handler.ts`, `database.handler.ts`, `definition.ts`, `types.ts`.
@@ -71,7 +86,7 @@ A Postgres data-exception or integrity-constraint code that wasn't explicitly li
 
 ### Security: production responses leaked database internals
 
-For database errors, the response `message` used to include the pg `detail` field - which **echoes row values**, for example `Key (email)=(a@b.com) already exists` - plus `table` and `constraint` names, even in production. Separately, any unexpected error (a non-client DB error, a connection failure) returned its raw `error.message`, which can carry SQL, schema/column names, or a connection host/port (for example `connect ECONNREFUSED 10.0.0.5:5432`). Both are fixed as described in the breaking changes above; `details.stack` and `details.cause` remain gated to non-production, unchanged.
+For database errors, the response `message` used to include the pg `detail` field, which **echoes row values** (for example `Key (email)=(a@b.com) already exists`), plus `table` and `constraint` names, even in production. Any unexpected error, such as a connection failure, returned its raw `error.message` instead. That could carry SQL, schema or column names, or a connection host and port (for example `connect ECONNREFUSED 10.0.0.5:5432`). Both are fixed as described in the breaking changes above. `details.stack` and `details.cause` remain gated to non-production, unchanged.
 
 ### `params.code` schema-author convention
 
@@ -100,3 +115,8 @@ Built-in checks (type, `.min`, `.email`, ...) cannot carry a custom code in Zod 
 | `src/base/middlewares/app-error/definition.ts` | Expanded Postgres error codes; adds `POSTGRES_CLIENT_ERROR_CLASSES`, `DATABASE_CLIENT_ERROR_FALLBACK_MESSAGE`, `POSTGRES_RETRYABLE_ERROR_CODES` |
 | `src/base/middlewares/app-error/types.ts` | `IDatabaseError`, `IZodIssueLike` interfaces |
 | `src/base/middlewares/index.ts` | Re-exports the per-middleware folders |
+
+## See also
+
+- [Middlewares Reference](/references/base/middlewares) - the full `appErrorHandler` reference
+- [Error Responses - messageCode & Extra Fields](/changelogs/2026-04-23-error-response-extra-fields) - the changelog this release builds on

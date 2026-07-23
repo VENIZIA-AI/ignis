@@ -243,7 +243,7 @@ export class ArticleRepository extends DefaultSearchRepository<TArticleDocument>
 
 `find()`/`findOne()`/`findById()`/`count()`/`existsWith()` accept the same `TFilter`/`TWhere` shape as PostgreSQL repositories - the `TypesenseQueryDialect` translates `where` into Typesense's `filter_by` syntax, `order` into `sort_by` (max 3 fields - a Typesense limit), `limit`/`skip` into `per_page`/`page`, and `fields` into `include_fields`. `filter.include` is **not supported** and throws - there is no relation model for documents.
 
-`find()`/`findOne()`/`findById()` also accept the same `options.retry` as the PostgreSQL connector - re-read with backoff until a predicate passes, for engines eventually-consistent behind indexing lag:
+Search engines index asynchronously, so a document can be missing right after a write. `find()`/`findOne()`/`findById()` accept the same `options.retry` as PostgreSQL - re-read until the document shows up:
 
 ```typescript
 const article = await articleRepository.findById({
@@ -252,7 +252,7 @@ const article = await articleRepository.findById({
 });
 ```
 
-The `options.transaction` check inside `executeReadWithRetry` is engine-neutral and applies here exactly as it does on PostgreSQL - it just never fires in practice, because search datasources have no way to produce a transaction handle to pass in: `beginTransaction()` inherits the neutral default and throws `NotSupported` (see [Transactions and Locking](#transactions-and-locking) below) rather than returning one. See [Advanced Repository Features - Read Retry](/references/base/repositories/advanced#read-retry-replica-lag) for the full option reference (defaults, typed-per-verb `until`, exhaustion behavior).
+Same options, same rules as PostgreSQL - see [Read Retry](/references/base/repositories/advanced#read-retry-replica-lag). The only difference is moot: retry skips inside a transaction, and search has no transactions to begin with.
 
 ### Envelope differences vs. PostgreSQL
 

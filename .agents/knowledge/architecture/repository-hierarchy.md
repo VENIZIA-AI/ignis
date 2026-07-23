@@ -58,51 +58,42 @@ Typesense and Meilisearch connectors add no repository classes - they contribute
 
 ## Opt-in read retry (read-after-write)
 
-`find`/`findOne`/`findById` accept an opt-in `retry: IReadRetryOptions<TResult>` (`maxAttempts?`,
-`maxTotalMs?`, `signal?`, `backoff?`, `until?`) defined in `base/repositories/common/types.ts`. It
-lives ONLY on the read-verb option types - `TFindOptions`/`TFindRangeOptions` (predicate sees
-`Array<R>` / the `TDataWithRange<R>` range envelope) and `TFindOneOptions` (predicate sees
-`TNullable<R>`) intersect `IWithReadRetry<TResult>` on top of the shared `IExtraOptions`.
-`IExtraOptions` itself is untouched, so an inline `options: { retry }` literal on a write verb
-(`create`, `updateById`, `deleteById`, ...) is rejected by TypeScript's excess-property check at
-compile time; a pre-built variable carrying an extra `retry` key passes structurally instead, but
-the key is inert there and never read - not a runtime guard, a compile-time nudge with one known
-structural gap.
+A read right after a write can hit a lagging replica. `find`/`findOne`/`findById` accept an opt-in
+`retry: IReadRetryOptions<TResult>` (`maxAttempts?`, `maxTotalMs?`, `signal?`, `backoff?`,
+`until?`) that re-reads until the predicate passes.
 
-`AbstractRepository.executeReadWithRetry` is the shared orchestration point: no `retry` set ->
-direct execution, zero overhead; inside a transaction -> skipped with a debug log, because the pool
-routes transactions to the primary and there is no replica lag to wait out; otherwise it calls the
-helpers-layer `executeWithRetryUntil` (see [helpers](/packages/helpers.md)) with a default backoff
-tuned for replica lag - EXPONENTIAL, 50ms initial delay, 500ms cap, EQUAL jitter, distinct from
-`executeWithRetry`'s own general-purpose defaults - and a per-verb default `until` predicate:
-`findOne`/`findById` retry while the result is `null` OR `undefined`; `find` retries while the array
-(or, under `shouldQueryRange: true`, the range envelope's `data`) is empty. `maxTotalMs` only bounds
-whether a NEW attempt may start - an in-flight read is never interrupted, so the first read always
-runs to completion, and a non-positive budget just means "no retries" while still performing exactly
-one read. `signal` aborts between attempts and during backoff sleeps; unlike exhaustion (which
-returns the last, possibly stale, result), an abort REJECTS the call. `maxAttempts` below `1` also
-throws immediately, before any read runs - the one case where "retry never fabricates a new error"
-does not hold, because the configuration itself is nonsensical.
+Type design (`base/repositories/common/types.ts`):
 
-Protected `findUntil`/`findRangeUntil`/`findOneUntil` on `AbstractRepository` re-enter the public
-verb with `retry` stripped via spread + `delete` (the destructure-omit idiom is a lint error here -
-`no-unused-vars` has `ignoreRestSiblings: false`), so the recursion is single-depth by construction.
-`findUntil`/`findRangeUntil` are split rather than one method, so each is checked against its own
-`find` overload - `findUntil` returns `Array<R>` against the plain overload, `findRangeUntil`
-returns `TDataWithRange<R>` against the `shouldQueryRange: true` overload. Postgres's
-`ReadableRelationalRepository` and search's `ReadableSearchRepository` both dispatch with
-`if (options?.retry) return options.shouldQueryRange ? this.findRangeUntil(...) :
-this.findUntil(...)` at the top of `find`, and `if (options?.retry) return
-this.findOneUntil(...)` at the top of `findOne`; `findById` inherits the behavior because it
-delegates to `findOne`. Search's `findOne` dispatches BEFORE its own `find` delegation, so exactly
-one retry layer wraps a call. Locked reads (`lock: TLockOptions`) never retry - a lock requires a
-transaction, and transactions already skip retry. Routing stays pooler-owned: no primary/replica
-awareness lives in framework code, `retry` only smooths over the read-your-writes lag such routing
-can introduce.
+- `retry` exists ONLY on the read-verb option aliases: `TFindOptions` (predicate sees `Array<R>`),
+  `TFindRangeOptions` (`TDataWithRange<R>`), `TFindOneOptions` (`TNullable<R>`).
+- `IExtraOptions` is untouched, so an inline `{ retry }` on a write verb is a compile error
+  (excess-property check). A pre-built object carrying a stray `retry` passes structurally, but the
+  key is never read.
 
-A NEW engine's readable tier must include those dispatch lines itself - the base cannot inject
-them without owning every engine's verb overloads. Omitting them does not crash: `retry` is
-silently ignored and every read degrades to a single attempt.
+Runtime (`AbstractRepository.executeReadWithRetry`, the shared orchestration point):
+
+- No `retry` -> direct execution, zero overhead.
+- Inside a transaction -> skipped with a debug log; pools route transactions to the primary.
+  Locked reads require a transaction, so they never retry either.
+- Otherwise -> helpers' `executeWithRetryUntil` (see [helpers](/packages/helpers.md)) with a
+  read-tuned default backoff (EXPONENTIAL, 50ms initial, 500ms cap, EQUAL jitter) and a per-verb
+  default `until`: `findOne`/`findById` retry while `null`/`undefined`, `find` while empty.
+- `maxTotalMs` only gates NEW attempts - an in-flight read is never interrupted; non-positive means
+  "no retries", one read still runs. An aborted `signal` REJECTS the call. `maxAttempts` below `1`
+  throws before any read.
+
+Wiring:
+
+- Protected `findUntil`/`findRangeUntil`/`findOneUntil` strip `retry` (spread + `delete`; the
+  destructure-omit idiom is a lint error here - `no-unused-vars` has `ignoreRestSiblings: false`)
+  and re-enter the public verb, so recursion is single-depth by construction. The find/range split
+  lets each method check against its own `find` overload.
+- Both connectors dispatch at the top of `find`/`findOne`; `findById` inherits via its `findOne`
+  delegation. Search's `findOne` dispatches BEFORE delegating to `find`, so exactly one retry layer
+  wraps a call.
+- Routing stays pooler-owned: no primary/replica awareness lives in framework code.
+- A NEW engine's readable tier must add those dispatch lines itself - the base cannot inject them.
+  Omitting them does not crash: `retry` is silently ignored, reads degrade to a single attempt.
 
 ## Hidden fields are excluded at query time
 

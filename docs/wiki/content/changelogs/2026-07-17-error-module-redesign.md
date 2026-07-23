@@ -9,10 +9,10 @@ description: One message shape everywhere - a definition, a getError input and a
 
 <Badge type="danger" text="Breaking Change" />
 
-The error layer carried the same message in three different shapes: a catalog wrote `key` +
-`message: string`, a throw site wrote `message` + `messageCode` + `messageArgs`, and the response
-reported `normalized { text, code, args }` **plus** a flat `messageCode` and an `extra.messageArgs`
-mirror of the very same values.
+The error layer used three shapes for the same message. A catalog wrote `key` + `message: string`.
+A throw site wrote `message` + `messageCode` + `messageArgs`. The response reported
+`normalized { text, code, args }` **plus** a flat `messageCode` and an `extra.messageArgs` mirror of
+the very same values.
 
 Now there is one shape - `{ text, code, args }` - and it is the same at every stage.
 
@@ -37,9 +37,9 @@ Now there is one shape - `{ text, code, args }` - and it is the same at every st
 
 **File:** [`packages/inversion/src/modules/error/types.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/inversion/src/modules/error/types.ts)
 
-**Problem:** the code and the interpolation args lived in different fields depending on where you
-stood - `key` in a catalog, `messageCode` at a throw site, `normalized.code` on the wire. Every
-boundary needed a translation step, and each one was a chance to drop a field.
+**Problem:** the code and the interpolation args lived in a different field at every stage. A catalog
+used `key`. A throw site used `messageCode`. The wire used `normalized.code`. Each boundary needed
+its own translation step - and each step was a chance to drop a field.
 
 **Solution:** `message` is either the historical string or an object mirroring `normalized`:
 
@@ -80,32 +80,31 @@ Omit a field and the definition supplies it.
 **File:** [`packages/inversion/src/modules/error/app-error.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/inversion/src/modules/error/app-error.ts)
 
 `getError({ message: 'wrapper', error: 'boom' })` threw a `TypeError` **from inside the error
-constructor** - masking the original failure at the exact moment a catch block was trying to report
-it. The optional chain guarded `definition`, not `definition.message`. It now degrades instead of
-throwing, and the shape is refused at compile time:
+constructor**. That masked the original failure at the exact moment a catch block was trying to
+report it. The optional chain guarded `definition`, not `definition.message`. It now degrades
+instead of throwing. The shape is also refused at compile time:
 
 ```typescript
 getError({ message: 'wrapper', error: caughtError }); // now a COMPILE ERROR - use `cause`
 getError({ message: 'wrapper', cause: caughtError }); // correct
 ```
 
-`error` is the catalogued form's discriminant. It was previously accepted on the free-form branch
-through the index signature and then **silently dropped**, because `error` is a consumed key.
+`error` is the catalogued form's discriminant. The free-form branch previously accepted it too,
+through the index signature. It was then **silently dropped**, because `error` is a consumed key.
 
 ### `MessageCode` guards no longer throw on the input they screen
 
 **File:** [`packages/inversion/src/modules/error/message-code.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/inversion/src/modules/error/message-code.ts)
 
-`isValid` is documented as a guard for a code arriving from outside, yet `isValid(123)` threw. It
-now takes `unknown` and returns `false`; `resolve` falls back to `MessageCode.DEFAULT` for any
+`isValid` is documented as a guard for a code arriving from outside, yet `isValid(123)` threw. It now
+takes `unknown` and returns `false`. `resolve` falls back to `MessageCode.DEFAULT` for any
 non-string.
 
 ### Spreading a definition no longer degrades it
 
 Under the old shape, `getError({ ...Errors.X })` put `key` into `extra.key` and fell back to
-`core.system_error`, while the status and text still arrived - so it looked fine. A definition's
-`message` object is now the free-form input shape, so the spread resolves identically to
-`{ error: Errors.X }`.
+`core.system_error`. The status and text still arrived, so it looked fine. A definition's `message`
+object is now the free-form input shape, so the spread resolves identically to `{ error: Errors.X }`.
 
 ## Breaking Changes
 
@@ -183,7 +182,7 @@ transform: s => ({ ...s.message, text: 'VI' })
 **Not caught by the compiler - check these by hand:**
 
 - **`error.messageCode` reads.** If your client types against a *different* `ApplicationError` (a UI
-  package of your own), `tsc` stays green and the read silently yields `undefined` - a blank error
+  package of your own), `tsc` stays green. The read then silently yields `undefined` - a blank error
   toast in production. Grep for `.messageCode` and repoint to `.normalized.code`.
 - **`error.extra?.messageArgs` reads.** Same failure mode. Repoint to `.normalized.args`.
 - **`as any` / catch-variable reads** of either field.

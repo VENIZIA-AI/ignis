@@ -13,11 +13,11 @@ description: ANSI-free log files, a real level floor via APP_ENV_LOGGER_LEVEL, o
 
 ## What changed
 
-- **Log files no longer contain ANSI color codes.** Formatting is split into a shared preparation stage (label, timestamp, error normalization, deep splat) on the logger and a per-transport assembly stage - the console colorizes, files and UDP get the same line plain.
+- **Log files no longer contain ANSI color codes.** Formatting now happens in two stages: a shared preparation stage on the logger handles the label, timestamp, error normalization, and deep splat; a per-transport assembly stage applies it - the console colorizes, files and UDP get the same line plain.
 - **JSON mode emits valid JSON.** The dead `colorize()` sitting after `json()` is gone, and `errors({ stack: true })` now runs before assembly instead of after `printf` where it was a no-op.
-- **`APP_ENV_LOGGER_LEVEL` sets the logger-level floor** (default `debug`, preserving current behavior). Transports without their own level inherit it - this also un-caps the UDP transport, which was silently pinned to `info` by Winston's default logger level.
+- **`APP_ENV_LOGGER_LEVEL` sets the logger-level floor** (default `debug`, preserving current behavior). Transports without their own level inherit it. This also un-caps the UDP transport, which was silently pinned to `info` by Winston's default logger level.
 - **File logging is opt-in.** Without `APP_ENV_LOGGER_FOLDER_PATH`, no rotating file transports are created. Previously the folder defaulted to `./` and every process scattered `*-info-*.log` files into its working directory.
-- **Custom-logger caching is fixed.** `Logger.get(scope, customLogger)` used to cache under `scope:custom`, so a second, different Winston instance for the same scope silently got the first one's wrapper - and `.for(method)` on a custom-backed logger silently fell back to the default `applicationLogger`. A custom-backed logger is now a fresh wrapper per call, and `.for()` keeps its backing instance.
+- **Custom-logger caching is fixed.** `Logger.get(scope, customLogger)` used to cache under `scope:custom`. A second, different Winston instance for the same scope silently got the first one's wrapper. Worse, `.for(method)` on a custom-backed logger silently fell back to the default `applicationLogger`. A custom-backed logger is now a fresh wrapper per call, and `.for()` keeps its backing instance.
 - **`DgramTransport` cannot crash the process.** A failed UDP `send` used to `emit('error')` with no listener attached - a process-killing unhandled error. It now logs the failure and drops the socket so the next line reconnects.
 
 ## Who is affected

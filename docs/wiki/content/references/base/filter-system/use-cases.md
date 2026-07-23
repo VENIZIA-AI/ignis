@@ -6,11 +6,11 @@ difficulty: intermediate
 
 # Use Case Gallery
 
-Runnable `filter` objects paired with the SQL `FilterBuilder` produces for them - copy the shape that's closest to what you need. For the operators themselves, start at the [Filter System Overview](./).
+Runnable `filter` objects, paired with the SQL `FilterBuilder` produces for them. Copy the shape closest to what you need. For the operators themselves, start at the [Filter System Overview](./).
 
 ## Soft delete
 
-The smallest real use case - `is`/`isn` against a nullable timestamp:
+Goal: return only non-deleted rows, or only deleted ones.
 
 ```typescript
 // Active (non-deleted) records
@@ -26,11 +26,13 @@ const deletedRecords = await repository.find({
 // SQL: SELECT * FROM "Record" WHERE "deleted_at" IS NOT NULL
 ```
 
-If every query on a model should exclude deleted rows, encode this once as `settings.defaultFilter` instead of repeating it at every call site - see [Default Filter](./default-filter).
+Notice: `is`/`isn` against a nullable timestamp is the whole pattern - no separate `deleted: boolean` column needed.
+
+If every query on a model should exclude deleted rows, encode this once as `settings.defaultFilter` instead of repeating it at every call site. See [Default Filter](./default-filter).
 
 ## E-commerce product search
 
-Range, list, and pattern operators combined with field selection and sorting:
+Goal: a price range, a minimum quantity, and a status, sorted and paged for a listing page.
 
 ```typescript
 const products = await productRepository.find({
@@ -58,9 +60,11 @@ const products = await productRepository.find({
 // LIMIT 24
 ```
 
+Notice: four `where` keys AND-compose automatically - no explicit `and` needed for a flat condition list.
+
 ## Admin dashboard: recent users
 
-`gte` for a rolling window, `nin` to exclude states, `isn` for presence:
+Goal: users created in the last 30 days, excluding banned or suspended accounts, with a verified email.
 
 ```typescript
 const thirtyDaysAgo = new Date();
@@ -89,9 +93,11 @@ const recentUsers = await userRepository.find({
 // LIMIT 50
 ```
 
+Notice: `nin` on `status` silently drops any row where `status` is `NULL`. See [Tips & Edge Cases](./tips) before relying on this for a nullable column.
+
 ## Multi-tenant isolation at the call site
 
-`settings.defaultFilter` (see [Default Filter](./default-filter)) is the model-level way to enforce a tenant scope. A helper that injects `tenantId` at every call site is the call-site alternative - useful when tenant isolation is a caller concern rather than a per-model constant:
+`settings.defaultFilter` (see [Default Filter](./default-filter)) is the model-level way to enforce a tenant scope. The alternative below is a helper that injects `tenantId` at every call site - useful when tenant isolation is a caller concern, not a per-model constant.
 
 ```typescript
 const getTenantProducts = (tenantId: string, filter: TFilter<TProductSchema>) =>
@@ -115,11 +121,11 @@ await getTenantProducts('tenant-abc', {
 // LIMIT 20
 ```
 
-Unlike `defaultFilter`'s narrowing merge, this is a plain object spread - `tenantId`/`deletedAt` simply overwrite same-named keys from `filter.where` because they're spread last.
+Notice: this is a plain object spread, not `mergeFilter`'s narrowing merge - `tenantId`/`deletedAt` overwrite same-named keys from `filter.where` because they're spread last.
 
 ## Task management: priority tags
 
-`nin` plus an array `overlaps` operator, with a relation include:
+Goal: open tasks assigned to the current user that carry an urgent or high-priority tag, with the parent project loaded.
 
 ```typescript
 const priorityTasks = await taskRepository.find({
@@ -146,9 +152,11 @@ const priorityTasks = await taskRepository.find({
 // SELECT * FROM "Project" WHERE "id" IN (...)
 ```
 
+Notice: `include` runs as a separate query, not a SQL `JOIN` - see [Relations & Includes](../repositories/relations).
+
 ## Date range queries
 
-`between` for a closed window, `gte` for a rolling one:
+Goal: a closed window (a specific week) versus a rolling window (the last 7 days).
 
 ```typescript
 const startOfWeek = new Date('2024-12-29');
@@ -184,9 +192,11 @@ const recentOrders = await orderRepository.find({
 // ORDER BY "total" DESC LIMIT 100
 ```
 
+Notice: `between` needs exactly two elements - `FilterBuilder` throws on any other array length.
+
 ## Inventory low-stock alert
 
-Nested `or`/`and` groups plus a JSON path presence check:
+Goal: active products at or under a reorder threshold, flagged critical below 5 units or fast-moving stock at 10 or fewer.
 
 ```typescript
 const lowStockProducts = await productRepository.find({
@@ -218,9 +228,11 @@ const lowStockProducts = await productRepository.find({
 // ORDER BY "quantity" ASC
 ```
 
+Notice: `or` nests an `and` group one level deep - `FilterBuilder` recurses through logical groups, so nesting depth is not limited to one.
+
 ## Complex authorization filter
 
-A `where` builder branching on role, composed with the caller's own scope - the `or` group only appears for non-admins:
+Goal: an admin sees everything; everyone else sees only what they own, what is public, or what is shared with them.
 
 ```typescript
 const getAuthorizedFilter = (user: User): TWhere<TDocumentSchema> => {
@@ -255,9 +267,11 @@ const documents = await documentRepository.find({
 // ORDER BY "updated_at" DESC LIMIT 100
 ```
 
+Notice: a plain TypeScript function builds the `where`, branching on role - a filter is a normal object, not a DSL with its own control flow.
+
 ## Full-text search with metadata
 
-Conditional `where` assembly - each filter argument adds a key only if the caller supplied it:
+Goal: assemble a `where` clause from optional caller input, adding a key only when the caller supplied it.
 
 ```typescript
 const searchProducts = async (
@@ -295,9 +309,11 @@ const searchProducts = async (
 // ORDER BY "rating" DESC, "created_at" DESC LIMIT 50
 ```
 
+Notice: `ilike` reaches into a JSON path (`'metadata.keywords'`) the same way it reaches a top-level column.
+
 ## Everything at once
 
-Every operator family, a JSON path, a three-way `or`, and a scoped relation include in one filter - the ceiling of what a single `TFilter` can express:
+Every operator family, a JSON path, a three-way `or`, and a scoped relation include, in one filter - the ceiling of what a single `TFilter` can express.
 
 ```typescript
 const massiveFilter: TFilter<TProductSchema> = {
@@ -362,6 +378,8 @@ const products = await productRepository.find({ filter: massiveFilter });
 // SELECT * FROM "Category" WHERE "id" IN (...)
 // SELECT * FROM "Review" WHERE "product_id" IN (...) AND "rating" >= 4 ORDER BY "created_at" DESC LIMIT 5
 ```
+
+Notice: `'metadata.priority': { gte: 3 }` gets the numeric `CASE` cast because the operand is a number; `'metadata.isNewArrival': true` does not, because it compares as text. See [Tips & Edge Cases](./tips) for the full casting rule.
 
 ## See also
 

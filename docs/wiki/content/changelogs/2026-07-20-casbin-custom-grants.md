@@ -9,33 +9,13 @@ description: A PolicyDefinition grant row can now carry an arbitrary subset of a
 
 <Badge type="tip" text="New Feature" /> <Badge type="tip" text="Enhancement" />
 
-**In one line.** A grant row can now express an arbitrary subset of a subject's operations - not just a full tier - and `planGrant` composes the smallest correct set of rows for any operation selection.
+**In one line.** A grant row can now express an arbitrary subset of a subject's operations, not only a full tier. `planGrant` composes the smallest correct set of rows for any selection.
 
-## What changed
+## The problem it solves
 
-- **New `action = 'custom'` grant mode.** `AuthorizationActions.CUSTOM` (`'custom'`) plus `AuthorizationPolicyBuilder.customGrant()` - a grant row can carry `action: 'custom'` and `metadata: { ops: [...] }` against a subject-level resource node, granting exactly those operations instead of a whole tier.
-- **`ScopedCasbinAdapter` expands custom rows at read time.** `queryGrants` turns each custom row into one `p` line per operation, each carrying that operation's catalogued action - byte-identical to what equivalent per-operation grant rows produce. One extra batched catalog query (`queryOperationCatalog`) per extraction, none when no custom rows are present.
-- **Reading is opt-in.** New `entities.policyDefinition.metadata.columnName` - without it mapped, the adapter never selects `metadata`, and a custom row is logged and skipped.
-- **New `planGrant()` write-side planner** (`common/grant-planner.ts`) - the supported way to compose an operations-subset grant. It collapses a selection into tier grants wherever a tier is fully covered, and falls back to a custom row (or a per-operation row, for a single leftover operation) only for what does not collapse. `exact: true` opts out of collapsing.
-- **New nullable `metadata` jsonb column** in `extraPolicyDefinitionColumns` - reaches every consumer's `PolicyDefinition` schema automatically, since every app builds its table from this shared column set.
-- **`queryGrants`'s SELECT now also reads `permission.subject` and `permission.method`** - needed to resolve a custom row's target subject and to distinguish a resource node from an operation-level permission.
-
-## Who is affected
-
-- **Every consumer of `ScopedCasbinAdapter` and `AuthorizationPolicyBuilder`.** No action needed - the `metadata` column is nullable and reading it is opt-in via `metadata.columnName`; without that mapping, behavior is unchanged and a stray custom row is simply logged and skipped.
-- **Apps that want to grant a subject a handful of operations without hand-picking a tier.** Use `planGrant({ subject, resource, intent: { ops: [...] }, catalog })` instead of writing a `customGrant` row directly - it does the tier-collapse math and throws (via `getError`) on an operation the catalog doesn't recognize, rather than persisting an ambiguous row.
-- **Apps that provision `PolicyDefinition` via `extraPolicyDefinitionColumns`.** The new `metadata` column appears in their schema on the next migration; nullable, so no backfill is required.
-
-## Details
-
-- **Row shape.** A subset grant is `action: 'custom'`, target = a subject-level resource node (`Permission.method === AuthorizationPermissionBuilder.RESOURCE_NODE_METHOD`, the `*` sentinel), `metadata: { ops: [...] }`. `ops` holds **method names**, not full permission codes - the subject comes from the target node, so `ops: ['find']` against node `Order` resolves to `Order.find`.
-- **Expansion parity.** A planned custom row and the equivalent per-operation rows expand to identical casbin lines - nothing downstream, including the enforcer, can distinguish the two encodings.
-- **`planGrant`'s tier-collapse rule.** `manage` collapses only when the subject has at least one operation in each of `read`, `write`, and `execute` - otherwise `manage` would cover a future operation in an as-yet-empty tier and silently pre-authorize it. Failing that, each fully-covered narrow tier collapses into its own row. A tier collapses whenever the selection completely covers it, however few operations that tier holds - a selection that happens to be a tier's only member still collapses into a tier grant; it does not become a custom row just because it is small. Only an operation still left over **after** collapsing is planned as a per-operation row (or, when `supportsCustomMetadata: false`, every leftover operation becomes its own per-operation row).
-- **Rejection is read-side log-and-skip, write-side throw.** `planGrant` throws (`getError`) on an unknown tier, empty `ops`, or an `ops` entry absent from the resource's catalog slice - a write is one deliberate act a caller can be told is wrong. The adapter instead logs and skips a malformed custom row, since a read is a bulk operation over data that may already be inconsistent and one bad row must not deny a user their remaining permissions.
+A grant row used to mean one of four fixed tiers - `read`, `write`, `execute`, or `manage`. Granting a subject three operations out of a five-operation tier meant granting the whole tier, or hand-writing five per-operation rows:
 
 ```typescript
-import { planGrant } from '@venizia/ignis';
-
 const rows = planGrant({
   subject: { type: 'Role', id: roleId },
   resource: { type: 'Permission', id: orderResourceNodeId, subject: 'Order' },
@@ -43,6 +23,38 @@ const rows = planGrant({
   catalog, // [{ subject, method, code, action }, ...] resolved from your Permission table
 });
 ```
+
+`planGrant` picks the smallest row set that grants exactly `find` and `deleteById` on `Order` - a tier row wherever a tier fully collapses, one custom row otherwise.
+
+## What changed
+
+- New `action = 'custom'` grant mode: `AuthorizationActions.CUSTOM` (`'custom'`) plus `AuthorizationPolicyBuilder.customGrant()`.
+- A custom row carries `metadata: { ops: [...] }` against a subject-level resource node - the operations it grants, not a tier.
+- `ScopedCasbinAdapter.queryGrants` expands each custom row into one `p` line per operation at read time. The output is byte-identical to what equivalent per-operation rows produce, at the cost of one extra batched catalog query (`queryOperationCatalog`) per extraction when a custom row is present.
+- Reading a custom row is opt-in. Map `entities.policyDefinition.metadata.columnName`, or the adapter never selects `metadata` - it logs and skips any custom row it finds instead.
+- New `planGrant()` planner in `common/grant-planner.ts`, the supported way to build an operations-subset grant. It collapses a selection into tier rows wherever a tier is fully covered, then represents what is left as one custom row - or a per-operation row, if only one operation remains. Pass `exact: true` to turn collapsing off.
+- New nullable `metadata` jsonb column in `extraPolicyDefinitionColumns`. Every app that builds its `PolicyDefinition` table from this shared column set gets it automatically.
+- `queryGrants`'s SELECT now also reads `permission.subject` and `permission.method`, needed to resolve a custom row's target subject and to tell a resource node from an operation-level permission.
+
+## How planGrant collapses a selection
+
+- `manage` collapses only when the selection covers at least one operation in each of `read`, `write`, and `execute`. Otherwise a future operation added to an as-yet-empty tier would be silently pre-authorized.
+- Each narrower tier (`read`, `write`, `execute`) collapses on its own whenever the selection fully covers it - even a tier with a single operation. A tier is never demoted to a custom row for being small.
+- What is left over after collapsing becomes one custom row, or a per-operation row if only one operation is left over.
+- When the target's `supportsCustomMetadata` is `false`, every leftover operation becomes its own per-operation row instead of one custom row.
+- `planGrant` throws (via `getError`) on an unknown tier, an empty `ops`, or an operation missing from the resource's catalog slice. A write is a deliberate act, so the caller hears about a mistake immediately.
+- The adapter only logs and skips a malformed custom row on read. A read runs over data that may already be inconsistent - one bad row must not deny a user their remaining permissions.
+
+## Who is affected
+
+- **Every consumer of `ScopedCasbinAdapter` and `AuthorizationPolicyBuilder`.** No action needed. The `metadata` column is nullable, and reading it is opt-in via `metadata.columnName`.
+- **Apps that want to grant a subject a handful of operations without a full tier.** Call `planGrant({ subject, resource, intent: { ops: [...] }, catalog })` instead of writing a `customGrant` row by hand - it does the tier-collapse math and throws on an operation the catalog does not recognize.
+- **Apps that provision `PolicyDefinition` via `extraPolicyDefinitionColumns`.** The new `metadata` column appears in their schema on the next migration. It is nullable, so no backfill is required.
+
+## Details
+
+- **Row shape.** A subset grant is `action: 'custom'`, target = a subject-level resource node (`Permission.method === AuthorizationPermissionBuilder.RESOURCE_NODE_METHOD`, the `*` sentinel), `metadata: { ops: [...] }`. `ops` holds method names, not full permission codes - the subject comes from the target node, so `ops: ['find']` against node `Order` resolves to `Order.find`.
+- **Expansion parity.** A planned custom row and the equivalent per-operation rows expand to identical casbin lines. Nothing downstream, including the enforcer, can tell the two encodings apart.
 
 | File | Package |
 |------|---------|

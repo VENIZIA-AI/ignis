@@ -9,12 +9,26 @@ description: Strict find()/findOne() everywhere, engine-specific search tuning m
 
 <Badge type="warning" text="Breaking Change" /> <Badge type="info" text="Bug Fix" /> <Badge type="tip" text="Enhancement" />
 
-**In one line.** A full review of the connector layer (Postgres, Typesense, Meilisearch) closed a batch of inconsistencies between engines, tightened the public API, and fixed several correctness bugs.
+**In one line.** A full review of the connector layer (Postgres, Typesense, Meilisearch) closed a batch of cross-engine inconsistencies. It also tightened the public API and fixed several correctness bugs.
+
+## The problem it solves
+
+Postgres, Typesense, and Meilisearch had drifted independently. `find()` compiled bare on the search repositories but always required a filter on Postgres, and Typesense-only tuning fields sat on the neutral search input shared by every engine.
+
+The sharpest bug: a same-key user filter could silently widen a default scope instead of narrowing it.
+
+```
+default: { id: { inq: [1, 2, 3] } }
+user:    { id: { inq: [4] } }
+before:  { id: { inq: [4, 2, 3] } }   // index-wise merge - wrong
+```
+
+A full review across all three connectors closed this and a dozen other gaps - see What changed and Details.
 
 ## What changed
 
 - **Strict `find()` / `findOne()` everywhere.** `opts` and `filter` are both required on every connector now; the find-all form is the explicit `find({ filter: {} })`.
-- **Engine tuning moved to `engineParams`.** Eleven Typesense-only fields were removed from the neutral search input; engine-specific tuning now travels through `engineParams`, keyed by the engine's own wire names.
+- **Engine tuning moved to `engineParams`.** Eleven Typesense-only fields left the neutral search input. Engine-specific tuning now travels through `engineParams`, keyed by the engine's own wire names.
 - **Memory connector removed.** `MemoryDataSource` / `MemoryRepository` had no known consumers and were deleted entirely, including the `@venizia/ignis/memory` export.
 - **Internal barrels are no longer public.** The search, Typesense, and Meilisearch `internal/` modules are no longer exported from the connector barrels.
 - **`SwaggerComponent` renamed to `ApiReferenceComponent`.** Swagger UI is one pluggable UI provider among several, so the component now has a vendor-neutral name.
@@ -22,7 +36,7 @@ description: Strict find()/findOne() everywhere, engine-specific search tuning m
 - **New operators on Postgres.** `exists`, `notExists`, and `not` now work (previously threw `Invalid query operator`), including on JSON-path fields.
 - **Filter fix.** `mergeFilter` no longer corrupts filters when combining a caller's `where` with a `@model` default filter (see Details).
 - **Cross-engine alignment.** Typesense and Meilisearch now return the same `409` / `404` behavior for duplicate and missing document IDs.
-- **Search fixes.** `multiSearch` no longer leaks hidden fields; `updateAll` / `deleteAll` on the search connectors are now count-only and no longer silently cap at `defaultLimit`.
+- **Search fixes.** `multiSearch` no longer leaks hidden fields. `updateAll` / `deleteAll` on the search connectors are now count-only, and no longer silently cap at `defaultLimit`.
 - **Performance.** Relation resolution is memoized, `WHERE` is built once per call, and Meilisearch write polling backs off exponentially instead of polling at a fixed interval.
 
 ## Who is affected
@@ -54,7 +68,7 @@ const all = await productSearchRepository.find({ filter: {} });
 
 ### 2. Engine-specific search knobs moved to `engineParams`
 
-Eleven Typesense-only tuning fields were removed from the neutral search input: `numTypos`, `prefix`, `infix`, `useCache`, `cacheTtl`, `exhaustiveSearch`, `pinnedHits`, `hiddenHits`, `prioritizeExactMatch`, `dropTokensThreshold`, and `preset`. They now travel through `engineParams`, keyed by the engine's own wire name (snake_case).
+Eleven Typesense-only tuning fields left the neutral search input: `numTypos`, `prefix`, `infix`, `useCache`, `cacheTtl`, `exhaustiveSearch`, `pinnedHits`, `hiddenHits`, `prioritizeExactMatch`, `dropTokensThreshold`, and `preset`. They now travel through `engineParams`, keyed by the engine's own wire name (snake_case).
 
 **Before**
 ```typescript
@@ -81,7 +95,7 @@ await productSearchRepository.search({
 
 `MemoryDataSource` / `MemoryRepository` and the `@venizia/ignis/memory` export are gone - code, tests, and all.
 
-**What to do:** use `BasePostgresDataSource` / `DefaultCRUDRepository` against a disposable database for prototyping and tests, or use the search connectors' fakes if your use case was search-shaped.
+**What to do:** use `BasePostgresDataSource` / `DefaultCRUDRepository` against a disposable database for prototyping and tests. Use the search connectors' fakes if your use case was search-shaped.
 
 ### 4. Engine `internal/` barrels no longer exported
 
@@ -125,13 +139,21 @@ The old names remain as deprecated aliases, so existing applications compile and
 
 ### Bug fixes
 
-- **`mergeFilter` no longer corrupts filters.** The default-filter merge previously combined arrays index-wise, so a user `{ id: { inq: [4] } }` merged onto a default `{ id: { inq: [1, 2, 3] } }` produced `inq: [4, 2, 3]`, and two `or` arrays could collapse into one AND-of-both - either could silently widen a default tenant scope. The merge is now top-key level: a user-supplied key replaces the default's value wholesale, and a user value of `undefined` never overrides a defined default.
+- **`mergeFilter` no longer corrupts filters.** The merge combined arrays index-wise, so a same-key collision could silently widen a default tenant scope:
+
+  ```
+  default: { id: { inq: [1, 2, 3] } }
+  user:    { id: { inq: [4] } }
+  before:  { id: { inq: [4, 2, 3] } }   // index-wise merge - wrong
+  ```
+
+  Two `or` arrays could collapse into one AND-of-both the same way. The merge is now top-key level: a user-supplied key replaces the default's value wholesale, and a user value of `undefined` never overrides a defined default.
 - **Cross-engine `409` / `404` alignment.** Typesense `createDocument` on a duplicate id now throws `409` (`core.search_engine.already_exists`) instead of a misleading `503`. Meilisearch `updateById` on a missing id now throws `404` instead of silently creating a new record.
-- **Meilisearch primary-key authority.** Update payloads now write the path id last and authoritative, so a patch body carrying the primary key can no longer retarget a write onto a different row.
+- **Meilisearch primary-key authority.** Update payloads now write the path id last and authoritative. A patch body carrying the primary key can no longer retarget a write onto a different row.
 - **`multiSearch` no longer leaks hidden fields.** Each collection's `@model` `hiddenProperties` are now injected into that entry's `excludeFields`, matching what single-collection `search()` already did.
-- **`updateAll` / `deleteAll` on search are count-only.** They now return `{ count, data: null }` and never issue an extra read - the previous behavior silently capped the returned data at `defaultLimit` while reporting a higher `count`.
-- **Meilisearch `updateById` respects `defaultFilter`.** A document excluded by a `@model` default filter now reports the same `404` as a genuinely missing one, instead of being updated through the filter.
-- **Numeric consistency on Postgres.** JSON-path numeric operators now cast the extracted value consistently, fixing a `text = integer` SQL error; `neq` correctly never matches a `NULL` row.
+- **`updateAll` / `deleteAll` on search are count-only.** They now return `{ count, data: null }` and never issue an extra read. The previous behavior silently capped the returned data at `defaultLimit`, while reporting a higher `count`.
+- **Meilisearch `updateById` respects `defaultFilter`.** A document excluded by a `@model` default filter now reports the same `404` as a genuinely missing one. Previously, the filter still let an update through.
+- **Numeric consistency on Postgres.** JSON-path numeric operators now cast the extracted value consistently, fixing a `text = integer` SQL error. `neq` correctly never matches a `NULL` row.
 
 ### Performance
 
@@ -162,3 +184,9 @@ The old names remain as deprecated aliases, so existing applications compile and
 | `src/connectors/typesense/compiler.ts` | Clear error for a `defaultSort` naming a nonexistent field |
 
 </details>
+
+## See also
+
+- [Unified Repository & Connectors Architecture](/changelogs/2026-07-05-unified-repository-connectors) - introduced the connectors this hardening pass reviews
+- [Typesense Advanced Search](/changelogs/2026-07-08-typesense-advanced-search) - the neutral search input tightened here
+- [Postgres Driver Seam & Supabase](/changelogs/2026-07-11-postgres-driver-seam-supabase) - the same-day Postgres driver work

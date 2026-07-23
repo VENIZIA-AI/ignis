@@ -23,15 +23,12 @@ Find rows where the array column contains **all** specified elements.
 // Schema: tags varchar(100)[]
 // Data: Product A has ['electronics', 'featured', 'sale']
 
-// Find products with BOTH 'electronics' AND 'featured'
 { where: { tags: { contains: ['electronics', 'featured'] } } }
 // SQL: "tags"::text[] @> ARRAY['electronics', 'featured']::text[]
-
-// Single element (can pass single value or array)
-{ where: { tags: { contains: ['featured'] } } }
-{ where: { tags: { contains: 'featured' } } }  // Also works
-// Matches: ['featured'], ['featured', 'sale'], ['a', 'featured', 'b']
 ```
+
+> [!NOTE]
+> A single value is wrapped in an array automatically: `{ contains: 'featured' }` is treated as `{ contains: ['featured'] }`.
 
 
 ## containedBy (<@)
@@ -39,14 +36,12 @@ Find rows where the array column contains **all** specified elements.
 Find rows where **all** array elements are within the specified set.
 
 ```typescript
-// Find products where ALL tags are in the allowed list
 { where: { tags: { containedBy: ['sale', 'featured', 'new', 'popular'] } } }
 // SQL: "tags"::text[] <@ ARRAY['sale', 'featured', 'new', 'popular']::text[]
-
-// Product A ['featured', 'sale'] -> matches (all in list)
-// Product B ['featured', 'clearance'] -> no match ('clearance' not in list)
-// Product C [] -> matches (empty is subset of everything)
 ```
+
+> [!NOTE]
+> An empty array is a subset of every set, so `tags: []` always matches `containedBy`.
 
 
 ## overlaps (&&)
@@ -54,13 +49,8 @@ Find rows where **all** array elements are within the specified set.
 Find rows where the arrays share at least one common element.
 
 ```typescript
-// Find products with 'premium' OR 'sale' tag
 { where: { tags: { overlaps: ['premium', 'sale'] } } }
 // SQL: "tags"::text[] && ARRAY['premium', 'sale']::text[]
-
-// Product A ['featured', 'sale'] -> matches (has 'sale')
-// Product B ['premium', 'luxury'] -> matches (has 'premium')
-// Product C ['new', 'featured'] -> no match (no overlap)
 ```
 
 
@@ -84,51 +74,40 @@ Find rows where the arrays share at least one common element.
 | "Must have AT LEAST ONE of these tags" | `overlaps` |
 
 
-## Empty Array Behavior
-
-| Operator | SQL Generated | Behavior |
-|----------|---------------|----------|
-| `contains: []` | `WHERE true` | Returns **ALL** rows |
-| `containedBy: []` | `WHERE "col" = '{}'` | Returns only rows with **empty arrays** |
-| `overlaps: []` | `WHERE false` | Returns **NO** rows |
-
-> [!NOTE]
-> Single values are automatically wrapped in an array: `{ contains: 'value' }` is treated as `{ contains: ['value'] }`.
-
-
 ## Type Handling
 
-**String Arrays** (`varchar[]`, `text[]`, `char[]`):
+The element type of the array column decides the cast in the generated SQL.
+
 ```typescript
+// String arrays (varchar[], text[], char[]) - both sides cast to text[]
 { where: { tags: { contains: ['a', 'b'] } } }
 // SQL: "tags"::text[] @> ARRAY['a', 'b']::text[]
-```
 
-Both the column and the array literal are cast to `text[]` for compatibility.
-
-**Numeric Arrays** (`integer[]`, `numeric[]`):
-```typescript
+// Numeric arrays (integer[], numeric[]) - no cast needed
 { where: { scores: { contains: [100, 200] } } }
 // SQL: "scores" @> ARRAY[100, 200]
-```
 
-No casting needed for numeric arrays.
-
-**Boolean Arrays**:
-```typescript
+// Boolean arrays - no cast needed
 { where: { flags: { contains: [true, false] } } }
 // SQL: "flags" @> ARRAY[true, false]
 ```
 
 
+## Empty Array Behavior
+
+| Operator | SQL generated | Behavior |
+|----------|---------------|----------|
+| `contains: []` | `WHERE true` | Returns **ALL** rows |
+| `containedBy: []` | `WHERE "col" = '{}'` | Returns only rows with **empty arrays** |
+| `overlaps: []` | `WHERE false` | Returns **NO** rows |
+
+
 ## Security: Parameterized Values
 
-Every element of `contains`/`containedBy`/`overlaps` is bound as a query parameter -- only the operator token (`@>`/`<@`/`&&`) is raw SQL. See [The Hardening Round](../../../changelogs/2026-07-13-hardening-round) for the prior injection this closed.
+Every element of `contains`/`containedBy`/`overlaps` is bound as a query parameter - only the operator token (`@>`/`<@`/`&&`) is raw SQL. See [The Hardening Round](../../../changelogs/2026-07-13-hardening-round) for the prior injection this closed.
 
 
 ## Defining Array Columns
-
-In your Drizzle schema:
 
 ```typescript
 import { pgTable, text, varchar, integer } from 'drizzle-orm/pg-core';
@@ -137,7 +116,6 @@ export const productTable = pgTable('Product', {
   id: text('id').primaryKey(),
   name: text('name').notNull(),
 
-  // Array columns
   tags: varchar('tags', { length: 100 }).array(),      // varchar(100)[]
   categories: text('categories').array(),              // text[]
   scores: integer('scores').array(),                   // integer[]

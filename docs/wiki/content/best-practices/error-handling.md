@@ -1,28 +1,37 @@
 # Error Handling
 
-Comprehensive guide to handling errors gracefully in IGNIS applications.
-
-## Error Handling Philosophy
-
-| Principle | Description |
-|-----------|-------------|
-| **Fail Fast** | Detect and report errors as early as possible |
-| **Don't Swallow** | Never catch errors without logging or re-throwing |
-| **User-Friendly** | Return clear, actionable messages to clients |
-| **Debuggable** | Include context for debugging in logs |
-
-## 1. Using `getError` Helper
-
-IGNIS provides `getError` for creating consistent, structured errors.
+Every error in IGNIS ends up as one shape: `statusCode`, `message`, `normalized`, `requestId`, and `details`. `getError` builds that shape at the throw site. A global handler catches whatever you don't.
 
 ```typescript
 import { getError, HTTP } from '@venizia/ignis-helpers';
 
-// Basic error
 throw getError({
   statusCode: HTTP.ResultCodes.RS_4.NotFound,
   message: 'User not found',
 });
+```
+
+## Find what you need
+
+| You want to | Go to |
+|---|---|
+| Throw an error with debugging context | [Throw a structured error](#throw-a-structured-error) |
+| Add an i18n error a client can branch on | [Catalog a domain error](#catalog-a-domain-error) |
+| Pick the right HTTP status code | [Choose the right status code](#choose-the-right-status-code) |
+| Handle errors in a service, controller, or repository | [Handle errors by layer](#handle-errors-by-layer) |
+| Customize the global error response | [Customize the global handler](#customize-the-global-handler) |
+| Read the exact JSON a client receives | [The error response shape](#the-error-response-shape) |
+| Log an error without losing the stack | [Log errors](#log-errors) |
+| Handle a rejected promise or a fire-and-forget call | [Handle async errors](#handle-async-errors) |
+| Roll back a transaction safely | [Roll back a transaction on failure](#roll-back-a-transaction-on-failure) |
+| Parse an error response on the client | [Parse errors on the client](#parse-errors-on-the-client) |
+
+## Throw a structured error
+
+`getError` is the one function every throw in IGNIS goes through. Give it a status code and a message, and it returns an `ApplicationError` ready to throw.
+
+```typescript
+import { getError, HTTP } from '@venizia/ignis-helpers';
 
 // Error with context - any key the framework does not model lands in `extra`
 throw getError({
@@ -48,14 +57,16 @@ throw getError({
 });
 ```
 
+Any key `getError` does not model rides into `extra`. That's how a throw site attaches context the framework knows nothing about.
+
 > [!NOTE]
-> Any key `getError` does not model rides into `extra` - that is how a throw site attaches context the framework knows nothing about. The trade is that a **misspelling** goes the same way: `getError({ message, statuscode: 503 })` compiles, `statusCode` stays `400`, and `503` sits in `extra.statuscode`. The framework cannot tell your context from your typo.
+> The trade-off: a **misspelling** rides the same path. `getError({ message, statuscode: 503 })` compiles. `statusCode` stays `400`, and `503` sits in `extra.statuscode`. The framework can't tell your context from your typo - spell option keys carefully.
 
-### Catalogue a domain failure, raise the rest free-form
+## Catalog a domain error
 
-The form above is right for a failure that carries no i18n code: an invariant, a misconfiguration, a seed guard. Nobody translates `'[UserService][create] Database connection failed'`.
+A free-form `getError` call like that is right for a failure with no i18n code: an invariant, a misconfiguration, a seed guard. Nobody translates `'[UserService][create] Database connection failed'`.
 
-A **domain** failure - one a client localizes and branches on - belongs in a catalog instead. Retyping its code and status at each throw is how two call sites end up raising `category.create.duplicate_name` and `category.duplicate_name` for the same thing:
+But a **domain** failure - one a client localizes and branches on - belongs in a catalog instead. Retyping its code and status at each throw is how two call sites end up raising `category.create.duplicate_name` and `category.duplicate_name` for the same thing.
 
 ```typescript
 import { ErrorScopes, getError, HTTP } from '@venizia/ignis-helpers';
@@ -81,15 +92,15 @@ declare module '@venizia/ignis-helpers' {
 throw getError({ error: UserErrors.CREATE_DUPLICATE_EMAIL, messageArgs: { email } });
 ```
 
-Pass the definition as `error` - **never spread it**. `getError({ ...UserErrors.CREATE_DUPLICATE_EMAIL, messageArgs: { email } })` reads naturally and is wrong: spreading skips the `error:` field entirely, so `category` and `description` - fields only modeled inside a definition - fall through into `extra` instead of staying structured. `statusCode` and `message` happen to still resolve correctly only because their shapes collide with what `getError` expects standalone; nothing catches the rest for you.
+Pass the definition as `error` - never spread it. `getError({ ...UserErrors.CREATE_DUPLICATE_EMAIL, messageArgs: { email } })` looks equivalent. It isn't.
+
+Spreading skips the `error:` field entirely. `category` and `description` are fields only a definition models, so they fall into `extra` instead of staying structured. `statusCode` and `message` still resolve correctly, but only because their shapes happen to match what `getError` expects standalone - nothing catches the rest for you.
 
 See the [Error helper reference](/extensions/helpers/error/) for the full surface.
 
-## 2. HTTP Status Code Reference
+## Choose the right status code
 
-Use the correct status code for each error type:
-
-| Code | Constant | Use When |
+| Code | Constant | Use when |
 |------|----------|----------|
 | 400 | `RS_4.BadRequest` | Invalid input format, missing required fields, database constraint violations (auto-handled) |
 | 401 | `RS_4.Unauthorized` | Missing or invalid authentication |
@@ -102,13 +113,15 @@ Use the correct status code for each error type:
 | 502 | `RS_5.BadGateway` | External service failed |
 | 503 | `RS_5.ServiceUnavailable` | Service temporarily down |
 
-:::tip Automatic Database Error Handling
-Database errors in SQLSTATE classes `22` (data exception), `23` (integrity constraint - unique, foreign key, not null, check, exclusion), and `44` (WITH CHECK OPTION violation) are automatically converted to HTTP 400 by the global error middleware. Transient conflicts (`40001` serialization failure, `40P01` deadlock) become HTTP 409 with a retryable message. You don't need to catch these manually. Other classes (e.g. syntax / undefined column) stay 500, and production responses are sanitized - see [Repository Layer Errors](#repository-layer-errors).
+:::tip Automatic database error handling
+The global error middleware converts constraint violations to HTTP 400 on its own, no try/catch needed - SQLSTATE class `22` (data exception), `23` (integrity constraint: unique, foreign key, not null, check, exclusion), and `44` (WITH CHECK OPTION violation). Transient conflicts (`40001` serialization failure, `40P01` deadlock) become HTTP 409 with a retryable message instead. Other classes (for example, class `42` undefined column) stay 500, and production responses are sanitized - see [Repository layer](#repository-layer).
 :::
 
-## 3. Error Handling Patterns
+## Handle errors by layer
 
-### Service Layer Errors
+### Service layer
+
+A service decides what's wrong and throws with `getError`. It doesn't catch what it can't handle.
 
 ```typescript
 import { BaseService } from '@venizia/ignis';
@@ -160,9 +173,11 @@ export class UserService extends BaseService {
 }
 ```
 
-### Controller Layer Errors
+Notice `findOne` and `findById` return the record or `null` - there's no separate "not found" exception to catch. You check for `null` and throw.
 
-Controllers should delegate to services and let the global error handler catch exceptions:
+### Controller layer
+
+Controllers stay thin. Call the service, return the response, and let the global handler catch what the service throws.
 
 ```typescript
 import { BaseRestController, controller, get, post } from '@venizia/ignis';
@@ -192,9 +207,9 @@ export class UserController extends BaseRestController {
 }
 ```
 
-### Repository Layer Errors
+### Repository layer
 
-Database errors in SQLSTATE classes `22` (data exception), `23` (integrity constraint - unique, foreign key, not null, check, exclusion), and `44` (WITH CHECK OPTION violation) are **automatically handled** by the global error middleware and return HTTP 400. Transient conflicts (`40001` serialization failure, `40P01` deadlock) return HTTP 409 with a generic retryable message. Codes outside those classes (e.g. class `42` undefined column - an application/SQL bug) correctly stay 500.
+The global middleware already converts constraint violations for you (see [Choose the right status code](#choose-the-right-status-code)), so most repository methods need no try/catch at all. Skip it unless you want a message tailored to one specific constraint.
 
 **Non-production** returns the full driver context for debugging:
 
@@ -217,7 +232,7 @@ Database errors in SQLSTATE classes `22` (data exception), `23` (integrity const
 ```
 
 :::warning Production sanitizes database internals
-In production the message is the **base message only** - `Detail:` (which echoes row values like emails), `Table:`, and `Constraint:` are stripped, and `details.stack`/`details.cause` are omitted. Unexpected (non-client) database errors and connection failures return a generic `"Internal Server Error"`, so SQL, schema names, and connection host/port never leak. Use `requestId` + server logs to diagnose.
+In production the message is the **base message only**. `Detail:` (which echoes row values like emails), `Table:`, and `Constraint:` are stripped, and `details.stack`/`details.cause` are omitted. Unexpected (non-client) database errors and connection failures return a generic `"Internal Server Error"`, so SQL, schema names, and connection host/port never leak. Use `requestId` and server logs to diagnose.
 
 ```json
 {
@@ -230,7 +245,7 @@ In production the message is the **base message only** - `Detail:` (which echoes
 ```
 :::
 
-You don't need to wrap repository calls in try-catch for constraint errors. If you need custom error messages, you can still handle them explicitly:
+If you need a custom message for one constraint, catch it explicitly and re-throw everything else:
 
 ```typescript
 import { DefaultRelationalRepository, type TCount } from '@venizia/ignis';
@@ -254,9 +269,9 @@ export class UserRepository extends DefaultRelationalRepository<typeof User.sche
 }
 ```
 
-## 4. Global Error Handler
+## Customize the global handler
 
-IGNIS wires a built-in handler by default - `AppErrorMiddleware` from `@venizia/ignis` is a class, registered as `new AppErrorMiddleware({ logger, rootKey }).value()`, and `value()` returns the Hono `ErrorHandler`. You rarely need to replace it; when you do, keep the same response contract:
+IGNIS wires a built-in handler by default. `AppErrorMiddleware` from `@venizia/ignis` is a class, registered as `new AppErrorMiddleware({ logger, rootKey }).value()`, and `value()` returns the Hono `ErrorHandler`. You rarely need to replace it. When you do, keep the same response contract:
 
 ```typescript
 import { BaseApplication } from '@venizia/ignis';
@@ -309,9 +324,7 @@ export class Application extends BaseApplication {
 }
 ```
 
-## 5. Error Response Format
-
-All errors should follow a consistent format:
+## The error response shape
 
 ```typescript
 interface ErrorResponse {
@@ -334,12 +347,11 @@ interface ErrorResponse {
 }
 ```
 
-There is no top-level `messageCode` - read `normalized.code`. `extra` never mirrors `messageArgs`; the resolved interpolation values live at `normalized.args`.
+There's no top-level `messageCode` - read `normalized.code`. `extra` never mirrors `messageArgs`; the resolved interpolation values live at `normalized.args`.
 
-**Example Responses:**
+**400 Bad Request:**
 
 ```json
-// 400 Bad Request
 {
   "message": "Invalid request body",
   "statusCode": 400,
@@ -347,10 +359,11 @@ There is no top-level `messageCode` - read `normalized.code`. `extra` never mirr
   "requestId": "abc123",
   "details": { "url": "http://localhost:3000/users", "path": "/users" }
 }
+```
 
-// 404 Not Found
-// Extra keys passed to getError(...) (e.g. `details`) surface under `extra`;
-// the top-level `details` object is reserved for middleware context (url, path, stack, cause).
+**404 Not Found:** extra keys passed to `getError(...)` (for example `details`) surface under the top-level `extra`. The top-level `details` object is reserved for middleware context (url, path, stack, cause) - the two never share a key.
+
+```json
 {
   "message": "User not found",
   "statusCode": 404,
@@ -359,11 +372,11 @@ There is no top-level `messageCode` - read `normalized.code`. `extra` never mirr
   "extra": { "details": { "id": "user-uuid" } },
   "details": { "url": "http://localhost:3000/users/user-uuid", "path": "/users/:id" }
 }
+```
 
-// 422 Validation Error
-// `message`/`normalized.code` come from the first failing issue - its `params.code` if the schema
-// set one, otherwise the raw Zod code (e.g. `invalid_type`, `too_small`). `normalized.args` is
-// always empty for a Zod issue; the full list of issues stays in `details.cause`.
+**422 Validation Error:** `message` and `normalized.code` come from the first failing issue - its `params.code` if the schema set one, otherwise the raw Zod code (for example `invalid_type`, `too_small`). `normalized.args` is always empty for a Zod issue; the full list of issues stays in `details.cause`.
+
+```json
 {
   "message": "Invalid email format",
   "statusCode": 422,
@@ -381,53 +394,44 @@ There is no top-level `messageCode` - read `normalized.code`. `extra` never mirr
     ]
   }
 }
-
-// 500 Internal Error (production)
-{
-  "message": "Internal server error",
-  "statusCode": 500,
-  "normalized": { "text": "Internal server error", "code": "core.system_error", "args": {} },
-  "requestId": "abc123",
-  "details": { "url": "http://localhost:3000/orders", "path": "/orders" }
-}
 ```
 
-## 6. Logging Errors
+## Log errors
 
-### `%s`, Never `%j`, for an `Error`
+### Use `%s`, never `%j`, for an Error
 
 `message` and `stack` are non-enumerable properties on a native `Error` (and on `ApplicationError`, which extends it). `%j` serializes via `JSON.stringify`, which only visits enumerable own properties - so `logger.error('... | error: %j', error)` silently drops both. Always use `%s` to log an `Error` instance; reserve `%j`/`%o` for plain data objects.
 
 ```typescript
-// ✅ Good - %s prints message + stack
+// Good - %s prints message + stack
 this.logger.error('[createOrder] Failed | error: %s', error);
 
-// ❌ Bad - %j drops the stack
+// Bad - %j drops the stack
 this.logger.error('[createOrder] Failed | error: %j', error);
 ```
 
 > [!NOTE]
-> An `ApplicationError` logged with `%j` does show its message text, because the text rides inside the enumerable `normalized.text`. That is incidental, not a reprieve: the **stack** is still gone, which is the reason the rule exists. A plain `Error` under `%j` still logs little more than `{}`.
+> An `ApplicationError` logged with `%j` does show its message text, because the text rides inside the enumerable `normalized.text`. That's incidental, not a reprieve - the **stack** is still gone, which is the reason the rule exists. A plain `Error` under `%j` still logs little more than `{}`.
 
-### What to Log
+### What to log
 
 ```typescript
-// ✅ Good - Context for debugging. `%s` on the error itself carries message + stack
+// Good - context for debugging. `%s` on the error itself carries message + stack
 this.logger.error('[createOrder] Failed | userId: %s | orderId: %s | error: %s',
   userId, orderId, error);
 
-// ❌ Bad - No context, and `.message` throws the stack away
+// Bad - no context, and `.message` throws the stack away
 this.logger.error(error.message);
 
-// ❌ Bad - Sensitive data
+// Bad - sensitive data
 this.logger.error('Login failed for user | password: %s', password);
 ```
 
-### Log Levels
+### Log levels
 
-`ILogger` has exactly five levels, each a direct method. `alert`, `http`, `verbose` and `silly` do not exist.
+`ILogger` has exactly five levels, each a direct method. `alert`, `http`, `verbose`, and `silly` don't exist.
 
-| Level | Use For |
+| Level | Use for |
 |-------|---------|
 | `emerg` | The process cannot continue - unrecoverable |
 | `error` | Exceptions that need attention |
@@ -449,18 +453,20 @@ this.logger.info('[order] Created | orderId: %s | userId: %s', orderId, userId);
 this.logger.debug('[query] Executing | sql: %s | params: %j', sql, params);
 ```
 
-## 7. Async Error Handling
+## Handle async errors
 
 ### Promises
 
+`async`/`await` propagates errors on its own - most of the time, you write no error handling at all.
+
 ```typescript
-// ✅ Good - Errors propagate naturally with async/await
+// Good - errors propagate naturally with async/await
 const processOrder = async (orderId: string) => {
   const order = await orderRepository.findById({ id: orderId }); // Throws if fails
   return paymentService.charge(order); // Throws if fails
 };
 
-// ✅ Good - Explicit catch when you need to handle
+// Good - explicit catch when you need to handle
 const processOrderWithFallback = async (order: TOrder) => {
   try {
     return await paymentService.charge(order);
@@ -470,7 +476,7 @@ const processOrderWithFallback = async (order: TOrder) => {
   }
 };
 
-// ❌ Bad - Swallowing errors
+// Bad - swallowing errors
 const processOrderSilently = async () => {
   try {
     await dangerousOperation();
@@ -480,22 +486,24 @@ const processOrderSilently = async () => {
 };
 ```
 
-### Fire-and-Forget with Error Handling
+### Fire-and-forget
+
+But a call you don't `await` needs its own `.catch()`, or a rejection crashes the process as an unhandled rejection.
 
 ```typescript
-// ✅ Good - Log errors from fire-and-forget operations
+// Good - log errors from fire-and-forget operations
 this.sendNotification(userId).catch(error => {
   this.logger.error('[notify] Failed | userId: %s | error: %s', userId, error);
 });
 
-// ✅ Good - Use void to indicate intentional fire-and-forget
+// Good - use void to indicate intentional fire-and-forget
 void this.analytics.track('order_created', { orderId });
 
-// ❌ Bad - Unhandled promise rejection
+// Bad - unhandled promise rejection
 this.sendNotification(userId); // If this rejects, crash!
 ```
 
-## 8. Transaction Error Handling
+## Roll back a transaction on failure
 
 ```typescript
 import { getError, HTTP } from '@venizia/ignis-helpers';
@@ -525,13 +533,11 @@ const transferFunds = async (opts: { from: string; to: string; amount: number })
 ```
 
 > [!NOTE]
-> `rollback()` throws on failure, so it belongs in the `catch` exactly as above - never after a
-> `commit()` you already awaited outside one. A rollback that follows a **failed** commit is a
-> deliberate no-op: the transaction is already torn down, so this canonical shape stays safe.
+> `rollback()` throws on failure, so it belongs in the `catch` block exactly as shown here - never after a `commit()` you already awaited outside one. A rollback that follows a **failed** commit is a deliberate no-op: the transaction is already torn down, so this canonical shape stays safe.
 
-## 9. Client-Side Error Handling
+## Parse errors on the client
 
-Guide for API consumers:
+Branch on `normalized.code` - it's always present. There's no top-level `messageCode`.
 
 ```typescript
 // TypeScript client example
@@ -545,7 +551,6 @@ const createUser = async (data: TCreateUserRequest): Promise<TUser> => {
   if (!response.ok) {
     const error = await response.json();
 
-    // Branch on `normalized.code` - it is always present. There is no top-level `messageCode`.
     switch (response.status) {
       case 400: {
         // Context passed to getError(...) arrives under `extra`, not `details`
@@ -579,7 +584,7 @@ const createUser = async (data: TCreateUserRequest): Promise<TUser> => {
 };
 ```
 
-## Error Handling Checklist
+## Checklist
 
 | Category | Check |
 |----------|-------|
@@ -592,7 +597,7 @@ const createUser = async (data: TCreateUserRequest): Promise<TUser> => {
 | **Responses** | Consistent error format returned |
 | **Security** | No sensitive data in error messages |
 
-## See Also
+## See also
 
 - [Common Pitfalls](./common-pitfalls) - Error handling mistakes
 - [Testing Strategies](./testing-strategies) - Testing error scenarios

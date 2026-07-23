@@ -9,12 +9,24 @@ description: Applications that bundled with bun build --compile, esbuild, webpac
 
 <Badge type="warning" text="Breaking Change" /> <Badge type="info" text="Bug Fix" /> <Badge type="tip" text="Enhancement" />
 
-**In one line.** Relational datasources now declare their driver as a class reference instead of a string, so a bundler only packages the driver you actually use.
+**In one line.** Relational datasources now declare their driver as a class reference instead of a string. A bundler only packages the driver you actually use.
+
+## The problem it solves
+
+`@datasource({ driver: DataSourceDrivers.NODE_POSTGRES })` named the driver with a string. A bundler cannot follow a string to the package it identifies. `bun build --compile`, esbuild, webpack, and rollup all pulled in both `pg` and `postgres` - even for an application that only installed one:
+
+```typescript
+// BEFORE - a bundler cannot resolve a string to a package
+@datasource({ driver: DataSourceDrivers.NODE_POSTGRES })
+
+// AFTER - a bundler follows the class reference and packages only that driver
+@datasource({ driver: NodePostgresDriver })
+```
 
 ## What changed
 
-- **Bundled applications no longer pull in the unused driver.** Any application that bundled - `bun build --compile`, esbuild, webpack, rollup - used to fail or bloat because both `pg` and `postgres` were pulled into the output, even for apps that only installed one of them.
-- **`@datasource({ driver })` now takes a class, not a string.** A string can never carry an optional package into a bundle; a class reference can. This is the two-line change described in Breaking changes below.
+- **Bundled applications no longer pull in the unused driver.** Naming the driver as a class lets a bundler trace the actual import instead of guessing from a string.
+- **`@datasource({ driver })` now takes a class, not a string.** This is the two-line change described in Breaking changes below.
 - **A pool-only datasource now gets a working connector.** Previously it silently had no connector at all, so every query on it read through an `undefined` value.
 - **A bare `pg.Client` is no longer silently accepted where a `Pool` is required.** Passing one used to compile and run, but broke per-transaction connection handling under load.
 - **Search datasources (Typesense, Meilisearch) no longer accept a `driver` option.** It was never read - drop it if you have it.
@@ -69,9 +81,9 @@ export class PostgresDataSource extends BasePostgresDataSource<IConfigs> {
 
 ## Details
 
-- Root cause: a dynamic `import()` defers **execution**, not **packaging**. Every bundler statically resolves the specifier and includes the target regardless, so the previous "import whichever driver you need at runtime" approach never actually kept the other one out of the bundle.
+- Root cause: a dynamic `import()` defers **execution**, not **packaging**. Every bundler statically resolves the specifier and includes the target regardless. The previous "import whichever driver you need at runtime" approach never actually kept the other one out of the bundle.
 - A bundling test (`bundle/optional-peers.test.ts`) now builds four fixtures and checks the actual bundle output, so this class of bug cannot regress silently again.
-- `DataSourceDrivers` still exists as an identity constant for names and validation - it is just no longer a configuration channel for choosing a driver.
+- `DataSourceDrivers` still exists as an identity constant for names and validation. It is no longer a configuration channel for choosing a driver.
 
 | Package | Tests passing |
 |---|---|
@@ -81,3 +93,8 @@ export class PostgresDataSource extends BasePostgresDataSource<IConfigs> {
 | core | 1518 |
 
 Zero type errors, zero lint findings across all four packages; all nine examples type-check.
+
+## See also
+
+- [Postgres Drivers & Supabase](/guides/core-concepts/persistent/postgres-drivers) - the driver seam, and why `pg` and `postgres` are optional peers
+- [DataSources - Full Reference](/references/base/datasources-reference) - the driver seam and the PostgreSQL connector in full
