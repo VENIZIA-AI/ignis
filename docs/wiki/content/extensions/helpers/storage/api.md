@@ -47,7 +47,8 @@ BaseHelper
 ```
 
 - **`upload()` is a template method.** It validates the bucket and every file. Then it calls two protected hooks each backend supplies: `defaultLinkPrefix` (a getter) and `writeObject()` (the write itself).
-- **Every other method is backend-specific.** `isBucketExists`, `getBuckets`, `getBucket`, `createBucket`, `removeBucket`, `getFile`, `getStat`, `removeObject`, `removeObjects`, and `listObjects` are declared `abstract` on `BaseStorageHelper`. Each one is fully reimplemented per backend - no logic is shared between a filesystem read and a MinIO `statObject()` call.
+- **Every other method is backend-specific.** `isBucketExists`, `getBuckets`, `getBucket`, `createBucket`, `removeBucket`, `getFile`, `getStat`, `removeObject`, `removeObjects`, and `listObjects` are declared `abstract` on `BaseStorageHelper`.
+  - Each one is fully reimplemented per backend - no logic is shared between a filesystem read and a MinIO `statObject()` call.
 
 > [!TIP] Typing rule
 > Declare parameters and bindings as `IStorageHelper` for `MinioHelper` / `BunS3Helper` / `DiskHelper`. `MemoryStorageHelper` does not implement it and has its own standalone API - see [MemoryStorageHelper](#memorystoragehelper).

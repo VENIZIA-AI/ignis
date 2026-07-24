@@ -71,7 +71,8 @@ export class FileController extends BaseRestController {
 - **`storage` defaults to `'memory'`**; `uploadDir` defaults to `'./uploads'` and is created recursively if it does not exist.
 - **`sanitizeFilename` is applied automatically** inside `createContentDispositionHeader` - callers do not need to sanitize twice. It also removes leading dots, collapses repeated dots, and strips `..` sequences to block directory traversal and hidden-file tricks.
 - **`createContentDispositionHeader` always emits both forms** (`filename="..."; filename*=UTF-8''...`) for maximum browser compatibility - older browsers read the ASCII fallback, modern ones read the UTF-8 form.
-- **`IRequestedRemark`** is a separately exported interface for describing a request: `{ id: string; url: string; method: string; [extra: string | symbol]: any }`. It is not consumed internally by `parseMultipartBody` or any other function on this page - it is a general-purpose shape for application code that needs to tag a request with an id, URL, method, and arbitrary extra fields.
+- **`IRequestedRemark`** is a separately exported interface for describing a request: `{ id: string; url: string; method: string; [extra: string | symbol]: any }`.
+  - It is not consumed internally by `parseMultipartBody` or any other function on this page - it is a general-purpose shape for application code that needs to tag a request with an id, URL, method, and arbitrary extra fields.
 
 ## See also
 

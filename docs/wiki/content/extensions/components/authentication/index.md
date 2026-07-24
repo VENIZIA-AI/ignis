@@ -57,7 +57,8 @@ const SECURE_ROUTE = {
 
 ## How it works
 
-- **One component, three auth mechanisms.** `AuthenticateComponent.binding()` reads `JWT_OPTIONS` (JWS or JWKS) and `BASIC_OPTIONS` from the DI container, and registers the token services their presence implies. Bind at least one of the two - the component throws at startup if neither is set.
+- **One component, three auth mechanisms.** `AuthenticateComponent.binding()` reads `JWT_OPTIONS` (JWS or JWKS) and `BASIC_OPTIONS` from the DI container, and registers the token services their presence implies.
+  - Bind at least one of the two - the component throws at startup if neither is set.
 - **Strategies are manual, on purpose.** The component registers *token services* - JWS, JWKS, Basic - never *strategies*. Register strategies yourself after the component, via `AuthenticationStrategyRegistry.getInstance().register(...)`.
 - **The registry is a DI-backed singleton.** `AuthenticationStrategyRegistry` binds each strategy into the container as a singleton, under the key `authentication.strategy.<name>`. A route's `authenticate.strategies` list references strategies by that same name.
 - **`authenticate()` is the middleware entry point.** Route-level `authenticate: { strategies, mode }` config and the standalone `authenticate()` function both run through the same `AuthenticationProvider`, which sets `Authentication.CURRENT_USER` on success. See [Multi-strategy authentication](./usage#multi-strategy-authentication) for what `'any'` and `'all'` mode do.

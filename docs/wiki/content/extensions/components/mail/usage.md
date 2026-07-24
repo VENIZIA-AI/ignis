@@ -145,7 +145,7 @@ export class NotificationService extends BaseService {
 ```
 
 - **Subject resolution order.** `options.subject` wins if you pass it. Otherwise the template's own `subject` wins, rendered through the same engine. If neither is set, the subject falls back to the literal `'No Subject'`.
-- **`sendTemplate()` requires the template engine binding.** It throws `INVALID_CONFIGURATION` ("Template engine not configured") if `MailKeys.MAIL_TEMPLATE_ENGINE` was never injected. The constructor parameter is `isOptional: true`, so a service can skip that injection and still compile. It then fails only when the first `sendTemplate()` call runs.
+- **`sendTemplate()` requires the template engine binding.** It throws `INVALID_CONFIGURATION` ("Template engine not configured") if `MailKeys.MAIL_TEMPLATE_ENGINE` was never injected. The constructor parameter is `isOptional: true`, so a service still compiles without it - but the first `sendTemplate()` call then fails.
 
 ### How rendering works
 
@@ -361,7 +361,7 @@ export class AuthService extends BaseService {
 `MailComponent.createAndBindInstances()` logs only `mailOptions.provider` and `queueExecutorConfig.type`, at `info` level. It never logs the full config objects, by design. That keeps SMTP passwords, OAuth2 secrets, API keys, and Redis passwords out of the log sink - at least through the component itself.
 
 > [!WARNING]
-> That guarantee only covers what `MailComponent` logs internally. If your own wrapper component or bootstrap code logs the `TMailOptions` or `IMailQueueExecutorConfig` object directly - for example, while debugging a binding - you reintroduce the leak yourself. Log individual safe fields (`provider`, `type`) instead of the whole object.
+> That guarantee only covers what `MailComponent` logs internally. If your own wrapper component or bootstrap code logs the `TMailOptions` or `IMailQueueExecutorConfig` object directly, you reintroduce the leak yourself. This commonly happens while debugging a binding. Log individual safe fields (`provider`, `type`) instead of the whole object.
 
 ## See also
 

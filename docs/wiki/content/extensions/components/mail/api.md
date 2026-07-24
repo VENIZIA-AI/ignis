@@ -586,7 +586,8 @@ Neither transport calls a shared `validateModule()` helper. `configure()` calls 
 **Mailgun (`MailgunTransportHelper`, extends `BaseHelper`):**
 
 - `configure()` calls `validateConfig()` **before** building the client. `username`, `key`, and `domain` must all be present in `config`, or it throws `Invalid Mailgun configuration | Missing required keys: <keys>` (`INVALID_CONFIGURATION`, 500). This check runs even though `TMailgunConfig`'s type only requires `domain`.
-- `send()` converts `IMailMessage` to Mailgun's format: `to` is coerced to an array, `replyTo` becomes `h:Reply-To`, and every custom header is prefixed `h:`. Attachments map to `{ filename, data: path ?? content ?? Buffer.from('') }`. It catches send errors and returns `{ success: false, error }` - it never throws.
+- `send()` converts `IMailMessage` to Mailgun's format: `to` is coerced to an array, `replyTo` becomes `h:Reply-To`, and every custom header is prefixed `h:`. Attachments map to `{ filename, data: path ?? content ?? Buffer.from('') }`.
+  - It catches send errors and returns `{ success: false, error }` - it never throws.
 - `verify()` sends a test message to `verify@<domain>` with `o:testmode: 'yes'`, since Mailgun has no dedicated verify endpoint. It catches errors and returns `false` - it never throws.
 - No `close()` - the HTTP API is stateless.
 

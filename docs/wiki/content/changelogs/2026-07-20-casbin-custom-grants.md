@@ -52,7 +52,8 @@ const rows = planGrant({
 ## Who is affected
 
 - **Every consumer of `ScopedCasbinAdapter` and `AuthorizationPolicyBuilder`.** No action needed. The `metadata` column is nullable, and reading it is opt-in via `metadata.columnName`.
-- **Apps that want to grant a subject a handful of operations without a full tier.** Call `planGrant({ subject, resource, intent: { ops: [...] }, catalog })` instead of writing a `customGrant` row by hand. It does the tier-collapse math and throws on unrecognized operations.
+- **Apps that want to grant a subject a handful of operations without a full tier.** Call `planGrant({ subject, resource, intent: { ops: [...] }, catalog })` instead of writing a `customGrant` row by hand.
+  - It does the tier-collapse math and throws on unrecognized operations.
 - **Apps that provision `PolicyDefinition` via `extraPolicyDefinitionColumns`.** The new `metadata` column appears in their schema on the next migration. It is nullable, so no backfill is required.
 
 ## Details

@@ -42,7 +42,9 @@ export class PostgresDataSource extends BasePostgresDataSource<IDataSourceConfig
 }
 ```
 
-`configure()` only builds `this.client` - the raw `pg.Pool` (or postgres-js `Sql`) your app's connection settings produce. The base class wires the driver **and** the connector lazily, on first call to `getConnector()` or `beginTransaction()`. It reads the class named in `@datasource({ driver })`, instantiates it over `this.client`, and builds the pooled Drizzle connector from that. `getClient()` hands `this.client` back as the raw-client escape hatch. A datasource that sets neither `this.client` nor a driver (via `useDriver()`, below) throws `No driver and no client` on first use.
+`configure()` only builds `this.client` - the raw `pg.Pool` (or postgres-js `Sql`) your app's connection settings produce. The base class wires the driver **and** the connector lazily, on first call to `getConnector()` or `beginTransaction()`. It reads the class named in `@datasource({ driver })`, instantiates it over `this.client`, and builds the pooled Drizzle connector from that.
+
+`getClient()` hands `this.client` back as the raw-client escape hatch. A datasource that sets neither `this.client` nor a driver (via `useDriver()`, below) throws `No driver and no client` on first use.
 
 > [!IMPORTANT] Why a class, not a name
 > A driver-name string cannot carry `pg` or `postgres` into your bundle - it is just text. A dynamic `import('./node-postgres.js')` keyed off that string would defer *execution*, not *packaging*. Every bundler statically resolves a literal specifier and packages whatever it points to. A build that only used node-postgres would still fail with `Could not resolve: "postgres"`. The failure fires the moment postgres-js's import appears anywhere in the module graph reachable at build time. Naming the class instead makes the driver module a real value reference - the one thing a bundler is forced to keep. That's what lets `pg` and `postgres` stay genuinely optional peers. A bare side-effect import (`import '@venizia/ignis/postgres/node-postgres'`) would not work either. `@venizia/ignis` declares `sideEffects: false`, so a bundler is free to drop an import whose exports go unused.
@@ -101,7 +103,7 @@ export class PostgresDataSource extends BasePostgresDataSource<IDataSourceConfig
 }
 ```
 
-`useDriver()` bypasses `@datasource({ driver })` entirely - you never need to name a class in the decorator when you wire the driver yourself in `configure()`.
+`useDriver()` bypasses `@datasource({ driver })` entirely. You never need to name a class in the decorator when you wire the driver yourself in `configure()`.
 
 > [!WARNING] postgres-js cannot destroy a poisoned connection
 > After a failed `COMMIT` or `ROLLBACK`, node-postgres **destroys** the connection instead of pooling it. The session may still hold an open transaction that the next borrower would inherit. postgres-js has no destroy semantics (`ReservedSql.release()` takes no argument), so the connection is returned to the pool anyway. This asymmetry is real and IGNIS does not paper over it; it is pinned by the driver's own tests.
@@ -125,7 +127,7 @@ interface IRelationalConnection<Schema> {
 }
 ```
 
-`acquire()` matters for transactions: `BEGIN` and `COMMIT` must land on the same backend, so each explicit transaction gets a dedicated connection (`pool.connect()` for pg, `sql.reserve()` for postgres-js). That's the reason for the `>= 3.4.0` floor.
+`acquire()` matters for transactions: `BEGIN` and `COMMIT` must land on the same backend. Each explicit transaction therefore gets a dedicated connection (`pool.connect()` for pg, `sql.reserve()` for postgres-js) - that's the reason for the `>= 3.4.0` floor.
 
 The connection is checked out of the pool before Drizzle is constructed on top of it. If that constructor throws - a malformed discovered schema, a drizzle mismatch - both drivers catch the error. They release the connection back to the pool first, and rethrow. Without this, every failed `acquire()` would strand a connection, and the pool would exhaust after enough of them.
 

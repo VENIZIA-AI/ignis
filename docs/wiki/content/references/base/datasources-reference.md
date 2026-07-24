@@ -183,7 +183,7 @@ The fourth generic, `Client = Pool`, is what lets a postgres-js datasource decla
 
 | Method | Description |
 |---|---|
-| `wireDriverFromMetadata()` | Idempotent, lazy. If `this.connector` already exists, no-ops. If `this.driver` exists but `this.connector` does not, builds the connector from it. Otherwise reads the class named in `@datasource({ driver })` from `MetadataRegistry`, instantiates it over `this.client`, and calls `useDriver()`. Throws if neither `client` nor `driver` is set. It also throws if the named `driver` metadata is not a class - a string, historically valid for search engines, is rejected here with a message pointing at `NodePostgresDriver` |
+| `wireDriverFromMetadata()` | Idempotent, lazy. If `this.connector` already exists, no-ops. If `this.driver` exists but `this.connector` does not, builds the connector from it. Otherwise reads the class named in `@datasource({ driver })` from `MetadataRegistry`, instantiates it over `this.client`, and calls `useDriver()`. Throws if neither `client` nor `driver` is set. It also throws if the named `driver` metadata is not a class. A string, historically valid for search engines, is rejected here with a message pointing at `NodePostgresDriver` |
 | `resolveDriver()` | Calls `wireDriverFromMetadata()`, then returns `this.driver` |
 | `useDriver({ driver, schema? })` | Assigns `this.driver` **and** builds `this.connector` from it in one step - the two-step form (driver set, connector forgotten) is unrepresentable. `schema` defaults to `getSchema()`. The public escape hatch for a custom or third-party driver, bypassing `@datasource({ driver })` entirely |
 | `mapSecretToSettings({ secret })` | Maps Vault's `{ username, password }` secret shape to `pg`'s `{ user, password }` settings shape, for `onSecretRotated()` |
@@ -484,7 +484,7 @@ DataSourceDrivers.isValid('node-postgres')  // true
 ```
 
 > [!NOTE]
-> `NODE_POSTGRES`/`POSTGRES_JS` remain valid `TDataSourceDriver` string values. But `@datasource({ driver })` on a **relational** datasource no longer accepts them - it takes the `NodePostgresDriver`/`PostgresJsDriver` class instead (see [Postgres Drivers & Supabase](/guides/core-concepts/persistent/postgres-drivers)). Search connectors (`TYPESENSE`, `MEILISEARCH`) still take the driver-name string form, because `extends TypesenseDataSource` already names the engine and is what carries the client into the bundle.
+> `NODE_POSTGRES`/`POSTGRES_JS` remain valid `TDataSourceDriver` string values. But `@datasource({ driver })` on a **relational** datasource no longer accepts them - it takes the `NodePostgresDriver`/`PostgresJsDriver` class instead (see [Postgres Drivers & Supabase](/guides/core-concepts/persistent/postgres-drivers)). Search connectors (`TYPESENSE`, `MEILISEARCH`) still take the driver-name string form. `extends TypesenseDataSource` already names the engine, and that is what carries the client into the bundle.
 
 ## Transaction support
 
@@ -586,7 +586,7 @@ try {
 > [!TIP]
 > For most use cases, prefer `repository.beginTransaction()`, which provides a higher-level API. See [Repositories](/references/base/repositories/#run-inside-a-transaction).
 
-This architecture ensures datasources are configured consistently and that the fully-initialized Drizzle connector, aware of all schemas and relations, is available to repositories for querying.
+This architecture keeps datasource configuration consistent. The fully-initialized Drizzle connector, aware of all schemas and relations, is available to repositories for querying.
 
 ## See also
 

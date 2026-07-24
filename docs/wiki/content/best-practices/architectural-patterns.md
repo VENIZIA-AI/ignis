@@ -117,7 +117,7 @@ REST controllers extend `BaseRestController`, while gRPC controllers extend `Bas
 
 ## 3. Component-Based Modularity
 
-Components bundle a group of related, reusable, and pluggable features into self-contained modules. A single component can encapsulate multiple providers, services, controllers, and repositories, essentially functioning as a mini-application that can be easily "plugged in" to any IGNIS project.
+Components bundle a group of related, reusable, and pluggable features into self-contained modules. A single component can encapsulate multiple providers, services, controllers, and repositories. It functions as a mini-application that plugs into any IGNIS project.
 
 **Built-in Components:**
 - `AuthenticateComponent` - JWT authentication
@@ -140,7 +140,7 @@ export class Application extends BaseApplication {
   }
 }
 ```
-This architecture keeps the main `Application` class clean and focused on high-level assembly, while the details of each feature are neatly encapsulated within their respective components.
+This architecture keeps the main `Application` class clean and focused on high-level assembly. The details of each feature stay neatly encapsulated within their respective components.
 
 ## 4. Custom Components
 
@@ -303,7 +303,7 @@ service<Base extends IService, Args extends AnyObject = any>(
 }
 ```
 
-Every registration method takes the same optional second argument - `opts.binding` overrides the derived `{ namespace, key }` when you need to register two classes under one contract.
+Every registration method takes the same optional second argument. `opts.binding` overrides the derived `{ namespace, key }` when you need to register two classes under one contract.
 
 **Capability interfaces:**
 

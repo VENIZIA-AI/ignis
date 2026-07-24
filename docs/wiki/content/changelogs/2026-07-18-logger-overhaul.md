@@ -88,6 +88,17 @@ Untyped call sites (`this.logger.info(...)`, `LoggerFactory.getLogger([...])`, `
 
 ## Details
 
-- **HfLogger entry layout v2** (256 bytes): `float64` epoch-ms timestamp at bytes 0-7, level code at byte 8, scope length at byte 9, scope at bytes 10-41, message length at byte 42, message at bytes 43-255 (cap 213 bytes). Encode cache is FIFO-bounded at 4096.
+- **HfLogger entry layout v2** (256 bytes total):
+
+  | Field | Bytes |
+  |---|---|
+  | `float64` epoch-ms timestamp | 0-7 |
+  | Level code | 8 |
+  | Scope length | 9 |
+  | Scope | 10-41 |
+  | Message length | 42 |
+  | Message (cap 213 bytes) | 43-255 |
+
+  Encode cache is FIFO-bounded at 4096.
 - **Winston pipeline:** two-stage formatting - shared prep on the logger, per-transport assembly. Console colorizes; file and UDP lines stay ANSI-free. File transports remain opt-in via `APP_ENV_LOGGER_FOLDER_PATH`.
 - Environment variables, the level guide, and every API signature: [Full reference](/extensions/helpers/logger/reference).

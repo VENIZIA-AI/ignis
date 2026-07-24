@@ -40,8 +40,14 @@ curl localhost:3000/health
 
 - **Auto-registered controller.** `HealthCheckComponent.binding()` applies `@controller({ path })` to `HealthCheckController` via `Reflect.decorate` at runtime, then calls `this.application.controller(HealthCheckController)`. The path comes from DI, not a hardcoded class decorator.
 - **Options are optional, field by field.** `IHealthCheckOptions.restOptions.path` is optional; a partially-filled binding (e.g., `{ restOptions: {} }`) still resolves. The component reads `healthOptions?.restOptions?.path ?? '/health'`, falling back per field rather than discarding the whole binding.
-- **The default binding wins the race if you're late.** The constructor registers `HEALTH_CHECK_OPTIONS` via `initDefault: { enable: true }`, which runs before `binding()`. `initDefaultBindings()` only sets a key when `container.isBound()` is false, so a custom binding must exist BEFORE `this.component(HealthCheckComponent)` runs - otherwise the default has already claimed the slot.
-- **Three route styles, one controller.** `HealthCheckController` demonstrates all three IGNIS route patterns: fluent (`bindRoute().to()`) for `GET /`, decorator (`@api()`) for `POST /ping`, and imperative (`defineRoute()`, commented out in source). Use it as a reference when picking a style for your own controllers.
+- **The default binding wins the race if you're late.** The constructor pre-binds `HEALTH_CHECK_OPTIONS` via `initDefault`, filling only an unbound key. A custom binding must exist BEFORE `this.component(HealthCheckComponent)` runs - otherwise the default has already claimed the slot.
+- **Three route styles, one controller.** `HealthCheckController` demonstrates all three IGNIS route patterns - use it as a reference when picking a style for your own controllers:
+
+  | Style | API | Route |
+  |-------|-----|-------|
+  | Fluent | `bindRoute().to()` | `GET /` |
+  | Decorator | `@api()` | `POST /ping` |
+  | Imperative | `defineRoute()` (commented out in source) | - |
 
 ## Common tasks
 

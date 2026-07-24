@@ -35,7 +35,8 @@ export class Application extends BaseApplication {
 - **New `Secrets` provider family** (`@venizia/ignis-helpers`): `AbstractSecretsHelper` plus `SystemEnvsHelper`, `HashiCorpVaultHelper`, and `DotenvVaultHelper`, selected by a `SecretProviders` const-class. The default provider is `system-envs`, so nothing changes until you opt in.
 - **New `hydrateSecrets()` lifecycle phase**, runs between `preConfigure()` and `registerDataSources()`. It resolves the provider, merges static secrets into `Envs`, opens dynamic leases, and binds the provider at the previously-dormant `@app/config` key.
 - **Two ways to consume a secret**: boot-time hydration into `Envs` / `process.env` (existing code unchanged), and an injectable provider bound at `@app/config` for on-demand reads.
-- **Restart-free credential rotation.** `wireSecretRotatables()` connects each lease to its datasource after registration. The PostgreSQL datasource gains an `onSecretRotated()` hook that swaps in the new credentials and rebuilds the pool via `configure()`. It then drains the old pool with `end()` so in-flight transactions finish. Rotation is opt-in - wired only for datasources named in a `lease` entry.
+- **Restart-free credential rotation.** `wireSecretRotatables()` connects each lease to its datasource after registration. The PostgreSQL datasource gains an `onSecretRotated()` hook that swaps in the new credentials and rebuilds the pool via `configure()`.
+  - It then drains the old pool with `end()` so in-flight transactions finish. Rotation is opt-in - wired only for datasources named in a `lease` entry.
 - **Vault token self-renewal.** `HashiCorpVaultHelper` renews its own Vault auth token on the same cadence, and re-authenticates if the token can no longer be renewed. AppRole and Kubernetes deployments keep working past the token TTL.
 - **Fail-closed.** A vault failure crashes the boot in production. Development falls back to `process.env`.
 

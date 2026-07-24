@@ -453,7 +453,13 @@ const dedicated = redis.duplicateClient();
 
 ### General notes (apply to all families)
 
-- **Empty-input no-ops.** `keys`, `members`, `values`, `fields`, and `payload` are all array inputs. Pass an empty array and the method returns immediately, without calling ioredis - `0`, `[]`, or (for `mSet`) `void`, depending on the method. This avoids the "wrong number of arguments" error ioredis throws on empty varargs.
+- **Empty-input no-ops.** `keys`, `members`, `values`, `fields`, and `payload` are all array inputs. An empty array skips the ioredis call and returns immediately - this avoids the "wrong number of arguments" error ioredis throws on empty varargs.
+
+  | Return value | Applies to |
+  |---|---|
+  | `0` | Count methods - `del`, `hDel`, `sRem`, `sAdd`, `lPush`, `rPush` |
+  | `[]` | Array reads - `mGet`, `sMembers` |
+  | `void` (no-op) | `mSet` |
 - **Boolean mapping.** `expire`, `expireAt`, `persist`, `hExists`, and `sIsMember` map ioredis numeric replies to `true` (`=== 1`) or `false`.
 - **JSON auto-serialization.**
 

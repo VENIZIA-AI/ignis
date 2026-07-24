@@ -781,8 +781,13 @@ When `domainMatching` is set (flat model), `registerMatchers()` registers the ch
 
 Returns `ICasbinRules = { user, lines }` - the user's complete Casbin policy lines.
 
-- `extractUserLines(user)` builds a fresh, isolated enforcer *with the adapter* and calls `adapter.loadFilteredPolicy({ principal: { type, id } })`. `extractLinesFrom()` then serializes every `p*`/`g*` rule the model declares back into lines - not just `p`/`g`. This includes the scoped model's `g2`-`g5` hierarchies.
-- `fetchLinesWithRedisCache` returns cached lines on a hit (Redis owns expiry via `PX`). On a miss it dedups concurrent misses through `pendingLineFetches` (single-flight), extracts once, and writes the lines back to Redis. A corrupt entry is logged and discarded, then refetched - never a 500.
+| Function | Behavior |
+|---|---|
+| `extractUserLines(user)` | Builds a fresh, isolated enforcer *with the adapter* and calls `adapter.loadFilteredPolicy({ principal: { type, id } })` |
+| `extractLinesFrom()` | Serializes every `p*`/`g*` rule the model declares back into lines, not just `p`/`g` - including the scoped model's `g2`-`g5` hierarchies |
+| `fetchLinesWithRedisCache` | Returns cached lines on a hit (Redis owns expiry via `PX`); on a miss, dedups concurrent misses via `pendingLineFetches` (single-flight), extracts once, and writes the lines back to Redis |
+
+A corrupt cache entry is logged and discarded, then refetched - never surfaced as a `500`.
 
 ### evaluate()
 

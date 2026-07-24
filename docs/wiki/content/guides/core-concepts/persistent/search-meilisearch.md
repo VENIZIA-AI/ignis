@@ -1,6 +1,6 @@
 # Search & Meilisearch
 
-IGNIS ships a **meilisearch connector** under `@venizia/ignis/meilisearch`. It shares the entire search paradigm with the Typesense connector - the same `@model`/`@repository`/`@datasource` decorators, the same `defineSearchCollection` field DSL, the same repository tiers and controller factory. All of that lives in the engine-neutral `@venizia/ignis/search` module.
+IGNIS ships a **meilisearch connector** under `@venizia/ignis/meilisearch`. It shares the entire search paradigm with the Typesense connector: the same `@model`/`@repository`/`@datasource` decorators and the same `defineSearchCollection` field DSL. It also shares the same repository tiers and controller factory. All of that lives in the engine-neutral `@venizia/ignis/search` module.
 
 What it does **not** share is the pretence that the two engines are the same. Where Meilisearch differs from Typesense, IGNIS surfaces the difference rather than papering over it.
 
@@ -141,25 +141,35 @@ class PortableRepository extends DefaultSearchRepository<TDocument> {
 
 ## Behaviours to know before you commit
 
-**`create()` rejects duplicates, but the check is not atomic.** Meilisearch's `addDocuments` is add-or-replace; it has no conditional insert. The neutral contract says `create()` returns 409 on a duplicate id, matching Typesense. To honour it, IGNIS reads the id first and throws `409 core.search_engine.already_exists` if it exists. Two concurrent creates of the same id can both pass that check, and the second write wins. If you want last-write-wins, call `upsert()` and say so.
+**`create()` rejects duplicates, but the check is not atomic.** Meilisearch's `addDocuments` is add-or-replace; it has no conditional insert. The neutral contract says `create()` returns 409 on a duplicate id, matching Typesense.
+
+To honour it, IGNIS reads the id first and throws `409 core.search_engine.already_exists` if it exists. Two concurrent creates of the same id can both pass that check, and the second write wins. If you want last-write-wins, call `upsert()` and say so.
 
 **`updateById` on a missing id throws `404`, it does not upsert.** Meilisearch's `updateDocuments` is add-or-update, so a missing id would silently fabricate a record. IGNIS checks existence before any write and throws `404 core.search_engine.not_found` instead - matching Typesense and the neutral contract. (This is the deliberate search-family divergence from the PostgreSQL connector, where a missing-id `updateById` is a silent `{ count: 0 }`.)
 
-**`updateBy` is emulated and is not atomic.** Meilisearch has no update-by-filter endpoint. IGNIS pages primary keys out of `documents/fetch`, then issues merge-`PUT` batches. A concurrent write to a matched document may be overwritten. The experimental `documents/edit` route would do this server-side. But it is gated behind a feature flag, is documented as breaking between minor versions, and has an open correctness bug - so IGNIS does not use it.
+**`updateBy` is emulated and is not atomic.** Meilisearch has no update-by-filter endpoint. IGNIS pages primary keys out of `documents/fetch`, then issues merge-`PUT` batches. A concurrent write to a matched document may be overwritten.
 
-**`import`/`createAll` is batch-atomic.** Documents are added in batches, each batch's task awaited before the next starts. A batch either lands whole or throws, so `count.fail` is structurally always `0`. When a batch fails, the batches after the failure point did not land. The thrown error's `details` carry `{ totalCount, processedCount }`, so a caller can resume from `processedCount` rather than replaying the whole import.
+The experimental `documents/edit` route would do this server-side, but it is gated behind a feature flag and documented as breaking between minor versions. It also has an open correctness bug, so IGNIS does not use it.
+
+**`import`/`createAll` is batch-atomic.** Documents are added in batches, each batch's task awaited before the next starts. A batch either lands whole or throws, so `count.fail` is structurally always `0`.
+
+When a batch fails, the batches after the failure point did not land. The thrown error's `details` carry `{ totalCount, processedCount }`, so a caller can resume from `processedCount` rather than replaying the whole import.
 
 **Meilisearch error classification reads the real SDK error shape.** A thrown `MeilisearchApiError` carries its body under `error.cause.code` and its HTTP status under `error.response.status`, not top-level `code`/`httpStatus`. Reading only the flat shape misclassifies a legitimate 404 (for example the existence probe inside `create()`) as an unrelated 503 dependency failure. The classifier checks both the flat shape (task-error responses) and the nested `cause`/`response` shape (thrown SDK errors).
 
 **`createCollection`/`ensureCollection` are idempotent.** An `index_already_exists` failure is tolerated and logged rather than thrown. Boot-time provisioning against an already-provisioned collection (a restart, a second app instance) succeeds instead of crashing.
 
-**`hiddenProperties` is supported on Meilisearch via JS-side stripping, not engine-side exclusion.** Meilisearch has no per-query field-exclusion param (only the index-level `displayedAttributes` setting), so the dialect does not attempt to translate `hiddenFields`. It deliberately passes them through untranslated. The guarantee is upheld one layer up. `SearchBaseRepository` strips hidden fields from every document `find()`/`findOne()`/`search()` returns before it reaches the caller. A model with `hiddenProperties` works identically to Typesense from the caller's point of view - no throw, no leak.
+**`hiddenProperties` is supported on Meilisearch via JS-side stripping, not engine-side exclusion.** Meilisearch has no per-query field-exclusion param (only the index-level `displayedAttributes` setting), so the dialect does not attempt to translate `hiddenFields`. It deliberately passes them through untranslated.
+
+The guarantee is upheld one layer up: `SearchBaseRepository` strips hidden fields from every document `find()`/`findOne()`/`search()` returns before it reaches the caller. A model with `hiddenProperties` works identically to Typesense from the caller's point of view - no throw, no leak.
 
 **A geopoint field must be named `_geo`.** Meilisearch supports exactly one geo field, shaped `{ lat, lng }`, under that reserved name. The compiler throws on any other name, and on a second geo field.
 
 **Vector distance is cosine only.** `field.vector(..., { distance: 'l2' })` throws.
 
-**Engine-specific knobs never reach the neutral schema.** The neutral search input carries only fields every engine supports. Typesense-only tuning (`num_typos`, `pinned_hits`, `preset`, ...) travels through `engineParams` with wire names and is passed verbatim to the engine, so sending Typesense knobs to a Meilisearch datasource is a caller error. The dialect still raises a named error for known-foreign knobs arriving via untyped input. Use `engineParams` (or `mode: 'raw'`) for Meilisearch-native tuning such as `rankingScoreThreshold`.
+**Engine-specific knobs never reach the neutral schema.** The neutral search input carries only fields every engine supports. Typesense-only tuning (`num_typos`, `pinned_hits`, `preset`, ...) travels through `engineParams` with wire names and is passed verbatim to the engine. Sending it to a Meilisearch datasource is a caller error.
+
+The dialect still raises a named error for known-foreign knobs arriving via untyped input. Use `engineParams` (or `mode: 'raw'`) for Meilisearch-native tuning such as `rankingScoreThreshold`.
 
 **`multiSearch` batches but does not merge.** `union: true` throws. Meilisearch merges results through its `federation` option, which this connector does not model, so `getCapabilities()` honestly reports `union: false`.
 

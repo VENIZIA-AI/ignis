@@ -244,7 +244,9 @@ this.service(OrderService);
 
 ### Abstract Base Services
 
-For shared dependencies across multiple related services, define an abstract base. The container only ever `instantiate()`s the **concrete** class (`this.service(UserAuditTestService)` registers `UserAuditTestService`, never `BaseTestService`), and the hard DI rule - every constructor parameter of a container-instantiated class must carry `@inject` - applies to that concrete constructor. A `scope: string` computed from `ClassName.name` is not something the container can supply anyway, so it cannot sit as a bare constructor parameter next to an `@inject`-decorated one. The shared repository is injected as a **property** on the base instead, and the concrete subclass's constructor is left with zero parameters - nothing to decorate, nothing to violate:
+For shared dependencies across multiple related services, define an abstract base. The container only ever `instantiate()`s the **concrete** class - `this.service(UserAuditTestService)` registers `UserAuditTestService`, never `BaseTestService`. The hard DI rule - every constructor parameter of a container-instantiated class must carry `@inject` - applies to that concrete constructor.
+
+A `scope: string` computed from `ClassName.name` is not something the container can supply. So it cannot sit as a bare constructor parameter next to an `@inject`-decorated one. The shared repository is injected as a **property** on the base instead. The concrete subclass's constructor is left with zero parameters - nothing to decorate, nothing to violate:
 
 ```typescript
 // Shared repository access for a group of test services - property injection,

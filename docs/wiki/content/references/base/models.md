@@ -32,7 +32,8 @@ A `@repository` binds this model to a datasource, and the datasource auto-discov
 - **Registration.** The `@model` decorator registers the class in the framework's metadata registry, keyed by table name (resolved as `tableName` > static `TABLE_NAME` > class name).
 - **Validation at decoration time.** It validates `settings.defaultLimit` and, when you declare an authorization principal, copies it onto the static `AUTHORIZATION_SUBJECT` property.
 - **Plain Drizzle schema.** The static `schema` is a plain Drizzle `pgTable`. Enrichers such as `generateIdColumnDefs` return column definitions you spread into that table, so common columns (id, timestamps, audit, principal) stay standardized across models.
-- **Zod on demand.** `BaseEntity` generates Zod schemas from the Drizzle schema via `getSchema({ type })` - `'select'`, `'create'`, and `'update'` variants for validating query results, inserts, and updates. The generator is a shared lazy singleton, so there is no per-entity cost.
+- **Zod on demand.** `BaseEntity` generates Zod schemas from the Drizzle schema via `getSchema({ type })` - `'select'`, `'create'`, and `'update'` variants for validating query results, inserts, and updates.
+  - The generator is a shared lazy singleton, so there is no per-entity cost.
 
 **Two layers**
 

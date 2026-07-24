@@ -43,10 +43,10 @@ A `@repository` binds a model to `PostgresDataSource`, and the schema is auto-di
 
 ## How it works
 
-- **Driver is a class, not a string.** `@datasource({ driver })` names `NodePostgresDriver` or `PostgresJsDriver` as a class reference - never a driver-name string. Only a real class reference carries `pg`/`postgres` into the application's bundle, so both stay genuinely optional peer dependencies.
+- **Driver is a class, not a string.** `@datasource({ driver })` names `NodePostgresDriver` or `PostgresJsDriver` as a class reference, never a driver-name string. Only a class reference carries `pg`/`postgres` into the bundle, keeping both packages optional.
 - **`configure()` has exactly one job.** Build the raw client and assign it to `this.client` (a `pg.Pool` for node-postgres, or a postgres-js `Sql`). It never touches `this.connector` directly.
-- **The driver wires lazily.** The first time `getConnector()` or `beginTransaction()` is called, the base class reads the class named in `@datasource({ driver })`, instantiates it over `this.client`, and builds `this.connector` from it.
-- **Base vs. connector split.** IGNIS splits datasources into an engine-neutral root (`AbstractDataSource` - no SQL, no Drizzle, no pool) and per-engine connectors (`BasePostgresDataSource` for PostgreSQL, a parallel class for typesense). See [Connectors](/references/base/connectors) for the full architecture.
+- **The driver wires lazily.** The first time `getConnector()` or `beginTransaction()` is called, the base class reads the class named in `@datasource({ driver })`. It instantiates that class over `this.client` and builds `this.connector` from it.
+- **Base vs. connector split.** IGNIS splits datasources into an engine-neutral root (`AbstractDataSource` - no SQL, no Drizzle, no pool) and per-engine connectors. `BasePostgresDataSource` is the PostgreSQL connector; typesense has a parallel class. See [Connectors](/references/base/connectors) for the full architecture.
 - **Naming.** The PostgreSQL connector's canonical class is `BaseRelationalDataSource`; `BasePostgresDataSource` and `BaseDataSource` are compatibility aliases re-exporting the same class.
 
 ## Common tasks
@@ -139,7 +139,7 @@ try {
 
 ### Share one datasource across repositories
 
-One `PostgresDataSource` instance is shared by every repository bound to it - `@repository` auto-injects the datasource, and `getSchema()` merges the tables and relations of every model bound to it.
+One `PostgresDataSource` instance is shared by every repository bound to it. `@repository` auto-injects the datasource, and `getSchema()` merges the tables and relations of every model bound to it.
 
 ```typescript
 @repository({ model: User, dataSource: PostgresDataSource })

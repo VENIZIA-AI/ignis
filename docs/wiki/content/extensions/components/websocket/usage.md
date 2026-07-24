@@ -61,7 +61,15 @@ export class NotificationService extends BaseService {
 
 - **Never `@inject` `WEBSOCKET_INSTANCE` in a constructor.** It is not bound yet at that point - the lazy getter is the only correct pattern.
 - **`sendToClient`/`sendToUser`/`sendToRoom`/`broadcast` are local-only.** They fan out to clients connected to this process. Cross-instance delivery goes through `send()` (Redis-backed) or `WebSocketEmitter` - see below.
-- **`send({ destination, payload })` resolves `destination` dynamically.** It checks local clients, then local rooms, then falls back to publishing as a `ROOM` message on Redis. There is no `userId` destination in `send()`. To reach every session of a user, use `sendToUser()` (local) or `WebSocketEmitter.toUser()` (cross-instance).
+- **`send({ destination, payload })` resolves `destination` dynamically**, in this order:
+
+  | Order | Checks |
+  |---|---|
+  | 1 | Local clients |
+  | 2 | Local rooms |
+  | 3 | Redis, publishing as a `ROOM` message (fallback) |
+
+  There is no `userId` destination in `send()`. To reach every session of a user, use `sendToUser()` (local) or `WebSocketEmitter.toUser()` (cross-instance).
 
 ## Send from a process with no WebSocket server
 
@@ -216,7 +224,12 @@ Client                          Server
   |                                |-- clientConnectedFn()
 ```
 
-- **Two timeout phases, not one.** The initial `authTimeout` (5s default) starts on connect. It closes the connection with `4001` if no `authenticate` event arrives. Once `authenticate` is received, that timer is replaced with `authTimeout * 3` (15s default). This gives the async `authenticateFn` - and `handshakeFn`, when encryption is required - room to complete.
+- **Two timeout phases, not one:**
+
+  | Phase | Timeout | Starts when | On expiry |
+  |---|---|---|---|
+  | Initial | `authTimeout` (5s default) | Connection opens | Closes with `4001` if no `authenticate` event arrives |
+  | Post-authenticate | `authTimeout * 3` (15s default) | `authenticate` event is received | Gives the async `authenticateFn` (and `handshakeFn`, when encryption is required) room to complete |
 - **A client's own ID becomes a room.** After authentication, `joinRoom({ clientId, room: clientId })` runs automatically. This is what lets `send({ destination: clientId })` or `sendToRoom({ room: clientId })` target one specific client.
 - **Encrypted clients skip Bun's native topics.** A client's own `clientId` topic is subscribed before auth (always). `BROADCAST_TOPIC` and rooms are subscribed after auth, but only when `!client.encrypted`. Encrypted clients rely entirely on the per-client `outboundTransformer` path.
 

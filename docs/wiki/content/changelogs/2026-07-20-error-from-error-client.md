@@ -9,11 +9,11 @@ description: A new fromError inverts the error response the middleware emits, tu
 
 <Badge type="tip" text="New API" />
 
-**In one line.** `fromError({ error })` turns the JSON payload `AppErrorMiddleware` sends back into a live `ApplicationError`, so one `catch` block handles a server failure and a locally thrown one alike.
+**In one line.** `fromError({ error })` turns the JSON payload `AppErrorMiddleware` sends back into a live `ApplicationError`. One `catch` block then handles a server failure and a locally thrown one alike.
 
 ## The problem it solves
 
-The error layer already lived in `@venizia/ignis-inversion`, not helpers, so a browser app could import it. But there was no return trip: a client received an error response and had nothing to turn it back into an error. Each client had to rediscover how the response maps onto the constructor - that `normalized` becomes `message`, that `requestId` is worth keeping - and typically declared its own partial copy of the wire type to do it.
+The error layer already lived in `@venizia/ignis-inversion`, not helpers, so a browser app could import it. But there was no return trip: a client received an error response and had nothing to turn it back into an error. Each client had to rediscover how the response maps onto the constructor - that `normalized` becomes `message`, that `requestId` is worth keeping. It typically declared its own partial copy of the wire type to do it.
 
 ```ts
 import { fromError, isApplicationError } from '@venizia/ignis-inversion';
@@ -35,8 +35,9 @@ try {
 ## What changed
 
 - **`fromError({ error })`** rebuilds an `ApplicationError` from the payload `AppErrorMiddleware` emits.
-- **`TResponsedError`** names the response shape in plain TypeScript, in inversion. The existing `ErrorSchema` still describes the same payload for OpenAPI, but it lives in helpers and depends on `@hono/zod-openapi`, so a browser cannot import it.
-- **Every field of `TResponsedError` is optional.** A client parses what a gateway, a proxy, or an older server actually sent, not what it should have sent. An nginx HTML 502 or an empty body still yields an `ApplicationError`, degraded to `MessageCode.DEFAULT` and status `400`. No call site needs to branch on a parse failure.
+- **`TResponsedError`** names the response shape in plain TypeScript, in inversion. The existing `ErrorSchema` still describes the same payload for OpenAPI. But it lives in helpers and depends on `@hono/zod-openapi`, so a browser cannot import it.
+- **Every field of `TResponsedError` is optional.** A client parses what a gateway, a proxy, or an older server actually sent, not what it should have sent.
+- **A malformed response still yields a usable error.** An nginx HTML 502 or an empty body still produces an `ApplicationError`, degraded to `MessageCode.DEFAULT` and status `400`. No call site needs to branch on a parse failure.
 
 ## Mapping
 

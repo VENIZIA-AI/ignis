@@ -66,9 +66,15 @@ export class UserService extends BaseService {
 
   `MailTransportProvider` is the factory that switches on the provider. It throws for an unsupported provider string.
 
-- **`MailService` is the one sending entry point.** `send()`, `sendBatch()`, `sendTemplate()`, and `verify()` all validate first, then call the transport directly, then normalize failures into `MailErrorCodes`. A validation error (400) passes through unchanged. Only a throwing transport gets wrapped as `SEND_FAILED` (500). The built-in Nodemailer and Mailgun transports never throw. They return `{ success: false, error }` instead.
+- **`MailService` is the one sending entry point.** `send()`, `sendBatch()`, `sendTemplate()`, and `verify()` all validate first, then call the transport directly, then normalize failures into `MailErrorCodes`:
 
-- **The queue executor is a separate subsystem, not a mail queue.** `IMailQueueExecutor` (`direct` / `internal-queue` / `bullmq`) only exposes `enqueueVerificationEmail()` and `setProcessor()`. It never touches `MailService`. Before you call `enqueueVerificationEmail()`, call `setProcessor()` with your own function - typically one that wraps `mailService.send()`.
+  | Case | Result |
+  |---|---|
+  | Validation error | Passes through unchanged as `400` |
+  | Transport throws | Wrapped as `SEND_FAILED` (`500`) |
+  | Nodemailer / Mailgun transport | Never throws - returns `{ success: false, error }` instead |
+
+- **The queue executor is a separate subsystem, not a mail queue.** `IMailQueueExecutor` (`direct` / `internal-queue` / `bullmq`) exposes only `enqueueVerificationEmail()` and `setProcessor()`, and never touches `MailService`. Call `setProcessor()` before `enqueueVerificationEmail()`, with your own function - typically one wrapping `mailService.send()`.
 
 - **Templates are a simple substitution engine.** `TemplateEngineService` stores templates in an in-memory `Map`. It replaces <code v-pre>{{variable}}</code> placeholders, with dot-notation for nested values. A missing value is logged and left as the literal placeholder text, not blanked out.
 

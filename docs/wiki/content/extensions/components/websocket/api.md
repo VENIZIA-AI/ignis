@@ -366,7 +366,8 @@ send({ destination, payload: { topic, data } })
   | Prefix | Must not start with the reserved `ws:` prefix |
 
 - **`validateRoomFn` gates joins.** Only sanitized rooms reach it. It returns the subset the client may actually join. If unbound, every join is rejected with a warning log.
-- **Leave is filtered against joined rooms.** `handleLeave()` computes `rooms.filter(r => client.rooms.has(r))` before leaving. A client can never unsubscribe from a room it never joined - or an internal topic it was auto-subscribed to. If nothing remains after filtering, the leave is silently ignored.
+- **Leave is filtered against joined rooms.** `handleLeave()` computes `rooms.filter(r => client.rooms.has(r))` before leaving. A client can never unsubscribe from a room it never joined - or an internal topic it was auto-subscribed to.
+  - If nothing remains after filtering, the leave is silently ignored.
 
 ### Graceful shutdown
 

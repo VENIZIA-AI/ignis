@@ -73,7 +73,8 @@ const container = new Container({ scope: 'MyApp' }); // scope is optional, defau
 
 When `container.instantiate(MyClass)` is called:
 
-1. **Constructor injection** - Reads `@inject` metadata from the class by parameter index (the `Reflect`-stored array is already index-keyed, so there is no sort step). It resolves each dependency from the container and passes them as constructor arguments. If any index in range has no `@inject` metadata, `instantiate()` throws immediately rather than passing `undefined`.
+1. **Constructor injection** - Reads `@inject` metadata from the class by parameter index. The `Reflect`-stored array is already index-keyed, so there is no sort step; the container resolves each dependency and passes them as constructor arguments.
+   - If any index in range has no `@inject` metadata, `instantiate()` throws immediately rather than passing `undefined`.
 2. **Property injection** - After the instance is created, reads property metadata, resolves each dependency, and assigns them directly to the instance properties.
 
 ```typescript

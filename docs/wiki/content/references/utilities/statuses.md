@@ -7,7 +7,7 @@ lastUpdated: 2026-07-16
 
 # Statuses
 
-`Statuses` is a static catalog of lifecycle status codes - a shared vocabulary so every entity in an app uses the same strings for "draft", "active", "failed", and so on.
+`Statuses` is a static catalog of lifecycle status codes - a shared vocabulary. Every entity in an app uses the same strings for "draft", "active", "failed", and so on.
 
 ## In one example
 
@@ -30,8 +30,8 @@ if (Statuses.isActive(job.status)) {
 
 - **HTTP-inspired numeric prefix.** Each status is a `'NNN_NAME'` string (e.g. `'302_SUCCESS'`). The leading digit groups statuses into six phases.
 - **Group sets for classification.** Every phase has a matching `*_SCHEME_SET` (a `Set<string>`) plus a validator method (`isActive`, `isFailed`, etc.) that just checks set membership.
-- **Specialized classes narrow the catalog.** `MigrationStatuses`, `CommonStatuses`, `UserStatuses`, and `RoleStatuses` each expose a small, named subset of `Statuses` values for a specific use case - they don't invent new status strings.
-- **A separate constant catalog for DI.** `BindingNamespaces` and `CoreBindings` (in the same file area) are unrelated to entity lifecycle - they're the namespace/key strings the container uses for dependency injection.
+- **Specialized classes narrow the catalog.** `MigrationStatuses`, `CommonStatuses`, `UserStatuses`, and `RoleStatuses` each expose a small, named subset of `Statuses` values for a specific use case. None of them invent new status strings.
+- **A separate constant catalog for DI.** `BindingNamespaces` and `CoreBindings` (in the same file area) are unrelated to entity lifecycle. They're the namespace/key strings the container uses for dependency injection.
 
 **The six phases**
 

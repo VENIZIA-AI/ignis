@@ -55,8 +55,8 @@ This registers `GET`/`POST`/`DELETE` on `/assets/buckets/:bucketName`, `POST /as
   | `'bun-s3'` | `BunS3Helper` |
 
 - **Every backend implements the same `IStorageHelper` contract.** `DiskHelper`, `MinioHelper`, and `BunS3Helper` all extend `BaseStorageHelper`. Bucket/object operations, name validation (`isValidName`/`isValidPath`), and upload normalization behave identically regardless of backend.
-- **Object names can embed folder paths, encoded as one segment.** `objects/{objectName}` takes the whole `folder/file.ext` string percent-encoded with `encodeURIComponent()`, which also escapes `/`. Hono decodes it once before the handler reads it. Encode the object name on the client; never decode it a second time.
-- **MetaLink is opt-in.** Set `useMetaLink: true` and provide `metaLink.repository`. IGNIS then persists a database row (bucket, object, mimetype, size, etag, principal, variant) alongside every upload. That row is what lets you query "which files does user X own" without listing a whole bucket.
+- **Object names can embed folder paths, encoded as one segment.** `objects/{objectName}` percent-encodes the whole `folder/file.ext` string via `encodeURIComponent()`, which also escapes `/`. Hono decodes it before your handler runs - encode the name client-side, and never decode it again.
+- **MetaLink is opt-in.** Set `useMetaLink: true` and provide `metaLink.repository`. IGNIS then persists a database row (`bucket/object/mimetype/size/etag/principal/variant`) alongside every upload. That row lets you query "which files does user X own" without listing a whole bucket.
 - **The default binding is empty.** `StaticAssetComponentBindingKeys.STATIC_ASSET_COMPONENT_OPTIONS` defaults to `{}`. Bind it with at least one storage backend before `this.component(StaticAssetComponent)` - an empty binding produces zero routes.
 
 ## Common tasks

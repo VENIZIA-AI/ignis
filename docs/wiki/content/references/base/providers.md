@@ -229,7 +229,7 @@ export class LoggerProvider extends BaseProvider<ILogger> {
 }
 ```
 
-Register the provider with `.toProvider()` - consumers then `get()` the **produced value**, not the provider instance (the container instantiates the provider and calls `value(container)` for you):
+Register the provider with `.toProvider()`. Consumers then `get()` the **produced value**, not the provider instance - the container instantiates the provider and calls `value(container)` for you:
 
 ```typescript
 // In your application (e.g. preConfigure)
@@ -327,7 +327,7 @@ graph TD
 
 1. **Registered via `.toProvider()`**: Providers are bound explicitly (`bind({ key }).toProvider(MyProvider)`), not auto-scanned
 2. **`value()` Called by the Container**: `container.get({ key })` instantiates the provider and calls `value(container)` - consumers receive the produced value, never the provider instance
-3. **Singleton Scope Caches the Produced Value**: With `.setScope(BindingScopes.SINGLETON)`, the container caches the result of `value()` and returns it on subsequent `get()` calls; with the default transient scope, `value()` runs on every `get()`
+3. **Singleton Scope Caches the Produced Value**: With `.setScope(BindingScopes.SINGLETON)`, the container caches the result of `value()` and returns it on subsequent `get()` calls. With the default transient scope, `value()` runs on every `get()`
 4. **Factory vs Instance**: Providers can return:
    - Direct instances (created each time `value()` is called)
    - Factory functions (deferred creation)
@@ -509,7 +509,7 @@ export class RequestSpyMiddleware extends BaseHelper implements IProvider<Middle
 
 See [Middlewares](./middlewares.md) for the full implementation (IP resolution, body-parsing rules, and production log redaction).
 
-Note that `RequestSpyMiddleware.value()` does not accept a `container` parameter -- the `IProvider<T>` interface defines `value(container: Container): T`, but implementations may ignore the parameter when they don't need container access. In practice, `RequestSpyMiddleware` is registered via `RequestTrackerComponent`, which binds it as a provider in the DI container and resolves it automatically.
+Note that `RequestSpyMiddleware.value()` does not accept a `container` parameter. The `IProvider<T>` interface defines `value(container: Container): T`, but implementations may ignore the parameter when they don't need container access. In practice, `RequestSpyMiddleware` is registered via `RequestTrackerComponent`, which binds it as a provider in the DI container and resolves it automatically.
 
 
 ## Common Patterns

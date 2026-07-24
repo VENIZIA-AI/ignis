@@ -54,7 +54,7 @@ try {
 - Pass the same `tx` as `options.transaction` on every call that belongs to the unit of work.
 
 > [!WARNING] `rollback()` can throw
-> A failed `COMMIT` or `ROLLBACK` throws rather than resolving as success - a poisoned connection is destroyed rather than returned to the pool. Because `rollback()` can throw and is normally called from a `catch`, nest it in its own `try...catch` if the rollback error matters. A `rollback()` called after the transaction already failed is a silent no-op, so the `catch { await tx.rollback(); throw error; }` pattern in the basic transaction example is always safe. See [DataSources - Full Reference](/references/base/datasources-reference#transaction-support) for the full commit/rollback lifecycle.
+> A failed `COMMIT` or `ROLLBACK` throws rather than resolving as success - a poisoned connection is destroyed rather than returned to the pool. Because `rollback()` can throw and is normally called from a `catch`, nest it in its own `try...catch` if the rollback error matters. A `rollback()` called after the transaction already failed is a silent no-op. The `catch { await tx.rollback(); throw error; }` pattern in the basic transaction example is always safe. See [DataSources - Full Reference](/references/base/datasources-reference#transaction-support) for the full commit/rollback lifecycle.
 
 ### Isolation levels
 
@@ -318,7 +318,7 @@ await repository.find({ filter: { where: { status: 'active' } } });
 ```
 
 > [!NOTE]
-> `find()` always applies a default limit when the filter has none - the model's `@model({ settings: { defaultLimit } })` if declared, otherwise the global default of `10`. Pass an explicit `limit` to override either default. `findOne`/`findById` are unaffected - they force `limit: 1` on the Core API path regardless.
+> `find()` always applies a default limit when the filter has none. It uses the model's `@model({ settings: { defaultLimit } })` if declared, otherwise the global default of `10`. Pass an explicit `limit` to override either default. `findOne`/`findById` are unaffected - they force `limit: 1` on the Core API path regardless.
 
 ### Pagination with data range
 
@@ -466,7 +466,7 @@ const results = await connector
 
 ## Repository Class Hierarchy
 
-The PostgreSQL connector's canonical names carry the engine in the class name; the historical `*Repository` names remain as compatibility aliases re-exporting the exact same classes.
+The PostgreSQL connector's canonical names carry the engine in the class name. The historical `*Repository` names remain as compatibility aliases re-exporting the exact same classes.
 
 | Canonical class | Alias | Scope | Description |
 |---|---|---|---|

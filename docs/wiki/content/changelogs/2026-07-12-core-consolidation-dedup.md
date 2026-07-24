@@ -26,7 +26,8 @@ Same-key collisions now combine with `AND`, so the default scope always survives
 ## What changed
 
 - **`RepositoryMixin`, `ServiceMixin`, and `ComponentMixin` functions removed.** They were verbatim duplicates of methods already on `BaseApplication`. The capability interfaces (`IRepositoryMixin`, etc.) are unchanged.
-- **A default filter can no longer be widened or dropped by a user filter.** Previously, a user filter on the same key as a default scope (a tenant restriction, a date floor) replaced it outright. IGNIS now combines same-key collisions with `AND` instead, so the default scope always survives.
+- **A default filter can no longer be widened or dropped by a user filter.** Previously, a user filter on the same key as a default scope (a tenant restriction, a date floor) replaced it outright.
+  - IGNIS now combines same-key collisions with `AND` instead, so the default scope always survives.
 - **`BasePoolHelper.use({ fn })` renamed to `use({ execution })`.** The pool API is new this release window, so no deprecated alias exists.
 - **`SocketIOServerHelper.configure()` now fails after 30 seconds** if Redis never becomes ready, instead of hanging boot indefinitely.
 - **New: `isApplicationError(error)`.** A shape-based check for recognizing an application error across package boundaries, where `instanceof` is unsafe.

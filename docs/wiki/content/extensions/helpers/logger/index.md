@@ -44,7 +44,9 @@ Five levels, each with a direct method: `debug`, `info`, `warn`, `error`, `emerg
 | Daily-rotating file | `APP_ENV_LOGGER_FOLDER_PATH` is set |
 | UDP (`DgramTransport`) | All four UDP `APP_ENV_LOGGER_DGRAM_*` variables are set |
 
-Output shape (plain text or JSON) follows `APP_ENV_LOGGER_FORMAT`. Color codes appear only on the console - file and UDP output never carries ANSI escapes. For extreme hot paths, `HfLogger` is a separate ring-buffer logger outside this pipeline. It has its own [usage guide](/extensions/helpers/logger/hf-logger). The [Full reference](/extensions/helpers/logger/reference) covers everything else, including the `ApplicationLogger` facade.
+Output shape (plain text or JSON) follows `APP_ENV_LOGGER_FORMAT`. Color codes appear only on the console - file and UDP output never carries ANSI escapes.
+
+For extreme hot paths, `HfLogger` is a separate ring-buffer logger outside this pipeline, with its own [usage guide](/extensions/helpers/logger/hf-logger). The [Full reference](/extensions/helpers/logger/reference) covers everything else, including the `ApplicationLogger` facade.
 
 ## Common tasks
 

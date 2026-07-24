@@ -149,7 +149,7 @@ decrypt(opts: { message: string; secret: string; opts?: IAESExtraOptions }): str
 | `outputEncoding` | `crypto.Encoding` | `'utf-8'` | Encoding of the returned plaintext |
 | `doThrow` | `boolean` | `true` | If `false`, returns the original `message` instead of throwing on error |
 
-For `aes-256-gcm`, the next 16 bytes after the IV are read as the auth tag and passed to `setAuthTag` before the remaining bytes are treated as ciphertext.
+For `aes-256-gcm`, the next 16 bytes after the IV are read as the auth tag. That tag is passed to `setAuthTag` before the remaining bytes are treated as ciphertext.
 
 > [!WARNING]
 > Decrypting `aes-256-gcm` ciphertext with an `aes-256-cbc` instance (or vice versa) throws `Unsupported state or unable to authenticate data`. The two modes produce incompatible byte layouts - always encrypt and decrypt with the same one.
@@ -277,7 +277,7 @@ deriveAESKey(opts: {
 }): Promise<{ key: CryptoKey; salt: string }>
 ```
 
-Derives shared bits via ECDH (`deriveBits`, 256 bits), imports them as an HKDF key, then derives a non-extractable AES-256-GCM `CryptoKey` via HKDF-SHA256 using `salt` and the instance's `hkdfInfo`.
+Derives shared bits via ECDH (`deriveBits`, 256 bits) and imports them as an HKDF key. It then derives a non-extractable AES-256-GCM `CryptoKey` via HKDF-SHA256, using `salt` and the instance's `hkdfInfo`.
 
 | Option | Type | Default | Description |
 |--------|------|---------|-------------|
@@ -428,7 +428,7 @@ const ecdh = ECDH.withAlgorithm();             // no parameter needed
 
 ### "Unsupported state or unable to authenticate data"
 
-**Cause:** Either the ciphertext or auth tag was modified in transit, or encrypt and decrypt used different algorithm modes - the two modes produce incompatible byte layouts.
+**Cause:** Either the ciphertext or auth tag was modified in transit, or encrypt and decrypt used different algorithm modes. The two modes produce incompatible byte layouts.
 
 **Fix:** Use the same algorithm mode for both encrypt and decrypt.
 

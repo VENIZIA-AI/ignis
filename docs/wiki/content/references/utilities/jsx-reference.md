@@ -49,7 +49,7 @@ An OpenAPI content configuration object: `description`, `content['text/html'].sc
 
 ## `htmlResponse()`
 
-Creates a standard OpenAPI response object for HTML endpoints: a success (`200`) HTML response plus a JSON error response for `4xx | 5xx` status codes using `ErrorSchema`.
+Creates a standard OpenAPI response object for HTML endpoints. It pairs a success (`200`) HTML response with a JSON error response for `4xx | 5xx` status codes using `ErrorSchema`.
 
 `Source ->` [`packages/core/src/utilities/jsx.utility.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core/src/utilities/jsx.utility.ts)
 
@@ -129,9 +129,9 @@ getJSXRouteConfigs<RouteConfig extends IAuthRouteConfig>(opts: { configs: RouteC
 }
 ```
 
-- **Default response merged in first.** `htmlResponse({ description: 'HTML page' })` is the base object; your own `responses` is merged over it with `Object.assign`, so any status code you declare (typically `200`) overrides the default entry with the same key.
+- **Default response merged in first.** `htmlResponse({ description: 'HTML page' })` is the base object. Your own `responses` is merged over it with `Object.assign`, so any status code you declare (typically `200`) overrides the default entry with the same key.
 - **Everything else matches `defineRoute`.** Auth middleware, tags (`this.scope` is always appended), and OpenAPI security are built the same way as JSON routes via `buildRouteMiddlewares`.
-- **Handler contract is unchanged.** The handler still returns whatever `c.html(...)` produces (a `Response`) - `defineJSXRoute` only changes how the route's OpenAPI shape is computed, not how the handler runs.
+- **Handler contract is unchanged.** The handler still returns whatever `c.html(...)` produces (a `Response`). `defineJSXRoute` only changes how the route's OpenAPI shape is computed, not how the handler runs.
 
 ## JSX setup
 

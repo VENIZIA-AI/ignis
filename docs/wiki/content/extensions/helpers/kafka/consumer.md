@@ -172,7 +172,8 @@ Stream 'error' event
 - **`onMessage` is the main processing callback.** Put your business logic here.
 - **`onMessageDone` fires only after `onMessage` resolves successfully.** Use it for logging, metrics, and similar side effects. An error thrown from `onMessageDone` also triggers `onMessageError`.
 - **`onMessageError` fires if `onMessage` throws.** It also fires for the stream's own `'error'` event. That case carries no `message` - it's a stream-level error, not a per-message one.
-- **The stream `'error'` listener is always attached**, whether or not you pass `onMessageError`. An `EventEmitter` `'error'` event with zero listeners becomes an uncaught exception. Without this listener, a pull-style consumer (`start()` + `getStream()`, no `onMessage`) would take down the whole process on the first broker drop.
+- **The stream `'error'` listener is always attached**, whether or not you pass `onMessageError`. An `EventEmitter` `'error'` event with zero listeners becomes an uncaught exception.
+- **Pull-style consumers benefit too.** Without this listener, a consumer using `start()` + `getStream()` with no `onMessage` would take down the whole process on the first broker drop.
 
 ## start()
 
@@ -228,8 +229,10 @@ await helper.start({
 When `onMessage` is provided, `start()` drives a background consume loop on top of the stream. That loop reconnects on its own:
 
 - **Only the callback-driven loop reconnects.** A pull-style consumer using `getStream()` or `consumer.consume()` directly owns its own retry logic. The helper's automatic reconnect runs only inside `startConsumeLoop`, which is wired exclusively when `onMessage` is set.
-- **A full broker outage marks the session stale.** This happens when every broker disconnects - `getConnectedBrokerCount()` drops to `0`, via `client:broker:disconnect` or `client:broker:failed`. The helper destroys the current stream immediately, instead of waiting for it to error out on its own.
-- **Reconnect rebuilds the client after a stale session.** The next attempt, after `reconnectDelayMs`, constructs a brand-new `@platformatic/kafka` `Consumer` with the original constructor options and swaps it in. A fresh client forces a clean group rejoin, rather than reusing session state Kafka has likely already expired. Active lag monitoring re-arms on the new client automatically.
+- **A full broker outage marks the session stale.** This happens when every broker disconnects - `getConnectedBrokerCount()` drops to `0` via `client:broker:disconnect` or `client:broker:failed` events.
+- **The helper reacts immediately.** It destroys the current stream right away, instead of waiting for the stream to error out on its own.
+- **Reconnect rebuilds the client after a stale session.** The next attempt, after `reconnectDelayMs`, constructs a brand-new `@platformatic/kafka` `Consumer` with the original options and swaps it in.
+- **A fresh client forces a clean group rejoin**, instead of reusing session state Kafka has likely already expired. Lag monitoring re-arms automatically on the new client.
 - **Attempts are capped.** After `maxReconnectAttempts` consecutive failures, the consume loop exits and logs an error. Message processing stops until you call `start()` again with a new set of options.
 - **Every retry is logged**: the attempt number, the delay, and the current connected-broker count. A stuck reconnect loop stays visible in application logs without extra instrumentation.
 

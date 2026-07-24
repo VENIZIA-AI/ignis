@@ -84,7 +84,8 @@ The binary grows by roughly 76 KB, the base64 form of the 57 KB wasm module.
 
 - **Upgrading `@platformatic/kafka` does not remove the need for the plugin.** Every release to date imports the default `@platformatic/wasm-utils` entrypoint.
 - **Apps that never import a Kafka helper need no plugin.** Nothing pulls in `@platformatic/wasm-utils`, and the plugin's resolver never fires.
-- **Patching `node_modules` during the build achieves the same result, but at a cost.** It mutates a dependency in place. It pins the store path to one version. It leaves the tree dirty when a build fails. The plugin needs none of that.
+- **Patching `node_modules` during the build achieves the same result, but at a cost.** It mutates a dependency in place, pins the store path to one version, and leaves the tree dirty when a build fails.
+  - The plugin needs none of that.
 
 ## See also
 

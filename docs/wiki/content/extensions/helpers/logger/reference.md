@@ -60,8 +60,11 @@ ILogger (interface)                common/types.ts
 ```
 
 - **Consumers type against `ILogger`, never a concrete class.** `LoggerFactory.getLogger()` and `BaseHelper.logger` both return `ILogger`. Which provider produced the instance stays invisible behind the interface.
-- **Provider registration.** `LoggerFactory.use({ provider })` selects the application's provider (default: `WinstonLogger`). The factory hands out stable delegating wrappers. Calling `use()` re-points ALL of them - even a module-level logger captured at import time follows the registration. The per-call cost after that: one property read (measured ~0ns).
-- **Single-provider loading.** Exactly ONE provider is ever loaded. Delegates resolve lazily at the first log call, so an app that registers pino at its entrypoint never loads winston. The winston default loads only when `use()` was never called before the first log line. It requires the winston peers installed (`bun add winston winston-transport winston-daily-rotate-file`). Compiled binaries (`bun build --compile`) must ALWAYS register a provider explicitly - only a class reference carries a provider into a bundle.
+- **Provider registration.** `LoggerFactory.use({ provider })` selects the application's provider (default: `WinstonLogger`). The factory hands out stable delegating wrappers.
+- **`use()` re-points every wrapper, even ones captured at import time.** The per-call cost after that: one property read (measured ~0ns).
+- **Single-provider loading.** Exactly ONE provider is ever loaded. Delegates resolve lazily at the first log call, so an app that registers pino at its entrypoint never loads winston.
+- **The winston default loads only when `use()` was never called first.** It requires the winston peers installed: `bun add winston winston-transport winston-daily-rotate-file`.
+- **Compiled binaries (`bun build --compile`) must ALWAYS register a provider explicitly.** Only a class reference carries a provider into a bundle.
 - **Both providers are sub-path only**: `WinstonLogger` at `@venizia/ignis-helpers/winston`, `PinoLogger` at `@venizia/ignis-helpers/pino` ([guide](/extensions/helpers/logger/pino)). The root barrel is provider-free - importing it loads neither.
 
 **Which names follow `use()`:**
@@ -560,7 +563,7 @@ APP_ENV_EXTRA_LOG_ENVS=qa,preview   # Comma-separated additional environments
 
 `Source ->` [`hf/logger.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/logger/hf/logger.ts), [`hf/flusher.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/logger/hf/flusher.ts)
 
-For performance-critical applications (for example, HFT systems or game servers), `HfLogger` provides ring-buffer logging: a 59.4ns bytes-path enqueue, a 66.0ns string no-args enqueue (Bun 1.3.14, 1M-iteration median).
+For performance-critical applications (for example, HFT systems or game servers), `HfLogger` provides ring-buffer logging. It measures a 59.4ns bytes-path enqueue and a 66.0ns string no-args enqueue (Bun 1.3.14, 1M-iteration median).
 
 It extends `AbstractLogger` and implements `ILogger`, so it works anywhere an `ILogger` is expected. But it stays entirely separate from the Winston-backed `Logger` pipeline - no formatters, transports, or `APP_ENV_LOGGER_*` env vars apply to it.
 
@@ -621,7 +624,9 @@ Supported levels (`TLogLevel`, full set): `debug` (0), `info` (1), `warn` (2), `
 | `filePath` | `string` | _(unset)_ | The default sink appends here instead of writing to stdout |
 | `batchSize` | `number` | `1024` | Entries rendered per batch before yielding. An invalid value falls back to the default with a `console.warn` |
 
-A custom `sink` receives `THfSinkBatch`: `{ lines: Array<string>; dropped: number }`. `dropped` is the exact count of entries the ring overwrote before the flusher could read them, since the previous batch. See "Lap accounting" in the [HfLogger guide](/extensions/helpers/logger/hf-logger). The default sink writes `process.stdout.write(...)` once per batch, or `fs.appendFileSync` once per batch when `filePath` is set. A sink that throws is logged via `console.error` and does not abort the drain.
+A custom `sink` receives `THfSinkBatch`: `{ lines: Array<string>; dropped: number }`. `dropped` is the exact count of entries the ring overwrote before the flusher could read them, since the previous batch. See "Lap accounting" in the [HfLogger guide](/extensions/helpers/logger/hf-logger).
+
+The default sink writes `process.stdout.write(...)` once per batch, or `fs.appendFileSync` once per batch when `filePath` is set. A sink that throws is logged via `console.error` and does not abort the drain.
 
 ### Line format
 

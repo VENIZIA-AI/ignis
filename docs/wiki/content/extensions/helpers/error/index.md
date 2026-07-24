@@ -58,15 +58,16 @@ The framework's `AppErrorMiddleware` catches `ApplicationError` instances and fo
 
 - **Precedence resolves most-specific-first.** See the [full precedence table](#every-shape-and-its-output) below - a definition's own `message.code` beats a flat `messageCode`.
 - **`messageCode` always resolves to something.** `MessageCode.resolve()` lower-cases it and falls back to `MessageCode.DEFAULT` (`'core.system_error'`) when none is given or empty. `error.normalized.code` is never `undefined`.
-- **`normalized` is the single source - there's no flat duplicate.** It's `{ text, code, args }`: `text` defaults to `message`, `code`/`args` resolve per the precedence table. `args` is always populated (`{}` when empty), so no consumer needs a null check. A client renders any error with one lookup: `translate(error.normalized.code, error.normalized.args)`.
-
-  `messageCode` and `messageArgs` are INPUTS only - there's no `error.messageCode` field, and `extra` never mirrors `messageArgs`. Pass `transform` to build `normalized` yourself in place of the default.
-
-- **Any key the input doesn't declare rides into `extra`.** Attach whatever context your clients need: `getError({ message, transaction: {...} })` lands at `error.extra.transaction`. Passing `extra` explicitly works too - the two merge, and the explicit one wins on a clash. `extra` carries caller context ONLY. It's `undefined` when there is nothing to carry.
-- **`cause` reaches the native `Error.cause`, not `extra`.** Wrap a lower-level failure with `getError({ message, cause: originalError })`, and every tool that reads `.cause` sees it. `error` is **refused** on the free-form branch (`error?: never`) precisely so this mistake fails at compile time - `getError({ message, error: caughtError })` does not compile. Use `cause` instead.
+- **`normalized` is the single source - there's no flat duplicate.** It's `{ text, code, args }`. `text` defaults to `message`; `code` and `args` resolve per the precedence table.
+- **`args` is always populated, so no consumer needs a null check.** One lookup renders any error: `translate(error.normalized.code, error.normalized.args)`.
+- **`messageCode` and `messageArgs` are INPUTS only.** There's no `error.messageCode` field, and `extra` never mirrors `messageArgs`. Pass `transform` to build `normalized` yourself in place of the default.
+- **Any key the input doesn't declare rides into `extra`.** Attach whatever context your clients need: `getError({ message, transaction: {...} })` lands at `error.extra.transaction`. Passing `extra` explicitly works too - the two merge, and the explicit one wins on a clash.
+- **`extra` carries caller context only.** It's `undefined` when there is nothing to carry.
+- **`cause` reaches the native `Error.cause`, not `extra`.** Wrap a lower-level failure with `getError({ message, cause: originalError })`, and every tool that reads `.cause` sees it.
+- **`error` is refused on the free-form branch (`error?: never`).** This makes `getError({ message, error: caughtError })` fail to compile, so the mistake is caught before runtime - use `cause` instead.
 
 > [!IMPORTANT]
-> **Use `isApplicationError()`, never `instanceof ApplicationError`.** There is one `ApplicationError` class, defined in `@venizia/ignis-inversion` - `helpers` re-exports it, so a browser app can raise and read the same errors the server does. But `instanceof` still fails across a package boundary: inversion ships dual CJS+ESM builds, so one source class has two runtime constructors. `isApplicationError()` tests shape, not identity, so it works everywhere.
+> **Use `isApplicationError()`, never `instanceof ApplicationError`.** There is one `ApplicationError` class, defined in `@venizia/ignis-inversion`. `helpers` re-exports it, so a browser app can raise and read the same errors the server does. But `instanceof` still fails across a package boundary: inversion ships dual CJS+ESM builds, so one source class has two runtime constructors. `isApplicationError()` tests shape, not identity, so it works everywhere.
 
 **Options shared by both forms**
 

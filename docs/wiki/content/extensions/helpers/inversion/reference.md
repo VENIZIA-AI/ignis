@@ -139,7 +139,9 @@ override instantiate<T>(cls: TClass<T>): T
 
 The array is already index-keyed (`setInjectMetadata` writes to `injects[index]`) - there is no sort step. Once all arguments are resolved, `new cls(...args)` builds the instance.
 
-**Phase 2 - property injection.** Reads `registry.getPropertiesMetadata({ target: instance })`. If there is none, returns the instance as-is. Otherwise, for each `[propertyKey, metadata]` entry, resolves `this.get({ key: metadata.bindingKey, isOptional: metadata.isOptional ?? false })` and assigns it to `instance[propertyKey]`.
+**Phase 2 - property injection.** Reads `registry.getPropertiesMetadata({ target: instance })`. If there is none, returns the instance as-is.
+
+Otherwise, for each `[propertyKey, metadata]` entry, resolves `this.get({ key: metadata.bindingKey, isOptional: metadata.isOptional ?? false })` and assigns it to `instance[propertyKey]`.
 
 `@inject({ key, isOptional: true })` on a **property** behaves exactly like on a constructor parameter: an unbound key resolves to `undefined` instead of throwing. A required property (`isOptional` omitted or `false`) still throws when its key is unbound.
 

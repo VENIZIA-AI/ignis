@@ -3,7 +3,7 @@
 IGNIS supports explicit transaction objects that can be passed across multiple services and repositories, allowing for complex, multi-step business logic to be atomic.
 
 > [!NOTE] PostgreSQL-only capability
-> Real transactions are a **PostgreSQL connector** capability - `BasePostgresDataSource.getCapabilities()` returns `{ transactions: true }` and its `beginTransaction()` opens a real database transaction, as documented below. The typesense connector inherits the engine-neutral `AbstractDataSource` default: calling `beginTransaction()` on it throws a `501 Not Implemented` (`normalized.code: 'core.not_supported'`) via the shared `throwNotSupported` utility. See [Connectors](/references/base/connectors) for the capabilities model.
+> Real transactions are a **PostgreSQL connector** capability - `BasePostgresDataSource.getCapabilities()` returns `{ transactions: true }` and its `beginTransaction()` opens a real database transaction, as documented below. The typesense connector inherits the engine-neutral `AbstractDataSource` default. Calling `beginTransaction()` on it throws a `501 Not Implemented` (`normalized.code: 'core.not_supported'`) via the shared `throwNotSupported` utility. See [Connectors](/references/base/connectors) for the capabilities model.
 
 ## Using Transactions
 
@@ -78,7 +78,7 @@ try {
 | `commit()` | `Promise<void>` | Commit and release the connection. **Throws** if `COMMIT` fails, and destroys the connection rather than pooling it |
 | `rollback()` | `Promise<void>` | Rollback and release the connection. **Throws** if `ROLLBACK` fails, and destroys the connection rather than pooling it |
 
-Calling `commit()` or `rollback()` on an already-ended transaction throws an error, with one exception: `rollback()` after the transaction ended BY FAILURE is a silent no-op (see the warning above).
+Calling `commit()` or `rollback()` on an already-ended transaction throws an error. The one exception: `rollback()` after the transaction ended BY FAILURE is a silent no-op (see the warning above).
 
 ## Isolation Levels
 
@@ -197,7 +197,7 @@ export class OrderController extends BaseRestController {
 
 ## How Transactions Work Internally
 
-When you pass a `transaction` option to a repository method, the repository uses the transaction's `connector` (a Drizzle instance bound to the transaction's dedicated connection) instead of the default datasource connector. This ensures all operations within the transaction use the same database connection and see a consistent view of the data.
+When you pass a `transaction` option to a repository method, the repository uses the transaction's `connector` instead of the default datasource connector. That connector is a Drizzle instance bound to the transaction's dedicated connection. All operations within the transaction therefore use the same database connection and see a consistent view of the data.
 
 ```typescript
 // Inside PostgresBaseRepository (simplified)

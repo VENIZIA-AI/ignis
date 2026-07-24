@@ -199,7 +199,7 @@ export class PostgresDataSource extends BaseDataSource {
 
 - **Not read directly.** The `AuthenticateComponent` receives its secrets programmatically via the `jwtOptions` binding (`jwtSecret`, `getTokenExpiresFn`) - it never reads these environment variables itself.
 - **`EnvironmentKeys` is the convention, not a requirement.** These constants are the conventional way for your application to supply those values into the binding.
-- **A missing or placeholder secret fails the boot.** The component throws at startup if `jwtSecret` is missing or left at the placeholder value - wiring it from an unset environment variable fails the same way.
+- **A missing or placeholder secret fails the boot.** The component throws at startup if `jwtSecret` is missing or left at the placeholder value. Wiring it from an unset environment variable fails the same way.
 
 ### Generate Strong Secrets
 
@@ -359,7 +359,8 @@ NODE_ENV=production
 
 ## Secrets & Vault
 
-- **A `.env` file is one option, not a requirement.** IGNIS can load these variables from a vault (HashiCorp Vault, an encrypted `.env.vault`, or plain `process.env`) and **hydrate** them into the same `APP_ENV_*` keys at boot. Code that reads `process.env.APP_ENV_*` keeps working unchanged - the values simply arrive from the vault instead of a file.
+- **A `.env` file is one option, not a requirement.** IGNIS can load these variables from a vault (HashiCorp Vault, an encrypted `.env.vault`, or plain `process.env`). It **hydrates** them into the same `APP_ENV_*` keys at boot.
+- **Hydration is transparent to your code.** Code that reads `process.env.APP_ENV_*` keeps working unchanged - the values simply arrive from the vault instead of a file.
 - **Hydration runs before datasources are configured** (after `preConfigure()`, before `registerDataSources()`), so a hydrated `APP_ENV_DS_PASSWORD` is available exactly where a file-based one would be.
 - **Vault values take precedence over `process.env`** when the provider is live - a hydrated key overwrites whatever was already in `process.env`.
 
@@ -375,7 +376,7 @@ override registerSecrets() {
 ```
 
 > [!NOTE] Failure policy
-> If the vault is unreachable, development environments (`local`, `debug`, `development`, `dev`, `sit`) fall back to `process.env`; every other environment fails the boot rather than starting with missing secrets.
+> If the vault is unreachable, development environments (`local`, `debug`, `development`, `dev`, `sit`) fall back to `process.env`. Every other environment fails the boot rather than starting with missing secrets.
 
 See the [Secrets & Vault guide](/guides/core-concepts/secrets-vault) for setup and the [Secrets & Vault reference](/references/base/secrets) for the full API.
 

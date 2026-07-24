@@ -122,7 +122,9 @@ Calling it with dynamic strings (`encodeMessage('order ' + id)`) still puts UTF-
 
 If a value varies per event, it doesn't belong in an `HfLogger` message. Log the static fact here, and the variable detail through the standard `Logger` at a lower frequency. Or use the args form, off the hot path.
 
-**2. A fixed vocabulary of messages.** The design point of the bytes path is a finite set of pre-encoded facts ("Order sent", "Tick received", "Risk check failed"). If you find yourself needing free-form text on the hot path, you're in the wrong module. Or you want the args form, off the hot path.
+**2. A fixed vocabulary of messages.** The bytes path targets a finite set of pre-encoded facts: "Order sent", "Tick received", "Risk check failed".
+
+If you find yourself needing free-form text on the hot path, you're in the wrong module. Use the args form instead, off the hot path.
 
 **3. Size the flush interval against your write rate.** The ring holds 65,536 entries. Write more than that between two flushes, and the oldest unflushed entries get overwritten. The flusher reports exactly how many via `dropped` on the sink batch - never silently (see below).
 
@@ -185,10 +187,13 @@ A custom `sink` gets the same `dropped` count on `batch.dropped` and decides how
 These are real behaviors of the current implementation - design around them:
 
 - **Single-thread only.** The write index is not shared or atomic across threads. Each worker thread that imports the module gets an independent ring. Don't log to `HfLogger` from worker threads expecting a shared buffer.
-- **The ring overwrites the oldest entry when lapped.** If the producer writes faster than the flusher drains (see rule 3 above), unflushed entries get silently overwritten in memory. But the flusher counts and reports every one via `dropped` - so the loss is visible, not invisible.
-- **213-byte message cap, 32-byte scope cap.** Both are truncation-only - a longer value is cut, not rejected. The truncation happens at a byte boundary, not a character boundary, so it can split a multibyte UTF-8 character. The truncated tail then renders as the U+FFFD replacement character.
+- **The ring overwrites the oldest entry when lapped.** If the producer writes faster than the flusher drains (see rule 3 above), unflushed entries get silently overwritten in memory.
+- **The loss is visible, not invisible.** The flusher counts and reports every overwritten entry via `dropped`.
+- **213-byte message cap, 32-byte scope cap.** Both are truncation-only - a longer value is cut, not rejected.
+- **Truncation happens at a byte boundary, not a character boundary.** It can split a multibyte UTF-8 character - the truncated tail then renders as the U+FFFD replacement character.
 - **Run one flusher per process.** Each `HfLogFlusher` tracks its own read position from the start of the ring - not a shared cursor. A second flusher re-emits entries the first one already drained.
-- **A fixed, pre-encoded vocabulary is still the right pattern for the bytes path.** `HfLogger.encodeMessage` and the no-args string call exist to make the ENCODE cost a one-time expense. The args form is correct, but it's the slow path by design.
+- **A fixed, pre-encoded vocabulary is still the right pattern for the bytes path.** `HfLogger.encodeMessage` and the no-args string call exist to make the ENCODE cost a one-time expense.
+- **The args form is correct, but it's the slow path by design.** Reserve it for control-flow events, off the hot path.
 - **The encode cache is FIFO-bounded at 4096 entries.** That's well within a real fixed vocabulary. But a hot path that generates many distinct dynamic strings, through the no-args string call, will start evicting and re-encoding.
 
 ## Performance characteristics

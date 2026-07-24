@@ -29,7 +29,8 @@ Each request now borrows its own enforcer from a pool instead of racing on a sha
 - **Scoped Casbin model** (`CASBIN_RBAC_DOMAIN_SCOPED_MODEL`) - `r = sub, dom, obj, act`, default-deny with explicit-deny-wins, and five grouping relations: `g` role, `g2` domain membership, `g3` domain hierarchy, `g4` resource hierarchy, `g5` action hierarchy. Domain scoping uses `SYSTEM_WIDE` and `ANY_MEMBER` sentinels.
 - **`BaseFilteredAdapter<TFilter>` rewritten thin** - it owns datasource/connector plumbing, the `isFiltered()` flag, and the no-op write methods. Subclasses implement only `loadFilteredPolicy`.
 - **Per-request enforcer pool** - each request borrows an enforcer from a pool, loads only that user's lines, and enforces - all inside one atomic `pool.use`. The pool destroys the enforcer on any error (fail-closed).
-- **Redis-only line cache** - per-user Casbin lines are cached in Redis with a TTL and single-flight dedup of concurrent cache misses. A corrupt entry is discarded and refetched rather than causing a 500. Optional `invalidateUserCache` / `rebuildUserCache` evict or rebuild a user's cached lines.
+- **Redis-only line cache** - per-user Casbin lines are cached in Redis with a TTL and single-flight dedup of concurrent cache misses. A corrupt entry is discarded and refetched rather than causing a 500.
+  - Optional `invalidateUserCache` / `rebuildUserCache` evict or rebuild a user's cached lines.
 
 ## Options
 
