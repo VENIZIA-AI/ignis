@@ -141,7 +141,7 @@ import type {
   └─────────────────────────────────────────────────┘
 ```
 
-`MailService` and the queue executor are **independent** consumers of the transport/config -- `IMailQueueExecutor` never calls `MailService`. See [How it works](./#how-it-works) on the Overview for that distinction.
+`MailService` and the queue executor are **independent** consumers of the transport/config. `IMailQueueExecutor` never calls `MailService`. See [How it works](./#how-it-works) on the Overview for that distinction.
 
 **Source:** [`component.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core/src/components/mail/component.ts)
 
@@ -243,7 +243,7 @@ type TMailOptions =
 }
 ```
 
-`APP_ENV_MAIL_*` is an app-level convention, not a framework-defined env var -- `applicationEnvironment.get()` reads whatever variables your wrapper component chooses to look up. A matching `.env`:
+`APP_ENV_MAIL_*` is an app-level convention, not a framework-defined env var. `applicationEnvironment.get()` reads whatever variables your wrapper component chooses to look up. A matching `.env`:
 
 ```
 APP_ENV_MAIL_HOST=smtp.gmail.com
@@ -275,7 +275,7 @@ APP_ENV_MAIL_REFRESH_TOKEN=your-oauth2-refresh-token
 ```
 
 > [!IMPORTANT]
-> `MailgunTransportHelper` validates `username`, `key`, and `domain` on construction and throws `Invalid Mailgun configuration | Missing required keys: <keys>` if any is missing -- this happens even though `TMailgunConfig`'s only *typed* requirement is `domain`. `username` and `key` are checked at runtime, not by the type.
+> `MailgunTransportHelper` validates `username`, `key`, and `domain` on construction. It throws `Invalid Mailgun configuration | Missing required keys: <keys>` if any is missing. This check runs even though `TMailgunConfig`'s only *typed* requirement is `domain` - `username` and `key` are checked at runtime, not by the type.
 
 **Custom transport:**
 
@@ -298,7 +298,7 @@ APP_ENV_MAIL_REFRESH_TOKEN=your-oauth2-refresh-token
 ```
 
 > [!WARNING]
-> `IGenericMailOptions` falls through to the `default` case in `MailTransportProvider` and throws `Unsupported mail provider: <provider>` -- it exists only for you to bind a **custom** `MailTransportProvider` that recognizes the provider string. It is not handled by the framework's built-in provider.
+> `IGenericMailOptions` falls through to the `default` case in `MailTransportProvider` and throws `Unsupported mail provider: <provider>`. The framework's built-in provider does not handle it. `IGenericMailOptions` exists only so you can bind a **custom** `MailTransportProvider` that recognizes the provider string.
 
 ### Queue executor options (`IMailQueueExecutorConfig`)
 
@@ -334,8 +334,13 @@ interface IMailQueueExecutorConfig {
 }
 ```
 
-> [!NOTE]
-> Choosing an executor: **`direct`** for development or low-volume apps (no queueing overhead); **`internal-queue`** for single-instance apps with moderate volume (in-memory, with retry); **`bullmq`** for distributed or high-volume systems (Redis-backed, configurable concurrency/priority/backoff).
+**Choosing an executor:**
+
+| Executor | Use when | Why |
+|---|---|---|
+| `direct` | Development or low-volume apps | No queueing overhead |
+| `internal-queue` | Single-instance apps, moderate volume | In-memory, with retry |
+| `bullmq` | Distributed or high-volume systems | Redis-backed, configurable concurrency/priority/backoff |
 
 **Source:** [`common/types.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core/src/components/mail/common/types.ts)
 
@@ -405,7 +410,8 @@ interface IMailService {
 2. Merges `message.from` with `getDefaultFrom()` if unset.
 3. Delegates to `transport.send()`.
 4. Returns `{ success, messageId, error? }`.
-5. If the transport throws and the error is **not** already an `ApplicationError`, it is caught and re-thrown as `MailErrorCodes.SEND_FAILED` (500). An `ApplicationError` thrown earlier in the same `try` block (e.g. from `validateMessage()`) is re-thrown as-is, unchanged.
+5. If the transport throws, and the error is **not** already an `ApplicationError`, it is caught and re-thrown as `MailErrorCodes.SEND_FAILED` (500).
+6. An `ApplicationError` thrown earlier in the same `try` block - for example, from `validateMessage()` - is re-thrown as-is, unchanged.
 
 **`sendBatch(messages, options?)`**
 
@@ -511,7 +517,7 @@ interface IMailTemplateEngine {
 }
 ```
 
-`TemplateEngineService` also exposes `clearTemplates(): void` -- it resets the registry but is **not** part of the `IMailTemplateEngine` interface, so it is only reachable when you hold the concrete class, not the interface type.
+`TemplateEngineService` also exposes `clearTemplates(): void`. It resets the registry, but it is **not** part of the `IMailTemplateEngine` interface - you can only reach it when you hold the concrete class, not the interface type.
 
 | Method | Behavior |
 |--------|----------|
@@ -568,21 +574,21 @@ interface IMailTransport {
 
 ### Peer dependency loading
 
-Neither transport calls a shared `validateModule()` helper. `configure()` calls `require('nodemailer')` / `require('mailgun.js')` directly -- if the package is not installed, Node's own `Cannot find module '<name>'` error propagates uncaught from the constructor, not a framework-formatted message.
+Neither transport calls a shared `validateModule()` helper. `configure()` calls `require('nodemailer')` / `require('mailgun.js')` directly. If the package is not installed, Node's own `Cannot find module '<name>'` error propagates uncaught from the constructor - not a framework-formatted message.
 
 **Nodemailer (`NodemailerTransportHelper`, extends `BaseHelper`):**
 
 - `configure()` builds the transporter via `nodemailer.createTransport(config)`.
-- `send()` maps `IMailMessage` fields to Nodemailer's mail options, joining array recipients with `', '`. Catches transport errors and returns `{ success: false, error }` -- never throws.
-- `verify()` delegates to `transporter.verify()` (SMTP handshake). Catches errors and returns `false` -- never throws.
+- `send()` maps `IMailMessage` fields to Nodemailer's mail options, joining array recipients with `', '`. It catches transport errors and returns `{ success: false, error }` - it never throws.
+- `verify()` delegates to `transporter.verify()` (SMTP handshake). It catches errors and returns `false` - it never throws.
 - `close()` calls `transporter.close()`.
 
 **Mailgun (`MailgunTransportHelper`, extends `BaseHelper`):**
 
-- `configure()` calls `validateConfig()` **before** building the client: `username`, `key`, and `domain` must all be present in `config`, or it throws `Invalid Mailgun configuration | Missing required keys: <keys>` (`INVALID_CONFIGURATION`, 500). This check runs even though `TMailgunConfig`'s type only requires `domain`.
-- `send()` converts `IMailMessage` to Mailgun's format: `to` is coerced to an array, `replyTo` becomes `h:Reply-To`, every custom header is prefixed `h:`. Attachments map to `{ filename, data: path ?? content ?? Buffer.from('') }`. Catches send errors and returns `{ success: false, error }` -- never throws.
-- `verify()` sends a test message to `verify@<domain>` with `o:testmode: 'yes'` (Mailgun has no dedicated verify endpoint). Catches errors and returns `false` -- never throws.
-- No `close()` -- the HTTP API is stateless.
+- `configure()` calls `validateConfig()` **before** building the client. `username`, `key`, and `domain` must all be present in `config`, or it throws `Invalid Mailgun configuration | Missing required keys: <keys>` (`INVALID_CONFIGURATION`, 500). This check runs even though `TMailgunConfig`'s type only requires `domain`.
+- `send()` converts `IMailMessage` to Mailgun's format: `to` is coerced to an array, `replyTo` becomes `h:Reply-To`, and every custom header is prefixed `h:`. Attachments map to `{ filename, data: path ?? content ?? Buffer.from('') }`. It catches send errors and returns `{ success: false, error }` - it never throws.
+- `verify()` sends a test message to `verify@<domain>` with `o:testmode: 'yes'`, since Mailgun has no dedicated verify endpoint. It catches errors and returns `false` - it never throws.
+- No `close()` - the HTTP API is stateless.
 
 **Custom transport:** set `provider: MailProviders.CUSTOM` and pass an object implementing `IMailTransport` as `config`. Useful for SendGrid, AWS SES, or a custom SMTP relay that the framework does not ship a helper for.
 
@@ -599,28 +605,54 @@ interface IMailQueueExecutor {
 }
 ```
 
-**`DirectMailExecutorHelper`** (extends `BaseHelper`) -- calls the processor immediately, no queue. Returns `{ queued: false, message: 'Email sent immediately (no queue)', result }`. Throws `MailExecutorErrors.PROCESSOR_NOT_SET` if `enqueueVerificationEmail()` runs before `setProcessor()`.
+**`DirectMailExecutorHelper`** extends `BaseHelper`. It calls the processor immediately, with no queue, and returns `{ queued: false, message: 'Email sent immediately (no queue)', result }`. If `enqueueVerificationEmail()` runs before `setProcessor()`, it throws `MailExecutorErrors.PROCESSOR_NOT_SET`.
 
-**`InternalQueueMailExecutorHelper`** (extends `BaseHelper`, constructor takes `IInternalQueueMailExecutorOpts`) -- wraps `SequentialQueueHelper<IQueueJobPayload>` from `@venizia/ignis-helpers`, `autoDispatch: true`.
+**`InternalQueueMailExecutorHelper`** extends `BaseHelper` (constructor takes `IInternalQueueMailExecutorOpts`). It wraps `SequentialQueueHelper<IQueueJobPayload>` from `@venizia/ignis-helpers`, with `autoDispatch: true`.
 
 - Job IDs: `job_<counter>_<timestamp>`.
 - `options.delay > 0` schedules the enqueue itself via `setTimeout`, tracked in an internal `delayedJobs: Map<string, NodeJS.Timeout>`.
-- Retry: on a thrown error or `{ success: false }` from the processor, retries up to `options.attempts ?? 3` times. `calculateBackoff()`: no `backoff` config -> `1000ms` fixed; `type: 'fixed'` -> the raw `delay`; `type: 'exponential'` -> `delay * 2 ** (attempt - 1)`.
-- `close()` clears every pending delayed/retry `setTimeout` -- without it, a live timer keeps the event loop open past shutdown.
+- Retry: on a thrown error, or `{ success: false }` from the processor, it retries up to `options.attempts ?? 3` times using `calculateBackoff()`:
+
+  | `backoff` config | Delay |
+  |---|---|
+  | Not set | `1000ms` fixed |
+  | `type: 'fixed'` | the raw `delay` |
+  | `type: 'exponential'` | `delay * 2 ** (attempt - 1)` |
+
+- `close()` clears every pending delayed/retry `setTimeout`. Without that cleanup, a live timer keeps the event loop open past shutdown.
 - No persistence across restarts.
 
-**`BullMQMailExecutorHelper`** (extends `BaseHelper`, constructor takes `IBullMQMailExecutorOpts`) -- wraps `BullMQHelper` (`@venizia/ignis-helpers/bullmq`) and a `RedisSingleHelper` connection.
+**`BullMQMailExecutorHelper`** extends `BaseHelper` (constructor takes `IBullMQMailExecutorOpts`). It wraps `BullMQHelper` (`@venizia/ignis-helpers/bullmq`) and a `RedisSingleHelper` connection.
 
 | Mode | Queue created | Workers created | Can enqueue | Can process |
 |------|----------------|------------------|-------------|-------------|
-| `'queue-only'` | Yes | No (`setProcessor()` skips worker creation, logs a warning) | Yes -- processor not required | No |
+| `'queue-only'` | Yes | No (`setProcessor()` skips worker creation, logs a warning) | Yes - processor not required | No |
 | `'worker-only'` | No | Yes | No (throws) | Yes |
-| `'both'` | Yes | Yes | Yes -- processor required | Yes |
+| `'both'` | Yes | Yes | Yes - processor required | Yes |
 
-- `setProcessor(processor, opts?)` is `async`. It clears all existing workers, then creates `opts?.numberOfWorkers ?? 1` workers, each with `concurrencyPerWorker ?? 5` and `lockDuration ?? 30000`ms. In `queue-only` mode it stores the processor and returns without creating any worker.
-- `enqueueVerificationEmail()` throws `Cannot enqueue jobs in worker-only mode...` in `worker-only` mode; throws `Queue helper not initialized...` if the queue was never created (should not happen in a queue-enabled mode); throws `PROCESSOR_NOT_SET` only when `mode !== 'queue-only'` and no processor is set. Enqueue options: `attempts: options?.attempts ?? 3`, `backoff: { type: options?.backoff?.type ?? 'exponential', delay: options?.backoff?.delay ?? 1000 }`, `removeOnComplete: true`, `removeOnFail: false`.
-- **Dynamic workers:** `addWorker(opts)` (requires a processor, unique identifier, default concurrency `5`, default lock duration `30000`ms), `removeWorker(index)` (closes then splices, returns `false` if out of range), `clearWorkers()` (closes and empties, called internally by `setProcessor()`), `getWorkerCount()`, `getMode()`.
-- `close()` tears down workers, then the queue, then the Redis connection -- every step runs even if an earlier one failed, and all failures are collected into one thrown error at the end.
+`setProcessor(processor, opts?)` is `async`. It clears all existing workers, then creates `opts?.numberOfWorkers ?? 1` workers, each with `concurrencyPerWorker ?? 5` and `lockDuration ?? 30000`ms. In `queue-only` mode it stores the processor and returns without creating any worker.
+
+`enqueueVerificationEmail()` throws in three cases:
+
+| Condition | Throws |
+|---|---|
+| Mode is `worker-only` | `Cannot enqueue jobs in worker-only mode...` |
+| Queue was never created (should not happen in a queue-enabled mode) | `Queue helper not initialized...` |
+| No processor set, and `mode !== 'queue-only'` | `PROCESSOR_NOT_SET` |
+
+Its enqueue options: `attempts: options?.attempts ?? 3`, `backoff: { type: options?.backoff?.type ?? 'exponential', delay: options?.backoff?.delay ?? 1000 }`, `removeOnComplete: true`, `removeOnFail: false`.
+
+**Dynamic workers** - manage the worker pool without a restart:
+
+| Method | Behavior |
+|---|---|
+| `addWorker(opts)` | Requires a processor set first. Takes a unique identifier, default concurrency `5`, default lock duration `30000`ms |
+| `removeWorker(index)` | Closes the worker, then splices it out. Returns `false` if `index` is out of range |
+| `clearWorkers()` | Closes and empties every worker. Called internally by `setProcessor()` |
+| `getWorkerCount()` | Returns the current worker count |
+| `getMode()` | Returns the executor's `BullMQExecutorModes` value |
+
+`close()` tears down workers, then the queue, then the Redis connection. Every step runs even if an earlier one failed, and every failure is collected into one thrown error at the end.
 
 ```typescript
 interface IBullMQMailExecutorOpts {
@@ -709,7 +741,7 @@ function getExpiryTimeInHours(hours: number): Date;     // Date `hours` hours fr
 ```
 
 - `isMailTransport()` checks that `send` and `verify` are functions, and that `close` is either a function or `undefined`.
-- `isValidMailOptions()` checks that `provider` is a string and `config` is truthy -- it does not validate the shape of `config` against the specific provider.
+- `isValidMailOptions()` checks that `provider` is a string and `config` is truthy. It does not validate the shape of `config` against the specific provider.
 
 **Source:** [`utilities/`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core/src/components/mail/utilities)
 

@@ -6,7 +6,7 @@ difficulty: beginner
 
 # Cron
 
-`CronHelper` wraps the `cron` package's `CronJob` with scoped logging and convenience methods for rescheduling and duplicating jobs.
+`CronHelper` wraps the `cron` package's `CronJob`. It adds scoped logging, and convenience methods for rescheduling and duplicating jobs.
 
 ## In one example
 
@@ -27,11 +27,12 @@ const job = new CronHelper({
 
 ## How it works
 
-- **The constructor builds the job synchronously.** `buildInstance()` runs inside the constructor and creates a `CronJob` via `CronJob.from(...)`. An empty `cronTime` or a malformed cron expression throws immediately - `getError` never lets the object come back into your hands half-built.
-- **`start()` and `stop()` guard against a missing instance.** If `buildInstance()` never produced a `CronJob` (a prior `configure()` failure), `start()` logs `'Invalid cron instance to start cronjob!'` and returns without throwing. `stop()` is `async` because the underlying `CronJob.stop()` resolves only once an in-flight tick finishes - awaiting it prevents a replacement job from starting while the old handler is still running.
-- **`modifyCronTime()` reschedules in place.** It builds a new `CronTime`, calls `instance.setTime(...)`, and updates the stored `cronTime` - the same `CronJob` keeps running, it just fires on the new schedule.
-- **`duplicate()` clones configuration, not state.** The new instance shares `onTick`, `onCompleted`, `autoStart`, `tz`, and `errorHandler` with a different `cronTime`. It is fully independent - stopping or modifying one does not touch the other.
-- **The `instance` property is the raw `CronJob`.** Use it for anything the wrapper does not expose - `isActive`, `lastDate()`, `fireOnTick()` - from the [`cron`](https://github.com/kelektiv/node-cron) package (an optional peer dependency, `^4.3.3`).
+- **The constructor builds the job right away.** `buildInstance()` runs inside the constructor and creates a `CronJob` via `CronJob.from(...)`. An empty `cronTime`, or a malformed cron expression, throws immediately - `getError` never lets you hold a half-built job.
+- **`start()` checks for a built job first.** If a prior `configure()` call failed, `buildInstance()` never produced a `CronJob`. `start()` then logs a warning and returns - it does not throw.
+- **`stop()` is `async` on purpose.** The underlying `CronJob.stop()` resolves only once an in-flight tick finishes. Awaiting it stops a replacement job from starting while the old handler still runs.
+- **`modifyCronTime()` reschedules in place.** It builds a new `CronTime`, calls `instance.setTime(...)`, and updates the stored `cronTime`. The same `CronJob` keeps running - it just fires on the new schedule.
+- **`duplicate()` clones configuration, not state.** The new instance shares `onTick`, `onCompleted`, `autoStart`, `tz`, and `errorHandler`, with a different `cronTime`. Stopping or modifying one instance never touches the other.
+- **`instance` is the raw `CronJob`.** Reach it for anything the wrapper skips - `isActive`, `lastDate()`, `fireOnTick()`. It comes from the [`cron`](https://github.com/kelektiv/node-cron) package, an optional peer dependency (`^4.3.3`).
 
 **`ICronHelperOptions`**
 
@@ -61,7 +62,7 @@ job.start();
 
 ### Reschedule at runtime
 
-`modifyCronTime()` swaps the cron pattern without recreating the job. Set `shouldFireOnTick: true` to fire once immediately after the change (fire-and-forget - errors are logged, not thrown).
+`modifyCronTime()` swaps the cron pattern without recreating the job. Set `shouldFireOnTick: true` to fire once immediately after the change. That fire is fire-and-forget - errors are logged, not thrown.
 
 ```typescript
 job.modifyCronTime({ cronTime: '0 */10 * * * *', shouldFireOnTick: true });

@@ -6,7 +6,7 @@ difficulty: intermediate
 
 # Consumer
 
-The `KafkaConsumerHelper` wraps `@platformatic/kafka`'s `Consumer` with health tracking, graceful shutdown, message callbacks, consumer group event callbacks, automatic reconnect, and lag monitoring.
+The `KafkaConsumerHelper` wraps `@platformatic/kafka`'s `Consumer` with health tracking, graceful shutdown, message callbacks, group callbacks, automatic reconnect, and lag monitoring.
 
 ```typescript
 class KafkaConsumerHelper<
@@ -46,12 +46,12 @@ Plus the shared [Connection & Authentication](./producer#connection--authenticat
 
 | Option | Type | Default | Description |
 |--------|------|---------|-------------|
-| `groupId` | `string` | -- | Consumer group ID. **Required** |
+| `groupId` | `string` | - | Consumer group ID. **Required** |
 | `identifier` | `string` | `'kafka-consumer'` | Scoped logging identifier |
-| `deserializers` | `Partial<Deserializers<K,V,HK,HV>>` | -- | Key/value/header deserializers |
+| `deserializers` | `Partial<Deserializers<K,V,HK,HV>>` | - | Key/value/header deserializers |
 | `autocommit` | `boolean \| number` | `false` | Auto-commit offsets. `true` = default interval, `number` = custom ms |
-| `sessionTimeout` | `number` | `60000` | Session timeout -- consumer removed from group if no heartbeat |
-| `heartbeatInterval` | `number` | `10000` | Heartbeat interval -- must be less than `sessionTimeout` |
+| `sessionTimeout` | `number` | `60000` | Session timeout - consumer removed from group if no heartbeat |
+| `heartbeatInterval` | `number` | `10000` | Heartbeat interval - must be less than `sessionTimeout` |
 | `rebalanceTimeout` | `number` | `sessionTimeout` | Max time for rebalance. Defaults to the value of `sessionTimeout` |
 | `highWaterMark` | `number` | `1024` | Stream buffer size (messages) |
 | `minBytes` | `number` | `1` | Min bytes per fetch response |
@@ -59,9 +59,9 @@ Plus the shared [Connection & Authentication](./producer#connection--authenticat
 | `maxWaitTime` | `number` | `5000` | Max time (ms) broker waits for `minBytes` |
 | `metadataMaxAge` | `number` | `300000` | Metadata cache TTL (ms) |
 | `groupProtocol` | `'classic' \| 'consumer'` | `'classic'` | Consumer group protocol. `'consumer'` = KIP-848 (Kafka 3.7+) |
-| `groupInstanceId` | `string` | -- | Static group membership ID -- prevents rebalance on restart |
+| `groupInstanceId` | `string` | - | Static group membership ID - prevents rebalance on restart |
 | `shutdownTimeout` | `number` | `30000` | Graceful shutdown timeout in ms |
-| `registry` | `SchemaRegistry` | -- | Schema registry for auto deser |
+| `registry` | `SchemaRegistry` | - | Schema registry for auto deser |
 
 ### Lifecycle Callbacks
 
@@ -169,14 +169,14 @@ Stream 'error' event
   -> onMessageError({ error })  (no message available)
 ```
 
-- **`onMessage` is the main processing callback** -- do your business logic here.
-- **`onMessageDone` fires only after `onMessage` resolves successfully** -- use it for logging, metrics, and similar side effects. Note that errors thrown from `onMessageDone` also trigger `onMessageError`.
-- **`onMessageError` fires if `onMessage` throws**, and also for the stream's own `'error'` event (without a `message`, since it's a stream-level error).
-- **The stream `'error'` listener is always attached**, whether or not you pass `onMessageError`. An `EventEmitter` `'error'` event with zero listeners is rethrown as an uncaught exception -- without this listener, a pull-style consumer (`start()` + `getStream()`, no `onMessage`) would take the whole process down on the first broker drop.
+- **`onMessage` is the main processing callback.** Put your business logic here.
+- **`onMessageDone` fires only after `onMessage` resolves successfully.** Use it for logging, metrics, and similar side effects. An error thrown from `onMessageDone` also triggers `onMessageError`.
+- **`onMessageError` fires if `onMessage` throws.** It also fires for the stream's own `'error'` event. That case carries no `message` - it's a stream-level error, not a per-message one.
+- **The stream `'error'` listener is always attached**, whether or not you pass `onMessageError`. An `EventEmitter` `'error'` event with zero listeners becomes an uncaught exception. Without this listener, a pull-style consumer (`start()` + `getStream()`, no `onMessage`) would take down the whole process on the first broker drop.
 
 ## start()
 
-`start()` creates the consume stream and wires all message callbacks. It must be called explicitly after construction, and it guards against duplicate starts -- calling it twice logs a warning and returns immediately.
+`start()` creates the consume stream and wires all message callbacks. Call it explicitly after construction - the constructor never calls it for you. It also guards against duplicate starts: calling it twice logs a warning and returns immediately.
 
 ```typescript
 interface IKafkaConsumeStartOptions {
@@ -197,8 +197,8 @@ interface IKafkaConsumeStartOptions {
 
 | Fallback | Description |
 |----------|-------------|
-| `'latest'` (default) | Start from latest -- ignore historical messages |
-| `'earliest'` | Start from beginning -- process all historical messages |
+| `'latest'` (default) | Start from latest - ignore historical messages |
+| `'earliest'` | Start from beginning - process all historical messages |
 | `'fail'` | Throw an error |
 
 | Reconnect option | Default | Description |
@@ -227,11 +227,11 @@ await helper.start({
 
 When `onMessage` is provided, `start()` drives a background consume loop on top of the stream. That loop reconnects on its own:
 
-- **Only the callback-driven loop reconnects.** A pull-style consumer using `getStream()` or `consumer.consume()` directly owns its own retry logic -- the helper's automatic reconnect only runs inside `startConsumeLoop`, which is wired exclusively when `onMessage` is set.
-- **A full broker outage marks the session stale.** When every broker disconnects (`getConnectedBrokerCount()` drops to `0`, via `client:broker:disconnect` or `client:broker:failed`), the helper destroys the current stream immediately instead of waiting for it to error out on its own.
-- **Reconnect rebuilds the client after a stale session.** The next attempt, after `reconnectDelayMs`, constructs a brand-new `@platformatic/kafka` `Consumer` with the original constructor options and swaps it in -- a fresh client forces a clean group rejoin rather than reusing session state Kafka has likely already expired. Active lag monitoring is re-armed on the new client automatically.
+- **Only the callback-driven loop reconnects.** A pull-style consumer using `getStream()` or `consumer.consume()` directly owns its own retry logic. The helper's automatic reconnect runs only inside `startConsumeLoop`, which is wired exclusively when `onMessage` is set.
+- **A full broker outage marks the session stale.** This happens when every broker disconnects - `getConnectedBrokerCount()` drops to `0`, via `client:broker:disconnect` or `client:broker:failed`. The helper destroys the current stream immediately, instead of waiting for it to error out on its own.
+- **Reconnect rebuilds the client after a stale session.** The next attempt, after `reconnectDelayMs`, constructs a brand-new `@platformatic/kafka` `Consumer` with the original constructor options and swaps it in. A fresh client forces a clean group rejoin, rather than reusing session state Kafka has likely already expired. Active lag monitoring re-arms on the new client automatically.
 - **Attempts are capped.** After `maxReconnectAttempts` consecutive failures, the consume loop exits and logs an error. Message processing stops until you call `start()` again with a new set of options.
-- **Every retry is logged**, including the attempt number, delay, and current connected-broker count, so a stuck reconnect loop is visible in application logs without extra instrumentation.
+- **Every retry is logged**: the attempt number, the delay, and the current connected-broker count. A stuck reconnect loop stays visible in application logs without extra instrumentation.
 
 ## Lag Monitoring
 
@@ -243,7 +243,7 @@ helper.startLagMonitoring({ topics: ['orders'], interval: 10_000 });
 helper.stopLagMonitoring();
 ```
 
-Lag data is delivered via the `onLag` callback. Errors via `onLagError`. `interval` defaults to `30000` ms. Guards against duplicate starts -- calling `startLagMonitoring()` twice logs a warning.
+Lag data arrives through the `onLag` callback; errors through `onLagError`. `interval` defaults to `30000` ms. Calling `startLagMonitoring()` twice logs a warning instead of starting a second poll loop.
 
 For one-time lag checks, use the underlying consumer directly:
 
@@ -378,7 +378,7 @@ consumer.generationId;   // number
 consumer.assignments;    // GroupAssignment[] | null
 consumer.isActive();     // boolean
 
-// Static membership -- prevents rebalance on restart
+// Static membership - prevents rebalance on restart
 const helper = KafkaConsumerHelper.newInstance({
   ...
   groupInstanceId: 'worker-1',
@@ -410,7 +410,7 @@ Topic "orders" (3 partitions)
 - [Kafka Overview](./) - the four helpers, shared health/close API, and the compile-binary caveat
 - [Producer](./producer) - the sending side, plus the shared Connection & Authentication options
 - [Admin](./admin) - create topics and inspect consumer groups from outside the running consumer
-- [Examples & Troubleshooting](./examples) - lag monitoring, exactly-once, and common connection errors
+- [Examples & Troubleshooting](./examples) - IoC wiring and the common connection-error lookup table
 
 **Files:**
 

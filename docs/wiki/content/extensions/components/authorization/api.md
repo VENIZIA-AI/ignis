@@ -15,6 +15,26 @@ Every option, binding key, class, and method the Authorization component exposes
 - [`packages/core/src/base/metadata/persistents.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core/src/base/metadata/persistents.ts) - `@model` populating `AUTHORIZATION_SUBJECT`
 - [`packages/core/src/helpers/inversion/mixins/model.mixin.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core/src/helpers/inversion/mixins/model.mixin.ts) - `MetadataRegistry` authorize-settings queries
 
+## Find what you need
+
+| You want to | Go to |
+|---|---|
+| Bind global options and per-enforcer options | [Binding keys](#binding-keys) |
+| Configure `AuthorizeComponent` at startup | [IAuthorizeOptions](#iauthorizeoptions) |
+| Configure the Casbin enforcer (model, cache, pool) | [ICasbinEnforcerOptions](#icasbinenforceroptions) |
+| Write a route's `authorize` spec | [IAuthorizationSpec (route-level)](#iauthorizationspec-route-level) |
+| Resolve a request's domain scope | [IAuthorizationDomainSource / TAuthorizationDomainResolver](#iauthorizationdomainsource-tauthorizationdomainresolver) |
+| Look up an action, decision, or role constant | [Constants](#constants) |
+| Read the scoped RBAC `.conf` model | [CASBIN_RBAC_DOMAIN_SCOPED_MODEL](#casbin_rbac_domain_scoped_model) |
+| Register or resolve enforcers | [AuthorizationEnforcerRegistry](#authorizationenforcerregistry) |
+| Understand how the Casbin enforcer builds and evaluates rules | [CasbinAuthorizationEnforcer](#casbinauthorizationenforcer) |
+| Use the ready-made Postgres adapter | [ScopedCasbinAdapter](#scopedcasbinadapter) |
+| Write a custom adapter | [BaseFilteredAdapter](#basefilteredadapter) |
+| Grant a subset of a subject's operations | [Subset grants (custom rows)](#subset-grants-custom-rows) and [GrantBuilder.planGrant](#grantbuilderplangrant) |
+| Seed `PolicyDefinition` / `Permission` rows | [Policy and permission builders](#policy-and-permission-builders) |
+| Wire `authorize` into a REST or gRPC controller | [Controller integration](#controller-integration) |
+| Read the context keys the middleware sets | [Context variables](#context-variables) |
+
 ## Import paths
 
 ```typescript
@@ -37,11 +57,9 @@ import {
   // Models
   AuthorizationRole,
 
-  // Policy / permission catalog builders
-  AuthorizationPolicyBuilder, AuthorizationPermissionBuilder,
-
-  // Resource-hierarchy matcher (register on a custom Casbin model)
-  objectMatch,
+  // Policy / permission catalog builders - AuthorizationPermissionBuilder.objectMatch is the
+  // resource-hierarchy matcher (register on a custom Casbin model)
+  AuthorizationPolicyBuilder, AuthorizationPermissionBuilder, GrantBuilder,
 
   // Constants
   Authorization, AuthorizationActions, AuthorizationDecisions, AuthorizationDomainScopes,
@@ -307,7 +325,7 @@ Casbin-specific options, provided per-enforcer via `AuthorizationEnforcerRegistr
 | `model` | `{ driver: 'file', definition } \| { driver: 'text', definition }` | - | **Required.** Casbin model (file path or inline text). For scoped RBAC, use `CASBIN_RBAC_DOMAIN_SCOPED_MODEL` |
 | `cached` | `{ use: false } \| (ICasbinEnforcerCachedRedis & { use: true })` | - | **Required.** Caching configuration (Redis-only) |
 | `adapter` | `Adapter` | - | Casbin adapter instance (e.g. `ScopedCasbinAdapter`) |
-| `isScoped` | `boolean` | `false` | Enables the scoped model: 4-token `(sub, dom, obj, act)` requests; auto-registers `keyMatch` on `g`, `objectMatch` as a matcher-expression function, and `ResourceRoleManager` as the role manager for the resource relation (`g4`) |
+| `isScoped` | `boolean` | `false` | Enables the scoped model: 4-token `(sub, dom, obj, act)` requests. Auto-registers `keyMatch`, `objectMatch`, and `ResourceRoleManager` - see [`CasbinAuthorizationEnforcer`](#casbinauthorizationenforcer) |
 | `poolSize` | `number` | `16` | Pooled enforcers (each request enforces on its own borrowed instance) |
 | `poolAcquireTimeoutMs` | `number` | `5000` | Max ms to wait for a free pooled enforcer before failing closed |
 | `normalizePayloadFn` | `(opts) => { subject, resource, action, domain? }` | - | Custom (non-scoped) payload normalizer, run before evaluation |
@@ -382,7 +400,9 @@ type TAuthorizationDomainResolver<E extends Env = Env> = (opts: {
 }) => ValueOrPromise<TNullable<{ type: string; id: IdType }>>;
 ```
 
-`resolveRequestDomain()` (`providers/request-domain.ts`) turns either shape into a casbin domain string with this precedence: `spec.domain` (resolver, then declarative `readDeclarative()`) -> `IAuthorizeOptions.domainResolver` -> `AuthorizationDomainScopes.SYSTEM_WIDE`. `readDeclarative()` reads `context.req.param/header/query()` for `'param'|'header'|'query'`, or `context.get(key)` for `'context'`.
+`resolveRequestDomain()` (`providers/request-domain.ts`) turns either shape into a casbin domain string. Precedence: `spec.domain` (resolver, then declarative `readDeclarative()`) -> `IAuthorizeOptions.domainResolver` -> `AuthorizationDomainScopes.SYSTEM_WIDE`.
+
+`readDeclarative()` reads `context.req.param/header/query()` for `'param'|'header'|'query'`, or `context.get(key)` for `'context'`.
 
 ### TAuthorizationConditions / TAuthorizationVoter / TAuthorizeFn
 
@@ -436,7 +456,7 @@ All constant classes follow the same pattern: static readonly values + `SCHEME_S
 | `READ`, `WRITE`, `EXECUTE` | `MANAGE` |
 | `CREATE`, `UPDATE`, `DELETE` | `WRITE` |
 
-`CUSTOM` (`'custom'`) is a grant-mode marker for a subset grant carrying `metadata.ops` (see [Subset grants](#subset-grants-custom-rows)) - deliberately absent from `LATTICE`, since it names an encoding, not a position in the action hierarchy.
+`CUSTOM` (`'custom'`) is a grant-mode marker for a subset grant carrying `metadata.ops` - see [Subset grants](#subset-grants-custom-rows). It is deliberately absent from `LATTICE`: it names an encoding, not a position in the action hierarchy.
 
 **`AuthorizationDecisions`** - `ALLOW` `DENY` `ABSTAIN`.
 
@@ -463,7 +483,13 @@ All constant classes follow the same pattern: static readonly values + `SCHEME_S
 | `REGEX_MATCH` | `'regexMatch'` | Treats the stored/policy value as a full regular expression |
 
 > [!IMPORTANT]
-> Applied as `fn(requestDomain, policyDomain)` - the wildcard must live on the **stored/policy** side. `keyMatch("Merchant_X", "*") === true`, `keyMatch("Merchant_X", "Merchant_X") === true`, `keyMatch("Merchant_X", "Merchant_Y") === false`.
+> Applied as `fn(requestDomain, policyDomain)` - the wildcard must live on the **stored/policy** side.
+>
+> | Call | Result |
+> |---|---|
+> | `keyMatch("Merchant_X", "*")` | `true` |
+> | `keyMatch("Merchant_X", "Merchant_X")` | `true` |
+> | `keyMatch("Merchant_X", "Merchant_Y")` | `false` |
 
 **`CasbinRuleVariants`** - the Casbin line prefixes declared by the scoped model, numbered in request-tuple order (`sub -> dom -> obj -> act`).
 
@@ -542,9 +568,15 @@ m = g(r.sub, p.sub, r.dom) && (p.dom == "SYSTEM_WIDE" || (p.dom == "ANY_MEMBER" 
 | `g4` | `obj` | `resource_inherits` - explicit non-standard nesting edges; served by `ResourceRoleManager`, not a matching function |
 | `g5` | `act` | `action_inherits`, plus a self-link |
 
-**Effect** is casbin's `allow-and-deny` effector: a request needs a matching `allow` AND no matching `deny` - default-DENY, and an explicit `deny` always overrides an `allow`. This is deliberately NOT casbin's `deny-override` effector (`!some(where (p.eft == deny))`), which would be default-ALLOW.
+**Effect** is casbin's `allow-and-deny` effector. A request needs a matching `allow` AND no matching `deny` - default-DENY. An explicit `deny` always overrides an `allow`. This is deliberately NOT casbin's `deny-override` effector (`!some(where (p.eft == deny))`), which would be default-ALLOW.
 
-**Domain clause**, matched by `p.dom`: `SYSTEM_WIDE` matches every domain (bypasses membership, super-admin); `ANY_MEMBER` matches every domain the subject joined (via `g2`); `<Type>_<id>` matches that domain, or a nested child via `g3`.
+**Domain clause**, matched by `p.dom`:
+
+| `p.dom` value | Matches |
+|---|---|
+| `SYSTEM_WIDE` | Every domain - bypasses membership, super-admin |
+| `ANY_MEMBER` | Every domain the subject joined, via `g2` |
+| `<Type>_<id>` | That domain, or a nested child via `g3` |
 
 > [!NOTE]
 > Relies on the default `DefaultRoleManager`'s self-link behavior (`hasLink(name, name) === true`) for `g3`/`g4`/`g5` - a custom role manager must preserve self-links.
@@ -625,7 +657,12 @@ class AuthorizationEnforcerRegistry extends AbstractAuthRegistry<IAuthorizationE
 | `rebuildUserCache(opts)` | `Promise<{ cacheKey, lineCount }>` | Drops then immediately re-extracts + re-caches |
 | `reset()` | `void` | Clears descriptors AND `configuredEnforcers` |
 
-**`register()` behavior:** validates no duplicate names within the call, validates each name is not already registered, binds each class as a singleton at `authorization.enforcer.{name}`, and - if `options` is given - binds it to `AuthorizeBindingKeys.enforcerOptions(name)`.
+**`register()` behavior:**
+
+- Validates no duplicate names within the call.
+- Validates each name is not already registered.
+- Binds each class as a singleton at `authorization.enforcer.{name}`.
+- If `options` is given, binds it to `AuthorizeBindingKeys.enforcerOptions(name)`.
 
 **Configure-once pattern:**
 
@@ -678,7 +715,7 @@ interface IAuthorizationEnforcer<
 
 ## CasbinAuthorizationEnforcer
 
-Wraps the `casbin` library (optional peer dependency). Each request evaluates on its **own** enforcer borrowed from a `BasePoolHelper<Enforcer>` - the adapter (DB load) only runs on a throwaway enforcer to build a user's lines (cached in Redis if configured); every request then enforces on a pooled enforcer freshly loaded with those lines. This isolates concurrency and keeps the DB out of the hot path.
+Wraps the `casbin` library (optional peer dependency). The adapter only loads from the database on a throwaway enforcer, to build one user's policy lines (cached in Redis if configured). Every request then evaluates on its own enforcer, borrowed from a `BasePoolHelper<Enforcer>` and freshly loaded with those lines. This isolates concurrency and keeps the database out of the hot path.
 
 ```typescript
 class CasbinAuthorizationEnforcer<E extends Env = Env, TAction extends string = string, TResource extends string = string>
@@ -726,16 +763,26 @@ Called once by the registry on first use:
 5. Builds a `BasePoolHelper<Enforcer>` (`size = poolSize ?? 16`, `acquireTimeoutMs = poolAcquireTimeoutMs ?? 5000`). Each pooled enforcer is created **without an adapter** (no DB load at warmup), then `registerMatchers()` and `assertMatcherCompilesSync()` run on it.
 6. `await pool.warmup()` - pre-creates the enforcers.
 
-`registerMatchers()` - when `isScoped`, registers `keyMatch` as the domain matching func on `g`, adds `objectMatch` as a matcher-expression function via `addFunction` (called directly in the model's matcher string, never as a relation's matching func), and sets a dedicated `ResourceRoleManager` as the named role manager for the resource relation (`g4`) - `addNamedMatchingFunc` is deliberately avoided there, since it sets casbin's `hasPattern` and disables `DefaultRoleManager`'s fast path on every link check, not only `g4` lookups. When `domainMatching` is set (flat model), registers the chosen `Util.*Func` on the named role definition. Always finishes with `buildRoleLinks()`.
+**`registerMatchers()`** - when `isScoped`, registers three things:
 
-`assertMatcherCompilesSync()` - a boot-time smoke test: forces casbin's lazy matcher compile with one dummy `enforceSync` (4 args when scoped/`normalizePayloadFn`, else 3), so a malformed matcher, an unregistered function, or an arity mismatch fails at warmup instead of on the first real request.
+| Registers | On |
+|---|---|
+| `keyMatch` | Domain matching func on `g` |
+| `objectMatch` | Matcher-expression function via `addFunction` - called directly in the model's matcher string, not as a relation's matching func |
+| `ResourceRoleManager` | Named role manager for `g4` |
+
+`g4` skips `addNamedMatchingFunc` on purpose. It sets casbin's `hasPattern`, which disables `DefaultRoleManager`'s fast path on every link check, not just `g4` lookups.
+
+When `domainMatching` is set (flat model), `registerMatchers()` registers the chosen `Util.*Func` on the named role definition instead, and always finishes with `buildRoleLinks()`.
+
+**`assertMatcherCompilesSync()`** is a boot-time smoke test. It forces casbin's lazy matcher compile with one dummy `enforceSync` call (4 args when scoped/`normalizePayloadFn`, else 3). A malformed matcher, an unregistered function, or an arity mismatch fails at warmup, not on the first real request.
 
 ### buildRules()
 
 Returns `ICasbinRules = { user, lines }` - the user's complete Casbin policy lines.
 
-- `extractUserLines(user)` builds a fresh, isolated enforcer *with the adapter*, calls `adapter.loadFilteredPolicy({ principal: { type, id } })`, then `extractLinesFrom()` serializes every p-type and g-type rule (not just `p`/`g` - every `p*`/`g*` the model declares, so the scoped model's `g2`-`g5` hierarchies are included) back into lines.
-- `fetchLinesWithRedisCache` returns cached lines on a hit (Redis owns expiry via `PX`). On a miss it dedups concurrent misses through `pendingLineFetches` (single-flight), extracts once, and writes the lines back to Redis. A corrupt entry is logged and discarded (refetch), never a 500.
+- `extractUserLines(user)` builds a fresh, isolated enforcer *with the adapter* and calls `adapter.loadFilteredPolicy({ principal: { type, id } })`. `extractLinesFrom()` then serializes every `p*`/`g*` rule the model declares back into lines - not just `p`/`g`. This includes the scoped model's `g2`-`g5` hierarchies.
+- `fetchLinesWithRedisCache` returns cached lines on a hit (Redis owns expiry via `PX`). On a miss it dedups concurrent misses through `pendingLineFetches` (single-flight), extracts once, and writes the lines back to Redis. A corrupt entry is logged and discarded, then refetched - never a 500.
 
 ### evaluate()
 
@@ -751,7 +798,7 @@ On any error inside `pool.use`, the pool **destroys** the borrowed enforcer (fai
 
 ### invalidateUserCache() / rebuildUserCache()
 
-Redis-only (throw if caching is disabled). `invalidateUserCache` deletes the user's shared Redis key (next request rebuilds lazily). `rebuildUserCache` deletes then immediately re-extracts (on a throwaway enforcer) and re-caches. Because the key is shared in Redis, a single call is correct across instances.
+Redis-only - both throw if caching is disabled. `invalidateUserCache` deletes the user's shared Redis key; the next request rebuilds lazily. `rebuildUserCache` deletes, then immediately re-extracts (on a throwaway enforcer) and re-caches. The key is shared in Redis, so one call is correct across every instance.
 
 Source -> [`enforcers/casbin.enforcer.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core/src/components/auth/authorize/enforcers/casbin.enforcer.ts)
 
@@ -792,9 +839,11 @@ type TCasbinPolicyConnector = PgDatabase<PgQueryResultHKT, Record<string, AnyTyp
 ```
 
 > [!NOTE]
-> Components that only need query execution depend on this minimal local contract (`ICasbinPolicySource`) rather than a connector class - `src/components/**` never imports `@/connectors/postgres` for this. The `connector` getter resolves `getConnector?.() ?? connector` and throws a clear `[BaseFilteredAdapter]` framework error - never a bare `TypeError` - when a datasource exposes neither, which is what a cold (not-yet-wired) datasource used to hit.
+> `ICasbinPolicySource` is a minimal local contract, not the framework's general `IDataSource` - `src/components/**` never imports `@/connectors/postgres` for this. The `connector` getter resolves `getConnector?.() ?? connector`. When a datasource exposes neither, it throws a clear `[BaseFilteredAdapter]` error - never a bare `TypeError`.
 
-`query()` runs a raw `SQL` statement and normalizes the result to a row array - Drizzle's `execute()` shape differs per driver (node-postgres yields `{ rows }`, postgres-js yields the row list itself), so subclasses must call `query()` rather than read `.rows` directly. `loadLines()` is the other orchestration helper - subclasses call it after assembling their own casbin lines:
+`query()` runs a raw `SQL` statement and normalizes the result to a row array. Drizzle's `execute()` shape differs per driver: node-postgres yields `{ rows }`, postgres-js yields the row list itself. Call `query()` rather than read `.rows` directly.
+
+`loadLines()` is the other orchestration helper. Call it after assembling your own casbin lines:
 
 ```typescript
 protected async loadLines(opts: { model: Model; lines: string[] }): Promise<void> {
@@ -863,16 +912,16 @@ type TPrincipalPolicyRow = TGrantRow & {
 ```
 
 > [!NOTE]
-> **There is no cache in the adapter.** Every `loadFilteredPolicy()` call re-runs both statements. If extraction cost becomes a measured problem, the answer is the indexes below, not a staleness window - a query the framework writes and an index it never mentions is the seam that produced the production incident this adapter's read path descends from. The framework does not create these indexes - the consumer owns its `PolicyDefinition` schema - but it does own saying what the queries need:
+> **There is no cache in the adapter.** Every `loadFilteredPolicy()` call re-runs both statements. If extraction cost becomes a measured problem, add the indexes below rather than a staleness window. The framework does not create these indexes. Your `PolicyDefinition` schema owns that, but the queries need them:
 >
 > | Index | Serves |
 > |---|---|
 > | `(variant, subject_type, subject_id)` | `queryPrincipalPolicies`' two CTE anchor terms (`role_closure`, `domain_closure`) and its `direct` branch |
 > | `(variant, subject_id)` | `role_closure`'s recursive-term join and the role-grant branch |
-> | `(variant, subject_type, subject_id)` again | `domain_closure`'s recursive term and the `domainEdge` branch - both join on `(subject_type, subject_id)`, not `subject_id` alone, since a domain node's identity is `(type, id)` |
+> | `(variant, subject_type, subject_id)` again | `domain_closure`'s recursive term and the `domainEdge` branch. A domain node's identity is `(type, id)`, so both join on the pair, not `subject_id` alone |
 > | `(variant)`, or per-variant partial indexes | `queryEdgePolicies`' two branches (`resource_inherits`, `action_inherits`) - each filters on `variant` alone |
 >
-> Without them, the recursive CTEs' anchor and direct-edge branches fall back to a sequential scan of the whole `PolicyDefinition` table - measured with `EXPLAIN (ANALYZE, BUFFERS)` against a real Postgres database.
+> Without them, the recursive CTEs' anchor and direct-edge branches fall back to a sequential scan of the whole `PolicyDefinition` table. Measured with `EXPLAIN (ANALYZE, BUFFERS)` against a real Postgres database.
 
 ```typescript
 interface IScopedCasbinTable { tableName: string; schemaName?: string; }
@@ -888,23 +937,47 @@ interface IScopedCasbinEntities {
 interface IScopedCasbinPolicyFilter { principal: { type: string; id: IdType }; }
 ```
 
-**`loadFilteredPolicy()` - one wave, two statements:**
+**`loadFilteredPolicy()` runs one wave of two independent statements:**
 
-1. **`Promise.all` of two statements**, neither waiting on the other:
-   - `queryPrincipalPolicies` - one statement with two `WITH RECURSIVE` CTEs, covering everything scoped to the principal: its own `assign_role` / `join_domain` / `grant` rows (`kind: PrincipalPolicyEdges.DIRECT`), the `role_inherits` edges reachable from its roles (`kind: PrincipalPolicyEdges.ROLE_EDGE`), the grants of that role closure (`kind: PrincipalPolicyEdges.ROLE_GRANT`), and the `domain_inherits` edges reachable from its domains (`kind: PrincipalPolicyEdges.DOMAIN_EDGE`). `role_closure` seeds from the principal's `assign_role` rows and walks the `role_inherits` chain; `domain_closure` seeds from the principal's `join_domain` domains and walks the `domain_inherits` parent chain. Both closures are resolved **in SQL** - each recursive term uses `UNION` (not `UNION ALL`), and the de-duplication is what terminates a cyclic graph, replacing the old in-memory `visited` set.
-   - `queryEdgePolicies` - the two code-fixed structural trees only, `resource_inherits` (`g4`) and `action_inherits` (`g5`), merged into one statement with two `UNION ALL` branches. `domain_inherits` (`g3`) is no longer loaded here - see [why `g3` is scoped differently](#why-g3-is-scoped-and-g4-g5-are-not) below.
-2. **Row routing:** `direct` rows go through `collectDirectRow` (-> `g` for `assign_role`, `g2` for `join_domain`, or into the direct-grant batch for `grant`); `roleEdge` rows become `g` lines inline; `domainEdge` rows become `g3` lines inline; `roleGrant` rows are batched separately. Both grant batches expand through the shared `buildGrantLines`.
+1. `Promise.all` of two statements, neither waiting on the other:
+
+   **`queryPrincipalPolicies`** covers everything scoped to the principal, tagged by `kind`:
+
+   | `kind` | Rows |
+   |---|---|
+   | `DIRECT` | The principal's own `assign_role` / `join_domain` / `grant` rows |
+   | `ROLE_EDGE` | `role_inherits` edges reachable from its roles |
+   | `ROLE_GRANT` | Grants of that role closure |
+   | `DOMAIN_EDGE` | `domain_inherits` edges reachable from its domains |
+
+   It resolves two `WITH RECURSIVE` CTEs in SQL. `role_closure` seeds from `assign_role` rows and walks `role_inherits`. `domain_closure` seeds from `join_domain` rows and walks `domain_inherits`. Each recursive term uses `UNION`, not `UNION ALL` - the de-duplication is what terminates a cyclic graph.
+
+   **`queryEdgePolicies`** covers the two code-fixed structural trees, `resource_inherits` (`g4`) and `action_inherits` (`g5`), merged into one statement with two `UNION ALL` branches. `domain_inherits` (`g3`) is not loaded here - see [why `g3` is scoped differently](#why-g3-is-scoped-and-g4-g5-are-not).
+
+2. **Row routing:**
+
+   | `kind` | Routed to |
+   |---|---|
+   | `direct` | `collectDirectRow` - `g` for `assign_role`, `g2` for `join_domain`, or the direct-grant batch for `grant` |
+   | `roleEdge` | `g` lines, inline |
+   | `domainEdge` | `g3` lines, inline |
+   | `roleGrant` | Batched separately |
+
+   Both grant batches expand through the shared `buildGrantLines`.
+
 3. All lines load via `loadLines`.
 
-**Only `role_inherits` edges reachable from the principal's roles, and only `domain_inherits` edges reachable from the principal's domains, are emitted** - narrower than emitting the whole role/domain graph to every user, and behavior-preserving: an edge outside either closure could never be traversed by the matcher anyway, and the narrower emission shrinks every user's payload.
+Only reachable edges are emitted: `role_inherits` edges from the principal's roles, and `domain_inherits` edges from its domains - never the whole role/domain graph. An edge outside either closure could never be traversed by the matcher anyway. This is behavior-preserving, and it shrinks every user's payload.
 
 ### Why `g3` is scoped and `g4`/`g5` are not
 
-`g4` (resource) and `g5` (action) are fixed by the codebase - a few hundred rows, constant regardless of tenant count - so `queryEdgePolicies` loads them whole for every principal. `g3` (domain) grows with the number of domains (many merchants under few organizers), so loading it whole for every user does not scale; it is scoped to the principal's domain closure inside `queryPrincipalPolicies` instead.
+`g4` (resource) and `g5` (action) are fixed by the codebase - a few hundred rows, constant regardless of tenant count. `queryEdgePolicies` loads them whole for every principal.
 
-**The permission join is a `LEFT JOIN`, not `INNER JOIN`.** A grant whose target does not resolve (missing or soft-deleted `Permission` row) is logged and skipped by `buildGrantLines` rather than vanishing from the result set silently.
+`g3` (domain) grows with the domain count - many merchants under few organizers. It is scoped to the principal's domain closure inside `queryPrincipalPolicies` instead.
 
-All queries use the `sql` template tag from `drizzle-orm`; tables are schema-qualified via `sql.identifier` (injection-safe), interpolated values are bound parameters. The soft-delete clause (`AND <alias>.<col> IS NULL`) is appended when `entities.softDelete.use` is true.
+**The permission join is a `LEFT JOIN`, not `INNER JOIN`.** A grant whose target does not resolve (missing or soft-deleted `Permission` row) is logged and skipped by `buildGrantLines`, not silently dropped from the result set.
+
+All queries use the `sql` template tag from `drizzle-orm`. Tables are schema-qualified via `sql.identifier` (injection-safe); interpolated values are bound parameters. The soft-delete clause (`AND <alias>.<col> IS NULL`) is appended when `entities.softDelete.use` is true.
 
 ```typescript
 import { ScopedCasbinAdapter } from '@venizia/ignis';
@@ -925,13 +998,21 @@ Source -> [`adapters/scoped-casbin.adapter.ts`](https://github.com/VENIZIA-AI/ig
 
 ### Subset grants (custom rows)
 
-A grant row can express an arbitrary subset of a subject's operations instead of a full tier: `action = 'custom'`, target = a subject-level resource node (`Permission.method` is `AuthorizationPermissionBuilder.RESOURCE_NODE_METHOD`, the `*` sentinel), `metadata: { ops: [...] }`. `ops` holds **method names**, not full permission codes - the subject comes from the target node, so `ops: ['find']` against node `Order` resolves to `Order.find`.
+A grant row can express an arbitrary subset of a subject's operations instead of a full tier:
 
-`buildGrantLines` expands each custom row into one `p` line per operation, each carrying that operation's **catalogued** action (never the `custom` sentinel), so the emitted lines are byte-identical to what equivalent per-operation grant rows produce - nothing downstream can distinguish the two encodings. Expansion runs one extra batched query (`queryOperationCatalog`) per extraction, and none when no custom rows are present.
+| Field | Value |
+|---|---|
+| `action` | `'custom'` |
+| Target | A subject-level resource node - `Permission.method` is `AuthorizationPermissionBuilder.RESOURCE_NODE_METHOD`, the `*` sentinel |
+| `metadata` | `{ ops: [...] }` |
+
+`ops` holds **method names**, not full permission codes. The subject comes from the target node, so `ops: ['find']` against node `Order` resolves to `Order.find`.
+
+`buildGrantLines` expands each custom row into one `p` line per operation, using that operation's catalogued action (never the `custom` sentinel). The emitted lines are byte-identical to what equivalent per-operation grant rows produce. Expansion runs one extra batched query (`queryOperationCatalog`) per extraction, and none when no custom rows are present.
 
 Reading is **opt-in**: without `entities.policyDefinition.metadata.columnName` mapped, the adapter never selects the `metadata` column, and a custom row is logged and skipped.
 
-**Rejection rules** (`rejectCustomRow`, checked in this order) - each produces one `error`-level log line naming the subject id and object code, so a skipped grant can be diagnosed from the log alone:
+**Rejection rules** (`rejectCustomRow`, checked in this order). Each produces one `error`-level log line naming the subject id and object code, so a skipped grant can be diagnosed from the log alone:
 
 | Condition | Logged reason |
 |---|---|
@@ -940,15 +1021,19 @@ Reading is **opt-in**: without `entities.policyDefinition.metadata.columnName` m
 | `metadata.ops` is present but `action` is not `'custom'` | `metadata.ops is present but action is not "custom", so the intent is ambiguous` |
 | The target's `Permission.method` is not the `*` resource-node sentinel | `the target must be a subject-level resource node` |
 
-A row that passes all four can still drop an individual **unresolvable operation name** during expansion - logged separately by `expandCustomGrants`, naming the unknown operations - while the row's other, valid operations still expand and emit lines.
+A row that passes all four checks can still drop an individual **unresolvable operation name** during expansion. `expandCustomGrants` logs it separately, naming the unknown operations. The row's other valid operations still expand and emit lines.
 
-**Composing a grant:** use `planGrant` (below) rather than hand-building a custom row - it collapses an operation selection into tier grants wherever possible and falls back to a custom row (or a single per-operation row) only for what does not collapse.
+**Composing a grant:** use `planGrant` (below) rather than hand-building a custom row. It collapses an operation selection into tier grants wherever possible. What does not collapse falls back to a custom row, or a single per-operation row.
 
 Source -> [`adapters/scoped-casbin.adapter.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core/src/components/auth/authorize/adapters/scoped-casbin.adapter.ts)
 
 ## AuthorizationPermissionBuilder.objectMatch
 
-Resource-hierarchy matcher registered by the scoped model **only** as a function - `objectMatch(r.obj, p.obj)`, called directly in the matcher expression via `addFunction`. It is **not** registered as the `g4` matching func; `g4` (`resource_inherits`) is served by a dedicated `ResourceRoleManager` instead (see [ScopedCasbinAdapter](#scopedcasbinadapter)). Registering `objectMatch` as the `g4` matching function was the cause of the production incident this branch fixes - `addNamedMatchingFunc` sets casbin's `hasPattern`, which disables `DefaultRoleManager`'s O(1) fast path on every link check, not only `g4` lookups. `objectMatch` itself decides whether a requested resource falls under a granted one, WITHOUT needing a stored edge for the "standard" case (dotted nesting is derived from the code itself). It lives as a `static` method on `AuthorizationPermissionBuilder` - the class that owns the `code = <subject>.<method>` format `objectMatch` matches against - and must stay `static` with no `this` reference, since it is handed to Casbin by reference:
+Resource-hierarchy matcher registered by the scoped model **only** as a function - `objectMatch(r.obj, p.obj)`, called directly in the matcher expression via `addFunction`. It decides whether a requested resource falls under a granted one, without needing a stored edge for the standard case. Dotted nesting is derived from the code itself.
+
+`objectMatch` is **not** registered as the `g4` matching func. `g4` (`resource_inherits`) is served by a dedicated `ResourceRoleManager` instead - see [ScopedCasbinAdapter](#scopedcasbinadapter). Registering it via `addNamedMatchingFunc` would set casbin's `hasPattern`. That disables `DefaultRoleManager`'s O(1) fast path on every link check, not only `g4` lookups.
+
+It lives as a `static` method on `AuthorizationPermissionBuilder`, the class that owns the `code = <subject>.<method>` format it matches against. It must stay `static` with no `this` reference, since Casbin calls it by reference:
 
 ```typescript
 class AuthorizationPermissionBuilder {
@@ -962,7 +1047,10 @@ class AuthorizationPermissionBuilder {
 enforcer.addFunction('objectMatch', AuthorizationPermissionBuilder.objectMatch);
 ```
 
-`objectMatch('Activation.findById', 'Activation')` -> `true` (dotted nesting - endpoint under subject). `objectMatch('OrderItem', 'Order')` -> `false` unless a `resource_inherits` (`g4`) edge links them - non-standard nesting always needs an explicit edge.
+| Call | Result | Why |
+|---|---|---|
+| `objectMatch('Activation.findById', 'Activation')` | `true` | Dotted nesting - endpoint under subject |
+| `objectMatch('OrderItem', 'Order')` | `false`, unless a `resource_inherits` (`g4`) edge links them | Non-standard nesting always needs an explicit edge |
 
 Source -> [`builders/permission.builder.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core/src/components/auth/authorize/builders/permission.builder.ts)
 
@@ -1114,7 +1202,7 @@ class AuthorizationPolicyBuilder {
 
 ### AuthorizationPermissionBuilder
 
-Builds `Permission` catalog rows (the `obj` axis the scoped matcher resolves). Generic over the name/description type, so i18n and plain-text apps both fit - the framework only owns the `code`/`method`/`action` shape.
+Builds `Permission` catalog rows (the `obj` axis the scoped matcher resolves). Generic over the name/description type, so i18n and plain-text apps both fit. The framework only owns the `code`/`method`/`action` shape.
 
 ```typescript
 class AuthorizationPermissionBuilder {
@@ -1146,7 +1234,7 @@ Source -> [`builders/policy.builder.ts`](https://github.com/VENIZIA-AI/ignis/blo
 
 ### GrantBuilder.planGrant
 
-The supported way to compose an operations-subset grant. Pure - resolves against a caller-supplied catalog and returns rows for the caller to persist; never touches the database. Call it on the singleton (`GrantBuilder.getInstance().planGrant(...)`).
+The supported way to compose an operations-subset grant. Pure - resolves against a caller-supplied catalog and returns rows for the caller to persist. It never touches the database. Call it on the singleton (`GrantBuilder.getInstance().planGrant(...)`).
 
 ```typescript
 type TGrantIntent = { tier: TAuthorizationAction } | { ops: string[] };
@@ -1165,11 +1253,17 @@ class GrantBuilder {
 }
 ```
 
-- `intent: { tier }` returns one tier-grant row; throws on a tier outside `read`/`write`/`execute`/`manage`.
-- `intent: { ops }` collapses into `manage` only when the subject has at least one operation in **each** of `read`, `write`, and `execute` - otherwise `manage` would cover a future operation in an empty tier and silently pre-authorize it. Failing that, each fully-covered narrow tier (`read`/`write`/`execute`) collapses into its own row. A tier collapses whenever the selection **completely covers** it, however few operations that tier holds - `ops: ['find']` collapses into a `read` tier row when `find` is the subject's only `read` operation; it does not become a per-operation row just because the selection has one element. `exact: true` skips this step entirely - the opt-out for a literal selection that must never widen as new operations join a tier.
-- Whatever is still left over **after** collapsing becomes one custom row (`AuthorizationPolicyBuilder.customGrant`) - or, when the leftover is a single operation, or when `supportsCustomMetadata: false`, one per-operation row per leftover operation instead.
-- A per-operation row's `permission.id` is the operation's **code** (e.g. `Order.find`), not a database id - the planner is pure and has no DB access; the consumer resolves codes to ids when persisting.
-- Throws (`getError`) on an invalid tier, empty `ops`, or an `ops` entry absent from the resource's catalog slice - a write is one deliberate act a caller can be told is wrong, unlike the adapter's read-side log-and-skip.
+| `intent` | Behavior |
+|---|---|
+| `{ tier }` | One tier-grant row. Throws on a tier outside `read`/`write`/`execute`/`manage`. |
+| `{ ops }` collapsing into `manage` | Only when the subject has an operation in **each** of `read`, `write`, and `execute` - otherwise `manage` would silently pre-authorize a future operation in an empty tier. |
+| `{ ops }` collapsing into a narrow tier | Whenever the selection **completely covers** a `read`/`write`/`execute` tier, however few operations it holds. `ops: ['find']` collapses into `read` when `find` is the subject's only `read` operation. |
+| `{ ops }` with `exact: true` | Skips collapsing entirely - use for a selection that must never widen as new operations join a tier. |
+| Leftover after collapsing | One custom row (`AuthorizationPolicyBuilder.customGrant`) - or, when the leftover is a single operation or `supportsCustomMetadata: false`, one per-operation row per leftover operation. |
+
+A per-operation row's `permission.id` is the operation's **code** (e.g. `Order.find`), not a database id. The planner is pure and has no DB access, so the caller resolves codes to ids when persisting.
+
+Throws (`getError`) on an invalid tier, an empty `ops`, or an `ops` entry absent from the resource's catalog slice.
 
 Mirrors `ScopedCasbinAdapter.buildGrantLines`'s expansion: a planned custom row and the equivalent per-operation rows expand to identical casbin lines - see [Subset grants](#subset-grants-custom-rows).
 

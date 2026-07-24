@@ -28,8 +28,9 @@ for a lot of ceremony along the way.
 
 **Hono** itself is fast, around 140k req/s. But it is deliberately unopinionated: a router and
 middleware, and nothing else. No dependency injection, no repository pattern, no convention for
-where code lives. Fine for one microservice. Painful once an API grows past a handful of
-endpoints.
+where code lives.
+
+That's fine for one microservice, and painful once an API grows past a handful of endpoints.
 
 IGNIS keeps LoopBack 4's architecture and swaps its engine for Hono's. The aim: hold the ~140k
 req/s ballpark while giving a growing API the structure LoopBack 4 offered. Concretely, that

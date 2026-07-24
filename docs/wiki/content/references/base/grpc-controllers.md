@@ -35,7 +35,7 @@ IGNIS gRPC controllers follow the same patterns as REST controllers (decorator-b
 | **@rpc** | Generic method decorator (requires explicit `method` in configs) |
 
 > [!WARNING]
-> **Current version supports unary RPCs only.** The `@serverStream`, `@clientStream`, and `@bidiStream` decorators still exist and set metadata correctly, but `BaseGrpcController.registerRoute()` will throw a clear error at boot time if a non-unary RPC is registered. This is because the Connect protocol over HTTP/1.1 cannot support streaming. The decorators are preserved for forward compatibility.
+> **Current version supports unary RPCs only.** The `@serverStream`, `@clientStream`, and `@bidiStream` decorators still exist and set metadata correctly. But `BaseGrpcController.registerRoute()` throws a clear error at boot time if a non-unary RPC is registered - the Connect protocol over HTTP/1.1 cannot support streaming. The decorators are preserved for forward compatibility.
 
 ## Prerequisites
 
@@ -57,7 +57,7 @@ bun add @connectrpc/connect-web
 ```
 
 > [!NOTE]
-> `@connectrpc/connect` is an **optional** peer dependency of `@venizia/ignis` - it is only loaded at runtime when a gRPC controller is configured, via `createRequire` from the application's `node_modules`. If it is missing, `GrpcRequestAdapter.build()` throws a clear error at startup via `validateModule()`. `@bufbuild/protobuf` is required by your generated protobuf code (e.g. `create()`), not by the framework itself.
+> `@connectrpc/connect` is an **optional** peer dependency of `@venizia/ignis`. It is only loaded at runtime when a gRPC controller is configured, via `createRequire` from the application's `node_modules`. If it is missing, `GrpcRequestAdapter.build()` throws a clear error at startup via `validateModule()`. `@bufbuild/protobuf` is required by your generated protobuf code (e.g. `create()`), not by the framework itself.
 
 ### Protobuf Code Generation
 
@@ -415,7 +415,7 @@ Internal bridge between IGNIS gRPC controllers and ConnectRPC's universal handle
 
 ### Architecture
 
-The adapter solves a key challenge: ConnectRPC handlers have their own `(request, context) => response` signature, but IGNIS controllers need access to the Hono `Context` for middleware, auth, and request-scoped state. The adapter uses `AsyncLocalStorage` to provide request-scoped context isolation, ensuring concurrent requests never share state.
+The adapter solves a key challenge: ConnectRPC handlers have their own `(request, context) => response` signature. IGNIS controllers, though, need access to the Hono `Context` for middleware, auth, and request-scoped state. The adapter uses `AsyncLocalStorage` to provide request-scoped context isolation, ensuring concurrent requests never share state.
 
 ```
 Hono Request
@@ -477,7 +477,7 @@ On handler errors, the adapter returns a JSON response with:
 - `grpc-message` header: URL-encoded error message
 - Body: JSON `{ message, code }`
 
-The adapter uses a duck-type check on `error.code` to preserve gRPC status codes from ConnectRPC errors without importing `ConnectError` directly, avoiding tight coupling to the peer dependency.
+The adapter uses a duck-type check on `error.code` to preserve gRPC status codes from ConnectRPC errors, without importing `ConnectError` directly. That avoids tight coupling to the peer dependency.
 
 ## `GrpcComponent`
 
@@ -623,7 +623,7 @@ export class Application extends BaseApplication {
 ```
 
 > [!WARNING]
-> If `transports` does not include `ControllerTransports.GRPC`, gRPC controllers are still registered in the DI container but the `GrpcComponent` is never mounted -- their `configure()` is never called and no routes are served.
+> If `transports` does not include `ControllerTransports.GRPC`, gRPC controllers are still registered in the DI container. But the `GrpcComponent` is never mounted -- their `configure()` is never called and no routes are served.
 
 ### Dual Transport
 
@@ -639,7 +639,7 @@ preConfigure() {
 }
 ```
 
-REST controllers are handled by the `RestComponent` (active when transports includes `ControllerTransports.REST`, which is the default); gRPC controllers are handled by the `GrpcComponent` (active when transport is enabled). They share the same DI container and lifecycle.
+REST controllers are handled by the `RestComponent`, active when `transports` includes `ControllerTransports.REST` (the default). gRPC controllers are handled by the `GrpcComponent`, active when that transport is enabled. They share the same DI container and lifecycle.
 
 ## Complete Example
 

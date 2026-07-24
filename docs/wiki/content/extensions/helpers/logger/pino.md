@@ -6,21 +6,32 @@ difficulty: intermediate
 
 # Pino Provider
 
-`PinoLogger` is the second logger provider behind the `ILogger` contract - the throughput option. Where the built-in Winston provider gives colorized console, daily-rotating info/error files, and UDP shipping at ~1.2-1.6us per line, the pino provider emits newline-delimited JSON at ~0.5-0.6us per line (measured). Winston remains the DEFAULT; nothing changes for apps that never register pino.
+`PinoLogger` is the second logger provider behind the `ILogger` contract - the throughput option. Winston remains the DEFAULT. Nothing changes for apps that never register pino.
+
+| Provider | Output | Speed (measured) |
+|---|---|---|
+| Winston (built-in) | Colorized console, daily-rotating info/error files, UDP shipping | ~1.2-1.6us/line |
+| Pino | Newline-delimited JSON | ~0.5-0.6us/line |
 
 ## Registration - one line, order-independent
 
 ```typescript
-// entrypoint (e.g. src/index.ts)
+// entrypoint (for example, src/index.ts)
 import { LoggerFactory } from '@venizia/ignis-helpers';
 import { PinoLogger } from '@venizia/ignis-helpers/pino';
 
 LoggerFactory.use({ provider: PinoLogger });
 ```
 
-The two providers register symmetrically - `WinstonLogger` lives at `@venizia/ignis-helpers/winston` the same way. Both are sub-path only with optional peers, and exactly ONE provider is ever loaded: registering pino here means winston is never loaded (nor bundled).
+The two providers register symmetrically - `WinstonLogger` lives at `@venizia/ignis-helpers/winston` the same way. Both are sub-path only, with optional peers. Exactly ONE provider is ever loaded - registering pino here means winston is never loaded, nor bundled.
 
-From that moment EVERY factory-issued logger runs on pino: `BaseHelper.logger` in every controller/service/repository/helper, `ApplicationLogger.get(...)`, and - thanks to swap-on-use delegation - even module-level `const logger = LoggerFactory.getLogger([...])` constants that were captured at import time, BEFORE this line ran. Import order does not matter; the factory re-points every wrapper it has ever issued when `use()` is called.
+From that moment, every factory-issued logger runs on pino:
+
+- `BaseHelper.logger` in every controller, service, repository, and helper
+- `ApplicationLogger.get(...)`
+- Even a module-level `const logger = LoggerFactory.getLogger([...])`, captured at import time before this line ran - thanks to swap-on-use delegation
+
+Import order doesn't matter. The factory re-points every wrapper it has ever issued when `use()` is called.
 
 > [!IMPORTANT]
 > `Logger.get(...)` (the concrete `WinstonLogger` alias) and `defineCustomLogger` deliberately do NOT follow the registration - they name winston explicitly. See the name/role table in the [Full reference](/extensions/helpers/logger/reference).
@@ -39,9 +50,13 @@ A missing peer fails with the standard install-hint error BEFORE any worker thre
 
 ## Output modes
 
-- **Default (`APP_ENV_LOGGER_FORMAT=json`, or unset in production practice): NDJSON to stdout** - the k8s/docker collector pattern.
-- **`APP_ENV_LOGGER_FORMAT=text`**: pretty colorized lines via a `pino-pretty` worker-thread transport - dev only.
-- **`APP_ENV_LOGGER_FOLDER_PATH` set**: writes to a rotating file via `pino-roll`, honoring the SAME env vars winston uses:
+| Trigger | Output |
+|---|---|
+| `APP_ENV_LOGGER_FORMAT=json`, or unset in production practice | NDJSON to stdout - the k8s/docker collector pattern |
+| `APP_ENV_LOGGER_FORMAT=text` | Pretty colorized lines via a `pino-pretty` worker-thread transport - dev only |
+| `APP_ENV_LOGGER_FOLDER_PATH` is set | A rotating file via `pino-roll`, honoring the same env vars winston uses (table below) |
+
+**`pino-roll` file rotation - env var mapping:**
 
 | Env | pino-roll meaning |
 |-----|-------------------|
@@ -50,11 +65,16 @@ A missing peer fails with the standard install-hint error BEFORE any worker thre
 | `APP_ENV_LOGGER_FILE_MAX_FILES` | retention -> file count: `'5d'` -> 120 files (hourly) / 5 (daily); a bare integer -> that count |
 | `APP_ENV_LOGGER_FILE_DATE_PATTERN` | NOT supported (pino-roll has no date pattern) |
 
-`APP_ENV_LOGGER_LEVEL` sets the floor exactly as with winston; `emerg` is the single custom pino level (above `error`), and the default `debug` floor admits every level - identical to the winston provider.
+`APP_ENV_LOGGER_LEVEL` sets the floor exactly as with winston. `emerg` is the single custom pino level, above `error`. The default `debug` floor admits every level - identical to the winston provider.
 
 ## What stays identical, what differs
 
-Identical by construction: the `[Scope] ` message prefix, args formatting through `formatLogMessage` (deep inspection + secret REDACTION - a `token` field renders `[REDACTED]` on pino exactly as on winston), the level vocabulary and floor semantics, the `DEBUG` gate on `debug()`.
+Identical by construction:
+
+- the `[Scope] ` message prefix
+- args formatting through `formatLogMessage` - deep inspection plus secret redaction; a `token` field renders `[REDACTED]` on pino exactly as on winston
+- the level vocabulary and floor semantics
+- the `DEBUG` gate on `debug()`
 
 Different on purpose (pino stays pino-native - every parity shim would cost the speed you came for):
 
@@ -71,7 +91,7 @@ If your operations depend on the left column, stay on winston - it is not deprec
 
 ## Advanced: injecting a backing instance
 
-`setPinoBackingLogger({ instance })` replaces the env-driven singleton with a pino instance you configured yourself (tests use this with an in-memory destination; apps can use it for exotic transports). The previous instance's transport is flushed and closed on replacement. `buildPinoOptions()` and `resolveDestinationPlan()` are exported for building compatible options.
+`setPinoBackingLogger({ instance })` replaces the env-driven singleton with a pino instance you configured yourself. Tests use this with an in-memory destination; apps can use it for exotic transports. The previous instance's transport is flushed and closed on replacement. `buildPinoOptions()` and `resolveDestinationPlan()` are exported for building compatible options.
 
 ## See also
 

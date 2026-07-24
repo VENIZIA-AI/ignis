@@ -25,12 +25,12 @@ bun -e "console.log(Buffer.from(crypto.getRandomValues(new Uint8Array(32))).toSt
 
 ### Redaction at Log Time
 
-Never hard-coding a secret is not enough on its own - an options object holding one still ends up in a log line the moment it is passed to `logger.info('...: %s', opts)`. `@venizia/ignis-helpers` provides two primitives for exactly this:
+Never hard-coding a secret is not enough on its own. An options object holding one still ends up in a log line the moment it is passed to `logger.info('...: %s', opts)`. `@venizia/ignis-helpers` provides two primitives for exactly this:
 
 | Function | Use For | Behavior |
 |----------|---------|----------|
 | `redactSecrets(value)` | Any object/array being logged | Recursively replaces every value whose key matches a secret-looking name with `'[REDACTED]'` |
-| `redactUrlCredentials(url)` | A connection/broker URL string | Strips the password out of a URL's authority section (`mqtts://user:hunter2@broker:8883` becomes `mqtts://user:[REDACTED]@broker:8883`); a value that doesn't parse as a URL, or one with no password, is returned unchanged |
+| `redactUrlCredentials(url)` | A connection/broker URL string | Strips the password out of a URL's authority section: `mqtts://user:hunter2@broker:8883` becomes `mqtts://user:[REDACTED]@broker:8883`. A value that doesn't parse as a URL, or one with no password, is returned unchanged |
 
 ```typescript
 import { redactSecrets, redactUrlCredentials } from '@venizia/ignis-helpers';
@@ -46,9 +46,9 @@ this.logger.info('[connect] Broker: %s', redactUrlCredentials(brokerUrl));
 - Vault wire keys: `client_token`, `secret_id`, `role_id`
 - HTTP header spellings: `x-api-key`, `x-vault-token`, `cookie`, `set-cookie`, `proxy-authorization`, `www-authenticate`
 
-It also handles the shapes naive redaction breaks on: an `Error` is reprojected so its non-enumerable `message`/`stack` survive, cycles become `'[Circular]'`, and buffers/typed arrays are summarized as `[Binary N bytes]` instead of serialized.
+It also handles the shapes naive redaction breaks on. An `Error` is reprojected so its non-enumerable `message`/`stack` survive. Cycles become `'[Circular]'`, and buffers/typed arrays are summarized as `[Binary N bytes]` instead of serialized.
 
-These are the primitives the framework itself uses - outbound HTTP request configs (`NodeFetcher`/`AxiosFetcher`, see [Network Helper](/extensions/helpers/network/)) and MQTT broker URLs (`MQTTClientHelper`, see [Queue Helper](/extensions/helpers/queue/)) are both redacted this way before they reach a log line.
+These are the primitives the framework itself uses. Outbound HTTP request configs (`NodeFetcher`/`AxiosFetcher`, see [Network Helper](/extensions/helpers/network/)) and MQTT broker URLs (`MQTTClientHelper`, see [Queue Helper](/extensions/helpers/queue/)) are both redacted this way before they reach a log line.
 
 > [!WARNING]
 > `APP_ENV_LOGGER_DO_REDACT=false` turns both functions into the identity function. It is a local-debugging kill-switch and must never be set in production. The check is fail-closed - only the literal string `false` disables redaction - and is read per call, so it can be flipped at runtime.
@@ -495,7 +495,7 @@ Deliberate `getError` messages are always returned verbatim, in every environmen
 - Admin actions
 
 > [!NOTE]
-> When logging a request or connection config that might carry credentials, wrap it in `redactSecrets()` (or `redactUrlCredentials()` for a URL) rather than logging it raw - see [Redaction at Log Time](#redaction-at-log-time) above. This is what the framework's own outbound HTTP and MQTT logging already does automatically.
+> When logging a request or connection config that might carry credentials, wrap it in `redactSecrets()` (or `redactUrlCredentials()` for a URL) rather than logging it raw. See [Redaction at Log Time](#redaction-at-log-time) above. This is what the framework's own outbound HTTP and MQTT logging already does automatically.
 
 ## Security Checklist
 

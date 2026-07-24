@@ -51,18 +51,18 @@ try {
 > `COMMIT` can genuinely fail - a deadlock, a serialization failure under `SERIALIZABLE`, a dropped
 > connection, a deferred constraint firing at commit time. When it does, `commit()` throws rather
 > than resolving, so you never report success on a write that was never persisted. The connection is
-> then destroyed instead of being returned to the pool, because it may still hold an open
+> then destroyed instead of being returned to the pool. It may still hold an open
 > transaction that the next borrower would inherit.
 >
 > `rollback()` behaves the same way when it is the FIRST verb to fail. One deliberate exception
-> keeps the everyday `catch { await tx.rollback(); throw error; }` pattern safe: calling
+> keeps the everyday `catch { await tx.rollback(); throw error; }` pattern safe. Calling
 > `rollback()` on a transaction that already ended BY FAILURE (a failed `COMMIT` or a failed prior
-> `ROLLBACK`) is a silent no-op - nothing was committed and the connection is already destroyed, so
+> `ROLLBACK`) is a silent no-op. Nothing was committed and the connection is already destroyed, so
 > the rollback's goal is achieved and your original error survives. The nested-try form above is
 > still the safest general pattern, because a FIRST rollback that itself fails does throw.
 >
-> The destroy half is **driver-specific**: node-postgres (`pg`) discards the poisoned connection,
-> but postgres-js has no destroy semantics (`ReservedSql.release()` takes no argument), so under the
+> The destroy half is **driver-specific**: node-postgres (`pg`) discards the poisoned connection.
+> But postgres-js has no destroy semantics (`ReservedSql.release()` takes no argument), so under the
 > postgres-js driver the connection returns to the pool anyway. See
 > [Postgres Drivers & Supabase](./postgres-drivers) for the full asymmetry.
 
@@ -95,9 +95,10 @@ IGNIS supports standard PostgreSQL isolation levels:
 
 ## Best Practices
 
-1.  **Always use `try...catch`, and nest the rollback**: `rollback()` throws when `ROLLBACK` fails, so a bare `await tx.rollback()` inside a `catch` would discard the error that sent you there. Wrap it in its own `try...catch`, log the rollback failure, and rethrow the original cause.
-2.  **Keep it short**: Long-running transactions hold database connections from the pool and can cause connection exhaustion.
-3.  **Pass explicit options**: When calling other services inside a transaction, ensure they accept and use the `transaction` option.
+1.  **Always use `try...catch`, and nest the rollback**: `rollback()` throws when `ROLLBACK` fails. A bare `await tx.rollback()` inside a `catch` would discard the error that sent you there.
+2.  **Wrap the rollback in its own `try...catch`**: log the rollback failure, and rethrow the original cause.
+3.  **Keep it short**: Long-running transactions hold database connections from the pool and can cause connection exhaustion.
+4.  **Pass explicit options**: When calling other services inside a transaction, ensure they accept and use the `transaction` option.
 
 ```typescript
 // Service method supporting transactions

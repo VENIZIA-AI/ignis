@@ -6,7 +6,7 @@ difficulty: advanced
 
 # Authorization
 
-`AuthorizeComponent` wires up enforcer-based route authorization - RBAC through Casbin (with an optional multi-tenant domain-scoped model), voters, and role shortcuts - evaluated by the `authorize()` middleware after authentication.
+`AuthorizeComponent` decides whether an authenticated request is allowed to proceed. It evaluates role shortcuts, custom voters, and a Casbin RBAC enforcer, in that order, through the `authorize()` middleware. The middleware runs after authentication. Casbin's optional domain-scoped model adds multi-tenant grants on top.
 
 ## In one example
 
@@ -73,11 +73,11 @@ const DELETE_ARTICLE_CONFIG = {
 
 ## How it works
 
-- **Enforcer-based and pluggable.** `authorize({ spec })` returns Hono middleware built by `AuthorizationProvider`. It resolves an `IAuthorizationEnforcer` from `AuthorizationEnforcerRegistry` by name (default: the first registered) - swap `CasbinAuthorizationEnforcer` for a custom class without touching route configs.
-- **Runs after authentication.** The middleware reads `Authentication.CURRENT_USER` from the Hono context, so `AuthenticateComponent` must run first and the route needs an `authenticate` config alongside `authorize`.
-- **No enforcers registered = no-op.** If `AuthorizationEnforcerRegistry.hasEnforcers()` is `false`, the middleware calls `next()` and skips authorization entirely - useful during incremental rollout, dangerous if you forget to register an enforcer in production.
-- **Casbin's scoped RBAC model is the recommended engine.** `CASBIN_RBAC_DOMAIN_SCOPED_MODEL` + `isScoped: true` + `ScopedCasbinAdapter` reads one principal's role/permission/domain edges (plus the shared role/resource/action/domain hierarchy) from a single `PolicyDefinition` table, and supports multi-tenant grants scoped to `SYSTEM_WIDE`, `ANY_MEMBER`, or a specific `<Type>_<id>` domain.
-- **Per-request enforcers, cached lines.** Each Casbin evaluation borrows an isolated enforcer from an internal pool, loads that user's policy lines into it, and evaluates - the datasource query only runs on cache miss (or always, if `cached.use: false`).
+- **Enforcer-based and pluggable.** `authorize({ spec })` returns Hono middleware built by `AuthorizationProvider`, which resolves an `IAuthorizationEnforcer` from `AuthorizationEnforcerRegistry` by name (default: the first registered). Swap `CasbinAuthorizationEnforcer` for a custom class without touching route configs.
+- **Runs after authentication.** The middleware reads `Authentication.CURRENT_USER` from the Hono context. `AuthenticateComponent` must run first, and the route needs an `authenticate` config alongside `authorize`.
+- **No enforcers registered = no-op.** If `AuthorizationEnforcerRegistry.hasEnforcers()` is `false`, the middleware calls `next()` and skips authorization entirely. That's useful during incremental rollout, but dangerous if you forget to register an enforcer in production.
+- **Casbin's scoped RBAC model is the recommended engine.** Combine `CASBIN_RBAC_DOMAIN_SCOPED_MODEL`, `isScoped: true`, and `ScopedCasbinAdapter` to read one principal's policy edges from a single `PolicyDefinition` table. See [RBAC with domains](./usage#rbac-with-domains-multi-tenant) for multi-tenant grant scoping.
+- **Per-request enforcers, cached lines.** Each Casbin evaluation borrows an isolated enforcer from an internal pool, loads that user's policy lines into it, then evaluates. The datasource query runs only on a cache miss, or every time if `cached.use: false`.
 
 **Pipeline (7 steps, short-circuits marked)**
 
@@ -99,7 +99,12 @@ const DELETE_ARTICLE_CONFIG = {
 authorize: { action: AuthorizationActions.READ, resource: 'Article' }
 ```
 
-**Bypass the enforcer for trusted roles.** `alwaysAllowRoles` (global, in `IAuthorizeOptions`) or `allowedRoles` (per-route spec) skip straight to `next()` once a matching role is found.
+**Bypass the enforcer for trusted roles.** Both skip straight to `next()` once a matching role is found.
+
+| Option | Scope |
+|---|---|
+| `alwaysAllowRoles` | Global, set in `IAuthorizeOptions` |
+| `allowedRoles` | Per-route, set on the spec |
 
 ```typescript
 authorize: { action: AuthorizationActions.DELETE, resource: 'Article', allowedRoles: [AuthorizationRoles.ADMIN.identifier] }
@@ -120,7 +125,7 @@ const ownerVoter: TAuthorizationVoter = async ({ user, context }) =>
 authorize: { action: 'read', resource: 'Order', domain: { from: 'param', key: 'merchantId', type: 'Merchant' } }
 ```
 
-**Reference a model instead of a hardcoded string.** `@model({ settings: { authorize: { principal } } } })` auto-populates `Model.AUTHORIZATION_SUBJECT`.
+**Reference a model instead of a hardcoded string.** `@model({ settings: { authorize: { principal } } })` auto-populates `Model.AUTHORIZATION_SUBJECT`.
 
 ```typescript
 authorize: { action: AuthorizationActions.READ, resource: Article.AUTHORIZATION_SUBJECT }

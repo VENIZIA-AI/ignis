@@ -6,7 +6,7 @@ difficulty: intermediate
 
 # Kafka
 
-The Kafka helpers wrap `@platformatic/kafka` with four scoped classes - producer, consumer, admin, and schema registry - that add health tracking, graceful shutdown, and IGNIS-style scoped logging on top of the underlying client.
+IGNIS wraps `@platformatic/kafka` in four scoped helpers: producer, consumer, admin, and schema registry. Each adds health tracking, graceful shutdown, and IGNIS-style scoped logging over the raw client.
 
 ## In one example
 
@@ -29,75 +29,43 @@ await producer.getProducer().send({
 await producer.close();
 ```
 
-`getProducer()` returns the full `@platformatic/kafka` `Producer`. Every helper follows this same pattern: construct through `newInstance()`, reach the native client through `getProducer()` / `getConsumer()` / `getAdmin()`, close through the helper.
+`getProducer()` returns the full `@platformatic/kafka` `Producer`. Every helper follows the same three-step pattern:
 
-## How it works
-
-- **Four helpers, one job each.**
-
-  | Class | Wraps | Use case |
-  |---|---|---|
-  | `KafkaProducerHelper` | `Producer` | Publish messages, run transactions |
-  | `KafkaConsumerHelper` | `Consumer` | Consume via consumer groups, monitor lag |
-  | `KafkaAdminHelper` | `Admin` | Manage topics, partitions, groups, ACLs, configs |
-  | `KafkaSchemaRegistryHelper` | `ConfluentSchemaRegistry` | Schema-validated serialization (Avro/Protobuf/JSON Schema) |
-
-- **The three connected helpers share an identical health & close API**, regardless of which client they wrap:
-
-  ```typescript
-  const producer = KafkaProducerHelper.newInstance({ bootstrapBrokers, clientId });
-  const consumer = KafkaConsumerHelper.newInstance({ bootstrapBrokers, clientId, groupId });
-  const admin = KafkaAdminHelper.newInstance({ bootstrapBrokers, clientId });
-
-  producer.isHealthy();     // true once at least one broker is connected
-  consumer.isReady();       // true once connected AND consumer.isActive()
-  admin.getHealthStatus();  // 'connected' | 'disconnected' | 'unknown'
-
-  await Promise.all([producer.close(), consumer.close(), admin.close()]); // graceful, force fallback
-  ```
-
-  ```
-  BaseHelper (scoped logging, identifier)
-    +-- BaseKafkaHelper<TClient> (health tracking, broker events, graceful shutdown)
-    |     +-- KafkaProducerHelper<K,V,HK,HV>
-    |     +-- KafkaConsumerHelper<K,V,HK,HV>
-    |     +-- KafkaAdminHelper
-    |
-    +-- KafkaSchemaRegistryHelper<K,V,HK,HV>  (no broker connection)
-  ```
-
-- **`BaseKafkaHelper` is the shared base** for the three connected helpers (everything but the schema registry). It tracks per-broker connection state (`host:port` keys), so one idle disconnect never flips `isHealthy()` to `false` - only when every broker is gone. `isReady()`, `getHealthStatus()`, and `getConnectedBrokerCount()` read the same state, and `close({ isForce })` gives every connected helper the same two-phase graceful-then-force shutdown.
-- **Health status follows broker events automatically.** `client:broker:connect` marks a broker connected; `client:broker:disconnect` and `client:broker:failed` remove it and only flip the status to `'disconnected'` once every broker is gone; `close()` clears everything. You never set `healthStatus` yourself.
-- **`KafkaSchemaRegistryHelper` extends `BaseHelper` directly.** It opens no broker connection, so it has no health tracking - it's a configuration wrapper you hand to a producer or consumer via `registry`.
-- **Everything lives at the `/kafka` sub-path, never the root barrel.** `@platformatic/kafka` is an optional peer dependency (`^2.1.0` - `bun add @platformatic/kafka`); keeping it off the root barrel lets apps that never touch Kafka tree-shake it away entirely.
-- **Generics default to `string`.** All four classes accept `<KeyType, ValueType, HeaderKeyType, HeaderValueType>` generics. Without serializers/deserializers, messages travel as raw `Buffer`.
-- **`newInstance()` is the documented entry point.** Every class also exposes a public constructor, but `newInstance()` is what every example on these pages uses, and it carries the same generic inference: `KafkaProducerHelper.newInstance<string, MyEvent>({ ... })`.
-- **Compiling to a single binary needs one extra step.** `bun build --compile` crashes at startup with `ENOENT: native.wasm` unless the build registers `platformaticWasmPlugin()` - see [Compiling to a Single Binary](./compile-binary).
-
-**Exported constants** (`@venizia/ignis-helpers/kafka`):
-
-| Constant | Exports | Purpose |
-|---|---|---|
-| `KafkaDefaults` | Timeouts, retry counts, buffer sizes | Every default value the helpers fall back to |
-| `KafkaAcks` | `NONE` (`0`) / `LEADER` (`1`) / `ALL` (`-1`) | Producer acknowledgment levels |
-| `KafkaGroupProtocol` | `CLASSIC` / `CONSUMER` | Consumer group protocol version |
-| `KafkaHealthStatuses` | `CONNECTED` / `DISCONNECTED` / `UNKNOWN` | `getHealthStatus()` return values |
-| `KafkaClientEvents` | Raw platformatic event names | Direct listening on `getProducer()` / `getConsumer()` / `getAdmin()` |
-
-## Pages
-
-Each class, and the one build-time gotcha, gets its own page:
-
-| Page | Covers |
+| Step | Call |
 |---|---|
-| [Producer](./producer) | `KafkaProducerHelper` - connection & SASL setup, serialization, compression, transactions, full `Producer` API |
-| [Consumer](./consumer) | `KafkaConsumerHelper` - message callbacks, automatic reconnect, lag monitoring, full `Consumer` API |
-| [Admin](./admin) | `KafkaAdminHelper` - topic, group, offset, ACL, and quota management |
-| [Schema Registry](./schema-registry) | `KafkaSchemaRegistryHelper` for Avro/Protobuf/JSON Schema validated messages |
-| [Compiling to a Single Binary](./compile-binary) | The `platformaticWasmPlugin()` fix for `bun build --compile` |
-| [Examples & Troubleshooting](./examples) | End-to-end examples, IoC wiring, common errors |
+| Construct | `newInstance()` |
+| Reach the native client | `getProducer()` / `getConsumer()` / `getAdmin()` |
+| Close | through the helper, not the native client |
 
-Start with [Producer](./producer) or [Consumer](./consumer) if you're wiring up your first topic; start with [Compiling to a Single Binary](./compile-binary) if an existing app just started throwing `ENOENT: native.wasm` after a `bun build --compile`.
+## Which helper do I need
+
+| Class | Wraps | Use it to |
+|---|---|---|
+| `KafkaProducerHelper` | `Producer` | Publish messages, run transactions |
+| `KafkaConsumerHelper` | `Consumer` | Consume via consumer groups, monitor lag |
+| `KafkaAdminHelper` | `Admin` | Manage topics, partitions, groups, ACLs, configs |
+| `KafkaSchemaRegistryHelper` | `ConfluentSchemaRegistry` | Schema-validated serialization (Avro/Protobuf/JSON Schema) |
+
+A few facts hold across all four:
+
+- **Producer, consumer, and admin share one health and close API.** `isHealthy()`, `isReady()`, `getHealthStatus()`, and `close({ isForce })` mean the same thing on every class. Each page documents the exact return values.
+- **Schema registry opens no broker connection.** It extends `BaseHelper` directly, not the shared connected-helper base. It has no health tracking - it's a configuration wrapper you hand to a producer or consumer via `registry`.
+- **Everything lives under `/kafka`, never the root barrel.** Install the optional peer yourself: `bun add @platformatic/kafka` (`^2.6.1`). An app that never touches Kafka tree-shakes it away entirely.
+- **Compiling to a single binary needs one extra build step.** Skip it, and the compiled app crashes at startup with `ENOENT: native.wasm` - see [Compiling to a Single Binary](./compile-binary).
+- **Defaults and enum-like values ship as exported constants**, not magic numbers - `KafkaDefaults`, `KafkaAcks`, `KafkaGroupProtocol`, `KafkaHealthStatuses`. Each page's options table names the constant it uses.
+
+## Find what you need
+
+| You want to | Go to |
+|---|---|
+| Publish messages, set up SASL/TLS, run transactions | [Producer](./producer) |
+| Consume messages, monitor lag, handle reconnects | [Consumer](./consumer) |
+| Create or delete topics, inspect consumer groups, manage ACLs | [Admin](./admin) |
+| Validate message shape with Avro, Protobuf, or JSON Schema | [Schema Registry](./schema-registry) |
+| See end-to-end examples or fix a connection error | [Examples & Troubleshooting](./examples) |
+| Ship an app that imports a Kafka helper as a single binary | [Compiling to a Single Binary](./compile-binary) |
+
+Start with [Producer](./producer) or [Consumer](./consumer) if you're wiring up your first topic. Start with [Compiling to a Single Binary](./compile-binary) if an existing app started throwing `ENOENT: native.wasm` after a `bun build --compile`.
 
 ## See also
 

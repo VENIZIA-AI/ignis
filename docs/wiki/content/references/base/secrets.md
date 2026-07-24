@@ -6,7 +6,7 @@ difficulty: advanced
 
 # Deep Dive: Secrets & Vault
 
-Technical reference for the `Secrets` provider family - how IGNIS loads configuration and credentials from a vault instead of reading `process.env` directly, hydrates static secrets at boot, and rotates dynamic database credentials into a live connection pool without a restart.
+Technical reference for the `Secrets` provider family. It covers how IGNIS loads configuration and credentials from a vault instead of reading `process.env` directly, hydrates static secrets at boot, and rotates dynamic database credentials into a live connection pool without a restart.
 
 > [!IMPORTANT] Dormant by default
 > An application that does not override `registerSecrets()` gets the `system-envs` provider, which reads `process.env` exactly as before. The whole subsystem is additive - existing apps behave identically until they opt in.
@@ -45,7 +45,7 @@ AbstractSecretsHelper (BaseHelper; TTL cache, lease registry, renewal scheduler,
   └── DotenvVaultHelper      // 'dotenv-vault'    - encrypted .env.vault, static only.
 ```
 
-The renewal scheduler, TTL cache, lease registry, and `onRotate` dispatch all live in `AbstractSecretsHelper`. A concrete provider implements only the raw calls against its backend (`fetchRaw`, `renewRaw`, `revokeRaw`), which is why the two static providers are thin and why only HashiCorp exercises the lease machinery.
+The renewal scheduler, TTL cache, lease registry, and `onRotate` dispatch all live in `AbstractSecretsHelper`. A concrete provider implements only the raw calls against its backend (`fetchRaw`, `renewRaw`, `revokeRaw`). That's why the two static providers are thin, and why only HashiCorp exercises the lease machinery.
 
 ## `ISecretsHelper` Interface
 
@@ -92,7 +92,7 @@ interface ISecretRotatable {
 ```
 
 > [!NOTE] Static vs dynamic secrets
-> `get()` / `getBundle()` return static values (KV, env) and are TTL-cached. `lease()` returns a dynamic, lease-bearing secret and is supported only by `HashiCorpVaultHelper`; the static providers throw an explicit NotSupported error rather than returning a fake lease.
+> `get()` / `getBundle()` return static values (KV, env) and are TTL-cached. `lease()` returns a dynamic, lease-bearing secret and is supported only by `HashiCorpVaultHelper`. The static providers throw an explicit NotSupported error instead of returning a fake lease.
 
 ## Registration
 
@@ -176,7 +176,7 @@ validateEnvs → staticConfigure → preConfigure
 3. Binds the live provider at `CoreBindings.APPLICATION_CONFIG` (`@app/config`) as a singleton.
 4. Registers a post-stop hook (`secrets.shutdown`) so `provider.shutdown()` runs on teardown, revoking outstanding leases.
 
-`wireSecretRotatables()` runs after datasources are registered: for each `lease` entry it resolves the datasource at `entry.key` and, if the instance implements `onSecretRotated`, calls `provider.registerRotatable({ key, target })`. A datasource that does not implement the hook is skipped.
+`wireSecretRotatables()` runs after datasources are registered. For each `lease` entry it resolves the datasource at `entry.key` and, if the instance implements `onSecretRotated`, calls `provider.registerRotatable({ key, target })`. A datasource that does not implement the hook is skipped.
 
 > [!TIP] Why a lifecycle phase and not a Component
 > Components register *after* datasources, but secrets must be resolved *before* datasources build their pools. Hydration is therefore a dedicated phase, not a component.
@@ -190,15 +190,16 @@ validateEnvs → staticConfigure → preConfigure
 | Development set | Log a warning, fall back to a `system-envs` provider, continue booting |
 | Everything else (prod, staging, and any unrecognized name) | Throw `ApplicationError`, crash the boot |
 
-The fallback in development builds a fresh `SystemEnvsHelper` and shuts down the partially-built provider first, so a half-authenticated Vault client leaves no renewal timer or lease behind.
+The fallback in development builds a fresh `SystemEnvsHelper`. It shuts down the partially-built provider first, so a half-authenticated Vault client leaves no renewal timer or lease behind.
 
 ## `AbstractSecretsHelper` Machinery
 
 **File:** `packages/helpers/src/modules/secrets/base/abstract.helper.ts`
 
 - **TTL cache** - `get()` / `getBundle()` cache each path for `cacheTtlSeconds` (default 300) and re-fetch on expiry.
-- **Renewal scheduler** - each lease schedules a renewal at `ttlSeconds × renewBeforeRatio` (default 0.66) through an injectable timer seam. On fire, `renewRaw()` extends the same lease; on renew failure or max-TTL, `fetchRaw()` mints a fresh lease and a single rotation is dispatched.
-- **Rotation dispatch** - `onRotate` handlers run first, then the registered rotatables for that key run **in series**; a throwing consumer is logged and does not abort the others.
+- **Renewal scheduler** - each lease schedules a renewal at `ttlSeconds × renewBeforeRatio` (default 0.66) through an injectable timer seam.
+- **On renewal fire** - `renewRaw()` extends the same lease. On renew failure or max-TTL, `fetchRaw()` mints a fresh lease and a single rotation is dispatched instead.
+- **Rotation dispatch** - `onRotate` handlers run first. The registered rotatables for that key then run **in series**; a throwing consumer is logged and does not abort the others.
 - **Shutdown** - clears every timer and revokes every lease via `revokeRaw()`.
 
 The scheduler, cache, and clock are injectable, so the machinery is tested deterministically without real timers or a live vault.
@@ -210,9 +211,12 @@ The scheduler, cache, and clock are injectable, so the machinery is tested deter
 - **Auth** - a Zod discriminated union on `method`: `token`, `app-role` (`roleId` + `secretId`), `kubernetes` (`role`, optional `jwtPath`). `configure()` logs in and stores the Vault token.
 - **KV v2** - `getBundle()` unwraps the KV-v2 `.data.data` envelope automatically.
 - **Dynamic secrets** - a read against a dynamic engine (for example `database/creds/...`) returns a lease (`lease_id`, `lease_duration`, `renewable`), which drives the renewal scheduler.
-- **Token self-renewal** - the Vault auth token has its own TTL. The provider schedules the token for renewal in the same cadence and re-runs the login flow (re-auth) if the token can no longer be renewed, so AppRole / Kubernetes deployments survive past the token TTL without a restart.
+- **Token self-renewal** - the Vault auth token has its own TTL. The provider schedules the token for renewal in the same cadence as leases.
+- **Re-auth on expiry** - if the token can no longer be renewed, the provider re-runs the login flow, so AppRole / Kubernetes deployments survive past the token TTL without a restart.
 
-`node-vault` is an optional peer. It is reached only through the `@venizia/ignis-helpers/hashicorp-vault` sub-path and a bundler-invisible dynamic import (`importOptionalModule`), so importing the root package never requires it - and `Bun.build`-compiled applications need no `external: ['node-vault']` workaround. An application that does use this provider and compiles a binary must ship `node-vault` in `node_modules` next to the binary, or inject a ready-made `client` through the helper options.
+`node-vault` is an optional peer. It is reached only through the `@venizia/ignis-helpers/hashicorp-vault` sub-path and a bundler-invisible dynamic import (`importOptionalModule`), so importing the root package never requires it. `Bun.build`-compiled applications need no `external: ['node-vault']` workaround.
+
+An application that does use this provider and compiles a binary must ship `node-vault` in `node_modules` next to the binary. Alternatively, inject a ready-made `client` through the helper options.
 
 ## Dotenv Vault Provider
 
@@ -229,7 +233,7 @@ The PostgreSQL datasource implements `onSecretRotated()` on `AbstractRelationalD
 1. Capture the current pool.
 2. Apply the new credentials onto `this.settings` (`{ username, password }` maps to pg's `{ user, password }`).
 3. Clear the driver / connector / client, re-run `configure()` to build a fresh pool, and re-wire the driver.
-4. Drain the old pool with `end()` - which resolves once checked-out clients are released, so in-flight transactions finish on the old pool while new work uses the new one.
+4. Drain the old pool with `end()`. It resolves once checked-out clients are released, so in-flight transactions finish on the old pool while new work uses the new one.
 
 > [!WARNING] configure() must read from this.settings
 > Rotation applies new credentials by writing them onto `this.settings` and re-running `configure()`. A `configure()` that builds its pool from a hard-coded connection string, or reads `Envs` directly, will rebuild with **stale** credentials.

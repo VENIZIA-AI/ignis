@@ -1,92 +1,26 @@
 # Components
 
-Reusable, pluggable modules that group together related features. A component can encapsulate various resources such as providers, services, controllers, repositories, or even an entire mini-application, providing a clean way to modularize and share complex logic across IGNIS applications.
+Self-contained feature modules you register with `this.component(SomeComponent)`.
 
-## Built-in Components
+## Built-in components
 
-| Component | Purpose | Key Features |
-|-----------|---------|--------------|
-| [Authentication](./authentication/) | JWT/Basic auth | Token generation, protected routes, multi-strategy |
-| [Authorization](./authorization/) <Badge type="warning" text="Experimental" /> | Enforcer-based authz | RBAC, ABAC, voters, Casbin integration, role shortcuts |
-| [Health Check](./health-check) | Monitoring endpoint | `/health` endpoint, ping/pong functionality |
-| [Mail](./mail/) | Email sending system | Multiple transports, templating, queue-based processing |
-| [Request Tracker](./request-tracker) | Request logging | Request ID generation, timing, structured logging |
-| [Socket.IO](./socket-io/) | Real-time communication | WebSocket support, Redis adapter, event-based |
-| [WebSocket](./websocket/) | Real-time communication | Bun native WebSocket, Redis Pub/Sub, heartbeat |
-| [Static Asset](./static-asset/) | File management | Upload/download files, MinIO, Bun S3 & local filesystem support |
-| [Swagger](./api-reference) | API documentation | OpenAPI generation, Swagger UI, Scalar UI |
-| [gRPC](/references/base/grpc-controllers) | gRPC transport | ConnectRPC integration, unary RPC, decorator-based |
+| Component | What it does | When you reach for it |
+|---|---|---|
+| [Authentication](./authentication/) | JWT and Basic auth - token generation, protected routes, multi-strategy | A route needs to know who the caller is |
+| [Authorization](./authorization/) <Badge type="warning" text="Experimental" /> | Enforcer-based RBAC/ABAC, voters, Casbin integration | A route needs a permission check beyond authentication |
+| [Health Check](./health-check) | `/health` endpoint, ping/pong | A load balancer or Kubernetes needs a liveness probe |
+| [Mail](./mail/) | Email sending - multiple transports, templating, queue-based | The app sends transactional or templated email |
+| [Request Tracker](./request-tracker) | Request ID, timing, structured request logging | Always on - registered automatically, nothing to configure |
+| [Socket.IO](./socket-io/) | Real-time over Socket.IO - Redis adapter, event-based | Clients need rooms or Socket.IO-specific features |
+| [WebSocket](./websocket/) | Native Bun WebSocket, Redis pub/sub, heartbeat | Clients need a raw WebSocket without Socket.IO |
+| [Static Asset](./static-asset/) | Upload/download files - MinIO, Bun S3, local disk | The app stores or serves user-uploaded files |
+| [API Reference](./api-reference) | OpenAPI generation, Scalar UI by default, Swagger UI optional | You want a browsable UI for your REST routes |
+| [gRPC](/references/base/grpc-controllers) | ConnectRPC transport, unary RPC, decorator-based | The app serves gRPC alongside or instead of REST |
 
-## Creating a Component
+## See also
 
-To create a new component, you need to create a class that extends `BaseComponent`.
-
-```typescript
-import { BaseApplication, BaseComponent, inject, CoreBindings, ValueOrPromise } from '@venizia/ignis';
-
-export class MyCustomComponent extends BaseComponent {
-  constructor(
-    @inject({ key: CoreBindings.APPLICATION_INSTANCE }) private application: BaseApplication,
-  ) {
-    super({ scope: MyCustomComponent.name });
-  }
-
-  override binding(): ValueOrPromise<void> {
-    // This is where you bind your component's resources.
-    this.application.service(MyCustomService);
-    this.application.controller(MyCustomController);
-  }
-}
-```
-
-## Component Lifecycle
-
-| Phase | When | Purpose |
-|-------|------|---------|
-| **`constructor()`** | Component instantiation | Receive dependencies, define default bindings |
-| **`binding()`** | Application startup | Register controllers, services, repositories with DI container |
-
-## Registering a Component
-
-To use a component, you need to register it with the application instance, usually in the `preConfigure` method of your `Application` class.
-
-```typescript
-// in src/application.ts
-import { MyCustomComponent } from './components/my-custom.component';
-
-// ... inside your Application class
-
-  preConfigure(): ValueOrPromise<void> {
-    // ...
-    this.component(MyCustomComponent);
-  }
-```
-
-When the application starts, it will automatically call the `binding()` method of the registered component, setting up all the resources it provides.
-
-Using components is a great way to organize your application's features into modular, reusable pieces of code, keeping your main application class clean and focused on high-level configuration.
-
-## See Also
-
-- **Component Guides:**
-  - [Components Overview](/guides/core-concepts/components) - What components are
-  - [Creating Components](/guides/core-concepts/components-guide) - Build your own components
-
-- **Built-in Components:**
-  - [Authentication](./authentication/) - JWT/Basic authentication
-  - [Authorization](./authorization/) - Enforcer-based authorization
-  - [Health Check](./health-check) - Health check endpoints
-  - [Mail](./mail/) - Email functionality
-  - [Request Tracker](./request-tracker) - Request tracking
-  - [Socket.IO](./socket-io/) - Socket.IO WebSocket support
-  - [WebSocket](./websocket/) - Bun native WebSocket
-  - [Static Asset](./static-asset/) - File upload/download management
-  - [Swagger](./api-reference) - API documentation
-  - [gRPC](/references/base/grpc-controllers) - gRPC transport (ConnectRPC)
-
-- **References:**
-  - [BaseComponent API](/references/base/components) - Component base class
-  - [Application](/references/base/application) - Registering components
-
-- **Best Practices:**
-  - [Architectural Patterns](/best-practices/architectural-patterns) - Component design patterns
+- [Components Overview](/guides/core-concepts/components) - What components are
+- [Creating Components](/guides/core-concepts/components-guide) - Build your own
+- [BaseComponent API](/references/base/components) - Component base class
+- [Application](/references/base/application) - Registering components
+- [Architectural Patterns](/best-practices/architectural-patterns) - Component design patterns

@@ -6,7 +6,9 @@ difficulty: intermediate
 
 # WebSocket
 
-A Bun-native WebSocket server with post-connection authentication, rooms, heartbeat, and Redis Pub/Sub for horizontal scaling, plus a Redis-only emitter for publishing to it from other processes.
+A Bun-native WebSocket server with post-connection authentication, rooms, heartbeat, and Redis Pub/Sub for horizontal scaling. A Redis-only emitter sends to it from other processes that run no server of their own.
+
+This helper is the raw class: construct it and wire it into your own server yourself. Need it inside an IGNIS app instead? [`WebSocketComponent`](/extensions/components/websocket/) does that wiring for you. It creates and binds the helper through DI once your app's Bun server is listening.
 
 > [!IMPORTANT]
 > **Bun only.** `WebSocketServerHelper` uses Bun's native WebSocket API and will not run on Node.js. For Node.js, use the [Socket.IO Helper](../socket-io/) instead.
@@ -46,7 +48,7 @@ ws.onopen = () => ws.send(JSON.stringify({ event: 'authenticate', data: { token:
 
 ## How it works
 
-- **Every connection starts unauthenticated.** The WebSocket upgrade always succeeds; the client starts as `UNAUTHORIZED` and must send `{ event: 'authenticate' }` within `authTimeout` (5s default) or get closed with code `4001`.
+- **Every connection starts unauthenticated.** The WebSocket upgrade always succeeds, and the client starts as `UNAUTHORIZED`. It must send `{ event: 'authenticate' }` within `authTimeout` (5s default) or get closed with code `4001`.
 - **`authenticateFn` decides accept or reject.** On success the client is indexed by `userId`, joins `defaultRooms`, and moves to `AUTHENTICATED`.
 - **Delivery has two tiers** - local-only fan-out on this process, or a Redis Pub/Sub layer that also reaches other server instances:
 
@@ -56,7 +58,8 @@ ws.onopen = () => ws.send(JSON.stringify({ event: 'authenticate', data: { token:
 | Cross-instance | `send()`, `WebSocketEmitter` | Clients on any server instance | Redis Pub/Sub, via the server's duplicated `redisPub`/`redisSub` connections |
 
 - **Liveness is passive.** The server never pings clients - they must periodically send `{ event: 'heartbeat' }`. A sweep every `heartbeatInterval` (30s) closes anyone silent for longer than `heartbeatTimeout` (90s) with code `4002`.
-- **Encryption is opt-in per client.** An `outboundTransformer` callback intercepts every outbound message before `socket.send()`. Once a client is encrypted, Bun native pub/sub is bypassed for it - `sendToRoom`/`broadcast` fall back to iterating encrypted clients individually.
+- **Encryption is opt-in per client.** An `outboundTransformer` callback intercepts every outbound message before `socket.send()`.
+- **Once encrypted, delivery changes.** Bun native pub/sub is bypassed for that client. `sendToRoom`/`broadcast` then fall back to iterating encrypted clients individually.
 
 ## Common tasks
 
@@ -96,7 +99,7 @@ helper.broadcast({ event: 'system:announcement', data: { text: 'Maintenance in 5
 
 ### Let clients join rooms
 
-Clients can only join custom rooms when you supply `validateRoomFn` - without it, every join request is rejected by default:
+Clients can only join custom rooms when you supply `validateRoomFn`. Without it, every join request is rejected by default:
 
 ```typescript
 const helper = new WebSocketServerHelper({

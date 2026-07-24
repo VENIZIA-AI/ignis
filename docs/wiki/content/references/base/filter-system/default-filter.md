@@ -7,7 +7,7 @@ lastUpdated: 2026-07-23
 
 # Default Filter <Badge type="tip" text="v0.0.5+" />
 
-A model's `settings.defaultFilter` merges into every `find`/`findOne`/`findById`/`count`/`updateById`/`updateAll`/`deleteById`/`deleteAll` call for that model - the standard way to implement soft delete, multi-tenancy, active-record scoping, and query-limit protection without repeating a `where` clause at every call site.
+A model's `settings.defaultFilter` merges into every `find`/`findOne`/`findById`/`count`/`updateById`/`updateAll`/`deleteById`/`deleteAll` call for that model. It's the standard way to implement soft delete, multi-tenancy, active-record scoping, and query-limit protection without repeating a `where` clause at every call site.
 
 ```typescript
 import { model, BaseEntity } from '@venizia/ignis';
@@ -42,7 +42,7 @@ await userRepository.find({ filter: { where: { status: 'active' } } });
 `applyDefaultFilter()` merges the model's `defaultFilter` with the caller's filter via `FilterBuilder.mergeFilter()`.
 
 - **`where` narrows per-key.** See the narrowing law below.
-- **Everything else is user-wins-if-provided.** A caller value replaces the default, but a caller value of `undefined` never does - a filter built by spreading an optional object can't silently blow away a tenant scope or a limit.
+- **Everything else is user-wins-if-provided.** A caller value replaces the default, but a caller value of `undefined` never does. A filter built by spreading an optional object can't silently blow away a tenant scope or a limit.
 
 | Property | Merge strategy |
 |---|---|
@@ -62,7 +62,7 @@ Keys present on only one side pass through untouched. When the same key appears 
 
 - **`and` collisions concatenate.** Both conjunct lists merge into one.
 - **`or` collisions cannot concatenate** - that would union, not narrow - so each side's `or` group becomes its own conjunct instead.
-- **Non-scalar collisions always AND-compose.** A default scope - a `createdAt` floor, a tenant `inq` - can be narrowed by a caller filter but never widened or dropped.
+- **Non-scalar collisions always AND-compose.** Take a default scope - a `createdAt` floor, a tenant `inq`. A caller filter can narrow it, but never widen or drop it.
 - **Only scalar-over-scalar is a true override.** Every other collision shape composes rather than replaces.
 
 ```typescript
@@ -99,7 +99,7 @@ await repository.find({
 // WHERE "role" = 'admin' (includes soft-deleted rows)
 ```
 
-`updateById` and `deleteById` merge the default filter into their `{ id }` condition the same way `updateAll`/`deleteAll` merge it into their `where` - the bypass applies to all four identically:
+`updateById` and `deleteById` merge the default filter into their `{ id }` condition the same way `updateAll`/`deleteAll` merge it into their `where`. The bypass applies to all four identically:
 
 ```typescript
 // Also merges the default filter into { id: postId } - skip to update a soft-deleted row
@@ -175,7 +175,7 @@ await postRepository.updateById({
 });
 ```
 
-**Query-limit protection** - prefer the dedicated `settings.defaultLimit` over a `limit` inside `defaultFilter`. It resolves independently (`query.limit ?? defaultLimit ?? 10`, see [Fields, Order & Pagination -> Default limit resolution](./fields-order-pagination#default-limit-resolution)) and, unlike `defaultFilter`, is not dropped by `shouldSkipDefaultFilter`:
+**Query-limit protection** - prefer the dedicated `settings.defaultLimit` over a `limit` inside `defaultFilter`. It resolves independently (`query.limit ?? defaultLimit ?? 10`, see [Fields, Order & Pagination -> Default limit resolution](./fields-order-pagination#default-limit-resolution)). Unlike `defaultFilter`, it is not dropped by `shouldSkipDefaultFilter`:
 
 ```typescript
 @model({
@@ -230,9 +230,9 @@ getDefaultLimit(): number | undefined
 applyDefaultFilter(opts: { userFilter?: TFilter; shouldSkipDefaultFilter?: boolean }): TFilter
 ```
 
-`getDefaultFilter()` reads `this.modelSettings?.defaultFilter`, where `modelSettings` is a protected getter on `AbstractRepository` (`src/base/repositories/core/abstract.ts`) resolved from `MetadataRegistry` by the entity's constructor, not by name string, on first access, then memoized.
+`getDefaultFilter()` reads `this.modelSettings?.defaultFilter`. `modelSettings` is a protected getter on `AbstractRepository` (`src/base/repositories/core/abstract.ts`), resolved from `MetadataRegistry` by the entity's constructor - not by name string - on first access, then memoized.
 
-Read verbs (`find`/`findOne`/`findById`/`count`) call `applyDefaultFilter()` directly. Write verbs (`updateById`/`updateAll`/`deleteById`/`deleteAll`) route through the shared `_update`/`_delete` helpers, which call it against `{ where: opts.where }` (or `{ id }` for the `ById` forms) before building the SQL condition.
+Read verbs (`find`/`findOne`/`findById`/`count`) call `applyDefaultFilter()` directly. Write verbs (`updateById`/`updateAll`/`deleteById`/`deleteAll`) route through the shared `_update`/`_delete` helpers instead. Those helpers call it against `{ where: opts.where }` (or `{ id }` for the `ById` forms) before building the SQL condition.
 
 > [!NOTE]
 > An older `DefaultFilterMixin` implemented this same behavior via mixin composition. It is no longer composed onto any repository class - see [Repository Mixins (Removed)](../repositories/mixins.md) for history.

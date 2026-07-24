@@ -42,11 +42,11 @@ export class Application extends BaseApplication {
 
 ## How it works
 
-- **Two-phase startup solves a timing problem.** `binding()` runs during `initialize()`, before any Bun server exists. It validates bindings and registers a post-start hook; the actual `WebSocketServerHelper` is only constructed once `executePostStartHooks()` runs, after `Bun.serve()` has produced a live server instance.
-- **Two bindings gate startup.** `REDIS_CONNECTION` (must be an `AbstractRedisHelper` instance) and `AUTHENTICATE_HANDLER` are required. `binding()` throws synchronously if either is missing or the wrong type - before the post-start hook is even registered.
+- **Two-phase startup solves a timing problem.** `binding()` runs during `initialize()`, before any Bun server exists. It validates bindings and registers a post-start hook. The actual `WebSocketServerHelper` is only constructed once `executePostStartHooks()` runs, after `Bun.serve()` has produced a live server instance.
+- **Two bindings gate startup.** `REDIS_CONNECTION` and `AUTHENTICATE_HANDLER` are both required. `REDIS_CONNECTION` must be an `AbstractRedisHelper` instance. `binding()` throws synchronously if either is missing or the wrong type - before the post-start hook is even registered.
 - **Runtime is checked first, fast.** `RuntimeModules.detect()` runs at the top of `binding()`. On Node.js it throws immediately, so a misconfigured app fails at startup, not on first connection.
 - **The instance appears only after start.** The post-start hook binds the configured helper to `WebSocketBindingKeys.WEBSOCKET_INSTANCE`. It does not exist during DI construction. Inject it lazily from a service or controller, never via `@inject` in a constructor.
-- **A custom `fetch` handler splits traffic.** After the post-start hook runs, `server.reload()` swaps in a handler that routes WebSocket upgrade requests (`GET <path>` with an `Upgrade: websocket` header) to Bun's native handler, and everything else to the existing Hono server unchanged.
+- **A custom `fetch` handler splits traffic.** After the post-start hook runs, `server.reload()` swaps in a new handler. It routes WebSocket upgrade requests - `GET <path>` with an `Upgrade: websocket` header - to Bun's native handler. Everything else goes to the existing Hono server, unchanged.
 
 ## Common tasks
 

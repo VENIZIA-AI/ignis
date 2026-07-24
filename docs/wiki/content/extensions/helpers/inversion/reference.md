@@ -80,7 +80,7 @@ import type {
 ```
 
 > [!NOTE]
-> The framework package `@venizia/ignis` re-exports DI-specific symbols (`Binding`, `BindingKeys`, `BindingScopes`, `BindingValueTypes`, `IProvider`, `isClass`, `isClassProvider`, `TBindingScope`, `TBindingValueType`, `IBindingTag`) from `@venizia/ignis-inversion` and adds higher-level helpers (`app.controller()`, `app.service()`, etc.). All types are also available via type-only re-exports.
+> The framework package `@venizia/ignis` re-exports these DI symbols from `@venizia/ignis-inversion`, types included: `Binding`, `BindingKeys`, `BindingScopes`, `BindingValueTypes`, `IProvider`, `isClass`, `isClassProvider`, `TBindingScope`, `TBindingValueType`, `IBindingTag`. It also adds higher-level helpers of its own (`app.controller()`, `app.service()`, etc.).
 
 ## Class Hierarchy
 
@@ -92,7 +92,7 @@ AbstractContainer extends BaseHelper implements IContainer   # contract only - e
         └── Container                                        # instantiate() = two-phase decorator injection
 ```
 
-`AbstractContainer` exists so a container implementation that shares nothing with the shipped storage can start there; one that only wants to vary resolution extends `BaseContainer` instead. `binding/` and `container/` only talk to each other through `IContainer`/`IBinding` - there is no import cycle between the two folders.
+`AbstractContainer` exists so a container implementation that shares nothing with the shipped storage can start there. One that only wants to vary resolution extends `BaseContainer` instead. `binding/` and `container/` only talk to each other through `IContainer`/`IBinding` - there is no import cycle between the two folders.
 
 ## Creating a Container
 
@@ -124,7 +124,7 @@ const container = new Container({ scope: 'MyApp' });
 | `reset` | `reset(): void` | Remove all bindings entirely |
 | `getMetadataRegistry` | `getMetadataRegistry(): MetadataRegistry` | Return the shared `metadataRegistry` singleton |
 
-All keys passed to `bind`, `isBound`, and `unbind` are normalized with `String(key)` before being used as the `Map` key - a `Symbol` key resolves to its `.toString()` form (`'Symbol(...)'`), so a `symbol` and the equivalent string are distinct entries.
+All keys passed to `bind`, `isBound`, and `unbind` are normalized with `String(key)` before being used as the `Map` key. A `Symbol` key resolves to its `.toString()` form (`'Symbol(...)'`), so a `symbol` and the equivalent string are distinct entries.
 
 ### `instantiate()` - two-phase algorithm
 
@@ -139,10 +139,9 @@ override instantiate<T>(cls: TClass<T>): T
 
 The array is already index-keyed (`setInjectMetadata` writes to `injects[index]`) - there is no sort step. Once all arguments are resolved, `new cls(...args)` builds the instance.
 
-**Phase 2 - property injection.** Reads `registry.getPropertiesMetadata({ target: instance })`. If there is none, returns the instance as-is. Otherwise, for each `[propertyKey, metadata]` entry, resolves `this.get({ key: metadata.bindingKey, isOptional: metadata.optional ?? false })` and assigns it to `instance[propertyKey]`.
+**Phase 2 - property injection.** Reads `registry.getPropertiesMetadata({ target: instance })`. If there is none, returns the instance as-is. Otherwise, for each `[propertyKey, metadata]` entry, resolves `this.get({ key: metadata.bindingKey, isOptional: metadata.isOptional ?? false })` and assigns it to `instance[propertyKey]`.
 
-> [!WARNING]
-> Property injection's optional check reads `metadata.optional`, but `@inject` writes `IPropertyMetadata.isOptional` (see [`IPropertyMetadata`](#metadataregistry-types) below) - `metadata.optional` is always `undefined` at runtime, so `metadata.optional ?? false` always evaluates to `false`. In practice, `@inject({ key, isOptional: true })` on a **property** has no effect: an unbound property dependency still throws. This is a verified source-level discrepancy in `container.ts`, not a documented API - `isOptional` on a **constructor parameter** (`meta.isOptional`, phase 1) works correctly. If you need an optional dependency, use `@inject` on a constructor parameter, or resolve it manually with `container.get({ key, isOptional: true })` inside the constructor.
+`@inject({ key, isOptional: true })` on a **property** behaves exactly like on a constructor parameter: an unbound key resolves to `undefined` instead of throwing. A required property (`isOptional` omitted or `false`) still throws when its key is unbound.
 
 ### Key formats
 
@@ -167,7 +166,7 @@ const [svcA, svcB] = container.gets<[ServiceA, ServiceB]>({
 });
 ```
 
-Internally maps each entry through `this.get({ ...opt, isOptional: true })` - regardless of what `isOptional` was set to on the entry, `gets()` always resolves with `isOptional: true` and returns `undefined` for anything unbound rather than throwing.
+Internally maps each entry through `this.get({ ...opt, isOptional: true })`. Regardless of what `isOptional` was set on the entry, `gets()` always resolves with `isOptional: true` - anything unbound returns `undefined` instead of throwing.
 
 ## Binding
 
@@ -194,17 +193,20 @@ Internally maps each entry through `this.get({ ...opt, isOptional: true })` - re
 constructor(opts: { key: string })
 ```
 
-Splits `key` on `.`; if there is more than one segment, the first segment is auto-added as a tag via `setTags()`. `'services.UserService'` auto-tags `'services'`; a key with no `.` gets no automatic tag.
+Splits `key` on `.`. If there is more than one segment, the first segment is auto-added as a tag via `setTags()`. `'services.UserService'` auto-tags `'services'`. A key with no `.` gets no automatic tag.
 
 ### `getValue()` resolution by type
 
 | Resolver type | Behavior | Throws when |
 |----------------|----------|--------------|
 | `VALUE` | Returns the stored value directly | Never |
-| `PROVIDER` | If the stored value is a plain function, calls `provider(container)`. If it is a class matching `isClassProvider` (prototype has a `value()` method), the container `instantiate()`s the class first, then calls `.value(container)` on the instance | No `container` argument was passed - `[getValue] Invalid context/container to get provider value` |
+| `PROVIDER` (plain function) | Calls `provider(container)` | No `container` argument was passed - `[getValue] Invalid context/container to get provider value` |
+| `PROVIDER` (class, matched via `isClassProvider`) | `container.instantiate()`s the class, then calls `.value(container)` on the instance | Same as above |
 | `CLASS` | `container.instantiate(this.resolver.value)` | No `container` argument was passed - `[getValue] Invalid context/container to instantiate class` |
 
-If `bindScope` is `SINGLETON`, the resolved instance is cached on `this.cached` and returned directly on every subsequent call without re-invoking the resolver - caching is per-`Binding` instance, not per-container.
+`isClassProvider` matches a class whose prototype has a `value()` method - see [Class-based provider](#class-based-provider) below.
+
+If `bindScope` is `SINGLETON`, the resolved instance is cached on `this.cached`. Every subsequent call returns it directly without re-invoking the resolver - caching is per-`Binding` instance, not per-container.
 
 ### Class-based provider
 
@@ -279,7 +281,6 @@ interface IInjectMetadata {
 interface IPropertyMetadata {
   bindingKey: TBindingKey;
   isOptional?: boolean;
-  [key: string]: any;
 }
 ```
 
@@ -330,7 +331,7 @@ BindingKeys.build({ namespace: 'services', key: '' });
 // throws: [BindingKeys][build] Invalid key to build | key:
 ```
 
-`key` is required and must be non-empty; `namespace` is optional and silently omitted from the joined string when empty.
+`key` is required and must be non-empty. `namespace` is optional - it's silently omitted from the joined string when empty.
 
 ```typescript
 container.bind({ key: 'workers.EmailWorker' }).toClass(EmailWorker).setTags('background', 'email');
@@ -356,11 +357,13 @@ class ApplicationError extends Error {
 getError(opts: TError): ApplicationError; // factory function
 ```
 
-`opts.message` accepts two shapes: the historical string (paired with sibling `messageCode?`/`messageArgs?`), or an object mirroring `normalized` - `{ text, code?, args? }`. Both resolve to the same `normalized`; `messageCode`/`messageArgs` are lowest precedence, so `message.code`/`message.args` (or a catalogued definition's own `message.code`/`message.args`) win when both are present. There is no flat `error.messageCode`, and `extra` never mirrors `messageArgs`. `normalized.args` is always populated (`{}` when empty).
+`opts.message` accepts two shapes: the historical string (paired with sibling `messageCode?`/`messageArgs?`), or an object mirroring `normalized` - `{ text, code?, args? }`. Both resolve to the same `normalized`.
 
-The catalogued form (`{ error: TErrorDefinition }`) takes `message` as a **partial** override - `{ message: { args } }` amends just the args and keeps the definition's `text`/`code`. `error` is refused on the free-form branch (`error?: never`) - wrap a caught failure with `cause` instead.
+`messageCode`/`messageArgs` are lowest precedence - `message.code`/`message.args`, or a catalogued definition's own, win when both are present. There is no flat `error.messageCode`. `extra` never mirrors `messageArgs`. `normalized.args` is always populated (`{}` when empty).
 
-`ApplicationError`'s constructor defaults `statusCode` to `400` when omitted, and moves any property it does not model into `this.extra`. The error RESPONSE schema (`ErrorSchema`, for OpenAPI) lives in `@venizia/ignis-helpers`, not here - it needs `@hono/zod-openapi`, which inversion must not depend on because it ships to browsers.
+The catalogued form (`{ error: TErrorDefinition }`) takes `message` as a **partial** override. `{ message: { args } }` amends just the args and keeps the definition's `text`/`code`. `error` is refused on the free-form branch (`error?: never`) - wrap a caught failure with `cause` instead.
+
+`ApplicationError`'s constructor defaults `statusCode` to `400` when omitted, and moves any property it does not model into `this.extra`. The error RESPONSE schema (`ErrorSchema`, for OpenAPI) lives in `@venizia/ignis-helpers`, not here. It needs `@hono/zod-openapi`, which inversion must not depend on - inversion ships to browsers.
 
 ```typescript
 throw getError({ message: 'Something failed', statusCode: 500, messageCode: 'ERR_INTERNAL' });
@@ -407,7 +410,7 @@ interface IBindingTag {
 function isClass<T>(target: any): target is TClass<T>;
 ```
 
-`isClass` tests `typeof target === 'function' && target.prototype !== undefined` plus a regex match on the function's stringified source (`/^class[\s{]/`) - it relies on the class being emitted as an ES2024 `class`, not transpiled down to an ES5 constructor function.
+`isClass` tests `typeof target === 'function' && target.prototype !== undefined` plus a regex match on the function's stringified source (`/^class[\s{]/`). It relies on the class being emitted as an ES2024 `class`, not transpiled down to an ES5 constructor function.
 
 ```typescript
 interface IProvider<T> {
@@ -438,7 +441,7 @@ function isClassProvider<T>(target: any): target is TClass<IProvider<T>>;
 **Fix:**
 1. Verify the binding exists: `container.isBound({ key: 'services.UserService' })`.
 2. Check for typos between `@inject({ key: '...' })` and the key used in `container.bind({ key: '...' })`.
-3. If the dependency is genuinely optional, use `@inject({ key: '...', isOptional: true })` on a **constructor parameter** (not a property - see the warning above), or `container.get({ key: '...', isOptional: true })`.
+3. If the dependency is genuinely optional, add `isOptional: true` to the `@inject` call - constructor parameter or property, both work - or use `container.get({ key: '...', isOptional: true })`.
 
 ### "[getValue] Invalid context/container to instantiate class"
 
@@ -472,9 +475,12 @@ function isClassProvider<T>(target: any): target is TClass<IProvider<T>>;
 
 ### "[ClassName] Constructor parameter N has no @inject"
 
-**Cause:** A container-instantiated class has a constructor mixing decorated and undecorated parameters. `@inject` stores metadata at the parameter's index, so an undecorated parameter leaves a hole in that array; there is no channel through which the container could supply it anyway.
+**Cause:** A container-instantiated class has a constructor mixing decorated and undecorated parameters. `@inject` stores metadata at the parameter's index, so an undecorated parameter leaves a hole in that array. There is no channel through which the container could supply it anyway.
 
-**Fix:** Decorate every constructor parameter with `@inject`. There is no partial-injection escape hatch - if a value does not come from the container (e.g. a plain `scope: string`), pass it through a factory/provider instead of a bare constructor parameter, or have the subclass forward it via its own `@inject`-decorated parameter.
+**Fix:** Decorate every constructor parameter with `@inject`. There is no partial-injection escape hatch. If a value doesn't come from the container (e.g. a plain `scope: string`), choose one:
+
+- Pass it through a factory/provider instead of a bare constructor parameter.
+- Have the subclass forward it via its own `@inject`-decorated parameter.
 
 ### "@inject decorator can only be used on class properties or constructor parameters"
 
@@ -482,11 +488,11 @@ function isClassProvider<T>(target: any): target is TClass<IProvider<T>>;
 
 **Fix:** Only use `@inject` on constructor parameters or class properties.
 
-### Property injection returns `undefined` even without `isOptional`
+### Property injection never runs
 
-**Cause:** Either (a) the class was instantiated with `new MyClass()` directly instead of through the container - only the container reads `@inject` metadata and populates properties - or (b) the binding key really is unbound, and the `isOptional: true` you set on the property has no effect (see the phase-2 warning above, `metadata.optional` vs `metadata.isOptional`).
+**Cause:** The class was instantiated with `new MyClass()` directly instead of through the container. Only `container.resolve()`/`instantiate()` reads `@inject` metadata and populates properties. A plain `new` leaves them at whatever their field initializer set - `undefined` if none.
 
-**Fix:** Always use `container.resolve(MyClass)` or `container.instantiate(MyClass)` to create instances. If the dependency may legitimately be absent, inject it on the constructor instead of a property, or resolve it manually inside the constructor with `container.get({ key, isOptional: true })`.
+**Fix:** Always use `container.resolve(MyClass)` or `container.instantiate(MyClass)` to create instances that use property injection.
 
 ### "getInjectMetadata returns undefined"
 

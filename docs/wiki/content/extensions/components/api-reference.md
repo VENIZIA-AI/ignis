@@ -1,9 +1,9 @@
 # API Reference
 
-Automatic interactive API documentation generated from OpenAPI specs, rendered by a pluggable UI provider - Scalar by default, or classic Swagger UI.
+Automatic interactive API documentation generated from your OpenAPI spec. A pluggable UI provider renders it - Scalar by default, or classic Swagger UI.
 
 > [!NOTE] Renamed from SwaggerComponent
-> Swagger UI is just one of the pluggable UI providers, so the component carries a vendor-neutral name. `SwaggerComponent`, `ISwaggerOptions`, and `SwaggerBindingKeys` remain available as deprecated aliases - existing applications keep working unchanged.
+> Swagger UI is one of the pluggable UI providers, not the only one, so the component carries a vendor-neutral name. `SwaggerComponent`, `ISwaggerOptions`, and `SwaggerBindingKeys` remain available as deprecated aliases - existing applications keep working unchanged.
 
 ## Quick Reference
 
@@ -27,7 +27,7 @@ import type { IApiReferenceOptions, IUIProvider, IUIConfig, IGetProviderParams }
 
 ## In one example
 
-Register the component - the docs UI comes up at `/doc/explorer`, the raw spec at `/doc/openapi.json`. No configuration required.
+Register the component - no configuration required. The docs UI comes up at `<app base path>/doc/explorer`, the raw spec at `<app base path>/doc/openapi.json`. With the `/api` base path used throughout the getting-started guide, that's `/api/doc/explorer`.
 
 ```typescript
 // src/application.ts
@@ -79,13 +79,13 @@ export class HelloController extends BaseRestController {
 
 ## How it works
 
-- **Options merge group by group.** `binding()` reads the bound `IApiReferenceOptions`, then shallow-merges `base`, `doc`, and `ui` each against their own defaults - overriding `ui.type` alone still keeps `ui.path` and every `base`/`doc` field.
-- **`explorer.info` is always overwritten.** The component unconditionally reads your `package.json` (via `application.getAppInfo()`) and replaces `explorer.info` with `{ title, version, description, contact }` - any `explorer.info` you bind is discarded. Edit `package.json` instead.
-- **`explorer.servers` fills in only when empty.** A supplied server entry is kept as-is; otherwise the component builds one from `application.getServerAddress()` plus the base path.
-- **UI type resolution uses `??`, not `||`.** The source is `restOptions.ui.type ?? DocumentUITypes.SWAGGER` - only `null`/`undefined` falls back, and it falls back to `'swagger'`, not the configured default `'scalar'`. An explicit empty string is NOT repaired by this fallback - it fails `DocumentUITypes.isValid()` and the component throws `Invalid document UI Type` immediately.
-- **UI libraries load lazily.** `SwaggerUIProvider`/`ScalarUIProvider` each `await import()` their rendering library inside `render()`, on the first request to the docs UI - not at application startup. Only the configured provider's library is ever loaded.
-- **`ScalarUIProvider` renames `title` to `pageTitle`.** A quirk to know if you inspect the rendered output or write a custom UI provider: Scalar's own API takes `pageTitle`, not `title`.
-- **Security schemes are always registered.** JWT (`bearer`) and Basic security schemes are added to the OpenAPI registry unconditionally, so routes using `authenticate: { strategies: ['jwt'] }` or `['basic']` render the correct auth UI.
+- **Options merge group by group.** `binding()` reads the bound `IApiReferenceOptions`, then shallow-merges `base`, `doc`, and `ui` each against their own defaults. Overriding `ui.type` alone still keeps `ui.path` and every `base`/`doc` field.
+- **`explorer.info` is always overwritten.** The component reads your `package.json` via `application.getAppInfo()`. It replaces `explorer.info` with `{ title, version, description, contact }` - any `explorer.info` you bind is discarded. Edit `package.json` instead.
+- **`explorer.servers` fills in only when empty.** A supplied server entry is kept as-is. Otherwise, the component builds one from `application.getServerAddress()` plus the base path.
+- **UI type resolution uses `??`, not `||`.** The source is `restOptions.ui.type ?? DocumentUITypes.SWAGGER`. Only `null`/`undefined` falls back, and it falls back to `'swagger'` - not the configured default `'scalar'`. An explicit empty string is NOT repaired by this fallback: it fails `DocumentUITypes.isValid()` and the component throws `Invalid document UI Type` immediately.
+- **UI libraries load lazily.** `SwaggerUIProvider`/`ScalarUIProvider` each `await import()` their rendering library inside `render()`. That happens on the first request to the docs UI, not at application startup. Only the configured provider's library is ever loaded.
+- **`ScalarUIProvider` renames `title` to `pageTitle`.** Scalar's own render API takes `pageTitle`, not `title` - worth knowing if you inspect the rendered output or write a custom UI provider.
+- **Security schemes are always registered.** JWT (`bearer`) and Basic security schemes are added to the OpenAPI registry unconditionally. Routes using `authenticate: { strategies: ['jwt'] }` or `['basic']` render the correct auth UI as a result.
 
 ## Common tasks
 
@@ -102,10 +102,10 @@ this.bind<IApiReferenceOptions>({
   key: ApiReferenceBindingKeys.API_REFERENCE_OPTIONS,
 }).toValue({ restOptions: { base: { path: '/api-docs' } } });
 ```
-Result: UI at `/api-docs/explorer`, spec at `/api-docs/openapi.json` - the group merge keeps `doc.path`/`ui.path` defaults.
+Result: UI at `<app base path>/api-docs/explorer`, spec at `<app base path>/api-docs/openapi.json`. The group merge keeps `doc.path`/`ui.path` defaults.
 
 ### Set the info block shown in the UI
-`explorer.info` always comes from `package.json` - update `name`, `version`, `description`, and `author` there; binding `explorer.info` directly has no effect.
+`explorer.info` always comes from `package.json`. Update `name`, `version`, `description`, and `author` there - binding `explorer.info` directly has no effect.
 
 ### Register a custom UI provider
 `UIProviderFactory.register()` only understands `'swagger'`/`'scalar'`. Register a custom provider directly on the factory before `ApiReferenceComponent.binding()` runs:
@@ -154,7 +154,7 @@ export interface IApiReferenceOptions {
 |-----|----------|------|----------|---------|
 | `@app/api-reference/options` | `ApiReferenceBindingKeys.API_REFERENCE_OPTIONS` | `IApiReferenceOptions` | No | See Options table |
 
-`SwaggerBindingKeys.SWAGGER_OPTIONS` is a deprecated alias whose VALUE is the same `'@app/api-reference/options'` string - there is no separate binding under the literal `'@app/swagger/options'`.
+`SwaggerBindingKeys.SWAGGER_OPTIONS` is a deprecated alias. Its VALUE is the same `'@app/api-reference/options'` string - there is no separate binding under the literal `'@app/swagger/options'`.
 
 **Default value:**
 ```typescript
@@ -179,12 +179,12 @@ const DEFAULT_API_REFERENCE_OPTIONS: IApiReferenceOptions = {
 > The `explorer.info` values above are never used at runtime - `binding()` unconditionally overwrites `explorer.info` from `package.json`. They exist only as structural defaults.
 
 ### API endpoints
-| Method | Path (default) | Description |
+| Method | Path (default, relative to app base) | Description |
 |--------|-----------------|-------------|
 | `GET` | `/doc/explorer` | Documentation UI (Scalar by default) |
 | `GET` | `/doc/openapi.json` | Raw OpenAPI specification |
 
-Actual paths shift with `restOptions.base.path`, `restOptions.ui.path`, and `restOptions.doc.path`.
+These paths are mounted under your application's own base path - `path.base` in `IApplicationConfigs`. With the `/api` base path from the getting-started guide, that's `GET /api/doc/explorer`. They also shift with `restOptions.base.path`, `restOptions.ui.path`, and `restOptions.doc.path`.
 
 ### UIProviderFactory
 | Method | Signature | Description |
@@ -208,7 +208,7 @@ class DocumentUITypes {
 }
 ```
 
-`TDocumentUIType` is derived via `TConstValue`, which extracts the union of every `static readonly` string on `DocumentUITypes` - the type stays in sync with the constants automatically.
+`TDocumentUIType` is derived via `TConstValue`, which extracts the union of every `static readonly` string on `DocumentUITypes`. The type stays in sync with the constants automatically.
 
 ### Component lifecycle (`binding()`)
 1. **Resolve options** - reads `ApiReferenceBindingKeys.API_REFERENCE_OPTIONS` with `isOptional: true`, then merges `base`/`doc`/`ui` each against `DEFAULT_API_REFERENCE_OPTIONS`

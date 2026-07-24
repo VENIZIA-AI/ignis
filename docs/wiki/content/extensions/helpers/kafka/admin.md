@@ -13,7 +13,7 @@ class KafkaAdminHelper extends BaseKafkaHelper<Admin>
 ```
 
 > [!NOTE]
-> `KafkaAdminHelper` has **no generic type parameters** -- the Admin client does not deal with serialized messages.
+> `KafkaAdminHelper` has **no generic type parameters** - the Admin client does not deal with serialized messages.
 
 ## Helper API
 
@@ -24,6 +24,7 @@ class KafkaAdminHelper extends BaseKafkaHelper<Admin>
 | `isHealthy()` | `(): boolean` | `true` when broker connected |
 | `isReady()` | `(): boolean` | Same as `isHealthy()` |
 | `getHealthStatus()` | `(): TKafkaHealthStatus` | `'connected'` \| `'disconnected'` \| `'unknown'` |
+| `getConnectedBrokerCount()` | `(): number` | Number of currently connected brokers |
 | `close(opts?)` | `(opts?: { isForce?: boolean }): Promise<void>` | Close the admin connection (default: graceful) |
 
 ## IKafkaAdminOptions
@@ -71,7 +72,7 @@ await helper.close({ isForce: true });
 
 ## Graceful Shutdown
 
-`close()` uses the base `closeClient()` (which calls `this.client.close()`) with a graceful timeout. If the graceful close exceeds `shutdownTimeout` (default 30s), it automatically force-closes. After `close()`, `healthStatus` is set to `'disconnected'`.
+`close()` uses the base `closeClient()`, wrapped in a graceful timeout. `closeClient()` calls `this.client.close()` directly. If the graceful close exceeds `shutdownTimeout` (default 30s), it automatically force-closes. After `close()`, `healthStatus` becomes `'disconnected'`.
 
 ```typescript
 // Graceful (recommended)

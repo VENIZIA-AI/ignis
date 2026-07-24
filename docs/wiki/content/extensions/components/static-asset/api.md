@@ -106,7 +106,7 @@ type TStaticAssetsComponentOptions = {
 | Field | Type | Default | Description |
 |-------|------|---------|--------------|
 | `controller.name` | `string` | - | Class name given to the generated controller (via `Object.defineProperty`) |
-| `controller.basePath` | `string` | - | Mount path, e.g. `'/assets'` |
+| `controller.basePath` | `string` | - | Mount path, for example `'/assets'` |
 | `controller.isStrict` | `boolean` | `true` | Passed through to `BaseRestController`'s strict routing mode |
 | `controller.routes` | object | `undefined` | Per-route overrides - see [Per-route overrides](#per-route-overrides) |
 | `storage` | `'disk' \| 'minio' \| 'bun-s3'` | - | Selects which `helper` type is required (discriminated union) |
@@ -149,7 +149,7 @@ type TStaticAssetExtraOptions = {
 ```
 
 > [!NOTE]
-> `normalizeNameFn` receives **both** `originalName` and `folderPath` - the second lets a custom implementation decide how to fold the target folder into the stored name. Omit `folderPath` handling and nested uploads flatten into the bucket root.
+> `normalizeNameFn` receives **both** `originalName` and `folderPath`. The second argument lets a custom implementation decide how to fold the target folder into the stored name. Omit `folderPath` handling and nested uploads flatten into the bucket root.
 
 | Field | Default | Notes |
 |-------|---------|-------|
@@ -170,7 +170,9 @@ type TStaticAssetExtraOptions = {
 };
 ```
 
-This is why every generated link points back at the `objects/{objectName}` stream route by default, regardless of storage backend. `BaseStorageHelper`'s own backend-specific `normalizeObjectLink()` (used when a helper's `upload()` is called directly, outside the component) is never reached through `StaticAssetComponent` - the component's default always takes priority when no `normalizeLinkFn` is set.
+This is why every generated link points back at the `objects/{objectName}` stream route by default, regardless of storage backend.
+
+`BaseStorageHelper` has its own backend-specific `normalizeObjectLink()`. It only runs when you call a helper's `upload()` directly, outside the component. Through `StaticAssetComponent`, the component's default `normalizeLinkFn` always takes priority instead.
 
 ## Storage types
 
@@ -294,9 +296,29 @@ interface IListObjectsOptions {
 
 ### Name and path validation (`BaseStorageHelper`)
 
-`isValidName(name)` rejects, in order: non-string input, empty string, `..`/`/`/`\` (path traversal), a leading `.` (hidden file), any of `;`, `\|`, `&`, `$`, `` ` ``, `<`, `>`, `{`, `}`, `[`, `]`, `!`, `#` (shell metacharacters), `\n`/`\r`/`\0` (control characters), length over 255, and whitespace-only input.
+`isValidName(name)` rejects any of the following, in order:
 
-`isValidPath(pathStr, { maxDepth })` trims leading/trailing slashes, rejects an empty result, rejects double slashes (empty segments), computes `folderDepth = segments.length - 1` and rejects it exceeding `maxDepth` (default `BaseStorageHelper.DEFAULT_MAX_FOLDER_DEPTH = 2`), validates every segment through `isValidName()`, and rejects a normalized length over 1024 characters.
+| Check | Rejects |
+|-------|---------|
+| Type | Non-string input |
+| Empty | Empty string |
+| Path traversal | `..`, `/`, or `\` |
+| Hidden file | A leading `.` |
+| Shell metacharacters | `;`, `\|`, `&`, `$`, `` ` ``, `<`, `>`, `{`, `}`, `[`, `]`, `!`, `#` |
+| Control characters | `\n`, `\r`, `\0` |
+| Length | Over 255 characters |
+| Whitespace-only | Empty after trimming |
+
+`isValidPath(pathStr, { maxDepth })` runs these checks, in order:
+
+| Step | Behavior |
+|------|----------|
+| Normalize | Trims leading/trailing slashes |
+| Empty check | Rejects if the result is empty |
+| Double slashes | Rejects empty segments, for example `a//b` |
+| Folder depth | `folderDepth = segments.length - 1`; rejects if it exceeds `maxDepth` (default `BaseStorageHelper.DEFAULT_MAX_FOLDER_DEPTH = 2`) |
+| Segment names | Every segment must pass `isValidName()` |
+| Path length | Rejects a normalized length over 1024 characters |
 
 ### `DiskHelper`
 
@@ -349,7 +371,7 @@ interface IBunS3HelperOptions {
 }
 ```
 
-Wraps Bun's native `S3Client`, imported from the `bun` builtin module - it only resolves under the Bun runtime, which is why it is exported from the separate `@venizia/ignis-helpers/bun-s3` subpath rather than the main entry point.
+Wraps Bun's native `S3Client`, imported from the `bun` builtin module. That module only resolves under the Bun runtime. This is why `BunS3Helper` is exported from the separate `@venizia/ignis-helpers/bun-s3` subpath, not the main entry point.
 
 ```typescript
 import { BunS3Helper } from '@venizia/ignis-helpers/bun-s3';
@@ -412,7 +434,7 @@ const MultipartBodySchema = z.object({
 |--------|------|-------|
 | `GET` | `/buckets` | No params. Returns `IBucketInfo[]` |
 | `GET` | <code v-pre>/buckets/{bucketName}</code> | Returns `IBucketInfo \| null` |
-| `POST` | <code v-pre>/buckets/{bucketName}</code> | Returns `IBucketInfo \| null` (`null` if creation failed, e.g. already exists) |
+| `POST` | <code v-pre>/buckets/{bucketName}</code> | Returns the created `IBucketInfo`. Throws if the bucket already exists or the name is invalid - see [Error Reference](./errors) |
 | `DELETE` | <code v-pre>/buckets/{bucketName}</code> | Returns <code v-pre>{ isDeleted: boolean }</code> |
 | `POST` | <code v-pre>/buckets/{bucketName}/upload</code> | `multipart/form-data` body; query: `principalType?`, `principalId?`, `variant?`, `folderPath?`. Returns `IUploadResult[]` |
 | `GET` | <code v-pre>/buckets/{bucketName}/objects</code> | Query: `prefix?`, `recursive?` (`'true'` string only), `maxKeys?` (positive integer string). Returns `IObjectInfo[]` |
@@ -424,25 +446,33 @@ const MultipartBodySchema = z.object({
 ### Upload validation order
 
 1. `bucketName` validated with `isValidName()` - `400 "Invalid bucket name"` on failure.
-2. If `folderPath` is present: trimmed of leading/trailing slashes, `400 "Invalid folder path"` if empty after trimming; segment count checked against `maxFolderDepth`, `400 "Folder path exceeds max depth of {n}"` if over; each segment checked with `isValidName()`, `400 "Invalid folder path segment: {segment}"` if any fails.
+2. If `folderPath` is present, three checks run in order:
+
+   | Check | Failure |
+   |-------|---------|
+   | Trim leading/trailing slashes | `400 "Invalid folder path"` if empty after trimming |
+   | Segment count vs. `maxFolderDepth` | `400 "Folder path exceeds max depth of {n}"` if over |
+   | Each segment via `isValidName()` | `400 "Invalid folder path segment: {segment}"` if any fails |
+
 3. `multipart/form-data` parsed via `parseMultipartBody()`.
-4. Each file's effective buffer (direct `buffer`, or `readFileSync(file.path)` when `storage: 'disk'` was used) checked non-empty - `400 "Empty file content | name: {originalName}"` if empty.
+4. Each file's effective buffer is checked non-empty - direct `buffer`, or `readFileSync(file.path)` when `storage: 'disk'` was used. Empty content returns `400 "Empty file content | name: {originalName}"`.
 5. `helper.upload()` runs the storage-helper-level checks below.
-6. Spool files written by `storage: 'disk'` parsing are removed in a `finally` block via `rmSync({ force: true })`, regardless of success or failure; removal errors are logged, never thrown.
+6. Spool files written by `storage: 'disk'` parsing are removed in a `finally` block via `rmSync({ force: true })` - regardless of success or failure. Removal errors are logged, never thrown.
 
 ### Storage-helper-level upload checks (`BaseStorageHelper.upload`)
 
-These run inside `helper.upload()`, independent of and in addition to the controller's own checks above - reachable even when a caller uses the storage helper directly:
+These run inside `helper.upload()`, separate from the controller checks above. They are reachable even when a caller uses the storage helper directly:
 
 | Check | Error message | Default status |
 |-------|----------------|-----------------|
 | Bucket does not exist (`isBucketExists()` false) | <code v-pre>[upload] Bucket does not exist \| name: {bucket}</code> | `400` |
 | `originalName` fails `isValidName()` | `[upload] Invalid original file name` | `400` |
-| `folderPath` exceeds depth or fails `isValidPath()` | `[upload] Invalid folder path` | `400` |
+| `folderPath` segment count exceeds `maxFolderDepth` | <code v-pre>[upload] Invalid folder path \| depth: {n} \| max: {m}</code> | `400` |
+| `folderPath` fails `isValidPath()` for any other reason | `[upload] Invalid folder path` | `400` |
 | `size` is `undefined`, `null`, or negative | <code v-pre>[upload] Invalid file size \| size: {size}</code> | `400` |
 | Normalized name (post `normalizeNameFn`) fails `isValidPath()` | <code v-pre>[upload] Invalid normalized object name \| name: {name}</code> | `400` |
 
-`getError()` defaults `statusCode` to `400` when the caller does not pass one explicitly - every message above is thrown without an explicit status, so all resolve to `400`.
+`getError()` defaults `statusCode` to `400` when the caller does not pass one explicitly. Every message above is thrown without an explicit status, so all resolve to `400`.
 
 ## Header sanitization
 
@@ -456,7 +486,9 @@ const WHITELIST_HEADERS = [
 ] as const;
 ```
 
-These correspond to `HTTP.Headers.CONTENT_TYPE`, `CONTENT_ENCODING`, `CACHE_CONTROL`, `ETAG`, and `LAST_MODIFIED` from `@venizia/ignis-helpers`. When streaming a file (both `objects/{objectName}` and `download/{objectName}`), the controller copies only these keys from the storage metadata onto the response; every other metadata header is dropped. Each forwarded value is sanitized with `String(value).replace(/[\r\n]/g, '')` before being set, to prevent HTTP header injection.
+These correspond to `HTTP.Headers.CONTENT_TYPE`, `CONTENT_ENCODING`, `CACHE_CONTROL`, `ETAG`, and `LAST_MODIFIED` from `@venizia/ignis-helpers`.
+
+When streaming a file - both `objects/{objectName}` and `download/{objectName}` - the controller copies only these keys from the storage metadata onto the response. Every other metadata header is dropped. Each forwarded value is sanitized with `String(value).replace(/[\r\n]/g, '')` before being set, to prevent HTTP header injection.
 
 All streaming responses also set:
 
@@ -471,7 +503,7 @@ Content-Disposition: attachment; filename="..."   (download endpoint only, via c
 
 Hono percent-decodes a path param before the handler reads it. The controller's `readObjectName()` is therefore a deliberate no-op - it does not run a second `decodeURIComponent()`:
 
-- `report_100%.pdf` is a legal object name. Its link is `.../objects/report_100%25.pdf`; Hono hands the handler back `report_100%.pdf`. A second decode would hit the invalid escape `%.p` and throw, making the object permanently unfetchable and undeletable.
+- `report_100%.pdf` is a legal object name. Its link is `.../objects/report_100%25.pdf`. Hono hands the handler back `report_100%.pdf`. A second decode would hit the invalid escape `%.p` and throw - the object would become permanently unfetchable and undeletable.
 - An object named `a%2Fb.png` would decode twice into `a/b.png` - a different object than the one requested.
 
 `isValidName()`/`isValidPath()` still run on the singly-decoded value, so a traversal payload is rejected exactly as before.
@@ -490,7 +522,12 @@ type TMetaLinkConfig<Schema extends TMetaLinkSchema = TMetaLinkSchema> = {
 };
 ```
 
-`BaseRelationalEntity` and `DefaultRelationalRepository` are the canonical class names (`packages/core/src/connectors/postgres/`); `BasePostgresEntity` and `DefaultCRUDRepository` are re-exported aliases of the same classes.
+| Canonical name | Alias |
+|----------------|-------|
+| `BaseRelationalEntity` | `BasePostgresEntity` |
+| `DefaultRelationalRepository` | `DefaultCRUDRepository` |
+
+Both canonical classes live in `packages/core/src/connectors/postgres/`. Each alias re-exports the same class under a different name.
 
 ## MetaLink SQL schema
 
@@ -510,19 +547,34 @@ type TMetaLinkConfig<Schema extends TMetaLinkSchema = TMetaLinkSchema> = {
 | `metadata` | JSONB | Yes | - | Additional file metadata |
 | `storage_type` | TEXT | No | - | `'disk'`, `'minio'`, or `'bun-s3'` |
 | `is_synced` | BOOLEAN | No | `false` | Set `true` on every upload and every meta-links sync |
-| `variant` | TEXT | Yes | - | Upload variant tag (e.g. `'thumbnail'`, `'original'`) |
+| `variant` | TEXT | Yes | - | Upload variant tag (for example `'thumbnail'`, `'original'`) |
 | `principal_type` | TEXT | Yes | - | Associated principal type |
 | `principal_id` | TEXT | Yes | - | Associated principal ID, always stored as a string |
 
 **Indexes:** `bucket_name`, `object_name`, `storage_type`, `is_synced`.
 
-`@model({ type: 'entity', skipMigrate: true })` on `BaseMetaLinkModel` means IGNIS's schema migration skips this table - it must be created manually, once, per database.
+`@model({ type: 'entity', skipMigrate: true })` on `BaseMetaLinkModel` means IGNIS's schema migration skips this table. Create it manually, once, per database.
 
 ### MetaLink lifecycle
 
-- **On upload:** creates one MetaLink row per uploaded file after fetching fresh stats via `helper.getStat()`. Uses `metaLink.createMetaLink()` when provided, otherwise a default insert covering every standard field. `principalType`, `principalId`, and `variant` are taken from the upload's query parameters. If the insert throws, the upload still succeeds and the file's entry in the response gets `metaLink: null` plus a `metaLinkError` string; the error is also logged.
-- **On delete:** storage delete happens first and is awaited; the MetaLink row delete (`deleteAll({ where: { bucketName, objectName } })`) is fired without awaiting it. The HTTP response returns as soon as the storage delete resolves - the database delete may still be in flight. Errors there are logged, never surfaced to the client.
-- **On sync (`PUT meta-links/:objectName`):** looks up an existing row by `bucketName` + `objectName`. If found, `updateById()` then re-fetches with `findById()`. If not found, `create()`. Either path always sets `isSynced: true` and returns `{ success: true, metaLink }`.
+- **On upload:**
+  - Creates one MetaLink row per uploaded file, after fetching fresh stats via `helper.getStat()`.
+  - Uses `metaLink.createMetaLink()` when provided, otherwise a default insert that covers every standard field.
+  - `principalType`, `principalId`, and `variant` come from the upload's query parameters.
+  - If the insert throws, the upload still succeeds. The file's response entry gets `metaLink: null` plus a `metaLinkError` string, and the error is logged.
+- **On delete:**
+  - The storage delete happens first and is awaited.
+  - The MetaLink row delete (`deleteAll({ where: { bucketName, objectName } })`) fires without being awaited.
+  - The HTTP response returns as soon as the storage delete resolves - the database delete may still be in flight.
+  - Errors there are logged, never surfaced to the client.
+- **On sync (`PUT meta-links/:objectName`):** looks up an existing row by `bucketName` + `objectName`.
+
+  | Row found? | Action |
+  |------------|--------|
+  | Yes | `updateById()`, then re-fetches with `findById()` |
+  | No | `create()` |
+
+  Either path sets `isSynced: true` and returns `{ success: true, metaLink }`.
 
 ## Component lifecycle
 
@@ -532,7 +584,7 @@ type TMetaLinkConfig<Schema extends TMetaLinkSchema = TMetaLinkSchema> = {
 4. Calls `AssetControllerFactory.defineAssetController()` and registers the result with `this.application.controller()`.
 5. Logs the storage key, storage type, and whether MetaLink is enabled for each registered backend.
 
-`StaticAssetComponent` itself performs no eager configuration validation beyond the options type - a missing `metaLink` when `useMetaLink: true` is caught at compile time by the discriminated union, not at `binding()` runtime.
+`StaticAssetComponent` itself performs no eager configuration validation beyond the options type. A missing `metaLink` when `useMetaLink: true` is caught at compile time by the discriminated union, not at `binding()` runtime.
 
 ## See also
 

@@ -6,7 +6,7 @@ difficulty: intermediate
 
 # Redis
 
-The Redis helper gives you one data API that works identically whether you are talking to a single node, a sharded cluster, or a Sentinel-managed high-availability pair.
+The Redis helper gives you one data API for Redis. Talk to a single node, a sharded cluster, or a Sentinel-managed high-availability pair - the calls you write stay the same.
 
 ## In one example
 
@@ -34,7 +34,8 @@ console.log(session); // { userId: 42, active: true }
 
 ## How it works
 
-- **Three topologies, one interface.** `RedisSingleHelper`, `RedisClusterHelper`, and `RedisSentinelHelper` all extend `AbstractRedisHelper` and implement `IRedisHelper`. Only the constructor options differ - the data API (`get`, `hSet`, `publish`, ...) is identical, so code written against `IRedisHelper` works with any topology unchanged.
+- **Three topologies, one interface.** `RedisSingleHelper`, `RedisClusterHelper`, and `RedisSentinelHelper` all extend `AbstractRedisHelper` and implement `IRedisHelper`. Only the constructor options differ.
+- **The data API never changes.** `get`, `hSet`, `publish`, and every other method are identical across all three. Code written against `IRedisHelper` works unchanged, whichever topology backs it.
 
 | Topology | Class | Fits |
 |----------|-------|------|
@@ -42,18 +43,34 @@ console.log(session); // { userId: 42, active: true }
 | Cluster | `RedisClusterHelper` | Data sharded across nodes |
 | Sentinel | `RedisSentinelHelper` | Automatic failover for one logical master |
 
-- **Pick a topology via the factory.** `createRedisHelper({ mode })` picks a topology from configuration - it is overloaded to return the concrete class when `mode` is a literal (`RedisModes.SINGLE | CLUSTER | SENTINEL`).
-- **Connection lifecycle is automatic.** With `autoConnect: true` (default) the ioredis client starts connecting in the constructor; with `autoConnect: false` you call `connect()` yourself.
-- **Reconnects back off automatically.** The backoff grows with each attempt, capped between 1 and 5 seconds, up to `maxRetry` attempts (`0` = unlimited, the default; `-1` = no retry).
-- **BullMQ compatibility differs by topology.** `maxRetriesPerRequest: null` is always set for single and Sentinel helpers, which is what makes them BullMQ-compatible out of the box. Cluster does not get this automatically - see the [Full reference](/extensions/helpers/redis/reference).
-- **Values are JSON-serialized automatically.** `set`, `mSet`, `jSet`, and `jPush` call `JSON.stringify` before writing; `getObject`, `getObjects`, and `jGet` parse on read. Plain `get`/`mGet` return the raw stored string unless you pass a `transform` function - reach for `getObject`/`getObjects` when you wrote the value with `set`.
+- **Pick a topology via the factory.** `createRedisHelper({ mode })` picks a topology from configuration. Pass a literal `mode` (`RedisModes.SINGLE | CLUSTER | SENTINEL`) and it returns the concrete class, not the generic `IRedisHelper`.
+- **Connection lifecycle is automatic.** With `autoConnect: true` (the default), the ioredis client starts connecting inside the constructor. Set `autoConnect: false` and call `connect()` yourself instead.
+- **Reconnects back off automatically.** The backoff grows with each attempt, capped between 1 and 5 seconds.
+
+| `maxRetry` | Behavior |
+|---|---|
+| `0` (default) | Unlimited retries |
+| `-1` | No retry |
+| A positive number | Stop reconnecting after that many attempts |
+
+- **BullMQ compatibility differs by topology.** Single and Sentinel helpers always set `maxRetriesPerRequest: null`, which is what BullMQ requires. Cluster does not get this automatically - see the [Full reference](/extensions/helpers/redis/reference).
+- **Values are JSON-serialized automatically.**
+
+| Method group | Behavior |
+|---|---|
+| `set`, `mSet`, `jSet`, `jPush` | `JSON.stringify` before writing |
+| `getObject`, `getObjects`, `jGet` | `JSON.parse` on read |
+| `get`, `mGet` | Return the raw stored string, unless you pass `transform` |
+
+Wrote a value with `set`? Read it back with `getObject`/`getObjects`.
+
 - **Every method is camelCase.** `hSet`, `lPush`, `sAdd` - even where the underlying ioredis/Redis command is lowercase (`hset`, `lpush`, `sadd`). There is no lowercase alias.
 
 ## Common tasks
 
 ### Pick a topology
 
-Switch topology by changing `mode` and its matching options; the rest of your code does not change.
+Switch topology by changing `mode` and its matching options. The rest of your code does not change.
 
 ```typescript
 import { createRedisHelper, RedisModes, type IRedisHelper } from '@venizia/ignis-helpers';
@@ -71,7 +88,7 @@ See [Full reference](/extensions/helpers/redis/reference) for the cluster (`node
 
 ### Cache a value with a TTL
 
-`options.expiresIn` on `set` is in **milliseconds**, but `ttl()` reports remaining time in **seconds** - mixing the two up is the most common bug with this helper.
+`options.expiresIn` on `set` is in **milliseconds**. `ttl()` reports remaining time in **seconds**. Mixing the two up is the most common bug with this helper.
 
 ```typescript
 await redis.set({
@@ -85,7 +102,7 @@ const remaining = await redis.ttl({ key: 'session:42' }); // seconds; -1 = no ex
 
 ### Publish and subscribe
 
-A subscribed ioredis connection cannot run regular commands, so use a second helper instance for subscribing and keep the first for data operations.
+A subscribed ioredis connection cannot run regular commands. Use a second helper instance for subscribing, and keep the first for data operations.
 
 ```typescript
 const subscriber = new RedisSingleHelper({ name: 'sub', host: 'localhost', port: 6379, password: 'secret' });
@@ -112,7 +129,7 @@ await redis.lPush({ key: 'queue:emails', values: ['welcome@example.com'] });
 
 ### Drop to a raw command
 
-`execute` calls any ioredis command directly - useful for commands the typed API does not cover, like `SCAN` (prefer it over `keys()` in production, which blocks the server on large keyspaces).
+`execute` calls any ioredis command directly. Reach for it when the typed API doesn't cover a command, like `SCAN`. Prefer `SCAN` over `keys()` in production - `keys()` blocks the server on large keyspaces.
 
 ```typescript
 const [cursor, matched] = await redis.execute<[string, string[]]>('SCAN', [

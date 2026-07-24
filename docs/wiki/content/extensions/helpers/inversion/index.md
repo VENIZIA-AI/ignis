@@ -29,14 +29,29 @@ container.bind<UserService>({ key: 'services.UserService' })
 const userService = container.get<UserService>({ key: 'services.UserService' });
 ```
 
-A class needs no decorator to be bindable - the binding is always created explicitly with `container.bind()`, and scope is set on the binding via `setScope()`. The framework layer (`@venizia/ignis`) creates these bindings for you for controllers, services, and repositories via `app.controller()` / `app.service()` / `@repository`.
+A class needs no decorator to be bindable. The binding is always created explicitly with `container.bind()`, and its scope is set via `setScope()`.
+
+The framework layer (`@venizia/ignis`) creates these bindings for you - for controllers, services, and repositories - via `app.controller()` / `app.service()` / `@repository`.
 
 ## How it works
 
-- **Three ways to resolve a binding.** `toClass` (container instantiates with DI), `toValue` (returned as-is), `toProvider` (factory function or `IProvider` class). All `Binding` setters return `this`, so calls chain.
-- **Instantiation is two-phase.** Constructor injection runs first, reading `@inject` metadata by parameter index and passing resolved values as constructor args; property injection runs second, assigning each `@inject`-decorated property on the built instance. `container.resolve(cls)` and `container.instantiate(cls)` are the same method - `resolve` is an alias.
+- **A binding resolves one of three ways.** All `Binding` setters return `this`, so calls chain.
+
+  | Resolver | Behavior |
+  |---|---|
+  | `toClass` | Container instantiates the class with full DI |
+  | `toValue` | Returns the value as-is |
+  | `toProvider` | Calls a factory function, or an `IProvider` class |
+
+- **Instantiation is two-phase.** `container.resolve(cls)` and `container.instantiate(cls)` are the same method - `resolve` is an alias.
+
+  | Phase | What happens |
+  |---|---|
+  | 1. Constructor injection | Reads `@inject` metadata by parameter index, passes resolved values as constructor args |
+  | 2. Property injection | Assigns each `@inject`-decorated property on the built instance |
+
 - **Every constructor parameter must carry `@inject`.** The metadata array is index-keyed - an undecorated parameter leaves a hole the container has no way to fill. `instantiate()` refuses the class by name and parameter index rather than passing `undefined`.
-- **Namespaces auto-tag bindings.** A key like `services.UserService` tags the binding `services` automatically; `setTags()` adds more. `findByTag()` queries by tag, with an `exclude` list.
+- **Namespaces auto-tag bindings.** A key like `services.UserService` tags the binding `services` automatically. `setTags()` adds more. `findByTag()` queries by tag, with an `exclude` list.
 - **Keys** can be a `string`, a `symbol`, or `{ namespace, key }` (built into a dotted string via `BindingKeys.build`).
 
 **Scopes**
@@ -47,9 +62,11 @@ A class needs no decorator to be bindable - the binding is always created explic
 | Singleton | `BindingScopes.SINGLETON` | Cached on the `Binding` after first resolution |
 
 > [!IMPORTANT]
-> Singleton caching lives on the `Binding` object, not the container. Rebinding a key creates a fresh `Binding` with its own cache; a `Binding` reference you hold onto keeps its own cache independent of `container.clear()`/`reset()` on a different `Binding` for the same key.
+> Singleton caching lives on the `Binding` object, not the container. Rebinding a key creates a fresh `Binding` with its own cache. If you hold onto an old `Binding` reference, its cache stays independent of `container.clear()`/`reset()` calls made against the new `Binding` registered under the same key.
 
-Property-injected classes only get their `@inject` properties populated when built through the container (`container.resolve()`/`instantiate()`) - `new MyClass()` leaves them `undefined`. The [Full reference](/extensions/helpers/inversion/reference) covers `MetadataRegistry`, `gets()`, key formats, `IProvider`, and every error message in detail.
+Property-injected classes only get their `@inject` properties populated when built through the container - `container.resolve()` or `instantiate()`. A plain `new MyClass()` leaves them `undefined`.
+
+The [Full reference](/extensions/helpers/inversion/reference) covers `MetadataRegistry`, `gets()`, key formats, `IProvider`, and every error message in detail.
 
 ## Common tasks
 

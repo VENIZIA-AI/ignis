@@ -9,19 +9,21 @@ description: Every error now carries a normalized message ready for translation,
 
 <Badge type="info" text="Bug Fix" /> <Badge type="tip" text="Enhancement" /> <Badge type="info" text="New API" />
 
-**In one line.** Every error now carries a `normalized` message ready for translation, you can declare reusable error definitions in a catalog, and `cause` finally reaches `Error.cause`.
+**In one line.** Every error now carries a `normalized` message ready for translation. You can declare reusable error definitions in a catalog. `cause` finally reaches `Error.cause`.
 
 ## The problem it solves
 
-A client rendering an error had to pair `messageCode` and `extra.messageArgs` by hand to get a translatable code and its arguments. `cause` fared worse: it was swept into `extra.cause` while the native `Error.cause` field stayed `undefined`, so the wrapped failure's stack never surfaced. `normalized` and a working `cause` fix both.
+A client rendering an error had to pair `messageCode` and `extra.messageArgs` by hand to get a translatable code and its arguments. `cause` fared worse: it was swept into `extra.cause`, while the native `Error.cause` field stayed `undefined`. The wrapped failure's stack never surfaced. `normalized` and a working `cause` fix both.
 
 ## What changed
 
 - **Every error now carries a `normalized` message.** One object (`{ text, code, args }`) is all a client needs to render and translate any error. All five handler branches emit it, including validation.
-- **`cause` now actually reaches `Error.cause`.** The error handler reads the native field, and five framework call sites - including boot failures - were losing their `cause` to `extra.cause` instead.
+- **`cause` now actually reaches `Error.cause`.** The error handler reads the native field. Five framework call sites - including boot failures - were losing their `cause` to `extra.cause` instead.
 - **New: declare a domain error once, reuse it everywhere.** A catalog entry fixes an error's code, HTTP status, and default message so every call site that raises it stays in sync. See Details below.
 - **New: `transform`** builds `normalized` yourself. `normalized.text` can be a rendered, translated string while `message` keeps the raw text the throw site wrote.
-- **The error layer moved to `@venizia/ignis-inversion`.** Backend imports are unchanged - keep importing from `@venizia/ignis-helpers`. Browser applications, which already depend on inversion for dependency injection, can now raise and read the same errors the server does. This also deletes a second, divergent `ApplicationError` that lived in inversion and never resolved its `messageCode`.
+- **The error layer moved to `@venizia/ignis-inversion`.** Backend imports are unchanged - keep importing from `@venizia/ignis-helpers`.
+- Browser applications already depend on inversion for dependency injection. They can now raise and read the same errors the server does.
+- This also deletes a second, divergent `ApplicationError` that lived in inversion and never resolved its `messageCode`.
 
 ## Who is affected
 
@@ -44,8 +46,12 @@ The wire shape only gains `normalized`. Nothing is removed, nothing moves.
 ## Details
 
 - `messageCode` and `extra.messageArgs` are deprecated in favor of `normalized.code` / `normalized.args`. They stay only until every client has migrated.
-- **Never spread a definition into `getError`.** `throw getError({ ...SomeErrors.SOME_ERROR })` reads naturally and is wrong. A definition carries `key`, not `messageCode`, so the key lands in `extra.key` and the error degrades to `core.system_error`. That is unlocalizable, since clients branch on the code. The status and message still arrive, so it survives review. Pass it as `error` instead. Nothing catches this for you: the index signature that carries your context accepts `key` too.
-- The index signature is a deliberate trade. It is what lets a throw site attach context the framework knows nothing about. It is also why `getError({ message, statuscode: 503 })` compiles, leaves `statusCode` at `400`, and parks `503` in `extra.statuscode`. The framework cannot tell your context from your typo.
+- **Never spread a definition into `getError`.** `throw getError({ ...SomeErrors.SOME_ERROR })` reads naturally and is wrong.
+- A definition carries `key`, not `messageCode`. The key lands in `extra.key` instead, and the error degrades to `core.system_error`.
+- That is unlocalizable, since clients branch on the code. The status and message still arrive, so it survives review anyway.
+- Pass it as `error` instead. Nothing catches this for you: the index signature that carries your context accepts `key` too.
+- The index signature is a deliberate trade: it is what lets a throw site attach context the framework knows nothing about.
+- That is also why `getError({ message, statuscode: 503 })` compiles, leaves `statusCode` at `400`, and parks `503` in `extra.statuscode`. The framework cannot tell your context from your typo.
 - The catalog entry's `description` field is not a code comment. It is the only context a translator gets, since they work from a spreadsheet, not the source.
 - Declare a catalog entry's `key` as a string literal, not `MessageCode.build(...)`. `build()` returns `string`, which widens the key registry to `Record<string, true>` and silently breaks autocomplete.
 - Free-form `getError({ message })` is unchanged and still the right choice for errors nobody translates (invariants, misconfiguration, seed guards).

@@ -22,7 +22,7 @@ Every `where` operator, one line each. For the `filter` shape and the mental mod
 | `lte` | `<=` | `{ price: { lte: 100 } }` | Less than or equal |
 
 > [!NOTE]
-> `ne`/`neq` follow SQL three-valued logic: a row whose field is `NULL` never matches `{ field: { neq: value } }` (`NULL <> value` is UNKNOWN, not TRUE). To include NULL rows too, use `{ or: [{ field: { neq: value } }, { field: null }] }`.
+> `ne`/`neq` follow SQL three-valued logic. A row whose field is `NULL` never matches `{ field: { neq: value } }`, because `NULL <> value` is UNKNOWN, not TRUE. To include NULL rows too, use `{ or: [{ field: { neq: value } }, { field: null }] }`.
 
 **See:** [Comparison Operators Guide](./comparison-operators.md)
 
@@ -35,7 +35,7 @@ Every `where` operator, one line each. For the `filter` shape and the mental mod
 | `exists` | `IS NOT NULL` / `IS NULL` | `{ deletedAt: { exists: false } }` | `exists: true` -> `IS NOT NULL`, `exists: false` -> `IS NULL` |
 | `notExists` | `IS NULL` / `IS NOT NULL` | `{ verifiedAt: { notExists: true } }` | Inverse of `exists` |
 
-**Shorthand:** a bare `null` is implicit `IS NULL` - `{ deletedAt: null }` is identical to `{ deletedAt: { eq: null } }` or `{ deletedAt: { is: null } }`.
+**Shorthand:** a bare `null` is implicit `IS NULL`. `{ deletedAt: null }` is identical to `{ deletedAt: { eq: null } }` or `{ deletedAt: { is: null } }`.
 
 **See:** [Null Operators Guide](./null-operators.md)
 
@@ -48,7 +48,7 @@ Every `where` operator, one line each. For the `filter` shape and the mental mod
 | `nin` | `NOT IN` | `{ status: { nin: ['deleted', 'banned'] } }` | Value matches none in the array |
 
 > [!NOTE]
-> An empty array is a hard edge: `{ in: [] }` / `{ inq: [] }` match no rows; `{ nin: [] }` matches every row (an empty exclusion list excludes nothing).
+> An empty array is a hard edge. `{ in: [] }` / `{ inq: [] }` match no rows; `{ nin: [] }` matches every row, because an empty exclusion list excludes nothing.
 
 **See:** [List Operators Guide](./list-operators.md)
 
@@ -89,7 +89,9 @@ Both require a 2-element array `[min, max]` - anything else throws.
 | `and: []` | (dropped) | `{ and: [] }` | Vacuously true - no condition added |
 | `or: []` | `false` | `{ or: [] }` | Vacuously false - matches no rows |
 
-`not` recurses: `{ not: { gt: 100 } }` becomes `NOT (col > 100)`; `{ not: 5 }` becomes `NOT (col = 5)`; `{ not: null }` becomes `IS NOT NULL`. `exists`/`notExists` also work over JSON paths (`{ 'metadata.score': { exists: true } }`).
+`not` recurses: `{ not: { gt: 100 } }` becomes `NOT (col > 100)`; `{ not: 5 }` becomes `NOT (col = 5)`; `{ not: null }` becomes `IS NOT NULL`.
+
+`exists`/`notExists` also work over JSON paths (`{ 'metadata.score': { exists: true } }`).
 
 **See:** [Logical Operators Guide](./logical-operators.md)
 
@@ -117,9 +119,9 @@ A dot-notation key targets a JSON/JSONB column instead of a top-level one.
 | Array index | `{ 'metadata.tags[0]': 'urgent' }` | Access an array element |
 | Combined | `{ 'metadata.users[0].email': value }` | Nested arrays and objects |
 
-**Supported operators:** `eq`, `ne`, `neq`, `gt`, `gte`, `lt`, `lte`, `in`, `inq`, `nin`, `like`, `nlike`, `ilike`, `nilike`, `between`, `notBetween`, `regexp`, `iregexp`, `is`, `isn`, `exists`, `notExists`, `not` - the same as top-level columns, minus the array operators (`contains`/`containedBy`/`overlaps`, which need a real array column).
+**Supported operators:** `eq`, `ne`, `neq`, `gt`, `gte`, `lt`, `lte`, `in`, `inq`, `nin`, `like`, `nlike`, `ilike`, `nilike`, `between`, `notBetween`, `regexp`, `iregexp`, `is`, `isn`, `exists`, `notExists`, `not`. That's the same set as top-level columns, minus the array operators (`contains`/`containedBy`/`overlaps`), which need a real array column.
 
-Numeric operators (`gt`, `gte`, `lt`, `lte`, `between`, `notBetween`, and `eq`/`ne`/`neq`/`in`/`inq`/`nin` when the operand is a number) cast the extracted text to `numeric` automatically, so `{ 'metadata.score': { gt: 80 } }` compares as a number, not a string.
+Numeric operators cast the extracted text to `numeric` automatically: `gt`, `gte`, `lt`, `lte`, `between`, `notBetween`, and `eq`/`ne`/`neq`/`in`/`inq`/`nin` when the operand is a number. So `{ 'metadata.score': { gt: 80 } }` compares as a number, not a string.
 
 **See:** [JSON Filtering Guide](./json-filtering.md)
 

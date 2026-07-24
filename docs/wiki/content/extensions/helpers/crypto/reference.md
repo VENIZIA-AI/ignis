@@ -80,16 +80,16 @@ interface ICryptoAlgorithm<
 }
 ```
 
-`AbstractCryptoAlgorithm` extends `BaseHelper` and declares `encrypt`/`decrypt` as abstract; it adds no behavior of its own. `BaseCryptoAlgorithm` is the concrete base for string-secret algorithms:
+`AbstractCryptoAlgorithm` extends `BaseHelper` and declares `encrypt`/`decrypt` as abstract. It adds no behavior of its own. `BaseCryptoAlgorithm` is the concrete base for string-secret algorithms:
 
 | Member | Signature | Description |
 |--------|-----------|--------------|
 | constructor | `(opts: { scope: string; algorithm: AlgorithmType })` | Sets `this.algorithm`, calls `validateAlgorithmName` |
 | `validateAlgorithmName` | `(opts: { algorithm: AlgorithmType }) => void` | Throws if `algorithm` is empty/falsy |
-| `normalizeSecretKey` | `(opts: { secret: string; length: number; padEnd?: string }) => string` | Truncates to `length` or right-pads with `padEnd` (default `'0'` - the digit character, since `DEFAULT_PAD_END` is `(0x00).toString()`, not a null byte) |
+| `normalizeSecretKey` | `(opts: { secret: string; length: number; padEnd?: string }) => string` | Truncates to `length`, or right-pads with `padEnd` (default `'0'`, the digit character - not a null byte) |
 | `getAlgorithmKeySize` | `() => number` | Parses the bit size out of `this.algorithm` (e.g. `256` from `'aes-256-gcm'`), divides by 8 for byte length |
 
-`ECDH` extends `AbstractCryptoAlgorithm` directly - it does not inherit `normalizeSecretKey` or `getAlgorithmKeySize`, since its secrets are `CryptoKey` objects, not strings.
+`ECDH` extends `AbstractCryptoAlgorithm` directly. It does not inherit `normalizeSecretKey` or `getAlgorithmKeySize` - its secrets are `CryptoKey` objects, not strings.
 
 ## AES
 
@@ -152,7 +152,7 @@ decrypt(opts: { message: string; secret: string; opts?: IAESExtraOptions }): str
 For `aes-256-gcm`, the next 16 bytes after the IV are read as the auth tag and passed to `setAuthTag` before the remaining bytes are treated as ciphertext.
 
 > [!WARNING]
-> Decrypting `aes-256-gcm` ciphertext with an `aes-256-cbc` instance (or vice versa) throws `Unsupported state or unable to authenticate data` - the two modes produce incompatible byte layouts. Always encrypt and decrypt with the same algorithm mode.
+> Decrypting `aes-256-gcm` ciphertext with an `aes-256-cbc` instance (or vice versa) throws `Unsupported state or unable to authenticate data`. The two modes produce incompatible byte layouts - always encrypt and decrypt with the same one.
 
 ### `encryptFile` / `decryptFile`
 
@@ -188,7 +188,7 @@ generateDERKeyPair(opts?: { modulus: number }): { publicKey: Buffer; privateKey:
 |--------|------|---------|-------------|
 | `modulus` | `number` | `2048` | RSA modulus length in bits, passed to `crypto.generateKeyPairSync` |
 
-`publicKey` is exported as `{ type: 'spki', format: 'der' }`; `privateKey` as `{ type: 'pkcs8', format: 'der' }`. Both are raw `Buffer`s - base64-encode them (`.toString('base64')`) to pass as the `secret` string to `encrypt`/`decrypt`.
+`publicKey` is exported as `{ type: 'spki', format: 'der' }`, `privateKey` as `{ type: 'pkcs8', format: 'der' }`. Both are raw `Buffer`s. Base64-encode them (`.toString('base64')`) to pass as the `secret` string to `encrypt`/`decrypt`.
 
 ### `encrypt`
 
@@ -286,7 +286,7 @@ Derives shared bits via ECDH (`deriveBits`, 256 bits), imports them as an HKDF k
 | `salt` | `string` | A random 32-byte salt is generated | Base64-encoded HKDF salt. Omit to generate a new random one |
 
 > [!IMPORTANT]
-> Both parties must use the **same salt** to derive matching keys. The initiator omits `salt` (a random one is generated and returned); the responder must pass that returned `salt` back into their own `deriveAESKey` call. If both sides generate their own salt, they derive different, non-matching keys.
+> Both parties must use the **same salt** to derive matching keys. The initiator omits `salt` - a random one is generated and returned. The responder passes that returned `salt` back into their own `deriveAESKey` call. If both sides generate their own salt instead, the two keys never match.
 
 ### `encrypt` / `decrypt`
 
@@ -308,7 +308,7 @@ interface IECDHExtraOptions {
 }
 ```
 
-`opts.additionalData` (AAD) is authenticated but not encrypted - it binds the ciphertext to a context (channel ID, session ID) so the ciphertext cannot be replayed in a different context. Decrypt must supply the exact same `additionalData`; a mismatch (including an omitted value where one was used to encrypt) throws.
+`opts.additionalData` (AAD) is authenticated but not encrypted. It binds the ciphertext to a context - a channel ID, a session ID - so it can't be replayed into a different one. Decrypt must supply the exact same `additionalData`. A mismatch throws, and so does omitting it when encrypt supplied one.
 
 ### Complete flow
 
@@ -356,7 +356,7 @@ const decrypted = await ecdh.decrypt({ message: encrypted, secret: bobKey });
 
 `Source ->` [`crypto.utility.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/utilities/crypto.utility.ts)
 
-`hash()` is a standalone function - not a class, not part of the `AES`/`RSA`/`ECDH` hierarchy - exported from `packages/helpers/src/utilities`, not `modules/crypto`. It is documented in full on the [Crypto Utility reference](/references/utilities/crypto).
+`hash()` is a standalone function, not a class - it isn't part of the `AES`/`RSA`/`ECDH` hierarchy. It's exported from `packages/helpers/src/utilities`, not `modules/crypto`. It is documented in full on the [Crypto Utility reference](/references/utilities/crypto).
 
 ```typescript
 function hash(
@@ -422,13 +422,13 @@ const ecdh = ECDH.withAlgorithm();             // no parameter needed
 
 ### "[ECDH.fromBase64] Invalid base64 input"
 
-**Cause:** A value passed to an ECDH method (public key, salt, IV, or ciphertext) is not valid base64 - length not divisible by 4, or characters outside `A-Za-z0-9+/=`.
+**Cause:** A value passed to an ECDH method - a public key, salt, IV, or ciphertext - is not valid base64. Its length isn't divisible by 4, or it has characters outside `A-Za-z0-9+/=`.
 
-**Fix:** Pass base64 strings through exactly as produced by the methods that generated them (`publicKeyB64`, `salt`, `iv`, `ct`) - do not trim, re-encode, or modify them.
+**Fix:** Pass base64 strings through exactly as produced by the methods that generated them (`publicKeyB64`, `salt`, `iv`, `ct`). Do not trim, re-encode, or modify them.
 
 ### "Unsupported state or unable to authenticate data"
 
-**Cause:** The ciphertext or auth tag was modified in transit, or you decrypted `aes-256-gcm` ciphertext with a `aes-256-cbc` instance (or vice versa) - the two modes produce incompatible byte layouts.
+**Cause:** Either the ciphertext or auth tag was modified in transit, or encrypt and decrypt used different algorithm modes - the two modes produce incompatible byte layouts.
 
 **Fix:** Use the same algorithm mode for both encrypt and decrypt.
 
@@ -436,11 +436,11 @@ const ecdh = ECDH.withAlgorithm();             // no parameter needed
 
 **Cause:** Each `deriveAESKey` call without a `salt` generates a new random 32-byte salt. If both sides generate their own, they derive different AES keys.
 
-**Fix:** The initiator calls `deriveAESKey` without `salt` and sends the returned `salt` to the responder; the responder passes that exact `salt` into their own `deriveAESKey` call.
+**Fix:** The initiator calls `deriveAESKey` without `salt` and sends the returned `salt` to the responder. The responder passes that exact `salt` into their own `deriveAESKey` call.
 
 ### SHA256 hash returns the original text instead of a hash
 
-**Cause:** `hash()` with `algorithm: 'SHA256'` requires `secret`; when `secret` is `undefined` it short-circuits and returns `text` unchanged.
+**Cause:** `hash()` with `algorithm: 'SHA256'` requires `secret`. When `secret` is `undefined`, it short-circuits and returns `text` unchanged.
 
 **Fix:**
 

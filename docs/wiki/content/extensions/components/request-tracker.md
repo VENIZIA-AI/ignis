@@ -1,6 +1,6 @@
 # Request Tracker
 
-Automatic request logging middleware that assigns a UUID request ID to every request, then logs method, path, client IP, and timing on the way in and out.
+Automatic request logging middleware that assigns a UUID request ID to every request. It logs method, path, client IP, and timing on the way in and out.
 
 > [!IMPORTANT]
 > This component is **auto-registered** by `BaseApplication` during `initialize()`. No manual registration is needed.
@@ -45,14 +45,14 @@ The HTTP method is padded to 8 characters for consistent alignment.
 
 ## How it works
 
-- **Two middlewares, one component.** `binding()` registers Hono's own `requestId()` (from `hono/request-id`) first, then resolves `RequestSpyMiddleware` from the DI container and registers it - `requestId()` must run first so the spy can read the ID off the context.
-- **IP resolution is best-effort, never fatal.** The middleware tries `getIncomingIp()` (runtime connection info), then `x-real-ip`, then `x-forwarded-for`; if none resolve it logs `'unknown'` instead of failing the request - this middleware observes traffic, it does not gate it.
-- **Body logging is environment-gated.** `RequestSpyMiddleware` reads `NODE_ENV` once in its constructor: any value other than `'production'` logs the body; `'production'` logs query only. Query is always logged in every environment.
-- **Body parsing follows Content-Type.** JSON, multipart, and URL-encoded bodies use Hono's own parsers; `application/octet-stream` returns the raw stream; everything else is read as text. A parse failure throws `'Malformed Body Payload'` (HTTP 400).
-- **The middleware is an `IProvider`, not a plain function.** `RequestSpyMiddleware implements IProvider<MiddlewareHandler>` from `@venizia/ignis-inversion` - the container instantiates the class (so it can hold `isDebugMode` state) and calls `.value()` to obtain the actual Hono handler.
+- **Two middlewares, one component.** `binding()` registers Hono's own `requestId()` from `hono/request-id` first. Then it resolves `RequestSpyMiddleware` from the DI container and registers it. `requestId()` must run first so the spy can read the ID off the context.
+- **IP resolution is best-effort, never fatal.** The middleware falls through several sources before giving up - see the resolution order below. An unresolved IP never fails the request; this middleware observes traffic, it does not gate it.
+- **Body logging is environment-gated.** `RequestSpyMiddleware` reads `NODE_ENV` once in its constructor. Any value other than `'production'` logs the body; `'production'` logs query only. Query is always logged in every environment.
+- **Body parsing follows Content-Type.** See the outcomes table below for what each Content-Type resolves to. A parse failure throws `'Malformed Body Payload'` (HTTP 400).
+- **The middleware is an `IProvider`, not a plain function.** `RequestSpyMiddleware` implements `IProvider<MiddlewareHandler>` from `@venizia/ignis-inversion`. The container instantiates the class, so it can hold `isDebugMode` state as an instance field. It then calls `.value()` to obtain the actual Hono handler.
 
 > [!TIP]
-> The request ID is also available in the framework's error handlers (`notFoundHandler`, `AppErrorMiddleware`), making it easy to correlate error logs with the original request.
+> The request ID is also available in the framework's error handlers (`notFoundHandler`, `AppErrorMiddleware`) - the same ID correlates error logs with the original request.
 
 ## Common tasks
 

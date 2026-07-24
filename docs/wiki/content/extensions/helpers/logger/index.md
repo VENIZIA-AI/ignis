@@ -1,12 +1,12 @@
 ---
 title: Logger
-description: Scoped, cached Winston logging with console, daily-rotating file, and UDP transports
+description: Scoped, cached logging via LoggerFactory - Winston by default, with console, daily-rotating file, and UDP transports built in
 difficulty: beginner
 ---
 
 # Logger
 
-The logger helper wraps Winston in a scoped, cached `Logger` class with console, daily-rotating file, and UDP transports built in.
+IGNIS gives every helper a scoped `ILogger`. `LoggerFactory` builds it from one registered provider - Winston by default, with console, daily-rotating file, and UDP transports built in.
 
 ## In one example
 
@@ -24,16 +24,17 @@ logger.info('User created');
 
 ## How it works
 
-- **Typed against `ILogger`.** Every consumer, including `BaseHelper.logger`, receives the `ILogger` interface, not a concrete class - Winston is the built-in provider behind it today, selected in `factory.ts`.
-- **Provider-based.** `LoggerFactory.use({ provider })` selects the app's logger engine once at the entrypoint - Winston by default, [pino](/extensions/helpers/logger/pino) for throughput. Every factory-issued logger (including ones captured at import time) follows the registration.
-- **Scoped and cached.** `LoggerFactory.getLogger(scopes)` joins the scopes with `-` and caches per scope - the same scope returns the same instance. `BaseHelper` calls this in its constructor, so every helper gets `this.logger` scoped automatically. (Custom-backed winston loggers - `Logger.get(scope, customWinstonLogger)` from the `/winston` sub-path - are NOT cached: each call is a fresh wrapper over the given instance.)
+- **Typed against `ILogger`.** Every consumer - including `BaseHelper.logger` - gets the `ILogger` interface, never a concrete class. Winston is the default provider behind it, selected in `factory.ts`.
+- **Provider-based.** `LoggerFactory.use({ provider })` selects the app's logger engine once, at the entrypoint. Winston is the default; [pino](/extensions/helpers/logger/pino) is the throughput option. Every factory-issued logger follows the registration, even one captured at import time.
+- **Scoped and cached.** `LoggerFactory.getLogger(scopes)` joins the scopes with `-` and caches the result per scope. The same scope always returns the same instance. `BaseHelper` calls this in its constructor, so every helper's `this.logger` comes pre-scoped.
+- **Custom-backed loggers are the exception.** `Logger.get(scope, customWinstonLogger)` (from the `/winston` sub-path) is NOT cached. Each call returns a fresh wrapper over the instance you passed in.
 - **Method scoping.** `.for(methodName)` returns a child logger scoped to `<scope>-<methodName>` (also cached), so each line shows where it came from.
-- **Level floor.** `APP_ENV_LOGGER_LEVEL` (default `debug`) sets the logger-level floor; transports without their own level inherit it.
-- **`debug()` is gated.** It emits only when `DEBUG=true` and `NODE_ENV` is unset or in `Environment.COMMON_ENVS` (extend via `APP_ENV_EXTRA_LOG_ENVS`). The check runs once at module load - runtime env changes need a restart.
+- **Level floor.** `APP_ENV_LOGGER_LEVEL` (default `debug`) sets the logger-level floor. Transports without their own level inherit it.
+- **`debug()` is gated.** It emits only when `DEBUG=true` and `NODE_ENV` is unset or listed in `Environment.COMMON_ENVS`. Extend that set via `APP_ENV_EXTRA_LOG_ENVS`. The check runs once at module load - runtime env changes need a restart.
 
 **Log levels**
 
-Five levels, each with a direct method: `debug`, `info`, `warn`, `error`, `emerg`. The generic `.log(level, ...)` remains for picking the level dynamically. What each level MEANS and when to use it is in the [level guide](/extensions/helpers/logger/reference#what-each-level-means).
+Five levels, each with a direct method: `debug`, `info`, `warn`, `error`, `emerg`. The generic `.log(level, ...)` remains for picking the level dynamically. What each level means, and when to use it, is in the [level guide](/extensions/helpers/logger/reference#what-each-level-means).
 
 **Transports**
 
@@ -43,7 +44,7 @@ Five levels, each with a direct method: `debug`, `info`, `warn`, `error`, `emerg
 | Daily-rotating file | `APP_ENV_LOGGER_FOLDER_PATH` is set |
 | UDP (`DgramTransport`) | All four UDP `APP_ENV_LOGGER_DGRAM_*` variables are set |
 
-Output shape (plain text or JSON) follows `APP_ENV_LOGGER_FORMAT`. Color codes appear only on the console - file and UDP output never carries ANSI escapes. For extreme hot paths, `HfLogger` is a separate ring-buffer logger outside this pipeline - it has its own [usage guide](/extensions/helpers/logger/hf-logger). The [Full reference](/extensions/helpers/logger/reference) covers everything else, including the `ApplicationLogger` facade.
+Output shape (plain text or JSON) follows `APP_ENV_LOGGER_FORMAT`. Color codes appear only on the console - file and UDP output never carries ANSI escapes. For extreme hot paths, `HfLogger` is a separate ring-buffer logger outside this pipeline. It has its own [usage guide](/extensions/helpers/logger/hf-logger). The [Full reference](/extensions/helpers/logger/reference) covers everything else, including the `ApplicationLogger` facade.
 
 ## Common tasks
 
@@ -75,7 +76,7 @@ class UserService {
 
 ### Log an Error with `%s`, never `%j`
 
-`message` and `stack` are non-enumerable on a native `Error`. `%j` formats via `JSON.stringify`, which only visits enumerable own properties, so it silently drops both. Always pair an `Error` argument with `%s`.
+`message` and `stack` are non-enumerable on a native `Error`. `%j` formats via `JSON.stringify`, which only visits enumerable own properties. So it silently drops both. Always pair an `Error` argument with `%s`.
 
 ```typescript
 logger.error('Failed to create user: %s', error); // prints message + stack
@@ -94,14 +95,20 @@ The `[APP]` label comes from `APP_ENV_APPLICATION_NAME` (defaults to `'APP'`).
 
 ### Enable daily file rotation
 
-Point `APP_ENV_LOGGER_FOLDER_PATH` at a directory; rotation frequency, size cap, and retention are also env-driven. Without this variable no log files are written - console (and UDP, if configured) remain the only outputs.
+Point `APP_ENV_LOGGER_FOLDER_PATH` at a directory. Rotation frequency, size cap, and retention are also env-driven. Without this variable, no log files are written - console (and UDP, if configured) remain the only outputs.
 
 ```bash
 APP_ENV_LOGGER_FOLDER_PATH=./app_data/logs
 APP_ENV_LOGGER_FILE_MAX_FILES=30d
 ```
 
-Defaults: `1h` rotation frequency, `100m` max size per file, `5d` retention. Programmatic configuration (per-transport prefixes, custom retention) is in the [Full reference](/extensions/helpers/logger/reference).
+| Setting | Default |
+|---|---|
+| Rotation frequency | `1h` |
+| Max file size | `100m` |
+| Retention | `5d` |
+
+Full programmatic configuration - custom prefixes, custom retention - is in the [Full reference](/extensions/helpers/logger/reference).
 
 ### Forward logs over UDP
 

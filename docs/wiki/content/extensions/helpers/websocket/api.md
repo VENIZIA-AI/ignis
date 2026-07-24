@@ -15,6 +15,19 @@ Exhaustive reference for `WebSocketServerHelper` and `WebSocketEmitter`. For a r
 - [`packages/helpers/src/modules/socket/websocket/common/types.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/socket/websocket/common/types.ts) - option, callback, and wire types
 - [`packages/helpers/src/modules/socket/websocket/common/constants.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/socket/websocket/common/constants.ts) - `WebSocketEvents`, `WebSocketChannels`, `WebSocketDefaults`, `WebSocketMessageTypes`, `WebSocketClientStates`
 
+## Find what you need
+
+| You want to | Go to |
+|---|---|
+| See every class and its role at a glance | [Quick Reference](#quick-reference) |
+| Follow a connection from upgrade to disconnect | [Client connection lifecycle](#client-connection-lifecycle) |
+| Look up every server constructor option | [`IWebSocketServerOptions`](#iwebsocketserveroptions) |
+| Send to one client, a user, a room, or everyone (same process) | [Server API](#server-api) |
+| Send to clients on any server instance, or publish from a process with no server of its own | [Server API](#server-api) / [Emitter API](#emitter-api) |
+| Look up a wire type, option type, or callback signature | [Types Reference](#types-reference) |
+| Look up an event name, channel, default, or close code | [Constants](#constants) |
+| Debug a stuck, rejected, or cross-instance delivery problem | [Troubleshooting](#troubleshooting) |
+
 ## Quick Reference
 
 | Class | Extends | Role |
@@ -157,7 +170,7 @@ Server A                      Redis                     Server B
 
 - **Duplication.** `WebSocketServerHelper` duplicates its `redisConnection` twice (`redisPub`, `redisSub`); `WebSocketEmitter` duplicates it once (`redisPub` only).
 - **Connection types.** Both single-instance `Redis` and `Cluster` connections from ioredis are supported - the parent helper connection stays independent and unconsumed.
-- **Dedup on receipt.** Every server instance generates a unique `serverId` (UUID) at construction; messages carrying the same `serverId` on receipt are skipped to prevent double delivery to the originating instance.
+- **Dedup on receipt.** Every server instance generates a unique `serverId` (UUID) at construction. A message carrying that same `serverId` on receipt is skipped, so the originating instance never delivers to itself twice.
 
 ## Server API
 
@@ -169,11 +182,20 @@ Server A                      Redis                     Server B
 constructor(opts: IWebSocketServerOptions<AuthDataType, MetadataType>)
 ```
 
-Generates a unique `serverId` (UUID), stores all options with defaults applied, and initializes two duplicated Redis clients (`redisPub`, `redisSub`). Throws `getError({ statusCode: 500, message: '[WebSocketServerHelper] Invalid redis connection!' })` if `redisConnection` is falsy.
+On construction:
+
+- Generates a unique `serverId` (UUID).
+- Stores all options, with defaults applied.
+- Initializes two duplicated Redis clients (`redisPub`, `redisSub`).
+
+Throws `getError({ statusCode: 500, message: '[WebSocketServerHelper] Invalid redis connection!' })` if `redisConnection` is falsy.
 
 #### Generic type parameters
 
-`AuthDataType` types the payload passed to `authenticateFn`/`handshakeFn`; `MetadataType` types the value returned as `metadata` and stored on `IWebSocketClient`. Both default to `Record<string, unknown>`.
+| Type parameter | Types | Default |
+|---|---|---|
+| `AuthDataType` | The payload passed to `authenticateFn`/`handshakeFn` | `Record<string, unknown>` |
+| `MetadataType` | The value returned as `metadata` and stored on `IWebSocketClient` | `Record<string, unknown>` |
 
 ```typescript
 interface AuthPayload { type: string; token: string; publicKey?: string }
@@ -219,7 +241,7 @@ const helper = new WebSocketServerHelper<AuthPayload, UserMetadata>({
 | `handshakeFn` | `TWebSocketHandshakeFn` | No | - | Required when `requireEncryption` is `true`. Returns `{ serverPublicKey, salt }` to accept, `null`/`false` to reject |
 
 - **All callbacks run through `invokeHook()`.** Applies to `authenticateFn`, `validateRoomFn`, `clientConnectedFn`, `clientDisconnectedFn`, `messageHandler`, and `handshakeFn`.
-- **Failures do not crash the process.** A synchronous throw inside a Bun socket handler is caught and logged; rejected promises are logged the same way via `voidExecution`.
+- **Failures do not crash the process.** A synchronous throw inside a Bun socket handler is caught and logged. A rejected promise is logged the same way, via `voidExecution`.
 
 ### `configure()`
 
@@ -253,7 +275,7 @@ Returns the Bun WebSocket handler object. Pass it to `server.reload({ websocket 
 #### Bun native configuration
 
 - **`serverOptions` is spread into the returned handler.** `WebSocketServerHelper` only applies its own default for `sendPings`, `idleTimeout`, and `maxPayloadLength`.
-- **Everything else falls through to Bun.** The remaining fields are `undefined` unless you set them, and Bun applies its own runtime default in that case.
+- **Everything else falls through to Bun.** The remaining fields are `undefined` unless you set them. Bun applies its own runtime default in that case.
 
 | Option | Type | Helper default | Description |
 |--------|------|-----------------|--------------|
@@ -306,7 +328,13 @@ Returns every client in `room`; `[]` if the room does not exist or is empty.
 onClientConnect(opts: { clientId: string; socket: IWebSocket }): void
 ```
 
-Handles a new WebSocket connection: creates an `IWebSocketClient` entry with state `UNAUTHORIZED`, subscribes the socket to its own `clientId` topic (Bun native pub/sub), and starts the authentication timeout. Returns early - and logs `'Client already existed'` - if the client ID already exists.
+Handles a new WebSocket connection:
+
+- Creates an `IWebSocketClient` entry with state `UNAUTHORIZED`.
+- Subscribes the socket to its own `clientId` topic (Bun native pub/sub).
+- Starts the authentication timeout.
+
+If the client ID already exists, it returns early and logs `'Client already existed'`.
 
 ### `onClientMessage()`
 
@@ -316,7 +344,8 @@ onClientMessage(opts: { clientId: string; raw: string }): void
 
 Routes an incoming message:
 
-- Parses `raw` as JSON. On failure, sends `{ event: 'error', data: { message: 'Invalid message format' } }` and returns. A message with no `event` field is logged and dropped.
+- Parses `raw` as JSON. On failure, sends `{ event: 'error', data: { message: 'Invalid message format' } }` and returns.
+- A parsed message with no `event` field is logged and dropped.
 - `heartbeat`: consumed silently (`lastActivity` is already updated by the `message` callback before this runs).
 - `authenticate`: delegates to `handleAuthenticate()`.
 - Any other event, when the client is not `AUTHENTICATED`: sends `{ event: 'error', data: { message: 'Not authenticated' } }`.
@@ -329,7 +358,14 @@ Routes an incoming message:
 onClientDisconnect(opts: { clientId: string }): void
 ```
 
-Cleans up a disconnected client: clears the pending auth timer, removes the client from its user's index, removes it from every joined room, removes it from the clients map, then invokes `clientDisconnectedFn`.
+Cleans up a disconnected client:
+
+- Clears the pending auth timer.
+- Removes the client from its user's index.
+- Removes it from every joined room.
+- Removes it from the clients map.
+
+It then invokes `clientDisconnectedFn`.
 
 ### `joinRoom()`
 
@@ -337,7 +373,7 @@ Cleans up a disconnected client: clears the pending auth timer, removes the clie
 joinRoom(opts: { clientId: string; room: string }): void
 ```
 
-Adds `clientId` to the room index and to `client.rooms`, and subscribes the socket to the room's Bun native pub/sub topic - unless the client is encrypted, in which case the subscribe step is skipped (delivery goes through the transformer instead). No-op if the client does not exist.
+Adds `clientId` to the room index and to `client.rooms`, and subscribes the socket to the room's Bun native pub/sub topic. An encrypted client skips the subscribe step - delivery goes through the transformer instead. No-op if the client does not exist.
 
 ### `leaveRoom()`
 
@@ -355,7 +391,10 @@ Removes `clientId` from the room index and from `client.rooms`, and unsubscribes
 - Maximum 256 characters.
 - Cannot start with `ws:` (reserved for the internal Redis channel prefix).
 
-- **Rejection is silent.** If every requested room is filtered out, `validateRoomFn` is not configured, or it resolves to an empty array, the join is rejected and logged - no error is sent back to the client.
+- **Rejection is silent.** No error goes back to the client - the join is only rejected and logged. That happens when:
+  - every requested room is filtered out,
+  - `validateRoomFn` is not configured, or
+  - it resolves to an empty array.
 - **`leave` does not re-filter.** `{ event: 'leave' }` only processes rooms the client is actually a member of (`client.rooms.has(room)`).
 - **Programmatic calls bypass validation.** `joinRoom()`/`leaveRoom()` called directly skip all of the above.
 
@@ -365,7 +404,7 @@ Removes `clientId` from the room index and from `client.rooms`, and unsubscribes
 enableClientEncryption(opts: { clientId: string }): void
 ```
 
-Unsubscribes the client from every Bun native pub/sub topic (the broadcast topic plus all joined rooms) so `server.publish()` no longer reaches it; messages are instead delivered individually through `outboundTransformer`. No-op if the client is already encrypted or does not exist.
+Unsubscribes the client from every Bun native pub/sub topic (the broadcast topic plus all joined rooms), so `server.publish()` no longer reaches it. Messages are instead delivered individually through `outboundTransformer`. No-op if the client is already encrypted or does not exist.
 
 > [!WARNING]
 > Irreversible for the lifetime of the connection. Once a client is encrypted it cannot be switched back to Bun native pub/sub delivery.
@@ -377,7 +416,7 @@ sendToClient(opts: { clientId: string; event: string; data: unknown; doLog?: boo
 ```
 
 - **Local delivery only.**
-- **Encrypted client, `outboundTransformer` configured.** The transformer runs (async) before `socket.send()`; a transformer error is logged and the message is dropped.
+- **Encrypted client, `outboundTransformer` configured.** The transformer runs (async) before `socket.send()`. A transformer error is logged, and the message is dropped.
 - **Otherwise.** Sends `JSON.stringify({ event, data })` directly.
 - **`doLog: true`** emits an info log after delivery.
 
@@ -450,7 +489,7 @@ shutdown(): Promise<void>
 `Source ->` [`emitter/helper.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/socket/websocket/emitter/helper.ts)
 
 - **Role.** A Redis-only publisher for processes with no WebSocket server of their own - background workers, other microservices, cron jobs.
-- **No self-skip.** It always publishes with `serverId: 'emitter'`, so every server instance processes the message; there is no dedup skip on the sending side.
+- **No self-skip.** It always publishes with `serverId: 'emitter'`, so every server instance processes the message. There is no dedup skip on the sending side.
 
 ### Constructor
 

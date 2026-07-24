@@ -973,7 +973,7 @@ export class ChatService extends BaseService {
 ```
 
 > [!IMPORTANT]
-> **Lazy getter pattern**: `SocketIOServerHelper` is bound via a post-start hook, so it's not available during DI construction. The `private get socketIOHelper()` getter resolves it lazily on first access. See [Socket.IO Component](/extensions/components/socket-io/#step-3-use-in-servicescontrollers) for details.
+> **Lazy getter pattern**: `SocketIOServerHelper` is bound via a post-start hook, so it's not available during DI construction. The `private get socketIOHelper()` getter resolves it lazily on first access. See [Send a message from a service](/extensions/components/socket-io/#send-a-message-from-a-service) for details.
 
 ## 6. Application Setup
 

@@ -8,6 +8,20 @@ difficulty: intermediate
 
 Task-oriented examples for the Authentication component. See the [Overview](./) for initial setup and the [API Reference](./api) for every option and class.
 
+## Find what you need
+
+| You want to | Go to |
+|---|---|
+| Require auth on a route, or make one public | [Securing routes](#securing-routes) |
+| Implement sign-in, sign-up, or change-password | [Implementing IAuthService](#implementing-iauthservice) |
+| Split issuer and verifier across services | [JWKS microservice patterns](#jwks-microservice-patterns) |
+| See what happens on each request, step by step | [Auth flows](#auth-flows) |
+| Accept both JWT and Basic on one route | [Multi-strategy authentication](#multi-strategy-authentication) |
+| Encrypt JWT payload fields | [Token encryption (optional AES)](#token-encryption-optional-aes) |
+| Read `CURRENT_USER` in a handler, with types | [Hono context extension](#hono-context-extension) |
+| Call the built-in `/auth` endpoints | [API endpoints](#api-endpoints) |
+| Add auth columns to a Drizzle table | [Entity column helpers](#entity-column-helpers) |
+
 ## Securing routes
 
 **Require one strategy.** Add `authenticate` to the route config.
@@ -21,7 +35,7 @@ const SECURE_ROUTE_CONFIG = {
 } as const;
 ```
 
-**Accept multiple strategies with fallback.** `mode: 'any'` (default) tries each in order; the first success wins.
+**Accept multiple strategies with fallback.** `mode: 'any'` (default) tries each strategy in order. The first success wins.
 
 ```typescript
 const FALLBACK_AUTH_CONFIG = {
@@ -43,7 +57,7 @@ const PUBLIC_ROUTE_CONFIG = {
 } as const;
 ```
 
-**Use `authenticate()` as raw Hono middleware.** Outside of route configs - e.g. for a plain Hono sub-app.
+**Use `authenticate()` as raw Hono middleware.** Use this outside route configs - for a plain Hono sub-app, for example.
 
 ```typescript
 import { authenticate, Authentication, AuthenticationModes } from '@venizia/ignis';
@@ -83,7 +97,7 @@ const conditionalAuthMiddleware = createMiddleware(async (c, next) => {
 
 ## Implementing IAuthService
 
-The built-in auth controller (`useAuthController: true`) delegates every route to a service you provide, implementing `IAuthService`.
+The built-in auth controller (`useAuthController: true`) delegates every route to a service you provide. That service implements `IAuthService`.
 
 **JWS-backed service.**
 
@@ -130,7 +144,7 @@ constructor(
 ) { super({ scope: AuthenticationService.name }); }
 ```
 
-**Implement `refreshToken` (optional).** Re-issues a token from the currently valid one - there is no separate refresh token.
+**Implement `refreshToken` (optional).** It re-issues a token from the caller's currently valid one. IGNIS has no separate refresh token.
 
 ```typescript
 async refreshToken(context: TContext<Env>): Promise<{ token: string }> {
@@ -257,8 +271,8 @@ sequenceDiagram
 
 | Mode | Behavior | Use case |
 |------|----------|----------|
-| `'any'` (default) | Strategies tried in order; first success wins; failures discarded (debug log); `401` with the tried-strategy list only if all fail | Fallback auth (JWT primary, Basic for legacy clients) |
-| `'all'` | Every strategy must pass; first failure rejects immediately; the **first** strategy's user payload is the identity source | Multi-factor authentication |
+| `'any'` (default) | Tried in order.<br>First success wins.<br>Failures are logged at debug, not returned.<br>All fail -> `401` listing the tried strategies. | Fallback auth (JWT primary, Basic for legacy clients) |
+| `'all'` | Every strategy must pass.<br>First failure rejects immediately.<br>The **first** strategy's user payload is the identity source. | Multi-factor authentication |
 
 ```mermaid
 flowchart TD
@@ -279,11 +293,16 @@ flowchart TD
 
 ## Token encryption (optional AES)
 
-- **Off by default.** AES payload encryption only activates when `applicationSecret` is set on the JWS/JWKS options - otherwise payloads are standard plaintext JWT.
-- **Standard fields untouched.** `iss`, `sub`, `aud`, `jti`, `nbf`, `exp`, `iat` are never encrypted, on either side.
-- **Everything else, key and value.** Every other payload field has both its key and its value AES-encrypted; `null`/`undefined` values are skipped.
-- **Serialization is `JSON.stringify` unless you supply a codec.** `AuthenticationFieldCodecs.ROLES_CODEC` is a ready-made codec that serializes `roles` as pipe-separated `id|identifier|priority` strings - it is opt-in, not automatic. Pass it via `fieldCodecs: [AuthenticationFieldCodecs.ROLES_CODEC]` if you want that format instead of the default JSON array.
-- **Secret must stay constant.** Changing `applicationSecret` invalidates every existing token. Issuer and verifier must share the identical secret (and identical `fieldCodecs`, if used).
+AES payload encryption is off by default. It only activates when you set `applicationSecret` on the JWS/JWKS options.
+
+| Aspect | Behavior |
+|---|---|
+| Default | Off. Without `applicationSecret`, payloads stay standard plaintext JWT. |
+| Standard fields | `iss`, `sub`, `aud`, `jti`, `nbf`, `exp`, `iat` are never encrypted, on either side. |
+| Other fields | Both the key and the value are AES-encrypted. `null` and `undefined` values are skipped. |
+| Serialization | `JSON.stringify` by default. Opt in to `AuthenticationFieldCodecs.ROLES_CODEC` for `roles` - it serializes as pipe-separated `id\|identifier\|priority` strings instead. |
+| Secret | Must stay constant. Changing `applicationSecret` invalidates every existing token. |
+| Issuer/verifier match | Both sides need the identical secret, and identical `fieldCodecs` if you use them. |
 
 ```typescript
 this.bind<TJWTTokenServiceOptions>({ key: AuthenticateBindingKeys.JWT_OPTIONS }).toValue({
@@ -331,7 +350,7 @@ The built-in auth controller exists only when `REST_OPTIONS.useAuthController: t
 | `GET` | `/certs` | No | JWKS endpoint (Issuer mode only) |
 
 > [!NOTE]
-> `/auth` is configurable via `controllerOpts.restPath`; `/certs` via `rest.path` in `IJWKSIssuerOptions`. `/certs` is intentionally unauthenticated.
+> `/auth` is configurable via `controllerOpts.restPath`. `/certs` is configurable via `rest.path` in `IJWKSIssuerOptions`, and is intentionally unauthenticated.
 
 **`POST /auth/sign-in`** - body defaults to `SignInRequestSchema` (nested `identifier`/`credential`), overridable via `payload.signIn`.
 
@@ -339,22 +358,22 @@ The built-in auth controller exists only when `REST_OPTIONS.useAuthController: t
 { "token": "eyJhbGciOiJFUzI1NiIsImtpZCI6Im15LWtleS1pZC0xIn0..." }
 ```
 
-**`POST /auth/sign-up`** - public unless `requireAuthenticatedSignUp: true`. Body defaults to a flat `SignUpRequestSchema` (`username`, `credential` - unlike sign-in's nested shape).
+**`POST /auth/sign-up`** - public unless `requireAuthenticatedSignUp: true`. Body defaults to a flat `SignUpRequestSchema` (`username`, `credential`) - unlike sign-in, the shape isn't nested.
 
 **`POST /auth/change-password`** - always requires JWT. Body defaults to `ChangePasswordRequestSchema` (`scheme`, `oldCredential`, `newCredential`, `userId`).
 
 **`POST /auth/token/refresh`** - always requires JWT, no request body. Returns `501` if `IAuthService.refreshToken` isn't implemented.
 
-**`GET /auth/who-am-i`** - always requires JWT. Query param `withUserInformation` (`true`/`false`/`1`/`0`, default `false`) attaches a `userInformation` field from `getUserInformation`; returns `501` if that method is truthy-requested but not implemented.
+**`GET /auth/who-am-i`** - always requires JWT. The `withUserInformation` query param (`true`, `false`, `1`, `0`; default `false`) attaches a `userInformation` field from `getUserInformation`. Returns `501` if you request that field without implementing `getUserInformation`.
 
 ```json
 { "userId": "123", "roles": [{ "id": "1", "identifier": "admin", "priority": 0 }] }
 ```
 
-**`GET /auth/me`** - always requires JWT. Delegates entirely to `getUserInformation(context, {})` - the response is not merged with the JWT payload. Returns `501` if not implemented.
+**`GET /auth/me`** - always requires JWT, delegating entirely to `getUserInformation(context, {})`. The response is not merged with the JWT payload. Returns `501` if `getUserInformation` isn't implemented.
 
 > [!TIP]
-> One `getUserInformation` implementation backs both routes: use `GET /me` for the raw profile, `GET /who-am-i?withUserInformation=true` to get it merged with the principal in one round-trip.
+> One `getUserInformation` implementation backs both routes. Use `GET /me` for the raw profile. Use `GET /who-am-i?withUserInformation=true` to get it merged with the principal in one round-trip.
 
 **`GET /certs`** (Issuer mode only) - public, returns the JSON Web Key Set with `Cache-Control: public, max-age=3600, stale-while-revalidate=86400`.
 
@@ -368,19 +387,22 @@ Column helper functions return pre-configured Drizzle columns for auth-related t
 
 ```typescript
 import { pgTable, text } from 'drizzle-orm/pg-core';
-import { extraUserColumns, extraRoleColumns, extraPermissionColumns, extraPolicyDefinitionColumns, withSerialId, withTimestamps } from '@venizia/ignis';
+import {
+  extraUserColumns, extraRoleColumns, extraPermissionColumns, extraPolicyDefinitionColumns,
+  generateIdColumnDefs, generateTzColumnDefs,
+} from '@venizia/ignis';
 
 export const users = pgTable('users', {
-  ...withSerialId(),
-  ...withTimestamps(),
+  ...generateIdColumnDefs(),
+  ...generateTzColumnDefs(),
   ...extraUserColumns(),
   username: text('username').unique().notNull(),
   passwordHash: text('password_hash').notNull(),
 });
 
-export const roles = pgTable('roles', { ...withSerialId(), ...withTimestamps(), ...extraRoleColumns() });
-export const permissions = pgTable('permissions', { ...withSerialId(), ...withTimestamps(), ...extraPermissionColumns() });
-export const policyDefinitions = pgTable('policy_definitions', { ...withSerialId(), ...withTimestamps(), ...extraPolicyDefinitionColumns() });
+export const roles = pgTable('roles', { ...generateIdColumnDefs(), ...generateTzColumnDefs(), ...extraRoleColumns() });
+export const permissions = pgTable('permissions', { ...generateIdColumnDefs(), ...generateTzColumnDefs(), ...extraPermissionColumns() });
+export const policyDefinitions = pgTable('policy_definitions', { ...generateIdColumnDefs(), ...generateTzColumnDefs(), ...extraPolicyDefinitionColumns() });
 ```
 
 **`extraUserColumns(opts?: { idType })`**
@@ -398,7 +420,7 @@ export const policyDefinitions = pgTable('policy_definitions', { ...withSerialId
 
 | Column | DB column | Type | Default | Description |
 |--------|-----------|------|---------|-------------|
-| `identifier` | `identifier` | `text` (unique) | -- | e.g. `'admin'`, `'editor'` |
+| `identifier` | `identifier` | `text` (unique) | -- | For example, `'admin'`, `'editor'` |
 | `name` | `name` | `text` | -- | Human-readable name |
 | `description` | `description` | `text` | `null` | Optional |
 | `priority` | `priority` | `integer` | -- | Lower = higher priority |
@@ -410,9 +432,9 @@ export const policyDefinitions = pgTable('policy_definitions', { ...withSerialId
 |--------|-----------|------|---------|-------------|
 | `code` | `code` | `text` (unique) | -- | Unique permission code |
 | `name` | `name` | `text` | -- | Display name |
-| `subject` | `subject` | `text` | -- | e.g. `'User'`, `'Order'` |
-| `method` | `method` | `text` | -- | e.g. `'GET'`, `'POST'` |
-| `action` | `action` | `text` | -- | e.g. `'read'`, `'write'` |
+| `subject` | `subject` | `text` | -- | For example, `'User'`, `'Order'` |
+| `method` | `method` | `text` | -- | For example, `'GET'`, `'POST'` |
+| `action` | `action` | `text` | -- | For example, `'read'`, `'write'` |
 | `scope` | `scope` | `text` | -- | Permission scope |
 | `description` | `description` | `text` | `null` | Optional |
 | `parentId` | `parent_id` | `text` or `integer` | `null` | Depends on `idType` |
@@ -422,15 +444,16 @@ export const policyDefinitions = pgTable('policy_definitions', { ...withSerialId
 | Column | DB column | Type | Nullable | Description |
 |--------|-----------|------|----------|-------------|
 | `variant` | `variant` | `text` | No | `'p'` (policy) or `'g'` (grouping) |
-| `subjectType` | `subject_type` | `text` | No | e.g. `'user'`, `'role'` |
-| `targetType` | `target_type` | `text` | No | e.g. `'permission'`, `'role'` |
+| `subjectType` | `subject_type` | `text` | No | For example, `'user'`, `'role'` |
+| `targetType` | `target_type` | `text` | No | For example, `'permission'`, `'role'` |
 | `action` | `action` | `text` | Yes | Policy action |
 | `effect` | `effect` | `text` | Yes | `'allow'` / `'deny'` |
 | `domain` | `domain` | `text` | Yes | Multi-tenancy domain |
 | `subjectId` | `subject_id` | `text` or `integer` | No | Depends on `idType` |
 | `targetId` | `target_id` | `text` or `integer` | No | Depends on `idType` |
+| `metadata` | `metadata` | `jsonb` | Yes | Free-form metadata. Only some grants populate it |
 
-All `idType` options default to `'number'` (`integer` columns); pass `'string'` for `text` (e.g. UUID) columns.
+All `idType` options default to `'number'` (`integer` columns). Pass `'string'` for `text` columns - UUID primary keys, for example.
 
 ## See also
 

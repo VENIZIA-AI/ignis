@@ -13,9 +13,15 @@ description: Applications compiling a binary no longer need node-vault or @doten
 
 ## What changed
 
-- **`Bun.build` no longer resolves the secrets peers at bundle time.** The literal dynamic imports of `node-vault` and `@dotenvx/dotenvx` were visible to the bundler. Every application compiling a binary failed to resolve them, unless the peer was installed or listed in `external`. Both imports now cross the `importOptionalModule` function boundary. The bundler cannot fold that into a resolvable literal - not even under `minify: { syntax: true }`.
-- **A missing peer now fails with the standard install hint.** Construct `HashiCorpVaultHelper` or `DotenvVaultHelper` directly (via `/hashicorp-vault` or `/dotenv-vault`) without the peer installed, and it used to reject with a raw module-not-found error. It now throws the same actionable `ApplicationError` (`Please install 'node-vault'`) as the factory path.
-- **The peer is no longer embedded into compiled binaries.** Previously, referencing a vault provider with the peer installed caused `Bun.build` to bundle it. A compiled application that uses a provider must now ship the peer in `node_modules` next to the binary. Alternatively, inject a ready-made `client` (HashiCorp) or `decode` (dotenv) through the helper options.
+- **`Bun.build` no longer resolves the secrets peers at bundle time.** The literal dynamic imports of `node-vault` and `@dotenvx/dotenvx` were visible to the bundler.
+- Every application compiling a binary failed to resolve them, unless the peer was installed or listed in `external`.
+- Both imports now cross the `importOptionalModule` function boundary.
+- The bundler cannot fold that into a resolvable literal, not even under `minify: { syntax: true }`.
+- **A missing peer now fails with the standard install hint.** Construct `HashiCorpVaultHelper` or `DotenvVaultHelper` directly (via `/hashicorp-vault` or `/dotenv-vault`) without the peer installed.
+- This used to reject with a raw module-not-found error. It now throws the same actionable `ApplicationError` (`Please install 'node-vault'`) as the factory path.
+- **The peer is no longer embedded into compiled binaries.** Previously, referencing a vault provider with the peer installed caused `Bun.build` to bundle it.
+- A compiled application that uses a provider must now ship the peer in `node_modules` next to the binary.
+- Alternatively, inject a ready-made `client` (HashiCorp) or `decode` (dotenv) through the helper options.
 
 ## Who is affected
 

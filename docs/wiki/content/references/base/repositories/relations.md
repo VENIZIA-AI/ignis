@@ -31,7 +31,7 @@ const user = await userRepository.findOne({
 ```
 
 > [!NOTE]
-> An `include` in the filter routes the query through Drizzle's Query API (`connector.query`) instead of the Core API - the `canUseCoreAPI` check in `ReadableRelationalRepository` makes that choice automatically. Core API is ~15-20% faster but skips relations and field selection. See [Performance Optimization](./advanced#performance-optimization).
+> An `include` in the filter routes the query through Drizzle's Query API (`connector.query`) instead of the Core API. The `canUseCoreAPI` check in `ReadableRelationalRepository` makes that choice automatically. Core API is ~15-20% faster but skips relations and field selection. See [Performance Optimization](./advanced#performance-optimization).
 
 ## `TInclusion` options
 
@@ -47,7 +47,7 @@ Each element of the `include` array accepts:
 
 ## Declaring relations on a model
 
-Relations are declared as a static `relations` resolver on the model, returning an array of `TRelationConfig`. `MetadataRegistry` resolves the array during schema discovery and passes it to `createRelations`, which builds the actual Drizzle `relations()` definition - application code never calls `createRelations` directly.
+Relations are declared as a static `relations` resolver on the model, returning an array of `TRelationConfig`. `MetadataRegistry` resolves the array during schema discovery and passes it to `createRelations`. `createRelations` builds the actual Drizzle `relations()` definition - application code never calls it directly.
 
 ```typescript
 // src/models/user.model.ts
@@ -129,7 +129,7 @@ export class Post extends BaseEntity<typeof Post.schema> {
 
 ### Auto-resolution in the repository
 
-The repository never receives relations through its constructor. `MetadataRegistry` resolves them from the entity's static `relations` property, and `FilterBuilder.resolveRelations()` reads and caches the result in a `WeakMap` the first time an include query needs them.
+The repository never receives relations through its constructor. `MetadataRegistry` resolves them from the entity's static `relations` property. `FilterBuilder.resolveRelations()` reads and caches the result in a `WeakMap` the first time an include query needs them.
 
 ```typescript
 @repository({ model: User, dataSource: PostgresDataSource })
@@ -209,7 +209,7 @@ const user = await userRepository.findOne({
 
 ### Many-to-many through a junction table
 
-This is the pattern `examples/vert` uses for `Product` <-> `SaleChannel` through the `SaleChannelProduct` junction table: include the junction relation, then nest the far side inside its `scope`.
+This is the pattern `examples/vert` uses for `Product` <-> `SaleChannel` through the `SaleChannelProduct` junction table. Include the junction relation, then nest the far side inside its `scope`.
 
 ```typescript
 // Product -> SaleChannelProduct (junction) -> SaleChannel
@@ -308,7 +308,7 @@ product?.saleChannelProducts[0].saleChannel.name; // Fully typed access
 
 ## Hidden properties in relations
 
-`FilterBuilder.toInclude()` excludes hidden columns from every included relation at the SQL level, the same way the top-level query does. For each inclusion it resolves the related model's `hiddenProperties` and default filter, merges the default filter with your `scope` via `mergeFilter()`, and drops hidden columns from the nested `columns` selection.
+`FilterBuilder.toInclude()` excludes hidden columns from every included relation at the SQL level, the same way the top-level query does. For each inclusion it resolves the related model's `hiddenProperties` and default filter, and merges the default filter with your `scope` via `mergeFilter()`. It then drops hidden columns from the nested `columns` selection.
 
 ```typescript
 // User model has hiddenProperties: ['password']

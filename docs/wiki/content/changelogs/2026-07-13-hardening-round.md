@@ -1,6 +1,6 @@
 ---
 title: Security and Reliability Hardening - SQL Injection, Filter Scope, and 11 More Fixes
-description: A full audit across the framework closed a live SQL injection in array filters and two ways a default filter's scope could be bypassed. It also fixed hidden fields leaking from search results and ten other bugs in errors, logging, uploads, and boot.
+description: A full audit across the framework closed a live SQL injection in array filters and two ways a default filter's scope could be bypassed. It also fixed hidden fields leaking from search results, plus ten other bugs in errors, logging, uploads, and boot.
 ---
 
 # Changelog - 2026-07-13
@@ -9,7 +9,7 @@ description: A full audit across the framework closed a live SQL injection in ar
 
 <Badge type="danger" text="Security" /> <Badge type="warning" text="Breaking Change" /> <Badge type="info" text="Bug Fix" /> <Badge type="tip" text="Enhancement" />
 
-**In one line.** A security and reliability audit closed a live SQL injection and two ways a default filter's scope could be bypassed. Ten other bugs across search, logging, uploads, and boot are fixed alongside them - two of the fixes change existing behavior.
+**In one line.** A security and reliability audit closed a live SQL injection and two ways a default filter's scope could be bypassed. Ten other bugs across search, logging, uploads, and boot are fixed alongside them. Two of the fixes change existing behavior.
 
 ## The problem it solves
 
@@ -28,7 +28,7 @@ A framework-wide audit found a query path that built SQL by string-concatenating
 
 - **`deleteAll({})` no longer wipes the whole collection.** Calling it with no arguments used to delete every row. Now it throws, and truncation requires saying so explicitly. See Breaking changes.
 - **A constructor missing `@inject` now fails immediately at boot**, with a message naming the class and parameter. Previously it caused a confusing mis-wired dependency somewhere else. See Breaking changes.
-- **Meilisearch errors are now classified correctly.** A bug in error-shape detection meant a normal "does this already exist" check on `create()` could be misread as the search engine being down.
+- **Meilisearch errors are now classified correctly.** A bug in error-shape detection could misread a normal "does this already exist" check on `create()`. It looked like the search engine being down.
 - **A rejected email is now retried, not marked as delivered.** An SMTP rejection was previously treated as a successful queue job, so the message silently disappeared with no retry.
 - **Logs no longer drop the error you're printing.** `logger.debug('failed: %j', error)` used to print `{}` for an `Error`.
 - **Nested objects now log past one level.** The same `%j` bug logged nested objects as `[Object]` instead of their contents.
@@ -83,7 +83,7 @@ Mixing decorated and undecorated constructor parameters was never supported. Dec
 
 - Every fix in this round was written test-first, then mutation-checked: the fix was reverted and the test confirmed to fail. Several existing tests were found to stay green even against the broken code and were corrected first.
 - The array-filter fix keeps operator names as framework constants (never user input). It binds only the values, preserving the previous element-type behavior via an explicit cast.
-- The uploads fix also removes a double-decode in the static-asset controller that could turn an encoded `%2F` in a filename into a real path separator.
+- The uploads fix also removes a double-decode in the static-asset controller. That double-decode could turn an encoded `%2F` in a filename into a real path separator.
 
 | Metric | Value |
 |---|---|
@@ -91,7 +91,7 @@ Mixing decorated and undecorated constructor parameters was never supported. Dec
 | SQL injections closed | 1 |
 | Tests passing | 2714 (inversion 96, helpers 1014, boot 81, core 1523) |
 
-Zero lint findings and zero type errors across all four packages; all nine examples type-check; the dual CJS + ESM build of `inversion` is intact.
+Zero lint findings and zero type errors span all four packages. All nine examples type-check. The dual CJS + ESM build of `inversion` is intact.
 
 ## See also
 

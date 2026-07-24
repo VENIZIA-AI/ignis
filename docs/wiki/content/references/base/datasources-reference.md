@@ -104,7 +104,7 @@ abstract class AbstractDataSource<
 
 | Method | Return type | Description |
 |---|---|---|
-| `configure(opts?)` | `ValueOrPromise<void>` | Initialize the underlying connection. This is the **only** abstract member of the neutral root - `getConnectionString()` is not part of it; it is declared one level down, on `AbstractPostgresDataSource` (see below) |
+| `configure(opts?)` | `ValueOrPromise<void>` | Initialize the underlying connection. This is the **only** abstract member of the neutral root. `getConnectionString()` is not part of it - it is declared one level down, on `AbstractPostgresDataSource` (see below) |
 
 **Concrete methods** (defaults, overridable by connectors):
 
@@ -123,7 +123,7 @@ abstract class AbstractDataSource<
 | `discoverDefinitions({ read, kind })` | Walks the bound model classes, reads a connector-specific artifact via `read`, and returns a name-keyed registry. Skips undefined reads, throws on duplicate names, honors `autoDiscovery: false`. Shared plumbing every connector's own `discoverSchema()`-equivalent builds on |
 
 > [!NOTE] NotSupported convention
-> Every capability an engine does not implement - transactions, row-level locking - uses the same `throwNotSupported` utility ([`packages/core/src/utilities/error.utility.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core/src/utilities/error.utility.ts)), producing a consistent `501 Not Implemented` whose `normalized.code` resolves to `'core.not_supported'`. This is how the typesense connector signals "not applicable to this engine" instead of silently no-op-ing.
+> Every capability an engine does not implement - transactions, row-level locking - uses the same `throwNotSupported` utility ([`packages/core/src/utilities/error.utility.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core/src/utilities/error.utility.ts)). It produces a consistent `501 Not Implemented` whose `normalized.code` resolves to `'core.not_supported'`. This is how the typesense connector signals "not applicable to this engine" instead of silently no-op-ing.
 
 ### `IDataSourceCapabilities`
 
@@ -177,19 +177,19 @@ The fourth generic, `Client = Pool`, is what lets a postgres-js datasource decla
 | `getConnector()` | `TRelationalConnector<Schema>` | Wires the driver on first use (via `wireDriverFromMetadata()`), then returns `this.connector` |
 | `getClient()` | `Client` | Raw driver client escape hatch - `pg.Pool` for node-postgres, `Sql` for postgres-js. Reads `this.driver.getClient()` if a driver is resolved, else `this.client` directly. Throws if neither is set |
 | `getQueryDialect()` | `IRelationalQueryDialect` | Returns a shared, lazily-constructed `FilterBuilder` instance (static, one per process) |
-| `onSecretRotated(opts)` | `Promise<void>` | Applies rotated credentials to `this.settings`, rebuilds the driver/connector/client against a fresh pool, calls `this.configure()` and `this.resolveDriver()`, then drains the old pool once the new one is in place. See [Secrets & Vault](/guides/core-concepts/secrets-vault) |
+| `onSecretRotated(opts)` | `Promise<void>` | Applies rotated credentials to `this.settings` and rebuilds the driver/connector/client against a fresh pool. Calls `this.configure()` and `this.resolveDriver()`, then drains the old pool once the new one is in place. See [Secrets & Vault](/guides/core-concepts/secrets-vault) |
 
 **Protected methods:**
 
 | Method | Description |
 |---|---|
-| `wireDriverFromMetadata()` | Idempotent, lazy. If `this.connector` already exists, no-ops. If `this.driver` exists but `this.connector` does not, builds the connector from it. Otherwise reads the class named in `@datasource({ driver })` from `MetadataRegistry`, instantiates it over `this.client`, and calls `useDriver()`. Throws if neither `client` nor `driver` is set, or if the named `driver` metadata is not a class (a string, historically valid for search engines, is rejected here with a message pointing at `NodePostgresDriver`) |
+| `wireDriverFromMetadata()` | Idempotent, lazy. If `this.connector` already exists, no-ops. If `this.driver` exists but `this.connector` does not, builds the connector from it. Otherwise reads the class named in `@datasource({ driver })` from `MetadataRegistry`, instantiates it over `this.client`, and calls `useDriver()`. Throws if neither `client` nor `driver` is set. It also throws if the named `driver` metadata is not a class - a string, historically valid for search engines, is rejected here with a message pointing at `NodePostgresDriver` |
 | `resolveDriver()` | Calls `wireDriverFromMetadata()`, then returns `this.driver` |
 | `useDriver({ driver, schema? })` | Assigns `this.driver` **and** builds `this.connector` from it in one step - the two-step form (driver set, connector forgotten) is unrepresentable. `schema` defaults to `getSchema()`. The public escape hatch for a custom or third-party driver, bypassing `@datasource({ driver })` entirely |
 | `mapSecretToSettings({ secret })` | Maps Vault's `{ username, password }` secret shape to `pg`'s `{ user, password }` settings shape, for `onSecretRotated()` |
 
 > [!NOTE] Driver seam
-> - **Class, not a string.** `@datasource({ driver })` names the driver **class** (`NodePostgresDriver` or `PostgresJsDriver`) - a driver-name string cannot carry `pg`/`postgres` into the app's bundle, only a real class reference can.
+> - **Class, not a string.** `@datasource({ driver })` names the driver **class** (`NodePostgresDriver` or `PostgresJsDriver`). A driver-name string cannot carry `pg`/`postgres` into the app's bundle - only a real class reference can.
 > - **`configure()` only assigns `this.client`.** The protected `wireDriverFromMetadata()` (called internally by `getConnector()`/`resolveDriver()`) instantiates the named class over it and builds `this.connector`, lazily and idempotently.
 > - **Where the drivers live.** `pg` and `postgres` are both optional peer dependencies; concrete drivers live at `@venizia/ignis/postgres/node-postgres` and `@venizia/ignis/postgres/postgres-js`, and Supabase support at `@venizia/ignis/postgres/supabase`. See [Postgres Drivers & Supabase](/guides/core-concepts/persistent/postgres-drivers).
 
@@ -246,7 +246,7 @@ This means tables and relations never need to be manually merged in the datasour
 
 1. **Your DataSource's `constructor` runs.** You call `super()` with `name` and `config`. Schema is auto-discovered from `@repository` bindings unless `schema` is provided manually.
 2. **`Application.registerDataSources()` runs during startup.** The application fetches your datasource instance from the DI container and calls `configure()` on it.
-3. **Your `configure()` method runs.** Its only job is to create the raw client and assign it to `this.client` - `getConnector()`/`beginTransaction()` lazily instantiate the class named in `@datasource({ driver })` over it and build the Drizzle connector. `configure()` never touches `this.connector` directly.
+3. **Your `configure()` method runs.** Its only job is to create the raw client and assign it to `this.client`. `getConnector()`/`beginTransaction()` lazily instantiate the class named in `@datasource({ driver })` over it and build the Drizzle connector. `configure()` never touches `this.connector` directly.
 
 ### Example implementations
 
@@ -362,7 +362,7 @@ export class PostgresDataSource extends BasePostgresDataSource<IDataSourceConfig
 ```
 
 > [!IMPORTANT]
-> `configure()` must leave the datasource with a way to reach the database: either assign the raw client to `this.client` (paired with naming the driver class in `@datasource({ driver })`), or wire a driver directly with `this.useDriver({ driver })` for a custom or third-party driver. `getConnector()`/`beginTransaction()` resolve the driver lazily from whichever you provided. With neither, `wireDriverFromMetadata()` throws `No driver and no client`.
+> `configure()` must leave the datasource with a way to reach the database. Either assign the raw client to `this.client`, paired with naming the driver class in `@datasource({ driver })`. Or wire a driver directly with `this.useDriver({ driver })` for a custom or third-party driver. `getConnector()`/`beginTransaction()` resolve the driver lazily from whichever you provided. With neither, `wireDriverFromMetadata()` throws `No driver and no client`.
 
 ### `@datasource` decorator
 
@@ -434,7 +434,7 @@ interface IStatementResult {
 | `getClient()` | Raw client escape - `pg.Pool` for node-postgres, `Sql` for postgres-js |
 | `end()` | Closes the underlying client/pool |
 | `IRelationalConnection.execute({ statement })` | Runs a control statement verbatim (never parameterized - `BEGIN TRANSACTION ISOLATION LEVEL $1` is not valid SQL) |
-| `IRelationalConnection.release({ destroy? })` | Returns the connection to the pool, or discards it when `destroy: true` - required after a failed `COMMIT`/`ROLLBACK`, since the session may still hold an open transaction |
+| `IRelationalConnection.release({ destroy? })` | Returns the connection to the pool, or discards it when `destroy: true`. Required after a failed `COMMIT`/`ROLLBACK`, since the session may still hold an open transaction |
 
 Two concrete drivers ship today, both satisfying `IRelationalDriver` and both proven by the same conformance suite:
 
@@ -443,7 +443,7 @@ Two concrete drivers ship today, both satisfying `IRelationalDriver` and both pr
 | `NodePostgresDriver` | `pg` | Rejects a client without `connect()` **and** `totalCount` (pool accounting) - catches a bare `pg.Client` |
 | `PostgresJsDriver` | `postgres` | Rejects a client without `reserve()` **and** `unsafe()` - catches a `pg.Pool` passed to the wrong driver |
 
-- **Driver asymmetry, deliberate.** After a failed `COMMIT`, `pg` can destroy the poisoned connection (`release(err)`); postgres-js has no destroy semantics (`ReservedSql.release()` takes no argument), so it returns the connection to the pool regardless.
+- **Driver asymmetry, deliberate.** After a failed `COMMIT`, `pg` can destroy the poisoned connection (`release(err)`). postgres-js has no destroy semantics - `ReservedSql.release()` takes no argument - so it returns the connection to the pool regardless.
 - **Both drivers accept the same call.** `IRelationalConnection.release({ destroy: true })` is accepted by both drivers and honored by one. See [Postgres Drivers & Supabase](/guides/core-concepts/persistent/postgres-drivers) for the full driver comparison and Supabase's transaction-pooler requirements.
 
 ## Connector types
@@ -484,7 +484,7 @@ DataSourceDrivers.isValid('node-postgres')  // true
 ```
 
 > [!NOTE]
-> `NODE_POSTGRES`/`POSTGRES_JS` remain valid `TDataSourceDriver` string values, but `@datasource({ driver })` on a **relational** datasource no longer accepts them - it takes the `NodePostgresDriver`/`PostgresJsDriver` class instead (see [Postgres Drivers & Supabase](/guides/core-concepts/persistent/postgres-drivers)). Search connectors (`TYPESENSE`, `MEILISEARCH`) still take the driver-name string form, because `extends TypesenseDataSource` already names the engine and is what carries the client into the bundle.
+> `NODE_POSTGRES`/`POSTGRES_JS` remain valid `TDataSourceDriver` string values. But `@datasource({ driver })` on a **relational** datasource no longer accepts them - it takes the `NodePostgresDriver`/`PostgresJsDriver` class instead (see [Postgres Drivers & Supabase](/guides/core-concepts/persistent/postgres-drivers)). Search connectors (`TYPESENSE`, `MEILISEARCH`) still take the driver-name string form, because `extends TypesenseDataSource` already names the engine and is what carries the client into the bundle.
 
 ## Transaction support
 
@@ -499,14 +499,15 @@ Only engines that declare `getCapabilities().transactions === true` implement re
 3. On a failed `BEGIN`, destroys the connection (`release({ destroy: true })`) and rethrows - it is never leaked back to the pool in an unknown state
 4. Returns an `IDatabaseTransaction` object exposing `isActive`, `commit()`, `rollback()`, and the connection-scoped `connector`
 
-- **Shared `finish()`.** `commit()`/`rollback()` share one internal `finish()` that flips `isActive` to `false` **before** issuing the statement, so a commit racing a rollback cannot double-release the same connection - then runs `COMMIT`/`ROLLBACK`.
+- **Shared `finish()`.** `commit()`/`rollback()` share one internal `finish()`. It flips `isActive` to `false` **before** issuing the statement, so a commit racing a rollback cannot double-release the same connection, then runs `COMMIT`/`ROLLBACK`.
 - **Outcome handling.** On success the connection is released back to the pool; on failure it is destroyed and the error is rethrown.
 
 > [!WARNING] `commit()`/`rollback()` throw on failure
 > - **A failed `COMMIT` or `ROLLBACK` throws** - a failed `COMMIT` never resolves as success.
-> - **The poisoned connection is destroyed**, not returned to the pool, where the driver supports it: `node-postgres` can discard a connection; `postgres-js` has no destroy semantics and pools it anyway.
+> - **The poisoned connection is destroyed**, not returned to the pool, where the driver supports it. `node-postgres` can discard a connection; `postgres-js` has no destroy semantics and pools it anyway.
 > - **Nest `rollback()` in its own `try...catch`.** It can throw and is normally called from a `catch`, so nesting keeps the rollback error from replacing the original cause.
-> - **Calling `rollback()` twice is safe.** After a transaction already ended by failure, `rollback()` is a silent no-op (already torn down), so the canonical `catch { await tx.rollback(); throw error; }` pattern always works. See [Transactions](/guides/core-concepts/persistent/transactions) and [Postgres Drivers & Supabase](/guides/core-concepts/persistent/postgres-drivers).
+> - **Calling `rollback()` twice is safe.** After a transaction already ended by failure, `rollback()` is a silent no-op, because it's already torn down.
+> - **The canonical shape.** `catch { await tx.rollback(); throw error; }` always works. See [Transactions](/guides/core-concepts/persistent/transactions) and [Postgres Drivers & Supabase](/guides/core-concepts/persistent/postgres-drivers).
 
 ### Neutral vs. PostgreSQL transaction types
 

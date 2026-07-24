@@ -6,7 +6,7 @@ difficulty: advanced
 
 # Compiling to a Single Binary
 
-This page covers `platformaticWasmPlugin()`, the Bun bundler plugin required when compiling an application that imports any Kafka helper into a standalone `bun build --compile` executable.
+`platformaticWasmPlugin()` is a Bun bundler plugin. Register it whenever you compile an application that imports a Kafka helper into a standalone `bun build --compile` executable. Skip it, and the binary crashes on its first run.
 
 ## The problem
 
@@ -16,7 +16,7 @@ This page covers `platformaticWasmPlugin()`, the Bun bundler plugin required whe
   ENOENT: no such file or directory, open '/$bunfs/dist/native.wasm'
   ```
 
-- **The crash happens before your code runs.** It fires while the module graph is still loading - before the IGNIS application boots, so no log line, no lifecycle hook, and no error handler of yours ever executes.
+- **The crash happens before your code runs.** It fires while the module graph is still loading, before the IGNIS application boots. No log line, no lifecycle hook, and no error handler of yours ever gets the chance to run.
 
 ## Why it happens
 
@@ -28,7 +28,7 @@ This page covers `platformaticWasmPlugin()`, the Bun bundler plugin required whe
   const wasm = readFileSync(new URL('../dist/native.wasm', import.meta.url));
   ```
 
-- **`bun build --compile` embeds JavaScript modules only.** Assets such as `native.wasm` are never carried into the executable. Inside the binary, `import.meta.url` resolves against the virtual `/$bunfs` filesystem, the file isn't there, and the read throws.
+- **`bun build --compile` embeds JavaScript modules only.** Assets such as `native.wasm` are never carried into the executable. Inside the binary, `import.meta.url` resolves against the virtual `/$bunfs` filesystem. The file isn't there, so the read throws.
 - **Running from source is unaffected.** `bun run` / `bun .` keep `node_modules` on disk, so the read succeeds - the bug only exists in compiled binaries.
 
 ## The fix
@@ -67,14 +67,14 @@ if (!built.success) {
 }
 ```
 
-- **The plugin resolves relative to the importing module's own directory** (`Bun.resolveSync` from `dirname(args.importer)`), so it works with hoisted and isolated `node_modules` layouts alike, and pins no package version.
+- **The plugin resolves relative to the importing module's own directory**, via `Bun.resolveSync` from `dirname(args.importer)`. That works with hoisted and isolated `node_modules` layouts alike. It also pins no package version.
 
 ## Verifying
 
 A correctly built binary contains no reference to the wasm file on disk:
 
 ```bash
-grep -c 'native.wasm' ./dist/bin   # 0 -- the payload is inlined
+grep -c 'native.wasm' ./dist/bin   # 0 - the payload is inlined
 ./dist/bin                         # boots instead of throwing ENOENT
 ```
 
@@ -84,7 +84,7 @@ The binary grows by roughly 76 KB, the base64 form of the 57 KB wasm module.
 
 - **Upgrading `@platformatic/kafka` does not remove the need for the plugin.** Every release to date imports the default `@platformatic/wasm-utils` entrypoint.
 - **Apps that never import a Kafka helper need no plugin.** Nothing pulls in `@platformatic/wasm-utils`, and the plugin's resolver never fires.
-- **Patching `node_modules` during the build achieves the same result**, but mutates a dependency in place, pins the store path to one version, and leaves the tree dirty when a build fails. The plugin needs neither.
+- **Patching `node_modules` during the build achieves the same result, but at a cost.** It mutates a dependency in place. It pins the store path to one version. It leaves the tree dirty when a build fails. The plugin needs none of that.
 
 ## See also
 

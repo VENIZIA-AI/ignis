@@ -3,7 +3,7 @@
 A DataSource manages database connections and supports **schema auto-discovery** from repositories.
 
 > [!NOTE] Connectors
-> This guide covers the **PostgreSQL connector** (`BasePostgresDataSource`, aliased as `BaseDataSource` for backward compatibility) - the primary relational engine and the one used by most applications. IGNIS also ships a **typesense connector** for full-text/vector search (see [Search & Typesense](./search-typesense)). Both implement the same engine-neutral `AbstractDataSource` contract - see [Connectors](/references/base/connectors) for the architecture.
+> This guide covers the **PostgreSQL connector** (`BasePostgresDataSource`, aliased as `BaseDataSource` for backward compatibility). It's the primary relational engine and the one used by most applications. IGNIS also ships a **typesense connector** for full-text/vector search (see [Search & Typesense](./search-typesense)). Both implement the same engine-neutral `AbstractDataSource` contract - see [Connectors](/references/base/connectors) for the architecture.
 
 ## Creating a DataSource
 
@@ -57,7 +57,7 @@ export class PostgresDataSource extends BasePostgresDataSource<IDSConfigs> {
 ```
 
 > [!NOTE] Driver seam: the raw client goes on `this.client`
-> `this.client = new Pool(...)` is the short path: `configure()` builds only the client, and `getConnector()`/`beginTransaction()` lazily instantiate the class named in `@datasource({ driver })` over it - `NodePostgresDriver` here. There is no `pool` field - the raw-client slot is `client`, whatever the client happens to be. Naming the driver class (rather than a driver-name string) is what carries `pg` into the app's bundle - a bundler only packages a real value reference, never text. The alternative is to wire a driver yourself for a custom or third-party driver: `configure()` calls `this.useDriver({ driver, schema? })`, which assigns `this.driver` **and** builds `this.connector` in one step (so the half-wired state cannot exist), bypassing `@datasource({ driver })` entirely. See [Postgres Drivers & Supabase](./postgres-drivers) for `postgres-js` and Supabase.
+> `this.client = new Pool(...)` is the short path: `configure()` builds only the client. `getConnector()`/`beginTransaction()` lazily instantiate the class named in `@datasource({ driver })` over it - `NodePostgresDriver` here. There is no `pool` field - the raw-client slot is `client`, whatever the client happens to be. Naming the driver class (rather than a driver-name string) is what carries `pg` into the app's bundle. A bundler only packages a real value reference, never text. The alternative is to wire a driver yourself for a custom or third-party driver: `configure()` calls `this.useDriver({ driver, schema? })`. That assigns `this.driver` **and** builds `this.connector` in one step (so the half-wired state cannot exist), bypassing `@datasource({ driver })` entirely. See [Postgres Drivers & Supabase](./postgres-drivers) for `postgres-js` and Supabase.
 
 **How auto-discovery works:**
 

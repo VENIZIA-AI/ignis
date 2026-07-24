@@ -20,13 +20,33 @@ throw getError({
 });
 ```
 
-The framework's `AppErrorMiddleware` catches `ApplicationError` instances and formats them into a consistent JSON response - see [Common tasks](#common-tasks) below.
+The framework's `AppErrorMiddleware` catches `ApplicationError` instances and formats them into a consistent JSON response.
+
+## Find what you need
+
+| You want to | Go to |
+|---|---|
+| Throw a one-off error with a status code | [Throw a free-form error](#throw-a-free-form-error) |
+| Re-throw an error you already caught and shaped | [Recognize an already-shaped error in a catch block](#recognize-an-already-shaped-error-in-a-catch-block) |
+| Declare a reusable, i18n-ready error once | [Catalog a reusable error](#catalog-a-reusable-error) |
+| Get autocomplete on `messageCode` | [Register catalog keys for messageCode autocomplete](#register-catalog-keys-for-messagecode-autocomplete) |
+| Build a message code outside a catalog | [Build a code outside a catalog](#build-a-code-outside-a-catalog) |
+| See the exact JSON shape a client receives | [Read the error response shape](#read-the-error-response-shape) |
+| Read or rehydrate a server error in a browser app | [Consume the error response from a browser client](#consume-the-error-response-from-a-browser-client) |
+| Look up what a specific input produces | [Every shape and its output](#every-shape-and-its-output) |
+| Confirm you're checking errors the safe way | [How it works](#how-it-works) - `isApplicationError()`, never `instanceof` |
 
 ## How it works
 
-- **Three equivalent entry points.** `getError(opts)`, `new ApplicationError(opts)`, and the static `ApplicationError.getError(opts)` all take the same input and build the same object - use the class form only when a direct reference reads better.
-- **Two input shapes.** Free-form (`{ message, statusCode?, messageCode? }`) covers one-off failures - most throw sites. Catalogued (`{ error: TErrorDefinition }`) raises a failure declared once at module scope, so its code, status, and default text cannot drift across the call sites that raise it.
-- **One message shape everywhere.** `message` is either the historical string (with sibling `messageCode?`/`messageArgs?`) or an object mirroring `normalized`: `{ text, code?, args? }`. Both resolve to the same `normalized`:
+- **Three equivalent entry points.** `getError(opts)`, `new ApplicationError(opts)`, and the static `ApplicationError.getError(opts)` all build the same object from the same input. Use the class form only when a direct reference reads better.
+- **Two input shapes.** Free-form covers one-off failures - most throw sites. Catalogued raises a failure declared once at module scope, so its code, status, and default text can't drift across the call sites that raise it.
+
+  | Shape | Input |
+  |---|---|
+  | Free-form | `{ message, statusCode?, messageCode? }` |
+  | Catalogued | `{ error: TErrorDefinition }` |
+
+- **One message shape everywhere.** `message` is either the historical string (with sibling `messageCode?`/`messageArgs?`), or an object mirroring `normalized`: `{ text, code?, args? }`. Both resolve to the same `normalized`:
 
   ```typescript
   getError({ message: 'Only %{n} left', messageCode: 'stock.low', messageArgs: { n: 2 } }); // flat
@@ -34,13 +54,19 @@ The framework's `AppErrorMiddleware` catches `ApplicationError` instances and fo
   getError({ error: StockErrors.LOW, messageArgs: { n: 2 } });                              // catalogued
   ```
 
-  On the catalogued form, `message` is a **partial** override - `{ message: { args } }` amends just the args and keeps the definition's `text`/`code`.
-- **Precedence, most specific first.** `code`: `message.code` -> the definition's `message.code` -> `messageCode`. `args`: `message.args` -> `messageArgs` -> the definition's `message.args`.
-- **`messageCode` always resolves to something.** `MessageCode.resolve()` lower-cases it and falls back to `MessageCode.DEFAULT` (`'core.system_error'`) when none is given or it is empty - `error.normalized.code` is never `undefined`.
-- **`normalized` is the single source, and there is no flat duplicate.** `{ text, code, args }` - `text` defaults to `message`, `code`/`args` resolve per the precedence above. `args` is always populated (`{}` when empty), so no consumer needs a null check. A client renders any error with one lookup: `translate(error.normalized.code, error.normalized.args)`. `messageCode` and `messageArgs` are INPUTS only: there is no `error.messageCode` field, and `extra` never mirrors `messageArgs`. Pass `transform` to build `normalized` yourself in place of the default.
-- **Any key the input does not declare rides into `extra`.** Attach whatever context your clients need - `getError({ message, transaction: {...} })` lands at `error.extra.transaction`. Passing `extra` explicitly works too, and the two merge with the explicit one winning. `extra` carries caller context ONLY; it is `undefined` when there is nothing to carry.
-- **`cause` reaches the native `Error.cause`,** not `extra` - wrap a lower-level failure with `getError({ message, cause: originalError })` and every tool that reads `.cause` sees it. `error` is **refused** on the free-form branch (`error?: never`) precisely so this mistake fails at compile time: `getError({ message, error: caughtError })` does not compile - use `cause`.
-- **`isApplicationError()` checks shape, not class identity.** There is one `ApplicationError` - it lives in `@venizia/ignis-inversion` so a browser application can raise and read the same errors the server does, and `helpers` re-exports it. `instanceof` still fails across a package boundary: inversion ships dual CJS+ESM builds, so one source class has two runtime constructors. Test the shape.
+  On the catalogued form, `message` is a **partial** override. `{ message: { args } }` amends just the args and keeps the definition's `text`/`code`.
+
+- **Precedence resolves most-specific-first.** See the [full precedence table](#every-shape-and-its-output) below - a definition's own `message.code` beats a flat `messageCode`.
+- **`messageCode` always resolves to something.** `MessageCode.resolve()` lower-cases it and falls back to `MessageCode.DEFAULT` (`'core.system_error'`) when none is given or empty. `error.normalized.code` is never `undefined`.
+- **`normalized` is the single source - there's no flat duplicate.** It's `{ text, code, args }`: `text` defaults to `message`, `code`/`args` resolve per the precedence table. `args` is always populated (`{}` when empty), so no consumer needs a null check. A client renders any error with one lookup: `translate(error.normalized.code, error.normalized.args)`.
+
+  `messageCode` and `messageArgs` are INPUTS only - there's no `error.messageCode` field, and `extra` never mirrors `messageArgs`. Pass `transform` to build `normalized` yourself in place of the default.
+
+- **Any key the input doesn't declare rides into `extra`.** Attach whatever context your clients need: `getError({ message, transaction: {...} })` lands at `error.extra.transaction`. Passing `extra` explicitly works too - the two merge, and the explicit one wins on a clash. `extra` carries caller context ONLY. It's `undefined` when there is nothing to carry.
+- **`cause` reaches the native `Error.cause`, not `extra`.** Wrap a lower-level failure with `getError({ message, cause: originalError })`, and every tool that reads `.cause` sees it. `error` is **refused** on the free-form branch (`error?: never`) precisely so this mistake fails at compile time - `getError({ message, error: caughtError })` does not compile. Use `cause` instead.
+
+> [!IMPORTANT]
+> **Use `isApplicationError()`, never `instanceof ApplicationError`.** There is one `ApplicationError` class, defined in `@venizia/ignis-inversion` - `helpers` re-exports it, so a browser app can raise and read the same errors the server does. But `instanceof` still fails across a package boundary: inversion ships dual CJS+ESM builds, so one source class has two runtime constructors. `isApplicationError()` tests shape, not identity, so it works everywhere.
 
 **Options shared by both forms**
 
@@ -56,7 +82,7 @@ The framework's `AppErrorMiddleware` catches `ApplicationError` instances and fo
 | _anything else_ | `unknown`                              | Rides into `extra` under its own name. `getError({ message, transaction })` lands at `error.extra.transaction`  |
 
 > [!TIP]
-> Spreading a definition now resolves identically to passing it as `error`: `getError({ ...CategoryErrors.CREATE_DUPLICATE_NAME })` and `getError({ error: CategoryErrors.CREATE_DUPLICATE_NAME })` build the same `ApplicationError`. A definition's `message` is `{ text, code, args? }` - the same shape the free-form input accepts - so the spread degrades to nothing. Prefer `{ error: DEF }` anyway; it reads as "raise this catalogued error" instead of "raise these loose fields."
+> Spreading a definition now resolves identically to passing it as `error`: `getError({ ...CategoryErrors.CREATE_DUPLICATE_NAME })` and `getError({ error: CategoryErrors.CREATE_DUPLICATE_NAME })` build the same `ApplicationError`. A definition's `message` is `{ text, code, args? }` - the same shape the free-form input accepts - so the spread degrades to nothing. Prefer `{ error: DEF }` anyway. It reads as "raise this catalogued error", not "raise these loose fields."
 
 ## Every shape and its output
 
@@ -190,14 +216,14 @@ throw getError({ error: CategoryErrors.CREATE_DUPLICATE_NAME, messageArgs: { nam
 throw getError({ error: CategoryErrors.CREATE_DUPLICATE_NAME, message: { args: { name: 'Vé' } } });
 ```
 
-`ErrorScopes` groups a failure by intent - `AUTH`, `VALIDATION`, `BUSINESS`, `SYSTEM`, `INTEGRATION` - because `statusCode` cannot: a `409` is a business conflict in one place and a validation clash in another.
+`ErrorScopes` groups a failure by intent - `AUTH`, `VALIDATION`, `BUSINESS`, `SYSTEM`, `INTEGRATION`. `statusCode` can't do this job: a `409` is a business conflict in one place and a validation clash in another.
 
 > [!WARNING]
-> `category` is catalog **metadata only** - it does not reach the error response. `getError` reads `message.text`, `message.code` and `statusCode` off a definition and ignores the rest. Use it to group and filter catalogs (ops dashboards, translator exports); do not expect a client to receive it.
+> `category` is catalog **metadata only** - it does not reach the error response. `getError` reads `message.text`, `message.code` and `statusCode` off a definition and ignores the rest. Use it to group and filter catalogs (ops dashboards, translator exports). Don't expect a client to receive it.
 
 ### Register catalog keys for `messageCode` autocomplete
 
-Augment the module the file already imports from. `IErrorKeyRegistry` is declared in `@venizia/ignis-inversion` and re-exported by `helpers`; merging follows the re-export, so either name populates the same registry.
+Augment the module the file already imports from. `IErrorKeyRegistry` is declared in `@venizia/ignis-inversion` and re-exported by `helpers`. Merging follows the re-export, so either name populates the same registry.
 
 ```typescript
 import type { TRegisterErrors } from '@venizia/ignis-helpers';
@@ -225,7 +251,7 @@ const NOT_FOUND = MessageCode.build({ parts: ['core', 'user', 'not_found'] });
 
 ### Read the error response shape
 
-`AppErrorMiddleware` (from `@venizia/ignis`) routes every thrown value into one of five shapes. All five carry `message`, `statusCode`, `normalized` and `details`; only an intentional error can carry `extra`. The code lives at `normalized.code` - there is no flat `messageCode` on the response.
+`AppErrorMiddleware` (from `@venizia/ignis`) routes every thrown value into one of five shapes. All five carry `message`, `statusCode`, `normalized` and `details`. Only an intentional error can carry `extra`. The code lives at `normalized.code` - there is no flat `messageCode` on the response.
 
 | What was thrown                           | Status  | `normalized.code`                                        | `message`                                                             | `extra`                                               |
 | ----------------------------------------- | ------- | ------------------------------------------------------ | --------------------------------------------------------------------- | ----------------------------------------------------- |
@@ -235,11 +261,11 @@ const NOT_FOUND = MessageCode.build({ parts: ['core', 'user', 'not_found'] });
 | `getError(...)` - intentional             | its own | its own                                                | its own                                                               | when the throw site attached `extra` or unknown keys  |
 | Anything else                             | 500     | `core.system_error`                                    | `Internal Server Error` in production; the raw message in development | never                                                 |
 
-Only the intentional branch reports what the throw site wrote. The other four **replace** the message, because a driver error carries SQL, schema and constraint names - and `normalized` is built from the replacement, so it can never leak what `message` just scrubbed.
+Only the intentional branch reports what the throw site wrote. The other four **replace** the message - a driver error can carry SQL, schema, and constraint names. `normalized` is built from that replacement, so it can never leak what `message` just scrubbed.
 
 `rootKey` (e.g. `new AppErrorMiddleware({ logger, rootKey: 'error' }).value()`) nests any of these under that key.
 
-The handler is fail-closed on environment: it exposes `stack` and `cause` in `details` only when `NODE_ENV` is one of `local`, `debug`, `development`, `dev`, `sit` (`Environment.DEVELOPMENT_ENVS`). Everything else - including `alpha`, `staging`, a typo, or an unset `NODE_ENV` - gets the sanitized shape:
+The handler is fail-closed on environment. It exposes `stack` and `cause` in `details` only for `Environment.DEVELOPMENT_ENVS`: `local`, `debug`, `development`, `dev`, `sit`. Everything else - including `alpha`, `staging`, a typo, or an unset `NODE_ENV` - gets the sanitized shape:
 
 ```json
 {
@@ -263,21 +289,25 @@ The handler is fail-closed on environment: it exposes `stack` and `cause` in `de
 > [!IMPORTANT]
 > **`messageCode` and `extra.messageArgs` are GONE from the response.** They duplicated `normalized.code` and `normalized.args`. Read `normalized` - it is the only source. A client still reading either must migrate: `translate(error.messageCode, error.extra?.messageArgs)` becomes `translate(error.normalized.code, error.normalized.args)`.
 >
-> Note the two `details`: the inner one is context the throw site attached (it went through `extra`), the outer one is the middleware's own request info. They are unrelated despite the name.
+> Note the two `details`. The inner one is context the throw site attached - it went through `extra`. The outer one is the middleware's own request info. They're unrelated despite sharing a name.
 
 > [!NOTE]
-> `message` and `normalized.text` are the same string unless a `transform` deliberately makes them differ - `message` stays the raw text the throw site wrote, `normalized.text` is what a client shows. Most errors never set `transform`, so most of the time they match.
+> `message` and `normalized.text` are the same string, unless a `transform` deliberately makes them differ. `message` stays the raw text the throw site wrote. `normalized.text` is what a client shows. Most errors never set `transform`, so most of the time the two match.
 
 ### Consume the error response from a browser client
 
 The error layer lives in `@venizia/ignis-inversion`, not in helpers, precisely so a browser app can
-share it: it depends only on `lodash`, ships dual CJS+ESM, and pulls in no server module. A frontend
+share it. It depends only on `lodash`, ships dual CJS+ESM, and pulls in no server module. A frontend
 throws its own failures with the same `getError` the server uses, and reads the server's with the
 same field names.
 
-**Reading is all most clients need.** `normalized` is on every error response - `getError` always
-builds one, a foreign error gets one synthesized, and a `ZodError` builds its own - so there is no
-null-check and no parsing step:
+**Reading is all most clients need.** `normalized` is on every error response:
+
+- `getError` always builds one.
+- A foreign error gets one synthesized.
+- A `ZodError` builds its own.
+
+So there's no null-check and no parsing step: one lookup handles every case.
 
 ```ts
 const { error } = await response.json(); // `error` is the rootKey, if one is configured
@@ -306,13 +336,11 @@ throw fromError({ error }); // now an ApplicationError - isApplicationError() is
 
 Every field of `TResponsedError` is optional by design: a client parses what a gateway, a proxy or an
 older server actually sent. A body that is not an IGNIS error at all still yields an
-`ApplicationError`, degraded to `MessageCode.DEFAULT` and status `400`, so no call site branches on
+`ApplicationError`, degraded to `MessageCode.DEFAULT` and status `400`. No call site branches on
 a parse failure.
 
 > [!TIP]
-> Prefer `isApplicationError()` over `instanceof ApplicationError` in a browser app. The client
-> bundles its own copy of the class, so `instanceof` fails across the boundary; the guard duck-types
-> on `statusCode` instead.
+> Same rule here: prefer `isApplicationError()` over `instanceof ApplicationError`. See the [callout above](#how-it-works) for why - a browser app bundles its own copy of the class, so `instanceof` fails across the boundary.
 
 **Common status codes**
 

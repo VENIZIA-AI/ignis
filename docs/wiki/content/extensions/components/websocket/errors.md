@@ -40,12 +40,12 @@ Every error condition the WebSocket component and helper can raise, plus fixes f
 
 ### "WebSocket not initialized"
 
-- **Cause:** `WebSocketServerHelper` was accessed before the server started - e.g. during DI construction.
+- **Cause:** `WebSocketServerHelper` was accessed before the server started - for example during DI construction.
 - **Fix:** Use the lazy getter pattern from [Usage & Examples](./usage). Never `@inject` `WEBSOCKET_INSTANCE` in a constructor - it does not exist yet at that point.
 
 ### "Invalid instance of redisConnection"
 
-- **Cause:** The value bound to `REDIS_CONNECTION` is not an `AbstractRedisHelper` instance - i.e. not a `RedisSingleHelper`, `RedisClusterHelper`, or `RedisSentinelHelper`.
+- **Cause:** The value bound to `REDIS_CONNECTION` is not an `AbstractRedisHelper` instance. It is not a `RedisSingleHelper`, `RedisClusterHelper`, or `RedisSentinelHelper`.
 - **Fix:** Bind one of the concrete topology helpers, not a raw `ioredis` client.
 
 ```typescript

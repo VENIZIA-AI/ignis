@@ -6,7 +6,7 @@ difficulty: intermediate
 
 # Queue
 
-The Queue helpers give you background job processing with BullMQ, a dependency-free in-memory queue for single-process sequencing, and MQTT pub/sub for lightweight event fan-out.
+The Queue helpers move work between processes. Pick a backend: BullMQ for durable jobs, an in-memory queue for single-process sequencing, or MQTT for lightweight pub/sub.
 
 ## In one example
 
@@ -51,9 +51,20 @@ const worker = BullMQHelper.newInstance({
 | In-memory | `SequentialQueueHelper` (alias `QueueHelper`) | none | Sequential, single-process work that does not need persistence |
 | MQTT | `MQTTClientHelper` | `mqtt` | Pub/sub for IoT and lightweight real-time events, not job processing |
 
-- **`BullMQHelper` takes one `role` per instance, fixed at construction.** `'queue'` exposes a `.queue` property (BullMQ `Queue`) for producers calling `.add()`; `'worker'` exposes a `.worker` property (BullMQ `Worker`) driven by your `onWorkerData` callback.
-- **One Redis helper backs any number of queues and workers.** The helper always calls `redisConnection.duplicateClient()` to open a dedicated connection for whichever role it owns - it never reuses the caller's client directly.
-- **`SequentialQueueHelper` runs one element at a time.** A `WAITING -> PROCESSING -> WAITING` loop driven by `onMessage`. `lock()` diverts the loop to `LOCKED` (elements still enqueue, nothing processes until `unlock()`); `settle()`/`close()` moves it to the terminal `SETTLED` state once the queue drains.
+- **`BullMQHelper` takes one `role` per instance, fixed at construction.**
+
+| `role` | Property | Use |
+|---|---|---|
+| `'queue'` | `.queue` (BullMQ `Queue`) | Producers call `.add()` |
+| `'worker'` | `.worker` (BullMQ `Worker`) | Driven by your `onWorkerData` callback |
+
+- **One Redis helper backs any number of queues and workers.** The helper always calls `redisConnection.duplicateClient()` to open a dedicated connection for whichever role it owns. It never reuses your client directly.
+- **`SequentialQueueHelper` runs one element at a time**, in a `WAITING -> PROCESSING -> WAITING` loop driven by `onMessage`. Two calls change that loop:
+
+| Call | Effect |
+|---|---|
+| `lock()` | Pauses processing at `LOCKED`. Elements still enqueue; nothing processes until `unlock()`. |
+| `settle()` / `close()` | Drains the queue, then moves to the terminal `SETTLED` state. |
 
 Full option tables, the complete state machine, and `HfQueueHelper` (the low-level FIFO primitive underneath) are in the [Full reference](/extensions/helpers/queue/reference).
 
@@ -69,7 +80,7 @@ Jobs default to `removeOnComplete: true, removeOnFail: true` - BullMQ does not r
 
 ### Process jobs with a worker
 
-`numberOfWorker` sets concurrency; `onWorkerDataFail` receives the job (possibly `undefined`) and the error.
+`numberOfWorker` sets concurrency. `onWorkerDataFail` receives the job (possibly `undefined`) and the error.
 
 ```typescript
 const worker = BullMQHelper.newInstance({
@@ -90,7 +101,7 @@ const worker = BullMQHelper.newInstance({
 
 ### The Redis connection requirement
 
-Pass an `IRedisHelper` instance, not a raw ioredis client - `BullMQHelper` calls `redisConnection.duplicateClient()` internally.
+Pass an `IRedisHelper` instance, not a raw ioredis client. `BullMQHelper` calls `redisConnection.duplicateClient()` internally.
 
 | Redis helper | Sets `maxRetriesPerRequest: null`? |
 |--------------|-------------------------------------|

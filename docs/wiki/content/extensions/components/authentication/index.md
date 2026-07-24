@@ -6,7 +6,7 @@ difficulty: intermediate
 
 # Authentication
 
-`AuthenticateComponent` wires up JWT and/or Basic HTTP authentication - token services, route-level strategies, and an optional built-in `/auth` controller for sign-in, sign-up, and password change.
+`AuthenticateComponent` wires up JWT and/or Basic HTTP authentication. It configures token services, route-level strategies, and an optional built-in `/auth` controller for sign-in, sign-up, and password change.
 
 ## In one example
 
@@ -57,19 +57,19 @@ const SECURE_ROUTE = {
 
 ## How it works
 
-- **One component, three auth mechanisms.** `AuthenticateComponent.binding()` reads `JWT_OPTIONS` (JWS or JWKS, via a discriminated `standard` field) and `BASIC_OPTIONS` from the DI container and registers whichever token services their presence implies. At least one of the two must be bound, or the component throws at startup.
-- **Strategies are manual, on purpose.** The component registers *token services* (JWS/JWKS/Basic), not *strategies*. You register strategies yourself via `AuthenticationStrategyRegistry.getInstance().register(...)` after `this.component(AuthenticateComponent)` - this is what gives routes a `Authentication.STRATEGY_JWT` / `'basic'` name to reference.
-- **The registry is a DI-backed singleton.** `AuthenticationStrategyRegistry` binds each registered strategy into the container as a singleton under `authentication.strategy.<name>` and resolves it by name when a route's `authenticate.strategies` list is checked.
-- **`authenticate()` is the middleware entry point.** Route-level `authenticate: { strategies, mode }` config and the standalone `authenticate()` function both go through the same `AuthenticationProvider`, which tries strategies in `'any'` (first success wins) or `'all'` (every strategy must pass) mode and sets `Authentication.CURRENT_USER` on the Hono context.
-- **The auth controller is optional and generated.** Setting `REST_OPTIONS.useAuthController: true` calls `defineAuthController()`, which builds a `BaseRestController` subclass at runtime with `/sign-in`, `/sign-up`, `/change-password`, `/token/refresh`, `/who-am-i`, and `/me` routes, backed by your own `IAuthService` implementation.
+- **One component, three auth mechanisms.** `AuthenticateComponent.binding()` reads `JWT_OPTIONS` (JWS or JWKS) and `BASIC_OPTIONS` from the DI container, and registers the token services their presence implies. Bind at least one of the two - the component throws at startup if neither is set.
+- **Strategies are manual, on purpose.** The component registers *token services* - JWS, JWKS, Basic - never *strategies*. Register strategies yourself after the component, via `AuthenticationStrategyRegistry.getInstance().register(...)`.
+- **The registry is a DI-backed singleton.** `AuthenticationStrategyRegistry` binds each strategy into the container as a singleton, under the key `authentication.strategy.<name>`. A route's `authenticate.strategies` list references strategies by that same name.
+- **`authenticate()` is the middleware entry point.** Route-level `authenticate: { strategies, mode }` config and the standalone `authenticate()` function both run through the same `AuthenticationProvider`, which sets `Authentication.CURRENT_USER` on success. See [Multi-strategy authentication](./usage#multi-strategy-authentication) for what `'any'` and `'all'` mode do.
+- **The auth controller is optional and generated.** Set `REST_OPTIONS.useAuthController: true` to call `defineAuthController()`, which builds a `BaseRestController` subclass at runtime - routes for `/sign-in`, `/sign-up`, `/change-password`, `/token/refresh`, `/who-am-i`, and `/me`. You back it with your own `IAuthService` implementation.
 
 **JOSE standards**
 
 | Standard | Class | Keying | Use case |
 |----------|-------|--------|----------|
 | JWS | `JWSTokenService` | Shared secret (HS256) | Single service signs and verifies |
-| JWKS Issuer | `JWKSIssuerTokenService` | Private + public key (ES256/RS256/EdDSA) | This service issues tokens and serves `/certs` |
-| JWKS Verifier | `JWKSVerifierTokenService` | Remote JWKS URL | This service only verifies tokens from another issuer |
+| JWKS Issuer | `JWKSIssuerTokenService` | Private + public key (ES256/RS256/EdDSA) | Issues tokens, serves `/certs` |
+| JWKS Verifier | `JWKSVerifierTokenService` | Remote JWKS URL | Verifies tokens from another issuer, only |
 
 ## Common tasks
 
@@ -100,7 +100,7 @@ this.bind<TJWTTokenServiceOptions>({ key: AuthenticateBindingKeys.JWT_OPTIONS })
 });
 ```
 
-**Add Basic auth.** Provide a `verifyCredentials` callback; it becomes the `'basic'` strategy's source of truth.
+**Add Basic auth.** Provide a `verifyCredentials` callback. It becomes the `'basic'` strategy's source of truth.
 
 ```typescript
 this.bind<TBasicTokenServiceOptions>({ key: AuthenticateBindingKeys.BASIC_OPTIONS }).toValue({
@@ -128,7 +128,7 @@ this.bind<TAuthenticationRestOptions>({ key: AuthenticateBindingKeys.REST_OPTION
 });
 ```
 
-**Secure a route with multiple strategies.** `mode: 'any'` (default) falls back through strategies; `mode: 'all'` requires every one to pass.
+**Secure a route with multiple strategies.** `mode: 'any'` (default) falls back through strategies. `mode: 'all'` requires every one to pass.
 
 ```typescript
 const FALLBACK_AUTH_CONFIG = {
@@ -142,11 +142,11 @@ const FALLBACK_AUTH_CONFIG = {
 **Add auth entity columns to a Drizzle table.** Spread helper functions into `pgTable()` for User/Role/Permission/PolicyDefinition columns.
 
 ```typescript
-import { extraUserColumns } from '@venizia/ignis';
+import { extraUserColumns, generateIdColumnDefs, generateTzColumnDefs } from '@venizia/ignis';
 
 export const users = pgTable('users', {
-  ...withSerialId(),
-  ...withTimestamps(),
+  ...generateIdColumnDefs(),
+  ...generateTzColumnDefs(),
   ...extraUserColumns(),
   username: text('username').unique().notNull(),
 });

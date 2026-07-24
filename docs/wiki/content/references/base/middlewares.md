@@ -86,7 +86,7 @@ class AppErrorMiddleware extends BaseHelper implements IProvider<ErrorHandler> {
 
 When `error.name === 'ZodError'`, returns HTTP `422 Unprocessable Entity`.
 
-`message` and `normalized.code` come from the first failing issue - `message` is that issue's message, `normalized.code` is its `params.code` if the schema set one, otherwise its raw Zod code. The full per-field list stays under `details.cause`. `normalized.args` is always `{}` - a Zod issue carries no interpolation values.
+`message` and `normalized.code` come from the first failing issue. `message` is that issue's message; `normalized.code` is its `params.code` if the schema set one, otherwise its raw Zod code. The full per-field list stays under `details.cause`. `normalized.args` is always `{}` - a Zod issue carries no interpolation values.
 
 ```json
 {
@@ -126,11 +126,11 @@ z.string().refine(isEmail, {
 ```
 
 > [!NOTE]
-> When `error.message` cannot be parsed as the expected Zod issue array (a malformed or unrecognized `ZodError`), no issue-derived code exists - `normalized.code` still resolves to `MessageCode.DEFAULT` (`"core.system_error"`) via `MessageCode.resolve(undefined)`. No error response from this middleware is ever missing `normalized.code`.
+> When `error.message` cannot be parsed as the expected Zod issue array (a malformed or unrecognized `ZodError`), no issue-derived code exists. `normalized.code` still resolves to `MessageCode.DEFAULT` (`"core.system_error"`) via `MessageCode.resolve(undefined)`. No error response from this middleware is ever missing `normalized.code`.
 
 #### 2. PostgreSQL Constraint Violations
 
-Database errors in SQLSTATE class `22` (data exception), `23` (integrity constraint), and `44` (WITH CHECK OPTION violation) are detected by class and returned as HTTP `400 Bad Request`. A known code uses its specific message; any other in-class code uses `"Invalid database request"` as a fallback.
+Database errors in SQLSTATE class `22` (data exception), `23` (integrity constraint), and `44` (WITH CHECK OPTION violation) are detected by class. They return HTTP `400 Bad Request`. A known code uses its specific message; any other in-class code uses `"Invalid database request"` as a fallback.
 
 | Class | Codes with a specific message |
 |-------|-------------------------------|
@@ -139,7 +139,7 @@ Database errors in SQLSTATE class `22` (data exception), `23` (integrity constra
 | `44` View check | `44000` WITH CHECK OPTION violation |
 
 :::tip Transient conflicts return 409, not 400/500
-Class `40` (`40001` serialization failure, `40P01` deadlock) is transient/retryable and returns **409 Conflict** with `normalized.code: "database.conflict"` and a safe "please retry" message - the client can safely retry the same request. Programming/infra classes (`42` syntax, `53` resources, `0A`, `25`, `28`) remain 500.
+Class `40` (`40001` serialization failure, `40P01` deadlock) is transient/retryable. It returns **409 Conflict** with `normalized.code: "database.conflict"` and a safe "please retry" message - the client can safely retry the same request. Programming/infra classes (`42` syntax, `53` resources, `0A`, `25`, `28`) remain 500.
 :::
 
 :::warning Production sanitizes database internals
@@ -496,7 +496,7 @@ export class MyMiddleware extends BaseHelper implements IProvider<MiddlewareHand
 }
 ```
 
-Register it with `.toProvider()` (the same pattern `RequestTrackerComponent` uses for `RequestSpyMiddleware`), then use the resolved handler inside `setupMiddlewares()` - `get()` returns the produced `MiddlewareHandler` because the container calls `value()` for provider bindings:
+Register it with `.toProvider()` (the same pattern `RequestTrackerComponent` uses for `RequestSpyMiddleware`). Then use the resolved handler inside `setupMiddlewares()`: `get()` returns the produced `MiddlewareHandler`, because the container calls `value()` for provider bindings.
 
 ```typescript
 export class MyApplication extends BaseApplication {

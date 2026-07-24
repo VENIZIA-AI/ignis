@@ -61,11 +61,11 @@ export class NotificationService extends BaseService {
 
 - **Never `@inject` `WEBSOCKET_INSTANCE` in a constructor.** It is not bound yet at that point - the lazy getter is the only correct pattern.
 - **`sendToClient`/`sendToUser`/`sendToRoom`/`broadcast` are local-only.** They fan out to clients connected to this process. Cross-instance delivery goes through `send()` (Redis-backed) or `WebSocketEmitter` - see below.
-- **`send({ destination, payload })` resolves `destination` dynamically** against local clients, then local rooms, then falls back to publishing as a `ROOM` message on Redis. There is no `userId` destination in `send()` - use `sendToUser()` (local) or `WebSocketEmitter.toUser()` (cross-instance) to reach every session of a user.
+- **`send({ destination, payload })` resolves `destination` dynamically.** It checks local clients, then local rooms, then falls back to publishing as a `ROOM` message on Redis. There is no `userId` destination in `send()`. To reach every session of a user, use `sendToUser()` (local) or `WebSocketEmitter.toUser()` (cross-instance).
 
 ## Send from a process with no WebSocket server
 
-`WebSocketEmitter` is a standalone, Redis-only publisher for background workers, cron jobs, other microservices, or CLI scripts - anything that needs to push a WebSocket message without running a server. It publishes the same `IRedisSocketMessage` envelope the server helper listens for, so every connected server instance delivers it to its local clients.
+`WebSocketEmitter` is a standalone, Redis-only publisher. Use it from background workers, cron jobs, other microservices, or CLI scripts - anything that needs to push a WebSocket message without running a server. It publishes the same `IRedisSocketMessage` envelope the server helper listens for, so every connected server instance delivers it to its local clients.
 
 | Scenario | Use |
 |----------|-----|
@@ -90,9 +90,9 @@ await emitter.broadcast({ event: 'system:maintenance', data: { message: 'Schedul
 await emitter.shutdown(); // always release the Redis connection when done
 ```
 
-- **Fixed `serverId`.** The emitter always publishes with `serverId: 'emitter'`, which never matches a server's `crypto.randomUUID()` - so every server instance processes its messages, none self-dedup.
-- **One Redis client, not two.** The emitter only needs a pub client; the server helper needs pub + sub.
-- **`toUser()` is the recommended cross-instance path.** It publishes to `ws:user:{userId}`; every server subscribed via `psubscribe('ws:user:*')` receives it and calls `sendToUser()` locally, reaching every session of that user across all instances.
+- **Fixed `serverId`.** The emitter always publishes with `serverId: 'emitter'`. That value never matches a server's `crypto.randomUUID()`, so every server instance processes its messages - none self-dedup.
+- **One Redis client, not two.** The emitter only needs a pub client. The server helper needs both pub and sub.
+- **`toUser()` is the recommended cross-instance path.** It publishes to `ws:user:{userId}`. Every server subscribed via `psubscribe('ws:user:*')` receives it and calls `sendToUser()` locally - reaching every session of that user across all instances.
 
 ## Read the wire protocol
 
@@ -216,8 +216,8 @@ Client                          Server
   |                                |-- clientConnectedFn()
 ```
 
-- **Two timeout phases, not one.** The initial `authTimeout` (5s default) starts on connect and closes with `4001` if no `authenticate` event arrives. Once `authenticate` is received, that timer is replaced with `authTimeout * 3` (15s default) to give the async `authenticateFn` (and `handshakeFn`) room to complete.
-- **A client's own ID becomes a room.** After authentication, `joinRoom({ clientId, room: clientId })` runs automatically - this is what lets `send({ destination: clientId })` or `sendToRoom({ room: clientId })` target one specific client.
+- **Two timeout phases, not one.** The initial `authTimeout` (5s default) starts on connect. It closes the connection with `4001` if no `authenticate` event arrives. Once `authenticate` is received, that timer is replaced with `authTimeout * 3` (15s default). This gives the async `authenticateFn` - and `handshakeFn`, when encryption is required - room to complete.
+- **A client's own ID becomes a room.** After authentication, `joinRoom({ clientId, room: clientId })` runs automatically. This is what lets `send({ destination: clientId })` or `sendToRoom({ room: clientId })` target one specific client.
 - **Encrypted clients skip Bun's native topics.** A client's own `clientId` topic is subscribed before auth (always). `BROADCAST_TOPIC` and rooms are subscribed after auth, but only when `!client.encrypted`. Encrypted clients rely entirely on the per-client `outboundTransformer` path.
 
 ## Understand the delivery strategy
@@ -232,7 +232,7 @@ The helper picks a delivery path per call, based on encryption and `exclude`:
 | `outboundTransformer` bound at all | **All** room/broadcast sends fall back to per-client iteration, even for non-encrypted clients in the same room - Bun's native pub/sub cannot selectively transform |
 
 > [!IMPORTANT]
-> Only bind `outboundTransformer` when you actually need per-client message transformation (e.g. per-client encryption). Binding it removes the fast path for every room/broadcast send, encrypted or not.
+> Only bind `outboundTransformer` when you actually need per-client message transformation (for example per-client encryption). Binding it removes the fast path for every room/broadcast send, encrypted or not.
 
 ## See also
 

@@ -8,10 +8,24 @@ difficulty: intermediate
 
 Every error message the Authentication component and its services throw, with cause and fix. See the [Overview](./) for initial setup.
 
+## Find what you need
+
+| Error is thrown by | Go to |
+|---|---|
+| Startup, while wiring the component | [AuthenticateComponent (startup)](#authenticatecomponent-startup) |
+| `verify`/`generate`/`extractCredentials`, shared by JWS, JWKS, and Basic | [Bearer token services (runtime)](#bearer-token-services-runtime) |
+| The `JWSTokenService` constructor | [JWSTokenService (constructor)](#jwstokenservice-constructor) |
+| `JWKSIssuerTokenService` init or key parsing | [JWKSIssuerTokenService (init + runtime)](#jwksissuertokenservice-init-runtime) |
+| `JWKSVerifierTokenService` signing calls | [JWKSVerifierTokenService (runtime)](#jwksverifiertokenservice-runtime) |
+| Basic auth credential decoding | [BasicTokenService (runtime)](#basictokenservice-runtime) |
+| "Descriptor not found" or a strategy registration issue | [AuthenticationStrategyRegistry (startup + runtime)](#authenticationstrategyregistry-startup-runtime) |
+| "Authentication failed" at request time | [AuthenticationProvider (runtime)](#authenticationprovider-runtime) |
+| The built-in `/auth` controller | [Auth controller factory](#auth-controller-factory) |
+
 - **Startup errors (400 unless noted)** come from `AuthenticateComponent.binding()` and stop the application before it serves traffic.
 - **Runtime errors (401)** come from request-time credential extraction, verification, or strategy exhaustion.
-- **Structural errors (500)** come from calling an unsupported operation (e.g. signing on a verify-only service) or accessing uninitialized state.
-- All of them go through `getError()`, which defaults `statusCode` to `400` when not given explicitly - so every "startup" error below is a 400 unless the table says otherwise.
+- **Structural errors (500)** come from calling an unsupported operation - signing on a verify-only service, for example - or accessing uninitialized state.
+- All of them go through `getError()`. It defaults `statusCode` to `400` when you don't set one - so every "startup" error below is a 400 unless the table says otherwise.
 
 ```mermaid
 flowchart LR
@@ -38,7 +52,7 @@ Thrown during `binding()` while validating options and wiring services.
 |---------|--------|-------|-----|
 | `[AuthenticateComponent] At least one of jwtOptions or basicOptions must be provided` | 400 | Neither `JWT_OPTIONS` nor `BASIC_OPTIONS` bound before `this.component(AuthenticateComponent)` | Bind at least one before registering the component - see [Setup](./#common-tasks) |
 | `[AuthenticateComponent] Unknown JOSE standard: {standard}` | 400 | `jwtOptions.standard` is not `'JWS'` or `'JWKS'` | Use `JOSEStandards.JWS` or `JOSEStandards.JWKS` |
-| `[defineJWSAuth] Invalid jwtSecret \| Provided: {jwtSecret}` | 400 | `jwtSecret` falsy or equals placeholder `'unknown_secret'` | Set a real secret, e.g. `APP_ENV_JWT_SECRET` |
+| `[defineJWSAuth] Invalid jwtSecret \| Provided: {jwtSecret}` | 400 | `jwtSecret` falsy or equals placeholder `'unknown_secret'` | Set a real secret - `APP_ENV_JWT_SECRET`, for example |
 | `[defineJWSAuth] getTokenExpiresFn is required` | 400 | `getTokenExpiresFn` missing from JWS options | Provide `() => Number(process.env.APP_ENV_JWT_EXPIRES_IN \|\| 86400)` |
 | `[defineJWKSAuth] keys.private and keys.public are required for issuer mode` | 400 | Issuer mode missing one or both keys | Provide `keys.private` and `keys.public` |
 | `[defineJWKSAuth] keys.format is required and must be one of: pem, jwk` | 400 | `keys.format` missing or invalid | Use `JWKSKeyFormats.PEM` or `JWKSKeyFormats.JWK` |
@@ -50,7 +64,7 @@ Thrown during `binding()` while validating options and wiring services.
 | `[defineControllers] Auth controller requires jwtOptions to be configured` | 400 | `useAuthController: true` but no `jwtOptions` bound | Bind `JWT_OPTIONS` before enabling the auth controller |
 
 > [!NOTE]
-> `applicationSecret` is optional and not validated. The component and every token service treat it as optional - omitting it simply disables AES payload encryption. It is never checked for presence.
+> `applicationSecret` is optional and not validated. Every token service treats it as optional - omitting it disables AES payload encryption, nothing more. Its presence is never checked.
 
 ## Bearer token services (runtime)
 
@@ -145,7 +159,7 @@ The middleware that executes strategies in the configured mode.
 | `Failed to identify authenticated user!` | 401 | `executeAllMode` | All strategies passed in `'all'` mode, but the first strategy's `userId` is falsy |
 | `Invalid authentication mode \| mode: {mode}` | 500 | `createAuthenticateMiddleware` | `mode` is not `'any'` or `'all'` |
 
-**Fix for "Authentication failed":** verify the client sends the right header (`Bearer <token>` or `Basic <base64>`); common causes are an expired token, a token signed with a different key, or the wrong strategy name in the route config.
+**Fix for "Authentication failed":** verify the client sends the right header - `Bearer <token>` or `Basic <base64>`. Common causes: an expired token, a token signed with a different key, or the wrong strategy name in the route config.
 
 ## Auth controller factory
 

@@ -44,9 +44,14 @@ const [result] = await response.json();
 // { bucketName: 'user-uploads', objectName: 'invoices/2026/document.pdf', link: '/assets/buckets/user-uploads/objects/invoices%2F2026%2Fdocument.pdf' }
 ```
 
-- **`folderPath` is validated separately from the filename.** Each segment must pass `isValidName()`, and the segment count must not exceed `maxFolderDepth` (default `2`) - both return `400` before the file is even parsed.
+- **`folderPath` is validated separately from the filename.** Each segment must pass `isValidName()`. The segment count must stay within `maxFolderDepth` (default `2`). Both checks return `400` before the file is even parsed.
 - **`principalId` is always stored as a string**, coerced with `String()` regardless of whether you send a number or a string.
-- With MetaLink enabled, the response also carries `metaLink` (the created database record) or, if that write failed, `metaLink: null` plus a `metaLinkError` string - **the upload itself still succeeds either way**.
+- **With MetaLink enabled, the upload always succeeds - even if the tracking write fails.** The response carries one of two shapes:
+
+  | Outcome | Response field |
+  |---------|-----------------|
+  | MetaLink write succeeded | `metaLink`: the created database record |
+  | MetaLink write failed | `metaLink: null` plus a `metaLinkError` string |
 
 ## Stream or download an object
 
@@ -61,10 +66,10 @@ const downloadUrl = `/assets/buckets/user-uploads/download/${encodeURIComponent(
 window.open(downloadUrl, '_blank');
 ```
 
-Both routes validate `bucketName` with `isValidName()` and `objectName` with `isValidPath()`, then forward a fixed whitelist of metadata headers (`content-type`, `content-encoding`, `cache-control`, `etag`, `last-modified`) plus `X-Content-Type-Options: nosniff`. See [Header Sanitization](./api#header-sanitization) for the full list and why it exists.
+Both routes validate `bucketName` with `isValidName()` and `objectName` with `isValidPath()`. Both then forward a fixed whitelist of metadata headers - `content-type`, `content-encoding`, `cache-control`, `etag`, `last-modified` - plus `X-Content-Type-Options: nosniff`. See [Header Sanitization](./api#header-sanitization) for the full list and why it exists.
 
 > [!TIP]
-> `objectName` may embed folder segments (`invoices/2026/document.pdf`) - always pass the whole thing through `encodeURIComponent()`. Hono decodes it exactly once before the handler reads it, so a second `decodeURIComponent()` on your end is wrong and can corrupt names containing a literal `%`.
+> `objectName` may embed folder segments, for example `invoices/2026/document.pdf`. Always pass the whole thing through `encodeURIComponent()`. Hono decodes it exactly once before the handler reads it - a second `decodeURIComponent()` on your end is wrong. It can corrupt names that contain a literal `%`.
 
 ## List objects in a bucket
 
@@ -92,7 +97,7 @@ const { success } = await fetch(
 ```
 
 > [!NOTE]
-> When MetaLink is enabled, the database record deletion is **fire-and-forget** - the response returns as soon as the storage delete completes, without waiting on the `deleteAll()` call. Deletion errors are logged but never fail the request.
+> When MetaLink is enabled, the database record deletion is **fire-and-forget**. The response returns as soon as the storage delete completes - it does not wait on the `deleteAll()` call. Deletion errors are logged but never fail the request.
 
 ## Sync a MetaLink record manually
 
@@ -184,7 +189,7 @@ export class Application extends BaseApplication {
 
 ### Custom MetaLink creation
 
-Provide `createMetaLink` on `TMetaLinkConfig` to fully replace the default insert - e.g. to add extra fields or run validation before persisting.
+Provide `createMetaLink` on `TMetaLinkConfig` to fully replace the default insert - for example to add extra fields or run validation before persisting.
 
 ```typescript
 metaLink: {

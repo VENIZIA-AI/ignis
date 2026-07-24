@@ -16,6 +16,19 @@ Exhaustive reference for `SocketIOServerHelper` and `SocketIOClientHelper`. For 
 - [`packages/helpers/src/modules/socket/socket-io/common/constants.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/socket/socket-io/common/constants.ts) - `SocketIOConstants`, `SocketIOClientStates`
 - [`packages/helpers/src/modules/socket/socket-io/index.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/socket/socket-io/index.ts) - barrel export (`@venizia/ignis-helpers/socket-io`)
 
+## Find what you need
+
+| You want to | Go to |
+|---|---|
+| See the full server and client call sequence | [Architecture](#architecture) |
+| Look up a server method (`send()`, `on()`, `getClients()`, ...) | [Server API](#server-api) |
+| Look up a client method (`emit()`, `subscribe()`, `joinRooms()`, ...) | [Client API](#client-api) |
+| Follow the auth handshake step by step | [Authentication Protocol](#authentication-protocol) |
+| Understand the three Redis connections | [Redis Adapter](#redis-adapter) |
+| Look up a type, option, or callback signature | [Types Reference](#types-reference) |
+| Look up an event name, room default, or client state | [Constants](#constants) |
+| Match an error message to its cause | [Common Errors](#common-errors) |
+
 ## Architecture
 
 ```
@@ -96,19 +109,21 @@ Extends `BaseHelper`. Manages a `socket.io` server with a Redis adapter, authent
 
 #### `constructor(opts: TSocketIOServerOptions)`
 
-Validates the runtime-specific `server` (Node) or `engine` (Bun) field and duplicates the provided `redisConnection` into three independent clients (`redisPub`, `redisSub`, `redisEmitter`). Does **not** start the IO server - call `configure()` to complete initialization.
+Validates the runtime-specific `server` (Node) or `engine` (Bun) field. Duplicates the provided `redisConnection` into three independent clients (`redisPub`, `redisSub`, `redisEmitter`). Does **not** start the IO server - call `configure()` to complete initialization.
 
 **Throws:**
 
-- `'[SocketIOServerHelper] Invalid HTTP server for Node.js runtime!'` - `runtime: 'node'` and `server` is falsy
-- `'[SocketIOServerHelper] Invalid @socket.io/bun-engine instance for Bun runtime!'` - `runtime: 'bun'` and `engine` is falsy
-- `'[SocketIOServerHelper] Unsupported runtime!'` - `runtime` is neither `'node'` nor `'bun'`
-- `'Invalid redis connection to config socket.io adapter!'` - `redisConnection` is falsy
+| Message | Condition |
+|---------|-----------|
+| `[SocketIOServerHelper] Invalid HTTP server for Node.js runtime!` | `runtime: 'node'` and `server` is falsy |
+| `[SocketIOServerHelper] Invalid @socket.io/bun-engine instance for Bun runtime!` | `runtime: 'bun'` and `engine` is falsy |
+| `[SocketIOServerHelper] Unsupported runtime!` | `runtime` is neither `'node'` nor `'bun'` |
+| `Invalid redis connection to config socket.io adapter!` | `redisConnection` is falsy |
 
 #### `configure(): Promise<void>`
 
 1. Registers `error` listeners on all three duplicated Redis clients (logged, not thrown)
-2. Kicks off `connect()` on any client still in `'wait'` status (duplicated clients inherit `lazyConnect` from the parent and do not dial on their own)
+2. Kicks off `connect()` on any client still in `'wait'` status
 3. `await Promise.all([waitForRedisReady(redisPub), waitForRedisReady(redisSub), waitForRedisReady(redisEmitter)])`
 4. Creates the `IOServer` - `new IOServer(server, serverOptions)` for Node.js, or `new IOServer()` followed by `io.bind(engine)` for Bun
 5. Attaches the Redis adapter via `@socket.io/redis-adapter`
@@ -118,7 +133,7 @@ Validates the runtime-specific `server` (Node) or `engine` (Bun) field and dupli
 Must be called before `on()`, `send()`, or any server operation.
 
 > [!NOTE]
-> `waitForRedisReady` rejects after **30 seconds** if a client never reaches `ready` (or immediately on that client's `error` event), so a broken Redis connection fails `configure()` instead of hanging boot indefinitely.
+> `waitForRedisReady` rejects after **30 seconds** if a client never reaches `ready` (or immediately on that client's `error` event). A broken Redis connection fails `configure()` instead of hanging boot indefinitely.
 
 #### `getIOServer(): IOServer`
 
@@ -159,13 +174,15 @@ socketServer.on({
 
 **Throws:**
 
-- `'[on] Invalid topic to start binding handler'` - `topic` is empty/falsy
-- `'[on] Invalid event handler | topic: {topic}'` - `handler` is missing
-- `'[on] IOServer is not initialized yet!'` - called before `configure()` completes
+| Message | Condition |
+|---------|-----------|
+| `[on] Invalid topic to start binding handler` | `topic` is empty/falsy |
+| `[on] Invalid event handler \| topic: {topic}` | `handler` is missing |
+| `[on] IOServer is not initialized yet!` | called before `configure()` completes |
 
 #### `onClientConnect(opts: { socket: IOSocket }): void`
 
-Handles a new socket connection. Invoked automatically by the `'connection'` event; can also be called manually.
+Handles a new socket connection. Invoked automatically by the `'connection'` event, but can also be called manually.
 
 1. Creates an `ISocketIOClient` entry with state `UNAUTHORIZED`
 2. Starts the `authenticateTimeout` timer
@@ -241,11 +258,11 @@ Extends `BaseHelper`. Manages a `socket.io-client` connection with authenticatio
 
 #### `constructor(opts: ISocketIOClientOptions)`
 
-Stores the callbacks and calls `configure()` internally - the client starts connecting immediately.
+Stores the callbacks and calls `configure()` internally. The client starts connecting immediately.
 
 #### `configure(): void`
 
-Creates the `socket.io-client` connection (`io(host, options)`) and registers the internal lifecycle handlers below. Called automatically by the constructor; a second call is a no-op if a client instance already exists.
+Creates the `socket.io-client` connection (`io(host, options)`) and registers the internal lifecycle handlers below. Called automatically by the constructor. A second call is a no-op if a client instance already exists.
 
 | Event | Behavior |
 |-------|----------|
@@ -294,7 +311,7 @@ const client = new SocketIOClientHelper({
 
 #### `subscribe<T>(opts: { event: string; handler: TSocketIOEventHandler<T>; ignoreDuplicate?: boolean }): void`
 
-Registers a handler on the client socket. The handler is wrapped with error handling that catches both sync throws and async rejections, and the wrapper is tracked in an internal `wrappedHandlers` map so `unsubscribe()` can find and remove it.
+Registers a handler on the client socket. The handler is wrapped with error handling that catches both sync throws and async rejections. That wrapper is tracked in an internal `wrappedHandlers` map, so `unsubscribe()` can find and remove it.
 
 | Parameter | Type | Default | Description |
 |-----------|------|---------|-------------|
@@ -317,7 +334,7 @@ client.subscribeMany({
 
 #### `unsubscribe(opts: { event: string; handler?: TSocketIOEventHandler }): void`
 
-- With `handler`, removes only that specific handler (looked up in `wrappedHandlers`; no-op if it was not registered through this helper)
+- With `handler`, removes only that specific handler (looked up in `wrappedHandlers`). No-op if that handler was not registered through this helper
 - Without `handler`, removes **all** handlers for the event
 - No-op if the event has no listeners
 
@@ -347,21 +364,23 @@ Emits an event to the server.
 | `doLog` | `boolean` | `false` | Logs the emission details |
 | `callback` | `() => void` | `undefined` | Invoked via `setImmediate` after the emit call |
 
-**Throws:**
+**Throws** (both status `400`):
 
-- `'Invalid socket client state to emit'` (status 400) - the client is not connected
-- `'Topic is required to emit'` (status 400) - `topic` is empty/falsy
+| Message | Condition |
+|---------|-----------|
+| `Invalid socket client state to emit` | the client is not connected |
+| `Topic is required to emit` | `topic` is empty/falsy |
 
 #### `joinRooms(opts: { rooms: string[] }): void`
 
-Emits `'join'` with `{ rooms }`; the server validates the request through its `validateRoomFn`. Logs a warning and no-ops if the client is not connected.
+Emits `'join'` with `{ rooms }`. The server validates the request through its `validateRoomFn`. Logs a warning and no-ops if the client is not connected.
 
 #### `leaveRooms(opts: { rooms: string[] }): void`
 
 Emits `'leave'` with `{ rooms }`. Logs a warning and no-ops if the client is not connected.
 
 > [!NOTE]
-> Unlike `joinRooms()`, leave requests are **not** validated server-side - the client can request to leave any room name, including ones it never joined (`socket.leave()` on a room the socket isn't in is a no-op).
+> Unlike `joinRooms()`, leave requests are **not** validated server-side. The client can request to leave any room name, including ones it never joined. `socket.leave()` on a room the socket isn't in is a no-op.
 
 #### `shutdown(): void`
 
@@ -419,7 +438,7 @@ The server uses `@socket.io/redis-adapter` and `@socket.io/redis-emitter` for ho
 | `redisEmitter` | Powers `send()` for cross-instance message delivery |
 
 - **Initialized during `configure()`.** All three clients are created and awaited before the IO server starts.
-- **Lazy connect handled explicitly.** If the parent `redisConnection` uses `lazyConnect` (`autoConnect: false`), the duplicated clients are kicked into `connect()` explicitly, since duplicated clients inherit `lazyConnect` but never dial on their own.
+- **Lazy connect handled explicitly.** Duplicated clients inherit `lazyConnect` but never dial on their own. If the parent `redisConnection` uses `lazyConnect` (`autoConnect: false`), `configure()` kicks each duplicated client into `connect()` explicitly.
 
 ## Types Reference
 

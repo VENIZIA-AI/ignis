@@ -6,7 +6,9 @@ difficulty: intermediate
 
 # Socket.IO
 
-`SocketIOServerHelper` and `SocketIOClientHelper` wrap `socket.io` with a mandatory post-connection authentication handshake, room management, and a Redis adapter so events reach clients no matter which server instance they are connected to.
+`SocketIOServerHelper` and `SocketIOClientHelper` wrap `socket.io` with a mandatory post-connection authentication handshake and room management. A Redis adapter makes sure events reach a client no matter which server instance it's connected to.
+
+These are the raw classes: construct and `configure()` them yourself. Need the server helper inside an IGNIS app instead? [`SocketIOComponent`](/extensions/components/socket-io/) wires it into DI for you, on both Node.js and Bun.
 
 ## In one example
 
@@ -58,14 +60,28 @@ const client = new SocketIOClientHelper({
 
 ## How it works
 
-- **Two independent helpers.** `SocketIOServerHelper` wraps a `socket.io` `Server`; `SocketIOClientHelper` wraps a `socket.io-client` `Socket`. Both extend `BaseHelper`, and the client can talk to any `socket.io` server, not only this one.
+- **Two independent helpers, both extending `BaseHelper`:**
+
+| Helper | Wraps |
+|--------|-------|
+| `SocketIOServerHelper` | a `socket.io` `Server` |
+| `SocketIOClientHelper` | a `socket.io-client` `Socket` |
+
+- **The client isn't locked to this server.** It can talk to any `socket.io` server, not only this one.
 - **Runtime-agnostic server.** Pass a Node.js `http.Server` for `runtime: 'node'`, or an `@socket.io/bun-engine` instance for `runtime: 'bun'`.
-- **Redis is mandatory server-side.** `configure()` duplicates the parent `redisConnection` into three dedicated clients: `redisPub`/`redisSub` power `@socket.io/redis-adapter` for cross-instance room broadcast, and `redisEmitter` powers `@socket.io/redis-emitter` for `send()`.
-- **Boot fails fast on a broken Redis connection.** `configure()` waits for all three clients to reach `ready` and rejects after 30 seconds if any never do, so a broken Redis connection fails boot instead of hanging it.
-- **Authentication is a step separate from connecting.** A client connects at the transport level in state `UNAUTHORIZED`, then must emit `'authenticate'`. The server calls `authenticateFn(handshake)`; only `true` moves the client to `AUTHENTICATED` and joins it to `defaultRooms`.
-- **Unauthenticated clients time out.** A client that never authenticates within `authenticateTimeout` is disconnected - including one whose `authenticateFn` is still pending when the timeout fires.
-- **Heartbeat has no pong check.** Once authenticated, the server pings on `pingInterval` as a keep-alive; a silently dead connection is only caught when the underlying transport itself notices.
-- **Custom rooms need `validateRoomFn`.** Room joins beyond `defaultRooms` are rejected unless you supply it - without it, every custom join request is dropped.
+- **Redis is mandatory server-side.** `configure()` duplicates the parent `redisConnection` into three dedicated clients:
+
+| Client | Powers |
+|--------|--------|
+| `redisPub` + `redisSub` | `@socket.io/redis-adapter` - cross-instance room broadcast |
+| `redisEmitter` | `@socket.io/redis-emitter` - used by `send()` |
+
+- **Boot fails fast on a broken Redis connection.** `configure()` waits for all three clients to reach `ready`. It rejects after 30 seconds if any never do, so a broken Redis connection fails boot instead of hanging it.
+- **Authentication is a step separate from connecting.** A client connects at the transport level in state `UNAUTHORIZED`, then must emit `'authenticate'`. The server then calls `authenticateFn(handshake)`.
+- **Only `true` authenticates.** It moves the client to `AUTHENTICATED` and joins it to `defaultRooms`.
+- **Unauthenticated clients time out.** A client that never authenticates within `authenticateTimeout` is disconnected. That includes a client whose `authenticateFn` is still pending when the timeout fires.
+- **Heartbeat has no pong check.** Once authenticated, the server pings on `pingInterval` as a keep-alive. A silently dead connection is only caught when the underlying transport itself notices.
+- **Custom rooms need `validateRoomFn`.** Room joins beyond `defaultRooms` are rejected unless you supply `validateRoomFn`.
 
 **Defaults**
 
@@ -90,7 +106,7 @@ socketServer.send({
 
 ### Listen for a custom event
 
-Register on the server with `on()`; subscribe on the client with `subscribe()`.
+Register on the server with `on()`. Subscribe on the client with `subscribe()`.
 
 ```typescript
 socketServer.on({
@@ -106,7 +122,7 @@ client.subscribe({
 
 ### Manage rooms
 
-Clients request rooms with `joinRooms()` / `leaveRooms()`; the server filters join requests through `validateRoomFn`.
+Clients request rooms with `joinRooms()` / `leaveRooms()`. The server filters join requests through `validateRoomFn`.
 
 ```typescript
 const socketServer = new SocketIOServerHelper({

@@ -8,7 +8,7 @@ difficulty: intermediate
 
 Exhaustive reference for `Logger`, `LoggerFactory`, `HfLogger`/`HfLogFlusher`, the Winston formatter and transport internals, and every environment variable. For a readable introduction and the common tasks, start with the [Logger overview](/extensions/helpers/logger/).
 
-The default provider is **Winston** (with `winston-daily-rotate-file` for file rotation). All provider packages are OPTIONAL peers - an application loads exactly ONE provider (single-provider loading, below).
+The default provider is **Winston**, paired with `winston-daily-rotate-file` for file rotation. All provider packages are OPTIONAL peers. An application loads exactly ONE provider - see [single-provider loading](#architecture-and-ilogger) below.
 
 **Files:**
 
@@ -25,9 +25,31 @@ The default provider is **Winston** (with `winston-daily-rotate-file` for file r
 - [`packages/helpers/src/modules/logger/hf/flusher.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/logger/hf/flusher.ts) - `HfLogFlusher`
 - [`packages/helpers/src/modules/logger/factory.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/logger/factory.ts) - `LoggerFactory`, `ApplicationLogger`
 
-## Architecture & ILogger
+## Find what you need
 
-The module follows IGNIS's house format: `common/` (the contract), `base/` (provider-independent plumbing), `winston/` (the built-in provider), `hf/` (the separate high-frequency logger), and a top-level `factory.ts` as the single acquisition path.
+| You want to | Go to |
+|---|---|
+| See how provider registration and delegation work | [Architecture and ILogger](#architecture-and-ilogger) |
+| Import the right class from the right sub-path | [Import paths](#import-paths) |
+| Get or cache a scoped logger instance | [Creating an Instance](#creating-an-instance) |
+| Know what each log level means and when to use it | [What each level means](#what-each-level-means) |
+| Keep nested fields visible when logging with `%s` | [Message Formatting](#message-formatting) |
+| Turn on file rotation or UDP shipping | [Transports](#transports) |
+| Fix `debug()` logs that aren't showing | [Debug Logging Behavior](#debug-logging-behavior) |
+| Log on a hot path doing 100k+ events/sec | [High-Frequency Logger](#high-frequency-logger) |
+| Look up one `APP_ENV_LOGGER_*` variable | [Environment Variables](#environment-variables) |
+| Find one exported symbol fast | [API Summary](#api-summary) |
+| Fix a specific error message | [Troubleshooting](#troubleshooting) |
+
+## Architecture and ILogger
+
+The module follows IGNIS's house format - one folder per concern:
+
+- `common/` - the contract
+- `base/` - provider-independent plumbing
+- `winston/` - the built-in provider
+- `hf/` - the separate high-frequency logger
+- `factory.ts` - the single acquisition path
 
 ```
 ILogger (interface)                common/types.ts
@@ -38,9 +60,9 @@ ILogger (interface)                common/types.ts
 ```
 
 - **Consumers type against `ILogger`, never a concrete class.** `LoggerFactory.getLogger()` and `BaseHelper.logger` both return `ILogger`. Which provider produced the instance stays invisible behind the interface.
-- **Provider registration.** `LoggerFactory.use({ provider })` selects the application's provider (default: `WinstonLogger`). The factory hands out stable delegating wrappers and re-points ALL of them when `use()` is called - even module-level loggers captured at import time follow the registration; the per-call cost is one property read (measured ~0ns).
-- **Single-provider loading.** Exactly ONE provider is ever loaded. Delegates resolve lazily at the first log call, so an app that registers pino at its entrypoint never loads winston. The winston default loads only when `use()` was never called by the first log line - it requires the winston peers installed (`bun add winston winston-transport winston-daily-rotate-file`). Compiled binaries (`bun build --compile`) must ALWAYS register a provider explicitly: only a class reference carries a provider into a bundle.
-- **Both providers are sub-path only**: `WinstonLogger` at `@venizia/ignis-helpers/winston`, `PinoLogger` at `@venizia/ignis-helpers/pino` ([guide](/extensions/helpers/logger/pino)). The root barrel is provider-free; importing it loads neither.
+- **Provider registration.** `LoggerFactory.use({ provider })` selects the application's provider (default: `WinstonLogger`). The factory hands out stable delegating wrappers. Calling `use()` re-points ALL of them - even a module-level logger captured at import time follows the registration. The per-call cost after that: one property read (measured ~0ns).
+- **Single-provider loading.** Exactly ONE provider is ever loaded. Delegates resolve lazily at the first log call, so an app that registers pino at its entrypoint never loads winston. The winston default loads only when `use()` was never called before the first log line. It requires the winston peers installed (`bun add winston winston-transport winston-daily-rotate-file`). Compiled binaries (`bun build --compile`) must ALWAYS register a provider explicitly - only a class reference carries a provider into a bundle.
+- **Both providers are sub-path only**: `WinstonLogger` at `@venizia/ignis-helpers/winston`, `PinoLogger` at `@venizia/ignis-helpers/pino` ([guide](/extensions/helpers/logger/pino)). The root barrel is provider-free - importing it loads neither.
 
 **Which names follow `use()`:**
 
@@ -152,7 +174,7 @@ const customWinstonLogger = defineCustomLogger({
 const logger = Logger.get('MyService', customWinstonLogger);
 ```
 
-A custom-backed `Logger` is a fresh wrapper on every call - a scope-keyed cache cannot tell two different Winston instances apart, and the wrapper is cheap enough not to need one. `.for()` on a custom-backed logger keeps the same Winston instance.
+A custom-backed `Logger` is a fresh wrapper on every call. A scope-keyed cache can't tell two different Winston instances apart, and the wrapper is cheap enough not to need one. `.for()` on a custom-backed logger keeps the same Winston instance.
 
 ### Logger caching
 
@@ -170,7 +192,9 @@ const custom2 = Logger.get('MyService', customWinstonLogger);
 
 ### ApplicationLogger - the provider-following facade
 
-`ApplicationLogger` is "the APPLICATION's logger": `ApplicationLogger.get(scope)` always returns the provider registered via `LoggerFactory.use()` (winston unless the app registered another). Its TYPE is `ILogger`. It is no longer a class alias of `WinstonLogger` - `instanceof ApplicationLogger` is now a compile error (use `instanceof AbstractLogger` to test any provider instance); the concrete alias remains available as `Logger`.
+`ApplicationLogger` is "the APPLICATION's logger." `ApplicationLogger.get(scope)` always returns whatever provider `LoggerFactory.use()` registered - winston, unless the app registered something else. Its type is `ILogger`.
+
+It is no longer a class alias of `WinstonLogger`. `instanceof ApplicationLogger` is now a compile error - use `instanceof AbstractLogger` to test any provider instance instead. The concrete winston alias still exists, named `Logger`.
 
 ```typescript
 import { ApplicationLogger } from '@venizia/ignis-helpers';
@@ -178,7 +202,8 @@ import { ApplicationLogger } from '@venizia/ignis-helpers';
 const logger = ApplicationLogger.get('MyService'); // ILogger, follows LoggerFactory.use()
 ```
 
-The old scope-less `applicationLogger` instance was REMOVED - use `ApplicationLogger.get('YourScope')`; apps that need a raw winston instance build one with `defineCustomLogger` (sub-path `/winston`).
+> [!WARNING]
+> The old scope-less `applicationLogger` instance was REMOVED. Use `ApplicationLogger.get('YourScope')` instead. An app that needs a raw winston instance builds one with `defineCustomLogger` (sub-path `/winston`).
 
 ## Log Levels
 
@@ -197,7 +222,7 @@ logger.log('warn', 'Threshold exceeded');   // Generic method for any level
 
 ### What each level means
 
-The level set follows the npm/winston convention. Lower priority number = more severe; the level floor (`APP_ENV_LOGGER_LEVEL`) admits everything at or above its severity.
+The level set follows the npm/winston convention. Lower priority number means more severe. The level floor (`APP_ENV_LOGGER_LEVEL`) admits everything at or above its severity.
 
 | Level | Priority | Meaning | Use it for |
 |-------|----------|---------|------------|
@@ -208,7 +233,9 @@ The level set follows the npm/winston convention. Lower priority number = more s
 | `debug` | 3 | Developer diagnostics | Values and timings useful only while developing - ALSO gated by `DEBUG` env |
 
 > [!NOTE]
-> Two gates apply to `debug`, one to everything else. Every level passes the floor (`APP_ENV_LOGGER_LEVEL`, default `debug` - which admits ALL five levels); `debug()` additionally requires the `DEBUG` env gate. The vocabulary was deliberately trimmed to these five (2026-07-18): `alert`/`http`/`verbose`/`silly` had zero call sites and no consuming infrastructure - `http` returns as an access-line level if the request-correlation feature lands.
+> Two gates apply to `debug`; only one applies to everything else. Every level passes the floor (`APP_ENV_LOGGER_LEVEL`, default `debug` - which admits all five levels). `debug()` also requires the `DEBUG` env gate.
+>
+> The vocabulary was deliberately trimmed to these five (2026-07-18). `alert`/`http`/`verbose`/`silly` had zero call sites and no consuming infrastructure. `http` may return as an access-line level if the request-correlation feature lands.
 
 `LogLevels` defines all available levels and provides validation:
 
@@ -244,7 +271,7 @@ Lower numeric values have higher priority. `error` and `emerg` share priority `0
 
 ## Method-Scoped Logging
 
-`.for()` creates a sub-scoped logger for a specific method, appending the method name to the scope with a `-` separator, backed by the same provider instance as the parent. Default-backed results are cached.
+`.for()` creates a sub-scoped logger for a specific method. It appends the method name to the scope with a `-` separator, backed by the same provider instance as the parent. Default-backed results are cached.
 
 ```typescript
 class UserService {
@@ -273,7 +300,7 @@ class UserService {
 ### Logging errors: `%s`, never `%j`
 
 - **`message` and `stack` are non-enumerable** on a native `Error`.
-- **`%j` formats via `JSON.stringify`**, which only visits enumerable own properties, so `logger.error('Failed: %j', error)` silently drops both `message` and `stack` - the two fields the log line exists to capture.
+- **`%j` formats via `JSON.stringify`**, which only visits enumerable own properties. So `logger.error('Failed: %j', error)` silently drops both `message` and `stack` - the two fields the log line exists to capture.
 - **Always pair an `Error` argument with `%s`**; reserve `%j`/`%o` for plain data objects.
 
 ```typescript
@@ -286,8 +313,8 @@ logger.error('Failed to create user: %j', error);
 
 ### Object inspection depth for `%s`
 
-- **Node hard-codes `depth: 0` for `%s`** in `util.format` - an object passed to `%s` collapses to `[Object]`, hiding the nested `extra` or `cause` a wrapped error carries.
-- **`deepSplat` widens that depth.** The formatter (`formatLogMessage`) pre-inspects any object bound to a `%s` placeholder before handing the message to Winston, so nested fields print instead of collapsing.
+- **Node hard-codes `depth: 0` for `%s`** in `util.format`. An object passed to `%s` collapses to `[Object]`, hiding the nested `extra` or `cause` a wrapped error carries.
+- **`deepSplat` widens that depth.** The formatter (`formatLogMessage`) pre-inspects any object bound to a `%s` placeholder before handing the message to Winston. So nested fields print instead of collapsing.
 - **Applies per-placeholder.** Only arguments matched to a `%s` token are affected, so `%j` still gets `JSON.stringify` semantics.
 
 ```typescript
@@ -330,7 +357,7 @@ const fmt: TLoggerFormat = 'text';
 ```
 
 > [!NOTE]
-> The label shown in log output (e.g. `APP`) comes from `APP_ENV_APPLICATION_NAME` (defaults to `'APP'`). Set this env var to customize the label for your application.
+> The label shown in log output (for example, `APP`) comes from `APP_ENV_APPLICATION_NAME` (defaults to `'APP'`). Set this env var to customize the label for your application.
 
 ### Custom formatters
 
@@ -359,13 +386,18 @@ const plainFormatter = definePrettyLoggerFormatter({ label: 'my-app', colorize: 
 
 `Source ->` [`winston/define.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/logger/winston/define.ts)
 
-Every logger created by `defineCustomLogger` always includes a **Console** transport, which inherits the logger-level floor (`APP_ENV_LOGGER_LEVEL`, default `debug`). File and UDP transports are optional and are registered per transport group (`info`, `error`).
+Every logger created by `defineCustomLogger` always includes a **Console** transport. It inherits the logger-level floor (`APP_ENV_LOGGER_LEVEL`, default `debug`). File and UDP transports are optional, registered per transport group (`info`, `error`).
 
-Formatting is split in two stages: a shared preparation format on the logger (label, timestamp, error normalization, deep splat) and a per-transport assembly format. In `text` mode the console assembly colorizes while the file assembly does not - log FILES never contain ANSI color codes. In `json` mode every transport assembles with plain `format.json()`. Passing `formatter` disables the split: that one format produces the final line for every transport.
+Formatting happens in two stages:
 
-### File rotation (DailyRotateFile)
+- a shared preparation format on the logger (label, timestamp, error normalization, deep splat)
+- a per-transport assembly format
 
-Configure file rotation through environment variables or programmatically via `IFileTransportOptions`.
+In `text` mode the console assembly colorizes; the file assembly does not - log FILES never carry ANSI color codes. In `json` mode every transport assembles with plain `format.json()`. Passing `formatter` disables the split - that one format produces the final line for every transport.
+
+### File rotation transport
+
+Winston implements this transport with `DailyRotateFile`. Configure it through environment variables, or programmatically via `IFileTransportOptions`.
 
 **Environment variables:**
 
@@ -452,7 +484,9 @@ const transport = DgramTransport.fromPartial({
 // Returns null if label, host, port, levels (non-empty), or socketOptions is missing
 ```
 
-On a socket error the transport closes and nulls its client; the next `log()` call re-establishes the socket before sending. A failed `send` is logged to the console and the socket is dropped for reconnection - it is never re-emitted as an `'error'` event, so one lost UDP log line can never crash the process.
+On a socket error, the transport closes and nulls its client. The next `log()` call re-establishes the socket before sending.
+
+A failed `send` is logged to the console, and the socket is dropped for reconnection. It's never re-emitted as an `'error'` event - so one lost UDP log line can never crash the process.
 
 **Environment variables for the default application logger:**
 
@@ -498,7 +532,7 @@ interface ICustomLoggerOptions {
 }
 ```
 
-- **Both `info` and `error` transport groups support optional `file` (DailyRotateFile) and `dgram` (UDP) transports.**
+- **Both `info` and `error` transport groups support two optional transports:** `file` (DailyRotateFile) and `dgram` (UDP).
 - **A console transport is always included**, regardless of what is configured.
 - **Error file transports double as Winston exception handlers.**
 
@@ -522,11 +556,15 @@ APP_ENV_EXTRA_LOG_ENVS=qa,preview   # Comma-separated additional environments
 > [!IMPORTANT]
 > The debug flag check is pre-computed at module load time. Changing `DEBUG` or `NODE_ENV` at runtime has no effect - the values are captured once when the module is first imported.
 
-## High-Frequency Logger (HfLogger)
+## High-Frequency Logger
 
 `Source ->` [`hf/logger.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/logger/hf/logger.ts), [`hf/flusher.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/logger/hf/flusher.ts)
 
-For performance-critical applications (e.g. HFT systems, game servers), `HfLogger` provides ring-buffer logging with a 59.4ns bytes-path enqueue and a 66.0ns string no-args enqueue (Bun 1.3.14, 1M-iteration median). It extends `AbstractLogger` and implements `ILogger`, so it can be used anywhere an `ILogger` is expected - but it is still entirely separate from the Winston-backed `Logger` pipeline: no formatters, transports, or `APP_ENV_LOGGER_*` env vars apply to it. Read the [HfLogger guide](/extensions/helpers/logger/hf-logger) before using it - it carries hard usage rules (pre-encoded fixed message vocabulary, single-thread only, flush-interval sizing) and documented limitations.
+For performance-critical applications (for example, HFT systems or game servers), `HfLogger` provides ring-buffer logging: a 59.4ns bytes-path enqueue, a 66.0ns string no-args enqueue (Bun 1.3.14, 1M-iteration median).
+
+It extends `AbstractLogger` and implements `ILogger`, so it works anywhere an `ILogger` is expected. But it stays entirely separate from the Winston-backed `Logger` pipeline - no formatters, transports, or `APP_ENV_LOGGER_*` env vars apply to it.
+
+Read the [HfLogger guide](/extensions/helpers/logger/hf-logger) before using it. It carries hard usage rules - a pre-encoded fixed message vocabulary, single-thread only, flush-interval sizing - and documented limitations.
 
 ```typescript
 import { HfLogger, HfLogFlusher } from '@venizia/ignis-helpers';
@@ -559,9 +597,9 @@ flusher.stop();
 | Method | Signature | Description |
 |--------|-----------|--------------|
 | `HfLogger.get` | `(scope: string) => HfLogger` | Get or create a cached logger instance (allocates the ring lazily on first call) |
-| `HfLogger.encodeMessage` | `(msg: string) => Uint8Array` | Pre-encode a message string to bytes; FIFO-bounded cache, cap `MESSAGE_CACHE_CAP = 4096` |
-| `logger.debug/info/warn/error/emerg` | `(message: string, ...args: AnyType[]) => void` | `ILogger` methods. No args: cache-lookup encode + bytes-path write. With args: `formatLogMessage` (deep inspection + redaction) then an uncached encode - the slow path |
-| `logger.log` | `(level: TLogLevel, message: string, ...args: AnyType[]) => void`<br>`(level: TLogLevel, messageBytes: Uint8Array) => void` | Overloaded: string form follows the `debug`/`info`/... cost model above; `Uint8Array` form is the legacy bytes hot path, unchanged signature |
+| `HfLogger.encodeMessage` | `(msg: string) => Uint8Array` | Pre-encode a message string to bytes. FIFO-bounded cache, capped at `MESSAGE_CACHE_CAP = 4096` |
+| `logger.debug/info/warn/error/emerg` | `(message: string, ...args: AnyType[]) => void` | `ILogger` methods. No args: cache-lookup encode, then the bytes-path write. With args: `formatLogMessage` (deep inspection, redaction), then an uncached encode - the slow path |
+| `logger.log` | `(level: TLogLevel, message: string, ...args: AnyType[]) => void`<br>`(level: TLogLevel, messageBytes: Uint8Array) => void` | Overloaded. The string form follows the `debug`/`info`/... cost model above. The `Uint8Array` form is the legacy bytes hot path, unchanged |
 | `logger.for` | `(methodName: string) => ILogger` | Returns `HfLogger.get(`${scope}-${methodName}`)`, same dash composition as `BaseLogger` |
 
 Supported levels (`TLogLevel`, full set): `debug` (0), `info` (1), `warn` (2), `error` (3), `emerg` (4).
@@ -570,12 +608,20 @@ Supported levels (`TLogLevel`, full set): `debug` (0), `info` (1), `warn` (2), `
 
 | Method | Signature | Description |
 |--------|-----------|--------------|
-| `new HfLogFlusher` | `(options?: IHfLogFlusherOptions) => HfLogFlusher` | `sink?: THfSink` (full custom delivery), `filePath?: string` (default sink appends here instead of stdout), `batchSize?: number` (entries rendered per batch before yielding, default `1024`; invalid values fall back with a `console.warn`) |
-| `flusher.flush` | `() => Promise<void>` | Drain the full backlog in bounded batches, yielding (`setImmediate`) between batches; re-entrant calls return the in-progress promise |
-| `flusher.start` | `(intervalMs?: number) => void` | Start a background `setInterval` flush loop (default `100`ms), unref'd so it never blocks process exit; idempotent - calling again restarts cleanly |
+| `new HfLogFlusher` | `(options?: IHfLogFlusherOptions) => HfLogFlusher` | Create a flusher; see `IHfLogFlusherOptions` below |
+| `flusher.flush` | `() => Promise<void>` | Drain the full backlog in bounded batches, yielding (`setImmediate`) between batches. Re-entrant calls return the in-progress promise |
+| `flusher.start` | `(intervalMs?: number) => void` | Start a background `setInterval` flush loop (default `100`ms), unref'd so it never blocks process exit. Idempotent - calling again restarts cleanly |
 | `flusher.stop` | `() => void` | Clear the interval started by `start()` |
 
-`THfSinkBatch` passed to a custom `sink`: `{ lines: Array<string>; dropped: number }` - `dropped` is the exact count of entries overwritten by the ring before the flusher could read them since the previous batch (see "Lap accounting" in the guide). The default sink (no `filePath`) writes `process.stdout.write(...)` once per batch; with `filePath`, it appends via `fs.appendFileSync` once per batch. A sink that throws is logged via `console.error` and does not abort the drain.
+#### IHfLogFlusherOptions
+
+| Option | Type | Default | Meaning |
+|--------|------|---------|---------|
+| `sink` | `THfSink` | the built-in stdout/file sink | Full custom delivery. Overrides `filePath` |
+| `filePath` | `string` | _(unset)_ | The default sink appends here instead of writing to stdout |
+| `batchSize` | `number` | `1024` | Entries rendered per batch before yielding. An invalid value falls back to the default with a `console.warn` |
+
+A custom `sink` receives `THfSinkBatch`: `{ lines: Array<string>; dropped: number }`. `dropped` is the exact count of entries the ring overwrote before the flusher could read them, since the previous batch. See "Lap accounting" in the [HfLogger guide](/extensions/helpers/logger/hf-logger). The default sink writes `process.stdout.write(...)` once per batch, or `fs.appendFileSync` once per batch when `filePath` is set. A sink that throws is logged via `console.error` and does not abort the drain.
 
 ### Line format
 
@@ -585,11 +631,17 @@ The default sink renders each entry as:
 <ISO timestamp> [<level name>] <scope> <message>
 ```
 
-For example: `2026-07-18T09:41:03.128Z [info] OrderEngine Order sent`. When a batch has `dropped > 0`, the default sink emits a `warn` marker line ahead of it: `<ISO timestamp> [warn] HfLogFlusher ring lapped - <N> entries overwritten before they could be read`.
+For example: `2026-07-18T09:41:03.128Z [info] OrderEngine Order sent`.
+
+When a batch has `dropped > 0`, the default sink emits a `warn` marker line ahead of it:
+
+```
+<ISO timestamp> [warn] HfLogFlusher ring lapped - <N> entries overwritten before they could be read
+```
 
 ### Ring buffer entry format
 
-Each entry occupies exactly 256 bytes in a 64K-entry (16MB) `ArrayBuffer`, allocated lazily on the first `HfLogger.get()` call (not at module import) and shared module-wide (not per-`HfLogger` instance):
+Each entry occupies exactly 256 bytes, inside a 64K-entry (16MB) `ArrayBuffer`. That buffer allocates lazily on the first `HfLogger.get()` call - not at module import - and is shared module-wide, not per-`HfLogger` instance:
 
 | Offset | Size | Field |
 |--------|------|-------|
@@ -600,10 +652,12 @@ Each entry occupies exactly 256 bytes in a 64K-entry (16MB) `ArrayBuffer`, alloc
 | 42 | 1 byte | Message length (0-213) |
 | 43-255 | 213 bytes | Message bytes |
 
-The explicit length bytes are what make reads exact: the flusher decodes only the bytes a field actually holds, so there is no NUL padding and no stale tail from a previous, longer entry in a reused slot. The buffer wraps around at 65,536 entries using bitwise AND masking (`writeIndex & (BUFFER_SIZE - 1)`); when the producer writes faster than the flusher drains, unflushed entries are overwritten, and the overwritten count is reported via `dropped` on the next sink batch rather than silently emitted.
+The explicit length bytes are what make reads exact. The flusher decodes only the bytes a field actually holds. That leaves no NUL padding and no stale tail from a longer entry that used to occupy the slot.
+
+The buffer wraps at 65,536 entries, using bitwise AND masking (`writeIndex & (BUFFER_SIZE - 1)`). When the producer writes faster than the flusher drains, unflushed entries get overwritten. That loss is never silent - the overwritten count is reported via `dropped` on the next sink batch.
 
 > [!WARNING]
-> Pre-encode messages at initialization time using `HfLogger.encodeMessage()` or by calling a no-args `ILogger` method once per distinct message. Calling either with dynamic, per-event strings puts UTF-8 encoding on the hot path and can evict other cached messages once the FIFO-bounded cache (4096 entries) fills.
+> Pre-encode messages at initialization time using `HfLogger.encodeMessage()` or by calling a no-args `ILogger` method once per distinct message. Calling either with dynamic, per-event strings puts UTF-8 encoding on the hot path. It can also evict other cached messages once the FIFO-bounded cache (4096 entries) fills.
 
 ## Environment Variables
 
@@ -616,10 +670,13 @@ The explicit length bytes are what make reads exact: the flusher decodes only th
 | `NODE_ENV` | _(unset)_ | Must be in `COMMON_ENVS` or unset for debug to activate |
 | `APP_ENV_EXTRA_LOG_ENVS` | _(empty)_ | Comma-separated additional environments to allow debug |
 | `APP_ENV_LOGGER_FORMAT` | `text` | Output format (`json` or `text`) |
-| `APP_ENV_LOGGER_LEVEL` | `debug` | Logger-level floor; transports without their own level inherit it. Invalid values fall back to `debug` with a console warning |
-| `APP_ENV_LOGGER_FOLDER_PATH` | _(unset)_ | Log files directory; file logging is OFF when unset |
-| `APP_ENV_LOGGER_INSPECT_DEPTH` | `5` | Object inspection depth for `%s` placeholders. Non-negative integer only; invalid or absent falls back to `5` |
-| `APP_ENV_LOGGER_DO_REDACT` | `true` | Secret redaction in log arguments. ONLY the literal `false` disables it - raw values (passwords, tokens, connection URLs) then reach the sinks. Any other value, unset included, keeps redaction ON. Never disable in production |
+| `APP_ENV_LOGGER_LEVEL` | `debug` | Logger-level floor. Transports without their own level inherit it. Invalid values fall back to `debug` with a console warning |
+| `APP_ENV_LOGGER_FOLDER_PATH` | _(unset)_ | Log files directory. File logging is OFF when unset |
+| `APP_ENV_LOGGER_INSPECT_DEPTH` | `5` | Object inspection depth for `%s` placeholders. Non-negative integer only - invalid or absent falls back to `5` |
+| `APP_ENV_LOGGER_DO_REDACT` | `true` | Secret redaction in log arguments. See the warning below before touching this |
+
+> [!WARNING]
+> Only the literal string `false` disables `APP_ENV_LOGGER_DO_REDACT`. Any other value - including unset - keeps redaction ON. Once disabled, raw secrets (passwords, tokens, connection URLs) reach the log sinks. Never disable this in production.
 
 ### File rotation
 
@@ -703,7 +760,7 @@ APP_ENV_LOGGER_DGRAM_LEVELS=error,warn,info
 **Fix:**
 1. Verify `DEBUG=true` is set in your environment.
 2. Verify `NODE_ENV` is set to one of: `local`, `debug`, `development`, `dev`, `sit`, `uat`, `alpha`, `beta`, `staging`, `production` - or is unset entirely.
-3. If you use a custom environment name (e.g. `qa`), add it to `APP_ENV_EXTRA_LOG_ENVS=qa`.
+3. If you use a custom environment name (for example, `qa`), add it to `APP_ENV_EXTRA_LOG_ENVS=qa`.
 
 ```bash
 DEBUG=true NODE_ENV=development bun run server:dev
@@ -725,7 +782,7 @@ APP_ENV_LOGGER_FORMAT=text
 
 **Fix:**
 1. Ensure **all four** dgram env vars are set: `APP_ENV_LOGGER_DGRAM_HOST`, `APP_ENV_LOGGER_DGRAM_PORT`, `APP_ENV_LOGGER_DGRAM_LABEL`, and `APP_ENV_LOGGER_DGRAM_LEVELS`.
-2. `APP_ENV_LOGGER_DGRAM_LEVELS` must contain at least one level (e.g. `error,warn,info`). An empty value results in no transport.
+2. `APP_ENV_LOGGER_DGRAM_LEVELS` must contain at least one level (for example, `error,warn,info`). An empty value results in no transport.
 3. Verify the UDP aggregator is reachable from your host (firewall, port binding).
 
 ### Log label shows "APP" instead of application name

@@ -6,7 +6,7 @@ difficulty: beginner
 
 # Types
 
-`@venizia/ignis-helpers` exports the utility types, lazy-value resolvers, and constant classes (`HTTP`, `GRPC`, `RuntimeModules`, ...) that the rest of the Ignis stack builds on.
+`@venizia/ignis-helpers` exports the utility types, lazy-value resolvers, and constant classes (`HTTP`, `GRPC`, `RuntimeModules`, ...) that the rest of the IGNIS stack builds on.
 
 ## In one example
 
@@ -26,10 +26,23 @@ configure({ timeout: () => 5000 });
 
 ## How it works
 
-- **Escape hatches, not the norm.** `AnyType` (`any`) and `AnyObject` (`Record<string | symbol | number, any>`) exist for the rare case a shape truly cannot be known at compile time - the framework itself prefers types derived from definitions (`typeof X.schema`) everywhere else.
-- **Nullable and async are explicit.** `TNullable<T>` (`T | undefined | null`) and `ValueOrPromise<T>` (`T | Promise<T>`) appear on most framework method signatures, since sync and async implementations share one type.
-- **Resolvers defer construction.** `TResolver`/`TAsyncResolver` and their `TValueOrResolver`/`TValueOrAsyncResolver` unions let a config option be given eagerly or lazily. `resolveValue`/`resolveValueAsync` collapse either shape to a value - class constructors are always passed through untouched, detected via `isClass()` (re-exported from `@venizia/ignis-inversion`), never invoked as a resolver.
-- **Const classes replace string unions.** A class of `static readonly` fields (`HTTP`, `GRPC`, `RuntimeModules`, `MimeTypes`, `DataTypes`) is both a value namespace and, via `TConstValue<typeof X>`, the source of its own union type - one declaration, no duplicated string literals.
+- **Escape hatches, not the norm.** `AnyType` and `AnyObject` exist for the rare case a shape truly cannot be known at compile time. The framework prefers types derived from definitions, like `typeof X.schema`, everywhere else.
+
+| Type | Is |
+|---|---|
+| `AnyType` | `any` |
+| `AnyObject` | `Record<string \| symbol \| number, any>` |
+
+- **Nullable and async are explicit.** `TNullable<T>` and `ValueOrPromise<T>` appear on most framework method signatures. One declared type covers both the sync and the async implementation.
+
+| Type | Shape |
+|---|---|
+| `TNullable<T>` | `T \| undefined \| null` |
+| `ValueOrPromise<T>` | `T \| Promise<T>` |
+
+- **Resolvers defer construction.** `TResolver`/`TAsyncResolver` and their `TValueOrResolver`/`TValueOrAsyncResolver` unions let a config option be given eagerly or lazily. `resolveValue`/`resolveValueAsync` collapse either shape to a value.
+- **Class constructors pass through untouched.** `isClass()` detects them, so the resolver never invokes a class as if it were a function. It's re-exported from `@venizia/ignis-inversion` into `helpers`.
+- **Const classes replace string unions.** A class of `static readonly` fields, for example `HTTP` or `RuntimeModules`, is a value namespace. `TConstValue<typeof X>` derives its own union type from those fields - one declaration, no duplicated string literals.
 
 ## Common tasks
 
@@ -105,7 +118,7 @@ function WithTimestamps<T extends TMixinTarget<BaseEntity>>(Base: T) {
 
 ### Flatten an intersection type for readable hover tooltips
 
-`TPrettify<T>` collapses `A & B` into a single flat object type, which IDE tooltips render far more readably than a chain of intersections.
+`TPrettify<T>` collapses `A & B` into a single flat object type. IDE tooltips render that far more readably than a chain of intersections.
 
 ```typescript
 import { TPrettify } from '@venizia/ignis-helpers';
@@ -114,7 +127,7 @@ type Merged = TPrettify<{ id: string } & { name: string }>;
 // Hovers as { id: string; name: string } instead of { id: string } & { name: string }
 ```
 
-Every type, resolver function, and constant (including the full `HTTP.Headers`, `HTTP.ResultCodes`, and `GRPC` tables) is in the [Full reference](/extensions/helpers/types/reference).
+See the [Full reference](/extensions/helpers/types/reference) for every type, resolver function, and constant - including the full `HTTP.Headers`, `HTTP.ResultCodes`, and `GRPC` tables.
 
 ## See also
 

@@ -6,7 +6,7 @@ difficulty: beginner
 
 # Environment
 
-`applicationEnvironment` is a singleton that filters `process.env` down to your app's prefix and gives typed access to it; `Environment` reads the current deployment stage from `NODE_ENV`.
+`applicationEnvironment` is a singleton that filters `process.env` down to your app's prefix, and gives typed access to it. `Environment` reads the current deployment stage from `NODE_ENV`.
 
 ## In one example
 
@@ -17,14 +17,18 @@ const jwtSecret = applicationEnvironment.get<string>('APP_ENV_JWT_SECRET');
 const timeout = applicationEnvironment.get<number>('APP_ENV_TIMEOUT', { defaultValue: 5000 });
 ```
 
-The singleton is created once at module load, reading only keys that start with `APP_ENV` (the default prefix) from `process.env`. `Envs` is an exported alias for the same instance.
+The singleton is created once at module load. It reads only keys that start with `APP_ENV` (the default prefix) from `process.env`. `Envs` is an exported alias for the same instance.
 
 ## How it works
 
-- **Construction filters by prefix.** `new ApplicationEnvironment({ prefix, envs })` copies only the keys of `envs` that start with `prefix` into an internal map - everything else is invisible to `get()`. The default singleton uses `process.env.APPLICATION_ENV_PREFIX ?? 'APP_ENV'` and `process.env`.
-- **`get()` takes an options object, not a positional default.** The signature is `get<ReturnType, BeforeTransformType = unknown>(key, opts?: { defaultValue?, transform? })`. Without `transform`, it returns the raw value (still a `string`) or `defaultValue` when the key is missing. With `transform`, it calls `transform(rawValue)` and falls back to `defaultValue` if that returns `undefined` or `null`.
-- **`get<T>()` is a type cast without `transform`, not a runtime conversion.** Every `process.env` value is a `string`; asking for `get<number>('APP_ENV_PORT')` still returns a string at runtime unless you pass `transform: Number`.
-- **Stage detection is separate from the singleton.** `Environment.current` reads `process.env.NODE_ENV` directly (falling back to `'development'` when unset); `Environment.is({ name })` compares against it. `ApplicationEnvironment.isDevelopment()` is narrower - it checks `NODE_ENV === 'development'` exactly, so the `'dev'` alias returns `false` there even though it counts as a development stage everywhere else.
+- **Construction filters by prefix.** `new ApplicationEnvironment({ prefix, envs })` copies only the keys of `envs` that start with `prefix` into an internal map. Everything else stays invisible to `get()`. The default singleton uses `process.env.APPLICATION_ENV_PREFIX ?? 'APP_ENV'` and `process.env`.
+- **`get()` takes an options object, not a positional default.** The signature is `get<ReturnType, BeforeTransformType = unknown>(key, opts?: { defaultValue?, transform? })`.
+- **Without `transform`,** `get()` returns the raw value - still a `string` - or `defaultValue` when the key is missing.
+- **With `transform`,** `get()` calls `transform(rawValue)`. It falls back to `defaultValue` only if that call returns `undefined` or `null`.
+- **`get<T>()` is a type cast, not a runtime conversion, unless you pass `transform`.** Every `process.env` value is a `string`. Asking for `get<number>('APP_ENV_PORT')` still returns a string at runtime, unless you also pass `transform: Number`.
+- **Stage detection is separate from the singleton.** `Environment.current` reads `process.env.NODE_ENV` directly. It falls back to `'development'` when `NODE_ENV` is unset.
+- **`Environment.is({ name })` compares a name against `Environment.current`.**
+- **`ApplicationEnvironment.isDevelopment()` is narrower.** It checks `NODE_ENV === 'development'` exactly. The `'dev'` alias fails that check, even though `dev` counts as a development stage everywhere else in IGNIS.
 
 **Deployment stages** (`Environment.*`)
 
@@ -41,7 +45,7 @@ The singleton is created once at module load, reading only keys that start with 
 | `STAGING` | `'staging'` | no |
 | `PRODUCTION` | `'production'` | no |
 
-All ten stages are in `Environment.COMMON_ENVS`, which the Logger uses to decide whether `DEBUG=true` is honored. The five marked above are `Environment.DEVELOPMENT_ENVS` - the set IGNIS's error handler consults to decide whether a response may carry a stack trace or a raw driver message. The rule is fail-closed: `alpha`, `beta`, `uat`, `staging`, a typo'd name, and an unset `NODE_ENV` are all sanitized as production.
+All ten stages are in `Environment.COMMON_ENVS`, which the Logger uses to decide whether `DEBUG=true` is honored. The five marked above are `Environment.DEVELOPMENT_ENVS`. IGNIS's error handler consults this set to decide whether a response may carry a stack trace or a raw driver message. The rule is fail-closed: `alpha`, `beta`, `uat`, `staging`, a typo'd name, and an unset `NODE_ENV` are all sanitized as production.
 
 ## Common tasks
 
@@ -66,7 +70,7 @@ const timeout = applicationEnvironment.get<number>('APP_ENV_TIMEOUT', {
 
 ### Set or merge variables at runtime
 
-`set()` writes a single key; `merge()` overwrites several at once - both bypass the prefix filter (they write directly, no `startsWith` check).
+`set()` writes a single key. `merge()` overwrites several keys at once. Both bypass the prefix filter - they write directly, with no `startsWith` check.
 
 ```typescript
 applicationEnvironment.set('APP_ENV_FEATURE_FLAG', 'enabled');
@@ -85,7 +89,7 @@ if (Environment.is({ name: Environment.STAGING })) {
 
 ### Use a custom prefix
 
-Set `APPLICATION_ENV_PREFIX` before the first import of `@venizia/ignis-helpers` - the singleton is constructed at module load, so a later change has no effect on it.
+Set `APPLICATION_ENV_PREFIX` before the first import of `@venizia/ignis-helpers`. The singleton is constructed at module load, so a later change has no effect on it.
 
 ```
 APPLICATION_ENV_PREFIX=MY_APP_ENV
@@ -100,7 +104,7 @@ const allKeys = applicationEnvironment.keys();
 ```
 
 > [!TIP]
-> `BaseApplication` validates every prefixed key at startup and throws on an empty value unless `ALLOW_EMPTY_ENV_VALUE` is truthy - see [Application](/guides/core-concepts/application/).
+> `BaseApplication` validates every prefixed key at startup and throws on an empty value, unless `ALLOW_EMPTY_ENV_VALUE` is truthy - see [Application](/guides/core-concepts/application/).
 
 ## See also
 

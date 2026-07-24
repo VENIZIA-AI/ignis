@@ -6,7 +6,7 @@ difficulty: intermediate
 
 # Network
 
-Network helpers give you HTTP request clients (fetch or Axios), symmetric TCP/TLS socket client-server pairs, and a UDP client, all sharing the same options-object construction and scoped logging as the rest of the framework.
+Network helpers give you HTTP request clients (fetch or Axios), symmetric TCP/TLS socket client-server pairs, and a UDP client. All three share the same options-object construction and scoped logging as the rest of the framework.
 
 ## In one example
 
@@ -31,16 +31,30 @@ class GitHubApi extends NodeFetchNetworkRequest {
 }
 ```
 
-`getRequestUrl()` joins the constructor's `baseUrl` with the path segments; `getNetworkService()` returns the underlying fetcher, which exposes `send()` plus `get`/`post`/`put`/`patch`/`delete`/`query` shortcuts.
+`getRequestUrl()` joins the constructor's `baseUrl` with the path segments. `getNetworkService()` returns the underlying fetcher, which exposes `send()` plus `get`/`post`/`put`/`patch`/`delete`/`query` shortcuts.
 
 ## How it works
 
-- **HTTP is two layers.** `BaseNetworkRequest` holds a base URL and delegates every call to an `IFetchable` fetcher. `NodeFetchNetworkRequest` (root barrel, wraps native `fetch`) and `AxiosNetworkRequest` (`@venizia/ignis-helpers/axios` sub-path, wraps Axios) are the two concrete clients - you typically extend one to build a typed API client, as in the example above.
-- **`axios` is optional.** It's an optional peer dependency, so `AxiosNetworkRequest`'s fetcher is never exported from the root barrel - only from the `/axios` sub-path.
-- **TCP and TLS share one hierarchy.** `BaseNetworkTcpServer`/`BaseNetworkTcpClient` are abstract classes that take a `createServerFn`/`createClientFn` (`net.*` for plain TCP, `tls.*` for TLS). `NetworkTcpServer`/`NetworkTcpClient` and `NetworkTlsTcpServer`/`NetworkTlsTcpClient` pre-wire those functions - constructor options and every method are otherwise identical between the plain and encrypted variants.
+- **HTTP is two layers.** `BaseNetworkRequest` holds the base URL and delegates every call to an `IFetchable` fetcher. You extend one of two concrete clients:
+
+  | Client | Wraps | Import from |
+  |---|---|---|
+  | `NodeFetchNetworkRequest` | native `fetch` | root barrel |
+  | `AxiosNetworkRequest` | Axios | `@venizia/ignis-helpers/axios` sub-path |
+
+- **`axios` is optional.** It is an optional peer dependency. `AxiosNetworkRequest` is exported only from the `/axios` sub-path, never from the root barrel.
+- **TCP and TLS share one hierarchy.** `BaseNetworkTcpServer`/`BaseNetworkTcpClient` are abstract classes. Each takes a create-function matching its transport, and each concrete pair only pre-wires that function:
+
+  | Transport | Server class | Client class | Node module |
+  |---|---|---|---|
+  | Plain TCP | `NetworkTcpServer` | `NetworkTcpClient` | `net` |
+  | TLS | `NetworkTlsTcpServer` | `NetworkTlsTcpClient` | `tls` |
+
+  Constructor options and every method are otherwise identical between the plain and encrypted variants.
+
 - **Servers track per-client authentication state.** `unauthorized` → `authenticating` → `authenticated`.
 - **Clients auto-reconnect on a fixed delay.** 5 seconds between attempts, up to `maxRetry` attempts, when `reconnect: true`. See the [Full reference](/extensions/helpers/network/api) for the `maxRetry: -1` edge case.
-- **UDP has no client/server split.** `NetworkUdpClient` is a single class wrapping `node:dgram` (UDP4), with optional multicast group joining via `onBind`.
+- **UDP has no client/server split.** `NetworkUdpClient` is a single class wrapping `node:dgram` in UDP4 mode. It supports optional multicast group joining via `onBind`.
 - **Every class extends `BaseHelper`.** `this.logger.for('methodName')` scoped logging is available throughout.
 
 **HTTP method case**
@@ -48,7 +62,7 @@ class GitHubApi extends NodeFetchNetworkRequest {
 | Layer | Case | Why |
 |-------|------|-----|
 | `HTTP.Methods.GET`/`.POST`/`.QUERY`/... tokens | always lowercase | Required by `@hono/zod-openapi` route definitions |
-| Wire dispatch | uppercased right before send | Node's undici only auto-normalizes `DELETE`/`GET`/`HEAD`/`OPTIONS`/`POST`/`PUT` - a lowercase `patch` or `query` would go out unchanged |
+| Wire dispatch | uppercased right before send | Node's undici only auto-normalizes `DELETE`/`GET`/`HEAD`/`OPTIONS`/`POST`/`PUT`. A lowercase `patch` or `query` would go out unchanged |
 
 ## Common tasks
 
@@ -73,11 +87,18 @@ class PaymentGateway extends AxiosNetworkRequest {
 }
 ```
 
-`AxiosNetworkRequest` applies defaults you can override: `Content-Type: application/json`, `withCredentials: true`, `validateStatus: status < 500`, `timeout: 60000`.
+`AxiosNetworkRequest` applies these defaults - override any of them in `networkOptions`:
+
+| Setting | Default |
+|---|---|
+| `Content-Type` header | `application/json` |
+| `withCredentials` | `true` |
+| `validateStatus` | `status < 500` |
+| `timeout` | `60000` ms |
 
 ### Log a request with secrets redacted
 
-Pass a logger (typically `this.logger` from a `BaseHelper` subclass) as the second argument to `send()` or any shortcut method - the fetcher logs the URL and config at `info` level with the config run through `redactSecrets()` first, so values like `Authorization` or `X-API-Key` reach the log as `'[REDACTED]'`. Without a logger argument, nothing is logged.
+Pass a logger as the second argument to `send()` or any shortcut method - typically `this.logger` from a `BaseHelper` subclass. The fetcher then logs the URL and config at `info` level. It runs the config through `redactSecrets()` first, so values like `Authorization` or `X-API-Key` reach the log as `'[REDACTED]'`. Without a logger argument, nothing is logged.
 
 ```typescript
 async charge(amount: number, currency: string) {
@@ -115,11 +136,11 @@ client.connect({ resetReconnectCounter: true });
 client.emit({ payload: 'Hello, Server!' });
 ```
 
-`NetworkTlsTcpServer`/`NetworkTlsTcpClient` use the identical API - pass certificates in `serverOptions`/`options` (types `TlsOptions`/`ConnectionOptions` from `node:tls`).
+`NetworkTlsTcpServer`/`NetworkTlsTcpClient` use the identical API. Pass certificates in `serverOptions`/`options`, typed `TlsOptions`/`ConnectionOptions` from `node:tls`.
 
 ### Require TCP client authentication
 
-Set `authenticateOptions.required: true` with a positive `duration` (milliseconds); the constructor throws if `duration` is missing or negative. Clients that never call `doAuthenticate()` within that window are disconnected automatically.
+Set `authenticateOptions.required: true` with a positive `duration` in milliseconds. The constructor throws if `duration` is missing or negative. Clients that never call `doAuthenticate()` within that window are disconnected automatically.
 
 ```typescript
 const server = new NetworkTcpServer({

@@ -26,7 +26,8 @@ await transaction.commit(); // resolved even when COMMIT failed
 ## What changed
 
 - **Two drivers, one connector.** Postgres connections now go through a neutral `IRelationalDriver` contract. Both `node-postgres` (`pg`) and `postgres-js` (`postgres`) implement it, so either can back a datasource without forking it.
-- **Transactions fail loudly.** `commit()` and `rollback()` now throw when the underlying database operation fails, instead of resolving successfully. IGNIS destroys the connection behind a failed commit/rollback instead of returning it to the pool. A failed `BEGIN` no longer leaks the acquired connection either.
+- **Transactions fail loudly.** `commit()` and `rollback()` now throw when the underlying database operation fails, instead of resolving successfully.
+- IGNIS destroys the connection behind a failed commit/rollback, instead of returning it to the pool. A failed `BEGIN` no longer leaks the acquired connection either.
 - **`pg` and `postgres` are genuinely optional now.** Both database client packages are optional peer dependencies - an app that uses one never needs to install the other.
 - **New package sub-paths.** `@venizia/ignis/postgres/node-postgres`, `@venizia/ignis/postgres/postgres-js`, and `@venizia/ignis/postgres/supabase`.
 - **New Supabase submodule.** Pooler-mode presets for Supavisor (`PoolerModes`, `buildPostgresJsOptions`). A transaction-scoped RLS helper (`withAuthContext`) sets `request.jwt.claims` and `SET LOCAL ROLE` safely under a transaction pooler.
@@ -114,7 +115,8 @@ bun add postgres  # postgres-js (needed for the Supabase transaction pooler)
 - **`resolveDatabaseDriver({ client })`** structurally detects the client (postgres-js vs node-postgres) and dynamically imports only the matching driver. The losing package never loads.
 - **Supabase pooler presets:** `buildPostgresJsOptions({ mode: PoolerModes.TRANSACTION })` returns `{ prepare: false }`. Supavisor's transaction pool mode requires it, since a prepared statement does not survive a backend swap.
 - **`withAuthContext({ transaction, claims, role? })`** binds `request.jwt.claims` as a parameter and sets a transaction-scoped `SET LOCAL ROLE` so `auth.uid()` resolves inside RLS policies. `role` defaults to the JWT's own `role` claim. The value is validated before any statement runs.
-- **Driver asymmetry, deliberate:** after a failed `COMMIT`, `node-postgres` can discard the poisoned connection. `postgres-js`'s reserved-connection API cannot, so it returns the connection to its pool instead. Both drivers accept `release({ destroy: true })`, but only the one that can act on it honors the flag.
+- **Driver asymmetry, deliberate:** after a failed `COMMIT`, `node-postgres` can discard the poisoned connection. `postgres-js`'s reserved-connection API cannot, so it returns the connection to its pool instead.
+- Both drivers accept `release({ destroy: true })`, but only the one that can act on it honors the flag.
 
 <details>
 <summary>Files changed</summary>

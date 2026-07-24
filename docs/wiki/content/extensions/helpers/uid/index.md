@@ -6,7 +6,7 @@ difficulty: beginner
 
 # UID
 
-`SnowflakeUidHelper` generates 70-bit, time-sortable Snowflake IDs and encodes them as compact Base62 strings, suitable as database primary keys.
+`SnowflakeUidHelper` generates 70-bit, time-sortable Snowflake IDs. It encodes them as compact Base62 strings, suitable as database primary keys.
 
 ## In one example
 
@@ -18,15 +18,19 @@ const id = generator.nextId();
 // => e.g. "9du1sJXO88"
 ```
 
-Use one `SnowflakeUidHelper` instance per worker process - `nextId()` returns a URL-safe Base62 string that sorts the same order as the IDs were generated.
+Use one `SnowflakeUidHelper` instance per worker process. `nextId()` returns a URL-safe Base62 string, and it sorts in the same order the IDs were generated.
 
 ## How it works
 
-- **The ID packs three fields into 70 bits.** A 48-bit timestamp (offset from a custom epoch), a 10-bit worker ID (0-1023), and a 12-bit sequence (0-4095) - shifted and OR'd together in `nextSnowflake()`. Sorting the raw bigints, or the Base62 strings, sorts by generation time.
-- **The sequence resets every millisecond, per worker.** Within the same millisecond it increments and wraps at 4096; a wrap forces the generator to busy-wait for the next millisecond, capping throughput at 4,096,000 IDs/second/worker.
-- **Backward clock drift is handled, up to a point.** A drift up to 100ms (`MAX_CLOCK_BACKWARD_MS`) busy-waits until the clock catches up, logging a warning. A larger drift throws instead of risking a duplicate ID.
-- **`encodeBase62` / `decodeBase62` are just a bigint <-> string codec.** They do not know about the Snowflake layout - `parseId()` is `decodeBase62()` followed by the three `extract*` calls, all built on the same instance's `epoch` and bit-shift constants.
-- **An expiry warning logs once the epoch nears its 48-bit limit.** ~8,919 years after the configured epoch the timestamp field overflows; a warning starts logging 10 years before that.
+- **The ID packs three fields into 70 bits.** `nextSnowflake()` shifts and OR's together a timestamp, a worker ID, and a sequence - see the bit layout below.
+- **Sorting the ID sorts by generation time.** This holds for the raw `bigint`, and for the Base62 string.
+- **The sequence resets every millisecond, per worker.** It increments within the millisecond and wraps at 4096.
+- **A wrap forces a busy-wait for the next millisecond.** That caps throughput at 4,096,000 IDs per second per worker.
+- **A small backward clock drift busy-waits.** Up to 100ms (`MAX_CLOCK_BACKWARD_MS`), the generator waits for the clock to catch up, and logs a warning.
+- **A larger drift throws instead.** IGNIS refuses to risk generating a duplicate ID.
+- **`encodeBase62` / `decodeBase62` are a bigint <-> string codec.** They don't know about the Snowflake layout.
+- **`parseId()` layers on top of the codec.** It calls `decodeBase62()`, then the three `extract*` calls, using the same instance's `epoch` and bit-shift constants.
+- **An expiry warning logs once the epoch nears its 48-bit limit.** The timestamp field overflows about 8,919 years after the configured epoch. A warning starts logging 10 years before that.
 
 **Snowflake layout (70 bits)**
 
@@ -47,7 +51,7 @@ Use one `SnowflakeUidHelper` instance per worker process - `nextId()` returns a 
 
 ### Generate an ID
 
-`nextId()` is the common case - a Base62 string, 10-12 characters. `nextSnowflake()` returns the raw `bigint` when you need arithmetic or bit-level access.
+`nextId()` is the common case - a Base62 string, 10-12 characters. `nextSnowflake()` returns the raw `bigint`, for arithmetic or bit-level access.
 
 ```typescript
 const id = generator.nextId();               // "9du1sJXO88"
@@ -71,7 +75,7 @@ const sequence = generator.extractSequence(raw);
 
 ### Run one generator per worker in a distributed deployment
 
-Give each process a unique `workerId`; keep `epoch` identical across all of them so ID ordering stays meaningful.
+Give each process a unique `workerId`. Keep `epoch` identical across every process, so ID ordering stays meaningful.
 
 ```typescript
 const generator = new SnowflakeUidHelper({ workerId: Number(process.env.WORKER_ID) });

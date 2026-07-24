@@ -9,14 +9,14 @@ description: Zod 422 responses now derive messageCode/message from the schema; D
 
 <Badge type="danger" text="Security" /> <Badge type="warning" text="Breaking Change" /> <Badge type="tip" text="Enhancement" />
 
-**In one line.** Validation errors now carry a stable, localizable `messageCode`, database errors classify more broadly and more correctly, and production error responses no longer leak database internals or raw system error text.
+**In one line.** Validation errors now carry a stable, localizable `messageCode`. Database errors classify more broadly and more correctly. Production error responses no longer leak database internals or raw system error text.
 
 > [!NOTE]
 > Builds on [Error Responses - messageCode & Extra Fields](/changelogs/2026-04-23-error-response-extra-fields), which added `error.messageCode` for domain errors. This release derives `messageCode`/`message` for validation errors directly from the failing Zod issue.
 
 ## The problem it solves
 
-A 422 response used to carry the literal string `message: "ValidationError"` for every failed check, so a frontend could not tell which rule failed without parsing `details.cause`. A database error in production could also leak row values and schema names through its `message`.
+A 422 response used to carry the literal string `message: "ValidationError"` for every failed check. A frontend could not tell which rule failed without parsing `details.cause`. A database error in production could also leak row values and schema names through its `message`.
 
 Attach a stable code to a custom Zod check, and it now surfaces on the response:
 
@@ -68,7 +68,7 @@ Map `messageCode` to a localized string, falling back to `message`. `details.cau
 
 ### 2. `rootKey` now wraps validation responses
 
-If your app sets `error.rootKey`, 422 responses are now wrapped under that key (`{ "<rootKey>": { /* ... */ } }`) like every other error - previously the Zod branch returned the body unwrapped.
+If your app sets `error.rootKey`, 422 responses are now wrapped under that key (`{ "<rootKey>": { /* ... */ } }`), like every other error. Previously, the Zod branch returned the body unwrapped.
 
 ```typescript
 const payload = config.rootKey ? body[config.rootKey] : body;
@@ -86,7 +86,9 @@ A Postgres data-exception or integrity-constraint code that wasn't explicitly li
 
 ### Security: production responses leaked database internals
 
-For database errors, the response `message` used to include the pg `detail` field, which **echoes row values** (for example `Key (email)=(a@b.com) already exists`), plus `table` and `constraint` names, even in production. Any unexpected error, such as a connection failure, returned its raw `error.message` instead. That could carry SQL, schema or column names, or a connection host and port (for example `connect ECONNREFUSED 10.0.0.5:5432`). Both are fixed as described in the breaking changes above. `details.stack` and `details.cause` remain gated to non-production, unchanged.
+For database errors, the response `message` used to include the pg `detail` field. That field **echoes row values** (for example `Key (email)=(a@b.com) already exists`), plus `table` and `constraint` names, even in production.
+
+Any unexpected error, such as a connection failure, returned its raw `error.message` instead. That could carry SQL, schema or column names, or a connection host and port (for example `connect ECONNREFUSED 10.0.0.5:5432`). Both are fixed as described in the breaking changes above. `details.stack` and `details.cause` remain gated to non-production, unchanged.
 
 ### `params.code` schema-author convention
 

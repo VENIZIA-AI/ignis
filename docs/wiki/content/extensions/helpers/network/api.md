@@ -8,6 +8,20 @@ difficulty: intermediate
 
 Exhaustive reference for `BaseNetworkRequest` and its fetchers, the TCP/TLS client-server hierarchy, `NetworkUdpClient`, and every option type. For a readable introduction and the most common tasks, start with the [Network overview](/extensions/helpers/network/).
 
+## Find what you need
+
+| You're looking for | Go to |
+|---|---|
+| The HTTP client base class and URL helpers | [BaseNetworkRequest](#basenetworkrequest) |
+| Axios-backed HTTP client | [AxiosFetcher](#axiosfetcher) / [AxiosNetworkRequest](#axiosnetworkrequest) |
+| Native-`fetch`-backed HTTP client | [NodeFetcher](#nodefetcher) / [NodeFetchNetworkRequest](#nodefetchnetworkrequest) |
+| Why the `QUERY` method must reach the wire uppercase | [HTTP.Methods](#http-methods) |
+| Secret redaction in request logs | [Request Logging and Redaction](#request-logging-and-redaction) |
+| Plain TCP or TLS server, client tracking, authentication | [BaseNetworkTcpServer](#basenetworktcpserver) |
+| Plain TCP or TLS client, auto-reconnect behavior | [BaseNetworkTcpClient](#basenetworktcpclient) |
+| UDP client and multicast | [NetworkUdpClient](#networkudpclient) |
+| Every option and type in one place | [Types Reference](#types-reference) |
+
 **Files:**
 
 - [`packages/helpers/src/modules/network/http-request/base-network-request.helper.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/network/http-request/base-network-request.helper.ts) - `BaseNetworkRequest`
@@ -48,7 +62,7 @@ AbstractNetworkFetchableHelper<V, RQ, RS>  (implements IFetchable, NOT a BaseHel
   └── NodeFetcher                      (V = 'node-fetch')
 ```
 
-All classes that extend `BaseHelper` inherit scoped logging via `this.logger`. `AbstractNetworkFetchableHelper` and its two fetchers do **not** extend `BaseHelper` - they accept an optional `logger` parameter per call instead (see the Request Logging & Redaction section under HTTP Request API).
+Every class that extends `BaseHelper` inherits scoped logging via `this.logger`. `AbstractNetworkFetchableHelper` and its two fetchers do **not** extend `BaseHelper`. They accept an optional `logger` parameter per call instead - see [Request Logging and Redaction](#request-logging-and-redaction).
 
 ---
 
@@ -161,7 +175,7 @@ interface IFetchable<
 }
 ```
 
-All HTTP method shortcuts (`get`, `post`, `put`, `patch`, `delete`, `query`) delegate to `send()` with the `method` field set accordingly. `query` sends the HTTP `QUERY` method ([RFC 9110/10008](https://www.ietf.org/archive/id/draft-ietf-httpbis-safe-method-w-body-10.html)) - a `GET`-semantics request that carries a body, useful for search payloads too large for a query string.
+All HTTP method shortcuts (`get`, `post`, `put`, `patch`, `delete`, `query`) delegate to `send()` with the `method` field set accordingly. `query` sends the HTTP `QUERY` method ([RFC 9110/10008](https://www.ietf.org/archive/id/draft-ietf-httpbis-safe-method-w-body-10.html)). It behaves like `GET` but carries a body - useful for search payloads too large to fit a query string.
 
 ### IRequestOptions
 
@@ -175,7 +189,9 @@ interface IRequestOptions {
 }
 ```
 
-### HTTP.Methods - the const-class every fetcher dispatches on
+### HTTP.Methods
+
+The const-class every fetcher dispatches on:
 
 ```typescript
 HTTP.Methods = {
@@ -188,9 +204,15 @@ type THttpMethod = ValueOf<typeof HTTP.Methods> | Uppercase<ValueOf<typeof HTTP.
 
 > [!IMPORTANT]
 > - **Every `HTTP.Methods` token is lowercase.** `@hono/zod-openapi` route definitions accept no other case.
-> - **Both fetchers accept either case on input** (`method: 'post'` or `method: 'POST'`) but always call `method.toUpperCase()` immediately before dispatching to their transport.
-> - **This is not cosmetic.** Node's undici (the `fetch` implementation on Node, not Bun) auto-normalizes only `DELETE`/`GET`/`HEAD`/`OPTIONS`/`POST`/`PUT` and sends any other token (`PATCH`, `QUERY`) through verbatim - a lowercase `patch` would reach the server unchanged and most servers reject it.
-> - **Bun and Axios hide the bug.** Bun's `fetch` and Axios (via `node:http`) uppercase every method themselves, so the bug surfaces only once the app runs on Node with undici.
+> - **Both fetchers accept either case on input**, `'post'` or `'POST'`. Each calls `method.toUpperCase()` immediately before dispatching to its transport.
+> - **This is not cosmetic.** Node's undici is the `fetch` implementation on Node - not Bun - and it auto-normalizes only some methods:
+>
+>   | Auto-normalized by undici | Sent through verbatim |
+>   |---|---|
+>   | `DELETE`, `GET`, `HEAD`, `OPTIONS`, `POST`, `PUT` | `PATCH`, `QUERY` |
+>
+>   A lowercase `patch` or `query` reaches the server unchanged, and most servers reject it.
+> - **Bun and Axios hide the bug.** Bun's `fetch` and Axios both uppercase every method themselves - Axios via `node:http`. The bug surfaces only once the app runs on Node with undici.
 
 ---
 
@@ -275,7 +297,7 @@ constructor(opts: {
 })
 ```
 
-`opts.logger`, if provided, logs `'Creating new network request worker instance! Name: %s'` once at construction time - unrelated to the per-call `logger` argument on `send()`.
+`opts.logger`, if provided, logs `'Creating new network request worker instance! Name: %s'` once at construction time. This is unrelated to the per-call `logger` argument on `send()`.
 
 #### IAxiosRequestOptions
 
@@ -292,7 +314,7 @@ interface IAxiosRequestOptions extends AxiosRequestConfig, IRequestOptions {
 > [!NOTE]
 > - **`body` maps to Axios's `data`** field internally.
 > - **Query `params` are serialized** using `node:querystring` via Axios's `paramsSerializer`.
-> - **HTTPS gets an `https.Agent` automatically**, with `rejectUnauthorized` defaulting to `false` - override it per request with `rejectUnauthorized: true`.
+> - **HTTPS gets an `https.Agent` automatically.** `rejectUnauthorized` defaults to `false` - override it per request with `rejectUnauthorized: true`.
 
 #### Methods
 
@@ -389,9 +411,9 @@ override async send(opts: INodeFetchRequestOptions, logger?: any): Promise<Respo
 Dispatches the request using the native `fetch` API. Behavior:
 
 - `method` defaults to `HTTP.Methods.GET` and is uppercased before dispatch.
-- Query `params` are serialized with `node:querystring` and appended to `url` - with `?` if the URL carries no query string yet, `&` if it already does (never a double `?`).
+- Query `params` are serialized with `node:querystring` and appended to `url`. The separator adapts: `?` when the URL carries no query string yet, `&` when it already does - never a double `?`.
 - If `timeout` is provided, an internal `AbortController` aborts the request after that many milliseconds.
-  - The internal timeout signal is **composed**, never substituted, with a caller-supplied `signal`: `AbortSignal.any([signal, timeoutController.signal])` when both are present - so a caller aborting its own signal still cancels the request even while a timeout is also armed.
+  - The internal timeout signal is **composed**, never substituted, with a caller-supplied `signal`. When both are present, IGNIS builds `AbortSignal.any([signal, timeoutController.signal])`. That way a caller aborting its own signal still cancels the request, even while a timeout is also armed.
   - The timer is cleared as soon as the request settles.
 - If `logger` is passed, logs `'URL: %s | Props: %s | Timeout: %s'` at `info` level with the request config run through `redactSecrets()`.
 
@@ -429,7 +451,7 @@ interface INodeFetchNetworkRequestOptions {
 If `headers` is a `Headers` instance, it is converted to a plain object via `Object.fromEntries(headers.entries())` before merging with the default.
 
 > [!WARNING] `timeout` is per-call, not per-instance
-> `networkOptions` is `RequestInit`, which has no `timeout` field - passing one there has no effect on request cancellation. `NodeFetcher.send()` only reads `timeout` from the arguments of each individual `send()`/`get()`/... call. Pass it every time you need an abort:
+> `networkOptions` is `RequestInit`, which has no `timeout` field. Passing one there has no effect on request cancellation. `NodeFetcher.send()` only reads `timeout` from the arguments of each individual `send()`/`get()`/... call. Pass it every time you need an abort:
 >
 > ```typescript
 > await this.getNetworkService().send({ url: '/slow-endpoint', method: 'get', timeout: 5000 });
@@ -437,15 +459,15 @@ If `headers` is a `Headers` instance, it is converted to a plain object via `Obj
 
 ---
 
-### Request Logging & Redaction
+### Request Logging and Redaction
 
-Neither fetcher logs anything by default - `send()` and every shortcut accept an **optional** `logger` as the second argument, and the log call is guarded with `logger?.for(...)`. Pass one (typically `this.logger` from a `BaseHelper` subclass, or `this.logger` on a class extending `BaseNetworkRequest`) to get an `info`-level line per request:
+Neither fetcher logs anything by default. `send()` and every shortcut accept an **optional** `logger` as the second argument, guarded internally with `logger?.for(...)`. Pass a logger to get an `info`-level line per request - typically `this.logger`, whether the caller is a `BaseHelper` subclass or extends `BaseNetworkRequest` directly:
 
 ```typescript
 await this.getNetworkService().post({ url, body }, this.logger);
 ```
 
-Whenever a logger is passed, the assembled request config - `url`, `method`, `headers`, `body`/`data`, and any other options - is run through `redactSecrets()` **before** the log line is written. Redaction matches by key name, case-insensitively, at any depth, against `SECRET_KEY_PATTERN`:
+Whenever a logger is passed, IGNIS runs the assembled request config through `redactSecrets()` before the log line is written. That covers `url`, `method`, `headers`, `body`/`data`, and any other option. Redaction matches by key name, case-insensitively, at any depth, against `SECRET_KEY_PATTERN`:
 
 | Key group | Matched spellings |
 |-----------|--------------------|
@@ -455,7 +477,7 @@ Whenever a logger is passed, the assembled request config - `url`, `method`, `he
 
 Source: [`redact.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/common/redact.ts) `SECRET_KEY_PATTERN`.
 
-A matched value is replaced with `'[REDACTED]'`; `Buffer`/typed-array values under a non-matching key are summarized as `'[Binary N bytes]'` rather than serialized. There is nothing to configure beyond passing the logger - you never call `redactSecrets()` yourself at the call site.
+A matched value is replaced with `'[REDACTED]'`. `Buffer`/typed-array values under a non-matching key are summarized as `'[Binary N bytes]'` rather than serialized. There is nothing to configure beyond passing the logger - you never call `redactSecrets()` yourself at the call site.
 
 ---
 
@@ -479,7 +501,7 @@ Abstract TCP server with client tracking, authentication flow, and event delegat
 constructor(opts: ITcpSocketServerOptions<SocketServerOptions, SocketServerType, SocketClientType>)
 ```
 
-**Throws:** `ApplicationError` with message `'TCP Server | Invalid authenticate duration | Required duration for authenticateOptions'` when `authenticateOptions.required` is `true` and `duration` is missing, `0`, or negative.
+**Throws:** `ApplicationError` when `authenticateOptions.required` is `true` and `duration` is missing, `0`, or negative. Message: `'TCP Server | Invalid authenticate duration | Required duration for authenticateOptions'`.
 
 The constructor calls `configure()`, which creates the server via `createServerFn` and starts listening.
 
@@ -495,7 +517,7 @@ The constructor calls `configure()`, which creates the server via `createServerF
 | `extraEvents` | `Record<string, (opts) => ValueOrPromise<void>>` | Additional per-client socket events to register |
 
 - **Hooks never crash the process.** `onClientData`, `onClientConnected`, `onClientClose`, `onClientError`, `onServerReady`, `onServerError`, and each `extraEvents` entry all run through an internal `invokeHook()` wrapper.
-- **Why it exists.** A hook throwing synchronously inside a raw `net`/`tls` event listener would otherwise be an uncaught exception that crashes the process; `invokeHook()` catches it and logs instead.
+- **Why it exists.** A hook throwing synchronously inside a raw `net`/`tls` event listener would otherwise be an uncaught exception. That crashes the process. `invokeHook()` catches the throw and logs it instead.
 
 #### Methods
 
@@ -531,7 +553,7 @@ getServer(): SocketServerType
 
 ##### `doAuthenticate(opts)`
 
-Transitions a client's authentication state. Sets `storage.authenticatedAt` when the state becomes `'authenticated'` and clears the pending kick-timer; clears `authenticatedAt` for the other two states.
+Transitions a client's authentication state.
 
 ```typescript
 doAuthenticate(opts: {
@@ -539,6 +561,11 @@ doAuthenticate(opts: {
   state: 'unauthorized' | 'authenticating' | 'authenticated';
 }): void
 ```
+
+| New state | Effect |
+|---|---|
+| `'authenticated'` | Sets `storage.authenticatedAt`; clears the pending kick-timer |
+| `'unauthorized'` / `'authenticating'` | Clears `storage.authenticatedAt` |
 
 ##### `emit(opts)`
 
@@ -569,7 +596,7 @@ async shutdown(): Promise<void>
 3. Empties the `clients` registry.
 4. Calls `server.close()` and awaits its callback.
 
-- **Why this order.** `server.close()` alone never resolves while a socket is still attached, so a caller reaching through `getServer().close()` on a busy server hangs forever.
+- **Why this order.** `server.close()` alone never resolves while a socket is still attached. A caller reaching through `getServer().close()` on a busy server would hang forever.
 - **Idempotent.** A second call is a no-op that resolves cleanly.
 - **Safe on a server that never finished `listen()`.** Logs the resulting `ERR_SERVER_NOT_RUNNING` rather than throwing.
 - **After `shutdown()`**, new connection attempts are refused.
@@ -668,7 +695,7 @@ Abstract TCP client with auto-reconnect, encoding support, and lifecycle hooks.
 constructor(opts: INetworkTcpClientProps<SocketClientOptions, SocketClientType>)
 ```
 
-Does **not** call `connect()` automatically - construction only stores options; call `connect({ resetReconnectCounter })` explicitly.
+Does **not** call `connect()` automatically. Construction only stores options - call `connect({ resetReconnectCounter })` explicitly.
 
 #### Protected Properties
 
@@ -686,7 +713,7 @@ Does **not** call `connect()` automatically - construction only stores options; 
 protected getLoggableOptions(): unknown
 ```
 
-Returns `redactSecrets(this.options)`. A TLS client's `options` **is** its private key material (`key`/`cert`/`passphrase`), so every internal log call uses this instead of logging `this.options` directly - otherwise the key would be written to every log file and aggregator downstream.
+Returns `redactSecrets(this.options)`. A TLS client's `options` **is** its private key material - `key`/`cert`/`passphrase`. Every internal log call uses this method instead of logging `this.options` directly, or the key would be written to every log file and aggregator downstream.
 
 #### Methods
 
@@ -695,7 +722,11 @@ Returns `redactSecrets(this.options)`. A TLS client's `options` **is** its priva
 Establishes the connection:
 
 - No-op with a log line if already connected (`isConnected()`) or if `options` is empty.
-- Otherwise, destroys any stale `client` first, creates the socket via `createClientFn`, registers `data`/`close`/`error` listeners, and applies `encoding` if set.
+- Otherwise, in order:
+  1. Destroys any stale `client` first.
+  2. Creates the socket via `createClientFn`.
+  3. Registers `data`/`close`/`error` listeners.
+  4. Applies `encoding`, if set.
 
 ```typescript
 connect(opts: { resetReconnectCounter: boolean }): void
@@ -764,11 +795,11 @@ handleError(error: any): void                                             // Log
 | `reconnect` is `true` and `currentReconnect < maxReconnect` (with `maxReconnect >= 0`) | Reconnect scheduled |
 
 > [!IMPORTANT]
-> - **`maxReconnect: -1` does not mean unlimited reconnects - it disables reconnection entirely.** This is the opposite of the common "`-1` = unlimited" convention elsewhere in the framework (e.g. Redis retry).
-> - **A second guard further down the method is dead code.** `if (maxReconnect > -1 && currentReconnect >= maxReconnect)` can never be true: by the time control reaches it, the first guard has already ruled out `currentReconnect >= maxReconnect`.
+> - **`maxReconnect: -1` does not mean unlimited reconnects - it disables reconnection entirely.** That is the opposite of the "`-1` = unlimited" convention used elsewhere in the framework - the Redis retry helper, for example.
+> - **A second guard further down the method is dead code.** `if (maxReconnect > -1 && currentReconnect >= maxReconnect)` can never be true. By the time control reaches it, the first guard has already ruled out `currentReconnect >= maxReconnect`.
 > - Source: [`base-tcp-client.helper.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/network/tcp-socket/base-tcp-client.helper.ts).
 
-The reconnect delay is a **fixed 5000 ms** - there is no backoff growth on the TCP/TLS client, unlike the Redis helper's exponential strategy.
+The reconnect delay is a **fixed 5000 ms**. There is no backoff growth on the TCP/TLS client, unlike the Redis helper's exponential strategy.
 
 ---
 
@@ -862,15 +893,19 @@ static newInstance(opts: INetworkUdpClientProps): NetworkUdpClient
 
 ##### `connect()`
 
-- Creates a `dgram.Socket` (`type: 'udp4'`, `reuseAddr` from options), registers `close`/`error`/`listening`/`message` listeners, then binds to `port`/`host`.
-- Each listener routes through an internal `invokeHook()` wrapper (same synchronous-throw guard as the TCP server).
-- `onBind` fires after binding completes - the place to join multicast groups via `socket.addMembership(group, iface)`.
+Creates a `dgram.Socket` and binds it, in order:
+
+1. Creates the socket (`type: 'udp4'`, `reuseAddr` from options).
+2. Registers `close`/`error`/`listening`/`message` listeners.
+3. Binds to `port`/`host`.
+
+Each listener routes through an internal `invokeHook()` wrapper - the same synchronous-throw guard as the TCP server. `onBind` fires after binding completes; it's the place to join multicast groups via `socket.addMembership(group, iface)`.
 
 ```typescript
 connect(): void
 ```
 
-No-op with a log line if `client` is already set, or if `port` is not a non-negative integer (`Number.isInteger(port) && port >= 0`) - port `0` is a valid "OS assigns a free port" request and is accepted.
+No-op with a log line in two cases: `client` is already set, or `port` fails `Number.isInteger(port) && port >= 0`. Port `0` itself is valid - it means "let the OS assign a free port" - and is accepted.
 
 ##### `disconnect()`
 
@@ -970,7 +1005,7 @@ interface ITcpSocketServerOptions<
 }
 ```
 
-`onServerError` fires when the underlying `net`/`tls` server emits `'error'` (for example `EADDRINUSE` from a port already in use) - without this listener the event is unhandled and takes the whole process down; with it, the error is routed here and the process keeps running.
+`onServerError` fires when the underlying `net`/`tls` server emits `'error'` - for example `EADDRINUSE` from a port already in use. Without this listener, the event is unhandled and takes the whole process down with it.
 
 ### INetworkTcpClientProps
 

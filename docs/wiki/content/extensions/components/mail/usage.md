@@ -1,4 +1,4 @@
-# Mail -- Usage & Examples
+# Mail - Usage & Examples
 
 > Practical examples for sending emails, using templates, queue executors, and verification generators.
 
@@ -72,7 +72,7 @@ async sendBulkNotifications(users: Array<{ email: string; name: string }>) {
 
 ### Message validation
 
-`MailService.validateMessage()` runs before every send and throws immediately -- before the transport is ever called -- if any of these hold:
+`MailService.validateMessage()` runs before every send. It throws immediately - before the transport is ever called - if any of these hold:
 
 | Condition | Error code | Message |
 |-----------|-----------|---------|
@@ -144,19 +144,19 @@ export class NotificationService extends BaseService {
 }
 ```
 
-- **Subject resolution order.** `options.subject` (explicit override) beats the template's own `subject` (rendered through the same engine) beats the literal fallback `'No Subject'`.
-- **`sendTemplate()` requires the template engine binding.** It throws `INVALID_CONFIGURATION` ("Template engine not configured") if `MailKeys.MAIL_TEMPLATE_ENGINE` was never injected -- the constructor parameter is `isOptional: true`, so a service that skips it degrades silently until the first `sendTemplate()` call.
+- **Subject resolution order.** `options.subject` wins if you pass it. Otherwise the template's own `subject` wins, rendered through the same engine. If neither is set, the subject falls back to the literal `'No Subject'`.
+- **`sendTemplate()` requires the template engine binding.** It throws `INVALID_CONFIGURATION` ("Template engine not configured") if `MailKeys.MAIL_TEMPLATE_ENGINE` was never injected. The constructor parameter is `isOptional: true`, so a service can skip that injection and still compile. It then fails only when the first `sendTemplate()` call runs.
 
 ### How rendering works
 
-`TemplateEngineService` keeps templates in an in-memory `Map<string, ITemplate>` and substitutes <code v-pre>{{variable}}</code> placeholders with regex `/\{\{(\s*[\w.]+\s*)\}\}/g`.
+`TemplateEngineService` keeps templates in an in-memory `Map<string, ITemplate>`. It substitutes <code v-pre>{{variable}}</code> placeholders using the regex `/\{\{(\s*[\w.]+\s*)\}\}/g`.
 
 - **Nested lookup.** A key is trimmed, then resolved by splitting on `.` and walking the data object (`user.profile.name`).
-- **Missing values are preserved, not blanked.** If a resolved value is `undefined` or `null`, the original <code v-pre>{{placeholder}}</code> text stays in the output and a warning is logged -- it is never replaced with an empty string.
-- **String coercion.** A resolved value is converted with `String(value)`.
+- **Missing values are preserved, not blanked.** If a resolved value is `undefined` or `null`, the original <code v-pre>{{placeholder}}</code> text stays in the output, and a warning is logged. The engine never replaces it with an empty string.
+- **String coercion.** The engine converts a resolved value with `String(value)`.
 
 > [!IMPORTANT]
-> Missing template variables are **not** replaced with empty strings. This makes debugging easier -- you can see which variables were not resolved directly in the rendered output.
+> Missing template variables are **not** replaced with empty strings. This makes debugging easier: the rendered output shows you exactly which variables did not resolve.
 
 ### Validate template data before sending
 
@@ -221,7 +221,7 @@ async syncTemplatesFromDatabase() {
 
 ## Queue executors
 
-`IMailQueueExecutor` is a separate subsystem from `MailService` -- it only exposes `enqueueVerificationEmail()` and `setProcessor()`, and never calls `send()` on its own. You provide the processor function (typically one that wraps `mailService.send()`); the executor's job is timing, retry, and delivery guarantees around calling it.
+`IMailQueueExecutor` is a separate subsystem from `MailService`. It only exposes `enqueueVerificationEmail()` and `setProcessor()`, and it never calls `send()` on its own. You provide the processor function - typically one that wraps `mailService.send()`. The executor's job is timing, retry, and delivery guarantees around calling that function.
 
 | Executor | Class | Backing |
 |----------|-------|---------|
@@ -231,16 +231,24 @@ async syncTemplatesFromDatabase() {
 
 ### Direct executor
 
-Calls the processor immediately, with no queueing. Returns `{ queued: false, ... }`. Throws `Processor not set. Call setProcessor() first.` if `enqueueVerificationEmail()` runs before `setProcessor()`. Use it for development or when a caller needs a synchronous result.
+The direct executor calls the processor immediately, with no queueing. It returns `{ queued: false, ... }`. If `enqueueVerificationEmail()` runs before `setProcessor()`, it throws `Processor not set. Call setProcessor() first.` Use it for development, or whenever a caller needs a synchronous result.
 
 ### Internal queue executor
 
-In-memory, single-instance, backed by `SequentialQueueHelper` from `@venizia/ignis-helpers` with `autoDispatch: true`.
+The internal queue executor is in-memory and single-instance, backed by `SequentialQueueHelper` from `@venizia/ignis-helpers` with `autoDispatch: true`.
 
 - Job IDs follow `job_<counter>_<timestamp>`.
 - A `delay` option schedules the enqueue itself via `setTimeout`, tracked in a `delayedJobs` map.
-- On failure (a thrown error, or the processor returning `{ success: false }`), it retries up to `options.attempts` (default `3`) with backoff: `exponential` is `delay * 2^(attempt - 1)`, `fixed` is the raw delay, and no `backoff` config at all defaults to `1000ms`.
+- On failure - a thrown error, or the processor returning `{ success: false }` - it retries up to `options.attempts` (default `3`).
 - Does not persist jobs across restarts. `close()` clears every pending delayed/retry timer.
+
+Retry backoff:
+
+| `backoff` config | Delay |
+|---|---|
+| `{ type: 'exponential', delay }` | `delay * 2^(attempt - 1)` |
+| `{ type: 'fixed', delay }` | the raw `delay` |
+| Not set | `1000ms` |
 
 ### BullMQ executor
 
@@ -255,9 +263,9 @@ Redis-backed, distributed, backed by `BullMQHelper`. Job persistence, worker con
 | `'both'` | Yes | Yes | Yes (requires `setProcessor()` first) | Yes |
 
 > [!IMPORTANT]
-> `'queue-only'` mode is the one exception to "call `setProcessor()` before you enqueue" -- `enqueueVerificationEmail()` only requires a processor when the mode is *not* `queue-only`. A producer instance can enqueue jobs a separate `worker-only` instance later processes.
+> `'queue-only'` mode is the one exception to "call `setProcessor()` before you enqueue." In that mode, `enqueueVerificationEmail()` does not need a processor. A producer instance can enqueue jobs that a separate `worker-only` instance later processes.
 
-**Dynamic worker management** -- get the bound instance and manage workers at runtime, no restart required:
+**Dynamic worker management.** Get the bound instance and manage workers at runtime - no restart required:
 
 ```typescript
 const executor = this.application.get<BullMQMailExecutorHelper>({
@@ -273,7 +281,7 @@ await executor.removeWorker(1); // remove by array index
 await executor.clearWorkers();  // close and remove every worker
 ```
 
-`setProcessor()` on the BullMQ executor is `async` and takes an optional second argument for worker configuration -- it clears all existing workers before creating new ones:
+`setProcessor()` on the BullMQ executor is `async` and takes an optional second argument for worker configuration. It clears all existing workers before creating new ones:
 
 ```typescript
 await executor.setProcessor(
@@ -291,7 +299,7 @@ await executor.setProcessor(
 
 ## Verification generators
 
-`MailComponent` binds three generators, all **transient** (a fresh instance per resolution, since none is registered with `.setScope('singleton')`):
+`MailComponent` binds three generators. All are **transient** - a fresh instance per resolution, since none is registered with `.setScope('singleton')`:
 
 | Generator | Implements | Behavior |
 |-----------|-----------|----------|
@@ -350,10 +358,10 @@ export class AuthService extends BaseService {
 
 ## Logging and credentials
 
-`MailComponent.createAndBindInstances()` logs only `mailOptions.provider` and `queueExecutorConfig.type` at `info` level -- by design, never the full config objects, so SMTP passwords, OAuth2 secrets, API keys, and Redis passwords never reach a log sink through the component itself.
+`MailComponent.createAndBindInstances()` logs only `mailOptions.provider` and `queueExecutorConfig.type`, at `info` level. It never logs the full config objects, by design. That keeps SMTP passwords, OAuth2 secrets, API keys, and Redis passwords out of the log sink - at least through the component itself.
 
 > [!WARNING]
-> That guarantee only covers what `MailComponent` logs internally. If your own wrapper component or bootstrap code logs the `TMailOptions` or `IMailQueueExecutorConfig` object directly (for example, while debugging a binding), you reintroduce the leak yourself -- log individual safe fields (`provider`, `type`) instead of the whole object.
+> That guarantee only covers what `MailComponent` logs internally. If your own wrapper component or bootstrap code logs the `TMailOptions` or `IMailQueueExecutorConfig` object directly - for example, while debugging a binding - you reintroduce the leak yourself. Log individual safe fields (`provider`, `type`) instead of the whole object.
 
 ## See also
 

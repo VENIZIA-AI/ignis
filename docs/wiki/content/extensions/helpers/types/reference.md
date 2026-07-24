@@ -17,6 +17,27 @@ Exhaustive reference for every utility type, resolver function, and constant cla
 - [`packages/helpers/src/common/constants/mime.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/common/constants/mime.ts) - `MimeTypes`
 - [`packages/helpers/src/common/constants/index.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/common/constants/index.ts) - constants barrel
 
+## Find what you need
+
+| Looking for | Go to |
+|---|---|
+| An escape hatch (`any`, a loose object) | [General Purpose Types](#general-purpose-types) |
+| A value that may be absent, or a callback that may be async | [Nullable and Promise Types](#nullable-and-promise-types) |
+| A constructor or class type parameter | [Class and Constructor Types](#class-and-constructor-types) |
+| Telling a class from a plain function at runtime | [isClass](#isclass) |
+| Making object keys optional or required, or flattening `A & B` | [Object Utility Types](#object-utility-types) |
+| A union type derived from a const class | [Const Value Extraction Types](#const-value-extraction-types) |
+| An option that accepts an eager value or a resolver function | [Value Resolution Types and Functions](#value-resolution-types-and-functions) |
+| A config-driven field-to-type mapping | [Field Mapping Types](#field-mapping-types) |
+| DI container getter types, the `configure()` interface | [DI and Lifecycle Types](#di-and-lifecycle-types) |
+| JSX component prop types | [JSX Types](#jsx-types) |
+| Query pagination defaults, the application name | [Defaults](#defaults) |
+| Detecting Bun vs Node at runtime | [RuntimeModules](#runtimemodules) |
+| Schema data type constants | [DataTypes](#datatypes) |
+| HTTP headers, methods, status codes | [HTTP](#http) |
+| gRPC methods, headers, status codes | [GRPC](#grpc) |
+| Content-type classification (image, video, text) | [MimeTypes](#mimetypes) |
+
 ## Import paths
 
 ```typescript
@@ -76,7 +97,7 @@ import type {
 import type { Child, FC, PropsWithChildren } from '@venizia/ignis-helpers';
 ```
 
-All of the above resolve through the root `@venizia/ignis-helpers` barrel, which re-exports `./common` (and therefore `./common/types` and `./common/constants`) in full.
+All of the above resolve through the root `@venizia/ignis-helpers` barrel. It re-exports `./common` in full, which includes `./common/types` and `./common/constants`.
 
 ## General Purpose Types
 
@@ -142,7 +163,7 @@ function MyMixin<T extends TMixinTarget<BaseClass>>(Base: T) {
 const isClass: <T>(target: any) => target is TClass<T>;
 ```
 
-Declared in `@venizia/ignis-inversion` and re-exported by `helpers`. The single predicate that tells a constructor from a resolver function - the boot booters, controller factories, and `resolveValue`/`resolveValueAsync`/`resolveClass` all branch on it.
+Declared in `@venizia/ignis-inversion` and re-exported by `helpers`. It's the single predicate that tells a constructor from a resolver function. The boot booters, controller factories, and `resolveValue`/`resolveValueAsync`/`resolveClass` all branch on it.
 
 - **Filters to functions with a `prototype`** - true of every non-arrow function, so this alone is not sufficient.
 - **Decompiles the function via `Function.prototype.toString`** and regex-tests that the source text literally starts with the `class` keyword.
@@ -209,11 +230,13 @@ type TValueOrAsyncResolver<T> = T | TAsyncResolver<T>;
 const resolveValue: <T>(valueOrResolver: TValueOrResolver<T>) => T;
 ```
 
-Synchronously resolves a lazy value:
+Synchronously resolves a lazy value.
 
-- **Non-function values** - returned as-is.
-- **Class constructors** - returned as-is (detected via `isClass()`, never invoked).
-- **Resolver functions** - invoked and the result returned.
+| Input | Result |
+|---|---|
+| Non-function value | Returned as-is |
+| Class constructor | Returned as-is - detected via `isClass()`, never invoked |
+| Resolver function | Invoked; the return value is returned |
 
 ### resolveValueAsync
 
@@ -231,11 +254,13 @@ const resolveClass: <T>(
 ) => TClass<T> | string;
 ```
 
-Resolves lazy class references. Handles three cases:
+Resolves lazy class references.
 
-- **String binding keys** - returned as-is (for DI key lookups).
-- **Class constructors** - returned as-is.
-- **Resolver functions** - invoked via `resolveValue` and the result returned.
+| Input | Result |
+|---|---|
+| String binding key | Returned as-is, for DI key lookups |
+| Class constructor | Returned as-is |
+| Resolver function | Invoked via `resolveValue`; the result is returned |
 
 ### Resolution example
 
@@ -361,7 +386,13 @@ class RuntimeModules {
 type TRuntimeModule = TConstValue<typeof RuntimeModules>; // 'node' | 'bun'
 ```
 
-Runtime detection utility. `detect()` returns `'bun'` if `typeof Bun !== 'undefined'`, `'node'` otherwise. `isBun()` and `isNode()` are convenience methods that call `detect()` internally on every invocation - there is no caching.
+Runtime detection utility.
+
+| Method | Behavior |
+|---|---|
+| `detect()` | Returns `'bun'` if `typeof Bun !== 'undefined'`, else `'node'` |
+| `isBun()` | Calls `detect()` and compares to `'bun'` - no caching, runs the check every time |
+| `isNode()` | Calls `detect()` and compares to `'node'` - no caching, runs the check every time |
 
 ### DataTypes
 
@@ -439,7 +470,7 @@ Grouped by category, matching the source file's comments:
 | **Rate limiting** (de facto standard) | `X_RATELIMIT_LIMIT` | `'x-ratelimit-limit'` |
 | | `X_RATELIMIT_REMAINING` | `'x-ratelimit-remaining'` |
 | | `X_RATELIMIT_RESET` | `'x-ratelimit-reset'` |
-| **Ignis custom** | `REQUEST_TRACING_ID` | `'x-request-id'` |
+| **IGNIS custom** | `REQUEST_TRACING_ID` | `'x-request-id'` |
 | | `REQUEST_DEVICE_INFO` | `'x-device-info'` |
 | | `REQUEST_CHANNEL` | `'x-request-channel'` |
 | | `REQUEST_COUNT_DATA` | `'x-request-count'` |
@@ -489,7 +520,15 @@ Grouped by category, matching the source file's comments:
 | `HTTP.Methods.QUERY` | `'query'` (RFC 10008 `QUERY` method) |
 
 > [!IMPORTANT]
-> All `HTTP.Methods.*` tokens are lowercase - `@hono/zod-openapi` route definitions accept no other case. Each network fetcher uppercases at the wire boundary (`method.toUpperCase()`): undici only normalizes `DELETE`/`GET`/`HEAD`/`OPTIONS`/`POST`/`PUT`, so a lowercase `patch` or `query` sent as-is travels verbatim over Node and the server rejects it. Bun's `fetch` uppercases everything, which hides the bug until the app runs on Node.
+> All `HTTP.Methods.*` tokens are lowercase. `@hono/zod-openapi` route definitions accept no other case.
+
+Every IGNIS network fetcher uppercases the method at the wire boundary, via `method.toUpperCase()`. But undici, Node's `fetch` implementation, only normalizes six of the eight methods on its own:
+
+| Undici normalizes it on its own | Undici does not |
+|---|---|
+| `delete`, `get`, `head`, `options`, `post`, `put` | `patch`, `query` |
+
+A lowercase `patch` or `query` sent as-is travels verbatim over Node, and the server rejects it. Bun's `fetch` uppercases every method, which hides the bug until the app runs on Node.
 
 #### HTTP.Protocols
 
@@ -500,7 +539,7 @@ Grouped by category, matching the source file's comments:
 
 #### HTTP.ResultCodes
 
-Status codes are grouped by class under `HTTP.ResultCodes.RS_1` through `HTTP.ResultCodes.RS_5` (e.g. `HTTP.ResultCodes.RS_4.NotFound`).
+Status codes are grouped by class under `HTTP.ResultCodes.RS_1` through `HTTP.ResultCodes.RS_5` - for example, `HTTP.ResultCodes.RS_4.NotFound`.
 
 | Group | Constant | Value |
 |-------|----------|-------|

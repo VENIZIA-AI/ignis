@@ -21,18 +21,24 @@ Every error condition the static asset controller and storage helpers can raise,
 | <code v-pre>"Invalid maxKeys \| Expected a positive integer \| value: {value}"</code> | `listObjects`'s `maxKeys` query param does not parse to a positive integer | `400` |
 | <code v-pre>[upload] Bucket does not exist \| name: {bucket}</code> | `helper.upload()` found no matching bucket via `isBucketExists()` | `400` (default) |
 | `[upload] Invalid original file name` | A file's `originalName` fails `isValidName()`, checked inside `helper.upload()` | `400` (default) |
-| `[upload] Invalid folder path` | `helper.upload()`'s own `folderPath` depth/`isValidPath()` check failed | `400` (default) |
+| <code v-pre>[upload] Invalid folder path \| depth: {n} \| max: {m}</code> | `helper.upload()`'s own check found more `folderPath` segments than `maxFolderDepth` allows | `400` (default) |
+| `[upload] Invalid folder path` | `helper.upload()`'s own `isValidPath()` check failed for any other reason | `400` (default) |
 | <code v-pre>[upload] Invalid file size \| size: {size}</code> | A file's `size` is `undefined`, `null`, or negative | `400` (default) |
 | <code v-pre>[upload] Invalid normalized object name \| name: {name}</code> | The name returned by `normalizeNameFn` fails `isValidPath()` | `400` (default) |
-| `[createBucket] Invalid name to create bucket!` | `MinioHelper.createBucket()` called with a name failing `isValidName()` - only reachable calling the helper directly, the controller validates first | `400` (default) |
+| `[createBucket] Invalid name to create bucket!` | `createBucket()` called with a name failing `isValidName()` - only reachable calling a helper directly, the controller validates first | `400` (default) |
+| <code v-pre>[createBucket] Bucket already exists \| name: {name}</code> | `DiskHelper.createBucket()` called with a name that already exists on disk. `MinioHelper` and `BunS3Helper` throw their own SDK/S3 error text for the same case instead | `400` (default) |
+| `[removeBucket] Invalid name to remove bucket!` | `removeBucket()` called with a name failing `isValidName()` - only reachable calling a helper directly | `400` (default) |
+| <code v-pre>[removeBucket] Bucket does not exist \| name: {name}</code> | `DiskHelper.removeBucket()` - no directory at that bucket name | `400` (default) |
+| <code v-pre>[removeBucket] Bucket is not empty \| name: {name}</code> | `DiskHelper.removeBucket()` - the bucket directory still has files in it | `400` (default) |
+| <code v-pre>[getFile] File not found \| bucket: {bucket} \| name: {name}</code> (also `[getStat]`, `[removeObject]`) | `DiskHelper` - no file at that bucket/object path | `400` (default) |
 | <code v-pre>[parseMultipartBody] storage: {storage} \| Invalid storage type \| Valids: ['memory', 'disk']</code> | `extra.parseMultipartBody.storage` set to something other than `'memory'`/`'disk'` - a configuration error, not user input | `400` (default) |
 
 > [!NOTE]
-> Entries marked "default" pass no explicit `statusCode` to `getError()`; `ApplicationError` defaults `statusCode` to `400` in that case.
+> Entries marked "default" pass no explicit `statusCode` to `getError()`. `ApplicationError` defaults `statusCode` to `400` in that case.
 
 ## Name validation rules
 
-Bucket names are validated with `isValidName()` (single segment, no path separators). Object names, which may include folder segments (e.g. `2026/uploads/report.pdf`), are validated with `isValidPath()` - every segment still runs through `isValidName()`.
+Bucket names are validated with `isValidName()` (single segment, no path separators). Object names, which may include folder segments (for example `2026/uploads/report.pdf`), are validated with `isValidPath()` - every segment still runs through `isValidName()`.
 
 | Pattern | Example | Reason |
 |---------|---------|--------|
@@ -51,7 +57,7 @@ Bucket names are validated with `isValidName()` (single segment, no path separat
 ### "Invalid bucket name" / "Invalid object name or path"
 
 - **Cause:** the name fails the rules above.
-- **Fix:** strip path separators, leading dots, shell metacharacters, and control characters; keep names under 255 characters (1024 for a full object path); never send an empty or whitespace-only value.
+- **Fix:** strip path separators, leading dots, shell metacharacters, and control characters. Keep names under 255 characters (1024 for a full object path). Never send an empty or whitespace-only value.
 
 ```typescript
 // Wrong - contains a path separator, rejected by isValidName()
@@ -77,11 +83,11 @@ await fetch('/assets/buckets/user-uploads', { method: 'POST' });
 ### "Empty file content"
 
 - **Cause:** the uploaded file's buffer is empty - either the client sent a zero-byte file field, or `parseMultipartBody` produced no readable content.
-- **Fix:** verify the `FormData` field actually carries file bytes before submitting; a zero-byte file is rejected, this is not a size-limit issue.
+- **Fix:** verify the `FormData` field actually carries file bytes before submitting. A zero-byte file is rejected - this is not a size-limit issue.
 
 ### "Invalid maxKeys"
 
-- **Cause:** `listObjects`'s `maxKeys` query string does not parse to a positive integer via `Number(maxKeys)` + `Number.isInteger()` - e.g. `maxKeys=abc` or `maxKeys=-1`.
+- **Cause:** `listObjects`'s `maxKeys` query string does not parse to a positive integer via `Number(maxKeys)` + `Number.isInteger()` - for example `maxKeys=abc` or `maxKeys=-1`.
 - **Fix:** only send positive integer strings, or omit the parameter entirely.
 
 ```typescript
@@ -93,6 +99,11 @@ url.searchParams.set('maxKeys', '50'); // OK
 
 - **Cause:** `helper.upload()` checked `isBucketExists()` and found no match - the bucket was never created, or was deleted between requests.
 - **Fix:** create the bucket first with `POST /buckets/:bucketName`, or check `GET /buckets/:bucketName` before uploading.
+
+### "Bucket already exists"
+
+- **Cause:** `POST /buckets/:bucketName` was called for a bucket that already exists. `createBucket()` throws rather than returning `null` - it does not silently succeed on a duplicate.
+- **Fix:** check `GET /buckets/:bucketName` first, or treat the throw as "already there" and continue.
 
 ### Controller not registering / no routes appear
 

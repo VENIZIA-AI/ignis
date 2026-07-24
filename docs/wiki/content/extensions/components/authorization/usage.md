@@ -8,6 +8,23 @@ difficulty: advanced
 
 Task-oriented examples for the Authorization component. See the [Overview](./) for initial setup and the [API Reference](./api) for every option and class.
 
+## Find what you need
+
+| You want to | Go to |
+|---|---|
+| Add `authorize` to a REST or gRPC route | [Securing routes](#securing-routes) |
+| Call `authorize()` outside a route config | [Using the standalone authorize() function](#using-the-standalone-authorize-function) |
+| Add custom allow/deny logic before the enforcer | [Voters](#voters) |
+| Bypass the enforcer for trusted roles | [Role-based shortcuts](#role-based-shortcuts) |
+| Wire authorization into generated CRUD routes | [CRUD factory integration](#crud-factory-integration) |
+| Skip authorization for one request at runtime | [Dynamic skip authorization](#dynamic-skip-authorization) |
+| Read the resolved user, rules, or domain in a handler | [Accessing context variables](#accessing-context-variables) |
+| Replace Casbin with your own enforcer | [Custom enforcer](#custom-enforcer) |
+| Store policies in a schema `ScopedCasbinAdapter` doesn't fit | [Custom filtered adapter](#custom-filtered-adapter) |
+| Compare roles by priority | [AuthorizationRole comparison](#authorizationrole-comparison) |
+| Reference a model instead of a hardcoded resource string | [Model-Based Resource References](#model-based-resource-references) |
+| Scope grants to a tenant (multi-tenant apps) | [RBAC with domains](#rbac-with-domains-multi-tenant) |
+
 ## Securing routes
 
 **Imperative route.** Add `authorize` to `defineRoute()`'s `configs`, next to `authenticate`.
@@ -74,9 +91,9 @@ authorize: [
 ```
 
 > [!NOTE]
-> When several specs run on the same route, rules are built once (via `enforcer.buildRules()`) and cached on `Authorization.RULES` for the rest of the request - the second spec reuses them instead of rebuilding.
+> When several specs run on the same route, rules are built once, via `enforcer.buildRules()`, and cached on `Authorization.RULES` for the rest of the request. The second spec reuses them instead of rebuilding.
 
-**gRPC route.** Same `authorize` field, inside RPC metadata - `AbstractGrpcController.buildRpcMiddlewares()` injects it in the same order as REST (authenticate, then authorize).
+**gRPC route.** Same `authorize` field, inside RPC metadata. `AbstractGrpcController.buildRpcMiddlewares()` injects it in the same order as REST: authenticate, then authorize.
 
 ```typescript
 @unary({
@@ -93,7 +110,7 @@ See [gRPC Controllers](/guides/core-concepts/grpc-controllers) for the full deco
 
 ## Using the standalone `authorize()` function
 
-`authorize({ spec, enforcerName? })` returns a plain Hono `MiddlewareHandler` - use it outside route configs, e.g. wiring a Hono sub-app directly.
+`authorize({ spec, enforcerName? })` returns a plain Hono `MiddlewareHandler`. Use it outside route configs - for example, when you wire a Hono sub-app directly.
 
 ```typescript
 import { authorize, authenticate, Authentication, AuthorizationActions } from '@venizia/ignis';
@@ -149,7 +166,7 @@ authorize: {
 ```
 
 > [!TIP]
-> Default to `ABSTAIN` when a voter has no strong opinion. Only return `DENY` when the request should be blocked regardless of any other check - it short-circuits everything, including a later `ALLOW` voter.
+> Default to `ABSTAIN` when a voter has no strong opinion. Only return `DENY` when the request should be blocked regardless of any other check. It short-circuits everything, including a later `ALLOW` voter.
 
 ## Role-based shortcuts
 
@@ -221,7 +238,7 @@ Per-route config is typed `TRouteAuthorizeConfig = { skip: true } | IAuthorizati
 
 ## Dynamic skip authorization
 
-Set `Authorization.SKIP_AUTHORIZATION` from an earlier middleware to bypass authorization for that one request (pipeline step 1) - useful for trusted service-to-service calls.
+Set `Authorization.SKIP_AUTHORIZATION` from an earlier middleware to bypass authorization for that one request (pipeline step 1). This is useful for trusted service-to-service calls.
 
 ```typescript
 import { Authorization } from '@venizia/ignis';
@@ -250,7 +267,7 @@ c.set(Authorization.RULES, null); // force a rebuild later in the SAME request
 ```
 
 > [!TIP]
-> Rules are cached per-request only - every new HTTP request starts with an empty cache. `c.set(Authorization.RULES, null)` only matters if you need to force a rebuild mid-request (e.g. after mutating the user's roles inline).
+> Rules are cached per-request only - every new HTTP request starts with an empty cache. `c.set(Authorization.RULES, null)` only matters if you need to force a rebuild mid-request, for example after mutating the user's roles inline.
 
 ## Custom enforcer
 
@@ -309,7 +326,14 @@ AuthorizationEnforcerRegistry.getInstance().register({
 
 Use the ready-made [`ScopedCasbinAdapter`](./api#scopedcasbinadapter) for most apps - it reads one edge table and needs no subclassing. Write a custom adapter only when your storage model differs.
 
-`BaseFilteredAdapter` provides the datasource/connector plumbing, `isFiltered()`, the no-op write methods, and a `loadLines` helper. A subclass implements only `loadFilteredPolicy` - query your store for ONE principal's policies and turn them into casbin lines.
+`BaseFilteredAdapter` provides:
+
+- Datasource/connector plumbing
+- `isFiltered()`
+- The no-op write methods
+- A `loadLines` helper
+
+A subclass implements only `loadFilteredPolicy`: query your store for ONE principal's policies and turn them into casbin lines.
 
 ```typescript
 import { BaseFilteredAdapter, ICasbinPolicyFilter, type ICasbinPolicySource } from '@venizia/ignis';
@@ -337,7 +361,7 @@ class MyCustomAdapter extends BaseFilteredAdapter<ICasbinPolicyFilter> {
 }
 ```
 
-There are no template-method query hooks or line formatters on the base - a subclass owns its own queries and line construction. See `ScopedCasbinAdapter` for a full reference implementation (role closure, structural trees, soft-delete, schema-qualified SQL).
+The base has no template-method query hooks or line formatters - a subclass owns its own queries and line construction. See `ScopedCasbinAdapter` for a full reference implementation (role closure, structural trees, soft-delete, schema-qualified SQL).
 
 ## AuthorizationRole comparison
 
@@ -391,7 +415,7 @@ authorize: {
 }
 ```
 
-**Query every declared principal at runtime**, e.g. to seed Casbin policies.
+**Query every declared principal at runtime** - for example, to seed Casbin policies.
 
 ```typescript
 import { MetadataRegistry } from '@venizia/ignis';
@@ -409,18 +433,18 @@ registry.getAuthorizeModelSettings({ format: 'array' });
 ```
 
 > [!TIP]
-> Declaring `authorize.principal` on the model makes it the single source of truth for the model's authorization subject, eliminating string duplication across route configs and policy setup. See the [Persistent Models guide](/guides/core-concepts/persistent/models#authorization-settings) for the full `@model` settings surface.
+> Declaring `authorize.principal` on the model makes it the single source of truth for the authorization subject. Route configs and policy setup no longer duplicate the string. See the [Persistent Models guide](/guides/core-concepts/persistent/models#authorization-settings) for the full `@model` settings surface.
 
 ## RBAC with domains (multi-tenant)
 
-For apps where a user holds roles **scoped to specific tenants** (and sometimes globally), Casbin's [RBAC with domains](https://casbin.apache.org/docs/rbac-with-domains/) pattern keeps a user's materialized policy **linear** (`memberships + permissions`) instead of a `permissions x tenants` cross-product - 30 tenants x 700 permissions is ~730 lines instead of ~21,000.
+Some apps hand out roles **scoped to a specific tenant**. A user might be `owner` in Merchant A, only `viewer` in Merchant B, and hold a global role everywhere too. Casbin's [RBAC with domains](https://casbin.apache.org/docs/rbac-with-domains/) pattern keeps that policy **linear**: `memberships + permissions`, not a `permissions x tenants` cross-product. At 30 tenants and 700 permissions, that's roughly 730 lines instead of 21,000.
 
-There are two ways to get there:
+You have two ways to get there:
 
-| Approach | When |
-|---|---|
-| **Scoped model (recommended)** | `isScoped: true` + `ScopedCasbinAdapter` + `CASBIN_RBAC_DOMAIN_SCOPED_MODEL`; supply the request domain **per route** via `spec.domain` (or a global `domainResolver`). The enforcer registers its own matchers - no `domainMatching` or `normalizePayloadFn` needed. |
-| **Manual flat model (lower-level)** | Keep a flat `g + p` model and register `domainMatching` + `normalizePayloadFn` yourself. See [The flat model](#the-flat-model) below. |
+| Approach | Setup | Matchers |
+|---|---|---|
+| **Scoped model (recommended)** | `isScoped: true` + `ScopedCasbinAdapter` + `CASBIN_RBAC_DOMAIN_SCOPED_MODEL`. Supply the domain per route via `spec.domain`, or globally via `domainResolver`. | Registered for you |
+| **Manual flat model (lower-level)** | Keep a flat `g + p` model. See [The flat model](#the-flat-model). | Register `domainMatching` and `normalizePayloadFn` yourself |
 
 ### Scoped model + per-route domain (recommended)
 
@@ -483,7 +507,7 @@ m = g(r.sub, p.sub, r.dom) && keyMatch(r.dom, p.dom) && r.obj == p.obj && r.act 
 ```
 
 - `g = _, _, _` - the membership relation is **domain-aware** (subject, role, domain).
-- `g(r.sub, p.sub, r.dom)` - the registered domain matching function decides whether the request domain matches the stored membership domain (this is what makes `*` a wildcard).
+- `g(r.sub, p.sub, r.dom)` - the registered domain matching function decides whether the request domain matches the stored membership domain. This is what makes `*` a wildcard.
 - `keyMatch(r.dom, p.dom)` - a **built-in** matcher (no registration needed) that lets a permission with `p.dom = "*"` match any request domain.
 
 **Register the domain matching function.** Pass `domainMatching` in the enforcer options - it registers once during `configure()`.
@@ -520,7 +544,7 @@ AuthorizationEnforcerRegistry.getInstance().register({
 > [!NOTE]
 > `domainMatching` is opt-in. When omitted, domains are compared as exact strings and behavior is unchanged. The enforcer calls Casbin's `addNamedDomainMatchingFunc(roleDefinition, Util.keyMatchFunc)` internally - never call it directly.
 
-**Choosing the matching function.** `keyMatch` is the safe default for opaque domain identifiers like `Merchant_<uuid>` - it treats only `*` as special and never splits on `/` or `:`, so it cannot accidentally match one tenant against another. Use the others only for structured path-style domains.
+**Choosing the matching function.** `keyMatch` is the safe default for opaque domain identifiers like `Merchant_<uuid>`. It treats only `*` as special and never splits on `/` or `:`, so it cannot accidentally match one tenant against another. Use the others only for structured path-style domains.
 
 | Function | Adds |
 |---|---|
@@ -530,14 +554,14 @@ AuthorizationEnforcerRegistry.getInstance().register({
 | `CasbinDomainMatchingFunctions.KEY_MATCH_4` | `{param}` segments with repeated-name equality checks |
 | `CasbinDomainMatchingFunctions.REGEX_MATCH` | Full regular-expression matching on the stored value |
 
-**Policy lines and outcomes**, given the flat model above with `keyMatch` registered on `g`, request `enforceSync(subject, domain, resource, action)`:
+**Policy lines and outcomes**, using the flat model above with `keyMatch` registered on `g`. Each row calls `enforceSync(subject, domain, resource, action)`:
 
 | Case | Policy lines | Request | Outcome |
 |------|--------------|---------|---------|
 | Scoped role (owner in a tenant) | `g, User_u, Role_owner, Merchant_A`<br/>`p, Role_owner, *, Material.find, read, allow` | `(User_u, Merchant_A, Material.find, read)` | allow |
 | Scoped role - isolation | (same as above) | `(User_u, Merchant_B, Material.find, read)` | deny (`g` domain doesn't match) |
 | Multi-tenant role | `g, User_u, Role_owner, Merchant_A`<br/>`g, User_u, Role_owner, Merchant_B`<br/>`p, Role_owner, *, Material.find, read, allow` | `(User_u, Merchant_B, Material.find, read)` | allow (one `g` line per tenant; a single `p` line) |
-| Global role (e.g. guest/onboarding) | `g, User_u, Role_guest, *`<br/>`p, Role_guest, *, Organizer.onBoarding, create, allow` | `(User_u, Merchant_anything, Organizer.onBoarding, create)` | allow (wildcard `g` domain) |
+| Global role (for example, guest/onboarding) | `g, User_u, Role_guest, *`<br/>`p, Role_guest, *, Organizer.onBoarding, create, allow` | `(User_u, Merchant_anything, Organizer.onBoarding, create)` | allow (wildcard `g` domain) |
 | Direct user permission (scoped) | `p, User_u, Merchant_A, Report.read, read, allow` | `(User_u, Merchant_A, Report.read, read)` | allow (reflexive `g(u,u,dom)` + `keyMatch`) |
 | Direct user permission - isolation | (same as above) | `(User_u, Merchant_B, Report.read, read)` | deny |
 | Deny override | `p, Role_x, *, Secret.read, read, deny`<br/>`p, Role_y, *, Secret.read, read, allow` | any domain where the user has both roles | deny (`!some(p.eft == deny)`) |
@@ -545,7 +569,7 @@ AuthorizationEnforcerRegistry.getInstance().register({
 > [!IMPORTANT]
 > The matching function is applied as `fn(requestDomain, policyDomain)` - the wildcard belongs on the **stored** side. Store only `*` or exact domain values (never `Merchant_*`) to keep tenant isolation guaranteed.
 
-**Misconfiguration is caught early.** If `roleDefinition` is not declared under `[role_definition]` in the model, `configure()` throws at boot - Casbin would otherwise silently register the function as a no-op, leaving wildcard domains permanently unmatched (global roles silently denied).
+**Misconfiguration is caught early.** If `roleDefinition` is not declared under `[role_definition]` in the model, `configure()` throws at boot. Without that check, Casbin would silently register the function as a no-op, leaving wildcard domains permanently unmatched - global roles would be silently denied.
 
 ```typescript
 // model declares `g` only

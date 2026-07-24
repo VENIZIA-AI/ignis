@@ -45,12 +45,19 @@ This registers `GET`/`POST`/`DELETE` on `/assets/buckets/:bucketName`, `POST /as
 
 ## How it works
 
-- **One options key, one generated controller.** `TStaticAssetsComponentOptions` is a record - each key (`staticAsset` above) becomes an independently-configured storage backend with its own `basePath`, built by `AssetControllerFactory.defineAssetController()` inside `StaticAssetComponent.binding()`.
-- **`storage` and `helper` are a discriminated pair.** The options type forces `storage: 'disk'` with a `DiskHelper`, `'minio'` with a `MinioHelper`, or `'bun-s3'` with a `BunS3Helper` - mismatching them fails at compile time, not at runtime.
-- **Every backend implements the same `IStorageHelper` contract.** `DiskHelper`, `MinioHelper`, and `BunS3Helper` all extend `BaseStorageHelper`, so bucket/object operations, name validation (`isValidName`/`isValidPath`), and upload normalization behave identically regardless of backend.
-- **Object names can embed folder paths, encoded as one segment.** `objects/{objectName}` takes the whole `folder/file.ext` string percent-encoded (`encodeURIComponent`, which also escapes `/`) - Hono decodes it once before the handler reads it, so client code must encode but never decode a second time.
-- **MetaLink is opt-in.** Set `useMetaLink: true` and provide `metaLink.repository` to persist a database row (bucket, object, mimetype, size, etag, principal, variant) alongside every upload - useful for querying "which files does user X own" without listing a whole bucket.
-- **The default binding is empty.** `StaticAssetComponentBindingKeys.STATIC_ASSET_COMPONENT_OPTIONS` defaults to `{}` - bind it with at least one storage backend before `this.component(StaticAssetComponent)` produces any routes.
+- **One options key, one generated controller.** `TStaticAssetsComponentOptions` is a record. Each key (`staticAsset` above) becomes an independently configured storage backend with its own `basePath`. `AssetControllerFactory.defineAssetController()` builds the controller inside `StaticAssetComponent.binding()`.
+- **`storage` and `helper` are a discriminated pair.** Mismatching them fails at compile time, not at runtime:
+
+  | `storage` | Required `helper` |
+  |-----------|--------------------|
+  | `'disk'` | `DiskHelper` |
+  | `'minio'` | `MinioHelper` |
+  | `'bun-s3'` | `BunS3Helper` |
+
+- **Every backend implements the same `IStorageHelper` contract.** `DiskHelper`, `MinioHelper`, and `BunS3Helper` all extend `BaseStorageHelper`. Bucket/object operations, name validation (`isValidName`/`isValidPath`), and upload normalization behave identically regardless of backend.
+- **Object names can embed folder paths, encoded as one segment.** `objects/{objectName}` takes the whole `folder/file.ext` string percent-encoded with `encodeURIComponent()`, which also escapes `/`. Hono decodes it once before the handler reads it. Encode the object name on the client; never decode it a second time.
+- **MetaLink is opt-in.** Set `useMetaLink: true` and provide `metaLink.repository`. IGNIS then persists a database row (bucket, object, mimetype, size, etag, principal, variant) alongside every upload. That row is what lets you query "which files does user X own" without listing a whole bucket.
+- **The default binding is empty.** `StaticAssetComponentBindingKeys.STATIC_ASSET_COMPONENT_OPTIONS` defaults to `{}`. Bind it with at least one storage backend before `this.component(StaticAssetComponent)` - an empty binding produces zero routes.
 
 ## Common tasks
 

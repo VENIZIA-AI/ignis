@@ -17,6 +17,21 @@ Exhaustive reference for the Queue helper family. For a readable introduction an
 - [`packages/helpers/src/modules/queue/mqtt/helper.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/queue/mqtt/helper.ts) - `MQTTClientHelper`
 - [`packages/helpers/src/modules/queue/common/types.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/queue/common/types.ts) - `TBullQueueRole`
 
+## Find what you need
+
+| You want to | Go to |
+|---|---|
+| Pick a backend and see import paths | [Class Overview](#class-overview) / [Import Paths](#import-paths) |
+| Construct a producer or worker and see every option | [BullMQHelper](#bullmqhelper) |
+| Understand what a bad `role` or empty `queueName` does | [Configuration lifecycle](#configuration-lifecycle) |
+| Run BullMQ against Redis Cluster | [Redis Cluster setup](#redis-cluster-setup) |
+| Construct an in-memory sequential queue and see every option | [SequentialQueueHelper](#sequentialqueuehelper) |
+| Understand the `WAITING`/`PROCESSING`/`LOCKED`/`SETTLED` state machine | [QueueStatuses and the state machine](#queuestatuses-and-the-state-machine) |
+| Reach for a bare O(1) FIFO instead of a job queue | [HfQueueHelper](#hfqueuehelper) |
+| Construct an MQTT client and see every option | [MQTTClientHelper](#mqttclienthelper) |
+| Fix a thrown or logged error message | [Troubleshooting](#troubleshooting) |
+| Copy the full import list | [Import Reference](#import-reference) |
+
 ## Class Overview
 
 | Class | Extends | Peer dependency | Use case |
@@ -26,11 +41,11 @@ Exhaustive reference for the Queue helper family. For a readable introduction an
 | `HfQueueHelper` | `BaseHelper` | none | Generic O(1) FIFO primitive - single-threaded, no callbacks, no persistence |
 | `MQTTClientHelper` | `BaseHelper` | `mqtt` | MQTT broker pub/sub - IoT and lightweight real-time events |
 
-Kafka (`KafkaProducerHelper`, `KafkaConsumerHelper`, `KafkaAdminHelper`, `KafkaSchemaRegistryHelper`) is a fourth backend under the same `queue/` module tree but is documented on its own page - see [Kafka Helpers](/extensions/helpers/kafka/).
+Kafka (`KafkaProducerHelper`, `KafkaConsumerHelper`, `KafkaAdminHelper`, `KafkaSchemaRegistryHelper`) is a fourth backend under the same `queue/` module tree. It's documented on its own page - see [Kafka Helpers](/extensions/helpers/kafka/).
 
 ## Import Paths
 
-`BullMQHelper` and `MQTTClientHelper` live behind sub-path exports so their peer dependencies (`bullmq`, `mqtt`) never become hard dependencies of the base package. `SequentialQueueHelper`, `QueueHelper`, `QueueStatuses`, `HfQueueHelper`, and `TBullQueueRole` ship from the root package.
+`BullMQHelper` and `MQTTClientHelper` live behind sub-path exports. That keeps their peer dependencies (`bullmq`, `mqtt`) from becoming hard dependencies of the base package. `SequentialQueueHelper`, `QueueHelper`, `QueueStatuses`, `HfQueueHelper`, and `TBullQueueRole` ship from the root package instead.
 
 ```typescript
 // Root package - no peer dependency
@@ -93,7 +108,7 @@ const worker = new BullMQHelper({
 | `onWorkerDataFail` | `(job \| undefined, error: Error) => Promise<void>` | - | Fired on the BullMQ `Worker` `'failed'` event. `job` may be `undefined`. |
 
 > [!IMPORTANT]
-> Pass an `IRedisHelper` instance to `redisConnection`, **not** the raw ioredis client. `BullMQHelper` calls `redisConnection.duplicateClient()` internally to get a dedicated connection per role - one shared Redis helper can back any number of queues and workers.
+> Pass an `IRedisHelper` instance to `redisConnection`, **not** the raw ioredis client. `BullMQHelper` calls `redisConnection.duplicateClient()` internally to get a dedicated connection per role. One shared Redis helper can back any number of queues and workers.
 
 ### Configuration lifecycle
 
@@ -103,14 +118,18 @@ The constructor calls `configure()`, which switches on `role`:
 |--------|---------------|--------|
 | `'queue'` | `configureQueue()` | Builds `this.queue` (BullMQ `Queue`); attaches an `'error'` listener |
 | `'worker'` | `configureWorker()` | Builds `this.worker` (BullMQ `Worker`); attaches `'completed'`, `'failed'`, `'error'` listeners |
-| missing / other | neither | Logs `'Invalid client role to configure'` and returns - **does not throw** |
+| missing (falsy) | neither | Logs `'Invalid client role to configure'` and returns - **does not throw** |
+| any other value | neither | **Silent.** No log, no throw. `this.queue` and `this.worker` both stay `undefined` |
 
-`configureQueue()` and `configureWorker()` each guard on `queueName`: if it is falsy, the method logs `'Invalid queue name'` / `'Invalid worker name'` and returns without constructing anything - `this.queue` / `this.worker` stay `undefined`. Neither path throws; a misconfigured helper fails later, when you call `.queue.add(...)` or `.worker` on the `undefined` property.
+> [!WARNING]
+> A typo'd `role` (for example `'Worker'` instead of `'worker'`) hits the "any other value" row above - not the "missing" row. Nothing gets logged. The helper looks constructed, but `.queue` and `.worker` are both `undefined` until you call one and hit a `TypeError`.
+
+`configureQueue()` and `configureWorker()` each guard on `queueName`. An empty `queueName` logs `'Invalid queue name'` (or `'Invalid worker name'`) and returns - `this.queue` / `this.worker` stay `undefined`. Neither path throws. A misconfigured helper fails later instead, the first time you call `.queue.add(...)` or use `.worker`.
 
 > [!NOTE]
-> An `'error'` event with no listener is re-thrown by Node's `EventEmitter` and crashes the process. `BullMQHelper` always attaches an `'error'` listener to both `queue` and `worker` so a transient Redis error is logged instead of taking the process down.
+> An `'error'` event with no listener is re-thrown by Node's `EventEmitter` and crashes the process. `BullMQHelper` always attaches an `'error'` listener to both `queue` and `worker`. A transient Redis error gets logged instead of taking the process down.
 
-`onWorkerDataCompleted` and `onWorkerDataFail` run through an internal hook wrapper that absorbs both synchronous throws and rejected promises, logging them instead of propagating - a broken callback cannot crash the worker or block the next job.
+`onWorkerDataCompleted` and `onWorkerDataFail` run through an internal hook wrapper. It absorbs both synchronous throws and rejected promises, logging them instead of propagating. A broken callback can't crash the worker or block the next job.
 
 ### Cluster queue name wrapping
 
@@ -175,7 +194,7 @@ await producer.close();
 await consumer.close();
 ```
 
-Calls `worker?.close()` then `queue?.close()` in sequence - both run even if the first fails, so a failing worker close never leaks the queue's Redis connection. If either fails, `close()` throws a single `ApplicationError` aggregating both failure messages after both close attempts have run.
+Calls `worker?.close()` then `queue?.close()` in sequence. Both run even if the first fails, so a failing worker close never leaks the queue's Redis connection. If either fails, `close()` throws one `ApplicationError` aggregating both failure messages - only after both close attempts have run.
 
 ### API summary
 
@@ -233,7 +252,7 @@ const queue = new SequentialQueueHelper<string>({
 | `onDataDequeue` | `(opts: { identifier: string; queueElement: TQueueElement<T> }) => ValueOrPromise<void>` | - | Fired after an element is shifted off `storage`. |
 | `onStateChange` | `(opts: { identifier: string; from: TQueueStatus; to: TQueueStatus }) => ValueOrPromise<void>` | - | Fired on every state transition. |
 
-All four hooks run through an internal wrapper that absorbs synchronous throws and promise rejections, logging them instead - a broken callback cannot break the state machine.
+All four hooks run through an internal wrapper that absorbs synchronous throws and promise rejections, logging them instead. A broken callback can't break the state machine.
 
 ### TQueueElement
 
@@ -241,7 +260,7 @@ All four hooks run through an internal wrapper that absorbs synchronous throws a
 type TQueueElement<T> = { isLocked: boolean; payload: T };
 ```
 
-`isLocked` marks whether the head element is currently being handed to `onMessage`; it is distinct from the queue-level `lock()`/`unlock()` state below.
+`isLocked` marks whether the head element is currently being handed to `onMessage`. It is distinct from the queue-level `lock()`/`unlock()` state below.
 
 ### QueueStatuses and the state machine
 
@@ -262,21 +281,27 @@ WAITING ──enqueue──> PROCESSING ──done──> WAITING
 | `QueueStatuses.LOCKED` | `'200_LOCKED'` | Paused. Elements can still be enqueued; nothing processes until `unlock()`. |
 | `QueueStatuses.SETTLED` | `'300_SETTLED'` | Terminal. No further elements accepted. |
 
-- **Why numeric prefixes.** `'000_...'` .. `'300_...'` make `state >= QueueStatuses.LOCKED` and `state > QueueStatuses.LOCKED` valid string comparisons - `lock()` and `unlock()` use exactly that to guard against re-entering from an invalid state.
+- **Why numeric prefixes.** `'000_...'` through `'300_...'` make `state >= QueueStatuses.LOCKED` and `state > QueueStatuses.LOCKED` valid string comparisons. `lock()` and `unlock()` use exactly that to guard against re-entering from an invalid state.
 - **Validate an arbitrary string** with `QueueStatuses.isValid(value)`.
 
 ### Processing loop
 
-Internally, `_messageListener()` is a generator that loops `while (true) { yield this.handleMessage(); }`. `nextMessage()` calls `generator.next()` only when `state === WAITING`; any other state logs a warning and returns without advancing. `handleMessage()`:
+Internally, `_messageListener()` is a generator that loops `while (true) { yield this.handleMessage(); }`. `nextMessage()` calls `generator.next()` only when `state === WAITING`. Any other state logs a warning and returns without advancing. `handleMessage()`:
 
-1. Reads the head element (`getElementAt(0)`); returns early if empty or already `isLocked`.
+1. Reads the head element (`getElementAt(0)`). Returns early if it's empty or already `isLocked`.
 2. Transitions `WAITING -> PROCESSING` (skipped if already `LOCKED`/`SETTLED`).
 3. Marks the head `isLocked = true`, adds it to `processingEvents`, and awaits `onMessage`.
 4. Dequeues the completed element and removes it from `processingEvents`.
 5. Transitions back to `WAITING` (skipped if `LOCKED`/`SETTLED`).
-6. If `storage` is now empty and `settle()` was requested, transitions to `SETTLED`; otherwise calls `nextMessage()` again to continue the loop.
+6. Checks `storage`:
 
-A failing `onMessage` handler is logged and swallowed by the same hook wrapper described above - the element is still dequeued and the loop continues. `onMessage` owns its own retry policy; the queue itself never retries.
+| `storage` after step 5 | What happens |
+|---|---|
+| Empty, and `settle()` was requested | Transitions to `SETTLED` and stops |
+| Empty, and no `settle()` requested | Stops here. The queue idles until the next `enqueue()` |
+| Not empty | Calls `nextMessage()` to continue the loop immediately |
+
+A failing `onMessage` handler is logged and swallowed by the same hook wrapper described above. The element is still dequeued, and the loop continues. `onMessage` owns its own retry policy - the queue itself never retries.
 
 ### Methods
 
@@ -302,7 +327,7 @@ A failing `onMessage` handler is logged and swallowed by the same hook wrapper d
 
 `Source ->` [`packages/helpers/src/modules/queue/internal/hf/helper.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/queue/internal/hf/helper.ts)
 
-- **O(1) FIFO, not a job queue.** A generic, high-frequency, single-consumer primitive for enqueue, dequeue, and cancel - backed by an array plus a moving head index (no `Array.shift()`, which is O(n)).
+- **O(1) FIFO, not a job queue.** A generic, high-frequency, single-consumer primitive for enqueue, dequeue, and cancel. It's backed by an array plus a moving head index - never `Array.shift()`, which is O(n).
 - **No callbacks, no state machine, not thread-safe.** It is the low-level queue the pool helper's waiter list is built on, not a job-processing API.
 - **Reach for `SequentialQueueHelper` instead** unless you specifically need a bare FIFO with cancellable entries.
 
@@ -327,7 +352,7 @@ const remaining = queue.drain(); // remove + return every live value, emptying t
 | `cancel(opts)` | `void` | `opts: { node: IHfQueueNode<T> }`. Marks a queued node cancelled; idempotent. |
 | `drain()` | `T[]` | Removes and returns every remaining live value in FIFO order, emptying the queue. |
 
-Consumed entries are compacted out of the backing array once the consumed prefix exceeds 256 entries and covers at least half the array, keeping every operation amortized O(1).
+Consumed entries are compacted out of the backing array once the consumed prefix exceeds 256 entries and covers at least half the array. This keeps every operation amortized O(1).
 
 ## MQTTClientHelper
 
@@ -356,7 +381,7 @@ const client = new MQTTClientHelper({
 });
 ```
 
-The constructor calls `configure()` automatically, which connects via `mqtt.connect(url, options)`. Calling `configure()` again on an already-connected client is a no-op (logs and returns).
+The constructor calls `configure()` automatically, which connects via `mqtt.connect(url, options)`. Calling `configure()` again is a no-op (logs and returns) whenever `this.client` already exists - even if that client later disconnected without you calling `close()`.
 
 ### IMQTTClientOptions
 
@@ -372,13 +397,13 @@ The constructor calls `configure()` automatically, which connects via `mqtt.conn
 | `onClose` | `(error?: Error) => void` | - | Fired on the `'close'` event. |
 
 > [!NOTE]
-> At connect time, `MQTTClientHelper` logs the broker `url` through `redactUrlCredentials()` and `options` through `redactSecrets()`. A password embedded in the URL (`mqtts://user:hunter2@broker:8883`) never reaches the log - only `mqtts://user:[REDACTED]@broker:8883` does.
+> At connect time, `MQTTClientHelper` logs the broker `url` through `redactUrlCredentials()` and `options` through `redactSecrets()`. A password embedded in the URL (`mqtts://user:hunter2@broker:8883`) never reaches the log. Only `mqtts://user:[REDACTED]@broker:8883` does.
 
 ### Methods
 
 | Method | Returns | Description |
 |--------|---------|--------------|
-| `configure()` | `void` | Connects to the broker and wires `connect`/`disconnect`/`message`/`error`/`close` listeners. Called automatically by the constructor; a no-op if already connected. |
+| `configure()` | `void` | Connects to the broker and wires `connect`/`disconnect`/`message`/`error`/`close` listeners. Called automatically by the constructor. A no-op if `this.client` already exists. |
 | `getClient()` | `mqtt.MqttClient \| undefined` | The underlying MQTT.js client. |
 | `subscribe(opts)` | `Promise<string[]>` | `opts: { topics: string[] }`. Rejects with an `ApplicationError` (status 400) if the client is not connected. |
 | `publish(opts)` | `Promise<{ topic, message }>` | `opts: { topic: string; message: string \| Buffer }`. Rejects with an `ApplicationError` (status 400) if the client is not connected. |
@@ -388,7 +413,7 @@ The constructor calls `configure()` automatically, which connects via `mqtt.conn
 
 ### "Invalid queue name" / "Invalid worker name"
 
-**Cause:** `queueName` is empty when `BullMQHelper` configures a queue or worker. This is a **logged error, not a thrown exception** - `this.queue` / `this.worker` are simply never assigned.
+**Cause:** `queueName` is empty when `BullMQHelper` configures a queue or worker. This is a **logged error, not a thrown exception** - `this.queue` / `this.worker` are never assigned.
 
 **Fix:** Provide a non-empty `queueName`:
 
@@ -402,7 +427,9 @@ new BullMQHelper({ queueName: 'my-email-queue', role: 'queue', identifier: 'x', 
 
 ### "Invalid client role to configure"
 
-**Cause:** `role` is missing or not one of `'queue'` / `'worker'`. Logged, not thrown.
+**Cause:** `role` is missing or empty (falsy). Logged, not thrown.
+
+**Also watch for:** a `role` that IS a non-empty string but not `'queue'`/`'worker'` (a typo like `'Worker'`) triggers **no log at all**. `configure()` silently does nothing, and `this.queue`/`this.worker` both stay `undefined` - see [Configuration lifecycle](#configuration-lifecycle).
 
 **Fix:**
 
@@ -430,9 +457,9 @@ new MQTTClientHelper({ url: 'mqtt://localhost:1883', identifier: 'x', options: {
 
 **Checklist:**
 - `onMessage` must be provided - without it, the generator never initializes and nothing is ever processed.
-- Check `getState()` - a `LOCKED` queue accepts `enqueue()` but never processes; call `unlock({ shouldProcessNextElement: true })`.
-- Check `autoDispatch` - if `false`, call `nextMessage()` manually after each `enqueue()`.
-- Check `isSettled()` - a settled queue rejects new elements; construct a new instance.
+- Check `getState()`. A `LOCKED` queue accepts `enqueue()` but never processes. Call `unlock({ shouldProcessNextElement: true })` to resume.
+- Check `autoDispatch`. If it's `false`, call `nextMessage()` manually after each `enqueue()`.
+- Check `isSettled()`. A settled queue rejects new elements - construct a new instance instead.
 
 ## Import Reference
 

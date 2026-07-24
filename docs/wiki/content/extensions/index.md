@@ -1,47 +1,46 @@
 # Extensions
 
-Extensions are optional packages and built-in modules that add functionality on top of the IGNIS core framework. They are organized into two categories:
+Optional pieces you add on top of IGNIS core: components you register once, helpers you inject where you need them.
 
 ## Components
 
-Components are self-contained feature modules that plug into your application via the `this.component()` registration method. Each component encapsulates its own bindings, controllers, and configuration.
-
-| Component | Description | Key Features |
-| :--- | :--- | :--- |
-| [Authentication](./components/authentication/) | Identity verification | JWT, Basic, JWKS strategies |
-| [Authorization](./components/authorization/) | Access control | Casbin-based RBAC, per-route policies |
-| [Health Check](./components/health-check) | Liveness check | `GET /health`, `POST /health/ping` |
-| [Mail](./components/mail/) | Email delivery | Nodemailer, Mailgun, queue support |
-| [Request Tracker](./components/request-tracker) | Request tracing | `x-request-id` header, body parsing |
-| [Socket.IO](./components/socket-io/) | Real-time (Socket.IO) | Redis adapter, room-based messaging |
-| [Static Asset](./components/static-asset/) | File management | Upload/download, MinIO, Disk, BunS3 |
-| [Swagger](./components/api-reference) | API docs | OpenAPI UI, Swagger UI, Scalar UI |
-| [WebSocket](./components/websocket/) | Real-time (native) | Bun native WebSocket, encryption |
+| Component | What it does | When you reach for it |
+|---|---|---|
+| [Authentication](./components/authentication/) | Verifies who is calling - JWT, Basic, JWKS strategies | A route needs to know who the caller is |
+| [Authorization](./components/authorization/) | Casbin-based RBAC, per-route policies | A route needs a permission check beyond authentication |
+| [Health Check](./components/health-check) | `GET /health` and `POST /health/ping` | A load balancer or Kubernetes needs a liveness probe |
+| [Mail](./components/mail/) | Sends email via Nodemailer, Mailgun, or a queue | The app sends transactional or templated email |
+| [Request Tracker](./components/request-tracker) | Tags every request with an ID, logs method/path/timing | Always on - registered automatically, nothing to configure |
+| [Socket.IO](./components/socket-io/) | Real-time messaging over Socket.IO, Redis adapter | Clients need rooms or Socket.IO-specific features |
+| [Static Asset](./components/static-asset/) | Upload/download files - MinIO, disk, or Bun S3 | The app stores or serves user-uploaded files |
+| [API Reference](./components/api-reference) | Interactive OpenAPI docs, Scalar UI by default | You want a browsable UI for your REST routes |
+| [WebSocket](./components/websocket/) | Native Bun WebSocket, Redis pub/sub, heartbeat | Clients need a raw WebSocket without Socket.IO |
 
 ## Helpers
 
-Helpers are standalone utility classes for infrastructure concerns. They extend `BaseHelper` for scoped logging and are typically used via dependency injection.
+Every peer dependency below is optional. You install one only when you use the helper that needs it.
 
-| Helper | Description | Peer Dependencies |
-| :--- | :--- | :--- |
-| [Cron](./helpers/cron/) | Scheduled tasks | `cron` |
-| [Crypto](./helpers/crypto/) | Encryption/signing | Built-in |
-| [Environment](./helpers/env/) | Env var management | Built-in |
-| [Error](./helpers/error/) | Error utilities | Built-in |
-| [Inversion](./helpers/inversion/) | DI container | Built-in |
-| [Logger](./helpers/logger/) | Logging | `winston` |
-| [Network](./helpers/network/) | HTTP/TCP/UDP clients | `axios` (optional) |
-| [Kafka](./helpers/kafka/) | Kafka messaging | `@platformatic/kafka` |
-| [Queue](./helpers/queue/) | Job queues | `bullmq`, `mqtt` (optional) |
-| [Redis](./helpers/redis/) | Redis client | `ioredis` |
-| [Socket.IO](./helpers/socket-io/) | Socket.IO server | `socket.io` |
-| [Storage](./helpers/storage/) | File storage | `minio` (optional) |
-| [Types](./helpers/types/) | Shared types | Built-in |
-| [UID](./helpers/uid/) | Snowflake IDs | Built-in |
-| [WebSocket](./helpers/websocket/) | WebSocket server | Built-in |
-| [Worker Thread](./helpers/worker-thread/) | Worker pools | Built-in |
+| Helper | What it does | When you reach for it | Peer dependency |
+|---|---|---|---|
+| [Cron](./helpers/cron/) | Scheduled tasks | You run code on a cron schedule | `cron` |
+| [Crypto](./helpers/crypto/) | Encryption and signing | You hash, encrypt, or sign data | None |
+| [Environment](./helpers/env/) | Env var management | You need typed, validated env var access | None |
+| [Error](./helpers/error/) | Error utilities | You throw or handle an error | None |
+| [Inversion](./helpers/inversion/) | DI container | You build custom bindings or providers | None |
+| [Logger](./helpers/logger/) | Logging | You need scoped, leveled logging | `winston` or `pino` |
+| [Network](./helpers/network/) | HTTP/TCP/UDP clients | You call another service over HTTP, TCP, or UDP | `axios`, for the Axios client only |
+| [Kafka](./helpers/kafka/) | Kafka messaging | You publish or consume Kafka topics | `@platformatic/kafka` |
+| [Queue](./helpers/queue/) | Job queues | You need background or delayed work | `bullmq` or `mqtt` |
+| [Redis](./helpers/redis/) | Redis client | You need a Redis connection - cache, pub/sub, locks | None - `ioredis` ships with the package |
+| [Secrets](./helpers/secrets/) | Secret loading and rotation | You read secrets from Vault, dotenv, or the environment | `node-vault` or `@dotenvx/dotenvx` |
+| [Socket.IO](./helpers/socket-io/) | Socket.IO server | You build a custom real-time feature | `socket.io` |
+| [Storage](./helpers/storage/) | File storage | You read/write files to MinIO or disk directly | `minio`, for the MinIO backend only |
+| [Types](./helpers/types/) | Shared types | You need IGNIS's shared TypeScript utility types | None |
+| [UID](./helpers/uid/) | Snowflake IDs | You need unique, sortable IDs | None |
+| [WebSocket](./helpers/websocket/) | WebSocket server | You build a custom real-time feature | None |
+| [Worker Thread](./helpers/worker-thread/) | Worker pools | You move CPU-heavy work off the main thread | None |
 
-## See Also
+## See also
 
-- [Core API](/references/) -- Base framework abstractions
-- [Guides](/guides/) -- Getting started and tutorials
+- [Core API](/references/) - Base framework abstractions
+- [Guides](/guides/) - Getting started and tutorials

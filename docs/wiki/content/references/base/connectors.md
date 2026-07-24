@@ -6,13 +6,13 @@ difficulty: intermediate
 
 # Connectors
 
-A connector is how IGNIS adds a storage engine - PostgreSQL, Typesense, Meilisearch - behind one engine-neutral contract, so `DataSource`, `Entity`, and `Repository` mean the same thing no matter which engine backs them.
+A connector is how IGNIS adds a storage engine - PostgreSQL, Typesense, Meilisearch - behind one engine-neutral contract. `DataSource`, `Entity`, and `Repository` mean the same thing no matter which engine backs them.
 
-"A connector" (this page) means an engine-integration module; "the connector" means the Drizzle instance exposed as `this.connector` on a datasource or repository - the two senses are unrelated despite the shared word.
+"A connector" (this page) means an engine-integration module. "The connector" means the Drizzle instance exposed as `this.connector` on a datasource or repository. The two senses are unrelated despite the shared word.
 
 ## In one example
 
-The neutral `AbstractDataSource` has no SQL, no pool, no Drizzle - the postgres connector's `BasePostgresDataSource` adds all of that, and `@datasource({ driver })` names the concrete client class:
+The neutral `AbstractDataSource` has no SQL, no pool, no Drizzle. The postgres connector's `BasePostgresDataSource` adds all of that, and `@datasource({ driver })` names the concrete client class:
 
 ```typescript
 import { Pool } from 'pg';
@@ -60,9 +60,9 @@ A Typesense datasource follows the same shape but extends the search connector's
 | **postgres** (`connectors/postgres`) | `pool`, Drizzle `connector`, SQL-shaped `TWhere`/`TFilter`, real transactions with isolation levels | `{ transactions: true }` |
 | **search** (`connectors/search`) | Engine-neutral search base - no SQL, no transactions. Both typesense and meilisearch extend it (not `AbstractDataSource` directly), sharing one query-dialect and capability shape | inherited neutral default |
 
-- **`@datasource({ driver })` picks the concrete client, within an engine.** Postgres takes a driver **class** (`NodePostgresDriver` or `PostgresJsDriver`), never a driver-name string - a bundler packages values, not text, so a string would leave the peer dependency uninstalled.
+- **`@datasource({ driver })` picks the concrete client, within an engine.** Postgres takes a driver **class** (`NodePostgresDriver` or `PostgresJsDriver`), never a driver-name string. A bundler packages values, not text, so a string would leave the peer dependency uninstalled.
 - **All engine clients stay optional peer dependencies.** Importing `@venizia/ignis/postgres` alone loads zero client libraries.
-- **Search connectors are subpath-only.** `@venizia/ignis/typesense` and `@venizia/ignis/meilisearch` are excluded from the root `@venizia/ignis` barrel, so an app that never touches search never pulls a search client into its bundle.
+- **Search connectors are subpath-only.** `@venizia/ignis/typesense` and `@venizia/ignis/meilisearch` are excluded from the root `@venizia/ignis` barrel. An app that never touches search never pulls a search client into its bundle.
 
 **Canonical names and aliases**
 
@@ -98,9 +98,9 @@ import { MeilisearchDataSource } from '@venizia/ignis/meilisearch';
 
 ### Add a new engine connector
 
-- **Mirror the shape.** Under `src/connectors/<engine>/`: a `datasources/` extending `AbstractDataSource`, a `models/` extending `AbstractEntity` (if the engine needs entity definitions), and a `repositories/core/` extending `AbstractRepository` with a `Readable`/`Persistable`/`DefaultCRUD`-style tier ladder.
+- **Mirror the shape.** Under `src/connectors/<engine>/`, add a `datasources/` extending `AbstractDataSource` and a `repositories/core/` extending `AbstractRepository` with a `Readable`/`Persistable`/`DefaultCRUD`-style tier ladder. Add a `models/` extending `AbstractEntity` too, if the engine needs entity definitions.
 - **Override transactions only if supported.** Override `getCapabilities()` and `beginTransaction()` only if the engine truly supports transactions - otherwise inherit the neutral `NotSupported` default.
-- **Export as a subpath.** Add the connector to `package.json` `exports` as `./<engine>`; if its driver is an optional peer dependency, keep it out of `connectors/index.ts` and register it as a subpath-only export instead, mirroring typesense and meilisearch.
+- **Export as a subpath.** Add the connector to `package.json` `exports` as `./<engine>`. If its driver is an optional peer dependency, keep it out of `connectors/index.ts` and register it as a subpath-only export instead, mirroring typesense and meilisearch.
 
 ## See also
 

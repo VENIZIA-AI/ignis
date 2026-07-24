@@ -18,13 +18,13 @@ Exhaustive reference for the worker-thread classes, every constructor option, ev
 
 ## Quick Reference
 
-| Class | Extends | Use Case |
+| Class | Extends | Use case |
 |-------|---------|----------|
-| `WorkerPoolHelper` | `BaseHelper` | Singleton registry that tracks and limits active worker instances |
-| `BaseWorkerHelper<MessageType>` | `AbstractWorkerHelper<MessageType>` | Wraps a `Worker` with event lifecycle hooks (online, exit, error, message) |
-| `BaseWorkerThreadHelper` | `AbstractWorkerThreadHelper` | Runs inside a worker thread; manages named `WorkerBus` channels |
-| `BaseWorkerBusHelper<IC, IP>` | `AbstractWorkerBusHelper<IC, IP>` | Bidirectional `MessagePort` communication with pre/post hooks |
-| `BaseWorkerMessageBusHandlerHelper<IC>` | `AbstractWorkerMessageBusHandlerHelper<IC>` | Defines event handlers for a worker bus (message, close, error, exit) |
+| [`WorkerPoolHelper`](#workerpoolhelper) | `BaseHelper` | Singleton registry that tracks and limits active worker instances |
+| [`BaseWorkerHelper<MessageType>`](#baseworkerhelper-main-thread-worker-wrapper) | `AbstractWorkerHelper<MessageType>` | Wraps a `Worker` with event lifecycle hooks - online, exit, error, message |
+| [`BaseWorkerThreadHelper`](#baseworkerthreadhelper-inside-a-worker-thread) | `AbstractWorkerThreadHelper` | Runs inside a worker thread. Manages named `WorkerBus` channels |
+| [`BaseWorkerBusHelper<IConsumePayload, IPublishPayload>`](#baseworkerbushelper-messageport-communication) | `AbstractWorkerBusHelper<IConsumePayload, IPublishPayload>` | Bidirectional `MessagePort` communication with pre/post hooks |
+| [`BaseWorkerMessageBusHandlerHelper<IConsumePayload>`](#baseworkermessagebushandlerhelper) | `AbstractWorkerMessageBusHandlerHelper<IConsumePayload>` | Defines event handlers for a worker bus - message, close, error, exit |
 
 | Item | Value |
 |------|-------|
@@ -72,7 +72,7 @@ const customPool = new WorkerPoolHelper({ ignoreMaxWarning: true });
 ```
 
 > [!NOTE]
-> `WorkerPoolHelper.getInstance()` always creates the singleton with `ignoreMaxWarning: false`. To override this behavior, construct a new instance manually - the singleton and a manually-constructed instance are independent registries.
+> `WorkerPoolHelper.getInstance()` always creates the singleton with `ignoreMaxWarning: false`. To override this, construct a new instance manually. The singleton and a manually-constructed instance are independent registries.
 
 ### Constructor options
 
@@ -85,7 +85,7 @@ const customPool = new WorkerPoolHelper({ ignoreMaxWarning: true });
 | Method | Signature | Description |
 |--------|-----------|-------------|
 | `getInstance` | `static getInstance(): WorkerPoolHelper` | Returns the singleton pool instance (creates one with `ignoreMaxWarning: false` if needed) |
-| `register` | `register<MessageType>(opts: { key: string; worker: IWorker<MessageType> }): boolean` | Adds a worker to the pool. Returns `false` and logs instead of registering if the key already exists or the pool is at the CPU limit |
+| `register` | `register<MessageType>(opts: { key: string; worker: IWorker<MessageType> }): boolean` | Adds a worker to the pool. Returns `false` and logs, without registering, if the key exists or the pool is full |
 | `unregister` | `async unregister(opts: { key: string }): Promise<void>` | Terminates the worker (`worker.terminate()`) and removes it from the pool. The registry entry is deleted even if termination throws |
 | `get` | `get<MessageType>(opts: { key: string }): IWorker<MessageType> \| undefined` | Retrieves a registered worker by key |
 | `has` | `has(opts: { key: string }): boolean` | Checks if a worker is registered under the given key |
@@ -138,9 +138,9 @@ const worker = new BaseWorkerHelper<MyMessageType>({
 
 | Method | Signature | Description |
 |--------|-----------|-------------|
-| `binding` | `binding(): void` | Binds all five event handlers (`online`, `exit`, `error`, `message`, `messageerror`) to the internal `Worker` instance. Called automatically by the constructor. Throws `[binding] Invalid worker instance to bind event handlers` if `this.worker` is falsy |
+| `binding` | `binding(): void` | Binds all five event handlers to the internal `Worker` instance. Called automatically by the constructor. Throws `[binding] Invalid worker instance to bind event handlers` if `this.worker` is falsy |
 
-Every handler runs through `invokeHook`, which wraps the call in a `try/catch`: a synchronous throw inside a user handler is caught and logged (`"Hook execution FAILED | Error: %s"`) rather than crashing the process. Async rejections are settled the same way via `voidExecution`.
+Every handler runs through `invokeHook`, which wraps the call in a `try/catch`. A synchronous throw inside a user handler is caught and logged as `"Hook execution FAILED | Error: %s"`, rather than crashing the process. Async rejections are settled the same way, via `voidExecution`.
 
 ### AbstractWorkerHelper (subclassing)
 
@@ -155,7 +155,7 @@ class CustomWorker extends AbstractWorkerHelper<MyMessage> {
   }
 
   onExit(opts: { code: string | number }) {
-    // Custom exit handling, e.g., restart logic
+    // Custom exit handling - for example, restart logic
   }
 
   onError(opts: { error: Error }) {
@@ -172,13 +172,13 @@ class CustomWorker extends AbstractWorkerHelper<MyMessage> {
 }
 ```
 
-`AbstractWorkerHelper<MessageType>` declares `worker: Worker`, `options: WorkerOptions`, and the five abstract lifecycle methods above; it does not implement `binding()` itself.
+`AbstractWorkerHelper<MessageType>` declares `worker: Worker`, `options: WorkerOptions`, and the five abstract lifecycle methods above. It does not implement `binding()` itself.
 
 ## BaseWorkerThreadHelper (inside a worker thread)
 
 `Source ->` [`base.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/worker-thread/base.ts)
 
-Used inside a worker script to manage named communication buses. Must be instantiated from within a worker thread - constructing it on the main thread throws.
+Used inside a worker script to manage named communication buses. Must be instantiated from within a worker thread. Constructing it on the main thread throws.
 
 ```typescript
 // Inside worker-script.js
@@ -203,7 +203,7 @@ The constructor checks `isMainThread` (from `node:worker_threads`) and throws `[
 | `unbindWorkerBus` | `unbindWorkerBus(opts: { key: string }): void` | Calls `port.removeAllListeners()` on the bus's port, then deletes it from the registry. Logs a warning if the key is not found |
 | `getWorkerBus` | `getWorkerBus<IC, IP>(opts: { key: string }): IWorkerBus<IC, IP>` | Returns the bus for the given key. Throws `[getWorkerBus] Not found worker bus | key: {key}` if not found |
 
-`unbindWorkerBus` is defined only on `BaseWorkerThreadHelper`, not on the `AbstractWorkerThreadHelper` interface - `AbstractWorkerThreadHelper` declares `buses`, `bindWorkerBus`, and `getWorkerBus` as abstract.
+`unbindWorkerBus` is defined only on `BaseWorkerThreadHelper`, not on the `AbstractWorkerThreadHelper` interface. `AbstractWorkerThreadHelper` declares `buses`, `bindWorkerBus`, and `getWorkerBus` as abstract members only.
 
 ## BaseWorkerMessageBusHandlerHelper
 
@@ -259,17 +259,17 @@ const bus = new BaseWorkerBusHelper<IncomingMessage, OutgoingMessage>({
 | `port` | `MessagePort` | - | The `MessagePort` to bind for communication. Required. |
 | `busHandler` | `IWorkerMessageBusHandler<IConsumePayload>` | - | Handler that receives incoming messages and lifecycle events. Required. |
 
-The constructor binds `message`, `error`, `messageerror`, `exit`, and `close` listeners on `port`, each routed through the handler's matching callback (`error` and `messageerror` both call `handler.onError`).
+The constructor binds `message`, `error`, `messageerror`, `exit`, and `close` listeners on `port`. Each routes to the handler's matching callback. `error` and `messageerror` both route to `handler.onError`.
 
 ### Methods
 
 | Method | Signature | Description |
 |--------|-----------|-------------|
-| `postMessage` | `postMessage(opts: { message: IPublishPayload; transferList: readonly Transferable[] \| undefined }): ValueOrPromise<void>` | Sends a message through the port. If `transferList` is provided, calls `port.postMessage(message, [...transferList])`; otherwise `port.postMessage(message)`. Logs and returns (does not throw) if `port` is falsy |
+| `postMessage` | `postMessage(opts: { message: IPublishPayload; transferList: readonly Transferable[] \| undefined }): ValueOrPromise<void>` | Sends a message through the port. Calls `port.postMessage(message, [...transferList])` if `transferList` is set, otherwise `port.postMessage(message)`. Logs and returns, without throwing, if `port` is falsy |
 
 ### Pre/post message hooks
 
-`onBeforePostMessage` and `onAfterPostMessage` are optional properties declared on the class but left `undefined` by the constructor - assign them after construction:
+`onBeforePostMessage` and `onAfterPostMessage` are optional properties declared on the class. The constructor leaves them `undefined`. Assign them yourself, after construction:
 
 ```typescript
 bus.onBeforePostMessage = opts => {
@@ -281,7 +281,7 @@ bus.onAfterPostMessage = opts => {
 };
 ```
 
-`postMessage` invokes `onBeforePostMessage` (if set) before the port write and `onAfterPostMessage` (if set) after, both through the same `try/catch`-wrapped `invokeHook` used for the port event listeners.
+`postMessage` invokes `onBeforePostMessage` before the port write, if set. It invokes `onAfterPostMessage` after the write, if set. Both hooks run through the same `try/catch`-wrapped `invokeHook` used for the port event listeners.
 
 ### Sending transferable objects
 
@@ -390,9 +390,9 @@ const bus = thread.getWorkerBus({ key: 'my-bus' });
 
 ### "Failed to post message to main | Invalid parentPort!"
 
-**Cause:** `BaseWorkerBusHelper.postMessage()` was called but the `port` property is falsy. This typically means the bus was constructed with an invalid `MessagePort`. This is logged at error level, not thrown - the message is silently dropped.
+**Cause:** `BaseWorkerBusHelper.postMessage()` was called but the `port` property is falsy. This typically means the bus was constructed with an invalid `MessagePort`. This is logged at error level, not thrown. The message is silently dropped.
 
-**Fix:** Ensure a valid `MessagePort` (e.g., `parentPort` from `node:worker_threads` or a port from `new MessageChannel()`) is passed to the constructor:
+**Fix:** Ensure a valid `MessagePort` is passed to the constructor - for example `parentPort` from `node:worker_threads`, or a port from `new MessageChannel()`:
 
 ```typescript
 import { parentPort } from 'node:worker_threads';

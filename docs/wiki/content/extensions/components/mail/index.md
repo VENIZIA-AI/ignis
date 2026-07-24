@@ -6,7 +6,7 @@ difficulty: intermediate
 
 # Mail Component
 
-`MailComponent` wires a pluggable email transport (Nodemailer, Mailgun, or your own) into `MailService`, adding template rendering, batch sending, and an independent queue executor for verification-code/token flows.
+`MailComponent` wires a pluggable email transport (Nodemailer, Mailgun, or your own) into `MailService`. It adds template rendering, batch sending, and an independent queue executor for verification-code/token flows.
 
 ## In one example
 
@@ -54,12 +54,25 @@ export class UserService extends BaseService {
 
 ## How it works
 
-- **One required binding.** `MailComponent.binding()` throws `Mail options not configured` if `MailKeys.MAIL_OPTIONS` is not bound before registration. Every other binding -- queue executor config, verification generators -- is optional with a working default.
-- **Transport is a discriminated union.** `TMailOptions.provider` selects `NodemailerTransportHelper`, `MailgunTransportHelper`, or a `custom` object you supply that implements `IMailTransport` (`send()` + `verify()`). `MailTransportProvider` is the factory that switches on it and throws for an unsupported provider string.
-- **`MailService` is the one sending entry point.** `send()`, `sendBatch()`, `sendTemplate()`, and `verify()` all validate first, then call the transport directly and synchronously, then normalize failures into `MailErrorCodes`. A validation error (400) passes through unchanged; only a throwing transport gets wrapped as `SEND_FAILED` (500) -- the built-in Nodemailer and Mailgun transports never throw, they return `{ success: false, error }` instead.
-- **The queue executor is a separate subsystem, not a mail queue.** `IMailQueueExecutor` (`direct` / `internal-queue` / `bullmq`) only exposes `enqueueVerificationEmail()` and `setProcessor()` -- it never touches `MailService`. You must call `setProcessor()` with your own function (typically one that calls `mailService.send()` internally) before `enqueueVerificationEmail()` does anything.
-- **Templates are a simple substitution engine.** `TemplateEngineService` stores templates in an in-memory `Map` and replaces <code v-pre>{{variable}}</code> placeholders (dot-notation for nested values). A missing value is logged and left as the literal placeholder text, not blanked out.
-- **Startup logging never leaks credentials.** `MailComponent` logs only `mailOptions.provider` and `queueExecutorConfig.type` -- never the SMTP password, OAuth2 secret, API key, or Redis password nested inside them.
+- **One required binding.** `MailComponent.binding()` throws `Mail options not configured` if `MailKeys.MAIL_OPTIONS` is not bound before registration. Every other binding is optional, with a working default: queue executor config, verification generators, and more.
+
+- **Transport is a discriminated union.** `TMailOptions.provider` picks the transport class:
+
+  | `provider` | Class |
+  |---|---|
+  | `nodemailer` | `NodemailerTransportHelper` |
+  | `mailgun` | `MailgunTransportHelper` |
+  | `custom` | Your own object, implementing `IMailTransport` (`send()` + `verify()`) |
+
+  `MailTransportProvider` is the factory that switches on the provider. It throws for an unsupported provider string.
+
+- **`MailService` is the one sending entry point.** `send()`, `sendBatch()`, `sendTemplate()`, and `verify()` all validate first, then call the transport directly, then normalize failures into `MailErrorCodes`. A validation error (400) passes through unchanged. Only a throwing transport gets wrapped as `SEND_FAILED` (500). The built-in Nodemailer and Mailgun transports never throw. They return `{ success: false, error }` instead.
+
+- **The queue executor is a separate subsystem, not a mail queue.** `IMailQueueExecutor` (`direct` / `internal-queue` / `bullmq`) only exposes `enqueueVerificationEmail()` and `setProcessor()`. It never touches `MailService`. Before you call `enqueueVerificationEmail()`, call `setProcessor()` with your own function - typically one that wraps `mailService.send()`.
+
+- **Templates are a simple substitution engine.** `TemplateEngineService` stores templates in an in-memory `Map`. It replaces <code v-pre>{{variable}}</code> placeholders, with dot-notation for nested values. A missing value is logged and left as the literal placeholder text, not blanked out.
+
+- **Startup logging never leaks credentials.** `MailComponent` logs only `mailOptions.provider` and `queueExecutorConfig.type`. It never logs the SMTP password, OAuth2 secret, API key, or Redis password nested inside them.
 
 ## Common tasks
 

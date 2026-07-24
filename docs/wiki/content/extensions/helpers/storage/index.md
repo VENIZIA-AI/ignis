@@ -10,7 +10,7 @@ Storage gives you one file-storage interface with interchangeable backends for S
 
 ## In one example
 
-`DiskHelper` needs no external server, so it is the fastest way to see the shape of the API - create a bucket, upload a file, get a link back.
+`DiskHelper` needs no external server, so it's the fastest way to see the shape of the API. Create a bucket, upload a file, get a link back.
 
 ```typescript
 import { DiskHelper } from '@venizia/ignis-helpers';
@@ -39,12 +39,14 @@ console.log(result);
 
 ## How it works
 
-- **`BaseStorageHelper` owns the shared logic.** It's an abstract class implementing `IStorageHelper` - name/path validation, MIME type detection, and the `upload()` orchestration itself (check the bucket exists, validate every file, write in parallel). Each backend only supplies two protected hooks: `defaultLinkPrefix` and `writeObject()`.
-- **Everything else is per-backend.** `isBucketExists`, `getBuckets`, `createBucket`, `getFile`, `getStat`, `removeObject`, `listObjects`, and the rest of `IStorageHelper` are implemented independently per backend - a filesystem `stat()` and a MinIO `statObject()` share nothing beyond the return shape.
+- **`BaseStorageHelper` owns the shared logic.** It's an abstract class implementing `IStorageHelper`: name/path validation, MIME type detection, and the `upload()` orchestration itself. Each backend only supplies two protected hooks: `defaultLinkPrefix` and `writeObject()`.
+- **Everything else is per-backend.** `isBucketExists`, `getBuckets`, `createBucket`, `getFile`, `getStat`, `removeObject`, `listObjects`, and the rest of `IStorageHelper` are implemented independently per backend. A filesystem `stat()` and a MinIO `statObject()` share nothing beyond the return shape.
 - **The three backends are interchangeable.** Write services against `IStorageHelper`, not a concrete class, and swap backends by construction only.
-- **`MemoryStorageHelper` is unrelated.** A standalone generic key-value store for in-process caching, extending `BaseHelper` directly - no bucket or file concept.
-- **Every write path is validated first.** `originalName` and `folderPath` run through `isValidName()`/`isValidPath()` before touching the filesystem or object store, rejecting path traversal (`../`), shell-injection characters, hidden files, and folder nesting beyond `maxFolderDepth` (default `2`). The same check re-runs on whatever a custom `normalizeNameFn` returns, so a traversal payload smuggled back from application code is rejected too.
-- **Two backends stay optional.** `MinioHelper` and `BunS3Helper` live behind separate sub-path exports, so apps that only need `DiskHelper` or `MemoryStorageHelper` don't pull in the `minio` package or require the Bun runtime.
+- **`MemoryStorageHelper` is unrelated.** It's a standalone generic key-value store for in-process caching, extending `BaseHelper` directly - no bucket or file concept.
+- **Every write path is validated first.** `originalName` and `folderPath` run through `isValidName()`/`isValidPath()` before touching the filesystem or object store.
+- **Validation blocks four kinds of bad input:** path traversal (`../`), shell-injection characters, hidden files, and folder nesting beyond `maxFolderDepth` (default `2`).
+- **A custom `normalizeNameFn` doesn't get a free pass.** Its output runs through the same check, so a traversal payload smuggled back from application code is rejected too.
+- **Two backends stay optional.** `MinioHelper` and `BunS3Helper` live behind separate sub-path exports. Apps that only need `DiskHelper` or `MemoryStorageHelper` don't pull in the `minio` package or require the Bun runtime.
 
 **Backends**
 
@@ -124,7 +126,8 @@ import type { IStorageHelper, IUploadFile } from '@venizia/ignis-helpers';
 class FileService {
   constructor(private storage: IStorageHelper) {}
 
-  uploadFile(bucket: string, file: IUploadFile) {
+  uploadFile(opts: { bucket: string; file: IUploadFile }) {
+    const { bucket, file } = opts;
     return this.storage.upload({ bucket, files: [file] });
   }
 }

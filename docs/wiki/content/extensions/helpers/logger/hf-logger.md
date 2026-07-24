@@ -6,16 +6,22 @@ difficulty: advanced
 
 # HfLogger - High-Frequency Logging Guide
 
-`HfLogger` is a fixed-layout ring-buffer logger for hot paths where even the standard `Logger` is too expensive. A log call writes a 256-byte binary entry into a lazily-allocated buffer - no string formatting, no transport I/O, no per-call allocation on the fast path - and a separate `HfLogFlusher` drains entries later, off the hot path.
+`HfLogger` is a fixed-layout ring-buffer logger for hot paths where even the standard `Logger` is too expensive. A log call writes a 256-byte binary entry into a lazily-allocated buffer. Nothing runs on the fast path: no string formatting, no transport I/O, no per-call allocation. A separate `HfLogFlusher` drains entries later, off the hot path.
 
-It implements `ILogger` (`AbstractLogger`), so it is a drop-in replacement anywhere an `ILogger` is expected - a direct method for every level (`debug`, `info`, `warn`, `error`, `emerg`), plus `log` and `for`, all work. It is still entirely separate from the Winston-backed `Logger` pipeline: no formatters, no transports, no `APP_ENV_LOGGER_*` variables apply to it. It trades that pipeline away for enqueue speed - measured at 59.4ns/op on the bytes path and 66.0ns/op on the string no-args path on a modern machine (Bun 1.3.14, 1M-iteration median), against 831ns/op for pino writing to `/dev/null` on the same machine - roughly 14x faster.
+It implements `ILogger` (`AbstractLogger`), so it's a drop-in replacement anywhere an `ILogger` is expected. Every level method works - `debug`, `info`, `warn`, `error`, `emerg`, plus `log` and `for`. But it stays entirely separate from the Winston-backed `Logger` pipeline: no formatters, no transports, no `APP_ENV_LOGGER_*` variables apply to it.
+
+That separation buys enqueue speed - roughly 14x faster than pino on the same machine. See [Performance characteristics](#performance-characteristics) below for the measured numbers.
 
 > [!IMPORTANT]
 > Reach for `HfLogger` only when a profiler shows logging itself in your hot path - order engines, market-data ticks, per-packet paths at 100k+ events/sec. For everything else, the standard scoped `Logger` is the right tool: it formats, redacts, rotates files, and ships UDP. Most services never need this module.
 
 ## Mental model
 
-One ring buffer per process holds 65,536 entries of 256 bytes each (16MB), allocated lazily on the first `HfLogger.get()` call - not at module import. Writers stamp entries in; the ring never blocks and never grows. When the ring is full, the NEXT write overwrites the OLDEST entry - the buffer trades completeness for a bounded, allocation-free hot path, and the flusher now counts and reports every entry it overwrites before it could be read (see "Lap accounting" below).
+One ring buffer per process holds 65,536 entries of 256 bytes each - 16MB total. It allocates lazily, on the first `HfLogger.get()` call, never at module import.
+
+Writers stamp entries in. The ring never blocks and never grows.
+
+When the ring is full, the next write overwrites the oldest entry. The buffer trades completeness for a bounded, allocation-free hot path. But every overwrite is counted and reported, never silent - see [Lap accounting](#lap-accounting) below.
 
 **Entry layout (256 bytes):**
 
@@ -28,7 +34,9 @@ One ring buffer per process holds 65,536 entries of 256 bytes each (16MB), alloc
 | 42 | 1 byte | Message length (0-213) |
 | 43-255 | 213 bytes | Message bytes |
 
-The two length bytes are what make reads exact: the flusher decodes only the bytes a field actually holds, never the fixed-width remainder, so there is no NUL padding and no stale tail leaking from whatever a reused slot last held. Because entries are fixed-width binary, everything you log must fit the layout: scopes at most 32 bytes, messages at most 213 bytes. Anything longer is truncated, not rejected.
+The two length bytes are what make reads exact. The flusher decodes only the bytes a field actually holds, never the fixed-width remainder. So there's no NUL padding, no stale tail leaking from whatever a reused slot last held.
+
+Because entries are fixed-width binary, everything you log must fit the layout above. Anything longer than the scope or message cap is truncated, not rejected.
 
 ## Setup - everything happens at initialization time
 
@@ -60,7 +68,7 @@ orderLogger.log('error', MSG_ORDER_REJECTED);
 ```
 
 ```typescript
-// -- Or drain manually (e.g. at a batch boundary or before shutdown) --
+// -- Or drain manually (for example, at a batch boundary or before shutdown) --
 await flusher.flush();
 
 // -- And stop the interval when the logger is no longer needed --
@@ -69,7 +77,7 @@ flusher.stop();
 
 ## The ILogger surface - and its cost model
 
-`HfLogger` implements the same `ILogger` methods as the standard `Logger`, so it can be typed and passed around as `ILogger`. But each method sits on a different point of the cost curve, and picking the right one is the whole point of this module:
+`HfLogger` implements the same `ILogger` methods as the standard `Logger`, so it can be typed and passed around as `ILogger`. But each method sits on a different point of the cost curve. Picking the right one is the whole point of this module:
 
 ```typescript
 import { HfLogger } from '@venizia/ignis-helpers';
@@ -98,19 +106,33 @@ const MSG_ORDER_SENT = HfLogger.encodeMessage('Order sent');
 logger.log('info', MSG_ORDER_SENT);
 ```
 
-Rule of thumb: pre-encode and call the bytes overload for anything on a per-event, per-tick, per-packet path. Reach for the no-args string call when the message is a small fixed set of facts you did not think to pre-encode. Reach for the args form only off the true hot path - it is correct (nothing is ever silently dropped), just not free.
+Rule of thumb:
+
+| When | Use | Cost |
+|---|---|---|
+| A per-event, per-tick, per-packet path | Pre-encode, then call the bytes overload | ~59ns/op |
+| A small fixed set of facts you didn't pre-encode | The no-args string call | ~66ns/op |
+| Off the true hot path only | The args form (dynamic `%s` data) | Correct - nothing is ever silently dropped - but not free |
 
 ## The rules that keep it fast and correct
 
-**1. Never encode in the hot path.** `HfLogger.encodeMessage` (and the no-args string call, which shares the same cache) remembers every distinct string it sees. The cache is FIFO-bounded at 4096 entries - calling it with dynamic strings (`encodeMessage('order ' + id)`) still puts UTF-8 encoding on your hot path and now evicts the oldest cached message once you cross the cap, corrupting the fixed vocabulary you rely on elsewhere. If a value varies per event, it does not belong in an `HfLogger` message; log the static fact here and the variable detail through the standard `Logger` at a lower frequency, or use the args form off the hot path.
+**1. Never encode in the hot path.** `HfLogger.encodeMessage` remembers every distinct string it sees. So does the no-args string call, since it shares the same cache. That cache is FIFO-bounded at 4096 entries.
 
-**2. A fixed vocabulary of messages.** The design point of the bytes path is a finite set of pre-encoded facts ("Order sent", "Tick received", "Risk check failed"). If you find yourself needing free-form text on the hot path, you are in the wrong module - or you want the args form, off the hot path.
+Calling it with dynamic strings (`encodeMessage('order ' + id)`) still puts UTF-8 encoding on your hot path. Worse, it evicts the oldest cached message once you cross the cap - corrupting the fixed vocabulary you rely on elsewhere.
 
-**3. Size the flush interval against your write rate.** The ring holds 65,536 entries. If more entries than that are written between two flushes, the oldest unflushed entries are overwritten - and the flusher now reports exactly how many via `dropped` on the sink batch (see below) instead of silently emitting stale data. Pick the interval so that `writeRate x interval < 65,536` with comfortable margin: at 100k logs/sec, a 100ms interval accumulates ~10k entries per drain - safe; at 1M logs/sec you need ~30ms or faster.
+If a value varies per event, it doesn't belong in an `HfLogger` message. Log the static fact here, and the variable detail through the standard `Logger` at a lower frequency. Or use the args form, off the hot path.
 
-**4. One process, one thread.** `HfLogger` is safe only on a single thread within a single process - the write index is a plain counter, not shared or atomic. Do not log to it from worker threads; each worker importing the module gets its own independent ring, and nothing coordinates them. This is a documented design point, not an accident.
+**2. A fixed vocabulary of messages.** The design point of the bytes path is a finite set of pre-encoded facts ("Order sent", "Tick received", "Risk check failed"). If you find yourself needing free-form text on the hot path, you're in the wrong module. Or you want the args form, off the hot path.
 
-**5. Flush before shutdown.** Entries live only in memory. An exiting process loses everything not yet flushed - call `await flusher.flush()` in your shutdown path, and `flusher.stop()` to clear the interval.
+**3. Size the flush interval against your write rate.** The ring holds 65,536 entries. Write more than that between two flushes, and the oldest unflushed entries get overwritten. The flusher reports exactly how many via `dropped` on the sink batch - never silently (see below).
+
+Pick the interval so `writeRate x interval < 65,536`, with comfortable margin. At 100k logs/sec, a 100ms interval accumulates ~10k entries per drain - safe. At 1M logs/sec, you need ~30ms or faster.
+
+**4. One process, one thread.** `HfLogger` is safe only on a single thread within a single process. The write index is a plain counter - not shared, not atomic.
+
+Don't log to it from worker threads. Each worker that imports the module gets its own independent ring, and nothing coordinates them. This is a documented design point, not an accident.
+
+**5. Flush before shutdown.** Entries live only in memory. An exiting process loses everything not yet flushed. Call `await flusher.flush()` in your shutdown path, and `flusher.stop()` to clear the interval.
 
 ## The flusher
 
@@ -136,7 +158,7 @@ const customFlusher = new HfLogFlusher({
 });
 
 flusher.start(100); // interval-based draining, unref'd so it never blocks process exit
-await flusher.flush(); // one-shot drain, e.g. before shutdown
+await flusher.flush(); // one-shot drain, for example before shutdown
 flusher.stop(); // clears the interval; start() again to resume
 ```
 
@@ -150,24 +172,24 @@ A rendered line looks like this:
 
 ### Lap accounting
 
-Every batch the flusher hands to its sink carries `dropped: number` - the count of entries overwritten by the ring before the flusher could read them since the previous batch. The default sink emits a `warn` marker line ahead of the batch when `dropped > 0`:
+Every batch the flusher hands to its sink carries `dropped: number`. That's the count of entries the ring overwrote before the flusher could read them, since the previous batch. The default sink emits a `warn` marker line ahead of the batch when `dropped > 0`:
 
 ```
 2026-07-18T09:41:03.200Z [warn] HfLogFlusher ring lapped - 342 entries overwritten before they could be read
 ```
 
-A custom `sink` gets the same `dropped` count on `batch.dropped` and decides how to surface it. This replaces the old silent behavior where a lapped ring simply emitted whatever currently sat in each slot.
+A custom `sink` gets the same `dropped` count on `batch.dropped` and decides how to surface it. This replaces the old silent behavior, where a lapped ring emitted whatever currently sat in each slot with no warning.
 
 ## Current limitations
 
 These are real behaviors of the current implementation - design around them:
 
-- **Single-thread only.** The write index is not shared or atomic across threads; each worker thread importing the module gets an independent ring. Do not log to `HfLogger` from worker threads expecting a shared buffer.
-- **The ring overwrites the oldest entry when lapped.** If the producer writes faster than the flusher drains (rule 3 above), unflushed entries are silently overwritten in memory - but the flusher now counts and reports every one of them via `dropped`, so the loss is visible rather than invisible.
-- **213-byte message cap, 32-byte scope cap.** Both are truncation-only - a longer value is cut, not rejected. The truncation is a byte-boundary cut, not a character-boundary one, so it can split a multibyte UTF-8 character - the truncated tail then renders as the U+FFFD replacement character.
-- **Run one flusher per process.** Each `HfLogFlusher` tracks its own read position from the start of the ring, not a shared cursor - a second flusher re-emits entries the first one already drained.
-- **A fixed, pre-encoded vocabulary is still the right pattern for the bytes path.** `HfLogger.encodeMessage` / the no-args string call exist to make the ENCODE cost a one-time expense; the args form is correct but is the slow path by design.
-- **The encode cache is FIFO-bounded at 4096 entries.** Well within a real fixed vocabulary, but a hot path that generates many distinct dynamic strings through the no-args string call will start evicting and re-encoding.
+- **Single-thread only.** The write index is not shared or atomic across threads. Each worker thread that imports the module gets an independent ring. Don't log to `HfLogger` from worker threads expecting a shared buffer.
+- **The ring overwrites the oldest entry when lapped.** If the producer writes faster than the flusher drains (see rule 3 above), unflushed entries get silently overwritten in memory. But the flusher counts and reports every one via `dropped` - so the loss is visible, not invisible.
+- **213-byte message cap, 32-byte scope cap.** Both are truncation-only - a longer value is cut, not rejected. The truncation happens at a byte boundary, not a character boundary, so it can split a multibyte UTF-8 character. The truncated tail then renders as the U+FFFD replacement character.
+- **Run one flusher per process.** Each `HfLogFlusher` tracks its own read position from the start of the ring - not a shared cursor. A second flusher re-emits entries the first one already drained.
+- **A fixed, pre-encoded vocabulary is still the right pattern for the bytes path.** `HfLogger.encodeMessage` and the no-args string call exist to make the ENCODE cost a one-time expense. The args form is correct, but it's the slow path by design.
+- **The encode cache is FIFO-bounded at 4096 entries.** That's well within a real fixed vocabulary. But a hot path that generates many distinct dynamic strings, through the no-args string call, will start evicting and re-encoding.
 
 ## Performance characteristics
 
@@ -179,7 +201,7 @@ Measured on Bun 1.3.14, 1M-iteration median:
 | String, no args (`info('Order sent')`) | 66.0ns/op | Cache-hit encode lookup + bytes-path write |
 | pino, sync, `/dev/null` | 831ns/op | ~14x slower than the `HfLogger` bytes path on the same machine |
 
-Heap growth measured at 0.0MB over 1M bytes-path logs - the hot path does not allocate. That buys an ENQUEUE, not a durable log line; the flusher still pays rendering cost later, off the hot path.
+Heap growth measured at 0.0MB over 1M bytes-path logs - the hot path does not allocate. That buys an ENQUEUE, not a durable log line. The flusher still pays rendering cost later, off the hot path.
 
 ## See also
 

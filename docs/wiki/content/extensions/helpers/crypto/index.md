@@ -25,14 +25,20 @@ const decrypted = aes.decrypt({ message: encrypted, secret });
 // => 'This is a secret message.'
 ```
 
-`RSA` and `ECDH` follow the same `withAlgorithm()` factory + `encrypt`/`decrypt` shape - only the secret type and speed/message-size trade-offs differ.
+`RSA` and `ECDH` follow the same `withAlgorithm()` factory + `encrypt`/`decrypt` shape. Only the secret type and the speed/message-size trade-offs differ.
 
 ## How it works
 
-- **One factory pattern.** Every algorithm class exposes a static `withAlgorithm()` that returns an instance; there is no public constructor to call directly.
-- **`AES` and `RSA` share `BaseCryptoAlgorithm`.** It adds `normalizeSecretKey()` (pads/truncates a string secret to the algorithm's key size) and `getAlgorithmKeySize()` (parses the bit size out of the algorithm name, e.g. `256` from `aes-256-gcm`).
-- **`ECDH` extends the neutral `AbstractCryptoAlgorithm` directly.** It uses `CryptoKey` objects from the Web Crypto API (`crypto.subtle`), not string secrets, so it skips the string-normalization helpers entirely.
-- **Options objects, throw-by-default.** Every `encrypt`/`decrypt` takes `{ message, secret, opts? }`. On internal error, each throws unless `opts.doThrow: false`, in which case the original input is returned unchanged.
+- **One factory pattern.** Every algorithm class exposes a static `withAlgorithm()` that returns an instance. There is no public constructor to call directly.
+- **`ECDH` extends the neutral `AbstractCryptoAlgorithm` directly.** It uses `CryptoKey` objects from the Web Crypto API (`crypto.subtle`), not string secrets. It skips the string-normalization helpers entirely.
+- **Options objects, throw-by-default.** Every `encrypt`/`decrypt` takes `{ message, secret, opts? }`. On internal error, each throws by default. Pass `opts.doThrow: false` to get the original input back unchanged instead.
+
+**`AES` and `RSA` share `BaseCryptoAlgorithm`**, which adds two helpers:
+
+| Method | Does |
+|---|---|
+| `normalizeSecretKey()` | Pads or truncates a string secret to the algorithm's key size |
+| `getAlgorithmKeySize()` | Parses the bit size out of the algorithm name - `256` from `aes-256-gcm` |
 
 **Class comparison**
 
@@ -42,7 +48,9 @@ const decrypted = aes.decrypt({ message: encrypted, secret });
 | `RSA` | `BaseCryptoAlgorithm` | `string` (base64 DER key) | No | Public-key encryption, small payloads |
 | `ECDH` | `AbstractCryptoAlgorithm` | `CryptoKey` | Yes | Session key exchange with forward secrecy |
 
-`AES` supports two modes selected at construction: `aes-256-cbc` (plain block cipher) and `aes-256-gcm` (authenticated - detects tampering). Everything on this page uses the default options; the [Full reference](/extensions/helpers/crypto/reference) covers every option, the ECDH key-exchange flow, `IECDHEncryptedPayload`, and the standalone `hash()` utility that lives alongside these classes in the same package.
+`AES` supports two modes selected at construction: `aes-256-cbc` (plain block cipher) and `aes-256-gcm` (authenticated - detects tampering). Everything on this page uses the default options.
+
+See the [Full reference](/extensions/helpers/crypto/reference) for every option, the ECDH key-exchange flow, `IECDHEncryptedPayload`, and the standalone `hash()` utility.
 
 ## Common tasks
 
@@ -66,7 +74,7 @@ const decrypted = aes.decryptFile({ absolutePath: '/path/to/config.json.enc', se
 
 ### Generate an RSA key pair and encrypt with it
 
-Keys are DER-encoded (`SPKI` public, `PKCS8` private); base64-encode them to pass as the `secret` string.
+Keys are DER-encoded (`SPKI` public, `PKCS8` private). Base64-encode them to pass as the `secret` string.
 
 ```typescript
 import { RSA } from '@venizia/ignis-helpers';
@@ -81,7 +89,7 @@ const decrypted = rsa.decrypt({ message: encrypted, secret: privateKey.toString(
 
 ### Fail soft instead of throwing
 
-Pass `opts: { doThrow: false }` to get the original message back on error instead of an exception - useful when decryption failure should be a fallback path, not a crash.
+Pass `opts: { doThrow: false }` to get the original message back on error instead of an exception. Use this when a decryption failure should be a fallback path, not a crash.
 
 ```typescript
 const result = rsa.encrypt({ message: 'test', secret: 'invalid-key', opts: { doThrow: false } });

@@ -1,10 +1,10 @@
-# Mail -- Error Reference & Troubleshooting
+# Mail - Error Reference & Troubleshooting
 
 > Complete error code reference and troubleshooting guide for the Mail component.
 
 ## Error reference
 
-All errors are created via `getError()`. Only errors that pass `statusCode`/`messageCode` carry an `ApplicationError` identity with those fields -- the rows marked `--` throw a plain error with just a `message`. Read an error's code at `error.normalized.code`; there is no flat `error.messageCode`.
+All errors are created via `getError()`. Only errors that pass `statusCode`/`messageCode` carry an `ApplicationError` identity with those fields. The rows marked `--` throw a plain error with only a `message`. Read an error's code at `error.normalized.code` - there is no flat `error.messageCode`.
 
 ### `MailService` errors
 
@@ -19,7 +19,7 @@ All errors are created via `getError()`. Only errors that pass `statusCode`/`mes
 | Transport throws during `verify()` | 500 | `core.mail.verification_failed` | `Mail transport verification failed: <error>` |
 
 > [!NOTE]
-> "Transport throws during `send()`/`verify()`" only fires for a **custom** transport. The built-in `NodemailerTransportHelper` and `MailgunTransportHelper` never throw from `send()` or `verify()` -- they catch internally and return `{ success: false, error }` (or `false` for `verify()`). A 400 validation error raised by `validateMessage()` is re-thrown unchanged, not wrapped as `SEND_FAILED`.
+> "Transport throws during `send()`/`verify()`" only fires for a **custom** transport. The built-in `NodemailerTransportHelper` and `MailgunTransportHelper` never throw from `send()` or `verify()`. They catch internally and return `{ success: false, error }` (or `false` for `verify()`). A 400 validation error raised by `validateMessage()` is re-thrown unchanged, not wrapped as `SEND_FAILED`.
 
 ### `MailComponent` errors
 
@@ -43,7 +43,7 @@ All errors are created via `getError()`. Only errors that pass `statusCode`/`mes
 |-----------|--------|-----------|---------|
 | `config` is missing `username`, `key`, or `domain` | 500 | `core.mail.invalid_configuration` | `Invalid Mailgun configuration \| Missing required keys: <keys>` |
 
-This check runs on `configure()`, one layer deeper than `MailTransportProvider`'s type guard -- a `config` object that passes the provider's guard (has *a* `config` property) can still fail this one if it is missing the specific keys Mailgun's client needs.
+This check runs on `configure()`, one layer deeper than `MailTransportProvider`'s type guard. A `config` object that passes the provider's guard - it merely has *a* `config` property - can still fail this one if it is missing the specific keys Mailgun's client needs.
 
 ### `MailQueueExecutorProvider` errors
 
@@ -99,7 +99,7 @@ config: { username: 'api', key: process.env.MAILGUN_API_KEY, domain: 'mg.example
 
 ### `core.mail.template_not_found` from `sendTemplate()`
 
-- **Cause.** The template name was never registered via `templateEngine.registerTemplate()` -- often because a database-backed sync runs after the first `sendTemplate()` call, not before it.
+- **Cause.** The template name was never registered via `templateEngine.registerTemplate()`. This often happens because a database-backed sync runs after the first `sendTemplate()` call, not before it.
 - **Fix.** Register the template first:
 
 ```typescript
@@ -111,7 +111,7 @@ this.templateEngine.registerTemplate({
 
 ### Emails silently fail with `success: false`
 
-- **Cause.** The transport connection is misconfigured (wrong credentials, blocked port, expired OAuth2 token). `MailService.send()` never throws for a built-in transport's connection failure -- it returns `{ success: false, error }`.
+- **Cause.** The transport connection is misconfigured: wrong credentials, a blocked port, or an expired OAuth2 token. `MailService.send()` never throws for a built-in transport's connection failure - it returns `{ success: false, error }`.
 - **Fix.** Check `result.error` for the underlying transport error, and verify the connection at startup:
 
 ```typescript
@@ -139,7 +139,7 @@ if (!isConnected) {
 
 ### Template placeholders show up literally in the output
 
-- **Cause.** The `data` object passed to `render()`/`sendTemplate()` is missing a <code v-pre>{{key}}</code> the template uses. Without `requireValidate: true`, the engine preserves the original placeholder text -- it does **not** replace a missing value with an empty string.
+- **Cause.** The `data` object passed to `render()`/`sendTemplate()` is missing a <code v-pre>{{key}}</code> the template uses. Without `requireValidate: true`, the engine preserves the original placeholder text. It does **not** replace a missing value with an empty string.
 - **Fix.** Check what is missing before rendering, or fail loudly instead:
 
 ```typescript
@@ -159,7 +159,7 @@ const html = this.templateEngine.render({
 
 ### "Processor not set. Call setProcessor() first."
 
-- **Cause.** `enqueueVerificationEmail()` was called before `setProcessor()`. Direct and Internal Queue always require this; BullMQ requires it too, except in `'queue-only'` mode, where enqueueing does not need a processor.
+- **Cause.** `enqueueVerificationEmail()` was called before `setProcessor()`. Direct and Internal Queue always require a processor first. BullMQ requires one too, except in `'queue-only'` mode, where enqueueing does not need a processor.
 - **Fix.** Register a processor before enqueuing:
 
 ```typescript
@@ -176,10 +176,10 @@ executor.setProcessor(async (email: string) => {
 
 ### Startup logs and credentials
 
-`MailComponent.createAndBindInstances()` logs only `mailOptions.provider` and `queueExecutorConfig.type` at `info` level -- by design, it never logs the full config object, so SMTP passwords, OAuth2 secrets, Mailgun API keys, and Redis passwords are never written to the log by the component itself.
+`MailComponent.createAndBindInstances()` logs only `mailOptions.provider` and `queueExecutorConfig.type`, at `info` level. It never logs the full config object, by design. That keeps SMTP passwords, OAuth2 secrets, Mailgun API keys, and Redis passwords out of the log - at least through the component itself.
 
 > [!WARNING]
-> That guarantee is scoped to `MailComponent`'s own logging. If your wrapper component (or any other code) logs the `TMailOptions`/`IMailQueueExecutorConfig` object directly -- for example `logger.info('%j', mailOptions)` while debugging -- you reintroduce the leak yourself. Log individual safe fields instead of the whole object.
+> That guarantee is scoped to `MailComponent`'s own logging. If your wrapper component or any other code logs the `TMailOptions`/`IMailQueueExecutorConfig` object directly - for example, `logger.info('%j', mailOptions)` while debugging - you reintroduce the leak yourself. Log individual safe fields instead of the whole object.
 
 ## See also
 

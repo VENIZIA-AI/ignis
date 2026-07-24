@@ -9,19 +9,21 @@ description: CasbinAuthorizationEnforcer can now register a domain matching func
 
 <Badge type="tip" text="New Feature" />
 
-**In one line.** `CasbinAuthorizationEnforcer` can now match wildcard or pattern domains in role-grouping policies, so one policy line can grant a role across every tenant instead of one line per tenant.
+**In one line.** `CasbinAuthorizationEnforcer` can now match wildcard or pattern domains in role-grouping policies. One policy line can now grant a role across every tenant, instead of one line per tenant.
 
 ## What changed
 
-- **New `domainMatching` enforcer option.** Opt-in `{ roleDefinition, fn }` config registers a Casbin domain matching function (`keyMatch`, `keyMatch2`, `keyMatch3`, `keyMatch4`, or `regexMatch`) on a role definition, so a stored `g, User_x, Role_y, *` matches a request in **any** domain, while `g, User_x, Role_y, Merchant_X` still matches only `Merchant_X`.
+- **New `domainMatching` enforcer option.** Opt-in `{ roleDefinition, fn }` config registers a Casbin domain matching function (`keyMatch`, `keyMatch2`, `keyMatch3`, `keyMatch4`, or `regexMatch`) on a role definition.
+- A stored `g, User_x, Role_y, *` now matches a request in **any** domain.
+- `g, User_x, Role_y, Merchant_X` still matches only `Merchant_X`.
 - **New `CasbinDomainMatchingFunctions` constant class.** Exposes the five supported functions plus `SCHEME_SET`, `isValid()`, and the `TCasbinDomainMatchingFunction` type.
-- **Fail-loud validation.** `configure()` throws if the configured `roleDefinition` is not declared in the Casbin model, instead of silently no-opping - which would leave global wildcards permanently unmatched with no signal.
+- **Fail-loud validation.** `configure()` throws if the configured `roleDefinition` is not declared in the Casbin model, instead of silently no-opping. A silent no-op would leave global wildcards permanently unmatched with no signal.
 - **Survives reloads.** The matching function is registered once on the enforcer's role manager, so it persists across every `loadFilteredPolicy` reload.
 
 ## Who is affected
 
 - **Multi-tenant apps using Casbin RBAC with domains.** No action needed - the option is off by default and domains keep comparing as exact strings unless you opt in.
-- **Apps where a user holds a role across many tenants.** Opting in collapses that user's materialized policy line count from `permissions x domains` to `memberships + permissions`, since role permissions can now be written domain-agnostic (`p.dom = "*"`).
+- **Apps where a user holds a role across many tenants.** Opting in collapses that user's materialized policy line count from `permissions x domains` to `memberships + permissions`. Role permissions can now be written domain-agnostic (`p.dom = "*"`).
 
 ## Details
 

@@ -38,8 +38,9 @@ Now there is one shape - `{ text, code, args }` - and it is the same at every st
 **File:** [`packages/inversion/src/modules/error/types.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/inversion/src/modules/error/types.ts)
 
 **Problem:** the code and the interpolation args lived in a different field at every stage. A catalog
-used `key`. A throw site used `messageCode`. The wire used `normalized.code`. Each boundary needed
-its own translation step - and each step was a chance to drop a field.
+used `key`. A throw site used `messageCode`. The wire used `normalized.code`.
+
+Each boundary needed its own translation step - and each step was a chance to drop a field.
 
 **Solution:** `message` is either the historical string or an object mirroring `normalized`:
 
@@ -81,8 +82,9 @@ Omit a field and the definition supplies it.
 
 `getError({ message: 'wrapper', error: 'boom' })` threw a `TypeError` **from inside the error
 constructor**. That masked the original failure at the exact moment a catch block was trying to
-report it. The optional chain guarded `definition`, not `definition.message`. It now degrades
-instead of throwing. The shape is also refused at compile time:
+report it. The optional chain guarded `definition`, not `definition.message`.
+
+It now degrades instead of throwing. The shape is also refused at compile time:
 
 ```typescript
 getError({ message: 'wrapper', error: caughtError }); // now a COMPILE ERROR - use `cause`

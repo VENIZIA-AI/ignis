@@ -21,6 +21,21 @@ Backed by **ioredis** under the hood.
 - [`packages/helpers/src/modules/redis/common/types.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/redis/common/types.ts) - option and callback types
 - [`packages/helpers/src/modules/redis/common/constants.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/redis/common/constants.ts) - `RedisModes`, `RedisSentinelRoles`
 
+## Find what you need
+
+| You want to | Go to |
+|---|---|
+| See the class hierarchy and the nine capability interfaces | [Class and Interface Model](#class-and-interface-model) |
+| Construct a single-node client | [Construction - Single](#construction---single) |
+| Construct a cluster client | [Construction - Cluster](#construction---cluster) |
+| Construct a Sentinel client, or understand Sentinel HA | [Construction - Sentinel](#construction---sentinel) |
+| Pick a topology from configuration instead of hardcoding a class | [Selecting a Topology - the Factory](#selecting-a-topology---the-factory) |
+| Understand `autoConnect`, the four lifecycle callbacks, or `duplicateClient()` | [Lifecycle and Events](#lifecycle-and-events) |
+| Look up a method's signature and behavior | [Full Method Reference](#full-method-reference) |
+| Wire the helper into BullMQ, Socket.IO, WebSocket, or Casbin | [Using the Helper Across IGNIS](#using-the-helper-across-ignis) |
+| Avoid a production footgun | [Production Notes](#production-notes) |
+| Copy the full import list | [Import Reference](#import-reference) |
+
 ## Class and Interface Model
 
 ### Class hierarchy
@@ -101,6 +116,7 @@ Combines `IRedisSingleHelperProps` and `IRedisHelperCallbacks`.
 | `name` | `string` | Yes | - | Helper identifier used in logs and as `IRedisHelper.name` |
 | `host` | `string` | Yes | - | Redis server hostname |
 | `port` | `string \| number` | Yes | - | Redis server port |
+| `user` | `string` | No | - | Accepted by the type but not read by the constructor - has no effect. Set auth via `password` only. |
 | `password` | `string` | Yes | - | Redis `requirepass` value |
 | `database` | `number` | No | `0` | Redis database index (0-15) |
 | `autoConnect` | `boolean` | No | `true` | Connect immediately; `false` uses ioredis `lazyConnect` |
@@ -151,7 +167,7 @@ const cluster = new RedisClusterHelper({
 > [!WARNING] No framework defaults injected
 > Cluster does not apply the backoff retry strategy or `maxRetriesPerRequest: null` automatically. Pass those inside `clusterOptions.redisOptions` if your consumers (e.g. BullMQ) require them.
 
-`duplicateClient()` on a cluster creates a **new** `Cluster` instance from the same startup nodes and options (because ioredis `Cluster` does not implement `.duplicate()`).
+`duplicateClient()` on a cluster creates a **new** `Cluster` instance from the same startup nodes and options. ioredis `Cluster` doesn't implement `.duplicate()`, so the helper builds a fresh instance instead.
 
 ## Construction - Sentinel
 
@@ -180,9 +196,9 @@ Redis Sentinel is a high-availability (HA) architecture made of three process ty
 ### Why your app connects to sentinels, not the master
 
 - **The master's address can change after a failover.** Hard-coding a master host would break on every failover.
-- **You give ioredis the sentinel addresses instead**, plus the monitored master group name (`masterName`). ioredis asks a sentinel for the current master and connects to it.
+- **You give ioredis the sentinel addresses instead**, plus the monitored master group name (`masterName`). ioredis asks a sentinel for the current master, then connects to it.
 - **ioredis re-queries sentinels automatically after a failover** - no manual reconnection logic needed.
-- **Your application code does not change during a failover.** The only observable effect is a few seconds of transient command failures, which the retry strategy handles.
+- **Your application code does not change during a failover.** The only observable effect is a few seconds of transient command failures. The retry strategy handles those.
 
 ### Constructor
 
@@ -236,7 +252,7 @@ They are independent. You can name the helper `'ha-cache'` while `masterName` is
 
 ### The authentication model - 4 relationships
 
-Sentinel deployments have four separate authentication relationships. The app only configures two of them; the other two are server-side.
+Sentinel deployments have four separate authentication relationships. The app configures two of them. The other two are server-side.
 
 | # | From | To | App field | Server config |
 |---|------|----|-----------|---------------|
@@ -245,7 +261,7 @@ Sentinel deployments have four separate authentication relationships. The app on
 | 3 | **Sentinel** | **Data nodes** | (not set by app) | `sentinel auth-pass <group> <pass>` in sentinel.conf |
 | 4 | **Replica** | **Master** (replication) | (not set by app) | `masterauth` in redis.conf |
 
-**Relationship 3 is the silent failure.** If the data nodes require a password but sentinel.conf does not have `sentinel auth-pass`, the sentinel processes cannot check master health and will trigger false failovers. Configure it on the server side even when your app only sets `password`.
+**Relationship 3 is the silent failure.** If the data nodes require a password but `sentinel.conf` has no `sentinel auth-pass`, the sentinel processes can't check master health. They trigger false failovers instead. Configure `sentinel auth-pass` on the server side, even when your app sets only `password`.
 
 **Common cases:**
 - Private network, sentinels unauthenticated: set only `password`.
@@ -426,10 +442,10 @@ const dedicated = redis.duplicateClient();
 ```
 
 - **Creates an independent ioredis connection** from the same configuration.
-- **Implementation.** `AbstractRedisHelper.duplicateClient()` calls ioredis `client.duplicate()`, which copies the parent's `options` - including `lazyConnect`.
-- **Lazy or immediate.** `lazyConnect` is set to `!autoConnect`. With the default `autoConnect: true` (`lazyConnect: false`) the duplicate connects immediately; it is lazy (connects on first use) only when the parent was created with `autoConnect: false`.
+- **Implementation.** `AbstractRedisHelper.duplicateClient()` calls ioredis `client.duplicate()`. That copies the parent's `options`, including `lazyConnect`.
+- **Lazy or immediate.** `lazyConnect` is set to `!autoConnect`. With the default `autoConnect: true`, the duplicate connects immediately (`lazyConnect: false`). With `autoConnect: false`, the duplicate is lazy - it connects on first use.
 - **When to use it.** Whenever a consumer needs its own dedicated connection - Pub/Sub, BullMQ, Socket.IO adapters.
-- **Cluster is different.** For `RedisClusterHelper`, `duplicateClient()` instead constructs a new `Cluster` from the same startup nodes and options (ioredis `Cluster` has no `.duplicate()`).
+- **Cluster is different.** For `RedisClusterHelper`, `duplicateClient()` builds a new `Cluster` from the same startup nodes and options instead. ioredis `Cluster` has no `.duplicate()`.
 
 ## Full Method Reference
 
@@ -437,11 +453,25 @@ const dedicated = redis.duplicateClient();
 
 ### General notes (apply to all families)
 
-- **Empty-input no-ops:** Methods that accept an array (`keys`, `members`, `values`, `fields`, `payload`) short-circuit immediately when the array is empty, without calling ioredis - returning `0`, `[]`, or (for `mSet`) resolving `void`, per each method's return type. This prevents the "wrong number of arguments" error ioredis throws on empty varargs.
-- **Boolean mapping:** `expire`, `expireAt`, `persist`, `hExists`, `sIsMember` map ioredis numeric replies to `true` (`=== 1`) / `false`.
-- **JSON auto-serialization:** `set`, `mSet`, `jSet`, `jPush` call `JSON.stringify` before writing. `getObject`, `getObjects`, `jGet` parse on read. `get` and `mGet` return raw strings unless you pass `transform`.
-- **TTL units:** `set.options.expiresIn` is **milliseconds** (ioredis `PX`). `expire.seconds` is **seconds** (ioredis `EXPIRE`). `expireAt.atEpochSeconds` is a Unix epoch **in seconds** (ioredis `EXPIREAT`).
-- **Pub/Sub errors:** On subscription callback error, the helper **logs** the error and returns without throwing, because throwing inside an ioredis async callback would be an unhandled rejection.
+- **Empty-input no-ops.** `keys`, `members`, `values`, `fields`, and `payload` are all array inputs. Pass an empty array and the method returns immediately, without calling ioredis - `0`, `[]`, or (for `mSet`) `void`, depending on the method. This avoids the "wrong number of arguments" error ioredis throws on empty varargs.
+- **Boolean mapping.** `expire`, `expireAt`, `persist`, `hExists`, and `sIsMember` map ioredis numeric replies to `true` (`=== 1`) or `false`.
+- **JSON auto-serialization.**
+
+  | Method group | Behavior |
+  |---|---|
+  | `set`, `mSet`, `jSet`, `jPush` | `JSON.stringify` before writing |
+  | `getObject`, `getObjects`, `jGet` | `JSON.parse` on read |
+  | `get`, `mGet` | Return the raw string, unless you pass `transform` |
+
+- **TTL units differ by field.**
+
+  | Field | Unit | ioredis command |
+  |---|---|---|
+  | `set.options.expiresIn` | milliseconds | `PX` |
+  | `expire.seconds` | seconds | `EXPIRE` |
+  | `expireAt.atEpochSeconds` | Unix epoch seconds | `EXPIREAT` |
+
+- **Pub/Sub errors.** On a subscription callback error, the helper logs the error and returns. It never throws - throwing inside an ioredis async callback would be an unhandled rejection.
 
 ### IRedisConnection - connection lifecycle
 
@@ -521,7 +551,7 @@ const dedicated = redis.duplicateClient();
 
 | Method | Signature | Behavior |
 |--------|-----------|----------|
-| `publish<T>` | `(opts: { topics: string[]; payload: T; useCompress?: boolean }): Promise<void>` | JSON-serializes `payload` into a `Buffer`; optionally zlib-deflates it; publishes to each topic; skips empty/blank topics (logs error, does not throw) |
+| `publish<T>` | `(opts: { topics: string[]; payload: T; useCompress?: boolean }): Promise<void>` | JSON-serializes `payload` into a `Buffer`, optionally zlib-deflates it, and publishes to each topic. Filters out empty/blank topics first; if none remain, logs an error and returns without publishing |
 | `subscribe` | `(opts: { topic: string }): void` | Subscribes the client to `topic`; on subscription error the helper **logs** it and does not throw |
 | `unsubscribe` | `(opts: { topic: string }): void` | Unsubscribes from `topic`; on error the helper **logs** it and does not throw |
 
@@ -575,15 +605,15 @@ const info = await redis.execute<string>('INFO');
 
 ## Using the Helper Across IGNIS
 
-All three topologies implement `IRedisHelper` and are interchangeable in every integration below. Switch topology by changing the helper you construct; the consumer code does not change.
+All three topologies implement `IRedisHelper` and are interchangeable in every integration below. Switch topology by changing the helper you construct. The consumer code does not change.
 
 ### BullMQ (BullMQHelper)
 
 `BullMQHelper` accepts a `redisConnection: IRedisHelper`. Internally it:
-- Calls `redisConnection.duplicateClient()` to create dedicated `Queue` and `Worker` connections (BullMQ requires separate connections per role).
+- Calls `redisConnection.duplicateClient()` to create dedicated `Queue` and `Worker` connections. BullMQ requires a separate connection per role.
 - Calls `redisConnection.getClient() instanceof Cluster` to detect cluster topology and adjust BullMQ configuration.
 
-`RedisSingleHelper` (and `RedisSentinelHelper`) are BullMQ-compatible out of the box because the framework sets `maxRetriesPerRequest: null` in `buildDefaultOpts`.
+`RedisSingleHelper` and `RedisSentinelHelper` are BullMQ-compatible out of the box. The framework sets `maxRetriesPerRequest: null` in `buildDefaultOpts`.
 
 ```typescript
 import { BullMQHelper } from '@venizia/ignis-helpers/bullmq';
@@ -617,7 +647,7 @@ See the Socket.IO component documentation for the full component registration an
 ### WebSocket component (WebSocket server and emitter)
 
 - **Resolved from a binding key.** The WebSocket component resolves an `AbstractRedisHelper` from `@app/websocket/redis-connection`.
-- **Two dedicated connections.** `WebSocketServerHelper` calls `duplicateClient()` for its pub and sub connections; the WebSocket emitter calls `duplicateClient()` for its own pub connection.
+- **Two dedicated connections.** `WebSocketServerHelper` calls `duplicateClient()` for its pub and sub connections. The WebSocket emitter calls `duplicateClient()` again for its own pub connection.
 - **Any topology works.** Bind single, cluster, or Sentinel:
 
 ```typescript
@@ -632,7 +662,7 @@ See the WebSocket component documentation for the full component registration.
 ### Casbin authorization enforcer
 
 - **Configured via options.** The cached Casbin enforcer (`ICasbinEnforcerCachedRedis`) accepts `connection: IRedisHelper` inside its `options`.
-- **Uses only the typed API.** It calls the helper's `get`, `set` (with `options.expiresIn`), and `del` to read, write, and invalidate cached policy keys - it never reaches the raw client.
+- **Uses only the typed API.** It calls the helper's `get`, `set` (with `options.expiresIn`), and `del` to read, write, and invalidate cached policy keys. It never reaches the raw client.
 - **Any topology works** as the `connection`:
 
 ```typescript
@@ -674,10 +704,10 @@ class MyApp extends BaseApplication {
 ## Production Notes
 
 - **Use a singleton per logical connection.** Construct the helper once at startup and share it. Do not construct a new helper per request - each construction opens a new connection pool.
-- **`duplicateClient()` for Pub/Sub.** A subscribed ioredis connection cannot run normal commands. Always call `duplicateClient()` to get a dedicated subscriber connection and keep the main client for data operations.
+- **`duplicateClient()` for Pub/Sub.** A subscribed ioredis connection cannot run normal commands. Always call `duplicateClient()` to get a dedicated subscriber connection. Keep the main client for data operations.
 - **Sentinel for HA; Cluster for sharding.** These are different problems. Sentinel gives you automatic failover for a single logical master. Cluster shards data across nodes. They are not interchangeable.
-- **TTL unit reminder:** `set.options.expiresIn` is **milliseconds**; `expire.seconds` is **seconds**; `expireAt.atEpochSeconds` is a Unix epoch in **seconds**. Mixing these up causes unexpected key expirations.
-- **Sentinel `sentinel auth-pass` is a server-side requirement.** If your data nodes require a password, configure `sentinel auth-pass <group> <password>` in sentinel.conf in addition to the app-side `password` field. Missing it causes false failovers even when `password` is correct.
+- **TTL units differ by field** - see the [units table above](#general-notes-apply-to-all-families). Mixing them up causes unexpected key expirations.
+- **Sentinel `sentinel auth-pass` is a server-side requirement.** If your data nodes require a password, configure `sentinel auth-pass <group> <password>` in `sentinel.conf`, in addition to the app-side `password` field. Missing it causes false failovers, even when `password` is correct.
 - **Avoid `keys()` in production.** The Redis `KEYS` command scans the entire keyspace and blocks the server. Use `execute('SCAN', [...])` for production pattern matching.
 
 ## Import Reference

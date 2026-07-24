@@ -6,7 +6,7 @@ difficulty: intermediate
 
 # Worker Thread
 
-The worker-thread helper wraps Node's `worker_threads` with a pooled registry, lifecycle-event helpers, and a `MessagePort` bus for two-way communication between the main thread and a worker.
+The worker-thread helper wraps Node's `worker_threads`. It adds a pooled registry, lifecycle-event helpers, and a `MessagePort` bus for two-way communication between the main thread and a worker.
 
 ## In one example
 
@@ -30,16 +30,20 @@ pool.register({ key: 'image-resizer', worker });
 
 ## How it works
 
-- **Main thread vs worker thread.** Two class families split by side: `BaseWorkerHelper` runs on the main thread and wraps a `Worker` instance; `BaseWorkerThreadHelper` runs inside the spawned worker script and throws `[BaseWorker] Cannot start worker in MAIN_THREAD` if constructed there instead.
+- **Main thread vs worker thread.** Two class families split by side.
+  - `BaseWorkerHelper` runs on the main thread and wraps a `Worker` instance.
+  - `BaseWorkerThreadHelper` runs inside the spawned worker script. It throws `[BaseWorker] Cannot start worker in MAIN_THREAD` if you construct it on the main thread instead.
 - **Pool caps concurrency.** `WorkerPoolHelper` is a lazy singleton (`getInstance()`) that limits registrations to `os.cpus().length`. Past the limit, `register()` returns `false` and logs a warning - it never throws.
-- **Lifecycle hooks, not raw events.** `BaseWorkerHelper` binds `online`, `exit`, `error`, `message`, and `messageerror` once in its constructor. Each has a default logging behavior, overridable per instance via `eventHandlers`. A synchronous throw inside a handler is caught and logged, not left to crash the process.
-- **Two-way messaging via buses.** Inside a worker script, `BaseWorkerThreadHelper` manages named `BaseWorkerBusHelper` instances - each wraps one `MessagePort` - so a single worker can multiplex several independent channels by key.
+- **Lifecycle hooks, not raw events.**
+  - `BaseWorkerHelper` binds `online`, `exit`, `error`, `message`, and `messageerror` once in its constructor. Each has a default logging behavior, overridable per instance via `eventHandlers`.
+  - A synchronous throw inside a handler is caught and logged, not left to crash the process.
+- **Two-way messaging via buses.** Inside a worker script, `BaseWorkerThreadHelper` manages named `BaseWorkerBusHelper` instances, each wrapping one `MessagePort`. A single worker can multiplex several independent channels this way, one per key.
 
 ## Common tasks
 
 ### Look up and message a registered worker
 
-`get()` and `has()` read the pool by key; `size()` reports how many workers are registered.
+`get()` and `has()` read the pool by key. `size()` reports how many workers are registered.
 
 ```typescript
 const worker = pool.get<string>({ key: 'image-resizer' });

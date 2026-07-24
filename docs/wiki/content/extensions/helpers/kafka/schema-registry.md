@@ -18,7 +18,7 @@ class KafkaSchemaRegistryHelper<
 ```
 
 > [!NOTE]
-> `KafkaSchemaRegistryHelper` extends `BaseHelper` directly (not `BaseKafkaHelper`) -- it has no broker connection or health tracking. It's a configuration wrapper, not a client.
+> `KafkaSchemaRegistryHelper` extends `BaseHelper` directly (not `BaseKafkaHelper`) - it has no broker connection or health tracking. It's a configuration wrapper, not a client.
 
 ## Helper API
 
@@ -39,10 +39,10 @@ interface IKafkaSchemaRegistryOptions extends ConfluentSchemaRegistryOptions {
 
 | Option | Type | Default | Description |
 |--------|------|---------|-------------|
-| `url` | `string` | -- | Schema registry URL. **Required** |
-| `auth` | `{ username: string; password: string }` | -- | Basic auth credentials |
-| `protobufTypeMapper` | `ProtobufTypeMapper` | -- | Custom Protobuf type mapper |
-| `jsonValidateSend` | `boolean` | -- | Validate JSON schema on produce |
+| `url` | `string` | - | Schema registry URL. **Required** |
+| `auth` | `{ username: string; password: string }` | - | Basic auth credentials |
+| `protobufTypeMapper` | `ProtobufTypeMapper` | - | Custom Protobuf type mapper |
+| `jsonValidateSend` | `boolean` | - | Validate JSON schema on produce |
 | `identifier` | `string` | `'kafka-schema-registry'` | Scoped logging identifier |
 
 ## What it solves
@@ -50,23 +50,24 @@ interface IKafkaSchemaRegistryOptions extends ConfluentSchemaRegistryOptions {
 Without a schema registry, producers and consumers must agree on message shape out-of-band. If the producer changes the shape of `value` (adds/removes fields), consumers break silently at runtime.
 
 - **Schema Registry is a centralized server** (Confluent Schema Registry) that stores and validates schemas.
-- **It enforces a contract:** the producer says "I want to send this shape", the registry validates it against the registered schema before the message reaches Kafka; the consumer asks "what shape is this?" and the registry tells it how to deserialize.
+- **It enforces a contract on the way out.** The producer says "I want to send this shape." The registry validates that shape against the registered schema before the message reaches Kafka.
+- **It enforces a contract on the way in.** The consumer asks "what shape is this?" The registry answers with how to deserialize it.
 
 | | Without registry | With registry |
 |---|---|---|
 | **Message format** | Raw string, manual `JSON.stringify`/`JSON.parse` | Typed object, auto ser/deser |
-| **Validation** | None -- runtime crashes on shape drift | Schema validated before send |
+| **Validation** | None - runtime crashes on shape drift | Schema validated before send |
 | **Schema evolution** | Breaks consumers silently | Backward/forward compatibility enforced |
 | **Where schemas live** | Nowhere (tribal knowledge) | Centralized server, e.g. `http://registry:8081` |
 
-Use it when you need schema enforcement and compatibility checks across producers/consumers - especially in multi-team environments. Skip it for simple string/JSON messages where both sides are controlled by the same team and format changes are coordinated by hand.
+Use it when you need schema enforcement and compatibility checks across producers and consumers, especially in multi-team environments. Skip it for simple string or JSON messages where one team controls both sides - coordinate format changes by hand instead.
 
 ## Without vs. with the registry
 
 Without a registry, serialization is entirely manual and unchecked:
 
 ```typescript
-// Producer -- manually serialize
+// Producer - manually serialize
 const producer = KafkaProducerHelper.newInstance({
   bootstrapBrokers: ['127.0.0.1:29092'],
   clientId: 'order-producer',
@@ -76,11 +77,11 @@ await producer.getProducer().send({
   messages: [{
     topic: 'orders',
     key: 'order-1',
-    value: JSON.stringify({ id: 1, total: 99.99 }),  // <- just a string, no validation
+    value: JSON.stringify({ id: 1, total: 99.99 }),  // <- plain string, no validation
   }],
 });
 
-// Consumer -- manually deserialize, hope the shape is correct
+// Consumer - manually deserialize, hope the shape is correct
 const consumer = KafkaConsumerHelper.newInstance({
   bootstrapBrokers: ['127.0.0.1:29092'],
   clientId: 'order-consumer',
@@ -103,13 +104,13 @@ import {
   KafkaConsumerHelper,
 } from '@venizia/ignis-helpers/kafka';
 
-// 1. Create registry -- points to Confluent Schema Registry server
+// 1. Create registry - points to Confluent Schema Registry server
 const registry = KafkaSchemaRegistryHelper.newInstance({
   url: 'http://localhost:8081',
   // auth: { username: 'user', password: 'pass' },  // optional
 });
 
-// 2. Producer -- pass registry, it auto-serializes values using the registered schema
+// 2. Producer - pass registry, it auto-serializes values using the registered schema
 const producer = KafkaProducerHelper.newInstance({
   bootstrapBrokers: ['127.0.0.1:29092'],
   clientId: 'order-producer',
@@ -125,7 +126,7 @@ await producer.getProducer().send({
 });
 // If the value doesn't match the registered schema -> error BEFORE sending to Kafka
 
-// 3. Consumer -- pass the same registry, it auto-deserializes
+// 3. Consumer - pass the same registry, it auto-deserializes
 const consumer = KafkaConsumerHelper.newInstance({
   bootstrapBrokers: ['127.0.0.1:29092'],
   clientId: 'order-consumer',
@@ -182,6 +183,7 @@ const consumer = KafkaConsumerHelper.newInstance({
 - [Kafka Overview](./) - the four helpers, shared health/close API, and the compile-binary caveat
 - [Producer](./producer) - `registry` as a producer option, plus the manual `serializers` alternative
 - [Consumer](./consumer) - `registry` as a consumer option, plus the manual `deserializers` alternative
+- [Examples & Troubleshooting](./examples) - IoC wiring and the common connection-error lookup table
 
 **Files:**
 

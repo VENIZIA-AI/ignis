@@ -40,17 +40,17 @@ interface IKafkaProducerOptions<KeyType, ValueType, HeaderKeyType, HeaderValueTy
 | Option | Type | Default | Description |
 |--------|------|---------|-------------|
 | `identifier` | `string` | `'kafka-producer'` | Scoped logging identifier |
-| `serializers` | `Partial<Serializers<K,V,HK,HV>>` | -- | Key/value/header serializers |
-| `compression` | `CompressionAlgorithmValue` | -- | `'none'`, `'gzip'`, `'snappy'`, `'lz4'`, `'zstd'` |
-| `acks` | `TKafkaAcks` | -- | Acknowledgment level: `0` (none), `1` (leader), `-1` (all) |
-| `idempotent` | `boolean` | -- | Enable idempotent producer (exactly-once within partition) |
-| `transactionalId` | `string` | -- | Transactional ID for exactly-once across partitions |
-| `strict` | `boolean` | `true` | Strict mode -- fail on unknown topics |
+| `serializers` | `Partial<Serializers<K,V,HK,HV>>` | - | Key/value/header serializers |
+| `compression` | `CompressionAlgorithmValue` | - | `'none'`, `'gzip'`, `'snappy'`, `'lz4'`, `'zstd'` |
+| `acks` | `TKafkaAcks` | - | Acknowledgment level: `0` (none), `1` (leader), `-1` (all) |
+| `idempotent` | `boolean` | - | Enable idempotent producer (exactly-once within partition) |
+| `transactionalId` | `string` | - | Transactional ID for exactly-once across partitions |
+| `strict` | `boolean` | `true` | Strict mode - fail on unknown topics |
 | `autocreateTopics` | `boolean` | `false` | Auto-create topics on first produce |
 | `shutdownTimeout` | `number` | `30000` | Graceful shutdown timeout in ms |
-| `registry` | `SchemaRegistry` | -- | Schema registry for auto ser/deser |
-| `onBrokerConnect` | `TKafkaBrokerEventCallback` | -- | Called when broker connects |
-| `onBrokerDisconnect` | `TKafkaBrokerEventCallback` | -- | Called when broker disconnects |
+| `registry` | `SchemaRegistry` | - | Schema registry for auto ser/deser |
+| `onBrokerConnect` | `TKafkaBrokerEventCallback` | - | Called when broker connects |
+| `onBrokerDisconnect` | `TKafkaBrokerEventCallback` | - | Called when broker disconnects |
 
 Plus the shared [Connection & Authentication](#connection--authentication) options below, all inherited from `IKafkaConnectionOptions`.
 
@@ -60,14 +60,14 @@ Plus the shared [Connection & Authentication](#connection--authentication) optio
 
 | Option | Type | Default | Description |
 |--------|------|---------|-------------|
-| `bootstrapBrokers` | `string[]` | -- | Broker addresses (`host:port`). **Required** |
-| `clientId` | `string` | -- | Unique client identifier. **Required** |
+| `bootstrapBrokers` | `string[]` | - | Broker addresses (`host:port`). **Required** |
+| `clientId` | `string` | - | Unique client identifier. **Required** |
 | `retries` | `number` | `3` | Connection retries before failing |
 | `retryDelay` | `number` | `1000` | Delay between retries (ms) |
-| `sasl` | `SASLOptions` | -- | SASL authentication |
-| `tls` / `ssl` | `TLSConnectionOptions` | -- | TLS options (`ssl` is an alias for `tls`) |
-| `connectTimeout` | `number` | -- | TCP connection timeout (ms) |
-| `requestTimeout` | `number` | -- | Kafka request timeout (ms) |
+| `sasl` | `SASLOptions` | - | SASL authentication |
+| `tls` / `ssl` | `TLSConnectionOptions` | - | TLS options (`ssl` is an alias for `tls`) |
+| `connectTimeout` | `number` | - | TCP connection timeout (ms) |
+| `requestTimeout` | `number` | - | Kafka request timeout (ms) |
 
 **SASL mechanisms** (`@platformatic/kafka` supports five):
 
@@ -75,7 +75,7 @@ Plus the shared [Connection & Authentication](#connection--authentication) optio
 |-----------|----------|
 | `PLAIN` | Username/password (pair with `tls` in production) |
 | `SCRAM-SHA-256` / `SCRAM-SHA-512` | Challenge-response - password never sent in plaintext |
-| `OAUTHBEARER` | Token-based (Azure Event Hubs, Confluent Cloud). `token` accepts a string or an async function returning one |
+| `OAUTHBEARER` | Token-based - Azure Event Hubs, Confluent Cloud. `token` accepts a string or an async function that returns one |
 | `GSSAPI` | Kerberos authentication |
 
 ```typescript
@@ -142,7 +142,7 @@ await helper.close({ isForce: true });
 
 ## Serialization
 
-`@platformatic/kafka`'s default wire format is `Buffer`. The helpers default the generic types to `string`, but you must pass serializers explicitly or messages travel as raw `Buffer`.
+`@platformatic/kafka`'s default wire format is `Buffer`. The helpers default the generic types to `string`, but that's a type default only. Pass serializers explicitly, or messages travel as raw `Buffer`.
 
 | Export | Type | Description |
 |--------|------|-------------|
@@ -264,13 +264,15 @@ The callback receives an `IKafkaTransactionContext`:
 
 ## Graceful Shutdown
 
-`close()` implements a two-phase shutdown:
+`close()` runs a two-phase shutdown:
 
-1. **Graceful** (default): Calls `close(true)` on the underlying producer (force-flush), with a timeout (`shutdownTimeout`, default 30s)
-2. **Force fallback**: If graceful times out, automatically force-closes
-3. **Force** (`{ isForce: true }`): Immediately calls `close(true)` without timeout protection
+| Phase | When it runs | What happens |
+|---|---|---|
+| Graceful | Default | Calls `close(true)` on the underlying producer, capped at `shutdownTimeout` (default 30s) |
+| Force fallback | Graceful times out | Force-closes automatically, no further waiting |
+| Force | `close({ isForce: true })` | Calls `close(true)` immediately, no timeout |
 
-After `close()`, all broker tracking is cleared and `healthStatus` is set to `'disconnected'`.
+After `close()`, all broker tracking is cleared and `healthStatus` becomes `'disconnected'`.
 
 ```typescript
 // Graceful (recommended)
@@ -373,11 +375,13 @@ Close the producer connection.
 
 ## Key Partitioning
 
-By default, `@platformatic/kafka` uses **murmur2 hashing** on the message key to determine the target partition:
+By default, `@platformatic/kafka` uses **murmur2 hashing** on the message key to pick the target partition:
 
-- Same key -> always same partition -> guaranteed ordering per key
-- `undefined` key -> round-robin across partitions
-- Explicit `partition` field -> overrides the partitioner
+| Key | Target partition |
+|---|---|
+| Same key, every time | Same partition - ordering is guaranteed per key |
+| `undefined` | Round-robin across partitions |
+| Explicit `partition` field | That partition, overriding the partitioner |
 
 ```typescript
 // Custom partitioner
@@ -395,6 +399,7 @@ await producer.send({
 - [Consumer](./consumer) - the receiving side, including message callbacks and lag monitoring
 - [Schema Registry](./schema-registry) - schema-validated serialization instead of manual `serializers`
 - [Compiling to a Single Binary](./compile-binary) - required when this helper ships inside a `bun build --compile` binary
+- [Examples & Troubleshooting](./examples) - IoC wiring and the common connection-error lookup table
 
 **Files:**
 

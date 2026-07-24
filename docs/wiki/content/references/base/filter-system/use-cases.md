@@ -97,7 +97,7 @@ Notice: `nin` on `status` silently drops any row where `status` is `NULL`. See [
 
 ## Multi-tenant isolation at the call site
 
-`settings.defaultFilter` (see [Default Filter](./default-filter)) is the model-level way to enforce a tenant scope. The alternative below is a helper that injects `tenantId` at every call site - useful when tenant isolation is a caller concern, not a per-model constant.
+`settings.defaultFilter` (see [Default Filter](./default-filter)) is the model-level way to enforce a tenant scope. The alternative below is a helper that injects `tenantId` at every call site instead. Use it when tenant isolation is a caller concern, not a per-model constant.
 
 ```typescript
 const getTenantProducts = (tenantId: string, filter: TFilter<TProductSchema>) =>
@@ -267,7 +267,7 @@ const documents = await documentRepository.find({
 // ORDER BY "updated_at" DESC LIMIT 100
 ```
 
-Notice: a plain TypeScript function builds the `where`, branching on role - a filter is a normal object, not a DSL with its own control flow.
+Notice: a plain TypeScript function builds the `where`, branching on role. A filter is a normal object, not a DSL with its own control flow.
 
 ## Full-text search with metadata
 
@@ -313,7 +313,7 @@ Notice: `ilike` reaches into a JSON path (`'metadata.keywords'`) the same way it
 
 ## Everything at once
 
-Every operator family, a JSON path, a three-way `or`, and a scoped relation include, in one filter - the ceiling of what a single `TFilter` can express.
+Every operator family, a JSON path, a three-way `or`, and a scoped relation include - all in one filter. This is the ceiling of what a single `TFilter` can express.
 
 ```typescript
 const massiveFilter: TFilter<TProductSchema> = {
@@ -379,7 +379,7 @@ const products = await productRepository.find({ filter: massiveFilter });
 // SELECT * FROM "Review" WHERE "product_id" IN (...) AND "rating" >= 4 ORDER BY "created_at" DESC LIMIT 5
 ```
 
-Notice: `'metadata.priority': { gte: 3 }` gets the numeric `CASE` cast because the operand is a number; `'metadata.isNewArrival': true` does not, because it compares as text. See [Tips & Edge Cases](./tips) for the full casting rule.
+Notice: `'metadata.priority': { gte: 3 }` gets the numeric `CASE` cast because the operand is a number. `'metadata.isNewArrival': true` does not, because it compares as text. See [Tips & Edge Cases](./tips) for the full casting rule.
 
 ## See also
 

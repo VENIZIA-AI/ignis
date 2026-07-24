@@ -65,7 +65,7 @@ import type {
 
 ## Configuration
 
-`WebSocketComponent`'s own `IServerOptions` interface is a **subset** of the helper's `IWebSocketServerOptions` - the component fills in `server`, `redisConnection`, callback functions, `authTimeout`, and `encryptedBatchLimit` from the DI container before constructing the helper.
+`WebSocketComponent`'s own `IServerOptions` interface is a **subset** of the helper's `IWebSocketServerOptions`. Before constructing the helper, the component fills in `server` and `redisConnection` from the running application, plus every callback function resolved from the DI container. It does not forward `authTimeout` or `encryptedBatchLimit` - see the note below.
 
 ```typescript
 interface IServerOptions {
@@ -162,7 +162,7 @@ Passed straight through to Bun's native WebSocket handler via `serverOptions` in
 | `CLIENT_CONNECTED_HANDLER` | `TWebSocketClientConnectedFn` | No | Called after successful authentication |
 | `CLIENT_DISCONNECTED_HANDLER` | `TWebSocketClientDisconnectedFn` | No | Called on disconnect, after cleanup |
 | `MESSAGE_HANDLER` | `TWebSocketMessageHandler` | No | Handles non-system messages from authenticated clients |
-| `OUTBOUND_TRANSFORMER` | `TWebSocketOutboundTransformer` | No | Transforms outbound messages (e.g. per-client encryption) |
+| `OUTBOUND_TRANSFORMER` | `TWebSocketOutboundTransformer` | No | Transforms outbound messages (for example per-client encryption) |
 | `HANDSHAKE_HANDLER` | `TWebSocketHandshakeFn` | When `requireEncryption: true` | Returns <code v-pre>{ serverPublicKey, salt }</code> or `null`/`false` to reject |
 
 ```typescript
@@ -205,14 +205,14 @@ type TWebSocketHandshakeFn<AuthDataType extends Record<string, unknown> = Record
 
 - **`VALIDATE_ROOM_HANDLER` receives sanitized rooms.** Internal `ws:`-prefixed rooms are already filtered out before this callback runs. Without it bound, **all** join requests are rejected.
 - **`CLIENT_CONNECTED_HANDLER` / `CLIENT_DISCONNECTED_HANDLER` errors are caught and logged**, never thrown - a broken hook cannot disconnect a client or crash the server.
-- **`MESSAGE_HANDLER` only sees non-system events** (`authenticate`, `connected`, `disconnect`, `join`, `leave`, `error`, `heartbeat`, `encrypted` are all handled internally). Unbound, non-system messages are silently dropped.
+- **`MESSAGE_HANDLER` only sees non-system events.** `authenticate`, `connected`, `disconnect`, `join`, `leave`, `error`, `heartbeat`, and `encrypted` are all handled internally. Unbound, non-system messages are silently dropped.
 - **`OUTBOUND_TRANSFORMER` only runs for encrypted clients** (`client.encrypted === true`). Non-encrypted clients bypass it entirely - zero overhead until encryption is enabled.
 
 ## Architecture
 
 ### Lifecycle integration
 
-The component uses the application's **post-start hook** system to solve a timing problem: WebSocket needs a running Bun server instance, but components initialize before the server starts.
+The component uses the application's **post-start hook** system to solve a timing problem. WebSocket needs a running Bun server instance, but components initialize before the server starts.
 
 ```
 preConfigure()          <- register WebSocketComponent here
@@ -252,7 +252,7 @@ function createBunFetchHandler(opts: {
 
 ## `WebSocketEmitter` API
 
-Standalone, lightweight Redis-only publisher for processes that do not run a `WebSocketServerHelper`. Extends `BaseHelper`; uses a single Redis pub client.
+Standalone, lightweight Redis-only publisher for processes that do not run a `WebSocketServerHelper`. Extends `BaseHelper`. Uses a single Redis pub client.
 
 ```typescript
 interface IWebSocketEmitterOptions {
@@ -261,8 +261,11 @@ interface IWebSocketEmitterOptions {
 }
 ```
 
-- **Constructor** calls `super({ scope })`, throws `"Invalid redis connection!"` if `redisConnection` is falsy, and calls `redisConnection.duplicateClient()` to create an isolated pub client.
-- **`EMITTER_SERVER_ID = 'emitter'`.** Every message the emitter publishes carries this fixed `serverId`. No `WebSocketServerHelper` ever has this ID (they use `crypto.randomUUID()`), so no server self-dedups an emitter message.
+- **Constructor:**
+  - Calls `super({ scope })`.
+  - Throws `"Invalid redis connection!"` if `redisConnection` is falsy.
+  - Calls `redisConnection.duplicateClient()` to create an isolated pub client.
+- **`EMITTER_SERVER_ID = 'emitter'`.** Every message the emitter publishes carries this fixed `serverId`. No `WebSocketServerHelper` ever has this ID - they use `crypto.randomUUID()` - so no server self-dedups an emitter message.
 
 | Method | Signature | Behavior |
 |--------|-----------|----------|
@@ -290,7 +293,7 @@ Reads all binding keys and validates the required ones, throwing before the post
 
 Registers the `websocket-initialize` post-start hook:
 
-1. Gets the Bun server instance (`getServerInstance()`) and Hono server (`getServer()`) - throws `"[WebSocketComponent] Bun server instance not available!"` if the Bun instance is missing.
+1. Gets the Bun server instance via `getServerInstance()` and the Hono server via `getServer()`. Throws `"[WebSocketComponent] Bun server instance not available!"` if the Bun instance is missing.
 2. Constructs `WebSocketServerHelper` with all resolved bindings plus the running server instance.
 3. Awaits `wsHelper.configure()` - connects Redis clients, sets up subscriptions, starts the heartbeat timer.
 4. Binds the helper to `WEBSOCKET_INSTANCE`.
@@ -314,9 +317,20 @@ if (runtime === RuntimeModules.NODE) {
 | Callback | Responsibility |
 |----------|---------------|
 | `open` | Creates the `IWebSocketClient` entry in state `UNAUTHORIZED`, subscribes the socket to its own `clientId` topic, starts the auth timer (skips if `clientId` already exists) |
-| `message` | Updates `lastActivity`; parses JSON (sends `error` on failure); routes `heartbeat` (no-op), `authenticate`, other events on unauthenticated clients (`error`: `"Not authenticated"`), `join`, `leave`, or custom events to `messageHandler` |
+| `message` | Updates `lastActivity`, then routes the parsed event - see the table below |
 | `close` | Clears the auth timer, removes the client from `users`/`rooms`/`clients`, invokes `clientDisconnectedFn` (errors caught and logged) |
 | `drain` | Resets `client.backpressured = false` |
+
+The `message` callback routes each event like this:
+
+| Event | Handling |
+|-------|----------|
+| Not valid JSON | Sends an `error` event back to the client |
+| `heartbeat` | No-op - `lastActivity` was already updated |
+| `authenticate` | Runs the authentication flow |
+| Any other event, client not yet authenticated | Sends `error: "Not authenticated"` |
+| `join` / `leave` | Runs the room join/leave flow |
+| Any other event, client authenticated | Forwarded to `messageHandler` |
 
 ### `deliverToSocket()` backpressure handling
 
@@ -343,25 +357,41 @@ send({ destination, payload: { topic, data } })
 
 ### Room join / leave validation
 
-- **Server-side sanitization** always applies: room must be a non-empty string, at most 256 characters, and must not start with the reserved `ws:` prefix.
-- **`validateRoomFn` gates joins.** Only sanitized rooms reach it; it returns the subset the client may actually join. If unbound, every join is rejected with a warning log.
-- **Leave is filtered against joined rooms.** `handleLeave()` computes `rooms.filter(r => client.rooms.has(r))` before leaving, so a client can never unsubscribe from a room it never joined (or an internal topic). If nothing remains after filtering, the leave is silently ignored.
+- **Server-side sanitization always applies:**
+
+  | Rule | Requirement |
+  |------|-------------|
+  | Type | Non-empty string |
+  | Length | At most 256 characters |
+  | Prefix | Must not start with the reserved `ws:` prefix |
+
+- **`validateRoomFn` gates joins.** Only sanitized rooms reach it. It returns the subset the client may actually join. If unbound, every join is rejected with a warning log.
+- **Leave is filtered against joined rooms.** `handleLeave()` computes `rooms.filter(r => client.rooms.has(r))` before leaving. A client can never unsubscribe from a room it never joined - or an internal topic it was auto-subscribed to. If nothing remains after filtering, the leave is silently ignored.
 
 ### Graceful shutdown
 
+`WebSocketServerHelper` has a real `shutdown()` method, but `WebSocketComponent` never calls it automatically. Components have no `stop()` lifecycle, and the component does not register a post-stop hook for you.
+
+To disconnect clients cleanly when your application stops, register your own hook with `registerPostStopHook()` - the same mechanism IGNIS's secrets provider uses internally:
+
 ```typescript
-override async stop(): Promise<void> {
-  const wsHelper = this.get<WebSocketServerHelper>({
-    key: WebSocketBindingKeys.WEBSOCKET_INSTANCE,
-    isOptional: true,
-  });
-  if (wsHelper) {
-    await wsHelper.shutdown();
+export class Application extends BaseApplication {
+  preConfigure(): ValueOrPromise<void> {
+    // ... bind REDIS_CONNECTION, AUTHENTICATE_HANDLER, register WebSocketComponent ...
+
+    this.registerPostStopHook({
+      identifier: 'websocket-shutdown',
+      hook: async () => {
+        const wsHelper = this.get<WebSocketServerHelper>({
+          key: WebSocketBindingKeys.WEBSOCKET_INSTANCE,
+          isOptional: true,
+        });
+        if (wsHelper) {
+          await wsHelper.shutdown();
+        }
+      },
+    });
   }
-  if (this.redisHelper) {
-    await this.redisHelper.disconnect();
-  }
-  await super.stop();
 }
 ```
 

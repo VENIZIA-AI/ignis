@@ -52,8 +52,10 @@ const host = applicationEnvironment.get<string>(EnvironmentKeys.APP_ENV_POSTGRES
 ## How it works
 
 - **One prefix, layered files.** Everything IGNIS reads is prefixed `APP_ENV_` (configurable - see the [Environment Variables Reference](./environment-variables.md#custom-environment-prefix)). Layer `.env`, `.env.local`, and `.env.{NODE_ENV}` the same way any dotenv-based tool does.
-- **`applicationEnvironment` snapshots `process.env` once at import.** It's built from whatever is in `process.env` when `@venizia/ignis-helpers` loads - values arriving after that (e.g., set programmatically at runtime) won't appear in `.keys()` unless merged in explicitly (secret hydration does this - see below).
-- **Startup validation is fail-closed on emptiness, not absence.** IGNIS iterates every `APP_ENV_*` key that IS set and throws if its value is empty; it does not require a variable to exist at all. Bypass with `ALLOW_EMPTY_ENV_VALUE=true`. Component-level checks (e.g., the authentication component's `jwtSecret` check) cover values that must be present.
+- **`applicationEnvironment` snapshots `process.env` once at import.** It's built from whatever is in `process.env` when `@venizia/ignis-helpers` loads.
+- **Late values need an explicit merge.** A value set programmatically at runtime, after that snapshot, won't appear in `.keys()` unless merged in - secret hydration does this, see below.
+- **Startup validation is fail-closed on emptiness, not absence.** IGNIS iterates every `APP_ENV_*` key that IS set and throws if its value is empty. It does not require a variable to exist at all.
+- **Bypass and per-component checks.** Bypass emptiness validation with `ALLOW_EMPTY_ENV_VALUE=true`. Component-level checks (e.g., the authentication component's `jwtSecret` check) still cover values that must be present.
 - **Secrets don't have to live in a file.** IGNIS can hydrate `APP_ENV_*` keys from a vault at boot, before datasources are configured - see [Secrets & Vault](./environment-variables.md#secrets-vault).
 
 ## Common tasks
