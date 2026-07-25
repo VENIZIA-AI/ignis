@@ -1,4 +1,5 @@
 import { SearchErrorCodes } from '@/common';
+import { SearchErrors } from '@/connectors/search/common';
 import type { ILogger } from '@venizia/ignis-helpers';
 import { getError, HTTP } from '@venizia/ignis-helpers';
 
@@ -43,8 +44,7 @@ export class SearchConnectorInternal {
     const { method, subject } = opts;
 
     throw getError({
-      statusCode: HTTP.ResultCodes.RS_4.NotFound,
-      messageCode: SearchErrorCodes.NOT_FOUND,
+      error: SearchErrors.NOT_FOUND,
       message: `[${method}] ${subject} not found.`,
     });
   }

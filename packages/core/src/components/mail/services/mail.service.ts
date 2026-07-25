@@ -7,7 +7,7 @@ import type {
   IMailTransport,
   TMailOptions,
 } from '../common';
-import { MailDefaults, MailErrorCodes, MailKeys } from '../common';
+import { MailDefaults, MailErrorCodes, MailErrors, MailKeys } from '../common';
 import { inject } from '@/base/metadata';
 import {
   AnyType,
@@ -181,24 +181,21 @@ export class MailService extends BaseService implements IMailService {
   protected validateMessage(message: IMailMessage): void {
     if (!message.to || (Array.isArray(message.to) && message.to.length === 0)) {
       throw getError({
-        statusCode: 400,
-        messageCode: MailErrorCodes.INVALID_RECIPIENT,
+        error: MailErrors.INVALID_RECIPIENT,
         message: 'Recipient email address is required',
       });
     }
 
     if (!message.subject) {
       throw getError({
-        statusCode: 400,
-        messageCode: MailErrorCodes.INVALID_CONFIGURATION,
+        error: MailErrors.INVALID_CONFIGURATION,
         message: 'Email subject is required',
       });
     }
 
     if (!message.text && !message.html) {
       throw getError({
-        statusCode: 400,
-        messageCode: MailErrorCodes.INVALID_CONFIGURATION,
+        error: MailErrors.INVALID_CONFIGURATION,
         message: 'Email must have either text or html content',
       });
     }

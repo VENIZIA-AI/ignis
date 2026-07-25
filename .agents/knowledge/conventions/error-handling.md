@@ -111,6 +111,8 @@ instead of `core.system_error`:
 | `StaticAssetErrors` | `core.static_asset.*` | `components/static-asset/common/errors.ts` |
 | `RepositoryErrors` | `core.repository.*` | `base/repositories/common/errors.ts` |
 | `RequestErrors` | `core.request.*` | `base/middlewares/common/errors.ts` |
+| `SearchErrors` | `core.search_engine.*` | `connectors/search/common/errors.ts` |
+| `MailErrors` | `core.mail.*` | `components/mail/common/errors.ts` |
 
 ```typescript
 throw getError({ error: AuthenticationErrors.TOKEN_INVALID, cause: joseError });
@@ -123,6 +125,21 @@ branches on, so a rename must fail the build, not a customer's frontend.
 An INTERNAL failure - a boot misconfiguration, a DI invariant, a programming error - stays codeless
 on purpose. It surfaces as a 500 with a generic message, and a code there would be an identifier
 nobody can act on.
+
+That rule is what bounds the catalog, and the numbers say so: of the `getError` sites in `core` that
+still spell their message inline, **197 declare no status at all** (500 by default, internal) and
+**38 declare a 5xx** - none of those belong in a catalog. Counting them as a backlog is a
+misreading. `SearchErrors` and `MailErrors` closed the last nine that did carry a 4xx.
+
+A 4xx raised with `statusCode` + `messageCode` retyped at the throw is the shape to convert: the code
+already exists, but nothing ties it to its status, so two call sites drift apart. `SearchErrors`
+replaced exactly that - `ALREADY_EXISTS` + `Conflict` was hand-typed in both the Typesense and the
+Meilisearch connector, and `INVALID_CONFIGURATION` + `400` in three mail sites.
+
+`SearchErrorCodes` and `MailErrorCodes` still exist and are still exported - other members
+(`TASK_TIMEOUT`, `SEND_FAILED`, `BATCH_SEND_FAILED`) are raised on 5xx paths that stay codeless-by-
+definition. The catalogs restate their 4xx codes as literals rather than referencing them, because
+`MessageCode.build()` returns `string` and would erase the literal type the registry needs.
 
 ## Log an expected failure below `error`
 

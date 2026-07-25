@@ -1,4 +1,5 @@
 import { CoreErrorCodes, SearchErrorCodes } from '@/common';
+import { SearchErrors } from '@/connectors/search/common';
 import type {
   IImportResult,
   ISearchCollectionScoped,
@@ -595,8 +596,7 @@ export class MeilisearchConnector extends BaseSearchConnector {
 
     if (id !== undefined && (await this.documentExists({ collection, id: String(id) }))) {
       throw getError({
-        statusCode: HTTP.ResultCodes.RS_4.Conflict,
-        messageCode: SearchErrorCodes.ALREADY_EXISTS,
+        error: SearchErrors.ALREADY_EXISTS,
         message: `[${this.createDocument.name}] Document '${String(id)}' already exists in collection '${collection}'.`,
       });
     }

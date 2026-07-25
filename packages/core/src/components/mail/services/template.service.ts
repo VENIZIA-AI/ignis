@@ -1,6 +1,6 @@
 import { BaseService } from '@/base/services';
 import type { IMailTemplateEngine, ITemplate } from '../common';
-import { MailErrorCodes } from '../common';
+import { MailErrors } from '../common';
 import type { AnyType } from '@venizia/ignis-helpers';
 import { getError } from '@venizia/ignis-helpers';
 
@@ -45,8 +45,7 @@ export class TemplateEngineService extends BaseService implements IMailTemplateE
 
       if (!template) {
         throw getError({
-          statusCode: 404,
-          messageCode: MailErrorCodes.TEMPLATE_NOT_FOUND,
+          error: MailErrors.TEMPLATE_NOT_FOUND,
           message: `Template not found: ${templateName}`,
         });
       }
@@ -127,8 +126,7 @@ export class TemplateEngineService extends BaseService implements IMailTemplateE
       const validation = this.validateTemplateData({ template, data });
       if (!validation.isValid) {
         throw getError({
-          statusCode: 400,
-          messageCode: MailErrorCodes.INVALID_CONFIGURATION,
+          error: MailErrors.INVALID_CONFIGURATION,
           message: `Missing template data for keys: ${validation.missingKeys.join(', ')}`,
         });
       }

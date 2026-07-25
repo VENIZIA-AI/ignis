@@ -1,4 +1,4 @@
-import { SearchErrorCodes } from '@/common';
+import { SearchErrors } from '@/connectors/search/common';
 import type {
   IAliasInfo,
   IImportResult,
@@ -11,7 +11,7 @@ import type {
 import { BaseSearchConnector } from '@/connectors/search';
 import { SearchConnectorInternal } from '@/connectors/search/internal';
 import type { ISynonym } from '@/connectors/search/models';
-import { HTTP, getError, isApplicationError } from '@venizia/ignis-helpers';
+import { getError, isApplicationError } from '@venizia/ignis-helpers';
 import { Client } from 'typesense';
 import { TypesenseInternal } from './internal/connector-internal';
 import type {
@@ -617,8 +617,7 @@ export class TypesenseConnector extends BaseSearchConnector {
         when: error => TypesenseInternal.isAlreadyExistsError({ error }),
         handle: () => {
           throw getError({
-            statusCode: HTTP.ResultCodes.RS_4.Conflict,
-            messageCode: SearchErrorCodes.ALREADY_EXISTS,
+            error: SearchErrors.ALREADY_EXISTS,
             message: `[${this.createDocument.name}] Document '${String(id)}' already exists in collection '${collection}'.`,
           });
         },

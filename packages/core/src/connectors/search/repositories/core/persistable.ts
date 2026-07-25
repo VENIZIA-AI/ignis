@@ -1,11 +1,11 @@
-import { SearchErrorCodes } from '@/common';
+import { SearchErrors } from '@/connectors/search/common';
 import type { IdType } from '@/base/models';
 import type { IExtraOptions, TCount, TWhere } from '@/base/repositories/common';
 import { RepositoryOperationScopes } from '@/base/repositories/common';
 import type { AbstractSearchDataSource } from '@/connectors/search/datasources';
 import type { BaseSearchEntity } from '@/connectors/search/models';
 import type { TClass, TNullable } from '@venizia/ignis-helpers';
-import { getError, HTTP } from '@venizia/ignis-helpers';
+import { getError } from '@venizia/ignis-helpers';
 import type { IImportResult } from '@/connectors/search';
 import { ReadableSearchRepository } from './readable';
 
@@ -115,8 +115,7 @@ export class PersistableSearchRepository<
 
       if (!found) {
         throw getError({
-          statusCode: HTTP.ResultCodes.RS_4.NotFound,
-          messageCode: SearchErrorCodes.NOT_FOUND,
+          error: SearchErrors.NOT_FOUND,
           message: `[${this.constructor.name}][updateById] Document not found or excluded by the default filter | Collection: ${this.collectionName} | Id: ${id}`,
         });
       }

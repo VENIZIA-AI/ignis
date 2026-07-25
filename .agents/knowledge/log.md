@@ -6,6 +6,29 @@ not how.
 This file and `index.md` are reserved OKF filenames - they carry no `type:` frontmatter and are not
 counted as concepts.
 
+## 2026-07-26 - the error catalog is complete, and it was nearly finished already
+
+`SearchErrors` (`connectors/search/common/errors.ts`) and `MailErrors`
+(`components/mail/common/errors.ts`) close the last nine client-facing 4xx that still spelled their
+status and code at the throw site. Seven catalogs now, all pinned in `framework-catalog.test.ts`.
+
+The measurement that mattered was knowing what NOT to convert. 244 `getError` sites in `core` still
+carry an inline message, which reads like an 85% backlog - but the convention only catalogs
+CLIENT-FACING 4xx. Of those 244: **197 declare no status** (500, internal) and **38 declare a 5xx**.
+Exactly **9** carried a 4xx. Internal failures stay codeless on purpose, so the catalog was ~95%
+done, not 15%.
+
+What those nine had wrong was not a missing code - each already passed `messageCode`. It was
+retyping code AND status at the throw, the drift the convention warns about:
+`ALREADY_EXISTS` + `Conflict` hand-typed in both the Typesense and Meilisearch connectors,
+`INVALID_CONFIGURATION` + `400` in three mail sites, and mail using bare `404`/`400` literals rather
+than `HTTP.ResultCodes`.
+
+Codes are unchanged on the wire - the definitions restate the exact strings
+`MessageCode.build()` produced, as literals, because `build()` returns `string` and erases the
+literal type `TRegisterErrors` needs. `SearchErrorCodes` / `MailErrorCodes` stay exported: their
+remaining members are raised on 5xx paths that are codeless by design.
+
 ## 2026-07-25 - the query schemas follow the vocabulary into `ignis-filter`
 
 User decision: bring the zod schemas across so a browser can use them. They sit on a separate

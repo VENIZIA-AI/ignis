@@ -1,0 +1,22 @@
+import type { TErrorDefinition, TRegisterErrors } from '@venizia/ignis-helpers';
+import { ErrorScopes, HTTP } from '@venizia/ignis-helpers';
+
+/** Codes a client branches on for a search-tier failure that is the caller's fault. Raised by every engine (Typesense, Meilisearch, and the neutral tier) so the same condition reads the same whichever backs the datasource. */
+/** Codes are LITERAL strings, deliberately not `SearchErrorCodes.*`: `MessageCode.build()` returns `string`, which erases the literal type `TRegisterErrors` is built on and silently kills autocomplete. The values are identical to what those constants produce - they are a public contract and must not shift. */
+export const SearchErrors = {
+  NOT_FOUND: {
+    message: { text: 'Document not found', code: 'core.search_engine.not_found' },
+    statusCode: HTTP.ResultCodes.RS_4.NotFound,
+    category: ErrorScopes.BUSINESS,
+  },
+  ALREADY_EXISTS: {
+    message: { text: 'Document already exists', code: 'core.search_engine.already_exists' },
+    statusCode: HTTP.ResultCodes.RS_4.Conflict,
+    category: ErrorScopes.BUSINESS,
+  },
+} as const satisfies Record<string, TErrorDefinition>;
+
+/** Registers these codes with the shared key registry so a consumer gets autocomplete on `messageCode`. */
+declare module '@venizia/ignis-helpers' {
+  interface IErrorKeyRegistry extends TRegisterErrors<typeof SearchErrors> {}
+}

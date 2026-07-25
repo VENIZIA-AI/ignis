@@ -4,7 +4,9 @@ import { RequestErrors } from '@/base/middlewares';
 import { RepositoryErrors } from '@/base/repositories/common';
 import { AuthenticationErrors } from '@/components/auth/authenticate/common';
 import { AuthorizationErrors } from '@/components/auth/authorize/common';
+import { MailErrors } from '@/components/mail/common';
 import { StaticAssetErrors } from '@/components/static-asset/common';
+import { SearchErrors } from '@/connectors/search/common';
 
 const CATALOGS = {
   AuthenticationErrors,
@@ -12,6 +14,8 @@ const CATALOGS = {
   StaticAssetErrors,
   RepositoryErrors,
   RequestErrors,
+  SearchErrors,
+  MailErrors,
 };
 
 /** These codes are a PUBLIC contract - a client branches on them, so a rename is breaking and must fail here first. */
@@ -40,6 +44,11 @@ const PINNED = [
   'core.static_asset.max_keys_invalid',
   'core.repository.entity_not_found',
   'core.request.body_malformed',
+  'core.search_engine.not_found',
+  'core.search_engine.already_exists',
+  'core.mail.template_not_found',
+  'core.mail.invalid_configuration',
+  'core.mail.invalid_recipient',
 ];
 
 const allDefinitions = Object.values(CATALOGS).flatMap(catalog => Object.values(catalog));
