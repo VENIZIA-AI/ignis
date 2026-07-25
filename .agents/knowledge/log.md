@@ -104,6 +104,22 @@ vocabulary is unusable in a browser purely because it reaches `getError` through
 `@venizia/ignis-helpers/common` sub-path exposes the already-clean surface. Additive only: no
 existing export moved, so consumers are unaffected.
 
+## 2026-07-26 - force-update derives its package list, and no longer clobbers `catalog:`
+
+Each `scripts/force-update.sh` carried a HARDCODED `PACKAGES` list, so a new workspace dependency was
+silently never refreshed. Two had already drifted: `core` never refreshed `@venizia/ignis-filter`
+(pinned at a stale `^0.1.1-0` while filter shipped `0.1.1`) and `filter` never refreshed
+`@venizia/ignis-inversion`. The list is now derived from `package.json` with `jq`, so it cannot go
+stale; `EXTRA_PACKAGES` carries the one non-`@venizia` pin (`dev-configs` -> `@minimaltech/eslint-node`).
+
+Second bug, found by running the scripts rather than reading them: force-update's `sed` overwrote a
+`catalog:` value with a registry version, which would have failed `make catalog-check` in the very
+next workflow step - the release of `dev-configs` was primed to break. The loop now skips any dep
+whose current value is `catalog:`, since the root catalog owns that range.
+
+Everything else about `filter` was already registered correctly - Makefile chain and targets, release
+workflow choice and `DIST_DIRS`, knowledge concept, wiki changelog.
+
 ## 2026-07-25 - the framework finally has an error catalog
 
 `normalized.code` was `core.system_error` on almost every framework error: 367 of 402 `getError`

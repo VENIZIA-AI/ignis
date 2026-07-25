@@ -14,10 +14,28 @@ fi
 
 echo "START | Force updating from NPM registry (tag: $TAG)..."
 
-# Packages to update from NPM (not workspace)
-PACKAGES="@minimaltech/eslint-node"
+EXTRA_PACKAGES="@minimaltech/eslint-node"
+
+# Derived from package.json, never hardcoded: a hardcoded list silently goes stale when a new
+# workspace dependency is added - that is how @venizia/ignis-filter went unrefreshed in core, and
+# @venizia/ignis-inversion in filter. EXTRA_PACKAGES carries any non-@venizia pin.
+DERIVED=$(jq -r '[(.dependencies // {}), (.devDependencies // {}), (.peerDependencies // {})] | add // {} | keys[] | select(startswith("@venizia/"))' package.json | sort -u | tr '\n' ' ')
+PACKAGES="$EXTRA_PACKAGES $DERIVED"
+
+if [ -z "$(echo "$PACKAGES" | tr -d ' ')" ]; then
+  echo "DONE | No NPM-published dependencies to refresh."
+  exit 0
+fi
 
 for pkg in $PACKAGES; do
+  # The root workspaces.catalog owns a catalogued range; overwriting it with a registry version
+  # breaks `make catalog-check`, which the release workflow runs a few steps later.
+  CURRENT=$(jq -r --arg p "$pkg" '[(.dependencies // {}), (.devDependencies // {}), (.peerDependencies // {})] | add // {} | .[$p] // ""' package.json)
+  if [ "$CURRENT" = "catalog:" ]; then
+    echo "[$pkg] pinned by the root workspaces.catalog, SKIP..."
+    continue
+  fi
+
   echo "[$pkg] Fetching $TAG version..."
 
   if [ "$TAG" = "highest" ]; then

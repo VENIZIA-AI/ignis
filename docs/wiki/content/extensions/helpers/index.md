@@ -43,6 +43,18 @@ A helper with an optional peer dependency ships from its own subpath, so a bundl
 | `@venizia/ignis-helpers/winston` | `winston` |
 | `@venizia/ignis-helpers/pino` | `pino` |
 
+`@venizia/ignis-helpers/common` is a subpath of a different kind. It isolates nothing - it exposes the
+part of this package that is already browser-safe: `HTTP`, `TConstValue`, and the constant and
+redaction tables. Import it when your code has to bundle for a browser.
+
+The root barrel cannot: it re-exports every module, so reaching one constant through it pulls in 14
+node builtins and 27 packages, `winston` and `ioredis` among them. A guard test bundles both entry
+points for a browser target and fails if that ever changes.
+
+```typescript
+import { HTTP } from '@venizia/ignis-helpers/common';
+```
+
 ## See also
 
 - [Services](/guides/core-concepts/services) - using helpers in the service layer

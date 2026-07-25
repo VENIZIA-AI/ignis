@@ -4,7 +4,9 @@
 
 ## Error reference
 
-All errors are created via `getError()`. Only errors that pass `statusCode`/`messageCode` carry an `ApplicationError` identity with those fields. The rows marked `--` throw a plain error with only a `message`. Read an error's code at `error.normalized.code` - there is no flat `error.messageCode`.
+All errors are created via `getError()`. Only errors that carry a status and a code reach you as an `ApplicationError` with those fields; the rows marked `--` throw a plain error with only a `message`. Read an error's code at `error.normalized.code` - there is no flat `error.messageCode`.
+
+The 4xx rows below come from the `MailErrors` catalog, which holds the status and the code together so two throw sites cannot disagree. The 5xx rows stay codeless by design - a delivery failure is not something a caller can act on.
 
 ### `MailService` errors
 

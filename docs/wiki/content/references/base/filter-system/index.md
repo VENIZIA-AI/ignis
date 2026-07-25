@@ -8,6 +8,15 @@ difficulty: intermediate
 
 Every repository read, update, and delete verb takes the same `filter` object. It picks rows (`where`), columns (`fields`), order (`order`), and how many (`limit`/`skip`).
 
+The vocabulary ships as its own package, **`@venizia/ignis-filter`**. Applications on `@venizia/ignis` already get every name here re-exported from the core barrel, so nothing changes for them. Install it directly only when you want the filter language **without** the server framework - a browser or a Web Worker - since it resolves no node builtin and no server-only dependency:
+
+```typescript
+import { QueryOperators, Sorts, type TFilter } from '@venizia/ignis-filter';
+import { FilterSchema, WhereSchema } from '@venizia/ignis-filter/schemas';
+```
+
+On a server take the schemas from `@venizia/ignis` instead: the ones on that subpath carry no OpenAPI metadata, so a route built on them documents nothing.
+
 ## In one example
 
 `where` picks rows, `fields` picks columns, `order` sorts, `limit` bounds the result:
