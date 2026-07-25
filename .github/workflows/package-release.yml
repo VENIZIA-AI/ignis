@@ -10,6 +10,7 @@ on:
         options:
           - dev-configs
           - inversion
+          - filter
           - helpers
           - boot
           - core
@@ -29,7 +30,7 @@ on:
         required: true
         default: "patch"
 
-# Build order comes from the Makefile chain (dev-configs -> inversion -> helpers -> boot -> core); per-package dist dirs are in the `case` below.
+# Build order comes from the Makefile chain (dev-configs -> inversion -> {filter, helpers} -> boot -> core); per-package dist dirs are in the `case` below.
 
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
@@ -81,7 +82,7 @@ jobs:
           # Set dist directories for validation
           case $PACKAGE in
             docs-mcp)        DIST_DIRS="dist/mcp-server" ;;
-            inversion|boot)  DIST_DIRS="dist/cjs dist/esm" ;;
+            inversion|filter|boot)  DIST_DIRS="dist/cjs dist/esm" ;;
             *)               DIST_DIRS="dist" ;;
           esac
 

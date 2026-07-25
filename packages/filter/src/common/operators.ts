@@ -1,5 +1,4 @@
-import { getError } from '@venizia/ignis-inversion';
-import type { TConstValue } from '@venizia/ignis-helpers/common';
+import { getError, type TConstValue } from '@venizia/ignis-inversion';
 
 // Neutral filter vocabulary shared by every connector. Support differs per engine - unsupported operators throw at translation time rather than being removed from this list.
 

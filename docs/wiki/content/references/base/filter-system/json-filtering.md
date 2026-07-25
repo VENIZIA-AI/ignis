@@ -119,4 +119,4 @@ Every path component must match `/^[a-zA-Z_][a-zA-Z0-9_-]*$|^\d+$/` - a letter/u
 
 - [`packages/core/src/connectors/postgres/repositories/dialect/filter.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core/src/connectors/postgres/repositories/dialect/filter.ts) - `FilterBuilder`, `buildJsonWhereCondition`/`buildJsonOperatorConditions`/`buildJsonOrderBy`
 - [`packages/core/src/connectors/postgres/repositories/dialect/internal/json-utils.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core/src/connectors/postgres/repositories/dialect/internal/json-utils.ts) - `isJsonPath`, `parseJsonPath`, path validation regex
-- [`packages/core/src/base/repositories/common/operators.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core/src/base/repositories/common/operators.ts) - `QueryOperators` constants
+- [`packages/filter/src/common/operators.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/filter/src/common/operators.ts) - `QueryOperators` constants

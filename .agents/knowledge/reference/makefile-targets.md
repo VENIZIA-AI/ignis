@@ -8,7 +8,7 @@ tags: [reference, make, build]
 
 > Generated from source - do not edit; run `make okf-gen`. Playbook: [build system](/process/build-system.md).
 
-**38 targets.**
+**41 targets.**
 
 | Target | Depends on | Description |
 |---|---|---|
@@ -26,9 +26,10 @@ tags: [reference, make, build]
 | `make build-all` | `core docs docs-mcp` | All packages rebuilt successfully. |
 | `make dev-configs` | - | Rebuilding @venizia/dev-configs |
 | `make inversion` | `dev-configs` | Rebuilding @venizia/ignis-inversion |
+| `make filter` | `inversion` | Rebuilding @venizia/ignis-filter |
 | `make helpers` | `inversion` | Rebuilding @venizia/ignis-helpers |
 | `make boot` | `helpers` | Rebuilding @venizia/ignis-boot |
-| `make core` | `boot` | Rebuilding @venizia/ignis (core) |
+| `make core` | `boot filter` | Rebuilding @venizia/ignis (core) |
 | `make docs` | - | Rebuilding wiki (VitePress) |
 | `make docs-mcp` | `dev-configs` | Rebuilding @venizia/ignis-docs (MCP Server) |
 | `make update` | `install` | - |
@@ -38,6 +39,7 @@ tags: [reference, make, build]
 | `make update-docs-mcp` | - | Force updating @venizia/ignis-docs (MCP Server) |
 | `make update-helpers` | - | Force updating @venizia/ignis-helpers |
 | `make update-inversion` | - | Force updating @venizia/ignis-inversion |
+| `make update-filter` | - | Force updating @venizia/ignis-filter |
 | `make update-boot` | - | Force updating @venizia/ignis-boot |
 | `make lint` | `lint-packages` | Linting completed. |
 | `make lint-all` | `lint-packages lint-examples` | All linting completed. |
@@ -45,6 +47,7 @@ tags: [reference, make, build]
 | `make lint-examples` | - | Linting all examples |
 | `make lint-dev-configs` | - | Linting @venizia/dev-configs |
 | `make lint-inversion` | - | Linting @venizia/ignis-inversion |
+| `make lint-filter` | - | Linting @venizia/ignis-filter |
 | `make lint-helpers` | - | Linting @venizia/ignis-helpers |
 | `make lint-boot` | - | Linting @venizia/ignis-boot |
 | `make lint-core` | - | Linting @venizia/ignis (core) |

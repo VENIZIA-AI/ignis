@@ -271,10 +271,10 @@
     },
     "packages/boot": {
       "name": "@venizia/ignis-boot",
-      "version": "0.1.1-6",
+      "version": "0.1.1-8",
       "dependencies": {
-        "@venizia/ignis-helpers": "^0.1.1-6",
-        "@venizia/ignis-inversion": "^0.1.1-4",
+        "@venizia/ignis-helpers": "^0.1.1-8",
+        "@venizia/ignis-inversion": "^0.1.1-5",
         "glob": "^13.0.6",
         "lodash": "catalog:",
         "reflect-metadata": "catalog:",
@@ -291,11 +291,12 @@
     },
     "packages/core": {
       "name": "@venizia/ignis",
-      "version": "0.1.1-9",
+      "version": "0.1.1-11",
       "dependencies": {
-        "@venizia/ignis-boot": "^0.1.1-6",
-        "@venizia/ignis-helpers": "^0.1.1-6",
-        "@venizia/ignis-inversion": "^0.1.1-4",
+        "@venizia/ignis-boot": "^0.1.1-8",
+        "@venizia/ignis-filter": "^0.1.1-0",
+        "@venizia/ignis-helpers": "^0.1.1-8",
+        "@venizia/ignis-inversion": "^0.1.1-5",
         "lodash": "catalog:",
         "reflect-metadata": "catalog:",
       },
@@ -390,11 +391,27 @@
         "typescript",
       ],
     },
+    "packages/filter": {
+      "name": "@venizia/ignis-filter",
+      "version": "0.1.1-0",
+      "dependencies": {
+        "@venizia/ignis-inversion": "^0.1.1-5",
+        "zod": "catalog:",
+      },
+      "devDependencies": {
+        "@types/bun": "catalog:",
+        "@venizia/dev-configs": "^0.1.0",
+        "eslint": "catalog:",
+        "prettier": "catalog:",
+        "tsc-alias": "catalog:",
+        "typescript": "catalog:",
+      },
+    },
     "packages/helpers": {
       "name": "@venizia/ignis-helpers",
-      "version": "0.1.1-6",
+      "version": "0.1.1-8",
       "dependencies": {
-        "@venizia/ignis-inversion": "^0.1.1-4",
+        "@venizia/ignis-inversion": "^0.1.1-5",
         "dayjs": "catalog:",
         "ioredis": "catalog:",
         "lodash": "catalog:",
@@ -475,7 +492,7 @@
     },
     "packages/inversion": {
       "name": "@venizia/ignis-inversion",
-      "version": "0.1.1-4",
+      "version": "0.1.1-5",
       "dependencies": {
         "lodash": "catalog:",
         "reflect-metadata": "catalog:",
@@ -1308,6 +1325,8 @@
     "@venizia/ignis-boot": ["@venizia/ignis-boot@workspace:packages/boot"],
 
     "@venizia/ignis-docs": ["@venizia/ignis-docs@workspace:docs/wiki"],
+
+    "@venizia/ignis-filter": ["@venizia/ignis-filter@workspace:packages/filter"],
 
     "@venizia/ignis-helpers": ["@venizia/ignis-helpers@workspace:packages/helpers"],
 

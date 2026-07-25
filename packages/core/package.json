@@ -183,6 +183,7 @@
   },
   "dependencies": {
     "@venizia/ignis-boot": "^0.1.1-8",
+    "@venizia/ignis-filter": "^0.1.1-0",
     "@venizia/ignis-helpers": "^0.1.1-8",
     "@venizia/ignis-inversion": "^0.1.1-5",
     "lodash": "catalog:",

@@ -6,9 +6,9 @@ resource: packages/core/src/connectors/postgres/repositories/dialect/filter.ts
 tags: [architecture, filter, query, drizzle, postgres]
 ---
 
-A filter is a plain options object: `{ where, order, limit, offset, skip, fields, include }`. The vocabulary lives in `base/repositories/common/operators.ts` and is **engine-neutral** - support differs per engine, and an unsupported operator throws at translation time rather than being quietly dropped from the list.
+A filter is a plain options object: `{ where, order, limit, offset, skip, fields, include }`. The vocabulary lives in its own package, [`@venizia/ignis-filter`](/packages/filter.md), and is **engine-neutral** - support differs per engine, and an unsupported operator throws at translation time rather than being quietly dropped from the list.
 
-The vocabulary is also **browser-safe**, and that is enforced rather than assumed. The types (`TFilter`, `TWhere`, `TFields`, `TInclusion`, `TLimit`, `TOffset`, `TSkip`, `TOrderBy`) sit in `base/repositories/query-schemas/common/types.ts` with no runtime import at all; the zod schemas beside them parse HTTP query strings, stay coupled to `@hono/zod-openapi`, and are deliberately server-side. `operators.ts` reaches `getError` from `@venizia/ignis-inversion` and `TConstValue` from `@venizia/ignis-helpers/common`, never the helpers root barrel - going through that barrel dragged 13 node builtins plus `@hono/zod-openapi` and `ioredis` into a browser bundle. `src/__tests__/repositories/browser-purity.test.ts` guards all three facts by bundling for `target: 'browser'`.
+The vocabulary is also **browser-safe**, and that is enforced rather than assumed: `packages/filter/src/__tests__/browser-purity.test.ts` bundles the barrel for `target: 'browser'` and fails on any `node:*` builtin or any package outside `@venizia/ignis-inversion` / `lodash` / `reflect-metadata`. The zod schemas that validate a filter arriving over HTTP stay in `core/src/base/repositories/query-schemas/`, coupled to `@hono/zod-openapi` - that is correct for them, they parse query strings. `core` re-exports the package from `base/repositories/common/index.ts`, so every existing `@venizia/ignis-core` import keeps resolving.
 
 ## Operators
 

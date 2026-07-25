@@ -6,6 +6,46 @@ not how.
 This file and `index.md` are reserved OKF filenames - they carry no `type:` frontmatter and are not
 counted as concepts.
 
+## 2026-07-25 - the query schemas follow the vocabulary into `ignis-filter`
+
+User decision: bring the zod schemas across so a browser can use them. They sit on a separate
+`@venizia/ignis-filter/schemas` entry point, so the root barrel still resolves no `zod` for consumers
+who only want `QueryOperators`.
+
+They are built with plain `zod` through `buildQuerySchemas({ decorate })`. The injected decorator is
+not ceremony: `.openapi()` returns a NEW schema instead of mutating, and 3 of the 11 decorations sit
+on inner nodes of a nested tree, so core cannot annotate them after composition - it would only ever
+decorate the outer node while the composed children stayed bare. `core` calls the builder with the
+OpenAPI decorator and re-exports under the original names, so no consumer changed.
+
+The side-effect `import '@hono/zod-openapi'` in core's `query-schemas/index.ts` is load-bearing:
+the package peers on `zod`, so importing it patches `.openapi()` onto the shared prototype, and ESM
+evaluates imports before the module body where the builder runs. Without it the schemas build
+undecorated and everything still compiles and still validates - the API reference just loses every
+description. `query-schema-openapi.test.ts` closes that hole by generating an OpenAPI 3.1 document
+and asserting descriptions at the top level AND on nested properties.
+
+Types stay hand-written rather than `z.infer`: `TFilter<User>` rejects `{ where: { notAField: 1 } }`,
+the inferred type accepts it, because the recursive where-clause is `z.ZodType<any>`.
+
+## 2026-07-25 - `@venizia/ignis-filter` is a package
+
+The filter vocabulary - the `TFilter` shape, `QueryOperators`, `TQueryOperator`, `Sorts` - moved out
+of `core/src/base/repositories/` into its own package so a browser data layer can speak the same
+filter language as a server repository. 181 lines across two files.
+
+It sits BESIDE helpers in the chain, not after it: `dev-configs -> inversion -> {filter, helpers} ->
+boot -> core`. Its only dependency is inversion, which supplies both `getError` and `TConstValue`;
+helpers merely duplicates `TConstValue`, so an edge to helpers would have cost more for nothing.
+
+Two assumptions in the design spec turned out wrong and are corrected here: `mergeFilter` is NOT
+extractable - it is a method on the Postgres query dialect, Drizzle-coupled, not a standalone
+function - and the vocabulary never needed helpers at all.
+
+`core` re-exports the package from `base/repositories/common/index.ts`, so no public name moved and
+no consumer import changed. Seven internal core imports were repointed. The zod query schemas stay in
+core and stay Hono-coupled, which is correct for them.
+
 ## 2026-07-25 - the filter vocabulary is split from the HTTP query schemas
 
 `TFilter`, `TWhere`, `TFields`, `TInclusion`, `TLimit`, `TOffset`, `TSkip` and `TOrderBy` moved out of

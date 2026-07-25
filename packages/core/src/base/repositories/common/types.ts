@@ -3,7 +3,7 @@ import type { AbstractEntity, IdType } from '@/base/models';
 import { z } from '@hono/zod-openapi';
 import type { IRetryBackoffOptions, TLogLevel, TNullable } from '@venizia/ignis-helpers';
 import type { Column, SQL } from 'drizzle-orm';
-import type { TFilter, TWhere } from '../query-schemas';
+import type { TFilter, TWhere } from '@venizia/ignis-filter';
 import type { TLockStrength } from './constants';
 
 /** Update data supporting both regular fields and JSON path updates via dot notation. */

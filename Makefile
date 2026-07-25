@@ -1,10 +1,10 @@
-.PHONY: all build build-all core dev-configs docs docs-mcp helpers inversion boot \
+.PHONY: all build build-all core dev-configs docs docs-mcp filter helpers inversion boot \
         help install clean setup-hooks agent-setup \
         lint lint-all lint-packages lint-examples \
-        lint-dev-configs lint-inversion lint-helpers lint-boot lint-core lint-docs-mcp \
+        lint-dev-configs lint-inversion lint-filter lint-helpers lint-boot lint-core lint-docs-mcp \
         okf-check okf-gen okf-coverage okf-viz \
         catalog-check \
-        update update-all update-core update-dev-configs update-docs-mcp update-helpers update-inversion update-boot
+        update update-all update-core update-dev-configs update-docs-mcp update-filter update-helpers update-inversion update-boot
 
 DEFAULT_GOAL := help
 
@@ -63,7 +63,8 @@ build-all: core docs docs-mcp
 	@echo "🚀 All packages rebuilt successfully."
 
 # Granular build targets for individual packages
-# Dependency chain: dev-configs → inversion → helpers → boot → core
+# Dependency chain: dev-configs → inversion → {filter, helpers} → boot → core
+# `filter` is isomorphic and depends on inversion only - it deliberately does NOT sit after helpers.
 # Note: Using --filter directly to avoid triggering prerebuild scripts (Make handles deps)
 dev-configs:
 	@echo "📦 Rebuilding @venizia/dev-configs..."
@@ -73,6 +74,10 @@ inversion: dev-configs
 	@echo "📦 Rebuilding @venizia/ignis-inversion..."
 	@bun run --filter "@venizia/ignis-inversion" rebuild
 
+filter: inversion
+	@echo "📦 Rebuilding @venizia/ignis-filter..."
+	@bun run --filter "@venizia/ignis-filter" rebuild
+
 helpers: inversion
 	@echo "📦 Rebuilding @venizia/ignis-helpers..."
 	@bun run --filter "@venizia/ignis-helpers" rebuild
@@ -81,7 +86,7 @@ boot: helpers
 	@echo "📦 Rebuilding @venizia/ignis-boot..."
 	@bun run --filter "@venizia/ignis-boot" rebuild
 
-core: boot
+core: boot filter
 	@echo "📦 Rebuilding @venizia/ignis (core)..."
 	@bun run --filter "@venizia/ignis" rebuild
 
@@ -121,6 +126,10 @@ update-inversion:
 	@echo "🔄 Force updating @venizia/ignis-inversion..."
 	@bun run --filter "@venizia/ignis-inversion" force-update
 
+update-filter:
+	@echo "🔄 Force updating @venizia/ignis-filter..."
+	@bun run --filter "@venizia/ignis-filter" force-update
+
 update-boot:
 	@echo "🔄 Force updating @venizia/ignis-boot..."
 	@bun run --filter "@venizia/ignis-boot" force-update
@@ -149,6 +158,10 @@ lint-dev-configs:
 lint-inversion:
 	@echo "🔍 Linting @venizia/ignis-inversion..."
 	@bun run --filter "@venizia/ignis-inversion" lint
+
+lint-filter:
+	@echo "🔍 Linting @venizia/ignis-filter..."
+	@bun run --filter "@venizia/ignis-filter" lint
 
 lint-helpers:
 	@echo "🔍 Linting @venizia/ignis-helpers..."

@@ -1,0 +1,93 @@
+{
+  "name": "@venizia/ignis-filter",
+  "version": "0.1.1-0",
+  "description": "Engine-neutral query filter vocabulary for TypeScript: the `{ where, order, limit, offset, skip, fields, include }` shape, comparison/pattern/null/array/logical operators, and sort direction constants. Isomorphic by construction - no node builtins and no server-only peer, so the same filter language serves a server repository and a browser data layer.",
+  "keywords": [
+    "browser",
+    "filter",
+    "ignis",
+    "isomorphic",
+    "operators",
+    "pagination",
+    "query",
+    "query-builder",
+    "query-filter",
+    "repository",
+    "sorting",
+    "typescript",
+    "venizia",
+    "where-clause"
+  ],
+  "homepage": "https://ignis.venizia.ai",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/VENIZIA-AI/ignis.git",
+    "directory": "packages/filter"
+  },
+  "bugs": {
+    "url": "https://github.com/VENIZIA-AI/ignis/issues"
+  },
+  "author": {
+    "name": "VENIZIA AI Developer",
+    "email": "developer@venizia.ai",
+    "url": "https://venizia.ai"
+  },
+  "license": "MIT",
+  "engines": {
+    "bun": ">=1.3"
+  },
+  "main": "./dist/cjs/index.js",
+  "exports": {
+    ".": {
+      "types": "./dist/cjs/index.d.ts",
+      "import": "./dist/esm/index.js",
+      "require": "./dist/cjs/index.js",
+      "default": "./dist/cjs/index.js"
+    },
+    "./schemas": {
+      "types": "./dist/cjs/schemas/index.d.ts",
+      "import": "./dist/esm/schemas/index.js",
+      "require": "./dist/cjs/schemas/index.js",
+      "default": "./dist/cjs/schemas/index.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "README.md",
+    "LICENSE.md",
+    "dist",
+    "!/**/tests",
+    "!/**/dist/tests",
+    "!/**/__tests__",
+    "!**/*.tsbuildinfo"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "sideEffects": false,
+  "scripts": {
+    "force-update": "sh ./scripts/force-update.sh",
+    "build": "sh ./scripts/build.sh",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "clean": "sh ./scripts/clean.sh",
+    "eslint": "eslint --report-unused-disable-directives .",
+    "lint": "bun run eslint && bun run prettier:cli",
+    "lint:fix": "bun run eslint --fix && bun run prettier:fix",
+    "prettier:cli": "prettier \"**/*.{js,ts}\" -l",
+    "prettier:fix": "bun run prettier:cli --write",
+    "rebuild": "sh ./scripts/rebuild.sh no-version",
+    "prepublishOnly": "bun run rebuild"
+  },
+  "dependencies": {
+    "@venizia/ignis-inversion": "^0.1.1-5",
+    "zod": "catalog:"
+  },
+  "devDependencies": {
+    "@types/bun": "catalog:",
+    "@venizia/dev-configs": "^0.1.0",
+    "eslint": "catalog:",
+    "prettier": "catalog:",
+    "tsc-alias": "catalog:",
+    "typescript": "catalog:"
+  }
+}

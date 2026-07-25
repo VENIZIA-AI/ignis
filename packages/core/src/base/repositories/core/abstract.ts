@@ -23,7 +23,7 @@ import type {
   TRepositoryOperationScope,
 } from '../common';
 import { RepositoryErrorCodes, RepositoryOperationScopes } from '../common';
-import type { TFilter, TWhere } from '../query-schemas';
+import type { TFilter, TWhere } from '@venizia/ignis-filter';
 
 /** Engine-neutral repository plumbing - lazy dataSource/entity resolution, class-keyed `@model` settings, operation scope. `TOptions` defaults to `IExtraOptions` so connectors can narrow it while staying assignable to this base. */
 export abstract class AbstractRepository<

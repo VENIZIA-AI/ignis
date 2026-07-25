@@ -1,4 +1,4 @@
-import type { TFields } from '@/base/repositories/query-schemas';
+import type { TFields } from '@venizia/ignis-filter';
 import { getError } from '@venizia/ignis-helpers';
 
 /** Dialect-shared pure helpers, shared once rather than byte-copied per dialect; not barrel-exported, not part of the connector's public surface. */

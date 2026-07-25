@@ -1,4 +1,4 @@
-/** The engine-neutral filter vocabulary, kept free of any runtime import so it can be shared with a browser data layer. The zod schemas next to it parse HTTP query strings and belong to the server; these types describe the shape and cost nothing at runtime. Do not import a value here - the sibling purity guard fails if this file resolves to anything. */
+/** The filter shape, free of any runtime import. The zod schemas that validate this shape over HTTP stay in `@venizia/ignis-core` - they parse query strings and pull in the OpenAPI layer, which is a server concern. Do not import a value here; the purity guard fails if this file resolves to anything. */
 
 /** Fields selection - an array of field names to include, or an object keyed by field name (`true` includes, `false` excludes). */
 export type TFields<T = any> = Partial<{ [K in keyof T]: boolean }> | Array<keyof T>;

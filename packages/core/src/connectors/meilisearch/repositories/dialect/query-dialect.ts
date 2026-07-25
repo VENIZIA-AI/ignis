@@ -1,5 +1,4 @@
-import { QueryOperators } from '@/base/repositories/common/operators';
-import type { TFilter, TWhere } from '@/base/repositories/query-schemas';
+import { QueryOperators, type TFilter, type TWhere } from '@venizia/ignis-filter';
 import type {
   ISearchQuery,
   ISearchQueryDialect,
