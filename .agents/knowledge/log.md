@@ -104,6 +104,24 @@ vocabulary is unusable in a browser purely because it reaches `getError` through
 `@venizia/ignis-helpers/common` sub-path exposes the already-clean surface. Additive only: no
 existing export moved, so consumers are unaffected.
 
+## 2026-07-26 - core declares `zod`: a hoisting-dependent declaration-emit failure
+
+The `core` release failed CI at Build with TS2742: "The inferred type of 'WhereSchema' cannot be
+named without a reference to '$ZodTypeInternals' from '.bun/zod@4.4.3/...'". It built fine locally.
+
+`core` re-exports `WhereSchema`/`FilterSchema` from `buildQuerySchemas()` in `@venizia/ignis-filter`,
+so its public `.d.ts` must NAME zod's types - but core declared no `zod` dependency. Locally a
+hoisted `node_modules/zod` let TypeScript write the portable `import("zod/v4/core")`; CI's layout had
+no such hoist, so TS fell back to the bun store path and refused it as non-portable. The local pass
+was luck, and a warm `tsbuildinfo` hid it further - reproduce by deleting `dist/` AND the
+`.tsbuildinfo` files, then hiding `node_modules/zod`.
+
+The same gap would have broken CONSUMERS: `@venizia/ignis` shipped types referencing zod without
+depending on it. Fixed by declaring `zod: catalog:` in core, which also gives it
+`packages/core/node_modules/zod` so resolution no longer depends on hoisting. A sweep of every
+package's emitted `.d.ts` against its manifest now shows no other package referencing an undeclared
+dependency.
+
 ## 2026-07-26 - force-update derives its package list, and no longer clobbers `catalog:`
 
 Each `scripts/force-update.sh` carried a HARDCODED `PACKAGES` list, so a new workspace dependency was
