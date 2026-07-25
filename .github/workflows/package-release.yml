@@ -183,13 +183,14 @@ jobs:
             *)                 NPM_TAG="next" ;;
           esac
 
-          # `bun publish`, not npm: bun resolves `catalog:`/`workspace:` while packing, npm ships them verbatim and breaks every consumer. Auth is setup-node's .npmrc; --ignore-scripts skips the already-run prepublishOnly.
+          # `bun publish`, not npm: bun resolves `catalog:`/`workspace:` while packing, npm ships them verbatim and breaks every consumer. --ignore-scripts skips the already-run prepublishOnly.
           bun publish --access public --tag $NPM_TAG --ignore-scripts
 
           echo "IS_PUBLISHED=true" >> $GITHUB_ENV
           echo "✓ Published $PACKAGE_NAME@$NEW_VERSION ($NPM_TAG)"
         env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_ACCESS_TOKEN }}
+          # NPM_CONFIG_TOKEN, not NODE_AUTH_TOKEN: bun ignores the NPM_CONFIG_USERCONFIG path that actions/setup-node writes its .npmrc to, and does not read NODE_AUTH_TOKEN or BUN_AUTH_TOKEN - measured, all three fail with "missing authentication".
+          NPM_CONFIG_TOKEN: ${{ secrets.NPM_ACCESS_TOKEN }}
 
       - name: Tag highest version on NPM
         run: |

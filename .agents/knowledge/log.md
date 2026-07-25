@@ -12,10 +12,14 @@ counted as concepts.
 protocols verbatim - the cause of the three broken releases below. It now uses `bun publish`, which
 resolves them while packing (`bun pm pack` substitutes, `npm pack` does not - measured both ways).
 
-Auth is unchanged and verified: `actions/setup-node` writes an `.npmrc` holding
-`_authToken=${NODE_AUTH_TOKEN}`, and bun expands it - probed against a local registry that echoed
-back `Bearer <token>`. `npm version` and `npm dist-tag add` stay (bun has no dist-tag command, and
-neither packs).
+Auth had to change, and the reason is a real bun/npm difference: **bun does not read
+`NPM_CONFIG_USERCONFIG`**, which is where `actions/setup-node` writes its `.npmrc`. Measured against
+a local registry with an isolated `HOME`: `NPM_CONFIG_USERCONFIG` and `BUN_AUTH_TOKEN` both fail with
+`missing authentication`; only **`NPM_CONFIG_TOKEN`** works. The publish step therefore passes
+`NPM_CONFIG_TOKEN`, while `npm dist-tag add` keeps `NODE_AUTH_TOKEN` (npm does honor setup-node's
+config). A bun `.npmrc` in the CWD also works, but the env var writes no token to disk.
+
+`npm version` and `npm dist-tag add` stay (bun has no dist-tag command, and neither packs).
 
 Two gates now run before publish: `make catalog-check`, and a packed-manifest check that packs with
 `npm pack` ON PURPOSE - bun would substitute the protocol away, so a bun-packed tarball could never
