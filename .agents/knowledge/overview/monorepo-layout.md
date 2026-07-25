@@ -42,28 +42,28 @@ dev-configs -> inversion -> helpers -> boot -> core
 
 ## Dependency versions are pinned by the root catalog
 
-A dependency shared by two or more workspaces is pinned ONCE in the root `workspaces.catalog`. Every
-workspace then repeats that exact range as a LITERAL. `make catalog-check` fails if any of them
-disagrees, so the catalog is enforced by a gate rather than by a resolution protocol.
+A dependency shared by two or more workspaces is pinned ONCE in the root `workspaces.catalog`, and
+each workspace references it as `"dep": "catalog:"`. Bump the root entry and every workspace moves
+together.
 
-**Never write Bun's `catalog:` protocol in a manifest.** `packages/*` publish through
-`npm publish --access public` (`.github/workflows/package-release.yml`), and npm ships `catalog:`
-verbatim - `bun pm pack` substitutes the real range, `npm pack` does not. Releases 0.1.1-9 / -6 / -4
-shipped `"lodash": "catalog:"` this way and were unresolvable for every consumer. `catalog-check`
-now rejects `catalog:` in any block of any workspace.
+**The release pipeline MUST publish with `bun publish`.** Only bun resolves `catalog:` while packing;
+`npm publish` ships it verbatim and the manifest is unresolvable for every consumer. Releases
+0.1.1-9 / -6 / -4 broke exactly this way, before the pipeline was switched. Two gates protect it in
+`.github/workflows/package-release.yml`: `make catalog-check`, and a packed-manifest check that
+asserts the publisher is still bun and that the tarball carries no unresolved protocol.
 
 Rules:
 
-- **`dependencies` / `devDependencies` repeat the catalog range literally.** The gate enforces equality.
+- **`dependencies` / `devDependencies` use `catalog:`** for any dep the catalog owns.
 - **`peerDependencies` stay hand-authored.** They are compatibility statements for consumers and are
   deliberately looser than the install range - core declares peer `pg ^8.21.0` while installing
   `^8.22.0`, and dev-configs declares peer `typescript ^5 || ^6` while installing `^6.0.3`.
+  `catalog-check` rejects `catalog:` in a peer range.
 - **A dep used by one workspace keeps its own range** - the catalog does not own it.
 - **The root has no `dependencies` block.** It once duplicated 34 entries and acted as an accidental
   version pin; the catalog replaces that intentionally.
 
-To bump a shared dependency: change the catalog entry, run `make catalog-check` to see every
-workspace that now disagrees, and update those to match.
+To bump a shared dependency, change the catalog entry - nothing else needs editing.
 
 ## Source map
 

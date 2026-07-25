@@ -3,9 +3,9 @@ import { Glob } from 'bun';
 /**
  * Guards dependency versions against the root `workspaces.catalog`.
  *
- * The catalog is the declared source of truth, but workspaces reference it with a LITERAL range,
- * never Bun's `catalog:` protocol: `packages/*` publish through `npm publish`, and npm ships
- * `catalog:` verbatim into the manifest, where it is unresolvable for every consumer.
+ * A catalogued dep is referenced as `catalog:` and resolved at publish time by `bun publish`, which
+ * substitutes the real range while packing. `npm publish` does NOT - it ships `catalog:` verbatim
+ * and the manifest is unresolvable for every consumer, which is how 0.1.1-9 / -6 / -4 broke.
  */
 
 interface IProblem {
@@ -16,7 +16,7 @@ interface IProblem {
 const WORKSPACE_GLOBS = ['packages/*/package.json', 'examples/*/package.json', 'docs/*/package.json'];
 
 /** `peerDependencies` are compatibility statements for consumers and stay deliberately looser than the install range. */
-const GUARDED_BLOCKS = ['dependencies', 'devDependencies'] as const;
+const CATALOGUED_BLOCKS = ['dependencies', 'devDependencies'] as const;
 
 const rootJson = JSON.parse(await Bun.file('package.json').text());
 const catalog: Record<string, string> = rootJson.workspaces?.catalog ?? {};
@@ -40,36 +40,35 @@ for (const pattern of WORKSPACE_GLOBS) {
       continue;
     }
 
-    for (const block of [...GUARDED_BLOCKS, 'peerDependencies'] as const) {
+    for (const block of CATALOGUED_BLOCKS) {
       for (const [dep, range] of Object.entries(json[block] ?? {})) {
-        // npm ships this verbatim - it must never reach a manifest, in any block.
-        if (range === 'catalog:') {
-          problems.push({
-            file,
-            message: `${block}.${dep} uses "catalog:" - npm publishes it verbatim and consumers cannot resolve it; write the literal ${catalog[dep] ?? 'range'}`,
-          });
-          continue;
-        }
-
-        if (!GUARDED_BLOCKS.includes(block as (typeof GUARDED_BLOCKS)[number])) {
-          continue;
-        }
-
         if (!(dep in catalog)) {
           continue;
         }
 
         referenced.add(dep);
 
-        if (range === catalog[dep]) {
+        if (range === 'catalog:') {
           continue;
         }
 
         problems.push({
           file,
-          message: `${block}.${dep} is "${range}" but the catalog pins "${catalog[dep]}" - align it, or change the catalog`,
+          message: `${block}.${dep} is "${range}" but the catalog owns it - use "catalog:" (catalog pins ${catalog[dep]})`,
         });
       }
+    }
+
+    // A peer resolved from the catalog would collapse to the exact install range, losing the looseness that makes it a peer.
+    for (const [dep, range] of Object.entries(json.peerDependencies ?? {})) {
+      if (range !== 'catalog:') {
+        continue;
+      }
+
+      problems.push({
+        file,
+        message: `peerDependencies.${dep} uses "catalog:" - a peer range must stay hand-authored and looser than the install range`,
+      });
     }
   }
 }
@@ -84,7 +83,7 @@ for (const dep of Object.keys(catalog)) {
 }
 
 if (problems.length === 0) {
-  console.log(`check-catalog: OK - ${Object.keys(catalog).length} entries, ${referenced.size} in use, no "catalog:" in any manifest`);
+  console.log(`check-catalog: OK - ${Object.keys(catalog).length} entries, ${referenced.size} referenced`);
   process.exit(0);
 }
 

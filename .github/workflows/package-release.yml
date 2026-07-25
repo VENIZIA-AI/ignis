@@ -122,11 +122,14 @@ jobs:
       - name: Check dependency catalog
         run: make catalog-check
 
-      # Packs with `npm pack` on purpose: bun substitutes the protocols so a bun-packed tarball could never fail this check, npm ships them verbatim - releases 0.1.1-9 / -6 / -4 did exactly that.
+      # Manifests carry `catalog:` on purpose; only `bun publish` resolves it while packing, so this asserts both that the publisher is still bun and that the tarball it uploads is actually clean.
       - name: Validate packed manifest
         run: |
+          grep -q 'bun publish' "$GITHUB_WORKSPACE/.github/workflows/package-release.yml" \
+            || { echo "ERROR: the publish step must use 'bun publish' - npm ships catalog: verbatim"; exit 1; }
+
           cd $PACKAGE_PATH
-          npm pack --ignore-scripts > /dev/null
+          bun pm pack --quiet > /dev/null
           TARBALL=$(ls -t ./*.tgz | head -1)
 
           MANIFEST=$(tar -xzOf "$TARBALL" package/package.json)
@@ -138,7 +141,7 @@ jobs:
             exit 1
           fi
 
-          echo "    ✓ packed manifest carries no catalog:/workspace: protocol"
+          echo "    ✓ publisher is bun and the packed manifest resolves every protocol"
 
       # -------------------------------------------------------------------------
       # VERSION & GIT

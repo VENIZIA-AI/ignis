@@ -27,16 +27,14 @@ The root `package.json` carried 34 `dependencies`, every one of them already dec
 workspace - pure duplication that acted as an accidental version pin. The block is GONE. Ten
 workspace ranges were bumped up to what root pinned first, so nothing downgrades.
 
-Shared versions now live in `workspaces.catalog` (32 entries); every workspace repeats the range as
-a LITERAL and `make catalog-check` enforces equality. `peerDependencies` are deliberately excluded -
-they are looser compat statements.
+Shared versions now live in `workspaces.catalog` (32 entries) and every workspace references
+`"catalog:"` (163 declarations). `peerDependencies` are deliberately excluded - they are looser
+compat statements, and `catalog-check` rejects `catalog:` there.
 
-Bun's `catalog:` protocol MUST NOT appear in a manifest. It was used first and broke three
-releases: the pipeline publishes with `npm publish` (`package-release.yml`), and `npm pack` ships
-`catalog:` verbatim while `bun pm pack` substitutes it. `@venizia/ignis@0.1.1-9`,
-`ignis-helpers@0.1.1-6` and `ignis-inversion@0.1.1-4` shipped `"lodash": "catalog:"` and fail to
-install. The gate now rejects `catalog:` in any block, and `npm pack` output is verified clean for
-all five published packages.
+This depends on the pipeline publishing with `bun publish`: bun resolves `catalog:` while packing,
+npm ships it verbatim. Publishing with npm broke `@venizia/ignis@0.1.1-9`,
+`ignis-helpers@0.1.1-6` and `ignis-inversion@0.1.1-4`, which shipped `"lodash": "catalog:"` and
+cannot be installed. Those three still need `npm deprecate` plus a republish.
 
 Also fixed: `packages/helpers` imported `zod` (secrets/hashicorp/auth.ts) while declaring neither
 `zod` nor a runtime dep guaranteeing it - `@hono/zod-openapi` is dev-only, so published helpers
