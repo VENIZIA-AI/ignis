@@ -1,4 +1,5 @@
 import { describe, expect, test } from 'bun:test';
+import { inspect } from 'node:util';
 import { ErrorPrettier, formatLogMessage } from '@/modules/logger';
 
 /** A drizzle-shaped failure: a huge SQL `message` plus `query`/`params`/`stack` that each repeat it, wrapping a raw pg error as `cause` - the shape that floods the log. */
@@ -52,6 +53,27 @@ describe('ErrorPrettier.summarize', () => {
     expect(summary.stack?.split('\n')).toHaveLength(2);
   });
 
+  /** The first dependency frame is often the throw site (drizzle, jose); the rest is HTTP plumbing. */
+  test('keeps app frames and only the FIRST dependency frame, counting off the rest', () => {
+    const error = new Error('boom');
+    error.stack = [
+      'Error: boom',
+      '    at recalculate (/app/src/sale-order.service.ts:88:21)',
+      '    at queryWithCache (/app/node_modules/drizzle-orm/session.js:66:33)',
+      '    at dispatch (/app/node_modules/hono/compose.js:43:23)',
+      '    at notify (/app/node_modules/hono/hono-base.js:327:31)',
+      '    at handler (/app/src/controller.ts:12:5)',
+    ].join('\n');
+
+    const stack = ErrorPrettier.summarize({ error }).stack ?? '';
+
+    expect(stack).toContain('sale-order.service.ts');
+    expect(stack).toContain('drizzle-orm/session.js'); // the first dependency frame survives
+    expect(stack).toContain('controller.ts'); // a later APP frame is never dropped
+    expect(stack).not.toContain('compose.js');
+    expect(stack).toContain('... 2 dependency frames'); // never truncated silently
+  });
+
   test('keeps the pg diagnostics when the driver supplies them', () => {
     const summary = ErrorPrettier.summarize({ error: buildDrizzleError() });
 
@@ -102,6 +124,42 @@ describe('ErrorPrettier.summarize', () => {
     expect(summary.cause?.cause?.message).toBe('[Circular]');
   });
 
+  /** A ZodError's `message` is its issue array as pretty JSON - dozens of lines for one bad field. */
+  test('compresses a ZodError message to one `path: reason` line per issue', () => {
+    const error = Object.assign(
+      new Error(
+        JSON.stringify([
+          { path: ['order', 'items', 0, 'qty'], message: 'expected number, received string' },
+          { path: [], code: 'custom' },
+        ]),
+      ),
+      { name: 'ZodError' },
+    );
+
+    expect(ErrorPrettier.summarize({ error }).message).toBe(
+      'order.items.0.qty: expected number, received string\n(root): custom',
+    );
+  });
+
+  test('counts off ZodError issues beyond the cap instead of truncating silently', () => {
+    const issues = Array.from({ length: 14 }, (_unused, index) => ({
+      path: [`field${index}`],
+      message: 'required',
+    }));
+    const error = Object.assign(new Error(JSON.stringify(issues)), { name: 'ZodError' });
+
+    const message = ErrorPrettier.summarize({ error }).message ?? '';
+
+    expect(message.split('\n')).toHaveLength(11); // 10 issues + the count line
+    expect(message).toContain('... and 4 more');
+  });
+
+  test('leaves a ZodError alone when its message is not the JSON issue form', () => {
+    const error = Object.assign(new Error('totally not json'), { name: 'ZodError' });
+
+    expect(ErrorPrettier.summarize({ error }).message).toBe('totally not json');
+  });
+
   test('wraps a primitive thrown value as its message', () => {
     expect(ErrorPrettier.summarize({ error: 'boom' }).message).toBe('boom');
     expect(ErrorPrettier.summarize({ error: 42 }).message).toBe('42');
@@ -121,14 +179,12 @@ describe('ErrorPrettier.summarize', () => {
     expect(message).not.toContain('sk-live-abc');
   });
 
-  test('the summarized error logs far shorter than the raw one via %s', () => {
+  /** `formatLogMessage` routes every Error through the prettifier, so the baseline is a raw `util.inspect` - what the log line used to be. */
+  test('the summary is far shorter than inspecting the raw error', () => {
     const error = buildDrizzleError();
 
-    const raw = formatLogMessage({ message: 'Error: %s', args: [error] });
-    const summarized = formatLogMessage({
-      message: 'Error: %s',
-      args: [ErrorPrettier.summarize({ error })],
-    });
+    const raw = inspect(error, { depth: 5, breakLength: Infinity });
+    const summarized = formatLogMessage({ message: 'Error: %s', args: [error] });
 
     expect(summarized.length).toBeLessThan(raw.length);
     // The one useful reason still reaches the log.
@@ -143,7 +199,7 @@ describe('ErrorPrettier.format', () => {
     expect(block).toContain(
       'cause: cannot update table "SaleOrder" because it does not have a replica identity (code 55000)',
     );
-    expect(block).toContain('message:\nFailed query:');
+    expect(block).toContain('message: Failed query:');
   });
 
   test('renders the message with REAL newlines, not escaped \\n', () => {
@@ -160,7 +216,7 @@ describe('ErrorPrettier.format', () => {
     const needle = 'SET total = 1';
 
     const rawOccurrences =
-      formatLogMessage({ message: '%s', args: [error] }).split(needle).length - 1;
+      inspect(error, { depth: 5, breakLength: Infinity }).split(needle).length - 1;
     const blockOccurrences = ErrorPrettier.format({ error }).split(needle).length - 1;
 
     expect(rawOccurrences).toBeGreaterThan(1);
@@ -197,7 +253,7 @@ describe('ErrorPrettier.format', () => {
   test('a bare `name: Error` is dropped - it says nothing', () => {
     const block = ErrorPrettier.format({ error: new Error('flat failure'), includeStack: false });
 
-    expect(block).toBe('message:\nflat failure');
+    expect(block).toBe('- message: flat failure');
   });
 
   test('keeps the name when it is specific', () => {
@@ -222,6 +278,6 @@ describe('ErrorPrettier.format', () => {
   });
 
   test('renders a primitive thrown value as a message', () => {
-    expect(ErrorPrettier.format({ error: 'boom' })).toBe('message:\nboom');
+    expect(ErrorPrettier.format({ error: 'boom' })).toBe('- message: boom');
   });
 });

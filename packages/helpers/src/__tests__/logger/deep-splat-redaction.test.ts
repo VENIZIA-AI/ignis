@@ -11,16 +11,17 @@ describe('formatLogMessage - secret redaction on the %s deep-inspect path', () =
       },
     });
 
-  test('a raw AxiosError at %s renders its message but redacts the nested token', () => {
+  /** An Error at `%s` is projected by `ErrorPrettier`, so `config` never reaches the line at all - a stronger guarantee than redacting it, and the diagnosis still survives. */
+  test('a raw AxiosError at %s renders its message and drops the credential-bearing config', () => {
     const formatted = formatLogMessage({
       message: 'Vault call failed | error: %s',
       args: [axiosErrorWithToken()],
     });
 
-    expect(formatted).toContain('[REDACTED]');
     expect(formatted).toContain('connect ECONNREFUSED 127.0.0.1:8200');
     expect(formatted).not.toContain('live-token-must-never-log');
     expect(formatted).not.toContain('approle-secret-must-never-log');
+    expect(formatted).not.toContain('X-Vault-Token');
   });
 
   test('non-secret fields still render at full depth after redaction', () => {

@@ -99,6 +99,31 @@ arrived, so it looked fine - that footgun is gone. Pinned in `bana-probe.test.ts
 `getError({ message, error: caughtError })` reads like "wrap this" but `error` is a consumed key, so
 the failure would vanish - the compiler now rejects it. Wrap with `cause`.
 
+## The framework has its own catalog - use it, do not re-invent codes
+
+Every CLIENT-FACING 4xx the framework raises is catalogued, so a client always gets a real code
+instead of `core.system_error`:
+
+| Catalog | Codes | Where |
+|---|---|---|
+| `AuthenticationErrors` | `core.authentication.*` | `components/auth/authenticate/common/errors.ts` |
+| `AuthorizationErrors` | `core.authorization.*` | `components/auth/authorize/common/errors.ts` |
+| `StaticAssetErrors` | `core.static_asset.*` | `components/static-asset/common/errors.ts` |
+| `RepositoryErrors` | `core.repository.*` | `base/repositories/common/errors.ts` |
+| `RequestErrors` | `core.request.*` | `base/middlewares/common/errors.ts` |
+
+```typescript
+throw getError({ error: AuthenticationErrors.TOKEN_INVALID, cause: joseError });
+```
+
+Each registers with `IErrorKeyRegistry`, so a consumer typing `messageCode` gets these as
+autocomplete. `framework-catalog.test.ts` pins every code: they are a PUBLIC contract a client
+branches on, so a rename must fail the build, not a customer's frontend.
+
+An INTERNAL failure - a boot misconfiguration, a DI invariant, a programming error - stays codeless
+on purpose. It surfaces as a 500 with a generic message, and a code there would be an identifier
+nobody can act on.
+
 ## Log an expected failure below `error`
 
 The error handler (`AppErrorMiddleware`) logs every thrown error, and defaults to the `error` level.

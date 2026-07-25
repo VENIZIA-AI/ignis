@@ -5,6 +5,7 @@ import { getError, HTTP } from '@venizia/ignis-helpers';
 import { Env } from 'hono';
 import {
   Authentication,
+  AuthenticationErrors,
   AuthenticateBindingKeys,
   IAuthUser,
   TBasicTokenServiceOptions,
@@ -36,14 +37,14 @@ export class BasicTokenService<E extends Env = Env> extends BaseService {
 
     if (!authHeaderValue) {
       throw getError({
-        statusCode: HTTP.ResultCodes.RS_4.Unauthorized,
+        error: AuthenticationErrors.HEADER_MISSING,
         message: 'Unauthorized! Missing authorization header',
       });
     }
 
     if (!authHeaderValue.startsWith(Authentication.TYPE_BASIC)) {
       throw getError({
-        statusCode: HTTP.ResultCodes.RS_4.Unauthorized,
+        error: AuthenticationErrors.SCHEME_INVALID,
         message: 'Unauthorized! Invalid authorization schema, expected Basic',
       });
     }
@@ -51,7 +52,7 @@ export class BasicTokenService<E extends Env = Env> extends BaseService {
     const parts = authHeaderValue.split(' ');
     if (parts.length !== 2) {
       throw getError({
-        statusCode: HTTP.ResultCodes.RS_4.Unauthorized,
+        error: AuthenticationErrors.HEADER_MALFORMED,
         message: 'Unauthorized! Invalid authorization header format',
       });
     }
@@ -65,7 +66,7 @@ export class BasicTokenService<E extends Env = Env> extends BaseService {
         .debug('Failed to decode credentials | Reason: %s', reason);
 
       throw getError({
-        statusCode: HTTP.ResultCodes.RS_4.Unauthorized,
+        error: AuthenticationErrors.CREDENTIALS_MALFORMED,
         message: 'Unauthorized! Invalid base64 credentials format',
       });
     };
@@ -105,7 +106,7 @@ export class BasicTokenService<E extends Env = Env> extends BaseService {
         .debug('Invalid credentials for username: %s', opts.credentials.username);
 
       throw getError({
-        statusCode: HTTP.ResultCodes.RS_4.Unauthorized,
+        error: AuthenticationErrors.CREDENTIALS_INVALID,
         message: 'Unauthorized! Invalid username or password',
       });
     }

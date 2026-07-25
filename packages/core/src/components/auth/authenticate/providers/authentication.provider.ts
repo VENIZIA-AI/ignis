@@ -4,7 +4,7 @@ import type { IProvider } from '@venizia/ignis-inversion';
 import type { Env } from 'hono';
 import { createMiddleware } from 'hono/factory';
 import type { IAuthUser, TAuthenticateFn, TAuthMode } from '../common';
-import { Authentication, AuthenticationModes } from '../common';
+import { Authentication, AuthenticationErrors, AuthenticationModes } from '../common';
 import { AuthenticationStrategyRegistry } from '../strategies';
 
 export class AuthenticationProvider<RouteEnv extends Env = Env>
@@ -76,6 +76,9 @@ export class AuthenticationProvider<RouteEnv extends Env = Env>
   }) {
     const { context, strategies, registry, next } = opts;
 
+    // The first strategy's failure is the primary one - kept so the 401 carries WHY, instead of only which strategies were tried.
+    let primaryFailure: unknown;
+
     for (const strategyName of strategies) {
       try {
         const strategy = registry.resolveStrategy({ name: strategyName });
@@ -83,6 +86,7 @@ export class AuthenticationProvider<RouteEnv extends Env = Env>
         this.setCurrentUser({ context, user });
         break;
       } catch (error) {
+        primaryFailure ??= error;
         this.logger
           .for(this.executeAnyMode.name)
           .debug('Strategy %s failed, trying next... | Error: %s', strategyName, error);
@@ -92,8 +96,10 @@ export class AuthenticationProvider<RouteEnv extends Env = Env>
     const currentUser = context.get(Authentication.CURRENT_USER);
     if (!currentUser) {
       throw getError({
-        statusCode: HTTP.ResultCodes.RS_4.Unauthorized,
+        error: AuthenticationErrors.FAILED,
         message: `Authentication failed. Tried strategies: ${strategies.join(', ')}`,
+        logLevel: 'warn',
+        cause: primaryFailure,
       });
     }
 
@@ -108,7 +114,7 @@ export class AuthenticationProvider<RouteEnv extends Env = Env>
   }) {
     const { context, strategies, registry, next } = opts;
 
-    // Use the first strategy's user as the identity source — all must succeed but first wins for identity
+    // Use the first strategy's user as the identity source - all must succeed but first wins for identity
     let authUser: IAuthUser | null = null;
 
     for (const strategyName of strategies) {
@@ -128,10 +134,7 @@ export class AuthenticationProvider<RouteEnv extends Env = Env>
           authUser,
           authUser?.userId,
         );
-      throw getError({
-        statusCode: HTTP.ResultCodes.RS_4.Unauthorized,
-        message: 'Failed to identify authenticated user!',
-      });
+      throw getError({ error: AuthenticationErrors.USER_UNRESOLVED });
     }
 
     return next();

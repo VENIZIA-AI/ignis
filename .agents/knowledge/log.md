@@ -6,6 +6,46 @@ not how.
 This file and `index.md` are reserved OKF filenames - they carry no `type:` frontmatter and are not
 counted as concepts.
 
+## 2026-07-25 - the framework finally has an error catalog
+
+`normalized.code` was `core.system_error` on almost every framework error: 367 of 402 `getError`
+sites carried no code, and NOTHING in `packages/*` used the `TErrorDefinition` mechanism the docs
+describe. The client-facing 4xx set - 39 sites - is now catalogued as `AuthenticationErrors`,
+`AuthorizationErrors`, `StaticAssetErrors`, `RepositoryErrors` and `RequestErrors`, all
+`core.<area>.<reason>` and all registered with `IErrorKeyRegistry` for consumer autocomplete.
+
+Purely ADDITIVE: every original `message` string is preserved as an override, so only the code and
+(where it was already implied) the status change. The 443-test auth suite passed unchanged, which is
+the proof. Internal failures - boot misconfiguration, DI invariants, programming errors - stay
+codeless deliberately; they surface as 500s where a code helps nobody.
+
+`framework-catalog.test.ts` pins all 24 codes, asserts none is the sentinel, none collides, and
+every one is 4xx. They are a public contract, so a rename fails the build.
+
+## 2026-07-25 - every Error logged via `%s` is prettified, and auth stops double-logging
+
+The block is a `- field: value` bullet list, message first (what happened), then the `cause` chain,
+then identity, diagnostics, `extra`, and `stack` last. Only the FIRST dependency frame survives -
+the throw site is usually there and the rest is HTTP plumbing - with the omitted count printed. A
+`ZodError`'s JSON issue array is compressed to one `path: reason` line per issue, capped at 10.
+
+`formatLogMessage` now routes an `Error` bound to `%s` through `ErrorPrettier` instead of
+`util.inspect`. That fixes ~100 raw-dump call sites at once without touching any of them, and every
+consumer's own logging too. A BANA `jose` failure was printing the entire JWT payload - 2900 chars
+down to 382, payload gone. The block starts on its own line so it never trails off the end of the
+caller's sentence. `ErrorPrettier` now also keeps an error's own `extra` (root only, redacted), so a
+direct log call does not lose the caller context the middleware path renders; `inspectOptions` is
+threaded through, so `APP_ENV_LOGGER_INSPECT_DEPTH` still applies.
+
+Secrets are now dropped rather than masked: an `AxiosError`'s `config` never reaches the line at
+all, a stronger guarantee than `[REDACTED]`. Two tests that asserted the `[REDACTED]` marker were
+updated to assert the property (secret absent, diagnosis present).
+
+Auth logged the same failure twice and still lost the reason: `verify()` logged the raw `jose`
+error, then `executeAnyMode` caught it, traced at `debug`, and threw a fresh 401 with NO `cause` -
+so the boundary log only ever said "Tried strategies: jwt, basic". Both now thread `cause` and set
+`logLevel: 'warn'`, and `verify()` logs nothing. One line at the boundary carries the whole chain.
+
 ## 2026-07-25 - release publishes with `bun publish`, plus two pre-publish gates
 
 `package-release.yml` published with `npm publish`, which ships Bun's `catalog:`/`workspace:`

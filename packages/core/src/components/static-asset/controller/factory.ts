@@ -17,6 +17,7 @@ import { readFileSync, rmSync } from 'node:fs';
 import {
   TBucketParams,
   TListQuery,
+  StaticAssetErrors,
   TMetaLinkConfig,
   TObjectParams,
   TStaticAssetExtraOptions,
@@ -110,10 +111,7 @@ export class AssetControllerFactory extends BaseHelper {
             const { bucketName } = ctx.req.valid<TBucketParams>('param');
 
             if (!helper.isValidName(bucketName)) {
-              throw getError({
-                message: 'Invalid bucket name',
-                statusCode: HTTP.ResultCodes.RS_4.BadRequest,
-              });
+              throw getError({ error: StaticAssetErrors.BUCKET_NAME_INVALID });
             }
 
             const bucket = await helper.getBucket({ name: bucketName });
@@ -129,17 +127,11 @@ export class AssetControllerFactory extends BaseHelper {
             const objectName = readObjectName(rawObjectName);
 
             if (!helper.isValidName(bucketName)) {
-              throw getError({
-                message: 'Invalid bucket name',
-                statusCode: HTTP.ResultCodes.RS_4.BadRequest,
-              });
+              throw getError({ error: StaticAssetErrors.BUCKET_NAME_INVALID });
             }
 
             if (!helper.isValidPath(objectName, { maxDepth: maxFolderDepth })) {
-              throw getError({
-                message: 'Invalid object name or path',
-                statusCode: HTTP.ResultCodes.RS_4.BadRequest,
-              });
+              throw getError({ error: StaticAssetErrors.OBJECT_NAME_INVALID });
             }
 
             const fileStat = await helper.getStat({ bucket: bucketName, name: objectName });
@@ -171,17 +163,11 @@ export class AssetControllerFactory extends BaseHelper {
             const objectName = readObjectName(rawObjectName);
 
             if (!helper.isValidName(bucketName)) {
-              throw getError({
-                message: 'Invalid bucket name',
-                statusCode: HTTP.ResultCodes.RS_4.BadRequest,
-              });
+              throw getError({ error: StaticAssetErrors.BUCKET_NAME_INVALID });
             }
 
             if (!helper.isValidPath(objectName, { maxDepth: maxFolderDepth })) {
-              throw getError({
-                message: 'Invalid object name or path',
-                statusCode: HTTP.ResultCodes.RS_4.BadRequest,
-              });
+              throw getError({ error: StaticAssetErrors.OBJECT_NAME_INVALID });
             }
 
             const fileStat = await helper.getStat({ bucket: bucketName, name: objectName });
@@ -215,10 +201,7 @@ export class AssetControllerFactory extends BaseHelper {
             const { bucketName } = ctx.req.valid<TBucketParams>('param');
 
             if (!helper.isValidName(bucketName)) {
-              throw getError({
-                message: 'Invalid bucket name',
-                statusCode: HTTP.ResultCodes.RS_4.BadRequest,
-              });
+              throw getError({ error: StaticAssetErrors.BUCKET_NAME_INVALID });
             }
 
             const createdBucket = await helper.createBucket({ name: bucketName });
@@ -234,27 +217,21 @@ export class AssetControllerFactory extends BaseHelper {
             const query = ctx.req.valid<TUploadQuery>('query');
 
             if (!helper.isValidName(bucketName)) {
-              throw getError({
-                message: 'Invalid bucket name',
-                statusCode: HTTP.ResultCodes.RS_4.BadRequest,
-              });
+              throw getError({ error: StaticAssetErrors.BUCKET_NAME_INVALID });
             }
 
             const folderPath = query.folderPath;
             if (folderPath) {
               const normalizedFolder = folderPath.replace(/^\/+|\/+$/g, '');
               if (!normalizedFolder) {
-                throw getError({
-                  message: 'Invalid folder path',
-                  statusCode: HTTP.ResultCodes.RS_4.BadRequest,
-                });
+                throw getError({ error: StaticAssetErrors.FOLDER_PATH_INVALID });
               }
               // maxFolderDepth excludes the filename, so it is compared directly against segment count.
               const folderSegments = normalizedFolder.split('/');
               if (folderSegments.length > maxFolderDepth) {
                 throw getError({
+                  error: StaticAssetErrors.FOLDER_DEPTH_EXCEEDED,
                   message: `Folder path exceeds max depth of ${maxFolderDepth}`,
-                  statusCode: HTTP.ResultCodes.RS_4.BadRequest,
                 });
               }
               const invalidSegmentIndex = folderSegments.findIndex(
@@ -262,8 +239,8 @@ export class AssetControllerFactory extends BaseHelper {
               );
               if (invalidSegmentIndex !== -1) {
                 throw getError({
+                  error: StaticAssetErrors.FOLDER_SEGMENT_INVALID,
                   message: `Invalid folder path segment: ${folderSegments[invalidSegmentIndex]}`,
-                  statusCode: HTTP.ResultCodes.RS_4.BadRequest,
                 });
               }
             }
@@ -286,7 +263,7 @@ export class AssetControllerFactory extends BaseHelper {
 
                 if (!buffer?.length) {
                   throw getError({
-                    statusCode: HTTP.ResultCodes.RS_4.BadRequest,
+                    error: StaticAssetErrors.FILE_EMPTY,
                     message: `Empty file content | name: ${file.originalname}`,
                   });
                 }
@@ -377,10 +354,7 @@ export class AssetControllerFactory extends BaseHelper {
             const { bucketName } = ctx.req.valid<TBucketParams>('param');
 
             if (!helper.isValidName(bucketName)) {
-              throw getError({
-                message: 'Invalid bucket name',
-                statusCode: HTTP.ResultCodes.RS_4.BadRequest,
-              });
+              throw getError({ error: StaticAssetErrors.BUCKET_NAME_INVALID });
             }
 
             const isRemovedBucket = await helper.removeBucket({
@@ -398,17 +372,11 @@ export class AssetControllerFactory extends BaseHelper {
             const objectName = readObjectName(rawObjectName);
 
             if (!helper.isValidName(bucketName)) {
-              throw getError({
-                message: 'Invalid bucket name',
-                statusCode: HTTP.ResultCodes.RS_4.BadRequest,
-              });
+              throw getError({ error: StaticAssetErrors.BUCKET_NAME_INVALID });
             }
 
             if (!helper.isValidPath(objectName, { maxDepth: maxFolderDepth })) {
-              throw getError({
-                message: 'Invalid object name or path',
-                statusCode: HTTP.ResultCodes.RS_4.BadRequest,
-              });
+              throw getError({ error: StaticAssetErrors.OBJECT_NAME_INVALID });
             }
 
             await helper.removeObject({ bucket: bucketName, name: objectName });
@@ -452,10 +420,7 @@ export class AssetControllerFactory extends BaseHelper {
             const { prefix, recursive, maxKeys } = ctx.req.valid<TListQuery>('query');
 
             if (!helper.isValidName(bucketName)) {
-              throw getError({
-                message: 'Invalid bucket name',
-                statusCode: HTTP.ResultCodes.RS_4.BadRequest,
-              });
+              throw getError({ error: StaticAssetErrors.BUCKET_NAME_INVALID });
             }
 
             // A NaN or 0 maxKeys is silently treated as "unlimited" by the storage backends, so an unparsable value must be rejected instead of forwarded.
@@ -465,8 +430,8 @@ export class AssetControllerFactory extends BaseHelper {
 
               if (!Number.isInteger(resolvedMaxKeys) || resolvedMaxKeys < 1) {
                 throw getError({
+                  error: StaticAssetErrors.MAX_KEYS_INVALID,
                   message: `Invalid maxKeys | Expected a positive integer | value: ${maxKeys}`,
-                  statusCode: HTTP.ResultCodes.RS_4.BadRequest,
                 });
               }
             }
@@ -492,17 +457,11 @@ export class AssetControllerFactory extends BaseHelper {
               const objectName = readObjectName(rawObjectName);
 
               if (!helper.isValidName(bucketName)) {
-                throw getError({
-                  message: 'Invalid bucket name',
-                  statusCode: HTTP.ResultCodes.RS_4.BadRequest,
-                });
+                throw getError({ error: StaticAssetErrors.BUCKET_NAME_INVALID });
               }
 
               if (!helper.isValidPath(objectName, { maxDepth: maxFolderDepth })) {
-                throw getError({
-                  message: 'Invalid object name or path',
-                  statusCode: HTTP.ResultCodes.RS_4.BadRequest,
-                });
+                throw getError({ error: StaticAssetErrors.OBJECT_NAME_INVALID });
               }
 
               const fileStat = await helper.getStat({

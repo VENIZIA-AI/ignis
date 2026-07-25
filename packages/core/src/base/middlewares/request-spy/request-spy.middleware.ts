@@ -4,6 +4,7 @@ import type { IProvider } from '@venizia/ignis-inversion';
 import { createMiddleware } from 'hono/factory';
 import type { MiddlewareHandler } from 'hono/types';
 import type { TContext } from '../../controllers';
+import { RequestErrors } from '../common';
 
 /** Logs incoming/outgoing request details. Body/query only logged in non-production. */
 export class RequestSpyMiddleware extends BaseHelper implements IProvider<MiddlewareHandler> {
@@ -54,7 +55,7 @@ export class RequestSpyMiddleware extends BaseHelper implements IProvider<Middle
       return rs;
     } catch {
       throw getError({
-        statusCode: HTTP.ResultCodes.RS_4.BadRequest,
+        error: RequestErrors.BODY_MALFORMED,
         message: 'Malformed Body Payload',
       });
     }

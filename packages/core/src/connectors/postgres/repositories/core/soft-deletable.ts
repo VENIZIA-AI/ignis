@@ -1,8 +1,9 @@
 import type { IdType } from '@/base/models';
 import type { IExtraOptions, TCount, TFilter, TWhere } from '@/base/repositories/common';
+import { RepositoryErrors } from '@/base/repositories/common';
 import type { TTableInsert, TTableObject, TTableSchemaWithId } from '@/connectors/postgres/models';
 import type { TNullable } from '@venizia/ignis-helpers';
-import { getError, HTTP } from '@venizia/ignis-helpers';
+import { getError } from '@venizia/ignis-helpers';
 import type { AnyPgColumn } from 'drizzle-orm/pg-core';
 import type { IDatabaseExtraOptions } from '../common';
 import { DefaultRelationalRepository } from './default';
@@ -45,8 +46,9 @@ export class SoftDeletableRelationalRepository<
 
     if (opts.options?.isStrict && !result) {
       throw getError({
+        error: RepositoryErrors.ENTITY_NOT_FOUND,
         message: `[${this.constructor.name}][findById] Entity with id ${opts.id} not found`,
-        statusCode: HTTP.ResultCodes.RS_4.NotFound,
+        messageArgs: { id: opts.id },
       });
     }
 

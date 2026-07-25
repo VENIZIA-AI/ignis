@@ -15,13 +15,13 @@ describe('logging an Error - %s keeps it, %j guts it', () => {
     return error;
   };
 
-  test('%s keeps the message, the stack AND the enumerable fields', () => {
+  /** `%s` routes an Error through `ErrorPrettier`: message, cause and frames survive; unmodelled own properties are projected away, which is what stops a driver dumping its whole query or `jose` its whole JWT payload. */
+  test('%s keeps the message, the cause and the stack', () => {
     const formatted = formatLogMessage({ message: 'Error: %s', args: [buildError()] });
 
     expect(formatted).toContain('boom');
     expect(formatted).toContain('at '); // a stack frame
-    expect(formatted).toContain('core.mail.send_failed');
-    expect(formatted).toContain('23505');
+    expect(formatted).toContain('Key (email) already exists'); // the cause's own message
   });
 
   test('%j loses the stack - this is why no error log line may use it', () => {

@@ -1,5 +1,6 @@
 import { redactSecrets } from '@/common/redact';
 import util from 'node:util';
+import { ErrorPrettier } from './error-prettier';
 
 /** The placeholders `util.format` understands. `%%` is an escape, not a placeholder. */
 const PLACEHOLDER_PATTERN = /%[sjdifoOc%]/g;
@@ -50,6 +51,11 @@ export const formatLogMessage = (opts: {
 
     if (!isStringPlaceholder || !isInspectable) {
       return arg;
+    }
+
+    // Inspecting an Error dumps every own property - a `jose` failure carries the whole JWT payload, a driver failure the whole query. Project it instead, onto its own line so it never trails off the end of the caller's sentence.
+    if (arg instanceof Error) {
+      return `\n${ErrorPrettier.format({ error: arg, inspectOptions })}`;
     }
 
     return util.inspect(redactSecrets(arg), inspectOptions);

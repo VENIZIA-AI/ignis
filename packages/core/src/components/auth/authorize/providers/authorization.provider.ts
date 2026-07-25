@@ -1,12 +1,12 @@
 import { asTypedContext } from '@/base/controllers/common/types';
-import { BaseHelper, getError, HTTP } from '@venizia/ignis-helpers';
+import { BaseHelper, getError } from '@venizia/ignis-helpers';
 import type { IProvider } from '@venizia/ignis-inversion';
 import { createMiddleware } from 'hono/factory';
 import type { IAuthUser } from '../../authenticate';
 // Deep import (not the authenticate barrel): the barrel re-exports ./controllers, whose factory extends BaseRestController - a value import here forms the base/controllers <-> auth init cycle.
 import { Authentication } from '../../authenticate/common/constants';
 import type { IAuthorizationSpec, TAuthorizeFn } from '../common';
-import { Authorization, AuthorizationDecisions } from '../common';
+import { Authorization, AuthorizationDecisions, AuthorizationErrors } from '../common';
 import { AuthorizationEnforcerRegistry } from '../enforcers';
 import { resolveRequestDomain } from './request-domain';
 
@@ -38,7 +38,7 @@ export class AuthorizationProvider extends BaseHelper implements IProvider<TAuth
       const user = context.get(Authentication.CURRENT_USER) as IAuthUser | undefined;
       if (!user) {
         throw getError({
-          statusCode: HTTP.ResultCodes.RS_4.Unauthorized,
+          error: AuthorizationErrors.UNAUTHENTICATED,
           message: 'Authorization failed: No authenticated user found',
         });
       }
@@ -75,8 +75,9 @@ export class AuthorizationProvider extends BaseHelper implements IProvider<TAuth
 
         if (decision === AuthorizationDecisions.DENY) {
           throw getError({
-            statusCode: HTTP.ResultCodes.RS_4.Forbidden,
+            error: AuthorizationErrors.DENIED_BY_VOTER,
             message: `Authorization denied by voter | action: ${spec.action} | resource: ${spec.resource}`,
+            messageArgs: { action: spec.action, resource: spec.resource },
           });
         }
 
@@ -113,7 +114,7 @@ export class AuthorizationProvider extends BaseHelper implements IProvider<TAuth
       if (!rules) {
         if (!user.principalType) {
           throw getError({
-            statusCode: HTTP.ResultCodes.RS_4.BadRequest,
+            error: AuthorizationErrors.PRINCIPAL_TYPE_MISSING,
             message:
               'Authorization failed: user.principalType is required for enforcer-based authorization',
           });
@@ -143,8 +144,9 @@ export class AuthorizationProvider extends BaseHelper implements IProvider<TAuth
 
       if (decision !== AuthorizationDecisions.ALLOW) {
         throw getError({
-          statusCode: HTTP.ResultCodes.RS_4.Forbidden,
+          error: AuthorizationErrors.DENIED,
           message: `Authorization denied | action: ${spec.action} | resource: ${spec.resource}`,
+          messageArgs: { action: spec.action, resource: spec.resource },
         });
       }
 

@@ -12,6 +12,8 @@ export interface IErrorSummary {
   detail?: string;
   table?: string;
   constraint?: string;
+  /** An `ApplicationError`'s caller context - the one unmodelled payload worth keeping. */
+  extra?: Record<string, unknown>;
   cause?: IErrorSummary;
 }
 
@@ -29,6 +31,12 @@ export class ErrorPrettier {
   /** A stack frame line in every V8 stack: `    at fn (file:line:col)`. */
   private static readonly FRAME_PATTERN = /^\s+at /;
 
+  /** A frame inside an installed package - `node_modules/` covers bun's `.bun/` store too. */
+  private static readonly DEPENDENCY_FRAME_PATTERN = /node_modules[/\\]/;
+
+  /** Issues rendered from a ZodError before the rest are counted off. */
+  private static readonly MAX_ZOD_ISSUES = 10;
+
   private static readonly INSPECT_OPTIONS: util.InspectOptions = {
     depth: 5,
     maxArrayLength: null,
@@ -44,6 +52,8 @@ export class ErrorPrettier {
     }
 
     const frames: Array<string> = [];
+    let keptDependencyFrame = false;
+    let omitted = 0;
 
     // Hand-rolled over split+filter+slice: it stops at maxFrames instead of walking the whole stack.
     for (const line of stack.split('\n')) {
@@ -51,6 +61,15 @@ export class ErrorPrettier {
         continue;
       }
 
+      // The FIRST dependency frame is often the throw site (drizzle, jose); every later one is plumbing.
+      const isDependencyFrame = this.DEPENDENCY_FRAME_PATTERN.test(line);
+
+      if (isDependencyFrame && keptDependencyFrame) {
+        omitted += 1;
+        continue;
+      }
+
+      keptDependencyFrame = keptDependencyFrame || isDependencyFrame;
       frames.push(line);
 
       if (frames.length === maxFrames) {
@@ -59,7 +78,44 @@ export class ErrorPrettier {
     }
 
     // Emit nothing rather than the header, which would repeat the message.
-    return frames.length > 0 ? frames.join('\n') : undefined;
+    if (frames.length === 0) {
+      return undefined;
+    }
+
+    // Never truncate silently - a reader must know frames are missing, not assume the stack ended.
+    return omitted > 0
+      ? `${frames.join('\n')}\n    ... ${omitted} dependency frames`
+      : frames.join('\n');
+  }
+
+  /** A ZodError's `message` is its issue array as pretty JSON - dozens of lines for one bad field. Render `path: reason` instead. */
+  private static compressZodMessage(opts: { message: string }): string {
+    const { message } = opts;
+
+    let issues: unknown;
+
+    try {
+      issues = JSON.parse(message);
+    } catch {
+      // Not the JSON form (an already-formatted or hand-built ZodError) - leave it alone.
+      return message;
+    }
+
+    if (!Array.isArray(issues) || issues.length === 0) {
+      return message;
+    }
+
+    const lines = issues.slice(0, this.MAX_ZOD_ISSUES).map(issue => {
+      const entry = issue as { path?: Array<string | number>; message?: string; code?: string };
+      const path =
+        Array.isArray(entry.path) && entry.path.length > 0 ? entry.path.join('.') : '(root)';
+
+      return `${path}: ${entry.message ?? entry.code ?? 'invalid'}`;
+    });
+
+    const remaining = issues.length - lines.length;
+
+    return remaining > 0 ? `${lines.join('\n')}\n... and ${remaining} more` : lines.join('\n');
   }
 
   private static summarizeNode(opts: {
@@ -90,7 +146,10 @@ export class ErrorPrettier {
     }
 
     if (typeof source.message === 'string') {
-      summary.message = source.message;
+      summary.message =
+        source.name === 'ZodError'
+          ? this.compressZodMessage({ message: source.message })
+          : source.message;
     }
 
     if (typeof source.code === 'string' || typeof source.code === 'number') {
@@ -109,6 +168,14 @@ export class ErrorPrettier {
       const diagnostic = source[key];
       if (typeof diagnostic === 'string' && diagnostic.length > 0) {
         summary[key] = diagnostic;
+      }
+    }
+
+    // Root only: `extra` is what a throw site deliberately attached, so a direct log call keeps it.
+    if (isRoot && typeof source.extra === 'object' && source.extra !== null) {
+      const extra = source.extra as Record<string, unknown>;
+      if (Object.keys(extra).length > 0) {
+        summary.extra = extra;
       }
     }
 
@@ -172,11 +239,32 @@ export class ErrorPrettier {
     messageCode?: string;
     extra?: Record<string, unknown>;
     includeStack?: boolean;
+    inspectOptions?: util.InspectOptions;
   }): string {
-    const { error, messageCode, extra, includeStack = true } = opts;
+    const {
+      error,
+      messageCode,
+      extra,
+      includeStack = true,
+      inspectOptions = this.INSPECT_OPTIONS,
+    } = opts;
     const summary = this.summarize({ error, includeStack });
 
     const lines: Array<string> = [];
+
+    // What happened, then why, then who/where - a reader stops as soon as they have the answer.
+    if (summary.message !== undefined) {
+      lines.push(`message: ${summary.message}`);
+    }
+
+    let cause = summary.cause;
+    while (cause !== undefined) {
+      const code = cause.code === undefined ? '' : ` (code ${cause.code})`;
+      lines.push(`cause: ${cause.message ?? ''}${code}`);
+      this.pushDiagnostics({ node: cause, lines });
+      cause = cause.cause;
+    }
+
     const identity = [summary.name, summary.code === undefined ? '' : `(code ${summary.code})`]
       .filter(Boolean)
       .join(' ');
@@ -192,26 +280,17 @@ export class ErrorPrettier {
 
     this.pushDiagnostics({ node: summary, lines });
 
-    let cause = summary.cause;
-    while (cause !== undefined) {
-      const code = cause.code === undefined ? '' : ` (code ${cause.code})`;
-      lines.push(`cause: ${cause.message ?? ''}${code}`);
-      this.pushDiagnostics({ node: cause, lines });
-      cause = cause.cause;
-    }
+    // An explicit `extra` wins; otherwise fall back to the one the error carries itself.
+    const context = extra ?? summary.extra;
 
-    if (extra !== undefined && Object.keys(extra).length > 0) {
-      lines.push(`extra: ${util.inspect(redactSecrets(extra), this.INSPECT_OPTIONS)}`);
-    }
-
-    if (summary.message !== undefined) {
-      lines.push(`message:\n${summary.message}`);
+    if (context !== undefined && Object.keys(context).length > 0) {
+      lines.push(`extra: ${util.inspect(redactSecrets(context), inspectOptions)}`);
     }
 
     if (summary.stack !== undefined) {
       lines.push(`stack:\n${summary.stack}`);
     }
 
-    return lines.join('\n');
+    return lines.map(line => `- ${line}`).join('\n');
   }
 }

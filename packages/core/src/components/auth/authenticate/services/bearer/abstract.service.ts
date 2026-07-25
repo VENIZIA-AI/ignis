@@ -5,7 +5,7 @@ import { AES, getError, HTTP } from '@venizia/ignis-helpers';
 import type { Env } from 'hono';
 import type { JWTPayload, JWTVerifyResult, SignJWT } from 'jose';
 import type { IJWTTokenPayload, IPayloadFieldCodec, TGetTokenExpiresFn } from '../../common';
-import { Authentication } from '../../common';
+import { Authentication, AuthenticationErrors } from '../../common';
 
 /** Abstract base for Bearer-token services (JWS, JWKS) with optional AES payload encryption. */
 export abstract class AbstractBearerTokenService<E extends Env = Env> extends BaseService {
@@ -52,14 +52,14 @@ export abstract class AbstractBearerTokenService<E extends Env = Env> extends Ba
     const authHeaderValue = request.header('Authorization');
     if (!authHeaderValue) {
       throw getError({
-        statusCode: HTTP.ResultCodes.RS_4.Unauthorized,
+        error: AuthenticationErrors.HEADER_MISSING,
         message: 'Unauthorized user! Missing authorization header',
       });
     }
 
     if (!authHeaderValue.startsWith(Authentication.TYPE_BEARER)) {
       throw getError({
-        statusCode: HTTP.ResultCodes.RS_4.Unauthorized,
+        error: AuthenticationErrors.SCHEME_INVALID,
         message: 'Unauthorized user! Invalid schema of request token!',
       });
     }
@@ -67,7 +67,7 @@ export abstract class AbstractBearerTokenService<E extends Env = Env> extends Ba
     const parts = authHeaderValue.split(' ');
     if (parts.length !== 2) {
       throw getError({
-        statusCode: HTTP.ResultCodes.RS_4.Unauthorized,
+        error: AuthenticationErrors.HEADER_MALFORMED,
         message: `Authorization header value is invalid format. It must follow the pattern: 'Bearer xx.yy.zz' where xx.yy.zz is a valid JWT token.`,
       });
     }
@@ -81,7 +81,7 @@ export abstract class AbstractBearerTokenService<E extends Env = Env> extends Ba
     if (!token) {
       this.logger.for(this.verify.name).error('Missing token for validating request!');
       throw getError({
-        statusCode: HTTP.ResultCodes.RS_4.Unauthorized,
+        error: AuthenticationErrors.TOKEN_MISSING,
         message: '[verify] Invalid request token!',
       });
     }
@@ -89,10 +89,12 @@ export abstract class AbstractBearerTokenService<E extends Env = Env> extends Ba
     try {
       return await this.doVerify(token);
     } catch (error) {
-      this.logger.for(this.verify.name).error('Failed to verify token | Error: %s', error);
+      // No log here - `cause` carries the reason (JWTExpired, signature mismatch) to the error handler, which logs the request once. An expired token is the caller's problem, hence `warn`.
       throw getError({
-        statusCode: HTTP.ResultCodes.RS_4.Unauthorized,
+        error: AuthenticationErrors.TOKEN_INVALID,
         message: '[verify] Invalid or expired token',
+        logLevel: 'warn',
+        cause: error,
       });
     }
   }
@@ -105,7 +107,7 @@ export abstract class AbstractBearerTokenService<E extends Env = Env> extends Ba
 
     if (!payload) {
       throw getError({
-        statusCode: HTTP.ResultCodes.RS_4.Unauthorized,
+        error: AuthenticationErrors.TOKEN_PAYLOAD_INVALID,
         message: '[generate] Invalid token payload!',
       });
     }

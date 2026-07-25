@@ -59,8 +59,19 @@ The error is rendered by `ErrorPrettier.format` (helpers, `logger/formatting`), 
 `pg`/`drizzle` failure carries the full query, its params and a stack that each embed the same SQL,
 so inspecting the raw object floods the log with the same statement several times over.
 `ErrorPrettier.summarize` keeps `name`, the full `message`, `code`, the `pg` diagnostics
-(`hint`/`detail`/`table`/`constraint`), root stack frames and a flattened `cause` chain, dropping the
-rest; `ErrorPrettier.format` renders that as a block, plus the caller's `messageCode` and `extra`.
+(`hint`/`detail`/`table`/`constraint`), root stack frames, the error's own `extra` and a flattened
+`cause` chain, dropping the rest. `ErrorPrettier.format` renders that as a `- field: value` bullet
+list ordered what-happened first: `message`, then the `cause` chain, then `name`/`code`, the
+diagnostics, `extra`, and `stack` last.
+
+Two rules keep the block short. Only the FIRST dependency frame is kept - it is often the throw site
+(drizzle, jose) while the rest is HTTP plumbing - and the omitted count is printed, never silently
+dropped. A `ZodError`'s message, which is its issue array as pretty JSON, is compressed to one
+`path: reason` line per issue, capped at 10 with the remainder counted off.
+
+`formatLogMessage` routes ANY `Error` bound to a `%s` placeholder through this, so every
+`logger.error('... %s', error)` call site in the framework and in consuming apps gets it without
+changing the call.
 
 Two rules the block follows. Frames appear only for an `UNEXPECTED` failure - an intentional
 `getError` knows why it failed, so its frames are HTTP-framework plumbing. `extra` is redacted, being

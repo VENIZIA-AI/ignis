@@ -1,6 +1,6 @@
 import { TContext } from '@/base/controllers/common/types';
 import { inject } from '@/base/metadata/injectors';
-import { BaseHelper, BasePoolHelper, getError, HTTP, TNullable } from '@venizia/ignis-helpers';
+import { BaseHelper, BasePoolHelper, getError, TNullable } from '@venizia/ignis-helpers';
 import type { Enforcer as CasbinEnforcerType, Helper as CasbinHelperType } from 'casbin';
 import { Env } from 'hono';
 import { AuthorizationPermissionBuilder } from '../builders';
@@ -15,6 +15,7 @@ import {
   CasbinRuleVariants,
   IAuthorizationEnforcer,
   IAuthorizationUser,
+  AuthorizationErrors,
   ICasbinEnforcerCachedRedis,
   ICasbinEnforcerOptions,
   ICasbinRules,
@@ -278,7 +279,7 @@ export class CasbinAuthorizationEnforcer<
     const cacheKey = await opts.cached.options.keyFn({ user: opts.user });
     if (!cacheKey) {
       throw getError({
-        statusCode: HTTP.ResultCodes.RS_4.BadRequest,
+        error: AuthorizationErrors.CACHE_KEY_INVALID,
         message: '[CasbinAuthorizationEnforcer] keyFn returned an empty cache key.',
       });
     }
