@@ -271,7 +271,7 @@
     },
     "packages/boot": {
       "name": "@venizia/ignis-boot",
-      "version": "0.1.1-8",
+      "version": "0.1.1-9",
       "dependencies": {
         "@venizia/ignis-helpers": "^0.1.1-9",
         "@venizia/ignis-inversion": "^0.1.1-5",
@@ -291,7 +291,7 @@
     },
     "packages/core": {
       "name": "@venizia/ignis",
-      "version": "0.1.1-11",
+      "version": "0.1.1-12",
       "dependencies": {
         "@venizia/ignis-boot": "^0.1.1-9",
         "@venizia/ignis-filter": "^0.1.1",
@@ -393,7 +393,7 @@
     },
     "packages/filter": {
       "name": "@venizia/ignis-filter",
-      "version": "0.1.1-0",
+      "version": "0.1.1",
       "dependencies": {
         "@venizia/ignis-inversion": "^0.1.1-5",
         "zod": "catalog:",
@@ -409,7 +409,7 @@
     },
     "packages/helpers": {
       "name": "@venizia/ignis-helpers",
-      "version": "0.1.1-8",
+      "version": "0.1.1-9",
       "dependencies": {
         "@venizia/ignis-inversion": "^0.1.1-5",
         "dayjs": "catalog:",
@@ -2911,14 +2911,6 @@
     "@typescript-eslint/utils/@typescript-eslint/scope-manager": ["@typescript-eslint/scope-manager@8.64.0", "", { "dependencies": { "@typescript-eslint/types": "8.64.0", "@typescript-eslint/visitor-keys": "8.64.0" } }, "sha512-CXEaFdYXjSTgKhisNkwCcJwTP8Pl+fmRrEQrri4nm3vU743bALrxzLmq7fHG/7e6a5xO0lDYeURpZmBuhHk54w=="],
 
     "@typescript-eslint/visitor-keys/@typescript-eslint/types": ["@typescript-eslint/types@8.63.0", "", {}, "sha512-xyLtl9DUBBFrcJS4x2pIqGLH68/tC2uOa4Z7pUteW09D3bXnnXUom4dyPikzWgB7llmIc1zoeI3aoUdC4rPK/Q=="],
-
-    "@venizia/ignis/@venizia/ignis-boot": ["@venizia/ignis-boot@0.1.1-9", "", { "dependencies": { "@venizia/ignis-helpers": "^0.1.1-9", "@venizia/ignis-inversion": "^0.1.1-5", "glob": "^13.0.6", "lodash": "^4.18.1", "reflect-metadata": "^0.2.2" } }, "sha512-Mn/EQRsYbvEeHF5QXOwIbgFeNF03PucjvbB8bwKLL2qAipwfDQi6MqXnT8RFN9d4wmKtthkyfVr/ZScNYugRrw=="],
-
-    "@venizia/ignis/@venizia/ignis-filter": ["@venizia/ignis-filter@0.1.1", "", { "dependencies": { "@venizia/ignis-inversion": "^0.1.1-5", "zod": "^4.4.3" } }, "sha512-zhHHCZcorjDhuPCw9qYiqrVPJeyXtL1i50zVD+USytbwzmJTi8Fjqx7GvZatdb79NWDg8Zlq5RwRC/00/n4ytQ=="],
-
-    "@venizia/ignis/@venizia/ignis-helpers": ["@venizia/ignis-helpers@0.1.1-9", "", { "dependencies": { "@venizia/ignis-inversion": "^0.1.1-5", "dayjs": "^1.11.21", "ioredis": "^5.11.1", "lodash": "^4.18.1", "reflect-metadata": "^0.2.2", "zod": "^4.4.3" }, "peerDependencies": { "@dotenvx/dotenvx": "^2.14.0", "@platformatic/kafka": "^2.6.1", "@socket.io/redis-adapter": "^8.3.0", "@socket.io/redis-emitter": "^5.1.0", "axios": "^1.16.1", "bullmq": "^5.80.8", "cron": "^4.3.3", "hono": "^4.12.30", "minio": "^8.0.6", "mqtt": "^5.15.2", "node-vault": "^0.12.0", "pino": "^10.3.1", "pino-pretty": "^13.1.3", "pino-roll": "^4.0.0", "socket.io": "^4.8.1", "socket.io-client": "^4.8.1", "winston": "^3.17.0", "winston-daily-rotate-file": "^5.0.0", "winston-transport": "^4.9.0" }, "optionalPeers": ["@dotenvx/dotenvx", "@platformatic/kafka", "@socket.io/redis-adapter", "@socket.io/redis-emitter", "axios", "bullmq", "cron", "hono", "minio", "mqtt", "node-vault", "pino", "pino-pretty", "pino-roll", "socket.io", "socket.io-client", "winston", "winston-daily-rotate-file", "winston-transport"] }, "sha512-JCcQTS6Yk0VFaXgNylcEGbGWOZkinBDvJiWQMOJNzyNCy4kzC3v2qQN9m0A7nhm4yRKa6FZPZ2u4GuQN+MGL9A=="],
-
-    "@venizia/ignis-boot/@venizia/ignis-helpers": ["@venizia/ignis-helpers@0.1.1-9", "", { "dependencies": { "@venizia/ignis-inversion": "^0.1.1-5", "dayjs": "^1.11.21", "ioredis": "^5.11.1", "lodash": "^4.18.1", "reflect-metadata": "^0.2.2", "zod": "^4.4.3" }, "peerDependencies": { "@dotenvx/dotenvx": "^2.14.0", "@platformatic/kafka": "^2.6.1", "@socket.io/redis-adapter": "^8.3.0", "@socket.io/redis-emitter": "^5.1.0", "axios": "^1.16.1", "bullmq": "^5.80.8", "cron": "^4.3.3", "hono": "^4.12.30", "minio": "^8.0.6", "mqtt": "^5.15.2", "node-vault": "^0.12.0", "pino": "^10.3.1", "pino-pretty": "^13.1.3", "pino-roll": "^4.0.0", "socket.io": "^4.8.1", "socket.io-client": "^4.8.1", "winston": "^3.17.0", "winston-daily-rotate-file": "^5.0.0", "winston-transport": "^4.9.0" }, "optionalPeers": ["@dotenvx/dotenvx", "@platformatic/kafka", "@socket.io/redis-adapter", "@socket.io/redis-emitter", "axios", "bullmq", "cron", "hono", "minio", "mqtt", "node-vault", "pino", "pino-pretty", "pino-roll", "socket.io", "socket.io-client", "winston", "winston-daily-rotate-file", "winston-transport"] }, "sha512-JCcQTS6Yk0VFaXgNylcEGbGWOZkinBDvJiWQMOJNzyNCy4kzC3v2qQN9m0A7nhm4yRKa6FZPZ2u4GuQN+MGL9A=="],
 
     "@vitejs/plugin-vue/vite": ["vite@5.4.21", "", { "dependencies": { "esbuild": "^0.21.3", "postcss": "^8.4.43", "rollup": "^4.20.0" }, "optionalDependencies": { "fsevents": "~2.3.3" }, "peerDependencies": { "@types/node": "^18.0.0 || >=20.0.0", "less": "*", "lightningcss": "^1.21.0", "sass": "*", "sass-embedded": "*", "stylus": "*", "sugarss": "*", "terser": "^5.4.0" }, "optionalPeers": ["@types/node", "less", "lightningcss", "sass", "sass-embedded", "stylus", "sugarss", "terser"], "bin": { "vite": "bin/vite.js" } }, "sha512-o5a9xKjbtuhY6Bi5S3+HvbRERmouabWbyUcpXXUA1u+GNUKoROi9byOJ8M0nHbHYHkYICiMlqxkg1KkYmm25Sw=="],
 
