@@ -6,16 +6,37 @@ not how.
 This file and `index.md` are reserved OKF filenames - they carry no `type:` frontmatter and are not
 counted as concepts.
 
+## 2026-07-25 - release publishes with `bun publish`, plus two pre-publish gates
+
+`package-release.yml` published with `npm publish`, which ships Bun's `catalog:`/`workspace:`
+protocols verbatim - the cause of the three broken releases below. It now uses `bun publish`, which
+resolves them while packing (`bun pm pack` substitutes, `npm pack` does not - measured both ways).
+
+Auth is unchanged and verified: `actions/setup-node` writes an `.npmrc` holding
+`_authToken=${NODE_AUTH_TOKEN}`, and bun expands it - probed against a local registry that echoed
+back `Bearer <token>`. `npm version` and `npm dist-tag add` stay (bun has no dist-tag command, and
+neither packs).
+
+Two gates now run before publish: `make catalog-check`, and a packed-manifest check that packs with
+`npm pack` ON PURPOSE - bun would substitute the protocol away, so a bun-packed tarball could never
+fail the check.
+
 ## 2026-07-25 - root dependencies removed; versions now pinned by a workspace catalog
 
 The root `package.json` carried 34 `dependencies`, every one of them already declared by a
 workspace - pure duplication that acted as an accidental version pin. The block is GONE. Ten
 workspace ranges were bumped up to what root pinned first, so nothing downgrades.
 
-Shared versions now live in `workspaces.catalog` (32 entries) and each workspace references
-`"catalog:"` (163 declarations). `peerDependencies` were deliberately NOT catalogued - they are
-looser compat statements. `bun pm pack` substitutes the real range at publish, verified on Bun
-1.3.14. New gate: `make catalog-check`.
+Shared versions now live in `workspaces.catalog` (32 entries); every workspace repeats the range as
+a LITERAL and `make catalog-check` enforces equality. `peerDependencies` are deliberately excluded -
+they are looser compat statements.
+
+Bun's `catalog:` protocol MUST NOT appear in a manifest. It was used first and broke three
+releases: the pipeline publishes with `npm publish` (`package-release.yml`), and `npm pack` ships
+`catalog:` verbatim while `bun pm pack` substitutes it. `@venizia/ignis@0.1.1-9`,
+`ignis-helpers@0.1.1-6` and `ignis-inversion@0.1.1-4` shipped `"lodash": "catalog:"` and fail to
+install. The gate now rejects `catalog:` in any block, and `npm pack` output is verified clean for
+all five published packages.
 
 Also fixed: `packages/helpers` imported `zod` (secrets/hashicorp/auth.ts) while declaring neither
 `zod` nor a runtime dep guaranteeing it - `@hono/zod-openapi` is dev-only, so published helpers

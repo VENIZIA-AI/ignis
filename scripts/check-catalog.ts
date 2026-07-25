@@ -1,6 +1,12 @@
 import { Glob } from 'bun';
 
-/** Guards the workspace catalog: a catalogued dependency must be referenced as `catalog:`, never as a literal range. */
+/**
+ * Guards dependency versions against the root `workspaces.catalog`.
+ *
+ * The catalog is the declared source of truth, but workspaces reference it with a LITERAL range,
+ * never Bun's `catalog:` protocol: `packages/*` publish through `npm publish`, and npm ships
+ * `catalog:` verbatim into the manifest, where it is unresolvable for every consumer.
+ */
 
 interface IProblem {
   file: string;
@@ -34,20 +40,34 @@ for (const pattern of WORKSPACE_GLOBS) {
       continue;
     }
 
-    for (const block of GUARDED_BLOCKS) {
+    for (const block of [...GUARDED_BLOCKS, 'peerDependencies'] as const) {
       for (const [dep, range] of Object.entries(json[block] ?? {})) {
+        // npm ships this verbatim - it must never reach a manifest, in any block.
+        if (range === 'catalog:') {
+          problems.push({
+            file,
+            message: `${block}.${dep} uses "catalog:" - npm publishes it verbatim and consumers cannot resolve it; write the literal ${catalog[dep] ?? 'range'}`,
+          });
+          continue;
+        }
+
+        if (!GUARDED_BLOCKS.includes(block as (typeof GUARDED_BLOCKS)[number])) {
+          continue;
+        }
+
         if (!(dep in catalog)) {
           continue;
         }
 
-        if (range === 'catalog:') {
-          referenced.add(dep);
+        referenced.add(dep);
+
+        if (range === catalog[dep]) {
           continue;
         }
 
         problems.push({
           file,
-          message: `${block}.${dep} is "${range}" but the catalog owns it - use "catalog:" (catalog pins ${catalog[dep]})`,
+          message: `${block}.${dep} is "${range}" but the catalog pins "${catalog[dep]}" - align it, or change the catalog`,
         });
       }
     }
@@ -64,7 +84,7 @@ for (const dep of Object.keys(catalog)) {
 }
 
 if (problems.length === 0) {
-  console.log(`check-catalog: OK - ${Object.keys(catalog).length} entries, ${referenced.size} referenced`);
+  console.log(`check-catalog: OK - ${Object.keys(catalog).length} entries, ${referenced.size} in use, no "catalog:" in any manifest`);
   process.exit(0);
 }
 

@@ -40,26 +40,30 @@ dev-configs -> inversion -> helpers -> boot -> core
 | `.agents/knowledge-tools/` | Generator, gate, MCP server, and graph explorer for the bundle |
 | `.githooks/` | Repo-managed git hooks, enabled via `make setup-hooks` |
 
-## Dependency versions live in the root catalog
+## Dependency versions are pinned by the root catalog
 
-A dependency shared by two or more workspaces is pinned ONCE in the root `workspaces.catalog`, and
-each workspace references it as `"dep": "catalog:"`. Bump the root entry and every workspace moves
-together; drift becomes impossible rather than merely discouraged.
+A dependency shared by two or more workspaces is pinned ONCE in the root `workspaces.catalog`. Every
+workspace then repeats that exact range as a LITERAL. `make catalog-check` fails if any of them
+disagrees, so the catalog is enforced by a gate rather than by a resolution protocol.
+
+**Never write Bun's `catalog:` protocol in a manifest.** `packages/*` publish through
+`npm publish --access public` (`.github/workflows/package-release.yml`), and npm ships `catalog:`
+verbatim - `bun pm pack` substitutes the real range, `npm pack` does not. Releases 0.1.1-9 / -6 / -4
+shipped `"lodash": "catalog:"` this way and were unresolvable for every consumer. `catalog-check`
+now rejects `catalog:` in any block of any workspace.
 
 Rules:
 
-- **`dependencies` / `devDependencies` use `catalog:`** for any dep the catalog owns.
+- **`dependencies` / `devDependencies` repeat the catalog range literally.** The gate enforces equality.
 - **`peerDependencies` stay hand-authored.** They are compatibility statements for consumers and are
   deliberately looser than the install range - core declares peer `pg ^8.21.0` while installing
   `^8.22.0`, and dev-configs declares peer `typescript ^5 || ^6` while installing `^6.0.3`.
-  Cataloguing a peer would silently narrow what a consumer may use.
-- **A dep used by one workspace keeps its literal range** - a catalog entry buys nothing.
+- **A dep used by one workspace keeps its own range** - the catalog does not own it.
 - **The root has no `dependencies` block.** It once duplicated 34 entries and acted as an accidental
   version pin; the catalog replaces that intentionally.
 
-`bun pm pack` substitutes the real range at publish time, so a consumer of `@venizia/ignis` never
-sees the `catalog:` protocol. `make catalog-check` gates it: a catalogued dep declared with a literal
-range, or a catalog entry nobody references, fails.
+To bump a shared dependency: change the catalog entry, run `make catalog-check` to see every
+workspace that now disagrees, and update those to match.
 
 ## Source map
 
