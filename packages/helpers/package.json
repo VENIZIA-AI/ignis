@@ -97,6 +97,10 @@
       "types": "./dist/index.d.ts",
       "default": "./dist/index.js"
     },
+    "./common": {
+      "types": "./dist/common/index.d.ts",
+      "default": "./dist/common/index.js"
+    },
     "./socket-io": {
       "types": "./dist/modules/socket/socket-io/index.d.ts",
       "default": "./dist/modules/socket/socket-io/index.js"

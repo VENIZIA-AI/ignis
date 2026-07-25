@@ -1,11 +1,9 @@
 import { z } from '@hono/zod-openapi';
-import type { TFields } from './fields';
 import { FieldsSchema } from './fields';
 import { LimitSchema } from './limit';
 import { OffsetSchema } from './offset';
 import { OrderBySchema } from './order-by';
 import { SkipSchema } from './skip';
-import type { TWhere } from './where';
 import { WhereSchema } from './where';
 
 /** Zod schema for including related entities in queries with optional nested filtering. */
@@ -31,13 +29,6 @@ export const InclusionSchema = z
       JSON.stringify({ include: [{ relation: 'posts', scope: { limit: 5 } }] }),
     ],
   });
-
-/** Single relation inclusion configuration. */
-export type TInclusion = {
-  relation: string;
-  scope?: TFilter;
-  shouldSkipDefaultFilter?: boolean;
-};
 
 /** @internal Filter schema object definition. */
 const InternalFilterSchema = z.object({
@@ -82,14 +73,3 @@ export const FilterSchema = z
       JSON.stringify({ where: { and: [{ role: 'admin' }, { createdAt: { gte: 'YYYY-MM-DD' } }] } }),
     ],
   });
-
-/** Comprehensive filter configuration used across all repository query methods. */
-export type TFilter<T = any> = {
-  where?: TWhere<T>;
-  fields?: TFields;
-  include?: TInclusion[];
-  order?: string[];
-  limit?: number;
-  offset?: number;
-  skip?: number;
-};

@@ -14,5 +14,3 @@ export const OrderBySchema = z
       'items[0].score DESC',
     ],
   });
-
-export type TOrderBy = z.infer<typeof OrderBySchema>;

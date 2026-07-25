@@ -7,5 +7,3 @@ export const OffsetSchema = z
     description: 'Number of items to offset for pagination.',
     examples: [1, 2, 3],
   });
-
-export type TOffset = z.infer<typeof OffsetSchema>;

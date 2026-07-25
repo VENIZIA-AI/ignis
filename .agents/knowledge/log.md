@@ -6,6 +6,41 @@ not how.
 This file and `index.md` are reserved OKF filenames - they carry no `type:` frontmatter and are not
 counted as concepts.
 
+## 2026-07-25 - the filter vocabulary is split from the HTTP query schemas
+
+`TFilter`, `TWhere`, `TFields`, `TInclusion`, `TLimit`, `TOffset`, `TSkip` and `TOrderBy` moved out of
+the individual `query-schemas/*.ts` files into `query-schemas/common/types.ts`, which has no runtime
+import at all. The zod schemas stay where they are: they parse HTTP query strings, so being coupled to
+`@hono/zod-openapi` is correct for them, not a defect. The point of the split is that a package
+extraction can now take the types and leave the schemas - types are erased at runtime, so they cost a
+browser bundle nothing, but they could not be moved while they shared a file with the schemas.
+
+`operators.ts` now reaches `getError` from `@venizia/ignis-inversion` and `TConstValue` from
+`@venizia/ignis-helpers/common`; through the helpers root barrel it was pulling 13 node builtins plus
+`@hono/zod-openapi` and `ioredis`. Now zero builtins.
+
+Public surface is unchanged: same names from the same barrel, and `TLimit`/`TOffset`/`TSkip`/
+`TOrderBy` were re-stated as literal types that a compile-time assertion proves identical to the
+`z.infer` they replaced. `core` has 16 `exports` entries and no wildcard, so no consumer could have
+been deep-importing the files that changed.
+
+## 2026-07-25 - browser purity is measured, and `helpers/common` is the pure sub-path
+
+Two guards now bundle an entry for `target: 'browser'` and assert the resolved graph is clean:
+`packages/inversion/src/__tests__/browser-purity.test.ts` and
+`packages/helpers/src/__tests__/common/browser-purity.test.ts`. Three things they had to get right,
+each of which silently produces a false pass: `Bun.build` with a browser target does NOT error on
+`node:fs`, so build success proves nothing; the spy must sit on `onResolve`, not `onLoad`, because a
+probe entry outside the workspace never resolves a root-hoisted package and the leak passes unseen;
+and the probe must run with cwd at the package root or tsconfig `paths` do not resolve and the walk
+stops at the first aliased import. Both are proven to bite by mutation.
+
+Measured: `inversion` is genuinely browser-clean (`lodash` + `reflect-metadata`, zero builtins). The
+`helpers` root barrel is not - it pulls 14 node builtins and 27 packages, so `core`'s pure filter
+vocabulary is unusable in a browser purely because it reaches `getError` through that barrel. New
+`@venizia/ignis-helpers/common` sub-path exposes the already-clean surface. Additive only: no
+existing export moved, so consumers are unaffected.
+
 ## 2026-07-25 - the framework finally has an error catalog
 
 `normalized.code` was `core.system_error` on almost every framework error: 367 of 402 `getError`

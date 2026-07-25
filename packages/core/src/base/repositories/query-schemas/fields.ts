@@ -13,5 +13,3 @@ export const FieldsSchema = z
       JSON.stringify({ id: true, name: true, email: true, fullName: false }),
     ],
   });
-
-export type TFields<T = any> = Partial<{ [K in keyof T]: boolean }> | Array<keyof T>;

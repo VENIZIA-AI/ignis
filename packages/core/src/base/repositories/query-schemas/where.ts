@@ -28,5 +28,3 @@ export const WhereSchema = z
     type: 'object',
     description: 'Query conditions for selecting data.',
   });
-
-export type TWhere<T = any> = { [key in keyof T]?: any } & { and?: TWhere<T>[]; or?: TWhere<T>[] };

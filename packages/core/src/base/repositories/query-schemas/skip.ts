@@ -7,5 +7,3 @@ export const SkipSchema = z
     description: 'Number of items to skip for pagination.',
     examples: [1, 2, 3],
   });
-
-export type TSkip = z.infer<typeof SkipSchema>;
