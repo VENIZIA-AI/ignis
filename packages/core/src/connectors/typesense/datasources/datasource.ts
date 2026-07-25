@@ -42,8 +42,7 @@ export class TypesenseDataSource extends BaseSearchDataSource<
     return TypesenseDataSource.queryDialect;
   }
 
-  /** Narrows the neutral `Promise<unknown>` to Typesense's own multi-search envelopes: `results[]`
-   * side by side, or ONE merged result set when `union` is set. */
+  /** Narrows the neutral `Promise<unknown>` to Typesense's own multi-search envelopes: `results[]` side by side, or ONE merged result set when `union` is set. */
   override multiSearch<T extends TDocumentSchema = TDocumentSchema>(opts: {
     searches: TMultiSearchEntry[];
     union: true;

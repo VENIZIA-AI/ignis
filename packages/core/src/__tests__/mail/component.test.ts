@@ -9,10 +9,7 @@ import { Container } from '@/helpers/inversion';
 import type { AnyType } from '@venizia/ignis-helpers';
 import { FakeLogger, FakeMailTransport } from './fakes';
 
-/**
- * The component only ever talks to the container (isBound/bind/get), so a plain Container stands in
- * for the application. The transport is bound through the `custom` provider - no SMTP peer needed.
- */
+/** The component only ever talks to the container (isBound/bind/get), so a plain Container stands in for the application; the transport is bound through the `custom` provider, so no SMTP peer is needed. */
 const buildComponent = (opts: {
   mailOptions?: TMailOptions | null;
   queueConfig?: AnyType | null;
@@ -56,9 +53,7 @@ describe('MailComponent - wiring', () => {
       DirectMailExecutorHelper,
     );
 
-    // Class bindings are asserted by presence: `bun test` does not resolve the decorator flags that
-    // live two `extends` hops away, so container.instantiate() of an @inject'ed class is not
-    // exercisable in this runtime.
+    // Class bindings are asserted by presence: `bun test` does not resolve the decorator flags two `extends` hops away, so container.instantiate() of an @inject'ed class is not exercisable in this runtime.
     for (const key of [
       MailKeys.MAIL_SERVICE,
       MailKeys.MAIL_TEMPLATE_ENGINE,

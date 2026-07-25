@@ -27,10 +27,7 @@ import type {
   TKafkaMessageErrorCallback,
 } from './common/types';
 
-/**
- * Wrapper around `@platformatic/kafka` Consumer with lifecycle management, health tracking,
- * graceful shutdown, message callbacks, and lag monitoring.
- */
+/** Wrapper around `@platformatic/kafka` Consumer with lifecycle management, health tracking, graceful shutdown, message callbacks, and lag monitoring. */
 export class KafkaConsumerHelper<
   KeyType = string,
   ValueType = string,
@@ -181,14 +178,10 @@ export class KafkaConsumerHelper<
       fallbackMode: opts.fallbackMode ?? KafkaDefaults.CONSUME_FALLBACK_MODE,
     });
 
-    // Successful consume() means we're freshly joined to the group; clear any
-    // stale-session flag that might have been set during initial broker
-    // negotiation (e.g. transient BROKER_DISCONNECT during bootstrap).
+    // Successful consume() means we're freshly joined to the group; clear any stale-session flag set during initial broker negotiation (e.g. a transient BROKER_DISCONNECT during bootstrap).
     this.sessionLikelyStale = false;
 
-    // Always attached, hook or not: a stream 'error' with ZERO listeners is rethrown by
-    // EventEmitter as an uncaught exception. A pull-style consumer (start() + getStream(), no
-    // onMessage/onMessageError) would take the whole process down on the first broker drop.
+    // Always attached, hook or not: a stream 'error' with ZERO listeners is rethrown by EventEmitter as an uncaught exception, so a pull-style consumer (start() + getStream(), no onMessage/onMessageError) would take the whole process down on the first broker drop.
     this.stream.on(KafkaClientEvents.STREAM_ERROR, (streamError: Error) => {
       this.logger.for('start').error('Kafka stream ERROR | Error: %s', streamError);
 

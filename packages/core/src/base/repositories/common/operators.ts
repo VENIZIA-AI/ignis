@@ -1,8 +1,7 @@
 import type { TConstValue } from '@venizia/ignis-helpers';
 import { getError } from '@venizia/ignis-helpers';
 
-// Neutral filter vocabulary shared by every connector. Support differs per engine - unsupported
-// operators throw at translation time rather than being removed from this list.
+// Neutral filter vocabulary shared by every connector. Support differs per engine - unsupported operators throw at translation time rather than being removed from this list.
 
 /** Sort direction constants for order by clauses. */
 export class Sorts {
@@ -14,6 +13,19 @@ export class Sorts {
     return Sorts.SCHEMA_SET.has(value.toLowerCase());
   }
 }
+
+/** Asserts a between-style operand is a two-element tuple and reports whether both bounds are numbers. */
+const validateNumericRange = (opts: { op: string; value: unknown }): boolean => {
+  const { op, value } = opts;
+
+  if (!Array.isArray(value) || value.length !== 2) {
+    throw getError({
+      message: `[QueryOperators][hasNumericComparison] Invalid '${op}' value | Expected: [min, max] | Got: ${JSON.stringify(value)}`,
+    });
+  }
+
+  return value.every(v => typeof v === 'number');
+};
 
 /** Query operators for building where conditions (comparison, pattern, null, array, logical). */
 export class QueryOperators {
@@ -111,14 +123,8 @@ export class QueryOperators {
       const value = operators[op];
 
       if (op === this.BETWEEN || op === this.NOT_BETWEEN) {
-        if (!Array.isArray(value) || value.length !== 2) {
-          throw getError({
-            message: `[QueryOperators][hasNumericComparison] Invalid '${op}' value | Expected: [min, max] | Got: ${JSON.stringify(value)}`,
-          });
-        }
-        if (value.every(v => typeof v === 'number')) {
-          hasNumeric = true;
-        }
+        const isNumericRange = validateNumericRange({ op, value });
+        hasNumeric = hasNumeric || isNumericRange;
         continue;
       }
 

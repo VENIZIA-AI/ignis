@@ -26,8 +26,7 @@ export type TDataRange = {
   total: number;
 };
 
-/** Builds the Content-Range style envelope (inclusive end index) shared by every engine's
- * `shouldQueryRange` path. An empty page collapses `end` onto `start`. */
+/** Builds the Content-Range style envelope (inclusive end index) shared by every engine's `shouldQueryRange` path - an empty page collapses `end` onto `start`. */
 export const buildDataRange = (opts: {
   skip?: number;
   offset?: number;
@@ -68,8 +67,7 @@ export type TLockOptions = {
   config?: TLockConfig;
 };
 
-/** Interface for objects that can be associated with a database transaction. Neutral - postgres
- * narrows to its own `IDatabaseTransaction` internally (via `isDatabaseTransaction`) where it needs `.connector`. */
+/** Neutral transaction association - postgres narrows to its own `IDatabaseTransaction` (via `isDatabaseTransaction`) where it needs `.connector`. */
 export interface IWithTransaction {
   transaction?: ITransaction;
 }
@@ -85,8 +83,7 @@ export interface IExtraOptions extends IWithTransaction {
   lock?: TLockOptions;
 }
 
-/** Read-after-write retry for read verbs behind a replicated pool. The read is re-executed while
- * `until(result)` returns false; on exhaustion the last result is returned as-is. */
+/** Read-after-write retry for read verbs behind a replicated pool - the read is re-executed while `until(result)` returns false; on exhaustion the last result is returned as-is. */
 export interface IReadRetryOptions<TResult> {
   /** Default 3. */
   maxAttempts?: number;
@@ -94,8 +91,7 @@ export interface IReadRetryOptions<TResult> {
   /** Total budget across attempts AND sleeps. Default: unlimited. */
   maxTotalMs?: number;
 
-  /** Aborts between attempts and during backoff sleeps - pass the request signal so a cancelled
-   * request stops retrying instead of finishing the loop on a connection nobody is reading. */
+  /** Aborts between attempts and during backoff sleeps - pass the request signal so a cancelled request stops retrying instead of finishing the loop on a connection nobody is reading. */
   signal?: AbortSignal;
 
   /** Default: EXPONENTIAL from 50ms, capped at 500ms, EQUAL jitter - tuned for replica lag. */
@@ -105,9 +101,7 @@ export interface IReadRetryOptions<TResult> {
   until?: (result: TResult) => boolean;
 }
 
-/** Intersected into READ verb signatures only. A write verb's options type has no `retry`, so an
- * inline `{ retry }` is rejected at compile time; a pre-built object carrying it is inert, never
- * read. */
+/** Intersected into READ verb signatures only - a write verb's options type has no `retry`, so an inline `{ retry }` is rejected at compile time and a pre-built object carrying it is inert. */
 export interface IWithReadRetry<TResult> {
   retry?: IReadRetryOptions<TResult>;
 }
@@ -129,8 +123,7 @@ export type TFindRangeOptions<TOptions extends IExtraOptions, R> = TOptions & {
 export type TFindOneOptions<TOptions extends IExtraOptions, R> = TOptions &
   IWithReadRetry<TNullable<R>>;
 
-/** Base repository interface shared by every engine. Engine-specific accessors (postgres's
- * `getEntitySchema()`/`getConnector()`) stay on the connector's own repository tier. */
+/** Base repository interface shared by every engine - engine-specific accessors (postgres's `getEntitySchema()`/`getConnector()`) stay on the connector's own repository tier. */
 export interface IRepository {
   dataSource: AbstractDataSource;
   entity: AbstractEntity;
@@ -289,8 +282,7 @@ export interface IPersistableRepository<
     IUpdatableRepository<TDataObject, TPersistObject, ExtraOptions>,
     IDeletableRepository<TDataObject, ExtraOptions> {}
 
-/** Alias for IPersistableRepository (already the full create/read/update/delete surface) - the
- * name both DefaultRelationalRepository and DefaultSearchRepository are meant to satisfy. */
+/** Alias for IPersistableRepository (already the full create/read/update/delete surface) - the name both DefaultRelationalRepository and DefaultSearchRepository are meant to satisfy. */
 export interface ICrudRepository<
   TDataObject extends object = object,
   TPersistObject extends object = TDataObject,

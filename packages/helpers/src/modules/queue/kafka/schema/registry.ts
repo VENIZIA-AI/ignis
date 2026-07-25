@@ -3,10 +3,7 @@ import type { Deserializers, Serializers } from '@platformatic/kafka';
 import { ConfluentSchemaRegistry } from '@platformatic/kafka';
 import type { IKafkaSchemaRegistryOptions } from '../common/types';
 
-/**
- * Wrapper around `@platformatic/kafka` ConfluentSchemaRegistry; exposes the registry for
- * producer/consumer helpers to share.
- */
+/** Wrapper around `@platformatic/kafka` ConfluentSchemaRegistry; exposes the registry for producer/consumer helpers to share. */
 export class KafkaSchemaRegistryHelper<
   KeyType = string,
   ValueType = string,

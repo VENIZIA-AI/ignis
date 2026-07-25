@@ -1,9 +1,7 @@
 import { describe, expect, test } from 'bun:test';
 import { ApplicationError, getError, MessageCode } from '@/modules/error';
 
-/** A client branches on `messageCode`, never message text, so an error raised without one gets a
- * default code instead of an unmappable absence; every code in the framework is built through one
- * builder rather than retyped as a bare string at each throw site. */
+/** Clients branch on `messageCode`, never message text - an error raised without one gets a default code instead of an unmappable absence, and every framework code comes from one builder rather than a bare string per throw site. */
 describe('normalized.code - the default', () => {
   test('an error raised without a code still carries the default one', () => {
     const error = getError({ message: 'something broke' });
@@ -50,8 +48,7 @@ describe('MessageCode.build - the builder', () => {
   });
 
   test('rejects anything but lower snake_case in a segment', () => {
-    // These would each produce a code that looks fine but cannot be matched by a consumer that
-    // normalizes case, or that splits on '.'.
+    // These would each produce a code that looks fine but cannot be matched by a consumer that normalizes case, or that splits on '.'.
     for (const bad of ['Core', 'not-supported', 'has space', 'has.dot', '']) {
       expect(() => MessageCode.build({ parts: ['core', bad] })).toThrow(/Invalid segment/);
     }

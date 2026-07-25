@@ -9,18 +9,14 @@ import type {
 } from '@/components/auth/authorize/common/types';
 import type { Enforcer, FilteredAdapter, Model } from 'casbin';
 
-// ---------------------------------------------------------------------------
-// Fixtures
-// ---------------------------------------------------------------------------
+// --- Fixtures --------------------------------------------------------------
 
 const SCOPED_MODEL = {
   driver: CasbinEnforcerModelDrivers.TEXT,
   definition: CASBIN_RBAC_DOMAIN_SCOPED_MODEL,
 } as const;
 
-// Per-user adapter with a configurable delay so concurrent loads interleave at the await. Each user
-// gets a distinct SYSTEM_WIDE grant on `<id>_secret`, so a leaked line is trivially detectable.
-// Also counts every loadFilteredPolicy invocation per principalId (single-flight instrumentation).
+// Per-user adapter with a configurable delay so concurrent loads interleave; each user's distinct SYSTEM_WIDE grant on `<id>_secret` makes a leaked line trivially detectable, and loads are counted per principalId for single-flight assertions.
 class CountingPerUserAdapter implements FilteredAdapter {
   readonly loadCounts = new Map<string, number>();
 
@@ -148,8 +144,7 @@ function redisCached(opts: {
         set: ({ key, value }: { key: string; value: unknown }) =>
           opts.client.set(key, JSON.stringify(value)),
         del: ({ keys }: { keys: string[] }) => opts.client.del(...keys),
-        // IRedisHelper aggregates connection/key/hash/set/list/pubsub/json/command surfaces (dozens
-        // of methods); this fixture only exercises get/set/del, so implementing the rest is not worth it.
+        // This fixture only exercises get/set/del out of IRedisHelper's dozens of methods.
       } as any,
       expiresIn: 60_000,
       keyFn: opts.keyFn ?? (({ user }) => `casbin:User:${user.userId}`),
@@ -184,9 +179,7 @@ async function decide(e: CasbinAuthorizationEnforcer, userId: string, obj: strin
   });
 }
 
-// ---------------------------------------------------------------------------
-// High-concurrency cross-user isolation (white-box, highest priority)
-// ---------------------------------------------------------------------------
+// --- High-concurrency cross-user isolation (white-box, highest priority) ---
 
 describe('enforcer-pool-stress — cross-user isolation under high concurrency', () => {
   for (const poolSize of [1, 2, 16]) {
@@ -236,9 +229,7 @@ describe('enforcer-pool-stress — cross-user isolation under high concurrency',
   });
 });
 
-// ---------------------------------------------------------------------------
-// Single-flight dedupe (buildRules under redis cache)
-// ---------------------------------------------------------------------------
+// --- Single-flight dedupe (buildRules under redis cache) -------------------
 
 describe('enforcer-pool-stress — single-flight on cache miss', () => {
   test('N concurrent buildRules for the SAME uncached user → adapter loaded once, one cache write, identical lines', async () => {
@@ -300,14 +291,11 @@ describe('enforcer-pool-stress — single-flight on cache miss', () => {
   });
 });
 
-// ---------------------------------------------------------------------------
-// Pool exhaustion / acquire timeout = fail-closed (no silent allow, no hang)
-// ---------------------------------------------------------------------------
+// --- Pool exhaustion / acquire timeout = fail-closed (no silent allow, no hang) ---
 
 describe('enforcer-pool-stress — pool exhaustion', () => {
   test('poolSize 1 + many concurrent evaluates all eventually resolve correctly (no hang)', async () => {
-    // Slow per-request load via the adapter delay does not apply at evaluate-time (lines are pre-built),
-    // so to actually stress the single slot we pre-build rules then fire many evaluates concurrently.
+    // The adapter delay does not apply at evaluate-time (lines are pre-built), so stressing the single slot means pre-building rules then firing many evaluates concurrently.
     const e = poolEnforcer(new CountingPerUserAdapter(0), 1);
     await e.configure();
 
@@ -338,8 +326,7 @@ describe('enforcer-pool-stress — pool exhaustion', () => {
   });
 
   test('tiny poolAcquireTimeoutMs under contention → acquire rejects (fail-closed, never allow)', async () => {
-    // Hold the single slot busy with a long-running evaluate, then fire more; the queued ones must
-    // time out and REJECT (deny by absence of allow), not hang or resolve to allow.
+    // With the single slot held busy by a long-running evaluate, queued acquisitions must time out and REJECT - never hang, never resolve to allow.
     const e = poolEnforcer(new CountingPerUserAdapter(0), 1, 20);
     await e.configure();
 
@@ -348,9 +335,7 @@ describe('enforcer-pool-stress — pool exhaustion', () => {
       context: asTypedContext({}),
     });
 
-    // Monkey-patch the pool's borrowed callback indirectly: occupy the slot by issuing an evaluate that
-    // we keep pending via a slow loadPolicyLinesIntoModel override is intrusive; instead saturate with a
-    // burst far exceeding what one 20ms-timeout slot can drain — some acquisitions must time out.
+    // Saturating with a burst far beyond what one 20ms-timeout slot can drain is less intrusive than overriding loadPolicyLinesIntoModel to hold the slot; some acquisitions must time out.
     const burst = Array.from({ length: 40 }, () =>
       e
         .evaluate({
@@ -365,8 +350,7 @@ describe('enforcer-pool-stress — pool exhaustion', () => {
     );
 
     const results = await Promise.all(burst);
-    // None must silently ALLOW via an error path: every settled result is either a real 'allow'/'deny'
-    // decision or a rejection. There is no code path that returns 'allow' on acquire failure.
+    // No error path may silently ALLOW: every settled result is a real 'allow'/'deny' decision or a rejection.
     for (const r of results) {
       if (r.ok) {
         expect(['allow', 'deny']).toContain(r.d);
@@ -379,9 +363,7 @@ describe('enforcer-pool-stress — pool exhaustion', () => {
   });
 });
 
-// ---------------------------------------------------------------------------
-// Fault injection — corrupt cache / redis faults / key faults
-// ---------------------------------------------------------------------------
+// --- Fault injection - corrupt cache / redis faults / key faults -----------
 
 describe('enforcer-pool-stress — corrupt cache variants refetch (no 500)', () => {
   const corruptVariants: Array<{ name: string; raw: string }> = [
@@ -546,12 +528,9 @@ describe('enforcer-pool-stress — extractUserLines adapter throws (no-cache pat
   });
 });
 
-// ---------------------------------------------------------------------------
-// Poisoned line at load-time under concurrency (extends the single existing discard test)
-// ---------------------------------------------------------------------------
+// --- Poisoned line at load-time under concurrency --------------------------
 
-// Loads a poison line for a specific user that loads OK structurally but is junk; combined with a
-// FailOnce override we exercise concurrent discard + recovery.
+// Loads a structurally valid but junk line for one user; combined with a FailOnce override this exercises concurrent discard plus recovery.
 class FailNTimesPoolEnforcer extends CasbinAuthorizationEnforcer {
   failsRemaining: number;
 
@@ -602,15 +581,12 @@ describe('enforcer-pool-stress — load failure discard recovery under concurren
   });
 });
 
-// ---------------------------------------------------------------------------
-// Enforce-time malformed line (loads OK, but is semantic junk → deny, never throw/allow)
-// ---------------------------------------------------------------------------
+// --- Enforce-time malformed line (loads OK, semantic junk -> deny, never throw/allow) ---
 
 describe('enforcer-pool-stress — malformed-but-loadable cached line', () => {
   test('a cached line with too few columns loads but never grants (deny, no crash)', async () => {
     const client = new FakeRedisClient();
-    // A `p` line missing columns for the 5-arg scoped policy. casbin Helper tolerates the load;
-    // enforceSync must simply not match → deny. Must NOT throw, must NOT allow.
+    // A `p` line missing columns for the 5-arg scoped policy: casbin tolerates the load, so enforceSync must simply not match - never throw, never allow.
     client.store.set('casbin:User:M', JSON.stringify(['p, User_M, SYSTEM_WIDE']));
     const e = cachedEnforcer({ client });
     await e.configure();
@@ -630,9 +606,7 @@ describe('enforcer-pool-stress — malformed-but-loadable cached line', () => {
   });
 });
 
-// ---------------------------------------------------------------------------
-// invalidate / rebuild under concurrent traffic (anti-poisoning)
-// ---------------------------------------------------------------------------
+// --- invalidate / rebuild under concurrent traffic (anti-poisoning) --------
 
 describe('enforcer-pool-stress — rebuild/invalidate isolation under concurrency', () => {
   test('rebuild(A) ‖ many buildRules(B) → cache[A] only A lines, cache[B] only B lines', async () => {

@@ -30,8 +30,7 @@ describe('Boot Utility Tests', () => {
     test('should return an empty array if no files match', async () => {
       const pattern = '**/*.nonexistent';
 
-      // A local root on purpose: `root` is shared file-wide (beforeAll, not beforeEach), so
-      // mutating it here poisoned every test that runs after this one.
+      // A local root on purpose: `root` is shared file-wide (beforeAll, not beforeEach), so mutating it here poisons every later test.
       const files = await discoverFiles({ pattern, root: process.cwd() });
       expect(files).toEqual([]);
     });
@@ -61,8 +60,7 @@ describe('Boot Utility Tests', () => {
 
       const classes = await loadClasses({ files });
 
-      // The file also exports `buildWhereClause`, `normalizeId` and `TABLE_NAME`; binding any of
-      // them as an artifact means the booter eventually does `new buildWhereClause()`.
+      // The file also exports `buildWhereClause`, `normalizeId` and `TABLE_NAME`; binding one as an artifact means the booter eventually does `new buildWhereClause()`.
       expect(classes.map(loaded => loaded.name)).toEqual(['MixedRepository']);
     });
   });

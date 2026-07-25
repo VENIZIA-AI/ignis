@@ -5,14 +5,11 @@ import { join } from 'node:path';
 // `__dirname`, not `import.meta`: this package emits CommonJS.
 const CORE_ROOT = join(__dirname, '../../../../..');
 
-/** The runtime guard proves a driver is never LOADED; this gate proves none is PACKAGED - the gap a
- * dynamic import falls through, since it defers execution, never packaging. A driver reaches the
- * bundle only when the application names its class. */
+/** The runtime guard proves a driver is never LOADED; this gate proves none is PACKAGED - the gap a dynamic import falls through, since it defers execution, never packaging. A driver reaches the bundle only when the application names its class. */
 const bundle = async (opts: { entry: string }): Promise<string> => {
   const { entry } = opts;
 
-  // The CLI, not `Bun.build()`: the in-process bundler resolves this workspace's symlinked
-  // dependencies to directories and dies on them.
+  // The CLI, not `Bun.build()`: the in-process bundler resolves this workspace's symlinked dependencies to directories and dies on them.
   const proc = Bun.spawn(['bun', 'build', join(__dirname, entry), '--target=bun', '--format=esm'], {
     cwd: CORE_ROOT,
     stdout: 'pipe',
@@ -36,8 +33,7 @@ const bundle = async (opts: { entry: string }): Promise<string> => {
 const NODE_POSTGRES_MARKER = 'Got a client without pool accounting';
 const POSTGRES_JS_MARKER = 'Got a client without reserve()/unsafe()';
 
-/** Unique to each drizzle adapter - the thing that value-imports the peer package itself. Asserted
- * alongside the driver markers: the bug was the peer being demanded, not our module. */
+/** Unique to each drizzle adapter - the thing that value-imports the peer package itself. Asserted alongside the driver markers: the bug was the peer being demanded, not our module. */
 const NODE_POSTGRES_ADAPTER = 'NodePgSession';
 const POSTGRES_JS_ADAPTER = 'PostgresJsSession';
 
@@ -73,9 +69,7 @@ describe('optional driver peers reach the bundle only when named', () => {
   }, 60_000);
 
   test('a literal await import() bundles the peer anyway - the premise the old resolver got wrong', async () => {
-    // The shape `drivers/resolve.ts` used, and the reason it never isolated anything: a dynamic
-    // import defers EXECUTION, not PACKAGING. Without this, the three assertions above could pass
-    // for the wrong reason - a marker that never matches anything is not a guard.
+    // The shape `drivers/resolve.ts` used, and why it never isolated anything: a dynamic import defers EXECUTION, not PACKAGING. Without this the three assertions above could pass for the wrong reason.
     const output = await bundle({ entry: 'dynamic-import.entry.ts' });
 
     expect(output).toContain(POSTGRES_JS_MARKER);

@@ -13,10 +13,7 @@ export class WinstonLogger extends BaseLogger {
     this._logger = logger;
   }
 
-  /**
-   * Default-backed loggers are cached per scope; a custom-backed logger is a fresh wrapper every
-   * call - a scope-keyed cache can't tell different winston instances apart.
-   */
+  /** Default-backed loggers are cached per scope; a custom-backed logger is a fresh wrapper every call - a scope-keyed cache can't tell different winston instances apart. */
   static get(scope: string, customLogger?: winston.Logger): WinstonLogger {
     if (customLogger) {
       return new WinstonLogger(scope, customLogger);

@@ -94,10 +94,7 @@ export class InternalQueueMailExecutorHelper extends BaseHelper implements IMail
     };
   }
 
-  /**
-   * Releases every pending delayed/backoff timer. Without this an unsent (or retrying) job keeps a
-   * live `setTimeout` handle, which holds the event loop open and outlives the executor.
-   */
+  /** Releases every pending delayed/backoff timer - a live `setTimeout` holds the event loop open past the executor. */
   async close(): Promise<void> {
     const pendingCount = this.delayedJobs.size;
 
@@ -131,9 +128,7 @@ export class InternalQueueMailExecutorHelper extends BaseHelper implements IMail
     try {
       const result = await this.processor(job.email);
 
-      // A processor reports an SMTP rejection by RETURNING `{ success: false }` - that is what
-      // `IMailProcessorResult` is for. Watching only for throws marked the job completed, so the
-      // mail was dropped with no retry and no trace.
+      // A processor reports SMTP rejection by RETURNING `{ success: false }`; watching only for throws completes the job and drops the mail.
       if (result?.success === false) {
         throw getError({
           messageCode: MailErrorCodes.SEND_FAILED,

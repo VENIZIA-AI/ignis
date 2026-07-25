@@ -1,10 +1,7 @@
 import type { TConstValue } from '@venizia/ignis-helpers';
 import { MessageCode } from '@venizia/ignis-helpers';
 
-/** Every machine-readable code the framework raises. Clients branch on the code, never the message
- * text, so these strings ARE a public contract - changing one breaks every consumer that maps it.
- * Built via {@link MessageCode.build}, which rejects a malformed code at import time. Applications
- * use their own namespace; `core.*` and `database.*` belong to IGNIS. */
+/** Every machine-readable code the framework raises - clients branch on the code, so these strings ARE a public contract. Built via {@link MessageCode.build}, which rejects a malformed code at import time; `core.*` and `database.*` belong to IGNIS, applications use their own namespace. */
 const build = (parts: Array<string>): string => {
   return MessageCode.build({ parts });
 };
@@ -14,10 +11,7 @@ export class CoreErrorCodes {
   /** A capability the implementation deliberately does not provide (HTTP 501). */
   static readonly NOT_SUPPORTED = build(['core', 'not_supported']);
 
-  /**
-   * A transient database conflict (deadlock, serialization failure) - the caller may retry.
-   * Historical value, kept verbatim: clients already map this string.
-   */
+  /** A transient database conflict (deadlock, serialization failure) - the caller may retry. Value kept verbatim: clients already map this string. */
   static readonly DATABASE_CONFLICT = build(['database', 'conflict']);
 }
 

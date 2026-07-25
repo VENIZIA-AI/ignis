@@ -185,8 +185,7 @@ describe('RequestTrackerComponent — body parsing', () => {
       body: '',
     });
 
-    // `content-length: 0` short-circuits the spy, so whatever status comes back is produced
-    // downstream by the route validator, not by an unhandled throw inside the middleware.
+    // `content-length: 0` short-circuits the spy, so the status comes from the downstream route validator, not an unhandled throw inside the middleware.
     const responseBody = (await response.json()) as Record<string, AnyType>;
     expect(responseBody.message).not.toBe('Malformed Body Payload');
   });
@@ -230,9 +229,7 @@ describe('RequestTrackerComponent - connection info', () => {
   test('a request whose client ip cannot be determined is still SERVED, not rejected', async () => {
     const router = await bootTrackedApplication();
 
-    // A unix socket, some proxies and every in-process call yield no connection info. This
-    // component exists to OBSERVE traffic: refusing to serve a request because its client ip is
-    // unknown turns a logging gap into an outage.
+    // Unix sockets, some proxies and every in-process call yield no connection info; this component exists to OBSERVE traffic, so refusing a request whose client ip is unknown turns a logging gap into an outage.
     const response = await router.request('/echo');
 
     expect(response.status).toBe(200);

@@ -2,9 +2,7 @@ import { describe, expect, test } from 'bun:test';
 import { MeilisearchApiError } from 'meilisearch';
 import { MeilisearchInternal } from '@/connectors/meilisearch/internal';
 
-/** Classification runs against the SDK's REAL error shape: `MeilisearchApiError` has NO top-level
- * `code`/`httpStatus` (body off `cause`, status off `response`), and a task failure arrives as the
- * flat `task.error` shape - misreading either turns a by-design 404 into a 503 engine-down. */
+/** Classification runs against the SDK's REAL error shape: `MeilisearchApiError` has NO top-level `code`/`httpStatus` (body off `cause`, status off `response`) and a task failure arrives as the flat `task.error` shape - misreading either turns a by-design 404 into a 503 engine-down. */
 const buildApiError = (opts: { status: number; code: string }): MeilisearchApiError => {
   const { status, code } = opts;
 

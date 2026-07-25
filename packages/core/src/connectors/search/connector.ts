@@ -18,9 +18,7 @@ export interface ISearchConnectorCallbacks {
   onError?: (opts: { name: string; error: unknown }) => void;
 }
 
-/** Search-response envelope, consumed by ReadableSearchRepository without a boundary cast. `score`
- * is the engine's own relevance number - the scales are unrelated across engines, never compare or
- * threshold one against another. `isFoundExact` is false when `found` is approximate. */
+/** Search-response envelope, read without a boundary cast. `score` scales are unrelated across engines - never compare or threshold one against another; `isFoundExact` is false when `found` is approximate. */
 export interface ISearchResult<
   DocumentType extends object = object,
   HighlightType = unknown,
@@ -41,9 +39,7 @@ export interface ISearchResult<
   groupedHits?: GroupedHitType[];
 }
 
-// The schema/field types are engine-specific, not caller-owned - so they are interface-level
-// generics (the engine's connector fills them), not per-method generics like `document`. They
-// default to `unknown` so the neutral `ISearchConnector` stays engine-agnostic.
+// Schema/field types are engine-specific, not caller-owned - hence interface-level generics filled by the engine's connector, defaulting to `unknown` so `ISearchConnector` stays engine-agnostic.
 export interface ISearchCollectionScoped<
   CreateSchema = unknown,
   Schema = unknown,
@@ -69,8 +65,7 @@ export interface ISearchSwapScoped {
   indexes(opts: { pairs: Array<[string, string]> }): Promise<void>;
 }
 
-// Synonym SETS (Typesense v30+): a named set of items, linked to one or more collections. `ISynonym`
-// is the item shape ({ id, synonyms, root? }).
+// Synonym SETS (Typesense v30+): a named item set linked to one or more collections; `ISynonym` is the item shape.
 export interface ISearchSynonymSetScoped {
   upsert(opts: { name: string; items: ISynonym[] }): Promise<void>;
   get(opts: { name: string }): Promise<ISynonym[] | null>;
@@ -89,8 +84,7 @@ export interface ISearchSynonymScoped {
 export interface ISearchDocumentScoped {
   get<T extends object>(opts: { collection: string; id: string }): Promise<T>;
 
-  /** Exact count of documents matching `filterBy`. Engines whose search endpoint caps or estimates
-   * its total must answer this from a document-listing endpoint instead, so the count never lies. */
+  /** Exact count of documents matching `filterBy`. Engines whose search endpoint caps or estimates its total must answer from a document-listing endpoint instead. */
   count(opts: { collection: string; filterBy?: string }): Promise<number>;
 
   create<T extends object>(opts: { collection: string; document: T }): Promise<T>;
@@ -123,9 +117,7 @@ export interface ISearchDocumentScoped {
   }): Promise<string>;
 }
 
-/** The verb contract every search engine implements. `collection`/`document` are the true
- * intersection; `alias`/`synonymSet`/`synonyms`/`swap` are optional since no engine has all four -
- * agnostic callers must write `connector.alias?.…`. An interface so tests can fake it clientless. */
+/** The verb contract every search engine implements - an interface so tests can fake it clientless. `collection`/`document` are the true intersection; `alias`/`synonymSet`/`synonyms`/`swap` are optional since no engine has all four, so agnostic callers must write `connector.alias?.…`. */
 export interface ISearchConnector {
   getHealth(): Promise<{ ok: boolean }>;
   ping(): Promise<boolean>;
@@ -185,9 +177,7 @@ export abstract class BaseSearchConnector extends BaseHelper implements ISearchC
         return rs;
       }
 
-      // An ApplicationError was raised by the framework, not the engine: it is already sanitized and
-      // carries its own statusCode/messageCode (a task timeout, a not-supported verb). Re-wrapping it
-      // as a generic 503 would destroy that. Only raw engine failures get sanitized here.
+      // A framework ApplicationError is already sanitized and carries its own statusCode/messageCode; only raw engine failures may be wrapped as a generic 503.
       if (isApplicationError(error)) {
         throw error;
       }
@@ -235,8 +225,7 @@ export abstract class BaseSearchConnector extends BaseHelper implements ISearchC
 
   abstract getHealth(): Promise<{ ok: boolean }>;
 
-  // Resource-scoped verb groups; the concrete connector supplies each as a facade object. Only the
-  // intersection is abstract here - an engine declares its own alias/synonymSet/synonyms/swap.
+  // Resource-scoped verb groups, each supplied by the concrete connector as a facade object; only the intersection is abstract - an engine declares its own alias/synonymSet/synonyms/swap.
   abstract collection: ISearchCollectionScoped;
   abstract document: ISearchDocumentScoped;
 

@@ -617,8 +617,7 @@ export class SocketIOServerHelper extends BaseHelper {
 
   private close() {
     return new Promise<void>((resolve, reject) => {
-      // configure() may never have run (or may have failed): there is nothing to close, but the
-      // redis clients still have to be released by the caller
+      // configure() may never have run (or may have failed): there is nothing to close, but the redis clients still have to be released by the caller
       if (!this.io) {
         this.logger.for('close').info('SKIP close | IOServer was never initialized');
         resolve();
@@ -660,8 +659,7 @@ export class SocketIOServerHelper extends BaseHelper {
     try {
       await this.close();
     } finally {
-      // close() rejects when io.close() reports a lingering handle. Skipping the quits there leaves
-      // three live Redis sockets holding the event loop open, and a SIGTERM handler never returns.
+      // close() rejects when io.close() reports a lingering handle. Skipping the quits there leaves three live Redis sockets holding the event loop open, and a SIGTERM handler never returns.
       await Promise.all([this.redisPub?.quit(), this.redisSub?.quit(), this.redisEmitter?.quit()]);
     }
 

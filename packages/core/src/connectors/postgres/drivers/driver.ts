@@ -1,13 +1,9 @@
 import type { TAnyDataSourceSchema } from '@/base/datasources';
 import type { TRelationalConnector } from '@/connectors/postgres/datasources/common';
 
-/** Neutral result of a raw statement. Each driver maps its native shape (pg `rowCount`,
- * postgres-js `count`) at its own boundary - callers never sniff shapes at runtime. */
+/** Neutral result of a raw statement. Each driver maps its native shape (pg `rowCount`, postgres-js `count`) at its own boundary - callers never sniff shapes at runtime. */
 export interface IStatementResult {
-  /**
-   * Rows affected by the statement - the same `count` the repository verbs return. `0` for control
-   * statements (BEGIN / COMMIT / SET LOCAL).
-   */
+  /** Rows affected - the same `count` the repository verbs return; `0` for control statements (BEGIN / COMMIT / SET LOCAL). */
   count: number;
 }
 
@@ -16,18 +12,14 @@ export interface IRelationalConnection<Schema extends TAnyDataSourceSchema = TAn
   /** Drizzle bound to THIS connection, not to the pool. */
   connector: TRelationalConnector<Schema>;
 
-  /** Runs a control statement verbatim (BEGIN / COMMIT / ROLLBACK / SET LOCAL) - never
-   * parameterized, `BEGIN ... ISOLATION LEVEL $1` is not valid SQL. Use `connector` for rows. */
+  /** Runs a control statement verbatim (BEGIN / COMMIT / ROLLBACK / SET LOCAL) - never parameterized, `BEGIN ... ISOLATION LEVEL $1` is not valid SQL. Use `connector` for rows. */
   execute(opts: { statement: string }): Promise<IStatementResult>;
 
-  /** Returns the connection. `destroy` discards instead of pooling - required after a failed
-   * COMMIT/ROLLBACK, when the next borrower would inherit an open transaction. A driver that
-   * cannot destroy must say so in its own docs. */
+  /** Returns the connection; `destroy` discards instead of pooling - required after a failed COMMIT/ROLLBACK, where the next borrower would inherit an open transaction. A driver that cannot destroy must say so in its own docs. */
   release(opts?: { destroy?: boolean }): void;
 }
 
-/** Owns connection acquisition and raw control statements - the only two places hard-wired to a
- * client library. `configure()` stays app-written: the framework never builds the driver for you. */
+/** Owns connection acquisition and raw control statements - the only two places hard-wired to a client library. `configure()` stays app-written: the framework never builds the driver for you. */
 export interface IRelationalDriver<
   Schema extends TAnyDataSourceSchema = TAnyDataSourceSchema,
   Client = unknown,

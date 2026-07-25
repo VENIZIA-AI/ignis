@@ -2,8 +2,7 @@ import { describe, test, expect } from 'bun:test';
 import { model } from '@/base/metadata';
 import { IModelSettings } from '@/helpers/inversion';
 
-/** `@model({ settings: { defaultLimit } })` validates at decoration (boot) time: a provided
- * defaultLimit MUST be a positive integer, failing fast before the query layer. */
+/** `@model({ settings: { defaultLimit } })` validates at decoration (boot) time: a provided defaultLimit MUST be a positive integer, failing fast before the query layer. */
 describe('@model - defaultLimit validation', () => {
   const decorate = (settings: IModelSettings) => () => {
     @model({ type: 'entity', settings })

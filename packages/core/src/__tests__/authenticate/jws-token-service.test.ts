@@ -215,8 +215,7 @@ describe('JWSTokenService - payload encryption', () => {
     const token = await service.generate({ payload });
     const claims = readClaims(token);
 
-    // A JWT is signed, NOT encrypted: anyone can read its claims. Encryption is what keeps the
-    // values opaque on the wire, so the raw claim must not be the plaintext.
+    // A JWT is signed, NOT encrypted: anyone can read its claims, so the raw claim must not be the plaintext.
     expect(claims['userId']).not.toBe(42);
 
     const verified = await service.verify({ type: 'Bearer', token });
@@ -237,8 +236,7 @@ describe('JWSTokenService - payload encryption', () => {
       caught = error;
     }
 
-    // Either the decrypt throws, or it yields something that is not the original value - what must
-    // never happen is the foreign secret recovering the plaintext.
+    // Decrypt may throw or yield junk; what must never happen is a foreign secret recovering the plaintext.
     expect(caught !== undefined || verified?.userId !== 42).toBe(true);
   });
 });

@@ -4,11 +4,7 @@ import { beforeEach, describe, expect, test } from 'bun:test';
 import { Container } from '../modules/container/container';
 import { inject } from '../modules/metadata/injectors';
 
-/**
- * Every constructor parameter of a container-instantiated class must carry `@inject` - a sparse
- * metadata array is refused in `instantiate` with class name + index (decorators run right-to-left,
- * so the decorator itself cannot check).
- */
+/** Every constructor parameter of a container-instantiated class must carry `@inject` - a sparse metadata array is refused in `instantiate` with class name + index, since decorators run right-to-left and the decorator itself cannot check. */
 class NoteService {
   find(): string {
     return 'note';
@@ -96,8 +92,7 @@ describe('every constructor parameter of a container-instantiated class must be 
   });
 
   test('the resolved dependencies land by INDEX, not by declaration order of the decorators', () => {
-    // Parameter decorators run right-to-left; the container assigns `args[meta.index]`, so the
-    // evaluation order must not matter.
+    // Parameter decorators run right-to-left; the container assigns `args[meta.index]`, so evaluation order must not matter.
     class OrderSensitiveController {
       constructor(
         @inject({ key: 'services.AuditService' }) public first: AuditService,

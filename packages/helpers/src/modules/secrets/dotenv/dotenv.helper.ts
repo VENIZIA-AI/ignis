@@ -1,6 +1,6 @@
 import type { AnyType } from '@/common/types';
 import { getError } from '@/modules/error';
-import { importOptionalModule } from '@/utilities/module.utility';
+import { ModuleUtility } from '@/utilities/module.utility';
 import { AbstractSecretsHelper } from '../base';
 import type { IClock, ISecretLease, ITimerAdapter } from '../common';
 
@@ -37,7 +37,7 @@ export class DotenvVaultHelper extends AbstractSecretsHelper {
     if (this.decode) {
       return { value: this.decode({ path: this.path, dotenvKey: this.dotenvKey }) };
     }
-    const dotenvx = await importOptionalModule<AnyType>({ module: '@dotenvx/dotenvx' });
+    const dotenvx = await ModuleUtility.load<AnyType>({ module: '@dotenvx/dotenvx' });
     const result = dotenvx.config({
       path: this.path,
       ...(this.dotenvKey ? { DOTENV_KEY: this.dotenvKey } : {}),

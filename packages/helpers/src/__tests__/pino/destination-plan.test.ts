@@ -3,9 +3,7 @@ import path from 'node:path';
 import { Defaults } from '@/common/constants';
 import { mapFrequency, mapMaxFilesToCount, resolveDestinationPlan } from '@/modules/logger/pino';
 
-/** Pure cases only - `resolveDestinationPlan()` and the mappers just read `process.env`; every
- * test saves/restores the envs it touches so suite order never matters. `.env.test` also sets
- * `APP_ENV_LOGGER_FOLDER_PATH` ambiently - tests here override or delete it explicitly instead. */
+/** Pure cases only - every test saves/restores the envs it touches so suite order never matters; `.env.test` sets `APP_ENV_LOGGER_FOLDER_PATH` ambiently, so tests override or delete it explicitly. */
 const ENV_KEYS = [
   'APP_ENV_LOGGER_FOLDER_PATH',
   'APP_ENV_LOGGER_FORMAT',

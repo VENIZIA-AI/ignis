@@ -17,8 +17,7 @@ describe('getError', () => {
     expect(error).toBeInstanceOf(Error);
     expect(error.message).toBe('bad input');
     expect(error.statusCode).toBe(400);
-    // An error raised without a code is NOT code-less: it carries the default, so a client always
-    // has something to map. See message-code.test.ts.
+    // An error raised without a code is NOT code-less: it carries the default, so a client always has something to map. See message-code.test.ts.
     expect(error.normalized.code).toBe(MessageCode.DEFAULT);
     expect(error.extra).toBeUndefined();
   });
@@ -50,9 +49,7 @@ describe('getError', () => {
     expect(typeof getError({ message: 'x' }).stack).toBe('string');
   });
 
-  /** A key the input doesn't declare - context or typo, indistinguishable - lands in `extra` and
-   * the real field keeps its default; the index signature that carries context is the same one
-   * that swallows a misspelling. */
+  /** An undeclared key - context or typo, indistinguishable - lands in `extra` and the real field keeps its default; the index signature that carries context also swallows a misspelling. */
   test('a misspelled field lands in extra and the real field keeps its default', () => {
     const error = getError({ message: 'x', statuscode: 503 });
 
@@ -66,11 +63,22 @@ describe('getError', () => {
     expect(error).toBeInstanceOf(ApplicationError);
     expect(error.statusCode).toBe(500);
   });
+
+  test('stores an explicit logLevel', () => {
+    const error = getError({ message: 'expected', statusCode: 404, logLevel: 'warn' });
+
+    expect(error.logLevel).toBe('warn');
+  });
+
+  test('logLevel is undefined when unset, and never rides into extra', () => {
+    const error = getError({ message: 'x' });
+
+    expect(error.logLevel).toBeUndefined();
+    expect(error.extra).toBeUndefined();
+  });
 });
 
-// --------------------------------------------------------------------------------
-// Error catalog - the `{ error: Def }` form, ported from BANA.
-// --------------------------------------------------------------------------------
+// --- Error catalog: the `{ error: Def }` form, ported from BANA ---
 const CategoryErrors = {
   CREATE_DUPLICATE_NAME: {
     message: {
@@ -129,8 +137,7 @@ describe('TRegisterErrors', () => {
   test('yields the union of catalogued keys as literal types', () => {
     type Registered = TRegisterErrors<typeof CategoryErrors>;
 
-    // If `key` widened to `string`, this assignment fails to compile - which is the whole point:
-    // the registry needs literals, so MessageCode.build (returns `string`) cannot be used here.
+    // If `key` widened to `string` this assignment fails to compile - which is the whole point: the registry needs literals, so MessageCode.build (returns `string`) cannot be used here.
     const registered: Registered = { 'server.commerce.category.create.duplicate_name': true };
 
     expect(registered['server.commerce.category.create.duplicate_name']).toBe(true);
@@ -172,8 +179,7 @@ describe('isApplicationError', () => {
   });
 });
 
-/** Pins the removal itself - nothing else asserts these fields are gone, so a regression that
- * re-added either would otherwise pass the whole suite. */
+/** Pins the removal itself - nothing else asserts these fields are gone, so a regression re-adding either would pass the whole suite. */
 describe('the legacy duplicates stay removed', () => {
   test('no flat messageCode field on the instance', () => {
     const error = getError({ message: 'x', messageCode: 'a.b' });
@@ -190,9 +196,8 @@ describe('the legacy duplicates stay removed', () => {
   });
 });
 
-/** `error` is the catalogued form's discriminant, so `{ message, error }` must not compile - a
- * natural way to write "wrap this" that would otherwise vanish. A malformed `error` must never
- * throw from inside the constructor - that would mask the original failure mid-catch. */
+/** `error` is the catalogued form's discriminant, so `{ message, error }` must not compile - a natural way to write "wrap this" that would otherwise vanish. */
+/** A malformed `error` must never throw from inside the constructor - that would mask the original failure mid-catch. */
 describe('a malformed `error` degrades, never throws', () => {
   test('`{ message, error }` is refused at compile time', () => {
     // The directive IS the assertion - tsc fails the build if this shape ever compiles again.

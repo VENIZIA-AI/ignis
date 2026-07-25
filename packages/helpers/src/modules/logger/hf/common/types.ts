@@ -2,11 +2,7 @@ export type THfLogLevel = 'debug' | 'info' | 'warn' | 'error' | 'emerg';
 
 export type THfSinkBatch = { lines: Array<string>; dropped: number };
 
-/**
- * Declared `=> void` ON PURPOSE: TS's void-return exemption lets both sync and `async` sinks
- * assign to it (`void | Promise<void>` would reject the sync form). The flusher still awaits a
- * returned thenable, so a rejection is caught and logged, never unhandled.
- */
+/** Declared `=> void` ON PURPOSE: TS's void-return exemption lets both sync and `async` sinks assign to it (`void | Promise<void>` would reject the sync form); the flusher still awaits a returned thenable, so a rejection is caught and logged, never unhandled. */
 export type THfSink = (batch: THfSinkBatch) => void;
 
 export interface IHfLogFlusherOptions {

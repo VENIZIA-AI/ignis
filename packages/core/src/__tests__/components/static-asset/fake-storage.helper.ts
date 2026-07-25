@@ -13,11 +13,7 @@ export interface IStorageCall {
   args: Record<string, unknown>;
 }
 
-/**
- * In-memory storage helper for component tests. Extends the real BaseStorageHelper so
- * `isValidName` / `isValidPath` / `upload` behave exactly as in production, while every backend
- * call is recorded so tests can assert what actually reached the storage layer.
- */
+/** In-memory storage helper extending the real BaseStorageHelper so `isValidName`/`isValidPath`/`upload` behave exactly as in production, while every backend call is recorded. */
 export class FakeStorageHelper extends BaseStorageHelper {
   readonly calls: IStorageCall[] = [];
   private readonly buckets = new Map<string, IBucketInfo>();

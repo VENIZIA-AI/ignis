@@ -1,11 +1,7 @@
 import { AnyType } from '@/common/types';
 import { TLogLevel } from './constants';
 
-/**
- * The logging contract every consumer types against; which provider produced the logger is
- * invisible behind it - only `factory.ts` and a provider's back-compat aliases may name a
- * concrete logger class.
- */
+/** The logging contract every consumer types against; which provider produced the logger is invisible behind it - only `factory.ts` and a provider's back-compat aliases may name a concrete logger class. */
 export interface ILogger {
   debug(message: string, ...args: AnyType[]): void;
   info(message: string, ...args: AnyType[]): void;

@@ -4,8 +4,7 @@ import { AuthorizeBindingKeys } from '@/components/auth/authorize/common/constan
 import type { IAuthorizeOptions } from '@/components/auth/authorize/common/types';
 import type { BaseApplication } from '@/base/applications/base';
 
-/** Exercises AuthorizeComponent.binding() directly via a fake application exposing only the two
- * methods the component touches: `.get()` and `.bind().toValue()`. */
+/** Exercises AuthorizeComponent.binding() directly via a fake application exposing only the two methods the component touches: `.get()` and `.bind().toValue()`. */
 
 type TBindCall = { key: string; value: unknown };
 
@@ -28,8 +27,7 @@ const createFakeApplication = (opts: {
         },
       };
     },
-    // Only .get()/.bind() are exercised by binding() — the full BaseApplication surface
-    // (Hono server, DI container, lifecycle hooks) is out of scope for this unit test.
+    // binding() only calls .get()/.bind(), so the rest of the BaseApplication surface is out of scope here.
   } as BaseApplication;
 
   return { application, binds };
@@ -91,8 +89,7 @@ describe('AuthorizeComponent.binding()', () => {
         messages.push(message);
       },
     };
-    // Intercept the scoped logger returned by logger.for(...). Fake only implements .for();
-    // the full Winston-backed Logger surface is unnecessary for this assertion.
+    // Intercepts the scoped logger returned by logger.for(...); the fake implements only .for(), which is all this assertion needs.
     component.logger = { for: () => scopedLogger } as any;
 
     await component.binding();

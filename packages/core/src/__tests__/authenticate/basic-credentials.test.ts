@@ -2,9 +2,7 @@ import { describe, expect, test } from 'bun:test';
 import type { AnyType } from '@venizia/ignis-helpers';
 import { BasicTokenService } from '@/components/auth/authenticate/services/basic/service';
 
-/** `extractCredentials` parses an attacker-controlled header: the parse must be exact (a password
- * containing ':' must survive intact), and every rejection must look IDENTICAL - distinct messages
- * per failure mode make the endpoint an oracle. */
+/** The header is attacker-controlled: the parse must be exact (a password containing ':' survives intact) and every rejection IDENTICAL - per-failure-mode messages make the endpoint an oracle. */
 const buildService = () => {
   return new BasicTokenService({ verifyCredentials: async () => ({ userId: 1 }) } as AnyType);
 };

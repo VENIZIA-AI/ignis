@@ -31,10 +31,7 @@ export abstract class AbstractRelationalDataSource<
 
   private static queryDialect?: IRelationalQueryDialect;
 
-  /**
-   * Builds the driver class named by `@datasource({ driver })` over the client `configure()`
-   * assigned, then wires the connector from it. Idempotent and lazy.
-   */
+  /** Builds the driver class named by `@datasource({ driver })` over the client `configure()` assigned, then wires the connector from it. Idempotent and lazy. */
   protected wireDriverFromMetadata(): void {
     if (this.connector) {
       return;
@@ -55,8 +52,7 @@ export abstract class AbstractRelationalDataSource<
     this.useDriver({ driver: new DriverClass({ client: this.client }) });
   }
 
-  /** Reads the driver CLASS named by `@datasource({ driver })`. Rejects a driver-name string
-   * (untyped JS callers) - a string carries no module into the bundle. */
+  /** Reads the driver CLASS named by `@datasource({ driver })`; rejects a driver-name string from untyped JS callers - a string carries no module into the bundle. */
   protected resolveDriverClass(): TClass<IRelationalDriver<Schema>> {
     const metadata = MetadataRegistry.getInstance().getDataSourceMetadata({
       target: this.constructor,
@@ -77,8 +73,7 @@ export abstract class AbstractRelationalDataSource<
     return this.driver as IRelationalDriver<Schema>;
   }
 
-  /** Assigns `this.driver` AND builds `this.connector` in one step - a driver without its connector
-   * would silently bypass the driver on pooled queries. `schema` defaults to `getSchema()`. */
+  /** Assigns `this.driver` AND builds `this.connector` in one step - a driver without its connector would silently bypass the driver on pooled queries. `schema` defaults to `getSchema()`. */
   protected useDriver(opts: { driver: IRelationalDriver<Schema>; schema?: Schema }): void {
     this.driver = opts.driver;
     this.connector = opts.driver.createConnector({ schema: opts.schema ?? this.getSchema() });
@@ -95,8 +90,7 @@ export abstract class AbstractRelationalDataSource<
     return this.connector;
   }
 
-  /** Raw driver client (`pg.Pool` / `Sql`). Reads the configured client directly when no driver is
-   * resolved yet; throws rather than handing back an `undefined` typed as `Client`. */
+  /** Raw driver client (`pg.Pool` / `Sql`). Reads the configured client directly when no driver is resolved yet; throws rather than handing back an `undefined` typed as `Client`. */
   getClient(): Client {
     if (this.driver) {
       return this.driver.getClient() as Client;
@@ -117,25 +111,19 @@ export abstract class AbstractRelationalDataSource<
     return AbstractRelationalDataSource.queryDialect;
   }
 
-  /** Soft-evicts the pool after a secret rotation: builds pool + driver + connector against the
-   * rotated credentials without touching live fields, swaps atomically, then drains the old pool.
-   * On failure the live state is restored, any half-built pool drained, and the error rethrown. */
+  /** Soft-evicts the pool after a secret rotation: builds pool + driver + connector against the rotated credentials without touching live fields, swaps atomically, then drains the old pool. On failure the live state is restored, any half-built pool drained, and the error rethrown. */
   async onSecretRotated(opts: { key: string; secret: Record<string, string> }): Promise<void> {
     const logger = this.logger.for(this.onSecretRotated.name);
     const oldClient = this.getClient() as AnyType;
 
-    // Snapshot so a failed rebuild restores the datasource verbatim. `settings` is copied because
-    // rotation mutates it in place; the live client stays untouched, keeping the old pool serving.
+    // Snapshot so a failed rebuild restores the datasource verbatim; `settings` is copied because rotation mutates it in place, and the live client stays untouched so the old pool keeps serving.
     const savedClient = this.client;
     const savedSettings = { ...(this.settings as AnyObject) };
 
-    // Rotation takes effect only through this.settings + configure(); a configure() that builds its
-    // pool from a hard-coded connection string or reads Envs directly rebuilds with stale credentials.
+    // Rotation takes effect only through this.settings + configure(); a configure() building its pool from a hard-coded connection string or reading Envs directly rebuilds with stale credentials.
     Object.assign(this.settings as AnyObject, this.mapSecretToSettings({ secret: opts.secret }));
 
-    // configure() overwrites this.client with the freshly-built pool; capture it into a local and
-    // immediately restore the old client so the live driver/connector stay on the old pool until the
-    // swap. The old client keeps serving throughout - the live fields are never nulled.
+    // configure() overwrites this.client with the freshly-built pool, so it is captured into a local and the old client restored immediately - the live driver/connector stay on the old pool until the swap and the live fields are never nulled.
     let newClient: Client;
     try {
       await this.configure();
@@ -168,8 +156,7 @@ export abstract class AbstractRelationalDataSource<
       throw error;
     }
 
-    // New pool fully built: commit the live fields to it in one synchronous step (no null window),
-    // then soft-evict the old pool so its in-flight transactions can finish.
+    // New pool fully built: commit the live fields in one synchronous step (no null window), then soft-evict the old pool so its in-flight transactions can finish.
     this.client = newClient as AnyType;
     this.driver = newDriver;
     this.connector = newConnector as AnyType;

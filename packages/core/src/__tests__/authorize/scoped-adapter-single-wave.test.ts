@@ -75,8 +75,7 @@ describe('ScopedCasbinAdapter - queryPrincipalPolicies', () => {
   let executeCalls = 0;
   let capturedStatement = '';
 
-  // Stub connector — branches on statement text (WITH RECURSIVE vs anything else) and captures
-  // text + params together so assertions can check literal AND parameterized fragments alike.
+  // Stub connector - branches on statement text (WITH RECURSIVE vs anything else) and captures text plus params so assertions can check literal and parameterized fragments alike.
   const buildAdapter = (opts: { metadataColumnName?: string } = {}): TScopedCasbinAdapter => {
     executeCalls = 0;
     capturedStatement = '';
@@ -91,8 +90,7 @@ describe('ScopedCasbinAdapter - queryPrincipalPolicies', () => {
       },
     };
 
-    // 'metadataColumnName' in opts distinguishes "not passed" (default 'metadata') from
-    // "explicitly undefined" (the omit-metadata test) — `??` alone can't tell those apart.
+    // `'metadataColumnName' in opts` distinguishes "not passed" (default 'metadata') from "explicitly undefined" - `??` alone cannot tell those apart.
     const metadataColumnName = 'metadataColumnName' in opts ? opts.metadataColumnName : 'metadata';
     const dataSource = { connector } as ICasbinPolicySource;
     return new ScopedCasbinAdapter({
@@ -158,12 +156,8 @@ describe('ScopedCasbinAdapter - queryPrincipalPolicies', () => {
   });
 });
 
-// Property 5 (shape-verified): the statement structure a stub cannot execute recursively, so these
-// assert the SQL text implements the closure algorithm rather than its computed result. Properties
-// 1/2/4 (seed+hop, multi-hop, cycle safety) are shape-verified here for the same reason - a stub
-// returns canned rows regardless of what a real recursive CTE would compute, so only the SQL that
-// WOULD produce those rows can be checked from this suite. Property 6 (g4/g5 unchanged) is covered
-// unedited in scoped-adapter-edges.test.ts.
+// Properties 1/2/4/5 are shape-verified: a stub returns canned rows regardless of what a real recursive CTE would compute, so only the SQL text that WOULD produce them can be checked here.
+// Property 6 (g4/g5 unchanged) is covered unedited in scoped-adapter-edges.test.ts.
 describe('ScopedCasbinAdapter - queryPrincipalPolicies domain_closure shape', () => {
   let adapter: TScopedCasbinAdapter;
   let capturedStatement = '';
@@ -220,9 +214,7 @@ describe('ScopedCasbinAdapter - queryPrincipalPolicies domain_closure shape', ()
   it('the domainEdge branch is joined against domain_closure - it cannot select an edge outside the closure', async () => {
     await adapter['queryPrincipalPolicies']({ principal: { type: 'User', id: 'u1' } });
 
-    // The kind discriminant is bound as a parameter (PrincipalPolicyEdges.DOMAIN_EDGE), so the
-    // load-scoping property is proven by the branch's FROM/JOIN, not a bare WHERE: there is no
-    // unconditional "FROM policyDefinition WHERE variant = domain_inherits" left un-joined.
+    // The kind discriminant is a bound parameter, so load-scoping is proven by the branch's FROM/JOIN rather than a bare WHERE: no unconditional "FROM policyDefinition WHERE variant = domain_inherits" is left un-joined.
     expect(capturedStatement).toMatch(
       /JOIN domain_closure ON policyDefinition\.subject_type = domain_closure\.dom_type/,
     );
@@ -240,10 +232,7 @@ describe('ScopedCasbinAdapter - queryPrincipalPolicies domain_closure shape', ()
   });
 });
 
-// Property 3 (sibling isolation) and the g3 emission itself, line-verified: given rows a correctly
-// scoped closure WOULD produce (the stub cannot run the recursive SQL, so these rows stand in for
-// its output), loadFilteredPolicy's switch must turn each 'domainEdge' row into exactly one g3 line
-// and must not fabricate a line for an edge that was never returned.
+// Property 3 (sibling isolation) and the g3 emission itself, line-verified: given rows a correctly scoped closure WOULD produce, loadFilteredPolicy must turn each 'domainEdge' row into exactly one g3 line and fabricate none for an edge never returned.
 describe('ScopedCasbinAdapter - domainEdge rows become g3 lines', () => {
   const buildAdapterWithRows = (rows: TPrincipalPolicyRow[]): TScopedCasbinAdapter => {
     const connector = {
@@ -301,8 +290,7 @@ describe('ScopedCasbinAdapter - domainEdge rows become g3 lines', () => {
   });
 
   it('sibling isolation: an edge the closure never returned is never emitted', async () => {
-    // Simulates what a correctly-scoped closure returns for a principal in Merchant_9 only - the
-    // unrelated Merchant_8 -> Organizer_Y edge is absent because the CTE never reaches it.
+    // What a correctly-scoped closure returns for a principal in Merchant_9 only - the unrelated Merchant_8 -> Organizer_Y edge is absent because the CTE never reaches it.
     const lines = await capturedLinesFor([
       domainEdgeRow({ subjectId: 'Merchant_9', targetId: 'Organizer_X' }),
     ]);
@@ -318,10 +306,7 @@ describe('ScopedCasbinAdapter - domainEdge rows become g3 lines', () => {
   });
 });
 
-// One row per branch the outer UNION ALL can produce for one loadFilteredPolicy call: the
-// principal's own assign_role/join_domain/grant edges, one reachable role_inherits edge, and the
-// role closure's grant. No unreachable role edge is included - the recursive CTE would never
-// return one, so a stub correctly omits it too.
+// One row per branch the outer UNION ALL can produce for one loadFilteredPolicy call: the principal's own edges, one reachable role_inherits edge, and the role closure's grant. No unreachable role edge - the recursive CTE would never return one.
 const SINGLE_WAVE_ROWS: TPrincipalPolicyRow[] = [
   {
     kind: 'direct',
@@ -409,8 +394,7 @@ describe('ScopedCasbinAdapter - loadFilteredPolicy issues one wave', () => {
         executeCalls += 1;
         inFlight += 1;
         maxInFlight = Math.max(maxInFlight, inFlight);
-        // Yields so every statement in the wave gets counted as in-flight before any resolves -
-        // a real round-trip does the same; a query chained onto a previous one's result never would.
+        // Yields so every statement in the wave counts as in-flight before any resolves, as a real round-trip does; a query chained onto a previous one's result never would.
         await Promise.resolve();
         const { sql: text } = dialect.sqlToQuery(query);
         const rows = text.includes('WITH RECURSIVE') ? SINGLE_WAVE_ROWS : [];

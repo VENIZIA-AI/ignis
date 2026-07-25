@@ -52,12 +52,15 @@ export class UpdateBuilder extends BaseHelper {
         continue;
       }
 
-      if (!isJsonPath({ key })) {
-        if (!columns[key]) {
-          throw getError({
-            message: `[UpdateBuilder][transform] Table: ${tableName} | Column NOT FOUND | key: '${key}'`,
-          });
-        }
+      const isRegularField = !isJsonPath({ key });
+
+      if (isRegularField && !columns[key]) {
+        throw getError({
+          message: `[UpdateBuilder][transform] Table: ${tableName} | Column NOT FOUND | key: '${key}'`,
+        });
+      }
+
+      if (isRegularField) {
         regularFields[key] = value;
         continue;
       }

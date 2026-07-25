@@ -1,20 +1,16 @@
 import { describe, expect, test } from 'bun:test';
 import { Environment } from '@/modules/env';
 
-/** `DEVELOPMENT_ENVS` is the allowlist the error middleware consults before letting a response
- * carry a stack trace, SQL constraint name, or raw driver message - anything not in it is treated
- * as production, so it must hold only environments our own engineers reach. */
+/** `DEVELOPMENT_ENVS` is the allowlist the error middleware consults before letting a response carry a stack trace, SQL constraint name, or raw driver message - anything not in it is treated as production. */
 describe('Environment.DEVELOPMENT_ENVS - who may see an unsanitized error', () => {
   test('dev is the same environment as development, spelled short', () => {
-    // A deployment writing NODE_ENV=dev means development; treating the abbreviation as an unknown
-    // environment would silently strip the details its engineers rely on.
+    // A deployment writing NODE_ENV=dev means development; treating the abbreviation as an unknown environment would silently strip the details its engineers rely on.
     expect(Environment.DEVELOPMENT_ENVS.has('dev')).toBe(true);
     expect(Environment.DEVELOPMENT_ENVS.has(Environment.DEVELOPMENT)).toBe(true);
   });
 
   test('dev is a RECOGNIZED environment, so DEBUG logging still reaches it', () => {
-    // The logger gates debug output on COMMON_ENVS: an unrecognized NODE_ENV silences DEBUG=true
-    // entirely, which is the opposite of what a developer setting NODE_ENV=dev wants.
+    // The logger gates debug output on COMMON_ENVS: an unrecognized NODE_ENV silences DEBUG=true entirely, the opposite of what a developer setting NODE_ENV=dev wants.
     expect(Environment.COMMON_ENVS.has('dev')).toBe(true);
   });
 
@@ -41,8 +37,7 @@ describe('Environment.DEVELOPMENT_ENVS - who may see an unsanitized error', () =
 
     try {
       process.env.NODE_ENV = 'dev';
-      // Normalizing here would change every value the framework reports downstream - including
-      // payloads apps build from it. The alias belongs in the allowlist, not in the reading.
+      // Normalizing here would change every value the framework reports downstream, including payloads apps build from it - the alias belongs in the allowlist, not in the reading.
       expect(Environment.current).toBe('dev');
     } finally {
       process.env.NODE_ENV = original;

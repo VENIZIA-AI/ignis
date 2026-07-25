@@ -19,10 +19,7 @@ export class RepositoryOperationScopes {
 /** Valid repository operation scope values. */
 export type TRepositoryOperationScope = TConstValue<typeof RepositoryOperationScopes>;
 
-/**
- * Machine-readable codes for repository-level failures, in the same dotted namespace core already
- * uses (`core.not_supported`, `core.search_engine.*`) - a client maps the code, never the message.
- */
+/** Machine-readable codes for repository-level failures, in the dotted namespace core already uses (`core.not_supported`, `core.search_engine.*`) - a client maps the code, never the message. */
 export class RepositoryErrorCodes {
   /** A verb the repository's `operationScope` does not permit (e.g. `create()` on a READ_ONLY one). */
   static readonly OPERATION_NOT_ALLOWED = MessageCode.build({

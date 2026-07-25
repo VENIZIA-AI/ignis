@@ -31,8 +31,7 @@ export class ReadableSearchRepository<
       shouldSkipDefaultFilter: opts.options?.shouldSkipDefaultFilter,
     });
 
-    // Counted through the document endpoint, never the search endpoint: an engine whose search
-    // total is capped or estimated would otherwise report a count that quietly lies.
+    // Counted through the document endpoint, never search: an engine whose search total is capped or estimated would report a count that quietly lies.
     const count = await this.connector.document.count({
       collection: this.collectionName,
       filterBy: query.filterBy,
@@ -56,8 +55,7 @@ export class ReadableSearchRepository<
     options?: TFindOptions<IExtraOptions, R>;
   }): Promise<Array<R>>;
 
-  /** Bare array or `{ data, range }` per shouldQueryRange, postgres-shaped range. Typesense's `found`
-   * already comes back in the same call as `hits`, so unlike SQL no second count query is needed. */
+  /** Bare array or `{ data, range }` per shouldQueryRange, postgres-shaped range. Typesense returns `found` in the same call as `hits`, so unlike SQL no second count query is needed. */
   async find<R = TDocument>(opts: {
     filter: TFilter;
     options?: TFindOptions<IExtraOptions, R> | TFindRangeOptions<IExtraOptions, R>;
@@ -91,8 +89,7 @@ export class ReadableSearchRepository<
 
     const { hits, found } = result;
     // An explicit `find<Other>()` call is the caller's own unchecked assertion (R defaults to TDocument).
-    // Stripped in JS as well as engine-side: Typesense honours `exclude_fields`, but Meilisearch has
-    // no per-query exclusion at all, so the engine is not the last line of defence here.
+    // Stripped in JS too, not only engine-side: Typesense honours `exclude_fields` but Meilisearch has no per-query exclusion at all.
     const data = this.omitHiddenFieldsAll((hits ?? []).map(hit => hit.document)) as any;
 
     if (!options?.shouldQueryRange) {
@@ -120,8 +117,7 @@ export class ReadableSearchRepository<
       return this.findOneUntil<R>({ filter, options });
     }
 
-    // `retry` is already handled above, so it is absent here; TFindOneOptions's retry generic
-    // (TNullable<R>) does not unify with find's own (Array<R>), hence the options-only cast.
+    // `retry` is handled above so it is absent here; TFindOneOptions's retry generic (TNullable<R>) does not unify with find's own (Array<R>), hence the options-only cast.
     const results: Array<R> = await this.find<R>({
       filter: { ...filter, limit: 1 },
       options: options as TFindOptions<IExtraOptions, R>,
@@ -138,9 +134,7 @@ export class ReadableSearchRepository<
     return this.findOne<R>({ filter: { where: { id } }, options });
   }
 
-  /** Unified search entry, discriminated by `mode`: `raw` is a full passthrough (no dialect/
-   * defaultFilter/hiddenFields); keyword/semantic/hybrid translate via the dialect same as `find()`.
-   * Nothing engine-specific lives here - `ISearchQueryDialect.applySearchInput` owns it all. */
+  /** Unified search entry discriminated by `mode`: `raw` is a full passthrough (no dialect/defaultFilter/hiddenFields), keyword/semantic/hybrid translate via the dialect same as `find()`; nothing engine-specific lives here - `ISearchQueryDialect.applySearchInput` owns it all. */
   async search<R extends object = TDocument>(
     opts: TSearchInput & { options?: IExtraOptions },
   ): Promise<ISearchResult<R>> {

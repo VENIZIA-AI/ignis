@@ -202,7 +202,7 @@ export class WebSocketServerHelper<
   private async setupRedisSubscriptions() {
     const logger = this.logger.for(this.setupRedisSubscriptions.name);
 
-    // Subscribe to all channels — await to ensure subscriptions are active before proceeding
+    // Subscribe to all channels - await to ensure subscriptions are active before proceeding
     await Promise.all([
       this.redisSub.subscribe(WebSocketChannels.BROADCAST),
       this.redisSub.psubscribe(WebSocketChannels.forRoomPattern()),
@@ -542,7 +542,7 @@ export class WebSocketServerHelper<
     this.rooms.get(room)!.add(clientId);
     client.rooms.add(room);
 
-    // Bun native pub/sub — encrypted clients are unsubscribed (delivered manually via transformer)
+    // Bun native pub/sub - encrypted clients are unsubscribed (delivered manually via transformer)
     if (!client.encrypted) {
       client.socket.subscribe(room);
     }
@@ -601,7 +601,7 @@ export class WebSocketServerHelper<
 
     client.state = WebSocketClientStates.AUTHENTICATING;
 
-    // Replace with a longer in-progress timeout — prevents DoS via a hanging authenticateFn
+    // Replace with a longer in-progress timeout - prevents DoS via a hanging authenticateFn
     if (client.authTimer) {
       clearTimeout(client.authTimer);
     }
@@ -684,7 +684,7 @@ export class WebSocketServerHelper<
           this.users.get(client.userId)!.add(clientId);
         }
 
-        // Subscribe to broadcast topic (skipped if already encrypted — enableClientEncryption handles topics)
+        // Subscribe to broadcast topic (skipped if already encrypted - enableClientEncryption handles topics)
         if (!client.encrypted) {
           client.socket.subscribe(WebSocketDefaults.BROADCAST_TOPIC);
         }
@@ -822,7 +822,7 @@ export class WebSocketServerHelper<
       return;
     }
 
-    // Only leave rooms the client has actually joined — prevents unsubscribing from internal topics
+    // Only leave rooms the client has actually joined - prevents unsubscribing from internal topics
     const validRooms = rooms.filter(r => client.rooms.has(r));
     if (!validRooms.length) {
       return;
@@ -845,7 +845,7 @@ export class WebSocketServerHelper<
       return;
     }
 
-    // Async path — transformer intercepts before socket.send()
+    // Async path - transformer intercepts before socket.send()
     const outboundTransformer = this.outboundTransformer;
     if (outboundTransformer && client.encrypted) {
       Promise.resolve()
@@ -935,34 +935,45 @@ export class WebSocketServerHelper<
     }
   }
 
-  sendToRoom(opts: { room: string; event: string; data: unknown; exclude?: string[] }) {
+  private sendToRoomExcluding(opts: {
+    room: string;
+    event: string;
+    data: unknown;
+    exclude: string[];
+  }) {
     const { room, event, data, exclude } = opts;
 
-    // When exclude is present, must iterate — can't exclude from Bun native pub/sub
-    if (exclude?.length) {
-      const excludeSet = new Set(exclude);
-      const roomClientIds = this.rooms.get(room);
-      if (!roomClientIds) {
-        return;
-      }
-
-      for (const clientId of roomClientIds) {
-        if (excludeSet.has(clientId)) {
-          continue;
-        }
-        this.sendToClient({ clientId, event, data });
-      }
+    const excludeSet = new Set(exclude);
+    const roomClientIds = this.rooms.get(room);
+    if (!roomClientIds) {
       return;
     }
 
-    // No encryption — Bun native pub/sub O(1) C++ fan-out
+    for (const clientId of roomClientIds) {
+      if (excludeSet.has(clientId)) {
+        continue;
+      }
+      this.sendToClient({ clientId, event, data });
+    }
+  }
+
+  sendToRoom(opts: { room: string; event: string; data: unknown; exclude?: string[] }) {
+    const { room, event, data, exclude } = opts;
+
+    // When exclude is present, must iterate - can't exclude from Bun native pub/sub
+    if (exclude?.length) {
+      this.sendToRoomExcluding({ room, event, data, exclude });
+      return;
+    }
+
+    // No encryption - Bun native pub/sub O(1) C++ fan-out
     if (!this.outboundTransformer) {
       const payload = JSON.stringify({ event, data } satisfies IWebSocketMessage);
       this.server.publish(room, payload);
       return;
     }
 
-    // Encryption enabled — iterate all clients individually with concurrency limit
+    // Encryption enabled - iterate all clients individually with concurrency limit
     const roomClientIds = this.rooms.get(room);
     if (!roomClientIds) {
       return;
@@ -982,34 +993,40 @@ export class WebSocketServerHelper<
     }
   }
 
+  private broadcastExcluding(opts: { event: string; data: unknown; exclude: string[] }) {
+    const { event, data, exclude } = opts;
+
+    const excludeSet = new Set(exclude);
+    for (const [clientId, client] of this.clients) {
+      if (excludeSet.has(clientId)) {
+        continue;
+      }
+      // Only broadcast to authenticated clients (consistent with non-exclude path which uses BROADCAST_TOPIC)
+      if (client.state !== WebSocketClientStates.AUTHENTICATED) {
+        continue;
+      }
+
+      this.sendToClient({ clientId, event, data });
+    }
+  }
+
   broadcast(opts: { event: string; data: unknown; exclude?: string[] }) {
     const { event, data, exclude } = opts;
 
-    // When exclude is present, must iterate — can't exclude from Bun native pub/sub
+    // When exclude is present, must iterate - can't exclude from Bun native pub/sub
     if (exclude?.length) {
-      const excludeSet = new Set(exclude);
-      for (const [clientId, client] of this.clients) {
-        if (excludeSet.has(clientId)) {
-          continue;
-        }
-        // Only broadcast to authenticated clients (consistent with non-exclude path which uses BROADCAST_TOPIC)
-        if (client.state !== WebSocketClientStates.AUTHENTICATED) {
-          continue;
-        }
-
-        this.sendToClient({ clientId, event, data });
-      }
+      this.broadcastExcluding({ event, data, exclude });
       return;
     }
 
-    // No encryption — Bun native pub/sub O(1) C++ fan-out
+    // No encryption - Bun native pub/sub O(1) C++ fan-out
     if (!this.outboundTransformer) {
       const payload = JSON.stringify({ event, data } satisfies IWebSocketMessage);
       this.server.publish(WebSocketDefaults.BROADCAST_TOPIC, payload);
       return;
     }
 
-    // Encryption enabled — iterate all clients individually with concurrency limit
+    // Encryption enabled - iterate all clients individually with concurrency limit
     const tasks: Array<() => Promise<void>> = [];
     for (const [clientId, client] of this.clients) {
       if (client.state !== WebSocketClientStates.AUTHENTICATED) {
@@ -1065,7 +1082,7 @@ export class WebSocketServerHelper<
         data,
       });
     } else {
-      // Could be a client or room on another instance — publish to Redis
+      // Could be a client or room on another instance - publish to Redis
       this.publishToRedis({
         type: WebSocketMessageTypes.ROOM,
         target: destination,

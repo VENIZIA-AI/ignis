@@ -10,8 +10,7 @@ interface IParsedLine {
   [key: string]: unknown;
 }
 
-/** Behavioral suite - a real pino instance backed by an in-memory destination via
- * `setPinoBackingLogger()` (no env vars, no filesystem, no transport worker threads). */
+/** Behavioral suite - a real pino instance backed by an in-memory destination via `setPinoBackingLogger()` (no env vars, no filesystem, no transport worker threads). */
 describe('PinoLogger - behavioral, via an injected in-memory backing', () => {
   const lines: Array<string> = [];
 
@@ -82,9 +81,7 @@ describe('PinoLogger - behavioral, via an injected in-memory backing', () => {
   });
 });
 
-/** Floor-parity suite - real `buildPinoOptions()`/`resolveLoggerLevel()`, a real pino instance,
- * an in-memory destination. Asserts pino's ascending severity matches the winston provider:
- * the default `debug` floor admits every remaining level. */
+/** Floor-parity suite - real `buildPinoOptions()`/`resolveLoggerLevel()` against a real pino instance and an in-memory destination; asserts pino's ascending severity matches the winston provider, the default `debug` floor admitting every remaining level. */
 describe('pino level floor parity with npm ordering', () => {
   const ENV_KEY = 'APP_ENV_LOGGER_LEVEL';
   const savedLevel = process.env[ENV_KEY];

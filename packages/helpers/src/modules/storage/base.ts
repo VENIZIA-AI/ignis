@@ -209,35 +209,37 @@ export abstract class BaseStorageHelper extends BaseHelper implements IStorageHe
     const { files, maxFolderDepth } = opts;
 
     for (const file of files) {
-      const { originalName, size, folderPath } = file;
+      this.validateUploadFile({ file, maxFolderDepth });
+    }
+  }
 
-      if (!this.isValidName(originalName)) {
-        throw getError({ message: '[upload] Invalid original file name' });
+  private validateUploadFile(opts: { file: IUploadFile; maxFolderDepth?: number }): void {
+    const { file, maxFolderDepth } = opts;
+    const { originalName, size, folderPath } = file;
+
+    if (!this.isValidName(originalName)) {
+      throw getError({ message: '[upload] Invalid original file name' });
+    }
+
+    // Honours the CALLER's depth (not the hard default) so a deeper-tree app fails fast here rather than after spooling the whole body; isValidPath measures an OBJECT path (folder + filename, one folder more than a bare folderPath), so folderPath's depth is checked directly instead.
+    if (folderPath) {
+      const depthLimit = maxFolderDepth ?? BaseStorageHelper.DEFAULT_MAX_FOLDER_DEPTH;
+      const folderSegments = folderPath.replace(/^\/+|\/+$/g, '').split('/');
+
+      if (folderSegments.length > depthLimit) {
+        throw getError({
+          message: `[upload] Invalid folder path | depth: ${folderSegments.length} | max: ${depthLimit}`,
+        });
       }
 
-      // Honours the CALLER's depth (not the hard default) so a deeper-tree app fails fast here rather
-      // than after spooling the whole body. isValidPath measures an OBJECT path (folder + filename,
-      // one folder more than a bare folderPath), so folderPath's depth is checked directly instead.
-      if (folderPath) {
-        const depthLimit = maxFolderDepth ?? BaseStorageHelper.DEFAULT_MAX_FOLDER_DEPTH;
-        const folderSegments = folderPath.replace(/^\/+|\/+$/g, '').split('/');
-
-        if (folderSegments.length > depthLimit) {
-          throw getError({
-            message: `[upload] Invalid folder path | depth: ${folderSegments.length} | max: ${depthLimit}`,
-          });
-        }
-
-        if (!this.isValidPath(folderPath, { maxDepth: depthLimit })) {
-          throw getError({ message: '[upload] Invalid folder path' });
-        }
+      if (!this.isValidPath(folderPath, { maxDepth: depthLimit })) {
+        throw getError({ message: '[upload] Invalid folder path' });
       }
+    }
 
-      // `!size` also rejected a legitimate EMPTY file (size === 0). What is invalid is a missing or
-      // negative size, not a zero-byte upload.
-      if (size === undefined || size === null || size < 0) {
-        throw getError({ message: `[upload] Invalid file size | size: ${size}` });
-      }
+    // What is invalid is a missing or negative size, not a zero-byte upload - a bare `!size` also rejected a legitimate EMPTY file.
+    if (size === undefined || size === null || size < 0) {
+      throw getError({ message: `[upload] Invalid file size | size: ${size}` });
     }
   }
 
@@ -272,9 +274,7 @@ export abstract class BaseStorageHelper extends BaseHelper implements IStorageHe
         ? normalizeNameFn({ originalName, folderPath })
         : this.normalizeObjectName({ originalName, folderPath });
 
-      // The caller's normalizeNameFn output is what DiskHelper path.join()s under the bucket root:
-      // an unvalidated `../../../etc/cron.d/pwn` writes outside it. The original name was validated
-      // above; this validates what actually reaches the filesystem.
+      // The caller's normalizeNameFn output is what DiskHelper path.join()s under the bucket root - an unvalidated `../../../etc/cron.d/pwn` writes outside it; the original name was validated above, this validates what actually reaches the filesystem.
       if (!this.isValidPath(normalizeName, { maxDepth: maxFolderDepth })) {
         throw getError({
           message: `[upload] Invalid normalized object name | name: ${normalizeName}`,

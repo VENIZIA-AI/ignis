@@ -4,8 +4,7 @@ import { FilterBuilder } from '@/connectors/postgres/repositories/dialect/filter
 import { BasePostgresEntity } from '@/connectors/postgres/models';
 import { pgTable, serial, varchar } from 'drizzle-orm/pg-core';
 
-/** Minimal datasource stub: the query dialect now lives on the datasource (getQueryDialect()), so a
- * repository needs one to translate a where. Only getQueryDialect is exercised here. */
+/** Minimal datasource stub: the query dialect lives on the datasource (getQueryDialect()), so a repository needs one to translate a where. Only getQueryDialect is exercised here. */
 const stubDataSource = { getQueryDialect: () => new FilterBuilder() } as any;
 
 const table = pgTable('test_entity', {
@@ -20,8 +19,7 @@ class ValidateWhereFixtureEntity extends BasePostgresEntity {
   static override TABLE_NAME = 'test_entity';
 }
 
-/** validateWhereCondition must treat a where as empty when it resolves to NO SQL condition ({} and
- * all-undefined wheres) - otherwise updateAll/updateBy/deleteAll/deleteBy run table-wide. */
+/** validateWhereCondition must treat a where as empty when it resolves to NO SQL condition ({} and all-undefined wheres) - otherwise updateAll/updateBy/deleteAll/deleteBy run table-wide. */
 class TestRepository extends PersistableRepository<any> {
   constructor() {
     super(stubDataSource, {});

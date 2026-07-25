@@ -1,5 +1,4 @@
-// Must precede the controllers/factory import below: import order avoids a circular-import
-// TDZ error (BaseRestController not yet defined when health-check's controller extends it).
+// Must precede the controllers/factory import below: avoids a circular-import TDZ error (BaseRestController not yet defined when health-check's controller extends it).
 import '@/base/applications';
 
 import { describe, test, expect } from 'bun:test';
@@ -66,8 +65,7 @@ class ProductSqlRepository {}
 class ProductDualSearchRepository {}
 
 // --- Scenario 3: class name / collection name diverge, no `tableName` alignment ------------
-// Class name and collection name diverge on purpose - settings are keyed by class, not name,
-// so a name-keyed lookup would silently lose hiddenProperties/defaultFilter here.
+// Class name and collection name diverge on purpose - settings are keyed by class, not name, so a name-keyed lookup would silently lose hiddenProperties/defaultFilter here.
 @model({
   type: 'entity',
   settings: {
@@ -130,8 +128,7 @@ describe('End-to-end search wiring - dual-schema, @repository, controller factor
       const schema = searchDataSource.getSchema();
 
       expect(schema['wiring-dual-product-search']).toBe(Product.searchCollection);
-      // Search discovery reads searchCollection first; Product's own `schema` is a pgTable, which
-      // fails the collection shape guard, so it's never picked up as a fallback.
+      // Search discovery reads searchCollection first; Product's own `schema` is a pgTable that fails the collection shape guard, so it is never picked up as a fallback.
       expect(schema['Product']).toBeUndefined();
     });
 
@@ -151,8 +148,7 @@ describe('End-to-end search wiring - dual-schema, @repository, controller factor
       const repositoryInstance = new ProductSearchRepository(dataSource);
 
       const ProductSearchController = ControllerFactory.defineCrudController({
-        // ProductDocument is a BaseSearchEntity - the factory's `entity` param is the engine-neutral
-        // AbstractEntity, so a search entity/repository flows through with no cast at all.
+        // The factory's `entity` param is the engine-neutral AbstractEntity, so a search entity/repository flows through with no cast at all.
         entity: ProductDocument,
         repository: { name: ProductSearchRepository.name },
         controller: {

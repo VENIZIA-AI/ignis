@@ -43,8 +43,7 @@ describe('Bootstrapper - booter discovery is not cumulative', () => {
     booter.calls.length = 0;
     await bootstrapper.boot({});
 
-    // Pushing into `this.booters` without clearing it first registers every artifact twice:
-    // duplicate controllers, duplicate repository bindings.
+    // Pushing into `this.booters` without clearing it first registers every artifact twice.
     expect(booter.calls).toEqual([...BOOT_PHASES]);
   });
 });
@@ -83,8 +82,7 @@ describe('Bootstrapper - the boot report carries what it measured', () => {
 
     const report = await bootstrapper.boot({});
 
-    // The timings were always collected - and then thrown away, so every caller logging the report
-    // (BANA does, on every boot) has been printing `{}`.
+    // Collected timings must reach the report - a caller logging it otherwise prints `{}`.
     expect(report.booters).toEqual(['RecordingBooter']);
     expect(report.phases.map(phase => phase.phase)).toEqual([...BOOT_PHASES]);
 
@@ -118,10 +116,7 @@ describe('Bootstrapper - the boot report carries what it measured', () => {
   });
 });
 
-/**
- * `runPhase` must carry the failing booter's error on `Error.cause` - the error handler reads
- * `error.cause`, and a `cause` swept into `extra` loses the real stack.
- */
+/** `runPhase` must carry the failing booter's error on `Error.cause`; a `cause` swept into `extra` loses the real stack. */
 describe('Bootstrapper - a booter failure keeps its cause', () => {
   class ExplodingBooter {
     async configure() {

@@ -65,16 +65,10 @@ export class HealthCheckController extends BaseRestController {
     });
 
     // Method 2: Using 'defineRoute' to create a controller route
-    /* this.defineRoute({
-      configs: RouteConfigs.ROOT,
-      handler: context => {
-        return context.json({ status: 'ok' }, HTTP.ResultCodes.RS_2.Ok);
-      },
-    }); */
+    /* this.defineRoute({ configs: RouteConfigs.ROOT, handler: context => context.json({ status: 'ok' }, HTTP.ResultCodes.RS_2.Ok) }); */
   }
 
-  // Method 3: Using 'decorators' to create a controller route
-  // Use explicit type assertions for validated request data
+  // Method 3: Using 'decorators' to create a controller route, with an explicit type assertion for the validated request data
   @api({ configs: RouteConfigs.PING })
   pingPong(context: TRouteContext) {
     const { message } = context.req.valid<{ type?: string; message: string }>('json');

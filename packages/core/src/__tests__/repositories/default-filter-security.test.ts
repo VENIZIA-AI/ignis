@@ -8,9 +8,7 @@ import { DefaultCRUDRepository } from '@/connectors/postgres/repositories';
 import { FilterBuilder } from '@/connectors/postgres/repositories/dialect';
 import { TFilter } from '@/base/repositories/common';
 
-/** Adversarial coverage of `FilterBuilder.mergeFilter` + `PostgresBaseRepository.applyDefaultFilter`:
- * a user-controlled filter must never widen or erase a `@model` `defaultFilter` (soft-delete, tenant
- * scoping), regardless of the value shape it carries. */
+/** Adversarial coverage of `FilterBuilder.mergeFilter` + `PostgresBaseRepository.applyDefaultFilter`: a user-controlled filter must never widen or erase a `@model` `defaultFilter` (soft-delete, tenant scoping), regardless of the value shape it carries. */
 
 type AnyFilter = TFilter<any>;
 
@@ -309,9 +307,7 @@ const scopedFixtureTable = pgTable('security_fixture_scoped_entities', {
   isDeleted: boolean('is_deleted'),
 });
 
-/** Fixture entity carrying a real @model `defaultFilter` (soft-delete style), so
- * `PostgresBaseRepository.applyDefaultFilter` is exercised through its actual
- * `getDefaultFilter()`/`modelSettings` resolution path, not a mocked registry. */
+/** Fixture entity carrying a real @model `defaultFilter` (soft-delete style), so `applyDefaultFilter` is exercised through its actual `getDefaultFilter()`/`modelSettings` resolution path, not a mocked registry. */
 @model({
   type: 'entity',
   settings: { defaultFilter: { where: { isDeleted: false }, limit: 100 } },

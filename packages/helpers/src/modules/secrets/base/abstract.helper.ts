@@ -39,9 +39,7 @@ const TIMEOUT_MAX_MS = 2_147_483_647;
 const MIN_RENEW_DELAY_MS = 1_000;
 // Bounded exponential backoff for the renewal retry loop when Vault is unreachable.
 const BACKOFF_BASE_MS = 1_000;
-// Capped at 31 to keep 2 ** (attempt - 1) inside double range: past ~1024 it overflows to Infinity,
-// and clampDelayMs's non-finite branch returns the FLOOR - collapsing a long backoff into a 1/sec
-// retry storm. (2 ** 30 * BACKOFF_BASE_MS already exceeds TIMEOUT_MAX_MS regardless.)
+// Capped at 31 to keep 2 ** (attempt - 1) inside double range: past ~1024 it overflows to Infinity and clampDelayMs's non-finite branch returns the FLOOR, collapsing a long backoff into a 1/sec retry storm.
 const MAX_BACKOFF_ATTEMPT_EXPONENT = 31;
 
 export abstract class AbstractSecretsHelper extends BaseHelper implements ISecretsHelper {
@@ -93,8 +91,7 @@ export abstract class AbstractSecretsHelper extends BaseHelper implements ISecre
       return cached.value;
     }
     const fresh = await this.fetchRaw({ path: opts.path });
-    // A shutdown that ran while fetchRaw was in flight already cleared `cache` - honor that and
-    // hand back the fetched value uncached rather than resurrecting a map shutdown just emptied.
+    // A shutdown that ran while fetchRaw was in flight already cleared `cache` - honor that and hand back the fetched value uncached rather than resurrecting a map shutdown just emptied.
     if (this.closed) {
       return fresh.value;
     }
@@ -112,9 +109,7 @@ export abstract class AbstractSecretsHelper extends BaseHelper implements ISecre
 
   async lease(opts: { path: string; key: string }): Promise<ISecretLease> {
     const fresh = await this.fetchRaw({ path: opts.path });
-    // A shutdown that ran while fetchRaw was in flight already revoked/cleared every lease -
-    // committing this one now would resurrect leases/leasePaths with a lease no live provider
-    // will ever renew or revoke, so surface the shutdown instead of silently leaking it back in.
+    // A shutdown that ran while fetchRaw was in flight already revoked/cleared every lease - committing this one now would resurrect leases/leasePaths with a lease no live provider will ever renew or revoke, so surface the shutdown instead of silently leaking it back in.
     if (this.closed) {
       throw getError({
         message: `[lease] Provider is shut down | path: ${opts.path} | key: ${opts.key}`,
@@ -241,22 +236,27 @@ export abstract class AbstractSecretsHelper extends BaseHelper implements ISecre
       return;
     }
     try {
-      if (lease.renewable) {
-        const renewed = await this.renewRaw({
-          leaseId: lease.leaseId,
-          ttlSeconds: lease.ttlSeconds,
-        });
-        if (this.closed) {
-          return;
-        }
-        if (renewed) {
-          const next: ISecretLease = { ...lease, ttlSeconds: renewed.ttlSeconds };
-          this.leases.set(opts.key, next);
-          this.scheduleRenewal({ key: opts.key, lease: next });
-          return;
-        }
+      if (!lease.renewable) {
+        await this.rotate({ key: opts.key });
+        return;
       }
-      await this.rotate({ key: opts.key });
+
+      const renewed = await this.renewRaw({
+        leaseId: lease.leaseId,
+        ttlSeconds: lease.ttlSeconds,
+      });
+      if (this.closed) {
+        return;
+      }
+
+      if (!renewed) {
+        await this.rotate({ key: opts.key });
+        return;
+      }
+
+      const next: ISecretLease = { ...lease, ttlSeconds: renewed.ttlSeconds };
+      this.leases.set(opts.key, next);
+      this.scheduleRenewal({ key: opts.key, lease: next });
     } catch (error) {
       if (this.closed) {
         return;

@@ -9,10 +9,7 @@ export type TPolicyDomainInput = string | { type: string; id: IdType };
 export class AuthorizationPolicyBuilder {
   static readonly ACTION_PRINCIPAL = 'Action';
 
-  /**
-   * Serialize to the casbin token {@link resolveRequestDomain} emits: scope literals pass through;
-   * typed domains become `<type>_<id>` so `g3` cascades; null ⇒ null (adapter defaults grants to `ANY_MEMBER`).
-   */
+  /** Serialize to the casbin token {@link resolveRequestDomain} emits: scope literals pass through; typed domains become `<type>_<id>` so `g3` cascades; null stays null (the adapter defaults grants to `ANY_MEMBER`). */
   private static serializeDomain(domain?: TNullable<TPolicyDomainInput>): TNullable<string> {
     if (domain == null) {
       return null;
@@ -25,10 +22,7 @@ export class AuthorizationPolicyBuilder {
     return [domain.type, domain.id].join('_');
   }
 
-  /**
-   * A grant (casbin `p`): role/user → permission, carrying action + effect + domain.
-   * `domain` null ⇒ `ANY_MEMBER` (adapter default). Pass a scope literal or a typed `{ type, id }` domain.
-   */
+  /** A grant (casbin `p`): role/user -> permission, carrying action + effect + domain. A null `domain` means `ANY_MEMBER` (adapter default); pass a scope literal or a typed `{ type, id }` domain. */
   static grant(opts: {
     subject: { type: string; id: IdType };
     permission: { type: string; id: IdType };
@@ -48,10 +42,7 @@ export class AuthorizationPolicyBuilder {
     };
   }
 
-  /**
-   * A subset grant (casbin `p` x N): role/user -> resource node, with the granted operations in
-   * metadata. `action` is fixed to the CUSTOM sentinel; the adapter expands `ops` at read time.
-   */
+  /** A subset grant (casbin `p` x N): role/user -> resource node with the granted operations in metadata. `action` is fixed to the CUSTOM sentinel; the adapter expands `ops` at read time. */
   static customGrant(opts: {
     subject: { type: string; id: IdType };
     permission: { type: string; id: IdType };
@@ -116,10 +107,7 @@ export class AuthorizationPolicyBuilder {
     };
   }
 
-  /**
-   * A resource inherits another (casbin `g4`): a grant on the PARENT covers the CHILD.
-   * Many-to-many: a subject may inherit several module parents (one edge each).
-   */
+  /** A resource inherits another (casbin `g4`): a grant on the PARENT covers the CHILD. Many-to-many - a subject may inherit several module parents, one edge each. */
   static resourceInherits(opts: {
     child: { type: string; id: IdType }; // Permission
     parent: { type: string; id: IdType }; // Permission
@@ -163,10 +151,7 @@ export class AuthorizationPolicyBuilder {
     };
   }
 
-  /**
-   * Build a role's coarse grant rows from resolved permission ids. The caller resolves each
-   * `resourceCode` (subject/module) to a `Permission` and supplies the lookup; unresolved codes are skipped.
-   */
+  /** Build a role's coarse grant rows from resolved permission ids. The caller resolves each `resourceCode` (subject/module) to a `Permission` and supplies the lookup; unresolved codes are skipped. */
   static roleGrants(opts: {
     role: { type: string; id: IdType };
     permission: {

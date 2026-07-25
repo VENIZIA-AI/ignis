@@ -1,5 +1,5 @@
 import type { AnyType } from '@venizia/ignis-helpers';
-import { BaseHelper } from '@venizia/ignis-helpers';
+import { BaseHelper, ModuleUtility } from '@venizia/ignis-helpers';
 import type {
   IMailMessage,
   IMailSendResult,
@@ -22,7 +22,7 @@ export class NodemailerTransportHelper extends BaseHelper implements IMailTransp
 
   /** Client factory seam - overridden in tests to run the helper without a real SMTP client. */
   protected buildTransporter(config: TNodemailerConfig): AnyType {
-    const nodemailer = require('nodemailer');
+    const nodemailer = ModuleUtility.loadSync<AnyType>({ module: 'nodemailer' });
     return nodemailer.createTransport(config);
   }
 

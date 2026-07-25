@@ -69,8 +69,7 @@ describe('ResourceRoleManager', () => {
   });
 
   it('reaches a stored "*" node from an arbitrary dotted request code', async () => {
-    // AuthorizationPermissionBuilder.objectMatch(anything, '*') was always true, so a g4 edge whose child is '*' must stay
-    // reachable from every request object, not only from '*' itself.
+    // AuthorizationPermissionBuilder.objectMatch(anything, '*') is always true, so a g4 edge whose child is '*' must stay reachable from every request object, not only from '*' itself.
     const manager = await managerWith([['*', 'Everything']]);
     expect(manager.syncedHasLink('Order.find', 'Everything')).toBe(true);
   });
@@ -81,8 +80,7 @@ describe('ResourceRoleManager', () => {
   });
 
   it('does not apply the request-side dot rule to a stored node name (deliberate, see permission.builder.ts)', async () => {
-    // 'Sales.internal' is a stored node, not a request object - the dot-prefix rule only walks
-    // FROM the request side, so Order does not inherit Sales's edges through it.
+    // 'Sales.internal' is a stored node, not a request object - the dot-prefix rule only walks FROM the request side, so Order does not inherit Sales's edges through it.
     const manager = await managerWith([
       ['Order', 'Sales.internal'],
       ['Sales', 'Commerce'],

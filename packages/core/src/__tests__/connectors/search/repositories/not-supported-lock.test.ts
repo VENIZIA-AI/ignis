@@ -5,10 +5,7 @@ import { LockStrengths } from '@/base/repositories/common';
 import { DefaultSearchRepository } from '@/connectors/typesense/repositories';
 import { FakeSearchDataSource, ProductDocument } from './fake-search-connector';
 
-/**
- * Typesense has no row-level locking primitive - every verb rejects `options.lock` via the
- * same `throwNotSupported` helper as `options.transaction`, instead of silently ignoring it.
- */
+/** Typesense has no row-level locking primitive - every verb rejects `options.lock` via the same `throwNotSupported` helper as `options.transaction`, instead of silently ignoring it. */
 const fakeLock: TLockOptions = { strength: LockStrengths.UPDATE };
 
 const expectNotSupported = (caught: unknown): void => {

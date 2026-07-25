@@ -49,9 +49,7 @@ export class NodeFetcher extends AbstractNetworkFetchableHelper<
         timeoutController?.abort();
       }, timeout);
 
-      // Composed, never substituted: a timeout must not silently swallow the caller's own signal,
-      // or the caller would believe it cancelled a request that is in fact still running. Either
-      // source - and a signal already aborted before the call - aborts the request.
+      // Composed, never substituted: a timeout must not silently swallow the caller's own signal, or the caller would believe it cancelled a request that is in fact still running. Either source - and a signal already aborted before the call - aborts the request.
       effectiveSignal = signal
         ? AbortSignal.any([signal, timeoutController.signal])
         : timeoutController.signal;
@@ -66,8 +64,7 @@ export class NodeFetcher extends AbstractNetworkFetchableHelper<
       signal: effectiveSignal,
     };
 
-    // `?` only when the url carries no query string of its own - a second `?` is not a separator,
-    // so the server would read the previous parameter's value as `1?extra=2`.
+    // `?` only when the url carries no query string of its own - a second `?` is not a separator, so the server would read the previous parameter's value as `1?extra=2`.
     const serializedParams = params ? stringify(params) : '';
     const requestUrl = serializedParams
       ? `${url}${url.includes('?') ? '&' : '?'}${serializedParams}`

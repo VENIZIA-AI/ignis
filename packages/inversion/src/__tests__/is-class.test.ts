@@ -1,10 +1,7 @@
 import { describe, expect, test } from 'bun:test';
 import { isClass } from '@/common/types';
 
-/**
- * `isClass` tells a CONSTRUCTOR from a RESOLVER framework-wide; `prototype !== undefined` is true
- * of every non-arrow function, so these pin the source-text check.
- */
+/** `isClass` tells a CONSTRUCTOR from a RESOLVER framework-wide; `prototype !== undefined` is true of every non-arrow function, so these pin the source-text check. */
 describe('isClass', () => {
   test('a class declaration, an abstract class and a class expression are classes', () => {
     class Declared {}

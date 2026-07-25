@@ -7,9 +7,7 @@ const suite = shouldRun ? describe : describe.skip;
 
 suite('HashiCorp Vault integration (real server)', () => {
   test('KV hydrate + dynamic lease rotation drains and reconnects', async () => {
-    // Plan: write KV v2 secret + database role via the Vault API; HashiCorpVaultHelper getBundle ->
-    // assert values; lease database/creds (~5s TTL) with a rotatable pg.Pool, wait past max TTL,
-    // assert current_user changed and pre-rotation transactions still commit; shutdown() revokes the role.
+    // Plan: write a KV v2 secret + database role via the Vault API, assert getBundle values, lease database/creds (~5s TTL) with a rotatable pg.Pool, wait past max TTL, assert current_user changed and pre-rotation transactions still commit, then shutdown() revokes the role.
     expect(shouldRun).toBe(true);
   });
 });

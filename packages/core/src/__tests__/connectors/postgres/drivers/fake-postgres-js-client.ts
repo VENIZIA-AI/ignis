@@ -8,9 +8,7 @@ const buildClientOptions = () => ({
   serializers: {} as Record<string, unknown>,
 });
 
-/** Fake postgres-js `ReservedSql`: `release()` takes no argument (no destroy semantics - the
- * asymmetry is the point). Deliberately carries NO `options` property, matching the real one:
- * drizzle crashes on that and the driver must shim it - an own `options` would hide that bug. */
+/** Fake postgres-js `ReservedSql`: `release()` takes no argument (the missing destroy semantics are the point) and deliberately carries NO `options` property, matching the real one - drizzle crashes on that and the driver must shim it, so an own `options` would hide the bug. */
 export class FakeReservedSql {
   readonly statements: string[] = [];
   readonly releases: IReleaseCall[] = [];

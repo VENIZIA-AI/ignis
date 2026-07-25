@@ -1,9 +1,7 @@
 import { describe, expect, test } from 'bun:test';
 import { AuthorizationPermissionBuilder } from '@/components/auth/authorize/builders/permission.builder';
 
-/** Exhaustive + adversarial coverage of `AuthorizationPermissionBuilder.objectMatch(requested, granted)`: `*` grant matches all
- * (wildcard on the GRANT side only), exact match, or requested is a dot-child of granted - else
- * false. Direction matters: requested must fall UNDER granted. */
+/** `AuthorizationPermissionBuilder.objectMatch(requested, granted)` is true for a `*` grant (wildcard on the GRANT side only), an exact match, or requested being a dot-child of granted - direction matters, requested must fall UNDER granted. */
 describe('objectMatch — wildcard grant', () => {
   test('`*` grant matches any requested resource', () => {
     expect(AuthorizationPermissionBuilder.objectMatch('Order', '*')).toBe(true);

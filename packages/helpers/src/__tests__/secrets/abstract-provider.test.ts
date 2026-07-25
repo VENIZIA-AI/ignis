@@ -285,9 +285,7 @@ describe('AbstractSecretsHelper', () => {
     expect(() => new FakeSecretsHelper({ scope: 'Fake', renewBeforeRatio: 1 })).not.toThrow();
   });
 
-  // Fix 5 - backoff after very many consecutive failures must saturate at the ceiling, never
-  // collapse to the floor (unclamped attempt makes 2 ** (attempt - 1) overflow to Infinity, and
-  // clampDelayMs's non-finite branch returns the floor).
+  // Backoff after very many consecutive failures must saturate at the ceiling, never collapse to the floor (an unclamped attempt makes 2 ** (attempt - 1) overflow to Infinity, and clampDelayMs's non-finite branch returns the floor).
   test('backoff delay saturates at TIMEOUT_MAX after many consecutive failures, never collapses to the floor', async () => {
     ctx.provider.fetchScript = [
       { value: { password: 'p1' }, lease: { leaseId: 'L1', ttlSeconds: 10, renewable: false } },

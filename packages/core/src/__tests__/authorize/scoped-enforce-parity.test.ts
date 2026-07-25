@@ -132,8 +132,7 @@ describe('scoped model - resource matching parity via ResourceRoleManager', () =
 });
 
 describe('scoped model - enforce performance guard', () => {
-  // Incident shape from 2026-07-16: 992 p-lines, 126 g4 nodes. With a g4 matching function this
-  // request took ~700-1000ms; the guard exists because no other authz test asserts on time.
+  // Real incident shape: 992 p-lines and 126 g4 nodes took ~700-1000ms with a g4 matching function, and no other authz test asserts on time.
   const SUBJECTS = Array.from({ length: 120 }, (_, index) => `Subject${index}`);
   const MODULES = ['Sales', 'Identity', 'Catalog', 'Ops', 'Finance', 'Report'];
   const METHOD_ACTIONS: Record<string, string> = {
@@ -179,15 +178,12 @@ describe('scoped model - enforce performance guard', () => {
 
 describe('scoped enforcer - matching function must not come back', () => {
   it('registerMatchers never calls addNamedMatchingFunc', async () => {
-    // __dirname, not import.meta: this package emits CommonJS, and keeps the path independent
-    // of the CWD `bun test` is invoked from.
+    // __dirname, not import.meta: this package emits CommonJS, and the path must not depend on the CWD `bun test` runs from.
     const source = await Bun.file(
       `${__dirname}/../../components/auth/authorize/enforcers/casbin.enforcer.ts`,
     ).text();
 
-    // Matches the identifier in call position (direct, spaced, or bracket-call syntax) so a
-    // reintroduction can't dodge a literal string check; registerMatchers' explanatory comment
-    // names the identifier followed by `:`, never `(`, so it stays clear of this guard.
+    // Matches the identifier in call position (direct, spaced or bracket-call) so a reintroduction cannot dodge a literal string check; registerMatchers' comment names it followed by `:`, never `(`, so it stays clear.
     const callPattern = /addNamedMatchingFunc\s*['"]?\s*\]?\s*\(/;
     expect(callPattern.test(source)).toBe(false);
   });

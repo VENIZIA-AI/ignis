@@ -10,8 +10,7 @@ import {
   ProductDocumentWithDefaultLimit,
 } from './fake-search-connector';
 
-/** `TSearchDocument` derives `{ id: string; title: string }` directly from the collection
- * definition - no hand-written document interface needed. */
+/** `TSearchDocument` derives `{ id: string; title: string }` directly from the collection definition - no hand-written document interface needed. */
 type TProductWithDefaultLimitDocument = TSearchDocument<
   typeof ProductDocumentWithDefaultLimit.schema
 >;
@@ -530,8 +529,7 @@ describe('ReadableSearchRepository', () => {
 
       const [result] = await typedRepository.find({ filter: { where: { title: 'Widget' } } });
 
-      // `result.title` type-checks as `string` purely from `TSearchDocument<...schema>` -
-      // no hand-written document interface anywhere in this file.
+      // `result.title` type-checks as `string` purely from `TSearchDocument<...schema>` - no hand-written document interface anywhere in this file.
       expect(result.title.toUpperCase()).toBe('WIDGET');
       expect(result).toEqual({ id: '1', title: 'Widget' });
     });

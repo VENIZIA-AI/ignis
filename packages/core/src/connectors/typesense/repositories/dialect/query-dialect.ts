@@ -83,15 +83,12 @@ class SearchWireKeys {
   }
 }
 
-/** Translates repository-level TFilter/TWhere into Typesense search params. Pure string building
- * - no dependency on the `typesense` package. Untranslatable shapes (relations, pattern/regex, JSON-path) throw. */
+/** Translates repository-level TFilter/TWhere into Typesense search params - pure string building, no dependency on the `typesense` package. Untranslatable shapes (relations, pattern/regex, JSON-path) throw. */
 export class TypesenseQueryDialect implements ISearchQueryDialect {
   build(opts: { filter?: TFilter; hiddenFields?: string[] }): ITypesenseSearchQuery {
     const { filter, hiddenFields } = opts;
 
-    // No early return on a missing filter: `search({ mode: 'keyword', query: 'john' })` carries no
-    // filter at all, and short-circuiting here skipped the exclude-fields block below - so every
-    // filterless search returned the model's `hiddenProperties`.
+    // No early return on a missing filter: `search({ mode: 'keyword', query: 'john' })` carries none, and short-circuiting here skips the exclude-fields block below, leaking the model's `hiddenProperties`.
     const { where, fields, order, limit, skip, offset, include } = filter ?? {};
 
     if (include) {
@@ -134,8 +131,7 @@ export class TypesenseQueryDialect implements ISearchQueryDialect {
     return query;
   }
 
-  /** Maps a camelCase `ISearchQuery` onto Typesense's snake_case wire params via `SearchWireKeys.wireKey`;
-   * unmapped keys (`page`, `offset`) pass through unchanged, and `engineParams` merges last, verbatim. */
+  /** Maps a camelCase `ISearchQuery` onto Typesense's snake_case wire params via `SearchWireKeys.wireKey`; unmapped keys (`page`, `offset`) pass through unchanged and `engineParams` merges last, verbatim. */
   toWireParams(opts: { query: Partial<ISearchQuery> }): Record<string, unknown> {
     const { query } = opts;
     const { engineParams, ...rest } = query;
@@ -152,8 +148,7 @@ export class TypesenseQueryDialect implements ISearchQueryDialect {
     return engineParams ? { ...wire, ...engineParams } : wire;
   }
 
-  /** Writes the mode dispatch, the vector clause and the `prefix` default onto `query`. Everything
-   * engine-specific about a non-raw search lives here, so the repository tier stays neutral. */
+  /** Writes the mode dispatch, the vector clause and the `prefix` default onto `query`; everything engine-specific about a non-raw search lives here, so the repository tier stays neutral. */
   applySearchInput(opts: { query: ISearchQuery; input: TTranslatableSearchInput }): void {
     const { input } = opts;
     const searchQuery = opts.query as ITypesenseSearchQuery;
@@ -170,9 +165,7 @@ export class TypesenseQueryDialect implements ISearchQueryDialect {
         break;
       }
       case SearchModes.SEMANTIC: {
-        // Vector search: prefix matching is meaningless, and remote embedders reject it outright
-        // ("Prefix search is not supported for remote embedders"). Default off; applyCommonParams
-        // still lets an explicit caller override it.
+        // Vector search: prefix matching is meaningless and remote embedders reject it outright, so it defaults off - applyCommonParams still lets an explicit caller override it.
         searchQuery.prefix = false;
 
         if (input.nearVector) {
@@ -213,9 +206,7 @@ export class TypesenseQueryDialect implements ISearchQueryDialect {
     this.applyCommonParams({ query: searchQuery, input });
   }
 
-  /** Builds Typesense's `<field>:([v1, v2, ...], k: N, alpha: A)` vector-search clause. An
-   * omitted `nearVector` emits an empty `[]` - Typesense's auto-embed path (server-side query
-   * vectorization) - rather than requiring the caller to already hold a vector. */
+  /** Builds Typesense's `<field>:([v1, v2, ...], k: N, alpha: A)` vector-search clause; an omitted `nearVector` emits an empty `[]`, Typesense's server-side auto-embed path, rather than requiring the caller to already hold a vector. */
   private buildVectorClause(opts: {
     field: string;
     nearVector?: number[];
@@ -253,8 +244,7 @@ export class TypesenseQueryDialect implements ISearchQueryDialect {
     return clause;
   }
 
-  /** Copies faceting/highlighting/grouping/tuning params (shared by keyword/semantic/hybrid, absent
-   * from `raw`) onto the query - arrays are comma-joined the same way `build` joins queryBy/fields. */
+  /** Copies faceting/highlighting/grouping/tuning params (shared by keyword/semantic/hybrid, absent from `raw`) onto the query; arrays are comma-joined as `build` joins queryBy/fields. */
   private applyCommonParams(opts: {
     query: ITypesenseSearchQuery;
     input: TTranslatableSearchInput;
@@ -309,21 +299,19 @@ export class TypesenseQueryDialect implements ISearchQueryDialect {
       query.queryByWeights = input.queryByWeights.join(',');
     }
 
-    // engineParams carries Typesense's own wire-keyed tuning params (num_typos/prefix/pinned_hits/preset/...),
-    // merged verbatim by toWireParams; carried onto the query here so the single-search path reaches that merge.
+    // engineParams carries Typesense's own wire-keyed tuning params, merged verbatim by toWireParams; copied onto the query here so the single-search path reaches that merge.
     if (input.engineParams) {
       query.engineParams = input.engineParams;
     }
   }
 
-  /** Translates a `TWhere` into a Typesense `filter_by` expression. Public — reused by updateByFilter/deleteByFilter. */
+  /** Translates a `TWhere` into a Typesense `filter_by` expression. Public - reused by updateByFilter/deleteByFilter. */
   toWhere(opts: { where: TWhere }): string {
     const { where } = opts;
     const clauses: string[] = [];
 
     for (const key in where) {
-      // TWhere<T = any> is a mapped-over-`any` type (see base/repositories/common/types.ts) with no
-      // narrower runtime shape to recover here; `unknown` is the honest type for a `for...in` value.
+      // TWhere<T = any> is a mapped-over-`any` type with no narrower runtime shape to recover here; `unknown` is the honest type for a `for...in` value.
       const value: unknown = where[key];
 
       if (value === undefined) {
@@ -345,8 +333,7 @@ export class TypesenseQueryDialect implements ISearchQueryDialect {
       }
     }
 
-    // An empty logical group (`and: []`, `or: [{}]`) compiles to '' - joining it would emit a
-    // dangling '&&' Typesense rejects as a malformed filter_by.
+    // An empty logical group (`and: []`, `or: [{}]`) compiles to '' - joining it emits a dangling '&&' Typesense rejects as a malformed filter_by.
     return clauses.filter(clause => clause.length > 0).join(' && ');
   }
 

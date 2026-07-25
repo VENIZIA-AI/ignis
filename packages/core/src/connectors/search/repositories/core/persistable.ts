@@ -9,8 +9,7 @@ import { getError, HTTP } from '@venizia/ignis-helpers';
 import type { IImportResult } from '@/connectors/search';
 import { ReadableSearchRepository } from './readable';
 
-/** Narrows one `IImportResult.responses` row (`unknown` - see connector.ts's `IImportResult<TResponse
- * = unknown>`) enough to read the per-row `success` flag `createAll` filters on. */
+/** Narrows one `unknown` `IImportResult.responses` row enough to read the per-row `success` flag `createAll` filters on. */
 const isImportRowLike = (value: unknown): value is { success?: boolean } => {
   return typeof value === 'object' && value !== null;
 };
@@ -64,8 +63,7 @@ export class PersistableSearchRepository<
     options?: IExtraOptions & { shouldReturn?: true; batchSize?: number };
   }): Promise<TCount & { data: Array<R> }>;
 
-  /** Delegates to import(). Typesense's bulk import reports only per-row success/fail (no echoed
-   * document), so "created" is just the caller's input rows filtered to the accepted ones. */
+  /** Delegates to import(). Typesense's bulk import reports only per-row success/fail with no echoed document, so "created" is the caller's input rows filtered to the accepted ones. */
   override async createAll<R = TDocument>(opts: {
     data: Array<TDocument>;
     options?: IExtraOptions & { shouldReturn?: boolean; batchSize?: number };
@@ -85,8 +83,7 @@ export class PersistableSearchRepository<
       return isImportRowLike(response) ? response.success !== false : true;
     });
 
-    // `created` is the caller's own input rows (bulk import echoes nothing back), so R is the
-    // caller's unchecked assertion here exactly as it is on the non-hidden path.
+    // `created` is the caller's own input rows (bulk import echoes nothing back), so R is the caller's unchecked assertion, as on the non-hidden path.
     return { count: rs.count.success, data: this.omitHiddenFieldsAll(created) as any };
   }
 
@@ -138,9 +135,7 @@ export class PersistableSearchRepository<
     return { count: 1, data: this.omitHiddenFields(updated as R) };
   }
 
-  /** Count-only contract: search engines have no RETURNING and no extra read is bolted on - `data`
-   * is always `null`, `shouldReturn` rejected at the type level. Callers wanting the affected
-   * documents read them explicitly before updating. */
+  /** Count-only: search engines have no RETURNING and no extra read is bolted on, so `data` is always `null` and `shouldReturn` is rejected at the type level - callers wanting the affected documents read them before updating. */
   override async updateAll(opts: {
     data: Partial<TDocument>;
     where?: TWhere;
@@ -208,15 +203,12 @@ export class PersistableSearchRepository<
       return { count: 0, data: null };
     }
 
-    // Typesense's delete has no RETURNING equivalent - `data` is only populated when the
-    // defaultFilter guard above already read the document; no extra read is done purely for shouldReturn.
+    // Typesense's delete has no RETURNING equivalent - `data` is populated only when the defaultFilter guard above already read the document; no extra read is done for shouldReturn.
     const data = options?.shouldReturn === false ? null : ((found as R) ?? null);
     return { count: 1, data };
   }
 
-  /** Count-only like updateAll. Filter-delete when there is an effective where; truncates the whole
-   * collection only when neither where nor defaultFilter is present - truncate reports no
-   * per-document count, so that path returns { count: 0, data: null }. */
+  /** Count-only like updateAll: filter-delete when there is an effective where, truncating the whole collection only when neither where nor defaultFilter is present - truncate reports no per-document count, so that path returns { count: 0, data: null }. */
   override async deleteAll(opts?: {
     where?: TWhere;
     options?: Omit<IExtraOptions, 'shouldReturn'> & { force?: boolean };
@@ -232,8 +224,7 @@ export class PersistableSearchRepository<
     });
 
     if (filterBy === undefined) {
-      // `where: {}` compiles to NO filter; wiping a collection must be asked for explicitly,
-      // exactly as Postgres demands `force` for an empty-where delete.
+      // `where: {}` compiles to NO filter; wiping a collection must be asked for explicitly, exactly as Postgres demands `force` for an empty-where delete.
       if (!options?.force) {
         throw getError({
           message: `[${this.constructor.name}][deleteAll] DENY to perform | Collection: ${this.collectionName} | No effective where condition (no where and no @model defaultFilter) - pass options.force to truncate the collection`,
@@ -261,8 +252,7 @@ export class PersistableSearchRepository<
     return { count: deletedCount, data: null };
   }
 
-  /** Bulk import through the neutral document facade. Per-row write `action` is Typesense-only
-   * vocabulary - callers needing it use `dataSource.getConnector().importDocuments(...)` directly. */
+  /** Bulk import through the neutral document facade. Per-row write `action` is Typesense-only vocabulary - callers needing it use `dataSource.getConnector().importDocuments(...)` directly. */
   import(opts: { documents: TDocument[]; batchSize?: number }): Promise<IImportResult<unknown>> {
     const { documents, batchSize } = opts;
 

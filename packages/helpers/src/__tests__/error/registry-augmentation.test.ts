@@ -3,9 +3,7 @@ import { HTTP } from '@/common/constants';
 import type { TErrorDefinition, TErrorKey, TRegisterErrors } from '@/modules/error';
 import { getError } from '@/modules/error';
 
-/** `IErrorKeyRegistry` lives in inversion and re-exports through helpers, so augmenting either
- * module name populates the same registry. Gotcha: TS only treats `declare module` as an
- * augmentation when the file imports that module - augmenting one you don't import silently no-ops. */
+/** `IErrorKeyRegistry` lives in inversion and re-exports through helpers, so augmenting either module name populates the same registry - but TS only treats `declare module` as an augmentation when the file imports that module. */
 const InventoryErrors = {
   MATERIAL_NOT_FOUND: {
     message: {
@@ -20,9 +18,8 @@ declare module '@venizia/ignis-inversion' {
   interface IErrorKeyRegistry extends TRegisterErrors<typeof InventoryErrors> {}
 }
 
-// The same augmentation aimed at the RE-EXPORTING module. It populates the same registry: this is
-// the route an application takes, since it imports `getError` from helpers and never names
-// inversion. BANA's 73 catalogs migrate by renaming '@nx/core' to '@venizia/ignis-helpers' here.
+// The same augmentation aimed at the RE-EXPORTING module populates the same registry - the route an application takes, since it imports `getError` from helpers and never names inversion.
+// BANA's 73 catalogs migrate by renaming '@nx/core' to '@venizia/ignis-helpers' here.
 const ViaHelpers = {
   X: {
     message: { text: 'x', code: 'server.commerce.category.create.duplicate_name' },
@@ -45,14 +42,12 @@ describe('key registry augmentation reaches through the helpers re-export', () =
     // @ts-expect-error 'nope.not_registered' was never declared in IErrorKeyRegistry
     const key: TErrorKey = 'nope.not_registered';
 
-    // `key` is typed as the registered literal, so `toBe` would reject the argument on type
-    // grounds - which is itself the proof that the augmentation landed.
+    // `key` is typed as the registered literal, so `toBe` would reject the argument on type grounds - which is itself the proof that the augmentation landed.
     expect(key as string).toBe('nope.not_registered');
   });
 
   test('messageCode still accepts an unregistered string - a package cannot see another package keys', () => {
-    // Autocomplete offers the registered keys, but any string stays legal: BANA's core raises
-    // `server.sale.*` codes that the sale package owns, and core cannot depend on sale.
+    // Autocomplete offers the registered keys, but any string stays legal: BANA's core raises `server.sale.*` codes that the sale package owns, and core cannot depend on sale.
     const error = getError({ message: 'x', messageCode: 'server.sale.sale.combo.invalid' });
 
     expect(error.normalized.code).toBe('server.sale.sale.combo.invalid');

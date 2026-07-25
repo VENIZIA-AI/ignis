@@ -202,8 +202,7 @@ export class NetworkUdpClient extends BaseHelper {
       voidExecution({
         logger: this.logger,
         scope: 'bind',
-        // The async wrapper turns a SYNCHRONOUS throw from onBind into a rejection; calling it bare
-        // would throw out of the dgram listening listener as an uncaught exception.
+        // The async wrapper turns a SYNCHRONOUS throw from onBind into a rejection; calling it bare would throw out of the dgram listening listener as an uncaught exception.
         execution: (async () =>
           this.onBind?.({
             identifier: this.identifier,

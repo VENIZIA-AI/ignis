@@ -24,10 +24,7 @@ export interface ICustomLoggerOptions {
   levels?: { [name: string | symbol]: number };
   colors?: { [name: string | symbol]: string };
 
-  /**
-   * Full override of the logger-level format. When provided, transports get NO format of their
-   * own - the override is applied once for every transport, exactly as it produces the line.
-   */
+  /** Full override of the logger-level format; when provided, transports get NO format of their own - the override is applied once for every transport, exactly as it produces the line. */
   formatter?: ReturnType<typeof winston.format.combine>;
 
   /** Output shape per transport. Defaults to `APP_ENV_LOGGER_FORMAT` (`text`). */

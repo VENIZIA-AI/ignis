@@ -238,8 +238,7 @@ describe('BaseGrpcController', () => {
 
     const ctrl = new TestCtrl({ scope: 'TestCtrl', path: '/grpc' });
 
-    // configure calls GrpcRequestAdapter.build which requires @connectrpc/connect
-    // We test binding + registerRpcsFromRegistry directly
+    // configure calls GrpcRequestAdapter.build, which requires @connectrpc/connect, so binding and registerRpcsFromRegistry are tested directly.
     await ctrl['binding']();
     ctrl['registerRpcsFromRegistry']();
 

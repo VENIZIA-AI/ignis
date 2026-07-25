@@ -24,8 +24,7 @@ export type TTestRule = {
   conditions?: Record<string, unknown>;
 };
 
-/** Bun's transpiler drops parameter decorators, so @inject is a no-op at test time - inject
- * metadata is registered explicitly instead. */
+/** Bun's transpiler drops parameter decorators, so @inject is a no-op at test time - metadata is registered explicitly instead. */
 export class TestAuthorizationEnforcer
   extends BaseHelper
   implements IAuthorizationEnforcer<Env, string, string, TTestRule[]>
@@ -135,8 +134,7 @@ export const createMockContext = (overrides?: {
   };
 };
 
-/** Registers @inject metadata for TestAuthorizationEnforcer programmatically - Bun's transpiler
- * drops parameter decorators. */
+/** Registers @inject metadata for TestAuthorizationEnforcer by hand - Bun's transpiler drops parameter decorators. */
 const registerTestEnforcerInjectMetadata = () => {
   MetadataRegistry.getInstance().setInjectMetadata({
     target: TestAuthorizationEnforcer,

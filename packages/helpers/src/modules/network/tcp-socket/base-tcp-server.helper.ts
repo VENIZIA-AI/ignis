@@ -126,8 +126,7 @@ export class BaseNetworkTcpServer<
     this.configure();
   }
 
-  // Hooks run inside socket event listeners: a synchronous throw there is an uncaught exception
-  // that kills the process and skips the client-registry cleanup that follows it.
+  // Hooks run inside socket event listeners: a synchronous throw there is an uncaught exception that kills the process and skips the client-registry cleanup that follows it.
   protected invokeHook(opts: { scope: string; execution: () => void }) {
     const { scope, execution } = opts;
 
@@ -143,8 +142,7 @@ export class BaseNetworkTcpServer<
       this.onNewConnection({ socket });
     });
 
-    // Without this listener a failed listen - a port already in use is the commonest boot failure
-    // there is - emits an unhandled 'error' event, which takes the whole process down with it.
+    // Without this listener a failed listen - a port already in use is the commonest boot failure there is - emits an unhandled 'error' event, which takes the whole process down with it.
     this.server.on('error', (error: Error) => {
       this.logger
         .for(this.configure.name)
@@ -224,8 +222,7 @@ export class BaseNetworkTcpServer<
         voidExecution({
           logger: this.logger,
           scope: 'onClientConnect',
-          // The async wrapper turns a SYNCHRONOUS throw from the handler into a rejection;
-          // calling it bare would throw out of this listener as an uncaught exception.
+          // The async wrapper turns a SYNCHRONOUS throw from the handler into a rejection; calling it bare would throw out of this listener as an uncaught exception.
           execution: (async () => this.extraEvents[extraEvent]({ id, socket, args }))(),
         });
       });
@@ -320,9 +317,7 @@ export class BaseNetworkTcpServer<
       return;
     }
 
-    // Not guarded on `listening`: listen() is async (DNS lookup), so a shutdown() racing startup
-    // could skip close() and leave the server bound forever; close() on a never-listened server
-    // just logs ERR_SERVER_NOT_RUNNING below.
+    // Not guarded on `listening`: listen() is async (DNS lookup), so a shutdown() racing startup could skip close() and leave the server bound forever; close() on a never-listened server just logs ERR_SERVER_NOT_RUNNING below.
 
     await new Promise<void>(resolve => {
       server.close(error => {

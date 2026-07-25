@@ -86,8 +86,7 @@ export class WorkerPoolHelper extends BaseHelper {
 
     const registered = this.get({ key });
 
-    // The registry entry must go even if the thread refuses to die, otherwise the key is
-    // unusable forever and the pool never drops back below its max-workers bound
+    // The registry entry must go even if the thread refuses to die, otherwise the key is unusable forever and the pool never drops back below its max-workers bound
     try {
       await registered?.worker?.terminate();
     } catch (error) {

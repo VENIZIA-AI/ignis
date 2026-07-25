@@ -61,8 +61,7 @@ describe('SearchInputSchema', () => {
   });
 
   test('Typesense-only knobs are no longer neutral params - they are stripped, not carried', () => {
-    // numTypos/prefix/preset/... left the neutral shape; passing them at the top level drops them
-    // (they belong in engineParams under wire names). Zod strips unknown keys from the object.
+    // numTypos/prefix/preset/... left the neutral shape and belong in engineParams under wire names, so passing them at the top level drops them - zod strips unknown keys from the object.
     const result = SearchInputSchema.safeParse({
       mode: SearchModes.KEYWORD,
       query: 'shoes',

@@ -13,18 +13,12 @@ export interface IDriverProbe {
   ended: () => boolean;
 }
 
-/** Every relational driver must satisfy this suite against an in-memory fake of its own client. It
- * asserts the NEUTRAL contract only - a seam only one driver can satisfy is not a seam. Deliberately
- * NOT asserted: that `release({ destroy: true })` discards (pg can, postgres-js cannot) - that
- * asymmetry belongs in each driver's own tests. */
+/** Every relational driver must satisfy this suite against an in-memory fake of its own client, asserting the NEUTRAL contract only - a seam only one driver can satisfy is not a seam. Deliberately NOT asserted: that `release({ destroy: true })` discards (pg can, postgres-js cannot), which belongs in each driver's own tests. */
 export interface IConformanceOptions {
   /** Display name of the driver under test, e.g. `node-postgres`. */
   driver: string;
 
-  /**
-   * Builds a probe around a driver whose next `execute()` throws when the statement starts with
-   * `failOn`.
-   */
+  /** Builds a probe around a driver whose next `execute()` throws when the statement starts with `failOn`. */
   buildDriverProbe: TBuildDriverProbe;
 }
 
@@ -55,9 +49,7 @@ export const run = (opts: IConformanceOptions): void => {
       const { driver } = build();
       const connection = await driver.acquire({ schema: {} });
 
-      // Drizzle records what it was bound to on `$client`. If a driver bound the transaction
-      // connector to the pool, every statement inside the transaction would be free to land on a
-      // different backend than the BEGIN, and the transaction would silently not be a transaction.
+      // Drizzle records its binding on `$client`: a transaction connector bound to the pool would let statements land on a different backend than the BEGIN, and the transaction would silently not be a transaction.
       const boundClient = Reflect.get(connection.connector, '$client');
 
       expect(boundClient).toBeDefined();
@@ -117,9 +109,7 @@ export const run = (opts: IConformanceOptions): void => {
       const result = await connection.execute({ statement: 'BEGIN' });
       connection.release();
 
-      // A native pass-through result (pg `rows`, postgres-js array) leaks the client type and fails
-      // here. The neutral contract is a floor, not a ceiling - never assert the exact key set, so a
-      // future driver may carry extra neutral fields (MySQL insertId).
+      // A native pass-through result (pg `rows`, postgres-js array) leaks the client type and fails here; the neutral contract is a floor, not a ceiling, so never assert the exact key set - a future driver may carry extra neutral fields such as MySQL's insertId.
       expect(typeof result.count).toBe('number');
       expect('rows' in result).toBe(false);
       expect(Array.isArray(result)).toBe(false);

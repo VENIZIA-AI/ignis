@@ -4,14 +4,13 @@ import { getError, HTTP } from '@venizia/ignis-helpers';
 
 /** Engine-agnostic error plumbing shared by every search connector; backend-specific classification (what counts as 404/409) lives in each backend's own internal helper. */
 export class SearchConnectorInternal {
-  // Error/stack are non-enumerable, so `%j` on a raw Error yields `{}` — extract them so logs retain detail.
+  // Error/stack are non-enumerable, so `%j` on a raw Error yields `{}` - extract them so logs retain detail.
   static describeError(opts: { error: unknown }): unknown {
     const { error } = opts;
     return error instanceof Error ? (error.stack ?? error.message) : error;
   }
 
-  // Logs the full error internally; throws a sanitized 503 with zero internal leakage.
-  // `details` is for caller-actionable progress info (counts, offsets) only, never engine detail.
+  // Logs the full error internally, throws a sanitized 503 with zero internal leakage; `details` is caller-actionable progress info (counts, offsets) only, never engine detail.
   static wrapDependencyError(opts: {
     method: string;
     error: unknown;
@@ -34,9 +33,7 @@ export class SearchConnectorInternal {
       ...(details ? { extra: { details } } : {}),
     });
 
-    // The original engine error carries the code callers may classify on (e.g. tolerating
-    // `index_already_exists`). Assigned AFTER construction: `cause` via getError() would land in
-    // `extra`, which goes on the WIRE - a plain `cause` is exposed only in development.
+    // Keeps the engine's own code for callers to classify on (tolerating `index_already_exists`); assigned AFTER construction because `cause` via getError() lands in `extra`, which goes on the WIRE, while a plain `cause` is exposed only in development.
     (wrapped as { cause?: unknown }).cause = error;
     throw wrapped;
   }

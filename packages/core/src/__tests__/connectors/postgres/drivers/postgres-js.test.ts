@@ -47,8 +47,7 @@ describe('PostgresJsDriver - postgres-js-specific behaviour', () => {
 
     connection.release({ destroy: true });
 
-    // The documented asymmetry with node-postgres, pinned so it cannot regress into a silent
-    // assumption that every driver discards poisoned connections.
+    // The documented asymmetry with node-postgres, pinned so it cannot regress into a silent assumption that every driver discards poisoned connections.
     expect(releases()).toEqual([{ destroyed: false }]);
   });
 

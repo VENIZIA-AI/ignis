@@ -4,10 +4,7 @@ import type { ITransaction } from '@/base/datasources';
 import { DefaultSearchRepository } from '@/connectors/typesense/repositories';
 import { FakeSearchDataSource, ProductDocument } from './fake-search-connector';
 
-/**
- * Typesense has no transaction primitive - every verb rejects `options.transaction` loudly via
- * `throwNotSupported`, instead of silently executing outside the transaction it claims to join.
- */
+/** Typesense has no transaction primitive - every verb rejects `options.transaction` loudly via `throwNotSupported`, instead of silently executing outside the transaction it claims to join. */
 const fakeTransaction: ITransaction = {
   isActive: true,
   commit: async () => {},

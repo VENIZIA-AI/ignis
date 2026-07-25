@@ -214,7 +214,7 @@ The scheduler, cache, and clock are injectable, so the machinery is tested deter
 - **Token self-renewal** - the Vault auth token has its own TTL. The provider schedules the token for renewal in the same cadence as leases.
 - **Re-auth on expiry** - if the token can no longer be renewed, the provider re-runs the login flow, so AppRole / Kubernetes deployments survive past the token TTL without a restart.
 
-`node-vault` is an optional peer. It is reached only through the `@venizia/ignis-helpers/hashicorp-vault` sub-path and a bundler-invisible dynamic import (`importOptionalModule`), so importing the root package never requires it. `Bun.build`-compiled applications need no `external: ['node-vault']` workaround.
+`node-vault` is an optional peer. It is reached only through the `@venizia/ignis-helpers/hashicorp-vault` sub-path and a bundler-invisible dynamic import (`ModuleUtility.load`), so importing the root package never requires it. `Bun.build`-compiled applications need no `external: ['node-vault']` workaround.
 
 An application that does use this provider and compiles a binary must ship `node-vault` in `node_modules` next to the binary. Alternatively, inject a ready-made `client` through the helper options.
 

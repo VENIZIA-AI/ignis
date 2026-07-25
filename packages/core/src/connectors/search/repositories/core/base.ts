@@ -7,9 +7,7 @@ import { throwNotSupported } from '@/utilities';
 import type { TClass } from '@venizia/ignis-helpers';
 import type { ISearchQuery, ISearchQueryDialect } from '@/connectors/search/repositories/common';
 
-/** Search-repository plumbing on `AbstractRepository`. `TDataSource` carries the concrete connector
- * type through `this.connector`: a concretely-bound repository reaches its engine's verbs uncast,
- * while an engine-agnostic one is forced by the compiler to write `connector.alias?.…`. */
+/** Search-repository plumbing on `AbstractRepository`. `TDataSource` carries the concrete connector type through `this.connector`, so a concretely-bound repository reaches its engine's verbs uncast while an engine-agnostic one is forced to write `connector.alias?.…`. */
 export abstract class SearchBaseRepository<
   TDocument extends object = object,
   TDataSource extends AbstractSearchDataSource = AbstractSearchDataSource,
@@ -57,8 +55,7 @@ export abstract class SearchBaseRepository<
     super.setDataSource(opts);
   }
 
-  /** WRITE responses never pass through the engine's exclude-fields filter, so hiddenProperties are
-   * stripped here - the relational branch gets the same guarantee from `.returning(visibleProperties)`. */
+  /** WRITE responses never pass through the engine's exclude-fields filter, so hiddenProperties are stripped here - the relational branch gets the same guarantee from `.returning(visibleProperties)`. */
   protected omitHiddenFields<R>(document: R): R {
     const hiddenFields = this.hiddenFields;
 
@@ -83,10 +80,7 @@ export abstract class SearchBaseRepository<
     return documents.map(document => this.omitHiddenFields(document));
   }
 
-  /**
-   * Typesense has no transaction primitive - a caller-supplied options.transaction is rejected
-   * loudly instead of silently running outside the transaction the caller expects.
-   */
+  /** No search engine here has a transaction primitive (this tier is engine-neutral - Typesense and Meilisearch both inherit it) - a caller-supplied options.transaction is rejected loudly instead of silently running outside the transaction the caller expects. */
   protected assertNoTransaction(opts?: { transaction?: ITransaction }): void {
     if (!opts?.transaction) {
       return;
@@ -99,7 +93,7 @@ export abstract class SearchBaseRepository<
     });
   }
 
-  /** Row-level locking (SELECT ... FOR UPDATE) has no Typesense equivalent - same NotSupported convention as assertNoTransaction. */
+  /** Row-level locking (SELECT ... FOR UPDATE) has no search-engine equivalent - same NotSupported convention as assertNoTransaction. */
   protected assertNoLock(opts?: { lock?: TLockOptions }): void {
     if (!opts?.lock) {
       return;

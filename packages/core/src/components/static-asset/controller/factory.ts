@@ -36,17 +36,10 @@ export interface IAssetControllerOptions {
   options?: TStaticAssetExtraOptions;
 }
 
-/**
- * Hono ALREADY percent-decodes path params - a second decodeURIComponent is wrong: `report_100%.pdf`
- * would throw on `%.p` (object unfetchable forever) and `a%2Fb.png` would become a DIFFERENT object.
- * Validation (`isValidName`/`isValidPath`) still runs on this value, so traversal is still rejected.
- */
+/** Hono ALREADY percent-decodes path params - a second decodeURIComponent throws on `report_100%.pdf` and turns `a%2Fb.png` into a DIFFERENT object; `isValidName`/`isValidPath` still run on this value, so traversal is still rejected. */
 const readObjectName: (rawObjectName: string) => string = rawObjectName => rawObjectName;
 
-/**
- * Encodes an object path into a SINGLE url segment: `{objectName}` matches one segment only, so `/`
- * must be percent-encoded too (Hono decodes it back before the handler reads the param).
- */
+/** Encodes an object path into a SINGLE url segment: `{objectName}` matches one segment only, so `/` must be percent-encoded too (Hono decodes it back before the handler reads the param). */
 const encodeObjectPath: (objectPath: string) => string = objectPath => {
   return encodeURIComponent(objectPath);
 };
@@ -264,13 +257,14 @@ export class AssetControllerFactory extends BaseHelper {
                   statusCode: HTTP.ResultCodes.RS_4.BadRequest,
                 });
               }
-              for (const segment of folderSegments) {
-                if (!helper.isValidName(segment)) {
-                  throw getError({
-                    message: `Invalid folder path segment: ${segment}`,
-                    statusCode: HTTP.ResultCodes.RS_4.BadRequest,
-                  });
-                }
+              const invalidSegmentIndex = folderSegments.findIndex(
+                segment => !helper.isValidName(segment),
+              );
+              if (invalidSegmentIndex !== -1) {
+                throw getError({
+                  message: `Invalid folder path segment: ${folderSegments[invalidSegmentIndex]}`,
+                  statusCode: HTTP.ResultCodes.RS_4.BadRequest,
+                });
               }
             }
 
@@ -286,8 +280,7 @@ export class AssetControllerFactory extends BaseHelper {
 
             let uploaded: IUploadResult[];
             try {
-              // `storage: 'disk'` spools the payload to `uploadDir` and returns `path` instead of
-              // `buffer`; the storage helpers only ever write `buffer`, so it must be read back.
+              // `storage: 'disk'` spools the payload to `uploadDir` and returns `path` instead of `buffer`; the storage helpers only ever write `buffer`, so it must be read back.
               const modifiedFiles: IUploadFile[] = filesArray.map(file => {
                 const buffer = file.buffer ?? (file.path ? readFileSync(file.path) : undefined);
 
@@ -313,9 +306,7 @@ export class AssetControllerFactory extends BaseHelper {
                 files: modifiedFiles,
                 normalizeNameFn: options?.normalizeNameFn,
                 normalizeLinkFn: options?.normalizeLinkFn,
-                // Without this the helper re-validates against its own hard default of 2, so an app
-                // configured for a deeper tree accepted the request, spooled the body, and only then
-                // failed inside the helper.
+                // Without this the helper re-validates against its own hard default of 2, so an app configured for a deeper tree spools the body and only then fails inside the helper.
                 maxFolderDepth,
               });
             } finally {
@@ -467,8 +458,7 @@ export class AssetControllerFactory extends BaseHelper {
               });
             }
 
-            // A NaN or 0 maxKeys is silently treated as "unlimited" by the storage backends,
-            // so an unparsable value must be rejected instead of forwarded.
+            // A NaN or 0 maxKeys is silently treated as "unlimited" by the storage backends, so an unparsable value must be rejected instead of forwarded.
             let resolvedMaxKeys: number | undefined;
             if (maxKeys !== undefined) {
               resolvedMaxKeys = Number(maxKeys);
@@ -551,25 +541,25 @@ export class AssetControllerFactory extends BaseHelper {
                   { success: true, metaLink: updatedMetaLink },
                   HTTP.ResultCodes.RS_2.Ok,
                 );
-              } else {
-                const createdMetaLink = await metaLink.repository.create({
-                  data: {
-                    bucketName,
-                    objectName,
-                    link,
-                    mimetype: fileStat.metadata?.['mimetype'],
-                    size: fileStat.size,
-                    etag: fileStat.etag,
-                    metadata: fileStat.metadata,
-                    storageType: storage,
-                    isSynced: true,
-                  },
-                });
-                return ctx.json(
-                  { success: true, metaLink: createdMetaLink.data },
-                  HTTP.ResultCodes.RS_2.Ok,
-                );
               }
+
+              const createdMetaLink = await metaLink.repository.create({
+                data: {
+                  bucketName,
+                  objectName,
+                  link,
+                  mimetype: fileStat.metadata?.['mimetype'],
+                  size: fileStat.size,
+                  etag: fileStat.etag,
+                  metadata: fileStat.metadata,
+                  storageType: storage,
+                  isSynced: true,
+                },
+              });
+              return ctx.json(
+                { success: true, metaLink: createdMetaLink.data },
+                HTTP.ResultCodes.RS_2.Ok,
+              );
             },
           });
         }

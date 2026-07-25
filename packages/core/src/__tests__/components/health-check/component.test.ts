@@ -11,12 +11,7 @@ import type { OpenAPIHono } from '@hono/zod-openapi';
 import type { AnyType, ValueOrPromise } from '@venizia/ignis-helpers';
 import { beforeAll, describe, expect, test } from 'bun:test';
 
-/**
- * Applies a method decorator with the legacy (`experimentalDecorators`) call shape - the shape
- * `tsc` emits for every consumer app. Bun does not resolve the `extends` chain carrying
- * `experimentalDecorators`, so decorator SYNTAX inside this package compiles with TC39 semantics
- * in this runtime only; the decorators reject that shape and the route is silently dropped.
- */
+/** Applies a method decorator with the legacy call shape `tsc` emits for every consumer app: bun does not resolve the `extends` chain carrying `experimentalDecorators`, so decorator SYNTAX inside this package compiles with TC39 semantics, the decorators reject that shape, and the route is silently dropped. */
 const applyMethodDecorator = (opts: {
   decorator: AnyType;
   target: object;
@@ -45,11 +40,7 @@ class TestApplication extends BaseApplication {
   setupMiddlewares() {}
 }
 
-/**
- * Re-applies `@api pingPong` with the legacy call shape. Bun compiles the decorator syntax in the
- * controller source with TC39 semantics, which the decorator rejects, so the PING route would
- * otherwise be missing from the registry in this runtime only (tsc emits it for consumer apps).
- */
+/** Re-applies `@api pingPong` with the legacy call shape: bun compiles the controller's decorator syntax with TC39 semantics, which the decorator rejects, so the PING route would otherwise be missing from the registry in this runtime only. */
 beforeAll(() => {
   const definitions = new HealthCheckController({
     scope: HealthCheckController.name,

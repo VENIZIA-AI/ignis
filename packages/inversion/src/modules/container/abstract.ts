@@ -1,13 +1,10 @@
-import type { IBinding } from '../binding/common/types';
 import { BaseHelper } from '@/common/base-helper';
 import type { TBindingKey, TClass, TNullable } from '@/common/types';
+import type { IBinding } from '../binding/common/types';
 import type { MetadataRegistry } from '../registry/registry';
 import type { IContainer } from './common/types';
 
-/**
- * Container CONTRACT as a class, typed against `IBinding`. Implementations sharing no storage
- * start here; ones that only vary resolution start at `BaseContainer`.
- */
+/** Container CONTRACT as a class, typed against `IBinding` - implementations sharing no storage start here; ones that only vary resolution start at `BaseContainer`. */
 export abstract class AbstractContainer extends BaseHelper implements IContainer {
   constructor(opts?: { scope: string }) {
     super({ scope: opts?.scope ?? AbstractContainer.name });

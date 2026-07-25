@@ -1,14 +1,11 @@
+import { TBindingKey, TClass, TNullable } from '@/common/types';
 import { Binding } from '../binding/binding';
 import { BindingKeys } from '../binding/common/constants';
 import { getError } from '../error';
-import { TBindingKey, TClass, TNullable } from '@/common/types';
 import { metadataRegistry } from '../registry/registry';
 import { AbstractContainer } from './abstract';
 
-/**
- * Storage half of the container, keyed by normalized binding-key strings. Resolution
- * (`instantiate`) stays abstract - it is the part an implementation swaps.
- */
+/** Storage half of the container, keyed by normalized binding-key strings - resolution (`instantiate`) stays abstract, it is the part an implementation swaps. */
 export abstract class BaseContainer extends AbstractContainer {
   protected bindings = new Map<string, Binding>();
 
@@ -132,14 +129,12 @@ export abstract class BaseContainer extends AbstractContainer {
         continue;
       }
 
-      if (exclude) {
-        if (exclude instanceof Array && exclude.length > 0 && exclude.includes(binding.key)) {
-          continue;
-        }
+      if (exclude instanceof Array && exclude.length > 0 && exclude.includes(binding.key)) {
+        continue;
+      }
 
-        if (exclude instanceof Set && exclude.size > 0 && exclude.has(binding.key)) {
-          continue;
-        }
+      if (exclude instanceof Set && exclude.size > 0 && exclude.has(binding.key)) {
+        continue;
       }
 
       rs.push(binding);

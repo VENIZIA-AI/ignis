@@ -10,8 +10,7 @@ export const toCamel = (s: string) => {
   });
 };
 
-/** Arrays stay arrays - mapping one through the object branch would turn it into an index-keyed
- * object - but their object elements still need their keys camelized. Dates are opaque values. */
+/** Arrays stay arrays - mapping one through the object branch would turn it into an index-keyed object - but their object elements still need their keys camelized. Dates are opaque values. */
 const camelizeValue = (value: unknown): unknown => {
   if (Array.isArray(value)) {
     return value.map(element => camelizeValue(element));
@@ -119,8 +118,7 @@ export const parseArrayToMapWithKey = <T extends Record<K, PropertyKey>, K exten
   return resultMap;
 };
 
-/** Splits a delimited string into trimmed, non-empty entries - the transform for list-shaped
- * env values (e.g. `applicationEnvironment.get(KEY, { transform: toDelimitedArray })`). */
+/** Splits a delimited string into trimmed, non-empty entries - the transform for list-shaped env values (e.g. `applicationEnvironment.get(KEY, { transform: toDelimitedArray })`). */
 export const toDelimitedArray = (input: unknown, separator = ','): string[] => {
   if (input == null) {
     return [];

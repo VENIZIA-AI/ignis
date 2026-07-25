@@ -80,6 +80,7 @@ The framework's `AppErrorMiddleware` catches `ApplicationError` instances and fo
 | `cause`         | `unknown`                              | The wrapped failure - reaches `Error.cause`. Use this to wrap a caught error; `error` is refused on the free-form branch for exactly this case |
 | `extra`         | `Record<string, unknown>`              | Explicit context, merged with any swept keys - and it wins on a clash                                           |
 | `transform`     | `TErrorNormalizeTransformFn`           | Builds `normalized` in place of the default. Receives `{ message: TErrorNormalized, statusCode, extra? }` - `message` is the default normalized being replaced, so `s => ({ ...s.message, text: 'x' })` amends one field |
+| `logLevel`      | `error \| emerg \| warn \| info \| debug` | The level the error handler logs this at. Defaults to `error`; lower it for an expected failure (`getError({ message, statusCode: 404, logLevel: 'warn' })`), or raise it to `emerg`. Steers the server log only - never the response |
 | _anything else_ | `unknown`                              | Rides into `extra` under its own name. `getError({ message, transaction })` lands at `error.extra.transaction`  |
 
 > [!TIP]

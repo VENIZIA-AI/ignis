@@ -112,9 +112,7 @@ describe('InternalQueueMailExecutorHelper', () => {
   });
 
   test('a processor that RESOLVES with success:false is a failure, not a completed job', async () => {
-    // The trap: a processor reports an SMTP rejection by RETURNING `{ success: false }` rather than
-    // throwing - the shape `IMailProcessorResult` was designed for. A queue that only watches for
-    // throws marks the job completed, deletes it, and the mail is gone with no retry and no trace.
+    // The trap: a processor reports an SMTP rejection by RETURNING `{ success: false }` rather than throwing, and a queue that only watches for throws marks the job completed, deletes it, and the mail is gone with no retry and no trace.
     const executor = new InternalQueueMailExecutorHelper({ identifier: 'mail-soft-failure' });
     const tracker = new ProcessorCallTracker();
 
@@ -228,10 +226,7 @@ class FakeRedisConnection {
   }
 }
 
-/**
- * The real constructor opens a Redis connection, so the executor is built off its prototype and its
- * collaborators are injected - the teardown/mode/enqueue logic under test is entirely its own.
- */
+/** The real constructor opens a Redis connection, so the executor is built off its prototype with collaborators injected - the teardown/mode/enqueue logic under test is entirely its own. */
 const buildBullMQExecutor = (opts: {
   mode: string;
   workerHelpers?: FakeWorkerHelper[];

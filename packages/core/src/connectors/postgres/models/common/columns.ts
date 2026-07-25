@@ -1,8 +1,7 @@
 import { getError, HTTP } from '@venizia/ignis-helpers';
 import { customType } from 'drizzle-orm/pg-core';
 
-/** Normalizes timestamps to ISO 8601 both ways - Drizzle's `mode: 'date'` isn't JSON-friendly and
- * `mode: 'string'` returns Postgres's raw format instead of ISO 8601. */
+/** Normalizes timestamps to ISO 8601 both ways - Drizzle's `mode: 'date'` isn't JSON-friendly and `mode: 'string'` returns Postgres's raw format. */
 export const isoTimestamp = (name: string, config?: { withTimezone?: boolean }) => {
   return customType<{
     data: string;

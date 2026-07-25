@@ -3,13 +3,9 @@ import { mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 
-/**
- * Bun.build resolves literal dynamic-import specifiers at bundle time - and `minify.syntax` folds
- * const-held specifiers back to literals - so optional peers must stay invisible or consumers are
- * forced to install/externalize them. Probes bundle in subprocesses: in-process Bun.build under `bun test` reports spurious errors for modules other test files already loaded.
- */
-// winston joined the optional peers with single-provider loading (2026-07-18): the factory's lazy
-// default sits behind a createRequire boundary, so bundling the root barrel must not resolve it.
+/** Bun.build resolves literal dynamic-import specifiers at bundle time - and `minify.syntax` folds const-held specifiers back to literals - so optional peers must stay invisible or consumers are forced to install/externalize them. */
+/** Probes bundle in subprocesses: in-process Bun.build under `bun test` reports spurious errors for modules other test files already loaded. */
+// winston is an optional peer too: the factory's lazy default sits behind a createRequire boundary, so bundling the root barrel must not resolve it.
 const OPTIONAL_PEER_FILTER = String.raw`/^(node-vault|@dotenvx\/dotenvx|winston|winston-transport|winston-daily-rotate-file)$/`;
 
 interface IProbeReport {
@@ -79,13 +75,13 @@ afterAll(async () => {
 });
 
 describe('secrets peers stay invisible to Bun.build', () => {
-  test('importOptionalModule keeps an unresolvable specifier bundleable under minify.syntax', async () => {
+  test('ModuleUtility.load keeps an unresolvable specifier bundleable under minify.syntax', async () => {
     const utilityPath = path.resolve(process.cwd(), 'src/utilities/module.utility.ts');
     const entryPath = path.join(probeDirectory, 'import-optional-entry.ts');
     await writeFile(
       entryPath,
-      `import { importOptionalModule } from ${JSON.stringify(utilityPath)};\n` +
-        `export const load = () => importOptionalModule({ module: '@venizia/__not-installed-probe__' });\n`,
+      `import { ModuleUtility } from ${JSON.stringify(utilityPath)};\n` +
+        `export const load = () => ModuleUtility.load({ module: '@venizia/__not-installed-probe__' });\n`,
     );
 
     const report = await runProbe({

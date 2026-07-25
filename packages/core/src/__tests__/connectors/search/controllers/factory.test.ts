@@ -1,6 +1,4 @@
-// Must precede the controllers/factory import below: import order avoids a circular-import
-// TDZ error (BaseRestController not yet defined when health-check's controller extends it) -
-// same guard `repositories/integration-wiring.test.ts` uses for the CRUD factory.
+// Must precede the controllers/factory import below: avoids a circular-import TDZ error (BaseRestController not yet defined when health-check's controller extends it).
 import '@/base/applications';
 
 import { describe, expect, test } from 'bun:test';
@@ -14,8 +12,7 @@ import { HTTP } from '@venizia/ignis-helpers';
 import { FakeSearchDataSource, ProductDocument } from '../repositories/fake-search-connector';
 
 // Own datasource class: the model registry is a process-wide singleton keyed by class name.
-// `FakeSearchEngineHelper.multiSearch()` has a `(): Promise<never>` signature no subclass override
-// can widen (return-type covariance), so it is patched onto the fake instance directly.
+// `FakeSearchEngineHelper.multiSearch()` returns `Promise<never>`, which no subclass override can widen, so it is patched onto the fake instance directly.
 class SearchFactoryDataSource extends FakeSearchDataSource {
   multiSearchCalls: Array<{ searches: unknown[]; union?: boolean; commonParams?: unknown }> = [];
   multiSearchResponse: unknown = { results: [{ found: 2, isFoundExact: true, hits: [] }] };
@@ -34,8 +31,7 @@ class SearchFactoryDataSource extends FakeSearchDataSource {
   }
 }
 
-// Distinctly named (not `ProductSearchRepository`, already used by the CRUD-factory wiring test
-// loaded in the same process) - MetadataRegistry keys repository bindings by class name.
+// Distinctly named because MetadataRegistry keys repository bindings by class name and the CRUD-factory wiring test loaded in the same process already uses `ProductSearchRepository`.
 @repository({ model: ProductDocument, dataSource: SearchFactoryDataSource })
 class SearchFactoryProductRepository extends DefaultSearchRepository {}
 
@@ -70,9 +66,7 @@ describe('SearchControllerFactory.defineSearchController', () => {
     const controller = new ProductSearchController(repositoryInstance);
     await controller['binding']();
 
-    // OpenAPIHono.openapi() registers more than one internal `.routes` entry per call (pre-existing
-    // Hono behavior, also visible on ControllerFactory.defineCrudController) - dedupe via Set, same
-    // convention as `repositories/integration-wiring.test.ts`'s CRUD-factory route-count assertion.
+    // OpenAPIHono.openapi() registers more than one internal `.routes` entry per call (pre-existing Hono behavior), so route counts dedupe via Set.
     const distinctRoutes = new Set(
       controller.router.routes.map(route => `${route.method} ${route.path}`),
     );
@@ -151,8 +145,7 @@ describe('SearchControllerFactory.defineSearchController', () => {
 
     await controller['multiSearch']({ context });
 
-    // Controller passes the friendly body through; the datasource maps `query` -> wire `q` and
-    // injects the collection's @model hiddenProperties (`secret`) into exclude_fields.
+    // The controller passes the friendly body through; the datasource maps `query` -> wire `q` and injects the collection's @model hiddenProperties (`secret`) into exclude_fields.
     expect(dataSource.multiSearchCalls).toEqual([
       {
         searches: [{ collection: 'products', q: 'foo', ['exclude_fields']: 'secret' }],

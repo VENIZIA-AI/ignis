@@ -72,10 +72,7 @@ export abstract class AbstractRestController<
     return this.router;
   }
 
-  /**
-   * Registers routes defined via decorators (@get, @post, etc.) from the metadata registry.
-   * `paths` selects which of them by shape - see the two-phase call in {@link configure}.
-   */
+  /** Registers decorator-defined routes from the metadata registry; `paths` selects them by shape - see the two-phase call in {@link configure}. */
   registerRoutesFromRegistry(opts?: { paths?: 'static' | 'param' | 'all' }): void {
     const { paths = 'all' } = opts ?? {};
 
@@ -96,8 +93,7 @@ export abstract class AbstractRestController<
         continue;
       }
 
-      // Dynamic dispatch by decorator-recorded method name - the controller class has no static
-      // index signature for this, so reading it can't be typed narrower than `unknown` here.
+      // Dynamic dispatch by decorator-recorded method name - the controller class has no static index signature, so this read cannot be typed narrower than `unknown`.
       const handler = (this as Record<string | symbol, unknown>)[methodName];
       if (typeof handler !== 'function') {
         logger.warn('Route method "%s" not found on controller', String(methodName));
@@ -124,9 +120,7 @@ export abstract class AbstractRestController<
     const configureOptions = opts ?? {};
     logger.info('START | Binding controller | Options: %j', configureOptions);
 
-    // Hono matches in registration order: a param route swallows a same-shaped static path
-    // registered after it. So registration runs by SHAPE, not source - every static path first,
-    // then binding()'s routes, then decorator param routes last (`/{id}` early would eat `/count`).
+    // Hono matches in registration order, so registration runs by SHAPE not source: every static path first, then binding()'s routes, then decorator param routes last (`/{id}` early would eat `/count`).
     this.registerRoutesFromRegistry({ paths: 'static' });
     await this.binding();
     this.registerRoutesFromRegistry({ paths: 'param' });
@@ -156,16 +150,17 @@ export abstract class AbstractRestController<
       }
     }
 
-    if (restConfig.middleware) {
-      const extraMws = Array.isArray(restConfig.middleware)
-        ? restConfig.middleware
-        : [restConfig.middleware];
+    const configuredMiddleware = restConfig.middleware;
+    const extraMws = Array.isArray(configuredMiddleware)
+      ? configuredMiddleware
+      : [configuredMiddleware];
 
-      for (const mw of extraMws) {
-        if (mw) {
-          mws.push(mw);
-        }
+    for (const mw of extraMws) {
+      if (!mw) {
+        continue;
       }
+
+      mws.push(mw);
     }
 
     return { restConfig, security, mws };
@@ -176,9 +171,7 @@ export abstract class AbstractRestController<
     const { restConfig, security, mws } = this.buildRouteMiddlewares(opts);
     const { tags = [] } = restConfig;
 
-    // `restConfig` already omitted `authenticate`/`authorize` via destructuring (they're this
-    // library's fields, not Hono's `createRoute` ones); reassembling it with the injected
-    // middleware/tags/security doesn't structurally overlap RouteConfig enough to assert directly.
+    // `restConfig` already omitted `authenticate`/`authorize` (this library's fields, not Hono's `createRoute` ones); reassembled with the injected middleware/tags/security it no longer structurally overlaps RouteConfig enough to assert directly.
     return createRoute<string, RouteConfig>(
       Object.assign({}, restConfig, {
         middleware: mws,

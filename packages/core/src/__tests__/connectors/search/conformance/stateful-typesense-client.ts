@@ -21,10 +21,7 @@ const conflictError = (message: string): Error => {
   return error;
 };
 
-/**
- * Minimal `filter_by` evaluator: enough for `score:>N` and `score:>=N`. The connector never parses
- * filters - it only forwards them - so the parsing belongs here, in the fake, on purpose.
- */
+/** Minimal `filter_by` evaluator (`score:>N`, `score:>=N`): the connector only forwards filters, never parses them, so the parsing belongs here on purpose. */
 const matchesFilter = (opts: { document: Record<string, unknown>; filter: string }): boolean => {
   const match = /^(\w+):(>=|<=|!=|>|<|=)(.+)$/.exec(opts.filter.trim());
 

@@ -187,8 +187,7 @@ export class BaseNetworkTcpClient<
       this.client = null;
     }
 
-    // The listeners close over THIS socket: `this.client` is nulled by disconnect() and swapped by a
-    // reconnect, so reading it back would drop the close hook - or hand it the wrong socket.
+    // The listeners close over THIS socket: `this.client` is nulled by disconnect() and swapped by a reconnect, so reading it back would drop the close hook - or hand it the wrong socket.
     const client = this.createClientFn(this.options, () => {
       this.onConnected?.({ client });
     });

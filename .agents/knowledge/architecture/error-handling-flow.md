@@ -52,8 +52,23 @@ reaches the caller as a bogus 503. The error middleware uses the same test inlin
 
 ## Classification in `AppErrorMiddleware`
 
-Every error is logged in full first, with the request ID, method, path and URL - the log is where the
-detail lives, never the response. Then it is routed:
+Every error is logged once the status is known, so the line carries it:
+`REQUEST ERROR | 404 | GET /orders/9`. The log is where the detail lives, never the response.
+
+The error is rendered by `ErrorPrettier.format` (helpers, `logger/formatting`), NOT logged raw: a
+`pg`/`drizzle` failure carries the full query, its params and a stack that each embed the same SQL,
+so inspecting the raw object floods the log with the same statement several times over.
+`ErrorPrettier.summarize` keeps `name`, the full `message`, `code`, the `pg` diagnostics
+(`hint`/`detail`/`table`/`constraint`), root stack frames and a flattened `cause` chain, dropping the
+rest; `ErrorPrettier.format` renders that as a block, plus the caller's `messageCode` and `extra`.
+
+Two rules the block follows. Frames appear only for an `UNEXPECTED` failure - an intentional
+`getError` knows why it failed, so its frames are HTTP-framework plumbing. `extra` is redacted, being
+the one field that can carry a secret-named key.
+
+The log level defaults to `error`, but a throw site can lower it by passing `logLevel` to `getError`
+(an expected `404`/`409` logs at `warn` or `info`, `emerg` for a true emergency); a malformed value
+falls back to `error`. Then it is routed:
 
 - **ZodError** -> 422, formatted by `formatZodError`.
 - **DB client error** -> 400. `isDatabaseClientError` accepts only SQLSTATE classes caused by the

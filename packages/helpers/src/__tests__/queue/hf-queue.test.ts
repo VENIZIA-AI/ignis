@@ -76,8 +76,7 @@ describe('HfQueueHelper — generic FIFO queue (O(1) enqueue/dequeue/cancel)', (
     expect(q.drain()).toEqual(['a', 'b']);
     expect(q.size).toBe(0);
 
-    // A drained owner (e.g. a pool waiter whose acquire timer fires after destroy()) still holds its
-    // node handle. dequeue() marks consumed nodes so a late cancel() is a no-op; drain() must too.
+    // A drained owner (e.g. a pool waiter whose acquire timer fires after destroy()) still holds its node handle; dequeue() marks consumed nodes so a late cancel() is a no-op, and drain() must too.
     q.cancel({ node: a });
     q.cancel({ node: b });
     expect(q.size).toBe(0);

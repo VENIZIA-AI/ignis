@@ -104,9 +104,7 @@ export class SequentialQueueHelper<TElementPayload> extends BaseHelper {
 
     this.processingEvents.add(this.getElementAt(0));
 
-    // A failing handler must never leave the queue PROCESSING forever: the element would stay LOCKED at
-    // the head, nextMessage() would refuse every dispatch and storage would grow without bound. The
-    // handler owns its own retry policy - here the element is logged, dropped and the queue moves on.
+    // A failing handler must never leave the queue PROCESSING forever: the element would stay LOCKED at the head, nextMessage() would refuse every dispatch and storage would grow without bound. The handler owns its retry policy - here the element is logged, dropped, and the queue moves on.
     await awaitHook({
       logger: this.logger,
       scope: this.handleMessage.name,
@@ -294,8 +292,5 @@ export class SequentialQueueHelper<TElementPayload> extends BaseHelper {
   }
 }
 
-/**
- * @deprecated Renamed to {@link SequentialQueueHelper}. This alias is kept for backward compatibility
- * and may be removed in a future major version — prefer `SequentialQueueHelper`.
- */
+/** @deprecated Renamed to {@link SequentialQueueHelper} - alias kept for backward compatibility, may be removed in a future major version. */
 export { SequentialQueueHelper as QueueHelper };

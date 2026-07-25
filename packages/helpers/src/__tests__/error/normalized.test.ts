@@ -122,8 +122,7 @@ describe('cause reaches Error.cause, not extra', () => {
     const root = new Error('root cause');
     const error = getError({ message: 'wrap', cause: root });
 
-    // Previously `cause` was swept into `extra.cause` by the catchall and `Error.cause` stayed
-    // undefined, so the middleware - which reads `error.cause` - never surfaced it.
+    // `cause` used to be swept into `extra.cause` with `Error.cause` left undefined, so the middleware - which reads `error.cause` - never surfaced it.
     expect(error.cause).toBe(root);
     expect(error.extra).toBeUndefined();
   });

@@ -14,8 +14,7 @@ export const GrpcControllerMetadataMixin = <BaseClass extends TMixinTarget<_Meta
     }): void {
       const { target, methodName, configs } = opts;
 
-      // Copy-on-write, same reason as RestControllerMetadataMixin.addRoute: getRpcs() walks the
-      // prototype chain, so mutating the Map it returns would leak a subclass's rpcs onto its base.
+      // Copy-on-write, same reason as RestControllerMetadataMixin.addRoute: getRpcs() walks the prototype chain, so mutating the Map it returns would leak a subclass's rpcs onto its base.
       const inherited = this.getRpcs({ target });
       const rpcs: Map<string | symbol, IRpcMetadata> =
         Reflect.getOwnMetadata(MetadataKeys.CONTROLLER_GRPC_ROUTE, target) ??

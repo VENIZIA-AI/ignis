@@ -3,9 +3,7 @@ import type { AnyType } from '@venizia/ignis-helpers';
 import { MeilisearchConnector } from '@/connectors/meilisearch/connector';
 import { FakeMeilisearchClient } from './connector/fake-client';
 
-/** Creating an existing index is the NORMAL path on restart with auto-provisioning. Meilisearch
- * reports it as a FAILED TASK (`index_already_exists`), not a thrown API error - the sanitized-503
- * wrap must not destroy the code, or the already-exists tolerance can never fire. */
+/** Creating an existing index is the NORMAL path on restart with auto-provisioning, and Meilisearch reports it as a FAILED TASK (`index_already_exists`), not a thrown API error - the sanitized-503 wrap must not destroy the code or the tolerance can never fire. */
 const buildConnector = (client: FakeMeilisearchClient) => {
   return new MeilisearchConnector({
     name: 'reprovision-connector',
@@ -36,8 +34,7 @@ describe('createCollection is idempotent - a second boot must not die', () => {
     });
     const connector = buildConnector(client);
 
-    // The engine accepted the request (202) and then failed the TASK - the shape a live Meilisearch
-    // actually produces. A fake that throws synchronously instead would hide this entirely.
+    // A live Meilisearch accepts the request (202) and then fails the TASK; a fake that throws synchronously instead would hide this entirely.
     expect(await connector.createCollection({ schema: plan })).toBeUndefined();
   });
 

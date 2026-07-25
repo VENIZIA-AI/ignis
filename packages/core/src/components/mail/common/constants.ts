@@ -5,10 +5,7 @@ export class MailDefaults {
   static readonly FALLBACK_FROM = 'noreply@example.com';
 }
 
-/**
- * Built via {@link MessageCode.build}: `ApplicationError` lower-cases codes, so a SCREAMING_CASE
- * literal here would reach the client in a spelling no const in this file matches.
- */
+/** Built via {@link MessageCode.build}: `ApplicationError` lower-cases codes, so a SCREAMING_CASE literal would reach the client in a spelling no const here matches. */
 export class MailErrorCodes {
   static readonly INVALID_CONFIGURATION = MessageCode.build({
     parts: ['core', 'mail', 'invalid_configuration'],

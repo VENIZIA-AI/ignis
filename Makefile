@@ -3,15 +3,16 @@
         lint lint-all lint-packages lint-examples \
         lint-dev-configs lint-inversion lint-helpers lint-boot lint-core lint-docs-mcp \
         okf-check okf-gen okf-coverage okf-viz \
+        catalog-check \
         update update-all update-core update-dev-configs update-docs-mcp update-helpers update-inversion update-boot
 
 DEFAULT_GOAL := help
 
 all: build
 
-# ============================================================================
+# ----------------------------------------------------------------------------
 # INSTALL & CLEAN
-# ============================================================================
+# ----------------------------------------------------------------------------
 install:
 	@echo "📥 Installing dependencies (with force-update via postinstall)..."
 	@bun install
@@ -21,17 +22,17 @@ clean:
 	@echo "🧹 Cleaning all packages..."
 	@bun run --filter "*" clean
 
-# ============================================================================
+# ----------------------------------------------------------------------------
 # GIT HOOKS
-# ============================================================================
+# ----------------------------------------------------------------------------
 setup-hooks:
 	@echo "🔧 Setting up git hooks..."
 	@git config core.hooksPath .githooks
 	@echo "✅ Git hooks configured to use .githooks directory."
 
-# ============================================================================
+# ----------------------------------------------------------------------------
 # KNOWLEDGE BUNDLE (.agents/knowledge)
-# ============================================================================
+# ----------------------------------------------------------------------------
 okf-check:
 	@bun .agents/knowledge-tools/okf.ts check
 
@@ -47,9 +48,15 @@ okf-viz:
 agent-setup:
 	@bun .agents/plugin/setup.ts
 
-# ============================================================================
+# ----------------------------------------------------------------------------
+# DEPENDENCY CATALOG (root workspaces.catalog)
+# ----------------------------------------------------------------------------
+catalog-check:
+	@bun scripts/check-catalog.ts
+
+# ----------------------------------------------------------------------------
 # BUILD TARGETS
-# ============================================================================
+# ----------------------------------------------------------------------------
 build: build-all
 
 build-all: core docs docs-mcp
@@ -86,10 +93,10 @@ docs-mcp: dev-configs
 	@echo "📦 Rebuilding @venizia/ignis-docs (MCP Server)..."
 	@bun run --filter "@venizia/ignis-docs" mcp:rebuild
 
-# ============================================================================
+# ----------------------------------------------------------------------------
 # FORCE UPDATE TARGETS (fetch latest from NPM registry)
 # Note: 'bun install' triggers postinstall which runs force-update automatically
-# ============================================================================
+# ----------------------------------------------------------------------------
 update: install
 
 update-all: install
@@ -118,9 +125,9 @@ update-boot:
 	@echo "🔄 Force updating @venizia/ignis-boot..."
 	@bun run --filter "@venizia/ignis-boot" force-update
 
-# ============================================================================
+# ----------------------------------------------------------------------------
 # LINT TARGETS
-# ============================================================================
+# ----------------------------------------------------------------------------
 lint: lint-packages
 	@echo "✅ Linting completed."
 
@@ -159,9 +166,9 @@ lint-docs-mcp:
 	@echo "🔍 Linting @venizia/ignis-docs (MCP Server)..."
 	@bun run --filter "@venizia/ignis-docs" lint
 
-# ============================================================================
+# ----------------------------------------------------------------------------
 # HELP
-# ============================================================================
+# ----------------------------------------------------------------------------
 help:
 	@echo "Makefile for the @venizia/lib Monorepo"
 	@echo ""
@@ -212,6 +219,9 @@ help:
 	@echo "  okf-coverage  - Report bundle coverage against the source inventory."
 	@echo "  okf-viz       - Build the offline knowledge-graph explorer."
 	@echo "  agent-setup   - Link your agent's tool file + skills to the tracked AGENTS.md."
+	@echo ""
+	@echo "Dependencies:"
+	@echo "  catalog-check - Gate: every catalogued dep is referenced as \"catalog:\", none drifted."
 	@echo ""
 	@echo "Other:"
 	@echo "  help          - Show this help message."

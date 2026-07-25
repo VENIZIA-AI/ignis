@@ -6,8 +6,7 @@ export interface ITransactionProbe {
   begin: (opts?: { failOn?: 'COMMIT' | 'ROLLBACK' }) => Promise<ITransaction>;
 }
 
-/** The three `ITransaction` rules as a suite every connector's transaction must pass - notably the
- * failure-noop rollback that prevents original-error masking. */
+/** The three `ITransaction` rules as a suite every connector's transaction must pass - notably the failure-noop rollback that prevents original-error masking. */
 export const runTransactionContract = (opts: { connector: string; probe: ITransactionProbe }) => {
   const { connector, probe } = opts;
 
@@ -78,8 +77,7 @@ export const runTransactionContract = (opts: { connector: string; probe: ITransa
       }
       expect(commitError).toBeDefined();
 
-      // The canonical caller shape: `catch (error) { await transaction.rollback(); throw error; }`.
-      // A throw here would replace `commitError` with a meaningless "already ended".
+      // The canonical caller shape is `catch (error) { await transaction.rollback(); throw error; }`, where a throw here would replace `commitError` with a meaningless "already ended".
       await transaction.rollback();
     });
 

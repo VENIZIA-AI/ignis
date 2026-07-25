@@ -46,8 +46,7 @@ export const formatZodError = (opts: {
     message = primaryIssue.message;
   }
 
-  // A ZodError we could not parse into issues yields no code of its own; the response still
-  // carries one, so no error response anywhere is missing the field a client branches on.
+  // A ZodError we could not parse into issues yields no code of its own; the response still carries one, so no error response is ever missing the field a client branches on.
   const resolvedMessageCode = MessageCode.resolve(messageCode);
 
   return {

@@ -4,11 +4,7 @@ import { createRequire } from 'node:module';
 import { AbstractLogger } from './base';
 import { ILogger, ILoggerProvider, TLogLevel } from './common';
 
-/**
- * Stable wrapper the factory hands out. The delegate resolves lazily (first log call or `use()`),
- * never at construction, so no provider loads until actually needed. Mutual reference with
- * LoggerFactory is by design - hence the `no-use-before-define` disables.
- */
+/** Stable wrapper the factory hands out; the delegate resolves lazily (first log call or `use()`), never at construction, so no provider loads until needed. Mutual reference with LoggerFactory is by design - hence the `no-use-before-define` disables. */
 class LoggerDelegator extends AbstractLogger {
   private _delegate?: ILogger;
 
@@ -73,8 +69,7 @@ export class LoggerFactory {
     return (this.provider ??= this.loadDefaultProvider());
   }
 
-  // winston is an optional peer; compiled binaries must register a provider explicitly because
-  // only a class reference carries a provider into a bundle.
+  // winston is an optional peer; compiled binaries must register a provider explicitly because only a class reference carries a provider into a bundle.
   private static loadDefaultProvider(): ILoggerProvider {
     try {
       return createRequire(__filename)('./winston').WinstonLogger;

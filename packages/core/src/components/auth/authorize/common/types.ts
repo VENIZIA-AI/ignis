@@ -29,10 +29,7 @@ export interface IAuthorizationRequest<TAction = string, TResource = string> {
   action: TAction;
   resource: TResource;
   conditions?: TAuthorizationConditions;
-  /**
-   * Resolved domain scope for this request, as a casbin domain string `"<DomainType>_<id>"`
-   * (e.g. `"Merchant_7"`), or the `"SYSTEM_WIDE"` sentinel to enforce across all domains.
-   */
+  /** Resolved domain scope for this request as a casbin domain string `"<DomainType>_<id>"` (e.g. `"Merchant_7"`), or the `"SYSTEM_WIDE"` sentinel to enforce across all domains. */
   domain?: string;
 }
 
@@ -58,10 +55,7 @@ export type TAuthorizationDomainResolver<E extends Env = Env> = (opts: {
   context: TContext<E, string>;
 }) => ValueOrPromise<TNullable<{ type: string; id: IdType }>>;
 
-/**
- * Builds rules and evaluates requests. Cache management (`invalidateUserCache`/`rebuildUserCache`)
- * is OPTIONAL - only on per-user-caching enforcers; the registry feature-detects it at runtime.
- */
+/** Builds rules and evaluates requests. Cache management (`invalidateUserCache`/`rebuildUserCache`) is OPTIONAL - only on per-user-caching enforcers; the registry feature-detects it at runtime. */
 export interface IAuthorizationEnforcer<
   E extends Env = Env,
   TAction = string,
@@ -155,10 +149,7 @@ export interface ICasbinEnforcerOptions<
     domain?: string;
   };
 
-  /**
-   * Domain-scoped RBAC model: requests become 4-token `(subject, domain, object, action)` and the
-   * enforcer registers the domain matcher (`keyMatch` on `g`) + resource matcher (`objectMatch`).
-   */
+  /** Domain-scoped RBAC model: requests become 4-token `(subject, domain, object, action)` and the enforcer registers the domain matcher (`keyMatch` on `g`) + resource matcher (`objectMatch`). */
   isScoped?: boolean;
 
   /** Number of pooled enforcers (each request enforces on its own). Default 16. */
@@ -175,10 +166,7 @@ export interface IAuthorizeOptions {
   domainResolver?: TAuthorizationDomainResolver;
 }
 
-/**
- * Shape of `PolicyDefinition.metadata` on a subset ("custom") grant. `ops` holds bare method
- * names (e.g. `"find"`), not full permission codes.
- */
+/** Shape of `PolicyDefinition.metadata` on a subset ("custom") grant. `ops` holds bare method names (e.g. `"find"`), not full permission codes. */
 export type TCustomGrantMetadata = { ops: string[] };
 
 export type TGrantIntent = { tier: TAuthorizationAction } | { ops: string[] };

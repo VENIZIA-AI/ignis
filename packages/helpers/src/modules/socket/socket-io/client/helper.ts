@@ -17,8 +17,7 @@ export class SocketIOClientHelper extends BaseHelper {
   private client: Socket;
   private state: TSocketIOClientState = SocketIOClientStates.UNAUTHORIZED;
 
-  // subscribe() registers a wrapper, never the caller handler: without this map unsubscribe()
-  // has nothing to hand to socket.off() and the listener stays bound forever
+  // subscribe() registers a wrapper, never the caller handler: without this map unsubscribe() has nothing to hand to socket.off() and the listener stays bound forever
   private wrappedHandlers: Map<string, Map<TSocketIOEventHandler<any>, (data: any) => void>> =
     new Map();
 

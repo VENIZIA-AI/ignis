@@ -25,9 +25,7 @@ export class SearchModes {
 }
 export type TSearchMode = TConstValue<typeof SearchModes>;
 
-/** Reassembled from FilterSchema's atomic pieces minus `include` (search has no relations) so
- * `z.infer` stays finite - embedding the recursive FilterSchema collapses TS optional-key inference
- * for every sibling field, silently turning `filter` into a required `any`. */
+/** Reassembled from FilterSchema's atomic pieces minus `include` (search has no relations) so `z.infer` stays finite - embedding the recursive FilterSchema collapses optional-key inference for every sibling field, silently turning `filter` into a required `any`. */
 const SearchFilterSchema = z
   .object({
     where: WhereSchema.optional(),
@@ -43,9 +41,7 @@ const SearchFilterSchema = z
       'Search-scoped filter - same shape as the repository TFilter minus include (search has no relations)',
   });
 
-/** Shape object (NOT a z.object) so it spreads into each mode's z.object; `raw` mode skips it.
- * Only cross-engine params live here - engine-specific tuning goes through `engineParams`, keyed
- * by the engine's OWN wire names and merged verbatim by each dialect's `toWireParams`. */
+/** Shape object (NOT a z.object) so it spreads into each mode's z.object; `raw` mode skips it. Only cross-engine params live here - engine-specific tuning goes through `engineParams`. */
 const commonSearchParamsShape = {
   facetBy: z.array(z.string()).optional(),
   facetQuery: z.string().optional(),
@@ -63,8 +59,7 @@ const commonSearchParamsShape = {
 
   queryByWeights: z.array(z.number()).optional(),
 
-  /** Escape hatch for engine-specific tuning: keys are the engine's OWN wire names (`num_typos`,
-   * not `numTypos`), merged verbatim (unvalidated) into the wire query after every neutral param. */
+  /** Escape hatch for engine-specific tuning: keys are the engine's OWN wire names (`num_typos`, not `numTypos`), merged verbatim and unvalidated after every neutral param. */
   engineParams: z.record(z.string(), z.unknown()).optional(),
 };
 
@@ -123,9 +118,7 @@ export const SearchInputSchema = z.discriminatedUnion('mode', [
 ]);
 export type TSearchInput = z.infer<typeof SearchInputSchema>;
 
-/** One collection's query within a multi-search - same friendly field names as `search()`.
- * `filterBy` is a raw engine filter string: cross-collection search has no per-collection model to
- * translate a `TFilter` against. The datasource maps entries to snake_case wire via the dialect. */
+/** One collection's query within a multi-search - same friendly field names as `search()`. `filterBy` is a raw engine filter string because cross-collection search has no per-collection model to translate a `TFilter` against; the datasource maps entries to wire form via the dialect. */
 export const MultiSearchEntrySchema = z
   .object({
     collection: z.string(),
@@ -156,8 +149,7 @@ const MULTI_SEARCH_LIST_FIELDS = new Set([
   'queryByWeights',
 ]);
 
-/** Friendly multi-search params -> `ISearchQuery`: list fields comma-joined, the rest pass through.
- * Keeps `search()` and `multiSearch()` on one friendly-to-wire path. Also used for `commonParams`. */
+/** Friendly multi-search params -> `ISearchQuery`: list fields comma-joined, the rest pass through; keeps `search()`, `multiSearch()` and `commonParams` on one friendly-to-wire path. */
 export const toSearchQueryParams = (input: Record<string, unknown>): Partial<ISearchQuery> => {
   const params: Record<string, unknown> = {};
 

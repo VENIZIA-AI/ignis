@@ -7,10 +7,7 @@ export class MessageCode {
   static readonly MIN_SEGMENTS = 2;
   static readonly DEFAULT = 'core.system_error';
 
-  /**
-   * Builds a code from its segments. Throws on a malformed one - codes are declared at module scope,
-   * so a bad code fails the process at import instead of shipping dead into production.
-   */
+  /** Builds a code from its segments, throwing on a malformed one - codes are declared at module scope, so a bad code fails the process at import instead of shipping dead into production. */
   static build(opts: { parts: Array<string> }): string {
     const { parts } = opts;
 
@@ -33,10 +30,7 @@ export class MessageCode {
     return parts.join(this.SEPARATOR).toLowerCase();
   }
 
-  /**
-   * True when `code` is well-formed. A guard for a code arriving from outside, so it takes
-   * `unknown`: one that throws on the very input it exists to screen is not a guard.
-   */
+  /** True when `code` is well-formed. Takes `unknown` because it guards codes arriving from outside - a guard that throws on the very input it exists to screen is not a guard. */
   static isValid(code: unknown): boolean {
     if (typeof code !== 'string') {
       return false;

@@ -12,8 +12,7 @@ import {
   ProductDocument,
 } from '../connectors/search/repositories/fake-search-connector';
 
-/** Postgres readable with every engine-touching seam of `find()` stubbed out, so the test exercises
- * the real range-building tail of `find()` without a database. */
+/** Postgres readable with every engine-touching seam of `find()` stubbed out, so the test exercises the real range-building tail of `find()` without a database. */
 class StubbedRelationalRepository extends ReadableRelationalRepository {
   rows: Array<Record<string, unknown>> = [];
   total = 0;
@@ -73,8 +72,7 @@ describe('shared AbstractRepository core helpers', () => {
         { entityClass: ProductDocument },
       );
 
-      // Returns undefined when the call did NOT throw - which fails the expectation below just as
-      // loudly as a wrong code, without needing a raw `new Error` guard.
+      // Returns undefined when the call did NOT throw, which fails the expectation below just as loudly as a wrong code, without needing a raw `new Error` guard.
       const denialCodeOf = (repository: AnyType): string | undefined => {
         try {
           repository.create({ data: {} });
@@ -88,8 +86,7 @@ describe('shared AbstractRepository core helpers', () => {
         denialCodeOf(repository),
       );
 
-      // The literal value is the contract: clients branch on the code, never on the message text.
-      // Changing this string is a breaking change for every caller that maps it.
+      // The literal value is the contract: clients branch on the code, never on the message text, so changing this string is a breaking change for every caller that maps it.
       expect(denialCodes).toEqual([
         'core.repository.operation_not_allowed',
         'core.repository.operation_not_allowed',

@@ -2,9 +2,7 @@ import { describe, expect, test } from 'bun:test';
 import type { AnyType } from '@/common/types';
 import { formatLogMessage } from '@/modules/logger';
 
-/** `util.format` hard-codes `depth: 0` for `%s`, collapsing the part worth reading (cause, driver
- * payload, `extra`) to `[Object]`; no inspect option overrides it, so the arg must be inspected
- * into a string before it reaches `%s`. Pins that fix and that other placeholders still work. */
+/** `util.format` hard-codes `depth: 0` for `%s` and no inspect option overrides it, collapsing cause / driver payload / `extra` to `[Object]` - so the arg must be inspected into a string before it reaches `%s`. */
 const buildDeepError = () => {
   const error = new Error('boom') as Error & { statusCode?: number; extra?: unknown };
   error.statusCode = 400;

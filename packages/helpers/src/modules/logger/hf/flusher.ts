@@ -106,20 +106,23 @@ export class HfLogFlusher {
         lines.push(renderEntry(ring, this.flushIndex++));
       }
 
-      try {
-        // THfSink is typed `=> void`, but an async sink still returns a thenable at runtime -
-        // await it inside the try so its rejection is caught here, never unhandled.
-        const delivered = this.sink({ lines, dropped }) as AnyType;
-        if (isPromiseLike(delivered)) {
-          await delivered;
-        }
-      } catch (error) {
-        console.error('[HfLogFlusher][drain] Sink failed | error: ', error);
-      }
+      await this.deliverBatch({ lines, dropped });
 
       if (this.flushIndex < ring.writeIndex) {
         await new Promise(resolve => setImmediate(resolve));
       }
+    }
+  }
+
+  private async deliverBatch(opts: { lines: Array<string>; dropped: number }): Promise<void> {
+    try {
+      // THfSink is typed `=> void`, but an async sink still returns a thenable at runtime - await it inside the try so its rejection is caught here, never unhandled.
+      const delivered = this.sink(opts) as AnyType;
+      if (isPromiseLike(delivered)) {
+        await delivered;
+      }
+    } catch (error) {
+      console.error('[HfLogFlusher][drain] Sink failed | error: ', error);
     }
   }
 

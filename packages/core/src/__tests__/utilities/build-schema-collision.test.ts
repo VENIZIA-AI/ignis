@@ -2,9 +2,7 @@ import { beforeEach, describe, expect, test } from 'bun:test';
 import type { AnyType } from '@venizia/ignis-helpers';
 import { MetadataRegistry } from '@/helpers/inversion';
 
-/** `getModels()` must read straight off the class, never round-trip through the NAME-keyed
- * `modelRegistry`: two `@model` classes resolving to the same key collapse onto one entry, and one
- * datasource silently gets the OTHER's schema and relations at boot, with no error. */
+/** `getModels()` must read straight off the class, never round-trip through the NAME-keyed `modelRegistry`: two `@model` classes resolving to the same key collapse onto one entry, and one datasource silently gets the OTHER's schema and relations at boot, with no error. */
 const buildModelClass = (opts: { name: string; schema: unknown }): AnyType => {
   const { name, schema } = opts;
 

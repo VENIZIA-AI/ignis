@@ -18,10 +18,7 @@ const BaseRegistry = GrpcControllerMetadataMixin(
   ),
 );
 
-/**
- * Central metadata registry for storing and retrieving decorator metadata.
- * Enhanced with model registry, repository bindings, and auto-discovery capabilities.
- */
+/** Central metadata registry: decorator metadata, the model registry, repository bindings and auto-discovery. */
 export class MetadataRegistry extends BaseRegistry {
   private static instance: MetadataRegistry;
 

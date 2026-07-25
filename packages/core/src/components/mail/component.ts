@@ -89,8 +89,7 @@ export class MailComponent extends BaseComponent {
     });
     const mailOptions = this.application.get<TMailOptions>({ key: MailKeys.MAIL_OPTIONS });
 
-    // Only the provider is logged: the options carry SMTP / API credentials, which must never reach
-    // a log sink.
+    // Only the provider is logged: the options carry SMTP / API credentials, which must never reach a log sink.
     this.logger
       .for(this.createAndBindInstances.name)
       .info('Mail provider: %s', mailOptions.provider);
@@ -103,8 +102,7 @@ export class MailComponent extends BaseComponent {
       key: MailKeys.MAIL_QUEUE_EXECUTOR_PROVIDER,
     });
 
-    // Queueing is opt-in: an application that only sends mail binds no executor config, and gets the
-    // direct (inline) executor rather than a "binding is not bounded" crash at boot.
+    // Queueing is opt-in: with no executor config bound, fall back to the direct (inline) executor instead of a "binding is not bounded" crash at boot.
     const queueConfig = this.application.get<IMailQueueExecutorConfig>({
       key: MailKeys.MAIL_QUEUE_EXECUTOR_CONFIG,
       isOptional: true,

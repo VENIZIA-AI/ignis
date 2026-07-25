@@ -27,13 +27,10 @@ export class DataSourceDrivers {
   }
 }
 
-// `(string & {})` keeps autocomplete for the known DataSourceDrivers values while still accepting
-// any other engine-driver string literal (e.g. a third-party or in-house driver name).
+// `(string & {})` keeps autocomplete for the known DataSourceDrivers values while still accepting any other engine-driver string literal.
 export type TDataSourceDriver = TConstValue<typeof DataSourceDrivers> | (string & {});
 
-/** A driver CLASS, named by `@datasource({ driver })` - the class reference is what carries the
- * peer package into the bundle (a name string carries nothing, and a bare side-effect import may be
- * deleted by a bundler). Untyped: `IRelationalDriver` lives under `connectors/`, off-limits to `base/`. */
+/** A driver CLASS, named by `@datasource({ driver })` - the class reference is what carries the peer package into the bundle (a name string carries nothing, a bare side-effect import may be dropped by a bundler). Untyped because `IRelationalDriver` lives under `connectors/`, off-limits to `base/`. */
 export type TDataSourceDriverClass = TClass<AnyType>;
 
 export type TAnyDataSourceSchema = Record<string, any>;
@@ -52,8 +49,7 @@ export interface IDataSource<
   getSchema(): Schema;
 }
 
-/** Neutral transaction options. Isolation levels are engine vocabulary, so `isolationLevel` stays a
- * loose string here; connectors narrow it in their own `ITransactionOptions` extension. */
+/** Neutral transaction options - isolation levels are engine vocabulary, so `isolationLevel` stays a loose string here and connectors narrow it in their own `ITransactionOptions` extension. */
 export interface ITransactionOptions {
   isolationLevel?: string;
 }

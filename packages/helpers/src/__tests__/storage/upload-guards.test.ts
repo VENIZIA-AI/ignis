@@ -82,8 +82,7 @@ describe('BaseStorageHelper.upload - the two guards on the shared path', () => {
   });
 
   test('a normalizeNameFn escaping the bucket is rejected before anything is written', async () => {
-    // The original name passes validation; the traversal is injected by the caller's own normalizer,
-    // whose output is what DiskHelper joins under the bucket root.
+    // The original name passes validation; the traversal is injected by the caller's own normalizer, whose output is what DiskHelper joins under the bucket root.
     const task = helper.upload({
       bucket: 'assets',
       files: [buildFile()],
@@ -95,8 +94,7 @@ describe('BaseStorageHelper.upload - the two guards on the shared path', () => {
   });
 
   test('a configured maxFolderDepth is HONOURED - not silently replaced by the hard default of 2', async () => {
-    // Regression: the helper used to re-validate folderPath against its own hardcoded default of 2
-    // even when the app configured maxFolderDepth higher, so depth-4 requests spooled the whole body to disk before failing.
+    // Regression: the helper re-validated folderPath against its own hardcoded default of 2 even when the app configured maxFolderDepth higher, so depth-4 requests spooled the whole body to disk before failing.
     const results = await helper.upload({
       bucket: 'assets',
       files: [buildFile({ folderPath: 'a/b/c/d' })],

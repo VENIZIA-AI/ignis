@@ -5,9 +5,7 @@ import { join } from 'node:path';
 // `__dirname`, not `import.meta`: this package emits CommonJS.
 const CORE_ROOT = join(__dirname, '../../../..');
 
-/** Counts driver packages loaded into a FRESH process after importing `entry`. A subprocess is
- * mandatory: `bun test` shares one module registry, so a sibling test importing a driver would make
- * this pass for the wrong reason. */
+/** Counts driver packages loaded into a FRESH process after importing `entry`. A subprocess is mandatory: `bun test` shares one module registry, so a sibling test importing a driver would make this pass for the wrong reason. */
 const countDriverModules = async (opts: {
   entry: string;
   /** Substring matched against every loaded module path, e.g. `/node_modules/pg/`. */
@@ -52,8 +50,7 @@ describe('optional and sub-path-only modules are never eagerly loaded', () => {
   const FORBIDDEN = [
     { label: '`pg`', pattern: '/node_modules/pg/' },
     { label: '`postgres`', pattern: '/node_modules/postgres/' },
-    // Not an optional package, but sub-path-only: `drizzle-orm/supabase` must stay behind
-    // `@venizia/ignis/postgres/supabase` rather than riding along on every entry point.
+    // Not an optional package but sub-path-only: `drizzle-orm/supabase` must stay behind `@venizia/ignis/postgres/supabase` rather than riding along on every entry point.
     { label: '`drizzle-orm/supabase`', pattern: 'drizzle-orm/supabase' },
     // Optional peer of the grpc component (`@venizia/ignis/grpc`), same doctrine as the drivers.
     { label: '`@connectrpc/connect`', pattern: '@connectrpc' },
@@ -68,8 +65,7 @@ describe('optional and sub-path-only modules are never eagerly loaded', () => {
   }
 
   test('the guard can actually detect an eager load', async () => {
-    // Mutation insurance: if this ever reports 0, `countDriverModules` is broken and every
-    // assertion above is vacuous.
+    // Mutation insurance: if this ever reports 0, `countDriverModules` is broken and every assertion above is vacuous.
     const loaded = await countDriverModules({
       entry: 'src/connectors/postgres/drivers/node-postgres.ts',
       pattern: '/node_modules/pg/',
@@ -79,8 +75,7 @@ describe('optional and sub-path-only modules are never eagerly loaded', () => {
   }, 30_000);
 
   test('the supabase sub-path really does load drizzle-orm/supabase', async () => {
-    // Same insurance for the supabase pattern: proves the assertions above are not passing merely
-    // because the pattern never matches anything.
+    // Same insurance for the supabase pattern: the assertions above must not pass merely because the pattern never matches anything.
     const loaded = await countDriverModules({
       entry: 'src/connectors/postgres/supabase/index.ts',
       pattern: 'drizzle-orm/supabase',

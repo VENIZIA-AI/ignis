@@ -98,9 +98,7 @@ describe('CasbinAuthorizationEnforcer — scoped matchers', () => {
     expect(memberDecision).toBe('deny');
   });
 
-  // The current setNamedRoleManager(g4, ResourceRoleManager) wiring and the prior
-  // addNamedMatchingFunc(g4, objectMatch) wiring are behaviorally identical, so only timing
-  // distinguishes them - this test is the production-path detector for that regression.
+  // The current setNamedRoleManager wiring and the prior addNamedMatchingFunc wiring are behaviorally identical, so only timing distinguishes them - this is the production-path detector for that regression.
   test('production wiring stays fast on an incident-shaped policy set (perf regression guard)', async () => {
     const moduleCount = 6;
     const subjectsPerModule = 20; // 6 * 20 = 120 subjects, one g4 edge each
@@ -112,9 +110,13 @@ describe('CasbinAuthorizationEnforcer — scoped matchers', () => {
         const resourceCode = `Module${moduleIndex}.Resource${subjectIndex}`;
         const grantTarget = `Grant${moduleIndex}_${subjectIndex}`;
         lines.push(`g4, ${resourceCode}, ${grantTarget}`);
-        for (let operationIndex = 0; operationIndex < operationsPerSubject; operationIndex++) {
-          lines.push(`p, Role_1, ANY_MEMBER, ${grantTarget}, op${operationIndex}, allow`);
-        }
+        lines.push(
+          ...Array.from(
+            { length: operationsPerSubject },
+            (_unused, operationIndex) =>
+              `p, Role_1, ANY_MEMBER, ${grantTarget}, op${operationIndex}, allow`,
+          ),
+        );
       }
     }
 
@@ -146,9 +148,7 @@ describe('CasbinAuthorizationEnforcer — scoped matchers', () => {
     }
     const averageMs = durations.reduce((sum, value) => sum + value, 0) / durations.length;
 
-    // Measured ~37ms average under the current wiring; the reverted addNamedMatchingFunc wiring
-    // measured ~1800ms on the same payload. Threshold is ~10x the measured average, still well
-    // under the reverted wiring's cost, so it fails loudly if the fast-path wiring regresses.
+    // Measured ~37ms under the current wiring against ~1800ms with the reverted wiring; the threshold is ~10x the measured average, still well under the reverted cost.
     expect(averageMs).toBeLessThan(400);
   });
 });
@@ -171,8 +171,7 @@ function dbAdapter(rowsFor: (sqlText: string, params: unknown[]) => unknown[]) {
     softDelete: { use: true, columnName: 'deleted_at' },
   };
   return new ScopedCasbinAdapter({
-    // TCasbinPolicyConnector is drizzle's full generated node-postgres database type (select/insert/
-    // update/delete/transaction/...); the adapter only ever calls `.execute`, so the stub only implements that.
+    // The adapter only ever calls `.execute`, so the stub implements only that out of drizzle's full generated node-postgres type.
     dataSource: { connector } as any,
     entities,
   });
@@ -180,9 +179,7 @@ function dbAdapter(rowsFor: (sqlText: string, params: unknown[]) => unknown[]) {
 
 describe('scoped RBAC — full stack (adapter + enforcer + evaluate)', () => {
   test('member operator allowed on joined shop, denied elsewhere', async () => {
-    // The single recursive CTE returns everything scoped to u1 in one statement; the three
-    // structural-tree queries (resource/action/domain inherits) are irrelevant here, so they fall
-    // through to the empty default. Role grants only - user 'u1' has no direct grant.
+    // The single recursive CTE returns everything scoped to u1, so the three structural-tree queries fall through to the empty default. Role grants only - 'u1' has no direct grant.
     const adapter = dbAdapter(text => {
       if (text.includes('WITH RECURSIVE')) {
         return [
@@ -298,8 +295,7 @@ describe('scoped + redis cache — cached payload completeness', () => {
             set: ({ key, value }: { key: string; value: unknown }) =>
               client.set(key, JSON.stringify(value)),
             del: ({ keys }: { keys: string[] }) => client.del(...keys),
-            // IRedisHelper aggregates connection/key/hash/set/list/pubsub/json/command surfaces (dozens
-            // of methods); this fixture only exercises get/set/del, so implementing the rest is not worth it.
+            // This fixture only exercises get/set/del out of IRedisHelper's dozens of methods.
           } as any,
           expiresIn: 60_000,
           keyFn: ({ user }) => `casbin:User:${user.userId}`,

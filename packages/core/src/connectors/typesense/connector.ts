@@ -31,8 +31,7 @@ import type {
 } from './types';
 import { TypesenseDirtyValues, TypesenseImportActions } from './types';
 
-// Narrow runtime readers for the `unknown` payloads ITypesenseClientLike hands back - each is the
-// single narrowest cast for its field, isolated here instead of repeated ad hoc at every call site.
+// Narrow runtime readers for the `unknown` payloads ITypesenseClientLike hands back - the narrowest cast per field, isolated here instead of repeated ad hoc at every call site.
 const isRecord = (value: unknown): value is Record<string, unknown> => {
   return typeof value === 'object' && value !== null;
 };
@@ -95,9 +94,7 @@ const mapSearchHit = <TDocument extends object>(
   return mapped;
 };
 
-/** Maps a raw Typesense search response onto the camelCase `ISearchResult` - snake_case wire fields
- * (`out_of`/`search_time_ms`/`facet_counts`/`grouped_hits`) are read only via bracket string access,
- * never as identifiers. Absent fields are omitted rather than mapped as `undefined`. */
+/** Maps a raw Typesense search response onto the camelCase `ISearchResult`; snake_case wire fields (`out_of`/`search_time_ms`/`facet_counts`/`grouped_hits`) are read only via bracket string access, never as identifiers, and absent fields are omitted rather than mapped as `undefined`. */
 const mapSearchResult = <TDocument extends object>(raw: unknown): ISearchResult<TDocument> => {
   if (!isRecord(raw)) {
     return { found: 0, isFoundExact: true };
@@ -339,9 +336,7 @@ export class TypesenseConnector extends BaseSearchConnector {
       return this.getCollection({ name: schema.name });
     }
 
-    // The create response IS the collection schema. Reading it back immediately instead is a
-    // read-after-write race on multi-node clusters (follower may 404 before the raft log catches
-    // up). Only the tolerated already-exists path re-reads.
+    // The create response IS the collection schema; reading it back instead is a read-after-write race on multi-node clusters (a follower may 404 before the raft log catches up), so only the tolerated already-exists path re-reads.
     const created = await this.createCollection({ schema });
     if (created) {
       return created;
@@ -617,8 +612,7 @@ export class TypesenseConnector extends BaseSearchConnector {
           .create(document)) as T;
         return created;
       },
-      // Typesense rejects a duplicate id with 409; surface the neutral already_exists conflict
-      // instead of the generic sanitized 503 - same contract Meilisearch's createDocument throws.
+      // Typesense rejects a duplicate id with 409; surfaced as the neutral already_exists conflict rather than the generic sanitized 503 - same contract Meilisearch's createDocument throws.
       tolerate: {
         when: error => TypesenseInternal.isAlreadyExistsError({ error }),
         handle: () => {
@@ -748,6 +742,29 @@ export class TypesenseConnector extends BaseSearchConnector {
     return rs;
   }
 
+  /** Appends one batch's per-row responses to `responses` and returns that batch's success/fail split. */
+  private tallyImportResponses(opts: {
+    batchResult: TImportResponse[];
+    responses: TImportResponse[];
+  }): { successCount: number; failCount: number } {
+    const { batchResult, responses } = opts;
+    let successCount = 0;
+    let failCount = 0;
+
+    for (const row of batchResult) {
+      responses.push(row);
+
+      if (row.success) {
+        successCount += 1;
+        continue;
+      }
+
+      failCount += 1;
+    }
+
+    return { successCount, failCount };
+  }
+
   async importDocuments<T extends object>(opts: {
     collection: string;
     documents: T[];
@@ -787,29 +804,21 @@ export class TypesenseConnector extends BaseSearchConnector {
         const batch = documents.slice(start, start + batchSize);
 
         // opt out of typesense's default throwOnFail:true so import() returns per-row responses to aggregate below.
-        const importParams: Record<string, unknown> = { action, throwOnFail: false };
-        if (dirtyValues) {
-          importParams['dirty_values'] = dirtyValues;
-        }
+        const importParams: Record<string, unknown> = dirtyValues
+          ? { action, throwOnFail: false, ['dirty_values']: dirtyValues }
+          : { action, throwOnFail: false };
 
         const batchResult = (await this.client
           .collections(collection)
           .documents()
           .import(batch, importParams)) as TImportResponse[];
 
-        for (const row of batchResult) {
-          responses.push(row);
-
-          if (row.success) {
-            successCount += 1;
-          } else {
-            failCount += 1;
-          }
-        }
+        const tally = this.tallyImportResponses({ batchResult, responses });
+        successCount += tally.successCount;
+        failCount += tally.failCount;
       }
     } catch (error) {
-      // A framework ApplicationError (already sanitized, carrying its own statusCode/messageCode) must
-      // surface as-is; only raw engine failures get wrapped as a 503. Mirrors runEngineCall's guard.
+      // A framework ApplicationError is already sanitized and carries its own statusCode/messageCode, so it surfaces as-is; only raw engine failures get wrapped as a 503, mirroring runEngineCall's guard.
       if (isApplicationError(error)) {
         throw error;
       }
@@ -997,9 +1006,7 @@ export class TypesenseConnector extends BaseSearchConnector {
     return mapSearchResult<T>(rs);
   }
 
-  // `union: true` merges into ONE result set; the default federates into `results[]` - overloaded
-  // so callers get the right shape at compile time. `searches`/`commonParams` are the engine's
-  // NATIVE snake_case wire params, typed as TSearchParams so the raw escape hatch keeps full LSP.
+  // `union: true` merges into ONE result set while the default federates into `results[]`, hence the overloads; `searches`/`commonParams` are the engine's NATIVE snake_case wire params, typed as TSearchParams so the raw escape hatch keeps full LSP.
   async multiSearch<T extends TDocumentSchema = TDocumentSchema>(opts: {
     searches: Array<{ collection: string } & Partial<TSearchParams>>;
     union: true;

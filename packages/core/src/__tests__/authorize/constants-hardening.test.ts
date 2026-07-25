@@ -12,8 +12,7 @@ import {
   CasbinRuleVariants,
 } from '@/components/auth/authorize/common/constants';
 
-/** Covers the numeric/string isAllow|isDeny|isAbstain helpers and the const-classes'
- * isValid/SCHEME_SET that the legacy constants.test.ts never touches. */
+/** Covers the numeric/string isAllow|isDeny|isAbstain helpers and the const-classes' isValid/SCHEME_SET that constants.test.ts never touches. */
 
 describe('AuthorizationDecisions.isAllow', () => {
   test('string "allow" (case-insensitive)', () => {

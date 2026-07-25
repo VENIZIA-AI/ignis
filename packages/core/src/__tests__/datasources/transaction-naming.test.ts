@@ -13,8 +13,7 @@ import {
 import { BasePostgresEntity, TTableInsert, TTableObject } from '@/connectors/postgres/models';
 import { DefaultCRUDRepository, IDatabaseExtraOptions } from '@/connectors/postgres/repositories';
 
-/** Pins the transaction type naming: neutral `ITransaction` vs postgres's `IDatabaseTransaction`
- * (narrowed via `IDatabaseExtraOptions`). `tsc --noEmit` is the real check here. */
+/** Pins the transaction type naming: neutral `ITransaction` vs postgres's `IDatabaseTransaction` (narrowed via `IDatabaseExtraOptions`). `tsc --noEmit` is the real check here. */
 
 const namingTable = pgTable('naming_check', {
   id: serial('id').primaryKey(),
@@ -39,10 +38,7 @@ class NamingCheckDataSource extends BasePostgresDataSource<{}> {
   }
 }
 
-/**
- * `IDatabaseExtraOptions` is already the default `TOptions` for this tier, so spelling it out as
- * the 4th type argument here is redundant - purely for explicitness/documentation.
- */
+/** `IDatabaseExtraOptions` is already the default `TOptions` for this tier, so the 4th type argument here is redundant - spelled out purely for explicitness. */
 @repository({ model: NamingCheckEntity, dataSource: NamingCheckDataSource })
 class NamingCheckRepository extends DefaultCRUDRepository<
   typeof namingTable,
@@ -66,8 +62,7 @@ describe('Transaction naming (user-locked): ITransaction neutral / IDatabaseTran
       rollback: async () => {},
     };
 
-    // `ITransaction<Schema>` never structurally uses `Schema`, so any connector-bearing
-    // `IDatabaseTransaction` is assignable regardless of the annotated Schema argument.
+    // `ITransaction<Schema>` never structurally uses `Schema`, so any connector-bearing `IDatabaseTransaction` is assignable regardless of the annotated Schema argument.
     const annotate: ITransaction = rdbTransactionMock;
 
     expect(annotate.isActive).toBe(true);
@@ -96,8 +91,7 @@ describe('Transaction naming (user-locked): ITransaction neutral / IDatabaseTran
     const asNeutralInterface: ICrudRepository<TNamingCheckObject, TNamingCheckInsert> = repo;
     expect(asNeutralInterface).toBe(repo);
 
-    // ...and to the neutral AbstractRepository class (ControllerFactory's field type) - TS's
-    // bivariant method-parameter checking lets the narrower IDatabaseExtraOptions satisfy it.
+    // ...and to the neutral AbstractRepository class (ControllerFactory's field type) - TS's bivariant method-parameter checking lets the narrower IDatabaseExtraOptions satisfy it.
     const asAbstractClass: AbstractRepository<TNamingCheckObject, TNamingCheckInsert> = repo;
     expect(asAbstractClass).toBe(repo);
   });

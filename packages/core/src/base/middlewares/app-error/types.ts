@@ -26,4 +26,6 @@ export interface IResolvedApplicationError {
   statusCode: number;
   message: string;
   normalized: { text: string; code: string; args: Record<string, unknown> };
+  /** Drives whether the log carries a stack - only an UNEXPECTED failure needs one. */
+  type: TApplicationErrorType;
 }

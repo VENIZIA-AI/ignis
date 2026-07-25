@@ -3,8 +3,7 @@ import { CasbinAuthorizationEnforcer } from '@/components/auth/authorize/enforce
 import { CasbinEnforcerModelDrivers } from '@/components/auth/authorize/common/constants';
 import { CASBIN_RBAC_DOMAIN_SCOPED_MODEL } from '@/components/auth/authorize/enforcers/models/rbac-domain.model';
 
-// destroy() logs (and does NOT throw) when pool.destroy() rejects - exercised via a pool stub
-// whose destroy() rejects.
+// destroy() logs and does NOT throw when pool.destroy() rejects.
 
 describe('CasbinAuthorizationEnforcer — destroy() pool-reject guard (enforcer:126)', () => {
   test('a rejecting pool.destroy() is caught and logged, not thrown', async () => {

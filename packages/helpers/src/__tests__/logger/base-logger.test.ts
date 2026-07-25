@@ -52,8 +52,7 @@ describe('BaseLogger - level dispatch to the single write() sink', () => {
     const logger = new RecordingLogger({ scope: 'DebugGate' });
     logger.debug('gated');
 
-    // .env.test does not set DEBUG, so in the standard test run the gate suppresses the line.
-    // If a developer shell exports DEBUG=true the gate opens - assert consistently with it.
+    // .env.test does not set DEBUG, so the gate suppresses the line in a standard test run; a developer shell exporting DEBUG=true opens it - assert consistently with it.
     const expected = toBoolean(process.env.DEBUG) ? 1 : 0;
     expect(logger.writes.length).toBe(expected);
   });

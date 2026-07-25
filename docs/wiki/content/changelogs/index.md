@@ -17,6 +17,7 @@ This section tracks the history of significant changes, refactors, and updates t
 
 | Date | Title | Type |
 |------|-------|------|
+| 2026-07-25 | [Readable Error Logs and a logLevel Option on getError](./2026-07-25-error-logging) | New Feature, Enhancement |
 | 2026-07-21 | [BaseFilteredAdapter Connector Resolution Fix](./2026-07-21-casbin-connector-resolution-fix) | Bug Fix |
 | 2026-07-20 | [fromError - Rehydrate a Server Error on the Client](./2026-07-20-error-from-error-client) | New API |
 | 2026-07-20 | [Casbin Single-Wave Extraction - Recursive CTE Replaces the Second Query Wave](./2026-07-20-casbin-single-wave-extraction) | Enhancement, Behavior Change, Bug Fix |

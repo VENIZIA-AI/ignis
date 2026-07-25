@@ -1,22 +1,30 @@
-import { RuntimeModules } from '@venizia/ignis-helpers';
+import { ApplicationLogger, ErrorPrettier, RuntimeModules } from '@venizia/ignis-helpers';
 import type { Context } from 'hono';
 
-/**
- * Attempts to get the incoming IP address from the connection info.
- * Works across different runtimes (Bun, Node.js, etc.) by using runtime-specific methods.
- */
+const logger = ApplicationLogger.get('getIncomingIp');
+
+/** Latches the warning: an absent conninfo peer fails identically for every later request. */
+let hasReportedUnavailable = false;
+
+/** Reads the incoming IP from connection info across runtimes (Bun, Node.js) via runtime-specific methods. */
 export const getIncomingIp = (context: Context): string | null => {
   try {
-    if (RuntimeModules.isBun()) {
-      const { getConnInfo } = require('hono/bun');
-      const connInfo = getConnInfo(context);
-      return connInfo?.remote?.address ?? null;
+    const { getConnInfo } = RuntimeModules.isBun()
+      ? require('hono/bun')
+      : require('@hono/node-server/conninfo');
+
+    return getConnInfo(context)?.remote?.address ?? null;
+  } catch (error) {
+    if (hasReportedUnavailable) {
+      return null;
     }
 
-    const { getConnInfo } = require('@hono/node-server/conninfo');
-    const connInfo = getConnInfo(context);
-    return connInfo?.remote?.address ?? null;
-  } catch {
+    hasReportedUnavailable = true;
+    logger.warn(
+      '[getIncomingIp] Connection info unavailable - reporting null for every request | %s',
+      ErrorPrettier.format({ error }),
+    );
+
     return null;
   }
 };

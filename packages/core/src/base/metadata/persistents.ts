@@ -62,6 +62,37 @@ const validateRepositoryMetadata = <
   }
 };
 
+/** Asserts the constructor's first parameter is an AbstractDataSource compatible with what @repository declared. */
+const validateFirstConstructorParameter = (opts: {
+  target: Function;
+  firstParamType: Function;
+  resolvedDataSource: string | Function;
+}): void => {
+  const { target, firstParamType, resolvedDataSource } = opts;
+
+  const isDataSourceType =
+    firstParamType === AbstractDataSource || firstParamType.prototype instanceof AbstractDataSource;
+
+  if (!isDataSourceType) {
+    throw getError({
+      message: `[@repository][${target.name}] Invalid constructor | First parameter must extend AbstractDataSource | Received: '${firstParamType.name}'`,
+    });
+  }
+
+  if (typeof resolvedDataSource !== 'function') {
+    return;
+  }
+
+  const isCompatible =
+    firstParamType === resolvedDataSource || resolvedDataSource.prototype instanceof firstParamType;
+
+  if (!isCompatible) {
+    throw getError({
+      message: `[@repository][${target.name}] Invalid constructor | Type mismatch | Constructor expects '${firstParamType.name}' but @repository specifies '${resolvedDataSource.name}'`,
+    });
+  }
+};
+
 /** Auto-injects dataSource at constructor param[0] unless explicit @inject exists. */
 const registerDataSourceInjection = (opts: {
   target: Function;
@@ -74,32 +105,10 @@ const registerDataSourceInjection = (opts: {
   const firstParamType = paramTypes?.[0];
 
   if (firstParamType) {
-    const isDataSourceType =
-      firstParamType === AbstractDataSource ||
-      firstParamType.prototype instanceof AbstractDataSource;
-
-    if (!isDataSourceType) {
-      throw getError({
-        message: `[@repository][${target.name}] Invalid constructor | First parameter must extend AbstractDataSource | Received: '${firstParamType.name}'`,
-      });
-    }
-
-    if (typeof resolvedDataSource === 'function') {
-      const isCompatible =
-        firstParamType === resolvedDataSource ||
-        resolvedDataSource.prototype instanceof firstParamType;
-
-      if (!isCompatible) {
-        throw getError({
-          message: `[@repository][${target.name}] Invalid constructor | Type mismatch | Constructor expects '${firstParamType.name}' but @repository specifies '${resolvedDataSource.name}'`,
-        });
-      }
-    }
+    validateFirstConstructorParameter({ target, firstParamType, resolvedDataSource });
   }
 
-  // Own metadata only: `getInjectMetadata` walks the prototype chain, so a repository extending
-  // another @repository class would see the BASE class's injection at param[0], skip its own
-  // auto-injection, and silently resolve the base's dataSource.
+  // Own metadata only: `getInjectMetadata` walks the prototype chain, so a repository extending another @repository class would see the BASE's injection at param[0] and silently resolve the base's dataSource.
   const ownInjects: IInjectMetadata[] | undefined = Reflect.getOwnMetadata(
     MetadataKeys.INJECT,
     target,
@@ -124,8 +133,7 @@ const registerDataSourceInjection = (opts: {
     typeof resolvedDataSource === 'string' ? resolvedDataSource : resolvedDataSource.name;
   const dsBindingKey = BindingKeys.build({ namespace: BindingNamespaces.DATASOURCE, key: dsName });
 
-  // Copy-on-write for the same reason: setInjectMetadata mutates the array it reads through the
-  // prototype chain, which would rewrite the base repository's param[0] with this class's key.
+  // Copy-on-write for the same reason: setInjectMetadata mutates the array it reads through the prototype chain, which would rewrite the base repository's param[0] with this class's key.
   if (!ownInjects) {
     const inheritedInjects = registry.getInjectMetadata({ target });
     Reflect.defineMetadata(MetadataKeys.INJECT, [...(inheritedInjects ?? [])], target);
@@ -184,8 +192,7 @@ export const repository = <
     const registry = MetadataRegistry.getInstance();
     const resolved = resolveRepositoryMetadata({ metadata, target, registry });
 
-    // `_resolved` is an internal cache field, not part of the public IRepositoryMetadata surface
-    // callers author - it's added here, so the merged literal needs the widened local type.
+    // `_resolved` is an internal cache field, not part of the public IRepositoryMetadata surface callers author - it is added here, so the merged literal needs the widened local type.
     registry.setRepositoryMetadata({
       target,
       metadata: { ...metadata, _resolved: resolved } as IRepositoryMetadata<Model, DataSource> & {

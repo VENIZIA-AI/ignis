@@ -9,7 +9,7 @@ Pure, standalone functions providing common, reusable logic for the IGNIS framew
 | **Crypto** | `ignis-helpers` | Cryptographic hashing | `hash()` |
 | **Date** | `ignis-helpers` | Date/time manipulation | `dayjs`, `sleep()`, `isWeekday()`, `getDateTz()`, `hrTime()` |
 | **JSX** | `ignis` | HTML/JSX responses | `htmlContent()`, `htmlResponse()` |
-| **Module** | `ignis-helpers` | Module validation | `validateModule()` |
+| **Module** | `ignis-helpers` | Optional peer loading | `ModuleUtility` |
 | **Parse** | `ignis-helpers` | Data type conversion | `int()`, `float()`, `toBoolean()`, `toCamel()` |
 | **Performance** | `ignis-helpers` | Execution timing | `executeWithPerformanceMeasure()`, `getPerformanceCheckpoint()` |
 | **Promise** | `ignis-helpers` | Promise helpers | `executePromiseWithLimit()`, `isPromiseLike()`, `getDeepProperty()` |

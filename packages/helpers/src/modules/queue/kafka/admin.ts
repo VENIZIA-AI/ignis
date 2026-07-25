@@ -3,10 +3,7 @@ import { BaseKafkaHelper } from './base';
 import { KafkaDefaults, KafkaHealthStatuses } from './common/constants';
 import type { IKafkaAdminOptions } from './common/types';
 
-/**
- * Wrapper around `@platformatic/kafka` Admin with lifecycle management and health tracking.
- * Use `getAdmin()` to access the full Admin API directly.
- */
+/** Wrapper around `@platformatic/kafka` Admin with lifecycle management and health tracking; `getAdmin()` exposes the full Admin API directly. */
 export class KafkaAdminHelper extends BaseKafkaHelper<Admin> {
   constructor(opts: IKafkaAdminOptions) {
     super({

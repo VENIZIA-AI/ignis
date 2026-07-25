@@ -3,9 +3,7 @@ import type { AnyType } from '@venizia/ignis-helpers';
 import { DefaultSearchRepository } from '@/connectors/search/repositories';
 import { FakeSearchDataSource, ProductDocumentNoDefaultFilter } from './fake-search-connector';
 
-/** An unfiltered bulk write is a data-destruction primitive: `deleteAll({ where: {} })` compiles to
- * an empty filter, which must not silently truncate the collection (truncate reports no count, so
- * nothing surfaces the damage). The search tier demands `force`, exactly as postgres always has. */
+/** An unfiltered bulk write is a data-destruction primitive: `deleteAll({ where: {} })` compiles to an empty filter and truncate reports no count, so nothing surfaces the damage - the search tier demands `force`, exactly as postgres always has. */
 const buildRepository = () => {
   const dataSource = new FakeSearchDataSource({ name: 'bulk-write-ds', config: {} });
   const repository = new DefaultSearchRepository(dataSource, {

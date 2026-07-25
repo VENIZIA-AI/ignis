@@ -10,6 +10,23 @@ import {
 } from '../common';
 import { AuthorizationPolicyBuilder, type TPolicyDomainInput } from './policy.builder';
 
+/** One closure pass over the action lattice: adds every child reachable from an already-covered parent, reporting whether the set grew. */
+const expandCoveredActions = (opts: { covered: Set<string> }): boolean => {
+  const { covered } = opts;
+  let grew = false;
+
+  for (const edge of AuthorizationActions.LATTICE) {
+    if (!covered.has(edge.parent) || covered.has(edge.child)) {
+      continue;
+    }
+
+    covered.add(edge.child);
+    grew = true;
+  }
+
+  return grew;
+};
+
 export class GrantBuilder extends BaseHelper {
   private static instance: GrantBuilder;
 
@@ -55,10 +72,7 @@ export class GrantBuilder extends BaseHelper {
     }
   }
 
-  /**
-   * Read `{ ops }` off a grant row's metadata, or null when the shape is unusable. Callers treat null
-   * as a defect to log and skip - never as an empty grant.
-   */
+  /** Read `{ ops }` off a grant row's metadata, or null when the shape is unusable. Callers treat null as a defect to log and skip - never as an empty grant. */
   parseCustomGrantMetadata(opts: { metadata: unknown }): { ops: string[] } | null {
     const decoded = this.decodeMetadata(opts);
 
@@ -88,10 +102,7 @@ export class GrantBuilder extends BaseHelper {
     return { ops: unique };
   }
 
-  /**
-   * Split operation names into those present in the catalog for `subject` and those that are not.
-   * Pure - the caller supplies the catalog slice; the adapter re-runs this independently at read time.
-   */
+  /** Split operation names into those present in the catalog for `subject` and those that are not. Pure - the caller supplies the catalog slice; the adapter re-runs this independently at read time. */
   validateCustomGrantOps(opts: {
     ops: string[];
     subject: string;
@@ -120,32 +131,19 @@ export class GrantBuilder extends BaseHelper {
     return { valid, unknown };
   }
 
-  /**
-   * Actions a tier confers, derived from LATTICE rather than hardcoded so the two cannot drift.
-   */
+  /** Actions a tier confers, derived from LATTICE rather than hardcoded so the two cannot drift. */
   actionsCoveredBy(opts: { tier: TAuthorizationAction }): Set<string> {
     const covered = new Set<string>([opts.tier]);
 
     let grew = true;
     while (grew) {
-      grew = false;
-
-      for (const edge of AuthorizationActions.LATTICE) {
-        if (covered.has(edge.parent) && !covered.has(edge.child)) {
-          covered.add(edge.child);
-          grew = true;
-        }
-      }
+      grew = expandCoveredActions({ covered });
     }
 
     return covered;
   }
 
-  /**
-   * Decide which rows express an intent. A custom row is a last resort: as much of the selection as
-   * possible collapses into tier grants first. `exact` disables collapsing when the caller genuinely
-   * means these operations and no future ones. Pure - the caller supplies the catalog and persists.
-   */
+  /** Decide which rows express an intent: a custom row is a last resort, so as much of the selection as possible collapses into tier grants first. `exact` disables collapsing when the caller means these operations and no future ones. Pure - the caller supplies the catalog and persists. */
   planGrant(opts: {
     subject: { type: string; id: IdType };
     resource: { type: string; id: IdType; subject: string };
@@ -216,45 +214,7 @@ export class GrantBuilder extends BaseHelper {
     const remaining = new Set(ops);
 
     if (opts.exact !== true) {
-      // manage is equivalent to read+write+execute together only when the subject has at least one
-      // operation in EACH narrow tier - otherwise manage covers a future tier the subject doesn't yet
-      // populate, which is strictly more than the narrow tiers confer today.
-      const spansAllNarrowTiers = GrantBuilder.NARROW_TIERS.every(tier => {
-        const covered = this.actionsCoveredBy({ tier });
-        return subjectCatalog.some(entry => covered.has(entry.action));
-      });
-
-      const manageCovered = this.actionsCoveredBy({ tier: AuthorizationActions.MANAGE });
-      const manageOps = subjectCatalog
-        .filter(entry => manageCovered.has(entry.action))
-        .map(entry => entry.method);
-
-      if (
-        spansAllNarrowTiers &&
-        manageOps.length &&
-        manageOps.every(method => remaining.has(method))
-      ) {
-        rows.push(tierRow(AuthorizationActions.MANAGE));
-        for (const method of manageOps) {
-          remaining.delete(method);
-        }
-      } else {
-        for (const tier of GrantBuilder.NARROW_TIERS) {
-          const covered = this.actionsCoveredBy({ tier });
-          const methods = subjectCatalog
-            .filter(entry => covered.has(entry.action))
-            .map(entry => entry.method);
-
-          if (!methods.length || !methods.every(method => remaining.has(method))) {
-            continue;
-          }
-
-          rows.push(tierRow(tier));
-          for (const method of methods) {
-            remaining.delete(method);
-          }
-        }
-      }
+      this.collapseRemainingIntoTiers({ subjectCatalog, remaining, rows, tierRow });
     }
 
     const leftover = ops.filter(op => remaining.has(op));
@@ -263,37 +223,89 @@ export class GrantBuilder extends BaseHelper {
       return rows;
     }
 
-    if (leftover.length === 1 || opts.supportsCustomMetadata === false) {
-      for (const op of leftover) {
-        const entry = byMethod.get(op);
-        if (!entry) {
-          throw getError({ message: `[planGrant] No catalog entry for operation "${op}".` });
-        }
+    const isPerOperationGrant = leftover.length === 1 || opts.supportsCustomMetadata === false;
 
-        rows.push(
-          AuthorizationPolicyBuilder.grant({
-            subject: opts.subject,
-            permission: { type: opts.resource.type, id: entry.code },
-            action: entry.action,
-            domain,
-            effect,
-          }),
-        );
-      }
+    if (!isPerOperationGrant) {
+      rows.push(
+        AuthorizationPolicyBuilder.customGrant({
+          subject: opts.subject,
+          permission: { type: opts.resource.type, id: opts.resource.id },
+          ops: leftover,
+          domain,
+          effect,
+        }),
+      );
 
       return rows;
     }
 
-    rows.push(
-      AuthorizationPolicyBuilder.customGrant({
-        subject: opts.subject,
-        permission: { type: opts.resource.type, id: opts.resource.id },
-        ops: leftover,
-        domain,
-        effect,
-      }),
-    );
+    for (const op of leftover) {
+      const entry = byMethod.get(op);
+      if (!entry) {
+        throw getError({ message: `[planGrant] No catalog entry for operation "${op}".` });
+      }
+
+      rows.push(
+        AuthorizationPolicyBuilder.grant({
+          subject: opts.subject,
+          permission: { type: opts.resource.type, id: entry.code },
+          action: entry.action,
+          domain,
+          effect,
+        }),
+      );
+    }
 
     return rows;
+  }
+
+  /** Collapse `remaining` into the fewest tier grants, mutating `remaining` and appending to `rows`. */
+  protected collapseRemainingIntoTiers(opts: {
+    subjectCatalog: Array<{ subject: string; method: string; code: string; action: string }>;
+    remaining: Set<string>;
+    rows: TPlannedGrantRow[];
+    tierRow: (tier: TAuthorizationAction) => TPlannedGrantRow;
+  }): void {
+    const { subjectCatalog, remaining, rows, tierRow } = opts;
+
+    // manage equals read+write+execute only when the subject has at least one operation in EACH narrow tier; otherwise manage also covers a future tier, which is more than the narrow tiers confer today.
+    const spansAllNarrowTiers = GrantBuilder.NARROW_TIERS.every(tier => {
+      const covered = this.actionsCoveredBy({ tier });
+      return subjectCatalog.some(entry => covered.has(entry.action));
+    });
+
+    const manageCovered = this.actionsCoveredBy({ tier: AuthorizationActions.MANAGE });
+    const manageOps = subjectCatalog
+      .filter(entry => manageCovered.has(entry.action))
+      .map(entry => entry.method);
+
+    if (
+      spansAllNarrowTiers &&
+      manageOps.length &&
+      manageOps.every(method => remaining.has(method))
+    ) {
+      rows.push(tierRow(AuthorizationActions.MANAGE));
+      for (const method of manageOps) {
+        remaining.delete(method);
+      }
+
+      return;
+    }
+
+    for (const tier of GrantBuilder.NARROW_TIERS) {
+      const covered = this.actionsCoveredBy({ tier });
+      const methods = subjectCatalog
+        .filter(entry => covered.has(entry.action))
+        .map(entry => entry.method);
+
+      if (!methods.length || !methods.every(method => remaining.has(method))) {
+        continue;
+      }
+
+      rows.push(tierRow(tier));
+      for (const method of methods) {
+        remaining.delete(method);
+      }
+    }
   }
 }

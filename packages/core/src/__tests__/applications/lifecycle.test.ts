@@ -9,16 +9,11 @@ import type { ValueOrPromise } from '@venizia/ignis-helpers';
 import { getError, RuntimeModules } from '@venizia/ignis-helpers';
 import { afterEach, beforeEach, describe, expect, test } from 'bun:test';
 
-/**
- * Records the invocation order of every documented lifecycle step so the 9-step contract can be
- * asserted as a whole instead of step by step.
- */
+/** Records the invocation order of every lifecycle step so the 9-step contract is asserted as a whole rather than step by step. */
 class TraceApplication extends BaseApplication {
   readonly trace: string[] = [];
 
-  /** `bun test` transpiles without legacy parameter decorators, so RequestTrackerComponent's
-   * `@inject`ed application argument never reaches the container - rebound to an explicit
-   * instance; everything downstream still runs the real code path. */
+  /** `bun test` transpiles without legacy parameter decorators, so RequestTrackerComponent's `@inject`ed application never reaches the container - rebound to an explicit instance. */
   override async registerDefaultMiddlewares(): Promise<void> {
     await super.registerDefaultMiddlewares();
 

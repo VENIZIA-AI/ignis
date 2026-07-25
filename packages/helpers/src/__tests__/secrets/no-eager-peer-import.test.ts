@@ -1,10 +1,6 @@
 import { describe, expect, test } from 'bun:test';
 
-/**
- * node-vault and @dotenvx/dotenvx are OPTIONAL peers - importing the secrets barrel must load
- * neither. HashiCorpVaultHelper/DotenvVaultHelper live behind their sub-paths and the factory
- * reaches them only via dynamic import; a stray `export * from './hashicorp'` would reintroduce the eager import, and this suite fails first.
- */
+/** node-vault and @dotenvx/dotenvx are OPTIONAL peers - importing the secrets barrel must load neither; their helpers live behind sub-paths and the factory reaches them only via dynamic import, so a stray `export * from './hashicorp'` would reintroduce the eager import. */
 const loadsPeer = async (specifier: string, peerPathFragment: string): Promise<boolean> => {
   const probe = `
     await import(${JSON.stringify(specifier)});

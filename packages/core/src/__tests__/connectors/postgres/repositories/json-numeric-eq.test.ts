@@ -21,8 +21,7 @@ const compile = (where: any): string => {
   return dialect.sqlToQuery(condition).sql;
 };
 
-/** eq/ne/neq/inq/nin with numeric values must route through the same numeric cast as the bare-value
- * branch - a text extraction produces 'operator does not exist: text = integer'. */
+/** eq/ne/neq/inq/nin with numeric values must route through the same numeric cast as the bare-value branch - a text extraction produces 'operator does not exist: text = integer'. */
 describe('FilterBuilder - JSON path numeric equality operators cast to numeric', () => {
   test('eq with a numeric value casts the extraction to numeric', () => {
     expect(compile({ 'metadata.score': { eq: 50 } })).toContain('numeric');

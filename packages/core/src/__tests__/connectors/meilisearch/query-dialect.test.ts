@@ -161,8 +161,7 @@ describe('MeilisearchQueryDialect.applySearchInput', () => {
   test('an explicitly set Typesense-only knob throws NotSupported rather than being dropped', () => {
     const query = dialect.build({});
 
-    // These knobs are no longer part of the neutral typed input (they moved to engineParams), so a
-    // typed caller can't set them; the cast simulates a raw/JS caller reaching the defensive guard.
+    // These knobs moved to engineParams, so a typed caller cannot set them; the cast simulates a raw JS caller reaching the defensive guard.
     expect(() =>
       dialect.applySearchInput({
         query,

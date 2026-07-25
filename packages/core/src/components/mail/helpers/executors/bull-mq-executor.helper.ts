@@ -146,8 +146,7 @@ export class BullMQMailExecutorHelper extends BaseHelper implements IMailQueueEx
           );
 
         if (!this.processor) {
-          // Returning undefined here would let BullMQ mark the job COMPLETED and (with
-          // removeOnComplete) delete it - a mail silently dropped because the worker was misbuilt.
+          // Returning undefined would let BullMQ mark the job COMPLETED and (with removeOnComplete) delete it - mail silently dropped.
           throw getError({
             messageCode: MailErrorCodes.SEND_FAILED,
             message: `[onWorkerData] ${MailExecutorErrors.PROCESSOR_NOT_SET} | jobId: ${job.data.id}`,
@@ -156,9 +155,7 @@ export class BullMQMailExecutorHelper extends BaseHelper implements IMailQueueEx
 
         const result = await this.processor(job.data.email);
 
-        // A processor reports an SMTP rejection by RETURNING `{ success: false }` - that is what
-        // `IMailProcessorResult` is for. BullMQ only sees a REJECTION as a failure, so resolving
-        // with `success: false` completed the job: no retry, no DLQ, mail gone.
+        // A processor reports SMTP rejection by RETURNING `{ success: false }`; BullMQ only treats a REJECTION as failure, so resolving completes the job - no retry, no DLQ.
         if (result?.success === false) {
           throw getError({
             messageCode: MailErrorCodes.SEND_FAILED,
@@ -225,8 +222,7 @@ export class BullMQMailExecutorHelper extends BaseHelper implements IMailQueueEx
       return false;
     }
 
-    // Dropped from the list BEFORE the close is awaited: a close that rejects must not leave a
-    // half-closed worker behind, still counted and still handed jobs.
+    // Dropped from the list BEFORE the close is awaited: a rejecting close must not leave a half-closed worker still counted and still handed jobs.
     const [workerHelper] = this.workerHelpers.splice(index, 1);
     await workerHelper.worker.close();
 
@@ -237,10 +233,7 @@ export class BullMQMailExecutorHelper extends BaseHelper implements IMailQueueEx
     return true;
   }
 
-  /**
-   * Closes every worker, never stopping at the first failure, and always empties the list. Returns
-   * the failures instead of throwing so a caller mid-teardown can keep going.
-   */
+  /** Closes every worker without stopping at the first failure, always empties the list, and returns failures instead of throwing so teardown can continue. */
   private async closeWorkers(): Promise<Error[]> {
     const workerHelpers = this.workerHelpers;
     this.workerHelpers = [];
@@ -275,10 +268,7 @@ export class BullMQMailExecutorHelper extends BaseHelper implements IMailQueueEx
     this.logger.for(this.clearWorkers.name).info('All workers cleared | Count: %d', count);
   }
 
-  /**
-   * Full teardown: workers -> queue -> Redis connection. Every step runs even if an earlier one
-   * failed (skipping would leak a queue client + Redis socket); failures are reported once, at the end.
-   */
+  /** Full teardown: workers -> queue -> Redis. Every step runs even if an earlier one failed (skipping leaks a queue client + Redis socket); failures are reported once, at the end. */
   async close(): Promise<void> {
     const failures: Error[] = [...(await this.closeWorkers())];
 

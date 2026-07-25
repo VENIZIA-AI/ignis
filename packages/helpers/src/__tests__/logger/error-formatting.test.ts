@@ -2,8 +2,7 @@ import { describe, expect, test } from 'bun:test';
 import { getError } from '@/modules/error';
 import { formatLogMessage } from '@/modules/logger';
 
-/** `Error.message`/`stack` are non-enumerable, so `%j` (JSON.stringify) silently drops both -
- * always log errors with `%s`. `%j` keeps only incidental message text via `extra.message.text`. */
+/** `Error.message`/`stack` are non-enumerable, so `%j` silently drops both - always log errors with `%s`; `%j` keeps only incidental message text via `extra.message.text`. */
 describe('logging an Error - %s keeps it, %j guts it', () => {
   const buildError = () => {
     const error = getError({

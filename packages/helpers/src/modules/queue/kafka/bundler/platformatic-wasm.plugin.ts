@@ -3,11 +3,7 @@ import type { BunPlugin } from 'bun';
 import { dirname } from 'node:path';
 import { KafkaBundlerPluginNames, PlatformaticWasmSpecifiers } from './common';
 
-/**
- * `@platformatic/wasm-utils`'s default entrypoint reads `native.wasm` from disk at module load;
- * `bun build --compile` embeds JS only, so that resolves against `/$bunfs` and the binary dies
- * with ENOENT. This plugin redirects the import to the `/bundled` entrypoint (wasm inlined).
- */
+/** `@platformatic/wasm-utils`'s default entrypoint reads `native.wasm` from disk at module load and `bun build --compile` embeds JS only, so it resolves against `/$bunfs` and the binary dies with ENOENT - this plugin redirects the import to the `/bundled` entrypoint (wasm inlined). */
 export const platformaticWasmPlugin = (): BunPlugin => ({
   name: KafkaBundlerPluginNames.PLATFORMATIC_WASM,
   setup(build) {

@@ -24,7 +24,7 @@ export class BaseRelationalEntity<Schema extends TTableSchemaWithId = TTableSche
   static schema: TTableSchemaWithId;
   static relations?: TValueOrResolver<Array<TRelationConfig>>;
 
-  /** Lazy singleton — shared across all BaseRelationalEntity instances. */
+  /** Lazy singleton - shared across all BaseRelationalEntity instances. */
   private static _schemaFactory?: ReturnType<typeof createSchemaFactory>;
   protected static get schemaFactory(): ReturnType<typeof createSchemaFactory> {
     return (BaseRelationalEntity._schemaFactory ??= createSchemaFactory());
@@ -39,8 +39,7 @@ export class BaseRelationalEntity<Schema extends TTableSchemaWithId = TTableSche
     this.schema = opts?.schema ?? (ctor.schema as Schema);
   }
 
-  /** Maps the pgTable id column's Drizzle `dataType` to 'number' (serial/integer) or 'string'
-   * (everything else, including bigint/unknown). */
+  /** Maps the pgTable id column's Drizzle `dataType` to 'number' (serial/integer) or 'string' (everything else, including bigint/unknown). */
   override getIdType(): TIdSchemaType {
     return _getIdType({ entity: this.schema }) === 'number' ? 'number' : 'string';
   }

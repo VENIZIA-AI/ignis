@@ -1,10 +1,6 @@
 import { describe, expect, test } from 'bun:test';
 
-/**
- * axios is an OPTIONAL peer - nothing reachable from the root or network barrel may value-import
- * it (AxiosFetcher/AxiosNetworkRequest live behind the `@venizia/ignis-helpers/axios` sub-path).
- * A stray `export * from './axios-fetcher'` reintroduces the eager import silently - this suite is what fails first.
- */
+/** axios is an OPTIONAL peer - nothing reachable from the root or network barrel may value-import it (AxiosFetcher/AxiosNetworkRequest live behind the `@venizia/ignis-helpers/axios` sub-path); a stray `export * from './axios-fetcher'` reintroduces the eager import silently. */
 const loadsAxios = async (specifier: string): Promise<boolean> => {
   const probe = `
     const before = new Set(Object.keys(require.cache ?? {}));

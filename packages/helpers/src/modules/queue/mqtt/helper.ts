@@ -122,10 +122,7 @@ export class MQTTClientHelper extends BaseHelper {
     return this.client;
   }
 
-  /**
-   * Tear the client down. Without it the mqtt client - and its reconnect timer - outlives the helper
-   * forever. Resolves once the driver reports the connection ended; safe to call more than once.
-   */
+  /** Tear the client down - without it the mqtt client, and its reconnect timer, outlives the helper forever. Resolves once the driver reports the connection ended; safe to call more than once. */
   close(opts?: { isForce?: boolean }): Promise<void> {
     const client = this.client;
     this.client = undefined;

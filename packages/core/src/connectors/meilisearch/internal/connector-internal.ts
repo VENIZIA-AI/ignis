@@ -6,10 +6,7 @@ export class MeilisearchInternal {
   static readonly INDEX_ALREADY_EXISTS = 'index_already_exists';
   static readonly DOCUMENT_NOT_FOUND = 'document_not_found';
 
-  /** A Meilisearch failure arrives in TWO shapes and both must be read: `MeilisearchApiError` (SDK
-   * throw - body off `cause`, status off `response.status`, NO top-level `code`) and the flat
-   * `task.error` response (not an Error, `code` at top level). Missing either misclassifies a
-   * by-design 404 as a 503 engine-down. */
+  /** A Meilisearch failure arrives in TWO shapes and both must be read: `MeilisearchApiError` (SDK throw - body off `cause`, status off `response.status`, NO top-level `code`) and the flat `task.error` response (not an Error, `code` at top level). Missing either misclassifies a by-design 404 as a 503 engine-down. */
   static getErrorCode(opts: { error: unknown }): string | undefined {
     const { error } = opts;
 

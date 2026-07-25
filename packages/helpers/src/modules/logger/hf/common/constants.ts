@@ -3,8 +3,7 @@ import { TLogLevel } from '../../common';
 /** BYTES per ring entry. Every entry occupies exactly this many bytes, used or not. */
 export const ENTRY_SIZE = 256;
 
-/** ENTRIES (slots) in the ring, not bytes - must stay a power of two (the slot mask depends on
- * it). Total ring memory = BUFFER_SIZE x ENTRY_SIZE = 16MB, allocated lazily on first use. */
+/** ENTRIES (slots) in the ring, not bytes - must stay a power of two (the slot mask depends on it). Total ring memory = BUFFER_SIZE x ENTRY_SIZE = 16MB, allocated lazily on first use. */
 export const BUFFER_SIZE = 65536;
 
 /** Max scope size in UTF-8 BYTES (not characters - a multibyte scope truncates by byte). */

@@ -574,7 +574,9 @@ interface IMailTransport {
 
 ### Peer dependency loading
 
-Neither transport calls a shared `validateModule()` helper. `configure()` calls `require('nodemailer')` / `require('mailgun.js')` directly. If the package is not installed, Node's own `Cannot find module '<name>'` error propagates uncaught from the constructor - not a framework-formatted message.
+Both transports load their peer through `ModuleUtility.loadSync({ module })`, from the client-factory seam `configure()` calls. A missing package throws the framework's install hint - `[ModuleUtility.loadSync] nodemailer is required. Please install 'nodemailer'` - not Node's raw `Cannot find module`.
+
+That indirection also keeps the specifier invisible to `Bun.build`. Importing `@venizia/ignis/mail` for the Nodemailer transport no longer drags `mailgun.js` into your bundle, and the reverse holds too.
 
 **Nodemailer (`NodemailerTransportHelper`, extends `BaseHelper`):**
 

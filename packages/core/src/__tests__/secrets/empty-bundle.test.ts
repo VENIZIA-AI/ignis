@@ -2,8 +2,7 @@ import { BaseApplication } from '@/base/applications/base';
 import { SecretProviders, type AnyType, type ISecretsRegistration } from '@venizia/ignis-helpers';
 import { afterEach, describe, expect, test } from 'bun:test';
 
-/** The system-envs provider always returns a non-empty bundle, but a `keys` mapping onto absent env
- * names resolves to nothing - the same empty result a misconfigured vault path produces. */
+/** The system-envs provider always returns a non-empty bundle, but a `keys` mapping onto absent env names resolves to nothing - the same empty result a misconfigured vault path produces. */
 const MISSING_SOURCE = '__IGNIS_MISSING_SECRET_SOURCE__';
 
 class EmptyHydrateApp extends BaseApplication {

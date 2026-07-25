@@ -95,12 +95,15 @@ export class TemplateEngineService extends BaseService implements IMailTemplateE
     let match: RegExpExecArray | null;
     while ((match = placeholderRegex.exec(template)) !== null) {
       const key = match[1].trim();
-      if (!allKeys.includes(key)) {
-        allKeys.push(key);
-        const value = this.getNestedValue(data, key);
-        if (value === undefined || value === null) {
-          missingKeys.push(key);
-        }
+      if (allKeys.includes(key)) {
+        continue;
+      }
+
+      allKeys.push(key);
+
+      const value = this.getNestedValue(data, key);
+      if (value === undefined || value === null) {
+        missingKeys.push(key);
       }
     }
 

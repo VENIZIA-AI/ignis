@@ -4,11 +4,7 @@ import { HashiCorpVaultHelper } from '@/modules/secrets/hashicorp/hashicorp.help
 import { VaultAuthMethods } from '@/modules/secrets/common';
 import type { IClock, ITimerAdapter, TTimerHandle } from '@/modules/secrets/common';
 
-/**
- * Routes captured log calls through the REAL formatter so the test proves the raw error object
- * (with its enumerable `config.headers['X-Vault-Token']`) gets redacted by the logger's deep-inspect
- * path before reaching a sink.
- */
+/** Routes captured log calls through the REAL formatter, so the test proves the raw error object (with its enumerable `config.headers['X-Vault-Token']`) is redacted by the logger's deep-inspect path before reaching a sink. */
 const formatLogArgs = ([message, ...args]: unknown[]) =>
   formatLogMessage({ message: String(message), args });
 
@@ -75,9 +71,7 @@ class ManualTimers implements ITimerAdapter {
 
 /** Minimal stand-in for the node-vault client surface the provider uses. */
 const fakeClient = (opts?: { tokenRenewSelfBehavior?: 'succeed' | 'fail' }) => {
-  // node-vault responses carry snake_case wire fields (lease_id, lease_duration, client_token,
-  // ttl, renewable); built via bracket assignment so the literal keys never appear as bare
-  // identifiers.
+  // node-vault responses carry snake_case wire fields (lease_id, lease_duration, client_token, ttl, renewable); built via bracket assignment so the literal keys never appear as bare identifiers.
   const dynamicSecretRead: Record<string, unknown> = {
     data: { username: 'v-user-1', password: 'v-pass-1' },
     renewable: true,
@@ -117,8 +111,7 @@ const fakeClient = (opts?: { tokenRenewSelfBehavior?: 'succeed' | 'fail' }) => {
     },
     async tokenLookupSelf() {
       calls.tokenLookupSelf += 1;
-      // TOKEN-method tests authenticate with a static token; report it as non-renewable so
-      // scheduleTokenRenewal() stays a no-op and no real setTimeout leaks past the test.
+      // TOKEN-method tests authenticate with a static token; report it as non-renewable so scheduleTokenRenewal() stays a no-op and no real setTimeout leaks past the test.
       const data: Record<string, unknown> = {};
       data['ttl'] = 0;
       data['renewable'] = false;

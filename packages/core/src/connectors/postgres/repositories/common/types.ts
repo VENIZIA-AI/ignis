@@ -9,8 +9,7 @@ import type { IDatabaseTransaction } from '@/connectors/postgres/datasources';
 import type { TTableObject, TTableSchemaWithId } from '@/connectors/postgres/models';
 import type { createTableRelationsHelpers, getTableColumns, SQL } from 'drizzle-orm';
 
-/** The postgres query-dialect surface a repository consumes via `dataSource.getQueryDialect()`,
- * obtained from the datasource rather than constructed inside the repository. */
+/** The postgres query-dialect surface a repository consumes via `dataSource.getQueryDialect()`, obtained from the datasource rather than constructed inside the repository. */
 export interface IRelationalQueryDialect {
   mergeFilter<T = any>(opts: { defaultFilter?: TFilter<T>; userFilter?: TFilter<T> }): TFilter<T>;
   build<Schema extends TTableSchemaWithId>(opts: {
@@ -30,9 +29,7 @@ export interface IRelationalQueryDialect {
   }): SQL[];
 }
 
-/** Postgres's `IExtraOptions`: narrows `transaction` to `IDatabaseTransaction` so
- * `options.transaction.connector` works without a cast. Default `ExtraOptions` for every postgres
- * repository class; extend with a plain `IExtraOptions` to opt back out to the neutral shape. */
+/** Postgres's `IExtraOptions`: narrows `transaction` to `IDatabaseTransaction` so `options.transaction.connector` works without a cast. Default for every postgres repository class; extend with a plain `IExtraOptions` to opt back out to the neutral shape. */
 export interface IDatabaseExtraOptions extends IExtraOptions {
   transaction?: IDatabaseTransaction;
 }

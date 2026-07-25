@@ -41,10 +41,7 @@ export interface IPoolControlOptions {
   scope?: string;
 }
 
-/**
- * Options for the callback-configured {@link BasePoolHelper}: control knobs plus resource lifecycle
- * as callbacks (AbstractPoolHelper subclasses may instead override the protected hooks directly).
- */
+/** Options for the callback-configured {@link BasePoolHelper}: control knobs plus resource lifecycle as callbacks (AbstractPoolHelper subclasses may instead override the protected hooks directly). */
 export interface IPoolOptions<T> extends IPoolControlOptions {
   /** Factory to create one resource. */
   create: () => ValueOrPromise<T>;

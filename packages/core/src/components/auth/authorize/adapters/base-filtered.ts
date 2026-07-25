@@ -4,10 +4,7 @@ import { type FilteredAdapter, type Model } from 'casbin';
 import type { SQL } from 'drizzle-orm';
 import type { ICasbinPolicyFilter, ICasbinPolicySource, TCasbinPolicyConnector } from './types';
 
-/**
- * Read-only base for casbin FilteredAdapters backed by a datasource - owns connector plumbing
- * and no-op write methods; subclasses implement {@link loadFilteredPolicy} per principal.
- */
+/** Read-only base for casbin FilteredAdapters backed by a datasource - owns connector plumbing and no-op write methods; subclasses implement {@link loadFilteredPolicy} per principal. */
 export abstract class BaseFilteredAdapter<TFilter = ICasbinPolicyFilter>
   extends BaseHelper
   implements FilteredAdapter
@@ -33,10 +30,7 @@ export abstract class BaseFilteredAdapter<TFilter = ICasbinPolicyFilter>
     return resolved;
   }
 
-  /**
-   * Runs a raw statement and returns its rows. Drizzle's `execute()` shape differs per driver
-   * (node-postgres `{ rows }`, postgres-js the row list itself) - adapters must never read `.rows` directly.
-   */
+  /** Runs a raw statement and returns its rows. Drizzle's `execute()` shape differs per driver (node-postgres `{ rows }`, postgres-js the row list itself) - never read `.rows` directly. */
   protected async query<TRow>(opts: { statement: SQL }): Promise<TRow[]> {
     const result = await this.connector.execute(opts.statement);
     return readResultRows<TRow>({ result });

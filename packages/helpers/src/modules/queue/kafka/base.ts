@@ -20,10 +20,7 @@ export interface IKafkaBaseOptions<TClient extends Base<BaseOptions>> {
   onBrokerDisconnect?: TKafkaBrokerEventCallback;
 }
 
-/**
- * Shared health tracking and broker event wiring for all Kafka helpers (producer, consumer,
- * admin). `TClient` is the platformatic client type; subclasses pass it via `super({ client })`.
- */
+/** Shared health tracking and broker event wiring for all Kafka helpers (producer, consumer, admin); `TClient` is the platformatic client type, passed by subclasses via `super({ client })`. */
 export abstract class BaseKafkaHelper<TClient extends Base<BaseOptions>> extends BaseHelper {
   protected client: TClient;
   protected readonly shutdownTimeout: number;
@@ -151,10 +148,7 @@ export abstract class BaseKafkaHelper<TClient extends Base<BaseOptions>> extends
     return this.client.close();
   }
 
-  /**
-   * Force-close through the callback overload. Only Producer and Consumer expose `close(force, cb)`;
-   * the `Base` type this class is generic over declares no such overload, hence the cast.
-   */
+  /** Force-close through the callback overload: only Producer and Consumer expose `close(force, cb)`, and the `Base` type this class is generic over declares no such overload - hence the cast. */
   protected closeClientWithCallback(): Promise<void> {
     const client = this.client as AnyType;
 
@@ -174,8 +168,7 @@ export abstract class BaseKafkaHelper<TClient extends Base<BaseOptions>> extends
     let timeoutHandle: NodeJS.Timeout | null = null;
 
     try {
-      // The timer MUST be cleared once close() wins: an armed shutdownTimeout timer keeps the event
-      // loop alive long after a successful shutdown, so the process refuses to exit.
+      // The timer MUST be cleared once close() wins: an armed shutdownTimeout timer keeps the event loop alive long after a successful shutdown, so the process refuses to exit.
       await Promise.race([
         this.closeClient(),
         new Promise<void>((_, reject) => {

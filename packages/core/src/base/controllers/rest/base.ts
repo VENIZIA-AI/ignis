@@ -36,9 +36,7 @@ export abstract class BaseRestController<
     });
   }
 
-  /** TRouteHandler's TRouteContext is a lightweight custom shape (different `json`/`req.valid`
-   * signatures) built on top of Hono's real Context, not a subtype of the RouteHandler Hono's
-   * `.openapi()` expects - genuinely different handler types being bridged at this call boundary. */
+  /** TRouteHandler's TRouteContext is a lightweight custom shape (different `json`/`req.valid` signatures) built on Hono's real Context, not a subtype of the RouteHandler `.openapi()` expects - genuinely different handler types bridged here. */
   toHonoHandler<ResponseType = unknown>(opts: { handler: TRouteHandler<ResponseType, RouteEnv> }) {
     return opts.handler as Parameters<OpenAPIHono<RouteEnv>['openapi']>[1];
   }

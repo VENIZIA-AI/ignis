@@ -3,8 +3,7 @@ import { BaseHelper, getError, HTTP } from '@venizia/ignis-helpers';
 import type { IProvider } from '@venizia/ignis-inversion';
 import { createMiddleware } from 'hono/factory';
 import type { IAuthUser } from '../../authenticate';
-// Deep import (not the authenticate barrel): the barrel re-exports ./controllers, whose factory
-// extends BaseRestController - a value import here forms the base/controllers <-> auth init cycle.
+// Deep import (not the authenticate barrel): the barrel re-exports ./controllers, whose factory extends BaseRestController - a value import here forms the base/controllers <-> auth init cycle.
 import { Authentication } from '../../authenticate/common/constants';
 import type { IAuthorizationSpec, TAuthorizeFn } from '../common';
 import { Authorization, AuthorizationDecisions } from '../common';
@@ -66,29 +65,27 @@ export class AuthorizationProvider extends BaseHelper implements IProvider<TAuth
         }
       }
 
-      if (spec.voters?.length) {
-        for (const voter of spec.voters) {
-          const decision = await voter({
-            user,
-            action: spec.action,
-            resource: spec.resource,
-            context: asTypedContext(context),
+      for (const voter of spec.voters ?? []) {
+        const decision = await voter({
+          user,
+          action: spec.action,
+          resource: spec.resource,
+          context: asTypedContext(context),
+        });
+
+        if (decision === AuthorizationDecisions.DENY) {
+          throw getError({
+            statusCode: HTTP.ResultCodes.RS_4.Forbidden,
+            message: `Authorization denied by voter | action: ${spec.action} | resource: ${spec.resource}`,
           });
-
-          if (decision === AuthorizationDecisions.DENY) {
-            throw getError({
-              statusCode: HTTP.ResultCodes.RS_4.Forbidden,
-              message: `Authorization denied by voter | action: ${spec.action} | resource: ${spec.resource}`,
-            });
-          }
-
-          if (decision === AuthorizationDecisions.ALLOW) {
-            await next();
-            return;
-          }
-
-          // ABSTAIN → continue to enforcer
         }
+
+        if (decision === AuthorizationDecisions.ALLOW) {
+          await next();
+          return;
+        }
+
+        // ABSTAIN → continue to enforcer
       }
 
       if (!registry.hasEnforcers()) {
@@ -102,8 +99,7 @@ export class AuthorizationProvider extends BaseHelper implements IProvider<TAuth
       const resolvedName = enforcerName ?? registry.getDefaultEnforcerName();
       const enforcer = await registry.resolveEnforcer({ name: resolvedName });
 
-      // Only resolve domain scope when it's actually in play (per-route domain OR a configured
-      // global resolver) - avoids an unnecessary resolver call (possible DB hit) for legacy enforcers.
+      // Only resolve domain scope when it is actually in play (per-route domain OR a configured global resolver) - avoids a resolver call (possible DB hit) for legacy enforcers.
       if (spec.domain || options?.domainResolver) {
         const domainScope = await resolveRequestDomain({
           spec,

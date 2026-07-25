@@ -46,10 +46,7 @@ class FakeTypesenseConnector {
   }
 }
 
-/** FakeTypesenseConnector only implements the methods these tests exercise (`ensureCollection`,
- * `ping`, `multiSearch`, synonym sets); TypesenseConnector is a concrete class with a private
- * `client` field, so no fake can be structurally assignable to it - this is the single boundary
- * cast every fake-connector injection in this file funnels through. */
+/** FakeTypesenseConnector implements only the methods these tests exercise; TypesenseConnector is a concrete class with a private `client` field, so no fake is structurally assignable to it - this is the single boundary cast every fake-connector injection in this file funnels through. */
 const asTypesenseConnector = (fake: FakeTypesenseConnector): TypesenseConnector => fake as any;
 
 class AppSearchDataSource extends TypesenseDataSource {}
@@ -122,8 +119,7 @@ describe('TypesenseDataSource', () => {
   });
 
   test('getConnector() throws before configure() has run', () => {
-    // Constructed as TypesenseDataSource itself, not a subclass: the shared base names the error
-    // after the runtime class, so only a direct instance pins the message an app actually sees.
+    // Constructed as TypesenseDataSource itself, not a subclass: the shared base names the error after the runtime class, so only a direct instance pins the message an app actually sees.
     const ds = new TypesenseDataSource({
       name: 'no-connector-ds',
       config: { nodes: [{ host: 'localhost', port: 8108 }], apiKey: 'xyz' },
@@ -219,8 +215,7 @@ describe('TypesenseDataSource', () => {
     );
   });
 
-  // Typesense inherits AbstractDataSource's NotSupported-by-default transaction members;
-  // search.vector, search.multi/search.union, and synonyms are all true (shipped capabilities).
+  // Typesense inherits AbstractDataSource's NotSupported-by-default transaction members; search.vector, search.multi/search.union and synonyms are all shipped capabilities.
   test('getCapabilities() reports no transactions and the search capability flags', () => {
     const ds = new AppSearchDataSource({
       name: 'capabilities-ds',
@@ -257,8 +252,7 @@ describe('TypesenseDataSource', () => {
       union: true,
     });
 
-    // Friendly in (query/queryBy: string[]/filterBy/perPage) -> snake_case wire out
-    // (q/query_by/filter_by/per_page), same mapping single-collection search() uses.
+    // Friendly in (query/queryBy: string[]/filterBy/perPage) -> snake_case wire out (q/query_by/filter_by/per_page), the same mapping single-collection search() uses.
     expect(fakeConnector.multiSearchCalls).toEqual([
       {
         searches: [
@@ -321,8 +315,7 @@ describe('barrel purity', () => {
   });
 
   test('src/index.ts and src/base/** never import the typesense connector', async () => {
-    // typesense is optional - only src/connectors/typesense/ and its sub-path consumers may
-    // reference it; neutral code (src/base, root barrel) must never import it, even transitively.
+    // typesense is optional - only src/connectors/typesense/ and its sub-path consumers may reference it; neutral code (src/base, root barrel) must never import it, even transitively.
     const rootIndex = await Bun.file('src/index.ts').text();
     expect(rootIndex).not.toContain('connectors/typesense');
 

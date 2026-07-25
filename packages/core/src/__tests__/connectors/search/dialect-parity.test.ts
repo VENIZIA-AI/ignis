@@ -2,8 +2,7 @@ import { describe, expect, test } from 'bun:test';
 import { MeilisearchQueryDialect } from '@/connectors/meilisearch/repositories/dialect/query-dialect';
 import { TypesenseQueryDialect } from '@/connectors/typesense/repositories/dialect/query-dialect';
 
-/** Pins that both dialects agree on the byte-shared pagination/fields-CSV/operator-object helpers
- * (search/repositories/common/dialect-helpers), so the lift stays honest. */
+/** Pins that both dialects agree on the byte-shared pagination/fields-CSV/operator-object helpers (search/repositories/common/dialect-helpers), so the lift stays honest. */
 describe('search dialect parity - shared pagination / fields helpers', () => {
   const typesense = new TypesenseQueryDialect();
   const meilisearch = new MeilisearchQueryDialect();

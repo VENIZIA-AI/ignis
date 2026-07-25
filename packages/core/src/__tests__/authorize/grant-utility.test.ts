@@ -167,8 +167,7 @@ describe('extraPolicyDefinitionColumns', () => {
   });
 });
 
-// The framework's DEFAULT_CRUD_METHODS (9) plus one custom operation, so every tier is non-empty
-// and realistically sized: read covers FOUR operations, write covers FIVE.
+// DEFAULT_CRUD_METHODS (9) plus one custom operation, so every tier is non-empty and realistically sized: read covers FOUR operations, write FIVE.
 const CATALOG = [
   { subject: 'Order', method: 'find', code: 'Order.find', action: 'read' },
   { subject: 'Order', method: 'findById', code: 'Order.findById', action: 'read' },
@@ -516,8 +515,7 @@ describe('GrantBuilder.planGrant - tier collapsing', () => {
   });
 
   it('throws on an op belonging to a different subject', () => {
-    // `find` is genuinely in the catalog - just not under RESOURCE's subject ('Order') - so this
-    // proves the cross-subject filter rejects it, not merely an empty-catalog fallback.
+    // `find` is genuinely in the catalog, just not under RESOURCE's subject ('Order'), so this proves the cross-subject filter rejects it rather than an empty-catalog fallback.
     expect(() =>
       grantBuilder.planGrant({
         subject: SUBJECT,

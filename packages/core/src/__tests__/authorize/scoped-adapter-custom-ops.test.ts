@@ -27,11 +27,7 @@ const entities = (opts: { metadataColumnName?: string } = {}): IScopedCasbinEnti
   softDelete: { use: true, columnName: 'deleted_at' },
 });
 
-/**
- * `buildGrantLines` takes fetched rows directly - the only query it can still issue is the
- * batched operation catalog lookup (`queryOperationCatalog`), so the stub always answers with
- * `catalogRows` regardless of statement text.
- */
+/** `buildGrantLines` takes fetched rows directly, so the only query left is the batched `queryOperationCatalog` lookup - the stub answers with `catalogRows` regardless of statement text. */
 const makeAdapter = (
   opts: {
     catalogRows?: unknown[];
@@ -49,8 +45,7 @@ const makeAdapter = (
       return { rows: catalogRows };
     },
   };
-  // TCasbinPolicyConnector is drizzle's full generated node-postgres database type; the adapter
-  // only ever calls `.execute`, so the stub only implements that.
+  // The adapter only ever calls `.execute`, so the stub implements only that out of drizzle's full generated node-postgres type.
   const dataSource = { connector } as ICasbinPolicySource;
   const adapter = new ScopedCasbinAdapter({
     dataSource,
@@ -315,8 +310,7 @@ describe('ScopedCasbinAdapter - custom operation-subset grants', () => {
   it('rejects a "*" op as unresolvable instead of resolving it to the resource node, while other ops in the row still expand', async () => {
     const { logger, messages } = makeCapturingLogger();
     const { adapter, captured } = makeAdapter({
-      // A real catalog query excludes method = '*' (queryOperationCatalog's guard), so the DB never
-      // hands back a row for the sentinel - only `find` resolves, mirroring production.
+      // queryOperationCatalog's guard excludes method = '*', so the DB never hands back a row for the sentinel - only `find` resolves, mirroring production.
       catalogRows: [{ subject: 'Order', method: 'find', code: 'Order.find', action: 'read' }],
       metadataColumnName: 'metadata',
     });
@@ -531,8 +525,7 @@ describe('ScopedCasbinAdapter - custom operation-subset grants', () => {
 
     const lines = await adapter['buildGrantLines']({ subjectType: 'Role', rows });
 
-    // Expanded lines are appended after the whole row loop, so a mid-fetch custom row does not come
-    // out mid-array; assert membership, not position - casbin's `p` table is an unordered set.
+    // Assert membership, not position: expanded lines are appended after the whole row loop, and casbin's `p` table is an unordered set.
     expect(new Set(lines)).toEqual(
       new Set([
         `p, Role_r1, ${AuthorizationDomainScopes.ANY_MEMBER}, Order.find, read, allow`,
@@ -544,12 +537,7 @@ describe('ScopedCasbinAdapter - custom operation-subset grants', () => {
   });
 });
 
-/**
- * Builds an adapter whose grant-query stub joins `grantRows` (raw PolicyDefinition-shaped rows, as
- * `planGrant` produces them) against `catalog` the way the real `permission` table join would - a
- * per-operation row's `targetId` is a catalogued code, a custom row's `targetId` is the resource
- * node, whose subject is inferred from which catalog entries cover its granted ops.
- */
+/** The grant-query stub joins `grantRows` against `catalog` the way the real `permission` join would: a per-operation row's `targetId` is a catalogued code, a custom row's is the resource node, whose subject is inferred from the catalog entries covering its granted ops. */
 const adapterFor = (opts: {
   grantRows: Array<{
     subjectId: IdType;
@@ -650,8 +638,7 @@ describe('ScopedCasbinAdapter - buildGrantLines guard scoping', () => {
 
 describe('planGrant and adapter expansion are mirrors', () => {
   it('a planned ops grant expands to the same lines as equivalent per-operation rows', async () => {
-    // find + deleteById covers NEITHER tier fully - read needs four operations, write needs five -
-    // so the planner produces a custom row rather than collapsing into tier grants.
+    // find + deleteById covers NEITHER tier fully (read needs four operations, write five), so the planner produces a custom row rather than collapsing into tier grants.
     const catalog = [
       { subject: 'Order', method: 'find', code: 'Order.find', action: 'read' },
       { subject: 'Order', method: 'findById', code: 'Order.findById', action: 'read' },

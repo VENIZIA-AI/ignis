@@ -44,9 +44,7 @@ export class VectorDistances {
 
 export type TVectorDistance = TConstValue<typeof VectorDistances>;
 
-/** Embedding-model config for a server-side auto-embedded vector field: local built-in models need
- * only `name`; remote providers add `apiKey` and/or their auth fields. Compilers map these camelCase
- * keys to wire vocabulary. Source secrets from env - never hardcode them into a committed schema. */
+/** Embedding-model config for a server-side auto-embedded vector field: built-in models need only `name`, remote providers add `apiKey` and/or auth fields, and compilers map these camelCase keys to wire vocabulary. Source secrets from env - never hardcode them into a committed schema. */
 export interface ISearchEmbedModelConfig {
   /** Built-in (`ts/...`) or remote (`openai/...`, `google/...`, `azure/...`). */
   name: string;
@@ -101,8 +99,7 @@ export interface ISearchCollectionDefinition {
   /** Declarative synonym sets provisioned alongside the collection (see `BaseSearchDataSource.provisionCollections`). */
   synonyms?: ISynonym[];
 
-  // Known engines get a named, documented key; the index signature admits any other engine
-  // (e.g. a third-party or in-house connector) without widening the known keys' value types.
+  // Known engines get a named key; the index signature admits any third-party or in-house connector without widening the known keys' value types.
   engineOverrides?: {
     typesense?: object;
     meilisearch?: object;
@@ -132,9 +129,7 @@ export type TSearchFieldTsType<T extends TSearchFieldType> = T extends 'string'
                 ? number[]
                 : never;
 
-/** Compile-time document shape for a `defineSearchCollection` literal. Uses `Exclude<..., { optional: true }>`,
- * not `Extract<..., { optional?: false }>` - the latter is a TS weak type and rejects fields with no
- * `optional` key. A `vector.embed` field is server auto-embedded and omitted from the shape entirely. */
+/** Compile-time document shape for a `defineSearchCollection` literal. Uses `Exclude<..., { optional: true }>`, not `Extract<..., { optional?: false }>` - the latter is a TS weak type and rejects fields with no `optional` key. A `vector.embed` field is server auto-embedded, so it is omitted entirely. */
 export type TSearchDocument<T extends ISearchCollectionDefinition> = { id: string } & {
   [
     F in Exclude<T['fields'][number], { optional: true }> as F['name'] extends 'id'

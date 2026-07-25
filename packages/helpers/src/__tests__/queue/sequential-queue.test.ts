@@ -21,10 +21,7 @@ const createDeferred = <T>(): IDeferred<T> => {
   return { promise, resolve };
 };
 
-/**
- * The queue drives itself via a generator whose promise nobody awaits, so tests can't await
- * processing directly - they wait on a queue callback instead; the timeout exists only so a stall regression fails fast instead of hanging.
- */
+/** The queue drives itself via a generator whose promise nobody awaits, so tests wait on a queue callback instead of awaiting processing; the timeout exists only so a stall regression fails fast instead of hanging. */
 const SETTLE_TIMEOUT = 300;
 const withTimeout = <T>(opts: { promise: Promise<T> }): Promise<T | 'TIMED_OUT'> => {
   const { promise } = opts;

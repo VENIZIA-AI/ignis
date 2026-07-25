@@ -7,8 +7,7 @@ import { toBoolean } from '@/utilities/parse.utility';
 
 const LINE_PATTERN = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z \[(\w+)\] (\S+) (.*)$/;
 
-/** Drains the shared ring first - bun runs all test files in one process, so earlier tests'
- * lines would otherwise leak into `lines()` for this test. */
+/** Drains the shared ring first - bun runs all test files in one process, so earlier tests' lines would otherwise leak into `lines()`. */
 const collectingFlusher = async () => {
   const batches: Array<THfSinkBatch> = [];
   const flusher = new HfLogFlusher({ sink: batch => batches.push(batch) });

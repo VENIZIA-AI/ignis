@@ -7,9 +7,7 @@ import {
   getPerformanceCheckpoint,
 } from '@/utilities/performance.utility';
 
-/** `executeWithPerformanceMeasure` resolves from `.then(resolve)` and logs DONE from the later
- * `.finally`, so the DONE line lands one microtask after the caller resumes. Draining the loop
- * once makes that ordering deterministic instead of racing it. */
+/** `executeWithPerformanceMeasure` resolves from `.then(resolve)` and logs DONE from the later `.finally`, so DONE lands one microtask after the caller resumes - draining the loop once makes that ordering deterministic. */
 const flushPendingLogs = () => new Promise(resolve => setTimeout(resolve, 0));
 
 const captureRejection = async (execution: Promise<unknown>): Promise<Error> => {

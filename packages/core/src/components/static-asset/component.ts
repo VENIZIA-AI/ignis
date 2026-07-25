@@ -43,8 +43,7 @@ export class StaticAssetComponent extends BaseComponent {
             normalizeLinkFn:
               extra?.normalizeLinkFn ??
               (opts => {
-                // The object route binds `{objectName}` as one Hono path segment, so a nested
-                // object path must be encoded whole - a raw `/` here would produce a 404 link.
+                // The object route binds `{objectName}` as one Hono path segment, so a nested path must be encoded whole - a raw `/` produces a 404 link.
                 const encodedPath = encodeURIComponent(opts.normalizeName);
                 return `${controller.basePath}/buckets/${opts.bucketName}/objects/${encodedPath}`;
               }),

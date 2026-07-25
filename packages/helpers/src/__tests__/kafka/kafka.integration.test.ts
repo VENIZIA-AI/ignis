@@ -1,18 +1,12 @@
 import type { AnyType } from '@/common/types';
-/**
- * LIVE Kafka integration tests - gated on APP_ENV_KAFKA_BROKERS (+ SASL vars) so the suite
- * auto-skips with no secrets committed when unconfigured. Every case has a per-test timeout
- * so a hung path fails loudly instead of stalling the runner.
- */
+/** LIVE Kafka integration tests, gated on APP_ENV_KAFKA_BROKERS (+ SASL vars) so they auto-skip when unconfigured; a per-test timeout makes a hung path fail loudly instead of stalling the runner. */
 
 import { KafkaAdminHelper, KafkaConsumerHelper, KafkaProducerHelper } from '@/modules/queue/kafka';
 import type { SASLOptions } from '@platformatic/kafka';
 import { stringDeserializer, stringSerializer } from '@platformatic/kafka';
 import { afterAll, beforeAll, describe, expect, test } from 'bun:test';
 
-// -------------------------------------------------------------------------
-// Config from env (no secrets in the repo)
-// -------------------------------------------------------------------------
+// --- Config from env (no secrets in the repo) ---
 
 const BROKERS = (process.env.APP_ENV_KAFKA_BROKERS ?? '')
   .split(',')
@@ -40,9 +34,7 @@ if (!isLive) {
   console.warn('[kafka.integration] APP_ENV_KAFKA_BROKERS not set — skipping live Kafka tests');
 }
 
-// -------------------------------------------------------------------------
-// Shared helpers
-// -------------------------------------------------------------------------
+// --- Shared helpers ---
 
 const baseConn = () => ({
   clientId: CLIENT_ID,
@@ -121,9 +113,7 @@ afterAll(async () => {
   await withTimeout(admin.close({ isForce: true }), 10_000, 'afterAll admin.close').catch(() => {});
 }, 60_000);
 
-// -------------------------------------------------------------------------
-// Admin
-// -------------------------------------------------------------------------
+// --- Admin ---
 
 describe('KafkaAdminHelper (live)', () => {
   live(
@@ -162,9 +152,7 @@ describe('KafkaAdminHelper (live)', () => {
   );
 });
 
-// -------------------------------------------------------------------------
-// Producer
-// -------------------------------------------------------------------------
+// --- Producer ---
 
 describe('KafkaProducerHelper (live)', () => {
   live(
@@ -272,9 +260,7 @@ describe('KafkaProducerHelper (live)', () => {
   );
 });
 
-// -------------------------------------------------------------------------
-// Consumer
-// -------------------------------------------------------------------------
+// --- Consumer ---
 
 const makeConsumer = (
   onMessage: KafkaConsumerHelper['onMessage'],
@@ -585,9 +571,7 @@ describe('KafkaConsumerHelper (live)', () => {
     async () => {
       const topic = freshTopicName();
       await createTopic(topic);
-      // No onMessage → no background consume loop, so we can drive the reconnect path
-      // manually in isolation. onMessageError attaches a per-stream 'error' listener that
-      // absorbs the synthetic destroy() error.
+      // No onMessage means no background consume loop, so the reconnect path can be driven manually in isolation; onMessageError attaches a per-stream 'error' listener that absorbs the synthetic destroy() error.
       const consumer = KafkaConsumerHelper.newInstance({
         ...baseConn(),
         identifier: 'it-leak',
@@ -607,18 +591,14 @@ describe('KafkaConsumerHelper (live)', () => {
         );
 
         const client = consumer.getConsumer();
-        // Per-stream listeners `MessagesStream` registers on the consumer; their
-        // cleanup is owned by the stream's own `_destroy()` (triggered by destroy()),
-        // NOT by removeAllListeners(). With one stream active this is the steady-state max.
+        // Per-stream listeners `MessagesStream` registers on the consumer are cleaned up by the stream's own `_destroy()` (triggered by destroy()), NOT by removeAllListeners(); with one stream active this is the steady-state max.
         const liveCounts = () => ({
           join: client.listenerCount('consumer:group:join'),
           disc: client.listenerCount('client:broker:disconnect'),
         });
         const baseline = liveCounts();
 
-        // Drive the real reconnect path: tear the stream down, then rebuild it.
-        // A settle delay mirrors the real reconnectDelayMs and lets each stream's
-        // async _destroy() run (it removes the per-stream consumer listeners).
+        // Drive the real reconnect path - tear the stream down, then rebuild; the settle delay mirrors the real reconnectDelayMs and lets each stream's async _destroy() remove its per-stream consumer listeners.
         for (let i = 0; i < 6; i++) {
           consumer['destroyDeadStream']();
           await new Promise(resolve => setTimeout(resolve, 400));
@@ -626,8 +606,7 @@ describe('KafkaConsumerHelper (live)', () => {
           await new Promise(resolve => setTimeout(resolve, 400));
         }
 
-        // Steady state after cycling must return to the single-stream baseline —
-        // _destroy() reclaimed every old stream's listeners (no removeAllListeners needed).
+        // Steady state after cycling must return to the single-stream baseline - _destroy() reclaimed every old stream's listeners, no removeAllListeners needed.
         const settled = liveCounts();
         expect(settled.join).toBe(baseline.join);
         expect(settled.disc).toBe(baseline.disc);
@@ -639,9 +618,7 @@ describe('KafkaConsumerHelper (live)', () => {
   );
 });
 
-// -------------------------------------------------------------------------
-// Negative / resilience
-// -------------------------------------------------------------------------
+// --- Negative / resilience ---
 
 describe('Kafka resilience (live config, bad endpoint)', () => {
   live(

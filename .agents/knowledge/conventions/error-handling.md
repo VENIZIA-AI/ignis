@@ -99,6 +99,25 @@ arrived, so it looked fine - that footgun is gone. Pinned in `bana-probe.test.ts
 `getError({ message, error: caughtError })` reads like "wrap this" but `error` is a consumed key, so
 the failure would vanish - the compiler now rejects it. Wrap with `cause`.
 
+## Log an expected failure below `error`
+
+The error handler (`AppErrorMiddleware`) logs every thrown error, and defaults to the `error` level.
+A failure that is the client's fault - a `404`, a `409` the caller retries - does not belong in the
+error log next to a real `500`. Pass `logLevel` to place it where it belongs:
+
+```typescript
+throw getError({ message: 'Order not found', statusCode: 404, logLevel: 'warn' });
+```
+
+`logLevel` is one of `error | emerg | warn | info | debug` (`TErrorLogLevel`). The handler reads it
+off the thrown error and logs at that level; an absent or malformed value falls back to `error`, so
+nothing changes for the many call sites that never set it. It does NOT reach the client response -
+it only steers the server log.
+
+`TErrorLogLevel` is declared in `inversion` (which cannot import helpers' `TLogLevel`, being
+browser-safe); a compile-time guard in helpers - `log-level-drift.test.ts` - fails the build if the
+two unions ever diverge.
+
 ## instanceof across packages is unreliable
 
 There is only ONE `ApplicationError` now, and `instanceof` STILL does not work across a package

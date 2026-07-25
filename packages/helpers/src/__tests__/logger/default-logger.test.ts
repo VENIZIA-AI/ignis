@@ -7,8 +7,7 @@ const MESSAGE = Symbol.for('message');
 const LEVEL = Symbol.for('level');
 const ANSI_ESCAPE = '[';
 
-/** Renders one info object exactly as winston would for a given transport: logger-level format
- * first, then the transport's own format (identity when absent). */
+/** Renders one info object exactly as winston would for a given transport: logger-level format first, then the transport's own format (identity when absent). */
 const renderThroughTransport = (opts: {
   logger: winston.Logger;
   transport: winston.transport;
@@ -104,8 +103,7 @@ describe('defineCustomLogger - format wiring per transport', () => {
 });
 
 describe('defineCustomLogger - level control', () => {
-  // Console-only: winston's isLevelEnabled honors a transport's OWN level (the info/error file
-  // transports are pinned), so only a transport without one reflects the logger-level floor.
+  // Console-only: winston's isLevelEnabled honors a transport's OWN level (the info/error file transports are pinned), so only a transport without one reflects the logger-level floor.
   const buildConsoleOnlyLogger = (extra?: { level?: 'warn' }) => {
     return defineCustomLogger({
       format: 'text',

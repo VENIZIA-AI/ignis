@@ -4,11 +4,7 @@ import { NodeFetchNetworkRequest } from '@/modules/network';
 // Module path, never the barrel: axios is an optional peer.
 import { AxiosNetworkRequest } from '@/modules/network/http-request/fetcher/axios-fetcher';
 
-/**
- * Method casing must always reach the wire uppercase: undici normalizes only
- * DELETE/GET/HEAD/OPTIONS/POST/PUT, so lowercase `patch`/`query` travels verbatim and the server
- * rejects it - Bun's fetch hides this by uppercasing everything. Echoed via a HEADER, not the body, so HEAD is covered too.
- */
+/** Method casing must always reach the wire uppercase: undici normalizes only DELETE/GET/HEAD/OPTIONS/POST/PUT, so lowercase `patch`/`query` travels verbatim and the server rejects it - Bun's fetch hides this by uppercasing everything. Echoed via a HEADER, not the body, so HEAD is covered too. */
 const METHODS = Object.values(HTTP.Methods);
 
 const withEchoServer = async (assertion: (opts: { baseUrl: string }) => Promise<void>) => {

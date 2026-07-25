@@ -1,16 +1,13 @@
 import { Defaults } from '@/common/constants';
 import { AnyType } from '@/common/types';
-import { validateModuleSync } from '@/utilities/module.utility';
+import { ModuleUtility } from '@/utilities/module.utility';
 import path from 'node:path';
 import pino from 'pino';
 import { LoggerFormats, resolveLoggerLevel } from '../common';
 
 import { TPinoCustomLevelName, TPinoInstance } from './common';
 
-/**
- * pino levels are ASCENDING severity (error 50 > warn 40 > info 30 > debug 20); `emerg`(70)
- * extends above error. Value is NORMATIVE - do not renumber without updating the spec.
- */
+/** pino levels are ASCENDING severity (error 50 > warn 40 > info 30 > debug 20); `emerg`(70) extends above error. NORMATIVE - do not renumber without updating the spec. */
 export const PINO_CUSTOM_LEVELS: Record<TPinoCustomLevelName, number> = {
   emerg: 70,
 };
@@ -35,10 +32,7 @@ export type TDestinationPlan =
 const DEFAULT_FREQUENCY: TFrequency = 'hourly';
 const DEFAULT_MAX_FILES = '5d';
 
-/**
- * `APP_ENV_LOGGER_FILE_FREQUENCY` -> pino-roll's `frequency`. Unrecognized value warns and
- * falls back rather than throwing, so the app still boots.
- */
+/** `APP_ENV_LOGGER_FILE_FREQUENCY` -> pino-roll's `frequency`; an unrecognized value warns and falls back rather than throwing, so the app still boots. */
 export const mapFrequency = (value?: string): TFrequency => {
   const normalized = (value ?? '1h').trim().toLowerCase();
 
@@ -77,10 +71,7 @@ const parseMaxFilesValue = (value: string, frequency: TFrequency): number | null
   return null;
 };
 
-/**
- * `APP_ENV_LOGGER_FILE_MAX_FILES` -> pino-roll's `limit.count`. `'<n>d'` scales by frequency
- * (hourly: days*24); bare integer is a literal count; unrecognized falls back to `'5d'`.
- */
+/** `APP_ENV_LOGGER_FILE_MAX_FILES` -> pino-roll's `limit.count`: `'<n>d'` scales by frequency (hourly: days*24), a bare integer is a literal count, unrecognized falls back to `'5d'`. */
 export const mapMaxFilesToCount = (opts: { value?: string; frequency: TFrequency }): number => {
   const { value, frequency } = opts;
   const normalized = value?.trim();
@@ -92,8 +83,7 @@ export const mapMaxFilesToCount = (opts: { value?: string; frequency: TFrequency
     }
   }
 
-  // Unset is a normal configuration (mirror the sibling defaults) - only a PROVIDED value that
-  // failed to parse deserves a warning.
+  // Unset is a normal configuration (mirror the sibling defaults) - only a PROVIDED value that failed to parse deserves a warning.
   if (normalized && normalized !== DEFAULT_MAX_FILES) {
     console.warn(
       '[mapMaxFilesToCount] Invalid logger file max files value | value: %s | fallback: %s',
@@ -105,10 +95,7 @@ export const mapMaxFilesToCount = (opts: { value?: string; frequency: TFrequency
   return parseMaxFilesValue(DEFAULT_MAX_FILES, frequency) as number;
 };
 
-/**
- * Pure: which destination pino should write to, derived from `APP_ENV_LOGGER_*` at CALL time.
- * `DATE_PATTERN` is deliberately not read - pino-roll has no equivalent.
- */
+/** Pure: which destination pino should write to, derived from `APP_ENV_LOGGER_*` at CALL time. `DATE_PATTERN` is deliberately not read - pino-roll has no equivalent. */
 export const resolveDestinationPlan = (): TDestinationPlan => {
   const folderPath = process.env.APP_ENV_LOGGER_FOLDER_PATH;
 
@@ -131,9 +118,7 @@ export const resolveDestinationPlan = (): TDestinationPlan => {
     };
   }
 
-  // UNSET means NDJSON to stdout - the locked default for this provider. Only an EXPLICIT
-  // `text` opts into pino-pretty; falling back to TEXT here (winston's default) would make the
-  // documented minimal install (pino only, no pino-pretty) crash on its first log line.
+  // UNSET means NDJSON to stdout, the locked default for this provider; only an EXPLICIT `text` opts into pino-pretty, and falling back to TEXT here (winston's default) would make the documented minimal install (pino only, no pino-pretty) crash on its first log line.
   if (process.env.APP_ENV_LOGGER_FORMAT === LoggerFormats.TEXT) {
     return { kind: 'pretty' };
   }
@@ -141,22 +126,18 @@ export const resolveDestinationPlan = (): TDestinationPlan => {
   return { kind: 'stdout' };
 };
 
-/**
- * `pino.transport()` is SYNCHRONOUS - returns a `ThreadStream` that BUFFERS writes until its
- * worker thread loads, so no async gating is needed. `validateModuleSync` runs first so a
- * missing optional peer fails loudly here, not as an opaque worker-thread crash.
- */
+/** `pino.transport()` is SYNCHRONOUS - it returns a `ThreadStream` that BUFFERS writes until its worker thread loads, so no async gating is needed; `ModuleUtility.assertInstalled` runs first so a missing optional peer fails loudly here, not as an opaque worker-thread crash. */
 export const buildDestination = (plan: TDestinationPlan): pino.DestinationStream | undefined => {
   switch (plan.kind) {
     case 'stdout': {
       return undefined;
     }
     case 'pretty': {
-      validateModuleSync({ scope: 'PinoLogger', modules: ['pino-pretty'] });
+      ModuleUtility.assertInstalled({ scope: 'PinoLogger', modules: ['pino-pretty'] });
       return pino.transport({ target: 'pino-pretty' });
     }
     case 'roll': {
-      validateModuleSync({ scope: 'PinoLogger', modules: ['pino-roll'] });
+      ModuleUtility.assertInstalled({ scope: 'PinoLogger', modules: ['pino-roll'] });
       return pino.transport({ target: 'pino-roll', options: plan.options });
     }
     default: {
@@ -165,10 +146,7 @@ export const buildDestination = (plan: TDestinationPlan): pino.DestinationStream
   }
 };
 
-/**
- * Pure: pino constructor options derived from env at CALL time. Exported so tests can build a
- * REAL backing instance against an in-memory destination, without the impure singleton below.
- */
+/** Pure: pino constructor options derived from env at CALL time. Exported so tests can build a REAL backing instance against an in-memory destination, without the impure singleton below. */
 export const buildPinoOptions = () => ({
   name: Defaults.APPLICATION_NAME,
   level: resolveLoggerLevel({ configured: process.env.APP_ENV_LOGGER_LEVEL }),
@@ -176,18 +154,10 @@ export const buildPinoOptions = () => ({
 });
 
 let backingInstance: TPinoInstance | undefined;
-/**
- * The `ThreadStream` behind `backingInstance`, held ONLY when built via a transport (pretty/roll).
- * `undefined` for `stdout` or an injected instance. Tracked so a replacement can close the
- * worker instead of orphaning it.
- */
+/** The `ThreadStream` behind `backingInstance`, held ONLY when built via a transport (pretty/roll) and `undefined` for `stdout` or an injected instance - tracked so a replacement can close the worker instead of orphaning it. */
 let backingTransport: pino.DestinationStream | undefined;
 
-/**
- * Lazy, env-driven singleton, built once and reused by every scope entirely synchronously - the
- * very first log line already targets the real env-configured destination, no stdout bootstrap.
- * `setPinoBackingLogger()` is the only way to replace it; this getter never resets it.
- */
+/** Lazy, env-driven singleton, built once and reused by every scope entirely synchronously - the very first log line already targets the real env-configured destination, no stdout bootstrap. `setPinoBackingLogger()` is the only way to replace it; this getter never resets it. */
 export const getPinoBackingLogger = (): TPinoInstance => {
   if (!backingInstance) {
     const plan = resolveDestinationPlan();
@@ -198,22 +168,23 @@ export const getPinoBackingLogger = (): TPinoInstance => {
   return backingInstance;
 };
 
-/**
- * Replaces the singleton outright. An outgoing transport-backed instance (pretty/roll) is a
- * `ThreadStream` on a live worker thread - dropping it without closing orphans the worker, so
- * this flushes then `.end()`s it first; failures are logged via `console.error`, never swallowed.
- */
+const closeBackingTransport = (): void => {
+  if (!backingTransport) {
+    return;
+  }
+
+  try {
+    (backingTransport as AnyType).end();
+  } catch (error) {
+    console.error('[setPinoBackingLogger] Failed to close previous transport stream', error);
+  }
+};
+
+/** Replaces the singleton outright: an outgoing transport-backed instance (pretty/roll) is a `ThreadStream` on a live worker thread, so this flushes then `.end()`s it first rather than orphaning the worker; failures are logged via `console.error`, never swallowed. */
 export const setPinoBackingLogger = (opts: { instance: TPinoInstance }): void => {
   if (backingInstance) {
     backingInstance.flush();
-
-    if (backingTransport) {
-      try {
-        (backingTransport as AnyType).end();
-      } catch (error) {
-        console.error('[setPinoBackingLogger] Failed to close previous transport stream', error);
-      }
-    }
+    closeBackingTransport();
   }
 
   backingInstance = opts.instance;

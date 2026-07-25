@@ -114,7 +114,6 @@ export const createContentDispositionHeader = (opts: {
   const sanitized = sanitizeFilename(filename);
   const encoded = encodeRFC5987(sanitized);
 
-  // Use both ASCII fallback and UTF-8 encoded version for better compatibility
-  // filename= for old browsers, filename*= for modern browsers with UTF-8 support
+  // filename= is the ASCII fallback for old browsers, filename*= the UTF-8 form for modern ones.
   return `${type}; filename="${sanitized}"; filename*=UTF-8''${encoded}`;
 };

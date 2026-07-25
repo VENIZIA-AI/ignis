@@ -20,9 +20,7 @@ import { ICrudRepository } from '@/base/repositories';
 import { TypesenseQueryDialect } from '@/connectors/typesense';
 import { MetadataRegistry } from '@/helpers/inversion';
 
-/** `entity.name` (`TABLE_NAME || class name`) can diverge from the model-registry key
- * (`metadata.tableName || ...`); keying off `entity.name` alone silently misses settings
- * registered under a different `tableName`. */
+/** `entity.name` (`TABLE_NAME || class name`) can diverge from the model-registry key (`metadata.tableName || ...`), so keying off `entity.name` alone silently misses settings registered under a different `tableName`. */
 
 const divergedTable = pgTable('diverged_y', {
   id: serial('id').primaryKey(),
@@ -30,8 +28,7 @@ const divergedTable = pgTable('diverged_y', {
   isActive: boolean('is_active'),
 });
 
-/** No static TABLE_NAME - `entity.name` resolves to the class name ('DivergedEntity'),
- * while `@model({ tableName: 'diverged_y' })` registers it under 'diverged_y'. */
+/** No static TABLE_NAME - `entity.name` resolves to the class name ('DivergedEntity'), while `@model({ tableName: 'diverged_y' })` registers it under 'diverged_y'. */
 @model({
   type: 'entity',
   tableName: 'diverged_y',
@@ -119,8 +116,7 @@ class SearchDivergedDataSource extends BaseSearchDataSource<{}> {
   async ensureCollection(): Promise<void> {}
 }
 
-/** BaseSearchEntity's `entity.name` resolves via `COLLECTION_NAME ?? definition.name ?? class
- * name`, which can also diverge from `@model({ tableName })`. */
+/** BaseSearchEntity's `entity.name` resolves via `COLLECTION_NAME ?? definition.name ?? class name`, which can also diverge from `@model({ tableName })`. */
 @model({ type: 'entity', tableName: 'diverged-search-collection' })
 class DivergedSearchDocument extends BaseSearchEntity {
   static override schema = defineSearchCollection({

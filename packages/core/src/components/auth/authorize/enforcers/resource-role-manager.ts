@@ -1,11 +1,7 @@
 import { BaseHelper } from '@venizia/ignis-helpers';
 import type { RoleManager } from 'casbin';
 
-/**
- * Resource-axis (`g4`) role manager: `addMatchingFunc` would set `hasPattern` and disable
- * DefaultRoleManager's O(1) fast path, so this walks prefix ancestors manually. `addLink` must
- * stay idempotent - `buildRoleLinks` re-adds every edge once per request.
- */
+/** Resource-axis (`g4`) role manager: `addMatchingFunc` would set `hasPattern` and disable DefaultRoleManager's O(1) fast path, so prefix ancestors are walked manually; `addLink` must stay idempotent because `buildRoleLinks` re-adds every edge once per request. */
 export class ResourceRoleManager extends BaseHelper implements RoleManager {
   private parents = new Map<
     string, // Child module
@@ -117,11 +113,7 @@ export class ResourceRoleManager extends BaseHelper implements RoleManager {
     return [];
   }
 
-  /**
-   * All stored prefix ancestors of a dotted code (`a.b.c` -> `a.b` -> `a`), not only the deepest,
-   * plus a literal stored `'*'` node - `objectMatch(anything, '*')` was always true, so a `g4`
-   * edge whose child is `'*'` must stay reachable from every request object.
-   */
+  /** All stored prefix ancestors of a dotted code (`a.b.c` -> `a.b` -> `a`), not only the deepest, plus a literal stored `'*'` node - `objectMatch(anything, '*')` is always true, so a `g4` edge whose child is `'*'` must stay reachable from every request object. */
   private collectStoredAncestors(opts: { name: string }): string[] {
     const ancestors: string[] = [];
 

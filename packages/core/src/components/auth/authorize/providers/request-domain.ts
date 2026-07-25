@@ -34,10 +34,7 @@ export const readDeclarative = (opts: {
   }
 };
 
-/**
- * Resolve the request domain, precedence spec.domain (method | declarative) -> options.domainResolver
- * -> SYSTEM_WIDE. Returns a casbin domain string ("<type>_<id>") or the SYSTEM_WIDE sentinel.
- */
+/** Resolve the request domain, precedence spec.domain (method | declarative) -> options.domainResolver -> SYSTEM_WIDE, as a casbin domain string ("<type>_<id>") or the SYSTEM_WIDE sentinel. */
 export const resolveRequestDomain = async (opts: {
   spec: IAuthorizationSpec;
   context: TContext<Env, string>;

@@ -4,12 +4,7 @@ import { beforeEach, describe, expect, test } from 'bun:test';
 import { Container } from '../modules/container/container';
 import { inject } from '../modules/metadata/injectors';
 
-/**
- * `@inject({ isOptional: true })` on a PROPERTY must yield `undefined` for a missing binding, the
- * same as on a constructor parameter. The container once read `metadata.optional` while the
- * decorator wrote `isOptional`, so every optional property injection threw - and an index signature
- * on `IPropertyMetadata` kept the typo from being a compile error.
- */
+/** `@inject({ isOptional: true })` on a PROPERTY must yield `undefined` for a missing binding, the same as on a constructor parameter - the index signature on `IPropertyMetadata` keeps a key typo from being a compile error, so only this test catches it. */
 describe('optional property injection', () => {
   let container: Container;
 

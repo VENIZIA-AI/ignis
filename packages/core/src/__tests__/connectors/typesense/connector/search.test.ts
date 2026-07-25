@@ -16,8 +16,7 @@ describe('TypesenseConnector search', () => {
   });
 
   test('maps facet_counts/grouped_hits/text_match onto camelCase result fields', async () => {
-    // Wire-shaped fixture assembled via bracket assignment (never a snake_case TS identifier),
-    // same convention as connector.ts's buildEmptySearchResponse().
+    // Wire-shaped fixture assembled via bracket assignment, never a snake_case TS identifier - same convention as connector.ts's buildEmptySearchResponse().
     const facetCount: Record<string, unknown> = { counts: [{ value: 'nike', count: 1 }] };
     facetCount['field_name'] = 'brand';
     const groupedHit: Record<string, unknown> = { hits: [{ document: { id: '1' } }] };

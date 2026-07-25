@@ -5,10 +5,10 @@ import { getError, HTTP, MessageCode } from '@venizia/ignis-helpers';
 import { Logger } from '@venizia/ignis-helpers/winston';
 import { AppErrorMiddleware, RequestSpyMiddleware } from '@/base/middlewares';
 
-// Real Logger instance (private constructor forces the factory) with `error` silenced -
-// the handler only needs a working `.error`, not real transport output.
+// Real Logger instance (a private constructor forces the factory) with output silenced - the handler logs the thrown error via `.log(level, ...)` and its env diagnostics via `.error`, neither wanted on the console.
 const logger = Logger.get('app-error-middleware-test');
 logger.error = () => undefined;
+logger.log = () => undefined;
 
 /** Reads a Hono Response body as a loosely-typed JSON object (Response.json() is `unknown`). */
 const readJson = async (res: Response): Promise<Record<string, any>> => {
@@ -397,8 +397,7 @@ describe('AppErrorMiddleware - every response carries a normalized code', () => 
   });
 });
 
-/** Which NODE_ENV values may see an unsanitized error. Fail-closed: the leak is opt-in by an
- * explicit development name, so a typo, an unknown environment, or an unset variable stay safe. */
+/** Which NODE_ENV values may see an unsanitized error. Fail-closed: the leak is opt-in by an explicit development name, so a typo, an unknown environment or an unset variable stay safe. */
 describe('AppErrorMiddleware — the NODE_ENV leak boundary', () => {
   /** A unique-violation carrying the row data, the table and the constraint - all of it internal. */
   const leakyDatabaseThrower = () => {
@@ -467,8 +466,7 @@ describe('AppErrorMiddleware — the NODE_ENV leak boundary', () => {
       expect(body.message).toBe('Unique constraint violation');
       expect(body.message).not.toContain('a@b.com');
     } finally {
-      // Assigning an undefined `original` back would write the STRING "undefined" and quietly
-      // poison every later test in this process.
+      // Assigning an undefined `original` back would write the STRING "undefined" and quietly poison every later test in this process.
       if (original === undefined) {
         delete process.env.NODE_ENV;
       } else {
@@ -478,15 +476,14 @@ describe('AppErrorMiddleware — the NODE_ENV leak boundary', () => {
   });
 });
 
-/**
- * `normalized` is the field clients render, so it must never become a second way to leak what the
- * handler just scrubbed out of `message`.
- */
+/** `normalized` must never become a second way to leak what the handler scrubbed out of `message`. */
 describe('AppErrorMiddleware - normalized cannot leak past sanitization', () => {
   const buildApp = (handler: () => never) => {
     const app = new Hono();
     app.onError(
-      new AppErrorMiddleware({ logger: { error: () => {} } as unknown as Logger }).value(),
+      new AppErrorMiddleware({
+        logger: { error: () => {}, log: () => {} } as unknown as Logger,
+      }).value(),
     );
     app.get('/', handler);
 
@@ -540,8 +537,7 @@ describe('AppErrorMiddleware - normalized cannot leak past sanitization', () => 
   });
 });
 
-/** `normalized` is the field clients are told to read, so EVERY branch must emit it - including the
- * early-returning `formatZodError` validation branch clients hit most often. */
+/** `normalized` is the field clients are told to read, so EVERY branch must emit it - including the early-returning `formatZodError` validation branch clients hit most often. */
 describe('AppErrorMiddleware - every branch emits normalized', () => {
   const readNormalized = async (app: Hono, path = '/') => {
     const body = (await (await app.request(path)).json()) as {
@@ -555,7 +551,9 @@ describe('AppErrorMiddleware - every branch emits normalized', () => {
   const buildApp = (thrower: () => void) => {
     const app = new Hono();
     app.onError(
-      new AppErrorMiddleware({ logger: { error: () => {} } as unknown as Logger }).value(),
+      new AppErrorMiddleware({
+        logger: { error: () => {}, log: () => {} } as unknown as Logger,
+      }).value(),
     );
     app.get('/', () => {
       thrower();
@@ -589,5 +587,168 @@ describe('AppErrorMiddleware - every branch emits normalized', () => {
 
     expect(body.normalized).toBeDefined();
     expect(body.normalized?.code).toBe(MessageCode.DEFAULT);
+  });
+});
+
+/** A throw site sets `logLevel` via `getError`; the handler logs at that level, defaulting to `error` when it is absent or malformed. */
+describe('AppErrorMiddleware - the thrown error picks its own log level', () => {
+  /** A logger that records the level of every `.log(level, ...)` call. */
+  const spyLogger = () => {
+    const levels: Array<string> = [];
+    const recordingLogger = {
+      error: () => {},
+      log: (level: string) => {
+        levels.push(level);
+      },
+    } as unknown as Logger;
+
+    return { recordingLogger, levels };
+  };
+
+  const runWith = async (thrower: () => void) => {
+    const { recordingLogger, levels } = spyLogger();
+    const app = new Hono();
+    app.use('*', async (c, next) => {
+      c.set(RequestSpyMiddleware.REQUEST_ID_KEY, 'req-level');
+      await next();
+    });
+    app.onError(new AppErrorMiddleware({ logger: recordingLogger }).value());
+    app.get('/', () => {
+      thrower();
+      return new Response('unreachable');
+    });
+
+    await app.request('/', undefined, { NODE_ENV: 'development' });
+    return levels;
+  };
+
+  test('an explicit logLevel is honoured', async () => {
+    const levels = await runWith(() => {
+      throw getError({ message: 'expected', statusCode: 404, logLevel: 'warn' });
+    });
+
+    expect(levels).toEqual(['warn']);
+  });
+
+  test('an error without a logLevel logs at error', async () => {
+    const levels = await runWith(() => {
+      throw getError({ message: 'boom', statusCode: 500 });
+    });
+
+    expect(levels).toEqual(['error']);
+  });
+
+  test('a plain (non-ApplicationError) throw logs at error', async () => {
+    const levels = await runWith(() => {
+      throw new TypeError('unexpected');
+    });
+
+    expect(levels).toEqual(['error']);
+  });
+
+  test('a malformed logLevel falls back to error, never crashing the handler', async () => {
+    const levels = await runWith(() => {
+      const error = new Error('bad level') as Error & { statusCode?: number; logLevel?: unknown };
+      error.statusCode = 400;
+      error.logLevel = 'screaming';
+      throw error;
+    });
+
+    expect(levels).toEqual(['error']);
+  });
+});
+
+/** The thrown error is logged as a bounded summary - a driver failure's SQL, params and stack must not flood the log line, while its root reason still reaches it. */
+describe('AppErrorMiddleware - the logged error is summarized, not dumped raw', () => {
+  /** Records the interpolated args of every `.log(level, message, ...args)` call. */
+  const captureLog = () => {
+    const calls: Array<Array<unknown>> = [];
+    const capturingLogger = {
+      error: () => {},
+      log: (_level: string, _message: string, ...args: Array<unknown>) => {
+        calls.push(args);
+      },
+    } as unknown as Logger;
+
+    return { capturingLogger, calls };
+  };
+
+  test('a drizzle-style error logs its reason but not the query, params or stack', async () => {
+    const { capturingLogger, calls } = captureLog();
+    const app = new Hono();
+    app.use('*', async (c, next) => {
+      c.set(RequestSpyMiddleware.REQUEST_ID_KEY, 'req-sum');
+      await next();
+    });
+    app.onError(new AppErrorMiddleware({ logger: capturingLogger }).value());
+    app.get('/', () => {
+      const sql = 'UPDATE "sale"."SaleOrder" SET total = 1 WHERE id = $1';
+      const cause = Object.assign(
+        new Error('cannot update table "SaleOrder" because it does not have a replica identity'),
+        { code: '55000' },
+      );
+      throw Object.assign(new Error(`Failed query: ${sql}`), {
+        query: sql,
+        params: ['abc'],
+        cause,
+      });
+    });
+
+    await app.request('/', undefined, { NODE_ENV: 'development' });
+
+    // The formatted block is the last positional arg of the REQUEST ERROR log call.
+    const block = calls[0]?.[calls[0].length - 1] as string;
+
+    expect(typeof block).toBe('string');
+    // The reason, its code and the driver's hint surface...
+    expect(block).toContain('cause: cannot update table "SaleOrder"');
+    expect(block).toContain('replica identity');
+    expect(block).toContain('code 55000');
+    // ...but the query/params noise that flooded the log does not.
+    expect(block).not.toContain('params:');
+    expect(block).not.toContain('abc');
+  });
+
+  test('the header carries the resolved statusCode, and the block the messageCode', async () => {
+    const { capturingLogger, calls } = captureLog();
+    const app = new Hono();
+    app.onError(new AppErrorMiddleware({ logger: capturingLogger }).value());
+    app.get('/', () => {
+      throw getError({
+        message: 'Order not found',
+        statusCode: 404,
+        messageCode: 'server.sale.order.not_found',
+        orderId: 'ord-991',
+      });
+    });
+
+    await app.request('/', undefined, { NODE_ENV: 'development' });
+
+    // args are [requestId, statusCode, method, url, block].
+    const statusCode = calls[0]?.[1];
+    const block = calls[0]?.[calls[0].length - 1] as string;
+
+    expect(statusCode).toBe(404);
+    expect(block).toContain('code: server.sale.order.not_found');
+    expect(block).toContain("orderId: 'ord-991'");
+    // An intentional error carries no frames - they would be framework plumbing.
+    expect(block).not.toContain('stack:');
+  });
+
+  test('an UNEXPECTED failure keeps its frames, so a bug is locatable', async () => {
+    const { capturingLogger, calls } = captureLog();
+    const app = new Hono();
+    app.onError(new AppErrorMiddleware({ logger: capturingLogger }).value());
+    app.get('/', () => {
+      throw new TypeError('cannot read properties of undefined');
+    });
+
+    await app.request('/', undefined, { NODE_ENV: 'development' });
+
+    const block = calls[0]?.[calls[0].length - 1] as string;
+
+    expect(block).toContain('name: TypeError');
+    expect(block).toContain('stack:');
+    expect(block).toContain(' at ');
   });
 });

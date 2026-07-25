@@ -6,6 +6,65 @@ not how.
 This file and `index.md` are reserved OKF filenames - they carry no `type:` frontmatter and are not
 counted as concepts.
 
+## 2026-07-25 - root dependencies removed; versions now pinned by a workspace catalog
+
+The root `package.json` carried 34 `dependencies`, every one of them already declared by a
+workspace - pure duplication that acted as an accidental version pin. The block is GONE. Ten
+workspace ranges were bumped up to what root pinned first, so nothing downgrades.
+
+Shared versions now live in `workspaces.catalog` (32 entries) and each workspace references
+`"catalog:"` (163 declarations). `peerDependencies` were deliberately NOT catalogued - they are
+looser compat statements. `bun pm pack` substitutes the real range at publish, verified on Bun
+1.3.14. New gate: `make catalog-check`.
+
+Also fixed: `packages/helpers` imported `zod` (secrets/hashicorp/auth.ts) while declaring neither
+`zod` nor a runtime dep guaranteeing it - `@hono/zod-openapi` is dev-only, so published helpers
+resolved zod purely transitively through inversion. It now declares `zod`.
+
+NOT run: `bun install`. The manifests are staged for the human to install on a clean tree so the
+lockfile churn is reviewable in isolation.
+
+## 2026-07-25 - mail peers were bundler-visible; module loading consolidated into `ModuleUtility`
+
+`@venizia/ignis/mail` resolved BOTH `nodemailer` and `mailgun.js` at bundle time - measured with the
+`no-bundler-peer-resolution` probe - so a consumer using one transport was forced to install or
+externalize the other. Both transporters called a bare `require('<literal>')` from their client
+factory. They now go through the new sync loader, and the sub-path probes clean.
+
+`importOptionalModule` / `requireOptionalModuleSync` / `validateModule` / `validateModuleSync` are
+GONE, replaced by one class: `ModuleUtility.load` (async), `ModuleUtility.loadSync` (constructor
+paths that cannot await), `ModuleUtility.assertInstalled` (presence check, never executes the
+module). `createRequire` is now an internal detail. BANA used none of the old names.
+
+Measured but NOT changed: the core root barrel still resolves `casbin`, `@hono/node-server`,
+`@hono/swagger-ui` and `@scalar/hono-api-reference`; `./mail` resolves `bullmq` through a STATIC
+import in helpers' queue helper. Driver sub-paths resolving their own driver (`./postgres/*`,
+`./typesense`, `./meilisearch`) is by design, not a leak.
+
+## 2026-07-24 - error logs are summarized and rendered readable, not dumped raw
+
+`AppErrorMiddleware` now renders the thrown error through the new `ErrorPrettier` class (helpers,
+`logger/formatting`) instead of `%s` on the raw object. A `pg`/`drizzle` failure carries the full
+query, its params and a stack that each repeat the same SQL; inspecting the raw object flooded the
+log. `ErrorPrettier.summarize` keeps `name`, the full (untruncated) `message`, `code`, the `pg`
+diagnostics, root frames and a flattened cycle-safe `cause` chain; `ErrorPrettier.format` renders that as
+a block whose message keeps its REAL newlines (a plain string via `%s`, not escaped to `\n`).
+
+The log line now also carries the resolved `statusCode` in its header, the `normalized.code` and the
+caller's `extra` (redacted) - all three were previously absent. Frames appear only for an
+`UNEXPECTED` failure, so an intentional `getError` is not buried in HTTP-framework plumbing;
+`IResolvedApplicationError` gained a `type` field to carry that classification to the log call. Full
+stack/cause still reach the HTTP response `details` in non-production, unchanged.
+
+## 2026-07-24 - getError gains a `logLevel` option
+
+`ApplicationError` now carries an optional `logLevel` (`TErrorLogLevel`, declared in inversion), and
+`AppErrorMiddleware` logs the thrown error at that level instead of always `error` - default and
+malformed values still log at `error`, so the 1500+ existing `getError` sites are unchanged. A
+compile-time guard in helpers (`log-level-drift.test.ts`) pins `TErrorLogLevel` to helpers'
+`TLogLevel`. Documented in the error-handling convention, the error-handling flow, and the helpers
+error wiki page.
+
 ## 2026-07-21 - authorization docs re-synced; base-filtered connector fallback documented
 
 Two prior doc passes on the authorization component had already drifted from source before this

@@ -4,9 +4,7 @@ import { jsonb, PgDialect, pgTable, serial } from 'drizzle-orm/pg-core';
 import type { AnyType } from '@venizia/ignis-helpers';
 import { FilterBuilder } from '@/connectors/postgres/repositories/dialect/filter';
 
-/** A JSON `#>>` extraction is TEXT: numeric comparison needs a numeric cast or Postgres raises
- * 'operator does not exist'. The cast belongs to each OPERATOR, not the object - an object-wide
- * choice misses `not`-wrapped numerics and over-casts mixed objects like `{ gte: 1, like: '%a%' }`. */
+/** A JSON `#>>` extraction is TEXT: numeric comparison needs a numeric cast or Postgres raises 'operator does not exist'. The cast belongs to each OPERATOR, not the object - an object-wide choice misses `not`-wrapped numerics and over-casts mixed objects like `{ gte: 1, like: '%a%' }`. */
 const table = pgTable('documents', {
   id: serial('id').primaryKey(),
   metadata: jsonb('metadata'),
@@ -57,9 +55,7 @@ describe('a NESTED not must not hide its numeric operand', () => {
 
 describe('a MIXED operator object casts per operator, not per object', () => {
   test('{ gte: number, like: text } gives the numeric side a cast and the text side none', () => {
-    // Casting the whole extraction produced `numeric ~~ text`, which Postgres rejects outright.
-    // Asserting merely that `#>>` appears proves nothing - the CASE expression CONTAINS `#>>`.
-    // What matters is that `like` is NOT applied to the CASE, i.e. never preceded by its `END`.
+    // Casting the whole extraction produced `numeric ~~ text`, which Postgres rejects; asserting that `#>>` appears proves nothing since the CASE expression contains it, so what matters is that `like` is never preceded by the CASE's `END`.
     const statement = compile({ 'metadata.score': { gte: 1, like: '%a%' } });
 
     expect(statement).toContain('::numeric');

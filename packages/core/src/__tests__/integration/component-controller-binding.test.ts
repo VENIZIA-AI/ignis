@@ -11,9 +11,7 @@ import { MetadataRegistry } from '@/helpers/inversion/registry';
 import { z } from '@hono/zod-openapi';
 import { HTTP, ValueOrPromise } from '@venizia/ignis-helpers';
 
-// =============================================================================
-// Test Controllers
-// =============================================================================
+// === Test Controllers ========================================================
 
 const UsersRouteConfigs = {
   LIST: {
@@ -158,14 +156,9 @@ class StatusController extends BaseRestController {
   }
 }
 
-// =============================================================================
-// Test Components — manually constructed (matching RestComponent/GrpcComponent pattern)
-// =============================================================================
+// === Test Components - manually constructed (RestComponent/GrpcComponent pattern) ===
 
-/**
- * ComponentA registers UsersController and OrdersController.
- * Constructed manually (like RestComponent/GrpcComponent), not via DI.
- */
+/** ComponentA registers UsersController and OrdersController, constructed manually like RestComponent/GrpcComponent rather than via DI. */
 class ComponentA extends BaseComponent {
   constructor(private application: BaseApplication) {
     super({ scope: ComponentA.name });
@@ -177,9 +170,7 @@ class ComponentA extends BaseComponent {
   }
 }
 
-/**
- * ComponentB registers ProductsController and InvoicesController.
- */
+/** ComponentB registers ProductsController and InvoicesController. */
 class ComponentB extends BaseComponent {
   constructor(private application: BaseApplication) {
     super({ scope: ComponentB.name });
@@ -191,9 +182,7 @@ class ComponentB extends BaseComponent {
   }
 }
 
-// =============================================================================
-// Test Application
-// =============================================================================
+// === Test Application ========================================================
 
 const TEST_CONFIGS: IApplicationConfigs = {
   host: '0.0.0.0',
@@ -213,9 +202,7 @@ class TestApplication extends BaseApplication {
   setupMiddlewares() {}
 }
 
-// =============================================================================
-// Tests
-// =============================================================================
+// === Tests ===================================================================
 
 describe('Component → Controller binding integration', () => {
   let app: TestApplication;
@@ -226,8 +213,7 @@ describe('Component → Controller binding integration', () => {
     app.init();
   });
 
-  /** Simulates registerComponents() + registerControllers() without DI resolution - components are
-   * constructed manually. */
+  /** Simulates registerComponents() + registerControllers() without DI resolution - components are constructed manually. */
   async function configureComponentsAndControllers(
     application: BaseApplication,
     components: BaseComponent[],
@@ -238,9 +224,7 @@ describe('Component → Controller binding integration', () => {
     await application['registerControllers']();
   }
 
-  // ---------------------------------------------------------------------------
-  // Scenario 1: Two components each register their own controllers
-  // ---------------------------------------------------------------------------
+  // --- Scenario 1: Two components each register their own controllers --------
   describe('nested component binding — ComponentA + ComponentB', () => {
     test('should discover and bind all controllers from both components', async () => {
       const componentA = new ComponentA(app);
@@ -291,9 +275,7 @@ describe('Component → Controller binding integration', () => {
     });
   });
 
-  // ---------------------------------------------------------------------------
-  // Scenario 2: Mix of component-registered + directly-registered controllers
-  // ---------------------------------------------------------------------------
+  // --- Scenario 2: Mix of component-registered + directly-registered controllers ---
   describe('mixed registration — component + direct', () => {
     test('should bind controllers from components and direct registration', async () => {
       const componentA = new ComponentA(app);
@@ -335,9 +317,7 @@ describe('Component → Controller binding integration', () => {
     });
   });
 
-  // ---------------------------------------------------------------------------
-  // Scenario 3: Controller binding() is called during registerControllers
-  // ---------------------------------------------------------------------------
+  // --- Scenario 3: Controller binding() is called during registerControllers ---
   describe('controller configuration lifecycle', () => {
     test('controller binding() should be called during registerControllers, not during component binding', async () => {
       let isBindingCalled = false;
@@ -393,9 +373,7 @@ describe('Component → Controller binding integration', () => {
     });
   });
 
-  // ---------------------------------------------------------------------------
-  // Scenario 4: Dynamic binding — controllers added by components are found
-  // ---------------------------------------------------------------------------
+  // --- Scenario 4: Dynamic binding - controllers added by components are found ---
   describe('dynamic binding loop', () => {
     test('controllers added during component configure should be discovered by RestComponent', async () => {
       const componentA = new ComponentA(app);
@@ -411,9 +389,7 @@ describe('Component → Controller binding integration', () => {
     });
   });
 
-  // ---------------------------------------------------------------------------
-  // Scenario 5: Transport filtering — gRPC controllers skipped by RestComponent
-  // ---------------------------------------------------------------------------
+  // --- Scenario 5: Transport filtering - gRPC controllers skipped by RestComponent ---
   describe('transport-aware filtering', () => {
     test('RestComponent should skip controllers with gRPC transport', async () => {
       @controller({ path: '/grpc-service', transport: ControllerTransports.GRPC, service: {} })
@@ -441,9 +417,7 @@ describe('Component → Controller binding integration', () => {
     });
   });
 
-  // ---------------------------------------------------------------------------
-  // Scenario 6: Controller isolation — routes from different controllers don't conflict
-  // ---------------------------------------------------------------------------
+  // --- Scenario 6: Controller isolation - routes from different controllers do not conflict ---
   describe('controller isolation', () => {
     test('routes from different controllers should not conflict', async () => {
       // Both have GET / but on different mount paths
@@ -466,9 +440,7 @@ describe('Component → Controller binding integration', () => {
     });
   });
 
-  // ---------------------------------------------------------------------------
-  // Scenario 7: Multiple controllers with multiple HTTP methods
-  // ---------------------------------------------------------------------------
+  // --- Scenario 7: Multiple controllers with multiple HTTP methods -----------
   describe('multiple HTTP methods', () => {
     test('GET and POST on same controller both work', async () => {
       const componentB = new ComponentB(app);
@@ -494,9 +466,7 @@ describe('Component → Controller binding integration', () => {
     });
   });
 
-  // ---------------------------------------------------------------------------
-  // Scenario 8: Component ordering doesn't affect route binding
-  // ---------------------------------------------------------------------------
+  // --- Scenario 8: Component ordering does not affect route binding ----------
   describe('component ordering', () => {
     test('order of component configuration should not affect route availability', async () => {
       // Configure B first, then A

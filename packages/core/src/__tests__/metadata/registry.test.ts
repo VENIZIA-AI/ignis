@@ -16,9 +16,7 @@ import { applyMethodDecorator } from '../controllers/fixtures';
 const okResponse = jsonResponse({ schema: z.object({ hit: z.string() }), description: 'ok' });
 const registry = MetadataRegistry.getInstance();
 
-// ---------------------------------------------------------------------------------------------
-// Route metadata across a class hierarchy
-// ---------------------------------------------------------------------------------------------
+// --- Route metadata across a class hierarchy -------------------------------------------------
 
 class RegistryBaseController {
   baseRoute() {}
@@ -68,9 +66,7 @@ applyMethodDecorator({
   methodName: 'childRpc',
 });
 
-// ---------------------------------------------------------------------------------------------
-// Model / repository / datasource metadata
-// ---------------------------------------------------------------------------------------------
+// --- Model / repository / datasource metadata ------------------------------------------------
 
 class RegistryDataSource extends BasePostgresDataSource<{}> {
   configure(): void {

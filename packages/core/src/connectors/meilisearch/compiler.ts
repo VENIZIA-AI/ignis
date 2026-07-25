@@ -13,8 +13,7 @@ const RESERVED_GEO_FIELD_NAME = '_geo';
 
 const RESERVED_ID_FIELD_NAME = 'id';
 
-/** Meilisearch is schemaless: a collection compiles to an index uid plus settings, not a field
- * schema. The DSL's `searchable`/`filterable` flags are load-bearing here (Typesense drops them). */
+/** Meilisearch is schemaless: a collection compiles to an index uid plus settings, not a field schema; the DSL's `searchable`/`filterable` flags are load-bearing here (Typesense drops them). */
 export interface IMeilisearchIndexPlan {
   uid: string;
   primaryKey?: string;

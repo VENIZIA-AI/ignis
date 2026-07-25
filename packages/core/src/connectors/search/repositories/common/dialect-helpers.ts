@@ -1,8 +1,7 @@
 import type { TFields } from '@/base/repositories/query-schemas';
 import { getError } from '@venizia/ignis-helpers';
 
-/** Dialect-shared pure helpers (pagination, fields CSV, operator-object check) - shared once, not
- * byte-copied per dialect. Not barrel-exported; not part of the connector's public surface. */
+/** Dialect-shared pure helpers, shared once rather than byte-copied per dialect; not barrel-exported, not part of the connector's public surface. */
 
 /** skip/offset -> 1-based page number. Requires a page size, and the skip must land on a page boundary. */
 export const toSearchPage = (opts: { skip: number; limit?: number }): number => {

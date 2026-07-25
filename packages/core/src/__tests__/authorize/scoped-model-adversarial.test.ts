@@ -4,10 +4,7 @@ import { CASBIN_RBAC_DOMAIN_SCOPED_MODEL } from '@/components/auth/authorize/enf
 import { AuthorizationPermissionBuilder } from '@/components/auth/authorize/builders/permission.builder';
 import { ResourceRoleManager } from '@/components/auth/authorize/enforcers/resource-role-manager';
 
-/** Adversarial / decision-table hardening of the scoped RBAC matcher (v2 model): g membership +
- * (SYSTEM_WIDE || ANY_MEMBER via g2 || g3 domain edge) + (objectMatch || g4) + g5 action. Built
- * exactly as the framework wires it: keyMatch on g, objectMatch direct, ResourceRoleManager on g4,
- * buildRoleLinks(). */
+/** Adversarial decision-table hardening of the scoped RBAC matcher (v2 model): g membership + (SYSTEM_WIDE || ANY_MEMBER via g2 || g3 domain edge) + (objectMatch || g4) + g5 action, wired exactly as the framework wires it. */
 async function buildScopedEnforcer(lines: string[]) {
   const model = newModelFromString(CASBIN_RBAC_DOMAIN_SCOPED_MODEL);
   const enforcer = await newEnforcer(model);
@@ -24,9 +21,7 @@ async function buildScopedEnforcer(lines: string[]) {
   return enforcer;
 }
 
-// ---------------------------------------------------------------------------
-// DECISION TABLE — DOMAIN AXIS
-// ---------------------------------------------------------------------------
+// --- DECISION TABLE - DOMAIN AXIS ------------------------------------------
 describe('decision-table: domain axis', () => {
   test('SYSTEM_WIDE grant matches ANY domain (member or not, even forged domains)', async () => {
     const e = await buildScopedEnforcer([
@@ -91,9 +86,7 @@ describe('decision-table: domain axis', () => {
   });
 });
 
-// ---------------------------------------------------------------------------
-// DECISION TABLE — RESOURCE AXIS
-// ---------------------------------------------------------------------------
+// --- DECISION TABLE - RESOURCE AXIS ----------------------------------------
 describe('decision-table: resource axis', () => {
   const base = ['g, User_7, Role_r, *', 'g2, User_7, Merchant_7'];
 
@@ -137,9 +130,7 @@ describe('decision-table: resource axis', () => {
   });
 });
 
-// ---------------------------------------------------------------------------
-// DECISION TABLE — ACTION AXIS
-// ---------------------------------------------------------------------------
+// --- DECISION TABLE - ACTION AXIS ------------------------------------------
 describe('decision-table: action axis', () => {
   const base = ['g, User_8, Role_a, *', 'g2, User_8, Merchant_7'];
 
@@ -177,9 +168,7 @@ describe('decision-table: action axis', () => {
   });
 });
 
-// ---------------------------------------------------------------------------
-// DENY-OVERRIDE
-// ---------------------------------------------------------------------------
+// --- DENY-OVERRIDE ---------------------------------------------------------
 describe('deny-override', () => {
   test('explicit deny (direct) overrides role allow on the same tuple', async () => {
     const e = await buildScopedEnforcer([
@@ -212,9 +201,7 @@ describe('deny-override', () => {
   });
 });
 
-// ---------------------------------------------------------------------------
-// DAG / multi-parent
-// ---------------------------------------------------------------------------
+// --- DAG / multi-parent ----------------------------------------------------
 describe('DAG / multi-parent', () => {
   test('resource multi-parent: matched via the second g4 parent', async () => {
     const e = await buildScopedEnforcer([
@@ -238,13 +225,10 @@ describe('DAG / multi-parent', () => {
   });
 });
 
-// ===========================================================================
-// ADVERSARIAL BYPASS ATTEMPTS — every one of these MUST DENY (or be safe).
-// ===========================================================================
+// === ADVERSARIAL BYPASS ATTEMPTS - every one MUST DENY (or be safe) ========
 describe('ADVERSARIAL: sentinel-domain collision', () => {
   test('forging r.dom="SYSTEM_WIDE" does NOT bypass when the GRANT is a normal ANY_MEMBER grant', async () => {
-    // The SYSTEM_WIDE branch checks p.dom (the stored grant), not r.dom - forging
-    // r.dom='SYSTEM_WIDE' against an ANY_MEMBER grant fails every branch.
+    // The SYSTEM_WIDE branch checks p.dom (the stored grant), not r.dom, so forging r.dom='SYSTEM_WIDE' against an ANY_MEMBER grant fails every branch.
     const e = await buildScopedEnforcer([
       'g, User_20, Role_op, *',
       'g2, User_20, Merchant_7',
@@ -271,9 +255,7 @@ describe('ADVERSARIAL: sentinel-domain collision', () => {
   });
 
   test('SECURITY PROBE: can a user join a domain literally named SYSTEM_WIDE and reach a SYSTEM_WIDE grant of ANOTHER user?', async () => {
-    // Membership in a domain literally named SYSTEM_WIDE satisfies the ANY_MEMBER branch - EXPECTED
-    // and correct: the user holds an ANY_MEMBER grant and is a member of that (oddly-named) domain.
-    // It grants nothing in OTHER domains and inherits no SYSTEM_WIDE-scoped grant; locked here.
+    // Membership in a domain literally named SYSTEM_WIDE satisfies the ANY_MEMBER branch, which is correct and locked here: it grants nothing in OTHER domains and inherits no SYSTEM_WIDE-scoped grant.
     const e = await buildScopedEnforcer([
       'g, User_23, Role_op, *',
       'g2, User_23, SYSTEM_WIDE', // adversary forged a membership in a domain named "SYSTEM_WIDE"
@@ -290,8 +272,7 @@ describe('ADVERSARIAL: sentinel-domain collision', () => {
 
 describe('ADVERSARIAL: wildcard injection in request fields', () => {
   test('r.dom="*" must NOT wildcard-match a specific-domain grant', async () => {
-    // keyMatch puts `*` on the PATTERN (grant) side only. A request value of `*` is literal.
-    // g3('*', 'Merchant_7') is false; p.dom != SYSTEM_WIDE/ANY_MEMBER → DENY.
+    // keyMatch puts `*` on the PATTERN (grant) side only, so a request value of `*` is literal: g3('*', 'Merchant_7') is false and p.dom is neither sentinel -> DENY.
     const e = await buildScopedEnforcer([
       'g, User_24, Role_x, Merchant_7',
       'p, Role_x, Merchant_7, Order, read, allow',
@@ -332,9 +313,7 @@ describe('ADVERSARIAL: wildcard injection in request fields', () => {
 
 describe('ADVERSARIAL: self-link / subject injection', () => {
   test('a user CANNOT match a grant stored for a different subject', async () => {
-    // p.sub comes from the stored policy; r.sub from the request. They only match via g
-    // (assignment, role inheritance, or the identity self-link). A different user cannot
-    // ride User_28s direct grant.
+    // p.sub (stored policy) and r.sub (request) only match via g - assignment, role inheritance or the identity self-link - so a different user cannot ride User_28's direct grant.
     const e = await buildScopedEnforcer([
       'g2, User_28, Merchant_7',
       'g2, User_99, Merchant_7',

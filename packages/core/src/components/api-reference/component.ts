@@ -65,8 +65,7 @@ export class ApiReferenceComponent extends BaseComponent {
       ui: { ...defaultRestOptions.ui, ...boundOptions?.restOptions?.ui },
     };
 
-    // A fresh explorer object per application: mutating the bound one (or the module default) would
-    // leak this application's info/servers into every later application in the same process.
+    // A fresh explorer object per application: mutating the bound one (or the module default) leaks this application's info/servers into every later application in the process.
     const explorer: NonNullable<IApiReferenceOptions['explorer']> = {
       ...DEFAULT_API_REFERENCE_OPTIONS.explorer,
       ...boundOptions?.explorer,

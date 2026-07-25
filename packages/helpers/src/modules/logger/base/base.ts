@@ -2,10 +2,7 @@ import { AnyType } from '@/common/types';
 import { ILogger, LogLevels, SHOULD_LOG_DEBUG, TLogLevel } from '../common';
 import { AbstractLogger } from './abstract';
 
-/**
- * Provider-independent plumbing: scope, prefix, DEBUG gate, for(). Every level method funnels
- * into ONE abstract write() sink; child() lets each provider keep its own caching policy.
- */
+/** Provider-independent plumbing: scope, prefix, DEBUG gate, for(). Every level method funnels into ONE abstract write() sink; child() lets each provider keep its own caching policy. */
 export abstract class BaseLogger extends AbstractLogger {
   protected readonly _scope: string;
   protected readonly _formattedPrefix: string;
@@ -48,8 +45,7 @@ export abstract class BaseLogger extends AbstractLogger {
   }
 
   for(methodName: string): ILogger {
-    // An empty parent scope must not produce a '-method'
-    // leading dash - the child simply takes the method name as its whole scope.
+    // An empty parent scope must not produce a leading dash - the child simply takes the method name as its whole scope.
     return this.child({ scope: this._scope !== '' ? `${this._scope}-${methodName}` : methodName });
   }
 }

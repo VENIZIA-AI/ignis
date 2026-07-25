@@ -73,8 +73,7 @@ describe('withAuthContext', () => {
     test(`rejects the role ${JSON.stringify(role)} before any statement runs`, async () => {
       const { transaction, executed } = buildTransaction();
 
-      // `set local role $1` is not valid SQL, so the role must be interpolated. An unvalidated role
-      // taken from a JWT would be a direct privilege-escalation vector.
+      // `set local role $1` is not valid SQL, so the role must be interpolated - an unvalidated role taken from a JWT would be a direct privilege-escalation vector.
       let caught: unknown;
       try {
         await withAuthContext({ transaction, claims: {}, role });

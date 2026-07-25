@@ -1,9 +1,6 @@
 import { BUFFER_SIZE, ENTRY_SIZE, TRingState } from './common';
 
-/**
- * One ring per process, allocated on FIRST use. Plain ArrayBuffer on purpose - single hot
- * thread design, so shared memory/atomics would only tax the hot path.
- */
+/** One ring per process, allocated on FIRST use. Plain ArrayBuffer on purpose - single hot thread design, so shared memory/atomics would only tax the hot path. */
 let ringState: TRingState | null = null;
 
 export const getRing = (): TRingState => {

@@ -1,7 +1,7 @@
 import { AnyType, TNullable } from '@/common/types';
 import omit from 'lodash/omit';
 import { MessageCode } from './message-code';
-import type { TError, TErrorNormalized, TResponsedError } from './types';
+import type { TError, TErrorLogLevel, TErrorNormalized, TResponsedError } from './types';
 
 /** Consumed keys. Everything else rides into `extra`. */
 const KNOWN_KEYS = [
@@ -13,6 +13,7 @@ const KNOWN_KEYS = [
   'cause',
   'extra',
   'transform',
+  'logLevel',
   'name',
 ];
 
@@ -20,9 +21,10 @@ export class ApplicationError extends Error {
   statusCode: number;
   normalized: TErrorNormalized;
   extra?: Record<string, unknown>;
+  readonly logLevel?: TErrorLogLevel;
 
   constructor(opts: TError) {
-    const { statusCode, messageArgs, cause, extra, transform } = opts;
+    const { statusCode, messageArgs, cause, extra, transform, logLevel } = opts;
 
     // Index signature defeats `in` narrowing - read the discriminant and cast.
     const definition = 'error' in opts ? opts.error : undefined;
@@ -30,8 +32,7 @@ export class ApplicationError extends Error {
     const input = opts.message;
     const override = typeof input === 'string' ? { text: input } : input;
 
-    // `?.message?.` - the optional chain has to guard BOTH: `error` reaches here from an untyped
-    // call site as anything at all, and a bare `definition?.message.text` throws on a malformed one.
+    // `?.message?.` has to guard BOTH: `error` reaches here from an untyped call site as anything at all, and a bare `definition?.message.text` throws on a malformed one.
     const message = override?.text ?? definition?.message?.text ?? '';
     const messageCode = MessageCode.resolve(
       override?.code ?? definition?.message?.code ?? (opts.messageCode as TNullable<string>),
@@ -41,6 +42,7 @@ export class ApplicationError extends Error {
     super(message, cause === undefined ? undefined : { cause });
 
     this.statusCode = statusCode ?? definition?.statusCode ?? 400;
+    this.logLevel = logLevel;
 
     // Explicit `extra` wins over swept keys.
     const merged = {

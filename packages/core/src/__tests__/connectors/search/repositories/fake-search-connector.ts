@@ -24,8 +24,7 @@ import { ITypesenseDataSourceSettings } from '@/connectors/typesense/types';
 export class FakeSearchEngineHelper implements ISearchConnector {
   searchCalls: Array<{ collection: string; params: unknown; options?: unknown }> = [];
   searchResponse: ISearchResult = { found: 0, isFoundExact: true, hits: [] };
-  /** When non-empty, each search() consumes the next entry - lets read-retry tests vary the
-   * response per attempt. Falls back to `searchResponse` once drained. */
+  /** When non-empty, each search() consumes the next entry so read-retry tests can vary the response per attempt; falls back to `searchResponse` once drained. */
   searchResponses: Array<ISearchResult> = [];
   documents: Record<string, unknown> = {};
 
@@ -250,17 +249,13 @@ export class FakeSearchEngineHelper implements ISearchConnector {
   }
 }
 
-/** Canned, never-dialed settings - the fake connector is always injected below, so `configure()`'s
- * real Typesense-client construction path never runs; this only exists to satisfy the type. */
+/** Canned, never-dialed settings: the fake connector is always injected below, so `configure()`'s real Typesense-client construction never runs - this only exists to satisfy the type. */
 const FAKE_TYPESENSE_SETTINGS: ITypesenseDataSourceSettings = {
   nodes: [{ host: 'localhost', port: 8108 }],
   apiKey: 'fake-api-key',
 };
 
-/**
- * Real `TypesenseDataSource` with its connector swapped for `FakeSearchEngineHelper`, keeping
- * `dataSource.getConnector()` typed as `TypesenseConnector` without a live Typesense server.
- */
+/** Real `TypesenseDataSource` with its connector swapped for `FakeSearchEngineHelper`, keeping `dataSource.getConnector()` typed as `TypesenseConnector` without a live Typesense server. */
 export class FakeSearchDataSource extends TypesenseDataSource {
   readonly fakeConnector = new FakeSearchEngineHelper();
 
@@ -273,8 +268,7 @@ export class FakeSearchDataSource extends TypesenseDataSource {
   }
 
   override getConnector(): TypesenseConnector {
-    // TypesenseConnector is a concrete class with a private `client` field, so no ISearchConnector
-    // implementer can be structurally assignable to it - this boundary cast is unavoidable.
+    // TypesenseConnector is a concrete class with a private `client` field, so no ISearchConnector implementer can be structurally assignable to it - this boundary cast is unavoidable.
     return this.fakeConnector as any;
   }
 }

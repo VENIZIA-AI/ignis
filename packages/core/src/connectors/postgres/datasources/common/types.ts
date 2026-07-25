@@ -11,8 +11,7 @@ import { type drizzle as nodePostgresConnector } from 'drizzle-orm/node-postgres
 import type { PgDatabase, PgQueryResultHKT } from 'drizzle-orm/pg-core';
 import type { Pool, PoolClient } from 'pg';
 
-/** Drizzle connector for ANY Postgres driver. `NodePgDatabase` and `PostgresJsDatabase` both extend
- * `PgDatabase`, differing only in the query-result HKT - the real shared base, not a cast. */
+/** Drizzle connector for ANY Postgres driver: `NodePgDatabase` and `PostgresJsDatabase` both extend `PgDatabase`, differing only in the query-result HKT - the real shared base, not a cast. */
 export type TRelationalConnector<
   DataSourceSchema extends TAnyDataSourceSchema = TAnyDataSourceSchema,
 > = PgDatabase<PgQueryResultHKT, DataSourceSchema>;
@@ -49,8 +48,7 @@ export class IsolationLevels {
 
 export type TIsolationLevel = TConstValue<typeof IsolationLevels>;
 
-/** Postgres transaction options - adds a typed `isolationLevel` on top of the neutral,
- * string-only `ITransactionOptions`. */
+/** Postgres transaction options - adds a typed `isolationLevel` on top of the neutral, string-only `ITransactionOptions`. */
 export interface IDatabaseTransactionOptions extends ITransactionOptions {
   isolationLevel?: TIsolationLevel;
 }
@@ -62,19 +60,14 @@ export interface IDatabaseTransaction<
   connector: TRelationalConnector<Schema>;
   isolationLevel: TIsolationLevel;
 
-  /** Throws if COMMIT fails, per {@link ITransaction.commit}. On failure the connection is discarded
-   * where the driver supports it (node-postgres `release(error)`); postgres-js has no destroy
-   * semantics, so a poisoned connection returns to its pool. */
+  /** Throws if COMMIT fails, per {@link ITransaction.commit}. On failure the connection is discarded where the driver supports it (node-postgres `release(error)`); postgres-js has no destroy semantics, so a poisoned connection returns to its pool. */
   commit(): Promise<void>;
 
-  /** Throws if ROLLBACK fails (same connection-discard caveat as {@link commit}) - but is a silent
-   * no-op after the transaction already ended BY FAILURE, keeping
-   * `catch (error) { await transaction.rollback(); throw error; }` safe. */
+  /** Throws if ROLLBACK fails (same connection-discard caveat as {@link commit}) - but is a silent no-op after the transaction already ended BY FAILURE, keeping `catch (error) { await transaction.rollback(); throw error; }` safe. */
   rollback(): Promise<void>;
 }
 
-/** SQL-branch contract: connection string, Drizzle connector, transactions. Extends
- * `AbstractDataSource` itself (not just `IDataSource`) so repositories can narrow safely. */
+/** SQL-branch contract: connection string, Drizzle connector, transactions. Extends `AbstractDataSource` itself, not just `IDataSource`, so repositories can narrow safely. */
 export interface IPostgresDataSource<
   Settings extends object = {},
   Schema extends TAnyDataSourceSchema = TAnyDataSourceSchema,

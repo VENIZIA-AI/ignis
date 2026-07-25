@@ -61,8 +61,7 @@ class AuthProbeController extends BaseRestController {
 
 const probeController = new AuthProbeController({ scope: 'AuthProbeController', path: '/probe' });
 
-/** `getRouteConfigs` is typed as the caller's own RouteConfig; `middleware`/`security` are the
- * fields it injects, so they only exist on the value, never on that type. */
+/** `getRouteConfigs` is typed as the caller's own RouteConfig; `middleware`/`security` are the fields it injects, so they only exist on the value, never on that type. */
 const injectedRouteConfigs = (
   configs: AnyType,
 ): {
@@ -141,8 +140,7 @@ describe('Route auth config - controller level vs route level', () => {
     const routeConfigs = injectedRouteConfigs(definitions.FIND);
     expect(routeConfigs.middleware?.length).toBe(2);
 
-    // The same definition object is reused on every controller instance - re-processing it must
-    // not accumulate middleware/tags on the shared config.
+    // The same definition object is reused on every controller instance, so re-processing it must not accumulate middleware/tags on the shared config.
     const reprocessed = injectedRouteConfigs(definitions.FIND);
     expect(reprocessed.middleware?.length).toBe(2);
     expect(definitions.FIND).not.toHaveProperty('middleware');

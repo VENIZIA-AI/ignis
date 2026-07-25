@@ -87,8 +87,7 @@ export class ReadableRelationalRepository<
     const limit = isFindOne ? 1 : mergedFilter.limit;
     const offset = mergedFilter.skip ?? mergedFilter.offset;
 
-    // EntitySchema extends TTableSchemaWithId (which extends PgTable), but drizzle's `.from()`
-    // needs the concrete PgTable type, not the generic bound.
+    // EntitySchema extends TTableSchemaWithId which extends PgTable, but drizzle's `.from()` needs the concrete PgTable type, not the generic bound.
     const table = schema as PgTable;
     const connector = this.resolveConnector({ transaction: options?.transaction });
 
@@ -113,8 +112,7 @@ export class ReadableRelationalRepository<
       query = query.offset(offset);
     }
 
-    // Drizzle's `$dynamic()` query builder infers its row type from the table schema, not from R
-    // (the caller-chosen output shape); the two are asserted compatible by convention.
+    // Drizzle's `$dynamic()` builder infers its row type from the table schema, not from the caller-chosen R; the two are asserted compatible by convention.
     const lock = opts.options?.lock;
     if (lock) {
       return query.for(lock.strength, lock.config) as Promise<Array<R>>;
@@ -130,9 +128,7 @@ export class ReadableRelationalRepository<
   }): Promise<Array<R>> {
     const queryOptions = this.buildQuery({ filter: opts.filter });
     const queryInterface = this.getQueryInterface({ options: opts.options });
-    // Drizzle's relational query result (`PgRelationalQuery<{[x: string]: any}[]>`) doesn't overlap
-    // R (the caller-chosen output shape) enough for a direct assertion - genuinely different shapes
-    // being bridged at this ORM boundary.
+    // Drizzle's relational result (`PgRelationalQuery<{[x: string]: any}[]>`) doesn't overlap the caller-chosen R enough for a direct assertion - genuinely different shapes bridged at this ORM boundary.
     return queryInterface.findMany(queryOptions) as any;
   }
   override find<R = DataObject>(opts: {
@@ -170,8 +166,7 @@ export class ReadableRelationalRepository<
       limit: baseFilter.limit ?? this.getDefaultLimit() ?? DEFAULT_LIMIT,
     };
 
-    // ExtraOptions is caller-bound but otherwise unconstrained; spreading it alongside the literal
-    // override can't be proven to still satisfy the generic bound.
+    // ExtraOptions is caller-bound but otherwise unconstrained; spreading it alongside the literal override can't be proven to still satisfy the generic bound.
     const effectiveOptions = { ...options, shouldSkipDefaultFilter: true } as ExtraOptions;
     const useCoreAPI = this.canUseCoreAPI(mergedFilter);
 
@@ -189,8 +184,7 @@ export class ReadableRelationalRepository<
       return dataPromise;
     }
 
-    // A transaction connector wraps a single pg client, so parallel data+count queries would call
-    // client.query() while it's still busy (pg deprecation warning) - only safe outside a transaction.
+    // A transaction connector wraps a single pg client, so parallel data+count queries would call client.query() while it is still busy - only safe outside a transaction.
     const countPromise = () =>
       this.count({ where: mergedFilter.where ?? {}, options: effectiveOptions });
 

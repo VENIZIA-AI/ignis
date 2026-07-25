@@ -8,9 +8,7 @@ import {
 } from '@/components/auth/authorize';
 import type { FilteredAdapter, Model } from 'casbin';
 
-// Canonical "RBAC with domains" model: domain scoping lives on the 3-arg `g` membership; role
-// permissions are domain-agnostic (`p.dom = "*"`, covered by keyMatch); `g` domains match via the
-// registered domain matching function.
+// Canonical "RBAC with domains" model: domain scoping lives on the 3-arg `g` membership, role permissions are domain-agnostic (`p.dom = "*"` via keyMatch), and `g` domains match via the registered domain matching function.
 const MODEL = `
 [request_definition]
 r = sub, dom, obj, act
@@ -28,13 +26,10 @@ e = some(where (p.eft == allow)) && !some(where (p.eft == deny))
 m = g(r.sub, p.sub, r.dom) && keyMatch(r.dom, p.dom) && r.obj == p.obj && r.act == p.act
 `;
 
-// None of these tests exercise a context-dependent normalizer/domain resolver, so an empty stub
-// stands in for the full Hono-backed TContext that buildRules/evaluate require.
+// No test here exercises a context-dependent normalizer/domain resolver, so an empty stub stands in for the Hono-backed TContext buildRules/evaluate require.
 const fakeContext = {} as TContext;
 
-// Run the full request path (configure → buildRules → evaluate) on a pooled enforcer wired with a
-// fixed-line adapter + a domain-from-request normalizePayloadFn. The pool model has no shared casbin
-// enforcer to poke directly, so we exercise behavior through the public API.
+// Runs the full request path on a pooled enforcer: the pool model has no shared casbin enforcer to poke directly, so behavior is exercised through the public API.
 const enforceWithDomain = async (opts: {
   domainMatching?: ICasbinEnforcerOptions['domainMatching'];
   lines: string[];
@@ -138,8 +133,7 @@ describe('CasbinAuthorizationEnforcer - domain matching function', () => {
   test('backward-compatible: without domainMatching, `*` is a literal domain (no wildcard)', async () => {
     const lines = ['g, User_u, Role_r, *', 'p, Role_r, *, Material.find, read, allow'];
 
-    // Without a domain matching function the `g` domain is compared exactly, so a stored `*`
-    // does NOT match a real request domain — proving behavior is unchanged when unset.
+    // Without a domain matching function the `g` domain is compared exactly, so a stored `*` does NOT match a real request domain - behavior is unchanged when unset.
     expect(
       await enforceWithDomain({
         lines,
@@ -160,9 +154,7 @@ describe('CasbinAuthorizationEnforcer - domain matching function', () => {
   });
 
   test('matching function survives a clearPolicy + reload + buildRoleLinks cycle (cache reload path)', async () => {
-    // The matcher func is registered once per pooled enforcer at create(); every request reloads the
-    // model (clearPolicy + loadPolicyLine + buildRoleLinks) inside pool.use, so this exercises exactly
-    // that reload cycle. The func must still be in effect after the reload.
+    // The matcher func is registered once per pooled enforcer at create(), but every request reloads the model inside pool.use, so it must still be in effect after that reload.
     const lines = ['g, User_u, Role_r, *', 'p, Role_r, *, Material.find, read, allow'];
     expect(
       await enforceWithDomain({
@@ -214,9 +206,7 @@ describe('CasbinAuthorizationEnforcer - domain matching function', () => {
     expect(String((error as Error)?.message)).toContain('is not declared in the Casbin model');
   });
 
-  // End-to-end through the real request path (configure -> buildRules -> loadFilteredPolicy ->
-  // evaluate): proves the registered domain matching function SURVIVES the per-request
-  // loadFilteredPolicy reload (initRmMap only runs at construction) - production-real, not model-direct.
+  // End-to-end through the real request path: proves the registered domain matching function SURVIVES the per-request loadFilteredPolicy reload, since initRmMap only runs at construction.
 
   // Minimal casbin FilteredAdapter that replays a fixed set of policy lines (per the model in §2).
   const makeFilteredAdapter = (lines: string[]): FilteredAdapter => ({
@@ -232,8 +222,7 @@ describe('CasbinAuthorizationEnforcer - domain matching function', () => {
     removeFilteredPolicy: async () => {},
   });
 
-  // Build an enforcer wired with a filtered adapter + a domain-from-context normalizePayloadFn, run
-  // the real buildRules → evaluate path, and return the decision for a given request domain.
+  // Runs the real buildRules -> evaluate path on a filtered adapter plus a domain-from-context normalizePayloadFn and returns the decision for a given request domain.
   const enforceViaRequestPath = async (opts: {
     lines: string[];
     requestDomain?: string;
@@ -313,9 +302,7 @@ describe('CasbinAuthorizationEnforcer - domain matching function', () => {
     expect(allowedElsewhere).toBe('allow');
   });
 
-  // Concurrency guarantee: buildRules returns a {user, lines} snapshot and evaluate loads those
-  // exact lines into its own pooled enforcer - an interleaved buildRules for another user cannot
-  // corrupt this request's decision.
+  // Concurrency guarantee: evaluate loads buildRules' own {user, lines} snapshot into its own pooled enforcer, so an interleaved buildRules for another user cannot corrupt this decision.
 
   // Filtered adapter returning a different policy set per user (keyed by filter.principal.id).
   const makeMultiUserAdapter = (linesByUser: Record<string, string[]>): FilteredAdapter => ({
@@ -359,12 +346,10 @@ describe('CasbinAuthorizationEnforcer - domain matching function', () => {
     // Request A builds its rules → captures A's policy lines as a snapshot.
     const rulesA = await enforcer.buildRules({ user: userA, context: fakeContext });
 
-    // A concurrent request B completes its buildRules before A evaluates. With the pooled-enforcer
-    // model this cannot touch A's snapshot or A's per-request enforcer.
+    // Request B completes its buildRules before A evaluates; under the pooled-enforcer model that cannot touch A's snapshot or A's per-request enforcer.
     await enforcer.buildRules({ user: userB, context: fakeContext });
 
-    // A finally evaluates against its OWN snapshot on its own pooled enforcer. A legitimately has
-    // Material.find at Merchant_A, so the correct answer is 'allow' — and the race is gone.
+    // A evaluates against its OWN snapshot: A legitimately has Material.find at Merchant_A, so 'allow' is correct and the race is gone.
     const decisionA = await enforcer.evaluate({
       rules: rulesA,
       request: { action: 'read', resource: 'Material.find' },

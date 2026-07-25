@@ -55,8 +55,7 @@ export class MailService extends BaseService implements IMailService {
     } catch (error) {
       this.logger.for(this.send.name).error('Error sending email: %s', error);
 
-      // An error the framework already shaped (a 400 from validateMessage) carries its own status
-      // and message code; re-wrapping it as a 500 would report a caller mistake as a server fault.
+      // An error the framework already shaped carries its own status and message code; re-wrapping as 500 would report a caller mistake as a server fault.
       if (isApplicationError(error)) {
         throw error;
       }

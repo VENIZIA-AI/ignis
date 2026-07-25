@@ -84,10 +84,7 @@ class FakeMetaLinkRepository {
   }
 }
 
-/**
- * Mounts a generated static-asset controller on a fresh application and returns the server router
- * (root router mounted under the app base path + the real application error handler, as in start()).
- */
+/** Mounts a generated static-asset controller on a fresh application and returns the server router wired as start() does - root router under the app base path plus the real application error handler. */
 const mountAssetController = async (opts: {
   helper: FakeStorageHelper;
   options?: TStaticAssetExtraOptions;
@@ -190,12 +187,7 @@ describe('StaticAsset controller — path traversal hardening', () => {
     });
   }
 
-  /**
-   * The controller decodes NOTHING - Hono already did it once, and a second decode was the bug that
-   * made `report_100%.pdf` permanently unfetchable. That also changes what a DOUBLE-encoded payload
-   * means: it is no longer a traversal at all, it is a literal filename that happens to contain
-   * percent signs. It must not escape the bucket, and it must not be mistaken for `../`.
-   */
+  /** The controller decodes NOTHING - Hono already did, and a second decode made `report_100%.pdf` permanently unfetchable. A double-encoded payload is therefore a literal filename containing percent signs, not a traversal: it must neither escape the bucket nor be mistaken for `../`. */
   test('a double-encoded traversal payload is a LITERAL name, not a traversal', async () => {
     const response = await router.request(
       '/assets/buckets/images/objects/%252e%252e%252fetc%252fpasswd',

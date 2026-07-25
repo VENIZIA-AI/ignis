@@ -32,8 +32,7 @@ export class TypesenseInternal {
     return '';
   }
 
-  // Status-first and strict: if httpStatus is present, classify solely on it - a 5xx whose
-  // passed-through message happens to contain the phrase must not be mistaken for a benign miss.
+  // Status-first and strict: when httpStatus is present classify solely on it - a 5xx whose passed-through message contains the phrase must not be mistaken for a benign miss.
   private static classify(opts: { error: unknown; status: number; phrase: string }): boolean {
     const { error, status, phrase } = opts;
 

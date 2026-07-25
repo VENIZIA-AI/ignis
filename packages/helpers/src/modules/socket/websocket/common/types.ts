@@ -39,7 +39,7 @@ export interface IBunWebSocketConfig {
   publishToSelf?: boolean;
 }
 
-/** Return type for getBunWebSocketHandler — handlers + config spread for server.reload() */
+/** Return type for getBunWebSocketHandler - handlers + config spread for server.reload() */
 export interface IBunWebSocketHandler extends IBunWebSocketConfig {
   open: (socket: IWebSocket) => void;
   message: (socket: IWebSocket, message: string | Buffer) => void;

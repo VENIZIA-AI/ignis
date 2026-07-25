@@ -3,8 +3,7 @@ import type { ISearchConnector } from '@/connectors/search';
 import { DefaultSearchRepository } from '@/connectors/search/repositories';
 import type { TypesenseConnector, TypesenseDataSource } from '@/connectors/typesense';
 
-/** `tsc --noEmit` is the real gate; `bun test` only proves the module loads. The connector type
- * follows the datasource type parameter, making an engine-only verb a compile-time matter. */
+/** `tsc --noEmit` is the real gate; `bun test` only proves the module loads. The connector type follows the datasource type parameter, making an engine-only verb a compile-time matter. */
 describe('SearchBaseRepository - the connector type follows the datasource', () => {
   class TypesenseBoundRepository extends DefaultSearchRepository<
     { id: string },

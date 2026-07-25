@@ -104,9 +104,7 @@ const sleepWithSignal = async (opts: { ms: number; operation: string; signal?: A
 
   throwIfAborted({ operation, signal });
 
-  // The listener is removed in `finally` rather than by the timer callback - the two would
-  // otherwise have to reference each other, and a leaked listener on a long-lived signal
-  // accumulates across retries.
+  // The listener is removed in `finally` rather than by the timer callback - the two would otherwise have to reference each other, and a leaked listener on a long-lived signal accumulates across retries.
   let removeAbortListener = () => {};
 
   try {
@@ -227,6 +225,83 @@ export const computeBackoffDelayMs = (opts: {
   }
 };
 
+type TRetryAttemptOutcome<T> =
+  { isResolved: true; value: T } | { isResolved: false; error: unknown; isRetryAllowed: boolean };
+
+/** One `executeWithRetry` attempt and everything that follows a failure: `shouldRetry` refusing rethrows, otherwise the bounds are checked and - when another attempt is allowed - the retry is logged, `onRetry` awaited and the backoff slept, all before returning. */
+const runRetryAttempt = async <T>(opts: {
+  attempt: number;
+  attemptTimeoutMs?: number;
+  startedAt: number;
+  deadline?: number;
+  maxAttempts: number;
+  operation: string;
+  signal?: AbortSignal;
+  logger?: ILogger;
+  backoff?: IRetryBackoffOptions;
+  execution: (context: { attempt: number; signal?: AbortSignal }) => ValueOrPromise<T>;
+  shouldRetry?: (context: IRetryContext) => boolean;
+  onRetry?: (context: IRetryContext & { nextDelayMs: number }) => ValueOrPromise<void>;
+}): Promise<TRetryAttemptOutcome<T>> => {
+  const {
+    attempt,
+    attemptTimeoutMs,
+    startedAt,
+    deadline,
+    maxAttempts,
+    operation,
+    signal,
+    logger,
+    backoff,
+    execution,
+    shouldRetry,
+    onRetry,
+  } = opts;
+
+  try {
+    const value = await runWithTimeout({
+      operation,
+      timeoutMs: attemptTimeoutMs,
+      execution: () => execution({ attempt, signal }),
+    });
+    return { isResolved: true, value };
+  } catch (error) {
+    const elapsedMs = Date.now() - startedAt;
+
+    if (shouldRetry && !shouldRetry({ attempt, error, elapsedMs })) {
+      throw error;
+    }
+
+    if (attempt >= maxAttempts) {
+      return { isResolved: false, error, isRetryAllowed: false };
+    }
+
+    const nextDelayMs = computeBackoffDelayMs({ attempt, backoff });
+    if (deadline && Date.now() + nextDelayMs >= deadline) {
+      return { isResolved: false, error, isRetryAllowed: false };
+    }
+
+    logger
+      ?.for('executeWithRetry')
+      .debug(
+        '[%s] Attempt %d/%d failed - retrying in %dms | Error: %s',
+        operation,
+        attempt,
+        maxAttempts,
+        nextDelayMs,
+        error,
+      );
+
+    await onRetry?.({ attempt, error, elapsedMs, nextDelayMs });
+
+    if (nextDelayMs > 0) {
+      await sleepWithSignal({ ms: nextDelayMs, operation, signal });
+    }
+
+    return { isResolved: false, error, isRetryAllowed: true };
+  }
+};
+
 /** Retries `execution` with backoff, bounded by `maxAttempts`/`maxTotalMs`. JS cannot cancel a running promise - `signal` only stops between attempts/sleeps, so a timed-out execution keeps running unless it honors the signal itself. */
 export const executeWithRetry = async <T>(opts: {
   signal?: AbortSignal;
@@ -272,69 +347,51 @@ export const executeWithRetry = async <T>(opts: {
   }
 
   const startedAt = Date.now();
-  // `!== undefined`, never truthiness: a budget of 0 - or a negative one, which is what
-  // `deadline - Date.now()` yields under load - means NO time left, not unlimited time.
+  // `!== undefined`, never truthiness: a budget of 0 - or a negative one, which is what `deadline - Date.now()` yields under load - means NO time left, not unlimited time.
   const deadline = maxTotalMs !== undefined ? startedAt + maxTotalMs : undefined;
   let lastError: unknown;
 
   for (let attempt = 1; attempt <= maxAttempts; attempt++) {
     throwIfAborted({ operation, signal });
 
+    const remainingMs = deadline ? deadline - Date.now() : undefined;
+    if (remainingMs !== undefined && remainingMs <= 0) {
+      break;
+    }
+
     let attemptTimeoutMs = perAttemptTimeoutMs;
-    if (deadline) {
-      const remainingMs = deadline - Date.now();
-      if (remainingMs <= 0) {
-        break;
-      }
+    if (remainingMs !== undefined) {
       attemptTimeoutMs = attemptTimeoutMs ? Math.min(attemptTimeoutMs, remainingMs) : remainingMs;
     }
 
-    try {
-      return await runWithTimeout({
-        operation,
-        timeoutMs: attemptTimeoutMs,
-        execution: () => execution({ attempt, signal }),
-      });
-    } catch (error) {
-      lastError = error;
-      const elapsedMs = Date.now() - startedAt;
+    const outcome = await runRetryAttempt({
+      attempt,
+      attemptTimeoutMs,
+      startedAt,
+      deadline,
+      maxAttempts,
+      operation,
+      signal,
+      logger,
+      backoff,
+      execution,
+      shouldRetry,
+      onRetry,
+    });
 
-      if (shouldRetry && !shouldRetry({ attempt, error, elapsedMs })) {
-        throw error;
-      }
+    if (outcome.isResolved) {
+      return outcome.value;
+    }
 
-      if (attempt >= maxAttempts) {
-        break;
-      }
-
-      const nextDelayMs = computeBackoffDelayMs({ attempt, backoff });
-      if (deadline && Date.now() + nextDelayMs >= deadline) {
-        break;
-      }
-
-      logger
-        ?.for('executeWithRetry')
-        .debug(
-          '[%s] Attempt %d/%d failed - retrying in %dms | Error: %s',
-          operation,
-          attempt,
-          maxAttempts,
-          nextDelayMs,
-          error,
-        );
-
-      await onRetry?.({ attempt, error, elapsedMs, nextDelayMs });
-
-      if (nextDelayMs > 0) {
-        await sleepWithSignal({ ms: nextDelayMs, operation, signal });
-      }
+    lastError = outcome.error;
+    if (!outcome.isRetryAllowed) {
+      break;
     }
   }
 
   const elapsedMs = Date.now() - startedAt;
 
-  // The budget can run out BEFORE the first attempt (an expired `maxTotalMs`), leaving no error to
-  // rethrow. `throw undefined` would detonate inside the caller's own handler on `error.message`.
+  // The budget can run out BEFORE the first attempt (an expired `maxTotalMs`), leaving no error to rethrow; `throw undefined` would detonate inside the caller's own handler on `error.message`.
   if (lastError === undefined) {
     throw getError({
       message: `[executeWithRetry][${operation}] Time budget exhausted before any attempt ran | maxTotalMs: ${maxTotalMs}`,
@@ -348,12 +405,7 @@ export const executeWithRetry = async <T>(opts: {
   throw lastError;
 };
 
-/**
- * Retries `execution` while `until(result)` returns false - for read-after-write staleness behind
- * a replicated pool. Adding it can never make a call worse than a single un-retried one: on
- * exhaustion the LAST result is returned rather than an error, and a thrown error from
- * `execution` is never retried - it propagates immediately. Only wrap idempotent operations.
- */
+/** Retries `execution` while `until(result)` returns false - for read-after-write staleness behind a replicated pool. Never worse than a single un-retried call: on exhaustion the LAST result is returned rather than an error, and a thrown error propagates immediately instead of being retried. Only wrap idempotent operations. */
 export const executeWithRetryUntil = async <T>(opts: {
   signal?: AbortSignal;
   logger?: ILogger;
@@ -362,8 +414,7 @@ export const executeWithRetryUntil = async <T>(opts: {
   /** Default 3. */
   maxAttempts?: number;
 
-  /** Bounds when a NEW attempt may start. It never interrupts an attempt already in flight, so
-   * the first execution always runs to completion - a budget of 0 just means "no retries". */
+  /** Bounds when a NEW attempt may start; it never interrupts an attempt already in flight, so the first execution always runs to completion - a budget of 0 just means "no retries". */
   maxTotalMs?: number;
 
   backoff?: IRetryBackoffOptions;
@@ -390,8 +441,7 @@ export const executeWithRetryUntil = async <T>(opts: {
     });
   }
 
-  // Surfaced before the first execution - a misconfigured backoff discovered mid-loop would
-  // discard an already-fetched result.
+  // Surfaced before the first execution - a misconfigured backoff discovered mid-loop would discard an already-fetched result.
   computeBackoffDelayMs({ attempt: 1, backoff });
 
   const startedAt = Date.now();

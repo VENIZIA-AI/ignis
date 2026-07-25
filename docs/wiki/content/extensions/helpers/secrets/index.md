@@ -44,7 +44,7 @@ Only HashiCorp mints dynamic, lease-bearing credentials. The other two are read-
 - **Dynamic secrets renew themselves.** `lease()` opens a lease-bearing secret, and schedules its own renewal at `ttlSeconds * renewBeforeRatio` (default ratio `0.66`). Only HashiCorp supports `lease()` - the static providers throw.
 - **A failed renewal retries with backoff, then rotates.** If Vault is unreachable, the scheduler retries with capped exponential backoff. Once a renewal genuinely can't extend the lease, the helper fetches a fresh one and dispatches rotation.
 - **`createSecretsHelper({ provider })` picks the concrete class for you.**
-- **The peer packages stay invisible to bundlers.** `node-vault` and `@dotenvx/dotenvx` load only through a dynamic import (`importOptionalModule`). Importing `@venizia/ignis-helpers` never requires either package.
+- **The peer packages stay invisible to bundlers.** `node-vault` and `@dotenvx/dotenvx` load only through a dynamic import (`ModuleUtility.load`). Importing `@venizia/ignis-helpers` never requires either package.
 - **This holds under `Bun.build` too.** A literal dynamic import resolves at bundle time, so a compiled binary needs no `external` entry for either peer.
 
 ## The `ISecretsHelper` interface

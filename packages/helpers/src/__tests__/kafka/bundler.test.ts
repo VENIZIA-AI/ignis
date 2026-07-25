@@ -1,9 +1,6 @@
 import { describe, expect, test } from 'bun:test';
 
-/**
- * Bun.build() can't run in-process here (plugin registration dies on unrelated node_modules
- * reads once other suites are loaded); the probe runs in a child process, matching how a real binary compiles.
- */
+/** Bun.build() can't run in-process here (plugin registration dies on unrelated node_modules reads once other suites are loaded); the probe runs in a child process, matching how a real binary compiles. */
 interface TProbeResult {
   success: boolean;
   hasOnDiskWasmRead?: boolean;

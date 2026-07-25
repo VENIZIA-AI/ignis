@@ -1,4 +1,5 @@
 import { getError } from '@/modules/error';
+import { ErrorPrettier } from '@/modules/logger';
 import fs from 'node:fs';
 import fsp from 'node:fs/promises';
 import path from 'node:path';
@@ -37,7 +38,16 @@ export class DiskHelper extends BaseStorageHelper {
     try {
       await fsp.access(pathToCheck);
       return true;
-    } catch {
+    } catch (error) {
+      // ENOENT is the answer, not a failure; EACCES/EIO mean the path may well exist and is unreadable.
+      if ((error as NodeJS.ErrnoException)?.code !== 'ENOENT') {
+        this.logger.warn(
+          '[exists] Cannot determine existence, reporting false | path: %s | %s',
+          pathToCheck,
+          ErrorPrettier.format({ error }),
+        );
+      }
+
       return false;
     }
   }
@@ -243,25 +253,31 @@ export class DiskHelper extends BaseStorageHelper {
       for (const entry of entries) {
         const fullName = currentPrefix ? `${currentPrefix}/${entry.name}` : entry.name;
         const fullPath = path.join(dirPath, entry.name);
+        const isDirectory = entry.isDirectory();
 
-        if (entry.isDirectory()) {
-          if (useRecursive) {
-            await scanDirectory(fullPath, fullName);
-          }
-        } else if (entry.isFile()) {
-          if (!prefix || fullName.startsWith(prefix)) {
-            const stat = await fsp.stat(fullPath);
-            objects.push({
-              name: fullName,
-              size: stat.size,
-              lastModified: stat.mtime,
-              etag: undefined,
-            });
+        if (isDirectory && useRecursive) {
+          await scanDirectory(fullPath, fullName);
+          continue;
+        }
 
-            if (maxKeys && objects.length >= maxKeys) {
-              break;
-            }
-          }
+        if (isDirectory || !entry.isFile()) {
+          continue;
+        }
+
+        if (prefix && !fullName.startsWith(prefix)) {
+          continue;
+        }
+
+        const stat = await fsp.stat(fullPath);
+        objects.push({
+          name: fullName,
+          size: stat.size,
+          lastModified: stat.mtime,
+          etag: undefined,
+        });
+
+        if (maxKeys && objects.length >= maxKeys) {
+          break;
         }
       }
     };

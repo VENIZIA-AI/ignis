@@ -99,8 +99,7 @@ const extractDocument = <TDocument extends object>(hit: Record<string, unknown>)
   return document as TDocument;
 };
 
-/** Maps a Meilisearch response onto `ISearchResult`. Exhaustive `totalHits` preferred over approximate
- * `estimatedTotalHits` - `isFoundExact` says which. Wire keys read via bracket access, never identifiers. */
+/** Maps a Meilisearch response onto `ISearchResult`: exhaustive `totalHits` preferred over approximate `estimatedTotalHits` (`isFoundExact` says which), wire keys read via bracket access, never identifiers. */
 const mapSearchResult = <TDocument extends object>(raw: unknown): ISearchResult<TDocument> => {
   if (!isRecord(raw)) {
     return { found: 0, isFoundExact: true };
@@ -148,8 +147,7 @@ const mapSearchResult = <TDocument extends object>(raw: unknown): ISearchResult<
 
 /** Adapts the SDK client onto the structural view this connector needs. */
 const adaptClient = (sdk: Meilisearch): IMeilisearchClientLike => {
-  // The SDK's task/index return types carry more detail than this connector reads, so each delegate
-  // widens to AnyType at the seam rather than restating the SDK's shapes.
+  // The SDK's task/index return types carry more detail than this connector reads, so each delegate widens to AnyType at the seam rather than restating the SDK's shapes.
   const client = sdk as AnyType;
 
   return {
@@ -276,13 +274,11 @@ export class MeilisearchConnector extends BaseSearchConnector {
     return rs;
   }
 
-  /** Writes are invisible until their task succeeds. Polls manually against a caller-configured
-   * ceiling - the SDK's own `waitForTask` 5 s default is too short for bulk imports. */
+  /** Writes are invisible until their task succeeds; polls manually against a caller-configured ceiling because the SDK's own `waitForTask` 5 s default is too short for bulk imports. */
   private async waitForTask(opts: { taskUid: number; method: string }): Promise<IMeilisearchTask> {
     const { taskUid, method } = opts;
     const deadline = Date.now() + this.taskTimeoutMs;
-    // Exponential backoff: a fast task still resolves in the first poll or two, but a long-running
-    // one is not polled ~20x/s for its whole duration - the interval doubles up to a 1 s ceiling.
+    // Exponential backoff: a fast task still resolves in the first poll or two, while a long-running one is not polled ~20x/s throughout - the interval doubles up to a 1 s ceiling.
     let intervalMs = this.taskIntervalMs;
 
     for (;;) {
@@ -322,8 +318,7 @@ export class MeilisearchConnector extends BaseSearchConnector {
     }
   }
 
-  /** Runs the write, awaits its task, and returns the FINISHED task - so callers reading
-   * `details` (e.g. `deletedDocuments`) get the terminal record. */
+  /** Runs the write, awaits its task, and returns the FINISHED task so callers reading `details` (`deletedDocuments`) get the terminal record. */
   private async awaitWrite(opts: {
     method: string;
     run: () => Promise<{ taskUid: number }>;
@@ -560,8 +555,7 @@ export class MeilisearchConnector extends BaseSearchConnector {
     return rs;
   }
 
-  /** Exact and uncapped: `pagination.maxTotalHits` bounds the SEARCH route only, so `total` from
-   * `documents/fetch` never lies on large filtered sets. */
+  /** Exact and uncapped: `pagination.maxTotalHits` bounds the SEARCH route only, so `total` from `documents/fetch` never lies on large filtered sets. */
   async countDocuments(opts: { collection: string; filterBy?: string }): Promise<number> {
     const { collection, filterBy } = opts;
     this.assertNonEmpty({
@@ -587,9 +581,7 @@ export class MeilisearchConnector extends BaseSearchConnector {
     return rs;
   }
 
-  /** Create-only per the neutral contract. `addDocuments` is add-or-REPLACE, so the id is checked first;
-   * that check is NOT atomic - concurrent creates can both pass it and the second write wins. Use
-   * `upsert` for last-write-wins. */
+  /** Create-only per the neutral contract. `addDocuments` is add-or-REPLACE, so the id is checked first; that check is NOT atomic - concurrent creates can both pass it and the second write wins. Use `upsert` for last-write-wins. */
   async createDocument<T extends object>(opts: { collection: string; document: T }): Promise<T> {
     const { collection, document } = opts;
     this.assertNonEmpty({
@@ -654,9 +646,7 @@ export class MeilisearchConnector extends BaseSearchConnector {
     return document;
   }
 
-  /** Merge-update by primary key: absent patch fields are preserved. The write returns only a task,
-   * so the merged document is read back - NOT atomic: a concurrent write between task success and the
-   * read-back means the return is not necessarily what this call wrote. */
+  /** Merge-update by primary key, preserving absent patch fields. The write returns only a task, so the merged document is read back - NOT atomic: a concurrent write between task success and read-back means the return is not necessarily what this call wrote. */
   async updateDocument<T extends object>(opts: {
     collection: string;
     id: string;
@@ -672,8 +662,7 @@ export class MeilisearchConnector extends BaseSearchConnector {
 
     const primaryKey = await this.resolvePrimaryKey({ collection });
 
-    // Meilisearch's updateDocuments is add-or-update, so a missing id would silently upsert; the
-    // neutral contract (and Typesense) throws 404 instead. Existence is checked before any write.
+    // Meilisearch's updateDocuments is add-or-update, so a missing id would silently upsert while the neutral contract (and Typesense) throws 404 - existence is checked before any write.
     if (!(await this.documentExists({ collection, id }))) {
       SearchConnectorInternal.throwNotFoundError({
         method: this.updateDocument.name,
@@ -683,8 +672,7 @@ export class MeilisearchConnector extends BaseSearchConnector {
 
     await this.runEngineCall({
       method: this.updateDocument.name,
-      // `[primaryKey]: id` last: the path id is authoritative, so a patch carrying its own primary
-      // key cannot redirect the write onto a different row.
+      // `[primaryKey]: id` last: the path id is authoritative, so a patch carrying its own primary key cannot redirect the write onto a different row.
       run: () =>
         this.awaitWrite({
           method: this.updateDocument.name,
@@ -696,9 +684,7 @@ export class MeilisearchConnector extends BaseSearchConnector {
     return this.getDocument<T>({ collection, id });
   }
 
-  /** No native update-by-filter (`documents/edit` is experimental and buggy) - pages ids out of the
-   * uncapped `documents/fetch` route and merges back in batches. NOT atomic: a concurrent write to a
-   * matched document may be overwritten. */
+  /** No native update-by-filter (`documents/edit` is experimental and buggy), so ids are paged out of the uncapped `documents/fetch` route and merged back in batches. NOT atomic: a concurrent write to a matched document may be overwritten. */
   async updateByFilter<T extends object>(opts: {
     collection: string;
     document: Partial<T>;
@@ -821,8 +807,7 @@ export class MeilisearchConnector extends BaseSearchConnector {
     return rs;
   }
 
-  /** Native delete-by-filter. Count is read from the FINISHED task's `details.deletedDocuments` -
-   * a pre-count would be wrong under concurrent writes. */
+  /** Native delete-by-filter; count is read from the FINISHED task's `details.deletedDocuments` because a pre-count would be wrong under concurrent writes. */
   async deleteByFilter(opts: { collection: string; filterBy: string }): Promise<number> {
     const { collection, filterBy } = opts;
     this.assertNonEmpty({ value: filterBy, name: 'filterBy', method: this.deleteByFilter.name });
@@ -867,9 +852,30 @@ export class MeilisearchConnector extends BaseSearchConnector {
     return rs;
   }
 
-  /** Batches through addDocuments, awaiting each task. Import is batch-atomic, so `count.fail` is
-   * always 0: a batch lands whole or throws. A thrown import carries `processedCount` in the error's
-   * `details` so callers can resume past the batches that already landed. */
+  /** Re-throws an import failure with partial progress attached. An error the framework already shaped (waitForTask's 504 task_timeout, its task-failed 503, a sanitized 4xx) keeps its statusCode/messageCode - re-wrapping would erase those semantics behind a generic 503, so progress is merged onto it instead. */
+  private throwImportFailure(opts: {
+    error: unknown;
+    details: { totalCount: number; processedCount: number };
+  }): never {
+    const { error, details } = opts;
+
+    if (isApplicationError(error)) {
+      error.extra = {
+        ...error.extra,
+        details: { ...(error.extra?.['details'] as object), ...details },
+      };
+      throw error;
+    }
+
+    SearchConnectorInternal.wrapDependencyError({
+      method: this.importDocuments.name,
+      error,
+      logger: this.logger,
+      details,
+    });
+  }
+
+  /** Batches through addDocuments, awaiting each task. Import is batch-atomic, so `count.fail` is always 0 - a batch lands whole or throws, and a thrown import carries `processedCount` in the error's `details` so callers can resume past the batches that already landed. */
   async importDocuments<T extends object>(opts: {
     collection: string;
     documents: T[];
@@ -895,26 +901,10 @@ export class MeilisearchConnector extends BaseSearchConnector {
             responses.push(task);
             processedCount += batch.length;
           } catch (error) {
-            // Earlier batches are already persisted server-side, so EVERY failure carries partial
-            // progress - callers decide to resume from processedCount or retry the whole import.
-            const details = { totalCount: documents.length, processedCount };
-
-            // An error the framework already shaped (waitForTask's 504 task_timeout, its
-            // task-failed 503, a sanitized 4xx) keeps its statusCode/messageCode - re-wrapping
-            // would erase those semantics behind a generic 503. Progress is merged onto it.
-            if (isApplicationError(error)) {
-              error.extra = {
-                ...error.extra,
-                details: { ...(error.extra?.['details'] as object), ...details },
-              };
-              throw error;
-            }
-
-            SearchConnectorInternal.wrapDependencyError({
-              method: this.importDocuments.name,
+            // Earlier batches are already persisted server-side, so EVERY failure carries partial progress - callers decide to resume from processedCount or retry the whole import.
+            this.throwImportFailure({
               error,
-              logger: this.logger,
-              details,
+              details: { totalCount: documents.length, processedCount },
             });
           }
         }
@@ -942,8 +932,7 @@ export class MeilisearchConnector extends BaseSearchConnector {
     const rs = await this.runEngineCall({
       method: this.exportDocuments.name,
       run: async () => {
-        // Pages to exhaustion. A single fetch would silently truncate at the page size, which for an
-        // export - the primitive people back up and reindex with - is data loss without an error.
+        // Pages to exhaustion: a single fetch would silently truncate at the page size, which for an export - the primitive people back up and reindex with - is data loss without an error.
         const rows = await this.fetchAllDocuments({
           collection,
           ...(filterBy ? { filterBy } : {}),
@@ -987,10 +976,7 @@ export class MeilisearchConnector extends BaseSearchConnector {
     return rs;
   }
 
-  /**
-   * Batched, non-federated: N queries in one round trip, N result sets back. `commonParams` are
-   * defaults - a per-query param always wins over them, so a query's own `q` is never clobbered.
-   */
+  /** Batched, non-federated: N queries in one round trip, N result sets back. `commonParams` are defaults - a per-query param always wins over them, so a query's own `q` is never clobbered. */
   async multiSearch(opts: {
     searches: unknown[];
     union?: boolean;
@@ -1035,8 +1021,7 @@ export class MeilisearchConnector extends BaseSearchConnector {
       return cached;
     }
 
-    // Wrapped so a raw getIndex failure is sanitized here rather than escaping through whichever
-    // write (create/update/updateBy) triggered the lookup and leaking engine detail.
+    // Wrapped so a raw getIndex failure is sanitized here rather than escaping through whichever write triggered the lookup and leaking engine detail.
     const index = await this.runEngineCall({
       method: this.resolvePrimaryKey.name,
       run: () => this.client.getIndex(collection),

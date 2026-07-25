@@ -17,10 +17,7 @@ import { type IRedisHelper } from '@/modules/redis';
 
 const wait = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
-/**
- * Connect a client and authenticate via post-connection auth pattern.
- * Default authenticateFn mock returns { userId } from the auth data payload.
- */
+/** Connect a client and authenticate post-connection; the default authenticateFn mock returns { userId } from the auth data payload. */
 async function connectAndAuth(
   h: WebSocketServerHelper,
   opts: {
@@ -454,15 +451,14 @@ describe('WebSocketServerHelper', () => {
         redisConnection: waitRedisHelper,
       });
 
-      // The duplicated clients should also be in wait
-      // connect() is mocked to set status to ready and emit ready
+      // The duplicated clients should also be in wait; connect() is mocked to set status ready and emit ready.
       await waitHelper.configure();
     });
 
     test('should subscribe to broadcast channel', async () => {
       await helper.configure();
 
-      // Find the redisSub mock — it's the second duplicate
+      // Find the redisSub mock - it's the second duplicate
       const allDups = mockRedisHelper.mockClient.duplicate.mock.results;
       const redisSub = allDups[1]?.value as MockRedisClient;
 
@@ -1745,8 +1741,7 @@ describe('WebSocketServerHelper', () => {
       const c1 = helper.getClients({ id: 'client-1' }) as any;
       c1.socket.send.mockClear();
 
-      // We need the server's serverId — it's private, so we use a workaround:
-      // Send a message and inspect Redis to find the serverId
+      // serverId is private - send a message and inspect Redis to find it.
       const redisPub = mockRedisHelper.mockClient.duplicate.mock.results[0]
         ?.value as MockRedisClient;
       redisPub.publish.mockClear();
@@ -2000,7 +1995,7 @@ describe('WebSocketServerHelper', () => {
         raw: JSON.stringify({ event: WebSocketEvents.HEARTBEAT }),
       });
 
-      // Should NOT send "Not authenticated" error — heartbeat returns early before that guard
+      // Should NOT send "Not authenticated" error - heartbeat returns early before that guard
       expect(socket.send).not.toHaveBeenCalled();
     });
 
@@ -2181,7 +2176,7 @@ describe('Heartbeat — Application-Level Liveness Check', () => {
     await helper.configure();
     await wait(150);
 
-    // Server should NOT publish any heartbeat event — clients send heartbeat, server only sweeps
+    // Server should NOT publish any heartbeat event - clients send heartbeat, server only sweeps
     const publishCalls = mockBunServer.publish.mock.calls as any[][];
     const heartbeatCall = publishCalls.find(c => {
       try {

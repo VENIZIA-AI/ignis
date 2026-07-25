@@ -28,8 +28,7 @@ export const RepositoryMetadataMixin = <
   return class extends baseClass {
     repositoryBindings: Map<string, IRepositoryBinding<AbstractEntity>>;
 
-    /** The model CLASSES a datasource owns - never their names: two classes may share a name, and
-     * the name-keyed `modelRegistry` holds only one, so keying by name resolves the WRONG class. */
+    /** The model CLASSES a datasource owns - never their names: two classes may share a name and the name-keyed `modelRegistry` holds only one, so keying by name resolves the WRONG class. */
     datasourceModels: Map<string, Set<TClass<AnyType>>>;
 
     setRepositoryMetadata<
@@ -53,9 +52,7 @@ export const RepositoryMetadataMixin = <
       Model extends AbstractEntity = AbstractEntity,
       DataSource extends IDataSource = IDataSource,
     >(opts: IRepositoryBinding<Model, DataSource>) {
-      // Every member of the binding may be a resolver (the documented escape hatch for circular
-      // imports). Reading `.name` off the resolver itself would key the registry by the ARROW's
-      // inferred name - the datasource would then discover no schema at all, silently.
+      // Every member of the binding may be a resolver (the escape hatch for circular imports); reading `.name` off the resolver would key the registry by the ARROW's inferred name and the datasource would silently discover no schema.
       const repositoryClass = resolveValue(opts.repository);
       this.repositoryBindings.set(repositoryClass.name, opts);
 
@@ -75,10 +72,7 @@ export const RepositoryMetadataMixin = <
       return this.repositoryBindings.get(opts.name);
     }
 
-    /**
-     * Resolves + caches relations for a model entry. Called lazily from buildSchema() so every
-     * @model class is registered first, avoiding circular-dependency ordering issues. @internal
-     */
+    /** Resolves and caches relations for a model entry - called lazily from buildSchema() so every @model class is registered first, avoiding circular-dependency ordering issues. @internal */
     resolveModelRelations(modelMeta: IModelRegistryEntry): unknown {
       if (modelMeta._builtRelations !== undefined) {
         return modelMeta._builtRelations;
@@ -91,8 +85,7 @@ export const RepositoryMetadataMixin = <
       const relations = resolveValue(modelMeta.relationsResolver) as Array<TRelationConfig>;
 
       if (relations && modelMeta.schema) {
-        // Registry stores schema as unknown (engine-neutral); this resolver only runs for
-        // drizzle-backed models, so the narrow is safe here.
+        // Registry stores schema as unknown (engine-neutral); this resolver only runs for drizzle-backed models, so the narrow is safe.
         const builtRelations = createRelations({
           source: modelMeta.schema as TTableSchemaWithId,
           relations,
@@ -105,8 +98,7 @@ export const RepositoryMetadataMixin = <
       return undefined;
     }
 
-    /** Models registered for a datasource, relations resolved lazily. `schema`/`relations` stay
-     * `unknown` - the registry is shared across connectors; each connector narrows at its call site. */
+    /** Models registered for a datasource, relations resolved lazily. `schema`/`relations` stay `unknown` - the registry is shared across connectors, so each connector narrows at its call site. */
     getModels(opts: { dataSource: string | TClass<IDataSource> }): Array<{
       tableName: string;
       schema: unknown;
@@ -118,9 +110,7 @@ export const RepositoryMetadataMixin = <
 
       const rs = Array.from(modelClasses)
         .map(modelClass => {
-          // Read straight off the CLASS: a class -> name -> modelRegistry round-trip collapses two
-          // same-named models onto one entry, silently swapping schemas. `modelRegistry` stays
-          // name-keyed for the by-name APIs (authorize principals) that need it.
+          // Read straight off the CLASS: a class -> name -> modelRegistry round-trip collapses two same-named models onto one entry, silently swapping schemas. `modelRegistry` stays name-keyed for the by-name APIs that need it.
           const entry: IModelRegistryEntry = {
             target: modelClass as AnyType,
             metadata:
@@ -146,13 +136,12 @@ export const RepositoryMetadataMixin = <
       return rs;
     }
 
-    /** Like getModels but returns only resolved model classes — used by BaseSearchDataSource, which has no pgTable to resolve. */
+    /** Like getModels but returns only resolved model classes - used by BaseSearchDataSource, which has no pgTable to resolve. */
     getModelClasses(opts: { dataSource: string | TClass<IDataSource> }): Array<TClass<unknown>> {
       const { dataSource } = opts;
       const dsKey = typeof dataSource === 'string' ? dataSource : dataSource.name;
 
-      // Straight from the stored class refs: a name round-trip through the shared modelRegistry
-      // would hand back whichever same-named class happened to register last.
+      // Straight from the stored class refs: a name round-trip through the shared modelRegistry would hand back whichever same-named class registered last.
       return Array.from(this.datasourceModels.get(dsKey) ?? new Set());
     }
 

@@ -122,8 +122,7 @@ describe('search-collection DSL', () => {
         fields: [field.string('title')],
       });
 
-      // Static type still shows the literal input (no `id`); auto-prepend is runtime-only,
-      // so this widens to the plain interface to check the actual runtime value.
+      // Auto-prepend is runtime-only and the static type still shows the literal input with no `id`, so this widens to the plain interface to check the actual runtime value.
       expect((collection.fields as readonly ISearchFieldDefinition[])[0]).toEqual({
         name: 'id',
         type: 'string',
@@ -181,8 +180,7 @@ describe('search-collection DSL', () => {
       ).toThrow(/\[defineSearchCollection\]/);
     });
 
-    // The DSL only checks that the field exists; Typesense's numeric-scalar sort requirement
-    // is enforced later by compileTypesenseCollection, since other engines may sort on strings.
+    // The DSL only checks that the field exists; Typesense's numeric-scalar sort requirement is enforced later by compileTypesenseCollection, since other engines may sort on strings.
     test('accepts defaultSort referencing an existing STRING field (valid for other engines)', () => {
       const collection = defineSearchCollection({
         name: 'products',

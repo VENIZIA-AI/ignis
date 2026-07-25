@@ -54,8 +54,7 @@ export class PersistableRelationalRepository<
     });
   }
 
-  /** Prevents accidental table-wide updates/deletes by requiring an explicit force flag. Returns the
-   * built where SQL so callers reuse it instead of rebuilding on identical input. */
+  /** Prevents accidental table-wide updates/deletes by requiring an explicit force flag; returns the built where SQL so callers reuse it instead of rebuilding on identical input. */
   protected validateWhereCondition(opts: {
     where: TWhere<DataObject>;
     force?: boolean;
@@ -101,8 +100,7 @@ export class PersistableRelationalRepository<
     const visibleProps = this.getVisibleProperties();
     const rs = visibleProps ? await query.returning(visibleProps) : await query.returning();
     this.logger.for('_create').debug('INSERT result | shouldReturn: %s | rs: %j', shouldReturn, rs);
-    // Drizzle infers `returning()`'s row type from the table schema, not from R (the caller-chosen
-    // output shape); the two are asserted compatible by convention, not provable structurally.
+    // Drizzle infers `returning()`'s row type from the table schema, not from the caller-chosen R; the two are asserted compatible by convention, not provable structurally.
     return { count: rs.length, data: rs as Array<R> };
   }
 
@@ -118,8 +116,7 @@ export class PersistableRelationalRepository<
     data: PersistObject;
     options?: ExtraOptions & { shouldReturn?: boolean };
   }): Promise<TCount & { data: TNullable<R> }> {
-    // ExtraOptions is caller-bound but otherwise unconstrained; spreading it alongside the literal
-    // default can't be proven to still satisfy the generic bound, only the concrete shape below.
+    // ExtraOptions is caller-bound but otherwise unconstrained; spreading it alongside the literal default can't be proven to satisfy the generic bound, only the concrete shape below.
     const options = { shouldReturn: true, ...opts.options } as ExtraOptions & {
       shouldReturn: boolean;
     };
@@ -139,8 +136,7 @@ export class PersistableRelationalRepository<
     data: Array<PersistObject>;
     options?: ExtraOptions & { shouldReturn?: boolean };
   }): Promise<TCount & { data: TNullable<Array<R>> }> {
-    // ExtraOptions is caller-bound but otherwise unconstrained; spreading it alongside the literal
-    // default can't be proven to still satisfy the generic bound, only the concrete shape below.
+    // ExtraOptions is caller-bound but otherwise unconstrained; spreading it alongside the literal default can't be proven to satisfy the generic bound, only the concrete shape below.
     const options = { shouldReturn: true, ...opts.options } as ExtraOptions & {
       shouldReturn: boolean;
     };

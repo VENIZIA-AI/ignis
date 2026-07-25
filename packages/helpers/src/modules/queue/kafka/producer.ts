@@ -8,11 +8,7 @@ import type {
   TKafkaTransactionCallback,
 } from './common/types';
 
-/**
- * Wrapper around `@platformatic/kafka` Producer with lifecycle management, health tracking,
- * graceful shutdown, and a transaction helper. `runInTransaction` requires both
- * `transactionalId` and `idempotent` to be set on the producer.
- */
+/** Wrapper around `@platformatic/kafka` Producer with lifecycle management, health tracking, graceful shutdown, and a transaction helper; `runInTransaction` requires both `transactionalId` and `idempotent` set on the producer. */
 export class KafkaProducerHelper<
   KeyType = string,
   ValueType = string,

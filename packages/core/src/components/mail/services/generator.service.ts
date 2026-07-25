@@ -1,8 +1,6 @@
 import { inject } from '@/base/metadata';
 import crypto from 'node:crypto';
-// Interfaces are `import type`: with emitDecoratorMetadata on, a value import of a type-only name
-// survives transpilation and the ESM named-import check then fails at load - the interface is not a
-// runtime export.
+// Interfaces are `import type`: with emitDecoratorMetadata on, a value import of a type-only name survives transpilation and the ESM named-import check fails at load.
 import type {
   IVerificationCodeGenerator,
   IVerificationData,

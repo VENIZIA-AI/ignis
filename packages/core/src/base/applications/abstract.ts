@@ -25,9 +25,7 @@ const DEFAULT_SERVER_HOST = 'localhost';
 const DEFAULT_SERVER_PORT = 3000;
 const MAX_SERVER_PORT = 65535;
 
-/** Resolves the first USABLE port among the candidates. `0` legitimately asks the OS for an
- * ephemeral port, so candidates are rejected on validity, never falsiness; absent, blank,
- * non-integer, or out-of-range candidates are skipped in favour of the next. */
+/** Resolves the first USABLE port among the candidates - `0` legitimately asks the OS for an ephemeral port, so candidates are rejected on validity, never falsiness. */
 const resolveServerPort = (opts: { candidates: Array<number | string | undefined> }): number => {
   for (const candidate of opts.candidates) {
     if (candidate === undefined || candidate === null) {
@@ -162,9 +160,7 @@ export abstract class AbstractApplication<
       .debug('Registered post-start hook | identifier: %s', opts.identifier);
   }
 
-  /** Runs every post-start hook in isolation: a throwing hook must not cancel the ones queued
-   * behind it (the server is already listening - a skipped hook is a half-started application).
-   * Failures are collected and reported as a single error after every hook has run. */
+  /** Runs every post-start hook in isolation - the server is already listening, so a throwing hook must not cancel the ones behind it; failures are collected and reported as one error at the end. */
   protected async executePostStartHooks() {
     if (this.postStartHooks.length === 0) {
       return;
@@ -338,8 +334,7 @@ export abstract class AbstractApplication<
         .then(module => {
           const { serve } = module;
 
-          // Resolve from the listening callback, not from serve()'s synchronous return: only then is
-          // the socket actually bound and the OS-assigned port (host config port `0`) known.
+          // Resolve from the listening callback, not serve()'s synchronous return - only then is the socket bound and the OS-assigned port (config port `0`) known.
           const rs = serve({ fetch: server.fetch, port, hostname: host }, info => {
             this.configs.port = info.port;
             this.inspectRoutes();
@@ -415,8 +410,7 @@ export abstract class AbstractApplication<
         break;
       }
       case RuntimeModules.NODE: {
-        // `close()` is callback-based: without this bridge stop() resolves while the socket is
-        // still bound, so an immediate restart (or a test) races the previous listener.
+        // `close()` is callback-based: without this bridge stop() resolves while the socket is still bound, so an immediate restart races the previous listener.
         await new Promise<void>((resolve, reject) => {
           instance.close((error?: Error) => {
             if (error) {

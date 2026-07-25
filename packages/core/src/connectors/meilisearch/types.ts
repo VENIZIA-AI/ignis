@@ -38,10 +38,7 @@ export interface IMeilisearchConnectorOptions {
   host: string;
   apiKey?: string;
 
-  /**
-   * Ceiling for awaiting a write task. The `meilisearch` SDK's own `waitForTask` defaults to 5000 ms,
-   * far too short for a bulk import, so this connector never relies on that default.
-   */
+  /** Ceiling for awaiting a write task. The SDK's own `waitForTask` defaults to 5000 ms, far too short for a bulk import, so this connector never relies on that default. */
   taskTimeoutMs?: number;
 
   /** Poll interval while awaiting a task. */

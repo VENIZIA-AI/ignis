@@ -32,10 +32,7 @@ export class MeilisearchDataSource extends BaseSearchDataSource<
     return MeilisearchDataSource.queryDialect;
   }
 
-  /**
-   * `union: false` is honest: Meilisearch merges results through its `federation` option, which this
-   * connector does not model, so `multiSearch` is batched-but-not-merged.
-   */
+  /** `union: false` is honest: Meilisearch merges results through its `federation` option, which this connector does not model, so `multiSearch` is batched-but-not-merged. */
   override getCapabilities(): ISearchableDataSourceCapabilities {
     return {
       transactions: false,

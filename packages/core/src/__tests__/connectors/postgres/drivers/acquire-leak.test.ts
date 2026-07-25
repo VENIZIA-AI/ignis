@@ -2,9 +2,7 @@ import { describe, expect, test } from 'bun:test';
 import type { AnyType } from '@venizia/ignis-helpers';
 import { NodePostgresDriver } from '@/connectors/postgres/drivers/node-postgres';
 
-/** `acquire()` checks a connection OUT before building the Drizzle connector: if that construction
- * throws, the connection must be handed back or every later `beginTransaction()` leaks one until
- * the pool is exhausted. */
+/** `acquire()` checks a connection OUT before building the Drizzle connector: if that construction throws, the connection must be handed back or every later `beginTransaction()` leaks one until the pool is exhausted. */
 const buildFakePool = () => {
   const released: Array<unknown> = [];
 

@@ -2,10 +2,7 @@ import { describe, expect, test } from 'bun:test';
 import { Container, MetadataRegistry } from '@/helpers/inversion';
 import type { AnyType } from '@venizia/ignis-helpers';
 
-/**
- * The registry is a PROCESS-WIDE singleton shared with every other test file, so nothing here calls
- * clearAll() and every fixture carries a name no other suite uses.
- */
+/** The registry is a PROCESS-WIDE singleton shared with every other test file, so nothing here calls clearAll() and every fixture carries a name no other suite uses. */
 const registry = MetadataRegistry.getInstance();
 
 class RegistryTestAlphaEntity {
@@ -110,8 +107,7 @@ describe('RepositoryMetadataMixin', () => {
       metadata: { type: 'entity' },
     });
 
-    // IRepositoryBinding declares every member as TValueOrResolver - a resolver is the documented
-    // way out of a circular import, and it must key the datasource by the RESOLVED class name.
+    // IRepositoryBinding declares every member as TValueOrResolver - a resolver is the documented way out of a circular import, and it must key the datasource by the RESOLVED class name.
     registry.registerRepositoryBinding({
       repository: (() => RegistryTestBetaRepository) as AnyType,
       model: (() => RegistryTestBetaEntity) as AnyType,

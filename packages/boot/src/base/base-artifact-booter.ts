@@ -46,15 +46,13 @@ export abstract class BaseArtifactBooter extends BaseHelper implements IBooter {
 
     if (this.artifactOptions.dirs.length > 1 || this.artifactOptions.extensions.length > 1) {
       return `{${dirs}}/${nested}.{${exts}}`;
-    } else {
-      return `${dirs}/${nested}.${exts}`;
     }
+
+    return `${dirs}/${nested}.${exts}`;
   }
 
   async configure(): Promise<void> {
-    // No trailing `...this.artifactOptions` spread: a key that EXISTS but holds undefined - the
-    // shape `dirs: process.env.APP_DIRS?.split(',')` produces - would overwrite the default that
-    // was just computed, and getPattern() would throw "No directories specified".
+    // No trailing `...this.artifactOptions` spread: a key that EXISTS holding undefined (what `dirs: process.env.APP_DIRS?.split(',')` produces) would overwrite the just-computed default and getPattern() would throw.
     this.artifactOptions = {
       dirs: this.artifactOptions?.dirs ?? this.getDefaultDirs(),
       extensions: this.artifactOptions?.extensions ?? this.getDefaultExtensions(),

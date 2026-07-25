@@ -232,8 +232,7 @@ describe('BaseKafkaHelper — broker events, health tracking, close paths', () =
       globalThis.clearTimeout = originalClearTimeout;
     }
 
-    // A timer left armed here keeps the event loop alive for the whole shutdownTimeout after a
-    // perfectly successful close - the process refuses to exit.
+    // A timer left armed here keeps the event loop alive for the whole shutdownTimeout after a perfectly successful close - the process refuses to exit.
     expect(armedTimers.size).toBe(0);
   });
 

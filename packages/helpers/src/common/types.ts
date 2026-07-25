@@ -1,7 +1,6 @@
 import { isClass } from '@venizia/ignis-inversion';
 
-// Declared in inversion (the container branches on it), re-exported here so the rest of the stack
-// reaches it through the one package it already depends on, instead of each layer redeclaring it.
+// Declared in inversion (the container branches on it), re-exported here so the rest of the stack reaches it through the one package it already depends on, instead of each layer redeclaring it.
 export { isClass };
 
 export type TNullable<T> = T | undefined | null;

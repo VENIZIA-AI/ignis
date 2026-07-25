@@ -88,7 +88,7 @@ export class ControllerFactory extends BaseHelper {
           return routes?.[routeKey]?.enabled !== false;
         };
 
-        // Read routes — always registered (unless explicitly disabled)
+        // Read routes - always registered (unless explicitly disabled)
         if (isEnabled('count')) {
           this.defineRoute({
             configs: routeDefinitions.COUNT,
@@ -117,7 +117,7 @@ export class ControllerFactory extends BaseHelper {
           });
         }
 
-        // Write routes — skipped when readonly
+        // Write routes - skipped when readonly
         if (controller.readonly) {
           return;
         }

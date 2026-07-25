@@ -8,15 +8,13 @@ import { MetadataRegistry } from '@/helpers/inversion';
 import { getError, type TClass } from '@venizia/ignis-helpers';
 import { AbstractSearchDataSource } from './abstract';
 
-/** `searchCollection` is the dual-schema escape hatch: a postgres entity with a search index declares
- * it here beside its pgTable `schema`; search-only entities carry the DSL as static `definition`. */
+/** `searchCollection` is the dual-schema escape hatch: a postgres entity with a search index declares it beside its pgTable `schema`; a search-only entity puts the DSL straight in `schema`. */
 type TDiscoverableModelClass = TClass<unknown> & {
   searchCollection?: ISearchCollectionDefinition;
   schema?: unknown;
 };
 
-/** A pg entity's `schema` is a pgTable, not an `ISearchCollectionDefinition` - narrows by shape so
- * a pgTable is never mistaken for (and provisioned as) a search collection. */
+/** A pg entity's `schema` is a pgTable, not an `ISearchCollectionDefinition` - narrows by shape so a pgTable is never mistaken for and provisioned as a search collection. */
 const isSearchCollectionDefinition = (value: unknown): value is ISearchCollectionDefinition => {
   return (
     typeof value === 'object' &&
@@ -26,9 +24,7 @@ const isSearchCollectionDefinition = (value: unknown): value is ISearchCollectio
   );
 };
 
-/** Collection discovery/provisioning + connector lifecycle over AbstractSearchDataSource - mirrors
- * BasePostgresDataSource. Paradigm seam: the connector is held via the `ISearchConnector`-bounded
- * generic, never an engine type - engines supply only `createConnector()`. */
+/** Collection discovery/provisioning + connector lifecycle, mirroring BasePostgresDataSource. Paradigm seam: the connector is held via the `ISearchConnector`-bounded generic, never an engine type - engines supply only `createConnector()`. */
 export abstract class BaseSearchDataSource<
   Settings extends object = {},
   TConnector extends ISearchConnector = ISearchConnector,
@@ -94,8 +90,7 @@ export abstract class BaseSearchDataSource<
     return registry.hasModels({ dataSource: this.constructor as TClass<IDataSource> });
   }
 
-  /** Cross-collection search, so it lives on the datasource, not a repository. Engine-specific
-   * envelope: neutral return is `unknown`; `TypesenseDataSource` narrows it. */
+  /** Cross-collection, so it lives on the datasource, not a repository; the envelope is engine-specific, so the return is `unknown` and `TypesenseDataSource` narrows it. */
   multiSearch(opts: {
     searches: TMultiSearchEntry[];
     union?: boolean;
@@ -106,8 +101,7 @@ export abstract class BaseSearchDataSource<
     const dialect = this.getQueryDialect();
     const hiddenByCollection = this.hiddenFieldsByCollection();
 
-    // Same friendly -> wire mapping search() uses; unions each entry's hidden fields into
-    // excludeFields per collection, exactly as search() does for @model hiddenProperties.
+    // Same friendly -> wire mapping search() uses, unioning each entry's hidden fields into excludeFields per collection.
     const wireSearches = searches.map(entry => ({
       collection: entry.collection,
       ...dialect.toWireParams({
@@ -126,8 +120,7 @@ export abstract class BaseSearchDataSource<
     });
   }
 
-  /** Reads `static searchCollection`, falling back to shape-guarded `static schema`; skips classes
-   * with neither. Honors `@datasource({ autoDiscovery: false })` same as the postgres branch. */
+  /** Reads `static searchCollection`, falling back to shape-guarded `static schema`; honors `@datasource({ autoDiscovery: false })` same as the postgres branch. */
   protected discoverCollections(): TSearchSchema {
     return this.discoverDefinitions<ISearchCollectionDefinition>({
       kind: 'collection',
@@ -135,8 +128,7 @@ export abstract class BaseSearchDataSource<
     });
   }
 
-  /** Reads a bound model class's collection definition (dual-schema `searchCollection` first, then the
-   * shape-guarded `schema`); returns undefined for a class carrying neither. */
+  /** Reads a bound model class's collection definition - dual-schema `searchCollection` first, then shape-guarded `schema`; undefined when it carries neither. */
   private readCollectionDefinition(
     modelClass: TClass<unknown>,
   ): ISearchCollectionDefinition | undefined {
@@ -149,16 +141,13 @@ export abstract class BaseSearchDataSource<
     return isSearchCollectionDefinition(model.schema) ? model.schema : undefined;
   }
 
-  /** Collection name -> `@model` hiddenProperties, for cross-collection operations (multiSearch).
-   * Collections with none are omitted - callers own exclusion for absent entries. Memoized per
-   * instance: `@model`/`@repository` metadata is frozen after boot, so never invalidated. */
+  /** Collection name -> `@model` hiddenProperties for cross-collection operations. Collections with none are omitted, so callers own exclusion for absent entries; memoized per instance and never invalidated because the metadata is frozen after boot. */
   protected hiddenFieldsByCollection(): Record<string, string[]> {
     this.hiddenFieldsByCollectionMap ??= this.discoverHiddenFieldsByCollection();
     return this.hiddenFieldsByCollectionMap;
   }
 
-  /** The registry/model walk behind `hiddenFieldsByCollection` - mirrors the
-   * `getSchema()` / `discoverCollections()` split. */
+  /** The registry/model walk behind `hiddenFieldsByCollection` - mirrors the `getSchema()` / `discoverCollections()` split. */
   protected discoverHiddenFieldsByCollection(): Record<string, string[]> {
     const registry = MetadataRegistry.getInstance();
     const result: Record<string, string[]> = {};
@@ -179,9 +168,7 @@ export abstract class BaseSearchDataSource<
     return result;
   }
 
-  /** Unions a collection's hidden fields into one multiSearch entry's excludeFields. An entry whose
-   * collection is unknown (not a discovered definition) passes through untouched - the caller owns
-   * exclusion there, exactly as the raw connector escape hatch does. */
+  /** Unions a collection's hidden fields into one multiSearch entry's excludeFields; an entry whose collection is not a discovered definition passes through untouched - the caller owns exclusion there. */
   private applyHiddenExclusion(opts: {
     entry: TMultiSearchEntry;
     hiddenByCollection: Record<string, string[]>;
@@ -224,8 +211,7 @@ export abstract class BaseSearchDataSource<
     logger.info('Provisioned collection(s) | Name: %s | Count: %s', this.name, definitions.length);
   }
 
-  /** Engines expose synonyms as either named linkable sets or a flat per-collection dictionary, and
-   * some expose neither - so both groups are optional on `ISearchConnector` and are branched on here. */
+  /** Engines expose synonyms as named linkable sets, a flat per-collection dictionary, or neither - both groups are optional on `ISearchConnector`, hence the branch. */
   protected async provisionSynonyms(opts: {
     definition: ISearchCollectionDefinition;
   }): Promise<void> {
@@ -235,8 +221,7 @@ export abstract class BaseSearchDataSource<
     const items = definition.synonyms ?? [];
 
     if (connector.synonymSet) {
-      // Set name stays distinct from Typesense's own auto-migration name
-      // (`<collection>_synonyms_index`) so the two never clash.
+      // Stays distinct from Typesense's own auto-migration name (`<collection>_synonyms_index`) so the two never clash.
       const synonymSetName = `${definition.name}_synonyms`;
 
       await connector.synonymSet.upsert({ name: synonymSetName, items });

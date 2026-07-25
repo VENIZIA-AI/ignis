@@ -3,8 +3,7 @@ import { buildPostgresJsOptions, PoolerModes } from '@/connectors/postgres/supab
 
 describe('buildPostgresJsOptions', () => {
   test('transaction mode disables prepared statements', () => {
-    // Supavisor rebinds the backend per transaction, so a server-side prepared statement is not
-    // there next time. This is the single most common Supabase + postgres-js failure.
+    // Supavisor rebinds the backend per transaction, so a server-side prepared statement is not there next time - the single most common Supabase + postgres-js failure.
     expect(buildPostgresJsOptions({ mode: PoolerModes.TRANSACTION }).prepare).toBe(false);
   });
 

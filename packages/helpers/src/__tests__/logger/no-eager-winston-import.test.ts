@@ -1,7 +1,6 @@
 import { describe, expect, test } from 'bun:test';
 
-/** Guards against winston loading eagerly via a barrel `export * from './winston'` or a static
- * import in `factory.ts` - it must load lazily, only at the first unregistered log call. */
+/** Guards against winston loading eagerly via a barrel `export * from './winston'` or a static import in `factory.ts` - it must load lazily, only at the first unregistered log call. */
 const winstonState = async (body: string): Promise<string> => {
   const probe = `
     ${body}

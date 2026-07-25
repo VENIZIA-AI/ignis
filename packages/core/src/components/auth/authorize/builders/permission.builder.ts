@@ -3,11 +3,7 @@ import type { TNullable } from '@/helpers';
 import type { TAuthorizationAction } from '../common/constants';
 import { AuthorizationActions } from '../common/constants';
 
-/**
- * Builders for `Permission` catalog rows (the `obj` axis the scoped matcher resolves). Generic over
- * `TName` so i18n and plain-text apps both fit; produces only the framework-owned columns
- * (code/subject/method/action/scope/description/parentId) - app columns are added by the caller.
- */
+/** Builders for `Permission` catalog rows (the `obj` axis the scoped matcher resolves), generic over `TName` so i18n and plain-text apps both fit; only framework-owned columns (code/subject/method/action/scope/description/parentId) are produced - app columns are added by the caller. */
 export class AuthorizationPermissionBuilder {
   /** Sentinel `method` for a coarse resource node (a grant target that is not a route). */
   static readonly RESOURCE_NODE_METHOD = '*';
@@ -65,10 +61,7 @@ export class AuthorizationPermissionBuilder {
     };
   }
 
-  /**
-   * A coarse resource node used as a grant target: `code` is the bare name, `method` the
-   * {@link RESOURCE_NODE_METHOD} sentinel, `action` defaults to `manage` (grants carry their own action).
-   */
+  /** A coarse resource node used as a grant target: `code` is the bare name, `method` the {@link RESOURCE_NODE_METHOD} sentinel, `action` defaults to `manage` (grants carry their own action). */
   static resourceNode<TName>(opts: {
     code: string;
     subject?: string;
@@ -90,10 +83,7 @@ export class AuthorizationPermissionBuilder {
     };
   }
 
-  /**
-   * The CRUD permission set for a subject. `name` (and optional `description`) are per-method formatters,
-   * so the app supplies its own labels/i18n; the framework only owns the method→action map and code shape.
-   */
+  /** The CRUD permission set for a subject. `name` (and optional `description`) are per-method formatters, so the app supplies its own labels/i18n; the framework only owns the method-to-action map and the code shape. */
   static crud<TName>(opts: {
     subject: string;
     scope: string;
@@ -126,11 +116,7 @@ export class AuthorizationPermissionBuilder {
     });
   }
 
-  /**
-   * g4 resource matcher (r.obj vs p.obj): derives standard edges (endpoint ⊂ subject ⊂ `*`) from the
-   * dotted code {@link operation} produces; non-standard nesting stays explicit stored g4 edges served
-   * by `ResourceRoleManager`. Registered directly via `enforcer.addFunction` - must stay static.
-   */
+  /** g4 resource matcher (r.obj vs p.obj): derives standard edges (endpoint ⊂ subject ⊂ `*`) from the dotted code {@link operation} produces, while non-standard nesting stays stored g4 edges served by `ResourceRoleManager`. Registered via `enforcer.addFunction` - must stay static. */
   static objectMatch(requested: string, granted: string): boolean {
     if (granted === '*') {
       return true;

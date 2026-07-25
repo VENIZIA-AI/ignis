@@ -17,8 +17,8 @@ const entities = (): IScopedCasbinEntities => ({
   softDelete: { use: true, columnName: 'deleted_at' },
 });
 
-// Stub connector — branch on PARAMS (Drizzle parameterizes interpolated VALUES; variant lives in params).
-// rowsFor may return a promise so tests can delay resolution to force a query to stay in flight.
+// Stub connector - branches on PARAMS, since Drizzle parameterizes interpolated VALUES and the variant lives in params.
+// rowsFor may return a promise so tests can delay resolution and force a query to stay in flight.
 function makeAdapter(
   rowsFor: (sqlText: string, params: unknown[]) => unknown[] | Promise<unknown[]> = () => [],
 ) {
@@ -33,8 +33,7 @@ function makeAdapter(
       return { rows };
     },
   };
-  // TCasbinPolicyConnector is drizzle's full generated node-postgres database type (select/insert/
-  // update/delete/transaction/...); the adapter only ever calls `.execute`, so the stub only implements that.
+  // The adapter only ever calls `.execute`, so the stub implements only that out of drizzle's full generated node-postgres type.
   const dataSource = { connector } as ICasbinPolicySource;
   const adapter = new ScopedCasbinAdapter({ dataSource, entities: entities() });
   return { adapter, captured, getExecuteCalls: () => executeCalls };
@@ -139,10 +138,8 @@ describe('scoped-adapter-edges — buildGrantLines', () => {
   });
 });
 
-// The two code-fixed structural trees (g4 resource, g5 action) are one merged statement; each row
-// already carries the assembled rel/child/parent shape the merged query's SELECT produces, so a
-// single-row stub isolates one branch. g3 domain edges moved to queryPrincipalPolicies - see
-// scoped-adapter-single-wave.test.ts for the domain_closure coverage.
+// g4 resource and g5 action are one merged statement and each row already carries the rel/child/parent shape its SELECT produces, so a single-row stub isolates one branch.
+// g3 domain edges moved to queryPrincipalPolicies - domain_closure coverage lives in scoped-adapter-single-wave.test.ts.
 describe('scoped-adapter-edges — line emission shapes', () => {
   test('resource_inherits → g4 line (child, parent codes)', async () => {
     const { adapter } = makeAdapter(() => [{ rel: 'g4', child: 'OrderItem', parent: 'Order' }]);

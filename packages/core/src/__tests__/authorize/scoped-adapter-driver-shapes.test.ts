@@ -35,10 +35,7 @@ const STRUCTURAL_EDGE_ROWS = [
   { rel: 'g5', child: 'write', parent: 'manage' },
 ];
 
-/** Exercises the postgres-js result shape THROUGH the adapter (every other fixture is pg `{ rows }`):
- * a reintroduced `result.rows` read would stay green elsewhere while silently loading zero policy
- * lines on postgres-js, denying every authorization decision. Uses queryEdgePolicies as the
- * probe - any single-table, no-join query method exercises the same shared readResultRows() path. */
+/** Exercises the postgres-js result shape THROUGH the adapter (every other fixture is pg `{ rows }`): a reintroduced `result.rows` read would stay green elsewhere while silently loading zero policy lines and denying every decision. Probes queryEdgePolicies - any single-table, no-join query hits the same shared readResultRows() path. */
 describe('ScopedCasbinAdapter - driver result shapes are equivalent', () => {
   test('node-postgres { rows } and postgres-js RowList produce identical policy lines', async () => {
     const fromNodePostgres = await buildAdapter({

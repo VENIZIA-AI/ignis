@@ -1,10 +1,7 @@
 import type { TFilter, TWhere } from '@/base/repositories/common';
 import type { SearchModes, TSearchInput } from './constants';
 
-/** Search-engine query parameters produced by translating a repository-level TFilter. Only the
- * cross-engine intersection lives here; an engine's own tuning knobs belong on its own extension of
- * this interface. Field names are camelCase; the engine's wire format is produced only at the
- * dialect's `toWireParams` boundary. */
+/** Search-engine query parameters translated from a repository-level TFilter. Only the cross-engine intersection lives here - an engine's own tuning knobs go on its own extension. Field names stay camelCase; wire format is produced only at the dialect's `toWireParams` boundary. */
 export interface ISearchQuery {
   /** Full-text search term. Use '*' for pure filter listings. */
   query: string;
@@ -41,8 +38,7 @@ export interface ISearchQuery {
   groupLimit?: number;
   groupMissingValues?: boolean;
 
-  /** Engine-native wire parameters, merged last into `toWireParams` output verbatim and unvalidated.
-   * Keys use the engine's own vocabulary (`num_typos`, not `numTypos`). */
+  /** Engine-native wire parameters, merged last into `toWireParams` output verbatim and unvalidated; keys use the engine's own vocabulary (`num_typos`, not `numTypos`). */
   engineParams?: Record<string, unknown>;
 }
 
@@ -51,14 +47,12 @@ export interface ISearchQueryDialect {
   build(opts: { filter?: TFilter; hiddenFields?: string[] }): ISearchQuery;
   toWhere(opts: { where: TWhere }): string;
 
-  /** Writes every engine-specific consequence of a non-raw search input onto `query` (mode
-   * dispatch, vector clause, tuning knobs) - keeping `ReadableSearchRepository` engine-free. */
+  /** Writes every engine-specific consequence of a non-raw search input onto `query` (mode dispatch, vector clause, tuning knobs) - keeping `ReadableSearchRepository` engine-free. */
   applySearchInput(opts: {
     query: ISearchQuery;
     input: Exclude<TSearchInput, { mode: typeof SearchModes.RAW }>;
   }): void;
 
-  /** Maps a camelCase `ISearchQuery` (or any camelCase query record) onto the engine's wire-format
-   * field names via a key lookup, never via a wire-cased identifier. `engineParams` merges last. */
+  /** Maps a camelCase query record onto the engine's wire-format field names via a key lookup, never a wire-cased identifier; `engineParams` merges last. */
   toWireParams(opts: { query: Partial<ISearchQuery> }): Record<string, unknown>;
 }

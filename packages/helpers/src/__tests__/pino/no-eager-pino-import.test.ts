@@ -1,8 +1,6 @@
 import { describe, expect, test } from 'bun:test';
 
-/** `pino` is an optional peer - nothing reachable from the root or logger barrel may value-import
- * it (behind the `/pino` sub-path instead). Guards against a barrel re-export reintroducing that
- * eager import silently - it would still compile here but break consumers without pino installed. */
+/** `pino` is an optional peer behind the `/pino` sub-path - nothing reachable from the root or logger barrel may value-import it; a barrel re-export would still compile here but break consumers without pino installed. */
 const loadsPino = async (specifier: string): Promise<boolean> => {
   const probe = `
     const before = new Set(Object.keys(require.cache ?? {}));

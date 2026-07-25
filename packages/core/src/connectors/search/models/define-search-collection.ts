@@ -4,16 +4,14 @@ import type {
   ISearchCollectionDefinition,
   ISearchEmbedConfig,
   ISearchFieldDefinition,
+  ISynonym,
   TFieldFlags,
   TSearchFieldType,
   TVectorDistance,
 } from './types';
 import { SearchFieldTypes } from './types';
 
-/**
- * `<const N, const O>` preserve the field's name/flag literals in the return type - a widened
- * `ISearchFieldDefinition` return would break `TSearchDocument`, which needs literal types.
- */
+/** `<const N, const O>` preserve the field's name/flag literals - a widened `ISearchFieldDefinition` return would break `TSearchDocument`, which needs literal types. */
 const buildField = <
   const N extends string,
   Ty extends TSearchFieldType,
@@ -49,9 +47,7 @@ export const field = {
   boolean: makeFieldBuilder(SearchFieldTypes.BOOLEAN),
   booleans: makeFieldBuilder(SearchFieldTypes.BOOLEAN_ARRAY),
   geopoint: makeFieldBuilder(SearchFieldTypes.GEOPOINT),
-  /** `vector` carries its own `O` shape (dimensions/distance/embed) instead of routing through
-   * `buildField`. The `O extends { optional: true } ? ... : {}` conditional makes `optional` appear
-   * (in type and at runtime) only when set - keeping `TSearchDocument`'s optional split working. */
+  /** `vector` carries its own `O` shape (dimensions/distance/embed) instead of routing through `buildField`; the `O extends { optional: true }` conditional makes `optional` appear, in type and at runtime, only when set - keeping `TSearchDocument`'s optional split working. */
   vector: <
     const N extends string,
     const O extends {
@@ -71,8 +67,7 @@ export const field = {
     const { optional: isOptional, ...vector } = opts;
     const base = { name, type: SearchFieldTypes.VECTOR, vector };
 
-    // A single cast is unavoidable here: the conditional-optional branch can't be proven from the
-    // runtime `isOptional ? { ...base, optional: isOptional } : base` shape without widening `O`.
+    // The cast is unavoidable: the conditional-optional branch can't be proven from the runtime shape without widening `O`.
     return (isOptional ? { ...base, optional: isOptional } : base) as {
       name: N;
       type: typeof SearchFieldTypes.VECTOR;
@@ -81,10 +76,23 @@ export const field = {
   },
 };
 
-/**
- * `<const T>` preserves field literals so `TSearchDocument<typeof X>` can map over them - a
- * plain `T extends ISearchCollectionDefinition` would widen `fields` and lose every literal.
- */
+/** @throws when two synonym sets in the same collection share an id. */
+const assertUniqueSynonymIds = (opts: { name: string; synonyms: readonly ISynonym[] }): void => {
+  const { name, synonyms } = opts;
+  const seenSynonymIds = new Set<string>();
+
+  for (const synonym of synonyms) {
+    if (seenSynonymIds.has(synonym.id)) {
+      throw getError({
+        message: `[defineSearchCollection] Duplicate synonym id | name: ${name} | id: ${synonym.id}`,
+      });
+    }
+
+    seenSynonymIds.add(synonym.id);
+  }
+};
+
+/** `<const T>` preserves field literals so `TSearchDocument<typeof X>` can map over them - a plain `T extends ISearchCollectionDefinition` would widen `fields` and lose every literal. */
 export const defineSearchCollection = <const T extends ISearchCollectionDefinition>(opts: T): T => {
   const { name, fields, defaultSort, synonyms, engineOverrides } = opts;
 
@@ -122,8 +130,7 @@ export const defineSearchCollection = <const T extends ISearchCollectionDefiniti
     });
   }
 
-  // Engine-neutral rule only: defaultSort must reference a field that exists. Per-engine
-  // constraints (e.g. Typesense's numeric-scalar requirement) are enforced by that engine's compiler.
+  // Engine-neutral rule only: defaultSort must reference an existing field; per-engine constraints (Typesense's numeric-scalar requirement) belong to that engine's compiler.
   if (defaultSort) {
     const sortField = resolvedFields.find(item => item.name === defaultSort);
 
@@ -135,19 +142,9 @@ export const defineSearchCollection = <const T extends ISearchCollectionDefiniti
   }
 
   if (synonyms) {
-    const seenSynonymIds = new Set<string>();
-    for (const synonym of synonyms) {
-      if (seenSynonymIds.has(synonym.id)) {
-        throw getError({
-          message: `[defineSearchCollection] Duplicate synonym id | name: ${name} | id: ${synonym.id}`,
-        });
-      }
-
-      seenSynonymIds.add(synonym.id);
-    }
+    assertUniqueSynonymIds({ name, synonyms });
   }
 
-  // The runtime result is only structurally an ISearchCollectionDefinition; the cast back to the
-  // caller's literal T is deliberate - `id` is guaranteed at the type level via TSearchDocument.
+  // The runtime result is only structurally an ISearchCollectionDefinition; the cast back to the caller's literal T is deliberate - `id` is guaranteed at the type level via TSearchDocument.
   return { name, fields: resolvedFields, defaultSort, synonyms, engineOverrides } as T;
 };

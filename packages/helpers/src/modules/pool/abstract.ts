@@ -4,11 +4,7 @@ import { getError } from '@/modules/error';
 import { HfQueueHelper } from '@/modules/queue/internal/hf';
 import { IPool, IPoolControlOptions, IPoolStats, IPoolWaiter } from './types';
 
-/**
- * Single-borrower pool skeleton: subclasses override {@link create} (required) and optionally
- * validateResource/resetResource/onDestroyResource. All resource-waiter pairing flows through ONE
- * re-entrancy-guarded `dispatch()` loop; waiter queue is {@link HfQueueHelper} - O(1), no shift/splice.
- */
+/** Single-borrower pool skeleton: subclasses override {@link create} (required) and optionally validateResource/resetResource/onDestroyResource. All resource-waiter pairing flows through ONE re-entrancy-guarded `dispatch()` loop; the waiter queue is {@link HfQueueHelper} - O(1), no shift/splice. */
 export abstract class AbstractPoolHelper<T> extends BaseHelper implements IPool<T> {
   protected readonly size: number;
   protected readonly acquireTimeoutMs?: number;
@@ -66,9 +62,7 @@ export abstract class AbstractPoolHelper<T> extends BaseHelper implements IPool<
     }
 
     if (this.maxWaitingClients !== undefined && this.maxWaitingClients >= 0) {
-      // Only reject when this acquire would actually have to WAIT: no idle resource and the pool is at
-      // capacity. With a free/creatable resource the caller is served, so maxWaitingClients:0 means
-      // "serve if available, never queue" rather than "reject everything".
+      // Only reject when this acquire would actually have to WAIT: no idle resource and the pool at capacity. With a free/creatable resource the caller is served, so maxWaitingClients:0 means "serve if available, never queue" rather than "reject everything".
       const isWaitRequired = !this.idle.length && this.total >= this.size;
 
       if (isWaitRequired && this.waiterQueue.size >= this.maxWaitingClients) {
@@ -125,9 +119,7 @@ export abstract class AbstractPoolHelper<T> extends BaseHelper implements IPool<
       throw getError({ message: '[warmup] Pool has been destroyed.' });
     }
 
-    // Create sequentially, re-checking the live `total` before each create so the `size` cap holds
-    // under concurrent warmup()/acquire(). createResource() bumps `total` synchronously (before its
-    // await), so a re-check here observes in-flight creations from other callers → no overshoot.
+    // Create sequentially, re-checking the live `total` before each create so the `size` cap holds under concurrent warmup()/acquire(); createResource() bumps `total` synchronously, before its await, so a re-check observes in-flight creations from other callers - no overshoot.
     while (this.total < this.size) {
       const resource = await this.createResource();
       this.idle.push(resource);
@@ -264,8 +256,7 @@ export abstract class AbstractPoolHelper<T> extends BaseHelper implements IPool<
     try {
       isValid = await this.validateResource({ resource });
     } catch (error) {
-      // A throwing validate must NOT leak the popped candidate (would corrupt `total` and can
-      // permanently starve the pool); treat it like an invalid resource: discard + retry.
+      // A throwing validate must NOT leak the popped candidate (it would corrupt `total` and can permanently starve the pool); treat it like an invalid resource - discard and retry.
       logger.warn('validate hook threw; discarding resource: %s', error);
       await this.destroyResource({ resource });
       return null;
@@ -304,9 +295,7 @@ export abstract class AbstractPoolHelper<T> extends BaseHelper implements IPool<
   private handToWaiter(opts: { resource: T }): boolean {
     const { resource } = opts;
 
-    // `destroy()` tears down what it can SEE - the waiter queue and the idle list. A resource whose
-    // create() was still in flight is in neither, so parking it in idle now would leave it alive
-    // with nothing left to reclaim it.
+    // `destroy()` tears down what it can SEE - the waiter queue and the idle list. A resource whose create() was still in flight is in neither, so parking it in idle now would leave it alive with nothing left to reclaim it.
     if (this.isDestroyed) {
       this.destroyResource({ resource }).catch(error => {
         this.logger

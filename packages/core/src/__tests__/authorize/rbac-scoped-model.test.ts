@@ -73,17 +73,14 @@ describe('CASBIN_RBAC_DOMAIN_SCOPED_MODEL', () => {
 import { Helper, newEnforcer, Util } from 'casbin';
 import { ResourceRoleManager } from '@/components/auth/authorize/enforcers/resource-role-manager';
 
-// Build a casbin enforcer on the v2 model, register the matching funcs exactly as the
-// framework will, then hand-feed policy lines. Mirrors how CasbinAuthorizationEnforcer wires it.
+// Builds a v2-model enforcer, registers the matching funcs exactly as CasbinAuthorizationEnforcer does, then hand-feeds policy lines.
 async function buildScopedEnforcer(lines: string[]) {
   const model = newModelFromString(CASBIN_RBAC_DOMAIN_SCOPED_MODEL);
   const enforcer = await newEnforcer(model);
 
   // g: domain matching so a `*` domain on an assign_role/role_inherits link matches any request domain.
   await enforcer.addNamedDomainMatchingFunc('g', Util.keyMatchFunc);
-  // objectMatch: registered as a direct matcher expression function for "graph-free" prefix/wildcard matching.
-  // casbin's role-manager hasLink only traverses stored nodes, so objectMatch must be callable directly in
-  // the matcher expression (AuthorizationPermissionBuilder.objectMatch(r.obj, p.obj)) as well as via g4's ResourceRoleManager.
+  // casbin's role-manager hasLink only traverses stored nodes, so objectMatch must be callable directly in the matcher expression as well as via g4's ResourceRoleManager.
   await enforcer.addFunction('objectMatch', AuthorizationPermissionBuilder.objectMatch);
   // g4: dedicated role manager for stored edge traversal (explicit resource_inherits edges).
   enforcer.setNamedRoleManager('g4', new ResourceRoleManager());

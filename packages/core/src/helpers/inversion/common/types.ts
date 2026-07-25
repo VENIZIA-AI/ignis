@@ -1,6 +1,4 @@
-// All type-only (this file only declares metadata interfaces). Kept as `import type` so the DI
-// Container's module graph (registry -> this file) never pulls the @/base/* value barrels at load,
-// which would cycle back through AbstractApplication `extends Container` into a TDZ.
+// All type-only, kept as `import type` so the DI Container's module graph never pulls the @/base/* value barrels at load - that would cycle back through AbstractApplication `extends Container` into a TDZ.
 import type { ControllerTransports } from '@/base/controllers/common/constants';
 import type { IDataSource, TDataSourceDriverClass } from '@/base/datasources';
 import type { AbstractEntity } from '@/base/models';
@@ -54,7 +52,7 @@ export type TDecoratorTarget<T = unknown> = TClass<T> | Function;
 export interface IModelAuthorizeSettings {
   /** The authorization principal name (resource/subject) for this model. */
   principal: string;
-  /** Extensible — consumers can add any extra authorization metadata. */
+  /** Extensible - consumers can add any extra authorization metadata. */
   [extra: string | symbol]: any;
 }
 

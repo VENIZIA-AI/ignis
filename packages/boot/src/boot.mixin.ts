@@ -1,6 +1,4 @@
-// Never '@venizia/ignis-boot' here: importing the package from inside itself resolves through its
-// own dist, so the source depends on a build of itself - a stale or half-written dist then breaks
-// the very code that produces it.
+// Never '@venizia/ignis-boot' here: importing the package from inside itself resolves through its own dist, so the source would depend on a build of itself.
 import { ControllerBooter, DatasourceBooter, RepositoryBooter, ServiceBooter } from '@/booters';
 import { Bootstrapper } from '@/bootstrapper';
 import { IBootableApplication, IBootOptions, IBootReport } from '@/common/types';

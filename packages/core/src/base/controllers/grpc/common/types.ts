@@ -33,7 +33,7 @@ export interface IRpcRegistration<RouteEnv extends Env = Env> {
   middlewares: TRpcMiddleware<RouteEnv>[];
 }
 
-/** Return type from defineRoute — contains processed configs. */
+/** Return type from defineRoute - contains processed configs. */
 export interface IGrpcDefineRouteOptions {
   configs: IRpcMetadata;
 }

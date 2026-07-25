@@ -4,11 +4,7 @@ import { NodeFetcher } from '@/modules/network';
 // Module path, never the barrel: axios is an optional peer.
 import { AxiosFetcher } from '@/modules/network/http-request/fetcher/axios-fetcher';
 
-/**
- * Pinned at the transport boundary, not via an end-to-end wire check: Bun's fetch and axios both
- * uppercase every method themselves, so a fetcher that forgot to would still pass e2e - the bug only
- * surfaces on Node's undici, which normalizes just DELETE/GET/HEAD/OPTIONS/POST/PUT and sends PATCH/QUERY verbatim.
- */
+/** Pinned at the transport boundary, not via an end-to-end wire check: Bun's fetch and axios both uppercase every method themselves, so a fetcher that forgot would still pass e2e - the bug only surfaces on Node's undici, which normalizes just DELETE/GET/HEAD/OPTIONS/POST/PUT and sends PATCH/QUERY verbatim. */
 const METHODS = Object.values(HTTP.Methods);
 
 const originalFetch = globalThis.fetch;

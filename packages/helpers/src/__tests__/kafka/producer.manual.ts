@@ -3,9 +3,7 @@
 import { jsonSerializer, serializersFrom, stringSerializer } from '@platformatic/kafka';
 import { KafkaProducerHelper } from '../../modules/queue/kafka';
 
-// -------------------------------------------------------------------------
-// Configuration — fill in your broker addresses and credentials
-// -------------------------------------------------------------------------
+// --- Configuration - fill in your broker addresses and credentials ---
 
 const BROKERS = ['host1:19092', 'host2:19093', 'host3:19094'];
 
@@ -19,9 +17,7 @@ const TOPIC = 'kaf-t1';
 const CLIENT_ID = process.argv[2] ?? 'ignis-test-producer';
 const INTERVAL_MS = Number(process.argv[3]) || 5000;
 
-// -------------------------------------------------------------------------
-// Producer
-// -------------------------------------------------------------------------
+// --- Producer ---
 
 async function main() {
   const producer = KafkaProducerHelper.newInstance({

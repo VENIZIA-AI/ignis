@@ -24,9 +24,7 @@ describe('Base Artifact Booter Tests', () => {
 
   describe('configure', () => {
     test('an EXPLICITLY undefined option still falls back to the default', async () => {
-      // The realistic shape: `dirs: process.env.APP_DIRS?.split(',')`. The key exists and holds
-      // undefined, so a trailing `...artifactOptions` spread would overwrite the computed default
-      // back to undefined - and getPattern() would then throw "No directories specified".
+      // The realistic shape `dirs: process.env.APP_DIRS?.split(',')`: the key exists holding undefined, so a trailing spread would reset the computed default and getPattern() would throw.
       const undefinedBooter = new TestBooter({
         scope: TestBooter.name,
         root,

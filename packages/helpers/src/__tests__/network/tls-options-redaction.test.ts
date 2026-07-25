@@ -49,9 +49,7 @@ describe('NetworkTlsTcpClient - the TLS material never reaches a log line', () =
       options: TLS_OPTIONS as AnyType,
     } as AnyType);
 
-    // Exactly what the connect/close log lines render - NOT re-redacted here, or the assertion
-    // would pass even against a client that logs its options verbatim. A TLS client's options ARE
-    // its private key: logging them writes the key into every log file and aggregator downstream.
+    // Exactly what the connect/close log lines render, NOT re-redacted here - otherwise the assertion would pass even against a client that logs its options verbatim; a TLS client's options ARE its private key.
     const logged = JSON.stringify(client['getLoggableOptions']());
 
     expect(logged).not.toContain('REALLY-SECRET');

@@ -10,9 +10,7 @@ import {
 import { Logger } from '@venizia/ignis-helpers/winston';
 import { afterEach, describe, expect, spyOn, test } from 'bun:test';
 
-// Mirrors the leaky shape of real Vault transport errors (token/secret_id in enumerable props the
-// logger deep-inspects at depth 5) without any optional peer - proving the logger's formatter
-// redacts the secret VALUES from raw error args while keeping the error message.
+// Mirrors the leaky shape of real Vault transport errors (token/secret_id in enumerable props the logger deep-inspects at depth 5) without any optional peer.
 class FakeSensitiveTransportError extends Error {
   config = { headers: { 'X-Vault-Token': 'super-secret-vault-token-must-never-be-logged' } };
   response = { data: { ['secret_id']: 'super-secret-approle-secret-must-never-be-logged' } };
@@ -42,8 +40,7 @@ afterEach(() => {
   process.env.NODE_ENV = originalNodeEnv;
 });
 
-/** Formats each captured log call the way the framework logger would and asserts the secret VALUES
- * never survive the deep-inspect path, while the diagnostic message still does. */
+/** Formats each captured log call the way the framework logger would and asserts the secret VALUES never survive the deep-inspect path, while the diagnostic message still does. */
 const assertRedactedThroughLogger = (calls: unknown[][]) => {
   expect(calls.length).toBeGreaterThan(0);
   for (const [message, ...args] of calls) {

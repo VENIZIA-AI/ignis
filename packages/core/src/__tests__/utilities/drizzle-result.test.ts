@@ -1,9 +1,7 @@
 import { describe, expect, test } from 'bun:test';
 import { readAffectedRowCount, readResultRows } from '@/utilities';
 
-/** Drizzle's raw result shape differs per driver (pg `{ rows, rowCount }` vs postgres-js array with
- * `count`) and the shared `PgDatabase` type cannot tell them apart - these two readers are the only
- * place that knows. An unrecognized shape THROWS: returning `0`/`[]` would be silently wrong. */
+/** Drizzle's raw result shape differs per driver (pg `{ rows, rowCount }` vs postgres-js array with `count`) and the shared `PgDatabase` type cannot tell them apart - these two readers are the only place that knows. An unrecognized shape THROWS: returning `0`/`[]` would be silently wrong. */
 describe('readAffectedRowCount', () => {
   test('reads pg.QueryResult.rowCount (node-postgres)', () => {
     expect(readAffectedRowCount({ result: { rowCount: 3, rows: [] } })).toBe(3);

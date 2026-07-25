@@ -11,6 +11,46 @@ import type {
   TModelClass,
 } from '../common/types';
 
+/** Registered models that declare an authorize setting, in registry order. */
+const collectAuthorizeEntries = (opts: {
+  modelRegistry: Map<string, IModelRegistryEntry>;
+}): Array<{ name: string; authorize: IModelAuthorizeSettings; entry: IModelRegistryEntry }> => {
+  const result: Array<{
+    name: string;
+    authorize: IModelAuthorizeSettings;
+    entry: IModelRegistryEntry;
+  }> = [];
+
+  for (const [name, entry] of opts.modelRegistry) {
+    const authorize = entry.metadata.settings?.authorize;
+    if (!authorize) {
+      continue;
+    }
+
+    result.push({ name, authorize, entry });
+  }
+
+  return result;
+};
+
+/** Registered models that declare an authorize principal, in registry order. */
+const collectAuthorizePrincipals = (opts: {
+  modelRegistry: Map<string, IModelRegistryEntry>;
+}): Array<{ name: string; principal: string }> => {
+  const result: Array<{ name: string; principal: string }> = [];
+
+  for (const [name, entry] of opts.modelRegistry) {
+    const principal = entry.metadata.settings?.authorize?.principal;
+    if (!principal) {
+      continue;
+    }
+
+    result.push({ name, principal });
+  }
+
+  return result;
+};
+
 export const ModelMetadataMixin = <BaseClass extends TMixinTarget<_MetadataRegistry>>(
   baseClass: BaseClass,
 ) => {
@@ -32,10 +72,7 @@ export const ModelMetadataMixin = <BaseClass extends TMixinTarget<_MetadataRegis
       return Reflect.getMetadata(MetadataKeys.MODEL, target);
     }
 
-    /**
-     * Registers a model (called by @model). Relations are stored as a resolver, not resolved
-     * immediately, so circular references between models are resolved lazily in buildSchema().
-     */
+    /** Registers a model (called by @model) - relations are stored as a resolver, not resolved immediately, so circular references between models resolve lazily in buildSchema(). */
     registerModel<Model extends AbstractEntity = AbstractEntity>(opts: {
       target: TDecoratorModelTarget<Model>;
       metadata: IModelMetadata;
@@ -45,14 +82,12 @@ export const ModelMetadataMixin = <BaseClass extends TMixinTarget<_MetadataRegis
       // Decorator target is always a class constructor at runtime
       const modelClass = target as TModelClass<Model>;
 
-      // Table name precedence: explicit metadata > static TABLE_NAME > class name. TABLE_NAME is
-      // kept out of IEntityStatics deliberately (not part of the neutral contract) but still
-      // honored here via a local cast - real consumers set it in hundreds of places.
+      // Table name precedence: explicit metadata > static TABLE_NAME > class name. TABLE_NAME is deliberately outside IEntityStatics (not part of the neutral contract) but still honored here via a local cast.
       const tableName =
         [metadata.tableName, (modelClass as { TABLE_NAME?: string }).TABLE_NAME].find(Boolean) ??
         modelClass.name;
 
-      // Resolver, not resolved value — executed lazily in buildSchema() once all models are loaded
+      // Resolver, not resolved value - executed lazily in buildSchema() once all models are loaded
       const relationsResolver = modelClass.relations;
 
       this.modelRegistry.set(tableName, {
@@ -85,25 +120,15 @@ export const ModelMetadataMixin = <BaseClass extends TMixinTarget<_MetadataRegis
     getAuthorizeModelPrincipals(opts: { format: 'array' | 'record' }) {
       switch (opts.format) {
         case 'array': {
-          const principals: string[] = [];
-
-          for (const [, entry] of this.modelRegistry) {
-            const principal = entry.metadata.settings?.authorize?.principal;
-            if (principal) {
-              principals.push(principal);
-            }
-          }
-
-          return principals;
+          return collectAuthorizePrincipals({ modelRegistry: this.modelRegistry }).map(
+            item => item.principal,
+          );
         }
         case 'record': {
           const record: Record<string, string> = {};
 
-          for (const [name, entry] of this.modelRegistry) {
-            const principal = entry.metadata.settings?.authorize?.principal;
-            if (principal) {
-              record[name] = principal;
-            }
+          for (const item of collectAuthorizePrincipals({ modelRegistry: this.modelRegistry })) {
+            record[item.name] = item.principal;
           }
 
           return record;
@@ -127,20 +152,7 @@ export const ModelMetadataMixin = <BaseClass extends TMixinTarget<_MetadataRegis
     getAuthorizeModelSettings(opts: { format: 'array' | 'record' }) {
       switch (opts.format) {
         case 'array': {
-          const result: Array<{
-            name: string;
-            authorize: IModelAuthorizeSettings;
-            entry: IModelRegistryEntry;
-          }> = [];
-
-          for (const [name, entry] of this.modelRegistry) {
-            const authorize = entry.metadata.settings?.authorize;
-            if (authorize) {
-              result.push({ name, authorize, entry });
-            }
-          }
-
-          return result;
+          return collectAuthorizeEntries({ modelRegistry: this.modelRegistry });
         }
         case 'record': {
           const record: Record<
@@ -148,11 +160,8 @@ export const ModelMetadataMixin = <BaseClass extends TMixinTarget<_MetadataRegis
             { authorize: IModelAuthorizeSettings; entry: IModelRegistryEntry }
           > = {};
 
-          for (const [name, entry] of this.modelRegistry) {
-            const authorize = entry.metadata.settings?.authorize;
-            if (authorize) {
-              record[name] = { authorize, entry };
-            }
+          for (const item of collectAuthorizeEntries({ modelRegistry: this.modelRegistry })) {
+            record[item.name] = { authorize: item.authorize, entry: item.entry };
           }
 
           return record;

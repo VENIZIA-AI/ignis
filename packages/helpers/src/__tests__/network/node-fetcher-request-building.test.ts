@@ -96,8 +96,7 @@ describe('NodeFetcher - abort signal', () => {
   });
 
   test('a timeout aborts an IN-FLIGHT request when the caller passes no signal', async () => {
-    // The timer is cleared as soon as a response lands (no leaked timers), so the abort has to be
-    // observed while the request is still open - a fake transport that only settles on abort.
+    // The timer is cleared as soon as a response lands (no leaked timers), so the abort has to be observed while the request is still open - a fake transport that only settles on abort.
     let capturedSignal: AbortSignal | undefined;
     globalThis.fetch = ((_input: AnyType, init?: RequestInit) => {
       capturedSignal = init?.signal ?? undefined;

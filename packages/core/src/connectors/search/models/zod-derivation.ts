@@ -41,8 +41,7 @@ const buildBaseFieldSchema = (field: ISearchFieldDefinition): z.ZodTypeAny => {
   }
 };
 
-// A vector field carrying `vector.embed` is server auto-embedded (mirrors TSearchDocument's
-// embed exclusion) - it is never part of client-supplied input/output, so it is dropped from the shape entirely.
+// A vector field carrying `vector.embed` is server auto-embedded, never client-supplied input/output, so it is dropped from the shape entirely (mirrors TSearchDocument's embed exclusion).
 const buildFieldSchema = (field: ISearchFieldDefinition): z.ZodTypeAny | undefined => {
   if (field.type === SearchFieldTypes.VECTOR && field.vector?.embed) {
     return undefined;

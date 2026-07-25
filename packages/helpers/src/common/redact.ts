@@ -1,8 +1,6 @@
 import { AnyObject } from './types';
 
-/**
- * Keys whose VALUES must never reach a log line - matched case-insensitively on the key name, at any depth.
- */
+/** Keys whose VALUES must never reach a log line - matched case-insensitively on the key name, at any depth. */
 const SECRET_KEY_PATTERN = new RegExp(
   [
     // Options-object spellings (camelCase / snake_case).
@@ -10,19 +8,13 @@ const SECRET_KEY_PATTERN = new RegExp(
     '|secretKey|secret_key|privateKey|private_key|key|cert|ca|pfx|credentials',
     '|authorization|auth|jwtSecret|applicationSecret|connectionString)$',
 
-    // Vault wire spellings (snake_case). node-vault's AppRole login/response bodies carry these
-    // exact keys; `secret_id`/`role_id` are the AppRole credential pair and `client_token` is the
-    // minted session token. None are matched by the anchored options list above.
+    // Vault wire spellings (snake_case): node-vault's AppRole login/response bodies carry these exact keys, and none are matched by the anchored options list above.
     '|^(client_token|secret_id|role_id)$',
 
-    // Any `*_token` (snake_case) or `*Token` (camelCase) key - access_token, refresh_token,
-    // vaultToken, ... A preceding character is required so the bare word `token` (already covered
-    // above) is not the whole match, and so ordinary words are not swallowed.
+    // Any `*_token` (snake_case) or `*Token` (camelCase) key; a preceding character is required so the bare word `token` (already covered above) is not the whole match, and so ordinary words are not swallowed.
     '|_token$|[a-z0-9]token$',
 
-    // HTTP HEADER spellings. A header set is logged on every outbound request, and its names are
-    // kebab-case and often `x-`-prefixed - none of which the camelCase list above matches. `vault`
-    // is included so `X-Vault-Token` (node-vault's auth header) is caught.
+    // HTTP HEADER spellings: header names are kebab-case and often `x-`-prefixed, none of which the camelCase list above matches; `vault` is included so `X-Vault-Token` (node-vault's auth header) is caught.
     '|^(x-)?(api|auth|access|secret|session|csrf|xsrf|vault)-(key|token|secret|id)$',
     '|^(cookie|set-cookie|proxy-authorization|www-authenticate)$',
   ].join(''),
@@ -45,9 +37,7 @@ const deepRedactSecrets = (value: unknown, seen: WeakSet<object>): unknown => {
 
   seen.add(value);
 
-  // Error keeps name/message/stack NON-enumerable, so Object.keys() skips them and naive redaction
-  // would drop the message. Reproject into a plain object carrying those fields plus its redacted
-  // enumerable own-props (nested X-Vault-Token/secret_id become [REDACTED]).
+  // Error keeps name/message/stack NON-enumerable, so Object.keys() skips them and naive redaction would drop the message - reproject into a plain object carrying those fields plus its redacted enumerable own-props.
   if (value instanceof Error) {
     const source = value;
     const result: AnyObject = {

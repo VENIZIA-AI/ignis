@@ -21,9 +21,7 @@ export interface IPostgresJsOptions {
   max?: number;
 }
 
-/** Supavisor's TRANSACTION mode rebinds the backend connection per transaction, so server-side
- * prepared statements do not survive - `prepare: false` is required there, not a tuning knob.
- * `max` is forwarded only when supplied; postgres-js has its own default. */
+/** Supavisor's TRANSACTION mode rebinds the backend connection per transaction, so server-side prepared statements do not survive - `prepare: false` is required there, not a tuning knob. `max` is forwarded only when supplied; postgres-js has its own default. */
 export const buildPostgresJsOptions = (opts: {
   mode: TPoolerMode;
   max?: number;

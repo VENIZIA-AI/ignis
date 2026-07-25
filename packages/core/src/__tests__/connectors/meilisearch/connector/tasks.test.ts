@@ -270,8 +270,7 @@ describe('MeilisearchConnector - search mapping', () => {
       params: { q: '*', hitsPerPage: 10 },
     });
 
-    // `_geo` is the ONLY name Meilisearch accepts for a geo field, and the compiler enforces it.
-    // Stripping by `_` prefix would delete it from every hit.
+    // `_geo` is the ONLY name Meilisearch accepts for a geo field, so stripping by `_` prefix would delete it from every hit.
     expect(result.hits?.[0]?.document).toEqual({
       id: '1',
       title: 'a',
@@ -295,9 +294,7 @@ describe('MeilisearchConnector - search mapping', () => {
 
 describe('MeilisearchConnector - importDocuments keeps framework-shaped errors intact', () => {
   test('a batch whose task times out surfaces the 504 task_timeout, not a generic 503', async () => {
-    // The index is seeded directly on the fake (statuses are per-task, so an ensure() call would
-    // consume the hang too). The import's task then stays enqueued past the deadline - the failure
-    // reaching the batch catch is waitForTask's shaped 504.
+    // The index is seeded directly on the fake because statuses are per-task and an ensure() call would consume the hang too, leaving the import's task enqueued past the deadline so waitForTask's shaped 504 reaches the batch catch.
     const { client, connector } = await buildConnector({
       taskStatuses: [MeilisearchTaskStatuses.ENQUEUED],
       repeatLast: true,
@@ -313,15 +310,13 @@ describe('MeilisearchConnector - importDocuments keeps framework-shaped errors i
       }),
     );
 
-    // waitForTask already shaped this failure (504 + task_timeout). Re-wrapping it as a 503
-    // dependency_unavailable would erase the timeout semantics the caller needs.
+    // waitForTask already shaped this failure as 504 + task_timeout; re-wrapping it as a 503 dependency_unavailable would erase the timeout semantics the caller needs.
     expect((error as { statusCode?: number }).statusCode).toBe(504);
     expect((error as { normalized?: { code?: string } }).normalized?.code).toBe(
       'core.search_engine.task_timeout',
     );
 
-    // Partial progress rides along on the shaped error too - the batches before the timeout are
-    // already persisted server-side.
+    // Partial progress rides along on the shaped error too - the batches before the timeout are already persisted server-side.
     const details = (error as { extra?: { details?: Record<string, unknown> } }).extra?.details;
     expect(details?.['totalCount']).toBe(1);
     expect(details?.['processedCount']).toBe(0);

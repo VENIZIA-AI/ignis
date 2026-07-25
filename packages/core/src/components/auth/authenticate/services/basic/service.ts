@@ -58,8 +58,7 @@ export class BasicTokenService<E extends Env = Env> extends BaseService {
 
     const [, base64Credentials] = parts;
 
-    // The rejection reason stays in the LOG, never in the response: telling a caller which half of
-    // its credential was malformed is a probing oracle.
+    // The rejection reason stays in the LOG, never in the response: telling a caller which half of its credential was malformed is a probing oracle.
     const reject = (reason: string): never => {
       this.logger
         .for(this.extractCredentials.name)

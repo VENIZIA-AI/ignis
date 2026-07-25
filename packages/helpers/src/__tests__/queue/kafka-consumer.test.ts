@@ -108,8 +108,7 @@ const buildHelper = (opts: {
     ...(opts.hooks ?? {}),
   });
 
-  // The Consumer is built inside the constructor; swapClient is the supported seam for replacing it
-  // (it is what the reconnect path itself uses), so the fake gets the exact production wiring.
+  // The Consumer is built inside the constructor; swapClient is the supported seam for replacing it (it is what the reconnect path itself uses), so the fake gets the exact production wiring.
   helper['swapClient'](opts.client as AnyType);
   return helper;
 };

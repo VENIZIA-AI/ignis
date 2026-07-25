@@ -46,10 +46,7 @@ export type TPrincipalPolicyRow = TGrantRow & {
 
 const DEFAULT_SCHEMA = 'public';
 
-/**
- * Filtered casbin adapter for the scoped RBAC model: loads ONE principal's edges (role assignments,
- * memberships, grants) plus the shared structural hierarchy trees as casbin lines. Read-only.
- */
+/** Filtered casbin adapter for the scoped RBAC model: loads ONE principal's edges (role assignments, memberships, grants) plus the shared structural hierarchy trees as casbin lines. Read-only. */
 export class ScopedCasbinAdapter extends BaseFilteredAdapter<IScopedCasbinPolicyFilter> {
   protected readonly entities: IScopedCasbinEntities;
 
@@ -58,10 +55,7 @@ export class ScopedCasbinAdapter extends BaseFilteredAdapter<IScopedCasbinPolicy
     this.entities = opts.entities;
   }
 
-  /**
-   * One wave: the principal-scoped CTE and the merged structural-edges query are issued together.
-   * The role closure is resolved in SQL, so nothing here waits on a previous query's result.
-   */
+  /** One wave: the principal-scoped CTE and the merged structural-edges query are issued together - the role closure resolves in SQL, so neither waits on the other. */
   async loadFilteredPolicy(model: Model, filter: IScopedCasbinPolicyFilter): Promise<void> {
     const { principal } = filter;
     const { principals } = this.entities;
@@ -162,10 +156,7 @@ export class ScopedCasbinAdapter extends BaseFilteredAdapter<IScopedCasbinPolicy
     return sql`${sql.identifier(this.schemaOf(table))}.${sql.identifier(table.tableName)}`;
   }
 
-  /**
-   * `AND <alias>.<col> IS NULL` when soft-delete is on, else empty. Alias is emitted raw (unquoted) to
-   * match the unquoted FROM alias - quoting it would fold to a different case and break the join.
-   */
+  /** `AND <alias>.<col> IS NULL` when soft-delete is on, else empty. The alias is emitted raw to match the unquoted FROM alias - quoting folds it to a different case and breaks the join. */
   protected softDeleteClause(opts: { alias: string }): SQL {
     const sd = this.entities.softDelete;
     if (!sd?.use) {
@@ -175,11 +166,7 @@ export class ScopedCasbinAdapter extends BaseFilteredAdapter<IScopedCasbinPolicy
     return sql` AND ${sql.raw(opts.alias)}.${sql.identifier(sd.columnName)} IS NULL`;
   }
 
-  /**
-   * One statement for everything scoped to a principal: its own edges, the role_inherits edges
-   * reachable from its roles, and the grants of that role closure. `UNION` in the recursive term
-   * is what terminates a cyclic role graph.
-   */
+  /** One statement for everything scoped to a principal: its own edges, the role_inherits edges reachable from its roles, and the grants of that closure. `UNION` in the recursive term is what terminates a cyclic role graph. */
   protected async queryPrincipalPolicies(opts: {
     principal: { type: string; id: IdType };
   }): Promise<TPrincipalPolicyRow[]> {
@@ -359,47 +346,9 @@ export class ScopedCasbinAdapter extends BaseFilteredAdapter<IScopedCasbinPolicy
         ? GrantBuilder.getInstance().parseCustomGrantMetadata({ metadata: row.metadata })
         : null;
       const isCustomAction = row.action === AuthorizationActions.CUSTOM;
+      const isCustomRow = isCustomAction || Boolean(parsed);
 
-      if (isCustomAction || parsed) {
-        if (!row.objectSubject || !row.objectMethod) {
-          this.logger
-            .for(this.buildGrantLines.name)
-            .error(
-              'Skipping custom grant row whose subject or method did not resolve - the target is missing or soft-deleted | subject: %s_%s | object: %s',
-              subjectType,
-              row.subjectId,
-              row.objectCode,
-            );
-          continue;
-        }
-
-        const rejection = this.rejectCustomRow({
-          row: {
-            subjectId: row.subjectId,
-            objectCode: row.objectCode,
-            objectMethod: row.objectMethod,
-          },
-          parsed,
-          isCustomAction,
-          metadataColumnName,
-        });
-
-        if (rejection) {
-          this.logger.for(this.buildGrantLines.name).error(rejection);
-          continue;
-        }
-
-        customRows.push({
-          subjectId: row.subjectId,
-          objectSubject: row.objectSubject,
-          ops: parsed!.ops,
-          domain,
-          effect,
-        });
-        continue;
-      }
-
-      if (!row.action) {
+      if (!isCustomRow && !row.action) {
         this.logger
           .for(this.buildGrantLines.name)
           .error(
@@ -411,9 +360,48 @@ export class ScopedCasbinAdapter extends BaseFilteredAdapter<IScopedCasbinPolicy
         continue;
       }
 
-      lines.push(
-        `${AuthorizationPolicyVariants.GRANT.rule}, ${subjectType}_${row.subjectId}, ${domain}, ${row.objectCode}, ${row.action}, ${effect}`,
-      );
+      if (!isCustomRow) {
+        lines.push(
+          `${AuthorizationPolicyVariants.GRANT.rule}, ${subjectType}_${row.subjectId}, ${domain}, ${row.objectCode}, ${row.action}, ${effect}`,
+        );
+        continue;
+      }
+
+      if (!row.objectSubject || !row.objectMethod) {
+        this.logger
+          .for(this.buildGrantLines.name)
+          .error(
+            'Skipping custom grant row whose subject or method did not resolve - the target is missing or soft-deleted | subject: %s_%s | object: %s',
+            subjectType,
+            row.subjectId,
+            row.objectCode,
+          );
+        continue;
+      }
+
+      const rejection = this.rejectCustomRow({
+        row: {
+          subjectId: row.subjectId,
+          objectCode: row.objectCode,
+          objectMethod: row.objectMethod,
+        },
+        parsed,
+        isCustomAction,
+        metadataColumnName,
+      });
+
+      if (rejection) {
+        this.logger.for(this.buildGrantLines.name).error(rejection);
+        continue;
+      }
+
+      customRows.push({
+        subjectId: row.subjectId,
+        objectSubject: row.objectSubject,
+        ops: parsed!.ops,
+        domain,
+        effect,
+      });
     }
 
     lines.push(...(await this.expandCustomGrants({ subjectType, customRows })));
@@ -467,16 +455,18 @@ export class ScopedCasbinAdapter extends BaseFilteredAdapter<IScopedCasbinPolicy
     const seen = new Set<string>();
     const pairs: Array<{ subject: string; method: string }> = [];
 
-    for (const row of opts.customRows) {
-      for (const op of row.ops) {
-        const key = `${row.objectSubject}.${op}`;
-        if (seen.has(key)) {
-          continue;
-        }
+    const candidates = opts.customRows.flatMap(row =>
+      row.ops.map(op => ({ subject: row.objectSubject, method: op })),
+    );
 
-        seen.add(key);
-        pairs.push({ subject: row.objectSubject, method: op });
+    for (const candidate of candidates) {
+      const key = `${candidate.subject}.${candidate.method}`;
+      if (seen.has(key)) {
+        continue;
       }
+
+      seen.add(key);
+      pairs.push(candidate);
     }
 
     const catalog = await this.queryOperationCatalog({ pairs });
@@ -538,11 +528,7 @@ export class ScopedCasbinAdapter extends BaseFilteredAdapter<IScopedCasbinPolicy
     });
   }
 
-  /**
-   * The two code-fixed structural trees only (`g4` resource, `g5` action) - a few hundred rows,
-   * constant regardless of tenant count. Domain edges (`g3`) are principal-scoped in
-   * {@link queryPrincipalPolicies} instead, since that tree grows with the domain count.
-   */
+  /** The two code-fixed structural trees only (`g4` resource, `g5` action) - constant regardless of tenant count. Domain edges (`g3`) grow with the domain count, so they are principal-scoped in {@link queryPrincipalPolicies} instead. */
   protected async queryEdgePolicies(): Promise<string[]> {
     const { policyDefinition, permission } = this.entities;
     const policyDefinitionTable = this.qualifiedTable({ table: policyDefinition });

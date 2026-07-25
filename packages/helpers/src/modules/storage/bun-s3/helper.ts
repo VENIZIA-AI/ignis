@@ -1,4 +1,5 @@
 import { getError } from '@/modules/error';
+import { ErrorPrettier } from '@/modules/logger';
 import { S3Client } from 'bun';
 import { Readable } from 'node:stream';
 import { BaseStorageHelper } from '../base';
@@ -18,6 +19,20 @@ export interface IBunS3HelperOptions extends IStorageHelperOptions {
   region?: string;
   sessionToken?: string;
 }
+
+/** S3 reports a missing bucket as 404 or a NoSuchBucket/NotFound code; the shape varies by provider, so both are checked. */
+const isBucketMissingError = (opts: { error: unknown }): boolean => {
+  const { error } = opts;
+  const source = error as { statusCode?: number; status?: number; code?: string; name?: string };
+
+  if (source?.statusCode === 404 || source?.status === 404) {
+    return true;
+  }
+
+  const marker = `${source?.code ?? ''} ${source?.name ?? ''}`.toLowerCase();
+
+  return marker.includes('nosuchbucket') || marker.includes('notfound');
+};
 
 export class BunS3Helper extends BaseStorageHelper {
   private client: S3Client;
@@ -61,7 +76,16 @@ export class BunS3Helper extends BaseStorageHelper {
     try {
       await this.client.list({ maxKeys: 1 }, { bucket: name });
       return true;
-    } catch {
+    } catch (error) {
+      // A missing bucket is the answer; credentials, region or network failures are not and must not vanish.
+      if (!isBucketMissingError({ error })) {
+        this.logger.warn(
+          '[isBucketExists] Cannot determine bucket existence - reporting false | bucket: %s | %s',
+          name,
+          ErrorPrettier.format({ error }),
+        );
+      }
+
       return false;
     }
   }

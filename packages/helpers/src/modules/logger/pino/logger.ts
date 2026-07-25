@@ -4,11 +4,7 @@ import { ILogger, TLogLevel } from '../common';
 import { formatLogMessage } from '../formatting';
 import { getPinoBackingLogger } from './define';
 
-/**
- * pino provider satisfying `ILoggerProvider`. Stays pino-native: numeric levels, `msg`, epoch
- * `time`, pid/hostname pass through unchanged. No custom-instance param on `get()` (unlike
- * `WinstonLogger.get`) - advanced/test injection goes through `setPinoBackingLogger()` instead.
- */
+/** pino provider satisfying `ILoggerProvider`, staying pino-native: numeric levels, `msg`, epoch `time`, pid/hostname pass through unchanged. No custom-instance param on `get()` unlike `WinstonLogger.get` - advanced/test injection goes through `setPinoBackingLogger()`. */
 export class PinoLogger extends BaseLogger {
   private static cache = new Map<string, PinoLogger>();
 
@@ -26,10 +22,7 @@ export class PinoLogger extends BaseLogger {
     return cached;
   }
 
-  /**
-   * Resolves the backing instance at WRITE time, never caches it - so `setPinoBackingLogger()`
-   * takes effect for every already-issued scope immediately.
-   */
+  /** Resolves the backing instance at WRITE time and never caches it, so `setPinoBackingLogger()` takes effect for every already-issued scope immediately. */
   protected write(opts: { level: TLogLevel; message: string; args: Array<AnyType> }) {
     const line =
       opts.args.length > 0

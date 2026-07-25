@@ -8,10 +8,7 @@ import type { Env, Schema } from 'hono';
 import type { TMultiSearchInput, TSearchInput } from '@/connectors/search/repositories/common';
 import type { ReadableSearchRepository } from '../repositories/core/readable';
 
-/**
- * Base tier of a generated search controller: the repository handle plus the search / multi-search verbs.
- * SearchControllerFactory returns a thin subclass that only builds route configs and wires them.
- */
+/** Base tier of a generated search controller: the repository handle plus the search / multi-search verbs; SearchControllerFactory returns a thin subclass that only builds route configs and wires them. */
 export abstract class AbstractSearchController<
   TEntity extends AbstractEntity<TAnyObjectSchema> = AbstractEntity<TAnyObjectSchema>,
   RouteEnv extends Env = Env,
@@ -43,8 +40,7 @@ export abstract class AbstractSearchController<
       scope: 'search',
       args: input,
       task: async () => {
-        // `isFoundExact` travels to the caller: an engine whose `found` is an estimate must not
-        // look exhaustive once it crosses the HTTP boundary.
+        // `isFoundExact` travels to the caller so an engine whose `found` is an estimate never looks exhaustive across the HTTP boundary.
         const { found, isFoundExact, hits } = await this.repository.search(input);
         return { found, isFoundExact, hits: hits ?? [] };
       },

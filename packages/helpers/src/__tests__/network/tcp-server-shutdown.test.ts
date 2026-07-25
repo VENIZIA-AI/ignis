@@ -2,10 +2,7 @@ import { afterEach, describe, expect, test } from 'bun:test';
 import { connect, createServer, Socket } from 'node:net';
 import { NetworkTcpServer } from '@/modules/network';
 
-/**
- * server.close() never resolves while a client is attached (node holds the handle until every
- * socket is destroyed), so shutdown() must tear clients down itself - getServer().close() alone hangs.
- */
+/** server.close() never resolves while a client is attached (node holds the handle until every socket is destroyed), so shutdown() must tear clients down itself - getServer().close() alone hangs. */
 const openServers: NetworkTcpServer[] = [];
 const openSockets: Socket[] = [];
 
@@ -158,9 +155,7 @@ describe('NetworkTcpServer.shutdown', () => {
     await connectClient(port);
     await waitFor(() => Object.keys(server.getClients()).length === 1);
 
-    // Captured BEFORE shutdown: the registry empties first, so the socket's own 'close' handler
-    // can no longer find the client to clear its kick timer - only shutdown() can; an armed timer
-    // keeps the event loop alive.
+    // Captured BEFORE shutdown: the registry empties first, so the socket's own 'close' handler can no longer find the client to clear its kick timer - only shutdown() can, and an armed timer keeps the event loop alive.
     const [client] = Object.values(server.getClients());
     expect(client.storage.authenticateTimeout).toBeDefined();
     expect(client.storage.authenticateTimeout).not.toBeNull();
@@ -204,8 +199,7 @@ describe('NetworkTcpServer - a failed listen must not crash the process', () => 
     process.off('uncaughtException', onUncaught);
     blocker.close();
 
-    // Without the server-level 'error' listener this is an unhandled event: the process dies at
-    // boot with a cryptic message instead of surfacing a clean, catchable failure.
+    // Without the server-level 'error' listener this is an unhandled event: the process dies at boot with a cryptic message instead of surfacing a clean, catchable failure.
     expect(uncaught).toBeUndefined();
     expect((reported as NodeJS.ErrnoException).code).toBe('EADDRINUSE');
   });

@@ -6,8 +6,7 @@ import type { DefaultCRUDRepository } from '@/connectors/postgres';
 declare const searchRepository: DefaultSearchRepository<AnyType>;
 declare const postgresRepository: DefaultCRUDRepository<AnyType>;
 
-/** Compile-time contract: bulk writes on search engines are count-only - `shouldReturn` is rejected
- * at the TYPE level for search updateAll/deleteAll, while postgres keeps its full overloads. */
+/** Compile-time contract: bulk writes on search engines are count-only - `shouldReturn` is rejected at the TYPE level for search updateAll/deleteAll, while postgres keeps its full overloads. */
 async function probeCompileOnly() {
   const updated = await searchRepository.updateAll({ data: { title: 'x' }, where: { id: '1' } });
   const updatedData: null = updated.data;

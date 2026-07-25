@@ -16,9 +16,7 @@ interface IFakeIndex {
   settings: Record<string, unknown>;
 }
 
-/** The REAL `MeilisearchApiError`, not a hand-rolled lookalike: a fake inventing a flat
- * `{ code, httpStatus }` shape (which the SDK never produces) keeps the suite green while the
- * classifier fails against a live engine. The SDK's own class cannot lie about the contract. */
+/** The REAL `MeilisearchApiError`, not a hand-rolled lookalike: a fake inventing a flat `{ code, httpStatus }` shape the SDK never produces keeps the suite green while the classifier fails against a live engine. */
 const engineError = (opts: { code: string; message: string; httpStatus?: number }): Error => {
   const { code, message, httpStatus = HTTP.ResultCodes.RS_4.BadRequest } = opts;
 
@@ -30,10 +28,7 @@ const engineError = (opts: { code: string; message: string; httpStatus?: number 
   });
 };
 
-/**
- * Minimal filter evaluator: enough for `score > N`, `score >= N`, `title = 'x'`. The connector never
- * parses filters - it only forwards them - so the parsing lives here, in the fake, on purpose.
- */
+/** Minimal filter evaluator (`score > N`, `score >= N`, `title = 'x'`): the connector only forwards filters, never parses them, so the parsing lives here on purpose. */
 const matchesFilter = (opts: { document: Record<string, unknown>; filter: string }): boolean => {
   const match = /^(\w+)\s*(>=|<=|!=|>|<|=)\s*(.+)$/.exec(opts.filter.trim());
 

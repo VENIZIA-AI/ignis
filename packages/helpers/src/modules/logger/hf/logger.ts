@@ -29,10 +29,7 @@ const encodeScope = (scope: string): Uint8Array => {
   return bytes;
 };
 
-/**
- * Ring-buffer logger for hot paths. Extends AbstractLogger (NOT BaseLogger) - BaseLogger's
- * string-sink plumbing is exactly the cost this implementation exists to avoid.
- */
+/** Ring-buffer logger for hot paths; extends AbstractLogger, NOT BaseLogger - BaseLogger's string-sink plumbing is exactly the cost this implementation exists to avoid. */
 export class HfLogger extends AbstractLogger {
   private static cache = new Map<string, HfLogger>();
   private static messageCache = new Map<string, Uint8Array>();
@@ -40,8 +37,7 @@ export class HfLogger extends AbstractLogger {
   private readonly scope: string;
   private readonly scopeBytes: Uint8Array;
   private readonly scopeLength: number;
-  // Resolved once at construction (get() has already allocated the ring): saves a call and a
-  // null-check per log on a path budgeted in nanoseconds.
+  // Resolved once at construction (get() has already allocated the ring): saves a call and a null-check per log on a path budgeted in nanoseconds.
   private readonly ring: ReturnType<typeof getRing>;
 
   private constructor(scope: string) {
@@ -63,18 +59,25 @@ export class HfLogger extends AbstractLogger {
 
   /** Pre-encode a message at initialization time; the cache is FIFO-bounded so dynamic strings can't grow it without limit. */
   static encodeMessage(message: string): Uint8Array {
-    let bytes = this.messageCache.get(message);
-    if (!bytes) {
-      bytes = textEncoder.encode(message);
-      if (this.messageCache.size >= MESSAGE_CACHE_CAP) {
-        const oldest = this.messageCache.keys().next().value;
-        if (oldest !== undefined) {
-          this.messageCache.delete(oldest);
-        }
-      }
-      this.messageCache.set(message, bytes);
+    const cached = this.messageCache.get(message);
+    if (cached) {
+      return cached;
     }
+
+    const bytes = textEncoder.encode(message);
+    if (this.messageCache.size >= MESSAGE_CACHE_CAP) {
+      this.evictOldestMessage();
+    }
+    this.messageCache.set(message, bytes);
     return bytes;
+  }
+
+  private static evictOldestMessage(): void {
+    const oldest = this.messageCache.keys().next().value;
+    if (oldest === undefined) {
+      return;
+    }
+    this.messageCache.delete(oldest);
   }
 
   private writeEntry(levelCode: number, messageBytes: Uint8Array): void {

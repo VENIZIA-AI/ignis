@@ -22,6 +22,7 @@ import {
 import type {
   AnyObject,
   IConfigurable,
+  ILogger,
   ISecretHydrateEntry,
   ISecretRotatable,
   ISecretsHelper,
@@ -68,6 +69,34 @@ interface IRegisterDynamicBindingsOptions<T extends IConfigurable = IConfigurabl
   onBeforeConfigure?: (opts: { binding: Binding<T> }) => Promise<void>;
   onAfterConfigure?: (opts: { binding: Binding<T>; instance: T }) => Promise<void>;
 }
+
+/** Maps a secret bundle to env names: the explicit `keys` mapping when present, otherwise every bundle key under `prefix`. */
+const selectSecretEnvKeys = (opts: {
+  bundle: Record<string, string>;
+  entry: ISecretHydrateEntry;
+}): Record<string, string> => {
+  const { bundle, entry } = opts;
+  const merged: Record<string, string> = {};
+
+  if (!entry.keys) {
+    for (const [rawKey, value] of Object.entries(bundle)) {
+      merged[`${entry.prefix ?? ''}${rawKey}`] = value;
+    }
+
+    return merged;
+  }
+
+  for (const [rawKey, envKey] of Object.entries(entry.keys)) {
+    const value = bundle[rawKey];
+    if (value === undefined) {
+      continue;
+    }
+
+    merged[envKey] = value;
+  }
+
+  return merged;
+};
 
 export abstract class BaseApplication
   extends AbstractApplication
@@ -296,23 +325,7 @@ export abstract class BaseApplication
       provider = await createSecretsHelper({ ...registration, identifier: 'app' });
       await provider.configure();
 
-      for (const entry of registration.hydrate ?? []) {
-        const bundle = await provider.getBundle({ path: entry.path });
-        const merged = this.mergeSecretsIntoEnv({ bundle, entry });
-        if (Object.keys(merged).length > 0) {
-          continue;
-        }
-
-        if (this.hydrateEntryDeclaresExpectation({ entry })) {
-          emptyHydrations.push(entry.path);
-          continue;
-        }
-
-        logger.warn(
-          'Hydrate entry resolved to an empty bundle and declares no expected keys | path: %s',
-          entry.path,
-        );
-      }
+      await this.hydrateSecretEntries({ provider, registration, emptyHydrations, logger });
 
       for (const entry of registration.lease ?? []) {
         await provider.lease({ path: entry.path, key: entry.key });
@@ -373,25 +386,40 @@ export abstract class BaseApplication
     this.secretsRegistration = registration;
   }
 
+  /** Applies each hydrate entry in declaration order; paths that resolve empty while declaring an expectation are collected in `emptyHydrations` rather than failing here. */
+  protected async hydrateSecretEntries(opts: {
+    provider: ISecretsHelper;
+    registration: ISecretsRegistration;
+    emptyHydrations: string[];
+    logger: ILogger;
+  }): Promise<void> {
+    const { provider, registration, emptyHydrations, logger } = opts;
+
+    for (const entry of registration.hydrate ?? []) {
+      const bundle = await provider.getBundle({ path: entry.path });
+      const merged = this.mergeSecretsIntoEnv({ bundle, entry });
+      if (Object.keys(merged).length > 0) {
+        continue;
+      }
+
+      if (this.hydrateEntryDeclaresExpectation({ entry })) {
+        emptyHydrations.push(entry.path);
+        continue;
+      }
+
+      logger.warn(
+        'Hydrate entry resolved to an empty bundle and declares no expected keys | path: %s',
+        entry.path,
+      );
+    }
+  }
+
   protected mergeSecretsIntoEnv(opts: {
     bundle: Record<string, string>;
     entry: ISecretHydrateEntry;
   }): Record<string, string> {
     const { bundle, entry } = opts;
-    const merged: Record<string, string> = {};
-
-    if (entry.keys) {
-      for (const [rawKey, envKey] of Object.entries(entry.keys)) {
-        const value = bundle[rawKey];
-        if (value !== undefined) {
-          merged[envKey] = value;
-        }
-      }
-    } else {
-      for (const [rawKey, value] of Object.entries(bundle)) {
-        merged[`${entry.prefix ?? ''}${rawKey}`] = value;
-      }
-    }
+    const merged = selectSecretEnvKeys({ bundle, entry });
 
     for (const [key, value] of Object.entries(merged)) {
       process.env[key] = value;
@@ -400,8 +428,7 @@ export abstract class BaseApplication
     return merged;
   }
 
-  /** A hydrate entry declares an expectation only via explicit `keys` or a non-empty `prefix`; such
-   * an entry resolving to zero env values is a misconfiguration boot must not silently absorb. */
+  /** A hydrate entry declares an expectation only via explicit `keys` or a non-empty `prefix`; such an entry resolving to zero env values is a misconfiguration boot must not silently absorb. */
   protected hydrateEntryDeclaresExpectation(opts: { entry: ISecretHydrateEntry }): boolean {
     const { entry } = opts;
     if (entry.keys && Object.keys(entry.keys).length > 0) {
@@ -550,8 +577,7 @@ export abstract class BaseApplication
 
         server.notFound(notFoundHandler({ logger: this.logger }));
 
-        // RequestTrackerComponent assigns request IDs and parses the request body (also works
-        // around the Bun + Hono body-parsing bug: https://github.com/honojs/middleware/issues/81).
+        // RequestTrackerComponent assigns request IDs and parses the body (also works around the Bun + Hono body-parsing bug: https://github.com/honojs/middleware/issues/81).
         this.component(RequestTrackerComponent);
 
         server.use(emojiFavicon({ icon: this.configs.favicon ?? '🔥' }));
@@ -580,14 +606,12 @@ export abstract class BaseApplication
     await this.registerDataSources();
     await this.registerComponents();
 
-    // Components can contribute datasources, so wire rotatables only after both registration phases;
-    // a lease key pointing at a component-contributed datasource would otherwise resolve to nothing.
+    // Components can contribute datasources, so wire rotatables only after both registration phases - a lease key pointing at a component-contributed datasource would otherwise resolve to nothing.
     await this.wireSecretRotatables();
 
     await this.registerControllers();
 
-    // Do not register new datasources/components/controllers in postConfigure - they won't be
-    // auto-registered; call configure() manually if needed (see registerDataSources/Components/Controllers).
+    // Do not register new datasources/components/controllers in postConfigure - they are not auto-registered; call configure() manually if needed.
     await this.postConfigure();
   }
 }

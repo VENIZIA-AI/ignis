@@ -17,9 +17,7 @@ export abstract class AbstractSearchDataSource<
   abstract compileCollection(opts: { definition: ISearchCollectionDefinition }): unknown;
   abstract ensureCollection(opts: { definition: ISearchCollectionDefinition }): Promise<void>;
 
-  /** Cross-collection search. The neutral return is `unknown` because each engine's multi-search
-   * envelope differs (Typesense `results[]`/union, Meilisearch `results[]`/federation); a concrete
-   * datasource narrows it. Declared here so a repository generic over its datasource can read it. */
+  /** Cross-collection search. Return is `unknown` because each engine's envelope differs (Typesense union, Meilisearch federation) and a concrete datasource narrows it; declared here so a datasource-generic repository can read it. */
   abstract multiSearch(opts: {
     searches: TMultiSearchEntry[];
     union?: boolean;

@@ -37,8 +37,7 @@ export type TJsonResponse<
   ResponseStatusCode extends StatusCode = StatusCode,
 > = Response & TypedResponse<ResponseBody, ResponseStatusCode, 'json'>;
 
-/** Polymorphic response body for endpoints honoring the `x-request-count-data` header: either the
- * count-wrapped `{ count, data }` or the raw payload. Pass the unwrapped payload type as `T`. */
+/** Polymorphic response body for endpoints honoring the `x-request-count-data` header - the count-wrapped `{ count, data }` or the raw payload; pass the unwrapped payload type as `T`. */
 export type TCountResponse<TData = unknown> = TData | { count: number; data: TData };
 
 /** Lightweight typed context that bypasses RouteHandler inference. */
@@ -152,8 +151,7 @@ export type TResponseHeaderObject = {
 /** OpenAPI response headers format */
 export type TResponseHeaders = Record<string, TResponseHeaderObject>;
 
-// Response body types — derived from route definitions (union of success + error schemas).
-// Uses a distributive conditional so z.infer is applied to each schema in the union separately.
+// Response body types derived from route definitions; a distributive conditional applies z.infer to each schema of the union separately.
 type TInferDistributive<S> = S extends z.ZodType ? z.infer<S> : never;
 export type TResponseBodyOf<R extends { responses: AnyType }> = TInferDistributive<
   R['responses'][keyof R['responses']]['content']['application/json']['schema']
@@ -189,18 +187,14 @@ export interface ICustomizableRoutes<
   deleteBy?: RouteConfig;
 }
 
-/** Read object inferred from an entity's engine-neutral `$inferData` phantom marker - each family
- * fills it with its own type, so the base layer needs no connector import. Falls back to `object`. */
+/** Read object inferred from an entity's engine-neutral `$inferData` phantom marker - each family fills it with its own type, so the base layer needs no connector import; falls back to `object`. */
 export type TEntityDataObject<TEntity> = TEntity extends { $inferData?: infer TData }
   ? TData extends object
     ? TData
     : object
   : object;
 
-/**
- * Persist object inferred from an entity's engine-neutral `$inferPersist` phantom marker.
- * Same contract + `object` fallback as {@link TEntityDataObject}.
- */
+/** Persist object inferred from an entity's engine-neutral `$inferPersist` phantom marker - same contract and `object` fallback as {@link TEntityDataObject}. */
 export type TEntityPersistObject<TEntity> = TEntity extends { $inferPersist?: infer TPersist }
   ? TPersist extends object
     ? TPersist
@@ -212,8 +206,7 @@ export interface ICrudControllerOptions<
   TEntity extends AbstractEntity = AbstractEntity,
   Routes extends ICustomizableRoutes = ICustomizableRoutes,
 > {
-  /** Entity class or resolver function returning the entity class. Its schema drives the
-   * inferred DataObject/PersistObject types for the generated controller's `repository`. */
+  /** Entity class or resolver returning it - its schema drives the inferred DataObject/PersistObject types of the generated controller's `repository`. */
   entity: TClass<TEntity> | TResolver<TClass<TEntity>>;
 
   /** Repository binding configuration */

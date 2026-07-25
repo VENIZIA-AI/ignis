@@ -3,10 +3,7 @@ import type { ICrudRepository } from '@/base/repositories';
 import { DefaultSearchRepository } from '@/connectors/typesense/repositories';
 import { FakeSearchDataSource, ProductDocument } from './fake-search-connector';
 
-/**
- * `DefaultSearchRepository` must satisfy the neutral `ICrudRepository` contract - fails to
- * compile, not at runtime, if verb parity with the base `AbstractRepository` breaks.
- */
+/** `DefaultSearchRepository` must satisfy the neutral `ICrudRepository` contract - a verb-parity break with the base `AbstractRepository` fails to compile, not at runtime. */
 interface IProductDocument {
   id: string;
   title: string;

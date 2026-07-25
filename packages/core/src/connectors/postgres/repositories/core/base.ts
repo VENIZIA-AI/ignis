@@ -30,8 +30,7 @@ import { getError } from '@venizia/ignis-helpers';
 import { getTableColumns } from 'drizzle-orm';
 import type { IDatabaseExtraOptions, IRelationalQueryDialect } from '../common';
 
-/** Postgres implementation of `AbstractRepository`: adds FilterBuilder + hidden-column exclusion
- * and defaults `ExtraOptions` to `IDatabaseExtraOptions` so `options.transaction.connector` needs no cast. */
+/** Postgres implementation of `AbstractRepository`: adds FilterBuilder + hidden-column exclusion and defaults `ExtraOptions` to `IDatabaseExtraOptions` so `options.transaction.connector` needs no cast. */
 export abstract class RelationalBaseRepository<
   EntitySchema extends TTableSchemaWithId = TTableSchemaWithId,
   DataObject extends TTableObject<EntitySchema> = TTableObject<EntitySchema>,
@@ -176,13 +175,7 @@ export abstract class RelationalBaseRepository<
     const hiddenProps = this.getHiddenProperties();
 
     if (result.columns) {
-      const filteredColumns: Record<string, boolean> = {};
-      for (const key in result.columns) {
-        if (!hiddenProps.has(key)) {
-          filteredColumns[key] = result.columns[key];
-        }
-      }
-      result.columns = filteredColumns;
+      result.columns = this.omitHiddenColumns({ columns: result.columns, hiddenProps });
       return result;
     }
 
@@ -196,6 +189,25 @@ export abstract class RelationalBaseRepository<
     }
 
     return result;
+  }
+
+  /** Copy of a Drizzle column selection with hidden properties dropped. */
+  private omitHiddenColumns(opts: {
+    columns: Record<string, boolean>;
+    hiddenProps: Set<string>;
+  }): Record<string, boolean> {
+    const { columns, hiddenProps } = opts;
+    const filteredColumns: Record<string, boolean> = {};
+
+    for (const key in columns) {
+      if (hiddenProps.has(key)) {
+        continue;
+      }
+
+      filteredColumns[key] = columns[key];
+    }
+
+    return filteredColumns;
   }
 
   /** Resolves the database connector, using the transaction's connector if provided. */
@@ -340,8 +352,7 @@ export abstract class RelationalBaseRepository<
     options?: ExtraOptions & { shouldReturn?: true; force?: boolean };
   }): Promise<TCount & { data: Array<R> }>;
 
-  // Re-declared (not just inherited): the base alias was widened to `Array<R> | null` for the
-  // search family; postgres HAS RETURNING, so its alias surface must stay exactly `Array<R>`.
+  // Re-declared, not inherited: the base alias was widened to `Array<R> | null` for the search family, but postgres HAS RETURNING so its alias surface must stay exactly `Array<R>`.
   override updateBy(opts: {
     data: Partial<PersistObject>;
     where: TWhere<DataObject>;

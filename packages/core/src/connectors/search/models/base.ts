@@ -6,9 +6,7 @@ import { AbstractEntity } from '@/base/models';
 import type { ISearchCollectionDefinition, TSearchDocument } from './types';
 import { deriveSearchDocumentSchema } from './zod-derivation';
 
-/** Engine-neutral search-document entity: derives zod schemas from an `ISearchCollectionDefinition`.
- * `Schema` is instance-side only so `schema` carries the caller's literal collection type - mirrors
- * `BasePostgresEntity`'s static-wide / instance-narrow duality. */
+/** Engine-neutral search-document entity deriving zod schemas from an `ISearchCollectionDefinition`. `Schema` is instance-side only so `schema` carries the caller's literal collection type - mirrors `BasePostgresEntity`'s static-wide / instance-narrow duality. */
 export class BaseSearchEntity<
   Schema extends ISearchCollectionDefinition = ISearchCollectionDefinition,
 > extends AbstractEntity {

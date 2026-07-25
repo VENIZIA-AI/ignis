@@ -3,8 +3,7 @@ import { pgTable, serial, text } from 'drizzle-orm/pg-core';
 import type { AnyType } from '@venizia/ignis-helpers';
 import { PostgresQueryOperators } from '@/connectors/postgres/repositories/dialect/query';
 
-/** `contains`/`containedBy`/`overlaps` are wire-reachable with a `z.any()` operand, so these
- * handlers must build PARAMETERIZED SQL - a concatenated value lets the caller write SQL. */
+/** `contains`/`containedBy`/`overlaps` are wire-reachable with a `z.any()` operand, so these handlers must build PARAMETERIZED SQL - a concatenated value lets the caller write SQL. */
 const table = pgTable('articles', {
   id: serial('id').primaryKey(),
   tags: text('tags').array(),
@@ -55,8 +54,7 @@ describe('array operators - the operand must never reach the statement text', ()
 
   for (const operator of ['contains', 'containedBy', 'overlaps']) {
     test(`${operator}: a NUMERIC-looking array carrying a SQL payload is parameterized, not concatenated`, () => {
-      // The type of the array is sniffed from element[0]. A leading number used to select the
-      // "safe to interpolate" branch, and every later element was join()-ed in raw.
+      // The array type is sniffed from element[0], so a leading number used to select the "safe to interpolate" branch and every later element was join()-ed in raw.
       const { sql: statement, params } = render(applyOperator(operator, [1, injection]));
 
       expect(statement).not.toContain('DROP TABLE');

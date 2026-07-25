@@ -279,8 +279,7 @@ describe('ControllerFactory.defineCrudController - request schemas', () => {
     const entity = new CrudFactoryAccount();
     const selectSchema = entity.getSchema<TAnyObjectSchema>({ type: SchemaTypes.SELECT });
 
-    // The response contract advertises `secret`; the repository is what never selects it. Pinning
-    // this because the OpenAPI document (not the payload) is where the divergence shows up.
+    // The response contract advertises `secret`; the repository is what never selects it. Pinned because the OpenAPI document, not the payload, is where the divergence shows up.
     expect(Object.keys(selectSchema.shape)).toContain('secret');
   });
 });

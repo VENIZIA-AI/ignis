@@ -104,6 +104,10 @@ import { HfLogger, HfLogFlusher } from '@venizia/ignis-helpers';
 import { LogLevels, LoggerFormats } from '@venizia/ignis-helpers';
 import type { TLogLevel, TLoggerFormat } from '@venizia/ignis-helpers';
 
+// Error rendering - a readable block instead of a raw object dump
+import { ErrorPrettier, formatLogMessage } from '@venizia/ignis-helpers';
+import type { IErrorSummary } from '@venizia/ignis-helpers';
+
 // Level resolution - provider-neutral
 import { resolveLoggerLevel } from '@venizia/ignis-helpers';
 
@@ -331,6 +335,46 @@ APP_ENV_LOGGER_INSPECT_DEPTH=8
 ```
 
 The value must be a non-negative integer. An absent, empty, negative, or unparseable value falls back to the default of `5` - there is no "unlimited" setting.
+
+### ErrorPrettier - a readable block instead of an object dump
+
+`Source ->` [`formatting/error-prettier.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/logger/formatting/error-prettier.ts)
+
+Widening the depth makes a nested `cause` visible, but it also prints everything else. A `pg`/`drizzle` failure carries the statement in `message`, in `stack` and in `query`, so one failure floods the log with the same SQL several times. `ErrorPrettier` projects the error down to what a reader needs, then renders it as a block.
+
+```typescript
+import { ErrorPrettier } from '@venizia/ignis-helpers';
+
+logger.error('Order recalculation failed | %s', ErrorPrettier.format({ error }));
+```
+
+- **Keeps** `name`, the full untruncated `message`, `code`, the `pg` diagnostics (`hint`, `detail`, `table`, `constraint`), the root stack frames, and a flattened `cause` chain.
+- **Drops** `query`, `params` and the stack header that repeats the message.
+- **Returns a string**, so `%s` prints it verbatim and the message keeps its real newlines instead of `\n` escapes.
+- **Bounded.** The `cause` chain is cut at 5 levels and is cycle-safe; frames stop at 10.
+
+#### `ErrorPrettier.format(opts)`
+
+| Option | Type | Default | Meaning |
+|---|---|---|---|
+| `error` | `unknown` | - | The thrown value. A string or plain object works too |
+| `messageCode` | `string` | - | Renders a `code:` line. `AppErrorMiddleware` passes `normalized.code` |
+| `extra` | `Record<string, unknown>` | - | Caller context. Redacted before printing |
+| `includeStack` | `boolean` | `true` | Set `false` for an intentional error, whose frames are framework plumbing |
+
+#### `ErrorPrettier.summarize(opts)`
+
+Returns the same projection as a typed `IErrorSummary` object rather than a string - for a JSON sink or a log aggregator.
+
+| Option | Type | Default | Meaning |
+|---|---|---|---|
+| `error` | `unknown` | - | The thrown value |
+| `includeStack` | `boolean` | `true` | Skips frame extraction entirely when `false` |
+| `maxCauseDepth` | `number` | `5` | Bounds a pathological or cyclic `cause` chain |
+| `maxStackFrames` | `number` | `10` | The throw site is near the top; the tail is framework plumbing |
+
+> [!TIP]
+> `AppErrorMiddleware` already renders every thrown error this way. Reach for `ErrorPrettier` when you log an error yourself.
 
 ### Log formats
 
@@ -740,6 +784,8 @@ APP_ENV_LOGGER_DGRAM_LEVELS=error,warn,info
 | `ILoggerProvider` | interface | Static-side contract a provider class satisfies (`get(scope): ILogger`) |
 | `HfLogger` | class | `ILogger`-conformant ring-buffer logger for hot paths |
 | `HfLogFlusher` | class | Background flusher for `HfLogger` |
+| `ErrorPrettier` | class (statics) | `format({ error })` renders a thrown value as a readable block; `summarize({ error })` returns it as `IErrorSummary` |
+| `IErrorSummary` | interface | The projection `summarize` returns - `name`, `message`, `code`, `stack` (frames only), the `pg` diagnostics, and a nested `cause` |
 | `LogLevels` | class (constants) | Log level constants (`ERROR`, `EMERG`, `WARN`, `INFO`, `DEBUG`) with `isValid()` |
 | `LoggerFormats` | class (constants) | Format constants (`JSON`, `TEXT`) with `isValid()` |
 | `defineCustomLogger` | `(opts: ICustomLoggerOptions) => winston.Logger` | Create a fully configured Winston logger |

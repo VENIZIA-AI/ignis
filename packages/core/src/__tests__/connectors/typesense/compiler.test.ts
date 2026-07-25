@@ -102,8 +102,7 @@ describe('compileTypesenseCollection', () => {
     }
   });
 
-  // default_sorting_field requires a scalar numeric field; sortable only affects sort_by
-  // eligibility. The DSL only checks the field exists, so this is a compile-time-only rejection.
+  // default_sorting_field requires a scalar numeric field while sortable only affects sort_by eligibility, and the DSL only checks the field exists - so this is a compile-time-only rejection.
   test('defaultSort on a sortable STRING field is rejected at compile time, not definition time', () => {
     const definition = defineSearchCollection({
       name: 'products',
@@ -150,8 +149,7 @@ describe('compileTypesenseCollection', () => {
       fields: [field.number('rating', { sortable: true })],
       defaultSort: 'rating',
     });
-    // Repoint defaultSort at a non-existent field, bypassing the DSL's definition-time check, to
-    // exercise the compiler's own guard (compileTypesenseCollection also receives hand-built definitions).
+    // Repoints defaultSort at a non-existent field, bypassing the DSL's definition-time check, to exercise the compiler's own guard - it also receives hand-built definitions.
     (definition as { defaultSort?: string }).defaultSort = 'nonexistent';
 
     expect(() => compileTypesenseCollection({ definition })).toThrow(

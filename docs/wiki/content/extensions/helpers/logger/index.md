@@ -84,6 +84,20 @@ class UserService {
 logger.error('Failed to create user: %s', error); // prints message + stack
 ```
 
+### Keep a driver error readable with `ErrorPrettier`
+
+`%s` prints the whole object. A `pg` or `drizzle` failure carries the statement in `message`, again in `stack`, and again in `query` - one failure floods the log with the same SQL several times. Wrap it:
+
+```typescript
+import { ErrorPrettier } from '@venizia/ignis-helpers';
+
+logger.error('Failed to create user | %s', ErrorPrettier.format({ error }));
+```
+
+You get the identity, the root `cause` with its code, the driver's `hint`, the full message and the top stack frames - each on its own line, with the message's real newlines intact. The duplicated statement and the noisy driver internals are gone.
+
+Pass `includeStack: false` when the error is one you raised yourself and the frames add nothing. For a JSON sink, `ErrorPrettier.summarize({ error })` returns the same projection as a typed object instead of a string.
+
 ### Switch the output format
 
 `APP_ENV_LOGGER_FORMAT` controls plain text (default) vs. JSON output.

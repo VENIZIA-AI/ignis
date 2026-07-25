@@ -2,11 +2,7 @@ import { ValueOrPromise } from '@/common/types';
 import type { ILogger } from '@/modules/logger';
 import { voidExecution } from '@/utilities/promise.utility';
 
-/**
- * Fire-and-forget a hook from inside an event listener. Takes a thunk because `voidExecution`
- * takes a VALUE - a synchronous throw would escape the guard and, inside an emitter callback,
- * take the process down. Rejections still route to the logger.
- */
+/** Fire-and-forget a hook from inside an event listener. Takes a thunk because `voidExecution` takes a VALUE - a synchronous throw would escape the guard and, inside an emitter callback, take the process down. Rejections still route to the logger. */
 export const invokeHook = (opts: {
   logger: ILogger;
   scope: string;

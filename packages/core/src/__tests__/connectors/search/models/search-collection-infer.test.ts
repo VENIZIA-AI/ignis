@@ -7,10 +7,7 @@ import {
   field,
 } from '@/connectors/search/models';
 
-/**
- * Compile-time document-type inference test. `tsc --noEmit` is the real gate here -
- * a misused `@ts-expect-error` fails the build, not `bun test`.
- */
+/** Compile-time document-type inference: `tsc --noEmit` is the real gate here - a misused `@ts-expect-error` fails the build, not `bun test`. */
 const collection = defineSearchCollection({
   name: 'products',
   fields: [
@@ -71,8 +68,7 @@ describe('TSearchDocument', () => {
   });
 });
 
-// engineOverrides has both known engine keys and an index signature for arbitrary ones -
-// both must compile without breaking TSearchDocument.
+// engineOverrides has both known engine keys and an index signature for arbitrary ones - both must compile without breaking TSearchDocument.
 const collectionWithEngineOverrides = defineSearchCollection({
   name: 'products-with-overrides',
   fields: [field.id(), field.string('title'), field.number('price')],
@@ -130,8 +126,7 @@ describe('TSearchDocument - client-provided vector field', () => {
   });
 });
 
-// A server auto-embedded vector field (`embed` set) is Typesense-generated - it must be entirely
-// absent from the compile-time document shape, not merely optional.
+// A server auto-embedded vector field (`embed` set) is Typesense-generated, so it must be entirely absent from the compile-time document shape, not merely optional.
 const collectionWithAutoEmbedVector = defineSearchCollection({
   name: 'products-with-auto-embed',
   fields: [

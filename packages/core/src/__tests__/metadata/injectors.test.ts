@@ -40,8 +40,7 @@ class InjectorAccount extends BasePostgresEntity<typeof InjectorAccount.schema> 
   });
 }
 
-/** bun does not resolve the tsconfig `extends` chain carrying `experimentalDecorators`, so `@inject`
- * and `design:paramtypes` never emit in these tests - both are reproduced by hand as `tsc` emits them. */
+/** bun does not resolve the tsconfig `extends` chain carrying `experimentalDecorators`, so `@inject` and `design:paramtypes` never emit in these tests - both are reproduced by hand as `tsc` emits them. */
 const declareParamTypes = (opts: { target: Function; paramTypes: Array<Function> }): void => {
   Reflect.defineMetadata('design:paramtypes', opts.paramTypes, opts.target);
 };

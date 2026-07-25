@@ -6,8 +6,7 @@ const nyi = (): never => {
   throw new Error('nyi');
 };
 
-/** Stubs only what the NEUTRAL base declares abstract - no `alias`, no `synonymSet`. Those are
- * engine-specific groups, so a connector that omits them must still satisfy BaseSearchConnector. */
+/** Stubs only what the NEUTRAL base declares abstract - no `alias`, no `synonymSet`. Those are engine-specific groups, so a connector that omits them must still satisfy BaseSearchConnector. */
 class StubConnector extends BaseSearchConnector {
   healthOk = true;
   constructor() {

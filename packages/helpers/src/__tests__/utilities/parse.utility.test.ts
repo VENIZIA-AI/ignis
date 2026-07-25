@@ -16,8 +16,7 @@ import {
 
 const realRandom = Math.random;
 
-/** Snake-cased wire payloads are exactly what `keysToCamel` exists to convert, but a snake_case
- * object literal is banned in this codebase - parse the fixture from its JSON wire form instead. */
+/** Snake-cased wire payloads are exactly what `keysToCamel` converts, but a snake_case object literal is banned in this codebase - parse the fixture from its JSON wire form instead. */
 const wirePayload = (json: string): Record<string, unknown> => {
   return JSON.parse(json);
 };

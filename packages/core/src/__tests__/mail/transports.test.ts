@@ -6,8 +6,7 @@ import {
 } from '@/components/mail/helpers/transporters';
 import type { AnyType } from '@venizia/ignis-helpers';
 
-/** `nodemailer` and `mailgun.js` are OPTIONAL peers not installed here, so both helpers are
- * exercised through their client-factory seam - no SMTP socket or Mailgun HTTP call is ever made. */
+/** `nodemailer` and `mailgun.js` are OPTIONAL peers not installed here, so both helpers are exercised through their client-factory seam - no SMTP socket or Mailgun HTTP call is ever made. */
 
 class FakeSmtpTransporter {
   sentMails: AnyType[] = [];
@@ -52,8 +51,7 @@ class FakeMailgunMessagesClient {
   }
 }
 
-// The seam is invoked from the base constructor, before subclass fields exist - the double to hand
-// back is therefore parked here, in module scope, and picked up by the override.
+// The seam is invoked from the base constructor, before subclass fields exist, so the double to hand back is parked in module scope and picked up by the override.
 let nextSmtpTransporter: FakeSmtpTransporter;
 let nextMailgunClient: FakeMailgunMessagesClient;
 

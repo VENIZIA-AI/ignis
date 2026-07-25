@@ -14,5 +14,4 @@ export {
   supabaseAuthAdminRole,
 } from 'drizzle-orm/supabase';
 
-// Reachable only via `@venizia/ignis/postgres/supabase`. `connectors/postgres/index.ts` must not
-// re-export this module, or every entry point would pull in `drizzle-orm/supabase`.
+// Reachable only via `@venizia/ignis/postgres/supabase`: `connectors/postgres/index.ts` must not re-export this module, or every entry point would pull in `drizzle-orm/supabase`.

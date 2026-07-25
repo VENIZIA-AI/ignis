@@ -36,19 +36,12 @@ export type TLoggerFormat = TConstValue<typeof LoggerFormats>;
 const extraLogEnvs = (process.env.APP_ENV_EXTRA_LOG_ENVS ?? '').split(',').map(el => el.trim());
 const LOG_ENVIRONMENTS = new Set([...Array.from(Environment.COMMON_ENVS), ...extraLogEnvs]);
 
-/**
- * debug() gate, computed ONCE at module load: DEBUG must be truthy and NODE_ENV unset or
- * allowlisted. Shared across every logger implementation - runtime env changes need a restart.
- */
+/** debug() gate, computed ONCE at module load: DEBUG truthy and NODE_ENV unset or allowlisted. Shared across every logger implementation - runtime env changes need a restart. */
 export const SHOULD_LOG_DEBUG =
   toBoolean(process.env.DEBUG) &&
   (!process.env.NODE_ENV || LOG_ENVIRONMENTS.has(process.env.NODE_ENV));
 
-/**
- * The logger's own level, below which a line never reaches ANY transport. Defaults to `debug` -
- * level gating belongs to the wrapper and each transport; a stricter default here would
- * silently drop lines the wrapper already let through.
- */
+/** The logger's own level, below which a line never reaches ANY transport. Defaults to `debug` - level gating belongs to the wrapper and each transport, and a stricter default here would silently drop lines the wrapper already let through. */
 export const resolveLoggerLevel = (opts: { configured?: string }): TLogLevel => {
   const { configured } = opts;
 
@@ -58,8 +51,7 @@ export const resolveLoggerLevel = (opts: { configured?: string }): TLogLevel => 
 
   const normalized = configured.trim().toLowerCase();
   if (!LogLevels.isValid(normalized)) {
-    // console, not Logger: the logger is being built - routing this warning through it would
-    // re-enter the very pipeline that is not configured yet.
+    // console, not Logger: the logger is being built - routing this warning through it would re-enter the very pipeline that is not configured yet.
     console.warn(
       '[resolveLoggerLevel] Invalid logger level | value: %s | valids: %s | fallback: %s',
       configured,

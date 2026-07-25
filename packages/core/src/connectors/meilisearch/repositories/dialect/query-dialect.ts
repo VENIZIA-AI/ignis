@@ -71,34 +71,26 @@ const CSV_TO_ARRAY_KEYS: Record<string, string> = {
   highlightFullFields: 'attributesToCrop',
 };
 
-/** `ISearchQuery` fields Meilisearch has no equivalent for. Each THROWS - silently dropping or
- * half-mapping a param produces a query that quietly does not mean what was asked. */
+/** `ISearchQuery` fields Meilisearch has no equivalent for. Each THROWS - silently dropping or half-mapping a param produces a query that quietly does not mean what was asked. */
 const UNSUPPORTED_QUERY_FIELDS: Record<string, string> = {
   excludeFields: 'Meilisearch has no exclude-fields param; declare displayedAttributes instead',
   facetQuery: 'Meilisearch exposes facet search on its own /facet-search route',
   maxFacetValues: 'Meilisearch sets this via the faceting.maxValuesPerFacet index setting',
   snippetThreshold: 'Meilisearch uses cropLength instead',
-  // Meilisearch's search param is `distinct` (one attribute name); `distinctAttribute` is an
-  // index-level SETTING, not a search param, and neither expresses grouped hits.
+  // Meilisearch's search param is `distinct` (one attribute name) while `distinctAttribute` is an index-level SETTING, and neither expresses grouped hits.
   groupBy: 'Meilisearch has no result grouping; set the distinct search param on the raw client',
   groupLimit: 'Meilisearch has no result grouping, so no per-group limit',
   groupMissingValues: 'Meilisearch has no result grouping, so no missing-values flag',
-  // Rejected here as well as in applySearchInput, so the multiSearch path (which never calls
-  // applySearchInput) cannot forward it to the engine as an unknown param.
+  // Rejected here as well as in applySearchInput, so the multiSearch path (which never calls applySearchInput) cannot forward it to the engine as an unknown param.
   queryByWeights: 'Meilisearch has no per-field query weights',
 };
 
-/**
- * Translates repository-level TFilter/TWhere into Meilisearch search params. Pure string building -
- * no dependency on the `meilisearch` package. Untranslatable shapes throw rather than degrade.
- */
+/** Translates repository-level TFilter/TWhere into Meilisearch search params - pure string building, no dependency on the `meilisearch` package. Untranslatable shapes throw rather than degrade. */
 export class MeilisearchQueryDialect implements ISearchQueryDialect {
   build(opts: { filter?: TFilter; hiddenFields?: string[] }): IMeilisearchSearchQuery {
     const { filter } = opts;
 
-    // `hiddenFields` is accepted and deliberately NOT translated: Meilisearch has no per-query field
-    // exclusion (only index-level `displayedAttributes`). The guarantee is upheld one layer up -
-    // `SearchBaseRepository` strips hidden fields from every returned document, so nothing escapes.
+    // `hiddenFields` is accepted and deliberately NOT translated: Meilisearch has no per-query field exclusion, only index-level `displayedAttributes`, so `SearchBaseRepository` strips hidden fields from every returned document one layer up.
     const { where, fields, order, limit, skip, offset, include } = filter ?? {};
 
     if (include) {
@@ -137,9 +129,7 @@ export class MeilisearchQueryDialect implements ISearchQueryDialect {
     return query;
   }
 
-  /** Maps the neutral query onto Meilisearch wire params. Pagination always uses the exhaustive
-   * `page`/`hitsPerPage` mode (exact `totalHits`), never `offset`/`limit`. `engineParams` merges
-   * last, verbatim. */
+  /** Maps the neutral query onto Meilisearch wire params. Pagination always uses the exhaustive `page`/`hitsPerPage` mode (exact `totalHits`), never `offset`/`limit`; `engineParams` merges last, verbatim. */
   toWireParams(opts: { query: Partial<ISearchQuery> }): Record<string, unknown> {
     const { query } = opts;
     const { engineParams, ...rest } = query as Partial<IMeilisearchSearchQuery>;
@@ -242,8 +232,7 @@ export class MeilisearchQueryDialect implements ISearchQueryDialect {
       searchQuery.highlightEndTag = input.highlightEndTag;
     }
 
-    // Engine-specific tuning arrives keyed by Meilisearch's own wire names in engineParams; carried
-    // onto the query here so the single-search path reaches toWireParams' verbatim merge.
+    // Engine-specific tuning arrives keyed by Meilisearch's own wire names in engineParams; copied onto the query here so the single-search path reaches toWireParams' verbatim merge.
     if (input.engineParams) {
       searchQuery.engineParams = input.engineParams;
     }

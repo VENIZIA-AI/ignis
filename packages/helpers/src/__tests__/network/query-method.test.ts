@@ -42,9 +42,7 @@ describe('AbstractNetworkFetchableHelper.query', () => {
 
     await fetcher.query({ url: 'http://example.test/search', body, headers, params });
 
-    // The const-class token travels internally; each fetcher uppercases it at the wire boundary
-    // (see the live-server tests below - undici sends a non-normalized method verbatim, so a
-    // lowercase 'query' would never reach the server).
+    // The const-class token travels internally; each fetcher uppercases it at the wire boundary (see the live-server tests below - undici sends a non-normalized method verbatim, so a lowercase 'query' would never reach the server).
     expect(fetcher.lastOptions?.method).toBe('query');
     expect(fetcher.lastOptions?.body).toEqual(body);
     expect(fetcher.lastOptions?.headers).toEqual(headers);

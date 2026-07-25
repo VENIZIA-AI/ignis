@@ -23,8 +23,7 @@ describe('DataSource root split', () => {
     expect('beginTransaction' in BasePostgresDataSource.prototype).toBe(true);
   });
 
-  /** DataSourceDrivers is an identity constant (logs, config, `isValid()`), NOT engine selection.
-   * A missing member makes `isValid()` answer false about an engine that plainly ships. */
+  /** DataSourceDrivers is an identity constant (logs, config, `isValid()`), NOT engine selection - a missing member makes `isValid()` answer false about an engine that plainly ships. */
   test('DataSourceDrivers names every driver the framework ships', () => {
     const shipped = [
       DataSourceDrivers.NODE_POSTGRES, // connectors/postgres/drivers/node-postgres

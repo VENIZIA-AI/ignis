@@ -40,6 +40,27 @@ dev-configs -> inversion -> helpers -> boot -> core
 | `.agents/knowledge-tools/` | Generator, gate, MCP server, and graph explorer for the bundle |
 | `.githooks/` | Repo-managed git hooks, enabled via `make setup-hooks` |
 
+## Dependency versions live in the root catalog
+
+A dependency shared by two or more workspaces is pinned ONCE in the root `workspaces.catalog`, and
+each workspace references it as `"dep": "catalog:"`. Bump the root entry and every workspace moves
+together; drift becomes impossible rather than merely discouraged.
+
+Rules:
+
+- **`dependencies` / `devDependencies` use `catalog:`** for any dep the catalog owns.
+- **`peerDependencies` stay hand-authored.** They are compatibility statements for consumers and are
+  deliberately looser than the install range - core declares peer `pg ^8.21.0` while installing
+  `^8.22.0`, and dev-configs declares peer `typescript ^5 || ^6` while installing `^6.0.3`.
+  Cataloguing a peer would silently narrow what a consumer may use.
+- **A dep used by one workspace keeps its literal range** - a catalog entry buys nothing.
+- **The root has no `dependencies` block.** It once duplicated 34 entries and acted as an accidental
+  version pin; the catalog replaces that intentionally.
+
+`bun pm pack` substitutes the real range at publish time, so a consumer of `@venizia/ignis` never
+sees the `catalog:` protocol. `make catalog-check` gates it: a catalogued dep declared with a literal
+range, or a catalog entry nobody references, fails.
+
 ## Source map
 
 Per-package subsystem breakdown with file counts is generated: [source map](/reference/source-map.md).

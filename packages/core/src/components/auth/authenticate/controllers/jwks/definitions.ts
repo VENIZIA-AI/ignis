@@ -1,8 +1,7 @@
 import { jsonResponse } from '@/base/models/common/types';
 import { z } from '@hono/zod-openapi';
 
-// The /certs endpoint is intentionally unauthenticated — it serves the public
-// JWKS needed by external verifiers to validate tokens issued by this service.
+// The /certs endpoint is intentionally unauthenticated - it serves the public JWKS external verifiers need to validate tokens issued by this service.
 export const RouteConfigs = {
   GET_JWKS_CERTS: {
     path: '/',

@@ -76,8 +76,7 @@ describe('BaseSearchDataSource - discoverCollections / getSchema', () => {
     title: varchar('title', { length: 255 }),
   });
 
-  /** Dual-schema shape: a pg entity that also carries a search index. Its `schema` is the real
-   * pgTable - shape-guarded out of collection discovery - so only `searchCollection` is picked up. */
+  /** Dual-schema shape: a pg entity that also carries a search index. Its `schema` is the real pgTable - shape-guarded out of collection discovery - so only `searchCollection` is picked up. */
   @model({ type: 'entity' })
   class DualEntity extends BasePostgresEntity {
     static override schema = dualTable;
@@ -252,9 +251,7 @@ describe('BaseSearchDataSource - autoDiscovery flag (branch-agnostic)', () => {
 });
 
 describe('BaseSearchDataSource - the engine is the datasource class, not a metadata field', () => {
-  // A search datasource names no driver: `extends TypesenseDataSource` IS the engine reference and
-  // carries the peer into the bundle. `@datasource()` with no driver must be legal - `tsc --noEmit`
-  // is the real gate.
+  // A search datasource names no driver: `extends TypesenseDataSource` IS the engine reference that carries the peer into the bundle, so `@datasource()` with no driver must be legal - `tsc --noEmit` is the real gate.
   @datasource()
   class EngineFromClassDataSource extends FakeSearchDataSource {}
 

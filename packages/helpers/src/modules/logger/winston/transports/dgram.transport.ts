@@ -81,9 +81,7 @@ export class DgramTransport extends Transport {
     const message = this.formatMessage(opts);
     this.client?.send(message, this.port, this.host, error => {
       if (error) {
-        // console, not the Logger and not an 'error' EVENT: routing through the Logger would
-        // re-enter this very transport, and emitting 'error' with no listener attached kills the
-        // process over one lost UDP log line. Drop the socket so the next line reconnects.
+        // console, not the Logger and not an 'error' EVENT: routing through the Logger would re-enter this very transport, and emitting 'error' with no listener attached kills the process over one lost UDP log line. Drop the socket so the next line reconnects.
         console.error('[DgramTransport][log] Failed to ship log line | error: ', error);
         this.client?.close();
         this.client = null;

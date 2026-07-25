@@ -2,10 +2,7 @@ import { ValueOrPromise } from '@/common/types';
 import { AbstractPoolHelper } from './abstract';
 import { IPoolOptions } from './types';
 
-/**
- * Concrete object pool configured by callbacks ({@link IPoolOptions}); implements the
- * AbstractPoolHelper lifecycle hooks by delegating to `create`/`validate`/`reset`/`destroy`.
- */
+/** Concrete object pool configured by callbacks ({@link IPoolOptions}); implements the AbstractPoolHelper lifecycle hooks by delegating to `create`/`validate`/`reset`/`destroy`. */
 export class BasePoolHelper<T> extends AbstractPoolHelper<T> {
   private readonly factory: IPoolOptions<T>;
 

@@ -19,10 +19,7 @@ const LOGGER_FILE_DATE_PATTERN = process.env.APP_ENV_LOGGER_FILE_DATE_PATTERN ??
 
 const f = winston.format;
 
-/**
- * Shared per-line preparation: label, timestamp, error normalization, deep splat. Final-string
- * assembly is per-transport, so console can colorize while files/UDP get plain lines.
- */
+/** Per-line prep: label, timestamp, error normalization, deep splat. Final-string assembly is per-transport, so console can colorize while files/UDP get plain lines. */
 const definePrepFormatter = (opts: { label: string }) => {
   return f.combine(
     f.label({ label: opts.label }),
@@ -171,9 +168,7 @@ export const defineCustomLogger = (opts: ICustomLoggerOptions) => {
     }
   }
 
-  // Deliberate asymmetry with the file pair: error.dgram registers ONLY as an exception
-  // handler - ordinary error-level lines already ship over info.dgram's transport (same options
-  // in the default wiring), and adding it to general would double-send every error line.
+  // Deliberate asymmetry with the file pair: error.dgram registers ONLY as an exception handler - ordinary error-level lines already ship over info.dgram's transport, and adding it to general would double-send every error line.
   if (errorTransportOptions.dgram) {
     const transport = DgramTransport.fromPartial(errorTransportOptions.dgram);
     if (transport) {
@@ -193,10 +188,7 @@ export const defineCustomLogger = (opts: ICustomLoggerOptions) => {
   });
 };
 
-/**
- * Default transports from `APP_ENV_LOGGER_*`, resolved at CALL time. File logging is opt-in -
- * without `APP_ENV_LOGGER_FOLDER_PATH` no rotating file is created.
- */
+/** Default transports from `APP_ENV_LOGGER_*`, resolved at CALL time. File logging is opt-in - without `APP_ENV_LOGGER_FOLDER_PATH` no rotating file is created. */
 export const resolveDefaultTransportOptions = (): ICustomLoggerOptions['transports'] => {
   const folderPath = process.env.APP_ENV_LOGGER_FOLDER_PATH;
   const fileOptions =

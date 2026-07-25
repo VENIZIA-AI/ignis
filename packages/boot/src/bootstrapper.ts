@@ -38,8 +38,7 @@ export class Bootstrapper extends BaseHelper implements IBootstrapper {
   private async discoverBooters(opts: { booterNames?: string[] }): Promise<void> {
     const { booterNames } = opts;
 
-    // Reset first: pushing onto the previous run's list would register every artifact again -
-    // duplicate controllers, duplicate repository bindings - on a second boot().
+    // Reset first: on a second boot(), pushing onto the previous run's list registers every artifact again.
     this.booters = [];
     this.phaseStartTimings.clear();
     this.phaseEndTimings.clear();
@@ -99,8 +98,7 @@ export class Bootstrapper extends BaseHelper implements IBootstrapper {
       } catch (error) {
         const errorMessage = (error as Error)?.message || String(error);
 
-        // Without the cause, a boot failure reaches the operator as a bare message: the stack of the
-        // booter that actually threw - the real diagnosis - is gone.
+        // Without the cause, the stack of the booter that actually threw - the real diagnosis - is gone.
         throw getError({
           message: `[Bootstrapper][runPhase] Error during phase '${phase}' on booter '${booter.constructor.name}': ${errorMessage}`,
           cause: error,

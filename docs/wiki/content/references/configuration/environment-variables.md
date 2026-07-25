@@ -43,38 +43,38 @@ Create a `.env` file in your project root:
 ```bash
 # .env
 
-# =====================
+# ----------------------
 # APPLICATION
-# =====================
+# ----------------------
 APP_ENV_APPLICATION_NAME=my-app
 APP_ENV_APPLICATION_TIMEZONE=UTC
 
-# =====================
+# ----------------------
 # SERVER
-# =====================
+# ----------------------
 APP_ENV_SERVER_HOST=0.0.0.0
 APP_ENV_SERVER_PORT=3000
 APP_ENV_SERVER_BASE_PATH=/api
 
-# =====================
+# ----------------------
 # DATABASE (PostgreSQL)
-# =====================
+# ----------------------
 APP_ENV_POSTGRES_HOST=localhost
 APP_ENV_POSTGRES_PORT=5432
 APP_ENV_POSTGRES_USERNAME=postgres
 APP_ENV_POSTGRES_PASSWORD=your_password_here
 APP_ENV_POSTGRES_DATABASE=my_database
 
-# =====================
+# ----------------------
 # AUTHENTICATION
-# =====================
+# ----------------------
 APP_ENV_APPLICATION_SECRET=generate-a-strong-random-secret
 APP_ENV_JWT_SECRET=generate-another-strong-random-secret
 APP_ENV_JWT_EXPIRES_IN=86400
 
-# =====================
+# ----------------------
 # LOGGING
-# =====================
+# ----------------------
 APP_ENV_LOGGER_FOLDER_PATH=./logs
 ```
 
@@ -437,9 +437,9 @@ ALLOW_EMPTY_ENV_VALUE=true
 ## Complete .env.example
 
 ```bash
-# ===========================================
+# ----------------------
 # IGNIS ENVIRONMENT VARIABLES
-# ===========================================
+# ----------------------
 # Copy this file to .env and fill in values
 
 # APPLICATION

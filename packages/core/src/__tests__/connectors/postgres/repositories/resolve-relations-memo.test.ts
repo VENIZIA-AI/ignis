@@ -13,8 +13,7 @@ const childTable = pgTable('memo_child', {
   label: varchar('label', { length: 50 }),
 });
 
-/** Relations are resolved only when `include` is present, and memoized per schema - @model
- * settings are immutable after boot, so a second build() must not re-run the resolver. */
+/** Relations are resolved only when `include` is present, and memoized per schema - @model settings are immutable after boot, so a second build() must not re-run the resolver. */
 describe('FilterBuilder - resolveRelations guard + memoization', () => {
   test('build() without include never resolves relations', () => {
     const builder = new FilterBuilder();

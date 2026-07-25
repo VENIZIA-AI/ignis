@@ -243,8 +243,7 @@ describe('BullMQHelper — role dispatch, worker hooks, close', () => {
     const workerClient: FakeBullClient = worker.worker as AnyType;
     const queueClient: FakeBullClient = queue.queue as AnyType;
 
-    // An 'error' event with no listener is re-thrown by EventEmitter — an uncaught exception that
-    // takes the whole process down whenever the driver's Redis link hiccups.
+    // An 'error' event with no listener is re-thrown by EventEmitter - an uncaught exception that takes the whole process down whenever the driver's Redis link hiccups.
     expect(() => {
       workerClient.emit('error', new Error('redis link lost'));
     }).not.toThrow();

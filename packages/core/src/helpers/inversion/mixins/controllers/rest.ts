@@ -35,9 +35,7 @@ export const RestControllerMetadataMixin = <BaseClass extends TMixinTarget<_Meta
     }): void {
       const { target, methodName, configs } = opts;
 
-      // Copy-on-write: getRoutes() walks the prototype chain, so a subclass would otherwise mutate
-      // the Map its base class owns - leaking its routes onto the base and onto every sibling
-      // subclass. Inherited routes stay visible (they are copied in, base first).
+      // Copy-on-write: getRoutes() walks the prototype chain, so a subclass would otherwise mutate the Map its base owns, leaking its routes onto the base and every sibling. Inherited routes stay visible - copied in, base first.
       const inherited = this.getRoutes({ target });
       const routes: Map<string | symbol, IAuthRouteConfig> =
         Reflect.getOwnMetadata(MetadataKeys.CONTROLLER_REST_ROUTE, target) ??

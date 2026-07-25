@@ -803,7 +803,7 @@ describe('Crypto Algorithms', () => {
           salt: salt1,
         });
 
-        // Encrypt with key1, try decrypt with key2 — should fail (different hkdfInfo)
+        // Encrypt with key1, try decrypt with key2 - should fail (different hkdfInfo)
         const encrypted = await ecdh1.encrypt({ message: 'hkdf test', secret: key1 });
         expect(ecdh2.decrypt({ message: encrypted, secret: key2 })).rejects.toThrow();
 

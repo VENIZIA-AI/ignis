@@ -1,10 +1,7 @@
 import { describe, expect, test } from 'bun:test';
 import { REDACTED, redactSecrets, redactUrlCredentials } from '@/common/redact';
 
-/**
- * Secrets in a log line ship to an aggregator and outlive the process. Pins the two shapes a
- * secret arrives in - a KEY in an options object, and the authority section of a URL.
- */
+/** Secrets in a log line ship to an aggregator and outlive the process; pins the two shapes a secret arrives in - a KEY in an options object, and the authority section of a URL. */
 describe('redactUrlCredentials', () => {
   test('a broker URL keeps its host and user but loses the password', () => {
     const redacted = redactUrlCredentials('mqtts://ingest:hunter2@broker.internal:8883');
@@ -58,8 +55,7 @@ describe('redactSecrets - the shapes a TLS/MQTT options object actually takes', 
   });
 
   test('a Buffer under a NON-secret key is summarized, not serialized', () => {
-    // The key must not be one SECRET_KEY_PATTERN already matches (`key`, `ca`, `cert`...), or the
-    // value is replaced before the Buffer branch is ever reached and this test proves nothing.
+    // The key must not be one SECRET_KEY_PATTERN already matches (`key`, `ca`, `cert`...), or the value is replaced before the Buffer branch is ever reached and this test proves nothing.
     const redacted = redactSecrets({
       payload: Buffer.from('-----BEGIN CERTIFICATE-----'),
     }) as Record<string, unknown>;
@@ -114,8 +110,7 @@ describe('redactSecrets - the Vault wire spellings the key list must now cover',
   });
 
   test('an innocent key that merely ends in "id" is NOT redacted', () => {
-    // role_id/secret_id are named secrets; userId/orderId/id are not - the pattern must not swallow
-    // ordinary identifier fields.
+    // role_id/secret_id are named secrets; userId/orderId/id are not - the pattern must not swallow ordinary identifier fields.
     const redacted = redactSecrets({
       userId: 'user-42',
       orderId: 'order-7',

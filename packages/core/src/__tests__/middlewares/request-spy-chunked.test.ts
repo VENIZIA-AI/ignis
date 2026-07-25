@@ -5,8 +5,7 @@ import { HTTP, LoggerFactory } from '@venizia/ignis-helpers';
 import { AppErrorMiddleware } from '@/base/middlewares/app-error/app-error.middleware';
 import { RequestSpyMiddleware } from '@/base/middlewares/request-spy/request-spy.middleware';
 
-/** A chunked request carries no `Content-Length`; gating the body parse on that header's PRESENCE
- * skips every streamed body - malformed payloads then blow up deeper as a 500 instead of a clean 400. */
+/** A chunked request carries no `Content-Length`; gating the body parse on that header's PRESENCE skips every streamed body - malformed payloads then blow up deeper as a 500 instead of a clean 400. */
 const buildServer = () => {
   const server = new OpenAPIHono();
   const spy = new RequestSpyMiddleware();
@@ -16,8 +15,7 @@ const buildServer = () => {
     return context.json({ ok: true });
   });
 
-  // The real handler: without it an ApplicationError thrown by the middleware surfaces as a bare
-  // 500 and the test would never see the status the middleware actually chose.
+  // The real handler: without it an ApplicationError thrown by the middleware surfaces as a bare 500 and the test would never see the status the middleware actually chose.
   server.onError(new AppErrorMiddleware({ logger: LoggerFactory.getLogger(['spy-test']) }).value());
 
   return server;
@@ -85,9 +83,7 @@ describe('RequestSpyMiddleware - an empty body is still not parsed', () => {
 
 describe('RequestSpyMiddleware - a tracker must never reject the request it tracks', () => {
   test('a request whose client IP cannot be determined is still served', async () => {
-    // No socket (unix socket, some proxies, an in-process call): getConnInfo yields nothing and no
-    // x-forwarded-for is set. Logging the IP is a best-effort concern - failing to derive one must
-    // not turn every request into a 400.
+    // No socket (unix socket, some proxies, an in-process call) means getConnInfo yields nothing and no x-forwarded-for is set; logging the IP is best-effort and must not turn every request into a 400.
     const response = await buildServer().request('/echo', { method: 'POST' });
 
     expect(response.status).toBe(200);

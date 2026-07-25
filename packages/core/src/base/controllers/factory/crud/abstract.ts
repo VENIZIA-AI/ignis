@@ -7,8 +7,7 @@ import type { Env, Schema } from 'hono';
 import type { TEntityDataObject, TEntityPersistObject, TRouteContext } from '../../common';
 import { BaseRestController } from '../../rest/base';
 
-/** Base tier of a generated CRUD controller: the repository handle plus the shared response helpers.
- * Read and write verbs are layered on by ReadableCrudController / PersistableCrudController. */
+/** Base tier of a generated CRUD controller - repository handle plus shared response helpers; read and write verbs are layered on by ReadableCrudController / PersistableCrudController. */
 export abstract class AbstractCrudController<
   TEntity extends AbstractEntity<TAnyObjectSchema> = AbstractEntity<TAnyObjectSchema>,
   RouteEnv extends Env = Env,

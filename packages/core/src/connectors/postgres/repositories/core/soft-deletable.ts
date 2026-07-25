@@ -15,8 +15,7 @@ export type TSoftDeletableTableSchema = TTableSchemaWithId & {
   deletedAt: TDeletedAtColumn;
 };
 
-/** Repository that soft-deletes (sets `deletedAt`) instead of physically removing rows. Models need
- * a `deletedAt` column and `defaultFilter: { where: { deletedAt: null } }` in `@model` settings. */
+/** Repository that soft-deletes (sets `deletedAt`) instead of physically removing rows; models need a `deletedAt` column and `defaultFilter: { where: { deletedAt: null } }` in `@model` settings. */
 export class SoftDeletableRelationalRepository<
   EntitySchema extends TSoftDeletableTableSchema = TSoftDeletableTableSchema,
   DataObject extends TTableObject<EntitySchema> = TTableObject<EntitySchema>,
@@ -138,8 +137,7 @@ export class SoftDeletableRelationalRepository<
     this.validateId({ id: opts.id, operationName: 'restoreById' });
     const { shouldReturn = true, ...restOptions } = opts.options ?? {};
 
-    // `updateById` is overloaded on the literal `shouldReturn: true | false`; the spread below
-    // widens it back to `boolean`, so this calls `_update` directly instead.
+    // `updateById` is overloaded on the literal `shouldReturn: true | false` and the spread below widens it back to `boolean`, so this calls `_update` directly instead.
     const options = {
       ...restOptions,
       shouldReturn,

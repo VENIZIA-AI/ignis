@@ -7,9 +7,7 @@ import { AuthorizationDomainScopes } from '@/components/auth/authorize/common/co
 import { resolveRequestDomain } from '@/components/auth/authorize/providers/request-domain';
 import type { TNullable } from '@venizia/ignis-helpers';
 
-/** resolveRequestDomain precedence: spec.domain method -> declarative -> options.domainResolver ->
- * SYSTEM_WIDE sentinel. A null/falsy or missing resolver returns SYSTEM_WIDE, NOT the next source -
- * fail-closed for ordinary users, since only super-admins hold SYSTEM_WIDE grants. */
+/** resolveRequestDomain precedence: spec.domain -> declarative -> options.domainResolver -> SYSTEM_WIDE. A falsy or missing resolver returns SYSTEM_WIDE, NOT the next source - fail-closed, since only super-admins hold SYSTEM_WIDE grants. */
 
 // Hono-context stub exposing only the accessors the helper touches.
 function ctxStub(opts: {
@@ -31,8 +29,7 @@ function ctxStub(opts: {
 
 const SW = AuthorizationDomainScopes.SYSTEM_WIDE;
 
-// Capture a thrown/rejected error from resolveRequestDomain so we can assert on it without
-// relying on expect().rejects (which the lint rule flags as a non-thenable await).
+// Captures the rejection so it can be asserted without expect().rejects, which the lint rule flags as a non-thenable await.
 async function captureError(run: () => Promise<unknown>): Promise<TNullable<Error>> {
   try {
     await run();
@@ -244,8 +241,7 @@ describe('method resolver (spec.domain as function)', () => {
   });
 
   test('SECURITY: async method that REJECTS propagates (fails closed — middleware must deny)', async () => {
-    // resolveRequestDomain awaits spec.domain; a rejection is NOT swallowed. The caller's
-    // authorize middleware therefore cannot silently treat a thrown resolver as SYSTEM_WIDE.
+    // A rejection from spec.domain is NOT swallowed, so the authorize middleware cannot silently treat a thrown resolver as SYSTEM_WIDE.
     const boom: TAuthorizationDomainResolver = async () => {
       throw new Error('resolver exploded');
     };
@@ -292,8 +288,7 @@ describe('precedence', () => {
   });
 
   test('declarative MISS does NOT fall through to global — returns SYSTEM_WIDE', async () => {
-    // Important precedence subtlety: once spec.domain is declared, a missing value short-circuits
-    // to SYSTEM_WIDE; the global resolver is NOT consulted as a fallback.
+    // Once spec.domain is declared, a missing value short-circuits to SYSTEM_WIDE; the global resolver is NOT consulted as a fallback.
     const dom = await resolveRequestDomain({
       spec: {
         action: 'read',

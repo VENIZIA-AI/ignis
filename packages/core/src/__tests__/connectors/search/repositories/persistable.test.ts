@@ -33,8 +33,7 @@ describe('PersistableSearchRepository', () => {
     });
 
     test('strips hiddenProperties from the write response', async () => {
-      // A write response never passes through the engine's exclude-fields, so the repository must
-      // strip them itself - otherwise `hiddenProperties: ['secret']` leaks straight back to the caller.
+      // A write response never passes through the engine's exclude-fields, so the repository must strip them itself or `hiddenProperties: ['secret']` leaks straight back to the caller.
       const data = { title: 'A', secret: 'do-not-leak' };
       const result = await repository.create({ data });
 
@@ -57,8 +56,7 @@ describe('PersistableSearchRepository', () => {
 
       const result = await repository.createAll({ data });
 
-      // Typesense's bulk import never echoes documents back; `data` is the caller's own input
-      // rows filtered to the ones the batch accepted (all of them here, since responses is empty).
+      // Typesense's bulk import never echoes documents back; `data` is the caller's own input rows filtered to the ones the batch accepted (all of them here, since responses is empty).
       expect(result).toEqual({ count: 2, data });
 
       const [call] = dataSource.fakeConnector.importDocumentsCalls;
@@ -91,8 +89,7 @@ describe('PersistableSearchRepository', () => {
   });
 
   describe('updateById', () => {
-    // ProductDocument has a defaultFilter - the filter-guard reads the document back through
-    // findById/search first, so the fake connector must report a matching hit before it passes.
+    // ProductDocument has a defaultFilter, so the filter-guard reads the document back through findById/search first and the fake connector must report a matching hit before it passes.
     const seedFoundDocument = (doc: { id: string; title: string }) => {
       dataSource.fakeConnector.searchResponse = {
         found: 1,
@@ -124,8 +121,7 @@ describe('PersistableSearchRepository', () => {
       expect(Reflect.get(result.data ?? {}, 'secret')).toBeUndefined();
     });
 
-    // Intentional SQL-parity break: SQL's updateById reports { count: 0 } on a missing row and
-    // never throws, but search's TDocument is non-nullable, so updateById throws its own sanitized 404 from the filter-guard instead.
+    // Intentional SQL-parity break: SQL's updateById reports { count: 0 } on a missing row and never throws, but search's TDocument is non-nullable, so it throws its own sanitized 404 from the filter-guard instead.
     test('throws a sanitized 404 when the document is genuinely missing (no search hit)', async () => {
       let caught: unknown;
 
@@ -141,8 +137,7 @@ describe('PersistableSearchRepository', () => {
     });
 
     test('throws a sanitized 404 for a defaultFilter-excluded (soft-deleted) document', async () => {
-      // Same wire shape as "genuinely missing" from the repository's point of view - the guard
-      // can't distinguish "no such id" from "id exists but excluded by defaultWhere".
+      // Same wire shape as "genuinely missing" from the repository's point of view - the guard cannot distinguish "no such id" from "id exists but excluded by defaultWhere".
       dataSource.fakeConnector.searchResponse = { found: 0, isFoundExact: true, hits: [] };
 
       let caught: unknown;
@@ -159,8 +154,7 @@ describe('PersistableSearchRepository', () => {
     });
 
     test('shouldSkipDefaultFilter bypasses the filter-guard entirely', async () => {
-      // No search seeded - if the guard ran, it would 404. shouldSkipDefaultFilter means it
-      // never runs at all, and the connector is called directly.
+      // No search seeded: if the guard ran it would 404, so shouldSkipDefaultFilter means it never runs at all and the connector is called directly.
       const data = { title: 'Updated' };
       const result = await repository.updateById({
         id: 'soft-deleted',
@@ -197,8 +191,7 @@ describe('PersistableSearchRepository', () => {
         where: { status: 'active' },
       });
 
-      // updateBy aliases updateAll: bulk writes on search engines have no RETURNING, so data is
-      // always null and no extra engine read happens.
+      // updateBy aliases updateAll: bulk writes on search engines have no RETURNING, so data is always null and no extra engine read happens.
       expect(result).toEqual({ count: 3, data: null });
       expect(dataSource.fakeConnector.searchCalls.length).toBe(0);
 
@@ -308,8 +301,7 @@ describe('PersistableSearchRepository', () => {
       expect(call.collection).toBe('products');
       expect(call.documents).toBe(documents);
       expect(call.batchSize).toBe(10);
-      // `action` (create/upsert/update/emplace) is Typesense-only vocabulary; the neutral tier
-      // never forwards it. Reach getConnector().importDocuments() for that.
+      // `action` (create/upsert/update/emplace) is Typesense-only vocabulary the neutral tier never forwards - reach getConnector().importDocuments() for that.
       expect(call.action).toBeUndefined();
     });
 
@@ -333,8 +325,7 @@ describe('DefaultSearchRepository', () => {
   });
 
   describe('deleteById', () => {
-    // ProductDocument has a defaultFilter - deleteById's filter-guard reads the document back
-    // through findById/search first (see default-search.ts), same as updateById.
+    // ProductDocument has a defaultFilter, so deleteById's filter-guard reads the document back through findById/search first (see default-search.ts), same as updateById.
     test('connector returns true -> count 1', async () => {
       dataSource.fakeConnector.searchResponse = {
         found: 1,
@@ -345,8 +336,7 @@ describe('DefaultSearchRepository', () => {
 
       const result = await repository.deleteById({ id: '1' });
 
-      // The defaultFilter guard already reads the document back (found) - deleteById's `data`
-      // reuses that read rather than issuing a second one just to satisfy shouldReturn.
+      // The defaultFilter guard already read the document, so deleteById's `data` reuses that read rather than issuing a second one just to satisfy shouldReturn.
       expect(result).toEqual({ count: 1, data: { id: '1' } });
 
       const [call] = dataSource.fakeConnector.deleteDocumentCalls;
@@ -392,8 +382,7 @@ describe('DefaultSearchRepository', () => {
         options: { shouldSkipDefaultFilter: true },
       });
 
-      // No guard read happened (skipped), so there is nothing to report back as `data` even
-      // though shouldReturn wasn't explicitly false - deleteById never reads purely to populate it.
+      // No guard read happened (skipped), so there is nothing to report back as `data` even though shouldReturn was not explicitly false - deleteById never reads purely to populate it.
       expect(result).toEqual({ count: 1, data: null });
       expect(dataSource.fakeConnector.searchCalls.length).toBe(0);
     });
@@ -459,8 +448,7 @@ describe('DefaultSearchRepository', () => {
       });
       dataSource.fakeConnector.deleteAllDocumentsResponse = true;
 
-      // Without `force` this is refused: an unfiltered delete used to wipe the collection while
-      // reporting `{ count: 0 }`, so nothing surfaced the damage.
+      // Without `force` this is refused: an unfiltered delete used to wipe the collection while reporting `{ count: 0 }`, so nothing surfaced the damage.
       const result = await noFilterRepository.deleteAll({ options: { force: true } });
 
       // Truncate reports no per-document count (an engine limitation) - count stays 0.

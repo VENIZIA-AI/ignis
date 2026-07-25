@@ -1,10 +1,6 @@
 import { z } from '@hono/zod-openapi';
 
-/**
- * The error RESPONSE for OpenAPI docs - NOT the input to `getError` (that union, with no index
- * signature, lives in `@venizia/ignis-inversion`). Kept here because it needs `@hono/zod-openapi`,
- * which inversion must not depend on since it ships to browsers.
- */
+/** The error RESPONSE for OpenAPI docs, NOT the input to `getError` (that union, with no index signature, lives in `@venizia/ignis-inversion`); kept here because it needs `@hono/zod-openapi`, which inversion must not depend on since it ships to browsers. */
 export const ErrorSchema = z
   .object({
     statusCode: z.number().optional(),

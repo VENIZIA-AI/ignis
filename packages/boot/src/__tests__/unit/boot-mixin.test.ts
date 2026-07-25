@@ -14,8 +14,7 @@ describe('BootMixin - the app boot options actually reach the booters', () => {
     }
 
     const application = new FieldApp();
-    // A class-field initializer runs AFTER the mixin constructor body, so binding the options there
-    // captures `undefined` and every custom dirs/extensions/glob silently reverts to the defaults.
+    // A class-field initializer runs AFTER the mixin constructor body, so binding the options there captures `undefined` and every custom dirs/extensions/glob silently reverts to the defaults.
     await application.boot();
 
     expect(application.get<IBootOptions>({ key: '@app/boot-options' })).toEqual(CUSTOM_OPTIONS);

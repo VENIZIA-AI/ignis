@@ -22,8 +22,7 @@ export interface ISearchCustomizableRoutes {
 export interface ISearchControllerOptions<
   TEntity extends AbstractEntity<TAnyObjectSchema> = AbstractEntity<TAnyObjectSchema>,
 > {
-  /** Entity class or resolver function returning the entity class. Its SELECT schema drives the
-   * `hits[].document` shape in the generated search route's response. */
+  /** Entity class or resolver returning it; its SELECT schema drives the `hits[].document` shape in the generated route's response. */
   entity: TClass<TEntity> | TResolver<TClass<TEntity>>;
 
   repository: {
@@ -52,10 +51,7 @@ export class SearchControllerFactory extends BaseHelper {
     super({ scope: SearchControllerFactory.name });
   }
 
-  /** Creates a search controller with two generated endpoints:
-   * 1. `POST {basePath}/search` (single-collection, via `repository.search()`)
-   * 2. `POST {basePath}/multi-search` (cross-collection, via `repository.dataSource.multiSearch()`).
-   */
+  /** Creates a search controller with two endpoints: `POST {basePath}/search` via `repository.search()`, and `POST {basePath}/multi-search` via `repository.dataSource.multiSearch()`. */
   static defineSearchController<
     TEntity extends AbstractEntity<TAnyObjectSchema> = AbstractEntity<TAnyObjectSchema>,
     RouteEnv extends Env = Env,

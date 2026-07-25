@@ -57,7 +57,7 @@ bun add @connectrpc/connect-web
 ```
 
 > [!NOTE]
-> `@connectrpc/connect` is an **optional** peer dependency of `@venizia/ignis`. It is only loaded at runtime when a gRPC controller is configured, via `createRequire` from the application's `node_modules`. If it is missing, `GrpcRequestAdapter.build()` throws a clear error at startup via `validateModule()`. `@bufbuild/protobuf` is required by your generated protobuf code (e.g. `create()`), not by the framework itself.
+> `@connectrpc/connect` is an **optional** peer dependency of `@venizia/ignis`. It is only loaded at runtime when a gRPC controller is configured, via `createRequire` from the application's `node_modules`. If it is missing, `GrpcRequestAdapter.build()` throws a clear error at startup via `ModuleUtility.assertInstalled()`. `@bufbuild/protobuf` is required by your generated protobuf code (e.g. `create()`), not by the framework itself.
 
 ### Protobuf Code Generation
 
@@ -429,7 +429,7 @@ Hono Request
 
 ### Static `build()` Method
 
-The only public API. Validates peer deps via `validateModule()`, creates the adapter, and returns the middleware + registered paths:
+The only public API. Validates peer deps via `ModuleUtility.assertInstalled()`, creates the adapter, and returns the middleware + registered paths:
 
 ```typescript
 static async build(opts: {

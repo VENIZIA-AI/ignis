@@ -8,10 +8,7 @@ interface IProbePool {
   finishCreate: () => void;
 }
 
-/**
- * destroy() only tears down what it can SEE (waiter queue + idle list) - a resource whose create()
- * is still in flight is in neither, so the dispatch loop decides whether it leaks once the pool is gone.
- */
+/** destroy() only tears down what it can SEE (waiter queue + idle list) - a resource whose create() is still in flight is in neither, so the dispatch loop decides whether it leaks once the pool is gone. */
 const buildPool = (): IProbePool => {
   const created: number[] = [];
   const destroyed: number[] = [];
@@ -60,8 +57,7 @@ describe('BasePoolHelper - destroy() while a create() is still in flight', () =>
     await Bun.sleep(30);
 
     expect(created).toEqual([1]);
-    // Parking it in idle leaks a live resource - a database connection, a Casbin enforcer - that
-    // nothing will ever reclaim, because destroy() already ran.
+    // Parking it in idle leaks a live resource - a database connection, a Casbin enforcer - that nothing will ever reclaim, because destroy() already ran.
     expect(destroyed).toEqual([1]);
     expect(pool.getStats().available).toBe(0);
   });

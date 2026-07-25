@@ -21,9 +21,7 @@ import {
   sql,
 } from 'drizzle-orm';
 
-/** Builds `<column> <operator> ARRAY[$1, ...]` with every element BOUND, never interpolated - these
- * operators are wire-reachable with a `z.any()` operand, so raw interpolation is SQL injection.
- * Element type decides only the CAST (text[] vs numeric[]), never the binding. */
+/** Builds `<column> <operator> ARRAY[$1, ...]` with every element BOUND, never interpolated - these operators are wire-reachable with a `z.any()` operand, so raw interpolation is SQL injection. Element type decides only the CAST (text[] vs numeric[]), never the binding. */
 const buildPgArrayComparison = (opts: { column: AnyType; value: AnyType[]; operator: string }) => {
   const { column, value, operator } = opts;
 
@@ -42,21 +40,18 @@ const buildPgArrayComparison = (opts: { column: AnyType; value: AnyType[]; opera
   return sql`${column}::text[] ${sql.raw(operator)} ARRAY[${items}]::text[]`;
 };
 
-/** Drizzle-backed handlers for the neutral QueryOperators vocabulary (SQL branch only).
- * The operator NAMES live in repositories/common/operators.ts, shared with the Search dialects. */
+/** Drizzle-backed handlers for the neutral QueryOperators vocabulary (SQL branch only); the operator NAMES live in repositories/common/operators.ts, shared with the Search dialects. */
 export class PostgresQueryOperators extends QueryOperators {
   static readonly FNS = {
     [this.EQ]: (opts: IQueryHandlerOptions) =>
       opts.value === null ? isNull(opts.column) : eq(opts.column, opts.value),
-    // SQL three-valued logic is canonical: a NULL row never matches `neq`/`ne` (a comparison to a
-    // real value yields UNKNOWN, not TRUE).
+    // SQL three-valued logic is canonical: a NULL row never matches `neq`/`ne` because comparing to a real value yields UNKNOWN, not TRUE.
     [this.NE]: (opts: IQueryHandlerOptions) =>
       opts.value === null ? isNotNull(opts.column) : ne(opts.column, opts.value),
     [this.NEQ]: (opts: IQueryHandlerOptions) =>
       opts.value === null ? isNotNull(opts.column) : ne(opts.column, opts.value),
 
-    // `exists`/`notExists` test presence: `exists: true` -> IS NOT NULL, `exists: false` -> IS NULL;
-    // `notExists` is the inverse.
+    // `exists`/`notExists` test presence: `exists: true` -> IS NOT NULL, `exists: false` -> IS NULL, `notExists` the inverse.
     [this.EXISTS]: (opts: IQueryHandlerOptions) =>
       opts.value === false ? isNull(opts.column) : isNotNull(opts.column),
     [this.NOT_EXISTS]: (opts: IQueryHandlerOptions) =>

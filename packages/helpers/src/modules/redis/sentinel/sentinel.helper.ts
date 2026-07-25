@@ -28,9 +28,7 @@ export class RedisSentinelHelper extends AbstractRedisHelper<Redis> {
       ...opts,
       scope: RedisSentinelHelper.name,
       identifier: name,
-      // Precedence (low -> high): framework defaults, the redisOptions escape hatch, then
-      // first-class fields. Optional auth fields are spread ONLY when provided, so a value set
-      // via redisOptions is not clobbered by an undefined first-class field.
+      // Precedence (low -> high): framework defaults, the redisOptions escape hatch, then first-class fields. Optional auth fields are spread ONLY when provided, so a value set via redisOptions is not clobbered by an undefined first-class field.
       client: new Redis({
         ...AbstractRedisHelper.buildDefaultOpts({ maxRetry }),
         ...redisOptions,

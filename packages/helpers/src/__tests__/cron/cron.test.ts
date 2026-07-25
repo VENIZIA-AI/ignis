@@ -74,8 +74,7 @@ describe('CronHelper | configure', () => {
     const helper = createHelper({ onTick: () => {}, cronTime: EVERY_SECOND, autoStart: true });
     const firstInstance = helper.instance;
 
-    // configure() is async on purpose: CronJob.stop() only settles once an in-flight tick has
-    // finished, and the replacement job must not start before that.
+    // configure() is async on purpose: CronJob.stop() only settles once an in-flight tick has finished, and the replacement job must not start before that.
     await helper.configure();
 
     expect(helper.instance).not.toBe(firstInstance);

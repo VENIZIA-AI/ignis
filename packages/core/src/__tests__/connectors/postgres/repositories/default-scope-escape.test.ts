@@ -4,8 +4,7 @@ import { pgTable, serial, text } from 'drizzle-orm/pg-core';
 import type { AnyType } from '@venizia/ignis-helpers';
 import { FilterBuilder } from '@/connectors/postgres/repositories/dialect/filter';
 
-/** A `@model` `defaultFilter` is a SCOPE (soft-delete, tenant, ownership): a caller filter may only
- * NARROW it - dropping a default condition is a data-leak primitive. Pins the two escape routes. */
+/** A `@model` `defaultFilter` is a SCOPE (soft-delete, tenant, ownership): a caller filter may only NARROW it - dropping a default condition is a data-leak primitive. Pins the two escape routes. */
 const mergeWhere = (defaultWhere: AnyType, userWhere: AnyType): AnyType => {
   const builder = new FilterBuilder() as AnyType;
   return builder.mergeWhere({ defaultWhere, userWhere });
@@ -44,8 +43,7 @@ describe('mergeWhere - a default AND-group survives a caller AND-group', () => {
 
 describe('mergeWhere - a default OR-group survives a caller OR-group', () => {
   test("a visibility scope `or` is AND-composed with the caller's `or`, not replaced", () => {
-    // The default says: you may only see rows you own OR public rows.
-    // The caller says: show me drafts OR archived.
+    // The default says you may only see rows you own OR public rows; the caller says show me drafts OR archived.
     const merged = mergeWhere(
       { or: [{ ownerId: 7 }, { isPublic: true }] },
       { or: [{ status: 'draft' }, { status: 'archived' }] },
@@ -80,8 +78,7 @@ describe('an EMPTY logical group', () => {
   };
 
   test('`or: []` compiles to FALSE - an empty permission list must match NOTHING', () => {
-    // The shape that produces it: `or: permittedOrgIds.map(id => ({ orgId: id }))` where the user
-    // belongs to zero orgs. Dropping the clause returns every row of every org instead of none.
+    // Produced by `or: permittedOrgIds.map(id => ({ orgId: id }))` when the user belongs to zero orgs: dropping the clause returns every row of every org instead of none.
     const compiled = compile({ isPublished: 'true', or: [] });
 
     expect(compiled).toContain('false');

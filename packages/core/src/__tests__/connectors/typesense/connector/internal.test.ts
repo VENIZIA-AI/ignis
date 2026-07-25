@@ -73,8 +73,7 @@ describe('SearchConnectorInternal.wrapDependencyError', () => {
 
   test('logs the full internal detail (observability retained) while throwing sanitized', () => {
     const captured: string[] = [];
-    // Logger is a concrete class with a private constructor and private fields, so no hand-rolled
-    // fake can be structurally assignable to it - this boundary cast is unavoidable.
+    // Logger is a concrete class with a private constructor and private fields, so no hand-rolled fake can be structurally assignable to it - this boundary cast is unavoidable.
     const mockLogger = {
       for: (_method: string) => ({
         error: (_msg: string, ...args: unknown[]) => {

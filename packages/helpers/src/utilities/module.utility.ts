@@ -6,39 +6,59 @@ import { getError } from '@/modules/error';
 
 const logger = LoggerFactory.getLogger(['ModuleUtility']);
 
-/** Imports an optional peer through a function boundary so `Bun.build` cannot resolve the specifier at bundle time - literal (or `minify.syntax`-folded const) specifiers break consumers that compile without the peer installed. */
-export const importOptionalModule = async <T = AnyType>(opts: { module: string }): Promise<T> => {
-  try {
-    return (await import(opts.module)) as T;
-  } catch (error) {
-    logger
-      .for('importOptionalModule')
-      .error("Failed to import '%s' | Error: %s", opts.module, error);
-    throw getError({
-      message: `[importOptionalModule] ${opts.module} is required. Please install '${opts.module}' | Error: ${
-        error instanceof Error ? error.message : String(error)
-      }`,
+/** Loads an optional peer without letting `Bun.build` see it: every specifier stays a parameter, so there is no literal (nor a `minify.syntax`-folded const) for the bundler to resolve. */
+export class ModuleUtility {
+  /** Resolves peers against the APP's node_modules, not this package's own `dist/` location. */
+  private static appRequire() {
+    return createRequire(path.join(process.cwd(), 'node_modules'));
+  }
+
+  private static fail(opts: { method: string; module: string; error: unknown; scope?: string }) {
+    const { method, module, error, scope } = opts;
+    const reason = error instanceof Error ? error.message : String(error);
+
+    logger.for(method).error("Failed to load '%s' | Error: %s", module, reason);
+
+    return getError({
+      message: `[ModuleUtility.${method}] ${module} is required${
+        scope ? ` for ${scope}` : ''
+      }. Please install '${module}' | Error: ${reason}`,
     });
   }
-};
 
-/** Uses `createRequire` from the process CWD (not this utility's own `packages/helpers/dist/` location) so peer deps resolve against the app's node_modules; fully synchronous. `validateModule` is an async wrapper kept for API back-compat. */
-export const validateModuleSync = (opts: { scope?: string; modules: Array<string> }): void => {
-  const { scope = '', modules = [] } = opts;
-  const appRequire = createRequire(path.join(process.cwd(), 'node_modules'));
-  for (const module of modules) {
+  /** Loads the module. Use this everywhere except a constructor, which cannot await. */
+  static async load<T = AnyType>(opts: { module: string }): Promise<T> {
+    const { module } = opts;
+
     try {
-      appRequire.resolve(module);
+      return (await import(module)) as T;
     } catch (error) {
-      logger.for('validateModule').error("Failed to import '%s' | Error: %s", module, error);
-      throw getError({
-        message: `[validateModule] ${module} is required${scope ? ` for ${scope}` : ''}. Please install '${module}'`,
-      });
+      throw this.fail({ method: 'load', module, error });
     }
   }
-};
 
-/** Async wrapper over `validateModuleSync` - kept `async` for API back-compat even though the body never awaits anything. */
-export const validateModule = async (opts: { scope?: string; modules: Array<string> }) => {
-  validateModuleSync(opts);
-};
+  /** Sync twin of {@link load}, for a constructor or any path that cannot await. */
+  static loadSync<T = AnyType>(opts: { module: string }): T {
+    const { module } = opts;
+
+    try {
+      return this.appRequire()(module) as T;
+    } catch (error) {
+      throw this.fail({ method: 'loadSync', module, error });
+    }
+  }
+
+  /** Presence check only - throws naming what to install, without executing the module. */
+  static assertInstalled(opts: { modules: Array<string>; scope?: string }): void {
+    const { modules, scope } = opts;
+    const appRequire = this.appRequire();
+
+    for (const module of modules) {
+      try {
+        appRequire.resolve(module);
+      } catch (error) {
+        throw this.fail({ method: 'assertInstalled', module, error, scope });
+      }
+    }
+  }
+}

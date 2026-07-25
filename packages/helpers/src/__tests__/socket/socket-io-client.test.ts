@@ -1,7 +1,4 @@
-/**
- * Driven against a real socket.io server on port 0 - a bare IOServer stands in for the server
- * helper (which needs Redis) and speaks the same authenticate protocol.
- */
+/** Driven against a real socket.io server on port 0 - a bare IOServer stands in for the server helper (which needs Redis) and speaks the same authenticate protocol. */
 
 import type { AnyType } from '@/common/types';
 import {

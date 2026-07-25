@@ -1,6 +1,4 @@
-// Must precede the controllers import below: import order avoids a circular-import TDZ error
-// (BaseRestController not yet defined when health-check's controller extends it) - same guard the
-// search factory tests use.
+// Must precede the controllers import below: avoids a circular-import TDZ error (BaseRestController not yet defined when health-check's controller extends it).
 import '@/base/applications';
 
 import { describe, expect, test } from 'bun:test';
@@ -21,9 +19,7 @@ import { applyMethodDecorator, fakeCrudRepository } from './fixtures';
 
 const okResponse = jsonResponse({ schema: z.object({ hit: z.string() }), description: 'ok' });
 
-// ---------------------------------------------------------------------------------------------
-// 1. The three route APIs
-// ---------------------------------------------------------------------------------------------
+// --- 1. The three route APIs -----------------------------------------------------------------
 
 @controller({ path: '/decorated' })
 class DecoratedRoutesController extends BaseRestController {
@@ -151,9 +147,7 @@ class DuplicateRouteController extends BaseRestController {
   }
 }
 
-// ---------------------------------------------------------------------------------------------
-// 2. A decorator route on a subclass of a generated CRUD controller (the shape consumer apps use)
-// ---------------------------------------------------------------------------------------------
+// --- 2. A decorator route on a subclass of a generated CRUD controller -----------------------
 
 class RouteOrderDataSource extends BasePostgresDataSource<{}> {
   configure(): void {
@@ -196,8 +190,7 @@ applyMethodDecorator({
   methodName: 'unsubscribe',
 });
 
-// The shape consumer apps use to hand-write an id endpoint: the generated findById is disabled and
-// a decorator route takes its place, while the generated static routes (/count) stay enabled.
+// The shape consumer apps use to hand-write an id endpoint: the generated findById is disabled and a decorator route takes its place, while the generated static routes (/count) stay enabled.
 const CountOnlyCrudController = ControllerFactory.defineCrudController({
   entity: RouteOrderSubscriber,
   repository: { name: RouteOrderSubscriberRepository.name },

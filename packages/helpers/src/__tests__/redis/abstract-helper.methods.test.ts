@@ -1,16 +1,11 @@
 import type { AnyType } from '@/common/types';
-/**
- * AbstractRedisHelper - arg-mapping, empty-array guards, boolean mapping, camelCase cleanup.
- * Uses a mock ioredis client substituted into RedisSingleHelper via bracket access.
- */
+/** AbstractRedisHelper - arg-mapping, empty-array guards, boolean mapping, camelCase cleanup, against a mock ioredis client substituted into RedisSingleHelper via bracket access. */
 
 import { describe, expect, it, mock, beforeEach } from 'bun:test';
 import { EventEmitter } from 'node:events';
 import { RedisSingleHelper } from '@/modules/redis';
 
-// ---------------------------------------------------------------------------
-// Minimal mock ioredis client
-// ---------------------------------------------------------------------------
+// --- Minimal mock ioredis client ---
 
 type TMockFn = ReturnType<typeof mock>;
 
@@ -73,9 +68,7 @@ class MockRedisClient extends EventEmitter {
   call: TMockFn = mock(() => Promise.resolve(null));
 }
 
-// ---------------------------------------------------------------------------
-// Helpers
-// ---------------------------------------------------------------------------
+// --- Helpers ---
 
 function buildHelper() {
   const mockClient = new MockRedisClient();
@@ -91,9 +84,7 @@ function buildHelper() {
   return { helper, mockClient };
 }
 
-// ---------------------------------------------------------------------------
-// Part A: camelCase-only — lowercase aliases removed
-// ---------------------------------------------------------------------------
+// --- Part A: camelCase-only - lowercase aliases removed ---
 
 describe('camelCase cleanup — lowercase methods removed', () => {
   it('hset is undefined on the helper', () => {
@@ -125,9 +116,7 @@ describe('camelCase cleanup — lowercase methods removed', () => {
   });
 });
 
-// ---------------------------------------------------------------------------
-// Part B: empty-array early-return — ioredis NOT called
-// ---------------------------------------------------------------------------
+// --- Part B: empty-array early-return - ioredis NOT called ---
 
 describe('empty-array early-return', () => {
   let helper: RedisSingleHelper;
@@ -174,9 +163,7 @@ describe('empty-array early-return', () => {
   });
 });
 
-// ---------------------------------------------------------------------------
-// Part B: arg-mapping — correct ioredis call shapes
-// ---------------------------------------------------------------------------
+// --- Part B: arg-mapping - correct ioredis call shapes ---
 
 describe('arg-mapping', () => {
   let helper: RedisSingleHelper;
@@ -262,9 +249,7 @@ describe('arg-mapping', () => {
   });
 });
 
-// ---------------------------------------------------------------------------
-// Part B: boolean mapping — === 1 conversions
-// ---------------------------------------------------------------------------
+// --- Part B: boolean mapping - === 1 conversions ---
 
 describe('boolean mapping', () => {
   it('expire returns true when client returns 1', async () => {
@@ -331,9 +316,7 @@ describe('boolean mapping', () => {
   });
 });
 
-// ---------------------------------------------------------------------------
-// Part B: set with expiresIn
-// ---------------------------------------------------------------------------
+// --- Part B: set with expiresIn ---
 
 describe('set with expiresIn', () => {
   it('set without expiresIn calls client.set(key, json) — no PX', async () => {
@@ -366,9 +349,7 @@ describe('set with expiresIn', () => {
   });
 });
 
-// ---------------------------------------------------------------------------
-// Empty-input guards on del / mGet / mSet (ioredis throws on empty args)
-// ---------------------------------------------------------------------------
+// --- Empty-input guards on del / mGet / mSet (ioredis throws on empty args) ---
 
 describe('empty-input guards (del / mGet / mSet)', () => {
   it('del([]) returns 0 without calling client.del', async () => {
@@ -392,9 +373,7 @@ describe('empty-input guards (del / mGet / mSet)', () => {
   });
 });
 
-// ---------------------------------------------------------------------------
-// Pub/Sub never throws inside the ioredis callback (production-safe logging)
-// ---------------------------------------------------------------------------
+// --- Pub/Sub never throws inside the ioredis callback (production-safe logging) ---
 
 describe('pub/sub callback error handling', () => {
   it('subscribe logs and does not throw when ioredis reports an error', () => {
@@ -424,9 +403,7 @@ describe('pub/sub callback error handling', () => {
   });
 });
 
-// ---------------------------------------------------------------------------
-// del non-empty arg shape (ioredis del accepts a key array)
-// ---------------------------------------------------------------------------
+// --- del non-empty arg shape (ioredis del accepts a key array) ---
 
 describe('del arg-mapping', () => {
   it('del with keys calls client.del(keysArray)', async () => {
@@ -436,9 +413,7 @@ describe('del arg-mapping', () => {
   });
 });
 
-// ---------------------------------------------------------------------------
-// get/getObject transform + serialization
-// ---------------------------------------------------------------------------
+// --- get/getObject transform + serialization ---
 
 describe('get transform and getObject', () => {
   it('get applies the transform to a non-null value', async () => {
@@ -471,9 +446,7 @@ describe('get transform and getObject', () => {
   });
 });
 
-// ---------------------------------------------------------------------------
-// publish: per-topic, empty-topics guard, compression
-// ---------------------------------------------------------------------------
+// --- publish: per-topic, empty-topics guard, compression ---
 
 describe('publish', () => {
   it('publishes a Buffer to each valid topic', async () => {

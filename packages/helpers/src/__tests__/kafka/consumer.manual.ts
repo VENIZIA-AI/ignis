@@ -3,9 +3,7 @@
 import { deserializersFrom, jsonDeserializer, stringDeserializer } from '@platformatic/kafka';
 import { KafkaConsumerHelper } from '../../modules/queue/kafka';
 
-// -------------------------------------------------------------------------
-// Configuration — fill in your broker addresses and credentials
-// -------------------------------------------------------------------------
+// --- Configuration - fill in your broker addresses and credentials ---
 
 const BROKERS = ['host1:19092', 'host2:19093', 'host3:19094'];
 
@@ -19,9 +17,7 @@ const TOPIC = 'kaf-t1';
 const CLIENT_ID = process.argv[2] ?? 'ignis-test-consumer';
 const GROUP_ID = process.argv[3] ?? 'ignis-test-consumer-group';
 
-// -------------------------------------------------------------------------
-// Consumer
-// -------------------------------------------------------------------------
+// --- Consumer ---
 
 async function main() {
   const consumer = KafkaConsumerHelper.newInstance({
