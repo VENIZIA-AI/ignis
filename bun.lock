@@ -271,10 +271,10 @@
     },
     "packages/boot": {
       "name": "@venizia/ignis-boot",
-      "version": "0.1.1-9",
+      "version": "0.1.1-10",
       "dependencies": {
-        "@venizia/ignis-helpers": "^0.1.1-9",
-        "@venizia/ignis-inversion": "^0.1.1-5",
+        "@venizia/ignis-helpers": "^0.1.1-10",
+        "@venizia/ignis-inversion": "^0.1.1-6",
         "glob": "^13.0.6",
         "lodash": "catalog:",
         "reflect-metadata": "catalog:",
@@ -299,6 +299,7 @@
         "@venizia/ignis-inversion": "^0.1.1-5",
         "lodash": "catalog:",
         "reflect-metadata": "catalog:",
+        "zod": "catalog:",
       },
       "devDependencies": {
         "@asteasolutions/zod-to-openapi": "^9.0.0",
@@ -393,7 +394,7 @@
     },
     "packages/filter": {
       "name": "@venizia/ignis-filter",
-      "version": "0.1.1",
+      "version": "0.1.2-0",
       "dependencies": {
         "@venizia/ignis-inversion": "^0.1.1-5",
         "zod": "catalog:",
@@ -409,9 +410,9 @@
     },
     "packages/helpers": {
       "name": "@venizia/ignis-helpers",
-      "version": "0.1.1-9",
+      "version": "0.1.1-10",
       "dependencies": {
-        "@venizia/ignis-inversion": "^0.1.1-5",
+        "@venizia/ignis-inversion": "^0.1.1-6",
         "dayjs": "catalog:",
         "ioredis": "catalog:",
         "lodash": "catalog:",
@@ -492,7 +493,7 @@
     },
     "packages/inversion": {
       "name": "@venizia/ignis-inversion",
-      "version": "0.1.1-5",
+      "version": "0.1.1-6",
       "dependencies": {
         "lodash": "catalog:",
         "reflect-metadata": "catalog:",
@@ -2911,6 +2912,8 @@
     "@typescript-eslint/utils/@typescript-eslint/scope-manager": ["@typescript-eslint/scope-manager@8.64.0", "", { "dependencies": { "@typescript-eslint/types": "8.64.0", "@typescript-eslint/visitor-keys": "8.64.0" } }, "sha512-CXEaFdYXjSTgKhisNkwCcJwTP8Pl+fmRrEQrri4nm3vU743bALrxzLmq7fHG/7e6a5xO0lDYeURpZmBuhHk54w=="],
 
     "@typescript-eslint/visitor-keys/@typescript-eslint/types": ["@typescript-eslint/types@8.63.0", "", {}, "sha512-xyLtl9DUBBFrcJS4x2pIqGLH68/tC2uOa4Z7pUteW09D3bXnnXUom4dyPikzWgB7llmIc1zoeI3aoUdC4rPK/Q=="],
+
+    "@venizia/ignis/@venizia/ignis-filter": ["@venizia/ignis-filter@0.1.1", "", { "dependencies": { "@venizia/ignis-inversion": "^0.1.1-5", "zod": "^4.4.3" } }, "sha512-zhHHCZcorjDhuPCw9qYiqrVPJeyXtL1i50zVD+USytbwzmJTi8Fjqx7GvZatdb79NWDg8Zlq5RwRC/00/n4ytQ=="],
 
     "@vitejs/plugin-vue/vite": ["vite@5.4.21", "", { "dependencies": { "esbuild": "^0.21.3", "postcss": "^8.4.43", "rollup": "^4.20.0" }, "optionalDependencies": { "fsevents": "~2.3.3" }, "peerDependencies": { "@types/node": "^18.0.0 || >=20.0.0", "less": "*", "lightningcss": "^1.21.0", "sass": "*", "sass-embedded": "*", "stylus": "*", "sugarss": "*", "terser": "^5.4.0" }, "optionalPeers": ["@types/node", "less", "lightningcss", "sass", "sass-embedded", "stylus", "sugarss", "terser"], "bin": { "vite": "bin/vite.js" } }, "sha512-o5a9xKjbtuhY6Bi5S3+HvbRERmouabWbyUcpXXUA1u+GNUKoROi9byOJ8M0nHbHYHkYICiMlqxkg1KkYmm25Sw=="],
 

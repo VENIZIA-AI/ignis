@@ -187,7 +187,8 @@
     "@venizia/ignis-helpers": "^0.1.1-9",
     "@venizia/ignis-inversion": "^0.1.1-5",
     "lodash": "catalog:",
-    "reflect-metadata": "catalog:"
+    "reflect-metadata": "catalog:",
+    "zod": "catalog:"
   },
   "peerDependencies": {
     "@asteasolutions/zod-to-openapi": "^9.0.0",
