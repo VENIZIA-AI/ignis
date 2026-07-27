@@ -43,6 +43,8 @@ export abstract class AbstractGrpcController<
   basePath: string = '';
   /** Assigned by GrpcComponent from its options, before configure(). Absent means the adapter resolves the peer itself. */
   connectRpcModule?: IConnectRpcModule;
+  /** ConnectRPC interceptors, assigned by GrpcComponent from its options before configure(). Applied to every RPC this controller registers. */
+  interceptors?: unknown[];
   router: Hono<RouteEnv, RouteSchema, BasePath>;
 
   constructor(opts: IGrpcControllerOptions) {
@@ -165,6 +167,7 @@ export abstract class AbstractGrpcController<
     const adapter = await GrpcRequestAdapter.build({
       controller: this,
       module: this.connectRpcModule,
+      interceptors: this.interceptors,
     });
     this.router.use('*', adapter.middleware);
 

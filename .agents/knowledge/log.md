@@ -33,6 +33,14 @@ exist for. The assert is now skipped when the escape is supplied.
 
 `register` now has no first-choice call site left in the framework. It stays public for consumers.
 
+`IGrpcComponentConfig.interceptors` is wired at the same time. It had been dead config since it was
+introduced: the component bound it, nothing read it, and `configure()` called
+`GrpcRequestAdapter.build({ controller })` with nothing else. The adapter half already worked - it
+forwards a non-empty list to `createConnectRouter` - so the fix was the missing component ->
+controller -> `build` link, the same one `module` needed. Kept as `unknown[]` rather than
+ConnectRPC's `Interceptor`: the type is published, BANA could not be crosschecked from this repo,
+and widening it later breaks nobody.
+
 ## 2026-07-27 - the mail transports take their peer through the options
 
 `INodemailerMailOptions.module` / `IMailgunMailOptions.module`, threaded through

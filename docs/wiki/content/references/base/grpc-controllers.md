@@ -509,8 +509,23 @@ interface IGrpcComponentConfig {
 
 | Option | Type | Default | Meaning |
 |---|---|---|---|
-| `interceptors` | `unknown[]` | none | Reserved. Not yet threaded to the adapter |
+| `interceptors` | `unknown[]` | none | ConnectRPC interceptors, passed to `createConnectRouter` for every gRPC controller. An empty list passes nothing |
 | `module` | `IConnectRpcModule` | none | The ConnectRPC peer, as `{ connect, protocol }`. Required for a compiled binary - see [Peer Dependency Loading](#peer-dependency-loading) |
+
+Both options are component-wide. `GrpcComponent` assigns them to every gRPC controller it discovers, before calling `configure()`:
+
+```typescript
+import type { Interceptor } from '@connectrpc/connect';
+
+const logging: Interceptor = next => async request => {
+  const response = await next(request);
+  return response;
+};
+
+this.bind({ key: GrpcBindingKeys.GRPC_COMPONENT_OPTIONS }).toValue({
+  interceptors: [logging],
+});
+```
 
 The component registers a default (empty) config binding under the key `'@app/grpc/options'` (`GrpcBindingKeys.GRPC_COMPONENT_OPTIONS`).
 

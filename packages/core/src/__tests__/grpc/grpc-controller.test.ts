@@ -311,10 +311,12 @@ describe('BaseGrpcController', () => {
 describe('BaseGrpcController - ConnectRPC module handed over through the options', () => {
   const buildFakeModule = () => {
     const calls: string[] = [];
+    const routerOpts: Array<Record<string, unknown> | undefined> = [];
     const module: IConnectRpcModule = {
       connect: {
-        createConnectRouter: () => {
+        createConnectRouter: opts => {
           calls.push('createConnectRouter');
+          routerOpts.push(opts);
           return { service: () => calls.push('service'), handlers: [] } as AnyType;
         },
       },
@@ -324,7 +326,7 @@ describe('BaseGrpcController - ConnectRPC module handed over through the options
       },
     };
 
-    return { module, calls };
+    return { module, calls, routerOpts };
   };
 
   test('the given module builds the router, no filesystem lookup', async () => {
@@ -357,5 +359,49 @@ describe('BaseGrpcController - ConnectRPC module handed over through the options
     await ctrl.configure();
 
     expect(ctrl.isConfigured).toBe(true);
+  });
+});
+
+describe('BaseGrpcController - interceptors from the component options', () => {
+  const buildController = async (interceptors?: unknown[]) => {
+    class TestCtrl extends BaseGrpcController {
+      async binding() {}
+    }
+
+    const routerOpts: Array<Record<string, unknown> | undefined> = [];
+    const ctrl = new TestCtrl({ scope: 'TestCtrl', path: '/grpc' });
+
+    ctrl.interceptors = interceptors;
+    ctrl.connectRpcModule = {
+      connect: {
+        createConnectRouter: opts => {
+          routerOpts.push(opts);
+          return { service: () => {}, handlers: [] } as AnyType;
+        },
+      },
+      protocol: {
+        universalServerRequestFromFetch: (() => ({})) as AnyType,
+        universalServerResponseToFetch: (() => new Response()) as AnyType,
+      },
+    };
+
+    await ctrl.configure();
+
+    return routerOpts[0];
+  };
+
+  test('reaches createConnectRouter', async () => {
+    const first = () => {};
+    const second = () => {};
+
+    expect(await buildController([first, second])).toEqual({ interceptors: [first, second] });
+  });
+
+  test('an empty list passes no router option', async () => {
+    expect(await buildController([])).toEqual({});
+  });
+
+  test('no interceptors passes no router option', async () => {
+    expect(await buildController()).toEqual({});
   });
 });
