@@ -94,6 +94,9 @@ openspec
 CLAUDE.md
 CLAUDE.*.md
 **/*/CLAUDE.md
+.serena
+
+docs/temp
 
 # Miscellaneous
 # Other temporary files, archives, and caches.
