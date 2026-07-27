@@ -7,17 +7,20 @@ import type {
   IMailSendResult,
   IMailTransport,
   TMailgunConfig,
+  TMailgunModule,
 } from '../../common';
 import { MailErrorCodes } from '../../common';
 
 export class MailgunTransportHelper extends BaseHelper implements IMailTransport {
   private client: AnyType; // IMessagesClient from mailgun.js
   private domain: string;
+  private module?: TMailgunModule;
 
-  constructor(config: TMailgunConfig) {
+  constructor(opts: { config: TMailgunConfig; module?: TMailgunModule }) {
     super({ scope: MailgunTransportHelper.name });
 
-    this.configure(config);
+    this.module = opts.module;
+    this.configure(opts.config);
   }
 
   configure(config: TMailgunConfig) {
@@ -50,7 +53,7 @@ export class MailgunTransportHelper extends BaseHelper implements IMailTransport
 
   /** Client factory seam - overridden in tests to run the helper without the mailgun.js peer. */
   protected buildClient(config: TMailgunConfig): AnyType {
-    const Mailgun = ModuleUtility.loadSync<AnyType>({ module: 'mailgun.js' });
+    const Mailgun = this.module ?? ModuleUtility.loadSync<AnyType>({ module: 'mailgun.js' });
     const mailgun = new Mailgun(FormData);
     const client = mailgun.client(config);
 

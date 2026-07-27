@@ -5,15 +5,18 @@ import type {
   IMailSendResult,
   IMailTransport,
   TNodemailerConfig,
+  TNodemailerModule,
 } from '../../common';
 
 export class NodemailerTransportHelper extends BaseHelper implements IMailTransport {
   private transporter: AnyType;
+  private module?: TNodemailerModule;
 
-  constructor(config: TNodemailerConfig) {
+  constructor(opts: { config: TNodemailerConfig; module?: TNodemailerModule }) {
     super({ scope: NodemailerTransportHelper.name });
 
-    this.configure(config);
+    this.module = opts.module;
+    this.configure(opts.config);
   }
 
   configure(config: TNodemailerConfig) {
@@ -22,7 +25,7 @@ export class NodemailerTransportHelper extends BaseHelper implements IMailTransp
 
   /** Client factory seam - overridden in tests to run the helper without a real SMTP client. */
   protected buildTransporter(config: TNodemailerConfig): AnyType {
-    const nodemailer = ModuleUtility.loadSync<AnyType>({ module: 'nodemailer' });
+    const nodemailer = this.module ?? ModuleUtility.loadSync<AnyType>({ module: 'nodemailer' });
     return nodemailer.createTransport(config);
   }
 

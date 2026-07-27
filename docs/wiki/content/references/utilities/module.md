@@ -56,23 +56,21 @@ Only a specifier that crosses a function boundary survives as a runtime import. 
 
 Runtime resolution needs a `node_modules` to resolve against. A `bun build --compile` binary usually runs without one - the deployment ships the executable and nothing else - so a peer the application genuinely installed is still unreachable at runtime, and the component that needs it dies at boot with the install hint.
 
-Register it instead. The static import is what pulls the library into the binary; `register` is what lets the framework find it there:
+**Check the component's options first.** Where a component takes the peer through its own options - the mail transports take `module`, `HashiCorpVaultHelper` takes `client`, `DotenvVaultHelper` takes `decode` - use that: it is typed, it lands where it is used, and no ordering can defeat it. `register` is the general fallback, for peers the framework reaches with no options seam in between.
+
+The static import is what pulls the library into the binary; `register` is what lets the framework find it there:
 
 ```typescript
 import { ModuleUtility } from '@venizia/ignis-helpers';
-import * as nodemailer from 'nodemailer';
+import * as connect from '@connectrpc/connect';
 
-export class MailBootstrapComponent extends BaseComponent {
-  override async binding(): Promise<void> {
-    // Before MailComponent binds: its transport is built during that binding.
-    ModuleUtility.register({ modules: { nodemailer } });
-
-    this.application.component(MailComponent);
-  }
-}
+// At the entrypoint, before anything that reaches the peer runs.
+ModuleUtility.register({ modules: { '@connectrpc/connect': connect } });
 ```
 
-The registry is keyed by specifier and the value is returned as-is: what you register under `nodemailer` is exactly what `loadSync({ module: 'nodemailer' })` hands the transport. `import * as` gives the right shape for a CommonJS peer.
+The registry is keyed by specifier and the value is returned as-is: what you register under `@connectrpc/connect` is exactly what `load({ module: '@connectrpc/connect' })` hands the caller. `import * as` gives the right shape for a CommonJS peer.
+
+Register before the consumer runs. Nothing enforces that ordering, which is the reason to prefer an options seam wherever one exists.
 
 Registration is only worth it for the compiled-binary case. An application running from source resolves its peers from `node_modules` already.
 

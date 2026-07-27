@@ -6,6 +6,24 @@ not how.
 This file and `index.md` are reserved OKF filenames - they carry no `type:` frontmatter and are not
 counted as concepts.
 
+## 2026-07-27 - the mail transports take their peer through the options
+
+`INodemailerMailOptions.module` / `IMailgunMailOptions.module`, threaded through
+`MailTransportProvider` into both transport helpers, which now fall back to `ModuleUtility.loadSync`
+only when the option is absent. Both helper constructors moved to an options object
+(`{ config, module }`) - a shape change, and the reason core needs a republish; nothing outside
+`MailTransportProvider` constructs them.
+
+Written the day after `register` shipped, and it demotes it. A global registry keyed by string is a
+service locator: it depends on call order (register must beat the component's binding, nothing
+enforces that), a typo is a runtime failure, and the value is `AnyType`. The options seam is DI -
+typed to the shape each transport calls, arriving where it is used. IGNIS already had the seam for
+the vault helpers (`client`, `decode`); mail was the gap because it builds the client itself.
+
+`register` stays for peers with no options in between, notably `@connectrpc/connect` in the gRPC
+adapter. It does NOT help a `pino` transport target: `pino.transport()` resolves inside a worker
+thread the registry never reaches.
+
 ## 2026-07-27 - optional peers reach compiled binaries through a registry
 
 `ModuleUtility.register({ modules })` closes the hole the bundler-invisible specifier opened.

@@ -69,7 +69,7 @@ class TestableMailgunTransport extends MailgunTransportHelper {
 
 const buildNodemailerTransport = (behaviour?: { sendError?: Error; verifyError?: Error }) => {
   nextSmtpTransporter = new FakeSmtpTransporter(behaviour ?? {});
-  const helper = new TestableNodemailerTransport({ host: 'localhost', port: 1025 });
+  const helper = new TestableNodemailerTransport({ config: { host: 'localhost', port: 1025 } });
 
   return { helper, fakeTransporter: nextSmtpTransporter };
 };
@@ -77,9 +77,7 @@ const buildNodemailerTransport = (behaviour?: { sendError?: Error; verifyError?:
 const buildMailgunTransport = (behaviour?: { createError?: Error }) => {
   nextMailgunClient = new FakeMailgunMessagesClient(behaviour ?? {});
   const helper = new TestableMailgunTransport({
-    username: 'api',
-    key: 'fake-key',
-    domain: 'mail.test',
+    config: { username: 'api', key: 'fake-key', domain: 'mail.test' },
   });
 
   return { helper, fakeClient: nextMailgunClient };
@@ -91,7 +89,7 @@ describe('MailgunTransportHelper - configuration', () => {
 
     const error = (() => {
       try {
-        new TestableMailgunTransport({ username: 'api', key: 'fake-key' } as AnyType);
+        new TestableMailgunTransport({ config: { username: 'api', key: 'fake-key' } as AnyType });
         return undefined;
       } catch (caught) {
         return caught as AnyType;
@@ -108,7 +106,7 @@ describe('MailgunTransportHelper - configuration', () => {
 
     const error = (() => {
       try {
-        new TestableMailgunTransport({ domain: 'mail.test' } as AnyType);
+        new TestableMailgunTransport({ config: { domain: 'mail.test' } as AnyType });
         return undefined;
       } catch (caught) {
         return caught as AnyType;
@@ -126,7 +124,9 @@ describe('MailgunTransportHelper - configuration', () => {
 
     const error = (() => {
       try {
-        new TestableMailgunTransport({ username: 'api', key: 'super-secret-key' } as AnyType);
+        new TestableMailgunTransport({
+          config: { username: 'api', key: 'super-secret-key' } as AnyType,
+        });
         return undefined;
       } catch (caught) {
         return caught as AnyType;
@@ -208,5 +208,58 @@ describe('NodemailerTransportHelper', () => {
 
     await helper.close();
     expect(fakeTransporter.isClosed).toBe(true);
+  });
+});
+
+// These build the REAL helpers, not the Testable subclasses: neither peer is installed here, so
+// reaching the ModuleUtility fallback would throw. Getting a transport back IS the proof that the
+// handed-over module was used - the same path a compiled binary takes.
+describe('Transports - module handed over through the options', () => {
+  test('nodemailer: the given module builds the transporter, no filesystem lookup', () => {
+    const fakeTransporter = new FakeSmtpTransporter();
+    const calls: AnyType[] = [];
+
+    const helper = new NodemailerTransportHelper({
+      config: { host: 'localhost', port: 1025 },
+      module: {
+        createTransport: (config: AnyType) => {
+          calls.push(config);
+          return fakeTransporter;
+        },
+      },
+    });
+
+    expect(calls).toEqual([{ host: 'localhost', port: 1025 }]);
+    expect(helper).toBeInstanceOf(NodemailerTransportHelper);
+  });
+
+  test('mailgun: the given module builds the client, no filesystem lookup', async () => {
+    const fakeClient = new FakeMailgunMessagesClient();
+
+    const helper = new MailgunTransportHelper({
+      config: { username: 'api', key: 'fake-key', domain: 'mail.test' },
+      module: class {
+        client() {
+          return { messages: fakeClient };
+        }
+      } as AnyType,
+    });
+
+    const result = await helper.send({ to: 'a@b.com', subject: 'Hi', text: 'body' });
+    expect(result.success).toBe(true);
+  });
+
+  test('without a module, the missing peer still throws the install hint', () => {
+    const error = (() => {
+      try {
+        new NodemailerTransportHelper({ config: { host: 'localhost', port: 1025 } });
+        return undefined;
+      } catch (caught) {
+        return caught as AnyType;
+      }
+    })();
+
+    expect(error).toBeDefined();
+    expect(error.message).toContain("Please install 'nodemailer'");
   });
 });

@@ -181,11 +181,13 @@ interface IBaseMailOptions {
 interface INodemailerMailOptions extends IBaseMailOptions {
   provider: 'nodemailer';
   config: TNodemailerConfig; // SMTPTransport | SMTPTransport.Options | string
+  module?: TNodemailerModule; // the peer itself; see "Peer dependency loading"
 }
 
 interface IMailgunMailOptions extends IBaseMailOptions {
   provider: 'mailgun';
   config: TMailgunConfig; // AnyType & { domain: string } -- also requires username, key at runtime
+  module?: TMailgunModule; // the peer itself; see "Peer dependency loading"
 }
 
 interface ICustomMailOptions extends IBaseMailOptions {
@@ -574,11 +576,23 @@ interface IMailTransport {
 
 ### Peer dependency loading
 
-Both transports load their peer through `ModuleUtility.loadSync({ module })`, from the client-factory seam `configure()` calls. A missing package throws the framework's install hint - `[ModuleUtility.loadSync] nodemailer is required. Please install 'nodemailer'` - not Node's raw `Cannot find module`.
+Pass the peer yourself through `module`, or let the transport find it. With `module` set, the transport uses it as-is; without it, the transport falls back to `ModuleUtility.loadSync({ module })` from the client-factory seam `configure()` calls. A missing package then throws the framework's install hint - `[ModuleUtility.loadSync] nodemailer is required. Please install 'nodemailer'` - not Node's raw `Cannot find module`.
 
-That indirection also keeps the specifier invisible to `Bun.build`. Importing `@venizia/ignis/mail` for the Nodemailer transport no longer drags `mailgun.js` into your bundle, and the reverse holds too.
+That fallback keeps the specifier invisible to `Bun.build`. Importing `@venizia/ignis/mail` for the Nodemailer transport no longer drags `mailgun.js` into your bundle, and the reverse holds too.
 
-The cost lands on compiled applications: a `bun build --compile` binary ships without `node_modules`, so there is nothing left for the runtime lookup to find and the component throws that install hint at boot. Such an application imports its transport peer statically and hands it over with [`ModuleUtility.register`](/references/utilities/module#compiled-binaries) before `MailComponent` binds.
+**A compiled application must pass `module`.** A `bun build --compile` binary ships without `node_modules`, so the runtime lookup has nothing to resolve against and the component throws that install hint at boot - with the peer sitting in `package.json`, which is no help because nothing put it inside the binary. The static import is what embeds it:
+
+```typescript
+import * as nodemailer from 'nodemailer';
+
+this.bind({ key: MailKeys.MAIL_OPTIONS }).toValue({
+  provider: MailProviders.NODEMAILER,
+  config: { host, port, secure, auth },
+  module: nodemailer,
+});
+```
+
+`module` is typed as the shape the transport calls (`createTransport` for Nodemailer, a constructor for Mailgun), so handing over the wrong thing is a compile error rather than a boot crash. Prefer it over [`ModuleUtility.register`](/references/utilities/module#compiled-binaries): the dependency arrives where it is used and cannot be defeated by binding order. `register` remains the answer for peers the framework reaches with no options seam in between.
 
 **Nodemailer (`NodemailerTransportHelper`, extends `BaseHelper`):**
 
