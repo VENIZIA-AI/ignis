@@ -12,8 +12,6 @@ import type {
 } from '../common';
 import { Authorization, AuthorizeBindingKeys } from '../common';
 
-// Authorization Enforcer Registry — manages enforcer registration and resolution
-
 export class AuthorizationEnforcerRegistry extends AbstractAuthRegistry<IAuthorizationEnforcer> {
   private static instance: AuthorizationEnforcerRegistry;
 
@@ -60,7 +58,6 @@ export class AuthorizationEnforcerRegistry extends AbstractAuthRegistry<IAuthori
   }) {
     const { container, enforcers } = opts;
 
-    // Validate no duplicate names in this batch
     const names = enforcers.map(e => e.name);
     const duplicateNames = names.filter((n, i) => names.indexOf(n) !== i);
     if (duplicateNames.length) {
@@ -70,7 +67,6 @@ export class AuthorizationEnforcerRegistry extends AbstractAuthRegistry<IAuthori
     }
 
     for (const { enforcer, name, options } of enforcers) {
-      // Validate name not already registered
       if (this.descriptors.has(name)) {
         throw getError({
           message: `[AuthorizationEnforcerRegistry] Enforcer already registered: ${name}`,
@@ -106,7 +102,7 @@ export class AuthorizationEnforcerRegistry extends AbstractAuthRegistry<IAuthori
     return enforcer;
   }
 
-  /** Drop a user's cached policies on the resolved enforcer. Lazy — next request rebuilds. */
+  /** Drop a user's cached policies on the resolved enforcer. Lazy - next request rebuilds. */
   async invalidateUserCache(opts: {
     user: IAuthorizationUser;
     enforcerName?: string;
@@ -114,7 +110,7 @@ export class AuthorizationEnforcerRegistry extends AbstractAuthRegistry<IAuthori
     const name = opts.enforcerName ?? this.getDefaultEnforcerName();
     const enforcer = await this.resolveEnforcer({ name });
 
-    // Cache management is an optional IAuthorizationEnforcer capability — feature-detect it.
+    // Cache management is an optional IAuthorizationEnforcer capability - feature-detect it.
     if (typeof enforcer.invalidateUserCache !== 'function') {
       throw getError({
         message: `[AuthorizationEnforcerRegistry] Enforcer "${name}" does not support cache invalidation`,

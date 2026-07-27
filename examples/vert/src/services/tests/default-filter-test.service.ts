@@ -65,47 +65,47 @@ export class DefaultFilterTestService extends BaseTestService {
     this.logSection('[DefaultFilterTestService] Starting default filter test cases');
 
     // Basic default filter tests
-    await this.case1_DefaultFilterApplied();
-    await this.case2_SkipDefaultFilterBypass();
-    await this.case3_UserFilterMergedWithDefault();
-    await this.case4_UserFilterOverridesDefaultSameKey();
-    await this.case5_FindOneWithDefaultFilter();
-    await this.case6_FindByIdWithDefaultFilter();
-    await this.case7_CountWithDefaultFilter();
-    await this.case8_ExistsWithDefaultFilter();
+    await this.case1DefaultFilterApplied();
+    await this.case2SkipDefaultFilterBypass();
+    await this.case3UserFilterMergedWithDefault();
+    await this.case4UserFilterOverridesDefaultSameKey();
+    await this.case5FindOneWithDefaultFilter();
+    await this.case6FindByIdWithDefaultFilter();
+    await this.case7CountWithDefaultFilter();
+    await this.case8ExistsWithDefaultFilter();
 
     // Edge cases
-    await this.case9_EmptyUserFilter();
-    await this.case10_NullValuesInFilter();
-    await this.case11_OperatorMerging();
-    await this.case12_LimitOverride();
-    await this.case13_OrderPreservation();
+    await this.case9EmptyUserFilter();
+    await this.case10NullValuesInFilter();
+    await this.case11OperatorMerging();
+    await this.case12LimitOverride();
+    await this.case13OrderPreservation();
 
     // Security tests
-    await this.case14_SqlInjectionInFilter();
-    await this.case15_XssPayloadInFilter();
-    await this.case16_PrototypePollutionAttempt();
-    await this.case17_VeryLongStringValues();
-    await this.case18_SpecialCharacters();
+    await this.case14SqlInjectionInFilter();
+    await this.case15XssPayloadInFilter();
+    await this.case16PrototypePollutionAttempt();
+    await this.case17VeryLongStringValues();
+    await this.case18SpecialCharacters();
 
     // Integration tests
-    await this.case19_TransactionWithDefaultFilter();
-    await this.case20_RelationsWithDefaultFilter();
+    await this.case19TransactionWithDefaultFilter();
+    await this.case20RelationsWithDefaultFilter();
 
     // Additional edge cases
-    await this.case21_UpdateAllWithDefaultFilter();
-    await this.case22_DeleteAllWithDefaultFilter();
-    await this.case23_AndOrCombinationWithDefaultFilter();
-    await this.case24_DefaultFilterWithFieldSelection();
-    await this.case25_ConcurrentQueriesWithDefaultFilter();
-    await this.case26_DefaultFilterWithNestedRelations();
-    await this.case27_UpdateByIdWithDefaultFilter();
-    await this.case28_DefaultFilterInvariance();
+    await this.case21UpdateAllWithDefaultFilter();
+    await this.case22DeleteAllWithDefaultFilter();
+    await this.case23AndOrCombinationWithDefaultFilter();
+    await this.case24DefaultFilterWithFieldSelection();
+    await this.case25ConcurrentQueriesWithDefaultFilter();
+    await this.case26DefaultFilterWithNestedRelations();
+    await this.case27UpdateByIdWithDefaultFilter();
+    await this.case28DefaultFilterInvariance();
 
     // Advanced Security Tests
-    await this.case29_SqlInjectionInOrderClause();
-    await this.case30_SqlInjectionInFieldsArray();
-    await this.case31_SqlInjectionInIncludeRelation();
+    await this.case29SqlInjectionInOrderClause();
+    await this.case30SqlInjectionInFieldsArray();
+    await this.case31SqlInjectionInIncludeRelation();
 
     // Cleanup
     await this.cleanup();
@@ -116,7 +116,7 @@ export class DefaultFilterTestService extends BaseTestService {
   // ----------------------------------------------------------------
   // CASE 1: Default filter is automatically applied
   // ----------------------------------------------------------------
-  private async case1_DefaultFilterApplied(): Promise<void> {
+  private async case1DefaultFilterApplied(): Promise<void> {
     const repo = this.productRepository;
     this.logCase('[CASE 1] Default filter should be automatically applied');
 
@@ -159,7 +159,7 @@ export class DefaultFilterTestService extends BaseTestService {
   // ----------------------------------------------------------------
   // CASE 2: shouldSkipDefaultFilter bypasses the default filter
   // ----------------------------------------------------------------
-  private async case2_SkipDefaultFilterBypass(): Promise<void> {
+  private async case2SkipDefaultFilterBypass(): Promise<void> {
     const repo = this.productRepository;
     this.logCase('[CASE 2] shouldSkipDefaultFilter should bypass default filter');
 
@@ -201,7 +201,7 @@ export class DefaultFilterTestService extends BaseTestService {
   // ----------------------------------------------------------------
   // CASE 3: User filter is merged with default filter
   // ----------------------------------------------------------------
-  private async case3_UserFilterMergedWithDefault(): Promise<void> {
+  private async case3UserFilterMergedWithDefault(): Promise<void> {
     const repo = this.productRepository;
     this.logCase('[CASE 3] User filter should be merged with default filter');
 
@@ -249,7 +249,7 @@ export class DefaultFilterTestService extends BaseTestService {
   // ----------------------------------------------------------------
   // CASE 4: User filter overrides default for same key
   // ----------------------------------------------------------------
-  private async case4_UserFilterOverridesDefaultSameKey(): Promise<void> {
+  private async case4UserFilterOverridesDefaultSameKey(): Promise<void> {
     const repo = this.productRepository;
     this.logCase('[CASE 4] User filter should override default for same key');
 
@@ -286,7 +286,7 @@ export class DefaultFilterTestService extends BaseTestService {
   // ----------------------------------------------------------------
   // CASE 5: FindOne with default filter
   // ----------------------------------------------------------------
-  private async case5_FindOneWithDefaultFilter(): Promise<void> {
+  private async case5FindOneWithDefaultFilter(): Promise<void> {
     const repo = this.productRepository;
     this.logCase('[CASE 5] FindOne should apply default filter');
 
@@ -331,7 +331,7 @@ export class DefaultFilterTestService extends BaseTestService {
   // ----------------------------------------------------------------
   // CASE 6: FindById with default filter
   // ----------------------------------------------------------------
-  private async case6_FindByIdWithDefaultFilter(): Promise<void> {
+  private async case6FindByIdWithDefaultFilter(): Promise<void> {
     const repo = this.productRepository;
     this.logCase('[CASE 6] FindById should apply default filter');
 
@@ -373,7 +373,7 @@ export class DefaultFilterTestService extends BaseTestService {
   // ----------------------------------------------------------------
   // CASE 7: Count with default filter
   // ----------------------------------------------------------------
-  private async case7_CountWithDefaultFilter(): Promise<void> {
+  private async case7CountWithDefaultFilter(): Promise<void> {
     const repo = this.productRepository;
     this.logCase('[CASE 7] Count should apply default filter');
 
@@ -426,7 +426,7 @@ export class DefaultFilterTestService extends BaseTestService {
   // ----------------------------------------------------------------
   // CASE 8: Exists with default filter
   // ----------------------------------------------------------------
-  private async case8_ExistsWithDefaultFilter(): Promise<void> {
+  private async case8ExistsWithDefaultFilter(): Promise<void> {
     const repo = this.productRepository;
     this.logCase('[CASE 8] ExistsWith should apply default filter');
 
@@ -474,7 +474,7 @@ export class DefaultFilterTestService extends BaseTestService {
   // ----------------------------------------------------------------
   // CASE 9: Empty user filter - default filter still applied
   // ----------------------------------------------------------------
-  private async case9_EmptyUserFilter(): Promise<void> {
+  private async case9EmptyUserFilter(): Promise<void> {
     const repo = this.productRepository;
     this.logCase('[CASE 9] Empty user filter should still apply default filter');
 
@@ -504,7 +504,7 @@ export class DefaultFilterTestService extends BaseTestService {
   // ----------------------------------------------------------------
   // CASE 10: Null values in filter
   // ----------------------------------------------------------------
-  private async case10_NullValuesInFilter(): Promise<void> {
+  private async case10NullValuesInFilter(): Promise<void> {
     const repo = this.productRepository;
     this.logCase('[CASE 10] Null values in filter should be handled correctly');
 
@@ -534,7 +534,7 @@ export class DefaultFilterTestService extends BaseTestService {
   // ----------------------------------------------------------------
   // CASE 11: Operator merging (default has gt, user adds lt)
   // ----------------------------------------------------------------
-  private async case11_OperatorMerging(): Promise<void> {
+  private async case11OperatorMerging(): Promise<void> {
     const repo = this.productRepository;
     this.logCase('[CASE 11] Operators should be merged correctly');
 
@@ -598,7 +598,7 @@ export class DefaultFilterTestService extends BaseTestService {
   // ----------------------------------------------------------------
   // CASE 12: Limit override
   // ----------------------------------------------------------------
-  private async case12_LimitOverride(): Promise<void> {
+  private async case12LimitOverride(): Promise<void> {
     const repo = this.productRepository;
     this.logCase('[CASE 12] User limit should override default limit');
 
@@ -637,7 +637,7 @@ export class DefaultFilterTestService extends BaseTestService {
   // ----------------------------------------------------------------
   // CASE 13: Order preservation
   // ----------------------------------------------------------------
-  private async case13_OrderPreservation(): Promise<void> {
+  private async case13OrderPreservation(): Promise<void> {
     const repo = this.productRepository;
     this.logCase('[CASE 13] User order should override default order');
 
@@ -681,7 +681,7 @@ export class DefaultFilterTestService extends BaseTestService {
   // ----------------------------------------------------------------
   // CASE 14: SQL injection in filter (security test)
   // ----------------------------------------------------------------
-  private async case14_SqlInjectionInFilter(): Promise<void> {
+  private async case14SqlInjectionInFilter(): Promise<void> {
     const repo = this.productRepository;
     this.logCase('[CASE 14] SQL injection attempts should be safely handled');
 
@@ -727,7 +727,7 @@ export class DefaultFilterTestService extends BaseTestService {
   // ----------------------------------------------------------------
   // CASE 15: XSS payload in filter (security test)
   // ----------------------------------------------------------------
-  private async case15_XssPayloadInFilter(): Promise<void> {
+  private async case15XssPayloadInFilter(): Promise<void> {
     const repo = this.productRepository;
     this.logCase('[CASE 15] XSS payloads should be stored and retrieved safely');
 
@@ -759,7 +759,7 @@ export class DefaultFilterTestService extends BaseTestService {
   // ----------------------------------------------------------------
   // CASE 16: Prototype pollution attempt (security test)
   // ----------------------------------------------------------------
-  private async case16_PrototypePollutionAttempt(): Promise<void> {
+  private async case16PrototypePollutionAttempt(): Promise<void> {
     const repo = this.productRepository;
     this.logCase('[CASE 16] Prototype pollution attempts should be safely handled');
 
@@ -767,6 +767,7 @@ export class DefaultFilterTestService extends BaseTestService {
       // Attempt prototype pollution via filter
       const maliciousFilter = {
         where: {
+          // eslint-disable-next-line @typescript-eslint/naming-convention -- prototype-pollution probe needs the literal key
           __proto__: { polluted: true },
           constructor: { prototype: { polluted: true } },
         },
@@ -780,7 +781,7 @@ export class DefaultFilterTestService extends BaseTestService {
       } else {
         this.logger.error('[CASE 16] FAILED | Prototype was polluted');
       }
-    } catch (error) {
+    } catch {
       // Error is acceptable - means the attack was blocked
       this.logger.info('[CASE 16] PASSED | Prototype pollution attempt caused safe error');
     }
@@ -789,7 +790,7 @@ export class DefaultFilterTestService extends BaseTestService {
   // ----------------------------------------------------------------
   // CASE 17: Very long string values (edge case)
   // ----------------------------------------------------------------
-  private async case17_VeryLongStringValues(): Promise<void> {
+  private async case17VeryLongStringValues(): Promise<void> {
     const repo = this.productRepository;
     this.logCase('[CASE 17] Very long string values should be handled');
 
@@ -830,7 +831,7 @@ export class DefaultFilterTestService extends BaseTestService {
   // ----------------------------------------------------------------
   // CASE 18: Special characters (edge case)
   // ----------------------------------------------------------------
-  private async case18_SpecialCharacters(): Promise<void> {
+  private async case18SpecialCharacters(): Promise<void> {
     const repo = this.productRepository;
     this.logCase('[CASE 18] Special characters should be handled correctly');
 
@@ -863,7 +864,7 @@ export class DefaultFilterTestService extends BaseTestService {
   // ----------------------------------------------------------------
   // CASE 19: Transaction with default filter
   // ----------------------------------------------------------------
-  private async case19_TransactionWithDefaultFilter(): Promise<void> {
+  private async case19TransactionWithDefaultFilter(): Promise<void> {
     const repo = this.productRepository;
     this.logCase('[CASE 19] Default filter should work in transaction context');
 
@@ -906,7 +907,7 @@ export class DefaultFilterTestService extends BaseTestService {
   // ----------------------------------------------------------------
   // CASE 20: Relations with default filter
   // ----------------------------------------------------------------
-  private async case20_RelationsWithDefaultFilter(): Promise<void> {
+  private async case20RelationsWithDefaultFilter(): Promise<void> {
     const repo = this.productRepository;
     this.logCase('[CASE 20] Default filter should work with relation includes');
 
@@ -942,7 +943,7 @@ export class DefaultFilterTestService extends BaseTestService {
   // ----------------------------------------------------------------
   // CASE 21: UpdateAll with default filter
   // ----------------------------------------------------------------
-  private async case21_UpdateAllWithDefaultFilter(): Promise<void> {
+  private async case21UpdateAllWithDefaultFilter(): Promise<void> {
     const repo = this.productRepository;
     this.logCase('[CASE 21] UpdateAll should respect default filter');
 
@@ -996,7 +997,7 @@ export class DefaultFilterTestService extends BaseTestService {
   // ----------------------------------------------------------------
   // CASE 22: DeleteAll with default filter
   // ----------------------------------------------------------------
-  private async case22_DeleteAllWithDefaultFilter(): Promise<void> {
+  private async case22DeleteAllWithDefaultFilter(): Promise<void> {
     const repo = this.productRepository;
     this.logCase('[CASE 22] DeleteAll should respect default filter');
 
@@ -1053,7 +1054,7 @@ export class DefaultFilterTestService extends BaseTestService {
   // ----------------------------------------------------------------
   // CASE 23: AND/OR combination with default filter
   // ----------------------------------------------------------------
-  private async case23_AndOrCombinationWithDefaultFilter(): Promise<void> {
+  private async case23AndOrCombinationWithDefaultFilter(): Promise<void> {
     const repo = this.productRepository;
     this.logCase('[CASE 23] Complex AND/OR should work with default filter');
 
@@ -1112,7 +1113,7 @@ export class DefaultFilterTestService extends BaseTestService {
   // ----------------------------------------------------------------
   // CASE 24: Default filter with field selection
   // ----------------------------------------------------------------
-  private async case24_DefaultFilterWithFieldSelection(): Promise<void> {
+  private async case24DefaultFilterWithFieldSelection(): Promise<void> {
     const repo = this.productRepository;
     this.logCase('[CASE 24] Field selection should work with default filter');
 
@@ -1151,7 +1152,7 @@ export class DefaultFilterTestService extends BaseTestService {
   // ----------------------------------------------------------------
   // CASE 25: Concurrent queries with default filter
   // ----------------------------------------------------------------
-  private async case25_ConcurrentQueriesWithDefaultFilter(): Promise<void> {
+  private async case25ConcurrentQueriesWithDefaultFilter(): Promise<void> {
     const repo = this.productRepository;
     this.logCase('[CASE 25] Concurrent queries should all apply default filter');
 
@@ -1193,7 +1194,7 @@ export class DefaultFilterTestService extends BaseTestService {
   // ----------------------------------------------------------------
   // CASE 26: Default filter with nested relations
   // ----------------------------------------------------------------
-  private async case26_DefaultFilterWithNestedRelations(): Promise<void> {
+  private async case26DefaultFilterWithNestedRelations(): Promise<void> {
     const productRepo = this.productRepository;
     const saleChannelRepo = this.saleChannelRepository;
     const junctionRepo = this.saleChannelProductRepository;
@@ -1231,7 +1232,7 @@ export class DefaultFilterTestService extends BaseTestService {
       });
 
       if (found?.code === testCode) {
-        const hasRelations = ((found as any).saleChannelProducts?.length || 0) > 0;
+        const hasRelations = ((found as any).saleChannelProducts?.length ?? 0) > 0;
         if (hasRelations) {
           this.logger.info('[CASE 26] PASSED | Nested relations loaded with default filter');
         } else {
@@ -1255,7 +1256,7 @@ export class DefaultFilterTestService extends BaseTestService {
   // ----------------------------------------------------------------
   // CASE 27: UpdateById with default filter
   // ----------------------------------------------------------------
-  private async case27_UpdateByIdWithDefaultFilter(): Promise<void> {
+  private async case27UpdateByIdWithDefaultFilter(): Promise<void> {
     const repo = this.productRepository;
     this.logCase('[CASE 27] UpdateById should respect default filter');
 
@@ -1302,7 +1303,7 @@ export class DefaultFilterTestService extends BaseTestService {
   // ----------------------------------------------------------------
   // CASE 28: Default filter invariance (filter not mutated)
   // ----------------------------------------------------------------
-  private async case28_DefaultFilterInvariance(): Promise<void> {
+  private async case28DefaultFilterInvariance(): Promise<void> {
     const repo = this.productRepository;
     this.logCase('[CASE 28] Original filter should not be mutated');
 
@@ -1342,7 +1343,7 @@ export class DefaultFilterTestService extends BaseTestService {
   // ----------------------------------------------------------------
   // CASE 29: SQL Injection in Order Clause
   // ----------------------------------------------------------------
-  private async case29_SqlInjectionInOrderClause(): Promise<void> {
+  private async case29SqlInjectionInOrderClause(): Promise<void> {
     const repo = this.productRepository;
     this.logCase('[CASE 29] SQL injection attempts in order clause');
 
@@ -1411,7 +1412,7 @@ export class DefaultFilterTestService extends BaseTestService {
   // ----------------------------------------------------------------
   // CASE 30: SQL Injection in Fields Array
   // ----------------------------------------------------------------
-  private async case30_SqlInjectionInFieldsArray(): Promise<void> {
+  private async case30SqlInjectionInFieldsArray(): Promise<void> {
     const repo = this.productRepository;
     this.logCase('[CASE 30] SQL injection attempts in fields selection');
 
@@ -1446,7 +1447,7 @@ export class DefaultFilterTestService extends BaseTestService {
             const keys = Object.keys(results[0]);
             this.logger.info('[CASE 30] INFO | Fields returned: %j', keys);
           }
-        } catch (err) {
+        } catch {
           // Error is expected - safe behavior
           this.logger.info('[CASE 30] INFO | Fields injection rejected');
         }
@@ -1477,7 +1478,7 @@ export class DefaultFilterTestService extends BaseTestService {
   // ----------------------------------------------------------------
   // CASE 31: SQL Injection in Include/Relation
   // ----------------------------------------------------------------
-  private async case31_SqlInjectionInIncludeRelation(): Promise<void> {
+  private async case31SqlInjectionInIncludeRelation(): Promise<void> {
     const repo = this.productRepository;
     this.logCase('[CASE 31] SQL injection attempts in include/relation');
 
@@ -1534,7 +1535,7 @@ export class DefaultFilterTestService extends BaseTestService {
           },
           options: { shouldSkipDefaultFilter: true },
         });
-      } catch (err) {
+      } catch {
         this.logger.info('[CASE 31] INFO | Scope where injection rejected');
       }
 

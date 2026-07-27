@@ -67,25 +67,25 @@ export class AdvancedFilterQueryTestService extends BaseTestService {
     await this.setupData();
 
     // 1. Real-world Complex Scenarios
-    await this.test_EcommerceProductSearch();
-    await this.test_ComplexDateRanges();
+    await this.testEcommerceProductSearch();
+    await this.testComplexDateRanges();
 
     // 2. Logical Complexity & Recursion
-    await this.test_ComplexLogicalTree_AoB_and_CoD();
-    await this.test_DeMorgansLaw_Not_AorB();
-    await this.test_DeeplyNestedRecursion();
-    await this.test_ImplicitExplicitLogicMixing();
+    await this.testComplexLogicalTreeAoBAndCoD();
+    await this.testDeMorgansLawNotAorB();
+    await this.testDeeplyNestedRecursion();
+    await this.testImplicitExplicitLogicMixing();
 
     // 3. Relation Scoped Filtering
-    await this.test_ScopedRelationFiltering();
+    await this.testScopedRelationFiltering();
 
     // 4. Type Safety & Coercion
-    await this.test_TypeCoercion_StringToNumber();
-    await this.test_TypeSafety_NullToNonNullable();
+    await this.testTypeCoercionStringToNumber();
+    await this.testTypeSafetyNullToNonNullable();
 
     // 5. Stress & Security
-    await this.test_MassiveArrayInOperator();
-    await this.test_MalformedJsonPaths();
+    await this.testMassiveArrayInOperator();
+    await this.testMalformedJsonPaths();
 
     await this.cleanupData();
     this.logSection('[AdvancedFilterQueryTestService] All advanced tests completed');
@@ -192,7 +192,7 @@ export class AdvancedFilterQueryTestService extends BaseTestService {
   // 1. Real-world Complex Scenarios
   // =================================================================
 
-  private async test_EcommerceProductSearch() {
+  private async testEcommerceProductSearch() {
     this.logCase('[SCENARIO] E-commerce Search: Price Range + Tag Overlap + Sort');
     // Scenario: User wants "gaming" items (electronics or furniture) between $100 and $1000,
     // sorted by price descending.
@@ -230,7 +230,7 @@ export class AdvancedFilterQueryTestService extends BaseTestService {
     }
   }
 
-  private async test_ComplexDateRanges() {
+  private async testComplexDateRanges() {
     this.logCase('[SCENARIO] Complex Date Logic (Json Path String Comparison)');
     // Find configs created in 2025 ( >= 2025-01-01 AND < 2026-01-01 )
 
@@ -271,7 +271,7 @@ export class AdvancedFilterQueryTestService extends BaseTestService {
   // 2. Logical Complexity & Recursion
   // =================================================================
 
-  private async test_ComplexLogicalTree_AoB_and_CoD() {
+  private async testComplexLogicalTreeAoBAndCoD() {
     this.logCase('[LOGIC] (A OR B) AND (C OR D)');
     // (nValue > 150 OR nValue < 50) AND (tValue like 'status_pending' OR tValue like 'status_archived')
 
@@ -306,7 +306,7 @@ export class AdvancedFilterQueryTestService extends BaseTestService {
     }
   }
 
-  private async test_DeMorgansLaw_Not_AorB() {
+  private async testDeMorgansLawNotAorB() {
     this.logCase('[LOGIC] NOT (A OR B) -> via explicit NOT IN operator');
     // Testing: nValue NOT IN [100, 200]
     // Equivalent to NOT (n=100 OR n=200) -> n!=100 AND n!=200
@@ -332,7 +332,7 @@ export class AdvancedFilterQueryTestService extends BaseTestService {
     }
   }
 
-  private async test_DeeplyNestedRecursion() {
+  private async testDeeplyNestedRecursion() {
     this.logCase('[LOGIC] Deeply Nested Recursion (10+ levels)');
     // Construct a deeply nested AND chain: AND(AND(AND(...)))
 
@@ -368,7 +368,7 @@ export class AdvancedFilterQueryTestService extends BaseTestService {
     }
   }
 
-  private async test_ImplicitExplicitLogicMixing() {
+  private async testImplicitExplicitLogicMixing() {
     this.logCase('[LOGIC] Mixing implicit object keys AND explicit operators');
     // { nValue: 100, or: [{ tValue: 'x' }, { tValue: 'status_active' }] }
     // Should be parsed as: nValue = 100 AND (tValue = 'x' OR tValue = 'status_active')
@@ -399,7 +399,7 @@ export class AdvancedFilterQueryTestService extends BaseTestService {
   // 3. Relation Scoped Filtering
   // =================================================================
 
-  private async test_ScopedRelationFiltering() {
+  private async testScopedRelationFiltering() {
     this.logCase('[RELATION] Scoped Include with Filter');
     // Find Products, include SaleChannels where channel.name = 'Online Store'
 
@@ -475,7 +475,7 @@ export class AdvancedFilterQueryTestService extends BaseTestService {
   // 4. Type Safety & Coercion
   // =================================================================
 
-  private async test_TypeCoercion_StringToNumber() {
+  private async testTypeCoercionStringToNumber() {
     this.logCase('[TYPE] String passed to Number field');
     // nValue: "100" -> Should be cast to 100 or fail?
     // Drizzle/Ignis usually allows implicit casting if the DB supports it,
@@ -505,7 +505,7 @@ export class AdvancedFilterQueryTestService extends BaseTestService {
     }
   }
 
-  private async test_TypeSafety_NullToNonNullable() {
+  private async testTypeSafetyNullToNonNullable() {
     this.logCase('[TYPE] Null passed to Non-Nullable field');
     // 'code' is usually non-nullable.
 
@@ -527,7 +527,7 @@ export class AdvancedFilterQueryTestService extends BaseTestService {
   // 5. Stress & Security
   // =================================================================
 
-  private async test_MassiveArrayInOperator() {
+  private async testMassiveArrayInOperator() {
     this.logCase('[STRESS] Massive IN Array (1000+ items)');
 
     const massiveArray = Array.from({ length: 2000 }, (_, i) => i);
@@ -556,7 +556,7 @@ export class AdvancedFilterQueryTestService extends BaseTestService {
     }
   }
 
-  private async test_MalformedJsonPaths() {
+  private async testMalformedJsonPaths() {
     this.logCase('[SECURITY] Malformed JSON Path Injection');
     // Try to inject SQL via JSON key: "jValue.metadata' OR 1=1 --"
 

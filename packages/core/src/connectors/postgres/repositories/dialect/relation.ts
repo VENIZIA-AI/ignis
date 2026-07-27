@@ -1,5 +1,4 @@
-// Deep import (not the `@/base` barrel): the barrel re-exports applications, forming an init cycle
-// inversion mixins -> this file -> @/base -> applications -> Container. This file only needs the enum.
+// Deep import, not the `@/base` barrel: the barrel re-exports applications, forming the init cycle inversion mixins -> this file -> @/base -> applications -> Container.
 import { RelationTypes } from '@/base/repositories/common/constants';
 import type { TTableSchemaWithId } from '@/connectors/postgres/models';
 import { relations as defineRelations } from 'drizzle-orm';

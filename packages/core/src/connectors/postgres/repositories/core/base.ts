@@ -30,8 +30,7 @@ import { getError } from '@venizia/ignis-helpers';
 import { getTableColumns } from 'drizzle-orm';
 import type { IDatabaseExtraOptions, IRelationalQueryDialect } from '../common';
 
-/** Postgres implementation of `AbstractRepository`: adds FilterBuilder + hidden-column exclusion
- * and defaults `ExtraOptions` to `IDatabaseExtraOptions` so `options.transaction.connector` needs no cast. */
+/** Postgres implementation of `AbstractRepository`: adds FilterBuilder + hidden-column exclusion and defaults `ExtraOptions` to `IDatabaseExtraOptions` so `options.transaction.connector` needs no cast. */
 export abstract class RelationalBaseRepository<
   EntitySchema extends TTableSchemaWithId = TTableSchemaWithId,
   DataObject extends TTableObject<EntitySchema> = TTableObject<EntitySchema>,
@@ -78,7 +77,7 @@ export abstract class RelationalBaseRepository<
   }
 
   get connector() {
-    return this.dataSource.connector;
+    return this.dataSource.getConnector();
   }
 
   override setDataSource(opts: { dataSource: IPostgresDataSource }): void {
@@ -91,9 +90,7 @@ export abstract class RelationalBaseRepository<
 
   /** Hidden fields as a memoized Set, derived from the base's class-keyed `hiddenFields` array. */
   getHiddenProperties(): Set<string> {
-    if (this._hiddenPropertySet === null) {
-      this._hiddenPropertySet = new Set(this.hiddenFields);
-    }
+    this._hiddenPropertySet ??= new Set(this.hiddenFields);
     return this._hiddenPropertySet;
   }
 
@@ -178,18 +175,10 @@ export abstract class RelationalBaseRepository<
     const hiddenProps = this.getHiddenProperties();
 
     if (result.columns) {
-      // User specified fields - filter out hidden (single loop)
-      const filteredColumns: Record<string, boolean> = {};
-      for (const key in result.columns) {
-        if (!hiddenProps.has(key)) {
-          filteredColumns[key] = result.columns[key];
-        }
-      }
-      result.columns = filteredColumns;
+      result.columns = this.omitHiddenColumns({ columns: result.columns, hiddenProps });
       return result;
     }
 
-    // No fields specified - use cached visible properties keys
     const visibleProps = this.getVisibleProperties();
     if (visibleProps) {
       const filteredColumns: Record<string, boolean> = {};
@@ -202,12 +191,31 @@ export abstract class RelationalBaseRepository<
     return result;
   }
 
+  /** Copy of a Drizzle column selection with hidden properties dropped. */
+  private omitHiddenColumns(opts: {
+    columns: Record<string, boolean>;
+    hiddenProps: Set<string>;
+  }): Record<string, boolean> {
+    const { columns, hiddenProps } = opts;
+    const filteredColumns: Record<string, boolean> = {};
+
+    for (const key in columns) {
+      if (hiddenProps.has(key)) {
+        continue;
+      }
+
+      filteredColumns[key] = columns[key];
+    }
+
+    return filteredColumns;
+  }
+
   /** Resolves the database connector, using the transaction's connector if provided. */
   protected resolveConnector(opts?: { transaction?: ITransaction }): TAnyConnector {
     const { transaction } = opts ?? {};
 
     if (!transaction) {
-      return this.dataSource.connector;
+      return this.dataSource.getConnector();
     }
 
     if (!transaction.isActive) {
@@ -344,7 +352,30 @@ export abstract class RelationalBaseRepository<
     options?: ExtraOptions & { shouldReturn?: true; force?: boolean };
   }): Promise<TCount & { data: Array<R> }>;
 
-  // updateBy is inherited as-is - it already delegates to this class's overridden updateAll.
+  // Re-declared, not inherited: the base alias was widened to `Array<R> | null` for the search family, but postgres HAS RETURNING so its alias surface must stay exactly `Array<R>`.
+  override updateBy(opts: {
+    data: Partial<PersistObject>;
+    where: TWhere<DataObject>;
+    options: ExtraOptions & { shouldReturn: false; force?: boolean };
+  }): Promise<TCount & { data: undefined | null }>;
+  override updateBy<R = DataObject>(opts: {
+    data: Partial<PersistObject>;
+    where: TWhere<DataObject>;
+    options?: ExtraOptions & { shouldReturn?: true; force?: boolean };
+  }): Promise<TCount & { data: Array<R> }>;
+  override updateBy<R = DataObject>(opts: {
+    data: Partial<PersistObject>;
+    where: TWhere<DataObject>;
+    options?: ExtraOptions & { shouldReturn?: boolean; force?: boolean };
+  }): Promise<TCount & { data: TNullable<Array<R>> }> {
+    const { data, where, options } = opts;
+
+    if (options?.shouldReturn === false) {
+      return this.updateAll({ data, where, options: { ...options, shouldReturn: false } });
+    }
+
+    return this.updateAll<R>({ data, where, options });
+  }
 
   abstract override deleteById(opts: {
     id: IdType;
@@ -366,5 +397,25 @@ export abstract class RelationalBaseRepository<
     options?: ExtraOptions & { shouldReturn?: true; force?: boolean };
   }): Promise<TCount & { data: Array<R> }>;
 
-  // deleteBy is inherited as-is - same rationale as updateBy above.
+  // Same rationale as updateBy above: keep the postgres alias surface at `Array<R>`.
+  override deleteBy(opts: {
+    where?: TWhere<DataObject>;
+    options: ExtraOptions & { shouldReturn: false; force?: boolean };
+  }): Promise<TCount & { data: undefined | null }>;
+  override deleteBy<R = DataObject>(opts: {
+    where?: TWhere<DataObject>;
+    options?: ExtraOptions & { shouldReturn?: true; force?: boolean };
+  }): Promise<TCount & { data: Array<R> }>;
+  override deleteBy<R = DataObject>(opts: {
+    where?: TWhere<DataObject>;
+    options?: ExtraOptions & { shouldReturn?: boolean; force?: boolean };
+  }): Promise<TCount & { data: TNullable<Array<R>> }> {
+    const { where, options } = opts;
+
+    if (options?.shouldReturn === false) {
+      return this.deleteAll({ where, options: { ...options, shouldReturn: false } });
+    }
+
+    return this.deleteAll<R>({ where, options });
+  }
 }

@@ -1,12 +1,10 @@
+import { AnyObject, HTTP, THttpMethod } from '@/common';
 import { TFetcherResponse, TFetcherVariant, TFetcherWorker } from '../types';
-
-const HTTP = 'http';
-const HTTPS = 'https';
 
 export interface IRequestOptions {
   url: string;
-  params?: Record<string | symbol, any>;
-  method?: string;
+  method?: THttpMethod;
+  params?: AnyObject;
   timeout?: number;
   [extra: symbol | string]: any;
 }
@@ -22,6 +20,7 @@ export interface IFetchable<
   put(opts: RQ, logger?: any): Promise<RS>;
   patch(opts: RQ, logger?: any): Promise<RS>;
   delete(opts: RQ, logger?: any): Promise<RS>;
+  query(opts: RQ, logger?: any): Promise<RS>;
 
   getWorker(): TFetcherWorker<V>;
 }
@@ -43,7 +42,7 @@ export abstract class AbstractNetworkFetchableHelper<
   abstract send(opts: RQ, logger?: any): Promise<RS>;
 
   getProtocol(url: string) {
-    return url.startsWith('http:') ? HTTP : HTTPS;
+    return url.startsWith('http:') ? HTTP.Protocols.HTTP : HTTP.Protocols.HTTPS;
   }
 
   getWorker() {
@@ -52,26 +51,31 @@ export abstract class AbstractNetworkFetchableHelper<
 
   get(opts: RQ, logger?: any) {
     const { ...rest } = opts;
-    return this.send({ ...rest, method: 'get' }, logger);
+    return this.send({ ...rest, method: HTTP.Methods.GET }, logger);
   }
 
   post(opts: RQ, logger?: any) {
     const { ...rest } = opts;
-    return this.send({ ...rest, method: 'post' }, logger);
+    return this.send({ ...rest, method: HTTP.Methods.POST }, logger);
   }
 
   put(opts: RQ, logger?: any) {
     const { ...rest } = opts;
-    return this.send({ ...rest, method: 'put' }, logger);
+    return this.send({ ...rest, method: HTTP.Methods.PUT }, logger);
   }
 
   patch(opts: RQ, logger?: any) {
     const { ...rest } = opts;
-    return this.send({ ...rest, method: 'patch' }, logger);
+    return this.send({ ...rest, method: HTTP.Methods.PATCH }, logger);
   }
 
   delete(opts: RQ, logger?: any) {
     const { ...rest } = opts;
-    return this.send({ ...rest, method: 'delete' }, logger);
+    return this.send({ ...rest, method: HTTP.Methods.DELETE }, logger);
+  }
+
+  query(opts: RQ, logger?: any) {
+    const { ...rest } = opts;
+    return this.send({ ...rest, method: HTTP.Methods.QUERY }, logger);
   }
 }

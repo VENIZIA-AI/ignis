@@ -1,59 +1,51 @@
-# Setup
+# Set Up Your Development Environment
 
-Everything you need to start building with IGNIS. This guide covers installation for macOS, Linux, and Windows (via WSL2).
+Get your machine ready to build with IGNIS: a runtime, a database, and an editor. This guide
+covers macOS, Linux, and Windows through WSL2.
 
 ## Requirements
 
-| Tool | Version | Required | Notes |
-|------|---------|----------|-------|
-| **Bun** | >= 1.3 | Yes | Primary runtime, fastest performance |
-| **Node.js** | >= 18 | Alternative | Use if Bun isn't available |
-| **PostgreSQL** | >= 14 | Yes | Primary database |
-| **VS Code** | Latest | Recommended | Best IDE experience with extensions |
+| Tool | Version | Required | Why |
+|------|---------|----------|-----|
+| **Bun** | >= 1.3 | Yes | Installs packages and runs every build; IGNIS never uses npm, yarn, or pnpm |
+| **PostgreSQL** | >= 14 | Yes | Primary database; the repository system assumes Drizzle + `pg` |
+| **VS Code** | Latest | Optional | Best editor support, through ESLint and Prettier extensions |
 
-## Install Runtime
+> IGNIS apps can also run on Node.js 18+ in production, through `@hono/node-server`. That is a
+> deployment choice, not a setup choice - Bun still installs packages and runs every command in
+> this guide.
 
-### Bun (Recommended)
+## Preconditions
+
+- A terminal with permission to install packages (`sudo` on Linux, admin rights on Windows).
+- On Windows, WSL2 installed (`wsl --install`). Run every command in this guide inside WSL2.
+
+## Step 1: Install Bun
 
 ```bash
-# macOS / Linux
 curl -fsSL https://bun.sh/install | bash
-
-# Windows (use WSL2)
-# First install WSL2: wsl --install
-# Then run the curl command above in WSL
-
-# Verify
-bun --version  # Should be 1.3+
 ```
 
-### Node.js (Alternative)
+On Windows, run this command inside WSL2.
+
+Reload your shell, then confirm the version:
 
 ```bash
-# macOS (Homebrew)
-brew install node@18
-
-# Ubuntu/Debian
-curl -fsSL https://deb.nodesource.com/setup_18.x | sudo -E bash -
-sudo apt-get install -y nodejs
-
-# Windows
-# Download from https://nodejs.org/
-
-# Verify
-node --version  # Should be 18+
+bun --version   # >= 1.3
 ```
 
-## Install PostgreSQL
+## Step 2: Install PostgreSQL
 
-### macOS
+Install and start the server for your OS.
+
+macOS:
 
 ```bash
 brew install postgresql@14
 brew services start postgresql@14
 ```
 
-### Ubuntu/Debian
+Ubuntu/Debian:
 
 ```bash
 sudo apt-get update
@@ -61,11 +53,11 @@ sudo apt-get install postgresql-14
 sudo service postgresql start
 ```
 
-### Windows
+Windows: download the installer from
+[postgresql.org/download/windows](https://www.postgresql.org/download/windows/), or install
+inside WSL2 with the Ubuntu/Debian commands above.
 
-Download from [postgresql.org/download/windows](https://www.postgresql.org/download/windows/) or use WSL2.
-
-### Create Database
+Then create a database for local development:
 
 ```bash
 # macOS
@@ -73,29 +65,20 @@ psql postgres -c "CREATE DATABASE my_app_db;"
 
 # Linux (Ubuntu/Debian)
 sudo -u postgres psql -c "CREATE DATABASE my_app_db;"
-
-# Verify
-psql my_app_db -c "SELECT 1;"  # Should return 1
 ```
 
-## VS Code Setup (Recommended)
+## Step 3: Configure Your Editor (Optional)
 
-### Extensions
+Install the extensions that match IGNIS' ESLint and Prettier setup:
 
 ```bash
-# Essential
 code --install-extension dbaeumer.vscode-eslint
 code --install-extension esbenp.prettier-vscode
-
-# Recommended
 code --install-extension usernamehw.errorlens
 code --install-extension humao.rest-client
-code --install-extension prisma.prisma  # Works with Drizzle too
 ```
 
-### Settings
-
-Create `.vscode/settings.json`:
+Create `.vscode/settings.json` in your project:
 
 ```json
 {
@@ -107,51 +90,47 @@ Create `.vscode/settings.json`:
 }
 ```
 
-## Verify Setup
+## Verify Your Setup
 
 ```bash
-bun --version      # >= 1.3 (or node --version >= 18)
-psql --version     # >= 14
+bun --version                   # >= 1.3
+psql my_app_db -c "SELECT 1;"   # returns 1
 ```
+
+Both commands must succeed before you continue.
 
 ## Troubleshooting
 
-### Bun not found after install
+### Bun command not found after install
+
+Add Bun to your shell profile, then reload it:
 
 ```bash
-# Add to ~/.bashrc or ~/.zshrc
 export BUN_INSTALL="$HOME/.bun"
 export PATH="$BUN_INSTALL/bin:$PATH"
-
-# Then reload
-source ~/.bashrc  # or ~/.zshrc
+source ~/.bashrc   # or ~/.zshrc
 ```
 
-### PostgreSQL permission denied
+### PostgreSQL: permission denied for database
+
+Run the command as the `postgres` user:
 
 ```bash
-# Linux: Use sudo -u postgres
 sudo -u postgres psql -c "CREATE DATABASE my_app_db;"
-
-# macOS: Check if PostgreSQL is running
-brew services list | grep postgresql
 ```
 
-### PostgreSQL connection refused
+### PostgreSQL: connection refused
+
+Check that the server is running, then start it:
 
 ```bash
-# Check if running
 pg_isready
 
-# Start service
-# macOS
-brew services start postgresql@14
-
-# Linux
-sudo service postgresql start
+brew services start postgresql@14   # macOS
+sudo service postgresql start       # Linux
 ```
 
-## Next Steps
+## See Also
 
-- [5-Minute Quickstart](./5-minute-quickstart.md) - Build your first API
-- [Complete Installation](../tutorials/complete-installation.md) - Full project setup
+- [5-Minute Quickstart](./5-minute-quickstart.md) - build your first API
+- [Complete Installation](../tutorials/complete-installation.md) - full project setup

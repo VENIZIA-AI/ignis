@@ -3,12 +3,10 @@ import { getError } from '@venizia/ignis-helpers';
 /** Regex for validating JSON path components (identifiers, kebab-case, array indices). */
 export const JSON_PATH_PATTERN = /^[a-zA-Z_][a-zA-Z0-9_-]*$|^\d+$/;
 
-/** Checks if a key represents a JSON path (contains '.' or '['). */
 export const isJsonPath = (opts: { key: string }): boolean => {
   return opts.key.includes('.') || opts.key.includes('[');
 };
 
-/** Parses a JSON path string into column name and path components. */
 export const parseJsonPath = (opts: { key: string }): { columnName: string; path: string[] } => {
   const parts = opts.key.split(/[.[\]]+/).filter(Boolean);
   const [columnName = opts.key, ...path] = parts;

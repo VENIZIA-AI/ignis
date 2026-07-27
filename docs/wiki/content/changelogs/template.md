@@ -1,123 +1,64 @@
 ---
-title: [Short Title]
-description: [Brief description of the changes]
+title: [Short, plain title - what a user would search for]
+description: [One sentence, plain - what changed and why it matters]
 ---
 
 # Changelog - YYYY-MM-DD
 
 ## [Main Title/Focus Area]
 
-[A brief, high-level summary of the changes in this release. What is the main focus?]
+<!-- Keep only the badges that apply -->
+<Badge type="tip" text="New Feature" /> <Badge type="tip" text="Enhancement" /> <Badge type="info" text="Bug Fix" /> <Badge type="danger" text="Security" /> <Badge type="warning" text="Breaking Change" />
 
-## Overview
+**In one line.** [One plain sentence: what this release is, for a user.]
 
-- **[Change 1]**: Brief description
-- **[Change 2]**: Brief description
-- **[Change 3]**: Brief description
+## What changed
 
-## Breaking Changes
+- **[Thing 1].** [One crisp point in plain language - what changed, not the internal how.]
+- **[Thing 2].** [One crisp point in plain language.]
+- **[Thing 3].** [One crisp point in plain language.]
+
+<!-- Group with ### sub-heads only if there are many bullets -->
+
+## Who is affected
+
+- **[Audience or situation 1].** [Are they impacted, and do they need to act? Say "No action needed" where true.]
+- **[Audience or situation 2].** [Are they impacted, and do they need to act?]
+
+## Breaking changes
+
+<!-- ONLY include this section if there are breaking changes - delete it otherwise -->
 
 > [!WARNING]
-> This section contains changes that require migration or manual updates to existing code.
-
-### 1. [Breaking Change Title]
+> [One sentence: who this affects and why.]
 
 **Before:**
+
 ```typescript
-// Code that no longer works or is deprecated
+// Code that no longer works
 ```
 
 **After:**
+
 ```typescript
 // New pattern
 ```
 
-## New Features
+<!-- Or, for a non-code migration, a short numbered list -->
+1. [Step one]
+2. [Step two]
 
-### [Feature Name]
+## Details
 
-**File:** `packages/core/src/path/to/file.ts`
+<!-- Optional - the "why/how". Keep it tight: bullets, a short code example, a small table. No wall-of-text paragraphs. -->
 
-**Problem:** [What problem does this solve?]
-
-**Solution:** [How does it solve it?]
-
-```typescript
-// Example usage
-```
-
-**Benefits:**
-- Benefit 1
-- Benefit 2
-
-## Security Fixes
-
-### [Security Issue Title]
-
-**Vulnerability:** [Describe the vulnerability]
-
-**Fix:** [Describe the fix]
+- [Why/how point 1]
+- [Why/how point 2]
 
 ```typescript
-// Before: vulnerable code behavior
-// After: secure code behavior
+// Example usage, if it helps
 ```
 
-## Performance Improvements
-
-### [Performance Improvement Title]
-
-**File:** `packages/core/src/path/to/file.ts`
-
-**Problem:** [What was slow/inefficient?]
-
-**Solution:** [How was it optimized?]
-
-| Scenario | Improvement |
-|----------|-------------|
-| [Use case 1] | [Improvement metric] |
-| [Use case 2] | [Improvement metric] |
-
-## Files Changed
-
-### Core Package (`packages/core`)
-
-| File | Changes |
+| File | Package |
 |------|---------|
-| `src/base/models/base.ts` | [Description of changes] |
-| `src/base/repositories/core/readable.ts` | [Description of changes] |
-
-### Helpers Package (`packages/helpers`)
-
-| File | Changes |
-|------|---------|
-| `src/utils/index.ts` | [Description of changes] |
-
-### Examples (`examples/vert`)
-
-| File | Changes |
-|------|---------|
-| `src/models/entities/user.model.ts` | [Description of changes] |
-
-## Migration Guide
-
-> [!NOTE]
-> Follow these steps if you're upgrading from a previous version.
-
-### Step 1: [Action Name]
-
-[Instructions]
-
-```typescript
-// Example of the change to apply
-```
-
-### Step 2: [Action Name]
-
-[Instructions]
-
-## No Breaking Changes
-
-[Use this section instead of "Breaking Changes" and "Migration Guide" if there are no breaking changes]
-
-All changes are internal optimizations. No API changes or migration required.
+| `src/path/to/file.ts` | core |

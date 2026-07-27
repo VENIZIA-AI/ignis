@@ -64,13 +64,13 @@ export class JsonOrderByTestService extends BaseTestService {
   async run(): Promise<void> {
     this.logSection('[JsonOrderByTestService] Starting JSON order by test cases');
 
-    await this.case1_CreateWithNestedJson();
-    await this.case2_OrderBySimpleJsonField();
-    await this.case3_OrderByNestedJsonField();
-    await this.case4_OrderByArrayIndex();
-    await this.case5_OrderByNonExistentField();
-    await this.case6_OrderByNonExistentNestedField();
-    await this.case7_Cleanup();
+    await this.case1CreateWithNestedJson();
+    await this.case2OrderBySimpleJsonField();
+    await this.case3OrderByNestedJsonField();
+    await this.case4OrderByArrayIndex();
+    await this.case5OrderByNonExistentField();
+    await this.case6OrderByNonExistentNestedField();
+    await this.case7Cleanup();
 
     this.logSection('[JsonOrderByTestService] All JSON order by test cases completed');
   }
@@ -78,7 +78,7 @@ export class JsonOrderByTestService extends BaseTestService {
   // ----------------------------------------------------------------
   // CASE 1: Create records with nested JSON data
   // ----------------------------------------------------------------
-  private async case1_CreateWithNestedJson(): Promise<void> {
+  private async case1CreateWithNestedJson(): Promise<void> {
     const repo = this.configurationRepository;
     this.logCase('[CASE 1] Create records with nested JSON data');
 
@@ -154,7 +154,7 @@ export class JsonOrderByTestService extends BaseTestService {
   // ----------------------------------------------------------------
   // CASE 2: Order by simple JSON field (jValue.priority)
   // ----------------------------------------------------------------
-  private async case2_OrderBySimpleJsonField(): Promise<void> {
+  private async case2OrderBySimpleJsonField(): Promise<void> {
     const repo = this.configurationRepository;
     this.logCase('[CASE 2] Order by jValue.priority');
 
@@ -218,7 +218,7 @@ export class JsonOrderByTestService extends BaseTestService {
   // ----------------------------------------------------------------
   // CASE 3: Order by nested JSON field (jValue.metadata.score)
   // ----------------------------------------------------------------
-  private async case3_OrderByNestedJsonField(): Promise<void> {
+  private async case3OrderByNestedJsonField(): Promise<void> {
     const repo = this.configurationRepository;
     this.logCase('[CASE 3] Order by jValue.metadata.score');
 
@@ -281,7 +281,7 @@ export class JsonOrderByTestService extends BaseTestService {
   // ----------------------------------------------------------------
   // CASE 4: Order by array index (jValue.tags[0])
   // ----------------------------------------------------------------
-  private async case4_OrderByArrayIndex(): Promise<void> {
+  private async case4OrderByArrayIndex(): Promise<void> {
     const repo = this.configurationRepository;
     this.logCase('[CASE 4] Order by jValue.tags[0]');
 
@@ -336,7 +336,7 @@ export class JsonOrderByTestService extends BaseTestService {
   // ----------------------------------------------------------------
   // CASE 5: Order by non-existent JSON field (jValue.nonExistent)
   // ----------------------------------------------------------------
-  private async case5_OrderByNonExistentField(): Promise<void> {
+  private async case5OrderByNonExistentField(): Promise<void> {
     const repo = this.configurationRepository;
     this.logCase('[CASE 5] Order by jValue.nonExistent');
 
@@ -368,7 +368,7 @@ export class JsonOrderByTestService extends BaseTestService {
   // ----------------------------------------------------------------
   // CASE 6: Order by non-existent nested field (jValue.metadata.nonExistent)
   // ----------------------------------------------------------------
-  private async case6_OrderByNonExistentNestedField(): Promise<void> {
+  private async case6OrderByNonExistentNestedField(): Promise<void> {
     const repo = this.configurationRepository;
     this.logCase('[CASE 6] Order by jValue.metadata.nonExistent');
 
@@ -420,7 +420,7 @@ export class JsonOrderByTestService extends BaseTestService {
   // ----------------------------------------------------------------
   // CASE 7: Cleanup JSON test data
   // ----------------------------------------------------------------
-  private async case7_Cleanup(): Promise<void> {
+  private async case7Cleanup(): Promise<void> {
     const repo = this.configurationRepository;
     this.logCase('[CASE 7] Cleanup JSON test data');
 

@@ -14,9 +14,7 @@ import { describe, expect, test } from 'bun:test';
 const BROKERS = ['127.0.0.1:9092'];
 const CLIENT_ID = 'ignis-test';
 
-// -------------------------------------------------------------------------
-// KafkaGroupProtocol
-// -------------------------------------------------------------------------
+// --- KafkaGroupProtocol ---
 
 describe('KafkaGroupProtocol', () => {
   test('TC-001: should expose CLASSIC and CONSUMER constants', () => {
@@ -42,9 +40,7 @@ describe('KafkaGroupProtocol', () => {
   });
 });
 
-// -------------------------------------------------------------------------
-// KafkaAcks
-// -------------------------------------------------------------------------
+// --- KafkaAcks ---
 
 describe('KafkaAcks', () => {
   test('TC-005: should expose NONE, LEADER, and ALL constants', () => {
@@ -73,9 +69,7 @@ describe('KafkaAcks', () => {
   });
 });
 
-// -------------------------------------------------------------------------
-// KafkaDefaults
-// -------------------------------------------------------------------------
+// --- KafkaDefaults ---
 
 describe('KafkaDefaults', () => {
   test('TC-006: should expose shared defaults', () => {
@@ -99,9 +93,7 @@ describe('KafkaDefaults', () => {
   });
 });
 
-// -------------------------------------------------------------------------
-// KafkaProducerHelper
-// -------------------------------------------------------------------------
+// --- KafkaProducerHelper ---
 
 describe('KafkaProducerHelper', () => {
   describe('Construction', () => {
@@ -215,9 +207,7 @@ describe('KafkaProducerHelper', () => {
   });
 });
 
-// -------------------------------------------------------------------------
-// KafkaConsumerHelper
-// -------------------------------------------------------------------------
+// --- KafkaConsumerHelper ---
 
 describe('KafkaConsumerHelper', () => {
   describe('Construction', () => {
@@ -368,9 +358,7 @@ describe('KafkaConsumerHelper', () => {
   });
 });
 
-// -------------------------------------------------------------------------
-// KafkaAdminHelper
-// -------------------------------------------------------------------------
+// --- KafkaAdminHelper ---
 
 describe('KafkaAdminHelper', () => {
   describe('Construction', () => {
@@ -468,9 +456,7 @@ describe('KafkaAdminHelper', () => {
   });
 });
 
-// -------------------------------------------------------------------------
-// Module exports
-// -------------------------------------------------------------------------
+// --- Module exports ---
 
 describe('Module exports', () => {
   test('TC-100: should export all three helpers', () => {

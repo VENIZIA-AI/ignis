@@ -2,11 +2,18 @@ import type { IdType } from '@/base/models';
 import type {
   IExtraOptions,
   TCount,
-  TDataRange,
+  TDataWithRange,
   TFilter,
+  TFindOneOptions,
+  TFindOptions,
+  TFindRangeOptions,
   TWhere,
 } from '@/base/repositories/common';
-import { DEFAULT_LIMIT, RepositoryOperationScopes } from '@/base/repositories/common';
+import {
+  buildDataRange,
+  DEFAULT_LIMIT,
+  RepositoryOperationScopes,
+} from '@/base/repositories/common';
 import type { IPostgresDataSource } from '@/connectors/postgres/datasources';
 import type {
   BaseRelationalEntity,
@@ -15,7 +22,7 @@ import type {
   TTableSchemaWithId,
 } from '@/connectors/postgres/models';
 import type { TClass, TNullable } from '@venizia/ignis-helpers';
-import { getError } from '@venizia/ignis-helpers';
+import omit from 'lodash/omit';
 import type { PgTable } from 'drizzle-orm/pg-core';
 import type { IDatabaseExtraOptions } from '../common';
 import { RelationalBaseRepository } from './base';
@@ -80,8 +87,7 @@ export class ReadableRelationalRepository<
     const limit = isFindOne ? 1 : mergedFilter.limit;
     const offset = mergedFilter.skip ?? mergedFilter.offset;
 
-    // EntitySchema extends TTableSchemaWithId (which extends PgTable), but drizzle's `.from()`
-    // needs the concrete PgTable type, not the generic bound.
+    // EntitySchema extends TTableSchemaWithId which extends PgTable, but drizzle's `.from()` needs the concrete PgTable type, not the generic bound.
     const table = schema as PgTable;
     const connector = this.resolveConnector({ transaction: options?.transaction });
 
@@ -106,8 +112,7 @@ export class ReadableRelationalRepository<
       query = query.offset(offset);
     }
 
-    // Drizzle's `$dynamic()` query builder infers its row type from the table schema, not from R
-    // (the caller-chosen output shape); the two are asserted compatible by convention.
+    // Drizzle's `$dynamic()` builder infers its row type from the table schema, not from the caller-chosen R; the two are asserted compatible by convention.
     const lock = opts.options?.lock;
     if (lock) {
       return query.for(lock.strength, lock.config) as Promise<Array<R>>;
@@ -123,27 +128,32 @@ export class ReadableRelationalRepository<
   }): Promise<Array<R>> {
     const queryOptions = this.buildQuery({ filter: opts.filter });
     const queryInterface = this.getQueryInterface({ options: opts.options });
-    // Drizzle's relational query result (`PgRelationalQuery<{[x: string]: any}[]>`) doesn't overlap
-    // R (the caller-chosen output shape) enough for a direct assertion - genuinely different shapes
-    // being bridged at this ORM boundary.
+    // Drizzle's relational result (`PgRelationalQuery<{[x: string]: any}[]>`) doesn't overlap the caller-chosen R enough for a direct assertion - genuinely different shapes bridged at this ORM boundary.
     return queryInterface.findMany(queryOptions) as any;
   }
   override find<R = DataObject>(opts: {
     filter: TFilter<DataObject>;
-    options: ExtraOptions & { shouldQueryRange: true };
-  }): Promise<{ data: Array<R>; range: TDataRange }>;
+    options: TFindRangeOptions<ExtraOptions, R>;
+  }): Promise<TDataWithRange<R>>;
 
   override find<R = DataObject>(opts: {
     filter: TFilter<DataObject>;
-    options?: ExtraOptions & { shouldQueryRange?: false };
+    options?: TFindOptions<ExtraOptions, R>;
   }): Promise<Array<R>>;
 
   /** Auto-selects Core API or Query API based on filter complexity. */
   override async find<R = DataObject>(opts: {
     filter: TFilter<DataObject>;
-    options?: ExtraOptions & { shouldQueryRange?: boolean };
-  }): Promise<Array<R> | { data: Array<R>; range: TDataRange }> {
+    options?: TFindOptions<ExtraOptions, R> | TFindRangeOptions<ExtraOptions, R>;
+  }): Promise<Array<R> | TDataWithRange<R>> {
     const { filter, options } = opts;
+
+    if (options?.retry) {
+      return options.shouldQueryRange === true
+        ? this.findRangeUntil<R>({ filter, options })
+        : this.findUntil<R>({ filter, options });
+    }
+
     const shouldQueryRange = options?.shouldQueryRange === true;
 
     const baseFilter = this.applyDefaultFilter({
@@ -156,8 +166,7 @@ export class ReadableRelationalRepository<
       limit: baseFilter.limit ?? this.getDefaultLimit() ?? DEFAULT_LIMIT,
     };
 
-    // ExtraOptions is caller-bound but otherwise unconstrained; spreading it alongside the literal
-    // override can't be proven to still satisfy the generic bound.
+    // ExtraOptions is caller-bound but otherwise unconstrained; spreading it alongside the literal override can't be proven to still satisfy the generic bound.
     const effectiveOptions = { ...options, shouldSkipDefaultFilter: true } as ExtraOptions;
     const useCoreAPI = this.canUseCoreAPI(mergedFilter);
 
@@ -175,8 +184,7 @@ export class ReadableRelationalRepository<
       return dataPromise;
     }
 
-    // A transaction connector wraps a single pg client, so parallel data+count queries would call
-    // client.query() while it's still busy (pg deprecation warning) - only safe outside a transaction.
+    // A transaction connector wraps a single pg client, so parallel data+count queries would call client.query() while it is still busy - only safe outside a transaction.
     const countPromise = () =>
       this.count({ where: mergedFilter.where ?? {}, options: effectiveOptions });
 
@@ -190,46 +198,51 @@ export class ReadableRelationalRepository<
       [data, { count: total }] = await Promise.all([dataPromise, countPromise()]);
     }
 
-    // Build range following HTTP Content-Range standard (inclusive end index)
-    const start = mergedFilter.skip ?? mergedFilter.offset ?? 0;
-    const end = data.length > 0 ? start + data.length - 1 : start;
-
     return {
       data,
-      range: { start, end, total },
+      range: buildDataRange({
+        skip: mergedFilter.skip,
+        offset: mergedFilter.offset,
+        dataLength: data.length,
+        total,
+      }),
     };
   }
 
   /** Auto-selects Core API or Query API based on filter complexity. */
   override async findOne<R = DataObject>(opts: {
     filter: TFilter<DataObject>;
-    options?: ExtraOptions;
+    options?: TFindOneOptions<ExtraOptions, R>;
   }): Promise<TNullable<R>> {
-    const useCoreAPI = this.canUseCoreAPI(opts.filter);
+    if (opts.options?.retry) {
+      return this.findOneUntil<R>({ filter: opts.filter, options: opts.options });
+    }
+
+    const filter = opts.filter;
+    const useCoreAPI = this.canUseCoreAPI(filter);
 
     this.validateLockOptions({
-      lock: opts.options?.lock,
-      transaction: opts.options?.transaction,
+      lock: opts?.options?.lock,
+      transaction: opts?.options?.transaction,
       usesQueryAPI: !useCoreAPI,
     });
 
-    // Use Core API for flat queries (no relations, no field selection)
     if (useCoreAPI) {
       const results = await this.findWithCoreAPI<R>({
-        filter: opts.filter,
+        filter,
         isFindOne: true,
-        options: opts.options,
+        options: opts?.options,
       });
       return results[0] ?? null;
     }
 
     const mergedFilter = this.applyDefaultFilter({
-      userFilter: opts.filter,
-      shouldSkipDefaultFilter: opts.options?.shouldSkipDefaultFilter,
+      userFilter: filter,
+      shouldSkipDefaultFilter: opts?.options?.shouldSkipDefaultFilter,
     });
 
-    const { limit: _limit, ...queryOptions } = this.buildQuery({ filter: mergedFilter });
-    const queryInterface = this.getQueryInterface({ options: opts.options });
+    const queryOptions = omit(this.buildQuery({ filter: mergedFilter }), ['limit']);
+    const queryInterface = this.getQueryInterface({ options: opts?.options });
     const result = await queryInterface.findFirst(queryOptions);
     // Same drizzle-relational-query-vs-caller-generic boundary as findWithQueryAPI above.
     return (result ?? null) as TNullable<R>;
@@ -239,7 +252,7 @@ export class ReadableRelationalRepository<
   override findById<R = DataObject>(opts: {
     id: IdType;
     filter?: Omit<TFilter<DataObject>, 'where'>;
-    options?: ExtraOptions;
+    options?: TFindOneOptions<ExtraOptions, R>;
   }): Promise<TNullable<R>> {
     return this.findOne<R>({
       filter: {
@@ -289,9 +302,7 @@ export class ReadableRelationalRepository<
     data: PersistObject;
     options?: ExtraOptions & { shouldReturn?: boolean };
   }): Promise<TCount & { data: TNullable<DataObject> }> {
-    throw getError({
-      message: `[${this.create.name}] Repository operation is NOT ALLOWED | scope: ${this.operationScope}`,
-    });
+    return this.denyOperation(this.create.name);
   }
 
   /** @throws Error - disabled in read-only repository. */
@@ -307,9 +318,7 @@ export class ReadableRelationalRepository<
     data: Array<PersistObject>;
     options?: ExtraOptions & { shouldReturn?: boolean };
   }): Promise<TCount & { data: TNullable<Array<DataObject>> }> {
-    throw getError({
-      message: `[${this.createAll.name}] Repository operation is NOT ALLOWED | scope: ${this.operationScope}`,
-    });
+    return this.denyOperation(this.createAll.name);
   }
 
   /** @throws Error - disabled in read-only repository. */
@@ -328,9 +337,7 @@ export class ReadableRelationalRepository<
     data: Partial<PersistObject>;
     options?: ExtraOptions & { shouldReturn?: boolean };
   }): Promise<TCount & { data: TNullable<R> }> {
-    throw getError({
-      message: `[${this.updateById.name}] Repository operation is NOT ALLOWED | scope: ${this.operationScope}`,
-    });
+    return this.denyOperation(this.updateById.name);
   }
 
   /** @throws Error - disabled in read-only repository. */
@@ -349,9 +356,7 @@ export class ReadableRelationalRepository<
     where: TWhere<DataObject>;
     options?: ExtraOptions & { shouldReturn?: boolean; force?: boolean };
   }): Promise<TCount & { data: TNullable<Array<R>> }> {
-    throw getError({
-      message: `[${this.updateAll.name}] Repository operation is NOT ALLOWED | scope: ${this.operationScope}`,
-    });
+    return this.denyOperation(this.updateAll.name);
   }
 
   /** @throws Error - disabled in read-only repository. */
@@ -367,9 +372,7 @@ export class ReadableRelationalRepository<
     id: IdType;
     options?: ExtraOptions & { shouldReturn?: boolean };
   }): Promise<TCount & { data: TNullable<R> }> {
-    throw getError({
-      message: `[${this.deleteById.name}] Repository operation is NOT ALLOWED | scope: ${this.operationScope}`,
-    });
+    return this.denyOperation(this.deleteById.name);
   }
 
   /** @throws Error - disabled in read-only repository. */
@@ -385,8 +388,6 @@ export class ReadableRelationalRepository<
     where?: TWhere<DataObject>;
     options?: ExtraOptions & { shouldReturn?: boolean; force?: boolean };
   }): Promise<TCount & { data: TNullable<Array<R>> }> {
-    throw getError({
-      message: `[${this.deleteAll.name}] Repository operation is NOT ALLOWED | scope: ${this.operationScope}`,
-    });
+    return this.denyOperation(this.deleteAll.name);
   }
 }

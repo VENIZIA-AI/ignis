@@ -43,8 +43,7 @@ export abstract class AbstractDataSource<
     return { transactions: false };
   }
 
-  /** Defaults to throwing NotSupported - only connectors with real transaction support (postgres)
-   * override this. Async so callers get a rejected promise, not a synchronous throw that skips try/catch. */
+  /** Defaults to throwing NotSupported - only connectors with real transaction support override this; async so callers get a rejected promise, not a synchronous throw that skips try/catch. */
   async beginTransaction(_opts?: ITransactionOptions): Promise<ITransaction> {
     return throwNotSupported({
       scope: this.constructor.name,
@@ -60,8 +59,7 @@ export abstract class AbstractDataSource<
     });
   }
 
-  /** Walks model classes bound to this datasource, reads a connector-specific artifact via `read`,
-   * and returns a name-keyed registry - skips undefined reads, throws on duplicate names, honors `autoDiscovery: false`. */
+  /** Walks model classes bound to this datasource, reads a connector-specific artifact via `read`, and returns a name-keyed registry - skips undefined reads, throws on duplicate names, honors `autoDiscovery: false`. */
   protected discoverDefinitions<TDefinition extends { name: string }>(opts: {
     read: (modelClass: TClass<unknown>) => TDefinition | undefined;
     kind: string;

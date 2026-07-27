@@ -8,9 +8,11 @@ import type { IAuthUser } from '../../authenticate';
 import type {
   CasbinEnforcerCachedDrivers,
   CasbinEnforcerModelDrivers,
+  TAuthorizationAction,
   TAuthorizationDecision,
   TCasbinDomainMatchingFunction,
 } from './constants';
+import type { AuthorizationPolicyBuilder } from '../builders/policy.builder';
 export interface IAuthorizationRole {
   readonly name: string;
   readonly priority: number;
@@ -27,10 +29,7 @@ export interface IAuthorizationRequest<TAction = string, TResource = string> {
   action: TAction;
   resource: TResource;
   conditions?: TAuthorizationConditions;
-  /**
-   * Resolved domain scope for this request, as a casbin domain string `"<DomainType>_<id>"`
-   * (e.g. `"Merchant_7"`), or the `"SYSTEM_WIDE"` sentinel to enforce across all domains.
-   */
+  /** Resolved domain scope for this request as a casbin domain string `"<DomainType>_<id>"` (e.g. `"Merchant_7"`), or the `"SYSTEM_WIDE"` sentinel to enforce across all domains. */
   domain?: string;
 }
 
@@ -56,13 +55,7 @@ export type TAuthorizationDomainResolver<E extends Env = Env> = (opts: {
   context: TContext<E, string>;
 }) => ValueOrPromise<TNullable<{ type: string; id: IdType }>>;
 
-/**
- * Authorization enforcer: builds rules and evaluates requests.
- *
- * Cache management (`invalidateUserCache`/`rebuildUserCache`) is OPTIONAL — present only on enforcers
- * that cache per-user policies (e.g. the Casbin enforcer with the Redis driver). The registry
- * feature-detects them at runtime before invoking.
- */
+/** Builds rules and evaluates requests. Cache management (`invalidateUserCache`/`rebuildUserCache`) is OPTIONAL - only on per-user-caching enforcers; the registry feature-detects it at runtime. */
 export interface IAuthorizationEnforcer<
   E extends Env = Env,
   TAction = string,
@@ -156,11 +149,7 @@ export interface ICasbinEnforcerOptions<
     domain?: string;
   };
 
-  /**
-   * Turn on the domain-scoped RBAC model. Requests become 4-token `(subject, domain, object, action)`
-   * instead of 3-token, and the enforcer registers the domain matcher (`keyMatch` on `g`) and the
-   * resource matcher (`objectMatch`) needed by that model.
-   */
+  /** Domain-scoped RBAC model: requests become 4-token `(subject, domain, object, action)` and the enforcer registers the domain matcher (`keyMatch` on `g`) + resource matcher (`objectMatch`). */
   isScoped?: boolean;
 
   /** Number of pooled enforcers (each request enforces on its own). Default 16. */
@@ -176,3 +165,13 @@ export interface IAuthorizeOptions {
   /** Fallback domain resolver used when a route's spec has no `domain`. */
   domainResolver?: TAuthorizationDomainResolver;
 }
+
+/** Shape of `PolicyDefinition.metadata` on a subset ("custom") grant. `ops` holds bare method names (e.g. `"find"`), not full permission codes. */
+export type TCustomGrantMetadata = { ops: string[] };
+
+export type TGrantIntent = { tier: TAuthorizationAction } | { ops: string[] };
+
+/** Per-operation rows carry `targetId` = the operation's code, not a database id; the consumer resolves codes to ids when persisting. */
+export type TPlannedGrantRow = ReturnType<typeof AuthorizationPolicyBuilder.grant> & {
+  metadata?: { ops: string[] };
+};

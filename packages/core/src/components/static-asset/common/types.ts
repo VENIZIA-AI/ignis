@@ -18,8 +18,11 @@ export type TStaticAssetExtraOptions = {
     storage?: 'memory' | 'disk';
     uploadDir?: string;
   };
-  normalizeNameFn?: (opts: { originalName: string }) => string;
+
+  /** `folderPath` carries the upload query's target folder - dropping it flattens nested uploads. */
+  normalizeNameFn?: (opts: { originalName: string; folderPath?: string }) => string;
   normalizeLinkFn?: (opts: { bucketName: string; normalizeName: string }) => string;
+
   /** Maximum folder nesting depth allowed in object paths. Default: 2 */
   maxFolderDepth?: number;
   [key: string]: AnyType;

@@ -4,11 +4,11 @@ import {
   AuthorizationDecisions,
   AuthorizationDomainScopes,
   AuthorizationEnforcerTypes,
+  AuthorizeBindingKeys,
   type TAuthorizationDecision,
 } from '@/components/auth/authorize/common/constants';
-import { AuthorizeBindingKeys } from '@/components/auth/authorize/common/keys';
 import { authorize } from '@/components/auth/authorize/middlewares';
-import { resolveRequestDomain } from '@/components/auth/authorize/common/resolve-request-domain';
+import { resolveRequestDomain } from '@/components/auth/authorize/providers/request-domain';
 import { ScopedCasbinAdapter } from '@/components/auth/authorize/adapters/scoped-casbin.adapter';
 import type {
   IAuthorizeOptions,
@@ -21,10 +21,7 @@ import { Container } from '@/helpers/inversion';
 import type { TContext } from '@/base/controllers/common/types';
 import { createFreshRegistry, TestAuthorizationEnforcer, type TTestRule } from './helpers';
 
-/**
- * Full-context stub exposing req.param/header/query (unlike helpers' createMockContext) so
- * declarative domain sources can be read, plus seeding user/rules and capturing store writes.
- */
+/** Full-context stub exposing req.param/header/query (unlike helpers' createMockContext) so declarative domain sources can be read; also seeds user/rules and captures store writes. */
 const createFullContext = (overrides?: {
   user?: (IAuthUser & { principalType?: string }) | undefined;
   rules?: unknown;
@@ -119,8 +116,7 @@ const run = async (
     hasCalledNext = true;
   };
   try {
-    // context is a partial fake standing in for Hono's Context — cast to the real param type
-    // middleware expects rather than loosening middleware's own call signature.
+    // The partial fake is cast to the real Hono Context the middleware expects rather than loosening middleware's own call signature.
     await middleware(context as any, next);
     return { hasCalledNext };
   } catch (error) {
@@ -311,8 +307,7 @@ describe('resolveRequestDomain — unknown `from` hits default branch (lines 27-
 
 describe('ScopedCasbinAdapter — no-op write methods (lines 43-48)', () => {
   test('loadPolicy/savePolicy/addPolicy/removePolicy/removeFilteredPolicy are no-ops', async () => {
-    // Cast is required: ICasbinPolicySource.connector is the full drizzle node-postgres connector
-    // type, which this no-op-focused fixture cannot structurally satisfy with just `execute`.
+    // Cast required: ICasbinPolicySource.connector is the full drizzle node-postgres type, which a fixture implementing only `execute` cannot satisfy.
     const dataSource = {
       connector: { execute: async () => ({ rows: [] }) },
     } as any;

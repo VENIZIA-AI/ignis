@@ -16,8 +16,7 @@ describe('TypesenseConnector search', () => {
   });
 
   test('maps facet_counts/grouped_hits/text_match onto camelCase result fields', async () => {
-    // Wire-shaped fixture assembled via bracket assignment (never a snake_case TS identifier),
-    // same convention as connector.ts's buildEmptySearchResponse().
+    // Wire-shaped fixture assembled via bracket assignment, never a snake_case TS identifier - same convention as connector.ts's buildEmptySearchResponse().
     const facetCount: Record<string, unknown> = { counts: [{ value: 'nike', count: 1 }] };
     facetCount['field_name'] = 'brand';
     const groupedHit: Record<string, unknown> = { hits: [{ document: { id: '1' } }] };
@@ -43,7 +42,7 @@ describe('TypesenseConnector search', () => {
     expect(result.groupedHits).toEqual([groupedHit]);
     expect(result.hits?.[0]?.document).toEqual({ id: '1' });
     expect(result.hits?.[0]?.highlight).toEqual({ title: {} });
-    expect(result.hits?.[0]?.textMatch).toBe(123456);
+    expect(result.hits?.[0]?.score).toBe(123456);
   });
 
   test('search on a missing collection returns an empty result, not a 500', async () => {

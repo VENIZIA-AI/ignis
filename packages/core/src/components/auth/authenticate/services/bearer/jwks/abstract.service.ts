@@ -1,13 +1,7 @@
 import type { Env } from 'hono';
 import { AbstractBearerTokenService } from '../abstract.service';
 
-/**
- * Base class for JWKS token services (Issuer + Verifier).
- *
- * Consolidates the lazy-initialization pattern with retry-on-failure semantics:
- * if `initialize()` rejects, `initPromise` is reset so the next call retries
- * instead of caching the failure permanently.
- */
+/** Base for JWKS token services (Issuer + Verifier): lazy init where a rejected `initialize()` resets `initPromise`, so the next call retries instead of caching the failure. */
 export abstract class AbstractJWKSTokenService<
   E extends Env = Env,
 > extends AbstractBearerTokenService<E> {
@@ -19,12 +13,10 @@ export abstract class AbstractJWKSTokenService<
       return;
     }
 
-    if (!this.initPromise) {
-      this.initPromise = this.initialize().catch(error => {
-        this.initPromise = null;
-        throw error;
-      });
-    }
+    this.initPromise ??= this.initialize().catch(error => {
+      this.initPromise = null;
+      throw error;
+    });
 
     await this.initPromise;
   }

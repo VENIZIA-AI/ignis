@@ -268,7 +268,7 @@ import {
   datasource,
   ValueOrPromise,
 } from '@venizia/ignis';
-import { drizzle } from 'drizzle-orm/node-postgres';
+import { NodePostgresDriver } from '@venizia/ignis/postgres/node-postgres';
 import { Pool } from 'pg';
 
 interface IDSConfigs {
@@ -279,7 +279,7 @@ interface IDSConfigs {
   password: string;
 }
 
-@datasource({ driver: 'node-postgres' })
+@datasource({ driver: NodePostgresDriver })
 export class PostgresDataSource extends BaseDataSource<IDSConfigs> {
   constructor() {
     super({
@@ -295,16 +295,18 @@ export class PostgresDataSource extends BaseDataSource<IDSConfigs> {
   }
 
   override configure(): ValueOrPromise<void> {
-    const schema = this.getSchema();
+    const schema = Object.keys(this.getSchema());
 
     this.logger.debug(
       '[configure] Auto-discovered schema | Schema + Relations (%s): %o',
-      Object.keys(schema).length,
-      Object.keys(schema),
+      schema.length,
+      schema,
     );
 
-    const client = new Pool(this.settings);
-    this.connector = drizzle({ client, schema });
+    // The client must land on this.client - a local would leave beginTransaction() with nothing
+    // to resolve a driver from, and it would throw `No driver and no client`. NodePostgresDriver
+    // named in @datasource above is what wires the driver and Drizzle connector from it.
+    this.client = new Pool(this.settings);
   }
 }
 ```
@@ -477,7 +479,8 @@ import {
   BindingKeys,
   BindingNamespaces,
 } from '@venizia/ignis';
-import { ISocketIOClient, getError, SocketIOServerHelper } from '@venizia/ignis-helpers';
+import { getError } from '@venizia/ignis-helpers';
+import { ISocketIOClient, SocketIOServerHelper } from '@venizia/ignis-helpers/socket-io';
 import { Socket } from 'socket.io';
 import { MessageRepository } from '../repositories/message.repository';
 import { RoomRepository } from '../repositories/room.repository';
@@ -970,7 +973,7 @@ export class ChatService extends BaseService {
 ```
 
 > [!IMPORTANT]
-> **Lazy getter pattern**: `SocketIOServerHelper` is bound via a post-start hook, so it's not available during DI construction. The `private get socketIOHelper()` getter resolves it lazily on first access. See [Socket.IO Component](/extensions/components/socket-io/#step-3-use-in-servicescontrollers) for details.
+> **Lazy getter pattern**: `SocketIOServerHelper` is bound via a post-start hook, so it's not available during DI construction. The `private get socketIOHelper()` getter resolves it lazily on first access. See [Send a message from a service](/extensions/components/socket-io/#send-a-message-from-a-service) for details.
 
 ## 6. Application Setup
 
@@ -1448,7 +1451,7 @@ const chat = new ChatClient({ token: 'your-jwt-token' });
 For server-to-server or microservice communication, use the built-in `SocketIOClientHelper`:
 
 ```typescript
-import { SocketIOClientHelper } from '@venizia/ignis-helpers';
+import { SocketIOClientHelper } from '@venizia/ignis-helpers/socket-io';
 
 const client = new SocketIOClientHelper({
   identifier: 'chat-service-client',

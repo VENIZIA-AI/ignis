@@ -1,11 +1,10 @@
-import { BaseHelper } from '@venizia/ignis-helpers';
+import { readResultRows } from '@/utilities';
+import { BaseHelper, getError } from '@venizia/ignis-helpers';
 import { type FilteredAdapter, type Model } from 'casbin';
+import type { SQL } from 'drizzle-orm';
 import type { ICasbinPolicyFilter, ICasbinPolicySource, TCasbinPolicyConnector } from './types';
 
-/**
- * Read-only base for casbin FilteredAdapters backed by a datasource — owns the connector plumbing
- * and no-op write methods; subclasses only implement {@link loadFilteredPolicy} per principal.
- */
+/** Read-only base for casbin FilteredAdapters backed by a datasource - owns connector plumbing and no-op write methods; subclasses implement {@link loadFilteredPolicy} per principal. */
 export abstract class BaseFilteredAdapter<TFilter = ICasbinPolicyFilter>
   extends BaseHelper
   implements FilteredAdapter
@@ -18,7 +17,23 @@ export abstract class BaseFilteredAdapter<TFilter = ICasbinPolicyFilter>
   }
 
   protected get connector(): TCasbinPolicyConnector {
-    return this.dataSource.connector;
+    const source = this.dataSource;
+    const resolved = source.getConnector?.() ?? source.connector;
+
+    if (!resolved) {
+      throw getError({
+        message:
+          '[BaseFilteredAdapter] datasource exposes neither a getConnector() accessor nor a wired connector - pass a datasource whose getConnector() lazily wires the driver.',
+      });
+    }
+
+    return resolved;
+  }
+
+  /** Runs a raw statement and returns its rows. Drizzle's `execute()` shape differs per driver (node-postgres `{ rows }`, postgres-js the row list itself) - never read `.rows` directly. */
+  protected async query<TRow>(opts: { statement: SQL }): Promise<TRow[]> {
+    const result = await this.connector.execute(opts.statement);
+    return readResultRows<TRow>({ result });
   }
 
   /** Load ONLY the policies matching `filter` into `model` (the store is read for one principal). */
@@ -28,7 +43,7 @@ export abstract class BaseFilteredAdapter<TFilter = ICasbinPolicyFilter>
     return true;
   }
 
-  // Read-only adapter — write methods are intentional no-ops.
+  // Read-only adapter - write methods are intentional no-ops.
   async loadPolicy(): Promise<void> {}
   async savePolicy(): Promise<boolean> {
     return true;

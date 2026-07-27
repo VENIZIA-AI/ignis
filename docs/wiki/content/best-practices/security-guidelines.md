@@ -20,8 +20,38 @@ APP_ENV_POSTGRES_PASSWORD=database_password_here
 
 **Generate strong secrets:**
 ```bash
-node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"
+bun -e "console.log(Buffer.from(crypto.getRandomValues(new Uint8Array(32))).toString('base64'))"
 ```
+
+### Redaction at Log Time
+
+Never hard-coding a secret is not enough on its own. An options object holding one still ends up in a log line the moment it is passed to `logger.info('...: %s', opts)`. `@venizia/ignis-helpers` provides two primitives for exactly this:
+
+| Function | Use For | Behavior |
+|----------|---------|----------|
+| `redactSecrets(value)` | Any object/array being logged | Recursively replaces every value whose key matches a secret-looking name with `'[REDACTED]'` |
+| `redactUrlCredentials(url)` | A connection/broker URL string | Strips the password out of a URL's authority section: `mqtts://user:hunter2@broker:8883` becomes `mqtts://user:[REDACTED]@broker:8883`. A value that doesn't parse as a URL, or one with no password, is returned unchanged |
+
+```typescript
+import { redactSecrets, redactUrlCredentials } from '@venizia/ignis-helpers';
+
+this.logger.info('[connect] Options: %s', redactSecrets(connectionOptions));
+this.logger.info('[connect] Broker: %s', redactUrlCredentials(brokerUrl));
+```
+
+`redactSecrets` matches on the **key name**, case-insensitively, at any depth:
+
+- Options-object spellings: `password`, `passphrase`, `secret`, `token`, `apiKey`, `privateKey`, `credentials`, `authorization`, `connectionString`, ...
+- Any `*_token` / `*Token` key: `access_token`, `refresh_token`, `vaultToken`, ...
+- Vault wire keys: `client_token`, `secret_id`, `role_id`
+- HTTP header spellings: `x-api-key`, `x-vault-token`, `cookie`, `set-cookie`, `proxy-authorization`, `www-authenticate`
+
+It also handles the shapes naive redaction breaks on. An `Error` is reprojected so its non-enumerable `message`/`stack` survive. Cycles become `'[Circular]'`, and buffers/typed arrays are summarized as `[Binary N bytes]` instead of serialized.
+
+These are the primitives the framework itself uses. Outbound HTTP request configs (`NodeFetcher`/`AxiosFetcher`, see [Network Helper](/extensions/helpers/network/)) and MQTT broker URLs (`MQTTClientHelper`, see [Queue Helper](/extensions/helpers/queue/)) are both redacted this way before they reach a log line.
+
+> [!WARNING]
+> `APP_ENV_LOGGER_DO_REDACT=false` turns both functions into the identity function. It is a local-debugging kill-switch and must never be set in production. The check is fail-closed - only the literal string `false` disables redaction - and is read per call, so it can be flipped at runtime.
 
 ## 2. Input Validation
 
@@ -92,7 +122,7 @@ Configure model properties that should **never be returned** through repository 
     hiddenProperties: ['password', 'apiSecret', 'internalToken'],
   },
 })
-export class User extends BasePostgresEntity<typeof User.schema> {
+export class User extends BaseRelationalEntity<typeof User.schema> {
   static override schema = pgTable('User', {
     ...generateIdColumnDefs({ id: { dataType: 'string' } }),
     email: text('email').notNull(),
@@ -113,7 +143,7 @@ export class User extends BasePostgresEntity<typeof User.schema> {
 
 ```typescript
 // For authentication - access password via connector
-const connector = userRepository.getConnector();
+const connector = userRepository.connector;
 const [user] = await connector
   .select({ id: User.schema.id, password: User.schema.password })
   .from(User.schema)
@@ -321,7 +351,7 @@ const redisHelper = new RedisSingleHelper({
   name: 'rate-limiter',
   host: process.env.APP_ENV_REDIS_HOST ?? 'localhost',
   port: process.env.APP_ENV_REDIS_PORT ?? '6379',
-  password: process.env.APP_ENV_REDIS_PASSWORD,
+  password: process.env.APP_ENV_REDIS_PASSWORD ?? '',
 });
 
 const distributedRateLimiter = async (opts: { key: string; max: number; windowSeconds: number }) => {
@@ -444,6 +474,18 @@ export class AuthService extends BaseService {
 }
 ```
 
+### Error Responses Are Hardened in Production
+
+The global error handler decides what a client sees by environment, and it is **fail-closed**: an unset or unrecognized `NODE_ENV` is treated as production. Only `NODE_ENV` values in the development set relax it.
+
+| In production | Behavior |
+|---|---|
+| Unexpected errors | Replaced with a generic `"Internal Server Error"` - raw text may carry SQL, schema names or connection details |
+| Database constraint errors (400) | Base message only; the driver's `Detail:` (which echoes row values like emails), `Table:` and `Constraint:` are stripped |
+| `details.stack` / `details.cause` | Omitted |
+
+Deliberate `getError` messages are always returned verbatim, in every environment - so never put internal detail in one. Use `requestId` plus the server log to diagnose what the response no longer shows. See [Error Handling](./error-handling#_5-error-response-format).
+
 **Events to Log:**
 - Failed login attempts
 - Successful logins
@@ -451,6 +493,9 @@ export class AuthService extends BaseService {
 - Permission changes
 - Suspicious activity (rate limit hits, invalid tokens)
 - Admin actions
+
+> [!NOTE]
+> When logging a request or connection config that might carry credentials, wrap it in `redactSecrets()` (or `redactUrlCredentials()` for a URL) rather than logging it raw. See [Redaction at Log Time](#redaction-at-log-time) above. This is what the framework's own outbound HTTP and MQTT logging already does automatically.
 
 ## Security Checklist
 
@@ -468,6 +513,8 @@ Before deploying to production, verify:
 | **Dependencies** | No known vulnerabilities (`bun audit`) |
 | **HTTPS** | TLS configured for production |
 | **Hidden Data** | Sensitive fields use `hiddenProperties` |
+| **Redaction** | `APP_ENV_LOGGER_DO_REDACT` is unset (never `false`) |
+| **Error Leakage** | `NODE_ENV` set to a production value so responses are sanitized |
 
 ## See Also
 

@@ -65,7 +65,7 @@ const user = await userRepo.findById({ id: '123' });
 // { id: '123', email: 'john@example.com' }
 
 // Connector - includes all fields
-const connector = userRepo.getConnector();
+const connector = userRepo.connector;
 const [fullUser] = await connector
   .select()
   .from(User.schema)

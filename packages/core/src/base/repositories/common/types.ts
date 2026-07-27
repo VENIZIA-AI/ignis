@@ -1,9 +1,9 @@
 import type { AbstractDataSource, ITransaction } from '@/base/datasources';
 import type { AbstractEntity, IdType } from '@/base/models';
 import { z } from '@hono/zod-openapi';
-import type { TLogLevel, TNullable } from '@venizia/ignis-helpers';
+import type { IRetryBackoffOptions, TLogLevel, TNullable } from '@venizia/ignis-helpers';
 import type { Column, SQL } from 'drizzle-orm';
-import type { TFilter, TWhere } from '../query-schemas';
+import type { TFilter, TWhere } from '@venizia/ignis-filter';
 import type { TLockStrength } from './constants';
 
 /** Update data supporting both regular fields and JSON path updates via dot notation. */
@@ -24,6 +24,19 @@ export type TDataRange = {
   start: number;
   end: number;
   total: number;
+};
+
+/** Builds the Content-Range style envelope (inclusive end index) shared by every engine's `shouldQueryRange` path - an empty page collapses `end` onto `start`. */
+export const buildDataRange = (opts: {
+  skip?: number;
+  offset?: number;
+  dataLength: number;
+  total: number;
+}): TDataRange => {
+  const { skip, offset, dataLength, total } = opts;
+  const start = skip ?? offset ?? 0;
+  const end = dataLength > 0 ? start + dataLength - 1 : start;
+  return { start, end, total };
 };
 
 /** Options for Drizzle ORM query building, used internally by FilterBuilder. */
@@ -54,8 +67,7 @@ export type TLockOptions = {
   config?: TLockConfig;
 };
 
-/** Interface for objects that can be associated with a database transaction. Neutral - postgres
- * narrows to its own `IDatabaseTransaction` internally (via `isDatabaseTransaction`) where it needs `.connector`. */
+/** Neutral transaction association - postgres narrows to its own `IDatabaseTransaction` (via `isDatabaseTransaction`) where it needs `.connector`. */
 export interface IWithTransaction {
   transaction?: ITransaction;
 }
@@ -71,8 +83,47 @@ export interface IExtraOptions extends IWithTransaction {
   lock?: TLockOptions;
 }
 
-/** Base repository interface shared by every engine. Engine-specific accessors (postgres's
- * `getEntitySchema()`/`getConnector()`) stay on the connector's own repository tier. */
+/** Read-after-write retry for read verbs behind a replicated pool - the read is re-executed while `until(result)` returns false; on exhaustion the last result is returned as-is. */
+export interface IReadRetryOptions<TResult> {
+  /** Default 3. */
+  maxAttempts?: number;
+
+  /** Total budget across attempts AND sleeps. Default: unlimited. */
+  maxTotalMs?: number;
+
+  /** Aborts between attempts and during backoff sleeps - pass the request signal so a cancelled request stops retrying instead of finishing the loop on a connection nobody is reading. */
+  signal?: AbortSignal;
+
+  /** Default: EXPONENTIAL from 50ms, capped at 500ms, EQUAL jitter - tuned for replica lag. */
+  backoff?: IRetryBackoffOptions;
+
+  /** Retry while false. Default per verb: findOne/findById non-null, find non-empty. */
+  until?: (result: TResult) => boolean;
+}
+
+/** Intersected into READ verb signatures only - a write verb's options type has no `retry`, so an inline `{ retry }` is rejected at compile time and a pre-built object carrying it is inert. */
+export interface IWithReadRetry<TResult> {
+  retry?: IReadRetryOptions<TResult>;
+}
+
+/** The `shouldQueryRange: true` result envelope. */
+export type TDataWithRange<R> = { data: Array<R>; range: TDataRange };
+
+/** Options for `find` returning a plain array - the retry predicate sees `Array<R>`. */
+export type TFindOptions<TOptions extends IExtraOptions, R> = TOptions & {
+  shouldQueryRange?: false;
+} & IWithReadRetry<Array<R>>;
+
+/** Options for `find` with the range envelope - the retry predicate sees `{ data, range }`. */
+export type TFindRangeOptions<TOptions extends IExtraOptions, R> = TOptions & {
+  shouldQueryRange: true;
+} & IWithReadRetry<TDataWithRange<R>>;
+
+/** Options for `findOne`/`findById` - the retry predicate sees `TNullable<R>`. */
+export type TFindOneOptions<TOptions extends IExtraOptions, R> = TOptions &
+  IWithReadRetry<TNullable<R>>;
+
+/** Base repository interface shared by every engine - engine-specific accessors (postgres's `getEntitySchema()`/`getConnector()`) stay on the connector's own repository tier. */
 export interface IRepository {
   dataSource: AbstractDataSource;
   entity: AbstractEntity;
@@ -89,23 +140,23 @@ export interface IReadableRepository<
 
   find<R = TDataObject>(opts: {
     filter: TFilter<TDataObject>;
-    options: ExtraOptions & { shouldQueryRange: true };
-  }): Promise<{ data: Array<R>; range: TDataRange }>;
+    options: TFindRangeOptions<ExtraOptions, R>;
+  }): Promise<TDataWithRange<R>>;
 
   find<R = TDataObject>(opts: {
     filter: TFilter<TDataObject>;
-    options?: ExtraOptions & { shouldQueryRange?: false };
+    options?: TFindOptions<ExtraOptions, R>;
   }): Promise<Array<R>>;
 
   findOne<R = TDataObject>(opts: {
     filter: TFilter<TDataObject>;
-    options?: ExtraOptions;
+    options?: TFindOneOptions<ExtraOptions, R>;
   }): Promise<TNullable<R>>;
 
   findById<R = TDataObject>(opts: {
     id: IdType;
     filter?: Omit<TFilter<TDataObject>, 'where'>;
-    options?: ExtraOptions;
+    options?: TFindOneOptions<ExtraOptions, R>;
   }): Promise<TNullable<R>>;
 }
 
@@ -164,7 +215,7 @@ export interface IUpdatableRepository<
     data: Partial<TPersistObject>;
     where: TWhere<TDataObject>;
     options?: ExtraOptions & { shouldReturn?: true; force?: boolean };
-  }): Promise<TCount & { data: Array<R> }>;
+  }): Promise<TCount & { data: Array<R> | null }>;
 
   /** Alias for updateAll. */
   updateBy(opts: {
@@ -178,7 +229,7 @@ export interface IUpdatableRepository<
     data: Partial<TPersistObject>;
     where: TWhere<TDataObject>;
     options?: ExtraOptions & { shouldReturn?: true; force?: boolean };
-  }): Promise<TCount & { data: Array<R> }>;
+  }): Promise<TCount & { data: Array<R> | null }>;
 }
 
 /** Interface for delete operations. */
@@ -204,7 +255,7 @@ export interface IDeletableRepository<
   deleteAll<R = TDataObject>(opts: {
     where?: TWhere<TDataObject>;
     options?: ExtraOptions & { shouldReturn?: true; force?: boolean };
-  }): Promise<TCount & { data: Array<R> }>;
+  }): Promise<TCount & { data: Array<R> | null }>;
 
   /** Alias for deleteAll. */
   deleteBy(opts: {
@@ -216,7 +267,7 @@ export interface IDeletableRepository<
   deleteBy<R = TDataObject>(opts: {
     where?: TWhere<TDataObject>;
     options?: ExtraOptions & { shouldReturn?: true; force?: boolean };
-  }): Promise<TCount & { data: Array<R> }>;
+  }): Promise<TCount & { data: Array<R> | null }>;
 }
 
 /** Interface for full CRUD repository operations - reads plus create, update, and delete. */
@@ -231,8 +282,7 @@ export interface IPersistableRepository<
     IUpdatableRepository<TDataObject, TPersistObject, ExtraOptions>,
     IDeletableRepository<TDataObject, ExtraOptions> {}
 
-/** Alias for IPersistableRepository (already the full create/read/update/delete surface) - the
- * name both DefaultRelationalRepository and DefaultSearchRepository are meant to satisfy. */
+/** Alias for IPersistableRepository (already the full create/read/update/delete surface) - the name both DefaultRelationalRepository and DefaultSearchRepository are meant to satisfy. */
 export interface ICrudRepository<
   TDataObject extends object = object,
   TPersistObject extends object = TDataObject,

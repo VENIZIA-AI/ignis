@@ -48,7 +48,7 @@ const CreateConfigurationSchema = z
 // Controller Factory Definition
 // -----------------------------------------------------------------------------
 
-const _Controller = ControllerFactory.defineCrudController({
+const BaseCrudController = ControllerFactory.defineCrudController({
   repository: { name: ConfigurationRepository.name },
   controller: {
     name: 'ConfigurationController',
@@ -91,14 +91,14 @@ const _Controller = ControllerFactory.defineCrudController({
 });
 
 // Infered route definition type
-// type TRouteDefinitions = InstanceType<typeof _Controller>['definitions'];
+// type TRouteDefinitions = InstanceType<typeof BaseCrudController>['definitions'];
 
 // -----------------------------------------------------------------------------
 // Controller Implementation
 // -----------------------------------------------------------------------------
 
 @controller({ path: BASE_PATH })
-export class ConfigurationController extends _Controller {
+export class ConfigurationController extends BaseCrudController {
   constructor(
     @inject({
       key: BindingKeys.build({
@@ -156,8 +156,10 @@ export class ConfigurationController extends _Controller {
   override async updateById(opts: { context: TRouteContext }) {
     const { context } = opts;
     const { id } = context.req.valid<{ id: string }>('param');
-    const data = context.req.valid<// specify JSON Type here
-    any>('json');
+    const data = context.req.valid<
+      // specify JSON Type here
+      any
+    >('json');
 
     this.logger.for('updateById').info(' Updating configuration | id: %s | data: %j', id, data);
 

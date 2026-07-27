@@ -1,15 +1,10 @@
 import { describe, test, expect } from 'bun:test';
 import { AuthorizeComponent } from '@/components/auth/authorize/component';
-import { AuthorizeBindingKeys } from '@/components/auth/authorize/common/keys';
+import { AuthorizeBindingKeys } from '@/components/auth/authorize/common/constants';
 import type { IAuthorizeOptions } from '@/components/auth/authorize/common/types';
 import type { BaseApplication } from '@/base/applications/base';
 
-/**
- * The legacy component.test.ts never constructs AuthorizeComponent nor invokes
- * binding(), so component.ts measured 0% func / 15% line. These tests build a
- * fake application exposing only the two methods the component touches —
- * `.get()` and `.bind().toValue()` — and exercise binding() directly.
- */
+/** Exercises AuthorizeComponent.binding() directly via a fake application exposing only the two methods the component touches: `.get()` and `.bind().toValue()`. */
 
 type TBindCall = { key: string; value: unknown };
 
@@ -32,8 +27,7 @@ const createFakeApplication = (opts: {
         },
       };
     },
-    // Only .get()/.bind() are exercised by binding() — the full BaseApplication surface
-    // (Hono server, DI container, lifecycle hooks) is out of scope for this unit test.
+    // binding() only calls .get()/.bind(), so the rest of the BaseApplication surface is out of scope here.
   } as BaseApplication;
 
   return { application, binds };
@@ -47,43 +41,43 @@ describe('AuthorizeComponent.binding()', () => {
     expect(() => component.binding()).toThrow(/No authorize options found/);
   });
 
-  test('does NOT bind always-allow-roles when alwaysAllowRoles is absent', () => {
+  test('does NOT bind always-allow-roles when alwaysAllowRoles is absent', async () => {
     const { application, binds } = createFakeApplication({
       options: { defaultDecision: 'deny' },
     });
     const component = new AuthorizeComponent(application);
 
-    component.binding();
+    await component.binding();
 
     expect(binds).toHaveLength(0);
   });
 
-  test('does NOT bind always-allow-roles when alwaysAllowRoles is an empty array', () => {
+  test('does NOT bind always-allow-roles when alwaysAllowRoles is an empty array', async () => {
     const { application, binds } = createFakeApplication({
       options: { defaultDecision: 'deny', alwaysAllowRoles: [] },
     });
     const component = new AuthorizeComponent(application);
 
-    component.binding();
+    await component.binding();
 
     expect(binds).toHaveLength(0);
   });
 
-  test('binds always-allow-roles with the provided array', () => {
+  test('binds always-allow-roles with the provided array', async () => {
     const roles = ['superadmin', 'root'];
     const { application, binds } = createFakeApplication({
       options: { defaultDecision: 'allow', alwaysAllowRoles: roles },
     });
     const component = new AuthorizeComponent(application);
 
-    component.binding();
+    await component.binding();
 
     expect(binds).toHaveLength(1);
     expect(binds[0].key).toBe(AuthorizeBindingKeys.ALWAYS_ALLOW_ROLES);
     expect(binds[0].value).toEqual(['superadmin', 'root']);
   });
 
-  test('logs "Authorization configured" on success', () => {
+  test('logs "Authorization configured" on success', async () => {
     const { application } = createFakeApplication({
       options: { defaultDecision: 'deny', alwaysAllowRoles: ['admin'] },
     });
@@ -95,23 +89,22 @@ describe('AuthorizeComponent.binding()', () => {
         messages.push(message);
       },
     };
-    // Intercept the scoped logger returned by logger.for(...). Fake only implements .for();
-    // the full Winston-backed Logger surface is unnecessary for this assertion.
+    // Intercepts the scoped logger returned by logger.for(...); the fake implements only .for(), which is all this assertion needs.
     component.logger = { for: () => scopedLogger } as any;
 
-    component.binding();
+    await component.binding();
 
     expect(messages).toContain('Authorization configured');
   });
 
-  test('binding does not throw and binds nothing when options present but no roles (idempotent shape)', () => {
+  test('binding does not throw and binds nothing when options present but no roles (idempotent shape)', async () => {
     const { application, binds } = createFakeApplication({
       options: { defaultDecision: 'allow' },
     });
     const component = new AuthorizeComponent(application);
 
-    component.binding();
-    component.binding();
+    await component.binding();
+    await component.binding();
 
     expect(binds).toHaveLength(0);
   });

@@ -71,96 +71,96 @@ export class ComprehensiveOperatorTestService extends BaseTestService {
     // ================================================================
     // SECTION 1: ALL COMPARISON OPERATORS
     // ================================================================
-    await this.test_EqOperatorExplicit();
-    await this.test_NeOperator();
-    await this.test_NeqOperatorAlias();
-    await this.test_GtOperator();
-    await this.test_GteOperator();
-    await this.test_LtOperator();
-    await this.test_LteOperator();
+    await this.testEqOperatorExplicit();
+    await this.testNeOperator();
+    await this.testNeqOperatorAlias();
+    await this.testGtOperator();
+    await this.testGteOperator();
+    await this.testLtOperator();
+    await this.testLteOperator();
 
     // ================================================================
     // SECTION 2: NULL OPERATORS (IS / ISN)
     // ================================================================
-    await this.test_IsNullOperator();
-    await this.test_IsNotNullOperator();
-    await this.test_NullWithEqOperator();
-    await this.test_NullWithNeqOperator();
+    await this.testIsNullOperator();
+    await this.testIsNotNullOperator();
+    await this.testNullWithEqOperator();
+    await this.testNullWithNeqOperator();
 
     // ================================================================
     // SECTION 3: STRING OPERATORS
     // ================================================================
-    await this.test_LikeOperator();
-    await this.test_NotLikeOperator();
-    await this.test_IlikeOperator();
-    await this.test_NotIlikeOperator();
-    await this.test_RegexpOperator();
-    await this.test_IregexpOperator();
+    await this.testLikeOperator();
+    await this.testNotLikeOperator();
+    await this.testIlikeOperator();
+    await this.testNotIlikeOperator();
+    await this.testRegexpOperator();
+    await this.testIregexpOperator();
 
     // ================================================================
     // SECTION 4: ARRAY/LIST OPERATORS
     // ================================================================
-    await this.test_InOperator();
-    await this.test_InqOperatorAlias();
-    await this.test_NinOperator();
-    await this.test_InEmptyArrayEdgeCase();
-    await this.test_NinEmptyArrayEdgeCase();
-    await this.test_BetweenOperator();
-    await this.test_NotBetweenOperator();
+    await this.testInOperator();
+    await this.testInqOperatorAlias();
+    await this.testNinOperator();
+    await this.testInEmptyArrayEdgeCase();
+    await this.testNinEmptyArrayEdgeCase();
+    await this.testBetweenOperator();
+    await this.testNotBetweenOperator();
 
     // ================================================================
     // SECTION 5: MULTIPLE OPERATORS ON SAME FIELD
     // ================================================================
-    await this.test_MultipleOperatorsSameField();
-    await this.test_RangeQueryGtAndLt();
+    await this.testMultipleOperatorsSameField();
+    await this.testRangeQueryGtAndLt();
 
     // ================================================================
     // SECTION 6: COMPLEX LOGICAL OPERATIONS
     // ================================================================
-    await this.test_NestedAndOr();
-    await this.test_DeeplyNestedLogic();
-    await this.test_OrWithMultipleConditions();
-    await this.test_AndWithOrInside();
+    await this.testNestedAndOr();
+    await this.testDeeplyNestedLogic();
+    await this.testOrWithMultipleConditions();
+    await this.testAndWithOrInside();
 
     // ================================================================
     // SECTION 7: EDGE CASES
     // ================================================================
-    await this.test_EmptyStringEquality();
-    await this.test_SpecialCharactersInLike();
-    await this.test_LargeNumberBoundary();
-    await this.test_NegativeNumbers();
-    await this.test_ZeroValue();
-    await this.test_SkipBeyondDataset();
-    await this.test_LimitZero();
-    await this.test_EmptyWhereClause();
-    await this.test_UndefinedValueInWhere();
+    await this.testEmptyStringEquality();
+    await this.testSpecialCharactersInLike();
+    await this.testLargeNumberBoundary();
+    await this.testNegativeNumbers();
+    await this.testZeroValue();
+    await this.testSkipBeyondDataset();
+    await this.testLimitZero();
+    await this.testEmptyWhereClause();
+    await this.testUndefinedValueInWhere();
 
     // ================================================================
     // SECTION 8: JSON ADVANCED EDGE CASES
     // ================================================================
-    await this.test_JsonNullValue();
-    await this.test_JsonDeeplyNestedPath();
-    await this.test_JsonArrayMultipleIndices();
-    await this.test_JsonBooleanValue();
-    await this.test_JsonEmptyArray();
-    await this.test_JsonEmptyObject();
-    await this.test_JsonSpecialCharactersInValue();
+    await this.testJsonNullValue();
+    await this.testJsonDeeplyNestedPath();
+    await this.testJsonArrayMultipleIndices();
+    await this.testJsonBooleanValue();
+    await this.testJsonEmptyArray();
+    await this.testJsonEmptyObject();
+    await this.testJsonSpecialCharactersInValue();
 
     // ================================================================
     // SECTION 9: SECURITY TESTS
     // ================================================================
-    await this.test_SqlInjectionInValue();
-    await this.test_SqlInjectionInLikePattern();
-    await this.test_SqlInjectionInArrayValues();
-    await this.test_XssInDataStorage();
+    await this.testSqlInjectionInValue();
+    await this.testSqlInjectionInLikePattern();
+    await this.testSqlInjectionInArrayValues();
+    await this.testXssInDataStorage();
 
     // ================================================================
     // SECTION 10: COMBINATION TESTS (REAL-WORLD SCENARIOS)
     // ================================================================
-    await this.test_PaginationWithComplexFilter();
-    await this.test_SearchWithMultipleCriteria();
-    await this.test_DateRangeQuery();
-    await this.test_PriceRangeWithTags();
+    await this.testPaginationWithComplexFilter();
+    await this.testSearchWithMultipleCriteria();
+    await this.testDateRangeQuery();
+    await this.testPriceRangeWithTags();
 
     // Cleanup
     await this.cleanupTestData();
@@ -298,7 +298,7 @@ export class ComprehensiveOperatorTestService extends BaseTestService {
   // SECTION 1: COMPARISON OPERATORS
   // ================================================================
 
-  private async test_EqOperatorExplicit(): Promise<void> {
+  private async testEqOperatorExplicit(): Promise<void> {
     const repo = this.configurationRepository;
     this.logCase('[EQ] Explicit eq operator: { nValue: { eq: 20 } }');
 
@@ -319,7 +319,7 @@ export class ComprehensiveOperatorTestService extends BaseTestService {
     }
   }
 
-  private async test_NeOperator(): Promise<void> {
+  private async testNeOperator(): Promise<void> {
     const repo = this.configurationRepository;
     this.logCase('[NE] ne operator: { nValue: { ne: 20 } }');
 
@@ -342,7 +342,7 @@ export class ComprehensiveOperatorTestService extends BaseTestService {
     }
   }
 
-  private async test_NeqOperatorAlias(): Promise<void> {
+  private async testNeqOperatorAlias(): Promise<void> {
     const repo = this.configurationRepository;
     this.logCase('[NEQ] neq operator (alias for ne): { nValue: { neq: 30 } }');
 
@@ -364,7 +364,7 @@ export class ComprehensiveOperatorTestService extends BaseTestService {
     }
   }
 
-  private async test_GtOperator(): Promise<void> {
+  private async testGtOperator(): Promise<void> {
     const repo = this.configurationRepository;
     this.logCase('[GT] gt operator: { nValue: { gt: 30 } }');
 
@@ -391,7 +391,7 @@ export class ComprehensiveOperatorTestService extends BaseTestService {
     }
   }
 
-  private async test_GteOperator(): Promise<void> {
+  private async testGteOperator(): Promise<void> {
     const repo = this.configurationRepository;
     this.logCase('[GTE] gte operator: { nValue: { gte: 30 } }');
 
@@ -414,7 +414,7 @@ export class ComprehensiveOperatorTestService extends BaseTestService {
     }
   }
 
-  private async test_LtOperator(): Promise<void> {
+  private async testLtOperator(): Promise<void> {
     const repo = this.configurationRepository;
     this.logCase('[LT] lt operator: { nValue: { lt: 30 } }');
 
@@ -441,7 +441,7 @@ export class ComprehensiveOperatorTestService extends BaseTestService {
     }
   }
 
-  private async test_LteOperator(): Promise<void> {
+  private async testLteOperator(): Promise<void> {
     const repo = this.configurationRepository;
     this.logCase('[LTE] lte operator: { nValue: { lte: 30 } }');
 
@@ -468,7 +468,7 @@ export class ComprehensiveOperatorTestService extends BaseTestService {
   // SECTION 2: NULL OPERATORS
   // ================================================================
 
-  private async test_IsNullOperator(): Promise<void> {
+  private async testIsNullOperator(): Promise<void> {
     const repo = this.configurationRepository;
     this.logCase('[IS] is operator for NULL: { nValue: { is: null } }');
 
@@ -491,7 +491,7 @@ export class ComprehensiveOperatorTestService extends BaseTestService {
     }
   }
 
-  private async test_IsNotNullOperator(): Promise<void> {
+  private async testIsNotNullOperator(): Promise<void> {
     const repo = this.configurationRepository;
     this.logCase('[ISN] isn operator for NOT NULL: { nValue: { isn: null } }');
 
@@ -514,7 +514,7 @@ export class ComprehensiveOperatorTestService extends BaseTestService {
     }
   }
 
-  private async test_NullWithEqOperator(): Promise<void> {
+  private async testNullWithEqOperator(): Promise<void> {
     const repo = this.configurationRepository;
     this.logCase('[EQ-NULL] eq with null should become IS NULL: { tValue: { eq: null } }');
 
@@ -539,7 +539,7 @@ export class ComprehensiveOperatorTestService extends BaseTestService {
     }
   }
 
-  private async test_NullWithNeqOperator(): Promise<void> {
+  private async testNullWithNeqOperator(): Promise<void> {
     const repo = this.configurationRepository;
     this.logCase('[NEQ-NULL] neq with null should become IS NOT NULL: { tValue: { neq: null } }');
 
@@ -573,7 +573,7 @@ export class ComprehensiveOperatorTestService extends BaseTestService {
   // SECTION 3: STRING OPERATORS
   // ================================================================
 
-  private async test_LikeOperator(): Promise<void> {
+  private async testLikeOperator(): Promise<void> {
     const repo = this.configurationRepository;
     this.logCase('[LIKE] like operator: { tValue: { like: "%eta%" } }');
 
@@ -598,7 +598,7 @@ export class ComprehensiveOperatorTestService extends BaseTestService {
     }
   }
 
-  private async test_NotLikeOperator(): Promise<void> {
+  private async testNotLikeOperator(): Promise<void> {
     const repo = this.configurationRepository;
     this.logCase('[NLIKE] nlike operator: { tValue: { nlike: "%alpha%" } }');
 
@@ -626,7 +626,7 @@ export class ComprehensiveOperatorTestService extends BaseTestService {
     }
   }
 
-  private async test_IlikeOperator(): Promise<void> {
+  private async testIlikeOperator(): Promise<void> {
     const repo = this.configurationRepository;
     this.logCase('[ILIKE] ilike operator (case-insensitive): { tValue: { ilike: "%ALPHA%" } }');
 
@@ -651,7 +651,7 @@ export class ComprehensiveOperatorTestService extends BaseTestService {
     }
   }
 
-  private async test_NotIlikeOperator(): Promise<void> {
+  private async testNotIlikeOperator(): Promise<void> {
     const repo = this.configurationRepository;
     this.logCase(
       '[NILIKE] nilike operator (NOT case-insensitive): { tValue: { nilike: "%BETA%" } }',
@@ -681,7 +681,7 @@ export class ComprehensiveOperatorTestService extends BaseTestService {
     }
   }
 
-  private async test_RegexpOperator(): Promise<void> {
+  private async testRegexpOperator(): Promise<void> {
     const repo = this.configurationRepository;
     this.logCase('[REGEXP] regexp operator (PostgreSQL POSIX): { tValue: { regexp: "^a.*" } }');
 
@@ -706,7 +706,7 @@ export class ComprehensiveOperatorTestService extends BaseTestService {
     }
   }
 
-  private async test_IregexpOperator(): Promise<void> {
+  private async testIregexpOperator(): Promise<void> {
     const repo = this.configurationRepository;
     this.logCase(
       '[IREGEXP] iregexp operator (case-insensitive regex): { tValue: { iregexp: "^GAMMA$" } }',
@@ -737,7 +737,7 @@ export class ComprehensiveOperatorTestService extends BaseTestService {
   // SECTION 4: ARRAY/LIST OPERATORS
   // ================================================================
 
-  private async test_InOperator(): Promise<void> {
+  private async testInOperator(): Promise<void> {
     const repo = this.configurationRepository;
     this.logCase('[IN] in operator: { nValue: { in: [10, 20, 30] } }');
 
@@ -763,7 +763,7 @@ export class ComprehensiveOperatorTestService extends BaseTestService {
     }
   }
 
-  private async test_InqOperatorAlias(): Promise<void> {
+  private async testInqOperatorAlias(): Promise<void> {
     const repo = this.configurationRepository;
     this.logCase('[INQ] inq operator (alias for in): { nValue: { inq: [40, 50] } }');
 
@@ -789,7 +789,7 @@ export class ComprehensiveOperatorTestService extends BaseTestService {
     }
   }
 
-  private async test_NinOperator(): Promise<void> {
+  private async testNinOperator(): Promise<void> {
     const repo = this.configurationRepository;
     this.logCase('[NIN] nin operator: { nValue: { nin: [10, 20, 30, 40, 50] } }');
 
@@ -833,7 +833,7 @@ export class ComprehensiveOperatorTestService extends BaseTestService {
     }
   }
 
-  private async test_InEmptyArrayEdgeCase(): Promise<void> {
+  private async testInEmptyArrayEdgeCase(): Promise<void> {
     const repo = this.configurationRepository;
     this.logCase('[IN-EMPTY] in with empty array should return nothing: { nValue: { in: [] } }');
 
@@ -854,7 +854,7 @@ export class ComprehensiveOperatorTestService extends BaseTestService {
     }
   }
 
-  private async test_NinEmptyArrayEdgeCase(): Promise<void> {
+  private async testNinEmptyArrayEdgeCase(): Promise<void> {
     const repo = this.configurationRepository;
     this.logCase(
       '[NIN-EMPTY] nin with empty array should return everything: { nValue: { nin: [] } }',
@@ -881,7 +881,7 @@ export class ComprehensiveOperatorTestService extends BaseTestService {
     }
   }
 
-  private async test_BetweenOperator(): Promise<void> {
+  private async testBetweenOperator(): Promise<void> {
     const repo = this.configurationRepository;
     this.logCase('[BETWEEN] between operator: { nValue: { between: [20, 40] } }');
 
@@ -911,7 +911,7 @@ export class ComprehensiveOperatorTestService extends BaseTestService {
     }
   }
 
-  private async test_NotBetweenOperator(): Promise<void> {
+  private async testNotBetweenOperator(): Promise<void> {
     const repo = this.configurationRepository;
     this.logCase('[NOT-BETWEEN] notBetween operator: { nValue: { notBetween: [20, 40] } }');
 
@@ -956,7 +956,7 @@ export class ComprehensiveOperatorTestService extends BaseTestService {
   // SECTION 5: MULTIPLE OPERATORS ON SAME FIELD
   // ================================================================
 
-  private async test_MultipleOperatorsSameField(): Promise<void> {
+  private async testMultipleOperatorsSameField(): Promise<void> {
     const repo = this.configurationRepository;
     this.logCase('[MULTI-OP] Multiple operators on same field: { nValue: { gt: 10, lt: 50 } }');
 
@@ -983,7 +983,7 @@ export class ComprehensiveOperatorTestService extends BaseTestService {
     }
   }
 
-  private async test_RangeQueryGtAndLt(): Promise<void> {
+  private async testRangeQueryGtAndLt(): Promise<void> {
     const repo = this.configurationRepository;
     this.logCase('[RANGE] Range query with gte and lte: { nValue: { gte: 20, lte: 40 } }');
 
@@ -1010,7 +1010,7 @@ export class ComprehensiveOperatorTestService extends BaseTestService {
   // SECTION 6: COMPLEX LOGICAL OPERATIONS
   // ================================================================
 
-  private async test_NestedAndOr(): Promise<void> {
+  private async testNestedAndOr(): Promise<void> {
     const repo = this.configurationRepository;
     this.logCase(
       '[NESTED] Nested AND/OR: { and: [{ nValue: 10 }, { or: [{ nValue: 20 }, { nValue: 30 }] }] }',
@@ -1038,7 +1038,7 @@ export class ComprehensiveOperatorTestService extends BaseTestService {
     }
   }
 
-  private async test_DeeplyNestedLogic(): Promise<void> {
+  private async testDeeplyNestedLogic(): Promise<void> {
     const repo = this.configurationRepository;
     this.logCase('[DEEP-NESTED] Deeply nested: OR -> AND -> field conditions');
 
@@ -1067,7 +1067,7 @@ export class ComprehensiveOperatorTestService extends BaseTestService {
     }
   }
 
-  private async test_OrWithMultipleConditions(): Promise<void> {
+  private async testOrWithMultipleConditions(): Promise<void> {
     const repo = this.configurationRepository;
     this.logCase(
       '[OR-MULTI] OR with multiple conditions: { or: [{nValue: 10}, {nValue: 30}, {nValue: 50}] }',
@@ -1097,7 +1097,7 @@ export class ComprehensiveOperatorTestService extends BaseTestService {
     }
   }
 
-  private async test_AndWithOrInside(): Promise<void> {
+  private async testAndWithOrInside(): Promise<void> {
     const repo = this.configurationRepository;
     this.logCase(
       '[AND-OR] AND with OR inside: { tValue: { isn: null }, or: [{nValue: 10}, {nValue: 20}] }',
@@ -1133,7 +1133,7 @@ export class ComprehensiveOperatorTestService extends BaseTestService {
   // SECTION 7: EDGE CASES
   // ================================================================
 
-  private async test_EmptyStringEquality(): Promise<void> {
+  private async testEmptyStringEquality(): Promise<void> {
     const repo = this.configurationRepository;
     this.logCase('[EMPTY-STR] Empty string equality: { tValue: "" }');
 
@@ -1158,7 +1158,7 @@ export class ComprehensiveOperatorTestService extends BaseTestService {
     }
   }
 
-  private async test_SpecialCharactersInLike(): Promise<void> {
+  private async testSpecialCharactersInLike(): Promise<void> {
     const repo = this.configurationRepository;
     this.logCase(`[SPECIAL-LIKE] Special characters in LIKE: { tValue: { like: "%'%" } }`);
 
@@ -1184,7 +1184,7 @@ export class ComprehensiveOperatorTestService extends BaseTestService {
     }
   }
 
-  private async test_LargeNumberBoundary(): Promise<void> {
+  private async testLargeNumberBoundary(): Promise<void> {
     const repo = this.configurationRepository;
     this.logCase('[LARGE-NUM] Large number boundary: { nValue: 2147483647 }');
 
@@ -1205,7 +1205,7 @@ export class ComprehensiveOperatorTestService extends BaseTestService {
     }
   }
 
-  private async test_NegativeNumbers(): Promise<void> {
+  private async testNegativeNumbers(): Promise<void> {
     const repo = this.configurationRepository;
     this.logCase('[NEGATIVE] Negative numbers: { nValue: { lt: 0 } }');
 
@@ -1235,7 +1235,7 @@ export class ComprehensiveOperatorTestService extends BaseTestService {
     }
   }
 
-  private async test_ZeroValue(): Promise<void> {
+  private async testZeroValue(): Promise<void> {
     const repo = this.configurationRepository;
     this.logCase('[ZERO] Zero value: { nValue: 0 }');
 
@@ -1259,7 +1259,7 @@ export class ComprehensiveOperatorTestService extends BaseTestService {
     }
   }
 
-  private async test_SkipBeyondDataset(): Promise<void> {
+  private async testSkipBeyondDataset(): Promise<void> {
     const repo = this.configurationRepository;
     this.logCase('[SKIP-BEYOND] Skip beyond dataset: { skip: 1000 }');
 
@@ -1281,7 +1281,7 @@ export class ComprehensiveOperatorTestService extends BaseTestService {
     }
   }
 
-  private async test_LimitZero(): Promise<void> {
+  private async testLimitZero(): Promise<void> {
     const repo = this.configurationRepository;
     this.logCase('[LIMIT-ZERO] Limit zero: { limit: 0 }');
 
@@ -1308,7 +1308,7 @@ export class ComprehensiveOperatorTestService extends BaseTestService {
     }
   }
 
-  private async test_EmptyWhereClause(): Promise<void> {
+  private async testEmptyWhereClause(): Promise<void> {
     const repo = this.configurationRepository;
     this.logCase('[EMPTY-WHERE] Empty where clause: { where: {} }');
 
@@ -1337,7 +1337,7 @@ export class ComprehensiveOperatorTestService extends BaseTestService {
     }
   }
 
-  private async test_UndefinedValueInWhere(): Promise<void> {
+  private async testUndefinedValueInWhere(): Promise<void> {
     const repo = this.configurationRepository;
     this.logCase('[UNDEFINED] Undefined value in where should be skipped');
 
@@ -1369,7 +1369,7 @@ export class ComprehensiveOperatorTestService extends BaseTestService {
   // SECTION 8: JSON ADVANCED EDGE CASES
   // ================================================================
 
-  private async test_JsonNullValue(): Promise<void> {
+  private async testJsonNullValue(): Promise<void> {
     const repo = this.configurationRepository;
     this.logCase('[JSON-NULL] JSON field with null value: { "jValue.priority": null }');
 
@@ -1394,7 +1394,7 @@ export class ComprehensiveOperatorTestService extends BaseTestService {
     }
   }
 
-  private async test_JsonDeeplyNestedPath(): Promise<void> {
+  private async testJsonDeeplyNestedPath(): Promise<void> {
     const repo = this.configurationRepository;
     this.logCase('[JSON-DEEP] Deeply nested JSON path: { "jValue.metadata.level": 3 }');
 
@@ -1420,7 +1420,7 @@ export class ComprehensiveOperatorTestService extends BaseTestService {
     }
   }
 
-  private async test_JsonArrayMultipleIndices(): Promise<void> {
+  private async testJsonArrayMultipleIndices(): Promise<void> {
     const repo = this.configurationRepository;
     this.logCase('[JSON-ARRAY] JSON array index: { "jValue.metadata.tags[0]": "a" }');
 
@@ -1446,7 +1446,7 @@ export class ComprehensiveOperatorTestService extends BaseTestService {
     }
   }
 
-  private async test_JsonBooleanValue(): Promise<void> {
+  private async testJsonBooleanValue(): Promise<void> {
     const repo = this.configurationRepository;
     this.logCase('[JSON-BOOL] JSON boolean: Creating and querying boolean value');
 
@@ -1483,7 +1483,7 @@ export class ComprehensiveOperatorTestService extends BaseTestService {
     }
   }
 
-  private async test_JsonEmptyArray(): Promise<void> {
+  private async testJsonEmptyArray(): Promise<void> {
     const repo = this.configurationRepository;
     this.logCase('[JSON-EMPTY-ARR] JSON empty array in field');
 
@@ -1505,7 +1505,7 @@ export class ComprehensiveOperatorTestService extends BaseTestService {
     }
   }
 
-  private async test_JsonEmptyObject(): Promise<void> {
+  private async testJsonEmptyObject(): Promise<void> {
     const repo = this.configurationRepository;
     this.logCase('[JSON-EMPTY-OBJ] JSON with empty object metadata');
 
@@ -1527,7 +1527,7 @@ export class ComprehensiveOperatorTestService extends BaseTestService {
     }
   }
 
-  private async test_JsonSpecialCharactersInValue(): Promise<void> {
+  private async testJsonSpecialCharactersInValue(): Promise<void> {
     const repo = this.configurationRepository;
     this.logCase('[JSON-SPECIAL] JSON with special characters');
 
@@ -1553,7 +1553,7 @@ export class ComprehensiveOperatorTestService extends BaseTestService {
   // SECTION 9: SECURITY TESTS
   // ================================================================
 
-  private async test_SqlInjectionInValue(): Promise<void> {
+  private async testSqlInjectionInValue(): Promise<void> {
     const repo = this.configurationRepository;
     this.logCase(`[SEC-SQL-VALUE] SQL injection in value: { tValue: "'; DROP TABLE--" }`);
 
@@ -1582,7 +1582,7 @@ export class ComprehensiveOperatorTestService extends BaseTestService {
     }
   }
 
-  private async test_SqlInjectionInLikePattern(): Promise<void> {
+  private async testSqlInjectionInLikePattern(): Promise<void> {
     const repo = this.configurationRepository;
     this.logCase('[SEC-SQL-LIKE] SQL injection in LIKE pattern');
 
@@ -1610,7 +1610,7 @@ export class ComprehensiveOperatorTestService extends BaseTestService {
     }
   }
 
-  private async test_SqlInjectionInArrayValues(): Promise<void> {
+  private async testSqlInjectionInArrayValues(): Promise<void> {
     const repo = this.configurationRepository;
     this.logCase('[SEC-SQL-ARRAY] SQL injection in array values');
 
@@ -1632,7 +1632,7 @@ export class ComprehensiveOperatorTestService extends BaseTestService {
     }
   }
 
-  private async test_XssInDataStorage(): Promise<void> {
+  private async testXssInDataStorage(): Promise<void> {
     const repo = this.configurationRepository;
     this.logCase('[SEC-XSS] XSS payload storage and retrieval');
 
@@ -1662,7 +1662,7 @@ export class ComprehensiveOperatorTestService extends BaseTestService {
   // SECTION 10: COMBINATION TESTS (REAL-WORLD SCENARIOS)
   // ================================================================
 
-  private async test_PaginationWithComplexFilter(): Promise<void> {
+  private async testPaginationWithComplexFilter(): Promise<void> {
     const repo = this.configurationRepository;
     this.logCase('[COMBO-PAGINATE] Pagination with complex filter');
 
@@ -1709,7 +1709,7 @@ export class ComprehensiveOperatorTestService extends BaseTestService {
     }
   }
 
-  private async test_SearchWithMultipleCriteria(): Promise<void> {
+  private async testSearchWithMultipleCriteria(): Promise<void> {
     const repo = this.configurationRepository;
     this.logCase('[COMBO-SEARCH] Search with multiple criteria (real-world)');
 
@@ -1746,7 +1746,7 @@ export class ComprehensiveOperatorTestService extends BaseTestService {
     }
   }
 
-  private async test_DateRangeQuery(): Promise<void> {
+  private async testDateRangeQuery(): Promise<void> {
     const repo = this.configurationRepository;
     this.logCase('[COMBO-DATE] Date range query using createdAt');
 
@@ -1777,7 +1777,7 @@ export class ComprehensiveOperatorTestService extends BaseTestService {
     }
   }
 
-  private async test_PriceRangeWithTags(): Promise<void> {
+  private async testPriceRangeWithTags(): Promise<void> {
     const repo = this.productRepository;
     this.logCase('[COMBO-PRODUCT] Product search: price range + tags (using Product repo)');
 

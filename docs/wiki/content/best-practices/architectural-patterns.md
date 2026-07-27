@@ -29,7 +29,7 @@ graph TD
 |-------|---------------|---------|
 | **Controllers** | Handle HTTP/gRPC - parse requests, validate, format responses | `ConfigurationController` (REST), `GreeterController` (gRPC) |
 | **Services** | Business logic - orchestrate operations | `AuthenticationService` (auth logic) |
-| **Repositories** | Data access - CRUD operations | `ConfigurationRepository` (extends `DefaultCRUDRepository`) |
+| **Repositories** | Data access - CRUD operations | `ConfigurationRepository` (extends `DefaultRelationalRepository`) |
 | **DataSources** | Database connections | `PostgresDataSource` (connects to PostgreSQL) |
 | **Models** | Data structure - Drizzle schemas + Entity classes | `Configuration`, `User` models |
 
@@ -117,11 +117,11 @@ REST controllers extend `BaseRestController`, while gRPC controllers extend `Bas
 
 ## 3. Component-Based Modularity
 
-Components bundle a group of related, reusable, and pluggable features into self-contained modules. A single component can encapsulate multiple providers, services, controllers, and repositories, essentially functioning as a mini-application that can be easily "plugged in" to any IGNIS project.
+Components bundle a group of related, reusable, and pluggable features into self-contained modules. A single component can encapsulate multiple providers, services, controllers, and repositories. It functions as a mini-application that plugs into any IGNIS project.
 
 **Built-in Components:**
 - `AuthenticateComponent` - JWT authentication
-- `SwaggerComponent` - OpenAPI documentation
+- `ApiReferenceComponent` - OpenAPI documentation
 - `HealthCheckComponent` - Health check endpoint
 - `RequestTrackerComponent` - Request logging
 
@@ -135,12 +135,12 @@ export class Application extends BaseApplication {
     // ...
     // Registering components plugs their functionality into the application.
     this.component(HealthCheckComponent);
-    this.component(SwaggerComponent);
+    this.component(ApiReferenceComponent);
     // ...
   }
 }
 ```
-This architecture keeps the main `Application` class clean and focused on high-level assembly, while the details of each feature are neatly encapsulated within their respective components.
+This architecture keeps the main `Application` class clean and focused on high-level assembly. The details of each feature stay neatly encapsulated within their respective components.
 
 ## 4. Custom Components
 
@@ -205,18 +205,22 @@ IGNIS applications follow a predictable startup sequence with hooks for customiz
 │  │    - Register Components                            │    │
 │  └─────────────────────────────────────────────────────┘    │
 │                                                             │
-│  6. registerDataSources()  - Initialize DB connections      │
-│  7. registerComponents()   - Configure all components       │
-│  8. registerControllers()  - Mount routes to router         │
+│  6. hydrateSecrets()       - Resolve secrets into env        │
+│  7. registerDataSources()  - Initialize DB connections      │
+│  8. registerComponents()   - Configure all components       │
+│  9. wireSecretRotatables() - Attach rotation listeners      │
+│ 10. registerControllers()  - Mount routes to router         │
 │                                                             │
 │  ┌─────────────────────────────────────────────────────┐    │
-│  │ 9. postConfigure()  ← YOUR CODE HERE                │    │
+│  │ 11. postConfigure()  ← YOUR CODE HERE               │    │
 │  │    - Seed data                                      │    │
 │  │    - Start background jobs                          │    │
 │  │    - Custom initialization                          │    │
 │  └─────────────────────────────────────────────────────┘    │
 └─────────────────────────────────────────────────────────────┘
 ```
+
+`hydrateSecrets()` runs after `preConfigure()` so a secrets provider registered there is available, and before `registerDataSources()` so datasources read already-resolved values. `wireSecretRotatables()` runs after components, because a component may contribute the datasource a rotation lease points at.
 
 **Lifecycle Methods:**
 
@@ -248,7 +252,7 @@ export class Application extends BaseApplication {
 
     // Components
     this.component(AuthenticateComponent);
-    this.component(SwaggerComponent);
+    this.component(ApiReferenceComponent);
   }
 
   // Called after all registrations complete
@@ -280,54 +284,47 @@ export class Application extends BaseApplication {
 > [!WARNING]
 > Do not register new datasources, components, or controllers in `postConfigure()`. They will not be automatically initialized. Use `preConfigure()` for all registrations.
 
-## 6. Mixin Pattern
+## 6. Registration Surface & Capability Interfaces
 
-Mixins enable class composition without deep inheritance hierarchies. IGNIS uses mixins to add capabilities to the `BaseApplication` class.
+`BaseApplication` implements the full resource-registration surface directly - `service()`, `repository()`, `dataSource()`, `controller()`, `component()`, and `booter()`. Extend `BaseApplication` and call these methods straight from your lifecycle hooks; there is nothing to compose.
 
-**How Mixins Work:**
+**How registration works:**
 ```typescript
-// A mixin is a function that takes a class and returns an extended class
-const ServiceMixin = <T extends TMixinTarget<AbstractApplication>>(baseClass: T) => {
-  return class extends baseClass {
-    service<Base extends IService>(ctor: TClass<Base>): Binding<Base> {
-      return this.bind<Base>({
-        key: BindingKeys.build({
-          namespace: BindingNamespaces.SERVICE,
-          key: ctor.name,
-        }),
-      }).toClass(ctor);
-    }
-  };
-};
-```
-
-**Available Mixins:**
-
-| Mixin | Methods Added | Purpose |
-|-------|---------------|---------|
-| `ServiceMixin` | `service()` | Register service classes |
-| `RepositoryMixin` | `repository()`, `dataSource()`, `registerDataSources()` | Register data layer |
-| `ComponentMixin` | `component()`, `registerComponents()` | Register modular components |
-
-**Composing Mixins:**
-```typescript
-// Compose mixins onto a custom application base class:
-class CustomApplication extends ComponentMixin(
-  ServiceMixin(
-    RepositoryMixin(AbstractApplication)
-  )
-) {
-  // Now has: service(), repository(), dataSource(), component()
+// BaseApplication implements service() directly (no mixin composition):
+service<Base extends IService, Args extends AnyObject = any>(
+  ctor: TClass<Base>,
+  opts?: TMixinOpts<Args>,
+): Binding<Base> {
+  return this.bind<Base>({
+    key: BindingKeys.build(
+      opts?.binding ?? { namespace: BindingNamespaces.SERVICE, key: ctor.name },
+    ),
+  }).toClass(ctor);
 }
 ```
 
-`BaseApplication` already implements the full registration surface (`service()`, `repository()`, `dataSource()`, `controller()`, `component()`, `booter()`) directly - the exported mixin functions exist for composing your own application base classes on top of `AbstractApplication`.
+Every registration method takes the same optional second argument. `opts.binding` overrides the derived `{ namespace, key }` when you need to register two classes under one contract.
 
-**Why Mixins?**
-- Avoid "diamond inheritance" problems
-- Add capabilities selectively
-- Keep base classes focused
-- Enable code reuse across unrelated classes
+**Capability interfaces:**
+
+Each registration capability is declared as a TypeScript interface that `IRestApplication` (and therefore `BaseApplication`) implements. Reference these when you type your own application contracts:
+
+| Interface | Methods | Purpose |
+|-----------|---------|---------|
+| `IServiceMixin` | `service()` | Register service classes |
+| `IRepositoryMixin` | `dataSource()`, `repository()` | Register data layer |
+| `IComponentMixin` | `component()`, `registerComponents()` | Register modular components |
+| `IControllerMixin` | `controller()`, `registerControllers()` | Register controllers and mount routes |
+| `IServerConfigMixin` | `staticConfigure()`, `preConfigure()`, `postConfigure()`, `getApplicationVersion()` | Lifecycle hooks |
+| `IStaticServeMixin` | `static()` | Serve static files |
+
+> [!NOTE]
+> Earlier releases also exported `ServiceMixin`, `RepositoryMixin`, and `ComponentMixin` as class-mixin **functions** you composed onto `AbstractApplication`. They duplicated `BaseApplication`'s own methods verbatim, drifted out of sync, and had no known consumers, so they were removed. The `IServiceMixin` / `IRepositoryMixin` / `IComponentMixin` **interfaces** remain - extend `BaseApplication` and call its registration methods directly.
+
+**Why direct methods over composed mixins?**
+- One implementation, no drift between a mixin and the base class
+- Registration is available the moment you extend `BaseApplication`
+- The interfaces still express each capability for typed contracts
 
 ## 7. Controller Factory Pattern
 

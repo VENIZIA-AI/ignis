@@ -46,18 +46,18 @@ export abstract class BaseArtifactBooter extends BaseHelper implements IBooter {
 
     if (this.artifactOptions.dirs.length > 1 || this.artifactOptions.extensions.length > 1) {
       return `{${dirs}}/${nested}.{${exts}}`;
-    } else {
-      return `${dirs}/${nested}.${exts}`;
     }
+
+    return `${dirs}/${nested}.${exts}`;
   }
 
   async configure(): Promise<void> {
+    // No trailing `...this.artifactOptions` spread: a key that EXISTS holding undefined (what `dirs: process.env.APP_DIRS?.split(',')` produces) would overwrite the just-computed default and getPattern() would throw.
     this.artifactOptions = {
       dirs: this.artifactOptions?.dirs ?? this.getDefaultDirs(),
       extensions: this.artifactOptions?.extensions ?? this.getDefaultExtensions(),
       isNested: this.artifactOptions?.isNested ?? true,
       glob: this.artifactOptions?.glob,
-      ...this.artifactOptions,
     };
 
     this.logger.for(this.configure.name).debug(`Configured: %j`, this.artifactOptions);
@@ -80,6 +80,7 @@ export abstract class BaseArtifactBooter extends BaseHelper implements IBooter {
     } catch (error) {
       throw getError({
         message: `[discover] Failed to discover files using pattern: ${pattern} | Error: ${(error as Error)?.message}`,
+        cause: error,
       });
     }
   }
@@ -92,11 +93,12 @@ export abstract class BaseArtifactBooter extends BaseHelper implements IBooter {
 
     try {
       this.loadedClasses = [];
-      this.loadedClasses = await loadClasses({ files: this.discoveredFiles, root: this.root });
+      this.loadedClasses = await loadClasses({ files: this.discoveredFiles });
       await this.bind();
     } catch (error) {
       throw getError({
         message: `[load] Failed to load classes from discovered files | Error: ${(error as Error)?.message}`,
+        cause: error,
       });
     }
   }

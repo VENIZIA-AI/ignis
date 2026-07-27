@@ -16,7 +16,7 @@ export interface IWebSocket<T = unknown> {
   unsubscribe(topic: string): void;
   isSubscribed(topic: string): boolean;
   close(code?: number, reason?: string): void;
-  cork(cb: (ws: IWebSocket<T>) => void): void;
+  cork(callback: (ws: IWebSocket<T>) => void): void;
 }
 
 export interface IBunServer {
@@ -39,7 +39,7 @@ export interface IBunWebSocketConfig {
   publishToSelf?: boolean;
 }
 
-/** Return type for getBunWebSocketHandler — handlers + config spread for server.reload() */
+/** Return type for getBunWebSocketHandler - handlers + config spread for server.reload() */
 export interface IBunWebSocketHandler extends IBunWebSocketConfig {
   open: (socket: IWebSocket) => void;
   message: (socket: IWebSocket, message: string | Buffer) => void;

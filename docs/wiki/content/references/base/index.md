@@ -3,7 +3,7 @@
 Core classes that power every IGNIS application - from the Application entry point to Repositories for data access.
 
 > [!IMPORTANT] Base vs. Connectors
-> The persistence layer (`BaseDataSource`/`BaseEntity`/CRUD repositories) is split into an engine-neutral root (`src/base`) and per-engine connectors (`src/connectors/{postgres,typesense,memory}`). `BaseDataSource` and `BaseEntity` below refer to the **PostgreSQL connector**'s canonical `BasePostgresDataSource`/`BasePostgresEntity` (re-exported under these compatibility names) - see [Connectors](./connectors) for the full picture, and [Search & Typesense](/guides/core-concepts/persistent/search-typesense) / [Memory Connector](/guides/core-concepts/persistent/memory-connector) for the other two engines.
+> The persistence layer (`BaseDataSource`/`BaseEntity`/CRUD repositories) is split into an engine-neutral root (`src/base`) and per-engine connectors (`src/connectors/{postgres,typesense}`). `BaseDataSource` and `BaseEntity` below refer to the **PostgreSQL connector**'s canonical `BasePostgresDataSource`/`BasePostgresEntity` (re-exported under these compatibility names) - see [Connectors](./connectors) for the full picture, and [Search & Typesense](/guides/core-concepts/persistent/search-typesense) for the other engine.
 
 ## Quick Reference
 
@@ -87,9 +87,8 @@ AbstractRepository (engine-neutral, src/base)
 │   ├── ReadableRepository
 │   │   └── PersistableRepository
 │   │       └── DefaultCRUDRepository ──────► Your Repository
-├── TypesenseBaseRepository (connectors/typesense)
-│   └── ReadableSearchRepository -> ... -> DefaultSearchRepository
-└── MemoryRepository (connectors/memory)
+└── TypesenseBaseRepository (connectors/typesense)
+    └── ReadableSearchRepository -> ... -> DefaultSearchRepository
 
 AbstractRestController
 └── BaseRestController ──────► Your REST Controller
@@ -102,8 +101,7 @@ BaseComponent ──────► Your Component
 
 AbstractDataSource (engine-neutral, src/base)
 ├── AbstractPostgresDataSource -> BasePostgresDataSource (alias: BaseDataSource) ──────► Your DataSource
-├── AbstractSearchDataSource -> BaseSearchDataSource -> TypesenseDataSource
-└── MemoryDataSource
+└── AbstractSearchDataSource -> BaseSearchDataSource -> TypesenseDataSource
 
 AbstractEntity (engine-neutral, src/base)
 └── BasePostgresEntity (alias: BaseEntity) ──────► Your Model

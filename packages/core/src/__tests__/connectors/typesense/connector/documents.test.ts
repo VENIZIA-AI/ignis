@@ -1,5 +1,5 @@
 import { describe, test, expect } from 'bun:test';
-import { ApplicationError } from '@venizia/ignis-helpers';
+import { ApplicationError, getError } from '@venizia/ignis-helpers';
 import { TypesenseDirtyValues, TypesenseImportActions } from '@/connectors/typesense/types';
 import { makeHelper } from './fake-client';
 
@@ -53,8 +53,8 @@ describe('TypesenseConnector documents', () => {
     // 5 docs / batch 2 => 3 import calls.
     expect(fake.calls.filter(c => c.op === 'documents.import').length).toBe(3);
     // Each call returns 1 success + 1 fail => 3 success, 3 fail.
-    expect(result.successCount).toBe(3);
-    expect(result.failCount).toBe(3);
+    expect(result.count.success).toBe(3);
+    expect(result.count.fail).toBe(3);
   });
 
   test('importDocuments rejects an invalid action', async () => {
@@ -181,7 +181,7 @@ describe('TypesenseConnector documents', () => {
     }
     expect(caught).toBeInstanceOf(ApplicationError);
     expect((caught as ApplicationError).statusCode).toBe(404);
-    expect((caught as ApplicationError).messageCode).toBe('core.search_engine.not_found');
+    expect((caught as ApplicationError).normalized.code).toBe('core.search_engine.not_found');
   });
 
   test('updateDocument throws a sanitized 404 (not 503) when the document is missing', async () => {
@@ -222,6 +222,30 @@ describe('TypesenseConnector documents', () => {
     });
     // No internal leakage on the sanitized message:
     expect(appError.message).not.toContain('network blip');
+  });
+
+  test('importDocuments surfaces an ApplicationError from a batch with its own statusCode, not a re-wrapped 503', async () => {
+    const appError = getError({
+      statusCode: 409,
+      messageCode: 'core.search_engine.already_exists',
+      message: 'framework-level conflict',
+    });
+    const { helper } = makeHelper({ importBatchErrors: { 0: appError } });
+
+    let caught: unknown;
+    try {
+      await helper.importDocuments({
+        collection: 'products',
+        documents: [{ id: '0' }],
+        batchSize: 1,
+      });
+    } catch (e) {
+      caught = e;
+    }
+
+    expect(caught).toBe(appError);
+    expect((caught as ApplicationError).statusCode).toBe(409);
+    expect((caught as ApplicationError).normalized.code).toBe('core.search_engine.already_exists');
   });
 
   test('importDocuments defaults action to create', async () => {

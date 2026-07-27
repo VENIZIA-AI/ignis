@@ -46,8 +46,11 @@ graph TD
 
 When the container instantiates a class, it follows a two-phase process:
 
-1. **Constructor injection** -- Reads `@inject` metadata from the class, sorts by parameter index, resolves each dependency from the container, and passes them as constructor arguments.
+1. **Constructor injection** -- Reads `@inject` metadata from the class by parameter index (no sort - the metadata is already index-keyed), resolves each dependency from the container, and passes them as constructor arguments.
 2. **Property injection** -- After construction, reads property metadata and assigns each dependency to the decorated properties.
+
+> [!IMPORTANT]
+> Every constructor parameter of a container-instantiated class must carry `@inject`. Mixing decorated and undecorated parameters is refused - `instantiate()` throws `[ClassName] Constructor parameter N has no @inject`. See the [DI Reference](../../references/base/dependency-injection.md#instantiation-algorithm-two-phase) for the full rule and the `@repository` exception.
 
 ## Binding Dependencies
 

@@ -97,6 +97,60 @@ describe('CasbinAuthorizationEnforcer — scoped matchers', () => {
     });
     expect(memberDecision).toBe('deny');
   });
+
+  // The current setNamedRoleManager wiring and the prior addNamedMatchingFunc wiring are behaviorally identical, so only timing distinguishes them - this is the production-path detector for that regression.
+  test('production wiring stays fast on an incident-shaped policy set (perf regression guard)', async () => {
+    const moduleCount = 6;
+    const subjectsPerModule = 20; // 6 * 20 = 120 subjects, one g4 edge each
+    const operationsPerSubject = 8;
+    const lines: string[] = [];
+
+    for (let moduleIndex = 0; moduleIndex < moduleCount; moduleIndex++) {
+      for (let subjectIndex = 0; subjectIndex < subjectsPerModule; subjectIndex++) {
+        const resourceCode = `Module${moduleIndex}.Resource${subjectIndex}`;
+        const grantTarget = `Grant${moduleIndex}_${subjectIndex}`;
+        lines.push(`g4, ${resourceCode}, ${grantTarget}`);
+        lines.push(
+          ...Array.from(
+            { length: operationsPerSubject },
+            (_unused, operationIndex) =>
+              `p, Role_1, ANY_MEMBER, ${grantTarget}, op${operationIndex}, allow`,
+          ),
+        );
+      }
+    }
+
+    for (let actionIndex = 0; actionIndex < 6; actionIndex++) {
+      lines.push(`g5, action${actionIndex}, manage`);
+    }
+
+    lines.push('g, User_1, Role_1, *');
+    lines.push('g2, User_1, Merchant_1');
+
+    const e = scopedEnforcer(lines);
+    await e.configure();
+    const rules = await e.buildRules({
+      user: { principalType: 'User', userId: 1 },
+      context: asTypedContext({}),
+    });
+
+    const request = { resource: 'Module3.Resource10.execute', action: 'op5', domain: 'Merchant_1' };
+
+    const decision = await e.evaluate({ rules, request, context: asTypedContext({}) });
+    expect(decision).toBe('allow');
+
+    const sampleCount = 20;
+    const durations: number[] = [];
+    for (let index = 0; index < sampleCount; index++) {
+      const start = performance.now();
+      await e.evaluate({ rules, request, context: asTypedContext({}) });
+      durations.push(performance.now() - start);
+    }
+    const averageMs = durations.reduce((sum, value) => sum + value, 0) / durations.length;
+
+    // Measured ~37ms under the current wiring against ~1800ms with the reverted wiring; the threshold is ~10x the measured average, still well under the reverted cost.
+    expect(averageMs).toBeLessThan(400);
+  });
 });
 
 const dialect = new PgDialect();
@@ -117,8 +171,7 @@ function dbAdapter(rowsFor: (sqlText: string, params: unknown[]) => unknown[]) {
     softDelete: { use: true, columnName: 'deleted_at' },
   };
   return new ScopedCasbinAdapter({
-    // TCasbinPolicyConnector is drizzle's full generated node-postgres database type (select/insert/
-    // update/delete/transaction/...); the adapter only ever calls `.execute`, so the stub only implements that.
+    // The adapter only ever calls `.execute`, so the stub implements only that out of drizzle's full generated node-postgres type.
     dataSource: { connector } as any,
     entities,
   });
@@ -126,19 +179,49 @@ function dbAdapter(rowsFor: (sqlText: string, params: unknown[]) => unknown[]) {
 
 describe('scoped RBAC — full stack (adapter + enforcer + evaluate)', () => {
   test('member operator allowed on joined shop, denied elsewhere', async () => {
-    const adapter = dbAdapter((_text, params) => {
-      if (params.includes('assign_role')) {
-        return [{ roleId: 'op', domain: null }];
-      }
-
-      if (params.includes('join_domain')) {
-        return [{ domainType: 'Merchant', domainId: '7' }];
-      }
-
-      // Role grants only (subject_type='Role'); user 'u1' has no direct grant.
-      if (params.includes('grant') && params.includes('Role')) {
+    // The single recursive CTE returns everything scoped to u1, so the three structural-tree queries fall through to the empty default. Role grants only - 'u1' has no direct grant.
+    const adapter = dbAdapter(text => {
+      if (text.includes('WITH RECURSIVE')) {
         return [
-          { subjectId: 'op', objectCode: 'Order', action: 'read', effect: null, domain: null },
+          {
+            kind: 'direct',
+            variant: 'assign_role',
+            subjectId: 'u1',
+            targetType: 'Role',
+            targetId: 'op',
+            action: null,
+            effect: null,
+            domain: null,
+            objectCode: null,
+            objectSubject: null,
+            objectMethod: null,
+          },
+          {
+            kind: 'direct',
+            variant: 'join_domain',
+            subjectId: 'u1',
+            targetType: 'Merchant',
+            targetId: '7',
+            action: null,
+            effect: null,
+            domain: null,
+            objectCode: null,
+            objectSubject: null,
+            objectMethod: null,
+          },
+          {
+            kind: 'roleGrant',
+            variant: 'grant',
+            subjectId: 'op',
+            targetType: null,
+            targetId: 'p1',
+            action: 'read',
+            effect: null,
+            domain: null,
+            objectCode: 'Order',
+            objectSubject: 'Order',
+            objectMethod: 'find',
+          },
         ];
       }
 
@@ -212,8 +295,7 @@ describe('scoped + redis cache — cached payload completeness', () => {
             set: ({ key, value }: { key: string; value: unknown }) =>
               client.set(key, JSON.stringify(value)),
             del: ({ keys }: { keys: string[] }) => client.del(...keys),
-            // IRedisHelper aggregates connection/key/hash/set/list/pubsub/json/command surfaces (dozens
-            // of methods); this fixture only exercises get/set/del, so implementing the rest is not worth it.
+            // This fixture only exercises get/set/del out of IRedisHelper's dozens of methods.
           } as any,
           expiresIn: 60_000,
           keyFn: ({ user }) => `casbin:User:${user.userId}`,

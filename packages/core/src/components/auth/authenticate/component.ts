@@ -67,7 +67,6 @@ export class AuthenticateComponent extends BaseComponent {
 
     const options: IAuthenticateOptions = { restOptions, jwtOptions, basicOptions };
 
-    // Configure JWT auth based on discriminated union
     if (jwtOptions) {
       switch (jwtOptions.standard) {
         case JOSEStandards.JWS: {
@@ -86,10 +85,8 @@ export class AuthenticateComponent extends BaseComponent {
       }
     }
 
-    // Configure Basic auth
     this.defineBasicAuth({ basicOptions });
 
-    // Configure controllers
     this.defineControllers({ options });
 
     this.defineOAuth2();
@@ -100,7 +97,6 @@ export class AuthenticateComponent extends BaseComponent {
 
     const { jwtSecret, getTokenExpiresFn } = jwsOptions;
 
-    // Validate JWS secrets
     if (!jwtSecret || jwtSecret === DEFAULT_SECRET) {
       throw getError({
         message: `[defineJWSAuth] Invalid jwtSecret | Provided: ${jwtSecret}`,
@@ -113,7 +109,6 @@ export class AuthenticateComponent extends BaseComponent {
       });
     }
 
-    // Bind JWS options and register service
     this.application
       .bind<IJWSTokenServiceOptions>({ key: AuthenticateBindingKeys.JWT_OPTIONS })
       .toValue(jwsOptions);
@@ -156,7 +151,7 @@ export class AuthenticateComponent extends BaseComponent {
           .toValue(issuerOpts);
         this.application.service(JWKSIssuerTokenService);
 
-        // Register JWKS controller for /certs endpoint
+        // Path depends on a runtime option, so @controller can't be applied statically — decorate here instead.
         Reflect.decorate(
           [controller({ path: issuerOpts?.rest?.path ?? '/certs' })],
           JWKSController,
@@ -210,7 +205,6 @@ export class AuthenticateComponent extends BaseComponent {
       });
     }
 
-    // Bind Basic options and register service
     this.application
       .bind<TBasicTokenServiceOptions>({ key: AuthenticateBindingKeys.BASIC_OPTIONS })
       .toValue(basicOptions);
@@ -227,7 +221,6 @@ export class AuthenticateComponent extends BaseComponent {
       return;
     }
 
-    // Auth controller requires JWT for token generation
     if (!jwtOptions) {
       throw getError({
         message: '[defineControllers] Auth controller requires jwtOptions to be configured',

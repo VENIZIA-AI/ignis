@@ -4,27 +4,23 @@ import { getError } from '@venizia/ignis-helpers';
 
 import { model, repository } from '@/base/metadata';
 import { BasePostgresDataSource } from '@/connectors/postgres/datasources';
-import { BaseSearchDataSource } from '@/connectors/typesense/datasources';
-import { ISearchConnector } from '@/connectors/typesense/connector';
-import { ISearchDataSourceOptions } from '@/connectors/typesense/types';
+import { BaseSearchDataSource } from '@/connectors/search/datasources';
+import { ISearchConnector } from '@/connectors/search';
+import { ISearchDataSourceOptions } from '@/connectors/search/datasources';
 import { BasePostgresEntity, TTableInsert, TTableObject } from '@/connectors/postgres/models';
 import {
   BaseSearchEntity,
   defineSearchCollection,
   field,
   ISearchCollectionDefinition,
-} from '@/connectors/typesense/models';
+} from '@/connectors/search/models';
 import { DefaultCRUDRepository } from '@/connectors/postgres/repositories';
 import { ISearchQueryDialect } from '@/connectors/typesense/repositories';
 import { ICrudRepository } from '@/base/repositories';
 import { TypesenseQueryDialect } from '@/connectors/typesense';
 import { MetadataRegistry } from '@/helpers/inversion';
 
-/**
- * `entity.name` (`TABLE_NAME || class name`) can diverge from the model-registry key
- * (`metadata.tableName || TABLE_NAME || class name`); anything keyed off `entity.name` alone
- * silently misses settings registered under a different `tableName`.
- */
+/** `entity.name` (`TABLE_NAME || class name`) can diverge from the model-registry key (`metadata.tableName || ...`), so keying off `entity.name` alone silently misses settings registered under a different `tableName`. */
 
 const divergedTable = pgTable('diverged_y', {
   id: serial('id').primaryKey(),
@@ -32,8 +28,7 @@ const divergedTable = pgTable('diverged_y', {
   isActive: boolean('is_active'),
 });
 
-/** No static TABLE_NAME - `entity.name` resolves to the class name ('DivergedEntity'),
- * while `@model({ tableName: 'diverged_y' })` registers it under 'diverged_y'. */
+/** No static TABLE_NAME - `entity.name` resolves to the class name ('DivergedEntity'), while `@model({ tableName: 'diverged_y' })` registers it under 'diverged_y'. */
 @model({
   type: 'entity',
   tableName: 'diverged_y',
@@ -70,10 +65,10 @@ class PostgresDivergedDataSource extends BasePostgresDataSource<{}> {
 }
 
 @repository({ model: DivergedEntity, dataSource: PostgresDivergedDataSource })
-class _DivergedRepo {}
+class DivergedRepo {}
 
 @repository({ model: PlainEntity, dataSource: PostgresDivergedDataSource })
-class _PlainRepo {}
+class PlainRepo {}
 
 describe('registry dual-key: registerRepositoryBinding keys by the SAME formula as registerModel', () => {
   test('postgres buildSchema() sees a model whose @model tableName diverges from its class/static name', () => {
@@ -94,8 +89,8 @@ describe('registry dual-key: registerRepositoryBinding keys by the SAME formula 
   test('@repository bindings were registered for both fixture repositories', () => {
     const registry = MetadataRegistry.getInstance();
 
-    expect(registry.getRepositoryBinding({ name: _DivergedRepo.name })).toBeDefined();
-    expect(registry.getRepositoryBinding({ name: _PlainRepo.name })).toBeDefined();
+    expect(registry.getRepositoryBinding({ name: DivergedRepo.name })).toBeDefined();
+    expect(registry.getRepositoryBinding({ name: PlainRepo.name })).toBeDefined();
   });
 });
 
@@ -104,13 +99,9 @@ class SearchDivergedDataSource extends BaseSearchDataSource<{}> {
     super(opts);
   }
 
-  configure(): void {
-    // no-op fixture.
-  }
-
-  getConnector(): ISearchConnector {
+  protected createConnector(): ISearchConnector {
     throw getError({
-      message: '[SearchDivergedDataSource][getConnector] Not needed for this test',
+      message: '[SearchDivergedDataSource][createConnector] Not needed for this test',
     });
   }
 
@@ -125,8 +116,7 @@ class SearchDivergedDataSource extends BaseSearchDataSource<{}> {
   async ensureCollection(): Promise<void> {}
 }
 
-/** BaseSearchEntity's `entity.name` resolves via `COLLECTION_NAME ?? definition.name ?? class
- * name`, which can also diverge from `@model({ tableName })`. */
+/** BaseSearchEntity's `entity.name` resolves via `COLLECTION_NAME ?? definition.name ?? class name`, which can also diverge from `@model({ tableName })`. */
 @model({ type: 'entity', tableName: 'diverged-search-collection' })
 class DivergedSearchDocument extends BaseSearchEntity {
   static override schema = defineSearchCollection({
@@ -136,7 +126,7 @@ class DivergedSearchDocument extends BaseSearchEntity {
 }
 
 @repository({ model: DivergedSearchDocument, dataSource: SearchDivergedDataSource })
-class _DivergedSearchRepo {}
+class DivergedSearchRepo {}
 
 describe('registry dual-key: search-branch discovery sees a diverged tableName model', () => {
   test('getSchema() (getModelClasses -> discoverCollections) sees the collection', () => {
@@ -149,7 +139,7 @@ describe('registry dual-key: search-branch discovery sees a diverged tableName m
 
   test('@repository binding was registered', () => {
     const registry = MetadataRegistry.getInstance();
-    expect(registry.getRepositoryBinding({ name: _DivergedSearchRepo.name })).toBeDefined();
+    expect(registry.getRepositoryBinding({ name: DivergedSearchRepo.name })).toBeDefined();
   });
 });
 

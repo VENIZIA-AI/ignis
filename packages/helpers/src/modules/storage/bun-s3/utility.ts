@@ -1,7 +1,4 @@
-// ---------------------------------------------------------------------------
-// Minimal AWS Signature V4 helpers for bucket-management operations
-// (object operations use Bun's S3Client natively)
-// ---------------------------------------------------------------------------
+// Minimal AWS Signature V4 helpers for bucket-management operations (object ops use Bun's S3Client natively).
 
 async function hmacSHA256(key: Uint8Array | string, data: string): Promise<Uint8Array> {
   const rawKey = typeof key === 'string' ? new TextEncoder().encode(key) : key;

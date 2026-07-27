@@ -357,7 +357,7 @@ import {
   datasource,
   ValueOrPromise,
 } from '@venizia/ignis';
-import { drizzle } from 'drizzle-orm/node-postgres';
+import { NodePostgresDriver } from '@venizia/ignis/postgres/node-postgres';
 import { Pool } from 'pg';
 
 interface IDSConfigs {
@@ -368,7 +368,7 @@ interface IDSConfigs {
   password: string;
 }
 
-@datasource({ driver: 'node-postgres' })
+@datasource({ driver: NodePostgresDriver })
 export class PostgresDataSource extends BaseDataSource<IDSConfigs> {
   constructor() {
     super({
@@ -384,16 +384,18 @@ export class PostgresDataSource extends BaseDataSource<IDSConfigs> {
   }
 
   override configure(): ValueOrPromise<void> {
-    const schema = this.getSchema();
+    const schema = Object.keys(this.getSchema());
 
     this.logger.debug(
       '[configure] Auto-discovered schema | Schema + Relations (%s): %o',
-      Object.keys(schema).length,
-      Object.keys(schema),
+      schema.length,
+      schema,
     );
 
-    const client = new Pool(this.settings);
-    this.connector = drizzle({ client, schema });
+    // The client must land on this.client - a local would leave beginTransaction() with nothing
+    // to resolve a driver from, and it would throw `No driver and no client`. NodePostgresDriver
+    // named in @datasource above is what wires the driver and Drizzle connector from it.
+    this.client = new Pool(this.settings);
   }
 }
 ```
@@ -524,12 +526,11 @@ export class OrderRepository extends DefaultCRUDRepository<typeof Order.schema> 
 
 ```typescript
 // src/services/product.service.ts
-import { injectable, inject } from '@venizia/ignis';
+import { inject } from '@venizia/ignis';
 import { BaseService } from '@venizia/ignis';
 import { ProductRepository } from '../repositories/product.repository';
 import { getError } from '@venizia/ignis-helpers';
 
-@injectable({})
 export class ProductService extends BaseService {
   constructor(
     @inject({ key: 'repositories.ProductRepository' })
@@ -593,7 +594,7 @@ export class ProductService extends BaseService {
 
 ```typescript
 // src/services/cart.service.ts
-import { injectable, inject } from '@venizia/ignis';
+import { inject } from '@venizia/ignis';
 import { BaseService } from '@venizia/ignis';
 import { CartRepository } from '../repositories/cart.repository';
 import { ProductService } from './product.service';
@@ -604,7 +605,6 @@ interface ICartItem {
   quantity: number;
 }
 
-@injectable({})
 export class CartService extends BaseService {
   constructor(
     @inject({ key: 'repositories.CartRepository' })
@@ -731,7 +731,7 @@ export class CartService extends BaseService {
 
 ```typescript
 // src/services/order.service.ts
-import { injectable, inject } from '@venizia/ignis';
+import { inject } from '@venizia/ignis';
 import { BaseService } from '@venizia/ignis';
 import { OrderRepository } from '../repositories/order.repository';
 import { CartService } from './cart.service';
@@ -756,7 +756,6 @@ interface ICreateOrderInput {
   billingAddress?: IOrderAddress;
 }
 
-@injectable({})
 export class OrderService extends BaseService {
   constructor(
     @inject({ key: 'repositories.OrderRepository' })
@@ -904,12 +903,10 @@ export class OrderService extends BaseService {
 
 ```typescript
 // src/services/payment.service.ts
-import { injectable } from '@venizia/ignis';
 import { BaseService } from '@venizia/ignis';
 import Stripe from 'stripe';
 import { applicationEnvironment } from '@venizia/ignis-helpers';
 
-@injectable({})
 export class PaymentService extends BaseService {
   private _stripe: Stripe;
 
@@ -1309,7 +1306,7 @@ export class OrderController extends BaseRestController {
 ```typescript
 // src/application.ts
 import { BaseApplication, IApplicationInfo } from '@venizia/ignis';
-import { HealthCheckComponent, SwaggerComponent } from '@venizia/ignis';
+import { HealthCheckComponent, ApiReferenceComponent } from '@venizia/ignis';
 
 import { ProductController } from './controllers/product';
 import { CartController } from './controllers/cart';
@@ -1355,7 +1352,7 @@ export class EcommerceApp extends BaseApplication {
 
     // Components
     this.component(HealthCheckComponent);
-    this.component(SwaggerComponent);
+    this.component(ApiReferenceComponent);
   }
 
   postConfigure() {}

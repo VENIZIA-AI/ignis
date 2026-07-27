@@ -1,7 +1,7 @@
 import { HTTP } from '@/common';
 import { BaseHelper } from '@/modules/base';
 import { getError } from '@/modules/error';
-import { TRedisClient } from '@/modules/redis';
+import { ensureRedisClientsConnecting, TRedisClient, waitForRedisReady } from '@/modules/redis';
 import { EventEmitter } from 'node:events';
 import {
   IRedisSocketMessage,
@@ -33,35 +33,6 @@ export class WebSocketEmitter extends BaseHelper {
     this.redisPub = redisConnection.duplicateClient();
   }
 
-  private waitForRedisReady(client: TRedisClient, opts?: { timeoutMs?: number }): Promise<void> {
-    const timeoutMs = opts?.timeoutMs ?? 30_000;
-
-    return new Promise((resolve, reject) => {
-      if (client.status === 'ready') {
-        resolve();
-        return;
-      }
-
-      const timer = setTimeout(() => {
-        reject(
-          new Error(
-            `Redis client did not become ready within ${timeoutMs}ms (status: ${client.status})`,
-          ),
-        );
-      }, timeoutMs);
-
-      const emitter = client as EventEmitter;
-      emitter.once('ready', () => {
-        clearTimeout(timer);
-        resolve();
-      });
-      emitter.once('error', (error: Error) => {
-        clearTimeout(timer);
-        reject(error);
-      });
-    });
-  }
-
   async configure() {
     const logger = this.logger.for(this.configure.name);
     logger.info('Configuring WebSocket Emitter | id: %s', this.identifier);
@@ -70,11 +41,13 @@ export class WebSocketEmitter extends BaseHelper {
       logger.error('Redis pub error | error: %s', error);
     });
 
-    if (this.redisPub.status === 'wait') {
-      this.redisPub.connect();
-    }
+    ensureRedisClientsConnecting({
+      clients: [this.redisPub],
+      logger: this.logger,
+      scope: this.configure.name,
+    });
 
-    await this.waitForRedisReady(this.redisPub);
+    await waitForRedisReady({ client: this.redisPub });
     logger.info('WebSocket Emitter READY');
   }
 

@@ -1,2 +1,31 @@
-export * from './app-error';
+/** Error layer lives in `@venizia/ignis-inversion` so browser apps (DI-only, no helpers) share the same class; re-exported by NAME, not `export *`, to keep inversion's DI container off the helpers surface. */
+/** Augment `IErrorKeyRegistry` via whichever module the file imports - see `registry-augmentation.test.ts`. */
+export {
+  ApplicationError,
+  ErrorScopes,
+  fromError,
+  getError,
+  isApplicationError,
+  MessageCode,
+} from '@venizia/ignis-inversion';
+
+export type {
+  IErrorKeyRegistry,
+  TError,
+  TErrorByDefinition,
+  TErrorByField,
+  TErrorDefinition,
+  TErrorDefinitionMessage,
+  TErrorKey,
+  TErrorLogLevel,
+  TErrorMessage,
+  TErrorMessageInput,
+  TErrorMessageOverride,
+  TErrorNormalized,
+  TErrorNormalizeTransformFn,
+  TErrorScope,
+  TRegisterErrors,
+  TResponsedError,
+} from '@venizia/ignis-inversion';
+
 export * from './types';

@@ -23,8 +23,21 @@ describe('DataSource root split', () => {
     expect('beginTransaction' in BasePostgresDataSource.prototype).toBe(true);
   });
 
-  test('DataSourceDrivers gains typesense', () => {
-    expect(DataSourceDrivers.TYPESENSE).toBe('typesense');
-    expect(DataSourceDrivers.isValid('typesense')).toBe(true);
+  /** DataSourceDrivers is an identity constant (logs, config, `isValid()`), NOT engine selection - a missing member makes `isValid()` answer false about an engine that plainly ships. */
+  test('DataSourceDrivers names every driver the framework ships', () => {
+    const shipped = [
+      DataSourceDrivers.NODE_POSTGRES, // connectors/postgres/drivers/node-postgres
+      DataSourceDrivers.POSTGRES_JS, // connectors/postgres/drivers/postgres-js
+      DataSourceDrivers.TYPESENSE, // connectors/typesense
+      DataSourceDrivers.MEILISEARCH, // connectors/meilisearch
+    ];
+
+    expect(shipped).toEqual(['node-postgres', 'postgres-js', 'typesense', 'meilisearch']);
+
+    for (const driver of shipped) {
+      expect(DataSourceDrivers.isValid(driver)).toBe(true);
+    }
+
+    expect(DataSourceDrivers.isValid('mongodb')).toBe(false);
   });
 });

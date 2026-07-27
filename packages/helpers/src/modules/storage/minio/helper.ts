@@ -2,14 +2,7 @@ import { getError } from '@/modules/error';
 import { Client, ClientOptions } from 'minio';
 import { Readable } from 'node:stream';
 import { BaseStorageHelper } from '../base';
-import {
-  IBucketInfo,
-  IFileStat,
-  IObjectInfo,
-  IStorageHelperOptions,
-  IUploadFile,
-  IUploadResult,
-} from '../types';
+import { IBucketInfo, IFileStat, IObjectInfo, IStorageHelperOptions, IUploadFile } from '../types';
 
 export interface IMinioHelperOptions extends IStorageHelperOptions, ClientOptions {}
 
@@ -75,81 +68,25 @@ export class MinioHelper extends BaseStorageHelper {
     return true;
   }
 
-  async upload(opts: {
+  protected get defaultLinkPrefix(): string {
+    return '/static-assets/';
+  }
+
+  protected async writeObject(opts: {
     bucket: string;
-    files: IUploadFile[];
-    normalizeNameFn?: (opts: { originalName: string; folderPath?: string }) => string;
-    normalizeLinkFn?: (opts: { bucketName: string; normalizeName: string }) => string;
-  }): Promise<IUploadResult[]> {
-    const { bucket, files, normalizeNameFn, normalizeLinkFn } = opts;
+    normalizeName: string;
+    file: IUploadFile;
+  }): Promise<void> {
+    const { bucket, normalizeName, file } = opts;
+    const { originalName, mimetype: mimeType, buffer, size, encoding } = file;
 
-    if (!files || files.length === 0) {
-      return [];
-    }
-
-    const isExists = await this.isBucketExists({ name: bucket });
-    if (!isExists) {
-      throw getError({
-        message: `[upload] Bucket does not exist | name: ${bucket}`,
-      });
-    }
-
-    for (const file of files) {
-      const { originalName, size, folderPath } = file;
-
-      if (!this.isValidName(originalName)) {
-        throw getError({ message: '[upload] Invalid original file name' });
-      }
-
-      if (folderPath && !this.isValidPath(folderPath)) {
-        throw getError({ message: '[upload] Invalid folder path' });
-      }
-
-      if (!size) {
-        throw getError({ message: `[upload] Invalid file size` });
-      }
-    }
-
-    const uploadPromises = files.map(async file => {
-      const { folderPath, originalName, mimetype: mimeType, buffer, size, encoding } = file;
-      const t = performance.now();
-
-      const normalizeName = normalizeNameFn
-        ? normalizeNameFn({ originalName, folderPath })
-        : folderPath
-          ? `${folderPath.toLowerCase().replace(/ /g, '_')}/${originalName.toLowerCase().replace(/ /g, '_')}`
-          : originalName.toLowerCase().replace(/ /g, '_');
-      const normalizeLink = normalizeLinkFn
-        ? normalizeLinkFn({ bucketName: bucket, normalizeName })
-        : `/static-assets/${bucket}/${normalizeName
-            .split('/')
-            .map(s => encodeURIComponent(s))
-            .join('/')}`;
-
-      await this.client.putObject(bucket, normalizeName, buffer, size, {
-        originalName,
-        normalizeName,
-        size,
-        encoding,
-        mimeType,
-      });
-
-      this.logger
-        .for(this.upload.name)
-        .info(
-          'Uploaded: %j | Took: %s (ms)',
-          { normalizeName, normalizeLink, mimeType, encoding, size },
-          performance.now() - t,
-        );
-
-      return {
-        bucketName: bucket,
-        objectName: normalizeName,
-        link: normalizeLink,
-      };
+    await this.client.putObject(bucket, normalizeName, buffer, size, {
+      originalName,
+      normalizeName,
+      size,
+      encoding,
+      mimeType,
     });
-
-    return Promise.all(uploadPromises);
   }
 
   getFile(opts: {

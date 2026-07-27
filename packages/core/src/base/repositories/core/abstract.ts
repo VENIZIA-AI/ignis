@@ -3,19 +3,29 @@ import type { AbstractEntity, IdType } from '@/base/models';
 import type { IModelMetadata } from '@/helpers/inversion';
 import { MetadataRegistry } from '@/helpers/inversion';
 import type { TClass, TNullable } from '@venizia/ignis-helpers';
-import { BaseHelper, getError, resolveValue } from '@venizia/ignis-helpers';
+import {
+  BaseHelper,
+  executeWithRetryUntil,
+  getError,
+  resolveValue,
+  RetryBackoffStrategies,
+  RetryJitterModes,
+} from '@venizia/ignis-helpers';
 import type {
   IExtraOptions,
   IPersistableRepository,
+  IWithReadRetry,
   TCount,
-  TDataRange,
+  TDataWithRange,
+  TFindOneOptions,
+  TFindOptions,
+  TFindRangeOptions,
   TRepositoryOperationScope,
 } from '../common';
-import { RepositoryOperationScopes } from '../common';
-import type { TFilter, TWhere } from '../query-schemas';
+import { RepositoryErrorCodes, RepositoryOperationScopes } from '../common';
+import type { TFilter, TWhere } from '@venizia/ignis-filter';
 
-/** Engine-neutral repository plumbing - lazy dataSource/entity resolution, class-keyed `@model`
- * settings, operation scope. `TOptions` defaults to `IExtraOptions` so connectors can narrow it while staying assignable to this base. */
+/** Engine-neutral repository plumbing - lazy dataSource/entity resolution, class-keyed `@model` settings, operation scope. `TOptions` defaults to `IExtraOptions` so connectors can narrow it while staying assignable to this base. */
 export abstract class AbstractRepository<
   TDataObject extends object,
   TPersistObject extends object = TDataObject,
@@ -32,8 +42,7 @@ export abstract class AbstractRepository<
   /** Lazy-resolved from @repository metadata on first access. */
   protected _entity?: AbstractEntity;
 
-  /** Memoized @model settings for `this.entity`'s class. `null` means "not yet resolved" -
-   * `undefined` is itself a valid resolved value (the model declares no settings at all). */
+  /** Memoized @model settings for `this.entity`'s class. `null` means "not yet resolved" - `undefined` is itself a valid resolved value (the model declares no settings at all). */
   private _modelSettings: IModelMetadata['settings'] | null = null;
 
   constructor(
@@ -76,9 +85,7 @@ export abstract class AbstractRepository<
 
   /** Auto-resolves from @repository metadata if not explicitly set. */
   get entity(): AbstractEntity {
-    if (!this._entity) {
-      this._entity = this.resolveEntity();
-    }
+    this._entity ??= this.resolveEntity();
     return this._entity;
   }
 
@@ -98,8 +105,7 @@ export abstract class AbstractRepository<
     return this.entity;
   }
 
-  /** @model settings for `this.entity`'s class, resolved by Reflect target - not by `entity.name`,
-   * which can diverge from the `@model` registry key. Memoized after first access. */
+  /** @model settings for `this.entity`'s class, resolved by Reflect target - not by `entity.name`, which can diverge from the `@model` registry key. Memoized after first access. */
   protected get modelSettings(): IModelMetadata['settings'] {
     if (this._modelSettings !== null) {
       return this._modelSettings;
@@ -135,40 +141,131 @@ export abstract class AbstractRepository<
       });
     }
 
-    // binding.model is `TClass<AbstractEntity> | TResolver<TClass<AbstractEntity>>`; resolveValue()
-    // is a generic helper that erases to the resolved value's structural type, not this union's
-    // member - the `@repository` decorator guarantees it resolves to a class constructor.
+    // resolveValue() erases to the resolved value's structural type, not this class-or-resolver union's member - the `@repository` decorator guarantees it resolves to a class constructor.
     const ctor = resolveValue(binding.model) as TClass<AbstractEntity>;
     return new ctor();
   }
 
-  /** Readable */
+  /** Rejects a verb the current operation scope does not permit. */
+  protected denyOperation(methodName: string): never {
+    throw getError({
+      messageCode: RepositoryErrorCodes.OPERATION_NOT_ALLOWED,
+      message: `[${methodName}] Repository operation is NOT ALLOWED | scope: ${this.operationScope}`,
+    });
+  }
+
+  /** Shared retry orchestration for read verbs. No `retry` option means zero overhead; inside a transaction retry is skipped - the pool routes transactions to the primary, so there is no replica lag to wait out. */
+  protected executeReadWithRetry<TResult>(opts: {
+    operation: string;
+    options: IExtraOptions & IWithReadRetry<TResult>;
+    defaultUntil: (result: TResult) => boolean;
+    execution: () => Promise<TResult>;
+  }): Promise<TResult> {
+    const { operation, options, defaultUntil, execution } = opts;
+
+    if (!options.retry) {
+      return execution();
+    }
+
+    if (options.transaction) {
+      this.logger.for(operation).debug('Read retry skipped inside transaction');
+      return execution();
+    }
+
+    const { maxAttempts, maxTotalMs, signal, backoff, until } = options.retry;
+    return executeWithRetryUntil<TResult>({
+      operation: [this.constructor.name, operation].join('.'),
+      execution,
+      until: until ?? defaultUntil,
+      maxAttempts,
+      maxTotalMs,
+      signal,
+      backoff: backoff ?? {
+        strategy: RetryBackoffStrategies.EXPONENTIAL,
+        initialDelayMs: 50,
+        maxDelayMs: 500,
+        jitter: RetryJitterModes.EQUAL,
+      },
+      logger: this.logger,
+    });
+  }
+
+  /** A copy of `options` without `retry`, so re-entering a read verb takes its non-retry path - what keeps the retry recursion single-depth. Copy-then-delete rather than a rest-destructure (lint rejects the unused rest sibling) or `lodash/omit` (its `Omit<>` return type is not assignable back to `TOptions`). */
+  private omitReadRetry<TReadOptions extends { retry?: unknown }>(
+    options: TReadOptions,
+  ): TReadOptions {
+    const rest = { ...options };
+    delete rest.retry;
+    return rest;
+  }
+
+  /** `find`, re-executed until the retry predicate holds - connectors dispatch here from `find` when `options.retry` is set. */
+  protected findUntil<R = TDataObject>(opts: {
+    filter: TFilter<TDataObject>;
+    options: TFindOptions<TOptions, R>;
+  }): Promise<Array<R>> {
+    const options = this.omitReadRetry(opts.options);
+    return this.executeReadWithRetry<Array<R>>({
+      operation: 'find',
+      options: opts.options,
+      defaultUntil: result => result.length > 0,
+      execution: () => this.find<R>({ filter: opts.filter, options }),
+    });
+  }
+
+  /** `find` with the range envelope, re-executed until the retry predicate holds - split from `findUntil` so each result shape is checked against its own `find` overload. */
+  protected findRangeUntil<R = TDataObject>(opts: {
+    filter: TFilter<TDataObject>;
+    options: TFindRangeOptions<TOptions, R>;
+  }): Promise<TDataWithRange<R>> {
+    const options = this.omitReadRetry(opts.options);
+    return this.executeReadWithRetry<TDataWithRange<R>>({
+      operation: 'find',
+      options: opts.options,
+      defaultUntil: result => result.data.length > 0,
+      execution: () => this.find<R>({ filter: opts.filter, options }),
+    });
+  }
+
+  /** `findOne`, re-executed until the retry predicate holds - also serves `findById` via its findOne delegation. */
+  protected findOneUntil<R = TDataObject>(opts: {
+    filter: TFilter<TDataObject>;
+    options: TFindOneOptions<TOptions, R>;
+  }): Promise<TNullable<R>> {
+    const options = this.omitReadRetry(opts.options);
+    return this.executeReadWithRetry<TNullable<R>>({
+      operation: 'findOne',
+      options: opts.options,
+      defaultUntil: result => result !== null && result !== undefined,
+      execution: () => this.findOne<R>({ filter: opts.filter, options }),
+    });
+  }
+
   abstract count(opts: { where: TWhere<TDataObject>; options?: TOptions }): Promise<TCount>;
 
   abstract existsWith(opts: { where: TWhere<TDataObject>; options?: TOptions }): Promise<boolean>;
 
   abstract find<R = TDataObject>(opts: {
     filter: TFilter<TDataObject>;
-    options: TOptions & { shouldQueryRange: true };
-  }): Promise<{ data: Array<R>; range: TDataRange }>;
+    options: TFindRangeOptions<TOptions, R>;
+  }): Promise<TDataWithRange<R>>;
 
   abstract find<R = TDataObject>(opts: {
     filter: TFilter<TDataObject>;
-    options?: TOptions & { shouldQueryRange?: false };
+    options?: TFindOptions<TOptions, R>;
   }): Promise<R[]>;
 
   abstract findOne<R = TDataObject>(opts: {
     filter: TFilter<TDataObject>;
-    options?: TOptions;
+    options?: TFindOneOptions<TOptions, R>;
   }): Promise<TNullable<R>>;
 
   abstract findById<R = TDataObject>(opts: {
     id: IdType;
     filter?: Omit<TFilter<TDataObject>, 'where'>;
-    options?: TOptions;
+    options?: TFindOneOptions<TOptions, R>;
   }): Promise<TNullable<R>>;
 
-  /** Creatable */
   abstract create(opts: {
     data: TPersistObject;
     options: TOptions & { shouldReturn: false };
@@ -189,7 +286,6 @@ export abstract class AbstractRepository<
     options?: TOptions & { shouldReturn?: true };
   }): Promise<TCount & { data: Array<R> }>;
 
-  /** Updatable */
   abstract updateById(opts: {
     id: IdType;
     data: Partial<TPersistObject>;
@@ -212,7 +308,7 @@ export abstract class AbstractRepository<
     data: Partial<TPersistObject>;
     where: TWhere<TDataObject>;
     options?: TOptions & { shouldReturn?: true; force?: boolean };
-  }): Promise<TCount & { data: Array<R> }>;
+  }): Promise<TCount & { data: Array<R> | null }>;
 
   /** Alias for updateAll. */
   updateBy(opts: {
@@ -224,7 +320,7 @@ export abstract class AbstractRepository<
     data: Partial<TPersistObject>;
     where: TWhere<TDataObject>;
     options?: TOptions & { shouldReturn?: true; force?: boolean };
-  }): Promise<TCount & { data: Array<R> }>;
+  }): Promise<TCount & { data: Array<R> | null }>;
   updateBy<R = TDataObject>(opts: {
     data: Partial<TPersistObject>;
     where: TWhere<TDataObject>;
@@ -239,7 +335,6 @@ export abstract class AbstractRepository<
     return this.updateAll<R>({ data, where, options });
   }
 
-  /** Deletable */
   abstract deleteById(opts: {
     id: IdType;
     options: TOptions & { shouldReturn: false };
@@ -258,7 +353,7 @@ export abstract class AbstractRepository<
   abstract deleteAll<R = TDataObject>(opts: {
     where?: TWhere<TDataObject>;
     options?: TOptions & { shouldReturn?: true; force?: boolean };
-  }): Promise<TCount & { data: Array<R> }>;
+  }): Promise<TCount & { data: Array<R> | null }>;
 
   /** Alias for deleteAll. */
   deleteBy(opts: {
@@ -268,7 +363,7 @@ export abstract class AbstractRepository<
   deleteBy<R = TDataObject>(opts: {
     where: TWhere<TDataObject>;
     options?: TOptions & { shouldReturn?: true; force?: boolean };
-  }): Promise<TCount & { data: Array<R> }>;
+  }): Promise<TCount & { data: Array<R> | null }>;
   deleteBy<R = TDataObject>(opts: {
     where: TWhere<TDataObject>;
     options?: TOptions & { shouldReturn?: boolean; force?: boolean };

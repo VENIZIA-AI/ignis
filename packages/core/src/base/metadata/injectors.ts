@@ -1,12 +1,8 @@
-import type { IInjectableMetadata } from '@/helpers/inversion';
+import type { TBindingKey } from '@/helpers/inversion';
 import { MetadataRegistry } from '@/helpers/inversion';
-import { inject as coreInject, injectable as coreInjectable } from '@venizia/ignis-inversion';
-
-export const injectable = (metadata: IInjectableMetadata): ClassDecorator => {
-  return coreInjectable(metadata, MetadataRegistry.getInstance());
-};
+import { inject as coreInject } from '@venizia/ignis-inversion';
 
 /** Marks a property or constructor parameter for dependency injection. */
-export const inject = (opts: { key: string | symbol; isOptional?: boolean }) => {
+export const inject = (opts: { key: TBindingKey; isOptional?: boolean }) => {
   return coreInject({ ...opts, registry: MetadataRegistry.getInstance() });
 };

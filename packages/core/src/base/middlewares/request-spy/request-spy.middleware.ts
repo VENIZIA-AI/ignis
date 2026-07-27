@@ -4,6 +4,7 @@ import type { IProvider } from '@venizia/ignis-inversion';
 import { createMiddleware } from 'hono/factory';
 import type { MiddlewareHandler } from 'hono/types';
 import type { TContext } from '../../controllers';
+import { RequestErrors } from '../common';
 
 /** Logs incoming/outgoing request details. Body/query only logged in non-production. */
 export class RequestSpyMiddleware extends BaseHelper implements IProvider<MiddlewareHandler> {
@@ -26,8 +27,9 @@ export class RequestSpyMiddleware extends BaseHelper implements IProvider<Middle
       return null;
     }
 
+    // Only an explicit zero short-circuits: a CHUNKED request carries no Content-Length, so gating on the header's presence would skip every streamed body and let a malformed one detonate deeper as a 500.
     const contentLength = opts.req.header(HTTP.Headers.CONTENT_LENGTH);
-    if (!contentLength || contentLength === '0') {
+    if (contentLength === '0' || !opts.req.raw.body) {
       return null;
     }
 
@@ -45,11 +47,15 @@ export class RequestSpyMiddleware extends BaseHelper implements IProvider<Middle
         return rs;
       }
 
+      if (contentType === HTTP.HeaderValues.APPLICATION_OCTET_STREAM) {
+        return opts.req.raw.body;
+      }
+
       const rs = await opts.req.text();
       return rs;
     } catch {
       throw getError({
-        statusCode: HTTP.ResultCodes.RS_4.BadRequest,
+        error: RequestErrors.BODY_MALFORMED,
         message: 'Malformed Body Payload',
       });
     }
@@ -65,16 +71,11 @@ export class RequestSpyMiddleware extends BaseHelper implements IProvider<Middle
       const incomingIp = getIncomingIp(context);
       const forwardedIp = req.header('x-real-ip') ?? req.header('x-forwarded-for') ?? null;
 
-      if (!incomingIp && !forwardedIp) {
-        throw getError({
-          statusCode: HTTP.ResultCodes.RS_4.BadRequest,
-          message: 'Malformed Connection Info',
-        });
-      }
-
       const method = req.method;
       const path = req.path ?? '/';
-      const clientIp = incomingIp ?? forwardedIp;
+
+      // Best-effort, never fatal: a unix socket, some proxies and any in-process call yield no connection info - refusing to serve because the client IP is unknown turns a logging gap into an outage.
+      const clientIp = incomingIp ?? forwardedIp ?? 'unknown';
       const query = req.query() ?? {};
       const body = await this.parseBody(context);
 

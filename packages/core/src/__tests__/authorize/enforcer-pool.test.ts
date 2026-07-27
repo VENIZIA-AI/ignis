@@ -5,9 +5,7 @@ import { CASBIN_RBAC_DOMAIN_SCOPED_MODEL } from '@/components/auth/authorize/enf
 import { CasbinEnforcerModelDrivers } from '@/components/auth/authorize/common/constants';
 import type { Enforcer, FilteredAdapter, Model } from 'casbin';
 
-// Per-user adapter with a delay so two loads interleave; each user gets a distinct secret resource.
-// Emits the 5-column SCOPED policy line `p = sub, dom, obj, act, eft` with dom = SYSTEM_WIDE so the
-// matcher's `p.dom == "SYSTEM_WIDE"` branch grants regardless of membership.
+// Per-user adapter with a delay so two loads interleave, emitting the 5-column scoped line with dom = SYSTEM_WIDE so the matcher grants regardless of membership.
 class DelayedPerUserAdapter implements FilteredAdapter {
   constructor(private delayMs: number) {}
 
@@ -88,11 +86,7 @@ describe('CasbinAuthorizationEnforcer — pool isolation (§9 race fix)', () => 
   });
 });
 
-// Forces exactly ONE failure inside the pool.use() callback (during the per-request load step) by
-// overriding loadPolicyLinesIntoModel to throw on its first call, then delegating to super afterwards.
-// This exercises the discard path: pool.use() must DESTROY the borrowed enforcer + rethrow (request
-// fails closed), the pool then RE-CREATES capacity, and the next valid request still resolves. Wired to
-// the load step (not extraction) because that is the step that actually runs on a borrowed pool enforcer.
+// Forces exactly ONE failure in the per-request load step, so pool.use() must DESTROY the borrowed enforcer and rethrow (fail closed), then re-create capacity.
 class FailOncePoolEnforcer extends CasbinAuthorizationEnforcer {
   private failsRemaining = 1;
 
@@ -132,8 +126,7 @@ describe('CasbinAuthorizationEnforcer — discard recovery', () => {
     }
     expect(error).toBeDefined();
 
-    // Pool must have re-created capacity: a subsequent valid request resolves to the correct decisions,
-    // with no leaked/stale state from the failed borrow.
+    // Pool must have re-created capacity: a later valid request resolves correctly, with no stale state from the failed borrow.
     expect(await decide(e, 'A', 'A_secret')).toBe('allow');
     expect(await decide(e, 'A', 'B_secret')).toBe('deny');
   });

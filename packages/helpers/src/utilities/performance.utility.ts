@@ -1,4 +1,4 @@
-import { Logger } from '@/modules/logger';
+import { ILogger } from '@/modules/logger';
 import { float } from './parse.utility';
 
 const DEFAULT_PERFORMANCE_DECIMAL = 6;
@@ -12,7 +12,7 @@ export const getExecutedPerformance = (opts: { from: number; digit?: number }) =
 };
 
 export const executeWithPerformanceMeasure = <R = any>(opts: {
-  logger?: Logger;
+  logger?: ILogger;
   level?: string;
   description?: string;
   args?: any;

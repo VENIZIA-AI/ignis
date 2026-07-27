@@ -3,7 +3,7 @@ import type { AbstractEntity } from '@/base/models';
 import type { TTableSchemaWithId } from '@/connectors/postgres/models';
 import type { TRelationConfig } from '@/connectors/postgres/repositories/common';
 import { createRelations } from '@/connectors/postgres/repositories/dialect/relation';
-import type { TClass, TMixinTarget } from '@venizia/ignis-helpers';
+import type { AnyType, TClass, TMixinTarget } from '@venizia/ignis-helpers';
 import { resolveValue } from '@venizia/ignis-helpers';
 import type { MetadataRegistry as _MetadataRegistry } from '@venizia/ignis-inversion';
 import { MetadataKeys } from '../common/keys';
@@ -15,7 +15,6 @@ import type {
   IResolvedRepositoryMetadata,
 } from '../common/types';
 
-// Repository Metadata & Bindings
 export const RepositoryMetadataMixin = <
   BaseClass extends TMixinTarget<
     _MetadataRegistry & {
@@ -29,8 +28,8 @@ export const RepositoryMetadataMixin = <
   return class extends baseClass {
     repositoryBindings: Map<string, IRepositoryBinding<AbstractEntity>>;
 
-    // DataSource -> Models mapping: datasource name -> set of model table names
-    datasourceModels: Map<string, Set<string>>;
+    /** The model CLASSES a datasource owns - never their names: two classes may share a name and the name-keyed `modelRegistry` holds only one, so keying by name resolves the WRONG class. */
+    datasourceModels: Map<string, Set<TClass<AnyType>>>;
 
     setRepositoryMetadata<
       Target extends object = object,
@@ -53,31 +52,27 @@ export const RepositoryMetadataMixin = <
       Model extends AbstractEntity = AbstractEntity,
       DataSource extends IDataSource = IDataSource,
     >(opts: IRepositoryBinding<Model, DataSource>) {
-      this.repositoryBindings.set(opts.repository.name, opts);
+      // Every member of the binding may be a resolver (the escape hatch for circular imports); reading `.name` off the resolver would key the registry by the ARROW's inferred name and the datasource would silently discover no schema.
+      const repositoryClass = resolveValue(opts.repository);
+      this.repositoryBindings.set(repositoryClass.name, opts);
 
-      // Track which datasource owns which models
-      const dsKey = typeof opts.dataSource === 'string' ? opts.dataSource : opts.dataSource.name;
+      const dataSourceRef = resolveValue(opts.dataSource);
+      const dsKey = typeof dataSourceRef === 'string' ? dataSourceRef : dataSourceRef.name;
 
       const modelClass = resolveValue(opts.model);
-
-      const modelMetadata = this.getModelMetadata({ target: modelClass });
-      const tableName = modelMetadata?.tableName || modelClass.TABLE_NAME || modelClass.name;
 
       if (!this.datasourceModels.has(dsKey)) {
         this.datasourceModels.set(dsKey, new Set());
       }
 
-      this.datasourceModels.get(dsKey)!.add(tableName);
+      this.datasourceModels.get(dsKey)!.add(modelClass);
     }
 
     getRepositoryBinding(opts: { name: string }): IRepositoryBinding<AbstractEntity> | undefined {
       return this.repositoryBindings.get(opts.name);
     }
 
-    /**
-     * Resolves + caches relations for a model entry. Called lazily from buildSchema() so every
-     * @model class is registered first, avoiding circular-dependency ordering issues. @internal
-     */
+    /** Resolves and caches relations for a model entry - called lazily from buildSchema() so every @model class is registered first, avoiding circular-dependency ordering issues. @internal */
     resolveModelRelations(modelMeta: IModelRegistryEntry): unknown {
       if (modelMeta._builtRelations !== undefined) {
         return modelMeta._builtRelations;
@@ -90,8 +85,7 @@ export const RepositoryMetadataMixin = <
       const relations = resolveValue(modelMeta.relationsResolver) as Array<TRelationConfig>;
 
       if (relations && modelMeta.schema) {
-        // Registry stores schema as unknown (engine-neutral); this resolver only runs for
-        // drizzle-backed models, so the narrow is safe here.
+        // Registry stores schema as unknown (engine-neutral); this resolver only runs for drizzle-backed models, so the narrow is safe.
         const builtRelations = createRelations({
           source: modelMeta.schema as TTableSchemaWithId,
           relations,
@@ -104,11 +98,7 @@ export const RepositoryMetadataMixin = <
       return undefined;
     }
 
-    /**
-     * Models registered for a datasource, relations resolved lazily. `schema`/`relations` are
-     * `unknown` because this registry is shared across connectors (SQL vs search); each connector
-     * narrows the type at its own call site (e.g. `BaseRelationalDataSource.discoverSchema()`).
-     */
+    /** Models registered for a datasource, relations resolved lazily. `schema`/`relations` stay `unknown` - the registry is shared across connectors, so each connector narrows at its call site. */
     getModels(opts: { dataSource: string | TClass<IDataSource> }): Array<{
       tableName: string;
       schema: unknown;
@@ -116,25 +106,27 @@ export const RepositoryMetadataMixin = <
     }> {
       const { dataSource } = opts;
       const dsKey = typeof dataSource === 'string' ? dataSource : dataSource.name;
-      const modelNames = this.datasourceModels.get(dsKey) || new Set();
+      const modelClasses = this.datasourceModels.get(dsKey) ?? new Set();
 
-      const rs = Array.from(modelNames)
-        .map(tableName => {
-          if (!this.modelRegistry.has(tableName)) {
+      const rs = Array.from(modelClasses)
+        .map(modelClass => {
+          // Read straight off the CLASS: a class -> name -> modelRegistry round-trip collapses two same-named models onto one entry, silently swapping schemas. `modelRegistry` stays name-keyed for the by-name APIs that need it.
+          const entry: IModelRegistryEntry = {
+            target: modelClass as AnyType,
+            metadata:
+              this.getModelMetadata({ target: modelClass }) ?? ({ settings: {} } as AnyType),
+            schema: (modelClass as AnyType).schema,
+            relationsResolver: (modelClass as AnyType).relations,
+          };
+
+          if (entry.schema === undefined) {
             return null;
           }
-
-          const modelMeta = this.modelRegistry.get(tableName);
-          if (!modelMeta) {
-            return null;
-          }
-
-          const relations = this.resolveModelRelations(modelMeta);
 
           return {
-            tableName,
-            schema: modelMeta.schema,
-            relations,
+            tableName: this.resolveModelKey({ modelClass }),
+            schema: entry.schema,
+            relations: this.resolveModelRelations(entry),
           };
         })
         .filter((item): item is NonNullable<typeof item> => {
@@ -144,24 +136,24 @@ export const RepositoryMetadataMixin = <
       return rs;
     }
 
-    /** Like getModels but returns only resolved model classes — used by BaseSearchDataSource, which has no pgTable to resolve. */
+    /** Like getModels but returns only resolved model classes - used by BaseSearchDataSource, which has no pgTable to resolve. */
     getModelClasses(opts: { dataSource: string | TClass<IDataSource> }): Array<TClass<unknown>> {
       const { dataSource } = opts;
       const dsKey = typeof dataSource === 'string' ? dataSource : dataSource.name;
-      const modelNames = this.datasourceModels.get(dsKey) || new Set();
 
-      const rs = Array.from(modelNames)
-        .map(tableName => {
-          const modelMeta = this.modelRegistry.get(tableName);
-          if (!modelMeta) {
-            return null;
-          }
+      // Straight from the stored class refs: a name round-trip through the shared modelRegistry would hand back whichever same-named class registered last.
+      return Array.from(this.datasourceModels.get(dsKey) ?? new Set());
+    }
 
-          return resolveValue(modelMeta.target);
-        })
-        .filter(item => item !== null);
+    /** The key a model occupies in `modelRegistry` - its table name, or its class name when it has none. */
+    resolveModelKey(opts: { modelClass: TClass<AnyType> }): string {
+      const { modelClass } = opts;
+      const modelMetadata = this.getModelMetadata({ target: modelClass });
 
-      return rs;
+      return (
+        [modelMetadata?.tableName, (modelClass as AnyType).TABLE_NAME].find(Boolean) ??
+        modelClass.name
+      );
     }
 
     /** Assembles table schemas + relations for a datasource's registered models. */

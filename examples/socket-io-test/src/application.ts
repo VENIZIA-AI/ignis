@@ -9,11 +9,17 @@ import {
   IApplicationInfo,
   IHealthCheckOptions,
   IMiddlewareConfigs,
-  SwaggerComponent,
+  ApiReferenceComponent,
   ValueOrPromise,
 } from '@venizia/ignis';
 import { SocketIOBindingKeys, SocketIOComponent } from '@venizia/ignis/socket-io';
-import { applicationEnvironment, Environment, HTTP, int, RedisSingleHelper } from '@venizia/ignis-helpers';
+import {
+  applicationEnvironment,
+  Environment,
+  HTTP,
+  int,
+  RedisSingleHelper,
+} from '@venizia/ignis-helpers';
 import {
   SocketIOServerHelper,
   TSocketIOAuthenticateFn,
@@ -199,7 +205,7 @@ export class Application extends BaseApplication {
     this.component(HealthCheckComponent);
 
     // Swagger
-    this.component(SwaggerComponent);
+    this.component(ApiReferenceComponent);
 
     // Socket.IO
     this.setupSocketIO();

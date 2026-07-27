@@ -1,17 +1,11 @@
 import { getError } from '@/modules/error';
+import { ErrorPrettier } from '@/modules/logger';
 import fs from 'node:fs';
 import fsp from 'node:fs/promises';
 import path from 'node:path';
 import { Readable } from 'node:stream';
 import { BaseStorageHelper } from '../base';
-import {
-  IBucketInfo,
-  IFileStat,
-  IObjectInfo,
-  IStorageHelperOptions,
-  IUploadFile,
-  IUploadResult,
-} from '../types';
+import { IBucketInfo, IFileStat, IObjectInfo, IStorageHelperOptions, IUploadFile } from '../types';
 
 export interface IDiskHelperOptions extends IStorageHelperOptions {
   basePath: string; // Base directory for storage
@@ -44,7 +38,16 @@ export class DiskHelper extends BaseStorageHelper {
     try {
       await fsp.access(pathToCheck);
       return true;
-    } catch {
+    } catch (error) {
+      // ENOENT is the answer, not a failure; EACCES/EIO mean the path may well exist and is unreadable.
+      if ((error as NodeJS.ErrnoException)?.code !== 'ENOENT') {
+        this.logger.warn(
+          '[exists] Cannot determine existence, reporting false | path: %s | %s',
+          pathToCheck,
+          ErrorPrettier.format({ error }),
+        );
+      }
+
       return false;
     }
   }
@@ -149,82 +152,25 @@ export class DiskHelper extends BaseStorageHelper {
     return true;
   }
 
-  async upload(opts: {
+  protected get defaultLinkPrefix(): string {
+    return '/static-resources/';
+  }
+
+  protected async writeObject(opts: {
     bucket: string;
-    files: IUploadFile[];
-    normalizeNameFn?: (opts: { originalName: string; folderPath?: string }) => string;
-    normalizeLinkFn?: (opts: { bucketName: string; normalizeName: string }) => string;
-  }): Promise<IUploadResult[]> {
-    const { bucket, files, normalizeNameFn, normalizeLinkFn } = opts;
+    normalizeName: string;
+    file: IUploadFile;
+  }): Promise<void> {
+    const { bucket, normalizeName, file } = opts;
 
-    if (!files || files.length === 0) {
-      return [];
+    const objectPath = this.getObjectPath(bucket, normalizeName);
+    const objectDir = path.dirname(objectPath);
+
+    if (!(await this.exists(objectDir))) {
+      await fsp.mkdir(objectDir, { recursive: true });
     }
 
-    const isExists = await this.isBucketExists({ name: bucket });
-    if (!isExists) {
-      throw getError({
-        message: `[upload] Bucket does not exist | name: ${bucket}`,
-      });
-    }
-
-    for (const file of files) {
-      const { originalName, size, folderPath } = file;
-
-      if (!this.isValidName(originalName)) {
-        throw getError({ message: '[upload] Invalid original file name' });
-      }
-
-      if (folderPath && !this.isValidPath(folderPath)) {
-        throw getError({ message: '[upload] Invalid folder path' });
-      }
-
-      if (!size) {
-        throw getError({ message: `[upload] Invalid file size` });
-      }
-    }
-
-    const uploadPromises = files.map(async file => {
-      const { originalName, buffer, size, mimetype: mimeType, encoding, folderPath } = file;
-      const t = performance.now();
-
-      const normalizeName = normalizeNameFn
-        ? normalizeNameFn({ originalName, folderPath })
-        : folderPath
-          ? `${folderPath.toLowerCase().replace(/ /g, '_')}/${originalName.toLowerCase().replace(/ /g, '_')}`
-          : originalName.toLowerCase().replace(/ /g, '_');
-      const normalizeLink = normalizeLinkFn
-        ? normalizeLinkFn({ bucketName: bucket, normalizeName })
-        : `/static-resources/${bucket}/${normalizeName
-            .split('/')
-            .map(s => encodeURIComponent(s))
-            .join('/')}`;
-
-      const objectPath = this.getObjectPath(bucket, normalizeName);
-
-      const objectDir = path.dirname(objectPath);
-      if (!(await this.exists(objectDir))) {
-        await fsp.mkdir(objectDir, { recursive: true });
-      }
-
-      await fsp.writeFile(objectPath, buffer);
-
-      this.logger
-        .for(this.upload.name)
-        .info(
-          'Uploaded: %j | Took: %s (ms)',
-          { normalizeName, normalizeLink, mimeType, encoding, size },
-          performance.now() - t,
-        );
-
-      return {
-        bucketName: bucket,
-        objectName: normalizeName,
-        link: normalizeLink,
-      };
-    });
-
-    return Promise.all(uploadPromises);
+    await fsp.writeFile(objectPath, file.buffer);
   }
 
   async getFile(opts: { bucket: string; name: string; options?: any }): Promise<Readable> {
@@ -307,25 +253,31 @@ export class DiskHelper extends BaseStorageHelper {
       for (const entry of entries) {
         const fullName = currentPrefix ? `${currentPrefix}/${entry.name}` : entry.name;
         const fullPath = path.join(dirPath, entry.name);
+        const isDirectory = entry.isDirectory();
 
-        if (entry.isDirectory()) {
-          if (useRecursive) {
-            await scanDirectory(fullPath, fullName);
-          }
-        } else if (entry.isFile()) {
-          if (!prefix || fullName.startsWith(prefix)) {
-            const stat = await fsp.stat(fullPath);
-            objects.push({
-              name: fullName,
-              size: stat.size,
-              lastModified: stat.mtime,
-              etag: undefined,
-            });
+        if (isDirectory && useRecursive) {
+          await scanDirectory(fullPath, fullName);
+          continue;
+        }
 
-            if (maxKeys && objects.length >= maxKeys) {
-              break;
-            }
-          }
+        if (isDirectory || !entry.isFile()) {
+          continue;
+        }
+
+        if (prefix && !fullName.startsWith(prefix)) {
+          continue;
+        }
+
+        const stat = await fsp.stat(fullPath);
+        objects.push({
+          name: fullName,
+          size: stat.size,
+          lastModified: stat.mtime,
+          etag: undefined,
+        });
+
+        if (maxKeys && objects.length >= maxKeys) {
+          break;
         }
       }
     };

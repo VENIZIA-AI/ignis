@@ -4,8 +4,6 @@ import { AbstractAuthRegistry } from '../../base';
 import type { IAuthenticationStrategy } from '../common';
 import { Authentication } from '../common';
 
-// Authentication Strategy Registry — manages strategy registration and resolution
-
 export class AuthenticationStrategyRegistry extends AbstractAuthRegistry<IAuthenticationStrategy> {
   private static instance: AuthenticationStrategyRegistry;
 

@@ -1,9 +1,9 @@
 import { MetadataRegistry } from '@/helpers/inversion';
 import type { TClass } from '@venizia/ignis-helpers';
 import { getError } from '@venizia/ignis-helpers';
-import { drizzle } from 'drizzle-orm/node-postgres';
-import type { PoolClient } from 'pg';
 import type { IDataSource, TAnyDataSourceSchema } from '@/base/datasources';
+// Type-only: erased at compile time, so the no-eager-import guard is unaffected.
+import type { Pool } from 'pg';
 import { AbstractRelationalDataSource } from './abstract';
 import type { IDatabaseTransaction, IDatabaseTransactionOptions, TIsolationLevel } from './common';
 import { IsolationLevels } from './common';
@@ -13,7 +13,8 @@ export abstract class BaseRelationalDataSource<
   Settings extends object = {},
   Schema extends TAnyDataSourceSchema = TAnyDataSourceSchema,
   ConfigurableOptions extends object = {},
-> extends AbstractRelationalDataSource<Settings, Schema, ConfigurableOptions> {
+  Client = Pool,
+> extends AbstractRelationalDataSource<Settings, Schema, ConfigurableOptions, Client> {
   constructor(opts: { name: string; config: Settings; schema?: Schema }) {
     super({ scope: opts.name });
 
@@ -56,8 +57,7 @@ export abstract class BaseRelationalDataSource<
         models,
       );
 
-    // buildSchema() is shared by every connector so it returns Record<string, unknown>; narrow
-    // it back to the real Drizzle schema shape here.
+    // buildSchema() is shared by every connector so it returns Record<string, unknown>; narrowed back to the real Drizzle schema shape here.
     return { ...schema, ...relations } as Schema;
   }
 
@@ -73,55 +73,67 @@ export abstract class BaseRelationalDataSource<
   override async beginTransaction(
     opts?: IDatabaseTransactionOptions,
   ): Promise<IDatabaseTransaction<Schema>> {
-    if (!this.pool) {
-      throw getError({
-        message: `[${this.constructor.name}][beginTransaction] Pool not initialized. Set this.pool in configure().`,
-      });
-    }
-
-    const client: PoolClient = await this.pool.connect();
+    const driver = this.resolveDriver();
+    const connection = await driver.acquire({ schema: this.getSchema() });
     const isolationLevel: TIsolationLevel = opts?.isolationLevel ?? IsolationLevels.READ_COMMITTED;
 
-    await client.query(`BEGIN TRANSACTION ISOLATION LEVEL ${isolationLevel}`);
+    // `isolationLevel` comes from the IsolationLevels const-class, never user input, and must be interpolated: `BEGIN TRANSACTION ISOLATION LEVEL $1` is not valid SQL and postgres-js tagged templates would bind it as a parameter.
+    try {
+      await connection.execute({
+        statement: `BEGIN TRANSACTION ISOLATION LEVEL ${isolationLevel}`,
+      });
+    } catch (error) {
+      this.logger.for('beginTransaction').error('Failed to BEGIN transaction | Error: %s', error);
+
+      // No caller ever receives a handle to release this checked-out connection, so leaking here exhausts the pool under repeated BEGIN failures; destroyed rather than pooled because the session state after a failed BEGIN is unknown.
+      connection.release({ destroy: true });
+      throw error;
+    }
+
     let isActive = true;
+    let isEndedByFailure = false;
+
+    /** Ends the transaction with `statement`. On failure the connection is discarded rather than pooled (the session may still hold an open transaction the next borrower would inherit) and the error rethrown - a caller must never believe a failed COMMIT succeeded. */
+    const finish = async (finishOpts: { statement: string; verb: string }): Promise<void> => {
+      const { statement, verb } = finishOpts;
+
+      if (!isActive) {
+        // After a FAILED commit/rollback the transaction is already torn down, so a rollback is satisfied by construction - throwing 'already ended' would replace the caller's original error in the canonical `catch { await tx.rollback(); throw error; }`.
+        if (isEndedByFailure && verb === 'rollback') {
+          this.logger
+            .for(verb)
+            .debug('Rollback after a failure-ended transaction - no-op, already torn down');
+          return;
+        }
+
+        throw getError({ message: `[Transaction][${verb}] Transaction already ended` });
+      }
+
+      // Flipped BEFORE the await: two concurrent finish() calls (commit racing rollback) would otherwise both pass the guard, issue two control statements, and double-release the same physical connection.
+      isActive = false;
+
+      try {
+        await connection.execute({ statement });
+      } catch (error) {
+        this.logger.for(verb).error('Failed to %s transaction | Error: %s', statement, error);
+        isEndedByFailure = true;
+        connection.release({ destroy: true });
+        throw error;
+      }
+
+      connection.release();
+    };
 
     return {
       isolationLevel,
-      connector: drizzle({ client, schema: this.schema }),
+      connector: connection.connector,
 
       get isActive() {
         return isActive;
       },
 
-      commit: async () => {
-        if (!isActive) {
-          throw getError({ message: '[Transaction][commit] Transaction already ended' });
-        }
-
-        try {
-          await client.query('COMMIT');
-        } catch (error) {
-          this.logger.for('commit').error('Failed to COMMIT transaction | Error: %s', error);
-        } finally {
-          isActive = false;
-          client.release();
-        }
-      },
-
-      rollback: async () => {
-        if (!isActive) {
-          throw getError({ message: '[Transaction][rollback] Transaction already ended' });
-        }
-
-        try {
-          await client.query('ROLLBACK');
-        } catch (error) {
-          this.logger.for('rollback').error('Failed to ROLLBACK transaction | Error: %s', error);
-        } finally {
-          isActive = false;
-          client.release();
-        }
-      },
+      commit: () => finish({ statement: 'COMMIT', verb: 'commit' }),
+      rollback: () => finish({ statement: 'ROLLBACK', verb: 'rollback' }),
     };
   }
 }

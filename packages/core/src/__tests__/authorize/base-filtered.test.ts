@@ -6,11 +6,7 @@ import type {
   ICasbinPolicySource,
 } from '@/components/auth/authorize/adapters/types';
 
-/**
- * The base is a thin, read-only template: datasource/connector plumbing, the FilteredAdapter
- * contract (isFiltered + no-op writes), and a `loadLines` helper. A tiny subclass exercises every
- * branch (the only abstract member is loadFilteredPolicy).
- */
+/** The base is a thin, read-only template, so a tiny subclass exercises every branch - the only abstract member is loadFilteredPolicy. */
 
 const MODEL = `
 [request_definition]

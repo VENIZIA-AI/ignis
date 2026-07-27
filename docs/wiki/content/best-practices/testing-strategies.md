@@ -102,8 +102,8 @@ bun test
 # Run specific test file
 bun test src/__tests__/user.service.test.ts
 
-# Run tests matching pattern
-bun test --grep "UserService"
+# Run tests whose name matches a pattern
+bun test -t "UserService"
 
 # Watch mode
 bun test --watch
@@ -410,6 +410,11 @@ describe('UserController E2E', () => {
       });
 
       expect(response.status).toBe(409);
+
+      // Error responses carry one message shape: { text, code, args }.
+      // There is no flat top-level messageCode - branch on normalized.code.
+      const body = await response.json();
+      expect(body.normalized.code).toBeDefined();
     });
   });
 

@@ -28,23 +28,23 @@
   },
   "license": "MIT",
   "dependencies": {
-    "@hono/zod-openapi": "^1.2.2",
+    "@hono/zod-openapi": "catalog:",
     "@venizia/ignis": "workspace:*",
     "@venizia/ignis-boot": "workspace:*",
     "@venizia/ignis-helpers": "workspace:*",
     "@venizia/ignis-inversion": "workspace:*",
-    "dotenv-flow": "^4.1.0",
-    "hono": "^4.12.1",
-    "ioredis": "^5.9.1",
-    "lodash": "^4.17.23"
+    "dotenv-flow": "catalog:",
+    "hono": "catalog:",
+    "ioredis": "catalog:",
+    "lodash": "catalog:"
   },
   "devDependencies": {
-    "@types/bun": "^1.3.9",
-    "@types/lodash": "^4.17.23",
+    "@types/bun": "catalog:",
+    "@types/lodash": "catalog:",
     "@venizia/dev-configs": "workspace:*",
-    "eslint": "^9.39.3",
-    "prettier": "^3.8.1",
-    "tsc-alias": "^1.8.16",
-    "typescript": "^6.0.3"
+    "eslint": "catalog:",
+    "prettier": "catalog:",
+    "tsc-alias": "catalog:",
+    "typescript": "catalog:"
   }
 }

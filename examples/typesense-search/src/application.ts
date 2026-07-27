@@ -6,7 +6,7 @@ import {
   IApplicationConfigs,
   IApplicationInfo,
   IHealthCheckOptions,
-  SwaggerComponent,
+  ApiReferenceComponent,
   ValueOrPromise,
 } from '@venizia/ignis';
 import { Environment } from '@venizia/ignis-helpers';
@@ -83,7 +83,7 @@ export class Application extends BaseApplication {
     });
     this.component(HealthCheckComponent);
 
-    this.component(SwaggerComponent);
+    this.component(ApiReferenceComponent);
   }
 
   // --------------------------------------------------------------------------------

@@ -5,7 +5,7 @@ import type {
   UniversalServerResponse,
 } from '@connectrpc/connect/protocol';
 import type { ValueOrPromise } from '@venizia/ignis-helpers';
-import { GRPC, HTTP, validateModule } from '@venizia/ignis-helpers';
+import { getError, GRPC, HTTP, ModuleUtility } from '@venizia/ignis-helpers';
 import type { Env, Input, MiddlewareHandler, Schema } from 'hono';
 import { AsyncLocalStorage } from 'node:async_hooks';
 import { createRequire } from 'node:module';
@@ -21,17 +21,7 @@ type TConnectHandler<RequestType = unknown, ResponseType = unknown> = (
   context: HandlerContext,
 ) => ValueOrPromise<ResponseType>;
 
-/**
- * Bridges Ignis gRPC controllers with ConnectRPC's universal handler system.
- *
- * Uses AsyncLocalStorage for request-scoped Hono context isolation —
- * concurrent requests never share or overwrite each other's context.
- *
- * Responsibilities:
- * 1. Load ConnectRPC peer deps at startup via createRequire
- * 2. Wrap Ignis handlers into ConnectRPC's expected signature
- * 3. Produce a Hono middleware that dispatches requests to the correct handler
- */
+/** Bridges IGNIS gRPC controllers with ConnectRPC: loads the peer deps via createRequire, wraps handlers into ConnectRPC's signature, dispatches through a Hono middleware, and isolates request-scoped context with AsyncLocalStorage. */
 export class GrpcRequestAdapter<
   RouteEnv extends Env = Env,
   RouteSchema extends Schema = {},
@@ -67,7 +57,7 @@ export class GrpcRequestAdapter<
     this.controller = opts.controller;
     this.interceptors = opts.interceptors;
 
-    /** Resolves peer deps from the app's node_modules at runtime — required for single-file builds. */
+    /** Resolves peer deps from the app's node_modules at runtime - required for single-file builds. */
     const appRequire = createRequire(path.join(process.cwd(), 'node_modules'));
 
     this.createConnectRouter = appRequire('@connectrpc/connect').createConnectRouter;
@@ -79,7 +69,7 @@ export class GrpcRequestAdapter<
     };
   }
 
-  /** Wraps Ignis RPC registrations into ConnectRPC's (request, context) => response signature. */
+  /** Wraps IGNIS RPC registrations into ConnectRPC's (request, context) => response signature. */
   private buildConnectHandlers(opts: {
     definitions: Record<string, IRpcRegistration<RouteEnv>>;
     storage: AsyncLocalStorage<TRouteContext<RouteEnv>>;
@@ -92,7 +82,10 @@ export class GrpcRequestAdapter<
       handlers[name] = async (request: unknown, _connectContext: HandlerContext) => {
         const context = opts.storage.getStore();
         if (!context) {
-          throw new Error(`[GrpcRequestAdapter] Missing Hono context for RPC "${name}"`);
+          throw getError({
+            statusCode: HTTP.ResultCodes.RS_5.InternalServerError,
+            message: `[GrpcRequestAdapter] Missing Hono context for RPC "${name}"`,
+          });
         }
 
         // Run pre-built auth middlewares (built by AbstractGrpcController.buildRpcMiddlewares)
@@ -107,10 +100,7 @@ export class GrpcRequestAdapter<
     return handlers;
   }
 
-  /**
-   * Registers a service on a ConnectRouter with a loose signature.
-   * Ignis's ServiceType is opaque (unknown) while ConnectRPC expects DescService.
-   */
+  /** Loose signature on purpose - the IGNIS `ServiceType` is opaque (`unknown`) while ConnectRPC expects `DescService`. */
   private registerService(opts: {
     router: ConnectRouter;
     handlers: Record<string, TConnectHandler>;
@@ -131,8 +121,7 @@ export class GrpcRequestAdapter<
     return async (context, next) => {
       let pathname = context.req.path;
 
-      // context.req.path returns the full original URL path (e.g., /v1/api/grpc/package.Service/Method).
-      // Strip basePath + controllerPath prefix to get the ConnectRPC handler path (e.g., /package.Service/Method).
+      // context.req.path is the full original URL path, so strip the basePath + controllerPath prefix to get the ConnectRPC handler path (/package.Service/Method).
       if (controllerPath && pathname.startsWith(controllerPath)) {
         pathname = pathname.slice(controllerPath.length) || '/';
       }
@@ -142,9 +131,7 @@ export class GrpcRequestAdapter<
         return next();
       }
 
-      // `context` here is Hono's real Context<RouteEnv>; TRouteContext is a lightweight custom
-      // shape (different `json`/`req.valid` signatures) built on top of it - not a subtype, so
-      // handlers/middlewares expecting TRouteContext need this bridge at the middleware boundary.
+      // `context` is Hono's real Context<RouteEnv>; TRouteContext is a lightweight custom shape (different `json`/`req.valid` signatures) built on it, not a subtype - hence this bridge.
       return storage.run(context as TRouteContext<RouteEnv>, async () => {
         try {
           const body = await context.req.arrayBuffer();
@@ -202,7 +189,7 @@ export class GrpcRequestAdapter<
     >;
     interceptors?: unknown[];
   }): Promise<IConnectAdapterResult<RouteEnv, BasePath>> {
-    await validateModule({ modules: CONNECT_RPC_MODULES });
+    ModuleUtility.assertInstalled({ modules: CONNECT_RPC_MODULES });
 
     const adapter = new GrpcRequestAdapter<
       RouteEnv,
@@ -219,7 +206,7 @@ export class GrpcRequestAdapter<
 
     const connectRouter = adapter.createConnectRouter(routerOpts);
 
-    // Per-controller async storage — each concurrent request gets its own isolated context.
+    // Per-controller async storage - each concurrent request gets its own isolated context.
     const storage = new AsyncLocalStorage<TRouteContext<RouteEnv>>();
 
     if (adapter.controller.service) {
@@ -244,8 +231,6 @@ export class GrpcRequestAdapter<
       paths,
       middleware: adapter.buildMiddleware({
         handlerMap,
-        // Compute full mount prefix: basePath + controllerPath
-        // context.req.path returns the original full URL, so we need to strip the full prefix.
         controllerPath: [
           adapter.controller.basePath.replace(/\/$/, ''),
           adapter.controller.path,

@@ -1,5 +1,12 @@
 import { model } from '@venizia/ignis';
-import { BasePostgresEntity, generateDataTypeColumnDefs, generateIdColumnDefs, generateTzColumnDefs, generateUserAuditColumnDefs, TTableObject } from '@venizia/ignis/postgres';
+import {
+  BasePostgresEntity,
+  generateDataTypeColumnDefs,
+  generateIdColumnDefs,
+  generateTzColumnDefs,
+  generateUserAuditColumnDefs,
+  TTableObject,
+} from '@venizia/ignis/postgres';
 import { relations } from 'drizzle-orm';
 import { foreignKey, index, pgTable, text, unique } from 'drizzle-orm/pg-core';
 import { User, usersTable } from './user.model';
@@ -9,6 +16,7 @@ export class Configuration extends BasePostgresEntity<TConfigurationSchema> {
   static override readonly TABLE_NAME = Configuration.name;
 
   constructor() {
+    // eslint-disable-next-line @typescript-eslint/no-use-before-define -- table needs the class static TABLE_NAME, so it is declared below
     super({ name: Configuration.TABLE_NAME, schema: configurationTable });
   }
 }

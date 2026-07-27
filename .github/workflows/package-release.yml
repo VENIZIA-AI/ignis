@@ -10,6 +10,7 @@ on:
         options:
           - dev-configs
           - inversion
+          - filter
           - helpers
           - boot
           - core
@@ -29,21 +30,7 @@ on:
         required: true
         default: "patch"
 
-# =============================================================================
-# PACKAGE DEPENDENCY TREE:
-#   dev-configs  → (none)
-#   inversion    → dev-configs
-#   helpers      → dev-configs, inversion
-#   boot         → dev-configs, inversion, helpers
-#   core         → dev-configs, inversion, helpers, boot
-#   docs-mcp     → dev-configs (MCP server for documentation)
-#
-# SPECIAL CASES (dist directories):
-#   - docs-mcp:  dist/mcp-server
-#   - inversion: dist/cjs, dist/esm
-#   - boot:      dist/cjs, dist/esm
-#   - others:    dist
-# =============================================================================
+# Build order comes from the Makefile chain (dev-configs -> inversion -> {filter, helpers} -> boot -> core); per-package dist dirs are in the `case` below.
 
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
@@ -56,9 +43,9 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # =========================================================================
+      # -------------------------------------------------------------------------
       # SETUP
-      # =========================================================================
+      # -------------------------------------------------------------------------
       - name: Checkout
         uses: actions/checkout@v6.0.3
 
@@ -78,9 +65,9 @@ jobs:
           git config user.name "venizia-ci"
           git config user.email "developer@venizia.ai"
 
-      # =========================================================================
+      # -------------------------------------------------------------------------
       # PREPARE
-      # =========================================================================
+      # -------------------------------------------------------------------------
       - name: Get package info
         run: |
           # Map package input to actual folder path
@@ -95,7 +82,7 @@ jobs:
           # Set dist directories for validation
           case $PACKAGE in
             docs-mcp)        DIST_DIRS="dist/mcp-server" ;;
-            inversion|boot)  DIST_DIRS="dist/cjs dist/esm" ;;
+            inversion|filter|boot)  DIST_DIRS="dist/cjs dist/esm" ;;
             *)               DIST_DIRS="dist" ;;
           esac
 
@@ -116,9 +103,9 @@ jobs:
       - name: Force update package
         run: bun run --filter "$PACKAGE_NAME" force-update "highest"
 
-      # =========================================================================
+      # -------------------------------------------------------------------------
       # BUILD, LINT & VALIDATE (uses Makefile dependency chain)
-      # =========================================================================
+      # -------------------------------------------------------------------------
       - name: Build
         run: make $PACKAGE
 
@@ -133,9 +120,33 @@ jobs:
             echo "    ✓ $dir"
           done
 
-      # =========================================================================
+      - name: Check dependency catalog
+        run: make catalog-check
+
+      # Manifests carry `catalog:` on purpose; only `bun publish` resolves it while packing, so this asserts both that the publisher is still bun and that the tarball it uploads is actually clean.
+      - name: Validate packed manifest
+        run: |
+          grep -q 'bun publish' "$GITHUB_WORKSPACE/.github/workflows/package-release.yml" \
+            || { echo "ERROR: the publish step must use 'bun publish' - npm ships catalog: verbatim"; exit 1; }
+
+          cd $PACKAGE_PATH
+          bun pm pack --quiet > /dev/null
+          TARBALL=$(ls -t ./*.tgz | head -1)
+
+          MANIFEST=$(tar -xzOf "$TARBALL" package/package.json)
+          rm -f "$TARBALL"
+
+          if echo "$MANIFEST" | grep -qE '"(catalog|workspace):'; then
+            echo "ERROR: unresolved workspace protocol survives into the published manifest:"
+            echo "$MANIFEST" | grep -nE '"(catalog|workspace):'
+            exit 1
+          fi
+
+          echo "    ✓ publisher is bun and the packed manifest resolves every protocol"
+
+      # -------------------------------------------------------------------------
       # VERSION & GIT
-      # =========================================================================
+      # -------------------------------------------------------------------------
       - name: Version bump
         run: |
           cd $PACKAGE_PATH
@@ -161,9 +172,9 @@ jobs:
           git push origin "$TAG_NAME"
           echo "IS_TAG_CREATED=true" >> $GITHUB_ENV
 
-      # =========================================================================
+      # -------------------------------------------------------------------------
       # PUBLISH
-      # =========================================================================
+      # -------------------------------------------------------------------------
       - name: Publish to NPM
         run: |
           cd $PACKAGE_PATH
@@ -173,30 +184,27 @@ jobs:
             *)                 NPM_TAG="next" ;;
           esac
 
-          # Skip prepublishOnly since we already built
-          npm publish --access public --tag $NPM_TAG --ignore-scripts
+          # `bun publish`, not npm: bun resolves `catalog:`/`workspace:` while packing, npm ships them verbatim and breaks every consumer. --ignore-scripts skips the already-run prepublishOnly.
+          bun publish --access public --tag $NPM_TAG --ignore-scripts
 
           echo "IS_PUBLISHED=true" >> $GITHUB_ENV
           echo "✓ Published $PACKAGE_NAME@$NEW_VERSION ($NPM_TAG)"
         env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_ACCESS_TOKEN }}
+          # NPM_CONFIG_TOKEN, not NODE_AUTH_TOKEN: bun ignores the NPM_CONFIG_USERCONFIG path that actions/setup-node writes its .npmrc to, and does not read NODE_AUTH_TOKEN or BUN_AUTH_TOKEN - measured, all three fail with "missing authentication".
+          NPM_CONFIG_TOKEN: ${{ secrets.NPM_ACCESS_TOKEN }}
 
       - name: Tag highest version on NPM
         run: |
-          # Publishes are monotonic (npm version always increases), so the just-published
-          # version is always the highest overall — even a stable x.y.z released after its
-          # x.y.z-N prereleases (semver: x.y.z > x.y.z-N). Point the `highest` dist-tag at it
-          # so the README "Highest Version" badge (npm/v/<pkg>/highest) tracks it automatically.
-          # Non-fatal: a tagging hiccup must never roll back an already-successful publish.
+          # Publishes are monotonic, so the just-published version is always the highest (semver: x.y.z > x.y.z-N) - point `highest` at it for the README badge, non-fatally so a tagging hiccup never rolls back a successful publish.
           npm dist-tag add "$PACKAGE_NAME@$NEW_VERSION" highest \
             && echo "✓ Tagged $PACKAGE_NAME@$NEW_VERSION as 'highest'" \
             || echo "⚠️  Could not set 'highest' dist-tag (non-fatal)"
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_ACCESS_TOKEN }}
 
-      # =========================================================================
+      # -------------------------------------------------------------------------
       # ROLLBACK
-      # =========================================================================
+      # -------------------------------------------------------------------------
       - name: Rollback on failure
         if: failure()
         run: |

@@ -62,12 +62,10 @@ export abstract class AbstractGrpcController<
     this.router = new Hono<RouteEnv, RouteSchema, BasePath>();
 
     if (decoratorMetadata?.transport === ControllerTransports.GRPC && decoratorMetadata.service) {
-      // Decorator metadata stores `service` as `unknown` (IGrpcControllerMetadata's default);
-      // ServiceType is this class's own generic, resolved only by convention at the decorator site.
+      // Decorator metadata stores `service` as `unknown`; ServiceType is this class's own generic, resolved only by convention at the decorator site.
       this.service = decoratorMetadata.service as ServiceType;
     } else {
-      // ServiceType is unconstrained (no `extends` bound), so `undefined` can't be proven to
-      // overlap it directly - this is the "not yet resolved" sentinel until binding() configures it.
+      // ServiceType is unconstrained (no `extends` bound), so `undefined` cannot be proven to overlap it - this is the "not yet resolved" sentinel until binding() configures it.
       this.service = undefined as ServiceType;
     }
   }
@@ -82,15 +80,12 @@ export abstract class AbstractGrpcController<
     const { configs } = opts;
     const mws: TRpcMiddleware<RouteEnv>[] = [];
 
-    // Inject authenticate middleware
     if (configs.authenticate) {
       const { strategies = [], mode = AuthenticationModes.ANY } = configs.authenticate;
       if (strategies.length > 0) {
         const authMw = authenticateFn({ strategies, mode });
 
-        // authMw is a Hono MiddlewareHandler built for the REST branch's raw Context<Env>;
-        // TRouteContext is a lightweight custom shape (different `json`/`req.valid` signatures), not
-        // a subtype of it - genuinely different context types being bridged at this call boundary.
+        // authMw is a Hono MiddlewareHandler built for raw Context<Env>; TRouteContext is a lightweight custom shape (different `json`/`req.valid` signatures), not a subtype - genuinely different context types bridged here.
         mws.push((context, next) => authMw(context as any, next));
       }
     }
@@ -128,8 +123,7 @@ export abstract class AbstractGrpcController<
     const logger = this.logger.for(this.registerRpcsFromRegistry.name);
 
     for (const [methodName, rpcMetadata] of rpcs) {
-      // Dynamic dispatch by decorator-recorded method name - the controller class has no static
-      // index signature for this, so reading it can't be typed narrower than `unknown` here.
+      // Dynamic dispatch by decorator-recorded method name - the controller class has no static index signature, so this read cannot be typed narrower than `unknown`.
       const handler = (this as Record<string | symbol, unknown>)[methodName];
       if (typeof handler !== 'function') {
         logger.warn('RPC method "%s" not found on controller', String(methodName));
@@ -165,7 +159,6 @@ export abstract class AbstractGrpcController<
     await this.binding();
     this.registerRpcsFromRegistry();
 
-    // Create per-controller adapter middleware and mount on this.router
     const adapter = await GrpcRequestAdapter.build({ controller: this });
     this.router.use('*', adapter.middleware);
 

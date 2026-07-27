@@ -1,104 +1,245 @@
-import type { Logger } from '@venizia/ignis-helpers';
-import { Environment, HTTP } from '@venizia/ignis-helpers';
-import type { ErrorHandler } from 'hono/types';
+import type { ILogger, TLogLevel, TNullable } from '@venizia/ignis-helpers';
+import {
+  BaseHelper,
+  Environment,
+  ErrorPrettier,
+  HTTP,
+  LogLevels,
+  MessageCode,
+} from '@venizia/ignis-helpers';
+import type { IProvider } from '@venizia/ignis-inversion';
+import type { Context } from 'hono';
+import type { ErrorHandler, HTTPResponseError } from 'hono/types';
 import { RequestSpyMiddleware } from '../request-spy';
 import { isDatabaseClientError, isRetryableDatabaseError } from './database.handler';
-import { DATABASE_RETRYABLE_ERROR_CODE, DATABASE_RETRYABLE_ERROR_MESSAGE } from './definition';
+import {
+  ApplicationErrorTypes,
+  DATABASE_RETRYABLE_ERROR_CODE,
+  DATABASE_RETRYABLE_ERROR_MESSAGE,
+} from './definition';
+import type { IResolvedApplicationError, TApplicationErrorType } from './types';
 import { formatZodError } from './zod.handler';
 
 const DEFAULT_INTERNAL_ERROR_MESSAGE = 'Internal Server Error';
 
-/**
- * Application error handler (Hono `onError`). Routes each error to the right shape:
- * - ZodError → 422 via {@link formatZodError}
- * - DB client error (class 22/23/44) → 400 via {@link isDatabaseClientError}
- * - Transient DB conflict (40001/40P01) → 409 via {@link isRetryableDatabaseError}
- * - Intentional domain error (`getError`) → its own status/message
- * - Anything else → 500 (generic message in production)
- */
-export const appErrorHandler = (opts: { logger: Logger; rootKey?: string }) => {
-  const { logger = console, rootKey = null } = opts;
+type TThrown = Error | HTTPResponseError;
+type TDatabaseClientError = ReturnType<typeof isDatabaseClientError>;
 
-  const mw: ErrorHandler = async (error, context) => {
-    const requestId = context.get(RequestSpyMiddleware.REQUEST_ID_KEY);
+/** Hono `onError`: ZodError -> 422, DB client error -> 400, retryable conflict -> 409, `getError` -> its own status, else 500. */
+export class AppErrorMiddleware extends BaseHelper implements IProvider<ErrorHandler> {
+  private rootKey: TNullable<string>;
 
-    logger.error(
-      '[onError][%s] REQUEST ERROR | path: %s | method: %s | url: %s | Error: %j',
+  constructor(opts?: { logger?: ILogger; rootKey?: string }) {
+    super({ scope: AppErrorMiddleware.name });
+
+    this.rootKey = opts?.rootKey;
+
+    if (opts?.logger) {
+      this.logger = opts.logger;
+    }
+  }
+
+  private withRootKey(payload: object) {
+    return this.rootKey ? { [this.rootKey]: payload } : payload;
+  }
+
+  /** Fail-closed: an unset or unrecognized env is production. */
+  private isProduction(opts: { context: Context; error: TThrown; requestId: string }): boolean {
+    const { context, error, requestId } = opts;
+    const env = [context.env?.NODE_ENV, process.env.NODE_ENV].find(Boolean);
+
+    if (!env) {
+      this.logger.error(
+        '[%s] INVALID ENV IDENTIFIER | env: %s | path: %s | method: %s | url: %s\n%s',
+        requestId,
+        env,
+        context.req.path,
+        context.req.method,
+        context.req.url,
+        ErrorPrettier.format({ error }),
+      );
+
+      return true;
+    }
+
+    return !Environment.DEVELOPMENT_ENVS.has(env.toLowerCase());
+  }
+
+  private classify(opts: { error: TThrown; dbError: TDatabaseClientError }): TApplicationErrorType {
+    const { error, dbError } = opts;
+
+    if (dbError.isClientError) {
+      return ApplicationErrorTypes.DATABASE_CLIENT;
+    }
+
+    if (isRetryableDatabaseError({ error })) {
+      return ApplicationErrorTypes.DATABASE_RETRYABLE;
+    }
+
+    if ('statusCode' in error) {
+      return ApplicationErrorTypes.INTENTIONAL;
+    }
+
+    return ApplicationErrorTypes.UNEXPECTED;
+  }
+
+  /** An ApplicationError's `normalized` is authoritative - a `transform` may have reworded `text`. */
+  private build(opts: {
+    error: TThrown;
+    statusCode: number;
+    message: string;
+    type: TApplicationErrorType;
+    messageCode?: string;
+  }): IResolvedApplicationError {
+    const { error, statusCode, message, type, messageCode } = opts;
+
+    // Fallback for a FOREIGN error that sets its own code; an ApplicationError reports via `normalized`.
+    const code =
+      messageCode ??
+      MessageCode.resolve('messageCode' in error ? (error.messageCode as string) : undefined);
+
+    const normalized =
+      'normalized' in error
+        ? (error.normalized as IResolvedApplicationError['normalized'])
+        : { text: message, code, args: {} };
+
+    return { statusCode, message, normalized, type };
+  }
+
+  private resolve(opts: { error: TThrown; isProduction: boolean }): IResolvedApplicationError {
+    const { error, isProduction } = opts;
+    const dbError = isDatabaseClientError({ error, isProduction });
+    const type = this.classify({ error, dbError });
+
+    switch (type) {
+      case ApplicationErrorTypes.DATABASE_CLIENT: {
+        return this.build({
+          error,
+          type,
+          statusCode: HTTP.ResultCodes.RS_4.BadRequest,
+          // The fallback is unreachable today; it keeps the driver's raw text from ever surfacing.
+          message: dbError.message ?? DEFAULT_INTERNAL_ERROR_MESSAGE,
+        });
+      }
+
+      case ApplicationErrorTypes.DATABASE_RETRYABLE: {
+        return this.build({
+          error,
+          type,
+          statusCode: HTTP.ResultCodes.RS_4.Conflict,
+          message: DATABASE_RETRYABLE_ERROR_MESSAGE,
+          messageCode: DATABASE_RETRYABLE_ERROR_CODE,
+        });
+      }
+
+      case ApplicationErrorTypes.INTENTIONAL: {
+        return this.build({
+          error,
+          type,
+          statusCode: (error as Error & { statusCode: number }).statusCode,
+          message: error.message,
+        });
+      }
+
+      default: {
+        return this.build({
+          error,
+          type: ApplicationErrorTypes.UNEXPECTED,
+          statusCode: HTTP.ResultCodes.RS_5.InternalServerError,
+          // Never leak a raw message - it may carry SQL, schema names or connection details.
+          message: isProduction ? DEFAULT_INTERNAL_ERROR_MESSAGE : error.message,
+        });
+      }
+    }
+  }
+
+  /** A throw site may set `logLevel` via `getError`; anything unset or malformed logs at `error`. */
+  private resolveLogLevel(opts: { error: TThrown }): TLogLevel {
+    const candidate = (opts.error as { logLevel?: unknown }).logLevel;
+
+    if (typeof candidate === 'string' && LogLevels.isValid(candidate)) {
+      return candidate as TLogLevel;
+    }
+
+    return LogLevels.ERROR;
+  }
+
+  /** The one place a thrown error reaches the log - called once the status is known, so it carries it. */
+  private logError(opts: {
+    error: TThrown;
+    context: Context;
+    requestId: string;
+    statusCode: number;
+    messageCode: string;
+    type?: TApplicationErrorType;
+  }) {
+    const { error, context, requestId, statusCode, messageCode, type } = opts;
+
+    this.logger.log(
+      this.resolveLogLevel({ error }),
+      '[%s] REQUEST ERROR | %s | %s %s\n%s',
       requestId,
-      context.req.path,
+      statusCode,
       context.req.method,
       context.req.url,
-      error,
-    );
-
-    const { NODE_ENV } = process.env;
-    const env = context.env?.NODE_ENV || NODE_ENV;
-    const isProduction = env?.toLowerCase() === Environment.PRODUCTION;
-
-    const statusCode =
-      'statusCode' in error ? error.statusCode : HTTP.ResultCodes.RS_5.InternalServerError;
-    const messageCode = 'messageCode' in error ? error.messageCode : undefined;
-
-    if (error.name === 'ZodError') {
-      const rs = formatZodError({
-        isProduction,
-        requestId,
-        url: context.req.url,
-        path: context.req.path,
+      ErrorPrettier.format({
         error,
-      });
-
-      return context.json(
-        rootKey ? { [rootKey]: rs.response } : rs.response,
-        rs.statusCode as Parameters<typeof context.json>[1],
-      );
-    }
-
-    // Classify DB errors: client (400), transient/retryable conflict (409 Conflict), else server.
-    const dbError = isDatabaseClientError({ error, isProduction });
-    const isRetryable = !dbError.isClientError && isRetryableDatabaseError({ error });
-
-    let resolvedStatusCode = statusCode;
-    if (dbError.isClientError) {
-      resolvedStatusCode = HTTP.ResultCodes.RS_4.BadRequest;
-    } else if (isRetryable) {
-      resolvedStatusCode = HTTP.ResultCodes.RS_4.Conflict;
-    }
-
-    let resolvedMessage = error.message;
-    let resolvedMessageCode = messageCode;
-
-    if (dbError.isClientError && dbError.message) {
-      resolvedMessage = dbError.message;
-    } else if (isRetryable) {
-      // Transient conflict (deadlock / serialization failure) — safe generic message + retryable code.
-      resolvedMessage = DATABASE_RETRYABLE_ERROR_MESSAGE;
-      resolvedMessageCode = DATABASE_RETRYABLE_ERROR_CODE;
-    } else if (isProduction && !('statusCode' in error)) {
-      // Unexpected server error (uncaught throw, non-client DB error, connection failure): never
-      // leak the raw message in production — it may carry SQL, schema names, or connection details.
-      resolvedMessage = DEFAULT_INTERNAL_ERROR_MESSAGE;
-    }
-
-    const rs = {
-      message: resolvedMessage,
-      messageCode: resolvedMessageCode,
-      statusCode: resolvedStatusCode,
-      requestId,
-      extra: 'extra' in error ? error?.extra : undefined,
-      details: {
-        url: context.req.url,
-        path: context.req.path,
-        stack: !isProduction ? error.stack : undefined,
-        cause: !isProduction ? error.cause : undefined,
-      },
-    };
-
-    return context.json(
-      rootKey ? { [rootKey]: rs } : rs,
-      resolvedStatusCode as Parameters<typeof context.json>[1],
+        // The default code means "no code" - logging it on every error would be a noise line.
+        messageCode: messageCode === MessageCode.DEFAULT ? undefined : messageCode,
+        extra: 'extra' in error ? (error.extra as Record<string, unknown>) : undefined,
+        // Only an unexpected failure needs frames; an intentional error's are framework plumbing.
+        includeStack: type === ApplicationErrorTypes.UNEXPECTED,
+      }),
     );
-  };
+  }
 
-  return mw;
-};
+  value(): ErrorHandler {
+    return async (error, context) => {
+      const requestId = context.get(RequestSpyMiddleware.REQUEST_ID_KEY);
+      const isProduction = this.isProduction({ context, error, requestId });
+
+      if (error.name === 'ZodError') {
+        const rs = formatZodError({
+          isProduction,
+          requestId,
+          url: context.req.url,
+          path: context.req.path,
+          error,
+        });
+
+        this.logError({
+          error,
+          context,
+          requestId,
+          statusCode: rs.statusCode,
+          messageCode: rs.response.normalized.code,
+        });
+
+        return context.json(
+          this.withRootKey(rs.response),
+          rs.statusCode as Parameters<typeof context.json>[1],
+        );
+      }
+
+      const { statusCode, message, normalized, type } = this.resolve({ error, isProduction });
+
+      this.logError({ error, context, requestId, statusCode, messageCode: normalized.code, type });
+
+      const rs = {
+        message,
+        statusCode,
+        normalized,
+        requestId,
+        extra: 'extra' in error ? error?.extra : undefined,
+        details: {
+          url: context.req.url,
+          path: context.req.path,
+          stack: !isProduction ? error.stack : undefined,
+          cause: !isProduction ? error.cause : undefined,
+        },
+      };
+
+      return context.json(this.withRootKey(rs), statusCode as Parameters<typeof context.json>[1]);
+    };
+  }
+}

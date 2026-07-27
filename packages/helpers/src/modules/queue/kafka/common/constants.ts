@@ -1,7 +1,3 @@
-// -------------------------------------------------------------------------
-// Group protocol enumeration
-// -------------------------------------------------------------------------
-
 import { TConstValue } from '@/common';
 
 export class KafkaGroupProtocol {
@@ -17,10 +13,6 @@ export class KafkaGroupProtocol {
 
 export type TKafkaGroupProtocol = TConstValue<typeof KafkaGroupProtocol>;
 
-// -------------------------------------------------------------------------
-// Acks enumeration
-// -------------------------------------------------------------------------
-
 export class KafkaAcks {
   static readonly NONE = 0; // No acknowledgment — fire-and-forget
   static readonly LEADER = 1; // Leader acknowledgment only
@@ -34,10 +26,6 @@ export class KafkaAcks {
 }
 
 export type TKafkaAcks = TConstValue<typeof KafkaAcks>;
-
-// -------------------------------------------------------------------------
-// Default values
-// -------------------------------------------------------------------------
 
 export class KafkaHealthStatuses {
   static readonly CONNECTED = 'connected';
@@ -53,17 +41,11 @@ export class KafkaHealthStatuses {
 
 export type TKafkaHealthStatus = TConstValue<typeof KafkaHealthStatuses>;
 
-// -------------------------------------------------------------------------
-// Kafka events
-// -------------------------------------------------------------------------
-
 export class KafkaClientEvents {
-  // Broker events
   static readonly BROKER_CONNECT = 'client:broker:connect';
   static readonly BROKER_DISCONNECT = 'client:broker:disconnect';
   static readonly BROKER_FAILED = 'client:broker:failed';
 
-  // Consumer events
   static readonly CONSUMER_GROUP_JOIN = 'consumer:group:join';
   static readonly CONSUMER_GROUP_LEAVE = 'consumer:group:leave';
   static readonly CONSUMER_GROUP_REBALANCE = 'consumer:group:rebalance';
@@ -71,14 +53,9 @@ export class KafkaClientEvents {
   static readonly CONSUMER_LAG = 'consumer:lag';
   static readonly CONSUMER_LAG_ERROR = 'consumer:lag:error';
 
-  // Stream events
   static readonly STREAM_DATA = 'data';
   static readonly STREAM_ERROR = 'error';
 }
-
-// -------------------------------------------------------------------------
-// Default values
-// -------------------------------------------------------------------------
 
 export class KafkaDefaults {
   // Shared

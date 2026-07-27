@@ -15,13 +15,11 @@ export class SocketEventService extends BaseService {
 
   // Lazy getter — SocketIOHelper is bound after server starts via post-start hook
   private get socketIOHelper(): SocketIOServerHelper {
-    if (!this._socketIOHelper) {
-      this._socketIOHelper =
-        this.application.get<SocketIOServerHelper>({
-          key: SocketIOBindingKeys.SOCKET_IO_INSTANCE,
-          isOptional: true,
-        }) ?? null;
-    }
+    this._socketIOHelper ??=
+      this.application.get<SocketIOServerHelper>({
+        key: SocketIOBindingKeys.SOCKET_IO_INSTANCE,
+        isOptional: true,
+      }) ?? null;
 
     if (!this._socketIOHelper) {
       throw new Error(
@@ -124,7 +122,7 @@ export class SocketEventService extends BaseService {
   }
 
   // --------------------------------------------------------------------------------
-  joinRoom(opts: { clientId: string; rooms: string[] }) {
+  async joinRoom(opts: { clientId: string; rooms: string[] }) {
     const logger = this.logger.for(this.joinRoom.name);
     const { clientId, rooms } = opts;
 
@@ -134,13 +132,13 @@ export class SocketEventService extends BaseService {
       return { success: false, message: `Client not found: ${clientId}` };
     }
 
-    client.socket.join(rooms);
+    await client.socket.join(rooms);
     logger.info('Client joined rooms | clientId: %s | rooms: %j', clientId, rooms);
     return { success: true, message: `Client ${clientId} joined rooms: ${rooms.join(', ')}` };
   }
 
   // --------------------------------------------------------------------------------
-  leaveRoom(opts: { clientId: string; rooms: string[] }) {
+  async leaveRoom(opts: { clientId: string; rooms: string[] }) {
     const logger = this.logger.for(this.leaveRoom.name);
     const { clientId, rooms } = opts;
 
@@ -151,7 +149,7 @@ export class SocketEventService extends BaseService {
     }
 
     for (const room of rooms) {
-      client.socket.leave(room);
+      await client.socket.leave(room);
     }
 
     logger.info('Client left rooms | clientId: %s | rooms: %j', clientId, rooms);

@@ -78,8 +78,7 @@ describe('to-many relation scope is capped at DEFAULT_LIMIT', () => {
 
 describe("to-many relation scope honors the relation model's defaultLimit", () => {
   test('no scope -> uses the relation model defaultLimit (not global DEFAULT_LIMIT)', () => {
-    // MetadataRegistry has a private constructor and a large mixin-composed surface; only
-    // getModelEntry is exercised, so a full structural fixture isn't practical - fixture-boundary cast.
+    // MetadataRegistry has a private constructor and a large mixin-composed surface, and only getModelEntry is exercised, so this is a fixture-boundary cast.
     const mockGetInstance = spyOn(MetadataRegistry, 'getInstance').mockReturnValue({
       getModelEntry: () => ({ metadata: { type: 'entity', settings: { defaultLimit: 7 } } }),
     } as any);

@@ -2,15 +2,7 @@ import { TNullable } from '@/common/types';
 import { BaseHelper } from '@/modules/base';
 import { IHfQueueNode } from './types';
 
-/**
- * High-frequency, single-consumer FIFO queue with O(1) enqueue / dequeue / cancel.
- *
- * Backed by an array plus a moving head index (no `Array.shift()`, which is O(n)); cancellation flags
- * the node so {@link dequeue} skips it instead of splicing. The consumed prefix is compacted only
- * occasionally to reclaim memory, keeping every operation amortized O(1).
- *
- * Not thread-safe — intended for single-threaded (event-loop) use, e.g. a pool's waiter queue.
- */
+/** High-frequency, single-consumer FIFO queue with O(1) enqueue/dequeue/cancel: an array plus a moving head index (no `Array.shift()`, which is O(n)), cancellation flags the node instead of splicing, and the consumed prefix is compacted only occasionally. Not thread-safe. */
 export class HfQueueHelper<T> extends BaseHelper {
   private readonly nodes: IHfQueueNode<T>[] = [];
 
@@ -40,7 +32,6 @@ export class HfQueueHelper<T> extends BaseHelper {
 
   /** Remove + return the next live value in FIFO order, skipping cancelled nodes. Null when empty. */
   dequeue(): TNullable<T> {
-    // Continuously skip cancelled nodes until touch required to process
     while (this.head < this.nodes.length && this.nodes[this.head].isCancelled) {
       this.head += 1;
     }
@@ -81,6 +72,7 @@ export class HfQueueHelper<T> extends BaseHelper {
       const node = this.nodes[index];
       if (!node.isCancelled) {
         values.push(node.value);
+        node.isCancelled = true; // mark consumed so a late cancel() of this node is a no-op, as in dequeue()
       }
     }
 

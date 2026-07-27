@@ -1,8 +1,9 @@
 import type { IdType } from '@/base/models';
 import type { IExtraOptions, TCount, TFilter, TWhere } from '@/base/repositories/common';
+import { RepositoryErrors } from '@/base/repositories/common';
 import type { TTableInsert, TTableObject, TTableSchemaWithId } from '@/connectors/postgres/models';
 import type { TNullable } from '@venizia/ignis-helpers';
-import { getError, HTTP } from '@venizia/ignis-helpers';
+import { getError } from '@venizia/ignis-helpers';
 import type { AnyPgColumn } from 'drizzle-orm/pg-core';
 import type { IDatabaseExtraOptions } from '../common';
 import { DefaultRelationalRepository } from './default';
@@ -15,22 +16,16 @@ export type TSoftDeletableTableSchema = TTableSchemaWithId & {
   deletedAt: TDeletedAtColumn;
 };
 
-/** Repository that soft-deletes (sets `deletedAt`) instead of physically removing rows. Models need
- * a `deletedAt` column and `defaultFilter: { where: { deletedAt: null } }` in `@model` settings. */
+/** Repository that soft-deletes (sets `deletedAt`) instead of physically removing rows; models need a `deletedAt` column and `defaultFilter: { where: { deletedAt: null } }` in `@model` settings. */
 export class SoftDeletableRelationalRepository<
   EntitySchema extends TSoftDeletableTableSchema = TSoftDeletableTableSchema,
   DataObject extends TTableObject<EntitySchema> = TTableObject<EntitySchema>,
   PersistObject extends TTableInsert<EntitySchema> = TTableInsert<EntitySchema>,
   ExtraOptions extends IExtraOptions = IDatabaseExtraOptions,
 > extends DefaultRelationalRepository<EntitySchema, DataObject, PersistObject, ExtraOptions> {
-  // ---------------------------------------------------------------------------
   private softDeletePatch(deletedAt: Date | null): Partial<PersistObject> {
     return { deletedAt } as any;
   }
-
-  // ---------------------------------------------------------------------------
-  // Read Operations
-  // ---------------------------------------------------------------------------
 
   override async findById<R = DataObject>(opts: {
     id: IdType;
@@ -51,17 +46,14 @@ export class SoftDeletableRelationalRepository<
 
     if (opts.options?.isStrict && !result) {
       throw getError({
+        error: RepositoryErrors.ENTITY_NOT_FOUND,
         message: `[${this.constructor.name}][findById] Entity with id ${opts.id} not found`,
-        statusCode: HTTP.ResultCodes.RS_4.NotFound,
+        messageArgs: { id: opts.id },
       });
     }
 
     return result;
   }
-
-  // ---------------------------------------------------------------------------
-  // Delete Operations
-  // ---------------------------------------------------------------------------
 
   override deleteById(opts: {
     id: IdType;
@@ -140,10 +132,6 @@ export class SoftDeletableRelationalRepository<
     });
   }
 
-  // ---------------------------------------------------------------------------
-  // Restore Operations
-  // ---------------------------------------------------------------------------
-
   async restoreById<R = DataObject>(opts: {
     id: IdType;
     options?: ExtraOptions & { shouldReturn?: boolean };
@@ -151,9 +139,7 @@ export class SoftDeletableRelationalRepository<
     this.validateId({ id: opts.id, operationName: 'restoreById' });
     const { shouldReturn = true, ...restOptions } = opts.options ?? {};
 
-    // `updateById` is overloaded on the literal `shouldReturn: true | false`; the spread below
-    // widens it back to `boolean`, so this calls `_update` directly instead - the same move
-    // `createAll` makes into `_create` for the equivalent widened-options cast.
+    // `updateById` is overloaded on the literal `shouldReturn: true | false` and the spread below widens it back to `boolean`, so this calls `_update` directly instead.
     const options = {
       ...restOptions,
       shouldReturn,
@@ -175,8 +161,7 @@ export class SoftDeletableRelationalRepository<
   }): Promise<TCount & { data: TNullable<Array<R>> }> {
     const { shouldReturn = true, force, ...restOptions } = opts.options ?? {};
 
-    // `updateAll` forwards straight to `_update`, so calling it here directly is behavior-identical -
-    // it just accepts the widened (non-literal) `shouldReturn: boolean` `_update` itself declares.
+    // `updateAll` forwards straight to `_update`, so calling it here directly is behavior-identical.
     const options = {
       ...restOptions,
       shouldReturn,

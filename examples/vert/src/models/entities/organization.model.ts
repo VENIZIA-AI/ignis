@@ -1,5 +1,9 @@
 import { model } from '@venizia/ignis';
-import { BasePostgresEntity, generateIdColumnDefs, generateTzColumnDefs } from '@venizia/ignis/postgres';
+import {
+  BasePostgresEntity,
+  generateIdColumnDefs,
+  generateTzColumnDefs,
+} from '@venizia/ignis/postgres';
 import { boolean, pgTable, text } from 'drizzle-orm/pg-core';
 
 @model({ type: 'entity' })

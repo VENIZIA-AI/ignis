@@ -1,7 +1,7 @@
 import { describe, test, expect } from 'bun:test';
-import { SearchConnectorInternal } from '@/connectors/typesense/internal/search-connector-internal';
+import { SearchConnectorInternal } from '@/connectors/search/internal';
 import { TypesenseInternal } from '@/connectors/typesense/internal/connector-internal';
-import type { Logger } from '@venizia/ignis-helpers';
+import type { ILogger } from '@venizia/ignis-helpers';
 import { LoggerFactory, ApplicationError } from '@venizia/ignis-helpers';
 
 const logger = LoggerFactory.getLogger(['SearchDriverInternalTest']);
@@ -73,15 +73,14 @@ describe('SearchConnectorInternal.wrapDependencyError', () => {
 
   test('logs the full internal detail (observability retained) while throwing sanitized', () => {
     const captured: string[] = [];
-    // Logger is a concrete class with a private constructor and private fields, so no hand-rolled
-    // fake can be structurally assignable to it - this boundary cast is unavoidable.
+    // Logger is a concrete class with a private constructor and private fields, so no hand-rolled fake can be structurally assignable to it - this boundary cast is unavoidable.
     const mockLogger = {
       for: (_method: string) => ({
         error: (_msg: string, ...args: unknown[]) => {
           captured.push(String(args[0]));
         },
       }),
-    } as Logger;
+    } as ILogger;
     const raw = new Error('connection refused at typesense-internal-host:8108 secret-api-key');
 
     let thrown: unknown;
@@ -136,7 +135,7 @@ describe('SearchConnectorInternal.throwNotFoundError', () => {
     expect(thrown).toBeInstanceOf(ApplicationError);
     const appError = thrown as ApplicationError;
     expect(appError.statusCode).toBe(404);
-    expect(appError.messageCode).toBe('core.search_engine.not_found');
+    expect(appError.normalized.code).toBe('core.search_engine.not_found');
     expect(appError.message).toContain('[getDocument]');
     expect(appError.message).toContain("Document 'd1'");
   });

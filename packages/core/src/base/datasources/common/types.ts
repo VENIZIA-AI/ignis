@@ -1,19 +1,38 @@
-import type { IConfigurable, TConstValue } from '@venizia/ignis-helpers';
+import type { AnyType, IConfigurable, TClass, TConstValue } from '@venizia/ignis-helpers';
 
 export class DataSourceDrivers {
+  // Relational
   static readonly NODE_POSTGRES = 'node-postgres';
-  static readonly TYPESENSE = 'typesense';
+  static readonly POSTGRES_JS = 'postgres-js';
 
-  static readonly SCHEME_SET = new Set([this.NODE_POSTGRES, this.TYPESENSE]);
+  // Search
+  static readonly TYPESENSE = 'typesense';
+  static readonly MEILISEARCH = 'meilisearch';
+
+  static readonly RELATIONAL_SCHEME_SET = new Set([this.NODE_POSTGRES, this.POSTGRES_JS]);
+  static readonly SEARCH_SCHEME_SET = new Set([this.TYPESENSE, this.MEILISEARCH]);
+
+  static readonly SCHEME_SET = new Set([
+    // Relational
+    this.NODE_POSTGRES,
+    this.POSTGRES_JS,
+
+    // Search
+    this.TYPESENSE,
+    this.MEILISEARCH,
+  ]);
 
   static isValid(value: string): boolean {
     return this.SCHEME_SET.has(value);
   }
 }
 
-// `(string & {})` keeps autocomplete for the known DataSourceDrivers values while still accepting
-// any other engine-driver string literal (e.g. a third-party or in-house driver name).
+// `(string & {})` keeps autocomplete for the known DataSourceDrivers values while still accepting any other engine-driver string literal.
 export type TDataSourceDriver = TConstValue<typeof DataSourceDrivers> | (string & {});
+
+/** A driver CLASS, named by `@datasource({ driver })` - the class reference is what carries the peer package into the bundle (a name string carries nothing, a bare side-effect import may be dropped by a bundler). Untyped because `IRelationalDriver` lives under `connectors/`, off-limits to `base/`. */
+export type TDataSourceDriverClass = TClass<AnyType>;
+
 export type TAnyDataSourceSchema = Record<string, any>;
 
 /** Engine-neutral datasource contract - the root every connector family implements. */
@@ -30,12 +49,7 @@ export interface IDataSource<
   getSchema(): Schema;
 }
 
-/**
- * Neutral transaction options. Isolation levels are engine vocabulary (postgres's
- * `READ COMMITTED` / `SERIALIZABLE` / ... are not universal across connectors), so this is kept
- * loose here; connectors narrow `isolationLevel` to their own const-class in their own
- * `ITransactionOptions` extension (e.g. postgres's `IDatabaseTransactionOptions`).
- */
+/** Neutral transaction options - isolation levels are engine vocabulary, so `isolationLevel` stays a loose string here and connectors narrow it in their own `ITransactionOptions` extension. */
 export interface ITransactionOptions {
   isolationLevel?: string;
 }
@@ -43,7 +57,6 @@ export interface ITransactionOptions {
 /** Neutral transaction handle - the minimum shape every connector's transaction satisfies. */
 export interface ITransaction {
   isActive: boolean;
-
   commit(): Promise<void>;
   rollback(): Promise<void>;
 }
@@ -53,7 +66,6 @@ export interface IDataSourceCapabilities {
 }
 
 export interface ISearchableDataSourceCapabilities extends IDataSourceCapabilities {
-  // Options for search engine
   search?: {
     /** Vector / semantic / hybrid search (search engines). */
     vector?: boolean;

@@ -2,6 +2,10 @@
 
 IGNIS provides centralized development configurations via the `@venizia/dev-configs` package.
 
+> [!IMPORTANT]
+> **Bun is the only package manager** - never npm, yarn, or pnpm. **Compile with `tsc` directly** -
+> never `npx`, `bunx`, or `bun x`.
+
 ## Installation
 
 ```bash
@@ -9,7 +13,7 @@ bun add -d @venizia/dev-configs
 ```
 
 This package provides:
-- **ESLint rules** - Pre-configured for Node.js/TypeScript projects
+- **ESLint rules** - flat config, pre-configured for Node.js/TypeScript projects
 - **Prettier settings** - Consistent formatting across all IGNIS projects
 - **TypeScript configs** - Shared base and common configurations
 
@@ -121,6 +125,15 @@ Use the centralized TypeScript configs:
 | `useDefineForClassFields` | `false` | Decorator-compatible class fields |
 | `strict` | `true` | Strict type checking |
 | `skipLibCheck` | `true` | Faster compilation |
+| `noEmitOnError` | `true` | A type error emits nothing - the build fails loudly |
+
+Every package in the monorepo pins **TypeScript `^6.0.3`**; `@venizia/dev-configs` accepts
+`^5.0.0 || ^6.0.0`. Do not upgrade past 6 - `typescript-eslint` breaks.
+
+> [!WARNING]
+> Bun does not resolve `experimentalDecorators` / `emitDecoratorMetadata` through `extends`. In an
+> **application** `tsconfig.json` that Bun executes, declare both flags directly in
+> `compilerOptions`, or `@inject` parameter decorators are dropped silently and DI fails at boot.
 
 ## IDE Integration
 

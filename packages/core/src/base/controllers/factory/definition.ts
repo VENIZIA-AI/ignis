@@ -16,6 +16,31 @@ import {
   trackableHeaders,
 } from '../common';
 
+/** Path params always reach the validator as strings, so a number-typed id must be coerced before `z.number()` sees it - `idParamsSchema` alone rejects `/accounts/7`. */
+const idPathParamsSchema = (opts: { idType: TIdSchemaType }) => {
+  const { idType } = opts;
+
+  if (idType !== 'number') {
+    return idParamsSchema({ idType });
+  }
+
+  return z.object({
+    id: z.coerce.number().openapi({
+      param: { name: 'id', in: 'path', description: 'The unique id of the resource' },
+      examples: [1, 2, 3],
+    }),
+  });
+};
+
+/** Picks the caller's per-route `request.params` override, else the entity's id path-param schema. */
+const resolveIdParams = <C extends { request?: { params?: TAnyObjectSchema } } | undefined>(opts: {
+  config: C;
+  idType: TIdSchemaType;
+}) => {
+  const { config, idType } = opts;
+  return config?.request?.params ?? idPathParamsSchema({ idType });
+};
+
 /** Creates conditional count response schema. */
 export const conditionalCountResponse = <T extends z.ZodTypeAny>(dataSchema: T) => {
   return z.union([
@@ -37,10 +62,7 @@ type TResolvedResponseSchema<C, D extends z.ZodTypeAny> = C extends {
   ? S
   : D;
 
-/** Resolves a route's response schema: user override (preserving its literal type via
- * `TResolvedResponseSchema`) or the default. Centralizes the one cast every `resolve*Config`
- * needs - generic `C` can't be proven at the value level to collapse to the conditional type it
- * names, since `C` is only known by its (wider) structural constraint, not its exact shape. */
+/** Resolves a route's response schema - user override or default. Holds the one cast every `resolve*Config` needs: generic `C` is only known by its wider structural constraint, so it cannot be proven at the value level to collapse to `TResolvedResponseSchema`. */
 const resolveResponseSchema = <
   C extends { response?: { schema?: z.ZodTypeAny } } | undefined,
   D extends z.ZodTypeAny,
@@ -118,7 +140,7 @@ export const resolveFindByIdConfig = <
   const defaultSchema = conditionalCountResponse(selectSchema);
   return {
     request: {
-      params: idParamsSchema({ idType }),
+      params: resolveIdParams({ config, idType }),
       query: config?.request?.query ?? defaultQuery,
       headers: config?.request?.headers ?? defaultRequestHeaders,
     },
@@ -193,7 +215,7 @@ const resolveUpdateByIdConfig = <
   const defaultSchema = conditionalCountResponse(selectSchema);
   return {
     request: {
-      params: idParamsSchema({ idType }),
+      params: resolveIdParams({ config, idType }),
       body: config?.request?.body ?? updateSchema,
       headers: config?.request?.headers ?? defaultRequestHeaders,
     },
@@ -245,7 +267,7 @@ const resolveDeleteByIdConfig = <
   const defaultSchema = conditionalCountResponse(selectSchema);
   return {
     request: {
-      params: idParamsSchema({ idType }),
+      params: resolveIdParams({ config, idType }),
       headers: config?.request?.headers ?? defaultRequestHeaders,
     },
     response: {
@@ -305,9 +327,7 @@ export const defineControllerRouteConfigs = <
   } = opts;
   const { strategies: defaultStrategies = [], mode: defaultMode } = controllerAuth;
 
-  // `Routes` is caller-bound (`extends ICustomizableRoutes`) but otherwise unconstrained here, so
-  // `{}` can't be proven to satisfy it structurally even though every field ICustomizableRoutes
-  // declares is optional - only the caller's own bound guarantees that.
+  // `Routes` is caller-bound but otherwise unconstrained here, so `{}` cannot be proven to satisfy it structurally even though every field ICustomizableRoutes declares is optional.
   const routesConfig = (routes ?? {}) as Routes;
 
   type TAuthenticateConfig = { strategies?: TAuthStrategy[]; mode?: TAuthMode };

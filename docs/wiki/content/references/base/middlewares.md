@@ -26,7 +26,7 @@ Before reading this document, you should understand:
 
 | Middleware | Type | Purpose |
 |-----------|------|---------|
-| `appErrorHandler` | `ErrorHandler` | Global error handler (Zod, DB constraints, generic) |
+| `AppErrorMiddleware` | `IProvider<ErrorHandler>` | Global error handler (Zod, DB constraints, generic) |
 | `notFoundHandler` | `NotFoundHandler` | JSON 404 response for unknown routes |
 | `RequestSpyMiddleware` | `IProvider<MiddlewareHandler>` | Request/response logging with timing |
 | `emojiFavicon` | `MiddlewareHandler` | Serves an emoji as SVG favicon |
@@ -40,7 +40,7 @@ protected async registerDefaultMiddlewares() {
   const server = this.getServer();
 
   // 1. Global error handler
-  server.onError(appErrorHandler({ logger, rootKey }));
+  server.onError(new AppErrorMiddleware({ logger, rootKey }).value());
 
   // 2. Async context storage (if enabled)
   if (this.configs.asyncContext?.enable) {
@@ -60,24 +60,24 @@ protected async registerDefaultMiddlewares() {
 
 After `registerDefaultMiddlewares()`, the application calls user-defined `staticConfigure()`, `preConfigure()`, and so on. The user's `setupMiddlewares()` hook runs after `initialize()` but before the server starts.
 
-## appErrorHandler
+## AppErrorMiddleware
 
-Global error handler registered via `server.onError()`. Handles ZodError validation errors, PostgreSQL constraint violations, and generic errors.
+Global error handler registered via `server.onError()`. Handles ZodError validation errors, PostgreSQL constraint violations, and generic errors. Like `RequestSpyMiddleware`, it is an `IProvider` - build it, then call `value()` for the handler.
 
-**Not exported from `@venizia/ignis`** - registered automatically by `BaseApplication`.
+Registered automatically by `BaseApplication`.
 
 ### Signature
 
 ```typescript
-function appErrorHandler(opts: {
-  logger: Logger;
-  rootKey?: string;
-}): ErrorHandler
+class AppErrorMiddleware extends BaseHelper implements IProvider<ErrorHandler> {
+  constructor(opts?: { logger?: ILogger; rootKey?: string });
+  value(): ErrorHandler;
+}
 ```
 
 | Parameter | Type | Description |
 |-----------|------|-------------|
-| `logger` | `Logger` | Logger instance for error logging |
+| `logger` | `ILogger \| undefined` | Overrides the middleware's own scoped logger - `BaseApplication` passes its own so error lines stay in its scope |
 | `rootKey` | `string \| undefined` | Optional root key to wrap the error response object |
 
 ### Error Handling Logic
@@ -86,13 +86,17 @@ function appErrorHandler(opts: {
 
 When `error.name === 'ZodError'`, returns HTTP `422 Unprocessable Entity`.
 
-Top-level `message`/`messageCode` come from the first failing issue - its `params.code` if the schema set one, otherwise its raw Zod code. The full per-field list stays under `details.cause`.
+`message` and `normalized.code` come from the first failing issue. `message` is that issue's message; `normalized.code` is its `params.code` if the schema set one, otherwise its raw Zod code. The full per-field list stays under `details.cause`. `normalized.args` is always `{}` - a Zod issue carries no interpolation values.
 
 ```json
 {
   "message": "Invalid email address",
-  "messageCode": "user.email.invalid",
   "statusCode": 422,
+  "normalized": {
+    "text": "Invalid email address",
+    "code": "user.email.invalid",
+    "args": {}
+  },
   "requestId": "abc-123",
   "details": {
     "url": "http://localhost:3000/users",
@@ -111,19 +115,22 @@ Top-level `message`/`messageCode` come from the first failing issue - its `param
 }
 ```
 
-To emit a stable, domain-specific `messageCode`, attach `params.code` to a custom check:
+To emit a stable, domain-specific `normalized.code`, attach `params.code` to a custom check:
 
 ```typescript
 z.string().refine(isEmail, {
   message: 'Invalid email address',
   params: { code: 'user.email.invalid' }
 });
-// produces "messageCode": "user.email.invalid"
+// produces "normalized": { "code": "user.email.invalid", ... }
 ```
+
+> [!NOTE]
+> When `error.message` cannot be parsed as the expected Zod issue array (a malformed or unrecognized `ZodError`), no issue-derived code exists. `normalized.code` still resolves to `MessageCode.DEFAULT` (`"core.system_error"`) via `MessageCode.resolve(undefined)`. No error response from this middleware is ever missing `normalized.code`.
 
 #### 2. PostgreSQL Constraint Violations
 
-Database errors in SQLSTATE class `22` (data exception), `23` (integrity constraint), and `44` (WITH CHECK OPTION violation) are detected by class and returned as HTTP `400 Bad Request`. A known code uses its specific message; any other in-class code uses `"Invalid database request"` as a fallback.
+Database errors in SQLSTATE class `22` (data exception), `23` (integrity constraint), and `44` (WITH CHECK OPTION violation) are detected by class. They return HTTP `400 Bad Request`. A known code uses its specific message; any other in-class code uses `"Invalid database request"` as a fallback.
 
 | Class | Codes with a specific message |
 |-------|-------------------------------|
@@ -132,7 +139,7 @@ Database errors in SQLSTATE class `22` (data exception), `23` (integrity constra
 | `44` View check | `44000` WITH CHECK OPTION violation |
 
 :::tip Transient conflicts return 409, not 400/500
-Class `40` (`40001` serialization failure, `40P01` deadlock) is transient/retryable and returns **409 Conflict** with `messageCode: "database.conflict"` and a safe "please retry" message - the client can safely retry the same request. Programming/infra classes (`42` syntax, `53` resources, `0A`, `25`, `28`) remain 500.
+Class `40` (`40001` serialization failure, `40P01` deadlock) is transient/retryable. It returns **409 Conflict** with `normalized.code: "database.conflict"` and a safe "please retry" message - the client can safely retry the same request. Programming/infra classes (`42` syntax, `53` resources, `0A`, `25`, `28`) remain 500.
 :::
 
 :::warning Production sanitizes database internals
@@ -149,6 +156,11 @@ All other errors use the `statusCode` property from the error if present, otherw
 {
   "message": "Error message",
   "statusCode": 500,
+  "normalized": {
+    "text": "Error message",
+    "code": "core.system_error",
+    "args": {}
+  },
   "requestId": "abc-123",
   "details": {
     "url": "http://localhost:3000/users",
@@ -159,6 +171,8 @@ All other errors use the `statusCode` property from the error if present, otherw
 }
 ```
 
+An intentional `getError(...)` throw also carries `extra` when the throw site attached context of its own; every other branch never does. There is no top-level `messageCode` - the code always lives at `normalized.code`.
+
 When `rootKey` is provided (e.g., `rootKey: 'error'`), the response is wrapped:
 
 ```json
@@ -166,6 +180,11 @@ When `rootKey` is provided (e.g., `rootKey: 'error'`), the response is wrapped:
   "error": {
     "message": "Error message",
     "statusCode": 500,
+    "normalized": {
+      "text": "Error message",
+      "code": "core.system_error",
+      "args": {}
+    },
     "requestId": "abc-123",
     "details": { ... }
   }
@@ -210,13 +229,13 @@ Returns a JSON 404 response when no route matches. Registered via `server.notFou
 
 ```typescript
 function notFoundHandler(opts: {
-  logger?: Logger;
+  logger?: ILogger;
 }): NotFoundHandler
 ```
 
 | Parameter | Type | Description |
 |-----------|------|-------------|
-| `logger` | `Logger \| undefined` | Logger instance (defaults to `console`) |
+| `logger` | `ILogger \| undefined` | Logger instance (defaults to `console`) |
 
 ### Response Format
 
@@ -358,7 +377,7 @@ Several middleware behaviors are configured through `IApplicationConfigs`:
 ```typescript
 interface IApplicationConfigs {
   favicon?: string;                    // Emoji for emojiFavicon (default: '🔥')
-  error?: { rootKey: string };         // Root key wrapper for appErrorHandler
+  error?: { rootKey: string };         // Root key wrapper for AppErrorMiddleware
   asyncContext?: { enable: boolean };  // Enable Hono contextStorage() middleware
   // ...
 }
@@ -477,7 +496,7 @@ export class MyMiddleware extends BaseHelper implements IProvider<MiddlewareHand
 }
 ```
 
-Register it with `.toProvider()` (the same pattern `RequestTrackerComponent` uses for `RequestSpyMiddleware`), then use the resolved handler inside `setupMiddlewares()` - `get()` returns the produced `MiddlewareHandler` because the container calls `value()` for provider bindings:
+Register it with `.toProvider()` (the same pattern `RequestTrackerComponent` uses for `RequestSpyMiddleware`). Then use the resolved handler inside `setupMiddlewares()`: `get()` returns the produced `MiddlewareHandler`, because the container calls `value()` for provider bindings.
 
 ```typescript
 export class MyApplication extends BaseApplication {

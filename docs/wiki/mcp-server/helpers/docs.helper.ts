@@ -3,7 +3,7 @@ import Fuse from 'fuse.js';
 import matter from 'gray-matter';
 import fs from 'node:fs/promises';
 import path from 'node:path';
-import { MCPConfigs, Paths } from '../common';
+import { isNonEmptyString, MCPConfigs, Paths } from '../common';
 import { Logger } from './logger.helper';
 
 interface IDoc {
@@ -47,11 +47,13 @@ export class DocsHelper {
               .then(rawContent => {
                 const { data, content } = matter(rawContent);
 
+                // A page whose frontmatter carries an EMPTY title/category must fall back too, not
+                // just one that omits the key - so this is a truthiness test, not a nullish one.
                 resolve({
                   id: path.relative(Paths.WIKI, file),
-                  title: data.title || path.basename(file, '.md'),
+                  title: isNonEmptyString(data.title) ? data.title : path.basename(file, '.md'),
                   content,
-                  category: data.category || 'Uncategorized',
+                  category: isNonEmptyString(data.category) ? data.category : 'Uncategorized',
                   filePath: file,
                 });
               })

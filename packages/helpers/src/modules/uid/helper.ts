@@ -1,15 +1,10 @@
 import { HTTP } from '@/common/constants';
 import { BaseHelper } from '../base';
-import { getError } from '../error/app-error';
+import { getError } from '../error';
 
 const BASE62_CHARS = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz';
 
-/**
- * Snowflake ID Configuration Constants (48-10-12)
- * - 48 bits: timestamp (~8,919 years from epoch)
- * - 10 bits: worker ID (1024 workers max)
- * - 12 bits: sequence (4096 per ms per worker)
- */
+/** Snowflake bit layout: 48-bit timestamp (~8,919 years), 10-bit worker ID (max 1024 workers), 12-bit sequence (4096/ms/worker). */
 export class SnowflakeConfig {
   static readonly DEFAULT_EPOCH = BigInt(1735689600000); // 2025-01-01 00:00:00 UTC
   static readonly TIMESTAMP_BITS = BigInt(48);
@@ -136,6 +131,13 @@ export class SnowflakeUidHelper extends BaseHelper {
 
   /** Decode a Base62 string to bigint. */
   decodeBase62(str: string): bigint {
+    if (!str) {
+      throw getError({
+        statusCode: HTTP.ResultCodes.RS_4.BadRequest,
+        message: '[IdGenerator][decodeBase62] Base62 input must not be empty',
+      });
+    }
+
     let result = BigInt(0);
     const base = BigInt(BASE62_CHARS.length);
 
@@ -200,10 +202,14 @@ export class SnowflakeUidHelper extends BaseHelper {
   }
 
   private validateWorkerId(workerId: number): void {
-    if (workerId < 0 || workerId > Number(SnowflakeConfig.MAX_WORKER_ID)) {
+    if (
+      !Number.isInteger(workerId) ||
+      workerId < 0 ||
+      workerId > Number(SnowflakeConfig.MAX_WORKER_ID)
+    ) {
       throw getError({
         statusCode: HTTP.ResultCodes.RS_5.InternalServerError,
-        message: `[IdGenerator][validateWorkerId] Worker ID must be between 0 and ${SnowflakeConfig.MAX_WORKER_ID} | received: ${workerId}`,
+        message: `[IdGenerator][validateWorkerId] Worker ID must be an integer between 0 and ${SnowflakeConfig.MAX_WORKER_ID} | received: ${workerId}`,
       });
     }
   }

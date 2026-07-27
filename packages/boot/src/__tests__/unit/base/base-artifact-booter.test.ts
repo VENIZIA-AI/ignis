@@ -23,15 +23,30 @@ describe('Base Artifact Booter Tests', () => {
   });
 
   describe('configure', () => {
-    test('should use defaults', () => {
-      booter.configure();
+    test('an EXPLICITLY undefined option still falls back to the default', async () => {
+      // The realistic shape `dirs: process.env.APP_DIRS?.split(',')`: the key exists holding undefined, so a trailing spread would reset the computed default and getPattern() would throw.
+      const undefinedBooter = new TestBooter({
+        scope: TestBooter.name,
+        root,
+        artifactOptions: { dirs: undefined, extensions: undefined, isNested: undefined },
+      });
+
+      await undefinedBooter.configure();
+
+      expect(undefinedBooter['artifactOptions'].dirs).toEqual(['repositories']);
+      expect(undefinedBooter['artifactOptions'].extensions).toEqual(['.repository.js']);
+      expect(undefinedBooter['artifactOptions'].isNested).toBe(true);
+    });
+
+    test('should use defaults', async () => {
+      await booter.configure();
       expect(booter['artifactOptions'].dirs).toEqual(['repositories']);
       expect(booter['artifactOptions'].extensions).toEqual(['.repository.js']);
       expect(booter['artifactOptions'].isNested).toEqual(true);
       expect(booter['artifactOptions'].glob).toBeUndefined();
     });
 
-    test('should override with provided options', () => {
+    test('should override with provided options', async () => {
       const customBooter = new TestBooter({
         scope: TestBooter.name,
         root,
@@ -42,7 +57,7 @@ describe('Base Artifact Booter Tests', () => {
           glob: 'custom/glob/pattern/**/*.js',
         },
       });
-      customBooter.configure();
+      await customBooter.configure();
       expect(customBooter['artifactOptions'].dirs).toEqual(['custom-dir']);
       expect(customBooter['artifactOptions'].extensions).toEqual(['.custom.js']);
       expect(customBooter['artifactOptions'].isNested).toEqual(true);

@@ -25,10 +25,6 @@ export interface IKafkaConnectionOptions extends ConnectionOptions {
   retryDelay?: number;
 }
 
-// -------------------------------------------------------------------------
-// Callback types
-// -------------------------------------------------------------------------
-
 export type TKafkaBrokerEventCallback = (opts: { broker: Broker }) => ValueOrPromise<void>;
 
 export type TKafkaMessageCallback<
@@ -92,10 +88,6 @@ export type TKafkaTransactionCallback<
   ctx: IKafkaTransactionContext<KeyType, ValueType, HeaderKeyType, HeaderValueType>,
 ) => Promise<ResultType>;
 
-// -------------------------------------------------------------------------
-// Producer options
-// -------------------------------------------------------------------------
-
 export interface IKafkaProducerOptions<
   KeyType = string,
   ValueType = string,
@@ -115,10 +107,6 @@ export interface IKafkaProducerOptions<
   onBrokerConnect?: TKafkaBrokerEventCallback;
   onBrokerDisconnect?: TKafkaBrokerEventCallback;
 }
-
-// -------------------------------------------------------------------------
-// Consumer options
-// -------------------------------------------------------------------------
 
 export interface IKafkaConsumerOptions<
   KeyType = string,
@@ -143,29 +131,21 @@ export interface IKafkaConsumerOptions<
   shutdownTimeout?: number;
   registry?: SchemaRegistry<unknown, unknown, KeyType, ValueType, HeaderKeyType, HeaderValueType>;
 
-  // Lifecycle callbacks
   onBrokerConnect?: TKafkaBrokerEventCallback;
   onBrokerDisconnect?: TKafkaBrokerEventCallback;
 
-  // Message callbacks
   onMessage?: TKafkaMessageCallback<KeyType, ValueType, HeaderKeyType, HeaderValueType>;
   onMessageDone?: TKafkaMessageDoneCallback<KeyType, ValueType, HeaderKeyType, HeaderValueType>;
   onMessageError?: TKafkaMessageErrorCallback<KeyType, ValueType, HeaderKeyType, HeaderValueType>;
 
-  // Consumer group callbacks
   onGroupJoin?: TKafkaGroupJoinCallback;
   onGroupLeave?: TKafkaGroupLeaveCallback;
   onGroupRebalance?: TKafkaGroupRebalanceCallback;
   onHeartbeatError?: TKafkaHeartbeatErrorCallback;
 
-  // Lag monitoring callbacks
   onLag?: TKafkaLagCallback;
   onLagError?: TKafkaLagErrorCallback;
 }
-
-// -------------------------------------------------------------------------
-// Admin options
-// -------------------------------------------------------------------------
 
 export interface IKafkaAdminOptions extends IKafkaConnectionOptions {
   identifier?: string;
@@ -174,10 +154,6 @@ export interface IKafkaAdminOptions extends IKafkaConnectionOptions {
   onBrokerDisconnect?: TKafkaBrokerEventCallback;
 }
 
-// -------------------------------------------------------------------------
-// Consumer start options
-// -------------------------------------------------------------------------
-
 export interface IKafkaConsumeStartOptions {
   topics: string[];
   mode?: MessagesStreamModeValue;
@@ -185,10 +161,6 @@ export interface IKafkaConsumeStartOptions {
   reconnectDelayMs?: number;
   maxReconnectAttempts?: number;
 }
-
-// -------------------------------------------------------------------------
-// Transaction context
-// -------------------------------------------------------------------------
 
 export interface IKafkaTransactionContext<KeyType, ValueType, HeaderKeyType, HeaderValueType> {
   transaction: Awaited<
@@ -214,10 +186,6 @@ export interface IKafkaTransactionContext<KeyType, ValueType, HeaderKeyType, Hea
     >,
   ) => Promise<void>;
 }
-
-// -------------------------------------------------------------------------
-// Schema registry options
-// -------------------------------------------------------------------------
 
 export interface IKafkaSchemaRegistryOptions extends ConfluentSchemaRegistryOptions {
   identifier?: string;

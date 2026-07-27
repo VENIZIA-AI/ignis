@@ -23,12 +23,17 @@ Use environment variables for all configuration - never hard-code.
 **Production Environment Variables:**
 | Variable | Value | Purpose |
 |----------|-------|---------|
-| `NODE_ENV` | `production` | Enables performance optimizations |
+| `NODE_ENV` | `production` | Enables performance optimizations. Error responses are fail-closed: an unset or unrecognized value is treated as production |
 | `APP_ENV_APPLICATION_SECRET` | Strong random string | Application secret |
 | `APP_ENV_JWT_SECRET` | Strong random string | JWT signing key |
-| `APP_ENV_POSTGRES_*` | Production DB credentials | Database connection |
+| `APP_ENV_POSTGRES_HOST` / `_PORT` / `_USERNAME` / `_PASSWORD` / `_DATABASE` | Production DB credentials | Database connection |
 | `APP_ENV_SERVER_HOST` | `0.0.0.0` | Accept connections from any IP |
-| `APP_ENV_SERVER_PORT` | `3000` or cloud-assigned | Server port |
+| `APP_ENV_SERVER_PORT` | `3000` or cloud-assigned | Server port (`PORT` is also honoured) |
+| `APP_ENV_LOGGER_LEVEL` | `info` | Logger floor - `debug` \| `info` \| `warn` \| `error` \| `emerg` |
+| `APP_ENV_LOGGER_FOLDER_PATH` | Writable path | Opt-in rotating file output; unset means console only |
+
+> [!WARNING]
+> Leave `APP_ENV_LOGGER_DO_REDACT` unset in production. Setting it to `false` disables secret-key redaction in logs - a local-debugging switch only.
 
 **Where to store:**
 - **Docker:** Use environment variables in `docker-compose.yml` or secrets
@@ -40,27 +45,33 @@ Use environment variables for all configuration - never hard-code.
 ### Docker Deployment (Recommended)
 
 **Dockerfile:**
+Two stages: the build needs devDependencies (`typescript`, `tsc-alias`), the runtime does not.
+
 ```dockerfile
+# --- Build stage ---
+FROM oven/bun:1-slim AS builder
+
+WORKDIR /usr/src/app
+
+COPY package.json bun.lock ./
+# All deps, including dev - `--production` would omit the compiler and the build would fail
+RUN bun install --frozen-lockfile
+
+COPY . .
+RUN bun run build
+
+# --- Runtime stage ---
 FROM oven/bun:1-slim
 
 WORKDIR /usr/src/app
 
-# Copy dependency files
 COPY package.json bun.lock ./
-
-# Install production dependencies
 RUN bun install --production --frozen-lockfile
 
-# Copy source code
-COPY . .
+COPY --from=builder /usr/src/app/dist ./dist
 
-# Build TypeScript
-RUN bun run build
-
-# Expose port
 EXPOSE 3000
 
-# Start server
 CMD [ "bun", "run", "server:prod" ]
 ```
 
@@ -161,12 +172,26 @@ docker-compose up -d --scale app=3
 Compile your app into a single standalone binary:
 
 ```bash
-bun build --compile --minify --target=bun-linux-x64 \
+bun build --compile --minify --sourcemap --target=bun-linux-x64 \
   ./src/index.ts --outfile ./dist/my-app
 ```
 
 **Pros:** No dependencies needed on server, simple deployment
 **Cons:** Platform-specific, newer technology (test thoroughly)
+
+> [!IMPORTANT]
+> **A compiled binary MUST register a logger provider explicitly.** Logger providers are sub-path exports and `winston` is an optional peer, so the default provider is reached through a runtime `require` that the bundler cannot see. Without this line the binary throws on its first log call.
+>
+> ```typescript
+> // src/index.ts - before the application boots
+> import { LoggerFactory } from '@venizia/ignis-helpers';
+> import { WinstonLogger } from '@venizia/ignis-helpers/winston';
+> // or: import { PinoLogger } from '@venizia/ignis-helpers/pino';
+>
+> LoggerFactory.use({ provider: WinstonLogger });
+> ```
+>
+> The same rule applies to any optional peer: only a value import of the class carries it into the bundle. Naming a driver class in `@datasource({ driver: NodePostgresDriver })` is what pulls `pg` in.
 
 **Deploy:**
 ```bash
@@ -652,15 +677,27 @@ this.component(HealthCheckComponent);
 Configure structured logging:
 
 ```typescript
-import { LoggerFactory } from '@venizia/ignis-helpers';
+import type { ILogger } from '@venizia/ignis-helpers';
+import { ApplicationLogger, LoggerFactory } from '@venizia/ignis-helpers';
+import { PinoLogger } from '@venizia/ignis-helpers/pino';
 
-// Debug-level logs are gated by the DEBUG environment variable (DEBUG=true)
-// and the current NODE_ENV. File output is configured via APP_ENV_LOGGER_*
-// variables (e.g. APP_ENV_LOGGER_FOLDER_PATH, APP_ENV_LOGGER_FORMAT).
+// One line at the entrypoint selects the provider. Omit it and winston is loaded on
+// first use - which only works when winston is installed and the app is not compiled.
+LoggerFactory.use({ provider: PinoLogger });
 
-const logger = LoggerFactory.getLogger(['MyService']);
+const logger: ILogger = ApplicationLogger.get('MyService');
 logger.info('Service started | port: %d | env: %s', 3000, 'production');
+
+// Method-scoped child logger
+logger.for('start').warn('Slow boot | took: %d ms', 1420);
 ```
+
+**Operational notes:**
+- Five levels, each a direct method: `debug`, `info`, `warn`, `error`, `emerg`
+- `debug()` is compiled out at module load unless `DEBUG` is truthy and `NODE_ENV` is a development env - restart to change it
+- Log an `Error` with `%s`; `%j` swallows the stack
+- Secret-looking keys redact to `[REDACTED]` automatically
+- File output is opt-in: without `APP_ENV_LOGGER_FOLDER_PATH` nothing is written to disk
 
 ### Metrics Collection
 

@@ -1,5 +1,5 @@
 import type { AbstractEntity, IdType } from '@/base/models';
-import type { TFilter, TWhere } from '@/base/repositories/query-schemas';
+import type { TFilter, TWhere } from '@venizia/ignis-filter';
 import type { TAnyObjectSchema } from '@/utilities/schema.utility';
 import { HTTP } from '@venizia/ignis-helpers';
 import type { Env, Schema } from 'hono';
@@ -79,11 +79,11 @@ export abstract class ReadableCrudController<
       scope: 'findById',
       args: filter,
       task: async () => {
-        const _rs = await this.repository.findById({ id, filter });
+        const record = await this.repository.findById({ id, filter });
         return this.respond<TDataObject>({
           context,
           format: 'object',
-          responseData: { count: _rs ? 1 : 0, data: _rs },
+          responseData: { count: record ? 1 : 0, data: record },
         });
       },
     });
@@ -100,11 +100,11 @@ export abstract class ReadableCrudController<
       scope: 'findOne',
       args: filter,
       task: async () => {
-        const _rs = await this.repository.findOne({ filter });
+        const record = await this.repository.findOne({ filter });
         return this.respond<TDataObject>({
           context,
           format: 'object',
-          responseData: { count: _rs ? 1 : 0, data: _rs },
+          responseData: { count: record ? 1 : 0, data: record },
         });
       },
     });

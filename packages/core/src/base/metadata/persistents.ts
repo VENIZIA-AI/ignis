@@ -1,11 +1,12 @@
 import { BindingNamespaces } from '@/common/bindings';
 import type {
   IDataSourceMetadata,
+  IInjectMetadata,
   IModelMetadata,
   IRepositoryMetadata,
   IResolvedRepositoryMetadata,
 } from '@/helpers/inversion';
-import { BindingKeys, MetadataRegistry } from '@/helpers/inversion';
+import { BindingKeys, MetadataKeys, MetadataRegistry } from '@/helpers/inversion';
 import { getError, resolveClass, resolveValue } from '@venizia/ignis-helpers';
 import type { IDataSource } from '../datasources';
 import { AbstractDataSource } from '../datasources';
@@ -24,8 +25,6 @@ export const model = (metadata: IModelMetadata): ClassDecorator => {
     // Auto-populate AUTHORIZATION_SUBJECT from authorize.principal if not already set
     const principal = metadata.settings?.authorize?.principal;
     if (principal && !Object.hasOwn(target, 'AUTHORIZATION_SUBJECT')) {
-      // `target` is the decorated class's constructor (typed `Function` here, per ClassDecorator);
-      // assigning a static property it doesn't statically declare needs a widened target type.
       (target as Record<string, unknown>).AUTHORIZATION_SUBJECT = principal;
     }
 
@@ -34,7 +33,7 @@ export const model = (metadata: IModelMetadata): ClassDecorator => {
 };
 
 /** Registers a datasource with driver and auto-discovery settings. */
-export const datasource = (metadata: IDataSourceMetadata): ClassDecorator => {
+export const datasource = (metadata?: IDataSourceMetadata): ClassDecorator => {
   return target => {
     MetadataRegistry.getInstance().setDataSourceMetadata({ target, metadata });
   };
@@ -63,6 +62,37 @@ const validateRepositoryMetadata = <
   }
 };
 
+/** Asserts the constructor's first parameter is an AbstractDataSource compatible with what @repository declared. */
+const validateFirstConstructorParameter = (opts: {
+  target: Function;
+  firstParamType: Function;
+  resolvedDataSource: string | Function;
+}): void => {
+  const { target, firstParamType, resolvedDataSource } = opts;
+
+  const isDataSourceType =
+    firstParamType === AbstractDataSource || firstParamType.prototype instanceof AbstractDataSource;
+
+  if (!isDataSourceType) {
+    throw getError({
+      message: `[@repository][${target.name}] Invalid constructor | First parameter must extend AbstractDataSource | Received: '${firstParamType.name}'`,
+    });
+  }
+
+  if (typeof resolvedDataSource !== 'function') {
+    return;
+  }
+
+  const isCompatible =
+    firstParamType === resolvedDataSource || resolvedDataSource.prototype instanceof firstParamType;
+
+  if (!isCompatible) {
+    throw getError({
+      message: `[@repository][${target.name}] Invalid constructor | Type mismatch | Constructor expects '${firstParamType.name}' but @repository specifies '${resolvedDataSource.name}'`,
+    });
+  }
+};
+
 /** Auto-injects dataSource at constructor param[0] unless explicit @inject exists. */
 const registerDataSourceInjection = (opts: {
   target: Function;
@@ -75,31 +105,15 @@ const registerDataSourceInjection = (opts: {
   const firstParamType = paramTypes?.[0];
 
   if (firstParamType) {
-    const isDataSourceType =
-      firstParamType === AbstractDataSource ||
-      firstParamType.prototype instanceof AbstractDataSource;
-
-    if (!isDataSourceType) {
-      throw getError({
-        message: `[@repository][${target.name}] Invalid constructor | First parameter must extend AbstractDataSource | Received: '${firstParamType.name}'`,
-      });
-    }
-
-    if (typeof resolvedDataSource === 'function') {
-      const isCompatible =
-        firstParamType === resolvedDataSource ||
-        resolvedDataSource.prototype instanceof firstParamType;
-
-      if (!isCompatible) {
-        throw getError({
-          message: `[@repository][${target.name}] Invalid constructor | Type mismatch | Constructor expects '${firstParamType.name}' but @repository specifies '${resolvedDataSource.name}'`,
-        });
-      }
-    }
+    validateFirstConstructorParameter({ target, firstParamType, resolvedDataSource });
   }
 
-  const existingInjects = registry.getInjectMetadata({ target });
-  const injectAtIndex0 = existingInjects?.find(m => m.index === 0);
+  // Own metadata only: `getInjectMetadata` walks the prototype chain, so a repository extending another @repository class would see the BASE's injection at param[0] and silently resolve the base's dataSource.
+  const ownInjects: IInjectMetadata[] | undefined = Reflect.getOwnMetadata(
+    MetadataKeys.INJECT,
+    target,
+  );
+  const injectAtIndex0 = ownInjects?.find(entry => entry?.index === 0);
 
   if (injectAtIndex0) {
     const injectKey = injectAtIndex0.key;
@@ -118,6 +132,12 @@ const registerDataSourceInjection = (opts: {
   const dsName =
     typeof resolvedDataSource === 'string' ? resolvedDataSource : resolvedDataSource.name;
   const dsBindingKey = BindingKeys.build({ namespace: BindingNamespaces.DATASOURCE, key: dsName });
+
+  // Copy-on-write for the same reason: setInjectMetadata mutates the array it reads through the prototype chain, which would rewrite the base repository's param[0] with this class's key.
+  if (!ownInjects) {
+    const inheritedInjects = registry.getInjectMetadata({ target });
+    Reflect.defineMetadata(MetadataKeys.INJECT, [...(inheritedInjects ?? [])], target);
+  }
 
   registry.setInjectMetadata({
     target,
@@ -172,8 +192,7 @@ export const repository = <
     const registry = MetadataRegistry.getInstance();
     const resolved = resolveRepositoryMetadata({ metadata, target, registry });
 
-    // `_resolved` is an internal cache field, not part of the public IRepositoryMetadata surface
-    // callers author - it's added here, so the merged literal needs the widened local type.
+    // `_resolved` is an internal cache field, not part of the public IRepositoryMetadata surface callers author - it is added here, so the merged literal needs the widened local type.
     registry.setRepositoryMetadata({
       target,
       metadata: { ...metadata, _resolved: resolved } as IRepositoryMetadata<Model, DataSource> & {

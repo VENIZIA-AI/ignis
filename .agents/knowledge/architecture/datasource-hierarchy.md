@@ -1,0 +1,70 @@
+---
+type: Architecture
+title: DataSource hierarchy
+description: How IGNIS datasources are layered by paradigm family, discover their schema from repository bindings, and pull an engine driver into the bundle through a class reference.
+resource: packages/core/src/connectors
+tags: [architecture, datasource, connectors, drizzle, postgres, search]
+---
+
+A DataSource owns the connection to one backing engine. IGNIS does not have a single DataSource base class per engine - it has a **paradigm-family** split under `packages/core/src/connectors`, rooted at an engine-neutral base in `packages/core/src/base/datasources`.
+
+## The real layering
+
+```
+AbstractDataSource                    base/datasources/abstract.ts   (engine-neutral, NO SQL members)
+├── AbstractRelationalDataSource      connectors/postgres/datasources/abstract.ts
+│   └── BaseRelationalDataSource      connectors/postgres/datasources/base.ts
+└── AbstractSearchDataSource          connectors/search/datasources/abstract.ts
+    └── BaseSearchDataSource          connectors/search/datasources/base.ts
+        ├── TypesenseDataSource       connectors/typesense/datasources/datasource.ts
+        └── MeilisearchDataSource     connectors/meilisearch/datasources/datasource.ts
+```
+
+`AbstractDataSource` extends `BaseHelper` and knows only `name`, `settings`, `schema`, `getCapabilities()`, and a `beginTransaction()` that throws NotSupported by default. Each family root adds its own paradigm contract: the relational root adds connector/pool/driver/transactions, the search root adds `getConnector()`, `getQueryDialect()`, `compileCollection()`, `ensureCollection()`, and `multiSearch()`.
+
+The engines that actually exist in source are **Postgres** (relational, with `node-postgres` and `postgres-js` drivers, plus a `postgres/supabase` sub-path for RLS and pooler concerns) and **search** (`typesense` and `meilisearch`). `DataSourceDrivers` in `base/datasources/common/types.ts` names exactly those four. There is no `connectors/relational` directory - the relational family lives under `connectors/postgres`; the split is `base/` versus `postgres/` versus `search/` versus per-engine folders.
+
+## Datasources are singletons
+
+`BaseApplication.dataSource()` binds the class under `datasources.<ClassName>` and calls `.setScope(BindingScopes.SINGLETON)`. That is what makes the connection pool shared: every repository injected with the same datasource key gets the same instance, therefore the same `pg.Pool` or the same Typesense client. Repositories and controllers are *not* forced to singleton scope - only datasources are.
+
+## Schema auto-discovery, not manual config
+
+`@repository({ model, dataSource })` registers a repository/model/datasource triple in the `MetadataRegistry`. `BaseRelationalDataSource.getSchema()` then walks that registry rather than reading a hand-written schema map:
+
+```typescript
+override getSchema(): Schema {
+  if (!this.schema) {
+    this.schema = this.discoverSchema();
+  }
+  return this.schema;
+}
+```
+
+`discoverSchema()` calls `registry.buildSchema({ dataSource })` and merges `schema` with `relations`. `BaseSearchDataSource` mirrors it with `discoverCollections()` over the shared `discoverDefinitions()` helper, reading each bound model's static `searchCollection` (the dual-schema escape hatch for a Postgres entity that also carries a search index) and falling back to a shape-guarded static `schema`. Passing `schema` into the constructor, or `@datasource({ autoDiscovery: false })`, opts out.
+
+## Lazy resolution
+
+Nothing resolves eagerly. `getSchema()` memoizes on first access. `wireDriverFromMetadata()` builds the driver and connector on first `getConnector()` and is idempotent. `hiddenFieldsByCollection()` memoizes the same way. The justification is uniform: `@model` settings and `@repository` bindings are frozen once boot completes, so a first-use computation never needs invalidation.
+
+## The driver is a CLASS, not a string
+
+`@datasource({ driver: NodePostgresDriver })` takes a class reference, and `TDataSourceDriverClass` is typed as a class for a reason spelled out in source: a class reference is what carries `pg` or `postgres` into the application's bundle. A driver-name **string** carries no module - dynamic `import()` defers *execution*, not *packaging* - and a bare side-effect import added to compensate is one a bundler may delete. `wireDriverFromMetadata()` rejects a non-function driver explicitly, because an untyped JavaScript caller passing a string is exactly the mistake that produces a bundle missing its peer.
+
+```typescript
+@datasource({ driver: NodePostgresDriver })
+export class PostgresDataSource extends BaseRelationalDataSource {
+  configure() {
+    this.client = new Pool({ connectionString: /* ... */ });
+  }
+}
+```
+
+`configure()` stays app-written - connection config varies per deployment, and the framework never builds the driver for you. Assigning `this.client` is enough; the driver named in the decorator is constructed over it lazily. A custom driver skips metadata entirely via `useDriver({ driver })`, which assigns driver *and* connector in one step so the "driver set, connector forgotten" state is unrepresentable.
+
+## Related
+
+- [Repository Hierarchy](/architecture/repository-hierarchy.md)
+- [Transactions](/architecture/transactions.md)
+- [Typesense Search](/architecture/search-typesense.md)
+- [DI Container](/architecture/di-container.md)

@@ -1,19 +1,22 @@
+---
+title: Relations & Includes
+description: Declaring model relations and eager-loading them with include
+difficulty: intermediate
+---
+
 # Relations & Includes
 
-Fetch related data using `include` for eager loading. This guide covers one-to-one, one-to-many, and many-to-many relationships.
+Declare `one`/`many` relations on a model, then eager-load them with `include` on any `find`/`findOne` call - one-to-one, one-to-many, and many-to-many. For CRUD basics, start with the [Repositories overview](/references/base/repositories/).
 
-
-## Basic Include
-
-### One-to-Many: User with Posts
+## In one example
 
 ```typescript
-// Fetch user with their posts
+// Fetch a user with their posts
 const user = await userRepository.findOne({
   filter: {
     where: { id: '123' },
-    include: [{ relation: 'posts' }]
-  }
+    include: [{ relation: 'posts' }],
+  },
 });
 
 // Result:
@@ -27,247 +30,34 @@ const user = await userRepository.findOne({
 // }
 ```
 
-### One-to-One: Post with Author
-
-```typescript
-// Fetch post with its author
-const post = await postRepository.findOne({
-  filter: {
-    where: { id: 'p1' },
-    include: [{ relation: 'author' }]
-  }
-});
-
-// Result:
-// {
-//   id: 'p1',
-//   title: 'First Post',
-//   authorId: '123',
-//   author: { id: '123', name: 'John', email: 'john@example.com' }
-// }
-```
-
-### Multiple Relations
-
-```typescript
-// Fetch post with author AND comments
-const post = await postRepository.findOne({
-  filter: {
-    where: { id: 'p1' },
-    include: [
-      { relation: 'author' },
-      { relation: 'comments' }
-    ]
-  }
-});
-```
-
 > [!NOTE]
-> When `include` is present in the filter, the repository uses the **Query API** (`connector.query`) instead of the Core API. This is handled automatically by the `canUseCoreAPI` check in `ReadableRepository`.
+> An `include` in the filter routes the query through Drizzle's Query API (`connector.query`) instead of the Core API. The `canUseCoreAPI` check in `ReadableRelationalRepository` makes that choice automatically. Core API is ~15-20% faster but skips relations and field selection. See [Performance Optimization](./advanced#performance-optimization).
 
+## `TInclusion` options
 
-## Scoped Includes
+Each element of the `include` array accepts:
 
-Apply filters, ordering, and limits to included relations using `scope`:
+| Option | Type | Default | Meaning |
+|---|---|---|---|
+| `relation` | `string` | required | Name of the relation to include, matching an entry in the model's `relations` array |
+| `scope` | `TFilter` | none | Nested filter on the related rows - `where`, `order`, `limit`, `fields`, `include` |
+| `shouldSkipDefaultFilter` | `boolean` | `false` | Skip the related model's default filter for this inclusion only |
 
-### Filter Related Data
+`scope` takes the same shape as a top-level filter - see the [Filter System](/references/base/filter-system/) reference for every `where` operator.
 
-```typescript
-// User with only published posts
-const user = await userRepository.findOne({
-  filter: {
-    where: { id: '123' },
-    include: [{
-      relation: 'posts',
-      scope: {
-        where: { status: 'published' }
-      }
-    }]
-  }
-});
-```
+## Declaring relations on a model
 
-### Order Related Data
-
-```typescript
-// User with posts ordered by date
-const user = await userRepository.findOne({
-  filter: {
-    where: { id: '123' },
-    include: [{
-      relation: 'posts',
-      scope: {
-        order: ['createdAt DESC']
-      }
-    }]
-  }
-});
-```
-
-### Limit Related Data
-
-```typescript
-// User with their 5 most recent posts
-const user = await userRepository.findOne({
-  filter: {
-    where: { id: '123' },
-    include: [{
-      relation: 'posts',
-      scope: {
-        order: ['createdAt DESC'],
-        limit: 5
-      }
-    }]
-  }
-});
-```
-
-### Combined Scope Options
-
-```typescript
-const user = await userRepository.findOne({
-  filter: {
-    where: { id: '123' },
-    include: [{
-      relation: 'posts',
-      scope: {
-        where: { status: 'published' },
-        order: ['createdAt DESC'],
-        limit: 10,
-        fields: ['id', 'title', 'createdAt']
-      }
-    }]
-  }
-});
-```
-
-### Skip Default Filter on Includes
-
-Each inclusion can independently bypass the related model's default filter:
-
-```typescript
-// Include soft-deleted posts that would normally be filtered out
-const user = await userRepository.findOne({
-  filter: {
-    where: { id: '123' },
-    include: [{
-      relation: 'posts',
-      shouldSkipDefaultFilter: true
-    }]
-  }
-});
-```
-
-
-## Nested Includes
-
-Include relations of relations (up to 2 levels recommended):
-
-### Two-Level Nesting
-
-```typescript
-// User -> Posts -> Comments
-const user = await userRepository.findOne({
-  filter: {
-    where: { id: '123' },
-    include: [{
-      relation: 'posts',
-      scope: {
-        include: [{ relation: 'comments' }]
-      }
-    }]
-  }
-});
-
-// Result:
-// {
-//   id: '123',
-//   name: 'John',
-//   posts: [
-//     {
-//       id: 'p1',
-//       title: 'First Post',
-//       comments: [
-//         { id: 'c1', text: 'Great post!' },
-//         { id: 'c2', text: 'Thanks for sharing' }
-//       ]
-//     }
-//   ]
-// }
-```
-
-### Many-to-Many Through Junction
-
-```typescript
-// Product -> SaleChannelProduct (junction) -> SaleChannel
-const product = await productRepository.findOne({
-  filter: {
-    where: { id: 'prod1' },
-    include: [{
-      relation: 'saleChannelProducts',
-      scope: {
-        include: [{ relation: 'saleChannel' }]
-      }
-    }]
-  }
-});
-
-// Result:
-// {
-//   id: 'prod1',
-//   name: 'Widget',
-//   saleChannelProducts: [
-//     {
-//       productId: 'prod1',
-//       saleChannelId: 'ch1',
-//       saleChannel: { id: 'ch1', name: 'Online Store' }
-//     },
-//     {
-//       productId: 'prod1',
-//       saleChannelId: 'ch2',
-//       saleChannel: { id: 'ch2', name: 'Retail' }
-//     }
-//   ]
-// }
-```
-
-> **Performance Warning:** Each nested `include` adds SQL complexity. **Maximum 2 levels recommended.** For deeper relationships, use multiple queries.
-
-
-## Defining Relations
-
-Relations are declared on the model as a static `relations` resolver returning an array of `TRelationConfig`. The framework translates them to Drizzle ORM relations internally during schema discovery.
-
-### Relation Config Type
-
-```typescript
-type TRelationConfig = {
-  name: string;  // Relation name used in includes
-} & (
-  | {
-      type: 'one';   // one-to-one or many-to-one
-      schema: TTableSchemaWithId;
-      metadata: { fields, references, relationName? };
-    }
-  | {
-      type: 'many';  // one-to-many
-      schema: TTableSchemaWithId;
-      metadata: { relationName? };
-    }
-);
-```
-
-### In Your Model
+Relations are declared as a static `relations` resolver on the model, returning an array of `TRelationConfig`. `MetadataRegistry` resolves the array during schema discovery and passes it to `createRelations`. `createRelations` builds the actual Drizzle `relations()` definition - application code never calls it directly.
 
 ```typescript
 // src/models/user.model.ts
 import { model, RelationTypes } from '@venizia/ignis';
-import { BasePostgresEntity, TRelationConfig } from '@venizia/ignis/postgres';
+import { BaseEntity, TRelationConfig } from '@venizia/ignis/postgres';
 import { pgTable, text } from 'drizzle-orm/pg-core';
 import { Post } from './post.model';
 
 @model({ type: 'entity' })
-export class User extends BasePostgresEntity<typeof User.schema> {
+export class User extends BaseEntity<typeof User.schema> {
   static override schema = pgTable('User', {
     id: text('id').primaryKey(),
     name: text('name').notNull(),
@@ -285,23 +75,36 @@ export class User extends BasePostgresEntity<typeof User.schema> {
 }
 ```
 
-The resolver form (`() => [...]`) defers evaluation until all `@model` classes are registered, avoiding circular-import ordering issues between related models.
+Write the resolver as an arrow function (`() => [...]`), not a plain array. IGNIS defers evaluation until every `@model` class has registered, which avoids circular-import ordering issues between related models.
 
-### Relation Types
+### `TRelationConfig` fields
 
-| Type | Drizzle Function | Description | Example |
-|------|------------------|-------------|---------|
-| `'one'` | `one()` | One-to-one or many-to-one | Post has one Author, User has one Profile |
-| `'many'` | `many()` | One-to-many | User has many Posts |
+| Field | Type | Meaning |
+|---|---|---|
+| `name` | `string` | Relation name used in `include` |
+| `type` | `RelationTypes.ONE` \| `RelationTypes.MANY` | Which Drizzle relation helper to build |
+| `schema` | `TTableSchemaWithId` | The related model's Drizzle table schema |
+| `metadata` | inferred from Drizzle's `one()`/`many()` params | `{ fields, references, relationName? }` for `ONE`; `{ relationName? }` for `MANY` |
+
+`metadata`'s shape comes straight from Drizzle's own `one()`/`many()` parameter types, not a hand-duplicated one.
+
+### Relation types
+
+| Type | Drizzle function | Description | Example |
+|---|---|---|---|
+| `RelationTypes.ONE` (`'one'`) | `one()` | One-to-one or many-to-one | Post has one Author, User has one Profile |
+| `RelationTypes.MANY` (`'many'`) | `many()` | One-to-many | User has many Posts |
 
 > [!NOTE]
-> Unlike LoopBack 4's `hasMany`/`hasOne`/`belongsTo` terminology, IGNIS uses Drizzle ORM's relation model which has only `one` and `many` types. A "belongsTo" relationship is expressed as `type: 'one'` with `fields` (local FK) and `references` (remote PK) in the metadata.
+> LoopBack 4 names these `hasMany`/`hasOne`/`belongsTo`. IGNIS uses Drizzle ORM's relation model instead, which has only `one` and `many`. A "belongsTo" relationship is `type: RelationTypes.ONE` with `fields` (the local foreign key) and `references` (the remote primary key) in `metadata`.
 
-### Example: Post Model with Both Types
+### A model with both types
+
+This mirrors `examples/vert`'s `SaleChannelProduct` junction model: one `ONE` relation per foreign key, plus a `MANY` relation elsewhere.
 
 ```typescript
 @model({ type: 'entity' })
-export class Post extends BasePostgresEntity<typeof Post.schema> {
+export class Post extends BaseEntity<typeof Post.schema> {
   static override schema = postTable;
 
   static override relations = (): TRelationConfig[] => [
@@ -324,14 +127,9 @@ export class Post extends BasePostgresEntity<typeof Post.schema> {
 }
 ```
 
-### How Configs Become Drizzle Relations
+### Auto-resolution in the repository
 
-During schema discovery, `MetadataRegistry` resolves each model's `relations` array and passes it to the `createRelations` helper (`packages/core/src/connectors/postgres/repositories/operators/relation.ts`), which builds the actual Drizzle `relations()` definition registered on the DataSource schema. You do not call `createRelations` yourself in application code.
-
-
-## Auto-Resolution
-
-Relations are automatically resolved from the entity's static `relations` property via `MetadataRegistry`. The `FilterBuilder.resolveRelations()` method reads them when building include queries. No need to pass them in the repository constructor:
+The repository never receives relations through its constructor. `MetadataRegistry` resolves them from the entity's static `relations` property. `FilterBuilder.resolveRelations()` reads and caches the result in a `WeakMap` the first time an include query needs them.
 
 ```typescript
 @repository({ model: User, dataSource: PostgresDataSource })
@@ -340,53 +138,153 @@ export class UserRepository extends DefaultCRUDRepository<typeof User.schema> {
 }
 ```
 
+## Recipes
 
-## Hidden Properties in Relations
-
-When building include queries, the `FilterBuilder.toInclude()` method automatically:
-
-1. Resolves hidden properties for each related model via `resolveHiddenProperties()`.
-2. Resolves the default filter for each related model via `resolveDefaultFilter()`.
-3. Merges the default filter with any user-provided `scope`.
-4. Excludes hidden columns from the nested query's `columns` selection.
+### Include multiple relations
 
 ```typescript
-// User model has hiddenProperties: ['password']
 const post = await postRepository.findOne({
   filter: {
-    include: [{ relation: 'author' }]
-  }
+    where: { id: 'p1' },
+    include: [{ relation: 'author' }, { relation: 'comments' }],
+  },
 });
-
-// post.author will NOT include password - excluded at SQL level
 ```
 
+### Filter, order, and limit included rows
 
-## Type Safety with Generics
-
-For queries with `include`, use generic type overrides for full type safety:
+Combine `where`, `order`, `limit`, and `fields` inside `scope` the same way you would on a top-level filter:
 
 ```typescript
-// Define the expected return type
+// User with their 5 most recent published posts, id and title only
+const user = await userRepository.findOne({
+  filter: {
+    where: { id: '123' },
+    include: [{
+      relation: 'posts',
+      scope: {
+        where: { status: 'published' },
+        order: ['createdAt DESC'],
+        limit: 5,
+        fields: ['id', 'title', 'createdAt'],
+      },
+    }],
+  },
+});
+```
+
+### Skip the default filter on one inclusion
+
+Each inclusion can independently bypass the related model's default filter:
+
+```typescript
+// Include soft-deleted posts that would normally be filtered out
+const user = await userRepository.findOne({
+  filter: {
+    where: { id: '123' },
+    include: [{ relation: 'posts', shouldSkipDefaultFilter: true }],
+  },
+});
+```
+
+### Nest includes two levels deep
+
+Put an `include` inside a `scope` to load a relation of a relation:
+
+```typescript
+// User -> Posts -> Comments
+const user = await userRepository.findOne({
+  filter: {
+    where: { id: '123' },
+    include: [{
+      relation: 'posts',
+      scope: { include: [{ relation: 'comments' }] },
+    }],
+  },
+});
+```
+
+> [!WARNING] Performance
+> Each nested `include` adds SQL complexity. **Maximum 2 levels recommended.** For deeper relationships, run multiple queries instead - see [Performance Tips](#performance-tips).
+
+### Many-to-many through a junction table
+
+This is the pattern `examples/vert` uses for `Product` <-> `SaleChannel` through the `SaleChannelProduct` junction table. Include the junction relation, then nest the far side inside its `scope`.
+
+```typescript
+// Product -> SaleChannelProduct (junction) -> SaleChannel
+const product = await productRepository.findOne({
+  filter: {
+    where: { id: 'prod1' },
+    include: [{
+      relation: 'saleChannelProducts',
+      scope: { include: [{ relation: 'saleChannel' }] },
+    }],
+  },
+});
+
+// Result:
+// {
+//   id: 'prod1',
+//   name: 'Widget',
+//   saleChannelProducts: [
+//     { productId: 'prod1', saleChannelId: 'ch1', saleChannel: { id: 'ch1', name: 'Online Store' } },
+//     { productId: 'prod1', saleChannelId: 'ch2', saleChannel: { id: 'ch2', name: 'Retail' } }
+//   ]
+// }
+```
+
+### Count relations without fetching them fully
+
+Fetch only `id` on the related rows to keep the payload small, then count the array client-side:
+
+```typescript
+const users = await userRepository.find({
+  filter: {
+    include: [{ relation: 'posts', scope: { fields: ['id'] } }],
+  },
+});
+
+const usersWithCounts = users.map(user => ({
+  ...user,
+  postCount: (user as any).posts?.length ?? 0,
+}));
+```
+
+### Include conditionally
+
+```typescript
+async function getUser(id: string, includePosts: boolean) {
+  const include = includePosts ? [{ relation: 'posts' }] : [];
+
+  return userRepository.findOne({
+    filter: { where: { id }, include },
+  });
+}
+```
+
+### Type included results with a generic
+
+`findOne`/`find` accept a type argument for the shape `include` produces, so the result is fully typed instead of falling back to the base entity:
+
+```typescript
 type UserWithPosts = User & {
   posts: Post[];
 };
 
-// Use generic override
 const user = await userRepository.findOne<UserWithPosts>({
   filter: {
     where: { id: '123' },
-    include: [{ relation: 'posts' }]
-  }
+    include: [{ relation: 'posts' }],
+  },
 });
 
-// TypeScript knows the structure!
 if (user) {
-  console.log(user.posts[0].title);  // Fully typed
+  console.log(user.posts[0].title); // Fully typed
 }
 ```
 
-### Nested Relations Type
+The same pattern nests for a two-level include:
 
 ```typescript
 type ProductWithChannels = Product & {
@@ -400,135 +298,60 @@ const product = await productRepository.findOne<ProductWithChannels>({
     where: { id: 'prod1' },
     include: [{
       relation: 'saleChannelProducts',
-      scope: {
-        include: [{ relation: 'saleChannel' }]
-      }
-    }]
-  }
+      scope: { include: [{ relation: 'saleChannel' }] },
+    }],
+  },
 });
 
-// Fully typed access
-product?.saleChannelProducts[0].saleChannel.name;
+product?.saleChannelProducts[0].saleChannel.name; // Fully typed access
 ```
 
+## Hidden properties in relations
 
-## TInclusion Type Reference
-
-Each element in the `include` array has this shape:
-
-```typescript
-type TInclusion = {
-  relation: string;             // Name of the relation to include
-  scope?: TFilter;              // Optional nested filter (where, order, limit, fields, include)
-  shouldSkipDefaultFilter?: boolean;  // Skip the related model's default filter
-};
-```
-
-
-## Common Patterns
-
-### Find All with Count of Relations
+`FilterBuilder.toInclude()` excludes hidden columns from every included relation at the SQL level, the same way the top-level query does. For each inclusion it resolves the related model's `hiddenProperties` and default filter, and merges the default filter with your `scope` via `mergeFilter()`. It then drops hidden columns from the nested `columns` selection.
 
 ```typescript
-// Get users with post count
-const users = await userRepository.find({
-  filter: {
-    include: [{
-      relation: 'posts',
-      scope: { fields: ['id'] }  // Only fetch IDs to minimize data
-    }]
-  }
+// User model has hiddenProperties: ['password']
+const post = await postRepository.findOne({
+  filter: { include: [{ relation: 'author' }] },
 });
 
-// Calculate counts
-const usersWithCounts = users.map(user => ({
-  ...user,
-  postCount: (user as any).posts?.length ?? 0
-}));
+// post.author will NOT include password - excluded at SQL level
 ```
 
-### Conditional Include
+See [Hidden Properties](./advanced#hidden-properties) for the top-level equivalent.
 
-```typescript
-async function getUser(id: string, includePosts: boolean) {
-  const include = includePosts
-    ? [{ relation: 'posts' }]
-    : [];
+## Errors
 
-  return userRepository.findOne({
-    filter: {
-      where: { id },
-      include
-    }
-  });
-}
-```
+| Error | Cause | Fix |
+|---|---|---|
+| `[FilterBuilder][toInclude] Relation NOT FOUND \| relation: 'x'` | `include` names a relation absent from the model's `relations` array | Check the model's `relations` definition and match the name exactly |
+| `[FilterBuilder][toInclude] Invalid include format \| include: ...` | An `include` element has no `relation` string | Give every include element a `relation` field |
+| `[<Repository>] Schema key mismatch \| Entity name 'X' not found in connector.query` | The model's `TABLE_NAME` doesn't match its schema registration | See [Query Interface Validation](./advanced#query-interface-validation) |
 
+## Performance tips
 
-## Error Handling
-
-### Relation Not Found
-
-If you try to include a relation that doesn't exist:
-
-```typescript
-// Error: [FilterBuilder][toInclude] Relation NOT FOUND | relation: 'nonExistent'
-await userRepository.find({
-  filter: {
-    include: [{ relation: 'nonExistent' }]
-  }
-});
-```
-
-**Fix:** Check your model's `relations` definition and ensure the relation name matches.
-
-### Invalid Include Format
-
-```typescript
-// Error: [FilterBuilder][toInclude] Invalid include format | include: ...
-```
-
-**Fix:** Ensure each include element has a `relation` string property.
-
-### Schema Key Mismatch
-
-```
-Error: [UserRepository] Schema key mismatch | Entity name 'User' not found
-in connector.query | Available keys: [Post, Comment]
-```
-
-**Fix:** Ensure your model's `TABLE_NAME` matches the schema registration.
-
-
-## Performance Tips
-
-1. **Limit nesting depth** - Max 2 levels recommended
-2. **Use `fields` in scope** - Only fetch needed columns
-3. **Use `limit` in scope** - Don't fetch unbounded related data
-4. **Consider separate queries** - For complex data needs, multiple simple queries often outperform one complex nested query
-5. **Use `shouldSkipDefaultFilter` sparingly** - Only when you explicitly need filtered-out records
+1. **Limit nesting depth** - max 2 levels recommended.
+2. **Use `fields` in scope** - fetch only the columns you need.
+3. **Use `limit` in scope** - don't fetch unbounded related data.
+4. **Consider separate queries** - for complex data needs, several simple queries often outperform one deeply nested one.
+5. **Use `shouldSkipDefaultFilter` sparingly** - only when you explicitly need filtered-out records.
 
 ```typescript
 // Instead of deep nesting, use separate queries
 const user = await userRepository.findById({ id: '123' });
 const posts = await postRepository.find({
-  filter: {
-    where: { authorId: '123' },
-    limit: 10
-  }
+  filter: { where: { authorId: '123' }, limit: 10 },
 });
 const comments = await commentRepository.find({
-  filter: {
-    where: { postId: { inq: posts.map(p => p.id) } }
-  }
+  filter: { where: { postId: { inq: posts.map(p => p.id) } } },
 });
 ```
 
-
-## Quick Reference
+## Quick reference
 
 | Want to... | Code |
-|------------|------|
+|---|---|
 | Include one relation | `include: [{ relation: 'posts' }]` |
 | Include multiple | `include: [{ relation: 'posts' }, { relation: 'profile' }]` |
 | Filter included | `include: [{ relation: 'posts', scope: { where: { status: 'active' } } }]` |
@@ -538,23 +361,19 @@ const comments = await commentRepository.find({
 | Select fields | `include: [{ relation: 'posts', scope: { fields: ['id', 'title'] } }]` |
 | Skip default filter | `include: [{ relation: 'posts', shouldSkipDefaultFilter: true }]` |
 
+## See also
 
-## Next Steps
+- [Repositories overview](/references/base/repositories/) - CRUD basics, common tasks
+- [Advanced Features](./advanced) - transactions, hidden properties, performance
+- [Repository Mixins (Removed)](./mixins) - where default-filter and fields-visibility behavior lives now
+- [Filter System](/references/base/filter-system/) - every `where` operator, ordering, pagination
+- [Models - Full Reference](/references/base/models-reference) - `@model`, entity hierarchy, schema enrichers
+- [Drizzle ORM Relations](https://orm.drizzle.team/docs/rqb#relations) - relation definition guide
 
-- [JSON Path Filtering](../filter-system/json-filtering) - Query JSONB columns
-- [Array Operators](../filter-system/array-operators) - PostgreSQL array queries
-- [Advanced Features](./advanced.md) - Transactions, hidden props
+**Files:**
 
-## See Also
-
-- **Related Concepts:**
-  - [Repositories Overview](./index) - Core repository operations
-  - [Models](/guides/core-concepts/persistent/models) - Defining model relationships
-
-- **Related Topics:**
-  - [Advanced Features](./advanced) - Hidden properties, transactions
-  - [Repository Mixins (Removed)](./mixins) - Where default-filter and fields-visibility behavior lives now
-  - [Filter System](/references/base/filter-system/) - Query operators
-
-- **External Resources:**
-  - [Drizzle ORM Relations](https://orm.drizzle.team/docs/rqb#relations) - Relation definition guide
+- [`packages/filter/src/common/types.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/filter/src/common/types.ts) - `TFilter`, `TInclusion`
+- [`packages/core/src/base/repositories/common/constants.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core/src/base/repositories/common/constants.ts) - `RelationTypes`
+- [`packages/core/src/connectors/postgres/repositories/common/types.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core/src/connectors/postgres/repositories/common/types.ts) - `TRelationConfig`
+- [`packages/core/src/connectors/postgres/repositories/dialect/filter.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core/src/connectors/postgres/repositories/dialect/filter.ts) - `FilterBuilder` (`resolveRelations`, `toInclude`)
+- [`packages/core/src/connectors/postgres/repositories/dialect/relation.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core/src/connectors/postgres/repositories/dialect/relation.ts) - `createRelations` (config -> Drizzle `relations()`)

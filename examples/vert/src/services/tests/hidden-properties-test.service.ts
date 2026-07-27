@@ -67,33 +67,33 @@ export class HiddenPropertiesTestService extends BaseTestService {
     this.logSection('[HiddenPropertiesTestService] Starting hidden properties test cases');
 
     // Basic CRUD tests
-    await this.case1_CreateUserWithHiddenFields();
-    await this.case2_FindOperationsExcludeHidden(); // Consolidated: findOne, find, findById
-    await this.case5_UpdateByIdExcludesHidden();
+    await this.case1CreateUserWithHiddenFields();
+    await this.case2FindOperationsExcludeHidden(); // Consolidated: findOne, find, findById
+    await this.case5UpdateByIdExcludesHidden();
 
     // Edge cases
-    await this.case7_ConnectorQueryReturnsHidden();
-    await this.case8_CreateAllExcludesHidden();
-    await this.case9_UpdateAllExcludesHidden();
-    await this.case10_DeleteByIdExcludesHidden();
-    await this.case11_FieldsSelectionStillExcludesHidden();
-    await this.case12_VerifyDataActuallyStoredInDB();
+    await this.case7ConnectorQueryReturnsHidden();
+    await this.case8CreateAllExcludesHidden();
+    await this.case9UpdateAllExcludesHidden();
+    await this.case10DeleteByIdExcludesHidden();
+    await this.case11FieldsSelectionStillExcludesHidden();
+    await this.case12VerifyDataActuallyStoredInDB();
 
     // Advanced edge cases
-    await this.case13_WhereClauseCanFilterByHidden();
-    await this.case14_CountWithHiddenInWhere();
-    await this.case15_ExistsWithHiddenInWhere();
-    await this.case16_TransactionContextHidden();
+    await this.case13WhereClauseCanFilterByHidden();
+    await this.case14CountWithHiddenInWhere();
+    await this.case15ExistsWithHiddenInWhere();
+    await this.case16TransactionContextHidden();
     // Case 17 removed - redundant with Case 11 (both test field selection with hidden)
-    await this.case18_MultipleUsersHiddenExcluded(); // Renamed for clarity
-    await this.case19_UpdateOnlyHiddenFields();
-    await this.case20_NullHiddenFieldValues();
+    await this.case18MultipleUsersHiddenExcluded(); // Renamed for clarity
+    await this.case19UpdateOnlyHiddenFields();
+    await this.case20NullHiddenFieldValues();
 
     // Relation hidden properties
-    await this.case21_RelationHiddenProperties();
+    await this.case21RelationHiddenProperties();
 
     // Cleanup last
-    await this.case6_Cleanup();
+    await this.case6Cleanup();
 
     this.logSection('[HiddenPropertiesTestService] All hidden properties test cases completed!');
   }
@@ -101,7 +101,7 @@ export class HiddenPropertiesTestService extends BaseTestService {
   // ----------------------------------------------------------------
   // CASE 1: Create user with hidden fields - verify they are not returned
   // ----------------------------------------------------------------
-  private async case1_CreateUserWithHiddenFields(): Promise<void> {
+  private async case1CreateUserWithHiddenFields(): Promise<void> {
     const repo = this.userRepository;
     this.logCase('[CASE 1] Create user with password and secret - verify hidden in response');
 
@@ -145,7 +145,7 @@ export class HiddenPropertiesTestService extends BaseTestService {
   // CASE 2: All find operations (findOne, find, findById) exclude hidden properties
   // Consolidated from Cases 2, 3, 4 - they tested the same behavior
   // ----------------------------------------------------------------
-  private async case2_FindOperationsExcludeHidden(): Promise<void> {
+  private async case2FindOperationsExcludeHidden(): Promise<void> {
     const repo = this.userRepository;
     this.logCase('[CASE 2] All find operations should exclude hidden properties');
 
@@ -207,7 +207,7 @@ export class HiddenPropertiesTestService extends BaseTestService {
   // ----------------------------------------------------------------
   // CASE 5: UpdateById excludes hidden properties in response
   // ----------------------------------------------------------------
-  private async case5_UpdateByIdExcludesHidden(): Promise<void> {
+  private async case5UpdateByIdExcludesHidden(): Promise<void> {
     const repo = this.userRepository;
     this.logCase('[CASE 5] UpdateById should exclude hidden properties in response');
 
@@ -253,7 +253,7 @@ export class HiddenPropertiesTestService extends BaseTestService {
   // ----------------------------------------------------------------
   // CASE 6: Cleanup test data (runs last in test sequence)
   // ----------------------------------------------------------------
-  private async case6_Cleanup(): Promise<void> {
+  private async case6Cleanup(): Promise<void> {
     const repo = this.userRepository;
     this.logCase('[CLEANUP] Cleanup hidden properties test data');
 
@@ -285,7 +285,7 @@ export class HiddenPropertiesTestService extends BaseTestService {
   // ----------------------------------------------------------------
   // CASE 7: Connector query SHOULD return hidden properties (bypass repository)
   // ----------------------------------------------------------------
-  private async case7_ConnectorQueryReturnsHidden(): Promise<void> {
+  private async case7ConnectorQueryReturnsHidden(): Promise<void> {
     const repo = this.userRepository;
     this.logCase('[CASE 7] Connector query SHOULD return hidden properties');
 
@@ -337,7 +337,7 @@ export class HiddenPropertiesTestService extends BaseTestService {
   // ----------------------------------------------------------------
   // CASE 8: CreateAll (batch create) excludes hidden properties
   // ----------------------------------------------------------------
-  private async case8_CreateAllExcludesHidden(): Promise<void> {
+  private async case8CreateAllExcludesHidden(): Promise<void> {
     const repo = this.userRepository;
     this.logCase('[CASE 8] CreateAll should exclude hidden properties from response');
 
@@ -398,7 +398,7 @@ export class HiddenPropertiesTestService extends BaseTestService {
   // ----------------------------------------------------------------
   // CASE 9: UpdateAll (bulk update) excludes hidden properties
   // ----------------------------------------------------------------
-  private async case9_UpdateAllExcludesHidden(): Promise<void> {
+  private async case9UpdateAllExcludesHidden(): Promise<void> {
     const repo = this.userRepository;
     this.logCase('[CASE 9] UpdateAll should exclude hidden properties from response');
 
@@ -450,7 +450,7 @@ export class HiddenPropertiesTestService extends BaseTestService {
   // ----------------------------------------------------------------
   // CASE 10: DeleteById excludes hidden properties from response
   // ----------------------------------------------------------------
-  private async case10_DeleteByIdExcludesHidden(): Promise<void> {
+  private async case10DeleteByIdExcludesHidden(): Promise<void> {
     const repo = this.userRepository;
     this.logCase('[CASE 10] DeleteById should exclude hidden properties from response');
 
@@ -499,7 +499,7 @@ export class HiddenPropertiesTestService extends BaseTestService {
   // ----------------------------------------------------------------
   // CASE 11: Fields selection still excludes hidden (even if explicitly requested)
   // ----------------------------------------------------------------
-  private async case11_FieldsSelectionStillExcludesHidden(): Promise<void> {
+  private async case11FieldsSelectionStillExcludesHidden(): Promise<void> {
     const repo = this.userRepository;
     this.logCase('[CASE 11] Fields selection should still exclude hidden properties');
 
@@ -552,14 +552,14 @@ export class HiddenPropertiesTestService extends BaseTestService {
   // ----------------------------------------------------------------
   // CASE 12: Verify data is actually stored in DB (via connector)
   // ----------------------------------------------------------------
-  private async case12_VerifyDataActuallyStoredInDB(): Promise<void> {
+  private async case12VerifyDataActuallyStoredInDB(): Promise<void> {
     const repo = this.userRepository;
     this.logCase('[CASE 12] Verify hidden data is actually stored in DB');
 
     try {
       const uniqueId = getUID();
-      const testPassword = `test_pw_${uniqueId}`;
-      const testSecret = `test_secret_${uniqueId}`;
+      const testPassword = `testPw${uniqueId}`;
+      const testSecret = `testSecret${uniqueId}`;
       const testRealm = `HIDDEN_TEST_VERIFY_${uniqueId}`;
 
       await repo.create({
@@ -609,7 +609,7 @@ export class HiddenPropertiesTestService extends BaseTestService {
   // ----------------------------------------------------------------
   // CASE 13: Where clause CAN filter by hidden field
   // ----------------------------------------------------------------
-  private async case13_WhereClauseCanFilterByHidden(): Promise<void> {
+  private async case13WhereClauseCanFilterByHidden(): Promise<void> {
     const repo = this.userRepository;
     this.logCase('[CASE 13] Where clause should be able to filter by hidden field');
 
@@ -667,7 +667,7 @@ export class HiddenPropertiesTestService extends BaseTestService {
   // ----------------------------------------------------------------
   // CASE 14: Count operation with hidden field in where clause
   // ----------------------------------------------------------------
-  private async case14_CountWithHiddenInWhere(): Promise<void> {
+  private async case14CountWithHiddenInWhere(): Promise<void> {
     const repo = this.userRepository;
     this.logCase('[CASE 14] Count should work with hidden field in where clause');
 
@@ -724,7 +724,7 @@ export class HiddenPropertiesTestService extends BaseTestService {
   // ----------------------------------------------------------------
   // CASE 15: ExistsWith operation with hidden field in where clause
   // ----------------------------------------------------------------
-  private async case15_ExistsWithHiddenInWhere(): Promise<void> {
+  private async case15ExistsWithHiddenInWhere(): Promise<void> {
     const repo = this.userRepository;
     this.logCase('[CASE 15] ExistsWith should work with hidden field in where clause');
 
@@ -773,7 +773,7 @@ export class HiddenPropertiesTestService extends BaseTestService {
   // ----------------------------------------------------------------
   // CASE 16: Transaction context - hidden properties should work in transactions
   // ----------------------------------------------------------------
-  private async case16_TransactionContextHidden(): Promise<void> {
+  private async case16TransactionContextHidden(): Promise<void> {
     const repo = this.userRepository;
     this.logCase('[CASE 16] Hidden properties should work correctly in transaction context');
 
@@ -850,7 +850,7 @@ export class HiddenPropertiesTestService extends BaseTestService {
   // ----------------------------------------------------------------
   // CASE 18: Multiple users with mixed null/non-null hidden values - verify ALL have hidden excluded
   // ----------------------------------------------------------------
-  private async case18_MultipleUsersHiddenExcluded(): Promise<void> {
+  private async case18MultipleUsersHiddenExcluded(): Promise<void> {
     const repo = this.userRepository;
     this.logCase('[CASE 18] Verify ALL users (with mixed hidden values) have hidden excluded');
 
@@ -936,7 +936,7 @@ export class HiddenPropertiesTestService extends BaseTestService {
   // ----------------------------------------------------------------
   // CASE 19: Update ONLY hidden fields - should work but response excludes them
   // ----------------------------------------------------------------
-  private async case19_UpdateOnlyHiddenFields(): Promise<void> {
+  private async case19UpdateOnlyHiddenFields(): Promise<void> {
     const repo = this.userRepository;
     this.logCase('[CASE 19] Update ONLY hidden fields - should work but exclude from response');
 
@@ -1011,7 +1011,7 @@ export class HiddenPropertiesTestService extends BaseTestService {
   // ----------------------------------------------------------------
   // CASE 20: Null/undefined hidden field values - edge case
   // ----------------------------------------------------------------
-  private async case20_NullHiddenFieldValues(): Promise<void> {
+  private async case20NullHiddenFieldValues(): Promise<void> {
     const repo = this.userRepository;
     this.logCase('[CASE 20] Handle null hidden field values correctly');
 
@@ -1080,7 +1080,7 @@ export class HiddenPropertiesTestService extends BaseTestService {
   // ----------------------------------------------------------------
   // CASE 21: Relation hidden properties - included relations should exclude hidden
   // ----------------------------------------------------------------
-  private async case21_RelationHiddenProperties(): Promise<void> {
+  private async case21RelationHiddenProperties(): Promise<void> {
     this.logCase('[CASE 21] Relations should exclude hidden properties from related entities');
 
     try {

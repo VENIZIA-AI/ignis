@@ -98,8 +98,9 @@ const testCases: ITestCase[] = [
   {
     input: 'metadata.field-name',
     direction: Sorts.ASC,
-    shouldPass: false,
-    description: 'Hyphen in field name',
+    shouldPass: true,
+    // Kebab-case is a legal JSON key and JSON_PATH_PATTERN allows it deliberately; safe because the component is interpolated inside a quoted `'{...}'` array literal it cannot escape.
+    description: 'Hyphen in field name (kebab-case)',
   },
   {
     input: 'metadata.field name',
@@ -165,6 +166,41 @@ const testCases: ITestCase[] = [
   },
 ];
 
+interface ITestResult {
+  success: boolean;
+  error?: string;
+  sql?: string;
+}
+
+const reportPassedCase = (opts: { testCase: ITestCase; result: ITestResult }): void => {
+  const { testCase, result } = opts;
+
+  const icon = testCase.shouldPass ? '✓' : '✓';
+  const action = testCase.shouldPass ? 'ALLOWED' : 'BLOCKED';
+  console.log(`${icon} PASS: "${testCase.input}" - ${action}`);
+  console.log(`  Description: ${testCase.description}`);
+
+  if (result.success) {
+    console.log(`  SQL: ${result.sql?.substring(0, 80)}...`);
+    return;
+  }
+
+  console.log(`  Error: ${result.error?.substring(0, 80)}...`);
+};
+
+const reportFailedCase = (opts: { testCase: ITestCase; result: ITestResult }): void => {
+  const { testCase, result } = opts;
+
+  const expected = testCase.shouldPass ? 'should PASS' : 'should be BLOCKED';
+  const got = result.success ? 'PASSED' : 'was BLOCKED';
+  console.log(`✗ FAIL: "${testCase.input}" - ${expected} but ${got}`);
+  console.log(`  Description: ${testCase.description}`);
+
+  if (result.error) {
+    console.log(`  Error: ${result.error}`);
+  }
+};
+
 function runTests() {
   const filterBuilder = new TestableFilterBuilder();
   let passed = 0;
@@ -191,24 +227,10 @@ function runTests() {
     const isTestPassed = result.success === testCase.shouldPass;
 
     if (isTestPassed) {
-      const icon = testCase.shouldPass ? '✓' : '✓';
-      const action = testCase.shouldPass ? 'ALLOWED' : 'BLOCKED';
-      console.log(`${icon} PASS: "${testCase.input}" - ${action}`);
-      console.log(`  Description: ${testCase.description}`);
-      if (result.success) {
-        console.log(`  SQL: ${result.sql?.substring(0, 80)}...`);
-      } else {
-        console.log(`  Error: ${result.error?.substring(0, 80)}...`);
-      }
+      reportPassedCase({ testCase, result });
       passed++;
     } else {
-      const expected = testCase.shouldPass ? 'should PASS' : 'should be BLOCKED';
-      const got = result.success ? 'PASSED' : 'was BLOCKED';
-      console.log(`✗ FAIL: "${testCase.input}" - ${expected} but ${got}`);
-      console.log(`  Description: ${testCase.description}`);
-      if (result.error) {
-        console.log(`  Error: ${result.error}`);
-      }
+      reportFailedCase({ testCase, result });
       failed++;
     }
     console.log();

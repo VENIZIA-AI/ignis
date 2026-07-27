@@ -26,6 +26,39 @@ const data: TUserResponse = await fetchData();
 const result: TProcessResult = processData();
 ```
 
+### When a Cast Is Unavoidable
+
+Some boundaries genuinely cannot be typed. Reach for the **simplest** escape hatch - `as any` or the
+`AnyType` alias - never a chained one.
+
+```typescript
+// ✅ GOOD
+const handler = raw as any;
+const value = raw as AnyType;
+
+// ❌ BAD - baroque, hides what is actually being asserted
+const handler = raw as unknown as TRouteHandler;
+```
+
+## Derive Types, Never Duplicate Them
+
+Prefer a compile-time type derived from the definition over a hand-maintained copy. A duplicate
+drifts silently; a derived type breaks the build the moment the definition changes.
+
+```typescript
+// ✅ GOOD - derived from the single source of truth
+type TUser = typeof User.schema.$inferSelect;
+type TNewUser = typeof User.schema.$inferInsert;
+type TSignInRequest = z.infer<typeof SignInRequestSchema>;
+
+// ❌ BAD - a parallel definition that will drift
+type TUser = {
+  id: string;
+  email: string;
+  createdAt: Date;
+};
+```
+
 ## Explicit Return Types
 
 Always define explicit return types for **public methods** and **API handlers**.
@@ -53,7 +86,7 @@ public async findUser(id: string) {
 ```typescript
 // Define schema
 export const SignInRequestSchema = z.object({
-  email: z.string().email(),
+  email: z.email(),
   password: z.string().min(8),
 });
 
@@ -76,7 +109,7 @@ type RouteKey = keyof typeof RouteConfigs; // 'GET_USERS' | 'GET_USER_BY_ID'
 ### Generic Type Constraints
 
 ```typescript
-export class DefaultCRUDRepository<
+export class DefaultRelationalRepository<
   EntitySchema extends TTableSchemaWithId = TTableSchemaWithId
 > {
   // EntitySchema is constrained to have an 'id' column
@@ -124,14 +157,14 @@ const result2 = await userRepository.create({ data: user });
 
 ```typescript
 // Type guard function
-function isUser(obj: unknown): obj is TUser {
+const isUser = (obj: unknown): obj is TUser => {
   return (
     typeof obj === 'object' &&
     obj !== null &&
     'id' in obj &&
     'email' in obj
   );
-}
+};
 
 // Usage
 const data = await fetchData();
@@ -148,7 +181,7 @@ type TResult<T> =
   | { success: true; data: T }
   | { success: false; error: string };
 
-function processResult<T>(result: TResult<T>) {
+const processResult = <T>(result: TResult<T>) => {
   if (result.success) {
     // TypeScript knows result.data exists
     return result.data;
@@ -156,7 +189,7 @@ function processResult<T>(result: TResult<T>) {
 
   // TypeScript knows result.error exists
   throw getError({ message: result.error });
-}
+};
 ```
 
 ## See Also

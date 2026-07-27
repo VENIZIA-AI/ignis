@@ -10,6 +10,7 @@ import type {
   Offsets,
 } from '@platformatic/kafka';
 import { Consumer } from '@platformatic/kafka';
+import { invokeHook } from '../common';
 import { BaseKafkaHelper } from './base';
 import { KafkaClientEvents, KafkaDefaults, KafkaHealthStatuses } from './common/constants';
 import type {
@@ -26,35 +27,7 @@ import type {
   TKafkaMessageErrorCallback,
 } from './common/types';
 
-/**
- * KafkaConsumerHelper — Wrapper around `@platformatic/kafka` Consumer.
- *
- * Provides scoped logging, lifecycle management, health tracking,
- * graceful shutdown, message callbacks, and lag monitoring.
- *
- * @example
- * const helper = KafkaConsumerHelper.newInstance({
- *   bootstrapBrokers: ['127.0.0.1:29092'],
- *   clientId: 'my-consumer',
- *   groupId: 'my-consumer-group',
- *   onMessage: async ({ message }) => {
- *     console.log('Received:', message.value);
- *     await message.commit();
- *   },
- *   onMessageError: ({ error }) => console.error('Error:', error),
- *   onGroupJoin: ({ groupId, memberId }) => console.log(`Joined ${groupId}`),
- * });
- *
- * await helper.start({ topics: ['my-topic'] });
- *
- * // Lag monitoring
- * helper.startLagMonitoring({ topics: ['my-topic'] });
- *
- * // Health check
- * helper.isHealthy(); // true when connected
- *
- * await helper.close();
- */
+/** Wrapper around `@platformatic/kafka` Consumer with lifecycle management, health tracking, graceful shutdown, message callbacks, and lag monitoring. */
 export class KafkaConsumerHelper<
   KeyType = string,
   ValueType = string,
@@ -68,7 +41,6 @@ export class KafkaConsumerHelper<
   private lagMonitoringOptions: { topics: string[]; interval?: number } | null = null;
   private sessionLikelyStale = false;
 
-  // Message callbacks
   private readonly onMessage?: TKafkaMessageCallback<
     KeyType,
     ValueType,
@@ -88,13 +60,11 @@ export class KafkaConsumerHelper<
     HeaderValueType
   >;
 
-  // Consumer group callbacks
   private readonly onGroupJoin?: TKafkaGroupJoinCallback;
   private readonly onGroupLeave?: TKafkaGroupLeaveCallback;
   private readonly onGroupRebalance?: TKafkaGroupRebalanceCallback;
   private readonly onHeartbeatError?: TKafkaHeartbeatErrorCallback;
 
-  // Lag monitoring callbacks
   private readonly onLag?: TKafkaLagCallback;
   private readonly onLagError?: TKafkaLagErrorCallback;
 
@@ -208,16 +178,19 @@ export class KafkaConsumerHelper<
       fallbackMode: opts.fallbackMode ?? KafkaDefaults.CONSUME_FALLBACK_MODE,
     });
 
-    // Successful consume() means we're freshly joined to the group; clear any
-    // stale-session flag that might have been set during initial broker
-    // negotiation (e.g. transient BROKER_DISCONNECT during bootstrap).
+    // Successful consume() means we're freshly joined to the group; clear any stale-session flag set during initial broker negotiation (e.g. a transient BROKER_DISCONNECT during bootstrap).
     this.sessionLikelyStale = false;
 
-    if (this.onMessageError) {
-      this.stream.on(KafkaClientEvents.STREAM_ERROR, (err: Error) => {
-        this.onMessageError?.({ error: err });
+    // Always attached, hook or not: a stream 'error' with ZERO listeners is rethrown by EventEmitter as an uncaught exception, so a pull-style consumer (start() + getStream(), no onMessage/onMessageError) would take the whole process down on the first broker drop.
+    this.stream.on(KafkaClientEvents.STREAM_ERROR, (streamError: Error) => {
+      this.logger.for('start').error('Kafka stream ERROR | Error: %s', streamError);
+
+      invokeHook({
+        logger: this.logger,
+        scope: 'start',
+        execution: () => this.onMessageError?.({ error: streamError }),
       });
-    }
+    });
 
     if (this.onMessage) {
       this.consumeLoop = this.startConsumeLoop({
@@ -265,15 +238,7 @@ export class KafkaConsumerHelper<
   }
 
   protected override closeClient(): Promise<void> {
-    return new Promise<void>((resolve, reject) => {
-      this.client.close(true, (err?: Error | null) => {
-        if (err) {
-          reject(err);
-        } else {
-          resolve();
-        }
-      });
-    });
+    return this.closeClientWithCallback();
   }
 
   async close(opts?: { isForce?: boolean }): Promise<void> {
@@ -316,9 +281,16 @@ export class KafkaConsumerHelper<
         await messageHandler({ message });
         await doneHandler?.({ message });
       } catch (error) {
-        const err = toError(error);
-        this.logger.error('[startConsumeLoop] Message processing error: %s', err.message);
-        errorHandler?.({ error: err, message });
+        const normalizedError = toError(error);
+        this.logger.error(
+          '[startConsumeLoop] Message processing error: %s',
+          normalizedError.message,
+        );
+        invokeHook({
+          logger: this.logger,
+          scope: 'startConsumeLoop',
+          execution: () => errorHandler?.({ error: normalizedError, message }),
+        });
       }
     }
   }
@@ -383,13 +355,17 @@ export class KafkaConsumerHelper<
         this.consumeStartOptions?.topics,
       );
     } catch (error) {
-      const err = toError(error);
+      const normalizedError = toError(error);
       this.logger.error(
         '[drainStream] Stream error: %s | Topics: %j',
-        err.message,
+        normalizedError.message,
         this.consumeStartOptions?.topics,
       );
-      opts.errorHandler?.({ error: err });
+      invokeHook({
+        logger: this.logger,
+        scope: 'drainStream',
+        execution: () => opts.errorHandler?.({ error: normalizedError }),
+      });
     }
 
     this.destroyDeadStream();
@@ -431,15 +407,19 @@ export class KafkaConsumerHelper<
         await this.rebuildClient();
         this.sessionLikelyStale = false;
       } catch (error) {
-        const err = toError(error);
+        const normalizedError = toError(error);
         this.logger.error(
           '[attemptReconnect] Client rebuild failed (%d/%d): %s | Topics: %j',
           attempt,
           maxAttempts,
-          err.message,
+          normalizedError.message,
           this.consumeStartOptions?.topics,
         );
-        errorHandler?.({ error: err });
+        invokeHook({
+          logger: this.logger,
+          scope: 'attemptReconnect',
+          execution: () => errorHandler?.({ error: normalizedError }),
+        });
         return;
       }
     }
@@ -452,8 +432,12 @@ export class KafkaConsumerHelper<
       });
 
       if (this.onMessageError) {
-        this.stream.on(KafkaClientEvents.STREAM_ERROR, (err: Error) => {
-          this.onMessageError?.({ error: err });
+        this.stream.on(KafkaClientEvents.STREAM_ERROR, (normalizedError: Error) => {
+          invokeHook({
+            logger: this.logger,
+            scope: 'attemptReconnect',
+            execution: () => this.onMessageError?.({ error: normalizedError }),
+          });
         });
       }
 
@@ -466,16 +450,20 @@ export class KafkaConsumerHelper<
         shouldRebuildClient,
       );
     } catch (error) {
-      const err = toError(error);
+      const normalizedError = toError(error);
       this.logger.error(
         '[attemptReconnect] Failed (%d/%d): %s | Topics: %j | ConnectedBrokers: %d',
         attempt,
         maxAttempts,
-        err.message,
+        normalizedError.message,
         this.consumeStartOptions?.topics,
         this.getConnectedBrokerCount(),
       );
-      errorHandler?.({ error: err });
+      invokeHook({
+        logger: this.logger,
+        scope: 'attemptReconnect',
+        execution: () => errorHandler?.({ error: normalizedError }),
+      });
     }
   }
 
@@ -522,9 +510,9 @@ export class KafkaConsumerHelper<
     try {
       await Promise.race([
         new Promise<void>((resolve, reject) => {
-          oldClient.close(true, (err?: Error | null) => {
-            if (err) {
-              reject(err);
+          oldClient.close(true, (normalizedError?: Error | null) => {
+            if (normalizedError) {
+              reject(normalizedError);
             } else {
               resolve();
             }
@@ -602,10 +590,15 @@ export class KafkaConsumerHelper<
         payload.memberId,
         payload.generationId,
       );
-      this.onGroupJoin?.({
-        groupId: payload.groupId,
-        memberId: payload.memberId,
-        generationId: payload.generationId,
+      invokeHook({
+        logger: this.logger,
+        scope: 'configureBrokerEvents',
+        execution: () =>
+          this.onGroupJoin?.({
+            groupId: payload.groupId,
+            memberId: payload.memberId,
+            generationId: payload.generationId,
+          }),
       });
     });
 
@@ -615,9 +608,14 @@ export class KafkaConsumerHelper<
         payload.groupId,
         payload.memberId,
       );
-      this.onGroupLeave?.({
-        groupId: payload.groupId,
-        memberId: payload.memberId,
+      invokeHook({
+        logger: this.logger,
+        scope: 'configureBrokerEvents',
+        execution: () =>
+          this.onGroupLeave?.({
+            groupId: payload.groupId,
+            memberId: payload.memberId,
+          }),
       });
     });
 
@@ -628,7 +626,11 @@ export class KafkaConsumerHelper<
           '[configureConsumerEvents] Group REBALANCE | GroupId: %s',
           payload.groupId,
         );
-        this.onGroupRebalance?.({ groupId: payload.groupId });
+        invokeHook({
+          logger: this.logger,
+          scope: 'configureBrokerEvents',
+          execution: () => this.onGroupRebalance?.({ groupId: payload.groupId }),
+        });
       },
     );
 
@@ -641,21 +643,34 @@ export class KafkaConsumerHelper<
           payload.memberId,
           payload.error,
         );
-        this.onHeartbeatError?.({
-          error: payload.error,
-          groupId: payload.groupId,
-          memberId: payload.memberId,
+        invokeHook({
+          logger: this.logger,
+          scope: 'configureBrokerEvents',
+          execution: () =>
+            this.onHeartbeatError?.({
+              error: payload.error,
+              groupId: payload.groupId,
+              memberId: payload.memberId,
+            }),
         });
       },
     );
 
     this.client.on(KafkaClientEvents.CONSUMER_LAG, (lag: Offsets) => {
-      this.onLag?.({ lag });
+      invokeHook({
+        logger: this.logger,
+        scope: 'configureBrokerEvents',
+        execution: () => this.onLag?.({ lag }),
+      });
     });
 
     this.client.on(KafkaClientEvents.CONSUMER_LAG_ERROR, (error: Error) => {
       this.logger.error('[configureConsumerEvents] Lag monitoring ERROR: %s', error);
-      this.onLagError?.({ error });
+      invokeHook({
+        logger: this.logger,
+        scope: 'configureBrokerEvents',
+        execution: () => this.onLagError?.({ error }),
+      });
     });
   }
 }

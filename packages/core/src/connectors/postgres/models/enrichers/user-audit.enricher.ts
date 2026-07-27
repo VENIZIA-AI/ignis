@@ -54,7 +54,6 @@ const buildUserAuditColumn = (opts: {
           allowAnonymous: columnOpts.allowAnonymous ?? true,
         });
 
-      // createdBy: only set on creation | modifiedBy: set on creation AND update
       return columnField === 'createdBy'
         ? col.$default(userIdGetter)
         : col.$default(userIdGetter).$onUpdate(userIdGetter);
@@ -68,7 +67,6 @@ const buildUserAuditColumn = (opts: {
           allowAnonymous: columnOpts.allowAnonymous ?? true,
         });
 
-      // createdBy: only set on creation | modifiedBy: set on creation AND update
       return columnField === 'createdBy'
         ? col.$default(userIdGetter)
         : col.$default(userIdGetter).$onUpdate(userIdGetter);

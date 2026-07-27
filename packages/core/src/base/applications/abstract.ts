@@ -5,7 +5,7 @@ import type { ValueOrPromise } from '@venizia/ignis-helpers';
 import {
   applicationEnvironment,
   getError,
-  int,
+  HTTP,
   RuntimeModules,
   toBoolean,
 } from '@venizia/ignis-helpers';
@@ -20,6 +20,33 @@ import type {
   TBunServerInstance,
   TNodeServerInstance,
 } from './types';
+
+const DEFAULT_SERVER_HOST = 'localhost';
+const DEFAULT_SERVER_PORT = 3000;
+const MAX_SERVER_PORT = 65535;
+
+/** Resolves the first USABLE port among the candidates - `0` legitimately asks the OS for an ephemeral port, so candidates are rejected on validity, never falsiness. */
+const resolveServerPort = (opts: { candidates: Array<number | string | undefined> }): number => {
+  for (const candidate of opts.candidates) {
+    if (candidate === undefined || candidate === null) {
+      continue;
+    }
+
+    const normalized = typeof candidate === 'string' ? candidate.trim() : candidate;
+    if (normalized === '') {
+      continue;
+    }
+
+    const parsed = Number(normalized);
+    if (!Number.isInteger(parsed) || parsed < 0 || parsed > MAX_SERVER_PORT) {
+      continue;
+    }
+
+    return parsed;
+  }
+
+  return DEFAULT_SERVER_PORT;
+};
 
 export abstract class AbstractApplication<
   AppEnv extends Env = Env,
@@ -46,14 +73,19 @@ export abstract class AbstractApplication<
   protected projectRoot: string;
 
   private postStartHooks: Array<{ identifier: string; hook: () => ValueOrPromise<void> }> = [];
+  private postStopHooks: Array<{ identifier: string; hook: () => ValueOrPromise<void> }> = [];
 
   constructor(opts: { scope: string; config: IApplicationConfigs }) {
     const { scope, config } = opts;
     super({ scope });
 
     this.configs = Object.assign({}, config, {
-      host: config.host || process.env.HOST || process.env.APP_ENV_SERVER_HOST || 'localhost',
-      port: config.port || int(process.env.PORT) || int(process.env.APP_ENV_SERVER_PORT) || 3000,
+      host:
+        [config.host, process.env.HOST, process.env.APP_ENV_SERVER_HOST].find(Boolean) ??
+        DEFAULT_SERVER_HOST,
+      port: resolveServerPort({
+        candidates: [config.port, process.env.PORT, process.env.APP_ENV_SERVER_PORT],
+      }),
       asyncContext: { enable: config?.asyncContext?.enable ?? true },
     });
 
@@ -128,6 +160,7 @@ export abstract class AbstractApplication<
       .debug('Registered post-start hook | identifier: %s', opts.identifier);
   }
 
+  /** Runs every post-start hook in isolation - the server is already listening, so a throwing hook must not cancel the ones behind it; failures are collected and reported as one error at the end. */
   protected async executePostStartHooks() {
     if (this.postStartHooks.length === 0) {
       return;
@@ -136,14 +169,53 @@ export abstract class AbstractApplication<
     const logger = this.logger.for(this.executePostStartHooks.name);
     logger.info('Executing %s post-start hook(s)...', this.postStartHooks.length);
 
+    const failures: Array<{ identifier: string; error: unknown }> = [];
+
     for (const { identifier, hook } of this.postStartHooks) {
       const t = performance.now();
-      await hook();
+
+      try {
+        await hook();
+      } catch (error) {
+        logger.error('Failed to execute hook | identifier: %s | error: %s', identifier, error);
+        failures.push({ identifier, error });
+        continue;
+      }
+
       logger.info(
         'Executed hook | identifier: %s | took: %s (ms)',
         identifier,
         performance.now() - t,
       );
+    }
+
+    if (failures.length === 0) {
+      return;
+    }
+
+    throw getError({
+      statusCode: HTTP.ResultCodes.RS_5.InternalServerError,
+      message: `[executePostStartHooks] Failed post-start hook(s): ${failures
+        .map(failure => `${failure.identifier} (${failure.error})`)
+        .join(', ')}`,
+    });
+  }
+
+  registerPostStopHook(opts: { identifier: string; hook: () => ValueOrPromise<void> }) {
+    this.postStopHooks.push(opts);
+    this.logger
+      .for(this.registerPostStopHook.name)
+      .debug('Registered post-stop hook | identifier: %s', opts.identifier);
+  }
+
+  protected async executePostStopHooks() {
+    const logger = this.logger.for(this.executePostStopHooks.name);
+    for (const { identifier, hook } of this.postStopHooks) {
+      try {
+        await hook();
+      } catch (error) {
+        logger.error('Post-stop hook failed | identifier: %s | error: %s', identifier, error);
+      }
     }
   }
 
@@ -225,6 +297,7 @@ export abstract class AbstractApplication<
       )
         .then(rs => {
           this.server.instance = rs;
+          this.configs.port = rs.port;
           this.inspectRoutes();
 
           this.logger
@@ -260,7 +333,10 @@ export abstract class AbstractApplication<
       import('@hono/node-server')
         .then(module => {
           const { serve } = module;
+
+          // Resolve from the listening callback, not serve()'s synchronous return - only then is the socket bound and the OS-assigned port (config port `0`) known.
           const rs = serve({ fetch: server.fetch, port, hostname: host }, info => {
+            this.configs.port = info.port;
             this.inspectRoutes();
             this.logger
               .for(this.start.name)
@@ -271,10 +347,10 @@ export abstract class AbstractApplication<
                 'Log folder: %s',
                 path.resolve(process.env.APP_ENV_LOGGER_FOLDER_PATH ?? '').toString(),
               );
-          });
 
-          this.server.instance = rs;
-          resolve(rs);
+            this.server.instance = rs;
+            resolve(rs);
+          });
         })
         .catch(error => {
           this.logger
@@ -319,15 +395,32 @@ export abstract class AbstractApplication<
     await this.executePostStartHooks();
   }
 
-  stop() {
-    this.logger.for(this.stop.name).info('Server STOPPED');
+  async stop() {
+    await this.executePostStopHooks();
+
+    const instance = this.server.instance;
+    if (!instance) {
+      this.logger.for(this.stop.name).info('Server was not started | Nothing to stop');
+      return;
+    }
+
     switch (this.server.runtime) {
       case RuntimeModules.BUN: {
-        this.server.instance?.stop();
+        await instance.stop();
         break;
       }
       case RuntimeModules.NODE: {
-        this.server.instance?.close();
+        // `close()` is callback-based: without this bridge stop() resolves while the socket is still bound, so an immediate restart races the previous listener.
+        await new Promise<void>((resolve, reject) => {
+          instance.close((error?: Error) => {
+            if (error) {
+              reject(error);
+              return;
+            }
+
+            resolve();
+          });
+        });
         break;
       }
       default: {
@@ -336,5 +429,8 @@ export abstract class AbstractApplication<
         });
       }
     }
+
+    this.server.instance = undefined;
+    this.logger.for(this.stop.name).info('Server STOPPED');
   }
 }

@@ -65,31 +65,31 @@ export class ArrayOperatorTestService extends BaseTestService {
     this.logSection('[ArrayOperatorTestService] Starting array operator test cases');
 
     // Basic array operators
-    await this.case1_SetupTestData();
-    await this.case2_ContainsAllElements();
-    await this.case3_ContainsSingleElement();
-    await this.case4_ContainsEmptyArray();
-    await this.case5_ContainedByArray();
-    await this.case6_ContainedByEmptyArray();
-    await this.case7_OverlapsWithArray();
-    await this.case8_OverlapsNoMatch();
-    await this.case9_OverlapsEmptyArray();
-    await this.case10_CombinedWithOtherFilters();
-    await this.case11_ContainsWithAndOr();
+    await this.case1SetupTestData();
+    await this.case2ContainsAllElements();
+    await this.case3ContainsSingleElement();
+    await this.case4ContainsEmptyArray();
+    await this.case5ContainedByArray();
+    await this.case6ContainedByEmptyArray();
+    await this.case7OverlapsWithArray();
+    await this.case8OverlapsNoMatch();
+    await this.case9OverlapsEmptyArray();
+    await this.case10CombinedWithOtherFilters();
+    await this.case11ContainsWithAndOr();
 
     // Edge cases and advanced scenarios
-    await this.case13_LargeArrayContains();
-    await this.case14_SpecialCharactersInArray();
-    await this.case15_DuplicateElementsInArray();
-    await this.case16_CaseSensitivity();
-    await this.case17_EmptyStringInArray();
-    await this.case18_CombinedArrayOperators();
-    await this.case19_ArrayWithNumericLikeStrings();
-    await this.case20_ArrayOperatorWithOrderAndLimit();
-    await this.case21_NullArrayColumn();
+    await this.case13LargeArrayContains();
+    await this.case14SpecialCharactersInArray();
+    await this.case15DuplicateElementsInArray();
+    await this.case16CaseSensitivity();
+    await this.case17EmptyStringInArray();
+    await this.case18CombinedArrayOperators();
+    await this.case19ArrayWithNumericLikeStrings();
+    await this.case20ArrayOperatorWithOrderAndLimit();
+    await this.case21NullArrayColumn();
 
     // Cleanup last
-    await this.case12_Cleanup();
+    await this.case12Cleanup();
 
     this.logSection('[ArrayOperatorTestService] All array operator test cases completed');
   }
@@ -97,7 +97,7 @@ export class ArrayOperatorTestService extends BaseTestService {
   // ----------------------------------------------------------------
   // CASE 1: Setup test data with array columns
   // ----------------------------------------------------------------
-  private async case1_SetupTestData(): Promise<void> {
+  private async case1SetupTestData(): Promise<void> {
     const repo = this.productRepository;
     this.logCase('[CASE 1] Setup test data with array columns');
 
@@ -151,7 +151,7 @@ export class ArrayOperatorTestService extends BaseTestService {
   // ----------------------------------------------------------------
   // CASE 2: Contains - array contains all specified elements
   // ----------------------------------------------------------------
-  private async case2_ContainsAllElements(): Promise<void> {
+  private async case2ContainsAllElements(): Promise<void> {
     const repo = this.productRepository;
     this.logCase('[CASE 2] Contains: tags @> [electronics, featured]');
 
@@ -179,7 +179,7 @@ export class ArrayOperatorTestService extends BaseTestService {
   // ----------------------------------------------------------------
   // CASE 3: Contains - single element
   // ----------------------------------------------------------------
-  private async case3_ContainsSingleElement(): Promise<void> {
+  private async case3ContainsSingleElement(): Promise<void> {
     const repo = this.productRepository;
     this.logCase('[CASE 3] Contains: tags @> [featured]');
 
@@ -212,7 +212,7 @@ export class ArrayOperatorTestService extends BaseTestService {
   // ----------------------------------------------------------------
   // CASE 4: Contains - empty array (everything contains empty set)
   // ----------------------------------------------------------------
-  private async case4_ContainsEmptyArray(): Promise<void> {
+  private async case4ContainsEmptyArray(): Promise<void> {
     const repo = this.productRepository;
     this.logCase('[CASE 4] Contains: tags @> [] (empty array)');
 
@@ -240,7 +240,7 @@ export class ArrayOperatorTestService extends BaseTestService {
   // ----------------------------------------------------------------
   // CASE 5: ContainedBy - array is subset of provided elements
   // ----------------------------------------------------------------
-  private async case5_ContainedByArray(): Promise<void> {
+  private async case5ContainedByArray(): Promise<void> {
     const repo = this.productRepository;
     this.logCase('[CASE 5] ContainedBy: tags <@ [electronics, featured, sale, premium]');
 
@@ -276,7 +276,7 @@ export class ArrayOperatorTestService extends BaseTestService {
   // ----------------------------------------------------------------
   // CASE 6: ContainedBy - empty array (only empty arrays match)
   // ----------------------------------------------------------------
-  private async case6_ContainedByEmptyArray(): Promise<void> {
+  private async case6ContainedByEmptyArray(): Promise<void> {
     const repo = this.productRepository;
     this.logCase('[CASE 6] ContainedBy: tags <@ [] (only empty matches)');
 
@@ -305,7 +305,7 @@ export class ArrayOperatorTestService extends BaseTestService {
   // ----------------------------------------------------------------
   // CASE 7: Overlaps - shares any element
   // ----------------------------------------------------------------
-  private async case7_OverlapsWithArray(): Promise<void> {
+  private async case7OverlapsWithArray(): Promise<void> {
     const repo = this.productRepository;
     this.logCase('[CASE 7] Overlaps: tags && [premium, clothing]');
 
@@ -340,7 +340,7 @@ export class ArrayOperatorTestService extends BaseTestService {
   // ----------------------------------------------------------------
   // CASE 8: Overlaps - no matching elements
   // ----------------------------------------------------------------
-  private async case8_OverlapsNoMatch(): Promise<void> {
+  private async case8OverlapsNoMatch(): Promise<void> {
     const repo = this.productRepository;
     this.logCase('[CASE 8] Overlaps: tags && [nonexistent]');
 
@@ -367,7 +367,7 @@ export class ArrayOperatorTestService extends BaseTestService {
   // ----------------------------------------------------------------
   // CASE 9: Overlaps - empty array (no overlap possible)
   // ----------------------------------------------------------------
-  private async case9_OverlapsEmptyArray(): Promise<void> {
+  private async case9OverlapsEmptyArray(): Promise<void> {
     const repo = this.productRepository;
     this.logCase('[CASE 9] Overlaps: tags && [] (empty array)');
 
@@ -395,7 +395,7 @@ export class ArrayOperatorTestService extends BaseTestService {
   // ----------------------------------------------------------------
   // CASE 10: Combined with other filters
   // ----------------------------------------------------------------
-  private async case10_CombinedWithOtherFilters(): Promise<void> {
+  private async case10CombinedWithOtherFilters(): Promise<void> {
     const repo = this.productRepository;
     this.logCase('[CASE 10] Combined: price > 150 AND tags contains [featured]');
 
@@ -430,7 +430,7 @@ export class ArrayOperatorTestService extends BaseTestService {
   // ----------------------------------------------------------------
   // CASE 11: Contains with AND/OR
   // ----------------------------------------------------------------
-  private async case11_ContainsWithAndOr(): Promise<void> {
+  private async case11ContainsWithAndOr(): Promise<void> {
     const repo = this.productRepository;
     this.logCase('[CASE 11] OR: tags contains [electronics] OR tags contains [furniture]');
 
@@ -460,7 +460,7 @@ export class ArrayOperatorTestService extends BaseTestService {
   // ----------------------------------------------------------------
   // CASE 13: Large Array Contains (100+ elements)
   // ----------------------------------------------------------------
-  private async case13_LargeArrayContains(): Promise<void> {
+  private async case13LargeArrayContains(): Promise<void> {
     const repo = this.productRepository;
     this.logCase('[CASE 13] Large array with 100+ elements');
 
@@ -506,7 +506,7 @@ export class ArrayOperatorTestService extends BaseTestService {
   // ----------------------------------------------------------------
   // CASE 14: Special Characters in Array Elements
   // ----------------------------------------------------------------
-  private async case14_SpecialCharactersInArray(): Promise<void> {
+  private async case14SpecialCharactersInArray(): Promise<void> {
     const repo = this.productRepository;
     this.logCase('[CASE 14] Special characters in array elements');
 
@@ -573,7 +573,7 @@ export class ArrayOperatorTestService extends BaseTestService {
   // ----------------------------------------------------------------
   // CASE 15: Duplicate Elements in Array
   // ----------------------------------------------------------------
-  private async case15_DuplicateElementsInArray(): Promise<void> {
+  private async case15DuplicateElementsInArray(): Promise<void> {
     const repo = this.productRepository;
     this.logCase('[CASE 15] Duplicate elements in array');
 
@@ -591,7 +591,7 @@ export class ArrayOperatorTestService extends BaseTestService {
 
       // Verify the array stores duplicates
       const found = await repo.findById({ id: product.data.id });
-      const dupCount = found?.tags?.filter(t => t === 'dup_tag').length || 0;
+      const dupCount = found?.tags?.filter(t => t === 'dup_tag').length ?? 0;
 
       if (dupCount === 3) {
         this.logger.info(
@@ -626,7 +626,7 @@ export class ArrayOperatorTestService extends BaseTestService {
   // ----------------------------------------------------------------
   // CASE 16: Case Sensitivity
   // ----------------------------------------------------------------
-  private async case16_CaseSensitivity(): Promise<void> {
+  private async case16CaseSensitivity(): Promise<void> {
     const repo = this.productRepository;
     this.logCase('[CASE 16] Case sensitivity in array operators');
 
@@ -678,7 +678,7 @@ export class ArrayOperatorTestService extends BaseTestService {
   // ----------------------------------------------------------------
   // CASE 17: Empty String in Array
   // ----------------------------------------------------------------
-  private async case17_EmptyStringInArray(): Promise<void> {
+  private async case17EmptyStringInArray(): Promise<void> {
     const repo = this.productRepository;
     this.logCase('[CASE 17] Empty string in array elements');
 
@@ -726,7 +726,7 @@ export class ArrayOperatorTestService extends BaseTestService {
   // ----------------------------------------------------------------
   // CASE 18: Combined Array Operators
   // ----------------------------------------------------------------
-  private async case18_CombinedArrayOperators(): Promise<void> {
+  private async case18CombinedArrayOperators(): Promise<void> {
     const repo = this.productRepository;
     this.logCase('[CASE 18] Combined array operators (AND multiple conditions)');
 
@@ -776,7 +776,7 @@ export class ArrayOperatorTestService extends BaseTestService {
   // ----------------------------------------------------------------
   // CASE 19: Array with Numeric-like Strings
   // ----------------------------------------------------------------
-  private async case19_ArrayWithNumericLikeStrings(): Promise<void> {
+  private async case19ArrayWithNumericLikeStrings(): Promise<void> {
     const repo = this.productRepository;
     this.logCase('[CASE 19] Array with numeric-like strings');
 
@@ -821,7 +821,7 @@ export class ArrayOperatorTestService extends BaseTestService {
   // ----------------------------------------------------------------
   // CASE 20: Array Operators with Order and Limit
   // ----------------------------------------------------------------
-  private async case20_ArrayOperatorWithOrderAndLimit(): Promise<void> {
+  private async case20ArrayOperatorWithOrderAndLimit(): Promise<void> {
     const repo = this.productRepository;
     this.logCase('[CASE 20] Array operators combined with order and limit');
 
@@ -866,7 +866,7 @@ export class ArrayOperatorTestService extends BaseTestService {
   // ----------------------------------------------------------------
   // CASE 21: Null Array Column
   // ----------------------------------------------------------------
-  private async case21_NullArrayColumn(): Promise<void> {
+  private async case21NullArrayColumn(): Promise<void> {
     const repo = this.productRepository;
     this.logCase('[CASE 21] Null array column handling');
 
@@ -930,7 +930,7 @@ export class ArrayOperatorTestService extends BaseTestService {
   // ----------------------------------------------------------------
   // CASE 12: Cleanup test data
   // ----------------------------------------------------------------
-  private async case12_Cleanup(): Promise<void> {
+  private async case12Cleanup(): Promise<void> {
     const repo = this.productRepository;
     this.logCase('[CASE 12] Cleanup array operator test data');
 

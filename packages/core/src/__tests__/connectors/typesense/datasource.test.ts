@@ -11,7 +11,7 @@ import {
 } from '@/connectors/typesense';
 import { compileTypesenseCollection } from '@/connectors/typesense/compiler';
 import { MetadataRegistry } from '@/helpers/inversion';
-import { BaseSearchEntity, defineSearchCollection, field } from '@/connectors/typesense/models';
+import { BaseSearchEntity, defineSearchCollection, field } from '@/connectors/search/models';
 
 /** Minimal fake Typesense client-shaped connector - records `ensureCollection`/`multiSearch`/synonym-set calls. */
 class FakeTypesenseConnector {
@@ -20,10 +20,21 @@ class FakeTypesenseConnector {
   synonymSetCalls: Array<{ name: string; items: unknown }> = [];
   linkCalls: Array<{ collection: string; synonymSets: string[] }> = [];
 
-  async ensureCollection(opts: { schema: unknown }): Promise<unknown> {
-    this.ensureCalls.push(opts.schema);
-    return opts.schema;
-  }
+  collection = {
+    ensure: async (opts: { schema: unknown }): Promise<unknown> => {
+      this.ensureCalls.push(opts.schema);
+      return opts.schema;
+    },
+  };
+
+  synonymSet = {
+    upsert: async (opts: { name: string; items: unknown }): Promise<void> => {
+      this.synonymSetCalls.push(opts);
+    },
+    link: async (opts: { collection: string; synonymSets: string[] }): Promise<void> => {
+      this.linkCalls.push(opts);
+    },
+  };
 
   async ping(): Promise<boolean> {
     return true;
@@ -33,24 +44,12 @@ class FakeTypesenseConnector {
     this.multiSearchCalls.push(opts);
     return { results: [{ found: 1 }] };
   }
-
-  async upsertSynonymSet(opts: { name: string; items: unknown }): Promise<void> {
-    this.synonymSetCalls.push(opts);
-  }
-
-  async linkSynonymSets(opts: { collection: string; synonymSets: string[] }): Promise<void> {
-    this.linkCalls.push(opts);
-  }
 }
 
-/** FakeTypesenseConnector only implements the methods these tests exercise (`ensureCollection`,
- * `ping`, `multiSearch`, synonym sets); TypesenseConnector is a concrete class with a private
- * `client` field, so no fake can be structurally assignable to it - this is the single boundary
- * cast every fake-connector injection in this file funnels through. */
+/** FakeTypesenseConnector implements only the methods these tests exercise; TypesenseConnector is a concrete class with a private `client` field, so no fake is structurally assignable to it - this is the single boundary cast every fake-connector injection in this file funnels through. */
 const asTypesenseConnector = (fake: FakeTypesenseConnector): TypesenseConnector => fake as any;
 
 class AppSearchDataSource extends TypesenseDataSource {}
-class NoConnectorDataSource extends TypesenseDataSource {}
 class SkipProvisionDataSource extends TypesenseDataSource {}
 class SynonymProvisionDataSource extends TypesenseDataSource {}
 
@@ -63,7 +62,7 @@ class ProductDocument extends BaseSearchEntity {
 }
 
 @repository({ model: ProductDocument, dataSource: AppSearchDataSource })
-class _ProductRepo {}
+class ProductRepo {}
 
 @model({ type: 'entity' })
 class GizmoDocument extends BaseSearchEntity {
@@ -74,7 +73,7 @@ class GizmoDocument extends BaseSearchEntity {
 }
 
 @repository({ model: GizmoDocument, dataSource: SkipProvisionDataSource })
-class _GizmoRepo {}
+class GizmoRepo {}
 
 @model({ type: 'entity' })
 class WidgetDocument extends BaseSearchEntity {
@@ -89,15 +88,15 @@ class WidgetDocument extends BaseSearchEntity {
 }
 
 @repository({ model: WidgetDocument, dataSource: SynonymProvisionDataSource })
-class _WidgetRepo {}
+class WidgetRepo {}
 
 describe('TypesenseDataSource', () => {
   test('@repository bindings were registered for both fixture repositories', () => {
     const registry = MetadataRegistry.getInstance();
 
-    expect(registry.getRepositoryBinding({ name: _ProductRepo.name })).toBeDefined();
-    expect(registry.getRepositoryBinding({ name: _GizmoRepo.name })).toBeDefined();
-    expect(registry.getRepositoryBinding({ name: _WidgetRepo.name })).toBeDefined();
+    expect(registry.getRepositoryBinding({ name: ProductRepo.name })).toBeDefined();
+    expect(registry.getRepositoryBinding({ name: GizmoRepo.name })).toBeDefined();
+    expect(registry.getRepositoryBinding({ name: WidgetRepo.name })).toBeDefined();
   });
 
   test('configure() builds the connector-less path only when no connector is injected, and provisions the compiled schema', async () => {
@@ -107,6 +106,7 @@ describe('TypesenseDataSource', () => {
       name: 'app-search',
       config: { nodes: [{ host: 'localhost', port: 8108 }], apiKey: 'xyz' },
       connector: asTypesenseConnector(fakeConnector),
+      autoProvision: true,
     });
 
     await ds.configure();
@@ -119,12 +119,14 @@ describe('TypesenseDataSource', () => {
   });
 
   test('getConnector() throws before configure() has run', () => {
-    const ds = new NoConnectorDataSource({
+    // Constructed as TypesenseDataSource itself, not a subclass: the shared base names the error after the runtime class, so only a direct instance pins the message an app actually sees.
+    const ds = new TypesenseDataSource({
       name: 'no-connector-ds',
       config: { nodes: [{ host: 'localhost', port: 8108 }], apiKey: 'xyz' },
     });
 
     expect(() => ds.getConnector()).toThrow(/\[TypesenseDataSource\] Connector not initialized/);
+    expect(() => ds.getConnector()).toThrow(/Name: no-connector-ds \| Call configure\(\) first/);
   });
 
   test('autoProvision: false skips ensureCollection entirely', async () => {
@@ -149,6 +151,7 @@ describe('TypesenseDataSource', () => {
       name: 'synonym-provision-ds',
       config: { nodes: [{ host: 'localhost', port: 8108 }], apiKey: 'xyz' },
       connector: asTypesenseConnector(fakeConnector),
+      autoProvision: true,
     });
 
     await ds.configure();
@@ -175,6 +178,7 @@ describe('TypesenseDataSource', () => {
       name: 'reentrant-ds',
       config: { nodes: [{ host: 'localhost', port: 8108 }], apiKey: 'xyz' },
       connector: asTypesenseConnector(fakeConnector),
+      autoProvision: true,
     });
 
     await ds.configure();
@@ -211,11 +215,7 @@ describe('TypesenseDataSource', () => {
     );
   });
 
-  // Typesense adds no transaction support - it inherits AbstractDataSource's NotSupported-by-default
-  // beginTransaction()/getCapabilities(). search.vector is true - Phase 2 landed first-class VECTOR
-  // fields (client-provided + server-side auto-embedding). search.multi/search.union are true -
-  // Phase 4 landed federated + union multi-search. synonyms is true - Phase 5 landed first-class
-  // multi-way/one-way synonym sets (declarative + runtime, auto-provisioned).
+  // Typesense inherits AbstractDataSource's NotSupported-by-default transaction members; search.vector, search.multi/search.union and synonyms are all shipped capabilities.
   test('getCapabilities() reports no transactions and the search capability flags', () => {
     const ds = new AppSearchDataSource({
       name: 'capabilities-ds',
@@ -252,8 +252,7 @@ describe('TypesenseDataSource', () => {
       union: true,
     });
 
-    // Friendly in (query/queryBy: string[]/filterBy/perPage) -> snake_case wire out
-    // (q/query_by/filter_by/per_page), same mapping single-collection search() uses.
+    // Friendly in (query/queryBy: string[]/filterBy/perPage) -> snake_case wire out (q/query_by/filter_by/per_page), the same mapping single-collection search() uses.
     expect(fakeConnector.multiSearchCalls).toEqual([
       {
         searches: [
@@ -282,7 +281,7 @@ describe('TypesenseDataSource', () => {
 
     expect(caught).toBeInstanceOf(ApplicationError);
     expect((caught as ApplicationError).statusCode).toBe(HTTP.ResultCodes.RS_5.NotImplemented);
-    expect((caught as ApplicationError).messageCode).toBe('core.not_supported');
+    expect((caught as ApplicationError).normalized.code).toBe('core.not_supported');
   });
 });
 
@@ -316,8 +315,7 @@ describe('barrel purity', () => {
   });
 
   test('src/index.ts and src/base/** never import the typesense connector', async () => {
-    // typesense is optional - only src/connectors/typesense/ and its sub-path consumers may
-    // reference it; neutral code (src/base, root barrel) must never import it, even transitively.
+    // typesense is optional - only src/connectors/typesense/ and its sub-path consumers may reference it; neutral code (src/base, root barrel) must never import it, even transitively.
     const rootIndex = await Bun.file('src/index.ts').text();
     expect(rootIndex).not.toContain('connectors/typesense');
 

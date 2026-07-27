@@ -1,3 +1,4 @@
+import type { AnyType } from '@/common/types';
 import { afterEach, describe, expect, it } from 'bun:test';
 import { RedisClusterHelper } from '@/modules/redis';
 
@@ -19,7 +20,7 @@ describe('RedisClusterHelper', () => {
       clusterOptions: { lazyConnect: true },
     });
     const nodes = (
-      helper.getClient() as unknown as {
+      helper.getClient() as AnyType as {
         startupNodes: Array<{ host: string; port: number; password?: string }>;
       }
     ).startupNodes;

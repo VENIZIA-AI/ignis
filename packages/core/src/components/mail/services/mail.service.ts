@@ -1,17 +1,20 @@
 import { BaseService } from '@/base/services';
-import {
+import type {
   IMailMessage,
   IMailSendResult,
   IMailService,
   IMailTemplateEngine,
   IMailTransport,
-  MailDefaults,
-  MailErrorCodes,
-  MailKeys,
   TMailOptions,
 } from '../common';
+import { MailDefaults, MailErrorCodes, MailErrors, MailKeys } from '../common';
 import { inject } from '@/base/metadata';
-import { AnyType, executePromiseWithLimit, getError } from '@venizia/ignis-helpers';
+import {
+  AnyType,
+  executePromiseWithLimit,
+  getError,
+  isApplicationError,
+} from '@venizia/ignis-helpers';
 
 export class MailService extends BaseService implements IMailService {
   constructor(
@@ -51,6 +54,12 @@ export class MailService extends BaseService implements IMailService {
       return result;
     } catch (error) {
       this.logger.for(this.send.name).error('Error sending email: %s', error);
+
+      // An error the framework already shaped carries its own status and message code; re-wrapping as 500 would report a caller mistake as a server fault.
+      if (isApplicationError(error)) {
+        throw error;
+      }
+
       throw getError({
         statusCode: 500,
         messageCode: MailErrorCodes.SEND_FAILED,
@@ -172,34 +181,38 @@ export class MailService extends BaseService implements IMailService {
   protected validateMessage(message: IMailMessage): void {
     if (!message.to || (Array.isArray(message.to) && message.to.length === 0)) {
       throw getError({
-        statusCode: 400,
-        messageCode: MailErrorCodes.INVALID_RECIPIENT,
+        error: MailErrors.INVALID_RECIPIENT,
         message: 'Recipient email address is required',
       });
     }
 
     if (!message.subject) {
       throw getError({
-        statusCode: 400,
-        messageCode: MailErrorCodes.INVALID_CONFIGURATION,
+        error: MailErrors.INVALID_CONFIGURATION,
         message: 'Email subject is required',
       });
     }
 
     if (!message.text && !message.html) {
       throw getError({
-        statusCode: 400,
-        messageCode: MailErrorCodes.INVALID_CONFIGURATION,
+        error: MailErrors.INVALID_CONFIGURATION,
         message: 'Email must have either text or html content',
       });
     }
   }
 
   protected getDefaultFrom(): string {
-    if (this.options.fromName) {
-      return `"${this.options.fromName}" <${this.options.from}>`;
+    const { from, fromName } = this.options;
+
+    // A display name is only renderable around an address: `"Name" <undefined>` is not a sender.
+    if (!from) {
+      return MailDefaults.FALLBACK_FROM;
     }
 
-    return this.options.from ?? 'noreply@example.com';
+    if (!fromName) {
+      return from;
+    }
+
+    return `"${fromName}" <${from}>`;
   }
 }

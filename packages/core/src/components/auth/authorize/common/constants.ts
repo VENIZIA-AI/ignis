@@ -18,6 +18,9 @@ export class AuthorizationActions {
   static readonly WRITE = 'write';
   static readonly MANAGE = 'manage';
 
+  /** Grant-mode marker for a subset grant carrying `metadata.ops`; never a member of LATTICE. */
+  static readonly CUSTOM = 'custom';
+
   static readonly SCHEME_SET = new Set([
     this.CREATE,
     this.UPDATE,
@@ -27,6 +30,8 @@ export class AuthorizationActions {
     this.READ,
     this.WRITE,
     this.MANAGE,
+
+    this.CUSTOM,
   ]);
 
   static readonly LATTICE: ReadonlyArray<{
@@ -189,7 +194,7 @@ export class AuthorizationDomainScopes {
   /** Grant applies in EVERY domain the subject is a member of (checked via join_domain / g2). */
   static readonly ANY_MEMBER = 'ANY_MEMBER';
 
-  /** Grant applies system-wide, bypassing membership — super-admin only. */
+  /** Grant applies system-wide, bypassing membership - super-admin only. */
   static readonly SYSTEM_WIDE = 'SYSTEM_WIDE';
 
   static readonly SCHEME_SET = new Set([this.ANY_MEMBER, this.SYSTEM_WIDE]);
@@ -200,115 +205,58 @@ export class AuthorizationDomainScopes {
 }
 export type TAuthorizationDomainScope = TConstValue<typeof AuthorizationDomainScopes>;
 
-/**
- * Engine-level vocabulary: the relation prefixes the Casbin MODEL declares — `p` for permission
- * policies and `g`/`g2`…`g5` for grouping relations. This is the low-level building block that
- * {@link AuthorizationPolicyVariants} maps onto (many app edge-types → one rule, e.g. both
- * `assign_role` and `role_inherits` use `g`). Keep these in sync with the model's `[role_definition]`.
- */
+/** Relation prefixes the Casbin MODEL declares (`p` + `g`..`g5`), which {@link AuthorizationPolicyVariants} maps onto (many app edge-types -> one rule). Keep in sync with the model's `[role_definition]`. */
 export class CasbinRuleVariants {
   /** Permission policy line. */
   static readonly P = 'p';
 
-  /**
-   * Numbered in request-tuple order (`sub → dom → obj → act`) so the matcher reads left-to-right:
-   * g (sub), g2/g3 (dom), g4 (obj), g5 (act).
-   */
+  /** Numbered in request-tuple order (sub -> dom -> obj -> act): g (sub), g2/g3 (dom), g4 (obj), g5 (act). */
 
-  /** Grouping #1 — role membership + role inheritance (user→role, role→role). The `sub` axis. */
+  /** Grouping #1 - role membership + role inheritance (user→role, role→role). The `sub` axis. */
   static readonly G = 'g';
 
-  /** Grouping #2 — user→domain membership (join_domain). The `dom` axis (membership). */
+  /** Grouping #2 - user→domain membership (join_domain). The `dom` axis (membership). */
   static readonly G2 = 'g2';
 
-  /** Grouping #3 — domain hierarchy. The `dom` axis (nesting). */
+  /** Grouping #3 - domain hierarchy. The `dom` axis (nesting). */
   static readonly G3 = 'g3';
 
-  /** Grouping #4 — resource hierarchy. The `obj` axis. */
+  /** Grouping #4 - resource hierarchy. The `obj` axis. */
   static readonly G4 = 'g4';
 
-  /** Grouping #5 — action hierarchy. The `act` axis. */
+  /** Grouping #5 - action hierarchy. The `act` axis. */
   static readonly G5 = 'g5';
 }
 
 export type TCasbinRuleVariant = TConstValue<typeof CasbinRuleVariants>;
 
-/**
- * The kinds of "edge" stored in the single `PolicyDefinition` table. Every row links a `subject`
- * (type + id) to a `target` (type + id); the `variant` column says WHAT kind of link it is.
- *
- * Picture the whole RBAC state as a graph — nodes are User / Role / Permission / Domain, and each
- * PolicyDefinition row is one edge. `ScopedCasbinAdapter` reads these rows and emits one casbin line
- * per edge. Each entry below carries:
- *   - `action` — the value stored in the DB `variant` column (what the adapter filters on).
- *   - `rule`   — the casbin grouping/policy prefix the adapter emits for that edge (`p`, `g`, `g2`…).
- *
- * Per-USER edges (differ per user): GRANT, ASSIGN_ROLE, JOIN_DOMAIN.
- * Shared HIERARCHY edges (same for everyone — describe the org structure, not a user):
- *   ROLE_INHERITS, RESOURCE_INHERITS, ACTION_INHERITS, DOMAIN_INHERITS.
- */
+/** Edge kinds in the `PolicyDefinition` table (each row: subject -> target, `variant` = kind), carrying `action` (DB `variant` value) + `rule` (casbin prefix emitted per edge). Per-USER edges: GRANT, ASSIGN_ROLE, JOIN_DOMAIN; shared org-structure edges: the *_INHERITS ones. */
 export class AuthorizationPolicyVariants {
-  /**
-   * Give a Permission to a User or Role (the grant row also carries action / effect / domain).
-   * casbin `p`: `p, <Role|User>_<id>, <domain>, <permissionCode>, <action>, <allow|deny>`
-   * e.g. `p, Role_5, ANY_MEMBER, Order, read, allow` — "Role 5 may read Order in any joined domain".
-   */
+  /** Give a Permission to a User/Role (row also carries action / effect / domain). casbin `p`: `p, <Role|User>_<id>, <domain>, <permissionCode>, <action>, <allow|deny>` */
   static readonly GRANT = { action: 'grant', rule: CasbinRuleVariants.P } as const;
 
-  /**
-   * Give a User a Role (optionally scoped to a domain; no domain → `*` = every domain).
-   * casbin `g`: `g, User_<id>, Role_<id>, <domain|*>`
-   * e.g. `g, User_42, Role_5, *` — "User 42 holds Role 5 everywhere".
-   */
+  /** Give a User a Role (optionally domain-scoped; no domain -> `*` = every domain). casbin `g`: `g, User_<id>, Role_<id>, <domain|*>` */
   static readonly ASSIGN_ROLE = { action: 'assign_role', rule: CasbinRuleVariants.G } as const;
 
-  /**
-   * A Role inherits another Role (DAG). Shares the `g` relation with ASSIGN_ROLE so a
-   * user → role → parent-role chain resolves in one lookup. Emitted with domain `*`.
-   * casbin `g`: `g, Role_<child>, Role_<parent>, *`
-   * e.g. `g, Role_5, Role_9, *` — "Role 5 inherits everything Role 9 has".
-   */
+  /** A Role inherits another Role (DAG). Shares `g` with ASSIGN_ROLE so user -> role -> parent-role resolves in one lookup. Emitted with domain `*`: `g, Role_<child>, Role_<parent>, *` */
   static readonly ROLE_INHERITS = { action: 'role_inherits', rule: CasbinRuleVariants.G } as const;
 
-  /**
-   * A User is a member of a Domain. Powers the `ANY_MEMBER` grant scope — a grant with domain
-   * `ANY_MEMBER` applies in every domain the user joined. Matcher uses `g2(r.sub, r.dom)`.
-   * casbin `g2`: `g2, User_<id>, <Type>_<domainId>`
-   * e.g. `g2, User_42, Merchant_7` — "User 42 is a member of Merchant 7".
-   */
+  /** User is a member of a Domain; powers the `ANY_MEMBER` grant scope via `g2(r.sub, r.dom)`. casbin `g2`: `g2, User_<id>, <Type>_<domainId>` */
   static readonly JOIN_DOMAIN = { action: 'join_domain', rule: CasbinRuleVariants.G2 } as const;
 
-  /**
-   * DOMAIN axis (the `dom` of a request). One domain is nested under a parent domain.
-   * Matcher: `g3(r.dom, p.dom)` (+ self-link, so an exact domain always matches itself).
-   * casbin `g3`: `g3, <Type>_<childId>, <Type>_<parentId>`
-   * e.g. `g3, Branch_1, Company_9` — "a grant scoped to Company 9 also applies in Branch 1".
-   */
+  /** DOMAIN axis (`dom`): domain nesting. Matcher: `g3(r.dom, p.dom)` + self-link so an exact domain always matches itself. casbin `g3`: `g3, <Type>_<childId>, <Type>_<parentId>` */
   static readonly DOMAIN_INHERITS = {
     action: 'domain_inherits',
     rule: CasbinRuleVariants.G3,
   } as const;
 
-  /**
-   * RESOURCE axis (the `obj` of a request). One resource is nested under a broader one — for
-   * NON-standard nesting only; dotted nesting (`Order.findById ⊂ Order`) is handled by `objectMatch`
-   * WITHOUT an edge. Matcher: `objectMatch(r.obj, p.obj) || g4(r.obj, p.obj)`.
-   * casbin `g4`: `g4, <childCode>, <parentCode>`
-   * e.g. `g4, OrderItem, Order` — "a grant on Order also covers OrderItem".
-   */
+  /** RESOURCE axis (`obj`), NON-standard nesting only - dotted nesting (`Order.findById ⊂ Order`) is handled by `objectMatch` WITHOUT an edge. Matcher: `objectMatch(r.obj, p.obj) || g4(r.obj, p.obj)`, casbin `g4`: `g4, <childCode>, <parentCode>` */
   static readonly RESOURCE_INHERITS = {
     action: 'resource_inherits',
     rule: CasbinRuleVariants.G4,
   } as const;
 
-  /**
-   * ACTION axis (the `act` of a request) — SAME shape as RESOURCE_INHERITS but a DIFFERENT axis: a
-   * narrow action is covered by a broader one. No dotted shortcut — needs an explicit edge.
-   * Matcher: `g5(r.act, p.act)`.
-   * casbin `g5`: `g5, <childAction>, <parentAction>`
-   * e.g. `g5, read, manage` — "a grant of manage also allows read".
-   * (g4 + g5 combine multiplicatively: a `manage Order` grant covers a `read OrderItem` request.)
-   */
+  /** ACTION axis (`act`): a narrow action covered by a broader one; no dotted shortcut, so it needs an explicit edge. Matcher: `g5(r.act, p.act)`, casbin `g5`: `g5, <childAction>, <parentAction>`. g4 + g5 combine multiplicatively: `manage Order` covers a `read OrderItem` request. */
   static readonly ACTION_INHERITS = {
     action: 'action_inherits',
     rule: CasbinRuleVariants.G5,
@@ -343,3 +291,12 @@ export class AuthorizationPolicyVariants {
   }
 }
 export type TAuthorizationPolicyVariant = TConstValue<typeof AuthorizationPolicyVariants>;
+
+export class AuthorizeBindingKeys {
+  static readonly OPTIONS = '@app/authorize/options';
+  static readonly ALWAYS_ALLOW_ROLES = '@app/authorize/always-allow-roles';
+
+  static enforcerOptions(name: string): string {
+    return `@app/authorize/enforcers/${name}/options`;
+  }
+}

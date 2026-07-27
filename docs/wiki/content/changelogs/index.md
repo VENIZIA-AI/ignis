@@ -17,6 +17,27 @@ This section tracks the history of significant changes, refactors, and updates t
 
 | Date | Title | Type |
 |------|-------|------|
+| 2026-07-26 | [Search and Mail Errors Join the Framework Catalog](./2026-07-26-search-and-mail-error-codes) | Enhancement |
+| 2026-07-25 | [ignis-filter - the Filter Vocabulary as a Browser-Safe Package](./2026-07-25-ignis-filter-package) | New Package, Enhancement |
+| 2026-07-25 | [Readable Error Logs and a logLevel Option on getError](./2026-07-25-error-logging) | New Feature, Enhancement |
+| 2026-07-21 | [BaseFilteredAdapter Connector Resolution Fix](./2026-07-21-casbin-connector-resolution-fix) | Bug Fix |
+| 2026-07-20 | [fromError - Rehydrate a Server Error on the Client](./2026-07-20-error-from-error-client) | New API |
+| 2026-07-20 | [Casbin Single-Wave Extraction - Recursive CTE Replaces the Second Query Wave](./2026-07-20-casbin-single-wave-extraction) | Enhancement, Behavior Change, Bug Fix |
+| 2026-07-20 | [Casbin Custom Grants - Operation-Subset Grants in One Row](./2026-07-20-casbin-custom-grants) | New Feature, Enhancement |
+| 2026-07-18 | [Logger Overhaul - ILogger Tier, Pino Provider, Single-Provider Loading](./2026-07-18-logger-overhaul) | Breaking Change, New Feature, Enhancement, Bug Fix |
+| 2026-07-18 | [Dependency Refresh \& DI Cleanup](./2026-07-18-dependency-refresh) | Maintenance, Breaking Change, Bug Fix |
+| 2026-07-18 | [Repository Read Retry - Predicate-Driven Retries for Replica Lag](./2026-07-18-repository-read-retry) | New Feature |
+| 2026-07-17 | [Error Module Redesign](./2026-07-17-error-module-redesign) | Breaking Change, Enhancement |
+| 2026-07-17 | [Logger Correctness Pass](./2026-07-17-logger-correctness-pass) | Bug Fix, Enhancement, Behavior Change |
+| 2026-07-17 | [Secrets Peers Invisible to Bundlers - No More external node-vault](./2026-07-17-secrets-bundler-invisible-peers) | Bug Fix, Behavior Change |
+| 2026-07-16 | [Error Handling - Normalized Messages, Error Catalog, and a Recovered cause](./2026-07-16-error-catalog-and-structured-message) | Bug Fix, Enhancement, New API |
+| 2026-07-16 | [Secrets & Vault Integration](./2026-07-16-secrets-vault-integration) | New Feature, Enhancement |
+| 2026-07-14 | [Optional Peers, Actually Optional - The Driver Is a Class Now](./2026-07-14-driver-class-bundling) | Breaking Change, Bug Fix, Enhancement |
+| 2026-07-13 | [The Hardening Round - SQL Injection, Scope Escapes and Silent Leaks](./2026-07-13-hardening-round) | Security, Breaking Change, Bug Fix, Enhancement |
+| 2026-07-12 | [Core Consolidation & Deduplication - Mixin Functions Removed, Narrowing Default-Filter Merge, isApplicationError](./2026-07-12-core-consolidation-dedup) | Breaking Change, Enhancement, Bug Fix |
+| 2026-07-11 | [Postgres Driver Seam & Supabase - Transaction Correctness, postgres-js, RLS Auth Context](./2026-07-11-postgres-driver-seam-supabase) | New Feature, Refactor, Breaking Change, Security |
+| 2026-07-11 | [Connectors Consistency Hardening - Strict find(), engineParams, SQL-Semantics Parity](./2026-07-11-connectors-consistency-hardening) | Bug Fix, Enhancement, Breaking Change |
+| 2026-07-08 | [Typesense Advanced Search - Vector/Semantic, Multi-Search, Synonyms](./2026-07-08-typesense-advanced-search) | New Feature, Breaking Change |
 | 2026-07-05 | [Unified Repository & Connectors Architecture - PostgreSQL, Typesense & Memory Engines](./2026-07-05-unified-repository-connectors) | New Feature, Refactor, Breaking Change |
 | 2026-06-25 | [Redis Helpers Refactor - Abstract Base, Interfaces, Sentinel & Factory](./2026-06-25-redis-helpers-refactor) | Refactor, New Feature, Breaking Change |
 | 2026-06-18 | [Current User Information Endpoint - GET /me & who-am-i Flag](./2026-06-18-auth-user-information-endpoint) | New Feature |

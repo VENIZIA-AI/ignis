@@ -4,8 +4,6 @@ import type { TClass } from '@venizia/ignis-helpers';
 import { BaseHelper, getError } from '@venizia/ignis-helpers';
 import isEmpty from 'lodash/isEmpty';
 
-// Abstract Auth Registry — shared base for authentication and authorization registries
-
 export type TRegistryDescriptor<TItem> = {
   container: Container;
   targetClass: TClass<TItem>;

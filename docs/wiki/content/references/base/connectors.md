@@ -1,169 +1,121 @@
 ---
-title: Connectors Reference
-description: How IGNIS separates engine-neutral base classes from per-engine connectors, dual-door exports, and adding a new engine
-difficulty: advanced
+title: Connectors
+description: How IGNIS supports multiple database and search engines behind one engine-neutral contract
+difficulty: intermediate
 ---
 
-# Deep Dive: Connectors
+# Connectors
 
-IGNIS's persistence layer is split into two layers: an **engine-neutral root** and a set of **connectors**, one per storage engine. This page documents that architecture, the dual-door export strategy, naming symmetry between engines, and how to add a new connector.
+A connector is how IGNIS adds a storage engine - PostgreSQL, Typesense, Meilisearch - behind one engine-neutral contract. `DataSource`, `Entity`, and `Repository` mean the same thing no matter which engine backs them.
 
-**Files:** `packages/core/src/base/**` (neutral) and `packages/core/src/connectors/{postgres,typesense,memory}/**` (per-engine)
+"A connector" (this page) means an engine-integration module. "The connector" means the Drizzle instance exposed as `this.connector` on a datasource or repository. The two senses are unrelated despite the shared word.
 
-## Why the split
+## In one example
 
-Before the restructure, `AbstractDataSource`/`AbstractRepository`/`AbstractEntity` were PostgreSQL-and-Drizzle-aware from the start - `pool`, `connector` (Drizzle instance), and SQL-shaped `TWhere`/`TFilter` lived directly in `src/base`. Adding typesense (a document search engine, not a relational database) and an in-memory Map-backed engine (for tests/prototyping) exposed the coupling: neither engine has a connection pool, neither speaks SQL, and neither necessarily supports transactions or row-level locking.
-
-The fix moves everything engine-specific out of `src/base` and into `src/connectors/<engine>/`, leaving `src/base` with only what every engine can implement:
-
-| Concept | Neutral (`src/base`) | PostgreSQL (`connectors/postgres`) | Typesense (`connectors/typesense`) | Memory (`connectors/memory`) |
-|---|---|---|---|---|
-| DataSource | `AbstractDataSource` | `AbstractPostgresDataSource` → `BasePostgresDataSource` | `AbstractSearchDataSource` → `BaseSearchDataSource` → `TypesenseDataSource` | `MemoryDataSource` |
-| Entity | `AbstractEntity` | `BasePostgresEntity` (alias `BaseEntity`) | `BaseSearchEntity` | (plain classes with a static `COLLECTION_NAME`) |
-| Repository | `AbstractRepository` | `PostgresBaseRepository` → `ReadableRepository`/`PersistableRepository`/`DefaultCRUDRepository`/`SoftDeletableRepository` | `TypesenseBaseRepository` → `ReadableSearchRepository`/`PersistableSearchRepository`/`DefaultSearchRepository` | `MemoryRepository` |
-| Transactions | throws `NotSupported` by default | real transactions, 3 isolation levels | throws `NotSupported` | throws `NotSupported` |
-| Filtering | neutral `TWhere`/`TFilter` | SQL WHERE via Drizzle | typesense query DSL via `TypesenseQueryDialect` | in-memory `TWhere` matcher (postgres-parity semantics) |
-
-## The neutral contract
-
-### `AbstractDataSource`
-
-`packages/core/src/base/datasources/abstract-datasource.ts` declares:
+The neutral `AbstractDataSource` has no SQL, no pool, no Drizzle. The postgres connector's `BasePostgresDataSource` adds all of that, and `@datasource({ driver })` names the concrete client class:
 
 ```typescript
-abstract class AbstractDataSource<
-  Settings extends object = {},
-  Schema extends TAnyDataSourceSchema = TAnyDataSourceSchema,
-  ConfigurableOptions extends object = {},
-> extends BaseHelper implements IDataSource<Settings, Schema, ConfigurableOptions> {
-  abstract configure(opts?: ConfigurableOptions): ValueOrPromise<void>;
+import { Pool } from 'pg';
+import { datasource } from '@venizia/ignis';
+import { BasePostgresDataSource } from '@venizia/ignis/postgres';
+import { NodePostgresDriver } from '@venizia/ignis/postgres/node-postgres';
 
-  getCapabilities(): IDataSourceCapabilities {
-    return { transactions: false };
+interface IDataSourceConfigs {
+  host: string;
+  port: number;
+  database: string;
+  user: string;
+  password: string;
+}
+
+@datasource({ driver: NodePostgresDriver })
+export class PostgresDataSource extends BasePostgresDataSource<IDataSourceConfigs> {
+  override configure(): void {
+    this.client = new Pool(this.settings);
   }
 
-  async beginTransaction(_opts?: ITransactionOptions): Promise<ITransaction> {
-    return throwNotSupported({
-      scope: this.constructor.name,
-      feature: 'Transactions',
-      logger: this.logger,
-    });
+  override getConnectionString(): string {
+    const { host, port, user, password, database } = this.settings;
+    return `postgresql://${user}:${password}@${host}:${port}/${database}`;
   }
 }
 ```
 
-No `pool`, no `connector`, no SQL types. Every engine either overrides `getCapabilities()`/`beginTransaction()` (PostgreSQL) or accepts the neutral default (typesense, memory).
+A Typesense datasource follows the same shape but extends the search connector's `BaseSearchDataSource` instead - no pool, no `getConnectionString()`, no transactions.
 
-### `AbstractEntity`
+## How it works
 
-`packages/core/src/base/models/base.ts` declares the minimal entity contract, including `getIdType()`:
+- **Three engine-neutral roots.** `packages/core/src/base` declares three roots every connector implements:
 
-```typescript
-abstract class AbstractEntity extends BaseHelper {
-  getIdType(): TIdSchemaType {
-    return 'string';
-  }
-}
-```
+| Root | Purpose | Neutral default |
+|---|---|---|
+| `AbstractDataSource` | Connection ownership | No `pool`, no Drizzle `connector`; `beginTransaction()` throws `NotSupported` |
+| `AbstractEntity` | Model/schema contract | `name`, `getSchema()`, `getIdType()` |
+| `AbstractRepository` | Data access contract | Generics named for role (data/persist/options), not any one engine's vocabulary |
 
-`BasePostgresEntity` overrides `getIdType()` based on the Drizzle column's actual data type; other engines can override it per their own ID representation.
+- **Connectors narrow the roots into a real engine.** `packages/core/src/connectors/<engine>` adds engine-specific members:
 
-### `AbstractRepository`
+| Connector | Adds | `getCapabilities()` |
+|---|---|---|
+| **postgres** (`connectors/postgres`) | `pool`, Drizzle `connector`, SQL-shaped `TWhere`/`TFilter`, real transactions with isolation levels | `{ transactions: true }` |
+| **search** (`connectors/search`) | Engine-neutral search base - no SQL, no transactions. Both typesense and meilisearch extend it (not `AbstractDataSource` directly), sharing one query-dialect and capability shape | inherited neutral default |
 
-`packages/core/src/base/repositories/core/abstract-repository.ts`:
+- **`@datasource({ driver })` picks the concrete client, within an engine.** Postgres takes a driver **class** (`NodePostgresDriver` or `PostgresJsDriver`), never a driver-name string. A bundler packages values, not text, so a string would leave the peer dependency uninstalled.
+- **All engine clients stay optional peer dependencies.** Importing `@venizia/ignis/postgres` alone loads zero client libraries.
+- **Search connectors are subpath-only.** `@venizia/ignis/typesense` and `@venizia/ignis/meilisearch` are excluded from the root `@venizia/ignis` barrel. An app that never touches search never pulls a search client into its bundle.
 
-```typescript
-abstract class AbstractRepository<
-  TDataObject extends object,
-  TPersistObject extends object = TDataObject,
-  TOptions extends IExtraOptions = IExtraOptions,
-> extends BaseHelper implements IPersistableRepository<TDataObject, TPersistObject, TOptions>
-```
+**Canonical names and aliases**
 
-Notice the generic parameters are named for their role (`TDataObject`, `TPersistObject`, `TOptions`), not for Drizzle concepts (`EntitySchema`, `TTableObject`) - those Drizzle-flavored names now belong to `PostgresBaseRepository` and its subclasses, which narrow `AbstractRepository`'s generics into a `TTableSchemaWithId`-based signature. `AbstractRepository` does **not** compose `FieldsVisibilityMixin`/`DefaultFilterMixin` - see [Repository Mixins](./repositories/mixins) for what happened to those.
+| Layer | Canonical (`Relational` paradigm) | Compatibility alias (`Postgres`-prefixed) |
+|---|---|---|
+| DataSource | `BaseRelationalDataSource` | `BasePostgresDataSource` |
+| Entity | `BaseRelationalEntity` | `BasePostgresEntity` |
+| Repository | `RelationalBaseRepository` | `PostgresBaseRepository` |
 
-### Neutral `TFilter`/`TWhere` and `ITransaction`
+Both names resolve to the same class - existing imports keep working.
 
-`packages/core/src/base/repositories/common/types.ts` and `packages/core/src/base/datasources/common/types.ts` define engine-neutral filter and transaction shapes shared by all three connectors. `ITransaction` has no `connector` field - each engine that supports transactions (currently only PostgreSQL) narrows it with its own connection type (`IDatabaseTransaction`).
+## Common tasks
 
-## Dual-door exports
+### Pick an engine
 
-IGNIS ships both a **root barrel** (backward-compatible default) and **per-engine subpaths** (opt-in, tree-shakeable). Both resolve to the exact same compiled classes - there is no duplicated implementation.
-
-```json
-// packages/core/package.json - exports map
-{
-  ".": "dist/index.js",              // framework + postgres + memory (compatibility default)
-  "./postgres": "dist/connectors/postgres/index.js",
-  "./memory": "dist/connectors/memory/index.js",
-  "./typesense": "dist/connectors/typesense/index.js"  // subpath-only, optional peer
-}
-```
+Import the connector for the engine you need - `@venizia/ignis/postgres` for a relational database with transactions, `@venizia/ignis/typesense` or `@venizia/ignis/meilisearch` for document search. The root `@venizia/ignis` barrel re-exports postgres for backward compatibility; search engines are always subpath-only:
 
 ```typescript
-// packages/core/src/index.ts - root barrel
-export * from './base';
-export * from './common';
-export * from './components';
-export * from './connectors';   // -> connectors/index.ts: export * from './memory'; export * from './postgres';
-export * from './helpers';
-export * from './utilities';
-```
-
-- **Root (`@venizia/ignis`)** re-exports the framework plus the `postgres` and `memory` connectors - existing code that imports `BaseDataSource`/`DefaultCRUDRepository` from the root keeps working unchanged.
-- **`@venizia/ignis/postgres`**, **`@venizia/ignis/memory`** re-export the same connector in isolation, for code that wants to be explicit about which engine it depends on.
-- **`@venizia/ignis/typesense`** is **subpath-only** - it is deliberately excluded from the root barrel because `typesense` is an optional peer dependency (`"peerDependenciesMeta": { "typesense": { "optional": true } }`). Importing from the root must never force-install the typesense client for apps that don't use search.
-
-```typescript
-// Both of these resolve to the same BasePostgresDataSource class:
+// Postgres: available at the root or the subpath - same class either way
 import { BaseDataSource } from '@venizia/ignis';
 import { BasePostgresDataSource } from '@venizia/ignis/postgres';
 
-// Typesense must be imported from its subpath - not available at the root:
-import { TypesenseDataSource, defineSearchCollection } from '@venizia/ignis/typesense';
+// Search engines: subpath only, never at the root
+import { TypesenseDataSource } from '@venizia/ignis/typesense';
+import { MeilisearchDataSource } from '@venizia/ignis/meilisearch';
 ```
 
-## Naming symmetry and compatibility aliases
+### Know what lives in base vs a connector
 
-Each connector's canonical class names carry the engine name (`BasePostgresDataSource`, `BasePostgresEntity`), matching the pattern typesense and memory follow (`TypesenseDataSource`, `MemoryDataSource`). PostgreSQL additionally re-exports the pre-restructure names as aliases, so existing imports do not break:
+- **Engine-specific -> connector.** A connection pool, query dialect, isolation level, or transaction lives in a connector, not `src/base`.
+- **Engine-universal -> base.** `src/base` only ever grows members every engine can implement, such as `getSchema()` or `getIdType()`.
+- **Litmus test.** Could typesense (no pool, no SQL, no transactions) implement it? If not, it belongs in the postgres connector, not the neutral root.
 
-```typescript
-// packages/core/src/connectors/postgres/datasources/index.ts
-export { BasePostgresDataSource as BaseDataSource } from './base-datasource';
+### Add a new engine connector
 
-// packages/core/src/connectors/postgres/models/index.ts
-export { BasePostgresEntity as BaseEntity } from './base';
-```
+- **Mirror the shape.** Under `src/connectors/<engine>/`, add a `datasources/` extending `AbstractDataSource` and a `repositories/core/` extending `AbstractRepository` with a `Readable`/`Persistable`/`DefaultCRUD`-style tier ladder. Add a `models/` extending `AbstractEntity` too, if the engine needs entity definitions.
+- **Override transactions only if supported.** Override `getCapabilities()` and `beginTransaction()` only if the engine truly supports transactions - otherwise inherit the neutral `NotSupported` default.
+- **Export as a subpath.** Add the connector to `package.json` `exports` as `./<engine>`. If its driver is an optional peer dependency, keep it out of `connectors/index.ts` and register it as a subpath-only export instead, mirroring typesense and meilisearch.
 
-| Canonical (new, engine-carrying) | Alias (compatibility) | Notes |
-|---|---|---|
-| `BasePostgresDataSource` | `BaseDataSource` | Same class, re-exported |
-| `BasePostgresEntity` | `BaseEntity` | Same class, re-exported |
+## See also
 
-Write new code against the canonical names - they make it unambiguous which engine a class belongs to once you have more than one connector in play. Existing code using the aliases needs no changes.
+- [DataSources](./datasources) - the engine-neutral contract and the PostgreSQL connector in depth
+- [Models & Enrichers](./models) - the engine-neutral entity contract and the PostgreSQL connector's entity
+- [Repositories](/references/base/repositories/) - the CRUD layer built on top of a connector's datasource
+- [Filter System](/references/base/filter-system/) - querying through a connector's repository
+- [Persistent Layer](/guides/core-concepts/persistent/) - the guide these reference pages support
+- [Search & Typesense](/guides/core-concepts/persistent/search-typesense) - the typesense connector in depth
+- [Search & Meilisearch](/guides/core-concepts/persistent/search-meilisearch) - the meilisearch connector in depth
 
-## Adding a new engine connector
+**Files:**
 
-To add a fourth connector (e.g. a Redis-backed cache connector), follow the shape the three existing connectors share:
-
-1. **`src/connectors/<engine>/datasources/`** - `Abstract<Engine>DataSource extends AbstractDataSource`, then `Base<Engine>DataSource` (or a single concrete `<Engine>DataSource` if there's no useful abstract/base split, as memory does) implementing `configure()`/`getConnectionString()`. Override `getCapabilities()` and `beginTransaction()` only if the engine truly supports transactions - otherwise inherit the neutral `NotSupported` default.
-2. **`src/connectors/<engine>/models/`** (if the engine needs entity definitions beyond plain objects) - extend `AbstractEntity`, override `getIdType()` if the engine's ID representation differs from the neutral default.
-3. **`src/connectors/<engine>/repositories/core/`** - `<Engine>BaseRepository extends AbstractRepository`, narrowing the generics to the engine's data/persist/options shapes, followed by a `Readable`/`Persistable`/`DefaultCRUD`-style tier ladder mirroring the postgres and typesense connectors. Any operation the engine cannot support (transactions, locks) should call `throwNotSupported({ scope, feature, logger: this.logger })` for consistency.
-4. **`src/connectors/<engine>/index.ts`** - barrel export for the connector.
-5. **`src/connectors/index.ts`** - add `export * from './<engine>'` **only if** the engine has no optional runtime peer dependency (mirroring `postgres`/`memory`). If the engine driver is an optional peer (like `typesense`), leave it out of `connectors/index.ts` and register it as a subpath-only export in `package.json`.
-6. **`package.json` `exports`** - add `"./​<engine>": "dist/connectors/<engine>/index.js"`. If the driver is an optional peer, add it to `peerDependencies` + `peerDependenciesMeta.<driver>.optional: true`.
-
-## See Also
-
-- **Related Concepts:**
-  - [DataSources](./datasources) - Full DataSource reference (neutral contract + PostgreSQL connector)
-  - [Models & Enrichers](./models) - Entity reference (neutral `AbstractEntity` + PostgreSQL `BasePostgresEntity`)
-  - [Repositories](./repositories/) - Repository hierarchy reference
-  - [Repository Mixins](./repositories/mixins) - Legacy mixins, now orphaned from the public API
-
-- **Guides:**
-  - [Search & Typesense](/guides/core-concepts/persistent/search-typesense) - The typesense connector in depth
-  - [Memory Connector](/guides/core-concepts/persistent/memory-connector) - The zero-dependency in-memory connector
-
-- **Best Practices:**
-  - [Architectural Patterns](/best-practices/architectural-patterns) - Layered architecture and separation of concerns
+- [`packages/core/src/base/datasources/abstract.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core/src/base/datasources/abstract.ts) - neutral `AbstractDataSource`
+- [`packages/core/src/base/models/base.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core/src/base/models/base.ts) - neutral `AbstractEntity`
+- [`packages/core/src/base/repositories/core/abstract.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core/src/base/repositories/core/abstract.ts) - neutral `AbstractRepository`
+- [`packages/core/src/connectors/postgres/datasources/base.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core/src/connectors/postgres/datasources/base.ts) - `BaseRelationalDataSource` (alias `BasePostgresDataSource`)
+- [`packages/core/src/connectors/search/datasources/base.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core/src/connectors/search/datasources/base.ts) - `BaseSearchDataSource`, shared by typesense and meilisearch

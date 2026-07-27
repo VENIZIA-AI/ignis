@@ -1,24 +1,9 @@
+import { BaseHelper } from '@/modules/base';
 import type { Deserializers, Serializers } from '@platformatic/kafka';
 import { ConfluentSchemaRegistry } from '@platformatic/kafka';
-import { BaseHelper } from '@venizia/ignis-helpers';
 import type { IKafkaSchemaRegistryOptions } from '../common/types';
 
-/**
- * KafkaSchemaRegistryHelper — Wrapper around `@platformatic/kafka` ConfluentSchemaRegistry.
- *
- * Provides scoped logging and exposes the registry for use with producer/consumer helpers.
- *
- * @example
- * const schemaRegistry = KafkaSchemaRegistryHelper.newInstance({
- *   url: 'http://localhost:8081',
- * });
- *
- * const producer = KafkaProducerHelper.newInstance({
- *   bootstrapBrokers: ['127.0.0.1:29092'],
- *   clientId: 'my-producer',
- *   registry: schemaRegistry.getRegistry(),
- * });
- */
+/** Wrapper around `@platformatic/kafka` ConfluentSchemaRegistry; exposes the registry for producer/consumer helpers to share. */
 export class KafkaSchemaRegistryHelper<
   KeyType = string,
   ValueType = string,

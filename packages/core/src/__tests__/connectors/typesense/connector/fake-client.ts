@@ -1,5 +1,4 @@
-// Minimal hand-rolled stand-in for the Typesense Client surface the connector uses.
-// Records calls and returns programmed responses / injected errors.
+// Minimal hand-rolled stand-in for the Typesense Client surface the connector uses: records calls and returns programmed responses or injected errors.
 
 import type { ITypesenseClientLike } from '@/connectors/typesense/connector';
 import { TypesenseConnector } from '@/connectors/typesense/connector';
@@ -193,8 +192,7 @@ export const createFakeClient = (behavior: IFakeBehavior = {}) => {
   return { client, calls };
 };
 
-// Shared connector-construction fixture — the single source of truth for test suites (do NOT
-// re-declare per test file; copies drift).
+// Shared connector-construction fixture - the single source of truth for test suites; do NOT re-declare per test file, copies drift.
 export const makeHelper = (behavior: IFakeBehavior = {}) => {
   const fake = createFakeClient(behavior);
   const helper = new TypesenseConnector({

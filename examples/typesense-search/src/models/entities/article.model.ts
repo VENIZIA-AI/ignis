@@ -35,9 +35,11 @@ export class ArticleDocument extends BaseSearchEntity<typeof ArticleDocument.sch
       field.number('views', { sortable: true, filterable: true }),
       field.number('publishedAt', { sortable: true, filterable: true }),
       field.strings('tags', { facet: true, optional: true }),
+
       // Indexed/filterable like any other field, but never leaves the server: hiddenProperties
       // excludes it via Typesense exclude_fields on every read, with no per-request override.
       field.string('internalNote', { optional: true }),
+
       // Auto-embedding - Typesense builds the vector from title+content at index time, so
       // `search({ mode: 'semantic', queryText })` works with no embedding pipeline in the app.
       // Remote provider (Google/Gemini) - the API key is read from env, NEVER hardcoded into the schema:

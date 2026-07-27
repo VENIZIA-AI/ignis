@@ -4,8 +4,7 @@ import { FilterBuilder } from '@/connectors/postgres/repositories/dialect/filter
 import { BasePostgresEntity } from '@/connectors/postgres/models';
 import { pgTable, serial, varchar } from 'drizzle-orm/pg-core';
 
-/** Minimal datasource stub: the query dialect now lives on the datasource (getQueryDialect()), so a
- * repository needs one to translate a where. Only getQueryDialect is exercised here. */
+/** Minimal datasource stub: the query dialect lives on the datasource (getQueryDialect()), so a repository needs one to translate a where. Only getQueryDialect is exercised here. */
 const stubDataSource = { getQueryDialect: () => new FilterBuilder() } as any;
 
 const table = pgTable('test_entity', {
@@ -20,11 +19,7 @@ class ValidateWhereFixtureEntity extends BasePostgresEntity {
   static override TABLE_NAME = 'test_entity';
 }
 
-/**
- * validateWhereCondition must treat a where as empty when it resolves to NO SQL
- * condition — covering {} AND all-undefined wheres ({ status: undefined }) that toWhere
- * drops. Without this, updateAll/updateBy/deleteAll/deleteBy would run table-wide.
- */
+/** validateWhereCondition must treat a where as empty when it resolves to NO SQL condition ({} and all-undefined wheres) - otherwise updateAll/updateBy/deleteAll/deleteBy run table-wide. */
 class TestRepository extends PersistableRepository<any> {
   constructor() {
     super(stubDataSource, {});
@@ -51,14 +46,18 @@ describe('PersistableRepository.validateWhereCondition (resolved-SQL emptiness)'
     expect(() => repo.callValidateWhere({ and: [] })).toThrow(/Empty where condition/);
   });
 
-  test('does NOT throw for a real condition; returns false', () => {
+  test('does NOT throw for a real condition; reports isEmptyWhere false', () => {
     expect(() => repo.callValidateWhere({ status: 'active' })).not.toThrow();
-    expect(repo.callValidateWhere({ status: 'active' })).toBe(false);
+    expect(repo.callValidateWhere({ status: 'active' }).isEmptyWhere).toBe(false);
   });
 
-  test('force bypasses the guard and reports empty (true)', () => {
+  test('does NOT throw for a real condition; returns the built condition', () => {
+    expect(repo.callValidateWhere({ status: 'active' }).condition).toBeDefined();
+  });
+
+  test('force bypasses the guard and reports empty (isEmptyWhere true)', () => {
     expect(() => repo.callValidateWhere({}, true)).not.toThrow();
-    expect(repo.callValidateWhere({ status: undefined }, true)).toBe(true);
+    expect(repo.callValidateWhere({ status: undefined }, true).isEmptyWhere).toBe(true);
   });
 });
 

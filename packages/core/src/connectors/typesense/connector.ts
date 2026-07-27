@@ -1,9 +1,19 @@
-import type { ISynonym } from '@/connectors/typesense/models';
-import type { ValueOrPromise } from '@venizia/ignis-helpers';
-import { BaseHelper, getError } from '@venizia/ignis-helpers';
+import { SearchErrors } from '@/connectors/search/common';
+import type {
+  IAliasInfo,
+  IImportResult,
+  ISearchAliasScoped,
+  ISearchCollectionScoped,
+  ISearchDocumentScoped,
+  ISearchResult,
+  ISearchSynonymSetScoped,
+} from '@/connectors/search';
+import { BaseSearchConnector } from '@/connectors/search';
+import { SearchConnectorInternal } from '@/connectors/search/internal';
+import type { ISynonym } from '@/connectors/search/models';
+import { getError, isApplicationError } from '@venizia/ignis-helpers';
 import { Client } from 'typesense';
 import { TypesenseInternal } from './internal/connector-internal';
-import { SearchConnectorInternal } from './internal/search-connector-internal';
 import type {
   IMultiSearchResult,
   ITypesenseConnectorOptions,
@@ -21,267 +31,41 @@ import type {
 } from './types';
 import { TypesenseDirtyValues, TypesenseImportActions } from './types';
 
-export interface IImportResult<TResponse = unknown> {
-  successCount: number;
-  failCount: number;
-  responses: TResponse[];
-}
-
-export interface IAliasInfo {
-  name: string;
-  collection: string;
-}
-
-export interface ISearchConnectorCallbacks {
-  onInitialized?: (opts: { name: string }) => void;
-  onError?: (opts: { name: string; error: unknown }) => void;
-}
-
-/** Search-response envelope - the read-path counterpart to IImportResult, consumed by ReadableSearchRepository without a boundary cast. */
-export interface ISearchResult<TDocument extends object = object> {
-  found: number;
-  outOf?: number;
-  searchTimeMs?: number;
-  hits?: Array<{
-    document: TDocument;
-    highlight?: unknown;
-    highlights?: unknown[];
-    textMatch?: number;
-  }>;
-  facetCounts?: unknown[];
-  groupedHits?: unknown[];
-}
-
-/** Verb contract every search-engine connector implements - kept as an interface so tests can fake one without a real typesense Client. */
-export interface ISearchConnector {
-  getHealth(): Promise<{ ok: boolean }>;
-  ping(): Promise<boolean>;
-
-  createCollection(opts: { schema: unknown }): Promise<unknown>;
-  ensureCollection(opts: { schema: unknown }): Promise<unknown>;
-  getCollection(opts: { name: string }): Promise<unknown>;
-  listCollections(): Promise<unknown[]>;
-  collectionExists(opts: { name: string }): Promise<boolean>;
-  patchCollectionSchema(opts: { name: string; fields: unknown[] }): Promise<void>;
-  deleteCollection(opts: { name: string }): Promise<boolean>;
-
-  upsertAlias(opts: { name: string; collection: string }): Promise<void>;
-  getAlias(opts: { name: string }): Promise<IAliasInfo | null>;
-
-  // Synonym SETS (Typesense v30+): a named set of items, linked to one or more collections. Replaces
-  // the removed per-collection synonyms API. `ISynonym` is the item shape ({ id, synonyms, root? }).
-  upsertSynonymSet(opts: { name: string; items: ISynonym[] }): Promise<void>;
-  getSynonymSet(opts: { name: string }): Promise<ISynonym[] | null>;
-  listSynonymSets(): Promise<string[]>;
-  deleteSynonymSet(opts: { name: string }): Promise<boolean>;
-  linkSynonymSets(opts: { collection: string; synonymSets: string[] }): Promise<void>;
-
-  createDocument<T extends object>(opts: { collection: string; document: T }): Promise<T>;
-  getDocument<T extends object>(opts: { collection: string; id: string }): Promise<T>;
-  upsertDocument<T extends object>(opts: { collection: string; document: T }): Promise<T>;
-  updateDocument<T extends object>(opts: {
-    collection: string;
-    id: string;
-    document: Partial<T>;
-  }): Promise<T>;
-  deleteDocument(opts: { collection: string; id: string }): Promise<boolean>;
-  // Engine-specific import tuning (e.g. typesense's action/dirtyValues) is added by each
-  // backend's widened override, keeping this contract engine-agnostic.
-  importDocuments<T extends object>(opts: {
-    collection: string;
-    documents: T[];
-    batchSize?: number;
-  }): Promise<IImportResult<unknown>>;
-  updateByFilter<T extends object>(opts: {
-    collection: string;
-    document: Partial<T>;
-    filterBy: string;
-  }): Promise<{ updatedCount: number }>;
-  deleteByFilter(opts: { collection: string; filterBy: string }): Promise<number>;
-  deleteAllDocuments(opts: { collection: string }): Promise<boolean>;
-  exportDocuments(opts: {
-    collection: string;
-    filterBy?: string;
-    includeFields?: string[];
-  }): Promise<string>;
-
-  // Raw passthrough; TDocument lets typed callers get ISearchResult<TDocument> without a cast.
-  // Backends may widen further as long as it stays assignable to ISearchResult.
-  search<TDocument extends object = object>(opts: {
-    collection: string;
-    params: unknown;
-  }): Promise<ISearchResult<TDocument>>;
-  // `union` selects a single merged result set instead of federated per-search `results[]` -
-  // see TypesenseConnector.multiSearch for the typed overloads.
-  multiSearch(opts: {
-    searches: unknown[];
-    union?: boolean;
-    commonParams?: unknown;
-    options?: unknown;
-  }): Promise<unknown>;
-}
-
-export abstract class BaseSearchConnector extends BaseHelper implements ISearchConnector {
-  constructor(opts: { scope: string; identifier: string }) {
-    super(opts);
-  }
-
-  async ping(): Promise<boolean> {
-    const health = await this.getHealth();
-    return health.ok;
-  }
-
-  protected assertNonEmpty(opts: { value?: string | null; name: string; method: string }): void {
-    const { value, name, method } = opts;
-    if (!value || value.trim().length === 0) {
-      throw getError({ message: `[${method}] Missing or empty value | name: ${name}` });
-    }
-  }
-
-  // Runs the engine verb; tolerated errors route to the caller's branch, everything else becomes a sanitized 503.
-  protected async runEngineCall<T>(opts: {
-    method: string;
-    run: () => ValueOrPromise<T>;
-    tolerate?: { when: (error: unknown) => boolean; handle: (error: unknown) => ValueOrPromise<T> };
-  }) {
-    const { method, run, tolerate } = opts;
-
-    try {
-      const rs = await run();
-      return rs;
-    } catch (error) {
-      if (tolerate?.when(error)) {
-        const rs = await tolerate.handle(error);
-        return rs;
-      }
-
-      SearchConnectorInternal.wrapDependencyError({ method, error, logger: this.logger });
-    }
-  }
-
-  /** Tolerated-404 branch shared by getCollection/patchCollectionSchema/getDocument/updateDocument: throws the sanitized not-found error. */
-  protected notFoundTolerance(opts: { method: string; subject: string }): {
-    when: (error: unknown) => boolean;
-    handle: (error: unknown) => never;
-  } {
-    const { method, subject } = opts;
-
-    return {
-      when: error => TypesenseInternal.isNotFoundError({ error }),
-      handle: () => {
-        this.logger.for(method).debug('%s not found', subject);
-        SearchConnectorInternal.throwNotFoundError({ method, subject });
-      },
-    };
-  }
-
-  /** Tolerated-404 branch shared by deleteCollection/getAlias/getSynonymSet/deleteSynonymSet/deleteDocument: logs and returns a benign sentinel instead of throwing. */
-  protected notFoundFallback<T>(opts: {
-    method: string;
-    message: string;
-    args?: unknown[];
-    fallback: T;
-  }): { when: (error: unknown) => boolean; handle: (error: unknown) => T } {
-    const { method, message, args, fallback } = opts;
-
-    return {
-      when: error => TypesenseInternal.isNotFoundError({ error }),
-      handle: () => {
-        this.logger.for(method).debug(message, ...(args ?? []));
-        return fallback;
-      },
-    };
-  }
-
-  abstract getHealth(): Promise<{ ok: boolean }>;
-
-  abstract createCollection(opts: { schema: unknown }): Promise<unknown | void>;
-  abstract ensureCollection(opts: { schema: unknown }): Promise<unknown>;
-  abstract getCollection(opts: { name: string }): Promise<unknown>;
-  abstract listCollections(): Promise<unknown[]>;
-  abstract collectionExists(opts: { name: string }): Promise<boolean>;
-  abstract patchCollectionSchema(opts: { name: string; fields: unknown[] }): Promise<void>;
-  abstract deleteCollection(opts: { name: string }): Promise<boolean>;
-
-  abstract upsertAlias(opts: { name: string; collection: string }): Promise<void>;
-  abstract getAlias(opts: { name: string }): Promise<IAliasInfo | null>;
-
-  abstract upsertSynonymSet(opts: { name: string; items: ISynonym[] }): Promise<void>;
-  abstract getSynonymSet(opts: { name: string }): Promise<ISynonym[] | null>;
-  abstract listSynonymSets(): Promise<string[]>;
-  abstract deleteSynonymSet(opts: { name: string }): Promise<boolean>;
-  abstract linkSynonymSets(opts: { collection: string; synonymSets: string[] }): Promise<void>;
-
-  abstract createDocument<T extends object>(opts: { collection: string; document: T }): Promise<T>;
-  abstract getDocument<T extends object>(opts: { collection: string; id: string }): Promise<T>;
-  abstract upsertDocument<T extends object>(opts: { collection: string; document: T }): Promise<T>;
-  abstract updateDocument<T extends object>(opts: {
-    collection: string;
-    id: string;
-    document: Partial<T>;
-  }): Promise<T>;
-  abstract deleteDocument(opts: { collection: string; id: string }): Promise<boolean>;
-  // Engine-specific import tuning (e.g. typesense's action/dirtyValues) lives on each backend's widened override.
-  abstract importDocuments<T extends object>(opts: {
-    collection: string;
-    documents: T[];
-    batchSize?: number;
-  }): Promise<IImportResult<unknown>>;
-  abstract updateByFilter<T extends object>(opts: {
-    collection: string;
-    document: Partial<T>;
-    filterBy: string;
-  }): Promise<{ updatedCount: number }>;
-  abstract deleteByFilter(opts: { collection: string; filterBy: string }): Promise<number>;
-  abstract deleteAllDocuments(opts: { collection: string }): Promise<boolean>;
-  abstract exportDocuments(opts: {
-    collection: string;
-    filterBy?: string;
-    includeFields?: string[];
-  }): Promise<string>;
-
-  abstract search<TDocument extends object = object>(opts: {
-    collection: string;
-    params: unknown;
-  }): Promise<ISearchResult<TDocument>>;
-  abstract multiSearch(opts: {
-    searches: unknown[];
-    union?: boolean;
-    commonParams?: unknown;
-  }): Promise<unknown>;
-}
-
-// Narrow runtime readers for the `unknown` payloads ITypesenseClientLike hands back - each is the
-// single narrowest cast for its field, isolated here instead of repeated ad hoc at every call site.
-function isRecord(value: unknown): value is Record<string, unknown> {
+// Narrow runtime readers for the `unknown` payloads ITypesenseClientLike hands back - the narrowest cast per field, isolated here instead of repeated ad hoc at every call site.
+const isRecord = (value: unknown): value is Record<string, unknown> => {
   return typeof value === 'object' && value !== null;
-}
+};
 
-function readBooleanFlag(opts: { value: unknown; key: string }): boolean {
+const readBooleanFlag = (opts: { value: unknown; key: string }): boolean => {
   const { value, key } = opts;
   return isRecord(value) ? Boolean(value[key]) : false;
-}
+};
 
-function readNumberField(opts: { value: unknown; key: string }): number {
+const readNumberField = (opts: { value: unknown; key: string }): number => {
   const { value, key } = opts;
   if (!isRecord(value) || typeof value[key] !== 'number') {
     return 0;
   }
   return value[key];
-}
+};
 
-function readStringField(opts: { value: unknown; key: string }): string | undefined {
+const readStringField = (opts: { value: unknown; key: string }): string | undefined => {
   const { value, key } = opts;
   if (!isRecord(value) || typeof value[key] !== 'string') {
     return undefined;
   }
   return value[key];
-}
+};
 
 /** Maps a raw Typesense search hit (snake_case `text_match`) onto the camelCase `ISearchResult` hit shape; read via bracket string access so no snake_case identifier is declared here. */
-function mapSearchHit<TDocument extends object>(
+const mapSearchHit = <TDocument extends object>(
   hit: unknown,
-): { document: TDocument; highlight?: unknown; highlights?: unknown[]; textMatch?: number } {
+): {
+  document: TDocument;
+  highlight?: unknown;
+  highlights?: unknown[];
+  score?: number;
+} => {
   if (!isRecord(hit)) {
     return { document: {} as TDocument };
   }
@@ -290,32 +74,36 @@ function mapSearchHit<TDocument extends object>(
     document: TDocument;
     highlight?: unknown;
     highlights?: unknown[];
-    textMatch?: number;
-  } = { document: hit['document'] as TDocument };
+    score?: number;
+  } = {
+    document: hit['document'] as TDocument,
+  };
 
   if (hit['highlight'] !== undefined) {
     mapped.highlight = hit['highlight'];
   }
+
   if (Array.isArray(hit['highlights'])) {
-    mapped.highlights = hit['highlights'] as unknown[];
+    mapped.highlights = hit['highlights'];
   }
+
   if (typeof hit['text_match'] === 'number') {
-    mapped.textMatch = hit['text_match'];
+    mapped.score = hit['text_match'];
   }
 
   return mapped;
-}
+};
 
-/** Maps a raw Typesense search response onto the camelCase `ISearchResult` - snake_case wire fields
- * (`out_of`/`search_time_ms`/`facet_counts`/`grouped_hits`) are read only via bracket string access,
- * never as identifiers. Absent fields are omitted rather than mapped as `undefined`. */
-function mapSearchResult<TDocument extends object>(raw: unknown): ISearchResult<TDocument> {
+/** Maps a raw Typesense search response onto the camelCase `ISearchResult`; snake_case wire fields (`out_of`/`search_time_ms`/`facet_counts`/`grouped_hits`) are read only via bracket string access, never as identifiers, and absent fields are omitted rather than mapped as `undefined`. */
+const mapSearchResult = <TDocument extends object>(raw: unknown): ISearchResult<TDocument> => {
   if (!isRecord(raw)) {
-    return { found: 0 };
+    return { found: 0, isFoundExact: true };
   }
 
+  // Typesense's `found` is an exhaustive count, so it is never an estimate.
   const result: ISearchResult<TDocument> = {
     found: readNumberField({ value: raw, key: 'found' }),
+    isFoundExact: true,
   };
 
   if (typeof raw['out_of'] === 'number') {
@@ -335,29 +123,29 @@ function mapSearchResult<TDocument extends object>(raw: unknown): ISearchResult<
   }
 
   return result;
-}
+};
 
 /** Empty TSearchResponse shape returned when search() tolerates a missing collection; built via bracket assignment so no snake_case identifier is declared here. */
-function buildEmptySearchResponse(): unknown {
+const buildEmptySearchResponse = (): unknown => {
   const response: Record<string, unknown> = { found: 0, page: 1, hits: [] };
   response['out_of'] = 0;
   response['search_time_ms'] = 0;
   response['request_params'] = {};
   return response;
-}
+};
 
 // Typesense's wire shape for a synonym set; `root` is only present for one-way synonyms.
-function isSynonymResponse(
+const isSynonymResponse = (
   value: unknown,
-): value is { id: string; synonyms: string[]; root?: string } {
+): value is { id: string; synonyms: string[]; root?: string } => {
   return isRecord(value) && typeof value.id === 'string' && Array.isArray(value.synonyms);
-}
+};
 
-function toSynonym(value: { id: string; synonyms: string[]; root?: string }): ISynonym {
+const toSynonym = (value: { id: string; synonyms: string[]; root?: string }): ISynonym => {
   const { id, synonyms, root } = value;
   // Multi-way sets come back with root: "" - treat empty/absent alike so only one-way keeps a root.
   return root ? { id, synonyms, root } : { id, synonyms };
-}
+};
 
 // Narrow structural view of the client surface this connector needs - both the real Client and the in-test fake satisfy it without `as any`.
 interface ITypesenseDocumentsApi {
@@ -433,14 +221,16 @@ export class TypesenseConnector extends BaseSearchConnector {
           connectionTimeoutSeconds: opts.connectionTimeoutSeconds ?? 5,
           numRetries: opts.numRetries,
         });
+
       opts.onInitialized?.({ name: opts.name });
     } catch (error) {
       this.logger
         .for('constructor')
         .error(
-          'Failed to initialize Typesense client | error: %j',
+          'Failed to initialize Typesense client | error: %s',
           SearchConnectorInternal.describeError({ error }),
         );
+
       opts.onError?.({ name: opts.name, error });
       throw error;
     }
@@ -450,6 +240,59 @@ export class TypesenseConnector extends BaseSearchConnector {
     return this.client as Client;
   }
 
+  protected isNotFoundError(opts: { error: unknown }): boolean {
+    return TypesenseInternal.isNotFoundError(opts);
+  }
+
+  readonly collection: ISearchCollectionScoped<
+    TCollectionCreateSchema,
+    TCollectionSchema,
+    TCollectionFieldSchema
+  > = {
+    create: opts => this.createCollection(opts),
+    ensure: opts => this.ensureCollection(opts),
+    get: opts => this.getCollection(opts),
+    list: () => this.listCollections(),
+    exists: opts => this.collectionExists(opts),
+    patchSchema: opts => this.patchCollectionSchema(opts),
+    delete: opts => this.deleteCollection(opts),
+  };
+
+  readonly alias: ISearchAliasScoped = {
+    upsert: opts => this.upsertAlias(opts),
+    get: opts => this.getAlias(opts),
+  };
+
+  readonly synonymSet: ISearchSynonymSetScoped = {
+    upsert: opts => this.upsertSynonymSet(opts),
+    get: opts => this.getSynonymSet(opts),
+    list: () => this.listSynonymSets(),
+    delete: opts => this.deleteSynonymSet(opts),
+    link: opts => this.linkSynonymSets(opts),
+  };
+
+  readonly document: ISearchDocumentScoped = {
+    create: <T extends object>(opts: { collection: string; document: T }) =>
+      this.createDocument(opts),
+    get: <T extends object>(opts: { collection: string; id: string }) => this.getDocument<T>(opts),
+    count: opts => this.countDocuments(opts),
+    upsert: <T extends object>(opts: { collection: string; document: T }) =>
+      this.upsertDocument(opts),
+    update: <T extends object>(opts: { collection: string; id: string; document: Partial<T> }) =>
+      this.updateDocument(opts),
+    delete: opts => this.deleteDocument(opts),
+    import: <T extends object>(opts: { collection: string; documents: T[]; batchSize?: number }) =>
+      this.importDocuments(opts),
+    updateBy: <T extends object>(opts: {
+      collection: string;
+      document: Partial<T>;
+      filterBy: string;
+    }) => this.updateByFilter(opts),
+    deleteBy: opts => this.deleteByFilter(opts),
+    deleteAll: opts => this.deleteAllDocuments(opts),
+    export: opts => this.exportDocuments(opts),
+  };
+
   async getHealth(): Promise<{ ok: boolean }> {
     try {
       const health = await this.client.health.retrieve();
@@ -457,7 +300,7 @@ export class TypesenseConnector extends BaseSearchConnector {
     } catch (error) {
       this.logger
         .for(this.getHealth.name)
-        .warn('Health probe failed | error: %j', SearchConnectorInternal.describeError({ error }));
+        .warn('Health probe failed | error: %s', SearchConnectorInternal.describeError({ error }));
       return { ok: false };
     }
   }
@@ -493,9 +336,7 @@ export class TypesenseConnector extends BaseSearchConnector {
       return this.getCollection({ name: schema.name });
     }
 
-    // The create response IS the collection schema. Reading it back immediately instead is a
-    // read-after-write race on multi-node clusters (follower may 404 before the raft log catches
-    // up) - found live on a real 3-node cluster. Only the tolerated already-exists path re-reads.
+    // The create response IS the collection schema; reading it back instead is a read-after-write race on multi-node clusters (a follower may 404 before the raft log catches up), so only the tolerated already-exists path re-reads.
     const created = await this.createCollection({ schema });
     if (created) {
       return created;
@@ -547,7 +388,7 @@ export class TypesenseConnector extends BaseSearchConnector {
       this.logger
         .for(this.collectionExists.name)
         .warn(
-          'Existence check failed, treating as absent | name: %s | error: %j',
+          'Existence check failed, treating as absent | name: %s | error: %s',
           name,
           SearchConnectorInternal.describeError({ error }),
         );
@@ -760,6 +601,8 @@ export class TypesenseConnector extends BaseSearchConnector {
       method: this.createDocument.name,
     });
 
+    const id = (document as Record<string, unknown>)['id'];
+
     const rs = await this.runEngineCall({
       method: this.createDocument.name,
       run: async () => {
@@ -768,6 +611,16 @@ export class TypesenseConnector extends BaseSearchConnector {
           .documents()
           .create(document)) as T;
         return created;
+      },
+      // Typesense rejects a duplicate id with 409; surfaced as the neutral already_exists conflict rather than the generic sanitized 503 - same contract Meilisearch's createDocument throws.
+      tolerate: {
+        when: error => TypesenseInternal.isAlreadyExistsError({ error }),
+        handle: () => {
+          throw getError({
+            error: SearchErrors.ALREADY_EXISTS,
+            message: `[${this.createDocument.name}] Document '${String(id)}' already exists in collection '${collection}'.`,
+          });
+        },
       },
     });
     return rs;
@@ -790,6 +643,26 @@ export class TypesenseConnector extends BaseSearchConnector {
       }),
     });
     return rs;
+  }
+
+  /** Typesense's `found` is exhaustive, so a `per_page: 0` search is already an exact count - no separate endpoint needed. */
+  async countDocuments(opts: { collection: string; filterBy?: string }): Promise<number> {
+    const { collection, filterBy } = opts;
+    this.assertNonEmpty({
+      value: collection,
+      name: 'collection',
+      method: this.countDocuments.name,
+    });
+
+    const params: Record<string, unknown> = { q: '*' };
+    params['per_page'] = 0;
+
+    if (filterBy) {
+      params['filter_by'] = filterBy;
+    }
+
+    const result = await this.search({ collection, params });
+    return result.found;
   }
 
   async upsertDocument<T extends object>(opts: { collection: string; document: T }): Promise<T> {
@@ -868,6 +741,29 @@ export class TypesenseConnector extends BaseSearchConnector {
     return rs;
   }
 
+  /** Appends one batch's per-row responses to `responses` and returns that batch's success/fail split. */
+  private tallyImportResponses(opts: {
+    batchResult: TImportResponse[];
+    responses: TImportResponse[];
+  }): { successCount: number; failCount: number } {
+    const { batchResult, responses } = opts;
+    let successCount = 0;
+    let failCount = 0;
+
+    for (const row of batchResult) {
+      responses.push(row);
+
+      if (row.success) {
+        successCount += 1;
+        continue;
+      }
+
+      failCount += 1;
+    }
+
+    return { successCount, failCount };
+  }
+
   async importDocuments<T extends object>(opts: {
     collection: string;
     documents: T[];
@@ -907,27 +803,25 @@ export class TypesenseConnector extends BaseSearchConnector {
         const batch = documents.slice(start, start + batchSize);
 
         // opt out of typesense's default throwOnFail:true so import() returns per-row responses to aggregate below.
-        const importParams: Record<string, unknown> = { action, throwOnFail: false };
-        if (dirtyValues) {
-          importParams['dirty_values'] = dirtyValues;
-        }
+        const importParams: Record<string, unknown> = dirtyValues
+          ? { action, throwOnFail: false, ['dirty_values']: dirtyValues }
+          : { action, throwOnFail: false };
 
         const batchResult = (await this.client
           .collections(collection)
           .documents()
           .import(batch, importParams)) as TImportResponse[];
 
-        for (const row of batchResult) {
-          responses.push(row);
-
-          if (row.success) {
-            successCount += 1;
-          } else {
-            failCount += 1;
-          }
-        }
+        const tally = this.tallyImportResponses({ batchResult, responses });
+        successCount += tally.successCount;
+        failCount += tally.failCount;
       }
     } catch (error) {
+      // A framework ApplicationError is already sanitized and carries its own statusCode/messageCode, so it surfaces as-is; only raw engine failures get wrapped as a 503, mirroring runEngineCall's guard.
+      if (isApplicationError(error)) {
+        throw error;
+      }
+
       // Batches before the failure are already persisted server-side; attach partial progress so callers can decide to resume or retry.
       SearchConnectorInternal.wrapDependencyError({
         method: this.importDocuments.name,
@@ -948,7 +842,7 @@ export class TypesenseConnector extends BaseSearchConnector {
       successCount,
       failCount,
     );
-    return { successCount, failCount, responses };
+    return { count: { success: successCount, fail: failCount }, responses };
   }
 
   async updateByFilter<T extends object>(opts: {
@@ -1111,12 +1005,7 @@ export class TypesenseConnector extends BaseSearchConnector {
     return mapSearchResult<T>(rs);
   }
 
-  // `union: true` merges every `searches` entry into ONE result set (IUnionSearchResult); the
-  // default federates them side-by-side into `results[]` (IMultiSearchResult) - overloaded so
-  // callers get the right shape back at compile time instead of a runtime-checked union.
-  // Wire boundary: `searches`/`commonParams` are the engine's NATIVE snake_case params (the datasource
-  // maps camelCase -> here). Typed as TSearchParams (not a loose record) so the raw getConnector()
-  // escape hatch still gets full LSP on the snake_case wire fields.
+  // `union: true` merges into ONE result set while the default federates into `results[]`, hence the overloads; `searches`/`commonParams` are the engine's NATIVE snake_case wire params, typed as TSearchParams so the raw escape hatch keeps full LSP.
   async multiSearch<T extends TDocumentSchema = TDocumentSchema>(opts: {
     searches: Array<{ collection: string } & Partial<TSearchParams>>;
     union: true;

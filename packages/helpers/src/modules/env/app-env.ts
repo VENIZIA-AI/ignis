@@ -5,7 +5,11 @@ export class Environment {
   static readonly DEBUG = 'debug';
 
   static readonly DEVELOPMENT = 'development';
+  /** The abbreviation deployments actually write. The same environment as {@link DEVELOPMENT}. */
+  static readonly DEV = 'dev';
+  static readonly SIT = 'sit';
 
+  static readonly UAT = 'uat';
   static readonly ALPHA = 'alpha';
   static readonly BETA = 'beta';
   static readonly STAGING = 'staging';
@@ -16,15 +20,25 @@ export class Environment {
     this.LOCAL,
     this.DEBUG,
     this.DEVELOPMENT,
+    this.DEV,
+    this.SIT,
+    this.UAT,
     this.ALPHA,
     this.BETA,
     this.STAGING,
     this.PRODUCTION,
   ]);
 
+  /** Environments whose users are our own engineers - the only ones an error response may carry a stack trace or raw driver message. Anything else, including an unrecognized name, is sanitized as production. */
+  static DEVELOPMENT_ENVS = new Set([this.LOCAL, this.DEBUG, this.DEVELOPMENT, this.DEV, this.SIT]);
+
   static get current(): string {
     const { NODE_ENV } = process.env;
-    return NODE_ENV || Environment.DEVELOPMENT;
+    if (!NODE_ENV) {
+      return Environment.DEVELOPMENT;
+    }
+
+    return NODE_ENV;
   }
 
   static is(opts: { name: string }) {
@@ -69,6 +83,12 @@ export class ApplicationEnvironment implements IApplicationEnvironment {
     this.arguments[key] = value;
   }
 
+  merge(opts: { envs: Record<string, string> }) {
+    for (const [key, value] of Object.entries(opts.envs)) {
+      this.arguments[key] = value;
+    }
+  }
+
   isDevelopment() {
     const { NODE_ENV } = process.env;
     return NODE_ENV === 'development';
@@ -84,4 +104,5 @@ export const applicationEnvironment = new ApplicationEnvironment({
   envs: process.env,
 });
 
+export const AppEnvs = applicationEnvironment;
 export const Envs = applicationEnvironment;

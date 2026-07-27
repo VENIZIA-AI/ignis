@@ -137,11 +137,10 @@ describe('SocketIOClientHelper', () => {
     }
     activeClients = [];
 
-    try {
-      ioServer.close();
-    } catch {
-      // ignore cleanup errors
-    }
+    // Fire-and-forget: io.close() only settles once the underlying httpServer closes, which the race below drives, so awaiting here would deadlock. Never swallow a cleanup failure.
+    ioServer.close().catch((closeError: unknown) => {
+      console.error('[socket-io.test afterEach] ioServer.close cleanup error:', closeError);
+    });
 
     await Promise.race([
       new Promise<void>(resolve => {
@@ -150,21 +149,6 @@ describe('SocketIOClientHelper', () => {
       wait(1000).then(() => {}),
     ]);
   });
-
-  /* const _createClient = (opts?: Record<string, any>): SocketIOClientHelper => {
-    const client = new SocketIOClientHelper({
-      identifier: 'test-client',
-      host: `http://localhost:${port}`,
-      options: {
-        path: '/io',
-        extraHeaders: {},
-        ...opts,
-      } as any,
-      ...opts,
-    });
-    activeClients.push(client);
-    return client;
-  }; */
 
   describe('Constructor & Initialization', () => {
     test('should initialize with UNAUTHORIZED state', () => {
@@ -757,7 +741,7 @@ describe('SocketIOClientHelper', () => {
       client.emit({
         topic: 'test',
         data: {},
-        cb: () => {
+        callback: () => {
           didCallbackExecute = true;
         },
       });
@@ -1119,11 +1103,10 @@ describe('SocketIOClientHelper - Edge Cases', () => {
     }
     activeClients = [];
 
-    try {
-      ioServer.close();
-    } catch {
-      // ignore cleanup errors
-    }
+    // Fire-and-forget: io.close() only settles once the underlying httpServer closes, which the race below drives, so awaiting here would deadlock. Never swallow a cleanup failure.
+    ioServer.close().catch((closeError: unknown) => {
+      console.error('[socket-io.test afterEach] ioServer.close cleanup error:', closeError);
+    });
 
     await Promise.race([
       new Promise<void>(resolve => {

@@ -1,3 +1,4 @@
+import { getError } from '@venizia/ignis-helpers';
 import type { PgIntegerBuilderInitial, PgTextBuilderInitial } from 'drizzle-orm/pg-core';
 import { integer, text } from 'drizzle-orm/pg-core';
 import type { TColumnDefinitions, TPrincipalEnricherOptions } from '../common/types';
@@ -62,9 +63,9 @@ export const generatePrincipalColumnDefs = <
       } as TPrincipalColumnDef<Discriminator, IdType, Nullable>;
     }
     default: {
-      throw new Error(
-        `[generatePrincipalColumnDefs] Invalid polymorphicIdType | value: ${polymorphic.idType} | valid: ['number', 'string']`,
-      );
+      throw getError({
+        message: `[generatePrincipalColumnDefs] Invalid polymorphicIdType | value: ${polymorphic.idType} | valid: ['number', 'string']`,
+      });
     }
   }
 };

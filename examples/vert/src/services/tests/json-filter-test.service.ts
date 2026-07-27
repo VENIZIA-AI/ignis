@@ -64,28 +64,28 @@ export class JsonFilterTestService extends BaseTestService {
   async run(): Promise<void> {
     this.logSection('[JsonFilterTestService] Starting JSON filter test cases');
 
-    await this.case1_SetupTestData();
-    await this.case2_FilterBySimpleJsonField();
-    await this.case3_FilterByNestedJsonField();
-    await this.case4_FilterByArrayIndex();
-    await this.case5_FilterWithNeqOperator();
-    await this.case6_FilterWithGtGteOperators();
-    await this.case7_FilterWithLtLteOperators();
-    await this.case8_FilterWithLikeIlike();
-    await this.case9_FilterWithInOperator();
-    await this.case10_FilterWithNinOperator();
-    await this.case11_FilterWithBetweenOperator();
-    await this.case12_CombinedJsonAndRegularFilter();
-    await this.case13_AndWithMultipleJsonPaths();
-    await this.case14_OrWithJsonPaths();
-    await this.case15_NonExistentJsonPath();
-    await this.case16_Cleanup();
+    await this.case1SetupTestData();
+    await this.case2FilterBySimpleJsonField();
+    await this.case3FilterByNestedJsonField();
+    await this.case4FilterByArrayIndex();
+    await this.case5FilterWithNeqOperator();
+    await this.case6FilterWithGtGteOperators();
+    await this.case7FilterWithLtLteOperators();
+    await this.case8FilterWithLikeIlike();
+    await this.case9FilterWithInOperator();
+    await this.case10FilterWithNinOperator();
+    await this.case11FilterWithBetweenOperator();
+    await this.case12CombinedJsonAndRegularFilter();
+    await this.case13AndWithMultipleJsonPaths();
+    await this.case14OrWithJsonPaths();
+    await this.case15NonExistentJsonPath();
+    await this.case16Cleanup();
 
     // Flaw fix verification tests
-    await this.case17_KebabCaseJsonKeys();
-    await this.case18_PlainObjectEquality();
-    await this.case19_EmptyObjectEquality();
-    await this.case20_MixedTypeNumericSafety();
+    await this.case17KebabCaseJsonKeys();
+    await this.case18PlainObjectEquality();
+    await this.case19EmptyObjectEquality();
+    await this.case20MixedTypeNumericSafety();
 
     this.logSection('[JsonFilterTestService] All JSON filter test cases completed');
   }
@@ -93,7 +93,7 @@ export class JsonFilterTestService extends BaseTestService {
   // ----------------------------------------------------------------
   // CASE 1: Setup test data with nested JSON
   // ----------------------------------------------------------------
-  private async case1_SetupTestData(): Promise<void> {
+  private async case1SetupTestData(): Promise<void> {
     const repo = this.configurationRepository;
     this.logCase('[CASE 1] Setup test data with nested JSON');
 
@@ -169,7 +169,7 @@ export class JsonFilterTestService extends BaseTestService {
   // ----------------------------------------------------------------
   // CASE 2: Filter by simple JSON field (eq)
   // ----------------------------------------------------------------
-  private async case2_FilterBySimpleJsonField(): Promise<void> {
+  private async case2FilterBySimpleJsonField(): Promise<void> {
     const repo = this.configurationRepository;
     this.logCase('[CASE 2] Filter by jValue.priority = 3');
 
@@ -196,7 +196,7 @@ export class JsonFilterTestService extends BaseTestService {
   // ----------------------------------------------------------------
   // CASE 3: Filter by nested JSON field (eq)
   // ----------------------------------------------------------------
-  private async case3_FilterByNestedJsonField(): Promise<void> {
+  private async case3FilterByNestedJsonField(): Promise<void> {
     const repo = this.configurationRepository;
     this.logCase('[CASE 3] Filter by jValue.metadata.level = "high"');
 
@@ -232,7 +232,7 @@ export class JsonFilterTestService extends BaseTestService {
   // ----------------------------------------------------------------
   // CASE 4: Filter by array index (eq)
   // ----------------------------------------------------------------
-  private async case4_FilterByArrayIndex(): Promise<void> {
+  private async case4FilterByArrayIndex(): Promise<void> {
     const repo = this.configurationRepository;
     this.logCase('[CASE 4] Filter by jValue.tags[0] = "important"');
 
@@ -259,7 +259,7 @@ export class JsonFilterTestService extends BaseTestService {
   // ----------------------------------------------------------------
   // CASE 5: Filter with neq operator
   // ----------------------------------------------------------------
-  private async case5_FilterWithNeqOperator(): Promise<void> {
+  private async case5FilterWithNeqOperator(): Promise<void> {
     const repo = this.configurationRepository;
     this.logCase('[CASE 5] Filter by jValue.priority neq 3');
 
@@ -292,7 +292,7 @@ export class JsonFilterTestService extends BaseTestService {
   // ----------------------------------------------------------------
   // CASE 6: Filter with gt/gte operators
   // ----------------------------------------------------------------
-  private async case6_FilterWithGtGteOperators(): Promise<void> {
+  private async case6FilterWithGtGteOperators(): Promise<void> {
     const repo = this.configurationRepository;
     this.logCase('[CASE 6] Filter by jValue.priority > 3');
 
@@ -346,7 +346,7 @@ export class JsonFilterTestService extends BaseTestService {
   // ----------------------------------------------------------------
   // CASE 7: Filter with lt/lte operators
   // ----------------------------------------------------------------
-  private async case7_FilterWithLtLteOperators(): Promise<void> {
+  private async case7FilterWithLtLteOperators(): Promise<void> {
     const repo = this.configurationRepository;
     this.logCase('[CASE 7] Filter by jValue.metadata.score < 80');
 
@@ -400,7 +400,7 @@ export class JsonFilterTestService extends BaseTestService {
   // ----------------------------------------------------------------
   // CASE 8: Filter with like/ilike operators
   // ----------------------------------------------------------------
-  private async case8_FilterWithLikeIlike(): Promise<void> {
+  private async case8FilterWithLikeIlike(): Promise<void> {
     const repo = this.configurationRepository;
     this.logCase('[CASE 8] Filter by jValue.metadata.level like "%igh%"');
 
@@ -454,7 +454,7 @@ export class JsonFilterTestService extends BaseTestService {
   // CASE 9: Filter with in operator
   // Note: JSON #>> returns TEXT, so we use string values for comparison
   // ----------------------------------------------------------------
-  private async case9_FilterWithInOperator(): Promise<void> {
+  private async case9FilterWithInOperator(): Promise<void> {
     const repo = this.configurationRepository;
     this.logCase('[CASE 9] Filter by jValue.priority in ["1", "2", "3"] (TEXT comparison)');
 
@@ -490,7 +490,7 @@ export class JsonFilterTestService extends BaseTestService {
   // CASE 10: Filter with nin operator
   // Note: JSON #>> returns TEXT, so we use string values for comparison
   // ----------------------------------------------------------------
-  private async case10_FilterWithNinOperator(): Promise<void> {
+  private async case10FilterWithNinOperator(): Promise<void> {
     const repo = this.configurationRepository;
     this.logCase('[CASE 10] Filter by jValue.priority nin ["1", "2"] (TEXT comparison)');
 
@@ -525,7 +525,7 @@ export class JsonFilterTestService extends BaseTestService {
   // ----------------------------------------------------------------
   // CASE 11: Filter with between operator
   // ----------------------------------------------------------------
-  private async case11_FilterWithBetweenOperator(): Promise<void> {
+  private async case11FilterWithBetweenOperator(): Promise<void> {
     const repo = this.configurationRepository;
     this.logCase('[CASE 11] Filter by jValue.metadata.score between [70, 95]');
 
@@ -558,7 +558,7 @@ export class JsonFilterTestService extends BaseTestService {
   // ----------------------------------------------------------------
   // CASE 12: Combined JSON + regular filter
   // ----------------------------------------------------------------
-  private async case12_CombinedJsonAndRegularFilter(): Promise<void> {
+  private async case12CombinedJsonAndRegularFilter(): Promise<void> {
     const repo = this.configurationRepository;
     this.logCase('[CASE 12] Combined filter: group + jValue.priority > 2');
 
@@ -591,7 +591,7 @@ export class JsonFilterTestService extends BaseTestService {
   // ----------------------------------------------------------------
   // CASE 13: AND with multiple JSON paths
   // ----------------------------------------------------------------
-  private async case13_AndWithMultipleJsonPaths(): Promise<void> {
+  private async case13AndWithMultipleJsonPaths(): Promise<void> {
     const repo = this.configurationRepository;
     this.logCase('[CASE 13] AND: jValue.priority > 2 AND jValue.metadata.level = "high"');
 
@@ -637,7 +637,7 @@ export class JsonFilterTestService extends BaseTestService {
   // ----------------------------------------------------------------
   // CASE 14: OR with JSON paths
   // ----------------------------------------------------------------
-  private async case14_OrWithJsonPaths(): Promise<void> {
+  private async case14OrWithJsonPaths(): Promise<void> {
     const repo = this.configurationRepository;
     this.logCase('[CASE 14] OR: jValue.priority = 1 OR jValue.priority = 5');
 
@@ -673,7 +673,7 @@ export class JsonFilterTestService extends BaseTestService {
   // ----------------------------------------------------------------
   // CASE 15: Non-existent JSON path
   // ----------------------------------------------------------------
-  private async case15_NonExistentJsonPath(): Promise<void> {
+  private async case15NonExistentJsonPath(): Promise<void> {
     const repo = this.configurationRepository;
     this.logCase('[CASE 15] Filter by non-existent path: jValue.nonExistent = "value"');
 
@@ -701,7 +701,7 @@ export class JsonFilterTestService extends BaseTestService {
   // ----------------------------------------------------------------
   // CASE 16: Cleanup test data
   // ----------------------------------------------------------------
-  private async case16_Cleanup(): Promise<void> {
+  private async case16Cleanup(): Promise<void> {
     const repo = this.configurationRepository;
     this.logCase('[CASE 16] Cleanup JSON filter test data');
 
@@ -721,7 +721,7 @@ export class JsonFilterTestService extends BaseTestService {
   // CASE 17: Kebab-case JSON keys (Flaw 1 fix)
   // Previously: Regex /^[a-zA-Z_][a-zA-Z0-9_]*$/ blocked hyphens
   // ----------------------------------------------------------------
-  private async case17_KebabCaseJsonKeys(): Promise<void> {
+  private async case17KebabCaseJsonKeys(): Promise<void> {
     const repo = this.configurationRepository;
     this.logCase('[CASE 17] Kebab-case JSON keys: jValue.user-id, jValue.api-key');
 
@@ -771,7 +771,7 @@ export class JsonFilterTestService extends BaseTestService {
   // CASE 18: Plain object equality (Flaw 2 fix)
   // Previously: { role: 'admin' } crashed with "Invalid operator: role"
   // ----------------------------------------------------------------
-  private async case18_PlainObjectEquality(): Promise<void> {
+  private async case18PlainObjectEquality(): Promise<void> {
     const repo = this.configurationRepository;
     this.logCase('[CASE 18] Plain object equality: jValue = { role: "admin" }');
 
@@ -833,7 +833,7 @@ export class JsonFilterTestService extends BaseTestService {
   // CASE 19: Empty object equality (Flaw 3 fix)
   // Previously: {} was treated as empty operator map, producing NO condition
   // ----------------------------------------------------------------
-  private async case19_EmptyObjectEquality(): Promise<void> {
+  private async case19EmptyObjectEquality(): Promise<void> {
     const repo = this.configurationRepository;
     this.logCase('[CASE 19] Empty object equality: jValue.metadata = {}');
 
@@ -897,7 +897,7 @@ export class JsonFilterTestService extends BaseTestService {
   // Previously: ::numeric cast crashed on non-numeric values
   // Now: Uses safe CASE WHEN casting that returns NULL for non-numeric
   // ----------------------------------------------------------------
-  private async case20_MixedTypeNumericSafety(): Promise<void> {
+  private async case20MixedTypeNumericSafety(): Promise<void> {
     const repo = this.configurationRepository;
     this.logCase('[CASE 20] Mixed-type numeric safety: gt operator on mixed types');
 

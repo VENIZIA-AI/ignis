@@ -7,7 +7,7 @@ description: Upgrade to TypeScript 6, ES2024 target, refreshed ESLint rules, and
 
 ## TypeScript 6 Upgrade & Toolchain Refresh
 
-The whole monorepo moves to **TypeScript 6** with an **ES2024** target, refreshed shared compiler/lint configs, and a few small correctness fixes in the mail and redis helpers. These are maintenance changes - the framework's public API is unchanged.
+The whole monorepo moves to **TypeScript 6** with an **ES2024** target, plus refreshed shared compiler and lint configs. It also carries a few small correctness fixes in the mail and redis helpers. These are maintenance changes - the framework's public API is unchanged.
 
 ## Overview
 
@@ -59,7 +59,7 @@ The whole monorepo moves to **TypeScript 6** with an **ES2024** target, refreshe
 
 ### `no-useless-assignment` ESLint rule
 
-The shared ESLint config now flags assignments whose value is never read before being overwritten. A handful of internal files (`controller.ts`, `app-error.middleware.ts`, `docs.helper.ts`) were cleaned up to satisfy it - for example, removing the unused binding in the Zod-error `catch` block.
+The shared ESLint config now flags assignments whose value is never read before being overwritten. A handful of internal files (`controller.ts`, `app-error.middleware.ts`, `docs.helper.ts`) were cleaned up to satisfy it. One example: it removed the unused binding in the Zod-error `catch` block.
 
 ## Bug Fixes
 
@@ -67,7 +67,7 @@ The shared ESLint config now flags assignments whose value is never read before 
 
 **File:** `packages/core/src/components/mail/helpers/transporters/{mailgun,nodemail}-transporter.helper.ts`
 
-The transporters previously called `validateModule({ modules: ['mailgun.js'] })` (and the nodemailer equivalent) inside `configure()`, throwing at startup when the optional peer wasn't installed even if that transporter was never used. This eager check was removed so the mail component loads without forcing every transporter's optional dependency.
+The transporters previously called `validateModule({ modules: ['mailgun.js'] })` (and the nodemailer equivalent) inside `configure()`. This threw at startup when the optional peer wasn't installed, even if that transporter was never used. The eager check was removed so the mail component loads without forcing every transporter's optional dependency.
 
 ### Redis / BullMQ connection typing
 

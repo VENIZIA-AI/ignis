@@ -1,3 +1,5 @@
+import type { AnyType } from '@/common/types';
+import { voidExecution } from '@/utilities/promise.utility';
 import { BaseHelper } from '@/modules/base';
 import isEmpty from 'lodash/isEmpty';
 import { EventEmitter } from 'node:events';
@@ -65,9 +67,7 @@ export class AbstractRedisHelper<ClientType extends TRedisClient = TRedisClient>
     };
   }
 
-  // ---------------------------------------------------------------------------
-  // Connection lifecycle (IRedisConnection)
-  // ---------------------------------------------------------------------------
+  // --- Connection lifecycle (IRedisConnection) ---
 
   getClient() {
     return this.client;
@@ -127,9 +127,7 @@ export class AbstractRedisHelper<ClientType extends TRedisClient = TRedisClient>
     });
   }
 
-  // ---------------------------------------------------------------------------
-  // Key lifecycle + counters (IRedisKey)
-  // ---------------------------------------------------------------------------
+  // --- Key lifecycle + counters (IRedisKey) ---
 
   exists(opts: { keys: Array<string> }): Promise<number> {
     const { keys } = opts;
@@ -182,9 +180,7 @@ export class AbstractRedisHelper<ClientType extends TRedisClient = TRedisClient>
     return this.client.decrby(key, value);
   }
 
-  // ---------------------------------------------------------------------------
-  // Key-value (IRedisKeyValue)
-  // ---------------------------------------------------------------------------
+  // --- Key-value (IRedisKeyValue) ---
 
   async set<T>(opts: {
     key: string;
@@ -218,7 +214,7 @@ export class AbstractRedisHelper<ClientType extends TRedisClient = TRedisClient>
       return null;
     }
 
-    return transform ? transform(value) : (value as unknown as T);
+    return transform ? transform(value) : (value as AnyType);
   }
 
   del(opts: { keys: Array<string> }): Promise<number> {
@@ -290,7 +286,7 @@ export class AbstractRedisHelper<ClientType extends TRedisClient = TRedisClient>
       return [];
     }
 
-    return values.map(el => (el ? (transform ? transform(el) : (el as unknown as T)) : null));
+    return values.map(el => (el ? (transform ? transform(el) : (el as AnyType)) : null));
   }
 
   keys(opts: { key: string }): Promise<string[]> {
@@ -298,9 +294,7 @@ export class AbstractRedisHelper<ClientType extends TRedisClient = TRedisClient>
     return this.client.keys(key);
   }
 
-  // ---------------------------------------------------------------------------
-  // Hash operations (IRedisHash)
-  // ---------------------------------------------------------------------------
+  // --- Hash operations (IRedisHash) ---
 
   async hSet<T extends Record<string, unknown>>(opts: {
     key: string;
@@ -367,9 +361,7 @@ export class AbstractRedisHelper<ClientType extends TRedisClient = TRedisClient>
     return this.client.hlen(key);
   }
 
-  // ---------------------------------------------------------------------------
-  // Set operations (IRedisSet)
-  // ---------------------------------------------------------------------------
+  // --- Set operations (IRedisSet) ---
 
   sAdd(opts: { key: string; members: Array<string | number> }): Promise<number> {
     const { key, members } = opts;
@@ -403,9 +395,7 @@ export class AbstractRedisHelper<ClientType extends TRedisClient = TRedisClient>
     return this.client.scard(key);
   }
 
-  // ---------------------------------------------------------------------------
-  // List operations (IRedisList)
-  // ---------------------------------------------------------------------------
+  // --- List operations (IRedisList) ---
 
   lPush(opts: { key: string; values: Array<string | number> }): Promise<number> {
     const { key, values } = opts;
@@ -443,9 +433,7 @@ export class AbstractRedisHelper<ClientType extends TRedisClient = TRedisClient>
     return this.client.llen(key);
   }
 
-  // ---------------------------------------------------------------------------
-  // RedisJSON (IRedisJson)
-  // ---------------------------------------------------------------------------
+  // --- RedisJSON (IRedisJson) ---
 
   jSet<T>(opts: { key: string; path: string; value: T }): Promise<string | null> {
     const { key, path, value } = opts;
@@ -482,9 +470,7 @@ export class AbstractRedisHelper<ClientType extends TRedisClient = TRedisClient>
     return this.execute<T | null>('JSON.ARRPOP', [key, path]);
   }
 
-  // ---------------------------------------------------------------------------
-  // Raw command (IRedisCommand)
-  // ---------------------------------------------------------------------------
+  // --- Raw command (IRedisCommand) ---
 
   execute<R>(command: string, parameters?: Array<string | number | Buffer>): Promise<R> {
     if (!parameters?.length) {
@@ -494,9 +480,7 @@ export class AbstractRedisHelper<ClientType extends TRedisClient = TRedisClient>
     return this.client.call(command, parameters) as Promise<R>;
   }
 
-  // ---------------------------------------------------------------------------
-  // Pub/Sub (IRedisPubSub)
-  // ---------------------------------------------------------------------------
+  // --- Pub/Sub (IRedisPubSub) ---
 
   async publish<T>(opts: {
     topics: Array<string>;
@@ -532,13 +516,17 @@ export class AbstractRedisHelper<ClientType extends TRedisClient = TRedisClient>
       return;
     }
 
-    this.client.subscribe(topic, (error, count) => {
-      if (error) {
-        logger.error('Failed to subscribe to topic: %s | Error: %s', topic, error);
-        return;
-      }
+    voidExecution({
+      logger: this.logger,
+      scope: this.subscribe.name,
+      execution: this.client.subscribe(topic, (error, count) => {
+        if (error) {
+          logger.error('Failed to subscribe to topic: %s | Error: %s', topic, error);
+          return;
+        }
 
-      logger.info('Subscribed to %s channel(s). Listening to channel: %s', count, topic);
+        logger.info('Subscribed to %s channel(s). Listening to channel: %s', count, topic);
+      }),
     });
   }
 
@@ -551,13 +539,17 @@ export class AbstractRedisHelper<ClientType extends TRedisClient = TRedisClient>
       return;
     }
 
-    this.client.unsubscribe(topic, (error, count) => {
-      if (error) {
-        logger.error('Failed to unsubscribe from topic: %s | Error: %s', topic, error);
-        return;
-      }
+    voidExecution({
+      logger: this.logger,
+      scope: this.unsubscribe.name,
+      execution: this.client.unsubscribe(topic, (error, count) => {
+        if (error) {
+          logger.error('Failed to unsubscribe from topic: %s | Error: %s', topic, error);
+          return;
+        }
 
-      logger.info('Unsubscribed from %s channel(s).', count);
+        logger.info('Unsubscribed from %s channel(s).', count);
+      }),
     });
   }
 }

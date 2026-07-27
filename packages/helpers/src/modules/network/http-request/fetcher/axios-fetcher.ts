@@ -1,13 +1,14 @@
-import { AnyObject } from '@/common';
+import { redactSecrets } from '@/common/redact';
+import { AnyObject, HTTP, THttpMethod } from '@/common';
 import axios, { AxiosRequestConfig } from 'axios';
 import https from 'node:https';
 import { stringify } from 'node:querystring';
-import { AbstractNetworkFetchableHelper, IRequestOptions } from './base-fetcher';
 import { BaseNetworkRequest } from '../base-network-request.helper';
+import { AbstractNetworkFetchableHelper, IRequestOptions } from './base-fetcher';
 
 export interface IAxiosRequestOptions extends AxiosRequestConfig, IRequestOptions {
   url: string;
-  method?: 'get' | 'post' | 'put' | 'patch' | 'delete' | 'options';
+  method?: THttpMethod;
   params?: AnyObject;
   body?: AnyObject;
   headers?: AnyObject;
@@ -27,10 +28,10 @@ export class AxiosFetcher extends AbstractNetworkFetchableHelper<
   }
 
   override send<T = any>(opts: IAxiosRequestOptions, logger?: any) {
-    const { url, method = 'get', params = {}, body: data, headers, ...rest } = opts;
+    const { url, method = HTTP.Methods.GET, params = {}, body: data, headers, ...rest } = opts;
     const props: AxiosRequestConfig = {
       url,
-      method,
+      method: method.toUpperCase(),
       params,
       data,
       headers,
@@ -39,13 +40,13 @@ export class AxiosFetcher extends AbstractNetworkFetchableHelper<
     };
 
     const protocol = this.getProtocol(url);
-    if (protocol === 'https') {
+    if (protocol === HTTP.Protocols.HTTPS) {
       props.httpsAgent = new https.Agent({
         rejectUnauthorized: opts.rejectUnauthorized ?? false,
       });
     }
 
-    logger?.for(this.send.name).info('URL: %s | Props: %o', url, props);
+    logger?.for(this.send.name).info('URL: %s | Props: %s', url, redactSecrets(props));
     return this.worker.request<T>(props);
   }
 }

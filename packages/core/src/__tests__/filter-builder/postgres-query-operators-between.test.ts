@@ -4,10 +4,7 @@ import { ApplicationError } from '@venizia/ignis-helpers';
 
 import { FilterBuilder } from '@/connectors/postgres/repositories/dialect';
 
-/**
- * `PostgresQueryOperators.FNS[BETWEEN/NOT_BETWEEN]` rejects invalid value arrays via
- * `getError`/`ApplicationError` with an `[PostgresQueryOperators]`-prefixed message.
- */
+/** `PostgresQueryOperators.FNS[BETWEEN/NOT_BETWEEN]` rejects invalid value arrays via `getError`/`ApplicationError` with an `[PostgresQueryOperators]`-prefixed message. */
 describe('PostgresQueryOperators.FNS - between/notBetween invalid-value errors', () => {
   const table = pgTable('items', {
     id: serial('id').primaryKey(),

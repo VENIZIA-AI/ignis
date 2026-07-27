@@ -95,7 +95,7 @@ describe('TypesenseConnector collections', () => {
     }
     expect(caught).toBeInstanceOf(ApplicationError);
     expect((caught as ApplicationError).statusCode).toBe(404);
-    expect((caught as ApplicationError).messageCode).toBe('core.search_engine.not_found');
+    expect((caught as ApplicationError).normalized.code).toBe('core.search_engine.not_found');
   });
 
   test('patchCollectionSchema throws a sanitized 404 when the collection is missing', async () => {

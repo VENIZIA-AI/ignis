@@ -155,7 +155,7 @@ If you wrapped `subscribe(...)` in a `try/catch` expecting it to throw, that bra
 
 These are new and do not break anything:
 
-- **`RedisSentinelHelper`** - Redis Sentinel topology with automatic failover. See the [Redis Helper reference](/extensions/helpers/redis/) (Sentinel section).
+- **`RedisSentinelHelper`** - Redis Sentinel topology with automatic failover. See the [Redis Helper full reference](/extensions/helpers/redis/reference#construction-sentinel) (Sentinel section).
 - **`createRedisHelper({ mode })`** - a factory that builds the right helper from `RedisModes.SINGLE | CLUSTER | SENTINEL`, so you can pick a topology from config.
 - **`RedisModes`** and **`RedisSentinelRoles`** - const-classes for the enumerable mode/role strings, with matching `TRedisMode` / `TRedisSentinelRole` types.
 - **Expanded data API** - key lifecycle and counters (`exists`, `expire`, `expireAt`, `ttl`, `persist`, `incr`, `decr`, `incrBy`, `decrBy`), hash completion (`hGet`, `hDel`, `hExists`, `hKeys`, `hVals`, `hIncrBy`, `hLen`), sets (`sAdd`, `sRem`, `sMembers`, `sIsMember`, `sCard`), and lists (`lPush`, `rPush`, `lPop`, `rPop`, `lRange`, `lLen`).

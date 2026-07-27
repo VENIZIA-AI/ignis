@@ -46,7 +46,7 @@ export class TodoController extends BaseRestController {
 
   @get({ configs: TodoRoutes.GET_ALL })
   async getAll(c: TRouteContext) {
-    const todos = await this.repository.find({});
+    const todos = await this.repository.find({ filter: {} });
     return c.json(todos, HTTP.ResultCodes.RS_2.Ok);
   }
 }
@@ -224,7 +224,7 @@ class TodoController extends BaseRestController {
 | **Endpoint** | URL path that API responds to (e.g., `GET /todos`) |
 | **Route Parameter** | Variable in URL wrapped in braces (e.g., `{id}` in OpenAPI route configs) |
 | **Request Body** | JSON data sent with POST/PATCH requests |
-| **OpenAPI/Swagger** | Auto-generated API docs at `/doc/explorer` (default path via SwaggerComponent) |
+| **OpenAPI/Swagger** | Auto-generated API docs at `/doc/explorer` (default path via ApiReferenceComponent) |
 
 
 ## Environment & Configuration

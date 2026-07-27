@@ -1,5 +1,6 @@
 import type { Hook, OpenAPIHono } from '@hono/zod-openapi';
 import type { ValueOrPromise } from '@venizia/ignis-helpers';
+import { executeWithPerformanceMeasure } from '@venizia/ignis-helpers';
 import type { Env, Schema } from 'hono';
 import type {
   IAuthRouteConfig,
@@ -23,9 +24,19 @@ export abstract class BaseRestController<
   ConfigurableOptions,
   Definitions
 > {
-  /** TRouteHandler's TRouteContext is a lightweight custom shape (different `json`/`req.valid`
-   * signatures) built on top of Hono's real Context, not a subtype of the RouteHandler Hono's
-   * `.openapi()` expects - genuinely different handler types being bridged at this call boundary. */
+  /** Runs a handler task under performance measurement (fixed logger/level/description). */
+  measure<R>(opts: { scope: string; args: unknown; task: () => Promise<R> }) {
+    return executeWithPerformanceMeasure({
+      logger: this.logger,
+      level: 'debug',
+      scope: opts.scope,
+      description: `execute ${opts.scope}`,
+      args: opts.args,
+      task: opts.task,
+    });
+  }
+
+  /** TRouteHandler's TRouteContext is a lightweight custom shape (different `json`/`req.valid` signatures) built on Hono's real Context, not a subtype of the RouteHandler `.openapi()` expects - genuinely different handler types bridged here. */
   toHonoHandler<ResponseType = unknown>(opts: { handler: TRouteHandler<ResponseType, RouteEnv> }) {
     return opts.handler as Parameters<OpenAPIHono<RouteEnv>['openapi']>[1];
   }

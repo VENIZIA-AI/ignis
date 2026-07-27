@@ -1,0 +1,333 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>IGNIS · Knowledge</title>
+<style>
+  :root {
+    --bg:#16161a; --bg-soft:#1c1c21; --bg-alt:#121215; --text:#e7e7e3; --text-2:#9b9ba4;
+    --border:#2a2a30; --brand:#a8b1ff;
+    --font: ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+    --mono: ui-monospace, "SF Mono", "JetBrains Mono", "Cascadia Code", Menlo, monospace;
+    color-scheme: dark;
+  }
+  * { box-sizing: border-box; }
+  html,body { height:100%; margin:0; }
+  body { font:15px/1.6 var(--font); background:var(--bg); color:var(--text); overflow:hidden; -webkit-font-smoothing:antialiased; }
+  a { color:inherit; text-decoration:none; }
+  ::selection { background:color-mix(in srgb, var(--brand) 35%, transparent); }
+
+  #app { display:grid; grid-template-rows:auto 1fr; height:100vh; }
+
+  /* header */
+  #bar { display:flex; align-items:center; gap:18px; padding:0 20px; height:54px; border-bottom:1px solid var(--border); background:var(--bg-alt); }
+  .brand { font-family:var(--mono); font-weight:700; font-size:14px; letter-spacing:.04em; cursor:pointer; white-space:nowrap; }
+  .brand b { color:var(--brand); }
+  .brand span { color:var(--text-2); font-weight:500; }
+  #search { flex:1; max-width:420px; background:var(--bg); border:1px solid var(--border); color:var(--text); padding:8px 12px; border-radius:9px; font-size:13.5px; font-family:var(--font); }
+  #search:focus { outline:none; border-color:var(--brand); }
+  .spacer { flex:1; }
+  .seg { display:flex; border:1px solid var(--border); border-radius:9px; overflow:hidden; font-family:var(--mono); font-size:12px; }
+  .seg button { background:transparent; border:0; color:var(--text-2); padding:7px 14px; cursor:pointer; letter-spacing:.03em; }
+  .seg button.on { background:var(--brand); color:#0b0b10; font-weight:600; }
+
+  #layout { display:grid; grid-template-columns:286px 1fr; min-height:0; }
+
+  /* sidebar */
+  #side { overflow-y:auto; border-right:1px solid var(--border); background:var(--bg-soft); padding:10px 0 40px; }
+  .grp { margin-bottom:2px; }
+  .grp > .gh { display:flex; align-items:center; gap:9px; padding:9px 18px 6px; cursor:pointer; }
+  .grp > .gh .gname { font-family:var(--mono); font-size:11px; letter-spacing:.13em; text-transform:uppercase; color:var(--text-2); font-weight:600; }
+  .grp > .gh .gbar { width:7px; height:7px; border-radius:2px; flex:none; }
+  .grp > .gh .gn { margin-left:auto; font-family:var(--mono); font-size:10.5px; color:var(--text-2); opacity:.8; }
+  .grp > .gh:hover .gname { color:var(--text); }
+  .grp.col > .items { display:none; }
+  .grp.col > .gh .gname::after { content:' +'; opacity:.5; }
+  .items { padding-bottom:6px; }
+  .it { display:flex; align-items:center; gap:9px; padding:5px 18px 5px 34px; cursor:pointer; font-size:13.5px; color:var(--text); border-left:2px solid transparent; }
+  .it:hover { background:var(--bg); }
+  .it.on { border-left-color:var(--accent); background:var(--bg); color:var(--text); font-weight:550; }
+  .it.hide { display:none; }
+  .it .d { width:6px; height:6px; border-radius:50%; flex:none; background:var(--accent); opacity:.85; }
+
+  /* stage */
+  #stage { overflow-y:auto; position:relative; }
+  #reader { max-width:1080px; margin:0 auto; padding:40px 48px 100px; }
+
+  /* home */
+  .hero { margin:8px 0 36px; }
+  .hero .eyebrow { font-family:var(--mono); font-size:11.5px; letter-spacing:.16em; text-transform:uppercase; color:var(--text-2); }
+  .hero h1 { font-size:30px; line-height:1.15; margin:10px 0 8px; font-weight:680; letter-spacing:-.01em; max-width:18ch; }
+  .hero p { color:var(--text-2); font-size:16px; margin:0; max-width:60ch; }
+  .grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(280px,1fr)); gap:14px; }
+  .card { border:1px solid var(--border); border-radius:13px; background:var(--bg-soft); padding:16px 18px; cursor:pointer; transition:border-color .15s, transform .15s, box-shadow .15s; border-top:2px solid var(--accent); }
+  .card:hover { transform:translateY(-2px); border-color:color-mix(in srgb, var(--accent) 55%, var(--border)); box-shadow:0 8px 26px -14px var(--accent); }
+  .card .ch { display:flex; align-items:baseline; gap:8px; }
+  .card .ck { font-family:var(--mono); font-size:11px; letter-spacing:.12em; text-transform:uppercase; color:var(--accent); font-weight:600; }
+  .card .cn { margin-left:auto; font-family:var(--mono); font-size:11px; color:var(--text-2); }
+  .card .cd { color:var(--text-2); font-size:13.5px; margin:7px 0 11px; min-height:38px; }
+  .card .cl { display:flex; flex-direction:column; gap:3px; }
+  .card .cl a { font-size:13px; color:var(--text); opacity:.82; }
+  .card .cl a:hover { color:var(--accent); opacity:1; }
+  .card .more { font-family:var(--mono); font-size:11px; color:var(--text-2); margin-top:6px; }
+
+  /* concept */
+  .crumb { font-family:var(--mono); font-size:11.5px; letter-spacing:.05em; color:var(--text-2); margin-bottom:14px; }
+  .crumb a:hover { color:var(--text); }
+  .badge { display:inline-block; font-family:var(--mono); font-size:11px; letter-spacing:.06em; padding:3px 10px; border-radius:20px; color:#0b0b10; font-weight:600; background:var(--accent); }
+  .doc { max-width:760px; }
+  .doc h1 { font-size:27px; line-height:1.2; margin:14px 0 8px; font-weight:680; letter-spacing:-.01em; }
+  .doc .lead { font-size:17px; color:var(--text-2); margin:0 0 14px; }
+  .doc .tags { font-family:var(--mono); font-size:12px; color:var(--text-2); margin-bottom:22px; }
+  .doc .src { font-family:var(--mono); font-size:11.5px; color:var(--text-2); border:1px dashed var(--border); border-radius:8px; padding:6px 10px; display:inline-block; margin-bottom:24px; }
+  .body { font-size:15px; }
+  .body h2 { font-size:15px; font-family:var(--mono); letter-spacing:.02em; text-transform:none; margin:28px 0 10px; padding-bottom:6px; border-bottom:1px solid var(--border); font-weight:650; }
+  .body p { margin:11px 0; }
+  .body ul { padding-left:20px; margin:10px 0; }
+  .body li { margin:4px 0; }
+  .body a { color:var(--brand); }
+  .body a:hover { text-decoration:underline; }
+  .body code { font-family:var(--mono); font-size:12.5px; background:var(--bg-soft); border:1px solid var(--border); border-radius:5px; padding:1px 5px; }
+  .body pre { background:var(--bg-alt); border:1px solid var(--border); border-radius:10px; padding:13px 15px; overflow-x:auto; }
+  .body pre code { background:none; border:0; padding:0; font-size:12.5px; }
+  .body blockquote { border-left:3px solid var(--accent); margin:14px 0; padding:3px 14px; color:var(--text-2); background:var(--bg-soft); border-radius:0 8px 8px 0; }
+  .body table { border-collapse:collapse; width:100%; margin:14px 0; font-size:13px; display:block; overflow-x:auto; }
+  .body th,.body td { border:1px solid var(--border); padding:6px 10px; text-align:left; vertical-align:top; }
+  .body th { background:var(--bg-soft); font-family:var(--mono); font-weight:600; font-size:12px; }
+  .related { margin-top:34px; border-top:1px solid var(--border); padding-top:18px; }
+  .related .rh { font-family:var(--mono); font-size:11px; letter-spacing:.13em; text-transform:uppercase; color:var(--text-2); margin-bottom:10px; }
+  .related .chips { display:flex; flex-wrap:wrap; gap:8px; }
+  .chip { border:1px solid var(--border); border-radius:20px; padding:5px 13px; font-size:13px; cursor:pointer; background:var(--bg-soft); }
+  .chip:hover { border-color:var(--accent); }
+  .chip .d { display:inline-block; width:6px; height:6px; border-radius:50%; margin-right:6px; vertical-align:middle; }
+
+  /* search results */
+  .results .rcount { font-family:var(--mono); font-size:12px; color:var(--text-2); margin-bottom:16px; }
+  .res { display:block; border:1px solid var(--border); border-radius:11px; padding:13px 16px; margin-bottom:10px; cursor:pointer; background:var(--bg-soft); border-left:2px solid var(--accent); }
+  .res:hover { border-color:color-mix(in srgb, var(--accent) 50%, var(--border)); }
+  .res .rt { font-weight:600; } .res .rk { font-family:var(--mono); font-size:10.5px; color:var(--accent); letter-spacing:.08em; text-transform:uppercase; margin-left:8px; }
+  .res .rd { color:var(--text-2); font-size:13px; margin-top:3px; }
+
+  /* map */
+  #mapwrap { position:absolute; inset:0; display:none; }
+  #cy { position:absolute; inset:0; background:radial-gradient(circle at 1px 1px, var(--border) 1px, transparent 0) 0 0 / 26px 26px; }
+  #maphint { position:absolute; top:14px; left:16px; font-family:var(--mono); font-size:11.5px; color:var(--text-2); background:color-mix(in srgb, var(--bg-soft) 88%, transparent); padding:5px 10px; border:1px solid var(--border); border-radius:8px; }
+
+  @media (max-width:680px){ #layout{ grid-template-columns:1fr; } #side{ display:none; } #reader{ padding:24px 20px 80px; } }
+</style>
+</head>
+<body>
+<div id="app">
+  <header id="bar">
+    <div class="brand" id="brand"><b>IGNIS</b> <span>· knowledge</span></div>
+    <input id="search" />
+    <div class="spacer"></div>
+    <div class="seg"><button data-v="read" class="on">Read</button><button data-v="map">Map</button></div>
+  </header>
+  <div id="layout">
+    <aside id="side"></aside>
+    <div id="stage">
+      <div id="reader"></div>
+      <div id="mapwrap"><div id="cy"></div><div id="maphint"></div></div>
+    </div>
+  </div>
+</div>
+
+<script type="text/plain" id="lib-layout-base">__LIB_LAYOUT_BASE__</script>
+<script type="text/plain" id="lib-cose-base">__LIB_COSE_BASE__</script>
+<script type="text/plain" id="lib-cytoscape">__LIB_CYTOSCAPE__</script>
+<script type="text/plain" id="lib-fcose">__LIB_FCOSE__</script>
+
+<script>
+const DATA = __OKF_DATA__;
+
+/* ---------- locale + theme (sync from the wiki when embedded) ---------- */
+function parentDoc(){ try { const p=window.parent; return p&&p.document&&p.document!==document?p.document:null; } catch(e){ return null; } }
+const STR = {
+  en:{ search:'Search the knowledge…', tagline:'The IGNIS framework, end to end - packages, architecture, conventions, process and examples.', start:'Project knowledge', related:'Related', source:'Source', results:n=>n+' result'+(n===1?'':'s'), none:'No matches.', maphint:'Drag to pan · scroll to zoom · click a node to read it', more:n=>'+ '+n+' more' },
+  vi:{ search:'Tìm trong kiến thức…', tagline:'Toàn bộ framework IGNIS - package, kiến trúc, quy ước, quy trình và ví dụ.', start:'Kiến thức dự án', related:'Liên quan', source:'Nguồn', results:n=>n+' kết quả', none:'Không có kết quả.', maphint:'Kéo để di chuyển · cuộn để zoom · click vào node để đọc', more:n=>'+ '+n+' nữa' },
+};
+function lang(){ const q=new URLSearchParams(location.search).get('lang'); if(q==='vi'||q==='en')return q; const pd=parentDoc(); const p=pd?pd.location.pathname:location.pathname; return /\/vi(\/|$)/.test(p)?'vi':'en'; }
+const T = STR[lang()];
+const FB = {
+  light:{ bg:'#ffffff','bg-soft':'#f7f7f9','bg-alt':'#eeeef1',text:'#1c2128','text-2':'#636b74',border:'#e3e3e8',brand:'#3b5bdb' },
+  dark: { bg:'#16161a','bg-soft':'#1c1c21','bg-alt':'#121215',text:'#e7e7e3','text-2':'#9b9ba4',border:'#2a2a30',brand:'#a8b1ff' },
+};
+let DARK=true;
+function applyTheme(){
+  const pd=parentDoc(); const root=document.documentElement; let v;
+  if(pd){ const cs=getComputedStyle(pd.documentElement); const bg=cs.getPropertyValue('--vp-c-bg').trim(); DARK=pd.documentElement.classList.contains('dark');
+    if(bg){ v={ bg,'bg-soft':cs.getPropertyValue('--vp-c-bg-soft').trim()||bg,'bg-alt':cs.getPropertyValue('--vp-c-bg-alt').trim()||bg,
+      text:cs.getPropertyValue('--vp-c-text-1').trim(),'text-2':cs.getPropertyValue('--vp-c-text-2').trim(),
+      border:cs.getPropertyValue('--vp-c-divider').trim(),brand:(cs.getPropertyValue('--vp-c-brand-1')||cs.getPropertyValue('--vp-c-brand')).trim() };
+      const f=cs.getPropertyValue('--vp-font-family-base').trim(); if(f) root.style.setProperty('--font',f);
+      const fm=cs.getPropertyValue('--vp-font-family-mono').trim(); if(fm) root.style.setProperty('--mono',fm); } }
+  if(!v){ DARK=matchMedia('(prefers-color-scheme: dark)').matches; v=FB[DARK?'dark':'light']; }
+  for(const k in v) if(v[k]) root.style.setProperty('--'+k,v[k]);
+  root.style.setProperty('color-scheme', DARK?'dark':'light');
+  try { if(window.cy && typeof window.cy.style==='function') window.cy.style(cyStyle()); } catch(e){}
+}
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change',applyTheme);
+{ const pd=parentDoc(); if(pd) new MutationObserver(applyTheme).observe(pd.documentElement,{attributes:true,attributeFilter:['class']}); }
+
+/* ---------- data ---------- */
+const byId=new Map(DATA.nodes.map(n=>[n.id,n]));
+const adj=new Map(DATA.nodes.map(n=>[n.id,new Set()]));
+for(const e of DATA.edges){ adj.get(e.source)?.add(e.target); adj.get(e.target)?.add(e.source); }
+const SECDESC = {
+  overview:{en:'Start here - what IGNIS is and how to work in it.',vi:'Bắt đầu ở đây - IGNIS là gì và cách làm việc.'},
+  architecture:{en:'How the pieces fit: DI, lifecycle, repositories, and cross-cutting design.',vi:'Cách các phần ghép lại: DI, vòng đời, repository, thiết kế xuyên suốt.'},
+  packages:{en:'The published framework packages.',vi:'Các package của framework.'},
+  conventions:{en:'How the code is written - patterns, style, and gotchas.',vi:'Cách viết code - pattern, style, và các bẫy.'},
+  process:{en:'How the team works - build, test, release, git.',vi:'Cách team làm việc - build, test, release, git.'},
+  examples:{en:'Runnable apps that exercise the framework.',vi:'Các app chạy được minh hoạ framework.'},
+  reference:{en:'Look-ups - generated catalogs, glossary, key files.',vi:'Tra cứu - catalog sinh tự động, glossary, file quan trọng.'},
+};
+const secColor={}; DATA.sections.forEach((s,i)=>{ secColor[s.key]=`hsl(${Math.round(i/DATA.sections.length*360)} 62% ${DARK?60:48}%)`; });
+function recolor(){ DATA.sections.forEach((s,i)=>{ secColor[s.key]=`hsl(${Math.round(i/DATA.sections.length*360)} 62% ${DARK?62:46}%)`; }); }
+const nodesBy = k => DATA.nodes.filter(n=>n.group===k).sort((a,b)=>a.title.localeCompare(b.title));
+const secDesc = k => (SECDESC[k]? SECDESC[k][lang()] : '');
+
+/* ---------- mini markdown ---------- */
+function md(s){
+  const esc=x=>x.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  const inl=x=>esc(x).replace(/\[([^\]]+)\]\((\/[^)]+)\.md\)/g,'<a data-go="$2">$1</a>').replace(/`([^`]+)`/g,'<code>$1</code>').replace(/\*\*([^*]+)\*\*/g,'<strong>$1</strong>');
+  const row=l=>/^\s*\|.*\|\s*$/.test(l), sep=l=>/-/.test(l)&&/^\s*\|?[\s:|-]+\|?\s*$/.test(l);
+  const cells=l=>l.trim().replace(/^\|/,'').replace(/\|$/,'').split('|').map(c=>c.trim());
+  const L=s.split('\n'); let h='',code=false,list=false; const cl=()=>{ if(list){h+='</ul>';list=false;} };
+  for(let i=0;i<L.length;i++){ let ln=L[i];
+    if(ln.startsWith('```')){ code=!code; h+=code?'<pre><code>':'</code></pre>'; continue; }
+    if(code){ h+=esc(ln)+'\n'; continue; }
+    if(row(ln)&&i+1<L.length&&sep(L[i+1])){ cl(); let t='<table><thead><tr>'+cells(ln).map(c=>'<th>'+inl(c)+'</th>').join('')+'</tr></thead><tbody>'; i+=2; for(;i<L.length&&row(L[i]);i++) t+='<tr>'+cells(L[i]).map(c=>'<td>'+inl(c)+'</td>').join('')+'</tr>'; i--; h+=t+'</tbody></table>'; continue; }
+    if(/^#{1,6}\s/.test(ln)){ cl(); h+='<h2>'+inl(ln.replace(/^#+\s/,''))+'</h2>'; }
+    else if(/^>\s?/.test(ln)){ cl(); h+='<blockquote>'+inl(ln.replace(/^>\s?/,''))+'</blockquote>'; }
+    else if(/^[-*]\s/.test(ln)){ if(!list){h+='<ul>';list=true;} h+='<li>'+inl(ln.replace(/^[-*]\s/,''))+'</li>'; }
+    else if(ln.trim()===''){ cl(); }
+    else { cl(); h+='<p>'+inl(ln)+'</p>'; } }
+  cl(); return h;
+}
+
+/* ---------- sidebar ---------- */
+const side=document.getElementById('side');
+function buildSide(){
+  side.innerHTML='';
+  for(const s of DATA.sections){
+    const g=document.createElement('div'); g.className='grp'; g.dataset.key=s.key;
+    const gh=document.createElement('div'); gh.className='gh';
+    gh.innerHTML='<span class="gbar" style="background:'+secColor[s.key]+'"></span><span class="gname">'+s.label+'</span><span class="gn">'+s.count+'</span>';
+    gh.onclick=()=>g.classList.toggle('col');
+    const items=document.createElement('div'); items.className='items';
+    for(const n of nodesBy(s.key)){
+      const it=document.createElement('div'); it.className='it'; it.dataset.id=n.id; it.style.setProperty('--accent',secColor[s.key]);
+      it.dataset.q=(n.title+' '+n.description+' '+n.tags.join(' ')+' '+n.body).toLowerCase();
+      it.innerHTML='<span class="d"></span>'+n.title;
+      it.onclick=()=>openConcept(n.id);
+      items.append(it);
+    }
+    g.append(gh,items); side.append(g);
+  }
+}
+
+/* ---------- views ---------- */
+const reader=document.getElementById('reader');
+function setActive(id){ document.querySelectorAll('.it').forEach(el=>el.classList.toggle('on',el.dataset.id===id)); }
+
+function openHome(){
+  view='read'; toggleStage(); setActive(null);
+  let cards='';
+  for(const s of DATA.sections){
+    const items=nodesBy(s.key); const top=items.slice(0,4);
+    cards+='<div class="card" style="--accent:'+secColor[s.key]+'" data-sec="'+s.key+'">'+
+      '<div class="ch"><span class="ck">'+s.label+'</span><span class="cn">'+s.count+'</span></div>'+
+      '<div class="cd">'+secDesc(s.key)+'</div><div class="cl">'+
+      top.map(n=>'<a data-go="'+n.id+'">'+n.title+'</a>').join('')+'</div>'+
+      (items.length>4?'<div class="more">'+T.more(items.length-4)+'</div>':'')+'</div>';
+  }
+  reader.innerHTML='<div class="hero"><div class="eyebrow">'+T.start+'</div>'+
+    '<h1>Understand IGNIS, one concept at a time.</h1><p>'+T.tagline+' '+DATA.nodes.length+' concepts · '+DATA.sections.length+' areas.</p></div>'+
+    '<div class="grid">'+cards+'</div>';
+  reader.scrollTop=0; stage().scrollTop=0;
+}
+
+function openConcept(id){
+  const n=byId.get(id); if(!n) return;
+  view='read'; toggleStage(); setActive(id);
+  const sec=DATA.sections.find(s=>s.key===n.group)||{label:n.group}; const ac=secColor[n.group];
+  const rel=[...adj.get(id)].map(x=>byId.get(x)).filter(Boolean).sort((a,b)=>a.title.localeCompare(b.title));
+  reader.innerHTML=
+    '<div class="crumb"><a data-go="@home">'+T.start+'</a> / <a data-sec="'+n.group+'">'+sec.label+'</a> / '+n.title+'</div>'+
+    '<div class="doc" style="--accent:'+ac+'">'+
+      '<span class="badge" style="background:'+ac+'">'+n.type+'</span>'+
+      '<h1>'+n.title+'</h1><p class="lead">'+(n.description||'')+'</p>'+
+      (n.tags.length?'<div class="tags">#'+n.tags.join('  #')+'</div>':'')+
+      (n.resource?'<div class="src">'+T.source+': '+n.resource+'</div>':'')+
+      '<div class="body">'+md(n.body)+'</div>'+
+      (rel.length?'<div class="related"><div class="rh">'+T.related+'</div><div class="chips">'+
+        rel.map(m=>'<span class="chip" data-go="'+m.id+'"><span class="d" style="background:'+secColor[m.group]+'"></span>'+m.title+'</span>').join('')+'</div></div>':'')+
+    '</div>';
+  // expand + reveal in sidebar
+  const grp=[...document.querySelectorAll('.grp')].find(g=>g.dataset.key===n.group); if(grp){ grp.classList.remove('col'); grp.querySelector('.it.on')?.scrollIntoView({block:'nearest'}); }
+  stage().scrollTop=0;
+}
+
+function openSection(key){ openHome(); const g=[...document.querySelectorAll('.grp')].find(x=>x.dataset.key===key); if(g){ document.querySelectorAll('.grp').forEach(x=>x.classList.add('col')); g.classList.remove('col'); g.scrollIntoView({block:'start'}); g.querySelector('.gh').click(); g.classList.remove('col'); } }
+
+/* search */
+const search=document.getElementById('search'); search.placeholder=T.search;
+search.addEventListener('input',()=>{ const q=search.value.toLowerCase().trim();
+  document.querySelectorAll('.it').forEach(el=>el.classList.toggle('hide', q && !el.dataset.q.includes(q)));
+  document.querySelectorAll('.grp').forEach(g=>{ const any=[...g.querySelectorAll('.it')].some(i=>!i.classList.contains('hide')); g.style.display=(!q||any)?'':'none'; });
+  if(view==='map') return;
+  if(!q){ openHome(); return; }
+  const hits=DATA.nodes.map(n=>({n,s:score(n,q)})).filter(x=>x.s>0).sort((a,b)=>b.s-a.s).slice(0,40);
+  view='read'; toggleStage();
+  reader.innerHTML='<div class="results"><div class="rcount">'+(hits.length?T.results(hits.length):T.none)+'</div>'+
+    hits.map(({n})=>'<div class="res" style="--accent:'+secColor[n.group]+'" data-go="'+n.id+'"><span class="rt">'+n.title+'</span><span class="rk">'+n.type+'</span><div class="rd">'+(n.description||'')+'</div></div>').join('')+'</div>';
+  stage().scrollTop=0;
+});
+function score(n,q){ let s=0; const t=n.title.toLowerCase(); if(t===q)s+=10; if(t.includes(q))s+=5; if(n.tags.join(' ').toLowerCase().includes(q))s+=3; if((n.description||'').toLowerCase().includes(q))s+=2; if(n.body.toLowerCase().includes(q))s+=1; return s; }
+
+/* delegated nav */
+document.addEventListener('click',e=>{ const a=e.target.closest('[data-go]'); if(a){ e.preventDefault(); const id=a.dataset.go; id==='@home'?openHome():openConcept(id); return; }
+  const sc=e.target.closest('[data-sec]'); if(sc){ e.preventDefault(); openSection(sc.dataset.sec); } });
+document.getElementById('brand').onclick=()=>{ search.value=''; search.dispatchEvent(new Event('input')); openHome(); };
+
+/* ---------- view switch (read | map) ---------- */
+let view='read';
+const stage=()=>document.getElementById('stage');
+function toggleStage(){ document.getElementById('reader').style.display=view==='read'?'':'none'; document.getElementById('mapwrap').style.display=view==='map'?'block':'none'; document.querySelectorAll('.seg button').forEach(b=>b.classList.toggle('on',b.dataset.v===view)); }
+document.querySelectorAll('.seg button').forEach(b=>b.onclick=()=>{ view=b.dataset.v; toggleStage(); if(view==='map') initMap(); });
+
+/* ---------- map (lazy Cytoscape) ---------- */
+const __reg={}; function __load(elId,name){ const src=document.getElementById(elId).textContent; const module={exports:{}}; const require=d=>__reg[d]; (new Function('module','exports','require',src))(module,module.exports,require); return (__reg[name]=module.exports); }
+let cytoscape=null;
+function cyStyle(){ recolor(); const v=k=>getComputedStyle(document.documentElement).getPropertyValue(k).trim();
+  return [
+    { selector:'node[kind="section"]', style:{ 'background-opacity':0.04,'background-color':DARK?'#fff':'#000','border-width':1.5,'border-color':v('--border'),'border-style':'dashed','shape':'round-rectangle','label':'data(label)','text-valign':'top','text-halign':'center','font-family':'monospace','font-size':12,'font-weight':700,'color':v('--text-2'),'text-margin-y':-6,'padding':24,'corner-radius':14,'text-background-color':v('--bg'),'text-background-opacity':0.85,'text-background-padding':4 } },
+    { selector:'node[!kind]', style:{ 'background-color':'data(color)','width':'mapData(deg,0,12,18,46)','height':'mapData(deg,0,12,18,46)','border-width':1.5,'border-color':v('--bg'),'label':'data(label)','font-size':9.5,'color':v('--text'),'text-valign':'bottom','text-margin-y':2,'text-outline-color':v('--bg'),'text-outline-width':2,'min-zoomed-font-size':6 } },
+    { selector:'edge', style:{ 'width':1.2,'line-color':v('--text-2'),'curve-style':'bezier','opacity':0.32 } },
+    { selector:'.dim', style:{ 'opacity':0.08 } },
+    { selector:'.hl', style:{ 'line-color':v('--brand'),'opacity':1,'width':2 } },
+  ];
+}
+let mapDone=false;
+function initMap(){ document.getElementById('maphint').textContent=T.maphint; if(mapDone) return; mapDone=true;
+  __load('lib-layout-base','layout-base'); __load('lib-cose-base','cose-base'); cytoscape=__load('lib-cytoscape','cytoscape'); cytoscape.use(__load('lib-fcose','cytoscape-fcose'));
+  const els=[];
+  for(const s of DATA.sections) els.push({ data:{ id:'sec:'+s.key, label:s.label.toUpperCase(), kind:'section' } });
+  for(const n of DATA.nodes) els.push({ data:{ id:n.id, label:n.title, parent:'sec:'+n.group, color:secColor[n.group], deg:n.degree } });
+  for(const e of DATA.edges) els.push({ data:{ id:e.source+'>'+e.target, source:e.source, target:e.target } });
+  window.cy=cytoscape({ container:document.getElementById('cy'), elements:els, style:cyStyle(), wheelSensitivity:0.25, minZoom:0.1, maxZoom:3,
+    layout:{ name:'fcose', quality:'default', animate:false, randomize:true, padding:40, nodeSeparation:150, idealEdgeLength:78, nodeRepulsion:7000, gravity:0.2, gravityCompound:3.0, gravityRangeCompound:1.6, packComponents:true, tile:true, numIter:2500 } });
+  window.cy.on('tap','node[!kind]',e=>{ view='read'; toggleStage(); openConcept(e.target.id()); });
+  window.cy.on('mouseover','node[!kind]',e=>{ const nb=e.target.closedNeighborhood(); window.cy.elements().difference(nb).addClass('dim'); nb.edgesWith(e.target).addClass('hl'); });
+  window.cy.on('mouseout','node[!kind]',()=>window.cy.elements().removeClass('dim hl'));
+  window.cy.ready(()=>window.cy.fit(undefined,40));
+}
+
+/* ---------- go ---------- */
+applyTheme(); buildSide(); openHome();
+</script>
+</body>
+</html>

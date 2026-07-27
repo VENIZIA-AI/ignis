@@ -266,7 +266,7 @@ graph TD
 
 Automatically registers these default middlewares during `initialize()`:
 
-1. **Error handler** (`appErrorHandler`) - with optional `rootKey` from `configs.error.rootKey`
+1. **Error handler** (`AppErrorMiddleware`) - with optional `rootKey` from `configs.error.rootKey`
 2. **Async context storage** (`contextStorage`) - enabled by default via `configs.asyncContext.enable`
 3. **Not-found handler** (`notFoundHandler`)
 4. **RequestTrackerComponent** - assigns `x-request-id` to every request, includes request body parsing

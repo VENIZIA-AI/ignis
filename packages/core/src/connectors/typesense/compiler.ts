@@ -4,10 +4,11 @@ import type { CollectionCreateSchema } from 'typesense/lib/Typesense/Collections
 
 import type {
   ISearchCollectionDefinition,
+  ISearchEmbedConfig,
   ISearchFieldDefinition,
   TSearchFieldType,
-} from '@/connectors/typesense/models';
-import { SearchFieldTypes, VectorDistances } from '@/connectors/typesense/models';
+} from '@/connectors/search/models';
+import { SearchFieldTypes, VectorDistances } from '@/connectors/search/models';
 
 /** Wire-shaped Typesense field entry, derived from the SDK's own schema type. */
 type TTypesenseField = CollectionCreateSchema['fields'][number];
@@ -63,8 +64,60 @@ const mapFieldType = (opts: { type: TSearchFieldType }): TTypesenseField['type']
   }
 };
 
-// searchable/filterable have no Typesense equivalent - every field is indexed by default, so
-// both are dropped here. sortable maps to `sort`: required for strings, harmless on numbers.
+/** camelCase model config -> Typesense `model_config` wire object; undefined entries are dropped. */
+const buildEmbedModelConfig = (opts: {
+  model: ISearchEmbedConfig['model'];
+}): Record<string, unknown> => {
+  const { model } = opts;
+  const modelConfig: Record<string, unknown> = {};
+
+  for (const [key, value] of Object.entries(model)) {
+    if (value === undefined) {
+      continue;
+    }
+
+    modelConfig[EMBED_MODEL_WIRE_KEYS[key] ?? key] = value;
+  }
+
+  return modelConfig;
+};
+
+/** Writes the vector-specific wire keys (embed/num_dim/vec_dist) onto an already compiled field. */
+const applyVectorConfig = (opts: {
+  compiled: TTypesenseField;
+  field: ISearchFieldDefinition;
+}): void => {
+  const { compiled, field } = opts;
+  const { vector } = field;
+
+  if (!vector) {
+    return;
+  }
+
+  if (!vector.embed) {
+    if (vector.dimensions === undefined) {
+      throw getError({
+        message: `[compileTypesenseCollection] vector field '${field.name}' requires 'dimensions' (or an 'embed' config)`,
+      });
+    }
+
+    compiled.num_dim = vector.dimensions;
+    compiled.vec_dist = vector.distance ?? VectorDistances.COSINE;
+    return;
+  }
+
+  const embed: Record<string, unknown> = {
+    from: vector.embed.from,
+    ['model_config']: buildEmbedModelConfig({ model: vector.embed.model }),
+  };
+  compiled.embed = embed;
+
+  if (vector.dimensions !== undefined) {
+    compiled.num_dim = vector.dimensions;
+  }
+};
+
+// searchable/filterable have no Typesense equivalent - every field is indexed by default, so both are dropped; sortable maps to `sort`, required for strings and harmless on numbers.
 const compileField = (opts: { field: ISearchFieldDefinition }): TTypesenseField => {
   const { field } = opts;
 
@@ -85,36 +138,7 @@ const compileField = (opts: { field: ISearchFieldDefinition }): TTypesenseField 
     compiled.sort = field.sortable;
   }
 
-  if (field.vector) {
-    const { vector } = field;
-
-    if (vector.embed) {
-      const modelConfig: Record<string, unknown> = {};
-      for (const [key, value] of Object.entries(vector.embed.model)) {
-        if (value !== undefined) {
-          modelConfig[EMBED_MODEL_WIRE_KEYS[key] ?? key] = value;
-        }
-      }
-
-      const embed: Record<string, unknown> = {
-        from: vector.embed.from,
-        ['model_config']: modelConfig,
-      };
-      compiled.embed = embed;
-
-      if (vector.dimensions !== undefined) {
-        compiled.num_dim = vector.dimensions;
-      }
-    } else {
-      if (vector.dimensions === undefined) {
-        throw getError({
-          message: `[compileTypesenseCollection] vector field '${field.name}' requires 'dimensions' (or an 'embed' config)`,
-        });
-      }
-      compiled.num_dim = vector.dimensions;
-      compiled.vec_dist = vector.distance ?? VectorDistances.COSINE;
-    }
-  }
+  applyVectorConfig({ compiled, field });
 
   return compiled;
 };
@@ -181,8 +205,15 @@ export const compileTypesenseCollection = (opts: {
   if (defaultSort !== undefined) {
     const sortField = fields.find(item => item.name === defaultSort);
 
+    // A defaultSort naming an undeclared field would otherwise be forwarded verbatim and rejected by the engine - fail here with the field named, same as the type check.
+    if (!sortField) {
+      throw getError({
+        message: `[compileTypesenseCollection] Invalid defaultSort | references a field that does not exist in the collection | name: ${name} | defaultSort: ${defaultSort}`,
+      });
+    }
+
     // Typesense's default_sorting_field accepts only a scalar numeric field, never string/array.
-    if (sortField && sortField.type !== SearchFieldTypes.NUMBER) {
+    if (sortField.type !== SearchFieldTypes.NUMBER) {
       throw getError({
         message: `[compileTypesenseCollection] Invalid defaultSort | Typesense's default_sorting_field requires a scalar numeric field (int32/int64/float) - not string, not array | name: ${name} | defaultSort: ${defaultSort} | type: ${sortField.type}`,
       });

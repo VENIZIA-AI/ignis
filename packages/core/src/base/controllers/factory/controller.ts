@@ -44,8 +44,8 @@ export class ControllerFactory extends BaseHelper {
       });
     }
 
-    const _entityClass = isClass(entity) ? entity : entity();
-    const entityInstance = new _entityClass();
+    const entityClass = isClass(entity) ? entity : entity();
+    const entityInstance = new entityClass();
 
     const routeDefinitions = defineControllerRouteConfigs({
       isStrict: isStrict.requestSchema ?? true,
@@ -60,7 +60,7 @@ export class ControllerFactory extends BaseHelper {
       },
     });
 
-    const _controller = class extends PersistableCrudController<
+    const controllerClass = class extends PersistableCrudController<
       TEntity,
       RouteEnv,
       RouteSchema,
@@ -88,7 +88,7 @@ export class ControllerFactory extends BaseHelper {
           return routes?.[routeKey]?.enabled !== false;
         };
 
-        // Read routes — always registered (unless explicitly disabled)
+        // Read routes - always registered (unless explicitly disabled)
         if (isEnabled('count')) {
           this.defineRoute({
             configs: routeDefinitions.COUNT,
@@ -117,7 +117,7 @@ export class ControllerFactory extends BaseHelper {
           });
         }
 
-        // Write routes — skipped when readonly
+        // Write routes - skipped when readonly
         if (controller.readonly) {
           return;
         }
@@ -159,7 +159,7 @@ export class ControllerFactory extends BaseHelper {
       }
     };
 
-    Object.defineProperty(_controller, 'name', { value: name, configurable: true });
-    return _controller;
+    Object.defineProperty(controllerClass, 'name', { value: name, configurable: true });
+    return controllerClass;
   }
 }

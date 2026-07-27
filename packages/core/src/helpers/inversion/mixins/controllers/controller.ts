@@ -17,7 +17,7 @@ export const ControllerMetadataMixin = <BaseClass extends TMixinTarget<_Metadata
       metadata: TControllerMetadata;
     }): void {
       const { target, metadata } = opts;
-      const existing = this.getControllerMetadata({ target }) || {};
+      const existing = this.getControllerMetadata({ target }) ?? {};
       Reflect.defineMetadata(
         MetadataKeys.CONTROLLER,
         Object.assign({}, existing, metadata),

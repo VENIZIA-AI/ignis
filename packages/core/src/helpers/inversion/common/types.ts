@@ -1,8 +1,6 @@
-// All type-only (this file only declares metadata interfaces). Kept as `import type` so the DI
-// Container's module graph (registry -> this file) never pulls the @/base/* value barrels at load,
-// which would cycle back through AbstractApplication `extends Container` into a TDZ.
+// All type-only, kept as `import type` so the DI Container's module graph never pulls the @/base/* value barrels at load - that would cycle back through AbstractApplication `extends Container` into a TDZ.
 import type { ControllerTransports } from '@/base/controllers/common/constants';
-import type { IDataSource, TDataSourceDriver } from '@/base/datasources';
+import type { IDataSource, TDataSourceDriverClass } from '@/base/datasources';
 import type { AbstractEntity } from '@/base/models';
 import type { IRepository, TFilter, TRepositoryOperationScope } from '@/base/repositories';
 import type { TAuthMode, TAuthStrategy } from '@/components/auth/authenticate/common';
@@ -11,7 +9,6 @@ import type { TClass, TGrpcMethod, TValueOrResolver } from '@venizia/ignis-helpe
 import {
   type IInjectMetadata as _IInjectMetadata,
   type IPropertyMetadata as _IPropertyMetadata,
-  type TBindingScope,
 } from '@venizia/ignis-inversion';
 
 interface IBaseControllerMetadata {
@@ -49,18 +46,13 @@ export interface IPropertyMetadata extends _IPropertyMetadata {}
 
 export interface IInjectMetadata extends _IInjectMetadata {}
 
-export interface IInjectableMetadata {
-  scope?: TBindingScope;
-  tags?: Record<string, any>;
-}
-
 /** Decorator target for any constructable class (includes Function for ClassDecorator). */
 export type TDecoratorTarget<T = unknown> = TClass<T> | Function;
 
 export interface IModelAuthorizeSettings {
   /** The authorization principal name (resource/subject) for this model. */
   principal: string;
-  /** Extensible — consumers can add any extra authorization metadata. */
+  /** Extensible - consumers can add any extra authorization metadata. */
   [extra: string | symbol]: any;
 }
 
@@ -95,11 +87,10 @@ export type TModelClass<Model extends AbstractEntity = AbstractEntity> = TClass<
 
 /** Decorator target for model classes (supports both strongly typed and ClassDecorator patterns). */
 export type TDecoratorModelTarget<Model extends AbstractEntity = AbstractEntity> =
-  | TModelClass<Model>
-  | (Function & IEntityStatics);
+  TModelClass<Model> | (Function & IEntityStatics);
 
 export interface IDataSourceMetadata {
-  driver: TDataSourceDriver;
+  driver?: TDataSourceDriverClass;
   autoDiscovery?: boolean;
 }
 
@@ -121,8 +112,6 @@ export interface IResolvedRepositoryMetadata<
   dataSource?: string | TClass<DataSource>;
   operationScope?: TRepositoryOperationScope;
 }
-
-/** Drizzle relations return type. */
 
 export interface IModelRegistryEntry<Model extends AbstractEntity = AbstractEntity> {
   target: TValueOrResolver<TClass<Model>>;

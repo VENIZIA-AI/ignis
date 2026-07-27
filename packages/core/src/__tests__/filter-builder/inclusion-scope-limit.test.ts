@@ -3,10 +3,7 @@ import type { TFilter } from '@/base/repositories';
 import { DEFAULT_LIMIT, FilterSchema } from '@/base/repositories';
 import { ReadableRepository } from '@/connectors/postgres/repositories';
 
-/**
- * FilterSchema never injects a default limit - defaults are applied later at the query-building
- * layer (ReadableRepository.find() top-level, FilterBuilder.toInclude for relations).
- */
+/** FilterSchema never injects a default limit - defaults are applied later at the query-building layer (ReadableRepository.find() top-level, FilterBuilder.toInclude for relations). */
 describe('FilterSchema - no default limit injection', () => {
   test('top-level filter does not inject a limit at parse time', () => {
     const parsed = FilterSchema.parse({ where: { name: 'x' } });
@@ -96,8 +93,7 @@ describe('ReadableRepository.find - default limit application', () => {
     expect(repo.captured?.limit).toBe(50);
   });
 
-  // find() only defaults the top-level limit; relation scopes pass through untouched
-  // (per-relation defaults are applied downstream by FilterBuilder.toInclude).
+  // find() only defaults the top-level limit; relation scopes pass through untouched, with per-relation defaults applied downstream by FilterBuilder.toInclude.
   test('defaults the top-level limit and leaves scopes for toInclude to handle', async () => {
     const repo = new CapturingRepository();
     await repo.find({
@@ -109,10 +105,7 @@ describe('ReadableRepository.find - default limit application', () => {
   });
 });
 
-/**
- * find() prefers the model's `settings.defaultLimit` over the global DEFAULT_LIMIT
- * when the query omits an explicit limit. An explicit limit always wins.
- */
+/** find() prefers the model's `settings.defaultLimit` over the global DEFAULT_LIMIT when the query omits an explicit limit. An explicit limit always wins. */
 class ModelLimitRepository extends CapturingRepository {
   override getDefaultLimit() {
     return 25;

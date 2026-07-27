@@ -1,8 +1,7 @@
 import type { Readable } from 'node:stream';
 import type SMTPTransport from 'nodemailer/lib/smtp-transport';
-import type { MailQueueExecutorTypes } from './constants';
-import type { AnyType, TConstValue } from '@venizia/ignis-helpers';
-import type { IBullMQMailExecutorOpts } from '../helpers';
+import type { BullMQExecutorModes, MailQueueExecutorTypes } from './constants';
+import type { AnyType, IRedisSingleHelperOptions, TConstValue } from '@venizia/ignis-helpers';
 
 export class MailProviders {
   static readonly NODEMAILER = 'nodemailer';
@@ -38,10 +37,7 @@ export interface IGenericMailOptions extends IBaseMailOptions {
 }
 
 export type TMailOptions =
-  | INodemailerMailOptions
-  | IMailgunMailOptions
-  | ICustomMailOptions
-  | IGenericMailOptions;
+  INodemailerMailOptions | IMailgunMailOptions | ICustomMailOptions | IGenericMailOptions;
 
 export type TNodemailerConfig = SMTPTransport | SMTPTransport.Options | string;
 
@@ -190,8 +186,23 @@ export interface IMailQueueExecutor {
   setProcessor(processor: (email: string) => Promise<IMailProcessorResult>): void;
 }
 
+/** Envelope every queue-backed executor stores for one pending verification email. */
+export interface IQueueJobPayload {
+  id: string;
+  email: string;
+  options?: IMailQueueOptions;
+  attempts: number;
+  scheduledAt: number;
+}
+
 export interface IInternalQueueMailExecutorOpts {
   identifier: string;
+}
+
+export interface IBullMQMailExecutorOpts {
+  redis: IRedisSingleHelperOptions;
+  queue: { identifier: string; name: string };
+  mode: TConstValue<typeof BullMQExecutorModes>;
 }
 
 export interface IMailQueueExecutorConfig {

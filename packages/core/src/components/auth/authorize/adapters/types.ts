@@ -1,23 +1,22 @@
 import type { IdType } from '@/base';
 import type { AnyType } from '@venizia/ignis-helpers';
-import {
-  type NodePgClient,
-  type drizzle as nodePostgresConnector,
-} from 'drizzle-orm/node-postgres';
+import type { PgDatabase, PgQueryResultHKT } from 'drizzle-orm/pg-core';
 
 /** Filter passed to loadFilteredPolicy: which principal's policies to load. */
 export interface ICasbinPolicyFilter {
   principal: { type: string; id: IdType };
 }
 
-/** A drizzle connector able to run policy queries (pool- or transaction-backed). */
-export type TCasbinPolicyConnector = ReturnType<
-  typeof nodePostgresConnector<Record<string, AnyType>, NodePgClient>
->;
+/** Drizzle connector for policy queries, typed on the shared `PgDatabase` base so postgres-js fits too. Declared here rather than imported from `@/connectors/postgres`: components depend on a minimal local contract, never a connector class. */
+export type TCasbinPolicyConnector = PgDatabase<PgQueryResultHKT, Record<string, AnyType>>;
 
 /** Minimal source the adapters depend on - any drizzle-backed datasource satisfies it. */
 export interface ICasbinPolicySource {
-  connector: TCasbinPolicyConnector;
+  /** Preferred: lazily wires the driver on first read and survives pool rotation, mirroring repositories. */
+  getConnector?(): TCasbinPolicyConnector;
+
+  /** Back-compat: a pre-wired connector. Prefer getConnector on a real datasource. */
+  connector?: TCasbinPolicyConnector;
 }
 
 /** Maps a logical table onto its physical name + schema. */
@@ -28,12 +27,9 @@ export interface IScopedCasbinTable {
 
 /** All physical mapping the ScopedCasbinAdapter needs. App provides this; framework stays decoupled. */
 export interface IScopedCasbinEntities {
-  /**
-   * The single edge table: each row links a subject (type+id) to a target (type+id), with a `variant`
-   * column saying what kind of edge it is (grant / assign_role / *_inherits …) plus optional
-   * action / effect / domain.
-   */
-  policyDefinition: IScopedCasbinTable;
+  policyDefinition: IScopedCasbinTable & {
+    metadata?: { columnName: string };
+  };
 
   /** Permission catalog (id, code, ...). */
   permission: IScopedCasbinTable;

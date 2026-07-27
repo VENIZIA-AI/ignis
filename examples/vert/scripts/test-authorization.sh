@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# =============================================================================
+# -----------------------------------------------------------------------------
 # Comprehensive Authorization Test Suite — 25 test cases
 #
 # Tests all authorization paths: alwaysAllowRoles bypass, allowedRoles check,
@@ -13,7 +13,7 @@
 #   - PostgreSQL reachable
 #   - Redis reachable (optional — flush will be skipped if not)
 #   - jq installed
-# =============================================================================
+# -----------------------------------------------------------------------------
 set -euo pipefail
 
 # ---------------------------------------------------------------------------

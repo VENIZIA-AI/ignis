@@ -1,5 +1,9 @@
 import { extraUserColumns, model } from '@venizia/ignis';
-import { BasePostgresEntity, generateIdColumnDefs, TTableObject } from '@venizia/ignis/postgres';
+import {
+  BasePostgresEntity,
+  generateIdColumnDefs,
+  TTableObject,
+} from '@venizia/ignis/postgres';
 import { pgTable } from 'drizzle-orm/pg-core';
 
 @model({ type: 'entity', skipMigrate: false })
@@ -7,6 +11,7 @@ export class User extends BasePostgresEntity<TUserSchema> {
   static override readonly TABLE_NAME = User.name;
 
   constructor() {
+    // eslint-disable-next-line @typescript-eslint/no-use-before-define -- table needs the class static TABLE_NAME, so it is declared below
     super({ name: User.name, schema: usersTable });
   }
 }

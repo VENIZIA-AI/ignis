@@ -72,4 +72,4 @@ Part of the Ignis monorepo:
 
 By contributing to Ignis, you agree that your contributions will be licensed under the MIT License.
 
-For more information, visit: https://venizia-ai.github.io/ignis
+For more information, visit: https://ignis.venizia.ai

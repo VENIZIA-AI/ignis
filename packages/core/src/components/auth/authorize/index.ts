@@ -1,4 +1,5 @@
 export * from './adapters';
+export * from './builders';
 export * from './common';
 export * from './component';
 export * from './enforcers';

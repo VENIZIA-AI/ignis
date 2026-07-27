@@ -1,6 +1,6 @@
 import type { IdType } from '@/base/models';
 import type { AbstractEntity } from '@/base/models/base';
-import type { TWhere } from '@/base/repositories/query-schemas';
+import type { TWhere } from '@venizia/ignis-filter';
 import type { TAnyObjectSchema } from '@/utilities/schema.utility';
 import { HTTP } from '@venizia/ignis-helpers';
 import type { Env, Schema } from 'hono';

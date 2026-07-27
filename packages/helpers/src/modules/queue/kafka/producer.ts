@@ -8,31 +8,7 @@ import type {
   TKafkaTransactionCallback,
 } from './common/types';
 
-/**
- * KafkaProducerHelper — Wrapper around `@platformatic/kafka` Producer.
- *
- * Provides scoped logging, lifecycle management, health tracking,
- * graceful shutdown, and transaction helper.
- *
- * @example
- * const helper = KafkaProducerHelper.newInstance({
- *   bootstrapBrokers: ['127.0.0.1:29092'],
- *   clientId: 'my-producer',
- *   acks: -1,
- *   idempotent: true,
- *   onBrokerConnect: ({ broker }) => console.log(`Connected to ${broker.host}:${broker.port}`),
- * });
- *
- * // Health check
- * helper.isHealthy(); // true when connected
- *
- * // Transaction helper (requires transactionalId + idempotent)
- * const result = await helper.runInTransaction(async ({ send }) => {
- *   return send({ messages: [{ topic: 'orders', key: 'o1', value: '...' }] });
- * });
- *
- * await helper.close();
- */
+/** Wrapper around `@platformatic/kafka` Producer with lifecycle management, health tracking, graceful shutdown, and a transaction helper; `runInTransaction` requires both `transactionalId` and `idempotent` set on the producer. */
 export class KafkaProducerHelper<
   KeyType = string,
   ValueType = string,
@@ -103,7 +79,12 @@ export class KafkaProducerHelper<
     this.logger.info('[runInTransaction] Transaction STARTED | Id: %s', transaction.id);
 
     try {
-      const ctx: IKafkaTransactionContext<KeyType, ValueType, HeaderKeyType, HeaderValueType> = {
+      const transactionContext: IKafkaTransactionContext<
+        KeyType,
+        ValueType,
+        HeaderKeyType,
+        HeaderValueType
+      > = {
         transaction,
         send: (opts: SendOptions<KeyType, ValueType, HeaderKeyType, HeaderValueType>) => {
           return transaction.send(opts);
@@ -135,7 +116,7 @@ export class KafkaProducerHelper<
         },
       };
 
-      const result = await callback(ctx);
+      const result = await callback(transactionContext);
       await transaction.commit();
 
       this.logger.info('[runInTransaction] Transaction COMMITTED | Id: %s', transaction.id);
@@ -154,15 +135,7 @@ export class KafkaProducerHelper<
   }
 
   protected override closeClient(): Promise<void> {
-    return new Promise<void>((resolve, reject) => {
-      this.client.close(true, (err?: Error | null) => {
-        if (err) {
-          reject(err);
-        } else {
-          resolve();
-        }
-      });
-    });
+    return this.closeClientWithCallback();
   }
 
   async close(opts?: { isForce?: boolean }): Promise<void> {

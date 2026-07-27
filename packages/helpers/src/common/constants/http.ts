@@ -11,7 +11,7 @@ export class HTTP {
     CONTENT_RANGE: 'content-range',
     CONTENT_SECURITY_POLICY: 'content-security-policy',
 
-    // Request — content negotiation & conditionals
+    // Request - content negotiation & conditionals
     ACCEPT: 'accept',
     ACCEPT_ENCODING: 'accept-encoding',
     ACCEPT_LANGUAGE: 'accept-language',
@@ -24,7 +24,7 @@ export class HTTP {
     REFERER: 'referer',
     USER_AGENT: 'user-agent',
 
-    // Response — caching, auth challenges & redirects
+    // Response - caching, auth challenges & redirects
     ALLOW: 'allow',
     CACHE_CONTROL: 'cache-control',
     ETAG: 'etag',
@@ -66,7 +66,7 @@ export class HTTP {
     X_RATELIMIT_REMAINING: 'x-ratelimit-remaining',
     X_RATELIMIT_RESET: 'x-ratelimit-reset',
 
-    // Ignis custom
+    // IGNIS custom
     REQUEST_TRACING_ID: 'x-request-id',
     REQUEST_DEVICE_INFO: 'x-device-info',
     REQUEST_CHANNEL: 'x-request-channel',
@@ -119,18 +119,25 @@ export class HTTP {
     DELETE: 'delete',
     HEAD: 'head',
     OPTIONS: 'options',
+    QUERY: 'query',
   } as const;
 
-  /** HTTP status codes grouped by class (1xx–5xx). */
+  /** Standard HTTP protocols (lowercase). */
+  static readonly Protocols = {
+    HTTP: 'http',
+    HTTPS: 'https',
+  } as const;
+
+  /** HTTP status codes grouped by class (1xx - 5xx). */
   static readonly ResultCodes = {
-    /** 1xx — Informational. */
+    /** 1xx - Informational. */
     RS_1: {
       Continue: 100,
       SwitchingProtocols: 101,
       EarlyHints: 103,
     },
 
-    /** 2xx — Success. */
+    /** 2xx - Success. */
     RS_2: {
       Ok: 200,
       Created: 201,
@@ -142,7 +149,7 @@ export class HTTP {
       MultiStatus: 207,
     },
 
-    /** 3xx — Redirection. */
+    /** 3xx - Redirection. */
     RS_3: {
       MovedPermanently: 301,
       Found: 302,
@@ -151,7 +158,7 @@ export class HTTP {
       PermanentRedirect: 308,
     },
 
-    /** 4xx — Client error. */
+    /** 4xx - Client error. */
     RS_4: {
       BadRequest: 400,
       Unauthorized: 401,
@@ -181,7 +188,7 @@ export class HTTP {
       UnavailableForLegalReasons: 451,
     },
 
-    /** 5xx — Server error. */
+    /** 5xx - Server error. */
     RS_5: {
       InternalServerError: 500,
       NotImplemented: 501,
@@ -196,5 +203,7 @@ export class HTTP {
   } as const;
 }
 
-export type THttpMethod = ValueOf<typeof HTTP.Methods>;
+export type THttpMethod = ValueOf<typeof HTTP.Methods> | Uppercase<ValueOf<typeof HTTP.Methods>>;
+export type THttpProtocol =
+  ValueOf<typeof HTTP.Protocols> | Uppercase<ValueOf<typeof HTTP.Protocols>>;
 export type THttpResultCode = ValueOf<typeof HTTP.ResultCodes>;

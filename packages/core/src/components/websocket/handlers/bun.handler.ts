@@ -12,7 +12,6 @@ export function createBunFetchHandler(opts: {
     const isWebSocketUpgrade =
       url.pathname === wsPath && req.headers.get('upgrade')?.toLowerCase() === 'websocket';
 
-    // Not a WebSocket request — delegate to Hono
     if (!isWebSocketUpgrade) {
       return honoServer.fetch(req, server);
     }

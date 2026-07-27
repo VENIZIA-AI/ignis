@@ -6,48 +6,25 @@ difficulty: intermediate
 
 # Using Filters in Your Application
 
-How filters flow through the application layers.
-
-
-## Architecture Overview
+A `filter` starts as a JSON-encoded query string on an HTTP request and ends as a Drizzle query. Here is where to hook into each layer in between.
 
 ```
-+-----------------------------------------------------------------+
-|                        HTTP Request                              |
-|   GET /products?filter={"where":{"status":"active"},"limit":10} |
-+--------------------------------+--------------------------------+
-                                 |
-                                 v
-+-----------------------------------------------------------------+
-|                     Controller Layer                             |
-|   - Validates filter via Zod schema                              |
-|   - Parses JSON string -> Filter object                          |
-|   - Passes to service/repository                                 |
-+-----------------------------------------------------------------+
-                                 |
-                                 v
-+-----------------------------------------------------------------+
-|                     Service Layer (Optional)                     |
-|   - Business logic, authorization                                |
-|   - May modify filter before passing                             |
-+-----------------------------------------------------------------+
-                                 |
-                                 v
-+-----------------------------------------------------------------+
-|                     Repository Layer                             |
-|   - applyDefaultFilter() merges the @model default filter         |
-|   - FilterBuilder transforms Filter -> Drizzle query options     |
-|   - Executes query via Drizzle ORM                               |
-|   - Returns typed results                                        |
-+-----------------------------------------------------------------+
+HTTP Request         GET /products?filter={"where":{"status":"active"},"limit":10}
+      |
+      v
+Controller Layer      Validates via Zod (FilterSchema), parses JSON string -> Filter object
+      |
+      v
+Service Layer          Optional - business logic, authorization, may edit the filter
+      |
+      v
+Repository Layer       applyDefaultFilter() merges the @model default filter,
+                        FilterBuilder converts Filter -> Drizzle query options, executes
 ```
 
+## Generate a CRUD controller from an entity
 
-## Controller Layer
-
-### Using ControllerFactory (Recommended)
-
-The `ControllerFactory` automatically handles filter parsing and validation:
+For a standard `GET`/`POST`/`PATCH`/`DELETE` resource, generate the controller instead of writing filter parsing by hand. `ControllerFactory.defineCrudController` builds it from an entity and a repository binding:
 
 ```typescript
 // src/controllers/product.controller.ts
@@ -77,10 +54,7 @@ const _Controller = ControllerFactory.defineCrudController({
 export class ProductController extends _Controller {
   constructor(
     @inject({
-      key: BindingKeys.build({
-        namespace: BindingNamespaces.REPOSITORY,
-        key: ProductRepository.name,
-      }),
+      key: BindingKeys.build({ namespace: BindingNamespaces.REPOSITORY, key: ProductRepository.name }),
     })
     repository: ProductRepository,
   ) {
@@ -89,16 +63,33 @@ export class ProductController extends _Controller {
 }
 ```
 
-**Generated Endpoints:**
+This generates every filter-bearing endpoint the resource needs:
 
-| Method | Endpoint | Filter Location |
-|--------|----------|-----------------|
-| GET | `/products` | Query param: `?filter={...}` |
-| GET | `/products/{id}` | Query param: `?filter={...}` (for includes) |
-| GET | `/products/find-one` | Query param: `?filter={...}` |
-| GET | `/products/count` | Query param: `?where={...}` |
+| Method | Endpoint | Query param |
+|---|---|---|
+| GET | `/products` | `filter` |
+| GET | `/products/{id}` | `filter` (`where` is ignored - the id is the condition) |
+| GET | `/products/find-one` | `filter` |
+| GET | `/products/count` | `where` |
 
-### Custom Controller with Manual Filter Handling
+Set `isStrict.requestSchema: true` to make these query params Zod-required; set `isStrict.path: true` to reject trailing-slash variants of the route. Write endpoints (`POST /`, `PATCH /{id}`, `DELETE /{id}`, ...) come from the same factory call and take no filter.
+
+## Map a request query string to a parsed filter
+
+`FilterSchema` and `WhereSchema` both accept a JSON string or a plain object, so the same schema validates a Hono query param (always a string) and a filter built in code:
+
+| Request | Parsed filter |
+|---|---|
+| `GET /products?filter={"where":{"status":"active"}}` | `{ where: { status: 'active' } }` |
+| `GET /products?filter={"limit":10,"skip":20}` | `{ limit: 10, skip: 20 }` |
+| `GET /products?filter={"where":{"price":{"gte":100,"lte":500}},"order":["price ASC"]}` | `{ where: { price: { gte: 100, lte: 500 } }, order: ['price ASC'] }` |
+| `GET /products/count?where={"role":"admin"}` | `{ role: 'admin' }` |
+
+`WhereSchema` is independent of `FilterSchema` - it backs the `count` endpoint, which takes `where` directly rather than a full filter.
+
+## Write a custom route that accepts a filter
+
+For a route outside the generated CRUD set, accept `FilterSchema` directly on the query:
 
 ```typescript
 import { z } from '@hono/zod-openapi';
@@ -118,12 +109,10 @@ export class ProductController extends BaseRestController {
       configs: {
         path: '/search',
         method: 'get',
-        request: {
-          query: z.object({ filter: FilterSchema }),
-        },
+        request: { query: z.object({ filter: FilterSchema }) },
         responses: jsonResponse({ schema: z.array(z.object({ id: z.string() })) }),
       },
-      handler: async (context) => {
+      handler: async context => {
         const { filter = {} } = context.req.valid('query');
         const results = await this._productRepository.find({ filter });
         return context.json(results);
@@ -133,25 +122,9 @@ export class ProductController extends BaseRestController {
 }
 ```
 
+## Rewrite a filter before it reaches the repository
 
-## Filter Schema Validation
-
-The `FilterSchema` (Zod) accepts both object and JSON string formats:
-
-```typescript
-// Object format (from parsed query params)
-{ where: { status: 'active' }, limit: 10 }
-
-// JSON string format (from URL query string)
-'{"where":{"status":"active"},"limit":10}'
-```
-
-The `WhereSchema` also accepts both formats independently, useful for the `count` endpoint which takes `where` directly.
-
-
-## Service Layer
-
-Services can modify filters before passing to repositories:
+Add a service between the controller and the repository when a constraint is a caller or session concern rather than a per-model constant - a tenant ID pulled from the request context, for example. Use [Default Filter](./default-filter) instead when the constraint applies to every caller of the model:
 
 ```typescript
 @service()
@@ -161,83 +134,56 @@ export class ProductService {
     private _productRepository: ProductRepository,
   ) {}
 
-  async findProducts(filter: TFilter<TProductSchema> = {}) {
-    // Merge user filter with soft-delete condition
-    const enhancedFilter: TFilter<TProductSchema> = {
-      ...filter,
-      where: {
-        ...filter.where,
-        deletedAt: { is: null },
-      },
-    };
-
-    return this._productRepository.find({ filter: enhancedFilter });
-  }
-
-  async findProductsForTenant(
-    tenantId: string,
-    filter: TFilter<TProductSchema> = {},
-  ) {
-    const isolatedFilter: TFilter<TProductSchema> = {
-      ...filter,
-      where: {
-        ...filter.where,
-        tenantId,
-      },
-    };
-
-    return this._productRepository.find({ filter: isolatedFilter });
+  async findProductsForTenant(tenantId: string, filter: TFilter<TProductSchema> = {}) {
+    return this._productRepository.find({
+      filter: { ...filter, where: { ...filter.where, tenantId } },
+    });
   }
 }
 ```
 
+## Build a filter query string from a client
 
-## HTTP Request Examples
+Encode the filter as JSON and pass it as the `filter` query param, whichever HTTP client you use:
 
 **cURL:**
 ```bash
-# Simple filter
-curl "http://localhost:3000/products?filter=%7B%22where%22%3A%7B%22status%22%3A%22active%22%7D%2C%22limit%22%3A10%7D"
-
-# Decoded filter: {"where":{"status":"active"},"limit":10}
-
-# Complex filter with URL encoding
 curl -G "http://localhost:3000/products" \
   --data-urlencode 'filter={"where":{"price":{"gte":100,"lte":500},"tags":{"contains":["featured"]}},"order":["price ASC"],"limit":20}'
 ```
 
-**JavaScript/TypeScript:**
+**Fetch/Axios:**
 ```typescript
-// Using fetch
-const filter = {
-  where: { status: 'active', price: { lte: 100 } },
-  order: ['createdAt DESC'],
-  limit: 10,
-};
+const filter = { where: { status: 'active', price: { lte: 100 } }, order: ['createdAt DESC'], limit: 10 };
 
-const response = await fetch(
-  `/api/products?filter=${encodeURIComponent(JSON.stringify(filter))}`
-);
+// fetch
+const response = await fetch(`/api/products?filter=${encodeURIComponent(JSON.stringify(filter))}`);
 
-// Using axios
-const response = await axios.get('/api/products', {
-  params: { filter: JSON.stringify(filter) },
-});
+// axios
+const response = await axios.get('/api/products', { params: { filter: JSON.stringify(filter) } });
 ```
 
+## Debug what a filter compiles to
 
-## Debugging Filters
+Call `buildQuery` to compile a filter into Drizzle query options without executing it - the fastest way to check what a filter actually resolves to:
 
 ```typescript
-// Enable logging to see generated SQL
-const result = await repository.find({
-  filter: complexFilter,
-  options: {
-    log: { use: true, level: 'debug' },
-  },
-});
-
-// Or use buildQuery to inspect without executing
 const queryOptions = repository.buildQuery({ filter: complexFilter });
 console.log('Generated query options:', queryOptions);
 ```
+
+`options.log` also traces repository calls, but only on the write path (`create`/`updateById`/`updateAll`/`deleteById`/`deleteAll`) - `find`/`findOne`/`findById`/`count` never read it. See [Advanced Repository Features -> Log option](../repositories/advanced.md#log-option) for the write-side form.
+
+## See also
+
+- [Filter System Overview](./) - the `filter` shape and every `where` operator family
+- [Default Filter](./default-filter) - `shouldSkipDefaultFilter`, and the model-level alternative to the service-layer rewrite above
+- [Use Case Gallery](./use-cases) - more filter shapes with their generated SQL
+- [Advanced Repository Features](../repositories/advanced.md) - transactions, locking, and the full `log`/`lock` options
+
+**Files:**
+
+- [`packages/core/src/base/controllers/factory/controller.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core/src/base/controllers/factory/controller.ts) - `ControllerFactory.defineCrudController`
+- [`packages/core/src/base/repositories/query-schemas/filter.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core/src/base/repositories/query-schemas/filter.ts) - `FilterSchema`, `InclusionSchema`
+- [`packages/filter/src/common/types.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/filter/src/common/types.ts) - `TFilter`, `TInclusion`
+- [`packages/core/src/connectors/postgres/repositories/core/base.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core/src/connectors/postgres/repositories/core/base.ts) - `RelationalBaseRepository.buildQuery`

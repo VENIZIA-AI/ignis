@@ -1,3 +1,4 @@
+import type { AnyType } from '@/common/types';
 import { describe, expect, test } from 'bun:test';
 import { ApplicationEnvironment } from '@/modules/env';
 import { toDelimitedArray, toTrimmed } from '@/utilities/parse.utility';
@@ -31,7 +32,7 @@ describe('ApplicationEnvironment.get - options form', () => {
     const environment = makeEnvironment({});
     const value = environment.get<string>('APP_ENV_MISSING_2', {
       defaultValue: 'after-transform-fallback',
-      transform: () => undefined as unknown as string,
+      transform: () => undefined as AnyType,
     });
     expect(value).toBe('after-transform-fallback');
   });

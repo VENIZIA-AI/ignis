@@ -37,10 +37,25 @@ const coreApiSidebar: DefaultTheme.SidebarItem[] = [
       },
       { text: 'Dependency Injection', link: '/references/base/dependency-injection' },
       { text: 'Middlewares', link: '/references/base/middlewares' },
-      { text: 'Models & Enrichers', link: '/references/base/models' },
+      {
+        text: 'Models & Enrichers',
+        collapsed: true,
+        items: [
+          { text: 'Overview', link: '/references/base/models' },
+          { text: 'Full Reference', link: '/references/base/models-reference' },
+        ],
+      },
       { text: 'Providers', link: '/references/base/providers' },
       { text: 'Connectors', link: '/references/base/connectors' },
-      { text: 'DataSources', link: '/references/base/datasources' },
+      {
+        text: 'DataSources',
+        collapsed: true,
+        items: [
+          { text: 'Overview', link: '/references/base/datasources' },
+          { text: 'Full Reference', link: '/references/base/datasources-reference' },
+        ],
+      },
+      { text: 'Secrets & Vault', link: '/references/base/secrets' },
       {
         text: 'Repositories',
         collapsed: false,
@@ -83,14 +98,29 @@ const coreApiSidebar: DefaultTheme.SidebarItem[] = [
       { text: 'Overview', link: '/references/utilities/' },
       { text: 'Crypto', link: '/references/utilities/crypto' },
       { text: 'Date', link: '/references/utilities/date' },
-      { text: 'JSX', link: '/references/utilities/jsx' },
+      {
+        text: 'JSX',
+        collapsed: true,
+        items: [
+          { text: 'Overview', link: '/references/utilities/jsx' },
+          { text: 'Full Reference', link: '/references/utilities/jsx-reference' },
+        ],
+      },
       { text: 'Module', link: '/references/utilities/module' },
       { text: 'Parse', link: '/references/utilities/parse' },
       { text: 'Performance', link: '/references/utilities/performance' },
       { text: 'Promise', link: '/references/utilities/promise' },
       { text: 'Request', link: '/references/utilities/request' },
+      { text: 'Retry', link: '/references/utilities/retry' },
       { text: 'Schema', link: '/references/utilities/schema' },
-      { text: 'Statuses', link: '/references/utilities/statuses' },
+      {
+        text: 'Statuses',
+        collapsed: true,
+        items: [
+          { text: 'Overview', link: '/references/utilities/statuses' },
+          { text: 'Full Reference', link: '/references/utilities/statuses-reference' },
+        ],
+      },
     ],
   },
 ];
@@ -161,7 +191,7 @@ const extensionsSidebar: DefaultTheme.SidebarItem[] = [
           { text: 'Error Reference', link: '/extensions/components/static-asset/errors' },
         ],
       },
-      { text: 'Swagger', link: '/extensions/components/swagger' },
+      { text: 'API Reference', link: '/extensions/components/api-reference' },
       {
         text: 'WebSocket',
         collapsed: true,
@@ -180,17 +210,40 @@ const extensionsSidebar: DefaultTheme.SidebarItem[] = [
     items: [
       { text: 'Overview', link: '/extensions/helpers/' },
       { text: 'Cron', link: '/extensions/helpers/cron/' },
-      { text: 'Crypto', link: '/extensions/helpers/crypto/' },
+      {
+        text: 'Crypto',
+        collapsed: true,
+        items: [
+          { text: 'Overview', link: '/extensions/helpers/crypto/' },
+          { text: 'Full Reference', link: '/extensions/helpers/crypto/reference' },
+        ],
+      },
       { text: 'Environment', link: '/extensions/helpers/env/' },
       { text: 'Error', link: '/extensions/helpers/error/' },
-      { text: 'Inversion (DI)', link: '/extensions/helpers/inversion/' },
-      { text: 'Logger', link: '/extensions/helpers/logger/' },
+      {
+        text: 'Inversion (DI)',
+        collapsed: true,
+        items: [
+          { text: 'Overview', link: '/extensions/helpers/inversion/' },
+          { text: 'Full Reference', link: '/extensions/helpers/inversion/reference' },
+        ],
+      },
+      {
+        text: 'Logger',
+        collapsed: true,
+        items: [
+          { text: 'Overview', link: '/extensions/helpers/logger/' },
+          { text: 'Full Reference', link: '/extensions/helpers/logger/reference' },
+          { text: 'HfLogger Guide', link: '/extensions/helpers/logger/hf-logger' },
+          { text: 'Pino Provider', link: '/extensions/helpers/logger/pino' },
+        ],
+      },
       {
         text: 'Network',
         collapsed: true,
         items: [
-          { text: 'Setup & Usage', link: '/extensions/helpers/network/' },
-          { text: 'API Reference', link: '/extensions/helpers/network/api' },
+          { text: 'Overview', link: '/extensions/helpers/network/' },
+          { text: 'Full Reference', link: '/extensions/helpers/network/api' },
         ],
       },
       {
@@ -201,39 +254,69 @@ const extensionsSidebar: DefaultTheme.SidebarItem[] = [
           { text: 'Producer', link: '/extensions/helpers/kafka/producer' },
           { text: 'Consumer', link: '/extensions/helpers/kafka/consumer' },
           { text: 'Admin', link: '/extensions/helpers/kafka/admin' },
+          { text: 'Schema Registry', link: '/extensions/helpers/kafka/schema-registry' },
+          { text: 'Compiling to a Single Binary', link: '/extensions/helpers/kafka/compile-binary' },
           { text: 'Examples & Troubleshooting', link: '/extensions/helpers/kafka/examples' },
         ],
       },
-      { text: 'Queue', link: '/extensions/helpers/queue/' },
-      { text: 'Redis', link: '/extensions/helpers/redis/' },
+      {
+        text: 'Queue',
+        collapsed: true,
+        items: [
+          { text: 'Overview', link: '/extensions/helpers/queue/' },
+          { text: 'Full Reference', link: '/extensions/helpers/queue/reference' },
+        ],
+      },
+      {
+        text: 'Redis',
+        collapsed: true,
+        items: [
+          { text: 'Overview', link: '/extensions/helpers/redis/' },
+          { text: 'Full Reference', link: '/extensions/helpers/redis/reference' },
+        ],
+      },
+      { text: 'Secrets & Vault', link: '/extensions/helpers/secrets/' },
       {
         text: 'Socket.IO',
         collapsed: true,
         items: [
-          { text: 'Setup & Usage', link: '/extensions/helpers/socket-io/' },
-          { text: 'API Reference', link: '/extensions/helpers/socket-io/api' },
+          { text: 'Overview', link: '/extensions/helpers/socket-io/' },
+          { text: 'Full Reference', link: '/extensions/helpers/socket-io/api' },
         ],
       },
       {
         text: 'Storage',
         collapsed: true,
         items: [
-          { text: 'Setup & Usage', link: '/extensions/helpers/storage/' },
-          { text: 'API Reference', link: '/extensions/helpers/storage/api' },
+          { text: 'Overview', link: '/extensions/helpers/storage/' },
+          { text: 'Full Reference', link: '/extensions/helpers/storage/api' },
         ],
       },
-      { text: 'Testing', link: '/extensions/helpers/testing/' },
-      { text: 'Types', link: '/extensions/helpers/types/' },
+      {
+        text: 'Types',
+        collapsed: true,
+        items: [
+          { text: 'Overview', link: '/extensions/helpers/types/' },
+          { text: 'Full Reference', link: '/extensions/helpers/types/reference' },
+        ],
+      },
       { text: 'UID', link: '/extensions/helpers/uid/' },
       {
         text: 'WebSocket',
         collapsed: true,
         items: [
-          { text: 'Setup & Usage', link: '/extensions/helpers/websocket/' },
-          { text: 'API Reference', link: '/extensions/helpers/websocket/api' },
+          { text: 'Overview', link: '/extensions/helpers/websocket/' },
+          { text: 'Full Reference', link: '/extensions/helpers/websocket/api' },
         ],
       },
-      { text: 'Worker Thread', link: '/extensions/helpers/worker-thread/' },
+      {
+        text: 'Worker Thread',
+        collapsed: true,
+        items: [
+          { text: 'Overview', link: '/extensions/helpers/worker-thread/' },
+          { text: 'Full Reference', link: '/extensions/helpers/worker-thread/reference' },
+        ],
+      },
     ],
   },
   {
@@ -288,7 +371,7 @@ const config = defineConfig({
       },
     ],
     ['meta', { property: 'og:image', content: '/og-image.png' }],
-    ['meta', { property: 'og:url', content: 'https://venizia-ai.github.io/ignis/' }],
+    ['meta', { property: 'og:url', content: 'https://ignis.venizia.ai/' }],
     // Twitter / X card
     ['meta', { name: 'twitter:card', content: 'summary_large_image' }],
     ['meta', { name: 'twitter:title', content: 'IGNIS - Enterprise APIs at Hono speed' }],
@@ -367,6 +450,100 @@ const config = defineConfig({
           text: 'History',
           collapsed: false,
           items: [
+            {
+              text: '2026-07-18',
+              collapsed: true,
+              items: [
+                {
+                  text: 'Logger Overhaul - ILogger Tier, Pino Provider, Single-Provider Loading',
+                  link: '/changelogs/2026-07-18-logger-overhaul',
+                },
+                {
+                  text: 'Dependency Refresh & DI Cleanup',
+                  link: '/changelogs/2026-07-18-dependency-refresh',
+                },
+                {
+                  text: 'Repository Read Retry',
+                  link: '/changelogs/2026-07-18-repository-read-retry',
+                },
+              ],
+            },
+            {
+              text: '2026-07-17',
+              collapsed: true,
+              items: [
+                {
+                  text: 'Logger Correctness Pass',
+                  link: '/changelogs/2026-07-17-logger-correctness-pass',
+                },
+                {
+                  text: 'Error Module Redesign',
+                  link: '/changelogs/2026-07-17-error-module-redesign',
+                },
+                {
+                  text: 'Secrets Peers Invisible to Bundlers',
+                  link: '/changelogs/2026-07-17-secrets-bundler-invisible-peers',
+                },
+              ],
+            },
+            {
+              text: '2026-07-16',
+              collapsed: true,
+              items: [
+                {
+                  text: 'Error Handling - Normalized Messages & Error Catalog',
+                  link: '/changelogs/2026-07-16-error-catalog-and-structured-message',
+                },
+                {
+                  text: 'Secrets & Vault Integration',
+                  link: '/changelogs/2026-07-16-secrets-vault-integration',
+                },
+              ],
+            },
+            {
+              text: '2026-07-14',
+              collapsed: true,
+              items: [
+                {
+                  text: 'Optional Peers, Actually Optional - The Driver Is a Class Now',
+                  link: '/changelogs/2026-07-14-driver-class-bundling',
+                },
+              ],
+            },
+            {
+              text: '2026-07-13',
+              collapsed: true,
+              items: [
+                {
+                  text: 'The Hardening Round - SQL Injection, Scope Escapes and Silent Leaks',
+                  link: '/changelogs/2026-07-13-hardening-round',
+                },
+              ],
+            },
+            {
+              text: '2026-07-12',
+              collapsed: true,
+              items: [
+                {
+                  text: 'Core Consolidation & Deduplication - Mixin Functions Removed, Narrowing Default-Filter Merge, isApplicationError',
+                  link: '/changelogs/2026-07-12-core-consolidation-dedup',
+                },
+              ],
+            },
+            {
+              text: '2026-07-11',
+              collapsed: true,
+              items: [
+                {
+                  text: 'Postgres Driver Seam & Supabase - Transaction Correctness, postgres-js, RLS Auth Context',
+                  link: '/changelogs/2026-07-11-postgres-driver-seam-supabase',
+                },
+                {
+                  text: 'Connectors Consistency Hardening - Strict find(), engineParams, SQL-Semantics Parity',
+                  link: '/changelogs/2026-07-11-connectors-consistency-hardening',
+                },
+              ],
+            },
             {
               text: '2026-07-08',
               collapsed: true,
@@ -511,6 +688,16 @@ const config = defineConfig({
               collapsed: true,
               items: [
                 { text: 'gRPC Controller System', link: '/changelogs/2026-03-15-grpc-controller-system' },
+              ],
+            },
+            {
+              text: '2026-03-12',
+              collapsed: true,
+              items: [
+                {
+                  text: 'Kafka Helpers Enhancement',
+                  link: '/changelogs/2026-03-12-kafka-helpers-enhancement',
+                },
               ],
             },
             {
@@ -799,6 +986,7 @@ const config = defineConfig({
               ],
             },
             { text: 'Services', link: '/guides/core-concepts/services' },
+            { text: 'Secrets & Vault', link: '/guides/core-concepts/secrets-vault' },
             {
               text: 'Persistent Layer',
               collapsed: true,
@@ -808,8 +996,15 @@ const config = defineConfig({
                 { text: 'DataSources', link: '/guides/core-concepts/persistent/datasources' },
                 { text: 'Repositories', link: '/guides/core-concepts/persistent/repositories' },
                 { text: 'Transactions', link: '/guides/core-concepts/persistent/transactions' },
+                {
+                  text: 'Postgres Drivers & Supabase',
+                  link: '/guides/core-concepts/persistent/postgres-drivers',
+                },
                 { text: 'Search & Typesense', link: '/guides/core-concepts/persistent/search-typesense' },
-                { text: 'Memory Connector', link: '/guides/core-concepts/persistent/memory-connector' },
+                {
+                  text: 'Search & Meilisearch',
+                  link: '/guides/core-concepts/persistent/search-meilisearch',
+                },
               ],
             },
           ],

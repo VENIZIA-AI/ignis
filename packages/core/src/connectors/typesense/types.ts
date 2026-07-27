@@ -9,29 +9,24 @@ import type {
 } from 'typesense/lib/Typesense/Documents';
 import type { UnionSearchResponse } from 'typesense/lib/Typesense/Types';
 import type { TConstValue } from '@venizia/ignis-helpers';
-import type { ISearchConnectorCallbacks } from './connector';
+import type { ISearchConnectorCallbacks } from '@/connectors/search';
 
-// Re-export Typesense types under stable T-prefixed aliases (type-only; erased at runtime).
-// Note: CollectionFieldSchema is exported from Collection (singular), not Collections.
+// CollectionFieldSchema is exported from Collection (singular), not Collections.
 export type TDocumentSchema = DocumentSchema;
 export type TCollectionCreateSchema = CollectionCreateSchema;
 export type TCollectionSchema = CollectionSchema;
 export type TCollectionFieldSchema = CollectionFieldSchema;
 export type TSearchParams = SearchParams<TDocumentSchema>;
 export type TSearchResponse<T extends TDocumentSchema = TDocumentSchema> = SearchResponse<T>;
+
 // Per-request client options, forwarded verbatim by the connector alongside SearchParams.
 export type TSearchOptions = SearchOptions;
 export type TImportResponse = ImportResponse;
 
-// The friendly multi-search entry type is inferred from the zod schema it lives beside; re-exported
-// here so `@venizia/ignis/typesense` consumers keep importing it from the connector's types barrel.
-export type { TMultiSearchEntry } from './repositories/common';
 export interface IMultiSearchResult<T extends TDocumentSchema = TDocumentSchema> {
   results: TSearchResponse<T>[];
 }
-// Union multi-search merges every `searches` entry into ONE result set instead of side-by-side
-// `results[]` - extends typesense's own merged-response shape (SearchResponse minus
-// `request_params`, plus its own `union_request_params` describing each contributing search).
+// Union multi-search merges every `searches` entry into ONE result set instead of side-by-side `results[]` - extends typesense's own merged-response shape (SearchResponse minus `request_params`, plus `union_request_params` describing each contributing search).
 export interface IUnionSearchResult<
   T extends TDocumentSchema = TDocumentSchema,
 > extends UnionSearchResponse<T> {}
@@ -92,19 +87,9 @@ export class TypesenseDirtyValues {
 
 export type TTypesenseDirtyValue = TConstValue<typeof TypesenseDirtyValues>;
 
-// -- Datasource option types (src/connectors/typesense/datasources/*) --
-
 export interface ITypesenseDataSourceSettings {
   nodes: Array<{ host: string; port: number; protocol?: string }>;
   apiKey: string;
   connectionTimeoutSeconds?: number;
   numRetries?: number;
-}
-
-export interface ISearchDataSourceOptions<Settings extends object = {}> {
-  name: string;
-  config: Settings;
-
-  /** Auto-provision discovered collections on configure(). Defaults to true. */
-  autoProvision?: boolean;
 }

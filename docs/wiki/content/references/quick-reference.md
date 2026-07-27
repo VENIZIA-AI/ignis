@@ -81,9 +81,8 @@ class GreeterController extends BaseGrpcController {
 ### BaseService
 
 ```typescript
-import { BaseService, injectable } from '@venizia/ignis';
+import { BaseService } from '@venizia/ignis';
 
-@injectable({})
 class UserService extends BaseService {
   constructor() {
     super({ scope: UserService.name });
@@ -308,17 +307,6 @@ const users = await userRepository.find({
 
 ## Dependency Injection
 
-### Injectable Decorator
-
-```typescript
-import { injectable } from '@venizia/ignis';
-
-@injectable({})
-class MyService extends BaseService {
-  // ...
-}
-```
-
 ### Inject Decorator
 
 ```typescript
@@ -368,7 +356,6 @@ import {
 
   // DI
   inject,
-  injectable,
 
   // Utilities
   jsonResponse,
@@ -513,7 +500,7 @@ if (Statuses.isCompleted(order.status)) {
 
 ```typescript
 import {
-  appErrorHandler,
+  AppErrorMiddleware,
   notFoundHandler,
   RequestSpyMiddleware,
   emojiFavicon,
@@ -529,7 +516,7 @@ app.use(requestSpy.value());
 app.use(emojiFavicon({ icon: '🚀' }));
 
 // Error handling (register last)
-app.onError(appErrorHandler({ logger: app.logger }));
+app.onError(new AppErrorMiddleware({ logger: app.logger }).value());
 
 // 404 handler
 app.notFound(notFoundHandler({ logger: app.logger }));

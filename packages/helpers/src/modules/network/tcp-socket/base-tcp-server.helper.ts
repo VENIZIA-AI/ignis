@@ -1,8 +1,9 @@
-import { BaseHelper } from '@/modules/base';
 import { ValueOrPromise } from '@/common/types';
+import { BaseHelper } from '@/modules/base';
 import { getError } from '@/modules/error';
 import { dayjs } from '@/utilities/date.utility';
 import { getUID } from '@/utilities/parse.utility';
+import { voidExecution } from '@/utilities/promise.utility';
 import omit from 'lodash/omit';
 import {
   ListenOptions,
@@ -19,6 +20,7 @@ export interface ITcpSocketClient<SocketClientType> {
   storage: {
     connectedAt: dayjs.Dayjs;
     authenticatedAt: dayjs.Dayjs | null;
+    authenticateTimeout?: ReturnType<typeof setTimeout> | null;
     [additionField: symbol | string]: any;
   };
 }
@@ -50,6 +52,7 @@ export interface ITcpSocketServerOptions<
   onClientData?: (opts: { id: string; socket: SocketClientType; data: Buffer | string }) => void;
   onClientClose?: (opts: { id: string; socket: SocketClientType }) => void;
   onClientError?: (opts: { id: string; socket: SocketClientType; error: Error }) => void;
+  onServerError?: (opts: { server: SocketServerType; error: Error }) => void;
 }
 
 export class BaseNetworkTcpServer<
@@ -83,6 +86,7 @@ export class BaseNetworkTcpServer<
   }) => void;
   protected onClientClose?: (opts: { id: string; socket: SocketClientType }) => void;
   protected onClientError?: (opts: { id: string; socket: SocketClientType; error: Error }) => void;
+  protected onServerError?: (opts: { server: SocketServerType; error: Error }) => void;
 
   constructor(
     opts: ITcpSocketServerOptions<SocketServerOptions, SocketServerType, SocketClientType>,
@@ -116,8 +120,21 @@ export class BaseNetworkTcpServer<
     this.onClientConnected = opts.onClientConnected;
     this.onClientData = opts.onClientData;
     this.onClientClose = opts.onClientClose;
+    this.onClientError = opts.onClientError;
+    this.onServerError = opts.onServerError;
 
     this.configure();
+  }
+
+  // Hooks run inside socket event listeners: a synchronous throw there is an uncaught exception that kills the process and skips the client-registry cleanup that follows it.
+  protected invokeHook(opts: { scope: string; execution: () => void }) {
+    const { scope, execution } = opts;
+
+    try {
+      execution();
+    } catch (error) {
+      this.logger.for(scope).error('Hook execution FAILED | Error: %s', error);
+    }
   }
 
   configure() {
@@ -125,12 +142,31 @@ export class BaseNetworkTcpServer<
       this.onNewConnection({ socket });
     });
 
+    // Without this listener a failed listen - a port already in use is the commonest boot failure there is - emits an unhandled 'error' event, which takes the whole process down with it.
+    this.server.on('error', (error: Error) => {
+      this.logger
+        .for(this.configure.name)
+        .error('TCP Socket Server error | Options: %j | Error: %s', this.listenOptions, error);
+
+      this.invokeHook({
+        scope: this.configure.name,
+        execution: () => {
+          this.onServerError?.({ server: this.server, error });
+        },
+      });
+    });
+
     this.server.listen(this.listenOptions, () => {
       this.logger
         .for(this.configure.name)
         .info('TCP Socket Server is now listening | Options: %j', this.listenOptions);
 
-      this.onServerReady?.({ server: this.server });
+      this.invokeHook({
+        scope: this.configure.name,
+        execution: () => {
+          this.onServerReady?.({ server: this.server });
+        },
+      });
     });
   }
 
@@ -140,13 +176,24 @@ export class BaseNetworkTcpServer<
     const id = getUID();
 
     socket.on('data', (data: Buffer | string) => {
-      this.onClientData?.({ id, socket, data });
+      this.invokeHook({
+        scope: 'onClientData',
+        execution: () => {
+          this.onClientData?.({ id, socket, data });
+        },
+      });
     });
 
     socket.on('error', (error: Error) => {
       this.logger.for('onClientConnect').error('Socket Error | ID: %s | Error: %s', id, error);
 
-      this.onClientError?.({ id, socket, error });
+      this.invokeHook({
+        scope: 'onClientError',
+        execution: () => {
+          this.onClientError?.({ id, socket, error });
+        },
+      });
+
       socket.end();
     });
 
@@ -155,13 +202,29 @@ export class BaseNetworkTcpServer<
         .for('onClientConnect')
         .info('Socket Closed | ID: %s | hasError: %s', id, hasError);
 
-      this.onClientClose?.({ id, socket });
+      this.invokeHook({
+        scope: 'onClientClose',
+        execution: () => {
+          this.onClientClose?.({ id, socket });
+        },
+      });
+
+      const authenticateTimeout = this.getClient({ id })?.storage?.authenticateTimeout;
+      if (authenticateTimeout) {
+        clearTimeout(authenticateTimeout);
+      }
+
       this.clients = omit(this.clients, [id]);
     });
 
     for (const extraEvent in this.extraEvents) {
       socket.on(extraEvent, args => {
-        this.extraEvents[extraEvent]({ id, socket, args });
+        voidExecution({
+          logger: this.logger,
+          scope: 'onClientConnect',
+          // The async wrapper turns a SYNCHRONOUS throw from the handler into a rejection; calling it bare would throw out of this listener as an uncaught exception.
+          execution: (async () => this.extraEvents[extraEvent]({ id, socket, args }))(),
+        });
       });
     }
 
@@ -185,18 +248,25 @@ export class BaseNetworkTcpServer<
         this.authenticateOptions.duration,
       );
 
-    this.onClientConnected?.({ id, socket });
+    this.invokeHook({
+      scope: 'onClientConnected',
+      execution: () => {
+        this.onClientConnected?.({ id, socket });
+      },
+    });
 
     if (
       this.authenticateOptions.required &&
       this.authenticateOptions.duration &&
       this.authenticateOptions.duration > 0
     ) {
-      setTimeout(() => {
+      const authenticateTimeout = setTimeout(() => {
         const client = this.getClient({ id });
         if (!client) {
           return;
         }
+
+        client.storage.authenticateTimeout = null;
 
         if (client.state === 'authenticated') {
           return;
@@ -205,6 +275,14 @@ export class BaseNetworkTcpServer<
         this.emit({ clientId: id, payload: 'Unauthorized Client' });
         client.socket.end();
       }, this.authenticateOptions.duration);
+
+      const client = this.getClient({ id });
+      if (!client) {
+        clearTimeout(authenticateTimeout);
+        return;
+      }
+
+      client.storage.authenticateTimeout = authenticateTimeout;
     }
   }
 
@@ -218,6 +296,40 @@ export class BaseNetworkTcpServer<
 
   getServer() {
     return this.server;
+  }
+
+  /** Clears timers and destroys all client sockets before closing the listener - `server.close()` alone never settles while a socket stays attached. Idempotent; safe if never listened. */
+  async shutdown(): Promise<void> {
+    for (const client of Object.values(this.clients)) {
+      const { authenticateTimeout } = client.storage;
+      if (authenticateTimeout) {
+        clearTimeout(authenticateTimeout);
+        client.storage.authenticateTimeout = null;
+      }
+
+      client.socket.destroy();
+    }
+
+    this.clients = {};
+
+    const server = this.server;
+    if (!server) {
+      return;
+    }
+
+    // Not guarded on `listening`: listen() is async (DNS lookup), so a shutdown() racing startup could skip close() and leave the server bound forever; close() on a never-listened server just logs ERR_SERVER_NOT_RUNNING below.
+
+    await new Promise<void>(resolve => {
+      server.close(error => {
+        if (error) {
+          this.logger.for(this.shutdown.name).error('Failed to close server | Error: %s', error);
+        }
+
+        resolve();
+      });
+    });
+
+    this.logger.for(this.shutdown.name).info('Server closed | Identifier: %s', this.identifier);
   }
 
   doAuthenticate(opts: { id: string; state: 'unauthorized' | 'authenticating' | 'authenticated' }) {
@@ -239,6 +351,11 @@ export class BaseNetworkTcpServer<
       }
       case 'authenticated': {
         client.storage.authenticatedAt = dayjs();
+
+        if (client.storage.authenticateTimeout) {
+          clearTimeout(client.storage.authenticateTimeout);
+          client.storage.authenticateTimeout = null;
+        }
         break;
       }
       default: {

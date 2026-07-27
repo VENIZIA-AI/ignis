@@ -1,9 +1,9 @@
-import type { Logger } from '@venizia/ignis-helpers';
+import type { ILogger } from '@venizia/ignis-helpers';
 import { HTTP } from '@venizia/ignis-helpers';
 import type { NotFoundHandler } from 'hono/types';
 import { RequestSpyMiddleware } from '../request-spy';
 
-export const notFoundHandler = (opts: { logger?: Logger }) => {
+export const notFoundHandler = (opts: { logger?: ILogger }) => {
   const { logger = console } = opts;
 
   const mw: NotFoundHandler = async context => {

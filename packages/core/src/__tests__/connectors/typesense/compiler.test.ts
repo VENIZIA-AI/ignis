@@ -1,7 +1,7 @@
 import { describe, expect, test } from 'bun:test';
 
 import { compileTypesenseCollection } from '@/connectors/typesense/compiler';
-import { defineSearchCollection, field } from '@/connectors/typesense/models';
+import { defineSearchCollection, field } from '@/connectors/search/models';
 
 describe('compileTypesenseCollection', () => {
   test('compiles a full definition to the exact expected CollectionCreateSchema', () => {
@@ -102,8 +102,7 @@ describe('compileTypesenseCollection', () => {
     }
   });
 
-  // default_sorting_field requires a scalar numeric field; sortable only affects sort_by
-  // eligibility. The DSL only checks the field exists, so this is a compile-time-only rejection.
+  // default_sorting_field requires a scalar numeric field while sortable only affects sort_by eligibility, and the DSL only checks the field exists - so this is a compile-time-only rejection.
   test('defaultSort on a sortable STRING field is rejected at compile time, not definition time', () => {
     const definition = defineSearchCollection({
       name: 'products',
@@ -142,6 +141,20 @@ describe('compileTypesenseCollection', () => {
       fields: [{ name: 'rating', type: 'float', sort: true }],
       ['default_sorting_field']: 'rating',
     });
+  });
+
+  test('defaultSort naming a field the collection does not declare is rejected at compile time, not forwarded', () => {
+    const definition = defineSearchCollection({
+      name: 'products',
+      fields: [field.number('rating', { sortable: true })],
+      defaultSort: 'rating',
+    });
+    // Repoints defaultSort at a non-existent field, bypassing the DSL's definition-time check, to exercise the compiler's own guard - it also receives hand-built definitions.
+    (definition as { defaultSort?: string }).defaultSort = 'nonexistent';
+
+    expect(() => compileTypesenseCollection({ definition })).toThrow(
+      /does not exist in the collection/,
+    );
   });
 
   test('does not emit default_sorting_field when defaultSort is absent', () => {

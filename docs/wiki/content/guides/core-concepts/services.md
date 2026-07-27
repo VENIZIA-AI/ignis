@@ -57,7 +57,7 @@ export class UserService extends BaseService {
 
 ## Registering a Service
 
-Registration is always imperative - call `this.service(ClassName)` inside an application lifecycle method. Do not add `@injectable` to services; `this.service()` handles the binding.
+Registration is always imperative - call `this.service(ClassName)` inside an application lifecycle method, which handles the binding. There is no class-level decorator for this.
 
 ```typescript
 import { BaseApplication } from '@venizia/ignis';
@@ -318,7 +318,7 @@ export class CheckoutService extends BaseService {
       return order;
     } catch (error) {
       await transaction.rollback();
-      log.error('Order failed, rolled back | error: %j', error);
+      log.error('Order failed, rolled back | error: %s', error);
       throw error;
     }
   }

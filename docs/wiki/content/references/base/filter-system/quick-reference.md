@@ -2,255 +2,171 @@
 title: Filter Operators Quick Reference
 description: Single-page cheat sheet of all filter operators
 difficulty: intermediate
-lastUpdated: 2026-03-15
+lastUpdated: 2026-07-23
 ---
 
 # Filter Operators Quick Reference
 
-Complete single-page reference for all IGNIS filter operators. For detailed explanations and examples, see the individual operator guides.
+Every `where` operator, one line each. For the `filter` shape and the mental model, start at the [Filter System Overview](./). For explanations and worked examples, follow the **See** link under each table.
 
 ## Comparison Operators
 
-| Operator | SQL | TypeScript Example | Description |
-|----------|-----|-------------------|-------------|
+| Operator | SQL | Example | Description |
+|---|---|---|---|
 | `eq` | `=` | `{ status: { eq: 'active' } }` | Equal to |
 | `ne` | `!=` | `{ status: { ne: 'deleted' } }` | Not equal to |
-| `neq` | `!=` | `{ status: { neq: 'deleted' } }` | Not equal to (alias for `ne`) |
+| `neq` | `!=` | `{ status: { neq: 'deleted' } }` | Alias for `ne` |
 | `gt` | `>` | `{ age: { gt: 18 } }` | Greater than |
 | `gte` | `>=` | `{ age: { gte: 18 } }` | Greater than or equal |
 | `lt` | `<` | `{ price: { lt: 100 } }` | Less than |
 | `lte` | `<=` | `{ price: { lte: 100 } }` | Less than or equal |
 
+> [!NOTE]
+> `ne`/`neq` follow SQL three-valued logic. A row whose field is `NULL` never matches `{ field: { neq: value } }`, because `NULL <> value` is UNKNOWN, not TRUE. To include NULL rows too, use `{ or: [{ field: { neq: value } }, { field: null }] }`.
+
 **See:** [Comparison Operators Guide](./comparison-operators.md)
 
+## Null / Presence Operators
 
-## Range Operators
+| Operator | SQL | Example | Description |
+|---|---|---|---|
+| `is` | `IS NULL` / `=` | `{ deletedAt: { is: null } }` | `IS NULL` when the value is `null`, equality otherwise |
+| `isn` | `IS NOT NULL` / `!=` | `{ email: { isn: null } }` | `IS NOT NULL` when the value is `null`, not-equal otherwise |
+| `exists` | `IS NOT NULL` / `IS NULL` | `{ deletedAt: { exists: false } }` | `exists: true` -> `IS NOT NULL`, `exists: false` -> `IS NULL` |
+| `notExists` | `IS NULL` / `IS NOT NULL` | `{ verifiedAt: { notExists: true } }` | Inverse of `exists` |
 
-| Operator | SQL | TypeScript Example | Description |
-|----------|-----|-------------------|-------------|
-| `between` | `BETWEEN` | `{ age: { between: [18, 65] } }` | Value is within range (inclusive) |
-| `notBetween` | `NOT BETWEEN` | `{ age: { notBetween: [0, 18] } }` | Value is outside range |
-
-**See:** [Range Operators Guide](./range-operators.md)
-
-
-## List Operators
-
-| Operator | SQL | TypeScript Example | Description |
-|----------|-----|-------------------|-------------|
-| `in` | `IN` | `{ status: { in: ['active', 'pending'] } }` | Value matches any in array |
-| `inq` | `IN` | `{ status: { inq: ['active', 'pending'] } }` | Alias for `in` |
-| `nin` | `NOT IN` | `{ status: { nin: ['deleted', 'banned'] } }` | Value doesn't match any in array |
-
-**See:** [List Operators Guide](./list-operators.md)
-
-
-## Pattern Matching Operators
-
-| Operator | SQL | TypeScript Example | Description |
-|----------|-----|-------------------|-------------|
-| `like` | `LIKE` | `{ name: { like: '%john%' } }` | Pattern match (case-sensitive) |
-| `nlike` | `NOT LIKE` | `{ name: { nlike: '%test%' } }` | Inverse pattern match (case-sensitive) |
-| `ilike` | `ILIKE` | `{ email: { ilike: '%@gmail.com' } }` | Pattern match (case-insensitive) |
-| `nilike` | `NOT ILIKE` | `{ email: { nilike: '%spam%' } }` | Inverse pattern match (case-insensitive) |
-| `regexp` | `~` | `{ code: { regexp: '^[A-Z]{3}$' } }` | Regular expression (PostgreSQL) |
-| `iregexp` | `~*` | `{ code: { iregexp: '^[a-z]{3}$' } }` | Case-insensitive regex (PostgreSQL) |
-
-**Wildcard Patterns:**
-- `%` - Matches any sequence of characters
-- `_` - Matches any single character
-
-**See:** [Pattern Matching Guide](./pattern-matching.md)
-
-
-## Null Check Operators
-
-| Operator | SQL | TypeScript Example | Description |
-|----------|-----|-------------------|-------------|
-| `is` | `IS NULL` / `=` | `{ deletedAt: { is: null } }` | IS NULL when value is `null`, equality otherwise |
-| `isn` | `IS NOT NULL` / `!=` | `{ email: { isn: null } }` | IS NOT NULL when value is `null`, not-equal otherwise |
-
-**Shorthand Syntax:**
-```typescript
-// Direct null assignment (implicit IS NULL)
-{ deletedAt: null }
-// SQL: WHERE "deleted_at" IS NULL
-
-// Using eq with null
-{ deletedAt: { eq: null } }
-// SQL: WHERE "deleted_at" IS NULL
-
-// Using ne with null
-{ deletedAt: { ne: null } }
-// SQL: WHERE "deleted_at" IS NOT NULL
-```
+**Shorthand:** a bare `null` is implicit `IS NULL`. `{ deletedAt: null }` is identical to `{ deletedAt: { eq: null } }` or `{ deletedAt: { is: null } }`.
 
 **See:** [Null Operators Guide](./null-operators.md)
 
+## List Operators
+
+| Operator | SQL | Example | Description |
+|---|---|---|---|
+| `in` | `IN` | `{ status: { in: ['active', 'pending'] } }` | Value matches any in the array |
+| `inq` | `IN` | `{ status: { inq: ['active', 'pending'] } }` | Alias for `in` |
+| `nin` | `NOT IN` | `{ status: { nin: ['deleted', 'banned'] } }` | Value matches none in the array |
+
+> [!NOTE]
+> An empty array is a hard edge. `{ in: [] }` / `{ inq: [] }` match no rows; `{ nin: [] }` matches every row, because an empty exclusion list excludes nothing.
+
+**See:** [List Operators Guide](./list-operators.md)
+
+## Range Operators
+
+| Operator | SQL | Example | Description |
+|---|---|---|---|
+| `between` | `BETWEEN` | `{ age: { between: [18, 65] } }` | Value is within range, inclusive |
+| `notBetween` | `NOT BETWEEN` | `{ age: { notBetween: [0, 18] } }` | Value is outside range |
+
+Both require a 2-element array `[min, max]` - anything else throws.
+
+**See:** [Range Operators Guide](./range-operators.md)
+
+## Pattern Matching Operators
+
+| Operator | SQL | Example | Description |
+|---|---|---|---|
+| `like` | `LIKE` | `{ name: { like: '%john%' } }` | Pattern match, case-sensitive |
+| `nlike` | `NOT LIKE` | `{ name: { nlike: '%test%' } }` | Inverse, case-sensitive |
+| `ilike` | `ILIKE` | `{ email: { ilike: '%@gmail.com' } }` | Pattern match, case-insensitive |
+| `nilike` | `NOT ILIKE` | `{ email: { nilike: '%spam%' } }` | Inverse, case-insensitive |
+| `regexp` | `~` | `{ code: { regexp: '^[A-Z]{3}$' } }` | Regular expression (PostgreSQL) |
+| `iregexp` | `~*` | `{ code: { iregexp: '^[a-z]{3}$' } }` | Case-insensitive regex (PostgreSQL) |
+
+**Wildcards:** `%` matches any sequence of characters, `_` matches any single character.
+
+**See:** [Pattern Matching Guide](./pattern-matching.md)
 
 ## Logical Operators
 
-| Operator | SQL | TypeScript Example | Description |
-|----------|-----|-------------------|-------------|
-| `and` | `AND` | `{ and: [{ age: { gt: 18 } }, { status: 'active' }] }` | All conditions must be true |
+| Operator | SQL | Example | Description |
+|---|---|---|---|
+| `and` | `AND` | `{ and: [{ age: { gt: 18 } }, { status: 'active' }] }` | Every condition must be true |
 | `or` | `OR` | `{ or: [{ role: 'admin' }, { role: 'moderator' }] }` | At least one condition must be true |
+| `not` | `NOT (...)` | `{ status: { not: 'archived' } }` / `{ views: { not: { gt: 100 } } }` | Negates the nested condition; a bare value negates `eq` |
+| (implicit) | `AND` | `{ status: 'active', age: { gte: 18 } }` | Multiple top-level `where` keys are ANDed together |
+| `and: []` | (dropped) | `{ and: [] }` | Vacuously true - no condition added |
+| `or: []` | `false` | `{ or: [] }` | Vacuously false - matches no rows |
 
-**Implicit AND:**
-```typescript
-// Multiple fields = implicit AND
-{
-  status: 'active',
-  age: { gte: 18 },
-  role: 'user'
-}
-// WHERE status = 'active' AND age >= 18 AND role = 'user'
-```
+`not` recurses: `{ not: { gt: 100 } }` becomes `NOT (col > 100)`; `{ not: 5 }` becomes `NOT (col = 5)`; `{ not: null }` becomes `IS NOT NULL`.
 
-**NOT logic** is expressed via negation operators (`ne`, `neq`, `nin`, `nlike`, `nilike`, `notBetween`, `isn`).
+`exists`/`notExists` also work over JSON paths (`{ 'metadata.score': { exists: true } }`).
 
 **See:** [Logical Operators Guide](./logical-operators.md)
 
+## Array Operators (PostgreSQL)
 
-## PostgreSQL Array Operators
+For array columns (`varchar[]`, `text[]`, `integer[]`, and so on) - not to be confused with `in`/`nin`, which match a scalar against a list.
 
-These operators work with PostgreSQL array columns (`varchar[]`, `text[]`, `integer[]`, etc.).
+| Operator | SQL | Example | Description |
+|---|---|---|---|
+| `contains` | `@>` | `{ tags: { contains: ['typescript', 'nodejs'] } }` | Column array contains ALL given elements |
+| `containedBy` | `<@` | `{ tags: { containedBy: ['ts', 'js', 'go', 'rust'] } }` | Column array is a subset of the given array |
+| `overlaps` | `&&` | `{ tags: { overlaps: ['react', 'vue', 'angular'] } }` | Arrays share at least one element |
 
-| Operator | PostgreSQL | TypeScript Example | Description |
-|----------|------------|-------------------|-------------|
-| `contains` | `@>` | `{ tags: { contains: ['typescript', 'nodejs'] } }` | Array contains **ALL** specified elements |
-| `containedBy` | `<@` | `{ tags: { containedBy: ['ts', 'js', 'go', 'rust'] } }` | Array is subset of specified array |
-| `overlaps` | `&&` | `{ tags: { overlaps: ['react', 'vue', 'angular'] } }` | Arrays have at least one common element |
-
-**Important:** These are array-specific operators, not to be confused with `in`/`nin` which match scalar values against an array.
+A scalar operand is wrapped into a single-element array automatically.
 
 **See:** [Array Operators Guide](./array-operators.md)
 
+## JSON Path Operators (PostgreSQL)
 
-## JSON/JSONB Operators (PostgreSQL)
-
-Query nested fields within JSON/JSONB columns using dot notation as the key.
-
-### JSON Path Syntax
+A dot-notation key targets a JSON/JSONB column instead of a top-level one.
 
 | Syntax | Example | Description |
-|--------|---------|-------------|
-| Dot notation | `{ 'metadata.user.name': 'John' }` | Access nested properties |
-| Array index | `{ 'metadata.tags[0]': 'urgent' }` | Access array elements |
+|---|---|---|
+| Dot notation | `{ 'metadata.user.name': 'John' }` | Access a nested property |
+| Array index | `{ 'metadata.tags[0]': 'urgent' }` | Access an array element |
 | Combined | `{ 'metadata.users[0].email': value }` | Nested arrays and objects |
 
-### JSON Path with Operators
+**Supported operators:** `eq`, `ne`, `neq`, `gt`, `gte`, `lt`, `lte`, `in`, `inq`, `nin`, `like`, `nlike`, `ilike`, `nilike`, `between`, `notBetween`, `regexp`, `iregexp`, `is`, `isn`, `exists`, `notExists`, `not`. That's the same set as top-level columns, minus the array operators (`contains`/`containedBy`/`overlaps`), which need a real array column.
 
-```typescript
-// Equality (string comparison via #>>)
-{ 'metadata.user.role': 'admin' }
-// SQL: "metadata" #>> '{user,role}' = 'admin'
-
-// Numeric comparison (safe casting via CASE/numeric)
-{ 'metadata.score': { gt: 80 } }
-
-// Pattern matching
-{ 'metadata.level': { ilike: '%high%' } }
-// SQL: "metadata" #>> '{level}' ILIKE '%high%'
-
-// Multiple JSON conditions
-{
-  and: [
-    { 'metadata.user.age': { gt: 18 } },
-    { 'metadata.user.country': 'US' }
-  ]
-}
-```
-
-### Supported Operators with JSON Paths
-
-All comparison operators work with JSON path queries:
-- `eq`, `ne`, `neq`, `gt`, `gte`, `lt`, `lte`
-- `in`, `inq`, `nin`
-- `like`, `nlike`, `ilike`, `nilike`
-- `between`, `notBetween`
-- `regexp`, `iregexp`
-- `is`, `isn`
-
-Numeric operators (`gt`, `gte`, `lt`, `lte`, `between`, `notBetween`) use safe numeric casting to handle mixed JSON value types.
+Numeric operators cast the extracted text to `numeric` automatically: `gt`, `gte`, `lt`, `lte`, `between`, `notBetween`, and `eq`/`ne`/`neq`/`in`/`inq`/`nin` when the operand is a number. So `{ 'metadata.score': { gt: 80 } }` compares as a number, not a string.
 
 **See:** [JSON Filtering Guide](./json-filtering.md)
 
+## Fields, Order & Pagination
 
-## Fields, Ordering & Pagination
-
-### Select Specific Fields
-
-```typescript
-const users = await userRepository.find({
-  filter: {
-    where: { isActive: true },
-    fields: ['id', 'name', 'email'], // Only return these fields
-  }
-});
-```
-
-### Ordering
-
-```typescript
-// Single field
-{ order: ['createdAt DESC'] }
-
-// Multiple fields
-{ order: ['status ASC', 'createdAt DESC'] }
-
-// Default direction is ASC
-{ order: ['name'] }  // Same as 'name ASC'
-
-// JSON path ordering
-{ order: ['metadata.priority DESC'] }
-```
-
-### Pagination
-
-```typescript
-{
-  limit: 10,   // Max records to return (default: 10)
-  skip: 20,    // Skip first 20 records (alias: offset)
-}
-
-// Page 3 with 10 items per page
-{
-  limit: 10,
-  skip: 20, // (page - 1) * limit = (3 - 1) * 10
-}
-```
+| Property | Syntax | Example | Result |
+|---|---|---|---|
+| `fields` (array) | `string[]` | `fields: ['id', 'name', 'email']` | `SELECT` only those columns |
+| `fields` (object) | `{ field: true }` | `fields: { id: true, name: true }` | Same - inclusion-only, `false` is ignored |
+| `order` | `'field ASC'` / `'field DESC'` | `order: ['createdAt DESC']` | `ORDER BY`; default direction is `ASC` (`order: ['name']` = `'name ASC'`) |
+| `order` (JSON path) | `'a.b DESC'` | `order: ['metadata.priority DESC']` | `ORDER BY` on a JSON path |
+| `limit` | number | `limit: 10` | `LIMIT`; omitted -> `query.limit ?? settings.defaultLimit ?? 10` |
+| `skip` | number | `skip: 20` | `OFFSET`; alias of `offset` - `skip` wins if both are given |
+| `offset` | number | `offset: 20` | `OFFSET`; alias of `skip` |
 
 **See:** [Fields, Ordering & Pagination Guide](./fields-order-pagination.md)
 
+## Default Filter
 
-## Default Filters
+A model's `settings.defaultFilter` merges into every read, update, and delete for that model.
 
-Automatically apply filters to all repository queries (e.g., soft delete, multi-tenant).
+| Collision shape | Result |
+|---|---|
+| Different keys | AND-composed - `{ isDeleted: false }` default + `{ status: 'published' }` caller filter -> `WHERE "isDeleted" = false AND "status" = 'published'` |
+| Same key, scalar vs. scalar | Caller wins - the one override escape, no `shouldSkipDefaultFilter` needed |
+| Same key, scalar vs. operator object (either side) | AND-composed |
+| Same key, both `and` | Concatenated - both groups hold |
+| Same key, both `or` | Kept as two separate conjuncts, never unioned |
 
 ```typescript
-@model({
-  type: 'entity',
-  settings: {
-    defaultFilter: {
-      where: { isDeleted: false },
-      limit: 100,
-    },
-  },
-})
-export class User extends BaseEntity<typeof User.schema> {
-  static override schema = userTable;
-}
-
-// All queries automatically include the default filter
-await userRepository.find({ filter: {} });
-// WHERE isDeleted = false LIMIT 100
-
-// Skip default filter for admin operations
+// Skip the default filter entirely
 await userRepository.find({
-  filter: {},
+  filter: { where: { status: 'published' } },
   options: { shouldSkipDefaultFilter: true },
 });
-// No automatic filter applied
 ```
 
 **See:** [Default Filter Guide](./default-filter.md)
+
+## See also
+
+- [Filter System Overview](./) - the `filter` shape, `where` families at a glance, and links to every depth page
+
+**Files:**
+
+- [`packages/core/src/connectors/postgres/repositories/dialect/filter.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core/src/connectors/postgres/repositories/dialect/filter.ts) - `FilterBuilder`, translates `TFilter` to Drizzle/SQL
+- [`packages/core/src/connectors/postgres/repositories/dialect/query.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core/src/connectors/postgres/repositories/dialect/query.ts) - `PostgresQueryOperators.FNS`, one handler per operator
+- [`packages/filter/src/common/operators.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/filter/src/common/operators.ts) - `QueryOperators`/`Sorts` constants

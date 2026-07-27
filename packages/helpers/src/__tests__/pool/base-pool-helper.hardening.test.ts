@@ -1,9 +1,7 @@
 import { describe, expect, test } from 'bun:test';
 import { BasePoolHelper } from '@/modules/pool';
 
-// ---------------------------------------------------------------------------
-// Fixtures / helpers
-// ---------------------------------------------------------------------------
+// --- Fixtures / helpers ---
 
 const tick = (ms = 0): Promise<void> => new Promise(resolve => setTimeout(resolve, ms));
 
@@ -42,9 +40,7 @@ function objectPool(
   return { pool, destroyed, created, createdCount: () => n };
 }
 
-// ===========================================================================
-// WHITE-BOX / CONCURRENCY INVARIANTS
-// ===========================================================================
+// === WHITE-BOX / CONCURRENCY INVARIANTS ===
 
 describe('BasePoolHelper — concurrency invariants (white-box)', () => {
   test('INVARIANT: total === idle + borrowed after heavy concurrent churn', async () => {
@@ -187,9 +183,7 @@ describe('BasePoolHelper — concurrency invariants (white-box)', () => {
   });
 
   test('dispatch re-entrancy: release DURING in-flight slow reset still pairs the freed resource', async () => {
-    // size=1: A is held. One waiter queued. We make reset slow. When we release A,
-    // dispatch begins reset(A); meanwhile nothing else can happen. After reset, A
-    // must be handed to the waiter (no lost wakeup).
+    // size=1: A is held, one waiter queued, reset made slow. Releasing A begins reset(A); once it finishes A must be handed to the waiter (no lost wakeup).
     let n = 0;
     let resetGate: (() => void) | null = null;
     const pool = new BasePoolHelper<number>({
@@ -217,9 +211,7 @@ describe('BasePoolHelper — concurrency invariants (white-box)', () => {
   });
 });
 
-// ===========================================================================
-// FAULT INJECTION
-// ===========================================================================
+// === FAULT INJECTION ===
 
 describe('BasePoolHelper — fault injection: create()', () => {
   test('create always throws: every concurrent acquirer rejects, no total leak, recovers', async () => {
@@ -268,10 +260,7 @@ describe('BasePoolHelper — fault injection: create()', () => {
 });
 
 describe('BasePoolHelper — fault injection: validate() THROWS', () => {
-  // FIXED (helper.ts): validate() is now wrapped in try/catch like reset(). A throwing validate()
-  // must be treated like an invalid resource — the popped candidate is destroyed (no leak) and the
-  // waiter is served by a freshly-created resource. This guards against the previous bug where a
-  // throwing validate leaked the candidate (corrupting `total`) and could permanently starve the pool.
+  // validate() is wrapped in try/catch like reset(): a throw is treated as an invalid resource (candidate destroyed, waiter served fresh) - guards against corrupting `total` and starving the pool.
   test('validate() throwing discards the candidate (no leak) and serves the waiter from a fresh resource', async () => {
     let n = 0;
     const destroyed: number[] = [];
@@ -384,7 +373,7 @@ describe('BasePoolHelper — fault injection: use() + destroy both throw', () =>
     let err: unknown;
     try {
       await pool.use({
-        fn: async () => {
+        execution: async () => {
           throw new Error('callback boom');
         },
       });
@@ -394,14 +383,12 @@ describe('BasePoolHelper — fault injection: use() + destroy both throw', () =>
     expect((err as Error).message).toBe('callback boom');
     expect(pool.getStats()).toEqual({ size: 1, available: 0, borrowed: 0, pending: 0 });
     // Pool recovers with a fresh resource.
-    const r = await pool.use({ fn: async x => x });
+    const r = await pool.use({ execution: async x => x });
     expect(r).toBe(2);
   });
 });
 
-// ===========================================================================
-// BLACK-BOX / BOUNDARY / EQUIVALENCE
-// ===========================================================================
+// === BLACK-BOX / BOUNDARY / EQUIVALENCE ===
 
 describe('BasePoolHelper — degenerate size: 0', () => {
   test('size:0 warmup creates nothing', async () => {
@@ -436,7 +423,7 @@ describe('BasePoolHelper — degenerate size: 0', () => {
     });
     let err: unknown;
     try {
-      await pool.use({ fn: async r => r });
+      await pool.use({ execution: async r => r });
     } catch (e) {
       err = e;
     }
@@ -451,7 +438,7 @@ describe('BasePoolHelper — size: 1 heavy reuse', () => {
     const seen: number[] = [];
     for (let i = 0; i < 25; i++) {
       await pool.use({
-        fn: async r => {
+        execution: async r => {
           seen.push(r);
         },
       });
@@ -508,9 +495,7 @@ describe('BasePoolHelper — acquireTimeoutMs boundaries', () => {
 });
 
 describe('BasePoolHelper — maxWaitingClients boundaries', () => {
-  // FIXED (helper.ts): the gate now only rejects when the acquire would actually have to WAIT
-  // (idle empty AND at capacity). So maxWaitingClients:0 means "serve if a resource is free, reject
-  // only when it would otherwise queue" — the pool is usable, not totally dead.
+  // The gate only rejects when the acquire would actually have to WAIT (idle empty AND at capacity), so maxWaitingClients:0 means "serve if a resource is free, reject only when it would otherwise queue" - the pool is usable, not dead.
   test('maxWaitingClients:0 serves a free resource and rejects only when it would queue', async () => {
     const pool = new BasePoolHelper<number>({ size: 1, create: () => 1, maxWaitingClients: 0 });
     const a = await pool.acquire(); // resource is creatable → served (no queue needed)
@@ -553,7 +538,7 @@ describe('BasePoolHelper — nested acquire (re-entrancy from within use())', ()
     let n = 0;
     const pool = new BasePoolHelper<number>({ size: 2, create: () => ++n });
     const result = await pool.use({
-      fn: async outer => {
+      execution: async outer => {
         const inner = await pool.acquire();
         expect(inner).not.toBe(outer);
         pool.release({ resource: inner });
@@ -566,16 +551,13 @@ describe('BasePoolHelper — nested acquire (re-entrancy from within use())', ()
   });
 
   test('DEADLOCK DOC: size:1 nested acquire inside use() deadlocks; only acquireTimeoutMs breaks it', async () => {
-    // With size:1, use() holds the single resource; the nested acquire() inside the callback
-    // can never be served (no idle, total==size). Without a timeout this hangs forever.
-    // We give acquireTimeoutMs so the inner acquire rejects, the callback throws, use() discards
-    // the outer resource and rethrows. This DOCUMENTS the deadlock hazard.
+    // size:1: use() holds the single resource, so the nested acquire() inside the callback can never be served - acquireTimeoutMs is the only escape, rejecting the inner acquire so the callback throws and use() discards the outer resource.
     let n = 0;
     const pool = new BasePoolHelper<number>({ size: 1, create: () => ++n, acquireTimeoutMs: 30 });
     let err: unknown;
     try {
       await pool.use({
-        fn: async () => {
+        execution: async () => {
           // self-deadlock without the timeout safety valve
           await pool.acquire();
         },
@@ -615,7 +597,7 @@ describe('BasePoolHelper — operations after destroy()', () => {
     await pool.destroy();
     let err: unknown;
     try {
-      await pool.use({ fn: async r => r });
+      await pool.use({ execution: async r => r });
     } catch (e) {
       err = e;
     }
@@ -672,9 +654,7 @@ describe('BasePoolHelper — cross-pool release isolation', () => {
   });
 });
 
-// ===========================================================================
-// STRESS — mixed operations, invariant re-check
-// ===========================================================================
+// === STRESS - mixed operations, invariant re-check ===
 
 describe('BasePoolHelper — mixed-op stress', () => {
   test('mixed acquire/use/discard/release keeps total === idle + borrowed', async () => {
@@ -706,7 +686,7 @@ describe('BasePoolHelper — mixed-op stress', () => {
           })(),
         );
       } else if (mode === 1) {
-        tasks.push(pool.use({ fn: async r => r }).catch(() => undefined));
+        tasks.push(pool.use({ execution: async r => r }).catch(() => undefined));
       } else {
         tasks.push(
           (async () => {
@@ -731,9 +711,7 @@ describe('BasePoolHelper — mixed-op stress', () => {
   });
 });
 
-// ===========================================================================
-// WAITER QUEUE — O(1) head-index correctness (FIFO at scale + settled-skip)
-// ===========================================================================
+// === WAITER QUEUE - O(1) head-index correctness (FIFO at scale + settled-skip) ===
 
 describe('BasePoolHelper — waiter queue (head-index) correctness', () => {
   test('FIFO preserved across a large burst (exercises head-index advance + compaction)', async () => {

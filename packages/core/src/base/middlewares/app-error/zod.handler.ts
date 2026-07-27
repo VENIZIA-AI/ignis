@@ -1,4 +1,4 @@
-import { HTTP } from '@venizia/ignis-helpers';
+import { HTTP, MessageCode } from '@venizia/ignis-helpers';
 import type { HTTPResponseError } from 'hono/types';
 import type { IZodIssueLike } from './types';
 
@@ -15,11 +15,7 @@ const extractIssueCode = (opts: { issue: IZodIssueLike }) => {
   return undefined;
 };
 
-/**
- * Formats a ZodError into the 422 validation response. Top-level `messageCode`/`message` come from
- * the first issue that defines a custom `params.code`, else the first issue's raw Zod code; the full
- * per-issue list stays under `details.cause`.
- */
+/** Formats a ZodError into the 422 validation response. */
 export const formatZodError = (opts: {
   isProduction: boolean;
   requestId: string;
@@ -39,8 +35,7 @@ export const formatZodError = (opts: {
 
   const issues = Array.isArray(validationErrors) ? (validationErrors as IZodIssueLike[]) : null;
 
-  // Top-level messageCode/message: prefer the first issue with a custom `params.code`;
-  // else fall back to the first issue's raw Zod code; else keep the generic message.
+  // Prefer the first issue with a custom `params.code`, else its raw Zod code.
   let messageCode: string | undefined;
   let message = DEFAULT_VALIDATION_MESSAGE;
 
@@ -51,12 +46,16 @@ export const formatZodError = (opts: {
     message = primaryIssue.message;
   }
 
+  // A ZodError we could not parse into issues yields no code of its own; the response still carries one, so no error response is ever missing the field a client branches on.
+  const resolvedMessageCode = MessageCode.resolve(messageCode);
+
   return {
     statusCode,
     response: {
       message,
-      messageCode,
       statusCode,
+      // `args` is empty: a Zod issue carries no interpolation values - per-field detail is in `details.cause`.
+      normalized: { text: message, code: resolvedMessageCode, args: {} },
       requestId,
       details: {
         url,

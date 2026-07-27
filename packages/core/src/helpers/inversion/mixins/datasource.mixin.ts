@@ -5,22 +5,17 @@ import type { IDataSourceMetadata } from '../common/types';
 
 export const DatasourceMetadataMixin = <BaseClass extends TMixinTarget<_MetadataRegistry>>(
   baseClass: BaseClass,
-  // mixinOpts: { },
 ) => {
   return class extends baseClass {
     setDataSourceMetadata<Target extends object = object>(opts: {
       target: Target;
-      metadata: IDataSourceMetadata;
+      metadata?: IDataSourceMetadata;
     }): void {
       const { target, metadata } = opts;
 
       Reflect.defineMetadata(
         MetadataKeys.DATASOURCE,
-        Object.assign(
-          {},
-          { autoDiscovery: true }, // Default autoDiscovery to true
-          metadata, // User can disable autoDiscovery by passing autoDiscovery = false here
-        ),
+        Object.assign({}, { autoDiscovery: true }, metadata),
         target,
       );
     }

@@ -1,16 +1,14 @@
 import { asTypedContext } from '@/base/controllers/common/types';
-import { BaseHelper, getError, HTTP } from '@venizia/ignis-helpers';
+import { BaseHelper, getError } from '@venizia/ignis-helpers';
 import type { IProvider } from '@venizia/ignis-inversion';
 import { createMiddleware } from 'hono/factory';
 import type { IAuthUser } from '../../authenticate';
-// Deep import (not the authenticate barrel): the barrel re-exports ./controllers, whose factory
-// extends BaseRestController - a value import here forms the base/controllers <-> auth init cycle.
+// Deep import (not the authenticate barrel): the barrel re-exports ./controllers, whose factory extends BaseRestController - a value import here forms the base/controllers <-> auth init cycle.
 import { Authentication } from '../../authenticate/common/constants';
 import type { IAuthorizationSpec, TAuthorizeFn } from '../common';
-import { Authorization, AuthorizationDecisions, resolveRequestDomain } from '../common';
+import { Authorization, AuthorizationDecisions, AuthorizationErrors } from '../common';
 import { AuthorizationEnforcerRegistry } from '../enforcers';
-
-// Authorization Provider — produces middleware factory via IProvider pattern
+import { resolveRequestDomain } from './request-domain';
 
 export class AuthorizationProvider extends BaseHelper implements IProvider<TAuthorizeFn> {
   constructor() {
@@ -31,24 +29,22 @@ export class AuthorizationProvider extends BaseHelper implements IProvider<TAuth
       const registry = AuthorizationEnforcerRegistry.getInstance();
       const options = registry.resolveOptions();
 
-      // 1. Check skip flag
       const isSkipAuthorize = context.get(Authorization.SKIP_AUTHORIZATION);
       if (isSkipAuthorize) {
         logger.warn('SKIP checking authorization | path: %s', context.req.path);
         return next();
       }
 
-      // 2. Get authenticated user
       const user = context.get(Authentication.CURRENT_USER) as IAuthUser | undefined;
       if (!user) {
         throw getError({
-          statusCode: HTTP.ResultCodes.RS_4.Unauthorized,
+          error: AuthorizationErrors.UNAUTHENTICATED,
           message: 'Authorization failed: No authenticated user found',
         });
       }
 
-      // 3. Check role-based shortcuts (alwaysAllowRoles + per-route allowedRoles)
-      const needsRoleCheck = options?.alwaysAllowRoles?.length || spec.allowedRoles?.length;
+      const needsRoleCheck =
+        Boolean(options?.alwaysAllowRoles?.length) || Boolean(spec.allowedRoles?.length);
       if (needsRoleCheck) {
         const userRoles = this.extractUserRoles({ user });
 
@@ -69,33 +65,30 @@ export class AuthorizationProvider extends BaseHelper implements IProvider<TAuth
         }
       }
 
-      // 4. Execute voters
-      if (spec.voters?.length) {
-        for (const voter of spec.voters) {
-          const decision = await voter({
-            user,
-            action: spec.action,
-            resource: spec.resource,
-            context: asTypedContext(context),
+      for (const voter of spec.voters ?? []) {
+        const decision = await voter({
+          user,
+          action: spec.action,
+          resource: spec.resource,
+          context: asTypedContext(context),
+        });
+
+        if (decision === AuthorizationDecisions.DENY) {
+          throw getError({
+            error: AuthorizationErrors.DENIED_BY_VOTER,
+            message: `Authorization denied by voter | action: ${spec.action} | resource: ${spec.resource}`,
+            messageArgs: { action: spec.action, resource: spec.resource },
           });
-
-          if (decision === AuthorizationDecisions.DENY) {
-            throw getError({
-              statusCode: HTTP.ResultCodes.RS_4.Forbidden,
-              message: `Authorization denied by voter | action: ${spec.action} | resource: ${spec.resource}`,
-            });
-          }
-
-          if (decision === AuthorizationDecisions.ALLOW) {
-            await next();
-            return;
-          }
-
-          // ABSTAIN → continue to enforcer
         }
+
+        if (decision === AuthorizationDecisions.ALLOW) {
+          await next();
+          return;
+        }
+
+        // ABSTAIN → continue to enforcer
       }
 
-      // 5. Resolve enforcer — if none registered, skip authorization
       if (!registry.hasEnforcers()) {
         logger.debug(
           'SKIP checking authorization | No enforcers registered | path: %s',
@@ -107,9 +100,7 @@ export class AuthorizationProvider extends BaseHelper implements IProvider<TAuth
       const resolvedName = enforcerName ?? registry.getDefaultEnforcerName();
       const enforcer = await registry.resolveEnforcer({ name: resolvedName });
 
-      // 5b. Resolve request domain scope and stash it for the enforcer — only when domain scoping is
-      // actually in play (a per-route domain OR a configured global resolver). This keeps the legacy,
-      // non-domain enforcers untouched and avoids running a resolver (possible DB hit) for no reason.
+      // Only resolve domain scope when it is actually in play (per-route domain OR a configured global resolver) - avoids a resolver call (possible DB hit) for legacy enforcers.
       if (spec.domain || options?.domainResolver) {
         const domainScope = await resolveRequestDomain({
           spec,
@@ -119,12 +110,11 @@ export class AuthorizationProvider extends BaseHelper implements IProvider<TAuth
         context.set(Authorization.DOMAIN, domainScope);
       }
 
-      // 6. Build or retrieve cached rules
       let rules = context.get(Authorization.RULES);
       if (!rules) {
         if (!user.principalType) {
           throw getError({
-            statusCode: HTTP.ResultCodes.RS_4.BadRequest,
+            error: AuthorizationErrors.PRINCIPAL_TYPE_MISSING,
             message:
               'Authorization failed: user.principalType is required for enforcer-based authorization',
           });
@@ -137,7 +127,6 @@ export class AuthorizationProvider extends BaseHelper implements IProvider<TAuth
         context.set(Authorization.RULES, rules);
       }
 
-      // 7. Evaluate permission via enforcer
       let decision = await enforcer.evaluate({
         rules,
         request: {
@@ -155,8 +144,9 @@ export class AuthorizationProvider extends BaseHelper implements IProvider<TAuth
 
       if (decision !== AuthorizationDecisions.ALLOW) {
         throw getError({
-          statusCode: HTTP.ResultCodes.RS_4.Forbidden,
+          error: AuthorizationErrors.DENIED,
           message: `Authorization denied | action: ${spec.action} | resource: ${spec.resource}`,
+          messageArgs: { action: spec.action, resource: spec.resource },
         });
       }
 

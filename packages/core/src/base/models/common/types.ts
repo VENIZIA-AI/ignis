@@ -10,7 +10,7 @@ export type IdType = NumberIdType | StringIdType | BigIntIdType;
 export type TIdSchemaType = 'number' | 'string';
 
 export const idParamsSchema = (opts?: { idType: TIdSchemaType }) => {
-  const { idType = 'number' } = opts || {};
+  const { idType = 'number' } = opts ?? {};
 
   switch (idType) {
     case 'number': {

@@ -9,11 +9,12 @@ Pure, standalone functions providing common, reusable logic for the IGNIS framew
 | **Crypto** | `ignis-helpers` | Cryptographic hashing | `hash()` |
 | **Date** | `ignis-helpers` | Date/time manipulation | `dayjs`, `sleep()`, `isWeekday()`, `getDateTz()`, `hrTime()` |
 | **JSX** | `ignis` | HTML/JSX responses | `htmlContent()`, `htmlResponse()` |
-| **Module** | `ignis-helpers` | Module validation | `validateModule()` |
-| **Parse** | `ignis-helpers` | Data type conversion | `int()`, `float()`, `toBoolean()`, `toCamel()`, `getNumberValue()` |
+| **Module** | `ignis-helpers` | Optional peer loading | `ModuleUtility` |
+| **Parse** | `ignis-helpers` | Data type conversion | `int()`, `float()`, `toBoolean()`, `toCamel()` |
 | **Performance** | `ignis-helpers` | Execution timing | `executeWithPerformanceMeasure()`, `getPerformanceCheckpoint()` |
 | **Promise** | `ignis-helpers` | Promise helpers | `executePromiseWithLimit()`, `isPromiseLike()`, `getDeepProperty()` |
 | **Request** | `ignis-helpers` | HTTP utilities | `parseMultipartBody()`, `sanitizeFilename()`, `createContentDispositionHeader()` |
+| **Retry** | `ignis-helpers` | Backoff-driven retries | `executeWithRetry()`, `executeWithRetryUntil()`, `computeBackoffDelayMs()` |
 | **Schema** | `ignis` | Zod schema helpers | `jsonContent()`, `jsonResponse()`, `requiredString()`, `idParamsSchema()` |
 | **Statuses** | `ignis` | Status code constants | `Statuses`, `CommonStatuses`, `UserStatuses`, `RoleStatuses` |
 
@@ -22,7 +23,7 @@ Pure, standalone functions providing common, reusable logic for the IGNIS framew
 ### Data Processing
 
 - [**Crypto**](./crypto.md) - Simple, stateless cryptographic functions for hashing (SHA256 HMAC, MD5)
-- [**Parse**](./parse.md) - Functions for parsing and converting data types safely (integers, floats, booleans, camelCase, locale-aware numbers, array-to-map)
+- [**Parse**](./parse.md) - Functions for parsing and converting data types safely (integers, floats, booleans, camelCase, array-to-map)
 - [**Schema**](./schema.md) - Helpers for creating Zod schemas for OpenAPI request/response validation
 - [**Statuses**](./statuses.md) - Standardized status code constants for entity lifecycle management
 
@@ -36,6 +37,7 @@ Pure, standalone functions providing common, reusable logic for the IGNIS framew
 - [**JSX**](./jsx.md) - HTML and JSX response utilities for server-side rendering and OpenAPI documentation
 - [**Promise**](./promise.md) - Helper functions for working with Promises including concurrency limiting and value transformation
 - [**Request**](./request.md) - HTTP request utilities for parsing multipart form data and creating secure Content-Disposition headers
+- [**Retry**](./retry.md) - Backoff-driven retry helpers - error-triggered (`executeWithRetry`) and predicate-driven (`executeWithRetryUntil`)
 
 ### Runtime
 
@@ -47,7 +49,7 @@ Utilities are imported from `@venizia/ignis` (schema, JSX, and status helpers) o
 
 ```typescript
 import { jsonContent, jsonResponse, htmlResponse, requiredString, Statuses } from '@venizia/ignis';
-import { hash, dayjs, sleep, int, float, toBoolean, getNumberValue } from '@venizia/ignis-helpers';
+import { hash, dayjs, sleep, int, float, toBoolean } from '@venizia/ignis-helpers';
 
 // Crypto
 const md5Hash = hash('some text', { algorithm: 'MD5', outputType: 'hex' });

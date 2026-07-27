@@ -1,5 +1,6 @@
 import type { IQueryHandlerOptions } from '@/base/repositories/common';
 import { QueryOperators } from '@/base/repositories/common';
+import type { AnyType } from '@venizia/ignis-helpers';
 import { getError } from '@venizia/ignis-helpers';
 import {
   between,
@@ -20,48 +21,41 @@ import {
   sql,
 } from 'drizzle-orm';
 
-const buildPgArrayComparison = (opts: {
-  column: any;
-  value: any[];
-}): { columnExpr: string; arrayLiteral: string } => {
-  const { column, value } = opts;
-  const first = value[0];
-  const valueType = typeof first;
+/** Builds `<column> <operator> ARRAY[$1, ...]` with every element BOUND, never interpolated - these operators are wire-reachable with a `z.any()` operand, so raw interpolation is SQL injection. Element type decides only the CAST (text[] vs numeric[]), never the binding. */
+const buildPgArrayComparison = (opts: { column: AnyType; value: AnyType[]; operator: string }) => {
+  const { column, value, operator } = opts;
 
-  const columnName = column.name;
+  const items = sql.join(
+    value.map(item => sql`${item}`),
+    sql`, `,
+  );
 
-  if (valueType === 'number') {
-    return {
-      columnExpr: `"${columnName}"`,
-      arrayLiteral: `ARRAY[${value.join(', ')}]`,
-    };
+  const isNumericOrBoolean = typeof value[0] === 'number' || typeof value[0] === 'boolean';
+
+  if (isNumericOrBoolean) {
+    return sql`${column} ${sql.raw(operator)} ARRAY[${items}]`;
   }
 
-  if (valueType === 'boolean') {
-    return {
-      columnExpr: `"${columnName}"`,
-      arrayLiteral: `ARRAY[${value.join(', ')}]`,
-    };
-  }
-
-  // Cast both sides to text[] for varchar[]/text[]/char[] compatibility
-  const escapedValues = value.map(v => `'${String(v).replace(/'/g, "''")}'`).join(', ');
-  return {
-    columnExpr: `"${columnName}"::text[]`,
-    arrayLiteral: `ARRAY[${escapedValues}]::text[]`,
-  };
+  // varchar[]/text[]/char[] all compare cleanly once both sides are text[].
+  return sql`${column}::text[] ${sql.raw(operator)} ARRAY[${items}]::text[]`;
 };
 
-/** Drizzle-backed handlers for the neutral QueryOperators vocabulary (SQL branch only).
- * The operator NAMES live in repositories/common/operators.ts, shared with the Search dialects. */
+/** Drizzle-backed handlers for the neutral QueryOperators vocabulary (SQL branch only); the operator NAMES live in repositories/common/operators.ts, shared with the Search dialects. */
 export class PostgresQueryOperators extends QueryOperators {
   static readonly FNS = {
     [this.EQ]: (opts: IQueryHandlerOptions) =>
       opts.value === null ? isNull(opts.column) : eq(opts.column, opts.value),
+    // SQL three-valued logic is canonical: a NULL row never matches `neq`/`ne` because comparing to a real value yields UNKNOWN, not TRUE.
     [this.NE]: (opts: IQueryHandlerOptions) =>
       opts.value === null ? isNotNull(opts.column) : ne(opts.column, opts.value),
     [this.NEQ]: (opts: IQueryHandlerOptions) =>
       opts.value === null ? isNotNull(opts.column) : ne(opts.column, opts.value),
+
+    // `exists`/`notExists` test presence: `exists: true` -> IS NOT NULL, `exists: false` -> IS NULL, `notExists` the inverse.
+    [this.EXISTS]: (opts: IQueryHandlerOptions) =>
+      opts.value === false ? isNull(opts.column) : isNotNull(opts.column),
+    [this.NOT_EXISTS]: (opts: IQueryHandlerOptions) =>
+      opts.value === false ? isNotNull(opts.column) : isNull(opts.column),
 
     [this.GT]: (opts: IQueryHandlerOptions) => gt(opts.column, opts.value),
     [this.GTE]: (opts: IQueryHandlerOptions) => gte(opts.column, opts.value),
@@ -114,24 +108,21 @@ export class PostgresQueryOperators extends QueryOperators {
       if (value.length === 0) {
         return sql`true`;
       }
-      const { columnExpr, arrayLiteral } = buildPgArrayComparison({ column: opts.column, value });
-      return sql.raw(`${columnExpr} @> ${arrayLiteral}`);
+      return buildPgArrayComparison({ column: opts.column, value, operator: '@>' });
     },
     [this.CONTAINED_BY]: (opts: IQueryHandlerOptions) => {
       const value = Array.isArray(opts.value) ? opts.value : [opts.value];
       if (value.length === 0) {
         return sql`${opts.column} = '{}'`;
       }
-      const { columnExpr, arrayLiteral } = buildPgArrayComparison({ column: opts.column, value });
-      return sql.raw(`${columnExpr} <@ ${arrayLiteral}`);
+      return buildPgArrayComparison({ column: opts.column, value, operator: '<@' });
     },
     [this.OVERLAPS]: (opts: IQueryHandlerOptions) => {
       const value = Array.isArray(opts.value) ? opts.value : [opts.value];
       if (value.length === 0) {
         return sql`false`;
       }
-      const { columnExpr, arrayLiteral } = buildPgArrayComparison({ column: opts.column, value });
-      return sql.raw(`${columnExpr} && ${arrayLiteral}`);
+      return buildPgArrayComparison({ column: opts.column, value, operator: '&&' });
     },
 
     [this.LIKE]: (opts: IQueryHandlerOptions) => like(opts.column, opts.value),

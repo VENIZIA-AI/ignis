@@ -8,8 +8,8 @@ import {
   IApplicationInfo,
   IHealthCheckOptions,
   IMiddlewareConfigs,
-  SwaggerBindingKeys,
-  SwaggerComponent,
+  ApiReferenceBindingKeys,
+  ApiReferenceComponent,
   ValueOrPromise,
 } from '@venizia/ignis';
 import { DataTypes, Environment, getUID, HTTP, int } from '@venizia/ignis-helpers';
@@ -70,7 +70,7 @@ export class Application extends BaseApplication {
 
     for (const name in middlewares) {
       const mwDef = middlewares[name];
-      const { enable = false, path, module, ...mwOptions } = mwDef;
+      const { enable = false, path: middlewarePath, module, ...mwOptions } = mwDef;
 
       if (!enable) {
         this.logger.debug(
@@ -87,8 +87,8 @@ export class Application extends BaseApplication {
         enable,
         mwOptions,
       );
-      if (!isEmpty(path)) {
-        server.use(path, module?.[name]?.(mwOptions));
+      if (!isEmpty(middlewarePath)) {
+        server.use(middlewarePath, module?.[name]?.(mwOptions));
         continue;
       }
 
@@ -114,7 +114,7 @@ export class Application extends BaseApplication {
       restOptions: { path: '/health-check' },
     });
 
-    const swaggerOptions = {
+    const apiReferenceOptions = {
       restOptions: {
         base: { path: '/doc' },
         doc: { path: '/openapi.json' },
@@ -130,9 +130,11 @@ export class Application extends BaseApplication {
       },
     };
 
-    this.bind({ key: SwaggerBindingKeys.SWAGGER_OPTIONS }).toValue(swaggerOptions);
+    this.bind({ key: ApiReferenceBindingKeys.API_REFERENCE_OPTIONS }).toValue(
+      apiReferenceOptions,
+    );
     this.component(HealthCheckComponent);
-    this.component(SwaggerComponent);
+    this.component(ApiReferenceComponent);
   }
 
   async postConfigure(): Promise<void> {

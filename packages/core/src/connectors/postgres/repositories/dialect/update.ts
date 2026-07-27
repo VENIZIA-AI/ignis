@@ -11,14 +11,12 @@ import {
   validateJsonPathComponents,
 } from './internal/json-utils';
 
-/** Parsed JSON path update. */
 interface IJsonPathUpdate {
   columnName: string;
   path: string[];
   value: any;
 }
 
-/** Grouped updates for a single JSON column. */
 interface IColumnUpdates {
   column: any;
   updates: Array<{ path: string[]; value: any }>;
@@ -54,12 +52,15 @@ export class UpdateBuilder extends BaseHelper {
         continue;
       }
 
-      if (!isJsonPath({ key })) {
-        if (!columns[key]) {
-          throw getError({
-            message: `[UpdateBuilder][transform] Table: ${tableName} | Column NOT FOUND | key: '${key}'`,
-          });
-        }
+      const isRegularField = !isJsonPath({ key });
+
+      if (isRegularField && !columns[key]) {
+        throw getError({
+          message: `[UpdateBuilder][transform] Table: ${tableName} | Column NOT FOUND | key: '${key}'`,
+        });
+      }
+
+      if (isRegularField) {
         regularFields[key] = value;
         continue;
       }
@@ -125,7 +126,6 @@ export class UpdateBuilder extends BaseHelper {
     return { ...regularFields, ...jsonExpressions };
   }
 
-  /** Gets columns using shared cache utility. */
   private getColumns<Schema extends TTableSchemaWithId>(schema: Schema) {
     return getCachedColumns(schema);
   }

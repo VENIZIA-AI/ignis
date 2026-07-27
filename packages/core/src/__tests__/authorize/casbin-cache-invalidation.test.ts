@@ -32,8 +32,7 @@ e = some(where (p.eft == allow)) && !some(where (p.eft == deny))
 m = g(r.sub, p.sub) && r.obj == p.obj && r.act == p.act
 `;
 
-// None of these tests exercise a context-dependent normalizer/domain resolver, so an empty stub
-// stands in for the full Hono-backed TContext that buildRules requires.
+// No test here exercises a context-dependent normalizer/domain resolver, so an empty stub stands in for the Hono-backed TContext buildRules requires.
 const fakeContext = {} as any;
 
 // In-memory stand-in for the ioredis client. Implements only the commands the enforcer touches.
@@ -86,8 +85,7 @@ class FakeFilteredAdapter implements FilteredAdapter {
   async removeFilteredPolicy(): Promise<void> {}
 }
 
-// Per-user adapter with a delay, so two concurrent loads interleave at the await — used to expose
-// cross-user contamination of the shared casbin model.
+// Per-user adapter with a delay so two concurrent loads interleave at the await - exposes cross-user contamination of the shared casbin model.
 class DelayedPerUserAdapter implements FilteredAdapter {
   constructor(private delayMs: number) {}
 
@@ -128,8 +126,7 @@ const redisOptions = (opts: {
     use: true,
     driver: 'redis',
     options: {
-      // Fake implements only the 4 methods the redis cache path touches (getClient/get/set/del);
-      // the full IRedisHelper surface (hash/set/list/pubsub/json/command ops) is out of scope here.
+      // Fake implements only the 4 methods the redis cache path touches (getClient/get/set/del); the rest of IRedisHelper is out of scope.
       connection: {
         getClient: () => opts.client,
         get: ({ key }: { key: string }) => opts.client.get(key),
@@ -194,9 +191,7 @@ describe('CasbinAuthorizationEnforcer — cache invalidation', () => {
           use: true,
           driver: 'redis',
           options: {
-            // Fake implements only the 4 methods the redis cache path touches (getClient/get/set/
-            // del); the full IRedisHelper surface (hash/set/list/pubsub/json/command ops) is out
-            // of scope here.
+            // Fake implements only the 4 methods the redis cache path touches (getClient/get/set/del); the rest of IRedisHelper is out of scope.
             connection: {
               getClient: () => client,
               get: ({ key }: { key: string }) => client.get(key),
@@ -267,8 +262,7 @@ describe('CasbinAuthorizationEnforcer — cache invalidation', () => {
       const enforcer = new CasbinAuthorizationEnforcer(redisOptions({ client, adapter }));
       await enforcer.configure();
 
-      // Run an eager rebuild for A at the same time as a normal cache-miss build for B.
-      // With the shared-model design these interleave and each cache ends up with BOTH users' lines.
+      // Eager rebuild for A concurrent with a cache-miss build for B: under the shared-model design these interleave and each cache ends up with BOTH users' lines.
       await Promise.all([
         enforcer.rebuildUserCache({ user: { principalType: 'User', userId: 'A' } }),
         enforcer.buildRules({ user: { principalType: 'User', userId: 'B' }, context: fakeContext }),

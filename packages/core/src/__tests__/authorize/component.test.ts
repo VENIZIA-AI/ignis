@@ -1,5 +1,5 @@
 import { describe, test, expect } from 'bun:test';
-import { AuthorizeBindingKeys } from '@/components/auth/authorize/common/keys';
+import { AuthorizeBindingKeys } from '@/components/auth/authorize/common/constants';
 import type { IAuthorizeOptions } from '@/components/auth/authorize/common/types';
 import { Container } from '@/helpers/inversion';
 import { createFreshRegistry } from './helpers';

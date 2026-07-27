@@ -7,7 +7,7 @@ description: Persistable repository now rejects null/undefined ids and where cla
 
 ## Mass Update/Delete Guards
 
-`PersistableRepository` now blocks two ways an update/delete could silently run against an entire table: a `null`/`undefined` id on `updateById`/`deleteById`, and a `where` that resolves to **no SQL condition** on the bulk operations. Both previously slipped past the empty-where check.
+`PersistableRepository` now blocks two ways an update/delete could silently run against an entire table. The first is a `null`/`undefined` id on `updateById`/`deleteById`. The second is a `where` that resolves to **no SQL condition** on the bulk operations. Both previously slipped past the empty-where check.
 
 ## Overview
 
@@ -20,7 +20,7 @@ description: Persistable repository now rejects null/undefined ids and where cla
 
 ### Blank id turns `updateById`/`deleteById` into a table-wide mutation
 
-**Vulnerability:** `updateById`/`deleteById` build `where: { id }`. With `id === undefined`, the where is `{ id: undefined }` - which is **not** empty (`isEmpty({ id: undefined })` is `false`), so the existing empty-where guard passed. The filter builder then drops the `undefined` value, leaving **no `WHERE` clause** - and the update/delete ran against every row.
+**Vulnerability:** `updateById`/`deleteById` build `where: { id }`. With `id === undefined`, the where is `{ id: undefined }` - which is **not** empty (`isEmpty({ id: undefined })` is `false`). The existing empty-where guard passed anyway. The filter builder then drops the `undefined` value, leaving **no `WHERE` clause** - and the update/delete ran against every row.
 
 **Fix:** A `validateId` guard rejects `null`/`undefined` ids before execution.
 
@@ -50,9 +50,9 @@ this.validateId({ id: opts.id, operationName: 'deleteById' });
 
 ### All-undefined where bypasses the empty-where guard
 
-**Vulnerability:** `validateWhereCondition` judged emptiness with `isEmpty(where)` on the object. A where like `{ status: undefined }` is a non-empty object, so it passed - yet `toWhere` drops the undefined value, producing no `WHERE` clause and a table-wide `updateAll`/`deleteAll`.
+**Vulnerability:** `validateWhereCondition` judged emptiness with `isEmpty(where)` on the object. A where like `{ status: undefined }` is a non-empty object, so it passed. Yet `toWhere` drops the undefined value, producing no `WHERE` clause and a table-wide `updateAll`/`deleteAll`.
 
-**Fix:** Emptiness is now derived from the **resolved SQL condition**. If `toWhere(...)` produces `undefined` (no condition), the where is treated as empty - covering `{}`, `{ status: undefined }`, `{ and: [] }`, and anything else that resolves to no predicate.
+**Fix:** Emptiness is now derived from the **resolved SQL condition**. If `toWhere(...)` produces `undefined` (no condition), the where is treated as empty. This covers `{}`, `{ status: undefined }`, `{ and: [] }`, and anything else that resolves to no predicate.
 
 ```typescript
 protected validateWhereCondition(opts: {
