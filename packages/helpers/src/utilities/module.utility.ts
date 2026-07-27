@@ -34,11 +34,14 @@ export class ModuleUtility {
    * A `bun build --compile` binary ships without `node_modules`, which leaves runtime resolution
    * nothing to resolve against: the application imports such a peer statically - that import is
    * what gets it into the binary - and registers it here before the consuming component boots.
+   *
+   * Deliberately does not log. It runs at the entrypoint of exactly the deployment that has no
+   * logger provider yet, where `LoggerFactory` throws - and a throw mid-loop would drop every
+   * module after the first.
    */
   static register(opts: { modules: Record<string, AnyType> }): void {
     for (const [module, value] of Object.entries(opts.modules)) {
       this.registered.set(module, value);
-      logger.for(this.register.name).debug("Registered module: '%s'", module);
     }
   }
 
@@ -72,13 +75,24 @@ export class ModuleUtility {
     }
   }
 
-  /** Presence check only - throws naming what to install, without executing the module. */
-  static assertInstalled(opts: { modules: Array<string>; scope?: string }): void {
-    const { modules, scope } = opts;
+  /**
+   * Presence check only - throws naming what to install, without executing the module.
+   *
+   * `allowRegistered` must be set only where {@link load} or {@link loadSync} is what finally loads
+   * the module. Where the consumer resolves the specifier itself - `pino.transport()` inside a
+   * worker thread, or any caller with its own `createRequire` - the registry cannot reach it, and
+   * counting a registration as installed would replace this precise error with an opaque one.
+   */
+  static assertInstalled(opts: {
+    modules: Array<string>;
+    scope?: string;
+    allowRegistered?: boolean;
+  }): void {
+    const { modules, scope, allowRegistered = false } = opts;
     const appRequire = this.appRequire();
 
     for (const module of modules) {
-      if (this.registered.has(module)) {
+      if (allowRegistered && this.registered.has(module)) {
         continue;
       }
 

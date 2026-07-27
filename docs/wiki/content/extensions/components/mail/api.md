@@ -592,7 +592,7 @@ this.bind({ key: MailKeys.MAIL_OPTIONS }).toValue({
 });
 ```
 
-`module` is typed as the shape the transport calls (`createTransport` for Nodemailer, a constructor for Mailgun), so handing over the wrong thing is a compile error rather than a boot crash. Prefer it over [`ModuleUtility.register`](/references/utilities/module#compiled-binaries): the dependency arrives where it is used and cannot be defeated by binding order. `register` remains the answer for peers the framework reaches with no options seam in between.
+`module` is typed as the shape the transport calls (`createTransport` for Nodemailer, a constructor for Mailgun), so handing over the wrong thing is a compile error rather than a boot crash. Prefer it over [`ModuleUtility.register`](/references/utilities/module#compiled-binaries): the dependency arrives where it is used and cannot be defeated by binding order. Every IGNIS component that reaches an optional peer now takes one of these options - the [table in the module reference](/references/utilities/module#compiled-binaries) lists them.
 
 **Nodemailer (`NodemailerTransportHelper`, extends `BaseHelper`):**
 

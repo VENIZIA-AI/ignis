@@ -3,6 +3,8 @@ import { describe, test, expect, beforeEach } from 'bun:test';
 import { MetadataRegistry } from '@/helpers/inversion/registry';
 import { ControllerTransports } from '@/base/controllers/common/constants';
 import { BaseGrpcController } from '@/base/controllers/grpc/base';
+import type { IConnectRpcModule } from '@/base/controllers/grpc/common/types';
+import type { AnyType } from '@venizia/ignis-helpers';
 import { GRPC } from '@venizia/ignis-helpers';
 describe('BaseGrpcController', () => {
   const registry = MetadataRegistry.getInstance();
@@ -300,5 +302,60 @@ describe('BaseGrpcController', () => {
     expect(Object.keys(ctrl.definitions)).toEqual(['Method1', 'Method2']);
     expect(ctrl.definitions['Method1'].configs.method).toBe('unary');
     expect(typeof ctrl.definitions['Method1'].handler).toBe('function');
+  });
+});
+
+// A compiled binary has no node_modules for the adapter's createRequire to resolve against, so the
+// application hands the peer over instead. Reaching the fake proves the handed-over module is what
+// gets used - the same path such a binary takes.
+describe('BaseGrpcController - ConnectRPC module handed over through the options', () => {
+  const buildFakeModule = () => {
+    const calls: string[] = [];
+    const module: IConnectRpcModule = {
+      connect: {
+        createConnectRouter: () => {
+          calls.push('createConnectRouter');
+          return { service: () => calls.push('service'), handlers: [] } as AnyType;
+        },
+      },
+      protocol: {
+        universalServerRequestFromFetch: (() => ({})) as AnyType,
+        universalServerResponseToFetch: (() => new Response()) as AnyType,
+      },
+    };
+
+    return { module, calls };
+  };
+
+  test('the given module builds the router, no filesystem lookup', async () => {
+    class TestCtrl extends BaseGrpcController {
+      async binding() {
+        this.defineRoute({
+          configs: { name: 'Method1', method: GRPC.Methods.UNARY },
+          handler: () => ({}),
+        });
+      }
+    }
+
+    const { module, calls } = buildFakeModule();
+    const ctrl = new TestCtrl({ scope: 'TestCtrl', path: '/grpc' });
+    ctrl.service = {} as AnyType;
+    ctrl.connectRpcModule = module;
+
+    await ctrl.configure();
+
+    expect(calls).toEqual(['createConnectRouter', 'service']);
+    expect(ctrl.isConfigured).toBe(true);
+  });
+
+  test('a controller with no module still resolves the peer itself', async () => {
+    class TestCtrl extends BaseGrpcController {
+      async binding() {}
+    }
+
+    const ctrl = new TestCtrl({ scope: 'TestCtrl', path: '/grpc' });
+    await ctrl.configure();
+
+    expect(ctrl.isConfigured).toBe(true);
   });
 });

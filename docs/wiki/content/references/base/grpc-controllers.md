@@ -57,7 +57,7 @@ bun add @connectrpc/connect-web
 ```
 
 > [!NOTE]
-> `@connectrpc/connect` is an **optional** peer dependency of `@venizia/ignis`. It is only loaded at runtime when a gRPC controller is configured, via `createRequire` from the application's `node_modules`. If it is missing, `GrpcRequestAdapter.build()` throws a clear error at startup via `ModuleUtility.assertInstalled()`. `@bufbuild/protobuf` is required by your generated protobuf code (e.g. `create()`), not by the framework itself.
+> `@connectrpc/connect` is an **optional** peer dependency of `@venizia/ignis`. It is only loaded at runtime when a gRPC controller is configured, via `createRequire` from the application's `node_modules`. If it is missing, `GrpcRequestAdapter.build()` throws a clear error at startup via `ModuleUtility.assertInstalled()`. A compiled binary has no `node_modules` to resolve against and must pass the peer through `IGrpcComponentConfig.module` - see [Peer Dependency Loading](#peer-dependency-loading). `@bufbuild/protobuf` is required by your generated protobuf code (e.g. `create()`), not by the framework itself.
 
 ### Protobuf Code Generation
 
@@ -462,12 +462,27 @@ The optional `interceptors` array is passed to ConnectRPC's `createConnectRouter
 
 ### Peer Dependency Loading
 
-The adapter loads ConnectRPC modules at runtime using `createRequire` from the application's `node_modules`:
+The adapter needs two entry points:
 
 - `@connectrpc/connect` -- for `createConnectRouter`
 - `@connectrpc/connect/protocol` -- for `universalServerRequestFromFetch` and `universalServerResponseToFetch`
 
-This approach supports single-file builds where the peer deps may not be resolvable via standard `import`.
+By default it loads both at runtime using `createRequire` from the application's `node_modules`. That keeps the specifier invisible to `Bun.build`, so a consumer who never uses gRPC is not forced to install the peer.
+
+**A compiled application must pass `module`.** A `bun build --compile` binary ships without `node_modules`, so `createRequire` has nothing to resolve against. Hand the peer over through the component options instead - the static import is what embeds it in the binary:
+
+```typescript
+import * as connect from '@connectrpc/connect';
+import * as protocol from '@connectrpc/connect/protocol';
+
+this.bind({ key: GrpcBindingKeys.GRPC_COMPONENT_OPTIONS }).toValue({
+  module: { connect, protocol },
+});
+```
+
+`GrpcComponent` assigns the module to each controller before `configure()`, and the adapter skips both `assertInstalled` and `createRequire` when it is present.
+
+`ModuleUtility.register` does not work here. The adapter resolves the specifier itself, so the registry never reaches it.
 
 ### Error Handling
 
@@ -488,8 +503,14 @@ Auto-discovers and configures gRPC controllers during the application lifecycle.
 ```typescript
 interface IGrpcComponentConfig {
   interceptors?: unknown[];
+  module?: IConnectRpcModule;
 }
 ```
+
+| Option | Type | Default | Meaning |
+|---|---|---|---|
+| `interceptors` | `unknown[]` | none | Reserved. Not yet threaded to the adapter |
+| `module` | `IConnectRpcModule` | none | The ConnectRPC peer, as `{ connect, protocol }`. Required for a compiled binary - see [Peer Dependency Loading](#peer-dependency-loading) |
 
 The component registers a default (empty) config binding under the key `'@app/grpc/options'` (`GrpcBindingKeys.GRPC_COMPONENT_OPTIONS`).
 

@@ -1,7 +1,31 @@
 import type { TRouteContext } from '@/base/controllers/common/types';
 import type { IRpcMetadata } from '@/helpers/inversion/common/types';
+import type { ConnectRouter } from '@connectrpc/connect';
+import type {
+  UniversalServerRequest,
+  UniversalServerResponse,
+} from '@connectrpc/connect/protocol';
 import type { IConfigurable, ValueOrPromise } from '@venizia/ignis-helpers';
 import type { Env, Hono, Input, MiddlewareHandler, Next, Schema } from 'hono';
+
+/**
+ * The ConnectRPC peer itself, handed over by an application that already holds it. A
+ * `bun build --compile` binary carries no `node_modules`, so the `createRequire` fallback in
+ * {@link GrpcRequestAdapter} has nothing to resolve against - passing the modules through the gRPC
+ * component options is what a compiled application does instead. Both entry points are needed: the
+ * adapter builds its router from `@connectrpc/connect` and converts requests with
+ * `@connectrpc/connect/protocol`. Typed as the shape the adapter actually calls, so a wrong module
+ * is a compile error rather than a boot crash.
+ */
+export interface IConnectRpcModule {
+  connect: {
+    createConnectRouter: (opts?: Record<string, unknown>) => ConnectRouter;
+  };
+  protocol: {
+    universalServerRequestFromFetch: (request: Request, context: object) => UniversalServerRequest;
+    universalServerResponseToFetch: (response: UniversalServerResponse) => Response;
+  };
+}
 
 /** Configuration options for gRPC controller instantiation. */
 export interface IGrpcControllerOptions {

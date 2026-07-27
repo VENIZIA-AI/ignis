@@ -28,6 +28,11 @@ export class GrpcComponent extends BaseComponent {
     const logger = this.logger.for(this.binding.name);
     const router = this.application.getRootRouter();
 
+    const options = this.application.get<IGrpcComponentConfig>({
+      key: GrpcBindingKeys.GRPC_COMPONENT_OPTIONS,
+      isOptional: true,
+    });
+
     // Dynamic binding loop with Set tracking — re-fetches after each configure to handle late-registered controllers
     const configured = new Set<string>();
 
@@ -81,6 +86,7 @@ export class GrpcComponent extends BaseComponent {
       }
 
       instance.basePath = this.application.getProjectConfigs().path.base;
+      instance.connectRpcModule = options?.module;
       await instance.configure();
 
       router.route(metadata.path, instance.getRouter());

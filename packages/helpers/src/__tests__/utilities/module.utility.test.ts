@@ -1,5 +1,7 @@
 import { describe, expect, test } from 'bun:test';
 import { isApplicationError } from '@/modules/error';
+import type { ILogger } from '@/modules/logger';
+import { LoggerFactory } from '@/modules/logger';
 import { ModuleUtility } from '@/utilities/module.utility';
 
 describe('ModuleUtility.load', () => {
@@ -116,10 +118,29 @@ describe('ModuleUtility.register', () => {
     expect(await ModuleUtility.load<typeof fake>({ module })).toBe(fake);
   });
 
-  test('counts a registered module as installed', () => {
+  // A registration satisfies assertInstalled only where ModuleUtility itself does the loading.
+  // Callers that resolve the specifier on their own - a pino worker thread, the gRPC adapter's own
+  // createRequire - cannot see the registry, so counting it would report a peer as present that
+  // those callers still cannot reach.
+  test('does NOT count a registered module as installed by default', () => {
     ModuleUtility.register({ modules: { [module]: fake } });
 
-    ModuleUtility.assertInstalled({ modules: [module], scope: 'MailComponent' });
+    try {
+      ModuleUtility.assertInstalled({ modules: [module], scope: 'PinoLogger' });
+      expect.unreachable();
+    } catch (error) {
+      expect((error as Error).message).toContain(module);
+    }
+  });
+
+  test('counts a registered module as installed when allowRegistered is set', () => {
+    ModuleUtility.register({ modules: { [module]: fake } });
+
+    ModuleUtility.assertInstalled({
+      modules: [module],
+      scope: 'HashiCorpVaultHelper',
+      allowRegistered: true,
+    });
     expect(true).toBe(true);
   });
 
@@ -138,5 +159,31 @@ describe('ModuleUtility.register', () => {
     });
 
     expect(typeof lodash.isEmpty).toBe('function');
+  });
+
+  // register() runs at the entrypoint of a compiled binary, which is exactly where no logger
+  // provider exists yet and LoggerFactory throws. A log call inside the loop would abort it and
+  // drop every module after the first, silently.
+  test('registers every entry even when logging is unavailable', () => {
+    const original = LoggerFactory.currentProvider();
+    const unusable: ILogger = new Proxy({} as ILogger, {
+      get: () => () => {
+        throw new Error('logger unavailable');
+      },
+    });
+
+    try {
+      LoggerFactory.use({ provider: { get: () => unusable } });
+
+      ModuleUtility.register({
+        modules: { '@registered/first': 1, '@registered/second': 2, '@registered/third': 3 },
+      });
+    } finally {
+      LoggerFactory.use({ provider: original });
+    }
+
+    expect(ModuleUtility.loadSync<number>({ module: '@registered/first' })).toBe(1);
+    expect(ModuleUtility.loadSync<number>({ module: '@registered/second' })).toBe(2);
+    expect(ModuleUtility.loadSync<number>({ module: '@registered/third' })).toBe(3);
   });
 });

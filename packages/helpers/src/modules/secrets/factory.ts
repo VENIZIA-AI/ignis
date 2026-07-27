@@ -14,19 +14,35 @@ export async function createSecretsHelper(
     renewBeforeRatio: opts.renewBeforeRatio,
   };
 
+  const config = opts.config as AnyType;
+
   switch (opts.provider) {
     case SecretProviders.SYSTEM_ENVS: {
       return new SystemEnvsHelper({ identifier: opts.identifier });
     }
     case SecretProviders.HASHICORP_VAULT: {
-      ModuleUtility.assertInstalled({ scope: 'HashiCorpVaultHelper', modules: ['node-vault'] });
+      // `client` is the injected escape: the helper never reaches for the peer, so demanding it here would defeat the escape.
+      if (!config?.client) {
+        ModuleUtility.assertInstalled({
+          scope: 'HashiCorpVaultHelper',
+          modules: ['node-vault'],
+          allowRegistered: true,
+        });
+      }
       const { HashiCorpVaultHelper } = (await import('./hashicorp/index.js')) as AnyType;
-      return new HashiCorpVaultHelper({ ...(opts.config as AnyType), ...shared });
+      return new HashiCorpVaultHelper({ ...config, ...shared });
     }
     case SecretProviders.DOTENV_VAULT: {
-      ModuleUtility.assertInstalled({ scope: 'DotenvVaultHelper', modules: ['@dotenvx/dotenvx'] });
+      // `decode` is the injected escape - same reasoning as `client` above.
+      if (!config?.decode) {
+        ModuleUtility.assertInstalled({
+          scope: 'DotenvVaultHelper',
+          modules: ['@dotenvx/dotenvx'],
+          allowRegistered: true,
+        });
+      }
       const { DotenvVaultHelper } = (await import('./dotenv/index.js')) as AnyType;
-      return new DotenvVaultHelper({ ...(opts.config as AnyType), ...shared });
+      return new DotenvVaultHelper({ ...config, ...shared });
     }
     default: {
       throw getError({
