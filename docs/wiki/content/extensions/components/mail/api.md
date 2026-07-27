@@ -578,6 +578,8 @@ Both transports load their peer through `ModuleUtility.loadSync({ module })`, fr
 
 That indirection also keeps the specifier invisible to `Bun.build`. Importing `@venizia/ignis/mail` for the Nodemailer transport no longer drags `mailgun.js` into your bundle, and the reverse holds too.
 
+The cost lands on compiled applications: a `bun build --compile` binary ships without `node_modules`, so there is nothing left for the runtime lookup to find and the component throws that install hint at boot. Such an application imports its transport peer statically and hands it over with [`ModuleUtility.register`](/references/utilities/module#compiled-binaries) before `MailComponent` binds.
+
 **Nodemailer (`NodemailerTransportHelper`, extends `BaseHelper`):**
 
 - `configure()` builds the transporter via `nodemailer.createTransport(config)`.

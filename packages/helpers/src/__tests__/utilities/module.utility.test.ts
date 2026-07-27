@@ -97,3 +97,46 @@ describe('ModuleUtility.assertInstalled', () => {
     expect(true).toBe(true);
   });
 });
+
+describe('ModuleUtility.register', () => {
+  // A specifier that exists in no node_modules: only the registry can satisfy it, which is the
+  // compiled-binary case where there is no node_modules to fall back to.
+  const module = '@registered/fake-peer';
+  const fake = { createTransport: () => 'transport' };
+
+  test('serves a registered module to loadSync without touching the filesystem', () => {
+    ModuleUtility.register({ modules: { [module]: fake } });
+
+    expect(ModuleUtility.loadSync<typeof fake>({ module })).toBe(fake);
+  });
+
+  test('serves a registered module to load', async () => {
+    ModuleUtility.register({ modules: { [module]: fake } });
+
+    expect(await ModuleUtility.load<typeof fake>({ module })).toBe(fake);
+  });
+
+  test('counts a registered module as installed', () => {
+    ModuleUtility.register({ modules: { [module]: fake } });
+
+    ModuleUtility.assertInstalled({ modules: [module], scope: 'MailComponent' });
+    expect(true).toBe(true);
+  });
+
+  test('registers every entry of the map in one call', () => {
+    ModuleUtility.register({ modules: { '@registered/one': 1, '@registered/two': 2 } });
+
+    expect(ModuleUtility.loadSync<number>({ module: '@registered/one' })).toBe(1);
+    expect(ModuleUtility.loadSync<number>({ module: '@registered/two' })).toBe(2);
+  });
+
+  test('leaves an unregistered module on the normal resolution path', () => {
+    ModuleUtility.register({ modules: { [module]: fake } });
+
+    const lodash = ModuleUtility.loadSync<{ isEmpty: (value: unknown) => boolean }>({
+      module: 'lodash',
+    });
+
+    expect(typeof lodash.isEmpty).toBe('function');
+  });
+});

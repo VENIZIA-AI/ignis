@@ -2,7 +2,7 @@
 title: Module Utility
 description: Loads an optional peer dependency with a clear install error, and without letting the bundler see the specifier
 difficulty: beginner
-lastUpdated: 2026-07-25
+lastUpdated: 2026-07-27
 ---
 
 # Module Utility
@@ -35,6 +35,7 @@ export class MyGrpcController extends BaseGrpcController {
 | `load` | `load<T>(opts: { module: string }): Promise<T>` | Imports the module. Use this everywhere except a constructor |
 | `loadSync` | `loadSync<T>(opts: { module: string }): T` | Same, without awaiting - for a constructor or any path that cannot be async |
 | `assertInstalled` | `assertInstalled(opts: { modules: Array<string>; scope?: string }): void` | Presence check only. Resolves each module in order and throws on the first miss, without executing any of them |
+| `register` | `register(opts: { modules: Record<string, AnyType> }): void` | Hands the framework peers the application already holds. A registered specifier is served from memory by all three methods above, with no filesystem lookup |
 
 ## Error message format
 
@@ -51,12 +52,37 @@ A `const` does not help. `minify: { syntax: true }` folds `const s = 'mailgun.js
 
 Only a specifier that crosses a function boundary survives as a runtime import. That is the whole reason `ModuleUtility` takes the module name as a parameter.
 
+## Compiled binaries
+
+Runtime resolution needs a `node_modules` to resolve against. A `bun build --compile` binary usually runs without one - the deployment ships the executable and nothing else - so a peer the application genuinely installed is still unreachable at runtime, and the component that needs it dies at boot with the install hint.
+
+Register it instead. The static import is what pulls the library into the binary; `register` is what lets the framework find it there:
+
+```typescript
+import { ModuleUtility } from '@venizia/ignis-helpers';
+import * as nodemailer from 'nodemailer';
+
+export class MailBootstrapComponent extends BaseComponent {
+  override async binding(): Promise<void> {
+    // Before MailComponent binds: its transport is built during that binding.
+    ModuleUtility.register({ modules: { nodemailer } });
+
+    this.application.component(MailComponent);
+  }
+}
+```
+
+The registry is keyed by specifier and the value is returned as-is: what you register under `nodemailer` is exactly what `loadSync({ module: 'nodemailer' })` hands the transport. `import * as` gives the right shape for a CommonJS peer.
+
+Registration is only worth it for the compiled-binary case. An application running from source resolves its peers from `node_modules` already.
+
 ## Notes
 
 - **Resolution is rooted at `process.cwd()/node_modules`** via Node's `createRequire`, so peers installed in the consuming application resolve even though this utility ships inside `packages/helpers/dist/`.
 - **`assertInstalled` stops at the first miss.** Later entries are never checked.
 - **`assertInstalled` never executes the module** - it only locates the file. Reach for it when you want to fail at startup rather than on first use.
 - **Call it once, at startup, not per request.** Place it in an initialisation hook (`configure`, `binding`, `boot`).
+- **`register` wins over the filesystem.** All three loaders check the registry first, so a registered peer is never resolved, and `assertInstalled` treats it as present.
 - **Recommended pattern:** declare the dependency in `peerDependenciesMeta` with `optional: true`, then load it through `ModuleUtility` and pass the feature or class name as `scope` so the thrown message pinpoints the caller.
 
 ## See also

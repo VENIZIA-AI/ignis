@@ -6,6 +6,21 @@ not how.
 This file and `index.md` are reserved OKF filenames - they carry no `type:` frontmatter and are not
 counted as concepts.
 
+## 2026-07-27 - optional peers reach compiled binaries through a registry
+
+`ModuleUtility.register({ modules })` closes the hole the bundler-invisible specifier opened.
+Hiding a specifier from `Bun.build` moves resolution to runtime, and a `bun build --compile` binary
+runs with no `node_modules` to resolve against - so a peer the app really installed is still
+unreachable. BANA's `identity` proved it in production: `nodemailer` in `package.json`, in the
+image nothing, boot dead at `MailComponent` binding the moment the mail transport switched from
+`require('nodemailer')` to `ModuleUtility.loadSync` (core 0.1.1-13).
+
+Injecting a ready-made client already covered the secrets helpers, but not a component that builds
+the client itself, which both mail transports do. The registry is checked first by `load`,
+`loadSync` and `assertInstalled`; the app statically imports the peer - that import is what embeds
+it - and registers it before the consuming component binds. Nothing changes for apps running from
+source.
+
 ## 2026-07-26 - the error catalog is complete, and it was nearly finished already
 
 `SearchErrors` (`connectors/search/common/errors.ts`) and `MailErrors`
