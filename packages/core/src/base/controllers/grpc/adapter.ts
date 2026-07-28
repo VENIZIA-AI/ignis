@@ -12,7 +12,7 @@ import { createRequire } from 'node:module';
 import path from 'node:path';
 import type { TRouteContext } from '../common';
 import type { AbstractGrpcController } from './abstract';
-import type { IConnectAdapterResult, IRpcRegistration } from './common/types';
+import type { IConnectAdapterResult, IConnectRpcModule, IRpcRegistration } from './common/types';
 
 const CONNECT_RPC_MODULES = ['@connectrpc/connect'];
 
@@ -53,11 +53,18 @@ export class GrpcRequestAdapter<
       ConfigurableOptions
     >;
     interceptors?: unknown[];
+    module?: IConnectRpcModule;
   }) {
     this.controller = opts.controller;
     this.interceptors = opts.interceptors;
 
-    /** Resolves peer deps from the app's node_modules at runtime - required for single-file builds. */
+    if (opts.module) {
+      this.createConnectRouter = opts.module.connect.createConnectRouter;
+      this.protocol = opts.module.protocol;
+      return;
+    }
+
+    /** Resolves peer deps from the app's node_modules at runtime - nothing to resolve against in a compiled binary, which is what `module` is for. */
     const appRequire = createRequire(path.join(process.cwd(), 'node_modules'));
 
     this.createConnectRouter = appRequire('@connectrpc/connect').createConnectRouter;
@@ -188,8 +195,12 @@ export class GrpcRequestAdapter<
       ConfigurableOptions
     >;
     interceptors?: unknown[];
+    module?: IConnectRpcModule;
   }): Promise<IConnectAdapterResult<RouteEnv, BasePath>> {
-    ModuleUtility.assertInstalled({ modules: CONNECT_RPC_MODULES });
+    // The adapter resolves the peer itself, so a `ModuleUtility.register` entry could not satisfy it - only a real install or a handed-over `module` can.
+    if (!opts.module) {
+      ModuleUtility.assertInstalled({ modules: CONNECT_RPC_MODULES });
+    }
 
     const adapter = new GrpcRequestAdapter<
       RouteEnv,

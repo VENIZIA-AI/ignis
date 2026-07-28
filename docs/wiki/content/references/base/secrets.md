@@ -216,7 +216,7 @@ The scheduler, cache, and clock are injectable, so the machinery is tested deter
 
 `node-vault` is an optional peer. It is reached only through the `@venizia/ignis-helpers/hashicorp-vault` sub-path and a bundler-invisible dynamic import (`ModuleUtility.load`), so importing the root package never requires it. `Bun.build`-compiled applications need no `external: ['node-vault']` workaround.
 
-An application that does use this provider and compiles a binary must ship `node-vault` in `node_modules` next to the binary. Alternatively, inject a ready-made `client` through the helper options.
+An application that does use this provider and compiles a binary must ship `node-vault` in `node_modules` next to the binary. Alternatively, inject a ready-made `client` through the helper options, or import `node-vault` statically and hand it over with `ModuleUtility.register({ modules: { 'node-vault': nodeVault } })` at startup.
 
 ## Dotenv Vault Provider
 

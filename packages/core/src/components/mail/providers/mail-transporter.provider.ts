@@ -54,7 +54,7 @@ export class MailTransportProvider extends BaseProvider<TGetMailTransportFn> {
       this.logger
         .for(this.createNodemailerTransport.name)
         .info('Initializing Nodemailer transport');
-      return new NodemailerTransportHelper(options.config);
+      return new NodemailerTransportHelper({ config: options.config, module: options.module });
     }
 
     throw getError({
@@ -67,7 +67,7 @@ export class MailTransportProvider extends BaseProvider<TGetMailTransportFn> {
   private createMailgunTransport(options: TMailOptions): MailgunTransportHelper {
     if (this.isMailgunOptions(options)) {
       this.logger.for(this.createMailgunTransport.name).info('Initializing Mailgun transport');
-      return new MailgunTransportHelper(options.config);
+      return new MailgunTransportHelper({ config: options.config, module: options.module });
     }
 
     throw getError({

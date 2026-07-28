@@ -12,6 +12,7 @@ import type { Env, Schema } from 'hono';
 import { Hono } from 'hono';
 import { GrpcRequestAdapter } from './adapter';
 import type {
+  IConnectRpcModule,
   IGrpcBindRouteOptions,
   IGrpcController,
   IGrpcControllerOptions,
@@ -40,6 +41,10 @@ export abstract class AbstractGrpcController<
   service: ServiceType;
   path: string;
   basePath: string = '';
+  /** Assigned by GrpcComponent from its options, before configure(). Absent means the adapter resolves the peer itself. */
+  connectRpcModule?: IConnectRpcModule;
+  /** ConnectRPC interceptors, assigned by GrpcComponent from its options before configure(). Applied to every RPC this controller registers. */
+  interceptors?: unknown[];
   router: Hono<RouteEnv, RouteSchema, BasePath>;
 
   constructor(opts: IGrpcControllerOptions) {
@@ -159,7 +164,11 @@ export abstract class AbstractGrpcController<
     await this.binding();
     this.registerRpcsFromRegistry();
 
-    const adapter = await GrpcRequestAdapter.build({ controller: this });
+    const adapter = await GrpcRequestAdapter.build({
+      controller: this,
+      module: this.connectRpcModule,
+      interceptors: this.interceptors,
+    });
     this.router.use('*', adapter.middleware);
 
     if (adapter.paths.length > 0) {

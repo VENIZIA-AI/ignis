@@ -6,6 +6,74 @@ not how.
 This file and `index.md` are reserved OKF filenames - they carry no `type:` frontmatter and are not
 counted as concepts.
 
+## 2026-07-27 - the gRPC component takes its peer through the options, and `register` stops lying
+
+Three fixes, all measured against a `bun build --compile --minify` binary run without `node_modules`.
+
+`IGrpcComponentConfig.module` (`{ connect, protocol }`, typed as `IConnectRpcModule`) closes the
+last compiled-binary gap. `GrpcComponent` reads its options binding and assigns the module to each
+controller before `configure()`, the same way it already assigns `basePath`; `GrpcRequestAdapter`
+skips both `assertInstalled` and its own `createRequire` when the module is present.
+
+That correction matters because the entry below named `@connectrpc/connect` as the case `register`
+was for. It never could be. The adapter resolves the specifier itself, so a registry entry only made
+`assertInstalled` pass and then let the raw `Cannot find module` through - strictly worse than the
+install hint. `assertInstalled` now takes `allowRegistered`, default **false**: a registration counts
+only where `ModuleUtility` itself performs the load. Same reasoning kills the `pino-pretty` /
+`pino-roll` case, where the worker thread resolves the target.
+
+`register` no longer logs. It runs at the entrypoint of exactly the deployment that has no logger
+provider, where `LoggerFactory` throws - and because the loop set each entry before logging it,
+one call registered the first module and silently dropped the rest. Guard test installs an unusable
+provider and asserts all three entries survive.
+
+Also fixed while in there: `createSecretsHelper` asserted `node-vault` / `@dotenvx/dotenvx` present
+even when the caller injected `client` / `decode`, which defeated the very escape those options
+exist for. The assert is now skipped when the escape is supplied.
+
+`register` now has no first-choice call site left in the framework. It stays public for consumers.
+
+`IGrpcComponentConfig.interceptors` is wired at the same time. It had been dead config since it was
+introduced: the component bound it, nothing read it, and `configure()` called
+`GrpcRequestAdapter.build({ controller })` with nothing else. The adapter half already worked - it
+forwards a non-empty list to `createConnectRouter` - so the fix was the missing component ->
+controller -> `build` link, the same one `module` needed. Kept as `unknown[]` rather than
+ConnectRPC's `Interceptor`: the type is published, BANA could not be crosschecked from this repo,
+and widening it later breaks nobody.
+
+## 2026-07-27 - the mail transports take their peer through the options
+
+`INodemailerMailOptions.module` / `IMailgunMailOptions.module`, threaded through
+`MailTransportProvider` into both transport helpers, which now fall back to `ModuleUtility.loadSync`
+only when the option is absent. Both helper constructors moved to an options object
+(`{ config, module }`) - a shape change, and the reason core needs a republish; nothing outside
+`MailTransportProvider` constructs them.
+
+Written the day after `register` shipped, and it demotes it. A global registry keyed by string is a
+service locator: it depends on call order (register must beat the component's binding, nothing
+enforces that), a typo is a runtime failure, and the value is `AnyType`. The options seam is DI -
+typed to the shape each transport calls, arriving where it is used. IGNIS already had the seam for
+the vault helpers (`client`, `decode`); mail was the gap because it builds the client itself.
+
+`register` stays for peers with no options in between. It does NOT help a `pino` transport target:
+`pino.transport()` resolves inside a worker thread the registry never reaches. (The
+`@connectrpc/connect` case named here originally was wrong - corrected in the entry above.)
+
+## 2026-07-27 - optional peers reach compiled binaries through a registry
+
+`ModuleUtility.register({ modules })` closes the hole the bundler-invisible specifier opened.
+Hiding a specifier from `Bun.build` moves resolution to runtime, and a `bun build --compile` binary
+runs with no `node_modules` to resolve against - so a peer the app really installed is still
+unreachable. BANA's `identity` proved it in production: `nodemailer` in `package.json`, in the
+image nothing, boot dead at `MailComponent` binding the moment the mail transport switched from
+`require('nodemailer')` to `ModuleUtility.loadSync` (core 0.1.1-13).
+
+Injecting a ready-made client already covered the secrets helpers, but not a component that builds
+the client itself, which both mail transports do. The registry is checked first by `load`,
+`loadSync` and `assertInstalled`; the app statically imports the peer - that import is what embeds
+it - and registers it before the consuming component binds. Nothing changes for apps running from
+source.
+
 ## 2026-07-26 - the error catalog is complete, and it was nearly finished already
 
 `SearchErrors` (`connectors/search/common/errors.ts`) and `MailErrors`
