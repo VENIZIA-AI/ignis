@@ -268,7 +268,7 @@
   "devDependencies": {
     "@dotenvx/dotenvx": "^2.14.0",
     "@hono/zod-openapi": "catalog:",
-    "@platformatic/kafka": "^2.6.1",
+    "@platformatic/kafka": "^2.8.0",
     "@socket.io/redis-adapter": "catalog:",
     "@socket.io/redis-emitter": "catalog:",
     "@types/bun": "catalog:",

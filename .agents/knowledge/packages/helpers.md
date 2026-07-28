@@ -54,7 +54,16 @@ The secrets family adds a second, bundler-facing rule. `createSecretsHelper` liv
 
 ## Gotcha: Kafka and compiled binaries
 
-The Kafka bundler's `@platformatic/wasm-utils` dependency reads `native.wasm` off disk at module load. `bun build --compile` never embeds that file, so a compiled binary dies with `ENOENT` before the app boots. The `platformaticWasmPlugin()` (re-exported from the `/kafka` sub-path) redirects the import to a `/bundled` entrypoint with the wasm inlined - any app compiling a binary with Kafka helpers must register this plugin in its own `Bun.build()` call, since the `bun build --compile` CLI itself accepts no plugins.
+`@platformatic/kafka` breaks `bun build --compile` in two independent ways, both by resolving something at runtime that the bundler cannot see. Both kill the process during module-graph load, before any IGNIS error handler exists. Register `platformaticKafkaPlugins()` (from the `/kafka` sub-path) in the app's own `Bun.build()` call - the `bun build --compile` CLI accepts no plugins.
+
+- `platformaticWasmPlugin()` - `@platformatic/wasm-utils` reads `native.wasm` off disk at module load, which `--compile` never embeds. The plugin redirects the import to the `/bundled` entrypoint with the wasm inlined. Symptom: `ENOENT ... /$bunfs/dist/native.wasm`.
+- `platformaticRequirePlugin()` - since 2.8.0, `registries/confluent-schema-registry.js` does `const AjvDraft04 = require('ajv-draft-04')` and `const draft06MetaSchema = require('ajv/dist/refs/json-schema-draft-06.json')` at MODULE SCOPE, through `createRequire(import.meta.url)`. `dist/index.js` re-exports that file, so importing anything from the package runs both lines. The plugin rewrites each module-scope `const X = require('spec')` into a static import at bundle time. Symptom: `Cannot find package 'ajv-draft-04' from '/$bunfs/root/index.js'`.
+
+Three constraints on `platformaticRequirePlugin` that the code alone does not explain:
+
+- **The injected binding is `const X = <alias>;` - never `<alias>?.default ?? <alias>`.** The draft-06 meta schema JSON carries its own top-level `default` key (`{}`), so unwrapping silently replaces the meta schema with an empty object. The binary still boots and the registry still constructs; draft-06 validation then fails with `no schema with key or ref "http://json-schema.org/draft-06/schema#"`. A default import already yields `module.exports` for CJS, so no unwrap is needed. Guarded by `bundler.test.ts` - the compiled probe fetches a draft-06 schema through a local stub registry.
+- **The pattern is anchored to `^const ... ;$`**, so the lazy `return require('protobufjs').parse;` inside a method never matches. `SKIPPED_SPECIFIERS` (`protobufjs`, `@node-rs/crc32`) is defence in depth: both are optional peers, and a static import would break builds that do not install them.
+- **No match returns `undefined`**, so the plugin is an inert no-op once upstream fixes this. An unresolvable specifier fails the BUILD with Bun's own error rather than dying at runtime - that is the point of hoisting.
 
 ## Conventions
 

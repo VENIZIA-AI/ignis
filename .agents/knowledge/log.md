@@ -673,3 +673,15 @@ be false. The concepts document what the source actually does today:
   is NOT a duplicate of helpers' `ErrorSchema`/`TErrorResponse`: that one needs `@hono/zod-openapi`
   and cannot ship to a browser. `requestId` lands at `extra.requestId` via conditional spread;
   `details` is dropped.
+- `platformaticRequirePlugin()` added to the Kafka bundler, plus `platformaticKafkaPlugins()` as the
+  one entry point compile scripts should register. `@platformatic/kafka@2.8.0` hoisted
+  `require('ajv-draft-04')` and `require('ajv/dist/refs/json-schema-draft-06.json')` to MODULE SCOPE
+  in `registries/confluent-schema-registry.js`, behind `createRequire(import.meta.url)`, and
+  `dist/index.js` re-exports that file - so every compiled binary importing any Kafka helper died
+  with `Cannot find package 'ajv-draft-04'` before boot. The plugin rewrites each module-scope
+  `const X = require('spec')` into a static import at bundle time. The injected binding is
+  `const X = <alias>;` with NO `?.default` unwrap: the draft-06 meta schema JSON has its own
+  top-level `default` key, so unwrapping silently swaps the meta schema for `{}` - the binary boots
+  and the registry constructs, then draft-06 validation fails. `platformaticWasmPlugin()` is
+  unchanged and still exported; the helpers dev dependency moved to `^2.8.0` (peer range `^2.6.1`
+  stays valid) so the failure is reproducible in CI.
