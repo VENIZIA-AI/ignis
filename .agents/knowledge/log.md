@@ -6,6 +6,38 @@ not how.
 This file and `index.md` are reserved OKF filenames - they carry no `type:` frontmatter and are not
 counted as concepts.
 
+## 2026-07-29 - helpers ships a `/core` sub-path: the isomorphic surface a Web Worker can import
+
+`@venizia/ignis-helpers/core` (`src/core.ts`) re-exports `BaseHelper`, the error layer, `uid`,
+`pool`, `HfQueueHelper`, the `ILogger` contract, and the fetcher interfaces - every leaf the prior
+two waves proved bundles clean for `target: 'browser'`. Each re-export names a **leaf** module path,
+never a barrel: the logger barrel drags `node:module`, the error barrel drags `@hono/zod-openapi`,
+and the `http-request` barrel drags `node:querystring` from a sibling file, so `core.ts` reaches the
+fetcher through `modules/network/http-request/fetcher/base-fetcher` directly. `ErrorSchema` stays out
+- it needs `@hono/zod-openapi` and belongs to the server surface, not the worker one.
+`src/__tests__/core-purity.test.ts` guards the entry with the same bundle-and-spy harness as the
+other purity gates, and helpers' `purity` script now runs all four of its gates
+(`browser-purity`, `common/browser-purity`, `error/error-barrel-purity`, `core-purity`) instead of two.
+
+## 2026-07-29 - two `process` reads in `common/` become `globalThis`-guarded
+
+`common/constants/app.ts`'s `Defaults.APPLICATION_NAME` and `common/redact.ts`'s
+`isRedactionEnabled` read `process.env` directly - a bare Node global a browser bundle of `/common`
+cannot resolve. Both now read through `globalThis.process?.env?...`, so they degrade instead of
+throwing outside Node. `Defaults.APPLICATION_NAME` keeps its `'APP'` fallback; redaction stays
+fail-closed - only the literal string `'false'` disables it, and the read stays per-call so it can
+be flipped at runtime.
+
+## 2026-07-29 - `ErrorSchema` leaves the error barrel
+
+`modules/error/types.ts` (its only contents: an `@hono/zod-openapi` import plus `ErrorSchema` and
+`TErrorResponse`) is deleted; both moved to a new `modules/error/schemas.ts`. The error barrel
+(`modules/error/index.ts`) is on the browser path through `getError` - `helpers/core` and
+`BaseHelper` both reach it - and `@hono/zod-openapi` is not browser-safe, so it cannot stay in that
+barrel. The root barrel (`modules/index.ts`) re-exports `error/schemas` directly alongside `error`,
+so `@venizia/ignis-helpers` consumers (including `core`'s three importers) see no change - only a
+deep import of `modules/error/types` would have broken, and none existed.
+
 ## 2026-07-29 - the two orphaned browser-purity tests are wired, and core gets its own gate
 
 `packages/helpers/src/__tests__/common/browser-purity.test.ts` and

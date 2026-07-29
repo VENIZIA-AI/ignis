@@ -27,5 +27,3 @@ export type {
   TRegisterErrors,
   TResponsedError,
 } from '@venizia/ignis-inversion';
-
-export * from './types';

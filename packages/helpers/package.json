@@ -101,6 +101,10 @@
       "types": "./dist/common/index.d.ts",
       "default": "./dist/common/index.js"
     },
+    "./core": {
+      "types": "./dist/core.d.ts",
+      "default": "./dist/core.js"
+    },
     "./socket-io": {
       "types": "./dist/modules/socket/socket-io/index.d.ts",
       "default": "./dist/modules/socket/socket-io/index.js"
@@ -176,7 +180,7 @@
     "prettier:fix": "bun run prettier:cli --write",
     "rebuild": "sh ./scripts/rebuild.sh no-version",
     "prepublishOnly": "bun run rebuild",
-    "purity": "bun test src/__tests__/browser-purity.test.ts src/__tests__/common/browser-purity.test.ts"
+    "purity": "bun test src/__tests__/browser-purity.test.ts src/__tests__/common/browser-purity.test.ts src/__tests__/error/error-barrel-purity.test.ts src/__tests__/core-purity.test.ts"
   },
   "dependencies": {
     "zod": "catalog:",

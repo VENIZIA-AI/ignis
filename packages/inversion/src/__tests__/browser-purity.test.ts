@@ -170,6 +170,8 @@ describe('inversion bundles for the browser', () => {
       source: `export * from ${JSON.stringify(barrelPath)};\n`,
     });
 
+    expect(report.errors).toEqual([]);
+    expect(report.success).toBe(true);
     expect(report.globals).toEqual([]);
   });
 

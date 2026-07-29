@@ -9,9 +9,6 @@ import path from 'node:path';
 /** Dependencies are spied at `onResolve`, not `onLoad`: the probe entry sits outside the workspace, so a bare specifier that is only hoisted at the repo root never resolves and would never reach `onLoad` - the leak would pass unseen. `onResolve` fires on the specifier itself, before resolution can fail. */
 /** `@venizia/ignis-inversion` resolves here through its `exports` map, which points only at `dist/` - so this gate measures what inversion ships, not what its source says. `make purity-helpers` forces a fresh inversion build first; running this file's `bun test` directly does not, and will report a false pass against a stale `dist/`. */
 
-/** What a browser bundle of the BaseHelper path may pull in. `helpers` as a whole is server-side; this gate covers only the graph BaseHelper reaches. */
-const ALLOWED_PACKAGES = new Set(['@venizia/ignis-inversion', 'lodash', 'reflect-metadata']);
-
 const PACKAGE_ROOT = process.cwd();
 
 interface IProbeReport {
@@ -140,7 +137,7 @@ describe('the BaseHelper path bundles for the browser', () => {
     expect(report.errors).toEqual([]);
     expect(report.success).toBe(true);
     expect(report.builtins).toEqual([]);
-    expect(report.packages.filter(name => !ALLOWED_PACKAGES.has(name))).toEqual([]);
+    expect(report.packages).toEqual([]);
   });
 
   test('the BaseHelper path leaves no node-only global in the emitted bundle', async () => {
@@ -152,6 +149,8 @@ describe('the BaseHelper path bundles for the browser', () => {
         `export const probe = () => new BaseHelper({ scope: 'probe' });\n`,
     });
 
+    expect(report.errors).toEqual([]);
+    expect(report.success).toBe(true);
     expect(report.globals).toEqual([]);
   });
 

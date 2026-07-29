@@ -1,19 +1,16 @@
 import { afterAll, beforeAll, describe, expect, test } from 'bun:test';
-import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
+import { mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 
-/** The root barrel is `export * from './modules'`, so reaching one constant through it drags winston, ioredis, hono and 14 node builtins into a browser bundle. `./common` is the sub-path that carries the already-pure surface - `HTTP`, `TConstValue`, the redaction and constant tables - for browser consumers and for isomorphic packages built on top of this one. */
-/** Purity is a property of the RESOLVED import graph, never of a file's own source. Bundling rather than reading source is what makes `exports` maps and re-export chains count. */
+/** Purity is a property of the RESOLVED import graph, never of a file's own source - a module that imports nothing server-side is still unusable in a browser if its barrel drags one in. Bundling rather than reading source is what makes `exports` maps and re-export chains count. */
 /** Probes bundle in a subprocess: in-process `Bun.build` under `bun test` reports spurious errors for modules other test files already loaded. */
-/** Dependencies are spied at `onResolve`, not `onLoad`: the probe entry sits outside the workspace, so a bare specifier only hoisted at the repo root never resolves and would never reach `onLoad` - the leak would pass unseen. */
-
-/** Packages a browser bundle of the `./common` sub-path may pull in. The error layer is deliberately absent: `getError` and friends live in `@venizia/ignis-inversion`, which browser consumers import directly. */
+/** The probe runs with cwd at the package root so tsconfig `paths` (`@/*`) resolve - running it from the temp directory silently stops the walk at the first aliased import. */
+/** Dependencies are spied at `onResolve`, not `onLoad`: the probe entry sits outside the workspace, so a bare specifier that is only hoisted at the repo root never resolves and would never reach `onLoad` - the leak would pass unseen. `onResolve` fires on the specifier itself, before resolution can fail. */
+/** `@venizia/ignis-inversion` resolves here through its `exports` map, which points only at `dist/` - so this gate measures what inversion ships, not what its source says. `make purity-helpers` forces a fresh inversion build first; running this file's `bun test` directly does not, and will report a false pass against a stale `dist/`. */
 const ALLOWED_PACKAGES = new Set(['@venizia/ignis-inversion', 'lodash', 'reflect-metadata']);
 
 const PACKAGE_ROOT = process.cwd();
-const COMMON_ENTRY = path.join(PACKAGE_ROOT, 'src/common/index.ts');
-const ROOT_BARREL_ENTRY = path.join(PACKAGE_ROOT, 'src/index.ts');
 
 interface IProbeReport {
   success: boolean;
@@ -88,12 +85,9 @@ const buildProbeScript = (opts: { entryPath: string; outdirName: string }) => {
   `;
 };
 
-const probeEntry = async (opts: { name: string; source: string }): Promise<IProbeReport> => {
-  const entryPath = path.join(probeDirectory, `${opts.name}-entry.ts`);
-  await writeFile(entryPath, opts.source);
-
-  const scriptPath = path.join(probeDirectory, `${opts.name}-probe.ts`);
-  await writeFile(scriptPath, buildProbeScript({ entryPath, outdirName: `out-${opts.name}` }));
+const runProbe = async (opts: { name: string; script: string }): Promise<IProbeReport> => {
+  const scriptPath = path.join(probeDirectory, `${opts.name}.ts`);
+  await writeFile(scriptPath, opts.script);
 
   const result = Bun.spawnSync({
     cmd: ['bun', scriptPath],
@@ -106,26 +100,37 @@ const probeEntry = async (opts: { name: string; source: string }): Promise<IProb
   const marker = stdout.split('\n').find(line => line.startsWith('PROBE_REPORT:'));
   if (!marker) {
     throw new Error(
-      `[browser-purity] probe emitted no report | stdout: ${stdout} | stderr: ${result.stderr.toString()}`,
+      `[core-purity] probe emitted no report | stdout: ${stdout} | stderr: ${result.stderr.toString()}`,
     );
   }
 
   return JSON.parse(marker.slice('PROBE_REPORT:'.length)) as IProbeReport;
 };
 
+const probeEntry = async (opts: { name: string; source: string }): Promise<IProbeReport> => {
+  const entryPath = path.join(probeDirectory, `${opts.name}-entry.ts`);
+  await writeFile(entryPath, opts.source);
+
+  return runProbe({
+    name: `${opts.name}-probe`,
+    script: buildProbeScript({ entryPath, outdirName: `out-${opts.name}` }),
+  });
+};
+
 beforeAll(async () => {
-  probeDirectory = await mkdtemp(path.join(tmpdir(), 'ignis-helpers-purity-'));
+  probeDirectory = await mkdtemp(path.join(tmpdir(), 'ignis-core-purity-'));
 });
 
 afterAll(async () => {
   await rm(probeDirectory, { recursive: true, force: true });
 });
 
-describe('the ./common sub-path bundles for the browser', () => {
-  test('it resolves no node builtin and no package outside the allow list', async () => {
+describe('the core entry bundles for the browser', () => {
+  test('it resolves no node builtin, no node-only global and no server-only package', async () => {
+    const corePath = path.join(PACKAGE_ROOT, 'src/core.ts');
     const report = await probeEntry({
-      name: 'common',
-      source: `export * from ${JSON.stringify(COMMON_ENTRY)};\n`,
+      name: 'core-entry',
+      source: `export * from ${JSON.stringify(corePath)};\n`,
     });
 
     expect(report.errors).toEqual([]);
@@ -135,30 +140,23 @@ describe('the ./common sub-path bundles for the browser', () => {
     expect(report.packages.filter(name => !ALLOWED_PACKAGES.has(name))).toEqual([]);
   });
 
-  test('the probe walks the whole surface, so an empty walk cannot pass as pure', async () => {
+  test('the probe walks the real graph, so an empty walk cannot pass as pure', async () => {
+    const corePath = path.join(PACKAGE_ROOT, 'src/core.ts');
     const report = await probeEntry({
-      name: 'walk-depth',
-      source: `export * from ${JSON.stringify(COMMON_ENTRY)};\n`,
+      name: 'core-entry-walk',
+      source: `export * from ${JSON.stringify(corePath)};\n`,
     });
 
-    expect(report.filesWalked).toBeGreaterThan(50);
+    expect(report.filesWalked).toBeGreaterThan(10);
   });
 
-  test('the exports map publishes it, so the sub-path a consumer imports is the one measured', async () => {
-    const manifest = JSON.parse(
-      await readFile(path.join(PACKAGE_ROOT, 'package.json'), 'utf8'),
-    ) as { exports: Record<string, { types: string; default: string }> };
-
-    expect(manifest.exports['./common']).toEqual({
-      types: './dist/common/index.d.ts',
-      default: './dist/common/index.js',
-    });
-  });
-
-  test('control: the root barrel is NOT browser-safe, which is why the sub-path exists', async () => {
+  test('positive control: a node builtin and a server-only package are both caught', async () => {
     const report = await probeEntry({
-      name: 'root-barrel',
-      source: `export * from ${JSON.stringify(ROOT_BARREL_ENTRY)};\n`,
+      name: 'core-positive-control',
+      source:
+        `import { readFileSync } from 'node:fs';\n` +
+        `import Redis from 'ioredis';\n` +
+        `export const probe = () => readFileSync('/dev/null') && Redis;\n`,
     });
 
     expect(report.builtins).toContain('node:fs');
