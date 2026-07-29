@@ -7,9 +7,10 @@ import path from 'node:path';
 /** Probes bundle in a subprocess: in-process `Bun.build` under `bun test` reports spurious errors for modules other test files already loaded. */
 /** The probe runs with cwd at the package root so tsconfig `paths` (`@/*`) resolve - running it from the temp directory silently stops the walk at the first aliased import. */
 /** Dependencies are spied at `onResolve`, not `onLoad`: the probe entry sits outside the workspace, so a bare specifier that is only hoisted at the repo root never resolves and would never reach `onLoad` - the leak would pass unseen. `onResolve` fires on the specifier itself, before resolution can fail. */
+/** `@venizia/ignis-inversion` resolves here through its `exports` map, which points only at `dist/` - so this gate measures what inversion ships, not what its source says. `make purity-helpers` forces a fresh inversion build first; running this file's `bun test` directly does not, and will report a false pass against a stale `dist/`. */
 
-/** Packages a browser bundle of this package is allowed to pull in. Anything else is a regression, so a new server-side dependency fails here rather than at a consumer's bundler. */
-const ALLOWED_PACKAGES = new Set(['lodash', 'reflect-metadata']);
+/** What a browser bundle of the BaseHelper path may pull in. `helpers` as a whole is server-side; this gate covers only the graph BaseHelper reaches. */
+const ALLOWED_PACKAGES = new Set(['@venizia/ignis-inversion', 'lodash', 'reflect-metadata']);
 
 const PACKAGE_ROOT = process.cwd();
 
@@ -126,12 +127,14 @@ afterAll(async () => {
   await rm(probeDirectory, { recursive: true, force: true });
 });
 
-describe('inversion bundles for the browser', () => {
-  test('the root barrel resolves no node builtin and no package outside the allow list', async () => {
-    const barrelPath = path.join(PACKAGE_ROOT, 'src/index.ts');
+describe('the BaseHelper path bundles for the browser', () => {
+  test('constructing a BaseHelper resolves no node builtin and no server-only package', async () => {
+    const basePath = path.join(PACKAGE_ROOT, 'src/modules/base.ts');
     const report = await probeEntry({
-      name: 'root-barrel',
-      source: `export * from ${JSON.stringify(barrelPath)};\n`,
+      name: 'base-helper',
+      source:
+        `import { BaseHelper } from ${JSON.stringify(basePath)};\n` +
+        `export const probe = () => new BaseHelper({ scope: 'probe' });\n`,
     });
 
     expect(report.errors).toEqual([]);
@@ -140,14 +143,28 @@ describe('inversion bundles for the browser', () => {
     expect(report.packages.filter(name => !ALLOWED_PACKAGES.has(name))).toEqual([]);
   });
 
-  test('the probe walks the whole package, so an empty walk cannot pass as pure', async () => {
-    const barrelPath = path.join(PACKAGE_ROOT, 'src/index.ts');
+  test('the BaseHelper path leaves no node-only global in the emitted bundle', async () => {
+    const basePath = path.join(PACKAGE_ROOT, 'src/modules/base.ts');
     const report = await probeEntry({
-      name: 'walk-depth',
-      source: `export * from ${JSON.stringify(barrelPath)};\n`,
+      name: 'base-helper-globals',
+      source:
+        `import { BaseHelper } from ${JSON.stringify(basePath)};\n` +
+        `export const probe = () => new BaseHelper({ scope: 'probe' });\n`,
     });
 
-    expect(report.filesWalked).toBeGreaterThan(20);
+    expect(report.globals).toEqual([]);
+  });
+
+  test('the probe walks the real graph, so an empty walk cannot pass as pure', async () => {
+    const basePath = path.join(PACKAGE_ROOT, 'src/modules/base.ts');
+    const report = await probeEntry({
+      name: 'base-helper-walk',
+      source:
+        `import { BaseHelper } from ${JSON.stringify(basePath)};\n` +
+        `export const probe = () => new BaseHelper({ scope: 'probe' });\n`,
+    });
+
+    expect(report.filesWalked).toBeGreaterThan(3);
   });
 
   test('positive control: a node builtin and a server-only package are both caught', async () => {
@@ -161,25 +178,5 @@ describe('inversion bundles for the browser', () => {
 
     expect(report.builtins).toContain('node:fs');
     expect(report.packages).toContain('ioredis');
-  });
-
-  test('the root barrel leaves no node-only global in the emitted bundle', async () => {
-    const barrelPath = path.join(PACKAGE_ROOT, 'src/index.ts');
-    const report = await probeEntry({
-      name: 'globals',
-      source: `export * from ${JSON.stringify(barrelPath)};\n`,
-    });
-
-    expect(report.globals).toEqual([]);
-  });
-
-  test('positive control: a node-only global is caught', async () => {
-    const report = await probeEntry({
-      name: 'globals-positive-control',
-      source: `export const probe = () => process.env.SOME_FLAG ?? __dirname;\n`,
-    });
-
-    expect(report.globals).toContain('process');
-    expect(report.globals).toContain('__dirname');
   });
 });

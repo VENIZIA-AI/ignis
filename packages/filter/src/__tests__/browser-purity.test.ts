@@ -7,6 +7,7 @@ import path from 'node:path';
 /** Probes bundle in a subprocess: in-process `Bun.build` under `bun test` reports spurious errors for modules other test files already loaded. */
 /** Dependencies are spied at `onResolve`, not `onLoad`: the probe entry sits outside the workspace, so a bare specifier only hoisted at the repo root never resolves and would never reach `onLoad` - the leak would pass unseen. */
 /** The probe runs with cwd at the package root, or tsconfig `paths` (`@/*`) do not resolve and the walk stops at the first aliased import, reporting a false clean. */
+/** `@venizia/ignis-inversion` resolves here through its `exports` map, which points only at `dist/` - so this gate measures what inversion ships, not what its source says. `make purity-filter` forces a fresh inversion build first; running this file's `bun test` directly does not, and will report a false pass against a stale `dist/`. */
 
 /** Everything a browser bundle of the ROOT barrel may pull in. `@venizia/ignis-inversion` supplies `getError` and `TConstValue`; the other two arrive through it. Adding to this set is a deliberate act - it widens what a consumer must ship. */
 const ALLOWED_PACKAGES = new Set(['@venizia/ignis-inversion', 'lodash', 'reflect-metadata']);
@@ -24,6 +25,7 @@ interface IProbeReport {
   errors: Array<string>;
   builtins: Array<string>;
   packages: Array<string>;
+  globals: Array<string>;
   filesWalked: number;
 }
 
@@ -68,11 +70,24 @@ const buildProbeScript = (opts: { entryPath: string; outdirName: string }) => {
         },
       ],
     });
+    // Only these three break a browser. \`Buffer\` and \`global\` are deliberately absent: lodash declares its own local \`Buffer\` and guards \`global\` behind \`typeof\`, so both are browser-safe and would be permanent false positives.
+    const NODE_ONLY_GLOBALS = ['process', '__dirname', '__filename'];
+    const globals = new Set();
+    for (const artifact of result.outputs) {
+      const text = await artifact.text();
+      for (const name of NODE_ONLY_GLOBALS) {
+        // Word-boundary match so \`processRequest\` or \`globalThis\` never counts.
+        if (new RegExp('(?<![$\\\\w.])' + name + '(?![$\\\\w])').test(text)) {
+          globals.add(name);
+        }
+      }
+    }
     console.log('PROBE_REPORT:' + JSON.stringify({
       success: result.success,
       errors: result.logs.filter(log => log.level === 'error').map(String),
       builtins: [...builtins].sort(),
       packages: [...packages].sort(),
+      globals: [...globals].sort(),
       filesWalked: files.size,
     }));
   `;
@@ -177,5 +192,25 @@ describe('the filter vocabulary bundles for the browser', () => {
 
     expect(report.builtins).toContain('node:fs');
     expect(report.packages).toContain('ioredis');
+  });
+
+  test('the root barrel leaves no node-only global in the emitted bundle', async () => {
+    const barrelPath = path.join(PACKAGE_ROOT, 'src/index.ts');
+    const report = await probeEntry({
+      name: 'globals',
+      source: `export * from ${JSON.stringify(barrelPath)};\n`,
+    });
+
+    expect(report.globals).toEqual([]);
+  });
+
+  test('positive control: a node-only global is caught', async () => {
+    const report = await probeEntry({
+      name: 'globals-positive-control',
+      source: `export const probe = () => process.env.SOME_FLAG ?? __dirname;\n`,
+    });
+
+    expect(report.globals).toContain('process');
+    expect(report.globals).toContain('__dirname');
   });
 });

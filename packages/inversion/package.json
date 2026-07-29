@@ -99,6 +99,7 @@
     "lint:fix": "bun run eslint --fix && bun run prettier:fix",
     "prettier:cli": "prettier \"**/*.{js,ts}\" -l",
     "prettier:fix": "bun run prettier:cli --write",
+    "purity": "bun test src/__tests__/browser-purity.test.ts",
     "rebuild": "sh ./scripts/rebuild.sh no-version",
     "prepublishOnly": "bun run rebuild"
   },

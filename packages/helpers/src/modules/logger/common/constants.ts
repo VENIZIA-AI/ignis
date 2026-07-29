@@ -1,22 +1,7 @@
 import { TConstValue } from '@/common/types';
 import { Environment } from '@/modules/env';
 import { toBoolean } from '@/utilities/parse.utility';
-
-export class LogLevels {
-  static readonly ERROR = 'error';
-  static readonly EMERG = 'emerg';
-  static readonly WARN = 'warn';
-  static readonly INFO = 'info';
-  static readonly DEBUG = 'debug';
-
-  static readonly SCHEME_SET = new Set([this.ERROR, this.EMERG, this.WARN, this.INFO, this.DEBUG]);
-
-  static isValid(input: string): boolean {
-    return this.SCHEME_SET.has(input);
-  }
-}
-
-export type TLogLevel = TConstValue<typeof LogLevels>;
+import { LogLevels, type TLogLevel } from './types';
 
 // -------------------------------------------------------------
 export class LoggerFormats {

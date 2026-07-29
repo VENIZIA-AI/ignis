@@ -2,6 +2,7 @@
         help install clean setup-hooks agent-setup \
         lint lint-all lint-packages lint-examples \
         lint-dev-configs lint-inversion lint-filter lint-helpers lint-boot lint-core lint-docs-mcp \
+        purity purity-inversion purity-filter purity-helpers purity-core \
         okf-check okf-gen okf-coverage okf-viz \
         catalog-check \
         update update-all update-core update-dev-configs update-docs-mcp update-filter update-helpers update-inversion update-boot
@@ -133,6 +134,31 @@ update-filter:
 update-boot:
 	@echo "🔄 Force updating @venizia/ignis-boot..."
 	@bun run --filter "@venizia/ignis-boot" force-update
+
+# ----------------------------------------------------------------------------
+# BROWSER PURITY GATES
+# ----------------------------------------------------------------------------
+purity: purity-inversion purity-filter purity-helpers purity-core
+	@echo "✅ Browser purity gates passed."
+
+purity-inversion:
+	@echo "🌐 Browser purity: @venizia/ignis-inversion..."
+	@bun run --filter "@venizia/ignis-inversion" purity
+
+# filter's gate resolves @venizia/ignis-inversion through its exports map, which points at dist/ - it measures what inversion SHIPS, not what its source says. Without this dependency a stale dist reports a false PASS.
+purity-filter: inversion
+	@echo "🌐 Browser purity: @venizia/ignis-filter..."
+	@bun run --filter "@venizia/ignis-filter" purity
+
+# helpers reaches @venizia/ignis-inversion through its exports map, which points at dist/ - this gate measures what inversion SHIPS, not what its source says. Without this dependency a stale dist reports a false PASS.
+purity-helpers: inversion
+	@echo "🌐 Browser purity: @venizia/ignis-helpers (BaseHelper path)..."
+	@bun run --filter "@venizia/ignis-helpers" purity
+
+# core reaches @venizia/ignis-helpers and @venizia/ignis-inversion through their exports maps, which point at dist/ - this gate measures what those packages SHIP, not what their source says. `core` builds the whole chain, so it is the prerequisite that keeps every dist/ this gate depends on fresh.
+purity-core: core
+	@echo "🌐 Browser purity: @venizia/ignis (core repositories path)..."
+	@bun run --filter "@venizia/ignis" purity
 
 # ----------------------------------------------------------------------------
 # LINT TARGETS

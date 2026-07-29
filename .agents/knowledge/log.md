@@ -6,6 +6,19 @@ not how.
 This file and `index.md` are reserved OKF filenames - they carry no `type:` frontmatter and are not
 counted as concepts.
 
+## 2026-07-29 - the two orphaned browser-purity tests are wired, and core gets its own gate
+
+`packages/helpers/src/__tests__/common/browser-purity.test.ts` and
+`packages/core/src/__tests__/repositories/browser-purity.test.ts` existed but ran nowhere. Helpers'
+`purity` script now runs both of its purity test files; core gets a `purity` script of its own plus
+a `purity-core` Makefile target. `purity-core` depends on `core`, not on `inversion` alone, because
+core resolves BOTH `@venizia/ignis-helpers` and `@venizia/ignis-inversion` through `exports` maps
+into `dist/` - `core` is the target that rebuilds that whole chain, the same reasoning `purity-filter`
+and `purity-helpers` already used for their own `inversion` prerequisite.
+
+`.githooks/pre-commit` now runs `make purity` after `make lint-all`, so a purity break fails a
+commit instead of staying invisible until someone manually cuts a release.
+
 ## 2026-07-27 - the gRPC component takes its peer through the options, and `register` stops lying
 
 Three fixes, all measured against a `bun build --compile --minify` binary run without `node_modules`.
@@ -645,7 +658,7 @@ Authoring this bundle from source found several long-standing claims in the old 
 be false. The concepts document what the source actually does today:
 
 - The universal `AbstractRepository -> ReadableRepository -> PersistableRepository ->
-  DefaultCRUDRepository` chain does not exist. The hierarchy is per-connector, and
+DefaultCRUDRepository` chain does not exist. The hierarchy is per-connector, and
   `DefaultCRUDRepository` survives only as a back-compat alias of `DefaultRelationalRepository`.
 - `FieldsVisibilityMixin` and `DefaultFilterMixin` no longer exist - both were folded into the
   repository base classes.
@@ -663,7 +676,7 @@ be false. The concepts document what the source actually does today:
 - The error module now has ONE message shape: a `TErrorDefinition`, the `getError` input and
   `normalized` all speak `{ text, code, args }`. The definition's `key`/`message: string` are gone
   (`TRegisterErrors` indexes `['message']['code']`); `getError`'s `message` is `string | { text,
-  code?, args? }` so flat call sites still compile. `error` is refused on the free-form branch
+code?, args? }` so flat call sites still compile. `error` is refused on the free-form branch
   (`error?: never`) - wrap with `cause`. Spreading a definition is now safe. Breaking against the
   PUBLISHED inversion 0.1.1-0.
 - `fromError({ error })` + `TResponsedError` added to inversion's error module: the inverse of the

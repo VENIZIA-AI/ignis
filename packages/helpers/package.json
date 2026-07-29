@@ -175,7 +175,8 @@
     "prettier:cli": "prettier \"**/*.{js,ts}\" -l",
     "prettier:fix": "bun run prettier:cli --write",
     "rebuild": "sh ./scripts/rebuild.sh no-version",
-    "prepublishOnly": "bun run rebuild"
+    "prepublishOnly": "bun run rebuild",
+    "purity": "bun test src/__tests__/browser-purity.test.ts src/__tests__/common/browser-purity.test.ts"
   },
   "dependencies": {
     "zod": "catalog:",
