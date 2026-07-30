@@ -1,5 +1,7 @@
 import { AnyType } from '@/common/types';
-import { ILogger, TLogLevel } from '../common';
+
+/** The leaf, not the `../common` barrel: that barrel reaches `constants.ts`, which reads `process.env` at module load. Both bindings here are types so a bundler erases the edge, but the source graph still carries it. */
+import { ILogger, TLogLevel } from '../common/types';
 
 /** The ILogger contract as a class - for instanceof and implementations sharing no plumbing. */
 export abstract class AbstractLogger implements ILogger {

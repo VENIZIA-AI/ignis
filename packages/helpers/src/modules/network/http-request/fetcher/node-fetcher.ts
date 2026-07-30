@@ -14,7 +14,8 @@ export interface INodeFetchRequestOptions extends RequestInit, IRequestOptions {
 export class NodeFetcher extends AbstractNetworkFetchableHelper<
   'node-fetch',
   INodeFetchRequestOptions,
-  Awaited<ReturnType<typeof fetch>>
+  Awaited<ReturnType<typeof fetch>>,
+  typeof fetch
 > {
   private defaultConfigs: RequestInit;
 

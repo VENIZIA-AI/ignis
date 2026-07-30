@@ -1,5 +1,6 @@
-import { AnyObject, HTTP, THttpMethod } from '@/common';
-import { TFetcherResponse, TFetcherVariant, TFetcherWorker } from '../types';
+import { HTTP, THttpMethod } from '@/common/constants/http';
+import { AnyObject } from '@/common/types';
+import { TFetcherVariant } from '../types';
 
 export interface IRequestOptions {
   url: string;
@@ -12,7 +13,8 @@ export interface IRequestOptions {
 export interface IFetchable<
   V extends TFetcherVariant,
   RQ extends IRequestOptions,
-  RS extends TFetcherResponse<V>,
+  RS,
+  W = unknown,
 > {
   send(opts: RQ, logger?: any): Promise<RS>;
   get(opts: RQ, logger?: any): Promise<RS>;
@@ -22,17 +24,20 @@ export interface IFetchable<
   delete(opts: RQ, logger?: any): Promise<RS>;
   query(opts: RQ, logger?: any): Promise<RS>;
 
-  getWorker(): TFetcherWorker<V>;
+  getVariant(): V;
+  getWorker(): W;
 }
 
+/** `W` defaults to `unknown` so this stays free of `axios` - a concrete fetcher binds it to its real worker type (`AxiosInstance`, `typeof fetch`), which is then inherited on `this.worker` with no override needed. */
 export abstract class AbstractNetworkFetchableHelper<
   V extends TFetcherVariant,
   RQ extends IRequestOptions,
-  RS extends TFetcherResponse<V>,
-> implements IFetchable<V, RQ, RS> {
+  RS,
+  W = unknown,
+> implements IFetchable<V, RQ, RS, W> {
   protected name: string;
   protected variant: V;
-  protected worker: TFetcherWorker<V>;
+  protected worker: W;
 
   constructor(opts: { name: string; variant: V }) {
     this.name = opts.name;
@@ -45,7 +50,11 @@ export abstract class AbstractNetworkFetchableHelper<
     return url.startsWith('http:') ? HTTP.Protocols.HTTP : HTTP.Protocols.HTTPS;
   }
 
-  getWorker() {
+  getVariant() {
+    return this.variant;
+  }
+
+  getWorker(): W {
     return this.worker;
   }
 

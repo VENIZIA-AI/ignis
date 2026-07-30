@@ -6,6 +6,64 @@ not how.
 This file and `index.md` are reserved OKF filenames - they carry no `type:` frontmatter and are not
 counted as concepts.
 
+## 2026-07-30 - whole-wave review: `/common`'s type surface, and `getWorker()`'s `unknown` cast
+
+Two defects the per-task reviews below could not see, since each only looked at `/core`.
+
+`common/index.ts` still had `export * from './jsx'`, so `@venizia/ignis-helpers/common` reached
+`hono/jsx` the same way `/core` did before the entry below - a consumer without `hono` gets
+`TS2307`, one compiling for a Worker gets a flood of DOM-intrinsic errors. Fixed the same way
+`ErrorSchema` left the error barrel: `export * from './jsx'` is gone from `common/index.ts`;
+`Child`/`FC`/`PropsWithChildren` are re-exported directly from the root barrel instead
+(`export * from './common/jsx'` in `src/index.ts`, beside `export * from './common'`), so the root
+barrel's public surface is unchanged (verified: `examples/rpc-api-server` imports all three from
+`@venizia/ignis-helpers` in three files). `core-type-surface.test.ts` is now parameterised over
+`(entry, fixture)` pairs - `./core` and `./common` - instead of hardcoding one; run against the
+unfixed `common/index.ts` it failed with the same `hono/jsx` DOM-intrinsic errors `/core` hit.
+
+The entry below widened `IFetchable`/`AbstractNetworkFetchableHelper`'s `getWorker()` to `unknown`
+to keep the interface `axios`-free, then had each concrete fetcher override `getWorker()` and
+`declare` its own `worker` field to recover the concrete type. That shape does not check anything: a
+class can implement `IFetchable<'axios', ...>` with `getWorker()` returning `fetch`, and
+`BaseNetworkRequest.getWorker(): TFetcherWorker<T>` cast the widened result back to the concrete
+type with `as`, so the lie compiled clean. Fixed with a fourth type parameter instead of the
+widen-and-cast shape: `IFetchable<V, RQ, RS, W = unknown>` and
+`AbstractNetworkFetchableHelper<V, RQ, RS, W = unknown>`; `W` defaults to `unknown` so the interface
+and the abstract base stay `axios`-free, but `AxiosFetcher`/`NodeFetcher` now bind it to their real
+worker type (`AxiosInstance`, `typeof fetch`) in the `extends` clause, so `this.worker`/`getWorker()`
+are correctly typed by inheritance - the `declare protected worker` overrides and the redundant
+`getWorker()` overrides are gone from both. `BaseNetworkRequest.getWorker()` now returns
+`this.fetcher.getWorker()` with no cast: its `fetcher` field is typed
+`IFetchable<T, IRequestOptions, TFetcherResponse<T>, TFetcherWorker<T>>`, so the interface itself
+carries the constraint end to end. Confirmed closed by writing a rogue `getWorker(): typeof fetch`
+implementor against `IFetchable<'axios', ...>` - `TS2322`, "Type 'typeof fetch' is missing ...
+`AxiosInstance`" - then deleting the scratch file. This is the pattern the next `kernel` gate
+(`AbstractRepository` re-exporting `drizzle-orm` types) should follow: type-parameter-with-neutral-
+default, not widen-and-cast, wherever the escaped type is load-bearing rather than incidental.
+
+## 2026-07-30 - `/core`'s `.d.ts` graph gets its own gate, after three ambient-global leaks
+
+Bundling erases types, so the bundle-and-spy purity tests never saw three ambient-global leaks
+sitting in `/core`'s type graph. `pool/types.ts`'s `IPoolWaiter.timer` used `NodeJS.Timeout`, now
+`ReturnType<typeof setTimeout>`. `common/types.ts` re-exported `Child`/`FC`/`PropsWithChildren` from
+`hono/jsx`; that re-export moves to a new `common/jsx.ts`, still exported through `common/index.ts`.
+`http-request/types.ts`'s `TFetcherResponse`/`TFetcherWorker` move to a new `fetcher/types.ts`, but
+not as a pure relocation: `base-fetcher.ts`'s `IFetchable`/`AbstractNetworkFetchableHelper` generics
+were bounded by those types, which would still drag `axios` into any file reaching the fetcher's
+leaf module. The bound is dropped instead - `RS` and `worker` go unconstrained (`unknown`), and each
+concrete fetcher (`AxiosFetcher`, `NodeFetcher`) redeclares its own `worker` type and overrides
+`getWorker()` to recover the concrete type at the call site.
+
+`src/__tests__/core-type-surface.test.ts` is the gate that should have caught all three: it runs
+`tsc --noEmit` on a fixture Worker consumer of `/core` under a `tsconfig` with `types: []` (drops the
+ambient `NodeJS` namespace) and `skipLibCheck: false` (stops a bad declaration silently widening to
+`any`) - drop either setting and it passes for the wrong reason. Helpers' `purity` script now runs it
+alongside the bundle-and-spy gates.
+
+The bundle-and-spy harness duplicated across six purity test files (helpers x4, inversion, filter,
+core) is extracted to a shared `__tests__/support/browser-purity-probe.ts` per package; each test
+file now only supplies its allowed packages and entry point.
+
 ## 2026-07-29 - helpers ships a `/core` sub-path: the isomorphic surface a Web Worker can import
 
 `@venizia/ignis-helpers/core` (`src/core.ts`) re-exports `BaseHelper`, the error layer, `uid`,

@@ -179,8 +179,7 @@
     "prettier:cli": "prettier \"**/*.{js,ts}\" -l",
     "prettier:fix": "bun run prettier:cli --write",
     "rebuild": "sh ./scripts/rebuild.sh no-version",
-    "prepublishOnly": "bun run rebuild",
-    "purity": "bun test src/__tests__/repositories/browser-purity.test.ts"
+    "prepublishOnly": "bun run rebuild"
   },
   "dependencies": {
     "@venizia/ignis-boot": "^0.1.1-13",

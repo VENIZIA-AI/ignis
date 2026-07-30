@@ -44,7 +44,7 @@ tags: [reference, make, build]
 | `make purity` | `purity-inversion purity-filter purity-helpers purity-core` | Browser purity gates passed. |
 | `make purity-inversion` | - | Browser purity: @venizia/ignis-inversion |
 | `make purity-filter` | `inversion` | Browser purity: @venizia/ignis-filter |
-| `make purity-helpers` | `inversion` | Browser purity: @venizia/ignis-helpers (BaseHelper path) |
+| `make purity-helpers` | `inversion helpers` | Browser purity: @venizia/ignis-helpers (BaseHelper path) |
 | `make purity-core` | `core` | Browser purity: @venizia/ignis (core repositories path) |
 | `make lint` | `lint-packages` | Linting completed. |
 | `make lint-all` | `lint-packages lint-examples` | All linting completed. |

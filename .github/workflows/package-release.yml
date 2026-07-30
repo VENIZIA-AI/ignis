@@ -112,10 +112,6 @@ jobs:
       - name: Lint
         run: make lint-$PACKAGE
 
-      # Every isomorphic package (and core's browser-facing repositories path) must bundle for target: browser with no node builtin and no server-only package. A leak breaks a consumer's bundler, not this build - so it has to fail here.
-      - name: Browser purity gate
-        run: make purity
-
       - name: Validate build artifacts
         run: |
           cd $PACKAGE_PATH
