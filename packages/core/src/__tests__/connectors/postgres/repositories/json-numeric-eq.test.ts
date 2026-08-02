@@ -53,4 +53,20 @@ describe('FilterBuilder - JSON path numeric equality operators cast to numeric',
   test('inq with string values stays text (no numeric cast)', () => {
     expect(compile({ 'metadata.status': { inq: ['a', 'b'] } })).not.toContain('numeric');
   });
+
+  test('bare numeric array casts to numeric like its inq equivalent', () => {
+    expect(compile({ 'metadata.score': [10, 20] })).toContain('numeric');
+  });
+
+  test('bare mixed array stays text (no numeric cast)', () => {
+    expect(compile({ 'metadata.score': [10, 'x'] })).not.toContain('numeric');
+  });
+
+  test('bare empty array stays text (no numeric cast)', () => {
+    expect(compile({ 'metadata.score': [] })).not.toContain('numeric');
+  });
+
+  test('bare string array stays text (no numeric cast)', () => {
+    expect(compile({ 'metadata.status': ['a', 'b'] })).not.toContain('numeric');
+  });
 });

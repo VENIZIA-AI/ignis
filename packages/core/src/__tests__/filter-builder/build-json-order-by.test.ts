@@ -1,8 +1,11 @@
-import { Sorts } from '@/base/repositories';
-import { PostgresFilterBuilder } from '@/connectors/postgres/repositories/dialect';
-import type { TConstValue } from '@venizia/ignis-helpers';
+import { describe, test, expect } from 'bun:test';
+import type { SQL } from 'drizzle-orm';
 import { getTableColumns } from 'drizzle-orm';
 import { jsonb, pgTable, serial, varchar } from 'drizzle-orm/pg-core';
+import type { AnyType, TConstValue } from '@venizia/ignis-helpers';
+
+import { Sorts } from '@/base/repositories';
+import { PostgresFilterBuilder } from '@/connectors/postgres/repositories/dialect';
 
 const testTable = pgTable('test_table', {
   id: serial('id').primaryKey(),
@@ -16,9 +19,10 @@ class TestableFilterBuilder extends PostgresFilterBuilder {
     key: string;
     direction: TConstValue<typeof Sorts>;
     tableName: string;
-  }) {
+  }): SQL {
     const columns = getTableColumns(testTable);
-    // Element access reaches the private `buildJsonOrderBy` without a cast - TS does not enforce
+
+    // Element access reaches the protected `buildJsonOrderBy` without a cast - TS does not enforce
     // private/protected access through it.
     return this['buildJsonOrderBy']({
       ...opts,
@@ -27,55 +31,74 @@ class TestableFilterBuilder extends PostgresFilterBuilder {
   }
 }
 
-interface ITestCase {
+/** `sql.raw` output has no meaningful `toString` - the emitted text lives in the chunk values. */
+const toRawSql = (value: SQL): string => {
+  const chunks = (value as AnyType).queryChunks as { value: string[] }[];
+
+  return chunks.map(chunk => chunk.value.join('')).join('');
+};
+
+interface ITestCaseBase {
   input: string;
   direction: TConstValue<typeof Sorts>;
-  shouldPass: boolean;
   description: string;
 }
 
-const testCases: ITestCase[] = [
+// An allowed key must emit the exact SQL, and a blocked key must be rejected for the stated reason:
+// a key blocked by accident is not a passing case.
+type TTestCase =
+  | (ITestCaseBase & { shouldPass: true; expectedSql: string })
+  | (ITestCaseBase & { shouldPass: false; expectedError: RegExp });
+
+const testCases: TTestCase[] = [
   {
     input: 'metadata.field',
     direction: Sorts.ASC,
     shouldPass: true,
     description: 'Simple field path',
+    expectedSql: `"metadata" #> '{field}' ASC`,
   },
   {
     input: 'metadata.nested_field',
     direction: Sorts.DESC,
     shouldPass: true,
     description: 'Underscore in field name',
+    expectedSql: `"metadata" #> '{nested_field}' DESC`,
   },
   {
     input: 'data.items[0]',
     direction: Sorts.ASC,
     shouldPass: true,
     description: 'Array index',
+    expectedSql: `"data" #> '{items,0}' ASC`,
   },
   {
     input: 'metadata.items[0].name',
     direction: Sorts.ASC,
     shouldPass: true,
     description: 'Array index with nested field',
+    expectedSql: `"metadata" #> '{items,0,name}' ASC`,
   },
   {
     input: 'data.a.b.c.d',
     direction: Sorts.ASC,
     shouldPass: true,
     description: 'Deep nesting',
+    expectedSql: `"data" #> '{a,b,c,d}' ASC`,
   },
   {
     input: 'metadata._private',
     direction: Sorts.ASC,
     shouldPass: true,
     description: 'Starts with underscore',
+    expectedSql: `"metadata" #> '{_private}' ASC`,
   },
   {
     input: 'data.field123',
     direction: Sorts.ASC,
     shouldPass: true,
     description: 'Field with numbers',
+    expectedSql: `"data" #> '{field123}' ASC`,
   },
 
   {
@@ -83,18 +106,21 @@ const testCases: ITestCase[] = [
     direction: Sorts.ASC,
     shouldPass: false,
     description: 'SQL injection - semicolon and DROP',
+    expectedError: /Invalid JSON path component/,
   },
   {
     input: "metadata.field' OR '1'='1",
     direction: Sorts.ASC,
     shouldPass: false,
     description: 'SQL injection - quotes',
+    expectedError: /Invalid JSON path component/,
   },
   {
     input: 'metadata[0; DROP TABLE]',
     direction: Sorts.ASC,
     shouldPass: false,
     description: 'SQL injection in array index',
+    expectedError: /Invalid JSON path component/,
   },
   {
     input: 'metadata.field-name',
@@ -103,54 +129,63 @@ const testCases: ITestCase[] = [
     // Kebab-case is a legal JSON key, allowed on purpose: the component is interpolated inside a
     // quoted `'{...}'` array literal it cannot escape.
     description: 'Hyphen in field name (kebab-case)',
+    expectedSql: `"metadata" #> '{field-name}' ASC`,
   },
   {
     input: 'metadata.field name',
     direction: Sorts.ASC,
     shouldPass: false,
     description: 'Space in field name',
+    expectedError: /Invalid JSON path component/,
   },
   {
     input: 'metadata.フィールド',
     direction: Sorts.ASC,
     shouldPass: false,
     description: 'Unicode characters',
+    expectedError: /Invalid JSON path component/,
   },
   {
     input: 'metadata.field UNION SELECT',
     direction: Sorts.ASC,
     shouldPass: false,
     description: 'SQL injection - UNION',
+    expectedError: /Invalid JSON path component/,
   },
   {
     input: 'metadata.`field`',
     direction: Sorts.ASC,
     shouldPass: false,
     description: 'Backticks',
+    expectedError: /Invalid JSON path component/,
   },
   {
     input: 'metadata."field"',
     direction: Sorts.ASC,
     shouldPass: false,
     description: 'Double quotes',
+    expectedError: /Invalid JSON path component/,
   },
   {
     input: 'metadata.field()',
     direction: Sorts.ASC,
     shouldPass: false,
     description: 'Parentheses',
+    expectedError: /Invalid JSON path component/,
   },
   {
     input: 'metadata.field/*comment*/',
     direction: Sorts.ASC,
     shouldPass: false,
     description: 'SQL comment',
+    expectedError: /Invalid JSON path component/,
   },
   {
     input: 'metadata.field\nDROP',
     direction: Sorts.ASC,
     shouldPass: false,
     description: 'Newline injection',
+    expectedError: /Invalid JSON path component/,
   },
 
   {
@@ -158,6 +193,7 @@ const testCases: ITestCase[] = [
     direction: Sorts.ASC,
     shouldPass: false,
     description: 'Non-JSON column (varchar)',
+    expectedError: /Column 'name' is not JSON\/JSONB type/,
   },
 
   {
@@ -165,87 +201,40 @@ const testCases: ITestCase[] = [
     direction: Sorts.ASC,
     shouldPass: false,
     description: 'Non-existent column',
+    expectedError: /Column NOT FOUND \| key: 'nonexistent'/,
   },
 ];
 
-interface ITestResult {
-  success: boolean;
-  error?: string;
-  sql?: string;
-}
-
-const reportPassedCase = (opts: { testCase: ITestCase; result: ITestResult }): void => {
-  const { testCase, result } = opts;
-
-  const icon = testCase.shouldPass ? '✓' : '✓';
-  const action = testCase.shouldPass ? 'ALLOWED' : 'BLOCKED';
-  console.log(`${icon} PASS: "${testCase.input}" - ${action}`);
-  console.log(`  Description: ${testCase.description}`);
-
-  if (result.success) {
-    console.log(`  SQL: ${result.sql?.substring(0, 80)}...`);
-    return;
-  }
-
-  console.log(`  Error: ${result.error?.substring(0, 80)}...`);
-};
-
-const reportFailedCase = (opts: { testCase: ITestCase; result: ITestResult }): void => {
-  const { testCase, result } = opts;
-
-  const expected = testCase.shouldPass ? 'should PASS' : 'should be BLOCKED';
-  const got = result.success ? 'PASSED' : 'was BLOCKED';
-  console.log(`✗ FAIL: "${testCase.input}" - ${expected} but ${got}`);
-  console.log(`  Description: ${testCase.description}`);
-
-  if (result.error) {
-    console.log(`  Error: ${result.error}`);
-  }
-};
-
-function runTests() {
+describe('FilterBuilder.buildJsonOrderBy - SQL injection prevention', () => {
   const filterBuilder = new TestableFilterBuilder();
-  let passed = 0;
-  let failed = 0;
-
-  console.log('='.repeat(70));
-  console.log('Testing buildJsonOrderBy (SQL injection prevention)');
-  console.log('='.repeat(70));
 
   for (const testCase of testCases) {
-    let result: { success: boolean; error?: string; sql?: string };
+    const action = testCase.shouldPass ? 'allows' : 'blocks';
 
-    try {
-      const sql = filterBuilder.testBuildJsonOrderBy({
-        key: testCase.input,
-        direction: testCase.direction,
-        tableName: 'test_table',
-      });
-      result = { success: true, sql: String(sql) };
-    } catch (err: any) {
-      result = { success: false, error: err.message };
-    }
+    test(`${action} ${testCase.description}: ${JSON.stringify(testCase.input)}`, () => {
+      const build = () =>
+        filterBuilder.testBuildJsonOrderBy({
+          key: testCase.input,
+          direction: testCase.direction,
+          tableName: 'test_table',
+        });
 
-    const isTestPassed = result.success === testCase.shouldPass;
+      if (!testCase.shouldPass) {
+        let caught: unknown;
 
-    if (isTestPassed) {
-      reportPassedCase({ testCase, result });
-      passed++;
-    } else {
-      reportFailedCase({ testCase, result });
-      failed++;
-    }
+        try {
+          build();
+        } catch (error) {
+          caught = error;
+        }
 
-    console.log();
+        expect(caught).toBeDefined();
+        expect((caught as Error).message).toMatch(testCase.expectedError);
+
+        return;
+      }
+
+      expect(toRawSql(build())).toBe(testCase.expectedSql);
+    });
   }
-
-  console.log('='.repeat(70));
-  console.log(`Results: ${passed} passed, ${failed} failed, ${testCases.length} total`);
-  console.log('='.repeat(70));
-
-  if (failed > 0) {
-    process.exit(1);
-  }
-}
-
-runTests();
+});

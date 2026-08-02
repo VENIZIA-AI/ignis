@@ -31,7 +31,7 @@ Provisioning is opt-in and additive-only: `autoProvision` (constructor option, o
 
 ## Reading
 
-`find()` / `findOne()` / `findById()` all route through `buildQuery()`, which merges the default filter and always strips hidden fields into the engine's exclude-fields. `search()` is a single unified entry point discriminated by `mode`:
+`find()` / `findOne()` / `findById()` all route through `buildQuery()`, which merges the default filter and always strips hidden fields into the engine's exclude-fields. `findById()` carries a projection filter like the relational tier does, and spreads `where` away last so the projection can never widen the id lookup. `search()` is a single unified entry point discriminated by `mode`:
 
 - `raw` - a full-power passthrough straight to the connector: no dialect, no default filter, **no hidden-field handling**. The caller owns exclusion there.
 - `keyword` / `semantic` / `hybrid` - `where` / default filter / hidden fields are translated through the dialect the same way `find()` does, then `ISearchQueryDialect.applySearchInput` applies every engine-specific parameter. Mode dispatch, the vector clause, and the tuning knobs all live in the dialect - nothing engine-specific leaks into the repository.
@@ -58,6 +58,17 @@ Typesense indexing is not synchronous with the write acknowledgement. On a live 
 ## Transactions
 
 There is none. `SearchBaseRepository.assertNoTransaction()` throws when `options.transaction` is passed, rather than silently running outside the transaction the caller expected. `assertNoLock()` does the same for row locks.
+
+## Signature divergences from the base contract
+
+Method parameters are bivariant in TypeScript, so a search repository can drop a parameter the base declares and still satisfy `ICrudRepository`. `tsc` will not catch it, and the generated CRUD controller passes the request's `filter` through the base type. Assume a divergence is a bug until it appears below.
+
+| Verb | Search signature | Why |
+| --- | --- | --- |
+| `findById` | matches the base, including `filter?: Omit<TFilter, 'where'>` | `fields` becomes the engine's include-fields; only `include` is unsupported, and the dialect throws for it |
+| `updateAll` | `where?` where the base requires it | the `@model` defaultFilter alone can supply the effective filter; Persistable refuses the write when neither is present |
+| `deleteAll` | the whole options object is optional | same rule, plus `deleteAll()` with no argument must refuse rather than truncate |
+| `updateAll` / `deleteAll` | return `data: null`, no `shouldReturn` overloads | no engine here has RETURNING, and no extra read is bolted on |
 
 ## Related
 

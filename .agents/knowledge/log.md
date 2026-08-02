@@ -6,6 +6,13 @@ not how.
 This file and `index.md` are reserved OKF filenames - they carry no `type:` frontmatter and are not
 counted as concepts.
 
+## 2026-08-02 - search findById now carries its filter; the family's signature divergences listed
+
+`ReadableSearchRepository.findById` declared no `filter`, so a caller typed at `ICrudRepository` -
+including the generated CRUD controller - lost `fields` silently. Parameter bivariance hid it from
+`tsc`. The signature now matches the base and `search-typesense.md` gained a table of the
+divergences that are deliberate, so the next audit can tell the two apart.
+
 ## 2026-08-02 - the lift changelog completed: six changes it had omitted
 
 `2026-08-01-relational-connector-lift.md` recorded the lift and the `FilterBuilder` withdrawal only.

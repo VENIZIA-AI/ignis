@@ -136,14 +136,17 @@ export class ReadableSearchRepository<
 
   /**
    * Delegates to findOne with id in where - routing through buildQuery is what makes
-   * hiddenFields/defaultFilter apply, so a soft-deleted document resolves to null.
+   * hiddenFields/defaultFilter apply, so a soft-deleted document resolves to null. `where` is spread
+   * away last so a projection can never widen the id lookup.
    */
   findById<R = TDocument>(opts: {
     id: IdType;
+    filter?: Omit<TFilter, 'where'>;
     options?: TFindOneOptions<IExtraOptions, R>;
   }): Promise<TNullable<R>> {
-    const { id, options } = opts;
-    return this.findOne<R>({ filter: { where: { id } }, options });
+    const { id, filter, options } = opts;
+
+    return this.findOne<R>({ filter: { ...filter, where: { id } }, options });
   }
 
   /**
@@ -237,7 +240,11 @@ export class ReadableSearchRepository<
     return this.denyOperation({ methodName: this.updateById.name });
   }
 
-  /** @throws Error - disabled in a read-only repository. */
+  /**
+   * @throws Error - disabled in a read-only repository. `where` is optional where the base contract
+   * requires it: the `@model` defaultFilter alone can supply the effective filter, and Persistable
+   * refuses the write outright when neither is present.
+   */
   updateAll(_opts: {
     data: Partial<TDocument>;
     where?: TWhere;

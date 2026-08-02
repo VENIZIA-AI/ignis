@@ -673,8 +673,15 @@ export abstract class FilterBuilder extends BaseHelper {
     const safeNumericCast = `CASE WHEN (${jsonPath}) ~ '^-?[0-9]+(\\.[0-9]+)?$' THEN (${jsonPath})::numeric ELSE NULL END`;
 
     if (!this.isOperatorObject({ value })) {
-      const jsonExtraction =
-        typeof value === 'number' ? sql.raw(safeNumericCast) : sql.raw(jsonPath);
+      // A bare value IS its operator equivalent - `isOperatorObject` counts an array as primitive, so `[10, 20]` reaches here and must take the same cast `{ inq: [10, 20] }` does.
+      const bareOperators = Array.isArray(value)
+        ? { [QueryOperators.INQ]: value }
+        : { [QueryOperators.EQ]: value };
+
+      const jsonExtraction = this.jsonNeedsNumericCast({ operators: bareOperators })
+        ? sql.raw(safeNumericCast)
+        : sql.raw(jsonPath);
+
       return [this.buildValueCondition({ column: jsonExtraction, value })];
     }
 
