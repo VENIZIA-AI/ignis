@@ -17,7 +17,7 @@ This section tracks the history of significant changes, refactors, and updates t
 
 | Date | Title | Type |
 |------|-------|------|
-| 2026-08-01 | [Relational Connector Lift - Engine-Neutral SQL Tier](./2026-08-01-relational-connector-lift) | Enhancement, Bug Fix, Behavior Change |
+| 2026-08-01 | [Relational Connector Lift - Engine-Neutral SQL Tier](./2026-08-01-relational-connector-lift) | Breaking Change, Enhancement, Bug Fix, Behavior Change |
 | 2026-07-26 | [Search and Mail Errors Join the Framework Catalog](./2026-07-26-search-and-mail-error-codes) | Enhancement |
 | 2026-07-25 | [ignis-filter - the Filter Vocabulary as a Browser-Safe Package](./2026-07-25-ignis-filter-package) | New Package, Enhancement |
 | 2026-07-25 | [Readable Error Logs and a logLevel Option on getError](./2026-07-25-error-logging) | New Feature, Enhancement |

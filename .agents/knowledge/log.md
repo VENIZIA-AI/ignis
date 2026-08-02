@@ -6,6 +6,47 @@ not how.
 This file and `index.md` are reserved OKF filenames - they carry no `type:` frontmatter and are not
 counted as concepts.
 
+## 2026-08-02 - the lift changelog completed: six changes it had omitted
+
+`2026-08-01-relational-connector-lift.md` recorded the lift and the `FilterBuilder` withdrawal only.
+Six later changes are now in it, grouped so an upgrading reader sees every breaking one at once.
+
+Three rules a future agent needs, because each one drove a change here and will drive the next:
+
+**The prefix follows the declaration keyword.** `I` for an `interface`, `T` for a `type` alias.
+`connectors/postgres/drivers/driver.ts` turned `IRelationalDriver`/`IRelationalConnection` from
+interfaces into Postgres narrowings - type aliases over the neutral interfaces - so both became
+`TRelationalDriver`/`TRelationalConnection`. Breaking: both were published from `@venizia/ignis` and
+`@venizia/ignis/postgres`. Type parameters unchanged, so it is a pure rename for driver authors. The
+neutral tier keeps `IRelationalDriver`/`IRelationalConnection` as genuine interfaces, parameterized
+by connector rather than schema. `IStatementResult` stayed an interface and stayed put.
+`TRelationalTransactionOptions` is the same rule applied to a type that was never published.
+
+**A `protected` member is public API to a subclass.** `AbstractRepository.denyOperation(methodName)`
+became `denyOperation({ methodName })` under the options-object convention. `protected` hides it from
+`tsc` at the package boundary but not from consumers - every subclass calling it breaks, in both
+connector families (`ReadableSearchRepository` overrides call it six times, the relational readable
+tier six more). Treat a `protected` signature change as breaking, never as internal.
+
+**The root barrel's `TTableObject`/`TTableInsert` are `PgTable`-branded, so anything composing with
+them must be too.** `connectors/postgres/repositories/core/soft-deletable.ts` re-exported the neutral
+`Table`-branded `TSoftDeletableTableSchema` for a while. A consumer intersecting the schema and
+feeding it to `TTableObject` then hit `TS2344`, which is how it reached a downstream application. The
+Postgres tier declares its own binding again. `bun test` cannot see any of this - only
+`bun run typecheck` - and `__tests__/connectors/postgres/root-barrel-composability.test.ts` is the
+type-level pin.
+
+Also folded in: `findById`'s recovered `options.retry` with its retry-before-`isStrict` ordering
+(already in `repository-hierarchy.md`, absent from the changelog - it was the most user-visible
+change in the set), and the `getIdType` dedupe, which is a re-export with no runtime effect.
+
+Found while re-checking the page against the commit: the `*RelationalRepository` and
+`*RelationalDataSource` compat aliases are gone from `@venizia/ignis` and `@venizia/ignis/postgres`,
+which the changelog had not recorded - its Details section still claimed the datasource aliases were
+exported. Ten withdrawn names now sit in one migration table, each mapped to the Postgres spelling on
+the same path. Migrating to `@venizia/ignis/relational` instead is wrong: the class of that name
+there is the neutral one, whose `connector` is `unknown`.
+
 ## 2026-08-02 - the `FilterBuilder` alias is withdrawn; docs repointed to the neutral tier
 
 `FilterBuilder` moved to `connectors/relational/repositories/dialect/filter.ts` and became `abstract`

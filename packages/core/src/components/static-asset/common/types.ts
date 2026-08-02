@@ -2,11 +2,11 @@ import type { IAuthRouteConfig } from '@/base';
 import type { BaseRelationalEntity } from '@/connectors/postgres/models';
 import type { DefaultCRUDRepository } from '@/connectors/postgres/repositories';
 import type {
-    AnyType,
-    DiskHelper,
-    IFileStat,
-    IUploadResult,
-    ValueOrPromise,
+  AnyType,
+  DiskHelper,
+  IFileStat,
+  IUploadResult,
+  ValueOrPromise,
 } from '@venizia/ignis-helpers';
 import type { BunS3Helper } from '@venizia/ignis-helpers/bun-s3';
 import type { MinioHelper } from '@venizia/ignis-helpers/minio';

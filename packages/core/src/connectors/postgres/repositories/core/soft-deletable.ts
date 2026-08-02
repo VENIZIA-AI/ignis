@@ -1,7 +1,7 @@
 import type { IExtraOptions } from '@/base/repositories/common';
 import type { IPostgresDataSource } from '@/connectors/postgres/datasources';
-import type { IDatabaseExtraOptions } from '@/connectors/postgres/repositories/common';
 import type { TTableInsert, TTableObject, TTableSchemaWithId } from '@/connectors/postgres/models';
+import type { IDatabaseExtraOptions } from '@/connectors/postgres/repositories/common';
 import type { IRelationalDataSource } from '@/connectors/relational/datasources/common';
 import type { TDeletedAtColumn } from '@/connectors/relational/repositories/core/soft-deletable';
 import { SoftDeletableRelationalRepository } from '@/connectors/relational/repositories/core/soft-deletable';

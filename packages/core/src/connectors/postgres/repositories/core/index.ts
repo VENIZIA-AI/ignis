@@ -1,5 +1,5 @@
 export * from './base';
-export * from './readable';
-export * from './persistable';
 export * from './default';
+export * from './persistable';
+export * from './readable';
 export * from './soft-deletable';
