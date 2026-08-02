@@ -237,12 +237,13 @@ Read verbs (`find`/`findOne`/`findById`/`count`) call `applyDefaultFilter()` dir
 > [!NOTE]
 > An older `DefaultFilterMixin` implemented this same behavior via mixin composition. It is no longer composed onto any repository class - see [Repository Mixins (Removed)](../repositories/mixins.md) for history.
 
-The merge itself is `FilterBuilder.mergeFilter()`:
+The merge itself is `FilterBuilder.mergeFilter()`. Reach it through the datasource's query dialect -
+`FilterBuilder` is abstract, so you never construct it directly:
 
 ```typescript
-const filterBuilder = new FilterBuilder();
+const queryDialect = dataSource.getQueryDialect();
 
-filterBuilder.mergeFilter({
+queryDialect.mergeFilter({
   defaultFilter: { where: { isDeleted: false }, limit: 100 },
   userFilter: { where: { status: 'active' }, limit: 10 },
 });
@@ -258,7 +259,7 @@ filterBuilder.mergeFilter({
 
 **Files:**
 
-- [`packages/core/src/connectors/postgres/repositories/dialect/filter.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core/src/connectors/postgres/repositories/dialect/filter.ts) - `FilterBuilder.mergeFilter()`/`mergeWhere()`, the narrowing merge
+- [`packages/core/src/connectors/relational/repositories/dialect/filter.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core/src/connectors/relational/repositories/dialect/filter.ts) - `FilterBuilder.mergeFilter()`/`mergeWhere()`, the narrowing merge
 - [`packages/core/src/connectors/postgres/repositories/core/base.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core/src/connectors/postgres/repositories/core/base.ts) - `RelationalBaseRepository`, `applyDefaultFilter`/`getDefaultFilter`/`getDefaultLimit`
 - [`packages/core/src/connectors/postgres/repositories/core/readable.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core/src/connectors/postgres/repositories/core/readable.ts) - `find`/`findOne`/`count` calling `applyDefaultFilter`
 - [`packages/core/src/connectors/postgres/repositories/core/persistable.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core/src/connectors/postgres/repositories/core/persistable.ts) - `_update`/`_delete` calling `applyDefaultFilter` for `updateById`/`updateAll`/`deleteById`/`deleteAll`

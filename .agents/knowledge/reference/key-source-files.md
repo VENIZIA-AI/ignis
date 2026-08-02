@@ -24,7 +24,7 @@ generated file inventory.
 | `packages/boot/src/base/base-artifact-booter.ts` | `BaseArtifactBooter` - the template-method base every built-in booter extends (configure -> discover -> load). |
 | `packages/boot/src/booters/index.ts` | Barrel for the four built-in booters: controller, service, repository, datasource. |
 | `packages/core/src/base/repositories/core/abstract.ts` | `AbstractRepository` - the one engine-neutral repository base every connector chain builds on. |
-| `packages/core/src/connectors/postgres/repositories/core/index.ts` | The concrete relational repository chain, plus the `DefaultRelationalRepository as DefaultCRUDRepository` back-compat alias. |
+| `packages/core/src/connectors/postgres/repositories/core/index.ts` | The Postgres repository chain - five real subclasses of the neutral `connectors/relational` chain, each rebinding `ExtraOptions` and `TDataSource` to the Postgres types. |
 | `packages/core/src/base/datasources/abstract.ts` | `AbstractDataSource` - engine-neutral datasource root; no SQL, no document-store specifics. |
 | `packages/core/src/base/components/base.ts` | `BaseComponent` - the base every pluggable component (health check, auth, mail, Socket.IO, ...) extends. |
 | `packages/core/src/base/metadata/persistents.ts` | `registerDataSourceInjection` - the strict logic behind `@repository`'s auto-injected DataSource at constructor param[0]. |

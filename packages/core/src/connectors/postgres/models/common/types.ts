@@ -25,9 +25,10 @@ export type TTableObject<T extends TTableSchemaWithId> = T['$inferSelect'];
 
 export type TGetIdType<T extends TTableSchemaWithId> = TTableObject<T>['id'];
 
-export const getIdType = <T extends TTableSchemaWithId>(opts: { entity: T }) => {
-  return opts.entity?.id?.dataType ?? 'unknown';
-};
+// One implementation, re-exported under its historical postgres path. The neutral constraint is
+// `Table`-branded, so it is WIDER than the `PgTable`-branded one here and every postgres caller
+// still satisfies it.
+export { getIdType } from '@/connectors/relational/models/common/types';
 
 export type TTableInsert<T extends TTableSchemaWithId> = T['$inferInsert'];
 

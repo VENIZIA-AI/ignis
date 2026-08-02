@@ -4,7 +4,7 @@ import type { AnyType } from '@venizia/ignis-helpers';
 import { AbstractRepository } from '@/base/repositories/core';
 import type { TCount, TFilter } from '@/base/repositories/common';
 import { buildDataRange, RepositoryErrorCodes } from '@/base/repositories/common';
-import { ReadableRelationalRepository } from '@/connectors/postgres/repositories';
+import { ReadableRelationalRepository } from '@/connectors/relational/repositories/core/readable';
 import { ReadableSearchRepository } from '@/connectors/search/repositories';
 
 import {
@@ -12,7 +12,7 @@ import {
   ProductDocument,
 } from '../connectors/search/repositories/fake-search-connector';
 
-/** Postgres readable with every engine-touching seam of `find()` stubbed out, so the test exercises the real range-building tail of `find()` without a database. */
+/** The engine-neutral relational readable with every engine-touching seam of `find()` stubbed out, so the test exercises the real range-building tail of `find()` without a database or an engine binding. */
 class StubbedRelationalRepository extends ReadableRelationalRepository {
   rows: Array<Record<string, unknown>> = [];
   total = 0;

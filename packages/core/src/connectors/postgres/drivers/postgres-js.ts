@@ -4,11 +4,11 @@ import type { AnyType } from '@venizia/ignis-helpers';
 import { getError } from '@venizia/ignis-helpers';
 import { drizzle } from 'drizzle-orm/postgres-js';
 import type { Sql } from 'postgres';
-import type { IRelationalConnection, IRelationalDriver } from './driver';
+import type { TRelationalConnection, TRelationalDriver } from './driver';
 
 export class PostgresJsDriver<
   Schema extends TAnyDataSourceSchema = TAnyDataSourceSchema,
-> implements IRelationalDriver<Schema, Sql> {
+> implements TRelationalDriver<Schema, Sql> {
   private readonly client: Sql;
 
   constructor(opts: { client: Sql }) {
@@ -30,7 +30,7 @@ export class PostgresJsDriver<
     return drizzle({ client: this.client, schema: opts.schema }) as TRelationalConnector<Schema>;
   }
 
-  async acquire(opts: { schema: Schema }): Promise<IRelationalConnection<Schema>> {
+  async acquire(opts: { schema: Schema }): Promise<TRelationalConnection<Schema>> {
     const reserved = await this.client.reserve();
 
     const reservedClient = reserved as AnyType;

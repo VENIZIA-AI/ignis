@@ -117,6 +117,6 @@ Every path component must match `/^[a-zA-Z_][a-zA-Z0-9_-]*$|^\d+$/` - a letter/u
 
 **Files:**
 
-- [`packages/core/src/connectors/postgres/repositories/dialect/filter.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core/src/connectors/postgres/repositories/dialect/filter.ts) - `FilterBuilder`, `buildJsonWhereCondition`/`buildJsonOperatorConditions`/`buildJsonOrderBy`
-- [`packages/core/src/connectors/postgres/repositories/dialect/internal/json-utils.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core/src/connectors/postgres/repositories/dialect/internal/json-utils.ts) - `isJsonPath`, `parseJsonPath`, path validation regex
+- [`packages/core/src/connectors/relational/repositories/dialect/filter.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core/src/connectors/relational/repositories/dialect/filter.ts) - `FilterBuilder`, `buildJsonWhereCondition`/`buildJsonOperatorConditions`/`buildJsonOrderBy`
+- [`packages/core/src/connectors/relational/repositories/dialect/internal/json-utils.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core/src/connectors/relational/repositories/dialect/internal/json-utils.ts) - `isJsonPath`, `parseJsonPath`, path validation regex
 - [`packages/filter/src/common/operators.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/filter/src/common/operators.ts) - `QueryOperators` constants

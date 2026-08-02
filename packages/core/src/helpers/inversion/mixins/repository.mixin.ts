@@ -1,8 +1,8 @@
 import type { IDataSource } from '@/base/datasources';
 import type { AbstractEntity } from '@/base/models';
-import type { TTableSchemaWithId } from '@/connectors/postgres/models';
-import type { TRelationConfig } from '@/connectors/postgres/repositories/common';
-import { createRelations } from '@/connectors/postgres/repositories/dialect/relation';
+import type { TTableSchemaWithId } from '@/connectors/relational/models/common';
+import type { TRelationConfig } from '@/connectors/relational/repositories/common';
+import { createRelations } from '@/connectors/relational/repositories/dialect/relation';
 import type { AnyType, TClass, TMixinTarget } from '@venizia/ignis-helpers';
 import { resolveValue } from '@venizia/ignis-helpers';
 import type { MetadataRegistry as _MetadataRegistry } from '@venizia/ignis-inversion';

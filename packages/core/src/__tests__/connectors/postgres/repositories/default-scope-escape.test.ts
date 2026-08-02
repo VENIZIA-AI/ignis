@@ -2,11 +2,11 @@ import { describe, expect, test } from 'bun:test';
 import { PgDialect } from 'drizzle-orm/pg-core';
 import { pgTable, serial, text } from 'drizzle-orm/pg-core';
 import type { AnyType } from '@venizia/ignis-helpers';
-import { FilterBuilder } from '@/connectors/postgres/repositories/dialect/filter';
+import { PostgresFilterBuilder } from '@/connectors/postgres/repositories/dialect/filter';
 
 /** A `@model` `defaultFilter` is a SCOPE (soft-delete, tenant, ownership): a caller filter may only NARROW it - dropping a default condition is a data-leak primitive. Pins the two escape routes. */
 const mergeWhere = (defaultWhere: AnyType, userWhere: AnyType): AnyType => {
-  const builder = new FilterBuilder() as AnyType;
+  const builder = new PostgresFilterBuilder() as AnyType;
   return builder.mergeWhere({ defaultWhere, userWhere });
 };
 
@@ -71,7 +71,7 @@ describe('an EMPTY logical group', () => {
   const dialect = new PgDialect();
 
   const compile = (where: AnyType): string => {
-    const builder = new FilterBuilder() as AnyType;
+    const builder = new PostgresFilterBuilder() as AnyType;
     const condition = builder.toWhere({ tableName: 'articles', schema: table, where });
 
     return condition ? dialect.sqlToQuery(condition).sql : 'NO CONDITION';

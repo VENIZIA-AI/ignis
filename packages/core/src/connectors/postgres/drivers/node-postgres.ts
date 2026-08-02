@@ -4,11 +4,11 @@ import type { AnyType } from '@venizia/ignis-helpers';
 import { getError } from '@venizia/ignis-helpers';
 import { drizzle } from 'drizzle-orm/node-postgres';
 import type { Pool } from 'pg';
-import type { IRelationalConnection, IRelationalDriver } from './driver';
+import type { TRelationalConnection, TRelationalDriver } from './driver';
 
 export class NodePostgresDriver<
   Schema extends TAnyDataSourceSchema = TAnyDataSourceSchema,
-> implements IRelationalDriver<Schema, Pool> {
+> implements TRelationalDriver<Schema, Pool> {
   private readonly client: Pool;
 
   constructor(opts: { client: Pool }) {
@@ -32,7 +32,7 @@ export class NodePostgresDriver<
     return drizzle({ client: this.client, schema: opts.schema }) as TRelationalConnector<Schema>;
   }
 
-  async acquire(opts: { schema: Schema }): Promise<IRelationalConnection<Schema>> {
+  async acquire(opts: { schema: Schema }): Promise<TRelationalConnection<Schema>> {
     const client = await this.client.connect();
 
     // Named here, at the checkout, instead of as a null-deref deep inside drizzle.

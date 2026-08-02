@@ -2,7 +2,7 @@ import { describe, expect, test } from 'bun:test';
 import { pgTable, serial, varchar, timestamp, jsonb } from 'drizzle-orm/pg-core';
 import { PgDialect } from 'drizzle-orm/pg-core';
 import type { SQL } from 'drizzle-orm';
-import { FilterBuilder } from '@/connectors/postgres/repositories/dialect/filter';
+import { PostgresFilterBuilder } from '@/connectors/postgres/repositories/dialect/filter';
 
 const table = pgTable('exists_fixture', {
   id: serial('id').primaryKey(),
@@ -11,7 +11,7 @@ const table = pgTable('exists_fixture', {
   metadata: jsonb('metadata'),
 });
 
-const builder = new FilterBuilder();
+const builder = new PostgresFilterBuilder();
 const dialect = new PgDialect();
 
 const compile = (where: any): { text: string; params: unknown[] } => {

@@ -9,6 +9,9 @@ description: Added default filter support for models and refactored repository a
 
 This release introduces **Default Filter** - a powerful feature that automatically applies predefined filter conditions to all repository queries. Additionally, the repository architecture has been refactored to use composable mixins for better code organization and reusability.
 
+> [!NOTE]
+> **2026-08-01 Update:** The `import { FilterBuilder } from '@venizia/ignis'` form shown below no longer resolves. The Postgres class is now `PostgresFilterBuilder`, from the same path; the name `FilterBuilder` belongs to the neutral abstract base at `@venizia/ignis/relational`. See [Relational Connector Lift](./2026-08-01-relational-connector-lift).
+
 ## Overview
 
 - **Default Filter**: Configure automatic filter conditions at the model level (e.g., soft delete, tenant isolation)

@@ -147,10 +147,10 @@ export abstract class AbstractRepository<
   }
 
   /** Rejects a verb the current operation scope does not permit. */
-  protected denyOperation(methodName: string): never {
+  protected denyOperation(opts: { methodName: string }): never {
     throw getError({
       messageCode: RepositoryErrorCodes.OPERATION_NOT_ALLOWED,
-      message: `[${methodName}] Repository operation is NOT ALLOWED | scope: ${this.operationScope}`,
+      message: `[${opts.methodName}] Repository operation is NOT ALLOWED | scope: ${this.operationScope}`,
     });
   }
 

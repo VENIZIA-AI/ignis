@@ -3,7 +3,7 @@ import type { AnyType } from '@venizia/ignis-helpers';
 import { getError, RetryBackoffStrategies, RetryJitterModes } from '@venizia/ignis-helpers';
 
 import type { TCount, TFilter } from '@/base/repositories/common';
-import { ReadableRelationalRepository } from '@/connectors/postgres/repositories';
+import { ReadableRelationalRepository } from '@/connectors/relational/repositories/core/readable';
 
 const FAST_RETRY_BACKOFF = {
   strategy: RetryBackoffStrategies.FIXED,
@@ -11,7 +11,7 @@ const FAST_RETRY_BACKOFF = {
   jitter: RetryJitterModes.NONE,
 } as const;
 
-/** Shared engine-stubbing for every probe: pass-through default filter/limit and a canned count, so retry behavior is observable without a database. Each subclass supplies only what its scenario varies. */
+/** Shared engine-stubbing for every probe: pass-through default filter/limit and a canned count, so retry behavior is observable without a database. Each subclass supplies only what its scenario varies. Deliberately the engine-neutral class with its neutral defaults - read retry is SQL-tier behavior, not a Postgres one. */
 abstract class ReadRetryProbeBase extends ReadableRelationalRepository {
   calls = 0;
   total = 0;

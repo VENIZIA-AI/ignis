@@ -2,7 +2,7 @@
 type: Architecture
 title: Filter system
 description: The engine-neutral filter vocabulary, how FilterBuilder translates it into Drizzle, and why find() silently switches between two different Drizzle query APIs.
-resource: packages/core/src/connectors/postgres/repositories/dialect/filter.ts
+resource: packages/core/src/connectors/relational/repositories/dialect/filter.ts
 tags: [architecture, filter, query, drizzle, postgres]
 ---
 
@@ -28,7 +28,19 @@ The vocabulary is also **browser-safe**, and that is enforced rather than assume
 
 ## Translation
 
-`FilterBuilder` (in the postgres dialect) implements `IRelationalQueryDialect` and turns a filter into Drizzle pieces: `toWhere()`, `toOrderBy()`, `toInclude()`, plus column selection. It is created once and cached statically on `AbstractRelationalDataSource`, and it memoizes resolved relations per schema in a `WeakMap` (registry lookups are safe to cache because `@model` settings are immutable after boot). `getCachedColumns()` does the same for table columns.
+`FilterBuilder` (`connectors/relational/repositories/dialect/filter.ts`) turns a filter into Drizzle pieces: `toWhere()`, `toOrderBy()`, `toInclude()`, plus column selection. It is **abstract** and names no SQL engine: its operator table is declared `protected abstract get operators(): TQueryOperatorHandlers`, so every engine subclasses to supply one. It has zero `drizzle-orm/pg-core` imports.
+
+Three classes, in a line:
+
+| Class | Declared in | Adds |
+|---|---|---|
+| `FilterBuilder` (abstract) | `connectors/relational/repositories/dialect/filter.ts` | The whole `where`/`order`/`include`/columns walk; `operators` left abstract |
+| `PostgresFilterBuilder` | `connectors/postgres/repositories/dialect/filter.ts` | One member - `operators` returns `PostgresQueryOperators.FNS` |
+| `PostgresQueryDialect` | `connectors/postgres/repositories/dialect/query-dialect.ts` | `implements IRelationalQueryDialect`; adds `transformUpdate()`/`toUpdateData()`, backed by `UpdateBuilder` |
+
+**Export placement matters.** `FilterBuilder` resolves only from `@venizia/ignis/relational`. `PostgresFilterBuilder` resolves from `@venizia/ignis` and `@venizia/ignis/postgres`. There is no `FilterBuilder` alias in the Postgres tier - it would publish two different classes under one name across sibling sub-paths.
+
+A repository never constructs any of them; it asks its datasource for `getQueryDialect()`, which caches one `PostgresQueryDialect` instance statically on `AbstractPostgresDataSource`. `FilterBuilder` memoizes resolved relations per schema in a `WeakMap` (registry lookups are safe to cache because `@model` settings are immutable after boot); `getCachedColumns()` does the same for table columns. Its JSON-path methods hardcode Postgres `#>>`/`#>` but are `protected`, so a second SQL engine overrides instead of forking. See [Relational connector](/architecture/relational-connector.md) for the exact override list.
 
 ## The dual query API
 
@@ -71,6 +83,7 @@ Everything outside `where` (`order`, `limit`, `offset`, `skip`, `fields`, `inclu
 
 ## Related
 
+- [Relational connector](/architecture/relational-connector.md)
 - [Repository Hierarchy](/architecture/repository-hierarchy.md)
 - [DataSource Hierarchy](/architecture/datasource-hierarchy.md)
 - [Transactions](/architecture/transactions.md)

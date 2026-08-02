@@ -1,9 +1,9 @@
 import type { AbstractDataSource, ITransaction } from '@/base/datasources';
 import type { AbstractEntity, IdType } from '@/base/models';
 import { z } from '@hono/zod-openapi';
-import type { IRetryBackoffOptions, TLogLevel, TNullable } from '@venizia/ignis-helpers';
-import type { Column, SQL } from 'drizzle-orm';
 import type { TFilter, TWhere } from '@venizia/ignis-filter';
+import type { AnyType, IRetryBackoffOptions, TLogLevel, TNullable } from '@venizia/ignis-helpers';
+import type { Column, SQL } from 'drizzle-orm';
 import type { TLockStrength } from './constants';
 
 /** Update data supporting both regular fields and JSON path updates via dot notation. */
@@ -294,3 +294,9 @@ export interface IQueryHandlerOptions<T = any> {
   column: Column;
   value: T;
 }
+
+/** Operator-name to SQL-handler table a relational dialect translates with, so a second SQL engine swaps the whole table without touching the walk that reaches it. `column` is wider than `IQueryHandlerOptions` names it: the JSON-path branch hands handlers a raw `#>>` extraction expression, not a `Column`. */
+export type TQueryOperatorHandlers = Record<
+  string,
+  (opts: { column: AnyType; value: AnyType }) => SQL | undefined
+>;

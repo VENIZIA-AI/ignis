@@ -14,8 +14,8 @@ The search hierarchy is a deliberate reflection of the relational one:
 
 | Relational | Search |
 | --- | --- |
-| `AbstractRelationalDataSource` | `AbstractSearchDataSource` |
-| `BaseRelationalDataSource` | `BaseSearchDataSource` |
+| `AbstractPostgresDataSource` | `AbstractSearchDataSource` |
+| `BasePostgresDataSource` | `BaseSearchDataSource` |
 | `RelationalBaseRepository` | `SearchBaseRepository` |
 | `ReadableRelationalRepository` | `ReadableSearchRepository` |
 | `PersistableRelationalRepository` | `PersistableSearchRepository` |

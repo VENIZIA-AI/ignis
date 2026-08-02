@@ -1,5 +1,5 @@
 import { describe, test, expect, spyOn } from 'bun:test';
-import { FilterBuilder } from '@/connectors/postgres/repositories/dialect';
+import { PostgresFilterBuilder } from '@/connectors/postgres/repositories/dialect';
 import type { TDrizzleQueryOptions } from '@/base/repositories/common';
 import { DEFAULT_LIMIT } from '@/base/repositories/common';
 import type { TRelationConfig } from '@/connectors/postgres/repositories/common';
@@ -18,7 +18,7 @@ const relations: Record<string, TRelationConfig> = {
   owner: { name: 'owner', type: 'one', schema: table, metadata: undefined },
 };
 
-const builder = new FilterBuilder();
+const builder = new PostgresFilterBuilder();
 
 function buildTop(filter: any): TDrizzleQueryOptions {
   return builder.build({ tableName: 'categories', schema: table, filter });

@@ -101,6 +101,10 @@
       "types": "./dist/connectors/postgres/index.d.ts",
       "default": "./dist/connectors/postgres/index.js"
     },
+    "./relational": {
+      "types": "./dist/connectors/relational/index.d.ts",
+      "default": "./dist/connectors/relational/index.js"
+    },
     "./postgres/node-postgres": {
       "types": "./dist/connectors/postgres/drivers/node-postgres.d.ts",
       "default": "./dist/connectors/postgres/drivers/node-postgres.js"

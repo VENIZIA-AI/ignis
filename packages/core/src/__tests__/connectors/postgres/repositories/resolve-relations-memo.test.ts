@@ -1,6 +1,6 @@
 import { describe, expect, test, spyOn } from 'bun:test';
 import { pgTable, serial, varchar } from 'drizzle-orm/pg-core';
-import { FilterBuilder } from '@/connectors/postgres/repositories/dialect/filter';
+import { PostgresFilterBuilder } from '@/connectors/postgres/repositories/dialect/filter';
 import { MetadataRegistry } from '@/helpers/inversion';
 
 const parentTable = pgTable('memo_parent', {
@@ -16,7 +16,7 @@ const childTable = pgTable('memo_child', {
 /** Relations are resolved only when `include` is present, and memoized per schema - @model settings are immutable after boot, so a second build() must not re-run the resolver. */
 describe('FilterBuilder - resolveRelations guard + memoization', () => {
   test('build() without include never resolves relations', () => {
-    const builder = new FilterBuilder();
+    const builder = new PostgresFilterBuilder();
     const spy = spyOn(builder, 'resolveRelations');
 
     builder.build({ tableName: 'memo_parent', schema: parentTable, filter: { where: { id: 1 } } });
@@ -36,7 +36,7 @@ describe('FilterBuilder - resolveRelations guard + memoization', () => {
       getModelEntry: () => ({ relationsResolver, metadata: { type: 'entity', settings: {} } }),
     } as any);
 
-    const builder = new FilterBuilder();
+    const builder = new PostgresFilterBuilder();
 
     builder.build({
       tableName: 'memo_parent',

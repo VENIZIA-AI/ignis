@@ -2,7 +2,7 @@ import { describe, expect, test } from 'bun:test';
 import type { SQL } from 'drizzle-orm';
 import { jsonb, PgDialect, pgTable, serial } from 'drizzle-orm/pg-core';
 import type { AnyType } from '@venizia/ignis-helpers';
-import { FilterBuilder } from '@/connectors/postgres/repositories/dialect/filter';
+import { PostgresFilterBuilder } from '@/connectors/postgres/repositories/dialect/filter';
 
 /** A JSON `#>>` extraction is TEXT: numeric comparison needs a numeric cast or Postgres raises 'operator does not exist'. The cast belongs to each OPERATOR, not the object - an object-wide choice misses `not`-wrapped numerics and over-casts mixed objects like `{ gte: 1, like: '%a%' }`. */
 const table = pgTable('documents', {
@@ -13,7 +13,7 @@ const table = pgTable('documents', {
 const dialect = new PgDialect();
 
 const compile = (where: AnyType): string => {
-  const builder = new FilterBuilder() as AnyType;
+  const builder = new PostgresFilterBuilder() as AnyType;
   const condition = builder.toWhere({ tableName: 'documents', schema: table, where }) as SQL;
 
   return dialect.sqlToQuery(condition).sql;

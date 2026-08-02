@@ -1,183 +1,36 @@
-import type { IdType } from '@/base/models';
-import type { IExtraOptions, TCount, TFilter, TWhere } from '@/base/repositories/common';
-import { RepositoryErrors } from '@/base/repositories/common';
+import type { IExtraOptions } from '@/base/repositories/common';
+import type { IPostgresDataSource } from '@/connectors/postgres/datasources';
+import type { IDatabaseExtraOptions } from '@/connectors/postgres/repositories/common';
 import type { TTableInsert, TTableObject, TTableSchemaWithId } from '@/connectors/postgres/models';
-import type { TNullable } from '@venizia/ignis-helpers';
-import { getError } from '@venizia/ignis-helpers';
-import type { AnyPgColumn } from 'drizzle-orm/pg-core';
-import type { IDatabaseExtraOptions } from '../common';
-import { DefaultRelationalRepository } from './default';
+import type { IRelationalDataSource } from '@/connectors/relational/datasources/common';
+import type { TDeletedAtColumn } from '@/connectors/relational/repositories/core/soft-deletable';
+import { SoftDeletableRelationalRepository } from '@/connectors/relational/repositories/core/soft-deletable';
 
-export type TDeletedAtColumn = AnyPgColumn<{
-  data: Date | string | null;
-}>;
+/** The `deletedAt` column bound is engine-neutral; re-exported so the historical import path keeps resolving. */
+export type { TDeletedAtColumn } from '@/connectors/relational/repositories/core/soft-deletable';
 
+/**
+ * Postgres binding, declared here rather than re-exported from the neutral tier: this barrel also
+ * exports the `PgTable`-branded `TTableObject` / `TTableInsert`, and re-exporting the `Table`-branded
+ * neutral schema makes the two uncomposable. A consumer writing
+ * `type TArchivable = TSoftDeletableTableSchema & {...}` and feeding it to `TTableObject<TArchivable>`
+ * then fails with TS2344 - which is exactly how this broke a downstream application once.
+ */
 export type TSoftDeletableTableSchema = TTableSchemaWithId & {
   deletedAt: TDeletedAtColumn;
 };
 
-/** Repository that soft-deletes (sets `deletedAt`) instead of physically removing rows; models need a `deletedAt` column and `defaultFilter: { where: { deletedAt: null } }` in `@model` settings. */
-export class SoftDeletableRelationalRepository<
+/** Postgres binding of `SoftDeletableRelationalRepository` - soft-deletes by setting `deletedAt` instead of physically removing rows. */
+export class SoftDeletableRepository<
   EntitySchema extends TSoftDeletableTableSchema = TSoftDeletableTableSchema,
   DataObject extends TTableObject<EntitySchema> = TTableObject<EntitySchema>,
   PersistObject extends TTableInsert<EntitySchema> = TTableInsert<EntitySchema>,
   ExtraOptions extends IExtraOptions = IDatabaseExtraOptions,
-> extends DefaultRelationalRepository<EntitySchema, DataObject, PersistObject, ExtraOptions> {
-  private softDeletePatch(deletedAt: Date | null): Partial<PersistObject> {
-    return { deletedAt } as any;
-  }
-
-  override async findById<R = DataObject>(opts: {
-    id: IdType;
-    filter?: Omit<TFilter<DataObject>, 'where'>;
-    options?: ExtraOptions & { isStrict?: false };
-  }): Promise<TNullable<R>>;
-  override async findById<R = DataObject>(opts: {
-    id: IdType;
-    filter?: Omit<TFilter<DataObject>, 'where'>;
-    options?: ExtraOptions & { isStrict?: true };
-  }): Promise<R>;
-  override async findById<R = DataObject>(opts: {
-    id: IdType;
-    filter?: Omit<TFilter<DataObject>, 'where'>;
-    options?: ExtraOptions & { isStrict?: boolean };
-  }): Promise<TNullable<R>> {
-    const result = await super.findById<R>(opts);
-
-    if (opts.options?.isStrict && !result) {
-      throw getError({
-        error: RepositoryErrors.ENTITY_NOT_FOUND,
-        message: `[${this.constructor.name}][findById] Entity with id ${opts.id} not found`,
-        messageArgs: { id: opts.id },
-      });
-    }
-
-    return result;
-  }
-
-  override deleteById(opts: {
-    id: IdType;
-    options: ExtraOptions & { shouldReturn: false; shouldHardDelete?: boolean };
-  }): Promise<TCount & { data: undefined | null }>;
-  override deleteById<R = DataObject>(opts: {
-    id: IdType;
-    options?: ExtraOptions & { shouldReturn?: true; shouldHardDelete?: boolean };
-  }): Promise<TCount & { data: R }>;
-  override async deleteById<R = DataObject>(opts: {
-    id: IdType;
-    options?: ExtraOptions & { shouldReturn?: boolean; shouldHardDelete?: boolean };
-  }): Promise<TCount & { data: TNullable<R> }> {
-    if (opts.options?.shouldHardDelete) {
-      return super.deleteById<R>(opts);
-    }
-
-    return this.updateById<R>({
-      id: opts.id,
-      data: this.softDeletePatch(new Date()),
-      options: opts.options,
-    });
-  }
-
-  override deleteAll(opts: {
-    where?: TWhere<DataObject>;
-    options: ExtraOptions & { shouldReturn: false; force?: boolean; shouldHardDelete?: boolean };
-  }): Promise<TCount & { data: undefined | null }>;
-  override deleteAll<R = DataObject>(opts: {
-    where?: TWhere<DataObject>;
-    options?: ExtraOptions & { shouldReturn?: true; force?: boolean; shouldHardDelete?: boolean };
-  }): Promise<TCount & { data: Array<R> }>;
-  override deleteAll<R = DataObject>(opts: {
-    where?: TWhere<DataObject>;
-    options?: ExtraOptions & {
-      shouldReturn?: boolean;
-      force?: boolean;
-      shouldHardDelete?: boolean;
-    };
-  }): Promise<TCount & { data: TNullable<Array<R>> }> {
-    if (opts.options?.shouldHardDelete) {
-      return super.deleteAll<R>(opts);
-    }
-
-    return this.updateAll<R>({
-      where: opts.where ?? {},
-      data: this.softDeletePatch(new Date()),
-      options: opts.options,
-    });
-  }
-
-  override deleteBy(opts: {
-    where: TWhere<DataObject>;
-    options: ExtraOptions & { shouldReturn: false; force?: boolean; shouldHardDelete?: boolean };
-  }): Promise<TCount & { data: undefined | null }>;
-  override deleteBy<R = DataObject>(opts: {
-    where: TWhere<DataObject>;
-    options?: ExtraOptions & { shouldReturn?: true; force?: boolean; shouldHardDelete?: boolean };
-  }): Promise<TCount & { data: Array<R> }>;
-  override deleteBy<R = DataObject>(opts: {
-    where: TWhere<DataObject>;
-    options?: ExtraOptions & {
-      shouldReturn?: boolean;
-      force?: boolean;
-      shouldHardDelete?: boolean;
-    };
-  }): Promise<TCount & { data: TNullable<Array<R>> }> {
-    if (opts.options?.shouldHardDelete) {
-      return super.deleteBy<R>(opts);
-    }
-
-    return this.updateAll<R>({
-      where: opts.where,
-      data: this.softDeletePatch(new Date()),
-      options: opts.options,
-    });
-  }
-
-  async restoreById<R = DataObject>(opts: {
-    id: IdType;
-    options?: ExtraOptions & { shouldReturn?: boolean };
-  }): Promise<TCount & { data: TNullable<R> }> {
-    this.validateId({ id: opts.id, operationName: 'restoreById' });
-    const { shouldReturn = true, ...restOptions } = opts.options ?? {};
-
-    // `updateById` is overloaded on the literal `shouldReturn: true | false` and the spread below widens it back to `boolean`, so this calls `_update` directly instead.
-    const options = {
-      ...restOptions,
-      shouldReturn,
-      shouldSkipDefaultFilter: true,
-    } as ExtraOptions & {
-      shouldReturn: boolean;
-    };
-    const rs = await this._update<R>({
-      where: { id: opts.id },
-      data: this.softDeletePatch(null),
-      options,
-    });
-    return { count: rs.count, data: rs.data?.[0] ?? null };
-  }
-
-  async restoreAll<R = DataObject>(opts: {
-    where?: TWhere<DataObject>;
-    options?: ExtraOptions & { shouldReturn?: boolean; force?: boolean };
-  }): Promise<TCount & { data: TNullable<Array<R>> }> {
-    const { shouldReturn = true, force, ...restOptions } = opts.options ?? {};
-
-    // `updateAll` forwards straight to `_update`, so calling it here directly is behavior-identical.
-    const options = {
-      ...restOptions,
-      shouldReturn,
-      force,
-      shouldSkipDefaultFilter: true,
-    } as ExtraOptions & {
-      shouldReturn: boolean;
-      force?: boolean;
-    };
-    return this._update<R>({ where: opts.where ?? {}, data: this.softDeletePatch(null), options });
-  }
-
-  async restoreBy<R = DataObject>(opts: {
-    where: TWhere<DataObject>;
-    options?: ExtraOptions & { shouldReturn?: boolean; force?: boolean };
-  }): Promise<TCount & { data: TNullable<Array<R>> }> {
-    return this.restoreAll<R>(opts);
-  }
-}
+  TDataSource extends IRelationalDataSource = IPostgresDataSource,
+> extends SoftDeletableRelationalRepository<
+  EntitySchema,
+  DataObject,
+  PersistObject,
+  ExtraOptions,
+  TDataSource
+> {}

@@ -1,4 +1,4 @@
-import { parseJsonPath } from '@/connectors/postgres/repositories/dialect/internal/json-utils';
+import { parseJsonPath } from '@/connectors/relational/repositories/dialect/internal/json-utils';
 
 interface ITestCase {
   input: string;

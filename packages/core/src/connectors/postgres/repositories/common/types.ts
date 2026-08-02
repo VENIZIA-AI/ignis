@@ -1,36 +1,18 @@
-import type {
-  IExtraOptions,
-  RelationTypes,
-  TDrizzleQueryOptions,
-  TFilter,
-  TWhere,
-} from '@/base/repositories/common';
-import type { IDatabaseTransaction } from '@/connectors/postgres/datasources';
-import type { TTableObject, TTableSchemaWithId } from '@/connectors/postgres/models';
-import type { createTableRelationsHelpers, getTableColumns, SQL } from 'drizzle-orm';
+import type { RelationTypes } from '@/base/repositories/common';
+import type { IDatabaseTransaction, TRelationalConnector } from '@/connectors/postgres/datasources';
+import type { TTableSchemaWithId } from '@/connectors/postgres/models';
+import type { IRelationalExtraOptions } from '@/connectors/relational/repositories/common';
+import type { createTableRelationsHelpers } from 'drizzle-orm';
 
-/** The postgres query-dialect surface a repository consumes via `dataSource.getQueryDialect()`, obtained from the datasource rather than constructed inside the repository. */
-export interface IRelationalQueryDialect {
-  mergeFilter<T = any>(opts: { defaultFilter?: TFilter<T>; userFilter?: TFilter<T> }): TFilter<T>;
-  build<Schema extends TTableSchemaWithId>(opts: {
-    tableName: string;
-    schema: Schema;
-    filter: TFilter<TTableObject<Schema>>;
-  }): TDrizzleQueryOptions;
-  toWhere<Schema extends TTableSchemaWithId>(opts: {
-    tableName: string;
-    schema: Schema;
-    where: TWhere<TTableObject<Schema>>;
-  }): SQL | undefined;
-  toOrderBy<Schema extends TTableSchemaWithId>(opts: {
-    tableName: string;
-    schema: Schema;
-    order: string[];
-  }): SQL[];
-}
+/** These surfaces are engine-neutral and live in `@/connectors/relational/repositories/common`; re-exported here so these historical import paths keep resolving. */
+export type {
+  IRelationalQueryDialect,
+  ITransformedUpdateData,
+  TTableColumns,
+} from '@/connectors/relational/repositories/common';
 
-/** Postgres's `IExtraOptions`: narrows `transaction` to `IDatabaseTransaction` so `options.transaction.connector` works without a cast. Default for every postgres repository class; extend with a plain `IExtraOptions` to opt back out to the neutral shape. */
-export interface IDatabaseExtraOptions extends IExtraOptions {
+/** Postgres's `IRelationalExtraOptions`: narrows `transaction` all the way to `IDatabaseTransaction` so `options.transaction.connector` is a `PgDatabase` without a cast. Default for every postgres repository class; extend with a plain `IExtraOptions` to opt back out to the neutral shape. */
+export interface IDatabaseExtraOptions extends IRelationalExtraOptions<TRelationalConnector> {
   transaction?: IDatabaseTransaction;
 }
 
@@ -53,13 +35,3 @@ export type TRelationConfig = {
       >[1];
     }
 );
-
-export type TTableColumns = ReturnType<typeof getTableColumns>;
-
-export interface ITransformedUpdateData {
-  /** Regular field updates (non-JSON-path keys) */
-  regularFields: Record<string, any>;
-
-  /** SQL expressions for JSON path updates, keyed by column name */
-  jsonExpressions: Record<string, SQL>;
-}

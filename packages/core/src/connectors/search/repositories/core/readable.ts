@@ -182,7 +182,7 @@ export class ReadableSearchRepository<
     data: TDocument;
     options?: IExtraOptions & { shouldReturn?: boolean };
   }): Promise<TCount & { data: TNullable<R> }> {
-    return this.denyOperation(this.create.name);
+    return this.denyOperation({ methodName: this.create.name });
   }
 
   /** @throws Error - disabled in a read-only repository. */
@@ -198,7 +198,7 @@ export class ReadableSearchRepository<
     data: Array<TDocument>;
     options?: IExtraOptions & { shouldReturn?: boolean };
   }): Promise<TCount & { data: TNullable<Array<R>> }> {
-    return this.denyOperation(this.createAll.name);
+    return this.denyOperation({ methodName: this.createAll.name });
   }
 
   /** @throws Error - disabled in a read-only repository. */
@@ -217,7 +217,7 @@ export class ReadableSearchRepository<
     data: Partial<TDocument>;
     options?: IExtraOptions & { shouldReturn?: boolean };
   }): Promise<TCount & { data: TNullable<R> }> {
-    return this.denyOperation(this.updateById.name);
+    return this.denyOperation({ methodName: this.updateById.name });
   }
 
   /** @throws Error - disabled in a read-only repository. */
@@ -226,7 +226,7 @@ export class ReadableSearchRepository<
     where?: TWhere;
     options?: Omit<IExtraOptions, 'shouldReturn'> & { force?: boolean };
   }): Promise<TCount & { data: null }> {
-    return this.denyOperation(this.updateAll.name);
+    return this.denyOperation({ methodName: this.updateAll.name });
   }
 
   /** @throws Error - disabled in a read-only repository. */
@@ -242,7 +242,7 @@ export class ReadableSearchRepository<
     id: IdType;
     options?: IExtraOptions & { shouldReturn?: boolean };
   }): Promise<TCount & { data: TNullable<R> }> {
-    return this.denyOperation(this.deleteById.name);
+    return this.denyOperation({ methodName: this.deleteById.name });
   }
 
   /** @throws Error - disabled in a read-only repository. Unlocked by DefaultSearchRepository. */
@@ -250,6 +250,6 @@ export class ReadableSearchRepository<
     where?: TWhere;
     options?: Omit<IExtraOptions, 'shouldReturn'> & { force?: boolean };
   }): Promise<TCount & { data: null }> {
-    return this.denyOperation(this.deleteAll.name);
+    return this.denyOperation({ methodName: this.deleteAll.name });
   }
 }

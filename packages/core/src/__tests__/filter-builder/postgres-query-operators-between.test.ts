@@ -2,7 +2,7 @@ import { describe, test, expect } from 'bun:test';
 import { pgTable, serial, integer } from 'drizzle-orm/pg-core';
 import { ApplicationError } from '@venizia/ignis-helpers';
 
-import { FilterBuilder } from '@/connectors/postgres/repositories/dialect';
+import { PostgresFilterBuilder } from '@/connectors/postgres/repositories/dialect';
 
 /** `PostgresQueryOperators.FNS[BETWEEN/NOT_BETWEEN]` rejects invalid value arrays via `getError`/`ApplicationError` with an `[PostgresQueryOperators]`-prefixed message. */
 describe('PostgresQueryOperators.FNS - between/notBetween invalid-value errors', () => {
@@ -11,7 +11,7 @@ describe('PostgresQueryOperators.FNS - between/notBetween invalid-value errors',
     price: integer('price'),
   });
 
-  const filterBuilder = new FilterBuilder();
+  const filterBuilder = new PostgresFilterBuilder();
 
   test('between with a single-element array throws an ApplicationError naming [PostgresQueryOperators][BETWEEN]', () => {
     let caught: unknown;

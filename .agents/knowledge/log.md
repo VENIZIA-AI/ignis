@@ -6,6 +6,113 @@ not how.
 This file and `index.md` are reserved OKF filenames - they carry no `type:` frontmatter and are not
 counted as concepts.
 
+## 2026-08-02 - the `FilterBuilder` alias is withdrawn; docs repointed to the neutral tier
+
+`FilterBuilder` moved to `connectors/relational/repositories/dialect/filter.ts` and became `abstract`
+with `protected abstract get operators()`; `PostgresFilterBuilder extends FilterBuilder` supplies
+`PostgresQueryOperators.FNS`. The `export { PostgresFilterBuilder as FilterBuilder }` alias is gone,
+so `FilterBuilder` no longer resolves from `@venizia/ignis` or `@venizia/ignis/postgres` - it
+published two different classes under one name across sibling sub-paths. Verified against `dist`.
+`filter-system.md` and `relational-connector.md` repointed; both had also claimed
+`PostgresQueryDialect extends FilterBuilder` and that the operator table was a `protected` member
+rather than `abstract`. 17 wiki reference source-links repointed, one of which
+(`dialect/internal/json-utils.ts`) was a dead GitHub path, and `default-filter.md`'s
+`new FilterBuilder()` sample no longer compiled against an abstract class.
+
+## 2026-08-02 - the neutral relational tier stopped naming Postgres
+
+`connectors/relational/repositories/core/*.ts` held ten `import type`s of `IPostgresDataSource` and
+`IDatabaseExtraOptions`, purely to serve the two engine-facing generic defaults - the dependency
+arrow pointed backwards. Both now default to the neutral contracts, and `IRelationalExtraOptions`
+gained a `TConnector` parameter (defaulting to `unknown`) so a bound engine keeps its connector type.
+`connectors/postgres/repositories/core/*.ts` changed from re-exports to five real subclasses that
+rebind those two parameters, so `PostgresBaseRepository`/`ReadableRepository`/`PersistableRepository`/
+`DefaultCRUDRepository`/`SoftDeletableRepository` are now distinct class objects from their neutral
+parents: `ReadableRepository === ReadableRelationalRepository` is false, `instanceof` unaffected. The
+neutral names no longer resolve from `@venizia/ignis/postgres`. Recorded in
+`repository-hierarchy.md` and `relational-connector.md`, whose "SAME class object" claims were the
+facts this change falsified.
+
+## 2026-08-01 - `options.retry` restored on the relational read verbs that had narrowed it away
+
+`SoftDeletableRelationalRepository.findById` (3 overloads) and `RelationalBaseRepository`'s 4
+abstract read verbs typed `options` as bare `ExtraOptions`, which drops `IWithReadRetry` - so
+`options.retry` was a compile error on exactly the class BANA extends most, while every sibling
+accepted it. Runtime plumbing was always complete; only the signatures blocked it. Both now carry
+`TFindOneOptions`/`TFindOptions`/`TFindRangeOptions`. `repository-hierarchy.md` gains the hazard:
+re-declaring a read verb silently narrows `retry` away, and neither `tsc` nor a test holding the
+concrete subclass can see it. Also recorded there - `isStrict` is evaluated AFTER the retry loop is
+exhausted, so a strict read waits out replica lag before it throws `ENTITY_NOT_FOUND`.
+
+## 2026-08-01 - final review fixes: the `FilterBuilder` seam is real, and no two classes share a declaration name
+
+Two facts recorded in the entry below were wrong and are corrected here.
+
+**The `FilterBuilder` override seam did not exist.** Three documents said a second SQL engine
+supplies "an operator table plus a JSON-path variant of those five methods" and reuses
+`FilterBuilder` unchanged. Every one of those methods was `private`, and the operator table was
+reached as a hardcoded `PostgresQueryOperators.FNS` - so an author had to fork 736 lines. Six
+methods (`buildOperatorConditions`, `validateJsonColumn`, `jsonNeedsNumericCast`,
+`buildJsonWhereCondition`, `buildJsonOperatorConditions`, `buildJsonOrderBy`) are now `protected`,
+and the table is reached through a `protected get operators(): TQueryOperatorHandlers`. No
+behaviour changed and no declaration-emit error (TS4094) appeared. Falsified by
+`__tests__/connectors/postgres/repositories/dialect-seam.test.ts`, a `SqliteShapedDialect` that
+emits `json_extract` with no SQLite driver involved. `relational-connector.md`, `filter-system.md`
+and the SQLite research spec now carry the exact override list.
+
+**"The two barrels deliberately share class names" was a defect, not a decision.**
+`connectors/postgres/datasources/{abstract,base}.ts` declared `AbstractRelationalDataSource` and
+`BaseRelationalDataSource` - the same names the neutral tier declares - so the two sub-paths
+published different classes under one name. They are renamed to `AbstractPostgresDataSource` and
+`BasePostgresDataSource`, which were already their public alias names, so the API surface is
+unchanged: `@venizia/ignis/postgres` still exports both `*RelationalDataSource` spellings, and
+`BaseDataSource`, as aliases. The name collision now lives only in the alias layer, which is still
+why `connectors/index.ts` never gains `export * from './relational'`.
+
+## 2026-08-01 - `connectors/relational` goes public; the SQLite spec's FilterBuilder claim was wrong
+
+Connector sub-project 1 (Tasks 1-8, this repo's `feat/relational-connector` line) hoisted an
+engine-neutral SQL tier - datasource root, driver contract, entity base, the five-class repository
+chain, both ports (`IRelationalQueryDialect`, `IRelationalQueryExecutor`) - out of
+`connectors/postgres` into `connectors/relational`. Task 9 makes it reachable and documented: a new
+barrel (`connectors/relational/index.ts`) plus a `@venizia/ignis/relational` package export,
+published beside `./postgres`. `connectors/index.ts` does **not** gain `export * from './relational'`
+- the two barrels deliberately share several class names (`BaseRelationalDataSource`,
+`AbstractRelationalDataSource` each name TWO different classes, one neutral, one Postgres), so
+merging them into the root namespace would make one of each pair unreachable by name.
+
+New concept: [Relational connector](/architecture/relational-connector.md) - the two ports and why
+there are two, the seven executor verbs and which Drizzle call each replaces, why
+`TTableSchemaWithId` widened from `PgTable` to the dialect-free `Table`, why `buildBeginStatement` is
+abstract, and what is genuinely Postgres-only. `datasource-hierarchy.md`, `repository-hierarchy.md`,
+`filter-system.md` and `transactions.md` are corrected where they named Postgres as the only SQL
+branch or quoted the old `resolveConnector` error text (`is not a postgres transaction`, reworded to
+`is not a relational transaction` in Task 8 - a behaviour change, not just a doc fix).
+
+`docs/superpowers/specs/2026-07-31-sqlite-connector-research.md`'s "What SQLite costs, measured"
+section claimed a SQLite connector needs its own 724-line filter translator. Measured against the
+file as it stands after the lift: **wrong**. `FilterBuilder` has zero `drizzle-orm/pg-core` imports;
+its only table-identity coupling (`getTableConfig(schema).name`) was already replaced by drizzle's
+root `getTableName(schema)`, which also resolves on a `sqliteTable` (the pg-core call throws there).
+Only ~471 of the ~1104 dialect lines are genuinely Postgres-specific: `PostgresQueryOperators`
+(136 lines - `ilike`/array ops emit literal Postgres SQL), `UpdateBuilder` (184 lines - composes
+`jsonb_set`), and five private JSON-path methods inside `FilterBuilder` itself (~151 of its 736
+lines - hardcode `#>>`/`#>`). A SQLite dialect is an operator table plus a JSON-path variant of those
+methods, not a second `FilterBuilder`. Spec corrected; sub-project 1 marked done in both the spec and
+`docs/superpowers/MINIMAP.md`; sub-projects 2 (`PGliteDriver`) and 3 (`connectors/sqlite/`) unblocked.
+
+`UpdateBuilder` stays reachable two ways - directly from `connectors/postgres/repositories/dialect`
+and as `PostgresQueryDialect.updateBuilder` - both public before this task, neither deleted. New code
+should go through the dialect (`dataSource.getQueryDialect().updateBuilder`); the direct constructor
+bypasses the datasource's port resolution.
+
+Verified against the built package, not just types: every BANA-facing compat alias
+(`SoftDeletableRepository`, `ReadableRepository`, `PersistableRepository`, `DefaultCRUDRepository`,
+`PostgresBaseRepository`, `BaseEntity`/`BasePostgresEntity`, `AbstractPostgresDataSource`,
+`BasePostgresDataSource`/`BaseDataSource`) resolves from `@venizia/ignis/postgres` and is the SAME
+class object as its `connectors/relational` canonical name - a runtime probe, not a grep. Suite
+unchanged at 1722 pass / 2 skip / 0 fail across 159 files; `make lint-all` and `make okf-check` green.
+
 ## 2026-07-30 - whole-wave review: `/common`'s type surface, and `getWorker()`'s `unknown` cast
 
 Two defects the per-task reviews below could not see, since each only looked at `/core`.

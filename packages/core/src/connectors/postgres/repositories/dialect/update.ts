@@ -1,4 +1,4 @@
-import type { TTableSchemaWithId } from '@/connectors/postgres/models';
+import type { TTableSchemaWithId } from '@/connectors/relational/models/common';
 import { BaseHelper, getError } from '@venizia/ignis-helpers';
 import type { SQL } from 'drizzle-orm';
 import { sql } from 'drizzle-orm';
@@ -9,7 +9,7 @@ import {
   parseJsonPath,
   validateJsonColumnType,
   validateJsonPathComponents,
-} from './internal/json-utils';
+} from '@/connectors/relational/repositories/dialect/internal/json-utils';
 
 interface IJsonPathUpdate {
   columnName: string;

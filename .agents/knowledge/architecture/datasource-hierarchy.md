@@ -11,18 +11,22 @@ A DataSource owns the connection to one backing engine. IGNIS does not have a si
 ## The real layering
 
 ```
-AbstractDataSource                    base/datasources/abstract.ts   (engine-neutral, NO SQL members)
-├── AbstractRelationalDataSource      connectors/postgres/datasources/abstract.ts
-│   └── BaseRelationalDataSource      connectors/postgres/datasources/base.ts
+AbstractDataSource                    base/datasources/abstract.ts               (engine-neutral, NO SQL members)
+├── AbstractRelationalDataSource      connectors/relational/datasources/abstract.ts   (SQL-neutral: connector/pool/driver wiring; dialect + executor abstract)
+│   └── BaseRelationalDataSource      connectors/relational/datasources/base.ts       (schema discovery, transaction skeleton; BEGIN text abstract)
+│       └── AbstractPostgresDataSource   connectors/postgres/datasources/abstract.ts   (supplies PostgresQueryDialect + PostgresQueryExecutor)
+│           └── BasePostgresDataSource   connectors/postgres/datasources/base.ts       (supplies "BEGIN TRANSACTION ISOLATION LEVEL ...")
 └── AbstractSearchDataSource          connectors/search/datasources/abstract.ts
     └── BaseSearchDataSource          connectors/search/datasources/base.ts
         ├── TypesenseDataSource       connectors/typesense/datasources/datasource.ts
         └── MeilisearchDataSource     connectors/meilisearch/datasources/datasource.ts
 ```
 
-`AbstractDataSource` extends `BaseHelper` and knows only `name`, `settings`, `schema`, `getCapabilities()`, and a `beginTransaction()` that throws NotSupported by default. Each family root adds its own paradigm contract: the relational root adds connector/pool/driver/transactions, the search root adds `getConnector()`, `getQueryDialect()`, `compileCollection()`, `ensureCollection()`, and `multiSearch()`.
+`AbstractDataSource` extends `BaseHelper` and knows only `name`, `settings`, `schema`, `getCapabilities()`, and a `beginTransaction()` that throws NotSupported by default. Each family root adds its own paradigm contract: the relational root adds connector/pool/driver/transactions plus two ports (`getQueryDialect()`, `getQueryExecutor()`) declared abstract, the search root adds `getConnector()`, `getQueryDialect()`, `compileCollection()`, `ensureCollection()`, and `multiSearch()`.
 
-The engines that actually exist in source are **Postgres** (relational, with `node-postgres` and `postgres-js` drivers, plus a `postgres/supabase` sub-path for RLS and pooler concerns) and **search** (`typesense` and `meilisearch`). `DataSourceDrivers` in `base/datasources/common/types.ts` names exactly those four. There is no `connectors/relational` directory - the relational family lives under `connectors/postgres`; the split is `base/` versus `postgres/` versus `search/` versus per-engine folders.
+The relational family splits again, into an engine-neutral root and a Postgres branch: `connectors/relational` (reachable at the `@venizia/ignis/relational` sub-path) carries the SQL-neutral half - connector/pool/driver wiring, schema discovery, the transaction skeleton, the entity base, and the five-class repository chain - and `connectors/postgres` supplies the two ports plus everything genuinely Postgres SQL. Full account: [Relational connector](/architecture/relational-connector.md). Every class is declared under a distinct name - the Postgres branch declares `AbstractPostgresDataSource` and `BasePostgresDataSource`. `@venizia/ignis/postgres` also *exports* those two under their pre-lift names (`AbstractRelationalDataSource`, `BaseRelationalDataSource`), which the neutral tier declares for its own classes, so one name means different classes on different sub-paths. That is why `connectors/index.ts` exports `./postgres` only and never adds `./relational` to the same namespace.
+
+The engines that actually exist in source are **Postgres** (with `node-postgres` and `postgres-js` drivers, plus a `postgres/supabase` sub-path for RLS and pooler concerns) and **search** (`typesense` and `meilisearch`). `DataSourceDrivers` in `base/datasources/common/types.ts` names exactly those four - the neutral relational root adds no driver of its own, only the seam a second SQL engine (SQLite, PGlite) would register against.
 
 ## Datasources are singletons
 
@@ -53,7 +57,7 @@ Nothing resolves eagerly. `getSchema()` memoizes on first access. `wireDriverFro
 
 ```typescript
 @datasource({ driver: NodePostgresDriver })
-export class PostgresDataSource extends BaseRelationalDataSource {
+export class PostgresDataSource extends BasePostgresDataSource {
   configure() {
     this.client = new Pool({ connectionString: /* ... */ });
   }
@@ -64,6 +68,7 @@ export class PostgresDataSource extends BaseRelationalDataSource {
 
 ## Related
 
+- [Relational connector](/architecture/relational-connector.md)
 - [Repository Hierarchy](/architecture/repository-hierarchy.md)
 - [Transactions](/architecture/transactions.md)
 - [Typesense Search](/architecture/search-typesense.md)

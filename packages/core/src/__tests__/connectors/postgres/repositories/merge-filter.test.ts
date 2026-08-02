@@ -4,11 +4,11 @@ import { describe, expect, test } from 'bun:test';
 import { pgTable, serial, integer, varchar } from 'drizzle-orm/pg-core';
 import type { TRelationConfig } from '@/connectors/postgres/repositories/common';
 import type { TDrizzleQueryOptions } from '@/base/repositories/common';
-import { FilterBuilder } from '@/connectors/postgres/repositories/dialect/filter';
+import { PostgresFilterBuilder } from '@/connectors/postgres/repositories/dialect/filter';
 
 /** `FilterBuilder.mergeFilter` merges `where` at the TOP KEY LEVEL: operator-object collisions AND-compose (a default scope can never be WIDENED), scalar keys keep user-wins override. */
 describe('FilterBuilder.mergeFilter - top-key-level where merge', () => {
-  const builder = new FilterBuilder();
+  const builder = new PostgresFilterBuilder();
 
   test('operator objects on the same key are AND-composed - never index-merged, never dropped', () => {
     const merged = builder.mergeFilter<any>({
@@ -137,7 +137,7 @@ describe('FilterBuilder.toInclude - include-scope merge inherits the fix', () =>
   };
 
   test("a relation scope's inq is AND-composed with the relation default filter's inq", () => {
-    const builder = new FilterBuilder();
+    const builder = new PostgresFilterBuilder();
 
     // Force a relation defaultFilter with an inq array, then a scope with a different inq array.
     const originalResolveDefaultFilter = builder.resolveDefaultFilter.bind(builder);

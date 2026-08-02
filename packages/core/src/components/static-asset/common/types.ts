@@ -1,12 +1,12 @@
 import type { IAuthRouteConfig } from '@/base';
 import type { BaseRelationalEntity } from '@/connectors/postgres/models';
-import type { DefaultRelationalRepository } from '@/connectors/postgres/repositories';
+import type { DefaultCRUDRepository } from '@/connectors/postgres/repositories';
 import type {
-  AnyType,
-  DiskHelper,
-  IFileStat,
-  IUploadResult,
-  ValueOrPromise,
+    AnyType,
+    DiskHelper,
+    IFileStat,
+    IUploadResult,
+    ValueOrPromise,
 } from '@venizia/ignis-helpers';
 import type { BunS3Helper } from '@venizia/ignis-helpers/bun-s3';
 import type { MinioHelper } from '@venizia/ignis-helpers/minio';
@@ -41,7 +41,7 @@ export type TListQuery = { prefix?: string; recursive?: string; maxKeys?: string
 
 export type TMetaLinkConfig<Schema extends TMetaLinkSchema = TMetaLinkSchema> = {
   model: typeof BaseRelationalEntity<Schema>;
-  repository: DefaultRelationalRepository<Schema>;
+  repository: DefaultCRUDRepository<Schema>;
   createMetaLink?: (opts: {
     uploadResult: IUploadResult;
     fileStat: IFileStat;

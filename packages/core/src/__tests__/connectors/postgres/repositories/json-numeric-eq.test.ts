@@ -2,14 +2,14 @@ import { describe, expect, test } from 'bun:test';
 import { pgTable, serial, jsonb } from 'drizzle-orm/pg-core';
 import { PgDialect } from 'drizzle-orm/pg-core';
 import type { SQL } from 'drizzle-orm';
-import { FilterBuilder } from '@/connectors/postgres/repositories/dialect/filter';
+import { PostgresFilterBuilder } from '@/connectors/postgres/repositories/dialect/filter';
 
 const table = pgTable('json_numeric_fixture', {
   id: serial('id').primaryKey(),
   metadata: jsonb('metadata'),
 });
 
-const builder = new FilterBuilder();
+const builder = new PostgresFilterBuilder();
 const dialect = new PgDialect();
 
 const compile = (where: any): string => {

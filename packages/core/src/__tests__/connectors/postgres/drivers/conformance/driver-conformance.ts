@@ -1,10 +1,10 @@
 import { describe, expect, test } from 'bun:test';
-import type { IRelationalDriver } from '@/connectors/postgres/drivers';
+import type { TRelationalDriver } from '@/connectors/postgres/drivers';
 
 type TSchema = Record<string, never>;
 
 export interface IDriverProbe {
-  driver: IRelationalDriver<TSchema>;
+  driver: TRelationalDriver<TSchema>;
   /** Statements the fake client actually received, in order. */
   statements: () => string[];
   /** One entry per release() call, in order. */
@@ -28,7 +28,7 @@ export type TBuildDriverProbe = (failOn?: string) => IDriverProbe;
 export const run = (opts: IConformanceOptions): void => {
   const { driver: driverName, buildDriverProbe: build } = opts;
 
-  describe(`IRelationalDriver conformance - ${driverName}`, () => {
+  describe(`TRelationalDriver conformance - ${driverName}`, () => {
     test('createConnector() returns a pooled connector', () => {
       const { driver } = build();
       expect(driver.createConnector({ schema: {} })).toBeDefined();

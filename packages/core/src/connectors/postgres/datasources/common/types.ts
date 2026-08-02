@@ -1,11 +1,11 @@
-import type {
-  AbstractDataSource,
-  ITransaction,
-  ITransactionOptions,
-  TAnyDataSourceSchema,
-} from '@/base/datasources';
+import type { TAnyDataSourceSchema } from '@/base/datasources';
 import type { IRelationalQueryDialect } from '@/connectors/postgres/repositories/common';
-import type { TConstValue, ValueOrPromise } from '@venizia/ignis-helpers';
+import type {
+  IRelationalDataSource,
+  IRelationalTransaction,
+  TRelationalTransactionOptions,
+} from '@/connectors/relational/datasources/common';
+import type { TConstValue } from '@venizia/ignis-helpers';
 import type { NodePgClient } from 'drizzle-orm/node-postgres';
 import { type drizzle as nodePostgresConnector } from 'drizzle-orm/node-postgres';
 import type { PgDatabase, PgQueryResultHKT } from 'drizzle-orm/pg-core';
@@ -48,39 +48,31 @@ export class IsolationLevels {
 
 export type TIsolationLevel = TConstValue<typeof IsolationLevels>;
 
-/** Postgres transaction options - adds a typed `isolationLevel` on top of the neutral, string-only `ITransactionOptions`. */
-export interface IDatabaseTransactionOptions extends ITransactionOptions {
+/** Postgres transaction options - adds a typed `isolationLevel` on top of the neutral, string-only `TRelationalTransactionOptions`. */
+export interface IDatabaseTransactionOptions extends TRelationalTransactionOptions {
   isolationLevel?: TIsolationLevel;
 }
 
+/** Postgres narrowing: pins the transaction's connector to a `PgDatabase` and requires a resolved isolation level. `connector`, `commit()` and `rollback()` - with their doc comments - are inherited from the neutral `IRelationalTransaction`. */
 export interface IDatabaseTransaction<
   Schema extends TAnyDataSourceSchema = TAnyDataSourceSchema,
-> extends ITransaction {
-  /** Bound to the transaction's own connection, whichever driver acquired it. */
-  connector: TRelationalConnector<Schema>;
+> extends IRelationalTransaction<TRelationalConnector<Schema>> {
   isolationLevel: TIsolationLevel;
-
-  /** Throws if COMMIT fails, per {@link ITransaction.commit}. On failure the connection is discarded where the driver supports it (node-postgres `release(error)`); postgres-js has no destroy semantics, so a poisoned connection returns to its pool. */
-  commit(): Promise<void>;
-
-  /** Throws if ROLLBACK fails (same connection-discard caveat as {@link commit}) - but is a silent no-op after the transaction already ended BY FAILURE, keeping `catch (error) { await transaction.rollback(); throw error; }` safe. */
-  rollback(): Promise<void>;
 }
 
-/** SQL-branch contract: connection string, Drizzle connector, transactions. Extends `AbstractDataSource` itself, not just `IDataSource`, so repositories can narrow safely. */
+/** Postgres narrowing of the neutral `IRelationalDataSource`: pins the connector to `PgDatabase` and narrows `beginTransaction` to the isolation-level-aware `IDatabaseTransaction`. */
 export interface IPostgresDataSource<
   Settings extends object = {},
   Schema extends TAnyDataSourceSchema = TAnyDataSourceSchema,
   ConfigurableOptions extends object = {},
   Client = Pool,
-> extends AbstractDataSource<Settings, Schema, ConfigurableOptions> {
-  connector: TRelationalConnector<Schema>;
-
-  getConnectionString(): ValueOrPromise<string>;
-  getConnector(): TRelationalConnector<Schema>;
-
-  /** Raw driver client escape: `pg.Pool` today, postgres-js `Sql` once a driver supplies it. */
-  getClient(): Client;
+> extends IRelationalDataSource<
+  Settings,
+  Schema,
+  ConfigurableOptions,
+  Client,
+  TRelationalConnector<Schema>
+> {
   getQueryDialect(): IRelationalQueryDialect;
   beginTransaction(opts?: IDatabaseTransactionOptions): Promise<IDatabaseTransaction<Schema>>;
 }

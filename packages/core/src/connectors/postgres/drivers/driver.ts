@@ -1,37 +1,21 @@
 import type { TAnyDataSourceSchema } from '@/base/datasources';
 import type { TRelationalConnector } from '@/connectors/postgres/datasources/common';
+import type { IRelationalConnection, IRelationalDriver } from '@/connectors/relational/drivers';
 
-/** Neutral result of a raw statement. Each driver maps its native shape (pg `rowCount`, postgres-js `count`) at its own boundary - callers never sniff shapes at runtime. */
-export interface IStatementResult {
-  /** Rows affected - the same `count` the repository verbs return; `0` for control statements (BEGIN / COMMIT / SET LOCAL). */
-  count: number;
-}
+export type { IStatementResult } from '@/connectors/relational/drivers';
 
-/** One dedicated physical connection, held for the lifetime of a single explicit transaction. */
-export interface IRelationalConnection<Schema extends TAnyDataSourceSchema = TAnyDataSourceSchema> {
-  /** Drizzle bound to THIS connection, not to the pool. */
-  connector: TRelationalConnector<Schema>;
+/**
+ * Postgres narrowing: the neutral `IRelationalConnection<TConnector>` is parameterized directly by
+ * the connector type, not by `Schema` - a straight re-export would silently redefine what the type
+ * parameter means for every existing caller, which still writes `IRelationalConnection<Schema>`
+ * expecting `connector: TRelationalConnector<Schema>`. Aliased instead, exactly like
+ * `IRelationalDriver` below, so `NodePostgresDriver` and `PostgresJsDriver` need no changes.
+ */
+export type TRelationalConnection<Schema extends TAnyDataSourceSchema = TAnyDataSourceSchema> =
+  IRelationalConnection<TRelationalConnector<Schema>>;
 
-  /** Runs a control statement verbatim (BEGIN / COMMIT / ROLLBACK / SET LOCAL) - never parameterized, `BEGIN ... ISOLATION LEVEL $1` is not valid SQL. Use `connector` for rows. */
-  execute(opts: { statement: string }): Promise<IStatementResult>;
-
-  /** Returns the connection; `destroy` discards instead of pooling - required after a failed COMMIT/ROLLBACK, where the next borrower would inherit an open transaction. A driver that cannot destroy must say so in its own docs. */
-  release(opts?: { destroy?: boolean }): void;
-}
-
-/** Owns connection acquisition and raw control statements - the only two places hard-wired to a client library. `configure()` stays app-written: the framework never builds the driver for you. */
-export interface IRelationalDriver<
+/** Postgres narrowing: the connector is always a `PgDatabase`. Existing drivers implement this unchanged. */
+export type TRelationalDriver<
   Schema extends TAnyDataSourceSchema = TAnyDataSourceSchema,
   Client = unknown,
-> {
-  /** Pooled connector - what `configure()` assigns to `this.connector`. */
-  createConnector(opts: { schema: Schema }): TRelationalConnector<Schema>;
-
-  /** Checks out a dedicated connection for an explicit transaction. */
-  acquire(opts: { schema: Schema }): Promise<IRelationalConnection<Schema>>;
-
-  /** Raw client escape: `pg.Pool` for node-postgres, `Sql` for postgres-js. */
-  getClient(): Client;
-
-  end(): Promise<void>;
-}
+> = IRelationalDriver<TRelationalConnector<Schema>, Client>;

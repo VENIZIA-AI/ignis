@@ -1,14 +1,2 @@
-import type { TTableSchemaWithId } from '@/connectors/postgres/models';
-import { getTableColumns } from 'drizzle-orm';
-import type { TTableColumns } from './types';
-
-const columnCache = new WeakMap<TTableSchemaWithId, TTableColumns>();
-
-export function getCachedColumns<Schema extends TTableSchemaWithId>(schema: Schema): TTableColumns {
-  let columns = columnCache.get(schema);
-  if (!columns) {
-    columns = getTableColumns(schema);
-    columnCache.set(schema, columns);
-  }
-  return columns;
-}
+/** The column cache is engine-neutral and lives in `@/connectors/relational/repositories/common`; re-exported here so this historical import path keeps resolving. */
+export { getCachedColumns } from '@/connectors/relational/repositories/common';

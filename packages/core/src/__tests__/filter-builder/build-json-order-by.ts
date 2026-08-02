@@ -1,5 +1,5 @@
 import { Sorts } from '@/base/repositories';
-import { FilterBuilder } from '@/connectors/postgres/repositories/dialect';
+import { PostgresFilterBuilder } from '@/connectors/postgres/repositories/dialect';
 import type { TConstValue } from '@venizia/ignis-helpers';
 import { getTableColumns } from 'drizzle-orm';
 import { jsonb, pgTable, serial, varchar } from 'drizzle-orm/pg-core';
@@ -11,7 +11,7 @@ const testTable = pgTable('test_table', {
   data: jsonb('data'),
 });
 
-class TestableFilterBuilder extends FilterBuilder {
+class TestableFilterBuilder extends PostgresFilterBuilder {
   public testBuildJsonOrderBy(opts: {
     key: string;
     direction: TConstValue<typeof Sorts>;

@@ -375,5 +375,5 @@ const comments = await commentRepository.find({
 - [`packages/filter/src/common/types.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/filter/src/common/types.ts) - `TFilter`, `TInclusion`
 - [`packages/core/src/base/repositories/common/constants.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core/src/base/repositories/common/constants.ts) - `RelationTypes`
 - [`packages/core/src/connectors/postgres/repositories/common/types.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core/src/connectors/postgres/repositories/common/types.ts) - `TRelationConfig`
-- [`packages/core/src/connectors/postgres/repositories/dialect/filter.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core/src/connectors/postgres/repositories/dialect/filter.ts) - `FilterBuilder` (`resolveRelations`, `toInclude`)
+- [`packages/core/src/connectors/relational/repositories/dialect/filter.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core/src/connectors/relational/repositories/dialect/filter.ts) - `FilterBuilder` (`resolveRelations`, `toInclude`)
 - [`packages/core/src/connectors/postgres/repositories/dialect/relation.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core/src/connectors/postgres/repositories/dialect/relation.ts) - `createRelations` (config -> Drizzle `relations()`)
