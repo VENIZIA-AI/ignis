@@ -3,16 +3,11 @@ import { readFileSync, readdirSync, statSync } from 'node:fs';
 import { dirname, join, relative, resolve } from 'node:path';
 
 /**
- * Reads the built `dist`, not `src`: the defect this guards against was invisible in source review
- * because it only existed as an emitted `require` edge. A stale or empty `dist` makes the walk
- * meaningless, so run `make core` before this test - the emptiness guards below fail loudly rather
- * than passing vacuously if you do not.
- *
- * The walk is transitive on purpose. The original cycle was five hops deep
- * (`relational/datasources/abstract` -> `helpers/inversion` -> ... -> `postgres/.../relation`);
- * grepping the relational directory for `connectors/postgres` saw nothing and let it hide.
- *
- * `dist` is resolved from the cwd, like every other path-walking test here - `bun test` runs from
+ * Reads the built `dist`, not `src`: the edge this guards against exists only as an emitted
+ * `require`. A stale or empty `dist` makes the walk meaningless, so run `make core` first - the
+ * emptiness guards below fail loudly rather than passing vacuously. The walk is transitive because
+ * such a cycle can sit five hops deep, where grepping the relational directory for
+ * `connectors/postgres` sees nothing. `dist` resolves from the cwd; `bun test` runs from
  * `packages/core`.
  */
 const DIST = resolve('dist');

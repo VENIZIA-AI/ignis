@@ -28,7 +28,7 @@ export type TStaticAssetExtraOptions = {
   [key: string]: AnyType;
 };
 
-// Type definitions for route params/query (avoids heavy RouteHandler inference)
+// Declared by hand rather than inferred: RouteHandler inference here is heavy.
 export type TBucketParams = { bucketName: string };
 export type TObjectParams = { bucketName: string; objectName: string };
 export type TUploadQuery = {

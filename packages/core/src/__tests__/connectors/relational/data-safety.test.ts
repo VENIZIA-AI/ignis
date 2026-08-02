@@ -10,11 +10,9 @@ import { ReadableRelationalRepository } from '@/connectors/relational/repositori
 import { SoftDeletableRelationalRepository } from '@/connectors/relational/repositories/core/soft-deletable';
 
 /**
- * The two behaviours in this file both fail in a direction that destroys or leaks data, and a
- * mutation sweep found NEITHER was observed by any test: inverting soft delete so `deleteById`
- * permanently removes rows killed nothing, and disabling hidden-column exclusion on read and on
- * write killed nothing. Both were verified correct by hand - this file is what makes them stay
- * correct.
+ * Two behaviours that fail in a direction that destroys or leaks data, and that nothing else
+ * observes: soft delete must never let `deleteById` remove rows permanently, and hidden-column
+ * exclusion must hold on read AND on write.
  */
 
 const softAccounts = pgTable('data_safety_soft_accounts', {
@@ -43,7 +41,7 @@ class SecretAccountEntity extends BaseRelationalEntity<typeof secretAccounts> {
   static override TABLE_NAME = 'data_safety_secret_accounts';
 }
 
-/** Chainable connector recording which top-level verb was reached and the payloads handed to `set()`, `select()` and `returning()`. */
+/** Records which top-level verb was reached and the payloads handed to `set()` / `select()` / `returning()`. */
 const buildRecordingConnector = () => {
   const trail: string[] = [];
   const captured: {

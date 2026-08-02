@@ -7,7 +7,11 @@ import type { IRelationalQueryExecutor } from '@/connectors/relational/repositor
 import type { Pool } from 'pg';
 import type { TRelationalConnector } from './common';
 
-/** Postgres branch root: supplies the Postgres dialect and executor on top of the engine-neutral `BaseNeutralRelationalDataSource`, which already carries connector/pool wiring, schema discovery, and the transaction skeleton (the BEGIN statement itself stays abstract - Postgres's own `base.ts` supplies it). */
+/**
+ * Postgres branch root: supplies the Postgres dialect and executor on top of the engine-neutral
+ * `BaseRelationalDataSource`. The BEGIN statement stays abstract - `BasePostgresDataSource`
+ * supplies it.
+ */
 export abstract class AbstractPostgresDataSource<
   Settings extends object = {},
   Schema extends TAnyDataSourceSchema = TAnyDataSourceSchema,

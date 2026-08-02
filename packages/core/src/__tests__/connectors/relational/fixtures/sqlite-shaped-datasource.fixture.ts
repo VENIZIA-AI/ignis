@@ -7,10 +7,9 @@ import type {
 } from '@/connectors/relational/repositories/common';
 
 /**
- * Falsifies the BEGIN seam: a second engine shape - no isolation levels, its own `BEGIN IMMEDIATE`
- * - proving `buildBeginStatement()` is a real per-engine seam and not Postgres-only in disguise.
- * No SQLite driver is involved; `getQueryDialect()` / `getQueryExecutor()` are never exercised by
- * the seam test and simply throw if ever called.
+ * A second engine shape - no isolation levels, its own `BEGIN IMMEDIATE` - proving
+ * `buildBeginStatement()` is a real per-engine seam and not Postgres-only in disguise. No SQLite
+ * driver is involved; the dialect and executor ports are never exercised and throw if called.
  */
 export class SqliteShapedFixture extends BaseRelationalDataSource<{}> {
   constructor() {
@@ -22,7 +21,7 @@ export class SqliteShapedFixture extends BaseRelationalDataSource<{}> {
   }
 
   configure(): void {
-    // no-op fixture - never touches a real backend.
+    // Never touches a real backend.
   }
 
   protected override buildBeginStatement(_opts?: TRelationalTransactionOptions): string {
@@ -41,7 +40,7 @@ export class SqliteShapedFixture extends BaseRelationalDataSource<{}> {
     });
   }
 
-  /** Public passthrough to the protected `buildBeginStatement()`. */
+  /** Passthrough to the protected `buildBeginStatement()`. */
   exposeBeginStatement(opts?: TRelationalTransactionOptions): string {
     return this.buildBeginStatement(opts);
   }

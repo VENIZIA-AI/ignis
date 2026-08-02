@@ -30,6 +30,7 @@ const createFakeConnector = () => {
       return chain;
     };
   }
+
   // Read paths (select) expect an array; write paths without `.returning()` expect a driver
   // result shape (`pg.QueryResult`-like). A non-zero `rowCount` makes the `shouldReturn: false`
   // count assertions discriminating - a hardcoded `count: 0` return would fail against this.
@@ -65,7 +66,7 @@ const createFakeConnector = () => {
   };
 };
 
-/** Fake `connector.query[entityName]` relational-query interface, recording the config object each call receives. */
+/** Fake `connector.query[entityName]` interface, recording the config object each call receives. */
 const createFakeQueryConnector = (opts: {
   entries: Record<string, unknown>;
   findManyResult?: unknown[];
@@ -122,6 +123,7 @@ describe('PostgresQueryExecutor', () => {
       table: usersTable,
       columns: { id: usersTable.id },
     });
+
     expect(trail[0]).toBe('select(1)');
   });
 
@@ -149,6 +151,7 @@ describe('PostgresQueryExecutor', () => {
       values: { email: 'a@b.c' },
       shouldReturn: false,
     });
+
     expect(trail).toEqual(['insert', 'values(1)']);
     expect(result).toEqual({ count: 3, rows: [] });
   });
@@ -162,6 +165,7 @@ describe('PostgresQueryExecutor', () => {
       where: sql`id = 1`,
       shouldReturn: true,
     });
+
     expect(trail).toEqual(['update', 'set(1)', 'where(1)', 'returning(0)']);
   });
 
@@ -174,6 +178,7 @@ describe('PostgresQueryExecutor', () => {
       where: sql`id = 1`,
       shouldReturn: false,
     });
+
     expect(trail).toEqual(['update', 'set(1)', 'where(1)']);
     expect(result).toEqual({ count: 3, rows: [] });
   });
@@ -186,6 +191,7 @@ describe('PostgresQueryExecutor', () => {
       where: sql`id = 1`,
       shouldReturn: true,
     });
+
     expect(trail).toEqual(['delete', 'where(1)', 'returning(0)']);
   });
 
@@ -197,6 +203,7 @@ describe('PostgresQueryExecutor', () => {
       where: sql`id = 1`,
       shouldReturn: false,
     });
+
     expect(trail).toEqual(['delete', 'where(1)']);
     expect(result).toEqual({ count: 3, rows: [] });
   });

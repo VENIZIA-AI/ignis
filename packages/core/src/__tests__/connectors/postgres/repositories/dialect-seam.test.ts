@@ -10,13 +10,11 @@ import { PostgresQueryDialect } from '@/connectors/postgres/repositories/dialect
 import { FilterBuilder } from '@/connectors/relational/repositories/dialect';
 
 /**
- * `FilterBuilder` claims a second SQL engine reuses it by supplying an operator table and a
- * JSON-path variant of a handful of methods. That claim is only true while those methods stay
- * overridable AND the base is reachable without importing the Postgres branch, so this file is a
- * falsification: a subclass built on the NEUTRAL tier that emits SQLite-shaped SQL with no SQLite
- * driver anywhere, exactly as `begin-statement.test.ts` does for the transaction seam. If any of
- * the six seam methods goes back to `private`, or the operator table goes back to a hardcoded
- * `PostgresQueryOperators.FNS` on the base, this file stops compiling.
+ * A second SQL engine reuses `FilterBuilder` by supplying an operator table and a JSON-path variant
+ * of a handful of methods. That only holds while those methods stay overridable AND the base stays
+ * reachable without importing the Postgres branch. If any of the six seam methods goes back to
+ * `private`, or the operator table goes back to a hardcoded `PostgresQueryOperators.FNS` on the
+ * base, this file stops compiling.
  */
 
 const accounts = pgTable('dialect_seam_accounts', {
@@ -29,7 +27,10 @@ const pgDialect = new PgDialect();
 const compile = (expression: SQL | undefined): string =>
   expression ? pgDialect.sqlToQuery(expression).sql : '';
 
-/** A second engine's dialect: its own operator table plus SQLite's `json_extract` path syntax in place of Postgres's `#>>`/`#>`. Everything else - filter merging, plain where, order, include, the operator walk itself - is inherited. */
+/**
+ * A second engine's dialect: its own operator table plus SQLite's `json_extract` path syntax in
+ * place of Postgres's `#>>`/`#>`. Everything else is inherited, including the operator walk.
+ */
 class SqliteShapedDialect extends FilterBuilder {
   protected override get operators(): TQueryOperatorHandlers {
     return {

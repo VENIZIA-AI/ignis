@@ -29,6 +29,7 @@ export abstract class BaseRelationalDataSource<
     if (!this.schema) {
       this.schema = this.discoverSchema();
     }
+
     return this.schema;
   }
 
@@ -55,7 +56,7 @@ export abstract class BaseRelationalDataSource<
         models,
       );
 
-    // buildSchema() is shared by every connector so it returns Record<string, unknown>; narrowed back to the real Drizzle schema shape here.
+    // buildSchema() is shared by every connector so it returns Record<string, unknown>; the cast narrows back to the Drizzle schema shape.
     return { ...schema, ...relations } as Schema;
   }
 
@@ -79,7 +80,7 @@ export abstract class BaseRelationalDataSource<
     } catch (error) {
       this.logger.for('beginTransaction').error('Failed to BEGIN transaction | Error: %s', error);
 
-      // No caller ever receives a handle to release this checked-out connection, so leaking here exhausts the pool under repeated BEGIN failures; destroyed rather than pooled because the session state after a failed BEGIN is unknown.
+      // No caller ever receives a handle to release this connection, so leaking it exhausts the pool; destroyed rather than pooled because session state after a failed BEGIN is unknown.
       connection.release({ destroy: true });
       throw error;
     }
@@ -87,12 +88,12 @@ export abstract class BaseRelationalDataSource<
     let isActive = true;
     let isEndedByFailure = false;
 
-    /** Ends the transaction with `statement`. On failure the connection is discarded rather than pooled (the session may still hold an open transaction the next borrower would inherit) and the error rethrown - a caller must never believe a failed COMMIT succeeded. */
+    /** On failure the connection is discarded rather than pooled - the next borrower would inherit an open transaction - and the error rethrown: a caller must never believe a failed COMMIT succeeded. */
     const finish = async (finishOpts: { statement: string; verb: string }): Promise<void> => {
       const { statement, verb } = finishOpts;
 
       if (!isActive) {
-        // After a FAILED commit/rollback the transaction is already torn down, so a rollback is satisfied by construction - throwing 'already ended' would replace the caller's original error in the canonical `catch { await tx.rollback(); throw error; }`.
+        // After a FAILED commit/rollback the transaction is already torn down, so rollback is satisfied by construction - throwing here would replace the caller's original error in `catch { await tx.rollback(); throw error; }`.
         if (isEndedByFailure && verb === 'rollback') {
           this.logger
             .for(verb)
@@ -103,7 +104,7 @@ export abstract class BaseRelationalDataSource<
         throw getError({ message: `[Transaction][${verb}] Transaction already ended` });
       }
 
-      // Flipped BEFORE the await: two concurrent finish() calls (commit racing rollback) would otherwise both pass the guard, issue two control statements, and double-release the same physical connection.
+      // Flipped BEFORE the await: commit racing rollback would otherwise both pass the guard, issue two control statements, and double-release the same physical connection.
       isActive = false;
 
       try {

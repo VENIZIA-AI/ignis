@@ -11,7 +11,11 @@ describe('datasource supplies both ports', () => {
     expect(source.getQueryExecutor).toBeUndefined();
   });
 
-  /** Asserts the concrete `PostgresQueryDialect`, not its `PostgresFilterBuilder` base: the base carries no `transformUpdate` / `toUpdateData`, so a regression handing back a bare filter builder would satisfy the looser check while every JSON-path update silently broke. */
+  /**
+   * Asserts the concrete `PostgresQueryDialect`, not its `PostgresFilterBuilder` base. The base has
+   * no `transformUpdate` / `toUpdateData`, so a bare filter builder would satisfy a looser check
+   * while every JSON-path update silently broke.
+   */
   test('the postgres datasource supplies a PostgresQueryDialect and a PostgresQueryExecutor', async () => {
     const { PostgresDataSourceFixture } = await import('./fixtures/postgres-datasource.fixture.js');
     const dataSource = new PostgresDataSourceFixture();

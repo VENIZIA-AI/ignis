@@ -11,7 +11,11 @@ const FAST_RETRY_BACKOFF = {
   jitter: RetryJitterModes.NONE,
 } as const;
 
-/** Shared engine-stubbing for every probe: pass-through default filter/limit and a canned count, so retry behavior is observable without a database. Each subclass supplies only what its scenario varies. Deliberately the engine-neutral class with its neutral defaults - read retry is SQL-tier behavior, not a Postgres one. */
+/**
+ * Shared engine-stubbing: pass-through default filter/limit and a canned count, so retry behavior
+ * is observable without a database. Engine-neutral on purpose - read retry is SQL-tier behavior,
+ * not a Postgres one.
+ */
 abstract class ReadRetryProbeBase extends ReadableRelationalRepository {
   calls = 0;
   total = 0;
@@ -44,7 +48,7 @@ class RetryProbeRepository extends ReadRetryProbeBase {
   }
 }
 
-/** Keeps the REAL `validateLockOptions` - the lock/transaction invariant is invisible to `RetryProbeRepository` because that class no-ops the validator. */
+/** Keeps the REAL `validateLockOptions` - `RetryProbeRepository` no-ops it, hiding that invariant. */
 class LockAwareRetryProbeRepository extends ReadRetryProbeBase {
   protected override async findWithCoreAPI<R = AnyType>(): Promise<Array<R>> {
     this.calls += 1;
@@ -349,7 +353,7 @@ describe('postgres readable retry wiring', () => {
   });
 });
 
-/** Compile-time contract - never executed. Write verbs must reject `retry`: deleting any of the ts-expect-error markers below must break the build. */
+/** Never executed. Write verbs must reject `retry` - deleting any marker below must break the build. */
 export const writeVerbsRejectRetryGuard = (repository: RetryProbeRepository) => [
   // @ts-expect-error - create options never accept retry
   repository.create({ data: {} as AnyType, options: { retry: {} } }),

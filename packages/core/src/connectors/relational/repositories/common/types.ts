@@ -34,7 +34,7 @@ export type TRelationConfig = {
 
 export type TTableColumns = ReturnType<typeof getTableColumns>;
 
-/** The engine-neutral query-dialect surface a repository consumes via `dataSource.getQueryDialect()`, obtained from the datasource rather than constructed inside the repository. */
+/** The engine-neutral query-dialect surface a repository consumes via `dataSource.getQueryDialect()`, never constructed inside the repository. */
 export interface IRelationalQueryDialect {
   mergeFilter<T = any>(opts: { defaultFilter?: TFilter<T>; userFilter?: TFilter<T> }): TFilter<T>;
   build<Schema extends TTableSchemaWithId>(opts: {
@@ -64,7 +64,7 @@ export interface IRelationalQueryDialect {
   toUpdateData(opts: { transformed: ITransformedUpdateData }): Record<string, unknown>;
 }
 
-/** The SQL branch's `IExtraOptions`: narrows `transaction` to a connector-bearing SQL handle so `options.transaction.connector` needs no cast. `TConnector` is what an engine binds to keep that access typed - Postgres's `IDatabaseExtraOptions` pins it to a `PgDatabase`; unbound, it is `unknown`, exactly as neutral code can know. */
+/** The SQL branch's `IExtraOptions`: narrows `transaction` to a connector-bearing SQL handle so `options.transaction.connector` needs no cast. An engine binds `TConnector` to keep that access typed; unbound it is `unknown`, which is all neutral code can know. */
 export interface IRelationalExtraOptions<TConnector = unknown> extends IExtraOptions {
   transaction?: IRelationalTransaction<TConnector>;
 }
@@ -74,7 +74,7 @@ export type TRelationalConnectorOf<TDataSource extends IRelationalDataSource> = 
   TDataSource['getConnector']
 >;
 
-/** The transaction-options shape a given datasource's own `beginTransaction` accepts - Postgres adds `isolationLevel`, another engine adds its own knobs. */
+/** The transaction-options shape a given datasource's own `beginTransaction` accepts - Postgres adds `isolationLevel`. */
 export type TRelationalTransactionOptionsOf<TDataSource extends IRelationalDataSource> = Parameters<
   TDataSource['beginTransaction']
 >[0];

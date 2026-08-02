@@ -6,10 +6,9 @@ import type { IDatabaseTransaction, IDatabaseTransactionOptions, TIsolationLevel
 import { IsolationLevels } from './common';
 
 /**
- * Postgres's half of the transaction seam: supplies the BEGIN statement the engine-neutral
- * `beginTransaction()` (inherited through `AbstractPostgresDataSource`) delegates to, then
- * attaches `isolationLevel` to the returned handle - a Postgres-only field the neutral
- * `IRelationalTransaction` has no concept of.
+ * Postgres's half of the transaction seam: supplies the BEGIN statement the inherited
+ * `beginTransaction()` delegates to, then attaches `isolationLevel` - a Postgres-only field the
+ * neutral `IRelationalTransaction` has no concept of.
  */
 export abstract class BasePostgresDataSource<
   Settings extends object = {},
@@ -22,7 +21,9 @@ export abstract class BasePostgresDataSource<
   }
 
   protected override buildBeginStatement(opts?: IDatabaseTransactionOptions): string {
-    // `isolationLevel` comes from the IsolationLevels const-class, never user input, and must be interpolated: `BEGIN TRANSACTION ISOLATION LEVEL $1` is not valid SQL and postgres-js tagged templates would bind it as a parameter.
+    // `isolationLevel` comes from the IsolationLevels const-class, never user input, and must be
+    // interpolated: `ISOLATION LEVEL $1` is not valid SQL, and postgres-js tagged templates would
+    // bind it as a parameter.
     return `BEGIN TRANSACTION ISOLATION LEVEL ${this.resolveIsolationLevel(opts)}`;
   }
 
@@ -31,7 +32,7 @@ export abstract class BasePostgresDataSource<
   ): Promise<IDatabaseTransaction<Schema>> {
     const transaction = await super.beginTransaction(opts);
 
-    // Annotated so `TIsolationLevel` (derived via `TConstValue`) survives fresh-object-literal widening back to `string`.
+    // Annotated so `TIsolationLevel` survives fresh-object-literal widening back to `string`.
     const patch: { isolationLevel: TIsolationLevel } = {
       isolationLevel: this.resolveIsolationLevel(opts),
     };

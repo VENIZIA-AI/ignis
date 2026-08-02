@@ -18,7 +18,8 @@ class TestableFilterBuilder extends PostgresFilterBuilder {
     tableName: string;
   }) {
     const columns = getTableColumns(testTable);
-    // Bracket notation reaches FilterBuilder's private buildJsonOrderBy without a cast (TS does not enforce private/protected access via element access).
+    // Element access reaches the private `buildJsonOrderBy` without a cast - TS does not enforce
+    // private/protected access through it.
     return this['buildJsonOrderBy']({
       ...opts,
       columns,
@@ -99,7 +100,8 @@ const testCases: ITestCase[] = [
     input: 'metadata.field-name',
     direction: Sorts.ASC,
     shouldPass: true,
-    // Kebab-case is a legal JSON key and JSON_PATH_PATTERN allows it deliberately; safe because the component is interpolated inside a quoted `'{...}'` array literal it cannot escape.
+    // Kebab-case is a legal JSON key, allowed on purpose: the component is interpolated inside a
+    // quoted `'{...}'` array literal it cannot escape.
     description: 'Hyphen in field name (kebab-case)',
   },
   {
@@ -233,6 +235,7 @@ function runTests() {
       reportFailedCase({ testCase, result });
       failed++;
     }
+
     console.log();
   }
 

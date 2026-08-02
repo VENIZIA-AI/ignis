@@ -5,16 +5,14 @@ import type { IRelationalConnection, IRelationalDriver } from '@/connectors/rela
 export type { IStatementResult } from '@/connectors/relational/drivers';
 
 /**
- * Postgres narrowing: the neutral `IRelationalConnection<TConnector>` is parameterized directly by
- * the connector type, not by `Schema` - a straight re-export would silently redefine what the type
- * parameter means for every existing caller, which still writes `IRelationalConnection<Schema>`
- * expecting `connector: TRelationalConnector<Schema>`. Aliased instead, exactly like
- * `IRelationalDriver` below, so `NodePostgresDriver` and `PostgresJsDriver` need no changes.
+ * Postgres narrowing: the neutral `IRelationalConnection<TConnector>` is parameterized by the
+ * connector type, not by `Schema`. Aliased rather than re-exported so callers keep writing
+ * `TRelationalConnection<Schema>` and getting `connector: TRelationalConnector<Schema>`.
  */
 export type TRelationalConnection<Schema extends TAnyDataSourceSchema = TAnyDataSourceSchema> =
   IRelationalConnection<TRelationalConnector<Schema>>;
 
-/** Postgres narrowing: the connector is always a `PgDatabase`. Existing drivers implement this unchanged. */
+/** Postgres narrowing: the connector is always a `PgDatabase`. */
 export type TRelationalDriver<
   Schema extends TAnyDataSourceSchema = TAnyDataSourceSchema,
   Client = unknown,

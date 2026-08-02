@@ -6,7 +6,11 @@ import type {
 import { PostgresFilterBuilder } from './filter';
 import { UpdateBuilder } from './update';
 
-/** The Postgres `IRelationalQueryDialect`: the neutral `FilterBuilder`'s filter translation plus the Postgres-only JSON-path update composition (`jsonb_set`, `::jsonb` literals) that `UpdateBuilder` owns. The two stay in separate files so `FilterBuilder` keeps its zero pg-core imports; another SQL engine serves itself by subclassing `FilterBuilder` in its own branch, supplying its `operators` table plus the protected JSON-path methods, and composing its own update builder here. */
+/**
+ * The Postgres `IRelationalQueryDialect`: the neutral `FilterBuilder`'s filter translation plus the
+ * Postgres-only JSON-path update composition (`jsonb_set`, `::jsonb` literals) that `UpdateBuilder`
+ * owns. The two stay in separate files so `FilterBuilder` keeps its zero pg-core imports.
+ */
 export class PostgresQueryDialect extends PostgresFilterBuilder implements IRelationalQueryDialect {
   private readonly _updateBuilder = new UpdateBuilder();
 

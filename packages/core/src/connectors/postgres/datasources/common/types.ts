@@ -11,7 +11,10 @@ import { type drizzle as nodePostgresConnector } from 'drizzle-orm/node-postgres
 import type { PgDatabase, PgQueryResultHKT } from 'drizzle-orm/pg-core';
 import type { Pool, PoolClient } from 'pg';
 
-/** Drizzle connector for ANY Postgres driver: `NodePgDatabase` and `PostgresJsDatabase` both extend `PgDatabase`, differing only in the query-result HKT - the real shared base, not a cast. */
+/**
+ * Drizzle connector for any Postgres driver: `NodePgDatabase` and `PostgresJsDatabase` both extend
+ * `PgDatabase`, differing only in the query-result HKT.
+ */
 export type TRelationalConnector<
   DataSourceSchema extends TAnyDataSourceSchema = TAnyDataSourceSchema,
 > = PgDatabase<PgQueryResultHKT, DataSourceSchema>;
@@ -48,19 +51,25 @@ export class IsolationLevels {
 
 export type TIsolationLevel = TConstValue<typeof IsolationLevels>;
 
-/** Postgres transaction options - adds a typed `isolationLevel` on top of the neutral, string-only `TRelationalTransactionOptions`. */
+/** Postgres transaction options: a typed `isolationLevel` on top of the string-only neutral one. */
 export interface IDatabaseTransactionOptions extends TRelationalTransactionOptions {
   isolationLevel?: TIsolationLevel;
 }
 
-/** Postgres narrowing: pins the transaction's connector to a `PgDatabase` and requires a resolved isolation level. `connector`, `commit()` and `rollback()` - with their doc comments - are inherited from the neutral `IRelationalTransaction`. */
+/**
+ * Postgres narrowing: pins the transaction's connector to a `PgDatabase` and requires a resolved
+ * isolation level. `connector`, `commit()` and `rollback()` come from `IRelationalTransaction`.
+ */
 export interface IDatabaseTransaction<
   Schema extends TAnyDataSourceSchema = TAnyDataSourceSchema,
 > extends IRelationalTransaction<TRelationalConnector<Schema>> {
   isolationLevel: TIsolationLevel;
 }
 
-/** Postgres narrowing of the neutral `IRelationalDataSource`: pins the connector to `PgDatabase` and narrows `beginTransaction` to the isolation-level-aware `IDatabaseTransaction`. */
+/**
+ * Postgres narrowing of `IRelationalDataSource`: pins the connector to `PgDatabase` and narrows
+ * `beginTransaction` to the isolation-level-aware `IDatabaseTransaction`.
+ */
 export interface IPostgresDataSource<
   Settings extends object = {},
   Schema extends TAnyDataSourceSchema = TAnyDataSourceSchema,

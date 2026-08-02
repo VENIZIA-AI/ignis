@@ -4,14 +4,18 @@ import type { TTableSchemaWithId } from '@/connectors/postgres/models';
 import type { IRelationalExtraOptions } from '@/connectors/relational/repositories/common';
 import type { createTableRelationsHelpers } from 'drizzle-orm';
 
-/** These surfaces are engine-neutral and live in `@/connectors/relational/repositories/common`; re-exported here so these historical import paths keep resolving. */
+/** These surfaces are engine-neutral; re-exported so the postgres import paths keep resolving. */
 export type {
   IRelationalQueryDialect,
   ITransformedUpdateData,
   TTableColumns,
 } from '@/connectors/relational/repositories/common';
 
-/** Postgres's `IRelationalExtraOptions`: narrows `transaction` all the way to `IDatabaseTransaction` so `options.transaction.connector` is a `PgDatabase` without a cast. Default for every postgres repository class; extend with a plain `IExtraOptions` to opt back out to the neutral shape. */
+/**
+ * Postgres's `IRelationalExtraOptions`: narrows `transaction` to `IDatabaseTransaction` so
+ * `options.transaction.connector` is a `PgDatabase` without a cast. Default for every postgres
+ * repository class; extend a plain `IExtraOptions` to opt back out to the neutral shape.
+ */
 export interface IDatabaseExtraOptions extends IRelationalExtraOptions<TRelationalConnector> {
   transaction?: IDatabaseTransaction;
 }

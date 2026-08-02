@@ -9,7 +9,11 @@ import type {
 } from '@/connectors/relational/models';
 import { RelationalBaseRepository } from '@/connectors/relational/repositories/core/base';
 
-/** Postgres binding of `RelationalBaseRepository`: rebinds the two engine-facing defaults so a single-argument subclass still resolves `connector` to a `PgDatabase` and `options.transaction.connector` needs no cast. Abstract, mirroring the class it extends. */
+/**
+ * Postgres binding of `RelationalBaseRepository`: rebinds the two engine-facing defaults so a
+ * single-argument subclass resolves `connector` to a `PgDatabase` and needs no cast on
+ * `options.transaction.connector`.
+ */
 export abstract class PostgresBaseRepository<
   EntitySchema extends TTableSchemaWithId = TTableSchemaWithId,
   DataObject extends TTableObject<EntitySchema> = TTableObject<EntitySchema>,

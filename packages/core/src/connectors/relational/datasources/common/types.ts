@@ -10,14 +10,14 @@ import type {
 } from '@/connectors/relational/repositories/common';
 import type { ValueOrPromise } from '@venizia/ignis-helpers';
 
-/** Neutral SQL transaction options. Engines add their own knobs - Postgres adds `isolationLevel`, SQLite would add a `behavior`. Declared as an alias, not an empty `interface ... extends`, which `@typescript-eslint/no-empty-object-type` rejects under the zero-warning bar. */
+/** Neutral SQL transaction options; each engine adds its own knobs. An alias, not an empty `interface ... extends`, which `@typescript-eslint/no-empty-object-type` rejects. */
 export type TRelationalTransactionOptions = ITransactionOptions;
 
 export interface IRelationalTransaction<TConnector> extends ITransaction {
   /** Bound to the transaction's own connection, whichever driver acquired it. */
   connector: TConnector;
 
-  /** Throws if COMMIT fails, per {@link ITransaction.commit}. On failure the connection is discarded where the driver supports it (node-postgres `release(error)`); postgres-js has no destroy semantics, so a poisoned connection returns to its pool. */
+  /** Throws if COMMIT fails, per {@link ITransaction.commit}. The connection is discarded where the driver supports it (node-postgres `release(error)`); postgres-js has no destroy semantics, so a poisoned connection returns to its pool. */
   commit(): Promise<void>;
 
   /** Throws if ROLLBACK fails (same connection-discard caveat as {@link commit}) - but is a silent no-op after the transaction already ended BY FAILURE, keeping `catch (error) { await transaction.rollback(); throw error; }` safe. */

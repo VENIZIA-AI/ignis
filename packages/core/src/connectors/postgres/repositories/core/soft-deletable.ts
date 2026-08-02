@@ -6,15 +6,13 @@ import type { IRelationalDataSource } from '@/connectors/relational/datasources/
 import type { TDeletedAtColumn } from '@/connectors/relational/repositories/core/soft-deletable';
 import { SoftDeletableRelationalRepository } from '@/connectors/relational/repositories/core/soft-deletable';
 
-/** The `deletedAt` column bound is engine-neutral; re-exported so the historical import path keeps resolving. */
+/** The `deletedAt` column bound is engine-neutral; re-exported so the postgres path keeps resolving. */
 export type { TDeletedAtColumn } from '@/connectors/relational/repositories/core/soft-deletable';
 
 /**
- * Postgres binding, declared here rather than re-exported from the neutral tier: this barrel also
- * exports the `PgTable`-branded `TTableObject` / `TTableInsert`, and re-exporting the `Table`-branded
- * neutral schema makes the two uncomposable. A consumer writing
- * `type TArchivable = TSoftDeletableTableSchema & {...}` and feeding it to `TTableObject<TArchivable>`
- * then fails with TS2344 - which is exactly how this broke a downstream application once.
+ * Declared here rather than re-exported from the neutral tier: this barrel also exports the
+ * `PgTable`-branded `TTableObject` / `TTableInsert`, and the `Table`-branded neutral schema is
+ * uncomposable with them - `TTableObject<TSoftDeletableTableSchema & {...}>` fails with TS2344.
  */
 export type TSoftDeletableTableSchema = TTableSchemaWithId & {
   deletedAt: TDeletedAtColumn;

@@ -41,7 +41,7 @@ export class PersistableRelationalRepository<
     this._operationScope = RepositoryOperationScopes.READ_WRITE;
   }
 
-  /** @deprecated Reach the engine's update transform through `dataSource.getQueryDialect()`. Kept because this was a public accessor before the relational lift; engines without an update builder return `undefined`. `AnyType` rather than a narrower type: the concrete builder is engine-specific, and `unknown` would break every existing `updateBuilder.transform(...)` call site. */
+  /** @deprecated Reach the engine's update transform through `dataSource.getQueryDialect()`. Engines without an update builder return `undefined`. `AnyType` rather than `unknown`: the concrete builder is engine-specific, and `unknown` breaks every `updateBuilder.transform(...)` call site. */
   get updateBuilder(): AnyType {
     return (this.queryDialect as { updateBuilder?: AnyType }).updateBuilder;
   }
@@ -89,7 +89,6 @@ export class PersistableRelationalRepository<
       this.logger.for('_create').log(log.level ?? 'info', 'Executing with opts: %j', opts);
     }
 
-    // `rs` is the executor's `IWriteResult`, not the raw driver result the pre-executor code logged in the `shouldReturn: false` branch.
     const rs = await this.queryExecutor.insert<R>({
       connector: this.resolveConnector({ transaction }),
       table: this.entity.schema,
@@ -121,7 +120,7 @@ export class PersistableRelationalRepository<
     data: PersistObject;
     options?: ExtraOptions & { shouldReturn?: boolean };
   }): Promise<TCount & { data: TNullable<R> }> {
-    // ExtraOptions is caller-bound but otherwise unconstrained; spreading it alongside the literal default can't be proven to satisfy the generic bound, only the concrete shape below.
+    // ExtraOptions is caller-bound and otherwise unconstrained, so the spread cannot be proven to satisfy the generic bound, only the concrete shape below.
     const options = { shouldReturn: true, ...opts.options } as ExtraOptions & {
       shouldReturn: boolean;
     };
@@ -141,12 +140,13 @@ export class PersistableRelationalRepository<
     data: Array<PersistObject>;
     options?: ExtraOptions & { shouldReturn?: boolean };
   }): Promise<TCount & { data: TNullable<Array<R>> }> {
-    // ExtraOptions is caller-bound but otherwise unconstrained; spreading it alongside the literal default can't be proven to satisfy the generic bound, only the concrete shape below.
+    // ExtraOptions is caller-bound and otherwise unconstrained, so the spread cannot be proven to satisfy the generic bound, only the concrete shape below.
     const options = { shouldReturn: true, ...opts.options } as ExtraOptions & {
       shouldReturn: boolean;
     };
     return this._create<R>({ data: opts.data, options });
   }
+
   protected async _update<R = DataObject>(opts: {
     data: Partial<PersistObject>;
     where: TWhere<DataObject>;
@@ -189,7 +189,7 @@ export class PersistableRelationalRepository<
         );
     }
 
-    // JSON-path update composition is engine-specific (Postgres `jsonb_set`, another engine its own), so it goes through the dialect port - same place in the flow as before, ahead of the executor call.
+    // JSON-path update composition is engine-specific (Postgres composes `jsonb_set`), so it goes through the dialect port rather than the executor.
     const transformed = this.queryDialect.transformUpdate({
       tableName: this.entity.name,
       schema: this.entity.schema,
@@ -197,7 +197,6 @@ export class PersistableRelationalRepository<
     });
     const updateData = this.queryDialect.toUpdateData({ transformed });
 
-    // Same raw-driver-result-to-`IWriteResult` change as `_create` above.
     const rs = await this.queryExecutor.update<R>({
       connector: this.resolveConnector({ transaction }),
       table: this.entity.schema,
@@ -240,6 +239,7 @@ export class PersistableRelationalRepository<
       data: opts.data,
       options: opts.options,
     });
+
     return { count: rs.count, data: rs.data?.[0] ?? null };
   }
 
@@ -260,6 +260,7 @@ export class PersistableRelationalRepository<
   }): Promise<TCount & { data: TNullable<Array<R>> }> {
     return this._update<R>(opts);
   }
+
   protected async _delete<R = DataObject>(opts: {
     where: TWhere<DataObject>;
     options?: ExtraOptions & { shouldReturn?: boolean; force?: boolean };
@@ -294,7 +295,6 @@ export class PersistableRelationalRepository<
         .warn('Entity: %s | Performing delete with empty condition', this.entity.name);
     }
 
-    // Same raw-driver-result-to-`IWriteResult` change as `_create` above.
     const rs = await this.queryExecutor.remove<R>({
       connector: this.resolveConnector({ transaction }),
       table: this.entity.schema,
@@ -332,6 +332,7 @@ export class PersistableRelationalRepository<
       where: { id: opts.id },
       options: opts.options,
     });
+
     return { count: rs.count, data: rs.data?.[0] ?? null };
   }
 

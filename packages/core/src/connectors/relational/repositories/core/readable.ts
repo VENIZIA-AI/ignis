@@ -49,7 +49,8 @@ export class ReadableRelationalRepository<
       operationScope: RepositoryOperationScopes.READ_ONLY,
     });
   }
-  /** Core API is ~15-20% faster but doesn't support relations or field selection. */
+
+  /** Core API is ~15-20% faster but supports neither relations nor field selection. */
   protected canUseCoreAPI(filter: TFilter<DataObject>): boolean {
     const hasInclude = filter.include && filter.include.length > 0;
     const hasFields =
@@ -57,10 +58,11 @@ export class ReadableRelationalRepository<
       (Array.isArray(filter.fields)
         ? filter.fields.length > 0
         : Object.keys(filter.fields).length > 0);
+
     return !hasInclude && !hasFields;
   }
 
-  /** Executes a query using the executor's Core-API `select` (~15-20% faster for flat queries). */
+  /** Executes a query through the executor's Core-API `select`. */
   protected async findWithCoreAPI<R = DataObject>(opts: {
     filter: TFilter<DataObject>;
     isFindOne?: boolean;
@@ -119,6 +121,7 @@ export class ReadableRelationalRepository<
       scope: this.constructor.name,
     });
   }
+
   override find<R = DataObject>(opts: {
     filter: TFilter<DataObject>;
     options: TFindRangeOptions<ExtraOptions, R>;
@@ -154,7 +157,7 @@ export class ReadableRelationalRepository<
       limit: baseFilter.limit ?? this.getDefaultLimit() ?? DEFAULT_LIMIT,
     };
 
-    // ExtraOptions is caller-bound but otherwise unconstrained; spreading it alongside the literal override can't be proven to still satisfy the generic bound.
+    // ExtraOptions is caller-bound and otherwise unconstrained, so the spread cannot be proven to still satisfy the generic bound.
     const effectiveOptions = { ...options, shouldSkipDefaultFilter: true } as ExtraOptions;
     const useCoreAPI = this.canUseCoreAPI(mergedFilter);
 
@@ -172,7 +175,7 @@ export class ReadableRelationalRepository<
       return dataPromise;
     }
 
-    // A transaction connector wraps a single pg client, so parallel data+count queries would call client.query() while it is still busy - only safe outside a transaction.
+    // A transaction connector wraps a single client, so running data and count in parallel would reuse it while still busy - parallel is only safe outside a transaction.
     const countPromise = () =>
       this.count({ where: mergedFilter.where ?? {}, options: effectiveOptions });
 
@@ -253,6 +256,7 @@ export class ReadableRelationalRepository<
       options: opts.options,
     });
   }
+
   override async count(opts: {
     where: TWhere<DataObject>;
     options?: ExtraOptions;
@@ -273,6 +277,7 @@ export class ReadableRelationalRepository<
       table: this.entity.schema,
       where,
     });
+
     return { count };
   }
 
@@ -283,6 +288,7 @@ export class ReadableRelationalRepository<
     const rs = await this.count(opts);
     return rs.count > 0;
   }
+
   /** @throws Error - disabled in read-only repository. */
   override create(opts: {
     data: PersistObject;

@@ -20,7 +20,6 @@ describe('TTableSchemaWithId is engine-neutral', () => {
     expect(getIdType({ entity: schema })).toBe('number');
   });
 
-  // This is the assertion that fails today: the bound is PgTable, so a sqliteTable is rejected.
   test('a sqliteTable satisfies the neutral bound', () => {
     const schema: TTableSchemaWithId = sqliteUsers;
     expect(getIdType({ entity: schema })).toBe('number');

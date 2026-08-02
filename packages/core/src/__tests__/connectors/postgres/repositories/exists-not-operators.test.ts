@@ -20,7 +20,10 @@ const compile = (where: any): { text: string; params: unknown[] } => {
   return { text: sql, params };
 };
 
-/** `exists`/`notExists`/`not` are in the neutral QueryOperators vocabulary but previously had no Postgres handler, so `{ deletedAt: { exists: false } }` threw 'Invalid query operator'. */
+/**
+ * `exists`/`notExists`/`not` belong to the neutral QueryOperators vocabulary, so Postgres must
+ * carry a handler for each - a missing one throws 'Invalid query operator'.
+ */
 describe('FilterBuilder - exists / notExists operators', () => {
   test('exists: true -> IS NOT NULL', () => {
     expect(compile({ deletedAt: { exists: true } }).text).toContain('is not null');

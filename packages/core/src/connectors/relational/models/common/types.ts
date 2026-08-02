@@ -16,7 +16,7 @@ export type TColumnDefinitions = {
 };
 export type TPrimaryKey<T extends TColumnDefinition> = IsPrimaryKey<NotNull<T>>;
 
-/** Any Drizzle column whose runtime value is a valid entity id. Drizzle exports `AnyColumn<TPartial>` at the root as the exact dialect-free twin of `AnyPgColumn<TPartial>` (`column.d.ts:64`), so this is a rename, not a widening. */
+/** Any Drizzle column whose runtime value is a valid entity id. Drizzle's root `AnyColumn<TPartial>` is the exact dialect-free twin of `AnyPgColumn<TPartial>`, so this does not widen the bound. */
 export type TIdColumn = AnyColumn<{ data: IdType }>;
 
 /** The engine-neutral bound. `PgTable` and `SQLiteTable` both extend `Table`, and `Table` carries `$inferSelect` / `$inferInsert`. */

@@ -41,6 +41,7 @@ const SCALAR_EQUALITY_OPERATORS = new Set<string>([
   QueryOperators.NE,
   QueryOperators.NEQ,
 ]);
+
 /** Operators whose array operand determines the JSON numeric-cast need in jsonNeedsNumericCast. */
 const MEMBERSHIP_OPERATORS = new Set<string>([
   QueryOperators.IN,
@@ -49,9 +50,9 @@ const MEMBERSHIP_OPERATORS = new Set<string>([
 ]);
 
 /** Converts filter objects into Drizzle ORM query options (where, order, columns, relations). Engine-neutral: it names no SQL engine, and each engine branch supplies one by extending it. */
-// Filter translation only - `implements IRelationalQueryDialect` sits on each engine's query dialect, which adds the port's JSON-path update methods. Keeping the clause here would drag update composition, which is engine-specific, into this file.
+// No `implements IRelationalQueryDialect` here: that clause belongs on each engine's query dialect, which adds the port's engine-specific JSON-path update methods.
 export abstract class FilterBuilder extends BaseHelper {
-  /** Per-schema memo of resolved relations; `@model` settings are immutable after boot, so the registry lookup + resolver invocation runs once per schema (mirrors getCachedColumns). */
+  /** Per-schema memo of resolved relations; `@model` settings are immutable after boot, so the registry lookup and resolver invocation run once per schema. */
   private readonly _relationsCache = new WeakMap<
     TTableSchemaWithId,
     Record<string, TRelationConfig>
@@ -116,7 +117,7 @@ export abstract class FilterBuilder extends BaseHelper {
       // Scalar-over-scalar stays a plain override (the opt-out of a soft-delete default); every other collision AND-composes so a user operator object cannot swallow a scalar default.
       const isCollision = defaultValue !== undefined;
 
-      // `and`/`or` are the shapes a SCOPE is written in (soft-delete, tenant, ownership) and both sides are arrays, which `isPrimitiveValue` counts as scalar - without these two branches the caller's group replaces the default's outright and the scope is gone.
+      // `and`/`or` are how a SCOPE is written, and both sides are arrays, which `isPrimitiveValue` counts as scalar - without these two branches the caller's group replaces the default's outright and the scope is gone.
       if (isCollision && key === QueryOperators.AND) {
         // Both conjunct lists must hold: concatenating them IS the AND of the two groups.
         merged.and = [...defaultValue, ...userValue];
@@ -208,6 +209,7 @@ export abstract class FilterBuilder extends BaseHelper {
 
     const resolved = this.resolveRelationsUncached({ schema });
     this._relationsCache.set(schema, resolved);
+
     return resolved;
   }
 
@@ -275,6 +277,7 @@ export abstract class FilterBuilder extends BaseHelper {
       for (const field of fields) {
         set(result, field, true);
       }
+
       return result;
     }
 
@@ -283,6 +286,7 @@ export abstract class FilterBuilder extends BaseHelper {
         result[key] = true;
       }
     }
+
     return result;
   }
 
@@ -486,9 +490,11 @@ export abstract class FilterBuilder extends BaseHelper {
 
     return filteredColumns;
   }
+
   private getColumns<Schema extends TTableSchemaWithId>(schema: Schema) {
     return getCachedColumns(schema);
   }
+
   private isPrimitiveValue(opts: { value: any }): boolean {
     const { value } = opts;
     return (
@@ -510,6 +516,7 @@ export abstract class FilterBuilder extends BaseHelper {
 
     return keys.every(key => QueryOperators.isValid(key));
   }
+
   /** Builds a SQL condition for a simple value (null, array, or equality). */
   private buildValueCondition(opts: { column: any; value: any }): SQL {
     const { column, value } = opts;
@@ -530,7 +537,7 @@ export abstract class FilterBuilder extends BaseHelper {
     const conditions: SQL[] = [];
 
     for (const op in value) {
-      // `not` needs recursion into a nested condition, which the static FNS handlers can't reach - built here where buildOperatorConditions/buildValueCondition are available.
+      // `not` recurses into a nested condition, which the static operator handlers cannot reach - built here where buildOperatorConditions and buildValueCondition are in scope.
       if (op === QueryOperators.NOT) {
         conditions.push(this.buildNotCondition({ column, value: value[op] }));
         continue;

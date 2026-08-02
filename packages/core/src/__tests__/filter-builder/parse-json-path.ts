@@ -189,6 +189,7 @@ function runTests() {
       );
       failed++;
     }
+
     console.log();
   }
 

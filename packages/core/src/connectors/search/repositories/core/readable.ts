@@ -31,7 +31,8 @@ export class ReadableSearchRepository<
       shouldSkipDefaultFilter: opts.options?.shouldSkipDefaultFilter,
     });
 
-    // Counted through the document endpoint, never search: an engine whose search total is capped or estimated would report a count that quietly lies.
+    // Counted through the document endpoint, never search: an engine whose search total is capped
+    // or estimated would report a count that quietly lies.
     const count = await this.connector.document.count({
       collection: this.collectionName,
       filterBy: query.filterBy,
@@ -55,7 +56,10 @@ export class ReadableSearchRepository<
     options?: TFindOptions<IExtraOptions, R>;
   }): Promise<Array<R>>;
 
-  /** Bare array or `{ data, range }` per shouldQueryRange, postgres-shaped range. Typesense returns `found` in the same call as `hits`, so unlike SQL no second count query is needed. */
+  /**
+   * Bare array or `{ data, range }` per shouldQueryRange, postgres-shaped range. Typesense returns
+   * `found` in the same call as `hits`, so unlike SQL no second count query is needed.
+   */
   async find<R = TDocument>(opts: {
     filter: TFilter;
     options?: TFindOptions<IExtraOptions, R> | TFindRangeOptions<IExtraOptions, R>;
@@ -71,7 +75,8 @@ export class ReadableSearchRepository<
     this.assertNoTransaction(options);
     this.assertNoLock(options);
 
-    // Omitted limit falls back to @model settings.defaultLimit then DEFAULT_LIMIT, rather than leaving `per_page` unset (an unbounded query).
+    // An omitted limit falls back to @model settings.defaultLimit then DEFAULT_LIMIT - leaving
+    // `per_page` unset would be an unbounded query.
     const effectiveFilter: TFilter = {
       ...filter,
       limit: filter?.limit ?? this.defaultLimit ?? DEFAULT_LIMIT,
@@ -88,8 +93,10 @@ export class ReadableSearchRepository<
     });
 
     const { hits, found } = result;
-    // An explicit `find<Other>()` call is the caller's own unchecked assertion (R defaults to TDocument).
-    // Stripped in JS too, not only engine-side: Typesense honours `exclude_fields` but Meilisearch has no per-query exclusion at all.
+
+    // The cast is the caller's own unchecked assertion when they pass an explicit `find<Other>()`.
+    // Hidden fields are stripped in JS too, not only engine-side: Typesense honours
+    // `exclude_fields`, Meilisearch has no per-query exclusion at all.
     const data = this.omitHiddenFieldsAll((hits ?? []).map(hit => hit.document)) as any;
 
     if (!options?.shouldQueryRange) {
@@ -117,15 +124,20 @@ export class ReadableSearchRepository<
       return this.findOneUntil<R>({ filter, options });
     }
 
-    // `retry` is handled above so it is absent here; TFindOneOptions's retry generic (TNullable<R>) does not unify with find's own (Array<R>), hence the options-only cast.
+    // `retry` is handled above so it is absent here; TFindOneOptions's retry generic (TNullable<R>)
+    // does not unify with find's own (Array<R>), hence the options-only cast.
     const results: Array<R> = await this.find<R>({
       filter: { ...filter, limit: 1 },
       options: options as TFindOptions<IExtraOptions, R>,
     });
+
     return results[0] ?? null;
   }
 
-  /** Delegates to findOne with id in where - routes through buildQuery so hiddenFields/defaultFilter apply (a soft-deleted doc resolves to null, not fetched directly). */
+  /**
+   * Delegates to findOne with id in where - routing through buildQuery is what makes
+   * hiddenFields/defaultFilter apply, so a soft-deleted document resolves to null.
+   */
   findById<R = TDocument>(opts: {
     id: IdType;
     options?: TFindOneOptions<IExtraOptions, R>;
@@ -134,7 +146,12 @@ export class ReadableSearchRepository<
     return this.findOne<R>({ filter: { where: { id } }, options });
   }
 
-  /** Unified search entry discriminated by `mode`: `raw` is a full passthrough (no dialect/defaultFilter/hiddenFields), keyword/semantic/hybrid translate via the dialect same as `find()`; nothing engine-specific lives here - `ISearchQueryDialect.applySearchInput` owns it all. */
+  /**
+   * Unified search entry discriminated by `mode`: `raw` is a full passthrough - no dialect, no
+   * defaultFilter, no hiddenFields - while keyword/semantic/hybrid translate through the dialect
+   * like `find()`. Nothing engine-specific lives here; `ISearchQueryDialect.applySearchInput`
+   * owns it.
+   */
   async search<R extends object = TDocument>(
     opts: TSearchInput & { options?: IExtraOptions },
   ): Promise<ISearchResult<R>> {

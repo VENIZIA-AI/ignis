@@ -5,7 +5,7 @@ import { PostgresQueryExecutor } from '@/connectors/postgres/repositories/execut
 import { BasePostgresEntity } from '@/connectors/postgres/models';
 import { pgTable, serial, varchar } from 'drizzle-orm/pg-core';
 
-/** Minimal datasource stub: the query dialect lives on the datasource (getQueryDialect()), so a repository needs one to translate a where. Only getQueryDialect is exercised here. */
+/** The query dialect lives on the datasource, so a repository needs one to translate a where. */
 const stubDataSource = {
   getQueryDialect: () => new PostgresQueryDialect(),
   getQueryExecutor: () => new PostgresQueryExecutor(),
@@ -23,7 +23,10 @@ class ValidateWhereFixtureEntity extends BasePostgresEntity {
   static override TABLE_NAME = 'test_entity';
 }
 
-/** validateWhereCondition must treat a where as empty when it resolves to NO SQL condition ({} and all-undefined wheres) - otherwise updateAll/updateBy/deleteAll/deleteBy run table-wide. */
+/**
+ * validateWhereCondition must treat a where as empty when it resolves to NO SQL condition ({} and
+ * all-undefined wheres) - otherwise updateAll/updateBy/deleteAll/deleteBy run table-wide.
+ */
 class TestRepository extends PersistableRepository<any> {
   constructor() {
     super(stubDataSource, {});

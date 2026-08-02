@@ -25,7 +25,11 @@ import type {
 import { RepositoryErrorCodes, RepositoryOperationScopes } from '../common';
 import type { TFilter, TWhere } from '@venizia/ignis-filter';
 
-/** Engine-neutral repository plumbing - lazy dataSource/entity resolution, class-keyed `@model` settings, operation scope. `TOptions` defaults to `IExtraOptions` so connectors can narrow it while staying assignable to this base. */
+/**
+ * Engine-neutral repository plumbing - lazy dataSource/entity resolution, class-keyed `@model`
+ * settings, operation scope. `TOptions` defaults to `IExtraOptions` so connectors can narrow it
+ * while staying assignable to this base.
+ */
 export abstract class AbstractRepository<
   TDataObject extends object,
   TPersistObject extends object = TDataObject,
@@ -42,7 +46,10 @@ export abstract class AbstractRepository<
   /** Lazy-resolved from @repository metadata on first access. */
   protected _entity?: AbstractEntity;
 
-  /** Memoized @model settings for `this.entity`'s class. `null` means "not yet resolved" - `undefined` is itself a valid resolved value (the model declares no settings at all). */
+  /**
+   * Memoized @model settings for `this.entity`'s class. `null` means not yet resolved - `undefined`
+   * is itself a valid resolved value: the model declares no settings.
+   */
   private _modelSettings: IModelMetadata['settings'] | null = null;
 
   constructor(
@@ -76,6 +83,7 @@ export abstract class AbstractRepository<
         message: `[${this.constructor.name}] DataSource not available. Use @repository({ model: YourModel, dataSource: YourDataSource }) or pass dataSource in constructor.`,
       });
     }
+
     return this._dataSource;
   }
 
@@ -105,7 +113,10 @@ export abstract class AbstractRepository<
     return this.entity;
   }
 
-  /** @model settings for `this.entity`'s class, resolved by Reflect target - not by `entity.name`, which can diverge from the `@model` registry key. Memoized after first access. */
+  /**
+   * Resolved `@model` settings for `this.entity`'s class, keyed by Reflect target - not by
+   * `entity.name`, which can diverge from the `@model` registry key.
+   */
   protected get modelSettings(): IModelMetadata['settings'] {
     if (this._modelSettings !== null) {
       return this._modelSettings;
@@ -114,6 +125,7 @@ export abstract class AbstractRepository<
     this._modelSettings = MetadataRegistry.getInstance().getModelMetadata({
       target: this.entity.constructor,
     })?.settings;
+
     return this._modelSettings;
   }
 
@@ -141,7 +153,8 @@ export abstract class AbstractRepository<
       });
     }
 
-    // resolveValue() erases to the resolved value's structural type, not this class-or-resolver union's member - the `@repository` decorator guarantees it resolves to a class constructor.
+    // resolveValue() erases to the resolved value's structural type, not this class-or-resolver
+    // union's member - the `@repository` decorator guarantees a class constructor here.
     const ctor = resolveValue(binding.model) as TClass<AbstractEntity>;
     return new ctor();
   }
@@ -154,7 +167,10 @@ export abstract class AbstractRepository<
     });
   }
 
-  /** Shared retry orchestration for read verbs. No `retry` option means zero overhead; inside a transaction retry is skipped - the pool routes transactions to the primary, so there is no replica lag to wait out. */
+  /**
+   * Shared retry orchestration for read verbs. Inside a transaction retry is skipped - the pool
+   * routes transactions to the primary, so there is no replica lag to wait out.
+   */
   protected executeReadWithRetry<TResult>(opts: {
     operation: string;
     options: IExtraOptions & IWithReadRetry<TResult>;
@@ -173,6 +189,7 @@ export abstract class AbstractRepository<
     }
 
     const { maxAttempts, maxTotalMs, signal, backoff, until } = options.retry;
+
     return executeWithRetryUntil<TResult>({
       operation: [this.constructor.name, operation].join('.'),
       execution,
@@ -190,7 +207,12 @@ export abstract class AbstractRepository<
     });
   }
 
-  /** A copy of `options` without `retry`, so re-entering a read verb takes its non-retry path - what keeps the retry recursion single-depth. Copy-then-delete rather than a rest-destructure (lint rejects the unused rest sibling) or `lodash/omit` (its `Omit<>` return type is not assignable back to `TOptions`). */
+  /**
+   * A copy of `options` without `retry`, so re-entering a read verb takes its non-retry path - this
+   * is what keeps the retry recursion single-depth. Copy-then-delete rather than a rest-destructure
+   * (lint rejects the unused rest sibling) or `lodash/omit` (its `Omit<>` return type is not
+   * assignable back to `TOptions`).
+   */
   private omitReadRetry<TReadOptions extends { retry?: unknown }>(
     options: TReadOptions,
   ): TReadOptions {
@@ -205,6 +227,7 @@ export abstract class AbstractRepository<
     options: TFindOptions<TOptions, R>;
   }): Promise<Array<R>> {
     const options = this.omitReadRetry(opts.options);
+
     return this.executeReadWithRetry<Array<R>>({
       operation: 'find',
       options: opts.options,
@@ -219,6 +242,7 @@ export abstract class AbstractRepository<
     options: TFindRangeOptions<TOptions, R>;
   }): Promise<TDataWithRange<R>> {
     const options = this.omitReadRetry(opts.options);
+
     return this.executeReadWithRetry<TDataWithRange<R>>({
       operation: 'find',
       options: opts.options,
@@ -233,6 +257,7 @@ export abstract class AbstractRepository<
     options: TFindOneOptions<TOptions, R>;
   }): Promise<TNullable<R>> {
     const options = this.omitReadRetry(opts.options);
+
     return this.executeReadWithRetry<TNullable<R>>({
       operation: 'findOne',
       options: opts.options,

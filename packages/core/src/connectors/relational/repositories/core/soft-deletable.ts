@@ -159,7 +159,7 @@ export class SoftDeletableRelationalRepository<
     this.validateId({ id: opts.id, operationName: 'restoreById' });
     const { shouldReturn = true, ...restOptions } = opts.options ?? {};
 
-    // `updateById` is overloaded on the literal `shouldReturn: true | false` and the spread below widens it back to `boolean`, so this calls `_update` directly instead.
+    // `updateById` is overloaded on the literal `shouldReturn: true | false` and the spread below widens it back to `boolean`, so this calls `_update` directly.
     const options = {
       ...restOptions,
       shouldReturn,
@@ -167,11 +167,13 @@ export class SoftDeletableRelationalRepository<
     } as ExtraOptions & {
       shouldReturn: boolean;
     };
+
     const rs = await this._update<R>({
       where: { id: opts.id },
       data: this.softDeletePatch(null),
       options,
     });
+
     return { count: rs.count, data: rs.data?.[0] ?? null };
   }
 
@@ -191,6 +193,7 @@ export class SoftDeletableRelationalRepository<
       shouldReturn: boolean;
       force?: boolean;
     };
+
     return this._update<R>({ where: opts.where ?? {}, data: this.softDeletePatch(null), options });
   }
 

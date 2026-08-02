@@ -59,13 +59,13 @@ export interface IRemoveOptions<TConnector> {
   shouldReturn: boolean;
 }
 
-/** A write's outcome. `count` is authoritative in both modes: with `shouldReturn` true it is `rows.length`; with it false the engine reads its driver's affected-row field (`pg` `rowCount`, postgres-js `count`) and `rows` is empty. A single `Array<R>` cannot express the second mode, which is why writes do not return one. */
+/** A write's outcome. `count` is authoritative in both modes: with `shouldReturn` true it is `rows.length`, with it false the engine reads its driver's affected-row field and `rows` is empty. A bare `Array<R>` cannot express the second mode, which is why writes do not return one. */
 export interface IWriteResult<R> {
   count: number;
   rows: Array<R>;
 }
 
-/** Every Drizzle call the shared repository tier makes, behind one engine-supplied port. Obtained from the datasource via `getQueryExecutor()`, the same way `IRelationalQueryDialect` is obtained via `getQueryDialect()`. Stateless: the connector is passed per call because the repository resolves a transaction-bound connector per operation. */
+/** Every Drizzle call the shared repository tier makes, behind one engine-supplied port obtained via `dataSource.getQueryExecutor()`. Stateless: the connector is passed per call because the repository resolves a transaction-bound connector per operation. */
 export interface IRelationalQueryExecutor<TConnector> {
   select<R>(opts: ISelectOptions<TConnector>): Promise<Array<R>>;
   count(opts: ICountOptions<TConnector>): Promise<number>;

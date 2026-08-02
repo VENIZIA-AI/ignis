@@ -14,7 +14,8 @@ export class NodePostgresDriver<
   constructor(opts: { client: Pool }) {
     const { client } = opts;
 
-    // A bare `pg.Client` also exposes connect(), so only the pool accounting tells the two apart - and a Client cannot hand out a dedicated connection per transaction.
+    // A bare `pg.Client` also exposes connect(), so only the pool accounting tells the two apart -
+    // and a Client cannot hand out a dedicated connection per transaction.
     const isPool =
       typeof (client as AnyType)?.connect === 'function' &&
       typeof (client as AnyType)?.totalCount === 'number';

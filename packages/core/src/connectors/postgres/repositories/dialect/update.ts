@@ -27,6 +27,7 @@ export class UpdateBuilder extends BaseHelper {
   constructor() {
     super({ scope: UpdateBuilder.name });
   }
+
   /** Separates regular fields from JSON path updates and builds SQL expressions. */
   transform<Schema extends TTableSchemaWithId>(opts: {
     tableName: string;
@@ -144,6 +145,7 @@ export class UpdateBuilder extends BaseHelper {
           updates: [],
         });
       }
+
       grouped.get(update.columnName)!.updates.push({
         path: update.path,
         value: update.value,

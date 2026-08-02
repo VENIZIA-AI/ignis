@@ -6,7 +6,10 @@ import type { TRelationConfig } from '@/connectors/postgres/repositories/common'
 import type { TDrizzleQueryOptions } from '@/base/repositories/common';
 import { PostgresFilterBuilder } from '@/connectors/postgres/repositories/dialect/filter';
 
-/** `FilterBuilder.mergeFilter` merges `where` at the TOP KEY LEVEL: operator-object collisions AND-compose (a default scope can never be WIDENED), scalar keys keep user-wins override. */
+/**
+ * `mergeFilter` merges `where` at the TOP KEY LEVEL: operator-object collisions AND-compose, so a
+ * default scope can never be WIDENED. Scalar keys keep the user-wins override.
+ */
 describe('FilterBuilder.mergeFilter - top-key-level where merge', () => {
   const builder = new PostgresFilterBuilder();
 
@@ -75,7 +78,8 @@ describe('FilterBuilder.mergeFilter - top-key-level where merge', () => {
   });
 
   test('two or-groups are AND-composed - the default group is never replaced', () => {
-    // Replacing it was a scope-escape: a `defaultFilter` written as `or: [{ownerId}, {isPublic}]` was erased by any caller sending its own `or`. Concatenating them is equally wrong - that UNIONs the disjunctions and widens the query.
+    // Replacing the default group is a scope escape - any caller `or` erases it. Concatenating is
+    // equally wrong: that UNIONs the disjunctions and widens the query.
     const merged = builder.mergeFilter<any>({
       defaultFilter: { where: { or: [{ x: 1 }] } },
       userFilter: { where: { or: [{ y: 2 }] } },
@@ -124,7 +128,10 @@ describe('FilterBuilder.mergeFilter - top-key-level where merge', () => {
   });
 });
 
-/** The include-scope merge routes through `mergeFilter`, so it inherits the top-key-level fix: a scoped `inq` must not be index-merged with the relation model's defaultFilter `inq`. */
+/**
+ * The include-scope merge routes through `mergeFilter`, so a scoped `inq` must not be index-merged
+ * with the relation model's defaultFilter `inq`.
+ */
 describe('FilterBuilder.toInclude - include-scope merge inherits the fix', () => {
   const relationTable = pgTable('relation_items', {
     id: serial('id').primaryKey(),
@@ -150,7 +157,8 @@ describe('FilterBuilder.toInclude - include-scope merge inherits the fix', () =>
       });
       const scoped = result.items as TDrizzleQueryOptions;
 
-      // `expect(scoped.where).toBeDefined()` holds no matter what the merge does, even dropping the caller's filter entirely, so read the COMPILED SQL: both IN lists must be present, joined by AND.
+      // `toBeDefined()` on `scoped.where` holds even if the merge drops the caller's filter, so
+      // read the COMPILED SQL: both IN lists must be present, joined by AND.
       const { sql: statement, params } = new PgDialect().sqlToQuery(scoped.where as SQL);
 
       expect(statement.toLowerCase()).toContain(' and ');

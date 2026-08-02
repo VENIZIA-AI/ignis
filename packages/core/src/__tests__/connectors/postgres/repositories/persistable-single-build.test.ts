@@ -36,7 +36,10 @@ const buildSetup = (opts: { result: unknown }) => {
 
 const pgQueryResult = { rows: [], rowCount: 2 };
 
-/** The where SQL must be compiled exactly once per update/delete - validateWhereCondition hands its compiled condition to the caller rather than the caller recompiling it. */
+/**
+ * The where SQL must be compiled exactly once per update/delete: validateWhereCondition hands its
+ * compiled condition back rather than leaving the caller to recompile it.
+ */
 describe('PersistableRepository - where SQL is built once per update/delete', () => {
   test('updateAll builds toWhere exactly once', async () => {
     const { repository, dialect } = buildSetup({ result: pgQueryResult });

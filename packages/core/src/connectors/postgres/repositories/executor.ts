@@ -14,14 +14,19 @@ import { getError } from '@venizia/ignis-helpers';
 import type { PgTable } from 'drizzle-orm/pg-core';
 import omit from 'lodash/omit';
 
-/** Postgres implementation of `IRelationalQueryExecutor`: pure translation from already-built SQL fragments (`where`, `orderBy`, projections) to Drizzle Core API calls. Filter-to-SQL compilation is dialect work and stays in the repository tier - this class only walks the builder chain.
+/**
+ * Postgres implementation of `IRelationalQueryExecutor`: pure translation from already-built SQL
+ * fragments (`where`, `orderBy`, projections) to Drizzle Core API calls. Filter-to-SQL compilation
+ * is dialect work and stays in the repository tier.
  *
- * Every write verb ends in `rows as Array<R>`: Drizzle infers `returning()`'s row type from the table schema, not from the caller-chosen R; the two are asserted compatible by convention, not provable structurally. */
+ * Every write verb ends in `rows as Array<R>`: Drizzle infers `returning()`'s row type from the
+ * table schema, not from the caller-chosen R, so the two are compatible by convention only.
+ */
 export class PostgresQueryExecutor implements IRelationalQueryExecutor<TRelationalConnector> {
   async select<R>(opts: ISelectOptions<TRelationalConnector>): Promise<Array<R>> {
     const { connector, table, columns, where, orderBy, limit, offset, lock } = opts;
 
-    // EntitySchema extends TTableSchemaWithId which extends PgTable, but drizzle's `.from()` needs the concrete PgTable type, not the generic bound.
+    // Drizzle's `.from()` needs the concrete `PgTable` type, not the generic bound.
     const pgTable = table as PgTable;
 
     let query = columns
@@ -47,7 +52,7 @@ export class PostgresQueryExecutor implements IRelationalQueryExecutor<TRelation
       query = query.offset(offset);
     }
 
-    // Drizzle's `$dynamic()` builder infers its row type from the table schema, not from the caller-chosen R; the two are asserted compatible by convention.
+    // `$dynamic()` infers its row type from the table schema, not from the caller-chosen R.
     if (lock) {
       return query.for(lock.strength, lock.config) as Promise<Array<R>>;
     }
@@ -62,16 +67,21 @@ export class PostgresQueryExecutor implements IRelationalQueryExecutor<TRelation
 
   async findMany<R>(opts: IRelationalQueryOptions<TRelationalConnector>): Promise<Array<R>> {
     const queryInterface = this.getQueryInterface(opts);
-    // Drizzle's relational result (`PgRelationalQuery<{[x: string]: any}[]>`) doesn't overlap the caller-chosen R enough for a direct assertion - genuinely different shapes bridged at this ORM boundary.
+
+    // Drizzle's relational result (`PgRelationalQuery<{[x: string]: any}[]>`) does not overlap the
+    // caller-chosen R enough for a direct assertion.
     return queryInterface.findMany(opts.query) as AnyType;
   }
 
   async findFirst<R>(opts: IRelationalQueryOptions<TRelationalConnector>): Promise<TNullable<R>> {
     const queryInterface = this.getQueryInterface(opts);
-    // Drizzle's `findFirst` config type structurally forbids `limit` (it always fetches one row). Defensive, not redundant with the caller's own omit: the type gate applies to whatever any caller passes, and this is the only place that knows about it.
+
+    // Drizzle's `findFirst` config type structurally forbids `limit` - it always fetches one row.
+    // This is the only place that knows that, so the strip happens here whatever the caller passed.
     const queryOptions = omit(opts.query, ['limit']);
     const result = await queryInterface.findFirst(queryOptions);
-    // Same drizzle-relational-query-vs-caller-generic boundary as findMany above.
+
+    // Same drizzle-relational-query-versus-caller-generic boundary as `findMany` above.
     return (result ?? null) as TNullable<R>;
   }
 
@@ -117,7 +127,10 @@ export class PostgresQueryExecutor implements IRelationalQueryExecutor<TRelation
     return { count: rows.length, rows: rows as Array<R> };
   }
 
-  /** Gets the Drizzle relational-query interface, validating schema registration. Ported from the repository tier's `getQueryInterface` - the error wording names the entity and lists the available keys, and is asserted by a test word for word. */
+  /**
+   * Gets the Drizzle relational-query interface, validating schema registration. The error wording
+   * names the entity and lists the available keys, and a test asserts it word for word.
+   */
   private getQueryInterface(opts: IRelationalQueryOptions<TRelationalConnector>) {
     const { connector, entityName } = opts;
     const scope = opts.scope ?? this.constructor.name;
@@ -139,11 +152,14 @@ export class PostgresQueryExecutor implements IRelationalQueryExecutor<TRelation
     return queryInterface;
   }
 
-  /** Rows affected by a write executed without RETURNING. Reads `pg`'s `rowCount` or postgres-js's `count` off the raw driver result - engine-specific knowledge the shared repository tier must not hold. Behaviour copied from `@/utilities#readAffectedRowCount`, which stays in place for its existing callers. */
+  /**
+   * Rows affected by a write executed without RETURNING. Reads `pg`'s `rowCount` or postgres-js's
+   * `count` off the raw driver result - engine knowledge the shared repository tier must not hold.
+   */
   private readAffectedRowCount(opts: { result: unknown }): number {
     const { result } = opts;
 
-    // Drizzle resolves some statements to nothing at all; the callers already treated that as zero.
+    // Drizzle resolves some statements to nothing at all; that counts as zero rows.
     if (result === null || result === undefined) {
       return 0;
     }

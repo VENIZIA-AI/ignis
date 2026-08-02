@@ -36,7 +36,7 @@ import type {
   TRelationalTransactionOptionsOf,
 } from '../common';
 
-/** Relational implementation of `AbstractRepository`: adds the query dialect + hidden-column exclusion on top of the neutral base, and reaches the database only through `IRelationalQueryExecutor`. Both engine-facing parameters default to the neutral SQL contracts - an engine binds them by subclassing, the way `PostgresBaseRepository` pins them to `IPostgresDataSource` and `IDatabaseExtraOptions`. */
+/** Relational implementation of `AbstractRepository`: adds the query dialect + hidden-column exclusion on top of the neutral base, and reaches the database only through `IRelationalQueryExecutor`. Both engine-facing parameters default to the neutral SQL contracts; an engine binds them by subclassing. */
 export abstract class RelationalBaseRepository<
   EntitySchema extends TTableSchemaWithId = TTableSchemaWithId,
   DataObject extends TTableObject<EntitySchema> = TTableObject<EntitySchema>,
@@ -350,7 +350,7 @@ export abstract class RelationalBaseRepository<
     options?: ExtraOptions & { shouldReturn?: true; force?: boolean };
   }): Promise<TCount & { data: Array<R> }>;
 
-  // Re-declared, not inherited: the base alias was widened to `Array<R> | null` for the search family, but postgres HAS RETURNING so its alias surface must stay exactly `Array<R>`.
+  // Re-declared, not inherited: the base alias is `Array<R> | null` to cover the search family, but SQL engines have RETURNING so this surface must stay exactly `Array<R>`.
   override updateBy(opts: {
     data: Partial<PersistObject>;
     where: TWhere<DataObject>;
@@ -395,7 +395,7 @@ export abstract class RelationalBaseRepository<
     options?: ExtraOptions & { shouldReturn?: true; force?: boolean };
   }): Promise<TCount & { data: Array<R> }>;
 
-  // Same rationale as updateBy above: keep the postgres alias surface at `Array<R>`.
+  // Same rationale as updateBy above: keep this alias surface at `Array<R>`.
   override deleteBy(opts: {
     where?: TWhere<DataObject>;
     options: ExtraOptions & { shouldReturn: false; force?: boolean };

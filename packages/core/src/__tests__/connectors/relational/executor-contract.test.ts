@@ -4,7 +4,12 @@ import type { IRelationalQueryExecutor } from '@/connectors/relational/repositor
 /** The port's own verb set, read off the interface rather than kept by hand. */
 type TExecutorVerb = keyof IRelationalQueryExecutor<unknown>;
 
-/** Exhaustive BY CONSTRUCTION, and the only reason the verb test below has teeth: `Record<TExecutorVerb, true>` refuses to compile with a verb missing, and the literal's excess-property check refuses an invented one. `bun test` erases types, so that guarantee is enforced by `bun run typecheck` and the build, not at runtime - the runtime assertions only pin the count and the spelling. An earlier version of this test enumerated the fake's own object literal and passed unchanged while the port carried eight verbs. */
+/**
+ * Exhaustive BY CONSTRUCTION, and the only reason the verb test below has teeth:
+ * `Record<TExecutorVerb, true>` refuses to compile with a verb missing, and the literal's
+ * excess-property check refuses an invented one. `bun test` erases types, so `bun run typecheck` is
+ * the gate - the runtime assertions only pin the count and the spelling.
+ */
 const EXECUTOR_VERBS: Record<TExecutorVerb, true> = {
   count: true,
   findFirst: true,
@@ -15,7 +20,7 @@ const EXECUTOR_VERBS: Record<TExecutorVerb, true> = {
   update: true,
 };
 
-/** Records calls instead of touching a database - the port must be satisfiable with no engine at all. */
+/** Records calls instead of touching a database - the port must be satisfiable with no engine. */
 const createFakeExecutor = (): IRelationalQueryExecutor<unknown> & { calls: string[] } => {
   const calls: string[] = [];
   return {
@@ -56,6 +61,7 @@ describe('IRelationalQueryExecutor', () => {
     const executor = createFakeExecutor();
     await executor.select({ connector: {}, table: {} as never });
     await executor.count({ connector: {}, table: {} as never });
+
     expect(executor.calls).toEqual(['select', 'count']);
   });
 
@@ -86,6 +92,7 @@ describe('IRelationalQueryExecutor', () => {
       values: { email: 'a@b.c' },
       shouldReturn: false,
     });
+
     expect(result.rows).toEqual([]);
     expect(typeof result.count).toBe('number');
     expect(result.count).toBe(1);

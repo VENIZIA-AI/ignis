@@ -13,12 +13,10 @@ import type { RelationalBaseRepository } from '@/connectors/relational/repositor
 import { SoftDeletableRelationalRepository } from '@/connectors/relational/repositories/core/soft-deletable';
 
 /**
- * `SoftDeletableRelationalRepository` is the repository class most consumers extend, and its
- * `findById` overloads used to type `options` as `ExtraOptions & { isStrict?: X }` - which omits
- * `IWithReadRetry` and made `options.retry` a compile error on the one class that needed it most.
- * The runtime plumbing was already complete; only the signature blocked it. The type-level guard at
- * the bottom of this file is the regression test for that defect - `bun test` erases types, so only
- * `tsc` enforces it.
+ * `SoftDeletableRelationalRepository` is the class most consumers extend, so its `findById`
+ * overloads must keep `IWithReadRetry` in `options`. Typing it as `ExtraOptions & { isStrict?: X }`
+ * omits that and makes `options.retry` a compile error. `bun test` erases types, so the type-level
+ * guards below are enforced by `tsc` alone.
  */
 
 const FAST_RETRY_BACKOFF = {
@@ -42,7 +40,10 @@ class RetryAccountEntity extends BaseRelationalEntity<typeof retryAccounts> {
   static override TABLE_NAME = 'soft_deletable_retry_accounts';
 }
 
-/** Connector whose every `select()` resolves the next queued row set, so an N-attempt retry loop is observed as N entries in `selectCalls`. A queue shorter than the attempt count keeps yielding the empty set. */
+/**
+ * Every `select()` resolves the next queued row set, so an N-attempt retry loop shows up as N
+ * entries in `selectCalls`. A queue shorter than the attempt count keeps yielding the empty set.
+ */
 const buildQueuedSelectConnector = (opts: { rowSets: Array<Array<AnyType>> }) => {
   const pending = [...opts.rowSets];
   const selectCalls: number[] = [];
@@ -198,7 +199,10 @@ describe('SoftDeletableRelationalRepository.findById - read retry', () => {
   });
 });
 
-/** Mutual assignability - a one-directional `extends` would let the non-nullable `isStrict: true` return type pass as `TNullable<R>`, which is exactly the fallthrough this guard has to catch. */
+/**
+ * Mutual assignability: a one-directional `extends` would let the non-nullable `isStrict: true`
+ * return type pass as `TNullable<R>`, which is the fallthrough this guard has to catch.
+ */
 type TExactly<TActual, TExpected> = [TActual] extends [TExpected]
   ? [TExpected] extends [TActual]
     ? true
@@ -241,8 +245,8 @@ describe('SoftDeletableRelationalRepository.findById - compile-time contract', (
  * `RelationalBaseRepository` re-declares `find`/`findOne`/`findById` as abstract, and those
  * re-declarations - not the concrete subclass ones - are what a caller sees through a base-tier
  * reference. Nothing else in the suite holds such a reference, so narrowing `retry` back off them
- * would otherwise pass both `tsc` and `bun test`. The parameter type below is the whole point:
- * retype it as `SoftDeletableRelationalRepository` and the guard stops guarding anything.
+ * would otherwise pass both `tsc` and `bun test`. Retype the parameter below as
+ * `SoftDeletableRelationalRepository` and the guard stops guarding anything.
  */
 const readEveryVerbViaBaseTier = async (opts: {
   repository: RelationalBaseRepository<typeof retryAccounts>;

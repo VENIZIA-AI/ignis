@@ -16,12 +16,10 @@ import { getError } from '@venizia/ignis-helpers';
 
 /**
  * SQL branch root: connector, pool, transactions. Engine-neutral - dialect and executor are
- * declared abstract here and supplied by each engine branch (the Postgres branch returns a
- * `FilterBuilder` / `PostgresQueryExecutor`).
+ * declared abstract here and supplied by each engine branch.
  *
- * `mapSecretToSettings` maps Vault's `{ username, password }` to `{ user, password }`, which is a
- * driver-config convention rather than Postgres SQL, so it stays on this neutral base rather than
- * moving into `connectors/postgres` - do not "fix" it down into the Postgres branch.
+ * `mapSecretToSettings` is a driver-config convention, not Postgres SQL, so it belongs on this
+ * neutral base - do not move it down into `connectors/postgres`.
  */
 export abstract class AbstractRelationalDataSource<
   Settings extends object = {},
@@ -38,7 +36,7 @@ export abstract class AbstractRelationalDataSource<
   protected client?: Client;
   protected driver?: IRelationalDriver<TConnector>;
 
-  /** Builds the driver class named by `@datasource({ driver })` over the client `configure()` assigned, then wires the connector from it. Idempotent and lazy. */
+  /** Lazy and idempotent: builds the driver named by `@datasource({ driver })` over the client `configure()` assigned, then the connector from it. */
   protected wireDriverFromMetadata(): void {
     if (this.connector) {
       return;
@@ -59,7 +57,7 @@ export abstract class AbstractRelationalDataSource<
     this.useDriver({ driver: new DriverClass({ client: this.client }) });
   }
 
-  /** Reads the driver CLASS named by `@datasource({ driver })`; rejects a driver-name string from untyped JS callers - a string carries no module into the bundle. */
+  /** Rejects a driver-name string from untyped JS callers: a string carries no module into the bundle, only a class reference does. */
   protected resolveDriverClass(): TClass<IRelationalDriver<TConnector>> {
     const metadata = MetadataRegistry.getInstance().getDataSourceMetadata({
       target: this.constructor,
@@ -80,7 +78,7 @@ export abstract class AbstractRelationalDataSource<
     return this.driver as IRelationalDriver<TConnector>;
   }
 
-  /** Assigns `this.driver` AND builds `this.connector` in one step - a driver without its connector would silently bypass the driver on pooled queries. `schema` defaults to `getSchema()`. */
+  /** Assigns `this.driver` AND builds `this.connector` in one step - a driver without its connector is silently bypassed on pooled queries. */
   protected useDriver(opts: { driver: IRelationalDriver<TConnector>; schema?: Schema }): void {
     this.driver = opts.driver;
     this.connector = opts.driver.createConnector({ schema: opts.schema ?? this.getSchema() });
@@ -97,7 +95,7 @@ export abstract class AbstractRelationalDataSource<
     return this.connector;
   }
 
-  /** Raw driver client (`pg.Pool` / `Sql`). Reads the configured client directly when no driver is resolved yet; throws rather than handing back an `undefined` typed as `Client`. */
+  /** Raw driver client (`pg.Pool` / `Sql`). Throws rather than handing back an `undefined` typed as `Client`. */
   getClient(): Client {
     if (this.driver) {
       return this.driver.getClient() as Client;
@@ -115,19 +113,19 @@ export abstract class AbstractRelationalDataSource<
   abstract getQueryDialect(): IRelationalQueryDialect;
   abstract getQueryExecutor(): IRelationalQueryExecutor<TConnector>;
 
-  /** Soft-evicts the pool after a secret rotation: builds pool + driver + connector against the rotated credentials without touching live fields, swaps atomically, then drains the old pool. On failure the live state is restored, any half-built pool drained, and the error rethrown. */
+  /** Soft-evicts the pool after a secret rotation: builds pool + driver + connector against the rotated credentials without touching live fields, swaps atomically, then drains the old pool. On failure live state is restored, any half-built pool drained, and the error rethrown. */
   async onSecretRotated(opts: { key: string; secret: Record<string, string> }): Promise<void> {
     const logger = this.logger.for(this.onSecretRotated.name);
     const oldClient = this.getClient() as AnyType;
 
-    // Snapshot so a failed rebuild restores the datasource verbatim; `settings` is copied because rotation mutates it in place, and the live client stays untouched so the old pool keeps serving.
+    // Snapshot so a failed rebuild restores the datasource verbatim; `settings` is copied because rotation mutates it in place.
     const savedClient = this.client;
     const savedSettings = { ...(this.settings as AnyObject) };
 
-    // Rotation takes effect only through this.settings + configure(); a configure() building its pool from a hard-coded connection string or reading Envs directly rebuilds with stale credentials.
+    // Rotation only takes effect through this.settings + configure(); a configure() that hard-codes its connection string or reads Envs directly rebuilds with stale credentials.
     Object.assign(this.settings as AnyObject, this.mapSecretToSettings({ secret: opts.secret }));
 
-    // configure() overwrites this.client with the freshly-built pool, so it is captured into a local and the old client restored immediately - the live driver/connector stay on the old pool until the swap and the live fields are never nulled.
+    // configure() overwrites this.client, so the new pool is captured into a local and the old client restored at once - live fields are never nulled and the old pool keeps serving until the swap.
     let newClient: Client;
     try {
       await this.configure();
@@ -142,9 +140,10 @@ export abstract class AbstractRelationalDataSource<
       logger.error('Secret rotation failed in configure(); kept old pool | key: %s', opts.key);
       throw error;
     }
+
     this.client = savedClient;
 
-    // Wire a driver + connector over the new pool into locals, still without touching live state.
+    // Wired into locals: live state must stay on the old pool until the swap below.
     let newDriver: IRelationalDriver<TConnector>;
     let newConnector: TConnector;
     try {
@@ -160,7 +159,7 @@ export abstract class AbstractRelationalDataSource<
       throw error;
     }
 
-    // New pool fully built: commit the live fields in one synchronous step (no null window), then soft-evict the old pool so its in-flight transactions can finish.
+    // Commit the live fields in one synchronous step so there is no null window, then soft-evict the old pool so its in-flight transactions can finish.
     this.client = newClient as AnyType;
     this.driver = newDriver;
     this.connector = newConnector as AnyType;
@@ -181,6 +180,7 @@ export abstract class AbstractRelationalDataSource<
     if (password !== undefined) {
       mapped.password = password;
     }
+
     return mapped;
   }
 }

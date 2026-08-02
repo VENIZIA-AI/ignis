@@ -8,12 +8,18 @@ import { UpdateBuilder } from '@/connectors/postgres/repositories/dialect/update
 import { PostgresQueryExecutor } from '@/connectors/postgres/repositories/executor';
 import { buildFakeConnector } from './fake-connector';
 
-/** The update transform is the only engine-specific step left between a caller's `data` and the driver's `set()`. It composes raw `jsonb_set` SQL, so a silent failure here corrupts writes rather than throwing - and until this file existed nothing exercised it. Everything below goes through the real `PostgresQueryDialect`, the object the datasource actually hands repositories. */
+/**
+ * The update transform is the only engine-specific step between a caller's `data` and the driver's
+ * `set()`. It composes raw `jsonb_set` SQL, so a silent failure here corrupts writes rather than
+ * throwing. Everything below goes through the real `PostgresQueryDialect`, the object the
+ * datasource actually hands repositories.
+ */
 
 const table = pgTable('update_transform_fixture', {
   id: serial('id').primaryKey(),
   name: varchar('name', { length: 255 }),
-  // Deliberately divergent property name and column name: the transform keys `jsonExpressions` by the SCHEMA PROPERTY (`metadata`) but quotes the DB COLUMN (`meta_data`) in the SQL it emits.
+  // Property and column names diverge on purpose: the transform keys `jsonExpressions` by the
+  // SCHEMA PROPERTY (`metadata`) but quotes the DB COLUMN (`meta_data`) in the SQL it emits.
   metadata: jsonb('meta_data'),
 });
 
@@ -79,7 +85,10 @@ describe('PostgresQueryDialect.transformUpdate - JSON paths', () => {
 });
 
 describe('PostgresQueryDialect.transformUpdate - two paths on one column', () => {
-  /** Grouping is what stops the second path from overwriting the first: both must end up inside ONE nested expression, or one of the two updates is silently lost. */
+  /**
+   * Grouping is what stops the second path from overwriting the first: both must end up inside ONE
+   * nested expression, or one of the two updates is silently lost.
+   */
   test('two JSON paths on the same column chain into a single nested jsonb_set', () => {
     const transformed = transform({ 'metadata.tier': 'gold', 'metadata.seats': 3 });
 
@@ -131,7 +140,7 @@ describe('PostgresQueryDialect.toUpdateData', () => {
   });
 });
 
-/** The repository's `updateBuilder` accessor was public before the relational lift. It survives as a structural read off the dialect, so the neutral tier keeps zero Postgres value imports. */
+/** A structural read off the dialect, so the neutral tier keeps zero Postgres value imports. */
 describe('PersistableRepository.updateBuilder (compatibility accessor)', () => {
   class UpdateAccessorFixtureEntity extends BasePostgresEntity {
     static override schema = table;
@@ -164,7 +173,11 @@ describe('PersistableRepository.updateBuilder (compatibility accessor)', () => {
   });
 });
 
-/** The last hop, and the one this lift re-pointed: `_update` builds `updateData` and hands it to the executor, which hands it to `.set()`. The shared `fake-connector` discards its `set()` argument, so nothing else in the suite would notice a repository that dropped the payload entirely. */
+/**
+ * The last hop: `_update` builds `updateData` and hands it to the executor, which hands it to
+ * `.set()`. The shared `fake-connector` discards its `set()` argument, so nothing else in the suite
+ * would notice a repository that dropped the payload entirely.
+ */
 describe('PersistableRepository.updateAll - the transform result reaches set()', () => {
   class UpdatePayloadFixtureEntity extends BasePostgresEntity {
     static override schema = table;

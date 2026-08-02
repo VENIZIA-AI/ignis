@@ -14,7 +14,7 @@ const usersTable = pgTable('users', {
 });
 type TUserSchema = typeof usersTable;
 
-/** `SoftDeletableRepository`'s schema bound has always required a `deletedAt` column, so its single-argument case needs a table that has one. */
+/** `SoftDeletableRepository`'s schema bound requires a `deletedAt` column. */
 const softUsersTable = pgTable('soft_users', {
   id: serial('id').primaryKey(),
   email: varchar('email', { length: 255 }).notNull(),
