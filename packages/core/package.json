@@ -113,9 +113,21 @@
       "types": "./dist/connectors/postgres/drivers/postgres-js.d.ts",
       "default": "./dist/connectors/postgres/drivers/postgres-js.js"
     },
+    "./postgres/pglite": {
+      "types": "./dist/connectors/postgres/drivers/pglite.d.ts",
+      "default": "./dist/connectors/postgres/drivers/pglite.js"
+    },
     "./postgres/supabase": {
       "types": "./dist/connectors/postgres/supabase/index.d.ts",
       "default": "./dist/connectors/postgres/supabase/index.js"
+    },
+    "./sqlite": {
+      "types": "./dist/connectors/sqlite/index.d.ts",
+      "default": "./dist/connectors/sqlite/index.js"
+    },
+    "./sqlite/libsql": {
+      "types": "./dist/connectors/sqlite/drivers/libsql.d.ts",
+      "default": "./dist/connectors/sqlite/drivers/libsql.js"
     },
     "./search": {
       "types": "./dist/connectors/search/index.d.ts",
@@ -197,9 +209,11 @@
   "peerDependencies": {
     "@asteasolutions/zod-to-openapi": "^9.0.0",
     "@connectrpc/connect": "^2.1.1",
+    "@electric-sql/pglite": "^0.5.4",
     "@hono/node-server": "^2.0.10",
     "@hono/swagger-ui": "^0.6.1",
     "@hono/zod-openapi": "^1.5.1",
+    "@libsql/client": "^0.17.4",
     "@scalar/hono-api-reference": "^0.11.11",
     "@socket.io/bun-engine": "^0.1.1",
     "@socket.io/redis-adapter": "^8.3.0",
@@ -223,10 +237,16 @@
     "@connectrpc/connect": {
       "optional": true
     },
+    "@electric-sql/pglite": {
+      "optional": true
+    },
     "@hono/node-server": {
       "optional": true
     },
     "@hono/swagger-ui": {
+      "optional": true
+    },
+    "@libsql/client": {
       "optional": true
     },
     "@scalar/hono-api-reference": {
@@ -275,8 +295,10 @@
   "devDependencies": {
     "@asteasolutions/zod-to-openapi": "^9.0.0",
     "@connectrpc/connect": "catalog:",
+    "@electric-sql/pglite": "^0.5.4",
     "@hono/node-server": "^2.0.10",
     "@hono/swagger-ui": "^0.6.1",
+    "@libsql/client": "^0.17.4",
     "@socket.io/bun-engine": "catalog:",
     "@types/bun": "catalog:",
     "@types/lodash": "catalog:",

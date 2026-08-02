@@ -6,6 +6,184 @@ not how.
 This file and `index.md` are reserved OKF filenames - they carry no `type:` frontmatter and are not
 counted as concepts.
 
+## 2026-08-02 - release-readiness audit and migration guide
+
+Measured rather than assumed, by building both f1eb610 (the merge-base with develop) and HEAD and
+diffing them. A probe importing all 774 base symbols through their old sub-paths typechecked against
+the new `.d.ts`: 764 resolve, exactly 10 break, and they are the 10 the 2026-08-01 changelog already
+listed - no gap in either direction. 626 of 634 shared declarations are byte-identical; the 8 that
+differ changed only their heritage clause, and resolving the member sets of the six renamed classes
+showed no public member lost.
+
+Two documentation gaps found and closed. `getQueryInterface` and `_updateBuilder` are `protected`
+and were removed from the repository tier with no changelog entry - they are part of the contract a
+subclass inherits. And the sqlite-quickstart concept named `DefaultCRUDRepository` where the SQLite
+tier spells it `DefaultSqliteRepository`.
+
+The 2026-08-01 changelog now carries a project-agnostic migration guide: detection grep, a
+word-boundary codemod, the hand edits, and the verification step. Every command in it was run
+against a fixture project - before the codemod 5 errors, after it 0. The `\b` anchors are
+load-bearing: without them `FilterBuilder` rewrites the inside of `PostgresFilterBuilder`.
+
+## 2026-08-02 - quickstart examples use real migrations
+
+Both quickstarts applied a hand-written DDL string at boot, justified in a comment by "an embedded
+database has no server for a migration CLI to reach". That is false: drizzle-kit supports
+`driver: pglite` and a sqlite file url, and both `drizzle-orm/pglite/migrator` and
+`drizzle-orm/libsql/migrator` export `migrate`. Generating the migration also proved the DDL had
+already drifted - the Postgres one declared `id uuid default gen_random_uuid()` where the model
+emits `text` with an application-side `$defaultFn`.
+
+They now carry generated migrations under `migration/`, applied in-process by `migrate()`. The
+real constraint is narrower and PGlite-only: it holds an exclusive lock on its data directory, so
+`drizzle-kit migrate` cannot reach a database the app has opened.
+
+drizzle-kit reads `src/models/note.model.ts` directly - esbuild erases the `@model` decorator and
+the framework import before the table export is evaluated. The compiled `migration-schema.js`
+re-export `vert` carries is needed only for entities whose table lives on a `.schema` static.
+
+## 2026-08-02 - PGlite and SQLite quickstart examples
+
+Two runnable examples, one per new engine, with concepts in `examples/`. They exist to show the
+difference between the two integrations: PGlite is a driver swap under the Postgres connector, so
+only the datasource file knows about it, while SQLite is a second connector sharing the neutral
+relational tier. Both were run, not just type-checked, which is what surfaced four traps now
+documented in their concepts: the raw-client fourth type parameter, `init()` before `start()`, the
+`@inject`ed constructor a CRUD controller subclass must declare, and `ISO_TIMESTAMP_NOW` needing
+`sql.raw()` unless `generateTzColumnDefs` applies it.
+
+## 2026-08-02 - relational model enrichers stop dropping data
+
+The SQLite tz enricher gated `modified` and `deleted` on truthiness while `TTzEnricherOptions`
+declares `enable?: true`, so `{ modified: { columnName: 'modified_at' } }` type-checked as producing
+`modifiedAt` and emitted nothing. Omitting `enable` now means enabled on both the type and the
+runtime; only `enable: false` drops a column.
+
+Both data-type enrichers gated each `default()` on truthiness, so `0`, `''` and `false` produced a
+column with no default and inserts wrote NULL. They test for presence now.
+
+The SQLite `isoTimestamp` read a zone-less driver value - what SQLite's own `CURRENT_TIMESTAMP`
+writes - through `new Date()`, which parses it as host-local and shifted every such row by the host
+offset. Zone-less values are read as UTC, which is what SQLite defines them to be.
+
+## 2026-08-02 - SQLite driver and rotation safety fixes
+
+`LibSqlDriver` built its 1-slot pool with no `acquireTimeoutMs` and no way to set one, so a
+transaction leaked between `BEGIN` and commit left every later `acquire()` in the process awaiting a
+promise that never settled. It now takes `TLibSqlDriverOptions` and defaults to 30s, matching
+`PGliteDriver`; an app raises it by constructing the driver itself and calling `useDriver()`, since
+the framework's own wiring passes only `{ client }`.
+
+`SqliteBeginModes.isValid` existed with zero call sites while `beginMode` was interpolated raw into a
+statement the driver runs verbatim - now wired, and `beginTransaction()` resolves the mode once
+instead of twice.
+
+`onSecretRotated()` drained clients with `typeof client.end === 'function'`; neither PGlite nor libsql
+has `end()`, so all three drain sites silently skipped and repeated rotations accumulated live WASM
+instances and open file handles. Replaced by `drainClient()`, which probes `end()` then `close()` -
+capability, not class, so the neutral tier still names no engine.
+
+## 2026-08-02 - PGlite and SQLite documented for humans
+
+The wiki gained two guides, `guides/core-concepts/persistent/pglite.md` and `sqlite.md`, plus the
+changelog `changelogs/2026-08-02-sqlite-and-pglite-connectors.md`. Both connectors had shipped with
+no human-facing page at all. `postgres-drivers.md` said two drivers ship; it says three now, and the
+persistent-layer overview and DataSources guide no longer describe Postgres and Typesense as the only
+connectors. Every sample on the new pages was type-checked against `dist` before it was written.
+
+Two facts corrected against the source while writing: the conformance suite is **23 tests per
+engine** (46 across both), not the 21 it had when the divergence pins landed; and `migrate()` from
+`drizzle-orm/pglite/migrator` will not take `getConnector()` - that returns the generic
+`TRelationalConnector`, while the migrator demands drizzle's narrower `PgliteDatabase`, so the pages
+build a `drizzle({ client })` over the same client instead.
+
+## 2026-08-02 - engine-neutral guards generalised; two divergences pinned; update skeleton lifted
+
+The `dist` cycle guard named Postgres, so a `relational -> sqlite` edge would have passed silently;
+it now discovers the adapter set by listing the siblings of `dist/connectors/relational`, and is
+renamed `no-engine-cycle.test.ts`. `IConformanceCapabilities` gained `caseInsensitiveLike` and
+`nullsSortHigh`: unlike the three refusals, these are divergences where identical caller code
+succeeds on both engines and answers differently, so each engine pins its own answer. SQLite's
+`LIKE` folds ASCII case (`like` widens, `nlike` drops rows) and its NULLs sort low, both inverting
+against Postgres. `RelationalUpdateBuilder` is the new neutral base for the update transform with
+one abstract member, `composeJsonSet()`; the split, the column throws, `toUpdateData` and both path
+validators stopped being copied per engine. Messages interpolate `this.scope`, so the pinned
+`[UpdateBuilder]` / `[SqliteUpdateBuilder]` prefixes still name the builder that ran.
+
+## 2026-08-02 - FilterBuilder no longer defaults to Postgres JSON SQL
+
+`buildJsonWhereCondition` and `buildJsonOrderBy` are `protected abstract` on the neutral
+`FilterBuilder`; their `#>>`/`#>` and `::numeric` bodies moved into `PostgresFilterBuilder`. The
+neutral base emitted Postgres syntax by default, so the next engine that forgot to override got it
+silently, with no compile error. The `not` branch of `buildJsonOperatorConditions` now asks
+`jsonNeedsNumericCast` instead of testing `typeof operand === 'number'`, so an engine that
+neutralises the cast is no longer cast through that branch, and the bare-operand mapping it shares
+with the where branch is the new `toBareJsonOperators`. `validateJsonColumnType`'s message says
+`is not a JSON column` rather than naming JSONB, which is meaningless off Postgres.
+
+## 2026-08-02 - PGlite slot wait is now bounded
+
+`PGliteDriver`'s 1-slot pool had no `acquireTimeoutMs` and no way to set one, so a transaction leaked
+between `BEGIN` and commit hung every later `acquire()` in the process forever and silently. The
+constructor now forwards the pool's control knobs with `size` pinned at 1 and `acquireTimeoutMs`
+defaulting to 30s, and the class docblock states the other one-session hazard plainly: a
+`createConnector()` write lands inside any open transaction and is lost on its `ROLLBACK`.
+
+## 2026-08-02 - SQLite connector assembled; one conformance suite now runs on two engines
+
+New concept: [SQLite connector](/architecture/sqlite-connector.md). `connectors/sqlite/datasources`
+completes the branch - `AbstractSqliteDataSource` supplies the two memoized ports,
+`BaseSqliteDataSource` supplies `BEGIN IMMEDIATE` (deferred deadlocks on `SQLITE_BUSY` when it
+upgrades), attaches `beginMode`, and throws NotSupported on `isolationLevel`. Five repository
+subclasses bind `ISqliteExtraOptions` + `ISqliteDataSource`. Sub-paths `./sqlite` and
+`./sqlite/libsql` ship; `connectors/index.ts` still exports `./postgres` only.
+
+`__tests__/connectors/relational/conformance/` is one repository suite run against PGlite and libsql
+`:memory:` - 21 tests per engine, real databases, no mocks. Capability gaps assert the NotSupported
+throw instead of skipping. It found a live defect on first run:
+`PostgresQueryExecutor.readAffectedRowCount` did not know PGlite's `affectedRows`, so every Postgres
+write with `shouldReturn: false` threw against PGlite. Fixed, and the relational-connector concept's
+executor section now lists all four spellings.
+
+`DataSourceDrivers` gains `LIBSQL` - it was already six drivers in source and five in the constant.
+
+## 2026-08-02 - SQLite query dialect added; `FilterBuilder` seam widened to eight members
+
+`SqliteQueryDialect` completes `IRelationalQueryDialect` on the neutral tier: `SqliteQueryOperators`
+throws NotSupported for `regexp`/`iregexp` (no such SQLite function) and the array operators (no
+array storage class), and maps `ilike` onto `LIKE`, which SQLite already folds for ASCII.
+`SqliteFilterBuilder` overrides four members and inherits the rest - `json_extract` needs no numeric
+cast because it returns the JSON value in its own type. `SqliteUpdateBuilder` chains `json_set`.
+
+`isOperatorObject()` and `buildValueCondition()` on the neutral `FilterBuilder` went `private` ->
+`protected`: an engine overriding `buildJsonWhereCondition` cannot reach the bare-value branch
+without them, and the seam table in the relational-connector concept now lists both as call-only.
+
+## 2026-08-02 - SQLite executor and libsql driver added
+
+`SqliteQueryExecutor` implements the seven neutral executor verbs on Drizzle's SQLite core, throwing
+NotSupported for `lock` - SQLite locks the database file, never a row. `LibSqlDriver` is the SQLite
+driver: libsql is the only client that is async, covers memory/file/Turso/replica, and runs on Node
+and Bun. `acquire()` borrows from a 1-slot pool over the single client because Drizzle binds to a
+libsql `Client` and never to its interactive `Transaction`, and it refuses a remote client, whose
+statements each get their own connection. `@libsql/client` is an optional peer. No sub-path export
+or barrel entry yet.
+
+## 2026-08-02 - SQLite models tier added
+
+`connectors/sqlite/models` is the first slice of a second SQL dialect on the engine-neutral
+relational tier: `SQLiteTable`-branded schema types, `BaseSqliteEntity`, and the five enrichers.
+The types are declared, not re-exported from the neutral tier, so this barrel's `TTableObject`
+stays intersectable with its own schema bound. No dialect, executor, driver or datasource yet, and
+no package.json entry - the tier is not reachable from any barrel.
+
+## 2026-08-02 - PGlite driver added
+
+`PGliteDriver` ships at `@venizia/ignis/postgres/pglite`, giving an honest test database and
+single-file embedded deployments on the unchanged Postgres dialect. PGlite has one session and a
+second `BEGIN` silently joins the open transaction, so `acquire()` serialises through a 1-slot pool.
+`DataSourceDrivers` and `datasource-hierarchy.md` now name five shipped drivers, not four.
+
 ## 2026-08-02 - search findById now carries its filter; the family's signature divergences listed
 
 `ReadableSearchRepository.findById` declared no `filter`, so a caller typed at `ICrudRepository` -

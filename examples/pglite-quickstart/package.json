@@ -1,0 +1,41 @@
+{
+  "name": "pglite-quickstart",
+  "version": "0.0.0",
+  "private": true,
+  "description": "IGNIS on PGlite - Postgres compiled to WASM, running in-process with no server",
+  "engines": {
+    "bun": ">=1.3"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json && tsc-alias -p tsconfig.json",
+    "clean": "sh ./scripts/clean.sh",
+    "eslint": "eslint --report-unused-disable-directives .",
+    "lint": "bun run eslint && bun run prettier:cli",
+    "lint:fix": "bun run eslint --fix && bun run prettier:fix",
+    "migrate:dev": "NODE_ENV=development drizzle-kit migrate --config=src/migration.ts",
+    "migrate:generate": "drizzle-kit generate --config=src/migration.ts",
+    "prettier:cli": "prettier \"**/*.{js,ts}\" -l",
+    "prettier:fix": "bun run prettier:cli --write",
+    "rebuild": "bun run clean && bun run build",
+    "server:dev": "NODE_ENV=development APP_ENV_LOGGER_FOLDER_PATH=./app_data/logs bun run src/index.ts",
+    "start": "APP_ENV_LOGGER_FOLDER_PATH=./app_data/logs bun run src/index.ts"
+  },
+  "dependencies": {
+    "@electric-sql/pglite": "^0.5.4",
+    "@hono/zod-openapi": "catalog:",
+    "@scalar/hono-api-reference": "catalog:",
+    "@venizia/ignis": "workspace:*",
+    "@venizia/ignis-helpers": "workspace:*",
+    "drizzle-orm": "catalog:",
+    "hono": "catalog:"
+  },
+  "devDependencies": {
+    "@types/bun": "catalog:",
+    "@venizia/dev-configs": "workspace:*",
+    "drizzle-kit": "catalog:",
+    "eslint": "catalog:",
+    "prettier": "catalog:",
+    "tsc-alias": "catalog:",
+    "typescript": "catalog:"
+  }
+}

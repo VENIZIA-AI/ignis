@@ -36,7 +36,10 @@ export abstract class AbstractRelationalDataSource<
   protected client?: Client;
   protected driver?: IRelationalDriver<TConnector>;
 
-  /** Lazy and idempotent: builds the driver named by `@datasource({ driver })` over the client `configure()` assigned, then the connector from it. */
+  /**
+   * Lazy and idempotent: builds the driver named by `@datasource({ driver })` over the client
+   * `configure()` assigned, then the connector from it.
+   */
   protected wireDriverFromMetadata(): void {
     if (this.connector) {
       return;
@@ -57,7 +60,10 @@ export abstract class AbstractRelationalDataSource<
     this.useDriver({ driver: new DriverClass({ client: this.client }) });
   }
 
-  /** Rejects a driver-name string from untyped JS callers: a string carries no module into the bundle, only a class reference does. */
+  /**
+   * Rejects a driver-name string from untyped JS
+   * callers: a string carries no module into the bundle.
+   */
   protected resolveDriverClass(): TClass<IRelationalDriver<TConnector>> {
     const metadata = MetadataRegistry.getInstance().getDataSourceMetadata({
       target: this.constructor,
@@ -78,7 +84,10 @@ export abstract class AbstractRelationalDataSource<
     return this.driver as IRelationalDriver<TConnector>;
   }
 
-  /** Assigns `this.driver` AND builds `this.connector` in one step - a driver without its connector is silently bypassed on pooled queries. */
+  /**
+   * Assigns `this.driver` AND builds `this.connector` in one step - a
+   * driver without its connector is silently bypassed on pooled queries.
+   */
   protected useDriver(opts: { driver: IRelationalDriver<TConnector>; schema?: Schema }): void {
     this.driver = opts.driver;
     this.connector = opts.driver.createConnector({ schema: opts.schema ?? this.getSchema() });
@@ -95,7 +104,10 @@ export abstract class AbstractRelationalDataSource<
     return this.connector;
   }
 
-  /** Raw driver client (`pg.Pool` / `Sql`). Throws rather than handing back an `undefined` typed as `Client`. */
+  /**
+   * Raw driver client (`pg.Pool` / `Sql`). Throws rather
+   * than handing back an `undefined` typed as `Client`.
+   */
   getClient(): Client {
     if (this.driver) {
       return this.driver.getClient() as Client;
@@ -113,19 +125,27 @@ export abstract class AbstractRelationalDataSource<
   abstract getQueryDialect(): IRelationalQueryDialect;
   abstract getQueryExecutor(): IRelationalQueryExecutor<TConnector>;
 
-  /** Soft-evicts the pool after a secret rotation: builds pool + driver + connector against the rotated credentials without touching live fields, swaps atomically, then drains the old pool. On failure live state is restored, any half-built pool drained, and the error rethrown. */
+  /**
+   * Soft-evicts the pool after a secret rotation: rebuilds against the rotated credentials without
+   * touching live fields, swaps atomically, then drains the old pool. On failure live state is
+   * restored, any half-built pool drained, and the error rethrown.
+   */
   async onSecretRotated(opts: { key: string; secret: Record<string, string> }): Promise<void> {
     const logger = this.logger.for(this.onSecretRotated.name);
     const oldClient = this.getClient() as AnyType;
 
-    // Snapshot so a failed rebuild restores the datasource verbatim; `settings` is copied because rotation mutates it in place.
+    // Snapshot so a failed rebuild restores the datasource verbatim;
+    // `settings` is copied because rotation mutates it in place.
     const savedClient = this.client;
     const savedSettings = { ...(this.settings as AnyObject) };
 
-    // Rotation only takes effect through this.settings + configure(); a configure() that hard-codes its connection string or reads Envs directly rebuilds with stale credentials.
+    // Rotation only takes effect through this.settings + configure(); a configure() that
+    // hard-codes its connection string or reads Envs directly rebuilds with stale credentials.
     Object.assign(this.settings as AnyObject, this.mapSecretToSettings({ secret: opts.secret }));
 
-    // configure() overwrites this.client, so the new pool is captured into a local and the old client restored at once - live fields are never nulled and the old pool keeps serving until the swap.
+    // configure() overwrites this.client, so the new pool is captured
+    // into a local and the old client restored at once - live fields
+    // are never nulled and the old pool keeps serving until the swap.
     let newClient: Client;
     try {
       await this.configure();
@@ -134,9 +154,11 @@ export abstract class AbstractRelationalDataSource<
       const halfBuilt = this.client as AnyType;
       this.client = savedClient;
       Object.assign(this.settings as AnyObject, savedSettings);
-      if (halfBuilt && halfBuilt !== savedClient && typeof halfBuilt.end === 'function') {
-        await (halfBuilt as AnyType).end();
+
+      if (halfBuilt && halfBuilt !== savedClient) {
+        await this.drainClient({ client: halfBuilt });
       }
+
       logger.error('Secret rotation failed in configure(); kept old pool | key: %s', opts.key);
       throw error;
     }
@@ -152,28 +174,52 @@ export abstract class AbstractRelationalDataSource<
       newConnector = newDriver.createConnector({ schema: this.getSchema() });
     } catch (error) {
       Object.assign(this.settings as AnyObject, savedSettings);
-      if (newClient && typeof (newClient as AnyType).end === 'function') {
-        await (newClient as AnyType).end();
-      }
+      await this.drainClient({ client: newClient });
+
       logger.error('Secret rotation failed while wiring driver; kept old pool | key: %s', opts.key);
       throw error;
     }
 
-    // Commit the live fields in one synchronous step so there is no null window, then soft-evict the old pool so its in-flight transactions can finish.
+    // Commit the live fields in one synchronous step so there is no null window,
+    // then soft-evict the old pool so its in-flight transactions can finish.
     this.client = newClient as AnyType;
     this.driver = newDriver;
     this.connector = newConnector as AnyType;
 
-    if (oldClient && typeof oldClient.end === 'function') {
-      await oldClient.end();
+    const isDrained = await this.drainClient({ client: oldClient });
+    if (isDrained) {
       logger.info('Old pool drained after secret rotation | key: %s', opts.key);
     }
+  }
+
+  /**
+   * Shuts a client down by whichever verb its engine spells it with -
+   * `pg.Pool` and postgres.js have `end()`, PGlite and libsql only `close()`.
+   * Probed rather than type-tested: this tier must not name an engine, and a
+   * client left undrained keeps a WASM instance or file handle alive forever.
+   */
+  protected async drainClient(opts: { client: unknown }): Promise<boolean> {
+    const client = opts.client as AnyType;
+
+    const drain = typeof client?.end === 'function' ? client.end : client?.close;
+
+    if (typeof drain !== 'function') {
+      this.logger
+        .for(this.drainClient.name)
+        .warn('Client exposes neither end() nor close(); nothing to drain');
+      return false;
+    }
+
+    await drain.call(client);
+
+    return true;
   }
 
   /** Vault's database engine returns `{ username, password }`; pg expects `{ user, password }`. */
   protected mapSecretToSettings(opts: { secret: Record<string, string> }): AnyObject {
     const { username, password } = opts.secret;
     const mapped: AnyObject = {};
+
     if (username !== undefined) {
       mapped.user = username;
     }

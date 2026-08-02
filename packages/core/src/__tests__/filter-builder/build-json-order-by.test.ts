@@ -193,7 +193,7 @@ const testCases: TTestCase[] = [
     direction: Sorts.ASC,
     shouldPass: false,
     description: 'Non-JSON column (varchar)',
-    expectedError: /Column 'name' is not JSON\/JSONB type/,
+    expectedError: /Column 'name' is not a JSON column/,
   },
 
   {

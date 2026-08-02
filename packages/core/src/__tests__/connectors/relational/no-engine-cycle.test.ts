@@ -3,16 +3,25 @@ import { readFileSync, readdirSync, statSync } from 'node:fs';
 import { dirname, join, relative, resolve } from 'node:path';
 
 /**
- * Reads the built `dist`, not `src`: the edge this guards against exists only as an emitted
- * `require`. A stale or empty `dist` makes the walk meaningless, so run `make core` first - the
- * emptiness guards below fail loudly rather than passing vacuously. The walk is transitive because
- * such a cycle can sit five hops deep, where grepping the relational directory for
- * `connectors/postgres` sees nothing. `dist` resolves from the cwd; `bun test` runs from
- * `packages/core`.
+ * Reads the built `dist`, not `src`: the edge guarded against exists only as an emitted `require`,
+ * and it can sit five hops deep where grepping for an adapter name sees nothing. A stale or empty
+ * `dist` would make the walk vacuous, so the emptiness guards below fail loudly - run `make core`
+ * first. `dist` resolves from the cwd; `bun test` runs from `packages/core`.
  */
 const DIST = resolve('dist');
-const RELATIONAL_DIST = join(DIST, 'connectors/relational');
-const POSTGRES_DIST = join(DIST, 'connectors/postgres');
+const CONNECTORS_DIST = join(DIST, 'connectors');
+const NEUTRAL_TIER = 'relational';
+
+/**
+ * Every sibling of the neutral tier is an adapter, DISCOVERED rather than listed, so a third
+ * connector is covered the day its directory appears. Naming engines leaves the next one unguarded.
+ */
+const listAdapterDirectories = (): string[] =>
+  readdirSync(CONNECTORS_DIST, { withFileTypes: true })
+    .filter(entry => entry.isDirectory() && entry.name !== NEUTRAL_TIER)
+    .map(entry => join(CONNECTORS_DIST, entry.name));
+
+const RELATIONAL_DIST = join(CONNECTORS_DIST, NEUTRAL_TIER);
 
 const listJsFiles = (dir: string): string[] => {
   const files: string[] = [];
@@ -56,7 +65,10 @@ const resolveSpecifier = (opts: { fromFile: string; specifier: string }): string
   return null;
 };
 
-/** `require()` covers the CJS emit; the `from '...'` form keeps the walk honest if the emit ever turns ESM. */
+/**
+ * `require()` covers the CJS emit; the `from '...'` form
+ * keeps the walk honest if the emit ever turns ESM.
+ */
 const REQUIRE_PATTERN = /require\(\s*["']([^"']+)["']\s*\)/g;
 const FROM_PATTERN = /(?:^|[\s;}])(?:import|export)\s[^;]*?from\s*["']([^"']+)["']/gm;
 
@@ -85,6 +97,7 @@ interface IWalkResult {
 
 const walkFromRelational = (): IWalkResult => {
   const roots = listJsFiles(RELATIONAL_DIST);
+  const adapterDirectories = listAdapterDirectories();
   const cameFrom = new Map<string, string | null>();
   const queue: string[] = [];
 
@@ -112,7 +125,7 @@ const walkFromRelational = (): IWalkResult => {
       cameFrom.set(next, file);
       queue.push(next);
 
-      if (next.startsWith(`${POSTGRES_DIST}/`)) {
+      if (adapterDirectories.some(directory => next.startsWith(`${directory}/`))) {
         offenders.push(next);
       }
     }
@@ -137,15 +150,24 @@ const walkFromRelational = (): IWalkResult => {
   };
 };
 
-describe('relational tier never reaches the postgres tier at runtime', () => {
+describe('relational tier never reaches an engine adapter at runtime', () => {
   test('dist is built - a missing or empty dist would make this suite pass vacuously', () => {
     expect(statSync(RELATIONAL_DIST).isDirectory()).toBe(true);
-    expect(statSync(POSTGRES_DIST).isDirectory()).toBe(true);
     expect(listJsFiles(RELATIONAL_DIST).length).toBeGreaterThan(0);
-    expect(listJsFiles(POSTGRES_DIST).length).toBeGreaterThan(0);
+
+    const adapterDirectories = listAdapterDirectories();
+
+    // Both engines named explicitly ONLY here: a discovery that silently
+    // found nothing would make the walk pass against an empty offender set.
+    for (const engine of ['postgres', 'sqlite']) {
+      const engineDist = join(CONNECTORS_DIST, engine);
+
+      expect(adapterDirectories).toContain(engineDist);
+      expect(listJsFiles(engineDist).length).toBeGreaterThan(0);
+    }
   });
 
-  test('breadth-first walk of the emitted require graph reaches zero postgres files', () => {
+  test('breadth-first walk of the emitted require graph reaches zero adapter files', () => {
     const { rootCount, reachedCount, offenderChains } = walkFromRelational();
 
     expect(rootCount).toBeGreaterThan(0);
@@ -156,8 +178,8 @@ describe('relational tier never reaches the postgres tier at runtime', () => {
       offenderChains.length === 0
         ? ''
         : [
-            `dist/connectors/relational reaches dist/connectors/postgres via ${offenderChains.length} path(s) -`,
-            'the relational tier must stay engine-neutral, a second engine cannot depend on Postgres:',
+            `dist/connectors/relational reaches an engine adapter via ${offenderChains.length} path(s) -`,
+            'the relational tier must stay engine-neutral, no engine may depend on another:',
             ...offenderChains,
           ].join('\n');
 

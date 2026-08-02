@@ -2,6 +2,7 @@ import { describe, expect, test } from 'bun:test';
 import { pgTable, serial, varchar } from 'drizzle-orm/pg-core';
 import { sql } from 'drizzle-orm';
 import { PostgresQueryExecutor } from '@/connectors/postgres/repositories/executor';
+import { expectRejection } from '../../../rejection.helper';
 
 const usersTable = pgTable('users', {
   id: serial('id').primaryKey(),
@@ -246,27 +247,28 @@ describe('PostgresQueryExecutor', () => {
   test('findMany throws a schema key mismatch error naming the entity and available keys', async () => {
     const { connector } = createFakeQueryConnector({ entries: { articles: {} } });
 
-    expect(
-      new PostgresQueryExecutor().findMany({
+    await expectRejection({
+      task: new PostgresQueryExecutor().findMany({
         connector: connector as never,
         entityName: 'users',
         query: {},
       }),
-    ).rejects.toThrow(
-      "[PostgresQueryExecutor] Schema key mismatch | Entity name 'users' not found in connector.query | Available keys: [articles] | Ensure the model's TABLE_NAME matches the schema registration key",
-    );
+      message:
+        "[PostgresQueryExecutor] Schema key mismatch | Entity name 'users' not found in connector.query | Available keys: [articles] | Ensure the model's TABLE_NAME matches the schema registration key",
+    });
   });
 
   test('a caller-supplied scope names the thrown error instead of the executor class', async () => {
     const { connector } = createFakeQueryConnector({ entries: { articles: {} } });
 
-    expect(
-      new PostgresQueryExecutor().findFirst({
+    await expectRejection({
+      task: new PostgresQueryExecutor().findFirst({
         connector: connector as never,
         entityName: 'users',
         query: {},
         scope: 'ProductRepository',
       }),
-    ).rejects.toThrow(/^\[ProductRepository\] Schema key mismatch/);
+      message: /^\[ProductRepository\] Schema key mismatch/,
+    });
   });
 });

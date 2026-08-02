@@ -1000,6 +1000,8 @@ const config = defineConfig({
                   text: 'Postgres Drivers & Supabase',
                   link: '/guides/core-concepts/persistent/postgres-drivers',
                 },
+                { text: 'PGlite', link: '/guides/core-concepts/persistent/pglite' },
+                { text: 'SQLite', link: '/guides/core-concepts/persistent/sqlite' },
                 { text: 'Search & Typesense', link: '/guides/core-concepts/persistent/search-typesense' },
                 {
                   text: 'Search & Meilisearch',

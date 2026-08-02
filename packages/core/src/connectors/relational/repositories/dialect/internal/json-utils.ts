@@ -30,7 +30,10 @@ export const validateJsonPathComponents = (opts: {
   }
 };
 
-/** @throws Error if column is not JSON/JSONB type. */
+/**
+ * @throws Error if the column is not a JSON column. Names no engine type: `jsonb` is unreachable
+ * off Postgres.
+ */
 export const validateJsonColumnType = (opts: {
   column: { dataType: string };
   columnName: string;
@@ -42,7 +45,7 @@ export const validateJsonColumnType = (opts: {
   const dataType = column.dataType.toLowerCase();
   if (dataType !== 'json' && dataType !== 'jsonb') {
     throw getError({
-      message: `[${methodName}] Table: ${tableName} | Column '${columnName}' is not JSON/JSONB type | dataType: '${column.dataType}'`,
+      message: `[${methodName}] Table: ${tableName} | Column '${columnName}' is not a JSON column | dataType: '${column.dataType}'`,
     });
   }
 };

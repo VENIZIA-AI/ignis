@@ -112,7 +112,7 @@ describe('PostgresQueryDialect.transformUpdate - two paths on one column', () =>
 describe('PostgresQueryDialect.transformUpdate - rejections', () => {
   test('a JSON path on a non-JSON column throws, naming the column and its dataType', () => {
     expect(() => transform({ 'name.tier': 'gold' })).toThrow(
-      "[UpdateBuilder.transform] Table: update_transform_fixture | Column 'name' is not JSON/JSONB type | dataType: 'string'",
+      "[UpdateBuilder.transform] Table: update_transform_fixture | Column 'name' is not a JSON column | dataType: 'string'",
     );
   });
 

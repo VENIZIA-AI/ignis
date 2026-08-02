@@ -1,21 +1,30 @@
 import type { AnyType, IConfigurable, TClass, TConstValue } from '@venizia/ignis-helpers';
 
 export class DataSourceDrivers {
-  // Relational
+  // Relational - PGlite is a Postgres DRIVER (Postgres compiled to WASM), not a separate engine.
   static readonly NODE_POSTGRES = 'node-postgres';
   static readonly POSTGRES_JS = 'postgres-js';
+  static readonly PGLITE = 'pglite';
+  static readonly LIBSQL = 'libsql';
 
   // Search
   static readonly TYPESENSE = 'typesense';
   static readonly MEILISEARCH = 'meilisearch';
 
-  static readonly RELATIONAL_SCHEME_SET = new Set([this.NODE_POSTGRES, this.POSTGRES_JS]);
+  static readonly RELATIONAL_SCHEME_SET = new Set([
+    this.NODE_POSTGRES,
+    this.POSTGRES_JS,
+    this.PGLITE,
+    this.LIBSQL,
+  ]);
   static readonly SEARCH_SCHEME_SET = new Set([this.TYPESENSE, this.MEILISEARCH]);
 
   static readonly SCHEME_SET = new Set([
     // Relational
     this.NODE_POSTGRES,
     this.POSTGRES_JS,
+    this.PGLITE,
+    this.LIBSQL,
 
     // Search
     this.TYPESENSE,
@@ -27,10 +36,15 @@ export class DataSourceDrivers {
   }
 }
 
-// `(string & {})` keeps autocomplete for the known DataSourceDrivers values while still accepting any other engine-driver string literal.
+// `(string & {})` keeps autocomplete for the known values
+// while still accepting any other engine-driver string.
 export type TDataSourceDriver = TConstValue<typeof DataSourceDrivers> | (string & {});
 
-/** A driver CLASS, named by `@datasource({ driver })` - the class reference is what carries the peer package into the bundle (a name string carries nothing, a bare side-effect import may be dropped by a bundler). Untyped because `IRelationalDriver` lives under `connectors/`, off-limits to `base/`. */
+/**
+ * A driver CLASS, named by `@datasource({ driver })`. The class reference is what pulls the peer
+ * package into a bundle - a name string pulls nothing, and a bare side-effect import may be
+ * dropped. Untyped because `IRelationalDriver` lives under `connectors/`, off-limits to `base/`.
+ */
 export type TDataSourceDriverClass = TClass<AnyType>;
 
 export type TAnyDataSourceSchema = Record<string, any>;
@@ -49,7 +63,10 @@ export interface IDataSource<
   getSchema(): Schema;
 }
 
-/** Neutral transaction options - isolation levels are engine vocabulary, so `isolationLevel` stays a loose string here and connectors narrow it in their own `ITransactionOptions` extension. */
+/**
+ * Neutral transaction options - isolation levels are engine vocabulary, so `isolationLevel` stays
+ * a loose string here and connectors narrow it in their own `ITransactionOptions` extension.
+ */
 export interface ITransactionOptions {
   isolationLevel?: string;
 }

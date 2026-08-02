@@ -49,10 +49,18 @@ const MEMBERSHIP_OPERATORS = new Set<string>([
   QueryOperators.NIN,
 ]);
 
-/** Converts filter objects into Drizzle ORM query options (where, order, columns, relations). Engine-neutral: it names no SQL engine, and each engine branch supplies one by extending it. */
-// No `implements IRelationalQueryDialect` here: that clause belongs on each engine's query dialect, which adds the port's engine-specific JSON-path update methods.
+/**
+ * Converts filter objects into Drizzle query options (where, order, columns, relations). The
+ * operator table and both JSON extractions are abstract rather than defaulted, so this tier
+ * emits no engine-specific SQL.
+ */
+// No `implements IRelationalQueryDialect` here: that clause belongs on each engine's query dialect,
+// which adds the JSON-path update methods.
 export abstract class FilterBuilder extends BaseHelper {
-  /** Per-schema memo of resolved relations; `@model` settings are immutable after boot, so the registry lookup and resolver invocation run once per schema. */
+  /**
+   * Per-schema memo of resolved relations. `@model` settings are
+   * immutable after boot, so the lookup and resolver run once per schema.
+   */
   private readonly _relationsCache = new WeakMap<
     TTableSchemaWithId,
     Record<string, TRelationConfig>
@@ -62,10 +70,14 @@ export abstract class FilterBuilder extends BaseHelper {
     super({ scope: FilterBuilder.name });
   }
 
-  /** The operator table every `where` translation resolves handlers from. Abstract so this class names no engine: each SQL engine returns its own table and inherits the whole walk unchanged. */
+  /** Handler table for `where` translation. Abstract so this class names no engine. */
   protected abstract get operators(): TQueryOperatorHandlers;
 
-  /** Merges default and user filters. `where` merges at the TOP KEY LEVEL, never index-wise (that corrupts operator arrays); operator-object collisions AND-compose so a default scope can only be narrowed; user `undefined` never overrides a defined default; other parts are user-wins. */
+  /**
+   * Merges default and user filters. `where` merges at the TOP KEY LEVEL, never index-wise - that
+   * corrupts operator arrays. Operator-object collisions AND-compose, so a default scope can only
+   * be narrowed, and a user `undefined` never overrides a defined default. Other parts user-wins.
+   */
   mergeFilter<T = any>(opts: { defaultFilter?: TFilter<T>; userFilter?: TFilter<T> }): TFilter<T> {
     const { defaultFilter, userFilter } = opts;
 
@@ -98,7 +110,10 @@ export abstract class FilterBuilder extends BaseHelper {
     };
   }
 
-  /** Top-key merge: operator-object collisions AND-compose under the reserved `and` key, merging with an existing `and` rather than clobbering it; every other collision is user-wins. */
+  /**
+   * Top-key merge: operator-object collisions AND-compose under the reserved `and` key, merging
+   * with an existing `and` rather than clobbering it. Every other collision is user-wins.
+   */
   private mergeWhere<T = any>(opts: { defaultWhere: TWhere<T>; userWhere: TWhere<T> }): TWhere<T> {
     const { defaultWhere, userWhere } = opts;
 
@@ -114,10 +129,12 @@ export abstract class FilterBuilder extends BaseHelper {
 
       const defaultValue = defaultWhere[key];
 
-      // Scalar-over-scalar stays a plain override (the opt-out of a soft-delete default); every other collision AND-composes so a user operator object cannot swallow a scalar default.
+      // Scalar-over-scalar is a plain override - the soft-delete opt-out. Everything else
+      // AND-composes, so a user operator object cannot swallow a scalar default.
       const isCollision = defaultValue !== undefined;
 
-      // `and`/`or` are how a SCOPE is written, and both sides are arrays, which `isPrimitiveValue` counts as scalar - without these two branches the caller's group replaces the default's outright and the scope is gone.
+      // `and`/`or` are how a SCOPE is written and both sides are arrays, which `isPrimitiveValue`
+      // counts as scalar - without these branches the caller's group replaces the default outright.
       if (isCollision && key === QueryOperators.AND) {
         // Both conjunct lists must hold: concatenating them IS the AND of the two groups.
         merged.and = [...defaultValue, ...userValue];
@@ -125,7 +142,8 @@ export abstract class FilterBuilder extends BaseHelper {
       }
 
       if (isCollision && key === QueryOperators.OR) {
-        // Two disjunctions cannot be concatenated - that would UNION them, widening the query; each group has to hold on its own, so they become two separate conjuncts.
+        // Two disjunctions cannot be concatenated - that would UNION them, widening
+        // the query. Each group has to hold on its own, so they become two conjuncts.
         delete merged[key];
         composed.push({ [key]: defaultValue }, { [key]: userValue });
         continue;
@@ -151,7 +169,11 @@ export abstract class FilterBuilder extends BaseHelper {
     return merged as TWhere<T>;
   }
 
-  /** Registry lookup shared by the resolvers below; a failure degrades to no settings rather than failing the query, and is never silent - `resolveHiddenProperties` degrading would stop hidden columns being omitted. */
+  /**
+   * Registry lookup shared by the resolvers below. A failure degrades to no settings rather than
+   * failing the query, and is never silent - a degraded `resolveHiddenProperties` would stop
+   * hidden columns being omitted.
+   */
   private resolveModelEntry(opts: { schema: TTableSchemaWithId; methodName: string }) {
     const { schema, methodName } = opts;
 
@@ -168,7 +190,11 @@ export abstract class FilterBuilder extends BaseHelper {
     }
   }
 
-  /** Resolves hidden properties by SQL table name, not class - `toInclude` only has a relation's `schema`, no class reference. Diverges from the class-keyed lookup elsewhere if `@model({ tableName })` != the pgTable name. */
+  /**
+   * Resolves hidden properties by SQL table name, not class - `toInclude` has a relation's
+   * `schema` and no class reference. Diverges from the class-keyed lookup elsewhere when
+   * `@model({ tableName })` differs from the table name.
+   */
   resolveHiddenProperties(opts: { schema: TTableSchemaWithId }): Set<string> {
     const modelEntry = this.resolveModelEntry({
       schema: opts.schema,
@@ -290,7 +316,9 @@ export abstract class FilterBuilder extends BaseHelper {
     return result;
   }
 
-  /** Converts a where clause to a Drizzle SQL condition (supports operators, JSON paths, AND/OR). */
+  /**
+   * Converts a where clause to a Drizzle SQL condition (supports operators, JSON paths, AND/OR).
+   */
   toWhere<Schema extends TTableSchemaWithId>(opts: {
     tableName: string;
     schema: Schema;
@@ -324,7 +352,10 @@ export abstract class FilterBuilder extends BaseHelper {
     return conditions.length === 1 ? conditions[0] : and(...conditions);
   }
 
-  /** Conditions contributed by a single where key: a logical group, a JSON path, a bare value or an operator object. */
+  /**
+   * Conditions contributed by a single where key: a logical
+   * group, a JSON path, a bare value or an operator object.
+   */
   private buildWhereKeyConditions<Schema extends TTableSchemaWithId>(opts: {
     key: string;
     value: any;
@@ -400,7 +431,10 @@ export abstract class FilterBuilder extends BaseHelper {
     });
   }
 
-  /** Converts include clause to Drizzle 'with' options with nested filtering and hidden prop exclusion. */
+  /**
+   * Converts include clause to Drizzle 'with' options
+   * with nested filtering and hidden prop exclusion.
+   */
   toInclude(opts: {
     include: TInclusion[];
     relations: { [relationName: string]: TRelationConfig };
@@ -470,7 +504,10 @@ export abstract class FilterBuilder extends BaseHelper {
     return result;
   }
 
-  /** Column selection with hidden properties removed; a nullish `columns` means "every schema column". */
+  /**
+   * Column selection with hidden properties removed;
+   * a nullish `columns` means "every schema column".
+   */
   private omitHiddenColumns(opts: {
     columns?: Record<string, boolean>;
     schema: TTableSchemaWithId;
@@ -502,7 +539,11 @@ export abstract class FilterBuilder extends BaseHelper {
     );
   }
 
-  private isOperatorObject(opts: { value: any }): boolean {
+  /**
+   * Protected, not private: an engine overriding `buildJsonWhereCondition` must tell an operator
+   * object from a bare value, and cannot reach the base's own walk to do it.
+   */
+  protected isOperatorObject(opts: { value: any }): boolean {
     const { value } = opts;
 
     if (this.isPrimitiveValue({ value })) {
@@ -517,8 +558,12 @@ export abstract class FilterBuilder extends BaseHelper {
     return keys.every(key => QueryOperators.isValid(key));
   }
 
-  /** Builds a SQL condition for a simple value (null, array, or equality). */
-  private buildValueCondition(opts: { column: any; value: any }): SQL {
+  /**
+   * Builds a SQL condition for a simple value (null, array, or
+   * equality). Protected for the same reason as `isOperatorObject`: an
+   * overridden `buildJsonWhereCondition` needs the bare-value branch.
+   */
+  protected buildValueCondition(opts: { column: any; value: any }): SQL {
     const { column, value } = opts;
 
     if (value === null) {
@@ -537,7 +582,8 @@ export abstract class FilterBuilder extends BaseHelper {
     const conditions: SQL[] = [];
 
     for (const op in value) {
-      // `not` recurses into a nested condition, which the static operator handlers cannot reach - built here where buildOperatorConditions and buildValueCondition are in scope.
+      // `not` recurses into a nested condition, out of reach of the static operator handlers
+      // - built here where buildOperatorConditions and buildValueCondition are in scope.
       if (op === QueryOperators.NOT) {
         conditions.push(this.buildNotCondition({ column, value: value[op] }));
         continue;
@@ -559,7 +605,10 @@ export abstract class FilterBuilder extends BaseHelper {
     return conditions;
   }
 
-  /** Negates a nested condition: `not: <operatorObject>` recurses into the operators, `not: <bareValue>` negates the equality/array/null condition for that value. */
+  /**
+   * Negates a nested condition: `not: <operatorObject>` recurses into the
+   * operators, `not: <bareValue>` negates that value equality/array/null condition.
+   */
   private buildNotCondition(opts: { column: any; value: any }): SQL {
     const { column, value } = opts;
 
@@ -586,7 +635,9 @@ export abstract class FilterBuilder extends BaseHelper {
       .filter((c): c is SQL => !!c);
 
     if (clauses.length === 0) {
-      // An empty conjunction is vacuously TRUE so dropping it is correct, but an empty DISJUNCTION is FALSE and dropping it WIDENS the query - `or: permittedOrgIds.map(id => ({ orgId: id }))` with an empty permission list must return nothing, not everything.
+      // An empty conjunction is vacuously TRUE so dropping it is correct, but an empty DISJUNCTION
+      // is FALSE and dropping it WIDENS the query: `or: permittedOrgIds.map(...)` on an empty
+      // permission list must return nothing, not everything.
       return key === QueryOperators.AND ? undefined : sql`false`;
     }
 
@@ -626,7 +677,11 @@ export abstract class FilterBuilder extends BaseHelper {
     return { column, path: parsed.path };
   }
 
-  /** JSON `#>>` extraction is text, so a numeric operand needs a numeric cast to avoid 'operator does not exist: text = integer'; true for numeric comparisons and for eq/ne/neq/in/inq/nin whose operand is a number or all-number array. */
+  /**
+   * Whether a JSON operand needs the engine's numeric extraction: numeric comparisons, eq/ne/neq
+   * with a number, in/inq/nin with an all-number array. Only picks between the two fragments the
+   * engine passed in, so an engine with already-typed extraction returns false.
+   */
   protected jsonNeedsNumericCast(opts: { operators: Record<string, any> }): boolean {
     const { operators } = opts;
 
@@ -654,41 +709,32 @@ export abstract class FilterBuilder extends BaseHelper {
     return false;
   }
 
-  protected buildJsonWhereCondition(opts: {
+  /**
+   * Emits the engine JSON extraction for one where key. Abstract because the syntax is
+   * engine-owned: a default would hand the next engine one branch's SQL with no compile error.
+   */
+  protected abstract buildJsonWhereCondition(opts: {
     key: string;
     value: any;
     columns: TTableColumns;
     tableName: string;
-  }): SQL[] {
-    const { key, value, columns, tableName } = opts;
+  }): SQL[];
 
-    const { column, path } = this.validateJsonColumn({
-      key,
-      columns,
-      tableName,
-      methodName: 'buildJsonWhereCondition',
-    });
+  /**
+   * A bare JSON operand IS its operator equivalent - `isOperatorObject` counts an array
+   * as primitive, so `[10, 20]` must take the same cast `{ inq: [10, 20] }` does.
+   */
+  protected toBareJsonOperators(opts: { value: any }): Record<string, any> {
+    const { value } = opts;
 
-    const jsonPath = `"${column.name}" #>> '{${path.join(',')}}'`;
-    const safeNumericCast = `CASE WHEN (${jsonPath}) ~ '^-?[0-9]+(\\.[0-9]+)?$' THEN (${jsonPath})::numeric ELSE NULL END`;
-
-    if (!this.isOperatorObject({ value })) {
-      // A bare value IS its operator equivalent - `isOperatorObject` counts an array as primitive, so `[10, 20]` reaches here and must take the same cast `{ inq: [10, 20] }` does.
-      const bareOperators = Array.isArray(value)
-        ? { [QueryOperators.INQ]: value }
-        : { [QueryOperators.EQ]: value };
-
-      const jsonExtraction = this.jsonNeedsNumericCast({ operators: bareOperators })
-        ? sql.raw(safeNumericCast)
-        : sql.raw(jsonPath);
-
-      return [this.buildValueCondition({ column: jsonExtraction, value })];
-    }
-
-    return this.buildJsonOperatorConditions({ jsonPath, safeNumericCast, operators: value });
+    return Array.isArray(value) ? { [QueryOperators.INQ]: value } : { [QueryOperators.EQ]: value };
   }
 
-  /** The cast belongs to each OPERATOR, not the object: one object-wide cast misses the operand in `{ not: { gt: 50 } }` (-> `text > integer`) and over-casts the extraction `like` shares in `{ gte: 1, like: '%a%' }` (-> `numeric ~~ text`). */
+  /**
+   * The cast belongs to each OPERATOR, not the object: one object-wide cast misses the operand in
+   * `{ not: { gt: 50 } }` (-> `text > integer`) and over-casts the extraction `like` shares in
+   * `{ gte: 1, like: '%a%' }` (-> `numeric ~~ text`).
+   */
   protected buildJsonOperatorConditions(opts: {
     jsonPath: string;
     safeNumericCast: string;
@@ -701,16 +747,28 @@ export abstract class FilterBuilder extends BaseHelper {
       const operand = operators[op];
 
       if (op === QueryOperators.NOT) {
-        const nested = this.isOperatorObject({ value: operand })
-          ? this.buildJsonOperatorConditions({ jsonPath, safeNumericCast, operators: operand })
-          : [
-              this.buildValueCondition({
-                column: sql.raw(typeof operand === 'number' ? safeNumericCast : jsonPath),
-                value: operand,
-              }),
-            ];
+        if (this.isOperatorObject({ value: operand })) {
+          const nested = this.buildJsonOperatorConditions({
+            jsonPath,
+            safeNumericCast,
+            operators: operand,
+          });
 
-        conditions.push(not(nested.length === 1 ? nested[0] : and(...nested)!));
+          conditions.push(not(nested.length === 1 ? nested[0] : and(...nested)!));
+          continue;
+        }
+
+        // The choice must come from `jsonNeedsNumericCast`, never a bare `typeof`: an engine that
+        // neutralises the cast by overriding the predicate would still be cast through this branch.
+        const negatedExtraction = this.jsonNeedsNumericCast({
+          operators: this.toBareJsonOperators({ value: operand }),
+        })
+          ? safeNumericCast
+          : jsonPath;
+
+        conditions.push(
+          not(this.buildValueCondition({ column: sql.raw(negatedExtraction), value: operand })),
+        );
         continue;
       }
 
@@ -734,21 +792,14 @@ export abstract class FilterBuilder extends BaseHelper {
     return conditions;
   }
 
-  protected buildJsonOrderBy(opts: {
+  /**
+   * Emits the engine's JSON extraction for one order key.
+   * Abstract for the same reason as `buildJsonWhereCondition`.
+   */
+  protected abstract buildJsonOrderBy(opts: {
     key: string;
     direction: TConstValue<typeof Sorts>;
     columns: TTableColumns;
     tableName: string;
-  }): SQL {
-    const { key, direction, columns, tableName } = opts;
-
-    const { column, path } = this.validateJsonColumn({
-      key,
-      columns,
-      tableName,
-      methodName: 'buildJsonOrderBy',
-    });
-
-    return sql.raw(`"${column.name}" #> '{${path.join(',')}}' ${direction.toUpperCase()}`);
-  }
+  }): SQL;
 }

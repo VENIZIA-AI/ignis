@@ -26,21 +26,37 @@ The vocabulary is also **browser-safe**, and that is enforced rather than assume
 
 `Sorts` carries `asc`/`desc`. `DEFAULT_LIMIT` is `10` - `find()` applies `filter.limit ?? getDefaultLimit() ?? DEFAULT_LIMIT`, so an unbounded query is not the default.
 
+The vocabulary is shared, the support is not. An operator an engine cannot express throws
+NotSupported (HTTP 501) at translation time rather than being dropped from the list:
+
+| Operator | On SQLite (`SqliteQueryOperators`) |
+|---|---|
+| `regexp`, `iregexp` | **Throws.** `X REGEXP Y` is sugar for a `regexp()` user function SQLite never defines and libsql never registers |
+| `contains`, `containedBy`, `overlaps` | **Throws.** SQLite has no array storage class, so there is no operand for `@>` / `<@` / `&&` |
+| `ilike`, `nilike` | Compile to `LIKE` / `NOT LIKE`. SQLite's `LIKE` is already ASCII case-insensitive, so refusing `ilike` would only push the caller to write `like` and get identical SQL |
+| `like`, `nlike` | Compile to `LIKE` / `NOT LIKE`, which is **wider than Postgres** - `LIKE` folds ASCII case, and non-ASCII is folded by neither (`'ÉCOLE' LIKE 'é%'` is false without ICU) |
+
+Do not enable `PRAGMA case_sensitive_like=ON` on a SQLite datasource: it makes `ilike` case-sensitive.
+
 ## Translation
 
-`FilterBuilder` (`connectors/relational/repositories/dialect/filter.ts`) turns a filter into Drizzle pieces: `toWhere()`, `toOrderBy()`, `toInclude()`, plus column selection. It is **abstract** and names no SQL engine: its operator table is declared `protected abstract get operators(): TQueryOperatorHandlers`, so every engine subclasses to supply one. It has zero `drizzle-orm/pg-core` imports.
+`FilterBuilder` (`connectors/relational/repositories/dialect/filter.ts`) turns a filter into Drizzle pieces: `toWhere()`, `toOrderBy()`, `toInclude()`, plus column selection. It is **abstract** and emits no engine-specific SQL: `operators`, `buildJsonWhereCondition` and `buildJsonOrderBy` are all `protected abstract`, so every engine subclasses to supply its operator table and its own JSON extraction syntax. It has zero `drizzle-orm/pg-core` imports.
 
 Three classes, in a line:
 
 | Class | Declared in | Adds |
 |---|---|---|
-| `FilterBuilder` (abstract) | `connectors/relational/repositories/dialect/filter.ts` | The whole `where`/`order`/`include`/columns walk; `operators` left abstract |
-| `PostgresFilterBuilder` | `connectors/postgres/repositories/dialect/filter.ts` | One member - `operators` returns `PostgresQueryOperators.FNS` |
+| `FilterBuilder` (abstract) | `connectors/relational/repositories/dialect/filter.ts` | The whole `where`/`order`/`include`/columns walk; `operators` and both JSON extractions left abstract |
+| `PostgresFilterBuilder` | `connectors/postgres/repositories/dialect/filter.ts` | `operators` returns `PostgresQueryOperators.FNS`, plus the `#>>`/`#>` extractions and the `::numeric` guard cast |
 | `PostgresQueryDialect` | `connectors/postgres/repositories/dialect/query-dialect.ts` | `implements IRelationalQueryDialect`; adds `transformUpdate()`/`toUpdateData()`, backed by `UpdateBuilder` |
+
+SQLite mirrors the last two: `SqliteFilterBuilder` (`connectors/sqlite/repositories/dialect/filter.ts`) supplies `SqliteQueryOperators.FNS` plus `json_extract` path syntax, and `SqliteQueryDialect` backs its update transform with `SqliteUpdateBuilder` (`json_set`).
+
+The update transform has the same two-tier shape: `RelationalUpdateBuilder` (`connectors/relational/repositories/dialect/update.ts`) is abstract with one abstract member, `composeJsonSet()`, and each engine overrides only that.
 
 **Export placement matters.** `FilterBuilder` resolves only from `@venizia/ignis/relational`. `PostgresFilterBuilder` resolves from `@venizia/ignis` and `@venizia/ignis/postgres`. There is no `FilterBuilder` alias in the Postgres tier - it would publish two different classes under one name across sibling sub-paths.
 
-A repository never constructs any of them; it asks its datasource for `getQueryDialect()`, which caches one `PostgresQueryDialect` instance statically on `AbstractPostgresDataSource`. `FilterBuilder` memoizes resolved relations per schema in a `WeakMap` (registry lookups are safe to cache because `@model` settings are immutable after boot); `getCachedColumns()` does the same for table columns. Its JSON-path methods hardcode Postgres `#>>`/`#>` but are `protected`, so a second SQL engine overrides instead of forking. See [Relational connector](/architecture/relational-connector.md) for the exact override list.
+A repository never constructs any of them; it asks its datasource for `getQueryDialect()`, which caches one `PostgresQueryDialect` instance statically on `AbstractPostgresDataSource`. `FilterBuilder` memoizes resolved relations per schema in a `WeakMap` (registry lookups are safe to cache because `@model` settings are immutable after boot); `getCachedColumns()` does the same for table columns. It declares the JSON-path methods `abstract` and spells no `#>>`/`#>` itself, so a second SQL engine gets a compile error rather than Postgres SQL. See [Relational connector](/architecture/relational-connector.md) for the exact override list.
 
 ## The dual query API
 
@@ -63,9 +79,9 @@ The switch is automatic and invisible to the caller, which is why lock options a
 
 Any `where` key containing `.` or `[` is treated as a JSON path (`isJsonPath`). Three things bite here:
 
-1. **The column must actually be JSON/JSONB.** `validateJsonColumnType()` throws otherwise - a dotted key against a `text` column is an error, not a literal column name.
+1. **The column must actually be a JSON column.** `validateJsonColumnType()` throws `Column 'x' is not a JSON column` otherwise - a dotted key against a `text` column is an error, not a literal column name. The message names no engine type: `jsonb` is unreachable on SQLite.
 2. **Path components are validated.** `JSON_PATH_PATTERN` allows identifiers, kebab-case, and array indices; anything else throws. This is what keeps a caller-supplied path out of the generated SQL as an injection vector.
-3. **JSON extraction is text, so numeric operands need a cast.** `#>>` yields text; comparing it to a number without a cast produces Postgres `operator does not exist: text = integer`. `jsonNeedsNumericCast()` decides this from the operand: true for any numeric comparison (`gt`/`gte`/`lt`/`lte`/`between`/`notBetween` with numbers), and true for `eq`/`ne`/`neq` with a number operand or `in`/`inq`/`nin` with an all-number array. A mixed-type array is *not* cast.
+3. **Where extraction is text, numeric operands need a cast.** Postgres `#>>` yields text; comparing it to a number without a cast produces `operator does not exist: text = integer`. `jsonNeedsNumericCast()` decides this from the operand: true for any numeric comparison (`gt`/`gte`/`lt`/`lte`/`between`/`notBetween` with numbers), and true for `eq`/`ne`/`neq` with a number operand or `in`/`inq`/`nin` with an all-number array. A mixed-type array is *not* cast. It only picks between the two extractions the engine passed in, so `SqliteFilterBuilder` returns `false` and `json_extract` stays cast-free - including under `not`, which routes through the same predicate rather than testing `typeof` itself.
 
 ## mergeFilter and arrays
 

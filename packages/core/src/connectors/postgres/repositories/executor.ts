@@ -15,12 +15,11 @@ import type { PgTable } from 'drizzle-orm/pg-core';
 import omit from 'lodash/omit';
 
 /**
- * Postgres implementation of `IRelationalQueryExecutor`: pure translation from already-built SQL
- * fragments (`where`, `orderBy`, projections) to Drizzle Core API calls. Filter-to-SQL compilation
- * is dialect work and stays in the repository tier.
+ * Translates already-built SQL fragments (`where`, `orderBy`, projections) to Drizzle Core calls.
+ * Filter-to-SQL compilation is dialect work and stays in the repository tier.
  *
- * Every write verb ends in `rows as Array<R>`: Drizzle infers `returning()`'s row type from the
- * table schema, not from the caller-chosen R, so the two are compatible by convention only.
+ * The `rows as Array<R>` every write verb ends in is convention, not proof: Drizzle infers
+ * `returning()`'s row type from the table schema, not from the caller-chosen R.
  */
 export class PostgresQueryExecutor implements IRelationalQueryExecutor<TRelationalConnector> {
   async select<R>(opts: ISelectOptions<TRelationalConnector>): Promise<Array<R>> {
@@ -153,8 +152,9 @@ export class PostgresQueryExecutor implements IRelationalQueryExecutor<TRelation
   }
 
   /**
-   * Rows affected by a write executed without RETURNING. Reads `pg`'s `rowCount` or postgres-js's
-   * `count` off the raw driver result - engine knowledge the shared repository tier must not hold.
+   * Rows affected by a write executed without RETURNING. Reads `pg`'s `rowCount`, postgres-js's
+   * `count` or PGlite's `affectedRows` off the raw driver result - engine knowledge the shared
+   * repository tier must not hold.
    */
   private readAffectedRowCount(opts: { result: unknown }): number {
     const { result } = opts;
@@ -166,13 +166,18 @@ export class PostgresQueryExecutor implements IRelationalQueryExecutor<TRelation
 
     if (typeof result !== 'object') {
       throw getError({
-        message: `[readAffectedRowCount] Unrecognized driver result | expected pg.QueryResult or postgres-js RowList | got: ${typeof result}`,
+        message: `[readAffectedRowCount] Unrecognized driver result | expected pg.QueryResult, postgres-js RowList or a PGlite Results | got: ${typeof result}`,
       });
     }
 
-    const { rowCount, count } = result as { rowCount?: unknown; count?: unknown };
+    const { rowCount, count, affectedRows } = result as {
+      rowCount?: unknown;
+      count?: unknown;
+      affectedRows?: unknown;
+    };
 
-    // node-postgres. `rowCount` is null for statements that affect no rows by definition (e.g. DDL).
+    // node-postgres. `rowCount` is null for statements
+    // that affect no rows by definition (e.g. DDL).
     if (typeof rowCount === 'number') {
       return rowCount;
     }
@@ -186,8 +191,14 @@ export class PostgresQueryExecutor implements IRelationalQueryExecutor<TRelation
       return count;
     }
 
+    // PGlite - it carries no `rowCount` at all, so without this
+    // branch every write with `shouldReturn: false` throws.
+    if (typeof affectedRows === 'number') {
+      return affectedRows;
+    }
+
     throw getError({
-      message: `[readAffectedRowCount] Unrecognized driver result | expected 'rowCount' (node-postgres) or 'count' (postgres-js) | got keys: ${Object.keys(result).join(', ')}`,
+      message: `[readAffectedRowCount] Unrecognized driver result | expected 'rowCount' (node-postgres), 'count' (postgres-js) or 'affectedRows' (PGlite) | got keys: ${Object.keys(result).join(', ')}`,
     });
   }
 }

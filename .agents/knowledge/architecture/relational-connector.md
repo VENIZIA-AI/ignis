@@ -9,16 +9,18 @@ tags: [architecture, connectors, drizzle, postgres, sqlite, relational]
 `connectors/relational` is the engine-neutral SQL tier: datasource root, driver contract, entity
 base and the five-class repository chain, all free of `drizzle-orm/pg-core`. `connectors/postgres`
 is the first branch built on it - it supplies the two ports the neutral tier declares abstract, plus
-everything that is genuinely Postgres SQL. A second SQL engine (SQLite, or a `pg`-compatible driver
-like PGlite) adds a branch the same way; it does not touch the neutral tier.
+everything that is genuinely Postgres SQL. `connectors/sqlite` is the second, and it touches no part
+of the neutral tier - see [SQLite connector](/architecture/sqlite-connector.md).
 
 ## The split
 
 ```
 AbstractRelationalDataSource   connectors/relational/datasources/abstract.ts   (connector/pool/driver wiring; dialect + executor abstract)
 └── BaseRelationalDataSource   connectors/relational/datasources/base.ts       (schema discovery, transaction skeleton; BEGIN text abstract)
-    └── AbstractPostgresDataSource   connectors/postgres/datasources/abstract.ts   (supplies PostgresQueryDialect + PostgresQueryExecutor)
-        └── BasePostgresDataSource   connectors/postgres/datasources/base.ts       (supplies "BEGIN TRANSACTION ISOLATION LEVEL ...")
+    ├── AbstractPostgresDataSource   connectors/postgres/datasources/abstract.ts   (supplies PostgresQueryDialect + PostgresQueryExecutor)
+    │   └── BasePostgresDataSource   connectors/postgres/datasources/base.ts       (supplies "BEGIN TRANSACTION ISOLATION LEVEL ...")
+    └── AbstractSqliteDataSource     connectors/sqlite/datasources/abstract.ts     (supplies SqliteQueryDialect + SqliteQueryExecutor)
+        └── BaseSqliteDataSource     connectors/sqlite/datasources/base.ts         (supplies "BEGIN IMMEDIATE")
 
 RelationalBaseRepository       connectors/relational/repositories/core/base.ts
 └── ReadableRelationalRepository
@@ -44,7 +46,10 @@ five thin subclasses of them (`PostgresBaseRepository`, `ReadableRepository`, `P
 `DefaultCRUDRepository`, `SoftDeletableRepository`). Those subclasses add no behavior - their only
 job is to rebind `ExtraOptions` to `IDatabaseExtraOptions` and `TDataSource` to `IPostgresDataSource`
 so a single-argument subclass keeps a `PgDatabase` connector with no cast. The neutral tier names no
-Postgres type at all; a second engine declares its own five subclasses and its own bindings.
+Postgres type at all. `connectors/sqlite/repositories/core/*.ts` is the same five under SQLite names
+(`SqliteBaseRepository`, `ReadableSqliteRepository`, `PersistableSqliteRepository`,
+`DefaultSqliteRepository`, `SoftDeletableSqliteRepository`), rebinding `ISqliteExtraOptions` and
+`ISqliteDataSource`.
 
 ## The two ports
 
@@ -57,7 +62,7 @@ A `RelationalBaseRepository` never touches Drizzle directly. It asks its datasou
 
 Two ports, not one, because they vary independently. PGlite reuses BOTH unchanged - `PgliteDatabase
 extends PgDatabase`, so `PostgresQueryDialect` and `PostgresQueryExecutor` both already work against
-it. A SQLite branch would keep most of the dialect (see below) but needs its own executor, because
+it. The SQLite branch keeps most of the dialect (see below) and supplies its own executor, because
 `BaseSQLiteDatabase`'s builder chain is a different shape (no `.for(lock)`, a different `.returning()`
 gate on `insert`/`update`/`delete`).
 
@@ -84,8 +89,10 @@ query builder - `FilterBuilder` composes SQL fragments, `PostgresQueryExecutor` 
 
 Every write verb returns `IWriteResult<R>` (`{ count, rows }`) instead of the raw driver result.
 `count` is authoritative in both branches: with `shouldReturn: true` it is `rows.length`; with it
-`false` the executor reads the driver's own affected-row field (`pg`'s `rowCount`, postgres-js's
-`count`) - a single `Array<R>` cannot express the second mode, which is why writes never return one.
+`false` the executor reads the driver's own affected-row field - a single `Array<R>` cannot express
+the second mode, which is why writes never return one. Every driver spells that field differently:
+`pg` says `rowCount`, postgres-js says `count`, PGlite says `affectedRows`, libsql says
+`rowsAffected`. An unrecognized result throws with the observed keys rather than reporting zero.
 
 ## `TTableSchemaWithId`: `PgTable` widened to `Table`
 
@@ -115,6 +122,24 @@ declared `protected abstract`, because neutral code has no portable way to say i
 `BaseRelationalDataSource` subclass, no SQLite driver involved, that returns `'BEGIN IMMEDIATE'` and
 proves the seam is real rather than Postgres-only in disguise.
 
+The statement reaches `IRelationalConnection.execute()` **verbatim** - `BEGIN ... ISOLATION LEVEL $1`
+is not valid SQL, so nothing about it can be parameterized. Anything a branch interpolates into it
+must therefore be validated against a closed set before it is spliced in, which is what
+`BaseSqliteDataSource` does with `SqliteBeginModes.isValid` and `AbstractPostgresDataSource` does
+with its isolation-level constants.
+
+## Rotation drains by capability, not by class
+
+`AbstractRelationalDataSource.onSecretRotated()` soft-evicts three clients - a half-built one when
+`configure()` throws, the rebuilt one when the driver fails to wire, and the old one after a
+successful swap. All three go through `drainClient()`, which **probes for `end()` and falls back to
+`close()`**. The verb is not portable: `pg.Pool` and postgres.js end, PGlite and libsql close.
+Testing for a client class instead would name an engine from the neutral tier, and a client that
+matches neither verb is logged rather than silently skipped - an undrained PGlite keeps a WASM
+instance alive and an undrained libsql keeps a file handle open, so repeated rotations accumulate
+live instances. Falsified by `__tests__/connectors/relational/rotation-drain.test.ts`, whose fake
+client offers `close()` only.
+
 ## What stays Postgres-only
 
 | Stays in `connectors/postgres` | Why |
@@ -123,43 +148,64 @@ proves the seam is real rather than Postgres-only in disguise.
 | `isoTimestamp`, `PgSequenceOptions` | pg-core column/sequence concepts with no SQLite equivalent |
 | `IsolationLevels` (`READ COMMITTED`/`REPEATABLE READ`/`SERIALIZABLE`) | SQLite has no isolation levels - its BEGIN axis is a locking mode, not a level |
 | `PostgresQueryOperators` (`dialect/query.ts`) | Drizzle root exports (`ilike`, `arrayContains`, `arrayContained`, `arrayOverlaps`) that compile to literal Postgres SQL and fail on SQLite at the database |
-| `UpdateBuilder` (`dialect/update.ts`) | Composes chained `jsonb_set(...)` calls and `::jsonb` casts - Postgres SQL text, even though its only drizzle import is the neutral `sql` tag |
-| `PostgresFilterBuilder` (`dialect/filter.ts`) | Binds the neutral `FilterBuilder`'s abstract `operators` to `PostgresQueryOperators.FNS`; the whole file is that one override |
+| `UpdateBuilder.composeJsonSet()` (`dialect/update.ts`) | Chained `jsonb_set(...)` and `::jsonb` casts. Only that one method: the split, the validation and `toUpdateData` sit in the neutral `RelationalUpdateBuilder` |
+| `PostgresFilterBuilder` (`dialect/filter.ts`) | Binds the neutral `FilterBuilder`'s abstract `operators` to `PostgresQueryOperators.FNS`, and owns the `#>>`/`#>` JSON extractions and the `::numeric` guard cast |
 
 `FilterBuilder` lives in the neutral tier
 (`connectors/relational/repositories/dialect/filter.ts`), not in `connectors/postgres`. It has
 **zero** `drizzle-orm/pg-core` imports, and filter merging, plain `where`/`orderBy`, column selection
-and relation `include` carry no engine-specific SQL. The class is `abstract`. Its operator table is
-`protected abstract get operators(): TQueryOperatorHandlers`, so the class names no engine at all.
-Only the JSON-path methods still carry Postgres defaults - they hardcode `#>>`/`#>`.
+and relation `include` carry no engine-specific SQL. The class is `abstract`, and it emits no
+engine-specific SQL at all: `operators`, `buildJsonWhereCondition` and `buildJsonOrderBy` are all
+declared `protected abstract`, so a second engine that forgets one gets a compile error rather than
+Postgres SQL.
 
-`connectors/postgres` declares `PostgresFilterBuilder extends FilterBuilder`, whose entire body is
-the one `operators` override returning `PostgresQueryOperators.FNS`. `PostgresQueryDialect extends
-PostgresFilterBuilder`.
+`connectors/postgres` declares `PostgresFilterBuilder extends FilterBuilder`, which supplies those
+three: `PostgresQueryOperators.FNS`, the `#>>` extraction with its `::numeric` guard cast, and the
+`#>` order-by extraction. `PostgresQueryDialect extends PostgresFilterBuilder`.
 
 ### Subclassing `FilterBuilder` for a second engine
 
-The seam is the `abstract` member plus six `protected` ones. Override `operators` - you have no
-choice, `tsc` requires it - and reach for the other six only when your JSON syntax differs. You
-inherit the other ~700 lines either way:
+The seam is three `abstract` members plus seven `protected` ones. `tsc` requires the three; reach for
+the rest only when your JSON semantics differ. You inherit the other ~700 lines either way:
 
 | Member | Override to |
 |---|---|
-| `get operators()` | **Required.** Return your own `TQueryOperatorHandlers` table; the base declares it abstract and supplies nothing |
-| `buildJsonWhereCondition()` | Emit your JSON path syntax instead of `#>>` and the `::numeric` guard cast |
-| `buildJsonOrderBy()` | Emit your JSON path syntax instead of `#>` |
-| `buildJsonOperatorConditions()` | Only if per-operator cast placement differs; the Postgres logic is engine-neutral |
-| `jsonNeedsNumericCast()` | Only if your extraction is not text-typed |
+| `get operators()` | **Required.** Return your own `TQueryOperatorHandlers` table |
+| `buildJsonWhereCondition()` | **Required.** Emit your JSON path syntax, and the cast variant if your extraction is text |
+| `buildJsonOrderBy()` | **Required.** Emit your JSON path syntax for one order key |
+| `buildJsonOperatorConditions()` | Only if per-operator cast placement differs; it takes both extractions as arguments and names no engine |
+| `jsonNeedsNumericCast()` | Only if your extraction is not text-typed; it picks between the two extractions you passed in |
 | `validateJsonColumn()` | Only if your JSON column type check differs |
 | `buildOperatorConditions()` | Only if `not` needs different composition; it already resolves handlers via `operators` |
+| `toBareJsonOperators()` | Never. Call it - it maps a bare JSON operand to the operator object that decides its cast |
+| `isOperatorObject()` | Never. Call it - your `buildJsonWhereCondition` needs it to tell an operator object from a bare value |
+| `buildValueCondition()` | Never. Call it - it is the bare-value branch (null, array, equality) of your `buildJsonWhereCondition` |
 
-Falsified by `__tests__/connectors/postgres/repositories/dialect-seam.test.ts`: a
+The last three are call-only, and they are `protected` for that reason: without them a second engine
+has to copy the base's own bare-value logic into its JSON override.
+
+Falsified twice. `__tests__/connectors/postgres/repositories/dialect-seam.test.ts` builds a
 `SqliteShapedDialect extends FilterBuilder` that emits `json_extract(..., '$.tier')` and its own
-operator table, with no SQLite driver involved. The same file asserts `PostgresQueryDialect` still
-emits exactly what a bare `PostgresFilterBuilder` does.
+operator table, with no SQLite driver involved, and asserts `PostgresQueryDialect` still emits
+exactly what a bare `PostgresFilterBuilder` does. `__tests__/connectors/sqlite/dialect.test.ts` runs
+the shipped `SqliteQueryDialect` through Drizzle's `SQLiteSyncDialect`: `SqliteFilterBuilder`
+overrides only `operators`, `jsonNeedsNumericCast`, `buildJsonWhereCondition` and `buildJsonOrderBy`.
 
-`UpdateBuilder` has no such seam - a second engine writes its own and composes it into its dialect
-class, the way `PostgresQueryDialect` does. Full measurement in
+### The update builder has the same shape
+
+`RelationalUpdateBuilder` (`connectors/relational/repositories/dialect/update.ts`) is `abstract` with
+**one** abstract member, `composeJsonSet({ target, path, value })`. It owns the plain-versus-JSON
+split, the column-not-found throws, `toUpdateData`, and the two path validators - and that last part
+is why it is a base rather than a copied skeleton: an engine composing through `sql.raw` is
+injectable the moment it forgets `validateJsonPathComponents`.
+
+Each call receives the expression built so far, so two paths on one column nest rather than discard
+each other. `UpdateBuilder` returns `jsonb_set(target, '{a,b}', '"v"'::jsonb, true)` with the path
+and value RAW - `jsonb_set` takes `text[]` and `jsonb`, and a bound parameter arrives untyped.
+`SqliteUpdateBuilder` returns `json_set(target, ?, json(?))` with both BOUND.
+
+Error messages interpolate `this.scope`, the concrete subclass name, so `[UpdateBuilder][transform]`
+and `[SqliteUpdateBuilder.transform]` still name the builder that actually ran. Full measurement in
 [the SQLite connector research spec](https://github.com/VENIZIA-AI/ignis/blob/main/docs/superpowers/specs/2026-07-31-sqlite-connector-research.md).
 
 ## `UpdateBuilder` is reachable two ways - use the dialect
@@ -225,8 +271,33 @@ The name disappeared from the root entry as a side effect: `connectors/index.ts`
 `@venizia/ignis/postgres/node-postgres` sub-path (it eagerly imports `pg`, so it stays out of the
 root `./postgres` barrel by the same rule every other optional-peer driver follows).
 
+## The tier is falsified by one suite, run twice
+
+`__tests__/connectors/relational/conformance/repository-conformance.ts` runs one repository-level
+suite against two real in-process databases - PGlite and libsql `:memory:`. Same tests, same
+assertions, two engines, no mocks.
+
+Each engine passes a `capabilities` object covering two kinds of difference. A **refusal** -
+`rowLocking`, `regexp`, `arrayOperators` - is asserted as a NotSupported throw when `false`. A
+**divergence** is worse, because identical caller code succeeds on both engines and answers
+differently, so each engine pins the answer it gives:
+
+| Capability | Postgres | SQLite |
+|---|---|---|
+| `caseInsensitiveLike` | `false` - `like: 'alpha'` misses `Alpha` | `true` - native `LIKE` folds ASCII case, so `like` widens and `nlike` silently drops rows |
+| `nullsSortHigh` | `true` - NULL last ascending, first descending | `false` - NULL sorts smaller than every value, so both directions invert |
+
+Skipping a difference would prove nothing, so nothing is skipped. Add a third engine by adding one
+harness file.
+
+`__tests__/connectors/relational/no-engine-cycle.test.ts` walks the built `dist` and asserts the
+neutral tier reaches **no** engine adapter. The adapter set is discovered by listing the siblings of
+`dist/connectors/relational`, never named, so a third connector is guarded the day its directory
+appears.
+
 ## Related
 
+- [SQLite connector](/architecture/sqlite-connector.md)
 - [DataSource hierarchy](/architecture/datasource-hierarchy.md)
 - [Repository hierarchy](/architecture/repository-hierarchy.md)
 - [Filter system](/architecture/filter-system.md)

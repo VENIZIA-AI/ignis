@@ -104,7 +104,7 @@ Every path component must match `/^[a-zA-Z_][a-zA-Z0-9_-]*$|^\d+$/` - a letter/u
 ```
 
 > [!NOTE]
-> A path on a non-JSON/JSONB column also throws: `Column 'name' is not JSON/JSONB type`.
+> A path on a non-JSON column also throws: `Column 'name' is not a JSON column`.
 
 
 ## See also

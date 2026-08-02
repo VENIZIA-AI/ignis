@@ -1,9 +1,10 @@
 # Postgres Drivers & Supabase
 
-IGNIS talks to PostgreSQL through a **driver seam**. `IRelationalDriver` owns connection acquisition and the raw transaction control statements, and everything above it - repositories, transactions, the Casbin adapters - is driver-agnostic. Two drivers ship today:
+IGNIS talks to PostgreSQL through a **driver seam**. `IRelationalDriver` owns connection acquisition and the raw transaction control statements, and everything above it - repositories, transactions, the Casbin adapters - is driver-agnostic. Three drivers ship today:
 
 - **node-postgres** (`pg`) - the default IGNIS has always used
 - **postgres-js** (`postgres`) - required for Supabase's transaction pooler, and a faster option anywhere else
+- **PGlite** (`@electric-sql/pglite`) - Postgres compiled to WebAssembly, running in your own process. It has one session and its own constraints, so it gets [its own page](./pglite)
 
 Supabase is unmodified PostgreSQL, so it is not a separate connector: it varies the **driver**, not the SQL dialect. The `@venizia/ignis/postgres/supabase` submodule adds the two things Supabase deployments actually need - pooler presets and an RLS auth-context helper.
 
@@ -11,8 +12,9 @@ Supabase is unmodified PostgreSQL, so it is not a separate connector: it varies 
 > `pg` and `postgres` are both **optional peer dependencies**. The `@venizia/ignis/postgres` module pulls in neither - only the driver class you import and name in `@datasource({ driver })` reaches your bundle. Install the one your app uses:
 >
 > ```bash
-> bun add pg          # node-postgres
-> bun add postgres    # postgres-js (>= 3.4.0)
+> bun add pg                      # node-postgres
+> bun add postgres                # postgres-js (>= 3.4.0)
+> bun add @electric-sql/pglite    # PGlite
 > ```
 
 ## Import Paths
@@ -22,6 +24,7 @@ Supabase is unmodified PostgreSQL, so it is not a separate connector: it varies 
 | `@venizia/ignis/postgres` | `BasePostgresDataSource`, `IRelationalDriver`, repository hierarchy | no client library |
 | `@venizia/ignis/postgres/node-postgres` | `NodePostgresDriver` | `pg` |
 | `@venizia/ignis/postgres/postgres-js` | `PostgresJsDriver` | `postgres` |
+| `@venizia/ignis/postgres/pglite` | `PGliteDriver` | `@electric-sql/pglite` |
 | `@venizia/ignis/postgres/supabase` | `PoolerModes`, `buildPostgresJsOptions`, `withAuthContext`, Supabase role re-exports | `drizzle-orm/supabase` |
 
 ## Naming the Driver Class

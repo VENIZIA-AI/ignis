@@ -3,7 +3,7 @@
 A DataSource manages database connections and supports **schema auto-discovery** from repositories.
 
 > [!NOTE] Connectors
-> This guide covers the **PostgreSQL connector** (`BasePostgresDataSource`, aliased as `BaseDataSource` for backward compatibility). It's the primary relational engine and the one used by most applications. IGNIS also ships a **typesense connector** for full-text/vector search (see [Search & Typesense](./search-typesense)). Both implement the same engine-neutral `AbstractDataSource` contract - see [Connectors](/references/base/connectors) for the architecture.
+> This guide covers the **PostgreSQL connector** (`BasePostgresDataSource`, aliased as `BaseDataSource` for backward compatibility). It's the primary relational engine and the one used by most applications. IGNIS also ships a **SQLite connector** (`BaseSqliteDataSource`, see [SQLite](./sqlite)) and a **typesense connector** for full-text/vector search (see [Search & Typesense](./search-typesense)). All three implement the same engine-neutral `AbstractDataSource` contract - see [Connectors](/references/base/connectors) for the architecture.
 
 ## Creating a DataSource
 
