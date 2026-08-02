@@ -451,6 +451,78 @@ const config = defineConfig({
           collapsed: false,
           items: [
             {
+              text: '2026-08-02',
+              collapsed: true,
+              items: [
+                {
+                  text: 'SQLite and PGlite - Two Embedded Relational Engines',
+                  link: '/changelogs/2026-08-02-sqlite-and-pglite-connectors',
+                },
+              ],
+            },
+            {
+              text: '2026-08-01',
+              collapsed: true,
+              items: [
+                {
+                  text: 'Relational Connector Lift - Engine-Neutral SQL Tier',
+                  link: '/changelogs/2026-08-01-relational-connector-lift',
+                },
+              ],
+            },
+            {
+              text: '2026-07-26',
+              collapsed: true,
+              items: [
+                {
+                  text: 'Search and Mail Errors Join the Framework Catalog',
+                  link: '/changelogs/2026-07-26-search-and-mail-error-codes',
+                },
+              ],
+            },
+            {
+              text: '2026-07-25',
+              collapsed: true,
+              items: [
+                {
+                  text: 'ignis-filter - the Filter Vocabulary as a Browser-Safe Package',
+                  link: '/changelogs/2026-07-25-ignis-filter-package',
+                },
+                {
+                  text: 'Readable Error Logs and a logLevel Option on getError',
+                  link: '/changelogs/2026-07-25-error-logging',
+                },
+              ],
+            },
+            {
+              text: '2026-07-21',
+              collapsed: true,
+              items: [
+                {
+                  text: 'BaseFilteredAdapter Connector Resolution Fix',
+                  link: '/changelogs/2026-07-21-casbin-connector-resolution-fix',
+                },
+              ],
+            },
+            {
+              text: '2026-07-20',
+              collapsed: true,
+              items: [
+                {
+                  text: 'fromError - Rehydrate a Server Error on the Client',
+                  link: '/changelogs/2026-07-20-error-from-error-client',
+                },
+                {
+                  text: 'Casbin Single-Wave Extraction - Recursive CTE Replaces the Second Query Wave',
+                  link: '/changelogs/2026-07-20-casbin-single-wave-extraction',
+                },
+                {
+                  text: 'Casbin Custom Grants - Operation-Subset Grants in One Row',
+                  link: '/changelogs/2026-07-20-casbin-custom-grants',
+                },
+              ],
+            },
+            {
               text: '2026-07-18',
               collapsed: true,
               items: [
