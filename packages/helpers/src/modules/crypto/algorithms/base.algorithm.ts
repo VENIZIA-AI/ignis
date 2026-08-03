@@ -10,18 +10,6 @@ import {
   ICryptoAlgorithm,
 } from '../common';
 
-/**
- * In-process derived-key cache.
- *
- * A derived key depends only on (secret, length, salt, iterations, digest) — all stable for
- * the lifetime of the process — so it is identical on every call. PBKDF2 is deliberately
- * slow (a work factor), and `normalizeSecretKey` runs on EVERY encrypt/decrypt; without a
- * cache, a single request that decrypts several fields would re-run PBKDF2 many times and
- * add hundreds of ms of latency. We therefore derive once per distinct secret and reuse.
- *
- * This is a plain RAM memo, NOT an external cache (e.g. Redis): the derived key is itself a
- * secret and already lives in this process's memory. It is never logged or serialized.
- */
 const DERIVED_KEY_CACHE = new Map<string, Buffer>();
 
 export abstract class AbstractCryptoAlgorithm<
