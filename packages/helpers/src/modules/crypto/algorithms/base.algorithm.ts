@@ -1,7 +1,28 @@
+import C from 'node:crypto';
 import { BaseHelper } from '@/modules/base';
 import { getError } from '@/modules/error';
 import { int } from '@/utilities';
-import { DEFAULT_CIPHER_BITS, DEFAULT_PAD_END, ICryptoAlgorithm } from '../common';
+import {
+  DEFAULT_CIPHER_BITS,
+  DEFAULT_KDF_DIGEST,
+  DEFAULT_KDF_ITERATIONS,
+  DEFAULT_KDF_SALT,
+  ICryptoAlgorithm,
+} from '../common';
+
+/**
+ * In-process derived-key cache.
+ *
+ * A derived key depends only on (secret, length, salt, iterations, digest) — all stable for
+ * the lifetime of the process — so it is identical on every call. PBKDF2 is deliberately
+ * slow (a work factor), and `normalizeSecretKey` runs on EVERY encrypt/decrypt; without a
+ * cache, a single request that decrypts several fields would re-run PBKDF2 many times and
+ * add hundreds of ms of latency. We therefore derive once per distinct secret and reuse.
+ *
+ * This is a plain RAM memo, NOT an external cache (e.g. Redis): the derived key is itself a
+ * secret and already lives in this process's memory. It is never logged or serialized.
+ */
+const DERIVED_KEY_CACHE = new Map<string, Buffer>();
 
 export abstract class AbstractCryptoAlgorithm<
   AlgorithmType extends string,
@@ -76,14 +97,24 @@ export abstract class BaseCryptoAlgorithm<
     }
   }
 
-  normalizeSecretKey(opts: { secret: string; length: number; padEnd?: string }) {
-    const { secret, length, padEnd = DEFAULT_PAD_END } = opts;
+  normalizeSecretKey(opts: { secret: string; length: number }): Buffer {
+    const { secret, length } = opts;
 
-    if (secret.length > length) {
-      return secret.slice(0, length);
+    const cacheKey = `${DEFAULT_KDF_DIGEST}:${DEFAULT_KDF_ITERATIONS}:${length}:${secret}`;
+    const cached = DERIVED_KEY_CACHE.get(cacheKey);
+    if (cached) {
+      return cached;
     }
 
-    return secret.padEnd(length, padEnd);
+    const key = C.pbkdf2Sync(
+      secret,
+      DEFAULT_KDF_SALT,
+      DEFAULT_KDF_ITERATIONS,
+      length,
+      DEFAULT_KDF_DIGEST,
+    );
+    DERIVED_KEY_CACHE.set(cacheKey, key);
+    return key;
   }
 
   getAlgorithmKeySize() {
