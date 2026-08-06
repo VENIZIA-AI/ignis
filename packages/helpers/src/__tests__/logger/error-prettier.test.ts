@@ -515,3 +515,74 @@ describe('ErrorPrettier JSON rendering', () => {
     expect(() => JSON.parse(block)).toThrow();
   });
 });
+
+/** `format` runs inside the error handler. Throwing there turns a handled failure into an unhandled one. */
+describe('ErrorPrettier JSON resilience', () => {
+  const buildCircular = () => {
+    const value: Record<string, unknown> = { orderId: 'ord-1' };
+    value.self = value;
+    return value;
+  };
+
+  test('a cyclic extra does not throw - JSON.stringify alone would', () => {
+    const line = ErrorPrettier.format({
+      error: new Error('boom'),
+      extra: buildCircular(),
+      includeStack: false,
+      format: 'json',
+    });
+
+    expect(() => JSON.parse(line)).not.toThrow();
+    expect(JSON.parse(line).extra.self).toBe('[Circular]');
+  });
+
+  test('a cyclic args does not throw either', () => {
+    const error = getError({ message: { text: 'x %{a}', code: 'server.core.x.y' } });
+    (error.normalized.args as Record<string, unknown>).a = buildCircular();
+
+    const line = ErrorPrettier.format({ error, includeStack: false, format: 'json' });
+
+    expect(() => JSON.parse(line)).not.toThrow();
+  });
+
+  test('the non-cyclic payload is untouched - resilience must not degrade the common case', () => {
+    const line = ErrorPrettier.format({
+      error: new Error('boom'),
+      extra: { orderId: 'ord-1', nested: { qty: 2 } },
+      includeStack: false,
+      format: 'json',
+    });
+
+    expect(JSON.parse(line).extra).toEqual({ orderId: 'ord-1', nested: { qty: 2 } });
+  });
+});
+
+/** The factory-frame filter must name IGNIS's own file, not any file that happens to sit at the same path. */
+describe('ErrorPrettier factory-frame filter precision', () => {
+  const frameStack = (frames: Array<string>) =>
+    Object.assign(new Error('boom'), { stack: ['Error: boom', ...frames].join('\n') });
+
+  test("an application's own modules/error/app-error is NOT swallowed", () => {
+    const error = frameStack([
+      '    at assertThing (/app/src/modules/error/app-error.ts:12:9)',
+      '    at handler (/app/src/controller.ts:5:3)',
+    ]);
+
+    const stack = ErrorPrettier.summarize({ error }).stack ?? '';
+
+    expect(stack).toContain('/app/src/modules/error/app-error.ts');
+  });
+
+  test("IGNIS's own factory frame is swallowed, installed or in the monorepo", () => {
+    const error = frameStack([
+      '    at getError (/app/node_modules/@venizia/ignis-inversion/dist/cjs/modules/error/app-error.js:56:20)',
+      '    at getError (/repo/packages/inversion/dist/esm/modules/error/app-error.js:50:20)',
+      '    at updateTicket (/app/src/ticket.service.ts:8:11)',
+    ]);
+
+    const stack = ErrorPrettier.summarize({ error }).stack ?? '';
+
+    expect(stack).not.toContain('app-error');
+    expect(stack).toContain('ticket.service.ts');
+  });
+});

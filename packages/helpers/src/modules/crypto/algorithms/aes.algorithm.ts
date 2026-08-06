@@ -8,11 +8,15 @@ const DEFAULT_LENGTH = 16;
 const CIPHERTEXT_VERSION = 0x01;
 const DEFAULT_KEY_ID = '0';
 
-interface IAESExtraOptions {
-  iv?: Buffer;
+interface IAESDecryptOptions {
   inputEncoding?: C.Encoding;
   outputEncoding?: C.Encoding;
   doThrow?: boolean;
+}
+
+/** `iv` is encrypt-only: the envelope carries the IV, so decrypt reads it from there and a supplied one would be silently ignored. */
+interface IAESExtraOptions extends IAESDecryptOptions {
+  iv?: Buffer;
 }
 
 export interface IAESKeyringEntry {
@@ -68,6 +72,14 @@ export class AES extends BaseCryptoAlgorithm<
         message: `[AES][resolveDecryptKey] No key in keyring matches ciphertext key id "${id}"`,
       });
     }
+
+    // Without this the empty secret derives a key from '' and fails as an opaque OpenSSL error, hiding a plain configuration mistake.
+    if (isEmpty(entry.secret)) {
+      throw getError({
+        message: `[AES][resolveDecryptKey] Keyring entry for key id "${id}" has an empty secret`,
+      });
+    }
+
     return this.normalizeSecretKey({ secret: entry.secret, length });
   }
 
@@ -131,7 +143,7 @@ export class AES extends BaseCryptoAlgorithm<
     return encrypted;
   }
 
-  decrypt(opts: { message: string; secret: TAESSecret; opts?: IAESExtraOptions }) {
+  decrypt(opts: { message: string; secret: TAESSecret; opts?: IAESDecryptOptions }) {
     const { message, secret } = opts;
     const { inputEncoding = 'base64', outputEncoding = 'utf-8', doThrow = true } = opts.opts ?? {};
 

@@ -135,7 +135,8 @@ describe('Crypto Algorithms', () => {
         const plaintext = 'explicit iv test';
         const iv = C.randomBytes(16);
         const encrypted = aes.encrypt({ message: plaintext, secret: SECRET_32, opts: { iv } });
-        const decrypted = aes.decrypt({ message: encrypted, secret: SECRET_32, opts: { iv } });
+        // No `iv` on the way back: the envelope carries the one encrypt used.
+        const decrypted = aes.decrypt({ message: encrypted, secret: SECRET_32 });
         expect(decrypted).toBe(plaintext);
       });
 
@@ -299,7 +300,8 @@ describe('Crypto Algorithms', () => {
         const plaintext = 'explicit iv gcm';
         const iv = C.randomBytes(16);
         const encrypted = aes.encrypt({ message: plaintext, secret: SECRET_32, opts: { iv } });
-        const decrypted = aes.decrypt({ message: encrypted, secret: SECRET_32, opts: { iv } });
+        // No `iv` on the way back: the envelope carries the one encrypt used.
+        const decrypted = aes.decrypt({ message: encrypted, secret: SECRET_32 });
         expect(decrypted).toBe(plaintext);
       });
 
@@ -1026,5 +1028,43 @@ describe('Crypto Algorithms', () => {
         expect(ecdh.decrypt({ message: tampered, secret: sharedKey })).rejects.toThrow();
       });
     });
+  });
+});
+
+/** Two contract gaps left by the PBKDF2 envelope change. */
+describe('AES contract after the envelope change', () => {
+  const KEYRING_SECRET = 'abcdefghijklmnopqrstuvwxyz012345';
+
+  test('an empty secret in the keyring is refused by name, not by an opaque crypto error', () => {
+    const aes = AES.withAlgorithm('aes-256-gcm');
+    const encrypted = aes.encrypt({
+      message: 'payload',
+      secret: [{ id: '1', secret: KEYRING_SECRET }],
+    });
+
+    let caught: unknown;
+    try {
+      aes.decrypt({ message: encrypted, secret: [{ id: '1', secret: '' }] });
+    } catch (error) {
+      caught = error;
+    }
+
+    // resolveEncryptKey already guards this; the decrypt side must say the same thing.
+    expect((caught as Error).message).toContain('resolveDecryptKey');
+  });
+
+  test('decrypt takes no iv - the envelope carries it, so accepting one would be a lie', () => {
+    const aes = AES.withAlgorithm('aes-256-cbc');
+    const encrypted = aes.encrypt({ message: 'payload', secret: KEYRING_SECRET });
+
+    const decrypted = aes.decrypt({
+      message: encrypted,
+      secret: KEYRING_SECRET,
+      // @ts-expect-error `iv` is an encrypt-only option; decrypt reads it from the envelope.
+      opts: { iv: Buffer.alloc(16, 7) },
+    });
+
+    // The envelope wins regardless, which is exactly why the option must not typecheck.
+    expect(decrypted).toBe('payload');
   });
 });

@@ -6,6 +6,18 @@ not how.
 This file and `index.md` are reserved OKF filenames - they carry no `type:` frontmatter and are not
 counted as concepts.
 
+## 2026-08-06 - AES on PBKDF2, keyring rotation, and a cipher seam
+
+PR #32 replaced the pad-or-truncate key derivation with PBKDF2-SHA256 (100k iterations) and gave the
+ciphertext a version + key-id header, so a keyring can rotate keys without re-encrypting. The
+envelope change is BREAKING: data written by an earlier IGNIS no longer decrypts with `AES`, and
+`LegacyAES` is the deliberate read path - the formats never cross-decrypt and nothing falls back on
+its own. Follow-up landed the seam that makes that opt-out reachable: `IPayloadCipher` plus a
+`cipher` option on the bearer-token services, which previously hardcoded `AES` and left an
+application no way to keep already-issued tokens valid. Also closed the `resolveDecryptKey`
+empty-secret gap and dropped `iv` from the decrypt options, where it was silently ignored. Updated
+`packages/helpers`.
+
 ## 2026-08-06 - logged errors carry their args, code, frames, and a JSON shape
 
 `ErrorPrettier` modelled `extra` but never `normalized`, so an `ApplicationError` logged its raw

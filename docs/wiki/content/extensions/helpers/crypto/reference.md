@@ -86,7 +86,7 @@ interface ICryptoAlgorithm<
 |--------|-----------|--------------|
 | constructor | `(opts: { scope: string; algorithm: AlgorithmType })` | Sets `this.algorithm`, calls `validateAlgorithmName` |
 | `validateAlgorithmName` | `(opts: { algorithm: AlgorithmType }) => void` | Throws if `algorithm` is empty/falsy |
-| `normalizeSecretKey` | `(opts: { secret: string; length: number; padEnd?: string }) => string` | Truncates to `length`, or right-pads with `padEnd` (default `'0'`, the digit character - not a null byte) |
+| `normalizeSecretKey` | `(opts: { secret: string; length: number }) => Buffer` | Derives a `length`-byte key with PBKDF2-SHA256, 100,000 iterations. Results are memoised per secret |
 | `getAlgorithmKeySize` | `() => number` | Parses the bit size out of `this.algorithm` (e.g. `256` from `'aes-256-gcm'`), divides by 8 for byte length |
 
 `ECDH` extends `AbstractCryptoAlgorithm` directly. It does not inherit `normalizeSecretKey` or `getAlgorithmKeySize` - its secrets are `CryptoKey` objects, not strings.
@@ -119,7 +119,16 @@ encrypt(opts: { message: string; secret: string; opts?: IAESExtraOptions }): str
 | `outputEncoding` | `crypto.Encoding` | `'base64'` | Encoding of the returned ciphertext |
 | `doThrow` | `boolean` | `true` | If `false`, returns the original `message` instead of throwing on error |
 
-The secret is normalized via `normalizeSecretKey` to the algorithm's key size (32 bytes for both modes) before being used as the cipher key. The output layout is `IV [+ GCM auth tag] + ciphertext`, concatenated and encoded with `outputEncoding`.
+The secret is normalized via `normalizeSecretKey` to the algorithm's key size (32 bytes for both modes) before being used as the cipher key. The output is a self-describing envelope, concatenated and encoded with `outputEncoding`:
+
+```
+[version(1)][idLen(1)][id(idLen)][iv(16)][authTag(16, gcm only)][ciphertext]
+```
+
+The version byte is `0x01`. The key id is the entry `decrypt` looks up in a keyring - `'0'` when `secret` is a bare string.
+
+> [!WARNING] This envelope is not the pre-PBKDF2 one
+> Ciphertext written before this format started with the raw IV and derived its key by padding the secret. `decrypt` rejects it. Read that data with [`LegacyAES`](#legacyaes) instead.
 
 ```typescript
 import C from 'node:crypto';
@@ -139,12 +148,13 @@ const encrypted = aes.encrypt({
 ### `decrypt`
 
 ```typescript
-decrypt(opts: { message: string; secret: string; opts?: IAESExtraOptions }): string
+decrypt(opts: { message: string; secret: TAESSecret; opts?: IAESDecryptOptions }): string
 ```
+
+`decrypt` takes no `iv`. The envelope carries the one `encrypt` used, so passing another would be ignored - the option is absent from `IAESDecryptOptions` and supplying it is a compile error.
 
 | Option (`opts.opts`) | Type | Default | Description |
 |-----------------------|------|---------|-------------|
-| `iv` | `Buffer` | Extracted from the first 16 bytes of the decoded ciphertext | Initialization vector |
 | `inputEncoding` | `crypto.Encoding` | `'base64'` | Encoding of `message` |
 | `outputEncoding` | `crypto.Encoding` | `'utf-8'` | Encoding of the returned plaintext |
 | `doThrow` | `boolean` | `true` | If `false`, returns the original `message` instead of throwing on error |
@@ -166,6 +176,66 @@ Both read the file synchronously via `fs.readFileSync`, decode it as UTF-8, then
 ```typescript
 const encrypted = aes.encryptFile({ absolutePath: '/path/to/config.json', secret: 'my-secret' });
 const decrypted = aes.decryptFile({ absolutePath: '/path/to/config.json.enc', secret: 'my-secret' });
+```
+
+### Key rotation with a keyring
+
+`secret` accepts a list as well as a string. Encryption always uses the first entry; decryption looks up the id stamped in the envelope.
+
+```typescript
+const KEYRING = [
+  { id: '2', secret: process.env.APP_ENV_SECRET_V2! }, // current - everything new is written with this
+  { id: '1', secret: process.env.APP_ENV_SECRET_V1! }, // retired - still needed to read old rows
+];
+
+const fresh = aes.encrypt({ message: 'payload', secret: KEYRING }); // tagged id '2'
+const old = aes.decrypt({ message: rowFromLastYear, secret: KEYRING }); // resolved by its own id
+```
+
+Rotating means prepending a new entry, not re-encrypting the estate. Drop an old entry only once nothing carries its id any more - `decrypt` throws `No key in keyring matches ciphertext key id` when it cannot resolve one, and a keyring entry with an empty `secret` is refused by name rather than failing later inside OpenSSL.
+
+| `secret` shape | Encrypts with | Envelope key id |
+|---|---|---|
+| `'my-secret'` | that string | `'0'` |
+| `[{ id, secret }, ...]` | the FIRST entry | that entry's `id` |
+
+### LegacyAES
+
+`Source ->` [`packages/helpers/src/modules/crypto/algorithms/aes-legacy.algorithm.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/crypto/algorithms/aes-legacy.algorithm.ts)
+
+`LegacyAES` reproduces the pre-PBKDF2 behaviour exactly: the key is the secret padded with `'0'` (or truncated) to the algorithm's key size, and the output is `IV [+ GCM auth tag] + ciphertext` with no version header.
+
+Reach for it when you hold data written by an earlier IGNIS and do not want to re-encrypt it. The API mirrors `AES`, minus the keyring - `secret` is a plain string.
+
+```typescript
+import { LegacyAES } from '@venizia/ignis-helpers';
+
+const legacy = LegacyAES.withAlgorithm('aes-256-cbc');
+const plaintext = legacy.decrypt({ message: rowWrittenBeforeTheUpgrade, secret: APPLICATION_SECRET });
+```
+
+The two formats never cross-decrypt, by design. `AES` rejects a legacy envelope on its version byte; `LegacyAES` fails the auth tag on a new one. Nothing falls back silently in either direction.
+
+### IPayloadCipher - choosing the cipher a component uses
+
+A component that encrypts on your behalf takes `IPayloadCipher`, the string-in/string-out slice both classes satisfy:
+
+```typescript
+export interface IPayloadCipher {
+  encrypt(opts: { message: string; secret: string }): string;
+  decrypt(opts: { message: string; secret: string }): string;
+}
+```
+
+The bearer-token services accept it as `cipher`. An application holding tokens issued before the envelope change keeps them readable by handing over the legacy cipher instead of invalidating every session:
+
+```typescript
+new JWSTokenService({
+  jwtSecret,
+  getTokenExpiresFn,
+  applicationSecret,
+  cipher: LegacyAES.withAlgorithm('aes-256-cbc'), // omit it and you get AES
+});
 ```
 
 ## RSA

@@ -41,8 +41,9 @@ export class ErrorPrettier {
   /** A frame inside an installed package - `node_modules/` covers bun's `.bun/` store too. */
   private static readonly DEPENDENCY_FRAME_PATTERN = /node_modules[/\\]/;
 
-  /** `getError` sits on top of every `ApplicationError` stack and names no call site. Installed, it is also the FIRST dependency frame, so the keep-the-first rule would preserve exactly the wrong one. */
-  private static readonly ERROR_FACTORY_FRAME_PATTERN = /modules[/\\]error[/\\]app-error/;
+  /** `getError` sits on top of every `ApplicationError` stack and names no call site. Installed, it is also the FIRST dependency frame, so the keep-the-first rule would preserve exactly the wrong one. Anchored on `inversion` so an application's own `modules/error/app-error` is not swallowed with it. */
+  private static readonly ERROR_FACTORY_FRAME_PATTERN =
+    /inversion[/\\].*modules[/\\]error[/\\]app-error/;
 
   /** Issues rendered from a ZodError before the rest are counted off. */
   private static readonly MAX_ZOD_ISSUES = 10;
@@ -277,6 +278,24 @@ export class ErrorPrettier {
     return fromEnv !== undefined && LoggerFormats.isValid(fromEnv) ? fromEnv : LoggerFormats.TEXT;
   }
 
+  /** `JSON.stringify` throws on a cycle, and `format` runs inside the error handler - a throw there turns a handled failure into an unhandled one. `redactSecrets` breaks cycles on its own, but it is switched off by `APP_ENV_LOGGER_DO_REDACT=false`, so structural safety cannot lean on it. A repeated reference reads as `[Circular]` too: the first occurrence still carries the data. */
+  private static safeStringify(payload: Record<string, unknown>): string {
+    const seen = new WeakSet<object>();
+
+    return JSON.stringify(payload, (_key, value: unknown) => {
+      if (typeof value !== 'object' || value === null) {
+        return value;
+      }
+
+      if (seen.has(value)) {
+        return '[Circular]';
+      }
+
+      seen.add(value);
+      return value;
+    });
+  }
+
   /** One line, so a log monitor keeps the error as ONE record instead of one per bullet. */
   private static renderJson(opts: {
     summary: IErrorSummary;
@@ -329,7 +348,7 @@ export class ErrorPrettier {
       payload.stack = summary.stack.split('\n').map(frame => frame.trim());
     }
 
-    return JSON.stringify(payload);
+    return this.safeStringify(payload);
   }
 
   private static renderText(opts: {

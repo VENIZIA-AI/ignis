@@ -17,6 +17,7 @@ This section tracks the history of significant changes, refactors, and updates t
 
 | Date | Title | Type |
 |------|-------|------|
+| 2026-08-06 | [AES Keys Derive with PBKDF2, and Ciphertext Carries a Key Id](./2026-08-06-aes-pbkdf2-and-key-rotation) | Breaking Change, Security, New Feature |
 | 2026-08-02 | [SQLite and PGlite - Two Embedded Relational Engines](./2026-08-02-sqlite-and-pglite-connectors) | New Feature, Enhancement |
 | 2026-08-01 | [Relational Connector Lift - Engine-Neutral SQL Tier](./2026-08-01-relational-connector-lift) | Breaking Change, Enhancement, Bug Fix, Behavior Change |
 | 2026-07-26 | [Search and Mail Errors Join the Framework Catalog](./2026-07-26-search-and-mail-error-codes) | Enhancement |
