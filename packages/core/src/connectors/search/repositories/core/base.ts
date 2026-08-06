@@ -5,7 +5,12 @@ import type { AbstractSearchDataSource } from '@/connectors/search/datasources';
 import type { BaseSearchEntity } from '@/connectors/search/models';
 import { throwNotSupported } from '@/utilities';
 import type { TClass } from '@venizia/ignis-helpers';
-import type { ISearchQuery, ISearchQueryDialect } from '@/connectors/search/repositories/common';
+import type {
+  ISearchQuery,
+  ISearchQueryDialect,
+  TCompiledWhere,
+} from '@/connectors/search/repositories/common';
+import { SearchFilterOutcomes } from '@/connectors/search/repositories/common';
 
 /** Search-repository plumbing on `AbstractRepository`. `TDataSource` carries the concrete connector type through `this.connector`, so a concretely-bound repository reaches its engine's verbs uncast while an engine-agnostic one is forced to write `connector.alias?.…`. */
 export abstract class SearchBaseRepository<
@@ -106,38 +111,94 @@ export abstract class SearchBaseRepository<
     });
   }
 
-  /** Builds a dialect-translated query: AND-merges defaultWhere into filter.where (unless shouldSkipDefaultFilter), always strips hiddenFields. */
+  private _collectionFields?: Set<string>;
+
+  /**
+   * Field names the collection declares, or undefined when it declares none - which means
+   * "unvalidated", not "no fields": an entity carrying no `ISearchCollectionDefinition` must
+   * compile exactly as it did before field checking existed.
+   *
+   * Read from the entity's own typed `schema` rather than by casting into `entity.constructor`;
+   * `BaseSearchEntity.schema` is instance-side and already an `ISearchCollectionDefinition`.
+   * Memoized per repository instance - the definition is frozen after boot.
+   */
+  protected get collectionFields(): ReadonlySet<string> | undefined {
+    if (!this._collectionFields) {
+      const fields = this.entity?.schema?.fields;
+      this._collectionFields = new Set((fields ?? []).map(field => field.name));
+    }
+
+    return this._collectionFields.size > 0 ? this._collectionFields : undefined;
+  }
+
+  /**
+   * Builds a dialect-translated query, always stripping hiddenFields.
+   *
+   * The caller's `where` and the repository-owned `defaultWhere` are compiled SEPARATELY and
+   * combined after, rather than merged into one tree first. Merging first makes the two
+   * indistinguishable, and the repository's own clause would then have to satisfy the
+   * caller-facing field check: `SprocketDocument` in integration-wiring.test.ts declares
+   * [title, secretCode] but carries `defaultFilter: { where: { isActive: true } }`, so every
+   * request through it would 400 ITSELF. Compiling separately makes the trust boundary a matter
+   * of WHICH CALL IS MADE, which - unlike a flag threaded through the recursion - cannot be wrong
+   * at a nested level.
+   */
   protected buildQuery(opts: {
     filter?: TFilter;
     shouldSkipDefaultFilter?: boolean;
   }): ISearchQuery {
     const { filter, shouldSkipDefaultFilter } = opts;
     const defaultWhere = shouldSkipDefaultFilter ? undefined : this.defaultWhere;
-    const mergedWhere = this.mergeWhere({ defaultWhere, where: filter?.where });
 
-    const effectiveFilter: TFilter | undefined = filter
-      ? { ...filter, where: mergedWhere }
-      : mergedWhere
-        ? { where: mergedWhere }
-        : undefined;
-
-    return this.queryDialect.build({
-      filter: effectiveFilter,
+    // `where` is withheld from `build` and compiled below: handing it over merged would field-check
+    // the repository's own clause along with the caller's.
+    const query = this.queryDialect.build({
+      filter: filter ? { ...filter, where: undefined } : undefined,
       hiddenFields: this.hiddenFields,
     });
+
+    const compiled = this.compileEffectiveWhere({ where: filter?.where, defaultWhere });
+
+    switch (compiled.outcome) {
+      case SearchFilterOutcomes.FILTER: {
+        query.filterBy = compiled.filterBy;
+        break;
+      }
+      case SearchFilterOutcomes.MATCH_NONE: {
+        query.matchNone = true;
+        break;
+      }
+      case SearchFilterOutcomes.MATCH_ALL:
+      default: {
+        // Vacuously true - nothing to set and nothing to short-circuit. Spelled out rather than
+        // left as an unwritten else, so all three outcomes are visibly accounted for.
+        break;
+      }
+    }
+
+    return query;
   }
 
-  private mergeWhere(opts: { defaultWhere?: TWhere; where?: TWhere }): TWhere | undefined {
-    const { defaultWhere, where } = opts;
+  /**
+   * Compiles the caller clause (field-checked) and the repository-owned default clause
+   * (unchecked), then ANDs them via the dialect - `defaultWhere` first, preserving the order the
+   * previous `{ and: [defaultWhere, where] }` merge produced.
+   */
+  protected compileEffectiveWhere(opts: { where?: TWhere; defaultWhere?: TWhere }): TCompiledWhere {
+    const { where, defaultWhere } = opts;
+    const dialect = this.queryDialect;
+    const clauses: TCompiledWhere[] = [];
 
-    if (!defaultWhere) {
-      return where;
+    if (defaultWhere) {
+      clauses.push(dialect.compileWhere({ where: defaultWhere }));
     }
 
-    if (!where) {
-      return defaultWhere;
+    if (where) {
+      clauses.push(
+        dialect.compileWhere({ where, capabilities: { fields: this.collectionFields } }),
+      );
     }
 
-    return { and: [defaultWhere, where] };
+    return dialect.conjoin({ clauses });
   }
 }

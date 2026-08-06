@@ -285,7 +285,13 @@ export class FakeSearchDataSource extends TypesenseDataSource {
 export class ProductDocument extends BaseSearchEntity {
   static override schema = defineSearchCollection({
     name: 'products',
-    fields: [field.string('title', { searchable: true }), field.string('secret')],
+    fields: [
+      field.string('title', { searchable: true }),
+      field.string('secret'),
+      field.string('status'),
+      field.string('name'),
+      field.boolean('isActive'),
+    ],
   });
 }
 
@@ -300,7 +306,13 @@ export class ProductDocument extends BaseSearchEntity {
 export class ProductDocumentNoDefaultFilter extends BaseSearchEntity {
   static override schema = defineSearchCollection({
     name: 'products_no_default_filter',
-    fields: [field.string('title', { searchable: true }), field.string('secret')],
+    fields: [
+      field.string('title', { searchable: true }),
+      field.string('secret'),
+      field.string('status'),
+      field.string('name'),
+      field.boolean('isActive'),
+    ],
   });
 }
 

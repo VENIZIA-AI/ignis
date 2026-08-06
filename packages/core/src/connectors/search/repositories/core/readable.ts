@@ -31,6 +31,12 @@ export class ReadableSearchRepository<
       shouldSkipDefaultFilter: opts.options?.shouldSkipDefaultFilter,
     });
 
+    // An absorbing where counts zero by definition. Asking the engine would mean sending NO
+    // filterBy at all, which counts the entire collection.
+    if (query.matchNone) {
+      return { count: 0 };
+    }
+
     // Counted through the document endpoint, never search: an engine whose search total is capped
     // or estimated would report a count that quietly lies.
     const count = await this.connector.document.count({
@@ -87,10 +93,14 @@ export class ReadableSearchRepository<
       shouldSkipDefaultFilter: options?.shouldSkipDefaultFilter,
     });
 
-    const result = await this.connector.search<TDocument>({
-      collection: this.collectionName,
-      params: this.queryDialect.toWireParams({ query }),
-    });
+    // No round-trip for an absorbing where: with no filterBy the engine would happily return the
+    // whole collection, which is the opposite of what the filter asked for.
+    const result = query.matchNone
+      ? { hits: [], found: 0 }
+      : await this.connector.search<TDocument>({
+          collection: this.collectionName,
+          params: this.queryDialect.toWireParams({ query }),
+        });
 
     const { hits, found } = result;
 
@@ -174,6 +184,13 @@ export class ReadableSearchRepository<
     });
 
     this.queryDialect.applySearchInput({ query, input: opts });
+
+    // Same short-circuit as find(): an absorbing filter cannot be expressed to the engine, and
+    // omitting it would search everything.
+    // `isFoundExact` is true because zero is not an estimate - nothing was searched to approximate.
+    if (query.matchNone) {
+      return { hits: [], found: 0, isFoundExact: true };
+    }
 
     const result = await this.connector.search<R>({
       collection: this.collectionName,
