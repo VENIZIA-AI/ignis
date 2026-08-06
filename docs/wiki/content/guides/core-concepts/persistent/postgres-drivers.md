@@ -148,7 +148,7 @@ Supabase exposes three ways in, and one of them silently breaks prepared stateme
 | `PoolerModes.SESSION` | 5432 (pooler) | yes | pooled, one backend per client session |
 | `PoolerModes.TRANSACTION` | 6543 | **no** | serverless / many short-lived connections |
 
-The transaction pooler (Supavisor) rebinds the backend per transaction, so a server-side prepared statement created on one backend simply is not there next time. `buildPostgresJsOptions` encodes this so you cannot forget it:
+The transaction pooler (Supavisor) rebinds the backend per transaction, so a server-side prepared statement created on one backend is not there next time. `buildPostgresJsOptions` encodes this so you cannot forget it:
 
 ```typescript
 import { datasource } from '@venizia/ignis';

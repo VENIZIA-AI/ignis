@@ -1,17 +1,24 @@
 import { redactSecrets } from '@/common/redact';
+import { MessageCode } from '@/modules/error';
 import util from 'node:util';
+import { LoggerFormats, type TLoggerFormat } from '../common';
 
 /** Useful-only projection of an error: a driver's `query`/`params` repeat the message and are dropped. */
 export interface IErrorSummary {
   name?: string;
   message?: string;
+  /** The error's OWN code - a driver's `23505`, a gRPC `14`. Belongs with the name, not with the message. */
   code?: string | number;
+  /** An `ApplicationError`'s `normalized.code` - the identifier an application filters on. `MessageCode.DEFAULT` never surfaces. */
+  messageCode?: string;
   /** Frames ONLY - V8's `Error: <message>` header is stripped so the message is not repeated. */
   stack?: string;
   hint?: string;
   detail?: string;
   table?: string;
   constraint?: string;
+  /** Values for the `%{placeholder}` tokens left unresolved in `message` - i18n resolves them downstream, so the log must carry them or the message names no field. */
+  args?: Record<string, unknown>;
   /** An `ApplicationError`'s caller context - the one unmodelled payload worth keeping. */
   extra?: Record<string, unknown>;
   cause?: IErrorSummary;
@@ -33,6 +40,9 @@ export class ErrorPrettier {
 
   /** A frame inside an installed package - `node_modules/` covers bun's `.bun/` store too. */
   private static readonly DEPENDENCY_FRAME_PATTERN = /node_modules[/\\]/;
+
+  /** `getError` sits on top of every `ApplicationError` stack and names no call site. Installed, it is also the FIRST dependency frame, so the keep-the-first rule would preserve exactly the wrong one. */
+  private static readonly ERROR_FACTORY_FRAME_PATTERN = /modules[/\\]error[/\\]app-error/;
 
   /** Issues rendered from a ZodError before the rest are counted off. */
   private static readonly MAX_ZOD_ISSUES = 10;
@@ -58,6 +68,11 @@ export class ErrorPrettier {
     // Hand-rolled over split+filter+slice: it stops at maxFrames instead of walking the whole stack.
     for (const line of stack.split('\n')) {
       if (!this.FRAME_PATTERN.test(line)) {
+        continue;
+      }
+
+      // Not counted as omitted: a factory frame is noise, and reporting it would imply signal was dropped.
+      if (this.ERROR_FACTORY_FRAME_PATTERN.test(line)) {
         continue;
       }
 
@@ -156,6 +171,16 @@ export class ErrorPrettier {
       summary.code = source.code;
     }
 
+    const normalized =
+      typeof source.normalized === 'object' && source.normalized !== null
+        ? (source.normalized as { code?: unknown; args?: unknown })
+        : undefined;
+
+    // `MessageCode.resolve` stamps DEFAULT on every codeless error, so surfacing it blindly would put a meaningless line on every log.
+    if (typeof normalized?.code === 'string' && normalized.code !== MessageCode.DEFAULT) {
+      summary.messageCode = normalized.code;
+    }
+
     // Root only: a cause's frames point into the same libraries and add no location the root lacks.
     if (isRoot && includeStack) {
       const frames = this.extractFrames({ stack: source.stack, maxFrames: maxStackFrames });
@@ -168,6 +193,14 @@ export class ErrorPrettier {
       const diagnostic = source[key];
       if (typeof diagnostic === 'string' && diagnostic.length > 0) {
         summary[key] = diagnostic;
+      }
+    }
+
+    // Root only: the args fill the ROOT's message; a cause's belong to a message this block does not print.
+    if (isRoot && typeof normalized?.args === 'object' && normalized.args !== null) {
+      const args = normalized.args as Record<string, unknown>;
+      if (Object.keys(args).length > 0) {
+        summary.args = args;
       }
     }
 
@@ -233,22 +266,79 @@ export class ErrorPrettier {
     });
   }
 
-  /** Renders {@link summarize} as a block; returns a string so `%s` keeps the message's newlines. */
-  static format(opts: {
-    error: unknown;
+  /** Resolved per call, not at module load, so a test passes a value instead of mutating the environment. */
+  private static resolveFormat(configured?: TLoggerFormat): TLoggerFormat {
+    if (configured !== undefined) {
+      return configured;
+    }
+
+    const fromEnv = process.env.APP_ENV_LOGGER_FORMAT;
+
+    return fromEnv !== undefined && LoggerFormats.isValid(fromEnv) ? fromEnv : LoggerFormats.TEXT;
+  }
+
+  /** One line, so a log monitor keeps the error as ONE record instead of one per bullet. */
+  private static renderJson(opts: {
+    summary: IErrorSummary;
     messageCode?: string;
     extra?: Record<string, unknown>;
-    includeStack?: boolean;
-    inspectOptions?: util.InspectOptions;
   }): string {
-    const {
-      error,
-      messageCode,
-      extra,
-      includeStack = true,
-      inspectOptions = this.INSPECT_OPTIONS,
-    } = opts;
-    const summary = this.summarize({ error, includeStack });
+    const { summary, messageCode, extra } = opts;
+
+    const payload: Record<string, unknown> = {};
+
+    if (summary.message !== undefined) {
+      payload.message = summary.message;
+    }
+
+    if (summary.args !== undefined) {
+      payload.args = redactSecrets(summary.args);
+    }
+
+    // An ApplicationError has no own `code` and a driver error has no `normalized`, so one field never hides the other.
+    const code =
+      messageCode !== undefined && messageCode !== ''
+        ? messageCode
+        : (summary.messageCode ?? summary.code);
+    if (code !== undefined) {
+      payload.code = code;
+    }
+
+    // A bare `Error` says nothing; the text block drops it for the same reason.
+    if (summary.name !== undefined && summary.name !== 'Error') {
+      payload.name = summary.name;
+    }
+
+    for (const key of this.DIAGNOSTIC_KEYS) {
+      if (summary[key] !== undefined) {
+        payload[key] = summary[key];
+      }
+    }
+
+    const context = extra ?? summary.extra;
+    if (context !== undefined && Object.keys(context).length > 0) {
+      payload.extra = redactSecrets(context);
+    }
+
+    if (summary.cause !== undefined) {
+      payload.cause = summary.cause;
+    }
+
+    // An ARRAY, not the newline-joined string `text` prints: a monitor can count and slice frames.
+    if (summary.stack !== undefined) {
+      payload.stack = summary.stack.split('\n').map(frame => frame.trim());
+    }
+
+    return JSON.stringify(payload);
+  }
+
+  private static renderText(opts: {
+    summary: IErrorSummary;
+    messageCode?: string;
+    extra?: Record<string, unknown>;
+    inspectOptions: util.InspectOptions;
+  }): string {
+    const { summary, messageCode, extra, inspectOptions } = opts;
 
     const lines: Array<string> = [];
 
@@ -257,9 +347,15 @@ export class ErrorPrettier {
       lines.push(`message: ${summary.message}`);
     }
 
+    // Straight after the message: the reader is looking at `%{field}` and needs the value now, not below the stack.
+    if (summary.args !== undefined) {
+      lines.push(`args: ${util.inspect(redactSecrets(summary.args), inspectOptions)}`);
+    }
+
     let cause = summary.cause;
     while (cause !== undefined) {
-      const code = cause.code === undefined ? '' : ` (code ${cause.code})`;
+      const causeCode = cause.code ?? cause.messageCode;
+      const code = causeCode === undefined ? '' : ` (code ${causeCode})`;
       lines.push(`cause: ${cause.message ?? ''}${code}`);
       this.pushDiagnostics({ node: cause, lines });
       cause = cause.cause;
@@ -274,8 +370,11 @@ export class ErrorPrettier {
       lines.push(`name: ${identity}`);
     }
 
-    if (messageCode !== undefined && messageCode !== '') {
-      lines.push(`code: ${messageCode}`);
+    // The caller's code wins; otherwise the error's own, so a direct log call keeps its identifier too.
+    const code =
+      messageCode !== undefined && messageCode !== '' ? messageCode : summary.messageCode;
+    if (code !== undefined) {
+      lines.push(`code: ${code}`);
     }
 
     this.pushDiagnostics({ node: summary, lines });
@@ -292,5 +391,34 @@ export class ErrorPrettier {
     }
 
     return lines.map(line => `- ${line}`).join('\n');
+  }
+
+  /** Renders {@link summarize}. `text` returns a block whose newlines survive `%s`; `json` returns one line. */
+  static format(opts: {
+    error: unknown;
+    messageCode?: string;
+    extra?: Record<string, unknown>;
+    includeStack?: boolean;
+    maxStackFrames?: number;
+    format?: TLoggerFormat;
+    inspectOptions?: util.InspectOptions;
+  }): string {
+    const {
+      error,
+      messageCode,
+      extra,
+      includeStack = true,
+      maxStackFrames,
+      format,
+      inspectOptions = this.INSPECT_OPTIONS,
+    } = opts;
+
+    const summary = this.summarize({ error, includeStack, maxStackFrames });
+
+    if (this.resolveFormat(format) === LoggerFormats.JSON) {
+      return this.renderJson({ summary, messageCode, extra });
+    }
+
+    return this.renderText({ summary, messageCode, extra, inspectOptions });
   }
 }

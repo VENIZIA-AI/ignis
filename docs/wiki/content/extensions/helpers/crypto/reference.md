@@ -245,13 +245,15 @@ const decrypted = rsa.decrypt({
 
 ```typescript
 const ecdh = ECDH.withAlgorithm(); // curve is always 'ecdh-p256'
-const ecdhCustom = ECDH.withAlgorithm({ hkdfInfo: 'my-app-session-keys' });
+const ecdhCustom = ECDH.withAlgorithm({ algorithm: 'ecdh-p256', hkdfInfo: 'my-app-session-keys' });
 ```
 
-| Constructor option | Type | Default | Description |
-|---------------------|------|---------|-------------|
-| `algorithm` | `'ecdh-p256'` | `'ecdh-p256'` | Accepted but not branched on - the curve is always P-256 |
-| `hkdfInfo` | `string` | `'ignis-ecdh-p256-aes-256-gcm-v1'` | HKDF info string, UTF-8 encoded, used to isolate key derivation between application contexts |
+The options argument is optional. Pass one and `algorithm` becomes required, even though the constructor ignores it and always sets `'ecdh-p256'`.
+
+| Constructor option | Type | Required | Description |
+|---------------------|------|----------|-------------|
+| `algorithm` | `'ecdh-p256'` | Only when you pass an options object | Accepted but not branched on - the curve is always P-256 |
+| `hkdfInfo` | `string` | No - defaults to `'ignis-ecdh-p256-aes-256-gcm-v1'` | HKDF info string, UTF-8 encoded, used to isolate key derivation between application contexts |
 
 Different `hkdfInfo` values produce **incompatible** derived keys from the same ECDH shared secret.
 
@@ -398,7 +400,7 @@ const sha256Hmac = hash('some text', { algorithm: 'SHA256', secret: 'a-secret-ke
 | `generateDERKeyPair(opts?)` | `RSA` | `{ publicKey: Buffer; privateKey: Buffer }` | Generate a DER-format key pair |
 | `encrypt(opts)` | `RSA` | `string` | Encrypt with a public key |
 | `decrypt(opts)` | `RSA` | `string` | Decrypt with a private key |
-| `ECDH.withAlgorithm(opts?)` | `ECDH` | `ECDH` | Create an ECDH instance with optional `hkdfInfo` |
+| `ECDH.withAlgorithm(opts?)` | `ECDH` | `ECDH` | Create an ECDH instance. Passing options requires `algorithm` alongside `hkdfInfo` |
 | `generateKeyPair()` | `ECDH` | `Promise<{ keyPair: CryptoKeyPair; publicKeyB64: string }>` | Generate a P-256 key pair |
 | `importPublicKey(opts)` | `ECDH` | `Promise<CryptoKey>` | Import a peer's base64 public key |
 | `deriveAESKey(opts)` | `ECDH` | `Promise<{ key: CryptoKey; salt: string }>` | Derive an AES-256-GCM key via HKDF |

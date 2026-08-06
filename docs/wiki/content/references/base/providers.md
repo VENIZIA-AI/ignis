@@ -545,7 +545,7 @@ export class S3StorageProvider extends BaseProvider<S3Storage> {
 
 ### Pattern 2: Lazy Singleton
 
-Create instance only once, lazily (or simply bind with `.setScope(BindingScopes.SINGLETON)` and let the container cache the produced value):
+Create instance only once, lazily (or bind with `.setScope(BindingScopes.SINGLETON)` and let the container cache the produced value):
 
 ```typescript
 export class DatabaseConnectionProvider extends BaseProvider<DatabaseConnection> {
