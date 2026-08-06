@@ -1,7 +1,16 @@
+import C from 'node:crypto';
 import { BaseHelper } from '@/modules/base';
 import { getError } from '@/modules/error';
 import { int } from '@/utilities';
-import { DEFAULT_CIPHER_BITS, DEFAULT_PAD_END, ICryptoAlgorithm } from '../common';
+import {
+  DEFAULT_CIPHER_BITS,
+  DEFAULT_KDF_DIGEST,
+  DEFAULT_KDF_ITERATIONS,
+  DEFAULT_KDF_SALT,
+  ICryptoAlgorithm,
+} from '../common';
+
+const DERIVED_KEY_CACHE = new Map<string, Buffer>();
 
 export abstract class AbstractCryptoAlgorithm<
   AlgorithmType extends string,
@@ -76,14 +85,24 @@ export abstract class BaseCryptoAlgorithm<
     }
   }
 
-  normalizeSecretKey(opts: { secret: string; length: number; padEnd?: string }) {
-    const { secret, length, padEnd = DEFAULT_PAD_END } = opts;
+  normalizeSecretKey(opts: { secret: string; length: number }): Buffer {
+    const { secret, length } = opts;
 
-    if (secret.length > length) {
-      return secret.slice(0, length);
+    const cacheKey = `${DEFAULT_KDF_DIGEST}:${DEFAULT_KDF_ITERATIONS}:${length}:${secret}`;
+    const cached = DERIVED_KEY_CACHE.get(cacheKey);
+    if (cached) {
+      return cached;
     }
 
-    return secret.padEnd(length, padEnd);
+    const key = C.pbkdf2Sync(
+      secret,
+      DEFAULT_KDF_SALT,
+      DEFAULT_KDF_ITERATIONS,
+      length,
+      DEFAULT_KDF_DIGEST,
+    );
+    DERIVED_KEY_CACHE.set(cacheKey, key);
+    return key;
   }
 
   getAlgorithmKeySize() {
