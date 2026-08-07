@@ -144,10 +144,16 @@ export class PersistableSearchRepository<
     this.assertNoLock(opts.options);
 
     const { data, where, options } = opts;
-    const filterBy = this.buildFilterBy({
+    const { filterBy, matchNone } = this.buildScopedFilter({
       where,
       shouldSkipDefaultFilter: options?.shouldSkipDefaultFilter,
     });
+
+    // Checked BEFORE the undefined guard: an absorbing where selects no document, which is a
+    // well-formed request to update nothing - not the "no effective where" the guard refuses.
+    if (matchNone) {
+      return { count: 0, data: null };
+    }
 
     if (filterBy === undefined) {
       throw getError({
@@ -217,10 +223,17 @@ export class PersistableSearchRepository<
 
     const logger = this.logger.for(this.deleteAll.name);
     const { where, options } = opts ?? {};
-    const filterBy = this.buildFilterBy({
+    const { filterBy, matchNone } = this.buildScopedFilter({
       where,
       shouldSkipDefaultFilter: options?.shouldSkipDefaultFilter,
     });
+
+    // Checked BEFORE the undefined guard, and the reason `matchNone` exists as a distinct outcome:
+    // an absorbing where selects no document. Collapsing it to `undefined` would enter the branch
+    // below and, with `force`, TRUNCATE the collection - the exact inversion of what was asked.
+    if (matchNone) {
+      return { count: 0, data: null };
+    }
 
     if (filterBy === undefined) {
       // `where: {}` compiles to NO filter; wiping a collection must be asked for explicitly, exactly as Postgres demands `force` for an empty-where delete.
@@ -276,6 +289,20 @@ export class PersistableSearchRepository<
     where?: TWhere;
     shouldSkipDefaultFilter?: boolean;
   }): string | undefined {
+    return this.buildScopedFilter(opts).filterBy;
+  }
+
+  /**
+   * The write-path filter as THREE outcomes, because two of them are catastrophically different
+   * here: `filterBy: undefined` means "no effective where", which `deleteAll` treats as licence to
+   * truncate when `force` is set. An absorbing where must never land there -
+   * `deleteAll({ where: { or: permittedIds.map(...) } })` on an EMPTY permission list has to
+   * delete nothing, not the entire collection. `matchNone` is what keeps the two apart.
+   */
+  protected buildScopedFilter(opts: { where?: TWhere; shouldSkipDefaultFilter?: boolean }): {
+    filterBy?: string;
+    matchNone: boolean;
+  } {
     const { where, shouldSkipDefaultFilter } = opts;
 
     const query = this.buildQuery({
@@ -283,6 +310,6 @@ export class PersistableSearchRepository<
       shouldSkipDefaultFilter,
     });
 
-    return query.filterBy;
+    return { filterBy: query.filterBy, matchNone: query.matchNone === true };
   }
 }

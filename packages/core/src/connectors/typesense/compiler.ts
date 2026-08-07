@@ -186,6 +186,40 @@ const mergeOverride = (opts: {
   };
 };
 
+/**
+ * A dotted field name resolves ONLY on a collection created with `enable_nested_fields`, and ignis
+ * never emits that flag - an application sets it per collection through `engineOverrides.typesense`.
+ * Since the dialect now compiles a declared dotted field rather than rejecting it outright, the
+ * mismatch would otherwise surface at QUERY time as an engine rejection, far from the declaration
+ * that caused it. Caught here, where the mistake is made, in the same spirit as the `defaultSort`
+ * checks above.
+ *
+ * Deliberately NOT auto-enabled: what `enable_nested_fields` does beyond making dotted names
+ * resolve is not established here, and emitting engine configuration on an unverified assumption
+ * is how surprises get built in. Validate, do not paper over.
+ *
+ * Read off the MERGED schema, so a dotted field appended by the override is checked too, and the
+ * flag is read wherever it was set. `enable_nested_fields` is declared on the SDK's
+ * `CollectionCreateSchema`, so no narrowing of the loose `engineOverrides` blob is needed.
+ */
+const assertNestedFieldsEnabled = (opts: { schema: CollectionCreateSchema }): void => {
+  const { schema } = opts;
+
+  if (schema.enable_nested_fields === true) {
+    return;
+  }
+
+  const dotted = schema.fields.find(item => item.name.includes('.'));
+
+  if (!dotted) {
+    return;
+  }
+
+  throw getError({
+    message: `[compileTypesenseCollection] Nested field name requires enable_nested_fields | name: ${schema.name} | field: ${dotted.name} | a dotted name is a real Typesense field, but the collection must be created with the flag - set it via engineOverrides: { typesense: { enable_nested_fields: true } }`,
+  });
+};
+
 /** Compiles an engine-neutral `ISearchCollectionDefinition` into a Typesense `CollectionCreateSchema`. */
 export const compileTypesenseCollection = (opts: {
   definition: ISearchCollectionDefinition;
@@ -226,6 +260,8 @@ export const compileTypesenseCollection = (opts: {
   if (typesenseOverride) {
     schema = mergeOverride({ schema, override: typesenseOverride });
   }
+
+  assertNestedFieldsEnabled({ schema });
 
   return schema;
 };

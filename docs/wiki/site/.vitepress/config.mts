@@ -451,12 +451,40 @@ const config = defineConfig({
           collapsed: false,
           items: [
             {
+              text: '2026-08-07',
+              collapsed: true,
+              items: [
+                {
+                  text: 'Call Sites No Longer Have to Know Which Fields Are Text',
+                  link: '/changelogs/2026-08-07-default-query-by',
+                },
+                {
+                  text: 'Nested i18n Fields Become Filterable and Sortable',
+                  link: '/changelogs/2026-08-07-nested-fields-and-order-validation',
+                },
+                {
+                  text: 'One Transport for Every Typesense Search',
+                  link: '/changelogs/2026-08-07-typesense-multi-search-transport',
+                },
+              ],
+            },
+            {
               text: '2026-08-06',
               collapsed: true,
               items: [
                 {
                   text: 'AES Keys Derive with PBKDF2, and Ciphertext Carries a Key Id',
                   link: '/changelogs/2026-08-06-aes-pbkdf2-and-key-rotation',
+                },
+              ],
+            },
+            {
+              text: '2026-08-05',
+              collapsed: true,
+              items: [
+                {
+                  text: 'Search Filters Now Mean What Relational Filters Mean',
+                  link: '/changelogs/2026-08-05-search-dialect-relational-parity',
                 },
               ],
             },

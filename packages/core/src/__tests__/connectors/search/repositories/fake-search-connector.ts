@@ -285,7 +285,13 @@ export class FakeSearchDataSource extends TypesenseDataSource {
 export class ProductDocument extends BaseSearchEntity {
   static override schema = defineSearchCollection({
     name: 'products',
-    fields: [field.string('title', { searchable: true }), field.string('secret')],
+    fields: [
+      field.string('title', { searchable: true }),
+      field.string('secret'),
+      field.string('status'),
+      field.string('name'),
+      field.boolean('isActive'),
+    ],
   });
 }
 
@@ -300,7 +306,36 @@ export class ProductDocument extends BaseSearchEntity {
 export class ProductDocumentNoDefaultFilter extends BaseSearchEntity {
   static override schema = defineSearchCollection({
     name: 'products_no_default_filter',
-    fields: [field.string('title', { searchable: true }), field.string('secret')],
+    fields: [
+      field.string('title', { searchable: true }),
+      field.string('secret'),
+      field.string('status'),
+      field.string('name'),
+      field.boolean('isActive'),
+    ],
+  });
+}
+
+/**
+ * Declares what searching this collection MEANS - `defaultQueryBy` - plus a vector field, so the
+ * keyword fallback and semantic mode's untouched `vectorField` path can both be asserted against
+ * one entity. A NEW fixture rather than a field bolted onto a shared one: the existing fixtures'
+ * inferred `TSearchDocument` shapes are asserted by other suites.
+ */
+@model({
+  type: 'entity',
+  tableName: 'products_with_default_query_by',
+})
+export class ProductDocumentWithDefaultQueryBy extends BaseSearchEntity {
+  static override schema = defineSearchCollection({
+    name: 'products_with_default_query_by',
+    fields: [
+      field.string('title'),
+      field.string('name'),
+      field.number('price'),
+      field.vector('embedding', { dimensions: 4 }),
+    ],
+    defaultQueryBy: ['title', 'name'],
   });
 }
 

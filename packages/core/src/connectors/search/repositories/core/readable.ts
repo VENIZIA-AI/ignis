@@ -17,6 +17,12 @@ import { SearchModes } from '@/connectors/search/repositories/common';
 import type { AbstractSearchDataSource } from '@/connectors/search/datasources';
 import { SearchBaseRepository } from './base';
 
+/** The match-everything term. `build()` already seeds `query` with it, so a filter-only listing reaches the engine as `q: '*'` - naming fields for a term that ignores fields would mean nothing. */
+const WILDCARD_QUERY = '*';
+
+/** The inputs the dialect translates - `raw` has already returned by the time these are resolved, and `applySearchInput` accepts only this narrowed union. */
+type TTranslatableSearchInput = Exclude<TSearchInput, { mode: typeof SearchModes.RAW }>;
+
 /** Read-only search-repository tier - translates filters via the datasource's dialect and executes through the connector. */
 export class ReadableSearchRepository<
   TDocument extends object = object,
@@ -30,6 +36,12 @@ export class ReadableSearchRepository<
       filter: { where: opts.where },
       shouldSkipDefaultFilter: opts.options?.shouldSkipDefaultFilter,
     });
+
+    // An absorbing where counts zero by definition. Asking the engine would mean sending NO
+    // filterBy at all, which counts the entire collection.
+    if (query.matchNone) {
+      return { count: 0 };
+    }
 
     // Counted through the document endpoint, never search: an engine whose search total is capped
     // or estimated would report a count that quietly lies.
@@ -87,10 +99,14 @@ export class ReadableSearchRepository<
       shouldSkipDefaultFilter: options?.shouldSkipDefaultFilter,
     });
 
-    const result = await this.connector.search<TDocument>({
-      collection: this.collectionName,
-      params: this.queryDialect.toWireParams({ query }),
-    });
+    // No round-trip for an absorbing where: with no filterBy the engine would happily return the
+    // whole collection, which is the opposite of what the filter asked for.
+    const result = query.matchNone
+      ? { hits: [], found: 0 }
+      : await this.connector.search<TDocument>({
+          collection: this.collectionName,
+          params: this.queryDialect.toWireParams({ query }),
+        });
 
     const { hits, found } = result;
 
@@ -173,7 +189,14 @@ export class ReadableSearchRepository<
       shouldSkipDefaultFilter: opts.options?.shouldSkipDefaultFilter,
     });
 
-    this.queryDialect.applySearchInput({ query, input: opts });
+    this.queryDialect.applySearchInput({ query, input: this.withDefaultQueryBy({ input: opts }) });
+
+    // Same short-circuit as find(): an absorbing filter cannot be expressed to the engine, and
+    // omitting it would search everything.
+    // `isFoundExact` is true because zero is not an estimate - nothing was searched to approximate.
+    if (query.matchNone) {
+      return { hits: [], found: 0, isFoundExact: true };
+    }
 
     const result = await this.connector.search<R>({
       collection: this.collectionName,
@@ -187,6 +210,30 @@ export class ReadableSearchRepository<
         document: this.omitHiddenFields(hit.document),
       })),
     };
+  }
+
+  protected withDefaultQueryBy(opts: {
+    input: TTranslatableSearchInput;
+  }): TTranslatableSearchInput {
+    const { input } = opts;
+
+    if (input.mode !== SearchModes.KEYWORD || input.queryBy) {
+      return input;
+    }
+
+    const term = input.query?.trim();
+
+    if (!term || term === WILDCARD_QUERY) {
+      return input;
+    }
+
+    const defaultQueryBy = this.entity?.schema?.defaultQueryBy;
+
+    if (!defaultQueryBy || defaultQueryBy.length === 0) {
+      return input;
+    }
+
+    return { ...input, queryBy: [...defaultQueryBy] };
   }
 
   /** @throws Error - disabled in a read-only repository; unlocked progressively by Persistable/DefaultSearchRepository. */

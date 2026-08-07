@@ -14,6 +14,27 @@ export const SearchErrors = {
     statusCode: HTTP.ResultCodes.RS_4.Conflict,
     category: ErrorScopes.BUSINESS,
   },
+  /** A `where` key the collection definition does not declare - the search-tier answer to relational's `Column NOT FOUND`. */
+  UNKNOWN_FIELD: {
+    message: { text: 'Unknown field in filter', code: 'core.search_engine.unknown_field' },
+    statusCode: HTTP.ResultCodes.RS_4.BadRequest,
+    category: ErrorScopes.BUSINESS,
+  },
+  /** A page this engine cannot deliver in one call - more hits than the multi-search budget covers, or a GROUPED query, whose groups cannot be split across windows without inventing an ordering the engine never produced. */
+  PAGE_TOO_LARGE: {
+    message: { text: 'Requested page is too large', code: 'core.search_engine.page_too_large' },
+    statusCode: HTTP.ResultCodes.RS_4.BadRequest,
+    category: ErrorScopes.BUSINESS,
+  },
+  /** An operator this engine cannot express. Catalogued because WHICH engine backs the collection is what decides it - the same `where` is valid against one and not the other, so a caller must be able to branch rather than parse prose. */
+  UNSUPPORTED_OPERATOR: {
+    message: {
+      text: 'Operator not supported by this search engine',
+      code: 'core.search_engine.unsupported_operator',
+    },
+    statusCode: HTTP.ResultCodes.RS_4.BadRequest,
+    category: ErrorScopes.BUSINESS,
+  },
 } as const satisfies Record<string, TErrorDefinition>;
 
 /** Registers these codes with the shared key registry so a consumer gets autocomplete on `messageCode`. */
