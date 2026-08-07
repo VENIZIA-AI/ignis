@@ -1158,14 +1158,6 @@ export class TypesenseConnector extends BaseSearchConnector {
       entries,
       commonParams: {},
       options,
-      // The top-level half of the missing-collection tolerance; see the TODO on its per-entry twin.
-      tolerate: {
-        when: error => TypesenseInternal.isNotFoundError({ error }),
-        handle: () => {
-          logger.warn('Search on missing collection, returning empty | name: %s', collection);
-          return { results: [buildEmptySearchResponse()] } as IMultiSearchResult;
-        },
-      },
     })) as IMultiSearchResult<T>;
 
     const results = Array.isArray(response?.results) ? response.results : [];
@@ -1177,14 +1169,6 @@ export class TypesenseConnector extends BaseSearchConnector {
       switch (classification.kind) {
         // Preserves the tolerance the GET path had: an unprovisioned collection answers empty with
         // a warning rather than a 500.
-        //
-        // TODO(unverified): it is not established whether a missing collection on /multi_search
-        // arrives as this per-entry error or still as a top-level 404 caught by `runEngineCall`.
-        // Both paths are carried until measured. To settle it, point a real Typesense at a name
-        // that does not exist and observe the response: if `results[0]` carries
-        // `{ code: 404, error }`, delete the outer `tolerate` on the executeMultiSearch call; if
-        // the call throws instead, delete this branch. The same instance settles the
-        // filter-by-max-ops operator count.
         case EntryOutcomes.MISSING_COLLECTION: {
           logger.warn('Search on missing collection, returning empty | name: %s', collection);
           return mapSearchResult<T>(buildEmptySearchResponse());

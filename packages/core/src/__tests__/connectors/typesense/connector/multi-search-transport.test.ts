@@ -281,8 +281,11 @@ describe('search() - per-entry errors arrive inside HTTP 200', () => {
   });
 
   test('a missing collection still answers empty, as it always has', async () => {
+    // 27.1's actual wording; 31.0.rc3 says 'Collection not found'. classifyEntry keys on the 404
+    // rather than the text, so neither is load-bearing here - but a fixture stating a message no
+    // version emits is how a fake drifts out of step with the engine unnoticed.
     const { helper } = makeHelper({
-      multiSearchResult: { results: [{ code: 404, error: "Collection 'nope' not found." }] },
+      multiSearchResult: { results: [{ code: 404, error: 'Not found.' }] },
     });
 
     const result = await helper.search({ collection: 'nope', params: { q: '*' } });

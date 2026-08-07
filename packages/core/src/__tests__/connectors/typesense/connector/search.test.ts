@@ -48,7 +48,13 @@ describe('TypesenseConnector search', () => {
   });
 
   test('search on a missing collection returns an empty result, not a 500', async () => {
-    const { helper } = makeHelper({ throwOn: { 'multiSearch.perform': { httpStatus: 404 } } });
+    // The measured wire shape: /multi_search answers HTTP 200 and reports the missing collection as
+    // a per-entry `{ code, error }`, so `multiSearch.perform` does NOT throw. Verified against 27.1
+    // and 31.0.rc3 - only the wording differs ('Not found.' vs 'Collection not found'), and
+    // classifyEntry keys on the 404 rather than the text.
+    const { helper } = makeHelper({
+      multiSearchResult: { results: [{ code: 404, error: 'Not found.' }] },
+    });
     const result = await helper.search({
       collection: 'nope',
       params: { q: 'x' },
