@@ -22,17 +22,30 @@ import { formatZodError } from './zod.handler';
 
 const DEFAULT_INTERNAL_ERROR_MESSAGE = 'Internal Server Error';
 
+/** An intentional error's throw site is still worth naming; its caller chain is framework plumbing, so it gets a smaller budget than an unexpected one. */
+const DEFAULT_INTENTIONAL_STACK_FRAMES = 5;
+const DEFAULT_UNEXPECTED_STACK_FRAMES = 10;
+
 type TThrown = Error | HTTPResponseError;
 type TDatabaseClientError = ReturnType<typeof isDatabaseClientError>;
 
 /** Hono `onError`: ZodError -> 422, DB client error -> 400, retryable conflict -> 409, `getError` -> its own status, else 500. */
 export class AppErrorMiddleware extends BaseHelper implements IProvider<ErrorHandler> {
   private rootKey: TNullable<string>;
+  private intentionalStackFrames: number;
+  private unexpectedStackFrames: number;
 
-  constructor(opts?: { logger?: ILogger; rootKey?: string }) {
+  constructor(opts?: {
+    logger?: ILogger;
+    rootKey?: string;
+    intentionalStackFrames?: number;
+    unexpectedStackFrames?: number;
+  }) {
     super({ scope: AppErrorMiddleware.name });
 
     this.rootKey = opts?.rootKey;
+    this.intentionalStackFrames = opts?.intentionalStackFrames ?? DEFAULT_INTENTIONAL_STACK_FRAMES;
+    this.unexpectedStackFrames = opts?.unexpectedStackFrames ?? DEFAULT_UNEXPECTED_STACK_FRAMES;
 
     if (opts?.logger) {
       this.logger = opts.logger;
@@ -187,8 +200,12 @@ export class AppErrorMiddleware extends BaseHelper implements IProvider<ErrorHan
         // The default code means "no code" - logging it on every error would be a noise line.
         messageCode: messageCode === MessageCode.DEFAULT ? undefined : messageCode,
         extra: 'extra' in error ? (error.extra as Record<string, unknown>) : undefined,
-        // Only an unexpected failure needs frames; an intentional error's are framework plumbing.
-        includeStack: type === ApplicationErrorTypes.UNEXPECTED,
+        includeStack: true,
+        // An intentional error still needs its throw site; it just does not need the caller chain behind it.
+        maxStackFrames:
+          type === ApplicationErrorTypes.UNEXPECTED
+            ? this.unexpectedStackFrames
+            : this.intentionalStackFrames,
       }),
     );
   }

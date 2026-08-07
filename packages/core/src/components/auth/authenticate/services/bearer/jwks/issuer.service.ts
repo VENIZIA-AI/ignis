@@ -37,6 +37,7 @@ export class JWKSIssuerTokenService<E extends Env = Env> extends AbstractJWKSTok
       aesAlgorithm: this.options.aesAlgorithm,
       applicationSecret: this.options.applicationSecret,
       fieldCodecs: this.options.fieldCodecs,
+      cipher: this.options.cipher,
     });
   }
 

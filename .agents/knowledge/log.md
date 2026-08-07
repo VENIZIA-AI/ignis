@@ -6,6 +6,29 @@ not how.
 This file and `index.md` are reserved OKF filenames - they carry no `type:` frontmatter and are not
 counted as concepts.
 
+## 2026-08-06 - AES on PBKDF2, keyring rotation, and a cipher seam
+
+PR #32 replaced the pad-or-truncate key derivation with PBKDF2-SHA256 (100k iterations) and gave the
+ciphertext a version + key-id header, so a keyring can rotate keys without re-encrypting. The
+envelope change is BREAKING: data written by an earlier IGNIS no longer decrypts with `AES`, and
+`LegacyAES` is the deliberate read path - the formats never cross-decrypt and nothing falls back on
+its own. Follow-up landed the seam that makes that opt-out reachable: `IPayloadCipher` plus a
+`cipher` option on the bearer-token services, which previously hardcoded `AES` and left an
+application no way to keep already-issued tokens valid. Also closed the `resolveDecryptKey`
+empty-secret gap and dropped `iv` from the decrypt options, where it was silently ignored. Updated
+`packages/helpers`.
+
+## 2026-08-06 - logged errors carry their args, code, frames, and a JSON shape
+
+`ErrorPrettier` modelled `extra` but never `normalized`, so an `ApplicationError` logged its raw
+`%{placeholder}` template with the values nowhere on the line - `messageArgs` is a consumed key and
+deliberately never reaches `extra`. `IErrorSummary` gained `args` (root only) and `messageCode`, kept
+separate from the error's own `code` so a driver's `23505` is never printed as a message code.
+`format` gained `maxStackFrames` and a `format` option following `APP_ENV_LOGGER_FORMAT`, with `json`
+emitting one line. `AppErrorMiddleware` now gives an intentional error 5 frames instead of none.
+Design at `docs/superpowers/specs/2026-08-06-error-log-rendering-design.md`. Updated
+`architecture/error-handling-flow`.
+
 ## 2026-08-02 - release-readiness audit and migration guide
 
 Measured rather than assumed, by building both f1eb610 (the merge-base with develop) and HEAD and

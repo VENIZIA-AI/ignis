@@ -208,7 +208,7 @@ The scheduler, cache, and clock are injectable, so the machinery is tested deter
 
 **File:** `packages/helpers/src/modules/secrets/hashicorp/hashicorp.helper.ts`
 
-- **Auth** - a Zod discriminated union on `method`: `token`, `app-role` (`roleId` + `secretId`), `kubernetes` (`role`, optional `jwtPath`). `configure()` logs in and stores the Vault token.
+- **Auth** - a Zod discriminated union on `method`: `token` (`token`), `app-role` (`roleId` + `secretId`, optional `mountPath`), `kubernetes` (`role`, optional `jwtPath` and `mountPath`). `configure()` logs in and stores the Vault token. `mountPath` defaults to the method name - `approle` and `kubernetes`.
 - **KV v2** - `getBundle()` unwraps the KV-v2 `.data.data` envelope automatically.
 - **Dynamic secrets** - a read against a dynamic engine (for example `database/creds/...`) returns a lease (`lease_id`, `lease_duration`, `renewable`), which drives the renewal scheduler.
 - **Token self-renewal** - the Vault auth token has its own TTL. The provider schedules the token for renewal in the same cadence as leases.

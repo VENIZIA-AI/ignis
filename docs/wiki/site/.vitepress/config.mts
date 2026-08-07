@@ -451,6 +451,26 @@ const config = defineConfig({
           collapsed: false,
           items: [
             {
+              text: '2026-08-06',
+              collapsed: true,
+              items: [
+                {
+                  text: 'AES Keys Derive with PBKDF2, and Ciphertext Carries a Key Id',
+                  link: '/changelogs/2026-08-06-aes-pbkdf2-and-key-rotation',
+                },
+              ],
+            },
+            {
+              text: '2026-08-05',
+              collapsed: true,
+              items: [
+                {
+                  text: 'Search Filters Now Mean What Relational Filters Mean',
+                  link: '/changelogs/2026-08-05-search-dialect-relational-parity',
+                },
+              ],
+            },
+            {
               text: '2026-08-02',
               collapsed: true,
               items: [

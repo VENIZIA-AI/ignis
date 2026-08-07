@@ -328,9 +328,14 @@ APP_ENV_MAIL_REFRESH_TOKEN=your-oauth2-refresh-token
 
 | Variable | Required | Default | Description |
 |----------|----------|---------|-------------|
-| `APP_ENV_APPLICATION_DS_MIGRATION` | No | - | DataSource name for migrations |
-| `APP_ENV_APPLICATION_DS_AUTHORIZE` | No | - | DataSource name for auth |
-| `APP_ENV_APPLICATION_DS_OAUTH2` | No | - | DataSource name for OAuth2 |
+| `APP_ENV_DS_MIGRATION` | No | `postgres` | DataSource name for migrations. Read at boot and printed in the startup banner |
+| `APP_ENV_DS_AUTHORIZE` | No | `postgres` | DataSource name for authorization. Read at boot and printed in the startup banner |
+| `APP_ENV_AUTO_PROVISION_COLLECTION` | No | `false` | Lets a search datasource create a missing collection on first use. `true` or `1` enables it; the `autoProvision` constructor option overrides it |
+
+> [!WARNING] These two name the datasource, they do not select it
+> `APP_ENV_DS_MIGRATION` and `APP_ENV_DS_AUTHORIZE` reach the startup banner and nothing else - the framework does not resolve a datasource from either. Wire your own lookup if you need one.
+
+`Environments` (`packages/core/src/common/environments.ts`) also declares `APP_ENV_APPLICATION_DS_MIGRATION`, `APP_ENV_APPLICATION_DS_AUTHORIZE` and `APP_ENV_APPLICATION_DS_OAUTH2`. Those are name constants with no reader anywhere in the framework - setting them changes nothing.
 
 
 ## Debug Variables
@@ -340,6 +345,7 @@ APP_ENV_MAIL_REFRESH_TOKEN=your-oauth2-refresh-token
 | `DEBUG` | No | - | Enable debug mode |
 | `NODE_ENV` | No | `development` | Environment mode. One of `local`, `debug`, `development`, `dev`, `sit`, `uat`, `alpha`, `beta`, `staging`, `production` |
 | `ALLOW_EMPTY_ENV_VALUE` | No | `false` | Allow empty env values |
+| `RUN_MODE` | No | - | Printed in the startup banner. The framework never branches on it - read it yourself to split a migrate run from a serve run |
 
 - **Fail-closed by default.** An environment IGNIS does not recognize is treated as production, so error responses are sanitized.
 - **Development environments expose error detail.** `local`, `debug`, `development`, `dev`, and `sit` are the development set - only these show internal error detail.
@@ -360,7 +366,7 @@ NODE_ENV=production
 ## Secrets & Vault
 
 - **A `.env` file is one option, not a requirement.** IGNIS can load these variables from a vault (HashiCorp Vault, an encrypted `.env.vault`, or plain `process.env`). It **hydrates** them into the same `APP_ENV_*` keys at boot.
-- **Hydration is transparent to your code.** Code that reads `process.env.APP_ENV_*` keeps working unchanged - the values simply arrive from the vault instead of a file.
+- **Hydration is transparent to your code.** Code that reads `process.env.APP_ENV_*` keeps working unchanged - the values arrive from the vault instead of a file.
 - **Hydration runs before datasources are configured** (after `preConfigure()`, before `registerDataSources()`), so a hydrated `APP_ENV_DS_PASSWORD` is available exactly where a file-based one would be.
 - **Vault values take precedence over `process.env`** when the provider is live - a hydrated key overwrites whatever was already in `process.env`.
 

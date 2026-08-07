@@ -128,4 +128,4 @@ Response body:
 
 ## No Breaking Changes
 
-All additions are optional. Existing errors without `messageCode`/`extra` serialize as before (those fields are simply `undefined`).
+All additions are optional. Existing errors without `messageCode`/`extra` serialize as before (those fields are `undefined`).

@@ -58,11 +58,28 @@ Every error is logged once the status is known, so the line carries it:
 The error is rendered by `ErrorPrettier.format` (helpers, `logger/formatting`), NOT logged raw: a
 `pg`/`drizzle` failure carries the full query, its params and a stack that each embed the same SQL,
 so inspecting the raw object floods the log with the same statement several times over.
-`ErrorPrettier.summarize` keeps `name`, the full `message`, `code`, the `pg` diagnostics
-(`hint`/`detail`/`table`/`constraint`), root stack frames, the error's own `extra` and a flattened
-`cause` chain, dropping the rest. `ErrorPrettier.format` renders that as a `- field: value` bullet
-list ordered what-happened first: `message`, then the `cause` chain, then `name`/`code`, the
-diagnostics, `extra`, and `stack` last.
+`ErrorPrettier.summarize` keeps `name`, the full `message`, `code`, `messageCode`, the root's
+`normalized.args`, the `pg` diagnostics (`hint`/`detail`/`table`/`constraint`), root stack frames, the
+error's own `extra` and a flattened `cause` chain, dropping the rest. `ErrorPrettier.format` renders
+that as a `- field: value` bullet list ordered what-happened first: `message`, then `args`, the
+`cause` chain, then `name`/`code`, the diagnostics, `extra`, and `stack` last.
+
+`args` sits directly under `message` because nothing resolves `%{placeholder}` server-side - i18n does
+it downstream - so without that line the log names no field. Root only: a cause's args belong to a
+message the block does not print. Redacted on render like `extra`; an empty map prints no line.
+
+`code` and `messageCode` stay separate. `code` is the error's own (a driver's `23505`, a gRPC `14`)
+and feeds the `name:` line; `messageCode` is `normalized.code` and feeds the `code:` line, so a call
+site that logs an `ApplicationError` without passing `messageCode` by hand still keeps its
+identifier. `MessageCode.DEFAULT` never surfaces - `resolve` stamps it on every codeless error.
+
+`format` follows `APP_ENV_LOGGER_FORMAT`: `text` renders the block, `json` renders ONE line so a log
+monitor keeps the error as one record, with `stack` as an array of frames. `maxStackFrames` is a
+budget rather than the old on/off `includeStack`: `AppErrorMiddleware` gives an intentional error 5
+frames and an unexpected one 10, both configurable. Frames resolving into `modules/error/app-error`
+are dropped - `getError` tops every `ApplicationError` stack and names no call site, and once
+installed it is also the first dependency frame, so the keep-the-first rule would preserve exactly
+the wrong one.
 
 Two rules keep the block short. Only the FIRST dependency frame is kept - it is often the throw site
 (drizzle, jose) while the rest is HTTP plumbing - and the omitted count is printed, never silently
