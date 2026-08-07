@@ -90,7 +90,11 @@ export interface ISearchQuery {
 
 /** Translates repository-level `TFilter`/`TWhere` into a search-engine-specific query. */
 export interface ISearchQueryDialect {
-  build(opts: { filter?: TFilter; hiddenFields?: string[] }): ISearchQuery;
+  build(opts: {
+    filter?: TFilter;
+    hiddenFields?: string[];
+    capabilities?: ISearchCompileCapabilities;
+  }): ISearchQuery;
 
   /**
    * @deprecated Use `compileWhere`, which can express the absorbing outcomes a filter STRING

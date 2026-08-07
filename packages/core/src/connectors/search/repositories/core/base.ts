@@ -160,6 +160,7 @@ export abstract class SearchBaseRepository<
     const query = this.queryDialect.build({
       filter: filter ? { ...filter, where: undefined } : undefined,
       hiddenFields: this.hiddenFields,
+      capabilities: { fields: this.collectionFields },
     });
 
     const compiled = this.compileEffectiveWhere({ where: filter?.where, defaultWhere });

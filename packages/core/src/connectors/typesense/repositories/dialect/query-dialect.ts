@@ -154,7 +154,7 @@ class SearchWireKeys {
   }
 }
 
-/** Translates repository-level TFilter/TWhere into Typesense search params - pure string building, no dependency on the `typesense` package. Untranslatable shapes (relations, pattern/regex, JSON-path) throw. */
+/** Translates repository-level TFilter/TWhere into Typesense search params - pure string building, no dependency on the `typesense` package. Untranslatable shapes (relations, pattern/regex) throw, as does any field name the collection does not declare. */
 export class TypesenseQueryDialect implements ISearchQueryDialect {
   build(opts: {
     filter?: TFilter;
@@ -188,7 +188,7 @@ export class TypesenseQueryDialect implements ISearchQueryDialect {
     }
 
     if (order) {
-      query.sortBy = this.toOrderBy({ order });
+      query.sortBy = this.toOrderBy({ order, capabilities });
     }
 
     // Native offset, not a page number. `toSearchPage` refuses a skip that is not a multiple of
@@ -473,8 +473,8 @@ export class TypesenseQueryDialect implements ISearchQueryDialect {
       : combined;
   }
 
-  private toOrderBy(opts: { order: string[] }): string {
-    const { order } = opts;
+  private toOrderBy(opts: { order: string[]; capabilities?: ISearchCompileCapabilities }): string {
+    const { order, capabilities } = opts;
 
     if (order.length > MAX_SORT_FIELDS) {
       throw getError({
@@ -492,6 +492,8 @@ export class TypesenseQueryDialect implements ISearchQueryDialect {
             message: `[TypesenseQueryDialect][build] Invalid sort direction '${direction}' for field '${field}'`,
           });
         }
+
+        assertKnownField({ field, engine: ENGINE, capabilities, method: 'toOrderBy' });
 
         return `${field}:${normalizedDirection}`;
       })
@@ -523,12 +525,6 @@ export class TypesenseQueryDialect implements ISearchQueryDialect {
     capabilities?: ISearchCompileCapabilities;
   }): TCompiledWhere {
     const { field, value, capabilities } = opts;
-
-    if (field.includes('.')) {
-      throw getError({
-        message: `[TypesenseQueryDialect][toWhere] search() does not support JSON-path fields | field: '${field}'`,
-      });
-    }
 
     assertKnownField({ field, engine: ENGINE, capabilities });
 

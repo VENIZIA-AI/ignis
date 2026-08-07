@@ -158,13 +158,22 @@ export const toFilterClause = (filterBy: string): TCompiledWhere => ({
 });
 
 /**
- * Rejects a `where` key the collection does not declare, mirroring the relational reference which
- * resolves every key against the table's columns and throws `Column NOT FOUND`
- * (relational/repositories/dialect/filter.ts:377-382). Without it the key compiles verbatim and
- * the ENGINE's rejection surfaces as an infrastructure failure rather than a 400 naming the field.
+ * Rejects a field name the collection does not declare, mirroring the relational reference which
+ * resolves every name against the table's columns and throws `Column NOT FOUND`
+ * (relational/repositories/dialect/filter.ts:377-382 for `where`, :423-428 for `order`). Without it
+ * the name compiles verbatim and the ENGINE's rejection surfaces as an infrastructure failure
+ * rather than a 400 naming the field.
+ *
+ * ONE judgment, shared by both paths a caller can name a field from - `where` and `order` - so the
+ * two cannot drift into disagreeing about what exists. `method` only labels the message with the
+ * path that asked; it never changes the answer.
  *
  * Absent `fields` means unvalidated, not "no fields": an entity carrying no collection definition
  * must compile exactly as it did before this check existed.
+ *
+ * Membership is the WHOLE judgment - a dotted name is not special. Under Typesense's
+ * `enable_nested_fields` a dotted name is an ordinary field name, so `merchantName.en` passes when
+ * declared and `metadata.foo` fails when not, for the only reason that is true of it.
  *
  * Hidden fields stay filterable on purpose - `FilterBuilder` does not consult `hiddenProperties`
  * either, and diverging from the reference is not this change's business.
@@ -173,8 +182,9 @@ export const assertKnownField = (opts: {
   field: string;
   engine: string;
   capabilities?: ISearchCompileCapabilities;
+  method?: string;
 }): void => {
-  const { field, engine, capabilities } = opts;
+  const { field, engine, capabilities, method = 'compileWhere' } = opts;
 
   if (!capabilities?.fields || capabilities.fields.has(field)) {
     return;
@@ -182,7 +192,7 @@ export const assertKnownField = (opts: {
 
   throw getError({
     error: SearchErrors.UNKNOWN_FIELD,
-    message: `[${engine}QueryDialect][compileWhere] search() Field NOT FOUND | field: '${field}' | engine: '${engine}' | the collection definition declares no such field`,
+    message: `[${engine}QueryDialect][${method}] search() Field NOT FOUND | field: '${field}' | engine: '${engine}' | the collection definition declares no such field`,
   });
 };
 

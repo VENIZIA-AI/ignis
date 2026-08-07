@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test';
-import { SearchModes } from '@/connectors/search/repositories/common';
+import { SearchFilterOutcomes, SearchModes } from '@/connectors/search/repositories/common';
 import type { ITypesenseSearchQuery } from '@/connectors/typesense/repositories/common';
 import { TypesenseQueryDialect } from '@/connectors/typesense/repositories/dialect/query-dialect';
 
@@ -208,14 +208,105 @@ describe('TypesenseQueryDialect - untranslatable operators/shapes throw, naming 
     expect(() => dialect.toWhere({ where: { name: { regexp: '^j' } } })).toThrow(/search\(\)/);
   });
 
-  test('dotted key (JSON path) throws', () => {
-    expect(() => dialect.toWhere({ where: { 'metadata.score': { gt: 1 } } })).toThrow(/search\(\)/);
-  });
+  // A dotted key is NOT untranslatable - under enable_nested_fields it is an ordinary Typesense
+  // field name. What decides it is membership in the collection's field list, asserted in the
+  // 'field list governs' block below, not the presence of a dot.
 
   test('filter.include present throws', () => {
     expect(() => dialect.build({ filter: { include: [{ relation: 'posts' }] } })).toThrow(
       /search\(\)/,
     );
+  });
+});
+
+/**
+ * ONE judgment - "does the collection declare this field?" - applied to both paths a caller can
+ * name a field from. `where` got it on the parity branch; `order` did not, so an unknown sort field
+ * reached the engine verbatim and came back as an infrastructure error instead of a 400.
+ *
+ * The dotted cases are the same judgment, not a second rule. With `enable_nested_fields` on, a
+ * dotted name is a REAL Typesense field name, so `merchantName.en` must compile and `metadata.foo`
+ * must be rejected for the only reason that is true of it: the collection does not declare it.
+ */
+describe('TypesenseQueryDialect - the collection field list governs order and dotted names alike', () => {
+  const dialect = new TypesenseQueryDialect();
+
+  const capabilities = {
+    fields: new Set(['price', 'name', 'merchantName.en']) as ReadonlySet<string>,
+  };
+
+  const CATALOGUED_UNKNOWN_FIELD = 'core.search_engine.unknown_field';
+
+  type TThrown = Error & { normalized?: { code?: string } };
+
+  const thrownBy = (task: () => unknown): TThrown => {
+    try {
+      task();
+    } catch (error) {
+      return error as TThrown;
+    }
+
+    throw new Error('expected the call to throw, but it returned normally');
+  };
+
+  test('order naming a field the collection does not declare is a catalogued 400', () => {
+    const error = thrownBy(() => dialect.build({ filter: { order: ['nope DESC'] }, capabilities }));
+
+    expect(error.normalized?.code).toBe(CATALOGUED_UNKNOWN_FIELD);
+    // Names BOTH, exactly as the where path does - the caller has to know which engine decided it.
+    expect(error.message).toContain("field: 'nope'");
+    expect(error.message).toContain("engine: 'Typesense'");
+  });
+
+  test('order splits the direction off before checking the name', () => {
+    // The entry is "field DIRECTION"; checking the raw entry would reject every valid sort.
+    const error = thrownBy(() => dialect.build({ filter: { order: ['nope'] }, capabilities }));
+
+    expect(error.message).toContain("field: 'nope'");
+    expect(error.message).not.toContain('nope DESC');
+  });
+
+  test('order on a declared DOTTED field compiles', () => {
+    const result = dialect.build({ filter: { order: ['merchantName.en ASC'] }, capabilities });
+
+    expect(result.sortBy).toBe('merchantName.en:asc');
+  });
+
+  test('order on a declared plain field still compiles', () => {
+    expect(dialect.build({ filter: { order: ['price DESC'] }, capabilities }).sortBy).toBe(
+      'price:desc',
+    );
+  });
+
+  test('order is UNVALIDATED when the collection declares no fields', () => {
+    // Absent `fields` means "unvalidated", not "no fields" - an entity carrying no collection
+    // definition must compile exactly as it did before this check existed.
+    expect(dialect.build({ filter: { order: ['anythingAtAll DESC'] } }).sortBy).toBe(
+      'anythingAtAll:desc',
+    );
+  });
+
+  test('where on a declared dotted field compiles - it is a field name, not a JSON path', () => {
+    const compiled = dialect.compileWhere({
+      where: { 'merchantName.en': 'ACME' },
+      capabilities,
+    });
+
+    expect(compiled).toEqual({
+      outcome: SearchFilterOutcomes.FILTER,
+      filterBy: 'merchantName.en:=`ACME`',
+    });
+  });
+
+  test('where on an undeclared dotted field names the field, NOT JSON paths', () => {
+    const error = thrownBy(() =>
+      dialect.compileWhere({ where: { 'metadata.foo': { gt: 1 } }, capabilities }),
+    );
+
+    expect(error.normalized?.code).toBe(CATALOGUED_UNKNOWN_FIELD);
+    expect(error.message).toContain("field: 'metadata.foo'");
+    // The old message claimed Typesense cannot express JSON-path fields, which is untrue of it.
+    expect(error.message).not.toContain('JSON-path');
   });
 });
 

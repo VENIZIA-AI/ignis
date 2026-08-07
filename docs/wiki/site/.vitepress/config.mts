@@ -455,6 +455,10 @@ const config = defineConfig({
               collapsed: true,
               items: [
                 {
+                  text: 'Nested i18n Fields Become Filterable and Sortable',
+                  link: '/changelogs/2026-08-07-nested-fields-and-order-validation',
+                },
+                {
                   text: 'One Transport for Every Typesense Search',
                   link: '/changelogs/2026-08-07-typesense-multi-search-transport',
                 },
