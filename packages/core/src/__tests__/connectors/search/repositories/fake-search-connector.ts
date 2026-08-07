@@ -316,6 +316,29 @@ export class ProductDocumentNoDefaultFilter extends BaseSearchEntity {
   });
 }
 
+/**
+ * Declares what searching this collection MEANS - `defaultQueryBy` - plus a vector field, so the
+ * keyword fallback and semantic mode's untouched `vectorField` path can both be asserted against
+ * one entity. A NEW fixture rather than a field bolted onto a shared one: the existing fixtures'
+ * inferred `TSearchDocument` shapes are asserted by other suites.
+ */
+@model({
+  type: 'entity',
+  tableName: 'products_with_default_query_by',
+})
+export class ProductDocumentWithDefaultQueryBy extends BaseSearchEntity {
+  static override schema = defineSearchCollection({
+    name: 'products_with_default_query_by',
+    fields: [
+      field.string('title'),
+      field.string('name'),
+      field.number('price'),
+      field.vector('embedding', { dimensions: 4 }),
+    ],
+    defaultQueryBy: ['title', 'name'],
+  });
+}
+
 /** Same shape as `ProductDocument` but with an explicit `defaultLimit`. */
 @model({
   type: 'entity',

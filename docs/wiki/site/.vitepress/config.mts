@@ -455,6 +455,10 @@ const config = defineConfig({
               collapsed: true,
               items: [
                 {
+                  text: 'Call Sites No Longer Have to Know Which Fields Are Text',
+                  link: '/changelogs/2026-08-07-default-query-by',
+                },
+                {
                   text: 'Nested i18n Fields Become Filterable and Sortable',
                   link: '/changelogs/2026-08-07-nested-fields-and-order-validation',
                 },

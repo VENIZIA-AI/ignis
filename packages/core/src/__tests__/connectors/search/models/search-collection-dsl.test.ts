@@ -180,6 +180,52 @@ describe('search-collection DSL', () => {
       ).toThrow(/\[defineSearchCollection\]/);
     });
 
+    test('throws when defaultQueryBy references an unknown field, naming collection and field', () => {
+      const build = () =>
+        defineSearchCollection({
+          name: 'products',
+          fields: [field.string('title')],
+          defaultQueryBy: ['title', 'headline'],
+        });
+
+      expect(build).toThrow(/products/);
+      expect(build).toThrow(/headline/);
+    });
+
+    /**
+     * Unlike `defaultSort`, the TYPE constraint lives here rather than in an engine compiler -
+     * `defaultQueryBy` is a per-query parameter and never reaches one, so "defer to the engine's
+     * compiler" is not an available option: it would be checked nowhere and surface at query time
+     * as an engine error. And "full-text matching needs text" is not an engine choice the way
+     * "default_sorting_field must be numeric" is.
+     */
+    test('throws when defaultQueryBy names a non-text field', () => {
+      const build = () =>
+        defineSearchCollection({
+          name: 'products',
+          fields: [field.string('title'), field.number('price')],
+          defaultQueryBy: ['title', 'price'],
+        });
+
+      expect(build).toThrow(/price/);
+      expect(build).toThrow(/number/);
+    });
+
+    test('accepts defaultQueryBy over string and string[] fields', () => {
+      const collection = defineSearchCollection({
+        name: 'products',
+        fields: [field.string('title'), field.strings('tags')],
+        defaultQueryBy: ['title', 'tags'],
+      });
+
+      expect(collection.defaultQueryBy).toEqual(['title', 'tags']);
+    });
+
+    // No "absent defaultQueryBy" case here: `<const T>` returns the caller's literal type, so a
+    // collection that never declared the key does not HAVE it to assert on - the same reason
+    // `defaultSort` has no such test. What matters behaviourally is pinned one tier up, in
+    // repositories/default-query-by.test.ts.
+
     // The DSL only checks that the field exists; Typesense's numeric-scalar sort requirement is enforced later by compileTypesenseCollection, since other engines may sort on strings.
     test('accepts defaultSort referencing an existing STRING field (valid for other engines)', () => {
       const collection = defineSearchCollection({

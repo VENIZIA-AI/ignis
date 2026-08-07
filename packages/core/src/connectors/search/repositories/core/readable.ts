@@ -17,6 +17,12 @@ import { SearchModes } from '@/connectors/search/repositories/common';
 import type { AbstractSearchDataSource } from '@/connectors/search/datasources';
 import { SearchBaseRepository } from './base';
 
+/** The match-everything term. `build()` already seeds `query` with it, so a filter-only listing reaches the engine as `q: '*'` - naming fields for a term that ignores fields would mean nothing. */
+const WILDCARD_QUERY = '*';
+
+/** The inputs the dialect translates - `raw` has already returned by the time these are resolved, and `applySearchInput` accepts only this narrowed union. */
+type TTranslatableSearchInput = Exclude<TSearchInput, { mode: typeof SearchModes.RAW }>;
+
 /** Read-only search-repository tier - translates filters via the datasource's dialect and executes through the connector. */
 export class ReadableSearchRepository<
   TDocument extends object = object,
@@ -183,7 +189,7 @@ export class ReadableSearchRepository<
       shouldSkipDefaultFilter: opts.options?.shouldSkipDefaultFilter,
     });
 
-    this.queryDialect.applySearchInput({ query, input: opts });
+    this.queryDialect.applySearchInput({ query, input: this.withDefaultQueryBy({ input: opts }) });
 
     // Same short-circuit as find(): an absorbing filter cannot be expressed to the engine, and
     // omitting it would search everything.
@@ -204,6 +210,30 @@ export class ReadableSearchRepository<
         document: this.omitHiddenFields(hit.document),
       })),
     };
+  }
+
+  protected withDefaultQueryBy(opts: {
+    input: TTranslatableSearchInput;
+  }): TTranslatableSearchInput {
+    const { input } = opts;
+
+    if (input.mode !== SearchModes.KEYWORD || input.queryBy) {
+      return input;
+    }
+
+    const term = input.query?.trim();
+
+    if (!term || term === WILDCARD_QUERY) {
+      return input;
+    }
+
+    const defaultQueryBy = this.entity?.schema?.defaultQueryBy;
+
+    if (!defaultQueryBy || defaultQueryBy.length === 0) {
+      return input;
+    }
+
+    return { ...input, queryBy: [...defaultQueryBy] };
   }
 
   /** @throws Error - disabled in a read-only repository; unlocked progressively by Persistable/DefaultSearchRepository. */
