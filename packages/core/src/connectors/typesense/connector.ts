@@ -13,7 +13,7 @@ import { SearchConnectorInternal } from '@/connectors/search/internal';
 import type { ISynonym } from '@/connectors/search/models';
 import { getError, isApplicationError } from '@venizia/ignis-helpers';
 import { Client } from 'typesense';
-import { TypesenseInternal } from './internal/connector-internal';
+import { EntryOutcomes, TypesenseInternal } from './internal/connector-internal';
 import type {
   IMultiSearchResult,
   ITypesenseConnectorOptions,
@@ -25,7 +25,6 @@ import type {
   TImportResponse,
   TSearchOptions,
   TSearchParams,
-  TSearchResponse,
   TTypesenseDirtyValue,
   TTypesenseImportAction,
 } from './types';
@@ -100,10 +99,12 @@ const mapSearchResult = <TDocument extends object>(raw: unknown): ISearchResult<
     return { found: 0, isFoundExact: true };
   }
 
-  // Typesense's `found` is an exhaustive count, so it is never an estimate.
+  // `found` is exhaustive UNLESS the engine ran out of its search-time budget: `search_cutoff`
+  // means it stopped early and reported what it had, so the count is an estimate. Hardcoding
+  // `true` told every caller that a truncated count was authoritative.
   const result: ISearchResult<TDocument> = {
     found: readNumberField({ value: raw, key: 'found' }),
-    isFoundExact: true,
+    isFoundExact: raw['search_cutoff'] !== true,
   };
 
   if (typeof raw['out_of'] === 'number') {
@@ -123,6 +124,112 @@ const mapSearchResult = <TDocument extends object>(raw: unknown): ISearchResult<
   }
 
   return result;
+};
+
+/** `--max-per-page`: Typesense refuses a page larger than this, so a bigger caller limit is served as consecutive windows of one multi_search call rather than as several calls. */
+const MAX_HITS_PER_PAGE = 250;
+
+/** `limit_multi_searches`: entries permitted in ONE multi_search call, which bounds windowing at 50 x 250 = 12,500 hits. Exceeding it is refused, never silently truncated. */
+const MAX_MULTI_SEARCH_ENTRIES = 50;
+
+/** One window of a split page: an entry differs from its siblings only in where it starts. */
+interface ISearchWindow {
+  offset: number;
+  limit: number;
+}
+
+/**
+ * Splits a requested page into windows the engine will accept.
+ *
+ * Windows are expressed as `offset`/`limit` rather than `page`/`per_page` because only offset
+ * arithmetic can start a window anywhere - which is also what lets a caller's `skip` land off a
+ * page boundary. Exactly one pagination pair is ever sent: Typesense documents `offset`/`limit`
+ * and `page`/`per_page` as alternatives and does not state which wins if both appear, so the
+ * question is designed out rather than answered.
+ */
+const toSearchWindows = (opts: { offset: number; limit: number }): ISearchWindow[] => {
+  const { offset, limit } = opts;
+
+  if (limit <= MAX_HITS_PER_PAGE) {
+    return [{ offset, limit }];
+  }
+
+  const windows: ISearchWindow[] = [];
+  for (let start = 0; start < limit; start += MAX_HITS_PER_PAGE) {
+    windows.push({ offset: offset + start, limit: Math.min(MAX_HITS_PER_PAGE, limit - start) });
+  }
+
+  return windows;
+};
+
+/**
+ * Folds windowed responses into the single result the caller asked for.
+ *
+ * `found`/`outOf` come from the first window because every window ran the same filter and reports
+ * the same total. `facetCounts` likewise: facets are computed over the whole result set, not the
+ * page, so concatenating them would multiply every count by the window count.
+ */
+const mergeWindowedResults = <TDocument extends object>(
+  results: ISearchResult<TDocument>[],
+): ISearchResult<TDocument> => {
+  const [first] = results;
+
+  if (results.length === 1) {
+    return first;
+  }
+
+  const merged: ISearchResult<TDocument> = {
+    found: first.found,
+    // AND-folded: the total is only exact if EVERY window ran to completion. One cut-off window
+    // makes the merged count an estimate, and saying otherwise would relaunch the bug above.
+    isFoundExact: results.every(result => result.isFoundExact),
+  };
+
+  if (first.outOf !== undefined) {
+    merged.outOf = first.outOf;
+  }
+
+  // MAX, not sum: this field is read as latency, and the windows travel in ONE round trip. Summing
+  // would make a windowed query graph at several times its actual wall-clock.
+  const timings = results
+    .map(result => result.searchTimeMs)
+    .filter((value): value is number => typeof value === 'number');
+  if (timings.length > 0) {
+    merged.searchTimeMs = Math.max(...timings);
+  }
+
+  if (first.facetCounts) {
+    merged.facetCounts = first.facetCounts;
+  }
+
+  const hits = results.flatMap(result => result.hits ?? []);
+  if (hits.length > 0) {
+    merged.hits = hits;
+  }
+
+  return merged;
+};
+
+/**
+ * Reads the requested page out of engine-native params, whichever pair the caller used.
+ *
+ * `mode: 'raw'` hands these params through untouched, so both spellings have to be understood
+ * here; the caller is never asked to normalize.
+ */
+const readRequestedPage = (params: Record<string, unknown>): ISearchWindow | undefined => {
+  const limit = typeof params['limit'] === 'number' ? params['limit'] : undefined;
+  const perPage = typeof params['per_page'] === 'number' ? params['per_page'] : undefined;
+  const effectiveLimit = limit ?? perPage;
+
+  if (effectiveLimit === undefined) {
+    return undefined;
+  }
+
+  const offset = typeof params['offset'] === 'number' ? params['offset'] : undefined;
+  const page = typeof params['page'] === 'number' ? params['page'] : undefined;
+  const effectiveOffset = offset ?? (page !== undefined ? (page - 1) * effectiveLimit : 0);
+
+  return { offset: effectiveOffset, limit: effectiveLimit };
 };
 
 /** Empty TSearchResponse shape returned when search() tolerates a missing collection; built via bracket assignment so no snake_case identifier is declared here. */
@@ -974,6 +1081,44 @@ export class TypesenseConnector extends BaseSearchConnector {
     return rs;
   }
 
+  /**
+   * The single transport. Every engine search - one collection or many - is one POST to
+   * `/multi_search`.
+   *
+   * `/multi_search` is a strict superset of GET single-search: it accepts the same per-entry
+   * params, and it carries them in the BODY. GET is capped near 4000 characters of query string,
+   * which a `filter_by` built from an authorization scope exceeds at roughly ninety ids - so a
+   * user with many permitted scopes could not search at all. Choosing between the two at runtime
+   * would mean deciding on URL length, which is only knowable after building the query; there is
+   * no decision point here, so there is nothing to decide wrongly.
+   */
+  private async executeMultiSearch(opts: {
+    method: string;
+    entries: Array<{ collection: string } & Partial<TSearchParams>>;
+    union?: boolean;
+    commonParams?: Partial<TSearchParams>;
+    options?: TSearchOptions;
+    tolerate?: {
+      when: (error: unknown) => boolean;
+      handle: (error: unknown) => IMultiSearchResult | IUnionSearchResult;
+    };
+  }): Promise<IMultiSearchResult | IUnionSearchResult> {
+    const { method, entries, union: isUnion, commonParams, options, tolerate } = opts;
+
+    return this.runEngineCall({
+      method,
+      run: async () => {
+        const result = await this.client.multiSearch.perform(
+          isUnion ? { union: true, searches: entries } : { searches: entries },
+          commonParams ?? {},
+          options,
+        );
+        return result as IMultiSearchResult | IUnionSearchResult;
+      },
+      tolerate,
+    });
+  }
+
   async search<T extends TDocumentSchema = TDocumentSchema>(opts: {
     collection: string;
     params: TSearchParams;
@@ -983,26 +1128,126 @@ export class TypesenseConnector extends BaseSearchConnector {
     this.assertNonEmpty({ value: collection, name: 'collection', method: this.search.name });
     const logger = this.logger.for(this.search.name);
 
-    const rs = await this.runEngineCall({
+    const paramsRecord = params as unknown as Record<string, unknown>;
+    const requested = readRequestedPage(paramsRecord);
+    const windows = requested ? toSearchWindows(requested) : [{ offset: 0, limit: 0 }];
+
+    if (windows.length > 1 && requested) {
+      this.assertSplittablePage({ paramsRecord, requested, windows, collection });
+    }
+
+    // A single window passes the caller's params through UNCHANGED - `mode: 'raw'` reaches the
+    // engine byte-identical, and only a page the engine would have rejected outright gets rewritten.
+    const entries =
+      windows.length === 1
+        ? [{ ...params, collection }]
+        : windows.map(window => {
+            const entry = {
+              ...paramsRecord,
+              collection,
+              offset: window.offset,
+              limit: window.limit,
+            };
+            delete entry['page'];
+            delete entry['per_page'];
+            return entry as { collection: string } & Partial<TSearchParams>;
+          });
+
+    const response = (await this.executeMultiSearch({
       method: this.search.name,
-      run: async () => {
-        const result = (await this.client
-          .collections(collection)
-          .documents()
-          .search(params, options)) as TSearchResponse<T>;
-        return result;
-      },
+      entries,
+      commonParams: {},
+      options,
+      // The top-level half of the missing-collection tolerance; see the TODO on its per-entry twin.
       tolerate: {
         when: error => TypesenseInternal.isNotFoundError({ error }),
         handle: () => {
           logger.warn('Search on missing collection, returning empty | name: %s', collection);
-
-          // Missing collection -> empty result (not a 500); shape fully so consumers don't see undefined fields.
-          return buildEmptySearchResponse() as TSearchResponse<T>;
+          return { results: [buildEmptySearchResponse()] } as IMultiSearchResult;
         },
       },
-    });
-    return mapSearchResult<T>(rs);
+    })) as IMultiSearchResult<T>;
+
+    const results = Array.isArray(response?.results) ? response.results : [];
+    const mapped: ISearchResult<T>[] = [];
+
+    for (const entry of results) {
+      const classification = TypesenseInternal.classifyEntry({ entry });
+
+      switch (classification.kind) {
+        // Preserves the tolerance the GET path had: an unprovisioned collection answers empty with
+        // a warning rather than a 500.
+        //
+        // TODO(unverified): it is not established whether a missing collection on /multi_search
+        // arrives as this per-entry error or still as a top-level 404 caught by `runEngineCall`.
+        // Both paths are carried until measured. To settle it, point a real Typesense at a name
+        // that does not exist and observe the response: if `results[0]` carries
+        // `{ code: 404, error }`, delete the outer `tolerate` on the executeMultiSearch call; if
+        // the call throws instead, delete this branch. The same instance settles the
+        // filter-by-max-ops operator count.
+        case EntryOutcomes.MISSING_COLLECTION: {
+          logger.warn('Search on missing collection, returning empty | name: %s', collection);
+          return mapSearchResult<T>(buildEmptySearchResponse());
+        }
+
+        // A failed entry arrives inside an HTTP 200. Answering empty here would make a rejected
+        // filter indistinguishable from a genuine no-match, and `ISearchResult` has nowhere to put
+        // the error - so this throws rather than returning a plausible zero.
+        case EntryOutcomes.FAILED: {
+          throw getError({
+            message: `[${TypesenseConnector.name}][search] Engine rejected the search | collection: '${collection}' | code: ${classification.code} | ${classification.message}`,
+          });
+        }
+
+        // A real result - map it and let the loop collect the remaining windows.
+        case EntryOutcomes.OK:
+        default: {
+          mapped.push(mapSearchResult<T>(entry));
+          break;
+        }
+      }
+    }
+
+    if (mapped.length === 0) {
+      return mapSearchResult<T>(buildEmptySearchResponse());
+    }
+
+    return mergeWindowedResults<T>(mapped);
+  }
+
+  /**
+   * Refuses a page that cannot be served honestly, rather than serving part of it.
+   *
+   * Grouped results are refused outright: groups span windows, so concatenating duplicates them
+   * and taking the first window drops the rest. Merging by key would mean re-deriving `group_limit`
+   * ordering the engine never produced - inventing an answer, which is the failure class this
+   * whole change exists to remove.
+   */
+  private assertSplittablePage(opts: {
+    paramsRecord: Record<string, unknown>;
+    requested: ISearchWindow;
+    windows: ISearchWindow[];
+    collection: string;
+  }): void {
+    const { paramsRecord, requested, windows, collection } = opts;
+
+    // Every PAGE_TOO_LARGE throw names the REQUESTED value and the ceiling that applies to it. One
+    // code is right, since the remedy is always "ask for a smaller page" - but the ceilings differ
+    // (250 grouped, 12,500 windowed, the model's own limit at the repository tier), so a client
+    // branching on the code alone could not tell what to retry with.
+    if (paramsRecord['group_by'] !== undefined) {
+      throw getError({
+        error: SearchErrors.PAGE_TOO_LARGE,
+        message: `[${TypesenseConnector.name}][search] A grouped search cannot be split across pages | collection: '${collection}' | group_by: '${String(paramsRecord['group_by'])}' | requested: ${requested.limit} | maximum: ${MAX_HITS_PER_PAGE}`,
+      });
+    }
+
+    if (windows.length > MAX_MULTI_SEARCH_ENTRIES) {
+      throw getError({
+        error: SearchErrors.PAGE_TOO_LARGE,
+        message: `[${TypesenseConnector.name}][search] Requested page needs ${windows.length} windows but one multi_search call carries at most ${MAX_MULTI_SEARCH_ENTRIES} | collection: '${collection}' | requested: ${requested.limit} | maximum: ${MAX_MULTI_SEARCH_ENTRIES * MAX_HITS_PER_PAGE}`,
+      });
+    }
   }
 
   // `union: true` merges into ONE result set while the default federates into `results[]`, hence the overloads; `searches`/`commonParams` are the engine's NATIVE snake_case wire params, typed as TSearchParams so the raw escape hatch keeps full LSP.
@@ -1026,17 +1271,22 @@ export class TypesenseConnector extends BaseSearchConnector {
   }): Promise<IMultiSearchResult<T> | IUnionSearchResult<T>> {
     const { searches, union: isUnion, commonParams, options } = opts;
 
-    const rs = await this.runEngineCall({
+    // Shares `search()`'s transport but NOT its policy. This method's contract is the raw envelope:
+    // callers index `results[i]` against `searches[i]` and inspect entries themselves, so error
+    // entries pass through untouched - throwing here would break callers who already handle them.
+    //
+    // It also does not window-split. Merging windows would mean synthesizing a SearchResponse the
+    // engine never returned, with no honest value for `request_params` or `page`, and it would
+    // destroy the 1:1 correspondence that indexing depends on. `search()` can merge because it maps
+    // to a neutral ISearchResult; here the caller is handed engine-shaped objects.
+    const rs = (await this.executeMultiSearch({
       method: this.multiSearch.name,
-      run: async () => {
-        const result = await this.client.multiSearch.perform(
-          isUnion ? { union: true, searches } : { searches },
-          commonParams ?? {},
-          options,
-        );
-        return result as IMultiSearchResult<T> | IUnionSearchResult<T>;
-      },
-    });
+      entries: searches,
+      union: isUnion,
+      commonParams,
+      options,
+    })) as IMultiSearchResult<T> | IUnionSearchResult<T>;
+
     return rs;
   }
 }

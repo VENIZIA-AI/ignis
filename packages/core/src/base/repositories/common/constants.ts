@@ -4,6 +4,19 @@ import { MessageCode } from '@venizia/ignis-helpers';
 /** Default pagination limit for repository queries. */
 export const DEFAULT_LIMIT = 10;
 
+/**
+ * Largest `limit` a caller may ask for when a model declares no `maxLimit`.
+ *
+ * POLICY, not capacity - it sits far below what an engine can physically serve. It exists because
+ * removing an accidental guardrail without replacing it would leave the framework less safe than
+ * before: a search engine refused a page over 250 hits, so `limit: 5000` failed fast and cheap.
+ * Once that page is served, something has to decide when a page is unreasonable.
+ *
+ * 1000 sits above any list screen and well below the physical ceiling, so reaching it means the
+ * caller is doing something unusual - and a model raises it by saying so explicitly.
+ */
+export const DEFAULT_MAX_LIMIT = 1000;
+
 /** Defines the operation scope for repository instances (READ_ONLY, WRITE_ONLY, READ_WRITE). */
 export class RepositoryOperationScopes {
   static readonly READ_ONLY = 'READ_ONLY';

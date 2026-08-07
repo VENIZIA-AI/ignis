@@ -244,12 +244,13 @@ describe('TypesenseQueryDialect.build - order/sortBy', () => {
   });
 });
 
-describe('TypesenseQueryDialect.build - pagination (limit/skip/offset -> perPage/page)', () => {
+describe('TypesenseQueryDialect.build - pagination (limit/skip/offset -> perPage or offset/limit)', () => {
   const dialect = new TypesenseQueryDialect();
 
-  test('limit -> perPage', () => {
+  test('limit alone -> perPage, the page/per_page pair', () => {
     const result = dialect.build({ filter: { limit: 10 } });
     expect(result.perPage).toBe(10);
+    expect(result.offset).toBeUndefined();
   });
 
   test('no limit -> perPage omitted', () => {
@@ -257,25 +258,43 @@ describe('TypesenseQueryDialect.build - pagination (limit/skip/offset -> perPage
     expect(result.perPage).toBeUndefined();
   });
 
-  test('skip ?? offset -> page = skip/limit + 1', () => {
+  /**
+   * A skip switches to Typesense's NATIVE offset pair. Exactly one pair is ever emitted: the two
+   * are documented as alternatives with no stated precedence, so sending both would be a bet.
+   */
+  test('skip -> offset/limit, and never both pagination pairs at once', () => {
     const result = dialect.build({ filter: { limit: 10, skip: 20 } });
-    expect(result.perPage).toBe(10);
-    expect(result.page).toBe(3);
+
+    expect(result.offset).toBe(20);
+    expect(result.limit).toBe(10);
+    expect(result.perPage).toBeUndefined();
+    expect(result.page).toBeUndefined();
   });
 
   test('offset behaves the same as skip', () => {
     const result = dialect.build({ filter: { limit: 10, offset: 20 } });
-    expect(result.page).toBe(3);
+    expect(result.offset).toBe(20);
+    expect(result.limit).toBe(10);
   });
 
-  test('skip % limit !== 0 throws', () => {
-    expect(() => dialect.build({ filter: { limit: 10, skip: 15 } })).toThrow(
-      /skip must be a multiple of limit/,
-    );
+  /**
+   * The multiple-of-limit rule is gone. It was never Typesense's - it came from expressing a skip
+   * as a page NUMBER - and the relational reference never had it either
+   * (relational/repositories/dialect/filter.ts:283-287 passes skip straight to Drizzle). Rejecting
+   * `skip: 15, limit: 10` made the search branch stricter than the branch it claims to mirror.
+   */
+  test('a skip off the page boundary is expressible', () => {
+    const result = dialect.build({ filter: { limit: 10, skip: 15 } });
+
+    expect(result.offset).toBe(15);
+    expect(result.limit).toBe(10);
   });
 
-  test('skip without limit throws (cannot express a page)', () => {
-    expect(() => dialect.build({ filter: { skip: 10 } })).toThrow();
+  test('a skip without a limit is expressible - an offset needs no page size', () => {
+    const result = dialect.build({ filter: { skip: 10 } });
+
+    expect(result.offset).toBe(10);
+    expect(result.limit).toBeUndefined();
   });
 });
 
@@ -510,11 +529,16 @@ describe('TypesenseQueryDialect.toWireParams', () => {
 
     expect(wire['filter_by']).toBe('status:=`active`');
     expect(wire['sort_by']).toBe('price:desc');
-    expect(wire['per_page']).toBe(10);
     expect(wire['include_fields']).toBe('id,name');
     expect(wire['exclude_fields']).toBe('password');
-    expect(wire['page']).toBe(1);
     expect(wire['q']).toBe('*');
+
+    // An explicit `skip` selects the offset pair whatever its value - which pair is used depends on
+    // whether a skip was asked for, not on how large it is, so there is no zero special case.
+    expect(wire['offset']).toBe(0);
+    expect(wire['limit']).toBe(10);
+    expect(wire['per_page']).toBeUndefined();
+    expect(wire['page']).toBeUndefined();
   });
 
   test('drops undefined fields instead of forwarding them as literal undefined', () => {

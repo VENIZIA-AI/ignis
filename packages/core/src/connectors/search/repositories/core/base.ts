@@ -1,6 +1,9 @@
 import type { ITransaction } from '@/base/datasources';
 import type { TFilter, TLockOptions, TWhere } from '@/base/repositories/common';
 import { AbstractRepository } from '@/base/repositories/core';
+import { DEFAULT_MAX_LIMIT } from '@/base/repositories/common';
+import { SearchErrors } from '@/connectors/search/common';
+import { getError } from '@venizia/ignis-helpers';
 import type { AbstractSearchDataSource } from '@/connectors/search/datasources';
 import type { BaseSearchEntity } from '@/connectors/search/models';
 import { throwNotSupported } from '@/utilities';
@@ -150,6 +153,8 @@ export abstract class SearchBaseRepository<
     const { filter, shouldSkipDefaultFilter } = opts;
     const defaultWhere = shouldSkipDefaultFilter ? undefined : this.defaultWhere;
 
+    this.assertLimitWithinCeiling({ limit: filter?.limit });
+
     // `where` is withheld from `build` and compiled below: handing it over merged would field-check
     // the repository's own clause along with the caller's.
     const query = this.queryDialect.build({
@@ -177,6 +182,35 @@ export abstract class SearchBaseRepository<
     }
 
     return query;
+  }
+
+  /**
+   * Refuses a caller-supplied page larger than this model allows.
+   *
+   * POLICY, and the counterweight to a guardrail this tier removed: an engine used to refuse more
+   * than 250 hits per page, so an unreasonable `limit` failed fast and cheap. Now that such a page
+   * is served, something has to decide when it is unreasonable, and the framework would otherwise
+   * be less safe than before it could satisfy the request.
+   *
+   * It lives in `buildQuery` because that is the one point BOTH `find()` and `search()` pass
+   * through - enforcing in `find()` alone would leave `search()` as a way around it, which is not
+   * a ceiling. `mode: 'raw'` bypasses `buildQuery` and therefore bypasses this deliberately: raw
+   * is the documented escape hatch and its callers own the consequences. They still cannot exceed
+   * the connector's physical ceiling, which is the intended layering - policy is opt-out-able,
+   * physics is not.
+   */
+  protected assertLimitWithinCeiling(opts: { limit?: number }): void {
+    const { limit } = opts;
+    const ceiling = this.maxLimit ?? DEFAULT_MAX_LIMIT;
+
+    if (limit === undefined || limit <= ceiling) {
+      return;
+    }
+
+    throw getError({
+      error: SearchErrors.PAGE_TOO_LARGE,
+      message: `[${this.constructor.name}][buildQuery] Requested page exceeds this model's limit | collection: '${this.collectionName}' | requested: ${limit} | maximum: ${ceiling} | raise it with @model settings.maxLimit if larger pages are genuinely needed`,
+    });
   }
 
   /**

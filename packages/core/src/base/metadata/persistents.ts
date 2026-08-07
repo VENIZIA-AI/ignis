@@ -22,6 +22,15 @@ export const model = (metadata: IModelMetadata): ClassDecorator => {
       });
     }
 
+    // Validated at DECORATION time, like defaultLimit: a bad ceiling is a wiring mistake, and
+    // catching it at boot beats catching it on the one request that happens to reach the limit.
+    const maxLimit = metadata.settings?.maxLimit;
+    if (maxLimit !== undefined && (!Number.isInteger(maxLimit) || maxLimit <= 0)) {
+      throw getError({
+        message: `[model][${target.name}] Invalid 'maxLimit' | Expected a positive integer | Got: ${maxLimit}`,
+      });
+    }
+
     // Auto-populate AUTHORIZATION_SUBJECT from authorize.principal if not already set
     const principal = metadata.settings?.authorize?.principal;
     if (principal && !Object.hasOwn(target, 'AUTHORIZATION_SUBJECT')) {

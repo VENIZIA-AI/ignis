@@ -451,6 +451,16 @@ const config = defineConfig({
           collapsed: false,
           items: [
             {
+              text: '2026-08-07',
+              collapsed: true,
+              items: [
+                {
+                  text: 'One Transport for Every Typesense Search',
+                  link: '/changelogs/2026-08-07-typesense-multi-search-transport',
+                },
+              ],
+            },
+            {
               text: '2026-08-06',
               collapsed: true,
               items: [

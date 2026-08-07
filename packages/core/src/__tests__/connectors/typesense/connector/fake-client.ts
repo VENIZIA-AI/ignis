@@ -181,7 +181,18 @@ export const createFakeClient = (behavior: IFakeBehavior = {}) => {
       perform: async (reqs: unknown, common?: unknown, options?: unknown) => {
         record('multiSearch.perform', reqs, common, options);
         maybeThrow('multiSearch.perform');
-        return behavior.multiSearchResult ?? { results: [] };
+
+        if (behavior.multiSearchResult !== undefined) {
+          return behavior.multiSearchResult;
+        }
+
+        // `search()` reaches the engine through this endpoint now, so a programmed `searchResult`
+        // is served as a one-entry-per-window envelope. Tests asserting RESPONSE MAPPING keep
+        // asserting exactly what they did before, without being rewritten to restate transport.
+        const entries = ((reqs as { searches?: unknown[] })?.searches ?? [{}]) as unknown[];
+        const single = behavior.searchResult ?? { found: 0, hits: [] };
+
+        return { results: entries.map(() => single) };
       },
     },
     collections,

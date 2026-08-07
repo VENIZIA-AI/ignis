@@ -142,6 +142,11 @@ export abstract class AbstractRepository<
     return this.modelSettings?.defaultLimit;
   }
 
+  /** Largest `limit` a caller may ask for, when the model declares one; undefined leaves the tier's own default in force. */
+  protected get maxLimit(): number | undefined {
+    return this.modelSettings?.maxLimit;
+  }
+
   /** Resolves the entity instance from @repository metadata on first access. */
   protected resolveEntity(): AbstractEntity {
     const registry = MetadataRegistry.getInstance();

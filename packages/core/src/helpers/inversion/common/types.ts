@@ -66,6 +66,16 @@ export interface IModelSettings {
   /** Default row limit when a query omits `limit`. Must be a positive integer. Falls back to DEFAULT_LIMIT (10). */
   defaultLimit?: number;
 
+  /**
+   * Largest `limit` a CALLER may ask for. Must be a positive integer. Falls back to
+   * DEFAULT_MAX_LIMIT (1000).
+   *
+   * Policy, not capacity - the engine's own ceiling sits far above it. The number is chosen so
+   * that reaching it means the caller is doing something unusual, and raising it is how a model
+   * says so deliberately.
+   */
+  maxLimit?: number;
+
   /** Authorization settings for this model (principal name, etc.). */
   authorize?: IModelAuthorizeSettings;
 }

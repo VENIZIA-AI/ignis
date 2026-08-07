@@ -15,7 +15,6 @@ import {
   throwUnsupportedOperator,
   toFieldsCsv,
   toFilterClause,
-  toSearchPage,
 } from '@/connectors/search/repositories/common/dialect-helpers';
 import type { ITypesenseSearchQuery } from '@/connectors/typesense/repositories/common';
 import { SearchErrors } from '@/connectors/search/common';
@@ -192,13 +191,24 @@ export class TypesenseQueryDialect implements ISearchQueryDialect {
       query.sortBy = this.toOrderBy({ order });
     }
 
-    if (limit !== undefined) {
-      query.perPage = limit;
-    }
-
+    // Native offset, not a page number. `toSearchPage` refuses a skip that is not a multiple of
+    // limit, so `skip: 15, limit: 10` was rejected - a rule Typesense never imposed and one the
+    // relational reference never had either (relational/.../filter.ts:283-287 passes skip straight
+    // through to Drizzle). Exactly one pagination pair reaches the engine, because Typesense
+    // documents offset/limit and page/per_page as alternatives without saying which wins if both
+    // are present.
     const effectiveSkip = skip ?? offset;
-    if (effectiveSkip !== undefined) {
-      query.page = toSearchPage({ skip: effectiveSkip, limit });
+
+    if (effectiveSkip === undefined) {
+      if (limit !== undefined) {
+        query.perPage = limit;
+      }
+    } else {
+      query.offset = effectiveSkip;
+
+      if (limit !== undefined) {
+        query.limit = limit;
+      }
     }
 
     if (fields) {

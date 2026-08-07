@@ -48,6 +48,7 @@ const PINNED = [
   'core.search_engine.already_exists',
   'core.search_engine.unknown_field',
   'core.search_engine.unsupported_operator',
+  'core.search_engine.page_too_large',
   'core.mail.template_not_found',
   'core.mail.invalid_configuration',
   'core.mail.invalid_recipient',
