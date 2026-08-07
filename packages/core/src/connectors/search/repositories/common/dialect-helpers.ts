@@ -55,12 +55,7 @@ export const toFieldsCsv = (opts: { fields: TFields }): string => {
  * the value path and is rejected for what it actually is - an object where a scalar belongs.
  */
 export const isOperatorObject = (value: unknown): value is Record<string, unknown> => {
-  if (
-    value === null ||
-    Array.isArray(value) ||
-    value instanceof Date ||
-    typeof value !== 'object'
-  ) {
+  if (value === null || Array.isArray(value) || typeof value !== 'object') {
     return false;
   }
 
