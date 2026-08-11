@@ -3,10 +3,14 @@ import type { AnyType } from '@venizia/ignis-helpers';
 import { pgTable, serial, varchar } from 'drizzle-orm/pg-core';
 import { BasePostgresEntity } from '@/connectors/postgres/models';
 import { PersistableRepository } from '@/connectors/postgres/repositories';
-import { FilterBuilder } from '@/connectors/postgres/repositories/dialect/filter';
+import { PostgresQueryDialect } from '@/connectors/postgres/repositories/dialect/query-dialect';
+import { PostgresQueryExecutor } from '@/connectors/postgres/repositories/executor';
 import { buildFakeConnector } from './fake-connector';
 
-/** Covers the three `readAffectedRowCount` call sites in persistable.ts's `shouldReturn: false` branches - none call `.returning()`, so `{ count }` comes entirely from `readAffectedRowCount`. */
+/**
+ * The `shouldReturn: false` branches never call `.returning()`, so `{ count }` comes entirely from
+ * `readAffectedRowCount` reading the raw driver result.
+ */
 
 const table = pgTable('persistable_count_fixture', {
   id: serial('id').primaryKey(),
@@ -20,12 +24,13 @@ class PersistableCountFixtureEntity extends BasePostgresEntity {
   static override TABLE_NAME = 'persistable_count_fixture';
 }
 
-/** Minimal datasource stub: the query dialect lives on the datasource (getQueryDialect()), and `resolveConnector()` calls `dataSource.getConnector()` when no transaction is passed. */
+/** `resolveConnector()` falls back to `dataSource.getConnector()` when no transaction is passed. */
 const buildRepository = (opts: { result: unknown }) => {
   const connector = buildFakeConnector({ result: opts.result });
   const dataSource = {
-    getQueryDialect: () => new FilterBuilder(),
+    getQueryDialect: () => new PostgresQueryDialect(),
     getConnector: () => connector,
+    getQueryExecutor: () => new PostgresQueryExecutor(),
   } as AnyType;
 
   return new PersistableRepository<AnyType>(dataSource, {

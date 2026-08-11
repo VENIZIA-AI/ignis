@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test';
-import { HTTP } from '@venizia/ignis-helpers';
+import { HTTP, LegacyAES } from '@venizia/ignis-helpers';
 import { decodeJwt } from 'jose';
 import type { IJWSTokenServiceOptions, IJWTTokenPayload } from '@/components/auth';
 import { JWSTokenService } from '@/components/auth';
@@ -238,5 +238,67 @@ describe('JWSTokenService - payload encryption', () => {
 
     // Decrypt may throw or yield junk; what must never happen is a foreign secret recovering the plaintext.
     expect(caught !== undefined || verified?.userId !== 42).toBe(true);
+  });
+});
+
+/** PR #32 changed the AES envelope, so tokens issued before it no longer decrypt. An application keeps them readable by handing the service the legacy cipher instead of re-issuing every session. */
+describe('JWSTokenService - payload cipher seam', () => {
+  test('an application can supply LegacyAES and keep pre-PBKDF2 tokens working', async () => {
+    const service = buildService({
+      applicationSecret: APPLICATION_SECRET,
+      cipher: LegacyAES.withAlgorithm('aes-256-cbc'),
+    });
+
+    const token = await service.generate({ payload: buildPayload() });
+    const claims = readClaims(token);
+
+    expect(claims['userId']).not.toBe(42);
+    expect((await service.verify({ type: 'Bearer', token })).userId).toBe(42);
+  });
+
+  test('the supplied cipher really is the one used - the default AES cannot read its output', async () => {
+    const legacyIssuer = buildService({
+      applicationSecret: APPLICATION_SECRET,
+      cipher: LegacyAES.withAlgorithm('aes-256-cbc'),
+    });
+    const modernVerifier = buildService({ applicationSecret: APPLICATION_SECRET });
+
+    const token = await legacyIssuer.generate({ payload: buildPayload() });
+
+    let caught: unknown;
+    try {
+      await modernVerifier.verify({ type: 'Bearer', token });
+    } catch (error) {
+      caught = error;
+    }
+
+    expect(caught).toBeDefined();
+  });
+
+  test('and the reverse - a legacy-configured verifier cannot read a new-format token', async () => {
+    const modernIssuer = buildService({ applicationSecret: APPLICATION_SECRET });
+    const legacyVerifier = buildService({
+      applicationSecret: APPLICATION_SECRET,
+      cipher: LegacyAES.withAlgorithm('aes-256-cbc'),
+    });
+
+    const token = await modernIssuer.generate({ payload: buildPayload() });
+
+    let caught: unknown;
+    try {
+      await legacyVerifier.verify({ type: 'Bearer', token });
+    } catch (error) {
+      caught = error;
+    }
+
+    expect(caught).toBeDefined();
+  });
+
+  test('omitting cipher keeps the default AES - no application has to know it exists', async () => {
+    const service = buildService({ applicationSecret: APPLICATION_SECRET });
+
+    const token = await service.generate({ payload: buildPayload() });
+
+    expect((await service.verify({ type: 'Bearer', token })).userId).toBe(42);
   });
 });

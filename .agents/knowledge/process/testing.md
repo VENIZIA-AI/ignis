@@ -31,7 +31,9 @@ tags: [process, test, bun]
    `dist/` (gitignored, so it's easy to not notice) and makes the NEXT `bun test` run fail with
    confusing import errors that look unrelated to the actual broken test.
 6. `make lint` / `make lint-all` are separate from testing - they run ESLint and Prettier, not
-   `bun test`. The pre-commit hook runs lint, not tests; running tests before committing is on you.
+   `bun test`. The pre-commit hook runs lint plus the browser purity gates (`make purity`, itself a
+   `bun test` run per package); the rest of the suite is not enforced automatically, so running it
+   before committing is on you.
 
 ## Related
 

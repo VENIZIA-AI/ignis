@@ -120,7 +120,7 @@ Combines `IRedisSingleHelperProps` and `IRedisHelperCallbacks`.
 | `password` | `string` | Yes | - | Redis `requirepass` value |
 | `database` | `number` | No | `0` | Redis database index (0-15) |
 | `autoConnect` | `boolean` | No | `true` | Connect immediately; `false` uses ioredis `lazyConnect` |
-| `maxRetry` | `number` | No | `0` | Max reconnect attempts; `0` = unlimited; `-1` = no retry |
+| `maxRetry` | `number` | No | `0` | Reconnect attempts before giving up. `0` (default) = no reconnect; `-1` = reconnect forever |
 | `onInitialized` | `(opts: { name: string; helper: IRedisHelper }) => void` | No | - | Fired synchronously after construction |
 | `onConnected` | `(opts: { name: string; helper: IRedisHelper }) => void` | No | - | Fired on TCP connection established |
 | `onReady` | `(opts: { name: string; helper: IRedisHelper }) => void` | No | - | Fired when client is ready for commands |
@@ -128,9 +128,30 @@ Combines `IRedisSingleHelperProps` and `IRedisHelperCallbacks`.
 
 ### Retry strategy
 
-- **Backoff formula.** `Math.max(Math.min(attempt * 2000, 5000), 1000)` - starting at 1 s, capped at 5 s.
-- **Stop condition.** Reconnect stops when `attempt > maxRetry` (if `maxRetry > -1`).
+ioredis calls the strategy with `attempt` starting at `1`, so the first reconnect waits 2 s.
+
+| `attempt` | Delay |
+|---|---|
+| 1 | 2 s |
+| 2 | 4 s |
+| 3 and later | 5 s |
+
+- **Backoff formula.** `Math.max(Math.min(attempt * 2000, 5000), 1000)`. The `1000` floor is unreachable, because the smallest `attempt` is `1`.
+- **Backoff resets on success.** ioredis sets `retryAttempts` back to `0` once the client reaches `ready`.
+- **Stop condition.** Reconnect stops when `attempt > maxRetry`, unless `maxRetry` is `-1`. Under the default `maxRetry: 0` that fires on the very first attempt, so the client never reconnects.
+- **This strategy does not retry commands.** It only schedules reconnection.
 - **BullMQ requirement.** The framework always sets `maxRetriesPerRequest: null` internally, which BullMQ requires.
+
+### What happens to commands while the connection is down
+
+`maxRetriesPerRequest: null` turns off the per-request retry limit, so ioredis parks commands in its offline queue instead of failing them after N attempts. How that ends depends on `maxRetry`.
+
+| `maxRetry` | Outcome for queued commands |
+|---|---|
+| `-1` or a positive number | Flushed to the server once the client reconnects |
+| `0` (default) | Rejected with `Connection is closed.` as soon as the client gives up |
+
+To survive a restart or a failover without losing commands, set `maxRetry: -1`.
 
 ## Construction - Cluster
 
@@ -198,7 +219,7 @@ Redis Sentinel is a high-availability (HA) architecture made of three process ty
 - **The master's address can change after a failover.** Hard-coding a master host would break on every failover.
 - **You give ioredis the sentinel addresses instead**, plus the monitored master group name (`masterName`). ioredis asks a sentinel for the current master, then connects to it.
 - **ioredis re-queries sentinels automatically after a failover** - no manual reconnection logic needed.
-- **Your application code does not change during a failover.** The only observable effect is a few seconds of transient command failures. The retry strategy handles those.
+- **Your application code does not change during a failover.** The only observable effect is a few seconds of transient command failures. Set `maxRetry: -1` so the client reconnects and drains its queued commands - the default `maxRetry: 0` rejects them instead.
 
 ### Constructor
 
@@ -235,7 +256,7 @@ const redis = new RedisSentinelHelper({
 | `sentinelUsername` | `string` | No | - | Sentinel ACL username |
 | `database` | `number` | No | `0` | Redis database index |
 | `autoConnect` | `boolean` | No | `true` | Connect immediately |
-| `maxRetry` | `number` | No | `0` | Max reconnect attempts |
+| `maxRetry` | `number` | No | `0` | Reconnect attempts before giving up. `0` (default) = no reconnect; `-1` = reconnect forever. See [Retry strategy](#retry-strategy) |
 | `redisOptions` | `Partial<RedisOptions>` | No | - | Extra ioredis options; first-class fields above always override matching keys here |
 | `onInitialized` / `onConnected` / `onReady` / `onError` | callbacks | No | - | Same shape as single |
 
@@ -274,7 +295,7 @@ When the master fails:
 1. Sentinels reach quorum and promote a replica.
 2. ioredis detects the master change via sentinel notification.
 3. ioredis reconnects to the new master transparently.
-4. Any in-flight commands during the few-second window may fail transiently - the retry strategy retries them.
+4. Commands issued during the few-second window queue up, then flush once the client reconnects. This needs `maxRetry: -1` or a positive `maxRetry`; the default `0` rejects them.
 5. **Your application code does not change.** The same `RedisSentinelHelper` instance continues to work after failover.
 
 ### Local testing with Docker Compose

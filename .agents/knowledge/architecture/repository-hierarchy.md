@@ -22,20 +22,43 @@ holds only what every engine needs: lazy `_dataSource` and `_entity` resolution 
 Those `@model` settings are memoized per entity class, and `_modelSettings` starts as `null` meaning
 "not yet resolved" - `undefined` is itself a valid resolved value (the model declares no settings).
 
-## The relational (Postgres) chain
+## The relational chain
+
+The five-class chain lives in `connectors/relational` - the engine-neutral SQL tier, reachable at the
+`@venizia/ignis/relational` sub-path - not in `connectors/postgres`. `connectors/postgres` extends it
+one-for-one: five thin subclasses that add no behavior and only rebind the two engine-facing type
+parameters. Full account, including the two ports a datasource supplies (`IRelationalQueryDialect`,
+`IRelationalQueryExecutor`) and what stays genuinely Postgres-only:
+[Relational connector](/architecture/relational-connector.md).
 
 ```
 AbstractRepository
-  └── RelationalBaseRepository       (abstract; FilterBuilder + hidden-column exclusion)
+  └── RelationalBaseRepository       (abstract; query-dialect delegation + hidden-column exclusion)
       └── ReadableRelationalRepository        (READ_ONLY; writes throw)
           └── PersistableRelationalRepository     (READ_WRITE; create/update/delete)
               └── DefaultRelationalRepository         (recommended base - no additions)
                   └── SoftDeletableRelationalRepository  (sets deletedAt instead of deleting)
 ```
 
-**`DefaultCRUDRepository` is a back-compat alias**, exported from
-`connectors/postgres/repositories/core/index.ts` as `DefaultRelationalRepository as
-DefaultCRUDRepository`. Both names are the same class; new code should prefer the family name.
+**`DefaultCRUDRepository` is the Postgres subclass** of `DefaultRelationalRepository`, declared in
+`connectors/postgres/repositories/core/default.ts`. It is a different class object from its neutral
+parent - `DefaultCRUDRepository === DefaultRelationalRepository` is false - but `instanceof` still
+holds down the chain, and nothing in the framework compares repository classes by identity.
+
+The last two type parameters are where the engine lives. Neutral, they default to the neutral
+contracts:
+
+```ts
+ExtraOptions extends IExtraOptions = IRelationalExtraOptions,
+TDataSource extends IRelationalDataSource = IRelationalDataSource,
+```
+
+Each Postgres subclass rebinds exactly those two to `IDatabaseExtraOptions` and
+`IPostgresDataSource`, which is what makes `connector`, `resolveConnector()`,
+`beginTransaction().connector` and `options.transaction.connector` a `PgDatabase` with no cast for a
+single-argument `class UserRepository extends DefaultCRUDRepository<TUserSchema> {}`. Off the neutral
+class those same reads are `unknown` - correct, since neutral code cannot know the engine. A second
+SQL engine adds its own five subclasses the same way.
 
 `ReadableRelationalRepository` carries the dual query API: `canUseCoreAPI(filter)` returns true when
 the filter has neither `include` nor `fields`, and the Drizzle Core API path is then used because it
@@ -94,6 +117,19 @@ Wiring:
 - Routing stays pooler-owned: no primary/replica awareness lives in framework code.
 - A NEW engine's readable tier must add those dispatch lines itself - the base cannot inject them.
   Omitting them does not crash: `retry` is silently ignored, reads degrade to a single attempt.
+- Any subclass that RE-DECLARES a read verb - an abstract restatement, or an override adding one
+  option - must keep `TFindOptions`/`TFindRangeOptions`/`TFindOneOptions` in the signature. Typing
+  `options` as bare `ExtraOptions` drops `IWithReadRetry`, and `options.retry` becomes a compile
+  error on that class alone. Nothing flagged it: narrowing an override is legal TypeScript, the
+  runtime plumbing still works, and a test holding the CONCRETE subclass never touches the narrowed
+  tier - only a reference typed as the narrowed class does. `RelationalBaseRepository`'s four
+  abstract read verbs and `SoftDeletableRelationalRepository.findById` both shipped this way.
+  `__tests__/connectors/relational/soft-deletable-retry.test.ts` now pins it, by typing its
+  parameter as the abstract tier rather than a concrete subclass. Retype that parameter and the
+  guard stops guarding, so do not "simplify" it away.
+- `SoftDeletableRelationalRepository.findById` evaluates `isStrict` AFTER the retry loop is
+  exhausted - retry lives in `super.findById` -> `findOne`, so a strict read waits out replica lag
+  before it throws `ENTITY_NOT_FOUND`.
 
 ## Hidden fields are excluded at query time
 
@@ -133,6 +169,7 @@ export class UserRepository extends DefaultRelationalRepository<typeof User.sche
 
 ## Related
 
+- [Relational connector](/architecture/relational-connector.md)
 - [DataSource hierarchy](/architecture/datasource-hierarchy.md)
 - [Filter system](/architecture/filter-system.md)
 - [Transactions](/architecture/transactions.md)

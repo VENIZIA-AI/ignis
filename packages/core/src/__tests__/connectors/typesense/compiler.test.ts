@@ -368,6 +368,62 @@ describe('compileTypesenseCollection', () => {
     ]);
   });
 
+  /**
+   * A dotted field name resolves only when the collection was created with
+   * `enable_nested_fields`, and ignis never emits that flag - the consuming application sets it
+   * through `engineOverrides.typesense`. Since the dialect now compiles a declared dotted field
+   * rather than rejecting it, forgetting the flag would otherwise fail at QUERY time, far from
+   * the declaration that caused it. Caught here, where the mistake is made.
+   */
+  test('a dotted field name without enable_nested_fields throws, naming the field', () => {
+    const definition = defineSearchCollection({
+      name: 'merchants',
+      fields: [
+        field.string('title'),
+        field.string('merchantName.en', { facet: true, optional: true }),
+      ],
+    });
+
+    expect(() => compileTypesenseCollection({ definition })).toThrow(/merchantName\.en/);
+  });
+
+  test('the throw states exactly what to set, not merely that something is wrong', () => {
+    const definition = defineSearchCollection({
+      name: 'merchants',
+      fields: [field.string('merchantName.vi')],
+    });
+
+    expect(() => compileTypesenseCollection({ definition })).toThrow(/enable_nested_fields/);
+  });
+
+  test('a dotted field compiles once engineOverrides.typesense enables nested fields', () => {
+    const definition = defineSearchCollection({
+      name: 'merchants',
+      fields: [field.string('merchantName.en', { facet: true, optional: true })],
+      // Computed key - the Typesense wire flag is a runtime string, never a snake_case identifier.
+      engineOverrides: { typesense: { ['enable_nested_fields']: true } },
+    });
+
+    const schema = compileTypesenseCollection({ definition });
+
+    expect(schema.fields).toContainEqual({
+      name: 'merchantName.en',
+      type: 'string',
+      facet: true,
+      optional: true,
+    });
+    expect(schema['enable_nested_fields']).toBe(true);
+  });
+
+  test('a collection with no dotted field is unaffected by the flag check', () => {
+    const definition = defineSearchCollection({
+      name: 'products',
+      fields: [field.string('title'), field.number('price')],
+    });
+
+    expect(() => compileTypesenseCollection({ definition })).not.toThrow();
+  });
+
   test('throws via the default branch for an unsupported field type (defensive, unreachable by typing)', () => {
     const definition = defineSearchCollection({
       name: 'products',

@@ -95,6 +95,7 @@ export interface ISearchCollectionDefinition {
   name: string;
   fields: readonly ISearchFieldDefinition[];
   defaultSort?: string;
+  defaultQueryBy?: string[];
 
   /** Declarative synonym sets provisioned alongside the collection (see `BaseSearchDataSource.provisionCollections`). */
   synonyms?: ISynonym[];

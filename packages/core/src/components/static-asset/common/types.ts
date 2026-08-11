@@ -1,6 +1,6 @@
 import type { IAuthRouteConfig } from '@/base';
 import type { BaseRelationalEntity } from '@/connectors/postgres/models';
-import type { DefaultRelationalRepository } from '@/connectors/postgres/repositories';
+import type { DefaultCRUDRepository } from '@/connectors/postgres/repositories';
 import type {
   AnyType,
   DiskHelper,
@@ -28,7 +28,7 @@ export type TStaticAssetExtraOptions = {
   [key: string]: AnyType;
 };
 
-// Type definitions for route params/query (avoids heavy RouteHandler inference)
+// Declared by hand rather than inferred: RouteHandler inference here is heavy.
 export type TBucketParams = { bucketName: string };
 export type TObjectParams = { bucketName: string; objectName: string };
 export type TUploadQuery = {
@@ -41,7 +41,7 @@ export type TListQuery = { prefix?: string; recursive?: string; maxKeys?: string
 
 export type TMetaLinkConfig<Schema extends TMetaLinkSchema = TMetaLinkSchema> = {
   model: typeof BaseRelationalEntity<Schema>;
-  repository: DefaultRelationalRepository<Schema>;
+  repository: DefaultCRUDRepository<Schema>;
   createMetaLink?: (opts: {
     uploadResult: IUploadResult;
     fileStat: IFileStat;

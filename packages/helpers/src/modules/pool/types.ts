@@ -60,5 +60,5 @@ export interface IPoolOptions<T> extends IPoolControlOptions {
 export interface IPoolWaiter<T> {
   resolve: (resource: T) => void;
   reject: (error: unknown) => void;
-  timer: TNullable<NodeJS.Timeout>;
+  timer: TNullable<ReturnType<typeof setTimeout>>;
 }

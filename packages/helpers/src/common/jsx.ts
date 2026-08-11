@@ -1,0 +1,2 @@
+/** Kept out of the `./common` barrel because `hono/jsx` types reach DOM-dependent JSX intrinsics; `hono` is an optional peer, so a Worker or hono-less consumer of `./common` must not have this file in its type graph. Re-exported directly from the root barrel (`src/index.ts`) instead, so `Child`/`FC`/`PropsWithChildren` stay publicly reachable from `@venizia/ignis-helpers`. */
+export type { Child, FC, PropsWithChildren } from 'hono/jsx';

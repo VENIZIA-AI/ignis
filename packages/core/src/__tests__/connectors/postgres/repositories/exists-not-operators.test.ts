@@ -2,7 +2,7 @@ import { describe, expect, test } from 'bun:test';
 import { pgTable, serial, varchar, timestamp, jsonb } from 'drizzle-orm/pg-core';
 import { PgDialect } from 'drizzle-orm/pg-core';
 import type { SQL } from 'drizzle-orm';
-import { FilterBuilder } from '@/connectors/postgres/repositories/dialect/filter';
+import { PostgresFilterBuilder } from '@/connectors/postgres/repositories/dialect/filter';
 
 const table = pgTable('exists_fixture', {
   id: serial('id').primaryKey(),
@@ -11,7 +11,7 @@ const table = pgTable('exists_fixture', {
   metadata: jsonb('metadata'),
 });
 
-const builder = new FilterBuilder();
+const builder = new PostgresFilterBuilder();
 const dialect = new PgDialect();
 
 const compile = (where: any): { text: string; params: unknown[] } => {
@@ -20,7 +20,10 @@ const compile = (where: any): { text: string; params: unknown[] } => {
   return { text: sql, params };
 };
 
-/** `exists`/`notExists`/`not` are in the neutral QueryOperators vocabulary but previously had no Postgres handler, so `{ deletedAt: { exists: false } }` threw 'Invalid query operator'. */
+/**
+ * `exists`/`notExists`/`not` belong to the neutral QueryOperators vocabulary, so Postgres must
+ * carry a handler for each - a missing one throws 'Invalid query operator'.
+ */
 describe('FilterBuilder - exists / notExists operators', () => {
   test('exists: true -> IS NOT NULL', () => {
     expect(compile({ deletedAt: { exists: true } }).text).toContain('is not null');

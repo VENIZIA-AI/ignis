@@ -16,7 +16,7 @@ import {
   field,
   ISearchCollectionDefinition,
 } from '@/connectors/search/models';
-import { ISearchQueryDialect } from '@/connectors/search/repositories/common';
+import { ISearchQueryDialect, SearchFilterOutcomes } from '@/connectors/search/repositories/common';
 import { MetadataRegistry } from '@/helpers/inversion';
 
 /** Records every `ensureCollection` call so provisioning can be asserted on. */
@@ -36,6 +36,9 @@ class FakeSearchDataSource extends BaseSearchDataSource<{}> {
     return {
       build: () => ({ query: '*' }),
       toWhere: () => '',
+      compileWhere: () => ({ outcome: SearchFilterOutcomes.MATCH_ALL }),
+      canExpress: () => true,
+      conjoin: () => ({ outcome: SearchFilterOutcomes.MATCH_ALL }),
       applySearchInput: () => undefined,
       toWireParams: () => ({}),
     };
@@ -280,6 +283,9 @@ describe('BaseSearchDataSource - multiSearch injects @model hidden fields into e
       return {
         build: () => ({ query: '*' }),
         toWhere: () => '',
+        compileWhere: () => ({ outcome: SearchFilterOutcomes.MATCH_ALL }),
+        canExpress: () => true,
+        conjoin: () => ({ outcome: SearchFilterOutcomes.MATCH_ALL }),
         applySearchInput: () => undefined,
         // Echo the neutral query verbatim so the merged excludeFields is observable on the captured entry.
         toWireParams: ({ query }) => ({ ...query }),

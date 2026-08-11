@@ -134,6 +134,7 @@ update-boot:
 	@echo "🔄 Force updating @venizia/ignis-boot..."
 	@bun run --filter "@venizia/ignis-boot" force-update
 
+
 # ----------------------------------------------------------------------------
 # LINT TARGETS
 # ----------------------------------------------------------------------------

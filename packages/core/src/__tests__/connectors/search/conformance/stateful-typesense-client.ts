@@ -88,8 +88,39 @@ export class StatefulFakeTypesenseClient implements ITypesenseClientLike {
     retrieve: async () => ({ ok: true }),
   };
 
+  /**
+   * Every search the connector issues now goes through `/multi_search`, so this has to behave like
+   * the endpoint instead of returning an empty stub - a stub would let the connector's windowing
+   * and merge logic pass without ever running.
+   */
   readonly multiSearch = {
-    perform: async () => ({ results: [] }),
+    perform: async (requests: AnyType) => {
+      const searches = (requests?.searches ?? []) as Array<Record<string, unknown>>;
+
+      return {
+        results: searches.map(entry => {
+          const name = String(entry['collection'] ?? '');
+          // An unknown collection throws from `select`, failing the whole call - which is what the
+          // GET path did too. Whether the real engine reports it per-entry instead is the open
+          // question the connector's TODO records; this models what we can observe today.
+          const rows = this.select({ name, filter: entry['filter_by'] as string | undefined });
+
+          const perPage = entry['per_page'];
+          const limit = entry['limit'];
+          const offset = typeof entry['offset'] === 'number' ? entry['offset'] : 0;
+          const size =
+            typeof limit === 'number' ? limit : typeof perPage === 'number' ? perPage : rows.length;
+
+          const window = size === 0 ? [] : rows.slice(offset, offset + size);
+
+          return {
+            found: rows.length,
+            ['out_of']: rows.length,
+            hits: window.map(document => ({ document })),
+          };
+        }),
+      };
+    },
   };
 
   aliases(): { upsert(name: string, mapping: unknown): Promise<unknown> };

@@ -3,7 +3,7 @@
 The persistent layer manages data using [Drizzle ORM](https://orm.drizzle.team/) for type-safe database access and the Repository pattern for data abstraction.
 
 > [!NOTE] Connectors
-> This page and the ones below it focus on the **PostgreSQL connector** (Drizzle + relational tables), the default and most common engine. The persistence layer also ships a **typesense connector** for search (see [Search & Typesense](./search-typesense)). Both share the same engine-neutral `AbstractRepository`/`AbstractDataSource`/`AbstractEntity` contracts - see [Connectors](/references/base/connectors) for the architecture.
+> This page and the ones below it focus on the **PostgreSQL connector** (Drizzle + relational tables), the default and most common engine. The persistence layer also ships a **SQLite connector** (see [SQLite](./sqlite)) and a **typesense connector** for search (see [Search & Typesense](./search-typesense)). All three share the same engine-neutral `AbstractRepository`/`AbstractDataSource`/`AbstractEntity` contracts - see [Connectors](/references/base/connectors) for the architecture.
 
 ## Architecture Overview
 
@@ -32,6 +32,8 @@ The persistent layer manages data using [Drizzle ORM](https://orm.drizzle.team/)
 | **Repositories** | Provide type-safe CRUD operations | [Repositories Guide](./repositories.md) |
 | **Transactions** | Handle atomic multi-step operations (PostgreSQL connector only) | [Transactions Guide](./transactions.md) |
 | **Search & Typesense** | Full-text/faceted search over documents | [Search & Typesense Guide](./search-typesense.md) |
+| **PGlite** | Postgres compiled to WebAssembly, running in-process | [PGlite Guide](./pglite.md) |
+| **SQLite** | The second SQL engine, via libsql | [SQLite Guide](./sqlite.md) |
 
 ## Quick Example
 
@@ -107,6 +109,8 @@ export class Application extends BaseApplication {
   - [DataSources](./datasources) - Database connections
   - [Repositories](./repositories) - Data access layer
   - [Transactions](./transactions) - Atomic operations
+  - [PGlite](./pglite) - Postgres in-process, for tests and embedded deployment
+  - [SQLite](./sqlite) - The second SQL engine, and what it refuses
   - [Search & Typesense](./search-typesense) - The typesense connector
 
 - **Related Concepts:**

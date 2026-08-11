@@ -2,14 +2,14 @@ import { describe, expect, test } from 'bun:test';
 import { pgTable, serial, jsonb } from 'drizzle-orm/pg-core';
 import { PgDialect } from 'drizzle-orm/pg-core';
 import type { SQL } from 'drizzle-orm';
-import { FilterBuilder } from '@/connectors/postgres/repositories/dialect/filter';
+import { PostgresFilterBuilder } from '@/connectors/postgres/repositories/dialect/filter';
 
 const table = pgTable('json_numeric_fixture', {
   id: serial('id').primaryKey(),
   metadata: jsonb('metadata'),
 });
 
-const builder = new FilterBuilder();
+const builder = new PostgresFilterBuilder();
 const dialect = new PgDialect();
 
 const compile = (where: any): string => {
@@ -21,7 +21,10 @@ const compile = (where: any): string => {
   return dialect.sqlToQuery(condition).sql;
 };
 
-/** eq/ne/neq/inq/nin with numeric values must route through the same numeric cast as the bare-value branch - a text extraction produces 'operator does not exist: text = integer'. */
+/**
+ * Numeric eq/ne/neq/inq/nin must route through the same numeric cast as the bare-value branch - a
+ * text extraction produces 'operator does not exist: text = integer'.
+ */
 describe('FilterBuilder - JSON path numeric equality operators cast to numeric', () => {
   test('eq with a numeric value casts the extraction to numeric', () => {
     expect(compile({ 'metadata.score': { eq: 50 } })).toContain('numeric');
@@ -49,5 +52,21 @@ describe('FilterBuilder - JSON path numeric equality operators cast to numeric',
 
   test('inq with string values stays text (no numeric cast)', () => {
     expect(compile({ 'metadata.status': { inq: ['a', 'b'] } })).not.toContain('numeric');
+  });
+
+  test('bare numeric array casts to numeric like its inq equivalent', () => {
+    expect(compile({ 'metadata.score': [10, 20] })).toContain('numeric');
+  });
+
+  test('bare mixed array stays text (no numeric cast)', () => {
+    expect(compile({ 'metadata.score': [10, 'x'] })).not.toContain('numeric');
+  });
+
+  test('bare empty array stays text (no numeric cast)', () => {
+    expect(compile({ 'metadata.score': [] })).not.toContain('numeric');
+  });
+
+  test('bare string array stays text (no numeric cast)', () => {
+    expect(compile({ 'metadata.status': ['a', 'b'] })).not.toContain('numeric');
   });
 });

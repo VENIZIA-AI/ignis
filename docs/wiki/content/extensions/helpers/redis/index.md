@@ -45,12 +45,13 @@ console.log(session); // { userId: 42, active: true }
 
 - **Pick a topology via the factory.** `createRedisHelper({ mode })` picks a topology from configuration. Pass a literal `mode` (`RedisModes.SINGLE | CLUSTER | SENTINEL`) and it returns the concrete class, not the generic `IRedisHelper`.
 - **Connection lifecycle is automatic.** With `autoConnect: true` (the default), the ioredis client starts connecting inside the constructor. Set `autoConnect: false` and call `connect()` yourself instead.
-- **Reconnects back off automatically.** The backoff grows with each attempt, capped between 1 and 5 seconds.
+- **Reconnect backoff grows with each attempt:** 2 s, then 4 s, then 5 s for every attempt after that. A successful reconnect resets it.
+- **The default does not reconnect at all.** `maxRetry` defaults to `0`, which gives up after the first failed attempt. Pass `-1` to reconnect forever.
 
 | `maxRetry` | Behavior |
 |---|---|
-| `0` (default) | Unlimited retries |
-| `-1` | No retry |
+| `0` (default) | No reconnect - the client gives up after the first failed attempt |
+| `-1` | Reconnect forever |
 | A positive number | Stop reconnecting after that many attempts |
 
 - **BullMQ compatibility differs by topology.** Single and Sentinel helpers always set `maxRetriesPerRequest: null`, which is what BullMQ requires. Cluster does not get this automatically - see the [Full reference](/extensions/helpers/redis/reference).

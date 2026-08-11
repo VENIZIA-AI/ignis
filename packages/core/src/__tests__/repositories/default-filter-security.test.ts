@@ -5,7 +5,7 @@ import { model, repository } from '@/base/metadata';
 import { BasePostgresDataSource } from '@/connectors/postgres/datasources';
 import { BasePostgresEntity } from '@/connectors/postgres/models';
 import { DefaultCRUDRepository } from '@/connectors/postgres/repositories';
-import { FilterBuilder } from '@/connectors/postgres/repositories/dialect';
+import { PostgresFilterBuilder } from '@/connectors/postgres/repositories/dialect';
 import { TFilter } from '@/base/repositories/common';
 
 /** Adversarial coverage of `FilterBuilder.mergeFilter` + `PostgresBaseRepository.applyDefaultFilter`: a user-controlled filter must never widen or erase a `@model` `defaultFilter` (soft-delete, tenant scoping), regardless of the value shape it carries. */
@@ -54,10 +54,10 @@ const REDOS_PAYLOADS = {
 } as const;
 
 describe('FilterBuilder.mergeFilter - adversarial input handling', () => {
-  let filterBuilder: FilterBuilder;
+  let filterBuilder: PostgresFilterBuilder;
 
   beforeEach(() => {
-    filterBuilder = new FilterBuilder();
+    filterBuilder = new PostgresFilterBuilder();
   });
 
   test('SQL injection payloads pass through as opaque values while the default where survives', () => {

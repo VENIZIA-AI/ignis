@@ -3,6 +3,7 @@ import { HTTP } from '@/common';
 import {
   AbstractNetworkFetchableHelper,
   IRequestOptions,
+  NodeFetcher,
   NodeFetchNetworkRequest,
 } from '@/modules/network';
 // Reached by module path, never through the barrel: axios is an optional peer.
@@ -62,6 +63,39 @@ describe('AbstractNetworkFetchableHelper.query', () => {
 
     expect(typeof nodeFetchRequest.getNetworkService().query).toBe('function');
     expect(typeof axiosRequest.getNetworkService().query).toBe('function');
+  });
+});
+
+/** `tsc --noEmit` is the real gate; `bun test` only proves the module loads. `getVariant()`/`getWorker()` are deliberately widened to `V`/`unknown` on `AbstractNetworkFetchableHelper` (the `./core` path), so every concrete fetcher and `BaseNetworkRequest` must re-narrow them - if either regresses, these method bodies stop compiling. */
+describe('getVariant()/getWorker() stay precise off the ./core path', () => {
+  class NodeFetcherPrecisionProbe extends NodeFetcher {
+    /** Compiles only if `getVariant()` returns the literal `'node-fetch'` passed to the constructor, not the widened `V`. */
+    assertVariantIsNodeFetch(): 'node-fetch' {
+      return this.getVariant();
+    }
+
+    /** Compiles only if `getWorker()` returns `typeof fetch`, not `unknown`. `NodeFetcher` never assigns a worker, so this checks the declared type, not a runtime value. */
+    assertWorkerTypeIsFetch(): typeof fetch {
+      return this.getWorker();
+    }
+  }
+
+  test('NodeFetcher keeps getVariant() and getWorker() precise', () => {
+    const probe = new NodeFetcherPrecisionProbe({ name: 'precision-probe', defaultConfigs: {} });
+
+    expect(probe.assertVariantIsNodeFetch()).toBe('node-fetch');
+    expect(typeof probe.assertWorkerTypeIsFetch).toBe('function');
+  });
+
+  test('AxiosNetworkRequest.getWorker() yields a real AxiosInstance through BaseNetworkRequest, not unknown', () => {
+    const request = new AxiosNetworkRequest({
+      name: 'axios-worker-precision',
+      networkOptions: { baseUrl: 'http://example.test' },
+    });
+
+    // Compiles only if BaseNetworkRequest.getWorker() returns TFetcherWorker<'axios'> (AxiosInstance) -
+    // `.interceptors` does not exist on `unknown`, the exact shape the regression broke.
+    expect(typeof request.getWorker().interceptors).toBe('object');
   });
 });
 

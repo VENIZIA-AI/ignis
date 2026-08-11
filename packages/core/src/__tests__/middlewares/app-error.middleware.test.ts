@@ -731,8 +731,30 @@ describe('AppErrorMiddleware - the logged error is summarized, not dumped raw', 
     expect(statusCode).toBe(404);
     expect(block).toContain('code: server.sale.order.not_found');
     expect(block).toContain("orderId: 'ord-991'");
-    // An intentional error carries no frames - they would be framework plumbing.
-    expect(block).not.toContain('stack:');
+    // An intentional error names its throw site too - without it a 4xx says only WHAT, never WHERE.
+    expect(block).toContain('stack:');
+    // The factory frame would eat a slot of a small budget and name no call site.
+    expect(block).not.toContain('modules/error/app-error');
+  });
+
+  test('an intentional error caps its frames at the configured budget', async () => {
+    const { capturingLogger, calls } = captureLog();
+    const app = new Hono();
+    app.onError(
+      new AppErrorMiddleware({ logger: capturingLogger, intentionalStackFrames: 2 }).value(),
+    );
+    app.get('/', () => {
+      throw getError({ message: 'Order not found', statusCode: 404 });
+    });
+
+    await app.request('/', undefined, { NODE_ENV: 'development' });
+
+    const block = calls[0]?.[calls[0].length - 1] as string;
+    const frames = (block.split('stack:\n')[1] ?? '')
+      .split('\n')
+      .filter(line => line.includes(' at '));
+
+    expect(frames).toHaveLength(2);
   });
 
   test('an UNEXPECTED failure keeps its frames, so a bug is locatable', async () => {

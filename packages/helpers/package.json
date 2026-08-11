@@ -1,6 +1,6 @@
 {
   "name": "@venizia/ignis-helpers",
-  "version": "0.1.1-13",
+  "version": "0.1.1-16",
   "description": "Production-ready TypeScript utility library: pluggable logging (winston or pino behind one ILogger contract), Redis single/cluster/sentinel with pub/sub, BullMQ/MQTT/Kafka message queues, MinIO/Disk/Bun-S3 object storage, AES-256/RSA/ECDH cryptography, Snowflake UID generation, cron scheduling, Socket.IO/WebSocket, TCP/TLS/UDP networking, HTTP clients, secrets/Vault, worker thread pools, and environment management. Sub-path imports isolate optional peer dependencies so the root barrel never forces a peer into your bundle.",
   "keywords": [
     "aes",
@@ -101,6 +101,10 @@
       "types": "./dist/common/index.d.ts",
       "default": "./dist/common/index.js"
     },
+    "./core": {
+      "types": "./dist/core.d.ts",
+      "default": "./dist/core.js"
+    },
     "./socket-io": {
       "types": "./dist/modules/socket/socket-io/index.d.ts",
       "default": "./dist/modules/socket/socket-io/index.js"
@@ -179,7 +183,7 @@
   },
   "dependencies": {
     "zod": "catalog:",
-    "@venizia/ignis-inversion": "^0.1.1-6",
+    "@venizia/ignis-inversion": "^0.1.1-7",
     "dayjs": "catalog:",
     "ioredis": "catalog:",
     "lodash": "catalog:",
@@ -268,7 +272,7 @@
   "devDependencies": {
     "@dotenvx/dotenvx": "^2.14.0",
     "@hono/zod-openapi": "catalog:",
-    "@platformatic/kafka": "^2.6.1",
+    "@platformatic/kafka": "^2.8.0",
     "@socket.io/redis-adapter": "catalog:",
     "@socket.io/redis-emitter": "catalog:",
     "@types/bun": "catalog:",

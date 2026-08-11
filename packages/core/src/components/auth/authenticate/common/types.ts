@@ -1,7 +1,12 @@
 import type { TContext } from '@/base/controllers/common/types';
 import type { IdType } from '@/base/models/common/types';
 import type { TAnyObjectSchema } from '@/utilities/schema.utility';
-import type { AESAlgorithmType, AnyObject, ValueOrPromise } from '@venizia/ignis-helpers';
+import type {
+  AESAlgorithmType,
+  AnyObject,
+  IPayloadCipher,
+  ValueOrPromise,
+} from '@venizia/ignis-helpers';
 import type { Env } from 'hono';
 import { type MiddlewareHandler } from 'hono';
 import type { JWTPayload } from 'jose';
@@ -50,6 +55,8 @@ export interface IJWSTokenServiceOptions {
   aesAlgorithm?: AESAlgorithmType;
   applicationSecret?: string;
   fieldCodecs?: IPayloadFieldCodec[];
+  /** Overrides the payload cipher - pass `LegacyAES` to keep reading tokens issued before the PBKDF2 envelope. */
+  cipher?: IPayloadCipher;
 }
 
 export type TJWKSAlgorithm = 'ES256' | 'RS256' | 'EdDSA';
@@ -69,6 +76,8 @@ export interface IJWKSIssuerOptions {
   aesAlgorithm?: AESAlgorithmType;
   applicationSecret?: string;
   fieldCodecs?: IPayloadFieldCodec[];
+  /** Overrides the payload cipher - pass `LegacyAES` to keep reading tokens issued before the PBKDF2 envelope. */
+  cipher?: IPayloadCipher;
 }
 
 export interface IJWKSVerifierOptions {
@@ -79,6 +88,8 @@ export interface IJWKSVerifierOptions {
   aesAlgorithm?: AESAlgorithmType;
   applicationSecret?: string;
   fieldCodecs?: IPayloadFieldCodec[];
+  /** Overrides the payload cipher - pass `LegacyAES` to keep reading tokens issued before the PBKDF2 envelope. */
+  cipher?: IPayloadCipher;
 }
 
 export type TJWKSTokenServiceOptions = IJWKSIssuerOptions | IJWKSVerifierOptions;

@@ -451,6 +451,116 @@ const config = defineConfig({
           collapsed: false,
           items: [
             {
+              text: '2026-08-07',
+              collapsed: true,
+              items: [
+                {
+                  text: 'Call Sites No Longer Have to Know Which Fields Are Text',
+                  link: '/changelogs/2026-08-07-default-query-by',
+                },
+                {
+                  text: 'Nested i18n Fields Become Filterable and Sortable',
+                  link: '/changelogs/2026-08-07-nested-fields-and-order-validation',
+                },
+                {
+                  text: 'One Transport for Every Typesense Search',
+                  link: '/changelogs/2026-08-07-typesense-multi-search-transport',
+                },
+              ],
+            },
+            {
+              text: '2026-08-06',
+              collapsed: true,
+              items: [
+                {
+                  text: 'AES Keys Derive with PBKDF2, and Ciphertext Carries a Key Id',
+                  link: '/changelogs/2026-08-06-aes-pbkdf2-and-key-rotation',
+                },
+              ],
+            },
+            {
+              text: '2026-08-05',
+              collapsed: true,
+              items: [
+                {
+                  text: 'Search Filters Now Mean What Relational Filters Mean',
+                  link: '/changelogs/2026-08-05-search-dialect-relational-parity',
+                },
+              ],
+            },
+            {
+              text: '2026-08-02',
+              collapsed: true,
+              items: [
+                {
+                  text: 'SQLite and PGlite - Two Embedded Relational Engines',
+                  link: '/changelogs/2026-08-02-sqlite-and-pglite-connectors',
+                },
+              ],
+            },
+            {
+              text: '2026-08-01',
+              collapsed: true,
+              items: [
+                {
+                  text: 'Relational Connector Lift - Engine-Neutral SQL Tier',
+                  link: '/changelogs/2026-08-01-relational-connector-lift',
+                },
+              ],
+            },
+            {
+              text: '2026-07-26',
+              collapsed: true,
+              items: [
+                {
+                  text: 'Search and Mail Errors Join the Framework Catalog',
+                  link: '/changelogs/2026-07-26-search-and-mail-error-codes',
+                },
+              ],
+            },
+            {
+              text: '2026-07-25',
+              collapsed: true,
+              items: [
+                {
+                  text: 'ignis-filter - the Filter Vocabulary as a Browser-Safe Package',
+                  link: '/changelogs/2026-07-25-ignis-filter-package',
+                },
+                {
+                  text: 'Readable Error Logs and a logLevel Option on getError',
+                  link: '/changelogs/2026-07-25-error-logging',
+                },
+              ],
+            },
+            {
+              text: '2026-07-21',
+              collapsed: true,
+              items: [
+                {
+                  text: 'BaseFilteredAdapter Connector Resolution Fix',
+                  link: '/changelogs/2026-07-21-casbin-connector-resolution-fix',
+                },
+              ],
+            },
+            {
+              text: '2026-07-20',
+              collapsed: true,
+              items: [
+                {
+                  text: 'fromError - Rehydrate a Server Error on the Client',
+                  link: '/changelogs/2026-07-20-error-from-error-client',
+                },
+                {
+                  text: 'Casbin Single-Wave Extraction - Recursive CTE Replaces the Second Query Wave',
+                  link: '/changelogs/2026-07-20-casbin-single-wave-extraction',
+                },
+                {
+                  text: 'Casbin Custom Grants - Operation-Subset Grants in One Row',
+                  link: '/changelogs/2026-07-20-casbin-custom-grants',
+                },
+              ],
+            },
+            {
               text: '2026-07-18',
               collapsed: true,
               items: [
@@ -1000,6 +1110,8 @@ const config = defineConfig({
                   text: 'Postgres Drivers & Supabase',
                   link: '/guides/core-concepts/persistent/postgres-drivers',
                 },
+                { text: 'PGlite', link: '/guides/core-concepts/persistent/pglite' },
+                { text: 'SQLite', link: '/guides/core-concepts/persistent/sqlite' },
                 { text: 'Search & Typesense', link: '/guides/core-concepts/persistent/search-typesense' },
                 {
                   text: 'Search & Meilisearch',

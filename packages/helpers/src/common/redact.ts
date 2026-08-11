@@ -24,7 +24,8 @@ const SECRET_KEY_PATTERN = new RegExp(
 export const REDACTED = '[REDACTED]';
 
 /** Kill-switch for local debugging: only the literal `false` disables redaction (fail-closed); read per call so it can be flipped at runtime. Never disable in production. */
-const isRedactionEnabled = (): boolean => process.env.APP_ENV_LOGGER_DO_REDACT !== 'false';
+const isRedactionEnabled = (): boolean =>
+  globalThis.process?.env?.APP_ENV_LOGGER_DO_REDACT !== 'false';
 
 const deepRedactSecrets = (value: unknown, seen: WeakSet<object>): unknown => {
   if (value === null || typeof value !== 'object') {

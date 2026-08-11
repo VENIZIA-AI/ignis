@@ -1,7 +1,7 @@
 import { TConstValue } from '../types';
 
 export class Defaults {
-  static readonly APPLICATION_NAME = process.env.APP_ENV_APPLICATION_NAME ?? 'APP';
+  static readonly APPLICATION_NAME = globalThis.process?.env?.APP_ENV_APPLICATION_NAME ?? 'APP';
 
   static readonly QUERY_LIMIT = 50;
   static readonly QUERY_OFFSET = 0;

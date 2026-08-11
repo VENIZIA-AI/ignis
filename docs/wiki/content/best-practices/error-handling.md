@@ -248,10 +248,10 @@ In production the message is the **base message only**. `Detail:` (which echoes 
 If you need a custom message for one constraint, catch it explicitly and re-throw everything else:
 
 ```typescript
-import { DefaultRelationalRepository, type TCount } from '@venizia/ignis';
+import { DefaultCRUDRepository, type TCount } from '@venizia/ignis';
 import { getError, HTTP } from '@venizia/ignis-helpers';
 
-export class UserRepository extends DefaultRelationalRepository<typeof User.schema> {
+export class UserRepository extends DefaultCRUDRepository<typeof User.schema> {
   async createWithCustomError(data: TCreateUser): Promise<TCount & { data: TUser }> {
     try {
       return await this.create({ data });

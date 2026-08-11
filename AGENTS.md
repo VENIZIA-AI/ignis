@@ -67,12 +67,12 @@ These are not preferences. Violating them breaks the build or the product.
 | Area | Rule |
 |---|---|
 | Package manager | **Bun only.** Never npm, yarn, or pnpm. |
-| ORM | **Drizzle only**, `node-postgres` driver. Never TypeORM, Prisma, Sequelize. |
+| ORM | **Drizzle only.** Never TypeORM, Prisma, Sequelize. Drivers ship per engine: `node-postgres`, `postgres.js` and PGlite for Postgres, libsql for SQLite. |
 | HTTP | **Hono only.** Never Express, Fastify, Koa. REST is default framework behavior, not a component. |
 | Validation | **Zod only.** Never Joi, Yup, class-validator. |
 | Testing | **Bun test runner only.** Never Jest, Vitest, Mocha. |
 | Build | `tsc` directly. Never `npx`, `bunx`, or `bun x` for TypeScript compilation. |
-| Database | PostgreSQL primary. The repository system assumes Drizzle + `pgTable`. |
+| Database | PostgreSQL primary, SQLite alongside it. The repository tier is engine-neutral: `pgTable` and `sqliteTable` both. |
 | Errors | `getError` / `ApplicationError`. **Never raw `new Error`.** |
 
 **Never `git commit`.** Leave changes in the working tree for the human to review, always.

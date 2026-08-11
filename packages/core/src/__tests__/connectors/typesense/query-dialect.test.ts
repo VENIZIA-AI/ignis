@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test';
-import { SearchModes } from '@/connectors/search/repositories/common';
+import { SearchFilterOutcomes, SearchModes } from '@/connectors/search/repositories/common';
 import type { ITypesenseSearchQuery } from '@/connectors/typesense/repositories/common';
 import { TypesenseQueryDialect } from '@/connectors/typesense/repositories/dialect/query-dialect';
 
@@ -208,14 +208,105 @@ describe('TypesenseQueryDialect - untranslatable operators/shapes throw, naming 
     expect(() => dialect.toWhere({ where: { name: { regexp: '^j' } } })).toThrow(/search\(\)/);
   });
 
-  test('dotted key (JSON path) throws', () => {
-    expect(() => dialect.toWhere({ where: { 'metadata.score': { gt: 1 } } })).toThrow(/search\(\)/);
-  });
+  // A dotted key is NOT untranslatable - under enable_nested_fields it is an ordinary Typesense
+  // field name. What decides it is membership in the collection's field list, asserted in the
+  // 'field list governs' block below, not the presence of a dot.
 
   test('filter.include present throws', () => {
     expect(() => dialect.build({ filter: { include: [{ relation: 'posts' }] } })).toThrow(
       /search\(\)/,
     );
+  });
+});
+
+/**
+ * ONE judgment - "does the collection declare this field?" - applied to both paths a caller can
+ * name a field from. `where` got it on the parity branch; `order` did not, so an unknown sort field
+ * reached the engine verbatim and came back as an infrastructure error instead of a 400.
+ *
+ * The dotted cases are the same judgment, not a second rule. With `enable_nested_fields` on, a
+ * dotted name is a REAL Typesense field name, so `merchantName.en` must compile and `metadata.foo`
+ * must be rejected for the only reason that is true of it: the collection does not declare it.
+ */
+describe('TypesenseQueryDialect - the collection field list governs order and dotted names alike', () => {
+  const dialect = new TypesenseQueryDialect();
+
+  const capabilities = {
+    fields: new Set(['price', 'name', 'merchantName.en']) as ReadonlySet<string>,
+  };
+
+  const CATALOGUED_UNKNOWN_FIELD = 'core.search_engine.unknown_field';
+
+  type TThrown = Error & { normalized?: { code?: string } };
+
+  const thrownBy = (task: () => unknown): TThrown => {
+    try {
+      task();
+    } catch (error) {
+      return error as TThrown;
+    }
+
+    throw new Error('expected the call to throw, but it returned normally');
+  };
+
+  test('order naming a field the collection does not declare is a catalogued 400', () => {
+    const error = thrownBy(() => dialect.build({ filter: { order: ['nope DESC'] }, capabilities }));
+
+    expect(error.normalized?.code).toBe(CATALOGUED_UNKNOWN_FIELD);
+    // Names BOTH, exactly as the where path does - the caller has to know which engine decided it.
+    expect(error.message).toContain("field: 'nope'");
+    expect(error.message).toContain("engine: 'Typesense'");
+  });
+
+  test('order splits the direction off before checking the name', () => {
+    // The entry is "field DIRECTION"; checking the raw entry would reject every valid sort.
+    const error = thrownBy(() => dialect.build({ filter: { order: ['nope'] }, capabilities }));
+
+    expect(error.message).toContain("field: 'nope'");
+    expect(error.message).not.toContain('nope DESC');
+  });
+
+  test('order on a declared DOTTED field compiles', () => {
+    const result = dialect.build({ filter: { order: ['merchantName.en ASC'] }, capabilities });
+
+    expect(result.sortBy).toBe('merchantName.en:asc');
+  });
+
+  test('order on a declared plain field still compiles', () => {
+    expect(dialect.build({ filter: { order: ['price DESC'] }, capabilities }).sortBy).toBe(
+      'price:desc',
+    );
+  });
+
+  test('order is UNVALIDATED when the collection declares no fields', () => {
+    // Absent `fields` means "unvalidated", not "no fields" - an entity carrying no collection
+    // definition must compile exactly as it did before this check existed.
+    expect(dialect.build({ filter: { order: ['anythingAtAll DESC'] } }).sortBy).toBe(
+      'anythingAtAll:desc',
+    );
+  });
+
+  test('where on a declared dotted field compiles - it is a field name, not a JSON path', () => {
+    const compiled = dialect.compileWhere({
+      where: { 'merchantName.en': 'ACME' },
+      capabilities,
+    });
+
+    expect(compiled).toEqual({
+      outcome: SearchFilterOutcomes.FILTER,
+      filterBy: 'merchantName.en:=`ACME`',
+    });
+  });
+
+  test('where on an undeclared dotted field names the field, NOT JSON paths', () => {
+    const error = thrownBy(() =>
+      dialect.compileWhere({ where: { 'metadata.foo': { gt: 1 } }, capabilities }),
+    );
+
+    expect(error.normalized?.code).toBe(CATALOGUED_UNKNOWN_FIELD);
+    expect(error.message).toContain("field: 'metadata.foo'");
+    // The old message claimed Typesense cannot express JSON-path fields, which is untrue of it.
+    expect(error.message).not.toContain('JSON-path');
   });
 });
 
@@ -244,12 +335,13 @@ describe('TypesenseQueryDialect.build - order/sortBy', () => {
   });
 });
 
-describe('TypesenseQueryDialect.build - pagination (limit/skip/offset -> perPage/page)', () => {
+describe('TypesenseQueryDialect.build - pagination (limit/skip/offset -> perPage or offset/limit)', () => {
   const dialect = new TypesenseQueryDialect();
 
-  test('limit -> perPage', () => {
+  test('limit alone -> perPage, the page/per_page pair', () => {
     const result = dialect.build({ filter: { limit: 10 } });
     expect(result.perPage).toBe(10);
+    expect(result.offset).toBeUndefined();
   });
 
   test('no limit -> perPage omitted', () => {
@@ -257,25 +349,43 @@ describe('TypesenseQueryDialect.build - pagination (limit/skip/offset -> perPage
     expect(result.perPage).toBeUndefined();
   });
 
-  test('skip ?? offset -> page = skip/limit + 1', () => {
+  /**
+   * A skip switches to Typesense's NATIVE offset pair. Exactly one pair is ever emitted: the two
+   * are documented as alternatives with no stated precedence, so sending both would be a bet.
+   */
+  test('skip -> offset/limit, and never both pagination pairs at once', () => {
     const result = dialect.build({ filter: { limit: 10, skip: 20 } });
-    expect(result.perPage).toBe(10);
-    expect(result.page).toBe(3);
+
+    expect(result.offset).toBe(20);
+    expect(result.limit).toBe(10);
+    expect(result.perPage).toBeUndefined();
+    expect(result.page).toBeUndefined();
   });
 
   test('offset behaves the same as skip', () => {
     const result = dialect.build({ filter: { limit: 10, offset: 20 } });
-    expect(result.page).toBe(3);
+    expect(result.offset).toBe(20);
+    expect(result.limit).toBe(10);
   });
 
-  test('skip % limit !== 0 throws', () => {
-    expect(() => dialect.build({ filter: { limit: 10, skip: 15 } })).toThrow(
-      /skip must be a multiple of limit/,
-    );
+  /**
+   * The multiple-of-limit rule is gone. It was never Typesense's - it came from expressing a skip
+   * as a page NUMBER - and the relational reference never had it either
+   * (relational/repositories/dialect/filter.ts:283-287 passes skip straight to Drizzle). Rejecting
+   * `skip: 15, limit: 10` made the search branch stricter than the branch it claims to mirror.
+   */
+  test('a skip off the page boundary is expressible', () => {
+    const result = dialect.build({ filter: { limit: 10, skip: 15 } });
+
+    expect(result.offset).toBe(15);
+    expect(result.limit).toBe(10);
   });
 
-  test('skip without limit throws (cannot express a page)', () => {
-    expect(() => dialect.build({ filter: { skip: 10 } })).toThrow();
+  test('a skip without a limit is expressible - an offset needs no page size', () => {
+    const result = dialect.build({ filter: { skip: 10 } });
+
+    expect(result.offset).toBe(10);
+    expect(result.limit).toBeUndefined();
   });
 });
 
@@ -510,11 +620,16 @@ describe('TypesenseQueryDialect.toWireParams', () => {
 
     expect(wire['filter_by']).toBe('status:=`active`');
     expect(wire['sort_by']).toBe('price:desc');
-    expect(wire['per_page']).toBe(10);
     expect(wire['include_fields']).toBe('id,name');
     expect(wire['exclude_fields']).toBe('password');
-    expect(wire['page']).toBe(1);
     expect(wire['q']).toBe('*');
+
+    // An explicit `skip` selects the offset pair whatever its value - which pair is used depends on
+    // whether a skip was asked for, not on how large it is, so there is no zero special case.
+    expect(wire['offset']).toBe(0);
+    expect(wire['limit']).toBe(10);
+    expect(wire['per_page']).toBeUndefined();
+    expect(wire['page']).toBeUndefined();
   });
 
   test('drops undefined fields instead of forwarding them as literal undefined', () => {

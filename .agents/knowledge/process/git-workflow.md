@@ -22,8 +22,9 @@ tags: [process, git, contributing]
    core.hooksPath .githooks`, pointing git at the repo's `.githooks/` directory instead of
    `.git/hooks/`.
 6. `.githooks/pre-commit` then runs on every commit: it `cd`s to the repo root and runs `make
-   lint-all` (packages AND examples), under `set -e` - any lint failure aborts the commit before it
-   is created. There is no test step in this hook; passing tests is not enforced automatically.
+   lint-all` (packages AND examples) then `make purity` (the browser purity gates), under `set -e` -
+   any lint or purity failure aborts the commit before it is created. There is no general test step
+   in this hook; passing the rest of the suite is not enforced automatically.
 7. Push the branch and open a Pull Request that targets `develop`. Never target `main` - `main`
    only accepts merges FROM `develop`, and releases off it are tagged in git (see
    [release and publish](/process/release-publish.md) for the actual per-package release

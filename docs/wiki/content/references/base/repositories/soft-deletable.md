@@ -189,8 +189,18 @@ const category = await repository.findById({
 // Throws: [CategoryRepository][findById] Entity with id 123 not found (HTTP 404)
 ```
 
+- **`isStrict` is the only thing the override adds.** Every other `findById` option - `retry`, `transaction`, `log`, `shouldSkipDefaultFilter`, `lock` - behaves exactly as on `DefaultCRUDRepository`. So does the `filter` argument.
 - **Everything else is inherited unchanged.** `find`, `findOne`, `count`, `existsWith` behave exactly as on `DefaultCRUDRepository`.
 - **The default filter excludes soft-deleted rows.** IGNIS applies `{ deletedAt: null }` automatically - pass `options: { shouldSkipDefaultFilter: true }` to include them.
+
+You can combine `isStrict` with [read retry](/references/base/repositories/advanced#read-retry-replica-lag). The retry loop runs first, so a strict read waits out replica lag before it throws:
+
+```typescript
+const category = await repository.findById({
+  id: '123',
+  options: { retry: { maxAttempts: 4 }, isStrict: true },
+});
+```
 
 ## Options Reference
 

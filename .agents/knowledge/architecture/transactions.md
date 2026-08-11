@@ -6,7 +6,7 @@ resource: packages/core/src/connectors/postgres/datasources/base.ts
 tags: [architecture, transactions, postgres, correctness]
 ---
 
-Transactions are a **relational-only** capability. `AbstractDataSource.getCapabilities()` returns `{ transactions: false }` and its `beginTransaction()` throws NotSupported (async, so callers get a rejected promise rather than a synchronous throw that skips their `try`/`catch`). Only `BaseRelationalDataSource` overrides both.
+Transactions are a **relational-only** capability. `AbstractDataSource.getCapabilities()` returns `{ transactions: false }` and its `beginTransaction()` throws NotSupported (async, so callers get a rejected promise rather than a synchronous throw that skips their `try`/`catch`). Only the relational branch overrides both, split across two classes (see [Relational connector](/architecture/relational-connector.md)): the engine-neutral `BaseRelationalDataSource` (`connectors/relational`) acquires the connection, runs the BEGIN statement, and builds the `commit`/`rollback` closures; `BasePostgresDataSource` (`connectors/postgres`) supplies the BEGIN text itself and patches `isolationLevel` onto the returned handle.
 
 ## The API
 
@@ -23,7 +23,7 @@ try {
 
 `beginTransaction(opts?: { isolationLevel })` checks out a **dedicated physical connection** from the driver (`driver.acquire({ schema })`), issues `BEGIN TRANSACTION ISOLATION LEVEL <level>` (default `READ COMMITTED`), and returns an `IDatabaseTransaction`: `{ isolationLevel, connector, isActive, commit(), rollback() }`. The isolation level is interpolated into the statement rather than bound, because `BEGIN TRANSACTION ISOLATION LEVEL $1` is not valid SQL - it is safe because the value comes from the `IsolationLevels` const-class, never from user input.
 
-Repositories consume it through the options object. `RelationalBaseRepository.resolveConnector({ transaction })` returns the transaction's connector when one is passed and the pooled connector otherwise, throwing if the transaction is no longer active or is not a Postgres transaction. So `{ transaction }` is the only thing that redirects a query onto the transaction's connection.
+Repositories consume it through the options object. `RelationalBaseRepository.resolveConnector({ transaction })` returns the transaction's connector when one is passed and the pooled connector otherwise, throwing if the transaction is no longer active or is not a relational transaction. So `{ transaction }` is the only thing that redirects a query onto the transaction's connection.
 
 ## A failed COMMIT does not resolve successfully
 
@@ -67,6 +67,7 @@ There is one deliberate exception. `finish()` treats a **rollback after a failur
 
 ## Related
 
+- [Relational connector](/architecture/relational-connector.md)
 - [DataSource Hierarchy](/architecture/datasource-hierarchy.md)
 - [Repository Hierarchy](/architecture/repository-hierarchy.md)
 - [Error Handling](/conventions/error-handling.md)

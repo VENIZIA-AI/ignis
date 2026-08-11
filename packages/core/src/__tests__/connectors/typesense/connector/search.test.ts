@@ -11,8 +11,10 @@ describe('TypesenseConnector search', () => {
       params: { q: 'shoe' },
     });
     expect(result.found).toBe(2);
-    const call = fake.calls.find(c => c.op === 'documents.search');
-    expect(call?.args[1]).toEqual({ q: 'shoe' });
+    // One collection is still ONE call - it is simply the arity-1 case of the multi_search transport.
+    const call = fake.calls.find(c => c.op === 'multiSearch.perform');
+    const [request] = (call?.args ?? []) as Array<{ searches: unknown[] }>;
+    expect(request.searches).toEqual([{ q: 'shoe', collection: 'products' }]);
   });
 
   test('maps facet_counts/grouped_hits/text_match onto camelCase result fields', async () => {
@@ -46,7 +48,13 @@ describe('TypesenseConnector search', () => {
   });
 
   test('search on a missing collection returns an empty result, not a 500', async () => {
-    const { helper } = makeHelper({ throwOn: { 'documents.search': { httpStatus: 404 } } });
+    // The measured wire shape: /multi_search answers HTTP 200 and reports the missing collection as
+    // a per-entry `{ code, error }`, so `multiSearch.perform` does NOT throw. Verified against 27.1
+    // and 31.0.rc3 - only the wording differs ('Not found.' vs 'Collection not found'), and
+    // classifyEntry keys on the 404 rather than the text.
+    const { helper } = makeHelper({
+      multiSearchResult: { results: [{ code: 404, error: 'Not found.' }] },
+    });
     const result = await helper.search({
       collection: 'nope',
       params: { q: 'x' },
@@ -58,7 +66,7 @@ describe('TypesenseConnector search', () => {
   });
 
   test('search rethrows sanitized 503 on real failure', async () => {
-    const { helper } = makeHelper({ throwOn: { 'documents.search': new Error('boom') } });
+    const { helper } = makeHelper({ throwOn: { 'multiSearch.perform': new Error('boom') } });
     let status = 0;
     try {
       await helper.search({
@@ -132,8 +140,8 @@ describe('TypesenseConnector search', () => {
       params: { q: 'x' },
       options: { cacheSearchResultsForSeconds: 60 },
     });
-    const call = fake.calls.find(c => c.op === 'documents.search');
-    // record('documents.search', name, params, options) => args[2] is the options
+    const call = fake.calls.find(c => c.op === 'multiSearch.perform');
+    // record('multiSearch.perform', reqs, common, options) => args[2] is the options
     expect(call?.args[2]).toEqual({ cacheSearchResultsForSeconds: 60 });
   });
 

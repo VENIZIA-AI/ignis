@@ -6,6 +6,7 @@ import { BasePostgresDataSource } from '@/connectors/postgres/datasources';
 import { NodePostgresDriver } from '@/connectors/postgres/drivers/node-postgres';
 import { FakePool } from '../connectors/postgres/drivers/fake-pg-client';
 import { runTransactionContract } from './transaction-contract';
+import { expectRejection } from '../rejection.helper';
 
 @datasource({ driver: NodePostgresDriver })
 class ProbeDataSource extends BasePostgresDataSource<{}> {
@@ -74,7 +75,8 @@ describe('beginTransaction - failure paths', () => {
       caught = error;
     }
 
-    // The whole point: `await transaction.commit()` must NOT resolve when the data was never written.
+    // The whole point: `await transaction.commit()`
+    // must NOT resolve when the data was never written.
     expect(caught).toBeDefined();
     expect((caught as Error).message).toBe('COMMIT exploded');
   });
@@ -161,7 +163,8 @@ describe('getClient', () => {
   });
 
   test('throws rather than returning an undefined typed as the client', () => {
-    // `pool` is genuinely unset for any datasource backed by a driver other than `pg`, and returning `undefined as Client` would push the failure to whatever dereferences it.
+    // `pool` is genuinely unset for any datasource backed by a driver other than `pg`, and
+    // returning `undefined as Client` would push the failure to whatever dereferences it.
     class UnconfiguredDataSource extends BasePostgresDataSource<{}> {
       configure(): void {
         // assigns no pool
@@ -197,7 +200,9 @@ describe('beginTransaction - rollback after a failure-ended transaction', () => 
     }
     expect((caught as Error).message).toBe('COMMIT exploded');
 
-    // In the canonical `catch { await tx.rollback(); throw error; }`, a rollback throwing 'already ended' would REPLACE the real commit failure - the transaction ended by failure, so rollback must resolve silently.
+    // In the canonical `catch { await tx.rollback(); throw error; }`, a rollback throwing 'already
+    // ended' would REPLACE the real commit failure - the transaction ended by failure, so rollback
+    // must resolve silently.
     await transaction.rollback();
 
     expect(statementsOf(pool)).toEqual([
@@ -257,7 +262,8 @@ describe('beginTransaction - acquisition and concurrency', () => {
     }
 
     expect(caught).toBeDefined();
-    // The connection was checked out before BEGIN ran, so if BEGIN throws no caller ever receives a handle to release it and repeated BEGIN failures exhaust the pool.
+    // The connection was checked out before BEGIN ran, so if BEGIN throws no caller ever receives a
+    // handle to release it and repeated failures exhaust the pool.
     expect(releasesOf(pool)).toEqual([{ destroyed: true }]);
   });
 
@@ -267,10 +273,12 @@ describe('beginTransaction - acquisition and concurrency', () => {
     const transaction = await dataSource.beginTransaction();
     const outcomes = await Promise.allSettled([transaction.commit(), transaction.rollback()]);
 
-    // One wins, the other must hit the already-ended guard - never two control statements and never a double release of the same physical connection.
+    // One wins, the other must hit the already-ended guard - never two control
+    // statements and never a double release of the same physical connection.
     expect(outcomes.filter(outcome => outcome.status === 'fulfilled')).toHaveLength(1);
     expect(outcomes.filter(outcome => outcome.status === 'rejected')).toHaveLength(1);
-    // A single beginTransaction() acquires exactly ONE physical connection: the race is on the two finish() calls over that one connection, not on two separate acquisitions.
+    // A single beginTransaction() acquires exactly ONE physical connection: the race is on
+    // the two finish() calls over that one connection, not on two separate acquisitions.
     expect(pool.clients).toHaveLength(1);
     expect(pool.clients[0].statements).toHaveLength(2);
     expect(pool.clients[0].releases).toHaveLength(1);
@@ -348,11 +356,15 @@ describe('beginTransaction - driver wiring', () => {
     const dataSource = new UndecoratedDataSource({ name: 'undecorated', config: {} });
     dataSource.configure();
 
-    expect(dataSource.beginTransaction()).rejects.toThrow(/must name a driver CLASS/);
+    await expectRejection({
+      task: dataSource.beginTransaction(),
+      message: /must name a driver CLASS/,
+    });
   });
 
   test('a driver-name STRING is refused - a string carries no module into the bundle', async () => {
-    // The cast reproduces an untyped JavaScript caller, which the runtime must refuse too: a string names a driver without referencing it, so the bundler would never package the driver module.
+    // The cast reproduces an untyped JavaScript caller, which the runtime must refuse too: a string
+    // names a driver without referencing it, so the bundler would never package the driver module.
     @datasource({ driver: DataSourceDrivers.NODE_POSTGRES as AnyType })
     class StringDriverDataSource extends BasePostgresDataSource<{}> {
       configure(): void {
@@ -367,7 +379,10 @@ describe('beginTransaction - driver wiring', () => {
     const dataSource = new StringDriverDataSource({ name: 'string-driver', config: {} });
     dataSource.configure();
 
-    expect(dataSource.beginTransaction()).rejects.toThrow(/must name a driver CLASS/);
+    await expectRejection({
+      task: dataSource.beginTransaction(),
+      message: /must name a driver CLASS/,
+    });
   });
 
   test('an explicitly assigned driver is used, and this.client is never touched', async () => {

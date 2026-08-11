@@ -5,11 +5,10 @@ import { isoTimestamp } from '../common/columns';
 
 type TIsoTimestampColumn = ReturnType<typeof isoTimestamp>;
 
-type TIsEnabled<T> = T extends { enable: false }
-  ? false
-  : T extends { enable?: true }
-    ? true
-    : undefined;
+// `undefined` is the third state - the option key was left out entirely, so the enricher default
+// decides. An options object that omits only `enable` is opted in: `{ enable?: true }` alone would
+// resolve it to `undefined` here, because weak-type detection rejects a member with no `enable`.
+type TIsEnabled<T> = T extends { enable: false } ? false : T extends object ? true : undefined;
 
 export type TTzEnricherResult<Opts extends TTzEnricherOptions | undefined = undefined> = {
   createdAt: NotNull<HasDefault<TIsoTimestampColumn>>;
@@ -43,7 +42,7 @@ export const generateTzColumnDefs = <Opts extends TTzEnricherOptions | undefined
       .notNull(),
   } as TTzEnricherResult<Opts>;
 
-  if (modified.enable) {
+  if (modified.enable !== false) {
     rs = {
       ...rs,
       modifiedAt: isoTimestamp(modified.columnName, {
@@ -55,7 +54,7 @@ export const generateTzColumnDefs = <Opts extends TTzEnricherOptions | undefined
     } as TTzEnricherResult<Opts>;
   }
 
-  if (deleted.enable) {
+  if (deleted.enable !== false) {
     rs = {
       ...rs,
       deletedAt: isoTimestamp(deleted.columnName, {

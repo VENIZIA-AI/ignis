@@ -176,7 +176,7 @@ The fourth generic, `Client = Pool`, is what lets a postgres-js datasource decla
 |---|---|---|
 | `getConnector()` | `TRelationalConnector<Schema>` | Wires the driver on first use (via `wireDriverFromMetadata()`), then returns `this.connector` |
 | `getClient()` | `Client` | Raw driver client escape hatch - `pg.Pool` for node-postgres, `Sql` for postgres-js. Reads `this.driver.getClient()` if a driver is resolved, else `this.client` directly. Throws if neither is set |
-| `getQueryDialect()` | `IRelationalQueryDialect` | Returns a shared, lazily-constructed `FilterBuilder` instance (static, one per process) |
+| `getQueryDialect()` | `IRelationalQueryDialect` | Returns a shared, lazily-constructed `PostgresQueryDialect` instance (static, one per process) |
 | `onSecretRotated(opts)` | `Promise<void>` | Applies rotated credentials to `this.settings` and rebuilds the driver/connector/client against a fresh pool. Calls `this.configure()` and `this.resolveDriver()`, then drains the old pool once the new one is in place. See [Secrets & Vault](/guides/core-concepts/secrets-vault) |
 
 **Protected methods:**

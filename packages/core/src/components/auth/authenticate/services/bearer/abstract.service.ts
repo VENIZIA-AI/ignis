@@ -1,6 +1,6 @@
 import type { TContext } from '@/base/controllers/common/types';
 import { BaseService } from '@/base/services/base';
-import type { AESAlgorithmType, ValueOrPromise } from '@venizia/ignis-helpers';
+import type { AESAlgorithmType, IPayloadCipher, ValueOrPromise } from '@venizia/ignis-helpers';
 import { AES, getError, HTTP } from '@venizia/ignis-helpers';
 import type { Env } from 'hono';
 import type { JWTPayload, JWTVerifyResult, SignJWT } from 'jose';
@@ -20,7 +20,7 @@ export abstract class AbstractBearerTokenService<E extends Env = Env> extends Ba
     'iat',
   ]);
 
-  protected aes: AES | null = null;
+  protected aes: IPayloadCipher | null = null;
   protected applicationSecret: string | null = null;
   protected fieldCodecs: Map<string, IPayloadFieldCodec> = new Map();
 
@@ -29,8 +29,10 @@ export abstract class AbstractBearerTokenService<E extends Env = Env> extends Ba
     aesAlgorithm?: AESAlgorithmType;
     applicationSecret?: string;
     fieldCodecs?: IPayloadFieldCodec[];
+    /** Overrides the cipher. Pass `LegacyAES` to keep reading tokens issued before the PBKDF2 envelope; `aesAlgorithm` is then the cipher's own concern and is ignored here. */
+    cipher?: IPayloadCipher;
   }): void {
-    const { aesAlgorithm = 'aes-256-cbc', applicationSecret, fieldCodecs } = opts;
+    const { aesAlgorithm = 'aes-256-cbc', applicationSecret, fieldCodecs, cipher } = opts;
 
     if (fieldCodecs) {
       for (const codec of fieldCodecs) {
@@ -42,7 +44,7 @@ export abstract class AbstractBearerTokenService<E extends Env = Env> extends Ba
       return;
     }
 
-    this.aes = AES.withAlgorithm(aesAlgorithm);
+    this.aes = cipher ?? AES.withAlgorithm(aesAlgorithm);
     this.applicationSecret = applicationSecret;
   }
 

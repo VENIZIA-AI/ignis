@@ -2,9 +2,8 @@ export * from './abstract';
 export * from './base';
 export * from './common';
 
-// Compatibility aliases - same classes, historical public names kept for existing apps.
-export { AbstractRelationalDataSource as AbstractPostgresDataSource } from './abstract';
-export {
-  BaseRelationalDataSource as BasePostgresDataSource,
-  BaseRelationalDataSource as BaseDataSource,
-} from './base';
+// `AbstractRelationalDataSource` / `BaseRelationalDataSource` are deliberately NOT aliased here:
+// the engine-neutral classes own those names, so re-exporting these would publish two different
+// classes under one name across sibling sub-paths. The neutral ones live at
+// `@venizia/ignis/relational`.
+export { BasePostgresDataSource as BaseDataSource } from './base';

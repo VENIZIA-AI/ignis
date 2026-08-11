@@ -1,5 +1,6 @@
 import { describe, expect, test } from 'bun:test';
 import { inspect } from 'node:util';
+import { getError } from '@/modules/error';
 import { ErrorPrettier, formatLogMessage } from '@/modules/logger';
 
 /** A drizzle-shaped failure: a huge SQL `message` plus `query`/`params`/`stack` that each repeat it, wrapping a raw pg error as `cause` - the shape that floods the log. */
@@ -279,5 +280,309 @@ describe('ErrorPrettier.format', () => {
 
   test('renders a primitive thrown value as a message', () => {
     expect(ErrorPrettier.format({ error: 'boom' })).toBe('- message: boom');
+  });
+});
+
+/** `%{placeholder}` stays raw by design - i18n resolves it downstream - so the log must carry the values separately or a reader cannot tell WHICH field failed. */
+describe('ErrorPrettier and normalized args', () => {
+  const buildImmutableFieldError = () =>
+    getError({
+      message: {
+        text: 'Field %{field} is fixed at creation and cannot be changed.',
+        code: 'server.core.inventory.ticket.update.immutable_field',
+        args: { field: 'ticketType' },
+      },
+      statusCode: 400,
+    });
+
+  test('summarize exposes normalized args', () => {
+    const summary = ErrorPrettier.summarize({ error: buildImmutableFieldError() });
+
+    expect(summary.args).toEqual({ field: 'ticketType' });
+  });
+
+  test('format renders the args beside the unresolved template', () => {
+    const block = ErrorPrettier.format({
+      error: buildImmutableFieldError(),
+      messageCode: 'server.core.inventory.ticket.update.immutable_field',
+      includeStack: false,
+    });
+
+    expect(block).toContain('message: Field %{field} is fixed at creation and cannot be changed.');
+    expect(block).toContain("args: { field: 'ticketType' }");
+  });
+
+  test('args come immediately after the message they fill in', () => {
+    const block = ErrorPrettier.format({
+      error: buildImmutableFieldError(),
+      includeStack: false,
+    });
+    const lines = block.split('\n');
+
+    expect(lines[0]).toContain('message:');
+    expect(lines[1]).toContain('args:');
+  });
+
+  test('an empty args map adds no line - every getError without args would carry one', () => {
+    const error = getError({ message: { text: 'Nothing to fill', code: 'server.core.plain' } });
+    const block = ErrorPrettier.format({ error, includeStack: false });
+
+    expect(block).not.toContain('args:');
+  });
+
+  test('redacts a secret-named key inside args', () => {
+    const error = getError({
+      message: {
+        text: 'Login failed for %{email}',
+        code: 'server.core.auth.login.failed',
+        args: { email: 'a@b.com', password: 'hunter2' },
+      },
+    });
+    const block = ErrorPrettier.format({ error, includeStack: false });
+
+    expect(block).toContain('[REDACTED]');
+    expect(block).not.toContain('hunter2');
+  });
+
+  test('normalized.code reaches the summary - only AppErrorMiddleware passes messageCode by hand', () => {
+    const error = getError({
+      message: { text: 'Ticket is closed', code: 'server.core.inventory.ticket.closed' },
+    });
+
+    expect(ErrorPrettier.summarize({ error }).messageCode).toBe(
+      'server.core.inventory.ticket.closed',
+    );
+    expect(ErrorPrettier.format({ error, includeStack: false })).toContain(
+      'code: server.core.inventory.ticket.closed',
+    );
+  });
+
+  test('the DEFAULT code is not surfaced - every codeless error would carry a noise line', () => {
+    const error = getError({ message: 'Something went wrong' });
+
+    expect(ErrorPrettier.summarize({ error }).messageCode).toBeUndefined();
+    expect(ErrorPrettier.format({ error, includeStack: false })).not.toContain('core.system_error');
+  });
+
+  /** A driver's `23505` and a message code are different things; folding them would print one as the other. */
+  test("an error's own code stays separate from its message code", () => {
+    const error = Object.assign(getError({ message: { text: 'x', code: 'server.core.a.b' } }), {
+      code: '23505',
+    });
+    const summary = ErrorPrettier.summarize({ error });
+
+    expect(summary.code).toBe('23505');
+    expect(summary.messageCode).toBe('server.core.a.b');
+  });
+
+  test("a caller-supplied messageCode still wins over the error's own", () => {
+    const error = getError({ message: { text: 'x', code: 'server.core.a.b' } });
+    const block = ErrorPrettier.format({
+      error,
+      messageCode: 'server.core.caller.wins',
+      includeStack: false,
+    });
+
+    expect(block).toContain('code: server.core.caller.wins');
+    expect(block).not.toContain('server.core.a.b');
+  });
+
+  test('a cause does not hoist its args to the root - the root owns the message being filled', () => {
+    const inner = getError({
+      message: { text: 'inner %{a}', code: 'server.core.inner', args: { a: 'INNER' } },
+    });
+    const outer = Object.assign(new Error('outer'), { cause: inner });
+    const block = ErrorPrettier.format({ error: outer, includeStack: false });
+
+    expect(block).not.toContain('INNER');
+  });
+});
+
+/** The throw site is what a 4xx line is missing; the framework's own factory frame is not it. */
+describe('ErrorPrettier stack budget', () => {
+  const throwFromService = () => {
+    throw getError({ message: { text: 'Ticket is closed', code: 'server.core.ticket.closed' } });
+  };
+
+  const captured = () => {
+    try {
+      throwFromService();
+    } catch (error) {
+      return error;
+    }
+    throw new Error('unreachable');
+  };
+
+  test('no frame points into the error factory - it costs a slot and names no call site', () => {
+    const summary = ErrorPrettier.summarize({ error: captured() });
+
+    expect(summary.stack).toBeDefined();
+    expect(summary.stack).not.toContain('modules/error/app-error');
+    expect(summary.stack).toContain('throwFromService');
+  });
+
+  test('format forwards maxStackFrames - callers were pinned at the default', () => {
+    const block = ErrorPrettier.format({ error: captured(), maxStackFrames: 1 });
+    const frames = (block.split('stack:\n')[1] ?? '')
+      .split('\n')
+      .filter(line => line.includes(' at '));
+
+    expect(frames).toHaveLength(1);
+  });
+});
+
+/** A multi-line block becomes one record per line in a log monitor, so the error loses its context. */
+describe('ErrorPrettier JSON rendering', () => {
+  const buildError = () =>
+    getError({
+      message: {
+        text: 'Field %{field} is fixed at creation and cannot be changed.',
+        code: 'server.core.inventory.ticket.update.immutable_field',
+        args: { field: 'ticketType' },
+      },
+      statusCode: 400,
+    });
+
+  test('json renders ONE physical line', () => {
+    const line = ErrorPrettier.format({ error: buildError(), format: 'json' });
+
+    expect(line.split('\n')).toHaveLength(1);
+  });
+
+  test('a message with real newlines stays on one line', () => {
+    const error = new Error('Failed query:\n  SELECT 1\nparams: a,b');
+    const line = ErrorPrettier.format({ error, format: 'json', includeStack: false });
+
+    expect(line.split('\n')).toHaveLength(1);
+    expect(JSON.parse(line).message).toContain('SELECT 1');
+  });
+
+  test('carries message, args and code as fields', () => {
+    const payload = JSON.parse(
+      ErrorPrettier.format({ error: buildError(), format: 'json', includeStack: false }),
+    );
+
+    expect(payload.message).toBe('Field %{field} is fixed at creation and cannot be changed.');
+    expect(payload.args).toEqual({ field: 'ticketType' });
+    expect(payload.code).toBe('server.core.inventory.ticket.update.immutable_field');
+  });
+
+  test('stack is an ARRAY of frames, not a joined string', () => {
+    const payload = JSON.parse(ErrorPrettier.format({ error: buildError(), format: 'json' }));
+
+    expect(Array.isArray(payload.stack)).toBe(true);
+    expect(payload.stack[0]).toContain(' (');
+  });
+
+  test('absent fields are omitted, never null', () => {
+    const payload = JSON.parse(
+      ErrorPrettier.format({ error: new Error('flat'), format: 'json', includeStack: false }),
+    );
+
+    expect('args' in payload).toBe(false);
+    expect('code' in payload).toBe(false);
+    expect('extra' in payload).toBe(false);
+  });
+
+  test('redacts secret-named keys in args and extra, exactly as text does', () => {
+    const error = getError({
+      message: {
+        text: 'Login failed for %{email}',
+        code: 'server.core.auth.login.failed',
+        args: { email: 'a@b.com', password: 'hunter2' },
+      },
+    });
+    const line = ErrorPrettier.format({
+      error,
+      format: 'json',
+      extra: { token: 'sk-live-abc' },
+      includeStack: false,
+    });
+
+    expect(line).not.toContain('hunter2');
+    expect(line).not.toContain('sk-live-abc');
+    expect(line).toContain('[REDACTED]');
+  });
+
+  test('text stays the bullet block - json is opt-in through the format', () => {
+    const block = ErrorPrettier.format({
+      error: buildError(),
+      format: 'text',
+      includeStack: false,
+    });
+
+    expect(block.startsWith('- message: ')).toBe(true);
+    expect(() => JSON.parse(block)).toThrow();
+  });
+});
+
+/** `format` runs inside the error handler. Throwing there turns a handled failure into an unhandled one. */
+describe('ErrorPrettier JSON resilience', () => {
+  const buildCircular = () => {
+    const value: Record<string, unknown> = { orderId: 'ord-1' };
+    value.self = value;
+    return value;
+  };
+
+  test('a cyclic extra does not throw - JSON.stringify alone would', () => {
+    const line = ErrorPrettier.format({
+      error: new Error('boom'),
+      extra: buildCircular(),
+      includeStack: false,
+      format: 'json',
+    });
+
+    expect(() => JSON.parse(line)).not.toThrow();
+    expect(JSON.parse(line).extra.self).toBe('[Circular]');
+  });
+
+  test('a cyclic args does not throw either', () => {
+    const error = getError({ message: { text: 'x %{a}', code: 'server.core.x.y' } });
+    (error.normalized.args as Record<string, unknown>).a = buildCircular();
+
+    const line = ErrorPrettier.format({ error, includeStack: false, format: 'json' });
+
+    expect(() => JSON.parse(line)).not.toThrow();
+  });
+
+  test('the non-cyclic payload is untouched - resilience must not degrade the common case', () => {
+    const line = ErrorPrettier.format({
+      error: new Error('boom'),
+      extra: { orderId: 'ord-1', nested: { qty: 2 } },
+      includeStack: false,
+      format: 'json',
+    });
+
+    expect(JSON.parse(line).extra).toEqual({ orderId: 'ord-1', nested: { qty: 2 } });
+  });
+});
+
+/** The factory-frame filter must name IGNIS's own file, not any file that happens to sit at the same path. */
+describe('ErrorPrettier factory-frame filter precision', () => {
+  const frameStack = (frames: Array<string>) =>
+    Object.assign(new Error('boom'), { stack: ['Error: boom', ...frames].join('\n') });
+
+  test("an application's own modules/error/app-error is NOT swallowed", () => {
+    const error = frameStack([
+      '    at assertThing (/app/src/modules/error/app-error.ts:12:9)',
+      '    at handler (/app/src/controller.ts:5:3)',
+    ]);
+
+    const stack = ErrorPrettier.summarize({ error }).stack ?? '';
+
+    expect(stack).toContain('/app/src/modules/error/app-error.ts');
+  });
+
+  test("IGNIS's own factory frame is swallowed, installed or in the monorepo", () => {
+    const error = frameStack([
+      '    at getError (/app/node_modules/@venizia/ignis-inversion/dist/cjs/modules/error/app-error.js:56:20)',
+      '    at getError (/repo/packages/inversion/dist/esm/modules/error/app-error.js:50:20)',
+      '    at updateTicket (/app/src/ticket.service.ts:8:11)',
+    ]);
+
+    const stack = ErrorPrettier.summarize({ error }).stack ?? '';
+
+    expect(stack).not.toContain('app-error');
+    expect(stack).toContain('ticket.service.ts');
   });
 });

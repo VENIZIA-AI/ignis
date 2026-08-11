@@ -51,6 +51,8 @@ How the pieces fit.
 - [DataSource hierarchy](/architecture/datasource-hierarchy.md) - the connector and driver seams
 - [Transactions](/architecture/transactions.md) - commit, rollback, and connection safety
 - [Filter system](/architecture/filter-system.md) - operators, JSON paths, the dual query API
+- [Relational connector](/architecture/relational-connector.md) - the engine-neutral SQL tier
+- [SQLite connector](/architecture/sqlite-connector.md) - the second SQL engine, and what it refuses
 - [Typesense search connector](/architecture/search-typesense.md) - the search branch
 - [Authentication](/architecture/authentication.md) - strategies and the token seam
 - [Casbin authorization](/architecture/authorization-casbin.md) - scoped RBAC
@@ -95,7 +97,9 @@ Runnable apps. [vert](/examples/vert.md) is the production-grade reference imple
 [socket-io-test](/examples/socket-io-test.md) ·
 [websocket-test](/examples/websocket-test.md) ·
 [supabase](/examples/supabase.md) ·
-[typesense-search](/examples/typesense-search.md)
+[typesense-search](/examples/typesense-search.md) ·
+[pglite-quickstart](/examples/pglite-quickstart.md) ·
+[sqlite-quickstart](/examples/sqlite-quickstart.md)
 
 ## Reference
 

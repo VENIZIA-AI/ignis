@@ -91,7 +91,7 @@ class PaymentGateway extends AxiosNetworkRequest {
 
 | Setting | Default |
 |---|---|
-| `Content-Type` header | `application/json` |
+| `content-type` header | `application/json; charset=utf-8` |
 | `withCredentials` | `true` |
 | `validateStatus` | `status < 500` |
 | `timeout` | `60000` ms |

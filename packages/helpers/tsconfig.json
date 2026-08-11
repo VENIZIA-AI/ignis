@@ -9,5 +9,5 @@
     }
   },
   "include": ["src", "./*.config.*", ".prettierrc.*"],
-  "exclude": ["node_modules", "dist", "app_data"]
+  "exclude": [ "node_modules", "dist", "app_data" ]
 }

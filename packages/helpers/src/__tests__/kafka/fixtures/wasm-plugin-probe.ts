@@ -1,12 +1,21 @@
+import type { BunPlugin } from 'bun';
 import { rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { platformaticWasmPlugin } from '../../../modules/queue/kafka';
+import { platformaticKafkaPlugins, platformaticWasmPlugin } from '../../../modules/queue/kafka';
 
 const ENTRYPOINT = 'src/__tests__/kafka/fixtures/kafka-entrypoint.ts';
 
+/** `--all` registers the full plugin set: a binary needs every one of them to boot, so the wasm plugin alone cannot carry the boot case. */
+const resolvePlugins = (): BunPlugin[] => {
+  if (process.argv.includes('--all')) {
+    return platformaticKafkaPlugins();
+  }
+
+  return process.argv.includes('--plugin') ? [platformaticWasmPlugin()] : [];
+};
+
 const probe = async (): Promise<void> => {
-  const isPluginEnabled = process.argv.includes('--plugin');
   const isCompiled = process.argv.includes('--compile');
   const outfile = join(tmpdir(), `ignis-wasm-plugin-probe-${process.pid}`);
 
@@ -14,7 +23,7 @@ const probe = async (): Promise<void> => {
     const built = await Bun.build({
       entrypoints: [ENTRYPOINT],
       target: 'bun',
-      plugins: isPluginEnabled ? [platformaticWasmPlugin()] : [],
+      plugins: resolvePlugins(),
       ...(isCompiled ? { compile: { outfile } } : {}),
     });
 

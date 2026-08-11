@@ -1,6 +1,6 @@
-import { redactSecrets } from '@/common/redact';
 import { AnyObject, HTTP, THttpMethod } from '@/common';
-import axios, { AxiosRequestConfig } from 'axios';
+import { redactSecrets } from '@/common/redact';
+import axios, { AxiosInstance, AxiosRequestConfig } from 'axios';
 import https from 'node:https';
 import { stringify } from 'node:querystring';
 import { BaseNetworkRequest } from '../base-network-request.helper';
@@ -17,7 +17,8 @@ export interface IAxiosRequestOptions extends AxiosRequestConfig, IRequestOption
 export class AxiosFetcher extends AbstractNetworkFetchableHelper<
   'axios',
   IAxiosRequestOptions,
-  axios.AxiosResponse<any, any>['data']
+  axios.AxiosResponse<any, any>['data'],
+  AxiosInstance
 > {
   constructor(opts: { name: string; defaultConfigs: AxiosRequestConfig; logger?: any }) {
     super({ name: opts.name, variant: 'axios' });

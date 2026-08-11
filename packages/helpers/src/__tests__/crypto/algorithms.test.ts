@@ -31,39 +31,45 @@ describe('Crypto Algorithms', () => {
       });
     });
 
-    describe('normalizeSecretKey', () => {
+    describe('normalizeSecretKey (PBKDF2)', () => {
       let aes: AES;
 
       beforeAll(() => {
         aes = AES.withAlgorithm('aes-256-cbc');
       });
 
-      test('TC-004: should pad short secret to target length', () => {
+      test('TC-004: derives a Buffer of the requested length from a short secret', () => {
         const result = aes['normalizeSecretKey']({ secret: 'abc', length: 8 });
+        expect(Buffer.isBuffer(result)).toBe(true);
         expect(result.length).toBe(8);
-        expect(result.startsWith('abc')).toBe(true);
       });
 
-      test('TC-005: should truncate long secret to target length', () => {
+      test('TC-005: derives full length from a long secret (no truncation)', () => {
         const result = aes['normalizeSecretKey']({ secret: SECRET_LONG, length: 32 });
         expect(result.length).toBe(32);
-        expect(result).toBe(SECRET_LONG.slice(0, 32));
       });
 
-      test('TC-006: should return exact-length secret unchanged (content-wise)', () => {
-        const result = aes['normalizeSecretKey']({ secret: SECRET_32, length: 32 });
-        expect(result.length).toBe(32);
-        expect(result).toBe(SECRET_32);
+      test('TC-006: derivation is deterministic for same secret + length', () => {
+        const a = aes['normalizeSecretKey']({ secret: SECRET_32, length: 32 });
+        const b = aes['normalizeSecretKey']({ secret: SECRET_32, length: 32 });
+        expect(a.equals(b)).toBe(true);
       });
 
-      test('TC-007: should use custom padEnd character', () => {
-        const result = aes['normalizeSecretKey']({ secret: 'abc', length: 6, padEnd: 'x' });
-        expect(result).toBe('abcxxx');
+      test('TC-007: different secrets derive different keys', () => {
+        const a = aes['normalizeSecretKey']({ secret: 'secret-a', length: 32 });
+        const b = aes['normalizeSecretKey']({ secret: 'secret-b', length: 32 });
+        expect(a.equals(b)).toBe(false);
       });
 
-      test('TC-008: should handle empty secret', () => {
+      test('TC-008: handles empty secret (still derives requested length)', () => {
         const result = aes['normalizeSecretKey']({ secret: '', length: 4 });
         expect(result.length).toBe(4);
+      });
+
+      test('TC-008b: derived key is NOT the raw secret bytes (padEnd removed)', () => {
+        const result = aes['normalizeSecretKey']({ secret: SECRET_32, length: 32 });
+        // Legacy padEnd returned the secret verbatim; PBKDF2 must not.
+        expect(result.toString('utf-8')).not.toBe(SECRET_32);
       });
     });
 
@@ -111,14 +117,14 @@ describe('Crypto Algorithms', () => {
         expect(decrypted).toBe(plaintext);
       });
 
-      test('TC-014: encrypt/decrypt roundtrip with short secret (auto-padded)', () => {
+      test('TC-014: encrypt/decrypt roundtrip with short secret (PBKDF2-derived)', () => {
         const plaintext = 'pad my secret';
         const encrypted = aes.encrypt({ message: plaintext, secret: SECRET_SHORT });
         const decrypted = aes.decrypt({ message: encrypted, secret: SECRET_SHORT });
         expect(decrypted).toBe(plaintext);
       });
 
-      test('TC-015: encrypt/decrypt roundtrip with long secret (auto-truncated)', () => {
+      test('TC-015: encrypt/decrypt roundtrip with long secret (PBKDF2-derived)', () => {
         const plaintext = 'truncate my secret';
         const encrypted = aes.encrypt({ message: plaintext, secret: SECRET_LONG });
         const decrypted = aes.decrypt({ message: encrypted, secret: SECRET_LONG });
@@ -129,7 +135,8 @@ describe('Crypto Algorithms', () => {
         const plaintext = 'explicit iv test';
         const iv = C.randomBytes(16);
         const encrypted = aes.encrypt({ message: plaintext, secret: SECRET_32, opts: { iv } });
-        const decrypted = aes.decrypt({ message: encrypted, secret: SECRET_32, opts: { iv } });
+        // No `iv` on the way back: the envelope carries the one encrypt used.
+        const decrypted = aes.decrypt({ message: encrypted, secret: SECRET_32 });
         expect(decrypted).toBe(plaintext);
       });
 
@@ -293,7 +300,8 @@ describe('Crypto Algorithms', () => {
         const plaintext = 'explicit iv gcm';
         const iv = C.randomBytes(16);
         const encrypted = aes.encrypt({ message: plaintext, secret: SECRET_32, opts: { iv } });
-        const decrypted = aes.decrypt({ message: encrypted, secret: SECRET_32, opts: { iv } });
+        // No `iv` on the way back: the envelope carries the one encrypt used.
+        const decrypted = aes.decrypt({ message: encrypted, secret: SECRET_32 });
         expect(decrypted).toBe(plaintext);
       });
 
@@ -310,6 +318,44 @@ describe('Crypto Algorithms', () => {
           opts: { inputEncoding: 'hex' },
         });
         expect(decrypted).toBe(plaintext);
+      });
+    });
+
+    describe('Key rotation (keyring)', () => {
+      const OLD = { id: '1', secret: 'old-secret-value-for-rotation' };
+      const NEW = { id: '2', secret: 'new-secret-value-for-rotation' };
+
+      test('TC-R01: keyring decrypts data written under the current key', () => {
+        const aes = AES.withAlgorithm('aes-256-gcm');
+        const enc = aes.encrypt({ message: 'rotate me', secret: [OLD] });
+        expect(aes.decrypt({ message: enc, secret: [OLD] })).toBe('rotate me');
+      });
+
+      test('TC-R02: after rotation, old ciphertext still decrypts and new writes use the new key', () => {
+        const aes = AES.withAlgorithm('aes-256-gcm');
+
+        // Written before rotation (current key = OLD, tagged id "1").
+        const legacy = aes.encrypt({ message: 'legacy data', secret: [OLD] });
+
+        // Rotate: NEW becomes current (keyring[0]); OLD retained so old data still reads.
+        const keyring = [NEW, OLD];
+
+        expect(aes.decrypt({ message: legacy, secret: keyring })).toBe('legacy data');
+
+        const fresh = aes.encrypt({ message: 'fresh data', secret: keyring });
+        expect(aes.decrypt({ message: fresh, secret: keyring })).toBe('fresh data');
+      });
+
+      test('TC-R03: a keyring missing the ciphertext key id throws', () => {
+        const aes = AES.withAlgorithm('aes-256-gcm');
+        const enc = aes.encrypt({ message: 'orphan', secret: [OLD] }); // tagged id "1"
+        expect(() => aes.decrypt({ message: enc, secret: [NEW] })).toThrow();
+      });
+
+      test('TC-R04: a bare string secret still works (single-key mode)', () => {
+        const aes = AES.withAlgorithm('aes-256-cbc');
+        const enc = aes.encrypt({ message: 'single key', secret: 'plain-secret' });
+        expect(aes.decrypt({ message: enc, secret: 'plain-secret' })).toBe('single key');
       });
     });
 
@@ -982,5 +1028,43 @@ describe('Crypto Algorithms', () => {
         expect(ecdh.decrypt({ message: tampered, secret: sharedKey })).rejects.toThrow();
       });
     });
+  });
+});
+
+/** Two contract gaps left by the PBKDF2 envelope change. */
+describe('AES contract after the envelope change', () => {
+  const KEYRING_SECRET = 'abcdefghijklmnopqrstuvwxyz012345';
+
+  test('an empty secret in the keyring is refused by name, not by an opaque crypto error', () => {
+    const aes = AES.withAlgorithm('aes-256-gcm');
+    const encrypted = aes.encrypt({
+      message: 'payload',
+      secret: [{ id: '1', secret: KEYRING_SECRET }],
+    });
+
+    let caught: unknown;
+    try {
+      aes.decrypt({ message: encrypted, secret: [{ id: '1', secret: '' }] });
+    } catch (error) {
+      caught = error;
+    }
+
+    // resolveEncryptKey already guards this; the decrypt side must say the same thing.
+    expect((caught as Error).message).toContain('resolveDecryptKey');
+  });
+
+  test('decrypt takes no iv - the envelope carries it, so accepting one would be a lie', () => {
+    const aes = AES.withAlgorithm('aes-256-cbc');
+    const encrypted = aes.encrypt({ message: 'payload', secret: KEYRING_SECRET });
+
+    const decrypted = aes.decrypt({
+      message: encrypted,
+      secret: KEYRING_SECRET,
+      // @ts-expect-error `iv` is an encrypt-only option; decrypt reads it from the envelope.
+      opts: { iv: Buffer.alloc(16, 7) },
+    });
+
+    // The envelope wins regardless, which is exactly why the option must not typecheck.
+    expect(decrypted).toBe('payload');
   });
 });

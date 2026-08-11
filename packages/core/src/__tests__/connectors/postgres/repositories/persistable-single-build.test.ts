@@ -3,7 +3,8 @@ import type { AnyType } from '@venizia/ignis-helpers';
 import { pgTable, serial, varchar } from 'drizzle-orm/pg-core';
 import { BasePostgresEntity } from '@/connectors/postgres/models';
 import { PersistableRepository } from '@/connectors/postgres/repositories';
-import { FilterBuilder } from '@/connectors/postgres/repositories/dialect/filter';
+import { PostgresQueryDialect } from '@/connectors/postgres/repositories/dialect/query-dialect';
+import { PostgresQueryExecutor } from '@/connectors/postgres/repositories/executor';
 import { buildFakeConnector } from './fake-connector';
 
 const table = pgTable('single_build_fixture', {
@@ -18,11 +19,12 @@ class SingleBuildFixtureEntity extends BasePostgresEntity {
 }
 
 const buildSetup = (opts: { result: unknown }) => {
-  const dialect = new FilterBuilder();
+  const dialect = new PostgresQueryDialect();
   const connector = buildFakeConnector({ result: opts.result });
   const dataSource = {
     getQueryDialect: () => dialect,
     getConnector: () => connector,
+    getQueryExecutor: () => new PostgresQueryExecutor(),
   } as AnyType;
 
   const repository = new PersistableRepository<AnyType>(dataSource, {
@@ -34,7 +36,10 @@ const buildSetup = (opts: { result: unknown }) => {
 
 const pgQueryResult = { rows: [], rowCount: 2 };
 
-/** The where SQL must be compiled exactly once per update/delete - validateWhereCondition hands its compiled condition to the caller rather than the caller recompiling it. */
+/**
+ * The where SQL must be compiled exactly once per update/delete: validateWhereCondition hands its
+ * compiled condition back rather than leaving the caller to recompile it.
+ */
 describe('PersistableRepository - where SQL is built once per update/delete', () => {
   test('updateAll builds toWhere exactly once', async () => {
     const { repository, dialect } = buildSetup({ result: pgQueryResult });

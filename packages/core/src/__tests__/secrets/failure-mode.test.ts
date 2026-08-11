@@ -1,6 +1,7 @@
 import { BaseApplication } from '@/base/applications/base';
 import { SecretProviders, type AnyType, type ISecretsRegistration } from '@venizia/ignis-helpers';
 import { afterEach, describe, expect, test } from 'bun:test';
+import { expectRejection } from '../rejection.helper';
 
 class FailingSecretsApp extends BaseApplication {
   override getProjectRoot() {
@@ -31,12 +32,17 @@ describe('hydrateSecrets failure mode', () => {
   test('development env falls back without throwing', async () => {
     process.env.NODE_ENV = 'development';
     const app = new FailingSecretsApp({ scope: 'probe', config: {} as AnyType });
-    expect(app.hydrateSecrets()).resolves.toBeUndefined();
+
+    expect(await app.hydrateSecrets()).toBeUndefined();
   });
 
   test('production env throws ApplicationError', async () => {
     process.env.NODE_ENV = 'production';
     const app = new FailingSecretsApp({ scope: 'probe', config: {} as AnyType });
-    expect(app.hydrateSecrets()).rejects.toThrow(/non-development environment/);
+
+    await expectRejection({
+      task: app.hydrateSecrets(),
+      message: /non-development environment/,
+    });
   });
 });

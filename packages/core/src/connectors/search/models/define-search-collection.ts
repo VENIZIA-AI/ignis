@@ -94,7 +94,7 @@ const assertUniqueSynonymIds = (opts: { name: string; synonyms: readonly ISynony
 
 /** `<const T>` preserves field literals so `TSearchDocument<typeof X>` can map over them - a plain `T extends ISearchCollectionDefinition` would widen `fields` and lose every literal. */
 export const defineSearchCollection = <const T extends ISearchCollectionDefinition>(opts: T): T => {
-  const { name, fields, defaultSort, synonyms, engineOverrides } = opts;
+  const { name, fields, defaultSort, defaultQueryBy, synonyms, engineOverrides } = opts;
 
   if (!name || name.trim().length === 0) {
     throw getError({
@@ -141,10 +141,38 @@ export const defineSearchCollection = <const T extends ISearchCollectionDefiniti
     }
   }
 
+  if (defaultQueryBy) {
+    for (const queryByFieldName of defaultQueryBy) {
+      const queryByField = resolvedFields.find(item => item.name === queryByFieldName);
+
+      if (!queryByField) {
+        throw getError({
+          message: `[defineSearchCollection] Invalid defaultQueryBy | field not found | name: ${name} | field: ${queryByFieldName}`,
+        });
+      }
+
+      if (
+        queryByField.type !== SearchFieldTypes.STRING &&
+        queryByField.type !== SearchFieldTypes.STRING_ARRAY
+      ) {
+        throw getError({
+          message: `[defineSearchCollection] Invalid defaultQueryBy | full-text search matches text fields only (string, string[]) | name: ${name} | field: ${queryByFieldName} | type: ${queryByField.type}`,
+        });
+      }
+    }
+  }
+
   if (synonyms) {
     assertUniqueSynonymIds({ name, synonyms });
   }
 
   // The runtime result is only structurally an ISearchCollectionDefinition; the cast back to the caller's literal T is deliberate - `id` is guaranteed at the type level via TSearchDocument.
-  return { name, fields: resolvedFields, defaultSort, synonyms, engineOverrides } as T;
+  return {
+    name,
+    fields: resolvedFields,
+    defaultSort,
+    defaultQueryBy,
+    synonyms,
+    engineOverrides,
+  } as T;
 };

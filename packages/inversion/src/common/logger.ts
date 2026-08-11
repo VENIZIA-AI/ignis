@@ -1,4 +1,10 @@
 export class Logger {
+  private static debugEnabled = Boolean(globalThis.process?.env?.DEBUG);
+
+  static enableDebug(opts: { enabled: boolean }) {
+    Logger.debugEnabled = opts.enabled;
+  }
+
   static info(message: string, ...args: unknown[]) {
     console.log(`[INFO] ${message}`, ...args);
   }
@@ -12,7 +18,7 @@ export class Logger {
   }
 
   static debug(message: string, ...args: unknown[]) {
-    if (!process.env.DEBUG) {
+    if (!Logger.debugEnabled) {
       return;
     }
 

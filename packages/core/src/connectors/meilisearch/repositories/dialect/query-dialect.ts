@@ -1,20 +1,87 @@
 import { QueryOperators, type TFilter, type TWhere } from '@venizia/ignis-filter';
 import type {
+  ISearchCompileCapabilities,
   ISearchQuery,
   ISearchQueryDialect,
+  TCompiledWhere,
   TSearchInput,
 } from '@/connectors/search/repositories/common';
-import { SearchModes } from '@/connectors/search/repositories/common';
+import { SearchFilterOutcomes, SearchModes } from '@/connectors/search/repositories/common';
 import {
+  assertKnownField,
   isOperatorObject,
+  parenthesize,
+  reduceCompiled,
+  throwUnsupportedOperator,
   toFieldsCsv,
+  toFilterClause,
   toSearchPage,
 } from '@/connectors/search/repositories/common/dialect-helpers';
+import { SearchErrors } from '@/connectors/search/common';
 import { getError } from '@venizia/ignis-helpers';
 import type { IMeilisearchSearchQuery } from '../common';
 
 /** The non-raw search inputs the dialect translates; `raw` bypasses the dialect entirely. */
 type TTranslatableSearchInput = Exclude<TSearchInput, { mode: typeof SearchModes.RAW }>;
+
+/** Names the engine in every rejection, so a caller reading the error knows it is the ENGINE CHOICE that decided it, not the operator. */
+const ENGINE = 'Meilisearch';
+
+/**
+ * Which neutral operators this engine can express. EVERY member of `QueryOperators.SCHEME_SET`
+ * has a cell; a conformance test pins the key set against the vocabulary so a newly added
+ * operator cannot reach this engine unclassified.
+ *
+ * Note where this DIVERGES from Typesense: Meilisearch has real null and presence predicates
+ * (`IS NULL`, `EXISTS`), so `exists`/`notExists`/`is: null` are expressible here and are not on
+ * Typesense. Levelling the two engines down to their intersection would delete working behaviour.
+ */
+const CAN_EXPRESS: Record<string, boolean> = {
+  [QueryOperators.EQ]: true,
+  [QueryOperators.NE]: true,
+  [QueryOperators.NEQ]: true,
+  [QueryOperators.GT]: true,
+  [QueryOperators.GTE]: true,
+  [QueryOperators.LT]: true,
+  [QueryOperators.LTE]: true,
+
+  // Pattern matching is a relevance concern in Meilisearch too - it lives in `q`, not `filter`.
+  [QueryOperators.LIKE]: false,
+  [QueryOperators.NOT_LIKE]: false,
+  [QueryOperators.ILIKE]: false,
+  [QueryOperators.NOT_ILIKE]: false,
+  [QueryOperators.REGEXP]: false,
+  [QueryOperators.IREGEXP]: false,
+
+  // Including the `: null` form, which maps to Meilisearch's own IS NULL / IS NOT NULL.
+  [QueryOperators.IS]: true,
+  [QueryOperators.IS_NOT]: true,
+
+  [QueryOperators.IN]: true,
+  [QueryOperators.INQ]: true,
+  [QueryOperators.NIN]: true,
+
+  // Native `EXISTS` / `NOT EXISTS`. Expressible here and NOT on Typesense - a deliberate asymmetry.
+  [QueryOperators.EXISTS]: true,
+  [QueryOperators.NOT_EXISTS]: true,
+
+  [QueryOperators.BETWEEN]: true,
+  // Rewritten by De Morgan into `< min OR > max` - see compileOperatorClause.
+  [QueryOperators.NOT_BETWEEN]: true,
+
+  // Postgres array-containment semantics; Meilisearch array filtering answers a different question.
+  [QueryOperators.CONTAINS]: false,
+  [QueryOperators.CONTAINED_BY]: false,
+  [QueryOperators.OVERLAPS]: false,
+
+  // Classified unsupported on BOTH engines on purpose: negating an arbitrary subtree needs De
+  // Morgan through the whole tree, and shipping only the easy shapes gives a caller an operator
+  // that works until it doesn't.
+  [QueryOperators.NOT]: false,
+
+  [QueryOperators.AND]: true,
+  [QueryOperators.OR]: true,
+};
 
 /** `mode: 'semantic'` is pure vector search; Meilisearch expresses that as an all-semantic hybrid. */
 const SEMANTIC_ONLY_RATIO = 1;
@@ -86,8 +153,12 @@ const UNSUPPORTED_QUERY_FIELDS: Record<string, string> = {
 
 /** Translates repository-level TFilter/TWhere into Meilisearch search params - pure string building, no dependency on the `meilisearch` package. Untranslatable shapes throw rather than degrade. */
 export class MeilisearchQueryDialect implements ISearchQueryDialect {
-  build(opts: { filter?: TFilter; hiddenFields?: string[] }): IMeilisearchSearchQuery {
-    const { filter } = opts;
+  build(opts: {
+    filter?: TFilter;
+    hiddenFields?: string[];
+    capabilities?: ISearchCompileCapabilities;
+  }): IMeilisearchSearchQuery {
+    const { filter, capabilities } = opts;
 
     // `hiddenFields` is accepted and deliberately NOT translated: Meilisearch has no per-query field exclusion, only index-level `displayedAttributes`, so `SearchBaseRepository` strips hidden fields from every returned document one layer up.
     const { where, fields, order, limit, skip, offset, include } = filter ?? {};
@@ -102,9 +173,14 @@ export class MeilisearchQueryDialect implements ISearchQueryDialect {
     const query: IMeilisearchSearchQuery = { query: '*' };
 
     if (where) {
-      const filterBy = this.toWhere({ where });
-      if (filterBy) {
-        query.filterBy = filterBy;
+      const compiled = this.compileWhere({ where, capabilities });
+
+      if (compiled.outcome === SearchFilterOutcomes.FILTER) {
+        query.filterBy = compiled.filterBy;
+      } else if (compiled.outcome === SearchFilterOutcomes.MATCH_NONE) {
+        // Marked, never expressed as a filter: the repository answers empty without a round-trip
+        // rather than sending the engine something that approximates "nothing".
+        query.matchNone = true;
       }
     }
 
@@ -132,6 +208,11 @@ export class MeilisearchQueryDialect implements ISearchQueryDialect {
   toWireParams(opts: { query: Partial<ISearchQuery> }): Record<string, unknown> {
     const { query } = opts;
     const { engineParams, ...rest } = query as Partial<IMeilisearchSearchQuery>;
+
+    // `matchNone` is a repository-tier instruction, not a search param - dropped here so it can
+    // never reach Meilisearch as an unknown key. `rest` is already a fresh object.
+    delete rest.matchNone;
+
     const wire: Record<string, unknown> = {};
 
     for (const [key, value] of Object.entries(rest)) {
@@ -237,10 +318,34 @@ export class MeilisearchQueryDialect implements ISearchQueryDialect {
     }
   }
 
-  /** Translates a `TWhere` into a Meilisearch filter expression. Public - reused by updateBy/deleteBy. */
+  /**
+   * @deprecated Use `compileWhere`. A filter STRING cannot represent "matches nothing", so this
+   * returned `''` for it - indistinguishable from "no constraint", which is precisely how an empty
+   * `or` came to widen the query it was written to narrow. It now throws on that input.
+   */
   toWhere(opts: { where: TWhere }): string {
-    const { where } = opts;
-    const clauses: string[] = [];
+    const compiled = this.compileWhere({ where: opts.where });
+
+    switch (compiled.outcome) {
+      case SearchFilterOutcomes.FILTER: {
+        return compiled.filterBy;
+      }
+      case SearchFilterOutcomes.MATCH_ALL: {
+        return '';
+      }
+      default: {
+        throw getError({
+          error: SearchErrors.UNSUPPORTED_OPERATOR,
+          message: `[MeilisearchQueryDialect][toWhere] This where compiles to MATCH-NOTHING, which a filter string cannot express | engine: '${ENGINE}' | returning '' here would match EVERYTHING - call compileWhere() and honour its 'matchNone' outcome instead`,
+        });
+      }
+    }
+  }
+
+  /** Compiles a `TWhere` into a Meilisearch filter expression or one of the two absorbing outcomes. Top-level keys conjoin. */
+  compileWhere(opts: { where: TWhere; capabilities?: ISearchCompileCapabilities }): TCompiledWhere {
+    const { where, capabilities } = opts;
+    const clauses: TCompiledWhere[] = [];
 
     for (const key in where) {
       // TWhere<T = any> is a mapped-over-`any` type with no narrower runtime shape to recover here.
@@ -252,20 +357,37 @@ export class MeilisearchQueryDialect implements ISearchQueryDialect {
 
       switch (key) {
         case QueryOperators.AND: {
-          clauses.push(this.buildLogicalGroup({ value, joiner: ' AND ' }));
+          clauses.push(this.compileLogicalGroup({ value, capabilities, isDisjunction: false }));
           break;
         }
         case QueryOperators.OR: {
-          clauses.push(this.buildLogicalGroup({ value, joiner: ' OR ' }));
+          clauses.push(this.compileLogicalGroup({ value, capabilities, isDisjunction: true }));
           break;
         }
         default: {
-          clauses.push(this.buildFieldClause({ field: key, value }));
+          clauses.push(this.compileFieldClause({ field: key, value, capabilities }));
         }
       }
     }
 
-    return clauses.filter(clause => clause.length > 0).join(' AND ');
+    return reduceCompiled({ clauses, isDisjunction: false, joiner: ' AND ' });
+  }
+
+  /** @see ISearchQueryDialect.canExpress */
+  canExpress(opts: { operator: string }): boolean {
+    return CAN_EXPRESS[opts.operator] ?? false;
+  }
+
+  /** @see ISearchQueryDialect.conjoin */
+  conjoin(opts: { clauses: TCompiledWhere[] }): TCompiledWhere {
+    const { clauses } = opts;
+    const combined = reduceCompiled({ clauses, isDisjunction: false, joiner: ' AND ' });
+
+    // Parenthesised once two clauses actually join, reproducing byte-for-byte what the previous
+    // `{ and: [defaultWhere, where] }` merge emitted through the logical-group path.
+    return clauses.filter(clause => clause.outcome === SearchFilterOutcomes.FILTER).length > 1
+      ? parenthesize(combined)
+      : combined;
   }
 
   private assertNoUnsupportedKnobs(opts: { input: TTranslatableSearchInput }): void {
@@ -299,23 +421,31 @@ export class MeilisearchQueryDialect implements ISearchQueryDialect {
       .join(',');
   }
 
-  private buildLogicalGroup(opts: { value: unknown; joiner: string }): string {
-    const { value, joiner } = opts;
+  /** A logical group always parenthesises, so precedence never depends on where the group sat in the tree. */
+  private compileLogicalGroup(opts: {
+    value: unknown;
+    capabilities?: ISearchCompileCapabilities;
+    isDisjunction: boolean;
+  }): TCompiledWhere {
+    const { value, capabilities, isDisjunction } = opts;
     const items = Array.isArray(value) ? value : [value];
-    // Empty members (an `{}` merged in by default-filter plumbing) would emit malformed fragments.
-    const sub = items
-      .map(item => this.toWhere({ where: item as TWhere }))
-      .filter(clause => clause.length > 0);
 
-    if (sub.length === 0) {
-      return '';
-    }
+    const clauses = items.map(item => this.compileWhere({ where: item as TWhere, capabilities }));
 
-    return `(${sub.join(joiner)})`;
+    // An empty member (`{}`) compiles to matchAll and the algebra absorbs it correctly: identity
+    // under `and`, absorbing under `or`. Dropping it by string-length, as this once did, is what
+    // turned `or: []` into "no constraint".
+    return parenthesize(
+      reduceCompiled({ clauses, isDisjunction, joiner: isDisjunction ? ' OR ' : ' AND ' }),
+    );
   }
 
-  private buildFieldClause(opts: { field: string; value: unknown }): string {
-    const { field, value } = opts;
+  private compileFieldClause(opts: {
+    field: string;
+    value: unknown;
+    capabilities?: ISearchCompileCapabilities;
+  }): TCompiledWhere {
+    const { field, value, capabilities } = opts;
 
     if (field.includes('.')) {
       throw getError({
@@ -323,70 +453,102 @@ export class MeilisearchQueryDialect implements ISearchQueryDialect {
       });
     }
 
+    assertKnownField({ field, engine: ENGINE, capabilities });
+
     if (Array.isArray(value)) {
-      return `${field} IN [${this.escapeArray({ field, value })}]`;
+      // Mirrors relational `buildValueCondition`: an empty IN-list can match nothing, so it is
+      // absorbing false - NOT the malformed `field IN []` this used to emit.
+      return value.length === 0
+        ? { outcome: SearchFilterOutcomes.MATCH_NONE }
+        : toFilterClause(`${field} IN [${this.escapeArray({ field, value })}]`);
     }
 
     if (!isOperatorObject(value)) {
-      return `${field} = ${this.escapeValue({ field, value })}`;
+      return toFilterClause(`${field} = ${this.escapeValue({ field, value })}`);
     }
 
     const clauses = Object.entries(value).map(([operator, operand]) =>
-      this.buildOperatorClause({ field, operator, value: operand }),
+      this.compileOperatorClause({ field, operator, value: operand }),
     );
 
-    return clauses.length === 1 ? clauses[0] : `(${clauses.join(' AND ')})`;
+    const combined = reduceCompiled({ clauses, isDisjunction: false, joiner: ' AND ' });
+
+    // Parenthesised only when more than one operator actually contributed a filter, preserving the
+    // exact shape callers already assert on for the single-operator case.
+    return clauses.filter(clause => clause.outcome === SearchFilterOutcomes.FILTER).length > 1
+      ? parenthesize(combined)
+      : combined;
   }
 
-  private buildOperatorClause(opts: { field: string; operator: string; value: unknown }): string {
+  private compileOperatorClause(opts: {
+    field: string;
+    operator: string;
+    value: unknown;
+  }): TCompiledWhere {
     const { field, operator, value } = opts;
 
     switch (operator) {
       case QueryOperators.EQ:
       case QueryOperators.IS: {
-        return value === null
-          ? `${field} IS NULL`
-          : `${field} = ${this.escapeValue({ field, value })}`;
+        return toFilterClause(
+          value === null ? `${field} IS NULL` : `${field} = ${this.escapeValue({ field, value })}`,
+        );
       }
       case QueryOperators.NEQ:
       case QueryOperators.NE:
       case QueryOperators.IS_NOT: {
-        return value === null
-          ? `${field} IS NOT NULL`
-          : `${field} != ${this.escapeValue({ field, value })}`;
+        return toFilterClause(
+          value === null
+            ? `${field} IS NOT NULL`
+            : `${field} != ${this.escapeValue({ field, value })}`,
+        );
       }
       case QueryOperators.GT: {
-        return `${field} > ${this.escapeValue({ field, value })}`;
+        return toFilterClause(`${field} > ${this.escapeValue({ field, value })}`);
       }
       case QueryOperators.GTE: {
-        return `${field} >= ${this.escapeValue({ field, value })}`;
+        return toFilterClause(`${field} >= ${this.escapeValue({ field, value })}`);
       }
       case QueryOperators.LT: {
-        return `${field} < ${this.escapeValue({ field, value })}`;
+        return toFilterClause(`${field} < ${this.escapeValue({ field, value })}`);
       }
       case QueryOperators.LTE: {
-        return `${field} <= ${this.escapeValue({ field, value })}`;
+        return toFilterClause(`${field} <= ${this.escapeValue({ field, value })}`);
       }
       case QueryOperators.IN:
       case QueryOperators.INQ: {
-        return `${field} IN [${this.escapeArray({ field, value })}]`;
+        // Relational: `inq: []` -> sql`false`. Nothing is a member of the empty set.
+        if (Array.isArray(value) && value.length === 0) {
+          return { outcome: SearchFilterOutcomes.MATCH_NONE };
+        }
+        return toFilterClause(`${field} IN [${this.escapeArray({ field, value })}]`);
       }
       case QueryOperators.NIN: {
-        return `${field} NOT IN [${this.escapeArray({ field, value })}]`;
+        // Relational: `nin: []` -> sql`true`. Excluding nothing excludes nothing.
+        if (Array.isArray(value) && value.length === 0) {
+          return { outcome: SearchFilterOutcomes.MATCH_ALL };
+        }
+        return toFilterClause(`${field} NOT IN [${this.escapeArray({ field, value })}]`);
       }
       case QueryOperators.BETWEEN: {
-        return `${field} ${this.escapeBetween({ field, value })}`;
+        return toFilterClause(`${field} ${this.escapeBetween({ field, value })}`);
+      }
+      case QueryOperators.NOT_BETWEEN: {
+        // De Morgan: NOT (min <= x <= max) is (x < min) OR (x > max). Exact for any field that
+        // HAS a value; see the missing-value note on the Typesense side.
+        const [min, max] = this.assertBetweenTuple({ field, value });
+        return toFilterClause(
+          `(${field} < ${this.escapeValue({ field, value: min })} OR ${field} > ${this.escapeValue({ field, value: max })})`,
+        );
       }
       case QueryOperators.EXISTS: {
-        return value === false ? `${field} NOT EXISTS` : `${field} EXISTS`;
+        return toFilterClause(value === false ? `${field} NOT EXISTS` : `${field} EXISTS`);
       }
       case QueryOperators.NOT_EXISTS: {
-        return `${field} NOT EXISTS`;
+        return toFilterClause(`${field} NOT EXISTS`);
       }
       default: {
-        throw getError({
-          message: `[MeilisearchQueryDialect][toWhere] search() does not support operator '${operator}' | field: '${field}'`,
-        });
+        return throwUnsupportedOperator({ operator, field, engine: ENGINE });
       }
     }
   }
@@ -430,7 +592,8 @@ export class MeilisearchQueryDialect implements ISearchQueryDialect {
     return value.map(item => this.escapeValue({ field, value: item })).join(', ');
   }
 
-  private escapeBetween(opts: { field?: string; value: unknown }): string {
+  /** Shared by `between` and `notBetween` so the two cannot disagree on what a valid range is. */
+  private assertBetweenTuple(opts: { field?: string; value: unknown }): [unknown, unknown] {
     const { field, value } = opts;
 
     if (!Array.isArray(value) || value.length !== 2) {
@@ -439,7 +602,13 @@ export class MeilisearchQueryDialect implements ISearchQueryDialect {
       });
     }
 
-    const [min, max] = value;
+    return [value[0], value[1]];
+  }
+
+  private escapeBetween(opts: { field?: string; value: unknown }): string {
+    const { field, value } = opts;
+    const [min, max] = this.assertBetweenTuple({ field, value });
+
     return `${this.escapeValue({ field, value: min })} TO ${this.escapeValue({ field, value: max })}`;
   }
 }

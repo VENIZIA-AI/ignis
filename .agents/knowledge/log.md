@@ -6,6 +6,465 @@ not how.
 This file and `index.md` are reserved OKF filenames - they carry no `type:` frontmatter and are not
 counted as concepts.
 
+## 2026-08-06 - AES on PBKDF2, keyring rotation, and a cipher seam
+
+PR #32 replaced the pad-or-truncate key derivation with PBKDF2-SHA256 (100k iterations) and gave the
+ciphertext a version + key-id header, so a keyring can rotate keys without re-encrypting. The
+envelope change is BREAKING: data written by an earlier IGNIS no longer decrypts with `AES`, and
+`LegacyAES` is the deliberate read path - the formats never cross-decrypt and nothing falls back on
+its own. Follow-up landed the seam that makes that opt-out reachable: `IPayloadCipher` plus a
+`cipher` option on the bearer-token services, which previously hardcoded `AES` and left an
+application no way to keep already-issued tokens valid. Also closed the `resolveDecryptKey`
+empty-secret gap and dropped `iv` from the decrypt options, where it was silently ignored. Updated
+`packages/helpers`.
+
+## 2026-08-06 - logged errors carry their args, code, frames, and a JSON shape
+
+`ErrorPrettier` modelled `extra` but never `normalized`, so an `ApplicationError` logged its raw
+`%{placeholder}` template with the values nowhere on the line - `messageArgs` is a consumed key and
+deliberately never reaches `extra`. `IErrorSummary` gained `args` (root only) and `messageCode`, kept
+separate from the error's own `code` so a driver's `23505` is never printed as a message code.
+`format` gained `maxStackFrames` and a `format` option following `APP_ENV_LOGGER_FORMAT`, with `json`
+emitting one line. `AppErrorMiddleware` now gives an intentional error 5 frames instead of none.
+Design at `docs/superpowers/specs/2026-08-06-error-log-rendering-design.md`. Updated
+`architecture/error-handling-flow`.
+
+## 2026-08-02 - release-readiness audit and migration guide
+
+Measured rather than assumed, by building both f1eb610 (the merge-base with develop) and HEAD and
+diffing them. A probe importing all 774 base symbols through their old sub-paths typechecked against
+the new `.d.ts`: 764 resolve, exactly 10 break, and they are the 10 the 2026-08-01 changelog already
+listed - no gap in either direction. 626 of 634 shared declarations are byte-identical; the 8 that
+differ changed only their heritage clause, and resolving the member sets of the six renamed classes
+showed no public member lost.
+
+Two documentation gaps found and closed. `getQueryInterface` and `_updateBuilder` are `protected`
+and were removed from the repository tier with no changelog entry - they are part of the contract a
+subclass inherits. And the sqlite-quickstart concept named `DefaultCRUDRepository` where the SQLite
+tier spells it `DefaultSqliteRepository`.
+
+The 2026-08-01 changelog now carries a project-agnostic migration guide: detection grep, a
+word-boundary codemod, the hand edits, and the verification step. Every command in it was run
+against a fixture project - before the codemod 5 errors, after it 0. The `\b` anchors are
+load-bearing: without them `FilterBuilder` rewrites the inside of `PostgresFilterBuilder`.
+
+## 2026-08-02 - quickstart examples use real migrations
+
+Both quickstarts applied a hand-written DDL string at boot, justified in a comment by "an embedded
+database has no server for a migration CLI to reach". That is false: drizzle-kit supports
+`driver: pglite` and a sqlite file url, and both `drizzle-orm/pglite/migrator` and
+`drizzle-orm/libsql/migrator` export `migrate`. Generating the migration also proved the DDL had
+already drifted - the Postgres one declared `id uuid default gen_random_uuid()` where the model
+emits `text` with an application-side `$defaultFn`.
+
+They now carry generated migrations under `migration/`, applied in-process by `migrate()`. The
+real constraint is narrower and PGlite-only: it holds an exclusive lock on its data directory, so
+`drizzle-kit migrate` cannot reach a database the app has opened.
+
+drizzle-kit reads `src/models/note.model.ts` directly - esbuild erases the `@model` decorator and
+the framework import before the table export is evaluated. The compiled `migration-schema.js`
+re-export `vert` carries is needed only for entities whose table lives on a `.schema` static.
+
+## 2026-08-02 - PGlite and SQLite quickstart examples
+
+Two runnable examples, one per new engine, with concepts in `examples/`. They exist to show the
+difference between the two integrations: PGlite is a driver swap under the Postgres connector, so
+only the datasource file knows about it, while SQLite is a second connector sharing the neutral
+relational tier. Both were run, not just type-checked, which is what surfaced four traps now
+documented in their concepts: the raw-client fourth type parameter, `init()` before `start()`, the
+`@inject`ed constructor a CRUD controller subclass must declare, and `ISO_TIMESTAMP_NOW` needing
+`sql.raw()` unless `generateTzColumnDefs` applies it.
+
+## 2026-08-02 - relational model enrichers stop dropping data
+
+The SQLite tz enricher gated `modified` and `deleted` on truthiness while `TTzEnricherOptions`
+declares `enable?: true`, so `{ modified: { columnName: 'modified_at' } }` type-checked as producing
+`modifiedAt` and emitted nothing. Omitting `enable` now means enabled on both the type and the
+runtime; only `enable: false` drops a column.
+
+Both data-type enrichers gated each `default()` on truthiness, so `0`, `''` and `false` produced a
+column with no default and inserts wrote NULL. They test for presence now.
+
+The SQLite `isoTimestamp` read a zone-less driver value - what SQLite's own `CURRENT_TIMESTAMP`
+writes - through `new Date()`, which parses it as host-local and shifted every such row by the host
+offset. Zone-less values are read as UTC, which is what SQLite defines them to be.
+
+## 2026-08-02 - SQLite driver and rotation safety fixes
+
+`LibSqlDriver` built its 1-slot pool with no `acquireTimeoutMs` and no way to set one, so a
+transaction leaked between `BEGIN` and commit left every later `acquire()` in the process awaiting a
+promise that never settled. It now takes `TLibSqlDriverOptions` and defaults to 30s, matching
+`PGliteDriver`; an app raises it by constructing the driver itself and calling `useDriver()`, since
+the framework's own wiring passes only `{ client }`.
+
+`SqliteBeginModes.isValid` existed with zero call sites while `beginMode` was interpolated raw into a
+statement the driver runs verbatim - now wired, and `beginTransaction()` resolves the mode once
+instead of twice.
+
+`onSecretRotated()` drained clients with `typeof client.end === 'function'`; neither PGlite nor libsql
+has `end()`, so all three drain sites silently skipped and repeated rotations accumulated live WASM
+instances and open file handles. Replaced by `drainClient()`, which probes `end()` then `close()` -
+capability, not class, so the neutral tier still names no engine.
+
+## 2026-08-02 - PGlite and SQLite documented for humans
+
+The wiki gained two guides, `guides/core-concepts/persistent/pglite.md` and `sqlite.md`, plus the
+changelog `changelogs/2026-08-02-sqlite-and-pglite-connectors.md`. Both connectors had shipped with
+no human-facing page at all. `postgres-drivers.md` said two drivers ship; it says three now, and the
+persistent-layer overview and DataSources guide no longer describe Postgres and Typesense as the only
+connectors. Every sample on the new pages was type-checked against `dist` before it was written.
+
+Two facts corrected against the source while writing: the conformance suite is **23 tests per
+engine** (46 across both), not the 21 it had when the divergence pins landed; and `migrate()` from
+`drizzle-orm/pglite/migrator` will not take `getConnector()` - that returns the generic
+`TRelationalConnector`, while the migrator demands drizzle's narrower `PgliteDatabase`, so the pages
+build a `drizzle({ client })` over the same client instead.
+
+## 2026-08-02 - engine-neutral guards generalised; two divergences pinned; update skeleton lifted
+
+The `dist` cycle guard named Postgres, so a `relational -> sqlite` edge would have passed silently;
+it now discovers the adapter set by listing the siblings of `dist/connectors/relational`, and is
+renamed `no-engine-cycle.test.ts`. `IConformanceCapabilities` gained `caseInsensitiveLike` and
+`nullsSortHigh`: unlike the three refusals, these are divergences where identical caller code
+succeeds on both engines and answers differently, so each engine pins its own answer. SQLite's
+`LIKE` folds ASCII case (`like` widens, `nlike` drops rows) and its NULLs sort low, both inverting
+against Postgres. `RelationalUpdateBuilder` is the new neutral base for the update transform with
+one abstract member, `composeJsonSet()`; the split, the column throws, `toUpdateData` and both path
+validators stopped being copied per engine. Messages interpolate `this.scope`, so the pinned
+`[UpdateBuilder]` / `[SqliteUpdateBuilder]` prefixes still name the builder that ran.
+
+## 2026-08-02 - FilterBuilder no longer defaults to Postgres JSON SQL
+
+`buildJsonWhereCondition` and `buildJsonOrderBy` are `protected abstract` on the neutral
+`FilterBuilder`; their `#>>`/`#>` and `::numeric` bodies moved into `PostgresFilterBuilder`. The
+neutral base emitted Postgres syntax by default, so the next engine that forgot to override got it
+silently, with no compile error. The `not` branch of `buildJsonOperatorConditions` now asks
+`jsonNeedsNumericCast` instead of testing `typeof operand === 'number'`, so an engine that
+neutralises the cast is no longer cast through that branch, and the bare-operand mapping it shares
+with the where branch is the new `toBareJsonOperators`. `validateJsonColumnType`'s message says
+`is not a JSON column` rather than naming JSONB, which is meaningless off Postgres.
+
+## 2026-08-02 - PGlite slot wait is now bounded
+
+`PGliteDriver`'s 1-slot pool had no `acquireTimeoutMs` and no way to set one, so a transaction leaked
+between `BEGIN` and commit hung every later `acquire()` in the process forever and silently. The
+constructor now forwards the pool's control knobs with `size` pinned at 1 and `acquireTimeoutMs`
+defaulting to 30s, and the class docblock states the other one-session hazard plainly: a
+`createConnector()` write lands inside any open transaction and is lost on its `ROLLBACK`.
+
+## 2026-08-02 - SQLite connector assembled; one conformance suite now runs on two engines
+
+New concept: [SQLite connector](/architecture/sqlite-connector.md). `connectors/sqlite/datasources`
+completes the branch - `AbstractSqliteDataSource` supplies the two memoized ports,
+`BaseSqliteDataSource` supplies `BEGIN IMMEDIATE` (deferred deadlocks on `SQLITE_BUSY` when it
+upgrades), attaches `beginMode`, and throws NotSupported on `isolationLevel`. Five repository
+subclasses bind `ISqliteExtraOptions` + `ISqliteDataSource`. Sub-paths `./sqlite` and
+`./sqlite/libsql` ship; `connectors/index.ts` still exports `./postgres` only.
+
+`__tests__/connectors/relational/conformance/` is one repository suite run against PGlite and libsql
+`:memory:` - 21 tests per engine, real databases, no mocks. Capability gaps assert the NotSupported
+throw instead of skipping. It found a live defect on first run:
+`PostgresQueryExecutor.readAffectedRowCount` did not know PGlite's `affectedRows`, so every Postgres
+write with `shouldReturn: false` threw against PGlite. Fixed, and the relational-connector concept's
+executor section now lists all four spellings.
+
+`DataSourceDrivers` gains `LIBSQL` - it was already six drivers in source and five in the constant.
+
+## 2026-08-02 - SQLite query dialect added; `FilterBuilder` seam widened to eight members
+
+`SqliteQueryDialect` completes `IRelationalQueryDialect` on the neutral tier: `SqliteQueryOperators`
+throws NotSupported for `regexp`/`iregexp` (no such SQLite function) and the array operators (no
+array storage class), and maps `ilike` onto `LIKE`, which SQLite already folds for ASCII.
+`SqliteFilterBuilder` overrides four members and inherits the rest - `json_extract` needs no numeric
+cast because it returns the JSON value in its own type. `SqliteUpdateBuilder` chains `json_set`.
+
+`isOperatorObject()` and `buildValueCondition()` on the neutral `FilterBuilder` went `private` ->
+`protected`: an engine overriding `buildJsonWhereCondition` cannot reach the bare-value branch
+without them, and the seam table in the relational-connector concept now lists both as call-only.
+
+## 2026-08-02 - SQLite executor and libsql driver added
+
+`SqliteQueryExecutor` implements the seven neutral executor verbs on Drizzle's SQLite core, throwing
+NotSupported for `lock` - SQLite locks the database file, never a row. `LibSqlDriver` is the SQLite
+driver: libsql is the only client that is async, covers memory/file/Turso/replica, and runs on Node
+and Bun. `acquire()` borrows from a 1-slot pool over the single client because Drizzle binds to a
+libsql `Client` and never to its interactive `Transaction`, and it refuses a remote client, whose
+statements each get their own connection. `@libsql/client` is an optional peer. No sub-path export
+or barrel entry yet.
+
+## 2026-08-02 - SQLite models tier added
+
+`connectors/sqlite/models` is the first slice of a second SQL dialect on the engine-neutral
+relational tier: `SQLiteTable`-branded schema types, `BaseSqliteEntity`, and the five enrichers.
+The types are declared, not re-exported from the neutral tier, so this barrel's `TTableObject`
+stays intersectable with its own schema bound. No dialect, executor, driver or datasource yet, and
+no package.json entry - the tier is not reachable from any barrel.
+
+## 2026-08-02 - PGlite driver added
+
+`PGliteDriver` ships at `@venizia/ignis/postgres/pglite`, giving an honest test database and
+single-file embedded deployments on the unchanged Postgres dialect. PGlite has one session and a
+second `BEGIN` silently joins the open transaction, so `acquire()` serialises through a 1-slot pool.
+`DataSourceDrivers` and `datasource-hierarchy.md` now name five shipped drivers, not four.
+
+## 2026-08-02 - search findById now carries its filter; the family's signature divergences listed
+
+`ReadableSearchRepository.findById` declared no `filter`, so a caller typed at `ICrudRepository` -
+including the generated CRUD controller - lost `fields` silently. Parameter bivariance hid it from
+`tsc`. The signature now matches the base and `search-typesense.md` gained a table of the
+divergences that are deliberate, so the next audit can tell the two apart.
+
+## 2026-08-02 - the lift changelog completed: six changes it had omitted
+
+`2026-08-01-relational-connector-lift.md` recorded the lift and the `FilterBuilder` withdrawal only.
+Six later changes are now in it, grouped so an upgrading reader sees every breaking one at once.
+
+Three rules a future agent needs, because each one drove a change here and will drive the next:
+
+**The prefix follows the declaration keyword.** `I` for an `interface`, `T` for a `type` alias.
+`connectors/postgres/drivers/driver.ts` turned `IRelationalDriver`/`IRelationalConnection` from
+interfaces into Postgres narrowings - type aliases over the neutral interfaces - so both became
+`TRelationalDriver`/`TRelationalConnection`. Breaking: both were published from `@venizia/ignis` and
+`@venizia/ignis/postgres`. Type parameters unchanged, so it is a pure rename for driver authors. The
+neutral tier keeps `IRelationalDriver`/`IRelationalConnection` as genuine interfaces, parameterized
+by connector rather than schema. `IStatementResult` stayed an interface and stayed put.
+`TRelationalTransactionOptions` is the same rule applied to a type that was never published.
+
+**A `protected` member is public API to a subclass.** `AbstractRepository.denyOperation(methodName)`
+became `denyOperation({ methodName })` under the options-object convention. `protected` hides it from
+`tsc` at the package boundary but not from consumers - every subclass calling it breaks, in both
+connector families (`ReadableSearchRepository` overrides call it six times, the relational readable
+tier six more). Treat a `protected` signature change as breaking, never as internal.
+
+**The root barrel's `TTableObject`/`TTableInsert` are `PgTable`-branded, so anything composing with
+them must be too.** `connectors/postgres/repositories/core/soft-deletable.ts` re-exported the neutral
+`Table`-branded `TSoftDeletableTableSchema` for a while. A consumer intersecting the schema and
+feeding it to `TTableObject` then hit `TS2344`, which is how it reached a downstream application. The
+Postgres tier declares its own binding again. `bun test` cannot see any of this - only
+`bun run typecheck` - and `__tests__/connectors/postgres/root-barrel-composability.test.ts` is the
+type-level pin.
+
+Also folded in: `findById`'s recovered `options.retry` with its retry-before-`isStrict` ordering
+(already in `repository-hierarchy.md`, absent from the changelog - it was the most user-visible
+change in the set), and the `getIdType` dedupe, which is a re-export with no runtime effect.
+
+Found while re-checking the page against the commit: the `*RelationalRepository` and
+`*RelationalDataSource` compat aliases are gone from `@venizia/ignis` and `@venizia/ignis/postgres`,
+which the changelog had not recorded - its Details section still claimed the datasource aliases were
+exported. Ten withdrawn names now sit in one migration table, each mapped to the Postgres spelling on
+the same path. Migrating to `@venizia/ignis/relational` instead is wrong: the class of that name
+there is the neutral one, whose `connector` is `unknown`.
+
+## 2026-08-02 - the `FilterBuilder` alias is withdrawn; docs repointed to the neutral tier
+
+`FilterBuilder` moved to `connectors/relational/repositories/dialect/filter.ts` and became `abstract`
+with `protected abstract get operators()`; `PostgresFilterBuilder extends FilterBuilder` supplies
+`PostgresQueryOperators.FNS`. The `export { PostgresFilterBuilder as FilterBuilder }` alias is gone,
+so `FilterBuilder` no longer resolves from `@venizia/ignis` or `@venizia/ignis/postgres` - it
+published two different classes under one name across sibling sub-paths. Verified against `dist`.
+`filter-system.md` and `relational-connector.md` repointed; both had also claimed
+`PostgresQueryDialect extends FilterBuilder` and that the operator table was a `protected` member
+rather than `abstract`. 17 wiki reference source-links repointed, one of which
+(`dialect/internal/json-utils.ts`) was a dead GitHub path, and `default-filter.md`'s
+`new FilterBuilder()` sample no longer compiled against an abstract class.
+
+## 2026-08-02 - the neutral relational tier stopped naming Postgres
+
+`connectors/relational/repositories/core/*.ts` held ten `import type`s of `IPostgresDataSource` and
+`IDatabaseExtraOptions`, purely to serve the two engine-facing generic defaults - the dependency
+arrow pointed backwards. Both now default to the neutral contracts, and `IRelationalExtraOptions`
+gained a `TConnector` parameter (defaulting to `unknown`) so a bound engine keeps its connector type.
+`connectors/postgres/repositories/core/*.ts` changed from re-exports to five real subclasses that
+rebind those two parameters, so `PostgresBaseRepository`/`ReadableRepository`/`PersistableRepository`/
+`DefaultCRUDRepository`/`SoftDeletableRepository` are now distinct class objects from their neutral
+parents: `ReadableRepository === ReadableRelationalRepository` is false, `instanceof` unaffected. The
+neutral names no longer resolve from `@venizia/ignis/postgres`. Recorded in
+`repository-hierarchy.md` and `relational-connector.md`, whose "SAME class object" claims were the
+facts this change falsified.
+
+## 2026-08-01 - `options.retry` restored on the relational read verbs that had narrowed it away
+
+`SoftDeletableRelationalRepository.findById` (3 overloads) and `RelationalBaseRepository`'s 4
+abstract read verbs typed `options` as bare `ExtraOptions`, which drops `IWithReadRetry` - so
+`options.retry` was a compile error on exactly the class BANA extends most, while every sibling
+accepted it. Runtime plumbing was always complete; only the signatures blocked it. Both now carry
+`TFindOneOptions`/`TFindOptions`/`TFindRangeOptions`. `repository-hierarchy.md` gains the hazard:
+re-declaring a read verb silently narrows `retry` away, and neither `tsc` nor a test holding the
+concrete subclass can see it. Also recorded there - `isStrict` is evaluated AFTER the retry loop is
+exhausted, so a strict read waits out replica lag before it throws `ENTITY_NOT_FOUND`.
+
+## 2026-08-01 - final review fixes: the `FilterBuilder` seam is real, and no two classes share a declaration name
+
+Two facts recorded in the entry below were wrong and are corrected here.
+
+**The `FilterBuilder` override seam did not exist.** Three documents said a second SQL engine
+supplies "an operator table plus a JSON-path variant of those five methods" and reuses
+`FilterBuilder` unchanged. Every one of those methods was `private`, and the operator table was
+reached as a hardcoded `PostgresQueryOperators.FNS` - so an author had to fork 736 lines. Six
+methods (`buildOperatorConditions`, `validateJsonColumn`, `jsonNeedsNumericCast`,
+`buildJsonWhereCondition`, `buildJsonOperatorConditions`, `buildJsonOrderBy`) are now `protected`,
+and the table is reached through a `protected get operators(): TQueryOperatorHandlers`. No
+behaviour changed and no declaration-emit error (TS4094) appeared. Falsified by
+`__tests__/connectors/postgres/repositories/dialect-seam.test.ts`, a `SqliteShapedDialect` that
+emits `json_extract` with no SQLite driver involved. `relational-connector.md`, `filter-system.md`
+and the SQLite research spec now carry the exact override list.
+
+**"The two barrels deliberately share class names" was a defect, not a decision.**
+`connectors/postgres/datasources/{abstract,base}.ts` declared `AbstractRelationalDataSource` and
+`BaseRelationalDataSource` - the same names the neutral tier declares - so the two sub-paths
+published different classes under one name. They are renamed to `AbstractPostgresDataSource` and
+`BasePostgresDataSource`, which were already their public alias names, so the API surface is
+unchanged: `@venizia/ignis/postgres` still exports both `*RelationalDataSource` spellings, and
+`BaseDataSource`, as aliases. The name collision now lives only in the alias layer, which is still
+why `connectors/index.ts` never gains `export * from './relational'`.
+
+## 2026-08-01 - `connectors/relational` goes public; the SQLite spec's FilterBuilder claim was wrong
+
+Connector sub-project 1 (Tasks 1-8, this repo's `feat/relational-connector` line) hoisted an
+engine-neutral SQL tier - datasource root, driver contract, entity base, the five-class repository
+chain, both ports (`IRelationalQueryDialect`, `IRelationalQueryExecutor`) - out of
+`connectors/postgres` into `connectors/relational`. Task 9 makes it reachable and documented: a new
+barrel (`connectors/relational/index.ts`) plus a `@venizia/ignis/relational` package export,
+published beside `./postgres`. `connectors/index.ts` does **not** gain `export * from './relational'`
+- the two barrels deliberately share several class names (`BaseRelationalDataSource`,
+`AbstractRelationalDataSource` each name TWO different classes, one neutral, one Postgres), so
+merging them into the root namespace would make one of each pair unreachable by name.
+
+New concept: [Relational connector](/architecture/relational-connector.md) - the two ports and why
+there are two, the seven executor verbs and which Drizzle call each replaces, why
+`TTableSchemaWithId` widened from `PgTable` to the dialect-free `Table`, why `buildBeginStatement` is
+abstract, and what is genuinely Postgres-only. `datasource-hierarchy.md`, `repository-hierarchy.md`,
+`filter-system.md` and `transactions.md` are corrected where they named Postgres as the only SQL
+branch or quoted the old `resolveConnector` error text (`is not a postgres transaction`, reworded to
+`is not a relational transaction` in Task 8 - a behaviour change, not just a doc fix).
+
+`docs/superpowers/specs/2026-07-31-sqlite-connector-research.md`'s "What SQLite costs, measured"
+section claimed a SQLite connector needs its own 724-line filter translator. Measured against the
+file as it stands after the lift: **wrong**. `FilterBuilder` has zero `drizzle-orm/pg-core` imports;
+its only table-identity coupling (`getTableConfig(schema).name`) was already replaced by drizzle's
+root `getTableName(schema)`, which also resolves on a `sqliteTable` (the pg-core call throws there).
+Only ~471 of the ~1104 dialect lines are genuinely Postgres-specific: `PostgresQueryOperators`
+(136 lines - `ilike`/array ops emit literal Postgres SQL), `UpdateBuilder` (184 lines - composes
+`jsonb_set`), and five private JSON-path methods inside `FilterBuilder` itself (~151 of its 736
+lines - hardcode `#>>`/`#>`). A SQLite dialect is an operator table plus a JSON-path variant of those
+methods, not a second `FilterBuilder`. Spec corrected; sub-project 1 marked done in both the spec and
+`docs/superpowers/MINIMAP.md`; sub-projects 2 (`PGliteDriver`) and 3 (`connectors/sqlite/`) unblocked.
+
+`UpdateBuilder` stays reachable two ways - directly from `connectors/postgres/repositories/dialect`
+and as `PostgresQueryDialect.updateBuilder` - both public before this task, neither deleted. New code
+should go through the dialect (`dataSource.getQueryDialect().updateBuilder`); the direct constructor
+bypasses the datasource's port resolution.
+
+Verified against the built package, not just types: every BANA-facing compat alias
+(`SoftDeletableRepository`, `ReadableRepository`, `PersistableRepository`, `DefaultCRUDRepository`,
+`PostgresBaseRepository`, `BaseEntity`/`BasePostgresEntity`, `AbstractPostgresDataSource`,
+`BasePostgresDataSource`/`BaseDataSource`) resolves from `@venizia/ignis/postgres` and is the SAME
+class object as its `connectors/relational` canonical name - a runtime probe, not a grep. Suite
+unchanged at 1722 pass / 2 skip / 0 fail across 159 files; `make lint-all` and `make okf-check` green.
+
+## 2026-07-30 - whole-wave review: `/common`'s type surface, and `getWorker()`'s `unknown` cast
+
+Two defects the per-task reviews below could not see, since each only looked at `/core`.
+
+`common/index.ts` still had `export * from './jsx'`, so `@venizia/ignis-helpers/common` reached
+`hono/jsx` the same way `/core` did before the entry below - a consumer without `hono` gets
+`TS2307`, one compiling for a Worker gets a flood of DOM-intrinsic errors. Fixed the same way
+`ErrorSchema` left the error barrel: `export * from './jsx'` is gone from `common/index.ts`;
+`Child`/`FC`/`PropsWithChildren` are re-exported directly from the root barrel instead
+(`export * from './common/jsx'` in `src/index.ts`, beside `export * from './common'`), so the root
+barrel's public surface is unchanged (verified: `examples/rpc-api-server` imports all three from
+`@venizia/ignis-helpers` in three files). `core-type-surface.test.ts` is now parameterised over
+`(entry, fixture)` pairs - `./core` and `./common` - instead of hardcoding one; run against the
+unfixed `common/index.ts` it failed with the same `hono/jsx` DOM-intrinsic errors `/core` hit.
+
+The entry below widened `IFetchable`/`AbstractNetworkFetchableHelper`'s `getWorker()` to `unknown`
+to keep the interface `axios`-free, then had each concrete fetcher override `getWorker()` and
+`declare` its own `worker` field to recover the concrete type. That shape does not check anything: a
+class can implement `IFetchable<'axios', ...>` with `getWorker()` returning `fetch`, and
+`BaseNetworkRequest.getWorker(): TFetcherWorker<T>` cast the widened result back to the concrete
+type with `as`, so the lie compiled clean. Fixed with a fourth type parameter instead of the
+widen-and-cast shape: `IFetchable<V, RQ, RS, W = unknown>` and
+`AbstractNetworkFetchableHelper<V, RQ, RS, W = unknown>`; `W` defaults to `unknown` so the interface
+and the abstract base stay `axios`-free, but `AxiosFetcher`/`NodeFetcher` now bind it to their real
+worker type (`AxiosInstance`, `typeof fetch`) in the `extends` clause, so `this.worker`/`getWorker()`
+are correctly typed by inheritance - the `declare protected worker` overrides and the redundant
+`getWorker()` overrides are gone from both. `BaseNetworkRequest.getWorker()` now returns
+`this.fetcher.getWorker()` with no cast: its `fetcher` field is typed
+`IFetchable<T, IRequestOptions, TFetcherResponse<T>, TFetcherWorker<T>>`, so the interface itself
+carries the constraint end to end. Confirmed closed by writing a rogue `getWorker(): typeof fetch`
+implementor against `IFetchable<'axios', ...>` - `TS2322`, "Type 'typeof fetch' is missing ...
+`AxiosInstance`" - then deleting the scratch file. This is the pattern the next `kernel` gate
+(`AbstractRepository` re-exporting `drizzle-orm` types) should follow: type-parameter-with-neutral-
+default, not widen-and-cast, wherever the escaped type is load-bearing rather than incidental.
+
+## 2026-07-30 - `/core`'s `.d.ts` graph gets its own gate, after three ambient-global leaks
+
+Bundling erases types, so the bundle-and-spy purity tests never saw three ambient-global leaks
+sitting in `/core`'s type graph. `pool/types.ts`'s `IPoolWaiter.timer` used `NodeJS.Timeout`, now
+`ReturnType<typeof setTimeout>`. `common/types.ts` re-exported `Child`/`FC`/`PropsWithChildren` from
+`hono/jsx`; that re-export moves to a new `common/jsx.ts`, still exported through `common/index.ts`.
+`http-request/types.ts`'s `TFetcherResponse`/`TFetcherWorker` move to a new `fetcher/types.ts`, but
+not as a pure relocation: `base-fetcher.ts`'s `IFetchable`/`AbstractNetworkFetchableHelper` generics
+were bounded by those types, which would still drag `axios` into any file reaching the fetcher's
+leaf module. The bound is dropped instead - `RS` and `worker` go unconstrained (`unknown`), and each
+concrete fetcher (`AxiosFetcher`, `NodeFetcher`) redeclares its own `worker` type and overrides
+`getWorker()` to recover the concrete type at the call site.
+
+`src/__tests__/core-type-surface.test.ts` is the gate that should have caught all three: it runs
+`tsc --noEmit` on a fixture Worker consumer of `/core` under a `tsconfig` with `types: []` (drops the
+ambient `NodeJS` namespace) and `skipLibCheck: false` (stops a bad declaration silently widening to
+`any`) - drop either setting and it passes for the wrong reason. Helpers' `purity` script now runs it
+alongside the bundle-and-spy gates.
+
+The bundle-and-spy harness duplicated across six purity test files (helpers x4, inversion, filter,
+core) is extracted to a shared `__tests__/support/browser-purity-probe.ts` per package; each test
+file now only supplies its allowed packages and entry point.
+
+## 2026-07-29 - helpers ships a `/core` sub-path: the isomorphic surface a Web Worker can import
+
+`@venizia/ignis-helpers/core` (`src/core.ts`) re-exports `BaseHelper`, the error layer, `uid`,
+`pool`, `HfQueueHelper`, the `ILogger` contract, and the fetcher interfaces - every leaf the prior
+two waves proved bundles clean for `target: 'browser'`. Each re-export names a **leaf** module path,
+never a barrel: the logger barrel drags `node:module`, the error barrel drags `@hono/zod-openapi`,
+and the `http-request` barrel drags `node:querystring` from a sibling file, so `core.ts` reaches the
+fetcher through `modules/network/http-request/fetcher/base-fetcher` directly. `ErrorSchema` stays out
+- it needs `@hono/zod-openapi` and belongs to the server surface, not the worker one.
+`src/__tests__/core-purity.test.ts` guards the entry with the same bundle-and-spy harness as the
+other purity gates, and helpers' `purity` script now runs all four of its gates
+(`browser-purity`, `common/browser-purity`, `error/error-barrel-purity`, `core-purity`) instead of two.
+
+## 2026-07-29 - two `process` reads in `common/` become `globalThis`-guarded
+
+`common/constants/app.ts`'s `Defaults.APPLICATION_NAME` and `common/redact.ts`'s
+`isRedactionEnabled` read `process.env` directly - a bare Node global a browser bundle of `/common`
+cannot resolve. Both now read through `globalThis.process?.env?...`, so they degrade instead of
+throwing outside Node. `Defaults.APPLICATION_NAME` keeps its `'APP'` fallback; redaction stays
+fail-closed - only the literal string `'false'` disables it, and the read stays per-call so it can
+be flipped at runtime.
+
+## 2026-07-29 - `ErrorSchema` leaves the error barrel
+
+`modules/error/types.ts` (its only contents: an `@hono/zod-openapi` import plus `ErrorSchema` and
+`TErrorResponse`) is deleted; both moved to a new `modules/error/schemas.ts`. The error barrel
+(`modules/error/index.ts`) is on the browser path through `getError` - `helpers/core` and
+`BaseHelper` both reach it - and `@hono/zod-openapi` is not browser-safe, so it cannot stay in that
+barrel. The root barrel (`modules/index.ts`) re-exports `error/schemas` directly alongside `error`,
+so `@venizia/ignis-helpers` consumers (including `core`'s three importers) see no change - only a
+deep import of `modules/error/types` would have broken, and none existed.
+
+## 2026-07-29 - the two orphaned browser-purity tests are wired, and core gets its own gate
+
+`packages/helpers/src/__tests__/common/browser-purity.test.ts` and
+`packages/core/src/__tests__/repositories/browser-purity.test.ts` existed but ran nowhere. Helpers'
+`purity` script now runs both of its purity test files; core gets a `purity` script of its own plus
+a `purity-core` Makefile target. `purity-core` depends on `core`, not on `inversion` alone, because
+core resolves BOTH `@venizia/ignis-helpers` and `@venizia/ignis-inversion` through `exports` maps
+into `dist/` - `core` is the target that rebuilds that whole chain, the same reasoning `purity-filter`
+and `purity-helpers` already used for their own `inversion` prerequisite.
+
+`.githooks/pre-commit` now runs `make purity` after `make lint-all`, so a purity break fails a
+commit instead of staying invisible until someone manually cuts a release.
+
 ## 2026-07-27 - the gRPC component takes its peer through the options, and `register` stops lying
 
 Three fixes, all measured against a `bun build --compile --minify` binary run without `node_modules`.
@@ -645,7 +1104,7 @@ Authoring this bundle from source found several long-standing claims in the old 
 be false. The concepts document what the source actually does today:
 
 - The universal `AbstractRepository -> ReadableRepository -> PersistableRepository ->
-  DefaultCRUDRepository` chain does not exist. The hierarchy is per-connector, and
+DefaultCRUDRepository` chain does not exist. The hierarchy is per-connector, and
   `DefaultCRUDRepository` survives only as a back-compat alias of `DefaultRelationalRepository`.
 - `FieldsVisibilityMixin` and `DefaultFilterMixin` no longer exist - both were folded into the
   repository base classes.
@@ -663,7 +1122,7 @@ be false. The concepts document what the source actually does today:
 - The error module now has ONE message shape: a `TErrorDefinition`, the `getError` input and
   `normalized` all speak `{ text, code, args }`. The definition's `key`/`message: string` are gone
   (`TRegisterErrors` indexes `['message']['code']`); `getError`'s `message` is `string | { text,
-  code?, args? }` so flat call sites still compile. `error` is refused on the free-form branch
+code?, args? }` so flat call sites still compile. `error` is refused on the free-form branch
   (`error?: never`) - wrap with `cause`. Spreading a definition is now safe. Breaking against the
   PUBLISHED inversion 0.1.1-0.
 - `fromError({ error })` + `TResponsedError` added to inversion's error module: the inverse of the
@@ -673,3 +1132,15 @@ be false. The concepts document what the source actually does today:
   is NOT a duplicate of helpers' `ErrorSchema`/`TErrorResponse`: that one needs `@hono/zod-openapi`
   and cannot ship to a browser. `requestId` lands at `extra.requestId` via conditional spread;
   `details` is dropped.
+- `platformaticRequirePlugin()` added to the Kafka bundler, plus `platformaticKafkaPlugins()` as the
+  one entry point compile scripts should register. `@platformatic/kafka@2.8.0` hoisted
+  `require('ajv-draft-04')` and `require('ajv/dist/refs/json-schema-draft-06.json')` to MODULE SCOPE
+  in `registries/confluent-schema-registry.js`, behind `createRequire(import.meta.url)`, and
+  `dist/index.js` re-exports that file - so every compiled binary importing any Kafka helper died
+  with `Cannot find package 'ajv-draft-04'` before boot. The plugin rewrites each module-scope
+  `const X = require('spec')` into a static import at bundle time. The injected binding is
+  `const X = <alias>;` with NO `?.default` unwrap: the draft-06 meta schema JSON has its own
+  top-level `default` key, so unwrapping silently swaps the meta schema for `{}` - the binary boots
+  and the registry constructs, then draft-06 validation fails. `platformaticWasmPlugin()` is
+  unchanged and still exported; the helpers dev dependency moved to `^2.8.0` (peer range `^2.6.1`
+  stays valid) so the failure is reproducible in CI.

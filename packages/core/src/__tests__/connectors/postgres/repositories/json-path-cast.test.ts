@@ -2,9 +2,13 @@ import { describe, expect, test } from 'bun:test';
 import type { SQL } from 'drizzle-orm';
 import { jsonb, PgDialect, pgTable, serial } from 'drizzle-orm/pg-core';
 import type { AnyType } from '@venizia/ignis-helpers';
-import { FilterBuilder } from '@/connectors/postgres/repositories/dialect/filter';
+import { PostgresFilterBuilder } from '@/connectors/postgres/repositories/dialect/filter';
 
-/** A JSON `#>>` extraction is TEXT: numeric comparison needs a numeric cast or Postgres raises 'operator does not exist'. The cast belongs to each OPERATOR, not the object - an object-wide choice misses `not`-wrapped numerics and over-casts mixed objects like `{ gte: 1, like: '%a%' }`. */
+/**
+ * A JSON `#>>` extraction is TEXT: numeric comparison needs a numeric cast or Postgres raises
+ * 'operator does not exist'. The cast belongs to each OPERATOR, not the object - an object-wide
+ * choice misses `not`-wrapped numerics and over-casts mixed objects like `{ gte: 1, like: '%a%' }`.
+ */
 const table = pgTable('documents', {
   id: serial('id').primaryKey(),
   metadata: jsonb('metadata'),
@@ -13,13 +17,13 @@ const table = pgTable('documents', {
 const dialect = new PgDialect();
 
 const compile = (where: AnyType): string => {
-  const builder = new FilterBuilder() as AnyType;
+  const builder = new PostgresFilterBuilder() as AnyType;
   const condition = builder.toWhere({ tableName: 'documents', schema: table, where }) as SQL;
 
   return dialect.sqlToQuery(condition).sql;
 };
 
-/** The numeric cast is the CASE expression; its presence is what tells the two paths apart. */
+/** The CASE expression is the numeric cast - its presence tells the two paths apart. */
 const isNumericCast = (statement: string) => statement.includes('::numeric');
 
 describe('a numeric operand gets the numeric cast', () => {
@@ -55,7 +59,8 @@ describe('a NESTED not must not hide its numeric operand', () => {
 
 describe('a MIXED operator object casts per operator, not per object', () => {
   test('{ gte: number, like: text } gives the numeric side a cast and the text side none', () => {
-    // Casting the whole extraction produced `numeric ~~ text`, which Postgres rejects; asserting that `#>>` appears proves nothing since the CASE expression contains it, so what matters is that `like` is never preceded by the CASE's `END`.
+    // Asserting `#>>` appears proves nothing - the CASE expression contains it too. What matters is
+    // that `like` is never preceded by the CASE's `END`, which would mean `numeric ~~ text`.
     const statement = compile({ 'metadata.score': { gte: 1, like: '%a%' } });
 
     expect(statement).toContain('::numeric');

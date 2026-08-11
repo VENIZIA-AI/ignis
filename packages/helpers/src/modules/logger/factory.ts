@@ -1,8 +1,9 @@
 import { AnyType } from '@/common/types';
 import { getError } from '@venizia/ignis-inversion';
 import { createRequire } from 'node:module';
-import { AbstractLogger } from './base';
-import { ILogger, ILoggerProvider, TLogLevel } from './common';
+import { AbstractLogger } from './base/abstract';
+import { ILogger, ILoggerProvider, TLogLevel } from './common/types';
+import { LoggerResolver } from './resolver';
 
 /** Stable wrapper the factory hands out; the delegate resolves lazily (first log call or `use()`), never at construction, so no provider loads until needed. Mutual reference with LoggerFactory is by design - hence the `no-use-before-define` disables. */
 class LoggerDelegator extends AbstractLogger {
@@ -104,3 +105,6 @@ export class LoggerFactory {
 export const ApplicationLogger = {
   get: (scope: string): ILogger => LoggerFactory.getLogger([scope]),
 };
+
+// Runs whenever LoggerFactory is imported as a value - which core's Container and every BANA entrypoint already do. This is what makes BaseHelper resolve real loggers on the server while its own import graph stays browser-pure.
+LoggerResolver.use({ resolver: opts => LoggerFactory.getLogger(opts.scopes) });

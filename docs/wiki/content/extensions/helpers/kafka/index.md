@@ -51,7 +51,7 @@ A few facts hold across all four:
 - **Producer, consumer, and admin share one health and close API.** `isHealthy()`, `isReady()`, `getHealthStatus()`, and `close({ isForce })` mean the same thing on every class. Each page documents the exact return values.
 - **Schema registry opens no broker connection.** It extends `BaseHelper` directly, not the shared connected-helper base. It has no health tracking - it's a configuration wrapper you hand to a producer or consumer via `registry`.
 - **Everything lives under `/kafka`, never the root barrel.** Install the optional peer yourself: `bun add @platformatic/kafka` (`^2.6.1`). An app that never touches Kafka tree-shakes it away entirely.
-- **Compiling to a single binary needs one extra build step.** Skip it, and the compiled app crashes at startup with `ENOENT: native.wasm` - see [Compiling to a Single Binary](./compile-binary).
+- **Compiling to a single binary needs one extra build step.** Skip it, and the compiled app crashes at startup with `ENOENT: native.wasm` or `Cannot find package 'ajv-draft-04'` - see [Compiling to a Single Binary](./compile-binary).
 - **Defaults and enum-like values ship as exported constants**, not magic numbers - `KafkaDefaults`, `KafkaAcks`, `KafkaGroupProtocol`, `KafkaHealthStatuses`. Each page's options table names the constant it uses.
 
 ## Find what you need
@@ -65,7 +65,7 @@ A few facts hold across all four:
 | See end-to-end examples or fix a connection error | [Examples & Troubleshooting](./examples) |
 | Ship an app that imports a Kafka helper as a single binary | [Compiling to a Single Binary](./compile-binary) |
 
-Start with [Producer](./producer) or [Consumer](./consumer) if you're wiring up your first topic. Start with [Compiling to a Single Binary](./compile-binary) if an existing app started throwing `ENOENT: native.wasm` after a `bun build --compile`.
+Start with [Producer](./producer) or [Consumer](./consumer) if you're wiring up your first topic. Start with [Compiling to a Single Binary](./compile-binary) if an existing app started crashing at startup after a `bun build --compile`.
 
 ## See also
 

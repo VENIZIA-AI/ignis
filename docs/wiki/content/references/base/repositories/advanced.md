@@ -223,6 +223,7 @@ Works the same on PostgreSQL and search (Typesense, Meilisearch) repositories.
 - A real database error is never retried. It throws immediately, same as without `retry`.
 - Out of attempts? You get the last result as-is. No new error.
 - Inside a transaction, retry is skipped - transactions already go to the primary. Locked reads (`lock`) require a transaction, so they never retry either.
+- On [`SoftDeletableRepository.findById`](/references/base/repositories/soft-deletable#findbyid-with-isstrict), `isStrict: true` is checked only after the attempts run out. A strict read waits out replica lag before it throws `404`.
 - Write verbs do not have this option. `retry` on a write is a compile error.
 
 ### Options

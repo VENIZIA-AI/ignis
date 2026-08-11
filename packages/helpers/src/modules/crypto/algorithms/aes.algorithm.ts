@@ -1,16 +1,30 @@
 import isEmpty from 'lodash/isEmpty';
 import C from 'node:crypto';
 import fs from 'node:fs';
+import { getError } from '@/modules/error';
 import { BaseCryptoAlgorithm } from './base.algorithm';
 
 const DEFAULT_LENGTH = 16;
+const CIPHERTEXT_VERSION = 0x01;
+const DEFAULT_KEY_ID = '0';
 
-interface IAESExtraOptions {
-  iv?: Buffer;
+interface IAESDecryptOptions {
   inputEncoding?: C.Encoding;
   outputEncoding?: C.Encoding;
   doThrow?: boolean;
 }
+
+/** `iv` is encrypt-only: the envelope carries the IV, so decrypt reads it from there and a supplied one would be silently ignored. */
+interface IAESExtraOptions extends IAESDecryptOptions {
+  iv?: Buffer;
+}
+
+export interface IAESKeyringEntry {
+  id: string;
+  secret: string;
+}
+
+export type TAESSecret = string | IAESKeyringEntry[];
 
 export type AESAlgorithmType = 'aes-256-cbc' | 'aes-256-gcm';
 
@@ -18,7 +32,7 @@ export class AES extends BaseCryptoAlgorithm<
   AESAlgorithmType,
   string,
   string,
-  string,
+  TAESSecret,
   string,
   string,
   IAESExtraOptions
@@ -31,7 +45,45 @@ export class AES extends BaseCryptoAlgorithm<
     return new AES({ algorithm });
   }
 
-  encrypt(opts: { message: string; secret: string; opts?: IAESExtraOptions }) {
+  protected resolveEncryptKey(secret: TAESSecret): { id: string; key: Buffer } {
+    const entry = Array.isArray(secret) ? secret[0] : { id: DEFAULT_KEY_ID, secret };
+
+    if (!entry || isEmpty(entry.secret)) {
+      throw getError({ message: '[AES][resolveEncryptKey] Missing secret or empty keyring' });
+    }
+
+    const key = this.normalizeSecretKey({
+      secret: entry.secret,
+      length: this.getAlgorithmKeySize(),
+    });
+    return { id: entry.id, key };
+  }
+
+  protected resolveDecryptKey(secret: TAESSecret, id: string): Buffer {
+    const length = this.getAlgorithmKeySize();
+
+    if (!Array.isArray(secret)) {
+      return this.normalizeSecretKey({ secret, length });
+    }
+
+    const entry = secret.find(e => e.id === id);
+    if (!entry) {
+      throw getError({
+        message: `[AES][resolveDecryptKey] No key in keyring matches ciphertext key id "${id}"`,
+      });
+    }
+
+    // Without this the empty secret derives a key from '' and fails as an opaque OpenSSL error, hiding a plain configuration mistake.
+    if (isEmpty(entry.secret)) {
+      throw getError({
+        message: `[AES][resolveDecryptKey] Keyring entry for key id "${id}" has an empty secret`,
+      });
+    }
+
+    return this.normalizeSecretKey({ secret: entry.secret, length });
+  }
+
+  encrypt(opts: { message: string; secret: TAESSecret; opts?: IAESExtraOptions }) {
     const { message, secret } = opts;
     const {
       iv = C.randomBytes(DEFAULT_LENGTH),
@@ -41,14 +93,18 @@ export class AES extends BaseCryptoAlgorithm<
     } = opts.opts ?? {};
 
     try {
-      const secretKey = this.normalizeSecretKey({
-        secret,
-        length: this.getAlgorithmKeySize(),
-      });
+      const { id, key } = this.resolveEncryptKey(secret);
+      const idBuffer = Buffer.from(id, 'utf-8');
+      if (idBuffer.length > 0xff) {
+        throw getError({ message: '[AES][encrypt] Key id too long (max 255 bytes)' });
+      }
 
-      const cipher = C.createCipheriv(this.algorithm, Buffer.from(secretKey), iv);
+      const cipher = C.createCipheriv(this.algorithm, key, iv);
 
-      const parts = [iv];
+      // Envelope: [version(1)][idLen(1)][id(idLen)][iv(16)][authTag(16, gcm only)][cipher]
+      const header = Buffer.from([CIPHERTEXT_VERSION, idBuffer.length]);
+      const parts = [header, idBuffer, iv];
+
       const cipherText = cipher.update(message, inputEncoding);
       const cipherFinal = cipher.final();
 
@@ -74,7 +130,7 @@ export class AES extends BaseCryptoAlgorithm<
     }
   }
 
-  encryptFile(opts: { absolutePath: string; secret: string }): string {
+  encryptFile(opts: { absolutePath: string; secret: TAESSecret }): string {
     const { absolutePath, secret } = opts;
 
     if (!absolutePath || isEmpty(absolutePath)) {
@@ -87,39 +143,43 @@ export class AES extends BaseCryptoAlgorithm<
     return encrypted;
   }
 
-  decrypt(opts: { message: string; secret: string; opts?: IAESExtraOptions }) {
+  decrypt(opts: { message: string; secret: TAESSecret; opts?: IAESDecryptOptions }) {
     const { message, secret } = opts;
     const { inputEncoding = 'base64', outputEncoding = 'utf-8', doThrow = true } = opts.opts ?? {};
 
     try {
-      const iv =
-        opts.opts?.iv ??
-        Buffer.from(message, inputEncoding).subarray(0, DEFAULT_LENGTH) ??
-        Buffer.alloc(DEFAULT_LENGTH, 0);
-      let messageIndex = iv.length;
+      const raw = Buffer.from(message, inputEncoding);
 
-      const secretKey = this.normalizeSecretKey({
-        secret,
-        length: this.getAlgorithmKeySize(),
-      });
-      const decipher = C.createDecipheriv(this.algorithm, Buffer.from(secretKey), iv);
+      const version = raw[0];
+      if (version !== CIPHERTEXT_VERSION) {
+        throw getError({ message: `[AES][decrypt] Unsupported ciphertext version: ${version}` });
+      }
+
+      const idLength = raw[1];
+      let cursor = 2;
+
+      const id = raw.subarray(cursor, cursor + idLength).toString('utf-8');
+      cursor += idLength;
+
+      const iv = raw.subarray(cursor, cursor + DEFAULT_LENGTH);
+      cursor += DEFAULT_LENGTH;
+
+      const key = this.resolveDecryptKey(secret, id);
+      const decipher = C.createDecipheriv(this.algorithm, key, iv);
 
       switch (this.algorithm) {
         case 'aes-256-cbc': {
           break;
         }
         case 'aes-256-gcm': {
-          const authTag = Buffer.from(message, inputEncoding).subarray(
-            iv.length,
-            iv.length + DEFAULT_LENGTH,
-          );
-          messageIndex += authTag.length;
+          const authTag = raw.subarray(cursor, cursor + DEFAULT_LENGTH);
+          cursor += DEFAULT_LENGTH;
           (decipher as C.DecipherGCM).setAuthTag(authTag);
           break;
         }
       }
 
-      const cipherText = Buffer.from(message, inputEncoding).subarray(messageIndex);
+      const cipherText = raw.subarray(cursor);
       return Buffer.concat([decipher.update(cipherText), decipher.final()]).toString(
         outputEncoding,
       );
@@ -132,7 +192,7 @@ export class AES extends BaseCryptoAlgorithm<
     }
   }
 
-  decryptFile(opts: { absolutePath: string; secret: string }) {
+  decryptFile(opts: { absolutePath: string; secret: TAESSecret }) {
     const { absolutePath, secret } = opts;
 
     if (!absolutePath || isEmpty(absolutePath)) {

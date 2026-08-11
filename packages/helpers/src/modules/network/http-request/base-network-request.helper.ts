@@ -2,16 +2,17 @@ import { BaseHelper } from '@/modules/base';
 import { getError } from '@/modules/error';
 import isEmpty from 'lodash/isEmpty';
 import { IFetchable, IRequestOptions } from './fetcher/base-fetcher';
-import { TFetcherResponse, TFetcherVariant } from './types';
+import { TFetcherResponse, TFetcherWorker } from './fetcher/types';
+import { TFetcherVariant } from './types';
 
 export class BaseNetworkRequest<T extends TFetcherVariant> extends BaseHelper {
   protected baseUrl: string;
-  protected fetcher: IFetchable<T, IRequestOptions, TFetcherResponse<T>>;
+  protected fetcher: IFetchable<T, IRequestOptions, TFetcherResponse<T>, TFetcherWorker<T>>;
 
   constructor(opts: {
     name: string;
     baseUrl?: string;
-    fetcher: IFetchable<T, IRequestOptions, TFetcherResponse<T>>;
+    fetcher: IFetchable<T, IRequestOptions, TFetcherResponse<T>, TFetcherWorker<T>>;
   }) {
     super({ scope: opts.name, identifier: opts.name });
     this.baseUrl = opts.baseUrl ?? '';
@@ -57,7 +58,7 @@ export class BaseNetworkRequest<T extends TFetcherVariant> extends BaseHelper {
     return this.fetcher;
   }
 
-  getWorker() {
+  getWorker(): TFetcherWorker<T> {
     return this.fetcher.getWorker();
   }
 }

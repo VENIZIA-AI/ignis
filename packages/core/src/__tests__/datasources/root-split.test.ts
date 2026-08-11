@@ -23,16 +23,28 @@ describe('DataSource root split', () => {
     expect('beginTransaction' in BasePostgresDataSource.prototype).toBe(true);
   });
 
-  /** DataSourceDrivers is an identity constant (logs, config, `isValid()`), NOT engine selection - a missing member makes `isValid()` answer false about an engine that plainly ships. */
+  /**
+   * DataSourceDrivers is an identity constant (logs, config, `isValid()`), NOT engine selection - a
+   * missing member makes `isValid()` answer false about an engine that plainly ships.
+   */
   test('DataSourceDrivers names every driver the framework ships', () => {
     const shipped = [
       DataSourceDrivers.NODE_POSTGRES, // connectors/postgres/drivers/node-postgres
       DataSourceDrivers.POSTGRES_JS, // connectors/postgres/drivers/postgres-js
+      DataSourceDrivers.PGLITE, // connectors/postgres/drivers/pglite
+      DataSourceDrivers.LIBSQL, // connectors/sqlite/drivers/libsql
       DataSourceDrivers.TYPESENSE, // connectors/typesense
       DataSourceDrivers.MEILISEARCH, // connectors/meilisearch
     ];
 
-    expect(shipped).toEqual(['node-postgres', 'postgres-js', 'typesense', 'meilisearch']);
+    expect(shipped).toEqual([
+      'node-postgres',
+      'postgres-js',
+      'pglite',
+      'libsql',
+      'typesense',
+      'meilisearch',
+    ]);
 
     for (const driver of shipped) {
       expect(DataSourceDrivers.isValid(driver)).toBe(true);

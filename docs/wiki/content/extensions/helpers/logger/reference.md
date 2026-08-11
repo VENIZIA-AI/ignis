@@ -229,15 +229,25 @@ logger.log('warn', 'Threshold exceeded');   // Generic method for any level
 
 ### What each level means
 
-The level set follows the npm/winston convention. Lower priority number means more severe. The level floor (`APP_ENV_LOGGER_LEVEL`) admits everything at or above its severity.
+Severity runs `emerg` > `error` > `warn` > `info` > `debug` in every provider. The level floor (`APP_ENV_LOGGER_LEVEL`) admits everything at or above its severity.
 
-| Level | Priority | Meaning | Use it for |
-|-------|----------|---------|------------|
-| `error` | 0 | An operation failed | Caught failures the line exists to diagnose - always pair an `Error` with `%s` |
-| `emerg` | 0 | The process is in a fatal state | Out-of-memory, unrecoverable corruption, imminent shutdown |
-| `warn` | 1 | Something is off but handled | Retries, fallbacks taken, deprecated usage |
-| `info` | 2 | A business event happened | "Order created", lifecycle milestones, boot phases |
-| `debug` | 3 | Developer diagnostics | Values and timings useful only while developing - ALSO gated by `DEBUG` env |
+| Level | Meaning | Use it for |
+|-------|---------|------------|
+| `emerg` | The process is in a fatal state | Out-of-memory, unrecoverable corruption, imminent shutdown |
+| `error` | An operation failed | Caught failures the line exists to diagnose - always pair an `Error` with `%s` |
+| `warn` | Something is off but handled | Retries, fallbacks taken, deprecated usage |
+| `info` | A business event happened | "Order created", lifecycle milestones, boot phases |
+| `debug` | Developer diagnostics | Values and timings useful only while developing - ALSO gated by `DEBUG` env |
+
+Each provider numbers those levels internally, and the numbers disagree. Read them only when debugging a provider, never as a cross-provider ranking.
+
+| Provider | Numbering | `emerg` / `error` / `warn` / `info` / `debug` |
+|---|---|---|
+| Winston | lower is more severe | `0` / `0` / `1` / `2` / `3` |
+| Pino | higher is more severe | `70` / `50` / `40` / `30` / `20` |
+| HfLogger | higher is more severe | `4` / `3` / `2` / `1` / `0` |
+
+Winston gives `emerg` and `error` the same number, so a winston transport cannot admit `emerg` while rejecting `error`.
 
 > [!NOTE]
 > Two gates apply to `debug`; only one applies to everything else. Every level passes the floor (`APP_ENV_LOGGER_LEVEL`, default `debug` - which admits all five levels). `debug()` also requires the `DEBUG` env gate.
@@ -348,23 +358,50 @@ import { ErrorPrettier } from '@venizia/ignis-helpers';
 logger.error('Order recalculation failed | %s', ErrorPrettier.format({ error }));
 ```
 
-- **Keeps** `name`, the full untruncated `message`, `code`, the `pg` diagnostics (`hint`, `detail`, `table`, `constraint`), the root stack frames, and a flattened `cause` chain.
-- **Drops** `query`, `params` and the stack header that repeats the message.
+- **Keeps** `name`, the full untruncated `message`, `code`, an `ApplicationError`'s `normalized.args` and `normalized.code`, the `pg` diagnostics (`hint`, `detail`, `table`, `constraint`), the root stack frames, and a flattened `cause` chain.
+- **Drops** `query`, `params`, the stack header that repeats the message, and the `getError` frame that names no call site.
 - **Returns a string**, so `%s` prints it verbatim and the message keeps its real newlines instead of `\n` escapes.
 - **Bounded.** The `cause` chain is cut at 5 levels and is cycle-safe; frames stop at 10.
+
+An `ApplicationError` message keeps its `%{placeholder}` tokens - i18n resolves them downstream, not here. So the block prints the values on their own `args:` line, right under the message:
+
+```
+- message: Field %{field} is fixed at creation and cannot be changed.
+- args: { field: 'ticketType' }
+- code: server.core.inventory.ticket.update.immutable_field
+```
+
+Args come from the root error only, are redacted like `extra`, and an empty map prints no line.
 
 #### `ErrorPrettier.format(opts)`
 
 | Option | Type | Default | Meaning |
 |---|---|---|---|
 | `error` | `unknown` | - | The thrown value. A string or plain object works too |
-| `messageCode` | `string` | - | Renders a `code:` line. `AppErrorMiddleware` passes `normalized.code` |
+| `messageCode` | `string` | - | Renders the `code:` line. Without it the error's own `normalized.code` is used |
 | `extra` | `Record<string, unknown>` | - | Caller context. Redacted before printing |
-| `includeStack` | `boolean` | `true` | Set `false` for an intentional error, whose frames are framework plumbing |
+| `includeStack` | `boolean` | `true` | Set `false` to drop frames entirely |
+| `maxStackFrames` | `number` | `10` | Frame budget, forwarded to `summarize` |
+| `format` | `TLoggerFormat` | `APP_ENV_LOGGER_FORMAT`, else `text` | `text` renders the block; `json` renders one line |
+
+#### One line for a log monitor
+
+A multi-line block becomes one record per line in Loki or CloudWatch, and the error loses its
+context. Set `APP_ENV_LOGGER_FORMAT=json` and the same projection renders as a single line:
+
+```json
+{"message":"Field %{field} is fixed at creation and cannot be changed.","args":{"field":"ticketType"},"code":"server.core.inventory.ticket.update.immutable_field","stack":["at TicketService.update (...)"]}
+```
+
+Absent fields are omitted rather than set to `null`. `stack` is an **array of frames** here, not the
+newline-joined string `text` prints, so a monitor can count and slice it. `args` and `extra` are
+redacted exactly as in `text`.
 
 #### `ErrorPrettier.summarize(opts)`
 
-Returns the same projection as a typed `IErrorSummary` object rather than a string - for a JSON sink or a log aggregator.
+Returns the same projection as a typed `IErrorSummary` object rather than a string - for a JSON sink or a log aggregator. `IErrorSummary.args` carries the root error's `normalized.args` unredacted; `format()` redacts on render.
+
+`code` and `messageCode` are separate fields on purpose. `code` is the error's own - a driver's `23505`, a gRPC `14` - and renders inside the `name:` line. `messageCode` is an `ApplicationError`'s `normalized.code`, the identifier an application filters on, and renders on the `code:` line. `MessageCode.DEFAULT` never surfaces, since every codeless error carries it.
 
 | Option | Type | Default | Meaning |
 |---|---|---|---|
