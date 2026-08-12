@@ -2,6 +2,8 @@
         help install clean setup-hooks agent-setup \
         lint lint-all lint-packages lint-examples \
         lint-dev-configs lint-inversion lint-filter lint-helpers lint-boot lint-core lint-docs-mcp \
+        purity purity-inversion purity-filter purity-helpers \
+        purity-dev-configs purity-boot purity-core purity-docs-mcp \
         okf-check okf-gen okf-coverage okf-viz \
         catalog-check \
         update update-all update-core update-dev-configs update-docs-mcp update-filter update-helpers update-inversion update-boot
@@ -179,6 +181,30 @@ lint-core:
 lint-docs-mcp:
 	@echo "🔍 Linting @venizia/ignis-docs (MCP Server)..."
 	@bun run --filter "@venizia/ignis-docs" lint
+
+# ----------------------------------------------------------------------------
+# PURITY TARGETS
+# Bundles each entry claimed browser-pure and fails on node builtins or globals.
+# Requires the package's dist - run the matching build target first.
+# ----------------------------------------------------------------------------
+purity:
+	@echo "🔍 Checking browser purity for all claimed entries..."
+	@bun scripts/purity/cli.ts
+
+purity-inversion:
+	@echo "🔍 Checking browser purity for @venizia/ignis-inversion..."
+	@bun scripts/purity/cli.ts inversion
+
+purity-filter:
+	@echo "🔍 Checking browser purity for @venizia/ignis-filter..."
+	@bun scripts/purity/cli.ts filter
+
+purity-helpers:
+	@echo "🔍 Checking browser purity for @venizia/ignis-helpers..."
+	@bun scripts/purity/cli.ts helpers
+
+purity-dev-configs purity-boot purity-core purity-docs-mcp:
+	@echo "ℹ️  No browser-pure entry claimed for this package - skipping."
 
 # ----------------------------------------------------------------------------
 # HELP

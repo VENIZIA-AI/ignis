@@ -112,6 +112,9 @@ jobs:
       - name: Lint
         run: make lint-$PACKAGE
 
+      - name: Purity
+        run: make purity-$PACKAGE
+
       - name: Validate build artifacts
         run: |
           cd $PACKAGE_PATH
