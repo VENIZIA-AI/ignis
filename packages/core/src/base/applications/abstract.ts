@@ -1,21 +1,11 @@
 import { CoreBindings } from '@/common/bindings';
 import { Container } from '@/helpers/inversion/container';
-import { OpenAPIHono } from '@hono/zod-openapi';
 import type { ValueOrPromise } from '@venizia/ignis-helpers/common';
 import { getError } from '@venizia/ignis-helpers/core';
-import { HTTP, RuntimeModules } from '@venizia/ignis-helpers/common';
+import { HTTP } from '@venizia/ignis-helpers/common';
 import { applicationEnvironment, toBoolean } from '@venizia/ignis-helpers';
-import type { Env, Schema } from 'hono';
-import { showRoutes as showApplicationRoutes } from 'hono/dev';
 import isEmpty from 'lodash/isEmpty';
-import path from 'node:path';
-import type {
-  IApplication,
-  IApplicationConfigs,
-  IApplicationInfo,
-  TBunServerInstance,
-  TNodeServerInstance,
-} from './types';
+import type { IApplicationConfigs, IApplicationInfo } from './types';
 
 const DEFAULT_SERVER_HOST = 'localhost';
 const DEFAULT_SERVER_PORT = 3000;
@@ -44,27 +34,8 @@ const resolveServerPort = (opts: { candidates: Array<number | string | undefined
   return DEFAULT_SERVER_PORT;
 };
 
-export abstract class AbstractApplication<
-  AppEnv extends Env = Env,
-  AppSchema extends Schema = {},
-  BasePath extends string = '/',
->
-  extends Container
-  implements IApplication<AppEnv, AppSchema, BasePath>
-{
-  protected server:
-    | {
-        hono: OpenAPIHono<AppEnv, AppSchema, BasePath>;
-        runtime: typeof RuntimeModules.BUN;
-        instance?: TBunServerInstance;
-      }
-    | {
-        hono: OpenAPIHono<AppEnv, AppSchema, BasePath>;
-        runtime: typeof RuntimeModules.NODE;
-        instance?: TNodeServerInstance;
-      };
-
-  protected rootRouter: OpenAPIHono<AppEnv, AppSchema, BasePath>;
+/** Container, config and lifecycle-hook plumbing shared by every IGNIS application - no router, no server. `RestApplication` adds the router; `ServerApplication` adds the listening server. */
+export abstract class AbstractApplication extends Container {
   protected configs: IApplicationConfigs;
   protected projectRoot: string;
 
@@ -82,23 +53,13 @@ export abstract class AbstractApplication<
       port: resolveServerPort({
         candidates: [config.port, process.env.PORT, process.env.APP_ENV_SERVER_PORT],
       }),
-      asyncContext: { enable: config?.asyncContext?.enable ?? true },
+      asyncContext: {
+        enable: config?.asyncContext?.enable ?? this.getDefaultAsyncContextEnabled(),
+      },
     });
 
     this.projectRoot = this.getProjectRoot();
     this.logger.for('constructor').info('Project root: %s', this.projectRoot);
-
-    const honoServer = new OpenAPIHono<AppEnv, AppSchema, BasePath>({
-      strict: this.configs.strictPath ?? true,
-    });
-    this.rootRouter = new OpenAPIHono({
-      strict: this.configs.strictPath ?? true,
-    });
-
-    this.server = {
-      hono: honoServer,
-      runtime: RuntimeModules.detect(),
-    };
   }
 
   abstract getAppInfo(): ValueOrPromise<IApplicationInfo>;
@@ -113,6 +74,11 @@ export abstract class AbstractApplication<
 
   abstract initialize(): Promise<void>;
 
+  /** `false` keeps a router-only or router-less application from installing `hono/context-storage` (`node:async_hooks`); `ServerApplication` overrides this back to `true` so serving behaviour is unchanged. */
+  protected getDefaultAsyncContextEnabled(): boolean {
+    return false;
+  }
+
   getProjectConfigs(): IApplicationConfigs {
     return this.configs;
   }
@@ -121,32 +87,6 @@ export abstract class AbstractApplication<
     const projectRoot = process.cwd();
     this.bind<string>({ key: CoreBindings.APPLICATION_PROJECT_ROOT }).toValue(projectRoot);
     return projectRoot;
-  }
-
-  getRootRouter(): OpenAPIHono<AppEnv, AppSchema, BasePath> {
-    return this.rootRouter;
-  }
-
-  getServerHost(): string {
-    return this.configs.host!;
-  }
-
-  getServerPort(): number {
-    return this.configs.port!;
-  }
-
-  getServerAddress() {
-    return `${this.getServerHost()}:${this.getServerPort()}`;
-  }
-
-  getServer(): OpenAPIHono<AppEnv, AppSchema, BasePath> {
-    return this.server.hono;
-  }
-
-  getServerInstance<
-    T extends TBunServerInstance | TNodeServerInstance = TBunServerInstance | TNodeServerInstance,
-  >(): T | undefined {
-    return this.server.instance as T | undefined;
   }
 
   registerPostStartHook(opts: { identifier: string; hook: () => ValueOrPromise<void> }) {
@@ -219,27 +159,6 @@ export abstract class AbstractApplication<
     this.bind<typeof this>({
       key: CoreBindings.APPLICATION_INSTANCE,
     }).toProvider(_ => this);
-    this.bind<typeof this.server>({
-      key: CoreBindings.APPLICATION_SERVER,
-    }).toProvider(_ => this.server);
-    this.bind<typeof this.rootRouter>({
-      key: CoreBindings.APPLICATION_ROOT_ROUTER,
-    }).toProvider(_ => this.rootRouter);
-  }
-
-  protected inspectRoutes() {
-    const t = performance.now();
-    const shouldShowRoutes = this.configs?.debug?.shouldShowRoutes ?? false;
-
-    if (!shouldShowRoutes) {
-      return;
-    }
-
-    this.logger.for(this.inspectRoutes.name).info('START | Inspect all application route(s)');
-    showApplicationRoutes(this.getServer());
-    this.logger
-      .for(this.start.name)
-      .info('DONE | Inspect all application route(s) | Took: %s (ms)', performance.now() - t);
   }
 
   protected validateEnvs() {
@@ -270,163 +189,7 @@ export abstract class AbstractApplication<
       );
   }
 
-  protected startBunModule() {
-    return new Promise((resolve, reject) => {
-      if (this.server.runtime !== RuntimeModules.BUN) {
-        return reject(
-          getError({
-            message: `[startBunModule] Invalid runtime to start server | runtime: ${this.server.runtime} | required: ${RuntimeModules.BUN}`,
-          }),
-        );
-      }
-
-      const port = this.getServerPort();
-      const host = this.getServerHost();
-      const server = this.getServer();
-
-      Promise.resolve(
-        Bun.serve({
-          port,
-          hostname: host,
-          fetch: server.fetch,
-        }),
-      )
-        .then(rs => {
-          this.server.instance = rs;
-          this.configs.port = rs.port;
-          this.inspectRoutes();
-
-          this.logger
-            .for(this.start.name)
-            .info('Server STARTED | Address: %s', this.getServerAddress());
-          this.logger
-            .for(this.start.name)
-            .info(
-              'Log folder: %s',
-              path.resolve(process.env.APP_ENV_LOGGER_FOLDER_PATH ?? '').toString(),
-            );
-
-          resolve(rs);
-        })
-        .catch(reject);
-    });
-  }
-
-  protected startNodeModule() {
-    return new Promise((resolve, reject) => {
-      if (this.server.runtime !== RuntimeModules.NODE) {
-        return reject(
-          getError({
-            message: `[startNodeModule] Invalid runtime to start server | runtime: ${this.server.runtime} | required: ${RuntimeModules.NODE}`,
-          }),
-        );
-      }
-
-      const port = this.getServerPort();
-      const host = this.getServerHost();
-      const server = this.getServer();
-
-      import('@hono/node-server')
-        .then(module => {
-          const { serve } = module;
-
-          // Resolve from the listening callback, not serve()'s synchronous return - only then is the socket bound and the OS-assigned port (config port `0`) known.
-          const rs = serve({ fetch: server.fetch, port, hostname: host }, info => {
-            this.configs.port = info.port;
-            this.inspectRoutes();
-            this.logger
-              .for(this.start.name)
-              .info('Server STARTED | Address: %s | Info: %j', this.getServerAddress(), info);
-            this.logger
-              .for(this.start.name)
-              .info(
-                'Log folder: %s',
-                path.resolve(process.env.APP_ENV_LOGGER_FOLDER_PATH ?? '').toString(),
-              );
-
-            this.server.instance = rs;
-            resolve(rs);
-          });
-        })
-        .catch(error => {
-          this.logger
-            .for(this.start.name)
-            .error('Failed to import @hono/node-server | Error: %s', error);
-          reject(
-            getError({
-              message: `[start] @hono/node-server is required for Node.js runtime. Please install '@hono/node-server'`,
-            }),
-          );
-        });
-    });
-  }
-
   init() {
     this.registerCoreBindings();
-  }
-
-  async start() {
-    await this.initialize();
-    await this.setupMiddlewares();
-
-    const server = this.getServer();
-    server.route(this.configs.path.base, this.rootRouter);
-
-    switch (this.server.runtime) {
-      case RuntimeModules.BUN: {
-        await this.startBunModule();
-        break;
-      }
-      case RuntimeModules.NODE: {
-        await this.startNodeModule();
-        break;
-      }
-      default: {
-        throw getError({
-          message: '[start] Invalid runtimeModule to start server instance!',
-        });
-      }
-    }
-
-    await this.executePostStartHooks();
-  }
-
-  async stop() {
-    await this.executePostStopHooks();
-
-    const instance = this.server.instance;
-    if (!instance) {
-      this.logger.for(this.stop.name).info('Server was not started | Nothing to stop');
-      return;
-    }
-
-    switch (this.server.runtime) {
-      case RuntimeModules.BUN: {
-        await instance.stop();
-        break;
-      }
-      case RuntimeModules.NODE: {
-        // `close()` is callback-based: without this bridge stop() resolves while the socket is still bound, so an immediate restart races the previous listener.
-        await new Promise<void>((resolve, reject) => {
-          instance.close((error?: Error) => {
-            if (error) {
-              reject(error);
-              return;
-            }
-
-            resolve();
-          });
-        });
-        break;
-      }
-      default: {
-        throw getError({
-          message: '[stop] Invalid runtimeModule to stop server instance!',
-        });
-      }
-    }
-
-    this.server.instance = undefined;
-    this.logger.for(this.stop.name).info('Server STOPPED');
   }
 }

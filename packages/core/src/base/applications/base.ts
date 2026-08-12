@@ -48,7 +48,7 @@ import { AppErrorMiddleware, emojiFavicon, notFoundHandler } from '../middleware
 import type { TMixinOpts } from '../mixins';
 import type { IRepository } from '../repositories';
 import type { IService } from '../services';
-import { AbstractApplication } from './abstract';
+import { ServerApplication } from './server';
 import type { IRestApplication } from './types';
 
 const {
@@ -100,7 +100,7 @@ const selectSecretEnvKeys = (opts: {
 };
 
 export abstract class BaseApplication
-  extends AbstractApplication
+  extends ServerApplication
   implements IRestApplication, IBootableApplication
 {
   private registeredBindings: Record<string, Set<string>> = {};
