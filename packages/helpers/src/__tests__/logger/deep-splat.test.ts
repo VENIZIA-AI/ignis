@@ -178,3 +178,77 @@ describe('formatLogMessage - the other placeholders keep their meaning', () => {
     expect(formatted).toContain('Circular');
   });
 });
+
+/** `JSON.stringify` gives up on the WHOLE payload when a cycle sits anywhere inside it, and it never redacts - so a `%j` argument has to be projected before `util.format` hands it over. */
+describe('formatLogMessage - %j is projected before JSON.stringify sees it', () => {
+  const buildCyclicTransaction = () => {
+    const transaction: AnyType = { id: 'tx-1' };
+    transaction.client = { pool: transaction };
+
+    return transaction;
+  };
+
+  test('a cycle collapses only its own branch, not the whole argument', () => {
+    const formatted = formatLogMessage({
+      message: 'Args: %j',
+      args: [{ userId: 42, transaction: buildCyclicTransaction() }],
+    });
+
+    expect(formatted).toContain('"userId":42');
+    expect(formatted).toContain('"id":"tx-1"');
+    expect(formatted).toContain('[Circular]');
+  });
+
+  test('a secret-looking key is redacted under %j, as it already is under %s', () => {
+    const formatted = formatLogMessage({
+      message: 'Args: %j',
+      args: [{ username: 'phatnt', password: 'hunter2', accessToken: 'ey.j' }],
+    });
+
+    expect(formatted).toContain('"username":"phatnt"');
+    expect(formatted).not.toContain('hunter2');
+    expect(formatted).not.toContain('ey.j');
+  });
+
+  test('an Error under %j keeps its message instead of serializing to {}', () => {
+    const formatted = formatLogMessage({
+      message: 'Args: %j',
+      args: [{ error: new Error('boom') }],
+    });
+
+    expect(formatted).toContain('boom');
+  });
+
+  test('a Date under %j stays an ISO string', () => {
+    const formatted = formatLogMessage({ message: 'Args: %j', args: [{ createdAt: new Date(0) }] });
+
+    expect(formatted).toBe('Args: {"createdAt":"1970-01-01T00:00:00.000Z"}');
+  });
+
+  test('the same Date used twice is not mistaken for a cycle', () => {
+    const createdAt = new Date(0);
+    const formatted = formatLogMessage({
+      message: 'Args: %j',
+      args: [{ createdAt, updatedAt: createdAt }],
+    });
+
+    expect(formatted).not.toContain('Circular');
+  });
+
+  test('%j is capped at the same depth as %s, so a live connector cannot flood the sink', () => {
+    const formatted = formatLogMessage({
+      message: 'Args: %j',
+      args: [buildNested({ depth: 12 })],
+      inspectOptions: { depth: 2 },
+    });
+
+    expect(formatted).not.toContain('DEEP_LEAF');
+    expect(formatted).toContain('[Object]');
+  });
+
+  test('a Date under %s is printed, not flattened to {}', () => {
+    const formatted = formatLogMessage({ message: 'Args: %s', args: [{ createdAt: new Date(0) }] });
+
+    expect(formatted).toContain('1970-01-01T00:00:00.000Z');
+  });
+});

@@ -6,6 +6,17 @@ not how.
 This file and `index.md` are reserved OKF filenames - they carry no `type:` frontmatter and are not
 counted as concepts.
 
+## 2026-08-12 - `%j` log arguments are projected before `JSON.stringify` sees them
+
+A log argument bound to `%j` used to reach `JSON.stringify` raw, which answers `[Circular]` for the
+WHOLE argument when a single cycle sits anywhere inside it. One live transaction handle in a payload
+therefore erased every other field - the reported symptom was pages of `Args: [Circular]`. The `%j`
+path now runs `toJsonSafe` (new export in `common/redact.ts`), so cycles collapse per branch, secret
+keys are masked as they already were under `%s`, and the walk is capped at
+`APP_ENV_LOGGER_INSPECT_DEPTH`. The shared traversal also stopped flattening `Date` to `{}`. Still
+open by design: `%o`/`%O` and no-placeholder arguments are not redacted. Updated
+`packages/helpers`.
+
 ## 2026-08-06 - AES on PBKDF2, keyring rotation, and a cipher seam
 
 PR #32 replaced the pad-or-truncate key derivation with PBKDF2-SHA256 (100k iterations) and gave the

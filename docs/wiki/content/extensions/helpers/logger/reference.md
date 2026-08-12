@@ -316,23 +316,25 @@ class UserService {
 
 ### Logging errors: `%s`, never `%j`
 
-- **`message` and `stack` are non-enumerable** on a native `Error`.
-- **`%j` formats via `JSON.stringify`**, which only visits enumerable own properties. So `logger.error('Failed: %j', error)` silently drops both `message` and `stack` - the two fields the log line exists to capture.
+- **`%s` routes an Error through `ErrorPrettier`**, which projects it down to identity, cause and frames.
+- **`%j` keeps every enumerable own property**, so a `pg` error carries its whole query along and a `jose` error its whole payload. That projection is the reason the rule exists.
 - **Always pair an `Error` argument with `%s`**; reserve `%j`/`%o` for plain data objects.
 
 ```typescript
 // Good - %s prints message + stack
 logger.error('Failed to create user: %s', error);
 
-// Bad - %j drops message and stack (non-enumerable on Error)
+// Bad - %j dumps every own property the error happens to carry
 logger.error('Failed to create user: %j', error);
 ```
 
-### Object inspection depth for `%s`
+`message` and `stack` are non-enumerable, so `JSON.stringify` alone would render an Error as `{}`. The formatter projects both in first, which makes a mistaken `%j` merely noisy rather than empty.
+
+### Object inspection depth for `%s` and `%j`
 
 - **Node hard-codes `depth: 0` for `%s`** in `util.format`. An object passed to `%s` collapses to `[Object]`, hiding the nested `extra` or `cause` a wrapped error carries.
 - **`deepSplat` widens that depth.** The formatter (`formatLogMessage`) pre-inspects any object bound to a `%s` placeholder before handing the message to Winston. So nested fields print instead of collapsing.
-- **Applies per-placeholder.** Only arguments matched to a `%s` token are affected, so `%j` still gets `JSON.stringify` semantics.
+- **`%j` is capped at the same depth**, and keeps JSON semantics. Below the cap it prints `"[Object]"`.
 
 ```typescript
 logger.error('Failed: %s', error); // nested `error.cause` is now visible, not `[Object]`
@@ -345,6 +347,25 @@ APP_ENV_LOGGER_INSPECT_DEPTH=8
 ```
 
 The value must be a non-negative integer. An absent, empty, negative, or unparseable value falls back to the default of `5` - there is no "unlimited" setting.
+
+### `%j` projects the argument first
+
+`JSON.stringify` renders the WHOLE argument as `[Circular]` when a single cycle sits anywhere inside it. One live handle in the payload - a transaction, a connector, a request context - therefore erased every other field:
+
+```typescript
+logger.debug('Updating user | Args: %j', { id, data, transaction });
+// Before: Updating user | Args: [Circular]
+```
+
+The formatter now projects a `%j` argument before `util.format` sees it. Three consequences:
+
+| Concern | Behavior |
+|---|---|
+| Cycles | Collapse to `"[Circular]"` on the offending branch only; sibling fields survive |
+| Secret-looking keys | Redacted, exactly as under `%s` |
+| Depth | Capped by `APP_ENV_LOGGER_INSPECT_DEPTH`, so a live connector cannot flood one line |
+
+A payload holding a transaction still prints its own fields, but the handle itself is noise. Keep live objects out of the logged arguments.
 
 ### ErrorPrettier - a readable block instead of an object dump
 

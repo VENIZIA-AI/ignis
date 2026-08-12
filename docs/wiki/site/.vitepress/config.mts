@@ -451,6 +451,16 @@ const config = defineConfig({
           collapsed: false,
           items: [
             {
+              text: '2026-08-12',
+              collapsed: true,
+              items: [
+                {
+                  text: 'Log Arguments Under %j No Longer Collapse to [Circular]',
+                  link: '/changelogs/2026-08-12-json-log-arguments',
+                },
+              ],
+            },
+            {
               text: '2026-08-07',
               collapsed: true,
               items: [

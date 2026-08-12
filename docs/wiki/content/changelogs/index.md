@@ -17,6 +17,7 @@ This section tracks the history of significant changes, refactors, and updates t
 
 | Date | Title | Type |
 |------|-------|------|
+| 2026-08-12 | [Log Arguments Under `%j` No Longer Collapse to `[Circular]`](./2026-08-12-json-log-arguments) | Bug Fix, Security, Behavior Change |
 | 2026-08-07 | [Call Sites No Longer Have to Know Which Fields Are Text](./2026-08-07-default-query-by) | New Feature, Enhancement |
 | 2026-08-07 | [Nested i18n Fields Become Filterable and Sortable](./2026-08-07-nested-fields-and-order-validation) | New Feature, Bug Fix, Behavior Change |
 | 2026-08-07 | [One Transport for Every Typesense Search](./2026-08-07-typesense-multi-search-transport) | New Feature, Bug Fix, Behavior Change |

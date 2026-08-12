@@ -1,4 +1,4 @@
-import { redactSecrets } from '@/common/redact';
+import { redactSecrets, toJsonSafe } from '@/common/redact';
 import util from 'node:util';
 import { ErrorPrettier } from './error-prettier';
 
@@ -35,7 +35,7 @@ const buildInspectOptions = (): util.InspectOptions => {
   };
 };
 
-/** Formats like `util.format`, but `%s` inspects to configured depth instead of Node's hard-coded `depth: 0` (no inspect option overrides that). Per-placeholder only - widening ALL args would turn `%j` into a JSON-quoted string instead of an object. */
+/** Formats like `util.format`, but `%s` inspects to configured depth instead of Node's hard-coded `depth: 0` (no inspect option overrides that), and `%j` is projected into a JSON-safe shape first. Per-placeholder only - handing `%j` the widened STRING would emit a JSON-quoted inspect dump instead of an object. */
 export const formatLogMessage = (opts: {
   message: string;
   args: Array<unknown>;
@@ -46,10 +46,19 @@ export const formatLogMessage = (opts: {
   const placeholders = (message.match(PLACEHOLDER_PATTERN) ?? []).filter(token => token !== '%%');
 
   const widened = args.map((arg, index) => {
-    const isStringPlaceholder = placeholders[index] === '%s';
+    const placeholder = placeholders[index];
     const isInspectable = typeof arg === 'object' && arg !== null;
 
-    if (!isStringPlaceholder || !isInspectable) {
+    if (!isInspectable) {
+      return arg;
+    }
+
+    // `%j` runs JSON.stringify, which answers `[Circular]` for the WHOLE argument when one cycle sits anywhere inside it - a transaction handle in the payload wipes out every other field. It also has no notion of secret keys, and no depth limit of its own. Project the value first, under the same depth cap `%s` gets.
+    if (placeholder === '%j') {
+      return toJsonSafe({ value: arg, depth: inspectOptions.depth ?? resolveDepth() });
+    }
+
+    if (placeholder !== '%s') {
       return arg;
     }
 
