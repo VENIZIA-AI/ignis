@@ -2,12 +2,12 @@ import { asTypedContext } from '@/base/controllers/common/types';
 import { BaseHelper, getError } from '@venizia/ignis-helpers/core';
 import type { IProvider } from '@venizia/ignis-inversion';
 import { createMiddleware } from 'hono/factory';
-import type { IAuthUser } from '../../authenticate';
 // Deep import (not the authenticate barrel): the barrel re-exports ./controllers, whose factory extends BaseRestController - a value import here forms the base/controllers <-> auth init cycle.
+import type { IAuthUser } from '../../authenticate/common/types';
 import { Authentication } from '../../authenticate/common/constants';
 import type { IAuthorizationSpec, TAuthorizeFn } from '../common';
 import { Authorization, AuthorizationDecisions, AuthorizationErrors } from '../common';
-import { AuthorizationEnforcerRegistry } from '../enforcers';
+import { AuthorizationEnforcerRegistry } from '../enforcers/enforcer-registry';
 import { resolveRequestDomain } from './request-domain';
 
 export class AuthorizationProvider extends BaseHelper implements IProvider<TAuthorizeFn> {

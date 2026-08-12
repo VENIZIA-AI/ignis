@@ -5,7 +5,7 @@ import { type IRedisHelper } from '@venizia/ignis-helpers';
 import { type Adapter } from 'casbin';
 import type { Env } from 'hono';
 import { type MiddlewareHandler } from 'hono';
-import type { IAuthUser } from '../../authenticate';
+import type { IAuthUser } from '../../authenticate/common/types';
 import type {
   CasbinEnforcerCachedDrivers,
   CasbinEnforcerModelDrivers,

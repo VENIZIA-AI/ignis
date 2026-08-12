@@ -6,7 +6,7 @@ import type { Env } from 'hono';
 import { createMiddleware } from 'hono/factory';
 import type { IAuthUser, TAuthenticateFn, TAuthMode } from '../common';
 import { Authentication, AuthenticationErrors, AuthenticationModes } from '../common';
-import { AuthenticationStrategyRegistry } from '../strategies';
+import { AuthenticationStrategyRegistry } from '../strategies/strategy-registry';
 
 export class AuthenticationProvider<RouteEnv extends Env = Env>
   extends BaseHelper
