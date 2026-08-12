@@ -7,7 +7,7 @@ import {
   WhereSchema,
 } from '@/base/repositories/query-schemas';
 import { z } from '@hono/zod-openapi';
-import type { TConstValue } from '@venizia/ignis-helpers';
+import type { TConstValue } from '@venizia/ignis-helpers/common';
 import type { ISearchQuery } from './types';
 
 /** Discriminant values for `TSearchInput.mode` - which search strategy `ReadableSearchRepository.search()` runs. */

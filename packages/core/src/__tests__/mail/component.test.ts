@@ -6,7 +6,7 @@ import {
   InternalQueueMailExecutorHelper,
 } from '@/components/mail/helpers';
 import { Container } from '@/helpers/inversion';
-import type { AnyType } from '@venizia/ignis-helpers';
+import type { AnyType } from '@venizia/ignis-helpers/common';
 import { FakeLogger, FakeMailTransport } from './fakes';
 
 /** The component only ever talks to the container (isBound/bind/get), so a plain Container stands in for the application; the transport is bound through the `custom` provider, so no SMTP peer is needed. */

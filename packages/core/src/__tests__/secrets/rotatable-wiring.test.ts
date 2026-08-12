@@ -2,9 +2,9 @@ import { BaseApplication } from '@/base/applications/base';
 import { BaseComponent } from '@/base/components';
 import { BindingNamespaces } from '@/common/bindings';
 import { BindingScopes } from '@/helpers/inversion';
+import { type AnyType } from '@venizia/ignis-helpers/common';
 import {
   SecretProviders,
-  type AnyType,
   type ISecretRotatable,
   type ISecretsHelper,
 } from '@venizia/ignis-helpers';

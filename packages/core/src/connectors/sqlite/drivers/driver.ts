@@ -1,6 +1,6 @@
 import type { TAnyDataSourceSchema } from '@/base/datasources';
 import type { IRelationalConnection, IRelationalDriver } from '@/connectors/relational/drivers';
-import type { AnyType } from '@venizia/ignis-helpers';
+import type { AnyType } from '@venizia/ignis-helpers/common';
 import type { BaseSQLiteDatabase } from 'drizzle-orm/sqlite-core';
 
 export type { IStatementResult } from '@/connectors/relational/drivers';

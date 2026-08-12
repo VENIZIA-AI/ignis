@@ -1,4 +1,4 @@
-import { HTTP, type TConstValue } from '@venizia/ignis-helpers';
+import { HTTP, type TConstValue } from '@venizia/ignis-helpers/common';
 
 interface IHttpLikeError {
   httpStatus?: number;

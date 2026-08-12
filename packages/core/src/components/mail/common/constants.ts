@@ -1,4 +1,4 @@
-import { MessageCode } from '@venizia/ignis-helpers';
+import { MessageCode } from '@venizia/ignis-helpers/core';
 
 export class MailDefaults {
   static readonly BATCH_CONCURRENCY = 5;

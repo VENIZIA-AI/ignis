@@ -6,7 +6,7 @@ import type { TAuthMode, TAuthStrategy } from '@/components/auth/authenticate/co
 import type { IAuthorizationSpec } from '@/components/auth/authorize/common/types';
 import type { TAnyObjectSchema } from '@/utilities/schema.utility';
 import { z } from '@hono/zod-openapi';
-import { HTTP } from '@venizia/ignis-helpers';
+import { HTTP } from '@venizia/ignis-helpers/common';
 import type { ICustomizableRoutes } from '../common';
 import {
   commonResponseHeaders,

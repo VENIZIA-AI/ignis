@@ -1,10 +1,10 @@
 import { BaseApplication } from '@/base/applications/base';
+import { type AnyType } from '@venizia/ignis-helpers/common';
 import {
   AbstractSecretsHelper,
   SecretProviders,
   SystemEnvsHelper,
   formatLogMessage,
-  type AnyType,
   type ISecretsRegistration,
 } from '@venizia/ignis-helpers';
 import { Logger } from '@venizia/ignis-helpers/winston';

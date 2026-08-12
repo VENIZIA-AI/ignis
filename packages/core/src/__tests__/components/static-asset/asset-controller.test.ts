@@ -8,7 +8,7 @@ import { StaticAssetStorageTypes } from '@/components/static-asset/common';
 import { AppErrorMiddleware } from '@/base/middlewares';
 import { MetadataRegistry } from '@/helpers/inversion/registry';
 import type { OpenAPIHono } from '@hono/zod-openapi';
-import type { AnyType, ValueOrPromise } from '@venizia/ignis-helpers';
+import type { AnyType, ValueOrPromise } from '@venizia/ignis-helpers/common';
 import { beforeEach, describe, expect, test } from 'bun:test';
 import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';

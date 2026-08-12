@@ -1,5 +1,5 @@
 import type { TTableColumns } from '@/connectors/relational/repositories/common';
-import { getError } from '@venizia/ignis-helpers';
+import { getError } from '@venizia/ignis-helpers/core';
 
 /**
  * Refuses `blob(name, { mode: 'json' })`, which the neutral check accepts because Drizzle reports

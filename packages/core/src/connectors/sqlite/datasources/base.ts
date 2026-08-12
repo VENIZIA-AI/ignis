@@ -1,7 +1,7 @@
 import type { TAnyDataSourceSchema } from '@/base/datasources';
 import { throwNotSupported } from '@/utilities';
-import type { ValueOrPromise } from '@venizia/ignis-helpers';
-import { getError } from '@venizia/ignis-helpers';
+import type { ValueOrPromise } from '@venizia/ignis-helpers/common';
+import { getError } from '@venizia/ignis-helpers/core';
 import { AbstractSqliteDataSource } from './abstract';
 import type {
   ISqliteDataSourceSettings,

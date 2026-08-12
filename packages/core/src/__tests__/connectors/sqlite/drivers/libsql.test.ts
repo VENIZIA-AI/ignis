@@ -1,7 +1,7 @@
 import { LibSqlDriver } from '@/connectors/sqlite/drivers/libsql';
 import type { Client } from '@libsql/client';
 import { createClient } from '@libsql/client';
-import type { AnyType } from '@venizia/ignis-helpers';
+import type { AnyType } from '@venizia/ignis-helpers/common';
 import { afterAll, beforeAll, describe, expect, test } from 'bun:test';
 import { sql } from 'drizzle-orm';
 import { expectRejection } from '../../../rejection.helper';

@@ -8,7 +8,7 @@ import { HealthCheckComponent } from '@/components/health-check';
 import { HealthCheckBindingKeys, type IHealthCheckOptions } from '@/components/health-check/common';
 import { HealthCheckController } from '@/components/health-check/controller';
 import type { OpenAPIHono } from '@hono/zod-openapi';
-import type { AnyType, ValueOrPromise } from '@venizia/ignis-helpers';
+import type { AnyType, ValueOrPromise } from '@venizia/ignis-helpers/common';
 import { beforeAll, describe, expect, test } from 'bun:test';
 
 /** Applies a method decorator with the legacy call shape `tsc` emits for every consumer app: bun does not resolve the `extends` chain carrying `experimentalDecorators`, so decorator SYNTAX inside this package compiles with TC39 semantics, the decorators reject that shape, and the route is silently dropped. */

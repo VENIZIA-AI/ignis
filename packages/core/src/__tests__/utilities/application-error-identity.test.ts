@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test';
-import { ApplicationError, getError, isApplicationError } from '@venizia/ignis-helpers';
+import { ApplicationError, getError, isApplicationError } from '@venizia/ignis-helpers/core';
 import { Container, getError as inversionGetError } from '@venizia/ignis-inversion';
 
 /** `instanceof ApplicationError` cannot work across packages: inversion ships dual CJS+ESM builds, so one source class yields two runtime constructors and CJS and ESM importers hold different classes - `isApplicationError()` is the only safe check. */

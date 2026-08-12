@@ -5,7 +5,7 @@ import type {
   ISynonym,
 } from '@/connectors/search/models';
 import { SearchFieldTypes, VectorDistances } from '@/connectors/search/models';
-import { getError } from '@venizia/ignis-helpers';
+import { getError } from '@venizia/ignis-helpers/core';
 import omit from 'lodash/omit';
 
 /** Meilisearch's single reserved geo field. It is an object `{ lat, lng }`, not a named tuple. */

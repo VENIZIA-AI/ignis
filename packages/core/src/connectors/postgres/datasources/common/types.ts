@@ -5,7 +5,7 @@ import type {
   IRelationalTransaction,
   TRelationalTransactionOptions,
 } from '@/connectors/relational/datasources/common';
-import type { TConstValue } from '@venizia/ignis-helpers';
+import type { TConstValue } from '@venizia/ignis-helpers/common';
 import type { NodePgClient } from 'drizzle-orm/node-postgres';
 import { type drizzle as nodePostgresConnector } from 'drizzle-orm/node-postgres';
 import type { PgDatabase, PgQueryResultHKT } from 'drizzle-orm/pg-core';

@@ -1,4 +1,4 @@
-import { BaseHelper, getError } from '@venizia/ignis-helpers';
+import { BaseHelper, getError } from '@venizia/ignis-helpers/core';
 import type {
   IMailProcessorResult,
   IMailQueueExecutor,

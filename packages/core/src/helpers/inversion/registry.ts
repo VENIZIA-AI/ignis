@@ -1,4 +1,4 @@
-import type { AnyType, TClass } from '@venizia/ignis-helpers';
+import type { AnyType, TClass } from '@venizia/ignis-helpers/common';
 import { MetadataRegistry as _MetadataRegistry } from '@venizia/ignis-inversion';
 import type { IModelRegistryEntry, IRepositoryBinding } from './common/types';
 import {

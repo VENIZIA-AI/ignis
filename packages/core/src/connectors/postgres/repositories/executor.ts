@@ -9,8 +9,8 @@ import type {
   IWriteResult,
 } from '@/connectors/relational/repositories/common';
 import type { TRelationalConnector } from '@/connectors/postgres/datasources';
-import type { AnyType, TNullable } from '@venizia/ignis-helpers';
-import { getError } from '@venizia/ignis-helpers';
+import type { AnyType, TNullable } from '@venizia/ignis-helpers/common';
+import { getError } from '@venizia/ignis-helpers/core';
 import type { PgTable } from 'drizzle-orm/pg-core';
 import omit from 'lodash/omit';
 

@@ -1,5 +1,5 @@
 import type { Container } from '@/helpers/inversion/container';
-import type { TClass } from '@venizia/ignis-helpers';
+import type { TClass } from '@venizia/ignis-helpers/common';
 import { AbstractAuthRegistry } from '../../base';
 import type { IAuthenticationStrategy } from '../common';
 import { Authentication } from '../common';

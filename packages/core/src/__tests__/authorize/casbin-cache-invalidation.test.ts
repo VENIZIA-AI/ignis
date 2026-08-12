@@ -10,7 +10,7 @@ import {
   type TAuthorizationDecision,
 } from '@/components/auth/authorize';
 import { Container } from '@/helpers/inversion';
-import { BaseHelper } from '@venizia/ignis-helpers';
+import { BaseHelper } from '@venizia/ignis-helpers/core';
 import type { FilteredAdapter, Model } from 'casbin';
 import { createFreshRegistry } from './helpers';
 

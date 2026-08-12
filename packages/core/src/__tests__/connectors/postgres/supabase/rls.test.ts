@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test';
-import type { AnyType } from '@venizia/ignis-helpers';
+import type { AnyType } from '@venizia/ignis-helpers/common';
 import { withAuthContext } from '@/connectors/postgres/supabase';
 import type { SQL } from 'drizzle-orm';
 import { PgDialect } from 'drizzle-orm/pg-core';

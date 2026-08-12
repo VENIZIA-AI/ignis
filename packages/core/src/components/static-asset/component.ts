@@ -3,7 +3,7 @@ import { BaseComponent } from '@/base/components';
 import { inject } from '@/base/metadata';
 import { CoreBindings } from '@/common/bindings';
 import { Binding } from '@/helpers/inversion';
-import { ValueOrPromise } from '@venizia/ignis-helpers';
+import { ValueOrPromise } from '@venizia/ignis-helpers/common';
 import { StaticAssetComponentBindingKeys, TStaticAssetsComponentOptions } from './common';
 import { AssetControllerFactory } from './controller';
 

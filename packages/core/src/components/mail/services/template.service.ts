@@ -1,8 +1,8 @@
 import { BaseService } from '@/base/services';
 import type { IMailTemplateEngine, ITemplate } from '../common';
 import { MailErrors } from '../common';
-import type { AnyType } from '@venizia/ignis-helpers';
-import { getError } from '@venizia/ignis-helpers';
+import type { AnyType } from '@venizia/ignis-helpers/common';
+import { getError } from '@venizia/ignis-helpers/core';
 
 export class TemplateEngineService extends BaseService implements IMailTemplateEngine {
   private templates: Map<string, ITemplate> = new Map();

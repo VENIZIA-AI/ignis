@@ -2,7 +2,7 @@ import type { TSqliteConnector } from '@/connectors/sqlite/drivers';
 import { SqliteQueryExecutor } from '@/connectors/sqlite/repositories/executor';
 import type { Client } from '@libsql/client';
 import { createClient } from '@libsql/client';
-import type { AnyType } from '@venizia/ignis-helpers';
+import type { AnyType } from '@venizia/ignis-helpers/common';
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from 'bun:test';
 import { asc, eq, sql } from 'drizzle-orm';
 import { drizzle } from 'drizzle-orm/libsql';

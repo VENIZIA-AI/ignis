@@ -9,12 +9,9 @@ import type {
 } from '../common';
 import { MailDefaults, MailErrorCodes, MailErrors, MailKeys } from '../common';
 import { inject } from '@/base/metadata';
-import {
-  AnyType,
-  executePromiseWithLimit,
-  getError,
-  isApplicationError,
-} from '@venizia/ignis-helpers';
+import { getError, isApplicationError } from '@venizia/ignis-helpers/core';
+import { AnyType } from '@venizia/ignis-helpers/common';
+import { executePromiseWithLimit } from '@venizia/ignis-helpers';
 
 export class MailService extends BaseService implements IMailService {
   constructor(

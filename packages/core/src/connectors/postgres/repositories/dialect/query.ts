@@ -1,7 +1,7 @@
 import type { IQueryHandlerOptions } from '@/base/repositories/common';
 import { QueryOperators } from '@/base/repositories/common';
-import type { AnyType } from '@venizia/ignis-helpers';
-import { getError } from '@venizia/ignis-helpers';
+import type { AnyType } from '@venizia/ignis-helpers/common';
+import { getError } from '@venizia/ignis-helpers/core';
 import {
   between,
   eq,

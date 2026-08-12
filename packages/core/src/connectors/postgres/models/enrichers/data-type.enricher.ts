@@ -1,4 +1,4 @@
-import type { AnyType } from '@venizia/ignis-helpers';
+import type { AnyType } from '@venizia/ignis-helpers/common';
 import { boolean, customType, doublePrecision, jsonb, text } from 'drizzle-orm/pg-core';
 import type { TColumnDefinitions, TDataTypeEnricherOptions } from '../common/types';
 

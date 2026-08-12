@@ -1,4 +1,4 @@
-import type { TConstValue } from '@venizia/ignis-helpers';
+import type { TConstValue } from '@venizia/ignis-helpers/common';
 
 /** Engine-neutral field type vocabulary for the search-collection DSL. */
 export class SearchFieldTypes {

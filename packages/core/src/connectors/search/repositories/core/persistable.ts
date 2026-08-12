@@ -4,8 +4,8 @@ import type { IExtraOptions, TCount, TWhere } from '@/base/repositories/common';
 import { RepositoryOperationScopes } from '@/base/repositories/common';
 import type { AbstractSearchDataSource } from '@/connectors/search/datasources';
 import type { BaseSearchEntity } from '@/connectors/search/models';
-import type { TClass, TNullable } from '@venizia/ignis-helpers';
-import { getError } from '@venizia/ignis-helpers';
+import type { TClass, TNullable } from '@venizia/ignis-helpers/common';
+import { getError } from '@venizia/ignis-helpers/core';
 import type { IImportResult } from '@/connectors/search';
 import { ReadableSearchRepository } from './readable';
 

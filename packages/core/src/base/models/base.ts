@@ -1,4 +1,4 @@
-import { BaseHelper } from '@venizia/ignis-helpers';
+import { BaseHelper } from '@venizia/ignis-helpers/core';
 import type { TIdSchemaType, TSchemaType } from './common';
 
 /** Engine-neutral entity root: named, scoped-logged, zod-schema-capable. */

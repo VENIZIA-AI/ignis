@@ -8,7 +8,7 @@ import type {
 } from 'drizzle-orm/pg-core';
 import { bigint, integer, text } from 'drizzle-orm/pg-core';
 import type { TColumnDefinitions, TIdEnricherOptions, TPrimaryKey } from '../common/types';
-import { getError } from '@venizia/ignis-helpers';
+import { getError } from '@venizia/ignis-helpers/core';
 
 type TStringIdCol = HasRuntimeDefault<
   HasDefault<IsPrimaryKey<NotNull<PgTextBuilderInitial<'id', [string, ...string[]]>>>>

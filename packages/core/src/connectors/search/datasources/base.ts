@@ -5,7 +5,8 @@ import { toSearchQueryParams } from '@/connectors/search/repositories/common';
 import type { ISearchDataSourceOptions } from '@/connectors/search/datasources/common';
 import type { TMultiSearchEntry } from '@/connectors/search/repositories/common';
 import { MetadataRegistry } from '@/helpers/inversion';
-import { getError, type TClass } from '@venizia/ignis-helpers';
+import { getError } from '@venizia/ignis-helpers/core';
+import { type TClass } from '@venizia/ignis-helpers/common';
 import { AbstractSearchDataSource } from './abstract';
 
 /** `searchCollection` is the dual-schema escape hatch: a postgres entity with a search index declares it beside its pgTable `schema`; a search-only entity puts the DSL straight in `schema`. */

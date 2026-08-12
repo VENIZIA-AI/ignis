@@ -5,7 +5,7 @@ import type {
 } from '@/components/auth/authorize/common/types';
 import { AuthorizationDomainScopes } from '@/components/auth/authorize/common/constants';
 import { resolveRequestDomain } from '@/components/auth/authorize/providers/request-domain';
-import type { TNullable } from '@venizia/ignis-helpers';
+import type { TNullable } from '@venizia/ignis-helpers/common';
 
 /** resolveRequestDomain precedence: spec.domain -> declarative -> options.domainResolver -> SYSTEM_WIDE. A falsy or missing resolver returns SYSTEM_WIDE, NOT the next source - fail-closed, since only super-admins hold SYSTEM_WIDE grants. */
 

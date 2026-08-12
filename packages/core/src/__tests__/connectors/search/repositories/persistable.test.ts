@@ -1,5 +1,5 @@
 import { describe, test, expect, beforeEach } from 'bun:test';
-import { ApplicationError } from '@venizia/ignis-helpers';
+import { ApplicationError } from '@venizia/ignis-helpers/core';
 
 import {
   DefaultSearchRepository,

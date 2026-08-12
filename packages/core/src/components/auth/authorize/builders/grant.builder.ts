@@ -1,5 +1,6 @@
 import type { IdType } from '@/base';
-import { BaseHelper, getError, type TNullable } from '@venizia/ignis-helpers';
+import { BaseHelper, getError } from '@venizia/ignis-helpers/core';
+import { type TNullable } from '@venizia/ignis-helpers/common';
 import {
   AuthorizationActions,
   AuthorizationDecisions,

@@ -1,5 +1,5 @@
-import type { TConstValue } from '@venizia/ignis-helpers';
-import { MessageCode } from '@venizia/ignis-helpers';
+import type { TConstValue } from '@venizia/ignis-helpers/common';
+import { MessageCode } from '@venizia/ignis-helpers/core';
 
 /** Every machine-readable code the framework raises - clients branch on the code, so these strings ARE a public contract. Built via {@link MessageCode.build}, which rejects a malformed code at import time; `core.*` and `database.*` belong to IGNIS, applications use their own namespace. */
 const build = (parts: Array<string>): string => {

@@ -1,5 +1,6 @@
-import type { TErrorDefinition, TRegisterErrors } from '@venizia/ignis-helpers';
-import { ErrorScopes, HTTP } from '@venizia/ignis-helpers';
+import type { TErrorDefinition, TRegisterErrors } from '@venizia/ignis-helpers/core';
+import { ErrorScopes } from '@venizia/ignis-helpers/core';
+import { HTTP } from '@venizia/ignis-helpers/common';
 
 /** Codes a client branches on for a failed authentication. A throw site may override `message` for detail; the code and status come from here. */
 export const AuthenticationErrors = {

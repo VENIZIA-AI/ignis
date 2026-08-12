@@ -1,5 +1,5 @@
 import { describe, test, expect } from 'bun:test';
-import { ApplicationError, getError } from '@venizia/ignis-helpers';
+import { ApplicationError, getError } from '@venizia/ignis-helpers/core';
 import { TypesenseDirtyValues, TypesenseImportActions } from '@/connectors/typesense/types';
 import { makeHelper } from './fake-client';
 

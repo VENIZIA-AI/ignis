@@ -1,7 +1,7 @@
 import { BindingScopes } from '@venizia/ignis-inversion';
 import type { Container } from '@/helpers/inversion/container';
-import type { TClass } from '@venizia/ignis-helpers';
-import { BaseHelper, getError } from '@venizia/ignis-helpers';
+import type { TClass } from '@venizia/ignis-helpers/common';
+import { BaseHelper, getError } from '@venizia/ignis-helpers/core';
 import isEmpty from 'lodash/isEmpty';
 
 export type TRegistryDescriptor<TItem> = {

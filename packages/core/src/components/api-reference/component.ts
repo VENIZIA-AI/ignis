@@ -7,7 +7,7 @@ import type { Context, Next } from 'hono';
 import { Authentication } from '../auth';
 import { ApiReferenceBindingKeys, DocumentUITypes, IApiReferenceOptions } from './common';
 import { UIProviderFactory } from './ui-factory';
-import { getError } from '@venizia/ignis-helpers';
+import { getError } from '@venizia/ignis-helpers/core';
 import { Binding } from '@/helpers/inversion';
 
 const DEFAULT_API_REFERENCE_OPTIONS: IApiReferenceOptions = {

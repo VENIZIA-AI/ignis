@@ -4,8 +4,8 @@ import { MetadataRegistry } from '@/helpers/inversion/registry';
 import { ControllerTransports } from '@/base/controllers/common/constants';
 import { BaseGrpcController } from '@/base/controllers/grpc/base';
 import type { IConnectRpcModule } from '@/base/controllers/grpc/common/types';
-import type { AnyType } from '@venizia/ignis-helpers';
-import { GRPC } from '@venizia/ignis-helpers';
+import type { AnyType } from '@venizia/ignis-helpers/common';
+import { GRPC } from '@venizia/ignis-helpers/common';
 describe('BaseGrpcController', () => {
   const registry = MetadataRegistry.getInstance();
 

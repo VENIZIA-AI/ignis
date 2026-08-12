@@ -1,5 +1,5 @@
 import type { TTableSchemaWithId } from '@/connectors/relational/models/common';
-import { BaseHelper, getError } from '@venizia/ignis-helpers';
+import { BaseHelper, getError } from '@venizia/ignis-helpers/core';
 import type { SQL } from 'drizzle-orm';
 import { sql } from 'drizzle-orm';
 import type { ITransformedUpdateData, TTableColumns } from '../common';

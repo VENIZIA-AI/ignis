@@ -1,5 +1,6 @@
 import { describe, test, expect, beforeEach } from 'bun:test';
-import { ApplicationError, HTTP } from '@venizia/ignis-helpers';
+import { ApplicationError } from '@venizia/ignis-helpers/core';
+import { HTTP } from '@venizia/ignis-helpers/common';
 import type { TLockOptions } from '@/base/repositories/common';
 import { LockStrengths } from '@/base/repositories/common';
 import { DefaultSearchRepository } from '@/connectors/typesense/repositories';

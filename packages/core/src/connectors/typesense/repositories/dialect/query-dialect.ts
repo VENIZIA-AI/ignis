@@ -18,7 +18,7 @@ import {
 } from '@/connectors/search/repositories/common/dialect-helpers';
 import type { ITypesenseSearchQuery } from '@/connectors/typesense/repositories/common';
 import { SearchErrors } from '@/connectors/search/common';
-import { getError } from '@venizia/ignis-helpers';
+import { getError } from '@venizia/ignis-helpers/core';
 
 /** The non-raw search inputs the dialect translates; `raw` bypasses the dialect entirely. */
 type TTranslatableSearchInput = Exclude<TSearchInput, { mode: typeof SearchModes.RAW }>;

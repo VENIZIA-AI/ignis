@@ -1,7 +1,8 @@
 import { SearchErrorCodes } from '@/common';
 import { SearchErrors } from '@/connectors/search/common';
-import type { ILogger } from '@venizia/ignis-helpers';
-import { getError, HTTP } from '@venizia/ignis-helpers';
+import type { ILogger } from '@venizia/ignis-helpers/core';
+import { getError } from '@venizia/ignis-helpers/core';
+import { HTTP } from '@venizia/ignis-helpers/common';
 
 /** Engine-agnostic error plumbing shared by every search connector; backend-specific classification (what counts as 404/409) lives in each backend's own internal helper. */
 export class SearchConnectorInternal {

@@ -1,5 +1,6 @@
 import { describe, test, expect, beforeEach } from 'bun:test';
-import { ApplicationError, HTTP } from '@venizia/ignis-helpers';
+import { ApplicationError } from '@venizia/ignis-helpers/core';
+import { HTTP } from '@venizia/ignis-helpers/common';
 import type { ITransaction } from '@/base/datasources';
 import { DefaultSearchRepository } from '@/connectors/typesense/repositories';
 import { FakeSearchDataSource, ProductDocument } from './fake-search-connector';

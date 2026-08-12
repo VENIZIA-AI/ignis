@@ -1,4 +1,4 @@
-import type { ILogger } from '@venizia/ignis-helpers';
+import type { ILogger } from '@venizia/ignis-helpers/core';
 import { LoggerFactory } from '@venizia/ignis-helpers';
 import type { MetadataRegistry as _MetadataRegistry } from '@venizia/ignis-inversion';
 import { Container as DIContainer } from '@venizia/ignis-inversion';

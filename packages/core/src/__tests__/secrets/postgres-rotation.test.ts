@@ -1,7 +1,7 @@
 import { datasource } from '@/base/metadata/persistents';
 import { BasePostgresDataSource } from '@/connectors/postgres/datasources';
 import { NodePostgresDriver } from '@/connectors/postgres/drivers/node-postgres';
-import type { AnyType } from '@venizia/ignis-helpers';
+import type { AnyType } from '@venizia/ignis-helpers/common';
 import { describe, expect, test } from 'bun:test';
 
 class FakePool {

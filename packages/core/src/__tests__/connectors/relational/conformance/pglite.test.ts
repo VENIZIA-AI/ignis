@@ -5,7 +5,7 @@ import { PGliteDriver } from '@/connectors/postgres/drivers/pglite';
 import { BasePostgresEntity } from '@/connectors/postgres/models';
 import { DefaultCRUDRepository } from '@/connectors/postgres/repositories';
 import { PGlite } from '@electric-sql/pglite';
-import type { AnyType, ValueOrPromise } from '@venizia/ignis-helpers';
+import type { AnyType, ValueOrPromise } from '@venizia/ignis-helpers/common';
 import { afterAll, beforeAll } from 'bun:test';
 import { integer, pgTable, serial, text } from 'drizzle-orm/pg-core';
 import type { IConformanceHarness, TConformanceRepository } from './repository-conformance';

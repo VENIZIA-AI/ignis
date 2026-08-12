@@ -2,8 +2,8 @@ import type { AbstractEntity } from '@/base/models';
 import { SchemaTypes } from '@/base/models/common/constants';
 import type { AbstractRepository } from '@/base/repositories';
 import type { TAnyObjectSchema } from '@/utilities/schema.utility';
-import type { ValueOrPromise } from '@venizia/ignis-helpers';
-import { BaseHelper, getError } from '@venizia/ignis-helpers';
+import type { ValueOrPromise } from '@venizia/ignis-helpers/common';
+import { BaseHelper, getError } from '@venizia/ignis-helpers/core';
 import { isClass } from '@venizia/ignis-inversion';
 import type { Env, Schema } from 'hono';
 import type {

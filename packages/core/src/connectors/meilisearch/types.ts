@@ -1,4 +1,4 @@
-import type { TConstValue } from '@venizia/ignis-helpers';
+import type { TConstValue } from '@venizia/ignis-helpers/common';
 
 /** Meilisearch task lifecycle. Every write returns a task uid and is invisible to search until SUCCEEDED. */
 export class MeilisearchTaskStatuses {

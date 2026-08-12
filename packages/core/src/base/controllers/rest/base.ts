@@ -1,5 +1,5 @@
 import type { Hook, OpenAPIHono } from '@hono/zod-openapi';
-import type { ValueOrPromise } from '@venizia/ignis-helpers';
+import type { ValueOrPromise } from '@venizia/ignis-helpers/common';
 import { executeWithPerformanceMeasure } from '@venizia/ignis-helpers';
 import type { Env, Schema } from 'hono';
 import type {

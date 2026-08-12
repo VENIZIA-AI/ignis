@@ -1,5 +1,5 @@
 import { BaseApplication } from '@/base/applications/base';
-import type { AnyType } from '@venizia/ignis-helpers';
+import type { AnyType } from '@venizia/ignis-helpers/common';
 import { describe, expect, test } from 'bun:test';
 
 class ProbeApp extends BaseApplication {

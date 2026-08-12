@@ -3,7 +3,8 @@ import { BaseComponent } from '@/base/components/base';
 import { inject } from '@/base/metadata/injectors';
 import { controller } from '@/base/metadata/routes';
 import { CoreBindings } from '@/common/bindings';
-import { getError, ValueOrPromise } from '@venizia/ignis-helpers';
+import { getError } from '@venizia/ignis-helpers/core';
+import { ValueOrPromise } from '@venizia/ignis-helpers/common';
 import { Binding } from '@venizia/ignis-inversion';
 import {
   AuthenticateBindingKeys,

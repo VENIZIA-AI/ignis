@@ -2,7 +2,7 @@ import { describe, expect, test } from 'bun:test';
 import { sql } from 'drizzle-orm';
 import { jsonb, PgDialect, pgTable, serial, varchar } from 'drizzle-orm/pg-core';
 import type { SQL } from 'drizzle-orm';
-import type { AnyType } from '@venizia/ignis-helpers';
+import type { AnyType } from '@venizia/ignis-helpers/common';
 import type { TQueryOperatorHandlers } from '@/base/repositories/common';
 import type { TTableColumns } from '@/connectors/relational/repositories/common';
 import { PostgresFilterBuilder } from '@/connectors/postgres/repositories/dialect/filter';

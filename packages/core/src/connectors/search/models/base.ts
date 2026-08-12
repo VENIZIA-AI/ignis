@@ -1,5 +1,5 @@
 import type { z } from '@hono/zod-openapi';
-import { getError } from '@venizia/ignis-helpers';
+import { getError } from '@venizia/ignis-helpers/core';
 
 import type { TSchemaType } from '@/base/models';
 import { AbstractEntity } from '@/base/models';

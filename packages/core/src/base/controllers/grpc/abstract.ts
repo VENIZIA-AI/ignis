@@ -6,8 +6,8 @@ import { authorize as authorizeFn } from '@/components/auth/authorize/middleware
 import type { IRpcMetadata } from '@/helpers/inversion/common/types';
 import { MetadataRegistry } from '@/helpers/inversion/registry';
 import type { ConnectRouter } from '@connectrpc/connect';
-import type { ValueOrPromise } from '@venizia/ignis-helpers';
-import { BaseHelper, getError } from '@venizia/ignis-helpers';
+import type { ValueOrPromise } from '@venizia/ignis-helpers/common';
+import { BaseHelper, getError } from '@venizia/ignis-helpers/core';
 import type { Env, Schema } from 'hono';
 import { Hono } from 'hono';
 import { GrpcRequestAdapter } from './adapter';

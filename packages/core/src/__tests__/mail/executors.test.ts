@@ -6,7 +6,8 @@ import {
   DirectMailExecutorHelper,
   InternalQueueMailExecutorHelper,
 } from '@/components/mail/helpers';
-import { LoggerFactory, type AnyType } from '@venizia/ignis-helpers';
+import { type AnyType } from '@venizia/ignis-helpers/common';
+import { LoggerFactory } from '@venizia/ignis-helpers';
 import { ProcessorCallTracker, successProcessorResult } from './fakes';
 
 const sleep = (ms: number) => new Promise<void>(resolve => setTimeout(resolve, ms));

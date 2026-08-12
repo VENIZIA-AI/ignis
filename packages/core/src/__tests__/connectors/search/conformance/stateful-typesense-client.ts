@@ -1,5 +1,5 @@
-import type { AnyType } from '@venizia/ignis-helpers';
-import { getError } from '@venizia/ignis-helpers';
+import type { AnyType } from '@venizia/ignis-helpers/common';
+import { getError } from '@venizia/ignis-helpers/core';
 import type { ITypesenseClientLike } from '@/connectors/typesense/connector';
 
 interface IFakeCollection {

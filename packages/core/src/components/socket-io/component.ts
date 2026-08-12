@@ -3,13 +3,9 @@ import { BaseComponent } from '@/base/components';
 import { inject } from '@/base/metadata';
 import { CoreBindings } from '@/common/bindings';
 import { Binding } from '@/helpers/inversion';
-import {
-  AbstractRedisHelper,
-  getError,
-  HTTP,
-  RuntimeModules,
-  ValueOrPromise,
-} from '@venizia/ignis-helpers';
+import { getError } from '@venizia/ignis-helpers/core';
+import { HTTP, RuntimeModules, ValueOrPromise } from '@venizia/ignis-helpers/common';
+import { AbstractRedisHelper } from '@venizia/ignis-helpers';
 import {
   SocketIOServerHelper,
   TSocketIOAuthenticateFn,

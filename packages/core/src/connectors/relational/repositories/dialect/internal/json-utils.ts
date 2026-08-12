@@ -1,4 +1,4 @@
-import { getError } from '@venizia/ignis-helpers';
+import { getError } from '@venizia/ignis-helpers/core';
 
 /** Regex for validating JSON path components (identifiers, kebab-case, array indices). */
 export const JSON_PATH_PATTERN = /^[a-zA-Z_][a-zA-Z0-9_-]*$|^\d+$/;

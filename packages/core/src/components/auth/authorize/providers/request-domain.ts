@@ -1,5 +1,5 @@
 import type { TContext } from '@/base/controllers/common/types';
-import type { TNullable } from '@venizia/ignis-helpers';
+import type { TNullable } from '@venizia/ignis-helpers/common';
 import type { Env } from 'hono';
 import { AuthorizationDomainScopes } from '../common/constants';
 import type {

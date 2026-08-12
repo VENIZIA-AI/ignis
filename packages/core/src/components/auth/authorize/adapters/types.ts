@@ -1,5 +1,5 @@
 import type { IdType } from '@/base';
-import type { AnyType } from '@venizia/ignis-helpers';
+import type { AnyType } from '@venizia/ignis-helpers/common';
 import type { PgDatabase, PgQueryResultHKT } from 'drizzle-orm/pg-core';
 
 /** Filter passed to loadFilteredPolicy: which principal's policies to load. */

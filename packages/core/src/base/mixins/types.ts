@@ -1,5 +1,5 @@
 import type { Binding } from '@/helpers/inversion';
-import type { AnyObject, TClass, ValueOrPromise } from '@venizia/ignis-helpers';
+import type { AnyObject, TClass, ValueOrPromise } from '@venizia/ignis-helpers/common';
 import type { IApplication } from '../applications';
 import type { BaseComponent } from '../components';
 import type { IDataSource } from '../datasources';

@@ -1,7 +1,7 @@
 import type { AbstractEntity, IdType } from '@/base/models';
 import type { TFilter, TWhere } from '@venizia/ignis-filter';
 import type { TAnyObjectSchema } from '@/utilities/schema.utility';
-import { HTTP } from '@venizia/ignis-helpers';
+import { HTTP } from '@venizia/ignis-helpers/common';
 import type { Env, Schema } from 'hono';
 import type { TEntityDataObject, TEntityPersistObject, TRouteContext } from '../../common';
 import { AbstractCrudController } from './abstract';

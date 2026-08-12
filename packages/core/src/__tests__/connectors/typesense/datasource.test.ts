@@ -1,7 +1,8 @@
 import { describe, test, expect } from 'bun:test';
 import { readdirSync, statSync } from 'node:fs';
 import { join } from 'node:path';
-import { ApplicationError, HTTP } from '@venizia/ignis-helpers';
+import { ApplicationError } from '@venizia/ignis-helpers/core';
+import { HTTP } from '@venizia/ignis-helpers/common';
 
 import { model, repository } from '@/base/metadata';
 import {

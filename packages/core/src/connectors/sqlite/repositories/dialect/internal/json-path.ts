@@ -1,4 +1,4 @@
-import { getError } from '@venizia/ignis-helpers';
+import { getError } from '@venizia/ignis-helpers/core';
 
 /** Every all-digit component doubles the candidate paths, and filter keys arrive from callers. */
 const MAX_AMBIGUOUS_COMPONENTS = 4;

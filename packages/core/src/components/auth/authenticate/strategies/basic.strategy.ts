@@ -1,7 +1,7 @@
 import { TContext } from '@/base/controllers/common/types';
 import { inject } from '@/base/metadata/injectors';
 import { BindingNamespaces } from '@/common/bindings';
-import { BaseHelper } from '@venizia/ignis-helpers';
+import { BaseHelper } from '@venizia/ignis-helpers/core';
 import { BindingKeys } from '@venizia/ignis-inversion';
 import { Env } from 'hono';
 import { Authentication, IAuthUser, IAuthenticationStrategy } from '../common';

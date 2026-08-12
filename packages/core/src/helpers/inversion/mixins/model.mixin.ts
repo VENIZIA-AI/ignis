@@ -1,6 +1,6 @@
 import type { AbstractEntity } from '@/base/models';
-import type { TMixinTarget } from '@venizia/ignis-helpers';
-import { getError } from '@venizia/ignis-helpers';
+import type { TMixinTarget } from '@venizia/ignis-helpers/common';
+import { getError } from '@venizia/ignis-helpers/core';
 import type { MetadataRegistry as _MetadataRegistry } from '@venizia/ignis-inversion';
 import { MetadataKeys } from '../common/keys';
 import type {

@@ -1,4 +1,4 @@
-import { getError } from '@venizia/ignis-helpers';
+import { getError } from '@venizia/ignis-helpers/core';
 import type { PgIntegerBuilderInitial, PgTextBuilderInitial } from 'drizzle-orm/pg-core';
 import { integer, text } from 'drizzle-orm/pg-core';
 import { tryGetContext } from 'hono/context-storage';

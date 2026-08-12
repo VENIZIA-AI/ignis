@@ -1,7 +1,8 @@
 import type { IAuthRouteConfig } from '@/base';
 import { jsonContent, jsonResponse } from '@/base/models';
 import { z } from '@hono/zod-openapi';
-import { ErrorSchema, HTTP } from '@venizia/ignis-helpers';
+import { HTTP } from '@venizia/ignis-helpers/common';
+import { ErrorSchema } from '@venizia/ignis-helpers';
 
 const MultipartBodySchema = z.object({
   files: z.union([z.instanceof(File), z.array(z.instanceof(File))]).openapi({

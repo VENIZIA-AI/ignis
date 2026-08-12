@@ -2,7 +2,7 @@ import { BaseApplication } from '@/base/applications';
 import { BaseComponent } from '@/base/components';
 import { inject } from '@/base/metadata';
 import { CoreBindings } from '@/common';
-import { getError } from '@venizia/ignis-helpers';
+import { getError } from '@venizia/ignis-helpers/core';
 import type { IMailQueueExecutorConfig, TMailOptions } from './common';
 import { MailKeys, MailQueueExecutorTypes } from './common';
 import type { TGetMailQueueExecutorFn, TGetMailTransportFn } from './providers';

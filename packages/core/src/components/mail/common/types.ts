@@ -1,4 +1,5 @@
-import type { AnyType, IRedisSingleHelperOptions, TConstValue } from '@venizia/ignis-helpers';
+import type { AnyType, TConstValue } from '@venizia/ignis-helpers/common';
+import type { IRedisSingleHelperOptions } from '@venizia/ignis-helpers';
 import type { Readable } from 'node:stream';
 import type SMTPTransport from 'nodemailer/lib/smtp-transport';
 import type { BullMQExecutorModes, MailQueueExecutorTypes } from './constants';

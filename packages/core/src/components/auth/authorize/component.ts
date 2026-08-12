@@ -2,7 +2,8 @@ import type { BaseApplication } from '@/base/applications/base';
 import { BaseComponent } from '@/base/components/base';
 import { inject } from '@/base/metadata/injectors';
 import { CoreBindings } from '@/common/bindings';
-import { getError, ValueOrPromise } from '@venizia/ignis-helpers';
+import { getError } from '@venizia/ignis-helpers/core';
+import { ValueOrPromise } from '@venizia/ignis-helpers/common';
 import { AuthorizeBindingKeys, IAuthorizeOptions } from './common';
 
 export class AuthorizeComponent extends BaseComponent {

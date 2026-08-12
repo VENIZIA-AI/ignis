@@ -1,4 +1,4 @@
-import type { AnyType, IConfigurable, TClass, TConstValue } from '@venizia/ignis-helpers';
+import type { AnyType, IConfigurable, TClass, TConstValue } from '@venizia/ignis-helpers/common';
 
 export class DataSourceDrivers {
   // Relational - PGlite is a Postgres DRIVER (Postgres compiled to WASM), not a separate engine.

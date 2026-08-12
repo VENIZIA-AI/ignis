@@ -5,7 +5,7 @@ import type { ICasbinPolicySource } from '@/components/auth/authorize/adapters/t
 import { ScopedCasbinAdapter } from '@/components/auth/authorize/adapters/scoped-casbin.adapter';
 import type { IScopedCasbinEntities } from '@/components/auth/authorize/adapters/types';
 import { AuthorizationDomainScopes } from '@/components/auth/authorize/common/constants';
-import type { ILogger } from '@venizia/ignis-helpers';
+import type { ILogger } from '@venizia/ignis-helpers/core';
 
 const dialect = new PgDialect();
 

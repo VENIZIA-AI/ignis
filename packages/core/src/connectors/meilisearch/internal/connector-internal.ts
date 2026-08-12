@@ -1,4 +1,4 @@
-import { HTTP } from '@venizia/ignis-helpers';
+import { HTTP } from '@venizia/ignis-helpers/common';
 
 /** Meilisearch error bodies carry `{ message, code, type, link }`; classification keys off `code`. */
 export class MeilisearchInternal {

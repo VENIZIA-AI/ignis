@@ -1,4 +1,4 @@
-import type { AnyType } from '@venizia/ignis-helpers';
+import type { AnyType } from '@venizia/ignis-helpers/common';
 import { expect } from 'bun:test';
 
 /**

@@ -5,7 +5,8 @@ import { jsonContent, jsonResponse } from '@/base/models/common/types';
 import { throwNotSupported } from '@/utilities';
 import { AnyObjectSchema } from '@/utilities/schema.utility';
 import { z } from '@hono/zod-openapi';
-import { getError, HTTP, ValueOrPromise } from '@venizia/ignis-helpers';
+import { getError } from '@venizia/ignis-helpers/core';
+import { HTTP, ValueOrPromise } from '@venizia/ignis-helpers/common';
 import {
   ChangePasswordRequestSchema,
   SignInRequestSchema,

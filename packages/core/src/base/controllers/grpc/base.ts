@@ -1,5 +1,6 @@
 import type { IRpcMetadata } from '@/helpers/inversion/common/types';
-import { getError, GRPC } from '@venizia/ignis-helpers';
+import { getError } from '@venizia/ignis-helpers/core';
+import { GRPC } from '@venizia/ignis-helpers/common';
 import type { Env, Schema } from 'hono';
 import { AbstractGrpcController } from './abstract';
 import type { IGrpcBindRouteOptions, IGrpcDefineRouteOptions, TRpcHandler } from './common/types';

@@ -1,4 +1,4 @@
-import { getError } from '@venizia/ignis-helpers';
+import { getError } from '@venizia/ignis-helpers/core';
 // Type-only import - keeps the compiled runtime free of a hard `typesense` dependency.
 import type { CollectionCreateSchema } from 'typesense/lib/Typesense/Collections';
 

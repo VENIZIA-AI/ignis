@@ -10,7 +10,7 @@ import type {
   TClass,
   TResolver,
   ValueOrPromise,
-} from '@venizia/ignis-helpers';
+} from '@venizia/ignis-helpers/common';
 import type { TypedResponse } from 'hono';
 import type { Context, Env, Schema } from 'hono';
 import type { ContentfulStatusCode, StatusCode } from 'hono/utils/http-status';

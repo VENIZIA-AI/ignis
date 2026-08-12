@@ -7,8 +7,8 @@ import { MetadataRegistry } from '@/helpers/inversion/registry';
 import { htmlResponse } from '@/utilities/jsx.utility';
 import type { Hook } from '@hono/zod-openapi';
 import { createRoute, OpenAPIHono } from '@hono/zod-openapi';
-import type { ValueOrPromise } from '@venizia/ignis-helpers';
-import { BaseHelper, getError } from '@venizia/ignis-helpers';
+import type { ValueOrPromise } from '@venizia/ignis-helpers/common';
+import { BaseHelper, getError } from '@venizia/ignis-helpers/core';
 import type { Env, Schema } from 'hono';
 import type {
   IAuthRouteConfig,

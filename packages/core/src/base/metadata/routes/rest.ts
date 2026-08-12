@@ -1,5 +1,5 @@
 import { MetadataRegistry } from '@/helpers/inversion';
-import { HTTP } from '@venizia/ignis-helpers';
+import { HTTP } from '@venizia/ignis-helpers/common';
 import type { IAuthRouteConfig } from '../../controllers';
 import { isLegacyMethodDecoratorCall } from './common';
 

@@ -1,7 +1,7 @@
 import { describe, expect, test } from 'bun:test';
 import type { SQL } from 'drizzle-orm';
 import { jsonb, PgDialect, pgTable, serial } from 'drizzle-orm/pg-core';
-import type { AnyType } from '@venizia/ignis-helpers';
+import type { AnyType } from '@venizia/ignis-helpers/common';
 import { PostgresFilterBuilder } from '@/connectors/postgres/repositories/dialect/filter';
 
 /**

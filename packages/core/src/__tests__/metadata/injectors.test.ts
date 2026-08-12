@@ -8,7 +8,7 @@ import { inject, model, repository } from '@/base/metadata';
 import { BasePostgresDataSource } from '@/connectors/postgres/datasources';
 import { BasePostgresEntity } from '@/connectors/postgres/models';
 import { MetadataRegistry } from '@/helpers/inversion';
-import type { AnyType } from '@venizia/ignis-helpers';
+import type { AnyType } from '@venizia/ignis-helpers/common';
 
 const registry = MetadataRegistry.getInstance();
 

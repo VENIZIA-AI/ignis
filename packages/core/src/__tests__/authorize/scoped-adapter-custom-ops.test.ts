@@ -10,7 +10,7 @@ import type {
 import { AuthorizationPermissionBuilder } from '@/components/auth/authorize/builders/permission.builder';
 import { GrantBuilder } from '@/components/auth/authorize/builders/grant.builder';
 import { AuthorizationDomainScopes } from '@/components/auth/authorize/common/constants';
-import type { ILogger } from '@venizia/ignis-helpers';
+import type { ILogger } from '@venizia/ignis-helpers/core';
 
 const dialect = new PgDialect();
 const grantBuilder = GrantBuilder.getInstance();

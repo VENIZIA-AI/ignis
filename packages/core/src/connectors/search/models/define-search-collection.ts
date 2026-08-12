@@ -1,4 +1,4 @@
-import { getError } from '@venizia/ignis-helpers';
+import { getError } from '@venizia/ignis-helpers/core';
 
 import type {
   ISearchCollectionDefinition,

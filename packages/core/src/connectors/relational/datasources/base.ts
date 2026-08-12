@@ -1,6 +1,6 @@
 import { MetadataRegistry } from '@/helpers/inversion';
-import type { TClass } from '@venizia/ignis-helpers';
-import { getError } from '@venizia/ignis-helpers';
+import type { TClass } from '@venizia/ignis-helpers/common';
+import { getError } from '@venizia/ignis-helpers/core';
 import type { IDataSource, TAnyDataSourceSchema } from '@/base/datasources';
 import { AbstractRelationalDataSource } from './abstract';
 import type { IRelationalTransaction, TRelationalTransactionOptions } from './common';

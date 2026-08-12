@@ -1,5 +1,6 @@
-import type { TErrorDefinition, TRegisterErrors } from '@venizia/ignis-helpers';
-import { ErrorScopes, HTTP } from '@venizia/ignis-helpers';
+import type { TErrorDefinition, TRegisterErrors } from '@venizia/ignis-helpers/core';
+import { ErrorScopes } from '@venizia/ignis-helpers/core';
+import { HTTP } from '@venizia/ignis-helpers/common';
 
 /** Codes a client branches on for a request the middleware layer refused before any handler ran. */
 export const RequestErrors = {

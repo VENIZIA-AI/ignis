@@ -2,7 +2,7 @@ import { jsonContent, jsonResponse } from '@/base/models';
 import type { TAuthMode, TAuthStrategy } from '@/components/auth/authenticate/common/constants';
 import type { IAuthorizationSpec } from '@/components/auth/authorize/common/types';
 import { z } from '@hono/zod-openapi';
-import { HTTP } from '@venizia/ignis-helpers';
+import { HTTP } from '@venizia/ignis-helpers/common';
 import { MultiSearchInputSchema, SearchInputSchema } from '@/connectors/search/repositories/common';
 
 export const defineSearchRouteConfigs = (opts: {

@@ -1,6 +1,6 @@
 import { BaseProvider } from '@/base/providers';
 import type { Container } from '@/helpers';
-import { getError } from '@venizia/ignis-helpers';
+import { getError } from '@venizia/ignis-helpers/core';
 import type {
   ICustomMailOptions,
   IMailgunMailOptions,

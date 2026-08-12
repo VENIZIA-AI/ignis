@@ -1,6 +1,6 @@
 import { describe, test, expect } from 'bun:test';
 import { pgTable, serial, varchar, boolean } from 'drizzle-orm/pg-core';
-import { getError } from '@venizia/ignis-helpers';
+import { getError } from '@venizia/ignis-helpers/core';
 
 import { model, repository } from '@/base/metadata';
 import { BasePostgresDataSource } from '@/connectors/postgres/datasources';

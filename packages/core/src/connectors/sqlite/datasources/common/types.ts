@@ -6,7 +6,7 @@ import type {
 } from '@/connectors/relational/datasources/common';
 import type { IRelationalQueryDialect } from '@/connectors/relational/repositories/common';
 import type { TSqliteConnector } from '@/connectors/sqlite/drivers';
-import type { TConstValue } from '@venizia/ignis-helpers';
+import type { TConstValue } from '@venizia/ignis-helpers/common';
 
 /**
  * SQLite's BEGIN axis is a locking mode, not an isolation level - every SQLite transaction is

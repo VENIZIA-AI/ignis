@@ -6,8 +6,8 @@ import type {
   IRelationalQueryDialect,
   IRelationalQueryExecutor,
 } from '@/connectors/relational/repositories/common';
-import type { AnyObject, AnyType } from '@venizia/ignis-helpers';
-import { getError } from '@venizia/ignis-helpers';
+import type { AnyObject, AnyType } from '@venizia/ignis-helpers/common';
+import { getError } from '@venizia/ignis-helpers/core';
 import { describe, expect, test } from 'bun:test';
 
 /**

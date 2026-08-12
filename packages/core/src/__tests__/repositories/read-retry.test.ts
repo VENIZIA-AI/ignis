@@ -1,6 +1,7 @@
 import { describe, expect, test } from 'bun:test';
-import type { AnyType } from '@venizia/ignis-helpers';
-import { getError, RetryBackoffStrategies, RetryJitterModes } from '@venizia/ignis-helpers';
+import type { AnyType } from '@venizia/ignis-helpers/common';
+import { getError } from '@venizia/ignis-helpers/core';
+import { RetryBackoffStrategies, RetryJitterModes } from '@venizia/ignis-helpers';
 
 import type { TCount, TFilter } from '@/base/repositories/common';
 import { ReadableRelationalRepository } from '@/connectors/relational/repositories/core/readable';

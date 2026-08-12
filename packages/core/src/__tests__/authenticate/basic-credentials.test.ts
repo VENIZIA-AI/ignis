@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test';
-import type { AnyType } from '@venizia/ignis-helpers';
+import type { AnyType } from '@venizia/ignis-helpers/common';
 import { BasicTokenService } from '@/components/auth/authenticate/services/basic/service';
 
 /** The header is attacker-controlled: the parse must be exact (a password containing ':' survives intact) and every rejection IDENTICAL - per-failure-mode messages make the endpoint an oracle. */

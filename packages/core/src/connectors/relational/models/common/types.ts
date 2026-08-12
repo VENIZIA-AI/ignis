@@ -1,6 +1,6 @@
 import type { IdType } from '@/base/models';
 import type { TRelationConfig } from '@/connectors/relational/repositories/common';
-import type { TValueOrResolver } from '@venizia/ignis-helpers';
+import type { TValueOrResolver } from '@venizia/ignis-helpers/common';
 import type {
   AnyColumn,
   ColumnBuilderBase,

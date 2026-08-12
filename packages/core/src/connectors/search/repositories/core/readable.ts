@@ -1,4 +1,4 @@
-import type { TNullable } from '@venizia/ignis-helpers';
+import type { TNullable } from '@venizia/ignis-helpers/common';
 import type {
   IExtraOptions,
   TCount,

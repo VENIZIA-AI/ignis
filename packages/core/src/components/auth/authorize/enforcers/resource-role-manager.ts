@@ -1,4 +1,4 @@
-import { BaseHelper } from '@venizia/ignis-helpers';
+import { BaseHelper } from '@venizia/ignis-helpers/core';
 import type { RoleManager } from 'casbin';
 
 /** Resource-axis (`g4`) role manager: `addMatchingFunc` would set `hasPattern` and disable DefaultRoleManager's O(1) fast path, so prefix ancestors are walked manually; `addLink` must stay idempotent because `buildRoleLinks` re-adds every edge once per request. */

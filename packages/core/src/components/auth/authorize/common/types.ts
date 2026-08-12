@@ -1,6 +1,7 @@
 import type { IdType } from '@/base';
 import type { TContext } from '@/base/controllers/common/types';
-import { type IRedisHelper, type TNullable, type ValueOrPromise } from '@venizia/ignis-helpers';
+import { type TNullable, type ValueOrPromise } from '@venizia/ignis-helpers/common';
+import { type IRedisHelper } from '@venizia/ignis-helpers';
 import { type Adapter } from 'casbin';
 import type { Env } from 'hono';
 import { type MiddlewareHandler } from 'hono';

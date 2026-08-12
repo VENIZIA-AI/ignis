@@ -1,6 +1,6 @@
+import { getError } from '@venizia/ignis-helpers/core';
 import {
   BaseStorageHelper,
-  getError,
   type IBucketInfo,
   type IFileStat,
   type IObjectInfo,

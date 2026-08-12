@@ -21,7 +21,7 @@ import type {
   TTableObject,
   TTableSchemaWithId,
 } from '@/connectors/relational/models';
-import type { TClass, TNullable } from '@venizia/ignis-helpers';
+import type { TClass, TNullable } from '@venizia/ignis-helpers/common';
 import omit from 'lodash/omit';
 import type { IRelationalExtraOptions } from '../common';
 import { RelationalBaseRepository } from './base';

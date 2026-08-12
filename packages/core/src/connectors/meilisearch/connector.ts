@@ -11,9 +11,9 @@ import type {
 import { BaseSearchConnector } from '@/connectors/search';
 import { SearchConnectorInternal } from '@/connectors/search/internal';
 import type { ISynonym } from '@/connectors/search/models';
-import type { AnyType } from '@venizia/ignis-helpers';
-import { isApplicationError } from '@venizia/ignis-helpers';
-import { getError, HTTP } from '@venizia/ignis-helpers';
+import type { AnyType } from '@venizia/ignis-helpers/common';
+import { getError, isApplicationError } from '@venizia/ignis-helpers/core';
+import { HTTP } from '@venizia/ignis-helpers/common';
 import { Meilisearch } from 'meilisearch';
 import type { IMeilisearchIndexPlan } from './compiler';
 import { MeilisearchInternal } from './internal';

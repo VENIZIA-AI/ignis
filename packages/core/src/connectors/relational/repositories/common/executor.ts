@@ -1,5 +1,5 @@
 import type { TDrizzleQueryOptions, TLockOptions } from '@/base/repositories/common';
-import type { TNullable } from '@venizia/ignis-helpers';
+import type { TNullable } from '@venizia/ignis-helpers/common';
 import type { SQL } from 'drizzle-orm';
 import type { TTableSchemaWithId } from '@/connectors/relational/models/common';
 

@@ -1,6 +1,7 @@
 import { TContext } from '@/base/controllers/common/types';
 import { inject } from '@/base/metadata/injectors';
-import { BaseHelper, BasePoolHelper, getError, TNullable } from '@venizia/ignis-helpers';
+import { BaseHelper, BasePoolHelper, getError } from '@venizia/ignis-helpers/core';
+import { TNullable } from '@venizia/ignis-helpers/common';
 import type { Enforcer as CasbinEnforcerType, Helper as CasbinHelperType } from 'casbin';
 import { Env } from 'hono';
 import { AuthorizationPermissionBuilder } from '../builders';

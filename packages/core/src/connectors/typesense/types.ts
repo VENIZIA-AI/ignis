@@ -8,7 +8,7 @@ import type {
   DocumentSchema,
 } from 'typesense/lib/Typesense/Documents';
 import type { UnionSearchResponse } from 'typesense/lib/Typesense/Types';
-import type { TConstValue } from '@venizia/ignis-helpers';
+import type { TConstValue } from '@venizia/ignis-helpers/common';
 import type { ISearchConnectorCallbacks } from '@/connectors/search';
 
 // CollectionFieldSchema is exported from Collection (singular), not Collections.

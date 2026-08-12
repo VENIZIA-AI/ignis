@@ -4,8 +4,8 @@ import { BaseApplication } from '@/base/applications';
 import type { IApplicationConfigs, IApplicationInfo } from '@/base/applications';
 import { BindingNamespaces } from '@/common/bindings';
 import type { Binding } from '@/helpers/inversion';
-import type { IConfigurable, ValueOrPromise } from '@venizia/ignis-helpers';
-import { getError } from '@venizia/ignis-helpers';
+import type { IConfigurable, ValueOrPromise } from '@venizia/ignis-helpers/common';
+import { getError } from '@venizia/ignis-helpers/core';
 import { beforeEach, describe, expect, test } from 'bun:test';
 
 class BareApplication extends BaseApplication {

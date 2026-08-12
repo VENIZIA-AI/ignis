@@ -1,5 +1,5 @@
 import { describe, test, expect } from 'bun:test';
-import { ApplicationError } from '@venizia/ignis-helpers';
+import { ApplicationError } from '@venizia/ignis-helpers/core';
 import { makeHelper } from './fake-client';
 
 const schema = { name: 'products', fields: [{ name: 'title', type: 'string' as const }] };

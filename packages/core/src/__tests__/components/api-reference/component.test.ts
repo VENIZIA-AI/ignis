@@ -13,7 +13,7 @@ import {
 } from '@/components/api-reference/common';
 import { UIProviderFactory } from '@/components/api-reference/ui-factory';
 import type { Context } from 'hono';
-import type { AnyType, ValueOrPromise } from '@venizia/ignis-helpers';
+import type { AnyType, ValueOrPromise } from '@venizia/ignis-helpers/common';
 import { describe, expect, test } from 'bun:test';
 
 const buildConfigs = (opts?: { port?: number }): IApplicationConfigs => ({

@@ -24,8 +24,8 @@ import type {
   TTableObject,
   TTableSchemaWithId,
 } from '@/connectors/relational/models';
-import type { TClass, TNullable } from '@venizia/ignis-helpers';
-import { getError } from '@venizia/ignis-helpers';
+import type { TClass, TNullable } from '@venizia/ignis-helpers/common';
+import { getError } from '@venizia/ignis-helpers/core';
 import { getTableColumns } from 'drizzle-orm';
 import type {
   IRelationalExtraOptions,

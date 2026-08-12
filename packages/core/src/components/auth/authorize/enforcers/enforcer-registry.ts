@@ -1,6 +1,6 @@
 import type { Container } from '@/helpers/inversion/container';
-import type { TClass } from '@venizia/ignis-helpers';
-import { getError } from '@venizia/ignis-helpers';
+import type { TClass } from '@venizia/ignis-helpers/common';
+import { getError } from '@venizia/ignis-helpers/core';
 import type { IAuthUser } from '../../authenticate';
 import { AbstractAuthRegistry } from '../../base';
 import type {

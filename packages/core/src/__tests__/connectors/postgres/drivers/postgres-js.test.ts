@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test';
-import type { AnyType } from '@venizia/ignis-helpers';
+import type { AnyType } from '@venizia/ignis-helpers/common';
 import { PostgresJsDriver } from '@/connectors/postgres/drivers/postgres-js';
 import { run } from './conformance/driver-conformance';
 import { FakeSql } from './fake-postgres-js-client';

@@ -1,4 +1,4 @@
-import type { AnyType } from '@venizia/ignis-helpers';
+import type { AnyType } from '@venizia/ignis-helpers/common';
 
 /** Minimal chainable fake for `connector.insert/update/delete(...)`. Consumers only exercise the `shouldReturn: false` path, so each chain need only resolve when awaited - no `.returning()`. */
 export const buildFakeConnector = (opts: { result: unknown }): AnyType => {

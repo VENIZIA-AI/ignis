@@ -1,7 +1,7 @@
 import { generateIdColumnDefs } from '@/connectors/sqlite/models';
 import { SqliteFilterBuilder } from '@/connectors/sqlite/repositories/dialect/filter';
 import { SqliteQueryDialect } from '@/connectors/sqlite/repositories/dialect/query-dialect';
-import type { AnyType } from '@venizia/ignis-helpers';
+import type { AnyType } from '@venizia/ignis-helpers/common';
 import { describe, expect, test } from 'bun:test';
 import type { SQL } from 'drizzle-orm';
 import { real, SQLiteSyncDialect, sqliteTable, text } from 'drizzle-orm/sqlite-core';

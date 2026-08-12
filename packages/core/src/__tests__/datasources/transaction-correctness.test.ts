@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test';
-import type { AnyType } from '@venizia/ignis-helpers';
+import type { AnyType } from '@venizia/ignis-helpers/common';
 import { DataSourceDrivers } from '@/base/datasources';
 import { datasource } from '@/base/metadata';
 import { BasePostgresDataSource } from '@/connectors/postgres/datasources';

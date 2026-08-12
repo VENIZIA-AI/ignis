@@ -1,5 +1,5 @@
 import type { TFilter, TWhere } from '@/base/repositories/common';
-import type { TConstValue } from '@venizia/ignis-helpers';
+import type { TConstValue } from '@venizia/ignis-helpers/common';
 import type { SearchModes, TSearchInput } from './constants';
 
 /**

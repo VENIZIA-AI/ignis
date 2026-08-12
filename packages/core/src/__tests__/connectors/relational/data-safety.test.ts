@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'bun:test';
 import { pgTable, serial, timestamp, varchar } from 'drizzle-orm/pg-core';
-import type { AnyType } from '@venizia/ignis-helpers';
+import type { AnyType } from '@venizia/ignis-helpers/common';
 import { model } from '@/base/metadata';
 import { PostgresQueryDialect } from '@/connectors/postgres/repositories/dialect/query-dialect';
 import { PostgresQueryExecutor } from '@/connectors/postgres/repositories/executor';

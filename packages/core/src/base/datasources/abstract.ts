@@ -1,7 +1,7 @@
 import { MetadataRegistry } from '@/helpers/inversion';
 import { throwNotSupported } from '@/utilities';
-import type { TClass, ValueOrPromise } from '@venizia/ignis-helpers';
-import { BaseHelper, getError } from '@venizia/ignis-helpers';
+import type { TClass, ValueOrPromise } from '@venizia/ignis-helpers/common';
+import { BaseHelper, getError } from '@venizia/ignis-helpers/core';
 import type {
   IDataSource,
   IDataSourceCapabilities,

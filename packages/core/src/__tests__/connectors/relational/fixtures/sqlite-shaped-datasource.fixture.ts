@@ -1,4 +1,4 @@
-import { getError } from '@venizia/ignis-helpers';
+import { getError } from '@venizia/ignis-helpers/core';
 import { BaseRelationalDataSource } from '@/connectors/relational/datasources';
 import type { TRelationalTransactionOptions } from '@/connectors/relational/datasources';
 import type {

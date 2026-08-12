@@ -1,4 +1,4 @@
-import type { TConstValue } from '@venizia/ignis-helpers';
+import type { TConstValue } from '@venizia/ignis-helpers/common';
 import type { ApplicationErrorTypes } from './definition';
 
 export interface IDatabaseError extends Error {

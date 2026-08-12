@@ -18,7 +18,7 @@ import {
   toSearchPage,
 } from '@/connectors/search/repositories/common/dialect-helpers';
 import { SearchErrors } from '@/connectors/search/common';
-import { getError } from '@venizia/ignis-helpers';
+import { getError } from '@venizia/ignis-helpers/core';
 import type { IMeilisearchSearchQuery } from '../common';
 
 /** The non-raw search inputs the dialect translates; `raw` bypasses the dialect entirely. */

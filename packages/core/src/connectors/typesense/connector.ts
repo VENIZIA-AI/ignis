@@ -11,7 +11,7 @@ import type {
 import { BaseSearchConnector } from '@/connectors/search';
 import { SearchConnectorInternal } from '@/connectors/search/internal';
 import type { ISynonym } from '@/connectors/search/models';
-import { getError, isApplicationError } from '@venizia/ignis-helpers';
+import { getError, isApplicationError } from '@venizia/ignis-helpers/core';
 import { Client } from 'typesense';
 import { EntryOutcomes, TypesenseInternal } from './internal/connector-internal';
 import type {

@@ -1,5 +1,5 @@
-import type { AnyType } from '@venizia/ignis-helpers';
-import { getError } from '@venizia/ignis-helpers';
+import type { AnyType } from '@venizia/ignis-helpers/common';
+import { getError } from '@venizia/ignis-helpers/core';
 
 /** Applies a route/rpc decorator with the legacy (`experimentalDecorators`) call shape - the only one supported. `@decorator` syntax is unusable in these tests: bun does not resolve the tsconfig `extends` chain, compiles TC39 semantics, and the decorators reject that shape loudly. */
 export const applyMethodDecorator = (opts: {

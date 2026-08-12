@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test';
-import type { AnyType } from '@venizia/ignis-helpers';
+import type { AnyType } from '@venizia/ignis-helpers/common';
 import { model } from '@/base/metadata';
 import { DEFAULT_MAX_LIMIT } from '@/base/repositories/common';
 import { BaseSearchEntity, defineSearchCollection, field } from '@/connectors/search/models';

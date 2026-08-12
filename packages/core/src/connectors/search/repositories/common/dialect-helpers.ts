@@ -1,5 +1,5 @@
 import { QueryOperators, type TFields } from '@venizia/ignis-filter';
-import { getError } from '@venizia/ignis-helpers';
+import { getError } from '@venizia/ignis-helpers/core';
 import { SearchErrors } from '@/connectors/search/common/errors';
 import type { ISearchCompileCapabilities, TCompiledWhere } from './types';
 import { SearchFilterOutcomes } from './types';

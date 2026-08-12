@@ -1,8 +1,8 @@
 import type { TIdSchemaType, TSchemaType } from '@/base/models';
 import { AbstractEntity, SchemaTypes } from '@/base/models';
 import type { TRelationConfig } from '@/connectors/relational/repositories/common';
-import type { TValueOrResolver } from '@venizia/ignis-helpers';
-import { getError } from '@venizia/ignis-helpers';
+import type { TValueOrResolver } from '@venizia/ignis-helpers/common';
+import { getError } from '@venizia/ignis-helpers/core';
 import { createSchemaFactory } from 'drizzle-zod';
 import type { IEntity, TTableInsert, TTableObject, TTableSchemaWithId } from './common';
 import { getIdType as _getIdType } from './common';

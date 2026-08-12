@@ -1,6 +1,6 @@
 import type { ISynonym } from '@/connectors/search/models';
-import type { ValueOrPromise } from '@venizia/ignis-helpers';
-import { BaseHelper, getError, isApplicationError } from '@venizia/ignis-helpers';
+import type { ValueOrPromise } from '@venizia/ignis-helpers/common';
+import { BaseHelper, getError, isApplicationError } from '@venizia/ignis-helpers/core';
 import { SearchConnectorInternal } from './internal';
 
 export interface IImportResult<TResponse = unknown> {

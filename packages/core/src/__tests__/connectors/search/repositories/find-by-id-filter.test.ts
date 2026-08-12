@@ -1,5 +1,5 @@
 import { describe, test, expect, beforeEach } from 'bun:test';
-import type { AnyType } from '@venizia/ignis-helpers';
+import type { AnyType } from '@venizia/ignis-helpers/common';
 
 import type { ICrudRepository } from '@/base/repositories';
 import { DefaultSearchRepository } from '@/connectors/typesense/repositories';

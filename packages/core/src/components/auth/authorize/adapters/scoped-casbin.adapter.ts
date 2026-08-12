@@ -1,5 +1,5 @@
 import type { IdType } from '@/base';
-import type { TConstValue, TNullable } from '@venizia/ignis-helpers';
+import type { TConstValue, TNullable } from '@venizia/ignis-helpers/common';
 import { type Model } from 'casbin';
 import { sql, type SQL } from 'drizzle-orm';
 import { AuthorizationPermissionBuilder, GrantBuilder } from '../builders';

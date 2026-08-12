@@ -9,7 +9,7 @@ import { controller } from '@/base/metadata';
 import { jsonContent, jsonResponse } from '@/base/models';
 import { MetadataRegistry } from '@/helpers/inversion/registry';
 import { z } from '@hono/zod-openapi';
-import { HTTP, ValueOrPromise } from '@venizia/ignis-helpers';
+import { HTTP, ValueOrPromise } from '@venizia/ignis-helpers/common';
 
 // === Test Controllers ========================================================
 

@@ -1,5 +1,5 @@
 import { SqliteQueryExecutor } from '@/connectors/sqlite/repositories/executor';
-import type { AnyType } from '@venizia/ignis-helpers';
+import type { AnyType } from '@venizia/ignis-helpers/common';
 import { describe, expect, test } from 'bun:test';
 import { integer, sqliteTable, text } from 'drizzle-orm/sqlite-core';
 

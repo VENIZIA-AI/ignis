@@ -1,7 +1,7 @@
 import 'reflect-metadata';
 import { describe, test, expect, beforeEach } from 'bun:test';
 import { MetadataRegistry } from '@/helpers/inversion/registry';
-import { GRPC } from '@venizia/ignis-helpers';
+import { GRPC } from '@venizia/ignis-helpers/common';
 import type { IRpcMetadata } from '@/helpers/inversion/common/types';
 
 describe('GrpcControllerMetadataMixin', () => {

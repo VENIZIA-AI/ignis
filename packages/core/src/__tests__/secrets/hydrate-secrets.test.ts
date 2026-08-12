@@ -1,9 +1,9 @@
 import { BaseApplication } from '@/base/applications/base';
 import { CoreBindings } from '@/common/bindings';
+import { type AnyType } from '@venizia/ignis-helpers/common';
 import {
   applicationEnvironment,
   SecretProviders,
-  type AnyType,
   type ISecretsRegistration,
 } from '@venizia/ignis-helpers';
 import { describe, expect, test } from 'bun:test';

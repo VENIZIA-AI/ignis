@@ -18,8 +18,8 @@ import { AuthorizationActions } from '@/components/auth/authorize/common/constan
 import { BasePostgresEntity } from '@/connectors/postgres/models';
 import type { TAnyObjectSchema } from '@/utilities/schema.utility';
 import { z } from '@hono/zod-openapi';
-import type { AnyType, ValueOrPromise } from '@venizia/ignis-helpers';
-import { HTTP } from '@venizia/ignis-helpers';
+import type { AnyType, ValueOrPromise } from '@venizia/ignis-helpers/common';
+import { HTTP } from '@venizia/ignis-helpers/common';
 
 const okResponse = jsonResponse({ schema: z.object({ hit: z.string() }), description: 'ok' });
 

@@ -6,7 +6,7 @@ import { BaseSqliteEntity } from '@/connectors/sqlite/models';
 import { DefaultSqliteRepository } from '@/connectors/sqlite/repositories';
 import type { Client } from '@libsql/client';
 import { createClient } from '@libsql/client';
-import type { AnyType, ValueOrPromise } from '@venizia/ignis-helpers';
+import type { AnyType, ValueOrPromise } from '@venizia/ignis-helpers/common';
 import { afterAll, beforeAll } from 'bun:test';
 import { integer, sqliteTable, text } from 'drizzle-orm/sqlite-core';
 import type { IConformanceHarness, TConformanceRepository } from './repository-conformance';

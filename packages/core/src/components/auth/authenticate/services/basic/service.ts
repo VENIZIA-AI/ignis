@@ -1,7 +1,8 @@
 import { TContext } from '@/base/controllers/common/types';
 import { inject } from '@/base/metadata/injectors';
 import { BaseService } from '@/base/services/base';
-import { getError, HTTP } from '@venizia/ignis-helpers';
+import { getError } from '@venizia/ignis-helpers/core';
+import { HTTP } from '@venizia/ignis-helpers/common';
 import { Env } from 'hono';
 import {
   Authentication,

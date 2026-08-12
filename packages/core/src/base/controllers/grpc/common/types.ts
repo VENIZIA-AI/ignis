@@ -2,7 +2,7 @@ import type { TRouteContext } from '@/base/controllers/common/types';
 import type { IRpcMetadata } from '@/helpers/inversion/common/types';
 import type { ConnectRouter } from '@connectrpc/connect';
 import type { UniversalServerRequest, UniversalServerResponse } from '@connectrpc/connect/protocol';
-import type { IConfigurable, ValueOrPromise } from '@venizia/ignis-helpers';
+import type { IConfigurable, ValueOrPromise } from '@venizia/ignis-helpers/common';
 import type { Env, Hono, Input, MiddlewareHandler, Next, Schema } from 'hono';
 
 /**

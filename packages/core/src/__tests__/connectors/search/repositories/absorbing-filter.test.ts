@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test';
-import type { AnyType } from '@venizia/ignis-helpers';
+import type { AnyType } from '@venizia/ignis-helpers/common';
 import { DefaultSearchRepository } from '@/connectors/search/repositories';
 import { FakeSearchDataSource, ProductDocumentNoDefaultFilter } from './fake-search-connector';
 

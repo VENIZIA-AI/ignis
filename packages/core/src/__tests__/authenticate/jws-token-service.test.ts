@@ -1,5 +1,6 @@
 import { describe, expect, test } from 'bun:test';
-import { HTTP, LegacyAES } from '@venizia/ignis-helpers';
+import { HTTP } from '@venizia/ignis-helpers/common';
+import { LegacyAES } from '@venizia/ignis-helpers';
 import { decodeJwt } from 'jose';
 import type { IJWSTokenServiceOptions, IJWTTokenPayload } from '@/components/auth';
 import { JWSTokenService } from '@/components/auth';

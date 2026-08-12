@@ -1,7 +1,7 @@
 import { describe, expect, test } from 'bun:test';
 import { PgDialect } from 'drizzle-orm/pg-core';
 import { pgTable, serial, text } from 'drizzle-orm/pg-core';
-import type { AnyType } from '@venizia/ignis-helpers';
+import type { AnyType } from '@venizia/ignis-helpers/common';
 import { PostgresFilterBuilder } from '@/connectors/postgres/repositories/dialect/filter';
 
 /**

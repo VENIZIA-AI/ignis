@@ -11,7 +11,7 @@ import { BasePostgresDataSource } from '@/connectors/postgres/datasources';
 import { BasePostgresEntity } from '@/connectors/postgres/models';
 import type { TAnyObjectSchema } from '@/utilities/schema.utility';
 import { z } from '@hono/zod-openapi';
-import { HTTP } from '@venizia/ignis-helpers';
+import { HTTP } from '@venizia/ignis-helpers/common';
 import { fakeCrudRepository } from './fixtures';
 
 class CrudFactoryDataSource extends BasePostgresDataSource<{}> {

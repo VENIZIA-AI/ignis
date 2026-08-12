@@ -1,4 +1,4 @@
-import { getError } from '@venizia/ignis-helpers';
+import { getError } from '@venizia/ignis-helpers/core';
 
 /** Rows affected by a write executed without RETURNING. */
 export const readAffectedRowCount = (opts: { result: unknown }): number => {

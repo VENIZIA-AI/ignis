@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, test } from 'bun:test';
-import { ApplicationError } from '@venizia/ignis-helpers';
+import { ApplicationError } from '@venizia/ignis-helpers/core';
 import type { ISearchConnector } from '@/connectors/search';
 
 interface IConformanceDocument extends Record<string, unknown> {

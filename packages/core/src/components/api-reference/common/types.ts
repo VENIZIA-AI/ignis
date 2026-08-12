@@ -1,6 +1,6 @@
 import type { Context, Next } from 'hono';
 import type { DocumentUITypes } from './constants';
-import type { TConstValue } from '@venizia/ignis-helpers';
+import type { TConstValue } from '@venizia/ignis-helpers/common';
 
 export type TDocumentUIType = TConstValue<typeof DocumentUITypes>;
 

@@ -1,5 +1,5 @@
 import type { IDatabaseTransaction } from '@/connectors/postgres/datasources';
-import { getError } from '@venizia/ignis-helpers';
+import { getError } from '@venizia/ignis-helpers/core';
 import { sql } from 'drizzle-orm';
 
 /** A bare Postgres role identifier. Anything else cannot be safely interpolated. */

@@ -1,6 +1,6 @@
 import { describe, test, expect } from 'bun:test';
 import { pgTable, serial, integer } from 'drizzle-orm/pg-core';
-import { ApplicationError } from '@venizia/ignis-helpers';
+import { ApplicationError } from '@venizia/ignis-helpers/core';
 
 import { PostgresFilterBuilder } from '@/connectors/postgres/repositories/dialect';
 

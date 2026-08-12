@@ -1,8 +1,8 @@
 import { describe, test, expect } from 'bun:test';
 import { readdirSync, statSync } from 'node:fs';
 import { join } from 'node:path';
-import type { AnyType } from '@venizia/ignis-helpers';
-import { getError } from '@venizia/ignis-helpers';
+import type { AnyType } from '@venizia/ignis-helpers/common';
+import { getError } from '@venizia/ignis-helpers/core';
 import { pgTable, serial, varchar } from 'drizzle-orm/pg-core';
 
 import { datasource, model, repository } from '@/base/metadata';

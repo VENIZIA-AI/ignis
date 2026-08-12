@@ -1,6 +1,6 @@
 import type { IRpcMetadata } from '@/helpers/inversion/common/types';
 import { MetadataRegistry } from '@/helpers/inversion/registry';
-import { GRPC } from '@venizia/ignis-helpers';
+import { GRPC } from '@venizia/ignis-helpers/common';
 import { isLegacyMethodDecoratorCall } from './common';
 
 /** Generic RPC decorator. Registers RPC config in metadata registry. */

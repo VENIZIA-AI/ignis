@@ -1,4 +1,4 @@
-import { getError } from '@venizia/ignis-helpers';
+import { getError } from '@venizia/ignis-helpers/core';
 
 import { model } from '@/base/metadata';
 import { TypesenseDataSource } from '@/connectors/typesense/datasources';

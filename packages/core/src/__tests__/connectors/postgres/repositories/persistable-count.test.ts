@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test';
-import type { AnyType } from '@venizia/ignis-helpers';
+import type { AnyType } from '@venizia/ignis-helpers/common';
 import { pgTable, serial, varchar } from 'drizzle-orm/pg-core';
 import { BasePostgresEntity } from '@/connectors/postgres/models';
 import { PersistableRepository } from '@/connectors/postgres/repositories';

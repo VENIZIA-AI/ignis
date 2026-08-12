@@ -1,5 +1,5 @@
 import { PGlite } from '@electric-sql/pglite';
-import type { AnyType } from '@venizia/ignis-helpers';
+import type { AnyType } from '@venizia/ignis-helpers/common';
 import { afterAll, beforeAll, describe, expect, test } from 'bun:test';
 import type { SQL } from 'drizzle-orm';
 import { sql } from 'drizzle-orm';

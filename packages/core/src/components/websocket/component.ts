@@ -3,11 +3,10 @@ import { BaseComponent } from '@/base/components';
 import { inject } from '@/base/metadata';
 import { CoreBindings } from '@/common/bindings';
 import { Binding } from '@/helpers/inversion';
+import { getError } from '@venizia/ignis-helpers/core';
+import { HTTP, RuntimeModules, ValueOrPromise } from '@venizia/ignis-helpers/common';
 import {
   AbstractRedisHelper,
-  getError,
-  HTTP,
-  RuntimeModules,
   TWebSocketAuthenticateFn,
   TWebSocketClientConnectedFn,
   TWebSocketClientDisconnectedFn,
@@ -15,7 +14,6 @@ import {
   TWebSocketHandshakeFn,
   TWebSocketOutboundTransformer,
   TWebSocketValidateRoomFn,
-  ValueOrPromise,
   WebSocketDefaults,
   WebSocketServerHelper,
 } from '@venizia/ignis-helpers';

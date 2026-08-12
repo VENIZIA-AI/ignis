@@ -1,4 +1,4 @@
-import { getError } from '@venizia/ignis-helpers';
+import { getError } from '@venizia/ignis-helpers/core';
 import { integer, jsonb, text } from 'drizzle-orm/pg-core';
 
 export type TPolicyDefinitionOptions = {

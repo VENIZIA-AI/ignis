@@ -1,5 +1,5 @@
 import { describe, test, expect, beforeEach } from 'bun:test';
-import { getError } from '@venizia/ignis-helpers';
+import { getError } from '@venizia/ignis-helpers/core';
 
 import { ReadableSearchRepository, SearchModes } from '@/connectors/typesense/repositories';
 import { DEFAULT_LIMIT } from '@/base/repositories/common';

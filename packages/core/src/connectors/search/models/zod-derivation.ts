@@ -1,5 +1,5 @@
 import { z } from '@hono/zod-openapi';
-import { getError } from '@venizia/ignis-helpers';
+import { getError } from '@venizia/ignis-helpers/core';
 import omit from 'lodash/omit';
 
 import type { TSchemaType } from '@/base/models';

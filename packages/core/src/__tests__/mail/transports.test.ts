@@ -4,7 +4,7 @@ import {
   MailgunTransportHelper,
   NodemailerTransportHelper,
 } from '@/components/mail/helpers/transporters';
-import type { AnyType } from '@venizia/ignis-helpers';
+import type { AnyType } from '@venizia/ignis-helpers/common';
 
 /** `nodemailer` and `mailgun.js` are OPTIONAL peers not installed here, so both helpers are exercised through their client-factory seam - no SMTP socket or Mailgun HTTP call is ever made. */
 

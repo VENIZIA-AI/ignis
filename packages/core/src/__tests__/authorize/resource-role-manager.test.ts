@@ -1,6 +1,6 @@
 import { ResourceRoleManager } from '@/components/auth/authorize/enforcers/resource-role-manager';
 import { describe, expect, it } from 'bun:test';
-import type { ILogger } from '@venizia/ignis-helpers';
+import type { ILogger } from '@venizia/ignis-helpers/core';
 
 const managerWith = async (edges: Array<[string, string]>) => {
   const manager = new ResourceRoleManager();

@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test';
-import { getError, MessageCode } from '@venizia/ignis-helpers';
+import { getError, MessageCode } from '@venizia/ignis-helpers/core';
 import { RequestErrors } from '@/base/middlewares';
 import { RepositoryErrors } from '@/base/repositories/common';
 import { AuthenticationErrors } from '@/components/auth/authenticate/common';

@@ -4,7 +4,7 @@ import { BaseSqliteDataSource } from '@/connectors/sqlite/datasources';
 import { LibSqlDriver } from '@/connectors/sqlite/drivers/libsql';
 import type { Client } from '@libsql/client';
 import { createClient } from '@libsql/client';
-import type { AnyType } from '@venizia/ignis-helpers';
+import type { AnyType } from '@venizia/ignis-helpers/common';
 
 /**
  * A real in-memory libsql database behind the real SQLite datasource, so BEGIN statements are

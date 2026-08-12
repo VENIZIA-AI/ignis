@@ -1,6 +1,6 @@
 import type { TSqliteBeginMode } from '@/connectors/sqlite/datasources';
 import { SqliteBeginModes } from '@/connectors/sqlite/datasources';
-import type { AnyType } from '@venizia/ignis-helpers';
+import type { AnyType } from '@venizia/ignis-helpers/common';
 import { afterEach, describe, expect, test } from 'bun:test';
 import { SqliteDataSourceFixture } from './fixtures/sqlite-datasource.fixture';
 

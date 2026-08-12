@@ -2,7 +2,7 @@ import { describe, expect, test } from 'bun:test';
 import { PostgresQueryDialect } from '@/connectors/postgres/repositories/dialect/query-dialect';
 import { PostgresQueryExecutor } from '@/connectors/postgres/repositories/executor';
 import { AbstractRelationalDataSource } from '@/connectors/relational/datasources';
-import type { AnyType } from '@venizia/ignis-helpers';
+import type { AnyType } from '@venizia/ignis-helpers/common';
 
 describe('datasource supplies both ports', () => {
   test('the neutral base does not name a dialect or an executor', () => {

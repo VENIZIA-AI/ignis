@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'bun:test';
 import { Container, MetadataRegistry } from '@/helpers/inversion';
-import type { AnyType } from '@venizia/ignis-helpers';
+import type { AnyType } from '@venizia/ignis-helpers/common';
 
 /** The registry is a PROCESS-WIDE singleton shared with every other test file, so nothing here calls clearAll() and every fixture carries a name no other suite uses. */
 const registry = MetadataRegistry.getInstance();

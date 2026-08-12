@@ -1,5 +1,5 @@
 import { readResultRows } from '@/utilities';
-import { BaseHelper, getError } from '@venizia/ignis-helpers';
+import { BaseHelper, getError } from '@venizia/ignis-helpers/core';
 import { type FilteredAdapter, type Model } from 'casbin';
 import type { SQL } from 'drizzle-orm';
 import type { ICasbinPolicyFilter, ICasbinPolicySource, TCasbinPolicyConnector } from './types';

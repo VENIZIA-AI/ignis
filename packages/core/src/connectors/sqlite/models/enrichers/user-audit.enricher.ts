@@ -1,5 +1,5 @@
 import { Authentication } from '@/components/auth/authenticate/common';
-import { getError } from '@venizia/ignis-helpers';
+import { getError } from '@venizia/ignis-helpers/core';
 import type {
   SQLiteIntegerBuilderInitial,
   SQLiteTextBuilderInitial,

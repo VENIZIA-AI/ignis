@@ -1,7 +1,7 @@
 import type { TAnyDataSourceSchema } from '@/base/datasources';
 import type { TRelationalConnector } from '@/connectors/postgres/datasources/common';
-import type { AnyType } from '@venizia/ignis-helpers';
-import { getError } from '@venizia/ignis-helpers';
+import type { AnyType } from '@venizia/ignis-helpers/common';
+import { getError } from '@venizia/ignis-helpers/core';
 import { drizzle } from 'drizzle-orm/postgres-js';
 import type { Sql } from 'postgres';
 import type { TRelationalConnection, TRelationalDriver } from './driver';

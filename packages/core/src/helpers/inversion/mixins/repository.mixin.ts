@@ -3,8 +3,8 @@ import type { AbstractEntity } from '@/base/models';
 import type { TTableSchemaWithId } from '@/connectors/relational/models/common';
 import type { TRelationConfig } from '@/connectors/relational/repositories/common';
 import { createRelations } from '@/connectors/relational/repositories/dialect/relation';
-import type { AnyType, TClass, TMixinTarget } from '@venizia/ignis-helpers';
-import { resolveValue } from '@venizia/ignis-helpers';
+import type { AnyType, TClass, TMixinTarget } from '@venizia/ignis-helpers/common';
+import { resolveValue } from '@venizia/ignis-helpers/common';
 import type { MetadataRegistry as _MetadataRegistry } from '@venizia/ignis-inversion';
 import { MetadataKeys } from '../common/keys';
 import type {

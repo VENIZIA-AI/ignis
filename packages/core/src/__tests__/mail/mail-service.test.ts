@@ -1,7 +1,8 @@
 import { describe, expect, test } from 'bun:test';
 import { MailErrorCodes, type TMailOptions } from '@/components/mail/common';
 import { MailService, TemplateEngineService } from '@/components/mail/services';
-import { isApplicationError, type AnyType } from '@venizia/ignis-helpers';
+import { isApplicationError } from '@venizia/ignis-helpers/core';
+import { type AnyType } from '@venizia/ignis-helpers/common';
 import { FakeMailTransport } from './fakes';
 
 const buildService = (opts?: {

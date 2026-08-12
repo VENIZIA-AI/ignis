@@ -1,4 +1,4 @@
-import type { AnyType } from '@venizia/ignis-helpers';
+import type { AnyType } from '@venizia/ignis-helpers/common';
 import { blob, integer, real, text } from 'drizzle-orm/sqlite-core';
 import type { TColumnDefinitions, TDataTypeEnricherOptions } from '../common/types';
 

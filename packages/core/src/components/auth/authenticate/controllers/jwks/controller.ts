@@ -1,7 +1,7 @@
 import { BaseRestController } from '@/base/controllers/rest/base';
 import { inject } from '@/base/metadata/injectors';
 import { BindingNamespaces } from '@/common/bindings';
-import { HTTP, ValueOrPromise } from '@venizia/ignis-helpers';
+import { HTTP, ValueOrPromise } from '@venizia/ignis-helpers/common';
 import { BindingKeys } from '@venizia/ignis-inversion';
 import { JWKSIssuerTokenService } from '../../services';
 import { RouteConfigs } from './definitions';

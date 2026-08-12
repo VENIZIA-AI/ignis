@@ -5,8 +5,9 @@ import type { IApplicationConfigs, IApplicationInfo } from '@/base/applications'
 import { BindingNamespaces } from '@/common/bindings';
 import { RequestTrackerComponent } from '@/components';
 import { BindingKeys, BindingScopes } from '@/helpers/inversion';
-import type { ValueOrPromise } from '@venizia/ignis-helpers';
-import { getError, RuntimeModules } from '@venizia/ignis-helpers';
+import type { ValueOrPromise } from '@venizia/ignis-helpers/common';
+import { getError } from '@venizia/ignis-helpers/core';
+import { RuntimeModules } from '@venizia/ignis-helpers/common';
 import { afterEach, beforeEach, describe, expect, test } from 'bun:test';
 
 /** Records the invocation order of every lifecycle step so the 9-step contract is asserted as a whole rather than step by step. */

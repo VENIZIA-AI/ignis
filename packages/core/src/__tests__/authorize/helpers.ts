@@ -14,7 +14,7 @@ import type {
 } from '@/components/auth/authorize/common/types';
 import { AuthorizationEnforcerRegistry } from '@/components/auth/authorize/enforcers/enforcer-registry';
 import { MetadataRegistry } from '@/helpers/inversion/registry';
-import { BaseHelper } from '@venizia/ignis-helpers';
+import { BaseHelper } from '@venizia/ignis-helpers/core';
 import type { Env } from 'hono';
 
 export type TTestRule = {

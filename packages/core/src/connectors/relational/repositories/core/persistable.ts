@@ -13,8 +13,8 @@ import type {
   TTableObject,
   TTableSchemaWithId,
 } from '@/connectors/relational/models';
-import type { AnyType, TClass, TNullable } from '@venizia/ignis-helpers';
-import { getError } from '@venizia/ignis-helpers';
+import type { AnyType, TClass, TNullable } from '@venizia/ignis-helpers/common';
+import { getError } from '@venizia/ignis-helpers/core';
 import type { SQL } from 'drizzle-orm';
 import type { IRelationalExtraOptions } from '../common';
 import { ReadableRelationalRepository } from './readable';

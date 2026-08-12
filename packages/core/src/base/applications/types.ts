@@ -1,6 +1,6 @@
 import type { OpenAPIHono } from '@hono/zod-openapi';
 import type { IBootOptions } from '@venizia/ignis-boot';
-import type { ValueOrPromise } from '@venizia/ignis-helpers';
+import type { ValueOrPromise } from '@venizia/ignis-helpers/common';
 import type { Context, Env, Schema } from 'hono';
 import type { IPRestrictionRules as IIPRestrictionRules } from 'hono/ip-restriction';
 import type { TControllerTransport } from '../controllers/common/constants';

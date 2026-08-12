@@ -7,7 +7,7 @@ import { repository } from '@/base/metadata';
 import { SearchControllerFactory } from '@/connectors/search/controllers/factory';
 import { DefaultSearchRepository } from '@/connectors/typesense/repositories';
 import { SearchModes } from '@/connectors/search/repositories/common';
-import { HTTP } from '@venizia/ignis-helpers';
+import { HTTP } from '@venizia/ignis-helpers/common';
 
 import { FakeSearchDataSource, ProductDocument } from '../repositories/fake-search-connector';
 

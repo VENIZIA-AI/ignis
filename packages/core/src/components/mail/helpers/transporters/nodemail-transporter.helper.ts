@@ -1,5 +1,6 @@
-import type { AnyType } from '@venizia/ignis-helpers';
-import { BaseHelper, ModuleUtility } from '@venizia/ignis-helpers';
+import type { AnyType } from '@venizia/ignis-helpers/common';
+import { BaseHelper } from '@venizia/ignis-helpers/core';
+import { ModuleUtility } from '@venizia/ignis-helpers';
 import type {
   IMailMessage,
   IMailSendResult,

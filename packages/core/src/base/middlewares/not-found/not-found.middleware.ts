@@ -1,5 +1,5 @@
-import type { ILogger } from '@venizia/ignis-helpers';
-import { HTTP } from '@venizia/ignis-helpers';
+import type { ILogger } from '@venizia/ignis-helpers/core';
+import { HTTP } from '@venizia/ignis-helpers/common';
 import type { NotFoundHandler } from 'hono/types';
 import { RequestSpyMiddleware } from '../request-spy';
 

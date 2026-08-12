@@ -1,5 +1,5 @@
 import { asTypedContext } from '@/base/controllers/common/types';
-import { BaseHelper, getError } from '@venizia/ignis-helpers';
+import { BaseHelper, getError } from '@venizia/ignis-helpers/core';
 import type { IProvider } from '@venizia/ignis-inversion';
 import { createMiddleware } from 'hono/factory';
 import type { IAuthUser } from '../../authenticate';

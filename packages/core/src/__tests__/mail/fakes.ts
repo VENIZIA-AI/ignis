@@ -4,7 +4,7 @@ import type {
   IMailTransport,
   IMailProcessorResult,
 } from '@/components/mail/common';
-import type { AnyType } from '@venizia/ignis-helpers';
+import type { AnyType } from '@venizia/ignis-helpers/common';
 
 /** In-memory transport: records what MailService hands to the wire, no SMTP, no network. */
 export class FakeMailTransport implements IMailTransport {

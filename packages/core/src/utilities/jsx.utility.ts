@@ -1,5 +1,6 @@
 import { z } from '@hono/zod-openapi';
-import { ErrorSchema, HTTP } from '@venizia/ignis-helpers';
+import { HTTP } from '@venizia/ignis-helpers/common';
+import { ErrorSchema } from '@venizia/ignis-helpers';
 
 /** Creates HTML content configuration for OpenAPI documentation. */
 export const htmlContent = (opts: { description: string; required?: boolean }) => {

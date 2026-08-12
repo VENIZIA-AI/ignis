@@ -1,8 +1,9 @@
 import { LockStrengths } from '@/base/repositories/common';
 import type { IRelationalTransaction } from '@/connectors/relational/datasources/common';
 import type { DefaultRelationalRepository } from '@/connectors/relational/repositories';
-import type { AnyType } from '@venizia/ignis-helpers';
-import { ApplicationError, HTTP } from '@venizia/ignis-helpers';
+import type { AnyType } from '@venizia/ignis-helpers/common';
+import { ApplicationError } from '@venizia/ignis-helpers/core';
+import { HTTP } from '@venizia/ignis-helpers/common';
 import { beforeEach, describe, expect, test } from 'bun:test';
 
 /**

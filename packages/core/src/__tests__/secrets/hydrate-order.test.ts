@@ -1,5 +1,6 @@
 import { BaseApplication } from '@/base/applications/base';
-import { SecretProviders, type AnyType, type ISecretsRegistration } from '@venizia/ignis-helpers';
+import { type AnyType } from '@venizia/ignis-helpers/common';
+import { SecretProviders, type ISecretsRegistration } from '@venizia/ignis-helpers';
 import { describe, expect, test } from 'bun:test';
 
 class OrderApp extends BaseApplication {

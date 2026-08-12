@@ -1,5 +1,6 @@
-import type { AnyType } from '@venizia/ignis-helpers';
-import { BaseHelper, getError, ModuleUtility } from '@venizia/ignis-helpers';
+import type { AnyType } from '@venizia/ignis-helpers/common';
+import { BaseHelper, getError } from '@venizia/ignis-helpers/core';
+import { ModuleUtility } from '@venizia/ignis-helpers';
 import type { Stream } from 'node:stream';
 import type {
   IMailAttachment,

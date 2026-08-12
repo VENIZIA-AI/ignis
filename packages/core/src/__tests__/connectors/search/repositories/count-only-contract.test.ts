@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test';
-import type { AnyType } from '@venizia/ignis-helpers';
+import type { AnyType } from '@venizia/ignis-helpers/common';
 import type { DefaultSearchRepository } from '@/connectors/search';
 import type { DefaultCRUDRepository } from '@/connectors/postgres';
 

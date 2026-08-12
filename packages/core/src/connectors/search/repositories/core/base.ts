@@ -3,11 +3,11 @@ import type { TFilter, TLockOptions, TWhere } from '@/base/repositories/common';
 import { AbstractRepository } from '@/base/repositories/core';
 import { DEFAULT_MAX_LIMIT } from '@/base/repositories/common';
 import { SearchErrors } from '@/connectors/search/common';
-import { getError } from '@venizia/ignis-helpers';
+import { getError } from '@venizia/ignis-helpers/core';
 import type { AbstractSearchDataSource } from '@/connectors/search/datasources';
 import type { BaseSearchEntity } from '@/connectors/search/models';
 import { throwNotSupported } from '@/utilities';
-import type { TClass } from '@venizia/ignis-helpers';
+import type { TClass } from '@venizia/ignis-helpers/common';
 import type {
   ISearchQuery,
   ISearchQueryDialect,

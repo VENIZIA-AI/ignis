@@ -1,5 +1,5 @@
-import type { TConstValue } from '@venizia/ignis-helpers';
-import { getError } from '@venizia/ignis-helpers';
+import type { TConstValue } from '@venizia/ignis-helpers/common';
+import { getError } from '@venizia/ignis-helpers/core';
 
 /** How the app reaches Supabase. Direct and session pooler are 5432; transaction pooler is 6543. */
 export class PoolerModes {

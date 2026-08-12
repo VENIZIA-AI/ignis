@@ -1,5 +1,5 @@
 import type { TNodeServerInstance } from '@/base/applications';
-import { RuntimeModules } from '@venizia/ignis-helpers';
+import { RuntimeModules } from '@venizia/ignis-helpers/common';
 import { SocketIOServerHelper } from '@venizia/ignis-helpers/socket-io';
 import type { IResolvedBindings, IServerOptions } from '../common';
 

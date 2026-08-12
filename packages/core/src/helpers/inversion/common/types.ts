@@ -5,7 +5,7 @@ import type { AbstractEntity } from '@/base/models';
 import type { IRepository, TFilter, TRepositoryOperationScope } from '@/base/repositories';
 import type { TAuthMode, TAuthStrategy } from '@/components/auth/authenticate/common';
 import type { IAuthorizationSpec } from '@/components/auth/authorize/common/types';
-import type { TClass, TGrpcMethod, TValueOrResolver } from '@venizia/ignis-helpers';
+import type { TClass, TGrpcMethod, TValueOrResolver } from '@venizia/ignis-helpers/common';
 import {
   type IInjectMetadata as _IInjectMetadata,
   type IPropertyMetadata as _IPropertyMetadata,

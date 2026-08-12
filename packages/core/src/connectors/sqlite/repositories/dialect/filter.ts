@@ -1,7 +1,7 @@
 import type { Sorts, TQueryOperatorHandlers } from '@/base/repositories/common';
 import type { TTableColumns } from '@/connectors/relational/repositories/common';
 import { FilterBuilder } from '@/connectors/relational/repositories/dialect/filter';
-import type { TConstValue } from '@venizia/ignis-helpers';
+import type { TConstValue } from '@venizia/ignis-helpers/common';
 import type { SQL } from 'drizzle-orm';
 import { sql } from 'drizzle-orm';
 import { assertNotBlobJsonColumn } from './internal/json-column';

@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'bun:test';
 import { AnyObjectSchema, htmlContent, htmlResponse, requiredString } from '@/utilities';
-import { HTTP, type AnyType } from '@venizia/ignis-helpers';
+import { HTTP, type AnyType } from '@venizia/ignis-helpers/common';
 
 describe('requiredString', () => {
   test('rejects an empty string with no options at all', () => {

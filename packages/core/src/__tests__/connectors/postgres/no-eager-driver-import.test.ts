@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test';
-import { getError } from '@venizia/ignis-helpers';
+import { getError } from '@venizia/ignis-helpers/core';
 import { join } from 'node:path';
 
 // `__dirname`, not `import.meta`: this package emits CommonJS.

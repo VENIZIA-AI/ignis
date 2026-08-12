@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'bun:test';
 import { pgTable, serial, text } from 'drizzle-orm/pg-core';
-import type { AnyType } from '@venizia/ignis-helpers';
+import type { AnyType } from '@venizia/ignis-helpers/common';
 import { PostgresQueryOperators } from '@/connectors/postgres/repositories/dialect/query';
 
 /** `contains`/`containedBy`/`overlaps` are wire-reachable with a `z.any()` operand, so these handlers must build PARAMETERIZED SQL - a concatenated value lets the caller write SQL. */

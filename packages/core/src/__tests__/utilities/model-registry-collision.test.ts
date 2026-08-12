@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, test } from 'bun:test';
-import type { AnyType } from '@venizia/ignis-helpers';
+import type { AnyType } from '@venizia/ignis-helpers/common';
 import { MetadataRegistry } from '@/helpers/inversion';
 
 /** `datasourceModels` must hold model CLASSES: names round-tripped through the name-keyed `modelRegistry` collapse two same-named classes onto one entry, silently resolving the WRONG class (wrong settings, wrong hiddenProperties, empty schema). */

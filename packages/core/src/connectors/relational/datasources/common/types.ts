@@ -8,7 +8,7 @@ import type {
   IRelationalQueryDialect,
   IRelationalQueryExecutor,
 } from '@/connectors/relational/repositories/common';
-import type { ValueOrPromise } from '@venizia/ignis-helpers';
+import type { ValueOrPromise } from '@venizia/ignis-helpers/common';
 
 /** Neutral SQL transaction options; each engine adds its own knobs. An alias, not an empty `interface ... extends`, which `@typescript-eslint/no-empty-object-type` rejects. */
 export type TRelationalTransactionOptions = ITransactionOptions;

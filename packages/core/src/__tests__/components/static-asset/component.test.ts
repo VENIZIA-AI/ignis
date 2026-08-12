@@ -10,7 +10,7 @@ import {
 } from '@/components/static-asset/common';
 import { MetadataRegistry } from '@/helpers/inversion/registry';
 import type { OpenAPIHono } from '@hono/zod-openapi';
-import type { ValueOrPromise } from '@venizia/ignis-helpers';
+import type { ValueOrPromise } from '@venizia/ignis-helpers/common';
 import { describe, expect, test } from 'bun:test';
 import { FakeStorageHelper } from './fake-storage.helper';
 

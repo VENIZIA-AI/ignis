@@ -11,8 +11,8 @@ import type {
   IRelationalQueryExecutor,
 } from '@/connectors/relational/repositories/common';
 import { MetadataRegistry } from '@/helpers/inversion';
-import type { AnyObject, AnyType, TClass, ValueOrPromise } from '@venizia/ignis-helpers';
-import { getError } from '@venizia/ignis-helpers';
+import type { AnyObject, AnyType, TClass, ValueOrPromise } from '@venizia/ignis-helpers/common';
+import { getError } from '@venizia/ignis-helpers/core';
 
 /**
  * SQL branch root: connector, pool, transactions. Engine-neutral - dialect and executor are

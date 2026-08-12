@@ -1,8 +1,9 @@
 import { describe, test, expect } from 'bun:test';
 import { SearchConnectorInternal } from '@/connectors/search/internal';
 import { TypesenseInternal } from '@/connectors/typesense/internal/connector-internal';
-import type { ILogger } from '@venizia/ignis-helpers';
-import { LoggerFactory, ApplicationError } from '@venizia/ignis-helpers';
+import type { ILogger } from '@venizia/ignis-helpers/core';
+import { ApplicationError } from '@venizia/ignis-helpers/core';
+import { LoggerFactory } from '@venizia/ignis-helpers';
 
 const logger = LoggerFactory.getLogger(['SearchDriverInternalTest']);
 

@@ -1,5 +1,6 @@
 import { describe, test, expect } from 'bun:test';
-import { ApplicationError, HTTP } from '@venizia/ignis-helpers';
+import { ApplicationError } from '@venizia/ignis-helpers/core';
+import { HTTP } from '@venizia/ignis-helpers/common';
 
 import { AbstractDataSource } from '@/base/datasources';
 import { BasePostgresDataSource } from '@/connectors/postgres/datasources';

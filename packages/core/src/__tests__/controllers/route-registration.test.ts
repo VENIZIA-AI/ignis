@@ -12,8 +12,8 @@ import { jsonContent, jsonResponse } from '@/base/models';
 import { BasePostgresDataSource } from '@/connectors/postgres/datasources';
 import { BasePostgresEntity } from '@/connectors/postgres/models';
 import { z } from '@hono/zod-openapi';
-import type { AnyType, ValueOrPromise } from '@venizia/ignis-helpers';
-import { HTTP } from '@venizia/ignis-helpers';
+import type { AnyType, ValueOrPromise } from '@venizia/ignis-helpers/common';
+import { HTTP } from '@venizia/ignis-helpers/common';
 import { getDroppedRouteDecorators } from '@/base/metadata/routes/common';
 import { applyMethodDecorator, fakeCrudRepository } from './fixtures';
 
