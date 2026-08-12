@@ -1,7 +1,17 @@
 import { MetadataRegistry } from '@/helpers/inversion';
+import {
+  RelationBuilderRegistry,
+  type TRelationBuilder,
+} from '@/helpers/inversion/common/relation-builder';
 import type { TClass } from '@venizia/ignis-helpers/common';
 import { getError } from '@venizia/ignis-helpers/core';
 import type { IDataSource, TAnyDataSourceSchema } from '@/base/datasources';
+// Deep import, not a barrel: `discoverSchema()` below is the only production call site that needs
+// `createRelations`, so the install runs from here rather than `dialect/relation.ts` - nothing else
+// value-imports that file's `createRelations` export, and a `sideEffects: false` bundler drops an
+// unused export's module body even when it is reachable through a barrel `export *` chain (verified
+// with `bun build --target=browser`, the tool `make purity` uses).
+import { createRelations } from '@/connectors/relational/repositories/dialect/relation';
 import { AbstractRelationalDataSource } from './abstract';
 import type { IRelationalTransaction, TRelationalTransactionOptions } from './common';
 
@@ -134,3 +144,8 @@ export abstract class BaseRelationalDataSource<
   /** The engine's own BEGIN. Postgres interpolates an isolation level; SQLite has none and uses `BEGIN IMMEDIATE`. Never parameterized - `BEGIN ... ISOLATION LEVEL $1` is not valid SQL. */
   protected abstract buildBeginStatement(opts?: TRelationalTransactionOptions): string;
 }
+
+// Runs once this module loads. Every engine (postgres, sqlite) extends `BaseRelationalDataSource`,
+// and `discoverSchema()` above is the sole caller of `resolveModelRelations()`, so this is the one
+// place guaranteed to load whenever relation building is actually needed.
+RelationBuilderRegistry.set({ builder: createRelations as TRelationBuilder });

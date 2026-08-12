@@ -1,12 +1,11 @@
 import type { IDataSource } from '@/base/datasources';
 import type { AbstractEntity } from '@/base/models';
-import type { TTableSchemaWithId } from '@/connectors/relational/models/common';
-import type { TRelationConfig } from '@/connectors/relational/repositories/common';
-import { createRelations } from '@/connectors/relational/repositories/dialect/relation';
 import type { AnyType, TClass, TMixinTarget } from '@venizia/ignis-helpers/common';
 import { resolveValue } from '@venizia/ignis-helpers/common';
+import { getError } from '@venizia/ignis-helpers/core';
 import type { MetadataRegistry as _MetadataRegistry } from '@venizia/ignis-inversion';
 import { MetadataKeys } from '../common/keys';
+import { RelationBuilderRegistry } from '../common/relation-builder';
 import type {
   IModelMetadata,
   IModelRegistryEntry,
@@ -91,21 +90,26 @@ export const RepositoryMetadataMixin = <
         return undefined;
       }
 
-      const relations = resolveValue(modelMeta.relationsResolver) as Array<TRelationConfig>;
+      const relations = resolveValue(modelMeta.relationsResolver);
 
-      if (relations && modelMeta.schema) {
-        // The registry stores schema as unknown (engine-neutral); this resolver only runs for
-        // drizzle-backed models, so the narrow is safe.
-        const builtRelations = createRelations({
-          source: modelMeta.schema as TTableSchemaWithId,
-          relations,
-        });
-
-        modelMeta._builtRelations = builtRelations?.relations;
-        return modelMeta._builtRelations;
+      if (!relations || !modelMeta.schema) {
+        return undefined;
       }
 
-      return undefined;
+      const builder = RelationBuilderRegistry.resolve();
+
+      // Relations were declared but no connector installed a builder - silently dropping them
+      // would surface much later as an empty `with` clause.
+      if (!builder) {
+        throw getError({
+          message: `[RepositoryMetadataMixin][resolveModelRelations] Model declares relations but no relation builder is registered | Import the relational connector so it installs one`,
+        });
+      }
+
+      const builtRelations = builder({ source: modelMeta.schema, relations });
+
+      modelMeta._builtRelations = builtRelations?.relations;
+      return modelMeta._builtRelations;
     }
 
     /**
