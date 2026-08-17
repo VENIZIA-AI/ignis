@@ -1,6 +1,6 @@
 {
   "name": "@venizia/ignis-filter",
-  "version": "0.1.2-1",
+  "version": "0.1.2",
   "description": "Engine-neutral query filter vocabulary for TypeScript: the `{ where, order, limit, offset, skip, fields, include }` shape, comparison/pattern/null/array/logical operators, and sort direction constants. Isomorphic by construction - no node builtins and no server-only peer, so the same filter language serves a server repository and a browser data layer.",
   "keywords": [
     "browser",
@@ -79,12 +79,12 @@
     "prepublishOnly": "bun run rebuild"
   },
   "dependencies": {
-    "@venizia/ignis-inversion": "^0.1.1-7",
+    "@venizia/ignis-inversion": "^0.1.1",
     "zod": "catalog:"
   },
   "devDependencies": {
     "@types/bun": "catalog:",
-    "@venizia/dev-configs": "^0.1.0",
+    "@venizia/dev-configs": "^0.1.1",
     "eslint": "catalog:",
     "prettier": "catalog:",
     "tsc-alias": "catalog:",
