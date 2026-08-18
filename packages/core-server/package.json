@@ -198,12 +198,12 @@
     "prepublishOnly": "bun run rebuild"
   },
   "dependencies": {
-    "@venizia/ignis-boot": "^0.1.1",
+    "@venizia/ignis-boot": "^0.2.0-0",
     "@venizia/ignis-connectors": "^0.1.1-0",
-    "@venizia/ignis-filter": "^0.1.2",
-    "@venizia/ignis-helpers": "^0.1.1",
-    "@venizia/ignis-inversion": "^0.1.1",
-    "@venizia/ignis-kernel": "^0.1.1-0",
+    "@venizia/ignis-filter": "^0.2.0-0",
+    "@venizia/ignis-helpers": "^0.2.0-0",
+    "@venizia/ignis-inversion": "^0.2.0-0",
+    "@venizia/ignis-kernel": "^0.2.0-0",
     "lodash": "catalog:",
     "reflect-metadata": "catalog:",
     "zod": "catalog:"
@@ -306,7 +306,7 @@
     "@types/lodash": "catalog:",
     "@types/nodemailer": "^8.0.1",
     "@types/pg": "catalog:",
-    "@venizia/dev-configs": "^0.1.1",
+    "@venizia/dev-configs": "^0.2.0-0",
     "casbin": "^5.51.1",
     "drizzle-kit": "catalog:",
     "eslint": "catalog:",
