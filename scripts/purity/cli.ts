@@ -23,6 +23,7 @@ const run = async (): Promise<void> => {
 
   const labelWidth = Math.max(...rows.map(r => r.label.length));
   let failed = 0;
+  let waived = 0;
 
   for (const row of rows) {
     const entry = join(REPOSITORY_ROOT, row.entry);
@@ -52,6 +53,24 @@ const run = async (): Promise<void> => {
     // measures less than one that does not, and that must stay visible next to the verdict.
     const external = result.external.length > 0 ? ` | external: ${result.external.join(', ')}` : '';
 
+    // Checked before the normal verdict, because for a waived row the two outcomes swap meaning.
+    if (row.expectImpure) {
+      // A waived entry that comes back pure fails: the waiver now describes something untrue, and
+      // the reader who trusts it next will be trusting it about a different entry.
+      if (result.ok) {
+        failed += 1;
+        console.log(`  ✗ ${row.label.padEnd(labelWidth)} STALE WAIVER - this entry is browser-pure now`);
+        console.log(`    Drop it from \`impure\` in scripts/purity/manifest.ts so the gate measures it again`);
+        continue;
+      }
+
+      waived += 1;
+      console.log(
+        `  ~ ${row.label.padEnd(labelWidth)} waived | builtins: ${result.builtins.join(', ') || 'none'} | globals: ${result.globals.join(', ') || 'none'}${external}`,
+      );
+      continue;
+    }
+
     if (result.ok) {
       console.log(
         `  ✓ ${row.label.padEnd(labelWidth)} ${(result.sizeBytes / 1024).toFixed(1)} KB${guarded}${external}`,
@@ -68,12 +87,15 @@ const run = async (): Promise<void> => {
     }
   }
 
+  const note = waived > 0 ? ` (${waived} waived as known-impure)` : '';
+
   if (failed > 0) {
-    console.log(`\n[purity] ${failed}/${rows.length} entries are not browser-pure.`);
+    console.log(`\n[purity] ${failed}/${rows.length} entries are not browser-pure${note}.`);
     process.exit(1);
   }
 
-  console.log(`\n[purity] ${rows.length}/${rows.length} entries are browser-pure.`);
+  const checked = rows.length - waived;
+  console.log(`\n[purity] ${checked}/${checked} entries are browser-pure${note}.`);
 };
 
 await run();

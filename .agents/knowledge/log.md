@@ -1598,3 +1598,25 @@ code?, args? }` so flat call sites still compile. `error` is refused on the free
   (reproduced). `IS_PUBLISHED` is now set BEFORE `bun publish`, so a publish that succeeded and lost
   its response is reported instead of silently rolled back. The unreachable `IS_MERGED` branch, which
   nothing ever set and which force-reset `main` the same blind way, was removed.
+
+- `make purity-connectors` could never exit 0, so a connectors release died at the purity gate. The
+  known-impure engine clients were allowed only by a hand-kept list inside `.github/workflows/ci.yml`,
+  which the release workflow never reads. The list now lives in `scripts/purity/manifest.ts` as an
+  `impure` waiver on the claim, checked in both directions: a waived row that comes back pure fails
+  as `STALE WAIVER`, and deriving still owns the row set. `ci.yml`'s duplicate step is gone.
+- `postgres/supabase [import]` is waived for a different reason than the engine clients, and is a
+  real defect: under `--target=browser` Bun drops the `export { ... } from 'drizzle-orm/supabase'`
+  re-export yet keeps those names in the bundle's export block, so the output exports identifiers it
+  never binds. An attempt to treat this as a probe false positive was reverted - the probe's own
+  fixture proved the "specifier absent from the output" test also passes a `browser: false` remap,
+  which is exactly the leak the gate exists to catch.
+- The release workflow runs `force-update` BEFORE `bun install`, not after. Rewriting ranges after
+  resolution left node_modules holding a stale registry tarball: kernel built against helpers 0.1.1
+  while the workspace carried 0.2.0-0, and failed with 15 x TS2305 on `@venizia/ignis-helpers/core`.
+  A new step now asserts every `@venizia/*` dependency resolves to the workspace, never to a tarball.
+- `force-update.sh` (all 10 copies) parses `npm view --json` with `jq`, not `grep '"' | tail -1`.
+  For an unpublished package npm prints its E404 body on STDOUT, and the old pipe fed that error text
+  to `sed` as the version.
+- The release workflow publishes BEFORE it commits, pushes or tags, so no failure path force-pushes
+  `develop` any more. Both git rollback steps became unreachable and were replaced by two failure
+  reports. `CI` is `workflow_dispatch` only - neither a push to `develop` nor a pull request runs it.

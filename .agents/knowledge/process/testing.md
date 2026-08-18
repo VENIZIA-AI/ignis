@@ -36,7 +36,8 @@ tags: [process, test, bun]
    `make purity` / `make purity-<package>` is not a `bun test` run either - it is a standalone Bun
    script (`scripts/purity/cli.ts`) that bundles each manifest entry with `bun build
    --target=browser` and inspects the metafile, so it reads `dist/` and needs a build first. CI runs
-   it right after the lint step; no hook does. Running the purity gate and the test suite before
+   it right after the lint step - but CI itself is `workflow_dispatch` only now, so nothing runs it
+   on a push or a pull request, and no hook does either. Running the purity gate and the test suite before
    committing is on you.
 
 ## Related

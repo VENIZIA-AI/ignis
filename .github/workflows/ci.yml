@@ -108,49 +108,15 @@ jobs:
         if: ${{ !cancelled() && steps.build.outcome == 'success' }}
         run: make lint-all
 
-      - name: Browser purity - fully pure packages
+      # One loop, no allowlist: connectors' known-impure engine clients are waived inside
+      # scripts/purity/manifest.ts, where the release workflow's `make purity-<pkg>` sees them too.
+      # This step used to carry its own copy of that list, so the two gates could disagree - and did:
+      # `make purity-connectors` could never pass, which failed a connectors release outright.
+      - name: Browser purity
         if: ${{ !cancelled() && steps.build.outcome == 'success' }}
         run: |
           failed=0
-          for target in purity-inversion purity-filter purity-helpers purity-kernel purity-core-worker; do
+          for target in purity-inversion purity-filter purity-helpers purity-kernel purity-core-worker purity-connectors; do
             make "$target" || failed=1
           done
           exit $failed
-
-      - name: Browser purity - connectors (known-impure engine clients)
-        if: ${{ !cancelled() && steps.build.outcome == 'success' }}
-        run: |
-          EXPECTED_IMPURE=$(cat <<'ENTRIES'
-          connectors/postgres/node-postgres [import]
-          connectors/postgres/node-postgres [require]
-          connectors/postgres/postgres-js [import]
-          connectors/postgres/postgres-js [require]
-          connectors/postgres/supabase [import]
-          connectors/sqlite/libsql [require]
-          connectors/typesense [import]
-          connectors/typesense [require]
-          ENTRIES
-          )
-          LOG="$RUNNER_TEMP/purity-connectors.log"
-
-          make purity-connectors > "$LOG" 2>&1 || true
-          cat "$LOG"
-
-          ACTUAL_IMPURE=$(grep -E '^[[:space:]]+✗' "$LOG" | awk '{ print $2, $3 }' | LC_ALL=C sort)
-          EXPECTED_SORTED=$(echo "$EXPECTED_IMPURE" | sed 's/^[[:space:]]*//' | LC_ALL=C sort)
-
-          if [ "$ACTUAL_IMPURE" = "$EXPECTED_SORTED" ]; then
-            echo "    ✓ exactly the known engine-client entries are impure, and nothing else"
-            exit 0
-          fi
-
-          echo "ERROR: the set of impure connectors entries changed."
-          echo "--- expected ---"
-          echo "$EXPECTED_SORTED"
-          echo "--- actual ---"
-          echo "$ACTUAL_IMPURE"
-          echo
-          echo "A NEW entry here is a real browser-purity regression - fix it."
-          echo "A MISSING entry means an engine client became pure - delete its line from this"
-          echo "workflow, so the gate keeps measuring instead of excusing."
-          exit 1

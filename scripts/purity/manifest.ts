@@ -15,6 +15,11 @@ export interface IPurityEntry {
    * Enforced below, not left to this comment alone - see `assertNoWorkspaceExternal`.
    */
   external?: string[];
+  /**
+   * This row is EXPECTED to be impure, so failing is its passing state. Derived from
+   * {@link IPurityClaim.impure} - never authored on a row directly.
+   */
+  expectImpure?: boolean;
 }
 
 /**
@@ -40,6 +45,18 @@ export interface IPurityClaim {
   subpaths?: string[];
   /** `external` for one sub-path - see {@link IPurityEntry.external}. Keyed as spelled in `exports`. */
   external?: Record<string, string[]>;
+  /**
+   * Entries that CANNOT be browser-pure, keyed as spelled in `exports`, valued by the conditions
+   * that are impure - a driver whose only job is to open a TCP socket to a database is not a purity
+   * bug, and one condition can differ from another (`./sqlite/libsql` is pure to `import` and not to
+   * `require`).
+   *
+   * The waiver is exact in BOTH directions: a listed entry that turns out to be pure fails as loudly
+   * as an unlisted one that is not. A waiver nobody re-reads is how a real leak eventually hides.
+   * Deriving still owns the ROW SET, so a sub-path added later is claimed pure by default and has to
+   * earn its line here.
+   */
+  impure?: Record<string, string[]>;
 }
 
 /** Every package in this workspace publishes under this scope - a sufficient test for "ours". */
@@ -60,6 +77,25 @@ const PURITY_CLAIMS: IPurityClaim[] = [
   { package: 'core-worker' },
   {
     package: 'connectors',
+    // Two different reasons, both pinned exactly so a NEW impure entry still fails.
+    //
+    // The engine clients - node-postgres, postgres-js, libsql, typesense - each speak a wire
+    // protocol to a server process, so they reach for sockets, TLS or child processes and can never
+    // run in a browser tab. They stay published because a Node consumer needs them.
+    //
+    // `./postgres/supabase` under `import` is NOT that, and is not acceptable either: it is a real
+    // defect in the ESM build. Under `--target=browser` Bun drops the
+    // `export { anonRole, ... } from 'drizzle-orm/supabase'` re-export yet still lists those names
+    // in the bundle's export block, so the output exports identifiers it never binds - measured on
+    // the emitted file, where `anonRole` appears once and only inside `export { ... }`. The
+    // `require` twin bundles the same module fine. Waived to keep the gate running, not to bless it.
+    impure: {
+      './postgres/node-postgres': ['import', 'require'],
+      './postgres/postgres-js': ['import', 'require'],
+      './postgres/supabase': ['import'],
+      './sqlite/libsql': ['require'],
+      './typesense': ['import', 'require'],
+    },
     external: {
       // PGlite ships ONE universal Emscripten build and relies on its package.json `browser` field
       // remapping fs/path/util/... to false. Vite honours that; `bun build` does not, so bundling it
@@ -198,10 +234,33 @@ export const deriveEntries = (claim: IPurityClaim): IPurityEntry[] => {
   }
 
   const claimed = claim.subpaths ?? published;
+
+  for (const subpath of Object.keys(claim.impure ?? {})) {
+    if (claimed.includes(subpath)) {
+      continue;
+    }
+
+    throw new Error(
+      `[purity][manifest] '${claim.package}' waives '${subpath}' as impure, but that sub-path is not ` +
+        `claimed | Claimed: ${claimed.join(', ')} - a waiver against nothing is one nobody is reading`,
+    );
+  }
+
   const entries: IPurityEntry[] = [];
 
   for (const subpath of claimed) {
     const targets = listConditionTargets(exportsMap[subpath]!);
+
+    for (const condition of claim.impure?.[subpath] ?? []) {
+      if (targets.some(target => target.condition === condition)) {
+        continue;
+      }
+
+      throw new Error(
+        `[purity][manifest] '${claim.package}' waives '${subpath}' under condition '${condition}', ` +
+          `which its \`exports\` map does not publish | Published: ${targets.map(t => t.condition).join(', ')}`,
+      );
+    }
 
     for (const { condition, file } of targets) {
       entries.push({
@@ -214,6 +273,7 @@ export const deriveEntries = (claim: IPurityClaim): IPurityEntry[] => {
         package: claim.package,
         entry: join('packages', claim.package, file),
         ...(claim.external?.[subpath] ? { external: claim.external[subpath] } : {}),
+        ...(claim.impure?.[subpath]?.includes(condition) ? { expectImpure: true } : {}),
       });
     }
   }

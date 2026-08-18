@@ -107,7 +107,7 @@ no `drizzle-orm/pg-core` and no `drizzle-orm/sqlite-core` at all. For the depth,
 [SQLite connector](/architecture/sqlite-connector.md), and
 [Typesense search connector](/architecture/search-typesense.md).
 
-## Every published sub-path is probed, and four are red
+## Every published sub-path is probed, and eight rows are waived
 
 `scripts/purity/manifest.ts` derives its rows from this package's `exports` map, so all 14 sub-paths
 are measured. It used to carry three hand-written rows - the root, `relational/core` and the PGlite
@@ -115,10 +115,26 @@ driver - and reported `11/11` green while saying nothing about the other eleven.
 guards this package either: `eslint.config.mjs` is the shared preset alone, unlike `core-worker`,
 which adds a `no-restricted-globals` and `no-restricted-imports` layer.
 
-All four red entries are engine clients - `postgres/node-postgres` (`pg`), `postgres/postgres-js`
-(`postgres`), `sqlite/libsql` (`@libsql/client`) and `typesense`. They pull their client's node
-builtins and were never browser-capable. Nothing excuses them in the manifest: the gate has no data
-saying so, so it reports them red rather than quietly waving them through.
+Eight rows cannot pass, so the claim names them in `impure` and `make purity-connectors` exits 0.
+The waiver is exact in both directions: a listed row that turns out to be pure fails as loudly as an
+unlisted one that is not, and deriving still owns the row set, so a sub-path added later is claimed
+pure by default. The list lived in `.github/workflows/ci.yml` before, which meant `make
+purity-connectors` could never pass on its own - and that failed a connectors release outright,
+because the release workflow calls that target directly.
+
+| Row | Why |
+|---|---|
+| `postgres/node-postgres` (import, require) | `pg` - node builtins, never browser-capable |
+| `postgres/postgres-js` (import, require) | `postgres` - reaches for `tls` |
+| `sqlite/libsql` (require) | `@libsql/client` - `child_process`; the `import` twin is pure |
+| `typesense` (import, require) | 17 node builtins from the client |
+| `postgres/supabase` (import) | not an engine client - see below |
+
+`postgres/supabase [import]` is a real defect, waived only to keep the gate running. Under
+`--target=browser` Bun drops the `export { anonRole, ... } from 'drizzle-orm/supabase'` re-export and
+still lists those names in the bundle's export block, so the output exports identifiers it never
+binds - `anonRole` appears exactly once in the emitted file, inside `export { ... }`. The `require`
+twin bundles the same module fine.
 
 `/postgres` and `/sqlite` were red too, on `node:async_hooks`. Both user-audit enrichers imported
 `tryGetContext` from `hono/context-storage`, whose module body runs `var asyncLocalStorage = new
