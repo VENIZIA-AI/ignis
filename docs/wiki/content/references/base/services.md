@@ -8,7 +8,7 @@ difficulty: beginner
 
 Technical reference for `BaseService` - the foundation for the business logic layer in IGNIS.
 
-**File:** `packages/core/src/base/services/base.ts`
+**File:** `packages/core-server/src/base/services/base.ts`
 
 ## Quick Reference
 
@@ -29,7 +29,7 @@ Technical reference for `BaseService` - the foundation for the business logic la
 Abstract class that all application services must extend.
 
 ```typescript
-// packages/core/src/base/services/base.ts
+// packages/core-server/src/base/services/base.ts
 import { BaseHelper } from '@venizia/ignis-helpers';
 import { IService } from './types';
 
@@ -65,7 +65,7 @@ this.service(GreeterService);         // binds as 'services.GreeterService'
 `this.service(Ctor)` is implemented directly on `BaseApplication`:
 
 ```typescript
-// packages/core/src/base/applications/base.ts
+// packages/core-server/src/base/applications/base.ts
 service<Base extends IService, Args extends AnyObject = any>(
   ctor: TClass<Base>,
   opts?: TMixinOpts<Args>,

@@ -20,7 +20,7 @@ This update focuses on performance improvements for the repository layer, reduci
 
 ### 1. WeakMap Cache for Filter Builder
 
-**File:** `packages/core/src/base/repositories/operators/filter.ts`
+**File:** `packages/core-server/src/base/repositories/operators/filter.ts`
 
 **Problem:** `getTableColumns()` was called on every filter operation, causing repeated reflection overhead.
 
@@ -52,7 +52,7 @@ export class FilterBuilder extends BaseHelper {
 
 ### 2. Core API for Flat Queries
 
-**File:** `packages/core/src/base/repositories/core/readable.ts`
+**File:** `packages/core-server/src/base/repositories/core/readable.ts`
 
 **Problem:** All queries used Drizzle's Query API, which has overhead for relational mapping even when not needed.
 
@@ -76,7 +76,7 @@ const users = await repo.find({
 
 ### 3. Static schemaFactory Singleton
 
-**File:** `packages/core/src/base/models/base.ts`
+**File:** `packages/core-server/src/base/models/base.ts`
 
 **Problem:** New `schemaFactory` was created for every `BaseEntity` instance, causing memory overhead.
 
@@ -97,7 +97,7 @@ protected static get schemaFactory(): ReturnType<typeof createSchemaFactory> {
 
 ### 4. Async/Await Refactor
 
-**Files:** `packages/core/src/base/repositories/core/readable.ts`, `packages/core/src/base/repositories/core/persistable.ts`
+**Files:** `packages/core-server/src/base/repositories/core/readable.ts`, `packages/core-server/src/base/repositories/core/persistable.ts`
 
 **Problem:** Every CRUD method wrapped existing promises in `new Promise()`.
 
@@ -116,7 +116,7 @@ return { count };
 
 ## Files Changed
 
-### Core Package (`packages/core`)
+### Core Package (`packages/core-server`)
 
 | File | Changes |
 |------|---------|

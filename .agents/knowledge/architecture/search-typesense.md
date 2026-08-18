@@ -2,7 +2,7 @@
 type: Architecture
 title: Typesense search connector
 description: How the search connector family mirrors the relational hierarchy, how collections are discovered and provisioned, and why hidden fields must be stripped on the write path.
-resource: packages/core/src/connectors/search
+resource: packages/core-server/src/connectors/search
 tags: [architecture, search, typesense, connectors]
 ---
 

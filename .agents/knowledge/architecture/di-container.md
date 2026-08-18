@@ -7,8 +7,9 @@ tags: [architecture, di, container, inversion]
 ---
 
 `inversion` is IGNIS's standalone IoC container. It is deliberately small - a container, a binding,
-a metadata registry, two decorators - and everything else in the framework is built on it. The
-application class itself extends `Container`, so an IGNIS app *is* a container.
+a metadata registry, and one decorator (`@inject`, serving both constructor parameters and
+properties) - and everything else in the framework is built on it. The application class itself
+extends `Container`, so an IGNIS app *is* a container.
 
 ## The three container tiers
 
@@ -84,10 +85,24 @@ included, producing exactly this failure with no error message.
 ## Metadata registry
 
 `MetadataRegistry` wraps `reflect-metadata` behind options-object methods (`setInjectMetadata`,
-`getPropertiesMetadata`, `setInjectableMetadata`, ...). Its keys are `Symbol.for('ignis:inject')`
-and friends - globally registered, so collision-free across module instances. A process-wide
-`metadataRegistry` singleton is what `@inject` writes to by default; both decorators accept a
-registry override, which is how tests stay isolated.
+`getInjectMetadata`, `setPropertyMetadata`, `getPropertiesMetadata`, plus the raw
+`define`/`get`/`has`/`delete` passthroughs). Its keys are `Symbol.for('ignis:inject')` and friends -
+globally registered, so collision-free across module instances. A process-wide `metadataRegistry`
+singleton is what `@inject` writes to by default; the decorator accepts a registry override, which
+is how tests stay isolated.
+
+## Two classes per name
+
+`AbstractContainer.getMetadataRegistry()` is the swap point. `BaseContainer` returns inversion's
+process-global `metadataRegistry`; the framework's `Container`
+(`packages/kernel/src/helpers/inversion/container.ts`) overrides it to return
+`MetadataRegistry.getInstance()` - the mixin-composed singleton in
+`packages/kernel/src/helpers/inversion/registry.ts` that also carries `modelRegistry`,
+`repositoryBindings` and `datasourceModels`. `AbstractApplication` extends *that* `Container`, and
+`@venizia/ignis` exports the kernel `Container` and `MetadataRegistry` under those names rather than
+inversion's - so two distinct classes share each name, and reading "extends `Container`" in
+`packages/inversion` finds the wrong one. Decorator metadata survives the split because storage is
+`reflect-metadata` under globally registered `Symbol.for('ignis:...')` keys, not instance state.
 
 ## Related
 

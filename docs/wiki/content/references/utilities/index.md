@@ -8,6 +8,7 @@ Pure, standalone functions providing common, reusable logic for the IGNIS framew
 |---------|---------|---------|---------------|
 | **Crypto** | `ignis-helpers` | Cryptographic hashing | `hash()` |
 | **Date** | `ignis-helpers` | Date/time manipulation | `dayjs`, `sleep()`, `isWeekday()`, `getDateTz()`, `hrTime()` |
+| **Duration** | `ignis-helpers` | Duration units and conversion | `DurationUnits`, `DurationMultipliers.toMilliseconds()`, `.parseToMilliseconds()` |
 | **JSX** | `ignis` | HTML/JSX responses | `htmlContent()`, `htmlResponse()` |
 | **Module** | `ignis-helpers` | Optional peer loading | `ModuleUtility` |
 | **Parse** | `ignis-helpers` | Data type conversion | `int()`, `float()`, `toBoolean()`, `toCamel()` |
@@ -30,6 +31,7 @@ Pure, standalone functions providing common, reusable logic for the IGNIS framew
 ### Time & Performance
 
 - [**Date**](./date.md) - Date and time manipulation functions built on `dayjs` with timezone support
+- [**Duration**](./duration.md) - A unit vocabulary, written-duration parsing, and conversion between units and milliseconds
 - [**Performance**](./performance.md) - Utilities for measuring code execution time and performance profiling
 
 ### Async & HTTP

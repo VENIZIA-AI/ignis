@@ -6,6 +6,414 @@ not how.
 This file and `index.md` are reserved OKF filenames - they carry no `type:` frontmatter and are not
 counted as concepts.
 
+## 2026-08-18 - OpaqueUidHelper, the short-id counterpart to Snowflake
+
+`packages/helpers/src/modules/uid/opaque.ts`. No time ordering; a chosen length, `prefix` and
+`delimiter` as `{ enable, value }` toggles, and an alphabet from `UidAlphabets`. Default is 6
+Crockford characters, uppercase.
+
+Named for the PROPERTY, not the mechanism - `RandomUidHelper` was the first name and it described
+the implementation. A Snowflake id is transparent: `parseId()` returns the exact millisecond it was
+minted and the worker that minted it. An opaque id returns nothing. That is the axis a caller
+chooses on, and the reason both classes exist.
+
+`enable` rather than "empty string means off", deliberately: a toggle keeps `value` while switched
+off, so a configured delimiter can be flipped back on without retyping it, and an accidentally-empty
+prefix is a reportable bug instead of a silent no-op.
+
+Two facts worth not re-deriving:
+
+- **A two-case alphabet cannot be case-folded, and the helper refuses to try.** Uppercasing `BASE58`
+  produces 35 characters, not the 33 an entropy calculation predicts, because every lowercase letter
+  folds onto the uppercase set and drags `I` and `O` back in - the exact pair `BASE58` drops so `1`
+  and `0` stay unambiguous. Lowercasing brings back `l`. Found by the test asserting 33, which was
+  the wrong number. Single-case alphabets fold cleanly; that is what `CROCKFORD` is for.
+- **`crypto.getRandomValues` is NOT secure-context-only.** Only `crypto.randomUUID` is - the
+  restriction that forced `RequestIdGenerator` into existence. So this helper works on a plain-http
+  origin and inside a browser Worker, and stays on the browser-pure `/core` surface.
+
+The default length of 6 is 2^30, chosen against airline record locators. It holds for the same three
+reasons theirs do - scoped per carrier, recycled after the trip, regenerated on conflict - not
+because 2^30 is large. Measured: ~4,600 ids for a 1% collision chance in one space, ~38,000 for 50%.
+Both the doc comment and the wiki say so, because a caller reading only the default would not guess.
+
+## 2026-08-18 - the error middleware's host reads become options, and one finding refused
+
+**`BaseAppErrorMiddleware` takes `environment` and `formatError` as constructor options.** They were
+`protected` hooks, and three subclasses existed to answer them and nothing else. One option now
+carries what two hooks did: its PRESENCE claims the host has an ambient environment at all, and a
+present function returning `undefined` means a host that should have one is misconfigured.
+
+A class seam is unreachable from application code, which is why `examples/browser-bff` faked the
+environment with a Hono middleware assigning `context.env`. It sets `config.error.environment` now,
+and its `TBffEnv` binding type is gone. `AppErrorMiddleware` in `@venizia/ignis` survives as a name
+that supplies the two server options - it overrides nothing. Verified in Chrome.
+
+**The injected-host-object half of the seam review is REFUSED, with the measurement.** It proposed
+replacing `AbstractApplication`'s remaining virtuals with an injected `IApplicationHost`. BANA
+overrides `getProjectRoot()` in **10+ applications** (`commerce`, `search`, `licensing`, `taxation`,
+`finance`, `ledger`, `helpdesk`, `inventory`, `pricing`, and a migration bootstrap) - it is
+application API, not an accident. Its substance was the `host`/`port` duplication and the port
+validity logic re-implemented in core, and both went with the socket split in the entry above; what
+is left is one legitimate override plus `getDefaultAsyncContextEnabled`.
+
+## 2026-08-18 - four duplications closed, and the packaging gap under two of them
+
+**The migration runner left the example.** `RelationalMigrationRunner`
+(`connectors/src/relational/core/migrations/`) owns what the browser example used to: the DDL and
+its ledger row commit in ONE transaction, so an interrupted first visit cannot leave a created table
+with an empty ledger and no way back except clearing OPFS by hand. Engine-neutral, over a driver
+connection.
+
+Two things it does that the example's version did not: it splits on `drizzle-kit`'s
+`--> statement-breakpoint` (PGlite's `query` and postgres-js both reject a multi-statement string,
+where PGlite's `exec` accepted one), and it REFUSES a migration name outside `[A-Za-z0-9._-]` rather
+than escaping it - placeholder syntax is not portable, so the name is embedded as a literal and
+proven safe first. `IRelationalConnection` gained `query()` for the ledger read; all four drivers
+implement it in one line.
+
+Proven in Chrome against a PRE-EXISTING OPFS database: 3 notes from 2026-08-14 read back, no
+re-migration, a write accepted. The example passes `ledgerTable: 'ignis_browser_migrations'` on
+purpose - the runner's default would have read as an empty ledger and re-run `CREATE TABLE`.
+
+**One `initialize()`.** `RestApplication.initialize()` now states the artifact ordering
+(staticConfigure → preConfigure → datasources → components → controllers → postConfigure) once, and
+`examples/browser-bff` deleted its copy. `BaseApplication` remains the one deliberate override, for
+phases only a server has.
+
+NOT done, and deliberately: the same finding asked for no-op defaults on the four lifecycle hooks.
+That turns them concrete, and `noImplicitOverride` then demands `override` at every implementation -
+**7 sites in BANA, including its shared `packages/core/src/application/base.ts`**. It is a real
+breaking change, not a cleanup; left for an explicit decision.
+
+**One audit-user resolver.** `resolveAuditUserId` in `relational/core/models/enrichers/` replaces
+the byte-identical `getCurrentUserId` that the postgres and sqlite enrichers each carried - the
+security-adjacent path was being reviewed twice. Each dialect keeps only its column builders.
+
+**Every browser-claiming package now dual-builds.** kernel, core-worker, connectors and helpers ship
+`dist/cjs` + `dist/esm` with `import`/`require` conditions, joining inversion and filter.
+`assertBrowserImportCondition` makes the claim enforce it. `examples/browser-bff` deleted both of its
+bundler workarounds, and its page chunk fell **682 KB -> 54 KB**.
+
+Four things this surfaced, each of which would have shipped silently:
+
+- `"sideEffects": false` let Rolldown drop `import 'reflect-metadata'` from the entry, so every
+  decorator died with `Reflect.defineMetadata is not a function` - in the PRODUCTION build only.
+  The packages that import it now list their entry files.
+- The ESM build needs `tsc-alias` `resolveFullPaths`: `bun build` cannot resolve an extensionless
+  FILE import, though a directory with an `index.js` resolves either way.
+- TypeScript maps a `.d.ts` under `outDir` back to its source, so `tsconfig.json`'s `outDir` had to
+  move to `dist/cjs` alongside the build config - otherwise helpers' self-referencing augmentation
+  test stopped resolving.
+- `bun build`'s METAFILE marks `export { name } from './x.js'` as external while inlining it,
+  which the purity probe read as a leak. Relative specifiers are now skipped, with the measurement
+  in the comment.
+
+`connectors/sqlite/libsql [import]` is browser-pure where `[require]` is not: the gate got more
+truthful, not just wider. 42 rows now, 8 red, all pinned in CI per condition.
+
+## 2026-08-17 - the kernel stops pretending it has a socket
+
+Three altitude findings, done together because they are one thing seen from three sides: server
+assumptions left behind in the browser-pure layer.
+
+**One default middleware stack.** `requestId()`, the framework error handler and `notFoundHandler`
+were installed from two independent code paths - `WorkerApplication` and `BaseApplication` - and a
+test hand-copied the list a third time to compare them. They now come from
+`RestApplication.registerDefaultMiddlewares()`. `WorkerApplication` overrides nothing;
+`BaseApplication` calls `super()` and adds `contextStorage`, `RequestTrackerComponent` and the
+favicon. `buildErrorMiddleware()` is the seam core overrides for the `ErrorPrettier` formatter.
+
+`RequestTrackerComponent` no longer installs `requestId()` - the application already did.
+
+**One request-id rule, for both ends.** `BffRequestIdGenerator` became `RequestIdGenerator` in
+`@venizia/ignis-helpers/core`, beside `SnowflakeUidHelper`. It was never a BFF rule: the server half
+still took hono's `crypto.randomUUID` default, so the two ends of one request stamped different
+formats. `packages/core-worker/src/common/` is gone with it.
+
+**`host`, `port`, the runtime union and start/stop left the kernel.** `RestApplication.server` is
+`{ hono }` alone. `IApplicationConfigs` in the kernel declares no address, and `ServerApplication`'s
+own constructor resolves one - the kernel used to write `localhost:3000` into every Worker
+application's config. Kernel `IApplication` narrowed to what every host implements; the rest is
+`@venizia/ignis`'s new `IServerApplication`. `getEnvServerHost`/`getEnvServerPort` are gone as seams.
+
+Two things that would have broken silently, both now pinned by a test:
+
+- `@venizia/ignis` must keep exporting `IApplicationConfigs` WITH `host`/`port` - nx-seller writes
+  both. It does, via an explicit `export type { IServerApplicationConfigs as IApplicationConfigs }`
+  in `src/index.ts`. It has to be explicit and in the entry module: a name reachable through two
+  `export *` lines is ambiguous and TypeScript then exports NEITHER, with no error.
+  `config-shape.test.ts` asserts the widening at COMPILE time, with an `IsAny` guard so it cannot
+  pass vacuously - verified red with the line removed.
+- `hono/request-id`'s `ContextVariableMap` augmentation only applies where that module is in the
+  program. Once the middleware moved into the kernel, no consumer imported it and
+  `context.get(REQUEST_ID_KEY)` silently lost its type. `middlewares/common/constants.ts` restates
+  the augmentation so it reaches every consumer.
+
+## 2026-08-17 - two measured hot paths, and one that measured as not worth fixing
+
+**Boot no longer re-scans the binding map per item.** `RestApplication.registerDynamicBindings`,
+`RestComponent.binding` and `GrpcComponent` each fetched a tagged binding list, took ONE entry, then
+re-scanned the whole map - N+1 full scans. They drain the batch and re-scan once after it, which is
+all the re-scan was ever for (picking up bindings a `configure()` added). Measured on a synthetic
+container: 200 controllers / 1002 bindings, **3.50 ms -> 0.043 ms**.
+
+The batch introduces one hazard the per-item re-scan hid: a binding configured by a SIBLING inside
+the same batch would run twice. Guarded with a `configured.has(key)` check per item, and pinned by
+`dynamic-bindings.test.ts` - proven red with the guard removed.
+
+**`toInclude` asks the registry once per relation, not three times.** `resolveHiddenProperties`,
+`resolveDefaultFilter` and `resolveDefaultLimit` each ran `getTableName` + `getModelEntry` on the
+same schema. They now accept an optional already-resolved `modelEntry`, and `toInclude` resolves it
+once. `build()` **1205 -> 942 ns** with one include.
+
+A per-schema `WeakMap` memo was tried FIRST and reverted: it made 40 core-server tests fail across
+suites, because a model entry cached under one test's registry mock leaked into every later one.
+That is not test-only fragility - it is the same staleness a re-registered model (HMR in the browser
+BFF) would hit. Do not re-introduce it.
+
+**The error-path log gate was measured and rejected.** A review found `formatError` is rendered
+eagerly as an argument to `logger.log()` - 46.58 µs, 98.6% of the error path - and proposed gating on
+the resolved level. Gating needs an `isLevelEnabled` on `ILogger`, and the win is zero here: the
+level only falls below the floor when a throw site passes `getError({ logLevel })`, and of the two
+framework sites that do, both pass `warn`, which is emitted. BANA has **zero** `logLevel` sites. So
+every error logs at `error` and nothing is discarded. Revisit only if an application starts throwing
+below its logger floor.
+
+## 2026-08-17 - module-level state moved into classes, and the last cross-package `instanceof`
+
+Two related sweeps. Both leave every published name in place.
+
+**The `redisConnection` check is a brand now.** `SocketIOComponent` and `WebSocketComponent` both
+validated their `REDIS_CONNECTION` binding with `instanceof AbstractRedisHelper` - the same hazard
+`@repository` already retired, one package boundary further out. `isRedisHelper` reads
+`Symbol.for('@venizia/ignis-helpers:abstract-redis-helper')` off the instance instead. The brand is
+an INSTANCE field here, not a static: these checks receive a helper, not a class.
+
+**Module-level mutable state now lives in a class.** Eight files kept `let`/`Map`/`WeakMap` at module
+scope with exported arrows reading it - state outside any owner:
+
+| Was | Is |
+|---|---|
+| `getRing`, `ringState` | `HfLogRing.get` |
+| `textEncoder`, `scopeCache`, `encodeScope` | private statics of `HfLogger` |
+| `textDecoder`, `renderEntry`, `buildDefaultSink` | private statics of `HfLogFlusher` |
+| `backingInstance`, `backingTransport` + 7 arrows | `PinoDestination`, `PinoBackingLogger` |
+| `droppedRouteDecorators`, `isReported` + 3 arrows | `DroppedRouteDecorators` |
+| `hasReportedUnavailable`, `getIncomingIp` | `NetworkUtility` |
+| `columnCache`, `getCachedColumns` | `TableColumnCache` |
+| 7 envelope codec arrows | `BffEnvelope` |
+
+Where a name was published it stays exported as a one-line delegate to the class - the shape
+`getError`/`fromError` already use for `ApplicationError`. Only `core-worker`'s envelope functions
+were renamed outright, that package having never shipped. Pure exported functions with no state were
+left alone: wrapping them in a class buys nothing.
+
+## 2026-08-15 - duration units and conversion, brought over from BANA
+
+`DurationUnits`, `TDurationUnit`, `IDuration` and `DurationMultipliers` now live in
+`packages/helpers/src/common/constants/duration.ts`, on the browser-pure `/common` sub-path. Ported
+from BANA's `packages/core/src/models/schemas/common/constants.ts`, keeping `toMilliseconds`'s
+`null`-not-throw contract so BANA migrates by changing an import.
+
+Left behind deliberately: `LABELS` (English/Vietnamese display strings - an application's
+presentation concern, and it pulls BANA's `INameI18n`) and `NearExpiryThreshold` (business logic).
+
+Added beyond the port: `DurationAliases` (a const class whose UPPER_CASE member names ARE the
+accepted spellings), `fromMilliseconds`, `convert`, `parse` and `parseToMilliseconds`.
+
+Two things measured rather than assumed:
+
+- **The lookup is not the cost - normalising the input is.** `Map.get` and object property access are
+  both ~1 ns; `trim().toUpperCase()` is ~55 ns. So `resolve` tries the input as given first and
+  normalises only on a miss, and the derived table stores each spelling upper and lower.
+  `resolve('day')` went 70.8 -> **2.1 ns**; a messy `'  Days '` still pays the ~80 ns it must.
+- **Reading the const class directly is 5x slower than a table derived from it**, and would need
+  `name`/`length`/`constructor` guarded out. The table is built from the class's own static fields,
+  so the two cannot drift, and a test asserts every canonical unit resolves to itself.
+
+`m` is MINUTE and `mo` is MONTH. There is no single-letter month.
+
+## 2026-08-15 - kernel singletons anchored on the realm, and one `instanceof` retired
+
+A review recommended making `@venizia/ignis-kernel` a `peerDependency` of `connectors` and
+`core-worker`, to stop a second copy ever being installed. Rejected in favour of making a second copy
+**harmless**, which is strictly stronger: a peer prevents the common case at the cost of an explicit
+install for every consumer, and still cannot stop hoisting, aliasing or a strict-mode resolver from
+producing two copies.
+
+- `SingletonRealm.resolve` (`packages/kernel/src/helpers/singleton-realm.ts`) anchors a value on
+  `globalThis` under `Symbol.for('@venizia/ignis-kernel:<key>')`. Five singletons moved onto it:
+  `MetadataRegistry`, `AuthenticationStrategyRegistry`, `AuthorizationEnforcerRegistry`,
+  `GrantBuilder`, and the `RequestContextRegistry` resolver slot. No bare `private static instance`
+  remains in the kernel.
+- `@repository`'s first-parameter check no longer uses `instanceof AbstractDataSource`. Two copies
+  give two classes and that check is `false` between them, rejecting a valid repository at import.
+  It now reads a `Symbol.for` brand via `isDataSourceClass` - the move `isApplicationError` already
+  makes for `ApplicationError`.
+
+Proven against two genuinely separate module graphs of the built kernel: class identity `false`, all
+four registry instances shared `true`, the request-context resolver crossing copies `true`, the old
+`instanceof` check `false` where the new predicate is `true`.
+
+`dependencies` stays. Public surface 227 -> 229; nothing removed.
+
+## 2026-08-15 - packages/core becomes packages/core-server
+
+The DIRECTORY only. The package is still published as `@venizia/ignis` - 227 runtime exports and all
+19 sub-paths resolve unchanged, verified from a real consumer after the move.
+
+- 785 path references rewritten across 160 files, 678 of them GitHub source links in `docs/wiki`.
+  The rewrite is boundary-aware: `packages/core` NOT followed by a hyphen, because
+  `packages/core-worker` shares the prefix and a naive replace would have produced
+  `packages/core-server-worker` in 19 places.
+- The concept moved with it - `packages/core.md` becomes `packages/core-server.md`. The `okf-check`
+  coverage rule keys on the directory name, so leaving it behind would have failed the gate.
+- `make core-server`, `lint-core-server`, `update-core-server` and `purity-core-server` are the
+  primary targets; `core`, `lint-core` and `update-core` remain as aliases. The short names are in
+  muscle memory, in the wiki, and in scripts outside this repository.
+- The release workflow input is `core-server`, because `PACKAGE_PATH="packages/$PACKAGE"` addresses
+  the directory. All ten inputs were checked against real directories.
+
+Two gates went red immediately after the move and were green on a re-run: `make build-all` and
+`make okf-check`. Both were reading a `dist/` left half-written by the rename - the same shape as the
+empty-`dist` trap. Re-run before believing a failure that arrives with a directory move.
+
+## 2026-08-15 - the review fixes, and a gate that now tells the truth
+
+- **The published helpers floor was a lie about contents.** Every package pinned
+  `@venizia/ignis-helpers: ^0.1.1-17`, the highest version on npm, while this branch added
+  `EnvironmentNames`, `executeWithPerformanceMeasure`, `executeWithRetry*` and the parse utilities to
+  `helpers/core` without bumping. `npm pack` of the published tarball has none of them, and the
+  kernel's `dist` calls four. `bun add @venizia/ignis-kernel` would have died on the first
+  `registerComponents()`. helpers is now `0.1.1-18` and the floor is raised in the two packages that
+  actually call the new symbols. The release workflow carries the rule: a dependency range is not a
+  contract about contents, and the registry-existence check cannot see the difference.
+- **`BaseAppErrorMiddleware` logged `extra` unredacted.** It is the only error middleware exported
+  from the `@venizia/ignis` root, so `getError({ extra: { apiKey } })` printed the key to a browser
+  console while the server path redacted. Now `toJsonSafe`. The BigInt replacer stayed: `toJsonSafe`
+  leaves BigInt intact and `JSON.stringify` refuses it, so dropping it would have collapsed the whole
+  fragment to `[unrenderable]`. Measured, against the review's claim that the replacement was a
+  straight swap.
+- **`toJsonSafe` has the same shared-reference defect** the kernel's hand-rolled renderer had - its
+  `seen` set is a visited-set, not an ancestor-set, so `{ requested: user, owner: user }` renders the
+  second as `[Circular]`. NOT fixed: making it an ancestor-set is correct semantically and can
+  explode on a wide DAG, which is a separate decision affecting every `redactSecrets` caller.
+- **`hasAmbientEnvironment()` added beside `resolveEnvironment()`.** Only a host that HAS an ambient
+  environment can be misconfigured about one, so the Worker no longer logs `INVALID ENV IDENTIFIER`
+  at error level on every single error and buries the real one. Both paths still fail closed.
+- `packages/core-worker` gained `BffRequestIdGenerator`, a `statusCode` on the error envelope,
+  synchronous listener attachment with envelope queueing, an idempotent `listen()`, `stop()`, one
+  shared worker-error listener over a pending-request map, and an `InProcessBffTransport` that mirrors
+  the real envelope. `examples/browser-bff` dropped its ready handshake, `common/constants.ts` and
+  `whenBffReady` - the framework queues now.
+- The purity manifest derives its rows from each package's `exports` map. 11 hand-written rows became
+  24 derived ones, and `make purity` is deliberately RED on six. See
+  [gotchas](/conventions/gotchas.md) for which are defects and which are engine clients.
+- **`@venizia/ignis-connectors/postgres` and `/sqlite` are browser-importable.** Both user-audit
+  enrichers imported `tryGetContext` from `hono/context-storage`, whose module body constructs an
+  `AsyncLocalStorage` - a `TypeError` at import in a Worker. They read `RequestContextRegistry`
+  (kernel, `base/request-context/`) now, and core installs the `tryGetContext()` resolver in
+  `registerDefaultMiddlewares()`, ungated, so a `contextStorage()` an application registered itself
+  stays visible. The registry answers `undefined` for "no request context", which stays distinct from
+  "a context with no user" - the enricher raises a different error for each, and `allowAnonymous`
+  reads them differently. `make purity` is 4 red, all engine clients. `examples/browser-bff` dropped
+  its `hono/context-storage` alias and its shim.
+
+## 2026-08-14 - core-worker, the browser BFF, and two gate blind spots
+
+- New concept `packages/core-worker.md`: an IGNIS application inside a dedicated Worker, answering
+  its own REST routes over `postMessage`. `Request`/`Response`/`Headers` all throw `DataCloneError`
+  under structured clone, so an envelope crosses instead; an `ApplicationError` crosses as its
+  normalised shape and `fromError` rebuilds it.
+- New concept `examples/browser-bff.md`: the same model, repository and controller as
+  `pglite-quickstart`, unchanged apart from import specifiers, answering from PGlite in OPFS with no
+  server. OPFS persistence across a reload was reproduced independently three times.
+- New concept `packages/connectors.md` for the package carved out in Wave 3.
+- `architecture/error-handling-flow.md` corrected: the middleware logic now lives in the kernel as
+  `BaseAppErrorMiddleware`, and `packages/core-server` keeps a thin subclass overriding `resolveEnvironment()`
+  and `formatError()`. One controller now renders one error envelope on either host.
+- Three gotchas added, each measured rather than reasoned. `types: []` cannot make `process.env` a
+  compile error, because `ioredis` and `casbin` carry `/// <reference types="node" />` into any
+  consumer's program. `make purity` is silent about published sub-paths with no manifest row, which
+  is why `@venizia/ignis-connectors/postgres` reaches `node:async_hooks` while the gate reads 11/11.
+  The root `package.json` PGlite pin is load-bearing and must not be relaxed.
+- Three files under `connectors/relational/sqlite` imported `LoggerFactory` from the helpers ROOT
+  barrel, which pulls `ioredis` and failed the browser build outright on `tls`. Switched to
+  `new BaseHelper({ scope }).getLogger()`, the pattern `postgres/drivers/pglite.ts` already used.
+  `/sqlite` now builds, and is down to the same single `node:async_hooks` blocker `/postgres` has.
+  Removing the last root-barrel import broke the `IErrorKeyRegistry` augmentation in
+  `search/core/common/errors.ts`, which had been silently anchored by it - an empty
+  `import type {}` now puts the barrel in the program at zero bundle cost.
+
+## 2026-08-13 - kernel release plumbing and a sharper purity gate
+
+- `drizzle-orm` and `jose` joined `casbin` as optional peers of `@venizia/ignis-kernel`: both are
+  reached by `import type` only, so a non-optional declaration forced a browser consumer under strict
+  peers to install a SQL ORM and a JOSE stack for four type aliases. Recorded in `packages/kernel.md`.
+- The purity probe now grades node-global reads by whether they can throw. `globalThis.process.X` and
+  `require(`/`Bun.` member access are fatal; `globalThis.process?.X` is reported as `guarded` and
+  stays green. Bare `process?.X` is reported only - the probe matches bundled text and cannot see
+  that hono destructures `const { process } = globalThis` first. Recorded in `packages/kernel.md`.
+- `make purity-test` added: the probe's own regression tests live outside every package, so
+  `cd packages/<x> && bun test` never discovered them and nothing ran the gate that guards CI.
+- `TBunServerInstance` moved from the kernel to `ServerApplication` in core. `ReturnType<typeof
+  Bun.serve>` survived into the kernel's published `.d.ts`, where it resolves only through
+  `@types/bun` - a devDependency - so a browser consumer typechecking with `skipLibCheck: false` got
+  `Cannot find name 'Bun'`. `@venizia/ignis` exports the same type unchanged.
+
+## 2026-08-13 - full sync: the kernel package, and the framework split across a browser boundary
+
+Full-mode sync over `a7e57a1..HEAD` plus the working tree - 5 area verifiers, 6 directory
+spot-auditors and 2 critics produced 146 findings against 341 claims confirmed still true, applied
+across 47 concept files. The scan had to read the working tree rather than the commit range: the
+largest change, `packages/kernel` itself, was still staged when this ran.
+
+**A new package, and a new axis the bundle did not have.** `@venizia/ignis-kernel` now holds the
+browser-pure half of the framework - the DI container, the application lifecycle, the REST controller
+layer, the repository and datasource abstractions, and the authentication and authorization seams -
+about 128 files. It sits *beside* `boot`, not after it (`dev-configs -> inversion -> {filter,
+helpers} -> {boot, kernel} -> core`), which is what keeps boot's node-only glob discovery out of the
+kernel graph. `packages/core-server/src/index.ts` re-exports the kernel wholesale, so `@venizia/ignis` keeps
+its published name and its whole public surface and no consumer import changed. New concept:
+[kernel](/packages/kernel.md).
+
+**The application base is four layers across two packages, not one class.** `AbstractApplication`
+(kernel: config, hooks, `init()`, no router, no server) -> `RestApplication` (kernel: builds the two
+`OpenAPIHono` instances, `getServer()`, `getRootRouter()`) -> `ServerApplication` (core: the only
+layer that touches a socket - `start`/`stop`, `startBunModule`/`startNodeModule`) ->
+`BaseApplication` (core: the configuration sequence, secrets, boot). Every concept describing one
+monolithic `AbstractApplication` that built a Hono server in its constructor was wrong. Two related
+corrections: `asyncContext.enable` no longer hard-defaults to `true` - it resolves through an
+overridable `getDefaultAsyncContextEnabled()`, `false` on the kernel layers and `true` on
+`ServerApplication`; and that hook, like `getEnvServerHost`/`getEnvServerPort`, is called from the
+`AbstractApplication` constructor, so an override must return a pure literal or read only
+module-level state. The `initialize()` sequence also gained the two secrets steps it had always run
+but never documented.
+
+**`@repository` no longer drags Drizzle into every graph that uses it.** `RepositoryMetadataMixin`
+resolves relations through `RelationBuilderRegistry`, and the relational connector installs the
+concrete `createRelations` from the module body of `connectors/relational/datasources/base.ts` - not
+from `relation.ts`, because under `sideEffects: false` a module reached only through an unused
+re-export is dropped. Guarded by `relation-builder-wiring.test.ts`, which fails if the install is
+ever lost.
+
+**The empty-`dist` trap is closed.** `rebuild.sh` now type-checks before `bun run clean`, so a broken
+test fails loudly with the last good `dist/` intact instead of deleting it first.
+`packages/dev-configs/scripts/rebuild.sh` is the one exception - it has no type-check gate to fail.
+The diagnostic habit stays worth keeping for fresh clones. Replaced the old gotcha rather than
+deleting it.
+
+**A gate the type-checker cannot see.** `make purity` bundles each entry claimed browser-pure for
+`target: browser` and fails on node builtins or node globals; the kernel is in that manifest. It
+cannot be a text scan: measured on Bun 1.3.14, `bun build --target=browser` silently stubs an
+unpolyfillable builtin to an empty object, exits 0, leaves no `node:` string in the output, and
+inlines `process.env.NODE_ENV` at compile time. The gate therefore reads the `--metafile` module
+graph, passes `--env=disable`, and matches against `node:module`'s own `builtinModules` rather than a
+`node:` prefix. New gotcha recorded.
+
+Gates: `make okf-check` OK (64 files, 62 concepts), structural coverage 18/18.
+
 ## 2026-08-12 - `%j` log arguments are projected before `JSON.stringify` sees them
 
 A log argument bound to `%j` used to reach `JSON.stringify` raw, which answers `[Circular]` for the
@@ -466,7 +874,7 @@ deep import of `modules/error/types` would have broken, and none existed.
 ## 2026-07-29 - the two orphaned browser-purity tests are wired, and core gets its own gate
 
 `packages/helpers/src/__tests__/common/browser-purity.test.ts` and
-`packages/core/src/__tests__/repositories/browser-purity.test.ts` existed but ran nowhere. Helpers'
+`packages/core-server/src/__tests__/repositories/browser-purity.test.ts` existed but ran nowhere. Helpers'
 `purity` script now runs both of its purity test files; core gets a `purity` script of its own plus
 a `purity-core` Makefile target. `purity-core` depends on `core`, not on `inversion` alone, because
 core resolves BOTH `@venizia/ignis-helpers` and `@venizia/ignis-inversion` through `exports` maps
@@ -656,7 +1064,7 @@ was luck, and a warm `tsbuildinfo` hid it further - reproduce by deleting `dist/
 
 The same gap would have broken CONSUMERS: `@venizia/ignis` shipped types referencing zod without
 depending on it. Fixed by declaring `zod: catalog:` in core, which also gives it
-`packages/core/node_modules/zod` so resolution no longer depends on hoisting. A sweep of every
+`packages/core-server/node_modules/zod` so resolution no longer depends on hoisting. A sweep of every
 package's emitted `.d.ts` against its manifest now shows no other package referencing an undeclared
 dependency.
 
@@ -1155,3 +1563,38 @@ code?, args? }` so flat call sites still compile. `error` is refused on the free
   and the registry constructs, then draft-06 validation fails. `platformaticWasmPlugin()` is
   unchanged and still exported; the helpers dev dependency moved to `^2.8.0` (peer range `^2.6.1`
   stays valid) so the failure is reproducible in CI.
+- `scripts/purity/manifest.ts` now DERIVES its rows from each package's `package.json` `exports` map
+  instead of listing them by hand. 11 rows became 24, and `make purity` turned red on six connectors
+  entries it had never probed: `postgres` and `sqlite` reach `node:async_hooks` through the
+  user-audit enricher's static `hono/context-storage` import (a defect), while `node-postgres`,
+  `postgres-js`, `libsql` and `typesense` pull their own engine client's node builtins (server-only
+  by construction). `helpers` is the one partial claim - its root barrel is server-side by design.
+  `cli.ts` now exits non-zero when a `package` filter matches no row, so a renamed directory can no
+  longer turn a release gate into a silent pass. The pglite row's `external` narrowed from three
+  specifiers to `@electric-sql/pglite` alone; `drizzle-orm` is a required peer and measures clean.
+- `probe.test.ts`'s prefixed-builtin case asserted only that `buildError` contained `'fs'`, which
+  `unresolved external import(s): node:fs` also satisfies - measured, breaking `isBuiltinSpecifier`
+  left the file at 11 pass / 0 fail. It asserts `result.builtins` now.
+- `packages/{inversion,filter,boot}/scripts/rebuild.sh` type-check `tsconfig.esm.json` as well as
+  `tsconfig.json` before cleaning. `build.sh` emits both programs and the ESM config swaps
+  module/moduleResolution, so guarding one left `dist/` holding `cjs/` and no `esm/`. Reproduced on
+  filter, then closed.
+- `ServerApplication.getEnvServerPort()` walks `PORT` then `APP_ENV_SERVER_PORT` on VALIDITY, not
+  truthiness. `.find(Boolean)` let an unusable `PORT` shadow a usable `APP_ENV_SERVER_PORT`:
+  `PORT=abc APP_ENV_SERVER_PORT=8080` bound 3000, and so did Docker's legacy-link
+  `PORT=tcp://172.17.0.5:8080`.
+- `PGliteDriver.end()` clears the exit status PGlite plants on the host process. Measured on 0.5.5:
+  `process.exitCode` is `undefined` before the first PGlite query and 99 after it, ONCE per process
+  at the first WASM instantiation - a later instance never re-plants it. `packages/connectors`'s
+  suite printed `1141 pass / 0 fail` and exited 99; it exits 0 now. The clearing only fires while the
+  value is still exactly 99, so an application's own exit code survives. Also measured: closing a
+  PGlite that was never queried writes 0 to the host exit code on its own.
+- `no-engine-cycle.test.ts` walks every paradigm family's `core` tier, not just `relational`. The
+  tier split had narrowed the discovered adapter set from five directories to two, dropping the whole
+  search tier out of the guard.
+- The release workflow's rollback resets `develop` only when its remote tip IS that run's own release
+  commit, and pushes with `--force-with-lease`. One change is a 4-package chain, so overlapping
+  dispatches are normal and the blind `reset --hard HEAD~1` erased a sibling package's release commit
+  (reproduced). `IS_PUBLISHED` is now set BEFORE `bun publish`, so a publish that succeeded and lost
+  its response is reported instead of silently rolled back. The unreachable `IS_MERGED` branch, which
+  nothing ever set and which force-reset `main` the same blind way, was removed.

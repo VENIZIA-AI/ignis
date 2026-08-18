@@ -1,0 +1,150 @@
+{
+  "name": "@venizia/ignis-connectors",
+  "version": "0.1.1-0",
+  "description": "Datasource and repository connectors for the IGNIS framework: the engine-neutral relational and search tiers, plus Postgres, SQLite, PGlite, Typesense and Meilisearch behind sub-paths.",
+  "license": "MIT",
+  "engines": { "bun": ">=1.3" },
+  "main": "./dist/cjs/index.js",
+  "module": "./dist/esm/index.js",
+  "types": "./dist/cjs/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/cjs/index.d.ts",
+      "import": "./dist/esm/index.js",
+      "require": "./dist/cjs/index.js",
+      "default": "./dist/cjs/index.js"
+    },
+    "./relational": {
+      "types": "./dist/cjs/relational/core/index.d.ts",
+      "import": "./dist/esm/relational/core/index.js",
+      "require": "./dist/cjs/relational/core/index.js",
+      "default": "./dist/cjs/relational/core/index.js"
+    },
+    "./postgres": {
+      "types": "./dist/cjs/relational/postgres/index.d.ts",
+      "import": "./dist/esm/relational/postgres/index.js",
+      "require": "./dist/cjs/relational/postgres/index.js",
+      "default": "./dist/cjs/relational/postgres/index.js"
+    },
+    "./postgres/node-postgres": {
+      "types": "./dist/cjs/relational/postgres/drivers/node-postgres.d.ts",
+      "import": "./dist/esm/relational/postgres/drivers/node-postgres.js",
+      "require": "./dist/cjs/relational/postgres/drivers/node-postgres.js",
+      "default": "./dist/cjs/relational/postgres/drivers/node-postgres.js"
+    },
+    "./postgres/postgres-js": {
+      "types": "./dist/cjs/relational/postgres/drivers/postgres-js.d.ts",
+      "import": "./dist/esm/relational/postgres/drivers/postgres-js.js",
+      "require": "./dist/cjs/relational/postgres/drivers/postgres-js.js",
+      "default": "./dist/cjs/relational/postgres/drivers/postgres-js.js"
+    },
+    "./postgres/pglite": {
+      "types": "./dist/cjs/relational/postgres/drivers/pglite.d.ts",
+      "import": "./dist/esm/relational/postgres/drivers/pglite.js",
+      "require": "./dist/cjs/relational/postgres/drivers/pglite.js",
+      "default": "./dist/cjs/relational/postgres/drivers/pglite.js"
+    },
+    "./postgres/supabase": {
+      "types": "./dist/cjs/relational/postgres/supabase/index.d.ts",
+      "import": "./dist/esm/relational/postgres/supabase/index.js",
+      "require": "./dist/cjs/relational/postgres/supabase/index.js",
+      "default": "./dist/cjs/relational/postgres/supabase/index.js"
+    },
+    "./sqlite": {
+      "types": "./dist/cjs/relational/sqlite/index.d.ts",
+      "import": "./dist/esm/relational/sqlite/index.js",
+      "require": "./dist/cjs/relational/sqlite/index.js",
+      "default": "./dist/cjs/relational/sqlite/index.js"
+    },
+    "./sqlite/libsql": {
+      "types": "./dist/cjs/relational/sqlite/drivers/libsql.d.ts",
+      "import": "./dist/esm/relational/sqlite/drivers/libsql.js",
+      "require": "./dist/cjs/relational/sqlite/drivers/libsql.js",
+      "default": "./dist/cjs/relational/sqlite/drivers/libsql.js"
+    },
+    "./search": {
+      "types": "./dist/cjs/search/core/index.d.ts",
+      "import": "./dist/esm/search/core/index.js",
+      "require": "./dist/cjs/search/core/index.js",
+      "default": "./dist/cjs/search/core/index.js"
+    },
+    "./search/controllers": {
+      "types": "./dist/cjs/search/core/controllers/index.d.ts",
+      "import": "./dist/esm/search/core/controllers/index.js",
+      "require": "./dist/cjs/search/core/controllers/index.js",
+      "default": "./dist/cjs/search/core/controllers/index.js"
+    },
+    "./typesense": {
+      "types": "./dist/cjs/search/typesense/index.d.ts",
+      "import": "./dist/esm/search/typesense/index.js",
+      "require": "./dist/cjs/search/typesense/index.js",
+      "default": "./dist/cjs/search/typesense/index.js"
+    },
+    "./typesense/controllers": {
+      "types": "./dist/cjs/search/typesense/controllers/index.d.ts",
+      "import": "./dist/esm/search/typesense/controllers/index.js",
+      "require": "./dist/cjs/search/typesense/controllers/index.js",
+      "default": "./dist/cjs/search/typesense/controllers/index.js"
+    },
+    "./meilisearch": {
+      "types": "./dist/cjs/search/meilisearch/index.d.ts",
+      "import": "./dist/esm/search/meilisearch/index.js",
+      "require": "./dist/cjs/search/meilisearch/index.js",
+      "default": "./dist/cjs/search/meilisearch/index.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "files": ["README.md", "LICENSE.md", "dist", "!/**/__tests__", "!**/*.tsbuildinfo"],
+  "publishConfig": { "access": "public" },
+  "sideEffects": false,
+  "scripts": {
+    "force-update": "sh ./scripts/force-update.sh",
+    "build": "sh ./scripts/build.sh",
+    "clean": "sh ./scripts/clean.sh",
+    "rebuild": "sh ./scripts/rebuild.sh no-version",
+    "eslint": "eslint --report-unused-disable-directives .",
+    "lint": "bun run eslint && bun run prettier:cli",
+    "lint:fix": "bun run eslint --fix && bun run prettier:fix",
+    "prettier:cli": "prettier \"**/*.{js,ts}\" -l",
+    "prettier:fix": "bun run prettier:cli --write",
+    "prepublishOnly": "bun run rebuild"
+  },
+  "dependencies": {
+    "@venizia/ignis-filter": "^0.1.2-1",
+    "@venizia/ignis-helpers": "^0.1.1-17",
+    "@venizia/ignis-inversion": "^0.1.1-7",
+    "@venizia/ignis-kernel": "^0.1.1-0",
+    "lodash": "catalog:",
+    "reflect-metadata": "catalog:",
+    "zod": "catalog:"
+  },
+  "peerDependencies": {
+    "@electric-sql/pglite": "^0.5.4",
+    "@hono/zod-openapi": "^1.5.1",
+    "@libsql/client": "^0.17.4",
+    "drizzle-orm": "^0.45.2",
+    "drizzle-zod": "^0.8.3",
+    "hono": "^4.12.30",
+    "meilisearch": "^0.59.0",
+    "pg": "^8.21.0",
+    "postgres": "^3.4.0",
+    "typesense": "^3.0.3"
+  },
+  "peerDependenciesMeta": {
+    "@electric-sql/pglite": { "optional": true },
+    "@libsql/client": { "optional": true },
+    "meilisearch": { "optional": true },
+    "pg": { "optional": true },
+    "postgres": { "optional": true },
+    "typesense": { "optional": true }
+  },
+  "devDependencies": {
+    "@types/bun": "catalog:",
+    "@types/lodash": "catalog:",
+    "@venizia/dev-configs": "workspace:*",
+    "eslint": "catalog:",
+    "prettier": "catalog:",
+    "tsc-alias": "catalog:",
+    "typescript": "catalog:"
+  }
+}

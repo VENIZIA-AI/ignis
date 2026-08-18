@@ -42,7 +42,7 @@ QUERY SYNTAX:
 - Multiple terms: "inject service" - files containing both terms
 - Exact phrase: "\\"dependency injection\\"" - exact phrase match
 - File extension: "extension:ts middleware" - only TypeScript files
-- Path filter: "path:packages/core createTool" - search in specific path
+- Path filter: "path:packages/core-server createTool" - search in specific path
 
 EXAMPLES:
 - "class Application" - find Application class definition

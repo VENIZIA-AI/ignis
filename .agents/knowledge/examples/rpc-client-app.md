@@ -6,7 +6,7 @@ resource: examples/rpc-client-app
 tags: [examples, frontend]
 ---
 
-`rpc-client-app` is the one non-server example: a React 19 + TypeScript + Vite single-page app, built with Feature-Sliced Design (`app/`, `features/`, `widgets/`, `shared/`). It has no `@venizia/ignis` server dependency at all - its only ties to the framework are the OpenAPI schema it consumes and, transitively, `@venizia/ignis-inversion`, which is why inversion must keep a dual CJS+ESM build: browser bundlers need the ESM entry, and pulling in even framework-adjacent tooling from a React app exercises that build seam.
+`rpc-client-app` is the one non-server example: a React 19 + TypeScript + Vite single-page app, built with Feature-Sliced Design (`app/`, `features/`, `widgets/`, `shared/`). It depends on no `@venizia/ignis*` package at all, directly or transitively - its only tie to the framework is the committed `schema.d.ts`, generated from a running backend's OpenAPI document. The coupling is a type contract, not a package edge.
 
 ## What it demonstrates
 
@@ -26,9 +26,9 @@ npx openapi-typescript http://0.0.0.0:1190/v1/api/doc/openapi.json -o ./schema.d
 
 ## Notable / non-obvious
 
-- The README points to `examples/vert/` for the backend, but the committed `schema.d.ts` paths (`/test/:id`, `/test/2`, `/`, `/about`, `/health-check`, plus `/auth/*`) match `rpc-api-server`'s controllers almost exactly instead - except the `/auth/*` paths, which neither committed backend currently registers. The schema file is a stale snapshot from an earlier wiring, not a live artifact regenerated on every backend change.
+- The README points to `examples/vert/` for the backend, but the committed `schema.d.ts` paths (`/test/1`, `/test/2`, `/`, `/about`, `/health-check`, plus `/auth/*`) line up with `rpc-api-server`'s controllers instead, though imperfectly: `/test/1` is a literal key where that server registers the parameterized `/test/:id`, and the `/auth/*` paths are registered by neither committed backend. The schema file is a stale snapshot from an earlier wiring, not a live artifact regenerated on every backend change.
 - The README also documents a `generate:rpc-types` script that does not exist in the committed `package.json` - the regeneration command actually available is the raw `npx openapi-typescript ...` invocation shown above.
 
 ## Related
 - [rpc-api-server](/examples/rpc-api-server.md)
-- [inversion package](/packages/inversion.md)
+- [vert](/examples/vert.md)

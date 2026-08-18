@@ -78,7 +78,7 @@ this.bind<TJWTTokenServiceOptions>({ key: AuthenticateBindingKeys.JWT_OPTIONS })
 
 ### IPayloadFieldCodec Interface
 
-**File:** `packages/core/src/components/auth/authenticate/common/types.ts`
+**File:** `packages/core-server/src/components/auth/authenticate/common/types.ts`
 
 **Problem:** No way to control serialization of custom JWT payload fields. Arrays and objects were silently corrupted by `String()`.
 
@@ -94,7 +94,7 @@ interface IPayloadFieldCodec<T = unknown> {
 
 ### AuthenticationFieldCodecs Class
 
-**File:** `packages/core/src/components/auth/authenticate/common/codecs.ts`
+**File:** `packages/core-server/src/components/auth/authenticate/common/codecs.ts`
 
 **Problem:** No reusable way to define or share field codecs.
 
@@ -146,7 +146,7 @@ this.bind<TJWTTokenServiceOptions>({ key: AuthenticateBindingKeys.JWT_OPTIONS })
 
 ### Symmetric JSON Serialization
 
-**File:** `packages/core/src/components/auth/authenticate/services/bearer/abstract.service.ts`
+**File:** `packages/core-server/src/components/auth/authenticate/services/bearer/abstract.service.ts`
 
 **Problem:** `serializeField` used `String()` for primitives but `deserializeField` needed try/catch to guess the format - asymmetric and error-prone.
 
@@ -170,7 +170,7 @@ protected deserializeField(opts: { key: string; value: string }) {
 
 ## Files Changed
 
-### Core Package (`packages/core`)
+### Core Package (`packages/core-server`)
 
 | File | Changes |
 |------|---------|

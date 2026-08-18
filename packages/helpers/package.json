@@ -1,6 +1,6 @@
 {
   "name": "@venizia/ignis-helpers",
-  "version": "0.1.1-17",
+  "version": "0.1.1-18",
   "description": "Production-ready TypeScript utility library: pluggable logging (winston or pino behind one ILogger contract), Redis single/cluster/sentinel with pub/sub, BullMQ/MQTT/Kafka message queues, MinIO/Disk/Bun-S3 object storage, AES-256/RSA/ECDH cryptography, Snowflake UID generation, cron scheduling, Socket.IO/WebSocket, TCP/TLS/UDP networking, HTTP clients, secrets/Vault, worker thread pools, and environment management. Sub-path imports isolate optional peer dependencies so the root barrel never forces a peer into your bundle.",
   "keywords": [
     "aes",
@@ -94,64 +94,94 @@
   },
   "exports": {
     ".": {
-      "types": "./dist/index.d.ts",
-      "default": "./dist/index.js"
+      "types": "./dist/cjs/index.d.ts",
+      "import": "./dist/esm/index.js",
+      "require": "./dist/cjs/index.js",
+      "default": "./dist/cjs/index.js"
     },
     "./common": {
-      "types": "./dist/common/index.d.ts",
-      "default": "./dist/common/index.js"
+      "types": "./dist/cjs/common/index.d.ts",
+      "import": "./dist/esm/common/index.js",
+      "require": "./dist/cjs/common/index.js",
+      "default": "./dist/cjs/common/index.js"
     },
     "./core": {
-      "types": "./dist/core.d.ts",
-      "default": "./dist/core.js"
+      "types": "./dist/cjs/core.d.ts",
+      "import": "./dist/esm/core.js",
+      "require": "./dist/cjs/core.js",
+      "default": "./dist/cjs/core.js"
     },
     "./socket-io": {
-      "types": "./dist/modules/socket/socket-io/index.d.ts",
-      "default": "./dist/modules/socket/socket-io/index.js"
+      "types": "./dist/cjs/modules/socket/socket-io/index.d.ts",
+      "import": "./dist/esm/modules/socket/socket-io/index.js",
+      "require": "./dist/cjs/modules/socket/socket-io/index.js",
+      "default": "./dist/cjs/modules/socket/socket-io/index.js"
     },
     "./bullmq": {
-      "types": "./dist/modules/queue/bullmq/index.d.ts",
-      "default": "./dist/modules/queue/bullmq/index.js"
+      "types": "./dist/cjs/modules/queue/bullmq/index.d.ts",
+      "import": "./dist/esm/modules/queue/bullmq/index.js",
+      "require": "./dist/cjs/modules/queue/bullmq/index.js",
+      "default": "./dist/cjs/modules/queue/bullmq/index.js"
     },
     "./mqtt": {
-      "types": "./dist/modules/queue/mqtt/index.d.ts",
-      "default": "./dist/modules/queue/mqtt/index.js"
+      "types": "./dist/cjs/modules/queue/mqtt/index.d.ts",
+      "import": "./dist/esm/modules/queue/mqtt/index.js",
+      "require": "./dist/cjs/modules/queue/mqtt/index.js",
+      "default": "./dist/cjs/modules/queue/mqtt/index.js"
     },
     "./minio": {
-      "types": "./dist/modules/storage/minio/index.d.ts",
-      "default": "./dist/modules/storage/minio/index.js"
+      "types": "./dist/cjs/modules/storage/minio/index.d.ts",
+      "import": "./dist/esm/modules/storage/minio/index.js",
+      "require": "./dist/cjs/modules/storage/minio/index.js",
+      "default": "./dist/cjs/modules/storage/minio/index.js"
     },
     "./bun-s3": {
-      "types": "./dist/modules/storage/bun-s3/index.d.ts",
-      "default": "./dist/modules/storage/bun-s3/index.js"
+      "types": "./dist/cjs/modules/storage/bun-s3/index.d.ts",
+      "import": "./dist/esm/modules/storage/bun-s3/index.js",
+      "require": "./dist/cjs/modules/storage/bun-s3/index.js",
+      "default": "./dist/cjs/modules/storage/bun-s3/index.js"
     },
     "./axios": {
-      "types": "./dist/modules/network/http-request/fetcher/axios-fetcher.d.ts",
-      "default": "./dist/modules/network/http-request/fetcher/axios-fetcher.js"
+      "types": "./dist/cjs/modules/network/http-request/fetcher/axios-fetcher.d.ts",
+      "import": "./dist/esm/modules/network/http-request/fetcher/axios-fetcher.js",
+      "require": "./dist/cjs/modules/network/http-request/fetcher/axios-fetcher.js",
+      "default": "./dist/cjs/modules/network/http-request/fetcher/axios-fetcher.js"
     },
     "./cron": {
-      "types": "./dist/modules/cron/index.d.ts",
-      "default": "./dist/modules/cron/index.js"
+      "types": "./dist/cjs/modules/cron/index.d.ts",
+      "import": "./dist/esm/modules/cron/index.js",
+      "require": "./dist/cjs/modules/cron/index.js",
+      "default": "./dist/cjs/modules/cron/index.js"
     },
     "./kafka": {
-      "types": "./dist/modules/queue/kafka/index.d.ts",
-      "default": "./dist/modules/queue/kafka/index.js"
+      "types": "./dist/cjs/modules/queue/kafka/index.d.ts",
+      "import": "./dist/esm/modules/queue/kafka/index.js",
+      "require": "./dist/cjs/modules/queue/kafka/index.js",
+      "default": "./dist/cjs/modules/queue/kafka/index.js"
     },
     "./hashicorp-vault": {
-      "types": "./dist/modules/secrets/hashicorp/index.d.ts",
-      "default": "./dist/modules/secrets/hashicorp/index.js"
+      "types": "./dist/cjs/modules/secrets/hashicorp/index.d.ts",
+      "import": "./dist/esm/modules/secrets/hashicorp/index.js",
+      "require": "./dist/cjs/modules/secrets/hashicorp/index.js",
+      "default": "./dist/cjs/modules/secrets/hashicorp/index.js"
     },
     "./dotenv-vault": {
-      "types": "./dist/modules/secrets/dotenv/index.d.ts",
-      "default": "./dist/modules/secrets/dotenv/index.js"
+      "types": "./dist/cjs/modules/secrets/dotenv/index.d.ts",
+      "import": "./dist/esm/modules/secrets/dotenv/index.js",
+      "require": "./dist/cjs/modules/secrets/dotenv/index.js",
+      "default": "./dist/cjs/modules/secrets/dotenv/index.js"
     },
     "./winston": {
-      "types": "./dist/modules/logger/winston/index.d.ts",
-      "default": "./dist/modules/logger/winston/index.js"
+      "types": "./dist/cjs/modules/logger/winston/index.d.ts",
+      "import": "./dist/esm/modules/logger/winston/index.js",
+      "require": "./dist/cjs/modules/logger/winston/index.js",
+      "default": "./dist/cjs/modules/logger/winston/index.js"
     },
     "./pino": {
-      "types": "./dist/modules/logger/pino/index.d.ts",
-      "default": "./dist/modules/logger/pino/index.js"
+      "types": "./dist/cjs/modules/logger/pino/index.d.ts",
+      "import": "./dist/esm/modules/logger/pino/index.js",
+      "require": "./dist/cjs/modules/logger/pino/index.js",
+      "default": "./dist/cjs/modules/logger/pino/index.js"
     },
     "./package.json": "./package.json"
   },
@@ -167,7 +197,7 @@
   "publishConfig": {
     "access": "public"
   },
-  "sideEffects": false,
+  "sideEffects": ["./dist/cjs/index.js", "./dist/esm/index.js"],
   "scripts": {
     "force-update": "sh ./scripts/force-update.sh",
     "build": "sh ./scripts/build.sh",

@@ -190,7 +190,7 @@ Added defensive check for `connector.query` in `getQueryInterface()`.
 
 ## Files Changed
 
-### Core Package (`packages/core`)
+### Core Package (`packages/core-server`)
 
 | File | Changes |
 |------|---------|

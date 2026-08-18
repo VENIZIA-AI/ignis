@@ -6,7 +6,7 @@
     "module": "ESNext",
     "moduleResolution": "bundler",
     "types": ["bun"],
-    "typeRoots": ["../../packages/core/node_modules/@types"],
+    "typeRoots": ["../../packages/core-server/node_modules/@types"],
     "allowImportingTsExtensions": true,
     "noEmit": true,
     "strict": true,

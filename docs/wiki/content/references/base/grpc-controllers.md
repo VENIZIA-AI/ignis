@@ -11,13 +11,13 @@ Technical reference for gRPC controller classes -- the foundation for building g
 IGNIS gRPC controllers follow the same patterns as REST controllers (decorator-based routing, `binding()` method, DI integration) while bridging to ConnectRPC's universal handler system. REST and gRPC controllers coexist in the same application, sharing the same DI container, middleware pipeline, and lifecycle.
 
 **Files:**
-- `packages/core/src/base/controllers/grpc/abstract.ts`
-- `packages/core/src/base/controllers/grpc/base.ts`
-- `packages/core/src/base/controllers/grpc/adapter.ts`
-- `packages/core/src/base/controllers/grpc/common/types.ts`
-- `packages/core/src/base/metadata/routes/rpc.ts`
-- `packages/core/src/components/controller/grpc/grpc.component.ts`
-- `packages/core/src/components/controller/grpc/common/types.ts`
+- `packages/core-server/src/base/controllers/grpc/abstract.ts`
+- `packages/core-server/src/base/controllers/grpc/base.ts`
+- `packages/core-server/src/base/controllers/grpc/adapter.ts`
+- `packages/core-server/src/base/controllers/grpc/common/types.ts`
+- `packages/core-server/src/base/metadata/routes/rpc.ts`
+- `packages/core-server/src/components/controller/grpc/grpc.component.ts`
+- `packages/core-server/src/components/controller/grpc/common/types.ts`
 
 ## Quick Reference
 
@@ -229,7 +229,7 @@ The `configure()` method on `AbstractGrpcController` is idempotent (guarded by `
 
 ## RPC Decorators
 
-All RPC decorators live in `packages/core/src/base/metadata/routes/rpc.ts`. They register metadata in the `MetadataRegistry`, which is read during `configure()`.
+All RPC decorators live in `packages/core-server/src/base/metadata/routes/rpc.ts`. They register metadata in the `MetadataRegistry`, which is read during `configure()`.
 
 ### `@rpc` -- Generic
 

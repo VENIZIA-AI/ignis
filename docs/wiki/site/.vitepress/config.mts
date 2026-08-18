@@ -98,6 +98,7 @@ const coreApiSidebar: DefaultTheme.SidebarItem[] = [
       { text: 'Overview', link: '/references/utilities/' },
       { text: 'Crypto', link: '/references/utilities/crypto' },
       { text: 'Date', link: '/references/utilities/date' },
+      { text: 'Duration', link: '/references/utilities/duration' },
       {
         text: 'JSX',
         collapsed: true,
@@ -450,6 +451,30 @@ const config = defineConfig({
           text: 'History',
           collapsed: false,
           items: [
+            {
+              text: '2026-08-18',
+              collapsed: true,
+              items: [
+                {
+                  text: 'A Second ID Generator, for IDs People Read',
+                  link: '/changelogs/2026-08-18-opaque-uid-helper',
+                },
+                {
+                  text: 'Every Browser-Safe Package Now Ships ESM',
+                  link: '/changelogs/2026-08-18-esm-builds-and-one-default-stack',
+                },
+              ],
+            },
+            {
+              text: '2026-08-13',
+              collapsed: true,
+              items: [
+                {
+                  text: 'A Browser-Pure Kernel Under @venizia/ignis',
+                  link: '/changelogs/2026-08-13-browser-pure-kernel',
+                },
+              ],
+            },
             {
               text: '2026-08-12',
               collapsed: true,

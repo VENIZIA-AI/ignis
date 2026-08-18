@@ -48,7 +48,7 @@ Backed by **ioredis** under the hood.
 | `RedisSentinelHelper` | `AbstractRedisHelper` | ioredis `Redis` client (Sentinel mode); returns `Redis` from `getClient()` |
 
 > [!TIP] Typing rule
-> Declare parameters and bindings as `IRedisHelper`. Use `instanceof AbstractRedisHelper` for runtime topology checks. Never type-check against the concrete subclasses unless you need topology-specific behavior.
+> Declare parameters and bindings as `IRedisHelper`. Use `isRedisHelper(value)` for runtime checks - it reads a `Symbol.for` brand, so it still answers `true` for a helper built by a second installed copy of the package, where `instanceof AbstractRedisHelper` answers `false`. Never type-check against the concrete subclasses unless you need topology-specific behavior.
 
 ### TRedisClient
 

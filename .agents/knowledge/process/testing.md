@@ -2,7 +2,7 @@
 type: Playbook
 title: Testing
 description: How to run IGNIS package tests with the Bun test runner.
-resource: packages/core/src/__tests__
+resource: packages/core-server/src/__tests__
 tags: [process, test, bun]
 ---
 
@@ -13,7 +13,7 @@ tags: [process, test, bun]
    like test failures but are not. Run `make build` or at least build everything upstream of the
    package you're testing (see [build system](/process/build-system.md)).
 2. `core`, `helpers`, and `inversion` have no `test` script in `package.json`. Run tests directly:
-   `cd packages/core && bun test` (or `packages/helpers`, `packages/inversion`). `bun test`
+   `cd packages/core-server && bun test` (or `packages/helpers`, `packages/inversion`). `bun test`
    discovers `*.test.ts` under `src/__tests__/` and runs the TypeScript sources directly - no
    compile step needed for the tests themselves.
 3. `boot` is the exception. Its `package.json` defines `"test": "NODE_ENV=test bun test
@@ -27,13 +27,17 @@ tags: [process, test, bun]
    package root.
 5. Gotcha: `helpers` and `core` build with `noEmitOnError: true` and a `tsc --noEmit -p
    tsconfig.json` pass that includes `src/__tests__/` (see [build system](/process/build-system.md)).
-   One broken test file's type error blocks the ENTIRE package build, which empties or stales
-   `dist/` (gitignored, so it's easy to not notice) and makes the NEXT `bun test` run fail with
-   confusing import errors that look unrelated to the actual broken test.
+   One broken test file's type error blocks the ENTIRE package build. `rebuild.sh` runs that
+   type-check BEFORE `clean`, so a failure leaves `dist/` stale, never emptied - the next `bun test`
+   silently runs sibling packages against the PREVIOUS build instead of the code you just changed.
+   `dist/` is gitignored, so nothing in the working tree hints that the build never landed.
 6. `make lint` / `make lint-all` are separate from testing - they run ESLint and Prettier, not
-   `bun test`. The pre-commit hook runs lint plus the browser purity gates (`make purity`, itself a
-   `bun test` run per package); the rest of the suite is not enforced automatically, so running it
-   before committing is on you.
+   `bun test`. The pre-commit hook (`.githooks/pre-commit`) runs `make lint-all` and nothing else.
+   `make purity` / `make purity-<package>` is not a `bun test` run either - it is a standalone Bun
+   script (`scripts/purity/cli.ts`) that bundles each manifest entry with `bun build
+   --target=browser` and inspects the metafile, so it reads `dist/` and needs a build first. CI runs
+   it right after the lint step; no hook does. Running the purity gate and the test suite before
+   committing is on you.
 
 ## Related
 

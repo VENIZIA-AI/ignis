@@ -1,0 +1,41 @@
+{
+  "name": "browser-bff",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "IGNIS as a Backend-for-Frontend inside a browser Worker - the same controllers, served from PGlite in OPFS, with no server running",
+  "engines": {
+    "bun": ">=1.3"
+  },
+  "scripts": {
+    "build": "vite build",
+    "clean": "sh ./scripts/clean.sh",
+    "dev": "vite",
+    "eslint": "eslint --report-unused-disable-directives .",
+    "lint": "bun run eslint && bun run prettier:cli",
+    "lint:fix": "bun run eslint --fix && bun run prettier:fix",
+    "prettier:cli": "prettier \"**/*.{js,ts}\" -l",
+    "prettier:fix": "bun run prettier:cli --write",
+    "preview": "vite preview",
+    "rebuild": "bun run clean && bun run build",
+    "typecheck": "tsc -b"
+  },
+  "dependencies": {
+    "@electric-sql/pglite": "^0.5.5",
+    "@hono/zod-openapi": "catalog:",
+    "@venizia/ignis-connectors": "workspace:*",
+    "@venizia/ignis-core-worker": "workspace:*",
+    "@venizia/ignis-helpers": "workspace:*",
+    "@venizia/ignis-kernel": "workspace:*",
+    "drizzle-orm": "catalog:",
+    "hono": "catalog:"
+  },
+  "devDependencies": {
+    "@types/node": "^26.2.0",
+    "@venizia/dev-configs": "workspace:*",
+    "eslint": "catalog:",
+    "prettier": "catalog:",
+    "typescript": "catalog:",
+    "vite": "^8.2.1"
+  }
+}

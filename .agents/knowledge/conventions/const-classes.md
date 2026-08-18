@@ -23,7 +23,7 @@ so the two never drift apart.
 
 ## Real examples in source
 
-`BindingNamespaces` in `packages/core/src/common/bindings.ts`:
+`BindingNamespaces` in `packages/kernel/src/common/bindings.ts`:
 
 ```typescript
 export class BindingNamespaces {
@@ -34,7 +34,7 @@ export class BindingNamespaces {
 export type TBindingNamespace = TConstValue<typeof BindingNamespaces>;
 ```
 
-`DataSourceDrivers` in `packages/core/src/base/datasources/common/types.ts` goes further: it
+`DataSourceDrivers` in `packages/kernel/src/base/datasources/common/types.ts` goes further: it
 derives runtime `Set`s from its own static fields for driver-family checks (`RELATIONAL_SCHEME_SET`,
 `SEARCH_SCHEME_SET`), which a string-literal union could never do:
 

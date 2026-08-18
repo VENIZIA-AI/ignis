@@ -89,7 +89,7 @@
   "publishConfig": {
     "access": "public"
   },
-  "sideEffects": false,
+  "sideEffects": ["./dist/cjs/index.js", "./dist/esm/index.js"],
   "scripts": {
     "force-update": "sh ./scripts/force-update.sh",
     "build": "sh ./scripts/build.sh",

@@ -10,10 +10,10 @@ lastUpdated: 2026-06-14
 IGNIS provides built-in middleware functions and a provider-based middleware class for handling common HTTP concerns: error handling, request logging, 404 responses, and favicon serving. These are registered automatically by `BaseApplication` during startup - you do not import or wire them manually.
 
 **Files:**
-- `packages/core/src/base/middlewares/app-error/app-error.middleware.ts`
-- `packages/core/src/base/middlewares/not-found/not-found.middleware.ts`
-- `packages/core/src/base/middlewares/request-spy/request-spy.middleware.ts`
-- `packages/core/src/base/middlewares/emoji-favicon/emoji-favicon.middleware.ts`
+- `packages/core-server/src/base/middlewares/app-error/app-error.middleware.ts`
+- `packages/core-server/src/base/middlewares/not-found/not-found.middleware.ts`
+- `packages/core-server/src/base/middlewares/request-spy/request-spy.middleware.ts`
+- `packages/core-server/src/base/middlewares/emoji-favicon/emoji-favicon.middleware.ts`
 
 ## Prerequisites
 

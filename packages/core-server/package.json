@@ -1,0 +1,321 @@
+{
+  "name": "@venizia/ignis",
+  "version": "0.1.1-20",
+  "description": "High-performance TypeScript server infrastructure combining LoopBack 4 enterprise architecture (decorator-based DI, repository pattern, component system) with Hono speed (~140k req/s). Features auto-generated OpenAPI docs, Drizzle ORM type-safe SQL, JWT/Basic authentication, Casbin authorization, convention-based bootstrapping, and pluggable components for health checks, Swagger UI, mail, Socket.IO, and static assets. Built for Bun and Node.js.",
+  "keywords": [
+    "access-control",
+    "api",
+    "api-documentation",
+    "authentication",
+    "authorization",
+    "backend",
+    "bun",
+    "casbin",
+    "class-based",
+    "component",
+    "controller",
+    "crud",
+    "database",
+    "datasource",
+    "decorator",
+    "dependency-injection",
+    "di",
+    "drizzle",
+    "drizzle-orm",
+    "enterprise",
+    "file-upload",
+    "framework",
+    "health-check",
+    "high-performance",
+    "hono",
+    "http",
+    "ignis",
+    "infrastructure",
+    "inversion-of-control",
+    "ioc",
+    "jose",
+    "jwt",
+    "loopback",
+    "loopback4",
+    "mail",
+    "middleware",
+    "mixin",
+    "model",
+    "nestjs-alternative",
+    "nodejs",
+    "nodemailer",
+    "openapi",
+    "orm",
+    "postgres",
+    "postgresql",
+    "rbac",
+    "real-time",
+    "repository-pattern",
+    "rest",
+    "rest-api",
+    "restful",
+    "router",
+    "routing",
+    "scalar",
+    "schema-validation",
+    "security",
+    "server",
+    "service",
+    "socket.io",
+    "soft-delete",
+    "static-assets",
+    "swagger",
+    "swagger-ui",
+    "transaction",
+    "typescript",
+    "validation",
+    "venizia",
+    "web-framework",
+    "websocket",
+    "zod"
+  ],
+  "homepage": "https://ignis.venizia.ai",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/VENIZIA-AI/ignis.git",
+    "directory": "packages/core-server"
+  },
+  "bugs": {
+    "url": "https://github.com/VENIZIA-AI/ignis/issues"
+  },
+  "author": {
+    "name": "VENIZIA AI Developer",
+    "email": "developer@venizia.ai",
+    "url": "https://venizia.ai"
+  },
+  "license": "MIT",
+  "engines": {
+    "bun": ">=1.3"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./postgres": {
+      "types": "./dist/connectors/postgres/index.d.ts",
+      "default": "./dist/connectors/postgres/index.js"
+    },
+    "./relational": {
+      "types": "./dist/connectors/relational/index.d.ts",
+      "default": "./dist/connectors/relational/index.js"
+    },
+    "./postgres/node-postgres": {
+      "types": "./dist/connectors/postgres/drivers/node-postgres.d.ts",
+      "default": "./dist/connectors/postgres/drivers/node-postgres.js"
+    },
+    "./postgres/postgres-js": {
+      "types": "./dist/connectors/postgres/drivers/postgres-js.d.ts",
+      "default": "./dist/connectors/postgres/drivers/postgres-js.js"
+    },
+    "./postgres/pglite": {
+      "types": "./dist/connectors/postgres/drivers/pglite.d.ts",
+      "default": "./dist/connectors/postgres/drivers/pglite.js"
+    },
+    "./postgres/supabase": {
+      "types": "./dist/connectors/postgres/supabase/index.d.ts",
+      "default": "./dist/connectors/postgres/supabase/index.js"
+    },
+    "./sqlite": {
+      "types": "./dist/connectors/sqlite/index.d.ts",
+      "default": "./dist/connectors/sqlite/index.js"
+    },
+    "./sqlite/libsql": {
+      "types": "./dist/connectors/sqlite/drivers/libsql.d.ts",
+      "default": "./dist/connectors/sqlite/drivers/libsql.js"
+    },
+    "./search": {
+      "types": "./dist/connectors/search/index.d.ts",
+      "default": "./dist/connectors/search/index.js"
+    },
+    "./search/controllers": {
+      "types": "./dist/connectors/search/controllers/index.d.ts",
+      "default": "./dist/connectors/search/controllers/index.js"
+    },
+    "./meilisearch": {
+      "types": "./dist/connectors/meilisearch/index.d.ts",
+      "default": "./dist/connectors/meilisearch/index.js"
+    },
+    "./socket-io": {
+      "types": "./dist/components/socket-io/index.d.ts",
+      "default": "./dist/components/socket-io/index.js"
+    },
+    "./mail": {
+      "types": "./dist/components/mail/index.d.ts",
+      "default": "./dist/components/mail/index.js"
+    },
+    "./grpc": {
+      "types": "./dist/components/controller/grpc/index.d.ts",
+      "default": "./dist/components/controller/grpc/index.js"
+    },
+    "./static-asset": {
+      "types": "./dist/components/static-asset/index.d.ts",
+      "default": "./dist/components/static-asset/index.js"
+    },
+    "./websocket": {
+      "types": "./dist/components/websocket/index.d.ts",
+      "default": "./dist/components/websocket/index.js"
+    },
+    "./typesense": {
+      "types": "./dist/connectors/typesense/index.d.ts",
+      "default": "./dist/connectors/typesense/index.js"
+    },
+    "./typesense/controllers": {
+      "types": "./dist/connectors/typesense/controllers/index.d.ts",
+      "default": "./dist/connectors/typesense/controllers/index.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "README.md",
+    "LICENSE.md",
+    "dist",
+    "!/**/tests",
+    "!/**/dist/tests",
+    "!/**/__tests__",
+    "!**/*.tsbuildinfo"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "sideEffects": false,
+  "scripts": {
+    "force-update": "sh ./scripts/force-update.sh",
+    "build": "sh ./scripts/build.sh",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "clean": "sh ./scripts/clean.sh",
+    "eslint": "eslint --report-unused-disable-directives .",
+    "lint": "bun run eslint && bun run prettier:cli",
+    "lint:fix": "bun run eslint --fix && bun run prettier:fix",
+    "prettier:cli": "prettier \"**/*.{js,ts}\" -l",
+    "prettier:fix": "bun run prettier:cli --write",
+    "rebuild": "sh ./scripts/rebuild.sh no-version",
+    "prepublishOnly": "bun run rebuild"
+  },
+  "dependencies": {
+    "@venizia/ignis-boot": "^0.1.1-16",
+    "@venizia/ignis-connectors": "^0.1.1-0",
+    "@venizia/ignis-filter": "^0.1.2-1",
+    "@venizia/ignis-helpers": "^0.1.1-18",
+    "@venizia/ignis-inversion": "^0.1.1-7",
+    "@venizia/ignis-kernel": "^0.1.1-0",
+    "lodash": "catalog:",
+    "reflect-metadata": "catalog:",
+    "zod": "catalog:"
+  },
+  "peerDependencies": {
+    "@asteasolutions/zod-to-openapi": "^9.0.0",
+    "@connectrpc/connect": "^2.1.1",
+    "@electric-sql/pglite": "^0.5.4",
+    "@hono/node-server": "^2.0.10",
+    "@hono/swagger-ui": "^0.6.1",
+    "@hono/zod-openapi": "^1.5.1",
+    "@libsql/client": "^0.17.4",
+    "@scalar/hono-api-reference": "^0.11.11",
+    "@socket.io/bun-engine": "^0.1.1",
+    "@socket.io/redis-adapter": "^8.3.0",
+    "@socket.io/redis-emitter": "^5.1.0",
+    "bullmq": "^5.80.8",
+    "casbin": "^5.51.1",
+    "drizzle-orm": "^0.45.2",
+    "drizzle-zod": "^0.8.3",
+    "hono": "^4.12.30",
+    "jose": "^6.2.3",
+    "mailgun.js": "^13.0.1",
+    "meilisearch": "^0.59.0",
+    "nodemailer": "^8.0.7",
+    "pg": "^8.21.0",
+    "postgres": "^3.4.0",
+    "socket.io": "^4.8.1",
+    "socket.io-client": "^4.8.1",
+    "typesense": "^3.0.3"
+  },
+  "peerDependenciesMeta": {
+    "@connectrpc/connect": {
+      "optional": true
+    },
+    "@electric-sql/pglite": {
+      "optional": true
+    },
+    "@hono/node-server": {
+      "optional": true
+    },
+    "@hono/swagger-ui": {
+      "optional": true
+    },
+    "@libsql/client": {
+      "optional": true
+    },
+    "@scalar/hono-api-reference": {
+      "optional": true
+    },
+    "@socket.io/bun-engine": {
+      "optional": true
+    },
+    "@socket.io/redis-adapter": {
+      "optional": true
+    },
+    "@socket.io/redis-emitter": {
+      "optional": true
+    },
+    "bullmq": {
+      "optional": true
+    },
+    "casbin": {
+      "optional": true
+    },
+    "mailgun.js": {
+      "optional": true
+    },
+    "meilisearch": {
+      "optional": true
+    },
+    "nodemailer": {
+      "optional": true
+    },
+    "pg": {
+      "optional": true
+    },
+    "postgres": {
+      "optional": true
+    },
+    "socket.io": {
+      "optional": true
+    },
+    "socket.io-client": {
+      "optional": true
+    },
+    "typesense": {
+      "optional": true
+    }
+  },
+  "devDependencies": {
+    "@asteasolutions/zod-to-openapi": "^9.0.0",
+    "@connectrpc/connect": "catalog:",
+    "@electric-sql/pglite": "^0.5.4",
+    "@hono/node-server": "^2.0.10",
+    "@hono/swagger-ui": "^0.6.1",
+    "@libsql/client": "^0.17.4",
+    "@socket.io/bun-engine": "catalog:",
+    "@types/bun": "catalog:",
+    "@types/lodash": "catalog:",
+    "@types/nodemailer": "^8.0.1",
+    "@types/pg": "catalog:",
+    "@venizia/dev-configs": "^0.1.0",
+    "casbin": "^5.51.1",
+    "drizzle-kit": "catalog:",
+    "eslint": "catalog:",
+    "meilisearch": "^0.59.0",
+    "postgres": "catalog:",
+    "prettier": "catalog:",
+    "tsc-alias": "catalog:",
+    "tsx": "catalog:",
+    "typescript": "catalog:",
+    "typesense": "catalog:"
+  }
+}

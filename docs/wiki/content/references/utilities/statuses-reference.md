@@ -11,14 +11,14 @@ Exhaustive reference for `Statuses`, its specialized subclasses, and the `Bindin
 
 **Files:**
 
-- [`packages/core/src/common/statuses.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core/src/common/statuses.ts)
-- [`packages/core/src/common/bindings.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core/src/common/bindings.ts)
+- [`packages/core-server/src/common/statuses.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/common/statuses.ts)
+- [`packages/core-server/src/common/bindings.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/common/bindings.ts)
 
 ## `Statuses`
 
 A static class of `'NNN_NAME'` status code constants, grouped by an HTTP-inspired numeric prefix, plus `Set` groupings and validator methods.
 
-`Source ->` [`packages/core/src/common/statuses.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core/src/common/statuses.ts)
+`Source ->` [`packages/core-server/src/common/statuses.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/common/statuses.ts)
 
 ### Status code scheme
 
@@ -227,7 +227,7 @@ export class UserTypes {
 
 Organizes dependency-injection binding keys by artifact type. Distinct from `Statuses` - not a lifecycle catalog.
 
-`Source ->` [`packages/core/src/common/bindings.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core/src/common/bindings.ts)
+`Source ->` [`packages/core-server/src/common/bindings.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/common/bindings.ts)
 
 ### `BindingNamespaces`
 

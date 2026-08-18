@@ -2,7 +2,7 @@
 type: Architecture
 title: Repository hierarchy
 description: The engine-neutral repository base and the per-connector chains built on it, plus how the DataSource gets injected.
-resource: packages/core/src/base/repositories
+resource: packages/kernel/src/base/repositories
 tags: [architecture, repositories, drizzle, connectors]
 ---
 
@@ -14,13 +14,19 @@ family, under connector-specific names**.
 ## The engine-neutral base
 
 `AbstractRepository<TDataObject, TPersistObject, TOptions extends IExtraOptions>` in
-`base/repositories/core/abstract.ts` extends `BaseHelper` and implements `IPersistableRepository`. It
-holds only what every engine needs: lazy `_dataSource` and `_entity` resolution (the latter from
-`@repository` metadata on first access), `hiddenFields` and the default-filter where clause read off
-`@model` settings, and `_operationScope`, defaulting to `READ_ONLY`.
+`packages/kernel/src/base/repositories/core/abstract.ts` extends `BaseHelper` and implements
+`IPersistableRepository`. It holds only what every engine needs: lazy `_dataSource` and `_entity`
+resolution (the latter from `@repository` metadata on first access), `hiddenFields` and the
+default-filter where clause read off `@model` settings, and `_operationScope`, defaulting to
+`READ_ONLY`.
 
 Those `@model` settings are memoized per entity class, and `_modelSettings` starts as `null` meaning
 "not yet resolved" - `undefined` is itself a valid resolved value (the model declares no settings).
+
+The base sits in the browser-pure `@venizia/ignis-kernel` package (an entry in the purity manifest),
+while every concrete connector chain stays in `@venizia/ignis`. The public import path is unchanged:
+`packages/core-server/src/index.ts` re-exports the whole kernel, so `@venizia/ignis` still serves
+`AbstractRepository`.
 
 ## The relational chain
 
@@ -85,7 +91,7 @@ A read right after a write can hit a lagging replica. `find`/`findOne`/`findById
 `retry: IReadRetryOptions<TResult>` (`maxAttempts?`, `maxTotalMs?`, `signal?`, `backoff?`,
 `until?`) that re-reads until the predicate passes.
 
-Type design (`base/repositories/common/types.ts`):
+Type design (`packages/kernel/src/base/repositories/common/types.ts`):
 
 - `retry` exists ONLY on the read-verb option aliases: `TFindOptions` (predicate sees `Array<R>`),
   `TFindRangeOptions` (`TDataWithRange<R>`), `TFindOneOptions` (`TNullable<R>`).
@@ -157,7 +163,8 @@ explicit `@inject` already claims that slot, so the common case needs no constru
 export class UserRepository extends DefaultRelationalRepository<typeof User.schema> {}
 ```
 
-`registerDataSourceInjection` in `base/metadata/persistents.ts` does the work, and it is strict:
+`registerDataSourceInjection` in `packages/kernel/src/base/metadata/persistents.ts` does the work,
+and it is strict:
 
 - If the constructor declares a first parameter, its `design:paramtypes` entry must extend
   `AbstractDataSource` and be compatible with the class named in `@repository({ dataSource })`. Both
@@ -166,6 +173,22 @@ export class UserRepository extends DefaultRelationalRepository<typeof User.sche
 - It reads **own** metadata only (`Reflect.getOwnMetadata`). `getInjectMetadata` walks the prototype
   chain, so a repository extending another `@repository` class would otherwise see the base class's
   injection at param[0], skip its own auto-injection, and silently resolve the base's datasource.
+
+## The `@repository` mixin never imports the connector
+
+Building Drizzle relations needs the relational connector, but the mixin that resolves them lives in
+the browser-pure kernel. `RelationBuilderRegistry`
+(`packages/kernel/src/helpers/inversion/common/relation-builder.ts`) is the seam: the mixin only
+calls `resolve()`, and `BaseRelationalDataSource`'s module body calls
+`set({ builder: createRelations })` on load. One value import the other way drags `drizzle-orm` into
+every graph that uses `@repository`.
+
+The install runs from `connectors/relational/datasources/base.ts`, which reaches `createRelations`
+through a **deep import** of `repositories/dialect/relation` rather than a barrel - a
+`sideEffects: false` bundler drops an unused export's module body even when it is reachable through
+a barrel `export *` chain. A model that declares relations with no builder installed throws at
+resolve time instead of silently producing an empty `with` clause, and
+`__tests__/mixins/repository-mixin-imports.test.ts` pins the mixin to the registry call.
 
 ## Related
 

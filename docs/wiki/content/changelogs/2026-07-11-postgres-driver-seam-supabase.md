@@ -135,7 +135,7 @@ bun add postgres  # postgres-js (needed for the Supabase transaction pooler)
 | `src/connectors/postgres/datasources/abstract.ts` | `driver` / `resolveDriver` / `useDriver` / `getClient`; `pool` deprecated |
 | `src/connectors/postgres/datasources/base.ts` | Transaction lifecycle: BEGIN-leak fix, commit/rollback throw + destroy, commit/rollback race guard |
 | `src/connectors/postgres/datasources/common/types.ts` | `TRelationalConnector`; `IDatabaseTransaction.connector` retyped; deprecated aliases retained |
-| `packages/core/package.json` | `pg` + `postgres` optional peers; new sub-path exports; grpc export path fixed |
+| `packages/core-server/package.json` | `pg` + `postgres` optional peers; new sub-path exports; grpc export path fixed |
 
 </details>
 

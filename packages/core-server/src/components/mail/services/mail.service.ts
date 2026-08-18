@@ -1,0 +1,215 @@
+import { BaseService } from '@venizia/ignis-kernel';
+import type {
+  IMailMessage,
+  IMailSendResult,
+  IMailService,
+  IMailTemplateEngine,
+  IMailTransport,
+  TMailOptions,
+} from '../common';
+import { MailDefaults, MailErrorCodes, MailErrors, MailKeys } from '../common';
+import { inject } from '@/base/metadata';
+import { getError, isApplicationError } from '@venizia/ignis-helpers/core';
+import { AnyType } from '@venizia/ignis-helpers/common';
+import { executePromiseWithLimit } from '@venizia/ignis-helpers';
+
+export class MailService extends BaseService implements IMailService {
+  constructor(
+    @inject({ key: MailKeys.MAIL_OPTIONS })
+    protected options: TMailOptions,
+    @inject({ key: MailKeys.MAIL_TRANSPORT_INSTANCE })
+    protected transport: IMailTransport,
+    @inject({ key: MailKeys.MAIL_TEMPLATE_ENGINE, isOptional: true })
+    protected templateEngine?: IMailTemplateEngine,
+  ) {
+    super({ scope: MailService.name });
+    this.logger
+      .for(this.constructor.name)
+      .info('Mail service initialized with provider: %s', this.options.provider);
+  }
+
+  async send(message: IMailMessage): Promise<IMailSendResult> {
+    try {
+      this.validateMessage(message);
+
+      const emailMessage: IMailMessage = {
+        ...message,
+        from: message.from ?? this.getDefaultFrom(),
+      };
+
+      this.logger.for(this.send.name).debug('Sending email to: %s', emailMessage.to);
+      const result = await this.transport.send(emailMessage);
+
+      if (result.success) {
+        this.logger
+          .for(this.send.name)
+          .debug('Email sent successfully. MessageId: %s', result.messageId);
+      } else {
+        this.logger.for(this.send.name).debug('Email send failed: %s', result.error);
+      }
+
+      return result;
+    } catch (error) {
+      this.logger.for(this.send.name).error('Error sending email: %s', error);
+
+      // An error the framework already shaped carries its own status and message code; re-wrapping as 500 would report a caller mistake as a server fault.
+      if (isApplicationError(error)) {
+        throw error;
+      }
+
+      throw getError({
+        statusCode: 500,
+        messageCode: MailErrorCodes.SEND_FAILED,
+        message: `Failed to send email: ${error instanceof Error ? error.message : 'Unknown error'}`,
+      });
+    }
+  }
+
+  async sendBatch(
+    messages: IMailMessage[],
+    options?: { concurrency?: number },
+  ): Promise<IMailSendResult[]> {
+    try {
+      const concurrency = options?.concurrency ?? MailDefaults.BATCH_CONCURRENCY;
+      this.logger
+        .for(this.sendBatch.name)
+        .info('Sending batch of %d emails with concurrency: %d', messages.length, concurrency);
+
+      const tasks = messages.map(message => async () => {
+        try {
+          return await this.send(message);
+        } catch (error) {
+          return {
+            success: false,
+            error: error instanceof Error ? error.message : 'Unknown error',
+          };
+        }
+      });
+
+      const results = await executePromiseWithLimit<IMailSendResult>({
+        tasks,
+        limit: concurrency,
+      });
+
+      const successCount = results.filter(r => r.success).length;
+      this.logger
+        .for(this.sendBatch.name)
+        .info(
+          'Batch send completed. Success: %d, Failed: %d',
+          successCount,
+          results.length - successCount,
+        );
+
+      return results;
+    } catch (error) {
+      this.logger.for(this.sendBatch.name).error('Error sending batch emails: %s', error);
+      throw getError({
+        statusCode: 500,
+        messageCode: MailErrorCodes.BATCH_SEND_FAILED,
+        message: `Failed to send batch emails: ${error instanceof Error ? error.message : 'Unknown error'}`,
+      });
+    }
+  }
+
+  async sendTemplate(opts: {
+    templateName: string;
+    data: Record<string, AnyType>;
+    recipients: string | string[];
+    options?: Partial<IMailMessage>;
+  }): Promise<IMailSendResult> {
+    const { templateName, data, recipients, options } = opts;
+
+    try {
+      if (!this.templateEngine) {
+        throw getError({
+          statusCode: 500,
+          messageCode: MailErrorCodes.INVALID_CONFIGURATION,
+          message: 'Template engine not configured',
+        });
+      }
+
+      this.logger.for(this.sendTemplate.name).debug('Rendering template: %s', templateName);
+      const html = this.templateEngine.render({
+        templateName,
+        data,
+        requireValidate: options?.requireValidate,
+      });
+
+      const templateData = this.templateEngine.getTemplate(templateName);
+
+      const message: IMailMessage = {
+        to: recipients,
+        subject:
+          options?.subject ??
+          (templateData?.subject !== undefined
+            ? this.templateEngine.render({
+                templateData: templateData.subject,
+                data,
+                requireValidate: options?.requireValidate,
+              })
+            : 'No Subject'),
+        html,
+        ...options,
+      };
+
+      return await this.send(message);
+    } catch (error) {
+      this.logger.for(this.sendTemplate.name).error('Error sending template email: %s', error);
+      throw error;
+    }
+  }
+
+  async verify(): Promise<boolean> {
+    try {
+      this.logger.for(this.verify.name).debug('Verifying mail transport connection');
+      const isValid = await this.transport.verify();
+      this.logger.for(this.verify.name).debug('Verification result: %s', isValid);
+      return isValid;
+    } catch (error) {
+      this.logger.for(this.verify.name).error('Verification failed: %s', error);
+      throw getError({
+        statusCode: 500,
+        messageCode: MailErrorCodes.VERIFICATION_FAILED,
+        message: `Mail transport verification failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
+      });
+    }
+  }
+
+  protected validateMessage(message: IMailMessage): void {
+    if (!message.to || (Array.isArray(message.to) && message.to.length === 0)) {
+      throw getError({
+        error: MailErrors.INVALID_RECIPIENT,
+        message: 'Recipient email address is required',
+      });
+    }
+
+    if (!message.subject) {
+      throw getError({
+        error: MailErrors.INVALID_CONFIGURATION,
+        message: 'Email subject is required',
+      });
+    }
+
+    if (!message.text && !message.html) {
+      throw getError({
+        error: MailErrors.INVALID_CONFIGURATION,
+        message: 'Email must have either text or html content',
+      });
+    }
+  }
+
+  protected getDefaultFrom(): string {
+    const { from, fromName } = this.options;
+
+    // A display name is only renderable around an address: `"Name" <undefined>` is not a sender.
+    if (!from) {
+      return MailDefaults.FALLBACK_FROM;
+    }
+
+    if (!fromName) {
+      return from;
+    }
+
+    return `"${fromName}" <${from}>`;
+  }
+}

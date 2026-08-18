@@ -100,7 +100,7 @@ export class PostgresDataSource extends BaseDataSource {
 
 ### Self-Contained Models
 
-**File:** `packages/core/src/base/models/base.ts`
+**File:** `packages/core-server/src/base/models/base.ts`
 
 **Problem:** Models were defined in three separate declarations (table, relations, class).
 
@@ -133,7 +133,7 @@ export class Configuration extends BaseEntity<typeof Configuration.schema> {
 
 ### Repository Auto-Resolution
 
-**File:** `packages/core/src/base/repositories/core/base.ts`
+**File:** `packages/core-server/src/base/repositories/core/base.ts`
 
 **Problem:** Repositories required explicit constructor injection and parameter passing.
 
@@ -159,7 +159,7 @@ export class ConfigurationRepository extends DefaultCRUDRepository<typeof Config
 
 ### DataSource Auto-Discovery
 
-**File:** `packages/core/src/base/datasources/base.ts`
+**File:** `packages/core-server/src/base/datasources/base.ts`
 
 **Problem:** DataSources required manual schema registration of every model and relation.
 
@@ -190,7 +190,7 @@ export class PostgresDataSource extends BaseDataSource<TNodePostgresConnector, I
 
 ## Files Changed
 
-### Core Package (`packages/core`)
+### Core Package (`packages/core-server`)
 
 | File | Changes |
 |------|---------|

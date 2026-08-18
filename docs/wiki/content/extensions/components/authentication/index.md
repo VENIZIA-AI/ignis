@@ -164,8 +164,8 @@ export const users = pgTable('users', {
 
 **Files:**
 
-- [`packages/core/src/components/auth/authenticate/component.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core/src/components/auth/authenticate/component.ts) - `AuthenticateComponent`
-- [`packages/core/src/components/auth/authenticate/common/types.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core/src/components/auth/authenticate/common/types.ts) - all option interfaces
-- [`packages/core/src/components/auth/authenticate/common/keys.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core/src/components/auth/authenticate/common/keys.ts) - `AuthenticateBindingKeys`
-- [`packages/core/src/components/auth/authenticate/common/constants.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core/src/components/auth/authenticate/common/constants.ts) - `Authentication`, `JOSEStandards`, `JWKSModes`, `JWKSKeyDrivers`, `JWKSKeyFormats`
-- [`packages/core/src/components/auth/models/entities`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core/src/components/auth/models/entities) - `extraUserColumns`, `extraRoleColumns`, `extraPermissionColumns`, `extraPolicyDefinitionColumns`
+- [`packages/core-server/src/components/auth/authenticate/component.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/components/auth/authenticate/component.ts) - `AuthenticateComponent`
+- [`packages/core-server/src/components/auth/authenticate/common/types.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/components/auth/authenticate/common/types.ts) - all option interfaces
+- [`packages/core-server/src/components/auth/authenticate/common/keys.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/components/auth/authenticate/common/keys.ts) - `AuthenticateBindingKeys`
+- [`packages/core-server/src/components/auth/authenticate/common/constants.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/components/auth/authenticate/common/constants.ts) - `Authentication`, `JOSEStandards`, `JWKSModes`, `JWKSKeyDrivers`, `JWKSKeyFormats`
+- [`packages/core-server/src/components/auth/models/entities`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/components/auth/models/entities) - `extraUserColumns`, `extraRoleColumns`, `extraPermissionColumns`, `extraPolicyDefinitionColumns`

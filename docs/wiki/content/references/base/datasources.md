@@ -161,5 +161,5 @@ export class ConfigurationRepository extends DefaultCRUDRepository<typeof Config
 
 **Files:**
 
-- [`packages/core/src/base/datasources/abstract.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core/src/base/datasources/abstract.ts) - neutral `AbstractDataSource`
-- [`packages/core/src/connectors/postgres/datasources/base.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core/src/connectors/postgres/datasources/base.ts) - PostgreSQL `BasePostgresDataSource`
+- [`packages/core-server/src/base/datasources/abstract.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/base/datasources/abstract.ts) - neutral `AbstractDataSource`
+- [`packages/core-server/src/connectors/postgres/datasources/base.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/connectors/postgres/datasources/base.ts) - PostgreSQL `BasePostgresDataSource`

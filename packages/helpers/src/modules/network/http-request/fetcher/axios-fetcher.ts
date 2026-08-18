@@ -1,6 +1,6 @@
 import { AnyObject, HTTP, THttpMethod } from '@/common';
 import { redactSecrets } from '@/common/redact';
-import axios, { AxiosInstance, AxiosRequestConfig } from 'axios';
+import axios, { AxiosInstance, AxiosRequestConfig, AxiosResponse } from 'axios';
 import https from 'node:https';
 import { stringify } from 'node:querystring';
 import { BaseNetworkRequest } from '../base-network-request.helper';
@@ -17,7 +17,9 @@ export interface IAxiosRequestOptions extends AxiosRequestConfig, IRequestOption
 export class AxiosFetcher extends AbstractNetworkFetchableHelper<
   'axios',
   IAxiosRequestOptions,
-  axios.AxiosResponse<any, any>['data'],
+  // The named type, not the `axios.` NAMESPACE: the namespace form resolves only under node16
+  // module resolution, and this package also emits an ESM build under `bundler` resolution.
+  AxiosResponse<any, any>['data'],
   AxiosInstance
 > {
   constructor(opts: { name: string; defaultConfigs: AxiosRequestConfig; logger?: any }) {

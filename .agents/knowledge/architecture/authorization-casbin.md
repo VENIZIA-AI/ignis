@@ -2,11 +2,17 @@
 type: Architecture
 title: Casbin authorization
 description: How scoped RBAC is stored as graph edges, translated into Casbin lines by ScopedCasbinAdapter, and evaluated per request on a pooled enforcer.
-resource: packages/core/src/components/auth/authorize
+resource: packages/kernel/src/base/auth/authorize
 tags: [architecture, authorization, casbin, rbac, scoped]
 ---
 
 Authorization is Casbin-based and **scoped** - the model is domain-aware (`sub, dom, obj, act`), so a grant can be narrowed to a tenant. Casbin is an optional peer dependency, imported dynamically and reported as a clear error when absent.
+
+## Where the code lives
+
+The tree is split across two packages. The engine-free seam lives in `@venizia/ignis-kernel` at `packages/kernel/src/base/auth/authorize`: all of `common` (`AuthorizationPolicyVariants`, `CasbinRuleVariants`, `AuthorizationDomainScopes`, `AuthorizeBindingKeys`), the `authorize()` middleware, `AuthorizationProvider` and `resolveRequestDomain`, `AuthorizationEnforcerRegistry`, the `AuthorizationRole` model, and the builders (`GrantBuilder`, `AuthorizationPermissionBuilder`, `AuthorizationPolicyBuilder`). `casbin` is an optional peer of kernel and only ever type-imported there - `common/types.ts` imports `type Adapter` and nothing else.
+
+The Drizzle- and Casbin-bound half stays in core at `packages/core-server/src/components/auth/authorize`: `BaseFilteredAdapter`, `ScopedCasbinAdapter`, `AuthorizeComponent`, `CasbinAuthorizationEnforcer`, `ResourceRoleManager`, and `CASBIN_RBAC_DOMAIN_SCOPED_MODEL`. Core's barrel re-exports the kernel barrel, so a `@venizia/ignis-core` import still resolves every symbol on either side of the split. Unqualified paths below are core-relative.
 
 ## Edges, not closures
 
@@ -91,7 +97,7 @@ row is logged and skipped. `rejectCustomRow` names every rejection reason (unmap
 resource node); an individual unresolvable operation name is logged and skipped separately by
 `expandCustomGrants`, without dropping the row's other valid operations.
 
-`GrantBuilder.planGrant` (`builders/grant.builder.ts`) is the write side and mirrors the expansion. A custom row is
+`GrantBuilder.planGrant` (`packages/kernel/src/base/auth/authorize/builders/grant.builder.ts`) is the write side and mirrors the expansion. A custom row is
 a last resort: an `ops` selection collapses into tier grants wherever a tier is fully covered -
 `manage` only when the subject has at least one operation in each of `read`, `write`, and `execute`,
 since otherwise `manage` would cover a future operation in the empty tier and silently pre-authorize

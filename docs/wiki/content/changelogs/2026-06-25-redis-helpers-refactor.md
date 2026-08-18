@@ -192,7 +192,7 @@ The factory is overloaded so TypeScript infers the concrete return type when `mo
 
 **Helpers package** (`packages/helpers`) - the `redis` module is restructured folder-per-topology: `common/` (interfaces, types, constants), `base/abstract.helper.ts` (renamed from `default.helper.ts`), `single/`, `cluster/`, `sentinel/` (new), and `factory.ts` (new). `queue/bullmq`, `socket/socket-io`, and `socket/websocket` now type against `IRedisHelper`. Five new test files under `src/__tests__/redis/`.
 
-**Core package** (`packages/core`) - the Socket.IO, WebSocket, and Auth components type against `IRedisHelper`/`AbstractRedisHelper`; the mail BullMQ executor uses `RedisSingleHelper` and `IRedisSingleHelperOptions`.
+**Core package** (`packages/core-server`) - the Socket.IO, WebSocket, and Auth components type against `IRedisHelper`/`AbstractRedisHelper`; the mail BullMQ executor uses `RedisSingleHelper` and `IRedisSingleHelperOptions`.
 
 **Examples** - `vert`, `socket-io-test`, and `websocket-test` updated to `RedisSingleHelper`.
 

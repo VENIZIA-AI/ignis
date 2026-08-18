@@ -199,7 +199,7 @@ export class Logger {
 | `src/helpers/logger/index.ts` | Export HfLogger and HfLogFlusher |
 | `src/__tests__/logger/hf-logger.test.ts` | 50 comprehensive tests for HfLogger |
 
-### Core Package (`packages/core`)
+### Core Package (`packages/core-server`)
 
 | File | Changes |
 |------|---------|

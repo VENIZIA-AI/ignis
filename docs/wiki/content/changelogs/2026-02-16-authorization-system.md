@@ -85,7 +85,7 @@ authorize({ spec: { action: AuthorizationActions.READ, resource: 'Article' } })
 
 ### Authorization System
 
-**Files:** `packages/core/src/components/auth/authorize/`
+**Files:** `packages/core-server/src/components/auth/authorize/`
 
 **Problem:** IGNIS had authentication but no authorization. Developers needed to implement their own permission checking logic.
 
@@ -170,13 +170,13 @@ ControllerFactory.defineCrudController({
 
 ### Shared AbstractAuthRegistry
 
-**File:** `packages/core/src/components/auth/base/abstract-auth-registry.ts`
+**File:** `packages/core-server/src/components/auth/base/abstract-auth-registry.ts`
 
 Both `AuthenticationStrategyRegistry` and `AuthorizationEnforcerRegistry` now extend a shared `AbstractAuthRegistry<T>` base class, eliminating duplicate registration/resolution logic.
 
 ### AuthorizationRole Value Object
 
-**File:** `packages/core/src/components/auth/authorize/models/authorization-role.model.ts`
+**File:** `packages/core-server/src/components/auth/authorize/models/authorization-role.model.ts`
 
 Priority-based role comparison with identifier formatting:
 
@@ -244,7 +244,7 @@ authorize/providers/    → authorize/middlewares/authorize.middleware.ts
 
 ## Files Changed
 
-### Core Package (`packages/core`) -- New Files
+### Core Package (`packages/core-server`) -- New Files
 
 | File | Changes |
 |------|---------|
@@ -263,7 +263,7 @@ authorize/providers/    → authorize/middlewares/authorize.middleware.ts
 | `src/components/auth/base/abstract-auth-registry.ts` | AbstractAuthRegistry shared base class |
 | `src/__tests__/authorize/authorize.test.ts` | 45 authorization tests |
 
-### Core Package (`packages/core`) -- Modified Files
+### Core Package (`packages/core-server`) -- Modified Files
 
 | File | Changes |
 |------|---------|

@@ -24,7 +24,7 @@ description: Persistable repository now rejects null/undefined ids and where cla
 
 **Fix:** A `validateId` guard rejects `null`/`undefined` ids before execution.
 
-**File:** `packages/core/src/base/repositories/core/persistable.ts`
+**File:** `packages/core-server/src/base/repositories/core/persistable.ts`
 
 ```typescript
 /** Guards id-based operations against a null/undefined id */
@@ -91,7 +91,7 @@ Because the check now keys off the resolved SQL, `updateById`/`deleteById` with 
 
 ## Files Changed
 
-### Core Package (`packages/core`)
+### Core Package (`packages/core-server`)
 
 | File | Changes |
 |------|---------|

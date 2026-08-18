@@ -1,0 +1,66 @@
+{
+  "$schema": "http://json.schemastore.org/tsconfig",
+  "extends": "@venizia/dev-configs/tsconfig.common.json",
+  "compilerOptions": {
+    /* Vite owns the emit; `tsc` is only the type checker here. `tsc -b` still needs somewhere to
+       put its build ledger, and a project that emits nothing has no `outDir` to hide it in. */
+    "noEmit": true,
+    "tsBuildInfoFile": "./node_modules/.tmp/tsconfig.app.tsbuildinfo",
+
+    /* Vite resolves like a bundler, not like Node16 - the shared config's `nodenext` would
+       demand file extensions the browser build never sees. */
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+
+    /* Replaces the shared `["ES2024"]` + `["bun"]`: this code runs in a browser tab and a dedicated
+       Worker, so it needs DOM and Vite's `import.meta.env` / `?raw` declarations. `node` is left
+       out, and lives in `tsconfig.node.json` with the one file that genuinely runs in node.
+
+       DO NOT read that omission as a browser-purity guarantee. It is not one today, measured:
+       `process.env` still compiles under `src`, because node's global types arrive through
+       `/// <reference types="node" />` directives inside DEPENDENCIES' own `.d.ts` files, and
+       `types` gates only AUTOMATIC `@types/*` inclusion, never a directive another package carries.
+       Two independent routes reach it from the framework's published types -
+       `@venizia/ignis-helpers/core` -> `ioredis`, and `@venizia/ignis-connectors/postgres` ->
+       `@types/pg`. `typeRoots: []` does not close them either: the directive then resolves through
+       node module resolution instead, finding the copy nested under `@types/pg`.
+
+       So the author-time defence is the `no-restricted-globals` block in `eslint.config.mjs`, backed
+       by `make purity` and by running the thing. Not `tsc`. The split is still the right shape - it
+       keeps the config file's node types out of the application's project, and the tsc-level
+       guarantee appears for free if those `.d.ts` leaks are ever fixed. */
+    "lib": [
+      "ES2024",
+      "DOM",
+      "DOM.Iterable"
+    ],
+    "types": [
+      "vite/client"
+    ],
+
+    /* `@` addresses `src/domain`, mirrored by `resolve.alias` in `vite.config.ts`. */
+    "paths": {
+      "@/*": [
+        "./src/domain/*"
+      ]
+    },
+
+    /* esbuild - Vite's transformer - implements `experimentalDecorators` but NOT
+       `emitDecoratorMetadata`. Declaring the latter would tell `tsc` about metadata the bundle
+       never carries. IGNIS does not need it: `@inject` records parameter indexes, and the one
+       `design:paramtypes` read in the kernel is an optional validation that skips when absent. */
+    "experimentalDecorators": true,
+    "emitDecoratorMetadata": false,
+
+    /* Class fields must be assigned, not `Object.defineProperty`-defined, or a subclass field
+       initialiser silently shadows what a base constructor already set. */
+    "useDefineForClassFields": false
+  },
+  "include": [
+    "src"
+  ],
+  "exclude": [
+    "node_modules",
+    "dist"
+  ]
+}

@@ -63,7 +63,7 @@ await repo.find({
 
 ### Default removed from the schema
 
-**File:** `packages/core/src/base/repositories/common/types.ts`
+**File:** `packages/core-server/src/base/repositories/common/types.ts`
 
 ```typescript
 // Before: .default(DEFAULT_LIMIT) leaked into every scope object
@@ -75,7 +75,7 @@ export const LimitSchema = z.number().optional().openapi({
 
 ### Top-level default in `find()`
 
-**File:** `packages/core/src/base/repositories/core/readable.ts`
+**File:** `packages/core-server/src/base/repositories/core/readable.ts`
 
 ```typescript
 const baseFilter = this.applyDefaultFilter({ userFilter: filter, shouldSkipDefaultFilter });
@@ -87,7 +87,7 @@ const mergedFilter: TFilter<DataObject> = {
 
 ### To-many default in `toInclude()`
 
-**File:** `packages/core/src/base/repositories/operators/filter.ts`
+**File:** `packages/core-server/src/base/repositories/operators/filter.ts`
 
 ```typescript
 const mergedScope = this.mergeFilter({ defaultFilter, userFilter: scope });
@@ -105,7 +105,7 @@ const scopedFilter: TFilter =
 
 ## Files Changed
 
-### Core Package (`packages/core`)
+### Core Package (`packages/core-server`)
 
 | File | Changes |
 |------|---------|

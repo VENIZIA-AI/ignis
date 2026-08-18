@@ -1,0 +1,22 @@
+{
+  "$schema": "http://json.schemastore.org/tsconfig",
+
+  /* Solution config: holds no files of its own, only the two real projects. `tsconfig.app.json` is
+     the browser application, `tsconfig.node.json` is `vite.config.ts` alone - the one file that
+     really runs in node and needs `fileURLToPath`. Build both with `tsc -b`.
+
+     The shared eslint config discovers projects through `projectService`, and it resolves a file
+     through this config's `references`, so `vite.config.ts` is linted with the rest.
+
+     See `tsconfig.app.json` for what this split does NOT buy: `tsc` still does not reject
+     `process.env` under `src`, and the reason is measured there. */
+  "files": [],
+  "references": [
+    {
+      "path": "./tsconfig.app.json"
+    },
+    {
+      "path": "./tsconfig.node.json"
+    }
+  ]
+}

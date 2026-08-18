@@ -10,11 +10,11 @@ Every binding key, configuration option, event payload, and internal mechanism o
 
 **Files:**
 
-- [`packages/core/src/components/socket-io/component.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core/src/components/socket-io/component.ts)
-- [`packages/core/src/components/socket-io/common/keys.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core/src/components/socket-io/common/keys.ts)
-- [`packages/core/src/components/socket-io/common/types.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core/src/components/socket-io/common/types.ts)
-- [`packages/core/src/components/socket-io/handlers/bun.handler.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core/src/components/socket-io/handlers/bun.handler.ts)
-- [`packages/core/src/components/socket-io/handlers/node.handler.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core/src/components/socket-io/handlers/node.handler.ts)
+- [`packages/core-server/src/components/socket-io/component.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/components/socket-io/component.ts)
+- [`packages/core-server/src/components/socket-io/common/keys.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/components/socket-io/common/keys.ts)
+- [`packages/core-server/src/components/socket-io/common/types.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/components/socket-io/common/types.ts)
+- [`packages/core-server/src/components/socket-io/handlers/bun.handler.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/components/socket-io/handlers/bun.handler.ts)
+- [`packages/core-server/src/components/socket-io/handlers/node.handler.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/components/socket-io/handlers/node.handler.ts)
 - [`packages/helpers/src/modules/socket/socket-io/server/helper.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/socket/socket-io/server/helper.ts)
 - [`packages/helpers/src/modules/socket/socket-io/client/helper.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/socket/socket-io/client/helper.ts)
 - [`packages/helpers/src/modules/socket/socket-io/common/constants.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/socket/socket-io/common/constants.ts)
@@ -429,7 +429,7 @@ Reads every binding key from the DI container and validates the required ones.
 | Binding | Validation | Error on failure |
 |---|---|---|
 | `SERVER_OPTIONS` | Optional, merged with defaults via `Object.assign()` | - |
-| `REDIS_CONNECTION` | Must be `instanceof AbstractRedisHelper` | `"Invalid instance of redisConnection..."` |
+| `REDIS_CONNECTION` | Must pass `isRedisHelper()` | `"Invalid instance of redisConnection..."` |
 | `AUTHENTICATE_HANDLER` | Must be a truthy function | `"[DANGER][SocketIOComponent] Invalid authenticateFn to setup io socket server!"` |
 | `VALIDATE_ROOM_HANDLER` | Optional, resolved from the container, `null` coerced to `undefined` | - |
 | `CLIENT_CONNECTED_HANDLER` | Optional, resolved from the container, `null` coerced to `undefined` | - |

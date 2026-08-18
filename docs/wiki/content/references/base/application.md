@@ -1,35 +1,40 @@
 ---
 title: Application Reference
-description: Technical reference for AbstractApplication and BaseApplication classes
+description: Technical reference for the four application layers - AbstractApplication, RestApplication, ServerApplication and BaseApplication
 difficulty: beginner
 ---
 
 # Deep Dive: Application
 
-Technical reference for `AbstractApplication` and `BaseApplication` - the foundation classes for every IGNIS application.
+Extend `BaseApplication`. The three classes above it exist so a host that cannot open a socket - a browser Worker, a test harness - can still serve the same controllers.
 
 **Files:**
-- `packages/core/src/base/applications/abstract.ts`
-- `packages/core/src/base/applications/base.ts`
-- `packages/core/src/base/applications/types.ts`
+- `packages/kernel/src/base/applications/abstract.ts`
+- `packages/kernel/src/base/applications/rest.ts`
+- `packages/core-server/src/base/applications/server.ts`
+- `packages/core-server/src/base/applications/base.ts`
+- `packages/kernel/src/base/applications/types.ts`
 
 ## Quick Reference
 
-| Class | Purpose | Key Methods |
-|-------|---------|-------------|
-| **AbstractApplication** | Base class with lifecycle management, server start/stop | `start()`, `stop()`, `init()`, `validateEnvs()` |
-| **BaseApplication** | Concrete implementation with resource registration and boot support | `component()`, `controller()`, `service()`, `repository()`, `dataSource()`, `boot()` |
+Each layer adds one capability. The first two ship from `@venizia/ignis-kernel` and touch no node builtin; the last two ship from `@venizia/ignis`.
+
+| Class | Adds | Key Methods |
+|-------|------|-------------|
+| **AbstractApplication** | config, lifecycle hooks, the DI container | `init()`, `registerPostStartHook()`, `registerPostStopHook()` |
+| **RestApplication** | the two `OpenAPIHono` routers | `getServer()`, `getRootRouter()`, `inspectRoutes()` |
+| **ServerApplication** | the socket | `start()`, `stop()`, `getServerHost()`, `getServerPort()`, `getServerAddress()` |
+| **BaseApplication** | resource registration, secrets, boot | `component()`, `controller()`, `service()`, `repository()`, `dataSource()`, `boot()`, `validateEnvs()` |
+
+> [!NOTE]
+> Every symbol still resolves from `@venizia/ignis` - `packages/core-server` re-exports the kernel wholesale. The split changed no import path.
 
 ## `AbstractApplication`
 
-Base class responsible for core lifecycle and server management. Extends `Container` (IoC container) and implements `IApplication`.
+Config, lifecycle and the container. No router, no server. Extends `Container`.
 
 ```typescript
-abstract class AbstractApplication<
-  AppEnv extends Env = Env,
-  AppSchema extends Schema = {},
-  BasePath extends string = '/',
-> extends Container implements IApplication<AppEnv, AppSchema, BasePath>
+abstract class AbstractApplication extends Container
 ```
 
 ### Constructor
@@ -39,10 +44,47 @@ constructor(opts: { scope: string; config: IApplicationConfigs })
 ```
 
 The constructor:
-1. Merges the provided config with defaults (host from `HOST` or `APP_ENV_SERVER_HOST` env, port from `PORT` or `APP_ENV_SERVER_PORT` env, defaults to `localhost:3000`)
-2. Enables `asyncContext` by default (`{ enable: true }`)
-3. Sets `strictPath` to `true` by default for the Hono instance
-4. Creates two `OpenAPIHono` instances: the main server and a `rootRouter`
+1. Merges the provided config with defaults, taking host and port from `getEnvServerHost()` / `getEnvServerPort()` and falling back to `localhost:3000`
+2. Resolves `asyncContext.enable` from `getDefaultAsyncContextEnabled()`
+3. Sets `projectRoot` from `getProjectRoot()`
+
+Port `0` survives that merge on purpose - it asks the operating system for an ephemeral port.
+
+The constructor binds nothing. `registerCoreBindings()` runs from `init()`, and `init()` is not called for you - see [Lifecycle](#lifecycle) below.
+
+### The four constructor hooks
+
+`getEnvServerHost()`, `getEnvServerPort()`, `getDefaultAsyncContextEnabled()` and `getProjectRoot()` return `undefined`, `undefined`, `false` and `''` here. `ServerApplication` overrides all four to restore server behaviour - `process.env.HOST`, `process.env.PORT`, `true`, and `process.cwd()`. The kernel layers read no `process`, because a browser Worker has none.
+
+> [!WARNING]
+> All four run inside this constructor, before any subclass field is assigned. An override must return a literal or read module-level state only. Reading `this.something` from one yields `undefined`, silently. `getProjectRoot()` is the one applications most often override - keep it free of instance state.
+
+## `RestApplication`
+
+Adds the routers, and nothing that opens a socket.
+
+```typescript
+abstract class RestApplication<
+  AppEnv extends Env = Env,
+  AppSchema extends Schema = {},
+  BasePath extends string = '/',
+> extends AbstractApplication
+```
+
+It builds the two `OpenAPIHono` instances - the main server and the `rootRouter` - and binds them as `APPLICATION_SERVER` and `APPLICATION_ROOT_ROUTER`.
+
+## `ServerApplication`
+
+Adds `start()`, `stop()` and the runtime detection that picks `Bun.serve` or `@hono/node-server`.
+
+```typescript
+abstract class ServerApplication<
+  AppEnv extends Env = Env,
+  AppSchema extends Schema = {},
+  BasePath extends string = '/',
+> extends RestApplication<AppEnv, AppSchema, BasePath>
+  implements IApplication<AppEnv, AppSchema, BasePath>
+```
 5. Auto-detects the runtime (Bun or Node.js)
 
 ### Key Features
@@ -120,11 +162,11 @@ protected server:
 
 ## `BaseApplication`
 
-Extends `AbstractApplication` with concrete lifecycle implementations, resource registration, and boot support. Implements `IRestApplication` and `IBootableApplication`.
+Extends `ServerApplication` with concrete lifecycle implementations, resource registration, secrets hydration and boot support. Implements `IRestApplication` and `IBootableApplication`. This is the class your application extends.
 
 ```typescript
 abstract class BaseApplication
-  extends AbstractApplication
+  extends ServerApplication
   implements IRestApplication, IBootableApplication
 ```
 

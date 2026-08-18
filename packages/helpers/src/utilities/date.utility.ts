@@ -6,6 +6,7 @@ import TimezonePlugin from 'dayjs/plugin/timezone';
 import UTCPlugin from 'dayjs/plugin/utc';
 import WeekdayPlugin from 'dayjs/plugin/weekday';
 import { float } from './parse.utility';
+import { sleep } from './sleep.utility';
 
 dayjs.extend(CustomParseFormatPlugin);
 dayjs.extend(UTCPlugin);
@@ -16,9 +17,7 @@ dayjs.extend(IsoWeekPlugin);
 const tz = process.env.APP_ENV_APPLICATION_TIMEZONE ?? 'Asia/Ho_Chi_Minh';
 dayjs.tz.setDefault(tz);
 
-export const sleep = (ms: number) => {
-  return new Promise(resolve => setTimeout(resolve, ms));
-};
+export { sleep };
 
 export const isWeekday = (date: string | dayjs.Dayjs) => {
   const isoWeekday = dayjs(date)?.isoWeekday();

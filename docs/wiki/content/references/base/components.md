@@ -8,7 +8,7 @@ difficulty: advanced
 
 Technical reference for `BaseComponent`-the foundation for creating reusable, pluggable features in IGNIS. Components are powerful containers that can group together multiple providers, services, controllers, repositories, and even entire mini-applications into a single, redistributable module.
 
-**File:** `packages/core/src/base/components/base.ts`
+**File:** `packages/core-server/src/base/components/base.ts`
 
 ## Quick Reference
 
@@ -379,7 +379,7 @@ If gRPC controllers are discovered but the `'grpc'` transport is not in the `tra
 
 ### `RestComponent`
 
-**File:** `packages/core/src/components/controller/rest/rest.component.ts`
+**File:** `packages/core-server/src/components/controller/rest/rest.component.ts`
 
 Discovers all controller bindings tagged with `BindingNamespaces.CONTROLLER`, skips any whose metadata has `transport === ControllerTransports.GRPC`, and configures the rest as REST controllers.
 
@@ -422,7 +422,7 @@ export class RestBindingKeys {
 
 ### `GrpcComponent`
 
-**File:** `packages/core/src/components/controller/grpc/grpc.component.ts`
+**File:** `packages/core-server/src/components/controller/grpc/grpc.component.ts`
 
 Discovers all controller bindings tagged with `BindingNamespaces.CONTROLLER`, skips any whose metadata does **not** have `transport === ControllerTransports.GRPC`, and configures gRPC controllers.
 

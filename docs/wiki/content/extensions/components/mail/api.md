@@ -10,22 +10,22 @@ Every binding key, configuration variant, interface, and internal mechanism of `
 
 **Files:**
 
-- [`packages/core/src/components/mail/component.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core/src/components/mail/component.ts)
-- [`packages/core/src/components/mail/common/types.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core/src/components/mail/common/types.ts)
-- [`packages/core/src/components/mail/common/constants.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core/src/components/mail/common/constants.ts)
-- [`packages/core/src/components/mail/common/keys.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core/src/components/mail/common/keys.ts)
-- [`packages/core/src/components/mail/services/mail.service.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core/src/components/mail/services/mail.service.ts)
-- [`packages/core/src/components/mail/services/template.service.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core/src/components/mail/services/template.service.ts)
-- [`packages/core/src/components/mail/services/generator.service.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core/src/components/mail/services/generator.service.ts)
-- [`packages/core/src/components/mail/providers/mail-transporter.provider.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core/src/components/mail/providers/mail-transporter.provider.ts)
-- [`packages/core/src/components/mail/providers/mail-queue-executor.provider.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core/src/components/mail/providers/mail-queue-executor.provider.ts)
-- [`packages/core/src/components/mail/helpers/transporters/nodemail-transporter.helper.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core/src/components/mail/helpers/transporters/nodemail-transporter.helper.ts)
-- [`packages/core/src/components/mail/helpers/transporters/mailgun-transporter.helper.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core/src/components/mail/helpers/transporters/mailgun-transporter.helper.ts)
-- [`packages/core/src/components/mail/helpers/executors/direct-executor.helper.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core/src/components/mail/helpers/executors/direct-executor.helper.ts)
-- [`packages/core/src/components/mail/helpers/executors/internal-queue-executor.helper.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core/src/components/mail/helpers/executors/internal-queue-executor.helper.ts)
-- [`packages/core/src/components/mail/helpers/executors/bull-mq-executor.helper.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core/src/components/mail/helpers/executors/bull-mq-executor.helper.ts)
-- [`packages/core/src/components/mail/utilities/type.utility.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core/src/components/mail/utilities/type.utility.ts)
-- [`packages/core/src/components/mail/utilities/verification.utility.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core/src/components/mail/utilities/verification.utility.ts)
+- [`packages/core-server/src/components/mail/component.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/components/mail/component.ts)
+- [`packages/core-server/src/components/mail/common/types.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/components/mail/common/types.ts)
+- [`packages/core-server/src/components/mail/common/constants.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/components/mail/common/constants.ts)
+- [`packages/core-server/src/components/mail/common/keys.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/components/mail/common/keys.ts)
+- [`packages/core-server/src/components/mail/services/mail.service.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/components/mail/services/mail.service.ts)
+- [`packages/core-server/src/components/mail/services/template.service.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/components/mail/services/template.service.ts)
+- [`packages/core-server/src/components/mail/services/generator.service.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/components/mail/services/generator.service.ts)
+- [`packages/core-server/src/components/mail/providers/mail-transporter.provider.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/components/mail/providers/mail-transporter.provider.ts)
+- [`packages/core-server/src/components/mail/providers/mail-queue-executor.provider.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/components/mail/providers/mail-queue-executor.provider.ts)
+- [`packages/core-server/src/components/mail/helpers/transporters/nodemail-transporter.helper.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/components/mail/helpers/transporters/nodemail-transporter.helper.ts)
+- [`packages/core-server/src/components/mail/helpers/transporters/mailgun-transporter.helper.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/components/mail/helpers/transporters/mailgun-transporter.helper.ts)
+- [`packages/core-server/src/components/mail/helpers/executors/direct-executor.helper.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/components/mail/helpers/executors/direct-executor.helper.ts)
+- [`packages/core-server/src/components/mail/helpers/executors/internal-queue-executor.helper.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/components/mail/helpers/executors/internal-queue-executor.helper.ts)
+- [`packages/core-server/src/components/mail/helpers/executors/bull-mq-executor.helper.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/components/mail/helpers/executors/bull-mq-executor.helper.ts)
+- [`packages/core-server/src/components/mail/utilities/type.utility.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/components/mail/utilities/type.utility.ts)
+- [`packages/core-server/src/components/mail/utilities/verification.utility.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/components/mail/utilities/verification.utility.ts)
 
 ## Quick reference
 
@@ -143,7 +143,7 @@ import type {
 
 `MailService` and the queue executor are **independent** consumers of the transport/config. `IMailQueueExecutor` never calls `MailService`. See [How it works](./#how-it-works) on the Overview for that distinction.
 
-**Source:** [`component.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core/src/components/mail/component.ts)
+**Source:** [`component.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/components/mail/component.ts)
 
 ## Binding keys
 
@@ -164,7 +164,7 @@ import type {
 > [!IMPORTANT]
 > `MailKeys.MAIL_OPTIONS` is the only binding `MailComponent` requires. It throws `Mail options not configured` in `binding()` if the key is not bound. `MailKeys.MAIL_QUEUE_EXECUTOR_CONFIG` is read with `isOptional: true` -- when it is not bound, `createAndBindInstances()` falls back to `{ type: MailQueueExecutorTypes.DIRECT }` rather than failing startup.
 
-**Source:** [`common/keys.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core/src/components/mail/common/keys.ts)
+**Source:** [`common/keys.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/components/mail/common/keys.ts)
 
 ## Configuration
 
@@ -344,7 +344,7 @@ interface IMailQueueExecutorConfig {
 | `internal-queue` | Single-instance apps, moderate volume | In-memory, with retry |
 | `bullmq` | Distributed or high-volume systems | Redis-backed, configurable concurrency/priority/backoff |
 
-**Source:** [`common/types.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core/src/components/mail/common/types.ts)
+**Source:** [`common/types.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/components/mail/common/types.ts)
 
 ### Constants
 
@@ -382,7 +382,7 @@ Built through `MessageCode.build()`, so every value is lower-case (`ApplicationE
 | `MailErrorCodes.BATCH_SEND_FAILED` | `'core.mail.batch_send_failed'` | Batch email operation failed |
 | `MailErrorCodes.TEMPLATE_NOT_FOUND` | `'core.mail.template_not_found'` | Template name not found in registry |
 
-**Source:** [`common/constants.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core/src/components/mail/common/constants.ts)
+**Source:** [`common/constants.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/components/mail/common/constants.ts)
 
 ## `IMailService` interface
 
@@ -443,7 +443,7 @@ Delegates to `transport.verify()`. If the transport throws, wraps it as `MailErr
 - Else if `options.fromName` is unset, returns `options.from` as-is.
 - Else returns `"${fromName}" <${from}>`.
 
-**Source:** [`services/mail.service.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core/src/components/mail/services/mail.service.ts)
+**Source:** [`services/mail.service.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/components/mail/services/mail.service.ts)
 
 ## `IMailMessage` interface
 
@@ -491,7 +491,7 @@ interface IMailAttachment {
 - Inline image: `{ filename: 'logo.png', path: '...', cid: 'logo' }`
 - Mailgun maps each attachment to `{ filename, data: att.path ?? att.content ?? Buffer.from('') }`.
 
-**Source:** [`common/types.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core/src/components/mail/common/types.ts)
+**Source:** [`common/types.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/components/mail/common/types.ts)
 
 ## `IMailTemplateEngine` interface
 
@@ -543,7 +543,7 @@ interface ITemplate {
 
 The `render` field supports a custom per-template render function, though the built-in `TemplateEngineService` always uses `content` + `renderSimpleTemplate()` instead.
 
-**Source:** [`services/template.service.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core/src/components/mail/services/template.service.ts)
+**Source:** [`services/template.service.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/components/mail/services/template.service.ts)
 
 ## Transport layer
 
@@ -611,7 +611,7 @@ this.bind({ key: MailKeys.MAIL_OPTIONS }).toValue({
 
 **Custom transport:** set `provider: MailProviders.CUSTOM` and pass an object implementing `IMailTransport` as `config`. Useful for SendGrid, AWS SES, or a custom SMTP relay that the framework does not ship a helper for.
 
-**Source:** [`helpers/transporters/`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core/src/components/mail/helpers/transporters)
+**Source:** [`helpers/transporters/`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/components/mail/helpers/transporters)
 
 ## Queue executor implementations
 
@@ -681,7 +681,7 @@ interface IBullMQMailExecutorOpts {
 }
 ```
 
-**Source:** [`helpers/executors/`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core/src/components/mail/helpers/executors)
+**Source:** [`helpers/executors/`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/components/mail/helpers/executors)
 
 ## Additional interfaces
 
@@ -745,7 +745,7 @@ interface IInternalQueueMailExecutorOpts {
 }
 ```
 
-**Source:** [`common/types.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core/src/components/mail/common/types.ts)
+**Source:** [`common/types.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/components/mail/common/types.ts)
 
 ## Utility functions
 
@@ -762,7 +762,7 @@ function getExpiryTimeInHours(hours: number): Date;     // Date `hours` hours fr
 - `isMailTransport()` checks that `send` and `verify` are functions, and that `close` is either a function or `undefined`.
 - `isValidMailOptions()` checks that `provider` is a string and `config` is truthy. It does not validate the shape of `config` against the specific provider.
 
-**Source:** [`utilities/`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core/src/components/mail/utilities)
+**Source:** [`utilities/`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/components/mail/utilities)
 
 ## See also
 

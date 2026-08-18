@@ -1,0 +1,220 @@
+name: CI
+run-name: "CI | ${{ github.event_name }} | ${{ github.head_ref || github.ref_name }}"
+
+# Pull requests always target `develop`, never `main`, and `main` is only ever reached by merging
+# `develop` - so these two triggers cover every commit on the way in. No path filter: a change to
+# `Makefile`, `scripts/purity/`, `.agents/knowledge/` or a `package.json` can break a gate without
+# touching a line of `packages/`, and a filtered workflow would report success by not running.
+on:
+  pull_request:
+  push:
+    branches: [develop]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.head_ref || github.ref }}
+  # A superseded pull-request run answers a question nobody is asking any more. A superseded
+  # `develop` run is the record of what that commit did, so it is left to finish.
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
+jobs:
+  # Everything that reads SOURCE only. It finishes in well under a minute, so a mistyped binding key
+  # in the knowledge bundle or a dependency that stopped saying `catalog:` is reported long before
+  # the build job gets to `core-server`.
+  gates:
+    name: Source gates
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6.0.3
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      # Not `--frozen-lockfile`: the local Bun re-serialises `bun.lock` on any install, producing
+      # roughly a thousand lines of formatting churn with no resolution change, and a frozen check
+      # against a lockfile written by a different Bun build is a red CI that says nothing about the
+      # pull request. See the gotchas concept.
+      - name: Install
+        id: install
+        run: bun install
+
+      # Each check below runs even if the one before it failed: they are independent, and a run that
+      # stops at the first failure hides the other two for another round trip.
+      - name: Dependency catalog
+        if: ${{ !cancelled() && steps.install.outcome == 'success' }}
+        run: make catalog-check
+
+      - name: Knowledge bundle
+        if: ${{ !cancelled() && steps.install.outcome == 'success' }}
+        run: make okf-check
+
+      # The purity probe's own regression tests. They live outside every package, so no package's
+      # `bun test` discovers them - without this step a probe that silently stopped detecting
+      # anything would leave every `purity-*` verdict below green for the wrong reason.
+      - name: Browser purity probe
+        if: ${{ !cancelled() && steps.install.outcome == 'success' }}
+        run: make purity-test
+
+  build-and-test:
+    name: Build, test and lint
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6.0.3
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install
+        id: install
+        run: bun install
+
+      # ONE job, not a matrix per package. Every suite reads built output - the kernel's realm test
+      # imports two copies of `packages/kernel/dist`, the connectors' bundle tests run `bun build`
+      # over `dist`, and `no-engine-cycle` walks it - so a per-package shard would have to rebuild
+      # the whole dependency chain to run its own tests. Measured on this tree: `make build-all` is
+      # ~106s and every suite together is ~95s, so sharding would multiply the expensive half to
+      # parallelise the cheap one.
+      #
+      # It is also the one thing that must NOT run twice against one checkout: two concurrent `make`
+      # invocations clean and rewrite the same `dist/` trees, and the loser reports a package's
+      # types as missing entirely. Measured while writing this workflow - `make build-all` failed
+      # with `Cannot find module '@venizia/ignis-inversion'` and passed alone on the next run.
+      - name: Build
+        id: build
+        run: make build-all
+
+      # A build failure is a HARD stop for everything after it. `rebuild.sh` type-checks before it
+      # cleans, so the last good `dist/` survives - but a CI runner has no last good `dist/`, and a
+      # suite run against an empty one collapses into a hundred unrelated-looking import errors that
+      # bury the one real diagnostic. Everything below therefore asks for the build's own outcome
+      # rather than relying on step ordering, so that a lint failure does not hide a test failure and
+      # neither hides the other.
+      - name: Test - inversion
+        if: ${{ !cancelled() && steps.build.outcome == 'success' }}
+        working-directory: packages/inversion
+        run: bun test
+
+      - name: Test - helpers
+        if: ${{ !cancelled() && steps.build.outcome == 'success' }}
+        working-directory: packages/helpers
+        run: bun test
+
+      - name: Test - boot
+        if: ${{ !cancelled() && steps.build.outcome == 'success' }}
+        working-directory: packages/boot
+        run: bun test
+
+      - name: Test - kernel
+        if: ${{ !cancelled() && steps.build.outcome == 'success' }}
+        working-directory: packages/kernel
+        run: bun test
+
+      - name: Test - connectors
+        if: ${{ !cancelled() && steps.build.outcome == 'success' }}
+        working-directory: packages/connectors
+        run: bun test
+
+      - name: Test - core-worker
+        if: ${{ !cancelled() && steps.build.outcome == 'success' }}
+        working-directory: packages/core-worker
+        run: bun test
+
+      - name: Test - core-server
+        if: ${{ !cancelled() && steps.build.outcome == 'success' }}
+        working-directory: packages/core-server
+        run: bun test
+
+      # `dev-configs` and `filter` have no `src/__tests__` at all, and `bun test` exits 1 when it
+      # finds no test file. They are listed here so their absence reads as a known state rather than
+      # an oversight: the day either grows a suite, add the step.
+
+      - name: Lint
+        if: ${{ !cancelled() && steps.build.outcome == 'success' }}
+        run: make lint-all
+
+      # Browser purity, package by package rather than one `make purity`, because the whole-manifest
+      # target is DELIBERATELY red and a single step would have to be all-or-nothing about it.
+      # Every package below is 100% green today and is gated as such - `kernel` and `core-worker`
+      # most of all, since their entire reason to exist is a browser-purity claim.
+      - name: Browser purity - fully pure packages
+        if: ${{ !cancelled() && steps.build.outcome == 'success' }}
+        run: |
+          failed=0
+          for target in purity-inversion purity-filter purity-helpers purity-kernel purity-core-worker; do
+            make "$target" || failed=1
+          done
+          exit $failed
+
+      # `connectors` is the one package whose manifest carries entries that were never browser-
+      # capable: four engine clients that reach a node builtin because that is what they are. The
+      # gate has no data saying so, so it reports them red rather than quietly excusing them - which
+      # is the gate telling the truth, not a gate to switch off.
+      #
+      # Switching it off is what this step refuses to do. Ten of the fourteen connectors rows ARE
+      # green, and two of them - `connectors/postgres` and `connectors/sqlite` - were real defects
+      # the derived manifest caught. `continue-on-error` on the whole target would wave a regression
+      # in those through as cheerfully as it waves the four known entries through. So the step
+      # compares the SET of red labels against the set below and fails on any difference: a new leak
+      # fails, and an entry that becomes pure also fails, because a stale exemption is a gate that
+      # has stopped measuring.
+      #
+      # THIS LIST IS IN THE WRONG FILE and is here only because `scripts/purity/` was outside the
+      # change that added this workflow. Its home is `scripts/purity/manifest.ts`, as an
+      # `expectedImpure` field carrying the reason per entry, with `cli.ts` exiting non-zero on an
+      # unexpected red AND on an expected red that turned green. Then `make purity` is green for a
+      # true reason, a developer sees the same verdict as CI, and this step becomes `make purity`.
+      - name: Browser purity - connectors (known-impure engine clients)
+        if: ${{ !cancelled() && steps.build.outcome == 'success' }}
+        run: |
+          # Per CONDITION, not per sub-path: these packages publish both an `import` and a `require`
+          # entry, and the two genuinely differ - `@libsql/client` reaches `child_process` only on
+          # its CommonJS path, and `drizzle-orm/supabase` resolves only on its CommonJS one.
+          EXPECTED_IMPURE=$(cat <<'ENTRIES'
+          connectors/postgres/node-postgres [import]
+          connectors/postgres/node-postgres [require]
+          connectors/postgres/postgres-js [import]
+          connectors/postgres/postgres-js [require]
+          connectors/postgres/supabase [import]
+          connectors/sqlite/libsql [require]
+          connectors/typesense [import]
+          connectors/typesense [require]
+          ENTRIES
+          )
+          LOG="$RUNNER_TEMP/purity-connectors.log"
+
+          make purity-connectors > "$LOG" 2>&1 || true
+          cat "$LOG"
+
+          # Both sides through the SAME sort in the SAME locale: a plain `sort` on one side and a
+          # differently collated one on the other reports differences that are not there.
+          ACTUAL_IMPURE=$(grep -E '^[[:space:]]+✗' "$LOG" | awk '{ print $2, $3 }' | LC_ALL=C sort)
+          EXPECTED_SORTED=$(echo "$EXPECTED_IMPURE" | sed 's/^[[:space:]]*//' | LC_ALL=C sort)
+
+          if [ "$ACTUAL_IMPURE" = "$EXPECTED_SORTED" ]; then
+            echo "    ✓ exactly the known engine-client entries are impure, and nothing else"
+            exit 0
+          fi
+
+          echo "ERROR: the set of impure connectors entries changed."
+          echo "--- expected ---"
+          echo "$EXPECTED_SORTED"
+          echo "--- actual ---"
+          echo "$ACTUAL_IMPURE"
+          echo
+          echo "A NEW entry here is a real browser-purity regression - fix it."
+          echo "A MISSING entry means an engine client became pure - delete its line from this"
+          echo "workflow, so the gate keeps measuring instead of excusing."
+          exit 1

@@ -220,8 +220,8 @@ export class HealthCheckController extends BaseRestController {
 
 **Files:**
 
-- [`packages/core/src/components/health-check/component.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core/src/components/health-check/component.ts) - `HealthCheckComponent`
-- [`packages/core/src/components/health-check/controller.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core/src/components/health-check/controller.ts) - `HealthCheckController`
-- [`packages/core/src/components/health-check/common/types.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core/src/components/health-check/common/types.ts) - `IHealthCheckOptions`
-- [`packages/core/src/components/health-check/common/keys.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core/src/components/health-check/common/keys.ts) - `HealthCheckBindingKeys`
-- [`packages/core/src/components/health-check/common/rest-paths.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core/src/components/health-check/common/rest-paths.ts) - `HealthCheckRestPaths`
+- [`packages/core-server/src/components/health-check/component.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/components/health-check/component.ts) - `HealthCheckComponent`
+- [`packages/core-server/src/components/health-check/controller.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/components/health-check/controller.ts) - `HealthCheckController`
+- [`packages/core-server/src/components/health-check/common/types.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/components/health-check/common/types.ts) - `IHealthCheckOptions`
+- [`packages/core-server/src/components/health-check/common/keys.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/components/health-check/common/keys.ts) - `HealthCheckBindingKeys`
+- [`packages/core-server/src/components/health-check/common/rest-paths.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/components/health-check/common/rest-paths.ts) - `HealthCheckRestPaths`

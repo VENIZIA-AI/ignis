@@ -8,7 +8,7 @@ tags: [reference, helpers, catalog]
 
 > Generated from source - do not edit; run `make okf-gen`. Package: [helpers](/packages/helpers.md).
 
-**39 helper classes across 14 modules, 8 utilities.**
+**40 helper classes across 14 modules, 9 utilities.**
 
 ## Modules
 
@@ -26,9 +26,9 @@ tags: [reference, helpers, catalog]
 | `secrets/` | `AbstractSecretsHelper` · `DotenvVaultHelper` · `HashiCorpVaultHelper` · `SystemEnvsHelper` |
 | `socket/` | `SocketIOClientHelper` · `SocketIOServerHelper` · `WebSocketServerHelper` |
 | `storage/` | `BaseStorageHelper` · `BunS3Helper` · `DiskHelper` · `MemoryStorageHelper` · `MinioHelper` |
-| `uid/` | `SnowflakeUidHelper` |
+| `uid/` | `OpaqueUidHelper` · `SnowflakeUidHelper` |
 | `worker-thread/` | `AbstractWorkerBusHelper` · `AbstractWorkerHelper` · `AbstractWorkerMessageBusHandlerHelper` · `AbstractWorkerThreadHelper` · `BaseWorkerBusHelper` · `BaseWorkerHelper` · `BaseWorkerMessageBusHandlerHelper` · `BaseWorkerThreadHelper` · `WorkerPoolHelper` |
 
 ## Utilities
 
-`crypto` · `date` · `module` · `parse` · `performance` · `promise` · `request` · `retry`
+`crypto` · `date` · `module` · `parse` · `performance` · `promise` · `request` · `retry` · `sleep`

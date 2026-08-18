@@ -72,7 +72,7 @@ Explore the IGNIS repository on GitHub. Backed by `GithubHelper`, which reads vi
 | `viewSourceFile` | `{ filePath }` | Full content of one source file |
 | `verifyDependencies` | `{ packagePath }` | Compare a package's `package.json` deps against the npm registry |
 
-`searchCode` uses GitHub's native query syntax. Qualifiers like `extension:ts` or `path:packages/core` go inside the `query` string itself - there is no separate `extension` parameter.
+`searchCode` uses GitHub's native query syntax. Qualifiers like `extension:ts` or `path:packages/core-server` go inside the `query` string itself - there is no separate `extension` parameter.
 
 Every tool returns an `error` string field on failure, instead of throwing. Check for it before trusting the rest of the response.
 

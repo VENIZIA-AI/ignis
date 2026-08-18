@@ -8,7 +8,7 @@ import {
   HF_MESSAGE_MAX_BYTES,
   HF_SCOPE_MAX_BYTES,
 } from '@/modules/logger/hf/common';
-import { getRing } from '@/modules/logger/hf/ring';
+import { HfLogRing } from '@/modules/logger/hf/ring';
 
 describe('hf constants', () => {
   test('every TLogLevel has a code and the legacy five keep their numbers', () => {
@@ -34,9 +34,9 @@ describe('hf constants', () => {
   });
 
   test('the ring is a lazy singleton', () => {
-    const first = getRing();
+    const first = HfLogRing.get();
     expect(first.bytes.byteLength).toBe(BUFFER_SIZE * ENTRY_SIZE);
-    expect(getRing()).toBe(first);
+    expect(HfLogRing.get()).toBe(first);
     expect(first.bytes.buffer).toBe(first.f64.buffer);
   });
 });

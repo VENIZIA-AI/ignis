@@ -32,7 +32,7 @@ Every error condition the WebSocket component and helper can raise, plus fixes f
 |--------|-----------|---------------|
 | `binding()` | `application` is falsy | `"[binding] Invalid application to bind WebSocketComponent"` |
 | `binding()` | Node.js runtime detected | `"[WebSocketComponent] Node.js runtime is not supported yet. Please use Bun runtime."` |
-| `resolveBindings()` | `REDIS_CONNECTION` not `instanceof AbstractRedisHelper` | `"[WebSocketComponent][resolveBindings] Invalid instance of redisConnection ..."` |
+| `resolveBindings()` | `REDIS_CONNECTION` fails `isRedisHelper()` | `"[WebSocketComponent][resolveBindings] Invalid instance of redisConnection ..."` |
 | `resolveBindings()` | `AUTHENTICATE_HANDLER` is falsy | `"[WebSocketComponent] Invalid authenticateFn to setup WebSocket server!"` |
 | `registerBunHook()` | Bun server instance not available | `"[WebSocketComponent] Bun server instance not available!"` |
 

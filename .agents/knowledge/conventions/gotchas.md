@@ -2,27 +2,172 @@
 type: Convention
 title: Gotchas
 description: The traps that have already cost real debugging time in this codebase.
-resource: packages/core/src
+resource: packages/core-server/src
 tags: [conventions, gotchas, debugging]
 ---
 
 Traps worth knowing before you hit them yourself.
 
-## A broken test leaves an empty dist, not a failed build message
+## An empty dist looks like a hundred unrelated import failures
 
 The build is honest: every `scripts/build.sh` starts with `set -e` and runs `tsc --noEmit -p
 tsconfig.json` as a gate, so a type error exits non-zero and never prints `DONE | Build completed
 successfully!`. Trust the exit code.
 
-The trap is what surrounds it. `make <package>` runs `rebuild.sh`, which is `bun run clean` (deletes
-`dist/`) **and then** `bun run build`. That `tsc --noEmit` gate type-checks `src/__tests__` too. So a
-single broken test - possibly someone else's untracked, in-progress one - aborts the build *after*
-`dist/` is already gone. `dist/` is gitignored, so what you see is not "the test failed": it is every
-import in the package resolving to an empty build, and a cascade of unrelated-looking errors.
+`rebuild.sh` used to be the trap around it: `bun run clean` deleted `dist/` **before** the build's
+type-check gate ran, and that gate type-checks `src/__tests__` too, so a single broken test - often
+someone else's untracked, in-progress one - aborted the build with `dist/` already gone. That is
+closed. `make <package>` now runs `tsc --noEmit -p tsconfig.json` first and cleans only once the
+whole project compiles, so a broken test fails loudly with the last good `dist/` intact.
+`packages/dev-configs/scripts/rebuild.sh` is the one exception - it still cleans first, having no
+type-check gate to fail.
 
-When `bun test` explodes catastrophically, check whether `dist/` is empty before debugging the tests.
-A fresh clone or worktree shows the identical symptom for the simpler reason that it has never been
-built. See [testing conventions](/conventions/testing-conventions.md).
+Guard **every** program `build.sh` runs, not just the first. `inversion`, `filter` and `boot` emit
+CJS and ESM from two configs, and `tsconfig.esm.json` swaps `module`/`moduleResolution`, so it checks
+the same files under different rules and can fail where the CJS pass passed. Guarding one left a
+half-emitted `dist/` holding `cjs/` and no `esm/` - which every consumer resolving `main` hides until
+something resolves the `import` condition.
+
+The diagnostic habit survives the fix. `dist/` is gitignored, so when `bun test` explodes
+catastrophically, check whether `dist/` is empty before debugging the tests: a fresh clone or
+worktree shows the identical symptom for the simpler reason that it has never been built. See
+[testing conventions](/conventions/testing-conventions.md).
+
+## A node global in the kernel passes tsc and fails make purity
+
+`@venizia/ignis-kernel` must bundle clean for `target: browser`, so a routine edit there breaks a
+gate the type-checker cannot see. Import helpers only through `@venizia/ignis-helpers/core` and
+`@venizia/ignis-helpers/common`, never the root barrel; never import `@venizia/ignis-boot`; keep
+`drizzle-orm` to `import type`. No `process.`, `__dirname`, `__filename` or `createRequire(` either -
+the probe matches the **bundled text**, not the import graph, so a node global survives a green
+`tsc` and only `make purity-kernel` catches it. Node builtins are matched against `node:module`'s own
+list, so the bare `'fs'` spelling is caught alongside `'node:fs'`.
+
+Anything needing a filesystem, a real cwd, or the environment is a method the kernel leaves empty and
+core's `ServerApplication` overrides - `getProjectRoot` and `getDefaultAsyncContextEnabled` (which
+gates `hono/context-storage`, hence `node:async_hooks`). Add the override, do not reach for `process`
+in the kernel. Address resolution is not a seam at all: `host`/`port` live on `ServerApplication`
+only, since a host with no socket has no use for either.
+
+## types: [] does not make process.env a compile error
+
+`packages/core-worker` was split out partly to make impurity fail at author time. It does not, and no
+tsconfig knob can make it. `types: []` disables only **automatic** `@types/*` inclusion; it cannot
+cancel a `/// <reference types="node" />` that sits inside a `.d.ts` the program already reached, and
+two first-party paths reach one:
+
+| Path | Reaches |
+|---|---|
+| `@venizia/ignis-helpers/core` -> `modules/redis/common/types.d.ts` | `ioredis` |
+| `@venizia/ignis-kernel` -> `base/auth/authorize/common/types.d.ts` | `casbin` |
+
+Both are `import type` only, so `make purity` stays green and nothing flags it. `typeRoots: []` does
+not close it either - the directive then resolves through node module resolution instead.
+
+This reaches **any** consumer of those published types, not just `core-worker`.
+`examples/browser-bff` reproduces it from its own import graph. So the author-time defence in both is
+a `no-restricted-globals` and `no-restricted-imports` block in `eslint.config.mjs`, with the builtin
+list derived from `node:module`'s `builtinModules` rather than hand-written. Scope the `files` glob to
+`{ts,tsx,mts,cts}`: a package that sets `jsx` can have a `.tsx` production file, and a `.ts`-only glob
+leaves it with no rule at all.
+
+`setImmediate` and `clearImmediate` are the accident case. They ride the same `@types/node` leak, so
+the editor offers them in autocomplete, ESLint is silent without the rule, and the bundle scan sees
+nothing. In a browser Worker they are a `ReferenceError`.
+
+What no static rule reaches: computed member access (`globalThis['process']`), a variable import
+specifier, and an inline `eslint-disable`. `make purity` backstops the first two.
+
+## make purity is red, and that is it telling the truth
+
+`scripts/purity/manifest.ts` derives one row per published sub-path from each package's own
+`package.json` `exports` map. Nothing is authored per entry, so a new sub-path is probed the day it
+ships. The hand-written list it replaced carried 11 rows and reported `11/11` while
+`@venizia/ignis-connectors/postgres` - the entry [browser-bff](/examples/browser-bff.md) imports -
+killed a Worker at import.
+
+24 rows now, and four are red:
+
+| Entry | Reaches | What it means |
+|---|---|---|
+| `connectors/postgres/node-postgres`, `/postgres-js`, `connectors/sqlite/libsql`, `connectors/typesense` | `pg`, `postgres`, `@libsql/client`, `typesense` | Engine clients that were never browser-capable. The gate has no data saying so, so it reports them red rather than quietly excusing them. |
+
+Six were red when the derivation landed. `connectors/postgres` and `connectors/sqlite` were the two
+real defects: the model barrel re-exports `user-audit.enricher`, which statically imported
+`hono/context-storage`, whose module body runs `new AsyncLocalStorage()`. Both enrichers now read
+`RequestContextRegistry` from the kernel instead, and core installs the resolver over it - see
+[connectors](/packages/connectors.md).
+
+`helpers` is the one package whose claim covers part of its surface: the root barrel reaches ioredis,
+winston and minio by design, which is why `./core` and `./common` exist. The manifest names those
+two, and the derivation fails if either stops being published.
+
+`external` narrows what a row measures, so it is printed next to every verdict. It may only exempt a
+third party's packaging - `assertNoWorkspaceExternal` refuses any `@venizia/` specifier at manifest
+load time.
+
+Every claimed package dual-builds, and `assertBrowserImportCondition` refuses a claim whose sub-path
+publishes no `import` condition. A CommonJS-only package cannot be consumed by a browser bundler
+without a per-consumer workaround, so the claim would not be true. Both builds are probed, and they
+genuinely differ: `@libsql/client` reaches `child_process` only on its CommonJS path, and
+`drizzle-orm/supabase` resolves only on its CommonJS one.
+
+Two traps come with the dual build. A `"sideEffects": false` package lets a bundler drop the
+`import 'reflect-metadata'` at the entry, and every decorator then fails with
+`Reflect.defineMetadata is not a function` - in the PRODUCTION build only, since dev serves modules
+unbundled. The packages that import it therefore list their entry:
+`"sideEffects": ["./dist/cjs/index.js", "./dist/esm/index.js"]`. And the ESM build needs
+`"tsc-alias": { "resolveFullPaths": true }`: without the `.js` extension `bun build` cannot resolve
+an extensionless FILE import (a directory with an `index.js` resolves either way, which is why this
+looks like it works until it doesn't).
+
+## Kernel state is realm-anchored, so never reach for `instanceof` across packages
+
+`@venizia/ignis-kernel` is a plain `dependencies` entry of `connectors`, `core-server` and
+`core-worker`, and that is deliberate - a `peerDependency` would push an explicit install onto every
+consumer to buy a guarantee it only half provides. Two copies are made harmless instead of forbidden.
+
+Two copies happen without anyone changing a package: each consumer pins a range, and the day those
+ranges stop intersecting a package manager installs a nested second copy rather than failing. Nothing
+throws - `@repository` writes into one copy's `datasourceModels` while `discoverSchema()` reads the
+other's, `buildSchema()` returns `{}`, and every query fails for a reason that points nowhere near
+the cause.
+
+So every cross-package singleton resolves through `SingletonRealm.resolve`
+(`packages/kernel/src/helpers/singleton-realm.ts`), which anchors it on `globalThis` under a
+`Symbol.for('@venizia/ignis-kernel:<key>')` key. `Symbol.for` is realm-keyed, so both copies find the
+same instance. Measured against two genuinely separate module graphs: class identity `false`, every
+registry instance `true`.
+
+**Add a new kernel singleton through that helper, never as a bare `private static instance`.**
+Declare its key as a `static readonly SINGLETON_REAL_KEY` on the holder - a bare slug, since
+`SingletonRealm` supplies the `@venizia/ignis-kernel:` namespace - rather than inline at the
+`resolve` call - the key is then readable off the class, which is what lets
+`singleton-realm-keys.test.ts` assert that no two holders share one. Two holders on one key is
+silent: the second receives the first one's object and the symptom surfaces somewhere unrelated.
+Anchored today: `MetadataRegistry`, `AuthenticationStrategyRegistry`,
+`AuthorizationEnforcerRegistry`, `GrantBuilder`, and the `RequestContextRegistry` resolver slot.
+
+Anchoring cannot save class identity - two copies are two classes, and `instanceof` between them is
+`false`. `@repository`'s first-parameter check used to be exactly that, and rejected a valid
+repository at import time. It now reads a `Symbol.for` brand through `isDataSourceClass`, the same
+move `isApplicationError` already makes for `ApplicationError`, and `isRedisHelper` for the
+`redisConnection` binding the socket.io and websocket components validate. A browser tab and its
+Worker are separate realms and still get one registry each, which is correct - they run separate
+applications.
+
+The brand goes where the check looks: `static readonly [BRAND] = true` when the check receives a
+CLASS (`isDataSourceClass`), an instance field when it receives an INSTANCE (`isRedisHelper`).
+
+## The PGlite pin lives in the root package.json
+
+The root `package.json` carries `"overrides": { "@electric-sql/pglite": "0.5.5" }`, an exact version,
+repository-wide. It looks like something to relax or delete. It is not.
+
+Pinning it in one package alone forks `drizzle-orm` into two Bun store entries, because Bun keys a
+store entry by resolved peer set and PGlite is one of Drizzle's optional peers. Two entries break
+Drizzle type identity across a package boundary. `examples/browser-bff` does not install without the
+override.
 
 ## RedisClusterHelper deliberately skips buildDefaultOpts
 
@@ -35,8 +180,8 @@ this back in - it was tried once and reverted as a real regression.
 ## Every constructor parameter needs @inject
 
 Mixing a decorated and an undecorated constructor parameter is refused, not tolerated.
-`Container.instantiate` (`packages/inversion/src/container/container.ts`) throws when an inject
-metadata slot is missing, naming the class and parameter index:
+`Container.instantiate` (`packages/inversion/src/modules/container/container.ts`) throws when an
+inject metadata slot is missing, naming the class and parameter index:
 
 ```typescript
 if (!meta) {

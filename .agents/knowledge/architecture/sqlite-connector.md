@@ -2,7 +2,7 @@
 type: Architecture
 title: SQLite connector
 description: The second SQL engine on the relational tier - the libsql driver, BEGIN IMMEDIATE, and every capability SQLite refuses instead of faking.
-resource: packages/core/src/connectors/sqlite
+resource: packages/core-server/src/connectors/sqlite
 tags: [architecture, connectors, drizzle, sqlite, libsql, relational]
 ---
 
@@ -135,10 +135,14 @@ different SQL.
   exact and `like` is the operator that silently widens. Refusing `ilike` would be theatre - the
   caller renames it to `like` and gets identical SQL. Residual gap: non-ASCII stays unfolded, so
   `'ÉCOLE' LIKE 'é%'` is false. Never set `PRAGMA case_sensitive_like=ON`.
-- **JSON is `json_extract(col, '$."a"[0]')`**, not `#>>`. `SqliteFilterBuilder` supplies four of the
-  ten `FilterBuilder` seam members - three of them mandatory - and inherits the rest.
-  `jsonNeedsNumericCast()` returns `false`: `json_extract` hands back the value in its own type, so
-  there is no cast to apply.
+- **JSON is `json_extract(col, '$."a"[0]')`**, not `#>>`. `SqliteFilterBuilder` supplies five of the
+  ten `FilterBuilder` seam members and inherits the rest: the three mandatory ones (`operators`,
+  `buildJsonWhereCondition`, `buildJsonOrderBy`) plus two optional overrides.
+  `validateJsonColumn()` narrows rather than replaces the neutral check - it calls `super` and then
+  `assertNotBlobJsonColumn`, because Drizzle reports `dataType: 'json'` for
+  `blob(name, { mode: 'json' })` too, and SQLite reads a BLOB argument to a json function as JSONB
+  while Drizzle stores JSON text. `jsonNeedsNumericCast()` returns `false`: `json_extract` hands
+  back the value in its own type, so there is no cast to apply.
 - **Updates compose `json_set`**, with the path and the value bound rather than interpolated.
   `SqliteUpdateBuilder` overrides the single abstract `composeJsonSet()` on the neutral
   `RelationalUpdateBuilder` and inherits the split and the path validation.

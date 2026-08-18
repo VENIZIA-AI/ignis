@@ -261,8 +261,8 @@ class DocumentUITypes {
 
 **Files:**
 
-- [`packages/core/src/components/api-reference/component.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core/src/components/api-reference/component.ts) - `ApiReferenceComponent`
-- [`packages/core/src/components/api-reference/ui-factory.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core/src/components/api-reference/ui-factory.ts) - `UIProviderFactory`, `SwaggerUIProvider`, `ScalarUIProvider`
-- [`packages/core/src/components/api-reference/common/types.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core/src/components/api-reference/common/types.ts) - `IApiReferenceOptions`, `IUIProvider`, `IUIConfig`
-- [`packages/core/src/components/api-reference/common/keys.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core/src/components/api-reference/common/keys.ts) - `ApiReferenceBindingKeys`
-- [`packages/core/src/components/api-reference/common/constants.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core/src/components/api-reference/common/constants.ts) - `DocumentUITypes`
+- [`packages/core-server/src/components/api-reference/component.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/components/api-reference/component.ts) - `ApiReferenceComponent`
+- [`packages/core-server/src/components/api-reference/ui-factory.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/components/api-reference/ui-factory.ts) - `UIProviderFactory`, `SwaggerUIProvider`, `ScalarUIProvider`
+- [`packages/core-server/src/components/api-reference/common/types.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/components/api-reference/common/types.ts) - `IApiReferenceOptions`, `IUIProvider`, `IUIConfig`
+- [`packages/core-server/src/components/api-reference/common/keys.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/components/api-reference/common/keys.ts) - `ApiReferenceBindingKeys`
+- [`packages/core-server/src/components/api-reference/common/constants.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/components/api-reference/common/constants.ts) - `DocumentUITypes`

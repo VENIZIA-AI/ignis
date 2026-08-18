@@ -48,7 +48,7 @@ describe('BANA call shapes still compile and behave', () => {
       },
     } as const satisfies Record<string, TErrorDefinition>;
 
-    // Verbatim from packages/core/src/utilities/slug.utility.ts:72
+    // Verbatim from packages/core-server/src/utilities/slug.utility.ts:72
     const error = getError({ error: SlugErrors.SLUG_TAKEN, messageArgs: { slug: 've-hoa-nhac' } });
 
     expect(error.statusCode).toBe(409);

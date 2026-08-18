@@ -19,7 +19,7 @@ Added explicit transaction support to the repository layer, enabling atomic oper
 
 ### Repository Transactions
 
-**File:** `packages/core/src/base/repositories/core/base.ts`
+**File:** `packages/core-server/src/base/repositories/core/base.ts`
 
 **Problem:** Previously, transactions relied on Drizzle's callback API, which made it difficult to share a transaction context across different services or decoupled components.
 
@@ -40,7 +40,7 @@ try {
 
 ## Files Changed
 
-### Core Package (`packages/core`)
+### Core Package (`packages/core-server`)
 
 | File | Changes |
 |------|---------|

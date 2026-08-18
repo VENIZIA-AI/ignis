@@ -2,12 +2,12 @@
 type: Convention
 title: Binding key namespaces
 description: Every DI binding key is namespaced by artifact kind - controllers.X, services.X, and so on.
-resource: packages/core/src/common/bindings.ts
+resource: packages/kernel/src/common/bindings.ts
 tags: [conventions, di, bindings]
 ---
 
 Every binding key registered in the container is namespaced by the kind of artifact it names.
-`BindingNamespaces` in `packages/core/src/common/bindings.ts` defines the namespace constants as a
+`BindingNamespaces` in `packages/kernel/src/common/bindings.ts` defines the namespace constants as a
 [const class](/conventions/const-classes.md):
 
 ```typescript
@@ -33,6 +33,10 @@ rather than relying on auto-injection.
 `CoreBindings` in the same file is the other binding class: fixed, non-namespaced keys for
 fundamental framework singletons (`@app/instance`, `@app/server`, `@app/config`, and so on) rather
 than per-artifact bindings.
+
+Both classes used to live in `packages/core-server`, which still re-exports them from
+`@venizia/ignis-kernel` - importing either from `core` keeps working, but the kernel is where they
+are defined.
 
 The full generated list of every key currently registered lives at
 [binding keys](/reference/binding-keys.md).

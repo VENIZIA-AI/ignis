@@ -10,10 +10,10 @@ Every option, binding key, class, and method the Authorization component exposes
 
 **Files:**
 
-- [`packages/core/src/components/auth/authorize/`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core/src/components/auth/authorize) - component, providers, enforcers, adapters, models, middleware
-- [`packages/core/src/components/auth/base/abstract-auth-registry.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core/src/components/auth/base/abstract-auth-registry.ts) - `AbstractAuthRegistry` (shared with Authentication)
-- [`packages/core/src/base/metadata/persistents.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core/src/base/metadata/persistents.ts) - `@model` populating `AUTHORIZATION_SUBJECT`
-- [`packages/core/src/helpers/inversion/mixins/model.mixin.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core/src/helpers/inversion/mixins/model.mixin.ts) - `MetadataRegistry` authorize-settings queries
+- [`packages/core-server/src/components/auth/authorize/`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/components/auth/authorize) - component, providers, enforcers, adapters, models, middleware
+- [`packages/core-server/src/components/auth/base/abstract-auth-registry.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/components/auth/base/abstract-auth-registry.ts) - `AbstractAuthRegistry` (shared with Authentication)
+- [`packages/core-server/src/base/metadata/persistents.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/base/metadata/persistents.ts) - `@model` populating `AUTHORIZATION_SUBJECT`
+- [`packages/core-server/src/helpers/inversion/mixins/model.mixin.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/helpers/inversion/mixins/model.mixin.ts) - `MetadataRegistry` authorize-settings queries
 
 ## Find what you need
 
@@ -272,7 +272,7 @@ class AuthorizeComponent extends BaseComponent {
 > [!NOTE]
 > Enforcer registration is separate - `AuthorizeComponent` only validates global options. Register enforcers via `AuthorizationEnforcerRegistry.register()`.
 
-Source -> [`component.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core/src/components/auth/authorize/component.ts)
+Source -> [`component.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/components/auth/authorize/component.ts)
 
 ## Binding keys
 
@@ -294,7 +294,7 @@ class AuthorizeBindingKeys {
 
 `AuthorizeBindingKeys.enforcerOptions(name)` is called automatically by `AuthorizationEnforcerRegistry.register()` when `options` is provided; `CasbinAuthorizationEnforcer` injects its options from `AuthorizeBindingKeys.enforcerOptions('casbin')`.
 
-Source -> [`common/constants.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core/src/components/auth/authorize/common/constants.ts)
+Source -> [`common/constants.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/components/auth/authorize/common/constants.ts)
 
 ## Option interfaces
 
@@ -434,7 +434,7 @@ interface IAuthorizationRequest<TAction = string, TResource = string> {
 }
 ```
 
-Source -> [`common/types.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core/src/components/auth/authorize/common/types.ts)
+Source -> [`common/types.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/components/auth/authorize/common/types.ts)
 
 ## Constants
 
@@ -533,7 +533,7 @@ All constant classes follow the same pattern: static readonly values + `SCHEME_S
 | `GUEST` | `'001_guest'` | 1 |
 | `UNKNOWN_USER` | `'000_unknown-user'` | 0 |
 
-Source -> [`common/constants.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core/src/components/auth/authorize/common/constants.ts)
+Source -> [`common/constants.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/components/auth/authorize/common/constants.ts)
 
 ## CASBIN_RBAC_DOMAIN_SCOPED_MODEL
 
@@ -581,7 +581,7 @@ m = g(r.sub, p.sub, r.dom) && (p.dom == "SYSTEM_WIDE" || (p.dom == "ANY_MEMBER" 
 > [!NOTE]
 > Relies on the default `DefaultRoleManager`'s self-link behavior (`hasLink(name, name) === true`) for `g3`/`g4`/`g5` - a custom role manager must preserve self-links.
 
-Source -> [`enforcers/models/rbac-domain.model.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core/src/components/auth/authorize/enforcers/models/rbac-domain.model.ts)
+Source -> [`enforcers/models/rbac-domain.model.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/components/auth/authorize/enforcers/models/rbac-domain.model.ts)
 
 ## AbstractAuthRegistry
 
@@ -614,7 +614,7 @@ type TRegistryDescriptor<TItem> = { container: Container; targetClass: TClass<TI
 
 `AuthorizationEnforcerRegistry.getBindingPrefix()` returns `Authorization.ENFORCER` (`'authorization.enforcer'`).
 
-Source -> [`base/abstract-auth-registry.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core/src/components/auth/base/abstract-auth-registry.ts)
+Source -> [`base/abstract-auth-registry.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/components/auth/base/abstract-auth-registry.ts)
 
 ## AuthorizationEnforcerRegistry
 
@@ -677,7 +677,7 @@ async resolveEnforcer(opts: { name: string }): Promise<IAuthorizationEnforcer> {
 }
 ```
 
-Source -> [`enforcers/enforcer-registry.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core/src/components/auth/authorize/enforcers/enforcer-registry.ts)
+Source -> [`enforcers/enforcer-registry.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/components/auth/authorize/enforcers/enforcer-registry.ts)
 
 ## IAuthorizationEnforcer interface
 
@@ -805,7 +805,7 @@ On any error inside `pool.use`, the pool **destroys** the borrowed enforcer (fai
 
 Redis-only - both throw if caching is disabled. `invalidateUserCache` deletes the user's shared Redis key; the next request rebuilds lazily. `rebuildUserCache` deletes, then immediately re-extracts (on a throwaway enforcer) and re-caches. The key is shared in Redis, so one call is correct across every instance.
 
-Source -> [`enforcers/casbin.enforcer.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core/src/components/auth/authorize/enforcers/casbin.enforcer.ts)
+Source -> [`enforcers/casbin.enforcer.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/components/auth/authorize/enforcers/casbin.enforcer.ts)
 
 ## BaseFilteredAdapter
 
@@ -859,7 +859,7 @@ protected async loadLines(opts: { model: Model; lines: string[] }): Promise<void
 }
 ```
 
-Source -> [`adapters/base-filtered.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core/src/components/auth/authorize/adapters/base-filtered.ts), [`adapters/types.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core/src/components/auth/authorize/adapters/types.ts)
+Source -> [`adapters/base-filtered.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/components/auth/authorize/adapters/base-filtered.ts), [`adapters/types.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/components/auth/authorize/adapters/types.ts)
 
 ## ScopedCasbinAdapter
 
@@ -999,7 +999,7 @@ const adapter = new ScopedCasbinAdapter({
 });
 ```
 
-Source -> [`adapters/scoped-casbin.adapter.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core/src/components/auth/authorize/adapters/scoped-casbin.adapter.ts)
+Source -> [`adapters/scoped-casbin.adapter.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/components/auth/authorize/adapters/scoped-casbin.adapter.ts)
 
 ### Subset grants (custom rows)
 
@@ -1030,7 +1030,7 @@ A row that passes all four checks can still drop an individual **unresolvable op
 
 **Composing a grant:** use `planGrant` (below) rather than hand-building a custom row. It collapses an operation selection into tier grants wherever possible. What does not collapse falls back to a custom row, or a single per-operation row.
 
-Source -> [`adapters/scoped-casbin.adapter.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core/src/components/auth/authorize/adapters/scoped-casbin.adapter.ts)
+Source -> [`adapters/scoped-casbin.adapter.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/components/auth/authorize/adapters/scoped-casbin.adapter.ts)
 
 ## AuthorizationPermissionBuilder.objectMatch
 
@@ -1057,7 +1057,7 @@ enforcer.addFunction('objectMatch', AuthorizationPermissionBuilder.objectMatch);
 | `objectMatch('Activation.findById', 'Activation')` | `true` | Dotted nesting - endpoint under subject |
 | `objectMatch('OrderItem', 'Order')` | `false`, unless a `resource_inherits` (`g4`) edge links them | Non-standard nesting always needs an explicit edge |
 
-Source -> [`builders/permission.builder.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core/src/components/auth/authorize/builders/permission.builder.ts)
+Source -> [`builders/permission.builder.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/components/auth/authorize/builders/permission.builder.ts)
 
 ## AuthorizationProvider
 
@@ -1128,7 +1128,7 @@ await next();
 roles.map(r => typeof r === 'string' ? r : (r.identifier ?? r.name ?? String(r.id ?? '')));
 ```
 
-Source -> [`providers/authorization.provider.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core/src/components/auth/authorize/providers/authorization.provider.ts)
+Source -> [`providers/authorization.provider.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/components/auth/authorize/providers/authorization.provider.ts)
 
 ## Standalone authorize() function
 
@@ -1141,7 +1141,7 @@ export const authorize = (opts: { spec: IAuthorizationSpec; enforcerName?: strin
 
 A module-level singleton `AuthorizationProvider`; the returned handler is a standard Hono `MiddlewareHandler`.
 
-Source -> [`middlewares/authorize.middleware.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core/src/components/auth/authorize/middlewares/authorize.middleware.ts)
+Source -> [`middlewares/authorize.middleware.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/components/auth/authorize/middlewares/authorize.middleware.ts)
 
 ## AuthorizationRole
 
@@ -1167,7 +1167,7 @@ class AuthorizationRole implements IAuthorizationRole {
 interface IAuthorizationRole { readonly name: string; readonly priority: number; readonly identifier: string; }
 ```
 
-Source -> [`models/authorization-role.model.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core/src/components/auth/authorize/models/authorization-role.model.ts)
+Source -> [`models/authorization-role.model.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/components/auth/authorize/models/authorization-role.model.ts)
 
 ## Policy and permission builders
 
@@ -1235,7 +1235,7 @@ class AuthorizationPermissionBuilder {
 }
 ```
 
-Source -> [`builders/policy.builder.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core/src/components/auth/authorize/builders/policy.builder.ts), [`builders/permission.builder.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core/src/components/auth/authorize/builders/permission.builder.ts)
+Source -> [`builders/policy.builder.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/components/auth/authorize/builders/policy.builder.ts), [`builders/permission.builder.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/components/auth/authorize/builders/permission.builder.ts)
 
 ### GrantBuilder.planGrant
 
@@ -1272,7 +1272,7 @@ Throws (`getError`) on an invalid tier, an empty `ops`, or an `ops` entry absent
 
 Mirrors `ScopedCasbinAdapter.buildGrantLines`'s expansion: a planned custom row and the equivalent per-operation rows expand to identical casbin lines - see [Subset grants](#subset-grants-custom-rows).
 
-Source -> [`builders/grant.builder.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core/src/components/auth/authorize/builders/grant.builder.ts)
+Source -> [`builders/grant.builder.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/components/auth/authorize/builders/grant.builder.ts)
 
 ## Model-based authorization metadata
 
@@ -1310,7 +1310,7 @@ getAuthorizeModelSettings(opts: { format: 'array' }): Array<{ name: string; auth
 getAuthorizeModelSettings(opts: { format: 'record' }): Record<string, { authorize: IModelAuthorizeSettings; entry: IModelRegistryEntry }>;
 ```
 
-Source -> [`base/metadata/persistents.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core/src/base/metadata/persistents.ts), [`helpers/inversion/mixins/model.mixin.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core/src/helpers/inversion/mixins/model.mixin.ts)
+Source -> [`base/metadata/persistents.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/base/metadata/persistents.ts), [`helpers/inversion/mixins/model.mixin.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/helpers/inversion/mixins/model.mixin.ts)
 
 ## Controller integration
 
@@ -1385,7 +1385,7 @@ type TRouteAuthConfig = { authenticate?: TRouteAuthenticateConfig; authorize?: T
 
 Applied identically to `count`, `find`, `findById`, `findOne`, `create`, `updateById`, `updateBy`, `deleteById`, `deleteBy`.
 
-Source -> [`base/controllers/rest/abstract.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core/src/base/controllers/rest/abstract.ts), [`base/controllers/grpc/abstract.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core/src/base/controllers/grpc/abstract.ts), [`base/controllers/factory/definition.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core/src/base/controllers/factory/definition.ts)
+Source -> [`base/controllers/rest/abstract.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/base/controllers/rest/abstract.ts), [`base/controllers/grpc/abstract.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/base/controllers/grpc/abstract.ts), [`base/controllers/factory/definition.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/base/controllers/factory/definition.ts)
 
 ## Context variables
 

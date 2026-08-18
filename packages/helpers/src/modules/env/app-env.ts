@@ -1,37 +1,8 @@
+import { EnvironmentNames } from './names';
 import { IApplicationEnvironment } from './types';
 
-export class Environment {
-  static readonly LOCAL = 'local';
-  static readonly DEBUG = 'debug';
-
-  static readonly DEVELOPMENT = 'development';
-  /** The abbreviation deployments actually write. The same environment as {@link DEVELOPMENT}. */
-  static readonly DEV = 'dev';
-  static readonly SIT = 'sit';
-
-  static readonly UAT = 'uat';
-  static readonly ALPHA = 'alpha';
-  static readonly BETA = 'beta';
-  static readonly STAGING = 'staging';
-
-  static readonly PRODUCTION = 'production';
-
-  static COMMON_ENVS = new Set([
-    this.LOCAL,
-    this.DEBUG,
-    this.DEVELOPMENT,
-    this.DEV,
-    this.SIT,
-    this.UAT,
-    this.ALPHA,
-    this.BETA,
-    this.STAGING,
-    this.PRODUCTION,
-  ]);
-
-  /** Environments whose users are our own engineers - the only ones an error response may carry a stack trace or raw driver message. Anything else, including an unrecognized name, is sanitized as production. */
-  static DEVELOPMENT_ENVS = new Set([this.LOCAL, this.DEBUG, this.DEVELOPMENT, this.DEV, this.SIT]);
-
+/** Adds the `NODE_ENV` reads to {@link EnvironmentNames}. Every name and set is inherited, so `Environment.PRODUCTION`, `Environment.COMMON_ENVS` and `Environment.DEVELOPMENT_ENVS` keep resolving here; only these two members need a `process`. */
+export class Environment extends EnvironmentNames {
   static get current(): string {
     const { NODE_ENV } = process.env;
     if (!NODE_ENV) {

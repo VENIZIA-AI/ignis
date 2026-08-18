@@ -104,7 +104,7 @@ const helper = new SocketIOServerHelper({
 
 ### 1. Post-Start Hook System
 
-**File:** `packages/core/src/base/applications/abstract.ts`
+**File:** `packages/core-server/src/base/applications/abstract.ts`
 
 **Problem:** Components need to access the server instance (for Socket.IO, WebSocket upgrades, etc.), but the server only exists after `start()`. The `binding()` phase runs during `initialize()` - too early.
 
@@ -210,7 +210,7 @@ export type TSocketIOServerOptions = ISocketIOServerNodeOptions | ISocketIOServe
 
 ### 4. SocketIOComponent Rewrite with Runtime Detection
 
-**File:** `packages/core/src/components/socket-io/component.ts`
+**File:** `packages/core-server/src/components/socket-io/component.ts`
 
 **Problem:** Original `binding()` was monolithic and tried to access the server instance too early.
 
@@ -248,7 +248,7 @@ override binding(): ValueOrPromise<void> {
 
 ### 5. Generic `getServerInstance<T>()`
 
-**File:** `packages/core/src/base/applications/abstract.ts`
+**File:** `packages/core-server/src/base/applications/abstract.ts`
 
 ```typescript
 getServerInstance<
@@ -410,10 +410,10 @@ The `SocketIOServerHelper` file was reorganized into clear sections with consist
 
 ### `@socket.io/bun-engine`
 
-Added as **optional peer dependency** to `packages/core`:
+Added as **optional peer dependency** to `packages/core-server`:
 
 ```json
-// packages/core/package.json
+// packages/core-server/package.json
 "peerDependencies": {
   "@socket.io/bun-engine": "^0.1.0"
 },
@@ -437,7 +437,7 @@ Only required when using `SocketIOComponent` with Bun runtime. Dynamically impor
 | `src/helpers/socket-io/server/helper.ts` | Complete reorganization; async `configure()` with `waitForRedisReady()`; Redis error handlers on all 3 connections; room validation via `validateRoomFn`; ping uses local `socket.emit()`; `getEngine()` throws on non-Bun; `close()` made private; configurable `pingInterval` |
 | `src/helpers/socket-io/client/helper.ts` | Renamed `TEventHandler` → `TSocketIOEventHandler` |
 
-### Core Package (`packages/core`)
+### Core Package (`packages/core-server`)
 
 | File | Changes |
 |------|---------|
@@ -533,9 +533,9 @@ If you had a custom `override start()` to initialize Socket.IO after the server 
 |-------|--------|
 | `packages/helpers` rebuild | Clean |
 | `packages/helpers` lint | Clean (0 errors, 0 warnings) |
-| `packages/core` rebuild | Clean |
-| `packages/core` lint | Clean (0 errors, 5 pre-existing test warnings) |
+| `packages/core-server` rebuild | Clean |
+| `packages/core-server` lint | Clean (0 errors, 5 pre-existing test warnings) |
 | `packages/boot` rebuild | Clean |
-| `packages/core` tests | 403 pass, 7 pre-existing failures (SocketIOClientHelper xhr poll) |
+| `packages/core-server` tests | 403 pass, 7 pre-existing failures (SocketIOClientHelper xhr poll) |
 | `examples/socket-io-test` tsc | Clean |
 | `bun client.ts` (all 15+ tests) | All passed |

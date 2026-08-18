@@ -10,14 +10,20 @@ tags: [overview, build, test, bun]
 
 ```bash
 make build          # alias: make build-all - rebuilds every package in dependency order
-make core           # rebuilds dev-configs -> inversion -> helpers -> boot -> core
+make core           # rebuilds dev-configs -> inversion -> {filter, helpers} -> {boot, kernel} -> core
 make boot           # rebuilds dev-configs -> inversion -> helpers -> boot
 ```
 
-Each target depends on the previous package in the chain
-(`dev-configs -> inversion -> helpers -> boot -> core`), so `make core` always builds its
-dependencies first. Targets run `bun run --filter "@venizia/<name>" rebuild` (clean, then build).
-To build one package alone: `cd packages/core && bun run rebuild`.
+The dependency graph is a DAG, not a single line. `filter` hangs off `inversion` alone - it is
+isomorphic and deliberately does not sit after `helpers`. `kernel` sits beside `boot` rather than
+after it, on `helpers` plus `filter`, so it never picks up boot's node-only discovery. `core`
+depends on both `boot` and `kernel`, so `make core` builds every package above.
+
+Each target builds its dependencies first, running `bun run --filter "@venizia/<name>" rebuild` -
+type-check, then clean, then build. The type-check runs *before* `clean` on purpose: `build.sh`
+type-checks `__tests__` too, so ordering it first stops a broken test from wiping `dist/` and
+leaving an empty directory behind. To build one package alone:
+`cd packages/core-server && bun run rebuild`.
 
 ## Run
 
@@ -32,7 +38,7 @@ bun run server:dev                 # start dev server
 ## Test
 
 ```bash
-cd packages/core && bun test       # or packages/helpers, packages/inversion
+cd packages/core-server && bun test       # or packages/helpers, packages/inversion
 cd packages/boot && bun test       # runs compiled output, see gotcha below
 ```
 
@@ -43,13 +49,23 @@ cd packages/boot && bun test       # runs compiled output, see gotcha below
 tests from `dist` via `tsconfig.build.json` and run them straight from `src`). `NODE_ENV=test`
 loads each package's `.env.test` automatically.
 
+`filter` and `kernel` carry no tests of their own - they are covered indirectly through `core`.
+
 ## Lint and hooks
 
 ```bash
-make lint          # lint packages/ only
-make lint-all      # lint packages/ and examples/
-make setup-hooks   # git config core.hooksPath .githooks
+make lint             # lint packages/ only
+make lint-all         # lint packages/ and examples/
+make purity           # bundle every entry claimed browser-pure, fail on node builtins or globals
+make purity-<package> # one package: inversion, filter, helpers, kernel
+make setup-hooks      # git config core.hooksPath .githooks
 ```
+
+`purity` probes the built `dist/`, so build the package first; the packages with no browser-pure
+entry claimed (`dev-configs`, `boot`, `core`, `docs-mcp`) have a target that just skips.
+
+`.githooks/pre-commit` runs **only** `make lint-all` - nothing else. Purity is a CI gate, run per
+package by the release workflow, so a green commit says nothing about it.
 
 ## Gotchas that aren't obvious from reading the code
 

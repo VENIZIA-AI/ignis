@@ -53,7 +53,7 @@ private heartbeatAll() {
 
 ### 2. Configurable Heartbeat Options
 
-**Files:** `packages/helpers/src/helpers/socket/websocket/common/types.ts`, `packages/core/src/components/websocket/common/types.ts`
+**Files:** `packages/helpers/src/helpers/socket/websocket/common/types.ts`, `packages/core-server/src/components/websocket/common/types.ts`
 
 ```typescript
 // Helper options
@@ -139,7 +139,7 @@ Both documents added to VitePress sidebar and linked from their respective index
 | `src/helpers/socket/websocket/server/helper.ts` | Added `heartbeatInterval`, `heartbeatTimeout`, `heartbeatTimer` private fields; `startHeartbeatTimer()` and `heartbeatAll()` methods; heartbeat event early return in `onClientMessage()`; timer start in `configure()`; timer cleanup in `shutdown()` |
 | `src/__tests__/websocket/websocket.test.ts` | Updated `WebSocketEvents` tests (7 events); updated `WebSocketDefaults` tests (128KB, heartbeat constants); added heartbeat edge cases; added dedicated "Heartbeat - Application-Level Liveness Check" test group (8 tests) |
 
-### Core Package (`packages/core`)
+### Core Package (`packages/core-server`)
 
 | File | Changes |
 |------|---------|
@@ -169,5 +169,5 @@ Both documents added to VitePress sidebar and linked from their respective index
 | `packages/helpers` rebuild | Clean |
 | `packages/helpers` lint | Clean (0 errors, 5 pre-existing warnings) |
 | `packages/helpers` tests | 179 pass, 0 fail, 348 expect() calls |
-| `packages/core` rebuild | Clean |
-| `packages/core` lint | Clean (0 errors, 5 pre-existing warnings) |
+| `packages/core-server` rebuild | Clean |
+| `packages/core-server` lint | Clean (0 errors, 5 pre-existing warnings) |

@@ -31,7 +31,7 @@ The path to the package directory from the repository root.
 This directory must contain a 'package.json' file.
 
 EXAMPLES:
-- "packages/core"
+- "packages/core-server"
 - "packages/helpers"
 - "examples/5-mins-qs"
 `;

@@ -132,7 +132,7 @@ Each builds on the one above it - a change in `inversion` reaches everything.
 
 | Package | Role |
 | :--- | :--- |
-| [`@venizia/ignis`](packages/core/) | The framework: application, controllers, repositories, models, components |
+| [`@venizia/ignis`](packages/core-server/) | The framework: application, controllers, repositories, models, components |
 | [`@venizia/ignis-boot`](packages/boot/) | Convention-based discovery and bootstrapping |
 | [`@venizia/ignis-helpers`](packages/helpers/) | Logger, Redis, queues, storage, crypto, network, UID |
 | [`@venizia/ignis-inversion`](packages/inversion/) | Standalone IoC container and decorators |

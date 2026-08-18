@@ -183,7 +183,7 @@ console.log('Generated query options:', queryOptions);
 
 **Files:**
 
-- [`packages/core/src/base/controllers/factory/controller.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core/src/base/controllers/factory/controller.ts) - `ControllerFactory.defineCrudController`
-- [`packages/core/src/base/repositories/query-schemas/filter.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core/src/base/repositories/query-schemas/filter.ts) - `FilterSchema`, `InclusionSchema`
+- [`packages/core-server/src/base/controllers/factory/controller.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/base/controllers/factory/controller.ts) - `ControllerFactory.defineCrudController`
+- [`packages/core-server/src/base/repositories/query-schemas/filter.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/base/repositories/query-schemas/filter.ts) - `FilterSchema`, `InclusionSchema`
 - [`packages/filter/src/common/types.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/filter/src/common/types.ts) - `TFilter`, `TInclusion`
-- [`packages/core/src/connectors/postgres/repositories/core/base.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core/src/connectors/postgres/repositories/core/base.ts) - `RelationalBaseRepository.buildQuery`
+- [`packages/core-server/src/connectors/postgres/repositories/core/base.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/connectors/postgres/repositories/core/base.ts) - `RelationalBaseRepository.buildQuery`

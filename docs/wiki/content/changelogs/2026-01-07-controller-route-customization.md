@@ -21,8 +21,8 @@ This release enhances the Controller Factory with comprehensive request/response
 ### Enhanced Route Customization
 
 **Files:**
-- `packages/core/src/base/controllers/factory/definition.ts`
-- `packages/core/src/base/controllers/common/types.ts`
+- `packages/core-server/src/base/controllers/factory/definition.ts`
+- `packages/core-server/src/base/controllers/common/types.ts`
 
 **Problem:** Users could only customize `requestBody` and `schema` (response). No way to customize query parameters, headers, or path parameters.
 
@@ -69,9 +69,9 @@ routes: {
 ### Generic Controller Definitions
 
 **Files:**
-- `packages/core/src/base/controllers/abstract.ts`
-- `packages/core/src/base/controllers/base.ts`
-- `packages/core/src/base/controllers/factory/controller.ts`
+- `packages/core-server/src/base/controllers/abstract.ts`
+- `packages/core-server/src/base/controllers/base.ts`
+- `packages/core-server/src/base/controllers/factory/controller.ts`
 
 **Problem:** Route definition types were lost, preventing proper type inference in overridden methods.
 
@@ -91,7 +91,7 @@ The `definitions` property now preserves the actual route definition types.
 
 ### Compact OpenAPI Descriptions
 
-**File:** `packages/core/src/base/controllers/factory/definition.ts`
+**File:** `packages/core-server/src/base/controllers/factory/definition.ts`
 
 **Before:**
 ```typescript
@@ -107,7 +107,7 @@ All route descriptions are now concise and easy to read in API explorers.
 
 ### Response Metadata
 
-**File:** `packages/core/src/base/controllers/factory/definition.ts`
+**File:** `packages/core-server/src/base/controllers/factory/definition.ts`
 
 Added meaningful response descriptions for OpenAPI:
 
@@ -125,7 +125,7 @@ Added meaningful response descriptions for OpenAPI:
 
 ## Files Changed
 
-### Core Package (`packages/core`)
+### Core Package (`packages/core-server`)
 
 | File | Changes |
 |------|---------|

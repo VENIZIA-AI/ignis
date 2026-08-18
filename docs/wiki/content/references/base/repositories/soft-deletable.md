@@ -10,9 +10,9 @@ Reference for `SoftDeletableRepository` - delete methods set a `deletedAt` times
 
 **Files:**
 
-- [`packages/core/src/connectors/postgres/repositories/core/soft-deletable.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core/src/connectors/postgres/repositories/core/soft-deletable.ts) - `SoftDeletableRelationalRepository` - delete/restore overrides, `isStrict` findById
-- [`packages/core/src/connectors/postgres/repositories/core/index.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core/src/connectors/postgres/repositories/core/index.ts) - compatibility alias `SoftDeletableRepository`
-- [`packages/core/src/connectors/postgres/models/enrichers/tz.enricher.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core/src/connectors/postgres/models/enrichers/tz.enricher.ts) - `generateTzColumnDefs` - adds the `deletedAt` column
+- [`packages/core-server/src/connectors/postgres/repositories/core/soft-deletable.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/connectors/postgres/repositories/core/soft-deletable.ts) - `SoftDeletableRelationalRepository` - delete/restore overrides, `isStrict` findById
+- [`packages/core-server/src/connectors/postgres/repositories/core/index.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/connectors/postgres/repositories/core/index.ts) - compatibility alias `SoftDeletableRepository`
+- [`packages/core-server/src/connectors/postgres/models/enrichers/tz.enricher.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/connectors/postgres/models/enrichers/tz.enricher.ts) - `generateTzColumnDefs` - adds the `deletedAt` column
 
 ## Setup
 

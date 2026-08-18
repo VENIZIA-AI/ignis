@@ -10,8 +10,8 @@
 //   gitRange: '<hash>..HEAD',         // commit range since the last sync - what verifiers actually diff
 //   deltaTargets: [{
 //     key: 'core',                    // short label
-//     area: 'packages/core',          // git pathspec(s), space-separated
-//     concepts: ['packages/core.md'], // bundle-relative concept files to verify
+//     area: 'packages/core-server',          // git pathspec(s), space-separated
+//     concepts: ['packages/core-server.md'], // bundle-relative concept files to verify
 //     hint: 'what changed (from commit subjects) - verify, do not trust',
 //     model: 'opus' | 'sonnet',       // opus for heavy/critical areas, sonnet for small ones
 //   }],
@@ -56,7 +56,7 @@ const FINDINGS_SCHEMA = {
         properties: {
           concept: {
             type: 'string',
-            description: 'repo-relative path of the knowledge file, e.g. .agents/knowledge/packages/core.md',
+            description: 'repo-relative path of the knowledge file, e.g. .agents/knowledge/packages/core-server.md',
           },
           kind: { type: 'string', enum: ['wrong', 'stale', 'missing'] },
           claim: { type: 'string', description: 'the claim that is wrong/stale, or the fact that is missing' },
@@ -154,7 +154,7 @@ if (mode === 'full') {
     ),
     () =>
       agent(
-        `${COMMON}\nRole: COMPLETENESS CRITIC. Do not verify individual claims. Instead ask: what does this repo contain that the bundle does NOT cover? Compare ${KB}/index.md + the file tree under ${KB}/ against reality: ls packages/ examples/, scan major changes since the last sync (\`git log ${gitRange} --oneline\`), new components under packages/core/src/components/, new helper modules under packages/helpers/src/modules/, new connectors under packages/core/src/connectors/. Report (a) findings = missing durable facts in EXISTING concepts, (b) gaps = whole missing concepts worth creating (title + rationale + suggestedPath under ${KB}). A gap must be durable, load-bearing knowledge - not volatile detail. Note: every packages/* and examples/* dir MUST have a concept or \`okf coverage\` fails at under 100% structural.`,
+        `${COMMON}\nRole: COMPLETENESS CRITIC. Do not verify individual claims. Instead ask: what does this repo contain that the bundle does NOT cover? Compare ${KB}/index.md + the file tree under ${KB}/ against reality: ls packages/ examples/, scan major changes since the last sync (\`git log ${gitRange} --oneline\`), new components under packages/core-server/src/components/, new helper modules under packages/helpers/src/modules/, new connectors under packages/core-server/src/connectors/. Report (a) findings = missing durable facts in EXISTING concepts, (b) gaps = whole missing concepts worth creating (title + rationale + suggestedPath under ${KB}). A gap must be durable, load-bearing knowledge - not volatile detail. Note: every packages/* and examples/* dir MUST have a concept or \`okf coverage\` fails at under 100% structural.`,
         { label: 'critic:completeness', phase: 'Verify', model: 'opus', schema: GAPS_SCHEMA },
       ),
     () =>

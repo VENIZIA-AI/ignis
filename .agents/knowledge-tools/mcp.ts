@@ -31,7 +31,7 @@ const TOOLS = [
   },
   {
     name: 'okf_get_concept',
-    description: 'Get the full markdown of one concept by id (e.g. "/packages/core" or "packages/core").',
+    description: 'Get the full markdown of one concept by id (e.g. "/packages/core-server" or "packages/core-server").',
     inputSchema: {
       type: 'object',
       properties: { id: { type: 'string', description: 'Concept id (bundle-relative path, no extension)' } },

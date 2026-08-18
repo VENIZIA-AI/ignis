@@ -143,10 +143,10 @@ authorize: { action: AuthorizationActions.READ, resource: Article.AUTHORIZATION_
 
 **Files:**
 
-- [`packages/core/src/components/auth/authorize/component.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core/src/components/auth/authorize/component.ts) - `AuthorizeComponent`
-- [`packages/core/src/components/auth/authorize/common/`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core/src/components/auth/authorize/common) - constants, binding keys, types, policy/permission builders
-- [`packages/core/src/components/auth/authorize/providers/authorization.provider.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core/src/components/auth/authorize/providers/authorization.provider.ts) - `AuthorizationProvider` (the 7-step pipeline)
-- [`packages/core/src/components/auth/authorize/enforcers/`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core/src/components/auth/authorize/enforcers) - `CasbinAuthorizationEnforcer`, `AuthorizationEnforcerRegistry`, `CASBIN_RBAC_DOMAIN_SCOPED_MODEL`
-- [`packages/core/src/components/auth/authorize/adapters/`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core/src/components/auth/authorize/adapters) - `BaseFilteredAdapter`, `ScopedCasbinAdapter`
-- [`packages/core/src/components/auth/authorize/models/authorization-role.model.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core/src/components/auth/authorize/models/authorization-role.model.ts) - `AuthorizationRole`
-- [`packages/core/src/base/metadata/persistents.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core/src/base/metadata/persistents.ts) - `@model` auto-populating `AUTHORIZATION_SUBJECT` from `settings.authorize.principal`
+- [`packages/core-server/src/components/auth/authorize/component.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/components/auth/authorize/component.ts) - `AuthorizeComponent`
+- [`packages/core-server/src/components/auth/authorize/common/`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/components/auth/authorize/common) - constants, binding keys, types, policy/permission builders
+- [`packages/core-server/src/components/auth/authorize/providers/authorization.provider.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/components/auth/authorize/providers/authorization.provider.ts) - `AuthorizationProvider` (the 7-step pipeline)
+- [`packages/core-server/src/components/auth/authorize/enforcers/`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/components/auth/authorize/enforcers) - `CasbinAuthorizationEnforcer`, `AuthorizationEnforcerRegistry`, `CASBIN_RBAC_DOMAIN_SCOPED_MODEL`
+- [`packages/core-server/src/components/auth/authorize/adapters/`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/components/auth/authorize/adapters) - `BaseFilteredAdapter`, `ScopedCasbinAdapter`
+- [`packages/core-server/src/components/auth/authorize/models/authorization-role.model.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/components/auth/authorize/models/authorization-role.model.ts) - `AuthorizationRole`
+- [`packages/core-server/src/base/metadata/persistents.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/base/metadata/persistents.ts) - `@model` auto-populating `AUTHORIZATION_SUBJECT` from `settings.authorize.principal`

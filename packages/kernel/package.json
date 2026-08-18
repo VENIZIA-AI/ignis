@@ -1,0 +1,104 @@
+{
+  "name": "@venizia/ignis-kernel",
+  "version": "0.1.1-0",
+  "description": "Browser-pure kernel of the IGNIS framework: dependency injection, lifecycle, REST controllers, repository and datasource abstractions, and the authentication and authorization seams. No node builtin and no server-only peer, so the same kernel serves a Bun server and a browser Worker.",
+  "keywords": [
+    "authentication",
+    "authorization",
+    "browser",
+    "component",
+    "controller",
+    "dependency-injection",
+    "di",
+    "ignis",
+    "ioc",
+    "isomorphic",
+    "kernel",
+    "loopback",
+    "loopback4",
+    "repository-pattern",
+    "rest",
+    "typescript",
+    "venizia"
+  ],
+  "homepage": "https://ignis.venizia.ai",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/VENIZIA-AI/ignis.git",
+    "directory": "packages/kernel"
+  },
+  "bugs": {
+    "url": "https://github.com/VENIZIA-AI/ignis/issues"
+  },
+  "author": {
+    "name": "VENIZIA AI Developer",
+    "email": "developer@venizia.ai",
+    "url": "https://venizia.ai"
+  },
+  "license": "MIT",
+  "engines": { "bun": ">=1.3" },
+  "main": "./dist/cjs/index.js",
+  "module": "./dist/esm/index.js",
+  "types": "./dist/cjs/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/cjs/index.d.ts",
+      "import": "./dist/esm/index.js",
+      "require": "./dist/cjs/index.js",
+      "default": "./dist/cjs/index.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "files": ["README.md", "LICENSE.md", "dist", "!/**/__tests__", "!**/*.tsbuildinfo"],
+  "publishConfig": { "access": "public" },
+  "sideEffects": ["./dist/cjs/index.js", "./dist/esm/index.js"],
+  "scripts": {
+    "force-update": "sh ./scripts/force-update.sh",
+    "build": "sh ./scripts/build.sh",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "clean": "sh ./scripts/clean.sh",
+    "rebuild": "sh ./scripts/rebuild.sh no-version",
+    "eslint": "eslint --report-unused-disable-directives .",
+    "lint": "bun run eslint && bun run prettier:cli",
+    "lint:fix": "bun run eslint --fix && bun run prettier:fix",
+    "prettier:cli": "prettier \"**/*.{js,ts}\" -l",
+    "prettier:fix": "bun run prettier:cli --write",
+    "prepublishOnly": "bun run rebuild"
+  },
+  "dependencies": {
+    "@venizia/ignis-filter": "^0.1.2-1",
+    "@venizia/ignis-helpers": "^0.1.1-18",
+    "@venizia/ignis-inversion": "^0.1.1-7",
+    "lodash": "catalog:",
+    "reflect-metadata": "catalog:",
+    "zod": "catalog:"
+  },
+  "peerDependencies": {
+    "@hono/zod-openapi": "^1.5.1",
+    "casbin": "^5.51.1",
+    "drizzle-orm": "^0.45.2",
+    "hono": "^4.12.30",
+    "jose": "^6.2.3"
+  },
+  "peerDependenciesMeta": {
+    "casbin": {
+      "optional": true
+    },
+    "drizzle-orm": {
+      "optional": true
+    },
+    "jose": {
+      "optional": true
+    }
+  },
+  "devDependencies": {
+    "@types/bun": "catalog:",
+    "@types/lodash": "catalog:",
+    "@venizia/dev-configs": "workspace:*",
+    "casbin": "^5.51.1",
+    "eslint": "catalog:",
+    "prettier": "catalog:",
+    "tsc-alias": "catalog:",
+    "typescript": "catalog:"
+  }
+}

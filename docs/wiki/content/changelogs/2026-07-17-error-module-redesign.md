@@ -137,7 +137,7 @@ body.messageCode  (HTTP)      body.normalized.code
 
 ### `appErrorHandler` is now `AppErrorMiddleware`
 
-**File:** [`packages/core/src/base/middlewares/app-error/app-error.middleware.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core/src/base/middlewares/app-error/app-error.middleware.ts)
+**File:** [`packages/core-server/src/base/middlewares/app-error/app-error.middleware.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/base/middlewares/app-error/app-error.middleware.ts)
 
 ```typescript
 // Before

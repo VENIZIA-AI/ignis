@@ -21,9 +21,9 @@ This release adds the `shouldQueryRange` option to the `find()` method, enabling
 ### shouldQueryRange Option
 
 **Files:**
-- `packages/core/src/base/repositories/common/types.ts`
-- `packages/core/src/base/repositories/core/readable.ts`
-- `packages/core/src/base/repositories/core/abstract.ts`
+- `packages/core-server/src/base/repositories/common/types.ts`
+- `packages/core-server/src/base/repositories/core/readable.ts`
+- `packages/core-server/src/base/repositories/core/abstract.ts`
 
 **Problem:** When building paginated APIs, you often need to return both the data and total count for pagination UI (showing "Page 1 of 10" or "Showing 1-20 of 200 results"). Previously, this required two separate queries.
 
@@ -52,7 +52,7 @@ const result = await userRepo.find({
 
 ### TDataRange Type
 
-**File:** `packages/core/src/base/repositories/common/types.ts`
+**File:** `packages/core-server/src/base/repositories/common/types.ts`
 
 New type for range information following HTTP Content-Range standard:
 
@@ -102,7 +102,7 @@ const [data, { count: total }] = await Promise.all([
 
 ## Files Changed
 
-### Core Package (`packages/core`)
+### Core Package (`packages/core-server`)
 
 | File | Changes |
 |------|---------|

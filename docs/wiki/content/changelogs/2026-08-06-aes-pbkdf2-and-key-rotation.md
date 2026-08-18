@@ -128,4 +128,4 @@ Read with `LegacyAES`, write with `AES`, in one pass over the data. Give the new
 - [`packages/helpers/src/modules/crypto/algorithms/aes.algorithm.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/crypto/algorithms/aes.algorithm.ts)
 - [`packages/helpers/src/modules/crypto/algorithms/aes-legacy.algorithm.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/crypto/algorithms/aes-legacy.algorithm.ts)
 - [`packages/helpers/src/modules/crypto/algorithms/base.algorithm.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/crypto/algorithms/base.algorithm.ts)
-- [`packages/core/src/components/auth/authenticate/services/bearer/abstract.service.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core/src/components/auth/authenticate/services/bearer/abstract.service.ts)
+- [`packages/core-server/src/components/auth/authenticate/services/bearer/abstract.service.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/components/auth/authenticate/services/bearer/abstract.service.ts)

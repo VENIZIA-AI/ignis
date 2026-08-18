@@ -152,9 +152,9 @@ extra: {
 
 **Files:**
 
-- [`packages/core/src/components/static-asset/component.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core/src/components/static-asset/component.ts) - `StaticAssetComponent`
-- [`packages/core/src/components/static-asset/common/types.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core/src/components/static-asset/common/types.ts) - `TStaticAssetsComponentOptions`, `TStaticAssetExtraOptions`, `TMetaLinkConfig`
-- [`packages/core/src/components/static-asset/common/constants.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core/src/components/static-asset/common/constants.ts) - `StaticAssetStorageTypes`
-- [`packages/core/src/components/static-asset/controller/factory.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core/src/components/static-asset/controller/factory.ts) - `AssetControllerFactory`
-- [`packages/core/src/components/static-asset/models/base.model.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core/src/components/static-asset/models/base.model.ts) - `BaseMetaLinkModel`
+- [`packages/core-server/src/components/static-asset/component.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/components/static-asset/component.ts) - `StaticAssetComponent`
+- [`packages/core-server/src/components/static-asset/common/types.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/components/static-asset/common/types.ts) - `TStaticAssetsComponentOptions`, `TStaticAssetExtraOptions`, `TMetaLinkConfig`
+- [`packages/core-server/src/components/static-asset/common/constants.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/components/static-asset/common/constants.ts) - `StaticAssetStorageTypes`
+- [`packages/core-server/src/components/static-asset/controller/factory.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/components/static-asset/controller/factory.ts) - `AssetControllerFactory`
+- [`packages/core-server/src/components/static-asset/models/base.model.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/components/static-asset/models/base.model.ts) - `BaseMetaLinkModel`
 - [`packages/helpers/src/modules/storage/base.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/storage/base.ts) - `BaseStorageHelper`, `IStorageHelper`

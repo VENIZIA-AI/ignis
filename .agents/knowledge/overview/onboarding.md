@@ -12,9 +12,10 @@ Follow this order. Each step depends on the one before it.
 
 Start with [What is IGNIS](/overview/what-is-ignis.md) - LoopBack 4's architecture on Hono's
 speed, and why that combination exists. Then skim
-[Monorepo layout](/overview/monorepo-layout.md) to know where the five packages
-(`dev-configs`, `inversion`, `helpers`, `boot`, `core`) live and that they build in that fixed
-dependency order.
+[Monorepo layout](/overview/monorepo-layout.md) to know where the seven packages
+(`dev-configs`, `inversion`, `filter`, `helpers`, `kernel`, `boot`, `core`) live and that they build
+in a fixed dependency order: `dev-configs` -> `inversion` -> {`filter`, `helpers`} ->
+{`boot`, `kernel`} -> `core`.
 
 ## 2. Install and build
 
@@ -23,7 +24,7 @@ git clone https://github.com/venizia-ai/ignis.git
 cd ignis
 bun install
 make setup-hooks   # enables the repo's pre-commit hook (git config core.hooksPath .githooks)
-make build         # rebuilds every package, dev-configs -> inversion -> helpers -> boot -> core
+make build         # rebuilds every package in dependency order, ending at core
 ```
 
 Do not skip `make build`. Every package's `dist/` is gitignored and every downstream package
@@ -49,7 +50,7 @@ hello world.
 ## 4. Run the tests
 
 ```bash
-cd packages/core && bun test
+cd packages/core-server && bun test
 ```
 
 `core` and `helpers` run tests straight from `src/`; `boot` is the exception - it runs compiled

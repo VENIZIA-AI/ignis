@@ -60,5 +60,5 @@ value is both untrue and a source of churn.
 ## Conventions
 
 Bundle content follows the repo docs rules: hyphen not em-dash, the brand is always **IGNIS**,
-English prose, links are bundle-absolute (`](/packages/core.md)`). Links inside code fences are
+English prose, links are bundle-absolute (`](/packages/core-server.md)`). Links inside code fences are
 examples and are ignored by both the link checker and the graph builder.

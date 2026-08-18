@@ -2,11 +2,21 @@
 type: Architecture
 title: Authentication
 description: How the AuthenticateComponent wires token services, how strategies are registered and resolved, and what a request actually goes through to become an authenticated user.
-resource: packages/core/src/components/auth/authenticate
+resource: packages/kernel/src/base/auth/authenticate
 tags: [architecture, authentication, jwt, jwks, basic, components]
 ---
 
 Authentication in IGNIS is a component plus a strategy registry plus a Hono middleware. The three are deliberately separate: the component configures **token services**, the app registers **strategies**, and the middleware runs them per route.
+
+## Where the code lives
+
+The tree is split across two packages. The seam lives in `@venizia/ignis-kernel` at `packages/kernel/src/base/auth/authenticate`: all of `common` (`Authentication`, `AuthenticationModes`, `JOSEStandards`, `JWKSModes`, `AuthenticateBindingKeys`, `IAuthenticationStrategy`, `IAuthUser`, `AuthenticationErrors`, `AuthenticationFieldCodecs`), `AuthenticationProvider`, the `authenticate()` middleware, and `AuthenticationStrategyRegistry` over `AbstractAuthRegistry` (`packages/kernel/src/base/auth/base`). The Hono context variable declarations and the sign-in / sign-up / change-password request schemas moved with it.
+
+The concrete half stays in core at `packages/core-server/src/components/auth/authenticate`: `AuthenticateComponent`, the token services (`BasicTokenService`, `JWSTokenService`, `JWKSIssuerTokenService`, `JWKSVerifierTokenService`), the shipped strategies and the generated controllers. Core's barrels re-export the kernel barrel, so `@/components/auth` and the `@venizia/ignis` root entrypoint still resolve every moved symbol. Unqualified paths below are core-relative.
+
+### Leaf imports, never barrels
+
+Inside `base/auth`, the providers and registries reach each other by **leaf import**: `AuthenticationProvider` imports `../strategies/strategy-registry`, `AuthorizationProvider` imports `../enforcers/enforcer-registry`, and `IAuthUser` comes from `authenticate/common/types` rather than the `authenticate` barrel. `BaseRestController` value-imports the authenticate and authorize middleware leaves, and the `authenticate` barrel pulls those middlewares in (and, through core's re-export, the auth controllers whose factory extends `BaseRestController`) - so a barrel import from inside auth closes a `base/controllers` <-> `auth` module initialization cycle. `packages/core-server/src/__tests__/auth/registry-leaf-imports.test.ts` reads across the package boundary to enforce this; do not tidy the imports back onto the barrels.
 
 ## AuthenticateComponent
 

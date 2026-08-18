@@ -23,9 +23,9 @@ WHEN NOT TO USE:
 
 WORKFLOW:
 1. Start at root: listProjectFiles()
-2. Explore a package: listProjectFiles({ directoryPath: "packages/core/src" })
+2. Explore a package: listProjectFiles({ directoryPath: "packages/core-server/src" })
 3. Identify a file of interest
-4. Read the file: viewSourceFile({ filePath: "packages/core/src/application.ts" })
+4. Read the file: viewSourceFile({ filePath: "packages/core-server/src/application.ts" })
 `;
 
 const DIRECTORY_PATH_DESCRIPTION = `
@@ -35,7 +35,7 @@ If omitted, it defaults to the root of the repository.
 EXAMPLES:
 - "." (or omitted) -> lists the root directory
 - "packages" -> lists the contents of the 'packages' directory
-- "packages/core/src" -> lists the source files of the core package
+- "packages/core-server/src" -> lists the source files of the core package
 `;
 
 const InputSchema = z.object({

@@ -10,9 +10,9 @@ Every binding key, configuration option, callback signature, and internal mechan
 
 **Files:**
 
-- [`packages/core/src/components/websocket/component.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core/src/components/websocket/component.ts)
-- [`packages/core/src/components/websocket/common/types.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core/src/components/websocket/common/types.ts)
-- [`packages/core/src/components/websocket/handlers/bun.handler.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core/src/components/websocket/handlers/bun.handler.ts)
+- [`packages/core-server/src/components/websocket/component.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/components/websocket/component.ts)
+- [`packages/core-server/src/components/websocket/common/types.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/components/websocket/common/types.ts)
+- [`packages/core-server/src/components/websocket/handlers/bun.handler.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/components/websocket/handlers/bun.handler.ts)
 - [`packages/helpers/src/modules/socket/websocket/server/helper.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/socket/websocket/server/helper.ts)
 - [`packages/helpers/src/modules/socket/websocket/emitter/helper.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/socket/websocket/emitter/helper.ts)
 
@@ -285,7 +285,7 @@ Reads all binding keys and validates the required ones, throwing before the post
 | Binding | Validation | Error on failure |
 |---------|-----------|------------------|
 | `SERVER_OPTIONS` | Optional, merged with `DEFAULT_SERVER_OPTIONS` via `Object.assign()` | -- |
-| `REDIS_CONNECTION` | Must be `instanceof AbstractRedisHelper` | `"Invalid instance of redisConnection ..."` |
+| `REDIS_CONNECTION` | Must pass `isRedisHelper()` | `"Invalid instance of redisConnection ..."` |
 | `AUTHENTICATE_HANDLER` | Must be truthy | `"Invalid authenticateFn to setup WebSocket server!"` |
 | `VALIDATE_ROOM_HANDLER` / `CLIENT_CONNECTED_HANDLER` / `CLIENT_DISCONNECTED_HANDLER` / `MESSAGE_HANDLER` / `OUTBOUND_TRANSFORMER` / `HANDSHAKE_HANDLER` | Optional, `null` coerced to `undefined` | -- |
 

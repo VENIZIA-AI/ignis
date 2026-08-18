@@ -95,7 +95,7 @@ await repo.find({ filter: { where: { invalidColumn: 'value' } } });
 
 ### DataSource Schema Auto-Discovery
 
-**File:** `packages/core/src/base/datasources/base.ts`
+**File:** `packages/core-server/src/base/datasources/base.ts`
 
 **Problem:** Manual schema merging was error-prone and verbose.
 
@@ -116,7 +116,7 @@ export class PostgresDataSource extends BaseDataSource<...> {
 
 ### String ID with Custom Generator
 
-**File:** `packages/core/src/base/models/enrichers/id.enricher.ts`
+**File:** `packages/core-server/src/base/models/enrichers/id.enricher.ts`
 
 **Problem:** Need flexible ID generation with maximum database compatibility.
 
@@ -134,7 +134,7 @@ export class PostgresDataSource extends BaseDataSource<...> {
 
 ### Case-Insensitive REGEXP (IREGEXP)
 
-**File:** `packages/core/src/base/repositories/operators/query.ts`
+**File:** `packages/core-server/src/base/repositories/operators/query.ts`
 
 **Problem:** PostgreSQL regex matching is case-sensitive by default.
 
@@ -146,7 +146,7 @@ await repo.find({ filter: { where: { name: { IREGEXP: '^john' } } } });
 
 ### Repository Log Option
 
-**File:** `packages/core/src/base/repositories/core/persistable.ts`
+**File:** `packages/core-server/src/base/repositories/core/persistable.ts`
 
 **Problem:** Debugging repository operations was difficult without logging.
 
@@ -188,7 +188,7 @@ await repo.find({ filter: { where: { age: { BETWEEN: [10] } } } });
 
 ## Files Changed
 
-### Core Package (`packages/core`)
+### Core Package (`packages/core-server`)
 
 | File | Changes |
 |------|---------|

@@ -2,13 +2,15 @@
 type: Architecture
 title: Filter system
 description: The engine-neutral filter vocabulary, how FilterBuilder translates it into Drizzle, and why find() silently switches between two different Drizzle query APIs.
-resource: packages/core/src/connectors/relational/repositories/dialect/filter.ts
+resource: packages/core-server/src/connectors/relational/repositories/dialect/filter.ts
 tags: [architecture, filter, query, drizzle, postgres]
 ---
 
 A filter is a plain options object: `{ where, order, limit, offset, skip, fields, include }`. The vocabulary lives in its own package, [`@venizia/ignis-filter`](/packages/filter.md), and is **engine-neutral** - support differs per engine, and an unsupported operator throws at translation time rather than being quietly dropped from the list.
 
-The vocabulary is also **browser-safe**, and that is enforced rather than assumed: `packages/filter/src/__tests__/browser-purity.test.ts` bundles the barrel for `target: 'browser'` and fails on any `node:*` builtin or any package outside `@venizia/ignis-inversion` / `lodash` / `reflect-metadata`. The zod schemas that validate a filter arriving over HTTP stay in `core/src/base/repositories/query-schemas/`, coupled to `@hono/zod-openapi` - that is correct for them, they parse query strings. `core` re-exports the package from `base/repositories/common/index.ts`, so every existing `@venizia/ignis-core` import keeps resolving.
+The vocabulary is also **browser-safe**, and that is enforced rather than assumed - centrally, not per package. `scripts/purity/cli.ts` (with `probe.ts` and `manifest.ts`) bundles each claimed package's built `dist` entry with `bun build --target=browser` and fails on any leftover node builtin import, any unresolved external import, or any node global (`process.`, `__dirname`, `__filename`, `createRequire(`) surviving in the bundled text. `make purity` checks every entry in the manifest, `make purity-filter` only this package.
+
+The zod schemas that validate a filter arriving over HTTP come in two layers. `packages/filter/src/schemas/builder.ts` builds them with plain `zod`, so a browser can use them; `packages/kernel/src/base/repositories/query-schemas/index.ts` calls `buildQuerySchemas({ decorate })` to add the `@hono/zod-openapi` documentation metadata - a server concern, and the load-bearing side-effect `import '@hono/zod-openapi'` that patches `.openapi()` onto the shared prototype sits in that kernel file. The repository base classes live in the browser-pure `@venizia/ignis-kernel` package, not in `core/src/base/repositories/`, and kernel re-exports the filter package from `base/repositories/common/index.ts`, so every existing `@venizia/ignis-core` import keeps resolving.
 
 ## Operators
 

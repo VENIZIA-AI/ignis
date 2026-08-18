@@ -192,7 +192,7 @@ All IGNIS example apps already declare both flags directly for this reason.
 | `src/connectors/memory/**` | New connector - `MemoryDataSource`, `MemoryRepository`, `where-matcher.ts` |
 | `src/utilities/error.utility.ts` | New. `throwNotSupported` shared utility |
 | `src/components/auth/authenticate/controllers/factory.ts` | Unimplemented-endpoint responses use `throwNotSupported` |
-| `packages/core/package.json` | New `exports` sub-paths (`./postgres`, `./memory`, `./typesense`); `typesense` added as optional peer |
+| `packages/core-server/package.json` | New `exports` sub-paths (`./postgres`, `./memory`, `./typesense`); `typesense` added as optional peer |
 | `packages/helpers/src/modules/search-engine/` | Removed - folded into `@venizia/ignis`'s Typesense connector |
 | `packages/helpers/src/modules/env/app-env.ts` | Breaking - `ApplicationEnvironment.get` options-based signature |
 | `packages/helpers/src/utilities/parse.utility.ts` | New. `toDelimitedArray`, `toTrimmed` transforms |

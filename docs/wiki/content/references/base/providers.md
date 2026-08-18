@@ -10,7 +10,7 @@ lastUpdated: 2026-03-15
 Providers implement the Factory pattern in IGNIS, allowing you to create and configure instances dynamically at runtime based on configuration or context. Unlike services that contain business logic, providers are factories that produce values, instances, or functions.
 
 **Files:**
-- `packages/core/src/base/providers/base.ts`
+- `packages/core-server/src/base/providers/base.ts`
 
 ## Prerequisites
 
@@ -350,7 +350,7 @@ app.bind({ key: 'providers.Database' }).toProvider(DatabaseProvider);
 
 ### Example 1: Mail Transport Provider
 
-From `packages/core/src/components/mail/providers/mail-transporter.provider.ts`:
+From `packages/core-server/src/components/mail/providers/mail-transporter.provider.ts`:
 
 ```typescript
 export type TGetMailTransportFn = (options: TMailOptions) => IMailTransport;
@@ -419,7 +419,7 @@ this.application.bind({ key: MailKeys.MAIL_TRANSPORT_INSTANCE }).toValue(mailTra
 
 ### Example 2: Queue Executor Provider
 
-From `packages/core/src/components/mail/providers/mail-queue-executor.provider.ts`:
+From `packages/core-server/src/components/mail/providers/mail-queue-executor.provider.ts`:
 
 ```typescript
 export type TGetMailQueueExecutorFn = (config: IMailQueueExecutorConfig) => IMailQueueExecutor;
@@ -472,7 +472,7 @@ export class MailQueueExecutorProvider extends BaseProvider<TGetMailQueueExecuto
 Providers can also produce middleware. `RequestSpyMiddleware` is a real-world example that implements `IProvider<MiddlewareHandler>` directly (extending `BaseHelper`, not `BaseProvider`):
 
 ```typescript
-// From packages/core/src/base/middlewares/request-spy/request-spy.middleware.ts
+// From packages/core-server/src/base/middlewares/request-spy/request-spy.middleware.ts
 export class RequestSpyMiddleware extends BaseHelper implements IProvider<MiddlewareHandler> {
   static readonly REQUEST_ID_KEY = 'requestId';
 

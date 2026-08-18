@@ -21,7 +21,7 @@ The generated authentication controller now exposes a `POST /token/refresh` rout
 
 ### `POST /token/refresh`
 
-**File:** `packages/core/src/components/auth/authenticate/controllers/factory.ts`
+**File:** `packages/core-server/src/components/auth/authenticate/controllers/factory.ts`
 
 **Problem:** There was no first-class way to renew an access token. Clients had to re-run the full sign-in flow when a token neared expiry.
 
@@ -54,7 +54,7 @@ this.defineRoute({
 
 ### `IAuthService.refreshToken`
 
-**File:** `packages/core/src/components/auth/authenticate/common/types.ts`
+**File:** `packages/core-server/src/components/auth/authenticate/common/types.ts`
 
 The auth service interface gains an optional method and a matching response-type generic (`RTRS`):
 
@@ -104,7 +104,7 @@ defineAuthController({
 
 ## Files Changed
 
-### Core Package (`packages/core`)
+### Core Package (`packages/core-server`)
 
 | File | Changes |
 |------|---------|

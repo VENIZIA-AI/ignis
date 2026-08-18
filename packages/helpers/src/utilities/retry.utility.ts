@@ -1,7 +1,7 @@
 import type { TConstValue, ValueOrPromise } from '@/common';
 import { getError } from '@/modules/error';
 import type { ILogger } from '@/modules/logger';
-import { sleep } from './date.utility';
+import { sleep } from './sleep.utility';
 
 export class RetryBackoffStrategies {
   static readonly FIXED = 'fixed';

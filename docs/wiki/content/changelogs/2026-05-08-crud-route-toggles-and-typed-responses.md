@@ -20,7 +20,7 @@ The CRUD controller factory gains fine-grained control over which generated rout
 
 ### Enable / disable generated routes
 
-**File:** `packages/core/src/base/controllers/factory/controller.ts`, `packages/core/src/base/controllers/common/types.ts`
+**File:** `packages/core-server/src/base/controllers/factory/controller.ts`, `packages/core-server/src/base/controllers/common/types.ts`
 
 **Problem:** `defineCrudController` always registered the full CRUD surface (`count`, `find`, `findOne`, `create`, `updateById`, `updateBy`, `deleteById`, `deleteBy`). Hiding a route meant writing a custom controller.
 
@@ -72,7 +72,7 @@ controller: {
 
 ### Typed `context.json()`
 
-**File:** `packages/core/src/base/controllers/common/types.ts`
+**File:** `packages/core-server/src/base/controllers/common/types.ts`
 
 **Problem:** `context.json(body)` accepted any body - a handler could return a shape that didn't match its declared OpenAPI response schema, with no compile-time check.
 
@@ -104,7 +104,7 @@ export type TResponseBodyOf<R extends { responses: AnyType }> = /* distributive 
 
 ### Base controller `.d.ts` serialization (TS7056)
 
-**File:** `packages/core/src/base/controllers/factory/controller.ts`
+**File:** `packages/core-server/src/base/controllers/factory/controller.ts`
 
 The generated controller class previously passed `typeof routeDefinitions` as a 5th generic to `BaseRestController`. For entities with complex Zod schemas this forced TypeScript to serialize the entire route-definitions tree into the emitted `.d.ts`, exceeding the serializer limit (TS7056 - "The inferred type of this node exceeds the maximum length the compiler will serialize").
 
@@ -123,7 +123,7 @@ class extends BaseRestController<RouteEnv, RouteSchema, BasePath, ConfigurableOp
 
 ## Files Changed
 
-### Core Package (`packages/core`)
+### Core Package (`packages/core-server`)
 
 | File | Changes |
 |------|---------|

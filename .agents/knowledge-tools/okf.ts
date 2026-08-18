@@ -417,8 +417,8 @@ const renderComponents = (): GeneratedFile => {
     content:
       refHeader({
         title: 'Components catalog',
-        description: 'Every component under packages/core/src/components and its exported classes (generated).',
-        resource: 'packages/core/src/components',
+        description: 'Every component under packages/core-server/src/components and its exported classes (generated).',
+        resource: 'packages/core-server/src/components',
         tags: 'reference, components, core',
       }) +
       generatedNote({ seeAlso: 'Model: [component model](/architecture/component-model.md).' }) +
@@ -475,7 +475,7 @@ const renderBindingKeys = (): GeneratedFile => {
       refHeader({
         title: 'Binding keys',
         description: 'Every dependency-injection binding key declared in core (generated).',
-        resource: 'packages/core/src/common/bindings.ts',
+        resource: 'packages/core-server/src/common/bindings.ts',
         tags: 'reference, bindings, di',
       }) +
       generatedNote({ seeAlso: 'Namespaces: [binding key namespaces](/conventions/binding-key-namespaces.md).' }) +

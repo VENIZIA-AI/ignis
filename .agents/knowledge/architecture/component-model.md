@@ -2,13 +2,19 @@
 type: Architecture
 title: Component model
 description: What an IGNIS component is, how it declares its bindings, and where it runs in the application lifecycle.
-resource: packages/core/src/base/components
+resource: packages/kernel/src/base/components
 tags: [architecture, components, lifecycle, di]
 ---
 
 A component is IGNIS's unit of pluggable capability: a class that owns a set of default bindings and
 one `binding()` method that wires itself into the application. Health checks, the API reference UI,
 authentication, mail, static assets and Socket.IO are all components.
+
+The base class and the components live in different packages. `BaseComponent` is browser-pure and
+ships from `@venizia/ignis-kernel` (`packages/kernel/src/base/components/base.ts`); every concrete
+component - health check, api-reference, request-tracker, auth, mail, socket-io, static-asset,
+websocket, plus the REST and gRPC controller components - stays in `packages/core-server/src/components/`.
+So a component class is written in core and imports its base from the kernel.
 
 `BaseComponent extends BaseHelper implements IConfigurable` is small on purpose:
 
@@ -85,9 +91,10 @@ is why `registerComponents()` sits between `registerDataSources()` and `register
 
 ## Barrel-exported versus sub-path only
 
-`src/components/index.ts` exports only `auth`, `controller`, `health-check`, `request-tracker` and
-`api-reference`. The rest - `mail`, `socket-io`, `static-asset`, `websocket` - are commented out of
-the barrel on purpose and must be imported from their sub-path: they pull in optional peer
+Core's `src/components/index.ts` exports only `auth`, `controller`, `health-check`,
+`request-tracker` and `api-reference`. The rest - `mail`, `socket-io`, `static-asset`, `websocket` -
+are commented out of the barrel on purpose and must be imported from their sub-path: they pull in
+optional peer
 dependencies, and barrelling them would drag those peers into every consumer whether used or not.
 
 ## Related

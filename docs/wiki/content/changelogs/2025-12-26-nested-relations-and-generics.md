@@ -19,7 +19,7 @@ This update introduces support for deeply nested relation queries in repositorie
 
 ### Nested Relations Support
 
-**File:** `packages/core/src/base/repositories/operators/filter.ts`
+**File:** `packages/core-server/src/base/repositories/operators/filter.ts`
 
 **Problem:** Previously, the `FilterBuilder` could only resolve relations for the root entity. Nested includes (e.g., `include: [{ relation: 'a', scope: { include: [{ relation: 'b' }] } }]`) failed because it didn't know the schema of relation 'a'.
 
@@ -41,7 +41,7 @@ const result = await repo.findOne({
 
 ### Generic Repository Methods
 
-**File:** `packages/core/src/base/repositories/common/types.ts`
+**File:** `packages/core-server/src/base/repositories/common/types.ts`
 
 **Problem:** Repository methods like `findOne` were hardcoded to return the base `DataObject`. When using `include`, the return type didn't reflect the added relations, forcing users to use `as any` or unsafe casts.
 
@@ -67,7 +67,7 @@ console.log(user?.posts.length);
 
 ## Files Changed
 
-### Core Package (`packages/core`)
+### Core Package (`packages/core-server`)
 
 | File | Changes |
 |------|---------|

@@ -17,6 +17,9 @@ This section tracks the history of significant changes, refactors, and updates t
 
 | Date | Title | Type |
 |------|-------|------|
+| 2026-08-18 | [A Second ID Generator, for IDs People Read](./2026-08-18-opaque-uid-helper) | New Feature |
+| 2026-08-18 | [Every Browser-Safe Package Now Ships ESM](./2026-08-18-esm-builds-and-one-default-stack) | Enhancement, Bug Fix, Behavior Change |
+| 2026-08-13 | [A Browser-Pure Kernel Under `@venizia/ignis`](./2026-08-13-browser-pure-kernel) | New Feature, Enhancement, Internal Refactor |
 | 2026-08-12 | [Log Arguments Under `%j` No Longer Collapse to `[Circular]`](./2026-08-12-json-log-arguments) | Bug Fix, Security, Behavior Change |
 | 2026-08-07 | [Call Sites No Longer Have to Know Which Fields Are Text](./2026-08-07-default-query-by) | New Feature, Enhancement |
 | 2026-08-07 | [Nested i18n Fields Become Filterable and Sortable](./2026-08-07-nested-fields-and-order-validation) | New Feature, Bug Fix, Behavior Change |

@@ -86,7 +86,31 @@ export class LoggerResolver {
     return this.active({ scopes: opts.scopes });
   }
 
+  /**
+   * Without this, a node process logs to stdout while `APP_ENV_LOGGER_FOLDER_PATH` silently receives
+   * nothing. A guarded property read, never an import: even a dynamic `import('@venizia/ignis-helpers')`
+   * behind a node check puts the root barrel in this bundle and turns `/core` impure.
+   */
+  private static warnConsoleFallbackOnce(): void {
+    if (this.hasWarnedConsoleFallback || this.generation > 0) {
+      return;
+    }
+
+    if (!globalThis.process?.versions?.node) {
+      return;
+    }
+
+    this.hasWarnedConsoleFallback = true;
+    ConsoleLogger.get({ scope: LoggerResolver.name }).warn(
+      'Logging to the console: no logger provider is installed. Import `LoggerFactory` from `@venizia/ignis-helpers` once at startup - `@venizia/ignis` does it for you, a connectors-only or script-only import graph does not. Loggers built before that import upgrade themselves on their next call.',
+    );
+  }
+
   static resolve(opts: { scopes: Array<string> }): ILogger {
+    this.warnConsoleFallbackOnce();
+
     return new ResolvedLogger(opts.scopes);
   }
+
+  private static hasWarnedConsoleFallback = false;
 }

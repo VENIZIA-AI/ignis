@@ -33,9 +33,12 @@ end-to-end evidence that the lift worked.
   an explicit transaction, which is a property of the transport, not of the connector.
 - **Real migrations, applied in-process** - `src/migration.ts` is a drizzle-kit config pointing at
   the model file; `migrate()` from `drizzle-orm/libsql/migrator` runs inside `configure()`. Unlike
-  PGlite nothing forces this - libsql takes no exclusive lock, so `bun run migrate:dev` works too -
-  but an embedded database ships with the app, so a separate migrate step only adds a way to forget.
-  `__drizzle_migrations` makes every later boot a no-op.
+  PGlite nothing forces this - libsql takes no exclusive lock - but an embedded database ships with
+  the app, so a separate migrate step only adds a way to forget. `__drizzle_migrations` makes every
+  later boot a no-op. Where pglite-quickstart defines `migrate:generate` and `migrate:dev` scripts,
+  this example's `package.json` defines neither, so regenerating means invoking drizzle-kit directly
+  (`drizzle-kit generate --config=src/migration.ts`). Its README and a datasource comment still
+  name those scripts - the scripts are what is missing, not the config.
 - **Hand-written DDL is what drift looks like** - the first version of both examples carried a DDL
   string. Generating from the model proved the Postgres one had already diverged: it declared
   `id uuid default gen_random_uuid()` while `generateIdColumnDefs({ id: { dataType: 'string' } })`

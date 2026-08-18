@@ -4,10 +4,10 @@ Complete reference of all environment variables used by the IGNIS framework, gro
 
 **Files:**
 
-- [`packages/core/src/common/environments.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core/src/common/environments.ts) - `EnvironmentKeys`
+- [`packages/core-server/src/common/environments.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/common/environments.ts) - `EnvironmentKeys`
 - [`packages/helpers/src/modules/env/app-env.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/env/app-env.ts) - `applicationEnvironment`, `Environment`
-- [`packages/core/src/base/applications/abstract.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core/src/base/applications/abstract.ts) - `validateEnvs()`, host/port resolution priority
-- [`packages/core/src/base/applications/base.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core/src/base/applications/base.ts) - `registerSecrets()`, `hydrateSecrets()`
+- [`packages/core-server/src/base/applications/abstract.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/base/applications/abstract.ts) - `validateEnvs()`, host/port resolution priority
+- [`packages/core-server/src/base/applications/base.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/base/applications/base.ts) - `registerSecrets()`, `hydrateSecrets()`
 - [`packages/helpers/src/modules/secrets/common/constants.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/secrets/common/constants.ts) - `SecretProviders`, `VaultAuthMethods`
 - [`packages/helpers/src/modules/secrets/hashicorp/hashicorp.helper.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/secrets/hashicorp/hashicorp.helper.ts) - HashiCorp Vault helper
 
@@ -124,7 +124,7 @@ APP_ENV_SERVER_BASE_PATH=/v1/api
 
 ### Priority Order
 
-The server host/port resolution uses this priority (`packages/core/src/base/applications/abstract.ts`):
+The server host/port resolution uses this priority (`packages/core-server/src/base/applications/abstract.ts`):
 1. Explicit config passed to the application constructor
 2. `HOST`/`PORT` variables (for cloud platforms)
 3. `APP_ENV_SERVER_HOST`/`APP_ENV_SERVER_PORT` variables
@@ -335,7 +335,7 @@ APP_ENV_MAIL_REFRESH_TOKEN=your-oauth2-refresh-token
 > [!WARNING] These two name the datasource, they do not select it
 > `APP_ENV_DS_MIGRATION` and `APP_ENV_DS_AUTHORIZE` reach the startup banner and nothing else - the framework does not resolve a datasource from either. Wire your own lookup if you need one.
 
-`Environments` (`packages/core/src/common/environments.ts`) also declares `APP_ENV_APPLICATION_DS_MIGRATION`, `APP_ENV_APPLICATION_DS_AUTHORIZE` and `APP_ENV_APPLICATION_DS_OAUTH2`. Those are name constants with no reader anywhere in the framework - setting them changes nothing.
+`Environments` (`packages/core-server/src/common/environments.ts`) also declares `APP_ENV_APPLICATION_DS_MIGRATION`, `APP_ENV_APPLICATION_DS_AUTHORIZE` and `APP_ENV_APPLICATION_DS_OAUTH2`. Those are name constants with no reader anywhere in the framework - setting them changes nothing.
 
 
 ## Debug Variables
@@ -421,7 +421,7 @@ MY_APP_POSTGRES_HOST=localhost
 
 ## Validation
 
-On startup, IGNIS iterates every `APP_ENV_*` (prefixed) variable that is set and throws if any has an empty value (`validateEnvs` in `packages/core/src/base/applications/abstract.ts`). It does not check for variables that are absent entirely - component-level validation (e.g., the authentication component's `jwtSecret` check) covers required values.
+On startup, IGNIS iterates every `APP_ENV_*` (prefixed) variable that is set and throws if any has an empty value (`validateEnvs` in `packages/core-server/src/base/applications/abstract.ts`). It does not check for variables that are absent entirely - component-level validation (e.g., the authentication component's `jwtSecret` check) covers required values.
 
 ### Disable Validation
 

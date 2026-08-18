@@ -10,9 +10,9 @@ Every option, binding key, class, and method the Authentication component expose
 
 **Files:**
 
-- [`packages/core/src/components/auth/authenticate/`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core/src/components/auth/authenticate) - component, services, strategies, controllers
-- [`packages/core/src/components/auth/models/`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core/src/components/auth/models) - entity column helpers + request schemas
-- [`packages/core/src/components/auth/base/abstract-auth-registry.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core/src/components/auth/base/abstract-auth-registry.ts) - `AbstractAuthRegistry`
+- [`packages/core-server/src/components/auth/authenticate/`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/components/auth/authenticate) - component, services, strategies, controllers
+- [`packages/core-server/src/components/auth/models/`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/components/auth/models) - entity column helpers + request schemas
+- [`packages/core-server/src/components/auth/base/abstract-auth-registry.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/components/auth/base/abstract-auth-registry.ts) - `AbstractAuthRegistry`
 
 ## Find what you need
 
@@ -442,7 +442,7 @@ AbstractBearerTokenService<E>          (extends BaseService)
 
 ### AbstractBearerTokenService
 
-**File:** [`packages/core/src/components/auth/authenticate/services/bearer/abstract.service.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core/src/components/auth/authenticate/services/bearer/abstract.service.ts)
+**File:** [`packages/core-server/src/components/auth/authenticate/services/bearer/abstract.service.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/components/auth/authenticate/services/bearer/abstract.service.ts)
 
 | Method | Signature | Description |
 |--------|-----------|-------------|
@@ -458,19 +458,19 @@ Static: `JWT_COMMON_FIELDS: Set<'iss'|'sub'|'aud'|'jti'|'nbf'|'exp'|'iat'>` - ne
 
 ### JWSTokenService
 
-**File:** [`packages/core/src/components/auth/authenticate/services/bearer/jws.service.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core/src/components/auth/authenticate/services/bearer/jws.service.ts)
+**File:** [`packages/core-server/src/components/auth/authenticate/services/bearer/jws.service.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/components/auth/authenticate/services/bearer/jws.service.ts)
 
 The constructor validates `jwtSecret` and `getTokenExpiresFn`, throwing `500` if either is missing. It encodes the secret to `Uint8Array` and calls `configurePayloadEncryption()`. `doVerify` calls `jose.jwtVerify()` with the shared secret. `getSigner` signs with header `HS256`, or `headerAlgorithm` if you set one.
 
 ### AbstractJWKSTokenService
 
-**File:** [`packages/core/src/components/auth/authenticate/services/bearer/jwks/abstract.service.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core/src/components/auth/authenticate/services/bearer/jwks/abstract.service.ts)
+**File:** [`packages/core-server/src/components/auth/authenticate/services/bearer/jwks/abstract.service.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/components/auth/authenticate/services/bearer/jwks/abstract.service.ts)
 
 `ensureInitialized()` lazily runs `initialize()` on the first call. Concurrent callers share the pending promise. If `initialize()` rejects, the promise resets - the next call retries instead of caching the failure.
 
 ### JWKSIssuerTokenService
 
-**File:** [`packages/core/src/components/auth/authenticate/services/bearer/jwks/issuer.service.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core/src/components/auth/authenticate/services/bearer/jwks/issuer.service.ts)
+**File:** [`packages/core-server/src/components/auth/authenticate/services/bearer/jwks/issuer.service.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/components/auth/authenticate/services/bearer/jwks/issuer.service.ts)
 
 `initialize()` runs in order:
 
@@ -486,13 +486,13 @@ The constructor validates `jwtSecret` and `getTokenExpiresFn`, throwing `500` if
 
 ### JWKSVerifierTokenService
 
-**File:** [`packages/core/src/components/auth/authenticate/services/bearer/jwks/verifier.service.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core/src/components/auth/authenticate/services/bearer/jwks/verifier.service.ts)
+**File:** [`packages/core-server/src/components/auth/authenticate/services/bearer/jwks/verifier.service.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/components/auth/authenticate/services/bearer/jwks/verifier.service.ts)
 
 `initialize()` calls `createRemoteJWKSet(jwksUrl, { cacheMaxAge: cacheTtlMs ?? 43_200_000, cooldownDuration: cooldownMs ?? 30_000 })`. `getSigner`/`getSigningKey`/`getDefaultTokenExpiresFn` all throw - this service is verify-only.
 
 ### BasicTokenService
 
-**File:** [`packages/core/src/components/auth/authenticate/services/basic/service.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core/src/components/auth/authenticate/services/basic/service.ts)
+**File:** [`packages/core-server/src/components/auth/authenticate/services/basic/service.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/components/auth/authenticate/services/basic/service.ts)
 
 | Method | Signature | Description |
 |--------|-----------|-------------|
@@ -512,10 +512,10 @@ All four strategies extend `BaseHelper` and implement `IAuthenticationStrategy<E
 
 | Strategy | `name` | Injects | File |
 |----------|--------|---------|------|
-| `JWSAuthenticationStrategy` | `Authentication.STRATEGY_JWT` | `JWSTokenService` | [`strategies/jws.strategy.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core/src/components/auth/authenticate/strategies/jws.strategy.ts) |
-| `JWKSIssuerAuthenticationStrategy` | `Authentication.STRATEGY_JWT` | `JWKSIssuerTokenService` | [`strategies/jwks.strategy.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core/src/components/auth/authenticate/strategies/jwks.strategy.ts) |
+| `JWSAuthenticationStrategy` | `Authentication.STRATEGY_JWT` | `JWSTokenService` | [`strategies/jws.strategy.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/components/auth/authenticate/strategies/jws.strategy.ts) |
+| `JWKSIssuerAuthenticationStrategy` | `Authentication.STRATEGY_JWT` | `JWKSIssuerTokenService` | [`strategies/jwks.strategy.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/components/auth/authenticate/strategies/jwks.strategy.ts) |
 | `JWKSVerifierAuthenticationStrategy` | `Authentication.STRATEGY_JWT` | `JWKSVerifierTokenService` | same file |
-| `BasicAuthenticationStrategy` | `Authentication.STRATEGY_BASIC` | `BasicTokenService` | [`strategies/basic.strategy.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core/src/components/auth/authenticate/strategies/basic.strategy.ts) |
+| `BasicAuthenticationStrategy` | `Authentication.STRATEGY_BASIC` | `BasicTokenService` | [`strategies/basic.strategy.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/components/auth/authenticate/strategies/basic.strategy.ts) |
 
 > [!NOTE]
 > Choose the strategy class that matches your JOSE standard. `JWKSIssuerAuthenticationStrategy` and `JWKSVerifierAuthenticationStrategy` both register under the same `'jwt'` name - use only one of the two per service.
@@ -524,7 +524,7 @@ All four strategies extend `BaseHelper` and implement `IAuthenticationStrategy<E
 
 Serves the JWKS endpoint (default path `/certs`, configurable via `rest.path`). Intentionally unauthenticated - it serves the public keys external verifiers need.
 
-**File:** [`packages/core/src/components/auth/authenticate/controllers/jwks/controller.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core/src/components/auth/authenticate/controllers/jwks/controller.ts)
+**File:** [`packages/core-server/src/components/auth/authenticate/controllers/jwks/controller.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/components/auth/authenticate/controllers/jwks/controller.ts)
 
 ```typescript
 class JWKSController extends BaseRestController {
@@ -551,7 +551,7 @@ The component applies `@controller({ path })` to `JWKSController` dynamically at
 
 `defineAuthController(opts: TDefineAuthControllerOpts): typeof AuthController` builds a `BaseRestController` subclass at runtime.
 
-**File:** [`packages/core/src/components/auth/authenticate/controllers/factory.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core/src/components/auth/authenticate/controllers/factory.ts)
+**File:** [`packages/core-server/src/components/auth/authenticate/controllers/factory.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/components/auth/authenticate/controllers/factory.ts)
 
 **How it works:**
 
@@ -593,7 +593,7 @@ type TPolicyDefinitionCommonColumns = {
 ## File structure
 
 ```
-packages/core/src/components/auth/
+packages/core-server/src/components/auth/
 ├── authenticate/
 │   ├── common/
 │   │   ├── codecs.ts             # AuthenticationFieldCodecs (ROLES_CODEC, build() factory)

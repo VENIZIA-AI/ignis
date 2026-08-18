@@ -72,11 +72,11 @@ as concepts are added.
 
 | Changed area | Concepts to verify (under `.agents/knowledge/`) |
 |---|---|
-| `packages/core/src/base/applications` | architecture/application-lifecycle, packages/core |
-| `packages/core/src/base/repositories`, `src/connectors` | architecture/repository-hierarchy, architecture/datasource-hierarchy, architecture/filter-system, architecture/transactions, architecture/search-typesense, packages/core |
-| `packages/core/src/components` | architecture/component-model, architecture/controller-system, architecture/authentication, architecture/authorization-casbin, process/adding-a-component |
-| `packages/core/src/common/bindings.ts` | conventions/binding-key-namespaces |
-| `packages/core` (broad/other) | packages/core, architecture/error-handling-flow, conventions/gotchas |
+| `packages/core-server/src/base/applications` | architecture/application-lifecycle, packages/core-server |
+| `packages/core-server/src/base/repositories`, `src/connectors` | architecture/repository-hierarchy, architecture/datasource-hierarchy, architecture/filter-system, architecture/transactions, architecture/search-typesense, packages/core-server |
+| `packages/core-server/src/components` | architecture/component-model, architecture/controller-system, architecture/authentication, architecture/authorization-casbin, process/adding-a-component |
+| `packages/core-server/src/common/bindings.ts` | conventions/binding-key-namespaces |
+| `packages/core-server` (broad/other) | packages/core-server, architecture/error-handling-flow, conventions/gotchas |
 | `packages/boot` | packages/boot, architecture/boot-lifecycle |
 | `packages/inversion` | packages/inversion, architecture/di-container, conventions/gotchas |
 | `packages/helpers` | packages/helpers, conventions/error-handling, process/adding-a-helper |

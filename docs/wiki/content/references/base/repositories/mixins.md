@@ -11,8 +11,8 @@ lastUpdated: 2026-07-06
 
 **Files:**
 
-- [`packages/core/src/base/repositories/core/abstract.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core/src/base/repositories/core/abstract.ts) - `AbstractRepository` - `hiddenFields`/`defaultWhere`/`defaultLimit` getters
-- [`packages/core/src/connectors/postgres/repositories/core/base.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core/src/connectors/postgres/repositories/core/base.ts) - `RelationalBaseRepository` (alias `PostgresBaseRepository`) - `getHiddenProperties`, `getVisibleProperties`, `getDefaultFilter`, `applyDefaultFilter`
+- [`packages/core-server/src/base/repositories/core/abstract.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/base/repositories/core/abstract.ts) - `AbstractRepository` - `hiddenFields`/`defaultWhere`/`defaultLimit` getters
+- [`packages/core-server/src/connectors/postgres/repositories/core/base.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/connectors/postgres/repositories/core/base.ts) - `RelationalBaseRepository` (alias `PostgresBaseRepository`) - `getHiddenProperties`, `getVisibleProperties`, `getDefaultFilter`, `applyDefaultFilter`
 
 > [!WARNING] Removed
 > `FieldsVisibilityMixin` and `DefaultFilterMixin` are no longer exported and must not be imported or composed in new code.

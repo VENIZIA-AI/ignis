@@ -25,8 +25,8 @@ This release introduces **Default Filter** - a powerful feature that automatical
 ### Default Filter
 
 **Files:**
-- `packages/core/src/base/repositories/mixins/default-filter.ts`
-- `packages/core/src/base/repositories/operators/filter.ts`
+- `packages/core-server/src/base/repositories/mixins/default-filter.ts`
+- `packages/core-server/src/base/repositories/operators/filter.ts`
 
 **Problem:** Applications often need to apply the same filter conditions to every query - soft delete (`isDeleted: false`), tenant isolation (`tenantId: 'xxx'`), or active record patterns. Without a centralized solution, developers must manually add these conditions to every repository call.
 
@@ -120,9 +120,9 @@ await repo.deleteAll({
 ### Repository Mixins
 
 **Files:**
-- `packages/core/src/base/repositories/mixins/default-filter.ts`
-- `packages/core/src/base/repositories/mixins/fields-visibility.ts`
-- `packages/core/src/base/repositories/mixins/index.ts`
+- `packages/core-server/src/base/repositories/mixins/default-filter.ts`
+- `packages/core-server/src/base/repositories/mixins/fields-visibility.ts`
+- `packages/core-server/src/base/repositories/mixins/index.ts`
 
 **Problem:** Repository base classes were becoming monolithic with multiple concerns (hidden properties, default filters, transaction handling) mixed together.
 
@@ -172,7 +172,7 @@ export abstract class AbstractRepository<...>
 
 ### IExtraOptions Interface
 
-**File:** `packages/core/src/base/repositories/common/types.ts`
+**File:** `packages/core-server/src/base/repositories/common/types.ts`
 
 **Problem:** The `TTransactionOption` type only supported `transaction` option. With the new default filter feature, we need additional options.
 
@@ -200,7 +200,7 @@ export type TTransactionOption = IExtraOptions;
 
 ### FilterBuilder Enhancements
 
-**File:** `packages/core/src/base/repositories/operators/filter.ts`
+**File:** `packages/core-server/src/base/repositories/operators/filter.ts`
 
 **Changes:**
 - Renamed `DrizzleFilterBuilder` to `FilterBuilder`
@@ -226,7 +226,7 @@ const result = filterBuilder.mergeFilter({
 
 ## Files Changed
 
-### Core Package (`packages/core`)
+### Core Package (`packages/core-server`)
 
 | File | Changes |
 |------|---------|
@@ -241,7 +241,7 @@ const result = filterBuilder.mergeFilter({
 | `src/base/repositories/operators/filter.ts` | Renamed to `FilterBuilder`, added `mergeFilter` |
 | `src/helpers/inversion/common/types.ts` | Added `defaultFilter` to model settings type |
 
-### Tests (`packages/core/src/__tests__`)
+### Tests (`packages/core-server/src/__tests__`)
 
 | File | Changes |
 |------|---------|
