@@ -42,6 +42,15 @@ on:
 # the new symbol, and release `helpers` first. Otherwise a consumer resolves the old tarball and dies
 # at runtime on a symbol that exists only in this repository.
 
+# One release at a time, repository-wide. A release mutates a shared branch and the registry, and
+# the packages form a dependency chain, so two runs must never interleave. `cancel-in-progress: false`
+# makes a second dispatch WAIT rather than kill a run that is mid-publish. GitHub keeps only one run
+# pending per group: dispatch a third while one runs and one waits and the waiting one is cancelled -
+# acceptable here, because the chain has to be released in order anyway.
+concurrency:
+  group: npm-release
+  cancel-in-progress: false
+
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
   PACKAGE: ${{ github.event.inputs.package }}
@@ -89,22 +98,13 @@ jobs:
           PACKAGE_NAME=$(jq -r .name "$PACKAGE_PATH/package.json")
           CURRENT_VERSION=$(jq -r .version "$PACKAGE_PATH/package.json")
 
-          # Set dist directories for validation
-          case $PACKAGE in
-            docs-mcp)        DIST_DIRS="dist/mcp-server" ;;
-            inversion|filter|boot)  DIST_DIRS="dist/cjs dist/esm" ;;
-            *)               DIST_DIRS="dist" ;;
-          esac
-
           echo "PACKAGE_PATH=$PACKAGE_PATH" >> $GITHUB_ENV
           echo "PACKAGE_NAME=$PACKAGE_NAME" >> $GITHUB_ENV
-          echo "DIST_DIRS=$DIST_DIRS" >> $GITHUB_ENV
 
           echo "┌─────────────────────────────────────────────────"
           echo "│ Package:     $PACKAGE_NAME"
           echo "│ Path:        $PACKAGE_PATH"
           echo "│ Version:     $CURRENT_VERSION → $BUILD_MODE"
-          echo "│ Dist:        $DIST_DIRS"
           echo "└─────────────────────────────────────────────────"
 
       - name: Install
@@ -124,34 +124,75 @@ jobs:
 
       # The gate's own regression tests run first: a probe that silently stopped detecting anything
       # would leave every `purity-*` target green for the wrong reason.
-      - name: Purity
-        run: |
-          make purity-test
-          make purity-$PACKAGE
+      - name: Purity probe self-test
+        run: make purity-test
 
+      - name: Purity gate
+        run: make purity-$PACKAGE
+
+      # Derived from the package's own `exports` map, never a hand-written list. The list this
+      # replaced named three dual-build packages by hand and went stale the day four more were dual
+      # built: `helpers` then looked for `dist/index.js`, which its build stopped emitting, and the
+      # release died here. Checking every PUBLISHED target is also strictly stronger than checking
+      # one index - a sub-path whose file never got emitted fails here instead of at a consumer's
+      # first import.
       - name: Validate build artifacts
         run: |
           cd $PACKAGE_PATH
-          for dir in $DIST_DIRS; do
-            [ -f "$dir/index.js" ] && [ -f "$dir/index.d.ts" ] || { echo "ERROR: $dir missing files"; exit 1; }
-            echo "    ✓ $dir"
-          done
+          bun -e '
+            const { existsSync, readFileSync } = require("fs");
+            const manifest = JSON.parse(readFileSync("package.json", "utf8"));
+
+            if (!manifest.exports) {
+              console.error("ERROR: no `exports` map - there is nothing to validate against");
+              process.exit(1);
+            }
+
+            const targets = new Set();
+            for (const target of Object.values(manifest.exports)) {
+              if (typeof target === "string") { targets.add(target); continue; }
+              for (const file of Object.values(target)) targets.add(file);
+            }
+
+            const missing = [...targets].filter((file) => !existsSync(file));
+            if (missing.length > 0) {
+              console.error("ERROR: `exports` names files the build did not emit:");
+              for (const file of missing) console.error(`  ${file}`);
+              process.exit(1);
+            }
+
+            console.log(`    ✓ all ${targets.size} published entries exist`);
+          '
 
       - name: Check dependency catalog
         run: make catalog-check
 
-      # Manifests carry `catalog:` on purpose; only `bun publish` resolves it while packing, so this asserts both that the publisher is still bun and that the tarball it uploads is actually clean.
-      - name: Validate packed manifest
+      # A policy assertion about THIS file, not about the package - so it stands on its own. Only
+      # `bun publish` resolves `catalog:` while packing; npm ships it verbatim and breaks every
+      # consumer, so the publish step below may never be switched to npm.
+      - name: Assert the publisher is bun
         run: |
           grep -q 'bun publish' "$GITHUB_WORKSPACE/.github/workflows/package-release.yml" \
             || { echo "ERROR: the publish step must use 'bun publish' - npm ships catalog: verbatim"; exit 1; }
 
+          echo "    ✓ the publish step still uses bun"
+
+      # Packed once, read by every validator below. Packing per check ran the same work twice, and
+      # the point of the checks is that they all see the SAME manifest - the one npm receives, not
+      # the one in the working tree.
+      - name: Pack the release tarball
+        run: |
           cd $PACKAGE_PATH
           bun pm pack --quiet > /dev/null
           TARBALL=$(ls -t ./*.tgz | head -1)
-
-          MANIFEST=$(tar -xzOf "$TARBALL" package/package.json)
+          tar -xzOf "$TARBALL" package/package.json > "$RUNNER_TEMP/packed-manifest.json"
           rm -f "$TARBALL"
+
+          echo "    ✓ extracted the manifest from $TARBALL"
+
+      - name: Validate packed manifest
+        run: |
+          MANIFEST=$(cat "$RUNNER_TEMP/packed-manifest.json")
 
           if echo "$MANIFEST" | grep -qE '"(catalog|workspace):'; then
             echo "ERROR: unresolved workspace protocol survives into the published manifest:"
@@ -159,7 +200,7 @@ jobs:
             exit 1
           fi
 
-          echo "    ✓ publisher is bun and the packed manifest resolves every protocol"
+          echo "    ✓ the packed manifest resolves every protocol"
 
       # The check above only rejects an *unresolved* protocol. A `workspace:*` on a package that was
       # never published resolves cleanly to a literal version while packing, so the tarball ships a
@@ -168,13 +209,7 @@ jobs:
       # logs SKIP. This step asks the registry directly, for every runtime dependency.
       - name: Validate dependencies exist on the registry
         run: |
-          cd $PACKAGE_PATH
-          bun pm pack --quiet > /dev/null
-          TARBALL=$(ls -t ./*.tgz | head -1)
-          MANIFEST=$(tar -xzOf "$TARBALL" package/package.json)
-          rm -f "$TARBALL"
-
-          MANIFEST="$MANIFEST" bun -e '
+          MANIFEST="$(cat "$RUNNER_TEMP/packed-manifest.json")" bun -e '
             const dependencies = Object.entries(JSON.parse(process.env.MANIFEST).dependencies ?? {});
             const missing = [];
 
@@ -224,24 +259,19 @@ jobs:
           echo "TAG_NAME=$PACKAGE-v$NEW_VERSION" >> $GITHUB_ENV
           echo ">>> New version: $NEW_VERSION"
 
-      - name: Commit & Push
-        run: |
-          cd $PACKAGE_PATH
-          git fetch origin && git checkout develop && git pull origin develop
-          git add package.json
-          git commit -m "chore($PACKAGE): release v$NEW_VERSION [$BUILD_MODE]"
-          git push origin develop
-          echo "IS_PUSHED=true" >> $GITHUB_ENV
-
-      - name: Create tag
-        run: |
-          git tag -a "$TAG_NAME" -m "$PACKAGE_NAME v$NEW_VERSION"
-          git push origin "$TAG_NAME"
-          echo "IS_TAG_CREATED=true" >> $GITHUB_ENV
+      - name: Sync develop
+        run: git fetch origin && git checkout develop && git pull origin develop
 
       # -------------------------------------------------------------------------
-      # PUBLISH
+      # PUBLISH - deliberately ahead of every git write
       # -------------------------------------------------------------------------
+      # The publish is the only step that cannot be undone, so it runs FIRST among the mutations.
+      # Publishing last meant the COMMON failure - a rejected publish - was repaired by force-pushing
+      # a shared branch back one commit, mid-release, while sibling releases were running. This way a
+      # failed publish leaves git untouched and there is nothing to roll back. The cost is the rarer
+      # inverse - the publish lands and the follow-up push fails - which is both safe and loud:
+      # develop keeps the old version, so the next release retries this one and the registry refuses
+      # it as a duplicate.
       - name: Publish to NPM
         run: |
           cd $PACKAGE_PATH
@@ -252,10 +282,10 @@ jobs:
           esac
 
           # BEFORE the publish, not after: a publish that succeeds and loses its response leaves npm
-          # permanently holding the version while this step fails, and the rollback would then say
-          # nothing about a release that is live. `$GITHUB_ENV` is read by LATER steps, so writing it
-          # first changes nothing else. The flag means "a publish was attempted", which is what the
-          # rollback advice needs.
+          # permanently holding the version while this step fails, and the failure reports would then
+          # say nothing about a release that is live. `$GITHUB_ENV` is read by LATER steps, so writing
+          # it first changes nothing else. The flag means "a publish was attempted", which is exactly
+          # what those reports have to assume.
           echo "IS_PUBLISHED=true" >> $GITHUB_ENV
 
           # `bun publish`, not npm: bun resolves `catalog:`/`workspace:` while packing, npm ships them verbatim and breaks every consumer. --ignore-scripts skips the already-run prepublishOnly.
@@ -276,47 +306,52 @@ jobs:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_ACCESS_TOKEN }}
 
       # -------------------------------------------------------------------------
-      # ROLLBACK
+      # RECORD IN GIT
       # -------------------------------------------------------------------------
-      - name: Rollback on failure
-        if: failure()
+      - name: Commit release
         run: |
-          echo ">>> ROLLBACK STARTED"
+          cd $PACKAGE_PATH
+          git add package.json
+          git commit -m "chore($PACKAGE): release v$NEW_VERSION [$BUILD_MODE]"
 
-          [ "$IS_TAG_CREATED" == "true" ] && {
-            git push --delete origin "$TAG_NAME" 2>/dev/null || true
-            git tag -d "$TAG_NAME" 2>/dev/null || true
+      # Separate from the commit above so the run tells you WHICH half failed: a rejected push is a
+      # race or a permissions problem, a failed commit is an empty diff or a hook.
+      - name: Push release
+        run: |
+          # develop can move between the sync and this push - a human merge, or the previous package
+          # of a release chain. The version is already on the registry by now, so rebase and retry
+          # once instead of leaving develop behind a release that really happened.
+          git push origin develop || {
+            git pull --rebase origin develop
+            git push origin develop
           }
 
-          # A blind `reset --hard HEAD~1 && push --force` erases whatever is on develop, and one
-          # change is now a 4-package chain, so overlapping dispatches are the normal case: kernel
-          # pushes K, connectors pushes C, kernel's publish fails, and this used to delete C - while
-          # connectors is already published against a kernel version that would stop existing.
-          # develop is only reset when its remote tip IS this run's own release commit.
-          if [ "$IS_PUSHED" == "true" ]; then
-            EXPECTED_SUBJECT="chore($PACKAGE): release v$NEW_VERSION [$BUILD_MODE]"
+          echo "IS_PUSHED=true" >> $GITHUB_ENV
 
-            git fetch origin develop
-            ACTUAL_SUBJECT=$(git log -1 --format=%s origin/develop)
+      - name: Create tag
+        run: |
+          git tag -a "$TAG_NAME" -m "$PACKAGE_NAME v$NEW_VERSION"
+          git push origin "$TAG_NAME"
 
-            if [ "$ACTUAL_SUBJECT" == "$EXPECTED_SUBJECT" ]; then
-              # --force-with-lease, not --force: the fetch above and the push below are not atomic,
-              # and a dispatch landing between them must lose the race loudly.
-              git checkout develop
-              git reset --hard origin/develop~1
-              git push --force-with-lease origin develop
-              echo "    ✓ reverted this run's release commit from develop"
-            else
-              echo "⚠️  develop has moved on - LEAVING IT ALONE"
-              echo "    expected tip: $EXPECTED_SUBJECT"
-              echo "    actual tip:   $ACTUAL_SUBJECT"
-              echo "    revert this run's commit by hand: git revert <sha of \"$EXPECTED_SUBJECT\">"
-            fi
-          fi
+      # -------------------------------------------------------------------------
+      # FAILURE REPORTS
+      # -------------------------------------------------------------------------
+      # No rollback remains to perform. Nothing reaches the registry or the remote until the publish
+      # succeeds, so a failed run either touched neither, or it published and only bookkeeping is
+      # left undone. Both are REPORTED, never repaired: npm cannot un-publish, and force-pushing
+      # develop to chase a live version does more damage than the mismatch it would fix.
+      - name: Report - published, develop not updated
+        if: failure() && env.IS_PUBLISHED == 'true' && env.IS_PUSHED != 'true'
+        run: |
+          echo "⚠️  $PACKAGE_NAME@$NEW_VERSION was published, but develop still records the old version"
+          echo "    confirm first:  npm view $PACKAGE_NAME versions"
+          echo "    if it IS live, bump develop by hand so the next release does not retry $NEW_VERSION:"
+          echo "      cd $PACKAGE_PATH && npm version $NEW_VERSION --no-git-tag-version --workspaces-update=false"
+          echo "    if it is NOT live, nothing to clean up - re-run this workflow"
 
-          echo ">>> ROLLBACK COMPLETED"
-
-          if [ "$IS_PUBLISHED" == "true" ]; then
-            echo "⚠️  A publish of $PACKAGE_NAME@$NEW_VERSION was ATTEMPTED - check the registry before assuming it failed"
-            echo "    if it is live: npm deprecate $PACKAGE_NAME@$NEW_VERSION 'Accidental release'"
-          fi
+      - name: Report - published and pushed, tag missing
+        if: failure() && env.IS_PUBLISHED == 'true' && env.IS_PUSHED == 'true'
+        run: |
+          echo "⚠️  $PACKAGE_NAME@$NEW_VERSION is published and develop is updated - only the git tag is missing"
+          echo "    create it by hand:"
+          echo "      git tag -a $TAG_NAME -m \"$PACKAGE_NAME v$NEW_VERSION\" && git push origin $TAG_NAME"
