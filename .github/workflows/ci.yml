@@ -1,17 +1,19 @@
 name: CI
 run-name: "CI | ${{ github.event_name }} | ${{ github.head_ref || github.ref_name }}"
 
+# Manual only, by decision. These gates are a full build, seven test suites, lint and the purity
+# probe, and they used to fire on every pull request AND every push to develop - including the
+# release workflow's own commits, so a four-package release chain paid for four extra full runs.
+# Nothing enforces this workflow as a required status check, so running it on demand blocks nothing.
 on:
-  pull_request:
-  push:
-    branches: [develop]
+  workflow_dispatch:
 
 permissions:
   contents: read
 
 concurrency:
-  group: ci-${{ github.workflow }}-${{ github.head_ref || github.ref }}
-  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+  group: ci-${{ github.ref }}
+  cancel-in-progress: false
 
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
