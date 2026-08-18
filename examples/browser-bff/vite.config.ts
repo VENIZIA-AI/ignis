@@ -1,4 +1,6 @@
 import { fileURLToPath } from 'node:url';
+import tailwindcss from '@tailwindcss/vite';
+import react from '@vitejs/plugin-react';
 import { defineConfig } from 'vite';
 
 /** Never `new URL(...).pathname` for an alias target: on Windows that yields `/C:/Users/...`, which Vite cannot resolve, and every `@/...` import fails. */
@@ -6,11 +8,14 @@ const fromHere = (relativePath: string): string =>
   fileURLToPath(new URL(relativePath, import.meta.url));
 
 export default defineConfig({
+  plugins: [react(), tailwindcss()],
   resolve: {
     // `@` points at `src/domain`, not `src`: the model, repository and controller are copied
     // verbatim from `examples/pglite-quickstart` and address each other as `@/models/...`.
     alias: {
       '@': fromHere('./src/domain'),
+      // `~` is the application root, which is what `components.json` points shadcn at.
+      '~': fromHere('./src'),
     },
   },
   optimizeDeps: {

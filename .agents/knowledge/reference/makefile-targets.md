@@ -31,7 +31,7 @@ tags: [reference, make, build]
 | `make boot` | `helpers` | Rebuilding @venizia/ignis-boot |
 | `make kernel` | `helpers filter` | Rebuilding @venizia/ignis-kernel |
 | `make connectors` | `kernel` | Rebuilding @venizia/ignis-connectors |
-| `make core-worker` | `kernel` | Rebuilding @venizia/ignis-core-worker |
+| `make core-worker` | `kernel` | Rebuilding @venizia/ignis-worker |
 | `make core-server` | `boot connectors` | Rebuilding @venizia/ignis (core-server) |
 | `make core` | `core-server` | - |
 | `make docs` | - | Rebuilding wiki (VitePress) |
@@ -60,7 +60,7 @@ tags: [reference, make, build]
 | `make lint-core` | `lint-core-server` | - |
 | `make lint-kernel` | - | Linting @venizia/ignis-kernel |
 | `make lint-connectors` | - | Linting @venizia/ignis-connectors |
-| `make lint-core-worker` | - | Linting @venizia/ignis-core-worker |
+| `make lint-core-worker` | - | Linting @venizia/ignis-worker |
 | `make lint-docs-mcp` | - | Linting @venizia/ignis-docs (MCP Server) |
 | `make purity` | - | Checking browser purity for all claimed entries |
 | `make purity-test` | - | Running the purity probe's regression tests |
@@ -69,5 +69,5 @@ tags: [reference, make, build]
 | `make purity-helpers` | - | Checking browser purity for @venizia/ignis-helpers |
 | `make purity-kernel` | - | Checking browser purity for @venizia/ignis-kernel |
 | `make purity-connectors` | - | Checking browser purity for @venizia/ignis-connectors |
-| `make purity-core-worker` | - | Checking browser purity for @venizia/ignis-core-worker |
+| `make purity-core-worker` | - | Checking browser purity for @venizia/ignis-worker |
 | `make help` | - | Makefile for the @venizia/lib Monorepo |

@@ -6,7 +6,7 @@ resource: packages/core-worker
 tags: [packages, core-worker, browser, bff, worker, isomorphic]
 ---
 
-`@venizia/ignis-core-worker` runs a whole IGNIS application inside a browser Worker. The UI calls it
+`@venizia/ignis-worker` runs a whole IGNIS application inside a browser Worker. The UI calls it
 like an HTTP API; nothing crosses a network. It is the browser sibling of `packages/core-server`, and both
 sit on `@venizia/ignis-kernel`.
 

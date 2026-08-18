@@ -42,6 +42,9 @@
     "paths": {
       "@/*": [
         "./src/domain/*"
+      ],
+      "~/*": [
+        "./src/*"
       ]
     },
 
@@ -49,6 +52,9 @@
        `emitDecoratorMetadata`. Declaring the latter would tell `tsc` about metadata the bundle
        never carries. IGNIS does not need it: `@inject` records parameter indexes, and the one
        `design:paramtypes` read in the kernel is an optional validation that skips when absent. */
+    /* The React plugin compiles JSX with the automatic runtime; `tsc` only type-checks it. */
+    "jsx": "react-jsx",
+
     "experimentalDecorators": true,
     "emitDecoratorMetadata": false,
 

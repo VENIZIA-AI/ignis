@@ -101,8 +101,8 @@ connectors: kernel
 	@bun run --filter "@venizia/ignis-connectors" rebuild
 
 core-worker: kernel
-	@echo "📦 Rebuilding @venizia/ignis-core-worker..."
-	@bun run --filter "@venizia/ignis-core-worker" rebuild
+	@echo "📦 Rebuilding @venizia/ignis-worker..."
+	@bun run --filter "@venizia/ignis-worker" rebuild
 
 core-server: boot connectors
 	@echo "📦 Rebuilding @venizia/ignis (core-server)..."
@@ -215,8 +215,8 @@ lint-connectors:
 	@bun run --filter "@venizia/ignis-connectors" lint
 
 lint-core-worker:
-	@echo "🔍 Linting @venizia/ignis-core-worker..."
-	@bun run --filter "@venizia/ignis-core-worker" lint
+	@echo "🔍 Linting @venizia/ignis-worker..."
+	@bun run --filter "@venizia/ignis-worker" lint
 
 lint-docs-mcp:
 	@echo "🔍 Linting @venizia/ignis-docs (MCP Server)..."
@@ -258,7 +258,7 @@ purity-connectors:
 	@bun scripts/purity/cli.ts connectors
 
 purity-core-worker:
-	@echo "🔍 Checking browser purity for @venizia/ignis-core-worker..."
+	@echo "🔍 Checking browser purity for @venizia/ignis-worker..."
 	@bun scripts/purity/cli.ts core-worker
 
 purity-dev-configs purity-boot purity-core purity-core-server purity-docs-mcp:

@@ -1,16 +1,32 @@
 # Browser BFF
 
-An IGNIS application running inside a browser Worker. It serves its own REST routes from PGlite in
-OPFS, with no server anywhere - the page talks to it over `postMessage`.
+A react-admin application whose backend runs inside a browser Worker. IGNIS serves its own REST
+routes from PGlite in OPFS, with no server anywhere - the page talks to it over `postMessage`.
 
 ```bash
 bun install
 bun run dev
-# http://localhost:5173 - click "Add note", then reload the page
+# http://localhost:5173 - create a note, then reload the page
 ```
 
 The rows are still there after the reload. They live in the origin private file system, under
 `ignis-browser-bff/`.
+
+## The front end is a normal react-admin app
+
+`@minimaltech/ra-core-infra` is wired exactly as it would be against a real server: an inversion
+container, `DefaultRestDataProvider` pointed at `/api`, and `CoreRaApplication` rendering a
+`notes` resource. Nothing in it knows a Worker exists.
+
+The whole integration is `src/bff-fetch.ts`, twelve lines that give the page a `fetch` which
+answers `/api/*` from the Worker and passes everything else to the network. The data provider
+reaches the network through `NodeFetchNetworkRequest`, which calls the global `fetch` and accepts
+no custom fetcher - so intercepting `fetch` is what makes an in-browser backend a drop-in swap
+rather than a fork of the provider.
+
+The UI is shadcn/ui on Base UI (`@base-ui-components/react`, shadcn's default base since July
+2026) with Tailwind v4. `components.json` points shadcn at `~/components`, not `@/components`:
+this example already uses `@` for `src/domain`, which the copied controller depends on.
 
 ## What is shared with the server example
 

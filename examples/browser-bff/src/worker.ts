@@ -1,4 +1,4 @@
-import { WorkerApplication } from '@venizia/ignis-core-worker';
+import { WorkerApplication } from '@venizia/ignis-worker';
 import type { IApplicationInfo } from '@venizia/ignis-kernel';
 import type { ValueOrPromise } from '@venizia/ignis-helpers/common';
 import { NoteController } from './domain/controllers/note.controller';

@@ -1642,3 +1642,23 @@ code?, args? }` so flat call sites still compile. `error` is refused on the free
   plain-http LAN origin (`isSecureContext: false`, `randomUUID: undefined`): 10,000 ids, all valid
   v4, none duplicated. `SnowflakeUidHelper` itself is UNTOUCHED - BANA mints business ids with it at
   23 sites.
+
+- The published package is `@venizia/ignis-worker`; the directory stays `packages/core-worker`, so
+  `make core-worker` and the release workflow's `core-worker` choice are unchanged. The old name
+  `@venizia/ignis-core-worker` remains on npm at 0.2.0-1 and is not deprecated - nothing in IGNIS or
+  BANA imported it, only `examples/browser-bff` did.
+- `examples/browser-bff` is now a react-admin application on `@minimaltech/ra-core-infra`, not a
+  hand-rolled page. The integration is one file: `src/bff-fetch.ts` replaces the global `fetch` so
+  `/api/*` is answered by the Worker. `DefaultRestDataProvider` reaches the network through
+  `NodeFetchNetworkRequest`, which calls the global `fetch` and takes no custom fetcher, so
+  intercepting `fetch` is the only seam that does not fork the provider. Verified in Chrome: list,
+  create, reload-persistence and delete all round-trip through the Worker.
+- Two traps found while wiring `ra-core-infra`, both measured. `noAuthPaths` is matched by EXACT
+  resource name (`['notes']`), never a pattern - `['*']` is a literal and every request then demands
+  a token the Worker never issues. And `CoreRaApplication` resolves the data, auth AND i18n providers
+  with a non-optional `container.get`, so an unbound key throws before the first render.
+- `@minimaltech/ra-core-infra@0.0.3-17` declares peers `@venizia/ignis-inversion: ^0.1.1-6` and
+  `@venizia/ignis-filter: ^0.1.2-0`, neither of which covers 0.2.0-0. The four symbols it actually
+  uses - `Container`, `IProvider`, `TFilter`, `TWhere` - all still exist, so this is a stale range
+  and not a break. It also calls `crypto.randomUUID()` unguarded for its request-tracing header,
+  which is the same secure-context trap IGNIS just removed from `RequestIdGenerator`.

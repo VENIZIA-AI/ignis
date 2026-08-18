@@ -1,4 +1,4 @@
-import { WorkerBffTransport } from '@venizia/ignis-core-worker';
+import { WorkerBffTransport } from '@venizia/ignis-worker';
 
 /**
  * `new URL('./worker.ts', import.meta.url)` is the form Vite statically analyses - it is what makes
@@ -9,5 +9,12 @@ const worker = new Worker(new URL('./worker.ts', import.meta.url), { type: 'modu
 
 export const bff = new WorkerBffTransport({ worker });
 
-/** The BFF is addressed by path only - `WorkerBffTransport` rewrites the origin to the synthetic one the Worker routes against. */
-export const BFF_BASE_PATH = '/api/notes';
+/**
+ * The Worker application mounts its controllers under `/api` (see `worker.ts`). Everything below
+ * this prefix is answered by the Worker; `installBffFetch` uses it to decide what to intercept, and
+ * the data provider uses it as its base URL.
+ *
+ * Path only, no origin - `WorkerBffTransport` rewrites the origin to the synthetic one the Worker
+ * routes against.
+ */
+export const BFF_BASE_PATH = '/api';

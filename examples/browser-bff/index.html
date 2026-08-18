@@ -6,17 +6,7 @@
     <title>IGNIS browser BFF</title>
   </head>
   <body>
-    <h1>IGNIS browser BFF</h1>
-    <p>
-      An IGNIS application runs inside a dedicated Worker and answers its own REST routes from
-      PGlite in OPFS. No server is running.
-    </p>
-    <p>
-      <button id="add-note" type="button">Add note</button>
-      <button id="read-notes" type="button">Read notes</button>
-    </p>
-    <p id="status">Starting...</p>
-    <pre id="rows"></pre>
-    <script type="module" src="/src/main.ts"></script>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
