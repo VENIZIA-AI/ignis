@@ -1,6 +1,6 @@
 {
   "name": "@venizia/ignis-kernel",
-  "version": "0.1.1-0",
+  "version": "0.2.0-0",
   "description": "Browser-pure kernel of the IGNIS framework: dependency injection, lifecycle, REST controllers, repository and datasource abstractions, and the authentication and authorization seams. No node builtin and no server-only peer, so the same kernel serves a Bun server and a browser Worker.",
   "keywords": [
     "authentication",
@@ -36,7 +36,9 @@
     "url": "https://venizia.ai"
   },
   "license": "MIT",
-  "engines": { "bun": ">=1.3" },
+  "engines": {
+    "bun": ">=1.3"
+  },
   "main": "./dist/cjs/index.js",
   "module": "./dist/esm/index.js",
   "types": "./dist/cjs/index.d.ts",
@@ -49,9 +51,20 @@
     },
     "./package.json": "./package.json"
   },
-  "files": ["README.md", "LICENSE.md", "dist", "!/**/__tests__", "!**/*.tsbuildinfo"],
-  "publishConfig": { "access": "public" },
-  "sideEffects": ["./dist/cjs/index.js", "./dist/esm/index.js"],
+  "files": [
+    "README.md",
+    "LICENSE.md",
+    "dist",
+    "!/**/__tests__",
+    "!**/*.tsbuildinfo"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "sideEffects": [
+    "./dist/cjs/index.js",
+    "./dist/esm/index.js"
+  ],
   "scripts": {
     "force-update": "sh ./scripts/force-update.sh",
     "build": "sh ./scripts/build.sh",
