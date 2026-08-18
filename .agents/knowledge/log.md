@@ -1620,3 +1620,15 @@ code?, args? }` so flat call sites still compile. `error` is refused on the free
 - The release workflow publishes BEFORE it commits, pushes or tags, so no failure path force-pushes
   `develop` any more. Both git rollback steps became unreachable and were replaced by two failure
   reports. `CI` is `workflow_dispatch` only - neither a push to `develop` nor a pull request runs it.
+
+- `force-update` runs over the whole workspace (`--filter "@venizia/*"`), not just the package being
+  released. `bun install` resolves every workspace member, so one stale internal range anywhere fails
+  the run: a core-worker release died on a range belonging to core-server, six minutes after a
+  connectors release made it stale. Reproduced locally, error text identical.
+- Internal dependencies deliberately stay literal `^x.y.z`, NOT bun's `workspace:` protocol. The
+  protocol was measured end to end: it fixes the install side, but `bun pm pack` resolves the
+  published floor from the version recorded in `bun.lock`, and bun 1.3.14 refreshes that record
+  through no install path (`bun install`, `--force`, `--lockfile-only` all leave it stale; only
+  deleting the lock rewrites it, which re-resolves hundreds of third-party packages). A release would
+  then publish a floor one version behind with no error anywhere. Do not re-propose it without first
+  re-testing that bun refreshes workspace version records.

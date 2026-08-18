@@ -19,11 +19,23 @@ tags: [process, release, ci]
    third one cancels the waiting one, because the chain has to be released in order anyway.
 2. The job resolves `PACKAGE_PATH` from the chosen package (`docs-mcp` maps to `docs/wiki`,
    everything else to `packages/<name>`) and reads its current `package.json` name and version.
-3. `bun run --filter "<package name>" force-update "highest"` runs BEFORE `bun install`, not after.
-   `force-update` rewrites the internal version ranges, and an install that ran first has already
-   resolved the old ones. When a sibling has moved past a declared range, that range no longer
-   covers the workspace copy, so bun downloads the published tarball and the build type-checks
-   against a package one release behind.
+3. `bun run --filter "@venizia/*" force-update "highest"` runs BEFORE `bun install`, and over the
+   WHOLE workspace rather than the one package being released.
+   - Before the install, because `force-update` rewrites the internal version ranges and an install
+     that ran first has already resolved the old ones. When a sibling has moved past a declared
+     range, that range no longer covers the workspace copy, so bun downloads the published tarball
+     and the build type-checks against a package one release behind.
+   - Over the whole workspace, because `bun install` resolves every member: one stale range anywhere
+     fails the run, even in a package the release does not touch. Releasing a package makes every
+     dependent's floor stale the instant it lands, and that window is minutes wide during a release
+     chain. Only the released package's manifest is committed afterwards; the rest are repaired in
+     the runner, and repaired again on the next run.
+
+   Internal dependencies stay literal `^x.y.z` ranges rather than bun's `workspace:` protocol. The
+   protocol fixes the install side - it always links the workspace copy - but it resolves the
+   PUBLISHED floor from the version recorded in `bun.lock`, and bun 1.3.14 never refreshes that
+   record on a version bump (measured against `bun install`, `--force` and `--lockfile-only`). A
+   package would then publish a floor one release behind, silently. Loud beats silent here.
 4. `bun install`, then an assertion that every `@venizia/*` dependency resolves to the workspace and
    not to a registry tarball. Each one is a member of this workspace, so a tarball is always wrong -
    and otherwise invisible, because the install succeeds and the lie only surfaces as

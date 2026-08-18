@@ -107,14 +107,21 @@ jobs:
           echo "│ Version:     $CURRENT_VERSION → $BUILD_MODE"
           echo "└─────────────────────────────────────────────────"
 
-      # BEFORE the install, not after. `force-update` rewrites the internal version ranges, and an
-      # install that ran first has already resolved the OLD ones. When a sibling moves past the
-      # declared range - helpers at 0.2.0-0 against kernel's `^0.1.1-18` - the range no longer covers
-      # the workspace copy, so bun downloads the published tarball instead of linking the source
-      # tree, and the build type-checks kernel against a helpers one release behind. That cost a
-      # run: 15 x TS2305 "has no exported member" against `@venizia/ignis-helpers/core`.
-      - name: Force update package
-        run: bun run --filter "$PACKAGE_NAME" force-update "highest"
+      # BEFORE the install, and across the WHOLE workspace - not just the package being released.
+      #
+      # Before the install, because `force-update` rewrites the internal version ranges and an
+      # install that ran first has already resolved the OLD ones. When a sibling moves past a
+      # declared range, that range stops covering the workspace copy, so bun downloads the published
+      # tarball instead of linking the source tree, and the build silently type-checks against a
+      # package one release behind: 15 x TS2305 on `@venizia/ignis-helpers/core` cost one run.
+      #
+      # Across the whole workspace, because `bun install` resolves every member, so ANY package with
+      # a stale range fails the run - even one the release does not touch. A core-worker release died
+      # exactly that way, on a range belonging to core-server, six minutes after a connectors release
+      # made it stale. Only the released package's manifest is committed later; the rest are repaired
+      # in the runner and repaired again next time.
+      - name: Force update workspace
+        run: bun run --filter "@venizia/*" force-update "highest"
 
       - name: Install
         run: bun install
