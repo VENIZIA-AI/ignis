@@ -66,9 +66,9 @@
     "prepublishOnly": "bun run rebuild"
   },
   "dependencies": {
-    "@venizia/ignis-filter": "^0.1.2-1",
-    "@venizia/ignis-helpers": "^0.1.1-18",
-    "@venizia/ignis-inversion": "^0.1.1-7",
+    "@venizia/ignis-filter": "^0.2.0-0",
+    "@venizia/ignis-helpers": "^0.2.0-0",
+    "@venizia/ignis-inversion": "^0.2.0-0",
     "lodash": "catalog:",
     "reflect-metadata": "catalog:",
     "zod": "catalog:"
@@ -94,7 +94,7 @@
   "devDependencies": {
     "@types/bun": "catalog:",
     "@types/lodash": "catalog:",
-    "@venizia/dev-configs": "workspace:*",
+    "@venizia/dev-configs": "^0.2.0-0",
     "casbin": "^5.51.1",
     "eslint": "catalog:",
     "prettier": "catalog:",

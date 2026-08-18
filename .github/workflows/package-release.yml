@@ -107,11 +107,62 @@ jobs:
           echo "│ Version:     $CURRENT_VERSION → $BUILD_MODE"
           echo "└─────────────────────────────────────────────────"
 
+      # BEFORE the install, not after. `force-update` rewrites the internal version ranges, and an
+      # install that ran first has already resolved the OLD ones. When a sibling moves past the
+      # declared range - helpers at 0.2.0-0 against kernel's `^0.1.1-18` - the range no longer covers
+      # the workspace copy, so bun downloads the published tarball instead of linking the source
+      # tree, and the build type-checks kernel against a helpers one release behind. That cost a
+      # run: 15 x TS2305 "has no exported member" against `@venizia/ignis-helpers/core`.
+      - name: Force update package
+        run: bun run --filter "$PACKAGE_NAME" force-update "highest"
+
       - name: Install
         run: bun install
 
-      - name: Force update package
-        run: bun run --filter "$PACKAGE_NAME" force-update "highest"
+      # Every `@venizia/*` dependency is a member of this workspace, so resolving one to a registry
+      # tarball is always wrong: it means the declared range excludes the version sitting in the
+      # tree, and the build is validating code that is not in this repository. The failure mode is
+      # invisible otherwise - install succeeds, and the lie surfaces as unrelated-looking type errors.
+      - name: Assert internal dependencies link to the workspace
+        run: |
+          cd $PACKAGE_PATH
+          bun -e '
+            const { existsSync, readFileSync, realpathSync } = require("fs");
+            const { join, sep } = require("path");
+
+            const root = process.env.GITHUB_WORKSPACE;
+            const manifest = JSON.parse(readFileSync("package.json", "utf8"));
+            const internal = Object.keys({ ...manifest.dependencies, ...manifest.devDependencies })
+              .filter((name) => name.startsWith("@venizia/"))
+              .sort();
+
+            const strays = [];
+            for (const name of internal) {
+              const found = [join(process.cwd(), "node_modules", name), join(root, "node_modules", name)]
+                .find((path) => existsSync(path));
+
+              if (!found) {
+                strays.push(name + " - declared but not installed");
+                continue;
+              }
+
+              const real = realpathSync(found);
+              if (!real.includes(sep + "node_modules" + sep)) { continue; }
+
+              const range = manifest.dependencies?.[name] ?? manifest.devDependencies?.[name];
+              const version = JSON.parse(readFileSync(join(real, "package.json"), "utf8")).version;
+              strays.push(name + " - range " + range + " pulled the published " + version + " instead of the workspace copy");
+            }
+
+            if (strays.length > 0) {
+              console.error("ERROR: internal dependencies resolved to the registry, not this workspace:");
+              for (const entry of strays) { console.error("  " + entry); }
+              console.error("Raise the range so it covers the version in packages/, then re-run.");
+              process.exit(1);
+            }
+
+            console.log("    ✓ all " + internal.length + " internal dependencies link to the workspace");
+          '
 
       # -------------------------------------------------------------------------
       # BUILD, LINT & VALIDATE (uses Makefile dependency chain)
