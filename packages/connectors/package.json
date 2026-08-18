@@ -1,9 +1,11 @@
 {
   "name": "@venizia/ignis-connectors",
-  "version": "0.1.1-0",
+  "version": "0.2.0-0",
   "description": "Datasource and repository connectors for the IGNIS framework: the engine-neutral relational and search tiers, plus Postgres, SQLite, PGlite, Typesense and Meilisearch behind sub-paths.",
   "license": "MIT",
-  "engines": { "bun": ">=1.3" },
+  "engines": {
+    "bun": ">=1.3"
+  },
   "main": "./dist/cjs/index.js",
   "module": "./dist/esm/index.js",
   "types": "./dist/cjs/index.d.ts",
@@ -94,8 +96,16 @@
     },
     "./package.json": "./package.json"
   },
-  "files": ["README.md", "LICENSE.md", "dist", "!/**/__tests__", "!**/*.tsbuildinfo"],
-  "publishConfig": { "access": "public" },
+  "files": [
+    "README.md",
+    "LICENSE.md",
+    "dist",
+    "!/**/__tests__",
+    "!**/*.tsbuildinfo"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
   "sideEffects": false,
   "scripts": {
     "force-update": "sh ./scripts/force-update.sh",
@@ -131,12 +141,24 @@
     "typesense": "^3.0.3"
   },
   "peerDependenciesMeta": {
-    "@electric-sql/pglite": { "optional": true },
-    "@libsql/client": { "optional": true },
-    "meilisearch": { "optional": true },
-    "pg": { "optional": true },
-    "postgres": { "optional": true },
-    "typesense": { "optional": true }
+    "@electric-sql/pglite": {
+      "optional": true
+    },
+    "@libsql/client": {
+      "optional": true
+    },
+    "meilisearch": {
+      "optional": true
+    },
+    "pg": {
+      "optional": true
+    },
+    "postgres": {
+      "optional": true
+    },
+    "typesense": {
+      "optional": true
+    }
   },
   "devDependencies": {
     "@types/bun": "catalog:",
