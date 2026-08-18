@@ -30,7 +30,7 @@ export class RequestTrackerComponent extends BaseComponent {
     });
   }
 
-  /** No `requestId()` here: the id is installed by `RestApplication.registerDefaultMiddlewares()`, which runs first and uses `RequestIdGenerator` - hono's own default is `crypto.randomUUID`, which would make the server and a Worker BFF stamp different formats. */
+  /** No `requestId()` here: the id is installed by `RestApplication.registerDefaultMiddlewares()`, which runs first and uses `RequestIdGenerator`. Same UUID v4 shape hono's own default produces, but hono calls `crypto.randomUUID` unguarded, and a browser leaves that one `undefined` outside a secure context. */
   override binding(): ValueOrPromise<void> {
     const server = this.application.getServer();
 

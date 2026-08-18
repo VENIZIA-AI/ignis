@@ -1632,3 +1632,13 @@ code?, args? }` so flat call sites still compile. `error` is refused on the free
   deleting the lock rewrites it, which re-resolves hundreds of third-party packages). A release would
   then publish a floor one version behind with no error anywhere. Do not re-propose it without first
   re-testing that bun refreshes workspace version records.
+
+- `RequestIdGenerator` mints a UUID v4 again, not a base62 Snowflake. Snowflake cost 609 ns/op,
+  against 51 ns/op for `crypto.randomUUID()` - the intuition that "UUID calls crypto so it must be
+  slower" is backwards, because 72% of the Snowflake cost is the BigInt base62 encode loop, while
+  drawing 8 random bytes takes 19 ns. The secure-context problem that motivated Snowflake is real but
+  is solved without it: the strategy resolves once in the constructor, falling back to an RFC 9562 v4
+  assembled from `crypto.getRandomValues()`, which no browser gates. Verified in Chrome on a
+  plain-http LAN origin (`isSecureContext: false`, `randomUUID: undefined`): 10,000 ids, all valid
+  v4, none duplicated. `SnowflakeUidHelper` itself is UNTOUCHED - BANA mints business ids with it at
+  23 sites.

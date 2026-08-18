@@ -431,9 +431,13 @@ describe('WorkerBffTransport outside a secure context', () => {
     expect(worker.posted).toHaveLength(1);
 
     const sentEnvelope = worker.posted[0] as IBffRequestEnvelope;
-    expect(sentEnvelope.id.length).toBeGreaterThan(0);
-    // A base62 Snowflake, the generator the Worker half already uses - a UUID carries dashes.
-    expect(sentEnvelope.id).not.toContain('-');
+    // Not merely non-empty: `RequestIdGenerator` falls back to assembling an RFC 9562 v4 from
+    // `crypto.getRandomValues()`, so the id a non-secure origin gets must be indistinguishable from
+    // the one `crypto.randomUUID()` would have returned. Anything weaker would pass on a fallback
+    // that quietly emitted a different shape, which is the bug this whole channel exists to avoid.
+    expect(sentEnvelope.id).toMatch(
+      /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/,
+    );
 
     worker.respond({ id: sentEnvelope.id, status: 204, headers: [] });
     expect((await fetchPromise).status).toBe(204);

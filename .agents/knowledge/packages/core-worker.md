@@ -100,14 +100,17 @@ rule - used by the transports here, by the Worker application, and by the server
 it began as a BFF-only class while the server half kept hono's default, and the two ends of one
 request stamped different formats.
 
-It wraps `SnowflakeUidHelper.nextId()` in a try/catch: `nextId()` throws when the clock jumps
-backwards beyond `MAX_CLOCK_BACKWARD_MS` - rare on a server, routine in a browser tab across sleep,
-resume and NTP. Unguarded, that throw escapes into `onError` with no id: the same bug, plus a 500 on
-every request in the window. A request id is a correlation token, not a key.
+It emits a **UUID v4** - the same shape `hono/request-id`'s default produces - but never by calling
+`crypto.randomUUID()` unguarded, which is what that default does. Browsers gate that one API on a
+**secure context**. Measured in Chrome on `http://<lan-ip>`: the page and a Worker both report
+`crypto` present and `getRandomValues` working, while `randomUUID` and `subtle` are `undefined` and
+the call throws `TypeError`; on `http://localhost`, a secure origin, all four are there. The gate
+follows the ORIGIN, not the Worker - testing from a phone over the LAN is enough to lose it.
 
-Never `crypto.randomUUID()`, which is `hono/request-id`'s default. Browsers expose it only in a
-**secure context**, so on a plain-http LAN origin - and in several WebView configurations - it is
-`undefined`. Snowflake needs nothing but `Date.now()`.
+So the strategy is resolved once in the constructor: `crypto.randomUUID()` when the host exposes it,
+otherwise an RFC 9562 v4 assembled from `crypto.getRandomValues()`, which carries no such gate. Both
+paths return the identical 36-character shape, so nothing downstream can tell them apart. Measured:
+51 ns/op native, 128 ns/op on the fallback, against 609 ns/op for the Snowflake this replaced.
 
 ## Browser purity is enforced by ESLint, not by tsc
 
@@ -153,8 +156,10 @@ is for.
   browser application restates the phase order by hand today.
 - **A browser has no `NODE_ENV`,** so the error middleware fails closed and sanitises. Set it on the
   Hono env binding from a middleware to see unsanitised errors while developing.
-- The Worker's `requestId` is a base62 Snowflake; the server's is a UUID. The shape contract holds -
-  the field is present and non-empty on both - but the formats differ.
+- The Worker and the server stamp the SAME `requestId` format, a UUID v4, because both go through
+  `RequestIdGenerator`. They once differed - the Worker minted a base62 Snowflake while the server
+  kept hono's default - and correlating one request across the two halves meant knowing which end
+  produced which shape.
 
 ## Related
 
