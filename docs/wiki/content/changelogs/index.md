@@ -17,6 +17,7 @@ This section tracks the history of significant changes, refactors, and updates t
 
 | Date | Title | Type |
 |------|-------|------|
+| 2026-08-19 | [A Browser BFF That Survives a Second Tab](./2026-08-19-browser-bff-multi-tab) | New Feature, Security, Breaking Change, Bug Fix |
 | 2026-08-18 | [A Second ID Generator, for IDs People Read](./2026-08-18-opaque-uid-helper) | New Feature |
 | 2026-08-18 | [Every Browser-Safe Package Now Ships ESM](./2026-08-18-esm-builds-and-one-default-stack) | Enhancement, Bug Fix, Behavior Change |
 | 2026-08-13 | [A Browser-Pure Kernel Under `@venizia/ignis`](./2026-08-13-browser-pure-kernel) | New Feature, Enhancement, Internal Refactor |

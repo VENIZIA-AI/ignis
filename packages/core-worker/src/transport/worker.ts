@@ -6,6 +6,9 @@ import type { IBffTransport } from './common/types';
 
 const DEFAULT_TIMEOUT_MS = 30_000;
 
+/** How long a still-serving worker gets to answer after it reports an error - see `handleWorkerError`. */
+const WORKER_ERROR_GRACE_MS = 250;
+
 const isErrorEnvelope = (
   data: IBffResponseEnvelope | IBffErrorEnvelope,
 ): data is IBffErrorEnvelope => {
@@ -36,6 +39,12 @@ export class WorkerBffTransport extends BaseHelper implements IBffTransport {
     scope: WorkerBffTransport.name,
   });
   private readonly pendingRequests = new Map<string, IPendingRequest>();
+
+  /** Set by `close()`, so a later `fetch()` is refused instead of reaching a worker nothing listens to. */
+  private isClosed = false;
+
+  /** Outstanding `handleWorkerError` grace timers, cleared by `close()` so none outlives the transport. */
+  private readonly graceTimers = new Set<ReturnType<typeof setTimeout>>();
 
   constructor(opts: { worker: Worker; timeoutMs?: number }) {
     super({ scope: WorkerBffTransport.name });
@@ -95,18 +104,65 @@ export class WorkerBffTransport extends BaseHelper implements IBffTransport {
   };
 
   /**
-   * A dead or crashed worker never posts anything back, so every in-flight request is lost - this
-   * is the one event that legitimately settles all of them, instead of leaving each to time out.
+   * An `error` event does NOT mean the worker is dead.
+   *
+   * Measured in Chromium: a synchronous uncaught throw anywhere in the worker - a third-party timer,
+   * say - fires this event while the worker keeps serving, and the genuine responses to the
+   * in-flight requests arrive a moment later. Rejecting immediately reported a committed POST as
+   * failed and then dropped its real 200 on the floor, because nothing was left waiting for it.
+   *
+   * So the event is logged at once and the requests are given a grace window. Whatever the worker
+   * still answers inside it settles normally; whatever is left after it really is lost, and is
+   * rejected with the diagnostics rather than left to run out its own timeout.
    */
   private readonly handleWorkerError = (event: Event): void => {
-    for (const id of [...this.pendingRequests.keys()]) {
-      this.takePending({ id })?.reject(
-        getError({
-          message: `[WorkerBffTransport] Worker failed while awaiting a response | id: ${id} | event: ${String(event)}`,
-        }),
+    // `String(event)` is always `[object ErrorEvent]` - it says nothing. Read the fields a browser
+    // actually populates, so the log names the file and line that failed.
+    const detail = this.describeErrorEvent(event);
+
+    this.logger
+      .for('handleWorkerError')
+      .error(
+        'Worker reported an error | pending: %s | detail: %s',
+        this.pendingRequests.size,
+        detail,
       );
-    }
+
+    const affected = [...this.pendingRequests.keys()];
+
+    // Held so `close()` can clear it. A grace timer that outlives the transport keeps the process
+    // (or a test runner) awake and fires against a map nobody is watching any more.
+    const timer = setTimeout(() => {
+      this.graceTimers.delete(timer);
+
+      for (const id of affected) {
+        // `takePending` answers undefined for anything the worker managed to settle in the window.
+        this.takePending({ id })?.reject(
+          getError({
+            message: `[WorkerBffTransport] Worker failed while awaiting a response | id: ${id} | detail: ${detail}`,
+          }),
+        );
+      }
+    }, WORKER_ERROR_GRACE_MS);
+
+    this.graceTimers.add(timer);
   };
+
+  /** `ErrorEvent` carries the useful fields; a plain `Event` does not, so both shapes are handled. */
+  private describeErrorEvent(event: Event): string {
+    const candidate = event as Partial<{
+      message: string;
+      filename: string;
+      lineno: number;
+      colno: number;
+    }>;
+
+    if (!candidate.message) {
+      return event.type;
+    }
+
+    return `${candidate.message} (${candidate.filename ?? 'unknown'}:${candidate.lineno ?? 0}:${candidate.colno ?? 0})`;
+  }
 
   /**
    * `messageerror` means exactly ONE posted message failed to deserialise, and the event carries
@@ -137,6 +193,15 @@ export class WorkerBffTransport extends BaseHelper implements IBffTransport {
   async fetch(opts: { request: Request }): Promise<Response> {
     const { request } = opts;
     const { signal } = request;
+
+    // Refused, not queued. `close()` detaches the message listener, so a request posted after it
+    // still reached the worker - which EXECUTED it, writes included - while the answer had nowhere
+    // to land and the caller waited out the full timeout.
+    if (this.isClosed) {
+      throw getError({
+        message: '[WorkerBffTransport] The transport is closed | open a new one to make requests',
+      });
+    }
 
     if (signal?.aborted) {
       throw this.toAbortError({ signal });
@@ -183,6 +248,18 @@ export class WorkerBffTransport extends BaseHelper implements IBffTransport {
         return;
       }
 
+      // `close()` can land during that same await. The entry guard above is then stale, and posting
+      // reaches a worker that EXECUTES the request - writes included - while the answer has nowhere
+      // to land, because `close()` already detached the listener.
+      if (this.isClosed) {
+        this.takePending({ id })?.reject(
+          getError({
+            message: `[WorkerBffTransport] The transport closed while the request was being encoded | id: ${id}`,
+          }),
+        );
+        return;
+      }
+
       this.worker.postMessage(requestEnvelope, requestEnvelope.body ? [requestEnvelope.body] : []);
     });
   }
@@ -200,6 +277,12 @@ export class WorkerBffTransport extends BaseHelper implements IBffTransport {
    * left alone - this transport did not create it, and a page may hand the same one to another.
    */
   close(): void {
+    this.isClosed = true;
+
+    for (const timer of this.graceTimers) {
+      clearTimeout(timer);
+    }
+    this.graceTimers.clear();
     this.worker.removeEventListener('message', this.handleMessage);
     this.worker.removeEventListener('error', this.handleWorkerError);
     this.worker.removeEventListener('messageerror', this.handleMessageError);

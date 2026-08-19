@@ -14,6 +14,15 @@ const SECRET_KEY_PATTERN = new RegExp(
     // Any `*_token` (snake_case) or `*Token` (camelCase) key; a preceding character is required so the bare word `token` (already covered above) is not the whole match, and so ordinary words are not swallowed.
     '|_token$|[a-z0-9]token$',
 
+    // The `*Secret` counterpart the `*Token` rule always lacked. `clientSecret` / `client_secret` is the RFC 6749 parameter name and a live field on the search connector's model options, and `webhookSecret` is the standard spelling everywhere; none of them matched the anchored list above.
+    '|_secret$|[a-z0-9]secret$',
+
+    // Connection descriptors: `connectionString` was anchored above but its snake_case twin was not, and `dsn` is the third common spelling for the same thing.
+    '|^(connection_string|dsn|database_url|databaseUrl)$',
+
+    // Any `*_password` / `*Password` key - `dbPassword`, `admin_password`. The bare word is anchored above; this catches the prefixed forms.
+    '|_password$|[a-z0-9]password$',
+
     // HTTP HEADER spellings: header names are kebab-case and often `x-`-prefixed, none of which the camelCase list above matches; `vault` is included so `X-Vault-Token` (node-vault's auth header) is caught.
     '|^(x-)?(api|auth|access|secret|session|csrf|xsrf|vault)-(key|token|secret|id)$',
     '|^(cookie|set-cookie|proxy-authorization|www-authenticate)$',
@@ -97,8 +106,20 @@ const deepSanitize = (value: unknown, context: TSanitizeContext): unknown => {
   return result;
 };
 
-/** Redacts every secret-looking KEY (not value shape - buffers/typed arrays are summarized, not serialized). `APP_ENV_LOGGER_DO_REDACT=false` makes this the identity function. */
-export const redactSecrets = (value: unknown, seen?: WeakSet<object>): unknown => {
+/**
+ * Redacts every secret-looking KEY (not value shape - buffers/typed arrays are summarized, not
+ * serialized). `APP_ENV_LOGGER_DO_REDACT=false` makes this the identity function.
+ *
+ * `depth` bounds the walk, exactly as {@link toJsonSafe} already does. It defaults to `Infinity` for
+ * callers that really do want the whole graph, but the logger passes its own bound: rendering only
+ * inspects a handful of levels, so walking to `Infinity` did work whose result was thrown away -
+ * 12x on a deep graph, and a `RangeError` on a very deep chain.
+ */
+export const redactSecrets = (
+  value: unknown,
+  seen?: WeakSet<object>,
+  depth: number = Infinity,
+): unknown => {
   if (!isRedactionEnabled()) {
     return value;
   }
@@ -106,7 +127,7 @@ export const redactSecrets = (value: unknown, seen?: WeakSet<object>): unknown =
   return deepSanitize(value, {
     seen: seen ?? new WeakSet<object>(),
     doRedact: true,
-    depth: Infinity,
+    depth,
   });
 };
 

@@ -101,16 +101,34 @@ export class AuthorizationProvider extends BaseHelper implements IProvider<TAuth
       const enforcer = await registry.resolveEnforcer({ name: resolvedName });
 
       // Only resolve domain scope when it is actually in play (per-route domain OR a configured global resolver) - avoids a resolver call (possible DB hit) for legacy enforcers.
-      if (spec.domain || options?.domainResolver) {
-        const domainScope = await resolveRequestDomain({
-          spec,
-          context: asTypedContext(context),
-          options,
-        });
-        context.set(Authorization.DOMAIN, domainScope);
-      }
+      //
+      // Held in a LOCAL, not read back out of the context. One middleware is pushed per spec onto
+      // the same Hono context, so reading `Authorization.DOMAIN` at decision time meant a
+      // domain-less spec inherited the tenant domain a PREVIOUS spec had written - silently
+      // widening a check that should have run at SYSTEM_WIDE. The context is still set, for
+      // observability, but nothing decides on it.
+      const domainScope =
+        spec.domain || options?.domainResolver
+          ? await resolveRequestDomain({
+              spec,
+              context: asTypedContext(context),
+              options,
+            })
+          : undefined;
+      context.set(Authorization.DOMAIN, domainScope);
 
-      let rules = context.get(Authorization.RULES);
+      // Keyed by enforcer. The slot used to hold one rule set for the whole request, so a second
+      // `authorize()` naming a DIFFERENT enforcer evaluated against the first enforcer's rules -
+      // granting where its own policy set denies.
+      //
+      // `instanceof Map`, not a truthiness test: the slot previously held a bare rule set, so
+      // anything that pre-populates it with the old shape would otherwise reach `.get` on a value
+      // that has no such method and take the request down with a TypeError.
+      const existingRules = context.get(Authorization.RULES);
+      const rulesByEnforcer =
+        existingRules instanceof Map ? existingRules : new Map<string, unknown>();
+      let rules = rulesByEnforcer.get(resolvedName);
+
       if (!rules) {
         if (!user.principalType) {
           throw getError({
@@ -124,7 +142,8 @@ export class AuthorizationProvider extends BaseHelper implements IProvider<TAuth
           user: user as { principalType: string } & IAuthUser,
           context: asTypedContext(context),
         });
-        context.set(Authorization.RULES, rules);
+        rulesByEnforcer.set(resolvedName, rules);
+        context.set(Authorization.RULES, rulesByEnforcer);
       }
 
       let decision = await enforcer.evaluate({
@@ -133,7 +152,7 @@ export class AuthorizationProvider extends BaseHelper implements IProvider<TAuth
           action: spec.action,
           resource: spec.resource,
           conditions: spec.conditions,
-          domain: context.get(Authorization.DOMAIN),
+          domain: domainScope,
         },
         context: asTypedContext(context),
       });

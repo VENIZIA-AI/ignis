@@ -200,11 +200,23 @@ export abstract class SearchBaseRepository<
    * the connector's physical ceiling, which is the intended layering - policy is opt-out-able,
    * physics is not.
    */
-  protected assertLimitWithinCeiling(opts: { limit?: number }): void {
+  protected override assertLimitWithinCeiling(opts: { limit?: number; scope?: string }): void {
     const { limit } = opts;
     const ceiling = this.maxLimit ?? DEFAULT_MAX_LIMIT;
 
-    if (limit === undefined || limit <= ceiling) {
+    if (limit === undefined) {
+      return;
+    }
+
+    // The lower bound the base class checks, restated here because this override replaces it. A
+    // negative limit tested `<= ceiling` and passed, and the engines answer it inconsistently.
+    if (!Number.isInteger(limit) || limit < 0) {
+      throw getError({
+        message: `[${this.constructor.name}][buildQuery] Invalid 'limit' | Expected a non-negative integer | Got: ${limit}`,
+      });
+    }
+
+    if (limit <= ceiling) {
       return;
     }
 

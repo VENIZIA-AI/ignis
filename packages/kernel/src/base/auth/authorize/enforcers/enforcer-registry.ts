@@ -18,9 +18,13 @@ export class AuthorizationEnforcerRegistry extends AbstractAuthRegistry<IAuthori
 
   private configuredEnforcers: Set<string>;
 
+  /** In-flight `configure()` calls, so concurrent first requests share one warmup instead of racing. */
+  private pendingConfigurations: Map<string, Promise<void>>;
+
   constructor() {
     super({ scope: AuthorizationEnforcerRegistry.name });
     this.configuredEnforcers = new Set();
+    this.pendingConfigurations = new Map();
   }
 
   static getInstance() {
@@ -33,6 +37,7 @@ export class AuthorizationEnforcerRegistry extends AbstractAuthRegistry<IAuthori
   override reset(): void {
     super.reset();
     this.configuredEnforcers.clear();
+    this.pendingConfigurations.clear();
   }
 
   protected getBindingPrefix(): string {
@@ -91,14 +96,40 @@ export class AuthorizationEnforcerRegistry extends AbstractAuthRegistry<IAuthori
     return this.getDefaultName();
   }
 
+  /**
+   * The PROMISE is memoised, not just the completed flag.
+   *
+   * `configure()` yields (it dynamic-imports casbin), and the flag was only set after the await -
+   * so a burst of first requests each saw an unconfigured enforcer and each built a full pool.
+   * Measured: 40 concurrent first requests produced 40 configure() calls and 640 enforcers.
+   * The entry is dropped on rejection so a failed warmup does not poison every later request.
+   */
   async resolveEnforcer(opts: { name: string }): Promise<IAuthorizationEnforcer> {
     const enforcer = this.resolveDescriptor(opts);
 
-    if (!this.configuredEnforcers.has(opts.name)) {
-      await enforcer.configure();
-      this.configuredEnforcers.add(opts.name);
+    if (this.configuredEnforcers.has(opts.name)) {
+      return enforcer;
     }
 
+    const inFlight = this.pendingConfigurations.get(opts.name);
+    if (inFlight) {
+      await inFlight;
+      return enforcer;
+    }
+
+    // `Promise.resolve` because `configure()` is declared `ValueOrPromise<void>` - a synchronous
+    // implementation returns plain `void`, which has no `.then`.
+    const pending = Promise.resolve(enforcer.configure())
+      .then(() => {
+        this.configuredEnforcers.add(opts.name);
+      })
+      .finally(() => {
+        this.pendingConfigurations.delete(opts.name);
+      });
+
+    this.pendingConfigurations.set(opts.name, pending);
+
+    await pending;
     return enforcer;
   }
 

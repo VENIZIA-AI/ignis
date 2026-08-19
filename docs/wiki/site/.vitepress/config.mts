@@ -452,6 +452,16 @@ const config = defineConfig({
           collapsed: false,
           items: [
             {
+              text: '2026-08-19',
+              collapsed: true,
+              items: [
+                {
+                  text: 'A Browser BFF That Survives a Second Tab',
+                  link: '/changelogs/2026-08-19-browser-bff-multi-tab',
+                },
+              ],
+            },
+            {
               text: '2026-08-18',
               collapsed: true,
               items: [

@@ -249,7 +249,8 @@ function notFoundHandler(opts: {
 }
 ```
 
-The handler logs the 404 at error level with the request ID, path, and full URL.
+The handler logs the 404 at warn level with the request ID, path, and full URL. An unrouted path is a
+client mistake, not a server fault - alerting tuned to error level should not fire on it.
 
 
 ## RequestSpyMiddleware

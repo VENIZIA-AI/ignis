@@ -22,8 +22,8 @@ class BrowserBffApplication extends WorkerApplication {
 await new BrowserBffApplication().listen();
 
 // bff.ts - on the page
-export const bff = new WorkerBffTransport({
-  worker: new Worker(new URL('./worker.ts', import.meta.url), { type: 'module' }),
+export const bff = new SharedBffTransport({
+  createWorker: () => new Worker(new URL('./worker.ts', import.meta.url), { type: 'module' }),
 });
 
 const response = await bff.fetch({ request: new Request('http://ignis.internal/api/notes') });
@@ -31,13 +31,13 @@ const response = await bff.fetch({ request: new Request('http://ignis.internal/a
 
 ## The package is small on purpose
 
-Thirteen source files, four subsystems, one export entry.
+Thirteen source files, three subsystems, one export entry.
 
 | Subsystem | What it holds |
 |---|---|
 | `applications/` | `WorkerApplication` - extends the kernel's `RestApplication`, adds `listen()` and `stop()` |
 | `envelope/` | `BffEnvelope` - `encodeRequest`/`decodeRequest`, `encodeResponse`/`decodeResponse`, `encodeError`/`decodeError`, `toSyntheticUrl` - plus `BFF_SYNTHETIC_ORIGIN` and the envelope types |
-| `transport/` | `IBffTransport`, `WorkerBffTransport` (the page side), `InProcessBffTransport` (no worker at all) |
+| `transport/` | `IBffTransport` and its three implementations - `WorkerBffTransport` (one Worker), `SharedBffTransport` (one Worker per origin), `InProcessBffTransport` (no Worker at all) - plus `installBffFetch` |
 
 Everything else comes from the kernel. `hono` and `@hono/zod-openapi` are the only peers.
 
@@ -64,6 +64,62 @@ errors. A foreign error gets 500.
 
 `BFF_SYNTHETIC_ORIGIN` is `http://ignis.internal`. A Worker has no origin of its own, and Hono needs
 an absolute URL to route.
+
+## `SharedBffTransport` - one Worker per origin, not per tab
+
+Use it by default. `WorkerBffTransport` is the right choice only when the BFF touches no
+origin-exclusive resource.
+
+The constraint is storage, not framework. PGlite in `opfs-ahp://` mode holds an exclusive OPFS
+access handle, and access handles are exclusive per **origin**. Measured in Chromium with two tabs:
+the first works, the second never boots its database - `Access Handles cannot be created if there is
+another open Access Handle or Writable stream associated with the same file`. The first tab is
+unaffected, and closing it lets the second recover on reload.
+
+So exactly one tab may own the database. `SharedBffTransport` elects that tab with the Web Locks
+API, calls `createWorker()` **only** in the winner, and forwards every other tab's request over a
+`BroadcastChannel` in the same envelope the Worker speaks.
+
+| Decision | Why |
+|---|---|
+| Web Locks, not a heartbeat | the browser releases the lock when the tab goes away, a crash included - no stale-leader window to reason about |
+| `createWorker` is a factory, not a `Worker` | a follower must never construct one; passing an instance would start it before the election |
+| `{ ifAvailable: true }`, then a second queued request | the first tells this tab it is a follower without hanging; the second is the promotion, and it resolves on its own when the leader dies |
+| Promotion rejects everything in flight | those requests were addressed to a leader that is gone, and a write may already have been applied - replaying is not safe, and waiting out the timeout says nothing |
+| `close()` aborts the queued lock request | otherwise a closed transport stays in the queue and is handed leadership over a tab that could have served |
+| BOTH lock callbacks check `isClosed` | a real `LockManager` grants from a queued task, so `close()` can land between the constructor and the grant. Unguarded, a closed transport booted a worker and held the lock for the life of the page - `close()` clears `releaseLeadership` before `heldUntilClosed()` assigns it, so nothing could resolve it |
+| `close()` terminates the worker BEFORE releasing the lock | `WorkerBffTransport.close()` leaves a worker running by design (it did not create it); this class did. Releasing first promotes a tab that opens the same database while the old worker still holds the access handle |
+| No "new leader is ready" broadcast | `BroadcastChannel` does not order messages across senders, so a request posted around a promotion may still be answered - a follower acting on the announcement would turn those successes into errors. The request timeout is the honest answer for that window |
+
+A host with no `navigator.locks` runs single-tab, and that is not a compromise: measured on a
+plain-http origin, `navigator.locks` and `navigator.storage.getDirectory` are **both** undefined,
+because both are secure-context only. Wherever OPFS works the lock exists, and where it does not the
+database could not have started either.
+
+Bun has `BroadcastChannel` but no `navigator.locks`, so
+`src/__tests__/shared-transport.test.ts` drives a `LockManagerStub` - without it every test would
+take the single-tab branch, which is the one branch the suite is not about.
+
+## `installBffFetch` - the seam that makes the swap invisible
+
+```ts
+installBffFetch({ transport: bff, basePath: '/api' });
+```
+
+Routes the page's own `fetch` into a transport for anything under `basePath`, and leaves every other
+call on the network. It returns an uninstall function, and refuses a second install rather than
+stacking bridges.
+
+This exists because HTTP clients do not take a custom fetcher. A data provider, an SDK or a
+generated client reaches the network through the global `fetch`, so answering that `fetch` is the
+only place an in-browser backend is a drop-in swap rather than a fork of the client. Install it
+**before** the application that uses it boots.
+
+The one non-obvious line is `resolveRequestUrl`, which reads the URL without constructing a
+`Request`. `new Request(existingRequest)` marks the original body disturbed in Chromium - `bodyUsed`
+flips to `true` and `text()` then throws - so building one just to read `.url` breaks the very
+pass-through it is deciding about. Bun does **not** disturb it, so no test under the Bun runner can
+guard this; the test that covers it says so in its own comment.
 
 ## `listen()` and what it registers
 
@@ -145,8 +201,9 @@ is for.
 
 ## Gotchas
 
-- **This package ships CommonJS only**, like every IGNIS package except `inversion` and `filter`. A
-  Vite consumer needs `optimizeDeps.include` lines for each one.
+- **This package dual-builds**, CommonJS and ESM, and the purity gate fails if the `import`
+  condition disappears. It shipped CommonJS only once, and a Vite consumer then needed an
+  `optimizeDeps.include` line per sub-path - see [browser-bff](/examples/browser-bff.md).
 - **`IWorkerMessageScope` is a structural type, not `DedicatedWorkerGlobalScope`.** Not because this
   package lacks `lib.webworker` - `tsconfig.json` sets `lib: ["ES2024", "WebWorker"]` and
   `browser-purity.test.ts` asserts it. Naming the DOM type in a public signature would force

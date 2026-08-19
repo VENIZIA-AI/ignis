@@ -34,6 +34,21 @@ export class WebSocketServerHelper<
   AuthDataType extends Record<string, unknown> = Record<string, unknown>,
   MetadataType extends Record<string, unknown> = Record<string, unknown>,
 > extends BaseHelper {
+  /**
+   * Narrows an untrusted room payload to the strings it actually contains.
+   *
+   * `payload as { rooms?: string[] }` is a claim, not a check: the value comes off the wire, so
+   * `{"rooms":"lobby"}` satisfied the `rooms?.length` test (a string has one) and the next line
+   * called `rooms.filter`, which a string does not have. Under `Bun.serve` that TypeError is thrown
+   * inside the message callback and exits the process.
+   */
+  private static toRoomList(payload: unknown): string[] {
+    const rooms = (payload as { rooms?: unknown } | null | undefined)?.rooms;
+    return Array.isArray(rooms)
+      ? rooms.filter((room): room is string => typeof room === 'string')
+      : [];
+  }
+
   private path: string;
   private server: IBunServer;
 
@@ -745,8 +760,8 @@ export class WebSocketServerHelper<
       return;
     }
 
-    const { rooms = [] } = (payload as { rooms?: string[] }) || {};
-    if (!rooms?.length) {
+    const rooms = WebSocketServerHelper.toRoomList(payload);
+    if (!rooms.length) {
       return;
     }
 
@@ -817,8 +832,8 @@ export class WebSocketServerHelper<
       return;
     }
 
-    const { rooms = [] } = (payload as { rooms?: string[] }) || {};
-    if (!rooms?.length) {
+    const rooms = WebSocketServerHelper.toRoomList(payload);
+    if (!rooms.length) {
       return;
     }
 
@@ -946,6 +961,27 @@ export class WebSocketServerHelper<
     const excludeSet = new Set(exclude);
     const roomClientIds = this.rooms.get(room);
     if (!roomClientIds) {
+      return;
+    }
+
+    // Serialised ONCE when there is no transformer, because the payload is then identical for every
+    // recipient - `sendToClient` would otherwise run `JSON.stringify` per client on a message that
+    // never differs. With a transformer each client's payload really is different, so that path
+    // still goes through `sendToClient`. The non-excluding fan-out already works this way.
+    if (!this.outboundTransformer) {
+      const payload = JSON.stringify({ event, data });
+
+      for (const clientId of roomClientIds) {
+        if (excludeSet.has(clientId)) {
+          continue;
+        }
+
+        const client = this.clients.get(clientId);
+        if (client) {
+          this.deliverToSocket({ client, payload, event, data });
+        }
+      }
+
       return;
     }
 

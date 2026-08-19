@@ -4,6 +4,7 @@ import axios, { AxiosInstance, AxiosRequestConfig, AxiosResponse } from 'axios';
 import https from 'node:https';
 import { stringify } from 'node:querystring';
 import { BaseNetworkRequest } from '../base-network-request.helper';
+import type { ILogger } from '@/modules/logger/common/types';
 import { AbstractNetworkFetchableHelper, IRequestOptions } from './base-fetcher';
 
 export interface IAxiosRequestOptions extends AxiosRequestConfig, IRequestOptions {
@@ -12,6 +13,12 @@ export interface IAxiosRequestOptions extends AxiosRequestConfig, IRequestOption
   params?: AnyObject;
   body?: AnyObject;
   headers?: AnyObject;
+  /**
+   * Declared so the opt-out is TYPED. It used to reach the agent only through the
+   * `[extra: string]: any` index signature on {@link IRequestOptions}, which meant nothing told a
+   * caller the option existed, and nothing stopped a typo from silently doing nothing.
+   */
+  rejectUnauthorized?: boolean;
 }
 
 export class AxiosFetcher extends AbstractNetworkFetchableHelper<
@@ -22,15 +29,38 @@ export class AxiosFetcher extends AbstractNetworkFetchableHelper<
   AxiosResponse<any, any>['data'],
   AxiosInstance
 > {
-  constructor(opts: { name: string; defaultConfigs: AxiosRequestConfig; logger?: any }) {
+  /**
+   * One agent for the instance, not one per request. Built here so TLS verification is decided
+   * ONCE, at construction, rather than per call - and so connections are actually reused: a fresh
+   * agent per request forces a new TCP and TLS handshake every time (measured: 10 handshakes for 10
+   * requests, versus 1).
+   */
+  private readonly httpsAgent: https.Agent;
+
+  constructor(opts: {
+    name: string;
+    defaultConfigs: AxiosRequestConfig;
+    logger?: ILogger;
+    /**
+     * Turns OFF certificate verification for this instance. Node's own default is `true` and so is
+     * this one; the previous code defaulted it to `false`, which silently accepted any certificate
+     * on every HTTPS request the framework made.
+     */
+    rejectUnauthorized?: boolean;
+  }) {
     super({ name: opts.name, variant: 'axios' });
     const { defaultConfigs } = opts;
     opts?.logger?.info('Creating new network request worker instance! Name: %s', this.name);
 
+    this.httpsAgent = new https.Agent({
+      keepAlive: true,
+      rejectUnauthorized: opts.rejectUnauthorized ?? true,
+    });
+
     this.worker = axios.create({ ...defaultConfigs });
   }
 
-  override send<T = any>(opts: IAxiosRequestOptions, logger?: any) {
+  override send<T = any>(opts: IAxiosRequestOptions, logger?: ILogger) {
     const { url, method = HTTP.Methods.GET, params = {}, body: data, headers, ...rest } = opts;
     const props: AxiosRequestConfig = {
       url,
@@ -44,9 +74,14 @@ export class AxiosFetcher extends AbstractNetworkFetchableHelper<
 
     const protocol = this.getProtocol(url);
     if (protocol === HTTP.Protocols.HTTPS) {
-      props.httpsAgent = new https.Agent({
-        rejectUnauthorized: opts.rejectUnauthorized ?? false,
-      });
+      // A caller's own agent WINS. The previous code assigned after the `...rest` spread, so a
+      // hardened agent - custom CA, pinning, mTLS - was overwritten and the secure path was
+      // unreachable through the public seam.
+      props.httpsAgent =
+        rest.httpsAgent ??
+        (opts.rejectUnauthorized === undefined
+          ? this.httpsAgent
+          : new https.Agent({ keepAlive: true, rejectUnauthorized: opts.rejectUnauthorized }));
     }
 
     logger?.for(this.send.name).info('URL: %s | Props: %s', url, redactSecrets(props));

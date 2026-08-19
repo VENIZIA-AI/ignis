@@ -337,7 +337,11 @@ export class AssetControllerFactory extends BaseHelper {
                 results.push({
                   ...uploadResult,
                   metaLink: null,
-                  metaLinkError: error instanceof Error ? error.message : 'Unknown error',
+                  // A CODE, never the driver text. This handler returns 200, so it bypasses the
+                  // error middleware and `database.handler` - the two places that strip
+                  // `detail`/`table`/`constraint` - and shipped raw constraint names to the client.
+                  // The real error is already logged in full immediately above.
+                  metaLinkError: 'META_LINK_CREATE_FAILED',
                 });
               }
             }

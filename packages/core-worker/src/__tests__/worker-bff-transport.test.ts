@@ -397,7 +397,7 @@ describe('WorkerBffTransport', () => {
     worker.respond({ id: sentEnvelope.id, status: 200, headers: [] });
   });
 
-  test('a crashed worker still rejects every in-flight request', async () => {
+  test('a crashed worker rejects every in-flight request, after the grace window', async () => {
     const worker = new FakeWorker();
     const transport = new WorkerBffTransport({ worker: worker as any, timeoutMs: 5_000 });
 
@@ -407,8 +407,30 @@ describe('WorkerBffTransport', () => {
     await flushMicrotasks();
     worker.crash();
 
-    expect(await settleWithin({ task: first, timeoutMs: 100 })).toBe('rejected');
-    expect(await settleWithin({ task: second, timeoutMs: 100 })).toBe('rejected');
+    // Longer than `WORKER_ERROR_GRACE_MS`: an `error` event does not prove the worker is dead, so
+    // the requests are held briefly in case it still answers. Nothing answers here, so both fail.
+    expect(await settleWithin({ task: first, timeoutMs: 500 })).toBe('rejected');
+    expect(await settleWithin({ task: second, timeoutMs: 500 })).toBe('rejected');
+  });
+
+  /**
+   * The reason the grace window exists. A synchronous throw in the worker fires `error` while the
+   * worker keeps serving, and its genuine answer lands a moment later - rejecting on the event
+   * alone reported a committed write as failed and then dropped the real response.
+   */
+  test('an answer arriving after an error event still settles its request', async () => {
+    const worker = new FakeWorker();
+    const transport = new WorkerBffTransport({ worker: worker as any, timeoutMs: 5_000 });
+
+    const inFlight = transport.fetch({ request: new Request('http://example.test/one') });
+
+    await flushMicrotasks();
+    const sentEnvelope = worker.posted[0] as IBffRequestEnvelope;
+
+    worker.crash();
+    worker.respond({ id: sentEnvelope.id, status: 204, headers: [] });
+
+    expect((await inFlight).status).toBe(204);
   });
 });
 

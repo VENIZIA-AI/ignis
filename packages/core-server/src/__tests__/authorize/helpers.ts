@@ -109,6 +109,8 @@ export const createMockContext = (overrides?: {
   user?: (IAuthUser & { principalType?: string }) | undefined;
   isSkipAuthorize?: boolean;
   rules?: unknown;
+  /** Enforcer the seeded rules belong to; defaults to the name these tests register. */
+  enforcerName?: string;
   path?: string;
 }) => {
   const store = new Map<string, unknown>();
@@ -121,7 +123,15 @@ export const createMockContext = (overrides?: {
     store.set(Authorization.SKIP_AUTHORIZATION, true);
   }
   if (overrides?.rules !== undefined) {
-    store.set(Authorization.RULES, overrides.rules);
+    // The slot holds a Map keyed by enforcer name, so one request carrying two `authorize()` calls
+    // against different enforcers cannot evaluate one enforcer's request against the other's rules.
+    // A bare rule set is seeded under the name these tests register, which is also the default.
+    store.set(
+      Authorization.RULES,
+      overrides.rules instanceof Map
+        ? overrides.rules
+        : new Map<string, unknown>([[overrides.enforcerName ?? 'test', overrides.rules]]),
+    );
   }
 
   return {

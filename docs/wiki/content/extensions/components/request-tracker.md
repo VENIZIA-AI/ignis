@@ -29,7 +29,8 @@ Nothing to configure - once the application starts, every request is logged auto
 [SpyMW] [<request-id>][127.0.0.1][<=] GET      /hello | Took: 1.23 (ms)
 ```
 
-In **production** (`NODE_ENV=production`), the body is omitted; query is still logged:
+Bodies are logged only in a development environment. Everywhere else - including when `NODE_ENV` is
+unset - the body is omitted and query is still logged:
 
 ```
 [SpyMW] [<request-id>][127.0.0.1][=>] GET      /hello | query: {}
@@ -47,7 +48,10 @@ The HTTP method is padded to 8 characters for consistent alignment.
 
 - **One middleware, and an ID it does not install.** `requestId()` comes from `RestApplication.registerDefaultMiddlewares()`, which runs before any component, so it is already in place when `binding()` resolves `RequestSpyMiddleware` from the DI container and registers it. The generator is IGNIS's `RequestIdGenerator`, not hono's `crypto.randomUUID` default - that keeps a server and a browser-Worker BFF stamping the same format.
 - **IP resolution is best-effort, never fatal.** The middleware falls through several sources before giving up - see the resolution order below. An unresolved IP never fails the request; this middleware observes traffic, it does not gate it.
-- **Body logging is environment-gated.** `RequestSpyMiddleware` reads `NODE_ENV` once in its constructor. Any value other than `'production'` logs the body; `'production'` logs query only. Query is always logged in every environment.
+- **Body logging is environment-gated, and it fails closed.** `RequestSpyMiddleware` reads `NODE_ENV` once in its constructor and logs the body only when the value is one of `local`, `debug`, `development`, `dev`, `sit`. Anything else - `staging`, `uat`, `production`, or `NODE_ENV` unset entirely - logs query only. Query is always logged in every environment.
+
+> [!WARNING]
+> This rule used to be "anything that is not `production`", which logged full request bodies in `staging`, `uat` and with `NODE_ENV` unset. If you relied on bodies appearing outside a development environment, set `NODE_ENV` to one of the five values above.
 - **Body parsing follows Content-Type.** See the outcomes table below for what each Content-Type resolves to. A parse failure throws `'Malformed Body Payload'` (HTTP 400).
 - **The middleware is an `IProvider`, not a plain function.** `RequestSpyMiddleware` implements `IProvider<MiddlewareHandler>` from `@venizia/ignis-inversion`. The container instantiates the class, so it can hold `isDebugMode` state as an instance field. It then calls `.value()` to obtain the actual Hono handler.
 

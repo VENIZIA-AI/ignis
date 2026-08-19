@@ -1,10 +1,11 @@
-import { LockStrengths } from '@venizia/ignis-kernel';
+import { DEFAULT_MAX_LIMIT, LockStrengths } from '@venizia/ignis-kernel';
 import type { IRelationalTransaction } from '@/relational/core/datasources/common';
 import type { DefaultRelationalRepository } from '@/relational/core/repositories';
 import type { AnyType } from '@venizia/ignis-helpers/common';
 import { ApplicationError } from '@venizia/ignis-helpers/core';
 import { HTTP } from '@venizia/ignis-helpers/common';
 import { beforeEach, describe, expect, test } from 'bun:test';
+import { expectRejection } from '@/__tests__/rejection.helper';
 
 /**
  * The columns every engine's conformance table declares. Types differ per engine - `tags` is a
@@ -157,6 +158,53 @@ export const runRepositoryConformance = (opts: {
       });
 
       expect(rows.map(row => row.name)).toEqual(['gamma', 'beta']);
+    });
+
+    /**
+     * The relational tier read `maxLimit` nowhere, and a NEGATIVE limit was worse than an ignored
+     * one: Drizzle renders the LIMIT clause only when the value is `>= 0`, so `limit: -1` dropped
+     * the clause and returned the whole table. The check runs on the CALLER's value, before the
+     * default fills in, and it is asserted per engine because it guards the query each engine
+     * builds.
+     */
+    test('find() refuses a limit that is not a non-negative integer', async () => {
+      await expectRejection({
+        task: repository.find<IConformanceRow>({ filter: { limit: -1 } }),
+        message: /Invalid 'limit'/,
+      });
+
+      await expectRejection({
+        task: repository.find<IConformanceRow>({ filter: { limit: 1.5 } }),
+        message: /Invalid 'limit'/,
+      });
+    });
+
+    test('find() refuses a page above the framework ceiling', async () => {
+      await expectRejection({
+        task: repository.find<IConformanceRow>({ filter: { limit: DEFAULT_MAX_LIMIT + 1 } }),
+        message: /exceeds this model's limit/,
+      });
+    });
+
+    /**
+     * The same defect one level down. The wire schema rejects it, but a server-side caller builds
+     * the filter in code and never passes through the schema - which is the reason the top-level
+     * check exists at all.
+     */
+    test('find() refuses a negative limit inside a relation scope', async () => {
+      await expectRejection({
+        task: repository.find<IConformanceRow>({
+          filter: { include: [{ relation: 'anything', scope: { limit: -1 } }] },
+        }),
+        message: /Invalid 'limit' on relation scope/,
+      });
+    });
+
+    test('find() still serves a limit of zero and a limit at the ceiling', async () => {
+      expect(await repository.find<IConformanceRow>({ filter: { limit: 0 } })).toEqual([]);
+      expect(
+        await repository.find<IConformanceRow>({ filter: { limit: DEFAULT_MAX_LIMIT } }),
+      ).toHaveLength(SEED.length);
     });
 
     test('find() composes nested operators inside a logical group', async () => {

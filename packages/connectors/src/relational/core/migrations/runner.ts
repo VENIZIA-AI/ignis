@@ -43,6 +43,9 @@ export class RelationalMigrationRunner extends BaseHelper {
   private readonly driver: IRelationalDriver<unknown>;
   private readonly ledgerTable: string;
 
+  /** Set when a ROLLBACK itself fails, so the connection is destroyed rather than pooled. */
+  private isSessionPoisoned = false;
+
   constructor(opts: {
     driver: IRelationalDriver<unknown>;
     /** Defaults to `ignis_migrations`. Validated like a migration name. */
@@ -116,7 +119,7 @@ export class RelationalMigrationRunner extends BaseHelper {
         logger.info('Applied migration | name: %s', migration.name);
       }
     } finally {
-      connection.release();
+      connection.release({ destroy: this.isSessionPoisoned });
     }
   }
 
@@ -145,7 +148,11 @@ export class RelationalMigrationRunner extends BaseHelper {
         .for(this.applyOne.name)
         .error('Migration failed, rolling back | name: %s | error: %s', migration.name, error);
 
+      // A FAILED rollback leaves the session inside a transaction. Returning that connection to
+      // the pool hands the next borrower an aborted session - the driver contract says such a
+      // connection must be destroyed, and the datasource teardown already does exactly that.
       await connection.execute({ statement: 'ROLLBACK' }).catch((rollbackError: unknown) => {
+        this.isSessionPoisoned = true;
         this.logger
           .for(this.applyOne.name)
           .error('Rollback failed | name: %s | error: %s', migration.name, rollbackError);

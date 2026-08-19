@@ -29,6 +29,11 @@ a network. `curl` against the dev server returns the SPA shell; the routed URL i
   production build alike.
 - **The error envelope is identical to the server's.** A thrown `ApplicationError` renders the same
   shape here as on Bun - see [error handling flow](/architecture/error-handling-flow.md).
+- **A second tab works.** One tab holds the Worker and the OPFS handle; the rest reach it through
+  `SharedBffTransport`. Close the leading tab and a follower is promoted in place, no reload.
+- **react-admin talks to it unmodified.** `DefaultRestDataProvider` points at `/api` and reaches the
+  network through the global `fetch`, which `installBffFetch` answers. Nothing in the front end knows
+  a Worker exists.
 
 ## The one workaround left, and the two that were removed
 
@@ -81,8 +86,9 @@ file is skipped rather than reported.
   and trips OPFS handle contention. The pin lives in the **root** `package.json` as an
   `overrides` entry - see [gotchas](/conventions/gotchas.md) for why a per-package pin was not
   enough.
-- **One tab.** A second tab opening the same OPFS directory fails with `NoModificationAllowedError`.
-  Multi-tab needs PGlite's own leader election.
+- **Many tabs, one Worker.** `src/bff.ts` uses `SharedBffTransport`, so a second tab is forwarded to
+  whichever tab holds the lock instead of failing on the OPFS handle. Without it the second tab is
+  dead - see [core-worker](/packages/core-worker.md) for the election and its trade-offs.
 - **A failed migration closes its client.** `configure()` used to assign `this.client` only after
   the migrations resolved, so a migration failure orphaned a live `PGlite` still holding its
   OPFS access handles - and every retry then reported `NoModificationAllowedError` instead of the

@@ -1398,7 +1398,7 @@ declare module 'hono' {
     [Authentication.AUDIT_USER_ID]: IdType;
     [Authentication.SKIP_AUTHENTICATION]: boolean;
 
-    [Authorization.RULES]: unknown;
+    [Authorization.RULES]: Map<string, unknown>;
     [Authorization.SKIP_AUTHORIZATION]: boolean;
     [Authorization.DOMAIN]: string;
   }

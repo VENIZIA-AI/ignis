@@ -6,6 +6,177 @@ not how.
 This file and `index.md` are reserved OKF filenames - they carry no `type:` frontmatter and are not
 counted as concepts.
 
+## 2026-08-19 - a browser BFF that survives a second tab
+
+`SharedBffTransport` (`packages/core-worker/src/transport/shared.ts`) runs one Worker per ORIGIN
+instead of one per tab, and is the default choice for a browser BFF now. `WorkerBffTransport` is
+correct only when the BFF touches no origin-exclusive resource.
+
+The constraint is storage, not framework. Measured end to end in Chromium, two tabs of a
+PGlite/OPFS BFF without this transport:
+
+- The FIRST tab holds the OPFS access handle and works normally.
+- The SECOND tab renders its UI but its database never boots - every BFF call fails with
+  `Failed to execute 'createSyncAccessHandle': Access Handles cannot be created if there is another
+  open Access Handle or Writable stream associated with the same file`.
+- The first tab is UNAFFECTED while the second is broken (read 200, write 201 throughout).
+- Closing the lock holder and reloading the other tab recovers fully, including every row the first
+  tab committed in the meantime.
+
+So the limitation was real, contained and self-healing - and the second tab still died with a raw
+OPFS error and no explanation. The transport elects one tab with the Web Locks API, calls
+`createWorker()` only in the winner, and forwards every other tab's request over a
+`BroadcastChannel` in the envelope the Worker already speaks. Re-measured with two real tabs after
+the change: tab 2 reads and writes through tab 1, and closing tab 1 promotes tab 2 in place with no
+reload.
+
+Design points that are not obvious from the code:
+
+- **Web Locks, not a heartbeat.** The browser releases the lock when the tab goes away, a crash
+  included, so there is no stale-leader window and nothing has to detect a death.
+- **`{ ifAvailable: true }` first, then a second QUEUED request.** The first tells a tab it is a
+  follower without hanging behind the leader; the second is the promotion, and it resolves on its
+  own.
+- **`createWorker` is a factory, not a `Worker` instance.** Passing an instance would start the
+  Worker before the election, which is the exact thing the election prevents.
+- **Promotion rejects everything in flight** rather than replaying it. Those requests went to a
+  leader that is gone, and a write may already have been applied.
+- **`close()` aborts the queued lock request.** Without it a closed transport stays in the queue and
+  is eventually handed leadership over a tab that could have served.
+- **There is deliberately NO "new leader is ready" broadcast.** It existed, was posted and was never
+  consumed, and it cannot be consumed safely: `BroadcastChannel` does not order messages across
+  senders, so a request posted around a promotion may still be answered by the new leader, and a
+  follower failing its in-flight requests on the announcement would turn those successes into
+  errors. The request timeout is the honest answer for that window.
+- A host with no `navigator.locks` runs single-tab, which costs nothing: measured on a plain-http
+  origin, `navigator.locks` and `navigator.storage.getDirectory` are BOTH undefined, because both
+  are secure-context only. Wherever OPFS works the lock exists.
+
+Bun has `BroadcastChannel` but no `navigator.locks`, so the suite drives a `LockManagerStub` -
+without it every test would take the single-tab branch, which is the one branch it is not about.
+
+**The stub grants the lock ASYNCHRONOUSLY, and that is load-bearing.** It granted synchronously
+first, which made the role settle before the constructor returned - closing the window where
+`close()` races the grant. A review found two blockers hiding in exactly that window, and the suite
+was structurally unable to reach either. A real `LockManager` grants from a queued task; a stub that
+cannot reach a window cannot test it.
+
+The two blockers, both in the first cut of this transport:
+
+- **`close()` during the election started a worker and then held the lock forever.** The
+  `ifAvailable` callback had no `isClosed` guard while the queued branch did. A closed transport
+  called `becomeLeader()`, booted PGlite, took the OPFS handle, and reported itself leader - and
+  `close()` had already read and cleared `releaseLeadership` before `heldUntilClosed()` assigned it,
+  so nothing could ever resolve it. No other tab was ever promoted, and that dead leader answered
+  nobody: its channel listener was already detached. An origin-wide outage from one transport closed
+  a few milliseconds after construction.
+- **The worker was never terminated, and `close()` released the lock BEFORE tearing down.**
+  `WorkerBffTransport.close()` deliberately leaves its worker running - it did not create the one it
+  was handed - but `SharedBffTransport` DID create it. So closing on a live page promoted another
+  tab, which opened the same database while the old worker still held the exclusive access handle:
+  the transport reintroduced the exact failure it exists to prevent. It now holds the `Worker`,
+  terminates it, and releases the lock only after.
+
+Four more found in the same pass: `fetch()` did not re-check `isClosed` after awaiting the role;
+`WorkerBffTransport.fetch` checked `isClosed` before an await, so a request encoded across a
+`close()` still reached and was EXECUTED by the worker; `becomeLeader()` was not failure-safe, so a
+CSP-refused `createWorker()` left every caller parked forever with no timer to save them; and an
+undecodable envelope on the channel left a follower's promise unsettled - version skew is the
+realistic trigger, since two builds share one channel and lock by design.
+
+- The page-side fetch bridge moved out of `examples/browser-bff` into `@venizia/ignis-worker` as
+  `installBffFetch({ transport, basePath })`. It takes any `IBffTransport` (so an in-process one
+  works in a test), accepts several prefixes, returns an uninstall function that restores the
+  previous `fetch` only if the bridge is still the installed one, refuses a second install rather
+  than stacking, and carries the runtime's own `fetch` properties across (Bun hangs `preconnect`
+  there). It resolves the request URL WITHOUT constructing a `Request`: measured in Chromium,
+  `new Request(original)` flips `original.bodyUsed` to `true` and the next read throws "body stream
+  already read" - so the example's version broke the pass-through it was deciding about. Bun does
+  NOT disturb it, so the unit tests cannot guard this; the comment records that.
+
+## 2026-08-19 - the framework audit: 52 findings, 18 defects fixed
+
+- 168 agents raised 52 findings, 34 survived three adversarial lenses, 18 distinct defects
+  were fixed. The ones that change BEHAVIOUR a consumer can notice:
+  - `AxiosFetcher` defaulted `rejectUnauthorized` to **false**, so every HTTPS request the framework
+    made accepted any certificate. It is `true` now, the agent is built once per instance
+    (keep-alive, no handshake per call), a caller-supplied `httpsAgent` is no longer overwritten by
+    the `...rest` spread, and `rejectUnauthorized` is a declared option instead of reaching the agent
+    through an index signature. BANA uses this fetcher at 12 sites - VNPay, T-VAN, iiapi - and had
+    never set the flag, so any partner endpoint with a bad chain now fails loudly.
+  - `RequestSpyMiddleware` tested `env !== 'production'`, which logged full request bodies in
+    `staging`, `uat`, `alpha`, `beta`, `prod` and with `NODE_ENV` unset. It now asks
+    `EnvironmentNames.DEVELOPMENT_ENVS`, matching `BaseAppErrorMiddleware.isProduction`, which was
+    already documented fail-closed. Pinned by `request-spy-environment.test.ts`.
+  - `limit` is `int().nonnegative()` on the wire, and `assertLimitWithinCeiling` on
+    `AbstractRepository` enforces `@model settings.maxLimit` for the relational tier, which read it
+    nowhere. A negative limit removed Drizzle's LIMIT clause entirely and returned the whole table.
+    The ceiling is consulted only when a `@repository` model binding exists - reading `maxLimit`
+    resolves the entity, and that throws for a repository without one.
+  - `shouldSkipDefaultFilter` is off the wire `InclusionSchema`. It stays on the internal
+    `TInclusion` type and on repository `options`, which is where BANA's four call sites use it.
+  - A malformed `filter`/`where` query string is a 400, not a 500: zod lets a `SyntaxError` escape
+    `safeParse`, so the bare `JSON.parse` inside the transform bypassed the controller's validation
+    hook entirely.
+  - `Authorization.RULES` holds a `Map` keyed by enforcer name, and the resolved domain is a local
+    instead of being read back off the context - one spec's domain used to leak into the next.
+  - Log redaction now covers `%o`/`%O` and placeholder-less arguments, plus `*Secret`, `*_password`,
+    `connection_string` and `dsn` spellings; `NodeFetcher` logs a body SIZE, never the body.
+  - Measured performance: redis `mSet` 1921ms -> 1.4ms at 10k keys (spread-in-reduce was O(n^2)),
+    TCP disconnect drain 738ms -> 1.1ms at 5000 clients (`omit` rebuilt the whole registry).
+- What the audit found CLEAN, so an absent finding reads as checked: SQL injection in the query
+  builders, authentication bypass, error-response leakage on the middleware path, transaction
+  correctness, crypto misuse, and worker envelope integrity.
+
+- The audit fixes are PINNED now, and each pin was proved by running it against the exact pre-fix
+  file from HEAD - not by reasoning about it. Two lessons from doing that:
+  - **A hand-rolled partial revert proves nothing.** Reverting only the `domain: domainScope` read
+    left the test passing, because the same fix ALSO made `context.set(Authorization.DOMAIN, ...)`
+    unconditional - which overwrites the previous spec's domain with `undefined` and neutralises the
+    leak on its own. Only `git show HEAD:<file>` reproduced the real defect. Use it.
+  - `assertLimitWithinCeiling` guarded the top-level `limit` only, so `include[].scope.limit: -1`
+    still dropped Drizzle's LIMIT clause one level down - the same defect the fix set out to close.
+    `assertFilterLimits` now walks the whole filter. A relation's limit gets the SHAPE check only:
+    the ceiling belongs to the relation's own model, which the parent repository cannot resolve.
+  - New pins: `request-state-isolation.test.ts` (rules keyed per enforcer, domain not inherited
+    across specs, one `configure()` under 40 concurrent first requests, a failed warmup retried) and
+    `redaction-coverage.test.ts` (`%o`/`%O`/no-placeholder redaction, the nine key spellings that
+    used to leak, the depth bound). 13 of the 18 redaction tests fail against pre-fix HEAD.
+
+## 2026-08-19 - the worker package is renamed, and browser-bff becomes a react-admin app
+
+- The published package is `@venizia/ignis-worker`; the directory stays `packages/core-worker`, so
+  `make core-worker` and the release workflow's `core-worker` choice are unchanged. The old name
+  `@venizia/ignis-core-worker` is GONE from npm - `npm view` answers 404, so it was unpublished
+  rather than deprecated. Nothing in IGNIS or BANA imported it; only `examples/browser-bff` did.
+- `examples/browser-bff` is now a react-admin application on `@minimaltech/ra-core-infra`, not a
+  hand-rolled page. The integration is one file: `src/bff-fetch.ts` replaces the global `fetch` so
+  `/api/*` is answered by the Worker. `DefaultRestDataProvider` reaches the network through
+  `NodeFetchNetworkRequest`, which calls the global `fetch` and takes no custom fetcher, so
+  intercepting `fetch` is the only seam that does not fork the provider. Verified in Chrome: list,
+  create, reload-persistence and delete all round-trip through the Worker.
+- Two traps found while wiring `ra-core-infra`, both measured. `noAuthPaths` is matched by EXACT
+  resource name (`['notes']`), never a pattern - `['*']` is a literal and every request then demands
+  a token the Worker never issues. And `CoreRaApplication` resolves the data, auth AND i18n providers
+  with a non-optional `container.get`, so an unbound key throws before the first render.
+- `@minimaltech/ra-core-infra@0.0.3-17` declares peers `@venizia/ignis-inversion: ^0.1.1-6` and
+  `@venizia/ignis-filter: ^0.1.2-0`, neither of which covers 0.2.0-0. The four symbols it actually
+  uses - `Container`, `IProvider`, `TFilter`, `TWhere` - all still exist, so this is a stale range
+  and not a break. It also calls `crypto.randomUUID()` unguarded for its request-tracing header,
+  which is the same secure-context trap IGNIS just removed from `RequestIdGenerator`.
+
+## 2026-08-19 - RequestIdGenerator mints a UUID v4 again
+
+- `RequestIdGenerator` mints a UUID v4 again, not a base62 Snowflake. Snowflake cost 609 ns/op,
+  against 51 ns/op for `crypto.randomUUID()` - the intuition that "UUID calls crypto so it must be
+  slower" is backwards, because 72% of the Snowflake cost is the BigInt base62 encode loop, while
+  drawing 8 random bytes takes 19 ns. The secure-context problem that motivated Snowflake is real but
+  is solved without it: the strategy resolves once in the constructor, falling back to an RFC 9562 v4
+  assembled from `crypto.getRandomValues()`, which no browser gates. Verified in Chrome on a
+  plain-http LAN origin (`isSecureContext: false`, `randomUUID: undefined`): 10,000 ids, all valid
+  v4, none duplicated. `SnowflakeUidHelper` itself is UNTOUCHED - BANA mints business ids with it at
+  23 sites.
+
 ## 2026-08-18 - OpaqueUidHelper, the short-id counterpart to Snowflake
 
 `packages/helpers/src/modules/uid/opaque.ts`. No time ordering; a chosen length, `prefix` and
@@ -111,6 +282,78 @@ Four things this surfaced, each of which would have shipped silently:
 
 `connectors/sqlite/libsql [import]` is browser-pure where `[require]` is not: the gate got more
 truthful, not just wider. 42 rows now, 8 red, all pinned in CI per condition.
+
+## 2026-08-18 - the release pipeline, and a purity gate that could never pass
+
+- `scripts/purity/manifest.ts` now DERIVES its rows from each package's `package.json` `exports` map
+  instead of listing them by hand. 11 rows became 24, and `make purity` turned red on six connectors
+  entries it had never probed: `postgres` and `sqlite` reach `node:async_hooks` through the
+  user-audit enricher's static `hono/context-storage` import (a defect), while `node-postgres`,
+  `postgres-js`, `libsql` and `typesense` pull their own engine client's node builtins (server-only
+  by construction). `helpers` is the one partial claim - its root barrel is server-side by design.
+  `cli.ts` now exits non-zero when a `package` filter matches no row, so a renamed directory can no
+  longer turn a release gate into a silent pass. The pglite row's `external` narrowed from three
+  specifiers to `@electric-sql/pglite` alone; `drizzle-orm` is a required peer and measures clean.
+- `probe.test.ts`'s prefixed-builtin case asserted only that `buildError` contained `'fs'`, which
+  `unresolved external import(s): node:fs` also satisfies - measured, breaking `isBuiltinSpecifier`
+  left the file at 11 pass / 0 fail. It asserts `result.builtins` now.
+- `packages/{inversion,filter,boot}/scripts/rebuild.sh` type-check `tsconfig.esm.json` as well as
+  `tsconfig.json` before cleaning. `build.sh` emits both programs and the ESM config swaps
+  module/moduleResolution, so guarding one left `dist/` holding `cjs/` and no `esm/`. Reproduced on
+  filter, then closed.
+- `ServerApplication.getEnvServerPort()` walks `PORT` then `APP_ENV_SERVER_PORT` on VALIDITY, not
+  truthiness. `.find(Boolean)` let an unusable `PORT` shadow a usable `APP_ENV_SERVER_PORT`:
+  `PORT=abc APP_ENV_SERVER_PORT=8080` bound 3000, and so did Docker's legacy-link
+  `PORT=tcp://172.17.0.5:8080`.
+- `PGliteDriver.end()` clears the exit status PGlite plants on the host process. Measured on 0.5.5:
+  `process.exitCode` is `undefined` before the first PGlite query and 99 after it, ONCE per process
+  at the first WASM instantiation - a later instance never re-plants it. `packages/connectors`'s
+  suite printed `1141 pass / 0 fail` and exited 99; it exits 0 now. The clearing only fires while the
+  value is still exactly 99, so an application's own exit code survives. Also measured: closing a
+  PGlite that was never queried writes 0 to the host exit code on its own.
+- `no-engine-cycle.test.ts` walks every paradigm family's `core` tier, not just `relational`. The
+  tier split had narrowed the discovered adapter set from five directories to two, dropping the whole
+  search tier out of the guard.
+- The release workflow's rollback resets `develop` only when its remote tip IS that run's own release
+  commit, and pushes with `--force-with-lease`. One change is a 4-package chain, so overlapping
+  dispatches are normal and the blind `reset --hard HEAD~1` erased a sibling package's release commit
+  (reproduced). `IS_PUBLISHED` is now set BEFORE `bun publish`, so a publish that succeeded and lost
+  its response is reported instead of silently rolled back. The unreachable `IS_MERGED` branch, which
+  nothing ever set and which force-reset `main` the same blind way, was removed.
+
+- `make purity-connectors` could never exit 0, so a connectors release died at the purity gate. The
+  known-impure engine clients were allowed only by a hand-kept list inside `.github/workflows/ci.yml`,
+  which the release workflow never reads. The list now lives in `scripts/purity/manifest.ts` as an
+  `impure` waiver on the claim, checked in both directions: a waived row that comes back pure fails
+  as `STALE WAIVER`, and deriving still owns the row set. `ci.yml`'s duplicate step is gone.
+- `postgres/supabase [import]` is waived for a different reason than the engine clients, and is a
+  real defect: under `--target=browser` Bun drops the `export { ... } from 'drizzle-orm/supabase'`
+  re-export yet keeps those names in the bundle's export block, so the output exports identifiers it
+  never binds. An attempt to treat this as a probe false positive was reverted - the probe's own
+  fixture proved the "specifier absent from the output" test also passes a `browser: false` remap,
+  which is exactly the leak the gate exists to catch.
+- The release workflow runs `force-update` BEFORE `bun install`, not after. Rewriting ranges after
+  resolution left node_modules holding a stale registry tarball: kernel built against helpers 0.1.1
+  while the workspace carried 0.2.0-0, and failed with 15 x TS2305 on `@venizia/ignis-helpers/core`.
+  A new step now asserts every `@venizia/*` dependency resolves to the workspace, never to a tarball.
+- `force-update.sh` (all 10 copies) parses `npm view --json` with `jq`, not `grep '"' | tail -1`.
+  For an unpublished package npm prints its E404 body on STDOUT, and the old pipe fed that error text
+  to `sed` as the version.
+- The release workflow publishes BEFORE it commits, pushes or tags, so no failure path force-pushes
+  `develop` any more. Both git rollback steps became unreachable and were replaced by two failure
+  reports. `CI` is `workflow_dispatch` only - neither a push to `develop` nor a pull request runs it.
+
+- `force-update` runs over the whole workspace (`--filter "@venizia/*"`), not just the package being
+  released. `bun install` resolves every workspace member, so one stale internal range anywhere fails
+  the run: a core-worker release died on a range belonging to core-server, six minutes after a
+  connectors release made it stale. Reproduced locally, error text identical.
+- Internal dependencies deliberately stay literal `^x.y.z`, NOT bun's `workspace:` protocol. The
+  protocol was measured end to end: it fixes the install side, but `bun pm pack` resolves the
+  published floor from the version recorded in `bun.lock`, and bun 1.3.14 refreshes that record
+  through no install path (`bun install`, `--force`, `--lockfile-only` all leave it stale; only
+  deleting the lock rewrites it, which re-resolves hundreds of third-party packages). A release would
+  then publish a floor one version behind with no error anywhere. Do not re-propose it without first
+  re-testing that bun refreshes workspace version records.
 
 ## 2026-08-17 - the kernel stops pretending it has a socket
 
@@ -884,6 +1127,21 @@ and `purity-helpers` already used for their own `inversion` prerequisite.
 `.githooks/pre-commit` now runs `make purity` after `make lint-all`, so a purity break fails a
 commit instead of staying invisible until someone manually cuts a release.
 
+## 2026-07-28 - the Kafka bundler stops dying on a hoisted `require`
+
+- `platformaticRequirePlugin()` added to the Kafka bundler, plus `platformaticKafkaPlugins()` as the
+  one entry point compile scripts should register. `@platformatic/kafka@2.8.0` hoisted
+  `require('ajv-draft-04')` and `require('ajv/dist/refs/json-schema-draft-06.json')` to MODULE SCOPE
+  in `registries/confluent-schema-registry.js`, behind `createRequire(import.meta.url)`, and
+  `dist/index.js` re-exports that file - so every compiled binary importing any Kafka helper died
+  with `Cannot find package 'ajv-draft-04'` before boot. The plugin rewrites each module-scope
+  `const X = require('spec')` into a static import at bundle time. The injected binding is
+  `const X = <alias>;` with NO `?.default` unwrap: the draft-06 meta schema JSON has its own
+  top-level `default` key, so unwrapping silently swaps the meta schema for `{}` - the binary boots
+  and the registry constructs, then draft-06 validation fails. `platformaticWasmPlugin()` is
+  unchanged and still exported; the helpers dev dependency moved to `^2.8.0` (peer range `^2.6.1`
+  stays valid) so the failure is reproducible in CI.
+
 ## 2026-07-27 - the gRPC component takes its peer through the options, and `register` stops lying
 
 Three fixes, all measured against a `bun build --compile --minify` binary run without `node_modules`.
@@ -975,6 +1233,40 @@ Codes are unchanged on the wire - the definitions restate the exact strings
 literal type `TRegisterErrors` needs. `SearchErrorCodes` / `MailErrorCodes` stay exported: their
 remaining members are raised on 5xx paths that are codeless by design.
 
+## 2026-07-26 - core declares `zod`: a hoisting-dependent declaration-emit failure
+
+The `core` release failed CI at Build with TS2742: "The inferred type of 'WhereSchema' cannot be
+named without a reference to '$ZodTypeInternals' from '.bun/zod@4.4.3/...'". It built fine locally.
+
+`core` re-exports `WhereSchema`/`FilterSchema` from `buildQuerySchemas()` in `@venizia/ignis-filter`,
+so its public `.d.ts` must NAME zod's types - but core declared no `zod` dependency. Locally a
+hoisted `node_modules/zod` let TypeScript write the portable `import("zod/v4/core")`; CI's layout had
+no such hoist, so TS fell back to the bun store path and refused it as non-portable. The local pass
+was luck, and a warm `tsbuildinfo` hid it further - reproduce by deleting `dist/` AND the
+`.tsbuildinfo` files, then hiding `node_modules/zod`.
+
+The same gap would have broken CONSUMERS: `@venizia/ignis` shipped types referencing zod without
+depending on it. Fixed by declaring `zod: catalog:` in core, which also gives it
+`packages/core-server/node_modules/zod` so resolution no longer depends on hoisting. A sweep of every
+package's emitted `.d.ts` against its manifest now shows no other package referencing an undeclared
+dependency.
+
+## 2026-07-26 - force-update derives its package list, and no longer clobbers `catalog:`
+
+Each `scripts/force-update.sh` carried a HARDCODED `PACKAGES` list, so a new workspace dependency was
+silently never refreshed. Two had already drifted: `core` never refreshed `@venizia/ignis-filter`
+(pinned at a stale `^0.1.1-0` while filter shipped `0.1.1`) and `filter` never refreshed
+`@venizia/ignis-inversion`. The list is now derived from `package.json` with `jq`, so it cannot go
+stale; `EXTRA_PACKAGES` carries the one non-`@venizia` pin (`dev-configs` -> `@minimaltech/eslint-node`).
+
+Second bug, found by running the scripts rather than reading them: force-update's `sed` overwrote a
+`catalog:` value with a registry version, which would have failed `make catalog-check` in the very
+next workflow step - the release of `dev-configs` was primed to break. The loop now skips any dep
+whose current value is `catalog:`, since the root catalog owns that range.
+
+Everything else about `filter` was already registered correctly - Makefile chain and targets, release
+workflow choice and `DIST_DIRS`, knowledge concept, wiki changelog.
+
 ## 2026-07-25 - the query schemas follow the vocabulary into `ignis-filter`
 
 User decision: bring the zod schemas across so a browser can use them. They sit on a separate
@@ -1049,40 +1341,6 @@ Measured: `inversion` is genuinely browser-clean (`lodash` + `reflect-metadata`,
 vocabulary is unusable in a browser purely because it reaches `getError` through that barrel. New
 `@venizia/ignis-helpers/common` sub-path exposes the already-clean surface. Additive only: no
 existing export moved, so consumers are unaffected.
-
-## 2026-07-26 - core declares `zod`: a hoisting-dependent declaration-emit failure
-
-The `core` release failed CI at Build with TS2742: "The inferred type of 'WhereSchema' cannot be
-named without a reference to '$ZodTypeInternals' from '.bun/zod@4.4.3/...'". It built fine locally.
-
-`core` re-exports `WhereSchema`/`FilterSchema` from `buildQuerySchemas()` in `@venizia/ignis-filter`,
-so its public `.d.ts` must NAME zod's types - but core declared no `zod` dependency. Locally a
-hoisted `node_modules/zod` let TypeScript write the portable `import("zod/v4/core")`; CI's layout had
-no such hoist, so TS fell back to the bun store path and refused it as non-portable. The local pass
-was luck, and a warm `tsbuildinfo` hid it further - reproduce by deleting `dist/` AND the
-`.tsbuildinfo` files, then hiding `node_modules/zod`.
-
-The same gap would have broken CONSUMERS: `@venizia/ignis` shipped types referencing zod without
-depending on it. Fixed by declaring `zod: catalog:` in core, which also gives it
-`packages/core-server/node_modules/zod` so resolution no longer depends on hoisting. A sweep of every
-package's emitted `.d.ts` against its manifest now shows no other package referencing an undeclared
-dependency.
-
-## 2026-07-26 - force-update derives its package list, and no longer clobbers `catalog:`
-
-Each `scripts/force-update.sh` carried a HARDCODED `PACKAGES` list, so a new workspace dependency was
-silently never refreshed. Two had already drifted: `core` never refreshed `@venizia/ignis-filter`
-(pinned at a stale `^0.1.1-0` while filter shipped `0.1.1`) and `filter` never refreshed
-`@venizia/ignis-inversion`. The list is now derived from `package.json` with `jq`, so it cannot go
-stale; `EXTRA_PACKAGES` carries the one non-`@venizia` pin (`dev-configs` -> `@minimaltech/eslint-node`).
-
-Second bug, found by running the scripts rather than reading them: force-update's `sed` overwrote a
-`catalog:` value with a registry version, which would have failed `make catalog-check` in the very
-next workflow step - the release of `dev-configs` was primed to break. The loop now skips any dep
-whose current value is `catalog:`, since the root catalog owns that range.
-
-Everything else about `filter` was already registered correctly - Makefile chain and targets, release
-workflow choice and `DIST_DIRS`, knowledge concept, wiki changelog.
 
 ## 2026-07-25 - the framework finally has an error catalog
 
@@ -1551,114 +1809,3 @@ code?, args? }` so flat call sites still compile. `error` is refused on the free
   is NOT a duplicate of helpers' `ErrorSchema`/`TErrorResponse`: that one needs `@hono/zod-openapi`
   and cannot ship to a browser. `requestId` lands at `extra.requestId` via conditional spread;
   `details` is dropped.
-- `platformaticRequirePlugin()` added to the Kafka bundler, plus `platformaticKafkaPlugins()` as the
-  one entry point compile scripts should register. `@platformatic/kafka@2.8.0` hoisted
-  `require('ajv-draft-04')` and `require('ajv/dist/refs/json-schema-draft-06.json')` to MODULE SCOPE
-  in `registries/confluent-schema-registry.js`, behind `createRequire(import.meta.url)`, and
-  `dist/index.js` re-exports that file - so every compiled binary importing any Kafka helper died
-  with `Cannot find package 'ajv-draft-04'` before boot. The plugin rewrites each module-scope
-  `const X = require('spec')` into a static import at bundle time. The injected binding is
-  `const X = <alias>;` with NO `?.default` unwrap: the draft-06 meta schema JSON has its own
-  top-level `default` key, so unwrapping silently swaps the meta schema for `{}` - the binary boots
-  and the registry constructs, then draft-06 validation fails. `platformaticWasmPlugin()` is
-  unchanged and still exported; the helpers dev dependency moved to `^2.8.0` (peer range `^2.6.1`
-  stays valid) so the failure is reproducible in CI.
-- `scripts/purity/manifest.ts` now DERIVES its rows from each package's `package.json` `exports` map
-  instead of listing them by hand. 11 rows became 24, and `make purity` turned red on six connectors
-  entries it had never probed: `postgres` and `sqlite` reach `node:async_hooks` through the
-  user-audit enricher's static `hono/context-storage` import (a defect), while `node-postgres`,
-  `postgres-js`, `libsql` and `typesense` pull their own engine client's node builtins (server-only
-  by construction). `helpers` is the one partial claim - its root barrel is server-side by design.
-  `cli.ts` now exits non-zero when a `package` filter matches no row, so a renamed directory can no
-  longer turn a release gate into a silent pass. The pglite row's `external` narrowed from three
-  specifiers to `@electric-sql/pglite` alone; `drizzle-orm` is a required peer and measures clean.
-- `probe.test.ts`'s prefixed-builtin case asserted only that `buildError` contained `'fs'`, which
-  `unresolved external import(s): node:fs` also satisfies - measured, breaking `isBuiltinSpecifier`
-  left the file at 11 pass / 0 fail. It asserts `result.builtins` now.
-- `packages/{inversion,filter,boot}/scripts/rebuild.sh` type-check `tsconfig.esm.json` as well as
-  `tsconfig.json` before cleaning. `build.sh` emits both programs and the ESM config swaps
-  module/moduleResolution, so guarding one left `dist/` holding `cjs/` and no `esm/`. Reproduced on
-  filter, then closed.
-- `ServerApplication.getEnvServerPort()` walks `PORT` then `APP_ENV_SERVER_PORT` on VALIDITY, not
-  truthiness. `.find(Boolean)` let an unusable `PORT` shadow a usable `APP_ENV_SERVER_PORT`:
-  `PORT=abc APP_ENV_SERVER_PORT=8080` bound 3000, and so did Docker's legacy-link
-  `PORT=tcp://172.17.0.5:8080`.
-- `PGliteDriver.end()` clears the exit status PGlite plants on the host process. Measured on 0.5.5:
-  `process.exitCode` is `undefined` before the first PGlite query and 99 after it, ONCE per process
-  at the first WASM instantiation - a later instance never re-plants it. `packages/connectors`'s
-  suite printed `1141 pass / 0 fail` and exited 99; it exits 0 now. The clearing only fires while the
-  value is still exactly 99, so an application's own exit code survives. Also measured: closing a
-  PGlite that was never queried writes 0 to the host exit code on its own.
-- `no-engine-cycle.test.ts` walks every paradigm family's `core` tier, not just `relational`. The
-  tier split had narrowed the discovered adapter set from five directories to two, dropping the whole
-  search tier out of the guard.
-- The release workflow's rollback resets `develop` only when its remote tip IS that run's own release
-  commit, and pushes with `--force-with-lease`. One change is a 4-package chain, so overlapping
-  dispatches are normal and the blind `reset --hard HEAD~1` erased a sibling package's release commit
-  (reproduced). `IS_PUBLISHED` is now set BEFORE `bun publish`, so a publish that succeeded and lost
-  its response is reported instead of silently rolled back. The unreachable `IS_MERGED` branch, which
-  nothing ever set and which force-reset `main` the same blind way, was removed.
-
-- `make purity-connectors` could never exit 0, so a connectors release died at the purity gate. The
-  known-impure engine clients were allowed only by a hand-kept list inside `.github/workflows/ci.yml`,
-  which the release workflow never reads. The list now lives in `scripts/purity/manifest.ts` as an
-  `impure` waiver on the claim, checked in both directions: a waived row that comes back pure fails
-  as `STALE WAIVER`, and deriving still owns the row set. `ci.yml`'s duplicate step is gone.
-- `postgres/supabase [import]` is waived for a different reason than the engine clients, and is a
-  real defect: under `--target=browser` Bun drops the `export { ... } from 'drizzle-orm/supabase'`
-  re-export yet keeps those names in the bundle's export block, so the output exports identifiers it
-  never binds. An attempt to treat this as a probe false positive was reverted - the probe's own
-  fixture proved the "specifier absent from the output" test also passes a `browser: false` remap,
-  which is exactly the leak the gate exists to catch.
-- The release workflow runs `force-update` BEFORE `bun install`, not after. Rewriting ranges after
-  resolution left node_modules holding a stale registry tarball: kernel built against helpers 0.1.1
-  while the workspace carried 0.2.0-0, and failed with 15 x TS2305 on `@venizia/ignis-helpers/core`.
-  A new step now asserts every `@venizia/*` dependency resolves to the workspace, never to a tarball.
-- `force-update.sh` (all 10 copies) parses `npm view --json` with `jq`, not `grep '"' | tail -1`.
-  For an unpublished package npm prints its E404 body on STDOUT, and the old pipe fed that error text
-  to `sed` as the version.
-- The release workflow publishes BEFORE it commits, pushes or tags, so no failure path force-pushes
-  `develop` any more. Both git rollback steps became unreachable and were replaced by two failure
-  reports. `CI` is `workflow_dispatch` only - neither a push to `develop` nor a pull request runs it.
-
-- `force-update` runs over the whole workspace (`--filter "@venizia/*"`), not just the package being
-  released. `bun install` resolves every workspace member, so one stale internal range anywhere fails
-  the run: a core-worker release died on a range belonging to core-server, six minutes after a
-  connectors release made it stale. Reproduced locally, error text identical.
-- Internal dependencies deliberately stay literal `^x.y.z`, NOT bun's `workspace:` protocol. The
-  protocol was measured end to end: it fixes the install side, but `bun pm pack` resolves the
-  published floor from the version recorded in `bun.lock`, and bun 1.3.14 refreshes that record
-  through no install path (`bun install`, `--force`, `--lockfile-only` all leave it stale; only
-  deleting the lock rewrites it, which re-resolves hundreds of third-party packages). A release would
-  then publish a floor one version behind with no error anywhere. Do not re-propose it without first
-  re-testing that bun refreshes workspace version records.
-
-- `RequestIdGenerator` mints a UUID v4 again, not a base62 Snowflake. Snowflake cost 609 ns/op,
-  against 51 ns/op for `crypto.randomUUID()` - the intuition that "UUID calls crypto so it must be
-  slower" is backwards, because 72% of the Snowflake cost is the BigInt base62 encode loop, while
-  drawing 8 random bytes takes 19 ns. The secure-context problem that motivated Snowflake is real but
-  is solved without it: the strategy resolves once in the constructor, falling back to an RFC 9562 v4
-  assembled from `crypto.getRandomValues()`, which no browser gates. Verified in Chrome on a
-  plain-http LAN origin (`isSecureContext: false`, `randomUUID: undefined`): 10,000 ids, all valid
-  v4, none duplicated. `SnowflakeUidHelper` itself is UNTOUCHED - BANA mints business ids with it at
-  23 sites.
-
-- The published package is `@venizia/ignis-worker`; the directory stays `packages/core-worker`, so
-  `make core-worker` and the release workflow's `core-worker` choice are unchanged. The old name
-  `@venizia/ignis-core-worker` remains on npm at 0.2.0-1 and is not deprecated - nothing in IGNIS or
-  BANA imported it, only `examples/browser-bff` did.
-- `examples/browser-bff` is now a react-admin application on `@minimaltech/ra-core-infra`, not a
-  hand-rolled page. The integration is one file: `src/bff-fetch.ts` replaces the global `fetch` so
-  `/api/*` is answered by the Worker. `DefaultRestDataProvider` reaches the network through
-  `NodeFetchNetworkRequest`, which calls the global `fetch` and takes no custom fetcher, so
-  intercepting `fetch` is the only seam that does not fork the provider. Verified in Chrome: list,
-  create, reload-persistence and delete all round-trip through the Worker.
-- Two traps found while wiring `ra-core-infra`, both measured. `noAuthPaths` is matched by EXACT
-  resource name (`['notes']`), never a pattern - `['*']` is a literal and every request then demands
-  a token the Worker never issues. And `CoreRaApplication` resolves the data, auth AND i18n providers
-  with a non-optional `container.get`, so an unbound key throws before the first render.
-- `@minimaltech/ra-core-infra@0.0.3-17` declares peers `@venizia/ignis-inversion: ^0.1.1-6` and
-  `@venizia/ignis-filter: ^0.1.2-0`, neither of which covers 0.2.0-0. The four symbols it actually
-  uses - `Container`, `IProvider`, `TFilter`, `TWhere` - all still exist, so this is a stale range
-  and not a break. It also calls `crypto.randomUUID()` unguarded for its request-tracing header,
-  which is the same secure-context trap IGNIS just removed from `RequestIdGenerator`.

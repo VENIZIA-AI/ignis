@@ -1,23 +1,31 @@
 import { NetworkUtility } from '@/utilities/network.utility';
-import { BaseHelper, getError } from '@venizia/ignis-helpers/core';
+import { BaseHelper, EnvironmentNames, getError } from '@venizia/ignis-helpers/core';
 import { HTTP } from '@venizia/ignis-helpers/common';
-import { Environment } from '@venizia/ignis-helpers';
 import type { IProvider } from '@venizia/ignis-inversion';
 import { createMiddleware } from 'hono/factory';
 import type { MiddlewareHandler } from 'hono/types';
 import { REQUEST_ID_KEY, RequestErrors, type TContext } from '@venizia/ignis-kernel';
 
-/** Logs incoming/outgoing request details. Body/query only logged in non-production. */
+/** Logs incoming/outgoing request details. The BODY is logged only in a recognised development environment - see the constructor for why that test is fail-closed. */
 export class RequestSpyMiddleware extends BaseHelper implements IProvider<MiddlewareHandler> {
   static readonly REQUEST_ID_KEY = REQUEST_ID_KEY;
 
   private isDebugMode: boolean;
 
+  /**
+   * Fail-CLOSED, matching {@link BaseAppErrorMiddleware.isProduction}: only an environment this
+   * framework recognises as a development one enables body logging.
+   *
+   * The previous test was `env !== 'production'`, which enabled it for an unset `NODE_ENV` and for
+   * every pre-production name that carries real user data - `staging`, `uat`, `alpha`, `beta`, and
+   * the abbreviation `prod`. `development-envs.test.ts` pins those as NOT development for exactly
+   * that reason. Redaction is no defence here: it masks secret-SHAPED keys, so `nationalId`,
+   * `cardNumber` and `ssn` were written verbatim.
+   */
   constructor() {
     super({ scope: 'SpyMW' });
-    const { NODE_ENV } = process.env;
-    const env = NODE_ENV?.toLowerCase();
-    this.isDebugMode = env !== Environment.PRODUCTION;
+    const env = process.env.NODE_ENV?.toLowerCase();
+    this.isDebugMode = !!env && EnvironmentNames.DEVELOPMENT_ENVS.has(env);
   }
 
   /** Parses request body based on Content-Type header. */

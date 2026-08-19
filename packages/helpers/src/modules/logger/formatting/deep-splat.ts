@@ -58,6 +58,17 @@ export const formatLogMessage = (opts: {
       return toJsonSafe({ value: arg, depth: inspectOptions.depth ?? resolveDepth() });
     }
 
+    // `%o`, `%O` and arguments with NO placeholder (`util.format` appends those) are redacted but
+    // left as objects, so `util.formatWithOptions` still renders them the way that placeholder
+    // means. Pre-inspecting them into a string here would make `%o` print a quoted, escaped string
+    // instead of an object. Only the redaction is added; the rendering is unchanged.
+    //
+    // Before this, `logger.info('login failed', { password })` printed the password verbatim: the
+    // redactor only ever saw `%s`, while the reference docs recommend `%o` for data objects.
+    if (placeholder === undefined || placeholder === '%o' || placeholder === '%O') {
+      return redactSecrets(arg);
+    }
+
     if (placeholder !== '%s') {
       return arg;
     }
@@ -67,7 +78,13 @@ export const formatLogMessage = (opts: {
       return `\n${ErrorPrettier.format({ error: arg, inspectOptions })}`;
     }
 
-    return util.inspect(redactSecrets(arg), inspectOptions);
+    // Bounded to just past what `util.inspect` will actually render. `+2`, not `+1`: at exactly
+    // `depth + 1` the redactor replaces the last level with a string, and inspect then prints a
+    // QUOTED `'[Object]'` instead of its own bare `[Object]`.
+    return util.inspect(
+      redactSecrets(arg, undefined, (inspectOptions.depth ?? resolveDepth()) + 2),
+      inspectOptions,
+    );
   });
 
   return util.formatWithOptions(inspectOptions, message, ...widened);

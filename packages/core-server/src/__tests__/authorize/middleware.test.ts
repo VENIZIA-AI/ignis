@@ -578,9 +578,12 @@ describe('Enforcer Registry Middleware Flow', () => {
 
       await runMiddleware(middleware, context);
 
+      // A Map keyed by enforcer name, not a bare rule set: one request can carry two `authorize()`
+      // calls naming different enforcers, and a single anonymous slot let the second evaluate
+      // against the first enforcer's rules.
       const cachedRules = context._store.get(Authorization.RULES);
-      expect(cachedRules).toBeDefined();
-      expect(Array.isArray(cachedRules)).toBe(true);
+      expect(cachedRules).toBeInstanceOf(Map);
+      expect(Array.isArray((cachedRules as Map<string, unknown>).get('test'))).toBe(true);
       expect(buildCount).toBe(1);
     });
 

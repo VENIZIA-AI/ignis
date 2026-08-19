@@ -21,8 +21,8 @@ import type {
   TFindRangeOptions,
   TRepositoryOperationScope,
 } from '../common';
-import { RepositoryErrorCodes, RepositoryOperationScopes } from '../common';
-import type { TFilter, TWhere } from '@venizia/ignis-filter';
+import { DEFAULT_MAX_LIMIT, RepositoryErrorCodes, RepositoryOperationScopes } from '../common';
+import type { TFilter, TInclusion, TWhere } from '@venizia/ignis-filter';
 
 /**
  * Engine-neutral repository plumbing - lazy dataSource/entity resolution, class-keyed `@model`
@@ -144,6 +144,93 @@ export abstract class AbstractRepository<
   /** Largest `limit` a caller may ask for, when the model declares one; undefined leaves the tier's own default in force. */
   protected get maxLimit(): number | undefined {
     return this.modelSettings?.maxLimit;
+  }
+
+  /**
+   * Both bounds, in one place, for every tier.
+   *
+   * The upper bound is the point: `@model({ settings: { maxLimit } })` is public and validated at
+   * decoration time, but the relational tier read it nowhere, so `maxLimit: 2` still issued
+   * `LIMIT 50000000`.
+   *
+   * The lower bound matters just as much and is easy to miss: a NEGATIVE limit is not a smaller
+   * page. Drizzle renders the LIMIT clause only when the value is `>= 0`, so a negative one removes
+   * the clause and returns the whole table. The wire schema now rejects it too, but a server-side
+   * caller reaches this method without passing through the schema at all.
+   */
+  protected assertLimitWithinCeiling(opts: { limit?: number; scope?: string }): void {
+    const { limit, scope = 'find' } = opts;
+
+    if (limit === undefined) {
+      return;
+    }
+
+    // The shape check first, because it needs no metadata at all.
+    if (!Number.isInteger(limit) || limit < 0) {
+      throw getError({
+        message: `[${this.constructor.name}][${scope}] Invalid 'limit' | Expected a non-negative integer | Got: ${limit}`,
+      });
+    }
+
+    // `maxLimit` reaches `modelSettings`, which resolves the entity - and THAT throws for a
+    // repository with no `@repository` model binding. Such a repository is a misconfiguration this
+    // method has no business reporting, and the caller path that used to reach `getDefaultLimit()`
+    // never touched it either, because `??` short-circuits when a limit is given. So the ceiling is
+    // consulted only when the binding that makes it resolvable is actually present.
+    const hasModelBinding = Boolean(
+      MetadataRegistry.getInstance().getRepositoryBinding({ name: this.constructor.name })?.model,
+    );
+    const ceiling = (hasModelBinding ? this.maxLimit : undefined) ?? DEFAULT_MAX_LIMIT;
+
+    if (limit > ceiling) {
+      throw getError({
+        message: `[${this.constructor.name}][${scope}] Requested page exceeds this model's limit | requested: ${limit} | maximum: ${ceiling} | raise it with @model settings.maxLimit if larger pages are genuinely needed`,
+      });
+    }
+  }
+
+  /**
+   * The whole filter, relations included. Checking only the top-level `limit` left the identical
+   * defect reachable one level down: a relation scope's negative limit drops Drizzle's LIMIT clause
+   * for that relation and loads the entire related table.
+   *
+   * A relation's limit gets the SHAPE check only, not a ceiling. The ceiling belongs to the
+   * relation's own model, which this repository cannot resolve - claiming otherwise would enforce
+   * the parent's `maxLimit` on a different entity.
+   */
+  protected assertFilterLimits(opts: { filter?: TFilter; scope?: string }): void {
+    const { filter, scope = 'find' } = opts;
+
+    if (!filter) {
+      return;
+    }
+
+    this.assertLimitWithinCeiling({ limit: filter.limit, scope });
+
+    const walk = (inclusions: TInclusion[] | undefined, path: string): void => {
+      for (const inclusion of inclusions ?? []) {
+        const relationScope = inclusion.scope;
+        if (!relationScope) {
+          continue;
+        }
+
+        const relationPath = `${path}.${inclusion.relation}`;
+        const relationLimit = relationScope.limit;
+
+        if (
+          relationLimit !== undefined &&
+          (!Number.isInteger(relationLimit) || relationLimit < 0)
+        ) {
+          throw getError({
+            message: `[${this.constructor.name}][${scope}] Invalid 'limit' on relation scope | relation: ${relationPath} | Expected a non-negative integer | Got: ${relationLimit}`,
+          });
+        }
+
+        walk(relationScope.include, relationPath);
+      }
+    };
+
+    walk(filter.include, scope);
   }
 
   /** Resolves the entity instance from @repository metadata on first access. */

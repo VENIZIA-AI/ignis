@@ -148,6 +148,10 @@ export class ReadableRelationalRepository<
       shouldSkipDefaultFilter: options?.shouldSkipDefaultFilter,
     });
 
+    // Checked on the CALLER's value, before the default fills in: `??` only replaces a nullish
+    // limit, so a negative or over-ceiling one used to pass straight through to the dialect.
+    this.assertFilterLimits({ filter: baseFilter, scope: 'find' });
+
     const mergedFilter: TFilter<DataObject> = {
       ...baseFilter,
       limit: baseFilter.limit ?? this.getDefaultLimit() ?? DEFAULT_LIMIT,
