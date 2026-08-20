@@ -8,7 +8,7 @@ tags: [reference, make, build]
 
 > Generated from source - do not edit; run `make okf-gen`. Playbook: [build system](/process/build-system.md).
 
-**59 targets.**
+**61 targets.**
 
 | Target | Depends on | Description |
 |---|---|---|
@@ -22,6 +22,8 @@ tags: [reference, make, build]
 | `make okf-viz` | - | - |
 | `make agent-setup` | - | - |
 | `make catalog-check` | - | - |
+| `make release-plan` | - | - |
+| `make release` | - | - |
 | `make build` | `build-all` | - |
 | `make build-all` | `core core-worker docs docs-mcp` | All packages rebuilt successfully. |
 | `make dev-configs` | - | Rebuilding @venizia/dev-configs |

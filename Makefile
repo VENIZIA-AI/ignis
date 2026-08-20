@@ -1,4 +1,4 @@
-.PHONY: all build build-all core core-server connectors core-worker dev-configs docs docs-mcp filter helpers inversion boot kernel \
+.PHONY: all build build-all release release-plan core core-server connectors core-worker dev-configs docs docs-mcp filter helpers inversion boot kernel \
         help install clean setup-hooks agent-setup \
         lint lint-all lint-packages lint-examples \
         lint-dev-configs lint-inversion lint-filter lint-helpers lint-boot lint-core lint-core-server lint-kernel lint-connectors lint-core-worker lint-docs-mcp \
@@ -55,6 +55,14 @@ agent-setup:
 # ----------------------------------------------------------------------------
 catalog-check:
 	@bun scripts/check-catalog.ts
+
+# Dispatches the release workflow one package at a time, in dependency order, waiting for each.
+# `force-update` runs over the whole workspace, so overlapping runs fail on each other's ranges.
+release-plan:
+	@bun scripts/release.ts --dry-run
+
+release:
+	@bun scripts/release.ts $(ARGS)
 
 # ----------------------------------------------------------------------------
 # BUILD TARGETS

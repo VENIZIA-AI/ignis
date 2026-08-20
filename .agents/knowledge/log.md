@@ -6,6 +6,33 @@ not how.
 This file and `index.md` are reserved OKF filenames - they carry no `type:` frontmatter and are not
 counted as concepts.
 
+## 2026-08-20 - `scripts/release.ts` drives the release chain
+
+`make release-plan` prints what needs releasing; `make release ARGS="--yes"` runs it. It dispatches
+`package-release.yml` one package at a time in dependency order and WAITS for each run before the
+next.
+
+The waiting is the reason it exists. `force-update` runs over the whole workspace
+(`--filter "@venizia/*"`), so a range that goes stale mid-flight fails the run - a core-worker
+release once died on a range belonging to core-server, six minutes after a connectors release made
+it stale. Hand-dispatching invites exactly that.
+
+Three things it checks that a human dispatching by hand does not:
+
+- **The tree must be clean and pushed.** The workflow checks out the BRANCH, not local HEAD, so
+  uncommitted or unpushed work is simply not in the release. Reported, not thrown, under `--dry-run`.
+- **It fetches before reading any version.** A stale checkout makes the repo and the registry look
+  like they disagree when they do not - that misreading happened while writing this script.
+- **A green run is not proof of a publish.** The registry is re-read afterwards and the run is a
+  failure unless the version actually moved. The workflow publishes BEFORE it commits, so both
+  half-states are possible: published-but-uncommitted, and green-but-nothing-published.
+
+It also `git pull --ff-only`s after each package, because the workflow pushes its own release commit.
+
+Which packages need releasing is derived, never listed: source files changed since that package's
+own `chore(<pkg>): release v...` commit. An explicit `bun scripts/release.ts kernel connectors` is
+honoured as given; a full sweep releases only what changed.
+
 ## 2026-08-19 - the deprecated `Swagger*` aliases are removed
 
 `SwaggerComponent`, `ISwaggerOptions` and `SwaggerBindingKeys` are all gone, by an explicit decision
