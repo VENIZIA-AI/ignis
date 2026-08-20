@@ -190,6 +190,8 @@ type TJWKSTokenServiceOptions = IJWKSIssuerOptions | IJWKSVerifierOptions; // di
 | `aesAlgorithm` | `AESAlgorithmType` | `'aes-256-cbc'` | No | AES algorithm for payload encryption |
 | `headerAlgorithm` | `string` | `'HS256'` | No | JWT signing algorithm |
 | `fieldCodecs` | `IPayloadFieldCodec[]` | `[]` | No | Custom serialize/deserialize per field name |
+| `verify` | `IJWTVerifyOptions` | -- | No | Claim checks on verify: `audience`, `issuer`, `subject`, `algorithms`, `clockTolerance`, `maxTokenAge`, `typ`, `requiredClaims`. Unset means signature and time claims only |
+| `sign` | `{ issuer?, audience? }` | -- | No | Claims stamped on every issued token. A configured value WINS over one supplied in the payload |
 
 > [!WARNING]
 > `jwtSecret` is mandatory - the component throws if it's missing or equals the placeholder `'unknown_secret'`. `applicationSecret` is optional. When you omit it, the JWT payload stays standard plaintext. Standard fields (`iss`, `sub`, `aud`, `jti`, `nbf`, `exp`, `iat`) are never encrypted either way.
@@ -210,6 +212,8 @@ type TJWKSTokenServiceOptions = IJWKSIssuerOptions | IJWKSVerifierOptions; // di
 | `aesAlgorithm` | `AESAlgorithmType` | `'aes-256-cbc'` | No | AES algorithm for payload encryption |
 | `applicationSecret` | `string` | -- | No | Enables AES payload field encryption when set |
 | `fieldCodecs` | `IPayloadFieldCodec[]` | `[]` | No | Custom serialize/deserialize per field name |
+| `verify` | `IJWTVerifyOptions` | -- | No | Claim checks on verify: `audience`, `issuer`, `subject`, `algorithms`, `clockTolerance`, `maxTokenAge`, `typ`, `requiredClaims`. Unset means signature and time claims only |
+| `sign` | `{ issuer?, audience? }` | -- | No | Claims stamped on every issued token. A configured value WINS over one supplied in the payload |
 
 ### IJWKSVerifierOptions
 
@@ -222,6 +226,7 @@ type TJWKSTokenServiceOptions = IJWKSIssuerOptions | IJWKSVerifierOptions; // di
 | `aesAlgorithm` | `AESAlgorithmType` | `'aes-256-cbc'` | No | AES algorithm for payload decryption |
 | `applicationSecret` | `string` | -- | No | Must match the issuer's secret to decrypt payloads |
 | `fieldCodecs` | `IPayloadFieldCodec[]` | `[]` | No | Must match the issuer's codecs to decrypt custom fields |
+| `verify` | `IJWTVerifyOptions` | -- | No | Claim checks on verify: `audience`, `issuer`, `subject`, `algorithms`, `clockTolerance`, `maxTokenAge`, `typ`, `requiredClaims`. Unset means signature and time claims only |
 
 > [!IMPORTANT]
 > `JWKSVerifierTokenService` cannot sign tokens - `getSigner()`, `getSigningKey()`, and `getDefaultTokenExpiresFn()` all throw. Only `verify()` and `extractCredentials()` are functional.
@@ -266,7 +271,7 @@ type TRouteAuthenticateConfig =
 
 | Field | Type | Default | Description |
 |-------|------|---------|-------------|
-| `authenticate.strategies` | `TAuthStrategy[]` | -- | Strategy names to try - for example, `['jwt']` or `['jwt', 'basic']` |
+| `authenticate.strategies` | `TAuthStrategy[]` | -- | Strategy names to try - for example, `['jwt']` or `['jwt', 'basic']`. Any name you register works too; `'jwt'` and `'basic'` are the ones the framework ships |
 | `authenticate.mode` | `'any' \| 'all'` | `'any'` | `'any'`: first success wins. `'all'`: every strategy must pass |
 | `authenticate.skip` | `true` | -- | Skips authentication for this route entirely |
 

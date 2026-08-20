@@ -1,14 +1,15 @@
-import { inject } from '@venizia/ignis-kernel';
-import { getError } from '@venizia/ignis-helpers/core';
 import { HTTP, ValueOrPromise } from '@venizia/ignis-helpers/common';
-import { Env } from 'hono';
-import { jwtVerify, SignJWT } from 'jose';
+import { getError } from '@venizia/ignis-helpers/core';
 import {
   AuthenticateBindingKeys,
   IJWSTokenServiceOptions,
+  IJWTIssueClaims,
   IJWTTokenPayload,
+  inject,
   TGetTokenExpiresFn,
 } from '@venizia/ignis-kernel';
+import { Env } from 'hono';
+import { jwtVerify, SignJWT } from 'jose';
 import { AbstractBearerTokenService } from './abstract.service';
 
 /** Symmetric JWT (JWS) token service with optional AES-encrypted payloads. */
@@ -42,29 +43,37 @@ export class JWSTokenService<E extends Env = Env> extends AbstractBearerTokenSer
       applicationSecret,
       fieldCodecs: options.fieldCodecs,
       cipher: options.cipher,
+      sign: options.sign,
     });
     this.jwtSecret = new TextEncoder().encode(this.options.jwtSecret);
   }
 
   protected override async doVerify(token: string): Promise<IJWTTokenPayload> {
-    const decodedToken = await jwtVerify<IJWTTokenPayload>(token, this.jwtSecret, {});
+    const decodedToken = await jwtVerify<IJWTTokenPayload>(
+      token,
+      this.jwtSecret,
+      this.options.verify,
+    );
     return this.decryptPayload({ result: decodedToken });
   }
 
   override async getSigner(opts: {
     payload: IJWTTokenPayload;
     getTokenExpiresFn: TGetTokenExpiresFn;
+    claims?: IJWTIssueClaims;
   }) {
     const now = Math.floor(Date.now() / 1000);
     const expiresIn = await opts.getTokenExpiresFn();
 
     const encryptedPayload = this.encryptPayload(opts.payload);
 
-    return new SignJWT(Object.assign({}, encryptedPayload))
+    const signer = new SignJWT(Object.assign({}, encryptedPayload))
       .setProtectedHeader({ alg: this.options.headerAlgorithm ?? 'HS256' })
       .setIssuedAt()
       .setExpirationTime(now + expiresIn)
       .setNotBefore(now);
+
+    return this.applySignClaims({ signer, payload: encryptedPayload, claims: opts.claims });
   }
 
   protected override getSigningKey(): ValueOrPromise<Uint8Array> {

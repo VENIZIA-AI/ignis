@@ -1,13 +1,15 @@
-import { ControllerTransports } from '@venizia/ignis-kernel';
-import { AuthenticationModes } from '@venizia/ignis-kernel';
-import { authenticate as authenticateFn } from '@venizia/ignis-kernel';
-import type { IAuthorizationSpec } from '@venizia/ignis-kernel';
-import { authorize as authorizeFn } from '@venizia/ignis-kernel';
-import type { IRpcMetadata } from '@venizia/ignis-kernel';
-import { MetadataRegistry } from '@venizia/ignis-kernel';
 import type { ConnectRouter } from '@connectrpc/connect';
 import type { ValueOrPromise } from '@venizia/ignis-helpers/common';
 import { BaseHelper, getError } from '@venizia/ignis-helpers/core';
+import type { IAuthorizationSpec, IRpcMetadata } from '@venizia/ignis-kernel';
+import {
+  authenticate as authenticateFn,
+  AuthenticationModes,
+  AuthenticationStrategyRegistry,
+  authorize as authorizeFn,
+  ControllerTransports,
+  MetadataRegistry,
+} from '@venizia/ignis-kernel';
 import type { Env, Schema } from 'hono';
 import { Hono } from 'hono';
 import { GrpcRequestAdapter } from './adapter';
@@ -87,6 +89,14 @@ export abstract class AbstractGrpcController<
 
     if (configs.authenticate) {
       const { strategies = [], mode = AuthenticationModes.ANY } = configs.authenticate;
+
+      // Same boot-time guard the REST controller applies. Fixing only REST would leave every RPC
+      // with a misspelled strategy name silently unreachable.
+      AuthenticationStrategyRegistry.getInstance().reportUnregistered({
+        names: strategies,
+        scope: this.constructor.name,
+      });
+
       if (strategies.length > 0) {
         const authMw = authenticateFn({ strategies, mode });
 

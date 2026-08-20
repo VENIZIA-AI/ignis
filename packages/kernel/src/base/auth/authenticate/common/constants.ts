@@ -4,13 +4,17 @@ export class AuthenticateStrategy {
   static readonly BASIC = 'basic';
   static readonly JWT = 'jwt';
 
+  /** The strategies the FRAMEWORK ships. An application registers its own beyond these. */
   static readonly SCHEME_SET = new Set([this.BASIC, this.JWT]);
 
   static isValid(input: string): boolean {
     return this.SCHEME_SET.has(input);
   }
 }
-export type TAuthStrategy = TConstValue<typeof AuthenticateStrategy>;
+
+// `(string & {})` keeps autocomplete for the built-in values while still accepting any name an
+// application registers with `AuthenticationStrategyRegistry`. Same idiom as `TDataSourceDriver`.
+export type TAuthStrategy = TConstValue<typeof AuthenticateStrategy> | (string & {});
 
 export class JOSEStandards {
   static readonly JWS = 'JWS';

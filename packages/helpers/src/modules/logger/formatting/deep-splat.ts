@@ -65,8 +65,12 @@ export const formatLogMessage = (opts: {
     //
     // Before this, `logger.info('login failed', { password })` printed the password verbatim: the
     // redactor only ever saw `%s`, while the reference docs recommend `%o` for data objects.
+    //
+    // Bounded like the `%s` path below, and for the same reason: an unbounded walk on a very deep
+    // graph is work whose result the renderer discards, and deep enough it is a `RangeError` on a
+    // call that could not throw before. `%o` renders at `depth`, so `+2` covers what is shown.
     if (placeholder === undefined || placeholder === '%o' || placeholder === '%O') {
-      return redactSecrets(arg);
+      return redactSecrets(arg, undefined, (inspectOptions.depth ?? resolveDepth()) + 2);
     }
 
     if (placeholder !== '%s') {

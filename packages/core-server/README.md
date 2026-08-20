@@ -166,7 +166,6 @@ Register with `this.component(X)` in `preConfigure()`.
 | `WebSocketComponent` | `@venizia/ignis/websocket` | Native WebSocket transport |
 | `StaticAssetComponent` | `@venizia/ignis/static-asset` | Static file serving and asset controllers |
 
-`SwaggerComponent` is a deprecated alias for `ApiReferenceComponent`.
 
 Full configuration for each: [Components](https://ignis.venizia.ai/extensions/components/).
 

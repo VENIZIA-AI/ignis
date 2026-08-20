@@ -1,14 +1,13 @@
 import { BaseApplication } from '@/base/applications';
-import { BaseComponent } from '@venizia/ignis-kernel';
 import { inject } from '@/base/metadata';
-import { CoreBindings } from '@venizia/ignis-kernel';
 import { OpenAPIObjectConfigure } from '@hono/zod-openapi';
+import type { AnyType } from '@venizia/ignis-helpers/common';
+import { getError } from '@venizia/ignis-helpers/core';
+import { BaseComponent, Binding, CoreBindings } from '@venizia/ignis-kernel';
 import type { Context, Next } from 'hono';
 import { Authentication } from '../auth';
 import { ApiReferenceBindingKeys, DocumentUITypes, IApiReferenceOptions } from './common';
 import { UIProviderFactory } from './ui-factory';
-import { getError } from '@venizia/ignis-helpers/core';
-import { Binding } from '@venizia/ignis-kernel';
 
 const DEFAULT_API_REFERENCE_OPTIONS: IApiReferenceOptions = {
   restOptions: {
@@ -135,10 +134,10 @@ export class ApiReferenceComponent extends BaseComponent {
       type: 'http',
       scheme: 'basic',
     });
+
+    const securitySchemes = boundOptions?.securitySchemes ?? {};
+    for (const [name, scheme] of Object.entries(securitySchemes)) {
+      rootRouter.openAPIRegistry.registerComponent('securitySchemes', name, scheme as AnyType);
+    }
   }
 }
-
-/** @deprecated Use `ApiReferenceComponent`. */
-export const SwaggerComponent = ApiReferenceComponent;
-/** @deprecated Use `ApiReferenceComponent`. */
-export type SwaggerComponent = ApiReferenceComponent;

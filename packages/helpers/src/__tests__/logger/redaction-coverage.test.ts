@@ -135,6 +135,22 @@ describe('redactSecrets - the depth bound', () => {
 
   /** A very deep chain used to blow the stack; the logger's own bound is what keeps it off that path. */
   test('a very deep chain does not throw', () => {
-    expect(() => redactSecrets(buildChain(5_000), undefined, 4)).not.toThrow();
+    // 20k, not 5k: measured, an unbounded walk RangeErrors at 20k and survives 5k, so a shallower
+    // chain would pass with or without the bound and prove nothing.
+    expect(() => redactSecrets(buildChain(20_000))).toThrow(RangeError);
+    expect(() => redactSecrets(buildChain(20_000), undefined, 4)).not.toThrow();
+  });
+
+  /**
+   * The bound has to be applied by every logger path, not just `%s`. The `%o` branch was added in
+   * the same change and reached the redactor unbounded, so a call that could never throw before
+   * could - on a graph deep enough to blow the recursion.
+   */
+  test('every logger path bounds the walk, not just %s', () => {
+    const deep = buildChain(20_000);
+
+    for (const message of ['deep %s', 'deep %o', 'deep %O', 'deep']) {
+      expect(() => formatLogMessage({ message, args: [deep] })).not.toThrow();
+    }
   });
 });

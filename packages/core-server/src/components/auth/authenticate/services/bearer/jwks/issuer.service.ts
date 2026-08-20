@@ -1,6 +1,15 @@
-import { inject } from '@venizia/ignis-kernel';
-import { getError } from '@venizia/ignis-helpers/core';
 import { HTTP, TNullable, ValueOrPromise } from '@venizia/ignis-helpers/common';
+import { getError } from '@venizia/ignis-helpers/core';
+import {
+  AuthenticateBindingKeys,
+  IJWKSIssuerOptions,
+  IJWTIssueClaims,
+  IJWTTokenPayload,
+  inject,
+  JWKSKeyDrivers,
+  JWKSKeyFormats,
+  TGetTokenExpiresFn,
+} from '@venizia/ignis-kernel';
 import { Env } from 'hono';
 import {
   CryptoKey,
@@ -13,14 +22,6 @@ import {
   SignJWT,
 } from 'jose';
 import { readFile } from 'node:fs/promises';
-import {
-  AuthenticateBindingKeys,
-  IJWKSIssuerOptions,
-  IJWTTokenPayload,
-  JWKSKeyDrivers,
-  JWKSKeyFormats,
-  TGetTokenExpiresFn,
-} from '@venizia/ignis-kernel';
 import { AbstractJWKSTokenService } from './abstract.service';
 
 export class JWKSIssuerTokenService<E extends Env = Env> extends AbstractJWKSTokenService<E> {
@@ -39,6 +40,7 @@ export class JWKSIssuerTokenService<E extends Env = Env> extends AbstractJWKSTok
       applicationSecret: this.options.applicationSecret,
       fieldCodecs: this.options.fieldCodecs,
       cipher: this.options.cipher,
+      sign: this.options.sign,
     });
   }
 
@@ -154,13 +156,14 @@ export class JWKSIssuerTokenService<E extends Env = Env> extends AbstractJWKSTok
 
   protected override async doVerify(token: string): Promise<IJWTTokenPayload> {
     await this.ensureInitialized();
-    const result = await jwtVerify<IJWTTokenPayload>(token, this.publicKey!);
+    const result = await jwtVerify<IJWTTokenPayload>(token, this.publicKey!, this.options.verify);
     return this.decryptPayload({ result });
   }
 
   override async getSigner(opts: {
     payload: IJWTTokenPayload;
     getTokenExpiresFn: TGetTokenExpiresFn;
+    claims?: IJWTIssueClaims;
   }) {
     await this.ensureInitialized();
 
@@ -169,11 +172,13 @@ export class JWKSIssuerTokenService<E extends Env = Env> extends AbstractJWKSTok
 
     const encryptedPayload = this.encryptPayload(opts.payload);
 
-    return new SignJWT({ ...encryptedPayload })
+    const signer = new SignJWT({ ...encryptedPayload })
       .setProtectedHeader({ alg: this.options.algorithm, kid: this.options.kid })
       .setIssuedAt()
       .setExpirationTime(now + expiresIn)
       .setNotBefore(now);
+
+    return this.applySignClaims({ signer, payload: encryptedPayload, claims: opts.claims });
   }
 
   protected override getSigningKey(): ValueOrPromise<Uint8Array | CryptoKey> {

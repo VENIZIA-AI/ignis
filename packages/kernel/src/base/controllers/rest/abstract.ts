@@ -2,6 +2,7 @@ import { AuthenticationModes } from '@/base/auth/authenticate/common/constants';
 import { authenticate as authenticateFn } from '@/base/auth/authenticate/middlewares/authenticate.middleware';
 import type { IAuthorizationSpec } from '@/base/auth/authorize/common/types';
 import { authorize as authorizeFn } from '@/base/auth/authorize/middlewares/authorize.middleware';
+import { AuthenticationStrategyRegistry } from '@/base/auth/authenticate/strategies/strategy-registry';
 import { DroppedRouteDecorators } from '@/base/metadata/routes/common';
 import { MetadataRegistry } from '@/helpers/inversion/registry';
 import { htmlResponse } from '@/utilities/jsx.utility';
@@ -134,6 +135,16 @@ export abstract class AbstractRestController<
   buildRouteMiddlewares<RouteConfig extends IAuthRouteConfig>(opts: { configs: RouteConfig }) {
     const { authenticate = {}, authorize, ...restConfig } = opts.configs;
     const { strategies = [], mode = AuthenticationModes.ANY } = authenticate;
+
+    // Boot-time and NON-fatal: names a misspelled strategy at error level instead of leaving it as
+    // a 401 nobody can explain. Deliberately not a throw - `defineAuthController` hard-codes `jwt`
+    // on four routes, and ANY mode tolerates a strategy that does not resolve, so failing here would
+    // stop applications booting that work today. `assertRegistered` is there for an application that
+    // does want the hard failure.
+    AuthenticationStrategyRegistry.getInstance().reportUnregistered({
+      names: strategies,
+      scope: this.constructor.name,
+    });
 
     const security = strategies.map((strategy: string) => ({ [strategy]: [] }));
     const mws: ReturnType<typeof authenticateFn>[] = [];

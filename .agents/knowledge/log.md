@@ -6,6 +6,110 @@ not how.
 This file and `index.md` are reserved OKF filenames - they carry no `type:` frontmatter and are not
 counted as concepts.
 
+## 2026-08-19 - the deprecated `Swagger*` aliases are removed
+
+`SwaggerComponent`, `ISwaggerOptions` and `SwaggerBindingKeys` are all gone, by an explicit decision
+rather than by attrition. `SwaggerComponent` had first disappeared as a silent side effect inside the
+auth change - a pre-release audit caught it, it was restored, and only then was removing the family
+chosen deliberately.
+
+The distinction is the whole point: a public export deleted without a changelog line breaks a
+consumer who has nothing to search for. This is a documented breaking change with a migration table,
+and every surface that promised the aliases was corrected in the same change -
+`core-server/README.md`, the api-reference wiki page (both its rename note and its binding-keys
+section), this bundle's core-server concept, and the test that pinned `SwaggerBindingKeys`.
+
+**All three, not one.** Removing only the named symbol would have left a consumer of the deprecated
+surface breaking on one of three - the worst of both states. Historical changelogs that describe the
+original rename are left alone: they are a record of what happened, not a claim about today.
+
+It is a pure rename with no runtime consequence: `SwaggerBindingKeys.SWAGGER_OPTIONS` always held the
+same `'@app/api-reference/options'` string, so no binding moves. Verified before removing: no usage
+in `packages/*/src`, `examples/*/src`, or BANA.
+
+## 2026-08-19 - service-to-service authentication, phase 1
+
+Requested by BANA as a written change spec, evaluated claim by claim against `packages/*/src`, and
+built after they accepted the two places the evaluation overrode them. Both the request and the
+response documents live outside this repo; what matters here is the reasoning.
+
+**The strategy type is open now:** `TAuthStrategy = TConstValue<typeof AuthenticateStrategy> |
+(string & {})`, the same idiom `TDataSourceDriver` already used. The runtime was always open - the
+registry keys a `Map<string, ...>` and the middleware factory takes `string[]` - only the type was
+closed, and a type alias cannot be widened by declaration merging from a consumer.
+
+**The widening deletes the only typo guard that existed, so its replacement shipped with it.**
+Measured before assuming: a misspelled strategy fails CLOSED, not open - `strategies.length > 0` is
+satisfied, the middleware mounts, `resolveStrategy` throws, every request 401s. But
+`executeAnyMode` catches that at DEBUG level, so nothing surfaces. The compiler was what stopped a
+typo reaching production. `AuthenticationStrategyRegistry.reportUnregistered` now runs while route
+configs are built, at both the REST and the gRPC call site - the two carried a verbatim-duplicated
+block, and fixing only REST would have left every RPC unguarded.
+
+**It REPORTS, it does not throw, and the first cut got that wrong.** A pre-release audit caught it:
+`defineAuthController` hard-codes `strategies: ['jwt']` on four routes it registers unconditionally,
+so an application that registers its JWT strategy under a custom name - the exact configuration this
+release adds support for - died at `registerControllers()`. A route listing several strategies under
+ANY mode also tolerates one that does not resolve, by design. So the framework logs at error level
+and `assertRegistered` stays as the throwing method an APPLICATION can call in its own startup.
+Pinned by a test that builds route middlewares for an unregistered `'jwt'` and asserts no throw;
+swapping the call site back to `assertRegistered` fails it.
+
+Two traps in that check, both found by reading the code rather than by reasoning:
+
+- **An EMPTY strategies array is the framework's own encoding of `authenticate: { skip: true }`**
+  (`resolveRouteAuth` returns `{ strategies: [] }`, and `auth-config.test.ts` asserts it). A check
+  that rejected `[]` would break every intentionally public route.
+- The check is skipped while the registry is empty. Route configs are built in
+  `registerControllers()`, which runs after `preConfigure()` and `registerComponents()`, so a real
+  application has registered by then; an empty registry means a unit test on a controller, where no
+  name resolves either way.
+
+`AuthenticateStrategy.isValid` and `SCHEME_SET` know the two built-ins ONLY and now say so. They
+have no call site in this repo but are public exports, so they stay - the real hazard was a future
+reader wiring `isValid` into the boot check and rejecting every application-registered strategy.
+
+**The generated OpenAPI document had to move with the type.** `buildRouteMiddlewares` emits
+`security: strategies.map(s => ({ [s]: [] }))`, while `ApiReferenceComponent` registered exactly two
+schemes. A requirement naming an undeclared scheme is an invalid OpenAPI 3.1 document: the UI renders
+an unknown scheme and a generated client silently omits the credential, so the route publishes as
+effectively unauthenticated in the contract other teams build against. `IApiReferenceOptions
+.securitySchemes` closes it, applied last so an application can also override either built-in.
+
+**`verify` and `sign` on the JWT services.** Nothing checked `aud`, `iss` or `algorithms` anywhere,
+so in a fleet pointing every verifier at one issuer JWKS, a token minted for one service was accepted
+verbatim by all of them. `IJWTVerifyOptions` mirrors jose's own `JWTVerifyOptions` and is a pure
+pass-through. Three options beyond what was asked for: `maxTokenAge` (the real replay window - `exp`
+is chosen by whoever minted the token), `typ` (cross-token-type confusion, which matters when one
+JWKS serves both user tokens and service assertions) and `requiredClaims`.
+
+**The sign precedence was INVERTED against the request, deliberately.** The ask was for
+`sign.issuer`/`sign.audience` to be defaults that YIELD to a payload-supplied claim, preserving an
+existing smuggling path. Refused: `iss`, `aud`, `sub` and `jti` are in `JWT_COMMON_FIELDS` and ride
+through the AES envelope in the clear, the framework never calls `generate` itself, so the payload is
+entirely application-shaped - an issuer identity any payload can overwrite is not an identity. The
+configured value is authoritative and a conflicting payload claim is overwritten with a warn.
+Per-token variation became an explicit argument instead: `generate({ payload, claims: { audience,
+subject, jwtId } })`, which is strictly more capable than what was asked for.
+
+`JWSTokenService.getSigner` has its own independent fluent chain, so the same treatment had to land
+in BOTH services - a `sign` option declared on the JWS options and applied only in the JWKS issuer
+would be silently inert, which is worse than an absent option.
+
+Two behaviours worth not re-deriving:
+
+- **jose's audience matching is OVERLAP, not equality.** A token carrying `['commerce','inventory']`
+  satisfies `verify.audience: 'inventory'`. Strict single-audience has to be enforced at issue time.
+- **`maxTokenAge` measures against `iat`, not `exp`.** A token minted this instant has age 0, so
+  `maxTokenAge: '0 seconds'` does NOT reject it - a test for this must backdate `iat` directly.
+
+The `applicationSecret` interaction is the finding that mattered most and neither side had listed:
+`decryptPayload` runs after every successful verify and calls `aes.decrypt` with `doThrow = true`
+for every claim outside `JWT_COMMON_FIELDS`. A verifier with `applicationSecret` set therefore
+CANNOT consume a foreign service's token at all, whatever `verify.audience` says - it throws before
+audience is reached. No framework knob was added: the answer is a dedicated verifier instance
+without `applicationSecret`, which works today.
+
 ## 2026-08-19 - a browser BFF that survives a second tab
 
 `SharedBffTransport` (`packages/core-worker/src/transport/shared.ts`) runs one Worker per ORIGIN

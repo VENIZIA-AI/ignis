@@ -1,14 +1,14 @@
-import { inject } from '@venizia/ignis-kernel';
-import { getError } from '@venizia/ignis-helpers/core';
 import { HTTP } from '@venizia/ignis-helpers/common';
-import { Env } from 'hono';
-import { createRemoteJWKSet, jwtVerify, SignJWT } from 'jose';
+import { getError } from '@venizia/ignis-helpers/core';
 import {
   AuthenticateBindingKeys,
   IJWKSVerifierOptions,
   IJWTTokenPayload,
+  inject,
   TGetTokenExpiresFn,
 } from '@venizia/ignis-kernel';
+import { Env } from 'hono';
+import { createRemoteJWKSet, jwtVerify, SignJWT } from 'jose';
 import { AbstractJWKSTokenService } from './abstract.service';
 
 export class JWKSVerifierTokenService<E extends Env = Env> extends AbstractJWKSTokenService<E> {
@@ -43,7 +43,11 @@ export class JWKSVerifierTokenService<E extends Env = Env> extends AbstractJWKST
 
   protected override async doVerify(token: string): Promise<IJWTTokenPayload> {
     await this.ensureInitialized();
-    const result = await jwtVerify<IJWTTokenPayload>(token, this.jwksVerifier!);
+    const result = await jwtVerify<IJWTTokenPayload>(
+      token,
+      this.jwksVerifier!,
+      this.options.verify,
+    );
     return this.decryptPayload({ result });
   }
 

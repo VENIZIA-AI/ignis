@@ -25,6 +25,7 @@ export interface IApiReferenceOptions {
     }>;
   };
   uiConfig?: Record<string, any>;
+  securitySchemes?: Record<string, Record<string, any>>;
 }
 
 export interface IUIProvider {
@@ -40,6 +41,3 @@ export interface IUIConfig {
 export interface IGetProviderParams {
   type: string;
 }
-
-/** @deprecated Use `IApiReferenceOptions`. */
-export type ISwaggerOptions = IApiReferenceOptions;

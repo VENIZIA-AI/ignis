@@ -83,8 +83,8 @@ references them; no manual schema wiring is needed.
 ## Components
 
 Built-in components live in `src/components/`: `HealthCheckComponent`, `ApiReferenceComponent`
-(interactive OpenAPI UI, Scalar or Swagger UI - the renamed successor to `SwaggerComponent`, kept as
-a deprecated alias), `AuthenticateComponent` (JWT + Basic strategies), `AuthorizeComponent` (Casbin
+(interactive OpenAPI UI, Scalar or Swagger UI - the successor to `SwaggerComponent`, whose deprecated
+`Swagger*` aliases are all REMOVED), `AuthenticateComponent` (JWT + Basic strategies), `AuthorizeComponent` (Casbin
 RBAC), `RequestTrackerComponent`, `RestComponent`, `GrpcComponent`, `StaticAssetComponent`,
 `MailComponent`, `SocketIOComponent`, and `WebSocketComponent`. The root barrel carries
 `AuthenticateComponent`, `AuthorizeComponent`, `HealthCheckComponent`, `RequestTrackerComponent`,

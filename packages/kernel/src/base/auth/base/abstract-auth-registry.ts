@@ -27,6 +27,20 @@ export abstract class AbstractAuthRegistry<TItem> extends BaseHelper {
     return [this.getBindingPrefix(), opts.name].join('.');
   }
 
+  /**
+   * Whether a name resolves. The registry is the only source of truth for that: the strategy type is
+   * open (`TAuthStrategy` accepts any string), so nothing upstream can tell a registered name from a
+   * typo. `AuthenticateStrategy.isValid` knows the two built-ins only and must not be used here.
+   */
+  has(opts: { name: string }): boolean {
+    return this.descriptors.has(opts.name);
+  }
+
+  /** Every registered name, for a caller building its own startup check or an error message. */
+  getNames(): string[] {
+    return [...this.descriptors.keys()];
+  }
+
   getDefaultName(): string {
     const firstName = this.descriptors.keys().next().value;
     if (!firstName) {

@@ -9,7 +9,6 @@ import {
   type IApiReferenceOptions,
   type IUIConfig,
   type IUIProvider,
-  SwaggerBindingKeys,
 } from '@/components/api-reference/common';
 import { UIProviderFactory } from '@/components/api-reference/ui-factory';
 import type { Context } from 'hono';
@@ -75,13 +74,6 @@ describe('ApiReferenceComponent — options binding', () => {
       key: ApiReferenceBindingKeys.API_REFERENCE_OPTIONS,
     });
     expect(bound.restOptions?.ui?.type).toBe(DocumentUITypes.SCALAR);
-  });
-
-  test('the deprecated SwaggerBindingKeys alias reads the same binding', async () => {
-    const application = await bootApiReferenceApplication();
-
-    expect(SwaggerBindingKeys.SWAGGER_OPTIONS).toBe(ApiReferenceBindingKeys.API_REFERENCE_OPTIONS);
-    expect(application.isBound({ key: SwaggerBindingKeys.SWAGGER_OPTIONS })).toBe(true);
   });
 
   test('a user supplied options binding is not overwritten by the component defaults', async () => {

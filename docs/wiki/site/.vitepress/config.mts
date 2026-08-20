@@ -456,6 +456,10 @@ const config = defineConfig({
               collapsed: true,
               items: [
                 {
+                  text: 'Your Own Authentication Strategies, and Tokens That Say Who They Are For',
+                  link: '/changelogs/2026-08-19-service-authentication-phase-1',
+                },
+                {
                   text: 'A Browser BFF That Survives a Second Tab',
                   link: '/changelogs/2026-08-19-browser-bff-multi-tab',
                 },

@@ -1,18 +1,19 @@
-import type { TContext } from '@venizia/ignis-kernel';
-import { BaseService } from '@venizia/ignis-kernel';
-import type { ValueOrPromise } from '@venizia/ignis-helpers/common';
 import type { AESAlgorithmType, IPayloadCipher } from '@venizia/ignis-helpers';
-import { getError } from '@venizia/ignis-helpers/core';
-import { HTTP } from '@venizia/ignis-helpers/common';
 import { AES } from '@venizia/ignis-helpers';
-import type { Env } from 'hono';
-import type { JWTPayload, JWTVerifyResult, SignJWT } from 'jose';
+import type { ValueOrPromise } from '@venizia/ignis-helpers/common';
+import { HTTP } from '@venizia/ignis-helpers/common';
+import { getError } from '@venizia/ignis-helpers/core';
 import type {
+  IJWTIssueClaims,
+  IJWTSignOptions,
   IJWTTokenPayload,
   IPayloadFieldCodec,
+  TContext,
   TGetTokenExpiresFn,
 } from '@venizia/ignis-kernel';
-import { Authentication, AuthenticationErrors } from '@venizia/ignis-kernel';
+import { Authentication, AuthenticationErrors, BaseService } from '@venizia/ignis-kernel';
+import type { Env } from 'hono';
+import type { JWTPayload, JWTVerifyResult, SignJWT } from 'jose';
 
 /** Abstract base for Bearer-token services (JWS, JWKS) with optional AES payload encryption. */
 export abstract class AbstractBearerTokenService<E extends Env = Env> extends BaseService {
@@ -31,6 +32,9 @@ export abstract class AbstractBearerTokenService<E extends Env = Env> extends Ba
   protected applicationSecret: string | null = null;
   protected fieldCodecs: Map<string, IPayloadFieldCodec> = new Map();
 
+  /** Configured `iss` / `aud`. Authoritative over anything the payload carries. */
+  protected signOptions: IJWTSignOptions | null = null;
+
   /** Configures AES payload encryption and field codecs. Both aesAlgorithm and applicationSecret required to activate encryption. */
   protected configurePayloadEncryption(opts: {
     aesAlgorithm?: AESAlgorithmType;
@@ -38,8 +42,11 @@ export abstract class AbstractBearerTokenService<E extends Env = Env> extends Ba
     fieldCodecs?: IPayloadFieldCodec[];
     /** Overrides the cipher. Pass `LegacyAES` to keep reading tokens issued before the PBKDF2 envelope; `aesAlgorithm` is then the cipher's own concern and is ignored here. */
     cipher?: IPayloadCipher;
+    sign?: IJWTSignOptions;
   }): void {
-    const { aesAlgorithm = 'aes-256-cbc', applicationSecret, fieldCodecs, cipher } = opts;
+    const { aesAlgorithm = 'aes-256-cbc', applicationSecret, fieldCodecs, cipher, sign } = opts;
+
+    this.signOptions = sign ?? null;
 
     if (fieldCodecs) {
       for (const codec of fieldCodecs) {
@@ -111,8 +118,10 @@ export abstract class AbstractBearerTokenService<E extends Env = Env> extends Ba
   async generate(opts: {
     payload: IJWTTokenPayload;
     getTokenExpiresFn?: TGetTokenExpiresFn;
+    /** Per-token registered claims. The supported way to vary `aud` / `sub`; the payload is not. */
+    claims?: IJWTIssueClaims;
   }): Promise<string> {
-    const { payload, getTokenExpiresFn = this.getDefaultTokenExpiresFn() } = opts;
+    const { payload, claims, getTokenExpiresFn = this.getDefaultTokenExpiresFn() } = opts;
 
     if (!payload) {
       throw getError({
@@ -121,7 +130,7 @@ export abstract class AbstractBearerTokenService<E extends Env = Env> extends Ba
       });
     }
 
-    const signer = await this.getSigner({ payload, getTokenExpiresFn });
+    const signer = await this.getSigner({ payload, getTokenExpiresFn, claims });
 
     try {
       const rs = await signer.sign(await this.getSigningKey());
@@ -194,6 +203,61 @@ export abstract class AbstractBearerTokenService<E extends Env = Env> extends Ba
     return JSON.parse(value);
   }
 
+  /**
+   * Stamps the configured `iss` / `aud` onto a signer, plus any per-token claims the caller passed.
+   *
+   * The configured value is AUTHORITATIVE. `iss` and `aud` are in `JWT_COMMON_FIELDS`, so they ride
+   * through the AES envelope in the clear and an application-shaped payload can carry them - an
+   * issuer identity any payload could overwrite would not be an identity. A conflicting payload
+   * claim is overwritten and reported.
+   *
+   * Per-token audience is an explicit argument rather than a smuggled payload key, so the caller
+   * that legitimately needs one says so.
+   */
+  protected applySignClaims(opts: {
+    signer: SignJWT;
+    payload: Record<string, any>;
+    claims?: IJWTIssueClaims;
+  }): SignJWT {
+    const { signer, payload, claims } = opts;
+    const configured = this.signOptions;
+
+    const issuer = claims?.issuer ?? configured?.issuer;
+    const audience = claims?.audience ?? configured?.audience;
+
+    const logger = this.logger.for(this.applySignClaims.name);
+
+    if (issuer !== undefined) {
+      if (payload.iss !== undefined && payload.iss !== issuer) {
+        logger.warn(
+          'Payload iss overridden by the configured issuer | payload: %s | configured: %s',
+          payload.iss,
+          issuer,
+        );
+      }
+
+      signer.setIssuer(issuer);
+    }
+
+    if (audience !== undefined) {
+      if (payload.aud !== undefined) {
+        logger.warn('Payload aud overridden | payload: %j | applied: %j', payload.aud, audience);
+      }
+
+      signer.setAudience(audience);
+    }
+
+    if (claims?.subject !== undefined) {
+      signer.setSubject(claims.subject);
+    }
+
+    if (claims?.jwtId !== undefined) {
+      signer.setJti(claims.jwtId);
+    }
+
+    return signer;
+  }
+
   decryptPayload(opts: { result: JWTVerifyResult<IJWTTokenPayload> }): IJWTTokenPayload {
     const { payload, protectedHeader } = opts.result;
 
@@ -232,6 +296,7 @@ export abstract class AbstractBearerTokenService<E extends Env = Env> extends Ba
   abstract getSigner(opts: {
     payload: IJWTTokenPayload;
     getTokenExpiresFn: TGetTokenExpiresFn;
+    claims?: IJWTIssueClaims;
   }): Promise<SignJWT>;
 
   protected abstract getSigningKey(): ValueOrPromise<Uint8Array | CryptoKey>;

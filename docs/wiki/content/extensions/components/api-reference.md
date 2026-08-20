@@ -3,7 +3,7 @@
 Automatic interactive API documentation generated from your OpenAPI spec. A pluggable UI provider renders it - Scalar by default, or classic Swagger UI.
 
 > [!NOTE] Renamed from SwaggerComponent
-> Swagger UI is one of the pluggable UI providers, not the only one, so the component carries a vendor-neutral name. `SwaggerComponent`, `ISwaggerOptions`, and `SwaggerBindingKeys` remain available as deprecated aliases - existing applications keep working unchanged.
+> Swagger UI is one of the pluggable UI providers, not the only one, so the component carries a vendor-neutral name. The deprecated `Swagger*` aliases are **removed**: use `ApiReferenceComponent`, `IApiReferenceOptions` and `ApiReferenceBindingKeys.API_REFERENCE_OPTIONS`.
 
 ## Quick Reference
 
@@ -155,7 +155,7 @@ export interface IApiReferenceOptions {
 |-----|----------|------|----------|---------|
 | `@app/api-reference/options` | `ApiReferenceBindingKeys.API_REFERENCE_OPTIONS` | `IApiReferenceOptions` | No | See Options table |
 
-`SwaggerBindingKeys.SWAGGER_OPTIONS` is a deprecated alias. Its VALUE is the same `'@app/api-reference/options'` string - there is no separate binding under the literal `'@app/swagger/options'`.
+`SwaggerBindingKeys.SWAGGER_OPTIONS` is removed. It was only ever an alias for the key above - there was never a separate binding under the literal `'@app/swagger/options'`, so nothing needs rebinding.
 
 **Default value:**
 ```typescript
