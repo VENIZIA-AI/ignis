@@ -1,32 +1,40 @@
 import type { BaseApplication } from '@/base/applications/base';
-import { BaseComponent } from '@venizia/ignis-kernel';
-import { inject } from '@venizia/ignis-kernel';
-import { controller } from '@venizia/ignis-kernel';
-import { CoreBindings } from '@venizia/ignis-kernel';
-import { getError } from '@venizia/ignis-helpers/core';
 import { ValueOrPromise } from '@venizia/ignis-helpers/common';
+import { getError } from '@venizia/ignis-helpers/core';
 import { Binding } from '@venizia/ignis-inversion';
 import {
   AuthenticateBindingKeys,
+  Authentication,
+  AuthenticationStrategyRegistry,
+  BaseComponent,
+  controller,
+  CoreBindings,
   IAuthenticateOptions,
   IJWKSIssuerOptions,
   IJWKSVerifierOptions,
   IJWSTokenServiceOptions,
+  inject,
+  IServiceAuthOptions,
   JOSEStandards,
   JWKSKeyFormats,
   JWKSModes,
+  ServiceAssertion,
   TAuthenticationRestOptions,
   TBasicTokenServiceOptions,
   TJWKSTokenServiceOptions,
   TJWTTokenServiceOptions,
 } from '@venizia/ignis-kernel';
 import { defineAuthController, JWKSController } from './controllers';
+import { ServiceCertsController } from './controllers/service-certs';
 import {
   BasicTokenService,
   JWKSIssuerTokenService,
   JWKSVerifierTokenService,
   JWSTokenService,
 } from './services';
+import { ServiceAssertionSignerService } from './services/service/signer.service';
+import { ServiceAssertionVerifierService } from './services/service/verifier.service';
+import { ServiceAuthenticationStrategy } from './strategies/service.strategy';
 
 const DEFAULT_SECRET = 'unknown_secret';
 
@@ -58,15 +66,21 @@ export class AuthenticateComponent extends BaseComponent {
       key: AuthenticateBindingKeys.REST_OPTIONS,
       isOptional: true,
     });
+    const serviceOptions = this.application.get<IServiceAuthOptions>({
+      key: AuthenticateBindingKeys.SERVICE_OPTIONS,
+      isOptional: true,
+    });
 
-    if (!jwtOptions && !basicOptions) {
+    // A service that only VERIFIES assertions needs neither jwt nor basic - and that application,
+    // an IGNIS app consuming no user tokens at all, is exactly what the service strategy is for.
+    if (!jwtOptions && !basicOptions && !serviceOptions) {
       throw getError({
         message:
-          '[AuthenticateComponent] At least one of jwtOptions or basicOptions must be provided',
+          '[AuthenticateComponent] At least one of jwtOptions, basicOptions or serviceOptions must be provided',
       });
     }
 
-    const options: IAuthenticateOptions = { restOptions, jwtOptions, basicOptions };
+    const options: IAuthenticateOptions = { restOptions, jwtOptions, basicOptions, serviceOptions };
 
     if (jwtOptions) {
       switch (jwtOptions.standard) {
@@ -87,6 +101,7 @@ export class AuthenticateComponent extends BaseComponent {
     }
 
     this.defineBasicAuth({ basicOptions });
+    this.defineServiceAuth({ serviceOptions });
 
     this.defineControllers({ options });
 
@@ -188,6 +203,70 @@ export class AuthenticateComponent extends BaseComponent {
         });
       }
     }
+  }
+
+  /**
+   * Service-to-service authentication. Absent options mean no strategy is registered and no route is
+   * mounted, so an application that never sets them is byte-identical to today.
+   *
+   * The certs route is mounted only when SIGNING keys are present. Most services are called and
+   * never call; publishing a key set for a service that signs nothing advertises a capability it
+   * does not have.
+   */
+  private defineServiceAuth(opts: { serviceOptions?: IServiceAuthOptions }): void {
+    const { serviceOptions } = opts;
+
+    if (!serviceOptions) {
+      this.logger
+        .for(this.defineServiceAuth.name)
+        .debug('serviceOptions not provided, skipping service authentication');
+      return;
+    }
+
+    if (!serviceOptions.name) {
+      throw getError({
+        message:
+          '[defineServiceAuth] name is required | it is the issuer this service stamps and the audience it demands',
+      });
+    }
+
+    if (!serviceOptions.resolvePrincipal) {
+      throw getError({
+        message:
+          '[defineServiceAuth] resolvePrincipal is required | the framework proves WHICH SERVICE called, the application decides who that acts as',
+      });
+    }
+
+    this.application.service(ServiceAssertionVerifierService);
+
+    if (serviceOptions.keys) {
+      this.application.service(ServiceAssertionSignerService);
+
+      const restPath = serviceOptions.rest?.path ?? ServiceAssertion.DEFAULT_REST_PATH;
+      this.application
+        .bind<string>({ key: AuthenticateBindingKeys.SERVICE_CERTS_PATH })
+        .toValue(restPath);
+
+      // Path depends on a runtime option, so @controller cannot be applied statically.
+      Reflect.decorate([controller({ path: restPath })], ServiceCertsController);
+      this.application.controller(ServiceCertsController);
+    }
+
+    AuthenticationStrategyRegistry.getInstance().register({
+      container: this.application,
+      strategies: [
+        { name: Authentication.STRATEGY_SERVICE, strategy: ServiceAuthenticationStrategy },
+      ],
+    });
+
+    this.logger
+      .for(this.defineServiceAuth.name)
+      .info(
+        'Service authentication configured | name: %s | signs: %s | callers: %s',
+        serviceOptions.name,
+        Boolean(serviceOptions.keys),
+        Object.keys(serviceOptions.callers ?? {}).join(', ') || 'none',
+      );
   }
 
   private defineBasicAuth(opts: { basicOptions?: TBasicTokenServiceOptions }): void {

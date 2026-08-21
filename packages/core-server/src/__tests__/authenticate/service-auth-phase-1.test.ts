@@ -11,8 +11,7 @@ import {
 import type { AnyType } from '@venizia/ignis-helpers/common';
 
 /**
- * Phase 1 of the service-to-service authentication change, pinned against BANA's own acceptance
- * criteria. Each block names the criterion it answers.
+ * The open strategy type, and the registry that is the only source of truth for a strategy name.
  */
 
 class ServiceStrategy implements IAuthenticationStrategy {
@@ -64,7 +63,11 @@ describe('a third strategy name typechecks with no cast', () => {
    */
   test('AuthenticateStrategy.isValid still answers for the built-ins ONLY', () => {
     expect(AuthenticateStrategy.isValid('jwt')).toBe(true);
-    expect(AuthenticateStrategy.isValid('service')).toBe(false);
+    expect(AuthenticateStrategy.isValid('basic')).toBe(true);
+    expect(AuthenticateStrategy.isValid('service')).toBe(true);
+
+    // An application-registered name. The registry resolves it; this does not, which is the point.
+    expect(AuthenticateStrategy.isValid('tenant-sso')).toBe(false);
   });
 });
 

@@ -19,7 +19,7 @@ declare module '@venizia/ignis-inversion' {
 }
 
 // The same augmentation aimed at the RE-EXPORTING module populates the same registry - the route an application takes, since it imports `getError` from helpers and never names inversion.
-// BANA's 73 catalogs migrate by renaming '@nx/core' to '@venizia/ignis-helpers' here.
+// A consumer's catalogs migrate by renaming their own package to '@venizia/ignis-helpers' here.
 const ViaHelpers = {
   X: {
     message: { text: 'x', code: 'server.commerce.category.create.duplicate_name' },
@@ -47,7 +47,7 @@ describe('key registry augmentation reaches through the helpers re-export', () =
   });
 
   test('messageCode still accepts an unregistered string - a package cannot see another package keys', () => {
-    // Autocomplete offers the registered keys, but any string stays legal: BANA's core raises `server.sale.*` codes that the sale package owns, and core cannot depend on sale.
+    // Autocomplete offers the registered keys, but any string stays legal: a core package raises `server.sale.*` codes that the sale package owns, and core cannot depend on sale.
     const error = getError({ message: 'x', messageCode: 'server.sale.sale.combo.invalid' });
 
     expect(error.normalized.code).toBe('server.sale.sale.combo.invalid');

@@ -319,7 +319,6 @@ export class MeilisearchQueryDialect implements ISearchQueryDialect {
   }
 
   /**
-   * @deprecated Use `compileWhere`. A filter STRING cannot represent "matches nothing", so this
    * returned `''` for it - indistinguishable from "no constraint", which is precisely how an empty
    * `or` came to widen the query it was written to narrow. It now throws on that input.
    */

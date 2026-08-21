@@ -291,6 +291,3 @@ export class SequentialQueueHelper<TElementPayload> extends BaseHelper {
     return this.processingEvents;
   }
 }
-
-/** @deprecated Renamed to {@link SequentialQueueHelper} - alias kept for backward compatibility, may be removed in a future major version. */
-export { SequentialQueueHelper as QueueHelper };

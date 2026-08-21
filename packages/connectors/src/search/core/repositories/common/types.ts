@@ -97,7 +97,6 @@ export interface ISearchQueryDialect {
   }): ISearchQuery;
 
   /**
-   * @deprecated Use `compileWhere`, which can express the absorbing outcomes a filter STRING
    * cannot. This signature has no representation for "matches nothing" - it returned `''`, which
    * the caller could not tell from "no constraint", so an empty `or` widened the query it was
    * meant to narrow. It now THROWS on that input rather than answering wrongly.

@@ -1,7 +1,7 @@
 export const DEFAULT_CIPHER_BITS = 256;
 
 /**
- * @deprecated Legacy padEnd key-stretching char. No longer used for key derivation —
+ * Legacy padEnd key-stretching char. No longer used for key derivation —
  * keys are now derived via PBKDF2 (see `DEFAULT_KDF_*`). Kept only so existing imports
  * do not break.
  */

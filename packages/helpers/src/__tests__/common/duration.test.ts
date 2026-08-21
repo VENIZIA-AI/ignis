@@ -39,7 +39,7 @@ describe('DurationMultipliers - converting a window to milliseconds', () => {
     }
   });
 
-  test('converts the values BANA already depends on', () => {
+  test('converts the values a consumer already depends on', () => {
     expect(DurationMultipliers.toMilliseconds({ unit: 'day', value: 3 })).toBe(259_200_000);
     expect(DurationMultipliers.toMilliseconds({ unit: 'month', value: 1 })).toBe(2_592_000_000);
     expect(DurationMultipliers.toMilliseconds({ unit: 'hour', value: 36 })).toBe(129_600_000);

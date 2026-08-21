@@ -3,8 +3,8 @@ import { HTTP } from '@/common/constants';
 import type { TErrorDefinition, TRegisterErrors } from '@/modules/error';
 import { ErrorScopes, getError } from '@/modules/error';
 
-/** BANA compatibility probe - every shape below is copied from a real BANA call site; this file stops compiling the moment the framework rejects one of them. */
-describe('BANA call shapes still compile and behave', () => {
+/** Consumer compatibility probe - every shape below is copied from a real application call site; this file stops compiling the moment the framework rejects one of them. */
+describe('consumer call shapes still compile and behave', () => {
   test('free-form: message only - the most common shape', () => {
     expect(getError({ message: 'Invalid paths for build error key!' }).statusCode).toBe(400);
   });
@@ -39,7 +39,7 @@ describe('BANA call shapes still compile and behave', () => {
     });
   });
 
-  test('by-definition: the shape BANA errors.ts wraps', () => {
+  test('by-definition: the shape a consumer errors.ts wraps', () => {
     const SlugErrors = {
       SLUG_TAKEN: {
         message: { text: 'Slug already taken: %{slug}', code: 'server.core.slug.create.taken' },
@@ -53,7 +53,7 @@ describe('BANA call shapes still compile and behave', () => {
 
     expect(error.statusCode).toBe(409);
     expect(error.normalized.code).toBe('server.core.slug.create.taken');
-    // BREAKING for BANA: 3 FE sites reading `extra?.messageArgs` must move to `normalized.args`.
+    // BREAKING for consumers: front-end sites reading `extra?.messageArgs` must move to `normalized.args`.
     expect(error.extra).toBeUndefined();
     expect(error.normalized.args).toEqual({ slug: 've-hoa-nhac' });
   });

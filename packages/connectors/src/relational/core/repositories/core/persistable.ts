@@ -36,7 +36,7 @@ export class PersistableRelationalRepository<
     this._operationScope = RepositoryOperationScopes.READ_WRITE;
   }
 
-  /** @deprecated Reach the engine's update transform through `dataSource.getQueryDialect()`. Engines without an update builder return `undefined`. `AnyType` rather than `unknown`: the concrete builder is engine-specific, and `unknown` breaks every `updateBuilder.transform(...)` call site. */
+  /** Reach the engine's update transform through `dataSource.getQueryDialect()`. Engines without an update builder return `undefined`. `AnyType` rather than `unknown`: the concrete builder is engine-specific, and `unknown` breaks every `updateBuilder.transform(...)` call site. */
   get updateBuilder(): AnyType {
     return (this.queryDialect as { updateBuilder?: AnyType }).updateBuilder;
   }

@@ -1,6 +1,6 @@
+import { HTTP } from '@venizia/ignis-helpers/common';
 import type { TErrorDefinition, TRegisterErrors } from '@venizia/ignis-helpers/core';
 import { ErrorScopes } from '@venizia/ignis-helpers/core';
-import { HTTP } from '@venizia/ignis-helpers/common';
 
 /** Codes a client branches on for a failed authentication. A throw site may override `message` for detail; the code and status come from here. */
 export const AuthenticationErrors = {
@@ -76,9 +76,48 @@ export const AuthenticationErrors = {
     statusCode: HTTP.ResultCodes.RS_4.Unauthorized,
     category: ErrorScopes.AUTH,
   },
+  ASSERTION_MISSING: {
+    message: {
+      text: 'Missing service assertion',
+      code: 'core.authentication.service.assertion_missing',
+    },
+    statusCode: HTTP.ResultCodes.RS_4.Unauthorized,
+    category: ErrorScopes.AUTH,
+  },
+  ASSERTION_INVALID: {
+    message: {
+      text: 'Invalid service assertion',
+      code: 'core.authentication.service.assertion_invalid',
+    },
+    statusCode: HTTP.ResultCodes.RS_4.Unauthorized,
+    category: ErrorScopes.AUTH,
+  },
+  CALLER_NOT_ALLOWED: {
+    message: {
+      text: 'Service caller is not allowed',
+      code: 'core.authentication.service.caller_not_allowed',
+    },
+    statusCode: HTTP.ResultCodes.RS_4.Unauthorized,
+    category: ErrorScopes.AUTH,
+  },
+  REQUEST_BINDING_MISMATCH: {
+    message: {
+      text: 'Service assertion does not match this request',
+      code: 'core.authentication.service.request_binding_mismatch',
+    },
+    statusCode: HTTP.ResultCodes.RS_4.Unauthorized,
+    category: ErrorScopes.AUTH,
+  },
+  PRINCIPAL_UNRESOLVED: {
+    message: {
+      text: 'Service caller resolved to no principal',
+      code: 'core.authentication.service.principal_unresolved',
+    },
+    statusCode: HTTP.ResultCodes.RS_4.Unauthorized,
+    category: ErrorScopes.AUTH,
+  },
 } as const satisfies Record<string, TErrorDefinition>;
 
-/** Registers these codes with the shared key registry so a consumer gets autocomplete on `messageCode`. Augments the `/core` subpath, not the root barrel - kernel never imports the bare package, so nothing else in this program would make the root specifier resolvable for the merge. */
 declare module '@venizia/ignis-helpers/core' {
   interface IErrorKeyRegistry extends TRegisterErrors<typeof AuthenticationErrors> {}
 }

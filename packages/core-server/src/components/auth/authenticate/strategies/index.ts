@@ -4,3 +4,4 @@ export * from '@venizia/ignis-kernel';
 export * from './basic.strategy';
 export * from './jws.strategy';
 export * from './jwks.strategy';
+export * from './service.strategy';

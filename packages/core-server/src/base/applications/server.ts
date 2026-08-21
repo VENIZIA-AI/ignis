@@ -77,7 +77,7 @@ export abstract class ServerApplication<
     return true;
   }
 
-  /** Restores the pre-split default: a listening server has a real process cwd. A BANA application may still override this further (several already do, with `__dirname`). */
+  /** Restores the pre-split default: a listening server has a real process cwd. An application may still override this further (several already do, with `__dirname`). */
   override getProjectRoot(): string {
     const projectRoot = process.cwd();
     this.bind<string>({ key: CoreBindings.APPLICATION_PROJECT_ROOT }).toValue(projectRoot);

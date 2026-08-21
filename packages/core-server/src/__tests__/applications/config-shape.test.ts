@@ -7,7 +7,7 @@ import { describe, expect, test } from 'bun:test';
 /**
  * `host`/`port` left the kernel so a browser Worker stops being handed an address it has no use
  * for. `@venizia/ignis` must widen them back, because every application built on it binds a socket -
- * and a real one (nx-seller) writes both into an `IApplicationConfigs` literal today.
+ * and a real application writes both into an `IApplicationConfigs` literal today.
  *
  * The mechanism is fragile in one specific way, which is why this test exists: the widened shape
  * wins only because `src/index.ts` exports the name EXPLICITLY. A name reachable through two
@@ -42,8 +42,8 @@ const SERVER_DECLARES_PORT: HasDeclaredKey<IApplicationConfigs, 'port'> = true;
 const KERNEL_DECLARES_HOST: HasDeclaredKey<IKernelApplicationConfigs, 'host'> = false;
 const KERNEL_DECLARES_PORT: HasDeclaredKey<IKernelApplicationConfigs, 'port'> = false;
 
-/** nx-seller's `createAppConfig`, reduced to the shape that must keep compiling. */
-const BANA_SHAPED_CONFIG: IApplicationConfigs = {
+/** A consumer application's `createAppConfig`, reduced to the shape that must keep compiling. */
+const CONSUMER_SHAPED_CONFIG: IApplicationConfigs = {
   host: process.env.APP_ENV_SERVER_HOST,
   port: Number(process.env.APP_ENV_SERVER_PORT),
   path: { base: '/api', isStrict: true },
@@ -56,12 +56,12 @@ describe('IApplicationConfigs - narrow in the kernel, widened by @venizia/ignis'
     expect([KERNEL_DECLARES_HOST, KERNEL_DECLARES_PORT]).toEqual([false, false]);
   });
 
-  test('a BANA-shaped config still assigns, with host typed rather than swallowed by the index signature', () => {
+  test('a consumer-shaped config still assigns, with host typed rather than swallowed by the index signature', () => {
     // `string | undefined`, not `any`: were the explicit re-export lost, this would fall through to
     // `[key: string]: any` and every typo in a config key would compile.
-    const host: string | undefined = BANA_SHAPED_CONFIG.host;
+    const host: string | undefined = CONSUMER_SHAPED_CONFIG.host;
 
-    expect(BANA_SHAPED_CONFIG.path.base).toBe('/api');
+    expect(CONSUMER_SHAPED_CONFIG.path.base).toBe('/api');
     expect(host).toBe(process.env.APP_ENV_SERVER_HOST);
   });
 });

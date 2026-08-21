@@ -5,7 +5,7 @@ import type { IJWSTokenServiceOptions, IJWTTokenPayload } from '@venizia/ignis-k
 import type { AnyType } from '@venizia/ignis-helpers/common';
 
 /**
- * `aud` / `iss` on both halves of the JWT lifecycle, pinned against BANA's acceptance criteria 1-3.
+ * `aud` / `iss` on both halves of the JWT lifecycle.
  *
  * Driven through `JWSTokenService` rather than the JWKS pair because it needs no key material: the
  * claim handling lives in the shared `AbstractBearerTokenService`, so both services take the same

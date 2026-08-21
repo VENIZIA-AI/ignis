@@ -6,6 +6,7 @@ import { getError } from '@venizia/ignis-helpers/core';
 import { BaseComponent, Binding, CoreBindings } from '@venizia/ignis-kernel';
 import type { Context, Next } from 'hono';
 import { Authentication } from '../auth';
+import { ServiceAssertion } from '@venizia/ignis-kernel';
 import { ApiReferenceBindingKeys, DocumentUITypes, IApiReferenceOptions } from './common';
 import { UIProviderFactory } from './ui-factory';
 
@@ -134,6 +135,12 @@ export class ApiReferenceComponent extends BaseComponent {
       type: 'http',
       scheme: 'basic',
     });
+
+    rootRouter.openAPIRegistry.registerComponent(
+      'securitySchemes',
+      Authentication.STRATEGY_SERVICE,
+      { type: 'apiKey', in: 'header', name: ServiceAssertion.HEADER },
+    );
 
     const securitySchemes = boundOptions?.securitySchemes ?? {};
     for (const [name, scheme] of Object.entries(securitySchemes)) {

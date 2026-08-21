@@ -6,6 +6,85 @@ not how.
 This file and `index.md` are reserved OKF filenames - they carry no `type:` frontmatter and are not
 counted as concepts.
 
+## 2026-08-21 - `service` is a framework authentication strategy
+
+An Ed25519 assertion per request, verified against the caller's own JWKS. The protocol and the
+verifier's claim checks were proven in a consumer application first; the framework took the design,
+not the files.
+
+**Why it had to be a FRAMEWORK name.** An application registering `service` under its own package
+means every route naming it imports from that package - and an IGNIS application that does not
+depend on that package has no correct way to name the strategy at all. Measured on the consumer
+that asked: 576 route declarations, 201 files needing a new import, and five files in a package
+that could not compile because it depends on `@venizia/ignis` and not on their core. With
+`AuthenticateStrategy.SERVICE` the same migration is a textual substitution with zero new imports.
+
+**What the assertion covers, and only this:** the HTTP method and the percent-ENCODED path. Not the
+query string, not any header, not the body. That matters most for tenant selection, which is
+usually a header or a query parameter - so an assertion proves which service called, never which
+tenant it acts on.
+
+Decisions worth not re-deriving:
+
+- **The path is compared as `new URL(context.req.url).pathname`, never `context.req.path`.** Hono
+  hands the second one back DECODED, so any route carrying a space or a non-ASCII slug would 401
+  permanently while every ASCII-safe test fixture passed. Measured both accessors on a live request.
+- **The allowlist is `Object.hasOwn`, not a truthiness check on the index.** The caller map is a
+  plain object, so `iss: 'constructor'` returns `Function` - truthy - walks past the guard and
+  reaches `new URL(<function>)` as an uncaught TypeError.
+- **`signLifetimeSeconds` and `acceptMaxAgeSeconds` are SEPARATE**, and only the second is a
+  security control. The caller already sets `exp` - it signs the token - so the callee's accepted
+  age is the only bound that survives a compromised caller, and it can never be something the caller
+  requests. A caller needing more slack is named in the callee's `callers` map.
+- **`clockToleranceSeconds` is for the FUTURE case**, not for widening the window. Two machines
+  never agree to the second, and without tolerance a caller one second ahead is refused outright.
+  Measured at tolerance 5: `iat + 5s` accepted, `iat + 6s` refused.
+- **The real acceptance window is 65 seconds** with the defaults, not 70. Measured: age 64 accepted,
+  65 refused, and the refusal is `ERR_JWT_EXPIRED` - `exp` fires first, so `maxTokenAge` never binds
+  for an honest caller. Both sides of the design conversation wrote 70 before anyone ran it, which
+  is why the number now lives in a test.
+- **The signer takes PEM only, deliberately.** `importSPKI` refuses a private PEM outright, which
+  makes the private half unreachable from the published document by construction. The `jwk` format
+  cannot offer that - see the `/certs` entry below.
+- **`resolvePrincipal` returns `IAuthUser | null`, and the strategy validates `userId`.**
+  `executeAnyMode` calls `setCurrentUser` unconditionally, so a principal without one would
+  authenticate here and fail at the first write, far from the cause. `executeAllMode` already
+  refused it; this closes the gap between the modes.
+
+`AuthenticateComponent` now accepts service-only configuration: the guard was "jwt or basic", which
+refused the exact application this exists for - one that verifies assertions and consumes no user
+tokens at all.
+
+## 2026-08-21 - `/certs` could publish the signing key, through the `jwk` format
+
+`JWKSIssuerTokenService` served whatever `keys.public` parsed into. The `pem` format was never
+exposed - `importSPKI` rejects a private PEM outright. The `jwk` format was: `keys.public` is
+`JSON.parse`d straight into `importJWK`, which imports whatever it is handed, and a private JWK
+carrying `"ext": true` yields an EXTRACTABLE key. `exportJWK` then carries `d` into the document
+served at an unauthenticated URL.
+
+Measured on the jose in this tree, not reasoned:
+
+```
+ext=true       import OK, export has d: true
+ext=false      refused: non-extractable CryptoKey cannot be exported as a JWK
+ext=undefined  refused
+```
+
+So the only thing between a mis-pasted key and a published signing key was an optional flag on the
+input. It needs operator error to reach, which is not much comfort: a field named `public` must make
+serving something private impossible, not unlikely.
+
+`assertPublicJWK` refuses `d`, `p`, `q`, `dp`, `dq`, `qi`, `k` in TWO places - when key material is
+loaded, and again immediately before the JWKS document is built. The second is not redundant: that
+object is the one `/certs` actually serves, so it is the last place to notice a signing key about to
+be published, whatever route the material took. Named members rather than a blanket scan, because a
+public JWK legitimately carries `x`, `y`, `n`, `e`.
+
+Present in the published `@venizia/ignis@0.2.0-2`. Found while evaluating BANA's service-auth
+implementation, whose PEM-only signer is immune - and that immunity is the guard the service
+strategy inherits.
+
 ## 2026-08-20 - `scripts/release.ts` drives the release chain
 
 `make release-plan` prints what needs releasing; `make release ARGS="--yes"` runs it. It dispatches
@@ -28,6 +107,17 @@ Three things it checks that a human dispatching by hand does not:
   half-states are possible: published-but-uncommitted, and green-but-nothing-published.
 
 It also `git pull --ff-only`s after each package, because the workflow pushes its own release commit.
+
+**Measured on the 2026-08-20 release, dispatched in parallel rather than through this script:** three
+runs CANCELLED and one FAILED out of nine. The workflow's `concurrency: { group: npm-release,
+cancel-in-progress: false }` keeps at most one pending run, so extra simultaneous dispatches are
+cancelled outright rather than queued. The failure was `Sync develop` - `git pull origin develop`
+losing a race with a sibling release's push.
+
+That failure was harmless, and by design: `Sync develop` sits BEFORE `Publish to NPM`, so the run
+died with git untouched and nothing published. This is the payoff of publishing ahead of every git
+write - the common failure leaves nothing to roll back. The retry then succeeded. Every package
+still landed correctly, but four wasted runs is the cost of not serialising.
 
 Which packages need releasing is derived, never listed: source files changed since that package's
 own `chore(<pkg>): release v...` commit. An explicit `bun scripts/release.ts kernel connectors` is

@@ -78,7 +78,7 @@ describe('getError', () => {
   });
 });
 
-// --- Error catalog: the `{ error: Def }` form, ported from BANA ---
+// --- Error catalog: the `{ error: Def }` form ---
 const CategoryErrors = {
   CREATE_DUPLICATE_NAME: {
     message: {

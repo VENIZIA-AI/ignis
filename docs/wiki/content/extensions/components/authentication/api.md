@@ -38,6 +38,7 @@ import {
   AuthenticationModes,
   AuthenticationTokenTypes,
   AuthenticationStrategyRegistry,
+  ServiceAssertion,
 
   // JOSE standards + constants
   JOSEStandards,
@@ -50,6 +51,7 @@ import {
   JWKSIssuerAuthenticationStrategy,
   JWKSVerifierAuthenticationStrategy,
   BasicAuthenticationStrategy,
+  ServiceAuthenticationStrategy,
 
   // Services
   AbstractBearerTokenService,
@@ -81,6 +83,9 @@ import type {
   IJWKSVerifierOptions,
   TJWKSTokenServiceOptions,
   TBasicTokenServiceOptions,
+  IServiceAuthOptions,
+  IServiceAssertionClaims,
+  TServiceCallerEntry,
   IAuthenticateOptions,
   IAuthUser,
   IJWTTokenPayload,
@@ -147,6 +152,7 @@ Bearer token service hierarchy:
 |--------|---------|
 | `defineJWSAuth(opts)` | Validates `jwtSecret` and `getTokenExpiresFn`, binds `IJWSTokenServiceOptions` to `JWT_OPTIONS`, registers `JWSTokenService` |
 | `defineJWKSAuth(opts)` | Switches on `mode`.<br>**Issuer:** validates keys/format/kid/getTokenExpiresFn, binds to `JWKS_OPTIONS`, registers `JWKSIssuerTokenService` + `JWKSController`.<br>**Verifier:** validates `jwksUrl`, binds to `JWKS_OPTIONS`, registers `JWKSVerifierTokenService` |
+| `defineServiceAuth(opts)` | Validates `name` and `resolvePrincipal`, registers the verifier and the `service` strategy. With `keys` present it also registers the signer and mounts the certs route. Absent options: does nothing |
 | `defineBasicAuth(opts)` | Validates `verifyCredentials` presence, registers `BasicTokenService`. Skips (debug log) if `basicOptions` not bound |
 | `defineControllers(opts)` | Requires `jwtOptions` when `useAuthController: true`. Calls `defineAuthController()` and registers the generated controller |
 | `defineOAuth2()` | Public stub, called during `binding()`, performs no action - not yet implemented |
@@ -162,9 +168,11 @@ Bearer token service hierarchy:
 | `AuthenticateBindingKeys.JWT_OPTIONS` | `@app/authenticate/jwt-options` | `TJWTTokenServiceOptions` | Conditional | -- |
 | `AuthenticateBindingKeys.JWKS_OPTIONS` | `@app/authenticate/jwks-options` | `IJWKSIssuerOptions \| IJWKSVerifierOptions` | Internal | Bound by the component from `JWT_OPTIONS` |
 | `AuthenticateBindingKeys.BASIC_OPTIONS` | `@app/authenticate/basic-options` | `TBasicTokenServiceOptions` | Conditional | -- |
+| `AuthenticateBindingKeys.SERVICE_OPTIONS` | `@app/authenticate/service-options` | `IServiceAuthOptions` | Conditional | -- |
+| `AuthenticateBindingKeys.SERVICE_CERTS_PATH` | `@app/authenticate/service-certs-path` | `string` | Internal | Bound by the component from `serviceOptions.rest.path` |
 
 > [!IMPORTANT]
-> At least one of `JWT_OPTIONS` or `BASIC_OPTIONS` must be bound, or `AuthenticateComponent.binding()` throws.
+> At least one of `JWT_OPTIONS`, `BASIC_OPTIONS` or `SERVICE_OPTIONS` must be bound, or `AuthenticateComponent.binding()` throws. A service that only VERIFIES assertions needs neither jwt nor basic.
 
 ## Option interfaces
 

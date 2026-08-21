@@ -162,7 +162,7 @@ import {
 import {
   LoggerFactory,
   RedisSingleHelper,
-  QueueHelper,
+  SequentialQueueHelper,
 } from '@venizia/ignis-helpers';
 
 // DI Container

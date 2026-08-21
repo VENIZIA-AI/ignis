@@ -197,7 +197,7 @@ describe('AppErrorMiddleware - intentional ApplicationError identity', () => {
     expect(body.details.cause).toBeUndefined();
   });
 
-  test('rootKey (as BANA configures it) wraps the whole envelope', async () => {
+  test('rootKey, as a consumer configures it, wraps the whole envelope', async () => {
     const application = mount({
       rootKey: 'error',
       thrower: () => {

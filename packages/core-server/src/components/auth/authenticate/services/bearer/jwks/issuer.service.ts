@@ -54,6 +54,12 @@ export class JWKSIssuerTokenService<E extends Env = Env> extends AbstractJWKSTok
     this.publicKey = built.pub;
 
     const publicJWK = await exportJWK(this.publicKey!);
+
+    // Belt and braces. `assertPublicJWK` already refused a private JWK on the way IN, but this is
+    // the exact object an unauthenticated `/certs` serves - the last place to notice a signing key
+    // about to be published, whatever route the material took to get here.
+    this.assertPublicJWK({ jwk: publicJWK });
+
     publicJWK.kid = this.options.kid;
     publicJWK.alg = algorithm;
     publicJWK.use = 'sig';
@@ -98,6 +104,33 @@ export class JWKSIssuerTokenService<E extends Env = Env> extends AbstractJWKSTok
     }
   }
 
+  /**
+   * Refuses a JWK carrying private material where a PUBLIC key is expected.
+   *
+   * The `pem` format cannot reach this state - `importSPKI` rejects a private PEM outright. The
+   * `jwk` format can: `importJWK` imports whatever it is handed, and a private JWK marked
+   * `"ext": true` yields an EXTRACTABLE key, so `exportJWK` then carries `d` straight into the
+   * document `/certs` serves without authentication. Measured on jose 6.2.3: with `ext: true` the
+   * round trip returns `d`; without it, export throws. So the only thing standing between a
+   * mis-pasted key and a published signing key was an optional flag on attacker-irrelevant input.
+   *
+   * Named members, not a blanket scan: `d` covers EC/OKP and RSA's private exponent, and the CRT
+   * members are the rest of an RSA private key.
+   */
+  protected assertPublicJWK(opts: { jwk: JWK }): void {
+    const PRIVATE_MEMBERS = ['d', 'p', 'q', 'dp', 'dq', 'qi', 'k'] as const;
+
+    const present = PRIVATE_MEMBERS.filter(member => opts.jwk[member] !== undefined);
+    if (present.length === 0) {
+      return;
+    }
+
+    throw getError({
+      statusCode: HTTP.ResultCodes.RS_5.InternalServerError,
+      message: `[JWKSIssuerTokenService] The public key material carries PRIVATE members (${present.join(', ')}) | this key would be published at the JWKS endpoint | pass the public half in keys.public`,
+    });
+  }
+
   protected async parseKeyMaterial(opts: {
     raw: { priv: string; pub: string };
     algorithm: IJWKSIssuerOptions['algorithm'];
@@ -131,6 +164,8 @@ export class JWKSIssuerTokenService<E extends Env = Env> extends AbstractJWKSTok
             priv: JSON.parse(raw.priv) as JWK,
             pub: JSON.parse(raw.pub) as JWK,
           };
+
+          this.assertPublicJWK({ jwk: parsed.pub });
 
           const priv = await importJWK(parsed.priv, algorithm);
           const pub = await importJWK(parsed.pub, algorithm);

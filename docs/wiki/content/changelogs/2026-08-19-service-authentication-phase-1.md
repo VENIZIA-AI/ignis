@@ -41,6 +41,7 @@ jwtOptions: {
 
 - **Anyone registering a custom strategy.** The cast at every route goes away. Declare a `securitySchemes` entry for your strategy name, or your generated OpenAPI document names a scheme it never declares.
 - **Anyone running more than one service off one issuer.** Set `verify.audience`. Without it, a token minted for one service is accepted verbatim by every other - there is no cryptographic notion of "this token was meant for me".
+- **Anyone importing a deprecated alias.** `QueueHelper`, `TNodePostgresConnector` and `TNodePostgresTransactionConnector` are removed. Pure renames - see Breaking changes.
 - **Anyone importing any `Swagger*` symbol.** `SwaggerComponent`, `ISwaggerOptions` and `SwaggerBindingKeys` are all removed in this release. It is a rename - see Breaking changes.
 - **Everyone else.** No action needed. Every new option is optional and unset means today's behaviour, byte for byte.
 
@@ -72,6 +73,18 @@ this.component(ApiReferenceComponent);
 
 It is a rename only. `SwaggerBindingKeys.SWAGGER_OPTIONS` always held the same
 `'@app/api-reference/options'` string, so no binding moves and no runtime behaviour changes.
+
+### Every deprecated alias is removed
+
+The compatibility aliases are gone rather than marked. Each is a pure rename with no behaviour attached:
+
+| Removed | Use instead | Package |
+|---|---|---|
+| `QueueHelper` | `SequentialQueueHelper` | helpers |
+| `TNodePostgresConnector` | `TRelationalConnector` | connectors |
+| `TNodePostgresTransactionConnector` | `TRelationalConnector` | connectors |
+
+`TRelationalConnector` covers both Postgres cases: `NodePgDatabase` and `PostgresJsDatabase` both extend `PgDatabase`, so the driver-specific aliases described a distinction that stopped existing when the relational tier went engine-neutral.
 
 ### A configured `iss` / `aud` now wins over the payload
 

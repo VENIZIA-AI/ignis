@@ -101,11 +101,38 @@ const countChangedSinceRelease = async (opts: { name: string }): Promise<number>
     return Number.POSITIVE_INFINITY;
   }
 
-  const { stdout: files } = await run({
-    command: ['git', 'diff', '--name-only', `${releaseCommit}..HEAD`, '--', `packages/${opts.name}/src`],
+  const { stdout: committed } = await run({
+    command: [
+      'git',
+      'diff',
+      '--name-only',
+      `${releaseCommit}..HEAD`,
+      '--',
+      `packages/${opts.name}/src`,
+    ],
   });
 
-  return files ? files.split('\n').length : 0;
+  // UNCOMMITTED work counts too. Without this the plan reads "nothing to release" while the tree
+  // holds a whole feature - technically true of the remote, and exactly the wrong thing to tell
+  // someone asking whether they are ready. The clean-tree gate still refuses to dispatch.
+  const { stdout: pending } = await run({
+    command: ['git', 'status', '--porcelain', '--', `packages/${opts.name}/src`],
+  });
+
+  const files = new Set<string>();
+  for (const line of committed.split('\n')) {
+    if (line) {
+      files.add(line);
+    }
+  }
+  for (const line of pending.split('\n')) {
+    const path = line.slice(3).trim();
+    if (path) {
+      files.add(path);
+    }
+  }
+
+  return files.size;
 };
 
 const collectState = async (opts: { names: readonly string[] }): Promise<IPackageState[]> => {

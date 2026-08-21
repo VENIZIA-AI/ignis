@@ -452,6 +452,16 @@ const config = defineConfig({
           collapsed: false,
           items: [
             {
+              text: '2026-08-21',
+              collapsed: true,
+              items: [
+                {
+                  text: 'Services Prove Themselves to Each Other, Without a Shared Password',
+                  link: '/changelogs/2026-08-21-service-authentication-strategy',
+                },
+              ],
+            },
+            {
               text: '2026-08-19',
               collapsed: true,
               items: [

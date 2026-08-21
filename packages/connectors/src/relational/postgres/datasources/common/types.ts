@@ -6,10 +6,8 @@ import type {
   TRelationalTransactionOptions,
 } from '@/relational/core/datasources/common';
 import type { TConstValue } from '@venizia/ignis-helpers/common';
-import type { NodePgClient } from 'drizzle-orm/node-postgres';
-import { type drizzle as nodePostgresConnector } from 'drizzle-orm/node-postgres';
 import type { PgDatabase, PgQueryResultHKT } from 'drizzle-orm/pg-core';
-import type { Pool, PoolClient } from 'pg';
+import type { Pool } from 'pg';
 
 /**
  * Drizzle connector for any Postgres driver: `NodePgDatabase` and `PostgresJsDatabase` both extend
@@ -18,17 +16,6 @@ import type { Pool, PoolClient } from 'pg';
 export type TRelationalConnector<
   DataSourceSchema extends TAnyDataSourceSchema = TAnyDataSourceSchema,
 > = PgDatabase<PgQueryResultHKT, DataSourceSchema>;
-
-/** @deprecated Compat alias. Prefer `TRelationalConnector`, which every Drizzle pg driver satisfies. */
-export type TNodePostgresConnector<
-  DataSourceSchema extends TAnyDataSourceSchema = TAnyDataSourceSchema,
-  Client extends NodePgClient = NodePgClient,
-> = ReturnType<typeof nodePostgresConnector<DataSourceSchema, Client>>;
-
-/** @deprecated Compat alias. Uses PoolClient specifically for transaction isolation. */
-export type TNodePostgresTransactionConnector<
-  DataSourceSchema extends TAnyDataSourceSchema = TAnyDataSourceSchema,
-> = ReturnType<typeof nodePostgresConnector<DataSourceSchema, PoolClient>>;
 
 export type TAnyConnector<DataSourceSchema extends TAnyDataSourceSchema = TAnyDataSourceSchema> =
   TRelationalConnector<DataSourceSchema>;
