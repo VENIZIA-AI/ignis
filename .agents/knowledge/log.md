@@ -39,10 +39,18 @@ Decisions worth not re-deriving:
 - **`clockToleranceSeconds` is for the FUTURE case**, not for widening the window. Two machines
   never agree to the second, and without tolerance a caller one second ahead is refused outright.
   Measured at tolerance 5: `iat + 5s` accepted, `iat + 6s` refused.
-- **The real acceptance window is 65 seconds** with the defaults, not 70. Measured: age 64 accepted,
-  65 refused, and the refusal is `ERR_JWT_EXPIRED` - `exp` fires first, so `maxTokenAge` never binds
-  for an honest caller. Both sides of the design conversation wrote 70 before anyone ran it, which
-  is why the number now lives in a test.
+- **There are TWO windows, not one, and writing either alone loses the other.** Measured at the
+  defaults: with clocks agreed a token is accepted to age 64 and refused at 65, so the ACCEPTANCE
+  window is 65s; with the caller running the full `clockTolerance` fast the same token is still
+  accepted 69s after minting, so the REPLAY window is 70s. 65 answers "what does this machine
+  accept", 70 answers "how long can a capture be used" - the second is the threat-model number.
+  The refusal is `ERR_JWT_EXPIRED` either way: `exp` fires, so `maxTokenAge` never binds for an
+  honest caller.
+
+  That makes `clockToleranceSeconds` a SECURITY knob: it widens the replay window second for second.
+
+  This number moved three times before it settled - 60 in the original spec, 70, then 65 as a
+  straight replacement, then both. It lives in two tests now for exactly that reason.
 - **The signer takes PEM only, deliberately.** `importSPKI` refuses a private PEM outright, which
   makes the private half unreachable from the published document by construction. The `jwk` format
   cannot offer that - see the `/certs` entry below.

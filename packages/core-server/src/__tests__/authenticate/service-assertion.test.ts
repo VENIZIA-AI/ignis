@@ -334,8 +334,9 @@ describe('the clock tolerance window', () => {
   });
 
   /**
-   * 60 + 5 = 65, NOT 70. And the refusal is jose's `exp` check, not `maxTokenAge`: an honest caller
-   * stamps `exp = iat + lifetime`, so the two are tied and `exp` is reached first.
+   * The ACCEPTANCE window, on this machine's clock: 60 + 5 = 65. The refusal is jose's `exp`
+   * check, not `maxTokenAge` - an honest caller stamps `exp = iat + lifetime`, so the two are tied
+   * and `exp` is reached first. See below for the REPLAY window, which is a different number.
    */
   test('an old token is accepted at 64s and refused at 65s', async () => {
     expect(
@@ -353,5 +354,61 @@ describe('the clock tolerance window', () => {
         path: '/v1/api/x',
       }),
     ).rejects.toThrow();
+  });
+});
+
+/**
+ * The REPLAY window, which is not the acceptance window and is the number a threat model asks for.
+ *
+ * A callee that accepts an `iat` up to `clockTolerance` in its own future accepts a token minted
+ * before its clock would otherwise allow, and then keeps accepting it for the rest of the window.
+ * So `clockToleranceSeconds` widens the usable life of a captured assertion second for second - it
+ * is a security knob, not an operational one.
+ */
+describe('the replay window is wider than the acceptance window', () => {
+  const mintSkewed = async (opts: { mintedAgoOnOurClock: number; callerSkewSeconds: number }) => {
+    const iat = Math.floor(Date.now() / 1000) - opts.mintedAgoOnOurClock + opts.callerSkewSeconds;
+
+    return new SignJWT({ htm: 'GET', htu: '/v1/api/x' })
+      .setProtectedHeader({
+        alg: ServiceAssertion.ALGORITHM,
+        typ: ServiceAssertion.TYP,
+        kid: signer.getKeyId(),
+      })
+      .setIssuer(CALLER)
+      .setAudience(CALLEE)
+      .setJti(`replay-${opts.mintedAgoOnOurClock}-${opts.callerSkewSeconds}`)
+      .setIssuedAt(iat)
+      .setExpirationTime(iat + 60)
+      .sign(await (signer as AnyType).resolvePrivateKey());
+  };
+
+  const accepts = async (token: string) => {
+    try {
+      await buildVerifier(
+        calleeOptions({ acceptMaxAgeSeconds: 60, clockToleranceSeconds: 5 }),
+      ).verify({ token, method: 'GET', path: '/v1/api/x' });
+      return true;
+    } catch {
+      return false;
+    }
+  };
+
+  test('agreed clocks: usable for 64s after minting, not 65', async () => {
+    expect(await accepts(await mintSkewed({ mintedAgoOnOurClock: 64, callerSkewSeconds: 0 }))).toBe(
+      true,
+    );
+    expect(await accepts(await mintSkewed({ mintedAgoOnOurClock: 65, callerSkewSeconds: 0 }))).toBe(
+      false,
+    );
+  });
+
+  test('a caller running the full tolerance fast: usable for 69s, not 70', async () => {
+    expect(await accepts(await mintSkewed({ mintedAgoOnOurClock: 69, callerSkewSeconds: 5 }))).toBe(
+      true,
+    );
+    expect(await accepts(await mintSkewed({ mintedAgoOnOurClock: 70, callerSkewSeconds: 5 }))).toBe(
+      false,
+    );
   });
 });

@@ -238,6 +238,15 @@ export interface IServiceAuthOptions<E extends Env = Env> {
    */
   acceptMaxAgeSeconds?: number;
 
+  /**
+   * Clock skew allowance. A SECURITY knob, not an operational one.
+   *
+   * Its job is the future case: two machines never agree to the second, and without it a caller one
+   * second ahead is refused outright. But it also widens the REPLAY window second for second - a
+   * callee accepting an `iat` 5s in its own future keeps accepting that token for the rest of the
+   * window too. Measured at the defaults: 65s accepted on our clock, 70s of wall-clock life for a
+   * capture minted by a caller running the full tolerance fast.
+   */
   clockToleranceSeconds?: number;
 
   jwks?: { cacheMaxAgeMs?: number; cooldownMs?: number };

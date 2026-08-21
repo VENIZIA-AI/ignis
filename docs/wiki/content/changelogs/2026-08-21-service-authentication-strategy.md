@@ -92,7 +92,14 @@ callers: {
 
 Not for widening the window - for the opposite direction. Two machines never agree to the second, and a caller whose clock runs one second ahead stamps an `iat` in the future, which jose refuses outright. Measured with `tolerance: 5`: `iat + 5s` is accepted, `iat + 6s` is not.
 
-Widening the window for old tokens is the side effect. With the defaults the real acceptance window is **65 seconds**, not 60: `acceptMaxAgeSeconds` and `clockToleranceSeconds` compose.
+Widening the window for old tokens is the side effect - and it is why this is a security knob rather than an operational one. With the defaults there are **two** numbers, and they answer different questions:
+
+| | Seconds | Question it answers |
+|---|---|---|
+| Acceptance window | **65** | What does this machine accept? Age 64 passes, 65 does not |
+| Replay window | **70** | How long can a captured assertion be used? A caller running the full tolerance fast mints a token we accept 5s early, then keep accepting for another 64 |
+
+Widening `clockToleranceSeconds` widens the second one second for second.
 
 ## What the assertion does NOT cover
 

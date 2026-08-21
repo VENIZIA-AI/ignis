@@ -143,6 +143,14 @@ export class ServiceAssertionVerifierService extends BaseService {
         // And it is the CALLEE's number, never one the caller may request: a caller that could ask
         // for a longer window would be choosing its own replay window, which is the whole thing this
         // is here to deny.
+        //
+        // TWO NUMBERS, and they answer different questions. Measured at the defaults, 60 + 5:
+        //   - 65s is the ACCEPTANCE window on this machine's clock. Age 64 passes, 65 does not.
+        //   - 70s is the REPLAY window in wall-clock time, when the caller's clock runs the full
+        //     tolerance fast: we accept an `iat` up to 5s in our future, then keep accepting for
+        //     another 64. Measured: still accepted 69s after minting.
+        // The second is the one a threat model asks for. Widening `clockToleranceSeconds` widens it
+        // second for second, so it is a security knob, not an operational one.
         maxTokenAge,
         clockTolerance,
         requiredClaims: ['htm', 'htu', 'jti'],
