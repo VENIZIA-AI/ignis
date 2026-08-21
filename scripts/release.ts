@@ -250,7 +250,12 @@ const waitForCompletion = async (opts: { runId: string }): Promise<string> => {
  * reverse - a green run whose publish silently did nothing - is exactly what this catches.
  */
 const assertPublished = async (opts: { state: IPackageState }): Promise<string> => {
-  for (let attempt = 0; attempt < 12; attempt += 1) {
+  // Four minutes, not one. The `next` dist-tag can lag the publish by minutes - measured: a
+  // core-worker release reported "green but nothing published" while every workflow step had
+  // succeeded and the version was already in `npm view versions`. A verification window shorter than
+  // the registry's own propagation turns a healthy release into a false alarm, which is worse than
+  // not checking, because the next person stops believing the check.
+  for (let attempt = 0; attempt < 48; attempt += 1) {
     const published = await resolvePublishedVersion({ packageName: opts.state.packageName });
 
     if (published && published !== opts.state.publishedVersion) {
@@ -261,7 +266,7 @@ const assertPublished = async (opts: { state: IPackageState }): Promise<string> 
   }
 
   throw new Error(
-    `${opts.state.packageName} still reads ${opts.state.publishedVersion ?? 'nothing'} on the registry. The run was green but nothing new was published.`,
+    `${opts.state.packageName} still reads ${opts.state.publishedVersion ?? 'nothing'} on the registry after four minutes. Check \`npm view ${opts.state.packageName} versions\` before assuming it failed - the dist-tag may simply be lagging.`,
   );
 };
 
@@ -298,7 +303,7 @@ const releasePackage = async (opts: { state: IPackageState; mode: TReleaseMode }
 
   // The workflow pushes its own release commit. Without this the next package reads a stale local
   // version and the operator reads a repo that disagrees with the registry.
-  await run({ command: ['git', 'pull', '--ff-only', '--quiet'] });
+  await run({ command: ['git', 'pull', '--ff-only', '--quiet', 'origin', BRANCH] });
 };
 
 const main = async (): Promise<void> => {
