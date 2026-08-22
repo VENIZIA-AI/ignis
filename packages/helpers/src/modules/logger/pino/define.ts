@@ -3,7 +3,7 @@ import { AnyType } from '@/common/types';
 import { ModuleUtility } from '@/utilities/module.utility';
 import path from 'node:path';
 import pino from 'pino';
-import { LoggerFormats, resolveLoggerLevel } from '../common';
+import { LoggerFormats, resolveLoggerColorize, resolveLoggerLevel } from '../common';
 
 import { TPinoCustomLevelName, TPinoInstance } from './common';
 
@@ -139,7 +139,14 @@ export class PinoDestination {
       }
       case 'pretty': {
         ModuleUtility.assertInstalled({ scope: 'PinoLogger', modules: ['pino-pretty'] });
-        return pino.transport({ target: 'pino-pretty' });
+
+        // Only a decision is forwarded. Left alone, pino-pretty's own `isColorSupported` still
+        // suppresses color when stdout is not a terminal - a check winston has no equivalent of.
+        const colorize = resolveLoggerColorize();
+        return pino.transport({
+          target: 'pino-pretty',
+          ...(colorize === undefined ? {} : { options: { colorize } }),
+        });
       }
       case 'roll': {
         ModuleUtility.assertInstalled({ scope: 'PinoLogger', modules: ['pino-roll'] });

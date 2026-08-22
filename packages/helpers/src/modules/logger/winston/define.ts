@@ -7,7 +7,7 @@ import 'winston-daily-rotate-file';
 import { deepSplat } from './formatters';
 import { DgramTransport } from './transports';
 import { ICustomLoggerOptions, IDgramTransportOptions } from './common';
-import { LoggerFormats, resolveLoggerLevel, TLoggerFormat } from '../common';
+import { LoggerFormats, resolveLoggerColorize, resolveLoggerLevel, TLoggerFormat } from '../common';
 
 const LOGGER_PREFIX = Defaults.APPLICATION_NAME;
 const LOGGER_FORMAT = process.env.APP_ENV_LOGGER_FORMAT ?? 'text';
@@ -40,7 +40,8 @@ export const defineJsonLoggerFormatter = (opts: { label: string }) => {
 };
 
 export const definePrettyLoggerFormatter = (opts: { label: string; colorize?: boolean }) => {
-  const { label, colorize = true } = opts;
+  // winston has no terminal detection of its own, so "no opinion" keeps the historical default.
+  const { label, colorize = resolveLoggerColorize() ?? true } = opts;
 
   if (colorize) {
     return f.combine(
@@ -74,15 +75,17 @@ export const defineLogFormatter = (opts: { label: string; format?: TLoggerFormat
 
 export const applicationLogFormatter = defineLogFormatter({ label: LOGGER_PREFIX });
 
-/** Per-transport assembly formats: colorized console, plain file. */
-const defineAssemblyFormats = (opts: { format: TLoggerFormat }) => {
+/** Per-transport assembly formats: console may colorize, a file never does - ANSI bytes in a rotated log file are noise every grep has to strip. */
+const defineAssemblyFormats = (opts: { format: TLoggerFormat; colorize: boolean }) => {
   switch (opts.format) {
     case LoggerFormats.JSON: {
       return { console: f.json(), file: f.json() };
     }
     case LoggerFormats.TEXT: {
       return {
-        console: f.combine(f.align(), f.colorize(), defineTextLineFormatter()),
+        console: opts.colorize
+          ? f.combine(f.align(), f.colorize(), defineTextLineFormatter())
+          : f.combine(f.align(), defineTextLineFormatter()),
         file: f.combine(f.align(), defineTextLineFormatter()),
       };
     }
@@ -113,10 +116,11 @@ export const defineCustomLogger = (opts: ICustomLoggerOptions) => {
     formatter,
     format = LOGGER_FORMAT as TLoggerFormat,
     level = resolveLoggerLevel({ configured: process.env.APP_ENV_LOGGER_LEVEL }),
+    colorize = resolveLoggerColorize() ?? true,
     transports: { info: infoTransportOptions, error: errorTransportOptions },
   } = opts;
 
-  const assemblyFormats = formatter ? null : defineAssemblyFormats({ format });
+  const assemblyFormats = formatter ? null : defineAssemblyFormats({ format, colorize });
   const loggerFormat = formatter ?? definePrepFormatter({ label: LOGGER_PREFIX });
 
   const consoleLogTransport = new winston.transports.Console({

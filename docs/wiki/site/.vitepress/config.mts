@@ -452,6 +452,16 @@ const config = defineConfig({
           collapsed: false,
           items: [
             {
+              text: '2026-08-22',
+              collapsed: true,
+              items: [
+                {
+                  text: 'Log Lines Stop Carrying Color Outside Development',
+                  link: '/changelogs/2026-08-22-logger-color-off-outside-development',
+                },
+              ],
+            },
+            {
               text: '2026-08-21',
               collapsed: true,
               items: [

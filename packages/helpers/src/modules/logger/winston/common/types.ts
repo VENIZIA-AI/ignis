@@ -33,6 +33,9 @@ export interface ICustomLoggerOptions {
   /** Logger-level floor. Defaults to `APP_ENV_LOGGER_LEVEL`, then `debug`. */
   level?: TLogLevel;
 
+  /** ANSI color on the console transport in `text` mode. Defaults to `APP_ENV_LOGGER_COLOR`, then OFF outside a development `NODE_ENV`. Ignored when `formatter` is set - that override owns the whole line. */
+  colorize?: boolean;
+
   transports: {
     info: {
       file?: IFileTransportOptions;

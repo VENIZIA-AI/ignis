@@ -17,6 +17,7 @@ This section tracks the history of significant changes, refactors, and updates t
 
 | Date | Title | Type |
 |------|-------|------|
+| 2026-08-22 | [Log Lines Stop Carrying Color Outside Development](./2026-08-22-logger-color-off-outside-development) | Behavior Change, Enhancement |
 | 2026-08-21 | [Services Prove Themselves to Each Other, Without a Shared Password](./2026-08-21-service-authentication-strategy) | New Feature, Security |
 | 2026-08-19 | [Your Own Authentication Strategies, and Tokens That Say Who They Are For](./2026-08-19-service-authentication-phase-1) | New Feature, Security, Enhancement, Breaking Change |
 | 2026-08-19 | [A Browser BFF That Survives a Second Tab](./2026-08-19-browser-bff-multi-tab) | New Feature, Security, Breaking Change, Bug Fix |

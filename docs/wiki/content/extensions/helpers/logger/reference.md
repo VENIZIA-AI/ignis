@@ -485,6 +485,8 @@ const prettyFormatter = definePrettyLoggerFormatter({ label: 'my-app' });
 const plainFormatter = definePrettyLoggerFormatter({ label: 'my-app', colorize: false });
 ```
 
+Without an explicit `colorize`, `definePrettyLoggerFormatter` follows the [Color](#color) rules.
+
 `defineLogFormatter` throws an `ApplicationError` if `format` (or `APP_ENV_LOGGER_FORMAT`) is not `'json'` or `'text'`.
 
 ## Transports
@@ -624,6 +626,7 @@ interface ICustomLoggerOptions {
   formatter?: ReturnType<typeof winston.format.combine>;
   format?: TLoggerFormat; // 'json' | 'text'; defaults to APP_ENV_LOGGER_FORMAT
   level?: TLogLevel;      // logger-level floor; defaults to APP_ENV_LOGGER_LEVEL, then 'debug'
+  colorize?: boolean;     // console ANSI color; defaults to the Color rules above
   transports: {
     info: {
       file?: IFileTransportOptions;
@@ -781,9 +784,31 @@ The buffer wraps at 65,536 entries, using bitwise AND masking (`writeIndex & (BU
 | `APP_ENV_LOGGER_FOLDER_PATH` | _(unset)_ | Log files directory. File logging is OFF when unset |
 | `APP_ENV_LOGGER_INSPECT_DEPTH` | `5` | Object inspection depth for `%s` placeholders. Non-negative integer only - invalid or absent falls back to `5` |
 | `APP_ENV_LOGGER_DO_REDACT` | `true` | Secret redaction in log arguments. See the warning below before touching this |
+| `APP_ENV_LOGGER_COLOR` | _(unset)_ | ANSI color on console log lines. Unset means auto - see [Color](#color) |
 
 > [!WARNING]
 > Only the literal string `false` disables `APP_ENV_LOGGER_DO_REDACT`. Any other value - including unset - keeps redaction ON. Once disabled, raw secrets (passwords, tokens, connection URLs) reach the log sinks. Never disable this in production.
+
+### Color
+
+Color is a terminal affordance. In a deployed environment the same bytes land in a file or an aggregator as escape noise, so IGNIS turns color off outside a development `NODE_ENV`.
+
+The first rule that matches wins:
+
+| Rule | Result |
+|------|--------|
+| `APP_ENV_LOGGER_COLOR` is set | That value. `false` or `0` is off, anything else is on |
+| `NO_COLOR` is set and non-empty | Off ([no-color.org](https://no-color.org)) |
+| `NODE_ENV` is `local`, `debug`, `development`, `dev` or `sit` - or unset | On |
+| Anything else, including `production`, `staging`, `uat` and unrecognized names | Off |
+
+To keep color in a production terminal, set it back explicitly:
+
+```bash
+APP_ENV_LOGGER_COLOR=true
+```
+
+The file and UDP transports never colorize, in any environment. Under the pino provider the rule is a veto only: when it allows color, `pino-pretty` still suppresses it if stdout is not a terminal.
 
 ### File rotation
 

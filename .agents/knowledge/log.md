@@ -6,6 +6,26 @@ not how.
 This file and `index.md` are reserved OKF filenames - they carry no `type:` frontmatter and are not
 counted as concepts.
 
+## 2026-08-22 - console log color is environment-gated
+
+`resolveLoggerColorize()` in `logger/common/constants.ts` decides, at call time, whether a line may
+carry ANSI. First match wins: `APP_ENV_LOGGER_COLOR`, then a non-empty `NO_COLOR`, then `NODE_ENV`
+outside `Environment.DEVELOPMENT_ENVS`. Reusing that set rather than testing `=== 'production'` is
+deliberate - it is the same fail-closed boundary the error sanitizer draws, and staging and uat ship
+their lines to an aggregator exactly like production does.
+
+The return type is `boolean | undefined` on purpose. `undefined` means the framework has NO opinion:
+winston has no terminal detection of its own, so it reads that as on and nothing regresses; the pino
+path forwards no option at all, so `pino-pretty`'s `isColorSupported` still suppresses color when
+stdout is not a terminal. Collapsing this to a plain boolean would force color through a pipe in
+development, which is the bug the change exists to remove.
+
+`ICustomLoggerOptions.colorize` overrides everything, both directions.
+
+**Trap for anyone writing a test here:** `bun test` sets `NODE_ENV=test`, which is not in
+`DEVELOPMENT_ENVS`, so the default is OFF under the test runner. `default-logger.test.ts` now passes
+`colorize: true` explicitly - it asserts the wiring, not the policy.
+
 ## 2026-08-21 - `service` is a framework authentication strategy
 
 An Ed25519 assertion per request, verified against the caller's own JWKS. The protocol and the
