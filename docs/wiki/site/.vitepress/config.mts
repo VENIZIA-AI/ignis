@@ -452,6 +452,16 @@ const config = defineConfig({
           collapsed: false,
           items: [
             {
+              text: '2026-08-24',
+              collapsed: true,
+              items: [
+                {
+                  text: 'Two Query Shapes You No Longer Have to Rebuild',
+                  link: '/changelogs/2026-08-24-query-wrapper-schemas',
+                },
+              ],
+            },
+            {
               text: '2026-08-22',
               collapsed: true,
               items: [

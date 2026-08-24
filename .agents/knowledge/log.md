@@ -6,6 +6,31 @@ not how.
 This file and `index.md` are reserved OKF filenames - they carry no `type:` frontmatter and are not
 counted as concepts.
 
+## 2026-08-24 - FilterQuerySchema / WhereQuerySchema
+
+Two composed query shapes in `kernel/src/base/repositories/query-schemas/index.ts`, and the CRUD
+factory's `find`/`findById`/`findOne` now name them instead of rebuilding `z.object({ filter: ... })`.
+
+Measured on the consumer that asked: 47 copies of
+`z.object({ filter: FilterSchema.optional() }).partial()` and 22 of the `where` equivalent, across
+51 files. The 47 are **noise** - `FilterSchema` already ends with `.optional()`, so the second
+`.optional()` and the `.partial()` are both no-ops, and the override throws away the framework's own
+`.openapi()` description. Deleting them is behaviour-neutral.
+
+The 22 are **not** noise. `WhereSchema` has no trailing `.optional()`, and `resolveCountConfig`
+requires `where` whenever `isStrict.requestSchema` is set - which is the default from
+`factory/controller.ts`. Measured: `GET /x/count` and `GET /x/count?where=` both 400, only
+`?where={}` passes. Reviewed and **deliberately left unchanged** on 2026-08-24; the test
+`core-server/src/__tests__/repositories/query-wrapper-schemas.test.ts` pins it so a future change is a
+decision rather than an accident.
+
+`updateBy` and `deleteBy` also keep required `where`, for a different and stronger reason: a missing
+one rewrites or deletes every row. They must never be migrated to `WhereQuerySchema`.
+
+Both wrappers stay plain `ZodObject`s so `.extend()` covers the composed call sites without a second
+API. Re-applying `.openapi({ description })` returns a NEW schema and preserves parsing - that is how
+`findById`/`findOne` keep their own wording off one shared shape.
+
 ## 2026-08-22 - console log color is environment-gated
 
 `resolveLoggerColorize()` in `logger/common/constants.ts` decides, at call time, whether a line may

@@ -89,11 +89,17 @@ Set `isStrict.requestSchema: true` to make these query params Zod-required; set 
 
 ## Write a custom route that accepts a filter
 
-For a route outside the generated CRUD set, accept `FilterSchema` directly on the query:
+For a route outside the generated CRUD set, use `FilterQuerySchema` - the same query shape the generated `find` route takes:
 
 ```typescript
 import { z } from '@hono/zod-openapi';
-import { BaseRestController, controller, FilterSchema, inject, jsonResponse } from '@venizia/ignis';
+import {
+  BaseRestController,
+  controller,
+  FilterQuerySchema,
+  inject,
+  jsonResponse,
+} from '@venizia/ignis';
 
 @controller({ path: '/products' })
 export class ProductController extends BaseRestController {
@@ -109,7 +115,7 @@ export class ProductController extends BaseRestController {
       configs: {
         path: '/search',
         method: 'get',
-        request: { query: z.object({ filter: FilterSchema }) },
+        request: { query: FilterQuerySchema },
         responses: jsonResponse({ schema: z.array(z.object({ id: z.string() })) }),
       },
       handler: async context => {
@@ -121,6 +127,26 @@ export class ProductController extends BaseRestController {
   }
 }
 ```
+
+### The two query shapes
+
+Reach for these instead of rebuilding the same object at every route.
+
+| Schema | Query shape | Use it for |
+|---|---|---|
+| `FilterQuerySchema` | `{ filter?: TFilter }` | Any route that takes a full filter |
+| `WhereQuerySchema` | `{ where?: TWhere }` | Any route that takes conditions and no pagination |
+
+Both are plain Zod objects, so a route that takes more than one parameter extends rather than rebuilds:
+
+```typescript
+request: { query: WhereQuerySchema.extend({ q: z.string().max(255).optional() }) },
+```
+
+Neither needs an extra `.optional()`. `FilterSchema` already carries one, so `FilterSchema.optional()` is the same schema written longer, and a trailing `.partial()` on a single optional key does nothing.
+
+> [!NOTE]
+> The generated `updateBy` and `deleteBy` routes deliberately do not use `WhereQuerySchema`. They require `where`, because a missing one rewrites or deletes every row in the table.
 
 ## Rewrite a filter before it reaches the repository
 
@@ -183,7 +209,7 @@ console.log('Generated query options:', queryOptions);
 
 **Files:**
 
-- [`packages/core-server/src/base/controllers/factory/controller.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/base/controllers/factory/controller.ts) - `ControllerFactory.defineCrudController`
-- [`packages/core-server/src/base/repositories/query-schemas/filter.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/base/repositories/query-schemas/filter.ts) - `FilterSchema`, `InclusionSchema`
+- [`packages/kernel/src/base/controllers/factory/controller.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/kernel/src/base/controllers/factory/controller.ts) - `ControllerFactory.defineCrudController`
+- [`packages/kernel/src/base/repositories/query-schemas/index.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/kernel/src/base/repositories/query-schemas/index.ts) - `FilterSchema`, `WhereSchema`, `FilterQuerySchema`, `WhereQuerySchema`
 - [`packages/filter/src/common/types.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/filter/src/common/types.ts) - `TFilter`, `TInclusion`
-- [`packages/core-server/src/connectors/postgres/repositories/core/base.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/connectors/postgres/repositories/core/base.ts) - `RelationalBaseRepository.buildQuery`
+- [`packages/connectors/src/relational/core/repositories/core/base.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/connectors/src/relational/core/repositories/core/base.ts) - `RelationalBaseRepository.buildQuery`

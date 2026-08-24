@@ -57,13 +57,29 @@ takes an injected decorator: `.openapi()` returns a NEW schema rather than mutat
 eleven decorations sit on inner nodes of a nested tree, so a consumer cannot annotate them after the
 tree is composed. `kernel/src/base/repositories/query-schemas/index.ts` calls the builder with
 `(schema, metadata) => (schema as any).openapi(metadata)` and re-exports under the original names.
-That file's side-effect `import '@hono/zod-openapi'` is load-bearing: the package peers on `zod`, so
-importing it patches `.openapi()` onto the shared prototype before the builder runs.
+That file's `import { z } from '@hono/zod-openapi'` is load-bearing for its SIDE EFFECT, not only for
+`z`: the package peers on `zod`, so importing it patches `.openapi()` onto the shared prototype before
+the builder runs. Do not narrow it to `import type`.
 
-**Server code must import the schemas from `@venizia/ignis-core`, never from
+The same file also composes the two **query wrapper schemas** every route reuses:
+`FilterQuerySchema` (`{ filter?: TFilter }`) and `WhereQuerySchema` (`{ where?: TWhere }`). They exist
+because applications were hand-writing `z.object({ filter: FilterSchema.optional() }).partial()` -
+measured at 47 and 22 exact copies in one consumer. That form is the same schema written longer:
+`FilterSchema` already ends with `.optional()`, so a second one is a no-op and so is `.partial()` on a
+lone optional key. Both wrappers are plain `ZodObject`s, so a route taking extra parameters uses
+`.extend({ ... })` rather than rebuilding the shape.
+
+`WhereSchema` does NOT carry `.optional()`, which is why the `where` wrapper adds one and the
+`filter` one does not. Two consequences worth not re-deriving: the factory's `updateBy` and
+`deleteBy` deliberately keep `z.object({ where: WhereSchema })` - a missing `where` there rewrites or
+deletes every row - and `count` requires `where` whenever `isStrict.requestSchema` is set, which is
+the DEFAULT, so `GET /x/count` with no query string is a 400 and the caller must send `?where={}`.
+That last one was reviewed on 2026-08-24 and deliberately left as it is.
+
+**Server code must import the schemas from `@venizia/ignis`, never from
 `@venizia/ignis-filter/schemas`.** The sub-path exports undecorated instances of the same names for
 browsers; importing those on a server yields schemas that validate identically but document nothing.
-`core/src/__tests__/repositories/query-schema-openapi.test.ts` guards the decorated path by
+`core-server/src/__tests__/repositories/query-schema-openapi.test.ts` guards the decorated path by
 generating an OpenAPI 3.1 document and asserting descriptions survive at both the top level and on
 nested properties - the failure mode is otherwise silent, since undecorated schemas still compile and
 still validate.
@@ -84,7 +100,7 @@ recursive `FilterSchema` collapses optional-key inference for every sibling fiel
 wire versus what application code builds - and only overlap in the middle.
 
 `kernel` re-exports this package from `base/repositories/common/index.ts`, and `core`'s root barrel
-re-exports `kernel` wholesale, so every existing `@venizia/ignis-core` import of `TFilter` or
+re-exports `kernel` wholesale, so every existing `@venizia/ignis` import of `TFilter` or
 `QueryOperators` keeps resolving and no consumer needed to change. Install this package directly only
 when you want the vocabulary WITHOUT the server framework - the browser case.
 

@@ -1,9 +1,9 @@
+import type { TAuthMode, TAuthStrategy } from '@/base/auth/authenticate/common/constants';
+import type { IAuthorizationSpec } from '@/base/auth/authorize/common/types';
 import type { TIdSchemaType } from '@/base/models/common/types';
 import { idParamsSchema, jsonContent, jsonResponse } from '@/base/models/common/types';
 import { CountSchema } from '@/base/repositories/common';
-import { FilterSchema, WhereSchema } from '@/base/repositories/query-schemas';
-import type { TAuthMode, TAuthStrategy } from '@/base/auth/authenticate/common/constants';
-import type { IAuthorizationSpec } from '@/base/auth/authorize/common/types';
+import { FilterQuerySchema, WhereSchema } from '@/base/repositories/query-schemas';
 import type { TAnyObjectSchema } from '@/utilities/schema.utility';
 import { z } from '@hono/zod-openapi';
 import { HTTP } from '@venizia/ignis-helpers/common';
@@ -108,10 +108,9 @@ export const resolveFindConfig = <
   selectSchema: FindSchema;
 }) => {
   const { config, selectSchema } = opts;
-  const defaultQuery = z.object({ filter: FilterSchema }).openapi({
-    description: 'Filter with where, fields, limit, skip, order, include',
-  });
+  const defaultQuery = FilterQuerySchema;
   const defaultSchema = conditionalCountResponse(z.array(selectSchema));
+
   return {
     request: {
       query: config?.request?.query ?? defaultQuery,
@@ -134,10 +133,11 @@ export const resolveFindByIdConfig = <
   selectSchema: FindByIdSchema;
 }) => {
   const { config, selectSchema, idType } = opts;
-  const defaultQuery = z.object({ filter: FilterSchema }).openapi({
+  const defaultQuery = FilterQuerySchema.openapi({
     description: 'Filter with fields, order, include (where ignored)',
   });
   const defaultSchema = conditionalCountResponse(selectSchema);
+
   return {
     request: {
       params: resolveIdParams({ config, idType }),
@@ -160,10 +160,11 @@ export const resolveFindOneConfig = <
   selectSchema: FindOneSchema;
 }) => {
   const { config, selectSchema } = opts;
-  const defaultQuery = z.object({ filter: FilterSchema }).openapi({
+  const defaultQuery = FilterQuerySchema.openapi({
     description: 'Filter with where, fields, order, include',
   });
   const defaultSchema = conditionalCountResponse(selectSchema);
+
   return {
     request: {
       query: config?.request?.query ?? defaultQuery,
@@ -188,6 +189,7 @@ export const resolveCreateConfig = <
 }) => {
   const { config, selectSchema, createSchema } = opts;
   const defaultSchema = conditionalCountResponse(selectSchema);
+
   return {
     request: {
       body: config?.request?.body ?? createSchema,
