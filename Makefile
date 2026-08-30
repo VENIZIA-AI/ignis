@@ -177,7 +177,9 @@ update-kernel:
 lint: lint-packages
 	@echo "✅ Linting completed."
 
-lint-all: lint-packages lint-examples
+# Includes lint-docs-mcp: the release workflow lints it, so leaving it out of `all` hides a failure
+# until release time.
+lint-all: lint-packages lint-examples lint-docs-mcp
 	@echo "✅ All linting completed."
 
 lint-packages:
