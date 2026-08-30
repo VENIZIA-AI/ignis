@@ -139,11 +139,18 @@ Server code must import them from here, never from `@venizia/ignis-filter/schema
 instances validate identically and document nothing.
 
 `IModelSettings.scopeFilter` (`helpers/inversion/common/types.ts`) is the model-settings surface for
-a per-request row scope: `resolve()` returns a `where`, re-evaluated per query, and `onMissing`
-(default `deny`) decides what happens when it returns null/undefined. The kernel only declares the
-shape; `RelationalBaseRepository` in `connectors` is what enforces it - see
-[connectors](/packages/connectors.md) for the enforcement, the `restore()` interaction with
-`shouldSkipDefaultFilter`, and the search-repository gap.
+a per-request row scope. `resolve()` returns one of three states, and the order they are checked in
+is the whole safety property: a `TWhere` ANDs in; the exact symbol `ScopeFilters.UNRESTRICTED`
+(`base/repositories/common/constants.ts`) applies no scope for THIS call, checked before the
+null/undefined branch so a resolver that merely forgets a `return` cannot land there by accident;
+null/undefined falls through to `onMissing` (default `deny`). `ScopeFilters.UNRESTRICTED` exists
+because `onMissing` is declared once per MODEL and cannot express a per-USER bypass (an internal
+operator) without also unscoping every ordinary user whose `resolve()` returns nothing - the same
+reasoning `DATA_SOURCE_BRAND` uses for `Symbol.for`, so a caller cannot forge the value from a
+request body, query string, or header. The kernel only declares the shape; `RelationalBaseRepository`
+in `connectors` is what enforces it - see [connectors](/packages/connectors.md) for the enforcement,
+the `restore()` interaction with `shouldSkipDefaultFilter`, the write-path boundary (filter-shaped
+scope only, not per-row or polymorphic ownership), and the search-repository gap.
 
 ## Recursive tree SQL
 

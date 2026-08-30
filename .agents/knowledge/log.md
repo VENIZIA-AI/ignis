@@ -6,6 +6,51 @@ not how.
 This file and `index.md` are reserved OKF filenames - they carry no `type:` frontmatter and are not
 counted as concepts.
 
+## 2026-08-30 - `scopeFilter` gets a third `resolve()` state: `ScopeFilters.UNRESTRICTED`
+
+A `where`, or null/undefined-denies, could not express "this caller sees everything on this one
+call" - a real multi-tenant resolver's internal-operator branch. `onMissing: 'allow'` cannot cover it
+either: `onMissing` is declared once per MODEL in static `settings`, so using it for a per-USER
+bypass would also unscope every ordinary user whose `resolve()` happens to return nothing, turning a
+configuration slip into a data leak. New `ScopeFilters.UNRESTRICTED`
+(`packages/kernel/src/base/repositories/common/constants.ts`) is a
+`Symbol.for('@venizia/ignis-kernel:scope-filter-unrestricted')`, not a string or sentinel object, so
+no request body, query string, or header can ever produce it. `IScopeFilterSettings.resolve` widened
+to `() => TNullable<TWhere> | typeof ScopeFilters.UNRESTRICTED`.
+
+Both enforcement sites - `RelationalBaseRepository.applyScopeFilter` (`base.ts`) and
+`FilterBuilder.applyRelationScopeFilter` (`filter.ts`, the `include` path) - check the three branches
+in the same order: `TWhere` ANDs in; `scopeWhere === ScopeFilters.UNRESTRICTED` (exact identity)
+returns the filter unscoped; otherwise null/undefined falls through to the existing `onMissing`
+handling. The order is the whole safety property, stated in a comment at both call sites: a resolver
+that forgets a `return` on some branch produces `undefined`, not the symbol, and still denies. Each
+relation under `include` resolves its own `scopeFilterSettings` and therefore its own state
+independently - an `UNRESTRICTED` parent never widens a still-scoped child, and a scoped parent never
+narrows an `UNRESTRICTED` child - unchanged from how the two-state version already isolated relations.
+
+**New write-path boundary, documented but not code-changed:** `scopeFilter` covers every write path
+whose scope is expressible as a filter clause. Ownership resolved per row, or through a polymorphic
+reference (a `principalType` + `principalId` pair pointing at a different table chosen at runtime),
+is NOT expressible as `resolve(): TWhere` - that check is per-row, asynchronous, and reads the
+payload. No hook or escape hatch was added for it: the shape of that check differs enough between
+applications that building a seam before its shape is known would guess wrong. Documented in the
+changelog, the `scopeFilter` doc comment (`IModelSettings.scopeFilter`), and `connectors.md`'s
+`scopeFilter` section, in the same voice as the existing search-repository gap - a boundary a reader
+does not see is a boundary they will design past.
+
+Tests: new `connectors/src/__tests__/relational/conformance/pglite-scope-filter-unrestricted.test.ts`
+(PGlite e2e - `UNRESTRICTED` reaches `find`/`findById`/`count`/`updateAll`/`deleteAll`/`restoreById`/
+`restoreAll`; `undefined` still denies, asserted in the same file right next to the `UNRESTRICTED`
+cases for contrast; per-call, not cached, across three consecutive `find()` calls; a model with no
+`scopeFilter` at all stays byte-identical) and
+`pglite-scope-filter-unrestricted-include.test.ts` (parent `UNRESTRICTED` + child scoped stays
+scoped; parent scoped + child `UNRESTRICTED` unscopes only the child; three-level nested include,
+mixed both directions). The pre-existing two-state suites
+(`pglite-scope-filter.test.ts`, `pglite-scope-filter-include.test.ts`,
+`postgres/repositories/scope-filter.test.ts`) still pass unmodified. Changelog:
+`docs/wiki/content/changelogs/2026-08-30-row-scope-filter.md` (new "A third state" and "Write paths:
+filter-shaped scope only" sections; `resolve()` type and the options table updated).
+
 ## 2026-08-30 - `scopeFilter` closed on `include`: a relation resolves its own scope, never the parent's
 
 `FilterBuilder.toInclude` (`relational/core/repositories/dialect/filter.ts`) read only

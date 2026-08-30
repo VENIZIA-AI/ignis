@@ -15,7 +15,11 @@ import type {
   TRepositoryOperationScope,
   TWhere,
 } from '@venizia/ignis-kernel';
-import { AbstractRepository, ScopeFilterMissingBehaviors } from '@venizia/ignis-kernel';
+import {
+  AbstractRepository,
+  ScopeFilterMissingBehaviors,
+  ScopeFilters,
+} from '@venizia/ignis-kernel';
 // Deep import, not the `@/relational/core/datasources` barrel: the barrel pulls the datasource classes, which import the engine branch's dialect and executor - an init cycle back into this tier.
 import type { IRelationalDataSource } from '@/relational/core/datasources/common';
 import { isRelationalTransaction } from '@/relational/core/datasources/common';
@@ -196,6 +200,13 @@ export abstract class RelationalBaseRepository<
     }
 
     const scopeWhere = scopeFilterSettings.resolve();
+
+    // Checked by exact symbol identity, before the null/undefined branch below: only this literal
+    // value can skip scoping. A resolver that forgets a `return` on some branch produces
+    // `undefined`, which is NOT this symbol and falls through to `onMissing` (deny by default).
+    if (scopeWhere === ScopeFilters.UNRESTRICTED) {
+      return userFilter ?? {};
+    }
 
     if (scopeWhere !== null && scopeWhere !== undefined) {
       return this.queryDialect.mergeFilter({ defaultFilter: { where: scopeWhere }, userFilter });

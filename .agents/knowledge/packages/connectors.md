@@ -117,6 +117,29 @@ to reach past `deletedAt: null`, and reusing one filter for both would hand `res
 reach into another caller's row scope. `resolve()` returning null/undefined denies by default
 (matches zero rows) unless the model declares `onMissing: 'allow'`.
 
+`resolve()` has three states, checked in this order: a `TWhere` ANDs in as always; the exact symbol
+`ScopeFilters.UNRESTRICTED` (`base/repositories/common/constants.ts`, kernel) applies no scope for
+THIS call; null/undefined falls through to `onMissing` (deny by default). The order is the safety
+property - `UNRESTRICTED` is checked by strict identity before the null/undefined branch, so a
+resolver that forgets a `return` on some branch produces `undefined`, not the symbol, and still
+denies. `onMissing: 'allow'` cannot substitute for `UNRESTRICTED`: `onMissing` is declared once per
+MODEL in static `settings`, so using it to bypass scoping for one caller (an internal operator) would
+also unscope every ordinary user whose `resolve()` happens to return nothing. `UNRESTRICTED` is a
+`Symbol.for('@venizia/ignis-kernel:scope-filter-unrestricted')` rather than a string or sentinel
+object, so no request body, query string, or header can ever produce it - the bypass can only come
+from code the application wrote and reviewed.
+
+**`scopeFilter` covers every write path whose scope is expressible as a filter clause - not per-row
+or polymorphic ownership.** A `where` comparing a column against values the resolver already knows
+(`merchantId`, `tenantId`) is exactly that shape. A row identified only by a `principalType` +
+`principalId` pair, where the owner lives in a different table chosen by `principalType` at runtime,
+is not: that check is per-row, asynchronous, and reads the payload, none of which `resolve(): TWhere`
+can express. An application with that shape still must run its own ownership check before the write -
+`scopeFilter` neither performs it nor detects that it is missing. This is a deliberate gap, tracked
+the same way the search-repository gap below is: no hook exists for the per-row case yet, because its
+shape varies enough between applications that building one before seeing more of them would guess
+wrong.
+
 **Search repositories (`search/core`, `typesense`, `meilisearch`) do not read this setting at all.**
 They compile filters through a different pipeline - `SearchBaseRepository.buildQuery` and
 `compileEffectiveWhere`, string `filterBy` expressions - and `scopeFilter` was deliberately left
@@ -128,7 +151,10 @@ a search index carries no row scope in its search queries; the application must 
 `scopeFilter` from that relation's OWN `@model` settings - not the parent's - the same
 `resolveModelEntry` lookup `resolveDefaultFilter`/`resolveHiddenProperties` already use, keyed by the
 relation's own SQL table name. A parent's scope never cascades to a child, and a child with no
-`scopeFilter` compiles to exactly the same query it always did. `toInclude` calls itself through
+`scopeFilter` compiles to exactly the same query it always did. The same three-state order applies
+per relation: an `UNRESTRICTED` parent never widens a still-scoped child, and a scoped parent never
+narrows an `UNRESTRICTED` child, because each relation's `applyRelationScopeFilter` reads only that
+relation's own `resolve()`. `toInclude` calls itself through
 `build()` for a relation's own `include`, so a relation of a relation is scoped by the same code path,
 not a special case. The relation-level `shouldSkipDefaultFilter` (on an `include` entry) still gates
 only that relation's `defaultFilter`; it is deliberately excluded from the wire filter schema (see

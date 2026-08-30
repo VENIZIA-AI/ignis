@@ -1,6 +1,6 @@
 ---
 title: A Row Scope Every Query Carries, Denied by Default When It Cannot Be Resolved
-description: A new @model settings.scopeFilter ANDs a per-request row scope into every relational read and write - including restore() and every relation loaded via include - and refuses to guess when the scope cannot be resolved. Search repositories are not covered.
+description: A new @model settings.scopeFilter ANDs a per-request row scope into every relational read and write - including restore() and every relation loaded via include - and refuses to guess when the scope cannot be resolved. A third state, ScopeFilters.UNRESTRICTED, lets a caller bypass scoping for one call. Search repositories are not covered.
 ---
 
 # Changelog - 2026-08-30
@@ -39,13 +39,56 @@ class Order extends BasePostgresEntity {
 - **Never removable by `shouldSkipDefaultFilter`**, on the parent or on an included relation. That flag still bypasses `defaultFilter` alone, which is what makes soft-delete's `restore()` safe to keep using it.
 - **Denies by default when `resolve()` returns `null` or `undefined`.** No request context, no tenant, a background job with no scope wired up - all match zero rows unless the model opts into `onMissing: 'allow'`.
 - **A throwing `resolve()` propagates.** The query fails loudly instead of running unscoped - on the parent and on every included relation.
+- **New `ScopeFilters.UNRESTRICTED`.** A third `resolve()` return value for a caller who should see everything on this one call - see "A third state" below.
 
 ## Options
 
 | Option | Type | Default | Meaning |
 |---|---|---|---|
-| `resolve` | `() => TWhere \| null \| undefined` | required | Returns the current caller's scope `where`, or `null`/`undefined` when it cannot be determined. |
-| `onMissing` | `'deny' \| 'allow'` | `'deny'` | What happens when `resolve()` returns nothing. `'deny'` matches zero rows. `'allow'` runs the query unscoped - an explicit, reviewed opt-out for migrations and background jobs, never inferable from a request. |
+| `resolve` | `() => TWhere \| typeof ScopeFilters.UNRESTRICTED \| null \| undefined` | required | Returns the current caller's scope `where`; `ScopeFilters.UNRESTRICTED` to apply no scope on this call; or `null`/`undefined` when the scope cannot be determined at all. |
+| `onMissing` | `'deny' \| 'allow'` | `'deny'` | What happens when `resolve()` returns null/undefined. `'deny'` matches zero rows. `'allow'` runs the query unscoped - an explicit, reviewed opt-out for migrations and background jobs, never inferable from a request. |
+
+## A third state: unrestricted for one call
+
+A `where`, and `null`/`undefined`, are not enough for a real multi-tenant application. Its resolver usually has an internal-operator branch:
+
+```typescript
+resolve: () => {
+  if (isAlwaysAllowedOperator()) {
+    return { userMerchantIds: [] }; // meant "everything" - but a real filter, so it MATCHES NOTHING
+  }
+  if (activeMerchantHeader()) {
+    return { userMerchantIds: [activeMerchantHeader()] };
+  }
+  return { userMerchantIds: currentUsersMerchantIds() };
+},
+```
+
+`onMissing: 'allow'` cannot express that branch. `onMissing` is declared once, on the model's static `settings` - it cannot depend on which user is calling. Setting it to `'allow'` to serve an operator would also unscope every ordinary user whose `resolve()` happens to return nothing, turning a configuration slip into a data leak.
+
+`ScopeFilters.UNRESTRICTED` is the explicit third value. Return it, and this one call runs with no scope at all:
+
+```typescript
+import { ScopeFilters } from '@venizia/ignis-kernel';
+
+resolve: () => {
+  if (isAlwaysAllowedOperator()) {
+    return ScopeFilters.UNRESTRICTED;
+  }
+  if (activeMerchantHeader()) {
+    return { userMerchantIds: [activeMerchantHeader()] };
+  }
+  return { userMerchantIds: currentUsersMerchantIds() };
+},
+```
+
+| `resolve()` returns | Behavior |
+|---|---|
+| a `TWhere` | ANDed into the query, as always |
+| `ScopeFilters.UNRESTRICTED` | no scope applied, for this call only |
+| `null` / `undefined` | `onMissing` - denies by default |
+
+The order matters, and it is the whole safety property: `ScopeFilters.UNRESTRICTED` is checked by exact symbol identity, before the null/undefined branch. A resolver that forgets a `return` on some branch produces `undefined` - not the symbol - and still lands in deny. `ScopeFilters.UNRESTRICTED` is a `Symbol.for(...)`, deliberately: no JSON body, query string, or header can ever produce it, so the bypass can only come from code the application wrote and reviewed. It is re-evaluated on every call, exactly like a `where` - a resolver can return it once and a scoped `where` the next time.
 
 ## Included relations are scoped too
 
@@ -87,6 +130,16 @@ The same rules as the parent apply at every relation, and at every nesting depth
 **`scopeFilter` covers relational repositories only.** Search repositories (Typesense, Meilisearch) do not read this setting at all - `find`, `search`, `count`, and every write on a search repository run exactly as before, with no row scope applied.
 
 This is a deliberate scope decision, not an oversight: search repositories compile filters through a different pipeline (`buildQuery` / `compileEffectiveWhere`, string `filterBy` expressions), and covering it is separate work. If your application mirrors a scoped relational entity into a search index, you must scope your search queries yourself - a `scopeFilter` on the relational model gives you nothing there.
+
+## Write paths: filter-shaped scope only
+
+**`scopeFilter` covers every write path whose scope is expressible as a filter clause** - a `where` comparing a column (`merchantId`, `tenantId`) against values the resolver already knows. Most tenant-scoped writes are exactly that shape, and `scopeFilter` covers them completely.
+
+It does not cover ownership that is resolved per row, or through a polymorphic reference. Some rows carry no tenant column at all - only a `principalType` and `principalId` pair, where the owner lives in a different table chosen by `principalType` at runtime. That check is per-row, asynchronous, and reads the payload - three properties `resolve(): TWhere` was never built to express.
+
+If your write path looks like that, `scopeFilter` gives you nothing there. Your application still has to run its own ownership check before the write. `scopeFilter` neither performs that check nor detects that you skipped it - no type error, no failing test, no log line will tell you.
+
+This is a deliberate gap for now, not an oversight - the same way search repositories are excluded above. No hook or escape hatch exists for the per-row case: the shape of that check differs enough between applications that building a seam before its shape is known would guess wrong.
 
 ## Details
 

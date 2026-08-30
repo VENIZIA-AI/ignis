@@ -12,6 +12,7 @@ import {
   QueryOperators,
   RelationTypes,
   ScopeFilterMissingBehaviors,
+  ScopeFilters,
   Sorts,
 } from '@venizia/ignis-kernel';
 import type { TTableObject, TTableSchemaWithId } from '@/relational/core/models/common';
@@ -258,6 +259,14 @@ export abstract class FilterBuilder extends BaseHelper {
     }
 
     const scopeWhere = scopeFilterSettings.resolve();
+
+    // Same ordering as the repository tier's `applyScopeFilter`: exact symbol identity, checked
+    // before null/undefined, so a forgotten `return` (which produces `undefined`) still denies
+    // rather than un-scoping this relation. Each relation resolves its OWN `scopeFilterSettings`, so
+    // an unrestricted parent never widens a still-scoped child, and vice versa.
+    if (scopeWhere === ScopeFilters.UNRESTRICTED) {
+      return userFilter ?? {};
+    }
 
     if (scopeWhere !== null && scopeWhere !== undefined) {
       return this.mergeFilter({ defaultFilter: { where: scopeWhere }, userFilter });

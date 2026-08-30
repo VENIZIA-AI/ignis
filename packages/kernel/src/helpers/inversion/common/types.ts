@@ -5,6 +5,7 @@ import type { IDataSource, TDataSourceDriverClass } from '@/base/datasources';
 import type { AbstractEntity } from '@/base/models';
 import type {
   IRepository,
+  ScopeFilters,
   TFilter,
   TRepositoryOperationScope,
   TScopeFilterMissingBehavior,
@@ -72,13 +73,18 @@ export interface IModelAuthorizeSettings {
  * short of removing this setting from the model turns scoping off.
  */
 export interface IScopeFilterSettings {
-  /** Returns the scope `where`, or null/undefined when this caller's scope cannot be determined. */
-  resolve: () => TNullable<TWhere>;
+  /**
+   * Returns the scope `where`; `ScopeFilters.UNRESTRICTED` to apply no scope for THIS call (an
+   * internal operator, a caller the application has decided sees everything); or null/undefined
+   * when this caller's scope cannot be determined at all.
+   */
+  resolve: () => TNullable<TWhere> | typeof ScopeFilters.UNRESTRICTED;
 
   /**
    * What `applyScopeFilter` does when `resolve()` returns null/undefined - no request context, no
    * tenant, a background job. Defaults to `deny`: an unresolved scope matches zero rows, never
-   * every row. `allow` is an explicit, reviewed opt-out for migrations and background jobs.
+   * every row. `allow` is an explicit, reviewed opt-out for migrations and background jobs, declared
+   * per MODEL - it cannot express a per-USER bypass; use `ScopeFilters.UNRESTRICTED` for that.
    */
   onMissing?: TScopeFilterMissingBehavior;
 }
@@ -91,8 +97,10 @@ export interface IModelSettings {
   defaultFilter?: TFilter;
 
   /**
-   * Row scope: ANDed into every read and write, and NOT removable by `shouldSkipDefaultFilter`.
-   * Resolved per query, so it can depend on the current request.
+   * Row scope: ANDed into every read and write whose scope is expressible as a filter clause, and
+   * NOT removable by `shouldSkipDefaultFilter`. Resolved per query, so it can depend on the current
+   * request. Ownership resolved per row or through a polymorphic reference is NOT expressible here -
+   * that check is still the application's to perform.
    *
    * Relational repositories only - a search-backed model (Typesense, Meilisearch) never reads
    * this setting, so mirroring a scoped entity into a search index needs its own query-time scope.

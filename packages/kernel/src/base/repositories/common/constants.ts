@@ -48,6 +48,22 @@ export class ScopeFilterMissingBehaviors {
 /** Valid scope-filter missing-behavior values. */
 export type TScopeFilterMissingBehavior = TConstValue<typeof ScopeFilterMissingBehaviors>;
 
+/**
+ * The third `resolve()` state, beside a `where` and `deny`-by-default null/undefined: unrestricted
+ * for THIS call. `onMissing: 'allow'` cannot express it - `onMissing` lives on the model's static
+ * settings, so using it for a per-user bypass (an internal operator) would also unscope every
+ * ordinary user whose `resolve()` happens to return nothing.
+ */
+export class ScopeFilters {
+  /**
+   * Return from `resolve()` to apply NO scope for this request - a caller the application has
+   * decided sees everything. Deliberately a symbol: forgetting to return must land in deny, and no
+   * JSON body, query string, or header can ever produce this value. `Symbol.for` so two installed
+   * copies of this package agree on identity, same as `DATA_SOURCE_BRAND`.
+   */
+  static readonly UNRESTRICTED = Symbol.for('@venizia/ignis-kernel:scope-filter-unrestricted');
+}
+
 /** Machine-readable codes for repository-level failures, in the dotted namespace core already uses (`core.not_supported`, `core.search_engine.*`) - a client maps the code, never the message. */
 export class RepositoryErrorCodes {
   /** A verb the repository's `operationScope` does not permit (e.g. `create()` on a READ_ONLY one). */
