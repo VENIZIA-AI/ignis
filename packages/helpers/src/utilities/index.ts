@@ -6,3 +6,4 @@ export * from './performance.utility';
 export * from './promise.utility';
 export * from './request.utility';
 export * from './retry.utility';
+export * from './slug.utility';
