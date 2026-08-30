@@ -1,19 +1,30 @@
 import { getError } from '@venizia/ignis-helpers/core';
+import type { TAuthorizationDecision, TAuthorizationPolicyVariant } from '@venizia/ignis-kernel';
 import { integer, jsonb, text } from 'drizzle-orm/pg-core';
 
 export type TPolicyDefinitionOptions = {
   idType?: 'string' | 'number';
 };
 
-export type TPolicyDefinitionCommonColumns = {
-  variant: ReturnType<typeof text>;
-  subjectType: ReturnType<typeof text>;
-  targetType: ReturnType<typeof text>;
-  action: ReturnType<typeof text>;
-  effect: ReturnType<typeof text>;
-  domain: ReturnType<typeof text>;
-  metadata: ReturnType<typeof jsonb>;
-};
+/** Column shape is inferred, never hand-declared, so it can never drift from the `$type<>()` narrowing below. */
+const buildCommonPolicyDefinitionColumns = () => ({
+  // Narrowed to AuthorizationPolicyVariants.ALL's seven edge kinds - a typo here is a silent 403, not a compile error.
+  variant: text('variant').$type<TAuthorizationPolicyVariant>().notNull(),
+  subjectType: text('subject_type').notNull(),
+  targetType: text('target_type').notNull(),
+
+  // Open-ended: grant rows carry a Permission-catalog action code, not a value from a fixed lattice.
+  action: text('action'),
+
+  // Narrowed to AuthorizationDecisions (allow/deny/abstain).
+  effect: text('effect').$type<TAuthorizationDecision>(),
+  domain: text('domain'),
+
+  // Nullable: only subset grants populate it, and a consumer may map its own column instead.
+  metadata: jsonb('metadata'),
+});
+
+export type TPolicyDefinitionCommonColumns = ReturnType<typeof buildCommonPolicyDefinitionColumns>;
 
 type TPolicyDefinitionColumnDef<Opts extends TPolicyDefinitionOptions | undefined = undefined> =
   Opts extends { idType: 'string' }
@@ -31,17 +42,7 @@ export const extraPolicyDefinitionColumns = <Opts extends TPolicyDefinitionOptio
 ): TPolicyDefinitionColumnDef<Opts> => {
   const { idType = 'number' } = opts ?? {};
 
-  const common = {
-    variant: text('variant').notNull(),
-    subjectType: text('subject_type').notNull(),
-    targetType: text('target_type').notNull(),
-    action: text('action'),
-    effect: text('effect'),
-    domain: text('domain'),
-
-    // Nullable: only subset grants populate it, and a consumer may map its own column instead.
-    metadata: jsonb('metadata'),
-  };
+  const common = buildCommonPolicyDefinitionColumns();
 
   switch (idType) {
     case 'number': {
