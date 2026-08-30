@@ -78,7 +78,7 @@ const DELETE_ARTICLE_CONFIG = {
 
 - **Enforcer-based and pluggable.** `authorize({ spec })` returns Hono middleware built by `AuthorizationProvider`, which resolves an `IAuthorizationEnforcer` from `AuthorizationEnforcerRegistry` by name (default: the first registered). Swap `CasbinAuthorizationEnforcer` for a custom class without touching route configs.
 - **Runs after authentication.** The middleware reads `Authentication.CURRENT_USER` from the Hono context. `AuthenticateComponent` must run first, and the route needs an `authenticate` config alongside `authorize`.
-- **No enforcers registered = no-op.** If `AuthorizationEnforcerRegistry.hasEnforcers()` is `false`, the middleware calls `next()` and skips authorization entirely. That's useful during incremental rollout, but dangerous if you forget to register an enforcer in production.
+- **No enforcers registered = deny, unless you opt into allow.** If `AuthorizationEnforcerRegistry.hasEnforcers()` is `false`, the middleware throws a 403 naming the missing enforcer. Set `defaultDecision: 'allow'` on `IAuthorizeOptions` to proceed instead - useful during incremental rollout - and the middleware logs a warning each time it does.
 - **Casbin's scoped RBAC model is the recommended engine.** Combine `CASBIN_RBAC_DOMAIN_SCOPED_MODEL`, `isScoped: true`, and `ScopedCasbinAdapter` to read one principal's policy edges from a single `PolicyDefinition` table. See [RBAC with domains](./usage#rbac-with-domains-multi-tenant) for multi-tenant grant scoping.
 - **Per-request enforcers, cached lines.** Each Casbin evaluation borrows an isolated enforcer from an internal pool, loads that user's policy lines into it, then evaluates. The datasource query runs only on a cache miss, or every time if `cached.use: false`.
 
@@ -90,7 +90,7 @@ const DELETE_ARTICLE_CONFIG = {
 | 2 | Read `Authentication.CURRENT_USER` | Missing -> 401 |
 | 3 | Role shortcuts (`alwaysAllowRoles` + `allowedRoles`) | Match -> `next()` |
 | 4 | Voters (per-route) | `ALLOW`/`DENY` -> `next()` / 403 |
-| 5 | Resolve enforcer | None registered -> `next()` |
+| 5 | Resolve enforcer | None registered -> 403, or `next()` if `defaultDecision: 'allow'` |
 | 6 | Build/cache rules (+ resolve domain, if any) | - |
 | 7 | `enforcer.evaluate()` | `DENY`/`ABSTAIN`-as-deny -> 403 |
 

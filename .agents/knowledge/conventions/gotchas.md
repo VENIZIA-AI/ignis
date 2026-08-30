@@ -250,7 +250,7 @@ handler touches the missing dependency. Fix: declare `experimentalDecorators` /
 
 If a background TTL refresh checks "how long since the last **successful** load", every call made while the dependency is down finds the check still stale and starts a brand-new load attempt - the system hits the failing dependency hardest exactly when it is weakest. Gate the check on the last **attempt** instead, recorded whether that attempt succeeded or failed: a downed dependency then costs one retry per interval, not one per caller.
 
-`DomainHierarchyStore` (`packages/core-server/src/components/auth/authorize/enforcers/domain-hierarchy.ts`) shipped with this bug first, found in review before release. `refreshIfStale()` now reads `lastAttemptAt`, set at the start of both `warmup()` and the internal reload regardless of outcome - never `lastLoadedAt`, which only advances on success. Apply the same shape to any other background-refreshed cache in the framework.
+A short-lived `DomainHierarchyStore` in `core-server`'s casbin enforcer shipped with this bug first, found in review before release; `refreshIfStale()` gated on `lastAttemptAt`, set at the start of every attempt regardless of outcome, never `lastLoadedAt`, which only advances on success. The store itself was later removed entirely - the process-wide shared tree it cached duplicated the per-principal `g3` policy-line path, which needs no separate TTL or staleness ceiling - but the retry-gating lesson generalizes to any other background-refreshed cache in the framework.
 
 ## Related
 

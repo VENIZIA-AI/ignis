@@ -133,7 +133,8 @@ flowchart TD
     Voters -->|DENY| E403a[/403 Denied by voter/]
     Voters -->|ALLOW| Next4([next - voter allow])
     Voters -->|ABSTAIN / none| HasEnforcers{Enforcers registered?}
-    HasEnforcers -->|No| Next6([next - skip, no enforcers])
+    HasEnforcers -->|No, defaultDecision: allow| Next6([next - allow, warning logged])
+    HasEnforcers -->|No, defaultDecision: deny or unset| E403c[/403 no enforcer registered/]
     HasEnforcers -->|Yes| Resolve[Resolve enforcer by name]
     Resolve --> ResolveDomain["Resolve domain (if spec.domain or domainResolver)"]
     ResolveDomain --> Cache{Rules cached?}
@@ -184,14 +185,12 @@ classDiagram
     class CasbinAuthorizationEnforcer {
         -pool: BasePoolHelper~Enforcer~
         -pendingLineFetches: Map
-        -domainHierarchyStore: DomainHierarchyStore?
         +configure() void
         +destroy() void
         +buildRules(opts) ICasbinRules
         +evaluate(opts) TAuthorizationDecision
         +invalidateUserCache(opts)?
         +rebuildUserCache(opts)?
-        +invalidateDomainHierarchy()?
     }
     class BaseFilteredAdapter~TFilter~ {
         <<abstract>>
@@ -251,7 +250,7 @@ components/auth/authorize/
 | Rules caching | Built rules cached on the Hono context per-request - avoids rebuilding for multi-spec routes |
 | Registry singleton | Mirrors `AuthenticationStrategyRegistry` - shares `AbstractAuthRegistry<T>` |
 | Filtered adapter pattern | `BaseFilteredAdapter` is a thin read-only base; subclasses implement only `loadFilteredPolicy` |
-| No-enforcer fallback | No enforcers registered -> the middleware skips authorization and calls `next()` instead of throwing |
+| No-enforcer fallback | No enforcers registered -> the middleware honors `defaultDecision`: `deny` (default) throws a named 403, `allow` proceeds and logs a warning |
 | Single edge table (scoped model) | `ScopedCasbinAdapter` reads one `PolicyDefinition` table for every edge type - no per-relation tables |
 
 ## AuthorizeComponent
@@ -332,7 +331,6 @@ Casbin-specific options, provided per-enforcer via `AuthorizationEnforcerRegistr
 | `poolAcquireTimeoutMs` | `number` | `5000` | Max ms to wait for a free pooled enforcer before failing closed |
 | `normalizePayloadFn` | `(opts) => { subject, resource, action, domain? }` | - | Custom (non-scoped) payload normalizer, run before evaluation |
 | `domainMatching` | `{ roleDefinition: string; fn: TCasbinDomainMatchingFunction }` | - | Opt-in domain matching function for the flat model. **Not needed when `isScoped: true`** |
-| `domainHierarchy` | `{ load, refreshMs?, maxStaleMs? }` | - | Opt-in shared domain tree (`child -> parent` edges). Makes a role assignment (`g`), a grant (`g3`), or a domain membership (`g2`) declared at a parent domain also apply at its children. Omitted, all three keep their exact per-principal behavior |
 
 ```typescript
 interface ICasbinEnforcerOptions<E extends Env = Env, TAction = string, TResource = string, TAdapter = Adapter> {
@@ -346,34 +344,20 @@ interface ICasbinEnforcerOptions<E extends Env = Env, TAction = string, TResourc
     subject: string; resource: string; action: string; domain?: string;
   };
   domainMatching?: { roleDefinition: string; fn: TCasbinDomainMatchingFunction };
-  domainHierarchy?: {
-    load: () => Promise<Array<{ child: string; parent: string }>>;
-    refreshMs?: number;   // reload interval, default 60000
-    maxStaleMs?: number;  // ceiling on serving a stale snapshot; default unset (serve indefinitely)
-  };
 }
 ```
 
 > [!NOTE]
 > `cached.options.expiresIn` must be `>= 10_000` ms (`MIN_EXPIRES_IN`). Caching is **Redis-only** - the in-memory driver was removed.
 
-> [!TIP]
-> `DomainHierarchyLoader` (`adapters/domain-hierarchy-loader.ts`) builds `domainHierarchy.load` from the same entity mapping passed to `ScopedCasbinAdapter`, so most apps never write the query by hand:
-> ```typescript
-> const domainHierarchyLoader = new DomainHierarchyLoader({ dataSource, entities });
-> // ...
-> domainHierarchy: { load: () => domainHierarchyLoader.load() }
-> ```
+### Domain hierarchy edges (`g3`)
 
-### `domainHierarchy` details
+There is no enforcer-level option for domain hierarchy - a role assignment (`g`), a grant (`g3`), or a domain membership (`g2`) declared at a parent domain reaching its children is driven entirely by `g3` policy lines already present in a principal's own line set, whenever `isScoped: true`. Two sources produce those lines - see `resolveDomainEdges` on [`ScopedCasbinAdapter`](#scopedcasbinadapter) below for the second one:
 
-| Field | Type | Default | Description |
-|-------|------|---------|-------------|
-| `load` | `() => Promise<Array<{ child: string; parent: string }>>` | - | **Required.** Returns the whole tenant domain tree. Called once at `configure()` (throws on failure - the enforcer refuses to boot with an empty tree) and again on every reload |
-| `refreshMs` | `number` | `60000` | How often a background reload is attempted after the last attempt (success or failure) |
-| `maxStaleMs` | `number` | unset | Ceiling on how long a failed reload may keep serving the previous snapshot. Past it, enforce falls back to an **empty** hierarchy (direct grants still work) instead of throwing. Leave unset only when domains never change parent - an app that can move a domain to a different parent must set this, or a stale tree keeps the former parent's grants alive |
+- `domain_inherits` rows reachable from the principal's domain closure (`ScopedCasbinAdapter`'s `DOMAIN_EDGE` branch, always on).
+- `ScopedCasbinAdapter`'s `resolveDomainEdges` constructor hook, for a hierarchy the app already owns on a business table.
 
-The tree is loaded once per enforcer, not once per request, and never enters a user's cached policy lines - it is tenant-structural and identical for every principal. A newly created child domain does **not** wait on this TTL to become reachable: `ScopedCasbinAdapter` still emits per-principal `g3` lines from the requesting principal's own domain closure on every cache miss, and those lines feed the same overlay the role managers share across the `g`, `g2` and `g3` axes. Invalidating the affected principals' policy caches after the transaction that created the domain commits is what makes it visible - see [`AuthorizationEnforcerRegistry.invalidateUserCache`](#authorizationenforcerregistry) - not `refreshMs`.
+`registerMatchers()` (see [`configure()`](#configure) below) wires this unconditionally for every scoped model, sharing one overlay across the three role managers. Freshness is whatever the per-user policy-line cache already guarantees; there is no separate TTL or invalidation call to reason about.
 
 **Cache configuration (discriminated union):**
 
@@ -675,7 +659,7 @@ class AuthorizationEnforcerRegistry extends AbstractAuthRegistry<IAuthorizationE
 |--------|---------|-------------|
 | `getInstance()` | `AuthorizationEnforcerRegistry` | Singleton instance (created on first call) |
 | `register(opts)` | `this` | Registers enforcers with type-safe options (chainable) |
-| `hasEnforcers()` | `boolean` | `descriptors.size > 0` - used by the middleware to skip authorization when no enforcers exist |
+| `hasEnforcers()` | `boolean` | `descriptors.size > 0` - used by the middleware to decide whether to honor `defaultDecision` instead of resolving an enforcer |
 | `getDefaultEnforcerName()` | `string` | Delegates to `getDefaultName()` |
 | `resolveEnforcer({ name })` | `Promise<IAuthorizationEnforcer>` | Resolves + auto-configures once (`configuredEnforcers` Set) |
 | `resolveOptions()` | `IAuthorizeOptions \| undefined` | Iterates all registered containers looking for `AuthorizeBindingKeys.OPTIONS` |
@@ -720,9 +704,6 @@ interface IAuthorizationEnforcer<
   /** Optional - implemented only by caching enforcers. */
   invalidateUserCache?(opts: { user: IAuthorizationUser }): Promise<{ invalidatedKeys: number }>;
   rebuildUserCache?(opts: { user: IAuthorizationUser }): Promise<{ cacheKey: string; lineCount: number }>;
-
-  /** Optional - implemented only by enforcers configured with `domainHierarchy`. */
-  invalidateDomainHierarchy?(): Promise<{ nodeCount: number; edgeCount: number }>;
 }
 ```
 
@@ -740,7 +721,7 @@ interface IAuthorizationEnforcer<
 | `buildRules` | `{ user, context }` | `TRules` | Provider, pipeline step 6 |
 | `evaluate` | `{ rules, request, context }` | `TAuthorizationDecision` | Provider, pipeline step 7 |
 
-`invalidateUserCache`/`rebuildUserCache` are feature-detected at runtime (`typeof enforcer.invalidateUserCache === 'function'`) - only `CasbinAuthorizationEnforcer` with a Redis cache implements them. `invalidateDomainHierarchy` is feature-detected the same way, and is implemented only when `domainHierarchy` is configured - calling it on a `CasbinAuthorizationEnforcer` without one throws instead.
+`invalidateUserCache`/`rebuildUserCache` are feature-detected at runtime (`typeof enforcer.invalidateUserCache === 'function'`) - only `CasbinAuthorizationEnforcer` with a Redis cache implements them.
 
 ## CasbinAuthorizationEnforcer
 
@@ -757,7 +738,6 @@ class CasbinAuthorizationEnforcer<E extends Env = Env, TAction extends string = 
   private helper: TNullable<typeof CasbinHelper>;          // casbin.Helper (loadPolicyLine)
   private readonly pendingLineFetches = new Map<string, Promise<string[]>>(); // single-flight
   private resolvedPayloadFn: TNullable<TNormalizePayloadFn>; // memoized in configure()
-  private domainHierarchyStore: TNullable<DomainHierarchyStore>; // set in configure() when options.domainHierarchy is given
 
   constructor(@inject({ key: AuthorizeBindingKeys.enforcerOptions('casbin') }) private options: ICasbinEnforcerOptions<E, TAction, TResource>);
 
@@ -769,7 +749,6 @@ class CasbinAuthorizationEnforcer<E extends Env = Env, TAction extends string = 
 
   async invalidateUserCache(opts: { user }): Promise<{ invalidatedKeys: number }>;
   async rebuildUserCache(opts: { user }): Promise<{ cacheKey: string; lineCount: number }>;
-  async invalidateDomainHierarchy(): Promise<{ nodeCount: number; edgeCount: number }>;
 
   protected async registerMatchers(opts: { enforcer; casbin }): Promise<void>;
   protected assertMatcherCompilesSync(opts: { enforcer }): void;
@@ -804,7 +783,7 @@ Called once by the registry on first use:
 
 `g4` skips `addNamedMatchingFunc` on purpose. It sets casbin's `hasPattern`, which disables `DefaultRoleManager`'s fast path on every link check, not just `g4` lookups.
 
-When `domainHierarchy` is also configured, three more role managers are wired onto the shared `DomainHierarchyStore`:
+For every scoped model, three more role managers are wired unconditionally - not behind a separate option:
 
 | Registers | On | Notes |
 |---|---|---|
@@ -812,7 +791,7 @@ When `domainHierarchy` is also configured, three more role managers are wired on
 | `DomainHierarchyRoleManager` | `g3` | Grant domain nesting, request-domain-first |
 | `DomainHierarchyRoleManager` (`reversed: true`) | `g`, via casbin's own `DefaultRoleManager.addDomainHierarchy()` | Role-assignment domain, stored-domain-first - the opposite argument order from `g3` |
 
-The `g3` instance, the reversed `g` instance and `MembershipRoleManager` on `g2` are handed the same overlay `Map`, so a per-request `g3` edge fed in by `addLink` satisfies all three axes - see [`domainHierarchy` details](#domainhierarchy-details) above for what this means for freshness.
+The `g3` instance, the reversed `g` instance and `MembershipRoleManager` on `g2` are handed the same overlay `Map<child, Set<parent>>`. Casbin's `buildRoleLinks()` feeds every `g3` policy line to the `g3` instance via `addLink`, which writes into that shared overlay - the reversed `g` instance and `MembershipRoleManager` only ever read it, since casbin never puts the `g`-axis manager in its own `rmMap` and so never calls `addLink` on it directly. See [Domain hierarchy edges (`g3`)](#domain-hierarchy-edges-g3) above for where those `g3` lines come from.
 
 When `domainMatching` is set (flat model), `registerMatchers()` registers the chosen `Util.*Func` on the named role definition instead, and always finishes with `buildRoleLinks()`.
 
@@ -845,13 +824,6 @@ On any error inside `pool.use`, the pool **destroys** the borrowed enforcer (fai
 ### invalidateUserCache() / rebuildUserCache()
 
 Redis-only - both throw if caching is disabled. `invalidateUserCache` deletes the user's shared Redis key; the next request rebuilds lazily. `rebuildUserCache` deletes, then immediately re-extracts (on a throwaway enforcer) and re-caches. The key is shared in Redis, so one call is correct across every instance.
-
-### invalidateDomainHierarchy()
-
-Force-reloads the shared `domainHierarchy` tree now, ignoring `refreshMs`. Throws if `options.domainHierarchy` was not configured. Returns `{ nodeCount, edgeCount }` from the freshly loaded graph.
-
-> [!WARNING]
-> This refreshes only the process that receives the call - it is **not** a cluster-wide broadcast. A multi-instance deployment needs one call per process, or a shorter `refreshMs`, to make a newly created or moved domain visible everywhere immediately. A newly created child domain does not need this call to be visible on `g`/`g3` for the principals who caused it - see [`domainHierarchy` details](#domainhierarchy-details) above.
 
 Source -> [`enforcers/casbin.enforcer.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/components/auth/authorize/enforcers/casbin.enforcer.ts)
 
@@ -916,7 +888,12 @@ The generic, read-only `FilteredAdapter` for the scoped RBAC model. Reads **one 
 ```typescript
 class ScopedCasbinAdapter extends BaseFilteredAdapter<IScopedCasbinPolicyFilter> {
   protected readonly entities: IScopedCasbinEntities;
-  constructor(opts: { dataSource: ICasbinPolicySource; entities: IScopedCasbinEntities });
+  protected readonly resolveDomainEdges?: TResolveDomainEdgesFn;
+  constructor(opts: {
+    dataSource: ICasbinPolicySource;
+    entities: IScopedCasbinEntities;
+    resolveDomainEdges?: TResolveDomainEdgesFn;
+  });
 
   async loadFilteredPolicy(model: Model, filter: IScopedCasbinPolicyFilter): Promise<void>;
 
@@ -1049,6 +1026,27 @@ const adapter = new ScopedCasbinAdapter({
 
 Source -> [`adapters/scoped-casbin.adapter.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/components/auth/authorize/adapters/scoped-casbin.adapter.ts)
 
+### `resolveDomainEdges` - `g3` edges from business data
+
+A second, opt-in source of `g3` edges, alongside the `DOMAIN_EDGE` branch above. Configured on the constructor, for a tenant hierarchy the app already owns as a plain foreign key on a business table rather than `domain_inherits` rows:
+
+```typescript
+type TResolveDomainEdgesFn = (opts: {
+  principal: { type: string; id: IdType };
+  domains: string[];
+}) => Promise<Array<{ child: string; parent: string }>>;
+
+new ScopedCasbinAdapter({
+  dataSource,
+  entities,
+  resolveDomainEdges: async ({ principal, domains }) => [{ child, parent }, ...],
+});
+```
+
+`domains` is the principal's own domain closure, reconstructed from rows `queryPrincipalPolicies` already fetched (the `join_domain` seed plus both ends of every `domainEdge` row) rather than a third query. The hook returns `{ child, parent }` pairs as already-formed `<Type>_<id>` tokens; `loadFilteredPolicy` turns each into a `g3, <child>, <parent>` line, the exact shape a real `domain_inherits` row produces - nothing downstream can tell which source produced a given edge. A hook edge duplicating a real `domain_inherits` row is harmless: `DomainHierarchyRoleManager.addLink` stores parents in a `Set`, so the duplicate `addLink` call is a no-op.
+
+A throwing hook is caught, logged, and treated as no edges for that one load - the rows already gathered (direct grants, role assignments, table-sourced `g3` rows) still load normally. This is the fail-secure direction: a missing `g3` edge only narrows what `g`/`g2`/`g3` reach, it can never widen it. The hook cannot join `queryPrincipalPolicies`'s wave (it needs that query's rows to compute `domains`) but does not wait on the independent `queryEdgePolicies` either - both resolve concurrently once the closure is known.
+
 ### Subset grants (custom rows)
 
 A grant row can express an arbitrary subset of a subject's operations instead of a full tier:
@@ -1145,8 +1143,11 @@ for (const voter of spec.voters ?? []) {
   // ABSTAIN -> next voter
 }
 
-// 5. Resolve enforcer (no-enforcer fallback)
-if (!registry.hasEnforcers()) return next();
+// 5. Resolve enforcer (no-enforcer fallback honors defaultDecision - fails closed by default)
+if (!registry.hasEnforcers()) {
+  if (options?.defaultDecision === 'allow') return next(); // logs a warning
+  throw 403 'no enforcer registered'; // AuthorizationErrors.ENFORCER_NOT_REGISTERED
+}
 const enforcer = await registry.resolveEnforcer({ name: enforcerName ?? registry.getDefaultEnforcerName() });
 
 // 5b. Resolve request domain - only when spec.domain or a global domainResolver is in play

@@ -34,7 +34,7 @@ The whole RBAC state is a graph. Nodes are User / Role / Permission / Domain; ev
 
 `g4` + `g5` combine multiplicatively: a `manage Order` grant covers a `read OrderItem` request. Dotted resource nesting (`Order.findById` inside `Order`) needs **no edge at all** - it is handled by the registered `objectMatch` function, so `g4` is only for non-standard nesting.
 
-`g4` is served by a dedicated `ResourceRoleManager` (`enforcers/resource-role-manager.ts`), not `addNamedMatchingFunc`: `addMatchingFunc` sets Casbin's `hasPattern`, which disables `DefaultRoleManager`'s O(1) fast path on *every* link check, not just `g4` lookups. `ResourceRoleManager` seeds its walk from **every stored prefix ancestor** of a dotted code (`a.b.c` -> `a.b` -> `a`, not only the deepest). Its contract differs from the replaced `objectMatch` matching function in three ways:
+`g4` is served by a dedicated `ResourceRoleManager` (`role-managers/resource.ts`), not `addNamedMatchingFunc`: `addMatchingFunc` sets Casbin's `hasPattern`, which disables `DefaultRoleManager`'s O(1) fast path on *every* link check, not just `g4` lookups. `ResourceRoleManager` seeds its walk from **every stored prefix ancestor** of a dotted code (`a.b.c` -> `a.b` -> `a`, not only the deepest). Its contract differs from the replaced `objectMatch` matching function in three ways:
 
 - The dot rule (a dotted code belongs to its prefix) applies only to the **request object**, never to a stored node name. The replaced function also auto-linked a stored dotted node to its prefix, but only when that prefix already existed in its temporary map at check time - a result that depended on database row order, not a stable contract. The new behavior is deterministic and narrower in exactly that case.
 - A stored `'*'` node is reachable from any request object, mirroring `objectMatch(anything, '*')`.
@@ -55,10 +55,10 @@ The model's `[policy_effect]` is `some(where (p.eft == allow)) && !some(where (p
 
 ## The adapter situation
 
-`ScopedCasbinAdapter` is the canonical adapter. It is read-only and filtered. `loadFilteredPolicy(model, { principal })` issues **two** statements in one `Promise.all`, neither waiting on the other:
+`ScopedCasbinAdapter` is the canonical adapter. It is read-only and filtered. `loadFilteredPolicy(model, { principal })` issues **two** statements concurrently, neither waiting on the other (an opt-in third source, `resolveDomainEdges`, joins in after the first resolves - see "Per-principal domain edges" below):
 
 - `queryPrincipalPolicies` - one statement covering everything scoped to the principal: its own `assign_role` / `join_domain` / `grant` rows (`kind: 'direct'`), the `role_inherits` edges reachable from its roles (`kind: 'roleEdge'`), the grants of that role closure (`kind: 'roleGrant'`), and the `domain_inherits` edges reachable from its domains (`kind: 'domainEdge'`). Two `WITH RECURSIVE` CTEs share one clause: `role_closure` (unchanged) and `domain_closure`, which seeds from the principal's `join_domain` rows and walks **up** the parent chain over `domain_inherits`. Both recursive terms use `UNION`, not `UNION ALL` - the de-duplication is what terminates a cyclic graph. Only `role_inherits` edges reachable from the principal's roles, and only `domain_inherits` edges whose **child** is inside `domain_closure`, are emitted - narrower than emitting the whole tree to every user, and behavior-preserving, since an edge outside the closure could never be traversed by the matcher.
-- `queryEdgePolicies` - the two code-fixed structural trees, `resource_inherits` (`g4`) and `action_inherits` (`g5`). Both stay load-all: a few hundred rows, constant regardless of tenant count. `domain_inherits` (`g3`) used to be a third branch here, loaded whole for every user; it moved into `queryPrincipalPolicies` because, unlike resource/action, the domain tree grows with the number of domains (many merchants under few organizers), and loading it whole through this per-principal path stopped scaling. A separate, opt-in mechanism now loads the whole tree again for `g`, `g2`, and `g3` alike - once per **enforcer**, not once per user, and never through a policy line. See "Domain hierarchy (opt-in)" below.
+- `queryEdgePolicies` - the two code-fixed structural trees, `resource_inherits` (`g4`) and `action_inherits` (`g5`). Both stay load-all: a few hundred rows, constant regardless of tenant count. `domain_inherits` (`g3`) used to be a third branch here, loaded whole for every user; it moved into `queryPrincipalPolicies` because, unlike resource/action, the domain tree grows with the number of domains (many merchants under few organizers), and loading it whole through this per-principal path stopped scaling. See "Domain hierarchy edges" below for how those `g3` lines then reach `g` and `g2` as well.
 
 The permission join in `queryPrincipalPolicies` is a `LEFT JOIN`: a grant whose target does not resolve (missing or soft-deleted `Permission` row) is logged and skipped by the shared `buildGrantLines`, rather than vanishing from the result set silently. `buildGrantLines` also still drops a grant row with a null `action` (it cannot emit a valid `p` line without one), logging an error naming the subject and object rather than dropping it silently - a dropped row is a permission hole a caller cannot otherwise see.
 
@@ -119,50 +119,49 @@ Optional Redis caching keys lines per user via `keyFn`, delegated to a `UserPoli
 
 `configure()` runs a matcher smoke test (`assertMatcherCompilesSync`), because Casbin compiles the matcher lazily on first enforce - without it, a syntax error or an unregistered function would only surface on the first real request.
 
-## Domain hierarchy (opt-in)
+## Domain hierarchy edges reach all three axes through one overlay
 
-`ICasbinEnforcerOptions.domainHierarchy` (`{ load, refreshMs?, maxStaleMs? }`, kernel `common/types.ts`) gives `g`, `g2`, and `g3` a shared parent-to-child reach. **The matcher does not change** - `CASBIN_RBAC_DOMAIN_SCOPED_MODEL` stays byte-identical, so this is handled entirely at the role-manager layer beneath it. Left unset, all three axes keep the exact per-principal behavior described above.
+A role held, or a grant declared, at a parent domain reaching every domain beneath it is expressed **once**: as `g3` policy lines in a principal's own line set. There is no separate shared tree, TTL, or per-process cache for this - it rides the same per-user policy-line path (and cache invalidation) as every other edge in this system. **The matcher does not change** - `CASBIN_RBAC_DOMAIN_SCOPED_MODEL` stays byte-identical; this is handled entirely at the role-manager layer beneath it.
 
-When set, `configure()` builds and warms a `DomainHierarchyStore` (`enforcers/domain-hierarchy.ts`) before the pool is created. `warmup()` throws on a failed first load - the enforcer refuses to boot serving an empty tree. The tree is loaded once per **enforcer** - shared by every pooled enforcer instance and refreshed on a TTL (`refreshMs`, default 60s) - rather than shipped inside a user's cached policy lines: it is tenant-structural and identical for every principal, unlike the per-user edges above. `DomainHierarchyLoader` (`adapters/domain-hierarchy-loader.ts`) builds the query from the same entity mapping `ScopedCasbinAdapter` takes. `load()` reads `this`, so pass it through a closure: `domainHierarchy: { load: () => loader.load() }`.
+Two sources feed `g3` lines into a principal's line set, and an application can use either or both:
 
-`registerMatchers()` wires three role managers onto that shared store:
+- **The `DOMAIN_EDGE` branch of `queryPrincipalPolicies`** (see "The adapter situation" above) - `domain_inherits` rows reachable from the principal's own domain closure, walked in the same recursive CTE that seeds `domain_closure`. This suits a hierarchy that IS authorization data, stored in `PolicyDefinition` alongside every other edge.
+- **`ScopedCasbinAdapter`'s `resolveDomainEdges` hook**, configured on the adapter's constructor (not the enforcer - the enforcer never constructs the adapter):
+
+  ```ts
+  new ScopedCasbinAdapter({
+    dataSource,
+    entities,
+    resolveDomainEdges: async ({ principal, domains }) => [{ child, parent }, ...],
+  });
+  ```
+
+  `domains` is the principal's own domain closure, reconstructed from rows `queryPrincipalPolicies` already fetched (the `join_domain` seed plus both ends of every `domainEdge` row) rather than a third query. This suits a hierarchy the app already owns as a plain foreign key on a business table (a tenant tree) - it is read live on every cache miss, never duplicated into `domain_inherits`. A throwing hook is caught, logged, and treated as no edges for that one load - the rows already gathered still load normally. This is the fail-secure direction: a missing `g3` edge only narrows what `g`/`g2`/`g3` reach, never widens it. A hook edge duplicating a real `domain_inherits` row is harmless - both become `g3` lines, and `DomainHierarchyRoleManager.addLink` stores parents in a `Set`, so the duplicate `addLink` call is a no-op. The hook cannot join `queryPrincipalPolicies`'s wave (it needs that query's rows to compute `domains`) but does not wait on the independent `queryEdgePolicies` either - both resolve concurrently once the closure is known.
+
+Either way, `loadFilteredPolicy` emits the same `g3, <child>, <parent>` line shape, so nothing downstream can tell which source produced a given edge.
+
+### One overlay `Map`, three role managers
+
+`registerMatchers()` builds one overlay `Map<child, Set<parent>>` per pooled enforcer and hands the **same instance** to all three role managers whenever the model is scoped (`isScoped: true`) - this wiring is unconditional, not a separate opt-in:
 
 | Axis | Role manager | Gains |
 |---|---|---|
-| `g` (role assignment) | `DomainHierarchyRoleManager`, reversed, via casbin's own `DefaultRoleManager.addDomainHierarchy()` | A role assigned at a parent domain matches a request at any child domain. |
+| `g` (role assignment) | `DomainHierarchyRoleManager`, `reversed: true`, plugged into casbin's own `DefaultRoleManager.addDomainHierarchy()` | A role assigned at a parent domain matches a request at any child domain. |
 | `g3` (grant) | `DomainHierarchyRoleManager` | A grant declared at a parent domain applies at its child domains. |
 | `g2` (membership) | `MembershipRoleManager` | Joining a parent domain makes you a member of every child - what the `ANY_MEMBER` grant scope tests. |
 
-### Freshness does not come from the TTL
+Casbin's `buildRoleLinks()` feeds every `g3` policy line to the `g3` role manager via `addLink`, which mutates the shared overlay in place. Casbin never puts the `g`-axis manager in its own `rmMap`, so without sharing the same `Map` it would never receive an `addLink` call at all - the reversed instance on `g` and `MembershipRoleManager` on `g2` only ever *read* the overlay the `g3` instance writes. `BaseRoleManager.collectAncestors` is the one ancestor walk both hierarchy-aware managers use, over the overlay alone - there is no backing graph to fall back to. `clear()` empties the overlay every `buildRoleLinks` cycle (once per request, since a pooled enforcer is reused across principals), and it is repopulated from whatever `g3` lines that request's line set carries.
 
-**The shared tree is a completeness and performance layer with a TTL, not the source of truth for freshness.** Freshness travels on the existing per-user policy-cache invalidation path instead, which was already correct across every process (Redis-backed, keyed per user).
+Because these edges are ordinary per-principal, per-request state, freshness is whatever the per-user policy-line cache already guarantees (Redis-backed today, correct across every process) - there is no separate TTL, staleness ceiling, or `invalidateDomainHierarchy()`-style hook to reason about. Write the child domain's `join_domain` (or `domain_inherits`) row inside the same transaction that creates it, invalidate the affected principals' policy caches after that transaction commits, and invalidate every affected principal, not only the actor - the same contract the per-user cache already asks for everywhere else.
 
-`ScopedCasbinAdapter` still emits per-principal `g3` lines on every cache miss, built from a `domain_closure` seeded by the principal's own `join_domain` rows (`queryPrincipalPolicies`, described above). `registerMatchers()` hands **all three** role managers the **same overlay `Map`** - the `g3` `DomainHierarchyRoleManager`, the reversed one registered on `g`, and `MembershipRoleManager` on `g2`. Only the `g3` manager is in casbin's `rmMap` and therefore the only one that receives `addLink`, so the other two see a per-request edge only through that shared map. All three resolve ancestors through one `collectDomainAncestors` walk over the shared graph plus the overlay, so a per-request `g3` edge - fed from that principal's own live domain closure - satisfies every axis with no TTL wait.
-
-That symmetry is load-bearing, not tidiness. An axis reading only the shared graph would go stale while the others stayed fresh, and the shape it breaks first is the one recommended below: a single `join_domain` row at the parent. The membership axis would then deny a just-created child domain until the next reload, while the role axis already allowed it - a failure that reads as "the user holds the role and is still refused".
-
-Plainly: a newly created child domain is reachable as soon as the owning principals' policy caches are invalidated - no TTL wait, no cluster broadcast. The contract an application must meet to get that:
-
-1. Write the child domain's `join_domain` row inside the same transaction that creates the domain.
-2. Invalidate the affected principals' policy caches after the transaction commits, never before.
-3. Invalidate every affected principal, not only the one who performed the action - otherwise the feature works for one user and silently does not for the rest.
-
-### Keeping it correct in production
-
-- **`invalidateDomainHierarchy()`** - optional on `IAuthorizationEnforcer`, next to `invalidateUserCache`/`rebuildUserCache`. Force-reloads the shared tree now, ignoring `refreshMs`; throws if `domainHierarchy` is not configured. **It refreshes only the process that receives the call - never a cluster-wide broadcast.** A multi-instance deployment needs one call per process, or a shorter `refreshMs`, to see a newly created or moved domain everywhere immediately.
-- **`maxStaleMs`** bounds how long a failed reload may keep serving the previous snapshot. Unset (the default), a stalled reload serves the last good tree indefinitely. Once exceeded with no successful reload, `DomainHierarchyStore.graph` returns an **empty** graph rather than throwing - hierarchy-derived access stops, directly-assigned access keeps working, and no request errors. Throwing on the enforce hot path would turn a database blip into a total outage.
-- **Serving the previous snapshot on a failed reload is safe only while the domain tree is an append-only containment hierarchy.** An application that can move a domain to a different parent must set `maxStaleMs`, because a stale tree would keep the former parent's grants alive.
-
-Two things worth not re-deriving before enabling this on an existing dataset:
+### Widening - audit before relying on it
 
 - **`SYSTEM_WIDE` is untouched.** It bypasses the domain clause in the matcher before membership or nesting are consulted, so a role whose grants are all `SYSTEM_WIDE` gains nothing. More generally, a global grant says "not limited by domain" - it says nothing about whether the endpoint lets a caller act on another subject. What bounds that is the endpoint scoping itself to the authenticated caller.
-- **A role assignment with no domain is already a wildcard** (`g, <User>, <Role>, *`), which makes the role clause always true and leaves membership as the only remaining gate - unaffected by this change, since a wildcard already matches everywhere. Prefer an explicit domain on new role assignments. Checking exposure before enabling this means asking which roles in a wildcard-plus-parent-membership intersection carry an `ANY_MEMBER` grant, not just counting the intersection itself - the intersection alone measures shape and reads far scarier than the real exposure. See the [2026-08-29 changelog](/changelogs/2026-08-29-casbin-domain-hierarchy) for a measured example of the gap between the two.
-
-A self-refreshing store like this one must gate its retry on the last reload **attempt**, not the last success - see [Gotchas](/conventions/gotchas.md) for why, and the defect this feature shipped with.
+- **A role assignment with no domain is already a wildcard** (`g, <User>, <Role>, *`), which makes the role clause always true and leaves membership as the only remaining gate - unaffected by this change, since a wildcard already matches everywhere. Prefer an explicit domain on new role assignments. Checking exposure before adding `g3` edges to an existing dataset means asking which roles in a wildcard-plus-parent-membership intersection carry an `ANY_MEMBER` grant, not just counting the intersection itself - the intersection alone measures shape and reads far scarier than the real exposure.
 
 ## The request path
 
-`authorize({ spec, enforcerName })` wraps `AuthorizationProvider`. Per request: skip flag -> require an authenticated user (401 otherwise) -> `alwaysAllowRoles` / `spec.allowedRoles` bypass -> voters (`ALLOW` short-circuits, `DENY` throws 403, `ABSTAIN` continues) -> **if no enforcers are registered, skip authorization entirely** -> resolve the enforcer from `AuthorizationEnforcerRegistry` -> resolve the request domain (only when `spec.domain` or a configured `domainResolver` is in play, to avoid an unnecessary DB hit) -> build rules -> evaluate. A `DENY` logs the deciding policy rule, or `<none - default-deny>` when nothing matched.
+`authorize({ spec, enforcerName })` wraps `AuthorizationProvider`. Per request: skip flag -> require an authenticated user (401 otherwise) -> `alwaysAllowRoles` / `spec.allowedRoles` bypass -> voters (`ALLOW` short-circuits, `DENY` throws 403, `ABSTAIN` continues) -> **if no enforcers are registered, this fails closed**: `defaultDecision: 'allow'` proceeds (logged as a warning), anything else - including unset, which defaults to `deny` - throws `ENFORCER_NOT_REGISTERED` (403), naming the missing enforcer rather than a generic denial -> resolve the enforcer from `AuthorizationEnforcerRegistry` -> resolve the request domain (only when `spec.domain` or a configured `domainResolver` is in play, to avoid an unnecessary DB hit) -> build rules -> evaluate. A `DENY` logs the deciding policy rule, or `<none - default-deny>` when nothing matched.
 
 ## Related
 

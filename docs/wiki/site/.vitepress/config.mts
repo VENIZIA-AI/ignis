@@ -457,6 +457,10 @@ const config = defineConfig({
               collapsed: true,
               items: [
                 {
+                  text: 'authorize() Denies When No Enforcer Is Registered',
+                  link: '/changelogs/2026-08-30-authorize-no-enforcer-fails-closed',
+                },
+                {
                   text: 'getHealth() Never Throws, Imports Keep Progress, and collectionExists() Never Lies About Absence',
                   link: '/changelogs/2026-08-30-search-connector-health-and-import-contract',
                 },

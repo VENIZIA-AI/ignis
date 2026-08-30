@@ -17,6 +17,7 @@ This section tracks the history of significant changes, refactors, and updates t
 
 | Date | Title | Type |
 |------|-------|------|
+| 2026-08-30 | [authorize() Denies When No Enforcer Is Registered](./2026-08-30-authorize-no-enforcer-fails-closed) | Security, Breaking Change |
 | 2026-08-30 | [getHealth() Never Throws, Imports Keep Progress, and collectionExists() Never Lies About Absence](./2026-08-30-search-connector-health-and-import-contract) | Behavior Change, Bug Fix |
 | 2026-08-29 | [Casbin Domain Hierarchy - Parent Domains Reach Their Children](./2026-08-29-casbin-domain-hierarchy) | New Feature |
 | 2026-08-24 | [Two Query Shapes You No Longer Have to Rebuild](./2026-08-24-query-wrapper-schemas) | New API, Enhancement |
