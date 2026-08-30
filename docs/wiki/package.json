@@ -1,6 +1,6 @@
 {
   "name": "@venizia/ignis-docs",
-  "version": "0.2.1-0",
+  "version": "0.2.1-1",
   "description": "Interactive documentation site and MCP (Model Context Protocol) server for the Ignis Framework. Includes a VitePress-powered documentation site with guides, API references, and best practices. Ships an MCP server (CLI: ignis-docs-mcp) with 11 tools for AI assistants to search docs, browse source code, verify dependencies, and access real-time framework knowledge. Built with Mastra MCP SDK and Fuse.js fuzzy search.",
   "keywords": [
     "ai",
@@ -130,7 +130,7 @@
   "devDependencies": {
     "@braintree/sanitize-url": "^7.1.2",
     "@types/bun": "catalog:",
-    "@venizia/dev-configs": "^0.2.0-0",
+    "@venizia/dev-configs": "^0.2.0-1",
     "eslint": "catalog:",
     "prettier": "catalog:",
     "tsc-alias": "catalog:",
