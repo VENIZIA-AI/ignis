@@ -1,13 +1,12 @@
-import { BaseHelper } from '@venizia/ignis-helpers/core';
 import type { RoleManager } from 'casbin';
+import { BaseRoleManager } from './base-role-manager';
 
 /** Resource-axis (`g4`) role manager: `addMatchingFunc` would set `hasPattern` and disable DefaultRoleManager's O(1) fast path, so prefix ancestors are walked manually; `addLink` must stay idempotent because `buildRoleLinks` re-adds every edge once per request. */
-export class ResourceRoleManager extends BaseHelper implements RoleManager {
+export class ResourceRoleManager extends BaseRoleManager implements RoleManager {
   private parents = new Map<
     string, // Child module
     Set<string> // Set of Parent modules
   >();
-  private graphReported = false;
 
   constructor() {
     super({ scope: ResourceRoleManager.name });
@@ -37,14 +36,14 @@ export class ResourceRoleManager extends BaseHelper implements RoleManager {
   }
 
   syncedHasLink(name1: string, name2: string): boolean {
-    if (!this.graphReported) {
-      this.graphReported = true;
+    this.reportGraphOnce(() => {
       const nodeCount = this.parents.size;
       const edgeCount = Array.from(this.parents.values()).reduce((sum, set) => sum + set.size, 0);
-      this.logger
-        .for(this.syncedHasLink.name)
-        .debug('resource-role initialized | nodes: %d | edges: %d', nodeCount, edgeCount);
-    }
+      return {
+        message: 'resource-role initialized | nodes: %d | edges: %d',
+        args: [nodeCount, edgeCount],
+      };
+    });
 
     if (name1 === name2) {
       return true;
@@ -82,10 +81,6 @@ export class ResourceRoleManager extends BaseHelper implements RoleManager {
     return false;
   }
 
-  async hasLink(name1: string, name2: string): Promise<boolean> {
-    return this.syncedHasLink(name1, name2);
-  }
-
   async getRoles(name: string): Promise<string[]> {
     return [...(this.parents.get(name) ?? [])];
   }
@@ -100,17 +95,6 @@ export class ResourceRoleManager extends BaseHelper implements RoleManager {
     }
 
     return users;
-  }
-
-  /** casbin calls this after buildRoleLinks purely as a debug hook; the resource graph is not logged. */
-  async printRoles(): Promise<void> {}
-
-  async getDomains(): Promise<string[]> {
-    return [];
-  }
-
-  async getAllDomains(): Promise<string[]> {
-    return [];
   }
 
   /** All stored prefix ancestors of a dotted code (`a.b.c` -> `a.b` -> `a`), not only the deepest, plus a literal stored `'*'` node - `objectMatch(anything, '*')` is always true, so a `g4` edge whose child is `'*'` must stay reachable from every request object. */

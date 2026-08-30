@@ -262,25 +262,20 @@ export class AuthorizationPolicyVariants {
     rule: CasbinRuleVariants.G5,
   } as const;
 
-  static readonly ACTION_SCHEME_SET = new Set([
-    this.GRANT.action.toString(),
-    this.ASSIGN_ROLE.action.toString(),
-    this.ROLE_INHERITS.action.toString(),
-    this.JOIN_DOMAIN.action.toString(),
-    this.DOMAIN_INHERITS.action.toString(),
-    this.RESOURCE_INHERITS.action.toString(),
-    this.ACTION_INHERITS.action.toString(),
-  ]);
+  /** Every edge kind, in declaration order - the one place the scheme sets and the `variant` column's literal type both derive from. */
+  static readonly ALL = [
+    this.GRANT,
+    this.ASSIGN_ROLE,
+    this.ROLE_INHERITS,
+    this.JOIN_DOMAIN,
+    this.DOMAIN_INHERITS,
+    this.RESOURCE_INHERITS,
+    this.ACTION_INHERITS,
+  ] as const;
 
-  static readonly RULE_SCHEME_SET = new Set([
-    this.GRANT.rule.toString(),
-    this.ASSIGN_ROLE.rule.toString(),
-    this.ROLE_INHERITS.rule.toString(),
-    this.JOIN_DOMAIN.rule.toString(),
-    this.DOMAIN_INHERITS.rule.toString(),
-    this.RESOURCE_INHERITS.rule.toString(),
-    this.ACTION_INHERITS.rule.toString(),
-  ]);
+  static readonly ACTION_SCHEME_SET = new Set(this.ALL.map(variant => variant.action.toString()));
+
+  static readonly RULE_SCHEME_SET = new Set(this.ALL.map(variant => variant.rule.toString()));
 
   static isValidAction(input: string): boolean {
     return this.ACTION_SCHEME_SET.has(input);
@@ -290,7 +285,10 @@ export class AuthorizationPolicyVariants {
     return this.RULE_SCHEME_SET.has(input);
   }
 }
-export type TAuthorizationPolicyVariant = TConstValue<typeof AuthorizationPolicyVariants>;
+
+/** The `variant` column's full value set, derived from {@link AuthorizationPolicyVariants.ALL} - never hand-list the seven strings again. */
+export type TAuthorizationPolicyVariant =
+  (typeof AuthorizationPolicyVariants.ALL)[number]['action'];
 
 export class AuthorizeBindingKeys {
   static readonly OPTIONS = '@app/authorize/options';

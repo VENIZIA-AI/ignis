@@ -2,7 +2,11 @@ import { TContext } from '@venizia/ignis-kernel';
 import { inject } from '@venizia/ignis-kernel';
 import { BaseHelper, BasePoolHelper, getError } from '@venizia/ignis-helpers/core';
 import { TNullable } from '@venizia/ignis-helpers/common';
-import type { Enforcer as CasbinEnforcerType, Helper as CasbinHelperType } from 'casbin';
+import type {
+  Enforcer as CasbinEnforcerType,
+  Helper as CasbinHelperType,
+  RoleManager as CasbinRoleManagerType,
+} from 'casbin';
 import { Env } from 'hono';
 import { AuthorizationPermissionBuilder } from '@venizia/ignis-kernel';
 import {
@@ -16,15 +20,18 @@ import {
   CasbinRuleVariants,
   IAuthorizationEnforcer,
   IAuthorizationUser,
-  AuthorizationErrors,
-  ICasbinEnforcerCachedRedis,
   ICasbinEnforcerOptions,
   ICasbinRules,
   type IAuthorizationRequest,
   type TAuthorizationDecision,
   type TCasbinDomainMatchingFunction,
 } from '@venizia/ignis-kernel';
+import { DomainHierarchyStore } from './domain-hierarchy';
+import { DomainHierarchyRoleManager } from './domain-hierarchy-role-manager';
+import { MembershipRoleManager } from './membership-role-manager';
+import { PolicyLineCodec } from './policy-line-codec';
 import { ResourceRoleManager } from './resource-role-manager';
+import { UserPolicyLineCache } from './user-policy-line-cache';
 
 /** Payload shape for the scoped/custom path, matching defaultScopedPayloadFn(). */
 type TNormalizePayloadFn<E extends Env, TAction, TResource> = (opts: {
@@ -33,6 +40,11 @@ type TNormalizePayloadFn<E extends Env, TAction, TResource> = (opts: {
   resource: TResource;
   context: TContext<E, string>;
 }) => { subject: string; resource: string; action: string; domain?: string };
+
+/** `addDomainHierarchy` lives on casbin's `DefaultRoleManager`, not on the `RoleManager` interface or the `Enforcer` facade - feature-detect it on whatever `getNamedRoleManager` returns. */
+interface ICasbinRoleManagerWithDomainHierarchy {
+  addDomainHierarchy?(rm: CasbinRoleManagerType): Promise<void>;
+}
 
 // Wraps casbin (optional peer dep). Each request borrows its own pooled enforcer; any error during use destroys it (fail-closed). Pooled enforcers carry no adapter - only extractUserLines uses one.
 
@@ -49,8 +61,9 @@ export class CasbinAuthorizationEnforcer<
 
   private pool: TNullable<BasePoolHelper<CasbinEnforcerType>> = null;
   private helper: TNullable<typeof CasbinHelperType> = null;
-  // cacheKey -> in-progress line-fetch; concurrent misses for the same user share one extraction instead of all hitting the DB (see fetchLinesWithRedisCache).
-  private readonly pendingLineFetches = new Map<string, Promise<string[]>>();
+  private domainHierarchyStore: TNullable<DomainHierarchyStore> = null;
+  // Lazily created on first cache use (see requireRedisCache) - one instance for the enforcer's lifetime so its single-flight de-dup map actually dedupes.
+  private userPolicyLineCache: TNullable<UserPolicyLineCache> = null;
 
   // Memoized in configure() (options are fixed after) to avoid rebuilding this closure on every evaluate() (hot path).
   private resolvedPayloadFn: TNullable<TNormalizePayloadFn<E, TAction, TResource>> = null;
@@ -90,6 +103,18 @@ export class CasbinAuthorizationEnforcer<
       this.validateExpiresIn({ expiresIn: cached.options.expiresIn });
     }
 
+    if (this.options.domainHierarchy) {
+      const domainHierarchyStore = new DomainHierarchyStore({
+        load: this.options.domainHierarchy.load,
+        refreshMs: this.options.domainHierarchy.refreshMs,
+        maxStaleMs: this.options.domainHierarchy.maxStaleMs,
+      });
+      // Must fail boot, never serve with an empty tree - warmup() throws on a failed initial load.
+      await domainHierarchyStore.warmup();
+      // Assigned before the pool is created: pool.create() runs registerMatchers(), which reads this field.
+      this.domainHierarchyStore = domainHierarchyStore;
+    }
+
     this.pool = new BasePoolHelper<CasbinEnforcerType>({
       scope: `${CasbinAuthorizationEnforcer.name}.Pool`,
       size: this.options.poolSize ?? 16,
@@ -109,9 +134,11 @@ export class CasbinAuthorizationEnforcer<
     this.logger
       .for(this.configure.name)
       .info(
-        'Casbin enforcer pool ready (size: %s, cached: %s)',
+        'Casbin enforcer pool ready (size: %s, cached: %s, domainHierarchy: %s, edges: %s)',
         this.options.poolSize ?? 16,
         cached.use ? cached.driver : 'none',
+        this.domainHierarchyStore ? 'on' : 'off',
+        this.domainHierarchyStore?.graph.edgeCount ?? 0,
       );
   }
 
@@ -119,6 +146,7 @@ export class CasbinAuthorizationEnforcer<
     this.pool?.destroy().catch(error => {
       this.logger.for(this.destroy.name).warn('Pool destroy failed: %s', error);
     });
+    this.domainHierarchyStore?.destroy();
   }
 
   /** casbin compiles the matcher lazily (first enforce, not newEnforcer/buildRoleLinks); this dummy enforceSync forces the compile at warmup so syntax / unregistered-function / arity errors fail boot. */
@@ -147,7 +175,7 @@ export class CasbinAuthorizationEnforcer<
     const cached = this.options.cached;
 
     const lines = cached.use
-      ? await this.fetchLinesWithRedisCache({ user, cached })
+      ? await this.requireRedisCache().fetch({ user })
       : await this.extractUserLines({ user });
 
     return { user, lines };
@@ -232,9 +260,9 @@ export class CasbinAuthorizationEnforcer<
   async invalidateUserCache(opts: {
     user: IAuthorizationUser;
   }): Promise<{ invalidatedKeys: number }> {
-    const cached = this.requireRedisCache();
-    const cacheKey = await this.resolveCacheKey({ user: opts.user, cached });
-    const invalidatedKeys = await cached.options.connection.del({ keys: [cacheKey] });
+    const { cacheKey, invalidatedKeys } = await this.requireRedisCache().invalidate({
+      user: opts.user,
+    });
 
     this.logger
       .for(this.invalidateUserCache.name)
@@ -251,14 +279,8 @@ export class CasbinAuthorizationEnforcer<
   async rebuildUserCache(opts: {
     user: IAuthorizationUser;
   }): Promise<{ cacheKey: string; lineCount: number }> {
-    const cached = this.requireRedisCache();
-
     // Extraction runs on an isolated throwaway enforcer (not a serving model), so a concurrent request cannot make us cache another user's policies under this key.
-    const cacheKey = await this.resolveCacheKey({ user: opts.user, cached });
-    await cached.options.connection.del({ keys: [cacheKey] });
-
-    const lines = await this.extractUserLines({ user: opts.user });
-    await this.writeCachedPolicyLines({ cacheKey, lines, options: cached.options });
+    const { cacheKey, lines } = await this.requireRedisCache().rebuild({ user: opts.user });
 
     this.logger
       .for(this.rebuildUserCache.name)
@@ -272,24 +294,31 @@ export class CasbinAuthorizationEnforcer<
     return { cacheKey, lineCount: lines.length };
   }
 
-  /** Compute the user's cache key and reject an empty result - consistent with the read path. */
-  protected async resolveCacheKey(opts: {
-    user: IAuthorizationUser;
-    cached: ICasbinEnforcerCachedRedis & { use: true };
-  }): Promise<string> {
-    const cacheKey = await opts.cached.options.keyFn({ user: opts.user });
-    if (!cacheKey) {
+  /**
+   * Force-reload the shared domain-hierarchy tree now, ignoring its TTL. Refreshes only THIS
+   * process - it is not a cluster-wide broadcast, so a multi-instance deployment needs one call
+   * per process to make e.g. a newly created child domain visible everywhere immediately.
+   */
+  async invalidateDomainHierarchy(): Promise<{ nodeCount: number; edgeCount: number }> {
+    if (!this.domainHierarchyStore) {
       throw getError({
-        error: AuthorizationErrors.CACHE_KEY_INVALID,
-        message: '[CasbinAuthorizationEnforcer] keyFn returned an empty cache key.',
+        message:
+          '[CasbinAuthorizationEnforcer] invalidateDomainHierarchy() was called but options.domainHierarchy is not enabled on this enforcer.',
       });
     }
 
-    return cacheKey;
+    await this.domainHierarchyStore.reload();
+    const { nodeCount, edgeCount } = this.domainHierarchyStore.graph;
+
+    this.logger
+      .for(this.invalidateDomainHierarchy.name)
+      .info('Domain hierarchy reloaded | nodes: %s | edges: %s', nodeCount, edgeCount);
+
+    return { nodeCount, edgeCount };
   }
 
-  /** Narrow `options.cached` to the redis variant; cache management is redis-only. */
-  protected requireRedisCache(): ICasbinEnforcerCachedRedis & { use: true } {
+  /** Narrow `options.cached` to the redis variant and lazily create the per-user line cache - memoized so its single-flight de-dup map is shared across calls rather than reset on every access. */
+  protected requireRedisCache(): UserPolicyLineCache {
     const { cached } = this.options;
 
     if (!cached.use) {
@@ -299,7 +328,10 @@ export class CasbinAuthorizationEnforcer<
       });
     }
 
-    return cached;
+    return (this.userPolicyLineCache ??= new UserPolicyLineCache({
+      cached,
+      loadLines: opts => this.extractUserLines(opts),
+    }));
   }
 
   // Matchers & model resolvers
@@ -331,6 +363,51 @@ export class CasbinAuthorizationEnforcer<
         AuthorizationPolicyVariants.RESOURCE_INHERITS.rule,
         new ResourceRoleManager(),
       );
+
+      const { domainHierarchyStore } = this;
+      if (domainHierarchyStore) {
+        // Shared across g2, g3, and the reversed `g` instance below: casbin never puts the
+        // `g`-axis hierarchy manager in rmMap, so it never receives addLink and would miss
+        // per-request g3 edges - g2 needs the same freshness for a just-created child domain.
+        const domainHierarchyOverlay = new Map<string, Set<string>>();
+
+        // g2 (membership) and g3 (domain nesting, request-domain-first) sit on their own axes.
+        enforcer.setNamedRoleManager(
+          CasbinRuleVariants.G2,
+          new MembershipRoleManager({
+            store: domainHierarchyStore,
+            overlay: domainHierarchyOverlay,
+          }),
+        );
+
+        enforcer.setNamedRoleManager(
+          CasbinRuleVariants.G3,
+          new DomainHierarchyRoleManager({
+            store: domainHierarchyStore,
+            overlay: domainHierarchyOverlay,
+          }),
+        );
+
+        // addNamedDomainMatchingFunc(G, keyMatchFunc) above must stay: generateTempRoles ORs
+        // hasDomainPattern with hasDomainHierarchy, and role_inherits `*` rides the keyMatch path.
+        const gRoleManager = enforcer.getNamedRoleManager(CasbinRuleVariants.G) as
+          (CasbinRoleManagerType & ICasbinRoleManagerWithDomainHierarchy) | undefined;
+
+        if (!gRoleManager?.addDomainHierarchy) {
+          throw getError({
+            message:
+              '[registerMatchers] The "g" role manager does not expose addDomainHierarchy() - domainHierarchy requires casbin\'s DefaultRoleManager on the g axis (present in casbin ^5.51.1, this package\'s pinned range). Upgrade casbin, or check that a custom role manager was not substituted for "g".',
+          });
+        }
+
+        await gRoleManager.addDomainHierarchy(
+          new DomainHierarchyRoleManager({
+            store: domainHierarchyStore,
+            reversed: true,
+            overlay: domainHierarchyOverlay,
+          }),
+        );
+      }
     }
 
     await enforcer.buildRoleLinks();
@@ -420,121 +497,20 @@ export class CasbinAuthorizationEnforcer<
 
   // Policy loading internals
 
-  /** Fetch the user's lines, collapsing concurrent misses per key onto one extraction. Best-effort: two misses may race past the cache read and both extract (benign - per-user lines are identical). */
-  protected async fetchLinesWithRedisCache(opts: {
-    user: IAuthorizationUser;
-    cached: ICasbinEnforcerCachedRedis & { use: true };
-  }): Promise<string[]> {
-    const { user, cached } = opts;
-    const cacheKey = await this.resolveCacheKey({ user, cached });
-
-    // Cache hit - Redis owns expiry (PX on write), so a present key is fresh; a corrupted/legacy entry must NOT 500 the request, so it is discarded and refetched.
-    const raw = await cached.options.connection.get({ key: cacheKey });
-    if (raw) {
-      const lines = this.parseCachedPolicyLines({ raw, cacheKey });
-
-      if (lines) {
-        return lines;
-      }
-    }
-
-    const existing = this.pendingLineFetches.get(cacheKey);
-    if (existing) {
-      return existing;
-    }
-
-    // Cache miss (or discarded corrupt entry) - extract from an ISOLATED enforcer so a concurrent load cannot contaminate the cache, persist it, then return the lines for THIS request.
-    const task = async () => {
-      const lines = await this.extractUserLines({ user });
-      await this.writeCachedPolicyLines({ cacheKey, lines, options: cached.options });
-      return lines;
-    };
-
-    const promise = task().finally(() => {
-      this.pendingLineFetches.delete(cacheKey);
-    });
-
-    this.pendingLineFetches.set(cacheKey, promise);
-    return promise;
-  }
-
-  /** Single source of truth for the Redis cache encoding. Used by miss-path and rebuild. */
-  protected async writeCachedPolicyLines(opts: {
-    cacheKey: string;
-    lines: string[];
-    options: ICasbinEnforcerCachedRedis['options'];
-  }): Promise<void> {
-    await opts.options.connection.set({
-      key: opts.cacheKey,
-      value: opts.lines,
-      options: { expiresIn: opts.options.expiresIn },
-    });
-  }
-
-  /** Decode cached policy lines; on any corruption, log and return null so the caller refetches. */
-  protected parseCachedPolicyLines(opts: { raw: string; cacheKey: string }): TNullable<string[]> {
-    try {
-      const parsed = JSON.parse(opts.raw);
-
-      if (!Array.isArray(parsed) || parsed.some(line => typeof line !== 'string')) {
-        throw getError({
-          message: '[CasbinAuthorizationEnforcer] Cached payload is not an array of policy lines.',
-        });
-      }
-
-      return parsed as string[];
-    } catch (error) {
-      this.logger
-        .for(this.parseCachedPolicyLines.name)
-        .warn('Discarding corrupted authz cache entry | key: %s | error: %s', opts.cacheKey, error);
-      return null;
-    }
-  }
-
-  /** Extract a user's lines from an ISOLATED throwaway enforcer (own model + adapter), never a pooled serving one, so concurrent requests cannot change what we cache. */
+  /** Resolves this enforcer's model, then delegates the isolated-enforcer extraction (own model + adapter, never a pooled serving one, so concurrent requests cannot change what we cache) to PolicyLineCodec. */
   protected async extractUserLines(opts: { user: IAuthorizationUser }): Promise<string[]> {
     const casbin = await import('casbin');
     const model = this.resolveModel({ casbin, model: this.options.model });
-    const loader = await casbin.newEnforcer(model, this.options.adapter);
 
-    if (!loader.loadFilteredPolicy) {
-      throw getError({
-        message: '[extractUserLines] Adapter does not support loadFilteredPolicy.',
-      });
-    }
-
-    await loader.loadFilteredPolicy({
-      principal: { type: opts.user.principalType, id: opts.user.userId },
+    return PolicyLineCodec.extractUserLines({
+      casbin,
+      model,
+      adapter: this.options.adapter,
+      user: opts.user,
     });
-
-    return this.extractLinesFrom(loader);
   }
 
-  /** Serialize ALL p-types and g-types (not just `p`/`g`) back into casbin lines so the cached payload is complete for the scoped model; it reads stored rules, so the loader needs no matching funcs registered. */
-  protected async extractLinesFrom(enforcer: CasbinEnforcerType): Promise<string[]> {
-    const model = enforcer.getModel();
-    const lines: string[] = [];
-
-    const policyTypes = model.model.get(CasbinRuleVariants.P);
-    for (const ptype of policyTypes?.keys() ?? []) {
-      const rules = await enforcer.getNamedPolicy(ptype);
-      for (const rule of rules) {
-        lines.push([ptype, ...rule].join(', '));
-      }
-    }
-
-    const groupingTypes = model.model.get(CasbinRuleVariants.G);
-    for (const gtype of groupingTypes?.keys() ?? []) {
-      const rules = await enforcer.getNamedGroupingPolicy(gtype);
-      for (const rule of rules) {
-        lines.push([gtype, ...rule].join(', '));
-      }
-    }
-
-    return lines;
-  }
-
-  /** Atomically reset a borrowed enforcer's model to exactly `lines` + rebuild role links. */
+  /** Requires configure() to have resolved the casbin Helper; the clearPolicy + loadPolicyLine + buildRoleLinks ordering lives in PolicyLineCodec. */
   protected async loadPolicyLinesIntoModel(opts: {
     enforcer: CasbinEnforcerType;
     lines: string[];
@@ -545,13 +521,10 @@ export class CasbinAuthorizationEnforcer<
       });
     }
 
-    const model = opts.enforcer.getModel();
-    model.clearPolicy();
-
-    for (const line of opts.lines) {
-      this.helper.loadPolicyLine(line, model);
-    }
-
-    await opts.enforcer.buildRoleLinks();
+    await PolicyLineCodec.loadLinesIntoModel({
+      enforcer: opts.enforcer,
+      lines: opts.lines,
+      helper: this.helper,
+    });
   }
 }

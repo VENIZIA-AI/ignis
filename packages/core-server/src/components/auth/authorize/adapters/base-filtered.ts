@@ -1,7 +1,8 @@
 import { readResultRows } from '@/utilities';
-import { BaseHelper, getError } from '@venizia/ignis-helpers/core';
+import { BaseHelper } from '@venizia/ignis-helpers/core';
 import { type FilteredAdapter, type Model } from 'casbin';
 import type { SQL } from 'drizzle-orm';
+import { PolicyConnectorResolver } from './connector';
 import type { ICasbinPolicyFilter, ICasbinPolicySource, TCasbinPolicyConnector } from './types';
 
 /** Read-only base for casbin FilteredAdapters backed by a datasource - owns connector plumbing and no-op write methods; subclasses implement {@link loadFilteredPolicy} per principal. */
@@ -17,17 +18,10 @@ export abstract class BaseFilteredAdapter<TFilter = ICasbinPolicyFilter>
   }
 
   protected get connector(): TCasbinPolicyConnector {
-    const source = this.dataSource;
-    const resolved = source.getConnector?.() ?? source.connector;
-
-    if (!resolved) {
-      throw getError({
-        message:
-          '[BaseFilteredAdapter] datasource exposes neither a getConnector() accessor nor a wired connector - pass a datasource whose getConnector() lazily wires the driver.',
-      });
-    }
-
-    return resolved;
+    return PolicyConnectorResolver.resolve({
+      source: this.dataSource,
+      caller: 'BaseFilteredAdapter',
+    });
   }
 
   /** Runs a raw statement and returns its rows. Drizzle's `execute()` shape differs per driver (node-postgres `{ rows }`, postgres-js the row list itself) - never read `.rows` directly. */

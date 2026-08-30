@@ -2,15 +2,15 @@ import type { IdType } from '@/base';
 import type { TConstValue, TNullable } from '@venizia/ignis-helpers/common';
 import { type Model } from 'casbin';
 import { sql, type SQL } from 'drizzle-orm';
-import { AuthorizationPermissionBuilder, GrantBuilder } from '@venizia/ignis-kernel';
+import { GrantBuilder } from '@venizia/ignis-kernel';
 import {
   AuthorizationActions,
   AuthorizationDecisions,
   AuthorizationDomainScopes,
   AuthorizationPolicyVariants,
-  type TCustomGrantMetadata,
 } from '@venizia/ignis-kernel';
 import { BaseFilteredAdapter } from './base-filtered';
+import { CustomGrantExpander, type TCustomGrantRow } from './custom-grant-expander';
 import type { ICasbinPolicySource, IScopedCasbinEntities } from './types';
 
 export interface IScopedCasbinPolicyFilter {
@@ -49,10 +49,15 @@ const DEFAULT_SCHEMA = 'public';
 /** Filtered casbin adapter for the scoped RBAC model: loads ONE principal's edges (role assignments, memberships, grants) plus the shared structural hierarchy trees as casbin lines. Read-only. */
 export class ScopedCasbinAdapter extends BaseFilteredAdapter<IScopedCasbinPolicyFilter> {
   protected readonly entities: IScopedCasbinEntities;
+  protected readonly customGrantExpander: CustomGrantExpander;
 
   constructor(opts: { dataSource: ICasbinPolicySource; entities: IScopedCasbinEntities }) {
     super({ scope: ScopedCasbinAdapter.name, dataSource: opts.dataSource });
     this.entities = opts.entities;
+    this.customGrantExpander = new CustomGrantExpander({
+      dataSource: opts.dataSource,
+      entities: { permission: opts.entities.permission, softDelete: opts.entities.softDelete },
+    });
   }
 
   /** One wave: the principal-scoped CTE and the merged structural-edges query are issued together - the role closure resolves in SQL, so neither waits on the other. */
@@ -320,13 +325,7 @@ export class ScopedCasbinAdapter extends BaseFilteredAdapter<IScopedCasbinPolicy
     const metadataColumnName = this.entities.policyDefinition.metadata?.columnName;
 
     const lines: string[] = [];
-    const customRows: Array<{
-      subjectId: IdType;
-      objectSubject: string;
-      ops: string[];
-      domain: string;
-      effect: string;
-    }> = [];
+    const customRows: TCustomGrantRow[] = [];
 
     for (const row of rows) {
       if (!row.objectCode) {
@@ -379,7 +378,7 @@ export class ScopedCasbinAdapter extends BaseFilteredAdapter<IScopedCasbinPolicy
         continue;
       }
 
-      const rejection = this.rejectCustomRow({
+      const rejection = this.customGrantExpander.rejectCustomRow({
         row: {
           subjectId: row.subjectId,
           objectCode: row.objectCode,
@@ -404,128 +403,13 @@ export class ScopedCasbinAdapter extends BaseFilteredAdapter<IScopedCasbinPolicy
       });
     }
 
-    lines.push(...(await this.expandCustomGrants({ subjectType, customRows })));
+    const expanded = await this.customGrantExpander.expandCustomGrants({ subjectType, customRows });
+    for (const rejection of expanded.rejections) {
+      this.logger.for(this.buildGrantLines.name).error(rejection);
+    }
+    lines.push(...expanded.lines);
 
     return lines;
-  }
-
-  /** Why a custom-looking grant row cannot be honoured, or null when it is well formed. */
-  protected rejectCustomRow(opts: {
-    row: { subjectId: IdType; objectCode: string; objectMethod: string };
-    parsed: TCustomGrantMetadata | null;
-    isCustomAction: boolean;
-    metadataColumnName?: string;
-  }): string | null {
-    const { row, parsed, isCustomAction, metadataColumnName } = opts;
-
-    if (isCustomAction && !metadataColumnName) {
-      return `Skipping custom grant - entities.policyDefinition.metadata.columnName is not mapped, so metadata.ops cannot be read | subject id: ${row.subjectId} | object: ${row.objectCode}`;
-    }
-
-    if (isCustomAction && !parsed) {
-      return `Skipping custom grant - metadata.ops is missing, empty, or not an array of non-empty strings | subject id: ${row.subjectId} | object: ${row.objectCode}`;
-    }
-
-    if (!isCustomAction && parsed) {
-      return `Skipping grant - metadata.ops is present but action is not "${AuthorizationActions.CUSTOM}", so the intent is ambiguous | subject id: ${row.subjectId} | object: ${row.objectCode}`;
-    }
-
-    if (row.objectMethod !== AuthorizationPermissionBuilder.RESOURCE_NODE_METHOD) {
-      return `Skipping custom grant - the target must be a subject-level resource node | subject id: ${row.subjectId} | object: ${row.objectCode}`;
-    }
-
-    return null;
-  }
-
-  /** Resolve every custom row's ops in one catalog query, then emit one line per resolved operation. */
-  protected async expandCustomGrants(opts: {
-    subjectType: string;
-    customRows: Array<{
-      subjectId: IdType;
-      objectSubject: string;
-      ops: string[];
-      domain: string;
-      effect: string;
-    }>;
-  }): Promise<string[]> {
-    if (!opts.customRows.length) {
-      return [];
-    }
-
-    const seen = new Set<string>();
-    const pairs: Array<{ subject: string; method: string }> = [];
-
-    const candidates = opts.customRows.flatMap(row =>
-      row.ops.map(op => ({ subject: row.objectSubject, method: op })),
-    );
-
-    for (const candidate of candidates) {
-      const key = `${candidate.subject}.${candidate.method}`;
-      if (seen.has(key)) {
-        continue;
-      }
-
-      seen.add(key);
-      pairs.push(candidate);
-    }
-
-    const catalog = await this.queryOperationCatalog({ pairs });
-    const byKey = new Map(catalog.map(entry => [`${entry.subject}.${entry.method}`, entry]));
-    const lines: string[] = [];
-
-    for (const row of opts.customRows) {
-      const { valid, unknown } = GrantBuilder.getInstance().validateCustomGrantOps({
-        ops: row.ops,
-        subject: row.objectSubject,
-        catalog,
-      });
-
-      if (unknown.length) {
-        this.logger
-          .for(this.expandCustomGrants.name)
-          .error(
-            'Skipping unresolvable operations in a custom grant | subject id: %s | resource: %s | unknown: %s',
-            row.subjectId,
-            row.objectSubject,
-            unknown.join(', '),
-          );
-      }
-
-      for (const op of valid) {
-        const entry = byKey.get(`${row.objectSubject}.${op}`)!;
-
-        lines.push(
-          `${AuthorizationPolicyVariants.GRANT.rule}, ${opts.subjectType}_${row.subjectId}, ${row.domain}, ${entry.code}, ${entry.action}, ${row.effect}`,
-        );
-      }
-    }
-
-    return lines;
-  }
-
-  /** Resolve `(subject, method)` pairs to catalogued operations. One query for the whole extraction. */
-  protected async queryOperationCatalog(opts: {
-    pairs: Array<{ subject: string; method: string }>;
-  }): Promise<Array<{ subject: string; method: string; code: string; action: string }>> {
-    if (!opts.pairs.length) {
-      return [];
-    }
-
-    const permissionTable = this.qualifiedTable({ table: this.entities.permission });
-
-    return this.query<{ subject: string; method: string; code: string; action: string }>({
-      statement: sql`
-      SELECT permission.subject, permission.method, permission.code, permission.action
-      FROM ${permissionTable} permission
-      WHERE (permission.subject, permission.method) IN (${sql.join(
-        opts.pairs.map(pair => sql`(${pair.subject}, ${pair.method})`),
-        sql`, `,
-      )})
-        AND permission.method <> ${AuthorizationPermissionBuilder.RESOURCE_NODE_METHOD}${this.softDeleteClause(
-          { alias: 'permission' },
-        )}
-    `,
-    });
   }
 
   /** The two code-fixed structural trees only (`g4` resource, `g5` action) - constant regardless of tenant count. Domain edges (`g3`) grow with the domain count, so they are principal-scoped in {@link queryPrincipalPolicies} instead. */

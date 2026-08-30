@@ -84,6 +84,14 @@ export interface IAuthorizationEnforcer<
   rebuildUserCache?(opts: {
     user: IAuthorizationUser;
   }): Promise<{ cacheKey: string; lineCount: number }>;
+
+  /**
+   * Force-reload the shared domain-hierarchy tree, ignoring its TTL. Implemented only by
+   * enforcers configured with `domainHierarchy`. Refreshes only THIS process - it is not a
+   * cluster-wide broadcast, so a multi-instance deployment needs one call per process (or a
+   * shorter `refreshMs`) to see a newly created/moved domain everywhere.
+   */
+  invalidateDomainHierarchy?(): Promise<{ nodeCount: number; edgeCount: number }>;
 }
 
 export type TAuthorizationVoter<
@@ -152,6 +160,15 @@ export interface ICasbinEnforcerOptions<
 
   /** Domain-scoped RBAC model: requests become 4-token `(subject, domain, object, action)` and the enforcer registers the domain matcher (`keyMatch` on `g`) + resource matcher (`objectMatch`). */
   isScoped?: boolean;
+
+  /** Shared tenant domain tree (`child -> parent` edges, e.g. `Merchant_7 -> Organizer_3`). Supplying it makes a role assignment or a grant declared at a parent domain apply to every child domain. Omitted -> `g`, `g2` and `g3` keep their exact per-principal behavior, so existing applications are unaffected. */
+  domainHierarchy?: {
+    load: () => Promise<Array<{ child: string; parent: string }>>;
+    /** Reload interval in ms. Default 60000. */
+    refreshMs?: number;
+    /** Ceiling on how long a failed reload may keep serving the previous snapshot, in ms. Once exceeded, enforce falls back to an empty hierarchy (direct assignments still work) instead of serving stale containment forever. Default unset - serve the previous snapshot indefinitely. */
+    maxStaleMs?: number;
+  };
 
   /** Number of pooled enforcers (each request enforces on its own). Default 16. */
   poolSize?: number;
