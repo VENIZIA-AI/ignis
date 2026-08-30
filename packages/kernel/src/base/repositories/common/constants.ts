@@ -32,6 +32,22 @@ export class RepositoryOperationScopes {
 /** Valid repository operation scope values. */
 export type TRepositoryOperationScope = TConstValue<typeof RepositoryOperationScopes>;
 
+/** What a row-scope filter (`@model` settings.scopeFilter) does when `resolve()` returns null/undefined. */
+export class ScopeFilterMissingBehaviors {
+  /** An unresolved scope matches ZERO rows - the safe reading of "caller's scope is unknown". */
+  static readonly DENY = 'deny';
+  /** Explicit opt-out: no scope is applied. For migrations and background jobs, never inferred from a request. */
+  static readonly ALLOW = 'allow';
+  static readonly SCHEME_SET = new Set([this.DENY, this.ALLOW]);
+
+  static isValid(behavior: string): boolean {
+    return this.SCHEME_SET.has(behavior);
+  }
+}
+
+/** Valid scope-filter missing-behavior values. */
+export type TScopeFilterMissingBehavior = TConstValue<typeof ScopeFilterMissingBehaviors>;
+
 /** Machine-readable codes for repository-level failures, in the dotted namespace core already uses (`core.not_supported`, `core.search_engine.*`) - a client maps the code, never the message. */
 export class RepositoryErrorCodes {
   /** A verb the repository's `operationScope` does not permit (e.g. `create()` on a READ_ONLY one). */

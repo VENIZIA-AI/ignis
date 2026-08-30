@@ -1,9 +1,9 @@
 import type { Container } from '@/helpers/inversion/container';
 import {
   BaseHelper,
-  executeWithRetry,
   getError,
   RetryBackoffStrategies,
+  RetryHelper,
   RetryJitterModes,
 } from '@venizia/ignis-helpers/core';
 import isEmpty from 'lodash/isEmpty';
@@ -95,7 +95,7 @@ export class EventBus<TPayloadMap extends object> extends BaseHelper {
    * handler is resolved fresh from the container on every attempt rather than once up front, so a
    * rebind takes effect on the very next attempt of a dispatch already in flight.
    *
-   * `executeWithRetry` is used without its own `logger` - its internal per-attempt/exhaustion
+   * `RetryHelper.executeWithRetry` is used without its own `logger` - its internal per-attempt/exhaustion
    * logging knows nothing about the event name or `traceId`, so it cannot be the trace anyone
    * relies on. The one line below, logged only on final failure, is.
    */
@@ -107,7 +107,7 @@ export class EventBus<TPayloadMap extends object> extends BaseHelper {
     let lastAttempt = 0;
 
     try {
-      await executeWithRetry({
+      await RetryHelper.executeWithRetry({
         operation: `EventBus.dispatch:${event.name}`,
         maxAttempts: EventDispatchRetry.MAX_ATTEMPTS,
         backoff: {

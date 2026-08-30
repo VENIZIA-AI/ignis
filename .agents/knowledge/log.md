@@ -6,6 +6,179 @@ not how.
 This file and `index.md` are reserved OKF filenames - they carry no `type:` frontmatter and are not
 counted as concepts.
 
+## 2026-08-30 - `scopeFilter` closed on `include`: a relation resolves its own scope, never the parent's
+
+`FilterBuilder.toInclude` (`relational/core/repositories/dialect/filter.ts`) read only
+`defaultFilter` for an included relation - `scopeFilter` never reached a relation loaded through
+`include`, so a tenant-scoped parent queried with `include` handed back every other tenant's child
+rows. Fixed by resolving each relation's own `scopeFilter` from its own `@model` settings (new
+`resolveScopeFilter`, keyed by the relation's table name, same `resolveModelEntry` the other three
+readers already share) and AND-composing it into that relation's filter via a new
+`applyRelationScopeFilter`, applied BEFORE `defaultFilter` so it survives the relation-level
+`shouldSkipDefaultFilter` exactly like the parent's does. `toInclude` recurses into a relation's own
+`include` through `build()`, so a relation of a relation is scoped by the same code path with no
+special-casing. Extracted the deny predicate (`{ id: { inq: [] } }`) out of
+`RelationalBaseRepository.applyScopeFilter` into `ScopeFilterDenial.where()`
+(`relational/core/repositories/common/scope-filter.ts`) so the repository tier and the dialect tier
+compile "deny" from one definition - `base.ts`'s own behavior is otherwise unchanged, verified by its
+existing suite still passing byte-for-byte.
+
+Tests: new `connectors/src/__tests__/relational/conformance/pglite-scope-filter-include.test.ts`
+(PGlite e2e) - positive control proves a sibling relation with no `scopeFilter` DOES leak the other
+tenant's rows under the same parent FK before asserting the scoped relation excludes them; also
+covers relation-level `shouldSkipDefaultFilter`, `onMissing: 'deny'` vs `'allow'`, a nested
+relation-of-a-relation, a throwing resolver propagating, and a byte-identical no-`where` compile for
+an unscoped relation. Changelog: `docs/wiki/content/changelogs/2026-08-30-row-scope-filter.md`
+(new "Included relations are scoped too" section).
+
+## 2026-08-30 - `@model` settings.scopeFilter: a row scope, denied by default, relational only
+
+New `IScopeFilterSettings` (`packages/kernel/src/helpers/inversion/common/types.ts`): `resolve()`
+returns a per-query `where`, `onMissing` (default `deny`) decides what happens when it returns
+null/undefined. `RelationalBaseRepository.applyScopeFilter` (`connectors`) AND-composes it into
+every read and write - including `restore()` - and it is NOT removable via `shouldSkipDefaultFilter`,
+which stays scoped to `defaultFilter` alone (soft-delete's `restore()` reason for existing).
+`onMissing: 'deny'` compiles to an empty `inq` (`sql\`false\``); `'allow'` is the explicit opt-out.
+New internal-only escape hatch `dangerouslySkipScopeFilter` (parameter, never on `IExtraOptions`,
+never wire-reachable) prevents `find()`'s own recursive call into `findWithCoreAPI` from AND-composing
+the scope twice. `getScopeFilterSettings()` mirrors the existing `getDefaultFilter()` override seam,
+needed because `applyScopeFilter` also resolves `this.entity` - a synthetic test repository with no
+model binding must override it the same way it already overrides `getDefaultFilter()`.
+
+**Search repositories are NOT covered** (owner decision, not a gap found late): `search/core`'s
+`buildQuery`/`compileEffectiveWhere` pipeline never reads `scopeFilter`. Documented in the changelog,
+the `scopeFilter` doc comment, and `connectors.md`'s search section - a half-covered security feature
+is worse than an absent one if a reader assumes the absent half is covered.
+
+Tests: `connectors/src/__tests__/postgres/repositories/scope-filter.test.ts` (unit, SQL-text
+assertions for AND-composition/deny/allow/byte-identical) and
+`connectors/src/__tests__/relational/conformance/pglite-scope-filter.test.ts` (PGlite e2e - every
+verb including `restore()`'s cross-tenant leak proof). Changelog:
+`docs/wiki/content/changelogs/2026-08-30-row-scope-filter.md`.
+
+## 2026-08-30 - `TWhere<T>` now types the value, not only the column
+
+`packages/filter/src/common/types.ts`: `TWhere<T>` was `{ [key in keyof T]?: any }` - a key not on
+`T` was already rejected, but any value of any type compiled for a real column (`{ status: 123 }`
+against a `string` column compiled clean). Added `TWhereOperators<V>` (mirrors all 25 field operators
+in `common/operators.ts` `QueryOperators`, plus `not`) and `TWhereValue<V> = V | null |
+TWhereOperators<V>` (`| null` mandatory - it is how a caller writes `IS NULL`); `TWhere<T>` now maps
+each key to `TWhereValue<T[key]>`. `between`/`notBetween` are now a `[V, V]` tuple, so wrong arity is
+a compile error too.
+
+Fallout, all fixed: `connectors` - 4 sites (`persistable.ts`, `readable.ts`, `soft-deletable.ts`)
+build `{ id: opts.id }` (`IdType`) against `TWhere<DataObject>` where `DataObject` is a class generic
+too deep (through `EntitySchema['$inferSelect']`) for `tsc` to resolve; tightening the generic
+constraint was tried and rejected (the default type parameter fails its own tightened constraint, and
+the failure cascades into the postgres/sqlite subclasses without fixing the original sites) - fixed
+with a narrow `as TWhere<DataObject>` cast per site instead. `core-server` -
+`postgres-query-operators-between.test.ts` needed `as any` on its two deliberately-wrong-arity cases
+to still reach the runtime guard. `examples/vert` - one real error (`Date` against a `string` column,
+fixed with `.toISOString()`, did not widen the column type) plus 2 cascades. New test:
+`core-server/src/__tests__/filter-builder/where-type-safety.test.ts` (`@ts-expect-error` markers
+verified load-bearing by temporarily removing each). Does not cover JSON/JSONB columns (`any` in
+application schemas) or dot-path key typing (needs `$type<>()` first) - deliberately out of scope.
+All of `filter`, `kernel`, `connectors`, `core-server`, `core-worker`, `boot` and all 12 examples
+green (tsc, `bun test`, eslint, prettier); `make purity` green.
+
+## 2026-08-30 - `RecursiveTreeSql` now supports SQLite as well as Postgres, with no new option
+
+`packages/kernel/src/base/repositories/sqls/recursive-tree.ts` was Postgres-only as of the entry
+below ("Tree utilities (`helpers`) and `RecursiveTreeSql` (`kernel`)"). The dialect is now read off
+`table` itself - `is(table, PgTable)` (from `drizzle-orm/pg-core`) vs `is(table, SQLiteTable)` (from
+`drizzle-orm/sqlite-core`), tagged internally by a private (non-exported) `RecursiveTreeEngines`
+const-class - so `IRecursiveTreeOptions` gained zero new fields, mandatory or optional. A table
+belonging to neither engine (checked with a `drizzle-orm/mysql-core` table in tests) throws the same
+`getError` shape as an invalid table, naming the table rather than silently compiling the wrong
+dialect's syntax. This matches how `connectors` already keys dialect off the concrete table/executor
+pair rather than an `engine` string - no new selection pattern invented.
+
+The `trackPath` cycle guard, the only Postgres-specific SQL in the file, now has two forms picked by
+the same `switch (engine)`: Postgres keeps `path` as a native array (`ARRAY[...]`, `= ANY(path)`),
+unchanged. SQLite has no array type, so `path` is text with every id delimited on both sides by
+`char(31)` (ASCII Unit Separator, via a module-level `sql.raw('char(31)')` constant reused in both
+the base and recursive terms) and membership is `instr(path, char(31) || id || char(31)) > 0` -
+double-sided delimiting is what stops a partial match (id `1` inside a path containing `12`). This is
+exact as long as no id value itself contains a `char(31)` byte; that byte does not occur in ordinary
+UUIDs, serials, slugs, or emails, but is neither validated nor escaped, so an id that did contain it
+could produce a false-negative cycle match - documented as the one semantic gap, not silently
+accepted. `depth`'s cast also differs per engine (`::int` for Postgres, `CAST(... AS INTEGER)` for
+SQLite, since SQLite has no `::` operator) via a second `switch (engine)` method.
+
+Proved the Postgres path byte-identical: a new test in `recursive-tree.test.ts` asserts the exact
+full SQL string (trackPath + extra columns + recursiveFilter + custom startDepth together) against
+the pre-change output, captured by running the original file's logic side by side before editing.
+23 pre-existing Postgres tests pass unchanged. New: `recursive-tree-sqlite.test.ts` (23 tests,
+mirroring the Postgres suite - shape, trackPath on/off, maxDepth throws, injection rejection
+including the `'id"; DROP TABLE users; --'` case, other guard rails) and
+`recursive-tree-dialect.test.ts` (2 tests, the MySQL-table rejection). `kernel` green (tsc, `bun
+test` 120/120, eslint, prettier) and rebuilt; `core-worker` and `core-server` both still green (85
+and 1274 passing respectively) against the rebuilt `kernel`; `make purity-kernel` still 2/2 pure -
+the two new subpath imports (`drizzle-orm/pg-core`, `drizzle-orm/sqlite-core`) are the same
+already-declared optional peer (`drizzle-orm`), not a new dependency. Updated the `packages/kernel`
+concept's "Recursive tree SQL" section and
+`docs/wiki/content/changelogs/2026-08-30-tree-and-recursive-sql.md` (options table, the `table`
+section, Cycle safety, and the Details bullet all corrected from "Targets PostgreSQL" to describe
+both engines and the delimiter gap).
+
+## 2026-08-30 - Ten more classes extend `BaseHelper` for scoped logging
+
+`ApplicationEnvironment` (`helpers`), `GrpcRequestAdapter`, `SwaggerUIProvider`/`ScalarUIProvider`, `NumericCodeGenerator`/`RandomTokenGenerator`/`DefaultVerificationDataGenerator` (`core-server`), `MeilisearchQueryDialect`/`TypesenseQueryDialect` (`connectors`), `InProcessBffTransport` (`core-worker`) now `extends BaseHelper`, each adding `super({ scope: <ClassName>.name })` as the constructor's first statement (a constructor was added where none existed). All keep their existing `implements` clause - none had a member colliding with `scope`/`identifier`/`logger`/`getIdentifier`/`getLogger`, so none needed the `AuthorizationRole`-style exclusion.
+
+Logging added where a real failure path existed, matching neighbouring classes' style (`this.logger.for(<method>.name).warn/error(...)`): `InProcessBffTransport.fetch`'s `catch (error)` now logs before re-throwing the decoded `ApplicationError` (was silent); `SwaggerUIProvider`/`ScalarUIProvider.render` now wrap their optional-peer `await import(...)` in try/catch, log the failure, and throw a `getError` naming the missing package (mirrors `ModuleUtility.fail`'s pattern); both `MeilisearchQueryDialect`/`TypesenseQueryDialect`'s `compileOperatorClause` now log a `warn` immediately before every `throwUnsupportedOperator` call (Typesense: `is`/`isNot` on `null`, `exists`/`notExists`, and the default case; Meilisearch: the default case only - it has no null-only rejections). No logging added to `GrpcRequestAdapter`, the mail generators, or `ApplicationEnvironment` - none had a failure path in scope for this change.
+
+All four packages (`helpers`, `connectors`, `core-server`, `core-worker`) green after rebuilding `helpers` then `connectors`: tsc, `bun test` (counts unchanged: 1454/1179/1266/85 passing), eslint, prettier. `make purity` unchanged at 34/34 pure (8 waived).
+
+## 2026-08-30 - `hash()` and `utilities/crypto.utility.ts` removed outright (supersedes the shim decision recorded below)
+
+The shim decision in the "`Hash` class added to `modules/crypto`" entry below - keep `hash()`, delegate to `Hash` - was reversed before shipping. `utilities/crypto.utility.ts` and its test are deleted entirely, and the barrel no longer exports `hash`. There is no delegating wrapper and no `@deprecated` alias: `hash()` does not exist. Every caller (~15 external call sites, all BANA payment code) must migrate directly to `Hash.withAlgorithm(...).digest()`/`.hmac()`. Digest bytes are unchanged, so a migrated call site produces the same value a payment gateway already verifies.
+
+Docs-only follow-up for the reversal: rewrote `docs/wiki/content/changelogs/2026-08-30-crypto-hashing.md`'s hashing section from "deprecated, delegates" to "removed", with a migration table for the three known call shapes; rewrote the Hashing section of `docs/wiki/content/extensions/helpers/crypto/reference.md` around `Hash` (source link, API table, troubleshooting entry); added a short `Hash` mention to `docs/wiki/content/extensions/helpers/crypto/index.md`; removed `docs/wiki/content/references/utilities/crypto.md` outright - its entire subject was the deleted function - along with its `references/utilities/index.md` entry and its `docs/wiki/site/.vitepress/config.mts` sidebar entry; dropped `crypto.utility.ts` from the `./utilities` barrel comment in `packages/helpers/src/core.ts` and from the `packages/helpers` concept's crypto bullet and `/core` paragraph.
+
+## 2026-08-30 - Tree utilities (`helpers`) and `RecursiveTreeSql` (`kernel`) - BANA's tree/graph mechanism moved into IGNIS
+
+Per the agent contract `2026-08-31-tree-graph.md`: BANA hand-wrote 15 recursive SQL queries (14 with their own depth guard, 1 without - which hung a production process walking an unbounded parent chain) plus 2 duplicate in-memory tree algorithms. Both moved into IGNIS.
+
+`packages/helpers/src/modules/tree/` (pure - `Map`/`Set`/arrays only, no Drizzle/DI/I/O): `common/types.ts` (`ITreeNode<T>`, `INodeWithPath<T>`, the option interfaces), `walk.ts` (`TreeWalker`: static `walk`/`walkAsync`/`height`/`heightWhere`/`count`/`collectLeaves`), `builder.ts` (`TreeBuilder`: static `build`/`leaves`/`nonLeaves`/`print`). Named `TreeBuilder` not `GraphHelper` - `build` cuts cycles, so the result is always a tree, and a wider name invites real graph algorithms (shortest path, topological sort) it does not and should not implement. Kept both `walk` and `walkAsync` as distinctly-named methods rather than one method with a mode flag - the return types genuinely differ (`void` vs `Promise<void>`), unlike the event-bus `mode` case where the same work just runs differently. Three behaviors preserved verbatim from production, commented in the code because each is counter-intuitive: `shouldPrune(node, depth)` returning `true` still visits the node, only its children are skipped from the queue; `build`'s `seen`-by-`getKey` cycle guard SKIPS a repeated branch rather than throwing, because real hierarchies contain legitimate diamonds; `leaves({ includePath: true })` returns the root-to-leaf chain alongside each leaf. `modules/index.ts` gained `export * from './tree'` (also added the pre-existing but undocumented `slug` to the same list and to the module-map prose - a gap unrelated to this change, fixed while touching the same line).
+
+`packages/kernel/src/base/repositories/sqls/recursive-tree.ts`: `RecursiveTreeSql.walk(opts)` builds a Postgres `WITH RECURSIVE` fragment (a Drizzle `SQL`) walking an adjacency-list table up or down from `rootId`, bounded by a MANDATORY `maxDepth` (no `?`, no default - validated at runtime too, `<= 0` throws via `getError`, since `0` type-checks but silently returns nothing). `table` stays `unknown` per the contract's own settled decision - IGNIS cannot see an application's schema, and a type that pretends to know is worse than `unknown` because it looks safe; validated at runtime with `is(table, Table)` from `drizzle-orm`, throwing `getError` naming what arrived. `name`/`idColumn`/`parentColumn`/every entry of `columns` become SQL identifiers, so each is checked against a strict allowlist (`^[A-Za-z_][A-Za-z0-9_]*$`) before reaching a template, on top of `sql.identifier`'s own quoting - identifiers can't be parameterized the way values can, so this is the primary injection defense, not an afterthought. `trackPath: true` emits `path`/`is_cycle` using the standard Postgres cycle-detection idiom and adds `AND NOT r.is_cycle` so a flagged row is never re-expanded; `maxDepth` alone already guarantees termination regardless of `trackPath`. `RecursiveTreeDirections` (`UP`/`DOWN`) uses the repo's const-class + `TConstValue` idiom, matching `RepositoryOperationScopes`, not the bare `as const` object the contract's draft API showed. Targets PostgreSQL only (native array `path` + `= ANY(...)`, no SQLite equivalent). `repositories/index.ts` gained `export * from './sqls'`; confirmed `import { RecursiveTreeSql } from '@venizia/ignis'` resolves through `core-server`'s built `dist/index.js` (kernel re-exported wholesale, no new core-server code needed).
+
+Tests: 21 new in `helpers/__tests__/tree/` (all three preserved behaviors, a real cycle terminating, BFS depth/order, height/heightWhere/count/collectLeaves, print). 23 new in `kernel/__tests__/repositories/sqls/` (generated-SQL shape via `PgDialect().sqlToQuery` for both directions, trackPath on/off, `maxDepth <= 0`/non-integer throws, malicious `idColumn`/`parentColumn`/`name`/`columns` entries all rejected before reaching a template, a non-Drizzle `table` rejected). No live-database execution test - kernel carries no Postgres/PGlite devDependency and adding one for this alone was out of scope; verified via SQL-text assertions instead, consistent with the existing `dialect/*.test.ts` pattern in `connectors`. `helpers`/`kernel`/`core-server` all green (tsc, `bun test`, eslint, prettier) and rebuilt; `make purity-helpers` and `purity-kernel` both fully pure after rebuild. Updated the `packages/helpers` and `packages/kernel` concepts and `docs/wiki/content/changelogs/2026-08-30-tree-and-recursive-sql.md`.
+
+## 2026-08-30 - `kdfSalt`/`kdfIterations` overrides for AES key derivation
+
+`DEFAULT_KDF_SALT` (`crypto/common/constants.ts`) is a single string shipped in every IGNIS deployment, flagged by a prior sweep: one precomputed table attacks every deployment deriving a key from a weak passphrase. Changing the default was ruled out - a downstream product already has ciphertext encrypted under it, and a new default would make that permanently undecryptable. Added optional `kdfSalt`/`kdfIterations` to `AES`'s `encrypt`/`decrypt` `opts` (`IAESDecryptOptions`), threaded through `resolveEncryptKey`/`resolveDecryptKey` (now options-object methods, previously positional) to `BaseCryptoAlgorithm.normalizeSecretKey`. Omitting both reproduces the shipped default byte-for-byte, pinned in a test against a `node:crypto` `pbkdf2Sync` call using the literal salt/iteration values (not read from the module's own constants), so a change to the default fails that test. A supplied `kdfSalt` must be at least 16 UTF-8 bytes (`MINIMUM_KDF_SALT_BYTES`, NIST SP 800-132's 128-bit minimum) or `normalizeSecretKey` throws via `getError` - an empty or short salt would look configured while giving up most of the protection. `LegacyAES` deliberately does NOT get the option: its `normalizeSecretKeyLegacy` is padEnd/truncate, never PBKDF2, so there is no salt to override, and adding the option there would silently do nothing. `RSA` and `ECDH` don't derive keys via PBKDF2 from a passphrase, so neither takes the option. Documented the weakness directly on `DEFAULT_KDF_SALT`. Left unchanged and reported (not this sweep's scope): `RSA.generateDERKeyPair({ modulus })` still accepts any modulus with no lower bound. Updated the `packages/helpers` concept (crypto section) and `docs/wiki/content/changelogs/2026-08-30-crypto-hashing.md`.
+
+## 2026-08-30 - `retry.utility.ts` moved to `modules/retry/`; deprecated aliases gone for good
+
+The five module-level aliases (`executeWithRetry`, `executeWithRetryUntil`, `runWithTimeout`, `isRetryTimeoutError`, `computeBackoffDelayMs`) had already been dropped from `RetryHelper`'s source in a prior change that never touched the test file or the two downstream call sites still importing them bare from `@venizia/ignis-helpers/core` - `packages/kernel/src/base/events/event-bus.ts` and `.../repositories/core/abstract.ts` - leaving the whole monorepo red (`tsc` failed on the test file; `bun test` in `connectors` threw `SyntaxError: Export named 'executeWithRetry' not found`). Fixed both call sites to `RetryHelper.executeWithRetry`/`RetryHelper.executeWithRetryUntil`.
+
+Also completed the pending structural move: `packages/helpers/src/utilities/retry.utility.ts` (487 lines, flat) is now `src/modules/retry/` - `common/constants.ts` (`RetryBackoffStrategies`, `RetryJitterModes`, their `TRetry*` types), `common/types.ts` (`IRetryBackoffOptions`, `IRetryContext`), `helper.ts` (`RetryHelper`), matching the `crypto`/`uid` module shape. `src/core.ts` now re-exports `RetryHelper`/`RetryBackoffStrategies`/`RetryJitterModes`/the option types from these new leaf files instead of `./utilities/retry.utility` - still leaf-path, never the module's own `modules/retry` barrel, consistent with every other `/core` entry. `modules/index.ts` gained `export * from './retry'`; `utilities/index.ts` lost its retry re-export. The class-level comment justifying `RetryHelper.xxx(...)` over `this.xxx(...)` no longer cites the removed aliases - detachability into a standalone reference is reason enough on its own.
+
+Test file moved to `__tests__/retry/helper.test.ts`; the `'deprecated module-level aliases delegate to RetryHelper'` block (5 tests) is deleted outright rather than migrated - the risk it guarded (a detached static losing `this`) died with the aliases it detached. Every other test rewritten from bare calls (`executeWithRetry(...)`) to `RetryHelper.executeWithRetry(...)` and kept, unchanged in behavior: 42 -> 37 tests in this file, 1431 pass package-wide. `make purity-helpers` still 4/4 after rebuild. `connectors`/`core-server`/`core-worker`/`kernel` all green after rebuilding `kernel`'s dist. Updated the `packages/helpers` concept (module map, `/core` paragraph, retry section) and `references/utilities/retry` + `references/base/repositories/advanced` wiki pages; the wiki page was NOT moved - it documents a user-facing concept ("Utilities"), and `crypto`/`pool` already live in `modules/` while staying documented under `references/utilities/`.
+
+## 2026-08-30 - New convention: narrow only what the framework owns
+
+`conventions/narrowing-authority.md`. Written after `kernel@0.2.0-6` narrowed `PolicyDefinition.variant` to a closed union and broke a consuming application that stored its own edge kind in the same table. The narrowing was right about which values are wrong and wrong about who may extend the set - two separate questions that had been asked as one. Records the extensible-seam shape, why `TKnown | (string & {})` is rejected, why `unknown` beats a type that guesses at an application's schema, and that tightening a boundary type surfaces the whole loose chain feeding it one layer at a time (which reads as a cascade of new failures unless the changelog says otherwise).
+
+## 2026-08-30 - `RetryHelper` added to the browser-pure `/core` surface
+
+`src/core.ts` named only the `executeWithRetry`/`executeWithRetryUntil` aliases, so browser consumers could not reach the class that is now the canonical surface. Exporting `RetryHelper` also carries the four operations that have no alias in `/core` - `runWithTimeout`, `isRetryTimeoutError`, `computeBackoffDelayMs` and the private helpers - into the browser as statics, which is intended: the class is the API, the standalone aliases are back-compat for existing node code. Verified by `make purity-helpers` (4/4 entries browser-pure) rather than by reading imports, and by running `RetryHelper.executeWithRetry` through the built `/core` sub-path. Updated the `packages/helpers` concept and the wiki retry reference.
+
+## 2026-08-30 - `Hash` class added to `modules/crypto`; `crypto.utility.ts`'s plaintext-passthrough removed
+
+`utilities/crypto.utility.ts`'s `hash(text, options)` had two branches that returned `text` unhashed - a missing SHA256 secret, and any algorithm outside `'SHA256' | 'MD5'` - so a caller that forgot `secret` stored or compared plaintext with no error. Added `Hash` to `packages/helpers/src/modules/crypto/algorithms/hash.algorithm.ts`: a `BaseHelper` (not `BaseCryptoAlgorithm`/`ICryptoAlgorithm` - a digest has no inverse, so there is no `decrypt` to implement). `digest({ message, opts? })` takes no secret; `hmac({ message, secret, opts? })` requires one and throws (via `getError`) if it is empty. `HashAlgorithms` (`md5`/`sha1`/`sha256`/`sha384`/`sha512`) and `HashOutputEncodings` (`hex`/`base64`/`base64url`) are new const-classes with `TConstValue` types in `crypto/common/constants.ts`, alongside a new `DEFAULT_HASH_OUTPUT_ENCODING` (`hex`).
+
+`crypto.utility.ts`'s `hash()` keeps its exact positional signature (published API, ~15 external call sites in BANA payment code) and now delegates to `Hash`, byte-identical for every existing call site (pinned against `node:crypto` directly in `__tests__/utilities/crypto.utility.test.ts`); the one behavior change is both former passthrough branches now throw. Also replaced the deprecated `crypto.Encoding` type with `BufferEncoding` in `aes.algorithm.ts`, `aes-legacy.algorithm.ts` (not previously flagged, found by the same sweep), and `rsa.algorithm.ts` - identical type in the resolved `@types/node`, zero behavior change. Swept the rest of `modules/crypto` for other deprecated/discouraged Node crypto APIs: none found (`createCipheriv`/`createDecipheriv` throughout, no unsalted `createCipher`, no legacy `Buffer()` constructor, RSA OAEP padding is Node's default). Two pre-existing judgement calls left unchanged and reported, not fixed: PBKDF2's salt (`DEFAULT_KDF_SALT`) is a single hardcoded string shared by every derived key, and `RSA.generateDERKeyPair` accepts any `modulus` including insecure sizes (e.g. 1024) with no lower bound. Updated the `packages/helpers` concept.
+
+## 2026-08-30 - `retry.utility.ts` converted to a `RetryHelper` class
+
+`packages/helpers/src/utilities/retry.utility.ts` held nine module-level arrow functions instead of the repo's class-oriented convention. Moved all nine (plus the private `RETRY_TIMEOUT_MARKER` symbol) onto a new `RetryHelper` class as static/private-static members, modeled on `LoggerFactory`'s shape. `RetryBackoffStrategies`/`RetryJitterModes` were already correct const-classes and are untouched.
+
+The five public names (`isRetryTimeoutError`, `runWithTimeout`, `computeBackoffDelayMs`, `executeWithRetry`, `executeWithRetryUntil`) are published API with external consumers, so they stay as `@deprecated` module-level `const` aliases assigned straight from the class (`export const executeWithRetry = RetryHelper.executeWithRetry;`). A detached static method loses its `this` binding, so every cross-method call inside the class uses the explicit `RetryHelper.xxx(...)` form, never `this.xxx(...)` - otherwise the aliases would throw at runtime when called as bare functions. `executeWithRetryUntil` stays a plain loop, not a wrapper around `executeWithRetry`, per its own comment.
+
+`packages/helpers/src/utilities/index.ts` (`export *`) and `src/index.ts` already surface `RetryHelper` and all five aliases with no change; `src/core.ts`'s hand-curated browser-pure subset only ever named `executeWithRetry`/`executeWithRetryUntil`/the two const-classes individually and still does - widening it to `RetryHelper` or the other three exports was out of scope for this structural-only change. Test count: 37 -> 42 in `retry.utility.test.ts` (5 new alias-delegation tests), 1391 -> 1396 pass package-wide (16 skip unchanged). `connectors`/`core-server`/`kernel` suites unaffected (pre-existing, unrelated `tsc` errors in `connectors`/`core-server` predate this change). Updated the `packages/helpers` concept and the `references/utilities/retry` wiki page.
+
 ## 2026-08-30 - `PolicyDefinition.variant` can be widened per app, `effect` stays closed
 
 `kernel@0.2.0-6` narrowed `variant` (`core-server/.../models/entities/policy-definition.model.ts`) to `AuthorizationPolicyVariants.ALL`'s seven values, closing a real bug class - three wrong vocabularies (`p`/`g`, `group`/`policy`) had shipped before, and `ScopedCasbinAdapter` filters every query with an explicit `variant = ...`, so a wrong value silently selects zero rows (permanent 403, no error). But the narrowing over-reached: it left no way for an app to store its own edge type in the same table, a pattern the adapter was always safe to ignore (unknown variants are simply never selected).

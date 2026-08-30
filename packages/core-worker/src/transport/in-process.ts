@@ -1,4 +1,4 @@
-import { RequestIdGenerator } from '@venizia/ignis-helpers/core';
+import { BaseHelper, RequestIdGenerator } from '@venizia/ignis-helpers/core';
 import { BffEnvelope } from '@/envelope/encode';
 import type { IBffResponseEnvelope } from '@/envelope/types';
 import type { IBffTransport } from './common/types';
@@ -13,13 +13,15 @@ import type { IBffTransport } from './common/types';
  * What it deliberately does NOT mirror is the timeout: in-process there is no message that can be
  * lost, so a handler either settles or the caller's own test timeout fires.
  */
-export class InProcessBffTransport implements IBffTransport {
+export class InProcessBffTransport extends BaseHelper implements IBffTransport {
   private readonly handler: (request: Request) => Promise<Response>;
   private readonly requestIdGenerator = new RequestIdGenerator({
     scope: InProcessBffTransport.name,
   });
 
   constructor(opts: { handler: (request: Request) => Promise<Response> }) {
+    super({ scope: InProcessBffTransport.name });
+
     this.handler = opts.handler;
   }
 
@@ -38,6 +40,8 @@ export class InProcessBffTransport implements IBffTransport {
       const response = await this.handler(BffEnvelope.decodeRequest({ envelope: requestEnvelope }));
       responseEnvelope = await BffEnvelope.encodeResponse({ response, id });
     } catch (error) {
+      this.logger.for(this.fetch.name).error('Handler failed | id: %s | error: %s', id, error);
+
       // Encoded and decoded rather than rethrown: what a UI receives over a real Worker is a
       // rebuilt `ApplicationError` carrying only the normalised shape - never the original object,
       // its stack or its `extra`.

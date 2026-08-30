@@ -19,7 +19,8 @@ describe('PostgresQueryOperators.FNS - between/notBetween invalid-value errors',
       filterBuilder.toWhere({
         tableName: 'items',
         schema: table,
-        where: { price: { between: [10] } },
+        // Deliberately wrong arity to prove the RUNTIME guard fires for a wire caller TypeScript cannot see.
+        where: { price: { between: [10] as any } },
       });
     } catch (error) {
       caught = error;
@@ -36,7 +37,8 @@ describe('PostgresQueryOperators.FNS - between/notBetween invalid-value errors',
       filterBuilder.toWhere({
         tableName: 'items',
         schema: table,
-        where: { price: { notBetween: [10, 20, 30] } },
+        // Deliberately wrong arity to prove the RUNTIME guard fires for a wire caller TypeScript cannot see.
+        where: { price: { notBetween: [10, 20, 30] as any } },
       });
     } catch (error) {
       caught = error;

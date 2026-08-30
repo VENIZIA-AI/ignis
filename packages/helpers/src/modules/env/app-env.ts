@@ -1,3 +1,4 @@
+import { BaseHelper } from '@/modules/base';
 import { EnvironmentNames } from './names';
 import { IApplicationEnvironment } from './types';
 
@@ -17,11 +18,13 @@ export class Environment extends EnvironmentNames {
   }
 }
 
-export class ApplicationEnvironment implements IApplicationEnvironment {
+export class ApplicationEnvironment extends BaseHelper implements IApplicationEnvironment {
   private prefix: string;
   private arguments: Record<string, any> = {};
 
   constructor(opts: { prefix: string; envs: Record<string, string | number | undefined> }) {
+    super({ scope: ApplicationEnvironment.name });
+
     this.prefix = opts.prefix;
 
     for (const key in opts.envs) {

@@ -65,6 +65,10 @@ class CapturingRepository extends ReadableRepository<any> {
     return undefined;
   }
 
+  override getScopeFilterSettings() {
+    return undefined;
+  }
+
   override getDefaultLimit(): number | undefined {
     return undefined;
   }

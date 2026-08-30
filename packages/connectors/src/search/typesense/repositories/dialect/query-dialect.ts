@@ -1,4 +1,4 @@
-import { QueryOperators, Sorts, type TFilter, type TWhere } from '@venizia/ignis-filter';
+import { SearchErrors } from '@/search/core/common';
 import type {
   ISearchCompileCapabilities,
   ISearchQuery,
@@ -17,8 +17,8 @@ import {
   toFilterClause,
 } from '@/search/core/repositories/common/dialect-helpers';
 import type { ITypesenseSearchQuery } from '@/search/typesense/repositories/common';
-import { SearchErrors } from '@/search/core/common';
-import { getError } from '@venizia/ignis-helpers/core';
+import { QueryOperators, Sorts, type TFilter, type TWhere } from '@venizia/ignis-filter';
+import { BaseHelper, getError } from '@venizia/ignis-helpers/core';
 
 /** The non-raw search inputs the dialect translates; `raw` bypasses the dialect entirely. */
 type TTranslatableSearchInput = Exclude<TSearchInput, { mode: typeof SearchModes.RAW }>;
@@ -155,7 +155,11 @@ class SearchWireKeys {
 }
 
 /** Translates repository-level TFilter/TWhere into Typesense search params - pure string building, no dependency on the `typesense` package. Untranslatable shapes (relations, pattern/regex) throw, as does any field name the collection does not declare. */
-export class TypesenseQueryDialect implements ISearchQueryDialect {
+export class TypesenseQueryDialect extends BaseHelper implements ISearchQueryDialect {
+  constructor() {
+    super({ scope: TypesenseQueryDialect.name });
+  }
+
   build(opts: {
     filter?: TFilter;
     hiddenFields?: string[];
@@ -570,6 +574,15 @@ export class TypesenseQueryDialect implements ISearchQueryDialect {
       case QueryOperators.IS: {
         // Mirrors PostgresQueryOperators.FNS[IS] (maps null to isNull(column)) for a real value; the null form is the NO_NULL_REASON limitation.
         if (value === null) {
+          this.logger
+            .for(this.compileOperatorClause.name)
+            .warn(
+              'Unsupported operator | operator: %s | field: %s | engine: %s | reason: %s',
+              op,
+              field,
+              ENGINE,
+              NO_NULL_REASON,
+            );
           return throwUnsupportedOperator({
             operator: op,
             field,
@@ -581,6 +594,15 @@ export class TypesenseQueryDialect implements ISearchQueryDialect {
       }
       case QueryOperators.IS_NOT: {
         if (value === null) {
+          this.logger
+            .for(this.compileOperatorClause.name)
+            .warn(
+              'Unsupported operator | operator: %s | field: %s | engine: %s | reason: %s',
+              op,
+              field,
+              ENGINE,
+              NO_NULL_REASON,
+            );
           return throwUnsupportedOperator({
             operator: op,
             field,
@@ -631,6 +653,15 @@ export class TypesenseQueryDialect implements ISearchQueryDialect {
       case QueryOperators.EXISTS:
       case QueryOperators.NOT_EXISTS: {
         // The same limitation as `is: null` - stated once, in NO_NULL_REASON.
+        this.logger
+          .for(this.compileOperatorClause.name)
+          .warn(
+            'Unsupported operator | operator: %s | field: %s | engine: %s | reason: %s',
+            op,
+            field,
+            ENGINE,
+            NO_NULL_REASON,
+          );
         return throwUnsupportedOperator({
           operator: op,
           field,
@@ -639,6 +670,9 @@ export class TypesenseQueryDialect implements ISearchQueryDialect {
         });
       }
       default: {
+        this.logger
+          .for(this.compileOperatorClause.name)
+          .warn('Unsupported operator | operator: %s | field: %s | engine: %s', op, field, ENGINE);
         return throwUnsupportedOperator({ operator: op, field, engine: ENGINE });
       }
     }

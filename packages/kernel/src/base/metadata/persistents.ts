@@ -7,8 +7,8 @@ import type {
   IResolvedRepositoryMetadata,
 } from '@/helpers/inversion';
 import { BindingKeys, MetadataKeys, MetadataRegistry } from '@/helpers/inversion';
-import { getError } from '@venizia/ignis-helpers/core';
 import { resolveClass, resolveValue } from '@venizia/ignis-helpers/common';
+import { getError } from '@venizia/ignis-helpers/core';
 import type { IDataSource } from '../datasources';
 import { isDataSourceClass } from '../datasources';
 import type { AbstractEntity } from '../models';

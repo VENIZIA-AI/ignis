@@ -1,4 +1,5 @@
 import type {
+  IScopeFilterSettings,
   TDrizzleQueryOptions,
   TFields,
   TFilter,
@@ -6,7 +7,13 @@ import type {
   TQueryOperatorHandlers,
   TWhere,
 } from '@venizia/ignis-kernel';
-import { DEFAULT_LIMIT, QueryOperators, RelationTypes, Sorts } from '@venizia/ignis-kernel';
+import {
+  DEFAULT_LIMIT,
+  QueryOperators,
+  RelationTypes,
+  ScopeFilterMissingBehaviors,
+  Sorts,
+} from '@venizia/ignis-kernel';
 import type { TTableObject, TTableSchemaWithId } from '@/relational/core/models/common';
 import { MetadataRegistry } from '@venizia/ignis-kernel';
 import type { TConstValue } from '@venizia/ignis-helpers/common';
@@ -28,7 +35,7 @@ import {
 import isEmpty from 'lodash/isEmpty';
 import set from 'lodash/set';
 import type { TRelationConfig, TTableColumns } from '../common';
-import { TableColumnCache } from '../common';
+import { ScopeFilterDenial, TableColumnCache } from '../common';
 import {
   isJsonPath,
   parseJsonPath,
@@ -220,6 +227,47 @@ export abstract class FilterBuilder extends BaseHelper {
       this.resolveModelEntry({ schema: opts.schema, methodName: 'resolveDefaultFilter' });
 
     return modelEntry?.metadata?.settings?.defaultFilter;
+  }
+
+  /** Resolves row-scope settings for a schema from MetadataRegistry - the relation's OWN `@model` entry, never the parent's. */
+  resolveScopeFilter(opts: {
+    schema: TTableSchemaWithId;
+    modelEntry?: TResolvedModelEntry;
+  }): IScopeFilterSettings | undefined {
+    const modelEntry =
+      opts.modelEntry ??
+      this.resolveModelEntry({ schema: opts.schema, methodName: 'resolveScopeFilter' });
+
+    return modelEntry?.metadata?.settings?.scopeFilter;
+  }
+
+  /**
+   * Row scope for an included relation, mirroring `applyScopeFilter` in the repository tier
+   * exactly: unconditional - never gated by `shouldSkipDefaultFilter` - and deny-by-default when
+   * `resolve()` cannot determine a scope. A throwing `resolve()` is never caught here, so it
+   * propagates the same way it does on the parent.
+   */
+  private applyRelationScopeFilter(opts: {
+    userFilter?: TFilter;
+    scopeFilterSettings?: IScopeFilterSettings;
+  }): TFilter {
+    const { userFilter, scopeFilterSettings } = opts;
+
+    if (!scopeFilterSettings) {
+      return userFilter ?? {};
+    }
+
+    const scopeWhere = scopeFilterSettings.resolve();
+
+    if (scopeWhere !== null && scopeWhere !== undefined) {
+      return this.mergeFilter({ defaultFilter: { where: scopeWhere }, userFilter });
+    }
+
+    if (scopeFilterSettings.onMissing === ScopeFilterMissingBehaviors.ALLOW) {
+      return userFilter ?? {};
+    }
+
+    return this.mergeFilter({ defaultFilter: { where: ScopeFilterDenial.where() }, userFilter });
   }
 
   /** Resolves default row limit for a schema from MetadataRegistry. */
@@ -470,7 +518,7 @@ export abstract class FilterBuilder extends BaseHelper {
         });
       }
 
-      // Resolved ONCE and handed to all three readers: they ask the registry the same question
+      // Resolved ONCE and handed to all four readers: they ask the registry the same question
       // about the same schema, and the lookup - `getTableName` plus a registry read - is the
       // measured cost of this loop, not the reads off the entry.
       const modelEntry = this.resolveModelEntry({
@@ -483,11 +531,22 @@ export abstract class FilterBuilder extends BaseHelper {
         modelEntry,
       });
 
+      // Row scope is this relation's OWN `@model` setting - never the parent's - and is applied
+      // BEFORE `defaultFilter` so it survives `shouldSkipDefaultFilter` exactly like the parent.
+      const scopeFilterSettings = this.resolveScopeFilter({
+        schema: relationConfig.schema,
+        modelEntry,
+      });
+      const scopedUserFilter = this.applyRelationScopeFilter({
+        userFilter: scope,
+        scopeFilterSettings,
+      });
+
       const defaultFilter = shouldSkipDefaultFilter
         ? undefined
         : this.resolveDefaultFilter({ schema: relationConfig.schema, modelEntry });
 
-      const mergedScope = this.mergeFilter({ defaultFilter, userFilter: scope });
+      const mergedScope = this.mergeFilter({ defaultFilter, userFilter: scopedUserFilter });
       const scopedFilter: TFilter =
         relationConfig.type === RelationTypes.MANY
           ? {

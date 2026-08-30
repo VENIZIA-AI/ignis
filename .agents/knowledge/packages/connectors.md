@@ -107,6 +107,36 @@ no `drizzle-orm/pg-core` and no `drizzle-orm/sqlite-core` at all. For the depth,
 [SQLite connector](/architecture/sqlite-connector.md), and
 [Typesense search connector](/architecture/search-typesense.md).
 
+## `scopeFilter` - a row scope, relational only
+
+`@model` settings.scopeFilter (kernel) ANDs a per-request `where` into every relational read and
+write, including `restore()` - see `RelationalBaseRepository.applyScopeFilter` in
+`relational/core/repositories/core/base.ts`. It is a second, separate filter from `defaultFilter`:
+`shouldSkipDefaultFilter` never removes it, because that flag is what soft-delete's `restore()` uses
+to reach past `deletedAt: null`, and reusing one filter for both would hand `restore()` the same
+reach into another caller's row scope. `resolve()` returning null/undefined denies by default
+(matches zero rows) unless the model declares `onMissing: 'allow'`.
+
+**Search repositories (`search/core`, `typesense`, `meilisearch`) do not read this setting at all.**
+They compile filters through a different pipeline - `SearchBaseRepository.buildQuery` and
+`compileEffectiveWhere`, string `filterBy` expressions - and `scopeFilter` was deliberately left
+uncovered there rather than half-implemented. A model mirrored from a scoped relational entity into
+a search index carries no row scope in its search queries; the application must add its own.
+
+**`include` reaches `scopeFilter` too, at every relation and every nesting depth.**
+`FilterBuilder.toInclude` in `relational/core/repositories/dialect/filter.ts` resolves each relation's
+`scopeFilter` from that relation's OWN `@model` settings - not the parent's - the same
+`resolveModelEntry` lookup `resolveDefaultFilter`/`resolveHiddenProperties` already use, keyed by the
+relation's own SQL table name. A parent's scope never cascades to a child, and a child with no
+`scopeFilter` compiles to exactly the same query it always did. `toInclude` calls itself through
+`build()` for a relation's own `include`, so a relation of a relation is scoped by the same code path,
+not a special case. The relation-level `shouldSkipDefaultFilter` (on an `include` entry) still gates
+only that relation's `defaultFilter`; it is deliberately excluded from the wire filter schema (see
+`packages/filter/src/schemas/builder.ts`) precisely so it cannot double as a scope bypass. The deny
+predicate (`{ id: { inq: [] } }`) is a static method on `ScopeFilterDenial` in
+`relational/core/repositories/common/scope-filter.ts`, shared by `applyScopeFilter` and `toInclude` so
+the two tiers can never drift onto two different definitions of "deny".
+
 ## Every published sub-path is probed, and eight rows are waived
 
 `scripts/purity/manifest.ts` derives its rows from this package's `exports` map, so all 14 sub-paths

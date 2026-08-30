@@ -8,7 +8,7 @@ tags: [reference, helpers, catalog]
 
 > Generated from source - do not edit; run `make okf-gen`. Package: [helpers](/packages/helpers.md).
 
-**41 helper classes across 14 modules, 10 utilities.**
+**43 helper classes across 17 modules, 7 utilities.**
 
 ## Modules
 
@@ -23,12 +23,15 @@ tags: [reference, helpers, catalog]
 | `pool/` | `AbstractPoolHelper` · `BasePoolHelper` |
 | `queue/` | `BaseKafkaHelper` · `BullMQHelper` · `HfQueueHelper` · `KafkaAdminHelper` · `KafkaConsumerHelper` · `KafkaProducerHelper` · `KafkaSchemaRegistryHelper` · `MQTTClientHelper` · `SequentialQueueHelper` |
 | `redis/` | `AbstractRedisHelper` · `RedisClusterHelper` · `RedisSentinelHelper` · `RedisSingleHelper` |
+| `retry/` | `RetryHelper` |
 | `secrets/` | `AbstractSecretsHelper` · `DotenvVaultHelper` · `HashiCorpVaultHelper` · `SystemEnvsHelper` |
+| `slug/` | `SlugHelper` |
 | `socket/` | `SocketIOClientHelper` · `SocketIOServerHelper` · `WebSocketDeliveryHelper` · `WebSocketServerHelper` |
 | `storage/` | `BaseStorageHelper` · `BunS3Helper` · `DiskHelper` · `MemoryStorageHelper` · `MinioHelper` |
+| `tree/` | _(see source)_ |
 | `uid/` | `OpaqueUidHelper` · `SnowflakeUidHelper` |
 | `worker-thread/` | `AbstractWorkerBusHelper` · `AbstractWorkerHelper` · `AbstractWorkerMessageBusHandlerHelper` · `AbstractWorkerThreadHelper` · `BaseWorkerBusHelper` · `BaseWorkerHelper` · `BaseWorkerMessageBusHandlerHelper` · `BaseWorkerThreadHelper` · `WorkerPoolHelper` |
 
 ## Utilities
 
-`crypto` · `date` · `module` · `parse` · `performance` · `promise` · `request` · `retry` · `sleep` · `slug`
+`date` · `module` · `parse` · `performance` · `promise` · `request` · `sleep`

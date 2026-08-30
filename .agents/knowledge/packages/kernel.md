@@ -35,7 +35,7 @@ Everything under `src/base/` was the engine-neutral half of `packages/core-serve
 | `mixins/` | The mixin contracts (`IComponentMixin`, `IControllerMixin`, `IRepositoryMixin`, ...) that compose onto an application |
 | `models/` | `AbstractEntity` and the model settings shape |
 | `providers/` | `BaseProvider` |
-| `repositories/` | `AbstractRepository`, the repository error codes, and the decorated query schemas |
+| `repositories/` | `AbstractRepository`, the repository error codes, the decorated query schemas, and `sqls/` (`RecursiveTreeSql`) |
 | `request-context/` | `RequestContextRegistry` - the seam a server layer installs `hono/context-storage` into |
 | `services/` | `BaseService` and the CRUD service base |
 
@@ -137,6 +137,70 @@ side effect (patching `.openapi()` onto the shared prototype) and calls
 `buildQuerySchemas({ decorate })` to re-export the documented versions under the original names.
 Server code must import them from here, never from `@venizia/ignis-filter/schemas` - the undecorated
 instances validate identically and document nothing.
+
+`IModelSettings.scopeFilter` (`helpers/inversion/common/types.ts`) is the model-settings surface for
+a per-request row scope: `resolve()` returns a `where`, re-evaluated per query, and `onMissing`
+(default `deny`) decides what happens when it returns null/undefined. The kernel only declares the
+shape; `RelationalBaseRepository` in `connectors` is what enforces it - see
+[connectors](/packages/connectors.md) for the enforcement, the `restore()` interaction with
+`shouldSkipDefaultFilter`, and the search-repository gap.
+
+## Recursive tree SQL
+
+`base/repositories/sqls/recursive-tree.ts` exports `RecursiveTreeSql.walk(opts)`, which builds a
+`WITH RECURSIVE` fragment (a Drizzle `SQL` value) walking an adjacency-list table up (ancestors) or
+down (descendants) from `rootId`, for Postgres or SQLite. It lives here rather than in `helpers`
+because it returns Drizzle `SQL` - `helpers` carries no `drizzle-orm` dependency, deliberately.
+Ported from 14 hand-written BANA queries that each had to remember their own depth guard; one of
+the 14 forgot and hung a production process walking an unbounded parent chain.
+
+- **`maxDepth` is mandatory, no default, and validated at runtime (`<= 0` throws via `getError`).**
+  `0` type-checks but produces a recursive term that never runs and a result set that is silently
+  empty - the exact "zero looks plausible" failure this parameter exists to prevent. **It counts
+  EDGES, not rows**: the root sits at `depth 0`, so `maxDepth: N` returns up to `N+1` rows (measured
+  against a real Postgres - `1` gives 2 rows, `4` gives 5). "Depth" and "how many levels I want back"
+  are the same word to most callers and differ by one.
+- **`table` stays `unknown`**, checked at runtime with `is(table, Table)` from `drizzle-orm` rather
+  than tightened to a Drizzle generic - this package cannot see an application's schema, and a type
+  that pretends to know is worse than `unknown` because it looks safe. A non-table throws `getError`
+  naming what actually arrived.
+- **`table` also selects the SQL dialect.** `walk` checks `is(table, PgTable)` (from
+  `drizzle-orm/pg-core`) and `is(table, SQLiteTable)` (from `drizzle-orm/sqlite-core`) and compiles
+  the matching form internally, tagged with a private `RecursiveTreeEngines` const-class - there is
+  no `engine` option in `IRecursiveTreeOptions`, so the public API gained no new parameter and there
+  is no seam where an option could disagree with the schema it was called with. A table belonging to
+  neither (e.g. `drizzle-orm/mysql-core`'s `MySqlTable`) throws the same `getError` naming what
+  arrived, rather than silently compiling with the wrong dialect's syntax.
+- **SQL injection is the primary risk, not the usual value-parameterization one.** `name`,
+  `idColumn`, `parentColumn`, and every entry of `columns` become identifiers, and identifiers
+  cannot be parameterized the way values can. Each is checked against a strict allowlist
+  (`^[A-Za-z_][A-Za-z0-9_]*$`) before it reaches a template, on top of `sql.identifier`'s own
+  quoting. `rootId`, `maxDepth`, and `startDepth` are ordinary bound parameters.
+- **`trackPath: true`** emits a `path` value and an `is_cycle` flag, and adds `AND NOT r.is_cycle` to
+  the recursive term so a row already flagged cyclic is never expanded again. Without `trackPath`,
+  `maxDepth` alone still guarantees termination - it is the unconditional bound, `trackPath` only
+  adds early detection and a visible flag. **Both emitted columns reach the caller in a different
+  shape per engine, and nothing in the signature shows it** - `walk()` returns a `SQL`, so the row
+  shape is whatever the driver hands back. Postgres gives `path: string[]` and `is_cycle: boolean`;
+  SQLite gives `path: string` (ids wrapped in `char(31)`) and `is_cycle: 1 | 0`, because SQLite has
+  no boolean literal. `row.path.length` therefore throws on SQLite, and `row.is_cycle === true` is
+  quietly always false there - read it truthily and split `path` on `String.fromCharCode(31)`. The
+  cycle guard's shape differs by engine because SQLite has no array type:
+  - **Postgres**: `path` is a native array (`ARRAY[...]`), membership is `= ANY(path)` - unchanged
+    from the original Postgres-only version, verified byte-identical by a dedicated test.
+  - **SQLite**: `path` is text, with every id wrapped on both sides by `char(31)` (the ASCII Unit
+    Separator, via a `sql.raw('char(31)')` constant) so a delimiter-bounded `instr(path, char(31) ||
+    id || char(31)) > 0` cannot partial-match (an id of `1` inside a path containing `12`). This is
+    exact as long as no id value itself contains a `char(31)` byte - a control character that does
+    not occur in ordinary UUIDs, serials, slugs, or emails, but `RecursiveTreeSql` does not validate
+    or escape id values against it. An id that did contain that byte could produce a false-negative
+    cycle match. `depth`'s cast also differs (`::int` for Postgres, `CAST(... AS INTEGER)` for
+    SQLite) since SQLite has no `::` cast operator.
+- `RecursiveTreeDirections` (`UP`/`DOWN`) follows the repo's const-class + `TConstValue` idiom, not
+  a bare `as const` object - see `RepositoryOperationScopes` for the same shape.
+- The counterpart in-memory tree utilities (`ITreeNode<T>`, `TreeWalker`, `TreeBuilder`) live in
+  `@venizia/ignis-helpers`' `modules/tree` - see [helpers](/packages/helpers.md). They are pure and
+  carry no Drizzle dependency, which is why they are not here too.
 
 ## Auth seams
 

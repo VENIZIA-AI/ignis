@@ -1,4 +1,4 @@
-import { QueryOperators, type TFilter, type TWhere } from '@venizia/ignis-filter';
+import { SearchErrors } from '@/search/core/common';
 import type {
   ISearchCompileCapabilities,
   ISearchQuery,
@@ -17,8 +17,8 @@ import {
   toFilterClause,
   toSearchPage,
 } from '@/search/core/repositories/common/dialect-helpers';
-import { SearchErrors } from '@/search/core/common';
-import { getError } from '@venizia/ignis-helpers/core';
+import { QueryOperators, type TFilter, type TWhere } from '@venizia/ignis-filter';
+import { BaseHelper, getError } from '@venizia/ignis-helpers/core';
 import type { IMeilisearchSearchQuery } from '../common';
 
 /** The non-raw search inputs the dialect translates; `raw` bypasses the dialect entirely. */
@@ -152,7 +152,11 @@ const UNSUPPORTED_QUERY_FIELDS: Record<string, string> = {
 };
 
 /** Translates repository-level TFilter/TWhere into Meilisearch search params - pure string building, no dependency on the `meilisearch` package. Untranslatable shapes throw rather than degrade. */
-export class MeilisearchQueryDialect implements ISearchQueryDialect {
+export class MeilisearchQueryDialect extends BaseHelper implements ISearchQueryDialect {
+  constructor() {
+    super({ scope: MeilisearchQueryDialect.name });
+  }
+
   build(opts: {
     filter?: TFilter;
     hiddenFields?: string[];
@@ -547,6 +551,14 @@ export class MeilisearchQueryDialect implements ISearchQueryDialect {
         return toFilterClause(`${field} NOT EXISTS`);
       }
       default: {
+        this.logger
+          .for(this.compileOperatorClause.name)
+          .warn(
+            'Unsupported operator | operator: %s | field: %s | engine: %s',
+            operator,
+            field,
+            ENGINE,
+          );
         return throwUnsupportedOperator({ operator, field, engine: ENGINE });
       }
     }

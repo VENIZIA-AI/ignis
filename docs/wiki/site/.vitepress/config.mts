@@ -96,7 +96,6 @@ const coreApiSidebar: DefaultTheme.SidebarItem[] = [
     collapsed: false,
     items: [
       { text: 'Overview', link: '/references/utilities/' },
-      { text: 'Crypto', link: '/references/utilities/crypto' },
       { text: 'Date', link: '/references/utilities/date' },
       { text: 'Duration', link: '/references/utilities/duration' },
       {
@@ -456,6 +455,22 @@ const config = defineConfig({
               text: '2026-08-30',
               collapsed: true,
               items: [
+                {
+                  text: 'A Row Scope Every Query Carries, Denied by Default When It Cannot Be Resolved',
+                  link: '/changelogs/2026-08-30-row-scope-filter',
+                },
+                {
+                  text: 'Where Clauses Now Type-Check the Value, Not Just the Column',
+                  link: '/changelogs/2026-08-30-typed-where-clauses',
+                },
+                {
+                  text: 'Tree Utilities Join helpers, and RecursiveTreeSql Bounds Every Recursive Walk in kernel',
+                  link: '/changelogs/2026-08-30-tree-and-recursive-sql',
+                },
+                {
+                  text: 'A Real Hash Class Replaces the Removed hash() Utility',
+                  link: '/changelogs/2026-08-30-crypto-hashing',
+                },
                 {
                   text: 'PolicyDefinition.variant Stays Closed by Default, but an App Can Now Declare Its Own Edge Kinds',
                   link: '/changelogs/2026-08-30-policy-definition-extra-variants',

@@ -1,8 +1,9 @@
-import type { ITransaction } from '@venizia/ignis-kernel';
-import type { IdType } from '@venizia/ignis-kernel';
 import type {
+  IdType,
   IExtraOptions,
   IPersistableRepository,
+  IScopeFilterSettings,
+  ITransaction,
   TCount,
   TDataRange,
   TDrizzleQueryOptions,
@@ -14,7 +15,7 @@ import type {
   TRepositoryOperationScope,
   TWhere,
 } from '@venizia/ignis-kernel';
-import { AbstractRepository } from '@venizia/ignis-kernel';
+import { AbstractRepository, ScopeFilterMissingBehaviors } from '@venizia/ignis-kernel';
 // Deep import, not the `@/relational/core/datasources` barrel: the barrel pulls the datasource classes, which import the engine branch's dialect and executor - an init cycle back into this tier.
 import type { IRelationalDataSource } from '@/relational/core/datasources/common';
 import { isRelationalTransaction } from '@/relational/core/datasources/common';
@@ -35,6 +36,7 @@ import type {
   TRelationalTransactionOf,
   TRelationalTransactionOptionsOf,
 } from '../common';
+import { ScopeFilterDenial } from '../common';
 
 /** Relational implementation of `AbstractRepository`: adds the query dialect + hidden-column exclusion on top of the neutral base, and reaches the database only through `IRelationalQueryExecutor`. Both engine-facing parameters default to the neutral SQL contracts; an engine binds them by subclassing. */
 export abstract class RelationalBaseRepository<
@@ -47,6 +49,17 @@ export abstract class RelationalBaseRepository<
   extends AbstractRepository<DataObject, PersistObject, ExtraOptions>
   implements IPersistableRepository<DataObject, PersistObject, ExtraOptions>
 {
+  /**
+   * The `Pick` return type is load-bearing, not decoration. `TWhere<DataObject>` is a homomorphic
+   * mapped type over an unresolved type parameter, and TypeScript cannot check a one-key literal
+   * against it - `{ id }` fails even though `id` is a real key. `Pick<..., 'id'>` resolves that one
+   * key, and the result still assigns to `TWhere<DataObject>` because every key there is optional.
+   * Without it every `*ById` method needs a cast, which would hide a genuinely wrong id type.
+   */
+  protected whereById(opts: { id: DataObject['id'] }): Pick<TWhere<DataObject>, 'id'> {
+    return { id: opts.id };
+  }
+
   /** Memoized Set view of the base's `hiddenFields` array - built once on first access. */
   private _hiddenPropertySet: Set<string> | null = null;
 
@@ -152,23 +165,74 @@ export abstract class RelationalBaseRepository<
     return defaultFilter !== undefined && Object.keys(defaultFilter).length > 0;
   }
 
-  /** Merges default filter with user filter. Skippable via shouldSkipDefaultFilter. */
+  /** Same override seam as `getDefaultFilter()` - a repository with no resolvable `@model` entity (a synthetic test double, a hand-built stub) overrides this to avoid touching `modelSettings`/`entity` at all. */
+  getScopeFilterSettings(): IScopeFilterSettings | undefined {
+    return this.modelSettings?.scopeFilter;
+  }
+
+  /**
+   * Row scope from `@model` settings.scopeFilter - AND-composed like a default filter, but never
+   * skippable via `shouldSkipDefaultFilter`: that flag serves `restore()`'s deliberate reach past
+   * soft-delete, which must not also reach past tenant/ownership scoping.
+   *
+   * `dangerouslySkipScopeFilter` is framework-internal only, never part of `IExtraOptions` and never
+   * wire-reachable: it exists so a filter this repository already scoped (find()'s own recursive
+   * call) is not scoped a second time, and for explicitly-unscoped administrative code written and
+   * reviewed at the repository - never inferable from a request.
+   */
+  protected applyScopeFilter<DO = any>(opts: {
+    userFilter?: TFilter<DO>;
+    dangerouslySkipScopeFilter?: boolean;
+  }): TFilter<DO> {
+    const { userFilter, dangerouslySkipScopeFilter } = opts;
+
+    if (dangerouslySkipScopeFilter) {
+      return userFilter ?? {};
+    }
+
+    const scopeFilterSettings = this.getScopeFilterSettings();
+    if (!scopeFilterSettings) {
+      return userFilter ?? {};
+    }
+
+    const scopeWhere = scopeFilterSettings.resolve();
+
+    if (scopeWhere !== null && scopeWhere !== undefined) {
+      return this.queryDialect.mergeFilter({ defaultFilter: { where: scopeWhere }, userFilter });
+    }
+
+    if (scopeFilterSettings.onMissing === ScopeFilterMissingBehaviors.ALLOW) {
+      return userFilter ?? {};
+    }
+
+    // 'deny' (default): an unresolved scope means the framework does not know what this caller may
+    // see, and the safe reading of "I do not know" is "nothing" - never "everything".
+    return this.queryDialect.mergeFilter({
+      defaultFilter: { where: ScopeFilterDenial.where<DO>() },
+      userFilter,
+    });
+  }
+
+  /** Merges default filter with user filter. Skippable via shouldSkipDefaultFilter - the row scope from applyScopeFilter is not. */
   applyDefaultFilter<DO = any>(opts: {
     userFilter?: TFilter<DO>;
     shouldSkipDefaultFilter?: boolean;
+    dangerouslySkipScopeFilter?: boolean;
   }): TFilter<DO> {
-    const { userFilter, shouldSkipDefaultFilter } = opts;
+    const { userFilter, shouldSkipDefaultFilter, dangerouslySkipScopeFilter } = opts;
+
+    const scopedFilter = this.applyScopeFilter<DO>({ userFilter, dangerouslySkipScopeFilter });
 
     if (shouldSkipDefaultFilter) {
-      return userFilter ?? {};
+      return scopedFilter;
     }
 
     const defaultFilter = this.getDefaultFilter();
     if (!defaultFilter) {
-      return userFilter ?? {};
+      return scopedFilter;
     }
 
-    return this.queryDialect.mergeFilter({ defaultFilter, userFilter });
+    return this.queryDialect.mergeFilter({ defaultFilter, userFilter: scopedFilter });
   }
 
   async beginTransaction(

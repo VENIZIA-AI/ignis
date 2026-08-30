@@ -1,6 +1,3 @@
-import type { IdType } from '@venizia/ignis-kernel';
-import type { IExtraOptions, TCount, TRepositoryLogOptions, TWhere } from '@venizia/ignis-kernel';
-import { RepositoryOperationScopes } from '@venizia/ignis-kernel';
 import type { IRelationalDataSource } from '@/relational/core/datasources/common';
 import type {
   BaseRelationalEntity,
@@ -10,6 +7,8 @@ import type {
 } from '@/relational/core/models';
 import type { AnyType, TClass, TNullable } from '@venizia/ignis-helpers/common';
 import { getError } from '@venizia/ignis-helpers/core';
+import type { IExtraOptions, TCount, TRepositoryLogOptions, TWhere } from '@venizia/ignis-kernel';
+import { RepositoryOperationScopes } from '@venizia/ignis-kernel';
 import type { SQL } from 'drizzle-orm';
 import type { IRelationalExtraOptions } from '../common';
 import { ReadableRelationalRepository } from './readable';
@@ -213,24 +212,24 @@ export class PersistableRelationalRepository<
   }
 
   override updateById(opts: {
-    id: IdType;
+    id: DataObject['id'];
     data: Partial<PersistObject>;
     options: ExtraOptions & { shouldReturn: false };
   }): Promise<TCount & { data: undefined | null }>;
   override updateById<R = DataObject>(opts: {
-    id: IdType;
+    id: DataObject['id'];
     data: Partial<PersistObject>;
     options?: ExtraOptions & { shouldReturn?: true };
   }): Promise<TCount & { data: R }>;
   override async updateById<R = DataObject>(opts: {
-    id: IdType;
+    id: DataObject['id'];
     data: Partial<PersistObject>;
     options?: ExtraOptions & { shouldReturn?: boolean };
   }): Promise<TCount & { data: TNullable<R> }> {
     this.validateId({ id: opts.id, operationName: 'updateById' });
 
     const rs = await this._update<R>({
-      where: { id: opts.id },
+      where: this.whereById({ id: opts.id }),
       data: opts.data,
       options: opts.options,
     });
@@ -310,21 +309,21 @@ export class PersistableRelationalRepository<
   }
 
   override deleteById(opts: {
-    id: IdType;
+    id: DataObject['id'];
     options: ExtraOptions & { shouldReturn: false };
   }): Promise<TCount & { data: undefined | null }>;
   override deleteById<R = DataObject>(opts: {
-    id: IdType;
+    id: DataObject['id'];
     options?: ExtraOptions & { shouldReturn?: true };
   }): Promise<TCount & { data: R }>;
   override async deleteById<R = DataObject>(opts: {
-    id: IdType;
+    id: DataObject['id'];
     options?: ExtraOptions & { shouldReturn?: boolean };
   }): Promise<TCount & { data: TNullable<R> }> {
     this.validateId({ id: opts.id, operationName: 'deleteById' });
 
     const rs = await this._delete<R>({
-      where: { id: opts.id },
+      where: this.whereById({ id: opts.id }),
       options: opts.options,
     });
 

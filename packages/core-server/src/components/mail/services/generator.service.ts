@@ -1,4 +1,5 @@
 import { inject } from '@/base/metadata';
+import { BaseHelper } from '@venizia/ignis-helpers/core';
 import crypto from 'node:crypto';
 // Interfaces are `import type`: with emitDecoratorMetadata on, a value import of a type-only name survives transpilation and the ESM named-import check fails at load.
 import type {
@@ -11,7 +12,11 @@ import type {
 import { MailKeys } from '../common';
 import { getExpiryTime, getExpiryTimeInHours } from '../utilities';
 
-export class NumericCodeGenerator implements IVerificationCodeGenerator {
+export class NumericCodeGenerator extends BaseHelper implements IVerificationCodeGenerator {
+  constructor() {
+    super({ scope: NumericCodeGenerator.name });
+  }
+
   generateCode(length: number): string {
     const max = Math.pow(10, length);
     const code = crypto.randomInt(0, max);
@@ -19,20 +24,29 @@ export class NumericCodeGenerator implements IVerificationCodeGenerator {
   }
 }
 
-export class RandomTokenGenerator implements IVerificationTokenGenerator {
+export class RandomTokenGenerator extends BaseHelper implements IVerificationTokenGenerator {
+  constructor() {
+    super({ scope: RandomTokenGenerator.name });
+  }
+
   generateToken(bytes: number): string {
     return crypto.randomBytes(bytes).toString('base64url');
   }
 }
 
-export class DefaultVerificationDataGenerator implements IVerificationDataGenerator {
+export class DefaultVerificationDataGenerator
+  extends BaseHelper
+  implements IVerificationDataGenerator
+{
   constructor(
     @inject({ key: MailKeys.MAIL_VERIFICATION_CODE_GENERATOR })
     private codeGenerator: IVerificationCodeGenerator,
 
     @inject({ key: MailKeys.MAIL_VERIFICATION_TOKEN_GENERATOR })
     private tokenGenerator: IVerificationTokenGenerator,
-  ) {}
+  ) {
+    super({ scope: DefaultVerificationDataGenerator.name });
+  }
 
   generateVerificationData(options: IVerificationGenerationOptions): IVerificationData {
     const code = this.codeGenerator.generateCode(options.codeLength);

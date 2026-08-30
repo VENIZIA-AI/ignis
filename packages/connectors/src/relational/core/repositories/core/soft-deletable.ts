@@ -1,4 +1,3 @@
-import type { IdType } from '@venizia/ignis-kernel';
 import type {
   IExtraOptions,
   TCount,
@@ -44,17 +43,17 @@ export class SoftDeletableRelationalRepository<
 
   /** `isStrict` is evaluated AFTER `options.retry` has been exhausted - the retry loop lives inside `super.findById` -> `findOne`, so a strict read waits out replica lag before it 404s. */
   override async findById<R = DataObject>(opts: {
-    id: IdType;
+    id: DataObject['id'];
     filter?: Omit<TFilter<DataObject>, 'where'>;
     options?: TFindOneOptions<ExtraOptions, R> & { isStrict?: false };
   }): Promise<TNullable<R>>;
   override async findById<R = DataObject>(opts: {
-    id: IdType;
+    id: DataObject['id'];
     filter?: Omit<TFilter<DataObject>, 'where'>;
     options?: TFindOneOptions<ExtraOptions, R> & { isStrict?: true };
   }): Promise<R>;
   override async findById<R = DataObject>(opts: {
-    id: IdType;
+    id: DataObject['id'];
     filter?: Omit<TFilter<DataObject>, 'where'>;
     options?: TFindOneOptions<ExtraOptions, R> & { isStrict?: boolean };
   }): Promise<TNullable<R>> {
@@ -72,15 +71,15 @@ export class SoftDeletableRelationalRepository<
   }
 
   override deleteById(opts: {
-    id: IdType;
+    id: DataObject['id'];
     options: ExtraOptions & { shouldReturn: false; shouldHardDelete?: boolean };
   }): Promise<TCount & { data: undefined | null }>;
   override deleteById<R = DataObject>(opts: {
-    id: IdType;
+    id: DataObject['id'];
     options?: ExtraOptions & { shouldReturn?: true; shouldHardDelete?: boolean };
   }): Promise<TCount & { data: R }>;
   override async deleteById<R = DataObject>(opts: {
-    id: IdType;
+    id: DataObject['id'];
     options?: ExtraOptions & { shouldReturn?: boolean; shouldHardDelete?: boolean };
   }): Promise<TCount & { data: TNullable<R> }> {
     if (opts.options?.shouldHardDelete) {
@@ -149,7 +148,7 @@ export class SoftDeletableRelationalRepository<
   }
 
   async restoreById<R = DataObject>(opts: {
-    id: IdType;
+    id: DataObject['id'];
     options?: ExtraOptions & { shouldReturn?: boolean };
   }): Promise<TCount & { data: TNullable<R> }> {
     this.validateId({ id: opts.id, operationName: 'restoreById' });
@@ -165,7 +164,7 @@ export class SoftDeletableRelationalRepository<
     };
 
     const rs = await this._update<R>({
-      where: { id: opts.id },
+      where: this.whereById({ id: opts.id }),
       data: this.softDeletePatch(null),
       options,
     });

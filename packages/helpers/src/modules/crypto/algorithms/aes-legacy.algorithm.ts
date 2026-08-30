@@ -9,11 +9,16 @@ const DEFAULT_LENGTH = 16;
 
 interface IAESExtraOptions {
   iv?: Buffer;
-  inputEncoding?: C.Encoding;
-  outputEncoding?: C.Encoding;
+  inputEncoding?: BufferEncoding;
+  outputEncoding?: BufferEncoding;
   doThrow?: boolean;
 }
 
+/**
+ * Frozen back-compat format - keys come from `normalizeSecretKeyLegacy` (padEnd/truncate), never
+ * PBKDF2. `kdfSalt`/`kdfIterations` are deliberately absent from `IAESExtraOptions`: there is no
+ * salt to override, so the option would type-check and silently do nothing.
+ */
 export class LegacyAES extends BaseCryptoAlgorithm<
   AESAlgorithmType,
   string,

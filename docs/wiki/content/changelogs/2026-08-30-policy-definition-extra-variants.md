@@ -35,6 +35,16 @@ extraPolicyDefinitionColumns({ idType: 'string', extraVariants: ['merchant_role'
 - **Every application that calls `extraPolicyDefinitionColumns()` today.** No action needed - the default shape is exactly what `0.2.0-6` shipped.
 - **An application storing its own edge kind in `PolicyDefinition`, blocked by `0.2.0-6`'s narrowing.** Add `extraVariants` with that value. `AuthorizationPolicyBuilder`'s output (`grant()`, `assignRole()`, and the rest) keeps assigning cleanly to the column either way.
 
+## Expect the errors to move outward, not disappear
+
+A narrowed column does not only reject a wrong value at the line that writes it. It rejects every loose type on the path that carries the value there, and those surface one layer at a time. Two shapes account for most of it, both reported from a real migration:
+
+**A container typed loosely.** `const rows: Array<Record<string, unknown>> = []`, filled in a loop, then passed to `createAll`. `Record<string, unknown>` no longer satisfies the narrowed parameter. Nothing here is wrong about the value - only about how loosely it was described. This is a common shape wherever an application sorts rows into create-versus-update batches before writing.
+
+**A widened field restated across service layers.** A field declared `effect?: string` on a request type, then again on each service method that forwards it, lets any string travel the whole way and only meet a real type at the column. Tightening the innermost layer moves the error out one layer; tightening that one moves it out again. A four-layer chain therefore takes four build rounds, and each round looks like a new failure.
+
+Fix these at the source - the type where the value first enters - rather than casting at the write. Casting silences the layer you are looking at and leaves the rest of the chain accepting anything. None of these are new defects: they are pre-existing gaps that nothing had ever been strict enough to catch.
+
 ## Details
 
 - **`effect` is not getting the same treatment.** `variant` is a discriminator `ScopedCasbinAdapter` filters on - an unknown value is simply never selected, which is exactly what made the original bug silent and safe to widen back open. `effect` is different: its value (`allow` / `deny` / `abstain`) is written directly into the raw casbin policy line and read by casbin's own effect evaluator. An application-defined fourth value would not be filtered out - it would reach the evaluator and produce an authorization decision nobody defined the meaning of. That is a correctness risk in the enforcement path itself, not a harmless unselected row, so `effect` stays closed to IGNIS's three values.

@@ -1,9 +1,11 @@
 import C from 'node:crypto';
+import { getError } from '@/modules/error';
+import { MINIMUM_RSA_MODULUS_BITS } from '../common/constants';
 import { BaseCryptoAlgorithm } from './base.algorithm';
 
 interface IRSAExtraOptions {
-  inputEncoding?: { key: C.Encoding; message: C.Encoding };
-  outputEncoding?: C.Encoding;
+  inputEncoding?: { key: BufferEncoding; message: BufferEncoding };
+  outputEncoding?: BufferEncoding;
   doThrow?: boolean;
 }
 
@@ -26,9 +28,21 @@ export class RSA extends BaseCryptoAlgorithm<
     return new RSA({ algorithm: 'rsa' });
   }
 
+  /**
+   * Rejects a modulus below `MINIMUM_RSA_MODULUS_BITS` rather than generating it - a weak key still
+   * works, signs, and verifies, so this is the only point where the size is ever checked.
+   */
   generateDERKeyPair(opts?: { modulus: number }) {
+    const modulus = opts?.modulus ?? MINIMUM_RSA_MODULUS_BITS;
+
+    if (modulus < MINIMUM_RSA_MODULUS_BITS) {
+      throw getError({
+        message: `[RSA][generateDERKeyPair] Modulus ${modulus} is below the ${MINIMUM_RSA_MODULUS_BITS}-bit minimum`,
+      });
+    }
+
     const keys = C.generateKeyPairSync('rsa', {
-      modulusLength: opts?.modulus ?? 2048,
+      modulusLength: modulus,
     });
 
     return {

@@ -12,6 +12,34 @@ tags: [packages, filter, query, isomorphic, browser]
 sort direction constants (`Sorts`). It was extracted from the repository base that now lives in
 `kernel/src/base/repositories/` so the vocabulary can be shared with a browser data layer.
 
+## `TWhere<T>` types the value, not only the column
+
+`TWhere<T> = { [key in keyof T]?: TWhereValue<T[key]> } & { and?; or? }`. A key not on `T` was always
+rejected (excess-property checking on a mapped type is unrelated to this change); what was missing
+was the value side - it used to be `[key in keyof T]?: any`, so `{ status: 123 }` against a `string`
+column compiled clean. `TWhereValue<V> = V | null | TWhereOperators<V>` - a bare scalar (implicit
+`eq`), a bare `null` (implicit `is`, the common way to write `IS NULL` - `| null` is mandatory, not
+an oversight), or an operator object. `TWhereOperators<V>` mirrors `QueryOperators` in
+`common/operators.ts` field-by-field - all 25 field operators plus `not` (`and`/`or` live on `TWhere`
+itself). `between`/`notBetween` are typed `[V, V]`, so a wrong-arity array is now a compile error, not
+only a runtime one - `core-server`'s `postgres-query-operators-between.test.ts` still needs `as any`
+on its two deliberately-wrong-arity cases, to reach the runtime guard from a type the compiler would
+otherwise reject.
+
+**Does not cover JSON/JSONB.** A `metadata`/`jValue` column is `any` in application schemas, so
+`TWhereValue<any>` accepts anything under it - a typo inside a JSON path stays silent. Dot-path key
+typing needs the application to declare `$type<>()` on its jsonb columns first; not done here.
+
+Fallout was concentrated in one pattern: `packages/connectors` builds `{ id: opts.id }` (`IdType`)
+against `TWhere<DataObject>` in four call sites across `persistable.ts`, `readable.ts`,
+`soft-deletable.ts`, where `DataObject` is a class-level generic bound through
+`EntitySchema['$inferSelect']` - too deep for `tsc` to resolve `DataObject['id']` against the
+constraint. Tightening the generic constraint (`DataObject extends TTableObject<EntitySchema> & { id:
+IdType }`) was tried first and rejected: the DEFAULT type parameter value then fails to satisfy its
+own tightened constraint, and the failure cascades into the postgres/sqlite subclasses too, without
+even fixing the original sites. Each of the four sites instead carries a narrow
+`as TWhere<DataObject>` cast with a one-line comment.
+
 It sits **beside** helpers in the dependency chain, not after it:
 `dev-configs -> inversion -> {filter, helpers} -> {boot, kernel} -> core`. Its only dependency is
 `@venizia/ignis-inversion`, which supplies both `getError` and `TConstValue` - helpers duplicates

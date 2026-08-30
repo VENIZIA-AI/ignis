@@ -5,7 +5,7 @@ import type {
   UniversalServerResponse,
 } from '@connectrpc/connect/protocol';
 import type { ValueOrPromise } from '@venizia/ignis-helpers/common';
-import { getError } from '@venizia/ignis-helpers/core';
+import { BaseHelper, getError } from '@venizia/ignis-helpers/core';
 import { GRPC, HTTP } from '@venizia/ignis-helpers/common';
 import { ModuleUtility } from '@venizia/ignis-helpers';
 import type { Env, Input, MiddlewareHandler, Schema } from 'hono';
@@ -30,7 +30,7 @@ export class GrpcRequestAdapter<
   BasePath extends string = '/',
   ServiceType = Parameters<ConnectRouter['service']>[0],
   ConfigurableOptions extends object = {},
-> {
+> extends BaseHelper {
   private createConnectRouter: (opts?: Record<string, unknown>) => ConnectRouter;
   private protocol: {
     universalServerRequestFromFetch: (req: Request, ctx: object) => UniversalServerRequest;
@@ -57,6 +57,8 @@ export class GrpcRequestAdapter<
     interceptors?: unknown[];
     module?: IConnectRpcModule;
   }) {
+    super({ scope: GrpcRequestAdapter.name });
+
     this.controller = opts.controller;
     this.interceptors = opts.interceptors;
 

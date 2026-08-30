@@ -1,22 +1,58 @@
 import type { Context, Next } from 'hono';
 import type { IGetProviderParams, IUIConfig, IUIProvider } from './common';
 import { DocumentUITypes } from './common';
-import { getError } from '@venizia/ignis-helpers/core';
+import { BaseHelper, getError } from '@venizia/ignis-helpers/core';
 import { MemoryStorageHelper } from '@venizia/ignis-helpers';
 
-export class SwaggerUIProvider implements IUIProvider {
-  async render(context: Context, config: IUIConfig, next: Next): Promise<Response | void> {
-    const { swaggerUI } = await import('@hono/swagger-ui');
+export class SwaggerUIProvider extends BaseHelper implements IUIProvider {
+  constructor() {
+    super({ scope: SwaggerUIProvider.name });
+  }
 
+  async render(context: Context, config: IUIConfig, next: Next): Promise<Response | void> {
+    let swaggerModule: typeof import('@hono/swagger-ui');
+
+    try {
+      swaggerModule = await import('@hono/swagger-ui');
+    } catch (error) {
+      this.logger
+        .for(this.render.name)
+        .error("Failed to load '@hono/swagger-ui' | Error: %s", error);
+
+      throw getError({
+        message:
+          "[SwaggerUIProvider][render] '@hono/swagger-ui' is required to render the Swagger UI. Please install it",
+      });
+    }
+
+    const { swaggerUI } = swaggerModule;
     const { title, url, ...customConfig } = config;
     return swaggerUI({ title, url, ...customConfig })(context, next);
   }
 }
 
-export class ScalarUIProvider implements IUIProvider {
-  async render(context: Context, config: IUIConfig, next: Next): Promise<Response | void> {
-    const { Scalar } = await import('@scalar/hono-api-reference');
+export class ScalarUIProvider extends BaseHelper implements IUIProvider {
+  constructor() {
+    super({ scope: ScalarUIProvider.name });
+  }
 
+  async render(context: Context, config: IUIConfig, next: Next): Promise<Response | void> {
+    let scalarModule: typeof import('@scalar/hono-api-reference');
+
+    try {
+      scalarModule = await import('@scalar/hono-api-reference');
+    } catch (error) {
+      this.logger
+        .for(this.render.name)
+        .error("Failed to load '@scalar/hono-api-reference' | Error: %s", error);
+
+      throw getError({
+        message:
+          "[ScalarUIProvider][render] '@scalar/hono-api-reference' is required to render the Scalar UI. Please install it",
+      });
+    }
+
+    const { Scalar } = scalarModule;
     const { title, url, ...customConfig } = config;
     return Scalar({ url, pageTitle: title, ...customConfig })(context, next);
   }

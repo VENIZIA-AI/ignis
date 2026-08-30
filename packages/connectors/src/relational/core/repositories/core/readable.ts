@@ -1,4 +1,3 @@
-import type { IdType } from '@venizia/ignis-kernel';
 import type {
   IExtraOptions,
   TCount,
@@ -63,13 +62,16 @@ export class ReadableRelationalRepository<
     filter: TFilter<DataObject>;
     isFindOne?: boolean;
     options?: ExtraOptions;
+    /** True only for the recursive call from `find()`, whose `filter` is already scope+default merged - prevents the row scope from being AND-composed twice. Never set from `findOne()`, whose `filter` here is still raw. */
+    dangerouslySkipScopeFilter?: boolean;
   }): Promise<Array<R>> {
-    const { filter, isFindOne = false, options } = opts;
+    const { filter, isFindOne = false, options, dangerouslySkipScopeFilter } = opts;
     const schema = this.entity.schema;
 
     const mergedFilter = this.applyDefaultFilter({
       userFilter: filter,
       shouldSkipDefaultFilter: options?.shouldSkipDefaultFilter,
+      dangerouslySkipScopeFilter,
     });
 
     const where = mergedFilter.where
@@ -168,7 +170,11 @@ export class ReadableRelationalRepository<
     });
 
     const dataPromise = useCoreAPI
-      ? this.findWithCoreAPI<R>({ filter: mergedFilter, options: effectiveOptions })
+      ? this.findWithCoreAPI<R>({
+          filter: mergedFilter,
+          options: effectiveOptions,
+          dangerouslySkipScopeFilter: true,
+        })
       : this.findWithQueryAPI<R>({ filter: mergedFilter, options: effectiveOptions });
 
     if (!shouldQueryRange) {
@@ -176,6 +182,9 @@ export class ReadableRelationalRepository<
     }
 
     // A transaction connector wraps a single client, so running data and count in parallel would reuse it while still busy - parallel is only safe outside a transaction.
+    // `mergedFilter.where` already carries the row scope; `count()` re-applies it (a harmless
+    // AND-composed repeat, since `count()` stays a public override point read-retry/range test
+    // doubles rely on stubbing entirely).
     const countPromise = () =>
       this.count({ where: mergedFilter.where ?? {}, options: effectiveOptions });
 
@@ -244,14 +253,14 @@ export class ReadableRelationalRepository<
 
   /** Delegates to findOne with id in the where clause. */
   override findById<R = DataObject>(opts: {
-    id: IdType;
+    id: DataObject['id'];
     filter?: Omit<TFilter<DataObject>, 'where'>;
     options?: TFindOneOptions<ExtraOptions, R>;
   }): Promise<TNullable<R>> {
     return this.findOne<R>({
       filter: {
         ...opts.filter,
-        where: { id: opts.id },
+        where: this.whereById({ id: opts.id }),
       },
       options: opts.options,
     });
@@ -323,17 +332,17 @@ export class ReadableRelationalRepository<
 
   /** @throws Error - disabled in read-only repository. */
   override updateById(opts: {
-    id: IdType;
+    id: DataObject['id'];
     data: Partial<PersistObject>;
     options: ExtraOptions & { shouldReturn: false };
   }): Promise<TCount & { data: undefined | null }>;
   override updateById<R = DataObject>(opts: {
-    id: IdType;
+    id: DataObject['id'];
     data: Partial<R>;
     options?: ExtraOptions & { shouldReturn?: true };
   }): Promise<TCount & { data: DataObject }>;
   override updateById<R = DataObject>(_opts: {
-    id: IdType;
+    id: DataObject['id'];
     data: Partial<PersistObject>;
     options?: ExtraOptions & { shouldReturn?: boolean };
   }): Promise<TCount & { data: TNullable<R> }> {
@@ -361,15 +370,15 @@ export class ReadableRelationalRepository<
 
   /** @throws Error - disabled in read-only repository. */
   override deleteById(opts: {
-    id: IdType;
+    id: DataObject['id'];
     options: ExtraOptions & { shouldReturn: false };
   }): Promise<TCount & { data: undefined | null }>;
   override deleteById<R = DataObject>(opts: {
-    id: IdType;
+    id: DataObject['id'];
     options?: ExtraOptions & { shouldReturn?: true };
   }): Promise<TCount & { data: R }>;
   override deleteById<R = DataObject>(_opts: {
-    id: IdType;
+    id: DataObject['id'];
     options?: ExtraOptions & { shouldReturn?: boolean };
   }): Promise<TCount & { data: TNullable<R> }> {
     return this.denyOperation({ methodName: this.deleteById.name });

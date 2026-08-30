@@ -1,15 +1,7 @@
 import { describe, expect, test } from 'bun:test';
 import type { AnyType } from '@/common/types';
 import { getError } from '@/modules/error';
-import {
-  computeBackoffDelayMs,
-  executeWithRetry,
-  executeWithRetryUntil,
-  isRetryTimeoutError,
-  RetryBackoffStrategies,
-  RetryJitterModes,
-  runWithTimeout,
-} from '@/utilities/retry.utility';
+import { RetryBackoffStrategies, RetryHelper, RetryJitterModes } from '@/modules/retry';
 
 const NO_JITTER = { jitter: RetryJitterModes.NONE } as const;
 
@@ -17,7 +9,7 @@ describe('computeBackoffDelayMs', () => {
   test('FIXED returns initialDelayMs for every attempt', () => {
     for (const attempt of [1, 2, 5]) {
       expect(
-        computeBackoffDelayMs({
+        RetryHelper.computeBackoffDelayMs({
           attempt,
           backoff: { strategy: RetryBackoffStrategies.FIXED, initialDelayMs: 100, ...NO_JITTER },
         }),
@@ -32,20 +24,20 @@ describe('computeBackoffDelayMs', () => {
       ...NO_JITTER,
     } as const;
 
-    expect(computeBackoffDelayMs({ attempt: 1, backoff })).toBe(100);
-    expect(computeBackoffDelayMs({ attempt: 3, backoff })).toBe(300);
+    expect(RetryHelper.computeBackoffDelayMs({ attempt: 1, backoff })).toBe(100);
+    expect(RetryHelper.computeBackoffDelayMs({ attempt: 3, backoff })).toBe(300);
   });
 
   test('EXPONENTIAL multiplies from initialDelayMs and is the default strategy', () => {
     const backoff = { initialDelayMs: 100, multiplier: 3, ...NO_JITTER } as const;
 
-    expect(computeBackoffDelayMs({ attempt: 1, backoff })).toBe(100);
-    expect(computeBackoffDelayMs({ attempt: 3, backoff })).toBe(900);
+    expect(RetryHelper.computeBackoffDelayMs({ attempt: 1, backoff })).toBe(100);
+    expect(RetryHelper.computeBackoffDelayMs({ attempt: 3, backoff })).toBe(900);
   });
 
   test('maxDelayMs caps the pre-jitter delay', () => {
     expect(
-      computeBackoffDelayMs({
+      RetryHelper.computeBackoffDelayMs({
         attempt: 10,
         backoff: { initialDelayMs: 100, maxDelayMs: 500, ...NO_JITTER },
       }),
@@ -59,14 +51,14 @@ describe('computeBackoffDelayMs', () => {
       ...NO_JITTER,
     } as const;
 
-    expect(computeBackoffDelayMs({ attempt: 1, backoff })).toBe(250);
-    expect(computeBackoffDelayMs({ attempt: 3, backoff })).toBe(4000);
-    expect(computeBackoffDelayMs({ attempt: 9, backoff })).toBe(4000);
+    expect(RetryHelper.computeBackoffDelayMs({ attempt: 1, backoff })).toBe(250);
+    expect(RetryHelper.computeBackoffDelayMs({ attempt: 3, backoff })).toBe(4000);
+    expect(RetryHelper.computeBackoffDelayMs({ attempt: 9, backoff })).toBe(4000);
   });
 
   test('SCHEDULE without scheduleMs throws a named error', () => {
     expect(() =>
-      computeBackoffDelayMs({
+      RetryHelper.computeBackoffDelayMs({
         attempt: 1,
         backoff: { strategy: RetryBackoffStrategies.SCHEDULE, ...NO_JITTER },
       }),
@@ -75,14 +67,14 @@ describe('computeBackoffDelayMs', () => {
 
   test('FULL jitter stays in [0, delay); EQUAL jitter stays in [delay/2, delay)', () => {
     for (let i = 0; i < 200; i++) {
-      const full = computeBackoffDelayMs({
+      const full = RetryHelper.computeBackoffDelayMs({
         attempt: 1,
         backoff: { initialDelayMs: 1000, jitter: RetryJitterModes.FULL },
       });
       expect(full).toBeGreaterThanOrEqual(0);
       expect(full).toBeLessThan(1000);
 
-      const equal = computeBackoffDelayMs({
+      const equal = RetryHelper.computeBackoffDelayMs({
         attempt: 1,
         backoff: { initialDelayMs: 1000, jitter: RetryJitterModes.EQUAL },
       });
@@ -94,7 +86,7 @@ describe('computeBackoffDelayMs', () => {
 
 describe('runWithTimeout', () => {
   test('resolves the execution result when it beats the timeout', async () => {
-    const result = await runWithTimeout({
+    const result = await RetryHelper.runWithTimeout({
       operation: 'fast',
       timeoutMs: 1000,
       execution: () => 'ok',
@@ -106,7 +98,7 @@ describe('runWithTimeout', () => {
   test('times out a slow execution with a detectable timeout error', async () => {
     let caught: unknown;
     try {
-      await runWithTimeout({
+      await RetryHelper.runWithTimeout({
         operation: 'slow',
         timeoutMs: 20,
         execution: () => new Promise(resolve => setTimeout(resolve, 5000)),
@@ -115,19 +107,19 @@ describe('runWithTimeout', () => {
       caught = error;
     }
 
-    expect(isRetryTimeoutError(caught)).toBe(true);
+    expect(RetryHelper.isRetryTimeoutError(caught)).toBe(true);
     expect((caught as Error).message).toContain('slow');
   });
 
   test('timeoutMs omitted or <= 0 means no timeout race', async () => {
-    const result = await runWithTimeout({ operation: 'untimed', execution: () => 42 });
+    const result = await RetryHelper.runWithTimeout({ operation: 'untimed', execution: () => 42 });
     expect(result).toBe(42);
   });
 
   test('a synchronously-throwing execution rejects instead of escaping the race', async () => {
     let caught: unknown;
     try {
-      await runWithTimeout({
+      await RetryHelper.runWithTimeout({
         operation: 'sync-throw',
         timeoutMs: 1000,
         execution: () => {
@@ -139,7 +131,7 @@ describe('runWithTimeout', () => {
     }
 
     expect((caught as Error).message).toBe('sync boom');
-    expect(isRetryTimeoutError(caught)).toBe(false);
+    expect(RetryHelper.isRetryTimeoutError(caught)).toBe(false);
   });
 });
 
@@ -153,7 +145,7 @@ describe('executeWithRetry', () => {
   test('returns the first successful result without retrying', async () => {
     let calls = 0;
 
-    const result = await executeWithRetry({
+    const result = await RetryHelper.executeWithRetry({
       operation: 'first-try',
       execution: () => {
         calls += 1;
@@ -168,7 +160,7 @@ describe('executeWithRetry', () => {
   test('retries failures and succeeds; execution receives the 1-based attempt', async () => {
     const attempts: number[] = [];
 
-    const result = await executeWithRetry({
+    const result = await RetryHelper.executeWithRetry({
       operation: 'third-time-lucky',
       maxAttempts: 5,
       backoff: instantBackoff,
@@ -188,7 +180,7 @@ describe('executeWithRetry', () => {
   test('exhaustion throws the LAST error', async () => {
     let caught: unknown;
     try {
-      await executeWithRetry({
+      await RetryHelper.executeWithRetry({
         operation: 'always-fails',
         maxAttempts: 3,
         backoff: instantBackoff,
@@ -209,7 +201,7 @@ describe('executeWithRetry', () => {
 
     let caught: unknown;
     try {
-      await executeWithRetry({
+      await RetryHelper.executeWithRetry({
         operation: 'permanent',
         maxAttempts: 5,
         backoff: instantBackoff,
@@ -233,7 +225,7 @@ describe('executeWithRetry', () => {
 
     let caught: unknown;
     try {
-      await executeWithRetry({
+      await RetryHelper.executeWithRetry({
         operation: 'budgeted',
         maxAttempts: 100,
         maxTotalMs: 120,
@@ -257,7 +249,7 @@ describe('executeWithRetry', () => {
 
     let caught: unknown;
     try {
-      await executeWithRetry({
+      await RetryHelper.executeWithRetry({
         operation: 'overshoot',
         maxAttempts: 5,
         maxTotalMs: 100,
@@ -280,7 +272,7 @@ describe('executeWithRetry', () => {
 
     let caught: unknown;
     try {
-      await executeWithRetry({
+      await RetryHelper.executeWithRetry({
         operation: 'hang',
         maxAttempts: 1,
         maxTotalMs: 60,
@@ -291,14 +283,14 @@ describe('executeWithRetry', () => {
       caught = error;
     }
 
-    expect(isRetryTimeoutError(caught)).toBe(true);
+    expect(RetryHelper.isRetryTimeoutError(caught)).toBe(true);
     expect(Date.now() - startedAt).toBeLessThan(2000);
   });
 
   test('onRetry observes attempt, error, and the next delay before sleeping', async () => {
     const observed: Array<{ attempt: number; nextDelayMs: number }> = [];
 
-    await executeWithRetry({
+    await RetryHelper.executeWithRetry({
       operation: 'observed',
       maxAttempts: 3,
       backoff: { strategy: RetryBackoffStrategies.FIXED, initialDelayMs: 2, ...NO_JITTER },
@@ -326,7 +318,7 @@ describe('executeWithRetry', () => {
 
     let caught: unknown;
     try {
-      await executeWithRetry({
+      await RetryHelper.executeWithRetry({
         operation: 'aborted',
         signal: controller.signal,
         execution: () => {
@@ -346,7 +338,7 @@ describe('executeWithRetry', () => {
     const controller = new AbortController();
     const startedAt = Date.now();
 
-    const pending = executeWithRetry({
+    const pending = RetryHelper.executeWithRetry({
       operation: 'abort-mid-backoff',
       maxAttempts: 2,
       backoff: { strategy: RetryBackoffStrategies.FIXED, initialDelayMs: 10_000, ...NO_JITTER },
@@ -372,7 +364,11 @@ describe('executeWithRetry', () => {
   test('maxAttempts < 1 throws a named configuration error', async () => {
     let caught: unknown;
     try {
-      await executeWithRetry({ operation: 'bad', maxAttempts: 0, execution: () => 'x' });
+      await RetryHelper.executeWithRetry({
+        operation: 'bad',
+        maxAttempts: 0,
+        execution: () => 'x',
+      });
     } catch (error) {
       caught = error;
     }
@@ -390,7 +386,7 @@ describe('executeWithRetry', () => {
     } as AnyType;
 
     try {
-      await executeWithRetry({
+      await RetryHelper.executeWithRetry({
         operation: 'logged',
         maxAttempts: 3,
         backoff: { strategy: RetryBackoffStrategies.FIXED, initialDelayMs: 1, ...NO_JITTER },
@@ -413,7 +409,7 @@ describe('executeWithRetry - an exhausted or zero time budget', () => {
 
     let caught: unknown;
     try {
-      await executeWithRetry({
+      await RetryHelper.executeWithRetry({
         operation: 'zero-budget',
         maxAttempts: 4,
         maxTotalMs: 0,
@@ -437,7 +433,7 @@ describe('executeWithRetry - an exhausted or zero time budget', () => {
 
     let caught: unknown;
     try {
-      await executeWithRetry({
+      await RetryHelper.executeWithRetry({
         operation: 'expired-budget',
         maxAttempts: 4,
         // A caller computing `deadline - Date.now()` under load lands here routinely.
@@ -463,7 +459,7 @@ describe('executeWithRetry - an exhausted or zero time budget', () => {
 
     let caught: unknown;
     try {
-      await executeWithRetry({
+      await RetryHelper.executeWithRetry({
         operation: 'live-budget',
         maxAttempts: 3,
         maxTotalMs: 5_000,
@@ -492,7 +488,7 @@ describe('executeWithRetryUntil', () => {
   test('returns on the first attempt when until is satisfied', async () => {
     let calls = 0;
 
-    const result = await executeWithRetryUntil({
+    const result = await RetryHelper.executeWithRetryUntil({
       operation: 'first-attempt',
       backoff: FAST_BACKOFF,
       execution: () => {
@@ -510,7 +506,7 @@ describe('executeWithRetryUntil', () => {
     const responses: Array<string | null> = [null, null, 'visible'];
     let calls = 0;
 
-    const result = await executeWithRetryUntil<string | null>({
+    const result = await RetryHelper.executeWithRetryUntil<string | null>({
       operation: 'retry-until-visible',
       maxAttempts: 5,
       backoff: FAST_BACKOFF,
@@ -529,7 +525,7 @@ describe('executeWithRetryUntil', () => {
   test('exhaustion returns the LAST result instead of throwing', async () => {
     let calls = 0;
 
-    const result = await executeWithRetryUntil<string>({
+    const result = await RetryHelper.executeWithRetryUntil<string>({
       operation: 'exhausted',
       maxAttempts: 3,
       backoff: FAST_BACKOFF,
@@ -547,7 +543,7 @@ describe('executeWithRetryUntil', () => {
   test('maxAttempts defaults to 3', async () => {
     let calls = 0;
 
-    await executeWithRetryUntil<null>({
+    await RetryHelper.executeWithRetryUntil<null>({
       operation: 'default-attempts',
       backoff: FAST_BACKOFF,
       execution: () => {
@@ -565,7 +561,7 @@ describe('executeWithRetryUntil', () => {
     let caught: unknown;
 
     try {
-      await executeWithRetryUntil({
+      await RetryHelper.executeWithRetryUntil({
         operation: 'real-error',
         maxAttempts: 5,
         backoff: FAST_BACKOFF,
@@ -589,7 +585,7 @@ describe('executeWithRetryUntil', () => {
     let caught: unknown;
 
     try {
-      await executeWithRetryUntil<string>({
+      await RetryHelper.executeWithRetryUntil<string>({
         operation: 'error-after-miss',
         maxAttempts: 5,
         backoff: FAST_BACKOFF,
@@ -622,7 +618,7 @@ describe('executeWithRetryUntil', () => {
       }),
     } as AnyType;
 
-    await executeWithRetryUntil<null>({
+    await RetryHelper.executeWithRetryUntil<null>({
       operation: 'warn-once',
       maxAttempts: 2,
       backoff: FAST_BACKOFF,
@@ -638,7 +634,7 @@ describe('executeWithRetryUntil', () => {
   test('a slow read is never aborted by maxTotalMs - the budget only gates new attempts', async () => {
     let executions = 0;
 
-    const result = await executeWithRetryUntil<string>({
+    const result = await RetryHelper.executeWithRetryUntil<string>({
       operation: 'slow-read',
       maxAttempts: 3,
       maxTotalMs: 10,
@@ -658,7 +654,7 @@ describe('executeWithRetryUntil', () => {
   test('a non-positive maxTotalMs still runs exactly one execution', async () => {
     let executions = 0;
 
-    const result = await executeWithRetryUntil<string>({
+    const result = await RetryHelper.executeWithRetryUntil<string>({
       operation: 'zero-budget',
       maxAttempts: 5,
       maxTotalMs: 0,
@@ -675,7 +671,7 @@ describe('executeWithRetryUntil', () => {
 
     let negativeExecutions = 0;
 
-    const negativeResult = await executeWithRetryUntil<string>({
+    const negativeResult = await RetryHelper.executeWithRetryUntil<string>({
       operation: 'negative-budget',
       maxAttempts: 5,
       maxTotalMs: -50,
@@ -694,7 +690,7 @@ describe('executeWithRetryUntil', () => {
   test('an exhausted budget stops further attempts and returns the last result', async () => {
     let executions = 0;
 
-    const result = await executeWithRetryUntil<string>({
+    const result = await RetryHelper.executeWithRetryUntil<string>({
       operation: 'budget-exhausted',
       maxAttempts: 10,
       maxTotalMs: 30,
@@ -717,7 +713,7 @@ describe('executeWithRetryUntil', () => {
     let caught: unknown;
 
     try {
-      await executeWithRetryUntil<string>({
+      await RetryHelper.executeWithRetryUntil<string>({
         operation: 'bad-backoff',
         maxAttempts: 3,
         backoff: { strategy: RetryBackoffStrategies.SCHEDULE },

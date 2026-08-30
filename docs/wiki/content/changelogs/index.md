@@ -17,6 +17,10 @@ This section tracks the history of significant changes, refactors, and updates t
 
 | Date | Title | Type |
 |------|-------|------|
+| 2026-08-30 | [A Row Scope Every Query Carries, Denied by Default When It Cannot Be Resolved](./2026-08-30-row-scope-filter) | New Feature, Security |
+| 2026-08-30 | [Where Clauses Now Type-Check the Value, Not Just the Column](./2026-08-30-typed-where-clauses) | Breaking Change, Enhancement |
+| 2026-08-30 | [Tree Utilities Join helpers, and RecursiveTreeSql Bounds Every Recursive Walk in kernel](./2026-08-30-tree-and-recursive-sql) | New Feature, Security |
+| 2026-08-30 | [A Real Hash Class Replaces the Removed hash() Utility](./2026-08-30-crypto-hashing) | New Feature, Security, Breaking Change |
 | 2026-08-30 | [PolicyDefinition.variant Stays Closed by Default, but an App Can Now Declare Its Own Edge Kinds](./2026-08-30-policy-definition-extra-variants) | Enhancement |
 | 2026-08-30 | [authorize() Denies When No Enforcer Is Registered](./2026-08-30-authorize-no-enforcer-fails-closed) | Security, Breaking Change |
 | 2026-08-30 | [getHealth() Never Throws, Imports Keep Progress, and collectionExists() Never Lies About Absence](./2026-08-30-search-connector-health-and-import-contract) | Behavior Change, Bug Fix |

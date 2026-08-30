@@ -63,25 +63,21 @@ describe('updateById / deleteById reject null & undefined id before executing', 
   }
 
   test('updateById rejects undefined id', async () => {
-    // @ts-expect-error id must be null/undefined to exercise the runtime guard.
     const message = await rejectionMessage(repo.updateById({ id: undefined, data: {} }));
     expect(message).toMatch(/null or undefined/);
   });
 
   test('updateById rejects null id', async () => {
-    // @ts-expect-error id must be null/undefined to exercise the runtime guard.
     const message = await rejectionMessage(repo.updateById({ id: null, data: {} }));
     expect(message).toMatch(/null or undefined/);
   });
 
   test('deleteById rejects undefined id', async () => {
-    // @ts-expect-error id must be null/undefined to exercise the runtime guard.
     const message = await rejectionMessage(repo.deleteById({ id: undefined }));
     expect(message).toMatch(/null or undefined/);
   });
 
   test('deleteById rejects null id', async () => {
-    // @ts-expect-error id must be null/undefined to exercise the runtime guard.
     const message = await rejectionMessage(repo.deleteById({ id: null }));
     expect(message).toMatch(/null or undefined/);
   });
