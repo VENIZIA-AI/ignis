@@ -1055,6 +1055,15 @@ new ScopedCasbinAdapter({
 
 A throwing hook is caught, logged, and treated as no edges for that one load - the rows already gathered (direct grants, role assignments, table-sourced `g3` rows) still load normally. This is the fail-secure direction: a missing `g3` edge only narrows what `g`/`g2`/`g3` reach, it can never widen it. The hook cannot join `queryPrincipalPolicies`'s wave (it needs that query's rows to compute `domains`) but does not wait on the independent `queryEdgePolicies` either - both resolve concurrently once the closure is known.
 
+> [!WARNING]
+> `domains` is a **membership closure**, built from `join_domain` rows plus both ends of every `domainEdge` row. It is **not** the set of domains the principal holds a role in through `assign_role`. A principal can hold `assign_role` at a domain it never joined. Porting a hook from a mechanism that derived its domains from `assign_role` will silently lose access for exactly those principals - no error, no log, just fewer `g3` edges than before. Measured on one production dataset: 17 principals held `assign_role` with no matching `join_domain`, 3 of them pointing at live records.
+
+A tenant hierarchy with more than one axis - an organizer tree and a separate, unrelated region tree, say - does not get a second hook. `resolveDomainEdges` is deliberately a single function, so composition stays visible in the application rather than hidden inside the framework:
+
+```typescript
+resolveDomainEdges: async opts => [...(await organizerEdges(opts)), ...(await regionEdges(opts))],
+```
+
 ### Subset grants (custom rows)
 
 A grant row can express an arbitrary subset of a subject's operations instead of a full tier:

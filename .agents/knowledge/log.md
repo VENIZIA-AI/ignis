@@ -6,6 +6,49 @@ not how.
 This file and `index.md` are reserved OKF filenames - they carry no `type:` frontmatter and are not
 counted as concepts.
 
+## 2026-08-31 - `TWhereValue<V>` admits a `Date` on `isoTimestamp` columns only
+
+`isoTimestamp` (`connectors/relational/{postgres,sqlite}/models/common/columns.ts`) reads back as
+`string`, but its own `toDriver` already accepts a `Date` and converts it - `{ effectiveFrom: { lte:
+new Date() } }` always ran correctly, and the 2026-08-30 `TWhere<T>` value-typing change (see the
+entry below) made it a compile error for the first time, purely because the type could not see the
+conversion. Widening `TWhereValue<V>` for every `string` would have re-opened the exact hole that
+change closed - comparing an unrelated `text` column against a `Date` is a real bug and must stay one.
+
+Fix: a branded read type, `TIsoTimestamp = string & { readonly isoTimestampBrand: unique symbol }`,
+added to `filter/src/common/types.ts` (not `connectors` - `filter` has no dependency on `connectors`,
+and the brand is a pure type with no runtime import). `TWhereValue<V>` widens only a `V` that extends
+the brand: `V extends TIsoTimestamp ? V | Date : V`, applied to both the bare-scalar position and
+inside `TWhereOperators<V>`, so `{ gte: new Date() }` compiles too. `isoTimestamp`'s column now
+declares `data: string | TIsoTimestamp`, a union rather than a bare brand - required, because drizzle
+infers `$inferSelect` and `$inferInsert` from the SAME `data` field, and a bare-brand `data` (no plain
+`string` member) was measured to also block inserting a plain string literal, which the compiled
+`customType` test proved before landing on the union.
+
+The literal brand shape given in the initial ask (`{ __isoTimestamp?: unique symbol }`, optional
+field, no leading-underscore naming) does not work and was changed on both counts: an optional brand
+field is structurally satisfied by a bare `string` (so `string extends TIsoTimestamp` is also true,
+widening every text column), and the naming-convention lint rule rejects a double-leading-underscore
+property name. The shipped field is `isoTimestampBrand: unique symbol`, required, no underscore.
+
+Tests: `core-server/src/__tests__/filter-builder/iso-timestamp-where.test.ts` - bare `Date` and `{
+lte: new Date() }` compile on an `isoTimestamp` column, `{ plainText: new Date() }` and `{ plainText:
+{ lte: new Date() } }` on a `text` column stay `@ts-expect-error` (both markers verified load-bearing
+by deleting and re-running `tsc`), a string literal and `$inferInsert` with a string literal still
+work, SQLite's `isoTimestamp` carries the same brand, and a `Date` vs. its `.toISOString()` compile to
+identical SQL text and params via `PgDialect.sqlToQuery`. Does not leak into generated schemas -
+`drizzle-zod`'s `createSelectSchema`/`createInsertSchema` dispatch on the column's runtime
+`columnType` string, never on this TypeScript-only brand. Changelog:
+`docs/wiki/content/changelogs/2026-08-30-typed-where-clauses.md` (new "isoTimestamp exception"
+section; corrected the `examples/vert` note - `createdAt` is an `isoTimestamp` column, so its
+`.toISOString()` workaround is no longer required, though harmless to keep).
+
+## 2026-08-31 - `resolveDomainEdges`'s `domains` argument documented as a membership closure, not an `assign_role` closure
+
+Documentation-only - `ScopedCasbinAdapter`'s `resolveDomainEdges` hook (`core-server/.../adapters/scoped-casbin.adapter.ts`) keeps its exact prior signature, name, and single-function shape. A proposed rename to an array of `domainResolvers` run through `Promise.allSettled` was considered and dropped before landing: the one real consumer's equivalent array never held more than one element in its history, the second hierarchy axis that would have justified it has no schema yet, and an application can already compose more than one source with `resolveDomainEdges: async opts => [...(await organizerEdges(opts)), ...(await regionEdges(opts))]` - no API change needed.
+
+What shipped: the hook's doc comment, the `authorization-casbin` concept, and the `resolveDomainEdges` section of the Authorization API reference now state that `domains` is the principal's **membership closure** (`join_domain` rows plus both ends of every `domainEdge` row), never the domains a principal holds a role in via `assign_role`. A principal can carry `assign_role` at a domain it never joined; a hook migrated from an `assign_role`-derived mechanism silently loses access for exactly those principals - no error, no log, just fewer `g3` edges than before. Measured on one production dataset: 17 principals held `assign_role` with no matching `join_domain`, 3 of them pointing at live records. The same three spots also gained a one-line composition note for a multi-axis hierarchy, pointing at the concatenation pattern above rather than a second hook.
+
 ## 2026-08-30 - `scopeFilter` gets a third `resolve()` state: `ScopeFilters.UNRESTRICTED`
 
 A `where`, or null/undefined-denies, could not express "this caller sees everything on this one

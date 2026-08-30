@@ -1,6 +1,7 @@
 import { getError } from '@venizia/ignis-helpers/core';
 import { HTTP } from '@venizia/ignis-helpers/common';
 import { customType } from 'drizzle-orm/sqlite-core';
+import type { TIsoTimestamp } from '@venizia/ignis-filter';
 
 /**
  * A date-time with no zone designator - what SQLite's own
@@ -10,12 +11,14 @@ import { customType } from 'drizzle-orm/sqlite-core';
 const ZONELESS_DATE_TIME = /^(\d{4}-\d{2}-\d{2})[T ](\d{2}:\d{2}(?::\d{2}(?:\.\d+)?)?)$/;
 
 /**
- * No date storage class - timestamps live in `text`, normalized
- * to ISO 8601 both ways so comparisons stay lexicographic.
+ * No date storage class - timestamps live in `text`, normalized to ISO 8601 both ways so
+ * comparisons stay lexicographic. The `data` union brands the read/insert shape with
+ * `TIsoTimestamp` so `TWhereValue` can admit a `Date` for this column only, while a plain string
+ * literal (insert or filter) still matches the bare `string` member.
  */
 export const isoTimestamp = (name: string) => {
   return customType<{
-    data: string;
+    data: string | TIsoTimestamp;
     driverData: string;
   }>({
     dataType() {

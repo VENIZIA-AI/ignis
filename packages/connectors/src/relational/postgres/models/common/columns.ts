@@ -1,11 +1,17 @@
 import { getError } from '@venizia/ignis-helpers/core';
 import { HTTP } from '@venizia/ignis-helpers/common';
 import { customType } from 'drizzle-orm/pg-core';
+import type { TIsoTimestamp } from '@venizia/ignis-filter';
 
-/** Normalizes timestamps to ISO 8601 both ways - Drizzle's `mode: 'date'` isn't JSON-friendly and `mode: 'string'` returns Postgres's raw format. */
+/**
+ * Normalizes timestamps to ISO 8601 both ways - Drizzle's `mode: 'date'` isn't JSON-friendly and
+ * `mode: 'string'` returns Postgres's raw format. The `data` union brands the read/insert shape
+ * with `TIsoTimestamp` so `TWhereValue` can admit a `Date` for this column only, while a plain
+ * string literal (insert or filter) still matches the bare `string` member.
+ */
 export const isoTimestamp = (name: string, config?: { withTimezone?: boolean }) => {
   return customType<{
-    data: string;
+    data: string | TIsoTimestamp;
     driverData: string;
     config: { withTimezone?: boolean };
   }>({

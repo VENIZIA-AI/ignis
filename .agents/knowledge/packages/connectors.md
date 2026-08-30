@@ -260,6 +260,13 @@ catch rather than prove it absent.
   relational tier value-imports `getTableColumns`, `sql`, `relations` and `createSchemaFactory`.
 - `build.sh` type-checks `src` and `src/__tests__` before emitting, so a type error in a test blocks
   the production build. See [build system](/process/build-system.md).
+- `isoTimestamp` (`relational/{postgres,sqlite}/models/common/columns.ts`) declares its column's
+  `data` as `string | TIsoTimestamp`, not bare `string`. `TIsoTimestamp` is a branded type owned by
+  `filter` (`connectors` depends on `filter`, never the other way), and it is what lets
+  `TWhereValue<V>` admit a `Date` for this column only - its own `toDriver` already converts one. The
+  union, not a bare brand, is deliberate: `$inferSelect` and `$inferInsert` read the same `data`
+  field, so a bare-brand `data` would have also blocked inserting a plain string literal. See
+  [filter](/packages/filter.md).
 
 ## Related
 

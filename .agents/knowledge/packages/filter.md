@@ -30,6 +30,23 @@ otherwise reject.
 `TWhereValue<any>` accepts anything under it - a typo inside a JSON path stays silent. Dot-path key
 typing needs the application to declare `$type<>()` on its jsonb columns first; not done here.
 
+**One narrow, branded exception: `TIsoTimestamp`.** `connectors`' `isoTimestamp` column
+(`relational/{postgres,sqlite}/models/common/columns.ts`) reads back as `string`, but its `toDriver`
+already accepts a `Date` and converts it - refusing a `Date` in a filter for that column would be the
+type contradicting a conversion the column itself performs. `TIsoTimestamp = string & { readonly
+isoTimestampBrand: unique symbol }`, and `TWhereValue<V>` widens only a `V` that extends it: `V
+extends TIsoTimestamp ? V | Date : V`, applied both to the bare-scalar position and inside
+`TWhereOperators<V>` (so `{ gte: new Date() }` also compiles). A plain `text` column's `V` is bare
+`string`, which does not extend the brand, so it stays untouched - `{ plainText: new Date() }` is
+still a compile error. The brand lives here, not in `connectors`, because `filter` has no dependency
+on `connectors` and the brand is a pure type; `connectors` sets its `isoTimestamp` column's `data` to
+`string | TIsoTimestamp` (a union, not a bare brand) specifically so `$inferInsert` still accepts a
+plain string literal - drizzle infers insert and select from the SAME `data` field, so a brand
+required on every value there (no plain-string member) would have broken inserting a string literal.
+See the [2026-08-30 changelog](/changelogs/2026-08-30-typed-where-clauses) for the reasoning in
+full and `core-server/src/__tests__/filter-builder/iso-timestamp-where.test.ts` for the compile-time
+and runtime proofs (a `Date` and its `.toISOString()` compile to identical SQL and params).
+
 Fallout was concentrated in one pattern: `packages/connectors` builds `{ id: opts.id }` (`IdType`)
 against `TWhere<DataObject>` in four call sites across `persistable.ts`, `readable.ts`,
 `soft-deletable.ts`, where `DataObject` is a class-level generic bound through
