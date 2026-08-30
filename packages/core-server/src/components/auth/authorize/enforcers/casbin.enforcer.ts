@@ -26,11 +26,10 @@ import {
   type TAuthorizationDecision,
   type TCasbinDomainMatchingFunction,
 } from '@venizia/ignis-kernel';
-import { DomainHierarchyStore } from './domain-hierarchy';
-import { DomainHierarchyRoleManager } from './domain-hierarchy-role-manager';
-import { MembershipRoleManager } from './membership-role-manager';
+import { DomainHierarchyRoleManager } from '../role-managers/domain-hierarchy';
+import { MembershipRoleManager } from '../role-managers/membership';
+import { ResourceRoleManager } from '../role-managers/resource';
 import { PolicyLineCodec } from './policy-line-codec';
-import { ResourceRoleManager } from './resource-role-manager';
 import { UserPolicyLineCache } from './user-policy-line-cache';
 
 /** Payload shape for the scoped/custom path, matching defaultScopedPayloadFn(). */
@@ -61,7 +60,6 @@ export class CasbinAuthorizationEnforcer<
 
   private pool: TNullable<BasePoolHelper<CasbinEnforcerType>> = null;
   private helper: TNullable<typeof CasbinHelperType> = null;
-  private domainHierarchyStore: TNullable<DomainHierarchyStore> = null;
   // Lazily created on first cache use (see requireRedisCache) - one instance for the enforcer's lifetime so its single-flight de-dup map actually dedupes.
   private userPolicyLineCache: TNullable<UserPolicyLineCache> = null;
 
@@ -103,18 +101,6 @@ export class CasbinAuthorizationEnforcer<
       this.validateExpiresIn({ expiresIn: cached.options.expiresIn });
     }
 
-    if (this.options.domainHierarchy) {
-      const domainHierarchyStore = new DomainHierarchyStore({
-        load: this.options.domainHierarchy.load,
-        refreshMs: this.options.domainHierarchy.refreshMs,
-        maxStaleMs: this.options.domainHierarchy.maxStaleMs,
-      });
-      // Must fail boot, never serve with an empty tree - warmup() throws on a failed initial load.
-      await domainHierarchyStore.warmup();
-      // Assigned before the pool is created: pool.create() runs registerMatchers(), which reads this field.
-      this.domainHierarchyStore = domainHierarchyStore;
-    }
-
     this.pool = new BasePoolHelper<CasbinEnforcerType>({
       scope: `${CasbinAuthorizationEnforcer.name}.Pool`,
       size: this.options.poolSize ?? 16,
@@ -134,11 +120,9 @@ export class CasbinAuthorizationEnforcer<
     this.logger
       .for(this.configure.name)
       .info(
-        'Casbin enforcer pool ready (size: %s, cached: %s, domainHierarchy: %s, edges: %s)',
+        'Casbin enforcer pool ready (size: %s, cached: %s)',
         this.options.poolSize ?? 16,
         cached.use ? cached.driver : 'none',
-        this.domainHierarchyStore ? 'on' : 'off',
-        this.domainHierarchyStore?.graph.edgeCount ?? 0,
       );
   }
 
@@ -146,7 +130,6 @@ export class CasbinAuthorizationEnforcer<
     this.pool?.destroy().catch(error => {
       this.logger.for(this.destroy.name).warn('Pool destroy failed: %s', error);
     });
-    this.domainHierarchyStore?.destroy();
   }
 
   /** casbin compiles the matcher lazily (first enforce, not newEnforcer/buildRoleLinks); this dummy enforceSync forces the compile at warmup so syntax / unregistered-function / arity errors fail boot. */
@@ -294,29 +277,6 @@ export class CasbinAuthorizationEnforcer<
     return { cacheKey, lineCount: lines.length };
   }
 
-  /**
-   * Force-reload the shared domain-hierarchy tree now, ignoring its TTL. Refreshes only THIS
-   * process - it is not a cluster-wide broadcast, so a multi-instance deployment needs one call
-   * per process to make e.g. a newly created child domain visible everywhere immediately.
-   */
-  async invalidateDomainHierarchy(): Promise<{ nodeCount: number; edgeCount: number }> {
-    if (!this.domainHierarchyStore) {
-      throw getError({
-        message:
-          '[CasbinAuthorizationEnforcer] invalidateDomainHierarchy() was called but options.domainHierarchy is not enabled on this enforcer.',
-      });
-    }
-
-    await this.domainHierarchyStore.reload();
-    const { nodeCount, edgeCount } = this.domainHierarchyStore.graph;
-
-    this.logger
-      .for(this.invalidateDomainHierarchy.name)
-      .info('Domain hierarchy reloaded | nodes: %s | edges: %s', nodeCount, edgeCount);
-
-    return { nodeCount, edgeCount };
-  }
-
   /** Narrow `options.cached` to the redis variant and lazily create the per-user line cache - memoized so its single-flight de-dup map is shared across calls rather than reset on every access. */
   protected requireRedisCache(): UserPolicyLineCache {
     const { cached } = this.options;
@@ -364,50 +324,39 @@ export class CasbinAuthorizationEnforcer<
         new ResourceRoleManager(),
       );
 
-      const { domainHierarchyStore } = this;
-      if (domainHierarchyStore) {
-        // Shared across g2, g3, and the reversed `g` instance below: casbin never puts the
-        // `g`-axis hierarchy manager in rmMap, so it never receives addLink and would miss
-        // per-request g3 edges - g2 needs the same freshness for a just-created child domain.
-        const domainHierarchyOverlay = new Map<string, Set<string>>();
+      // Shared across g2, g3, and the reversed `g` instance below: casbin never puts the
+      // `g`-axis hierarchy manager in rmMap, so it never receives addLink and would miss
+      // per-request g3 edges - g2 needs the same freshness for a just-created child domain.
+      // This is a per-REQUEST overlay: `clear()` empties it every buildRoleLinks cycle, and it is
+      // repopulated from whatever `g3` lines this principal's own policy line set carries.
+      const domainHierarchyOverlay = new Map<string, Set<string>>();
 
-        // g2 (membership) and g3 (domain nesting, request-domain-first) sit on their own axes.
-        enforcer.setNamedRoleManager(
-          CasbinRuleVariants.G2,
-          new MembershipRoleManager({
-            store: domainHierarchyStore,
-            overlay: domainHierarchyOverlay,
-          }),
-        );
+      // g2 (membership) and g3 (domain nesting, request-domain-first) sit on their own axes.
+      enforcer.setNamedRoleManager(
+        CasbinRuleVariants.G2,
+        new MembershipRoleManager({ overlay: domainHierarchyOverlay }),
+      );
 
-        enforcer.setNamedRoleManager(
-          CasbinRuleVariants.G3,
-          new DomainHierarchyRoleManager({
-            store: domainHierarchyStore,
-            overlay: domainHierarchyOverlay,
-          }),
-        );
+      enforcer.setNamedRoleManager(
+        CasbinRuleVariants.G3,
+        new DomainHierarchyRoleManager({ overlay: domainHierarchyOverlay }),
+      );
 
-        // addNamedDomainMatchingFunc(G, keyMatchFunc) above must stay: generateTempRoles ORs
-        // hasDomainPattern with hasDomainHierarchy, and role_inherits `*` rides the keyMatch path.
-        const gRoleManager = enforcer.getNamedRoleManager(CasbinRuleVariants.G) as
-          (CasbinRoleManagerType & ICasbinRoleManagerWithDomainHierarchy) | undefined;
+      // addNamedDomainMatchingFunc(G, keyMatchFunc) above must stay: generateTempRoles ORs
+      // hasDomainPattern with hasDomainHierarchy, and role_inherits `*` rides the keyMatch path.
+      const gRoleManager = enforcer.getNamedRoleManager(CasbinRuleVariants.G) as
+        (CasbinRoleManagerType & ICasbinRoleManagerWithDomainHierarchy) | undefined;
 
-        if (!gRoleManager?.addDomainHierarchy) {
-          throw getError({
-            message:
-              '[registerMatchers] The "g" role manager does not expose addDomainHierarchy() - domainHierarchy requires casbin\'s DefaultRoleManager on the g axis (present in casbin ^5.51.1, this package\'s pinned range). Upgrade casbin, or check that a custom role manager was not substituted for "g".',
-          });
-        }
-
-        await gRoleManager.addDomainHierarchy(
-          new DomainHierarchyRoleManager({
-            store: domainHierarchyStore,
-            reversed: true,
-            overlay: domainHierarchyOverlay,
-          }),
-        );
+      if (!gRoleManager?.addDomainHierarchy) {
+        throw getError({
+          message:
+            '[registerMatchers] The "g" role manager does not expose addDomainHierarchy() - the scoped model requires casbin\'s DefaultRoleManager on the g axis (present in casbin ^5.51.1, this package\'s pinned range). Upgrade casbin, or check that a custom role manager was not substituted for "g".',
+        });
       }
+
+      await gRoleManager.addDomainHierarchy(
+        new DomainHierarchyRoleManager({ reversed: true, overlay: domainHierarchyOverlay }),
+      );
     }
 
     await enforcer.buildRoleLinks();

@@ -23,6 +23,15 @@ export const AuthorizationErrors = {
     statusCode: HTTP.ResultCodes.RS_4.Forbidden,
     category: ErrorScopes.AUTH,
   },
+  /** Distinct from {@link DENIED}: no enforcer ever ran - the route declared `authorize()` but the application registered none, and `defaultDecision` did not say ALLOW. */
+  ENFORCER_NOT_REGISTERED: {
+    message: {
+      text: 'Authorization requires an enforcer, but none is registered',
+      code: 'core.authorization.enforcer_not_registered',
+    },
+    statusCode: HTTP.ResultCodes.RS_4.Forbidden,
+    category: ErrorScopes.AUTH,
+  },
   PRINCIPAL_TYPE_MISSING: {
     message: {
       text: 'user.principalType is required for enforcer-based authorization',

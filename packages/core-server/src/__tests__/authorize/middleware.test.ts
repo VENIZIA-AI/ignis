@@ -1,4 +1,5 @@
 import { describe, test, expect } from 'bun:test';
+import { isApplicationError } from '@venizia/ignis-helpers/core';
 import {
   Authorization,
   AuthorizationDecisions,
@@ -715,8 +716,29 @@ describe('Enforcer Registry Middleware Flow', () => {
   });
 
   describe('graceful handling — no enforcers registered', () => {
-    test('should skip authorization when no enforcers are registered', async () => {
+    test('should deny when no enforcers are registered - authorize() was declared, nothing can enforce it', async () => {
       createFreshRegistry();
+
+      const middleware = authorize({
+        spec: { action: 'read', resource: 'User' },
+      });
+
+      const context = createMockContext({
+        user: { userId: 'u1' },
+      });
+
+      const { hasCalledNext, error } = await runMiddleware(middleware, context);
+
+      expect(hasCalledNext).toBe(false);
+      expect(isApplicationError(error)).toBe(true);
+      if (isApplicationError(error)) {
+        expect(error.normalized.code).toBe('core.authorization.enforcer_not_registered');
+      }
+    });
+
+    test('should proceed when no enforcers are registered and defaultDecision is allow', async () => {
+      const registry = createFreshRegistry();
+      registry.setOptions({ options: { defaultDecision: 'allow' } });
 
       const middleware = authorize({
         spec: { action: 'read', resource: 'User' },

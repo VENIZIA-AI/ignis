@@ -4,7 +4,11 @@ import { inject } from '@venizia/ignis-kernel';
 import { CoreBindings } from '@venizia/ignis-kernel';
 import { getError } from '@venizia/ignis-helpers/core';
 import { ValueOrPromise } from '@venizia/ignis-helpers/common';
-import { AuthorizeBindingKeys, IAuthorizeOptions } from '@venizia/ignis-kernel';
+import {
+  AuthorizationEnforcerRegistry,
+  AuthorizeBindingKeys,
+  IAuthorizeOptions,
+} from '@venizia/ignis-kernel';
 
 export class AuthorizeComponent extends BaseComponent {
   constructor(
@@ -30,6 +34,10 @@ export class AuthorizeComponent extends BaseComponent {
     }
 
     this.bindAlwaysAllowRoles({ options });
+
+    // The registry otherwise finds options only through a registered enforcer's container, so
+    // `defaultDecision` would be unreadable in the one case it decides: no enforcer registered.
+    AuthorizationEnforcerRegistry.getInstance().setOptions({ options });
 
     this.logger.for(this.binding.name).info('Authorization configured');
   }

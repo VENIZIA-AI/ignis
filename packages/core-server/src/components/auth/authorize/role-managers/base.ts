@@ -1,11 +1,10 @@
 import { BaseHelper } from '@venizia/ignis-helpers/core';
-import type { DomainHierarchyGraph } from './domain-hierarchy';
 
 /**
  * Shared casbin `RoleManager` scaffolding for the resource, domain-hierarchy, and membership
  * role managers: the debug-only interface members (`printRoles`, `getDomains`, `getAllDomains`),
  * the `hasLink` wrapper around the synchronous `syncedHasLink`, the once-per-`clear()`
- * graph-initialized log line, and the shared ancestor walk both hierarchy-aware managers use.
+ * overlay-initialized log line, and the shared ancestor walk both hierarchy-aware managers use.
  */
 export abstract class BaseRoleManager extends BaseHelper {
   protected graphReported = false;
@@ -27,7 +26,7 @@ export abstract class BaseRoleManager extends BaseHelper {
     return [];
   }
 
-  /** Logs the initialized-graph line once per `clear()` cycle; `build` is only invoked the first time so counts stay lazy. */
+  /** Logs the initialized-overlay line once per `clear()` cycle; `build` is only invoked the first time so counts stay lazy. */
   protected reportGraphOnce(build: () => { message: string; args: unknown[] }): void {
     if (this.graphReported) {
       return;
@@ -38,16 +37,31 @@ export abstract class BaseRoleManager extends BaseHelper {
     this.logger.for(this.syncedHasLink.name).debug(message, ...args);
   }
 
-  /** `node` itself plus every ancestor reachable by walking the graph's child->parent edges and an
-   * optional overlay, node first. Cycle-safe: visited Set + index cursor, never shift(). Static -
-   * `ResourceRoleManager` extends this base with neither a store nor an overlay, so this must not
-   * force instance state onto it. */
+  /** Node and edge counts of a domain-hierarchy overlay, for the once-per-`clear()` debug log. */
+  protected static overlayStats(overlay?: Map<string, Set<string>>): {
+    nodeCount: number;
+    edgeCount: number;
+  } {
+    if (!overlay) {
+      return { nodeCount: 0, edgeCount: 0 };
+    }
+
+    let edgeCount = 0;
+    for (const parents of overlay.values()) {
+      edgeCount += parents.size;
+    }
+
+    return { nodeCount: overlay.size, edgeCount };
+  }
+
+  /** `node` itself plus every ancestor reachable by walking the overlay's child->parent edges,
+   * node first. Cycle-safe: visited Set + index cursor, never shift(). Static - `ResourceRoleManager`
+   * extends this base with no overlay of this shape, so this must not force instance state onto it. */
   protected static collectAncestors(opts: {
-    graph: DomainHierarchyGraph;
     overlay?: Map<string, Set<string>>;
     node: string;
   }): string[] {
-    const { graph, overlay, node } = opts;
+    const { overlay, node } = opts;
     const result: string[] = [node];
     const visited = new Set<string>([node]);
     const queue: string[] = [node];
@@ -57,21 +71,12 @@ export abstract class BaseRoleManager extends BaseHelper {
       const current = queue[head];
       head += 1;
 
-      for (const ancestor of graph.ancestorsOf({ node: current })) {
-        if (visited.has(ancestor)) {
-          continue;
-        }
-        visited.add(ancestor);
-        result.push(ancestor);
-        queue.push(ancestor);
-      }
-
-      const overlayParents = overlay?.get(current);
-      if (!overlayParents) {
+      const parents = overlay?.get(current);
+      if (!parents) {
         continue;
       }
 
-      for (const parent of overlayParents) {
+      for (const parent of parents) {
         if (visited.has(parent)) {
           continue;
         }

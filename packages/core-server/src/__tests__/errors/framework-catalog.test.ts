@@ -40,6 +40,7 @@ const PINNED = [
   'core.authorization.denied_by_voter',
   'core.authorization.principal_type_missing',
   'core.authorization.cache_key_invalid',
+  'core.authorization.enforcer_not_registered',
   'core.static_asset.bucket_name_invalid',
   'core.static_asset.object_name_invalid',
   'core.static_asset.folder_path_invalid',

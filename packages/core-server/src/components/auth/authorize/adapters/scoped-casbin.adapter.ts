@@ -13,6 +13,8 @@ import { BaseFilteredAdapter } from './base-filtered';
 import { CustomGrantExpander, type TCustomGrantRow } from './custom-grant-expander';
 import type { ICasbinPolicySource, IScopedCasbinEntities } from './types';
 
+export type TDomainHierarchyEdge = { child: string; parent: string };
+
 export interface IScopedCasbinPolicyFilter {
   principal: { type: string; id: IdType };
 }
@@ -46,33 +48,57 @@ export type TPrincipalPolicyRow = TGrantRow & {
 
 const DEFAULT_SCHEMA = 'public';
 
+/**
+ * Per-principal domain edges sourced from business data the app already owns (e.g. a tenant
+ * foreign key) - read live on every cache miss, never duplicated into `domain_inherits`. An app
+ * whose hierarchy genuinely lives in `domain_inherits` rows does not need this hook at all: the
+ * DOMAIN_EDGE branch above already emits those as `g3` lines. `domains` is the principal's own
+ * domain closure, already `<Type>_<id>` tokens; the returned edges must be too - neither side
+ * re-formats them.
+ */
+export type TResolveDomainEdgesFn = (opts: {
+  principal: { type: string; id: IdType };
+  domains: string[];
+}) => Promise<TDomainHierarchyEdge[]>;
+
 /** Filtered casbin adapter for the scoped RBAC model: loads ONE principal's edges (role assignments, memberships, grants) plus the shared structural hierarchy trees as casbin lines. Read-only. */
 export class ScopedCasbinAdapter extends BaseFilteredAdapter<IScopedCasbinPolicyFilter> {
   protected readonly entities: IScopedCasbinEntities;
   protected readonly customGrantExpander: CustomGrantExpander;
+  protected readonly resolveDomainEdges?: TResolveDomainEdgesFn;
 
-  constructor(opts: { dataSource: ICasbinPolicySource; entities: IScopedCasbinEntities }) {
+  constructor(opts: {
+    dataSource: ICasbinPolicySource;
+    entities: IScopedCasbinEntities;
+    resolveDomainEdges?: TResolveDomainEdgesFn;
+  }) {
     super({ scope: ScopedCasbinAdapter.name, dataSource: opts.dataSource });
     this.entities = opts.entities;
+    this.resolveDomainEdges = opts.resolveDomainEdges;
     this.customGrantExpander = new CustomGrantExpander({
       dataSource: opts.dataSource,
       entities: { permission: opts.entities.permission, softDelete: opts.entities.softDelete },
     });
   }
 
-  /** One wave: the principal-scoped CTE and the merged structural-edges query are issued together - the role closure resolves in SQL, so neither waits on the other. */
+  /**
+   * One wave: the principal-scoped CTE and the merged structural-edges query are issued together -
+   * the role closure resolves in SQL, so neither waits on the other. `resolveDomainEdges` cannot
+   * join that wave - it needs the domain closure the principal-scoped CTE produces - but it does
+   * not wait for the structural-edges query either: both run concurrently once the closure is known.
+   */
   async loadFilteredPolicy(model: Model, filter: IScopedCasbinPolicyFilter): Promise<void> {
     const { principal } = filter;
     const { principals } = this.entities;
 
-    const [principalRows, structuralEdges] = await Promise.all([
-      this.queryPrincipalPolicies({ principal }),
-      this.queryEdgePolicies(),
-    ]);
+    const principalPoliciesPromise = this.queryPrincipalPolicies({ principal });
+    const structuralEdgesPromise = this.queryEdgePolicies();
+    const principalRows = await principalPoliciesPromise;
 
     const lines: string[] = [];
     const directGrants: TGrantRow[] = [];
     const roleGrants: TGrantRow[] = [];
+    const domainClosure = new Set<string>();
 
     for (const row of principalRows) {
       switch (row.kind) {
@@ -92,21 +118,38 @@ export class ScopedCasbinAdapter extends BaseFilteredAdapter<IScopedCasbinPolicy
           lines.push(
             `${AuthorizationPolicyVariants.DOMAIN_INHERITS.rule}, ${row.subjectId}, ${row.targetId}`,
           );
+          // Both ends are, by construction, members of the principal's domain_closure CTE.
+          domainClosure.add(String(row.subjectId));
+          domainClosure.add(String(row.targetId));
           break;
         }
 
         default: {
+          if (row.variant === AuthorizationPolicyVariants.JOIN_DOMAIN.action) {
+            domainClosure.add(`${row.targetType}_${row.targetId}`);
+          }
           this.collectDirectRow({ row, principal, lines, directGrants });
           break;
         }
       }
     }
 
+    const hookLinesPromise = this.resolveDomainEdgeLines({
+      principal,
+      domains: [...domainClosure],
+    });
+
     lines.push(
       ...(await this.buildGrantLines({ subjectType: principal.type, rows: directGrants })),
     );
     lines.push(...(await this.buildGrantLines({ subjectType: principals.role, rows: roleGrants })));
+
+    const [structuralEdges, hookLines] = await Promise.all([
+      structuralEdgesPromise,
+      hookLinesPromise,
+    ]);
     lines.push(...structuralEdges);
+    lines.push(...hookLines);
 
     await this.loadLines({ model, lines });
   }
@@ -148,6 +191,41 @@ export class ScopedCasbinAdapter extends BaseFilteredAdapter<IScopedCasbinPolicy
         break;
       }
     }
+  }
+
+  /**
+   * Calls the `resolveDomainEdges` hook, if supplied, and turns its edges into `g3` lines using
+   * the same shape the DOMAIN_EDGE branch emits. A throwing hook is logged and treated as no
+   * edges - the rows already gathered for this principal still load. This is the safe direction:
+   * a missing hierarchy edge can only narrow what `g`/`g2`/`g3` reach, never widen it, so the
+   * failure degrades to less access rather than either an outage or excess access.
+   */
+  protected async resolveDomainEdgeLines(opts: {
+    principal: { type: string; id: IdType };
+    domains: string[];
+  }): Promise<string[]> {
+    if (!this.resolveDomainEdges) {
+      return [];
+    }
+
+    let edges: TDomainHierarchyEdge[];
+    try {
+      edges = await this.resolveDomainEdges(opts);
+    } catch (error) {
+      this.logger
+        .for(this.resolveDomainEdgeLines.name)
+        .error(
+          'resolveDomainEdges hook threw - continuing without its edges for this load | principal: %s_%s | error: %s',
+          opts.principal.type,
+          opts.principal.id,
+          error,
+        );
+      return [];
+    }
+
+    return edges.map(
+      edge => `${AuthorizationPolicyVariants.DOMAIN_INHERITS.rule}, ${edge.child}, ${edge.parent}`,
+    );
   }
 
   /** Schema for a table, defaulting to `public`. */

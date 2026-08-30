@@ -68,7 +68,7 @@ describe('CASBIN_RBAC_DOMAIN_SCOPED_MODEL', () => {
 });
 
 import { Helper, newEnforcer, Util } from 'casbin';
-import { ResourceRoleManager } from '@/components/auth/authorize/enforcers/resource-role-manager';
+import { ResourceRoleManager } from '@/components/auth/authorize/role-managers/resource';
 
 // Builds a v2-model enforcer, registers the matching funcs exactly as CasbinAuthorizationEnforcer does, then hand-feeds policy lines.
 async function buildScopedEnforcer(lines: string[]) {

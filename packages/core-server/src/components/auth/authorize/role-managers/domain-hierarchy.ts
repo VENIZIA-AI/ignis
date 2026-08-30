@@ -1,29 +1,22 @@
 import type { RoleManager } from 'casbin';
-import { BaseRoleManager } from './base-role-manager';
-import type { DomainHierarchyStore } from './domain-hierarchy';
+import { BaseRoleManager } from './base';
 
 /**
  * Serves the `g3` axis (`g3(r.dom, p.dom)`) and, with `reversed`, casbin's
  * `DefaultRoleManager.addDomainHierarchy()` on `g`, which asks in the opposite argument order.
- * `clear()` wipes only the overlay, never the shared store: `buildRoleLinksInternal` clears every
- * registered role manager each request. Pass both instances one `overlay` so per-request `g3`
+ * `clear()` wipes only the overlay, never shared across requests: `buildRoleLinksInternal` clears
+ * every registered role manager each request. Pass both instances one `overlay` so per-request `g3`
  * edges reach the `g` axis, which casbin never puts in `rmMap` and so never feeds `addLink`.
  */
 export class DomainHierarchyRoleManager extends BaseRoleManager implements RoleManager {
-  private readonly store: DomainHierarchyStore;
   private readonly reversed: boolean;
   private readonly overlay: Map<
     string, // child domain
     Set<string> // set of parent domains
   >;
 
-  constructor(opts: {
-    store: DomainHierarchyStore;
-    reversed?: boolean;
-    overlay?: Map<string, Set<string>>;
-  }) {
+  constructor(opts: { reversed?: boolean; overlay?: Map<string, Set<string>> }) {
     super({ scope: DomainHierarchyRoleManager.name });
-    this.store = opts.store;
     this.reversed = opts.reversed ?? false;
     this.overlay = opts.overlay ?? new Map<string, Set<string>>();
   }
@@ -52,11 +45,13 @@ export class DomainHierarchyRoleManager extends BaseRoleManager implements RoleM
   }
 
   syncedHasLink(name1: string, name2: string): boolean {
-    this.store.refreshIfStale();
-    this.reportGraphOnce(() => ({
-      message: 'domain-hierarchy role manager initialized | nodes: %d | edges: %d | reversed: %s',
-      args: [this.store.graph.nodeCount, this.store.graph.edgeCount, this.reversed],
-    }));
+    this.reportGraphOnce(() => {
+      const { nodeCount, edgeCount } = DomainHierarchyRoleManager.overlayStats(this.overlay);
+      return {
+        message: 'domain-hierarchy role manager initialized | nodes: %d | edges: %d | reversed: %s',
+        args: [nodeCount, edgeCount, this.reversed],
+      };
+    });
 
     const start = this.reversed ? name2 : name1;
     const target = this.reversed ? name1 : name2;
@@ -81,7 +76,7 @@ export class DomainHierarchyRoleManager extends BaseRoleManager implements RoleM
     return users;
   }
 
-  /** True when `start` is `target`, or reaches it through the shared graph, the overlay, or a chain mixing both. */
+  /** True when `start` is `target`, or reaches it through the overlay. */
   private reaches(opts: { start: string; target: string }): boolean {
     const { start, target } = opts;
 
@@ -89,12 +84,7 @@ export class DomainHierarchyRoleManager extends BaseRoleManager implements RoleM
       return true;
     }
 
-    if (this.store.graph.isDescendantOf({ descendant: start, ancestor: target })) {
-      return true;
-    }
-
     const ancestors = DomainHierarchyRoleManager.collectAncestors({
-      graph: this.store.graph,
       overlay: this.overlay,
       node: start,
     });

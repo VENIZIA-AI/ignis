@@ -1,6 +1,6 @@
 import { SingletonRealm } from '@/helpers/singleton-realm';
 import type { Container } from '@/helpers/inversion/container';
-import type { TClass } from '@venizia/ignis-helpers/common';
+import type { TClass, TNullable } from '@venizia/ignis-helpers/common';
 import { getError } from '@venizia/ignis-helpers/core';
 import type { IAuthUser } from '../../authenticate/common/types';
 import { AbstractAuthRegistry } from '../../base';
@@ -21,6 +21,10 @@ export class AuthorizationEnforcerRegistry extends AbstractAuthRegistry<IAuthori
   /** In-flight `configure()` calls, so concurrent first requests share one warmup instead of racing. */
   private pendingConfigurations: Map<string, Promise<void>>;
 
+  /** Set by AuthorizeComponent from the application container. Held here because the descriptor scan
+   * below sees only registered enforcers, and `defaultDecision` has to be readable when there are none. */
+  private applicationOptions: TNullable<IAuthorizeOptions> = null;
+
   constructor() {
     super({ scope: AuthorizationEnforcerRegistry.name });
     this.configuredEnforcers = new Set();
@@ -38,6 +42,7 @@ export class AuthorizationEnforcerRegistry extends AbstractAuthRegistry<IAuthori
     super.reset();
     this.configuredEnforcers.clear();
     this.pendingConfigurations.clear();
+    this.applicationOptions = null;
   }
 
   protected getBindingPrefix(): string {
@@ -168,7 +173,16 @@ export class AuthorizationEnforcerRegistry extends AbstractAuthRegistry<IAuthori
     return enforcer.rebuildUserCache({ user: opts.user });
   }
 
+  /** Options bound on the application, independent of any enforcer. */
+  setOptions(opts: { options: IAuthorizeOptions }): void {
+    this.applicationOptions = opts.options;
+  }
+
   resolveOptions(): IAuthorizeOptions | undefined {
+    if (this.applicationOptions) {
+      return this.applicationOptions;
+    }
+
     for (const [, metadata] of this.descriptors) {
       const { container } = metadata;
       const options = container.get<IAuthorizeOptions>({

@@ -2,7 +2,7 @@ import { describe, expect, test } from 'bun:test';
 import { Helper, newEnforcer, newModelFromString, Util } from 'casbin';
 import { CASBIN_RBAC_DOMAIN_SCOPED_MODEL } from '@/components/auth/authorize/enforcers/models/rbac-domain.model';
 import { AuthorizationPermissionBuilder } from '@venizia/ignis-kernel';
-import { ResourceRoleManager } from '@/components/auth/authorize/enforcers/resource-role-manager';
+import { ResourceRoleManager } from '@/components/auth/authorize/role-managers/resource';
 
 /** Adversarial decision-table hardening of the scoped RBAC matcher (v2 model): g membership + (SYSTEM_WIDE || ANY_MEMBER via g2 || g3 domain edge) + (objectMatch || g4) + g5 action, wired exactly as the framework wires it. */
 async function buildScopedEnforcer(lines: string[]) {

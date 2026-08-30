@@ -90,11 +90,20 @@ export class AuthorizationProvider extends BaseHelper implements IProvider<TAuth
       }
 
       if (!registry.hasEnforcers()) {
-        logger.debug(
-          'SKIP checking authorization | No enforcers registered | path: %s',
-          context.req.path,
-        );
-        return next();
+        const noEnforcerDecision = options?.defaultDecision ?? AuthorizationDecisions.DENY;
+
+        if (noEnforcerDecision === AuthorizationDecisions.ALLOW) {
+          logger.warn(
+            'ALLOW checking authorization | No enforcers registered | path: %s',
+            context.req.path,
+          );
+          return next();
+        }
+
+        throw getError({
+          error: AuthorizationErrors.ENFORCER_NOT_REGISTERED,
+          message: `Authorization failed: authorize() was declared for this route but no enforcer is registered | path: ${context.req.path}`,
+        });
       }
 
       const resolvedName = enforcerName ?? registry.getDefaultEnforcerName();

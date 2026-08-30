@@ -5,3 +5,4 @@ export * from '@venizia/ignis-kernel';
 export * from './adapters';
 export * from './component';
 export * from './enforcers';
+export * from './role-managers';

@@ -56,19 +56,24 @@ export class ServiceAssertionVerifierService extends BaseService {
    * set that will reject it.
    */
   private readIssuer(opts: { token: string }): string {
+    let issuer: unknown;
+
     try {
-      const { iss } = decodeJwt(opts.token);
-
-      // Typed, not merely present: a numeric `iss` would index the caller map by coercion.
-      if (typeof iss !== 'string' || iss.length === 0) {
-        throw new Error('missing or non-string iss');
-      }
-
-      return iss;
+      ({ iss: issuer } = decodeJwt(opts.token));
     } catch (error) {
       this.logger.for(this.readIssuer.name).warn('Undecodable assertion | error: %s', error);
       throw getError({ error: AuthenticationErrors.ASSERTION_INVALID });
     }
+
+    // Typed, not merely present: a numeric `iss` would index the caller map by coercion.
+    if (typeof issuer !== 'string' || issuer.length === 0) {
+      this.logger
+        .for(this.readIssuer.name)
+        .warn('Undecodable assertion | iss is missing or not a string');
+      throw getError({ error: AuthenticationErrors.ASSERTION_INVALID });
+    }
+
+    return issuer;
   }
 
   private resolveKeySet(opts: { issuer: string }): TRemoteKeySet {

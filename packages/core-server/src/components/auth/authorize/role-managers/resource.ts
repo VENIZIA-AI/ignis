@@ -1,5 +1,5 @@
 import type { RoleManager } from 'casbin';
-import { BaseRoleManager } from './base-role-manager';
+import { BaseRoleManager } from './base';
 
 /** Resource-axis (`g4`) role manager: `addMatchingFunc` would set `hasPattern` and disable DefaultRoleManager's O(1) fast path, so prefix ancestors are walked manually; `addLink` must stay idempotent because `buildRoleLinks` re-adds every edge once per request. */
 export class ResourceRoleManager extends BaseRoleManager implements RoleManager {

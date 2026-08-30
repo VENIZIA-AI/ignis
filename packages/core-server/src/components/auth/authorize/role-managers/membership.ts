@@ -1,12 +1,10 @@
 import type { RoleManager } from 'casbin';
-import { BaseRoleManager } from './base-role-manager';
-import type { DomainHierarchyStore } from './domain-hierarchy';
+import { BaseRoleManager } from './base';
 
 /** `g2` axis (`g2(r.sub, r.dom)`): membership holds when the user joined the request domain or any
- * ancestor of it, walking the shared graph plus the per-request overlay. Memberships are
+ * ancestor of it, walking the shared per-request domain-hierarchy overlay. Memberships are
  * per-principal and rebuilt every request, so `clear()` wipes all. */
 export class MembershipRoleManager extends BaseRoleManager implements RoleManager {
-  private readonly store: DomainHierarchyStore;
   private readonly overlay?: Map<
     string, // child domain
     Set<string> // set of parent domains
@@ -16,9 +14,8 @@ export class MembershipRoleManager extends BaseRoleManager implements RoleManage
     Set<string> // set of joined domains
   >();
 
-  constructor(opts: { store: DomainHierarchyStore; overlay?: Map<string, Set<string>> }) {
+  constructor(opts: { overlay?: Map<string, Set<string>> }) {
     super({ scope: MembershipRoleManager.name });
-    this.store = opts.store;
     this.overlay = opts.overlay;
   }
 
@@ -42,11 +39,13 @@ export class MembershipRoleManager extends BaseRoleManager implements RoleManage
 
   /** True when `name1` (user) joined `name2` (request domain) itself, or any ancestor of it. Walks UP from the request domain only - walking down from every joined domain would fan out over the whole subtree. */
   syncedHasLink(name1: string, name2: string): boolean {
-    this.store.refreshIfStale();
-    this.reportGraphOnce(() => ({
-      message: 'membership role manager initialized | nodes: %d | edges: %d',
-      args: [this.store.graph.nodeCount, this.store.graph.edgeCount],
-    }));
+    this.reportGraphOnce(() => {
+      const { nodeCount, edgeCount } = MembershipRoleManager.overlayStats(this.overlay);
+      return {
+        message: 'membership role manager initialized | nodes: %d | edges: %d',
+        args: [nodeCount, edgeCount],
+      };
+    });
 
     const joined = this.memberships.get(name1);
     if (!joined || joined.size === 0) {
@@ -54,7 +53,6 @@ export class MembershipRoleManager extends BaseRoleManager implements RoleManage
     }
 
     const ancestors = MembershipRoleManager.collectAncestors({
-      graph: this.store.graph,
       overlay: this.overlay,
       node: name2,
     });

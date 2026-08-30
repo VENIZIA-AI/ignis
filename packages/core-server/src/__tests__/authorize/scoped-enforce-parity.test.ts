@@ -1,5 +1,5 @@
 import { AuthorizationPermissionBuilder } from '@venizia/ignis-kernel';
-import { ResourceRoleManager } from '@/components/auth/authorize/enforcers/resource-role-manager';
+import { ResourceRoleManager } from '@/components/auth/authorize/role-managers/resource';
 import { CASBIN_RBAC_DOMAIN_SCOPED_MODEL } from '@/components/auth/authorize/enforcers/models/rbac-domain.model';
 import { describe, expect, it } from 'bun:test';
 import { Helper, newEnforcer, newModelFromString, Util } from 'casbin';

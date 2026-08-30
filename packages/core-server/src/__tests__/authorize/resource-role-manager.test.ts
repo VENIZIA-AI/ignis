@@ -1,4 +1,4 @@
-import { ResourceRoleManager } from '@/components/auth/authorize/enforcers/resource-role-manager';
+import { ResourceRoleManager } from '@/components/auth/authorize/role-managers/resource';
 import { describe, expect, it } from 'bun:test';
 import type { ILogger } from '@venizia/ignis-helpers/core';
 
