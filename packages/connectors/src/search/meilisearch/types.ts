@@ -56,3 +56,44 @@ export interface IMeilisearchDataSourceSettings {
   taskTimeoutMs?: number;
   taskIntervalMs?: number;
 }
+
+export interface IMeilisearchTask {
+  taskUid: number;
+  status: string;
+  error?: unknown;
+  /** A finished task reports what it actually did, e.g. `deletedDocuments` on a documentDeletion. */
+  details?: Record<string, unknown>;
+}
+
+export interface IMeilisearchDocumentsPage {
+  results: unknown[];
+  total: number;
+}
+
+/** Narrow structural view of the client surface this connector needs - the real client and the in-test fake both satisfy it. */
+export interface IMeilisearchIndexApi {
+  addDocuments(documents: unknown[], options?: unknown): Promise<IMeilisearchTask>;
+  updateDocuments(documents: unknown[], options?: unknown): Promise<IMeilisearchTask>;
+  getDocument(id: string, options?: unknown): Promise<unknown>;
+  getDocuments(params: unknown): Promise<IMeilisearchDocumentsPage>;
+  deleteDocument(id: string): Promise<IMeilisearchTask>;
+  deleteDocuments(params: unknown): Promise<IMeilisearchTask>;
+  deleteAllDocuments(): Promise<IMeilisearchTask>;
+  search(query: string | null, params?: unknown): Promise<unknown>;
+  updateSettings(settings: unknown): Promise<IMeilisearchTask>;
+  getSettings(): Promise<Record<string, unknown>>;
+  updateSynonyms(synonyms: Record<string, string[]>): Promise<IMeilisearchTask>;
+  resetSynonyms(): Promise<IMeilisearchTask>;
+}
+
+export interface IMeilisearchClientLike {
+  index(uid: string): IMeilisearchIndexApi;
+  createIndex(uid: string, options?: unknown): Promise<IMeilisearchTask>;
+  getIndex(uid: string): Promise<unknown>;
+  getIndexes(params?: unknown): Promise<{ results: unknown[] }>;
+  deleteIndex(uid: string): Promise<IMeilisearchTask>;
+  swapIndexes(pairs: Array<{ indexes: string[] }>): Promise<IMeilisearchTask>;
+  getTask(taskUid: number): Promise<IMeilisearchTask>;
+  health(): Promise<{ status: string }>;
+  multiSearch(params: unknown): Promise<unknown>;
+}

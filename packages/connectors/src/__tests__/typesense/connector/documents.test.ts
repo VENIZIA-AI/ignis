@@ -246,6 +246,13 @@ describe('TypesenseConnector documents', () => {
     expect(caught).toBe(appError);
     expect((caught as ApplicationError).statusCode).toBe(409);
     expect((caught as ApplicationError).normalized.code).toBe('core.search_engine.already_exists');
+    // Partial progress is merged onto the SAME error, never dropped by a bare re-throw.
+    expect((caught as ApplicationError).extra?.details).toEqual({
+      totalCount: 1,
+      processedCount: 0,
+      successCount: 0,
+      failCount: 0,
+    });
   });
 
   test('importDocuments defaults action to create', async () => {

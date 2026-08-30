@@ -19,4 +19,24 @@ runConnectorConformance({
     });
     return { connector, collection: 'articles' };
   },
+  buildWithFailingHealth: async () => {
+    const client = new FakeMeilisearchClient({ healthError: new Error('probe down') });
+    const connector = new MeilisearchConnector({
+      name: 'conformance-unhealthy',
+      host: 'http://localhost:7700',
+      taskIntervalMs: 1,
+      client,
+    });
+    return { connector };
+  },
+  buildWithFailingExistenceCheck: async () => {
+    const client = new FakeMeilisearchClient({ getIndexError: new Error('existence check down') });
+    const connector = new MeilisearchConnector({
+      name: 'conformance-existence-check-failure',
+      host: 'http://localhost:7700',
+      taskIntervalMs: 1,
+      client,
+    });
+    return { connector };
+  },
 });

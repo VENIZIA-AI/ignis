@@ -21,7 +21,7 @@ import {
 } from '@venizia/ignis';
 import { getError, HTTP } from '@venizia/ignis-helpers';
 import { hash, compare, genSalt } from 'bcrypt';
-import { and, eq } from 'drizzle-orm';
+import { and, eq, like } from 'drizzle-orm';
 import { Env } from 'hono';
 
 export class AuthenticationService
@@ -231,29 +231,47 @@ export class AuthenticationService
         and(
           eq(PolicyDefinition.schema.subjectType, 'user'),
           eq(PolicyDefinition.schema.subjectId, opts.userId),
-          eq(PolicyDefinition.schema.targetType, 'role'),
+          eq(PolicyDefinition.schema.targetType, Role.name),
         ),
       );
     return rows;
   }
 
   private async getUserOrganization(opts: { userId: string }) {
-    const rows = await this.userRepository.connector
+    // ASSIGN_ROLE.domain is a casbin token, "<Organization.name>_<id>" (see AuthorizationPolicyBuilder.serializeDomain) -
+    // never the bare Organization id - so the org id has to be recovered from it before it can be joined.
+    const domainPrefix = `${Organization.name}_`;
+
+    const roleAssignments = await this.userRepository.connector
+      .select({ domain: PolicyDefinition.schema.domain })
+      .from(PolicyDefinition.schema)
+      .where(
+        and(
+          eq(PolicyDefinition.schema.subjectType, 'user'),
+          eq(PolicyDefinition.schema.subjectId, opts.userId),
+          eq(PolicyDefinition.schema.targetType, Role.name),
+          like(PolicyDefinition.schema.domain, `${domainPrefix}%`),
+        ),
+      )
+      .limit(1);
+
+    const domain = roleAssignments[0]?.domain;
+    if (!domain) {
+      return null;
+    }
+
+    const organizationId = domain.slice(domainPrefix.length);
+
+    const organizations = await this.userRepository.connector
       .select({
         id: Organization.schema.id,
         identifier: Organization.schema.identifier,
         name: Organization.schema.name,
       })
-      .from(PolicyDefinition.schema)
-      .innerJoin(Organization.schema, eq(PolicyDefinition.schema.domain, Organization.schema.id))
-      .where(
-        and(
-          eq(PolicyDefinition.schema.subjectType, 'user'),
-          eq(PolicyDefinition.schema.subjectId, opts.userId),
-          eq(PolicyDefinition.schema.targetType, 'role'),
-        ),
-      )
+      .from(Organization.schema)
+      .where(eq(Organization.schema.id, organizationId))
       .limit(1);
-    return rows[0] ?? null;
+
+    return organizations[0] ?? null;
   }
 }

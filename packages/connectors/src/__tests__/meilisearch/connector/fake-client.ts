@@ -85,6 +85,9 @@ export class FakeMeilisearchClient implements IMeilisearchClientLike {
   private readonly repeatLast: boolean;
   private readonly taskError?: unknown;
   private readonly failAddDocumentsCall?: number;
+  private readonly healthError?: unknown;
+  private readonly healthStatus: string;
+  private readonly getIndexError?: unknown;
 
   constructor(opts?: {
     taskStatuses?: string[];
@@ -92,11 +95,20 @@ export class FakeMeilisearchClient implements IMeilisearchClientLike {
     taskError?: unknown;
     /** 1-based ordinal of the `addDocuments` call whose task should terminate as `failed` (batch-atomic: its documents do not land). */
     failAddDocumentsCall?: number;
+    /** Makes `health()` reject instead of resolving - exercises the probe-failure path. */
+    healthError?: unknown;
+    /** Overrides the resolved `status` field, e.g. to model a degraded (non-`available`) engine. */
+    healthStatus?: string;
+    /** Makes `getIndex()` reject with a non-not-found error regardless of uid - exercises collectionExists()'s infrastructure-failure path. */
+    getIndexError?: unknown;
   }) {
     this.taskStatuses = opts?.taskStatuses ?? ['succeeded'];
     this.repeatLast = opts?.repeatLast ?? false;
     this.taskError = opts?.taskError;
     this.failAddDocumentsCall = opts?.failAddDocumentsCall;
+    this.healthError = opts?.healthError;
+    this.healthStatus = opts?.healthStatus ?? 'available';
+    this.getIndexError = opts?.getIndexError;
   }
 
   private enqueue(details?: Record<string, unknown>): IFakeTask {
@@ -160,6 +172,10 @@ export class FakeMeilisearchClient implements IMeilisearchClientLike {
   }
 
   async getIndex(uid: string): Promise<unknown> {
+    if (this.getIndexError !== undefined) {
+      throw this.getIndexError;
+    }
+
     const index = this.requireIndex(uid);
     return { uid: index.uid, primaryKey: index.primaryKey };
   }
@@ -188,7 +204,11 @@ export class FakeMeilisearchClient implements IMeilisearchClientLike {
   }
 
   async health(): Promise<{ status: string }> {
-    return { status: 'available' };
+    if (this.healthError !== undefined) {
+      throw this.healthError;
+    }
+
+    return { status: this.healthStatus };
   }
 
   async multiSearch(params: unknown): Promise<unknown> {

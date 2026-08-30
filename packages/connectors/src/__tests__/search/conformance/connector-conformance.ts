@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, test } from 'bun:test';
 import { ApplicationError } from '@venizia/ignis-helpers/core';
+import { expectRejection } from '@/__tests__/rejection.helper';
 import type { ISearchConnector } from '@/search/core';
 
 interface IConformanceDocument extends Record<string, unknown> {
@@ -12,10 +13,14 @@ interface IConformanceDocument extends Record<string, unknown> {
 export const runConnectorConformance = (opts: {
   engine: string;
   build: () => Promise<{ connector: ISearchConnector; collection: string }>;
+  /** A connector wired to a client whose health probe rejects - proves getHealth()/ping() degrade to `{ ok: false }`/`false` rather than throwing. Required so every engine that joins this suite inherits the guarantee. */
+  buildWithFailingHealth: () => Promise<{ connector: ISearchConnector }>;
+  /** A connector wired to a client whose existence check rejects with a non-not-found error - proves `collection.exists()` surfaces the failure rather than reporting absence. Required so every engine that joins this suite inherits the guarantee. */
+  buildWithFailingExistenceCheck: () => Promise<{ connector: ISearchConnector }>;
   /** `score > 0` in each engine's own filter grammar - the one thing the suite cannot write itself. */
   filters: { allPositiveScores: string; scoreAboveOne: string };
 }): void => {
-  const { engine, build, filters } = opts;
+  const { engine, build, buildWithFailingHealth, buildWithFailingExistenceCheck, filters } = opts;
 
   describe(`ISearchConnector conformance - ${engine}`, () => {
     let connector: ISearchConnector;
@@ -35,9 +40,30 @@ export const runConnectorConformance = (opts: {
       expect(await connector.ping()).toBe(true);
     });
 
+    test('getHealth() resolves { ok: false } instead of throwing when the probe fails', async () => {
+      const { connector: unhealthy } = await buildWithFailingHealth();
+      expect(await unhealthy.getHealth()).toEqual({ ok: false });
+    });
+
+    test('ping() returns false instead of throwing when the probe fails', async () => {
+      const { connector: unhealthy } = await buildWithFailingHealth();
+      expect(await unhealthy.ping()).toBe(false);
+    });
+
     test('collection.exists() distinguishes present from absent', async () => {
       expect(await connector.collection.exists({ name: collection })).toBe(true);
       expect(await connector.collection.exists({ name: 'no-such-collection' })).toBe(false);
+    });
+
+    // A false here triggers a write (ensureCollection creates on absence), so a transient
+    // infrastructure failure must never be reported as absence - it has to surface.
+    test('collection.exists() surfaces a genuine failure rather than reporting absence', async () => {
+      const { connector: broken } = await buildWithFailingExistenceCheck();
+
+      await expectRejection({
+        task: broken.collection.exists({ name: collection }),
+        message: /temporarily unavailable/i,
+      });
     });
 
     test('create() then get() round-trips a document', async () => {

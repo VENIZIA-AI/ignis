@@ -13,9 +13,29 @@ import { SearchConnectorInternal } from '@/search/core/internal';
 import type { ISynonym } from '@/search/core/models';
 import { getError, isApplicationError } from '@venizia/ignis-helpers/core';
 import { Client } from 'typesense';
-import { EntryOutcomes, TypesenseInternal } from './internal/connector-internal';
+import {
+  EntryOutcomes,
+  isRecord,
+  isSynonymResponse,
+  mapSearchResult,
+  readBooleanFlag,
+  readNumberField,
+  readStringField,
+  toSynonym,
+  TypesenseInternal,
+} from './internal/connector-internal';
+import {
+  buildEmptySearchResponse,
+  MAX_HITS_PER_PAGE,
+  MAX_MULTI_SEARCH_ENTRIES,
+  mergeWindowedResults,
+  readRequestedPage,
+  toSearchWindows,
+  type ISearchWindow,
+} from './internal/pagination-windows';
 import type {
   IMultiSearchResult,
+  ITypesenseClientLike,
   ITypesenseConnectorOptions,
   IUnionSearchResult,
   TCollectionCreateSchema,
@@ -30,283 +50,8 @@ import type {
 } from './types';
 import { TypesenseDirtyValues, TypesenseImportActions } from './types';
 
-// Narrow runtime readers for the `unknown` payloads ITypesenseClientLike hands back - the narrowest cast per field, isolated here instead of repeated ad hoc at every call site.
-const isRecord = (value: unknown): value is Record<string, unknown> => {
-  return typeof value === 'object' && value !== null;
-};
-
-const readBooleanFlag = (opts: { value: unknown; key: string }): boolean => {
-  const { value, key } = opts;
-  return isRecord(value) ? Boolean(value[key]) : false;
-};
-
-const readNumberField = (opts: { value: unknown; key: string }): number => {
-  const { value, key } = opts;
-  if (!isRecord(value) || typeof value[key] !== 'number') {
-    return 0;
-  }
-  return value[key];
-};
-
-const readStringField = (opts: { value: unknown; key: string }): string | undefined => {
-  const { value, key } = opts;
-  if (!isRecord(value) || typeof value[key] !== 'string') {
-    return undefined;
-  }
-  return value[key];
-};
-
-/** Maps a raw Typesense search hit (snake_case `text_match`) onto the camelCase `ISearchResult` hit shape; read via bracket string access so no snake_case identifier is declared here. */
-const mapSearchHit = <TDocument extends object>(
-  hit: unknown,
-): {
-  document: TDocument;
-  highlight?: unknown;
-  highlights?: unknown[];
-  score?: number;
-} => {
-  if (!isRecord(hit)) {
-    return { document: {} as TDocument };
-  }
-
-  const mapped: {
-    document: TDocument;
-    highlight?: unknown;
-    highlights?: unknown[];
-    score?: number;
-  } = {
-    document: hit['document'] as TDocument,
-  };
-
-  if (hit['highlight'] !== undefined) {
-    mapped.highlight = hit['highlight'];
-  }
-
-  if (Array.isArray(hit['highlights'])) {
-    mapped.highlights = hit['highlights'];
-  }
-
-  if (typeof hit['text_match'] === 'number') {
-    mapped.score = hit['text_match'];
-  }
-
-  return mapped;
-};
-
-/** Maps a raw Typesense search response onto the camelCase `ISearchResult`; snake_case wire fields (`out_of`/`search_time_ms`/`facet_counts`/`grouped_hits`) are read only via bracket string access, never as identifiers, and absent fields are omitted rather than mapped as `undefined`. */
-const mapSearchResult = <TDocument extends object>(raw: unknown): ISearchResult<TDocument> => {
-  if (!isRecord(raw)) {
-    return { found: 0, isFoundExact: true };
-  }
-
-  // `found` is exhaustive UNLESS the engine ran out of its search-time budget: `search_cutoff`
-  // means it stopped early and reported what it had, so the count is an estimate. Hardcoding
-  // `true` told every caller that a truncated count was authoritative.
-  const result: ISearchResult<TDocument> = {
-    found: readNumberField({ value: raw, key: 'found' }),
-    isFoundExact: raw['search_cutoff'] !== true,
-  };
-
-  if (typeof raw['out_of'] === 'number') {
-    result.outOf = raw['out_of'];
-  }
-  if (typeof raw['search_time_ms'] === 'number') {
-    result.searchTimeMs = raw['search_time_ms'];
-  }
-  if (Array.isArray(raw['facet_counts'])) {
-    result.facetCounts = raw['facet_counts'];
-  }
-  if (Array.isArray(raw['grouped_hits'])) {
-    result.groupedHits = raw['grouped_hits'];
-  }
-  if (Array.isArray(raw['hits'])) {
-    result.hits = raw['hits'].map(hit => mapSearchHit<TDocument>(hit));
-  }
-
-  return result;
-};
-
-/** `--max-per-page`: Typesense refuses a page larger than this, so a bigger caller limit is served as consecutive windows of one multi_search call rather than as several calls. */
-const MAX_HITS_PER_PAGE = 250;
-
-/** `limit_multi_searches`: entries permitted in ONE multi_search call, which bounds windowing at 50 x 250 = 12,500 hits. Exceeding it is refused, never silently truncated. */
-const MAX_MULTI_SEARCH_ENTRIES = 50;
-
-/** One window of a split page: an entry differs from its siblings only in where it starts. */
-interface ISearchWindow {
-  offset: number;
-  limit: number;
-}
-
-/**
- * Splits a requested page into windows the engine will accept.
- *
- * Windows are expressed as `offset`/`limit` rather than `page`/`per_page` because only offset
- * arithmetic can start a window anywhere - which is also what lets a caller's `skip` land off a
- * page boundary. Exactly one pagination pair is ever sent: Typesense documents `offset`/`limit`
- * and `page`/`per_page` as alternatives and does not state which wins if both appear, so the
- * question is designed out rather than answered.
- */
-const toSearchWindows = (opts: { offset: number; limit: number }): ISearchWindow[] => {
-  const { offset, limit } = opts;
-
-  if (limit <= MAX_HITS_PER_PAGE) {
-    return [{ offset, limit }];
-  }
-
-  const windows: ISearchWindow[] = [];
-  for (let start = 0; start < limit; start += MAX_HITS_PER_PAGE) {
-    windows.push({ offset: offset + start, limit: Math.min(MAX_HITS_PER_PAGE, limit - start) });
-  }
-
-  return windows;
-};
-
-/**
- * Folds windowed responses into the single result the caller asked for.
- *
- * `found`/`outOf` come from the first window because every window ran the same filter and reports
- * the same total. `facetCounts` likewise: facets are computed over the whole result set, not the
- * page, so concatenating them would multiply every count by the window count.
- */
-const mergeWindowedResults = <TDocument extends object>(
-  results: ISearchResult<TDocument>[],
-): ISearchResult<TDocument> => {
-  const [first] = results;
-
-  if (results.length === 1) {
-    return first;
-  }
-
-  const merged: ISearchResult<TDocument> = {
-    found: first.found,
-    // AND-folded: the total is only exact if EVERY window ran to completion. One cut-off window
-    // makes the merged count an estimate, and saying otherwise would relaunch the bug above.
-    isFoundExact: results.every(result => result.isFoundExact),
-  };
-
-  if (first.outOf !== undefined) {
-    merged.outOf = first.outOf;
-  }
-
-  // MAX, not sum: this field is read as latency, and the windows travel in ONE round trip. Summing
-  // would make a windowed query graph at several times its actual wall-clock.
-  const timings = results
-    .map(result => result.searchTimeMs)
-    .filter((value): value is number => typeof value === 'number');
-  if (timings.length > 0) {
-    merged.searchTimeMs = Math.max(...timings);
-  }
-
-  if (first.facetCounts) {
-    merged.facetCounts = first.facetCounts;
-  }
-
-  const hits = results.flatMap(result => result.hits ?? []);
-  if (hits.length > 0) {
-    merged.hits = hits;
-  }
-
-  return merged;
-};
-
-/**
- * Reads the requested page out of engine-native params, whichever pair the caller used.
- *
- * `mode: 'raw'` hands these params through untouched, so both spellings have to be understood
- * here; the caller is never asked to normalize.
- */
-const readRequestedPage = (params: Record<string, unknown>): ISearchWindow | undefined => {
-  const limit = typeof params['limit'] === 'number' ? params['limit'] : undefined;
-  const perPage = typeof params['per_page'] === 'number' ? params['per_page'] : undefined;
-  const effectiveLimit = limit ?? perPage;
-
-  if (effectiveLimit === undefined) {
-    return undefined;
-  }
-
-  const offset = typeof params['offset'] === 'number' ? params['offset'] : undefined;
-  const page = typeof params['page'] === 'number' ? params['page'] : undefined;
-  const effectiveOffset = offset ?? (page !== undefined ? (page - 1) * effectiveLimit : 0);
-
-  return { offset: effectiveOffset, limit: effectiveLimit };
-};
-
-/** Empty TSearchResponse shape returned when search() tolerates a missing collection; built via bracket assignment so no snake_case identifier is declared here. */
-const buildEmptySearchResponse = (): unknown => {
-  const response: Record<string, unknown> = { found: 0, page: 1, hits: [] };
-  response['out_of'] = 0;
-  response['search_time_ms'] = 0;
-  response['request_params'] = {};
-  return response;
-};
-
-// Typesense's wire shape for a synonym set; `root` is only present for one-way synonyms.
-const isSynonymResponse = (
-  value: unknown,
-): value is { id: string; synonyms: string[]; root?: string } => {
-  return isRecord(value) && typeof value.id === 'string' && Array.isArray(value.synonyms);
-};
-
-const toSynonym = (value: { id: string; synonyms: string[]; root?: string }): ISynonym => {
-  const { id, synonyms, root } = value;
-  // Multi-way sets come back with root: "" - treat empty/absent alike so only one-way keeps a root.
-  return root ? { id, synonyms, root } : { id, synonyms };
-};
-
-// Narrow structural view of the client surface this connector needs - both the real Client and the in-test fake satisfy it without `as any`.
-interface ITypesenseDocumentsApi {
-  create(document: unknown, options?: unknown): Promise<unknown>;
-  upsert(document: unknown, options?: unknown): Promise<unknown>;
-  update(document: unknown, options: unknown): Promise<unknown>;
-  delete(query?: unknown): Promise<unknown>;
-  import(documents: unknown[], options?: unknown): Promise<unknown>;
-  search(searchParameters: unknown, options?: unknown): Promise<unknown>;
-  export(options?: unknown): Promise<unknown>;
-}
-interface ITypesenseDocumentApi {
-  retrieve(): Promise<unknown>;
-  update(partialDocument: unknown, options?: unknown): Promise<unknown>;
-  delete(options?: unknown): Promise<unknown>;
-}
-interface ITypesenseSynonymSetApi {
-  upsert(params: unknown): Promise<unknown>;
-  retrieve(): Promise<unknown>;
-  delete(): Promise<unknown>;
-}
-interface ITypesenseSynonymSetsApi {
-  retrieve(): Promise<unknown>;
-}
-interface ITypesenseCollectionApi {
-  documents(): ITypesenseDocumentsApi;
-  documents(documentId: string): ITypesenseDocumentApi;
-  retrieve(): Promise<unknown>;
-  update(schema: unknown): Promise<unknown>;
-  delete(options?: unknown): Promise<unknown>;
-  exists(): Promise<boolean>;
-}
-interface ITypesenseCollectionsApi {
-  create(schema: unknown, options?: unknown): Promise<unknown>;
-  retrieve(options?: unknown): Promise<unknown>;
-}
-interface ITypesenseAliasApi {
-  retrieve(): Promise<unknown>;
-}
-interface ITypesenseAliasesApi {
-  upsert(name: string, mapping: unknown): Promise<unknown>;
-}
-export interface ITypesenseClientLike {
-  collections(): ITypesenseCollectionsApi;
-  collections(collectionName: string): ITypesenseCollectionApi;
-  aliases(): ITypesenseAliasesApi;
-  aliases(aliasName: string): ITypesenseAliasApi;
-  synonymSets(): ITypesenseSynonymSetsApi;
-  synonymSets(synonymSetName: string): ITypesenseSynonymSetApi;
-  health: { retrieve(): Promise<unknown> };
-  multiSearch: {
-    perform(searchRequests: unknown, commonParams?: unknown, options?: unknown): Promise<unknown>;
-  };
-}
+// Re-exported for back-compat: callers and test fakes historically imported the client-shape type from this module rather than from `./types`, its new home.
+export type { ITypesenseClientLike } from './types';
 
 /** Typesense engine connector - built/injected by TypesenseDataSource, which exposes the raw client via getClient(). */
 export class TypesenseConnector extends BaseSearchConnector {
@@ -488,19 +233,14 @@ export class TypesenseConnector extends BaseSearchConnector {
       return false;
     }
 
-    try {
-      const isExists = await this.client.collections(name).exists();
-      return isExists;
-    } catch (error) {
-      this.logger
-        .for(this.collectionExists.name)
-        .warn(
-          'Existence check failed, treating as absent | name: %s | error: %s',
-          name,
-          SearchConnectorInternal.describeError({ error }),
-        );
-      return false;
-    }
+    // exists() already resolves false for a genuine absence (it swallows its own not-found) and
+    // only ever rejects on an infrastructure failure, so there is nothing to tolerate here -
+    // ensureCollection reads false as "create it", so a failure must surface, not read as absence.
+    const rs = await this.runEngineCall({
+      method: this.collectionExists.name,
+      run: () => this.client.collections(name).exists(),
+    });
+    return rs;
   }
 
   async patchCollectionSchema(opts: {
@@ -924,22 +664,28 @@ export class TypesenseConnector extends BaseSearchConnector {
         failCount += tally.failCount;
       }
     } catch (error) {
-      // A framework ApplicationError is already sanitized and carries its own statusCode/messageCode, so it surfaces as-is; only raw engine failures get wrapped as a 503, mirroring runEngineCall's guard.
+      // Batches before the failure are already persisted server-side; every failure path carries partial progress so callers can resume or retry.
+      const details = {
+        totalCount: documents.length,
+        processedCount: successCount + failCount,
+        successCount,
+        failCount,
+      };
+
+      // Re-wrapping an ApplicationError would erase its statusCode/messageCode, so merge progress onto it instead of replacing it.
       if (isApplicationError(error)) {
+        error.extra = {
+          ...error.extra,
+          details: { ...(error.extra?.['details'] as object), ...details },
+        };
         throw error;
       }
 
-      // Batches before the failure are already persisted server-side; attach partial progress so callers can decide to resume or retry.
       SearchConnectorInternal.wrapDependencyError({
         method: this.importDocuments.name,
         error,
         logger: this.logger,
-        details: {
-          totalCount: documents.length,
-          processedCount: successCount + failCount,
-          successCount,
-          failCount,
-        },
+        details,
       });
     }
 

@@ -1,5 +1,6 @@
 import { describe, test, expect } from 'bun:test';
 import { ApplicationError } from '@venizia/ignis-helpers/core';
+import { expectRejection } from '@/__tests__/rejection.helper';
 import { makeHelper } from './fake-client';
 
 const schema = { name: 'products', fields: [{ name: 'title', type: 'string' as const }] };
@@ -53,9 +54,12 @@ describe('TypesenseConnector collections', () => {
     expect(result.name).toBe('products');
   });
 
-  test('collectionExists returns false quietly on error', async () => {
+  test('collectionExists surfaces an infrastructure failure instead of reporting absence', async () => {
     const { helper } = makeHelper({ throwOn: { 'collections.exists': new Error('network') } });
-    expect(await helper.collectionExists({ name: 'products' })).toBe(false);
+    await expectRejection({
+      task: helper.collectionExists({ name: 'products' }),
+      message: /temporarily unavailable/i,
+    });
   });
 
   test('patchCollectionSchema calls collections(name).update with fields', async () => {

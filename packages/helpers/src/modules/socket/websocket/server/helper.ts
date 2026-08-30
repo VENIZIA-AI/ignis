@@ -3,11 +3,9 @@ import { ValueOrPromise } from '@/common/types';
 import { BaseHelper } from '@/modules/base';
 import { getError } from '@/modules/error';
 import { ensureRedisClientsConnecting, TRedisClient, waitForRedisReady } from '@/modules/redis';
-import { executePromiseWithLimit } from '@/utilities';
 import { voidExecution } from '@/utilities/promise.utility';
 import { EventEmitter } from 'node:events';
 import {
-  IBunServer,
   IBunWebSocketConfig,
   IBunWebSocketHandler,
   IRedisSocketMessage,
@@ -21,7 +19,6 @@ import {
   TWebSocketClientDisconnectedFn,
   TWebSocketHandshakeFn,
   TWebSocketMessageHandler,
-  TWebSocketOutboundTransformer,
   TWebSocketValidateRoomFn,
   WebSocketChannels,
   WebSocketClientStates,
@@ -29,6 +26,7 @@ import {
   WebSocketEvents,
   WebSocketMessageTypes,
 } from '../common';
+import { WebSocketDeliveryHelper } from './delivery';
 
 export class WebSocketServerHelper<
   AuthDataType extends Record<string, unknown> = Record<string, unknown>,
@@ -50,13 +48,14 @@ export class WebSocketServerHelper<
   }
 
   private path: string;
-  private server: IBunServer;
 
   private serverId: string;
 
   private clients: Map<string, IWebSocketClient<MetadataType>> = new Map();
   private users: Map<string, Set<string>> = new Map(); // userId -> Set<clientId>
   private rooms: Map<string, Set<string>> = new Map(); // room -> Set<clientId>
+
+  private delivery: WebSocketDeliveryHelper<MetadataType>;
 
   private redisPub: TRedisClient;
   private redisSub: TRedisClient;
@@ -66,7 +65,6 @@ export class WebSocketServerHelper<
   private onClientConnected?: TWebSocketClientConnectedFn<MetadataType>;
   private onClientDisconnected?: TWebSocketClientDisconnectedFn;
   private messageHandler?: TWebSocketMessageHandler;
-  private outboundTransformer?: TWebSocketOutboundTransformer<unknown, MetadataType>;
   private handshakeFn?: TWebSocketHandshakeFn<AuthDataType>;
 
   private defaultRooms: string[];
@@ -75,7 +73,6 @@ export class WebSocketServerHelper<
   private heartbeatInterval: number;
   private heartbeatTimeout: number;
   private heartbeatTimer: ReturnType<typeof setInterval> | null = null;
-  private encryptedBatchLimit: number;
   private requireEncryption: boolean;
 
   constructor(opts: IWebSocketServerOptions<AuthDataType, MetadataType>) {
@@ -83,7 +80,6 @@ export class WebSocketServerHelper<
 
     this.identifier = opts.identifier;
     this.path = opts.path ?? WebSocketDefaults.PATH;
-    this.server = opts.server;
     this.serverId = crypto.randomUUID();
 
     this.authenticateFn = opts.authenticateFn;
@@ -91,7 +87,6 @@ export class WebSocketServerHelper<
     this.onClientConnected = opts.clientConnectedFn;
     this.onClientDisconnected = opts.clientDisconnectedFn;
     this.messageHandler = opts.messageHandler;
-    this.outboundTransformer = opts.outboundTransformer;
     this.handshakeFn = opts.handshakeFn;
 
     this.defaultRooms = opts.defaultRooms ?? [
@@ -107,8 +102,16 @@ export class WebSocketServerHelper<
     this.authTimeout = opts.authTimeout ?? WebSocketDefaults.AUTH_TIMEOUT;
     this.heartbeatInterval = opts.heartbeatInterval ?? WebSocketDefaults.HEARTBEAT_INTERVAL;
     this.heartbeatTimeout = opts.heartbeatTimeout ?? WebSocketDefaults.HEARTBEAT_TIMEOUT;
-    this.encryptedBatchLimit = opts.encryptedBatchLimit ?? WebSocketDefaults.ENCRYPTED_BATCH_LIMIT;
     this.requireEncryption = opts.requireEncryption ?? false;
+
+    this.delivery = new WebSocketDeliveryHelper<MetadataType>({
+      server: opts.server,
+      clients: this.clients,
+      users: this.users,
+      rooms: this.rooms,
+      outboundTransformer: opts.outboundTransformer,
+      encryptedBatchLimit: opts.encryptedBatchLimit ?? WebSocketDefaults.ENCRYPTED_BATCH_LIMIT,
+    });
 
     this.initRedisClients(opts.redisConnection);
   }
@@ -852,232 +855,21 @@ export class WebSocketServerHelper<
     logger.info('Left rooms | id: %s | rooms: %j', clientId, validRooms);
   }
 
+  /** Local delivery and fan-out live in WebSocketDeliveryHelper - kept public here by delegation. */
   sendToClient(opts: { clientId: string; event: string; data: unknown; doLog?: boolean }) {
-    const logger = this.logger.for(this.sendToClient.name);
-    const { clientId, event, data, doLog } = opts;
-    const client = this.clients.get(clientId);
-    if (!client) {
-      return;
-    }
-
-    // Async path - transformer intercepts before socket.send()
-    const outboundTransformer = this.outboundTransformer;
-    if (outboundTransformer && client.encrypted) {
-      Promise.resolve()
-        .then(() => outboundTransformer({ client, event, data }))
-        .then(transformed => {
-          const outboundMessage = transformed ?? { event, data };
-          this.deliverToSocket({
-            client,
-            payload: JSON.stringify(outboundMessage),
-            doLog,
-            event,
-            data,
-          });
-        })
-        .catch(error => {
-          logger.error('Outbound transformer error | id: %s | error: %s', clientId, error);
-        });
-      return;
-    }
-
-    // Sync path (unchanged, zero overhead when no transformer)
-    this.deliverToSocket({ client, payload: JSON.stringify({ event, data }), doLog, event, data });
-  }
-
-  private async sendToClientAsync(opts: { clientId: string; event: string; data: unknown }) {
-    const { clientId, event, data } = opts;
-    const client = this.clients.get(clientId);
-    if (!client) {
-      return Promise.resolve();
-    }
-
-    if (!this.outboundTransformer || !client.encrypted) {
-      this.deliverToSocket({ client, payload: JSON.stringify({ event, data }), event, data });
-      return Promise.resolve();
-    }
-
-    try {
-      const transformed = await Promise.resolve(this.outboundTransformer({ client, event, data }));
-      const outboundMessage = transformed ?? { event, data };
-      this.deliverToSocket({ client, payload: JSON.stringify(outboundMessage), event, data });
-    } catch (error) {
-      this.logger
-        .for(this.sendToClientAsync.name)
-        .error('Outbound transformer error | id: %s | error: %s', clientId, error);
-    }
-  }
-
-  private deliverToSocket(opts: {
-    client: IWebSocketClient<MetadataType>;
-    payload: string;
-    doLog?: boolean;
-    event?: string;
-    data?: unknown;
-  }) {
-    const logger = this.logger.for(this.deliverToSocket.name);
-    const { client, payload, doLog, event, data } = opts;
-
-    try {
-      const result = client.socket.send(payload);
-
-      if (result === 0) {
-        logger.warn('Message dropped (socket closed) | id: %s', client.id);
-      }
-
-      if (result === -1) {
-        client.backpressured = true;
-        logger.warn('Backpressure detected | id: %s', client.id);
-      }
-    } catch (error) {
-      logger.error('Failed to send | id: %s | error: %s', client.id, error);
-    }
-
-    if (doLog) {
-      logger.info('Message sent | id: %s | event: %s | data: %j', client.id, event, data);
-    }
+    this.delivery.sendToClient(opts);
   }
 
   sendToUser(opts: { userId: string; event: string; data: unknown }) {
-    const { userId, event, data } = opts;
-    const clientIds = this.users.get(userId);
-    if (!clientIds) {
-      return;
-    }
-
-    for (const clientId of clientIds) {
-      this.sendToClient({ clientId, event, data });
-    }
-  }
-
-  private sendToRoomExcluding(opts: {
-    room: string;
-    event: string;
-    data: unknown;
-    exclude: string[];
-  }) {
-    const { room, event, data, exclude } = opts;
-
-    const excludeSet = new Set(exclude);
-    const roomClientIds = this.rooms.get(room);
-    if (!roomClientIds) {
-      return;
-    }
-
-    // Serialised ONCE when there is no transformer, because the payload is then identical for every
-    // recipient - `sendToClient` would otherwise run `JSON.stringify` per client on a message that
-    // never differs. With a transformer each client's payload really is different, so that path
-    // still goes through `sendToClient`. The non-excluding fan-out already works this way.
-    if (!this.outboundTransformer) {
-      const payload = JSON.stringify({ event, data });
-
-      for (const clientId of roomClientIds) {
-        if (excludeSet.has(clientId)) {
-          continue;
-        }
-
-        const client = this.clients.get(clientId);
-        if (client) {
-          this.deliverToSocket({ client, payload, event, data });
-        }
-      }
-
-      return;
-    }
-
-    for (const clientId of roomClientIds) {
-      if (excludeSet.has(clientId)) {
-        continue;
-      }
-      this.sendToClient({ clientId, event, data });
-    }
+    this.delivery.sendToUser(opts);
   }
 
   sendToRoom(opts: { room: string; event: string; data: unknown; exclude?: string[] }) {
-    const { room, event, data, exclude } = opts;
-
-    // When exclude is present, must iterate - can't exclude from Bun native pub/sub
-    if (exclude?.length) {
-      this.sendToRoomExcluding({ room, event, data, exclude });
-      return;
-    }
-
-    // No encryption - Bun native pub/sub O(1) C++ fan-out
-    if (!this.outboundTransformer) {
-      const payload = JSON.stringify({ event, data } satisfies IWebSocketMessage);
-      this.server.publish(room, payload);
-      return;
-    }
-
-    // Encryption enabled - iterate all clients individually with concurrency limit
-    const roomClientIds = this.rooms.get(room);
-    if (!roomClientIds) {
-      return;
-    }
-
-    const tasks: Array<() => Promise<void>> = [];
-    for (const clientId of roomClientIds) {
-      tasks.push(() => this.sendToClientAsync({ clientId, event, data }));
-    }
-
-    if (tasks.length) {
-      voidExecution({
-        logger: this.logger,
-        scope: this.sendToRoom.name,
-        execution: executePromiseWithLimit({ tasks, limit: this.encryptedBatchLimit }),
-      });
-    }
-  }
-
-  private broadcastExcluding(opts: { event: string; data: unknown; exclude: string[] }) {
-    const { event, data, exclude } = opts;
-
-    const excludeSet = new Set(exclude);
-    for (const [clientId, client] of this.clients) {
-      if (excludeSet.has(clientId)) {
-        continue;
-      }
-      // Only broadcast to authenticated clients (consistent with non-exclude path which uses BROADCAST_TOPIC)
-      if (client.state !== WebSocketClientStates.AUTHENTICATED) {
-        continue;
-      }
-
-      this.sendToClient({ clientId, event, data });
-    }
+    this.delivery.sendToRoom(opts);
   }
 
   broadcast(opts: { event: string; data: unknown; exclude?: string[] }) {
-    const { event, data, exclude } = opts;
-
-    // When exclude is present, must iterate - can't exclude from Bun native pub/sub
-    if (exclude?.length) {
-      this.broadcastExcluding({ event, data, exclude });
-      return;
-    }
-
-    // No encryption - Bun native pub/sub O(1) C++ fan-out
-    if (!this.outboundTransformer) {
-      const payload = JSON.stringify({ event, data } satisfies IWebSocketMessage);
-      this.server.publish(WebSocketDefaults.BROADCAST_TOPIC, payload);
-      return;
-    }
-
-    // Encryption enabled - iterate all clients individually with concurrency limit
-    const tasks: Array<() => Promise<void>> = [];
-    for (const [clientId, client] of this.clients) {
-      if (client.state !== WebSocketClientStates.AUTHENTICATED) {
-        continue;
-      }
-      tasks.push(() => this.sendToClientAsync({ clientId, event, data }));
-    }
-
-    if (tasks.length) {
-      voidExecution({
-        logger: this.logger,
-        scope: this.broadcast.name,
-        execution: executePromiseWithLimit({ tasks, limit: this.encryptedBatchLimit }),
-      });
-    }
+    this.delivery.broadcast(opts);
   }
 
   send<T = unknown>(opts: {

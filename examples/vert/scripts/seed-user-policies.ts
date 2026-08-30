@@ -1,7 +1,7 @@
 /**
  * Seeds PolicyDefinition rows for a specific test user.
  * Queries the User table to resolve userId from username,
- * then inserts role-group and permission-policy rows.
+ * then inserts role-assignment and permission-grant rows via AuthorizationPolicyBuilder.
  *
  * Run from examples/vert: NODE_ENV=development bun run scripts/seed-user-policies.ts <username>
  */
@@ -11,6 +11,12 @@ import { randomUUID } from 'crypto';
 import { readFileSync } from 'fs';
 import path from 'path';
 import { Pool } from 'pg';
+import type { IdType } from '@venizia/ignis';
+import {
+  AuthorizationActions,
+  AuthorizationDecisions,
+  AuthorizationPolicyBuilder,
+} from '@venizia/ignis';
 
 const pool = new Pool({
   host: process.env.APP_ENV_POSTGRES_HOST ?? '0.0.0.0',
@@ -32,8 +38,16 @@ interface SeedIds {
   permissions: { readConfig: string; createUser: string; readDashboard: string };
 }
 
+/** Principal type labels stored in PolicyDefinition.subjectType/targetType. Must match the entity `.name` values application.ts registers as `principals`/`domainTypes` - drifting here is invisible to the adapter, not a type error. */
+class PolicyPrincipalTypes {
+  static readonly USER = 'user';
+  static readonly ROLE = 'Role';
+  static readonly PERMISSION = 'Permission';
+  static readonly ORGANIZATION = 'Organization';
+}
+
 interface PolicyRow {
-  variant: 'group' | 'policy';
+  variant: string;
   subjectType: string;
   subjectId: string;
   targetType: string;
@@ -43,158 +57,158 @@ interface PolicyRow {
   domain: string | null;
 }
 
+/** Normalize an AuthorizationPolicyBuilder result (action/effect/domain are absent on non-grant edges) into an insertable row. */
+function toRow(policy: {
+  variant: string;
+  subjectType: string;
+  subjectId: IdType;
+  targetType: string;
+  targetId: IdType;
+  action?: string | null;
+  effect?: string | null;
+  domain?: string | null;
+}): PolicyRow {
+  return {
+    variant: policy.variant,
+    subjectType: policy.subjectType,
+    subjectId: String(policy.subjectId),
+    targetType: policy.targetType,
+    targetId: String(policy.targetId),
+    action: policy.action ?? null,
+    effect: policy.effect ?? null,
+    domain: policy.domain ?? null,
+  };
+}
+
 function buildPolicies(opts: { userId: string; ids: SeedIds }): PolicyRow[] {
   const { userId, ids } = opts;
   const { organizations: orgs, roles, permissions: perms } = ids;
 
+  const orgAlphaDomain = { type: PolicyPrincipalTypes.ORGANIZATION, id: orgs.orgAlpha };
+  const orgBetaDomain = { type: PolicyPrincipalTypes.ORGANIZATION, id: orgs.orgBeta };
+
   const policyMap: Record<string, PolicyRow[]> = {
     // Super admin — alwaysAllowRoles bypass
     test_superadmin: [
-      {
-        variant: 'group',
-        subjectType: 'user',
-        subjectId: userId,
-        targetType: 'Role',
-        targetId: roles.superAdmin,
-        action: null,
-        effect: null,
-        domain: orgs.orgAlpha,
-      },
+      toRow(
+        AuthorizationPolicyBuilder.assignRole({
+          user: { type: PolicyPrincipalTypes.USER, id: userId },
+          role: { type: PolicyPrincipalTypes.ROLE, id: roles.superAdmin },
+          domain: orgAlphaDomain,
+        }),
+      ),
     ],
 
     // Admin — has create:user via role policy in org_alpha
     test_admin: [
-      {
-        variant: 'group',
-        subjectType: 'user',
-        subjectId: userId,
-        targetType: 'Role',
-        targetId: roles.admin,
-        action: null,
-        effect: null,
-        domain: orgs.orgAlpha,
-      },
-      {
-        variant: 'policy',
-        subjectType: 'Role',
-        subjectId: roles.admin,
-        targetType: 'Permission',
-        targetId: perms.createUser,
-        action: 'create',
-        effect: 'allow',
-        domain: orgs.orgAlpha,
-      },
+      toRow(
+        AuthorizationPolicyBuilder.assignRole({
+          user: { type: PolicyPrincipalTypes.USER, id: userId },
+          role: { type: PolicyPrincipalTypes.ROLE, id: roles.admin },
+          domain: orgAlphaDomain,
+        }),
+      ),
+      toRow(
+        AuthorizationPolicyBuilder.grant({
+          subject: { type: PolicyPrincipalTypes.ROLE, id: roles.admin },
+          permission: { type: PolicyPrincipalTypes.PERMISSION, id: perms.createUser },
+          action: AuthorizationActions.CREATE,
+          effect: AuthorizationDecisions.ALLOW,
+          domain: orgAlphaDomain,
+        }),
+      ),
     ],
 
     // Regular user — has read:configuration via role policy in org_alpha
     test_user: [
-      {
-        variant: 'group',
-        subjectType: 'user',
-        subjectId: userId,
-        targetType: 'Role',
-        targetId: roles.user,
-        action: null,
-        effect: null,
-        domain: orgs.orgAlpha,
-      },
-      {
-        variant: 'policy',
-        subjectType: 'Role',
-        subjectId: roles.user,
-        targetType: 'Permission',
-        targetId: perms.readConfig,
-        action: 'read',
-        effect: 'allow',
-        domain: orgs.orgAlpha,
-      },
+      toRow(
+        AuthorizationPolicyBuilder.assignRole({
+          user: { type: PolicyPrincipalTypes.USER, id: userId },
+          role: { type: PolicyPrincipalTypes.ROLE, id: roles.user },
+          domain: orgAlphaDomain,
+        }),
+      ),
+      toRow(
+        AuthorizationPolicyBuilder.grant({
+          subject: { type: PolicyPrincipalTypes.ROLE, id: roles.user },
+          permission: { type: PolicyPrincipalTypes.PERMISSION, id: perms.readConfig },
+          action: AuthorizationActions.READ,
+          effect: AuthorizationDecisions.ALLOW,
+          domain: orgAlphaDomain,
+        }),
+      ),
     ],
 
     // Guest — role assigned but no permission policies
     test_guest: [
-      {
-        variant: 'group',
-        subjectType: 'user',
-        subjectId: userId,
-        targetType: 'Role',
-        targetId: roles.guest,
-        action: null,
-        effect: null,
-        domain: orgs.orgAlpha,
-      },
+      toRow(
+        AuthorizationPolicyBuilder.assignRole({
+          user: { type: PolicyPrincipalTypes.USER, id: userId },
+          role: { type: PolicyPrincipalTypes.ROLE, id: roles.guest },
+          domain: orgAlphaDomain,
+        }),
+      ),
     ],
 
     // Beta admin — has read:configuration in org_beta (different tenant)
     test_beta_admin: [
-      {
-        variant: 'group',
-        subjectType: 'user',
-        subjectId: userId,
-        targetType: 'Role',
-        targetId: roles.admin,
-        action: null,
-        effect: null,
-        domain: orgs.orgBeta,
-      },
-      {
-        variant: 'policy',
-        subjectType: 'Role',
-        subjectId: roles.admin,
-        targetType: 'Permission',
-        targetId: perms.readConfig,
-        action: 'read',
-        effect: 'allow',
-        domain: orgs.orgBeta,
-      },
+      toRow(
+        AuthorizationPolicyBuilder.assignRole({
+          user: { type: PolicyPrincipalTypes.USER, id: userId },
+          role: { type: PolicyPrincipalTypes.ROLE, id: roles.admin },
+          domain: orgBetaDomain,
+        }),
+      ),
+      toRow(
+        AuthorizationPolicyBuilder.grant({
+          subject: { type: PolicyPrincipalTypes.ROLE, id: roles.admin },
+          permission: { type: PolicyPrincipalTypes.PERMISSION, id: perms.readConfig },
+          action: AuthorizationActions.READ,
+          effect: AuthorizationDecisions.ALLOW,
+          domain: orgBetaDomain,
+        }),
+      ),
     ],
 
-    // No-org user — role assigned with null domain
+    // No-org user — role assigned with no domain, so the g-line is "*" (every domain). Still 403:
+    // there is no org-scoped grant for it to match against.
     test_no_org: [
-      {
-        variant: 'group',
-        subjectType: 'user',
-        subjectId: userId,
-        targetType: 'Role',
-        targetId: roles.user,
-        action: null,
-        effect: null,
-        domain: null,
-      },
+      toRow(
+        AuthorizationPolicyBuilder.assignRole({
+          user: { type: PolicyPrincipalTypes.USER, id: userId },
+          role: { type: PolicyPrincipalTypes.ROLE, id: roles.user },
+        }),
+      ),
     ],
 
     // Denied user — has allow via role + explicit deny at user level
     test_denied: [
-      {
-        variant: 'group',
-        subjectType: 'user',
-        subjectId: userId,
-        targetType: 'Role',
-        targetId: roles.user,
-        action: null,
-        effect: null,
-        domain: orgs.orgAlpha,
-      },
-      {
-        variant: 'policy',
-        subjectType: 'Role',
-        subjectId: roles.user,
-        targetType: 'Permission',
-        targetId: perms.readConfig,
-        action: 'read',
-        effect: 'allow',
-        domain: orgs.orgAlpha,
-      },
+      toRow(
+        AuthorizationPolicyBuilder.assignRole({
+          user: { type: PolicyPrincipalTypes.USER, id: userId },
+          role: { type: PolicyPrincipalTypes.ROLE, id: roles.user },
+          domain: orgAlphaDomain,
+        }),
+      ),
+      toRow(
+        AuthorizationPolicyBuilder.grant({
+          subject: { type: PolicyPrincipalTypes.ROLE, id: roles.user },
+          permission: { type: PolicyPrincipalTypes.PERMISSION, id: perms.readConfig },
+          action: AuthorizationActions.READ,
+          effect: AuthorizationDecisions.ALLOW,
+          domain: orgAlphaDomain,
+        }),
+      ),
       // Explicit deny at user level overrides the role-level allow
-      {
-        variant: 'policy',
-        subjectType: 'user',
-        subjectId: userId,
-        targetType: 'Permission',
-        targetId: perms.readConfig,
-        action: 'read',
-        effect: 'deny',
-        domain: orgs.orgAlpha,
-      },
+      toRow(
+        AuthorizationPolicyBuilder.grant({
+          subject: { type: PolicyPrincipalTypes.USER, id: userId },
+          permission: { type: PolicyPrincipalTypes.PERMISSION, id: perms.readConfig },
+          action: AuthorizationActions.READ,
+          effect: AuthorizationDecisions.DENY,
+          domain: orgAlphaDomain,
+        }),
+      ),
     ],
   };
 

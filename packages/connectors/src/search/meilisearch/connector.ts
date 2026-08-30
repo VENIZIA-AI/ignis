@@ -11,159 +11,29 @@ import type {
 import { BaseSearchConnector } from '@/search/core';
 import { SearchConnectorInternal } from '@/search/core/internal';
 import type { ISynonym } from '@/search/core/models';
-import type { AnyType } from '@venizia/ignis-helpers/common';
 import { getError, isApplicationError } from '@venizia/ignis-helpers/core';
 import { HTTP } from '@venizia/ignis-helpers/common';
 import { Meilisearch } from 'meilisearch';
 import type { IMeilisearchIndexPlan } from './compiler';
-import { MeilisearchInternal } from './internal';
-import type { IMeilisearchConnectorOptions } from './types';
+import { adaptClient, isRecord, mapSearchResult, MeilisearchInternal } from './internal';
+import type {
+  IMeilisearchClientLike,
+  IMeilisearchConnectorOptions,
+  IMeilisearchTask,
+} from './types';
 import {
   MEILISEARCH_DEFAULT_FETCH_PAGE_SIZE,
   MEILISEARCH_DEFAULT_UPDATE_BATCH_SIZE,
   MeilisearchTaskStatuses,
 } from './types';
 
+// Re-exported for back-compat: callers and test fakes historically imported the client-shape type from this module rather than from `./types`, its new home.
+export type { IMeilisearchClientLike } from './types';
+
 const DEFAULT_TASK_TIMEOUT_MS = 5 * 60_000;
 const DEFAULT_TASK_INTERVAL_MS = 50;
 /** Ceiling for the exponential poll backoff - one poll per second once a task runs long. */
 const MAX_TASK_INTERVAL_MS = 1000;
-
-interface IMeilisearchTask {
-  taskUid: number;
-  status: string;
-  error?: unknown;
-  /** A finished task reports what it actually did, e.g. `deletedDocuments` on a documentDeletion. */
-  details?: Record<string, unknown>;
-}
-
-interface IMeilisearchDocumentsPage {
-  results: unknown[];
-  total: number;
-}
-
-/** Narrow structural view of the client surface this connector needs - the real client and the in-test fake both satisfy it. */
-interface IMeilisearchIndexApi {
-  addDocuments(documents: unknown[], options?: unknown): Promise<IMeilisearchTask>;
-  updateDocuments(documents: unknown[], options?: unknown): Promise<IMeilisearchTask>;
-  getDocument(id: string, options?: unknown): Promise<unknown>;
-  getDocuments(params: unknown): Promise<IMeilisearchDocumentsPage>;
-  deleteDocument(id: string): Promise<IMeilisearchTask>;
-  deleteDocuments(params: unknown): Promise<IMeilisearchTask>;
-  deleteAllDocuments(): Promise<IMeilisearchTask>;
-  search(query: string | null, params?: unknown): Promise<unknown>;
-  updateSettings(settings: unknown): Promise<IMeilisearchTask>;
-  getSettings(): Promise<Record<string, unknown>>;
-  updateSynonyms(synonyms: Record<string, string[]>): Promise<IMeilisearchTask>;
-  resetSynonyms(): Promise<IMeilisearchTask>;
-}
-
-export interface IMeilisearchClientLike {
-  index(uid: string): IMeilisearchIndexApi;
-  createIndex(uid: string, options?: unknown): Promise<IMeilisearchTask>;
-  getIndex(uid: string): Promise<unknown>;
-  getIndexes(params?: unknown): Promise<{ results: unknown[] }>;
-  deleteIndex(uid: string): Promise<IMeilisearchTask>;
-  swapIndexes(pairs: Array<{ indexes: string[] }>): Promise<IMeilisearchTask>;
-  getTask(taskUid: number): Promise<IMeilisearchTask>;
-  health(): Promise<{ status: string }>;
-  multiSearch(params: unknown): Promise<unknown>;
-}
-
-const isRecord = (value: unknown): value is Record<string, unknown> => {
-  return typeof value === 'object' && value !== null;
-};
-
-/** Reserved RESPONSE keys on a hit. Listed explicitly, not by `_` prefix - `_geo` is a stored DOCUMENT field and prefix-stripping would delete it. */
-const RESERVED_HIT_KEYS = new Set([
-  '_formatted',
-  '_matchesPosition',
-  '_rankingScore',
-  '_rankingScoreDetails',
-  '_vectors',
-  '_federation',
-  '_geoDistance',
-]);
-
-/** Strips Meilisearch's reserved response metadata, leaving the caller's own document intact. */
-const extractDocument = <TDocument extends object>(hit: Record<string, unknown>): TDocument => {
-  const document: Record<string, unknown> = {};
-
-  for (const [key, value] of Object.entries(hit)) {
-    if (RESERVED_HIT_KEYS.has(key)) {
-      continue;
-    }
-
-    document[key] = value;
-  }
-
-  return document as TDocument;
-};
-
-/** Maps a Meilisearch response onto `ISearchResult`: exhaustive `totalHits` preferred over approximate `estimatedTotalHits` (`isFoundExact` says which), wire keys read via bracket access, never identifiers. */
-const mapSearchResult = <TDocument extends object>(raw: unknown): ISearchResult<TDocument> => {
-  if (!isRecord(raw)) {
-    return { found: 0, isFoundExact: true };
-  }
-
-  const totalHits = raw['totalHits'];
-  const isFoundExact = typeof totalHits === 'number';
-  const estimated = raw['estimatedTotalHits'];
-
-  const result: ISearchResult<TDocument> = {
-    found: isFoundExact ? totalHits : typeof estimated === 'number' ? estimated : 0,
-    isFoundExact,
-  };
-
-  if (typeof raw['processingTimeMs'] === 'number') {
-    result.searchTimeMs = raw['processingTimeMs'];
-  }
-
-  if (isRecord(raw['facetDistribution'])) {
-    result.facetCounts = [raw['facetDistribution']];
-  }
-
-  if (Array.isArray(raw['hits'])) {
-    result.hits = raw['hits'].filter(isRecord).map(hit => {
-      const entry: {
-        document: TDocument;
-        highlight?: unknown;
-        score?: number;
-      } = { document: extractDocument<TDocument>(hit) };
-
-      if (hit['_formatted'] !== undefined) {
-        entry.highlight = hit['_formatted'];
-      }
-
-      if (typeof hit['_rankingScore'] === 'number') {
-        entry.score = hit['_rankingScore'];
-      }
-
-      return entry;
-    });
-  }
-
-  return result;
-};
-
-/** Adapts the SDK client onto the structural view this connector needs. */
-const adaptClient = (sdk: Meilisearch): IMeilisearchClientLike => {
-  // The SDK's task/index return types carry more detail than this connector reads, so each delegate widens to AnyType at the seam rather than restating the SDK's shapes.
-  const client = sdk as AnyType;
-
-  return {
-    index: (uid: string) => client.index(uid),
-    createIndex: (uid: string, options?: unknown) => client.createIndex(uid, options),
-    getIndex: (uid: string) => client.getIndex(uid),
-    getIndexes: () => client.getIndexes(),
-    deleteIndex: (uid: string) => client.deleteIndex(uid),
-    swapIndexes: (pairs: Array<{ indexes: string[] }>) => client.swapIndexes(pairs),
-    // The one real divergence: the SDK exposes getTask under `client.tasks`, not at the root.
-    getTask: (taskUid: number) => client.tasks.getTask(taskUid),
-    health: () => client.health(),
-    multiSearch: (params: unknown) => client.multiSearch(params),
-  };
-};
 
 /** Meilisearch-backed search connector. Every write awaits its task, so `create()` resolves only once the document is retrievable. */
 export class MeilisearchConnector extends BaseSearchConnector {
@@ -263,16 +133,17 @@ export class MeilisearchConnector extends BaseSearchConnector {
     export: opts => this.exportDocuments(opts),
   };
 
+  /** Never throws - `BaseSearchConnector.ping()` reads `.ok` and returns it, so a probe failure has to resolve as `{ ok: false }` rather than surface as a 503. */
   async getHealth(): Promise<{ ok: boolean }> {
-    const rs = await this.runEngineCall({
-      method: this.getHealth.name,
-      run: async () => {
-        const health = await this.client.health();
-        return { ok: health.status === 'available' };
-      },
-    });
-
-    return rs;
+    try {
+      const health = await this.client.health();
+      return { ok: health.status === 'available' };
+    } catch (error) {
+      this.logger
+        .for(this.getHealth.name)
+        .warn('Health probe failed | error: %s', SearchConnectorInternal.describeError({ error }));
+      return { ok: false };
+    }
   }
 
   /** Writes are invisible until their task succeeds; polls manually against a caller-configured ceiling because the SDK's own `waitForTask` 5 s default is too short for bulk imports. */
