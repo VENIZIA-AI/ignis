@@ -61,7 +61,16 @@ export type TResolveDomainEdgesFn = (opts: {
   domains: string[];
 }) => Promise<TDomainHierarchyEdge[]>;
 
-/** Filtered casbin adapter for the scoped RBAC model: loads ONE principal's edges (role assignments, memberships, grants) plus the shared structural hierarchy trees as casbin lines. Read-only. */
+/**
+ * Filtered casbin adapter for the scoped RBAC model: loads ONE principal's edges (role assignments,
+ * memberships, grants) plus the shared structural hierarchy trees as casbin lines. Read-only.
+ *
+ * EVERY branch below must select by `variant = <known value>` or `variant IN (<known values>)`.
+ * Never `variant NOT IN (...)`, and never a bare select that classifies afterwards. Applications
+ * store their own edge kinds in this same table (declared via `extraVariants`), and an exclusion
+ * filter would sweep those unknown rows into a branch that has no idea what they mean. The current
+ * shape makes an undeclared variant inert, which is what makes sharing the table safe.
+ */
 export class ScopedCasbinAdapter extends BaseFilteredAdapter<IScopedCasbinPolicyFilter> {
   protected readonly entities: IScopedCasbinEntities;
   protected readonly customGrantExpander: CustomGrantExpander;

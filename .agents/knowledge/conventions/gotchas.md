@@ -252,6 +252,22 @@ If a background TTL refresh checks "how long since the last **successful** load"
 
 A short-lived `DomainHierarchyStore` in `core-server`'s casbin enforcer shipped with this bug first, found in review before release; `refreshIfStale()` gated on `lastAttemptAt`, set at the start of every attempt regardless of outcome, never `lastLoadedAt`, which only advances on success. The store itself was later removed entirely - the process-wide shared tree it cached duplicated the per-principal `g3` policy-line path, which needs no separate TTL or staleness ceiling - but the retry-gating lesson generalizes to any other background-refreshed cache in the framework.
 
+## An unannotated method return widens a TConstValue-derived literal back to string
+
+`TConstValue<T> = Extract<ValueOf<T>, string | number>` reads a class's static readonly literals
+through an indexed access type (`T[keyof T]`). That indirection makes the resulting literal union
+"fresh" again, so when a method returns it through an object literal with no explicit return type
+annotation, TypeScript's return-type inference widens it straight back to `string` - silently,
+with no error at the declaration site. A plain hand-written union (`'a' | 'b' | 'c'`) does not have
+this problem; only types derived through a generic conditional/indexed-access alias do.
+
+This bit `AuthorizationPolicyBuilder.grant()`/`.customGrant()`: their `effect: TAuthorizationDecision`
+parameter came back out as `effect: string` in the inferred return type, which stopped satisfying
+`PolicyDefinition`'s `.$type<TAuthorizationDecision>()` column once that column was narrowed. Fixed
+by giving both methods an explicit return type. Check any other builder whose return object carries
+a `TConstValue`-derived field for the same gap - it only surfaces once something downstream assigns
+the result into an equally-narrowed type, so it can sit latent for a long time.
+
 ## Related
 
 - [Options objects](/conventions/options-objects.md)

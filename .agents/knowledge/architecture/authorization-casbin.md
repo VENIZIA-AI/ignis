@@ -32,6 +32,13 @@ The whole RBAC state is a graph. Nodes are User / Role / Permission / Domain; ev
 
 `GRANT`, `ASSIGN_ROLE`, and `JOIN_DOMAIN` are per-**user** edges. `ROLE_INHERITS`, `RESOURCE_INHERITS`, `ACTION_INHERITS`, and `DOMAIN_INHERITS` are shared **structural** edges - they describe the org, not a user, so they load identically for everyone.
 
+The `variant` column's TypeScript type is closed to these seven values by default. An app can store
+its own edge kind in the same table - `ScopedCasbinAdapter` never selects an undeclared variant, so
+it is purely the app's data - by declaring it via `extraPolicyDefinitionColumns({ extraVariants: [...] })`
+in `packages/core-server/src/components/auth/models/entities/policy-definition.model.ts`. `effect`
+does not get the same treatment: its value is read by Casbin's own effect evaluator, not merely
+filtered on, so an undeclared value there is a correctness risk, not a harmless unselected row.
+
 `g4` + `g5` combine multiplicatively: a `manage Order` grant covers a `read OrderItem` request. Dotted resource nesting (`Order.findById` inside `Order`) needs **no edge at all** - it is handled by the registered `objectMatch` function, so `g4` is only for non-standard nesting.
 
 `g4` is served by a dedicated `ResourceRoleManager` (`role-managers/resource.ts`), not `addNamedMatchingFunc`: `addMatchingFunc` sets Casbin's `hasPattern`, which disables `DefaultRoleManager`'s O(1) fast path on *every* link check, not just `g4` lookups. `ResourceRoleManager` seeds its walk from **every stored prefix ancestor** of a dotted code (`a.b.c` -> `a.b` -> `a`, not only the deepest). Its contract differs from the replaced `objectMatch` matching function in three ways:

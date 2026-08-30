@@ -17,6 +17,7 @@ This section tracks the history of significant changes, refactors, and updates t
 
 | Date | Title | Type |
 |------|-------|------|
+| 2026-08-30 | [PolicyDefinition.variant Stays Closed by Default, but an App Can Now Declare Its Own Edge Kinds](./2026-08-30-policy-definition-extra-variants) | Enhancement |
 | 2026-08-30 | [authorize() Denies When No Enforcer Is Registered](./2026-08-30-authorize-no-enforcer-fails-closed) | Security, Breaking Change |
 | 2026-08-30 | [getHealth() Never Throws, Imports Keep Progress, and collectionExists() Never Lies About Absence](./2026-08-30-search-connector-health-and-import-contract) | Behavior Change, Bug Fix |
 | 2026-08-29 | [Casbin Domain Hierarchy - Parent Domains Reach Their Children](./2026-08-29-casbin-domain-hierarchy) | New Feature |

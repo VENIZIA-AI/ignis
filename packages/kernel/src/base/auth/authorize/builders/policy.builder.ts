@@ -6,6 +6,29 @@ import { AuthorizationActions, AuthorizationPolicyVariants } from '../common/con
 /** A grant/assignment domain: a scope literal (`SYSTEM_WIDE`/`ANY_MEMBER`) or a typed domain entity. */
 export type TPolicyDomainInput = string | { type: string; id: IdType };
 
+/**
+ * Explicit on purpose: `TAuthorizationDecision` is `Extract<ValueOf<T>, string | number>`, and its
+ * literal members widen to `string` when a method's return type is inferred rather than declared.
+ * Without this annotation `grant()`'s `effect` stops satisfying `PolicyDefinition`'s narrowed column.
+ * Not exported - `TGrantRow`/`TCustomGrantRow` already name unrelated adapter-side row shapes
+ * downstream; consumers derive this shape via `ReturnType<typeof AuthorizationPolicyBuilder.grant>`.
+ */
+type TBuilderGrantRow = {
+  variant: typeof AuthorizationPolicyVariants.GRANT.action;
+  subjectType: string;
+  subjectId: IdType;
+  targetType: string;
+  targetId: IdType;
+  action: string;
+  effect: TAuthorizationDecision;
+  domain: TNullable<string>;
+};
+
+type TBuilderCustomGrantRow = Omit<TBuilderGrantRow, 'action'> & {
+  action: typeof AuthorizationActions.CUSTOM;
+  metadata: { ops: string[] };
+};
+
 export class AuthorizationPolicyBuilder {
   static readonly ACTION_PRINCIPAL = 'Action';
 
@@ -29,7 +52,7 @@ export class AuthorizationPolicyBuilder {
     action: string;
     domain?: TNullable<TPolicyDomainInput>;
     effect: TAuthorizationDecision;
-  }) {
+  }): TBuilderGrantRow {
     return {
       variant: AuthorizationPolicyVariants.GRANT.action,
       subjectType: opts.subject.type,
@@ -49,7 +72,7 @@ export class AuthorizationPolicyBuilder {
     ops: string[];
     domain?: TNullable<TPolicyDomainInput>;
     effect: TAuthorizationDecision;
-  }) {
+  }): TBuilderCustomGrantRow {
     return {
       variant: AuthorizationPolicyVariants.GRANT.action,
       subjectType: opts.subject.type,

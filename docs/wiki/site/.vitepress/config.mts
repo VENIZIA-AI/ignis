@@ -457,6 +457,10 @@ const config = defineConfig({
               collapsed: true,
               items: [
                 {
+                  text: 'PolicyDefinition.variant Stays Closed by Default, but an App Can Now Declare Its Own Edge Kinds',
+                  link: '/changelogs/2026-08-30-policy-definition-extra-variants',
+                },
+                {
                   text: 'authorize() Denies When No Enforcer Is Registered',
                   link: '/changelogs/2026-08-30-authorize-no-enforcer-fails-closed',
                 },

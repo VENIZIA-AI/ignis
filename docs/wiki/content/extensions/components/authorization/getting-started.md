@@ -71,7 +71,7 @@ Authorization reads three tables directly: `Role`, `Permission`, and `PolicyDefi
 | `domain` | text, nullable | The casbin domain token - see the note below |
 | `metadata` | jsonb, nullable | Only subset ("custom") grants use it |
 
-`variant` must be one of exactly seven values, owned by `AuthorizationPolicyVariants`: `grant`, `assign_role`, `role_inherits`, `join_domain`, `domain_inherits`, `resource_inherits`, `action_inherits`. Nothing validates this column on read. A typo or a wrong value does not error - the row just never matches any query, and the grant it was meant to carry silently does not exist.
+`variant` must be one of exactly seven values by default, owned by `AuthorizationPolicyVariants`: `grant`, `assign_role`, `role_inherits`, `join_domain`, `domain_inherits`, `resource_inherits`, `action_inherits`. Nothing validates this column on read. A typo or a wrong value does not error - the row just never matches any query, and the grant it was meant to carry silently does not exist. An application storing its own edge type in the same table declares it via `extraPolicyDefinitionColumns({ extraVariants: [...] })` - see the [API reference](/extensions/components/authorization/api#constants).
 
 `domain` has the same trap. It stores a full casbin token, `<Type>_<id>` - for example `Organization_3fa85f64-5717-4562-b3fc-2c963f66afa6` - never a bare id. Get `variant` right and `domain` wrong, and every domain-scoped check for that row still fails. The next section shows the one way to avoid both mistakes at once.
 

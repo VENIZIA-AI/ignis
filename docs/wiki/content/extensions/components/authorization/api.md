@@ -526,6 +526,14 @@ All constant classes follow the same pattern: static readonly values + `SCHEME_S
 
 `isValidAction(input)` / `isValidRule(input)` check membership; `ACTION_SCHEME_SET` / `RULE_SCHEME_SET` hold the sets.
 
+The `variant` column's TypeScript type (`extraPolicyDefinitionColumns` in [`policy-definition.model.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/components/auth/models/entities/policy-definition.model.ts)) is closed to these seven values by default - `extraPolicyDefinitionColumns()`. An application with its own edge type stored in the same table declares it explicitly, and only that call site's column type widens:
+
+```typescript
+extraPolicyDefinitionColumns({ idType: 'string', extraVariants: ['merchant_role'] });
+```
+
+`ScopedCasbinAdapter` never selects an undeclared variant - it is purely the application's own data alongside the seven above.
+
 **`AuthorizationDomainScopes`** - sentinel domain values on `grant` rows.
 
 | Constant | Value | Meaning |

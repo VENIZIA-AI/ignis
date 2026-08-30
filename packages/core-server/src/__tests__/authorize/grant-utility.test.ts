@@ -1,5 +1,7 @@
 import { AuthorizationActions } from '@venizia/ignis-kernel';
-import { GrantBuilder } from '@venizia/ignis-kernel';
+import { AuthorizationPolicyBuilder, GrantBuilder } from '@venizia/ignis-kernel';
+import { extraPolicyDefinitionColumns } from '@/components/auth/models/entities/policy-definition.model';
+import { pgTable } from 'drizzle-orm/pg-core';
 import { describe, expect, it } from 'bun:test';
 
 const grantBuilder = GrantBuilder.getInstance();
@@ -127,29 +129,33 @@ describe('GrantBuilder.validateCustomGrantOps', () => {
   });
 });
 
+/** Backs both the runtime pgTable check below and the compile-time pin further down. */
+const defaultPolicyDefinitionTable = pgTable(
+  'policy_definitions_default',
+  extraPolicyDefinitionColumns(),
+);
+type TDefaultPolicyDefinitionInsert = typeof defaultPolicyDefinitionTable.$inferInsert;
+
+const extendedPolicyDefinitionTable = pgTable(
+  'policy_definitions_extended',
+  extraPolicyDefinitionColumns({ idType: 'string', extraVariants: ['merchant_role'] }),
+);
+type TExtendedPolicyDefinitionInsert = typeof extendedPolicyDefinitionTable.$inferInsert;
+
 describe('extraPolicyDefinitionColumns', () => {
   it('declares a metadata column for number ids', () => {
-    const {
-      extraPolicyDefinitionColumns,
-    } = require('@/components/auth/models/entities/policy-definition.model');
     const columns = extraPolicyDefinitionColumns({ idType: 'number' });
 
     expect(columns.metadata).toBeDefined();
   });
 
   it('declares a metadata column for string ids', () => {
-    const {
-      extraPolicyDefinitionColumns,
-    } = require('@/components/auth/models/entities/policy-definition.model');
     const columns = extraPolicyDefinitionColumns({ idType: 'string' });
 
     expect(columns.metadata).toBeDefined();
   });
 
   it('keeps every pre-existing column', () => {
-    const {
-      extraPolicyDefinitionColumns,
-    } = require('@/components/auth/models/entities/policy-definition.model');
     const columns = extraPolicyDefinitionColumns({ idType: 'string' });
 
     for (const name of [
@@ -165,7 +171,109 @@ describe('extraPolicyDefinitionColumns', () => {
       expect(columns).toHaveProperty(name);
     }
   });
+
+  it('accepts a declared extra variant alongside the default seven, at runtime', () => {
+    const columns = extraPolicyDefinitionColumns({
+      idType: 'string',
+      extraVariants: ['merchant_role'],
+    });
+
+    expect(columns).toHaveProperty('variant');
+  });
+
+  it('builds a real pgTable from the default and the extended column set', () => {
+    expect(defaultPolicyDefinitionTable.variant).toBeDefined();
+    expect(extendedPolicyDefinitionTable.variant).toBeDefined();
+  });
 });
+
+/**
+ * `variant`'s compile-time contract, pinned so no future change can widen it back to `string`.
+ * Never executed - `tsc --noEmit` is what enforces this file, not `bun test`.
+ */
+
+export const policyDefinitionVariantContractGuard = () => {
+  // Default shape: every one of the seven IGNIS variants is accepted.
+  const grant: TDefaultPolicyDefinitionInsert['variant'] = 'grant';
+  const assignRole: TDefaultPolicyDefinitionInsert['variant'] = 'assign_role';
+  const roleInherits: TDefaultPolicyDefinitionInsert['variant'] = 'role_inherits';
+  const joinDomain: TDefaultPolicyDefinitionInsert['variant'] = 'join_domain';
+  const domainInherits: TDefaultPolicyDefinitionInsert['variant'] = 'domain_inherits';
+  const resourceInherits: TDefaultPolicyDefinitionInsert['variant'] = 'resource_inherits';
+  const actionInherits: TDefaultPolicyDefinitionInsert['variant'] = 'action_inherits';
+
+  // Default shape: the three historically-wrong vocabularies stay compile errors.
+  // @ts-expect-error 'group' was never a valid variant value
+  const badGroup: TDefaultPolicyDefinitionInsert['variant'] = 'group';
+  // @ts-expect-error 'policy' was never a valid variant value
+  const badPolicy: TDefaultPolicyDefinitionInsert['variant'] = 'policy';
+  // @ts-expect-error 'p' is a casbin rule prefix, not a variant value
+  const badP: TDefaultPolicyDefinitionInsert['variant'] = 'p';
+  // @ts-expect-error 'g' is a casbin rule prefix, not a variant value
+  const badG: TDefaultPolicyDefinitionInsert['variant'] = 'g';
+
+  // With `merchant_role` declared: the seven IGNIS values plus the declared extra are accepted.
+  const extraGrant: TExtendedPolicyDefinitionInsert['variant'] = 'grant';
+  const extraVariant: TExtendedPolicyDefinitionInsert['variant'] = 'merchant_role';
+
+  // An undeclared value stays a compile error even once one extra variant has been declared.
+  // @ts-expect-error 'affiliate_role' was never declared via extraVariants
+  const undeclaredExtra: TExtendedPolicyDefinitionInsert['variant'] = 'affiliate_role';
+
+  // AuthorizationPolicyBuilder output must still assign cleanly to the column, in both shapes.
+  const grantRow = AuthorizationPolicyBuilder.grant({
+    subject: { type: 'Role', id: 1 },
+    permission: { type: 'Permission', id: 1 },
+    action: 'read',
+    effect: 'allow',
+  });
+  const assignRoleRow = AuthorizationPolicyBuilder.assignRole({
+    user: { type: 'User', id: 1 },
+    role: { type: 'Role', id: 1 },
+  });
+
+  const defaultInsertFromGrant: TDefaultPolicyDefinitionInsert = {
+    ...grantRow,
+    subjectId: 1,
+    targetId: 1,
+  };
+  const defaultInsertFromAssignRole: TDefaultPolicyDefinitionInsert = {
+    ...assignRoleRow,
+    subjectId: 1,
+    targetId: 1,
+  };
+  const extendedInsertFromGrant: TExtendedPolicyDefinitionInsert = {
+    ...grantRow,
+    subjectId: '1',
+    targetId: '1',
+  };
+  const extendedInsertFromAssignRole: TExtendedPolicyDefinitionInsert = {
+    ...assignRoleRow,
+    subjectId: '1',
+    targetId: '1',
+  };
+
+  return [
+    grant,
+    assignRole,
+    roleInherits,
+    joinDomain,
+    domainInherits,
+    resourceInherits,
+    actionInherits,
+    badGroup,
+    badPolicy,
+    badP,
+    badG,
+    extraGrant,
+    extraVariant,
+    undeclaredExtra,
+    defaultInsertFromGrant,
+    defaultInsertFromAssignRole,
+    extendedInsertFromGrant,
+    extendedInsertFromAssignRole,
+  ];
+};
 
 // DEFAULT_CRUD_METHODS (9) plus one custom operation, so every tier is non-empty and realistically sized: read covers FOUR operations, write FIVE.
 const CATALOG = [

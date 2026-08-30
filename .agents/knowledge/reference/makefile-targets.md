@@ -50,7 +50,7 @@ tags: [reference, make, build]
 | `make update-boot` | - | Force updating @venizia/ignis-boot |
 | `make update-kernel` | - | Force updating @venizia/ignis-kernel |
 | `make lint` | `lint-packages` | Linting completed. |
-| `make lint-all` | `lint-packages lint-examples` | All linting completed. |
+| `make lint-all` | `lint-packages lint-examples lint-docs-mcp` | All linting completed. |
 | `make lint-packages` | - | Linting all packages |
 | `make lint-examples` | - | Linting all examples |
 | `make lint-dev-configs` | - | Linting @venizia/dev-configs |
