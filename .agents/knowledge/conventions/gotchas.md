@@ -8,6 +8,19 @@ tags: [conventions, gotchas, debugging]
 
 Traps worth knowing before you hit them yourself.
 
+## Run `bun test` from the package root, never the repo root
+
+Several suites resolve paths relative to the current working directory, not to the test file.
+`connectors`' barrel-purity and paradigm-seam tests `scandir('src/search/core')`; `helpers`'
+optional-peer tests bundle relative entrypoints; `core-server`'s gRPC test resolves
+`@connectrpc/connect` off the nearest `node_modules`.
+
+Run from the repo root and they fail with `ENOENT` or `Cannot find module` - failures that look
+like real regressions and are not. `cd packages/<name> && bun test` passes. The same suites that
+report 32 failures from the root report zero from the package.
+
+Reading a failure list without checking the working directory first has already cost a false alarm.
+
 ## An empty dist looks like a hundred unrelated import failures
 
 The build is honest: every `scripts/build.sh` starts with `set -e` and runs `tsc --noEmit -p
@@ -232,6 +245,12 @@ decorators are dropped silently - no error, just an injected value that is `unde
 Class/property decorators (`@controller`, `@model`) keep working, so boot looks fine until a
 handler touches the missing dependency. Fix: declare `experimentalDecorators` /
 `emitDecoratorMetadata` directly in the app's own `tsconfig.json`, not only via `extends`.
+
+## A self-refreshing cache must gate its retry on the last attempt, not the last success
+
+If a background TTL refresh checks "how long since the last **successful** load", every call made while the dependency is down finds the check still stale and starts a brand-new load attempt - the system hits the failing dependency hardest exactly when it is weakest. Gate the check on the last **attempt** instead, recorded whether that attempt succeeded or failed: a downed dependency then costs one retry per interval, not one per caller.
+
+`DomainHierarchyStore` (`packages/core-server/src/components/auth/authorize/enforcers/domain-hierarchy.ts`) shipped with this bug first, found in review before release. `refreshIfStale()` now reads `lastAttemptAt`, set at the start of both `warmup()` and the internal reload regardless of outcome - never `lastLoadedAt`, which only advances on success. Apply the same shape to any other background-refreshed cache in the framework.
 
 ## Related
 

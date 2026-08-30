@@ -8,7 +8,7 @@ tags: [reference, source-map, packages]
 
 > Generated from source - do not edit; run `make okf-gen`. Layout: [monorepo layout](/overview/monorepo-layout.md).
 
-**747 source files across 9 packages.**
+**758 source files across 9 packages.**
 
 ## boot  (15 source files)
 
@@ -19,18 +19,18 @@ tags: [reference, source-map, packages]
 | `base/` | 2 |
 | `utilities/` | 2 |
 
-## connectors  (172 source files)
+## connectors  (173 source files)
 
 | Subsystem | Files |
 |---|---|
 | `relational/` | 114 |
-| `search/` | 57 |
+| `search/` | 58 |
 
-## core-server  (164 source files)
+## core-server  (173 source files)
 
 | Subsystem | Files |
 |---|---|
-| `components/` | 122 |
+| `components/` | 131 |
 | `base/` | 19 |
 | `connectors/` | 14 |
 | `common/` | 3 |
@@ -56,11 +56,11 @@ _Flat `src/` - no subsystem directories._
 | `common/` | 3 |
 | `schemas/` | 3 |
 
-## helpers  (199 source files)
+## helpers  (200 source files)
 
 | Subsystem | Files |
 |---|---|
-| `modules/` | 177 |
+| `modules/` | 178 |
 | `common/` | 10 |
 | `utilities/` | 10 |
 

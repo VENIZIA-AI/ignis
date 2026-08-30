@@ -8,7 +8,7 @@ tags: [reference, helpers, catalog]
 
 > Generated from source - do not edit; run `make okf-gen`. Package: [helpers](/packages/helpers.md).
 
-**40 helper classes across 14 modules, 9 utilities.**
+**41 helper classes across 14 modules, 9 utilities.**
 
 ## Modules
 
@@ -24,7 +24,7 @@ tags: [reference, helpers, catalog]
 | `queue/` | `BaseKafkaHelper` · `BullMQHelper` · `HfQueueHelper` · `KafkaAdminHelper` · `KafkaConsumerHelper` · `KafkaProducerHelper` · `KafkaSchemaRegistryHelper` · `MQTTClientHelper` · `SequentialQueueHelper` |
 | `redis/` | `AbstractRedisHelper` · `RedisClusterHelper` · `RedisSentinelHelper` · `RedisSingleHelper` |
 | `secrets/` | `AbstractSecretsHelper` · `DotenvVaultHelper` · `HashiCorpVaultHelper` · `SystemEnvsHelper` |
-| `socket/` | `SocketIOClientHelper` · `SocketIOServerHelper` · `WebSocketServerHelper` |
+| `socket/` | `SocketIOClientHelper` · `SocketIOServerHelper` · `WebSocketDeliveryHelper` · `WebSocketServerHelper` |
 | `storage/` | `BaseStorageHelper` · `BunS3Helper` · `DiskHelper` · `MemoryStorageHelper` · `MinioHelper` |
 | `uid/` | `OpaqueUidHelper` · `SnowflakeUidHelper` |
 | `worker-thread/` | `AbstractWorkerBusHelper` · `AbstractWorkerHelper` · `AbstractWorkerMessageBusHandlerHelper` · `AbstractWorkerThreadHelper` · `BaseWorkerBusHelper` · `BaseWorkerHelper` · `BaseWorkerMessageBusHandlerHelper` · `BaseWorkerThreadHelper` · `WorkerPoolHelper` |

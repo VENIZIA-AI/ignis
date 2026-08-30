@@ -8,6 +8,9 @@ difficulty: advanced
 
 `AuthorizeComponent` decides whether an authenticated request is allowed to proceed. It evaluates role shortcuts, custom voters, and a Casbin RBAC enforcer, in that order, through the `authorize()` middleware. The middleware runs after authentication. Casbin's optional domain-scoped model adds multi-tenant grants on top.
 
+> [!TIP]
+> New to this component? Start with [Getting Started](./getting-started) - it builds the mental model (a graph of edges, not a rule table), then seeds one grant and protects one route end to end before you read the reference material below.
+
 ## In one example
 
 The recommended setup: scoped Casbin RBAC backed by one `PolicyDefinition` edge table, then a protected route.

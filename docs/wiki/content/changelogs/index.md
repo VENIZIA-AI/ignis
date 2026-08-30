@@ -17,6 +17,8 @@ This section tracks the history of significant changes, refactors, and updates t
 
 | Date | Title | Type |
 |------|-------|------|
+| 2026-08-30 | [getHealth() Never Throws, Imports Keep Progress, and collectionExists() Never Lies About Absence](./2026-08-30-search-connector-health-and-import-contract) | Behavior Change, Bug Fix |
+| 2026-08-29 | [Casbin Domain Hierarchy - Parent Domains Reach Their Children](./2026-08-29-casbin-domain-hierarchy) | New Feature |
 | 2026-08-24 | [Two Query Shapes You No Longer Have to Rebuild](./2026-08-24-query-wrapper-schemas) | New API, Enhancement |
 | 2026-08-22 | [Log Lines Stop Carrying Color Outside Development](./2026-08-22-logger-color-off-outside-development) | Behavior Change, Enhancement |
 | 2026-08-21 | [Services Prove Themselves to Each Other, Without a Shared Password](./2026-08-21-service-authentication-strategy) | New Feature, Security |

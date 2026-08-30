@@ -154,6 +154,7 @@ const extensionsSidebar: DefaultTheme.SidebarItem[] = [
         text: 'Authorization',
         collapsed: true,
         items: [
+          { text: 'Getting Started', link: '/extensions/components/authorization/getting-started' },
           { text: 'Setup & Configuration', link: '/extensions/components/authorization/' },
           { text: 'Usage & Examples', link: '/extensions/components/authorization/usage' },
           { text: 'API Reference', link: '/extensions/components/authorization/api' },
@@ -451,6 +452,26 @@ const config = defineConfig({
           text: 'History',
           collapsed: false,
           items: [
+            {
+              text: '2026-08-30',
+              collapsed: true,
+              items: [
+                {
+                  text: 'getHealth() Never Throws, Imports Keep Progress, and collectionExists() Never Lies About Absence',
+                  link: '/changelogs/2026-08-30-search-connector-health-and-import-contract',
+                },
+              ],
+            },
+            {
+              text: '2026-08-29',
+              collapsed: true,
+              items: [
+                {
+                  text: 'Casbin Domain Hierarchy - Parent Domains Reach Their Children',
+                  link: '/changelogs/2026-08-29-casbin-domain-hierarchy',
+                },
+              ],
+            },
             {
               text: '2026-08-24',
               collapsed: true,
