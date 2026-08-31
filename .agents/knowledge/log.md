@@ -8,6 +8,22 @@ counted as concepts.
 
 ## 2026-08-31 - Every adapter query shape now has ONE real-database case
 
+Two mutations verify the coverage is load-bearing, not decorative - run BOTH before trusting an edit
+to these statements, because they catch different classes:
+
+| mutation | class it proves | result |
+|---|---|---|
+| `sql.raw(alias)` -> `sql.identifier(alias)` | identifier folding / alias resolution | 4 of 6 red |
+| swap both `ON` sides in `queryEdgePolicies` | wrong-direction self-join | 1 red, token order flips |
+
+AND CHECK THE MUTATION LANDED BEFORE READING THE RESULT. "Broke it and still green" has TWO meanings
+- the test is blind, or the break never arrived - and they lead to OPPOSITE actions. Reported by BANA
+after they nearly rewrote a healthy suite: their mutation failed to compile, their `build.sh` piped
+through `sed` and swallowed the exit code, so `dist` kept the old build and the tests ran on
+un-mutated code. IGNIS is not exposed to that exact path (`build.sh` has `set -e`, no pipes, and a
+`tsc --noEmit` gate before any emit; these tests import source, not `dist`) but `make <pkg>` cleans
+`dist` BEFORE building, so a failed build leaves it empty - the local variant of the same disguise.
+
 `scoped-adapter-domain-sql-e2e.test.ts` extended from the domain token to all three statements the
 authorize adapters issue: `queryPrincipalPolicies`, `queryEdgePolicies` (three aliases, two
 self-joins) and `CustomGrantExpander.queryOperationCatalog` (row-constructor `IN` list plus the
