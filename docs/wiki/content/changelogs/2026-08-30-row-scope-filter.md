@@ -133,7 +133,42 @@ This is a deliberate scope decision, not an oversight: search repositories compi
 
 ## Write paths: filter-shaped scope only
 
-**`scopeFilter` covers every write path whose scope is expressible as a filter clause** - a `where` comparing a column (`merchantId`, `tenantId`) against values the resolver already knows. Most tenant-scoped writes are exactly that shape, and `scopeFilter` covers them completely.
+**`scopeFilter` covers `update` and `delete`, never `create`.** Scope is a `where` clause AND-ed
+into the query, and an `INSERT` has no `where` to AND into - so there is nothing to filter. This is
+structural, not an omission.
+
+> [!WARNING]
+> **Nothing stops a caller creating a row owned by somebody else.** Validating ownership at insert
+> time stays your application's job: the framework has no channel to know whether a `userId` in a
+> payload is the caller. A model with `scopeFilter` is NOT protected against a request that posts a
+> foreign `userId`.
+
+For `update` and `delete`, the scope is a `where` comparing a column (`merchantId`, `tenantId`)
+against values the resolver already knows. Most tenant-scoped updates are exactly that shape, and
+`scopeFilter` covers them completely.
+
+### The trap on the scoped side: a write that takes someone else's id
+
+Because `update` and `delete` ARE scoped, an administrative method that legitimately targets
+another user's rows silently stops working:
+
+```typescript
+// Admin deletes an account and cleans up that user's configuration.
+await userConfigurationRepository.deleteAllForUser({ userId: victimId });
+```
+
+With `scopeFilter` active, that `deleteBy` narrows to the ADMIN's own rows. It deletes nothing,
+throws nothing, and **reports success** - the caller reads a clean result while the target's rows
+stay behind. No type error, no failing test, no log line.
+
+> [!IMPORTANT]
+> When you add `scopeFilter` to a model, audit every `updateById` / `updateAll` / `deleteBy` call
+> that takes **another principal's id as an argument**. Those are exactly the calls that break, and
+> they break quietly.
+
+The fix is a method on the repository itself, passing `dangerouslySkipScopeFilter` - written and
+reviewed where the escape is visible, rather than a flag in the request context that any layer
+could set.
 
 It does not cover ownership that is resolved per row, or through a polymorphic reference. Some rows carry no tenant column at all - only a `principalType` and `principalId` pair, where the owner lives in a different table chosen by `principalType` at runtime. That check is per-row, asynchronous, and reads the payload - three properties `resolve(): TWhere` was never built to express.
 

@@ -6,6 +6,25 @@ not how.
 This file and `index.md` are reserved OKF filenames - they carry no `type:` frontmatter and are not
 counted as concepts.
 
+## 2026-08-31 - CORRECTION: `scopeFilter` never covers `create`, and scoped writes trap admin methods
+
+Docs-only. Both the changelog and `packages/connectors.md` claimed `scopeFilter` "covers every write
+path whose scope is expressible as a filter clause". That is FALSE for `create`: `applyDefaultFilter`
+appears only in `_update` (persistable.ts:164) and `_delete` (:274), never in `_create` (:76).
+Structural, since an `INSERT` has no `where` to AND into - but the wording implied a protection that
+does not exist, so nothing stops a caller inserting a row owned by somebody else.
+
+Added the mirror trap, surfaced by BANA and not previously documented on either side: because
+`update`/`delete` ARE scoped, an admin method legitimately targeting another principal
+(`deleteAllForUser({ userId })`) silently narrows to the CALLER's rows, deletes nothing, and
+**reports success** - no throw, no type error, no log line. Guidance added: when adding `scopeFilter`
+to a model, audit every `updateById`/`updateAll`/`deleteBy` taking another principal's id as an
+argument; the fix is a repository method passing `dangerouslySkipScopeFilter`, never a request-context
+flag (a flag can be set from any layer, so "where is scope bypassed" stops being answerable in one place).
+
+No code changed. Files: `docs/wiki/content/changelogs/2026-08-30-row-scope-filter.md`,
+`.agents/knowledge/packages/connectors.md`.
+
 ## 2026-08-31 - `TEntityId`: an opt-in branded string id
 
 `kernel/src/base/models/common/types.ts` gained `TEntityId` (`string & { readonly [entityIdBrand]:

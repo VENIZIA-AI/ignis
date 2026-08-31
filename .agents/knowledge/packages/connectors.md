@@ -109,8 +109,8 @@ no `drizzle-orm/pg-core` and no `drizzle-orm/sqlite-core` at all. For the depth,
 
 ## `scopeFilter` - a row scope, relational only
 
-`@model` settings.scopeFilter (kernel) ANDs a per-request `where` into every relational read and
-write, including `restore()` - see `RelationalBaseRepository.applyScopeFilter` in
+`@model` settings.scopeFilter (kernel) ANDs a per-request `where` into every relational read, plus
+`update` and `delete`, including `restore()` - see `RelationalBaseRepository.applyScopeFilter` in
 `relational/core/repositories/core/base.ts`. It is a second, separate filter from `defaultFilter`:
 `shouldSkipDefaultFilter` never removes it, because that flag is what soft-delete's `restore()` uses
 to reach past `deletedAt: null`, and reusing one filter for both would hand `restore()` the same
@@ -129,8 +129,20 @@ also unscope every ordinary user whose `resolve()` happens to return nothing. `U
 object, so no request body, query string, or header can ever produce it - the bypass can only come
 from code the application wrote and reviewed.
 
-**`scopeFilter` covers every write path whose scope is expressible as a filter clause - not per-row
-or polymorphic ownership.** A `where` comparing a column against values the resolver already knows
+**`scopeFilter` NEVER covers `create`.** Scope is a `where` AND-ed into the query and an `INSERT` has
+no `where` to AND into - `applyDefaultFilter` appears only in `_update` and `_delete`
+(`persistable.ts`), never in `_create`. Structural, not an omission, and it means NOTHING stops a
+caller inserting a row owned by somebody else: validating ownership at insert time is the
+application's job, permanently.
+
+**The mirror trap, on the side that IS scoped:** an administrative method that legitimately targets
+another principal's rows (`deleteAllForUser({ userId })`) silently narrows to the CALLER's rows,
+deletes nothing, and reports success. When adding `scopeFilter` to a model, audit every
+`updateById`/`updateAll`/`deleteBy` taking another principal's id as an argument; the fix is a
+method on the repository passing `dangerouslySkipScopeFilter`, never a flag in the request context.
+
+**Beyond that, `scopeFilter` covers an update or delete whose scope is expressible as a filter
+clause - not per-row or polymorphic ownership.** A `where` comparing a column against values the resolver already knows
 (`merchantId`, `tenantId`) is exactly that shape. A row identified only by a `principalType` +
 `principalId` pair, where the owner lives in a different table chosen by `principalType` at runtime,
 is not: that check is per-row, asynchronous, and reads the payload, none of which `resolve(): TWhere`
