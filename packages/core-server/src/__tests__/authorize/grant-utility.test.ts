@@ -142,6 +142,15 @@ const extendedPolicyDefinitionTable = pgTable(
 );
 type TExtendedPolicyDefinitionInsert = typeof extendedPolicyDefinitionTable.$inferInsert;
 
+/** An application storing its own metadata supplies the shape rather than losing the type for everyone. */
+type TMerchantPolicyMetadata = { ops: string[]; issuedBy: string };
+
+const customMetadataPolicyDefinitionTable = pgTable(
+  'policy_definitions_custom_metadata',
+  extraPolicyDefinitionColumns<{ idType: 'string' }, TMerchantPolicyMetadata>({ idType: 'string' }),
+);
+type TCustomMetadataInsert = typeof customMetadataPolicyDefinitionTable.$inferInsert;
+
 describe('extraPolicyDefinitionColumns', () => {
   it('declares a metadata column for number ids', () => {
     const columns = extraPolicyDefinitionColumns({ idType: 'number' });
@@ -184,6 +193,7 @@ describe('extraPolicyDefinitionColumns', () => {
   it('builds a real pgTable from the default and the extended column set', () => {
     expect(defaultPolicyDefinitionTable.variant).toBeDefined();
     expect(extendedPolicyDefinitionTable.variant).toBeDefined();
+    expect(customMetadataPolicyDefinitionTable.metadata).toBeDefined();
   });
 });
 
@@ -259,7 +269,47 @@ export const policyDefinitionVariantContractGuard = () => {
     domainId: '1',
   };
 
+  // `metadata` is the subset-grant shape, not `unknown` - the point of typing it is that a wrong
+  // shape stops compiling. Verified load-bearing by deleting the marker and re-running `tsc`.
+  const metadataInsert: TDefaultPolicyDefinitionInsert = {
+    ...grantRow,
+    subjectId: 1,
+    targetId: 1,
+    domainId: 1,
+    metadata: { ops: ['find'] },
+  };
+  const wrongMetadataInsert: TDefaultPolicyDefinitionInsert = {
+    ...grantRow,
+    subjectId: 1,
+    targetId: 1,
+    domainId: 1,
+    // @ts-expect-error metadata is the subset-grant shape, not an arbitrary object
+    metadata: { notOps: 1 },
+  };
+
+  // The generic is the escape hatch, so it has to actually admit the app's own shape...
+  const customMetadataInsert: TCustomMetadataInsert = {
+    ...grantRow,
+    subjectId: '1',
+    targetId: '1',
+    domainId: '1',
+    metadata: { ops: ['find'], issuedBy: 'admin' },
+  };
+  // ...and still reject one that is not it - a widened type that checks nothing is the failure mode here.
+  const customMetadataMissingField: TCustomMetadataInsert = {
+    ...grantRow,
+    subjectId: '1',
+    targetId: '1',
+    domainId: '1',
+    // @ts-expect-error issuedBy is part of the declared shape
+    metadata: { ops: ['find'] },
+  };
+
   return [
+    metadataInsert,
+    wrongMetadataInsert,
+    customMetadataInsert,
+    customMetadataMissingField,
     grant,
     assignRole,
     roleInherits,

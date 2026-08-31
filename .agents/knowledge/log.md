@@ -35,6 +35,30 @@ explicit opt-out plus a `scopeFilter` declaration trips it - a combination that 
 Tests: `connectors/src/__tests__/common/scope-filter-boot.test.ts` - includes the case that the
 search branch must fire even when the context store is ON, since the two checks are independent.
 
+## 2026-08-31 - `PolicyDefinition.metadata` typed, and extensible by type parameter
+
+`metadata` was `jsonb('metadata')` with no `$type<>()`, so it read back as `unknown` and any shape
+compiled on the way in. It now carries `TSubsetGrantMetadata` (`{ ops: string[] }`), declared in
+kernel beside its only writer (`AuthorizationPolicyBuilder.customGrant`) so the column type and the
+row type cannot drift; the only reader is `parseCustomGrantMetadata`.
+
+A FIXED shape was the first attempt and was the wrong trade - it forces any app with its own
+metadata onto a separate column. It is now a type parameter defaulted to `TSubsetGrantMetadata`,
+mirroring `ExtraVariant`:
+
+```ts
+extraPolicyDefinitionColumns<{ idType: 'string' }, IMerchantPolicyMetadata>({ idType: 'string' })
+```
+
+`Metadata` is a TYPE PARAMETER, not a field on `opts`, because unlike `extraVariants` there is no
+runtime value to infer a shape from. Consequence worth knowing: a caller supplying it must spell
+`Opts` too - TypeScript has no partial type-argument inference. That cost falls only on opt-in callers.
+
+Pinned in `grant-utility.test.ts` in BOTH directions - the custom shape is accepted AND a shape
+missing a declared field is rejected. A generic that silently widens to something checking nothing
+is the failure mode here, so an accept-only pin would have proved nothing. Both markers verified
+load-bearing by deleting each and re-running `tsc`.
+
 ## 2026-08-31 - `PolicyDefinition.domain` -> `domain_type` + `domain_id` (Release A of two)
 
 `domain_type` + `domain_id` added to `extraPolicyDefinitionColumns` (nullable, `domain_id` follows the

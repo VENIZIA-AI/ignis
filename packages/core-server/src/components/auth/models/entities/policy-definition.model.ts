@@ -1,5 +1,9 @@
 import { getError } from '@venizia/ignis-helpers/core';
-import type { TAuthorizationDecision, TAuthorizationPolicyVariant } from '@venizia/ignis-kernel';
+import type {
+  TAuthorizationDecision,
+  TAuthorizationPolicyVariant,
+  TSubsetGrantMetadata,
+} from '@venizia/ignis-kernel';
 import { AuthorizationDomainScopes } from '@venizia/ignis-kernel';
 import { integer, jsonb, text } from 'drizzle-orm/pg-core';
 
@@ -22,9 +26,14 @@ type TExtraPolicyVariantOf<Opts> = Opts extends {
   : never;
 
 /** Column shape is inferred, never hand-declared, so it can never drift from the `$type<>()` narrowing below. */
-const buildCommonPolicyDefinitionColumns = <ExtraVariant extends string = never>() => ({
-  metadata: jsonb('metadata'),
-
+const buildCommonPolicyDefinitionColumns = <
+  ExtraVariant extends string = never,
+  Metadata extends object = TSubsetGrantMetadata,
+>() => ({
+  // Typed, not `unknown`: IGNIS writes `TSubsetGrantMetadata` here (`customGrant`) and reads it back
+  // (`parseCustomGrantMetadata`). An application storing its own shape supplies it as the `Metadata`
+  // type parameter below rather than falling back to `unknown` for everyone.
+  metadata: jsonb('metadata').$type<Metadata>(),
   variant: text('variant').$type<TAuthorizationPolicyVariant | ExtraVariant>().notNull(),
 
   subjectType: text('subject_type').notNull(),
@@ -36,32 +45,48 @@ const buildCommonPolicyDefinitionColumns = <ExtraVariant extends string = never>
   domain: text('domain'),
 });
 
-export type TPolicyDefinitionCommonColumns<ExtraVariant extends string = never> = ReturnType<
-  typeof buildCommonPolicyDefinitionColumns<ExtraVariant>
->;
+export type TPolicyDefinitionCommonColumns<
+  ExtraVariant extends string = never,
+  Metadata extends object = TSubsetGrantMetadata,
+> = ReturnType<typeof buildCommonPolicyDefinitionColumns<ExtraVariant, Metadata>>;
 
 type TPolicyDefinitionColumnDef<
   Opts extends TPolicyDefinitionOptions<string> | undefined = undefined,
+  Metadata extends object = TSubsetGrantMetadata,
 > = Opts extends { idType: 'string' }
-  ? TPolicyDefinitionCommonColumns<TExtraPolicyVariantOf<Opts>> & {
+  ? TPolicyDefinitionCommonColumns<TExtraPolicyVariantOf<Opts>, Metadata> & {
       subjectId: ReturnType<typeof text>;
       targetId: ReturnType<typeof text>;
       domainId: ReturnType<typeof text>;
     }
-  : TPolicyDefinitionCommonColumns<TExtraPolicyVariantOf<Opts>> & {
+  : TPolicyDefinitionCommonColumns<TExtraPolicyVariantOf<Opts>, Metadata> & {
       subjectId: ReturnType<typeof integer>;
       targetId: ReturnType<typeof integer>;
       domainId: ReturnType<typeof integer>;
     };
 
+/**
+ * `Metadata` is the second type parameter rather than a field on `opts`, because unlike
+ * `extraVariants` there is no runtime value to infer a shape from. It defaults to
+ * `TSubsetGrantMetadata`, so a caller who does not store its own metadata writes nothing; a caller
+ * who does must spell `Opts` too, since TypeScript has no partial type-argument inference:
+ *
+ * ```ts
+ * extraPolicyDefinitionColumns<{ idType: 'string' }, IMerchantPolicyMetadata>({ idType: 'string' })
+ * ```
+ *
+ * Keep `ops` in a custom shape if the app also issues subset grants - `customGrant` writes it, and
+ * an incompatible shape surfaces as a type error at the insert site rather than at read time.
+ */
 export const extraPolicyDefinitionColumns = <
   const Opts extends TPolicyDefinitionOptions<string> | undefined = undefined,
+  Metadata extends object = TSubsetGrantMetadata,
 >(
   opts?: Opts,
-): TPolicyDefinitionColumnDef<Opts> => {
+): TPolicyDefinitionColumnDef<Opts, Metadata> => {
   const { idType = 'number' } = opts ?? {};
 
-  const common = buildCommonPolicyDefinitionColumns<TExtraPolicyVariantOf<Opts>>();
+  const common = buildCommonPolicyDefinitionColumns<TExtraPolicyVariantOf<Opts>, Metadata>();
 
   switch (idType) {
     case 'number': {
@@ -70,7 +95,7 @@ export const extraPolicyDefinitionColumns = <
         subjectId: integer('subject_id').notNull(),
         targetId: integer('target_id').notNull(),
         domainId: integer('domain_id'),
-      } as TPolicyDefinitionColumnDef<Opts>;
+      } as TPolicyDefinitionColumnDef<Opts, Metadata>;
     }
     case 'string': {
       return {
@@ -78,7 +103,7 @@ export const extraPolicyDefinitionColumns = <
         subjectId: text('subject_id').notNull(),
         targetId: text('target_id').notNull(),
         domainId: text('domain_id'),
-      } as TPolicyDefinitionColumnDef<Opts>;
+      } as TPolicyDefinitionColumnDef<Opts, Metadata>;
     }
     default: {
       throw getError({

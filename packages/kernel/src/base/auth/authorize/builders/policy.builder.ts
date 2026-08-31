@@ -30,9 +30,19 @@ type TBuilderGrantRow = {
   domainId: TNullable<IdType>;
 };
 
+/**
+ * What IGNIS itself stores in `PolicyDefinition.metadata`: the operations of a subset grant, read
+ * back by `ScopedCasbinAdapter` through `parseCustomGrantMetadata`. An application whose own
+ * metadata has a different shape points the adapter at a different column
+ * (`entities.policyDefinition.metadata.columnName`) rather than widening this one.
+ *
+ * Declared here, beside the only writer, so the column type and the row type cannot drift.
+ */
+export type TSubsetGrantMetadata = { ops: string[] };
+
 type TBuilderCustomGrantRow = Omit<TBuilderGrantRow, 'action'> & {
   action: typeof AuthorizationActions.CUSTOM;
-  metadata: { ops: string[] };
+  metadata: TSubsetGrantMetadata;
 };
 
 export class AuthorizationPolicyBuilder {

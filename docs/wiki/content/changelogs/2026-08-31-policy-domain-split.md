@@ -128,6 +128,40 @@ Remove it and **a row with an id but no type passes**. A NULL `domain_type` make
 - **Anyone inserting rows built by `AuthorizationPolicyBuilder`.** The row now carries `domainType` and `domainId`. Like `subjectId`/`targetId`, `domainId` is typed `IdType` on the builder and narrowed by your column - **narrow it at the insert site** the same way you already narrow the other two.
 - **Anyone reading `domain` directly.** Unchanged in Release A. Release B removes the column; move reads to the pair before then.
 - **Applications sharing this table via `extraVariants`.** Nothing changes - the new columns are nullable and the CHECK admits all-null.
+- **Anyone writing a non-`{ ops }` shape into `metadata`.** It was `unknown` and is now typed - supply your shape as the `Metadata` type parameter, or map a different column via `entities.policyDefinition.metadata.columnName`.
+
+## `metadata` is typed now, and extensible
+
+`metadata` was `jsonb('metadata')` with no `$type<>()`, so it read back as `unknown` - every consumer
+narrowed it by hand, and a wrong shape on the way in compiled fine.
+
+It now carries `TSubsetGrantMetadata` (`{ ops: string[] }`), the shape IGNIS itself writes with
+`customGrant` and reads back with `parseCustomGrantMetadata`:
+
+```typescript
+await repository.create({ data: { ..., metadata: { notOps: 1 } } });   // now a compile error
+```
+
+**A fixed shape would have been the wrong trade**, so it is a type parameter, defaulted:
+
+```typescript
+// default - nothing to write
+extraPolicyDefinitionColumns({ idType: 'string' })
+
+// an application storing its own metadata on this column
+type IMerchantPolicyMetadata = { ops: string[]; issuedBy: string };
+
+extraPolicyDefinitionColumns<{ idType: 'string' }, IMerchantPolicyMetadata>({ idType: 'string' })
+```
+
+`Metadata` is a **type parameter rather than a field on `opts`** because, unlike `extraVariants`,
+there is no runtime value to infer a shape from. The cost: a caller who supplies it must spell
+`Opts` too, since TypeScript has no partial type-argument inference. That cost falls only on callers
+who opt in.
+
+> [!TIP]
+> Keep `ops` in a custom shape if the application also issues subset grants - `customGrant` writes it.
+> An incompatible shape then surfaces as a type error at the insert site instead of a null at read time.
 
 ## Details
 
