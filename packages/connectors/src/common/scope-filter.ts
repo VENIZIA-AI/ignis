@@ -4,18 +4,10 @@ import { MetadataRegistry } from '@venizia/ignis-kernel';
 import { BaseSearchEntity } from '@/search/core/models';
 
 /**
- * Refuses to boot when a model declares `settings.scopeFilter` in a place that cannot honour it.
- *
- * Both cases fail SILENTLY at runtime today, in opposite directions - which is the point of checking
- * at boot rather than letting either surface as a support ticket:
- *
- * - a search-backed model returns MORE rows than intended (no scope is applied at all);
- * - a model with no ambient request context returns NONE (`resolve()` sees no context, and
- *   `onMissing` denies by default), with nothing naming the config flag as the cause.
- *
- * Lives in connectors because this is the package that both applies `scopeFilter` (relational) and
- * ignores it (search); the caller supplies `asyncContextEnabled` so no application config type
- * reaches down here.
+ * Refuses to boot when `settings.scopeFilter` is declared where it cannot be honoured. Both cases
+ * are silent at runtime and fail in OPPOSITE directions: a search-backed model returns more rows,
+ * a context-less one returns none. The caller supplies `asyncContextEnabled` so no application
+ * config type reaches into this tier.
  */
 export const assertScopeFilterSupported = (opts: { asyncContextEnabled: boolean }): void => {
   const models = MetadataRegistry.getInstance().getAllModels();

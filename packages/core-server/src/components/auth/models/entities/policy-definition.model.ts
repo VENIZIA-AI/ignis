@@ -30,19 +30,17 @@ const buildCommonPolicyDefinitionColumns = <
   ExtraVariant extends string = never,
   Metadata extends object = TSubsetGrantMetadata,
 >() => ({
-  // Typed, not `unknown`: IGNIS writes `TSubsetGrantMetadata` here (`customGrant`) and reads it back
-  // (`parseCustomGrantMetadata`). An application storing its own shape supplies it as the `Metadata`
-  // type parameter below rather than falling back to `unknown` for everyone.
   metadata: jsonb('metadata').$type<Metadata>(),
   variant: text('variant').$type<TAuthorizationPolicyVariant | ExtraVariant>().notNull(),
 
   subjectType: text('subject_type').notNull(),
   targetType: text('target_type').notNull(),
+
+  // `null` IS `ANY_MEMBER`, not "unknown"; the literal is refused by `policyDefinitionDomainShapeCheck`.
   domainType: text('domain_type'),
 
   action: text('action'),
   effect: text('effect').$type<TAuthorizationDecision>(),
-  domain: text('domain'),
 });
 
 export type TPolicyDefinitionCommonColumns<
@@ -66,17 +64,10 @@ type TPolicyDefinitionColumnDef<
     };
 
 /**
- * `Metadata` is the second type parameter rather than a field on `opts`, because unlike
- * `extraVariants` there is no runtime value to infer a shape from. It defaults to
- * `TSubsetGrantMetadata`, so a caller who does not store its own metadata writes nothing; a caller
- * who does must spell `Opts` too, since TypeScript has no partial type-argument inference:
- *
- * ```ts
- * extraPolicyDefinitionColumns<{ idType: 'string' }, IMerchantPolicyMetadata>({ idType: 'string' })
- * ```
- *
- * Keep `ops` in a custom shape if the app also issues subset grants - `customGrant` writes it, and
- * an incompatible shape surfaces as a type error at the insert site rather than at read time.
+ * `Metadata` is a type parameter, not an `opts` field: unlike `extraVariants` there is no runtime
+ * value to infer from, so supplying it means spelling `Opts` too (no partial inference):
+ * `extraPolicyDefinitionColumns<{ idType: 'string' }, IMyMetadata>({ idType: 'string' })`.
+ * Keep `ops` in a custom shape if the app also issues subset grants - `customGrant` writes it.
  */
 export const extraPolicyDefinitionColumns = <
   const Opts extends TPolicyDefinitionOptions<string> | undefined = undefined,
@@ -114,26 +105,13 @@ export const extraPolicyDefinitionColumns = <
 };
 
 /**
- * The three legal `(domain_type, domain_id)` pairs, as CHECK predicate TEXT for a migration.
+ * The three legal `(domain_type, domain_id)` pairs, as CHECK predicate TEXT for a migration - text,
+ * not a Drizzle `SQL`, because a column ref in a `sql` template renders schema-qualified, which a
+ * table-level CHECK rejects.
  *
- * Text, not a Drizzle `SQL` object, because that is where this constraint actually goes: a column
- * reference inside a Drizzle `sql` template renders schema-qualified (`"table"."column"`), which is
- * not valid inside a table-level CHECK. Migrations here are raw SQL, so the helper matches them.
- *
- * ```sql
- * ALTER TABLE policy_definitions
- *   ADD CONSTRAINT policy_definition_domain_shape
- *   CHECK (<policyDefinitionDomainShapeCheck()>);
- * ```
- *
- * Both directions are enforced, because half a constraint still admits half the broken rows: an
- * absent or sentinel type REQUIRES a null id, and a typed domain REQUIRES a non-null one.
  * The `IS NOT NULL` guard on the last branch looks redundant next to `NOT IN` and is not: a NULL
- * `domain_type` makes `NOT IN` evaluate to NULL, and a CHECK only rejects on FALSE - so without it,
- * an id with no type PASSES. Verified against a real Postgres, not reasoned about.
- *
- * `ANY_MEMBER` is refused outright - null already means it, and one state reachable two ways is the
- * bug this column split exists to remove.
+ * `domain_type` makes `NOT IN` evaluate to NULL, and a CHECK rejects only on FALSE - without it an id
+ * with no type passes.
  */
 export const policyDefinitionDomainShapeCheck = (opts?: {
   domainTypeColumn?: string;

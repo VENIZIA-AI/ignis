@@ -21,6 +21,7 @@ This section tracks the history of significant changes, refactors, and updates t
 | 2026-08-31 | [TEntityId Makes a String Id Impossible to Confuse With a String](./2026-08-31-entity-id-brand) | New Feature |
 | 2026-08-31 | [PolicyDefinition Gets domain_type and domain_id (Release A - Both Forms Written)](./2026-08-31-policy-domain-split) | New Feature, Migration Required |
 | 2026-08-31 | [An Application Refuses to Start When scopeFilter Cannot Take Effect](./2026-08-31-scope-filter-boot-checks) | Security, Behavior Change |
+| 2026-08-31 | [PolicyDefinition Reads the Domain Pair and the domain Column Is Gone (Release B)](./2026-08-31-policy-domain-split-release-b) | Breaking Change, Migration Required |
 | 2026-08-30 | [A Row Scope Every Query Carries, Denied by Default When It Cannot Be Resolved](./2026-08-30-row-scope-filter) | New Feature, Security |
 | 2026-08-30 | [Where Clauses Now Type-Check the Value, Not Just the Column](./2026-08-30-typed-where-clauses) | Breaking Change, Enhancement |
 | 2026-08-30 | [Tree Utilities Join helpers, and RecursiveTreeSql Bounds Every Recursive Walk in kernel](./2026-08-30-tree-and-recursive-sql) | New Feature, Security |

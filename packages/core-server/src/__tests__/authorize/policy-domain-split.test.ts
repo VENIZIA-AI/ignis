@@ -1,7 +1,7 @@
 /**
- * Release A of the `domain` -> `domain_type` + `domain_id` split: both forms are written, `domain`
- * is still the read source. The CHECK is exercised against a real Postgres (PGlite) rather than
- * asserted as a string - a predicate that merely LOOKS right rejects nothing.
+ * The `domain_type` + `domain_id` pair is the only stored form; the concatenated token survives
+ * only as the casbin wire format, built in SQL. The CHECK is exercised against a real Postgres
+ * (PGlite) rather than asserted as a string - a predicate that merely LOOKS right rejects nothing.
  */
 
 import { PGlite } from '@electric-sql/pglite';
@@ -23,7 +23,6 @@ describe('AuthorizationPolicyBuilder domain dual-write', () => {
       effect: 'allow',
     });
 
-    expect(row.domain).toBe('Merchant_m1');
     expect(row.domainType).toBe('Merchant');
     expect(row.domainId).toBe('m1');
   });
@@ -37,7 +36,6 @@ describe('AuthorizationPolicyBuilder domain dual-write', () => {
       effect: 'allow',
     });
 
-    expect(row.domain).toBe(AuthorizationDomainScopes.SYSTEM_WIDE);
     expect(row.domainType).toBe(AuthorizationDomainScopes.SYSTEM_WIDE);
     expect(row.domainId).toBeNull();
   });
@@ -45,13 +43,12 @@ describe('AuthorizationPolicyBuilder domain dual-write', () => {
   test('an omitted domain is null on both sides - null IS ANY_MEMBER', () => {
     const row = AuthorizationPolicyBuilder.assignRole({ user: SUBJECT, role: ROLE });
 
-    expect(row.domain).toBeNull();
     expect(row.domainType).toBeNull();
     expect(row.domainId).toBeNull();
   });
 
-  /** The one place the two forms deliberately disagree, so a backfill diff does not read it as drift. */
-  test('an explicit ANY_MEMBER normalises to null in the new columns only', () => {
+  /** Null is the only spelling that reaches storage, so the literal cannot make one state reachable twice. */
+  test('an explicit ANY_MEMBER normalises to null', () => {
     const row = AuthorizationPolicyBuilder.grant({
       subject: SUBJECT,
       permission: PERMISSION,
@@ -60,7 +57,6 @@ describe('AuthorizationPolicyBuilder domain dual-write', () => {
       effect: 'allow',
     });
 
-    expect(row.domain).toBe(AuthorizationDomainScopes.ANY_MEMBER);
     expect(row.domainType).toBeNull();
     expect(row.domainId).toBeNull();
   });

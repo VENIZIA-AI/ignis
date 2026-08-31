@@ -471,6 +471,10 @@ const config = defineConfig({
                   text: 'An Application Refuses to Start When scopeFilter Cannot Take Effect',
                   link: '/changelogs/2026-08-31-scope-filter-boot-checks',
                 },
+                {
+                  text: 'PolicyDefinition Reads the Domain Pair and the domain Column Is Gone (Release B)',
+                  link: '/changelogs/2026-08-31-policy-domain-split-release-b',
+                },
               ],
             },
             {

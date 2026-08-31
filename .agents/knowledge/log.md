@@ -6,6 +6,31 @@ not how.
 This file and `index.md` are reserved OKF filenames - they carry no `type:` frontmatter and are not
 counted as concepts.
 
+## 2026-08-31 - `PolicyDefinition.domain` dropped; the pair is the only stored form (Release B)
+
+`ScopedCasbinAdapter.domainTokenSelection` builds the `<Type>_<id>` token in SQL from
+`(domain_type, domain_id)` - one expression for every SELECT. `AuthorizationPolicyBuilder` stopped
+emitting `domain` (`serializeDomain` removed), and `extraPolicyDefinitionColumns` no longer declares
+the column. Nothing downstream of the query changed: the row still carries `domain` as a token,
+because that is what the matcher compares - only its source moved.
+
+TWO things worth not re-deriving:
+
+1. **The alias must be emitted RAW (`sql.raw`), not via `sql.identifier`.** A quoted alias keeps its
+   case while the unquoted `FROM` alias folds to lower case, so `"policyDefinition"` never resolves:
+   `missing FROM-clause entry for table "policyDefinition"`. `softDeleteClause` already carried a
+   comment saying exactly this, and the first draft made the mistake anyway.
+2. **Every existing adapter test passed with that bug in place.** They stub `execute` and hand back
+   row literals, so NONE of them run the adapter's SQL - a green suite there proves nothing about a
+   query change. Added `scoped-adapter-domain-sql-e2e.test.ts`, which drives the adapter's own
+   statements against a real Postgres (PGlite). That is the only test in the authorize tree that
+   executes the SQL; treat a query change without it as unverified.
+
+Migration is `ALTER TABLE ... DROP COLUMN domain`, after every consumer is on this release. Documented
+alongside it, reported by BANA from a real incident: NEVER verify a backfill with a `SELECT` after the
+`UPDATE` - with a pooler or replica the read can hit a lagging node and report zero changes over
+correct data. Count from the write with `RETURNING`.
+
 ## 2026-08-31 - `scopeFilter` declared where it cannot take effect now refuses to boot
 
 `connectors/src/common/scope-filter.ts` adds `assertScopeFilterSupported({ asyncContextEnabled })`,

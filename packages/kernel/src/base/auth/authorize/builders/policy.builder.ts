@@ -25,7 +25,6 @@ type TBuilderGrantRow = {
   targetId: IdType;
   action: string;
   effect: TAuthorizationDecision;
-  domain: TNullable<string>;
   domainType: TNullable<string>;
   domainId: TNullable<IdType>;
 };
@@ -48,29 +47,7 @@ type TBuilderCustomGrantRow = Omit<TBuilderGrantRow, 'action'> & {
 export class AuthorizationPolicyBuilder {
   static readonly ACTION_PRINCIPAL = 'Action';
 
-  /** Serialize to the casbin token {@link resolveRequestDomain} emits: scope literals pass through; typed domains become `<type>_<id>` so `g3` cascades; null stays null (the adapter defaults grants to `ANY_MEMBER`). */
-  private static serializeDomain(domain?: TNullable<TPolicyDomainInput>): TNullable<string> {
-    if (domain == null) {
-      return null;
-    }
-
-    if (typeof domain === 'string') {
-      return domain;
-    }
-
-    return [domain.type, domain.id].join('_');
-  }
-
-  /**
-   * The same value as {@link serializeDomain}, in the two-column form that replaces it. Written
-   * alongside `domain` while `domain` is still the read source.
-   *
-   * `ANY_MEMBER` NORMALISES TO NULL, so `domain` and `domainType` deliberately disagree for a caller
-   * that passed the literal: `domain: 'ANY_MEMBER'` but `domainType: null`. A backfill check
-   * comparing the two columns by equality WILL report those rows and must not treat it as drift -
-   * null already meant `ANY_MEMBER` to the adapter, and admitting both spellings would make one
-   * state reachable two ways.
-   */
+  /** A domain as the two columns that store it. `ANY_MEMBER` normalises to null - admitting both spellings would leave one state reachable two ways. */
   private static splitDomain(domain?: TNullable<TPolicyDomainInput>): {
     domainType: TNullable<string>;
     domainId: TNullable<IdType>;
@@ -102,7 +79,6 @@ export class AuthorizationPolicyBuilder {
       targetId: opts.permission.id,
       action: opts.action,
       effect: opts.effect,
-      domain: AuthorizationPolicyBuilder.serializeDomain(opts.domain),
       ...AuthorizationPolicyBuilder.splitDomain(opts.domain),
     };
   }
@@ -123,7 +99,6 @@ export class AuthorizationPolicyBuilder {
       targetId: opts.permission.id,
       action: AuthorizationActions.CUSTOM,
       effect: opts.effect,
-      domain: AuthorizationPolicyBuilder.serializeDomain(opts.domain),
       ...AuthorizationPolicyBuilder.splitDomain(opts.domain),
       metadata: { ops: opts.ops },
     };
@@ -141,7 +116,6 @@ export class AuthorizationPolicyBuilder {
       subjectId: opts.user.id,
       targetType: opts.role.type,
       targetId: opts.role.id,
-      domain: AuthorizationPolicyBuilder.serializeDomain(opts.domain),
       ...AuthorizationPolicyBuilder.splitDomain(opts.domain),
     };
   }

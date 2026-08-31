@@ -60,12 +60,19 @@ The model's `[policy_effect]` is `some(where (p.eft == allow)) && !some(where (p
 
 `SYSTEM_WIDE` is also the fallback in `evaluate()`: in scoped mode a request with no resolvable domain still enforces **with** a domain, because falling through to the 3-argument path would shift arguments against the 4-token model and silently misjudge.
 
-## The `domain` column is being split (Release A shipped)
+## The `domain` column is a typed pair (both releases shipped)
 
-`PolicyDefinition` gained `domain_type` + `domain_id`. Every write fills them ALONGSIDE `domain`;
-`domain` is still the only column read, so Release A changes no enforcement. Release B switches the
-read source and DROPS `domain` - the two must ship separately, because a consumer that has not
-deployed yet still reads the old column.
+`PolicyDefinition` stores the domain as `domain_type` + `domain_id`; the concatenated `<Type>_<id>`
+token survives only as the casbin WIRE format, built in SQL by `ScopedCasbinAdapter.domainTokenSelection`
+(one expression for every SELECT). Shipped as two releases - A added and backfilled the pair while
+`domain` stayed the read source, B switched the reads and dropped the column - because a consumer
+that has not deployed yet still selects the old one.
+
+The alias inside `domainTokenSelection` is emitted RAW, not via `sql.identifier`: a quoted alias keeps
+its case while the unquoted `FROM` alias folds to lower case, so the reference does not resolve. The
+first draft got this wrong and EVERY adapter test still passed - they stub `execute` and return row
+literals, so none of them run the SQL. Caught by `scoped-adapter-domain-sql-e2e.test.ts`, which drives
+the adapter's own statements against a real Postgres.
 
 The reason is not the missing index (real, but smaller): the table stored ONE concept TWO ways.
 `join_domain` and `domain_inherits` rows keep the domain as a typed pair - it is what the

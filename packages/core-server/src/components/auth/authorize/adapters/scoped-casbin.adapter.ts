@@ -253,6 +253,19 @@ export class ScopedCasbinAdapter extends BaseFilteredAdapter<IScopedCasbinPolicy
     return table.schemaName ?? DEFAULT_SCHEMA;
   }
 
+  /** The casbin domain token, built from the stored pair - one expression for every SELECT so they cannot drift. NULL reaches `buildGrantLines` as `ANY_MEMBER`. The alias is emitted raw for the same reason as in `softDeleteClause`: quoting folds it to a different case than the unquoted FROM alias. */
+  protected domainTokenSelection(opts: { alias: string }): SQL {
+    const column = (name: string) => sql`${sql.raw(opts.alias)}.${sql.identifier(name)}`;
+    const domainType = column('domain_type');
+    const domainId = column('domain_id');
+
+    return sql`CASE
+      WHEN ${domainType} IS NULL THEN NULL
+      WHEN ${domainId} IS NULL THEN ${domainType}
+      ELSE ${domainType} || '_' || ${domainId}::text
+    END AS "domain"`;
+  }
+
   /** Schema-qualified table reference (`"<schema>"."<table>"`) for use after FROM/JOIN with an alias. */
   protected qualifiedTable(opts: { table: { schemaName?: string; tableName: string } }): SQL {
     const { table } = opts;
@@ -332,7 +345,7 @@ export class ScopedCasbinAdapter extends BaseFilteredAdapter<IScopedCasbinPolicy
         policyDefinition.target_id::text AS "targetId",
         policyDefinition.action,
         policyDefinition.effect,
-        policyDefinition.domain,
+        ${this.domainTokenSelection({ alias: 'policyDefinition' })},
         permission.code AS "objectCode",
         permission.subject AS "objectSubject",
         permission.method AS "objectMethod"${metadataSelection}
@@ -379,7 +392,7 @@ export class ScopedCasbinAdapter extends BaseFilteredAdapter<IScopedCasbinPolicy
         policyDefinition.target_id::text AS "targetId",
         policyDefinition.action,
         policyDefinition.effect,
-        policyDefinition.domain,
+        ${this.domainTokenSelection({ alias: 'policyDefinition' })},
         permission.code AS "objectCode",
         permission.subject AS "objectSubject",
         permission.method AS "objectMethod"${metadataSelection}

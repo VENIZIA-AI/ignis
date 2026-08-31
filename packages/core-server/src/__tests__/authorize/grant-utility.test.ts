@@ -164,7 +164,7 @@ describe('extraPolicyDefinitionColumns', () => {
     expect(columns.metadata).toBeDefined();
   });
 
-  it('keeps every pre-existing column', () => {
+  it('declares every column, and no longer the concatenated domain token', () => {
     const columns = extraPolicyDefinitionColumns({ idType: 'string' });
 
     for (const name of [
@@ -173,12 +173,15 @@ describe('extraPolicyDefinitionColumns', () => {
       'targetType',
       'action',
       'effect',
-      'domain',
+      'domainType',
+      'domainId',
       'subjectId',
       'targetId',
     ]) {
       expect(columns).toHaveProperty(name);
     }
+
+    expect(columns).not.toHaveProperty('domain');
   });
 
   it('accepts a declared extra variant alongside the default seven, at runtime', () => {
@@ -371,7 +374,6 @@ describe('GrantBuilder.planGrant - tier intent', () => {
         targetId: 'p-order',
         action: 'manage',
         effect: 'allow',
-        domain: null,
         domainType: null,
         domainId: null,
       },
@@ -419,7 +421,6 @@ describe('GrantBuilder.planGrant - ops intent', () => {
         targetId: 'Order.find',
         action: 'read',
         effect: 'allow',
-        domain: null,
         domainType: null,
         domainId: null,
       },
@@ -718,6 +719,7 @@ describe('GrantBuilder.planGrant - effect and domain', () => {
     });
 
     expect(rows[0].effect).toBe('deny');
-    expect(rows[0].domain).toBe('Merchant_9');
+    expect(rows[0].domainType).toBe('Merchant');
+    expect(rows[0].domainId).toBe('9');
   });
 });
