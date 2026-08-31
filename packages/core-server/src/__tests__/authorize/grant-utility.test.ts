@@ -232,25 +232,31 @@ export const policyDefinitionVariantContractGuard = () => {
     role: { type: 'Role', id: 1 },
   });
 
+  // `domainId` is narrowed at the insert site for the same reason `subjectId`/`targetId` are: the
+  // builder is id-type agnostic (`IdType`), the column is not.
   const defaultInsertFromGrant: TDefaultPolicyDefinitionInsert = {
     ...grantRow,
     subjectId: 1,
     targetId: 1,
+    domainId: 1,
   };
   const defaultInsertFromAssignRole: TDefaultPolicyDefinitionInsert = {
     ...assignRoleRow,
     subjectId: 1,
     targetId: 1,
+    domainId: 1,
   };
   const extendedInsertFromGrant: TExtendedPolicyDefinitionInsert = {
     ...grantRow,
     subjectId: '1',
     targetId: '1',
+    domainId: '1',
   };
   const extendedInsertFromAssignRole: TExtendedPolicyDefinitionInsert = {
     ...assignRoleRow,
     subjectId: '1',
     targetId: '1',
+    domainId: '1',
   };
 
   return [
@@ -316,6 +322,8 @@ describe('GrantBuilder.planGrant - tier intent', () => {
         action: 'manage',
         effect: 'allow',
         domain: null,
+        domainType: null,
+        domainId: null,
       },
     ]);
   });
@@ -362,6 +370,8 @@ describe('GrantBuilder.planGrant - ops intent', () => {
         action: 'read',
         effect: 'allow',
         domain: null,
+        domainType: null,
+        domainId: null,
       },
     ]);
   });

@@ -6,6 +6,39 @@ not how.
 This file and `index.md` are reserved OKF filenames - they carry no `type:` frontmatter and are not
 counted as concepts.
 
+## 2026-08-31 - `PolicyDefinition.domain` -> `domain_type` + `domain_id` (Release A of two)
+
+`domain_type` + `domain_id` added to `extraPolicyDefinitionColumns` (nullable, `domain_id` follows the
+`idType` switch like `subject_id`/`target_id`). `AuthorizationPolicyBuilder` gained `splitDomain`
+beside `serializeDomain`; the three domain-carrying emitters (`grant`, `customGrant`, `assignRole`)
+write BOTH forms. `domain` is still the only column READ - Release A changes no enforcement.
+Release B switches the read source and drops `domain`; they must ship separately because a consumer
+that has not deployed yet still reads the old column.
+
+The reason is NOT the missing index (real, but smaller). The table stored ONE concept TWO ways:
+`join_domain`/`domain_inherits` rows keep a typed pair - what the `domain_closure` CTE joins on -
+while `grant`/`assign_role` kept a concatenated token, and the two had to agree character for
+character with nothing but a string convention in two files guaranteeing it.
+
+Three things worth not re-deriving:
+
+1. **NULL IS `ANY_MEMBER`**, and the literal is REFUSED in `domain_type`. `splitDomain` normalises it,
+   so a caller passing `ANY_MEMBER` gets `domain: 'ANY_MEMBER'` + `domainType: null` - the one
+   intended divergence; a backfill equality diff will flag those rows and must not "fix" them.
+2. **The CHECK's `IS NOT NULL` guard is load-bearing.** A NULL `domain_type` makes `NOT IN` evaluate
+   to NULL, and a CHECK rejects only on FALSE - the first draft let a row with an id and no type
+   through. Caught by running it on real Postgres (PGlite), not by reading the predicate.
+3. **The helper returns TEXT, not a Drizzle `SQL`** - a column ref in a `sql` template renders
+   schema-qualified, invalid inside a table-level CHECK. Migrations here are raw SQL anyway.
+
+Also: the backfill splits on the FIRST underscore, so it is wrong for a domain type whose own name
+contains one - an ambiguity unfixable in the concatenated form, i.e. an argument FOR the split.
+
+Tests: `core-server/src/__tests__/authorize/policy-domain-split.test.ts` - the CHECK is exercised
+against real Postgres because a predicate that merely LOOKS exhaustive rejects nothing. The
+compile-time pin in `grant-utility.test.ts` now narrows `domainId` at the insert site, the same
+contract `subjectId`/`targetId` already had.
+
 ## 2026-08-31 - `scopeFilter` adoption: replace a guard, never run both; and the two shapes fail oppositely
 
 Docs-only, from a BANA design review. Two things the docs did not say:

@@ -60,6 +60,41 @@ The model's `[policy_effect]` is `some(where (p.eft == allow)) && !some(where (p
 
 `SYSTEM_WIDE` is also the fallback in `evaluate()`: in scoped mode a request with no resolvable domain still enforces **with** a domain, because falling through to the 3-argument path would shift arguments against the 4-token model and silently misjudge.
 
+## The `domain` column is being split (Release A shipped)
+
+`PolicyDefinition` gained `domain_type` + `domain_id`. Every write fills them ALONGSIDE `domain`;
+`domain` is still the only column read, so Release A changes no enforcement. Release B switches the
+read source and DROPS `domain` - the two must ship separately, because a consumer that has not
+deployed yet still reads the old column.
+
+The reason is not the missing index (real, but smaller): the table stored ONE concept TWO ways.
+`join_domain` and `domain_inherits` rows keep the domain as a typed pair - it is what the
+`domain_closure` CTE joins on (`subject_type = dom_type AND subject_id = dom_id`) - while `grant`
+and `assign_role` rows kept a concatenated `<Type>_<id>` token. The two had to agree character for
+character, guaranteed by nothing but a string convention in two separate files. The concatenated
+form is also ambiguous for any type whose own name contains `_`.
+
+Three states, and NULL is one of them:
+
+| State | `domain_type` | `domain_id` |
+|---|---|---|
+| `ANY_MEMBER` | `NULL` | `NULL` |
+| `SYSTEM_WIDE` | `'SYSTEM_WIDE'` | `NULL` |
+| a typed domain | `'Merchant'` | `'<id>'` |
+
+- **NULL IS `ANY_MEMBER`, not "unknown"** - the adapter always defaulted a null domain to it.
+  Writing the literal `'ANY_MEMBER'` into `domain_type` is refused: one state reachable two ways is
+  the ambiguity the split removes. `AuthorizationPolicyBuilder` normalises it to null, so a caller
+  passing the literal produces `domain: 'ANY_MEMBER'` with `domainType: null` - the ONE intended
+  divergence, and a backfill diff must not read it as drift.
+- **`policyDefinitionDomainShapeCheck()` returns CHECK predicate TEXT, not a Drizzle `SQL`**: a
+  column reference in a `sql` template renders schema-qualified, which is invalid in a table-level
+  CHECK. It is two-way on purpose - half a constraint admits half the broken rows.
+- **The `IS NOT NULL` guard in its last branch is load-bearing, not redundant.** A NULL `domain_type`
+  makes `NOT IN` evaluate to NULL, and a CHECK rejects only on FALSE - without it, a row with an id
+  and no type PASSES. Found by running the predicate against a real Postgres, not by reading it.
+- `domainId` is `IdType` on the builder and narrowed by the column, so consumers narrow it at the
+  insert site exactly as they already do for `subjectId`/`targetId`.
 ## The adapter situation
 
 `ScopedCasbinAdapter` is the canonical adapter. It is read-only and filtered. `loadFilteredPolicy(model, { principal })` issues **two** statements concurrently, neither waiting on the other (an opt-in third source, `resolveDomainEdges`, joins in after the first resolves - see "Per-principal domain edges" below):

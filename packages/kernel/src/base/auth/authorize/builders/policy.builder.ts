@@ -1,7 +1,11 @@
 import type { IdType } from '@/base';
 import type { TNullable } from '@venizia/ignis-helpers/common';
 import type { TAuthorizationAction, TAuthorizationDecision } from '../common/constants';
-import { AuthorizationActions, AuthorizationPolicyVariants } from '../common/constants';
+import {
+  AuthorizationActions,
+  AuthorizationDomainScopes,
+  AuthorizationPolicyVariants,
+} from '../common/constants';
 
 /** A grant/assignment domain: a scope literal (`SYSTEM_WIDE`/`ANY_MEMBER`) or a typed domain entity. */
 export type TPolicyDomainInput = string | { type: string; id: IdType };
@@ -22,6 +26,8 @@ type TBuilderGrantRow = {
   action: string;
   effect: TAuthorizationDecision;
   domain: TNullable<string>;
+  domainType: TNullable<string>;
+  domainId: TNullable<IdType>;
 };
 
 type TBuilderCustomGrantRow = Omit<TBuilderGrantRow, 'action'> & {
@@ -45,6 +51,31 @@ export class AuthorizationPolicyBuilder {
     return [domain.type, domain.id].join('_');
   }
 
+  /**
+   * The same value as {@link serializeDomain}, in the two-column form that replaces it. Written
+   * alongside `domain` while `domain` is still the read source.
+   *
+   * `ANY_MEMBER` NORMALISES TO NULL, so `domain` and `domainType` deliberately disagree for a caller
+   * that passed the literal: `domain: 'ANY_MEMBER'` but `domainType: null`. A backfill check
+   * comparing the two columns by equality WILL report those rows and must not treat it as drift -
+   * null already meant `ANY_MEMBER` to the adapter, and admitting both spellings would make one
+   * state reachable two ways.
+   */
+  private static splitDomain(domain?: TNullable<TPolicyDomainInput>): {
+    domainType: TNullable<string>;
+    domainId: TNullable<IdType>;
+  } {
+    if (domain == null || domain === AuthorizationDomainScopes.ANY_MEMBER) {
+      return { domainType: null, domainId: null };
+    }
+
+    if (typeof domain === 'string') {
+      return { domainType: domain, domainId: null };
+    }
+
+    return { domainType: domain.type, domainId: domain.id };
+  }
+
   /** A grant (casbin `p`): role/user -> permission, carrying action + effect + domain. A null `domain` means `ANY_MEMBER` (adapter default); pass a scope literal or a typed `{ type, id }` domain. */
   static grant(opts: {
     subject: { type: string; id: IdType };
@@ -62,6 +93,7 @@ export class AuthorizationPolicyBuilder {
       action: opts.action,
       effect: opts.effect,
       domain: AuthorizationPolicyBuilder.serializeDomain(opts.domain),
+      ...AuthorizationPolicyBuilder.splitDomain(opts.domain),
     };
   }
 
@@ -82,6 +114,7 @@ export class AuthorizationPolicyBuilder {
       action: AuthorizationActions.CUSTOM,
       effect: opts.effect,
       domain: AuthorizationPolicyBuilder.serializeDomain(opts.domain),
+      ...AuthorizationPolicyBuilder.splitDomain(opts.domain),
       metadata: { ops: opts.ops },
     };
   }
@@ -99,6 +132,7 @@ export class AuthorizationPolicyBuilder {
       targetType: opts.role.type,
       targetId: opts.role.id,
       domain: AuthorizationPolicyBuilder.serializeDomain(opts.domain),
+      ...AuthorizationPolicyBuilder.splitDomain(opts.domain),
     };
   }
 

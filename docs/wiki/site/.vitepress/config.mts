@@ -463,6 +463,10 @@ const config = defineConfig({
                   text: 'TEntityId Makes a String Id Impossible to Confuse With a String',
                   link: '/changelogs/2026-08-31-entity-id-brand',
                 },
+                {
+                  text: 'PolicyDefinition Gets domain_type and domain_id (Release A)',
+                  link: '/changelogs/2026-08-31-policy-domain-split',
+                },
               ],
             },
             {
