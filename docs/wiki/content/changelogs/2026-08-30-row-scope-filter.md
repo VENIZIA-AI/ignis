@@ -176,6 +176,35 @@ If your write path looks like that, `scopeFilter` gives you nothing there. Your 
 
 This is a deliberate gap for now, not an oversight - the same way search repositories are excluded above. No hook or escape hatch exists for the per-row case: the shape of that check differs enough between applications that building a seam before its shape is known would guess wrong.
 
+## Adopting it where an ownership guard already exists
+
+> [!WARNING]
+> **Replace the guard, do not run it alongside.** Two sources of truth for one rule is the trap,
+> and it is a quiet one: AND-ing the same predicate twice is idempotent, so results stay correct
+> and nothing looks wrong. The redundancy does not add safety - it **hides divergence** until the
+> day the two disagree. A subclass that overrides one but not the other drifts with no compile
+> error and no failing test.
+
+That rules out the obvious "move one entity family at a time while the guards stay" plan. Migrate a
+family by removing its guard in the same change that adds `scopeFilter`, or leave the family alone.
+
+## `scopeFilter` narrows; an ownership guard throws - and that difference decides what each covers
+
+`scopeFilter` injects a `where`. A hand-written guard loads the row and throws `403`/`404`. The two
+have **opposite failure profiles**, and neither is strictly better:
+
+| | `scopeFilter` (inject a `where`) | Guard (load the row, throw) |
+|---|---|---|
+| A handler that forgets | **still scoped** - the repository does it | **a hole** - nothing runs |
+| `create` | **not covered** - an `INSERT` has no `where` | **covered** - it asserts on the payload |
+| Admin targeting another principal | **silently narrows**, reports success | **throws** - cannot silently succeed |
+| Indirect / per-row ownership | **not expressible** - `resolve()` is synchronous | expressible - it may query |
+| Cost per operation | none - one more `where` clause | a read before every write |
+
+Read the first and third rows together: `scopeFilter` removes the class of bug where somebody forgot
+to check, and introduces the class where a legitimate cross-principal write quietly does nothing. A
+guard is the mirror image. Choose per model, and expect to keep guards on `create` regardless.
+
 ## Details
 
 - **The escape hatch is `dangerouslySkipScopeFilter`**, and it cannot come from the wire. It is a parameter on internal repository methods, never a field on `IExtraOptions` or any filter schema - no controller, no query string, and no request body can set it. It exists for one framework-internal case (a filter `find()` already scoped, re-entering `findWithCoreAPI`) and for administrative repository code written and reviewed at the call site.

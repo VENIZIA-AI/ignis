@@ -141,6 +141,17 @@ deletes nothing, and reports success. When adding `scopeFilter` to a model, audi
 `updateById`/`updateAll`/`deleteBy` taking another principal's id as an argument; the fix is a
 method on the repository passing `dangerouslySkipScopeFilter`, never a flag in the request context.
 
+**Adopting it next to an existing ownership guard: REPLACE, never run both.** AND-ing the same
+predicate twice is idempotent, so results stay correct and nothing looks wrong - which is exactly
+why it is a trap. The redundancy adds no safety and HIDES divergence; a subclass overriding one hook
+but not the other drifts with no compile error. There is no honest "migrate one family while the
+guards stay" path.
+
+**`scopeFilter` narrows, a guard throws, and the profiles are OPPOSITE.** Injecting a `where` means a
+handler that forgets is still scoped (the win) but a legitimate cross-principal write silently does
+nothing (the cost), and `create` is out of reach. A guard that loads the row and throws is the mirror:
+it covers `create` and cannot silently succeed, but it is a hole wherever somebody forgot to call it,
+and it costs a read per write. Neither dominates - pick per model, and keep guards on `create` either way.
 **Beyond that, `scopeFilter` covers an update or delete whose scope is expressible as a filter
 clause - not per-row or polymorphic ownership.** A `where` comparing a column against values the resolver already knows
 (`merchantId`, `tenantId`) is exactly that shape. A row identified only by a `principalType` +

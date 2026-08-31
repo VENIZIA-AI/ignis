@@ -6,6 +6,29 @@ not how.
 This file and `index.md` are reserved OKF filenames - they carry no `type:` frontmatter and are not
 counted as concepts.
 
+## 2026-08-31 - `scopeFilter` adoption: replace a guard, never run both; and the two shapes fail oppositely
+
+Docs-only, from a BANA design review. Two things the docs did not say:
+
+1. **Running `scopeFilter` alongside an existing ownership guard is a TRAP, not a safe migration
+   step.** AND-ing the same predicate twice is idempotent, so results stay correct and nothing looks
+   wrong - which is why it is dangerous: the redundancy adds no safety and HIDES divergence until the
+   two disagree, and a subclass overriding one hook but not the other drifts with no compile error.
+   This corrects advice given verbally earlier the same day ("they do not fight, run them in
+   parallel"), which evaluated result correctness and missed invariant ownership.
+
+2. **`scopeFilter` narrows, a hand-written guard throws, and their failure profiles are OPPOSITE.**
+   Injecting a `where` means a handler that forgets is still scoped (the win) but a legitimate
+   cross-principal write silently does nothing, and `create` is unreachable. A guard that loads the
+   row and throws covers `create` and cannot silently succeed, but is a hole wherever nobody called
+   it, and costs a read per write. Neither dominates.
+
+Also pinned, because it is a hard constraint people will hit: `IScopeFilterSettings.resolve` is
+SYNCHRONOUS (`() => TNullable<TWhere> | typeof ScopeFilters.UNRESTRICTED`), so ownership living on a
+parent row is not expressible - denormalising the owner column is a DATA migration, not a refactor.
+
+Files: `docs/wiki/content/changelogs/2026-08-30-row-scope-filter.md`, `packages/connectors.md`.
+
 ## 2026-08-31 - `EventBus` payload maps silently degrade to an index signature
 
 Docs + one test, no source change. `EventBus`'s only type safety is
