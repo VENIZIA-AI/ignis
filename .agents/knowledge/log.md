@@ -6,6 +6,69 @@ not how.
 This file and `index.md` are reserved OKF filenames - they carry no `type:` frontmatter and are not
 counted as concepts.
 
+## 2026-08-31 - `TEntityId`: an opt-in branded string id
+
+`kernel/src/base/models/common/types.ts` gained `TEntityId` (`string & { readonly [entityIdBrand]:
+never }`, the brand key a module-local `unique symbol`) and `toEntityId({ value })`, its only
+constructor. Purely additive: no framework type changes, no column is branded, nothing existing
+needs updating.
+
+Why the shape is what it is - two decisions that look wrong until measured:
+
+1. The brand field is REQUIRED and typed `never`, not optional. An optional brand
+   (`{ b?: symbol }`) is structurally satisfied by a plain `string`, so it would compile while
+   guaranteeing nothing.
+2. `TEntityId | string` was measured and REJECTED. The union restores the literals a branded
+   Drizzle column otherwise breaks, but it makes a plain `string` assignable again, which erases
+   the whole point. This is the OPPOSITE conclusion to `TIsoTimestamp` in filter, where widening
+   with `Date` is deliberate - there the widened member is a distinct type, here it is the very
+   type being excluded.
+
+The cost is not avoidable and is why the type is opt-in per column (`.$type<TEntityId>()`) rather
+than framework-wide: Drizzle derives `$inferInsert` and `$inferSelect` from the same field, so a
+branded column rejects every literal - seeds, fixtures, path params - until each converts.
+
+`toEntityId` VALIDATES NOTHING beyond refusing the empty string (an id of `''` collapses a `where`
+to no condition). It exists to make the laundering visible at each boundary, not to prove the
+string is a real id - stated in the doc comment so nobody mistakes it for a guard.
+
+Tests: `kernel/src/__tests__/models/entity-id.test.ts` - the negative cases are the real subject,
+each `@ts-expect-error` verified load-bearing by deleting it and confirming `tsc` reports at that
+line. Concept: `packages/kernel.md` (new `## TEntityId` section). Changelog:
+`docs/wiki/content/changelogs/2026-08-31-entity-id-brand.md` (new).
+
+## 2026-08-31 - `EventBus` retry: jitter, bounded per-registration window, tagged `handler`
+
+Three changes to `kernel/src/base/events/event-bus.ts`, all load-bearing on the class doc's "bounded
+maximum dispatch time" guarantee (previously "fixed retry" - no longer true, corrected).
+
+1. Every dispatch retry now uses `RetryJitterModes.FULL` (was `NONE`), unconditionally - not a
+   caller-facing option, because jitter has no downside against a shared resource. Prevents many
+   handlers retrying the same lock from waking up in lockstep and re-colliding each round.
+2. `register()` gained `retry?: { maxAttempts, baseDelayMs }`, replacing the framework-wide fixed
+   `EventDispatchRetry.MAX_ATTEMPTS = 3` / `BASE_DELAY_MS = 100` with a per-registration override
+   (those constants are now only the default). Bounded by `MAX_ATTEMPTS_CEILING = 10` and
+   `MAX_TOTAL_WINDOW_MS = 30_000` (computed pre-jitter, since jitter only shrinks); either bound
+   crossed throws `getError` at `register()` - never a silent clamp, since nothing awaits a
+   fire-and-forget dispatch to notice one.
+3. `register()`'s `handlerBindingKey: string` field is REMOVED (no alias - one consumer, days old,
+   mid-migration), replaced by `handler`, a tagged union: `{ type: EventHandlerTypes.BINDING_KEY, key
+   }` (resolved from the container on every retry attempt - a rebind reaches an attempt already in
+   flight) or `{ type: EventHandlerTypes.FUNCTION, fn }` (captured as a closure at `register()` time -
+   a rebind has nothing to reach). The tag makes the caller's choice explicit at the call site, so a
+   mismatched `type`/field pair is a compile error there instead of a runtime surprise later.
+   `IEventHandler.handle` widened `Promise<void>` to `ValueOrPromise<void>` so a synchronous handler
+   needs no fabricated promise; confirmed by reading `RetryHelper.executeWithRetry` that a synchronous
+   throw is already caught the same as a rejected promise (its `execution` wrapper is itself `async`).
+
+Tests: `kernel/src/__tests__/events/event-bus.test.ts` - default-retry byte-parity, custom
+`maxAttempts`/`baseDelayMs` per registration, two registrations on one event honoring different
+retry settings, both ceilings rejecting independently, non-integer/zero/negative rejected, jitter
+observed via a stubbed `Math.random` + spied `setTimeout` (not a flaky range), both `handler` shapes
+dispatching, the `BINDING_KEY`/`FUNCTION` rebind-vs-no-rebind mirror pair, a mismatched `type`/field
+pair pinned as `@ts-expect-error` (verified load-bearing by deleting and re-running `tsc`), and a
+synchronous handler retried/logged the same as an async one.
+
 ## 2026-08-31 - `TWhereValue<V>` admits a `Date` on `isoTimestamp` columns only
 
 `isoTimestamp` (`connectors/relational/{postgres,sqlite}/models/common/columns.ts`) reads back as

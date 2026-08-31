@@ -452,6 +452,20 @@ const config = defineConfig({
           collapsed: false,
           items: [
             {
+              text: '2026-08-31',
+              collapsed: true,
+              items: [
+                {
+                  text: 'EventBus Retry Gets Jitter, a Bounded Per-Registration Window, and a Tagged Handler Reference',
+                  link: '/changelogs/2026-08-31-event-bus-retry',
+                },
+                {
+                  text: 'TEntityId Makes a String Id Impossible to Confuse With a String',
+                  link: '/changelogs/2026-08-31-entity-id-brand',
+                },
+              ],
+            },
+            {
               text: '2026-08-30',
               collapsed: true,
               items: [

@@ -30,10 +30,11 @@ Everything under `src/base/` was the engine-neutral half of `packages/core-serve
 | `components/` | `BaseComponent` and its `binding()` contract |
 | `controllers/` | `AbstractRestController`, `BaseRestController`, `ControllerFactory` |
 | `datasources/` | `AbstractDataSource` - the engine-neutral root with no SQL members |
+| `events/` | `EventBus` - in-process, fire-and-forget domain event bus with per-registration retry |
 | `metadata/` | The decorator layer: `@controller`, `@model`, `@datasource`, `@repository`, `@inject`, the REST verbs, the RPC verbs |
 | `middlewares/` | `emojiFavicon`, the not-found handler, and `RequestErrors` |
 | `mixins/` | The mixin contracts (`IComponentMixin`, `IControllerMixin`, `IRepositoryMixin`, ...) that compose onto an application |
-| `models/` | `AbstractEntity` and the model settings shape |
+| `models/` | `AbstractEntity`, the model settings shape, and the `TEntityId` brand |
 | `providers/` | `BaseProvider` |
 | `repositories/` | `AbstractRepository`, the repository error codes, the decorated query schemas, and `sqls/` (`RecursiveTreeSql`) |
 | `request-context/` | `RequestContextRegistry` - the seam a server layer installs `hono/context-storage` into |
@@ -123,6 +124,24 @@ everything extending it, which is every application - browser-pure. A server hos
 provider, because importing `LoggerFactory` as a value anywhere in the process installs it as the
 active resolver.
 
+## TEntityId (`base/models/`)
+
+`TEntityId` is `string & { readonly [entityIdBrand]: never }` - a string a plain `string` will not
+assign to, so passing a name, code or slug where an id belongs is a compile error rather than a
+lookup that silently returns nothing. `toEntityId({ value })` is the only way in.
+
+- **It validates nothing.** `toEntityId` is a cast plus a non-empty check; it does not verify the
+  row exists or match a format. The value is making the conversion VISIBLE at each boundary. An
+  empty string is refused because an id of `''` collapses a `where` clause to no condition.
+- **It is opt-in per column** (`.$type<TEntityId>()`), never applied framework-wide, because Drizzle
+  derives `$inferInsert` and `$inferSelect` from the same field: branding a column rejects every
+  literal written against it - seeds, fixtures, path params - until each one converts.
+- **`TEntityId | string` does not work, and this was measured.** A union restores the literals but
+  makes a plain `string` assignable again, erasing the guarantee. This is the opposite of the
+  `TIsoTimestamp` case in filter, where the union with `Date` is deliberate and correct.
+- The brand key is a module-local `unique symbol` typed `never`, so no object satisfies the shape
+  by accident or by hand - only the cast inside `toEntityId` produces one.
+
 ## Repositories, datasources, and the query schemas
 
 `AbstractRepository` extends `BaseHelper`, declares every verb abstract, and resolves its datasource
@@ -208,6 +227,32 @@ the 14 forgot and hung a production process walking an unbounded parent chain.
 - The counterpart in-memory tree utilities (`ITreeNode<T>`, `TreeWalker`, `TreeBuilder`) live in
   `@venizia/ignis-helpers`' `modules/tree` - see [helpers](/packages/helpers.md). They are pure and
   carry no Drizzle dependency, which is why they are not here too.
+
+## EventBus (`base/events/`)
+
+In-process, fire-and-forget domain event bus. `publish()` never blocks and never throws; each
+registered handler dispatches on its own `queueMicrotask` and retries independently. Delivery is
+at-least-once, so `IEventHandler.handle` must be idempotent.
+
+- **Jitter is always on, not a knob.** Every retry delay uses `RetryJitterModes.FULL`, which
+  decorrelates a shared-resource pile-up hardest (many handlers retrying the same lock wake up
+  spread across a window instead of at the same instant on every round).
+- **Retry timing is per `register()` call, not per event.** `register({ name, handler, retry? })`
+  accepts `retry: { maxAttempts, baseDelayMs }`; omitting it reproduces the fixed defaults
+  (`EventDispatchRetry.MAX_ATTEMPTS = 3`, `BASE_DELAY_MS = 100`) unchanged.
+- **Both numbers are bounded, and register() throws rather than clamps.** `maxAttempts` is capped at
+  `EventDispatchRetry.MAX_ATTEMPTS_CEILING` (10); the total backoff window (computed without jitter,
+  since jitter only shrinks it) is capped at `MAX_TOTAL_WINDOW_MS` (30,000ms) - nothing awaits a
+  dispatch, so an unbounded window would hold a handler's resources (e.g. a database connection)
+  with nobody watching.
+- **`handler` is a tagged union, not a bare binding key.** `EventHandlerTypes.BINDING_KEY` (`{ type,
+  key }`) resolves through the container on every retry attempt, so rebinding the key reaches a
+  dispatch already in flight; `EventHandlerTypes.FUNCTION` (`{ type, fn }`) captures `fn` as a
+  closure at `register()` time, so a rebind has nothing to reach. The tag makes the caller's choice
+  explicit at the call site, so pairing the wrong field with a `type` is a compile error there.
+- `IEventHandler.handle` returns `ValueOrPromise<void>`, so a synchronous handler needs no
+  fabricated promise; a synchronous throw is caught the same as a rejected promise because
+  `dispatch`'s own `execution` callback is `async`.
 
 ## Auth seams
 
