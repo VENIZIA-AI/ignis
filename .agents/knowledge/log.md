@@ -6,6 +6,26 @@ not how.
 This file and `index.md` are reserved OKF filenames - they carry no `type:` frontmatter and are not
 counted as concepts.
 
+## 2026-08-31 - `EventBus` payload maps silently degrade to an index signature
+
+Docs + one test, no source change. `EventBus`'s only type safety is
+`K extends keyof TPayloadMap & string`, so it is exactly as strong as the map a consumer supplies -
+and a map built from computed keys off a PLAIN OBJECT LITERAL degrades without a word:
+no `as const` means the key has type `string`, a computed key of type `string` produces an INDEX
+SIGNATURE, `keyof TPayloadMap` becomes `string`, and `register`/`publish` accept every name.
+
+Reported by BANA after migrating 47 registrations; reproduced here before documenting. The reason it
+survives review: it compiles clean, lint says nothing, tests say nothing, and the call sites look
+checked. A `static readonly` on a class keeps its literal type, so the SAME codebase had one sound
+map and one degraded map for a reason invisible where either is used.
+
+Detection is a control line, because the defect is the ABSENCE of an error: put `// @ts-expect-error`
+on a bogus key and see whether tsc reports the directive as UNUSED (degraded) or says nothing (sound).
+
+Test: `kernel/src/__tests__/events/payload-map-typing.test.ts` - the degraded case is asserted by a
+line that compiles WITHOUT a marker, which is the only way to pin an absent error. Docs:
+`docs/wiki/content/changelogs/2026-08-31-event-bus-retry.md` (new section), `packages/kernel.md`.
+
 ## 2026-08-31 - CORRECTION: `scopeFilter` never covers `create`, and scoped writes trap admin methods
 
 Docs-only. Both the changelog and `packages/connectors.md` claimed `scopeFilter` "covers every write

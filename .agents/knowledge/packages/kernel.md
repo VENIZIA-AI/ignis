@@ -250,6 +250,13 @@ at-least-once, so `IEventHandler.handle` must be idempotent.
   dispatch already in flight; `EventHandlerTypes.FUNCTION` (`{ type, fn }`) captures `fn` as a
   closure at `register()` time, so a rebind has nothing to reach. The tag makes the caller's choice
   explicit at the call site, so pairing the wrong field with a `type` is a compile error there.
+- **The bus is only as type-safe as `TPayloadMap`, and a map built from computed keys off a plain
+  object literal SILENTLY DEGRADES.** Without `as const` the key has type `string`, which produces an
+  index signature, so `keyof TPayloadMap` is `string` and `register`/`publish` accept any name. It
+  compiles clean and nothing reports it. A `static readonly` on a class keeps its literal type, so one
+  map can be sound while its neighbour is not. Detect it with a control line
+  (`// @ts-expect-error` on a bogus key): tsc reporting the directive as UNUSED means the map
+  degraded. Pinned in `__tests__/events/payload-map-typing.test.ts`.
 - `IEventHandler.handle` returns `ValueOrPromise<void>`, so a synchronous handler needs no
   fabricated promise; a synchronous throw is caught the same as a rejected promise because
   `dispatch`'s own `execution` callback is `async`.

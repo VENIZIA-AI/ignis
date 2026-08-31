@@ -93,6 +93,43 @@ eventBus.register({
 - **A handler that relies on a fixed 300ms total retry window.** The window is unchanged by default, but is now overridable - set `retry` explicitly if the timing itself was load-bearing.
 - **`IEventHandler` implementers.** `handle` may now return `void` synchronously as well as `Promise<void>` - every existing `async handle()` implementation still satisfies the interface unchanged.
 
+## A trap in the payload map, worth reading before you trust the types
+
+`EventBus`'s only type safety is `K extends keyof TPayloadMap & string` - it is exactly as strong as
+the map you hand it. A map built from computed keys off a **plain object literal** silently degrades
+to an index signature:
+
+```typescript
+const EVENT_NAMES = { ORDER_PLACED: 'order.placed' };        // no `as const`
+
+interface IPayloadMap {
+  [EVENT_NAMES.ORDER_PLACED]: IOrderPlacedPayload;
+}
+```
+
+Without `as const`, `EVENT_NAMES.ORDER_PLACED` has type `string`, not the literal
+`'order.placed'`. A computed key of type `string` produces an **index signature**, so `IPayloadMap`
+accepts every event name and `keyof IPayloadMap` is `string`. `register()` and `publish()` then
+take any name at all.
+
+> [!WARNING]
+> This compiles cleanly and looks type-safe at every call site. Nothing reports it - not `tsc`, not
+> lint, not a test. The bus appears to be checking names and is not.
+
+**The fix is `as const`.** A `static readonly` on a class keeps its literal type too, which is why
+one map in a codebase can be sound while its neighbour silently is not, for a reason invisible where
+they are used.
+
+**How to check yours** - a control line, because the defect is the absence of an error:
+
+```typescript
+// @ts-expect-error a name nobody declared must not resolve
+type Control = IPayloadMap['nothing.declares.this'];
+```
+
+If `tsc` reports that directive as **unused**, the map has degraded - the bogus key resolved. If it
+reports nothing, the map is sound. Pinned in `kernel/src/__tests__/events/payload-map-typing.test.ts`.
+
 ## Details
 
 - A synchronous handler that throws is retried exactly like an asynchronous one: `dispatch`'s own `execution` callback is `async`, so a synchronous throw inside it becomes a rejected promise the same way `RetryHelper.executeWithRetry` already handles.
