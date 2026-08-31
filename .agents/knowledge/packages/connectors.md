@@ -141,6 +141,15 @@ deletes nothing, and reports success. When adding `scopeFilter` to a model, audi
 `updateById`/`updateAll`/`deleteBy` taking another principal's id as an argument; the fix is a
 method on the repository passing `dangerouslySkipScopeFilter`, never a flag in the request context.
 
+**Declaring `scopeFilter` where it cannot take effect now REFUSES TO BOOT** -
+`assertScopeFilterSupported({ asyncContextEnabled })` in `src/common/scope-filter.ts`, called from
+core-server's `initialize()` after `postConfigure()` so component-contributed models are covered. It
+catches the two silent configurations, which fail in OPPOSITE directions: a search-backed model
+(`BaseSearchEntity` in the prototype chain) never reads the setting and returns MORE rows, while
+`asyncContext.enable: false` leaves `resolve()` with no ambient context so `onMissing` denies EVERY
+query - and nothing named the flag as the cause. Search is reported first: it needs a code change,
+the other may be one config line. Lives in connectors because this package both applies the setting
+(relational) and ignores it (search); the caller passes the flag so no app config type reaches down.
 **Adopting it next to an existing ownership guard: REPLACE, never run both.** AND-ing the same
 predicate twice is idempotent, so results stay correct and nothing looks wrong - which is exactly
 why it is a trap. The redundancy adds no safety and HIDES divergence; a subclass overriding one hook

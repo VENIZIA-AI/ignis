@@ -1,3 +1,4 @@
+import { assertScopeFilterSupported } from '@venizia/ignis-connectors';
 import { ControllerTransports } from '@venizia/ignis-kernel';
 import { BindingNamespaces, CoreBindings } from '@venizia/ignis-kernel';
 import { RequestTrackerComponent } from '@/components';
@@ -497,5 +498,18 @@ export abstract class BaseApplication
 
     // Do not register new datasources/components/controllers in postConfigure - they are not auto-registered; call configure() manually if needed.
     await this.postConfigure();
+
+    // Last, so a model registered by a component is covered too.
+    this.validateScopeFilterSupport();
+  }
+
+  /**
+   * Refuses to start when a model declares `settings.scopeFilter` somewhere it cannot take effect.
+   * Both cases are silent at runtime and fail in OPPOSITE directions - a search-backed model returns
+   * more rows than intended, a context-less one returns none - so neither shows up as an error a
+   * caller can trace back to the declaration.
+   */
+  protected validateScopeFilterSupport(): void {
+    assertScopeFilterSupported({ asyncContextEnabled: this.configs.asyncContext?.enable ?? false });
   }
 }

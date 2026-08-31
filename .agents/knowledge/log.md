@@ -6,6 +6,35 @@ not how.
 This file and `index.md` are reserved OKF filenames - they carry no `type:` frontmatter and are not
 counted as concepts.
 
+## 2026-08-31 - `scopeFilter` declared where it cannot take effect now refuses to boot
+
+`connectors/src/common/scope-filter.ts` adds `assertScopeFilterSupported({ asyncContextEnabled })`,
+called from core-server's `initialize()` AFTER `postConfigure()` (so a model contributed by a
+component is covered). Two configurations were silent, and they fail in OPPOSITE directions:
+
+1. **Search-backed model** (`BaseSearchEntity` in the prototype chain): the setting is never read, so
+   the query returns MORE rows. This is the dangerous one - on the relational path a missing scope
+   DENIES, so a mistake shows up as an empty list somebody investigates; here it shows up as a wider
+   result that looks like it worked.
+2. **`asyncContext.enable: false`**: `resolve()` takes no arguments so ambient context is its only
+   input; with no store every `resolve()` returns undefined, `onMissing` denies, and EVERY query on
+   the model matches zero rows - with nothing anywhere naming the flag. The search for the bug
+   starts in the resolver, which is correct.
+
+Search is reported first when both apply: it needs a code change, the other may be one config line.
+
+Placement: connectors, because this is the package that both APPLIES the setting (relational) and
+IGNORES it (search). The caller passes `asyncContextEnabled`, so no application config type reaches
+into the connector tier. Detection is by CLASS (`BaseSearchEntity` in the prototype chain), not by
+datasource - the model is the reliable signal and needs no boot-order guarantee.
+
+Not a breaking change in practice: `asyncContext.enable` DEFAULTS TO TRUE for a server application
+(`ServerApplication.getDefaultAsyncContextEnabled`), so a working setup stays working. Only an
+explicit opt-out plus a `scopeFilter` declaration trips it - a combination that never worked.
+
+Tests: `connectors/src/__tests__/common/scope-filter-boot.test.ts` - includes the case that the
+search branch must fire even when the context store is ON, since the two checks are independent.
+
 ## 2026-08-31 - `PolicyDefinition.domain` -> `domain_type` + `domain_id` (Release A of two)
 
 `domain_type` + `domain_id` added to `extraPolicyDefinitionColumns` (nullable, `domain_id` follows the

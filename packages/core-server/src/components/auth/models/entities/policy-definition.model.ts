@@ -23,33 +23,17 @@ type TExtraPolicyVariantOf<Opts> = Opts extends {
 
 /** Column shape is inferred, never hand-declared, so it can never drift from the `$type<>()` narrowing below. */
 const buildCommonPolicyDefinitionColumns = <ExtraVariant extends string = never>() => ({
-  // Narrowed to AuthorizationPolicyVariants.ALL's seven edge kinds plus any app-declared extras -
-  // a typo here is a silent 403, not a compile error.
+  metadata: jsonb('metadata'),
+
   variant: text('variant').$type<TAuthorizationPolicyVariant | ExtraVariant>().notNull(),
+
   subjectType: text('subject_type').notNull(),
   targetType: text('target_type').notNull(),
-
-  // Open-ended: grant rows carry a Permission-catalog action code, not a value from a fixed lattice.
-  action: text('action'),
-
-  // Narrowed to AuthorizationDecisions (allow/deny/abstain) and NOT extensible like `variant`:
-  // the casbin effect evaluator itself reads this value, so an unknown effect is a correctness
-  // bug in enforcement, not a harmless unselected row.
-  effect: text('effect').$type<TAuthorizationDecision>(),
-
-  // Being replaced by `domain_type` + `domain_id`; still the READ source, so both are written.
-  // The two-column form is what `subject`/`target` already use, and what the domain-closure CTE
-  // joins on - the concatenated token was the odd one out.
-  domain: text('domain'),
-
-  // `null` IS `ANY_MEMBER`, not "unknown" - the adapter has always defaulted a null domain to it.
-  // A scope literal (`SYSTEM_WIDE`) sits here with a null `domain_id`; a typed domain carries both.
-  // `ANY_MEMBER` must never be written here explicitly: two spellings for one state is a bug
-  // waiting to happen. `policyDefinitionDomainShapeSql` enforces all three rules as a CHECK.
   domainType: text('domain_type'),
 
-  // Nullable: only subset grants populate it, and a consumer may map its own column instead.
-  metadata: jsonb('metadata'),
+  action: text('action'),
+  effect: text('effect').$type<TAuthorizationDecision>(),
+  domain: text('domain'),
 });
 
 export type TPolicyDefinitionCommonColumns<ExtraVariant extends string = never> = ReturnType<

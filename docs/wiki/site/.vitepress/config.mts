@@ -467,6 +467,10 @@ const config = defineConfig({
                   text: 'PolicyDefinition Gets domain_type and domain_id (Release A)',
                   link: '/changelogs/2026-08-31-policy-domain-split',
                 },
+                {
+                  text: 'An Application Refuses to Start When scopeFilter Cannot Take Effect',
+                  link: '/changelogs/2026-08-31-scope-filter-boot-checks',
+                },
               ],
             },
             {
