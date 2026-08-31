@@ -1,7 +1,11 @@
 /**
  * Runs `ScopedCasbinAdapter`'s OWN statements against a real Postgres (PGlite). Every other adapter
- * test stubs `execute` and hands back row literals, so none of them exercise the SQL that builds the
- * domain token from `(domain_type, domain_id)` - a green suite there proves nothing about this.
+ * test stubs `execute` and hands back row literals, so none of them execute a single query - a green
+ * suite there proves nothing about the SQL.
+ *
+ * ONE case per query shape, deliberately: the bug this file was written for (a quoted alias failing to
+ * resolve against an unquoted FROM alias) is invisible to every check that does not reach a database,
+ * and it can recur in any of them.
  */
 
 import { PGlite } from '@electric-sql/pglite';
@@ -9,6 +13,7 @@ import { AuthorizationDomainScopes } from '@venizia/ignis-kernel';
 import { beforeAll, afterAll, describe, expect, test } from 'bun:test';
 import type { SQL } from 'drizzle-orm';
 import { PgDialect } from 'drizzle-orm/pg-core';
+import { CustomGrantExpander } from '@/components/auth/authorize/adapters/custom-grant-expander';
 import { ScopedCasbinAdapter } from '@/components/auth/authorize/adapters/scoped-casbin.adapter';
 import type {
   ICasbinPolicySource,
@@ -28,6 +33,7 @@ const entities = (): IScopedCasbinEntities => ({
 describe('ScopedCasbinAdapter domain token, built in SQL from the stored pair', () => {
   let db: PGlite;
   let adapter: ScopedCasbinAdapter;
+  let connector: { execute: (query: SQL) => Promise<{ rows: unknown[] }> };
 
   const insertPolicy = async (row: {
     variant: string;
@@ -91,15 +97,21 @@ describe('ScopedCasbinAdapter domain token, built in SQL from the stored pair', 
         id text PRIMARY KEY,
         code text,
         subject text,
-        method text
+        method text,
+        action text
       )
     `);
-    await db.query(
-      `INSERT INTO identity."Permission" (id, code, subject, method) VALUES ($1, $2, $3, $4)`,
-      ['perm-1', 'Order.find', 'Order', 'find'],
-    );
+    for (const permission of [
+      ['perm-1', 'Order.find', 'Order', 'find', 'read'],
+      ['perm-2', 'Order.node', 'Order', '*', 'manage'],
+    ]) {
+      await db.query(
+        `INSERT INTO identity."Permission" (id, code, subject, method, action) VALUES ($1, $2, $3, $4, $5)`,
+        permission,
+      );
+    }
 
-    const connector = {
+    connector = {
       execute: async (query: SQL) => {
         const { sql: text, params } = dialect.sqlToQuery(query);
         const result = await db.query(text, params as unknown[]);
@@ -181,5 +193,49 @@ describe('ScopedCasbinAdapter domain token, built in SQL from the stored pair', 
     });
 
     expect(await loadDomains()).toEqual(['Organizer_3']);
+  });
+
+  /** The other statement the adapter issues - three aliases, two self-joins, and no coverage until now. */
+  test('queryEdgePolicies resolves its aliases and emits both structural relations', async () => {
+    await db.query('TRUNCATE identity."PolicyDefinition"');
+
+    await insertPolicy({
+      variant: 'resource_inherits',
+      subjectType: 'Permission',
+      subjectId: 'perm-1',
+      targetType: 'Permission',
+      targetId: 'perm-2',
+    });
+    await insertPolicy({
+      variant: 'action_inherits',
+      subjectType: 'Action',
+      subjectId: 'read',
+      targetType: 'Action',
+      targetId: 'manage',
+    });
+
+    const lines = await adapter['queryEdgePolicies']();
+
+    expect(lines).toContain('g4, Order.find, Order.node');
+    expect(lines).toContain('g5, read, manage');
+  });
+
+  /** The third statement, in `CustomGrantExpander`: a row-constructor IN list plus the resource-node filter. */
+  test('queryOperationCatalog matches its pairs and excludes the resource node', async () => {
+    const expander = new CustomGrantExpander({
+      dataSource: { connector } as unknown as ICasbinPolicySource,
+      entities: { permission: entities().permission, softDelete: { use: false } },
+    });
+
+    const rows = await expander['queryOperationCatalog']({
+      pairs: [
+        { subject: 'Order', method: 'find' },
+        { subject: 'Order', method: '*' },
+      ],
+    });
+
+    expect(rows).toEqual([
+      { subject: 'Order', method: 'find', code: 'Order.find', action: 'read' },
+    ]);
   });
 });

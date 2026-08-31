@@ -6,6 +6,23 @@ not how.
 This file and `index.md` are reserved OKF filenames - they carry no `type:` frontmatter and are not
 counted as concepts.
 
+## 2026-08-31 - Every adapter query shape now has ONE real-database case
+
+`scoped-adapter-domain-sql-e2e.test.ts` extended from the domain token to all three statements the
+authorize adapters issue: `queryPrincipalPolicies`, `queryEdgePolicies` (three aliases, two
+self-joins) and `CustomGrantExpander.queryOperationCatalog` (row-constructor `IN` list plus the
+resource-node filter). Before this, NONE of them were ever executed by a test - every other adapter
+test stubs `execute` and returns row literals.
+
+The coverage is verified load-bearing, not assumed: reintroducing the alias bug
+(`sql.identifier(alias)` instead of `sql.raw`) turns 4 of the 6 cases red. Run that check before
+trusting any future edit here.
+
+RULE: a change to any of these statements is UNVERIFIED until a case in this file executes it. The
+class of bug it catches - identifier folding, alias resolution, three-valued logic in a predicate -
+is invisible to `tsc`, to lint, and to every stubbed test, and a green suite elsewhere says nothing
+about it.
+
 ## 2026-08-31 - `PolicyDefinition.domain` dropped; the pair is the only stored form (Release B)
 
 `ScopedCasbinAdapter.domainTokenSelection` builds the `<Type>_<id>` token in SQL from
