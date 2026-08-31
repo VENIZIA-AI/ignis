@@ -6,6 +6,28 @@ not how.
 This file and `index.md` are reserved OKF filenames - they carry no `type:` frontmatter and are not
 counted as concepts.
 
+## 2026-08-31 - The two authorize AXES, and what `null` means on each
+
+Docs-only, from a consumer who read the docs correctly and applied them to the wrong axis.
+
+1. **`AuthorizationDomainScopes` is enforcement-axis vocabulary ONLY.** A row an application stores
+   under its own `extraVariants` is on a catalog axis the adapter never reads; `ANY_MEMBER` there is
+   inert. The scopes answer "where does this GRANT apply", never "where is this row visible".
+2. **`null` is TWO different things and both are `null` in one column:** on a `grant` (`p`) it means
+   `ANY_MEMBER` (requires `g2` membership), on an `assign_role` (`g`) it becomes `*` (matches every
+   request domain, NO membership check). The `g` form is the wider one - calling it `ANY_MEMBER`
+   describes the system as stricter than it is, at the axis where that matters most.
+3. **The two matcher gates are ANDed - neither "wins".** `g(r.sub, p.sub, r.dom)` (does the subject
+   hold the role IN THIS DOMAIN) and the domain clause are independent; the narrower governs. A grant
+   marked `ANY_MEMBER` on a role assigned only at `Merchant_A` is DENIED at `Merchant_B` even for a
+   member of B. What reaches a sibling is the hierarchy: `registerMatchers` calls
+   `gRoleManager.addDomainHierarchy(..., { reversed: true })`, so an assignment carrying a PARENT
+   domain reaches everything under it.
+
+Worth keeping: the question arrived as "which one wins", which presumes a precedence rule that does
+not exist. Answering it in its own terms would have validated the wrong model. Concept:
+`architecture/authorization-casbin.md`.
+
 ## 2026-08-31 - Every adapter query shape now has ONE real-database case
 
 Two mutations verify the coverage is load-bearing, not decorative - run BOTH before trusting an edit

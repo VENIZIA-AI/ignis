@@ -14,6 +14,7 @@ import { beforeAll, afterAll, describe, expect, test } from 'bun:test';
 import type { SQL } from 'drizzle-orm';
 import { PgDialect } from 'drizzle-orm/pg-core';
 import { CustomGrantExpander } from '@/components/auth/authorize/adapters/custom-grant-expander';
+import { CASBIN_RBAC_DOMAIN_SCOPED_MODEL } from '@/components/auth/authorize/enforcers/models';
 import { ScopedCasbinAdapter } from '@/components/auth/authorize/adapters/scoped-casbin.adapter';
 import type {
   ICasbinPolicySource,
@@ -237,5 +238,96 @@ describe('ScopedCasbinAdapter domain token, built in SQL from the stored pair', 
     expect(rows).toEqual([
       { subject: 'Order', method: 'find', code: 'Order.find', action: 'read' },
     ]);
+  });
+});
+
+/**
+ * What `resolveDomainEdges` actually receives. The hook is the only source of `g3` edges for an
+ * application with no `domain_inherits` rows, so if the domain it filters on never reaches `domains`,
+ * the whole hierarchy is empty and both matcher gates lose their footing - silently.
+ */
+describe('the domain closure handed to resolveDomainEdges', () => {
+  let db: PGlite;
+
+  const buildAdapter = (capture: string[][]) => {
+    const connector = {
+      execute: async (query: SQL) => {
+        const { sql: text, params } = dialect.sqlToQuery(query);
+        const result = await db.query(text, params as unknown[]);
+        return { rows: result.rows };
+      },
+    };
+
+    return new ScopedCasbinAdapter({
+      dataSource: { connector } as unknown as ICasbinPolicySource,
+      entities: entities(),
+      resolveDomainEdges: async ({ domains }) => {
+        capture.push([...domains].sort());
+        return [];
+      },
+    });
+  };
+
+  const insertJoinDomain = async (opts: { targetType: string; targetId: string }) => {
+    await db.query(
+      `INSERT INTO identity."PolicyDefinition"
+         (variant, subject_type, subject_id, target_type, target_id)
+       VALUES ('join_domain', 'User', 'u1', $1, $2)`,
+      [opts.targetType, opts.targetId],
+    );
+  };
+
+  /** A real casbin model, not a stub: `loadFilteredPolicy` feeds lines through casbin's own parser. */
+  const load = async (): Promise<string[][]> => {
+    const capture: string[][] = [];
+    const casbin = await import('casbin');
+    const model = casbin.newModelFromString(CASBIN_RBAC_DOMAIN_SCOPED_MODEL);
+
+    await buildAdapter(capture).loadFilteredPolicy(model, {
+      principal: { type: 'User', id: 'u1' },
+    });
+    return capture;
+  };
+
+  beforeAll(async () => {
+    db = new PGlite();
+    await db.query('CREATE SCHEMA identity');
+    await db.query(`
+      CREATE TABLE identity."PolicyDefinition" (
+        id serial PRIMARY KEY, variant text NOT NULL,
+        subject_type text NOT NULL, subject_id text NOT NULL,
+        target_type text NOT NULL, target_id text NOT NULL,
+        action text, effect text, domain_type text, domain_id text, metadata jsonb
+      )
+    `);
+    await db.query(
+      `CREATE TABLE identity."Permission" (id text PRIMARY KEY, code text, subject text, method text, action text)`,
+    );
+  });
+
+  afterAll(async () => {
+    await db.close();
+  });
+
+  test('a role assigned AT a parent domain does not put that domain in the closure', async () => {
+    await db.query('TRUNCATE identity."PolicyDefinition"');
+    await insertJoinDomain({ targetType: 'Merchant', targetId: 'B' });
+    await db.query(
+      `INSERT INTO identity."PolicyDefinition"
+         (variant, subject_type, subject_id, target_type, target_id, domain_type, domain_id)
+       VALUES ('assign_role', 'User', 'u1', 'Role', 'r1', 'Organizer', 'X')`,
+    );
+
+    // The assignment carries Organizer_X, yet the hook never sees it: the closure is MEMBERSHIP, not
+    // the domains a role was assigned at.
+    expect(await load()).toEqual([['Merchant_B']]);
+  });
+
+  test('joining the parent domain is what puts it in the closure', async () => {
+    await db.query('TRUNCATE identity."PolicyDefinition"');
+    await insertJoinDomain({ targetType: 'Merchant', targetId: 'B' });
+    await insertJoinDomain({ targetType: 'Organizer', targetId: 'X' });
+
+    expect(await load()).toEqual([['Merchant_B', 'Organizer_X']]);
   });
 });

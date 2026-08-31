@@ -58,6 +58,37 @@ The model's `[policy_effect]` is `some(where (p.eft == allow)) && !some(where (p
 - **`ANY_MEMBER`** - the grant applies in every domain the subject has joined, checked through the `join_domain` / `g2` relation.
 - **`SYSTEM_WIDE`** - the grant applies everywhere, bypassing membership. Super-admin only.
 
+> **This vocabulary belongs to the ENFORCEMENT axis only.** An application storing its own
+> `variant` in this table (via `extraVariants`) is on a different axis the adapter never reads, and
+> the scope literals mean nothing there - a consumer reached for `ANY_MEMBER` to widen an app-only
+> catalog row and it could not have worked. The scopes answer "where does this GRANT apply", never
+> "where is this row visible".
+
+**`null` means two different things depending on the row kind**, and both are `null` in the same
+column, so nothing flags the difference:
+
+| row | `domain_type` null becomes | effect |
+|---|---|---|
+| `grant` (`p`) | `ANY_MEMBER` | requires `g2(r.sub, r.dom)` - the subject must have joined |
+| `assign_role` (`g`) | `*` | matches EVERY request domain, no membership check |
+
+The `assign_role` form is the wider of the two. Reading it as `ANY_MEMBER` describes the system as
+stricter than it is, at the axis where that matters most.
+
+**The two matcher gates are ANDed, so neither "wins".** `g(r.sub, p.sub, r.dom)` asks whether the
+subject holds the policy's role IN THE REQUEST DOMAIN; the domain clause asks whether the grant
+applies there. A grant marked `ANY_MEMBER` on a role assigned only at `Merchant_A` is denied at
+`Merchant_B` even for a member of B - the narrower gate governs. What DOES reach a sibling domain is
+the hierarchy: `registerMatchers` calls `gRoleManager.addDomainHierarchy(..., { reversed: true })`,
+so an assignment carrying a parent domain reaches every domain under it - **but only once that
+hierarchy is loaded, and loading it depends on MEMBERSHIP, not on the assignment.**
+
+`domainClosure` (the `domains` argument of `resolveDomainEdges`) is built from `join_domain` targets
+and both ends of `domain_inherits` rows - **never from `assign_role` domains**. So a principal
+assigned a role at `Organizer_X` who joined only `Merchant_B` hands the hook `["Merchant_B"]`; a hook
+that filters for an organizer domain returns no edges, `g3` stays empty, and the parent assignment
+reaches nothing. Joining at the parent level is what seeds it. Measured in
+`__tests__/authorize/scoped-adapter-domain-sql-e2e.test.ts`.
 `SYSTEM_WIDE` is also the fallback in `evaluate()`: in scoped mode a request with no resolvable domain still enforces **with** a domain, because falling through to the 3-argument path would shift arguments against the 4-token model and silently misjudge.
 
 ## The `domain` column is a typed pair (both releases shipped)
