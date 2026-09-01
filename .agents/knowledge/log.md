@@ -6,6 +6,24 @@ not how.
 This file and `index.md` are reserved OKF filenames - they carry no `type:` frontmatter and are not
 counted as concepts.
 
+## 2026-09-02 - `BaseApplication` migrated to `getBootSequence()` too; the prior "not yet" note is stale
+
+Corrects the entry directly below. Core-server's `BaseApplication` no longer hand-writes `initialize()`;
+it overrides `getBootSequence()` instead, prepending `printStartUpInfo`/`validateEnvs`/
+`registerDefaultMiddlewares`, splicing in `...super.getBootSequence()`, then using
+`BootSequence.insertAfter` to place `hydrateSecrets` after `preConfigure` and `wireSecretRotatables`
+after `registerContributedDataSources`. `initialize()` itself is now purely inherited from kernel's
+`RestApplication` (a loop over whatever `getBootSequence()` returns) - so `registerContributedDataSources()`
+DOES reach a server application, the opposite of what the prior entry said. Updated:
+`architecture/application-lifecycle.md` (two passages: the "`initialize()` on `BaseApplication`" framing,
+and the sentence claiming `BaseApplication.initialize()` was its own imperative override that skipped
+the contributed-datasource step). `architecture/component-model.md` needed no change - it never made
+the now-false claim. Verification gate for the whole consolidation (registration-engine-consolidation
+plan, Tasks 1-5): `make kernel`/`make core-server` green, kernel 151/151 and core-server 1307/1307 (+1
+skip) tests pass, `make lint-kernel`/`make lint-core-server` clean, BANA (`nx-seller`) grep for
+`registerDynamicBindings`/`drainByTag`/`getBootSequence`/`registerContributedDataSources`/`BootSequence`
+returns no hits, `make okf-check` green.
+
 ## 2026-09-01 - `registerComponents()`'s nested datasource hook is gone; it's a flat boot-sequence step now
 
 Kernel's `RestApplication.registerComponents()` no longer passes `onAfterConfigure` to re-scan the

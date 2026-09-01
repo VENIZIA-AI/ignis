@@ -41,7 +41,9 @@ async start() {
 }
 ```
 
-`initialize()` (on `BaseApplication`) is the configuration sequence:
+`BaseApplication.getBootSequence()` composes the configuration sequence; `initialize()` itself is
+kernel's generic loop (`RestApplication.initialize()`, unchanged by any subclass) that just runs
+whatever `getBootSequence()` returns. The effective sequence for a server application is:
 
 1. `printStartUpInfo()` - name, env, runtime, run mode, timezone, log path.
 2. `validateEnvs()` - every registered application env key must be non-empty, unless
@@ -80,8 +82,11 @@ one artifact may bind more artifacts of the same kind.
 - Components come next. A component may add a datasource of its own, at any nesting depth (a
   component registering a component registering a component...), so kernel's `RestApplication`
   exposes `registerContributedDataSources()` - a second, flat `registerDataSources()` sweep run right
-  after `registerComponents()` in `RestApplication.getBootSequence()`. `BaseApplication.initialize()`
-  above is its own imperative override and does not call this step.
+  after `registerComponents()` in `RestApplication.getBootSequence()`. `BaseApplication.getBootSequence()`
+  composes its own steps around `...super.getBootSequence()` rather than re-implementing `initialize()`,
+  so this step reaches a server application too. `registerContributedDataSources()` calls
+  `registerDynamicBindings` directly rather than the polymorphic `this.registerDataSources()`, so a
+  subclass override of `registerDataSources()` can never run twice.
 - Controllers come last, so a controller can inject anything a component bound.
 
 `postConfigure()` runs after all three, which means **new datasources, components or controllers
