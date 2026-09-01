@@ -26,6 +26,7 @@ const REST_APPLICATION_MEMBERS = [
   'constructor',
   'controller',
   'dataSource',
+  'drainByTag',
   'generateRequestId',
   'getRootRouter',
   'getServer',

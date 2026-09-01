@@ -174,6 +174,34 @@ export abstract class RestApplication<
       .info('DONE | Inspect all application route(s) | Took: %s (ms)', performance.now() - t);
   }
 
+  async drainByTag<T>(opts: {
+    tag: string;
+    configured: Set<string>;
+    onEach: (opts: { binding: Binding<T> }) => Promise<void>;
+  }): Promise<void> {
+    const { tag, configured, onEach } = opts;
+
+    // A whole batch is drained before re-scanning: the re-scan exists only to pick up bindings a
+    // `configure()` added, and asking after every single item makes boot N+1 full scans of the
+    // binding map - 3.5ms at 200 controllers, against 0.04ms for this shape.
+    let bindings = this.findByTag<T>({ tag, exclude: configured });
+
+    while (bindings.length > 0) {
+      for (const binding of bindings) {
+        // Within a batch a nested `configure()` may already have taken this one.
+        if (configured.has(binding.key)) {
+          continue;
+        }
+
+        await onEach({ binding });
+        configured.add(binding.key);
+      }
+
+      // Re-fetch excluding already configured - picks up dynamically added bindings
+      bindings = this.findByTag<T>({ tag, exclude: configured });
+    }
+  }
+
   protected async registerDynamicBindings<T extends IConfigurable = IConfigurable>(
     opts: IRegisterDynamicBindingsOptions<T>,
   ): Promise<void> {
@@ -185,17 +213,10 @@ export abstract class RestApplication<
     }
     const configured = this.registeredBindings[namespace];
 
-    // A whole batch is drained before re-scanning: the re-scan exists only to pick up bindings a
-    // `configure()` added, and asking after every single item makes boot N+1 full scans of the
-    // binding map - 3.5ms at 200 controllers, against 0.04ms for this shape.
-    let bindings = this.findByTag({ tag: namespace, exclude: configured });
-    while (bindings.length > 0) {
-      for (const binding of bindings) {
-        // Within a batch a nested `configure()` may already have taken this one.
-        if (configured.has(binding.key)) {
-          continue;
-        }
-
+    await this.drainByTag<T>({
+      tag: namespace,
+      configured,
+      onEach: async ({ binding }) => {
         if (onBeforeConfigure) {
           await onBeforeConfigure({ binding });
         }
@@ -203,21 +224,16 @@ export abstract class RestApplication<
         const instance = this.get<T>({ key: binding.key, isOptional: false });
         if (!instance) {
           logger.debug('No binding instance | namespace: %s | key: %s', namespace, binding.key);
-          configured.add(binding.key);
-          continue;
+          return;
         }
 
         await instance.configure();
-        configured.add(binding.key);
 
         if (onAfterConfigure) {
           await onAfterConfigure({ binding, instance });
         }
-      }
-
-      // Re-fetch excluding already configured - picks up dynamically added bindings
-      bindings = this.findByTag({ tag: namespace, exclude: configured });
-    }
+      },
+    });
   }
 
   component<Base extends BaseComponent, Args extends AnyObject = any>(
