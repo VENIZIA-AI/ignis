@@ -27,6 +27,7 @@ import { requestId } from 'hono/request-id';
 import { BaseAppErrorMiddleware } from '../middlewares/app-error/app-error.middleware';
 import { notFoundHandler } from '../middlewares/not-found/not-found.middleware';
 import { AbstractApplication } from './abstract';
+import type { IBootSequenceStep } from './boot-sequence';
 import type { IApplicationConfigs } from './types';
 
 interface IRegisterDynamicBindingsOptions<T extends IConfigurable = IConfigurable> {
@@ -147,16 +148,22 @@ export abstract class RestApplication<
    * `@venizia/ignis` is the one deliberate override - it interleaves phases only a server has
    * (start-up banner, env validation, secret hydration and rotation) between these steps.
    */
+  protected getBootSequence(): IBootSequenceStep[] {
+    return [
+      { name: 'staticConfigure', run: () => this.staticConfigure() },
+      { name: 'preConfigure', run: () => this.preConfigure() },
+      { name: 'registerDataSources', run: () => this.registerDataSources() },
+      { name: 'registerComponents', run: () => this.registerComponents() },
+      { name: 'registerContributedDataSources', run: () => this.registerContributedDataSources() },
+      { name: 'registerControllers', run: () => this.registerControllers() },
+      { name: 'postConfigure', run: () => this.postConfigure() },
+    ];
+  }
+
   async initialize(): Promise<void> {
-    this.staticConfigure();
-
-    await this.preConfigure();
-
-    await this.registerDataSources();
-    await this.registerComponents();
-    await this.registerControllers();
-
-    await this.postConfigure();
+    for (const step of this.getBootSequence()) {
+      await step.run();
+    }
   }
 
   protected inspectRoutes() {
@@ -259,15 +266,14 @@ export abstract class RestApplication<
       scope: this.registerComponents.name,
       description: 'Register application components',
       task: async () => {
-        await this.registerDynamicBindings({
-          namespace: BindingNamespaces.COMPONENT,
-          onAfterConfigure: async () => {
-            // Register any datasources dynamically added by this component
-            await this.registerDynamicBindings({ namespace: BindingNamespaces.DATASOURCE });
-          },
-        });
+        await this.registerDynamicBindings({ namespace: BindingNamespaces.COMPONENT });
       },
     });
+  }
+
+  /** A second DATASOURCE sweep: any component - at any nesting depth - may have contributed one during registerComponents(). `registerDynamicBindings`'s per-namespace `configured` set means this only touches what the first pass missed. */
+  async registerContributedDataSources(): Promise<void> {
+    return this.registerDataSources();
   }
 
   /**

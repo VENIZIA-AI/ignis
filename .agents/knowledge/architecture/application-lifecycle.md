@@ -77,9 +77,11 @@ everything they might wrap exists.
 one artifact may bind more artifacts of the same kind.
 
 - DataSources come first because repositories auto-resolve their datasource, so it has to exist.
-- Components come next, and `registerComponents` passes an `onAfterConfigure` hook that re-runs
-  `registerDynamicBindings` for the datasource namespace - a component is allowed to add datasources,
-  and they get configured immediately rather than being missed.
+- Components come next. A component may add a datasource of its own, at any nesting depth (a
+  component registering a component registering a component...), so kernel's `RestApplication`
+  exposes `registerContributedDataSources()` - a second, flat `registerDataSources()` sweep run right
+  after `registerComponents()` in `RestApplication.getBootSequence()`. `BaseApplication.initialize()`
+  above is its own imperative override and does not call this step.
 - Controllers come last, so a controller can inject anything a component bound.
 
 `postConfigure()` runs after all three, which means **new datasources, components or controllers

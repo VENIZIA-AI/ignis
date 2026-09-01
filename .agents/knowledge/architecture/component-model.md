@@ -85,9 +85,10 @@ The namespace auto-tagging in `Binding` tags it `components`, and `registerCompo
 tag, resolves each binding, and awaits `configure()`.
 
 That scan re-runs excluding what it already configured, so **a component may register more
-components**. It also passes `onAfterConfigure`, which re-runs the datasource scan after each
-component - so **a component may add datasources**, configured immediately rather than missed. This
-is why `registerComponents()` sits between `registerDataSources()` and `registerControllers()`.
+components**, at any nesting depth. A component may also **add a datasource of its own** - kernel's
+`RestApplication` catches that with `registerContributedDataSources()`, a second, flat
+`registerDataSources()` sweep run as its own step right after `registerComponents()` in
+`getBootSequence()`, rather than re-scanning after every single component.
 
 ## Barrel-exported versus sub-path only
 

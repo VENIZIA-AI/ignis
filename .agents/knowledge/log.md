@@ -6,6 +6,18 @@ not how.
 This file and `index.md` are reserved OKF filenames - they carry no `type:` frontmatter and are not
 counted as concepts.
 
+## 2026-09-01 - `registerComponents()`'s nested datasource hook is gone; it's a flat boot-sequence step now
+
+Kernel's `RestApplication.registerComponents()` no longer passes `onAfterConfigure` to re-scan the
+DATASOURCE namespace after every single component. `initialize()` is now driven by a new
+`getBootSequence()` (`packages/kernel/src/base/applications/boot-sequence.ts`, `IBootSequenceStep` +
+`BootSequence.insertBefore`/`insertAfter`), which adds one explicit `registerContributedDataSources()`
+step - a second, flat `registerDataSources()` sweep - right after `registerComponents()`. A component
+contributing a datasource at any nesting depth is still caught before `initialize()` returns.
+`BaseApplication.initialize()` in core-server has NOT been migrated to `getBootSequence()` yet and does
+not call `registerContributedDataSources()` - a later task in the same plan wires that in. Updated:
+`architecture/application-lifecycle.md`, `architecture/component-model.md`.
+
 ## 2026-08-31 - The two authorize AXES, and what `null` means on each
 
 Docs-only, from a consumer who read the docs correctly and applied them to the wrong axis.
