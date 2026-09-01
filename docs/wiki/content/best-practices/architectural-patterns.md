@@ -295,11 +295,14 @@ service<Base extends IService, Args extends AnyObject = any>(
   ctor: TClass<Base>,
   opts?: TMixinOpts<Args>,
 ): Binding<Base> {
-  return this.bind<Base>({
-    key: BindingKeys.build(
-      opts?.binding ?? { namespace: BindingNamespaces.SERVICE, key: ctor.name },
-    ),
-  }).toClass(ctor);
+  const key = BindingKeys.build(
+    opts?.binding ?? { namespace: BindingNamespaces.SERVICE, key: ctor.name },
+  );
+  // Throws when `allowOverride: false` and `key` is already bound - every registration
+  // method (service, repository, dataSource, controller, component, booter) does the same check.
+  assertNoBindingCollision({ container: this, key, allowOverride: opts?.allowOverride, caller: 'service' });
+
+  return this.bind<Base>({ key }).toClass(ctor);
 }
 ```
 

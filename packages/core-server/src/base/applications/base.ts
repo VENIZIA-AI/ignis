@@ -1,5 +1,5 @@
 import { assertScopeFilterSupported } from '@venizia/ignis-connectors';
-import { ControllerTransports } from '@venizia/ignis-kernel';
+import { assertNoBindingCollision, ControllerTransports } from '@venizia/ignis-kernel';
 import { BindingNamespaces, CoreBindings } from '@venizia/ignis-kernel';
 import { RequestTrackerComponent } from '@/components';
 import { GrpcComponent } from '@/components/controller/grpc';
@@ -307,13 +307,17 @@ export abstract class BaseApplication
     ctor: TClass<Base>,
     opts?: TMixinOpts<Args>,
   ): Binding<Base> {
-    return this.bind<Base>({
-      key: BindingKeys.build(
-        opts?.binding ?? { namespace: BindingNamespaces.BOOTERS, key: ctor.name },
-      ),
-    })
-      .toClass(ctor)
-      .setTags('booter');
+    const key = BindingKeys.build(
+      opts?.binding ?? { namespace: BindingNamespaces.BOOTERS, key: ctor.name },
+    );
+    assertNoBindingCollision({
+      container: this,
+      key,
+      allowOverride: opts?.allowOverride,
+      caller: 'booter',
+    });
+
+    return this.bind<Base>({ key }).toClass(ctor).setTags('booter');
   }
 
   async registerBooters() {

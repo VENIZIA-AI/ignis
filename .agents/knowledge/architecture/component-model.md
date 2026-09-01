@@ -90,6 +90,13 @@ components**, at any nesting depth. A component may also **add a datasource of i
 `registerDataSources()` sweep run as its own step right after `registerComponents()` in
 `getBootSequence()`, rather than re-scanning after every single component.
 
+Two consequences follow from the sweeps being separate, sequential steps rather than one interleaved
+loop. First, a datasource that registers a component from its own `configure()` never gets that
+component configured - the component sweep has already finished by the time the contributed-datasource
+sweep runs. Second, a component whose `binding()` runs later and uses a datasource an earlier component
+contributed sees it unconfigured - contributed datasources are all configured once, after every
+component, not immediately after the component that contributed them.
+
 ## Barrel-exported versus sub-path only
 
 Core's `src/components/index.ts` exports only `auth`, `controller`, `health-check`,

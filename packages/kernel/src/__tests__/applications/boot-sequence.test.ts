@@ -5,11 +5,89 @@ import { BindingScopes } from '@/helpers/inversion';
 import { BaseComponent } from '@/base/components';
 import type { ValueOrPromise } from '@venizia/ignis-helpers/common';
 import { describe, expect, test } from 'bun:test';
+import { BootSequence } from '@/base/applications/boot-sequence';
+import type { IBootSequenceStep } from '@/base/applications/boot-sequence';
 
 const buildConfigs = (): IApplicationConfigs => ({
   host: '127.0.0.1',
   port: 0,
   path: { base: '/', isStrict: false },
+});
+
+/** Direct coverage of the utility itself: `insertBefore`/`insertAfter` have zero callers in the
+ * codebase besides `BaseApplication.getBootSequence()`, and an off-by-one in the `slice` boundaries
+ * would otherwise ship undetected in an exported public primitive. */
+describe('BootSequence', () => {
+  const buildSteps = (): IBootSequenceStep[] => [
+    { name: 'a', run: () => {} },
+    { name: 'b', run: () => {} },
+    { name: 'c', run: () => {} },
+  ];
+
+  test('insertBefore places the new step immediately before the named target', () => {
+    const steps = BootSequence.insertBefore({
+      steps: buildSteps(),
+      target: 'b',
+      step: { name: 'x', run: () => {} },
+    });
+
+    expect(steps.map(step => step.name)).toEqual(['a', 'x', 'b', 'c']);
+  });
+
+  test('insertBefore on the first step still lands ahead of everything', () => {
+    const steps = BootSequence.insertBefore({
+      steps: buildSteps(),
+      target: 'a',
+      step: { name: 'x', run: () => {} },
+    });
+
+    expect(steps.map(step => step.name)).toEqual(['x', 'a', 'b', 'c']);
+  });
+
+  test('insertAfter places the new step immediately after the named target', () => {
+    const steps = BootSequence.insertAfter({
+      steps: buildSteps(),
+      target: 'b',
+      step: { name: 'x', run: () => {} },
+    });
+
+    expect(steps.map(step => step.name)).toEqual(['a', 'b', 'x', 'c']);
+  });
+
+  test('insertAfter on the last step still lands at the end', () => {
+    const steps = BootSequence.insertAfter({
+      steps: buildSteps(),
+      target: 'c',
+      step: { name: 'x', run: () => {} },
+    });
+
+    expect(steps.map(step => step.name)).toEqual(['a', 'b', 'c', 'x']);
+  });
+
+  test('an unknown target name throws instead of silently no-oping', () => {
+    expect(() =>
+      BootSequence.insertBefore({
+        steps: buildSteps(),
+        target: 'unknown',
+        step: { name: 'x', run: () => {} },
+      }),
+    ).toThrow("Unknown step: 'unknown'");
+
+    expect(() =>
+      BootSequence.insertAfter({
+        steps: buildSteps(),
+        target: 'unknown',
+        step: { name: 'x', run: () => {} },
+      }),
+    ).toThrow("Unknown step: 'unknown'");
+  });
+
+  test('the input array is left untouched', () => {
+    const original = buildSteps();
+    BootSequence.insertAfter({ steps: original, target: 'a', step: { name: 'x', run: () => {} } });
+
+    expect(original.map(step => step.name)).toEqual(['a', 'b', 'c']);
+  });
 });
 
 describe('RestApplication boot sequence', () => {

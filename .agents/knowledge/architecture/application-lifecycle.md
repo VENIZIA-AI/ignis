@@ -61,10 +61,14 @@ whatever `getBootSequence()` returns. The effective sequence for a server applic
    `keys` or a `prefix` yet resolved to nothing - throws instead of falling back.
 7. `registerDataSources()`
 8. `registerComponents()`
-9. `wireSecretRotatables()` - deliberately after both registration phases: a lease key may point at a
-   datasource that a component contributed.
-10. `registerControllers()`
-11. `postConfigure()` - post-registration hook.
+9. `registerContributedDataSources()` - a second, flat `registerDataSources()` sweep that catches any
+   datasource a component contributed, at any nesting depth.
+10. `wireSecretRotatables()` - deliberately after the contributed sweep, not just after
+    `registerComponents()`: a lease key may point at a datasource that a component contributed.
+11. `registerControllers()`
+12. `postConfigure()` - post-registration hook.
+13. `validateScopeFilterSupport()` - refuses to start when a model declares `settings.scopeFilter`
+    somewhere it cannot take effect. Runs last, so a model registered by a component is covered too.
 
 Note two things that a phase list written as `... -> setupMiddlewares -> start` gets wrong: the
 default middlewares are installed **early inside `initialize`**, before any user configuration, and

@@ -229,9 +229,19 @@ Where `TMixinOpts` is:
 
 ```typescript
 type TMixinOpts<Args extends AnyObject = any> = {
-  binding: { namespace: string; key: string };
+  binding?: { namespace: string; key: string };
   args?: Args;
+  allowOverride?: boolean;
 };
+```
+
+`binding` is optional - omit it and the method derives `{ namespace, key }` from the class name.
+`allowOverride` defaults to `true`, matching `bind()`'s own silent-overwrite behavior: register the
+same key twice and the second registration wins, no warning. Set it to `false` to make a same-key
+re-registration throw instead of silently shadowing the first one.
+
+```typescript
+this.controller(UserController, { allowOverride: false });
 ```
 
 ### Static File Serving

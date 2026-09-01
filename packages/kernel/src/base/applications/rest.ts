@@ -37,8 +37,8 @@ interface IRegisterDynamicBindingsOptions<T extends IConfigurable = IConfigurabl
   onAfterConfigure?: (opts: { binding: Binding<T>; instance: T }) => Promise<void>;
 }
 
-/** Guards the five artifact-registration methods against a silent same-key clobber. `allowOverride` defaults true to match `bind()`'s historical behavior - a caller opts into strict mode by passing `allowOverride: false`. */
-const assertNoBindingCollision = (opts: {
+/** Guards the artifact-registration methods (`component`/`controller`/`service`/`repository`/`dataSource`, and core-server's `booter`) against a silent same-key clobber. `allowOverride` defaults true to match `bind()`'s historical behavior - a caller opts into strict mode by passing `allowOverride: false`. */
+export const assertNoBindingCollision = (opts: {
   container: { isBound: (opts: { key: string }) => boolean };
   key: string;
   allowOverride?: boolean;
@@ -181,6 +181,13 @@ export abstract class RestApplication<
       .info('DONE | Inspect all application route(s) | Took: %s (ms)', performance.now() - t);
   }
 
+  /**
+   * Drains every binding under `tag`, re-scanning until a batch adds nothing new. `configured` is
+   * required and mutated in place - it IS the drain's state, not a cache of it. Pass a fresh `Set`
+   * for a one-shot drain (`RestComponent` does this); pass the persistent per-namespace `Set` from
+   * `registeredBindings` to make repeat calls incremental (`registerDynamicBindings` does this,
+   * which is why a second sweep over the same namespace only touches what the first one missed).
+   */
   async drainByTag<T>(opts: {
     tag: string;
     configured: Set<string>;
@@ -278,9 +285,19 @@ export abstract class RestApplication<
    *
    * Calls `registerDynamicBindings` directly rather than `this.registerDataSources()` - the latter
    * is polymorphic, so a subclass override of `registerDataSources()` would otherwise run twice.
+   *
+   * Runs strictly after `registerComponents()` finishes, not interleaved with it: a datasource that
+   * registers a component from its own `configure()` never gets that component configured.
    */
   async registerContributedDataSources(): Promise<void> {
-    return this.registerDynamicBindings({ namespace: BindingNamespaces.DATASOURCE });
+    await executeWithPerformanceMeasure({
+      logger: this.logger,
+      scope: this.registerContributedDataSources.name,
+      description: 'Register application contributed data sources',
+      task: async () => {
+        await this.registerDynamicBindings({ namespace: BindingNamespaces.DATASOURCE });
+      },
+    });
   }
 
   /**

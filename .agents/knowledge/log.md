@@ -6,6 +6,22 @@ not how.
 This file and `index.md` are reserved OKF filenames - they carry no `type:` frontmatter and are not
 counted as concepts.
 
+## 2026-09-02 - registration methods gained a same-key collision guard (`allowOverride`)
+
+`TMixinOpts` (`packages/kernel/src/base/mixins/types.ts`) gained `allowOverride?: boolean`, default
+`true` to match `bind()`'s historical silent-overwrite behavior. `RestApplication`'s five artifact
+methods (`component`/`controller`/`service`/`repository`/`dataSource`) and core-server's `booter()`
+now call a shared `assertNoBindingCollision` before binding: with `allowOverride: false` and the key
+already bound, it throws via `getError` instead of clobbering. `assertNoBindingCollision` is exported
+from kernel (`packages/kernel/src/base/applications/rest.ts`) rather than duplicated per package, so
+the error wording lives in one place; `booter()` reaches it via the same `@venizia/ignis-kernel`
+import as `ControllerTransports`. `opts.binding` on `TMixinOpts` is now optional (it always had a
+derived default), so a caller passing only `{ allowOverride: false }` type-checks. Updated:
+`architecture/di-container.md` (near `bind()`), `docs/wiki/content/references/base/application.md`
+(`TMixinOpts` definition), `docs/wiki/content/best-practices/architectural-patterns.md` (`service()`
+body). Tests: `packages/kernel/src/__tests__/applications/registration-override.test.ts` (the five
+kernel methods), `packages/core-server/src/__tests__/applications/lifecycle.test.ts` (`booter()`).
+
 ## 2026-09-02 - `BaseApplication` migrated to `getBootSequence()` too; the prior "not yet" note is stale
 
 Corrects the entry directly below. Core-server's `BaseApplication` no longer hand-writes `initialize()`;

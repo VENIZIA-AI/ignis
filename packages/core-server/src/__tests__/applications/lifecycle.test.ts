@@ -8,9 +8,10 @@ import { BindingKeys, BindingScopes } from '@venizia/ignis-kernel';
 import type { ValueOrPromise } from '@venizia/ignis-helpers/common';
 import { getError } from '@venizia/ignis-helpers/core';
 import { RuntimeModules } from '@venizia/ignis-helpers/common';
+import { DatasourceBooter } from '@venizia/ignis-boot';
 import { afterEach, beforeEach, describe, expect, test } from 'bun:test';
 
-/** Records the invocation order of every lifecycle step so the 9-step contract is asserted as a whole rather than step by step. */
+/** Records the invocation order of the six overridden lifecycle steps so their relative order is asserted as a whole rather than step by step. Does not cover the full 13-step `getBootSequence()` contract - see `BaseApplication - getBootSequence()` below for that. */
 class TraceApplication extends BaseApplication {
   readonly trace: string[] = [];
 
@@ -81,7 +82,7 @@ describe('BaseApplication - lifecycle order', () => {
     application = undefined;
   });
 
-  test('the 9 documented steps run in order, exactly once each', async () => {
+  test('the 6 traced steps run in order, exactly once each', async () => {
     application = new TraceApplication({ scope: 'TraceApplication', config: buildConfigs() });
     application.init();
 
@@ -122,6 +123,58 @@ describe('BaseApplication - lifecycle order', () => {
     expect(String(startResult)).toContain('preConfigure exploded');
     expect(application.getServerInstance()).toBeUndefined();
     expect(application.trace).toEqual(['staticConfigure']);
+  });
+});
+
+describe('BaseApplication - getBootSequence()', () => {
+  test('composes the documented 13-step order: kernel base + core-server splices, in order', () => {
+    const application = new TraceApplication({
+      scope: 'BootSequenceApplication',
+      config: buildConfigs(),
+    });
+
+    const stepNames = application['getBootSequence']().map(step => step.name);
+
+    expect(stepNames).toEqual([
+      'printStartUpInfo',
+      'validateEnvs',
+      'registerDefaultMiddlewares',
+      'staticConfigure',
+      'preConfigure',
+      'hydrateSecrets',
+      'registerDataSources',
+      'registerComponents',
+      'registerContributedDataSources',
+      'wireSecretRotatables',
+      'registerControllers',
+      'postConfigure',
+      'validateScopeFilterSupport',
+    ]);
+  });
+});
+
+describe('BaseApplication - booter() collision guard', () => {
+  test('allowOverride: false throws on a genuine collision, matching the other five registration methods', () => {
+    const application = new TraceApplication({
+      scope: 'BooterApplication',
+      config: buildConfigs(),
+    });
+
+    application.booter(DatasourceBooter);
+
+    expect(() => application.booter(DatasourceBooter, { allowOverride: false })).toThrow(
+      /already registered/,
+    );
+  });
+
+  test('registering the same booter twice does not throw by default (matches historical overwrite behavior)', () => {
+    const application = new TraceApplication({
+      scope: 'BooterApplication',
+      config: buildConfigs(),
+    });
+
+    expect(() => application.booter(DatasourceBooter)).not.toThrow();
+    expect(() => application.booter(DatasourceBooter)).not.toThrow();
   });
 });
 

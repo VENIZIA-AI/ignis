@@ -40,6 +40,11 @@ container.bind({ key: 'services.UserService' })
 function gets the container, an `IProvider` class is itself instantiated through the container and
 then has `.value(container)` called.
 
+`bind()` itself overwrites silently - rebinding an already-bound key just replaces it, no warning. The
+artifact-registration methods (`component`/`controller`/`service`/`repository`/`dataSource`, and
+core-server's `booter`) sit on top of `bind()` and take `TMixinOpts.allowOverride`: default `true`
+preserves that silent-overwrite behavior, `false` makes a same-key re-registration throw instead.
+
 **Singleton caching lives on the Binding, not the Container.** `getValue()` caches when scope is
 `SINGLETON`; `clearCache()` drops it. `TRANSIENT` (the default) builds a new instance per `get`.
 
