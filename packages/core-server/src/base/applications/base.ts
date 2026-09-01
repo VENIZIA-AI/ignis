@@ -8,6 +8,7 @@ import {
   BindingKeys,
   BindingScopes,
   BindingValueTypes,
+  BootSequence,
   MetadataRegistry,
   RequestContextRegistry,
 } from '@venizia/ignis-kernel';
@@ -43,6 +44,7 @@ import type { TMixinOpts } from '@venizia/ignis-kernel';
 import { AppErrorMiddleware, emojiFavicon } from '../middlewares';
 import { ServerApplication } from './server';
 import type { IRestApplication } from '@venizia/ignis-kernel';
+import type { IBootSequenceStep } from '@venizia/ignis-kernel';
 
 const {
   NODE_ENV,
@@ -476,31 +478,36 @@ export abstract class BaseApplication
       );
   }
 
-  override async initialize() {
-    this.printStartUpInfo({ scope: this.initialize.name });
-    this.validateEnvs();
+  protected override getBootSequence(): IBootSequenceStep[] {
+    const steps: IBootSequenceStep[] = [
+      {
+        name: 'printStartUpInfo',
+        run: () => this.printStartUpInfo({ scope: this.initialize.name }),
+      },
+      { name: 'validateEnvs', run: () => this.validateEnvs() },
+      { name: 'registerDefaultMiddlewares', run: () => this.registerDefaultMiddlewares() },
+      ...super.getBootSequence(),
+    ];
 
-    await this.registerDefaultMiddlewares();
-    this.staticConfigure();
+    const withHydrate = BootSequence.insertAfter({
+      steps,
+      target: 'preConfigure',
+      step: { name: 'hydrateSecrets', run: () => this.hydrateSecrets() },
+    });
 
-    await this.preConfigure();
+    // Components can contribute datasources, so wire rotatables only after the contributed sweep -
+    // a lease key pointing at a component-contributed datasource would otherwise resolve to nothing.
+    const withRotatables = BootSequence.insertAfter({
+      steps: withHydrate,
+      target: 'registerContributedDataSources',
+      step: { name: 'wireSecretRotatables', run: () => this.wireSecretRotatables() },
+    });
 
-    await this.hydrateSecrets();
-
-    // DataSources must be registered before repositories so they're available for auto-resolution
-    await this.registerDataSources();
-    await this.registerComponents();
-
-    // Components can contribute datasources, so wire rotatables only after both registration phases - a lease key pointing at a component-contributed datasource would otherwise resolve to nothing.
-    await this.wireSecretRotatables();
-
-    await this.registerControllers();
-
-    // Do not register new datasources/components/controllers in postConfigure - they are not auto-registered; call configure() manually if needed.
-    await this.postConfigure();
-
-    // Last, so a model registered by a component is covered too.
-    this.validateScopeFilterSupport();
+    return [
+      ...withRotatables,
+      // Last, so a model registered by a component is covered too.
+      { name: 'validateScopeFilterSupport', run: () => this.validateScopeFilterSupport() },
+    ];
   }
 
   /**
