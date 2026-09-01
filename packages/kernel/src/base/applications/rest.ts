@@ -271,9 +271,16 @@ export abstract class RestApplication<
     });
   }
 
-  /** A second DATASOURCE sweep: any component - at any nesting depth - may have contributed one during registerComponents(). `registerDynamicBindings`'s per-namespace `configured` set means this only touches what the first pass missed. */
+  /**
+   * A second DATASOURCE sweep: any component - at any nesting depth - may have contributed one
+   * during registerComponents(). `registerDynamicBindings`'s per-namespace `configured` set means
+   * this only touches what the first pass missed.
+   *
+   * Calls `registerDynamicBindings` directly rather than `this.registerDataSources()` - the latter
+   * is polymorphic, so a subclass override of `registerDataSources()` would otherwise run twice.
+   */
   async registerContributedDataSources(): Promise<void> {
-    return this.registerDataSources();
+    return this.registerDynamicBindings({ namespace: BindingNamespaces.DATASOURCE });
   }
 
   /**
