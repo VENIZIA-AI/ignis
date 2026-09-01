@@ -16,7 +16,11 @@ import type {
   TClass,
   ValueOrPromise,
 } from '@venizia/ignis-helpers/common';
-import { executeWithPerformanceMeasure, RequestIdGenerator } from '@venizia/ignis-helpers/core';
+import {
+  executeWithPerformanceMeasure,
+  getError,
+  RequestIdGenerator,
+} from '@venizia/ignis-helpers/core';
 import type { Env, Schema } from 'hono';
 import { showRoutes as showApplicationRoutes } from 'hono/dev';
 import { requestId } from 'hono/request-id';
@@ -31,6 +35,24 @@ interface IRegisterDynamicBindingsOptions<T extends IConfigurable = IConfigurabl
   onBeforeConfigure?: (opts: { binding: Binding<T> }) => Promise<void>;
   onAfterConfigure?: (opts: { binding: Binding<T>; instance: T }) => Promise<void>;
 }
+
+/** Guards the five artifact-registration methods against a silent same-key clobber. `allowOverride` defaults true to match `bind()`'s historical behavior - a caller opts into strict mode by passing `allowOverride: false`. */
+const assertNoBindingCollision = (opts: {
+  container: { isBound: (opts: { key: string }) => boolean };
+  key: string;
+  allowOverride?: boolean;
+  caller: string;
+}): void => {
+  const { container, key, allowOverride = true, caller } = opts;
+
+  if (allowOverride || !container.isBound({ key })) {
+    return;
+  }
+
+  throw getError({
+    message: `[${caller}] Binding key already registered: '${key}' | 'allowOverride: false' was set and this key collides with an existing binding | Use a distinct 'opts.binding' key, or drop 'allowOverride: false' if overriding is intentional`,
+  });
+};
 
 /** Adds the `OpenAPIHono` router surface on top of `AbstractApplication` - no listening server, so this is the layer a browser Worker or gRPC-only host can extend without pulling in `Bun.serve` / `@hono/node-server`. */
 export abstract class RestApplication<
@@ -202,13 +224,17 @@ export abstract class RestApplication<
     ctor: TClass<Base>,
     opts?: TMixinOpts<Args>,
   ): Binding<Base> {
-    return this.bind<Base>({
-      key: BindingKeys.build(
-        opts?.binding ?? { namespace: BindingNamespaces.COMPONENT, key: ctor.name },
-      ),
-    })
-      .toClass(ctor)
-      .setScope(BindingScopes.SINGLETON);
+    const key = BindingKeys.build(
+      opts?.binding ?? { namespace: BindingNamespaces.COMPONENT, key: ctor.name },
+    );
+    assertNoBindingCollision({
+      container: this,
+      key,
+      allowOverride: opts?.allowOverride,
+      caller: 'component',
+    });
+
+    return this.bind<Base>({ key }).toClass(ctor).setScope(BindingScopes.SINGLETON);
   }
 
   async registerComponents(): Promise<void> {
@@ -254,58 +280,68 @@ export abstract class RestApplication<
     ctor: TClass<Base>,
     opts?: TMixinOpts<Args>,
   ): Binding<Base> {
-    return this.bind<Base>({
-      key: BindingKeys.build(
-        opts?.binding ?? {
-          namespace: BindingNamespaces.CONTROLLER,
-          key: ctor.name,
-        },
-      ),
-    }).toClass(ctor);
+    const key = BindingKeys.build(
+      opts?.binding ?? { namespace: BindingNamespaces.CONTROLLER, key: ctor.name },
+    );
+    assertNoBindingCollision({
+      container: this,
+      key,
+      allowOverride: opts?.allowOverride,
+      caller: 'controller',
+    });
+
+    return this.bind<Base>({ key }).toClass(ctor);
   }
 
   service<Base extends IService, Args extends AnyObject = any>(
     ctor: TClass<Base>,
     opts?: TMixinOpts<Args>,
   ): Binding<Base> {
-    return this.bind<Base>({
-      key: BindingKeys.build(
-        opts?.binding ?? {
-          namespace: BindingNamespaces.SERVICE,
-          key: ctor.name,
-        },
-      ),
-    }).toClass(ctor);
+    const key = BindingKeys.build(
+      opts?.binding ?? { namespace: BindingNamespaces.SERVICE, key: ctor.name },
+    );
+    assertNoBindingCollision({
+      container: this,
+      key,
+      allowOverride: opts?.allowOverride,
+      caller: 'service',
+    });
+
+    return this.bind<Base>({ key }).toClass(ctor);
   }
 
   repository<Base extends IRepository, Args extends AnyObject = any>(
     ctor: TClass<Base>,
     opts?: TMixinOpts<Args>,
   ): Binding<Base> {
-    return this.bind<Base>({
-      key: BindingKeys.build(
-        opts?.binding ?? {
-          namespace: BindingNamespaces.REPOSITORY,
-          key: ctor.name,
-        },
-      ),
-    }).toClass(ctor);
+    const key = BindingKeys.build(
+      opts?.binding ?? { namespace: BindingNamespaces.REPOSITORY, key: ctor.name },
+    );
+    assertNoBindingCollision({
+      container: this,
+      key,
+      allowOverride: opts?.allowOverride,
+      caller: 'repository',
+    });
+
+    return this.bind<Base>({ key }).toClass(ctor);
   }
 
   dataSource<Base extends IDataSource, Args extends AnyObject = any>(
     ctor: TClass<Base>,
     opts?: TMixinOpts<Args>,
   ): Binding<Base> {
-    return this.bind<Base>({
-      key: BindingKeys.build(
-        opts?.binding ?? {
-          namespace: BindingNamespaces.DATASOURCE,
-          key: ctor.name,
-        },
-      ),
-    })
-      .toClass(ctor)
-      .setScope(BindingScopes.SINGLETON);
+    const key = BindingKeys.build(
+      opts?.binding ?? { namespace: BindingNamespaces.DATASOURCE, key: ctor.name },
+    );
+    assertNoBindingCollision({
+      container: this,
+      key,
+      allowOverride: opts?.allowOverride,
+      caller: 'dataSource',
+    });
+
+    return this.bind<Base>({ key }).toClass(ctor).setScope(BindingScopes.SINGLETON);
   }
 
   async registerDataSources(): Promise<void> {

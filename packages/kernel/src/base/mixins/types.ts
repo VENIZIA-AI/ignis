@@ -7,8 +7,10 @@ import type { IRepository } from '../repositories';
 import type { IService } from '../services';
 
 export type TMixinOpts<Args extends AnyObject = any> = {
-  binding: { namespace: string; key: string };
+  binding?: { namespace: string; key: string };
   args?: Args;
+  /** Default true - matches the historical silent-overwrite behavior of `bind()`. Set false to make a re-registration of an already-bound key throw instead of clobbering it. */
+  allowOverride?: boolean;
 };
 
 export interface IComponentMixin {
