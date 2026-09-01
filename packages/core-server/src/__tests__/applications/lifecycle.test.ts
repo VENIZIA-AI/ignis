@@ -11,7 +11,7 @@ import { RuntimeModules } from '@venizia/ignis-helpers/common';
 import { DatasourceBooter } from '@venizia/ignis-boot';
 import { afterEach, beforeEach, describe, expect, test } from 'bun:test';
 
-/** Records the invocation order of the six overridden lifecycle steps so their relative order is asserted as a whole rather than step by step. Does not cover the full 13-step `getBootSequence()` contract - see `BaseApplication - getBootSequence()` below for that. */
+/** Records the invocation order of the seven traced lifecycle steps so their relative order is asserted as a whole rather than step by step. Does not cover the full 13-step `getBootSequence()` contract - see `BaseApplication - getBootSequence()` below for that. */
 class TraceApplication extends BaseApplication {
   readonly trace: string[] = [];
 
@@ -82,7 +82,7 @@ describe('BaseApplication - lifecycle order', () => {
     application = undefined;
   });
 
-  test('the 6 traced steps run in order, exactly once each', async () => {
+  test('the 7 traced steps run in order, exactly once each', async () => {
     application = new TraceApplication({ scope: 'TraceApplication', config: buildConfigs() });
     application.init();
 
