@@ -1,27 +1,34 @@
 #!/usr/bin/env bun
 /**
- * Interactive per-developer agent setup for the IGNIS repo.
- *
- * Two things a fresh clone needs before an AI agent understands the project:
- *   1. A tool file (CLAUDE.md, GEMINI.md, ...) symlinked to the single tracked AGENTS.md,
- *      because most agents read their own filename, not AGENTS.md. These files are gitignored,
- *      so each developer creates their own here.
- *   2. The project skills, symlinked from the tracked `.agents/plugin/skills/` into the agent's
- *      skills directory (also gitignored).
- *
- * The repo stays agent-agnostic: AGENTS.md is the only tracked instruction file, and nothing
- * here assumes a particular vendor.
- *
- * Usage:
- *   bun .agents/plugin/setup.ts            # interactive - pick your agent
- *   bun .agents/plugin/setup.ts claude     # non-interactive
+ * Per-developer agent setup: tool file -> tracked AGENTS.md symlink, tracked skills -> agent skills
+ * dir, and for Claude the shared `.agents/plugin/claude/settings.json` merged into `.claude/settings.json`.
+ * All targets are gitignored, so run it on every clone: `bun .agents/plugin/setup.ts [claude]`.
  */
-import { existsSync, lstatSync, mkdirSync, readdirSync, rmSync, symlinkSync } from 'node:fs';
+import {
+  existsSync,
+  lstatSync,
+  mkdirSync,
+  readdirSync,
+  readFileSync,
+  rmSync,
+  symlinkSync,
+  writeFileSync,
+} from 'node:fs';
 import { basename, join, resolve } from 'node:path';
 
 const ROOT = resolve(import.meta.dir, '..', '..');
 const SKILLS_SRC = join(ROOT, '.agents', 'plugin', 'skills');
+const CLAUDE_SETTINGS_SRC = join(ROOT, '.agents', 'plugin', 'claude', 'settings.json');
 const HOME = process.env.HOME ?? process.env.USERPROFILE ?? '';
+
+type TDict = Record<string, unknown>;
+
+const isDict = (value: unknown): value is TDict => {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+};
+
+/** Object-of-entries keys: shared wins entry by entry, so a developer's own `permissions.allow` survives a shared `permissions.deny`. */
+const MERGE_ONE_LEVEL = ['permissions', 'hooks', 'enabledPlugins', 'env'];
 
 type Agent = {
   key: string;
@@ -72,10 +79,7 @@ const isSymlink = (opts: { path: string }): boolean => {
   }
 };
 
-/**
- * Create a symlink at `linkPath` pointing to `target`, replacing an existing symlink but never a
- * real file - a developer who keeps a hand-written CLAUDE.md must not lose it.
- */
+/** Replaces an existing symlink, never a real file - a hand-written CLAUDE.md must survive. */
 const linkSafely = (opts: { linkPath: string; target: string }): 'created' | 'relinked' | 'skipped-realfile' => {
   const { linkPath, target } = opts;
 
@@ -152,6 +156,48 @@ const installSkills = (opts: { skillsDir: string }): number => {
   }
 
   return count;
+};
+
+/** Shared entries always win; a settings file that is not valid JSON is reported and left alone. */
+const installClaudeSettings = (): { ok: boolean; message: string } => {
+  if (!existsSync(CLAUDE_SETTINGS_SRC)) {
+    return { ok: true, message: 'no shared Claude settings to install' };
+  }
+
+  const shared = JSON.parse(readFileSync(CLAUDE_SETTINGS_SRC, 'utf8')) as TDict;
+  const targetDir = join(ROOT, '.claude');
+  const target = join(targetDir, 'settings.json');
+
+  let current: TDict = {};
+  if (existsSync(target)) {
+    try {
+      current = JSON.parse(readFileSync(target, 'utf8')) as TDict;
+    } catch (error) {
+      return {
+        ok: false,
+        message: `${target.replace(HOME, '~')} is not valid JSON - left untouched (${String(error)}). Fix it, then re-run setup.`,
+      };
+    }
+  }
+
+  const merged: TDict = { ...current };
+  for (const [key, sharedValue] of Object.entries(shared)) {
+    const mine = current[key];
+    merged[key] =
+      MERGE_ONE_LEVEL.includes(key) && isDict(mine) && isDict(sharedValue)
+        ? { ...mine, ...sharedValue }
+        : sharedValue;
+  }
+
+  mkdirSync(targetDir, { recursive: true });
+  writeFileSync(target, `${JSON.stringify(merged, null, 2)}\n`);
+
+  const hookEvents = Object.keys(isDict(shared.hooks) ? shared.hooks : {});
+
+  return {
+    ok: true,
+    message: `.claude/settings.json updated - hooks: ${hookEvents.join(', ') || 'none'}`,
+  };
 };
 
 const pickAgent = async (opts: { argv: string[] }): Promise<Agent> => {
@@ -232,4 +278,13 @@ if (agent.skillsDir) {
   console.log(`  ${dim('!')} ${agent.note}`);
 }
 
-console.log(`\n${green('Done.')} Your agent now reads the project's AGENTS.md and knowledge bundle.\n`);
+// 3. Shared Claude settings - the session hook that prints the rules. `.claude/` is gitignored, so
+//    the shared keys are merged into each person's file and anything personal is left alone.
+if (agent.key === 'claude') {
+  const { ok, message } = installClaudeSettings();
+  console.log(`  ${ok ? green('✓') : dim('!')} ${message}`);
+}
+
+console.log(
+  `\n${green('Done.')} Your agent now reads the project's AGENTS.md, rules and knowledge bundle.\n`,
+);

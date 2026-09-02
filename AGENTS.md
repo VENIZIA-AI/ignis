@@ -1,6 +1,7 @@
 # AGENTS.md
 
-Instructions for any AI agent working in the IGNIS repository.
+How to work in the IGNIS repository. **This file is routing only** - it holds no rules and no
+facts, it points to where both live.
 
 This is the **only tracked instruction file**. Tool-specific files (`CLAUDE.md`, `GEMINI.md`, ...)
 are gitignored symlinks to this one, created per developer by:
@@ -9,10 +10,34 @@ are gitignored symlinks to this one, created per developer by:
 make agent-setup      # or: bun .agents/plugin/setup.ts
 ```
 
-## Project knowledge - read this first
+## Must read first
 
-**Do not re-derive the project from scratch each session.** The curated, agent-facing source of
-truth lives in `.agents/knowledge/` - start at `.agents/knowledge/index.md`.
+| Read before you touch anything | What lives there |
+|---|---|
+| **[`.agents/rules.md`](.agents/rules.md)** | **THE rules** - write boundaries (W), security (S), process (P), build (B), code and writing (C). Numbered, cited by ID. |
+| **[`.agents/knowledge/index.md`](.agents/knowledge/index.md)** | **THE facts** - what IGNIS is and why, the monorepo layout, design decisions, the gotchas, per-package concepts, conventions, playbooks. |
+
+Both are mandatory, for every agent, on every task. The two rules that cost the most when skipped:
+**P-09** every status message opens with the minimap, and **B-05** a downstream test suite runs
+`dist`, not `src`.
+
+## Two homes for everything
+
+Nothing lives in two places. Every piece of project information has exactly one home:
+
+- **`.agents/`** - what agents read: the rules, the knowledge bundle, the project skills, the setup.
+- **`docs/wiki/`** - the human-facing VitePress site: guides, references, changelogs.
+
+Source code is the ground truth for both. When prose and code disagree, the code wins and the prose
+is a bug (P-03). The wiki and the bundle are separate audiences; never conflate them (C-13).
+
+There are **no per-package agent files** - a package carries no local `CLAUDE.md`. Read its concept
+in the knowledge bundle instead.
+
+## The knowledge bundle (`.agents/knowledge/`)
+
+Canonical, tool-neutral facts for IGNIS, in Open Knowledge Format (markdown + YAML frontmatter, one
+concept per file, links are the graph edges). Start at `.agents/knowledge/index.md`.
 
 It is also served over MCP as **`ignis-knowledge`** (registered in `.mcp.json`):
 
@@ -22,102 +47,31 @@ It is also served over MCP as **`ignis-knowledge`** (registered in `.mcp.json`):
 | `okf_list_concepts` | Browse by type (Package, Architecture, Convention, Playbook) |
 | `okf_get_concept` | Read one concept in full |
 
-Good entry points: what IGNIS is and why, the monorepo layout, design decisions, the gotchas list,
-and the per-package concepts.
+Maintaining it is rule P-03: change a fact in the code, update the concept and `log.md` in the same
+change. Generated content comes from `make okf-gen`; `make okf-check` validates and is not a commit
+gate. The `knowledge-sync` skill re-verifies the bundle against the code periodically.
 
-**Source code is the ground truth.** The bundle is curated prose over the code; when the two
-disagree, the code wins and the concept is a bug - fix it.
+## Shared agent assets (`.agents/`)
 
-### Maintaining the bundle - a hard rule
+```
+.agents/
+├── rules.md          # THE rules - W · S · P · B · C, cited by ID
+├── knowledge/        # THE knowledge bundle; knowledge-tools/ holds gen · check · coverage · mcp
+├── plugin/           # setup.ts, the project skills, the shared Claude settings and session hook
+│   ├── skills/       # knowledge-sync · update-wiki - symlinked into your agent by setup
+│   └── claude/       # settings.json + hooks/session-start.ts - merged into .claude/ by setup
+└── plans/            # gitignored - saved specs and plans, local to each developer
+```
 
-**If you change a fact in the code, update the concept that documents it in the same change**, and
-append a line to `.agents/knowledge/log.md`. A knowledge bundle that drifts is worse than none,
-because it is believed.
+A skill is a procedure you follow; a concept is material you consult. Neither is duplicated in the
+other. Before adding a skill, check the task is not already covered by one here or by one Claude
+Code ships.
 
-Generated content (`.agents/knowledge/reference/*`, and managed regions marked
-`<!-- okf:generated:... -->`) is never hand-edited - run `make okf-gen`.
+## Per-tool files (CLAUDE.md, GEMINI.md, ...)
 
-`make okf-check` validates the bundle: broken links, missing frontmatter, docs style, a package or
-example with no concept, and stale generated content. It is **not** a commit gate - run it when you
-touch the bundle. The bundle is re-verified against the code periodically via knowledge sync, not on
-every commit.
-
-## How to work here
-
-You are an experienced backend engineering collaborator, not an assistant. Prior art matters:
-IGNIS is LoopBack 4's architecture on Hono's speed, so when designing, reason from how LoopBack 4,
-NestJS, and Spring Boot solved the same problem, then pick what fits IGNIS.
-
-Priorities, in order: **simplicity > flexibility > completeness.** Make the common case trivial and
-the complex case possible.
-
-- **Designing a feature:** propose the API surface first (decorators, signatures, types), then the
-  implementation. Always consider transaction support, type safety, DI integration, testability.
-- **Implementing:** follow the existing conventions exactly. Do not invent a new convention when
-  one already exists. Mind the build chain - a change in `inversion` reaches everything.
-- **Debugging:** check the DI container first (most issues are missing or wrong bindings), then
-  decorator metadata, then the boot phase, then transaction lifecycle, then filter/query operators.
-- **Pushing back:** if a direction is architecturally wrong, say so with reasoning. Do not
-  implement something you believe is wrong without flagging it.
-
-## Hard constraints
-
-These are not preferences. Violating them breaks the build or the product.
-
-| Area | Rule |
-|---|---|
-| Package manager | **Bun only.** Never npm, yarn, or pnpm. |
-| ORM | **Drizzle only.** Never TypeORM, Prisma, Sequelize. Drivers ship per engine: `node-postgres`, `postgres.js` and PGlite for Postgres, libsql for SQLite. |
-| HTTP | **Hono only.** Never Express, Fastify, Koa. REST is default framework behavior, not a component. |
-| Validation | **Zod only.** Never Joi, Yup, class-validator. |
-| Testing | **Bun test runner only.** Never Jest, Vitest, Mocha. |
-| Build | `tsc` directly. Never `npx`, `bunx`, or `bun x` for TypeScript compilation. |
-| Database | PostgreSQL primary, SQLite alongside it. The repository tier is engine-neutral: `pgTable` and `sqliteTable` both. |
-| Errors | `getError` / `ApplicationError`. **Never raw `new Error`.** |
-
-**Never `git commit`.** Leave changes in the working tree for the human to review, always.
-
-Other repo etiquette: Conventional Commits (`feat:`, `fix:`, `docs:`, `chore:`, `refactor:`,
-`test:`); branches `feature/*`, `fix/*`, `docs/*`, `chore/*`; **PRs always target `develop`, never
-`main`**.
-
-## Quality bar
-
-Work is not done until:
-
-- The build is **green** and lint has **zero** warnings and errors (`make lint-all`).
-- `make okf-check` passes.
-- Code is highly available, scalable, reusable, and performant. This is infrastructure - other
-  products depend on it.
-
-Beware the build's failure mode: `make <package>` runs `rebuild.sh`, which **cleans `dist/` first**
-and only then builds. `build.sh` type-checks the whole project including `__tests__`, so a single
-broken test aborts the build after `dist/` is already gone - leaving an **empty `dist/`** and a
-cascade of unrelated-looking import failures in `bun test`. The build itself is honest (`set -e`
-plus a `tsc --noEmit` gate); the trap is the empty `dist/`, not a false success. See the gotchas
-concept for the rest.
-
-## Code conventions
-
-The full detail lives in `.agents/knowledge/conventions/` - the essentials:
-
-- **Options objects everywhere:** `fn({ key, value })`, never `fn(key, value)`.
-- **Every constructor parameter of a container-instantiated class must carry `@inject`.** Mixing
-  decorated and undecorated parameters is refused at boot - the container has no channel to supply
-  an undecorated one. Options a controller needs go in `super({ scope: X.name })`, never as an
-  undecorated `opts` parameter.
-- **Never abbreviate identifiers:** `ProductRepository` not `ProductRepo`, `ProductDocument` not
-  `ProductDoc`; type parameters too (`TDocument`, not `TDoc`).
-- **Prefer compile-time types** derived from definitions (`typeof User.schema`) over hand-maintained
-  duplicates.
-- Strict TypeScript, avoid `any`. Always braces; early return; `switch` + `default` over long
-  if-else chains; **never a silent catch** - always log.
-- Namespaced binding keys: `controllers.X`, `services.X`, `repositories.X`, `datasources.X`.
-- Comments state only constraints the code cannot show - no history, no restating the code.
-
-## Docs style
-
-Hyphen `-`, never em-dash. The brand is always written **IGNIS**, never "Ignis". English prose.
-
-The `docs/wiki` VitePress site is **human-facing** and separate from this agent-facing bundle; do
-not conflate them.
+This `AGENTS.md` is the single source. Each tool that needs its own filename gets a **symlink** to
+it, never a copy; `make agent-setup` creates it. `.claude/` is gitignored, so the parts everyone
+must share are tracked under `.agents/plugin/claude/` and merged into your `.claude/settings.json`
+by the same setup - today that is one hook, which prints the write boundaries and the minimap rule
+into every session. Nothing in it blocks a command. Re-run `make agent-setup` after a pull that
+touched `.agents/plugin/`.
