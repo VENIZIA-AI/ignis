@@ -1,63 +1,8 @@
 import { ValueOrPromise } from '@/common/types';
-import { BaseHelper } from '@/modules/base';
 import { voidExecution } from '@/utilities/promise.utility';
 import { MessagePort, Transferable } from 'node:worker_threads';
-import { IWorkerBus, IWorkerMessageBusHandler } from './types';
-
-export abstract class AbstractWorkerMessageBusHandlerHelper<IConsumePayload>
-  extends BaseHelper
-  implements IWorkerMessageBusHandler<IConsumePayload>
-{
-  onMessage: (opts: { message: IConsumePayload }) => ValueOrPromise<void>;
-  onClose: () => ValueOrPromise<void>;
-  onError: (opts: { error: Error }) => ValueOrPromise<void>;
-  onExit: (opts: { exitCode: number | string }) => ValueOrPromise<void>;
-}
-
-export class BaseWorkerMessageBusHandlerHelper<
-  IConsumePayload,
-> extends AbstractWorkerMessageBusHandlerHelper<IConsumePayload> {
-  constructor(opts: {
-    scope: string;
-    onMessage: (opts: { message: IConsumePayload }) => ValueOrPromise<void>;
-    onClose?: () => ValueOrPromise<void>;
-    onError?: (opts: { error: Error }) => ValueOrPromise<void>;
-    onExit?: (opts: { exitCode: number | string }) => ValueOrPromise<void>;
-  }) {
-    super({ scope: opts.scope, identifier: opts.scope });
-
-    this.onMessage = opts.onMessage;
-
-    this.onClose = opts?.onClose ?? (() => {});
-
-    this.onExit =
-      opts?.onExit ??
-      ((_opts: { exitCode: string | number }) => {
-        this.logger.for(this.onExit.name).warn('worker EXITED | exitCode: %s', _opts.exitCode);
-      });
-
-    this.onError =
-      opts?.onError ??
-      ((_opts: { error: Error }) => {
-        this.logger.for(this.onError.name).error('worker error: %s', _opts.error);
-      });
-  }
-}
-
-export abstract class AbstractWorkerBusHelper<IConsumePayload, IPublishPayload>
-  extends BaseHelper
-  implements IWorkerBus<IConsumePayload, IPublishPayload>
-{
-  port: MessagePort;
-  handler: IWorkerMessageBusHandler<IConsumePayload>;
-
-  abstract onBeforePostMessage?(opts: { message: IPublishPayload }): ValueOrPromise<void>;
-  abstract onAfterPostMessage?(opts: { message: IPublishPayload }): ValueOrPromise<void>;
-  abstract postMessage(opts: {
-    message: IPublishPayload;
-    transferList: readonly Transferable[] | undefined;
-  }): ValueOrPromise<void>;
-}
+import { IWorkerMessageBusHandler } from '../common';
+import { AbstractWorkerBusHelper } from './abstract';
 
 export class BaseWorkerBusHelper<IConsumePayload, IPublishPayload> extends AbstractWorkerBusHelper<
   IConsumePayload,

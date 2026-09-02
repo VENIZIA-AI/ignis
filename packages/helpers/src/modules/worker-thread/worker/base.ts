@@ -1,24 +1,10 @@
 import { toError, voidExecution } from '@/utilities/promise.utility';
-import { isMainThread, Worker, WorkerOptions } from 'node:worker_threads';
+import { Worker, WorkerOptions } from 'node:worker_threads';
 
-import { AnyType, ValueOrPromise } from '@/common/types';
-import { BaseHelper } from '@/modules/base';
+import { ValueOrPromise } from '@/common/types';
 import { getError } from '@/modules/error';
-import { IWorker, IWorkerBus, IWorkerThread } from './types';
-
-export abstract class AbstractWorkerHelper<MessageType>
-  extends BaseHelper
-  implements IWorker<MessageType>
-{
-  worker: Worker;
-  options: WorkerOptions;
-
-  abstract onOnline(): ValueOrPromise<void>;
-  abstract onExit(opts: { code: string | number }): ValueOrPromise<void>;
-  abstract onError(opts: { error: Error }): ValueOrPromise<void>;
-  abstract onMessage(opts: { message: MessageType }): ValueOrPromise<void>;
-  abstract onMessageError(opts: { error: Error }): ValueOrPromise<void>;
-}
+import { IWorker } from '../common';
+import { AbstractWorkerHelper } from './abstract';
 
 export class BaseWorkerHelper<MessageType> extends AbstractWorkerHelper<MessageType> {
   protected eventHandlers?: Partial<
@@ -142,73 +128,5 @@ export class BaseWorkerHelper<MessageType> extends AbstractWorkerHelper<MessageT
         execution: () => this.onMessageError({ error }),
       });
     });
-  }
-}
-
-export abstract class AbstractWorkerThreadHelper extends BaseHelper implements IWorkerThread {
-  buses: {
-    [workerKey: string | symbol]: IWorkerBus<AnyType, AnyType>;
-  };
-
-  abstract bindWorkerBus<IC, IP>(opts: {
-    key: string;
-    bus: IWorkerBus<IC, IP>;
-  }): ValueOrPromise<void>;
-
-  abstract getWorkerBus<IC, IP>(opts: { key: string }): IWorkerBus<IC, IP>;
-}
-
-export class BaseWorkerThreadHelper extends AbstractWorkerThreadHelper {
-  constructor(opts: { scope: string }) {
-    const { scope } = opts;
-    super({ scope, identifier: scope });
-
-    if (isMainThread) {
-      throw getError({
-        message: '[BaseWorker] Cannot start worker in MAIN_THREAD',
-      });
-    }
-
-    this.buses = {};
-  }
-
-  bindWorkerBus<IC, IP>(opts: { key: string; bus: IWorkerBus<IC, IP> }) {
-    if (!this.buses) {
-      this.buses = {};
-    }
-
-    const { key, bus } = opts;
-    if (this.buses[key]) {
-      this.logger.for(this.bindWorkerBus.name).warn('Worker Bus existed | key: %s', key);
-      return;
-    }
-
-    this.buses[key] = bus;
-  }
-
-  unbindWorkerBus(opts: { key: string }) {
-    if (!this.buses) {
-      return;
-    }
-
-    const { key } = opts;
-    if (!(key in this.buses)) {
-      this.logger.for(this.unbindWorkerBus.name).warn('Worker Bus not existed | key: %s', key);
-      return;
-    }
-
-    this.buses[key]?.port?.removeAllListeners();
-    delete this.buses[key];
-  }
-
-  getWorkerBus<IC, IP>(opts: { key: string }) {
-    const rs = this.buses[opts.key];
-    if (!rs) {
-      throw getError({
-        message: `[getWorkerBus] Not found worker bus | key: ${opts.key}`,
-      });
-    }
-
-    return rs as IWorkerBus<IC, IP>;
   }
 }
