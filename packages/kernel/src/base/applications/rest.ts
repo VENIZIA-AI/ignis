@@ -1,7 +1,7 @@
 import type { TBindingNamespace } from '@/common/bindings';
 import { BindingNamespaces, CoreBindings } from '@/common/bindings';
-import type { Binding } from '@/helpers/inversion';
-import { BindingKeys, BindingScopes } from '@/helpers/inversion';
+import type { Binding, TBindingScope } from '@/helpers/inversion';
+import { BindingKeys, BindingScopes, MetadataRegistry } from '@/helpers/inversion';
 import { OpenAPIHono } from '@hono/zod-openapi';
 import type { IConfigurable, TClass, ValueOrPromise } from '@venizia/ignis-helpers/common';
 import {
@@ -272,17 +272,39 @@ export abstract class RestApplication<
     });
   }
 
-  component<Base extends BaseComponent>(ctor: TClass<Base>, opts?: TMixinOpts): Binding<Base> {
+  /** Resolution order for every registration: explicit `opts` > the class's `@injectable` defaults > the derived key and the kind's default scope. `order` and `when` are `registerArtifacts`' concern, not this one. */
+  private registerArtifact<Base>(opts: {
+    ctor: TClass<Base>;
+    namespace: TBindingNamespace;
+    defaultScope: TBindingScope;
+    caller: string;
+    opts?: TMixinOpts;
+  }): Binding<Base> {
+    const { ctor, namespace, defaultScope, caller } = opts;
+    const declared = MetadataRegistry.getInstance().getArtifactMetadata({ target: ctor });
+
     const key = BindingKeys.build(
-      opts?.binding ?? { namespace: BindingNamespaces.COMPONENT, key: ctor.name },
+      opts.opts?.binding ?? declared?.binding ?? { namespace, key: ctor.name },
     );
     this.assertNoBindingCollision({
       key,
-      allowOverride: opts?.allowOverride,
-      caller: this.component.name,
+      allowOverride: opts.opts?.allowOverride ?? declared?.allowOverride,
+      caller,
     });
 
-    return this.bind<Base>({ key }).toClass(ctor).setScope(BindingScopes.SINGLETON);
+    return this.bind<Base>({ key })
+      .toClass(ctor)
+      .setScope(declared?.scope ?? defaultScope);
+  }
+
+  component<Base extends BaseComponent>(ctor: TClass<Base>, opts?: TMixinOpts): Binding<Base> {
+    return this.registerArtifact({
+      ctor,
+      namespace: BindingNamespaces.COMPONENT,
+      defaultScope: BindingScopes.SINGLETON,
+      caller: this.component.name,
+      opts,
+    });
   }
 
   async registerComponents(): Promise<void> {
@@ -332,55 +354,43 @@ export abstract class RestApplication<
 
   /** SINGLETON like `component()`: `RestComponent` mounts the one instance it resolves, so a second resolution must be that instance, not an unmounted twin. */
   controller<Base>(ctor: TClass<Base>, opts?: TMixinOpts): Binding<Base> {
-    const key = BindingKeys.build(
-      opts?.binding ?? { namespace: BindingNamespaces.CONTROLLER, key: ctor.name },
-    );
-    this.assertNoBindingCollision({
-      key,
-      allowOverride: opts?.allowOverride,
+    return this.registerArtifact({
+      ctor,
+      namespace: BindingNamespaces.CONTROLLER,
+      defaultScope: BindingScopes.SINGLETON,
       caller: this.controller.name,
+      opts,
     });
-
-    return this.bind<Base>({ key }).toClass(ctor).setScope(BindingScopes.SINGLETON);
   }
 
   service<Base extends IService>(ctor: TClass<Base>, opts?: TMixinOpts): Binding<Base> {
-    const key = BindingKeys.build(
-      opts?.binding ?? { namespace: BindingNamespaces.SERVICE, key: ctor.name },
-    );
-    this.assertNoBindingCollision({
-      key,
-      allowOverride: opts?.allowOverride,
+    return this.registerArtifact({
+      ctor,
+      namespace: BindingNamespaces.SERVICE,
+      defaultScope: BindingScopes.TRANSIENT,
       caller: this.service.name,
+      opts,
     });
-
-    return this.bind<Base>({ key }).toClass(ctor);
   }
 
   repository<Base extends IRepository>(ctor: TClass<Base>, opts?: TMixinOpts): Binding<Base> {
-    const key = BindingKeys.build(
-      opts?.binding ?? { namespace: BindingNamespaces.REPOSITORY, key: ctor.name },
-    );
-    this.assertNoBindingCollision({
-      key,
-      allowOverride: opts?.allowOverride,
+    return this.registerArtifact({
+      ctor,
+      namespace: BindingNamespaces.REPOSITORY,
+      defaultScope: BindingScopes.TRANSIENT,
       caller: this.repository.name,
+      opts,
     });
-
-    return this.bind<Base>({ key }).toClass(ctor);
   }
 
   dataSource<Base extends IDataSource>(ctor: TClass<Base>, opts?: TMixinOpts): Binding<Base> {
-    const key = BindingKeys.build(
-      opts?.binding ?? { namespace: BindingNamespaces.DATASOURCE, key: ctor.name },
-    );
-    this.assertNoBindingCollision({
-      key,
-      allowOverride: opts?.allowOverride,
+    return this.registerArtifact({
+      ctor,
+      namespace: BindingNamespaces.DATASOURCE,
+      defaultScope: BindingScopes.SINGLETON,
       caller: this.dataSource.name,
+      opts,
     });
-
-    return this.bind<Base>({ key }).toClass(ctor).setScope(BindingScopes.SINGLETON);
   }
 
   async registerDataSources(): Promise<void> {

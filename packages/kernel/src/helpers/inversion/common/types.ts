@@ -17,6 +17,7 @@ import type {
   TGrpcMethod,
   TNullable,
   TValueOrResolver,
+  ValueOrPromise,
 } from '@venizia/ignis-helpers/common';
 import {
   type IInjectMetadata as _IInjectMetadata,
@@ -215,20 +216,24 @@ export class ArtifactTypes {
 
 export type TArtifactType = TConstValue<typeof ArtifactTypes>;
 
-/** Decides at registration time whether the class is registered at all. Synchronous; runs before `preConfigure`, so it may read config and env, never another artifact's binding. */
-export type TArtifactCondition<App = unknown> = (opts: { application: App }) => boolean;
+/** Decides at registration time whether the class is registered at all. Sync or async; runs before `preConfigure`, so it may read config and env, never another artifact's binding. */
+export type TArtifactCondition<ApplicationType = unknown> = (opts: {
+  application: ApplicationType;
+}) => ValueOrPromise<boolean>;
 
 /** Registration defaults a class carries for itself; an explicit `TMixinOpts` at the call site still wins. */
-export interface IArtifactRegistrationOptions<App = unknown> {
+export interface IArtifactRegistrationOptions<ApplicationType = unknown> {
   binding?: { namespace: string; key: string };
   allowOverride?: boolean;
   scope?: TBindingScope;
   /** Lower registers first within its kind. Default 0; ties keep index order. */
   order?: number;
-  when?: TArtifactCondition<App>;
+  when?: TArtifactCondition<ApplicationType>;
 }
 
-export interface IArtifactMetadata<App = unknown> extends IArtifactRegistrationOptions<App> {
+export interface IArtifactMetadata<
+  ApplicationType = unknown,
+> extends IArtifactRegistrationOptions<ApplicationType> {
   type: TArtifactType;
 }
 

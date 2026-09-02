@@ -1,6 +1,7 @@
 import { RestApplication } from '@/base/applications/rest';
 import type { IApplicationConfigs, IApplicationInfo } from '@/base/applications/types';
 import { BaseComponent } from '@/base/components';
+import { service } from '@/base/metadata';
 import type { TMixinOpts } from '@/base/mixins/types';
 import { BindingNamespaces } from '@/common/bindings';
 import { BindingScopes, BindingValueTypes } from '@/helpers/inversion';
@@ -162,5 +163,68 @@ describe('registration override - the second registration replaces the first', (
     expect(second).not.toBe(first);
     expect(application.getBinding({ key })).toBe(second);
     expect(second.getBindingMeta({ type: BindingValueTypes.CLASS })).toBe(OtherProbeComponent);
+  });
+});
+
+describe('registration reads the class decorator as its defaults', () => {
+  test('@service({ scope: SINGLETON }) makes service() bind a singleton', () => {
+    @service({ scope: BindingScopes.SINGLETON })
+    class Cached {}
+    const application = buildApplication();
+
+    application.service(Cached);
+
+    const key = `${BindingNamespaces.SERVICE}.${Cached.name}`;
+    expect(application.getBinding({ key })?.getScope()).toBe(BindingScopes.SINGLETON);
+    expect(application.get({ key })).toBe(application.get({ key }));
+  });
+
+  test('a decorator binding is the key when the call passes none; an explicit call-site binding wins', () => {
+    @service({ binding: { namespace: BindingNamespaces.SERVICE, key: 'Aliased' } })
+    class Named {}
+    const application = buildApplication();
+
+    application.service(Named);
+    expect(application.isBound({ key: `${BindingNamespaces.SERVICE}.Aliased` })).toBe(true);
+
+    application.service(Named, {
+      binding: { namespace: BindingNamespaces.SERVICE, key: 'Explicit' },
+    });
+    expect(application.isBound({ key: `${BindingNamespaces.SERVICE}.Explicit` })).toBe(true);
+  });
+
+  test('allowOverride: false on the decorator makes a second registration throw; the call site can relax it', () => {
+    @service({ allowOverride: false })
+    class Strict {}
+    const application = buildApplication();
+
+    application.service(Strict);
+
+    expect(() => application.service(Strict)).toThrow(
+      `[service] Binding key already registered: '${BindingNamespaces.SERVICE}.${Strict.name}'`,
+    );
+    expect(() => application.service(Strict, { allowOverride: true })).not.toThrow();
+  });
+
+  test('a direct call ignores when - only registerArtifacts consults it', () => {
+    @service({ when: () => false })
+    class Conditional {}
+    const application = buildApplication();
+
+    application.service(Conditional);
+
+    expect(application.isBound({ key: `${BindingNamespaces.SERVICE}.${Conditional.name}` })).toBe(
+      true,
+    );
+  });
+
+  test('an undecorated class keeps the defaults: derived key, TRANSIENT service, overwrite allowed', () => {
+    const application = buildApplication();
+    application.service(Probe);
+    application.service(Probe);
+
+    expect(
+      application.getBinding({ key: `${BindingNamespaces.SERVICE}.${Probe.name}` })?.getScope(),
+    ).toBe(BindingScopes.TRANSIENT);
   });
 });

@@ -34,6 +34,7 @@ const REST_APPLICATION_MEMBERS = [
   'getServer',
   'initialize',
   'inspectRoutes',
+  'registerArtifact',
   'registerComponents',
   'registerContributedDataSources',
   'registerControllers',

@@ -12,16 +12,14 @@ import { getError } from '@venizia/ignis-helpers/core';
 import type { IDataSource } from '../datasources';
 import { isDataSourceClass } from '../datasources';
 import type { AbstractEntity } from '../models';
-import { injectable, splitRegistrationOptions } from './injectable';
+import { injectable, pickRegistrationOptions } from './injectable';
 
 /** Registers a model class with its static schema and relations. */
 export const model = (metadata: IModelMetadata): ClassDecorator => {
   return target => {
-    const { registration, rest } = splitRegistrationOptions({ metadata });
-    injectable({ type: ArtifactTypes.MODEL, ...registration })(target);
-    const modelMetadata = rest as IModelMetadata;
+    injectable({ type: ArtifactTypes.MODEL, ...pickRegistrationOptions({ metadata }) })(target);
 
-    const defaultLimit = modelMetadata.settings?.defaultLimit;
+    const defaultLimit = metadata.settings?.defaultLimit;
     if (defaultLimit !== undefined && (!Number.isInteger(defaultLimit) || defaultLimit <= 0)) {
       throw getError({
         message: `[model][${target.name}] Invalid 'defaultLimit' | Expected a positive integer | Got: ${defaultLimit}`,
@@ -30,7 +28,7 @@ export const model = (metadata: IModelMetadata): ClassDecorator => {
 
     // Validated at DECORATION time, like defaultLimit: a bad ceiling is a wiring mistake, and
     // catching it at boot beats catching it on the one request that happens to reach the limit.
-    const maxLimit = modelMetadata.settings?.maxLimit;
+    const maxLimit = metadata.settings?.maxLimit;
     if (maxLimit !== undefined && (!Number.isInteger(maxLimit) || maxLimit <= 0)) {
       throw getError({
         message: `[model][${target.name}] Invalid 'maxLimit' | Expected a positive integer | Got: ${maxLimit}`,
@@ -38,21 +36,23 @@ export const model = (metadata: IModelMetadata): ClassDecorator => {
     }
 
     // Auto-populate AUTHORIZATION_SUBJECT from authorize.principal if not already set
-    const principal = modelMetadata.settings?.authorize?.principal;
+    const principal = metadata.settings?.authorize?.principal;
     if (principal && !Object.hasOwn(target, 'AUTHORIZATION_SUBJECT')) {
       (target as Record<string, unknown>).AUTHORIZATION_SUBJECT = principal;
     }
 
-    MetadataRegistry.getInstance().registerModel({ target, metadata: modelMetadata });
+    MetadataRegistry.getInstance().registerModel({ target, metadata });
   };
 };
 
 /** Registers a datasource with driver and auto-discovery settings. */
 export const datasource = (metadata?: IDataSourceMetadata): ClassDecorator => {
   return target => {
-    const { registration, rest } = splitRegistrationOptions({ metadata: metadata ?? {} });
-    injectable({ type: ArtifactTypes.DATASOURCE, ...registration })(target);
-    MetadataRegistry.getInstance().setDataSourceMetadata({ target, metadata: rest });
+    injectable({
+      type: ArtifactTypes.DATASOURCE,
+      ...pickRegistrationOptions({ metadata: metadata ?? {} }),
+    })(target);
+    MetadataRegistry.getInstance().setDataSourceMetadata({ target, metadata });
   };
 };
 
@@ -207,20 +207,17 @@ export const repository = <
   metadata: IRepositoryMetadata<Model, DataSource>,
 ): ClassDecorator => {
   return target => {
-    const { registration, rest } = splitRegistrationOptions({ metadata });
-    injectable({ type: ArtifactTypes.REPOSITORY, ...registration })(target);
-    const repositoryMetadata = rest as IRepositoryMetadata<Model, DataSource>;
+    injectable({ type: ArtifactTypes.REPOSITORY, ...pickRegistrationOptions({ metadata }) })(
+      target,
+    );
 
     const registry = MetadataRegistry.getInstance();
-    const resolved = resolveRepositoryMetadata({ metadata: repositoryMetadata, target, registry });
+    const resolved = resolveRepositoryMetadata({ metadata, target, registry });
 
     // `_resolved` is an internal cache field, not part of the public IRepositoryMetadata surface callers author - it is added here, so the merged literal needs the widened local type.
     registry.setRepositoryMetadata({
       target,
-      metadata: { ...repositoryMetadata, _resolved: resolved } as IRepositoryMetadata<
-        Model,
-        DataSource
-      > & {
+      metadata: { ...metadata, _resolved: resolved } as IRepositoryMetadata<Model, DataSource> & {
         _resolved?: IResolvedRepositoryMetadata<Model, DataSource>;
       },
     });

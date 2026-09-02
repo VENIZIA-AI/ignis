@@ -7,9 +7,9 @@ export const ArtifactMetadataMixin = <BaseClass extends TMixinTarget<_MetadataRe
   baseClass: BaseClass,
 ) => {
   return class extends baseClass {
-    setArtifactMetadata<Target extends object = object>(opts: {
+    setArtifactMetadata<Target extends object = object, ApplicationType = unknown>(opts: {
       target: Target;
-      metadata: IArtifactMetadata;
+      metadata: IArtifactMetadata<ApplicationType>;
     }): void {
       Reflect.defineMetadata(MetadataKeys.ARTIFACT, opts.metadata, opts.target);
     }

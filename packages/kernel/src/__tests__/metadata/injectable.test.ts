@@ -46,7 +46,7 @@ describe('@injectable and its stereotypes', () => {
     expect(artifactOf(Cmp)).toEqual({ type: ArtifactTypes.COMPONENT });
   });
 
-  test('@controller composes @injectable and keeps its own metadata free of registration fields', () => {
+  test('@controller composes @injectable and still records its own metadata', () => {
     @controller({ path: '/probes', scope: BindingScopes.SINGLETON, allowOverride: false })
     class ProbeController {}
 
@@ -57,7 +57,7 @@ describe('@injectable and its stereotypes', () => {
     });
     expect(
       MetadataRegistry.getInstance().getControllerMetadata({ target: ProbeController }),
-    ).toEqual({ path: '/probes' });
+    ).toMatchObject({ path: '/probes' });
   });
 
   test('@datasource and @model compose @injectable with their own type', () => {

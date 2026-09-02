@@ -1,14 +1,12 @@
 import type { TControllerMetadata } from '@/helpers/inversion';
 import { ArtifactTypes, MetadataRegistry } from '@/helpers/inversion';
-import { injectable, splitRegistrationOptions } from '../injectable';
+import { injectable, pickRegistrationOptions } from '../injectable';
 
 export const controller = (metadata: TControllerMetadata): ClassDecorator => {
   return target => {
-    const { registration, rest } = splitRegistrationOptions({ metadata });
-    injectable({ type: ArtifactTypes.CONTROLLER, ...registration })(target);
-    MetadataRegistry.getInstance().setControllerMetadata({
+    injectable({ type: ArtifactTypes.CONTROLLER, ...pickRegistrationOptions({ metadata }) })(
       target,
-      metadata: rest as TControllerMetadata,
-    });
+    );
+    MetadataRegistry.getInstance().setControllerMetadata({ target, metadata });
   };
 };

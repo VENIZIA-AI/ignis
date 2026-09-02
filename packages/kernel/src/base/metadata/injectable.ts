@@ -7,7 +7,9 @@ import { ArtifactTypes, MetadataRegistry } from '@/helpers/inversion';
 import { getError } from '@venizia/ignis-helpers/core';
 
 /** The root stereotype: marks a class as an artifact the application registers, with its registration defaults. Every other stereotype calls it. */
-export const injectable = <App = unknown>(opts: IArtifactMetadata<App>): ClassDecorator => {
+export const injectable = <ApplicationType = unknown>(
+  opts: IArtifactMetadata<ApplicationType>,
+): ClassDecorator => {
   return target => {
     if (!ArtifactTypes.isValid(opts.type)) {
       throw getError({
@@ -15,23 +17,20 @@ export const injectable = <App = unknown>(opts: IArtifactMetadata<App>): ClassDe
       });
     }
 
-    MetadataRegistry.getInstance().setArtifactMetadata({
-      target,
-      metadata: opts as IArtifactMetadata,
-    });
+    MetadataRegistry.getInstance().setArtifactMetadata({ target, metadata: opts });
   };
 };
 
-export const service = <App = unknown>(
-  opts?: IArtifactRegistrationOptions<App>,
+export const service = <ApplicationType = unknown>(
+  opts?: IArtifactRegistrationOptions<ApplicationType>,
 ): ClassDecorator => {
-  return injectable<App>({ type: ArtifactTypes.SERVICE, ...opts });
+  return injectable<ApplicationType>({ type: ArtifactTypes.SERVICE, ...opts });
 };
 
-export const component = <App = unknown>(
-  opts?: IArtifactRegistrationOptions<App>,
+export const component = <ApplicationType = unknown>(
+  opts?: IArtifactRegistrationOptions<ApplicationType>,
 ): ClassDecorator => {
-  return injectable<App>({ type: ArtifactTypes.COMPONENT, ...opts });
+  return injectable<ApplicationType>({ type: ArtifactTypes.COMPONENT, ...opts });
 };
 
 /** Marks a component method as the provider of `key`. `registerArtifacts` binds the key to a lazy provider that resolves the component and calls the method; SINGLETON unless `scope` says otherwise. */
@@ -48,15 +47,12 @@ export const provide = (opts: { key: string; scope?: TBindingScope }): MethodDec
   };
 };
 
-/** Splits a stereotype's metadata into the registration defaults and the rest, so each reader sees only its own fields. */
-export const splitRegistrationOptions = <Metadata extends IArtifactRegistrationOptions>(opts: {
-  metadata: Metadata;
-}): {
-  registration: IArtifactRegistrationOptions;
-  rest: Omit<Metadata, keyof IArtifactRegistrationOptions>;
-} => {
-  const { binding, allowOverride, scope, order, when, ...rest } = opts.metadata;
-  const registration: IArtifactRegistrationOptions = {};
+/** The registration defaults a stereotype forwards to `@injectable`, copied field by field so an absent option stays absent. */
+export const pickRegistrationOptions = <ApplicationType = unknown>(opts: {
+  metadata: IArtifactRegistrationOptions<ApplicationType>;
+}): IArtifactRegistrationOptions<ApplicationType> => {
+  const { binding, allowOverride, scope, order, when } = opts.metadata;
+  const registration: IArtifactRegistrationOptions<ApplicationType> = {};
 
   if (binding !== undefined) {
     registration.binding = binding;
@@ -74,5 +70,5 @@ export const splitRegistrationOptions = <Metadata extends IArtifactRegistrationO
     registration.when = when;
   }
 
-  return { registration, rest };
+  return registration;
 };
