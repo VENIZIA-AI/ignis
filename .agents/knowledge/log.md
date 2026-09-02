@@ -47,9 +47,6 @@ clean.
 `generateArtifactIndex`/`checkArtifactIndex` and the scanner tests. Emitted index unchanged (`vert`
 `check:artifacts` fresh); boot 8/8, lint 0.
 
-||||||| parent of ddf328eb (chore(scripts): public-surface snapshot and check freeze every package's exported symbols)
-||||||| parent of df9b191a (docs(knowledge): wave-1 file split - concepts name the new kernel paths; log entry)
-||||||| parent of 88e6dfb5 (docs(knowledge): wave-2 file split - concepts name the new core-server paths; barrel-less driver folders; log entry)
 ## 2026-09-02 - file split wave 2: core-server
 
 Three core-server tasks closed wave 2. `components/mail/common/types/` split the mail component's
