@@ -12,7 +12,7 @@ Decorators mark a class as an artifact and carry its registration defaults. A ge
 - [packages/kernel/src/base/metadata/injectable.ts](https://github.com/VENIZIA-AI/ignis/blob/main/packages/kernel/src/base/metadata/injectable.ts)
 - [packages/kernel/src/helpers/inversion/common/types.ts](https://github.com/VENIZIA-AI/ignis/blob/main/packages/kernel/src/helpers/inversion/common/types.ts)
 - [packages/kernel/src/base/applications/rest.ts](https://github.com/VENIZIA-AI/ignis/blob/main/packages/kernel/src/base/applications/rest.ts)
-- [packages/kernel/src/base/applications/types.ts](https://github.com/VENIZIA-AI/ignis/blob/main/packages/kernel/src/base/applications/types.ts)
+- [packages/kernel/src/base/applications/common/types/](https://github.com/VENIZIA-AI/ignis/tree/main/packages/kernel/src/base/applications/common/types)
 - [packages/kernel/src/base/applications/boot-sequence.ts](https://github.com/VENIZIA-AI/ignis/blob/main/packages/kernel/src/base/applications/boot-sequence.ts)
 - [packages/boot/src/cli.ts](https://github.com/VENIZIA-AI/ignis/blob/main/packages/boot/src/cli.ts)
 - [packages/boot/src/generator/index.ts](https://github.com/VENIZIA-AI/ignis/blob/main/packages/boot/src/generator/index.ts)

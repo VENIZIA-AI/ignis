@@ -13,7 +13,7 @@ Extend `BaseApplication`. The three classes above it exist so a host that cannot
 - `packages/kernel/src/base/applications/rest.ts`
 - `packages/core-server/src/base/applications/server.ts`
 - `packages/core-server/src/base/applications/base.ts`
-- `packages/kernel/src/base/applications/types.ts`
+- `packages/kernel/src/base/applications/common/types/`
 
 ## Quick Reference
 
