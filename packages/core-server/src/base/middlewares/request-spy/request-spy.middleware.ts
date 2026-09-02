@@ -1,4 +1,5 @@
 import { NetworkUtility } from '@/utilities/network.utility';
+import { Environment } from '@venizia/ignis-helpers';
 import { BaseHelper, EnvironmentNames, getError } from '@venizia/ignis-helpers/core';
 import { HTTP } from '@venizia/ignis-helpers/common';
 import type { IProvider } from '@venizia/ignis-inversion';
@@ -24,7 +25,7 @@ export class RequestSpyMiddleware extends BaseHelper implements IProvider<Middle
    */
   constructor() {
     super({ scope: 'SpyMW' });
-    const env = process.env.NODE_ENV?.toLowerCase();
+    const env = Environment.ambient?.toLowerCase();
     this.isDebugMode = !!env && EnvironmentNames.DEVELOPMENT_ENVS.has(env);
   }
 

@@ -12,6 +12,8 @@ import { Organization, PolicyDefinition, Role, User } from '@/models';
 import { UserRepository } from '@/repositories';
 import {
   BaseService,
+  BindingKeys,
+  BindingNamespaces,
   IAuthService,
   inject,
   JWKSIssuerTokenService,
@@ -42,9 +44,16 @@ export class AuthenticationService
     >
 {
   constructor(
-    @inject({ key: 'repositories.UserRepository' })
+    @inject({
+      key: BindingKeys.build({ namespace: BindingNamespaces.REPOSITORY, key: UserRepository.name }),
+    })
     private userRepository: UserRepository,
-    @inject({ key: 'services.JWKSIssuerTokenService' })
+    @inject({
+      key: BindingKeys.build({
+        namespace: BindingNamespaces.SERVICE,
+        key: JWKSIssuerTokenService.name,
+      }),
+    })
     private jwksTokenService: JWKSIssuerTokenService,
   ) {
     super({ scope: AuthenticationService.name });

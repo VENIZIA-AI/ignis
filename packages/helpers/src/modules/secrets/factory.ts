@@ -2,9 +2,12 @@ import type { AnyType } from '@/common/types';
 import { getError } from '@/modules/error';
 import { ModuleUtility } from '@/utilities/module.utility';
 import { SecretProviders, type ISecretsHelper, type ISecretsRegistration } from './common';
+import { DotenvVaultHelper } from './dotenv';
+import { HashiCorpVaultHelper } from './hashicorp';
 import { SystemEnvsHelper } from './system-envs';
 
 // node-vault / @dotenvx/dotenvx are optional peers reached only via `ModuleUtility.load`: never eagerly loaded, invisible to bundlers. Compiled apps that use a provider must ship the peer in node_modules, inject the client via options, or register it with `ModuleUtility.register`.
+// The providers are imported statically on purpose: a dynamic `import('./x')` of our own module makes bun wrap every module it reaches in a lazy initializer, and the root barrel then exports `undefined` for them.
 export async function createSecretsHelper(
   opts: ISecretsRegistration & { identifier?: string },
 ): Promise<ISecretsHelper> {
@@ -29,7 +32,6 @@ export async function createSecretsHelper(
           allowRegistered: true,
         });
       }
-      const { HashiCorpVaultHelper } = (await import('./hashicorp/index.js')) as AnyType;
       return new HashiCorpVaultHelper({ ...config, ...shared });
     }
     case SecretProviders.DOTENV_VAULT: {
@@ -41,7 +43,6 @@ export async function createSecretsHelper(
           allowRegistered: true,
         });
       }
-      const { DotenvVaultHelper } = (await import('./dotenv/index.js')) as AnyType;
       return new DotenvVaultHelper({ ...config, ...shared });
     }
     default: {

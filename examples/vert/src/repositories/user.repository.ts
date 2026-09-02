@@ -1,6 +1,6 @@
 import { PostgresDataSource } from '@/datasources/postgres.datasource';
 import { User } from '@/models/entities';
-import { inject, repository } from '@venizia/ignis';
+import { BindingKeys, BindingNamespaces, inject, repository } from '@venizia/ignis';
 import { PersistableRepository } from '@venizia/ignis/postgres';
 
 /**
@@ -18,7 +18,12 @@ import { PersistableRepository } from '@venizia/ignis/postgres';
 @repository({ model: User, dataSource: PostgresDataSource })
 export class UserRepository extends PersistableRepository<typeof User.schema> {
   constructor(
-    @inject({ key: 'datasources.PostgresDataSource' })
+    @inject({
+      key: BindingKeys.build({
+        namespace: BindingNamespaces.DATASOURCE,
+        key: PostgresDataSource.name,
+      }),
+    })
     dataSource: PostgresDataSource,
   ) {
     super(dataSource);

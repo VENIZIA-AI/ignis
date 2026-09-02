@@ -48,7 +48,7 @@ export const beConfigs: IApplicationConfigs = {
   },
   error: { rootKey: 'error' },
   debug: {
-    shouldShowRoutes: process.env.NODE_ENV !== Environment.PRODUCTION,
+    shouldShowRoutes: !Environment.is({ name: Environment.PRODUCTION }),
   },
   // Every decorated class under src/ (regenerate with `bun run generate:artifacts`), then the
   // framework components this application turns on. Their options come from PlatformComponent.
@@ -180,7 +180,12 @@ export class Application extends BaseApplication {
 
   // --------------------------------------------------------------------------------
   async registerAuthorizationEnforcer() {
-    const dataSource = this.get<PostgresDataSource>({ key: 'datasources.PostgresDataSource' });
+    const dataSource = this.get<PostgresDataSource>({
+      key: BindingKeys.build({
+        namespace: BindingNamespaces.DATASOURCE,
+        key: PostgresDataSource.name,
+      }),
+    });
 
     const adapter = new ScopedCasbinAdapter({
       dataSource,

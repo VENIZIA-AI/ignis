@@ -1,17 +1,9 @@
-import {
-  Authentication,
-  BaseRestController,
-  controller,
-  get,
-  IControllerOptions,
-  post,
-  TRouteContext,
-  ValueOrPromise,
-} from '@venizia/ignis';
+import { Authentication, BaseRestController, controller, get, post } from '@venizia/ignis';
+import type { IControllerOptions, TRouteContext, ValueOrPromise } from '@venizia/ignis';
 import { Environment, HTTP } from '@venizia/ignis-helpers';
 import { RouteConfigs, TRoute5Body } from './definitions';
 
-@controller({ path: '/test', when: () => process.env.NODE_ENV !== Environment.PRODUCTION })
+@controller({ path: '/test', when: () => !Environment.is({ name: Environment.PRODUCTION }) })
 export class TestController extends BaseRestController {
   constructor(opts: IControllerOptions) {
     super({

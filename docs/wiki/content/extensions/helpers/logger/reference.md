@@ -60,7 +60,7 @@ ILogger (interface)                common/types.ts
 ```
 
 - **Consumers type against `ILogger`, never a concrete class.** `LoggerFactory.getLogger()` and `BaseHelper.logger` both return `ILogger`. Which provider produced the instance stays invisible behind the interface.
-- **Provider registration.** `LoggerFactory.use({ provider })` selects the application's provider (default: `WinstonLogger`). The factory hands out stable delegating wrappers.
+- **Provider registration.** `LoggerFactory.use({ provider })` selects the application's provider (default: `WinstonLogger`). The factory hands out stable delegating wrappers. The registration is stored on `globalThis` under `Symbol.for('ignis:logger-provider')`, so a bundle that carries two copies of `@venizia/ignis-helpers` still sees one provider. A compiled binary must call `use()` at its entrypoint: the winston default is loaded with `createRequire`, which cannot resolve inside a binary.
 - **`use()` re-points every wrapper, even ones captured at import time.** The per-call cost after that: one property read (measured ~0ns).
 - **Single-provider loading.** Exactly ONE provider is ever loaded. Delegates resolve lazily at the first log call, so an app that registers pino at its entrypoint never loads winston.
 - **The winston default loads only when `use()` was never called first.** It requires the winston peers installed: `bun add winston winston-transport winston-daily-rotate-file`.

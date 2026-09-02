@@ -268,6 +268,42 @@ through a local wrapper module is invisible to it - the decorator must be import
 `@venizia/ignis` or `@venizia/ignis-kernel`. The flip side is safety: a datasource file that opens a
 pool at import cannot leak into a build.
 
+## A dynamic `import('./own-module')` in library code makes bun bundle the barrel with undefined exports
+
+`secrets/factory.ts` used `await import('./hashicorp/index.js')`. bun turns the target and everything
+it reaches (`BaseHelper`, the logger, `env`) into lazy `__esm` initializers, and the `export *`
+barrel never calls the initializer for `env/app-env` - a bundle of
+`import { Environment } from '@venizia/ignis-helpers'` printed `undefined` for `Environment`,
+`applicationEnvironment` and `LoggerFactory`, and every compiled example crashed at import. Import
+our own modules statically; keep optional peers behind `ModuleUtility.load`. Guard:
+`packages/helpers/src/__tests__/env/bundle-safe-reads.test.ts` bundles the barrel with the
+`bun build` CLI in a subprocess and reads the exports back.
+
+## `bun build` folds `process.env.NODE_ENV` into the BUILD machine's value
+
+Even under `--compile`: the dot form becomes the literal the build host had (`development` when
+unset, `test` under `bun test`), and `--minify-syntax` folds the bracket form too. A destructured
+read (`const { NODE_ENV } = process.env`) survives - that is `Environment.ambient` (`undefined` when
+unset; `Environment.current` defaults to `development`). Framework reads go through it: the error
+middleware's leak boundary, the request spy, the logger debug gate. Third-party code still gets the
+literal, so compile with `--env=disable`. The positive control in the same test proves the folding.
+
+## Compiled binaries: renamed classes, two module copies, no default logger
+
+- bun renames a decorated class expression that shadows its own variable - tsc emits
+  `let X = X_1 = class X` for every decorated class - so `X.name` becomes `X2` (plain build) or
+  `X_1` (`--minify-syntax`); `--keep-names` does not help. Keys and scopes built from `Class.name`
+  stay consistent with each other; a literal `'services.X'` does not. Build keys with
+  `BindingKeys.build({ namespace, key: X.name })`, never from a string. `--minify` (identifiers)
+  turns names into `Aw`/`Iw` - use `--minify-whitespace --minify-syntax`.
+- The bundle carries helpers twice: the application's ESM import and core's CJS require.
+  `LoggerFactory` keeps the provider in `globalThis[Symbol.for('ignis:logger-provider')]` so `use()`
+  in one copy is seen by the other. Register a provider at the entrypoint
+  (`LoggerFactory.use({ provider: WinstonLogger })`): the winston default is loaded with
+  `createRequire('./winston')`, which cannot resolve inside a binary.
+- Proof recipe: run the binary with `APP_ENV_POSTGRES_HOST=127.0.0.1 APP_ENV_POSTGRES_PORT=1`. It
+  must reach `postConfigure` and fail with `ECONNREFUSED`, never at import.
+
 ## A self-refreshing cache must gate its retry on the last attempt, not the last success
 
 If a background TTL refresh checks "how long since the last **successful** load", every call made while the dependency is down finds the check still stale and starts a brand-new load attempt - the system hits the failing dependency hardest exactly when it is weakest. Gate the check on the last **attempt** instead, recorded whether that attempt succeeded or failed: a downed dependency then costs one retry per interval, not one per caller.

@@ -1,10 +1,5 @@
-import {
-  Authentication,
-  BaseRestController,
-  controller,
-  IControllerOptions,
-  ValueOrPromise,
-} from '@venizia/ignis';
+import { Authentication, BaseRestController, controller } from '@venizia/ignis';
+import type { IControllerOptions, ValueOrPromise } from '@venizia/ignis';
 import { HTTP } from '@venizia/ignis-helpers';
 import { RouteConfigs } from './definitions';
 

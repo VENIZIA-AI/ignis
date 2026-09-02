@@ -22,9 +22,9 @@ const extraLogEnvs = (process.env.APP_ENV_EXTRA_LOG_ENVS ?? '').split(',').map(e
 const LOG_ENVIRONMENTS = new Set([...Array.from(Environment.COMMON_ENVS), ...extraLogEnvs]);
 
 /** debug() gate, computed ONCE at module load: DEBUG truthy and NODE_ENV unset or allowlisted. Shared across every logger implementation - runtime env changes need a restart. */
+const { DEBUG } = process.env;
 export const SHOULD_LOG_DEBUG =
-  toBoolean(process.env.DEBUG) &&
-  (!process.env.NODE_ENV || LOG_ENVIRONMENTS.has(process.env.NODE_ENV));
+  toBoolean(DEBUG) && (!Environment.ambient || LOG_ENVIRONMENTS.has(Environment.ambient));
 
 /** The logger's own level, below which a line never reaches ANY transport. Defaults to `debug` - level gating belongs to the wrapper and each transport, and a stricter default here would silently drop lines the wrapper already let through. */
 export const resolveLoggerLevel = (opts: { configured?: string }): TLogLevel => {

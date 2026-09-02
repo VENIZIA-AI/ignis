@@ -6,6 +6,31 @@ not how.
 This file and `index.md` are reserved OKF filenames - they carry no `type:` frontmatter and are not
 counted as concepts.
 
+## 2026-09-02 - bundled and compiled applications: helpers exports stay defined, NODE_ENV stays a runtime read, one logger provider across copies
+
+Found while proving the vert binary: it crashed at import on every commit back to the ESM builds,
+so none of this is Part 4. Four fixes. (1) `secrets/factory.ts` imported its two providers with
+`await import('./x/index.js')`; bun turned everything those modules reach into lazy `__esm`
+initializers and the root barrel exported `undefined` for `Environment`, `applicationEnvironment`
+and `LoggerFactory`. The imports are static now (the optional peers were already behind
+`ModuleUtility.load`). (2) `bun build` folds `process.env.NODE_ENV` into the build host's value even
+under `--compile`; `Environment.ambient` is the destructured, unfoldable read, and the error
+middleware, the request spy, the logger debug gate and the examples use it; compile scripts add
+`--env=disable` for third-party code. (3) A bundle carries helpers twice (ESM for the app, CJS for
+core), so `LoggerFactory.use()` from the app was invisible to the framework's copy; the provider
+now lives in `globalThis[Symbol.for('ignis:logger-provider')]`, and vert/rpc-api-server register
+`WinstonLogger` at the entrypoint because the `createRequire` default cannot resolve in a binary.
+(4) bun renames every tsc-emitted decorated class expression (`X` -> `X2`, `X_1` under
+`--minify-syntax`; `--keep-names` does not help), so vert's eight literal binding keys broke; they
+are `BindingKeys.build({ key: X.name })` now, and the compile scripts stop minifying identifiers.
+Guards: `helpers/src/__tests__/env/bundle-safe-reads.test.ts` (barrel exports through the CLI, ambient
+read, positive control that the bare read IS folded) and `logger/provider-slot.test.ts`. Measured
+after: the vert binary boots through 12 steps and fails only at `postConfigure` with `ECONNREFUSED`
+against refused ports - identical to `bun dist/index.js`. Open: the renamed class names show in
+logs and keys (`controllers.JWKSController2`); a build plugin that restores names is the candidate
+fix. BANA does not compile binaries and still runs tsc output, so none of this reaches them today;
+their 380 literal keys would break only under a bundler.
+
 ## 2026-09-02 - Part 4: decorator-driven artifact registration, configs.artifacts boot step, runtime booters retired
 
 Bundle brought in line with the Part 4 code (kernel, boot, core-server, examples). Facts: `@injectable`

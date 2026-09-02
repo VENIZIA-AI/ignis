@@ -4,13 +4,14 @@ import { IApplicationEnvironment } from './types';
 
 /** Adds the `NODE_ENV` reads to {@link EnvironmentNames}. Every name and set is inherited, so `Environment.PRODUCTION`, `Environment.COMMON_ENVS` and `Environment.DEVELOPMENT_ENVS` keep resolving here; only these two members need a `process`. */
 export class Environment extends EnvironmentNames {
-  static get current(): string {
+  /** `NODE_ENV` exactly as the host has it, `undefined` when unset. Destructured on purpose: `bun build` rewrites `process.env.NODE_ENV` to a literal at build time, a destructured read stays a runtime read. */
+  static get ambient(): string | undefined {
     const { NODE_ENV } = process.env;
-    if (!NODE_ENV) {
-      return Environment.DEVELOPMENT;
-    }
-
     return NODE_ENV;
+  }
+
+  static get current(): string {
+    return Environment.ambient ?? Environment.DEVELOPMENT;
   }
 
   static is(opts: { name: string }) {
@@ -64,8 +65,7 @@ export class ApplicationEnvironment extends BaseHelper implements IApplicationEn
   }
 
   isDevelopment() {
-    const { NODE_ENV } = process.env;
-    return NODE_ENV === 'development';
+    return Environment.ambient === 'development';
   }
 
   keys() {

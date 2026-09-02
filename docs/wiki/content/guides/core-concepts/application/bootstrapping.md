@@ -211,6 +211,21 @@ application.isBound({ key: 'services.PricingService' }); // true
 
 `bun src/index.ts` transpiles each file without type information. A decorated member whose type comes from a value import - `@provide` returning `IHealthCheckOptions`, a constructor taking `IControllerOptions` - keeps that import alive for `design:*` metadata, and the import then fails to link because the name is a type. Import such names with `import type`. An application that runs `tsc` first and then `bun dist/index.js` is not affected, because `tsc` elides type imports.
 
+## Compiling with `bun build --compile`
+
+Four rules, each backed by a measurement:
+
+1. Pass `--env=disable`. Without it `process.env.NODE_ENV` is a literal baked in at build time. Read the environment through `Environment.ambient` or `Environment.current`, never the dot form.
+2. Do not pass `--minify`. It minifies identifiers and every class name becomes two letters. Use `--minify-whitespace --minify-syntax`.
+3. Register a logger provider at the entrypoint: `LoggerFactory.use({ provider: WinstonLogger })` from `@venizia/ignis-helpers/winston`. The winston default is loaded with `createRequire`, which cannot resolve inside a binary.
+4. Build every binding key from `Class.name`. bun renames a bundled decorated class (`UserService` -> `UserService2`), so a literal `'services.UserService'` matches nothing.
+
+```json
+"compile:linux": "bun build --compile --minify-whitespace --minify-syntax --sourcemap --env=disable --target=bun-linux-x64 ./src/index.ts --outfile ./dist/app"
+```
+
+To prove a binary, run it against refused ports: `APP_ENV_POSTGRES_HOST=127.0.0.1 APP_ENV_POSTGRES_PORT=1 ./dist/app`. It must reach `postConfigure` and fail with `ECONNREFUSED`, never at import.
+
 ## Migrating from `boot()`
 
 The runtime boot system - `Bootstrapper`, the four booters, `BootMixin`, `bootOptions` - is retired. A compiled binary (`bun build --compile`) cannot glob files at runtime; a generated index is plain imports it can see.

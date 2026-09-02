@@ -456,6 +456,10 @@ const config = defineConfig({
               collapsed: true,
               items: [
                 {
+                  text: 'Bundled and Compiled Apps - Helpers Exports Stay Defined, NODE_ENV Stays a Runtime Read, One Logger Provider Across Copies',
+                  link: '/changelogs/2026-09-02-bundle-safe-helpers',
+                },
+                {
                   text: 'Artifacts Register From a Generated Index, and the Runtime Boot System Is Retired',
                   link: '/changelogs/2026-09-02-decorator-artifact-registration',
                 },
