@@ -2,8 +2,8 @@ import { afterEach, beforeEach, describe, expect, spyOn, test } from 'bun:test';
 import fs from 'node:fs';
 import fsp from 'node:fs/promises';
 import { AnyType } from '@/common';
+import { IUploadFile } from '@/modules/storage/common';
 import { DiskHelper } from '@/modules/storage/disk';
-import { IUploadFile } from '@/modules/storage/types';
 
 /** Runs the upload and returns the thrown message - "" when it did NOT throw, which fails the match. */
 const captureError = async (opts: { task: Promise<unknown> }): Promise<string> => {

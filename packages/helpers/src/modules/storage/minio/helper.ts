@@ -2,7 +2,7 @@ import { getError } from '@/modules/error';
 import { Client, ClientOptions } from 'minio';
 import { Readable } from 'node:stream';
 import { BaseStorageHelper } from '../base';
-import { IBucketInfo, IFileStat, IObjectInfo, IStorageHelperOptions, IUploadFile } from '../types';
+import { IBucketInfo, IFileStat, IObjectInfo, IStorageHelperOptions, IUploadFile } from '../common';
 
 export interface IMinioHelperOptions extends IStorageHelperOptions, ClientOptions {}
 

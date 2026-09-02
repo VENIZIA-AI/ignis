@@ -1,6 +1,6 @@
 import { TNullable } from '@/common/types';
 import { BaseHelper } from '@/modules/base';
-import { IHfQueueNode } from './types';
+import { IHfQueueNode } from './common';
 
 /** High-frequency, single-consumer FIFO queue with O(1) enqueue/dequeue/cancel: an array plus a moving head index (no `Array.shift()`, which is O(n)), cancellation flags the node instead of splicing, and the consumed prefix is compacted only occasionally. Not thread-safe. */
 export class HfQueueHelper<T> extends BaseHelper {

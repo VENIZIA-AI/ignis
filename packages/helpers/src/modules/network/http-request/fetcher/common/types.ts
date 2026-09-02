@@ -1,5 +1,5 @@
 import type { AxiosInstance, AxiosResponse } from 'axios';
-import type { TFetcherVariant } from '../types';
+import type { TFetcherVariant } from '../../common';
 
 export type TFetcherResponse<T extends TFetcherVariant> = T extends 'node-fetch'
   ? Response

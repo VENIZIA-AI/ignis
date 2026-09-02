@@ -3,7 +3,7 @@ import { AnyObject } from '@/common/types';
 // The leaf file, never the logger BARREL: that barrel reaches `node:module` and would drag this
 // browser-pure fetcher contract with it.
 import type { ILogger } from '@/modules/logger/common/types';
-import { TFetcherVariant } from '../types';
+import { TFetcherVariant } from '../common';
 
 export interface IRequestOptions {
   url: string;
