@@ -6,6 +6,14 @@ not how.
 This file and `index.md` are reserved OKF filenames - they carry no `type:` frontmatter and are not
 counted as concepts.
 
+## 2026-09-02 - ArtifactScanner is a BaseHelper singleton
+
+`packages/boot/src/generator/scanner.ts`: `ArtifactScanner` extends `BaseHelper`, is reached through
+`ArtifactScanner.getInstance()`, and `scan` plus its private steps and the logger are instance members
+(user rule: a helper that does work and logs is not a static bag with a static logger). Callers:
+`generateArtifactIndex`/`checkArtifactIndex` and the scanner tests. Emitted index unchanged (`vert`
+`check:artifacts` fresh); boot 8/8, lint 0.
+
 ## 2026-09-02 - no string literal where a const class exists: ArtifactIndexFields, boot's ArtifactTypes
 
 The five `selectArtifacts({ field: 'dataSources' })` calls in `RestApplication.registerArtifacts`
