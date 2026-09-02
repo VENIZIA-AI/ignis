@@ -130,6 +130,8 @@ type ValueOrPromise<T> = T | Promise<T>;
 
 ## Class and Constructor Types
 
+`Source ->` [`types/class.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/common/types/class.ts)
+
 ```typescript
 type TConstructor<T> = new (...args: any[]) => T;
 type TAbstractConstructor<T> = abstract new (...args: any[]) => T;
@@ -188,6 +190,8 @@ type TPrettify<T> = { [K in keyof T]: T[K] } & {};
 
 ## Const Value Extraction Types
 
+`Source ->` [`types/const-value.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/common/types/const-value.ts)
+
 ```typescript
 type TStringConstValue<T extends TClass<any>> = Extract<ValueOf<T>, string>;
 type TNumberConstValue<T extends TClass<any>> = Extract<ValueOf<T>, number>;
@@ -211,6 +215,8 @@ Types and functions for lazy/deferred value resolution - a core pattern in the f
 
 ### Types
 
+`Source ->` [`types/resolver.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/common/types/resolver.ts)
+
 ```typescript
 type TResolver<T> = (...args: any[]) => T;
 type TAsyncResolver<T> = (...args: any[]) => T | Promise<T>;
@@ -226,6 +232,8 @@ type TValueOrAsyncResolver<T> = T | TAsyncResolver<T>;
 | `TValueOrAsyncResolver<T>` | `T \| TAsyncResolver<T>` | Config options that accept an eager value or a sync/async resolver |
 
 ### resolveValue
+
+`Source ->` [`resolvers.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/common/resolvers.ts) (also `resolveValueAsync`, `resolveClass`)
 
 ```typescript
 const resolveValue: <T>(valueOrResolver: TValueOrResolver<T>) => T;
@@ -293,6 +301,8 @@ const resolved = await resolveValueAsync(config3);
 
 ## Field Mapping Types
 
+`Source ->` [`types/field-mapping.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/common/types/field-mapping.ts)
+
 Types for declarative field-to-type mappings, used for configuration-driven data transformation.
 
 ```typescript
@@ -328,6 +338,8 @@ type TObjectFromFieldMappings<
 | `TObjectFromFieldMappings<T>` | An object type keyed by `T[number]['name']` | Maps each declared type to its runtime TypeScript equivalent: `'string'` -> `string`, `'number'` -> `number`, `'strings'` -> `string[]`, `'numbers'` -> `number[]`, `'boolean'` -> `boolean` |
 
 ## DI and Lifecycle Types
+
+`Source ->` [`types/injection.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/common/types/injection.ts)
 
 ```typescript
 type TInjectionGetter = <T>(opts: { key: string | symbol }) => T;

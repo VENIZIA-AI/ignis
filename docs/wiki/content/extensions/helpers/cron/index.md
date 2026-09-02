@@ -112,5 +112,5 @@ job.instance.stop();
 
 **Files:**
 
-- [`packages/helpers/src/modules/cron/cron.helper.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/cron/cron.helper.ts) - `CronHelper` class
+- [`packages/helpers/src/modules/cron/helper.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/cron/helper.ts) - `CronHelper` class
 - [`packages/helpers/src/modules/cron/index.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/cron/index.ts) - module barrel
