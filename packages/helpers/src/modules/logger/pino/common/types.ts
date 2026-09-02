@@ -1,6 +1,6 @@
 import type pino from 'pino';
 
-/** Custom pino level NAMES layered on pino's four native levels so every `TLogLevel` name has a real method; `PINO_CUSTOM_LEVELS` in `../define.ts` holds the NORMATIVE numeric floor. */
+/** Custom pino level NAMES layered on pino's four native levels so every `TLogLevel` name has a real method; `PINO_CUSTOM_LEVELS` in `./constants.ts` holds the NORMATIVE numeric floor. */
 export type TPinoCustomLevelName = 'emerg';
 
 /** The backing pino instance shape every `PinoLogger` writes through. */
