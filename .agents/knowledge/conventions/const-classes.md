@@ -2,7 +2,7 @@
 type: Convention
 title: Const classes over string unions
 description: Enumerable string values are a const class plus TConstValue, not a raw string-literal union.
-resource: packages/helpers/src/common/types.ts
+resource: packages/helpers/src/common/types/
 tags: [conventions, type-safety]
 ---
 
@@ -10,7 +10,7 @@ For a fixed set of string values, IGNIS uses a class of `static readonly` fields
 `TConstValue` helper type, not a bare string-literal union (`'a' | 'b' | 'c'`).
 
 ```typescript
-// packages/helpers/src/common/types.ts
+// packages/helpers/src/common/types/const-value.ts
 export type TConstValue<T extends TClass<any>> = Extract<ValueOf<T>, string | number>;
 ```
 
