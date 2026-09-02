@@ -3,6 +3,7 @@ import { MetadataRegistry as _MetadataRegistry } from '@venizia/ignis-inversion'
 import { SingletonRealm } from '../singleton-realm';
 import type { IModelRegistryEntry, IRepositoryBinding } from './common/types';
 import {
+  ArtifactMetadataMixin,
   ControllerMetadataMixin,
   DatasourceMetadataMixin,
   GrpcControllerMetadataMixin,
@@ -11,10 +12,12 @@ import {
   RestControllerMetadataMixin,
 } from './mixins';
 
-const BaseRegistry = GrpcControllerMetadataMixin(
-  RestControllerMetadataMixin(
-    ControllerMetadataMixin(
-      RepositoryMetadataMixin(ModelMetadataMixin(DatasourceMetadataMixin(_MetadataRegistry))),
+const BaseRegistry = ArtifactMetadataMixin(
+  GrpcControllerMetadataMixin(
+    RestControllerMetadataMixin(
+      ControllerMetadataMixin(
+        RepositoryMetadataMixin(ModelMetadataMixin(DatasourceMetadataMixin(_MetadataRegistry))),
+      ),
     ),
   ),
 );

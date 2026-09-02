@@ -13,6 +13,7 @@ import type {
 } from '@/base/repositories';
 import type {
   TClass,
+  TConstValue,
   TGrpcMethod,
   TNullable,
   TValueOrResolver,
@@ -20,9 +21,10 @@ import type {
 import {
   type IInjectMetadata as _IInjectMetadata,
   type IPropertyMetadata as _IPropertyMetadata,
+  type TBindingScope,
 } from '@venizia/ignis-inversion';
 
-interface IBaseControllerMetadata {
+interface IBaseControllerMetadata extends IArtifactRegistrationOptions {
   path: string;
   tags?: string[];
   description?: string;
@@ -124,7 +126,7 @@ export interface IModelSettings {
   authorize?: IModelAuthorizeSettings;
 }
 
-export interface IModelMetadata {
+export interface IModelMetadata extends IArtifactRegistrationOptions {
   type: 'entity' | 'view';
   tableName?: string;
   skipMigrate?: boolean;
@@ -143,7 +145,7 @@ export type TModelClass<Model extends AbstractEntity = AbstractEntity> = TClass<
 export type TDecoratorModelTarget<Model extends AbstractEntity = AbstractEntity> =
   TModelClass<Model> | (Function & IEntityStatics);
 
-export interface IDataSourceMetadata {
+export interface IDataSourceMetadata extends IArtifactRegistrationOptions {
   driver?: TDataSourceDriverClass;
   autoDiscovery?: boolean;
 }
@@ -151,7 +153,7 @@ export interface IDataSourceMetadata {
 export interface IRepositoryMetadata<
   Model extends AbstractEntity = AbstractEntity,
   DataSource extends IDataSource = IDataSource,
-> {
+> extends IArtifactRegistrationOptions {
   model: TValueOrResolver<TClass<Model>>;
   dataSource: string | TValueOrResolver<TClass<DataSource>>;
   operationScope?: TRepositoryOperationScope;
@@ -186,4 +188,53 @@ export interface IRepositoryBinding<
   model: TValueOrResolver<TClass<Model>>;
   repository: TValueOrResolver<TDecoratorTarget<IRepository>>;
   dataSource: TValueOrResolver<string | TDecoratorTarget<DataSource>>;
+}
+
+/** What a decorated class is to the application - the one fact the artifact generator and the registration methods both read. */
+export class ArtifactTypes {
+  static readonly COMPONENT = 'component';
+  static readonly CONTROLLER = 'controller';
+  static readonly SERVICE = 'service';
+  static readonly REPOSITORY = 'repository';
+  static readonly DATASOURCE = 'datasource';
+  static readonly MODEL = 'model';
+
+  static readonly SCHEME_SET = new Set<string>([
+    this.COMPONENT,
+    this.CONTROLLER,
+    this.SERVICE,
+    this.REPOSITORY,
+    this.DATASOURCE,
+    this.MODEL,
+  ]);
+
+  static isValid(value: string): boolean {
+    return this.SCHEME_SET.has(value);
+  }
+}
+
+export type TArtifactType = TConstValue<typeof ArtifactTypes>;
+
+/** Decides at registration time whether the class is registered at all. Synchronous; runs before `preConfigure`, so it may read config and env, never another artifact's binding. */
+export type TArtifactCondition<App = unknown> = (opts: { application: App }) => boolean;
+
+/** Registration defaults a class carries for itself; an explicit `TMixinOpts` at the call site still wins. */
+export interface IArtifactRegistrationOptions<App = unknown> {
+  binding?: { namespace: string; key: string };
+  allowOverride?: boolean;
+  scope?: TBindingScope;
+  /** Lower registers first within its kind. Default 0; ties keep index order. */
+  order?: number;
+  when?: TArtifactCondition<App>;
+}
+
+export interface IArtifactMetadata<App = unknown> extends IArtifactRegistrationOptions<App> {
+  type: TArtifactType;
+}
+
+/** One `@provide` method: the key it binds, and the binding scope of the value (default SINGLETON). */
+export interface IProvideMetadata {
+  methodName: string | symbol;
+  key: string;
+  scope?: TBindingScope;
 }
