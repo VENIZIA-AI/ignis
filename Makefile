@@ -4,7 +4,7 @@
         lint-dev-configs lint-inversion lint-filter lint-helpers lint-boot lint-core lint-core-server lint-kernel lint-connectors lint-core-worker lint-docs-mcp \
         purity purity-test purity-inversion purity-filter purity-helpers purity-kernel \
         purity-dev-configs purity-boot purity-core purity-core-server purity-connectors purity-core-worker purity-docs-mcp \
-        okf-check okf-gen okf-coverage okf-viz split-report surface-gen surface-check \
+        okf-check okf-gen okf-coverage okf-viz split-report surface-gen surface-check wiki-links-check \
         catalog-check \
         update update-all update-core update-core-server update-dev-configs update-docs-mcp update-filter update-helpers update-inversion update-boot
 
@@ -57,6 +57,9 @@ surface-gen:
 surface-check:
 	@bun scripts/public-surface.ts check
 
+wiki-links-check:
+	@bun scripts/wiki-source-links.ts
+
 agent-setup:
 	@bun .agents/plugin/setup.ts
 
@@ -79,7 +82,7 @@ release:
 # ----------------------------------------------------------------------------
 build: build-all
 
-build-all: core core-worker docs docs-mcp surface-check
+build-all: core core-worker docs docs-mcp surface-check wiki-links-check
 	@echo "🚀 All packages rebuilt successfully."
 
 # Granular build targets for individual packages
@@ -339,14 +342,15 @@ help:
 	@echo "  lint-docs-mcp     - Lint @venizia/ignis-docs (MCP Server)."
 	@echo ""
 	@echo "Knowledge bundle (.agents/knowledge):"
-	@echo "  okf-check     - Gate: frontmatter, links, coverage, freshness (runs in pre-commit)."
-	@echo "  okf-gen       - Regenerate source-derived reference content."
-	@echo "  okf-coverage  - Report bundle coverage against the source inventory."
-	@echo "  okf-viz       - Build the offline knowledge-graph explorer."
-	@echo "  split-report  - Report hub files, stray types, missing barrels, long files, cycles (informational)."
-	@echo "  surface-gen   - Snapshot every exported symbol into .agents/knowledge/reference/public-surface.md."
-	@echo "  surface-check - Gate: the public surface equals the snapshot."
-	@echo "  agent-setup   - Link your agent's tool file + skills to the tracked AGENTS.md."
+	@echo "  okf-check        - Gate: frontmatter, links, coverage, freshness (runs in pre-commit)."
+	@echo "  okf-gen          - Regenerate source-derived reference content."
+	@echo "  okf-coverage     - Report bundle coverage against the source inventory."
+	@echo "  okf-viz          - Build the offline knowledge-graph explorer."
+	@echo "  split-report     - Report hub files, stray types, missing barrels, long files, cycles (informational)."
+	@echo "  surface-gen      - Snapshot every exported symbol into .agents/knowledge/reference/public-surface.md."
+	@echo "  surface-check    - Gate: the public surface equals the snapshot."
+	@echo "  wiki-links-check - Gate: every source path the wiki and knowledge bundle name exists."
+	@echo "  agent-setup      - Link your agent's tool file + skills to the tracked AGENTS.md."
 	@echo ""
 	@echo "Browser purity:"
 	@echo "  purity        - Gate: every entry claimed browser-pure has no node builtin or global."
