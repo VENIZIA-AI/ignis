@@ -182,9 +182,8 @@ describe('RestApplication boot sequence', () => {
 });
 
 describe('component nesting - arbitrary depth', () => {
-  // Bun's transpiler drops constructor-parameter decorators for this package's `tsconfig extends`
-  // shape (see kernel gotchas), so `@inject(CoreBindings.APPLICATION_INSTANCE)` is not live here -
-  // these fixtures reach the owning application via closure instead.
+  // Fixtures reach the owning application through a closure rather than `@inject`, so the test
+  // exercises the drain loop alone and not the container's constructor injection.
   let currentApp: RestApplication;
 
   class LeafComponent extends BaseComponent {
