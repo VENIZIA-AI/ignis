@@ -91,7 +91,7 @@ A read right after a write can hit a lagging replica. `find`/`findOne`/`findById
 `retry: IReadRetryOptions<TResult>` (`maxAttempts?`, `maxTotalMs?`, `signal?`, `backoff?`,
 `until?`) that re-reads until the predicate passes.
 
-Type design (`packages/kernel/src/base/repositories/common/types.ts`):
+Type design (`packages/kernel/src/base/repositories/common/types/`):
 
 - `retry` exists ONLY on the read-verb option aliases: `TFindOptions` (predicate sees `Array<R>`),
   `TFindRangeOptions` (`TDataWithRange<R>`), `TFindOneOptions` (`TNullable<R>`).
