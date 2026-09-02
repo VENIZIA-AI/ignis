@@ -27,13 +27,15 @@ tags: [process, build]
    `cd packages/<name> && bun run rebuild`. `rebuild` is `sh ./scripts/rebuild.sh`:
    `tsc --noEmit -p tsconfig.json`, then `clean`, then `build`. The type-check comes first on
    purpose - see step 6.
-5. Each package's `build` script is `sh ./scripts/build.sh`. For `core`, `helpers`, and `kernel` it
-   runs `tsc --noEmit -p tsconfig.json` first (type-checks `src` AND `src/__tests__`), then emits
-   production output only via `tsc -p tsconfig.build.json` (which excludes `__tests__`, `*.test.ts`,
-   `*.spec.ts`), then `tsc-alias` to rewrite path aliases. `inversion`, `filter`, `boot`, and
+5. Each package's `build` script is `sh ./scripts/build.sh`. For `core`, `helpers`, `kernel` and
+   `inversion` it runs `tsc --noEmit -p tsconfig.json` first (type-checks `src` AND `src/__tests__`),
+   then emits production output only via `tsc -p tsconfig.build.json` (which excludes `__tests__`,
+   `*.test.ts`, `*.spec.ts`), then `tsc-alias` to rewrite path aliases. `filter`, `boot`, and
    `dev-configs` emit directly with `tsc -p tsconfig.json` (no separate pre-check pass);
-   `inversion`, `filter`, and `boot` additionally build CJS and ESM outputs as two passes. `boot`
-   compiles its `__tests__` into `dist` on purpose - its test runner executes the compiled tests.
+   `inversion`, `filter`, and `boot` build CJS and ESM outputs as two passes. `boot` compiles its
+   `__tests__` into `dist` on purpose - its test runner executes the compiled tests. A package that
+   emits tests into `dist` without such a runner makes a bare `bun test` execute every test once per
+   copy - `inversion` reported 111 for 37 tests until its `tsconfig.build.json` excluded them.
 6. Every `build.sh` has `set -e` and every package's tsconfig inherits `noEmitOnError: true` from
    `packages/dev-configs/tsconfig/tsconfig.base.json`. A type error anywhere aborts the script
    immediately and the closing `echo "DONE | Build completed successfully!"` never prints.

@@ -81,7 +81,6 @@
     "README.md",
     "LICENSE.md",
     "dist",
-    "!/**/tests",
     "!/**/dist/tests",
     "!/**/__tests__",
     "!**/*.tsbuildinfo"
