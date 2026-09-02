@@ -1,4 +1,4 @@
-import { BindingKeys, BindingNamespaces, inject, LockStrengths } from '@venizia/ignis';
+import { BindingKeys, BindingNamespaces, inject, LockStrengths, service } from '@venizia/ignis';
 import { DataTypes, getUID } from '@venizia/ignis-helpers';
 import {
   ConfigurationRepository,
@@ -12,6 +12,7 @@ import { BaseTestService } from './base-test.service';
 // ----------------------------------------------------------------
 // Row Locking Test Service - Row-level locking (FOR UPDATE) tests
 // ----------------------------------------------------------------
+@service()
 export class RowLockingTestService extends BaseTestService {
   constructor(
     @inject({

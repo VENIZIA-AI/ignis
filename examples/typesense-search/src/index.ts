@@ -17,29 +17,19 @@ const main = async () => {
     .for('runApplication')
     .info(' Getting ready to start up %s Application...', applicationName);
 
-  // Boot failures (e.g. Typesense unreachable - SearchDataSource.configure() provisions
+  // Start failures (e.g. Typesense unreachable - SearchDataSource.configure() provisions
   // collections and propagates the driver error loudly) are caught here, logged, and exit
   // the process instead of starting a server with an unconfigured datasource.
-  return application
-    .boot()
-    .then(() => {
-      application.start().catch(err => {
-        logger.error(
-          '[main] Application start failed | Application Name: %s | Error: %s',
-          applicationName,
-          err,
-        );
-        process.exit(1);
-      });
-    })
-    .catch(err => {
-      logger.error(
-        '[main] Application boot failed | Application Name: %s | Error: %s',
-        applicationName,
-        err,
-      );
-      process.exit(1);
-    });
+  try {
+    await application.start();
+  } catch (error) {
+    logger.error(
+      '[main] Application start failed | Application Name: %s | Error: %s',
+      applicationName,
+      error,
+    );
+    process.exit(1);
+  }
 };
 
 export default main();

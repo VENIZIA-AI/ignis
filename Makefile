@@ -1,6 +1,6 @@
 .PHONY: all build build-all release release-plan core core-server connectors core-worker dev-configs docs docs-mcp filter helpers inversion boot kernel \
         help install clean setup-hooks agent-setup \
-        lint lint-all lint-packages lint-examples \
+        lint lint-all lint-packages lint-examples artifacts-check \
         lint-dev-configs lint-inversion lint-filter lint-helpers lint-boot lint-core lint-core-server lint-kernel lint-connectors lint-core-worker lint-docs-mcp \
         purity purity-test purity-inversion purity-filter purity-helpers purity-kernel \
         purity-dev-configs purity-boot purity-core purity-core-server purity-connectors purity-core-worker purity-docs-mcp \
@@ -186,9 +186,15 @@ lint-packages:
 	@echo "🔍 Linting all packages..."
 	@bun run --filter "./packages/*" lint
 
-lint-examples:
+lint-examples: artifacts-check
 	@echo "🔍 Linting all examples..."
 	@bun run --filter "./examples/*" lint
+
+# The generated artifact index must match the decorated classes on disk; a stale index registers
+# yesterday's classes and passes every other gate.
+artifacts-check:
+	@echo "🔍 Checking generated artifact indexes..."
+	@bun run --filter "./examples/vert" check:artifacts
 
 lint-dev-configs:
 	@echo "🔍 Linting @venizia/dev-configs..."
@@ -313,7 +319,8 @@ help:
 	@echo "  lint              - Lint all packages (alias for lint-packages)."
 	@echo "  lint-all          - Lint all packages AND examples."
 	@echo "  lint-packages     - Lint packages/ directory only."
-	@echo "  lint-examples     - Lint examples/ directory only."
+	@echo "  lint-examples     - Lint examples/ directory only (runs artifacts-check first)."
+	@echo "  artifacts-check   - Verify generated artifact indexes are fresh (examples/vert)."
 	@echo "  lint-dev-configs  - Lint @venizia/dev-configs."
 	@echo "  lint-inversion    - Lint @venizia/ignis-inversion."
 	@echo "  lint-helpers      - Lint @venizia/ignis-helpers."

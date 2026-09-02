@@ -11,6 +11,8 @@
   "scripts": {
     "build": "tsc -p tsconfig.json && tsc-alias -p tsconfig.json && cp -r src/security dist/",
     "clean": "sh ./scripts/clean.sh",
+    "generate:artifacts": "bun ../../packages/boot/src/cli.ts generate --root src --out src/generated/artifacts.ts",
+    "check:artifacts": "bun ../../packages/boot/src/cli.ts check --root src --out src/generated/artifacts.ts",
     "compile:linux": "bun build --compile --minify --sourcemap --target=bun-linux-x64 ./src/index.ts --outfile ./dist/vert",
     "eslint": "eslint --report-unused-disable-directives .",
     "lint": "bun run eslint && bun run prettier:cli",

@@ -43,7 +43,6 @@ export const beConfigs: IApplicationConfigs = {
   debug: {
     shouldShowRoutes: process.env.NODE_ENV !== Environment.PRODUCTION,
   },
-  bootOptions: {},
 };
 
 // -----------------------------------------------------------------------------------------------

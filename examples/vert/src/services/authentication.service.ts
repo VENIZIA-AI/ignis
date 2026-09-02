@@ -15,15 +15,17 @@ import {
   IAuthService,
   inject,
   JWKSIssuerTokenService,
+  service,
   TContext,
   UserStatuses,
   UserTypes,
 } from '@venizia/ignis';
 import { getError, HTTP } from '@venizia/ignis-helpers';
 import { hash, compare, genSalt } from 'bcrypt';
-import { and, eq, like } from 'drizzle-orm';
+import { and, eq } from 'drizzle-orm';
 import { Env } from 'hono';
 
+@service()
 export class AuthenticationService
   extends BaseService
   implements
@@ -238,29 +240,23 @@ export class AuthenticationService
   }
 
   private async getUserOrganization(opts: { userId: string }) {
-    // ASSIGN_ROLE.domain is a casbin token, "<Organization.name>_<id>" (see AuthorizationPolicyBuilder.serializeDomain) -
-    // never the bare Organization id - so the org id has to be recovered from it before it can be joined.
-    const domainPrefix = `${Organization.name}_`;
-
     const roleAssignments = await this.userRepository.connector
-      .select({ domain: PolicyDefinition.schema.domain })
+      .select({ organizationId: PolicyDefinition.schema.domainId })
       .from(PolicyDefinition.schema)
       .where(
         and(
           eq(PolicyDefinition.schema.subjectType, 'user'),
           eq(PolicyDefinition.schema.subjectId, opts.userId),
           eq(PolicyDefinition.schema.targetType, Role.name),
-          like(PolicyDefinition.schema.domain, `${domainPrefix}%`),
+          eq(PolicyDefinition.schema.domainType, Organization.name),
         ),
       )
       .limit(1);
 
-    const domain = roleAssignments[0]?.domain;
-    if (!domain) {
+    const organizationId = roleAssignments[0]?.organizationId;
+    if (!organizationId) {
       return null;
     }
-
-    const organizationId = domain.slice(domainPrefix.length);
 
     const organizations = await this.userRepository.connector
       .select({

@@ -6,6 +6,28 @@ not how.
 This file and `index.md` are reserved OKF filenames - they carry no `type:` frontmatter and are not
 counted as concepts.
 
+## 2026-09-02 - examples register from a generated artifact index; boot() calls dropped
+
+`examples/vert` is the reference application for decorator-driven registration. Its
+`application.ts` no longer calls `this.dataSource/repository/service/controller/component`: the
+config carries `artifacts: [GeneratedArtifacts, { components: [...framework components] }]`, where
+`src/generated/artifacts.ts` is emitted by `bun run generate:artifacts` (the `@venizia/ignis-boot`
+CLI run from source) and gated by `bun run check:artifacts`, wired into `make lint-examples` through
+the new `make artifacts-check` target. The five option bindings the framework components read
+(health-check, authenticate REST/JWT/basic, authorize) moved into a vert-owned `PlatformComponent`
+as `@provide` methods; the enforcer and strategy registrations stay imperative because they are
+registry calls, not bindings. `TestController` demonstrates `when` (mounted outside production).
+`ConfigurationController`, `MetaLinkRepository` and four authorization repositories were decorated
+but never registered by hand; the index now registers them (bindings only - nothing resolves the
+repositories at boot). Every example entry point awaits `application.start()` in one try/catch; the
+`.boot().then(start)` chain and the dead `bootOptions: {}` are gone. Two side findings: vert's
+`getUserOrganization` still read the `domain` column that `b16d04cd` replaced with
+`domainType/domainId` (build was red since 2026-08-31 - fixed); and under bun-runs-source a decorated
+member typed with a value-imported interface keeps that import alive (`design:returntype`), which
+fails to link against the CJS dist - `PlatformComponent` uses `import type`, and vert's real path
+(`tsc` then `bun dist`) is unaffected. The emitter now wraps a field wider than prettier's 100
+columns one name per line, so the generated file passes `prettier -l` unchanged.
+
 ## 2026-09-02 - boot sequence: named constants, per-step logging, ambiguity check; inversion stops emitting tests
 
 Five facts changed. (1) `BootSequence.insertAfter` now refuses a duplicated target name with

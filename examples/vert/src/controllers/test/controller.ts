@@ -8,10 +8,10 @@ import {
   TRouteContext,
   ValueOrPromise,
 } from '@venizia/ignis';
-import { HTTP } from '@venizia/ignis-helpers';
+import { Environment, HTTP } from '@venizia/ignis-helpers';
 import { RouteConfigs, TRoute5Body } from './definitions';
 
-@controller({ path: '/test' })
+@controller({ path: '/test', when: () => process.env.NODE_ENV !== Environment.PRODUCTION })
 export class TestController extends BaseRestController {
   constructor(opts: IControllerOptions) {
     super({

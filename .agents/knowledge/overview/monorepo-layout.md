@@ -17,7 +17,7 @@ versions churn on every release and would make the bundle stale for no gain.
 <!-- okf:generated:packages-table start -->
 | Package | npm name | Description |
 |---|---|---|
-| [`boot`](/packages/boot.md) | `@venizia/ignis-boot` | Convention-based auto-discovery and bootstrapping system for TypeScript applications. |
+| [`boot`](/packages/boot.md) | `@venizia/ignis-boot` | Build-time artifact index generator for IGNIS applications: scans decorated classes with the TypeScript AST and emits one static registration file per package, so bun build --compile sees plain imports. |
 | [`connectors`](/packages/connectors.md) | `@venizia/ignis-connectors` | Datasource and repository connectors for the IGNIS framework: the engine-neutral relational and search tiers, plus Postgres, SQLite, PGlite, Typesense and Meilisearch behind sub-paths. |
 | [`core-server`](/packages/core-server.md) | `@venizia/ignis` | High-performance TypeScript server infrastructure combining LoopBack 4 enterprise architecture (decorator-based DI, repository pattern, component system) with Hono speed (~140k req/s). |
 | [`core-worker`](/packages/core-worker.md) | `@venizia/ignis-worker` | Browser Web Worker host for the IGNIS framework: the request/response envelope, the transport contract, and WorkerApplication - the layer that listens on `onmessage` instead of a socket, so a RestApplication can serve its controllers with no server anywhere. |

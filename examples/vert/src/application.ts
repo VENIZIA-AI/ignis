@@ -1,51 +1,30 @@
 import {
-  ChangePasswordRequestSchema,
-  ChangePasswordResponseSchema,
-  SignInRequestSchema,
-  SignInResponseSchema,
-  SignUpRequestSchema,
-  SignUpResponseSchema,
-} from '@/models';
-import {
-  Authentication,
-  AuthenticateBindingKeys,
+  ApiReferenceComponent,
   AuthenticateComponent,
+  Authentication,
   AuthenticationStrategyRegistry,
-  AuthorizeBindingKeys,
-  AuthorizeComponent,
   AuthorizationEnforcerRegistry,
   AuthorizationEnforcerTypes,
-  CasbinEnforcerModelDrivers,
+  AuthorizeComponent,
   BaseApplication,
+  BasicAuthenticationStrategy,
   BindingKeys,
   BindingNamespaces,
-  CasbinAuthorizationEnforcer,
   CASBIN_RBAC_DOMAIN_SCOPED_MODEL,
+  CasbinAuthorizationEnforcer,
+  CasbinEnforcerModelDrivers,
   CoreBindings,
-  ScopedCasbinAdapter,
-  HealthCheckBindingKeys,
   HealthCheckComponent,
   IApplicationConfigs,
   IApplicationInfo,
-  IAuthorizeOptions,
-  IHealthCheckOptions,
   IMiddlewareConfigs,
-  JOSEStandards,
   JWKSIssuerAuthenticationStrategy,
-  JWKSModes,
-  BasicAuthenticationStrategy,
-  ApiReferenceComponent,
+  ScopedCasbinAdapter,
   ValueOrPromise,
-  TAuthenticationRestOptions,
-  TJWTTokenServiceOptions,
-  TBasicTokenServiceOptions,
-  TJWKSKeyDriver,
-  TJWKSKeyFormat,
 } from '@venizia/ignis';
 import {
   applicationEnvironment,
   Environment,
-  getError,
   HTTP,
   int,
   RedisSingleHelper,
@@ -55,18 +34,9 @@ import path from 'node:path';
 import packageJson from './../package.json';
 import { EnvironmentKeys } from './common/environments';
 import { PostgresDataSource } from './datasources/postgres.datasource';
-// import { MetaLinkRepository } from './repositories/meta-link.repository';
-import {
-  ConfigurationRepository,
-  ProductRepository,
-  SaleChannelProductRepository,
-  SaleChannelRepository,
-  UserRepository,
-} from './repositories';
-import { AuthenticationService } from './services';
-import { RowLockingTestService } from './services/tests/row-locking-test.service';
-import { AuthorizationExampleController } from './controllers';
+import { GeneratedArtifacts } from './generated/artifacts';
 import { Organization, Permission, PolicyDefinition, Role } from './models/entities';
+import { RowLockingTestService } from './services/tests/row-locking-test.service';
 
 // -----------------------------------------------------------------------------------------------
 export const beConfigs: IApplicationConfigs = {
@@ -80,7 +50,19 @@ export const beConfigs: IApplicationConfigs = {
   debug: {
     shouldShowRoutes: process.env.NODE_ENV !== Environment.PRODUCTION,
   },
-  bootOptions: {},
+  // Every decorated class under src/ (regenerate with `bun run generate:artifacts`), then the
+  // framework components this application turns on. Their options come from PlatformComponent.
+  artifacts: [
+    GeneratedArtifacts,
+    {
+      components: [
+        HealthCheckComponent,
+        ApiReferenceComponent,
+        AuthenticateComponent,
+        AuthorizeComponent,
+      ],
+    },
+  ],
 };
 
 // -----------------------------------------------------------------------------------------------
@@ -156,92 +138,7 @@ export class Application extends BaseApplication {
   }
 
   // --------------------------------------------------------------------------------
-  registerAuth() {
-    // Manual registration (booter can't discover .ts files when running from source)
-    this.dataSource(PostgresDataSource);
-    this.repository(UserRepository);
-    this.repository(ConfigurationRepository);
-    this.repository(ProductRepository);
-    this.repository(SaleChannelRepository);
-    this.repository(SaleChannelProductRepository);
-    this.service(AuthenticationService);
-
-    this.bind<TAuthenticationRestOptions>({ key: AuthenticateBindingKeys.REST_OPTIONS }).toValue({
-      useAuthController: true,
-      controllerOpts: {
-        restPath: '/auth',
-        serviceKey: BindingKeys.build({
-          namespace: BindingNamespaces.SERVICE,
-          key: AuthenticationService.name,
-        }),
-        payload: {
-          signIn: {
-            request: { schema: SignInRequestSchema },
-            response: { schema: SignInResponseSchema },
-          },
-          signUp: {
-            request: { schema: SignUpRequestSchema },
-            response: { schema: SignUpResponseSchema },
-          },
-          changePassword: {
-            request: { schema: ChangePasswordRequestSchema },
-            response: { schema: ChangePasswordResponseSchema },
-          },
-        },
-      },
-    });
-
-    this.bind<TJWTTokenServiceOptions>({ key: AuthenticateBindingKeys.JWT_OPTIONS }).toValue({
-      standard: JOSEStandards.JWKS,
-      options: {
-        mode: JWKSModes.ISSUER,
-        algorithm: applicationEnvironment.get<string>(
-          EnvironmentKeys.APP_ENV_JWKS_ALGORITHM,
-        ) as 'ES256',
-        keys: {
-          driver: applicationEnvironment.get<TJWKSKeyDriver>(
-            EnvironmentKeys.APP_ENV_JWKS_KEY_DRIVER,
-          ),
-          format: applicationEnvironment.get<TJWKSKeyFormat>(
-            EnvironmentKeys.APP_ENV_JWKS_KEY_FORMAT,
-          ),
-          private: applicationEnvironment.get<string>(EnvironmentKeys.APP_ENV_JWKS_PRIVATE_KEY),
-          public: applicationEnvironment.get<string>(EnvironmentKeys.APP_ENV_JWKS_PUBLIC_KEY),
-        },
-        kid: applicationEnvironment.get<string>(EnvironmentKeys.APP_ENV_JWKS_KID),
-        getTokenExpiresFn: () => {
-          const jwtExpiresIn = applicationEnvironment.get<string>(
-            EnvironmentKeys.APP_ENV_JWT_EXPIRES_IN,
-          );
-          if (!jwtExpiresIn) {
-            throw getError({
-              message: `[getTokenExpiresFn] Invalid APP_ENV_JWT_EXPIRES_IN | jwtExpiresIn: ${jwtExpiresIn}`,
-            });
-          }
-
-          return parseInt(jwtExpiresIn);
-        },
-      },
-    });
-
-    this.bind<TBasicTokenServiceOptions>({ key: AuthenticateBindingKeys.BASIC_OPTIONS }).toValue({
-      verifyCredentials: async opts => {
-        const authenticateService = this.get<AuthenticationService>({
-          key: BindingKeys.build({
-            namespace: BindingNamespaces.SERVICE,
-            key: AuthenticationService.name,
-          }),
-        });
-        return authenticateService.signIn(opts.context, {
-          identifier: { scheme: 'username', value: opts.credentials.username },
-          credential: { scheme: 'basic', value: opts.credentials.password },
-        });
-      },
-    });
-
-    this.component(AuthenticateComponent);
-
-    // Register authentication strategies
+  preConfigure(): ValueOrPromise<void> {
     AuthenticationStrategyRegistry.getInstance().register({
       container: this,
       strategies: [
@@ -249,22 +146,6 @@ export class Application extends BaseApplication {
         { name: Authentication.STRATEGY_BASIC, strategy: BasicAuthenticationStrategy },
       ],
     });
-  }
-
-  // --------------------------------------------------------------------------------
-  preConfigure(): ValueOrPromise<void> {
-    this.registerAuth();
-    this.registerTestDependencies();
-
-    // Extra Components
-    this.bind<IHealthCheckOptions>({
-      key: HealthCheckBindingKeys.HEALTH_CHECK_OPTIONS,
-    }).toValue({
-      restOptions: { path: '/health-check' },
-    });
-    this.component(HealthCheckComponent);
-
-    this.component(ApiReferenceComponent);
 
     // TODO: Fix MetaLinkRepository ordering — temporarily disabled for JWKS testing
     // this.bind<TStaticAssetsComponentOptions>({
@@ -295,13 +176,10 @@ export class Application extends BaseApplication {
     //   },
     // });
     // this.component(StaticAssetComponent);
-
-    // this.controller(TestController);
-    this.controller(AuthorizationExampleController);
   }
 
   // --------------------------------------------------------------------------------
-  async registerAuthorization() {
+  async registerAuthorizationEnforcer() {
     const dataSource = this.get<PostgresDataSource>({ key: 'datasources.PostgresDataSource' });
 
     const adapter = new ScopedCasbinAdapter({
@@ -323,19 +201,6 @@ export class Application extends BaseApplication {
       password: applicationEnvironment.get<string>(EnvironmentKeys.APP_ENV_AUTHORZ_REDIS_PASSWORD),
       database: int(applicationEnvironment.get(EnvironmentKeys.APP_ENV_AUTHORZ_REDIS_DB) ?? '8'),
     });
-
-    this.bind<IAuthorizeOptions>({ key: AuthorizeBindingKeys.OPTIONS }).toValue({
-      defaultDecision: 'deny',
-      alwaysAllowRoles: ['999_super-admin'],
-      // Scoped RBAC: the request domain is the authenticated user's organization.
-      domainResolver: ({ context }) => {
-        const user = context.get(Authentication.CURRENT_USER) as
-          { organizationId?: string } | undefined;
-        return user?.organizationId ? { type: Organization.name, id: user.organizationId } : null;
-      },
-    });
-
-    this.component(AuthorizeComponent);
 
     AuthorizationEnforcerRegistry.getInstance().register({
       container: this,
@@ -373,14 +238,9 @@ export class Application extends BaseApplication {
       Array.from(this.bindings.keys()),
     );
 
-    await this.registerAuthorization();
+    await this.registerAuthorizationEnforcer();
 
-    // Register test repositories & services, then run tests
     await this.runRepositoryTests();
-  }
-
-  private registerTestDependencies(): void {
-    this.service(RowLockingTestService);
   }
 
   private async runRepositoryTests(): Promise<void> {

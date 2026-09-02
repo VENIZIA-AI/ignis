@@ -18,7 +18,7 @@ tags: [examples, realtime]
 
 ```bash
 bun install
-bun run server:dev        # NODE_ENV=development bun ., via application.init() -> boot() -> start()
+bun run server:dev        # NODE_ENV=development bun ., via application.init() -> start()
 bun client.ts              # scripted socket.io-client simulation, SERVER_URL env override
 ```
 
@@ -26,7 +26,7 @@ The client (`client.ts`) simulates ten cases end-to-end: connect/authenticate, e
 
 ## Notable / non-obvious
 
-- Unlike most other examples, `index.ts` here calls `application.init()` then explicitly chains `.boot().then(...).catch(...)` before `.start()`, rather than a single `await application.start()` - worth noting when comparing lifecycle entry points across examples.
+- `index.ts` calls `application.init()` and then `await application.start()` inside one try/catch - the same lifecycle entry point as every other example; the retired `boot()` step is no longer chained anywhere.
 - REST and Socket.IO surfaces overlap deliberately: joining/leaving a room and listing clients/rooms are each reachable through both a socket event and a REST endpoint under `/api/socket`, so the client script can cross-check one transport against the other.
 
 ## Related

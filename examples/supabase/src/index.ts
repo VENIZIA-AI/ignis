@@ -17,29 +17,19 @@ const main = async () => {
     .for('runApplication')
     .info(' Getting ready to start up %s Application...', applicationName);
 
-  // Boot failures (e.g. Supabase unreachable - SupabaseDataSource.configure() builds
+  // Start failures (e.g. Supabase unreachable - SupabaseDataSource.configure() builds
   // the postgres-js client and propagates driver errors loudly) are caught here, logged, and exit
   // the process instead of starting a server with an unconfigured datasource.
-  return application
-    .boot()
-    .then(() => {
-      application.start().catch(err => {
-        logger.error(
-          '[main] Application start failed | Application Name: %s | Error: %s',
-          applicationName,
-          err,
-        );
-        process.exit(1);
-      });
-    })
-    .catch(err => {
-      logger.error(
-        '[main] Application boot failed | Application Name: %s | Error: %s',
-        applicationName,
-        err,
-      );
-      process.exit(1);
-    });
+  try {
+    await application.start();
+  } catch (error) {
+    logger.error(
+      '[main] Application start failed | Application Name: %s | Error: %s',
+      applicationName,
+      error,
+    );
+    process.exit(1);
+  }
 };
 
 export default main();
