@@ -398,20 +398,29 @@ export abstract class RestApplication<
   async registerArtifacts(index: TArtifactIndexInput): Promise<void> {
     const indexes = this.flattenArtifactIndex({ input: index });
 
-    for (const ctor of await this.selectArtifacts({ indexes, field: 'dataSources' })) {
+    const dataSources = await this.selectArtifacts({ indexes, field: 'dataSources' });
+    for (const ctor of dataSources) {
       this.dataSource(ctor);
     }
-    for (const ctor of await this.selectArtifacts({ indexes, field: 'components' })) {
+
+    const components = await this.selectArtifacts({ indexes, field: 'components' });
+    for (const ctor of components) {
       this.component(ctor);
       this.bindProvidedKeys({ ctor });
     }
-    for (const ctor of await this.selectArtifacts({ indexes, field: 'repositories' })) {
+
+    const repositories = await this.selectArtifacts({ indexes, field: 'repositories' });
+    for (const ctor of repositories) {
       this.repository(ctor);
     }
-    for (const ctor of await this.selectArtifacts({ indexes, field: 'services' })) {
+
+    const services = await this.selectArtifacts({ indexes, field: 'services' });
+    for (const ctor of services) {
       this.service(ctor);
     }
-    for (const ctor of await this.selectArtifacts({ indexes, field: 'controllers' })) {
+
+    const controllers = await this.selectArtifacts({ indexes, field: 'controllers' });
+    for (const ctor of controllers) {
       this.controller(ctor);
     }
   }
