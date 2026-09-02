@@ -16,22 +16,6 @@ import {
   trackableHeaders,
 } from '../common';
 
-/** Path params always reach the validator as strings, so a number-typed id must be coerced before `z.number()` sees it - `idParamsSchema` alone rejects `/accounts/7`. */
-const idPathParamsSchema = (opts: { idType: TIdSchemaType }) => {
-  const { idType } = opts;
-
-  if (idType !== 'number') {
-    return idParamsSchema({ idType });
-  }
-
-  return z.object({
-    id: z.coerce.number().openapi({
-      param: { name: 'id', in: 'path', description: 'The unique id of the resource' },
-      examples: [1, 2, 3],
-    }),
-  });
-};
-
 /** Picks user-overridden response schema if present (and non-undefined), else the default. */
 type TResolvedResponseSchema<C, D extends z.ZodTypeAny> = C extends {
   response: {
@@ -47,12 +31,28 @@ type TResolvedResponseSchema<C, D extends z.ZodTypeAny> = C extends {
  * `this.other(...)`, or `this` is `undefined` at the call site.
  */
 export class RouteConfigResolver {
+  /** Path params always reach the validator as strings, so a number-typed id must be coerced before `z.number()` sees it - `idParamsSchema` alone rejects `/accounts/7`. */
+  private static idPathParamsSchema(opts: { idType: TIdSchemaType }) {
+    const { idType } = opts;
+
+    if (idType !== 'number') {
+      return idParamsSchema({ idType });
+    }
+
+    return z.object({
+      id: z.coerce.number().openapi({
+        param: { name: 'id', in: 'path', description: 'The unique id of the resource' },
+        examples: [1, 2, 3],
+      }),
+    });
+  }
+
   /** Picks the caller's per-route `request.params` override, else the entity's id path-param schema. */
   private static resolveIdParams<
     C extends { request?: { params?: TAnyObjectSchema } } | undefined,
   >(opts: { config: C; idType: TIdSchemaType }) {
     const { config, idType } = opts;
-    return config?.request?.params ?? idPathParamsSchema({ idType });
+    return config?.request?.params ?? RouteConfigResolver.idPathParamsSchema({ idType });
   }
 
   /** Creates conditional count response schema. */
