@@ -118,6 +118,8 @@ type TOptions<T extends object = {}> = T;
 
 ## Nullable and Promise Types
 
+`Source ->` [`types/utility.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/common/types/utility.ts)
+
 ```typescript
 type TNullable<T> = T | undefined | null;
 type ValueOrPromise<T> = T | Promise<T>;
@@ -173,6 +175,8 @@ Declared in `@venizia/ignis-inversion` and re-exported by `helpers`. It's the si
 - **Sound only when targeting ES2024+** - a class is emitted as `class`, never as an ES5 constructor function. Bundling this package down to ES5 breaks the predicate.
 
 ## Object Utility Types
+
+`Source ->` [`types/utility.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/common/types/utility.ts)
 
 ```typescript
 type ValueOf<T> = T[keyof T];
@@ -355,6 +359,8 @@ interface IConfigurable<Options extends object = any, Result = any> {
 | `IConfigurable<Options, Result>` | Interface with one `configure(opts?)` method | Implemented by helpers and components that expose an explicit initialization step |
 
 ## JSX Types
+
+`Source ->` [`jsx.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/common/jsx.ts)
 
 Re-exported from `hono/jsx` for convenience when building JSX-based views:
 
