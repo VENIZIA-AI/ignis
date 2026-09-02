@@ -1,6 +1,6 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
-import type { IScannedArtifact } from './common/types';
+import type { IScannedArtifact } from './common';
 import { ArtifactIndexEmitter } from './emitter';
 import { ArtifactScanner } from './scanner';
 
@@ -52,7 +52,6 @@ export const checkArtifactIndex = (
   return { isFresh: actual === expected, expected, actual };
 };
 
-export * from './common/constants';
-export * from './common/types';
+export * from './common';
 export * from './emitter';
 export * from './scanner';

@@ -2,9 +2,13 @@ import { BaseHelper, getError } from '@venizia/ignis-helpers';
 import { readFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import * as ts from 'typescript';
-import { ArtifactStereotypes, ArtifactTypes } from './common/constants';
-import type { TArtifactType } from './common/constants';
-import type { IScanOptions, IScannedArtifact } from './common/types';
+import {
+  ArtifactStereotypes,
+  ArtifactTypes,
+  type IScanOptions,
+  type IScannedArtifact,
+  type TArtifactType,
+} from './common';
 
 /** Finds exported classes carrying a stereotype decorator by reading the source, never by running it. */
 export class ArtifactScanner extends BaseHelper {

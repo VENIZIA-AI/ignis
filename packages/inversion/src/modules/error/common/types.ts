@@ -1,4 +1,4 @@
-import type { TErrorScope } from './definition';
+import type { TErrorScope } from '../definition';
 
 /** Declared here, not imported from helpers' `TLogLevel` (browser-safe); a helpers guard pins them equal. */
 export type TErrorLogLevel = 'error' | 'emerg' | 'warn' | 'info' | 'debug';
