@@ -22,3 +22,5 @@ export class ArtifactIndexFields {
 }
 
 export type TArtifactIndexField = TConstValue<typeof ArtifactIndexFields>;
+
+export const SecFetchSiteValues = ['same-origin', 'same-site', 'none', 'cross-site'] as const;

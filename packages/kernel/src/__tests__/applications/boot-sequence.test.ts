@@ -1,5 +1,5 @@
 import { RestApplication } from '@/base/applications/rest';
-import type { IApplicationConfigs, IApplicationInfo } from '@/base/applications/types';
+import type { IApplicationConfigs, IApplicationInfo } from '@/base/applications/common';
 import { BindingNamespaces } from '@/common/bindings';
 import { BindingScopes } from '@/helpers/inversion';
 import { BaseComponent } from '@/base/components';

@@ -24,8 +24,8 @@ import type { IService } from '../services';
 import { AbstractApplication } from './abstract';
 import type { IBootSequenceStep } from './boot-sequence';
 import { BootSteps } from './boot-sequence';
-import { ArtifactIndexFields } from './constants';
-import type { IApplicationConfigs, IArtifactIndex, TArtifactIndexInput } from './types';
+import { ArtifactIndexFields } from './common';
+import type { IApplicationConfigs, IArtifactIndex, TArtifactIndexInput } from './common';
 
 interface IRegisterDynamicBindingsOptions<T extends IConfigurable = IConfigurable> {
   namespace: TBindingNamespace;
