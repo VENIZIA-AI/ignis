@@ -3,7 +3,7 @@ import { getError } from '@venizia/ignis-helpers/core';
 import { RuntimeModules } from '@venizia/ignis-helpers/common';
 import type { Env, Schema } from 'hono';
 import path from 'node:path';
-import type { IServerApplication, IServerApplicationConfigs, TNodeServerInstance } from './types';
+import type { IServerApplication, IServerApplicationConfigs, TNodeServerInstance } from './common';
 
 /** Lives here, not in the kernel: `Bun.serve` resolves only through `@types/bun`, and emitting `Bun` into the kernel's published `.d.ts` would force that dependency on every browser consumer of `@venizia/ignis-kernel`. This package legitimately has Bun types - it is the layer that calls `Bun.serve`. */
 export type TBunServerInstance = ReturnType<typeof Bun.serve>;

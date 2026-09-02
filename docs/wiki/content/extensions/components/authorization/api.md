@@ -887,7 +887,7 @@ protected async loadLines(opts: { model: Model; lines: string[] }): Promise<void
 }
 ```
 
-Source -> [`adapters/base-filtered.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/components/auth/authorize/adapters/base-filtered.ts), [`adapters/types.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/components/auth/authorize/adapters/types.ts)
+Source -> [`adapters/base-filtered.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/components/auth/authorize/adapters/base-filtered.ts), [`adapters/common/types.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/components/auth/authorize/adapters/common/types.ts)
 
 ## ScopedCasbinAdapter
 

@@ -1,9 +1,9 @@
 import { describe, expect, it, test } from 'bun:test';
 import { type SQL } from 'drizzle-orm';
 import { PgDialect } from 'drizzle-orm/pg-core';
-import type { ICasbinPolicySource } from '@/components/auth/authorize/adapters/types';
+import type { ICasbinPolicySource } from '@/components/auth/authorize/adapters/common';
 import { ScopedCasbinAdapter } from '@/components/auth/authorize/adapters/scoped-casbin';
-import type { IScopedCasbinEntities } from '@/components/auth/authorize/adapters/types';
+import type { IScopedCasbinEntities } from '@/components/auth/authorize/adapters/common';
 import { AuthorizationDomainScopes } from '@venizia/ignis-kernel';
 import type { ILogger } from '@venizia/ignis-helpers/core';
 

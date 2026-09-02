@@ -10,7 +10,7 @@ import {
 } from '@venizia/ignis-kernel';
 import { BaseFilteredAdapter } from '../base-filtered';
 import { CustomGrantExpander, type TCustomGrantRow } from '../custom-grant-expander';
-import type { ICasbinPolicySource, IScopedCasbinEntities } from '../types';
+import type { ICasbinPolicySource, IScopedCasbinEntities } from '../common';
 import { PrincipalPolicyEdges, type TPrincipalPolicyRow } from './policy-edges';
 import {
   DEFAULT_SCHEMA,

@@ -10,7 +10,7 @@ import { ScopedCasbinAdapter } from '@/components/auth/authorize/adapters/scoped
 import type {
   ICasbinPolicySource,
   IScopedCasbinEntities,
-} from '@/components/auth/authorize/adapters/types';
+} from '@/components/auth/authorize/adapters/common';
 import { CASBIN_RBAC_DOMAIN_SCOPED_MODEL } from '@/components/auth/authorize/enforcers/models/rbac-domain.model';
 
 const dialect = new PgDialect();

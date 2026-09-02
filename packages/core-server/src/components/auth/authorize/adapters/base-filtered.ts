@@ -3,7 +3,7 @@ import { BaseHelper } from '@venizia/ignis-helpers/core';
 import { type FilteredAdapter, type Model } from 'casbin';
 import type { SQL } from 'drizzle-orm';
 import { PolicyConnectorResolver } from './connector';
-import type { ICasbinPolicyFilter, ICasbinPolicySource, TCasbinPolicyConnector } from './types';
+import type { ICasbinPolicyFilter, ICasbinPolicySource, TCasbinPolicyConnector } from './common';
 
 /** Read-only base for casbin FilteredAdapters backed by a datasource - owns connector plumbing and no-op write methods; subclasses implement {@link loadFilteredPolicy} per principal. */
 export abstract class BaseFilteredAdapter<TFilter = ICasbinPolicyFilter>

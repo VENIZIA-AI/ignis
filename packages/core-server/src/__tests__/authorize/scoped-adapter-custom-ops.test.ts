@@ -6,7 +6,7 @@ import { ScopedCasbinAdapter } from '@/components/auth/authorize/adapters/scoped
 import type {
   ICasbinPolicySource,
   IScopedCasbinEntities,
-} from '@/components/auth/authorize/adapters/types';
+} from '@/components/auth/authorize/adapters/common';
 import { AuthorizationPermissionBuilder } from '@venizia/ignis-kernel';
 import { GrantBuilder } from '@venizia/ignis-kernel';
 import { AuthorizationDomainScopes } from '@venizia/ignis-kernel';

@@ -13,7 +13,7 @@ import { ScopedCasbinAdapter } from '@/components/auth/authorize/adapters/scoped
 import type {
   ICasbinPolicySource,
   IScopedCasbinEntities,
-} from '@/components/auth/authorize/adapters/types';
+} from '@/components/auth/authorize/adapters/common';
 
 const dialect = new PgDialect();
 

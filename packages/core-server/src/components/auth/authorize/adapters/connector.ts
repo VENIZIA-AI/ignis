@@ -1,5 +1,5 @@
 import { getError } from '@venizia/ignis-helpers/core';
-import type { ICasbinPolicySource, TCasbinPolicyConnector } from './types';
+import type { ICasbinPolicySource, TCasbinPolicyConnector } from './common';
 
 /** Connector-resolution logic shared by every adapter/loader reading the casbin policy store. */
 export class PolicyConnectorResolver {

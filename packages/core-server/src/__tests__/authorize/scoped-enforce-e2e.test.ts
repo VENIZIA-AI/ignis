@@ -5,7 +5,7 @@ import { CASBIN_RBAC_DOMAIN_SCOPED_MODEL } from '@/components/auth/authorize/enf
 import { CasbinEnforcerModelDrivers } from '@venizia/ignis-kernel';
 import type { FilteredAdapter, Model } from 'casbin';
 import { ScopedCasbinAdapter } from '@/components/auth/authorize/adapters/scoped-casbin';
-import type { IScopedCasbinEntities } from '@/components/auth/authorize/adapters/types';
+import type { IScopedCasbinEntities } from '@/components/auth/authorize/adapters/common';
 import { type SQL } from 'drizzle-orm';
 import { PgDialect } from 'drizzle-orm/pg-core';
 
