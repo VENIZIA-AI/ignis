@@ -96,6 +96,3 @@ export const isApplicationError = (error: unknown): error is ApplicationError =>
 };
 
 export type TApplicationError = ApplicationError;
-
-// Registers getError as the throw factory message-code.ts calls, without importing this module.
-MessageCode.useErrorFactory({ factory: getError });

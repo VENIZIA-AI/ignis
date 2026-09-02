@@ -9,13 +9,13 @@ export class MessageCode {
   static readonly MIN_SEGMENTS = 2;
   static readonly DEFAULT = 'core.system_error';
 
-  // The one permitted raw `new Error` here, used only until ApplicationError registers `getError`.
+  // The one permitted raw `new Error`, used only until `src/index.ts` registers `getError`.
   private static errorFactory: TErrorFactory = opts =>
-    new Error(typeof opts.message === 'string' ? opts.message : undefined);
+    new Error(typeof opts.message === 'string' ? opts.message : JSON.stringify(opts.message));
 
   /**
-   * Registered by the ApplicationError module at init, which already imports this module;
-   * keeps the throws identical without a static import back.
+   * Registered by the package entry at module init; keeps the throws identical without a
+   * static import of app-error (that import was the cycle).
    */
   static useErrorFactory(opts: { factory: TErrorFactory }): void {
     this.errorFactory = opts.factory;
@@ -26,7 +26,7 @@ export class MessageCode {
     const { parts } = opts;
 
     if (parts.length < this.MIN_SEGMENTS) {
-      throw MessageCode.errorFactory({
+      throw this.errorFactory({
         messageCode: 'core.message_code.invalid_segment_count',
         message: `[MessageCode][build] A code needs at least ${this.MIN_SEGMENTS} segments (namespace + reason) | Got: ${JSON.stringify(parts)}`,
       });
@@ -34,7 +34,7 @@ export class MessageCode {
 
     for (const segment of parts) {
       if (!this.SEGMENT_PATTERN.test(segment)) {
-        throw MessageCode.errorFactory({
+        throw this.errorFactory({
           messageCode: 'core.message_code.invalid_segment_format',
           message: `[MessageCode][build] Invalid segment '${segment}' | Expected lower snake_case (a-z, 0-9, '_') | Full: ${JSON.stringify(parts)}`,
         });
