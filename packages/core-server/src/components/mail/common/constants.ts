@@ -1,3 +1,4 @@
+import type { TConstValue } from '@venizia/ignis-helpers/common';
 import { MessageCode } from '@venizia/ignis-helpers/core';
 
 export class MailDefaults {
@@ -50,3 +51,11 @@ export class BullMQExecutorModes {
     return this.MODE_SET.has(value);
   }
 }
+
+export class MailProviders {
+  static readonly NODEMAILER = 'nodemailer';
+  static readonly MAILGUN = 'mailgun';
+  static readonly CUSTOM = 'custom';
+}
+
+export type TMailProvider = TConstValue<typeof MailProviders>;
