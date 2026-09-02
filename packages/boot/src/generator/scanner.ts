@@ -1,4 +1,4 @@
-import { getError, LoggerFactory } from '@venizia/ignis-helpers';
+import { BaseHelper, getError } from '@venizia/ignis-helpers';
 import { readFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import * as ts from 'typescript';
@@ -7,15 +7,23 @@ import type { TArtifactType } from './common/constants';
 import type { IScanOptions, IScannedArtifact } from './common/types';
 
 /** Finds exported classes carrying a stereotype decorator by reading the source, never by running it. */
-export class ArtifactScanner {
-  private static readonly logger = LoggerFactory.getLogger([ArtifactScanner.name]);
+export class ArtifactScanner extends BaseHelper {
+  private static instance?: ArtifactScanner;
 
-  static scan(opts: IScanOptions): IScannedArtifact[] {
+  private constructor() {
+    super({ scope: ArtifactScanner.name });
+  }
+
+  static getInstance(): ArtifactScanner {
+    return (this.instance ??= new ArtifactScanner());
+  }
+
+  scan(opts: IScanOptions): IScannedArtifact[] {
     const root = resolve(opts.root);
     const ignore = opts.ignore ?? ArtifactStereotypes.DEFAULT_IGNORE;
 
-    const artifacts = ArtifactScanner.listSourceFiles({ root, ignore }).flatMap(filePath =>
-      ArtifactScanner.scanFile({ filePath }),
+    const artifacts = this.listSourceFiles({ root, ignore }).flatMap(filePath =>
+      this.scanFile({ filePath }),
     );
 
     return artifacts.sort(
@@ -23,7 +31,7 @@ export class ArtifactScanner {
     );
   }
 
-  private static listSourceFiles(opts: { root: string; ignore: string[] }): string[] {
+  private listSourceFiles(opts: { root: string; ignore: string[] }): string[] {
     const ignoreGlobs = opts.ignore.map(pattern => new Bun.Glob(pattern));
     const files: string[] = [];
 
@@ -37,7 +45,7 @@ export class ArtifactScanner {
     return files.sort();
   }
 
-  private static scanFile(opts: { filePath: string }): IScannedArtifact[] {
+  private scanFile(opts: { filePath: string }): IScannedArtifact[] {
     const { filePath } = opts;
     const source = ts.createSourceFile(
       filePath,
@@ -46,12 +54,12 @@ export class ArtifactScanner {
       true,
     );
 
-    const stereotypeByLocalName = ArtifactScanner.collectStereotypeImports({ source });
+    const stereotypeByLocalName = this.collectStereotypeImports({ source });
     if (stereotypeByLocalName.size === 0) {
       return [];
     }
 
-    const exportedNames = ArtifactScanner.collectExportClauseNames({ source });
+    const exportedNames = this.collectExportClauseNames({ source });
     const found: IScannedArtifact[] = [];
 
     ts.forEachChild(source, node => {
@@ -60,7 +68,7 @@ export class ArtifactScanner {
       }
 
       const className = node.name.text;
-      const types = ArtifactScanner.artifactTypesOf({
+      const types = this.artifactTypesOf({
         node,
         stereotypeByLocalName,
         filePath,
@@ -83,7 +91,7 @@ export class ArtifactScanner {
       const isAbstract = has(ts.SyntaxKind.AbstractKeyword);
 
       if (!isNamedExport || isAbstract) {
-        ArtifactScanner.logger
+        this.logger
           .for('scanFile')
           .warn(
             'Skipped %s in %s | %s',
@@ -101,7 +109,7 @@ export class ArtifactScanner {
   }
 
   /** local identifier -> stereotype name, for named imports from an IGNIS module (aliases resolved). */
-  private static collectStereotypeImports(opts: { source: ts.SourceFile }): Map<string, string> {
+  private collectStereotypeImports(opts: { source: ts.SourceFile }): Map<string, string> {
     const result = new Map<string, string>();
 
     for (const statement of opts.source.statements) {
@@ -131,7 +139,7 @@ export class ArtifactScanner {
     return result;
   }
 
-  private static collectExportClauseNames(opts: { source: ts.SourceFile }): Set<string> {
+  private collectExportClauseNames(opts: { source: ts.SourceFile }): Set<string> {
     const names = new Set<string>();
 
     for (const statement of opts.source.statements) {
@@ -149,7 +157,7 @@ export class ArtifactScanner {
     return names;
   }
 
-  private static artifactTypesOf(opts: {
+  private artifactTypesOf(opts: {
     node: ts.ClassDeclaration;
     stereotypeByLocalName: Map<string, string>;
     filePath: string;
@@ -173,9 +181,9 @@ export class ArtifactScanner {
         continue;
       }
 
-      const type = ArtifactScanner.typeOfInjectableCall({ call: expression });
+      const type = this.typeOfInjectableCall({ call: expression });
       if (!type) {
-        ArtifactScanner.logger
+        this.logger
           .for('artifactTypesOf')
           .warn(
             'Skipped %s in %s | @injectable type is not a literal or ArtifactTypes.<NAME>',
@@ -190,9 +198,7 @@ export class ArtifactScanner {
     return types;
   }
 
-  private static typeOfInjectableCall(opts: {
-    call: ts.CallExpression;
-  }): TArtifactType | undefined {
+  private typeOfInjectableCall(opts: { call: ts.CallExpression }): TArtifactType | undefined {
     const [argument] = opts.call.arguments;
     if (!argument || !ts.isObjectLiteralExpression(argument)) {
       return undefined;
@@ -208,20 +214,20 @@ export class ArtifactScanner {
 
     const value = property.initializer;
     if (ts.isStringLiteral(value)) {
-      return ArtifactScanner.asArtifactType({ raw: value.text });
+      return this.asArtifactType({ raw: value.text });
     }
     if (
       ts.isPropertyAccessExpression(value) &&
       ts.isIdentifier(value.expression) &&
       value.expression.text === 'ArtifactTypes'
     ) {
-      return ArtifactScanner.asArtifactType({ raw: value.name.text.toLowerCase() });
+      return this.asArtifactType({ raw: value.name.text.toLowerCase() });
     }
 
     return undefined;
   }
 
-  private static asArtifactType(opts: { raw: string }): TArtifactType | undefined {
+  private asArtifactType(opts: { raw: string }): TArtifactType | undefined {
     const { raw } = opts;
     return ArtifactStereotypes.EMIT_ORDER.map(entry => entry.type)
       .concat(ArtifactTypes.MODEL)

@@ -6,7 +6,11 @@ const ROOT = resolve(process.cwd(), 'src', '__tests__', 'fixtures', 'artifacts')
 
 describe('ArtifactScanner', () => {
   test('finds every exported class carrying an IGNIS stereotype, and nothing else', () => {
-    expect(ArtifactScanner.scan({ root: ROOT }).map(a => `${a.type}:${a.className}`)).toEqual([
+    expect(
+      ArtifactScanner.getInstance()
+        .scan({ root: ROOT })
+        .map(a => `${a.type}:${a.className}`),
+    ).toEqual([
       'component:ProbeComponent',
       'controller:ProbeController',
       'datasource:ProbeDataSource',
@@ -20,7 +24,9 @@ describe('ArtifactScanner', () => {
   });
 
   test('undecorated, abstract, unexported, foreign-decorated, __tests__ and generated/ classes are excluded', () => {
-    const names = ArtifactScanner.scan({ root: ROOT }).map(a => a.className);
+    const names = ArtifactScanner.getInstance()
+      .scan({ root: ROOT })
+      .map(a => a.className);
 
     for (const excluded of [
       'PlainService',
@@ -34,9 +40,9 @@ describe('ArtifactScanner', () => {
   });
 
   test('deterministic: two scans are identical; filePath is absolute', () => {
-    const first = ArtifactScanner.scan({ root: ROOT });
+    const first = ArtifactScanner.getInstance().scan({ root: ROOT });
 
-    expect(ArtifactScanner.scan({ root: ROOT })).toEqual(first);
+    expect(ArtifactScanner.getInstance().scan({ root: ROOT })).toEqual(first);
     expect(first.find(a => a.className === 'GreeterService')?.filePath).toBe(
       join(ROOT, 'services', 'greeter.service.ts'),
     );

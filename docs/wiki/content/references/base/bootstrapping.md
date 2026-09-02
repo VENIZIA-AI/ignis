@@ -296,7 +296,8 @@ interface IScannedArtifact {
 }
 
 class ArtifactScanner {
-  static scan(opts: { root: string; ignore?: string[] }): IScannedArtifact[];
+  static getInstance(): ArtifactScanner;
+  scan(opts: { root: string; ignore?: string[] }): IScannedArtifact[];
 }
 
 class ArtifactIndexEmitter {

@@ -13,7 +13,7 @@ export interface IGenerateOptions {
 }
 
 const render = (opts: IGenerateOptions): { content: string; artifacts: IScannedArtifact[] } => {
-  const artifacts = ArtifactScanner.scan({ root: opts.root, ignore: opts.ignore });
+  const artifacts = ArtifactScanner.getInstance().scan({ root: opts.root, ignore: opts.ignore });
   const content = ArtifactIndexEmitter.render({
     artifacts,
     outFile: resolve(opts.out),

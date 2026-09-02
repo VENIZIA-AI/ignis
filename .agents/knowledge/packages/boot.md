@@ -22,7 +22,7 @@ a peer dependency because the scanner is an AST walk. Dual CJS + ESM build, sub-
 ## Layout
 
 - `src/cli.ts` - `parseArgs`; `run()` returns the exit code and `process.exit(run())` is the only exit.
-- `src/generator/scanner.ts` - `ArtifactScanner.scan({ root, ignore })` -> `IScannedArtifact[]`.
+- `src/generator/scanner.ts` - `ArtifactScanner.getInstance().scan({ root, ignore })` -> `IScannedArtifact[]` (a `BaseHelper` singleton; the logger is the instance's).
 - `src/generator/emitter.ts` - `ArtifactIndexEmitter.render({ artifacts, outFile, exportName })` -> text.
 - `src/generator/index.ts` - `generateArtifactIndex`, `checkArtifactIndex`, `IGenerateOptions`.
 - `src/generator/common/` - `ArtifactStereotypes` (`BY_DECORATOR`, `ROOT_DECORATOR`, `SOURCE_MODULES`,
