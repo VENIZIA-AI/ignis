@@ -101,5 +101,7 @@ If your operations depend on the left column, stay on winston - it is not deprec
 **Files:**
 
 - [`packages/helpers/src/modules/logger/pino/logger.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/logger/pino/logger.ts) - `PinoLogger`
-- [`packages/helpers/src/modules/logger/pino/define.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/logger/pino/define.ts) - destination plan, level table, backing singleton
+- [`packages/helpers/src/modules/logger/pino/destination.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/logger/pino/destination.ts) - destination plan
+- [`packages/helpers/src/modules/logger/pino/backing.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/logger/pino/backing.ts) - backing singleton
+- [`packages/helpers/src/modules/logger/pino/common/constants.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/logger/pino/common/constants.ts) - level table
 - [`packages/helpers/src/modules/logger/factory.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/logger/factory.ts) - `LoggerFactory.use`, swap-on-use delegation
