@@ -23,7 +23,7 @@ import {
   readStringField,
   toSynonym,
   TypesenseInternal,
-} from './internal/connector-internal';
+} from './internal';
 import {
   buildEmptySearchResponse,
   MAX_HITS_PER_PAGE,
@@ -50,7 +50,7 @@ import type {
 } from './common';
 import { TypesenseDirtyValues, TypesenseImportActions } from './common';
 
-// Re-exported for back-compat: callers and test fakes historically imported the client-shape type from this module rather than from `./types`, its new home.
+// Re-exported for back-compat: callers and test fakes historically imported the client-shape type from this module rather than from `./common`, its new home.
 export type { ITypesenseClientLike } from './common';
 
 /** Typesense engine connector - built/injected by TypesenseDataSource, which exposes the raw client via getClient(). */
