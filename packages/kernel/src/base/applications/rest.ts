@@ -18,7 +18,7 @@ import { ControllerTransports } from '../controllers/common/constants';
 import type { IDataSource } from '../datasources';
 import { BaseAppErrorMiddleware } from '../middlewares/app-error/app-error.middleware';
 import { notFoundHandler } from '../middlewares/not-found/not-found.middleware';
-import type { TMixinOpts } from '../mixins/types';
+import type { TMixinOpts } from '../mixins/common';
 import type { IRepository } from '../repositories';
 import type { IService } from '../services';
 import { AbstractApplication } from './abstract';

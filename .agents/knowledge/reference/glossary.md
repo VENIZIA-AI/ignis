@@ -79,7 +79,7 @@ overwrite; everything outside such a region is never touched.
 
 **Mixin** - An interface contract (`IComponentMixin`, `IRepositoryMixin`, `IServiceMixin`,
 `IControllerMixin`, `IServerConfigMixin`, `IStaticServeMixin` in
-`packages/kernel/src/base/mixins/types.ts`) composed onto `BaseApplication` to add `component()`,
+`packages/kernel/src/base/mixins/common/types.ts`) composed onto `BaseApplication` to add `component()`,
 `repository()`, `service()`, `controller()` registration methods. The older `FieldsVisibilityMixin`
 and `DefaultFilterMixin` no longer exist - their behaviour was folded into the repository base
 classes directly.

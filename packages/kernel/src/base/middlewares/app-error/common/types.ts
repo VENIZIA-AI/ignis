@@ -1,5 +1,5 @@
 import type { TConstValue } from '@venizia/ignis-helpers/common';
-import type { ApplicationErrorTypes } from './definition';
+import type { ApplicationErrorTypes } from '../definition';
 
 export interface IDatabaseError extends Error {
   code?: string;

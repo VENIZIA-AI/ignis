@@ -2,7 +2,7 @@ import { RestApplication } from '@/base/applications/rest';
 import type { IApplicationConfigs, IApplicationInfo } from '@/base/applications/common';
 import { BaseComponent } from '@/base/components';
 import { service } from '@/base/metadata';
-import type { TMixinOpts } from '@/base/mixins/types';
+import type { TMixinOpts } from '@/base/mixins/common';
 import { BindingNamespaces } from '@/common/bindings';
 import { BindingScopes, BindingValueTypes } from '@/helpers/inversion';
 import type { ValueOrPromise } from '@venizia/ignis-helpers/common';

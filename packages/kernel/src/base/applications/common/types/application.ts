@@ -8,7 +8,7 @@ import type {
   IRepositoryMixin,
   IServiceMixin,
   IStaticServeMixin,
-} from '../../../mixins/types';
+} from '../../../mixins/common';
 import type { IApplicationBootOptions, TArtifactIndexInput } from './artifacts';
 
 /** No `host`/`port`: a browser Worker has neither, and carrying them here made one silently configured with `localhost:3000`. `@venizia/ignis` widens this shape with both - see its `IServerApplicationConfigs`. */

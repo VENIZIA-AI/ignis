@@ -4,7 +4,7 @@ import {
   POSTGRES_CLIENT_ERROR_CLASSES,
   POSTGRES_RETRYABLE_ERROR_CODES,
 } from './definition';
-import type { IDatabaseError } from './types';
+import type { IDatabaseError } from './common';
 
 /** True for a database error caused by the request (SQLSTATE class 22/23/44) -> HTTP 400; in production the detail/table/constraint context is suppressed so no row values or schema internals leak. */
 export const isDatabaseClientError = (opts: {

@@ -1,10 +1,10 @@
 import type { Binding } from '@/helpers/inversion';
 import type { TClass, ValueOrPromise } from '@venizia/ignis-helpers/common';
-import type { IApplication, TArtifactIndexInput } from '../applications';
-import type { BaseComponent } from '../components';
-import type { IDataSource } from '../datasources';
-import type { IRepository } from '../repositories';
-import type { IService } from '../services';
+import type { IApplication, TArtifactIndexInput } from '../../applications';
+import type { BaseComponent } from '../../components';
+import type { IDataSource } from '../../datasources';
+import type { IRepository } from '../../repositories';
+import type { IService } from '../../services';
 
 /** Options of the registration itself, never of the artifact - what the artifact needs goes on its class. */
 export type TMixinOpts = {
