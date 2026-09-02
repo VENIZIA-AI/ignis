@@ -139,7 +139,11 @@ export class WinstonLoggerFactory {
     };
   }
 
-  /** Lazy and cached - a plain module-level eager instance would build a winston logger (and read env vars) at import time for every consumer of the barrel, even one that never logs through the default. */
+  /**
+   * Lazy and cached - a plain module-level eager instance would build a winston logger (and read
+   * env vars) at import time for every consumer of the barrel, even one that never logs through
+   * the default.
+   */
   static defaultLogger(): winston.Logger {
     return (WinstonLoggerFactory._defaultLogger ??= WinstonLoggerFactory.defineCustomLogger({
       transports: WinstonLoggerFactory.resolveDefaultTransportOptions(),
