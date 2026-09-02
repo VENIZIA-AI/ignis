@@ -1,4 +1,4 @@
-import type { IScannedArtifact } from '@/generator/common/types';
+import type { IScannedArtifact } from '@/generator/common';
 import { ArtifactIndexEmitter } from '@/generator/emitter';
 import { describe, expect, test } from 'bun:test';
 import { join } from 'node:path';
