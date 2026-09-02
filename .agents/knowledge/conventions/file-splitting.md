@@ -64,6 +64,15 @@ leaves know about each other.
 Reject a split that fails this check, even when every resulting file is short. When a piece would
 have to call back into a sibling, do not extract it - leave it in the parent.
 
+## Tools
+
+- `make split-report` - hub candidates, stray `types.ts`, folders without a barrel, files over 500
+  lines, cycles per package. Informational.
+- `bun scripts/module-cycles.ts packages/<p>/dist/esm --max 0` - fails on an import cycle. bun turns
+  cycle members into lazy initializers; a barrel over one can export `undefined`.
+- `make surface-check` - the public surface equals `reference/public-surface.md`. A split that
+  changes it is wrong; an intended API change runs `make surface-gen` and shows the diff in review.
+
 ## Why this is written down
 
 Splitting on pain alone, with no stated threshold, is how a codebase accumulates files past 1500

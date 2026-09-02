@@ -14,6 +14,20 @@ counted as concepts.
 `generateArtifactIndex`/`checkArtifactIndex` and the scanner tests. Emitted index unchanged (`vert`
 `check:artifacts` fresh); boot 8/8, lint 0.
 
+||||||| parent of ddf328eb (chore(scripts): public-surface snapshot and check freeze every package's exported symbols)
+## 2026-09-02 - file split wave 0: split-report, module-cycles, public-surface snapshot
+
+Three tools land together for the repo-wide file split. `make split-report` lists hub candidates,
+stray `types.ts`/`constants.ts`, scope folders without a barrel, files over 500 lines and import
+cycles per package - informational, never a gate. `bun scripts/module-cycles.ts <dist/esm> --max 0`
+fails on an import cycle in a built ESM tree. `make surface-gen`/`make surface-check` read the
+TypeScript compiler API over every package's built `.d.ts` and freeze every exported symbol into
+`reference/public-surface.md`; a split that changes the surface fails the gate, an intended API
+change reruns `surface-gen`. Positive control: appending a symbol to
+`packages/filter/dist/cjs/index.d.ts` turned the check `stale ... exit=1`, and `make filter`
+restored it to `fresh ... exit=0`. Baseline import-cycle count per package's `dist/esm`: inversion 1
+(`app-error.js <-> message-code.js`), every other package 0.
+
 ## 2026-09-02 - no string literal where a const class exists: ArtifactIndexFields, boot's ArtifactTypes
 
 The five `selectArtifacts({ field: 'dataSources' })` calls in `RestApplication.registerArtifacts`

@@ -4,7 +4,7 @@
         lint-dev-configs lint-inversion lint-filter lint-helpers lint-boot lint-core lint-core-server lint-kernel lint-connectors lint-core-worker lint-docs-mcp \
         purity purity-test purity-inversion purity-filter purity-helpers purity-kernel \
         purity-dev-configs purity-boot purity-core purity-core-server purity-connectors purity-core-worker purity-docs-mcp \
-        okf-check okf-gen okf-coverage okf-viz split-report \
+        okf-check okf-gen okf-coverage okf-viz split-report surface-gen surface-check \
         catalog-check \
         update update-all update-core update-core-server update-dev-configs update-docs-mcp update-filter update-helpers update-inversion update-boot
 
@@ -50,6 +50,13 @@ okf-viz:
 split-report:
 	@bun scripts/split-report.ts
 
+# Reads the built .d.ts of every exports entry; run after `make build-all`.
+surface-gen:
+	@bun scripts/public-surface.ts gen
+
+surface-check:
+	@bun scripts/public-surface.ts check
+
 agent-setup:
 	@bun .agents/plugin/setup.ts
 
@@ -72,7 +79,7 @@ release:
 # ----------------------------------------------------------------------------
 build: build-all
 
-build-all: core core-worker docs docs-mcp
+build-all: core core-worker docs docs-mcp surface-check
 	@echo "🚀 All packages rebuilt successfully."
 
 # Granular build targets for individual packages
@@ -337,6 +344,8 @@ help:
 	@echo "  okf-coverage  - Report bundle coverage against the source inventory."
 	@echo "  okf-viz       - Build the offline knowledge-graph explorer."
 	@echo "  split-report  - Report hub files, stray types, missing barrels, long files, cycles (informational)."
+	@echo "  surface-gen   - Snapshot every exported symbol into .agents/knowledge/reference/public-surface.md."
+	@echo "  surface-check - Gate: the public surface equals the snapshot."
 	@echo "  agent-setup   - Link your agent's tool file + skills to the tracked AGENTS.md."
 	@echo ""
 	@echo "Browser purity:"
