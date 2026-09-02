@@ -112,5 +112,8 @@
     "prettier": "catalog:",
     "tsc-alias": "catalog:",
     "typescript": "catalog:"
+  },
+  "peerDependencies": {
+    "typescript": ">=5.0.0"
   }
 }
