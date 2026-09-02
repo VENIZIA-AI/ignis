@@ -10,9 +10,11 @@ import { ModuleGraph } from './module-cycles';
 const SKIP = new Set(['node_modules', 'dist', '__tests__', 'generated', '.turbo']);
 const SOFT_LINE_MARK = 500;
 const HUB_EXPORT_MARK = 10;
-// Match lines starting with export, find the declared symbol name
-const DECLARATION =
-  /^export\s+(?:default\s+)?(?:abstract\s+)?(class|const|type|interface|function|enum|let)\s+(\w+)/gm;
+const DECLARATION_KEYWORDS = ['class', 'const', 'type', 'interface', 'function', 'enum', 'let'];
+const DECLARATION = new RegExp(
+  `^export\\s+(?:default\\s+)?(?:abstract\\s+)?(${DECLARATION_KEYWORDS.join('|')})\\s+(\\w+)`,
+  'gm',
+);
 const EXPORTED_CLASS = /^export\s+(?:abstract\s+)?class\s+(\w+)/gm;
 
 interface IFileFacts {
@@ -35,7 +37,7 @@ export class SplitReport {
       f => ['types.ts', 'constants.ts'].includes(basename(f.file)) && f.exports > HUB_EXPORT_MARK,
     );
     const multiClass = facts.filter(
-      f => f.classes.length >= 2 && !SplitReport.isAbstractBasePair(f),
+      f => f.classes.length >= 2 && !SplitReport.isAbstractBasePair({ facts: f }),
     );
     const strayTypes = facts.filter(
       f => ['types.ts', 'constants.ts'].includes(basename(f.file)) && !f.file.includes('/common/'),
@@ -83,10 +85,10 @@ export class SplitReport {
   }
 
   /** abstract.ts + base.ts pairs are the format; exactly one of each is one concept. */
-  private static isAbstractBasePair(facts: IFileFacts): boolean {
-    const [first, second] = facts.classes;
+  private static isAbstractBasePair(opts: { facts: IFileFacts }): boolean {
+    const [first, second] = opts.facts.classes;
     return (
-      facts.classes.length === 2 &&
+      opts.facts.classes.length === 2 &&
       /Abstract/.test(first) &&
       /Base/.test(second)
     );
