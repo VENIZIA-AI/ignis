@@ -10,7 +10,8 @@ Exhaustive reference for every utility type, resolver function, and constant cla
 
 **Files:**
 
-- [`packages/helpers/src/common/types.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/common/types.ts) - utility types, resolvers, field-mapping types
+- [`packages/helpers/src/common/types/`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/common/types) - utility, class, const-value, resolver, field-mapping, and injection types
+- [`packages/helpers/src/common/resolvers.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/common/resolvers.ts) - `resolveValue`, `resolveValueAsync`, `resolveClass`
 - [`packages/helpers/src/common/constants/app.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/common/constants/app.ts) - `Defaults`, `RuntimeModules`, `DataTypes`
 - [`packages/helpers/src/common/constants/http.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/common/constants/http.ts) - `HTTP`
 - [`packages/helpers/src/common/constants/grpc.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/common/constants/grpc.ts) - `GRPC`
@@ -101,7 +102,7 @@ All of the above resolve through the root `@venizia/ignis-helpers` barrel. It re
 
 ## General Purpose Types
 
-`Source ->` [`types.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/common/types.ts)
+`Source ->` [`types/utility.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/common/types/utility.ts)
 
 ```typescript
 type AnyType = any;
