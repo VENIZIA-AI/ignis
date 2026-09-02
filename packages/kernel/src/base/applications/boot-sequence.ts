@@ -4,6 +4,7 @@ import { getError } from '@venizia/ignis-helpers/core';
 /** The step names the kernel defines - the vocabulary a subclass targets with `BootSequence.insertAfter`. A server application adds its own on top (`ServerBootSteps` in `@venizia/ignis`). */
 export class BootSteps {
   static readonly STATIC_CONFIGURE = 'staticConfigure';
+  static readonly REGISTER_ARTIFACTS = 'registerArtifacts';
   static readonly PRE_CONFIGURE = 'preConfigure';
   static readonly REGISTER_DEFAULT_MIDDLEWARES = 'registerDefaultMiddlewares';
   static readonly REGISTER_DATA_SOURCES = 'registerDataSources';
@@ -14,6 +15,7 @@ export class BootSteps {
 
   static readonly SCHEME_SET = new Set<string>([
     this.STATIC_CONFIGURE,
+    this.REGISTER_ARTIFACTS,
     this.PRE_CONFIGURE,
     this.REGISTER_DEFAULT_MIDDLEWARES,
     this.REGISTER_DATA_SOURCES,

@@ -39,6 +39,7 @@ const REST_APPLICATION_MEMBERS = [
   'registerArtifact',
   'registerArtifacts',
   'registerComponents',
+  'registerConfiguredArtifacts',
   'registerContributedDataSources',
   'registerControllers',
   'registerCoreBindings',

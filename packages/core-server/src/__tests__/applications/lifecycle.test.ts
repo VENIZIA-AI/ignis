@@ -135,12 +135,12 @@ describe('BaseApplication - getBootSequence()', () => {
 
     const stepNames = application['getBootSequence']().map(step => step.name);
 
-    expect(ServerBootSteps.SCHEME_SET.size).toBe(13);
+    expect(ServerBootSteps.SCHEME_SET.size).toBe(14);
     expect(stepNames.every(name => ServerBootSteps.isValid(name))).toBe(true);
     expect(ServerBootSteps.isValid('not-a-step')).toBe(false);
   });
 
-  test('composes the documented 13-step order: kernel base + core-server splices, in order', () => {
+  test('composes the documented 14-step order: kernel base + core-server splices, in order', () => {
     const application = new TraceApplication({
       scope: 'BootSequenceApplication',
       config: buildConfigs(),
@@ -153,6 +153,7 @@ describe('BaseApplication - getBootSequence()', () => {
       'validateEnvs',
       'registerDefaultMiddlewares',
       'staticConfigure',
+      'registerArtifacts',
       'preConfigure',
       'hydrateSecrets',
       'registerDataSources',

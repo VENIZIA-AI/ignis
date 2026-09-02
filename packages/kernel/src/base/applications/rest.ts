@@ -120,6 +120,7 @@ export abstract class RestApplication<
   protected getBootSequence(): IBootSequenceStep[] {
     return [
       { name: BootSteps.STATIC_CONFIGURE, run: () => this.staticConfigure() },
+      { name: BootSteps.REGISTER_ARTIFACTS, run: () => this.registerConfiguredArtifacts() },
       { name: BootSteps.PRE_CONFIGURE, run: () => this.preConfigure() },
       { name: BootSteps.REGISTER_DATA_SOURCES, run: () => this.registerDataSources() },
       { name: BootSteps.REGISTER_COMPONENTS, run: () => this.registerComponents() },
@@ -413,6 +414,16 @@ export abstract class RestApplication<
     for (const ctor of await this.selectArtifacts({ indexes, field: 'controllers' })) {
       this.controller(ctor);
     }
+  }
+
+  /** The boot step behind `configs.artifacts`; an application with none configured registers nothing here. */
+  protected async registerConfiguredArtifacts(): Promise<void> {
+    const artifacts = this.configs.artifacts;
+    if (!artifacts) {
+      return;
+    }
+
+    await this.registerArtifacts(artifacts);
   }
 
   private flattenArtifactIndex(opts: { input: TArtifactIndexInput }): IArtifactIndex[] {

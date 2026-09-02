@@ -109,6 +109,9 @@ export interface IApplicationConfigs {
   /** `environment` is the host's ambient environment name. Set it where there is none to read - a browser Worker - so the error middleware can tell "no ambient environment" from "misconfigured". Absent on a server, which reads `process.env.NODE_ENV`. */
   error?: { rootKey?: string; environment?: string };
   asyncContext?: { enable: boolean };
+  /** Generated indexes to register before `preConfigure` - one, or an array composed from several packages. */
+  artifacts?: TArtifactIndexInput;
+  /** @deprecated Runtime file-glob boot is gone. Kept only so an existing config still type-checks; ignored. */
   bootOptions?: IApplicationBootOptions;
   debug?: { shouldShowRoutes?: boolean };
   /** Controller transports to enable. Defaults to ['rest']. */

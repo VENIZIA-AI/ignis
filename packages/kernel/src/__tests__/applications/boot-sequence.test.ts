@@ -65,7 +65,7 @@ describe('BootSequence', () => {
   });
 
   test('BootSteps knows its own names and rejects a server-only one', () => {
-    expect(BootSteps.SCHEME_SET.size).toBe(8);
+    expect(BootSteps.SCHEME_SET.size).toBe(9);
     expect(BootSteps.isValid(BootSteps.REGISTER_CONTRIBUTED_DATA_SOURCES)).toBe(true);
     expect(BootSteps.isValid('hydrateSecrets')).toBe(false);
   });
@@ -97,6 +97,10 @@ describe('RestApplication boot sequence', () => {
     }
     setupMiddlewares(): void {}
 
+    override async registerConfiguredArtifacts(): Promise<void> {
+      this.order.push('registerArtifacts');
+      await super.registerConfiguredArtifacts();
+    }
     override async registerDataSources(): Promise<void> {
       this.order.push('registerDataSources');
     }
@@ -118,6 +122,7 @@ describe('RestApplication boot sequence', () => {
 
     expect(app.order).toEqual([
       'staticConfigure',
+      'registerArtifacts',
       'preConfigure',
       'registerDataSources',
       'registerComponents',
@@ -125,6 +130,26 @@ describe('RestApplication boot sequence', () => {
       'registerControllers',
       'postConfigure',
     ]);
+  });
+
+  test('configs.artifacts is registered before preConfigure, so preConfigure can override it by hand', async () => {
+    class Svc {}
+    class SeesIt extends OrderApp {
+      sawServiceInPreConfigure = false;
+
+      override preConfigure(): void {
+        this.sawServiceInPreConfigure = this.isBound({ key: `${BindingNamespaces.SERVICE}.Svc` });
+        super.preConfigure();
+      }
+    }
+    const app = new SeesIt({
+      scope: SeesIt.name,
+      config: { ...buildConfigs(), artifacts: { services: [Svc] } },
+    });
+
+    await app.initialize();
+
+    expect(app.sawServiceInPreConfigure).toBe(true);
   });
 
   test('every step is logged by name with its duration, then one summary line', async () => {
@@ -139,21 +164,22 @@ describe('RestApplication boot sequence', () => {
       .filter(call => call.level === 'debug' && call.message.includes('DONE'))
       .map(call => call.args[1]);
     expect(completed).toEqual([
-      'Boot step 1/7 staticConfigure',
-      'Boot step 2/7 preConfigure',
-      'Boot step 3/7 registerDataSources',
-      'Boot step 4/7 registerComponents',
-      'Boot step 5/7 registerContributedDataSources',
-      'Boot step 6/7 registerControllers',
-      'Boot step 7/7 postConfigure',
+      'Boot step 1/8 staticConfigure',
+      'Boot step 2/8 registerArtifacts',
+      'Boot step 3/8 preConfigure',
+      'Boot step 4/8 registerDataSources',
+      'Boot step 5/8 registerComponents',
+      'Boot step 6/8 registerContributedDataSources',
+      'Boot step 7/8 registerControllers',
+      'Boot step 8/8 postConfigure',
     ]);
 
     const summary = logger.calls.find(
       call => call.level === 'info' && call.message.startsWith('Boot sequence complete'),
     );
-    expect(summary?.args[0]).toBe(7);
+    expect(summary?.args[0]).toBe(8);
     expect(summary?.args[2]).toBe(
-      'staticConfigure -> preConfigure -> registerDataSources -> registerComponents -> registerContributedDataSources -> registerControllers -> postConfigure',
+      'staticConfigure -> registerArtifacts -> preConfigure -> registerDataSources -> registerComponents -> registerContributedDataSources -> registerControllers -> postConfigure',
     );
   });
 
@@ -173,11 +199,11 @@ describe('RestApplication boot sequence', () => {
     const failure = await app.initialize().catch((error: unknown) => error);
 
     expect(failure).toBe(boom);
-    expect(app.order).toEqual(['staticConfigure']);
+    expect(app.order).toEqual(['staticConfigure', 'registerArtifacts']);
 
     const failed = logger.calls.find(call => call.level === 'error');
     expect(failed?.message).toStartWith('Boot step failed');
-    expect(failed?.args.slice(0, 3)).toEqual(['preConfigure', 2, 7]);
+    expect(failed?.args.slice(0, 3)).toEqual(['preConfigure', 3, 8]);
   });
 });
 
