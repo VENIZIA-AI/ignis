@@ -13,7 +13,7 @@ Exhaustive reference for `htmlContent()`, `htmlResponse()`, and `BaseRestControl
 - [`packages/core-server/src/utilities/jsx.utility.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/utilities/jsx.utility.ts) - `htmlContent`, `htmlResponse`
 - [`packages/core-server/src/base/controllers/rest/base.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/base/controllers/rest/base.ts) - `BaseRestController.defineJSXRoute`
 - [`packages/core-server/src/base/controllers/rest/abstract.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/base/controllers/rest/abstract.ts) - `AbstractRestController.getJSXRouteConfigs`
-- [`packages/helpers/src/common/types.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/common/types.ts) - `FC`, `PropsWithChildren`, `Child` (re-exported from `hono/jsx`)
+- [`packages/helpers/src/common/jsx.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/common/jsx.ts) - `FC`, `PropsWithChildren`, `Child` (re-exported from `hono/jsx`)
 
 ## `htmlContent()`
 
@@ -152,9 +152,9 @@ Verified in [`packages/core-server/tsconfig.json`](https://github.com/VENIZIA-AI
 
 ### Component types
 
-`FC`, `PropsWithChildren`, and `Child` are re-exported from `@venizia/ignis-helpers` (sourced from `hono/jsx`) - import them from there rather than reaching into `hono/jsx` directly.
+`FC`, `PropsWithChildren`, and `Child` are re-exported from `@venizia/ignis-helpers` (sourced from `hono/jsx`) - import them from there rather than reaching into `hono/jsx` directly. They live in `common/jsx.ts`, kept out of the `./common` barrel on purpose: `hono/jsx` types reach DOM-dependent JSX intrinsics and `hono` is an optional peer, so a Worker or hono-less consumer of `@venizia/ignis-helpers/common` must not carry that file in its type graph. The root barrel (`src/index.ts`) re-exports the file directly, which is why the three names still resolve from the package root.
 
-`Source ->` [`packages/helpers/src/common/types.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/common/types.ts)
+`Source ->` [`packages/helpers/src/common/jsx.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/common/jsx.ts)
 
 ```typescript
 export type { Child, FC, PropsWithChildren } from 'hono/jsx';
