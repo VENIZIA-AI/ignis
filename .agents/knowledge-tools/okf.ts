@@ -474,8 +474,8 @@ const renderBindingKeys = (): GeneratedFile => {
     content:
       refHeader({
         title: 'Binding keys',
-        description: 'Every dependency-injection binding key declared in core (generated).',
-        resource: 'packages/core-server/src/common/bindings.ts',
+        description: 'Every dependency-injection binding key declared in the kernel (generated).',
+        resource: 'packages/kernel/src/common/bindings.ts',
         tags: 'reference, bindings, di',
       }) +
       generatedNote({ seeAlso: 'Namespaces: [binding key namespaces](/conventions/binding-key-namespaces.md).' }) +
