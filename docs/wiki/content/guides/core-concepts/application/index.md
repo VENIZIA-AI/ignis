@@ -75,7 +75,7 @@ The `BaseApplication` class provides several **overridable hook methods** that a
 | :--- | :--- |
 | `getAppInfo()` | **Required.** Return application metadata, usually from `package.json`. Used for OpenAPI docs. |
 | `staticConfigure()` | Configure static file serving. Called before `preConfigure()`. |
-| `preConfigure()` | **Most Important Hook.** Set up application resources like components, controllers, services, and datasources. Can be skipped if using [Bootstrapping](./bootstrapping). |
+| `preConfigure()` | Register what the artifact index cannot express - registry calls, hand-made bindings. Classes come from `configs.artifacts`, see [Registering artifacts](./bootstrapping). |
 | `postConfigure()` | Perform actions *after* all resources have been configured and instantiated. Note: do not bind new datasources, components, or controllers here -- they will not be auto-configured. |
 | `setupMiddlewares()`| Add custom application-level middlewares to the Hono instance. Called after `initialize()` completes. |
 
@@ -126,7 +126,7 @@ Application configuration is passed to the `BaseApplication` constructor via an 
 | `path.isStrict`| `boolean`| `true` | If `true`, the router is strict about trailing slashes. |
 | `debug.shouldShowRoutes`| `boolean`| `false`| If `true`, prints all registered routes to the console on startup. |
 | `favicon` | `string` | `'🔥'` | An emoji to be used as the application's favicon. |
-| `bootOptions` | `IBootOptions` | `undefined` | Enable auto-discovery of artifacts. See [Bootstrapping](./bootstrapping). |
+| `artifacts` | `TArtifactIndexInput` | `undefined` | The generated artifact index (or several) to register before `preConfigure()`. See [Registering artifacts](./bootstrapping). |
 | `asyncContext.enable` | `boolean` | `true` | Enable Hono's async context storage (powered by `contextStorage()`). |
 | `transports` | `TControllerTransport[]` | `['rest']` | Controller transports to enable. Add `'grpc'` for gRPC support. |
 | `error.rootKey` | `string` | `undefined` | Optional root key for error response wrapping. |
@@ -161,8 +161,7 @@ Register resources in `preConfigure()` to tell the DI container about your class
 | `this.component(...)` | `this.component(AuthComponent)` | **Singleton** | Register reusable modules |
 | `this.repository(...)` | `this.repository(UserRepository)` | Transient | Register data access |
 | `this.service(...)` | `this.service(UserService)` | Transient | Register business logic |
-| `this.controller(...)` | `this.controller(UserController)` | Transient | Register API endpoints |
-| `this.booter(...)` | `this.booter(CustomBooter)` | Tagged `'booter'` | Register custom booters |
+| `this.controller(...)` | `this.controller(UserController)` | **Singleton** | Register API endpoints |
 
 All registration methods accept an optional second parameter to customize the binding key:
 
@@ -226,7 +225,7 @@ Uses `hono/bun` `serveStatic` for Bun runtime, `@hono/node-server/serve-static` 
 ## See Also
 
 - **Related Concepts:**
-  - [Bootstrapping](./bootstrapping) - Auto-discovery of artifacts
+  - [Registering artifacts](./bootstrapping) - Decorators, the generated index, `configs.artifacts`
   - [REST Controllers](/guides/core-concepts/rest-controllers) | [gRPC Controllers](/guides/core-concepts/grpc-controllers) - Creating HTTP/gRPC endpoints
   - [Services](/guides/core-concepts/services) - Business logic layer
   - [Dependency Injection](/guides/core-concepts/dependency-injection) - How DI works in IGNIS

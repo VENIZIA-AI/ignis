@@ -342,96 +342,33 @@ interface IPropertyMetadata {
 }
 ```
 
-## Boot System Integration
+## Artifact Registration and DI
 
-The boot system (`@venizia/ignis-boot`) extends the DI container to support automatic artifact discovery and registration.
+`registerArtifacts` (the `registerArtifacts` boot step) binds every class listed in `configs.artifacts` with the same keys the manual methods use, so injection sites do not care which path registered a class.
 
-### Key Bindings
+| Binding Key | Scope | Registered by |
+|-------------|-------|---------------|
+| `datasources.<Class>` | Singleton | `dataSource()` / index `dataSources` |
+| `components.<Class>` | Singleton | `component()` / index `components` |
+| `repositories.<Class>` | Transient | `repository()` / index `repositories` |
+| `services.<Class>` | Transient | `service()` / index `services` |
+| `controllers.<Class>` | Singleton | `controller()` / index `controllers` |
+| any key named in a component's `@provide({ key })` | Singleton (or `@provide({ scope })`) | index `components` only |
 
-When boot system is enabled, the following bindings are created:
-
-| Binding Key | Type | Description |
-|-------------|------|-------------|
-| `@app/instance` | Value | The application container instance |
-| `@app/project_root` | Value | Absolute path to project root |
-| `@app/boot-options` | Value | Boot configuration options |
-| `bootstrapper` | Class (Singleton) | Main boot orchestrator |
-| `booter.DatasourceBooter` | Class (Tagged: 'booter') | Datasource discovery booter |
-| `booter.RepositoryBooter` | Class (Tagged: 'booter') | Repository discovery booter |
-| `booter.ServiceBooter` | Class (Tagged: 'booter') | Service discovery booter |
-| `booter.ControllerBooter` | Class (Tagged: 'booter') | Controller discovery booter |
-
-### Tag-based Discovery
-
-The boot system uses container tags for automatic discovery:
+A `@provide` key is bound `toProvider`: the provider resolves the component and calls the method on the first `get`, so the value may depend on a datasource or a secret that did not exist at registration time.
 
 ```typescript
-// Register a booter with tag
-this.bind({ key: 'booter.CustomBooter' })
-  .toClass(CustomBooter)
-  .setTags('booter');
+// Registered from the index at the registerArtifacts step ...
+@service()
+export class UserService extends BaseService {}
 
-// Find all booters
-const booterBindings = this.findByTag<IBooter>({ tag: 'booter' });
-```
-
-This pattern allows the `Bootstrapper` to automatically discover and execute all registered booters without explicit registration.
-
-### Artifact Bindings
-
-Once artifacts are discovered and loaded, they're bound using consistent namespace patterns:
-
-```typescript
-// Controllers - auto-tagged with 'controllers'
-this.bind({ key: 'controllers.UserController' }).toClass(UserController);
-
-// Services - auto-tagged with 'services'
-this.bind({ key: 'services.UserService' }).toClass(UserService);
-
-// Repositories - auto-tagged with 'repositories'
-this.bind({ key: 'repositories.UserRepository' }).toClass(UserRepository);
-
-// Datasources - auto-tagged with 'datasources'
-this.bind({ key: 'datasources.PostgresDataSource' }).toClass(PostgresDataSource);
-```
-
-### Boot Lifecycle & DI
-
-The boot system integrates into the application lifecycle:
-
-1. **Application Constructor** - Binds boot infrastructure if `bootOptions` configured
-2. **initialize()** - Calls `boot()` which:
-   - Discovers booters from container (via `findByTag`)
-   - Instantiates booters (via `container.get()` or `binding.getValue()`)
-   - Executes boot phases (configure → discover → load)
-   - Each booter binds discovered artifacts to container
-3. **Post-Boot** - All artifacts available for dependency injection
-
-**Example Flow:**
-
-```typescript
-// 1. Boot discovers UserController.js file
-// 2. Boot loads UserController class
-// 3. Boot binds to container:
-app.bind({ key: 'controllers.UserController' }).toClass(UserController);
-
-// 4. Later, when UserController is instantiated:
+// ... and injected like any other binding
 class UserController {
-  constructor(
-    @inject({ key: 'services.UserService' })
-    private _userService: UserService  // Auto-injected!
-  ) {}
+  constructor(@inject({ key: 'services.UserService' }) private userService: UserService) {}
 }
 ```
 
-### Benefits
-
-- **Zero-configuration DI**: Artifacts auto-discovered and registered
-- **Convention-based**: Follow naming patterns, get DI for free
-- **Extensible**: Custom booters integrate seamlessly via tags
-- **Type-safe**: Full TypeScript support throughout boot process
-
-> **Learn More:** See [Bootstrapping Concepts](/guides/core-concepts/application/bootstrapping)
+> **Learn More:** [Registering artifacts](/guides/core-concepts/application/bootstrapping) and the [Artifact Registration reference](/references/base/bootstrapping).
 
 ## Request Context Access
 
@@ -475,7 +412,7 @@ class MyApp extends BaseApplication {
 
 - **References:**
   - [Inversion Helper](/extensions/helpers/inversion/) - DI container utilities
-  - [Bootstrapping API](/references/base/bootstrapping) - Auto-discovery and DI
+  - [Artifact Registration API](/references/base/bootstrapping) - Stereotypes, `@provide`, `registerArtifacts`
   - [Glossary](/guides/reference/glossary#dependency-injection-di) - DI concepts explained
 
 - **Tutorials:**

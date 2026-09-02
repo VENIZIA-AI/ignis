@@ -1,593 +1,238 @@
-# Bootstrapping
+---
+title: Registering artifacts
+description: Decorate the class, generate the index once per build, pass it in the config - application.ts lists nothing
+difficulty: beginner
+---
 
-> **Core Concept**: Automatic artifact discovery and loading during application startup
+# Registering artifacts
 
-## What is Bootstrapping?
-
-Bootstrapping is the process of automatically discovering and loading application artifacts (controllers, services, repositories, datasources) during application initialization. Instead of manually registering each component, the boot system scans your project directory and automatically loads everything that matches configured patterns.
-
-## Why Bootstrap?
-
-### Without Boot System (Manual Registration)
+An IGNIS application registers its datasources, components, repositories, services and controllers from one generated file. You decorate the class, `ignis-artifacts generate` writes the index, and `configs.artifacts` hands it to the boot sequence. `application.ts` no longer names a single class.
 
 ```typescript
-export class Application extends BaseApplication {
-  preConfigure() {
-    // Manual registration - tedious and error-prone
-    this.dataSource(PostgresDataSource);
-    this.dataSource(MongoDataSource);
+// src/services/product.service.ts
+@service()
+export class ProductService extends BaseService {}
 
-    this.repository(UserRepository);
-    this.repository(ProductRepository);
-    this.repository(OrderRepository);
-    this.repository(CustomerRepository);
-    // ... 50+ more repositories
+// src/application.ts
+import { GeneratedArtifacts } from './generated/artifacts';
 
-    this.service(AuthService);
-    this.service(UserService);
-    this.service(ProductService);
-    // ... 50+ more services
-
-    this.controller(AuthController);
-    this.controller(UserController);
-    this.controller(ProductController);
-    // ... 50+ more controllers
-  }
-}
-```
-
-**Problems:**
-- **Repetitive** - Every new artifact requires manual registration
-- **Error-prone** - Easy to forget registering new artifacts
-- **Maintenance burden** - Constructor grows as application grows
-- **Merge conflicts** - Multiple developers editing same file
-
-### With Boot System (Auto-discovery)
-
-```typescript
-export const appConfigs: IApplicationConfigs = {
-  // ... other config
-  path: { base: '/', isStrict: true },
-  bootOptions: {
-    datasources: { dirs: ['datasources'] },
-    repositories: { dirs: ['repositories'] },
-    services: { dirs: ['services'] },
-    controllers: { dirs: ['controllers'] }
-  }
-};
-
-export class Application extends BaseApplication {
-  preConfigure() {
-    // That's it! Everything auto-discovered and registered
-  }
-}
-```
-
-**Benefits:**
-- **Convention-based** - Follow naming patterns, framework does the rest
-- **Scalable** - Add 100 controllers without changing application code
-- **Clean** - No constructor bloat
-- **Team-friendly** - No merge conflicts on registration
-
-## How It Works
-
-### Three-Phase Boot Process
-
-```
-1. CONFIGURE → 2. DISCOVER → 3. LOAD
-```
-
-#### Phase 1: Configure
-
-Each booter configures its discovery patterns:
-- Which directories to scan
-- Which file extensions to match
-- Whether to scan subdirectories
-
-```typescript
-// ControllerBooter configures itself
-protected override getDefaultDirs(): string[] {
-  return ['controllers'];
-}
-
-protected override getDefaultExtensions(): string[] {
-  return ['.controller.js'];
-}
-```
-
-The `configure()` method merges user-provided options with defaults: `dirs`, `extensions`, `isNested` (defaults to `true`), and optional `glob` override.
-
-#### Phase 2: Discover
-
-Booters scan the filesystem for matching files:
-
-```
-Project Root
-├── controllers/
-│   ├── auth.controller.js      ✓ discovered
-│   ├── user.controller.js      ✓ discovered
-│   └── helpers/
-│       └── validator.js        ✗ doesn't match pattern
-├── services/
-│   └── user.service.js         ✓ discovered (by ServiceBooter)
-└── repositories/
-    └── user.repository.js      ✓ discovered (by RepositoryBooter)
-```
-
-#### Phase 3: Load
-
-Booters load discovered classes and bind them to the container:
-
-```typescript
-// Pseudo-code of what happens
-for (const file of discoveredFiles) {
-  const module = await import(file);
-  for (const exported of Object.values(module)) {
-    if (isClass(exported)) {
-      app.bind({ key: `controllers.${exported.name}` }).toClass(exported);
-    }
-  }
-}
-```
-
-## Boot Options
-
-Configure discovery patterns for each artifact type.
-
-### Basic Configuration
-
-```typescript
-const bootOptions: IBootOptions = {
-  controllers: {
-    dirs: ['controllers'],           // where to look
-    extensions: ['.controller.js'],  // what to match
-    isNested: true                   // scan subdirectories
-  }
+export const configs: IApplicationConfigs = {
+  path: { base: '/api', isStrict: true },
+  artifacts: GeneratedArtifacts,
 };
 ```
 
-### Multiple Directories
+This page is the how-to. The [reference](/references/base/bootstrapping) has every option, and the [changelog](/changelogs/2026-09-02-decorator-artifact-registration) has the migration from `boot()`.
 
-Scan multiple directories for the same artifact type:
+## Before you start
 
-```typescript
-const bootOptions: IBootOptions = {
-  controllers: {
-    dirs: [
-      'controllers/private',  // admin controllers
-      'controllers/public'    // public API controllers
-    ],
-    extensions: ['.controller.js'],
-    isNested: true
-  }
-};
-```
+- `@venizia/ignis` 0.1.x or later, `@venizia/ignis-boot` as a devDependency (it ships the `ignis-artifacts` binary).
+- `experimentalDecorators: true` in the application's own `tsconfig.json`. Under bun, a flag inherited only through `extends` is not enough - see the [gotcha](#if-bun-runs-your-source-directly).
 
-### Multiple Extensions
+## 1. Decorate every class the application owns
 
-Support both JavaScript and TypeScript:
+| Decorator | Marks | Binding key | Scope |
+|---|---|---|---|
+| `@datasource({ ... })` | a datasource | `datasources.<Class>` | `SINGLETON` |
+| `@component()` | a component | `components.<Class>` | `SINGLETON` |
+| `@repository({ model, dataSource })` | a repository | `repositories.<Class>` | `TRANSIENT` |
+| `@service()` | a service | `services.<Class>` | `TRANSIENT` |
+| `@controller({ path })` | a controller | `controllers.<Class>` | `SINGLETON` |
+
+`@datasource`, `@repository`, `@controller` and `@model` already exist in your code. The new work is `@service()` on services and `@component()` on components. A `@model` class is referenced by its repository and is never registered on its own.
 
 ```typescript
-const bootOptions: IBootOptions = {
-  services: {
-    dirs: ['services'],
-    extensions: ['.service.js', '.service.ts'],
-    isNested: true
-  }
-};
+import { component, service } from '@venizia/ignis';
+
+@service()
+export class PricingService extends BaseService {}
+
+@component()
+export class MetricsComponent extends BaseComponent {}
 ```
 
-### Custom Glob Pattern
+The class must be a **named export** (`export class`, not `export default`) and must not be `abstract`. Anything else is skipped with a warning at generate time.
 
-Override default pattern with custom glob:
+## 2. Generate the index
 
-```typescript
-const bootOptions: IBootOptions = {
-  repositories: {
-    // Custom pattern - matches any .repo.js file in data-access subdirectories
-    glob: 'data-access/**/*.repo.js'
-  }
-};
-```
+Add two scripts to `package.json`:
 
-### Disable Subdirectory Scanning
-
-Only scan root level of directory:
-
-```typescript
-const bootOptions: IBootOptions = {
-  controllers: {
-    dirs: ['controllers'],
-    extensions: ['.controller.js'],
-    isNested: false  // only scan controllers/*.controller.js, not subdirs
-  }
-};
-```
-
-## Built-in Booters
-
-The framework provides four built-in booters. They are registered automatically by `BaseApplication.registerBooters()`:
-
-### DatasourceBooter
-
-| Setting | Default |
-|---------|---------|
-| Directories | `['datasources']` |
-| Extensions | `['.datasource.js']` |
-| Binding Key | `datasources.{ClassName}` |
-| Binding Scope | **Singleton** |
-
-**Discovers:**
-- `datasources/postgres.datasource.js` → `PostgresDataSource`
-- `datasources/mongo.datasource.js` → `MongoDataSource`
-
-### RepositoryBooter
-
-| Setting | Default |
-|---------|---------|
-| Directories | `['repositories']` |
-| Extensions | `['.repository.js']` |
-| Binding Key | `repositories.{ClassName}` |
-| Binding Scope | Transient |
-
-**Discovers:**
-- `repositories/user.repository.js` → `UserRepository`
-- `repositories/product/main.repository.js` → `MainRepository`
-
-### ServiceBooter
-
-| Setting | Default |
-|---------|---------|
-| Directories | `['services']` |
-| Extensions | `['.service.js']` |
-| Binding Key | `services.{ClassName}` |
-| Binding Scope | Transient |
-
-**Discovers:**
-- `services/auth.service.js` → `AuthService`
-- `services/user/profile.service.js` → `ProfileService`
-
-### ControllerBooter
-
-| Setting | Default |
-|---------|---------|
-| Directories | `['controllers']` |
-| Extensions | `['.controller.js']` |
-| Binding Key | `controllers.{ClassName}` |
-| Binding Scope | Transient |
-
-**Discovers:**
-- `controllers/auth.controller.js` → `AuthController`
-- `controllers/api/user.controller.js` → `UserController`
-
-## Execution Order
-
-The `Bootstrapper` orchestrates all booters. It discovers booters via `findByTag({ tag: 'booter' })` and runs each phase sequentially across all booters:
-
-```
-Phase: CONFIGURE  → DatasourceBooter → RepositoryBooter → ServiceBooter → ControllerBooter
-Phase: DISCOVER   → DatasourceBooter → RepositoryBooter → ServiceBooter → ControllerBooter
-Phase: LOAD       → DatasourceBooter → RepositoryBooter → ServiceBooter → ControllerBooter
-```
-
-The default registration order in `BaseApplication.registerBooters()` ensures dependency order:
-
-```
-1. DatasourceBooter   → Datasources must be available first
-2. RepositoryBooter   → Repositories need datasources
-3. ServiceBooter      → Services may use repositories
-4. ControllerBooter   → Controllers use services
-```
-
-This ensures dependencies are available when artifacts are constructed.
-
-## When Boot Runs
-
-### Explicit Boot (Standard Pattern)
-
-Boot does NOT run automatically inside `start()`. Call `boot()` explicitly before `start()` - `boot()` calls `registerBooters()` (which registers the four built-in booters plus the `Bootstrapper`) and then runs all boot phases:
-
-```typescript
-const app = new Application({ scope: 'Application', config: appConfigs });
-app.init();                        // register core bindings
-const report = await app.boot();   // registerBooters() → configure/discover/load
-await app.start();                 // initialize() → middlewares → HTTP server
-```
-
-This is the pattern used by the production reference app (`examples/vert/src/index.ts`).
-
-### Using BootMixin (Alternative)
-
-For custom container classes that are not `BaseApplication`, use the `BootMixin`:
-
-```typescript
-import { BootMixin } from '@venizia/ignis-boot';
-import { Container } from '@venizia/ignis-inversion';
-
-class MyApp extends BootMixin(Container) {
-  bootOptions = {
-    controllers: { dirs: ['controllers'] },
-  };
-}
-
-const app = new MyApp();
-await app.boot();
-```
-
-The `BootMixin` auto-registers all four default booters and the `Bootstrapper` in its constructor.
-
-## File Naming Conventions
-
-Follow these conventions for auto-discovery:
-
-### Controllers
-
-```
-✓ user.controller.js
-✓ auth.controller.js
-✓ api/product.controller.js
-✗ user-ctrl.js           // doesn't match pattern
-✗ controller.js          // no prefix
-```
-
-### Services
-
-```
-✓ user.service.js
-✓ auth.service.js
-✓ business/order.service.js
-✗ user-svc.js            // doesn't match pattern
-✗ service.js             // no prefix
-```
-
-### Repositories
-
-```
-✓ user.repository.js
-✓ product.repository.js
-✓ data/customer.repository.js
-✗ user-repo.js           // doesn't match pattern
-✗ repository.js          // no prefix
-```
-
-### Datasources
-
-```
-✓ postgres.datasource.js
-✓ mongo.datasource.js
-✓ connections/redis.datasource.js
-✗ postgres-ds.js         // doesn't match pattern
-✗ datasource.js          // no prefix
-```
-
-## Project Structure Examples
-
-### Simple Structure
-
-```
-src/
-├── datasources/
-│   └── postgres.datasource.js
-├── repositories/
-│   ├── user.repository.js
-│   └── product.repository.js
-├── services/
-│   ├── auth.service.js
-│   └── user.service.js
-└── controllers/
-    ├── auth.controller.js
-    └── user.controller.js
-```
-
-**Boot Config:**
-```typescript
-bootOptions: {
-  datasources: { dirs: ['datasources'] },
-  repositories: { dirs: ['repositories'] },
-  services: { dirs: ['services'] },
-  controllers: { dirs: ['controllers'] }
-}
-```
-
-### Feature-based Structure
-
-```
-src/
-├── features/
-│   ├── auth/
-│   │   ├── auth.controller.js
-│   │   ├── auth.service.js
-│   │   └── auth.repository.js
-│   └── user/
-│       ├── user.controller.js
-│       ├── user.service.js
-│       └── user.repository.js
-└── datasources/
-    └── postgres.datasource.js
-```
-
-**Boot Config:**
-```typescript
-bootOptions: {
-  datasources: { dirs: ['datasources'] },
-  repositories: { glob: 'features/**/*.repository.js' },
-  services: { glob: 'features/**/*.service.js' },
-  controllers: { glob: 'features/**/*.controller.js' }
-}
-```
-
-### Layered Structure
-
-```
-src/
-├── data/
-│   ├── datasources/
-│   │   └── postgres.datasource.js
-│   └── repositories/
-│       └── user.repository.js
-├── business/
-│   └── services/
-│       └── user.service.js
-└── api/
-    └── controllers/
-        └── user.controller.js
-```
-
-**Boot Config:**
-```typescript
-bootOptions: {
-  datasources: { dirs: ['data/datasources'] },
-  repositories: { dirs: ['data/repositories'] },
-  services: { dirs: ['business/services'] },
-  controllers: { dirs: ['api/controllers'] }
-}
-```
-
-## Custom Booters
-
-Create custom booters for new artifact types:
-
-```typescript
-import { BaseArtifactBooter, IApplication, IBootOptions } from '@venizia/ignis-boot';
-import { BindingKeys, inject } from '@venizia/ignis-inversion';
-
-export class MiddlewareBooter extends BaseArtifactBooter {
-  constructor(
-    @inject({ key: '@app/project_root' }) root: string,
-    @inject({ key: '@app/instance' }) private app: IApplication,
-    @inject({ key: '@app/boot-options' }) bootOptions: IBootOptions,
-  ) {
-    super({
-      scope: MiddlewareBooter.name,
-      root,
-      artifactOptions: bootOptions.middlewares ?? {}
-    });
-  }
-
-  protected getDefaultDirs(): string[] {
-    return ['middlewares'];
-  }
-
-  protected getDefaultExtensions(): string[] {
-    return ['.middleware.js'];
-  }
-
-  protected async bind(): Promise<void> {
-    for (const cls of this.loadedClasses) {
-      const key = BindingKeys.build({ namespace: 'middlewares', key: cls.name });
-      this.app.bind({ key }).toClass(cls).setTags('middlewares');
-    }
+```json
+{
+  "scripts": {
+    "generate:artifacts": "ignis-artifacts generate --root src --out src/generated/artifacts.ts",
+    "check:artifacts": "ignis-artifacts check --root src --out src/generated/artifacts.ts"
   }
 }
 ```
 
-**Register Custom Booter:**
-
-Register it in `registerBooters()` - NOT in `preConfigure()`. `boot()` runs before `start()`, so `preConfigure()` (which runs during `initialize()` inside `start()`) is too late for the bootstrapper to discover the booter:
-
-```typescript
-export class Application extends BaseApplication {
-  override async registerBooters() {
-    await super.registerBooters(); // built-in booters + bootstrapper
-    this.booter(MiddlewareBooter);
-  }
-}
-```
-
-## Performance Considerations
-
-### Boot Time
-
-Boot adds minimal overhead:
-- **Configure phase**: < 1ms per booter
-- **Discover phase**: 10-50ms (depends on filesystem)
-- **Load phase**: 50-200ms (depends on artifact count)
-
-**Total**: Typically 100-300ms for medium-sized applications.
-
-### Development vs Production
-
-Boot is most valuable in **production** where artifact count is high. In **development**, the overhead is negligible.
-
-### Optimization Tips
-
-1. **Limit nested scanning** - Set `isNested: false` when possible
-2. **Specific patterns** - Use precise glob patterns
-3. **Skip unused booters** - Only enable needed booters
-4. **Pre-compiled bundles** - For serverless, consider bundling
-
-## Troubleshooting
-
-### Artifacts Not Discovered
-
-**Problem:** Created `user.controller.js` but not loaded.
-
-**Solutions:**
-1. Check file naming: Must match pattern (e.g., `*.controller.js`)
-2. Check directory: File must be in configured dirs
-3. Check extension: Must match configured extensions
-4. Enable debug logging: See what's discovered
-
-```typescript
-// Enable debug logs
-process.env.LOG_LEVEL = 'debug';
-```
-
-### Wrong Binding Order
-
-**Problem:** Repository tries to use datasource before it's available.
-
-**Solution:** Boot system handles this automatically. Datasources are always loaded before repositories. If you have custom booters, register them in correct order:
-
-```typescript
-this.booter(CustomDatasourceBooter);
-this.booter(CustomRepositoryBooter);  // after datasource
-```
-
-### Custom Pattern Not Working
-
-**Problem:** Custom glob pattern doesn't match files.
-
-**Solution:** Test pattern with glob tool:
+Run the generator:
 
 ```bash
-# From project root
-bunx glob "your-pattern/**/*.controller.js"
+bun run generate:artifacts
 ```
 
-## Best Practices
+It scans `src/` with the TypeScript compiler API and writes one file of plain static imports:
 
-### DO
+```typescript
+// AUTO-GENERATED by @venizia/ignis-boot - do not edit. Regenerate: ignis-artifacts generate --root src --out src/generated/artifacts.ts
+import { MetricsComponent } from '../components/metrics.component';
+import { PostgresDataSource } from '../datasources/postgres.datasource';
+import { ProductRepository } from '../repositories/product.repository';
+import { PricingService } from '../services/pricing.service';
+import { ProductController } from '../controllers/product.controller';
 
-- Follow naming conventions consistently
-- Use boot system for applications with > 5 artifacts per type
-- Organize files by feature or layer
-- Keep boot options in config file
-- Use debug logging during development
+export const GeneratedArtifacts = {
+  dataSources: [PostgresDataSource],
+  components: [MetricsComponent],
+  repositories: [ProductRepository],
+  services: [PricingService],
+  controllers: [ProductController],
+};
+```
 
-### DON'T
+Commit the file. Never edit it by hand - the next `generate` overwrites it.
 
-- Mix manual and auto registration (choose one approach)
-- Use boot for tiny applications (< 5 total artifacts)
-- Override default patterns without good reason
-- Skip subdirectories if you have nested structure
-- Ignore boot errors (they indicate misconfiguration)
+## 3. Pass the index in the config
 
-## See Also
+```typescript
+import { ApiReferenceComponent, HealthCheckComponent } from '@venizia/ignis';
+import { GeneratedArtifacts } from './generated/artifacts';
 
-- **Related Concepts:**
-  - [Application Overview](./index) - Main application class
-  - [Controllers](/guides/core-concepts/rest-controllers) - Auto-discovered controllers
-  - [Services](/guides/core-concepts/services) - Auto-discovered services
-  - [Repositories](/guides/core-concepts/persistent/repositories) - Auto-discovered repositories
+export const configs: IApplicationConfigs = {
+  path: { base: '/api', isStrict: true },
+  artifacts: [
+    GeneratedArtifacts,
+    { components: [HealthCheckComponent, ApiReferenceComponent] },
+  ],
+};
+```
 
-- **References:**
-  - [Bootstrapping API](/references/base/bootstrapping) - Complete API reference
-  - [Dependency Injection](/references/base/dependency-injection) - DI container
+The framework components you turn on are listed once, by hand, next to the generated index. Order inside the array does not matter for dependencies: the kernel registers datasources first, then components, repositories, services, controllers, across every index it was given.
 
-- **Tutorials:**
-  - [Complete Installation](/guides/tutorials/complete-installation) - Project structure
-  - [Building a CRUD API](/guides/tutorials/building-a-crud-api) - Bootstrapping in action
+Delete the registration calls from `preConfigure()`. Keep what is not a binding - a registry call such as `AuthenticationStrategyRegistry.getInstance().register(...)` stays where it was.
 
-- **Best Practices:**
-  - [Architectural Patterns](/best-practices/architectural-patterns) - Project organization patterns
+## 4. Provide the options a framework component reads
+
+A framework component reads its options from a binding key at configure time. Put those values in a component of your own, one `@provide` method per key:
+
+```typescript
+import { component, provide, HealthCheckBindingKeys } from '@venizia/ignis';
+import type { IHealthCheckOptions } from '@venizia/ignis';
+
+@component()
+export class PlatformComponent extends BaseComponent {
+  constructor(
+    @inject({ key: CoreBindings.APPLICATION_INSTANCE }) private application: BaseApplication,
+  ) {
+    super({ scope: PlatformComponent.name });
+  }
+
+  override binding(): void {
+    // Every option below is a provider; nothing to bind eagerly.
+  }
+
+  @provide({ key: HealthCheckBindingKeys.HEALTH_CHECK_OPTIONS })
+  healthCheckOptions(): IHealthCheckOptions {
+    return { restOptions: { path: '/health-check' } };
+  }
+}
+```
+
+Each `@provide` key is bound to a lazy provider when the component is registered. The component is resolved and the method called on the first `get`, so a provided value may read a datasource or a secret that does not exist yet at registration time. The value is a `SINGLETON` unless `@provide({ scope })` says otherwise.
+
+## Conditional and ordered registration
+
+Every stereotype accepts the same five options. Use them on the class, never at a call site.
+
+| Option | Use it when | Example |
+|---|---|---|
+| `when` | the class registers only in some deployments | `@component({ when: () => process.env.KAFKA_BROKERS !== undefined })` |
+| `order` | two classes of one kind must register in a fixed order | `@component({ order: -10 })` registers before the default `0` |
+| `scope` | the default scope is wrong for this class | `@service({ scope: BindingScopes.SINGLETON })` |
+| `binding` | the key must differ from `<namespace>.<Class>` | `@controller({ path: '/v2/users', binding: { namespace: 'controllers', key: 'UsersV2' } })` |
+| `allowOverride` | a same-key re-registration must throw instead of silently winning | `@repository({ model, dataSource, allowOverride: false })` |
+
+`when` runs at the `registerArtifacts` boot step, before `preConfigure`, so it may read config and environment and nothing from the container. It may be `async`. A skipped class is logged at debug: `Skipped by condition | kind: components | class: KafkaComponent`.
+
+```typescript
+@component({ when: () => process.env.KAFKA_BROKERS !== undefined })
+export class KafkaComponent extends BaseComponent {}
+
+@controller({ path: '/test', when: () => process.env.NODE_ENV !== Environment.PRODUCTION })
+export class TestController extends BaseRestController {}
+```
+
+## Composing indexes across packages
+
+A library ships its own index - generated the same way, or written by hand in the same shape - and the application lists it beside its own:
+
+```typescript
+import { InventoryArtifacts } from '@acme/inventory';
+import { GeneratedArtifacts } from './generated/artifacts';
+
+artifacts: [InventoryArtifacts, GeneratedArtifacts, { components: [HealthCheckComponent] }],
+```
+
+Arrays nest to any depth. A class listed twice registers once at its first position; a class registered by hand before the step keeps its earlier position.
+
+## Keep the index fresh
+
+A stale index registers yesterday's classes and passes every other gate. Put the check where lint runs:
+
+```makefile
+lint: artifacts-check
+	bun run lint
+
+artifacts-check:
+	bun run check:artifacts
+```
+
+`check` renders the index in memory and compares it with the committed file. It exits `1` and prints the `generate` command when they differ.
+
+## Verify
+
+Start with debug logging and read the boot log:
+
+```
+Boot step 5/14 registerArtifacts
+Skipped by condition | kind: controllers | class: TestController
+```
+
+Or ask the container from a script, before `start()`:
+
+```typescript
+application.init();
+await application.registerArtifacts(configs.artifacts!);
+application.isBound({ key: 'services.PricingService' }); // true
+```
+
+## If bun runs your source directly
+
+`bun src/index.ts` transpiles each file without type information. A decorated member whose type comes from a value import - `@provide` returning `IHealthCheckOptions`, a constructor taking `IControllerOptions` - keeps that import alive for `design:*` metadata, and the import then fails to link because the name is a type. Import such names with `import type`. An application that runs `tsc` first and then `bun dist/index.js` is not affected, because `tsc` elides type imports.
+
+## Migrating from `boot()`
+
+The runtime boot system - `Bootstrapper`, the four booters, `BootMixin`, `bootOptions` - is retired. A compiled binary (`bun build --compile`) cannot glob files at runtime; a generated index is plain imports it can see.
+
+1. Decorate services and components, generate the index, pass `artifacts` (steps 1-3 above).
+2. In `index.ts`, replace the boot chain with one awaited `start()`:
+
+```typescript
+// Before
+application.boot().then(() => application.start());
+
+// After
+await application.start();
+```
+
+3. Delete `bootOptions` from the config and any `override boot()` - `boot()` still exists, warns once, and returns an empty report.
+
+One production application went from 286 lines and 99 `this.controller(...)`-style calls in `application.ts` to a config entry and two lifecycle methods.
+
+## See also
+
+- [Artifact registration reference](/references/base/bootstrapping) - every option, the CLI, detection rules
+- [Application reference](/references/base/application) - the 14-step boot sequence
+- [Components](/references/base/components) - writing a component
+- [Changelog 2026-09-02](/changelogs/2026-09-02-decorator-artifact-registration) - what changed and who is affected

@@ -25,7 +25,7 @@ const coreApiSidebar: DefaultTheme.SidebarItem[] = [
     items: [
       { text: 'Overview', link: '/references/base/' },
       { text: 'Application', link: '/references/base/application' },
-      { text: 'Bootstrapping', link: '/references/base/bootstrapping' },
+      { text: 'Artifact Registration', link: '/references/base/bootstrapping' },
       { text: 'Components', link: '/references/base/components' },
       {
         text: 'Controllers',
@@ -451,6 +451,16 @@ const config = defineConfig({
           text: 'History',
           collapsed: false,
           items: [
+            {
+              text: '2026-09-02',
+              collapsed: true,
+              items: [
+                {
+                  text: 'Artifacts Register From a Generated Index, and the Runtime Boot System Is Retired',
+                  link: '/changelogs/2026-09-02-decorator-artifact-registration',
+                },
+              ],
+            },
             {
               text: '2026-08-31',
               collapsed: true,
@@ -1224,7 +1234,7 @@ const config = defineConfig({
               collapsed: true,
               items: [
                 { text: 'Overview', link: '/guides/core-concepts/application/' },
-                { text: 'Bootstrapping', link: '/guides/core-concepts/application/bootstrapping' },
+                { text: 'Registering Artifacts', link: '/guides/core-concepts/application/bootstrapping' },
               ],
             },
             {

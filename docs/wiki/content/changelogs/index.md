@@ -17,6 +17,7 @@ This section tracks the history of significant changes, refactors, and updates t
 
 | Date | Title | Type |
 |------|-------|------|
+| 2026-09-02 | [Artifacts Register From a Generated Index, and the Runtime Boot System Is Retired](./2026-09-02-decorator-artifact-registration) | New Feature, Breaking Change |
 | 2026-08-31 | [EventBus Retry Gets Jitter, a Bounded Per-Registration Window, and a Tagged Handler Reference](./2026-08-31-event-bus-retry) | New Feature, Enhancement, Breaking Change |
 | 2026-08-31 | [TEntityId Makes a String Id Impossible to Confuse With a String](./2026-08-31-entity-id-brand) | New Feature |
 | 2026-08-31 | [PolicyDefinition Gets domain_type and domain_id (Release A - Both Forms Written)](./2026-08-31-policy-domain-split) | New Feature, Migration Required |

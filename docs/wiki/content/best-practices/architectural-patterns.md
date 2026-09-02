@@ -291,7 +291,7 @@ export class Application extends BaseApplication {
 
 ## 6. Registration Surface & Capability Interfaces
 
-`BaseApplication` implements the full resource-registration surface directly - `service()`, `repository()`, `dataSource()`, `controller()`, `component()`, and `booter()`. Extend `BaseApplication` and call these methods straight from your lifecycle hooks; there is nothing to compose.
+`BaseApplication` implements the full resource-registration surface directly - `service()`, `repository()`, `dataSource()`, `controller()`, `component()` and `registerArtifacts()`. Extend `BaseApplication`; most applications never call the first five, because `configs.artifacts` registers every decorated class - see [Registering artifacts](/guides/core-concepts/application/bootstrapping).
 
 **How registration works:**
 ```typescript

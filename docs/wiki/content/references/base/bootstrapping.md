@@ -1,834 +1,329 @@
 ---
-title: Bootstrapping Reference
-description: Technical reference for application bootstrapping and initialization
+title: Artifact Registration Reference
+description: The stereotype decorators, @provide, IArtifactIndex, registerArtifacts, the registerArtifacts boot step and the ignis-artifacts generator
 difficulty: advanced
-lastUpdated: 2026-03-15
 ---
 
-# Bootstrapping API Reference
+# Artifact Registration Reference
 
-> **API Reference**: Classes, interfaces, and utilities for application bootstrapping
+Decorators mark a class as an artifact and carry its registration defaults. A generated index lists the classes. `registerArtifacts` binds them in dependency order during the `registerArtifacts` boot step. The how-to is [Registering artifacts](/guides/core-concepts/application/bootstrapping).
 
-## Table of Contents
+**Files:**
+- [packages/kernel/src/base/metadata/injectable.ts](https://github.com/VENIZIA-AI/ignis/blob/main/packages/kernel/src/base/metadata/injectable.ts)
+- [packages/kernel/src/helpers/inversion/common/types.ts](https://github.com/VENIZIA-AI/ignis/blob/main/packages/kernel/src/helpers/inversion/common/types.ts)
+- [packages/kernel/src/base/applications/rest.ts](https://github.com/VENIZIA-AI/ignis/blob/main/packages/kernel/src/base/applications/rest.ts)
+- [packages/kernel/src/base/applications/types.ts](https://github.com/VENIZIA-AI/ignis/blob/main/packages/kernel/src/base/applications/types.ts)
+- [packages/kernel/src/base/applications/boot-sequence.ts](https://github.com/VENIZIA-AI/ignis/blob/main/packages/kernel/src/base/applications/boot-sequence.ts)
+- [packages/boot/src/cli.ts](https://github.com/VENIZIA-AI/ignis/blob/main/packages/boot/src/cli.ts)
+- [packages/boot/src/generator/index.ts](https://github.com/VENIZIA-AI/ignis/blob/main/packages/boot/src/generator/index.ts)
 
-- [Interfaces](#interfaces)
-- [Classes](#classes)
-- [Types](#types)
-- [Utilities](#utilities)
+## Quick Reference
 
-## Prerequisites
+| Symbol | Package | What it is |
+|---|---|---|
+| `@injectable`, `@service`, `@component`, `@provide` | `@venizia/ignis-kernel` (re-exported by `@venizia/ignis`) | Stereotype decorators and the provider method decorator |
+| `IArtifactRegistrationOptions`, `IArtifactMetadata`, `IProvideMetadata`, `ArtifactTypes` | `@venizia/ignis-kernel` | Metadata shapes and the artifact type vocabulary |
+| `IArtifactIndex`, `TArtifactIndexInput`, `IApplicationConfigs.artifacts` | `@venizia/ignis-kernel` | The index shape and where the application receives it |
+| `registerArtifacts()`, `registerConfiguredArtifacts()` | `RestApplication` | Registration from an index; the boot step |
+| `ignis-artifacts`, `generateArtifactIndex()`, `checkArtifactIndex()` | `@venizia/ignis-boot` | The generator, as a binary and as functions |
 
-Before reading this document, you should understand:
+## `ArtifactTypes`
 
-- [IGNIS Application](./application.md) - Application lifecycle and initialization
-- [Dependency Injection](./dependency-injection.md) - DI container and bindings
-- [Controllers](./controllers.md), [Services](./services.md), and [Repositories](./repositories/) - Core abstractions
-- Convention-based programming patterns
-
-## Interfaces
-
-### IBootableApplication
-
-Interface that applications must implement to support bootstrapping.
+The artifact kinds a stereotype may declare.
 
 ```typescript
-interface IBootableApplication {
-  boot(): Promise<IBootReport>;
+class ArtifactTypes {
+  static readonly COMPONENT = 'component';
+  static readonly CONTROLLER = 'controller';
+  static readonly SERVICE = 'service';
+  static readonly REPOSITORY = 'repository';
+  static readonly DATASOURCE = 'datasource';
+  static readonly MODEL = 'model';
+  static readonly SCHEME_SET: Set<string>;
+  static isValid(value: string): boolean;
+}
+
+type TArtifactType = TConstValue<typeof ArtifactTypes>;
+```
+
+## `IArtifactRegistrationOptions`
+
+The five options every stereotype accepts. A stereotype stores them on the class; an explicit `TMixinOpts` passed to `controller()`/`service()`/... at a call site still wins.
+
+```typescript
+interface IArtifactRegistrationOptions<ApplicationType = unknown> {
+  binding?: { namespace: string; key: string };
+  allowOverride?: boolean;
+  scope?: TBindingScope;
+  order?: number;
+  when?: TArtifactCondition<ApplicationType>;
+}
+
+type TArtifactCondition<ApplicationType = unknown> = (opts: {
+  application: ApplicationType;
+}) => ValueOrPromise<boolean>;
+```
+
+| Option | Type | Default | Meaning |
+|---|---|---|---|
+| `binding` | `{ namespace: string; key: string }` | `<namespace>.<Class>` | The binding key |
+| `allowOverride` | `boolean` | `true` | `false` makes a same-key re-registration throw instead of overwriting |
+| `scope` | `TBindingScope` | `SINGLETON` for datasource, component, controller; `TRANSIENT` for repository, service | Binding scope |
+| `order` | `number` | `0` | Lower registers first within its kind; ties keep index order |
+| `when` | `TArtifactCondition` | always register | Sync or async. Runs at the `registerArtifacts` step, before `preConfigure`; may read config and env, not another artifact's binding |
+
+## `@injectable`
+
+The root stereotype. Every other stereotype calls it.
+
+```typescript
+const injectable: <ApplicationType = unknown>(
+  opts: IArtifactMetadata<ApplicationType>,
+) => ClassDecorator;
+
+interface IArtifactMetadata<ApplicationType = unknown> extends IArtifactRegistrationOptions<ApplicationType> {
+  type: TArtifactType;
 }
 ```
 
-| Member | Type | Description |
-|--------|------|-------------|
-| `boot()` | `() => Promise<IBootReport>` | Execute boot process |
+| Option | Type | Default | Meaning |
+|---|---|---|---|
+| `type` | `TArtifactType` | required | The artifact kind |
+| ...`IArtifactRegistrationOptions` | | | See above |
 
-**Example:**
+Throws at decoration time when `type` is not in `ArtifactTypes.SCHEME_SET`: `[injectable][<Class>] Invalid artifact type: '<type>' | Expected one of: component, controller, service, repository, datasource, model`.
 
 ```typescript
-export class Application extends BaseApplication implements IBootableApplication {
-  async boot() {
-    const bootstrapper = this.get<Bootstrapper>({ key: 'bootstrapper' });
-    return bootstrapper.boot({});
+@injectable({ type: ArtifactTypes.SERVICE, scope: BindingScopes.SINGLETON })
+export class ClockService extends BaseService {}
+```
+
+## `@service`, `@component`
+
+```typescript
+const service: <ApplicationType = unknown>(opts?: IArtifactRegistrationOptions<ApplicationType>) => ClassDecorator;
+const component: <ApplicationType = unknown>(opts?: IArtifactRegistrationOptions<ApplicationType>) => ClassDecorator;
+```
+
+Options: `IArtifactRegistrationOptions`, all optional.
+
+```typescript
+@service()
+export class PricingService extends BaseService {}
+
+@component({ when: () => process.env.KAFKA_BROKERS !== undefined, order: -10 })
+export class KafkaComponent extends BaseComponent {}
+```
+
+## `@controller`, `@repository`, `@datasource`, `@model`
+
+The four existing decorators accept `IArtifactRegistrationOptions` in addition to their own options, and record `ArtifactTypes.CONTROLLER` / `REPOSITORY` / `DATASOURCE` / `MODEL` through `@injectable`.
+
+| Decorator | Own options | Plus |
+|---|---|---|
+| `@controller` | `path` | `binding`, `allowOverride`, `scope`, `order`, `when` |
+| `@repository` | `model`, `dataSource` | same |
+| `@datasource` | connector options | same |
+| `@model` | `type` | same - metadata only; a model is never registered from an index |
+
+```typescript
+@controller({ path: '/test', when: () => process.env.NODE_ENV !== Environment.PRODUCTION })
+export class TestController extends BaseRestController {}
+```
+
+## `@provide`
+
+Marks a component method as the provider of one binding key.
+
+```typescript
+const provide: (opts: { key: string; scope?: TBindingScope }) => MethodDecorator;
+
+interface IProvideMetadata {
+  methodName: string | symbol;
+  key: string;
+  scope?: TBindingScope;
+}
+```
+
+| Option | Type | Default | Meaning |
+|---|---|---|---|
+| `key` | `string` | required | The key to bind |
+| `scope` | `TBindingScope` | `SINGLETON` | Scope of the provided value |
+
+When `registerArtifacts` registers the component, each `@provide` key is bound `toProvider`: the provider resolves the component from the container and calls the method. Nothing runs until the first `get` of the key.
+
+```typescript
+@component()
+export class PlatformComponent extends BaseComponent {
+  @provide({ key: HealthCheckBindingKeys.HEALTH_CHECK_OPTIONS })
+  healthCheckOptions(): IHealthCheckOptions {
+    return { restOptions: { path: '/health-check' } };
   }
 }
 ```
 
-> **Note:** The `BootMixin` adds an optional `bootOptions?: IBootOptions` property to the mixed class, but it is not part of the `IBootableApplication` interface itself.
+Notes:
+- Only a component registered through `registerArtifacts` (an index) gets its `@provide` keys bound. `this.component(Ctor)` by hand does not read them.
+- Under bun-runs-source, a return type that is an interface must come from an `import type` - see the [guide](/guides/core-concepts/application/bootstrapping#if-bun-runs-your-source-directly).
 
-
-### IBootOptions
-
-Configuration for artifact discovery per artifact type.
+## `IArtifactIndex`, `TArtifactIndexInput`
 
 ```typescript
-interface IBootOptions {
-  controllers?: IArtifactOptions;
-  services?: IArtifactOptions;
-  repositories?: IArtifactOptions;
-  datasources?: IArtifactOptions;
-  [artifactType: string]: IArtifactOptions | undefined;
+interface IArtifactIndex {
+  dataSources?: ReadonlyArray<TClass<IDataSource>>;
+  components?: ReadonlyArray<TClass<BaseComponent>>;
+  repositories?: ReadonlyArray<TClass<IRepository>>;
+  services?: ReadonlyArray<TClass<IService>>;
+  controllers?: ReadonlyArray<TClass<unknown>>;
 }
+
+type TArtifactIndexInput = IArtifactIndex | TArtifactIndexInput[];
 ```
 
-| Property | Type | Description |
-|----------|------|-------------|
-| `controllers` | `IArtifactOptions \| undefined` | Controller discovery config |
-| `services` | `IArtifactOptions \| undefined` | Service discovery config |
-| `repositories` | `IArtifactOptions \| undefined` | Repository discovery config |
-| `datasources` | `IArtifactOptions \| undefined` | Datasource discovery config |
-| `[key]` | `IArtifactOptions \| undefined` | Custom artifact type config |
-
-**Example:**
+`IApplicationConfigs.artifacts?: TArtifactIndexInput` - one index, or arrays of indexes nested to any depth.
 
 ```typescript
-const bootOptions: IBootOptions = {
-  controllers: {
-    dirs: ['controllers/private', 'controllers/public'],
-    extensions: ['.controller.js'],
-    isNested: true
-  },
-  services: {
-    glob: 'features/**/*.service.js'
-  },
-  // Custom artifact type
-  middlewares: {
-    dirs: ['middlewares'],
-    extensions: ['.middleware.js']
-  }
-};
+artifacts: [InventoryArtifacts, GeneratedArtifacts, { components: [HealthCheckComponent] }],
 ```
 
-
-### IArtifactOptions
-
-Configuration for discovering a specific artifact type.
+## `registerArtifacts`
 
 ```typescript
-interface IArtifactOptions {
-  dirs?: string[];
-  extensions?: string[];
-  isNested?: boolean;
-  glob?: string;
-}
+async registerArtifacts(index: TArtifactIndexInput): Promise<void>;
 ```
 
-| Property | Type | Default | Description |
-|----------|------|---------|-------------|
-| `dirs` | `string[]` | `undefined` | Directories to scan (relative to project root) |
-| `extensions` | `string[]` | `undefined` | File extensions to match (e.g., `['.controller.js']`) |
-| `isNested` | `boolean` | `true` | Scan subdirectories recursively |
-| `glob` | `string` | `undefined` | Custom glob pattern (overrides dirs/extensions) |
+Behavior, in order:
 
-**Example:**
+1. Flattens nested arrays into a list of `IArtifactIndex`.
+2. For each kind in dependency order - `dataSources`, `components`, `repositories`, `services`, `controllers` - collects the classes across every index.
+3. Awaits each class's `when`; a `false` skips the class and logs at debug `Skipped by condition | kind: <field> | class: <Class>`.
+4. Stable-sorts the survivors by `order` (default `0`).
+5. Registers each through `dataSource()` / `component()` / `repository()` / `service()` / `controller()`, which read the class's decorator defaults (`binding`, `scope`, `allowOverride`).
+6. For a component, binds every `@provide` key to a lazy provider.
+
+A class registered by hand before this call keeps its earlier position in the binding map; the later registration overwrites the binding unless `allowOverride: false` makes it throw.
+
+## `registerConfiguredArtifacts`
 
 ```typescript
-const artifactOptions: IArtifactOptions = {
-  dirs: ['controllers/v1', 'controllers/v2'],
-  extensions: ['.controller.js', '.controller.ts'],
-  isNested: true
-};
-
-// Or with custom glob
-const customOptions: IArtifactOptions = {
-  glob: 'src/**/api/*.controller.{js,ts}'
-};
+protected async registerConfiguredArtifacts(): Promise<void>;
 ```
 
+The boot step. Calls `registerArtifacts(this.configs.artifacts)` when the config carries an index; does nothing otherwise.
 
-### IBooter
+### Position in the boot sequence
 
-Interface that all booters must implement.
+`BootSteps.REGISTER_ARTIFACTS` (`'registerArtifacts'`) sits between `staticConfigure` and `preConfigure`. The full `BaseApplication` sequence:
 
-```typescript
-interface IBooter {
-  configure(): ValueOrPromise<void>;
-  discover(): ValueOrPromise<void>;
-  load(): ValueOrPromise<void>;
-}
+| # | Step | # | Step |
+|---|---|---|---|
+| 1 | `printStartUpInfo` | 8 | `registerDataSources` |
+| 2 | `validateEnvs` | 9 | `registerComponents` |
+| 3 | `registerDefaultMiddlewares` | 10 | `registerContributedDataSources` |
+| 4 | `staticConfigure` | 11 | `wireSecretRotatables` |
+| 5 | **`registerArtifacts`** | 12 | `registerControllers` |
+| 6 | `preConfigure` | 13 | `postConfigure` |
+| 7 | `hydrateSecrets` | 14 | `validateScopeFilterSupport` |
+
+Every step logs `Boot step n/14 <name>` at debug. An application that inserts its own step targets these names through `BootSequence.insertAfter`.
+
+## `ignis-artifacts` (CLI)
+
+Shipped by `@venizia/ignis-boot` as a binary. Requires `typescript >= 5` (peer dependency) and runs under bun.
+
+```
+ignis-artifacts <generate|check> [--root src] [--out src/generated/artifacts.ts] [--ignore a,b] [--export GeneratedArtifacts]
 ```
 
-> **Note:** `ValueOrPromise<T>` is `T | Promise<T>`. While the interface requires all three methods, the `Bootstrapper` gracefully skips any phase method that is not a function at runtime, so partial implementations are tolerated in practice.
+| Flag | Default | Meaning |
+|---|---|---|
+| `--root` | `src` | Directory to scan, recursively |
+| `--out` | `src/generated/artifacts.ts` | Path of the generated file; import paths are relative to it |
+| `--ignore` | none | Comma-separated globs, added to the default ignore list |
+| `--export` | `GeneratedArtifacts` | Name of the exported constant |
 
-| Method | Phase | Description |
-|--------|-------|-------------|
-| `configure()` | Configure | Setup discovery patterns and options |
-| `discover()` | Discover | Scan filesystem for matching artifacts |
-| `load()` | Load | Load classes and bind to container |
+| Command | Effect | Exit code |
+|---|---|---|
+| `generate` | Writes `--out` when its content changed; prints `wrote <out> \| N artifact(s)` or `up to date <out>` | `0` |
+| `check` | Renders in memory and compares with the file; prints `fresh <out>` or `stale <out> - run: ...` | `0` fresh, `1` stale |
+| anything else | Prints usage | `2` |
 
-**Example:**
+Default ignore list: `**/__tests__/**`, `**/*.test.ts`, `**/*.spec.ts`, `**/generated/**`.
+
+### Detection rules
+
+A class is emitted when all of the following hold:
+
+- It is a **named export** of a `.ts` file under `--root` (not `export default`, not module-private).
+- It is **not `abstract`**.
+- It carries a stereotype decorator - `component`, `controller`, `service`, `repository`, `datasource` - **imported from `@venizia/ignis` or `@venizia/ignis-kernel`**. Import aliases (`import { service as svc }`) are resolved. A same-named decorator from another module is ignored.
+- Or it carries `@injectable({ type })` where `type` is a string literal or `ArtifactTypes.<NAME>`.
+
+`@model` classes are recognised and never emitted. Every skip is logged with its reason.
+
+### Output
+
+Deterministic: imports sorted by path, class names sorted within each field, one field per kind in the order `dataSources`, `components`, `repositories`, `services`, `controllers`, empty arrays kept. A field wider than 100 columns wraps one name per line, so the file passes `prettier -l` unchanged. The header names the regenerate command.
+
+## Programmatic API
+
+`@venizia/ignis-boot/generator` exports the same machinery as functions.
 
 ```typescript
-export class CustomBooter implements IBooter {
-  async configure() {
-    // Setup patterns
-  }
-  
-  async discover() {
-    // Scan filesystem
-  }
-  
-  async load() {
-    // Load and bind classes
-  }
-}
-```
-
-
-### IBooterOptions
-
-Constructor options for booters.
-
-```typescript
-interface IBooterOptions {
-  scope: string;
+interface IGenerateOptions {
   root: string;
-  artifactOptions: IArtifactOptions;
+  out: string;
+  ignore?: string[];
+  exportName?: string; // default 'GeneratedArtifacts'
 }
-```
 
-| Property | Type | Description |
-|----------|------|-------------|
-| `scope` | `string` | Logger scope (usually class name) |
-| `root` | `string` | Project root directory path |
-| `artifactOptions` | `IArtifactOptions` | Artifact discovery configuration |
-
-**Example:**
-
-```typescript
-const options: IBooterOptions = {
-  scope: 'ControllerBooter',
-  root: '/path/to/project',
-  artifactOptions: {
-    dirs: ['controllers'],
-    extensions: ['.controller.js']
-  }
+const generateArtifactIndex: (opts: IGenerateOptions) => {
+  content: string;
+  artifacts: IScannedArtifact[];
+  written: boolean;
 };
-```
 
+const checkArtifactIndex: (opts: IGenerateOptions) => {
+  isFresh: boolean;
+  expected: string;
+  actual: string | undefined;
+};
 
-### IBootExecutionOptions
+interface IScannedArtifact {
+  type: TArtifactType;
+  className: string;
+  filePath: string;
+}
 
-Options for controlling boot execution.
+class ArtifactScanner {
+  static scan(opts: { root: string; ignore?: string[] }): IScannedArtifact[];
+}
 
-```typescript
-interface IBootExecutionOptions {
-  phases?: TBootPhase[];
-  booters?: string[];
+class ArtifactIndexEmitter {
+  static render(opts: { artifacts: IScannedArtifact[]; outFile: string; exportName: string }): string;
 }
 ```
 
-| Property | Type | Default | Description |
-|----------|------|---------|-------------|
-| `phases` | `TBootPhase[]` | `['configure', 'discover', 'load']` | Boot phases to execute |
-| `booters` | `string[]` | `undefined` | Specific booters to run (by name) |
-
-**Example:**
-
 ```typescript
-// Run only discover phase
-await bootstrapper.boot({
-  phases: ['discover']
-});
+import { checkArtifactIndex } from '@venizia/ignis-boot/generator';
 
-// Run only specific booters
-await bootstrapper.boot({
-  booters: ['ControllerBooter', 'ServiceBooter']
-});
-
-// Combine both
-await bootstrapper.boot({
-  phases: ['configure', 'discover'],
-  booters: ['ControllerBooter']
-});
+const { isFresh } = checkArtifactIndex({ root: 'src', out: 'src/generated/artifacts.ts' });
 ```
 
-
-### IBootstrapper
-
-Interface for the bootstrapper orchestrator.
-
-```typescript
-interface IBootstrapper {
-  boot(opts: IBootExecutionOptions): Promise<IBootReport>;
-}
-```
-
-| Method | Return | Description |
-|--------|--------|-------------|
-| `boot(opts)` | `Promise<IBootReport>` | Execute boot process with options |
-
-
-### IBootReport
-
-Report generated after boot completion.
-
-```typescript
-interface IBootReport {
-  /** Class names of the booters that actually ran, in execution order. */
-  booters: string[];
-  phases: IBootPhaseReport[];
-  totalDurationMs: number;
-}
-
-interface IBootPhaseReport {
-  phase: TBootPhase;
-  durationMs: number;
-}
-```
-
-| Property | Type | Description |
-|----------|------|-------------|
-| `booters` | `string[]` | Class names of the booters that actually ran, in execution order |
-| `phases` | `IBootPhaseReport[]` | Per-phase timing: `{ phase, durationMs }` for each executed phase |
-| `totalDurationMs` | `number` | Total wall-clock duration of the whole `boot()` call |
-
-Built by `Bootstrapper.generateReport()` (private) at the end of `boot()`.
-
-
-### IApplication
-
-Extended Container interface with application-specific methods.
-
-```typescript
-interface IApplication extends Container {
-  getProjectRoot(): string;
-}
-```
-
-| Method | Return | Description |
-|--------|--------|-------------|
-| `getProjectRoot()` | `string` | Get absolute path to project root |
-
-
-## Classes
-
-### Bootstrapper
-
-Orchestrates the boot process by discovering and executing booters.
-
-```typescript
-export class Bootstrapper extends BaseHelper implements IBootstrapper
-```
-
-#### Constructor
-
-```typescript
-constructor(
-  @inject({ key: '@app/instance' }) application: IApplication
-)
-```
-
-| Parameter | Type | Description |
-|-----------|------|-------------|
-| `application` | `IApplication` | Application instance (injected) |
-
-#### Methods
-
-##### boot()
-
-Execute the boot process.
-
-```typescript
-async boot(opts: IBootExecutionOptions): Promise<IBootReport>
-```
-
-| Parameter | Type | Description |
-|-----------|------|-------------|
-| `opts` | `IBootExecutionOptions` | Boot execution options |
-
-**Returns:** `Promise<IBootReport>` - Boot completion report
-
-**Example:**
-
-```typescript
-const bootstrapper = app.get<Bootstrapper>({ key: 'bootstrapper' });
-
-// Full boot
-await bootstrapper.boot({});
-
-// Partial boot
-await bootstrapper.boot({
-  phases: ['discover'],
-  booters: ['ControllerBooter']
-});
-```
-
-##### discoverBooters() [private]
-
-Discovers all booters registered in the application container.
-
-```typescript
-private async discoverBooters(): Promise<void>
-```
-
-Finds all bindings tagged with `'booter'` and instantiates them.
-
-##### runPhase() [private]
-
-Executes a specific boot phase on all booters.
-
-```typescript
-private async runPhase(opts: { phase: TBootPhase; booterNames?: string[] }): Promise<void>
-```
-
-##### generateReport() [private]
-
-Generates boot completion report.
-
-```typescript
-private generateReport(): IBootReport
-```
-
-
-### BaseArtifactBooter
-
-Abstract base class for creating artifact booters.
-
-```typescript
-export abstract class BaseArtifactBooter extends BaseHelper implements IBooter
-```
-
-#### Constructor
-
-```typescript
-constructor(opts: IBooterOptions)
-```
-
-| Parameter | Type | Description |
-|-----------|------|-------------|
-| `opts` | `IBooterOptions` | Booter configuration |
-
-#### Abstract Methods
-
-##### getDefaultDirs()
-
-Return default directories to scan.
-
-```typescript
-protected abstract getDefaultDirs(): string[]
-```
-
-**Example:**
-
-```typescript
-protected getDefaultDirs(): string[] {
-  return ['controllers'];
-}
-```
-
-##### getDefaultExtensions()
-
-Return default file extensions to match.
-
-```typescript
-protected abstract getDefaultExtensions(): string[]
-```
-
-**Example:**
-
-```typescript
-protected getDefaultExtensions(): string[] {
-  return ['.controller.js'];
-}
-```
-
-##### bind()
-
-Bind loaded classes to application container.
-
-```typescript
-protected abstract bind(): Promise<void>
-```
-
-**Example:**
-
-```typescript
-protected async bind(): Promise<void> {
-  for (const cls of this.loadedClasses) {
-    this.application.bind({ key: `controllers.${cls.name}` }).toClass(cls);
-  }
-}
-```
-
-#### Implemented Methods
-
-##### configure()
-
-Configure discovery patterns using defaults or provided options.
-
-```typescript
-async configure(): Promise<void>
-```
-
-##### discover()
-
-Scan filesystem for artifacts matching the pattern.
-
-```typescript
-async discover(): Promise<void>
-```
-
-##### load()
-
-Load discovered classes and bind them to container.
-
-```typescript
-async load(): Promise<void>
-```
-
-##### getPattern()
-
-Generate glob pattern from artifact options.
-
-```typescript
-protected getPattern(): string
-```
-
-**Returns:** Glob pattern string. Examples:
-- Single dir/ext: `controllers/{**/*,*}.controller.js`
-- Multiple dirs/exts: `{dir1,dir2}/{**/*,*}.{ext1,ext2}`
-- Non-nested (`isNested: false`): `controllers/*.controller.js`
-- Custom `glob` option overrides pattern generation entirely
-
-> **Note:** The nested pattern `{**/*,*}` currently supports one level of nesting.
-
-#### Properties
-
-| Property | Type | Description |
-|----------|------|-------------|
-| `root` | `string` | Project root directory |
-| `artifactOptions` | `IArtifactOptions` | Artifact discovery config |
-| `discoveredFiles` | `string[]` | Array of discovered file paths |
-| `loadedClasses` | `TClass<any>[]` | Array of loaded class constructors |
-
-
-### ControllerBooter
-
-Built-in booter for discovering controllers.
-
-```typescript
-export class ControllerBooter extends BaseArtifactBooter
-```
-
-#### Constructor
-
-```typescript
-constructor(
-  @inject({ key: '@app/project_root' }) root: string,
-  @inject({ key: '@app/instance' }) application: IApplication,
-  @inject({ key: '@app/boot-options' }) bootOptions: IBootOptions
-)
-```
-
-#### Defaults
-
-| Setting | Value |
-|---------|-------|
-| Directories | `['controllers']` |
-| Extensions | `['.controller.js']` |
-| Binding Key | `controllers.{ClassName}` |
-
-
-### ServiceBooter
-
-Built-in booter for discovering services.
-
-```typescript
-export class ServiceBooter extends BaseArtifactBooter
-```
-
-#### Constructor
-
-```typescript
-constructor(
-  @inject({ key: '@app/project_root' }) root: string,
-  @inject({ key: '@app/instance' }) application: IApplication,
-  @inject({ key: '@app/boot-options' }) bootOptions: IBootOptions
-)
-```
-
-#### Defaults
-
-| Setting | Value |
-|---------|-------|
-| Directories | `['services']` |
-| Extensions | `['.service.js']` |
-| Binding Key | `services.{ClassName}` |
-
-
-### RepositoryBooter
-
-Built-in booter for discovering repositories.
-
-```typescript
-export class RepositoryBooter extends BaseArtifactBooter
-```
-
-#### Constructor
-
-```typescript
-constructor(
-  @inject({ key: '@app/project_root' }) root: string,
-  @inject({ key: '@app/instance' }) application: IApplication,
-  @inject({ key: '@app/boot-options' }) bootOptions: IBootOptions
-)
-```
-
-#### Defaults
-
-| Setting | Value |
-|---------|-------|
-| Directories | `['repositories']` |
-| Extensions | `['.repository.js']` |
-| Binding Key | `repositories.{ClassName}` |
-
-
-### DatasourceBooter
-
-Built-in booter for discovering datasources.
-
-```typescript
-export class DatasourceBooter extends BaseArtifactBooter
-```
-
-#### Constructor
-
-```typescript
-constructor(
-  @inject({ key: '@app/project_root' }) root: string,
-  @inject({ key: '@app/instance' }) application: IApplication,
-  @inject({ key: '@app/boot-options' }) bootOptions: IBootOptions
-)
-```
-
-#### Defaults
-
-| Setting | Value |
-|---------|-------|
-| Directories | `['datasources']` |
-| Extensions | `['.datasource.js']` |
-| Binding Key | `datasources.{ClassName}` |
-| Binding Scope | `singleton` |
-
-> **Key difference:** `DatasourceBooter` is the only built-in booter that sets bindings to `singleton` scope (via `.setScope('singleton')`). This ensures connection pooling and resource sharing across the application. All other booters use the default transient scope.
-
-
-## Types
-
-### TBootPhase
-
-Boot execution phases.
-
-```typescript
-type TBootPhase = 'configure' | 'discover' | 'load'
-```
-
-**Values:**
-- `'configure'` - Setup phase
-- `'discover'` - File discovery phase
-- `'load'` - Class loading and binding phase
-
-### TClass
-
-Generic class constructor type.
-
-```typescript
-type TClass<T> = TConstructor<T> & { [property: string]: any }
-```
-
-### TConstructor
-
-Constructor function type.
-
-```typescript
-type TConstructor<T> = new (...args: any[]) => T
-```
-
-### TAbstractConstructor
-
-Abstract constructor type.
-
-```typescript
-type TAbstractConstructor<T> = abstract new (...args: any[]) => T
-```
-
-
-## Utilities
-
-### discoverFiles()
-
-Discover files matching a glob pattern.
-
-```typescript
-async function discoverFiles(opts: {
-  pattern: string;
-  root: string;
-}): Promise<string[]>
-```
-
-| Parameter | Type | Description |
-|-----------|------|-------------|
-| `pattern` | `string` | Glob pattern to match |
-| `root` | `string` | Root directory for search |
-
-**Returns:** `Promise<string[]>` - Array of absolute file paths
-
-**Example:**
-
-```typescript
-const files = await discoverFiles({
-  pattern: 'controllers/**/*.controller.js',
-  root: '/path/to/project'
-});
-// ['/path/to/project/controllers/user.controller.js', ...]
-```
-
-
-### loadClasses()
-
-Load class constructors from files.
-
-```typescript
-async function loadClasses(opts: {
-  files: string[];
-}): Promise<AnyType[]>
-```
-
-| Parameter | Type | Description |
-|-----------|------|-------------|
-| `files` | `string[]` | Array of file paths to load |
-
-**Returns:** `Promise<AnyType[]>` - Array of loaded class constructors (filtered by `isClass` type guard)
-
-**Example:**
-
-```typescript
-const classes = await loadClasses({
-  files: [
-    '/path/to/project/controllers/user.controller.js',
-    '/path/to/project/controllers/product.controller.js'
-  ],
-});
-// [UserController, ProductController]
-```
-
-
-### isClass()
-
-Type guard to check if value is a class constructor.
-
-```typescript
-function isClass<T>(target: any): target is TClass<T>
-```
-
-| Parameter | Type | Description |
-|-----------|------|-------------|
-| `target` | `any` | Value to check |
-
-**Returns:** `boolean` - True if target is a class constructor
-
-**Example:**
-
-```typescript
-const module = await import('./user.controller.js');
-
-for (const exported of Object.values(module)) {
-  if (isClass(exported)) {
-    // exported is TClass<any>
-    console.log(exported.name); // "UserController"
-  }
-}
-```
-
-
-## Constants
-
-### BootPhases
-
-Static class defining boot phase constants.
-
-```typescript
-class BootPhases {
-  static readonly CONFIGURE = 'configure';
-  static readonly DISCOVER = 'discover';
-  static readonly LOAD = 'load';
-}
-```
-
-### BOOT_PHASES
-
-Array of all boot phases in execution order (derived from `BootPhases`).
-
-```typescript
-const BOOT_PHASES: TBootPhase[] = ['configure', 'discover', 'load']
-```
-
-**Usage:**
-
-```typescript
-import { BOOT_PHASES } from '@venizia/ignis-boot';
-
-await bootstrapper.boot({ phases: BOOT_PHASES });
-```
-
-
-## Mixin Functions
-
-### BootMixin()
-
-Mixin that adds bootable capability to applications.
-
-```typescript
-function BootMixin<T extends TMixinTarget<Container>>(
-  baseClass: T
-): typeof baseClass & IBootableApplication
-```
-
-| Parameter | Type | Description |
-|-----------|------|-------------|
-| `baseClass` | `T extends TMixinTarget<Container>` | Base class to extend |
-
-**Returns:** Mixed class implementing `IBootableApplication`
-
-**Auto-registers in constructor:**
-- `@app/boot-options` -- user boot config (from `this.bootOptions`)
-- `booter.DatasourceBooter` -- tagged `'booter'`
-- `booter.RepositoryBooter` -- tagged `'booter'`
-- `booter.ServiceBooter` -- tagged `'booter'`
-- `booter.ControllerBooter` -- tagged `'booter'`
-- `bootstrapper` -- singleton `Bootstrapper` instance
-
-**Example:**
-
-```typescript
-import { BootMixin } from '@venizia/ignis-boot';
-import { Container } from '@venizia/ignis-inversion';
-
-class MyApp extends BootMixin(Container) {
-  bootOptions = {
-    controllers: { dirs: ['controllers'] }
-  };
-}
-
-const app = new MyApp();
-await app.boot();
-```
-
-> **Note:** `BaseApplication` does not use `BootMixin`. Instead, it registers the same booters and bootstrapper in its own `registerBooters()` method using `this.booter()` and reads boot options from `this.configs.bootOptions`.
-
+## Deprecated and removed
+
+| Symbol | Status |
+|---|---|
+| `BaseApplication.boot()` | Deprecated no-op. Warns once per process, returns `{ booters: [], phases: [], totalDurationMs: 0 }`. Kept so an existing `override boot()` still compiles |
+| `IApplicationConfigs.bootOptions`, `IBootOptions`, `IArtifactOptions` | Deprecated, ignored. Kept so an existing config still type-checks |
+| `IBootReport`, `IBootPhaseReport`, `TBootPhase`, `BootPhases`, `IBootableApplication` | Deprecated types, still exported from `@venizia/ignis-boot`; `BaseApplication` still implements `IBootableApplication` |
+| `BindingNamespaces.BOOTERS` | Kept; nothing in the framework registers under it |
+| `BaseApplication.booter()`, `registerBooters()` | Removed |
+| `Bootstrapper`, `BaseArtifactBooter`, `ControllerBooter`, `ServiceBooter`, `RepositoryBooter`, `DatasourceBooter`, `BootMixin`, `discoverFiles()`, `loadClasses()`, `isClass()` | Removed from `@venizia/ignis-boot` |
+| `TMixinOpts.args` | Removed; `TMixinOpts` is `{ binding?, allowOverride? }` |
 
 ## See Also
 
-- **Related References:**
-  - [Application](./application.md) - Application lifecycle and initialization
-  - [Dependency Injection](./dependency-injection.md) - DI container and bindings
-  - [Components](./components.md) - Pluggable modules and components
-
-- **Guides:**
-  - [Bootstrapping Concepts](/guides/core-concepts/application/bootstrapping)
-  - [Application Guide](/guides/core-concepts/application/)
-
-- **Best Practices:**
-  - [Architectural Patterns](/best-practices/architectural-patterns)
-
-- **Configuration:**
-  - [Environment Variables](/references/configuration/environment-variables)
+- [Registering artifacts](/guides/core-concepts/application/bootstrapping) - the how-to
+- [Application reference](/references/base/application) - registration methods and the boot sequence
+- [Changelog 2026-09-02](/changelogs/2026-09-02-decorator-artifact-registration)
