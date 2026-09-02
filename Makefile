@@ -4,7 +4,7 @@
         lint-dev-configs lint-inversion lint-filter lint-helpers lint-boot lint-core lint-core-server lint-kernel lint-connectors lint-core-worker lint-docs-mcp \
         purity purity-test purity-inversion purity-filter purity-helpers purity-kernel \
         purity-dev-configs purity-boot purity-core purity-core-server purity-connectors purity-core-worker purity-docs-mcp \
-        okf-check okf-gen okf-coverage okf-viz \
+        okf-check okf-gen okf-coverage okf-viz split-report \
         catalog-check \
         update update-all update-core update-core-server update-dev-configs update-docs-mcp update-filter update-helpers update-inversion update-boot
 
@@ -46,6 +46,9 @@ okf-coverage:
 
 okf-viz:
 	@bun .agents/knowledge-tools/okf.ts viz
+
+split-report:
+	@bun scripts/split-report.ts
 
 agent-setup:
 	@bun .agents/plugin/setup.ts
@@ -333,6 +336,7 @@ help:
 	@echo "  okf-gen       - Regenerate source-derived reference content."
 	@echo "  okf-coverage  - Report bundle coverage against the source inventory."
 	@echo "  okf-viz       - Build the offline knowledge-graph explorer."
+	@echo "  split-report  - Report hub files, stray types, missing barrels, long files, cycles (informational)."
 	@echo "  agent-setup   - Link your agent's tool file + skills to the tracked AGENTS.md."
 	@echo ""
 	@echo "Browser purity:"
