@@ -1,13 +1,16 @@
 /**
- * Lists import cycles in a built ESM directory. bun turns every member of a cycle into a lazy
- * initializer, and a barrel `export *` over such a member can leave its exports undefined - the
- * compiled-binary failure of 2026-09-02. Usage: bun scripts/module-cycles.ts packages/helpers/dist/esm [--max 0]
+ * Lists import cycles in a built ESM directory. bun turns every member of a
+ * cycle into a lazy initializer, and a barrel `export *` over such a member
+ * can leave its exports undefined. Usage: bun scripts/module-cycles.ts
+ * packages/helpers/dist/esm [--max 0]
  */
 import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
 import { dirname, join, relative, resolve } from 'node:path';
 import { parseArgs } from 'node:util';
 
-const IMPORT_PATTERN = /(?:import|export)\s[^;]*?from\s+'([^']+)'|import\s+'([^']+)'/g;
+// Only match import/export statements at the start of a line (after optional
+// whitespace), ignoring matches inside comments or string literals.
+const IMPORT_PATTERN = /^\s*(?:import|export)\s[^;]*?from\s+'([^']+)'|^\s*import\s+'([^']+)'/gm;
 
 export class ModuleGraph {
   private constructor(
@@ -134,14 +137,23 @@ const run = (): number => {
     return 2;
   }
 
+  let max = Number.POSITIVE_INFINITY;
+  if (values.max !== undefined) {
+    if (!/^\d+$/.test(values.max)) {
+      console.error(
+        'usage: bun scripts/module-cycles.ts <dist/esm dir> [--max <n>]',
+      );
+      return 2;
+    }
+    max = Number(values.max);
+  }
+
   const cycles = ModuleGraph.fromDirectory({ dir }).cycles();
   console.log(`${dir}: ${cycles.length} cycle(s)`);
   for (const cycle of cycles) {
     console.log(`  - ${cycle.join(' <-> ')}`);
   }
 
-  const max =
-    values.max === undefined ? Number.POSITIVE_INFINITY : Number(values.max);
   return cycles.length > max ? 1 : 0;
 };
 
