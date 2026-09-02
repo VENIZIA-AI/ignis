@@ -111,7 +111,7 @@ instead of `core.system_error`:
 | `RepositoryErrors` | `core.repository.*` | `packages/kernel/src/base/repositories/common/errors.ts` |
 | `RequestErrors` | `core.request.*` | `packages/kernel/src/base/middlewares/common/errors.ts` |
 | `StaticAssetErrors` | `core.static_asset.*` | `packages/core-server/src/components/static-asset/common/errors.ts` |
-| `SearchErrors` | `core.search_engine.*` | `packages/core-server/src/connectors/search/common/errors.ts` |
+| `SearchErrors` | `core.search_engine.*` | `packages/connectors/src/search/core/common/errors.ts` |
 | `MailErrors` | `core.mail.*` | `packages/core-server/src/components/mail/common/errors.ts` |
 
 ```typescript

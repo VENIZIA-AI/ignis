@@ -47,7 +47,7 @@ and `Statuses`; `src/helpers/inversion/` carries the kernel `Container` and `Met
 ## Browser purity is the design constraint, and it is measured
 
 `scripts/purity/manifest.ts` claims this package's whole published surface and derives its rows from
-the `exports` map, so today that is `packages/kernel/dist/index.js` and whatever is added next.
+the `exports` map, so today that is `packages/kernel/dist/esm/index.js` and whatever is added next.
 `make purity-kernel`
 bundles it for `target: 'browser'` and fails on any node builtin or node global. Purity is a property
 of the resolved graph, so the rule is about how peers are reached, not which peers are declared:

@@ -22,7 +22,7 @@ repositories, controllers, the container, and internal utilities alike.
 ## In source
 
 `PersistableRelationalRepository.create` in
-`packages/core-server/src/connectors/relational/repositories/core/persistable.ts` overloads purely on the
+`packages/connectors/src/relational/core/repositories/core/persistable.ts` overloads purely on the
 shape of one options object:
 
 ```typescript

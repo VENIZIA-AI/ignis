@@ -72,6 +72,8 @@ have to call back into a sibling, do not extract it - leave it in the parent.
   cycle members into lazy initializers; a barrel over one can export `undefined`.
 - `make surface-check` - the public surface equals `reference/public-surface.md`. A split that
   changes it is wrong; an intended API change runs `make surface-gen` and shows the diff in review.
+- `make wiki-links-check` - every `blob/main/<path>` link and backticked source path named in the
+  wiki or the knowledge bundle still exists on disk. Catches paths a split forgot to update.
 
 A scope folder may stay without an `index.ts` on purpose when every file in it is a sub-path entry
 carrying an optional peer - `core-server/connectors/{postgres,sqlite}/drivers/` is the case: each
