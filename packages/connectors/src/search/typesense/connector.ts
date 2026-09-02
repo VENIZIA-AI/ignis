@@ -47,11 +47,11 @@ import type {
   TSearchParams,
   TTypesenseDirtyValue,
   TTypesenseImportAction,
-} from './types';
-import { TypesenseDirtyValues, TypesenseImportActions } from './types';
+} from './common';
+import { TypesenseDirtyValues, TypesenseImportActions } from './common';
 
 // Re-exported for back-compat: callers and test fakes historically imported the client-shape type from this module rather than from `./types`, its new home.
-export type { ITypesenseClientLike } from './types';
+export type { ITypesenseClientLike } from './common';
 
 /** Typesense engine connector - built/injected by TypesenseDataSource, which exposes the raw client via getClient(). */
 export class TypesenseConnector extends BaseSearchConnector {

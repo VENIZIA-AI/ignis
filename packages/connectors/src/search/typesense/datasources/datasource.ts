@@ -13,7 +13,7 @@ import type {
   IUnionSearchResult,
   TDocumentSchema,
   TSearchOptions,
-} from '../types';
+} from '../common';
 import { BaseSearchDataSource } from '@/search/core/datasources';
 
 /** Typesense-backed search datasource: builds/injects a connector, compiles the neutral DSL, and provisions discovered collections. */
