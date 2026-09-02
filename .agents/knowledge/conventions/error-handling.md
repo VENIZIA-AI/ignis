@@ -24,7 +24,7 @@ throw getError({
 
 The form above is right for a failure nobody translates: an invariant, a misconfiguration, a seed
 guard. A **domain** failure - one a client localizes and branches on - is declared once as a
-`TErrorDefinition` in `packages/inversion/src/modules/error/types.ts`, then raised by reference:
+`TErrorDefinition` in `packages/inversion/src/modules/error/common/types.ts`, then raised by reference:
 
 ```typescript
 export const UserErrors = {
