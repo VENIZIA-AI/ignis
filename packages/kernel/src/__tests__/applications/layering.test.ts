@@ -22,12 +22,14 @@ const ABSTRACT_APPLICATION_MEMBERS = [
 /** What moved DOWN onto `RestApplication` when the kernel was carved out - the router surface, every artifact registration, and the default middleware stack every host shares. */
 const REST_APPLICATION_MEMBERS = [
   'assertNoBindingCollision',
+  'bindProvidedKeys',
   'buildErrorMiddleware',
   'component',
   'constructor',
   'controller',
   'dataSource',
   'drainByTag',
+  'flattenArtifactIndex',
   'generateRequestId',
   'getBootSequence',
   'getRootRouter',
@@ -35,6 +37,7 @@ const REST_APPLICATION_MEMBERS = [
   'initialize',
   'inspectRoutes',
   'registerArtifact',
+  'registerArtifacts',
   'registerComponents',
   'registerContributedDataSources',
   'registerControllers',
@@ -44,6 +47,7 @@ const REST_APPLICATION_MEMBERS = [
   'registerDynamicBindings',
   'repository',
   'runBootSequence',
+  'selectArtifacts',
   'service',
 ];
 

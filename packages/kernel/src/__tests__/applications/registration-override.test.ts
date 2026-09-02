@@ -7,6 +7,7 @@ import { BindingNamespaces } from '@/common/bindings';
 import { BindingScopes, BindingValueTypes } from '@/helpers/inversion';
 import type { ValueOrPromise } from '@venizia/ignis-helpers/common';
 import { describe, expect, test } from 'bun:test';
+import { ProbeDataSource, ProbeRepository } from '../support/artifact-fixtures';
 
 class ConcreteRestApplication extends RestApplication {
   getAppInfo(): ValueOrPromise<IApplicationInfo> {
@@ -28,7 +29,7 @@ class OtherProbeComponent extends BaseComponent {
   override binding(): ValueOrPromise<void> {}
 }
 
-/** The guard reads only the derived key, never the class shape, so one bare class stands in for every non-component artifact. */
+/** The guard reads only the derived key, so one bare class stands in for controller and service; repository and datasource use the typed fixtures. */
 class Probe {}
 
 class OtherProbe {}
@@ -71,13 +72,13 @@ const REGISTRATION_METHODS: IRegistrationMethodCase[] = [
   },
   {
     caller: 'repository',
-    key: `${BindingNamespaces.REPOSITORY}.${Probe.name}`,
-    register: ({ application, options }) => application.repository(Probe as any, options),
+    key: `${BindingNamespaces.REPOSITORY}.${ProbeRepository.name}`,
+    register: ({ application, options }) => application.repository(ProbeRepository, options),
   },
   {
     caller: 'dataSource',
-    key: `${BindingNamespaces.DATASOURCE}.${Probe.name}`,
-    register: ({ application, options }) => application.dataSource(Probe as any, options),
+    key: `${BindingNamespaces.DATASOURCE}.${ProbeDataSource.name}`,
+    register: ({ application, options }) => application.dataSource(ProbeDataSource, options),
   },
 ];
 

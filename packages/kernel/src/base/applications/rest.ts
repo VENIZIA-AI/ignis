@@ -24,7 +24,7 @@ import type { IService } from '../services';
 import { AbstractApplication } from './abstract';
 import type { IBootSequenceStep } from './boot-sequence';
 import { BootSteps } from './boot-sequence';
-import type { IApplicationConfigs } from './types';
+import type { IApplicationConfigs, IArtifactIndex, TArtifactIndexInput } from './types';
 
 interface IRegisterDynamicBindingsOptions<T extends IConfigurable = IConfigurable> {
   namespace: TBindingNamespace;
@@ -391,6 +391,94 @@ export abstract class RestApplication<
       caller: this.dataSource.name,
       opts,
     });
+  }
+
+  /** Registers one index or a composition of indexes in dependency order: datasources, components, repositories, services, controllers. `when` and `order` from each class's decorator apply; a class registered by hand before this call keeps its earlier position. */
+  async registerArtifacts(index: TArtifactIndexInput): Promise<void> {
+    const indexes = this.flattenArtifactIndex({ input: index });
+
+    for (const ctor of await this.selectArtifacts({ indexes, field: 'dataSources' })) {
+      this.dataSource(ctor);
+    }
+    for (const ctor of await this.selectArtifacts({ indexes, field: 'components' })) {
+      this.component(ctor);
+      this.bindProvidedKeys({ ctor });
+    }
+    for (const ctor of await this.selectArtifacts({ indexes, field: 'repositories' })) {
+      this.repository(ctor);
+    }
+    for (const ctor of await this.selectArtifacts({ indexes, field: 'services' })) {
+      this.service(ctor);
+    }
+    for (const ctor of await this.selectArtifacts({ indexes, field: 'controllers' })) {
+      this.controller(ctor);
+    }
+  }
+
+  private flattenArtifactIndex(opts: { input: TArtifactIndexInput }): IArtifactIndex[] {
+    const { input } = opts;
+    if (Array.isArray(input)) {
+      return input.flatMap(entry => this.flattenArtifactIndex({ input: entry }));
+    }
+
+    return [input];
+  }
+
+  /** The classes of one kind across every index, minus those whose `when` says no, sorted by `order` (stable). */
+  private async selectArtifacts<Field extends keyof IArtifactIndex>(opts: {
+    indexes: IArtifactIndex[];
+    field: Field;
+  }): Promise<NonNullable<IArtifactIndex[Field]>[number][]> {
+    const { indexes, field } = opts;
+    const logger = this.logger.for(this.registerArtifacts.name);
+    const registry = MetadataRegistry.getInstance();
+
+    const listed = indexes.flatMap(index => [...(index[field] ?? [])]);
+    const kept: typeof listed = [];
+
+    for (const ctor of listed) {
+      const when = registry.getArtifactMetadata({ target: ctor })?.when;
+      if (!when || (await when({ application: this }))) {
+        kept.push(ctor);
+        continue;
+      }
+      logger.debug('Skipped by condition | kind: %s | class: %s', field, ctor.name);
+    }
+
+    return kept
+      .map((ctor, position) => ({
+        ctor,
+        position,
+        order: registry.getArtifactMetadata({ target: ctor })?.order ?? 0,
+      }))
+      .sort((a, b) => a.order - b.order || a.position - b.position)
+      .map(entry => entry.ctor);
+  }
+
+  /** Each `@provide` method becomes a lazy provider: the component is resolved (SINGLETON) and the method called on first `get`, so a provided value may depend on datasources or secrets that do not exist yet at registration time. */
+  private bindProvidedKeys(opts: { ctor: TClass<BaseComponent> }): void {
+    const { ctor } = opts;
+    const registry = MetadataRegistry.getInstance();
+    const provides = registry.getProvideMetadata({ target: ctor });
+    if (provides.length === 0) {
+      return;
+    }
+
+    const declared = registry.getArtifactMetadata({ target: ctor });
+    const componentKey = BindingKeys.build(
+      declared?.binding ?? { namespace: BindingNamespaces.COMPONENT, key: ctor.name },
+    );
+
+    for (const entry of provides) {
+      this.bind({ key: entry.key })
+        .toProvider(container => {
+          const instance = container.get<Record<string | symbol, () => unknown>>({
+            key: componentKey,
+          });
+          return instance[entry.methodName]();
+        })
+        .setScope(entry.scope ?? BindingScopes.SINGLETON);
+    }
   }
 
   async registerDataSources(): Promise<void> {

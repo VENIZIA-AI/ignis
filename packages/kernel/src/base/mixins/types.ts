@@ -1,6 +1,6 @@
 import type { Binding } from '@/helpers/inversion';
 import type { TClass, ValueOrPromise } from '@venizia/ignis-helpers/common';
-import type { IApplication } from '../applications';
+import type { IApplication, TArtifactIndexInput } from '../applications';
 import type { BaseComponent } from '../components';
 import type { IDataSource } from '../datasources';
 import type { IRepository } from '../repositories';
@@ -37,6 +37,10 @@ export interface IRepositoryMixin {
 
 export interface IServiceMixin {
   service<Base extends IService>(ctor: TClass<Base>, opts?: TMixinOpts): Binding<Base>;
+}
+
+export interface IArtifactRegistrationMixin {
+  registerArtifacts(index: TArtifactIndexInput): Promise<void>;
 }
 
 export interface IStaticServeMixin {
