@@ -12,7 +12,7 @@ tags: [packages, helpers, utilities]
 
 `src/modules/` (verified against source) contains: `base` (the shared `BaseHelper`), `cron`, `crypto`, `env`, `error`, `logger`, `network`, `pool`, `queue`, `redis`, `retry`, `secrets`, `slug`, `socket` (Socket.IO and WebSocket subfolders), `storage`, `tree`, `uid`, and `worker-thread`. Highlights:
 
-- **logger** - follows the house tiering: `common/` holds the provider-agnostic `ILogger` contract, `TLogLevel`/`LogLevels`, and `LoggerFormats`; `base/` holds `AbstractLogger`/`BaseLogger` (scope/prefix/DEBUG-gate/`.for()` plumbing shared by every provider); `winston/` is the self-contained built-in provider (`WinstonLogger`, `define.ts`, its own `common/`, `formatters/`, `transports/`); `hf/` is the separate `HfLogger` pipeline - `HfLogger extends AbstractLogger` and implements
+- **logger** - follows the house tiering: `common/` holds the provider-agnostic `ILogger` contract, `TLogLevel`/`LogLevels`, and `LoggerFormats`; `base/` holds `AbstractLogger`/`BaseLogger` (scope/prefix/DEBUG-gate/`.for()` plumbing shared by every provider); `winston/` is the self-contained built-in provider (`WinstonLogger`; `formats.ts` holds `WinstonFormatFactory`, `logger-factory.ts` holds `WinstonLoggerFactory`, `define.ts` re-exports their static methods as the historical function names; its own `common/`, `formatters/`, `transports/`); `hf/` is the separate `HfLogger` pipeline - `HfLogger extends AbstractLogger` and implements
 `ILogger` (string methods backed by a bounded FIFO encode cache, args formatted through
 `formatLogMessage` so nothing is ever dropped; the legacy bytes hot path survives as an overloaded
 `log(level, string | Uint8Array)`), writes entry-layout-v2 records (per-entry length bytes, no NUL
