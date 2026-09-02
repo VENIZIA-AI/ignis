@@ -8,14 +8,13 @@ import { BindingKeys, BindingScopes } from '@venizia/ignis-kernel';
 import type { ValueOrPromise } from '@venizia/ignis-helpers/common';
 import { getError } from '@venizia/ignis-helpers/core';
 import { RuntimeModules } from '@venizia/ignis-helpers/common';
-import { DatasourceBooter } from '@venizia/ignis-boot';
 import { afterEach, beforeEach, describe, expect, test } from 'bun:test';
 
-/** Records the invocation order of the seven traced lifecycle steps so their relative order is asserted as a whole rather than step by step. Does not cover the full 13-step `getBootSequence()` contract - see `BaseApplication - getBootSequence()` below for that. */
+/** Records the invocation order of the seven traced lifecycle steps so their relative order is asserted as a whole rather than step by step. Does not cover the full 14-step `getBootSequence()` contract - see `BaseApplication - getBootSequence()` below for that. */
 class TraceApplication extends BaseApplication {
   readonly trace: string[] = [];
 
-  /** `bun test` transpiles without legacy parameter decorators, so RequestTrackerComponent's `@inject`ed application never reaches the container - rebound to an explicit instance. */
+  /** Rebound to an explicit instance so the trace does not depend on how the container resolves RequestTrackerComponent. */
   override async registerDefaultMiddlewares(): Promise<void> {
     await super.registerDefaultMiddlewares();
 
@@ -198,31 +197,6 @@ describe('BaseApplication - getBootSequence()', () => {
       'postConfigure',
       'validateScopeFilterSupport',
     ]);
-  });
-});
-
-describe('BaseApplication - booter() collision guard', () => {
-  test('allowOverride: false throws on a genuine collision, matching the other five registration methods', () => {
-    const application = new TraceApplication({
-      scope: 'BooterApplication',
-      config: buildConfigs(),
-    });
-
-    application.booter(DatasourceBooter);
-
-    expect(() => application.booter(DatasourceBooter, { allowOverride: false })).toThrow(
-      `[booter] Binding key already registered: '${BindingNamespaces.BOOTERS}.${DatasourceBooter.name}'`,
-    );
-  });
-
-  test('registering the same booter twice does not throw by default (matches historical overwrite behavior)', () => {
-    const application = new TraceApplication({
-      scope: 'BooterApplication',
-      config: buildConfigs(),
-    });
-
-    expect(() => application.booter(DatasourceBooter)).not.toThrow();
-    expect(() => application.booter(DatasourceBooter)).not.toThrow();
   });
 });
 

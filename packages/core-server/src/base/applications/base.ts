@@ -3,25 +3,16 @@ import { ControllerTransports } from '@venizia/ignis-kernel';
 import { BindingNamespaces, CoreBindings } from '@venizia/ignis-kernel';
 import { RequestTrackerComponent } from '@/components';
 import { GrpcComponent } from '@/components/controller/grpc';
-import type { Binding } from '@venizia/ignis-kernel';
 import {
-  BindingKeys,
   BindingScopes,
   BindingValueTypes,
   BootSequence,
   MetadataRegistry,
   RequestContextRegistry,
 } from '@venizia/ignis-kernel';
-import type { IBootableApplication, IBooter, IBootReport } from '@venizia/ignis-boot';
-import {
-  Bootstrapper,
-  ControllerBooter,
-  DatasourceBooter,
-  RepositoryBooter,
-  ServiceBooter,
-} from '@venizia/ignis-boot';
+import type { IBootableApplication, IBootReport } from '@venizia/ignis-boot';
 import type { ILogger } from '@venizia/ignis-helpers/core';
-import type { TClass, ValueOrPromise } from '@venizia/ignis-helpers/common';
+import type { ValueOrPromise } from '@venizia/ignis-helpers/common';
 import type {
   ISecretHydrateEntry,
   ISecretRotatable,
@@ -40,7 +31,6 @@ import {
 } from '@venizia/ignis-helpers';
 import { contextStorage, tryGetContext } from 'hono/context-storage';
 import isEmpty from 'lodash/isEmpty';
-import type { TMixinOpts } from '@venizia/ignis-kernel';
 import { AppErrorMiddleware, emojiFavicon } from '../middlewares';
 import { ServerBootSteps } from './boot-steps';
 import { ServerApplication } from './server';
@@ -300,36 +290,6 @@ export abstract class BaseApplication
     }
   }
 
-  booter<Base extends IBooter>(ctor: TClass<Base>, opts?: TMixinOpts): Binding<Base> {
-    const key = BindingKeys.build(
-      opts?.binding ?? { namespace: BindingNamespaces.BOOTERS, key: ctor.name },
-    );
-    this.assertNoBindingCollision({
-      key,
-      allowOverride: opts?.allowOverride,
-      caller: this.booter.name,
-    });
-
-    return this.bind<Base>({ key }).toClass(ctor).setTags('booter');
-  }
-
-  async registerBooters() {
-    await executeWithPerformanceMeasure({
-      logger: this.logger,
-      scope: this.registerBooters.name,
-      description: 'Register application booters',
-      task: async () => {
-        this.bind({ key: `@app/boot-options` }).toValue(this.configs.bootOptions ?? {});
-        this.bind({ key: 'bootstrapper' }).toClass(Bootstrapper).setScope(BindingScopes.SINGLETON);
-
-        this.booter(DatasourceBooter);
-        this.booter(RepositoryBooter);
-        this.booter(ServiceBooter);
-        this.booter(ControllerBooter);
-      },
-    });
-  }
-
   static(opts: { restPath?: string; folderPath: string }) {
     const { restPath = '*', folderPath } = opts;
     const server = this.getServer();
@@ -438,10 +398,20 @@ export abstract class BaseApplication
     });
   }
 
+  private static hasWarnedBootDeprecated = false;
+
+  /** @deprecated No-op kept for applications that still override it. Artifacts come from `configs.artifacts` (see `registerArtifacts`); the runtime file-glob boot cannot run inside `bun build --compile` and is gone. */
   async boot(): Promise<IBootReport> {
-    await this.registerBooters();
-    const bootstrapper = this.get<Bootstrapper>({ key: 'bootstrapper' });
-    return bootstrapper.boot({});
+    if (!BaseApplication.hasWarnedBootDeprecated) {
+      BaseApplication.hasWarnedBootDeprecated = true;
+      this.logger
+        .for(this.boot.name)
+        .warn(
+          'boot() is deprecated and does nothing | pass the generated index as configs.artifacts - see @venizia/ignis-boot',
+        );
+    }
+
+    return { booters: [], phases: [], totalDurationMs: 0 };
   }
 
   /** Lives here rather than on `AbstractApplication` - `applicationEnvironment` reads `process.env` at module load, so a kernel-pure ancestor cannot carry it; this is the layer that already depends on it. */

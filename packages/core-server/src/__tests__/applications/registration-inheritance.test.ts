@@ -16,22 +16,10 @@ describe('DI registration helpers live on the kernel layer', () => {
     }
   });
 
-  test('booter stays on BaseApplication - booting reads the filesystem', () => {
-    expect(Object.getOwnPropertyNames(RestApplication.prototype)).not.toContain('booter');
-    expect(Object.getOwnPropertyNames(BaseApplication.prototype)).toContain('booter');
-  });
-
   test('BaseApplication still exposes every registration method it did before', () => {
     const app = BaseApplication.prototype as unknown as Record<string, unknown>;
 
-    for (const method of [
-      'component',
-      'controller',
-      'service',
-      'repository',
-      'dataSource',
-      'booter',
-    ]) {
+    for (const method of ['component', 'controller', 'service', 'repository', 'dataSource']) {
       expect(typeof app[method]).toBe('function');
     }
   });
