@@ -9,7 +9,7 @@ import {
 } from '@venizia/ignis-kernel';
 import { authorize } from '@venizia/ignis-kernel';
 import { resolveRequestDomain } from '@venizia/ignis-kernel';
-import { ScopedCasbinAdapter } from '@/components/auth/authorize/adapters/scoped-casbin.adapter';
+import { ScopedCasbinAdapter } from '@/components/auth/authorize/adapters/scoped-casbin';
 import type {
   IAuthorizeOptions,
   IAuthorizationSpec,

@@ -2,7 +2,7 @@ import { describe, expect, it } from 'bun:test';
 import { type SQL } from 'drizzle-orm';
 import { PgDialect } from 'drizzle-orm/pg-core';
 import type { IdType } from '@/base';
-import { ScopedCasbinAdapter } from '@/components/auth/authorize/adapters/scoped-casbin.adapter';
+import { ScopedCasbinAdapter } from '@/components/auth/authorize/adapters/scoped-casbin';
 import type {
   ICasbinPolicySource,
   IScopedCasbinEntities,

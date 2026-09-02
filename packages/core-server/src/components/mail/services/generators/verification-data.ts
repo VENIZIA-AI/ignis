@@ -1,6 +1,5 @@
 import { inject } from '@/base/metadata';
 import { BaseHelper } from '@venizia/ignis-helpers/core';
-import crypto from 'node:crypto';
 // Interfaces are `import type`: with emitDecoratorMetadata on, a value import of a type-only name survives transpilation and the ESM named-import check fails at load.
 import type {
   IVerificationCodeGenerator,
@@ -8,31 +7,9 @@ import type {
   IVerificationDataGenerator,
   IVerificationGenerationOptions,
   IVerificationTokenGenerator,
-} from '../common';
-import { MailKeys } from '../common';
-import { getExpiryTime, getExpiryTimeInHours } from '../utilities';
-
-export class NumericCodeGenerator extends BaseHelper implements IVerificationCodeGenerator {
-  constructor() {
-    super({ scope: NumericCodeGenerator.name });
-  }
-
-  generateCode(length: number): string {
-    const max = Math.pow(10, length);
-    const code = crypto.randomInt(0, max);
-    return code.toString().padStart(length, '0');
-  }
-}
-
-export class RandomTokenGenerator extends BaseHelper implements IVerificationTokenGenerator {
-  constructor() {
-    super({ scope: RandomTokenGenerator.name });
-  }
-
-  generateToken(bytes: number): string {
-    return crypto.randomBytes(bytes).toString('base64url');
-  }
-}
+} from '../../common';
+import { MailKeys } from '../../common';
+import { getExpiryTime, getExpiryTimeInHours } from '../../utilities';
 
 export class DefaultVerificationDataGenerator
   extends BaseHelper

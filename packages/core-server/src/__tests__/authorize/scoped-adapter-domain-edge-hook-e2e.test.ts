@@ -8,8 +8,8 @@ import { AuthorizationDomainScopes, CasbinEnforcerModelDrivers } from '@venizia/
 import type {
   TPrincipalPolicyRow,
   ScopedCasbinAdapter as TScopedCasbinAdapter,
-} from '@/components/auth/authorize/adapters/scoped-casbin.adapter';
-import { ScopedCasbinAdapter } from '@/components/auth/authorize/adapters/scoped-casbin.adapter';
+} from '@/components/auth/authorize/adapters/scoped-casbin';
+import { ScopedCasbinAdapter } from '@/components/auth/authorize/adapters/scoped-casbin';
 import type {
   ICasbinPolicySource,
   IScopedCasbinEntities,
