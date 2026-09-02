@@ -1,4 +1,4 @@
-import { asTypedContext } from '@/base/controllers/common/types';
+import { asTypedContext } from '@/base/controllers/context';
 import { BaseHelper, getError } from '@venizia/ignis-helpers/core';
 import type { IProvider } from '@venizia/ignis-inversion';
 import { createMiddleware } from 'hono/factory';
