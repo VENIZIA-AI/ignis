@@ -6,6 +6,39 @@ not how.
 This file and `index.md` are reserved OKF filenames - they carry no `type:` frontmatter and are not
 counted as concepts.
 
+## 2026-09-02 - file split wave 3: helpers
+
+Six helpers tasks closed wave 3. `common/types.ts` (31-export hub) split into
+`common/types/{utility,class,const-value,resolver,field-mapping,injection}.ts` plus an index
+barrel; `resolveValue`/`resolveValueAsync`/`resolveClass` (and the `isClass` re-export) moved to
+`common/resolvers.ts`. `logger/winston/` split into `formats.ts` (`WinstonFormatFactory`),
+`logger-factory.ts` (`WinstonLoggerFactory`) and `common/constants.ts`; `define.ts` keeps only the
+exported aliases. `logger/pino/` split into `destination.ts`, `backing.ts` and `common/constants.ts`;
+`pino/define.ts` is gone. `worker-thread/` split by role: `worker/{abstract,base}.ts`,
+`thread/{abstract,base}.ts`, `bus/{abstract,base}.ts`, `bus/handler/{abstract,base}.ts`,
+`common/types.ts`; the old flat `base.ts`, `worker-bus.ts` and `types.ts` are gone.
+`queue/kafka/common/types/` split the 18-export kafka types hub by topic (`admin`, `callbacks`,
+`connection`, `consumer`, `producer`); `socket/websocket/common/types/` split the 18-export
+websocket types hub the same way. Seven stray `types.ts` files outside `common/` - `env`, `pool`,
+`storage`, `network/http-request`, `network/http-request/fetcher`, `queue/internal/hf`,
+`queue/internal/sequential` - moved under a `common/types.ts` (plus `common/index.ts`) each. No
+public export was added or removed; `make surface-check` stayed fresh after every task.
+
+Lesson from the sweep before each move: an importer list built only from `from '...'` statements
+misses inline `import('./types').X` expressions and `@/modules/<scope>/types` alias imports in
+tests - the `file-splitting` convention's `## Tools` section now carries the grep and names the
+clean rebuild as the real completeness check.
+
+Stayed out of scope: the four files over 500 lines (`queue/kafka/consumer.ts`,
+`redis/base/abstract.helper.ts`, `socket/socket-io/server/helper.ts`,
+`socket/websocket/server/helper.ts`) and five remaining hub candidates (`secrets/common/types.ts`,
+`crypto/common/constants.ts`, `logger/hf/common/constants.ts`, `socket/socket-io/common/types.ts`,
+`tree/common/types.ts`) - none were touched this wave.
+
+Gate: helpers 1461/16/0, kernel 197/0, core-server 1311/1/0, lint 0 across helpers/kernel/core-server/
+examples, module cycles 0 (helpers and kernel `dist/esm`), surface fresh, okf check OK, docs build
+clean.
+
 ## 2026-09-02 - ArtifactScanner is a BaseHelper singleton
 
 `packages/boot/src/generator/scanner.ts`: `ArtifactScanner` extends `BaseHelper`, is reached through

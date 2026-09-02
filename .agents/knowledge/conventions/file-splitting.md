@@ -79,6 +79,12 @@ driver file is an alias barrel for one `@venizia/ignis-connectors/<engine>/<driv
 folder-level barrel would let one `export *` pull every peer into the root. `split-report` keeps
 listing these folders under "scope folders without index.ts" - that line is expected, not a defect.
 
+An importer list built only from `from '...'` statements misses inline `import('./types').X`
+expressions and `@/modules/<scope>/types` alias imports in tests. Sweep before every move with
+`grep -rnE "from '[./]*types'|import\('[./]*types'\)|@/modules/<scope>/types"` over `src`, including
+tests. The clean rebuild, `make <pkg>`, is the real completeness check - a missed importer surfaces
+there instead.
+
 ## Why this is written down
 
 Splitting on pain alone, with no stated threshold, is how a codebase accumulates files past 1500
