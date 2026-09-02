@@ -1,97 +1,117 @@
 ---
 type: Architecture
-title: Boot lifecycle
-description: How the boot package discovers artifacts on disk by convention and turns them into container bindings.
-resource: packages/boot/src
-tags: [architecture, boot, discovery, conventions]
+title: Artifact registration
+description: How a decorated class becomes a container binding - stereotype metadata, the generated index, configs.artifacts, and the registerArtifacts boot step.
+resource: packages/kernel/src/base/applications/rest.ts
+tags: [architecture, artifacts, registration, decorators, boot]
 ---
 
-The `boot` package is IGNIS's convention-over-configuration layer. Instead of a registration file
-that drifts out of sync with the code, booters glob the project directory, import what they find, and
-bind every exported class into the container under the right namespace.
+Four hops. `@service()` (or any stereotype) records `IArtifactMetadata` on the class through
+`MetadataRegistry.setArtifactMetadata`. `ignis-artifacts generate` lists the class in
+`src/generated/artifacts.ts` ([boot package](/packages/boot.md)). The application passes that
+object as `configs.artifacts`. The `registerArtifacts` boot step - between `staticConfigure` and
+`preConfigure` - calls `registerArtifacts(index)`, which calls the same `dataSource()`,
+`component()`, `repository()`, `service()`, `controller()` a hand-written `preConfigure()` would.
+Nothing downstream can tell which path registered a class.
 
-## Three phases, driven by the Bootstrapper
+## Stereotypes
 
-`BootPhases` are `configure`, `discover`, `load`, and `Bootstrapper.boot()` runs them **phase-major**:
-every booter's `configure`, then every booter's `discover`, then every booter's `load`. That is what
-lets booters be independent - none can observe another's half-finished state within a phase.
+`@injectable({ type, ...IArtifactRegistrationOptions })` is the root
+(`packages/kernel/src/base/metadata/injectable.ts`); it refuses a `type` outside
+`ArtifactTypes.SCHEME_SET` at decoration time. `@service` and `@component` are thin calls to it.
+`@controller`, `@repository`, `@datasource` and `@model` call
+`injectable({ type, ...pickRegistrationOptions({ metadata }) })(target)` first, then their own
+setter - one metadata write for the artifact, one for the decorator's own options.
 
-`Bootstrapper` finds its booters via `findByTag({ tag: 'booter' })`, so adding a booter is just
-another binding. It resets its booter list at the start of each `discoverBooters` call: pushing onto
-the previous run's list would register every artifact twice on a second `boot()`. An optional
-`booters` filter narrows the run by class name.
+Storage is `MetadataKeys.ARTIFACT` (`Symbol.for('ignis:artifact')`), read with
+`Reflect.getOwnMetadata`: a subclass does not inherit its parent's stereotype, and the generator
+likewise requires the decorator on the class itself. `@provide` methods accumulate under
+`MetadataKeys.PROVIDES` on the constructor.
 
-A booter that does not implement a phase method is skipped, not an error. Each phase is timed, and
-`boot()` returns an `IBootReport` with the booters that ran, per-phase durations, and the total. Any
-throw inside a phase is re-wrapped with the booter name and phase - and always carries `cause`, so
-the stack of the module that actually failed survives.
+## Three inputs to one binding
 
-## BaseArtifactBooter: the template method
+`registerArtifact` (private, behind all five registration methods) resolves each of `binding`,
+`scope` and `allowOverride` in this order: explicit `TMixinOpts` at the call site, then the class's
+decorator metadata, then the derived default - key `<namespace>.<Class>`, scope `SINGLETON` for
+datasource, component and controller, `TRANSIENT` for repository and service, `allowOverride: true`.
+A hand-written `this.controller(Ctor)` therefore already honours `@controller({ scope })`.
 
-Every built-in booter extends `BaseArtifactBooter`, which implements the three phases once and leaves
-three abstract holes:
+## What `registerArtifacts` does
 
-```typescript
-protected abstract getDefaultDirs(): string[];
-protected abstract getDefaultExtensions(): string[];
-protected abstract bind(): Promise<void>;
-```
+1. Flattens `TArtifactIndexInput` (an index, or arrays nested to any depth) into a list.
+2. Per kind, in dependency order `dataSources -> components -> repositories -> services -> controllers`,
+   collects the classes across every index.
+3. Awaits each class's `when({ application })`; `false` skips it and logs at debug
+   `Skipped by condition | kind: <field> | class: <Class>`.
+4. Stable-sorts survivors by `order` (default 0).
+5. Registers each through the matching method; for a component, binds every `@provide` key.
 
-- **configure** resolves `artifactOptions` (`dirs`, `extensions`, `isNested` defaulting to `true`,
-  `glob`), falling back to the subclass defaults. There is deliberately no trailing
-  `...this.artifactOptions` spread: a key that *exists* but holds `undefined` (the shape
-  `dirs: process.env.APP_DIRS?.split(',')` produces) would overwrite the default just computed, and
-  `getPattern()` would throw "No directories specified".
-- **discover** builds a glob and runs it with `cwd: root, absolute: true`.
-- **load** dynamically `import()`s each discovered file, keeps every export for which `isClass()` is
-  true, and hands them to the subclass's `bind()`.
+`when` runs before `preConfigure`, so it may read `application.configs` and the environment and
+never another artifact's binding. A class registered by hand earlier keeps its earlier position in
+the binding map; the later registration overwrites the binding unless `allowOverride: false` makes
+it throw. Registering the same index twice is therefore harmless.
 
-An explicit `glob` short-circuits pattern building entirely. Otherwise the pattern is
-`{dirs}/{**/*,*}.{exts}` when there are multiple dirs or extensions, or `dirs/{**/*,*}.ext` when
-there is exactly one of each.
+## `@provide`
 
-`isClass()` is the predicate that keeps this honest. It is not `typeof x === 'function' && x.prototype
-!== undefined` - that is true of every non-arrow function, so a helper exported next to an artifact
-would get bound and `new`-ed. It source-checks for `class`, sound because the toolchain targets ES2024.
+Each `@provide({ key, scope? })` method becomes `this.bind({ key }).toProvider(container =>
+container.get(componentKey)[methodName]()).setScope(scope ?? SINGLETON)`. The component key is its
+declared `binding` or `components.<Class>`. Nothing runs until the first `get` of the key, so a
+provided value may read a datasource or a secret that did not exist at registration time - the
+reason option bindings for `AuthenticateComponent`, `AuthorizeComponent` and `HealthCheckComponent`
+can live in an application-owned component (`examples/vert/src/components/platform.component.ts`).
+`bindProvidedKeys` is private and called only from `registerArtifacts`: a component registered by
+hand with `this.component(Ctor)` gets no provided keys.
 
-## The built-in booters
+## Composing indexes
 
-| Booter | Default dir | Default extension | Binds to |
-| --- | --- | --- | --- |
-| `DatasourceBooter` | `datasources` | `.datasource.js` | `datasources.*` |
-| `RepositoryBooter` | `repositories` | `.repository.js` | `repositories.*` |
-| `ServiceBooter` | `services` | `.service.js` | `services.*` |
-| `ControllerBooter` | `controllers` | `.controller.js` | `controllers.*` |
+A library exports its own index - generated the same way, or hand-written in the `IArtifactIndex`
+shape. The application lists it beside its own and hand-lists the framework components it turns on,
+once: `artifacts: [InventoryArtifacts, GeneratedArtifacts, { components: [HealthCheckComponent] }]`.
+There is no `imports` option and no auto-discovery of a package's components; a library that wants
+IGNIS components registered says so in its index.
 
-`bind()` is the same shape everywhere - one binding per loaded class, keyed by namespace and class
-name, tagged with the namespace:
+## Why an AST at build time, not a glob at run time
 
-```typescript
-const key = BindingKeys.build({ namespace: 'repositories', key: cls.name });
-this.application.bind({ key }).toClass(cls).setTags('repositories');
-```
+`bun build --compile` cannot glob files at run time; the generated index is plain imports the
+bundler follows. The scanner never executes a module, so decoration side effects (a datasource
+opening a pool at import) cannot leak into a build. The output is deterministic and committed, so a
+diff review shows exactly which classes an application registers, and `check` turns a stale index
+into a lint failure instead of a runtime 404.
 
-That tag is what `registerDynamicBindings` in the application lifecycle later scans for. Each booter
-injects `@app/project_root`, `@app/instance` and `@app/boot-options`, so per-artifact overrides come
-from the application's `bootOptions` (`bootOptions.repositories`, and so on).
+## Position in the boot sequence
 
-## `BootMixin` versus `BaseApplication`
+`BootSteps.REGISTER_ARTIFACTS` is step 5 of 14 in `BaseApplication.getBootSequence()`:
+`printStartUpInfo`, `validateEnvs`, `registerDefaultMiddlewares`, `staticConfigure`,
+**`registerArtifacts`**, `preConfigure`, `hydrateSecrets`, `registerDataSources`,
+`registerComponents`, `registerContributedDataSources`, `wireSecretRotatables`,
+`registerControllers`, `postConfigure`, `validateScopeFilterSupport`. `registerConfiguredArtifacts`
+is the step body: it does nothing when `configs.artifacts` is absent.
 
-`BootMixin` wraps any `Container` and binds the four booters plus the `Bootstrapper` in its
-constructor. `BaseApplication.registerBooters()` does the equivalent for a full IGNIS application.
-Either way, `boot()` resolves the singleton `Bootstrapper` and calls `boot({})`.
+## Deprecated surface
 
-## The common failure
+`BaseApplication.boot()` is a no-op that warns once per process
+(`BaseApplication.hasWarnedBootDeprecated`) and returns `{ booters: [], phases: [], totalDurationMs: 0 }`;
+15 BANA applications still `override async boot()` against it. `configs.bootOptions` type-checks and
+is ignored. `booter()` and `registerBooters()` are removed; `BindingNamespaces.BOOTERS` remains with
+no writer.
 
-**A file that is not discovered is almost always the wrong directory or the wrong extension.** Note
-the defaults end in `.js`, not `.ts` - discovery runs against compiled output. If a controller's
-routes 404 and no binding exists for it, check: does the file live under `controllers/`, does its
-name end in `.controller.js`, did the build emit it. Run with `DEBUG` set - `discover` logs the root,
-the pattern, and every file it matched.
+## The common failures
+
+- **In the index, not bound:** `when` returned `false` (look for the debug skip line) or the index
+  is stale (`check:artifacts`).
+- **Decorated, not in the index:** not a named export, `abstract`, the decorator imported from a
+  wrapper module instead of `@venizia/ignis`/`@venizia/ignis-kernel`, or the file under an ignored
+  glob.
+- **Provided key resolves to nothing:** the component was registered with `this.component(...)`
+  instead of through the index.
+- **`@provide` records nothing under bun:** the application's `tsconfig.json` inherits
+  `experimentalDecorators` only through `extends`; bun then compiles TC39 decorators and the method
+  decorator receives `(value, context)`. Declare the flag directly - see [Gotchas](/conventions/gotchas.md).
 
 ## Related
 
 - [Application lifecycle](/architecture/application-lifecycle.md)
+- [DI container](/architecture/di-container.md)
 - [Binding key namespaces](/conventions/binding-key-namespaces.md)
 - [boot package](/packages/boot.md)
 - [Debugging](/process/debugging.md)

@@ -36,7 +36,7 @@ The framework ships nine packages, built in dependency order.
 | [core-worker](/packages/core-worker.md) | The browser BFF: an IGNIS application inside a dedicated Worker |
 | [kernel](/packages/kernel.md) | The browser-pure half: DI, lifecycle, controllers, repositories, auth seams |
 | [connectors](/packages/connectors.md) | Relational and search tiers, with engines behind sub-paths |
-| [boot](/packages/boot.md) | Convention-based auto-discovery and bootstrapping |
+| [boot](/packages/boot.md) | Build-time artifact index generator and the `ignis-artifacts` CLI |
 | [filter](/packages/filter.md) | The query filter language and its schemas |
 | [inversion](/packages/inversion.md) | The standalone IoC container |
 | [helpers](/packages/helpers.md) | Production utility modules |
@@ -48,7 +48,7 @@ How the pieces fit.
 
 - [DI container](/architecture/di-container.md) - bindings, scopes, injection rules
 - [Application lifecycle](/architecture/application-lifecycle.md) - the startup sequence
-- [Boot lifecycle](/architecture/boot-lifecycle.md) - configure, discover, load
+- [Artifact registration](/architecture/boot-lifecycle.md) - stereotype -> generated index -> configs.artifacts -> registerArtifacts step
 - [Component model](/architecture/component-model.md) - what a component is and how it wires
 - [Controller system](/architecture/controller-system.md) - the route APIs over Hono
 - [Repository hierarchy](/architecture/repository-hierarchy.md) - abstract to CRUD, plus mixins

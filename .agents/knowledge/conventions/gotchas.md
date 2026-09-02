@@ -243,8 +243,30 @@ If an app's `tsconfig.json` only does `extends: "@venizia/dev-configs/..."` and 
 resolve that chain at run time, `experimentalDecorators` effectively turns off and parameter
 decorators are dropped silently - no error, just an injected value that is `undefined` at runtime.
 Class/property decorators (`@controller`, `@model`) keep working, so boot looks fine until a
-handler touches the missing dependency. Fix: declare `experimentalDecorators` /
-`emitDecoratorMetadata` directly in the app's own `tsconfig.json`, not only via `extends`.
+handler touches the missing dependency. Method decorators fare worse: Bun falls back to TC39
+decorators, which call the decorator with `(value, context)`, so `@provide` records nothing and a
+provided key is never bound. Fix: declare `experimentalDecorators` directly in the app's own
+`tsconfig.json`, not only via `extends` (kernel and every example do). Add `emitDecoratorMetadata`
+only if something reads `design:*` metadata - IGNIS does not: under Bun it turns an interface-typed
+constructor parameter (`IAuthService`) into a runtime import that fails to link, which is why
+core-server's `tsconfig.core.json` declares `experimentalDecorators` alone.
+
+## Under bun-runs-source, a type used on a decorated member must come from `import type`
+
+`bun src/index.ts` transpiles each file alone. A decorated member whose type is imported by value -
+`@provide` returning `IHealthCheckOptions`, a class-decorated constructor taking `IControllerOptions` -
+keeps that import alive for `design:*` metadata, and linking then fails with `Export named 'X' not
+found` against the CJS dist. `import type { ... }` fixes it. `tsc` output is unaffected (types are
+elided), so an application that builds first and runs `bun dist/index.js` never sees it - which is
+why `examples/vert` still has two value-imported `IControllerOptions` and only a source-run probe
+notices.
+
+## The artifact generator never executes a module
+
+`ignis-artifacts` is an AST walk: no decorator runs, no import fires. A stereotype re-exported
+through a local wrapper module is invisible to it - the decorator must be imported from
+`@venizia/ignis` or `@venizia/ignis-kernel`. The flip side is safety: a datasource file that opens a
+pool at import cannot leak into a build.
 
 ## A self-refreshing cache must gate its retry on the last attempt, not the last success
 

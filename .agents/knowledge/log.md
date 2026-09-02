@@ -6,6 +6,45 @@ not how.
 This file and `index.md` are reserved OKF filenames - they carry no `type:` frontmatter and are not
 counted as concepts.
 
+## 2026-09-02 - Part 4: decorator-driven artifact registration, configs.artifacts boot step, runtime booters retired
+
+Bundle brought in line with the Part 4 code (kernel, boot, core-server, examples). Facts: `@injectable`
+is the root stereotype (`packages/kernel/src/base/metadata/injectable.ts`), `@service`/`@component`
+are new, `@controller`/`@repository`/`@datasource`/`@model` record the same `IArtifactMetadata`
+(`binding`, `allowOverride`, `scope`, `order`, `when` returning `ValueOrPromise<boolean>`);
+`@provide({ key, scope? })` methods become `toProvider` bindings (SINGLETON default) only when the
+component is registered through an index; `RestApplication.registerArtifacts(index)` registers
+datasources -> components -> repositories -> services -> controllers across nested indexes, awaiting
+`when` and stable-sorting by `order`; `BootSteps.REGISTER_ARTIFACTS` is step 5 of 14, between
+`staticConfigure` and `preConfigure`; `@venizia/ignis-boot` is a TypeScript-AST generator with the
+`ignis-artifacts generate|check` CLI, and `Bootstrapper`, the four booters, `BootMixin`,
+`booter()`, `registerBooters()` and `TMixinOpts.args` are gone; `boot()` is a no-op that warns
+once; `controller()` binds SINGLETON. Concepts rewritten: `packages/boot.md`,
+`architecture/boot-lifecycle.md` (now titled "Artifact registration"; file name kept so links hold).
+Patched: `application-lifecycle.md` (14 steps, `init() -> start()`, nine kernel step names),
+`di-container.md` (three inputs to a binding's key/scope/override; `@provide`), `gotchas.md` (Bun
+TC39 fallback drops `@provide` too; `emitDecoratorMetadata` under Bun turns interface-typed
+constructor params into runtime imports - core-server declares `experimentalDecorators` alone;
+`import type` for types on decorated members when bun runs source; the generator never executes a
+module), `binding-key-namespaces.md` (keys stay with their owner; `BOOTERS` has no writer),
+`process/adding-a-component.md` (wire through `configs.artifacts` or `@component()`).
+
+Deviations from the plan: the reference app is `examples/vert`, not a helpdesk sample; there is no
+`imports` option and no `profiles` - composition of indexes and a `when` function replaced both;
+`@bean` was rejected in favour of `@provide`. Tooling fix found on the way: the generated
+`reference/binding-keys.md` had been empty ("0 keys") because `knowledge-tools/config.ts` still
+pointed `coreBindings` at `packages/core-server/src/common/bindings.ts`, which moved to the kernel;
+it now reads `packages/kernel/src/common/bindings.ts` (16 keys across 2 classes).
+
+BANA crosscheck (read-only, fixed-string grep over `packages` and `apps`): no `booter(`,
+`registerBooters`, `Bootstrapper`, `BootMixin`, `IBootReport`, `TMixinOpts` or
+`@venizia/ignis-boot` anywhere; `.boot()` in 4 entry points and `async boot(` overrides in 16 files
+(15 `application.ts` plus `search/src/migrations/bootstrap.ts`) - all compile against the no-op;
+`bootOptions` in 2 configs (ignored). Hand registration remains their path: 146 `this.controller(`,
+353 `this.service(`, 66 `this.component(`, 369 `this.repository(`, 19 `this.dataSource(` - all
+still valid. No `get<XController>` or `controllers.` key lookup, so `controller()` becoming
+SINGLETON has no BANA call site to disturb.
+
 ## 2026-09-02 - examples register from a generated artifact index; boot() calls dropped
 
 `examples/vert` is the reference application for decorator-driven registration. Its

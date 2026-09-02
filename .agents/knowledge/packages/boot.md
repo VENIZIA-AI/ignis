@@ -1,53 +1,98 @@
 ---
 type: Package
 title: boot
-description: Convention-based auto-discovery and bootstrapping for controllers, services, repositories, and datasources.
+description: Build-time artifact index generator - scans decorated classes with the TypeScript AST and emits one static registration file per package; ships the ignis-artifacts CLI.
 resource: packages/boot
-tags: [packages, boot, bootstrapping]
+tags: [packages, boot, artifacts, generator]
 ---
 
-`@venizia/ignis-boot` sits between `helpers` and `core` in the dependency chain (`dev-configs -> inversion -> {filter, helpers} -> {boot, kernel} -> core`); `kernel` is a sibling, not a link - neither package depends on the other, and `core` pulls in both. It discovers artifact files by glob pattern and registers them into the IoC container, so applications do not have to manually wire up every controller, service, repository, and datasource. It depends on `@venizia/ignis-inversion`, `@venizia/ignis-helpers`, and `glob`, and ships a dual CJS + ESM build. See [Boot lifecycle](/architecture/boot-lifecycle.md).
+`@venizia/ignis-boot` is a build-time tool, not a runtime dependency. `ignis-artifacts generate`
+walks a source root with the TypeScript compiler API, finds every named, non-abstract class that
+carries an IGNIS stereotype decorator, and writes `src/generated/artifacts.ts`: plain static imports
+plus one exported object in the `IArtifactIndex` shape. The application passes that object as
+`configs.artifacts`; the kernel's `registerArtifacts` boot step binds it. The runtime half - how the
+index becomes bindings - is [Artifact registration](/architecture/boot-lifecycle.md).
 
-## Three-phase lifecycle
+Position in the chain is unchanged: `{boot, kernel} -> core`; `boot` and `kernel` do not depend on
+each other. Runtime dependency: `@venizia/ignis-helpers` only (the logger). `typescript >= 5.0.0` is
+a peer dependency because the scanner is an AST walk. Dual CJS + ESM build, sub-path export
+`./generator`, bin `ignis-artifacts -> dist/cjs/cli.js` with a `bun` shebang (the scanner uses
+`Bun.Glob`).
 
-Every booter runs through **configure -> discover -> load**:
+## Layout
 
-1. **configure** - merge user-supplied options with defaults (directories, extensions, nesting, glob pattern).
-2. **discover** - glob the filesystem for matching files, producing `discoveredFiles[]`.
-3. **load** - dynamically import each file, filter for class exports, producing `loadedClasses[]`, then bind each class into the container.
+- `src/cli.ts` - `parseArgs`; `run()` returns the exit code and `process.exit(run())` is the only exit.
+- `src/generator/scanner.ts` - `ArtifactScanner.scan({ root, ignore })` -> `IScannedArtifact[]`.
+- `src/generator/emitter.ts` - `ArtifactIndexEmitter.render({ artifacts, outFile, exportName })` -> text.
+- `src/generator/index.ts` - `generateArtifactIndex`, `checkArtifactIndex`, `IGenerateOptions`.
+- `src/generator/common/` - `ArtifactStereotypes` (`BY_DECORATOR`, `ROOT_DECORATOR`, `SOURCE_MODULES`,
+  `DEFAULT_IGNORE`, `EMIT_ORDER`, with `SCHEME_SET`/`isValid`), `IScannedArtifact`, `IScanOptions`.
+- `src/common/` - deprecated `IBootOptions`, `IArtifactOptions`, `TBootPhase`, `IBootPhaseReport`,
+  `IBootReport`, `IBootableApplication`, `BootPhases`. Kept only so an existing `configs.bootOptions`
+  and `override boot()` still type-check; nothing reads them.
 
-`BaseArtifactBooter` (`src/base/base-artifact-booter.ts`) implements this as a Template Method: it owns `configure()`/`discover()`/`load()` and delegates to abstract `getDefaultDirs()`, `getDefaultExtensions()`, and `bind()` for subclass-specific behavior.
+## Detection rules
 
-## Built-in booters
+A class is emitted when every rule holds; every miss is logged with its reason.
 
-`src/booters/` ships four booters, each targeting a default directory and file extension and binding into a namespace:
+- Named export (`export class`), not `export default`, not module-private.
+- Not `abstract`.
+- Decorated with `component`, `controller`, `service`, `repository` or `datasource` **imported from
+  `@venizia/ignis` or `@venizia/ignis-kernel`** (aliases resolved), or with `injectable({ type })`
+  where `type` is a string literal or `ArtifactTypes.<NAME>`.
+- Not under an ignored glob: `**/__tests__/**`, `**/*.test.ts`, `**/*.spec.ts`, `**/generated/**`,
+  plus `--ignore`.
 
-| Booter | Default dir | Extension | Namespace | Scope |
-|---|---|---|---|---|
-| `ControllerBooter` | `controllers/` | `.controller.js` | `controllers` | transient |
-| `ServiceBooter` | `services/` | `.service.js` | `services` | transient |
-| `RepositoryBooter` | `repositories/` | `.repository.js` | `repositories` | transient |
-| `DatasourceBooter` | `datasources/` | `.datasource.js` | `datasources` | singleton |
+`model` is recognised and never emitted - a model is reached through its repository.
 
-Datasources bind as singletons deliberately, to share one connection pool per datasource class rather than opening a new pool per resolution.
+## Output contract
 
-## Orchestration
+Deterministic text: header naming the regenerate command, imports sorted by path (relative to the
+output file, POSIX separators, no extension), then one field per kind in `EMIT_ORDER`
+(`dataSources`, `components`, `repositories`, `services`, `controllers`), names sorted, empty arrays
+kept. A field wider than 100 columns wraps one name per line with trailing commas, so the file passes
+the repo's `prettier -l` untouched. No IGNIS import in the file - the object is type-checked where
+`registerArtifacts` receives it.
 
-`Bootstrapper` (`src/bootstrapper.ts`) discovers all registered booters via `findByTag({ tag: 'booter' })` and runs every lifecycle phase across them sequentially, timing each phase and wrapping any thrown error with the phase name and booter class name for context.
+## CLI
 
-`BootMixin` (`src/boot.mixin.ts`) is the entry point applications use: it mixes boot capability onto any `Container` subclass, and its constructor auto-registers the four built-in booters (each tagged `'booter'`) plus a singleton `Bootstrapper`.
+| Flag | Default | Meaning |
+|---|---|---|
+| `--root` | `src` | Directory scanned recursively |
+| `--out` | `src/generated/artifacts.ts` | Output path; import paths are relative to it |
+| `--ignore` | none | Comma-separated globs added to `DEFAULT_IGNORE` |
+| `--export` | `GeneratedArtifacts` | Exported constant name |
 
-## Extending
+`generate` writes only when the content changed (exit 0). `check` renders in memory and compares
+(exit 0 fresh, 1 stale, with the `generate` command in the message). Anything else prints usage,
+exit 2.
 
-A custom booter (e.g. for `handlers/`) extends `BaseArtifactBooter`, implements `getDefaultDirs()`, `getDefaultExtensions()`, and `bind()`, and is registered the same way the built-ins are: `bind({ key: 'booter.HandlerBooter' }).toClass(HandlerBooter).setTags('booter')`.
+## Constraints the code cannot show
 
-## Gotcha: `isClass`
+- **The generator never executes a module.** No decorator runs, no import side effect fires, so a
+  datasource file that opens a pool at import stays inert. Detection is therefore syntactic, and a
+  stereotype re-exported through a local wrapper module is not recognised - the import must name an
+  IGNIS module.
+- **The index is a lint gate, not a build step.** `check` belongs where lint runs; in this repo
+  `make artifacts-check` (a prerequisite of `make lint-examples`) runs vert's `check:artifacts`.
+- **Inside the monorepo the examples run the CLI from source** (`bun ../../packages/boot/src/cli.ts`)
+  so a fresh checkout without a built `dist` still generates; external applications use the bin.
+- **Tests** in `src/__tests__/generator/` run against fixtures under
+  `src/__tests__/fixtures/artifacts/**`. The fixtures import `@venizia/ignis`, so they are excluded
+  from `tsconfig.json` and eslint - the boot build stays independent of core. Tests locate fixtures
+  with `resolve(process.cwd(), ...)`; `import.meta` is unavailable in the CJS type-check.
+- **Build:** `scripts/build.sh` type-checks `tsconfig.json` (tests included) with `--noEmit`, then
+  emits from `tsconfig.build.json`; `dist` carries `cli`, `common` and `generator` only.
 
-`isClass` is not declared in boot. It lives in `inversion` (`common/types.ts`) because the container, controller factories, and `resolveValue` all need to branch on the exact same predicate; `helpers` re-exports it, and boot imports it from `@venizia/ignis-helpers` rather than redeclaring it. The predicate does not stop at `typeof x === 'function' && x.prototype !== undefined` - a plain non-arrow function satisfies that too. It also runs `/^class[\s{]/.test(Function.prototype.toString.call(target))` on the source text, and that is what keeps a plain function from being discovered and instantiated as if it were an artifact class.
+## Removed
+
+`Bootstrapper`, `BaseArtifactBooter`, `ControllerBooter`, `ServiceBooter`, `RepositoryBooter`,
+`DatasourceBooter`, `BootMixin`, `discoverFiles`, `loadClasses` and the `isClass` re-export left with
+the runtime boot system on 2026-09-02. `isClass` still lives in `inversion`.
 
 ## Related
 
-- [Boot lifecycle](/architecture/boot-lifecycle.md)
+- [Artifact registration](/architecture/boot-lifecycle.md)
+- [Application lifecycle](/architecture/application-lifecycle.md)
 - [inversion](/packages/inversion.md)
 - [core](/packages/core-server.md)
-- [Application lifecycle](/architecture/application-lifecycle.md)

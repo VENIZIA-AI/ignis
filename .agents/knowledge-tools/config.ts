@@ -30,7 +30,7 @@ export const PATHS = {
   examples: resolve(REPO, 'examples'),
   docs: resolve(REPO, 'docs/wiki'),
   coreComponents: resolve(REPO, 'packages/core-server/src/components'),
-  coreBindings: resolve(REPO, 'packages/core-server/src/common/bindings.ts'),
+  coreBindings: resolve(REPO, 'packages/kernel/src/common/bindings.ts'),
   bootBooters: resolve(REPO, 'packages/boot/src/booters'),
   helpersModules: resolve(REPO, 'packages/helpers/src/modules'),
   helpersUtilities: resolve(REPO, 'packages/helpers/src/utilities'),

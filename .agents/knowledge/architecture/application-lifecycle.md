@@ -14,18 +14,19 @@ base is a four-class chain split across two packages:
 | `AbstractApplication extends Container` | `packages/kernel/src/base/applications/abstract.ts` | config normalisation, project root, post-start/post-stop hooks, `init()` and `registerCoreBindings()`. No router, no server. |
 | `RestApplication` | `packages/kernel/src/base/applications/rest.ts` | the two `OpenAPIHono` instances, `getServer()`, `getRootRouter()`, `inspectRoutes()`, and the `APPLICATION_SERVER` / `APPLICATION_ROOT_ROUTER` bindings. |
 | `ServerApplication` | `packages/core-server/src/base/applications/server.ts` | the only layer that touches a socket: `getServerHost/Port/Address`, `startBunModule`, `startNodeModule`, `start()`, `stop()`. |
-| `BaseApplication` | `packages/core-server/src/base/applications/base.ts` | the configuration sequence, secrets, boot wiring. |
+| `BaseApplication` | `packages/core-server/src/base/applications/base.ts` | the configuration sequence, secrets, the deprecated `boot()` no-op. |
 
 The cut is deliberate. The first two layers are browser-pure and ship in `@venizia/ignis-kernel`, so
 a Worker or a gRPC-only host can extend `RestApplication` without pulling in `Bun.serve` or
 `@hono/node-server`. `packages/core-server/src/base/applications/index.ts` re-exports the kernel classes, so
 `@venizia/ignis` consumers see no change.
 
-The outermost order is `new Application({ scope, config })` -> `init()` -> optional `boot()` ->
-`start()`. **`init()` is not called for you.** It runs `registerCoreBindings()`, which binds
+The outermost order is `new Application({ scope, config })` -> `init()` -> `start()`. The old
+`boot()` step is a deprecated no-op (warns once, returns an empty report); artifacts come from
+`configs.artifacts` inside `start()`. **`init()` is not called for you.** It runs `registerCoreBindings()`, which binds
 `APPLICATION_INSTANCE` (on `AbstractApplication`) plus `APPLICATION_SERVER` and
-`APPLICATION_ROOT_ROUTER` (on `RestApplication`). Skip it and the `Bootstrapper` and every
-`@inject`ed application reference are unresolvable. `APPLICATION_PROJECT_ROOT` is bound earlier still,
+`APPLICATION_ROOT_ROUTER` (on `RestApplication`). Skip it and every `@inject`ed application reference - including the
+one `registerArtifacts` hands to each `when` condition - is unresolvable. `APPLICATION_PROJECT_ROOT` is bound earlier still,
 from the constructor.
 
 `start()` (on `ServerApplication`) is the outer driver:
@@ -50,7 +51,7 @@ tripwire only: a core-server paired with a kernel that predates `getBootSequence
 instead of silently running the short kernel sequence.
 
 Step names are published constants, not loose strings: `BootSteps` in kernel
-(`packages/kernel/src/base/applications/boot-sequence.ts`) for the eight steps the kernel defines
+(`packages/kernel/src/base/applications/boot-sequence.ts`) for the nine steps the kernel defines
 methods for, `ServerBootSteps extends BootSteps` in core-server
 (`packages/core-server/src/base/applications/boot-steps.ts`) adding the five server-only ones. Both carry `SCHEME_SET` and `isValid()` like every const class
 here, and the server set contains the kernel set. They are what a subclass passes as `target` to
@@ -66,21 +67,27 @@ server application is:
    `onError` handler and the not-found handler, then adds the async context storage (when enabled),
    the `RequestTrackerComponent` and the favicon middleware.
 4. `staticConfigure()` - pre-DI static setup, e.g. static file roots.
-5. `preConfigure()` - your hook: register controllers, services, components manually.
-6. `hydrateSecrets()` - resolves the provider from the overridable `registerSecrets()` (default
+5. `registerArtifacts()` - registers every class in `configs.artifacts`: datasources, components (plus
+   their `@provide` keys), repositories, services, controllers, in that order, honouring each class's
+   `when` and `order`. Nothing is instantiated; this step only binds. See
+   [Artifact registration](/architecture/boot-lifecycle.md).
+6. `preConfigure()` - your hook for what the index cannot express: registry calls
+   (`AuthenticationStrategyRegistry`, `AuthorizationEnforcerRegistry`), hand-made bindings. Hand
+   registration (`this.controller(...)`) still works here and reads the class's decorator defaults.
+7. `hydrateSecrets()` - resolves the provider from the overridable `registerSecrets()` (default
    `SecretProviders.SYSTEM_ENVS`), merges each secret bundle into `process.env` and the application
    environment, binds the provider under `CoreBindings.APPLICATION_CONFIG`, and registers a post-stop
    shutdown hook. Outside a development env, a failed provider - or a hydrate entry that declared
    `keys` or a `prefix` yet resolved to nothing - throws instead of falling back.
-7. `registerDataSources()`
-8. `registerComponents()`
-9. `registerContributedDataSources()` - a second, flat `registerDataSources()` sweep that catches any
+8. `registerDataSources()`
+9. `registerComponents()`
+10. `registerContributedDataSources()` - a second, flat `registerDataSources()` sweep that catches any
    datasource a component contributed, at any nesting depth.
-10. `wireSecretRotatables()` - deliberately after the contributed sweep, not just after
+11. `wireSecretRotatables()` - deliberately after the contributed sweep, not just after
     `registerComponents()`: a lease key may point at a datasource that a component contributed.
-11. `registerControllers()`
-12. `postConfigure()` - post-registration hook.
-13. `validateScopeFilterSupport()` - refuses to start when a model declares `settings.scopeFilter`
+12. `registerControllers()`
+13. `postConfigure()` - post-registration hook.
+14. `validateScopeFilterSupport()` - refuses to start when a model declares `settings.scopeFilter`
     somewhere it cannot take effect. Runs last, so a model registered by a component is covered too.
 
 Note two things that a phase list written as `... -> setupMiddlewares -> start` gets wrong: the

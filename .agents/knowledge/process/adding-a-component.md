@@ -46,11 +46,15 @@ tags: [process, component, core]
    entrypoint. A component with heavy optional peer dependencies instead gets its own sub-path
    export in `packages/core-server/package.json` `exports` (see how `./mail`, `./socket-io`,
    `./static-asset` are wired) plus a matching `peerDependenciesMeta` optional entry.
-9. Wire it into an application by calling `this.component(YourComponent)` inside
-   `registerComponents()` (or from an example app's override of it). `component()` binds the class
-   under `components.<ClassName>` as a SINGLETON; the framework's `registerComponents()` phase then
-   finds every binding tagged `components` and calls `.configure()` on each in turn, which is what
-   actually invokes your `binding()`.
+9. Wire it into an application. A framework component is listed once in the application's config:
+   `artifacts: [GeneratedArtifacts, { components: [YourComponent] }]`. An application-owned component
+   is decorated with `@component()` and picked up by `bun run generate:artifacts`. Either way the
+   class binds under `components.<ClassName>` as a SINGLETON at the `registerArtifacts` step, and the
+   `registerComponents()` step finds every binding tagged `components` and calls `.configure()` on
+   each, which is what invokes your `binding()`. `this.component(YourComponent)` in `preConfigure()`
+   still works. Options that other components read belong in `@provide` methods of an
+   application-owned component, not in `this.bind(...).toValue(...)` - see
+   [Artifact registration](/architecture/boot-lifecycle.md).
 
 ## Related
 

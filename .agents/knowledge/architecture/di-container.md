@@ -41,11 +41,20 @@ function gets the container, an `IProvider` class is itself instantiated through
 then has `.value(container)` called.
 
 `bind()` itself overwrites silently - rebinding an already-bound key just replaces it, no warning. The
-artifact-registration methods (`component`/`controller`/`service`/`repository`/`dataSource`, and
-core-server's `booter`) sit on top of `bind()` and take `TMixinOpts.allowOverride`: default `true`
-preserves that silent-overwrite behavior, `false` makes a same-key re-registration throw instead.
-The check is `RestApplication.assertNoBindingCollision()`, a protected method - a subclass adding a
-registration method of its own (core-server's `booter()`) calls it instead of re-wording the error.
+artifact-registration methods (`component`/`controller`/`service`/`repository`/`dataSource`) sit on
+top of `bind()` and take `TMixinOpts.allowOverride`: default `true` preserves that silent-overwrite
+behavior, `false` makes a same-key re-registration throw instead. The check is
+`RestApplication.assertNoBindingCollision()`, a protected method - a subclass adding a registration
+method of its own calls it instead of re-wording the error.
+
+**A binding's key, scope and override rule have three inputs**, resolved in this order by the private
+`registerArtifact` behind all five methods: the explicit `TMixinOpts` at the call site, then the
+class's stereotype metadata (`@controller({ scope })`, `@service({ binding })`, ...), then the
+derived default - `<namespace>.<Class>`, `SINGLETON` for datasource/component/controller,
+`TRANSIENT` for repository/service, `allowOverride: true`. A `@provide({ key })` method on a
+component registered through `configs.artifacts` is a `toProvider` binding that resolves the
+component and calls the method on first `get`, `SINGLETON` unless `@provide({ scope })` says
+otherwise - see [Artifact registration](/architecture/boot-lifecycle.md).
 
 **Singleton caching lives on the Binding, not the Container.** `getValue()` caches when scope is
 `SINGLETON`; `clearCache()` drops it. `TRANSIENT` (the default) builds a new instance per `get`.
