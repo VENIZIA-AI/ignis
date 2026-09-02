@@ -791,7 +791,7 @@ tags: [reference, exports, api]
 
 ## kernel
 
-### `@venizia/ignis-kernel` (387)
+### `@venizia/ignis-kernel` (388)
 
 - `AbstractApplication` class
 - `AbstractAuthRegistry` class
@@ -1040,6 +1040,7 @@ tags: [reference, exports, api]
 - `RestComponent` class
 - `RestPaths` class
 - `RoleStatuses` class
+- `RouteConfigResolver` class
 - `rpc` const
 - `SchemaTypes` class
 - `ScopeFilterMissingBehaviors` class
@@ -1715,7 +1716,7 @@ tags: [reference, exports, api]
 
 ## core-server
 
-### `@venizia/ignis` (905)
+### `@venizia/ignis` (906)
 
 - `AbstractApplication` class
 - `AbstractAuthRegistry` class
@@ -2305,6 +2306,7 @@ tags: [reference, exports, api]
 - `RetryHelper` class
 - `RetryJitterModes` class
 - `RoleStatuses` class
+- `RouteConfigResolver` class
 - `rpc` const
 - `RSA` class
 - `RSAAlgorithmType` type
