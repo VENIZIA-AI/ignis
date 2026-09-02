@@ -368,6 +368,6 @@ a parse failure.
 - [`packages/helpers/src/modules/error/index.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/error/index.ts) - module barrel
 - [`packages/helpers/src/modules/error/schemas.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/error/schemas.ts) - `ErrorSchema`, `TErrorResponse` (the RESPONSE schema, for OpenAPI)
 - [`packages/inversion/src/modules/error/app-error.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/inversion/src/modules/error/app-error.ts) - `ApplicationError`, `getError`, `fromError`, `isApplicationError`
-- [`packages/inversion/src/modules/error/types.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/inversion/src/modules/error/types.ts) - `TError`, `TErrorDefinition`, `TErrorNormalized`, `TResponsedError`, `IErrorKeyRegistry`, `TRegisterErrors`
+- [`packages/inversion/src/modules/error/common/types.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/inversion/src/modules/error/common/types.ts) - `TError`, `TErrorDefinition`, `TErrorNormalized`, `TResponsedError`, `IErrorKeyRegistry`, `TRegisterErrors`
 - [`packages/inversion/src/modules/error/definition.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/inversion/src/modules/error/definition.ts) - `ErrorScopes`, `TErrorScope`
 - [`packages/inversion/src/modules/error/message-code.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/inversion/src/modules/error/message-code.ts) - `MessageCode`
