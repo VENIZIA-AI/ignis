@@ -419,4 +419,4 @@ Topic "orders" (3 partitions)
 
 - [`packages/helpers/src/modules/queue/kafka/consumer.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/queue/kafka/consumer.ts) - `KafkaConsumerHelper`, consume loop, automatic reconnect
 - [`packages/helpers/src/modules/queue/kafka/base.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/queue/kafka/base.ts) - `BaseKafkaHelper`, shared health tracking and shutdown
-- [`packages/helpers/src/modules/queue/kafka/common/types.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/queue/kafka/common/types.ts) - `IKafkaConsumerOptions`, `IKafkaConsumeStartOptions`
+- [`packages/helpers/src/modules/queue/kafka/common/types/consumer.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/queue/kafka/common/types/consumer.ts) - `IKafkaConsumerOptions`, `IKafkaConsumeStartOptions`

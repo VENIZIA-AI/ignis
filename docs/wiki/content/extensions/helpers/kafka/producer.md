@@ -405,4 +405,4 @@ await producer.send({
 
 - [`packages/helpers/src/modules/queue/kafka/producer.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/queue/kafka/producer.ts) - `KafkaProducerHelper`
 - [`packages/helpers/src/modules/queue/kafka/base.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/queue/kafka/base.ts) - `BaseKafkaHelper`, shared health tracking and shutdown
-- [`packages/helpers/src/modules/queue/kafka/common/types.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/queue/kafka/common/types.ts) - `IKafkaProducerOptions`, `IKafkaConnectionOptions`, `IKafkaTransactionContext`
+- [`packages/helpers/src/modules/queue/kafka/common/types/`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/queue/kafka/common/types) - `IKafkaProducerOptions`, `IKafkaConnectionOptions`, `IKafkaTransactionContext`

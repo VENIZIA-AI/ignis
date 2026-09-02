@@ -207,4 +207,4 @@ await admin.alterConsumerGroupOffsets({
 
 - [`packages/helpers/src/modules/queue/kafka/admin.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/queue/kafka/admin.ts) - `KafkaAdminHelper`
 - [`packages/helpers/src/modules/queue/kafka/base.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/queue/kafka/base.ts) - `BaseKafkaHelper`, shared health tracking and shutdown
-- [`packages/helpers/src/modules/queue/kafka/common/types.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/queue/kafka/common/types.ts) - `IKafkaAdminOptions`
+- [`packages/helpers/src/modules/queue/kafka/common/types/admin.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/queue/kafka/common/types/admin.ts) - `IKafkaAdminOptions`
