@@ -116,4 +116,4 @@ const allKeys = applicationEnvironment.keys();
 **Files:**
 
 - [`packages/helpers/src/modules/env/app-env.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/env/app-env.ts) - `Environment`, `ApplicationEnvironment`, the `applicationEnvironment` singleton
-- [`packages/helpers/src/modules/env/types.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/env/types.ts) - `IApplicationEnvironment` interface
+- [`packages/helpers/src/modules/env/common/types.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/env/common/types.ts) - `IApplicationEnvironment` interface

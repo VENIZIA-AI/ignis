@@ -12,7 +12,7 @@ Exhaustive reference for the Queue helper family. For a readable introduction an
 
 - [`packages/helpers/src/modules/queue/bullmq/helper.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/queue/bullmq/helper.ts) - `BullMQHelper`
 - [`packages/helpers/src/modules/queue/internal/sequential/helper.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/queue/internal/sequential/helper.ts) - `SequentialQueueHelper`
-- [`packages/helpers/src/modules/queue/internal/sequential/types.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/queue/internal/sequential/types.ts) - `QueueStatuses`, `TQueueStatus`, `TQueueElement`, `IQueueCallback`
+- [`packages/helpers/src/modules/queue/internal/sequential/common/types.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/queue/internal/sequential/common/types.ts) - `QueueStatuses`, `TQueueStatus`, `TQueueElement`, `IQueueCallback`
 - [`packages/helpers/src/modules/queue/internal/hf/helper.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/queue/internal/hf/helper.ts) - `HfQueueHelper`
 - [`packages/helpers/src/modules/queue/mqtt/helper.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/queue/mqtt/helper.ts) - `MQTTClientHelper`
 - [`packages/helpers/src/modules/queue/common/types.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/queue/common/types.ts) - `TBullQueueRole`
