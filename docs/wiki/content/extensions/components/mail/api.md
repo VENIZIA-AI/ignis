@@ -11,7 +11,7 @@ Every binding key, configuration variant, interface, and internal mechanism of `
 **Files:**
 
 - [`packages/core-server/src/components/mail/component.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/components/mail/component.ts)
-- [`packages/core-server/src/components/mail/common/types.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/components/mail/common/types.ts)
+- [`packages/core-server/src/components/mail/common/types/`](https://github.com/VENIZIA-AI/ignis/tree/main/packages/core-server/src/components/mail/common/types)
 - [`packages/core-server/src/components/mail/common/constants.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/components/mail/common/constants.ts)
 - [`packages/core-server/src/components/mail/common/keys.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/components/mail/common/keys.ts)
 - [`packages/core-server/src/components/mail/services/mail.service.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/components/mail/services/mail.service.ts)
@@ -344,7 +344,7 @@ interface IMailQueueExecutorConfig {
 | `internal-queue` | Single-instance apps, moderate volume | In-memory, with retry |
 | `bullmq` | Distributed or high-volume systems | Redis-backed, configurable concurrency/priority/backoff |
 
-**Source:** [`common/types.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/components/mail/common/types.ts)
+**Source:** [`common/types/`](https://github.com/VENIZIA-AI/ignis/tree/main/packages/core-server/src/components/mail/common/types)
 
 ### Constants
 
@@ -491,7 +491,7 @@ interface IMailAttachment {
 - Inline image: `{ filename: 'logo.png', path: '...', cid: 'logo' }`
 - Mailgun maps each attachment to `{ filename, data: att.path ?? att.content ?? Buffer.from('') }`.
 
-**Source:** [`common/types.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/components/mail/common/types.ts)
+**Source:** [`common/types/`](https://github.com/VENIZIA-AI/ignis/tree/main/packages/core-server/src/components/mail/common/types)
 
 ## `IMailTemplateEngine` interface
 
@@ -745,7 +745,7 @@ interface IInternalQueueMailExecutorOpts {
 }
 ```
 
-**Source:** [`common/types.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/components/mail/common/types.ts)
+**Source:** [`common/types/`](https://github.com/VENIZIA-AI/ignis/tree/main/packages/core-server/src/components/mail/common/types)
 
 ## Utility functions
 
