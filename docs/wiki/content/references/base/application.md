@@ -194,46 +194,29 @@ abstract class BaseApplication
 ### Method Signatures
 
 ```typescript
-component<Base extends BaseComponent, Args extends AnyObject = any>(
-  ctor: TClass<Base>,
-  opts?: TMixinOpts<Args>,
-): Binding<Base>
-
-controller<Base, Args extends AnyObject = any>(
-  ctor: TClass<Base>,
-  opts?: TMixinOpts<Args>,
-): Binding<Base>
-
-service<Base extends IService, Args extends AnyObject = any>(
-  ctor: TClass<Base>,
-  opts?: TMixinOpts<Args>,
-): Binding<Base>
-
-repository<Base extends IRepository, Args extends AnyObject = any>(
-  ctor: TClass<Base>,
-  opts?: TMixinOpts<Args>,
-): Binding<Base>
-
-dataSource<Base extends IDataSource, Args extends AnyObject = any>(
-  ctor: TClass<Base>,
-  opts?: TMixinOpts<Args>,
-): Binding<Base>
-
-booter<Base extends IBooter, Args extends AnyObject = any>(
-  ctor: TClass<Base>,
-  opts?: TMixinOpts<Args>,
-): Binding<Base>
+component<Base extends BaseComponent>(ctor: TClass<Base>, opts?: TMixinOpts): Binding<Base>
+controller<Base>(ctor: TClass<Base>, opts?: TMixinOpts): Binding<Base>
+service<Base extends IService>(ctor: TClass<Base>, opts?: TMixinOpts): Binding<Base>
+repository<Base extends IRepository>(ctor: TClass<Base>, opts?: TMixinOpts): Binding<Base>
+dataSource<Base extends IDataSource>(ctor: TClass<Base>, opts?: TMixinOpts): Binding<Base>
+booter<Base extends IBooter>(ctor: TClass<Base>, opts?: TMixinOpts): Binding<Base>
 ```
 
 Where `TMixinOpts` is:
 
 ```typescript
-type TMixinOpts<Args extends AnyObject = any> = {
+type TMixinOpts = {
   binding?: { namespace: string; key: string };
-  args?: Args;
   allowOverride?: boolean;
 };
 ```
+
+The options describe the registration, never the artifact: what a class needs goes on the class.
+
+| Method | Binding scope | Why |
+|---|---|---|
+| `component`, `dataSource`, `controller` | `SINGLETON` | One instance per application - a controller is mounted once, a datasource holds one pool |
+| `service`, `repository`, `booter` | `TRANSIENT` | A new instance per resolution, so each injection point owns its own |
 
 `binding` is optional - omit it and the method derives `{ namespace, key }` from the class name.
 `allowOverride` defaults to `true`, matching `bind()`'s own silent-overwrite behavior: register the
@@ -272,7 +255,7 @@ Registers the `Bootstrapper` singleton and all four default booters with the `'b
 
 ### registerDynamicBindings
 
-Protected method for handling late-registration and circular dependency patterns. Iterates bindings in a namespace, configuring each instance and re-fetching to pick up dynamically added bindings.
+Protected. Scans one binding namespace, resolves each binding and calls its `configure()`, then re-scans until a pass adds nothing new. An artifact that a `configure()` registers is therefore picked up in the same call.
 
 ```typescript
 protected async registerDynamicBindings<T extends IConfigurable>(opts: {
@@ -285,10 +268,10 @@ protected async registerDynamicBindings<T extends IConfigurable>(opts: {
 | Parameter | Type | Description |
 |-----------|------|-------------|
 | `namespace` | `TBindingNamespace` | Binding namespace to scan (e.g., `'components'`, `'datasources'`) |
-| `onBeforeConfigure` | callback | Called before each binding's `configure()` |
-| `onAfterConfigure` | callback | Called after `configure()` |
+| `onBeforeConfigure` | callback | Runs before each binding's `configure()` |
+| `onAfterConfigure` | callback | Runs after `configure()`, once the binding is already marked configured |
 
-The method tracks already-configured bindings to prevent duplicates and re-fetches after each configuration to handle bindings registered during the configure phase.
+Configured keys are remembered per namespace, so a second call over the same namespace touches only what the first one missed.
 
 ### `initialize()` Method Flow
 
@@ -301,10 +284,14 @@ graph TD
     C --> D(registerDefaultMiddlewares);
     D --> E(staticConfigure);
     E --> F(preConfigure);
-    F --> G(registerDataSources);
-    G --> H(registerComponents);
-    H --> I(registerControllers);
-    I --> J(postConfigure);
+    F --> G(hydrateSecrets);
+    G --> H(registerDataSources);
+    H --> I(registerComponents);
+    I --> J(registerContributedDataSources);
+    J --> K(wireSecretRotatables);
+    K --> L(registerControllers);
+    L --> M(postConfigure);
+    M --> N(validateScopeFilterSupport);
 ```
 
 | Hook | When to Use | Notes |
@@ -341,7 +328,7 @@ For each transport in the array, the corresponding component (`RestComponent` or
 
 ### registerComponents
 
-When registering components, after each component's `configure()` completes, the framework also re-registers any datasources that the component may have added. This handles the pattern where components bring their own datasources.
+A component may register more components while it is configured, at any nesting depth, and may add a datasource of its own. Contributed datasources are configured by `registerContributedDataSources()`, one flat sweep that runs after every component has finished - not after each component in turn. A component that uses a datasource an earlier component contributed sees it unconfigured until that sweep runs.
 
 ## `IApplicationConfigs`
 

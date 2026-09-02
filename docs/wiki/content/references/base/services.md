@@ -62,22 +62,17 @@ this.service(AuthenticationService);  // binds as 'services.AuthenticationServic
 this.service(GreeterService);         // binds as 'services.GreeterService'
 ```
 
-`this.service(Ctor)` is implemented directly on `BaseApplication`:
+`this.service(Ctor)` is implemented on the kernel's `RestApplication`, which `BaseApplication` extends:
 
 ```typescript
-// packages/core-server/src/base/applications/base.ts
-service<Base extends IService, Args extends AnyObject = any>(
-  ctor: TClass<Base>,
-  opts?: TMixinOpts<Args>,
-): Binding<Base> {
-  return this.bind<Base>({
-    key: BindingKeys.build(
-      opts?.binding ?? {
-        namespace: BindingNamespaces.SERVICE, // 'services'
-        key: ctor.name,                       // class name
-      },
-    ),
-  }).toClass(ctor);
+// packages/kernel/src/base/applications/rest.ts
+service<Base extends IService>(ctor: TClass<Base>, opts?: TMixinOpts): Binding<Base> {
+  const key = BindingKeys.build(
+    opts?.binding ?? { namespace: BindingNamespaces.SERVICE, key: ctor.name }, // 'services.<ClassName>'
+  );
+  this.assertNoBindingCollision({ key, allowOverride: opts?.allowOverride, caller: this.service.name });
+
+  return this.bind<Base>({ key }).toClass(ctor);
 }
 ```
 

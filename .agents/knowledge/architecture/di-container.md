@@ -44,6 +44,8 @@ then has `.value(container)` called.
 artifact-registration methods (`component`/`controller`/`service`/`repository`/`dataSource`, and
 core-server's `booter`) sit on top of `bind()` and take `TMixinOpts.allowOverride`: default `true`
 preserves that silent-overwrite behavior, `false` makes a same-key re-registration throw instead.
+The check is `RestApplication.assertNoBindingCollision()`, a protected method - a subclass adding a
+registration method of its own (core-server's `booter()`) calls it instead of re-wording the error.
 
 **Singleton caching lives on the Binding, not the Container.** `getValue()` caches when scope is
 `SINGLETON`; `clearCache()` drops it. `TRANSIENT` (the default) builds a new instance per `get`.

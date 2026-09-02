@@ -29,6 +29,10 @@ class BareApplication extends BaseApplication {
   }): Promise<void> {
     return this['registerDynamicBindings'](opts as never);
   }
+
+  isConfigured(opts: { namespace: string; key: string }): boolean {
+    return this['registeredBindings'][opts.namespace]?.has(opts.key) ?? false;
+  }
 }
 
 /** Minimal `IConfigurable` - `registerDynamicBindings` only ever calls `configure()`. */
@@ -96,9 +100,8 @@ describe('BaseApplication - registerDynamicBindings', () => {
   test('a binding configured by a SIBLING mid-batch is not configured twice', async () => {
     const order: string[] = [];
 
-    // The pass drains a whole batch before re-scanning, so `Sibling` is already in the batch when
-    // `Driver` configures it by hand. Without the per-item guard it runs a second time when the
-    // loop reaches it - the failure a per-item re-scan used to hide.
+    // The batch is drained before re-scanning, so `Sibling` is already queued when `Driver`
+    // configures it by hand; the per-item guard is what keeps it from running twice.
     const sibling = buildConfigurable({ name: 'Sibling', order });
 
     // Driver bound FIRST so the loop reaches it while `Sibling` is still ahead of it in the batch.
@@ -142,29 +145,29 @@ describe('BaseApplication - registerDynamicBindings', () => {
     expect(order).toEqual(['Alpha', 'Gamma']);
   });
 
-  test('onBeforeConfigure / onAfterConfigure fire around each binding', async () => {
+  // The after-hook must see its own binding as already configured: a hook that registers a sibling
+  // and then asks "is mine done?" would otherwise re-enter it.
+  test('onBeforeConfigure / onAfterConfigure fire around each binding, and the after-hook sees it configured', async () => {
     const order: string[] = [];
+    const namespace = BindingNamespaces.COMPONENT;
+    const key = `${namespace}.Alpha`;
+    const mark = (): string =>
+      application.isConfigured({ namespace, key }) ? 'configured' : 'pending';
 
-    application
-      .bind({ key: `${BindingNamespaces.COMPONENT}.Alpha` })
-      .toValue(buildConfigurable({ name: 'Alpha', order }));
+    application.bind({ key }).toValue(buildConfigurable({ name: 'Alpha', order }));
 
     await application.runDynamicBindings({
-      namespace: BindingNamespaces.COMPONENT,
+      namespace,
       onBeforeConfigure: async ({ binding }) => {
-        order.push(`before:${binding.key}`);
+        order.push(`before:${binding.key}:${mark()}`);
       },
       onAfterConfigure: async ({ binding, instance }) => {
         expect(typeof instance.configure).toBe('function');
-        order.push(`after:${binding.key}`);
+        order.push(`after:${binding.key}:${mark()}`);
       },
     });
 
-    expect(order).toEqual([
-      `before:${BindingNamespaces.COMPONENT}.Alpha`,
-      'Alpha',
-      `after:${BindingNamespaces.COMPONENT}.Alpha`,
-    ]);
+    expect(order).toEqual([`before:${key}:pending`, 'Alpha', `after:${key}:configured`]);
   });
 
   test('a throwing configure() propagates and leaves the binding unconfigured (retryable)', async () => {

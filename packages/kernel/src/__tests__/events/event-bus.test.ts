@@ -2,42 +2,9 @@ import { EventBus, EventDispatchRetry, EventHandlerTypes } from '@/base/events';
 import type { IDomainEvent, IEventHandler, TEventHandlerReference } from '@/base/events';
 import { Container } from '@/helpers/inversion/container';
 import type { AnyType } from '@venizia/ignis-helpers/common';
-import type { ILogger, TLogLevel } from '@venizia/ignis-helpers/core';
 import { getError } from '@venizia/ignis-helpers/core';
 import { describe, expect, test } from 'bun:test';
-
-/** Records every call instead of asserting inline, so a test can inspect level/message/args after the fact. */
-class RecordingLogger implements ILogger {
-  readonly calls: Array<{ level: TLogLevel; message: string; args: AnyType[] }> = [];
-
-  debug(message: string, ...args: AnyType[]): void {
-    this.calls.push({ level: 'debug', message, args });
-  }
-
-  info(message: string, ...args: AnyType[]): void {
-    this.calls.push({ level: 'info', message, args });
-  }
-
-  warn(message: string, ...args: AnyType[]): void {
-    this.calls.push({ level: 'warn', message, args });
-  }
-
-  error(message: string, ...args: AnyType[]): void {
-    this.calls.push({ level: 'error', message, args });
-  }
-
-  emerg(message: string, ...args: AnyType[]): void {
-    this.calls.push({ level: 'emerg', message, args });
-  }
-
-  log(level: TLogLevel, message: string, ...args: AnyType[]): void {
-    this.calls.push({ level, message, args });
-  }
-
-  for(_methodName: string): ILogger {
-    return this;
-  }
-}
+import { RecordingLogger } from '../support/recording-logger';
 
 /** A stand-in handler: records every `handle` call, and throws `getError` for the first `failuresBeforeSuccess` calls. */
 class RecordingHandler implements IEventHandler {

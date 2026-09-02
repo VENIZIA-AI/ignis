@@ -205,22 +205,27 @@ IGNIS applications follow a predictable startup sequence with hooks for customiz
 │  │    - Register Components                            │    │
 │  └─────────────────────────────────────────────────────┘    │
 │                                                             │
-│  6. hydrateSecrets()       - Resolve secrets into env        │
+│  6. hydrateSecrets()       - Resolve secrets into env       │
 │  7. registerDataSources()  - Initialize DB connections      │
 │  8. registerComponents()   - Configure all components       │
-│  9. wireSecretRotatables() - Attach rotation listeners      │
-│ 10. registerControllers()  - Mount routes to router         │
+│  9. registerContributedDataSources()                        │
+│                            - Datasources components added   │
+│ 10. wireSecretRotatables() - Attach rotation listeners      │
+│ 11. registerControllers()  - Mount routes to router         │
 │                                                             │
 │  ┌─────────────────────────────────────────────────────┐    │
-│  │ 11. postConfigure()  ← YOUR CODE HERE               │    │
+│  │ 12. postConfigure()  ← YOUR CODE HERE               │    │
 │  │    - Seed data                                      │    │
 │  │    - Start background jobs                          │    │
 │  │    - Custom initialization                          │    │
 │  └─────────────────────────────────────────────────────┘    │
+│                                                             │
+│ 13. validateScopeFilterSupport()                            │
+│                            - Refuse a dead scopeFilter      │
 └─────────────────────────────────────────────────────────────┘
 ```
 
-`hydrateSecrets()` runs after `preConfigure()` so a secrets provider registered there is available, and before `registerDataSources()` so datasources read already-resolved values. `wireSecretRotatables()` runs after components, because a component may contribute the datasource a rotation lease points at.
+`hydrateSecrets()` runs after `preConfigure()` so a secrets provider registered there is available, and before `registerDataSources()` so datasources read already-resolved values. `registerContributedDataSources()` runs once after every component, so a datasource a component adds is configured before any controller mounts. `wireSecretRotatables()` follows it, because a rotation lease may point at one of those contributed datasources. `validateScopeFilterSupport()` runs last, so a model a component registered is checked too.
 
 **Lifecycle Methods:**
 
@@ -291,16 +296,13 @@ export class Application extends BaseApplication {
 **How registration works:**
 ```typescript
 // BaseApplication implements service() directly (no mixin composition):
-service<Base extends IService, Args extends AnyObject = any>(
-  ctor: TClass<Base>,
-  opts?: TMixinOpts<Args>,
-): Binding<Base> {
+service<Base extends IService>(ctor: TClass<Base>, opts?: TMixinOpts): Binding<Base> {
   const key = BindingKeys.build(
     opts?.binding ?? { namespace: BindingNamespaces.SERVICE, key: ctor.name },
   );
   // Throws when `allowOverride: false` and `key` is already bound - every registration
   // method (service, repository, dataSource, controller, component, booter) does the same check.
-  assertNoBindingCollision({ container: this, key, allowOverride: opts?.allowOverride, caller: 'service' });
+  this.assertNoBindingCollision({ key, allowOverride: opts?.allowOverride, caller: this.service.name });
 
   return this.bind<Base>({ key }).toClass(ctor);
 }

@@ -6,6 +6,57 @@ not how.
 This file and `index.md` are reserved OKF filenames - they carry no `type:` frontmatter and are not
 counted as concepts.
 
+## 2026-09-02 - boot sequence: named constants, per-step logging, ambiguity check; inversion stops emitting tests
+
+Five facts changed. (1) `BootSequence.insertAfter` now refuses a duplicated target name with
+`Ambiguous step` as it refuses an unknown one - `findIndex` used to splice after the first match
+silently. (2) `RestApplication.initialize()` delegates to a new protected `runBootSequence()`: one
+`executeWithPerformanceMeasure` line per step at debug (`Boot step n/N <name>`), an info summary
+listing every step name, and an error line naming the failed step before the original error is
+rethrown. `BaseApplication.initialize()` keeps the identical one-line body (tripwire). (3) Step
+names are const classes: `BootSteps` (kernel, eight names incl. `registerDefaultMiddlewares`) and
+`ServerBootSteps extends BootSteps` (core-server, `packages/core-server/src/base/applications/boot-steps.ts`,
+five server-only names), used by both `getBootSequence()` overrides and every `insertAfter` target.
+`IBootSequenceStep.name` stays `string` so an application can add its own steps. (4) The collision
+guard's `caller` is derived from the method (`this.controller.name`), no longer a literal that had
+to match the enclosing method by hand. (5) `packages/inversion` gained `tsconfig.build.json`; its
+`build.sh` type-checks `tsconfig.json` (tests included) then emits from the build config, and
+`tsconfig.esm.json` extends it - `dist` no longer carries compiled `__tests__`, so `bun test`
+reports 38 tests instead of 3x that. The npm tarball never shipped them (`files` already excluded
+`__tests__`); the cost was the false count and the wasted emit. (6) `TMixinOpts` lost `args` and
+its `Args` generic - no registration method ever read it, and IGNIS, examples and BANA never
+passed it or an explicit type argument; the user chose removal over deprecation, so this is a
+type-level breaking change against kernel-v0.2.0-13 that no known caller feels. The six
+registration methods and the five mixin interfaces are now `(ctor, opts?: TMixinOpts)`. (7)
+`controller()` binds SINGLETON like `component()` and `dataSource()`: `RestComponent` mounts the
+one instance it resolves, so a second `get('controllers.X')` now returns that instance instead of an
+unmounted twin. Updated:
+`architecture/application-lifecycle.md`, `process/build-system.md`. Tests: kernel
+`boot-sequence.test.ts` (ambiguity, per-step log lines, failed-step log + same-error rethrow),
+`layering.test.ts` (`runBootSequence` member); kernel tests now share
+`src/__tests__/support/recording-logger.ts`.
+
+## 2026-09-02 - boot-sequence follow-ups: hook order restored, guard made protected, tripwire, mutation-killing tests
+
+Four source facts changed. (1) `registerDynamicBindings` keeps its `onBeforeConfigure`/
+`onAfterConfigure` options - they shipped in kernel-v0.2.0-13, so rule P-06 rules out removing them
+on "no caller" alone - and gets back the order the boot-sequence refactor had changed: a binding is
+marked configured **before** `onAfterConfigure` runs, so the hook sees its own binding as done. The
+mark is set inside `registerDynamicBindings`'s `onEach`; `drainByTag`'s own mark after `onEach` is
+the same `Set` and stays idempotent. (2) `assertNoBindingCollision` is no
+longer a kernel export; it is `RestApplication.assertNoBindingCollision()`, protected, with the
+`container` parameter dropped (it was always `this`). `booter()` calls it through inheritance.
+(3) `BootSequence.insertBefore` is removed - zero callers; `insertAfter` stays. Neither (2) nor (3)
+had shipped in a tagged release. (4) `BaseApplication.initialize()` is back as a version tripwire
+with a body identical to kernel's: a stale kernel without `getBootSequence()` now throws at boot
+instead of silently running the short kernel sequence. Tests added after four mutations were
+measured to kill nothing: the collision guard is asserted per method with the `[caller]` prefix,
+`initialize()` is asserted to RUN `validateEnvs`/`validateScopeFilterSupport` rather than list them,
+and inversion pins that a second `bind()` on a key replaces the binding (identity, not value).
+Updated: `architecture/di-container.md`, `docs/wiki/content/references/base/application.md`
+(`registerDynamicBindings`, 13-step mermaid, `registerComponents`),
+`docs/wiki/content/best-practices/architectural-patterns.md` (13-step box, `service()` sample).
+
 ## 2026-09-02 - registration methods gained a same-key collision guard (`allowOverride`)
 
 `TMixinOpts` (`packages/kernel/src/base/mixins/types.ts`) gained `allowOverride?: boolean`, default

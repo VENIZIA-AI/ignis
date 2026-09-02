@@ -1,6 +1,6 @@
 import 'reflect-metadata';
 
-import { BaseApplication } from '@/base/applications';
+import { BaseApplication, ServerBootSteps } from '@/base/applications';
 import type { IApplicationConfigs, IApplicationInfo } from '@/base/applications';
 import { BindingNamespaces } from '@venizia/ignis-kernel';
 import { RequestTrackerComponent } from '@/components';
@@ -127,6 +127,19 @@ describe('BaseApplication - lifecycle order', () => {
 });
 
 describe('BaseApplication - getBootSequence()', () => {
+  test('ServerBootSteps validates every name the sequence uses, kernel ones included', () => {
+    const application = new TraceApplication({
+      scope: 'BootStepsApplication',
+      config: buildConfigs(),
+    });
+
+    const stepNames = application['getBootSequence']().map(step => step.name);
+
+    expect(ServerBootSteps.SCHEME_SET.size).toBe(13);
+    expect(stepNames.every(name => ServerBootSteps.isValid(name))).toBe(true);
+    expect(ServerBootSteps.isValid('not-a-step')).toBe(false);
+  });
+
   test('composes the documented 13-step order: kernel base + core-server splices, in order', () => {
     const application = new TraceApplication({
       scope: 'BootSequenceApplication',
@@ -151,6 +164,40 @@ describe('BaseApplication - getBootSequence()', () => {
       'validateScopeFilterSupport',
     ]);
   });
+
+  /** The name list above cannot tell a live `run` from an emptied one, so this subclass traces the two core-server-only steps no lifecycle hook already covers. */
+  class StepBodyApplication extends TraceApplication {
+    protected override validateEnvs(): void {
+      this.trace.push('validateEnvs');
+      super.validateEnvs();
+    }
+
+    protected override validateScopeFilterSupport(): void {
+      this.trace.push('validateScopeFilterSupport');
+      super.validateScopeFilterSupport();
+    }
+  }
+
+  test('initialize() RUNS validateEnvs first and validateScopeFilterSupport last, around the traced hooks', async () => {
+    const application = new StepBodyApplication({
+      scope: 'StepBodyApplication',
+      config: buildConfigs(),
+    });
+    application.init();
+
+    await application.initialize();
+
+    expect(application.trace).toEqual([
+      'validateEnvs',
+      'staticConfigure',
+      'preConfigure',
+      'registerDataSources',
+      'registerComponents',
+      'registerControllers',
+      'postConfigure',
+      'validateScopeFilterSupport',
+    ]);
+  });
 });
 
 describe('BaseApplication - booter() collision guard', () => {
@@ -163,7 +210,7 @@ describe('BaseApplication - booter() collision guard', () => {
     application.booter(DatasourceBooter);
 
     expect(() => application.booter(DatasourceBooter, { allowOverride: false })).toThrow(
-      /already registered/,
+      `[booter] Binding key already registered: '${BindingNamespaces.BOOTERS}.${DatasourceBooter.name}'`,
     );
   });
 
@@ -336,9 +383,8 @@ describe('BaseApplication - server port resolution', () => {
     expect(application.getServerPort()).toBe(3000);
   });
 
-  // Review finding C5: every case above sets ONE variable, so nothing exercised the fallback
-  // between them - and the extracted `getEnvServerPort()` had collapsed a validity chain into a
-  // `.find(Boolean)` truthiness pick, letting an unusable PORT shadow a usable APP_ENV_SERVER_PORT.
+  // One variable per case above never exercises the fallback between them: an unusable PORT must
+  // not shadow a usable APP_ENV_SERVER_PORT.
   test('an invalid PORT falls through to a valid APP_ENV_SERVER_PORT', () => {
     process.env.PORT = 'abc';
     process.env.APP_ENV_SERVER_PORT = '8080';

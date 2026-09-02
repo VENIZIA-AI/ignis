@@ -21,6 +21,7 @@ const ABSTRACT_APPLICATION_MEMBERS = [
 
 /** What moved DOWN onto `RestApplication` when the kernel was carved out - the router surface, every artifact registration, and the default middleware stack every host shares. */
 const REST_APPLICATION_MEMBERS = [
+  'assertNoBindingCollision',
   'buildErrorMiddleware',
   'component',
   'constructor',
@@ -41,6 +42,7 @@ const REST_APPLICATION_MEMBERS = [
   'registerDefaultMiddlewares',
   'registerDynamicBindings',
   'repository',
+  'runBootSequence',
   'service',
 ];
 
@@ -67,12 +69,7 @@ const buildConfigs = (opts?: Partial<IApplicationConfigs>): IApplicationConfigs 
   return { host: '127.0.0.1', port: 0, path: { base: '/', isStrict: false }, ...opts };
 };
 
-/**
- * The split only pays for itself if the members really LEFT `AbstractApplication`. A test that
- * asserts a member is PRESENT cannot tell inherited from redeclared, so a regression that copied
- * the router surface back up would pass every arrival assertion while putting `OpenAPIHono` back
- * under every host that only wanted the container.
- */
+/** A member-PRESENT assertion cannot tell inherited from redeclared; only the exact own-member list catches the router surface being copied back onto `AbstractApplication`. */
 describe('the kernel application layering - what left, not only what arrived', () => {
   test('RestApplication -> AbstractApplication -> Container, in that order', () => {
     expect(Object.getPrototypeOf(RestApplication)).toBe(AbstractApplication);

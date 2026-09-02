@@ -4,9 +4,11 @@ import { BindingNamespaces } from '@/common/bindings';
 import { BindingScopes } from '@/helpers/inversion';
 import { BaseComponent } from '@/base/components';
 import type { ValueOrPromise } from '@venizia/ignis-helpers/common';
+import { getError } from '@venizia/ignis-helpers/core';
 import { describe, expect, test } from 'bun:test';
-import { BootSequence } from '@/base/applications/boot-sequence';
+import { BootSequence, BootSteps } from '@/base/applications/boot-sequence';
 import type { IBootSequenceStep } from '@/base/applications/boot-sequence';
+import { RecordingLogger } from '../support/recording-logger';
 
 const buildConfigs = (): IApplicationConfigs => ({
   host: '127.0.0.1',
@@ -14,35 +16,15 @@ const buildConfigs = (): IApplicationConfigs => ({
   path: { base: '/', isStrict: false },
 });
 
-/** Direct coverage of the utility itself: `insertBefore`/`insertAfter` have zero callers in the
- * codebase besides `BaseApplication.getBootSequence()`, and an off-by-one in the `slice` boundaries
- * would otherwise ship undetected in an exported public primitive. */
+/** Direct coverage of the utility itself: `insertAfter` has zero callers in the codebase besides
+ * `BaseApplication.getBootSequence()`, and an off-by-one in the `slice` boundaries would otherwise
+ * ship undetected in an exported public primitive. */
 describe('BootSequence', () => {
   const buildSteps = (): IBootSequenceStep[] => [
     { name: 'a', run: () => {} },
     { name: 'b', run: () => {} },
     { name: 'c', run: () => {} },
   ];
-
-  test('insertBefore places the new step immediately before the named target', () => {
-    const steps = BootSequence.insertBefore({
-      steps: buildSteps(),
-      target: 'b',
-      step: { name: 'x', run: () => {} },
-    });
-
-    expect(steps.map(step => step.name)).toEqual(['a', 'x', 'b', 'c']);
-  });
-
-  test('insertBefore on the first step still lands ahead of everything', () => {
-    const steps = BootSequence.insertBefore({
-      steps: buildSteps(),
-      target: 'a',
-      step: { name: 'x', run: () => {} },
-    });
-
-    expect(steps.map(step => step.name)).toEqual(['x', 'a', 'b', 'c']);
-  });
 
   test('insertAfter places the new step immediately after the named target', () => {
     const steps = BootSequence.insertAfter({
@@ -66,20 +48,26 @@ describe('BootSequence', () => {
 
   test('an unknown target name throws instead of silently no-oping', () => {
     expect(() =>
-      BootSequence.insertBefore({
-        steps: buildSteps(),
-        target: 'unknown',
-        step: { name: 'x', run: () => {} },
-      }),
-    ).toThrow("Unknown step: 'unknown'");
-
-    expect(() =>
       BootSequence.insertAfter({
         steps: buildSteps(),
         target: 'unknown',
         step: { name: 'x', run: () => {} },
       }),
     ).toThrow("Unknown step: 'unknown'");
+  });
+
+  test('a duplicated target name throws instead of splicing after the first match', () => {
+    const steps = [...buildSteps(), { name: 'b', run: () => {} }];
+
+    expect(() =>
+      BootSequence.insertAfter({ steps, target: 'b', step: { name: 'x', run: () => {} } }),
+    ).toThrow("Ambiguous step: 'b' appears 2 times");
+  });
+
+  test('BootSteps knows its own names and rejects a server-only one', () => {
+    expect(BootSteps.SCHEME_SET.size).toBe(8);
+    expect(BootSteps.isValid(BootSteps.REGISTER_CONTRIBUTED_DATA_SOURCES)).toBe(true);
+    expect(BootSteps.isValid('hydrateSecrets')).toBe(false);
   });
 
   test('the input array is left untouched', () => {
@@ -137,6 +125,59 @@ describe('RestApplication boot sequence', () => {
       'registerControllers',
       'postConfigure',
     ]);
+  });
+
+  test('every step is logged by name with its duration, then one summary line', async () => {
+    const app = new OrderApp({ scope: OrderApp.name, config: buildConfigs() });
+    const logger = new RecordingLogger();
+    app['logger'] = logger;
+
+    await app.initialize();
+
+    // executeWithPerformanceMeasure logs `[scope] DONE | description | Took` at debug; args[1] is the description.
+    const completed = logger.calls
+      .filter(call => call.level === 'debug' && call.message.includes('DONE'))
+      .map(call => call.args[1]);
+    expect(completed).toEqual([
+      'Boot step 1/7 staticConfigure',
+      'Boot step 2/7 preConfigure',
+      'Boot step 3/7 registerDataSources',
+      'Boot step 4/7 registerComponents',
+      'Boot step 5/7 registerContributedDataSources',
+      'Boot step 6/7 registerControllers',
+      'Boot step 7/7 postConfigure',
+    ]);
+
+    const summary = logger.calls.find(
+      call => call.level === 'info' && call.message.startsWith('Boot sequence complete'),
+    );
+    expect(summary?.args[0]).toBe(7);
+    expect(summary?.args[2]).toBe(
+      'staticConfigure -> preConfigure -> registerDataSources -> registerComponents -> registerContributedDataSources -> registerControllers -> postConfigure',
+    );
+  });
+
+  test('a throwing step rejects initialize() with that same error and names the step in the log', async () => {
+    const boom = getError({ message: 'preConfigure exploded' });
+
+    class BrokenApp extends OrderApp {
+      override preConfigure(): void {
+        throw boom;
+      }
+    }
+
+    const app = new BrokenApp({ scope: BrokenApp.name, config: buildConfigs() });
+    const logger = new RecordingLogger();
+    app['logger'] = logger;
+
+    const failure = await app.initialize().catch((error: unknown) => error);
+
+    expect(failure).toBe(boom);
+    expect(app.order).toEqual(['staticConfigure']);
+
+    const failed = logger.calls.find(call => call.level === 'error');
+    expect(failed?.message).toStartWith('Boot step failed');
+    expect(failed?.args.slice(0, 3)).toEqual(['preConfigure', 2, 7]);
   });
 });
 

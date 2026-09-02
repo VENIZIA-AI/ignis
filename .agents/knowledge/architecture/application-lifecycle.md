@@ -41,9 +41,22 @@ async start() {
 }
 ```
 
-`BaseApplication.getBootSequence()` composes the configuration sequence; `initialize()` itself is
-kernel's generic loop (`RestApplication.initialize()`, unchanged by any subclass) that just runs
-whatever `getBootSequence()` returns. The effective sequence for a server application is:
+`BaseApplication.getBootSequence()` composes the configuration sequence; `initialize()` hands
+whatever it returns to kernel's `runBootSequence()`, which runs the steps in order with one measured
+`[initialize] DONE | Boot step n/N <name> | Took` line per step at debug level, an info summary
+naming every step, and an error line naming the step that threw before rethrowing its original
+error. `BaseApplication` re-declares `initialize()` with the identical one-line body as a version
+tripwire only: a core-server paired with a kernel that predates `getBootSequence()` throws at boot
+instead of silently running the short kernel sequence.
+
+Step names are published constants, not loose strings: `BootSteps` in kernel
+(`packages/kernel/src/base/applications/boot-sequence.ts`) for the eight steps the kernel defines
+methods for, `ServerBootSteps extends BootSteps` in core-server
+(`packages/core-server/src/base/applications/boot-steps.ts`) adding the five server-only ones. Both carry `SCHEME_SET` and `isValid()` like every const class
+here, and the server set contains the kernel set. They are what a subclass passes as `target` to
+`BootSequence.insertAfter`, which refuses an unknown name and a duplicated one alike - the first
+match is never taken silently. The effective sequence for a
+server application is:
 
 1. `printStartUpInfo()` - name, env, runtime, run mode, timezone, log path.
 2. `validateEnvs()` - every registered application env key must be non-empty, unless

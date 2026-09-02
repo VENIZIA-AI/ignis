@@ -1,23 +1,20 @@
 import type { Binding } from '@/helpers/inversion';
-import type { AnyObject, TClass, ValueOrPromise } from '@venizia/ignis-helpers/common';
+import type { TClass, ValueOrPromise } from '@venizia/ignis-helpers/common';
 import type { IApplication } from '../applications';
 import type { BaseComponent } from '../components';
 import type { IDataSource } from '../datasources';
 import type { IRepository } from '../repositories';
 import type { IService } from '../services';
 
-export type TMixinOpts<Args extends AnyObject = any> = {
+/** Options of the registration itself, never of the artifact - what the artifact needs goes on its class. */
+export type TMixinOpts = {
   binding?: { namespace: string; key: string };
-  args?: Args;
-  /** Default true - matches the historical silent-overwrite behavior of `bind()`. Set false to make a re-registration of an already-bound key throw instead of clobbering it. */
+  /** Default true, matching `bind()`'s overwrite behavior; false makes a same-key re-registration throw. */
   allowOverride?: boolean;
 };
 
 export interface IComponentMixin {
-  component<Base extends BaseComponent, Args extends AnyObject = any>(
-    ctor: TClass<Base>,
-    opts?: TMixinOpts<Args>,
-  ): Binding<Base>;
+  component<Base extends BaseComponent>(ctor: TClass<Base>, opts?: TMixinOpts): Binding<Base>;
   registerComponents(): ValueOrPromise<void>;
 }
 
@@ -29,29 +26,17 @@ export interface IServerConfigMixin {
 }
 
 export interface IControllerMixin {
-  controller<Base, Args extends AnyObject = any>(
-    ctor: TClass<Base>,
-    opts?: TMixinOpts<Args>,
-  ): Binding<Base>;
+  controller<Base>(ctor: TClass<Base>, opts?: TMixinOpts): Binding<Base>;
   registerControllers(): ValueOrPromise<void>;
 }
 
 export interface IRepositoryMixin {
-  dataSource<Base extends IDataSource, Args extends AnyObject = any>(
-    ctor: TClass<Base>,
-    opts?: TMixinOpts<Args>,
-  ): Binding<Base>;
-  repository<Base extends IRepository, Args extends AnyObject = any>(
-    ctor: TClass<Base>,
-    opts?: TMixinOpts<Args>,
-  ): Binding<Base>;
+  dataSource<Base extends IDataSource>(ctor: TClass<Base>, opts?: TMixinOpts): Binding<Base>;
+  repository<Base extends IRepository>(ctor: TClass<Base>, opts?: TMixinOpts): Binding<Base>;
 }
 
 export interface IServiceMixin {
-  service<Base extends IService, Args extends AnyObject = any>(
-    ctor: TClass<Base>,
-    opts?: TMixinOpts<Args>,
-  ): Binding<Base>;
+  service<Base extends IService>(ctor: TClass<Base>, opts?: TMixinOpts): Binding<Base>;
 }
 
 export interface IStaticServeMixin {
