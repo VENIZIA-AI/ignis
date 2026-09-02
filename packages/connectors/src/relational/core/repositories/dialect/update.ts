@@ -9,7 +9,7 @@ import {
   parseJsonPath,
   validateJsonColumnType,
   validateJsonPathComponents,
-} from './internal/json-utils';
+} from './internal';
 
 /**
  * Splits `data` into plain columns and JSON-path writes, validating every JSON key before any of it

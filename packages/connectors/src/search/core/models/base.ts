@@ -3,7 +3,7 @@ import { getError } from '@venizia/ignis-helpers/core';
 
 import type { TSchemaType } from '@venizia/ignis-kernel';
 import { AbstractEntity } from '@venizia/ignis-kernel';
-import type { ISearchCollectionDefinition, TSearchDocument } from './types';
+import type { ISearchCollectionDefinition, TSearchDocument } from './common';
 import { deriveSearchDocumentSchema } from './zod-derivation';
 
 /** Engine-neutral search-document entity deriving zod schemas from an `ISearchCollectionDefinition`. `Schema` is instance-side only so `schema` carries the caller's literal collection type - mirrors `BasePostgresEntity`'s static-wide / instance-narrow duality. */

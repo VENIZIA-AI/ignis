@@ -20,15 +20,15 @@ import type {
   IMeilisearchClientLike,
   IMeilisearchConnectorOptions,
   IMeilisearchTask,
-} from './types';
+} from './common';
 import {
   MEILISEARCH_DEFAULT_FETCH_PAGE_SIZE,
   MEILISEARCH_DEFAULT_UPDATE_BATCH_SIZE,
   MeilisearchTaskStatuses,
-} from './types';
+} from './common';
 
 // Re-exported for back-compat: callers and test fakes historically imported the client-shape type from this module rather than from `./types`, its new home.
-export type { IMeilisearchClientLike } from './types';
+export type { IMeilisearchClientLike } from './common';
 
 const DEFAULT_TASK_TIMEOUT_MS = 5 * 60_000;
 const DEFAULT_TASK_INTERVAL_MS = 50;
