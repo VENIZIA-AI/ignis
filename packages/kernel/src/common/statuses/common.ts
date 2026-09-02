@@ -137,19 +137,6 @@ export class Statuses {
   }
 }
 
-/** Database migration statuses. */
-export class MigrationStatuses {
-  static readonly UNKNOWN = Statuses.UNKNOWN;
-  static readonly SUCCESS = Statuses.SUCCESS;
-  static readonly FAIL = Statuses.FAIL;
-
-  static readonly SCHEME_SET = new Set([this.UNKNOWN, this.SUCCESS, this.FAIL]);
-
-  static isValid(scheme: string): boolean {
-    return this.SCHEME_SET.has(scheme);
-  }
-}
-
 /** Common reusable entity statuses. */
 export class CommonStatuses {
   static readonly UNKNOWN = Statuses.UNKNOWN;
@@ -168,23 +155,5 @@ export class CommonStatuses {
 
   static isValid(scheme: string): boolean {
     return this.SCHEME_SET.has(scheme);
-  }
-}
-
-/** User statuses. */
-export class UserStatuses extends CommonStatuses {}
-
-/** Role statuses. */
-export class RoleStatuses extends CommonStatuses {}
-
-/** User types within the application. */
-export class UserTypes {
-  static readonly SYSTEM = 'SYSTEM';
-  static readonly LINKED = 'LINKED';
-
-  static readonly SCHEME_SET = new Set([this.SYSTEM, this.LINKED]);
-
-  static isValid(orgType: string): boolean {
-    return this.SCHEME_SET.has(orgType);
   }
 }
