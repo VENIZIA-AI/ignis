@@ -16,7 +16,7 @@ Every binding key, configuration variant, interface, and internal mechanism of `
 - [`packages/core-server/src/components/mail/common/keys.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/components/mail/common/keys.ts)
 - [`packages/core-server/src/components/mail/services/mail.service.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/components/mail/services/mail.service.ts)
 - [`packages/core-server/src/components/mail/services/template.service.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/components/mail/services/template.service.ts)
-- [`packages/core-server/src/components/mail/services/generator.service.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/components/mail/services/generator.service.ts)
+- [`packages/core-server/src/components/mail/services/generators/`](https://github.com/VENIZIA-AI/ignis/tree/main/packages/core-server/src/components/mail/services/generators)
 - [`packages/core-server/src/components/mail/providers/mail-transporter.provider.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/components/mail/providers/mail-transporter.provider.ts)
 - [`packages/core-server/src/components/mail/providers/mail-queue-executor.provider.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/components/mail/providers/mail-queue-executor.provider.ts)
 - [`packages/core-server/src/components/mail/helpers/transporters/nodemail-transporter.helper.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/components/mail/helpers/transporters/nodemail-transporter.helper.ts)

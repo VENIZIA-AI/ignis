@@ -218,7 +218,7 @@ classDiagram
 components/auth/authorize/
 ├── adapters/
 │   ├── base-filtered.ts          # BaseFilteredAdapter (thin abstract) + ICasbinPolicyFilter
-│   ├── scoped-casbin.adapter.ts  # ScopedCasbinAdapter (generic edge-table reader)
+│   ├── scoped-casbin/            # ScopedCasbinAdapter (generic edge-table reader)
 │   └── types.ts                  # IScopedCasbinEntities, IScopedCasbinTable, ICasbinPolicySource
 ├── builders/
 │   ├── grant.builder.ts           # GrantBuilder
@@ -1032,7 +1032,7 @@ const adapter = new ScopedCasbinAdapter({
 });
 ```
 
-Source -> [`adapters/scoped-casbin.adapter.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/components/auth/authorize/adapters/scoped-casbin.adapter.ts)
+Source -> [`adapters/scoped-casbin/`](https://github.com/VENIZIA-AI/ignis/tree/main/packages/core-server/src/components/auth/authorize/adapters/scoped-casbin)
 
 ### `resolveDomainEdges` - `g3` edges from business data
 
@@ -1093,7 +1093,7 @@ A row that passes all four checks can still drop an individual **unresolvable op
 
 **Composing a grant:** use `planGrant` (below) rather than hand-building a custom row. It collapses an operation selection into tier grants wherever possible. What does not collapse falls back to a custom row, or a single per-operation row.
 
-Source -> [`adapters/scoped-casbin.adapter.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/components/auth/authorize/adapters/scoped-casbin.adapter.ts)
+Source -> [`adapters/scoped-casbin/`](https://github.com/VENIZIA-AI/ignis/tree/main/packages/core-server/src/components/auth/authorize/adapters/scoped-casbin)
 
 ## AuthorizationPermissionBuilder.objectMatch
 

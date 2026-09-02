@@ -262,7 +262,7 @@ class DocumentUITypes {
 **Files:**
 
 - [`packages/core-server/src/components/api-reference/component.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/components/api-reference/component.ts) - `ApiReferenceComponent`
-- [`packages/core-server/src/components/api-reference/ui-factory.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/components/api-reference/ui-factory.ts) - `UIProviderFactory`, `SwaggerUIProvider`, `ScalarUIProvider`
+- [`packages/core-server/src/components/api-reference/ui/`](https://github.com/VENIZIA-AI/ignis/tree/main/packages/core-server/src/components/api-reference/ui) - `UIProviderFactory`, `SwaggerUIProvider`, `ScalarUIProvider`
 - [`packages/core-server/src/components/api-reference/common/types.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/components/api-reference/common/types.ts) - `IApiReferenceOptions`, `IUIProvider`, `IUIConfig`
 - [`packages/core-server/src/components/api-reference/common/keys.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/components/api-reference/common/keys.ts) - `ApiReferenceBindingKeys`
 - [`packages/core-server/src/components/api-reference/common/constants.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/components/api-reference/common/constants.ts) - `DocumentUITypes`
