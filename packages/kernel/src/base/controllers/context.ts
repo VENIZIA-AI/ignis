@@ -1,4 +1,4 @@
-import type { TContext } from '@/base/controllers/common/types';
+import type { TContext } from './common/types';
 import type { Env } from 'hono';
 
 /** Casts middleware context to TContext (safe -- structurally identical to Context). */
