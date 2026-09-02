@@ -180,7 +180,7 @@ interface IArtifactIndex {
 type TArtifactIndexInput = IArtifactIndex | TArtifactIndexInput[];
 ```
 
-`IApplicationConfigs.artifacts?: TArtifactIndexInput` - one index, or arrays of indexes nested to any depth.
+`IApplicationConfigs.artifacts?: TArtifactIndexInput` - one index, or arrays of indexes nested to any depth. The field names are the const class `ArtifactIndexFields` (`DATA_SOURCES`, `COMPONENTS`, `REPOSITORIES`, `SERVICES`, `CONTROLLERS`, with `SCHEME_SET` and `isValid`); `registerArtifacts` reads the index through it, never through a string literal.
 
 ```typescript
 artifacts: [InventoryArtifacts, GeneratedArtifacts, { components: [HealthCheckComponent] }],

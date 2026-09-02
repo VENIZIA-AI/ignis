@@ -2,8 +2,9 @@ import { getError, LoggerFactory } from '@venizia/ignis-helpers';
 import { readFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import * as ts from 'typescript';
-import { ArtifactStereotypes } from './common/constants';
-import type { IScanOptions, IScannedArtifact, TArtifactType } from './common/types';
+import { ArtifactStereotypes, ArtifactTypes } from './common/constants';
+import type { TArtifactType } from './common/constants';
+import type { IScanOptions, IScannedArtifact } from './common/types';
 
 /** Finds exported classes carrying a stereotype decorator by reading the source, never by running it. */
 export class ArtifactScanner {
@@ -223,7 +224,7 @@ export class ArtifactScanner {
   private static asArtifactType(opts: { raw: string }): TArtifactType | undefined {
     const { raw } = opts;
     return ArtifactStereotypes.EMIT_ORDER.map(entry => entry.type)
-      .concat('model')
+      .concat(ArtifactTypes.MODEL)
       .find(type => type === raw);
   }
 }

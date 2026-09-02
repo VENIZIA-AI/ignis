@@ -1,6 +1,4 @@
-/** Mirrors the kernel's `ArtifactTypes` values; boot must not depend on kernel (`{boot, kernel} -> core` in the build chain). */
-export type TArtifactType =
-  'component' | 'controller' | 'service' | 'repository' | 'datasource' | 'model';
+import type { TArtifactType } from './constants';
 
 export interface IScannedArtifact {
   className: string;

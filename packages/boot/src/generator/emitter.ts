@@ -1,5 +1,5 @@
 import { dirname, relative, sep } from 'node:path';
-import { ArtifactStereotypes } from './common/constants';
+import { ArtifactStereotypes, ArtifactTypes } from './common/constants';
 import type { IScannedArtifact } from './common/types';
 
 /** Renders the generated index: deterministic text, plain static imports, no IGNIS import - the object is type-checked where `registerArtifacts` receives it. */
@@ -16,7 +16,7 @@ export class ArtifactIndexEmitter {
     exportName: string;
   }): string {
     const { artifacts, outFile, exportName } = opts;
-    const emitted = artifacts.filter(artifact => artifact.type !== 'model');
+    const emitted = artifacts.filter(artifact => artifact.type !== ArtifactTypes.MODEL);
 
     const imports = emitted
       .map(artifact => ({

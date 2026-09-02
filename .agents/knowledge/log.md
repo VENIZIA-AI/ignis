@@ -6,6 +6,18 @@ not how.
 This file and `index.md` are reserved OKF filenames - they carry no `type:` frontmatter and are not
 counted as concepts.
 
+## 2026-09-02 - no string literal where a const class exists: ArtifactIndexFields, boot's ArtifactTypes
+
+The five `selectArtifacts({ field: 'dataSources' })` calls in `RestApplication.registerArtifacts`
+now read `ArtifactIndexFields.DATA_SOURCES` and so on (new const class in
+`packages/kernel/src/base/applications/constants.ts`, exported from the barrel); each selected list
+is bound to a named const before its loop. `@venizia/ignis-boot` mirrors both vocabularies as const
+classes in `generator/common/constants.ts` (`ArtifactTypes`, `ArtifactIndexFields`; boot cannot
+depend on kernel) and its scanner, emitter and `EMIT_ORDER` use them; `TArtifactType` is derived
+from the class, no longer a hand-written union. The user's rule, now in the rules of thumb: a string
+literal at a call site where a const class exists is a defect, and an inline `await` in a loop head
+is not written.
+
 ## 2026-09-02 - bundled and compiled applications: helpers exports stay defined, NODE_ENV stays a runtime read, one logger provider across copies
 
 Found while proving the vert binary: it crashed at import on every commit back to the ESM builds,

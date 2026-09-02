@@ -24,6 +24,7 @@ import type { IService } from '../services';
 import { AbstractApplication } from './abstract';
 import type { IBootSequenceStep } from './boot-sequence';
 import { BootSteps } from './boot-sequence';
+import { ArtifactIndexFields } from './constants';
 import type { IApplicationConfigs, IArtifactIndex, TArtifactIndexInput } from './types';
 
 interface IRegisterDynamicBindingsOptions<T extends IConfigurable = IConfigurable> {
@@ -398,28 +399,40 @@ export abstract class RestApplication<
   async registerArtifacts(index: TArtifactIndexInput): Promise<void> {
     const indexes = this.flattenArtifactIndex({ input: index });
 
-    const dataSources = await this.selectArtifacts({ indexes, field: 'dataSources' });
+    const dataSources = await this.selectArtifacts({
+      indexes,
+      field: ArtifactIndexFields.DATA_SOURCES,
+    });
     for (const ctor of dataSources) {
       this.dataSource(ctor);
     }
 
-    const components = await this.selectArtifacts({ indexes, field: 'components' });
+    const components = await this.selectArtifacts({
+      indexes,
+      field: ArtifactIndexFields.COMPONENTS,
+    });
     for (const ctor of components) {
       this.component(ctor);
       this.bindProvidedKeys({ ctor });
     }
 
-    const repositories = await this.selectArtifacts({ indexes, field: 'repositories' });
+    const repositories = await this.selectArtifacts({
+      indexes,
+      field: ArtifactIndexFields.REPOSITORIES,
+    });
     for (const ctor of repositories) {
       this.repository(ctor);
     }
 
-    const services = await this.selectArtifacts({ indexes, field: 'services' });
+    const services = await this.selectArtifacts({ indexes, field: ArtifactIndexFields.SERVICES });
     for (const ctor of services) {
       this.service(ctor);
     }
 
-    const controllers = await this.selectArtifacts({ indexes, field: 'controllers' });
+    const controllers = await this.selectArtifacts({
+      indexes,
+      field: ArtifactIndexFields.CONTROLLERS,
+    });
     for (const ctor of controllers) {
       this.controller(ctor);
     }
