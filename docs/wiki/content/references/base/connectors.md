@@ -114,8 +114,8 @@ import { MeilisearchDataSource } from '@venizia/ignis/meilisearch';
 
 **Files:**
 
-- [`packages/core-server/src/base/datasources/abstract.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/base/datasources/abstract.ts) - neutral `AbstractDataSource`
-- [`packages/core-server/src/base/models/base.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/base/models/base.ts) - neutral `AbstractEntity`
-- [`packages/core-server/src/base/repositories/core/abstract.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/base/repositories/core/abstract.ts) - neutral `AbstractRepository`
-- [`packages/core-server/src/connectors/postgres/datasources/base.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/connectors/postgres/datasources/base.ts) - `BaseRelationalDataSource` (alias `BasePostgresDataSource`)
-- [`packages/core-server/src/connectors/search/datasources/base.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/connectors/search/datasources/base.ts) - `BaseSearchDataSource`, shared by typesense and meilisearch
+- [`packages/kernel/src/base/datasources/abstract.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/kernel/src/base/datasources/abstract.ts) - neutral `AbstractDataSource`
+- [`packages/kernel/src/base/models/base.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/kernel/src/base/models/base.ts) - neutral `AbstractEntity`
+- [`packages/kernel/src/base/repositories/core/abstract.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/kernel/src/base/repositories/core/abstract.ts) - neutral `AbstractRepository`
+- [`packages/connectors/src/relational/postgres/datasources/base.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/connectors/src/relational/postgres/datasources/base.ts) - `BaseRelationalDataSource` (alias `BasePostgresDataSource`)
+- [`packages/connectors/src/search/core/datasources/base.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/connectors/src/search/core/datasources/base.ts) - `BaseSearchDataSource`, shared by typesense and meilisearch

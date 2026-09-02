@@ -203,7 +203,7 @@ curl -i http://localhost:3000/api/authz-example/configurations \
 # -> 200
 ```
 
-`examples/vert` runs this exact scenario for real, with real ports and real tokens: `scripts/seed-authz-test-data.ts` and `scripts/seed-user-policies.ts` seed seven personas, and `scripts/test-authorization.sh` curls all of them - cases C1, C2, and C3 are the three requests above.
+`examples/vert` runs this exact scenario for real, with real ports and real tokens: `examples/vert/scripts/seed-authz-test-data.ts` and `examples/vert/scripts/seed-user-policies.ts` seed seven personas, and `scripts/test-authorization.sh` curls all of them - cases C1, C2, and C3 are the three requests above.
 
 ## What just happened
 

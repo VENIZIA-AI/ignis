@@ -11,9 +11,9 @@ IGNIS provides built-in middleware functions and a provider-based middleware cla
 
 **Files:**
 - `packages/core-server/src/base/middlewares/app-error/app-error.middleware.ts`
-- `packages/core-server/src/base/middlewares/not-found/not-found.middleware.ts`
+- `packages/kernel/src/base/middlewares/not-found/not-found.middleware.ts`
 - `packages/core-server/src/base/middlewares/request-spy/request-spy.middleware.ts`
-- `packages/core-server/src/base/middlewares/emoji-favicon/emoji-favicon.middleware.ts`
+- `packages/kernel/src/base/middlewares/emoji-favicon/emoji-favicon.middleware.ts`
 
 ## Prerequisites
 

@@ -10,16 +10,16 @@ Exhaustive reference for `htmlContent()`, `htmlResponse()`, and `BaseRestControl
 
 **Files:**
 
-- [`packages/core-server/src/utilities/jsx.utility.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/utilities/jsx.utility.ts) - `htmlContent`, `htmlResponse`
-- [`packages/core-server/src/base/controllers/rest/base.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/base/controllers/rest/base.ts) - `BaseRestController.defineJSXRoute`
-- [`packages/core-server/src/base/controllers/rest/abstract.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/base/controllers/rest/abstract.ts) - `AbstractRestController.getJSXRouteConfigs`
+- [`packages/kernel/src/utilities/jsx.utility.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/kernel/src/utilities/jsx.utility.ts) - `htmlContent`, `htmlResponse`
+- [`packages/kernel/src/base/controllers/rest/base.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/kernel/src/base/controllers/rest/base.ts) - `BaseRestController.defineJSXRoute`
+- [`packages/kernel/src/base/controllers/rest/abstract.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/kernel/src/base/controllers/rest/abstract.ts) - `AbstractRestController.getJSXRouteConfigs`
 - [`packages/helpers/src/common/jsx.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/common/jsx.ts) - `FC`, `PropsWithChildren`, `Child` (re-exported from `hono/jsx`)
 
 ## `htmlContent()`
 
 Creates a standard OpenAPI content object for `text/html` responses.
 
-`Source ->` [`packages/core-server/src/utilities/jsx.utility.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/utilities/jsx.utility.ts)
+`Source ->` [`packages/kernel/src/utilities/jsx.utility.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/kernel/src/utilities/jsx.utility.ts)
 
 ```typescript
 const htmlContent = (opts: { description: string; required?: boolean }) => ({
@@ -51,7 +51,7 @@ An OpenAPI content configuration object: `description`, `content['text/html'].sc
 
 Creates a standard OpenAPI response object for HTML endpoints. It pairs a success (`200`) HTML response with a JSON error response for `4xx | 5xx` status codes using `ErrorSchema`.
 
-`Source ->` [`packages/core-server/src/utilities/jsx.utility.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/utilities/jsx.utility.ts)
+`Source ->` [`packages/kernel/src/utilities/jsx.utility.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/kernel/src/utilities/jsx.utility.ts)
 
 ```typescript
 const htmlResponse = (opts: { description: string; required?: boolean }) => ({
@@ -91,7 +91,7 @@ this.defineRoute({
 
 Defines and registers a JSX/HTML route in a single call - the JSX counterpart of `defineRoute()`.
 
-`Source ->` [`packages/core-server/src/base/controllers/rest/base.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/base/controllers/rest/base.ts)
+`Source ->` [`packages/kernel/src/base/controllers/rest/base.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/kernel/src/base/controllers/rest/base.ts)
 
 ```typescript
 defineJSXRoute<RouteConfig extends IAuthRouteConfig, ResponseType = unknown>(opts: {
@@ -111,7 +111,7 @@ defineJSXRoute<RouteConfig extends IAuthRouteConfig, ResponseType = unknown>(opt
 
 `defineJSXRoute` is `defineRoute` with one difference: it builds the route configuration through `getJSXRouteConfigs` instead of `getRouteConfigs`.
 
-`Source ->` [`packages/core-server/src/base/controllers/rest/abstract.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/base/controllers/rest/abstract.ts)
+`Source ->` [`packages/kernel/src/base/controllers/rest/abstract.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/kernel/src/base/controllers/rest/abstract.ts)
 
 ```typescript
 getJSXRouteConfigs<RouteConfig extends IAuthRouteConfig>(opts: { configs: RouteConfig }) {

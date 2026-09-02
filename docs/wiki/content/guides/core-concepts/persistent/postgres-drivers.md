@@ -52,7 +52,7 @@ export class PostgresDataSource extends BasePostgresDataSource<IDataSourceConfig
 > [!IMPORTANT] Why a class, not a name
 > A driver-name string cannot carry `pg` or `postgres` into your bundle - it is just text. A dynamic `import('./node-postgres.js')` keyed off that string would defer *execution*, not *packaging*. Every bundler statically resolves a literal specifier and packages whatever it points to. A build that only used node-postgres would still fail with `Could not resolve: "postgres"`. The failure fires the moment postgres-js's import appears anywhere in the module graph reachable at build time. Naming the class instead makes the driver module a real value reference - the one thing a bundler is forced to keep. That's what lets `pg` and `postgres` stay genuinely optional peers. A bare side-effect import (`import '@venizia/ignis/postgres/node-postgres'`) would not work either. `@venizia/ignis` declares `sideEffects: false`, so a bundler is free to drop an import whose exports go unused.
 >
-> Two tests pin this from different angles. `packages/core-server/src/__tests__/connectors/postgres/no-eager-driver-import.test.ts` proves no barrel **loads** a driver package in a fresh process (the runtime module graph). `packages/core-server/src/__tests__/connectors/postgres/bundle/optional-peers.test.ts` proves no barrel gets a driver package **packaged** by a real bundler.
+> Two tests pin this from different angles. `packages/connectors/src/__tests__/postgres/no-eager-driver-import.test.ts` proves no barrel **loads** a driver package in a fresh process (the runtime module graph). `packages/connectors/src/__tests__/postgres/bundle/optional-peers.test.ts` proves no barrel gets a driver package **packaged** by a real bundler.
 
 ## Using postgres-js
 

@@ -10,15 +10,15 @@ Everything beyond basic CRUD - transactions, row-level locking, hidden-property 
 
 **Files:**
 
-- [`packages/core-server/src/base/repositories/core/abstract.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/base/repositories/core/abstract.ts) - engine-neutral `AbstractRepository`
-- [`packages/core-server/src/base/repositories/common/types.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/base/repositories/common/types.ts) - `IExtraOptions`, `TLockOptions`, `TCount`, `TDataRange`, `IReadRetryOptions`, `IWithReadRetry`, `TFindOptions`, `TFindOneOptions`, `TFindRangeOptions`, `TDataWithRange`
+- [`packages/kernel/src/base/repositories/core/abstract.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/kernel/src/base/repositories/core/abstract.ts) - engine-neutral `AbstractRepository`
+- [`packages/kernel/src/base/repositories/common/types/index.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/kernel/src/base/repositories/common/types/index.ts) - `IExtraOptions`, `TLockOptions`, `TCount`, `TDataRange`, `IReadRetryOptions`, `IWithReadRetry`, `TFindOptions`, `TFindOneOptions`, `TFindRangeOptions`, `TDataWithRange`
 - [`packages/helpers/src/modules/retry/helper.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/retry/helper.ts) - `RetryHelper.executeWithRetryUntil`, the engine behind `options.retry`
-- [`packages/core-server/src/connectors/postgres/repositories/core/base.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/connectors/postgres/repositories/core/base.ts) - `RelationalBaseRepository` - hidden-column exclusion, `buildQuery`, `resolveConnector`, lock validation
-- [`packages/core-server/src/connectors/postgres/repositories/core/readable.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/connectors/postgres/repositories/core/readable.ts) - `ReadableRelationalRepository` - Core API vs. Query API selection, `shouldQueryRange`
-- [`packages/core-server/src/connectors/postgres/repositories/core/persistable.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/connectors/postgres/repositories/core/persistable.ts) - `PersistableRelationalRepository` - create/update/delete, empty-where guard
-- [`packages/core-server/src/connectors/postgres/repositories/core/soft-deletable.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/connectors/postgres/repositories/core/soft-deletable.ts) - `SoftDeletableRelationalRepository`
-- [`packages/core-server/src/connectors/postgres/repositories/dialect/update.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/connectors/postgres/repositories/dialect/update.ts) - `UpdateBuilder` - nested JSON path updates
-- [`packages/core-server/src/connectors/postgres/datasources/abstract.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/connectors/postgres/datasources/abstract.ts) - `beginTransaction()`, isolation levels
+- [`packages/connectors/src/relational/postgres/repositories/core/base.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/connectors/src/relational/postgres/repositories/core/base.ts) - `RelationalBaseRepository` - hidden-column exclusion, `buildQuery`, `resolveConnector`, lock validation
+- [`packages/connectors/src/relational/postgres/repositories/core/readable.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/connectors/src/relational/postgres/repositories/core/readable.ts) - `ReadableRelationalRepository` - Core API vs. Query API selection, `shouldQueryRange`
+- [`packages/connectors/src/relational/postgres/repositories/core/persistable.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/connectors/src/relational/postgres/repositories/core/persistable.ts) - `PersistableRelationalRepository` - create/update/delete, empty-where guard
+- [`packages/connectors/src/relational/postgres/repositories/core/soft-deletable.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/connectors/src/relational/postgres/repositories/core/soft-deletable.ts) - `SoftDeletableRelationalRepository`
+- [`packages/connectors/src/relational/postgres/repositories/dialect/update.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/connectors/src/relational/postgres/repositories/dialect/update.ts) - `UpdateBuilder` - nested JSON path updates
+- [`packages/connectors/src/relational/postgres/datasources/abstract.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/connectors/src/relational/postgres/datasources/abstract.ts) - `beginTransaction()`, isolation levels
 
 ## Transactions
 

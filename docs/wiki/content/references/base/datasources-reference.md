@@ -10,11 +10,11 @@ Exhaustive reference for `IDataSource`, `AbstractDataSource`, the PostgreSQL con
 
 **Files:**
 
-- [`packages/core-server/src/base/datasources/abstract.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/base/datasources/abstract.ts) - neutral `AbstractDataSource`
-- [`packages/core-server/src/base/datasources/common/types.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/base/datasources/common/types.ts) - `IDataSource`, `DataSourceDrivers`, neutral transaction types
-- [`packages/core-server/src/connectors/postgres/datasources/abstract.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/connectors/postgres/datasources/abstract.ts) - `AbstractPostgresDataSource`
-- [`packages/core-server/src/connectors/postgres/datasources/base.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/connectors/postgres/datasources/base.ts) - `BasePostgresDataSource`
-- [`packages/core-server/src/connectors/postgres/datasources/common/types.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/connectors/postgres/datasources/common/types.ts) - PostgreSQL connector types, `IsolationLevels`
+- [`packages/kernel/src/base/datasources/abstract.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/kernel/src/base/datasources/abstract.ts) - neutral `AbstractDataSource`
+- [`packages/kernel/src/base/datasources/common/types.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/kernel/src/base/datasources/common/types.ts) - `IDataSource`, `DataSourceDrivers`, neutral transaction types
+- [`packages/connectors/src/relational/postgres/datasources/abstract.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/connectors/src/relational/postgres/datasources/abstract.ts) - `AbstractPostgresDataSource`
+- [`packages/connectors/src/relational/postgres/datasources/base.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/connectors/src/relational/postgres/datasources/base.ts) - `BasePostgresDataSource`
+- [`packages/connectors/src/relational/postgres/datasources/common/types.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/connectors/src/relational/postgres/datasources/common/types.ts) - PostgreSQL connector types, `IsolationLevels`
 - [`packages/core-server/src/connectors/postgres/drivers`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/connectors/postgres/drivers) - `IRelationalDriver`, `NodePostgresDriver`, `PostgresJsDriver`
 
 > [!IMPORTANT] Base vs. connectors
@@ -39,7 +39,7 @@ Exhaustive reference for `IDataSource`, `AbstractDataSource`, the PostgreSQL con
 
 Engine-neutral contract implemented by every datasource in the framework, regardless of engine.
 
-`Source ->` [`packages/core-server/src/base/datasources/common/types.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/base/datasources/common/types.ts)
+`Source ->` [`packages/kernel/src/base/datasources/common/types.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/kernel/src/base/datasources/common/types.ts)
 
 ```typescript
 interface IDataSource<
@@ -82,7 +82,7 @@ interface IDataSource<
 
 Top-level abstract class extended by every engine. Extends `BaseHelper` for scoped logging. Contains **no SQL, no Drizzle, and no connection-pool members** - those are added by each connector.
 
-`Source ->` [`packages/core-server/src/base/datasources/abstract.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/base/datasources/abstract.ts)
+`Source ->` [`packages/kernel/src/base/datasources/abstract.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/kernel/src/base/datasources/abstract.ts)
 
 ```typescript
 abstract class AbstractDataSource<
@@ -123,7 +123,7 @@ abstract class AbstractDataSource<
 | `discoverDefinitions({ read, kind })` | Walks the bound model classes, reads a connector-specific artifact via `read`, and returns a name-keyed registry. Skips undefined reads, throws on duplicate names, honors `autoDiscovery: false`. Shared plumbing every connector's own `discoverSchema()`-equivalent builds on |
 
 > [!NOTE] NotSupported convention
-> Every capability an engine does not implement - transactions, row-level locking - uses the same `throwNotSupported` utility ([`packages/core-server/src/utilities/error.utility.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/utilities/error.utility.ts)). It produces a consistent `501 Not Implemented` whose `normalized.code` resolves to `'core.not_supported'`. This is how the typesense connector signals "not applicable to this engine" instead of silently no-op-ing.
+> Every capability an engine does not implement - transactions, row-level locking - uses the same `throwNotSupported` utility ([`packages/kernel/src/utilities/error.utility.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/kernel/src/utilities/error.utility.ts)). It produces a consistent `501 Not Implemented` whose `normalized.code` resolves to `'core.not_supported'`. This is how the typesense connector signals "not applicable to this engine" instead of silently no-op-ing.
 
 ### `IDataSourceCapabilities`
 
@@ -137,7 +137,7 @@ Only `BasePostgresDataSource` overrides `getCapabilities()` to return `{ transac
 
 ## PostgreSQL connector: `AbstractPostgresDataSource` and `BasePostgresDataSource`
 
-`Source ->` [`packages/core-server/src/connectors/postgres/datasources/abstract.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/connectors/postgres/datasources/abstract.ts), [`packages/core-server/src/connectors/postgres/datasources/base.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/connectors/postgres/datasources/base.ts)
+`Source ->` [`packages/connectors/src/relational/postgres/datasources/abstract.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/connectors/src/relational/postgres/datasources/abstract.ts), [`packages/connectors/src/relational/postgres/datasources/base.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/connectors/src/relational/postgres/datasources/base.ts)
 
 ### `AbstractPostgresDataSource`
 
@@ -197,7 +197,7 @@ The fourth generic, `Client = Pool`, is what lets a postgres-js datasource decla
 
 Extends `AbstractPostgresDataSource` with a constructor, **schema auto-discovery**, and a real `beginTransaction()` implementation backed by the connection pool. Internally named `BaseRelationalDataSource`.
 
-`Source ->` [`packages/core-server/src/connectors/postgres/datasources/base.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/connectors/postgres/datasources/base.ts)
+`Source ->` [`packages/connectors/src/relational/postgres/datasources/base.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/connectors/src/relational/postgres/datasources/base.ts)
 
 ```typescript
 abstract class BaseRelationalDataSource<
@@ -366,7 +366,7 @@ export class PostgresDataSource extends BasePostgresDataSource<IDataSourceConfig
 
 ### `@datasource` decorator
 
-`Source ->` [`packages/core-server/src/base/metadata/persistents.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/base/metadata/persistents.ts)
+`Source ->` [`packages/kernel/src/base/metadata/persistents.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/kernel/src/base/metadata/persistents.ts)
 
 ```typescript
 @datasource({
@@ -448,7 +448,7 @@ Two concrete drivers ship today, both satisfying `IRelationalDriver` and both pr
 
 ## Connector types
 
-`Source ->` [`packages/core-server/src/connectors/postgres/datasources/common/types.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/connectors/postgres/datasources/common/types.ts)
+`Source ->` [`packages/connectors/src/relational/postgres/datasources/common/types.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/connectors/src/relational/postgres/datasources/common/types.ts)
 
 | Type | Description |
 |---|---|
@@ -460,7 +460,7 @@ Two concrete drivers ship today, both satisfying `IRelationalDriver` and both pr
 
 ### `DataSourceDrivers`
 
-`Source ->` [`packages/core-server/src/base/datasources/common/types.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/base/datasources/common/types.ts)
+`Source ->` [`packages/kernel/src/base/datasources/common/types.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/kernel/src/base/datasources/common/types.ts)
 
 An identity-only const-class - the engine actually used is chosen by which driver **class** `@datasource({ driver })` names, not by this constant. `DataSourceDrivers` is read by nothing else in `src`; it never routes connector configuration.
 

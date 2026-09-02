@@ -10,10 +10,10 @@ Exhaustive reference for the `@model` decorator, the entity class hierarchy, and
 
 **Files:**
 
-- [`packages/core-server/src/base/models/base.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/base/models/base.ts) - neutral `AbstractEntity`
-- [`packages/core-server/src/connectors/postgres/models/base.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/connectors/postgres/models/base.ts) - PostgreSQL entity (`BaseRelationalEntity`, aliases `BaseEntity`/`BasePostgresEntity`)
-- [`packages/core-server/src/base/metadata/persistents.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/base/metadata/persistents.ts) - `@model` decorator
-- [`packages/core-server/src/connectors/postgres/models/enrichers`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/connectors/postgres/models/enrichers) - schema enrichers
+- [`packages/kernel/src/base/models/base.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/kernel/src/base/models/base.ts) - neutral `AbstractEntity`
+- [`packages/connectors/src/relational/postgres/models/base.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/connectors/src/relational/postgres/models/base.ts) - PostgreSQL entity (`BaseRelationalEntity`, aliases `BaseEntity`/`BasePostgresEntity`)
+- [`packages/kernel/src/base/metadata/persistents.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/kernel/src/base/metadata/persistents.ts) - `@model` decorator
+- [`packages/connectors/src/relational/postgres/models/enrichers`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/connectors/src/relational/postgres/models/enrichers) - schema enrichers
 
 ## `AbstractEntity` (neutral) vs. `BaseEntity` (connector)
 
@@ -23,7 +23,7 @@ IGNIS separates the engine-neutral entity root from the connector-specific imple
 - **Minimal surface.** It carries only a `name`, an abstract `getSchema()`, a `getIdType(): TIdSchemaType` method (default `'string'`), and `toObject()`/`toJSON()`.
 - **Everything else is connector-owned.** The Drizzle-backed entity, `drizzle-zod` schema generation, and all schema enrichers belong to the PostgreSQL connector, not the neutral base. See [Connectors](/references/base/connectors) for the full base-vs-connector architecture.
 
-`Source ->` [`packages/core-server/src/base/models/base.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/base/models/base.ts)
+`Source ->` [`packages/kernel/src/base/models/base.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/kernel/src/base/models/base.ts)
 
 ```typescript
 export abstract class AbstractEntity<Schema = unknown> extends BaseHelper {
@@ -57,7 +57,7 @@ export abstract class AbstractEntity<Schema = unknown> extends BaseHelper {
 
 Marks a class as a database entity and configures its behavior.
 
-`Source ->` [`packages/core-server/src/base/metadata/persistents.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/base/metadata/persistents.ts)
+`Source ->` [`packages/kernel/src/base/metadata/persistents.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/kernel/src/base/metadata/persistents.ts)
 
 ```typescript
 @model({
@@ -102,7 +102,7 @@ When the `@model` decorator is applied:
 
 PostgreSQL connector entity class, wrapping a Drizzle ORM schema. Extends the neutral `AbstractEntity`.
 
-`Source ->` [`packages/core-server/src/connectors/postgres/models/base.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/connectors/postgres/models/base.ts)
+`Source ->` [`packages/connectors/src/relational/postgres/models/base.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/connectors/src/relational/postgres/models/base.ts)
 
 ### Purpose
 
@@ -418,7 +418,7 @@ export const myTable = pgTable('MyTable', {
 
 Adds a primary key `id` column with full TypeScript type inference.
 
-`Source ->` [`packages/core-server/src/connectors/postgres/models/enrichers/id.enricher.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/connectors/postgres/models/enrichers/id.enricher.ts)
+`Source ->` [`packages/connectors/src/relational/postgres/models/enrichers/id.enricher.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/connectors/src/relational/postgres/models/enrichers/id.enricher.ts)
 
 ```typescript
 generateIdColumnDefs<Opts extends TIdEnricherOptions | undefined>(opts?: Opts): TIdColumnDef<Opts>
@@ -466,7 +466,7 @@ enrichId(baseColumns: TColumnDefinitions, opts?: TIdEnricherOptions): TColumnDef
 
 Adds timestamp columns for creation, modification, and soft deletion.
 
-`Source ->` [`packages/core-server/src/connectors/postgres/models/enrichers/tz.enricher.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/connectors/postgres/models/enrichers/tz.enricher.ts)
+`Source ->` [`packages/connectors/src/relational/postgres/models/enrichers/tz.enricher.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/connectors/src/relational/postgres/models/enrichers/tz.enricher.ts)
 
 ```typescript
 generateTzColumnDefs<Opts extends TTzEnricherOptions | undefined>(opts?: Opts): TTzEnricherResult<Opts>
@@ -540,7 +540,7 @@ await db.update(myTable).set({ deletedAt: null }).where(eq(myTable.id, id));
 
 Adds `createdBy` and `modifiedBy` columns tracking which user created or modified a record.
 
-`Source ->` [`packages/core-server/src/connectors/postgres/models/enrichers/user-audit.enricher.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/connectors/postgres/models/enrichers/user-audit.enricher.ts)
+`Source ->` [`packages/connectors/src/relational/postgres/models/enrichers/user-audit.enricher.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/connectors/src/relational/postgres/models/enrichers/user-audit.enricher.ts)
 
 ```typescript
 generateUserAuditColumnDefs(opts?: TUserAuditEnricherOptions): {
@@ -610,7 +610,7 @@ enrichUserAudit<ColumnDefinitions extends TColumnDefinitions>(
 
 Adds polymorphic principal columns for associating a record with different entity types (a comment can belong to a Post, User, or Product).
 
-`Source ->` [`packages/core-server/src/connectors/postgres/models/enrichers/principal.enricher.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/connectors/postgres/models/enrichers/principal.enricher.ts)
+`Source ->` [`packages/connectors/src/relational/postgres/models/enrichers/principal.enricher.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/connectors/src/relational/postgres/models/enrichers/principal.enricher.ts)
 
 ```typescript
 generatePrincipalColumnDefs<
@@ -666,7 +666,7 @@ enrichPrincipal<ColumnDefinitions extends TColumnDefinitions>(
 
 Adds polymorphic data storage columns for entities that store values of different types in a single table (key-value stores, settings tables).
 
-`Source ->` [`packages/core-server/src/connectors/postgres/models/enrichers/data-type.enricher.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/connectors/postgres/models/enrichers/data-type.enricher.ts)
+`Source ->` [`packages/connectors/src/relational/postgres/models/enrichers/data-type.enricher.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/connectors/src/relational/postgres/models/enrichers/data-type.enricher.ts)
 
 ```typescript
 generateDataTypeColumnDefs(opts?: TDataTypeEnricherOptions): {
@@ -731,7 +731,7 @@ enrichDataTypes(baseSchema: TColumnDefinitions, opts?: TDataTypeEnricherOptions)
 
 ## Key types
 
-`Source ->` [`packages/core-server/src/connectors/postgres/models/common`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/connectors/postgres/models/common)
+`Source ->` [`packages/connectors/src/relational/postgres/models/common`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/connectors/src/relational/postgres/models/common)
 
 ### `TTableSchemaWithId`
 
@@ -756,7 +756,7 @@ type TTableInsert<T extends TTableSchemaWithId> = T['$inferInsert'];
 
 Configuration for entity relationships.
 
-`Source ->` [`packages/core-server/src/connectors/postgres/repositories/common/types.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/connectors/postgres/repositories/common/types.ts)
+`Source ->` [`packages/connectors/src/relational/postgres/repositories/common/types.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/connectors/src/relational/postgres/repositories/common/types.ts)
 
 ```typescript
 type TRelationConfig = {
@@ -781,7 +781,7 @@ Used for `relations` on `BaseEntity` - store a function that returns the relatio
 
 ## Schema utilities
 
-`Source ->` [`packages/core-server/src/base/models/common/types.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/base/models/common/types.ts)
+`Source ->` [`packages/kernel/src/base/models/common/types.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/kernel/src/base/models/common/types.ts)
 
 ### `idParamsSchema`
 
@@ -862,7 +862,7 @@ There are two distinct `getIdType`s in the framework - do not confuse them.
 
 | | Neutral instance method | PostgreSQL utility function |
 |---|---|---|
-| Location | `AbstractEntity.getIdType()` ([`base/models/base.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/base/models/base.ts)) | `getIdType()` ([`connectors/postgres/models/common/types.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/connectors/postgres/models/common/types.ts)) |
+| Location | `AbstractEntity.getIdType()` ([`base/models/base.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/kernel/src/base/models/base.ts)) | `getIdType()` ([`connectors/postgres/models/common/types.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/connectors/src/relational/postgres/models/common/types.ts)) |
 | Signature | `getIdType(): TIdSchemaType` | `getIdType<T extends TTableSchemaWithId>(opts: { entity: T }): string` |
 | Purpose | Neutral capability every engine's entity implements - returns `'string'` \| `'number'` at the entity level. Used by `idParamsSchema` to build the right Zod schema for path parameters. | PostgreSQL-specific - inspects a Drizzle table schema's `id` column and returns its `dataType`, or `'unknown'` if not determinable |
 

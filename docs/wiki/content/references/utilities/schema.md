@@ -64,5 +64,5 @@ this.defineRoute({
 
 **Files:**
 
-- [`packages/core-server/src/utilities/schema.utility.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/utilities/schema.utility.ts)
-- [`packages/core-server/src/base/models/common/types.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/base/models/common/types.ts)
+- [`packages/kernel/src/utilities/schema.utility.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/kernel/src/utilities/schema.utility.ts)
+- [`packages/kernel/src/base/models/common/types.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/kernel/src/base/models/common/types.ts)

@@ -150,5 +150,5 @@ See [Authorization](/extensions/components/authorization/usage#model-based-resou
 
 **Files:**
 
-- [`packages/core-server/src/base/models/base.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/base/models/base.ts) - neutral `AbstractEntity`
-- [`packages/core-server/src/connectors/postgres/models/base.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/connectors/postgres/models/base.ts) - PostgreSQL `BaseEntity`
+- [`packages/kernel/src/base/models/base.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/kernel/src/base/models/base.ts) - neutral `AbstractEntity`
+- [`packages/connectors/src/relational/postgres/models/base.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/connectors/src/relational/postgres/models/base.ts) - PostgreSQL `BaseEntity`

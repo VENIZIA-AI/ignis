@@ -12,7 +12,7 @@ Every option, binding key, class, and method the Authentication component expose
 
 - [`packages/core-server/src/components/auth/authenticate/`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/components/auth/authenticate) - component, services, strategies, controllers
 - [`packages/core-server/src/components/auth/models/`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/components/auth/models) - entity column helpers + request schemas
-- [`packages/core-server/src/components/auth/base/abstract-auth-registry.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/components/auth/base/abstract-auth-registry.ts) - `AbstractAuthRegistry`
+- [`packages/kernel/src/base/auth/base/abstract-auth-registry.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/kernel/src/base/auth/base/abstract-auth-registry.ts) - `AbstractAuthRegistry`
 
 ## Find what you need
 

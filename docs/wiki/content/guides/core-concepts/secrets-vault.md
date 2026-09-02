@@ -169,7 +169,7 @@ The failure policy is keyed on `NODE_ENV`:
 
 ## Testing Against a Real Vault
 
-A local end-to-end setup (Vault dev-mode plus a throwaway PostgreSQL) is described in `docs/superpowers/vault-integration-local-testing.md` in the repository.
+A local end-to-end setup runs Vault in dev mode against a throwaway PostgreSQL: start `vault server -dev`, export `VAULT_ADDR` and `VAULT_TOKEN`, enable the `database/` secrets engine, and point it at the throwaway database.
 
 ## See Also
 

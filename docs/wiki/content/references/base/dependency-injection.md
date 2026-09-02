@@ -13,9 +13,9 @@ Technical reference for the DI system in IGNIS - managing resource lifecycles an
 - `packages/inversion/src/modules/registry/index.ts` - Base `MetadataRegistry`
 - `packages/inversion/src/modules/metadata/injectors.ts` - Base `@inject` decorator
 - `packages/inversion/src/common/types.ts` - `BindingScopes`, `BindingValueTypes`, `BindingKeys`, `IProvider`
-- `packages/core-server/src/helpers/inversion/container.ts` - Extended `Container` with `ApplicationLogger`
-- `packages/core-server/src/helpers/inversion/registry.ts` - Extended `MetadataRegistry` (singleton, with model/repository/datasource mixins)
-- `packages/core-server/src/base/metadata/injectors.ts` - Core `@inject` (wired to extended registry)
+- `packages/kernel/src/helpers/inversion/container.ts` - Extended `Container` with `ApplicationLogger`
+- `packages/kernel/src/helpers/inversion/registry.ts` - Extended `MetadataRegistry` (singleton, with model/repository/datasource mixins)
+- `packages/kernel/src/base/metadata/injectors.ts` - Core `@inject` (wired to extended registry)
 
 ## Quick Reference
 
@@ -41,7 +41,7 @@ Before reading this document, you should understand:
 
 Heart of the DI system - registry managing all application resources.
 
-**File:** `packages/inversion/src/modules/container/index.ts` (Base) & `packages/core-server/src/helpers/inversion/container.ts` (Extended)
+**File:** `packages/inversion/src/modules/container/index.ts` (Base) & `packages/kernel/src/helpers/inversion/container.ts` (Extended)
 
 The base `Container` extends `BaseHelper` (which provides `scope` and `identifier` properties). The core `Container` extends the base and adds a `Logger` instance.
 
@@ -206,7 +206,7 @@ This is also used internally by `container.get()` and `container.getBinding()` w
 
 The `@inject` decorator marks where dependencies should be injected - either on constructor parameters or class properties.
 
-**File:** `packages/inversion/src/modules/metadata/injectors.ts` (base) & `packages/core-server/src/base/metadata/injectors.ts` (core wrapper)
+**File:** `packages/inversion/src/modules/metadata/injectors.ts` (base) & `packages/kernel/src/base/metadata/injectors.ts` (core wrapper)
 
 ### Signature
 
@@ -306,7 +306,7 @@ A singleton exported as `metadataRegistry`. Extends `BaseHelper`.
 
 ### Core MetadataRegistry
 
-**File:** `packages/core-server/src/helpers/inversion/registry.ts`
+**File:** `packages/kernel/src/helpers/inversion/registry.ts`
 
 Extends the base with controller, repository, model, and datasource metadata support via mixins. Accessed as a singleton via `MetadataRegistry.getInstance()`.
 

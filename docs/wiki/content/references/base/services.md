@@ -8,7 +8,7 @@ difficulty: beginner
 
 Technical reference for `BaseService` - the foundation for the business logic layer in IGNIS.
 
-**File:** `packages/core-server/src/base/services/base.ts`
+**File:** `packages/kernel/src/base/services/base.ts`
 
 ## Quick Reference
 
