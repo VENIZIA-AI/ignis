@@ -15,6 +15,33 @@ counted as concepts.
 `check:artifacts` fresh); boot 8/8, lint 0.
 
 ||||||| parent of ddf328eb (chore(scripts): public-surface snapshot and check freeze every package's exported symbols)
+||||||| parent of df9b191a (docs(knowledge): wave-1 file split - concepts name the new kernel paths; log entry)
+## 2026-09-02 - file split wave 1: kernel
+
+Eleven kernel tasks split every hub file `make split-report` flagged, one topic per file.
+`base/auth/authorize/common/constants/` split `Authorization` and its sibling const classes by
+topic. `base/auth/authorize/common/types/` split the authorize option and policy interfaces by
+topic. `base/auth/authenticate/common/types/` split the authenticate option interfaces by topic.
+`base/auth/authenticate/common/constants/` split `AuthenticateStrategy`, `JOSEStandards` and the
+rest by topic. `base/repositories/common/types/` split repository contracts, options and results by
+topic. `base/controllers/common/types/` split controller, route and context types by topic, and
+`controllers/context.ts` now imports its own common folder relatively instead of through the `@/`
+alias. `base/applications/common/{constants.ts,types/}` moved application constants and types under
+a shared common folder and split the types by topic. `helpers/inversion/common/{constants.ts,types/}`
+moved inversion metadata constants and types under a shared common folder and split the types by
+topic. `common/statuses/` became one file per entity (`common`, `migration`, `role`, `user`) instead
+of one file holding six classes. Three stray `types.ts` files moved under `common/`: mixins,
+services, and the app-error middleware. `RouteConfigResolver` on `controllers/factory/definition.ts`
+is the one surface addition - seven exported route-config functions became public aliases of private
+statics on the class. A file that composes its siblings may import all of them without tripping the
+over-split rule; the three parents are `authenticate/common/types/options.ts`,
+`repositories/common/types/contracts.ts` and `controllers/common/types/controller.ts`. An incremental
+`bun run build` after a `types.ts` file becomes a `types/` folder leaves the stale `types.js` on disk
+beside the new folder, and tsc-alias then resolves the barrel import to that stale file instead of
+the folder - only a clean rebuild (`make <package>`) is safe to trust after a split. Gate: kernel
+197/0, core-server 1311/1/0, connectors 1238/1/0, lint 0, module cycles 0, surface fresh, okf check
+OK, docs build clean.
+
 ## 2026-09-02 - file split wave 0: split-report, module-cycles, public-surface snapshot
 
 Three tools land together for the repo-wide file split. `make split-report` lists hub candidates,
