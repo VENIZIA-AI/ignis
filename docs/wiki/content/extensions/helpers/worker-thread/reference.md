@@ -10,10 +10,16 @@ Exhaustive reference for the worker-thread classes, every constructor option, ev
 
 **Files:**
 
-- [`packages/helpers/src/modules/worker-thread/base.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/worker-thread/base.ts) - `AbstractWorkerHelper`, `BaseWorkerHelper`, `AbstractWorkerThreadHelper`, `BaseWorkerThreadHelper`
-- [`packages/helpers/src/modules/worker-thread/worker-bus.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/worker-thread/worker-bus.ts) - `AbstractWorkerBusHelper`, `BaseWorkerBusHelper`, `AbstractWorkerMessageBusHandlerHelper`, `BaseWorkerMessageBusHandlerHelper`
+- [`packages/helpers/src/modules/worker-thread/worker/abstract.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/worker-thread/worker/abstract.ts) - `AbstractWorkerHelper`
+- [`packages/helpers/src/modules/worker-thread/worker/base.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/worker-thread/worker/base.ts) - `BaseWorkerHelper`
+- [`packages/helpers/src/modules/worker-thread/thread/abstract.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/worker-thread/thread/abstract.ts) - `AbstractWorkerThreadHelper`
+- [`packages/helpers/src/modules/worker-thread/thread/base.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/worker-thread/thread/base.ts) - `BaseWorkerThreadHelper`
+- [`packages/helpers/src/modules/worker-thread/bus/abstract.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/worker-thread/bus/abstract.ts) - `AbstractWorkerBusHelper`
+- [`packages/helpers/src/modules/worker-thread/bus/base.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/worker-thread/bus/base.ts) - `BaseWorkerBusHelper`
+- [`packages/helpers/src/modules/worker-thread/bus/handler/abstract.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/worker-thread/bus/handler/abstract.ts) - `AbstractWorkerMessageBusHandlerHelper`
+- [`packages/helpers/src/modules/worker-thread/bus/handler/base.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/worker-thread/bus/handler/base.ts) - `BaseWorkerMessageBusHandlerHelper`
 - [`packages/helpers/src/modules/worker-thread/worker-pool.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/worker-thread/worker-pool.ts) - `WorkerPoolHelper`
-- [`packages/helpers/src/modules/worker-thread/types.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/worker-thread/types.ts) - `IWorker`, `IWorkerThread`, `IWorkerBus`, `IWorkerMessageBusHandler`
+- [`packages/helpers/src/modules/worker-thread/common/types.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/worker-thread/common/types.ts) - `IWorker`, `IWorkerThread`, `IWorkerBus`, `IWorkerMessageBusHandler`
 - [`packages/helpers/src/modules/worker-thread/index.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/worker-thread/index.ts) - barrel
 
 ## Quick Reference
@@ -96,7 +102,7 @@ const customPool = new WorkerPoolHelper({ ignoreMaxWarning: true });
 
 ## BaseWorkerHelper (main thread worker wrapper)
 
-`Source ->` [`base.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/worker-thread/base.ts)
+`Source ->` [`worker/abstract.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/worker-thread/worker/abstract.ts), [`worker/base.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/worker-thread/worker/base.ts)
 
 Creates a `Worker` from a file path and automatically binds all lifecycle events.
 
@@ -176,7 +182,7 @@ class CustomWorker extends AbstractWorkerHelper<MyMessage> {
 
 ## BaseWorkerThreadHelper (inside a worker thread)
 
-`Source ->` [`base.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/worker-thread/base.ts)
+`Source ->` [`thread/abstract.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/worker-thread/thread/abstract.ts), [`thread/base.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/worker-thread/thread/base.ts)
 
 Used inside a worker script to manage named communication buses. Must be instantiated from within a worker thread. Constructing it on the main thread throws.
 
@@ -207,7 +213,7 @@ The constructor checks `isMainThread` (from `node:worker_threads`) and throws `[
 
 ## BaseWorkerMessageBusHandlerHelper
 
-`Source ->` [`worker-bus.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/worker-thread/worker-bus.ts)
+`Source ->` [`bus/handler/base.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/worker-thread/bus/handler/base.ts)
 
 Defines the event callbacks for a worker bus.
 
@@ -231,7 +237,7 @@ const handler = new BaseWorkerMessageBusHandlerHelper<MyPayload>({
 
 ## BaseWorkerBusHelper (MessagePort communication)
 
-`Source ->` [`worker-bus.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/worker-thread/worker-bus.ts)
+`Source ->` [`bus/base.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/worker-thread/bus/base.ts)
 
 Wraps a `MessagePort` to provide structured bidirectional messaging with lifecycle event handlers.
 
@@ -302,7 +308,7 @@ bus.postMessage({
 
 ## Types
 
-`Source ->` [`types.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/worker-thread/types.ts)
+`Source ->` [`common/types.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/worker-thread/common/types.ts)
 
 ```typescript
 interface IWorker<MessageType> {
