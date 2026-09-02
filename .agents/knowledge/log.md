@@ -16,6 +16,28 @@ counted as concepts.
 
 ||||||| parent of ddf328eb (chore(scripts): public-surface snapshot and check freeze every package's exported symbols)
 ||||||| parent of df9b191a (docs(knowledge): wave-1 file split - concepts name the new kernel paths; log entry)
+||||||| parent of 88e6dfb5 (docs(knowledge): wave-2 file split - concepts name the new core-server paths; barrel-less driver folders; log entry)
+## 2026-09-02 - file split wave 2: core-server
+
+Three core-server tasks closed wave 2. `components/mail/common/types/` split the mail component's
+32-declaration hub file into five topic files (`message`, `options`, `template`, `verification`,
+`queue`) and moved `MailProviders`/`TMailProvider` into `common/constants.ts`. One class per file
+landed in `mail/services/generators/`, `api-reference/ui/` and
+`auth/authorize/adapters/scoped-casbin/` (the last with its own `common/` folder). Two stray
+`types.ts` files - `base/applications/types.ts` and `auth/authorize/adapters/types.ts` - moved under
+a `common/` folder each, matching the kernel's wave-1 shape. The `DEFAULT_SCHEMA` lesson from the
+scoped-casbin split: a module-private `const` moved into its own `common/constants.ts` needs an
+export just to cross the new file boundary, and a naive `export *` folder barrel then carries that
+export all the way to the package root; `make surface-check` caught the leak (surface grew by one
+symbol), and the fix was a named re-export of the other four `common` types from
+`scoped-casbin/index.ts` instead of `export * from './common'` - `DEFAULT_SCHEMA` stays reachable
+inside the folder but never reaches the public surface. `core-server/connectors/{postgres,sqlite}/drivers/`
+deliberately keep no `index.ts`: each driver file is an alias barrel for one
+`@venizia/ignis-connectors/<engine>/<driver>` sub-path carrying an optional peer, and a folder barrel
+would let one `export *` drag every peer into the root; `split-report` keeps listing them under
+"scope folders without index.ts" and that is expected (see the `file-splitting` convention). Gate:
+core-server 1311/1/0, lint 0, surface fresh, okf check OK, docs build clean.
+
 ## 2026-09-02 - file split wave 1: kernel
 
 Eleven kernel tasks split every hub file `make split-report` flagged, one topic per file.

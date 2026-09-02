@@ -73,6 +73,12 @@ have to call back into a sibling, do not extract it - leave it in the parent.
 - `make surface-check` - the public surface equals `reference/public-surface.md`. A split that
   changes it is wrong; an intended API change runs `make surface-gen` and shows the diff in review.
 
+A scope folder may stay without an `index.ts` on purpose when every file in it is a sub-path entry
+carrying an optional peer - `core-server/connectors/{postgres,sqlite}/drivers/` is the case: each
+driver file is an alias barrel for one `@venizia/ignis-connectors/<engine>/<driver>` sub-path, and a
+folder-level barrel would let one `export *` pull every peer into the root. `split-report` keeps
+listing these folders under "scope folders without index.ts" - that line is expected, not a defect.
+
 ## Why this is written down
 
 Splitting on pain alone, with no stated threshold, is how a codebase accumulates files past 1500
