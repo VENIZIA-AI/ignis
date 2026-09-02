@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, test } from 'bun:test';
 import type { AnyType } from '@venizia/ignis-helpers/common';
 import { BffEnvelope } from '@/envelope/encode';
-import type { IBffRequestEnvelope } from '@/envelope/types';
+import type { IBffRequestEnvelope } from '@/envelope/common';
 import { BffRoles, SharedBffTransport } from '@/transport/shared';
 
 /**

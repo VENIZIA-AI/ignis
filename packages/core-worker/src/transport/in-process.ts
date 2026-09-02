@@ -1,6 +1,6 @@
 import { BaseHelper, RequestIdGenerator } from '@venizia/ignis-helpers/core';
 import { BffEnvelope } from '@/envelope/encode';
-import type { IBffResponseEnvelope } from '@/envelope/types';
+import type { IBffResponseEnvelope } from '@/envelope/common';
 import type { IBffTransport } from './common/types';
 
 /**

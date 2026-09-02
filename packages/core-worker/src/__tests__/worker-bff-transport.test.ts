@@ -6,7 +6,7 @@ import type {
   IBffErrorEnvelope,
   IBffRequestEnvelope,
   IBffResponseEnvelope,
-} from '@/envelope/types';
+} from '@/envelope/common';
 import { expectRejection } from './rejection.helper';
 
 type TMessageListener = (event: MessageEvent) => void;

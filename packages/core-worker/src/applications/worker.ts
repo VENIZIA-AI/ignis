@@ -3,7 +3,7 @@ import { HTTP } from '@venizia/ignis-helpers/common';
 import { RestApplication } from '@venizia/ignis-kernel';
 import type { Env, Schema } from 'hono';
 import { BffEnvelope } from '@/envelope/encode';
-import type { IBffRequestEnvelope, IBffResponseEnvelope } from '@/envelope/types';
+import type { IBffRequestEnvelope, IBffResponseEnvelope } from '@/envelope/common';
 
 /**
  * Structural shape of the two globals `listen()` can attach to. Never `DedicatedWorkerGlobalScope`:
