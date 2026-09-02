@@ -1,60 +1,29 @@
-import type { IdType } from '@/base';
 import type { TContext } from '@/base/controllers/common/types';
-import { type TNullable, type ValueOrPromise } from '@venizia/ignis-helpers/common';
+import { type ValueOrPromise } from '@venizia/ignis-helpers/common';
 import { type IRedisHelper } from '@venizia/ignis-helpers/core';
 import type { Adapter } from 'casbin';
 import type { Env } from 'hono';
 import { type MiddlewareHandler } from 'hono';
-import type { IAuthUser } from '../../authenticate/common/types';
+import type { IAuthUser } from '../../../authenticate/common/types';
 import type {
   CasbinEnforcerCachedDrivers,
   CasbinEnforcerModelDrivers,
-  TAuthorizationAction,
   TAuthorizationDecision,
   TCasbinDomainMatchingFunction,
-} from './constants';
-import type { AuthorizationPolicyBuilder } from '../builders/policy.builder';
-export interface IAuthorizationRole {
-  readonly name: string;
-  readonly priority: number;
-  readonly identifier: string;
-}
-
-/** Key-value conditions for attribute-based access control. Values compared with strict equality. */
-export type TAuthorizationConditions<
-  KeyType extends string | symbol = string | symbol,
-  ValueType = string | number | boolean | null,
-> = Record<KeyType, ValueType>;
-
-export interface IAuthorizationRequest<TAction = string, TResource = string> {
-  action: TAction;
-  resource: TResource;
-  conditions?: TAuthorizationConditions;
-  /** Resolved domain scope for this request as a casbin domain string `"<DomainType>_<id>"` (e.g. `"Merchant_7"`), or the `"SYSTEM_WIDE"` sentinel to enforce across all domains. */
-  domain?: string;
-}
-
-export interface IAuthorizationUser extends IAuthUser {
-  principalType: string;
-}
+} from '../constants';
+import type {
+  IAuthorizationDomainSource,
+  IAuthorizationRequest,
+  IAuthorizationUser,
+  TAuthorizationConditions,
+  TAuthorizationDomainResolver,
+} from './request';
 
 /** What CasbinAuthorizationEnforcer.buildRules returns and evaluate consumes. */
 export interface ICasbinRules {
   user: IAuthorizationUser;
   lines: string[];
 }
-
-/** Declarative description of where to read the request domain from. */
-export interface IAuthorizationDomainSource {
-  from: 'param' | 'header' | 'query' | 'context';
-  key: string;
-  type: string; // domain type, e.g. 'Merchant' | 'Organizer'
-}
-
-/** Returns the current request domain; null = no domain (→ SYSTEM_WIDE). */
-export type TAuthorizationDomainResolver<E extends Env = Env> = (opts: {
-  context: TContext<E, string>;
-}) => ValueOrPromise<TNullable<{ type: string; id: IdType }>>;
 
 /** Builds rules and evaluates requests. Cache management (`invalidateUserCache`/`rebuildUserCache`) is OPTIONAL - only on per-user-caching enforcers; the registry feature-detects it at runtime. */
 export interface IAuthorizationEnforcer<
@@ -166,13 +135,3 @@ export interface IAuthorizeOptions {
   /** Fallback domain resolver used when a route's spec has no `domain`. */
   domainResolver?: TAuthorizationDomainResolver;
 }
-
-/** Shape of `PolicyDefinition.metadata` on a subset ("custom") grant. `ops` holds bare method names (e.g. `"find"`), not full permission codes. */
-export type TCustomGrantMetadata = { ops: string[] };
-
-export type TGrantIntent = { tier: TAuthorizationAction } | { ops: string[] };
-
-/** Per-operation rows carry `targetId` = the operation's code, not a database id; the consumer resolves codes to ids when persisting. */
-export type TPlannedGrantRow = ReturnType<typeof AuthorizationPolicyBuilder.grant> & {
-  metadata?: { ops: string[] };
-};
