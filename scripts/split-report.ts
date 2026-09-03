@@ -68,9 +68,11 @@ export class SplitReport {
     console.log(`- import cycles in dist/esm: ${cycleMsg}`);
   }
 
-  /** Every packages/* directory, plus every examples/* directory that has a src/ folder. */
+  /** Every packages/* and examples/* directory that has a src/ folder. */
   static defaultTargets(): string[] {
-    const packages = readdirSync(resolve('packages')).map(name => resolve('packages', name));
+    const packages = readdirSync(resolve('packages'))
+      .map(name => resolve('packages', name))
+      .filter(dir => existsSync(join(dir, 'src')));
     const examples = readdirSync(resolve('examples'))
       .map(name => resolve('examples', name))
       .filter(dir => existsSync(join(dir, 'src')));
@@ -97,11 +99,7 @@ export class SplitReport {
   /** abstract.ts + base.ts pairs are the format; exactly one of each is one concept. */
   private static isAbstractBasePair(opts: { facts: IFileFacts }): boolean {
     const [first, second] = opts.facts.classes;
-    return (
-      opts.facts.classes.length === 2 &&
-      /Abstract/.test(first) &&
-      /Base/.test(second)
-    );
+    return opts.facts.classes.length === 2 && /Abstract/.test(first) && /Base/.test(second);
   }
 
   private static walk(opts: { dir: string }): string[] {
