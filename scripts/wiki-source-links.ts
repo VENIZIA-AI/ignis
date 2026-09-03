@@ -146,8 +146,12 @@ export class SourceLinkCheck {
     }
     for (let index = 1; index < closeIndex; index += 1) {
       const match = lines[index].match(RESOURCE_LINE_PATTERN);
-      // A directory value may carry a trailing slash; `git ls-files` never does.
-      const value = match?.[1].trim().replace(/\/+$/, '');
+      // A value may be quoted (YAML allows it) and a directory value may carry a trailing slash;
+      // `git ls-files` never has either.
+      const value = match?.[1]
+        .trim()
+        .replace(/^["']|["']$/g, '')
+        .replace(/\/+$/, '');
       if (value && RESOURCE_PREFIXES.some(prefix => value.startsWith(prefix))) {
         return { line: index + 1, path: value };
       }
