@@ -16,8 +16,14 @@ counted as concepts.
 the dead `base/services/base-crud.ts` placeholder.
 
 User-ordered full removal, not a deprecation cycle: measured zero IGNIS usage outside the deleted
-sites before deleting. BANA carries 3 `.boot()` call sites and 2 `bootOptions` config literals that
-now fail to compile. See the [changelog](/changelogs/2026-09-03-deprecated-boot-api-removed).
+sites before deleting. BANA carries 3 `.boot()` call sites, 2 `bootOptions` config literals and 16
+`override async boot()` sites that now fail to compile. See the
+[changelog](/changelogs/2026-09-03-deprecated-boot-api-removed).
+
+Fix round 1 (Opus review): `ArtifactScanner.scan()`'s `ignore` option was replacing `DEFAULT_IGNORE`
+instead of merging with it, contradicting every doc that already described it as additive - fixed
+the code, not the docs. Added `removed-members.test.ts` pinning `boot`, `booter` and
+`registerBooters` absent from `BaseApplication.prototype`.
 
 ## 2026-09-03 - file split wave 4: connectors, core-worker, boot, filter, inversion
 

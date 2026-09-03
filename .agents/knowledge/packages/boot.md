@@ -57,7 +57,7 @@ the repo's `prettier -l` untouched. No IGNIS import in the file - the object is 
 |---|---|---|
 | `--root` | `src` | Directory scanned recursively |
 | `--out` | `src/generated/artifacts.ts` | Output path; import paths are relative to it |
-| `--ignore` | none | Comma-separated globs added to `DEFAULT_IGNORE` |
+| `--ignore` | `DEFAULT_IGNORE` (4 globs) | Comma-separated globs, merged with `DEFAULT_IGNORE` - never replaces it |
 | `--export` | `GeneratedArtifacts` | Exported constant name |
 
 `generate` writes only when the content changed (exit 0). `check` renders in memory and compares
