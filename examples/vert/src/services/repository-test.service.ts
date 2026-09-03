@@ -14,7 +14,7 @@ import {
   TransactionTestService,
 } from './tests';
 import { UserAuditTestService } from './tests/user-audit';
-import { JsonUpdateTestService } from './tests/json-update-test.service';
+import { JsonUpdateTestService } from './tests/json-update';
 
 // ----------------------------------------------------------------
 // Repository Test Service - Orchestrates all repository test suites

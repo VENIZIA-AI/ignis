@@ -8,6 +8,7 @@ export * from './hidden-properties';
 export * from './inclusion';
 export * from './json-filter';
 export * from './json-orderby-test.service';
+export * from './json-update';
 export * from './operators';
 export * from './row-locking-test.service';
 export * from './transaction';
