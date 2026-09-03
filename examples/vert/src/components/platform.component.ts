@@ -1,4 +1,4 @@
-import { EnvironmentKeys } from '@/common/environments';
+import { EnvironmentKeys } from '@/common';
 import {
   ChangePasswordRequestSchema,
   ChangePasswordResponseSchema,

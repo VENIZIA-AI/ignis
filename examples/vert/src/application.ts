@@ -32,7 +32,7 @@ import {
 import isEmpty from 'lodash/isEmpty';
 import path from 'node:path';
 import packageJson from './../package.json';
-import { EnvironmentKeys } from './common/environments';
+import { EnvironmentKeys } from './common';
 import { PostgresDataSource } from './datasources/postgres.datasource';
 import { GeneratedArtifacts } from './generated/artifacts';
 import { Organization, Permission, PolicyDefinition, Role } from './models/entities';

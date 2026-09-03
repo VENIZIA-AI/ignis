@@ -1,4 +1,4 @@
-import { EnvironmentKeys } from '@/common/environments';
+import { EnvironmentKeys } from '@/common';
 import { datasource, ValueOrPromise } from '@venizia/ignis';
 import { BasePostgresDataSource } from '@venizia/ignis/postgres';
 import { NodePostgresDriver } from '@venizia/ignis/postgres/node-postgres';

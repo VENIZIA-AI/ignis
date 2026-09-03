@@ -11,9 +11,9 @@ This document lists all test cases implemented in the `examples/vert/src/service
 | InclusionTestService | 15 | Many-to-many relations |
 | ArrayOperatorTestService | 21 | PostgreSQL array operators |
 | DefaultFilterTestService | 31 | Default filter functionality |
-| HiddenPropertiesTestService | 17 | Hidden properties filtering |
+| HiddenPropertiesTestService | 18 | Hidden properties filtering |
 | UserAuditTestService | 21 | User audit tracking (createdBy/modifiedBy) |
-| **Total** | **144** | |
+| **Total** | **145** | |
 
 ---
 
