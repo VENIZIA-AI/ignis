@@ -8,23 +8,28 @@ counted as concepts.
 
 ## 2026-09-03 - file split wave 4: connectors, core-worker, boot, filter, inversion
 
-Five tasks (4.1-4.5) plus the 4.6a link-rot repair closed wave 4. Typesense's `types.ts`
-(18 exports) split into `common/{constants,types/{schema,search,client,options}}`; its
-`internal/connector-internal.ts` split by role into `internal/{guards,mappers,outcomes,
+Five tasks (4.1-4.5), the 4.6a link-rot repair and a 4.7 follow-up closed wave 4. Typesense's
+`types.ts` (18 exports) split into `common/{constants,types/{schema,search,client,options}}`;
+its `internal/connector-internal.ts` split by role into `internal/{guards,mappers,outcomes,
 connector-internal}`. Meilisearch's stray `types.ts` and search-core's stray `models/types.ts`
 each moved under a `common/` folder; the two engine-neutral `dialect/internal` folders (relational
-core and sqlite) gained barrels. `core-worker`'s `transport/shared.ts` (534 lines, two classes)
-split into `transport/shared/{transport.ts, common/{constants,types}}` behind a by-name `index.ts`
-barrel - never `export *`, which would have leaked five newly-exported-but-package-private symbols
-to the public surface; `envelope/types.ts` moved to `envelope/common/types.ts`. `boot` and `filter`
-each gained the `common/index.ts` barrel their `generator/common` and `schemas/common` folders were
+core and sqlite) gained barrels. 4.7 then split the three connectors hub files `split-report`
+still flagged: search-core's `common/types.ts` (13 exports) into
+`common/{constants,types/{collection,document,embedding,field}}`, and the postgres/sqlite
+`common/types.ts` pair (15 exports each) into matching `common/types/{table,enrichers}`
+folders. `core-worker`'s `transport/shared.ts` (534 lines, two classes) split into
+`transport/shared/{transport.ts, common/{constants,types}}` behind a by-name `index.ts` barrel -
+never `export *`, which would have leaked five newly-exported-but-package-private symbols to the
+public surface; `envelope/types.ts` moved to `envelope/common/types.ts`. `boot` and `filter` each
+gained the `common/index.ts` barrel their `generator/common` and `schemas/common` folders were
 missing. `inversion`'s `error/types.ts` moved to `error/common/types.ts`, and the `message-code.ts`
 <-> `app-error.ts` import cycle (`module-cycles` flagged 1) was cut: `message-code.ts` no longer
 imports `app-error.ts`; `app-error.ts` keeps its import of `MessageCode`, so the edge is one-way.
-`MessageCode` now throws through a private `errorFactory` field that `src/index.ts` registers. The
-4.6a follow-up then swept 281 dead source paths out of the wiki and the knowledge bundle - all
-predating this wave, mostly from the earlier connectors and kernel lifts - and added
-`make wiki-links-check` to `build-all`.
+`MessageCode` now throws through a private `errorFactory` field that `src/index.ts` registers.
+The 4.6a follow-up then swept 281 dead source paths out of the wiki and the knowledge bundle -
+all predating this wave, mostly from the earlier connectors and kernel lifts - and added `make
+wiki-links-check` to `build-all`; 4.7's own split repointed the one link the gate then flagged
+against it, `models-reference.md`'s `getIdType` row, to the symbol's new home in `table.ts`.
 
 Two lessons. A module-level registration survives a tree-shaking bundler only from a module the
 package's `sideEffects` array lists. The first attempt at cutting inversion's cycle put
@@ -40,12 +45,12 @@ the same script to check a knowledge concept's frontmatter `resource:` field too
 more stale `packages/core-server/src/connectors/...` values the link-only rules never reached - a
 bare frontmatter value carries no backtick and no GitHub link.
 
-Stayed out of scope: the two relational-tier `models/common/types.ts` hub files (postgres, sqlite -
-15 exports each) and the five files already over 500 lines in `connectors` (`filter.ts`, both
-`connector.ts` engines, both `query-dialect.ts` engines) - none were touched this wave. Two hub
-files also stayed hubs after moving: `search/core/models/common/types.ts` and
-`inversion/error/common/types.ts` both moved into a `common/` folder this wave without being split
-by topic, so each still exports more than ten names.
+Stayed out of scope: the five files already over 500 lines in `connectors` (`filter.ts`, both
+`connector.ts` engines, both `query-dialect.ts` engines) - a prompt to explain, not a defect -
+and `inversion/error/common/types.ts` (15 exports), moved into a `common/` folder this wave
+without a topic split. `make split-report` counts zero hub candidates left in `connectors`
+after 4.7; its `search/core/models/common/constants.ts` (two related const classes, the same
+shape as typesense's own `common/constants.ts`) is a legitimate constants family, not a hub.
 
 Gate: inversion 41/0, boot 8/0, helpers 1461/16/0, kernel 197/0, connectors 1238/1/0, core-server
 1311/1/0, core-worker 85/0 (filter has no tests). Lint clean across all eight packages plus
