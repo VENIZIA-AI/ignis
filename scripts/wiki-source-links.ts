@@ -1,15 +1,16 @@
 /**
  * Checks that every source path the wiki and the knowledge bundle name is tracked by git. Walks
- * every `.md` file under the given directories and extracts two kinds of reference: an IGNIS
+ * every `.md` file under the given directories and extracts three kinds of reference: an IGNIS
  * `blob/main/<path>` or `tree/main/<path>` GitHub link target - scoped to the `VENIZIA-AI/ignis`
- * repo, so a link into another project's repo is never checked - (checked in every file) and a
+ * repo, so a link into another project's repo is never checked - (checked in every file), a
  * backticked path starting with `packages/`, `examples/`, `scripts/`, `docs/` or `.agents/` and
  * ending in a source or doc extension (checked outside `skipProseUnder`, where a changelog is
- * allowed to name history). A path exists when `git ls-files` tracks it, as a file or as a
- * directory prefix - a gitignored build artifact or local planning doc is never a valid target,
- * since GitHub, and a tracked-only checkout, never has it either. Run from the repo root:
- * bun scripts/wiki-source-links.ts (both the file walk and `git ls-files` resolve against the
- * current working directory).
+ * allowed to name history), and a knowledge concept's YAML frontmatter `resource:` value with one
+ * of the same five prefixes (checked only under `.agents/knowledge`). A path exists when `git
+ * ls-files` tracks it, as a file or as a directory prefix - a gitignored build artifact or local
+ * planning doc is never a valid target, since GitHub, and a tracked-only checkout, never has it
+ * either. Run from the repo root: bun scripts/wiki-source-links.ts (both the file walk and `git
+ * ls-files` resolve against the current working directory).
  */
 import { execFileSync } from 'node:child_process';
 import { existsSync, readdirSync, readFileSync } from 'node:fs';
@@ -19,6 +20,12 @@ import { join, relative, resolve } from 'node:path';
 const ALWAYS_SKIP = ['.agents/knowledge/log.md', '.agents/knowledge/reference'];
 const BACKTICK_PREFIXES = ['packages/', 'examples/', 'scripts/', 'docs/', '\\.agents/'];
 const BACKTICK_EXTENSIONS = ['ts', 'tsx', 'md', 'json', 'mjs', 'js', 'yaml', 'yml'];
+// Same five roots as BACKTICK_PREFIXES, unescaped for a plain `.startsWith()` check against a
+// frontmatter value - `resource:` never carries a line number or a regex-special character.
+const RESOURCE_PREFIXES = ['packages/', 'examples/', 'scripts/', 'docs/', '.agents/'];
+// `resource:` is an OKF concept field; it never appears in the wiki's own frontmatter.
+const KNOWLEDGE_DIR = '.agents/knowledge';
+const RESOURCE_LINE_PATTERN = /^resource:\s*(.+)$/;
 // `<>` is placeholder notation (docs describing the pattern itself), never a real GitHub path.
 // Anchored to this repo, so a link into someone else's GitHub project is never a checked target.
 const GITHUB_LINK_PATTERN = /VENIZIA-AI\/ignis\/(?:blob|tree)\/main\/([^\s)\]"'`<>]+)/g;
@@ -66,6 +73,15 @@ export class SourceLinkCheck {
       }
       const skipProse = this.skipProseUnder.some(dir => SourceLinkCheck.isUnder(relPath, dir));
       const lines = readFileSync(file, 'utf8').split('\n');
+      if (SourceLinkCheck.isUnder(relPath, KNOWLEDGE_DIR)) {
+        const resource = SourceLinkCheck.extractResourceLine(lines);
+        if (resource) {
+          checked += 1;
+          if (!SourceLinkCheck.exists(tracked, resource.path)) {
+            missing.push({ file: relPath, line: resource.line, path: resource.path });
+          }
+        }
+      }
       lines.forEach((text, index) => {
         for (const path of SourceLinkCheck.extractPaths(text, skipProse)) {
           checked += 1;
@@ -115,6 +131,28 @@ export class SourceLinkCheck {
 
   private static stripLineSuffix(path: string): string {
     return path.replace(LINE_SUFFIX_PATTERN, '');
+  }
+
+  // Reads the `resource:` line from a concept's YAML frontmatter (the fence at line 1, the value
+  // between it and the next fence). Returns null when there is no frontmatter, no `resource:`
+  // line, or the value has none of the five tracked prefixes.
+  private static extractResourceLine(lines: string[]): { line: number; path: string } | null {
+    if (lines[0] !== '---') {
+      return null;
+    }
+    const closeIndex = lines.indexOf('---', 1);
+    if (closeIndex === -1) {
+      return null;
+    }
+    for (let index = 1; index < closeIndex; index += 1) {
+      const match = lines[index].match(RESOURCE_LINE_PATTERN);
+      // A directory value may carry a trailing slash; `git ls-files` never does.
+      const value = match?.[1].trim().replace(/\/+$/, '');
+      if (value && RESOURCE_PREFIXES.some(prefix => value.startsWith(prefix))) {
+        return { line: index + 1, path: value };
+      }
+    }
+    return null;
   }
 
   private static isAlwaysSkipped(relPath: string): boolean {
