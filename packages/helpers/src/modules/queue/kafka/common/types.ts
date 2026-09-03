@@ -45,6 +45,7 @@ export type TKafkaMessageDoneCallback<
   message: Message<KeyType, ValueType, HeaderKeyType, HeaderValueType>;
 }) => ValueOrPromise<void>;
 
+/** Fires only from `startConsumeLoop()` when a successfully-pulled message's own `onMessage` handler throws - `message` is always the record that failed. Stream/connection-level failures never reach this callback; see `TKafkaStreamErrorCallback` and `TKafkaReconnectErrorCallback`. */
 export type TKafkaMessageErrorCallback<
   KeyType = string,
   ValueType = string,
@@ -52,7 +53,17 @@ export type TKafkaMessageErrorCallback<
   HeaderValueType = string,
 > = (opts: {
   error: Error;
-  message?: Message<KeyType, ValueType, HeaderKeyType, HeaderValueType>;
+  message: Message<KeyType, ValueType, HeaderKeyType, HeaderValueType>;
+}) => ValueOrPromise<void>;
+
+/** Fires when the underlying `MessagesStream` itself fails - a stream `'error'` event (`start()`/`attemptReconnect()`) or the async iterator throwing (`drainStream()`). No message is available: the failure is at the broker/network/protocol level, before any record was pulled. */
+export type TKafkaStreamErrorCallback = (opts: { error: Error }) => ValueOrPromise<void>;
+
+/** Fires when `attemptReconnect()` itself fails to re-establish consumption - either rebuilding the `@platformatic/kafka` Consumer (stale session) or the reconnect's own `consume()` call. Distinct from `TKafkaStreamErrorCallback`: this is the reconnect attempt failing, not an active stream breaking. */
+export type TKafkaReconnectErrorCallback = (opts: {
+  error: Error;
+  attempt: number;
+  maxAttempts: number;
 }) => ValueOrPromise<void>;
 
 export type TKafkaGroupJoinCallback = (opts: {
@@ -137,6 +148,8 @@ export interface IKafkaConsumerOptions<
   onMessage?: TKafkaMessageCallback<KeyType, ValueType, HeaderKeyType, HeaderValueType>;
   onMessageDone?: TKafkaMessageDoneCallback<KeyType, ValueType, HeaderKeyType, HeaderValueType>;
   onMessageError?: TKafkaMessageErrorCallback<KeyType, ValueType, HeaderKeyType, HeaderValueType>;
+  onStreamError?: TKafkaStreamErrorCallback;
+  onReconnectError?: TKafkaReconnectErrorCallback;
 
   onGroupJoin?: TKafkaGroupJoinCallback;
   onGroupLeave?: TKafkaGroupLeaveCallback;
