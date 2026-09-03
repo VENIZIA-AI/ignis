@@ -39,6 +39,14 @@ describe('ArtifactScanner', () => {
     }
   });
 
+  test('a caller-supplied ignore list adds to the defaults, never replaces them', () => {
+    const names = ArtifactScanner.getInstance()
+      .scan({ root: ROOT, ignore: ['**/legacy/**'] })
+      .map(a => a.className);
+
+    expect(names).not.toContain('IgnoredService');
+  });
+
   test('deterministic: two scans are identical; filePath is absolute', () => {
     const first = ArtifactScanner.getInstance().scan({ root: ROOT });
 

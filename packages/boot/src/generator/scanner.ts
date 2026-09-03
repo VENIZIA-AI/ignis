@@ -24,7 +24,7 @@ export class ArtifactScanner extends BaseHelper {
 
   scan(opts: IScanOptions): IScannedArtifact[] {
     const root = resolve(opts.root);
-    const ignore = opts.ignore ?? ArtifactStereotypes.DEFAULT_IGNORE;
+    const ignore = [...new Set([...ArtifactStereotypes.DEFAULT_IGNORE, ...(opts.ignore ?? [])])];
 
     const artifacts = this.listSourceFiles({ root, ignore }).flatMap(filePath =>
       this.scanFile({ filePath }),
