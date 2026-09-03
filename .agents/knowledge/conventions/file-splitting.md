@@ -93,6 +93,8 @@ that statement into a file split out for topic reasons, while `sideEffects` stil
 entry point, lets a bundler drop it: the module still loads for its exports, but the registration
 line never executes. Keep a load-bearing module-level side effect in a module `sideEffects` lists -
 normally the package's own entry point - even when the split would otherwise put it elsewhere.
+Adding a sub-path export to inversion later would silently bypass the registration. The bundled
+pinning test in `src/__tests__/error-factory.test.ts` is the tripwire.
 
 ## Why this is written down
 
