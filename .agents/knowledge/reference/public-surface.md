@@ -752,27 +752,20 @@ tags: [reference, exports, api]
 
 ## boot
 
-### `@venizia/ignis-boot` (19)
+### `@venizia/ignis-boot` (12)
 
 - `ArtifactIndexEmitter` class
 - `ArtifactIndexFields` class
 - `ArtifactScanner` class
 - `ArtifactStereotypes` class
 - `ArtifactTypes` class
-- `BootPhases` class
 - `checkArtifactIndex` const
 - `generateArtifactIndex` const
-- `IArtifactOptions` interface
-- `IBootableApplication` interface
-- `IBootOptions` interface
-- `IBootPhaseReport` interface
-- `IBootReport` interface
 - `IGenerateOptions` interface
 - `IScannedArtifact` interface
 - `IScanOptions` interface
 - `TArtifactIndexField` type
 - `TArtifactType` type
-- `TBootPhase` type
 
 ### `@venizia/ignis-boot/generator` (12)
 
@@ -791,7 +784,7 @@ tags: [reference, exports, api]
 
 ## kernel
 
-### `@venizia/ignis-kernel` (388)
+### `@venizia/ignis-kernel` (386)
 
 - `AbstractApplication` class
 - `AbstractAuthRegistry` class
@@ -886,8 +879,6 @@ tags: [reference, exports, api]
 - `htmlContent` const
 - `htmlResponse` const
 - `IApplication` interface
-- `IApplicationArtifactOptions` interface
-- `IApplicationBootOptions` interface
 - `IApplicationConfigs` interface
 - `IApplicationInfo` interface
 - `IArtifactIndex` interface
@@ -1716,7 +1707,7 @@ tags: [reference, exports, api]
 
 ## core-server
 
-### `@venizia/ignis` (906)
+### `@venizia/ignis` (904)
 
 - `AbstractApplication` class
 - `AbstractAuthRegistry` class
@@ -1952,8 +1943,6 @@ tags: [reference, exports, api]
 - `IAESKeyringEntry` interface
 - `IApiReferenceOptions` interface
 - `IApplication` interface
-- `IApplicationArtifactOptions` interface
-- `IApplicationBootOptions` interface
 - `IApplicationConfigs` interface
 - `IApplicationEnvironment` interface
 - `IApplicationInfo` interface

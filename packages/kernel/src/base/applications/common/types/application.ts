@@ -9,7 +9,7 @@ import type {
   IServiceMixin,
   IStaticServeMixin,
 } from '../../../mixins/common';
-import type { IApplicationBootOptions, TArtifactIndexInput } from './artifacts';
+import type { TArtifactIndexInput } from './artifacts';
 
 /** No `host`/`port`: a browser Worker has neither, and carrying them here made one silently configured with `localhost:3000`. `@venizia/ignis` widens this shape with both - see its `IServerApplicationConfigs`. */
 export interface IApplicationConfigs {
@@ -21,8 +21,6 @@ export interface IApplicationConfigs {
   asyncContext?: { enable: boolean };
   /** Generated indexes to register before `preConfigure` - one, or an array composed from several packages. */
   artifacts?: TArtifactIndexInput;
-  /** @deprecated Runtime file-glob boot is gone. Kept only so an existing config still type-checks; ignored. */
-  bootOptions?: IApplicationBootOptions;
   debug?: { shouldShowRoutes?: boolean };
   /** Controller transports to enable. Defaults to ['rest']. */
   transports?: TControllerTransport[];

@@ -10,7 +10,6 @@ import {
   MetadataRegistry,
   RequestContextRegistry,
 } from '@venizia/ignis-kernel';
-import type { IBootableApplication, IBootReport } from '@venizia/ignis-boot';
 import type { ILogger } from '@venizia/ignis-helpers/core';
 import type { ValueOrPromise } from '@venizia/ignis-helpers/common';
 import type {
@@ -78,10 +77,7 @@ const selectSecretEnvKeys = (opts: {
   return merged;
 };
 
-export abstract class BaseApplication
-  extends ServerApplication
-  implements IRestApplication, IBootableApplication
-{
+export abstract class BaseApplication extends ServerApplication implements IRestApplication {
   protected secretsProvider?: ISecretsHelper;
   protected secretsRegistration?: ISecretsRegistration;
 
@@ -396,22 +392,6 @@ export abstract class BaseApplication
         server.use(emojiFavicon({ icon: this.configs.favicon ?? '🔥' }));
       },
     });
-  }
-
-  private static hasWarnedBootDeprecated = false;
-
-  /** @deprecated No-op kept for applications that still override it. Artifacts come from `configs.artifacts` (see `registerArtifacts`); the runtime file-glob boot cannot run inside `bun build --compile` and is gone. */
-  async boot(): Promise<IBootReport> {
-    if (!BaseApplication.hasWarnedBootDeprecated) {
-      BaseApplication.hasWarnedBootDeprecated = true;
-      this.logger
-        .for(this.boot.name)
-        .warn(
-          'boot() is deprecated and does nothing | pass the generated index as configs.artifacts - see @venizia/ignis-boot',
-        );
-    }
-
-    return { booters: [], phases: [], totalDurationMs: 0 };
   }
 
   /** Lives here rather than on `AbstractApplication` - `applicationEnvironment` reads `process.env` at module load, so a kernel-pure ancestor cannot carry it; this is the layer that already depends on it. */
