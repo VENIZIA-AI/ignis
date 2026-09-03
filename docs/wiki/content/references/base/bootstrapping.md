@@ -311,14 +311,13 @@ import { checkArtifactIndex } from '@venizia/ignis-boot/generator';
 const { isFresh } = checkArtifactIndex({ root: 'src', out: 'src/generated/artifacts.ts' });
 ```
 
-## Deprecated and removed
+## Removed
+
+The deprecated runtime boot API is fully removed - see the
+[changelog](/changelogs/2026-09-03-deprecated-boot-api-removed) for migration.
 
 | Symbol | Status |
 |---|---|
-| `BaseApplication.boot()` | Deprecated no-op. Warns once per process, returns `{ booters: [], phases: [], totalDurationMs: 0 }`. Kept so an existing `override boot()` still compiles |
-| `IApplicationConfigs.bootOptions`, `IBootOptions`, `IArtifactOptions` | Deprecated, ignored. Kept so an existing config still type-checks |
-| `IBootReport`, `IBootPhaseReport`, `TBootPhase`, `BootPhases`, `IBootableApplication` | Deprecated types, still exported from `@venizia/ignis-boot`; `BaseApplication` still implements `IBootableApplication` |
-| `BindingNamespaces.BOOTERS` | Kept; nothing in the framework registers under it |
 | `BaseApplication.booter()`, `registerBooters()` | Removed |
 | `Bootstrapper`, `BaseArtifactBooter`, `ControllerBooter`, `ServiceBooter`, `RepositoryBooter`, `DatasourceBooter`, `BootMixin`, `discoverFiles()`, `loadClasses()`, `isClass()` | Removed from `@venizia/ignis-boot` |
 | `TMixinOpts.args` | Removed; `TMixinOpts` is `{ binding?, allowOverride? }` |
@@ -328,3 +327,4 @@ const { isFresh } = checkArtifactIndex({ root: 'src', out: 'src/generated/artifa
 - [Registering artifacts](/guides/core-concepts/application/bootstrapping) - the how-to
 - [Application reference](/references/base/application) - registration methods and the boot sequence
 - [Changelog 2026-09-02](/changelogs/2026-09-02-decorator-artifact-registration)
+- [Changelog 2026-09-03](/changelogs/2026-09-03-deprecated-boot-api-removed) - the deprecated boot API removed

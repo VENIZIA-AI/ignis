@@ -241,7 +241,6 @@ export class BindingNamespaces {
   static readonly MIDDLEWARE = 'middlewares';
   static readonly PROVIDER = 'providers';
   static readonly CONTROLLER = 'controllers';
-  static readonly BOOTERS = 'booters';
 
   static createNamespace(opts: { name: string }): string;
 }

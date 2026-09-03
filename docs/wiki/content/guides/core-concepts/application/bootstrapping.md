@@ -228,7 +228,7 @@ To prove a binary, run it against refused ports: `APP_ENV_POSTGRES_HOST=127.0.0.
 
 ## Migrating from `boot()`
 
-The runtime boot system - `Bootstrapper`, the four booters, `BootMixin`, `bootOptions` - is retired. A compiled binary (`bun build --compile`) cannot glob files at runtime; a generated index is plain imports it can see.
+The runtime boot system - `Bootstrapper`, the four booters, `BootMixin`, `bootOptions`, `boot()` - is fully removed. A compiled binary (`bun build --compile`) cannot glob files at runtime; a generated index is plain imports it can see.
 
 1. Decorate services and components, generate the index, pass `artifacts` (steps 1-3 above).
 2. In `index.ts`, replace the boot chain with one awaited `start()`:
@@ -241,7 +241,7 @@ application.boot().then(() => application.start());
 await application.start();
 ```
 
-3. Delete `bootOptions` from the config and any `override boot()` - `boot()` still exists, warns once, and returns an empty report.
+3. Delete `bootOptions` from the config and any `override boot()` - both are removed, so the code will not compile until they're gone.
 
 One production application went from 286 lines and 99 `this.controller(...)`-style calls in `application.ts` to a config entry and two lifecycle methods.
 
@@ -251,3 +251,4 @@ One production application went from 286 lines and 99 `this.controller(...)`-sty
 - [Application reference](/references/base/application) - the 14-step boot sequence
 - [Components](/references/base/components) - writing a component
 - [Changelog 2026-09-02](/changelogs/2026-09-02-decorator-artifact-registration) - what changed and who is affected
+- [Changelog 2026-09-03](/changelogs/2026-09-03-deprecated-boot-api-removed) - the deprecated boot API removed

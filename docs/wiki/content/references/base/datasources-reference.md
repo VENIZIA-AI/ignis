@@ -453,8 +453,6 @@ Two concrete drivers ship today, both satisfying `IRelationalDriver` and both pr
 | Type | Description |
 |---|---|
 | `TRelationalConnector<Schema>` | Canonical connector type - a Drizzle `PgDatabase` that **every** pg driver (`node-postgres`, `postgres-js`) satisfies. Use this in new code |
-| `TNodePostgresConnector<Schema>` | `@deprecated` compat alias for `TRelationalConnector<Schema>` |
-| `TNodePostgresTransactionConnector<Schema>` | `@deprecated` compat alias - was the `PoolClient`-specific transaction connector; now aliases `TRelationalConnector<Schema>` |
 | `TAnyConnector<Schema>` | Alias of `TRelationalConnector<Schema>` |
 | `TAnyDataSourceSchema` | `Record<string, any>` - base type for all schema objects, defined in `src/base/datasources/common/types.ts`, shared across engines |
 

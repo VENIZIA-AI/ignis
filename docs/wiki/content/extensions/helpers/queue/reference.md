@@ -37,7 +37,7 @@ Exhaustive reference for the Queue helper family. For a readable introduction an
 | Class | Extends | Peer dependency | Use case |
 |-------|---------|------------------|----------|
 | `BullMQHelper` | `BaseHelper` | `bullmq` | Redis-backed job queue - durable, multi-worker background processing |
-| `SequentialQueueHelper` (alias `QueueHelper`) | `BaseHelper` | none | Single-process, in-memory, one-at-a-time sequencing |
+| `SequentialQueueHelper` | `BaseHelper` | none | Single-process, in-memory, one-at-a-time sequencing |
 | `HfQueueHelper` | `BaseHelper` | none | Generic O(1) FIFO primitive - single-threaded, no callbacks, no persistence |
 | `MQTTClientHelper` | `BaseHelper` | `mqtt` | MQTT broker pub/sub - IoT and lightweight real-time events |
 
@@ -45,11 +45,11 @@ Kafka (`KafkaProducerHelper`, `KafkaConsumerHelper`, `KafkaAdminHelper`, `KafkaS
 
 ## Import Paths
 
-`BullMQHelper` and `MQTTClientHelper` live behind sub-path exports. That keeps their peer dependencies (`bullmq`, `mqtt`) from becoming hard dependencies of the base package. `SequentialQueueHelper`, `QueueHelper`, `QueueStatuses`, `HfQueueHelper`, and `TBullQueueRole` ship from the root package instead.
+`BullMQHelper` and `MQTTClientHelper` live behind sub-path exports. That keeps their peer dependencies (`bullmq`, `mqtt`) from becoming hard dependencies of the base package. `SequentialQueueHelper`, `QueueStatuses`, `HfQueueHelper`, and `TBullQueueRole` ship from the root package instead.
 
 ```typescript
 // Root package - no peer dependency
-import { SequentialQueueHelper, QueueHelper, QueueStatuses, HfQueueHelper } from '@venizia/ignis-helpers';
+import { SequentialQueueHelper, QueueStatuses, HfQueueHelper } from '@venizia/ignis-helpers';
 import type { TQueueStatus, TQueueElement, IQueueCallback, IHfQueueNode, TBullQueueRole } from '@venizia/ignis-helpers';
 
 // BullMQ - sub-path export
@@ -211,9 +211,6 @@ Calls `worker?.close()` then `queue?.close()` in sequence. Both run even if the 
 ## SequentialQueueHelper
 
 `Source ->` [`packages/helpers/src/modules/queue/internal/sequential/helper.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/queue/internal/sequential/helper.ts)
-
-> [!NOTE]
-> `QueueHelper` is a deprecated alias for `SequentialQueueHelper`, kept for backward compatibility. Prefer `SequentialQueueHelper` in new code.
 
 A generator-driven, in-memory queue that processes one element at a time within a single process - no Redis, no persistence.
 
@@ -466,7 +463,6 @@ new MQTTClientHelper({ url: 'mqtt://localhost:1883', identifier: 'x', options: {
 ```typescript
 import {
   SequentialQueueHelper,
-  QueueHelper, // deprecated alias for SequentialQueueHelper
   QueueStatuses,
   HfQueueHelper,
 } from '@venizia/ignis-helpers';

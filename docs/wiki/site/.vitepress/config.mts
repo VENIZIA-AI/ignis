@@ -452,6 +452,16 @@ const config = defineConfig({
           collapsed: false,
           items: [
             {
+              text: '2026-09-03',
+              collapsed: true,
+              items: [
+                {
+                  text: 'The Deprecated Runtime Boot API Is Fully Removed',
+                  link: '/changelogs/2026-09-03-deprecated-boot-api-removed',
+                },
+              ],
+            },
+            {
               text: '2026-09-02',
               collapsed: true,
               items: [

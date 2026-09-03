@@ -162,12 +162,12 @@ protected server:
 
 ## `BaseApplication`
 
-Extends `ServerApplication` with concrete lifecycle implementations, resource registration and secrets hydration. Implements `IRestApplication`, and still `IBootableApplication` for the deprecated `boot()`. This is the class your application extends.
+Extends `ServerApplication` with concrete lifecycle implementations, resource registration and secrets hydration. Implements `IRestApplication`. This is the class your application extends.
 
 ```typescript
 abstract class BaseApplication
   extends ServerApplication
-  implements IRestApplication, IBootableApplication
+  implements IRestApplication
 ```
 
 ### Resource Registration Methods
@@ -248,13 +248,6 @@ protected async registerConfiguredArtifacts(): Promise<void>
 ```
 
 `registerArtifacts` registers one index or a composition of indexes: datasources, then components (plus their `@provide` keys), repositories, services, controllers; a class's `when` may skip it and `order` sorts within a kind. `registerConfiguredArtifacts` is the boot step that passes `configs.artifacts` to it. Full behavior: [Artifact Registration](/references/base/bootstrapping#registerartifacts).
-
-```typescript
-/** @deprecated */
-boot(): Promise<IBootReport>
-```
-
-A no-op kept for applications that still call or override it. Warns once per process and returns `{ booters: [], phases: [], totalDurationMs: 0 }`. `booter()` and `registerBooters()` are removed.
 
 ### registerDynamicBindings
 
@@ -349,7 +342,6 @@ interface IApplicationConfigs {
   error?: { rootKey: string };            // Error response root key
   asyncContext?: { enable: boolean };     // Hono async context storage (default: true)
   artifacts?: TArtifactIndexInput;        // Generated indexes registered before preConfigure
-  bootOptions?: IBootOptions;             // @deprecated - ignored
   debug?: { shouldShowRoutes?: boolean }; // Show registered routes on startup
   transports?: TControllerTransport[];    // Controller transports: 'rest' | 'grpc' (default: ['rest'])
   [key: string]: any;                     // Extensible (e.g. strictPath?: boolean - Hono strict path matching, default: true)
@@ -370,7 +362,7 @@ interface IArtifactIndex {
 type TArtifactIndexInput = IArtifactIndex | TArtifactIndexInput[];
 ```
 
-`IBootOptions` and `IArtifactOptions` still exist, deprecated, so an old `bootOptions` entry type-checks; the value is ignored.
+`bootOptions` is removed - see the [changelog](/changelogs/2026-09-03-deprecated-boot-api-removed) for migration.
 
 ### `TControllerTransport`
 
@@ -423,7 +415,6 @@ Standard namespaces for organizing DI bindings:
 | `MIDDLEWARE` | `'middlewares'` | Middleware bindings |
 | `PROVIDER` | `'providers'` | Provider bindings |
 | `CONTROLLER` | `'controllers'` | `controller()` |
-| `BOOTERS` | `'booters'` | Nothing since `booter()` was removed; kept for compatibility |
 
 ## Mixin Interfaces
 
@@ -476,6 +467,7 @@ interface IBaseMiddlewareOptions {
   - [gRPC Controllers](/references/base/grpc-controllers) - gRPC transport reference
   - [Environment Variables](/references/configuration/environment-variables) - Configuration management
   - [Middlewares](/references/base/middlewares) - Request interceptors
+  - [Changelog 2026-09-03](/changelogs/2026-09-03-deprecated-boot-api-removed) - the deprecated boot API removed
 
 - **Tutorials:**
   - [5-Minute Quickstart](/guides/get-started/5-minute-quickstart) - Create your first app

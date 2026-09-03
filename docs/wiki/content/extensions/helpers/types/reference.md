@@ -168,7 +168,7 @@ function MyMixin<T extends TMixinTarget<BaseClass>>(Base: T) {
 const isClass: <T>(target: any) => target is TClass<T>;
 ```
 
-Declared in `@venizia/ignis-inversion` and re-exported by `helpers`. It's the single predicate that tells a constructor from a resolver function. The boot booters, controller factories, and `resolveValue`/`resolveValueAsync`/`resolveClass` all branch on it.
+Declared in `@venizia/ignis-inversion` and re-exported by `helpers`. It's the single predicate that tells a constructor from a resolver function. Controller factories and `resolveValue`/`resolveValueAsync`/`resolveClass` all branch on it.
 
 - **Filters to functions with a `prototype`** - true of every non-arrow function, so this alone is not sufficient.
 - **Decompiles the function via `Function.prototype.toString`** and regex-tests that the source text literally starts with the `class` keyword.

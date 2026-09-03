@@ -17,6 +17,7 @@ This section tracks the history of significant changes, refactors, and updates t
 
 | Date | Title | Type |
 |------|-------|------|
+| 2026-09-03 | [The Deprecated Runtime Boot API Is Fully Removed](./2026-09-03-deprecated-boot-api-removed) | Breaking Change |
 | 2026-09-02 | [Bundled and Compiled Apps - Helpers Exports Stay Defined, NODE_ENV Stays a Runtime Read, One Logger Provider Across Copies](./2026-09-02-bundle-safe-helpers) | Bug Fix, Enhancement |
 | 2026-09-02 | [Artifacts Register From a Generated Index, and the Runtime Boot System Is Retired](./2026-09-02-decorator-artifact-registration) | New Feature, Breaking Change |
 | 2026-08-31 | [EventBus Retry Gets Jitter, a Bounded Per-Registration Window, and a Tagged Handler Reference](./2026-08-31-event-bus-retry) | New Feature, Enhancement, Breaking Change |
