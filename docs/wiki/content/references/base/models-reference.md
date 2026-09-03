@@ -781,7 +781,7 @@ Used for `relations` on `BaseEntity` - store a function that returns the relatio
 
 ## Schema utilities
 
-`Source ->` [`packages/kernel/src/base/models/common/types.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/kernel/src/base/models/common/types.ts)
+`Source ->` [`packages/kernel/src/base/models/common/schemas.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/kernel/src/base/models/common/schemas.ts), [`packages/kernel/src/base/models/common/utilities.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/kernel/src/base/models/common/utilities.ts)
 
 ### `idParamsSchema`
 

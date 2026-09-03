@@ -51,7 +51,7 @@ this.defineRoute({
 
 ## Notes
 
-- **Two source files, one page.** `requiredString`, `AnyObjectSchema`, `TAnyObjectSchema`, and `TInferSchema` live in `schema.utility.ts`; `jsonContent`, `jsonResponse`, `idParamsSchema`, and `snakeToCamel` live in `base/models/common/types.ts`. Both are re-exported from the `@venizia/ignis` root barrel, so the import path is the same either way.
+- **Three source files, one page.** `requiredString`, `AnyObjectSchema`, `TAnyObjectSchema`, and `TInferSchema` live in `schema.utility.ts`; `jsonContent`, `jsonResponse`, and `idParamsSchema` live in `base/models/common/schemas.ts`; `snakeToCamel` lives in `base/models/common/utilities.ts`. All three are re-exported from the `@venizia/ignis` root barrel, so the import path is the same either way.
 - **`jsonResponse`'s error branch is fixed** - it always uses `ErrorSchema` under the `'4xx | 5xx'` key; only the success schema, description, and headers are customizable per call.
 - **HTML responses are a separate utility.** For `text/html` routes, use `htmlContent`/`htmlResponse` from the [JSX Utility](/references/utilities/jsx) instead of `jsonContent`/`jsonResponse`.
 
@@ -65,4 +65,5 @@ this.defineRoute({
 **Files:**
 
 - [`packages/kernel/src/utilities/schema.utility.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/kernel/src/utilities/schema.utility.ts)
-- [`packages/kernel/src/base/models/common/types.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/kernel/src/base/models/common/types.ts)
+- [`packages/kernel/src/base/models/common/schemas.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/kernel/src/base/models/common/schemas.ts)
+- [`packages/kernel/src/base/models/common/utilities.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/kernel/src/base/models/common/utilities.ts)

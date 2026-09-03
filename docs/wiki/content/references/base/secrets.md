@@ -49,7 +49,7 @@ The renewal scheduler, TTL cache, lease registry, and `onRotate` dispatch all li
 
 ## `ISecretsHelper` Interface
 
-**File:** `packages/helpers/src/modules/secrets/common/types.ts`
+**File:** `packages/helpers/src/modules/secrets/common/types/helper.ts`
 
 ```typescript
 interface ISecretsHelper extends IConfigurable {
@@ -98,7 +98,7 @@ interface ISecretRotatable {
 
 An application opts in by overriding `registerSecrets()` on its `BaseApplication` subclass. The method returns an `ISecretsRegistration` and runs before datasources are built.
 
-**File:** `packages/helpers/src/modules/secrets/common/types.ts`
+**File:** `packages/helpers/src/modules/secrets/common/types/registration.ts`
 
 ```typescript
 interface ISecretsRegistration {
