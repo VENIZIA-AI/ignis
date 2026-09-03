@@ -10,6 +10,6 @@ export * from './json-filter';
 export * from './json-orderby-test.service';
 export * from './json-update';
 export * from './operators';
-export * from './row-locking-test.service';
+export * from './row-locking';
 export * from './transaction';
 export * from './user-audit';

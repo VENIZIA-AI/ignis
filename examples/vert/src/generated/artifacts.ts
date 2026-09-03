@@ -15,7 +15,7 @@ import { SaleChannelProductRepository } from '../repositories/sale-channel-produ
 import { SaleChannelRepository } from '../repositories/sale-channel.repository';
 import { UserRepository } from '../repositories/user.repository';
 import { AuthenticationService } from '../services/authentication.service';
-import { RowLockingTestService } from '../services/tests/row-locking-test.service';
+import { RowLockingTestService } from '../services/tests/row-locking/service';
 
 export const GeneratedArtifacts = {
   dataSources: [PostgresDataSource],

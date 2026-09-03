@@ -36,7 +36,7 @@ import { EnvironmentKeys } from './common/environments';
 import { PostgresDataSource } from './datasources/postgres.datasource';
 import { GeneratedArtifacts } from './generated/artifacts';
 import { Organization, Permission, PolicyDefinition, Role } from './models/entities';
-import { RowLockingTestService } from './services/tests/row-locking-test.service';
+import { RowLockingTestService } from './services/tests/row-locking';
 
 // -----------------------------------------------------------------------------------------------
 export const beConfigs: IApplicationConfigs = {
