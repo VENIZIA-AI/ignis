@@ -19,8 +19,9 @@ barrel - never `export *`, which would have leaked five newly-exported-but-packa
 to the public surface; `envelope/types.ts` moved to `envelope/common/types.ts`. `boot` and `filter`
 each gained the `common/index.ts` barrel their `generator/common` and `schemas/common` folders were
 missing. `inversion`'s `error/types.ts` moved to `error/common/types.ts`, and the `message-code.ts`
-<-> `app-error.ts` import cycle (`module-cycles` flagged 1) was cut: `MessageCode` now throws
-through a private `errorFactory`, and `app-error.ts` no longer imports `message-code.ts` back. The
+<-> `app-error.ts` import cycle (`module-cycles` flagged 1) was cut: `message-code.ts` no longer
+imports `app-error.ts`; `app-error.ts` keeps its import of `MessageCode`, so the edge is one-way.
+`MessageCode` now throws through a private `errorFactory` field that `src/index.ts` registers. The
 4.6a follow-up then swept 281 dead source paths out of the wiki and the knowledge bundle - all
 predating this wave, mostly from the earlier connectors and kernel lifts - and added
 `make wiki-links-check` to `build-all`.

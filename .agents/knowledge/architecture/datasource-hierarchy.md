@@ -2,7 +2,7 @@
 type: Architecture
 title: DataSource hierarchy
 description: How IGNIS datasources are layered by paradigm family, discover their schema from repository bindings, and pull an engine driver into the bundle through a class reference.
-resource: packages/core-server/src/connectors
+resource: packages/connectors/src
 tags: [architecture, datasource, connectors, drizzle, postgres, search]
 ---
 

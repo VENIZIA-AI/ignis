@@ -280,11 +280,7 @@ catch rather than prove it absent.
 
 ## Gotchas
 
-- One architecture concept still carries a `resource:` path under `packages/core-server/src/connectors` -
-  datasource-hierarchy. The code moved; treat `packages/connectors/src` as the real path, and note the
-  neutral relational tier gained a `core` segment: `relational/repositories` is now
-  `relational/core/repositories`. Wave 4's close repointed the other five concepts that shared this
-  problem - relational-connector, sqlite-connector, search-typesense, transactions, filter-system.
+- The neutral relational tier gained a `core` segment during the connectors lift: `relational/repositories` is now `relational/core/repositories`.
 - `@venizia/ignis/postgres` and `@venizia/ignis-connectors/postgres` resolve to the same module.
   Application code should keep importing from `@venizia/ignis`; install this package directly only
   for the browser case.
