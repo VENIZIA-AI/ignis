@@ -87,13 +87,13 @@ into a lint failure instead of a runtime 404.
 `registerControllers`, `postConfigure`, `validateScopeFilterSupport`. `registerConfiguredArtifacts`
 is the step body: it does nothing when `configs.artifacts` is absent.
 
-## Deprecated surface
+## Removed surface
 
-`BaseApplication.boot()` is a no-op that warns once per process
-(`BaseApplication.hasWarnedBootDeprecated`) and returns `{ booters: [], phases: [], totalDurationMs: 0 }`;
-15 BANA applications still `override async boot()` against it. `configs.bootOptions` type-checks and
-is ignored. `booter()` and `registerBooters()` are removed; `BindingNamespaces.BOOTERS` remains with
-no writer.
+`BaseApplication.boot()`, `hasWarnedBootDeprecated`, `IBootableApplication`, `configs.bootOptions`
+and `BindingNamespaces.BOOTERS` are gone as of 2026-09-03 - see the
+[changelog](/changelogs/2026-09-03-deprecated-boot-api-removed). `booter()` and `registerBooters()`
+left earlier, on 2026-09-02. 15 BANA applications still `override async boot()`; each fails to
+compile until the override and its `.boot()` call site are deleted.
 
 ## The common failures
 

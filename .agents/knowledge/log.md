@@ -6,6 +6,19 @@ not how.
 This file and `index.md` are reserved OKF filenames - they carry no `type:` frontmatter and are not
 counted as concepts.
 
+## 2026-09-03 - deprecated boot API removed (D1)
+
+`IArtifactOptions`, `IBootOptions`, `IBootReport`, `IBootPhaseReport`, `TBootPhase`, `BootPhases`,
+`IBootableApplication` and `boot/src/common/` are gone from `@venizia/ignis-boot`.
+`BaseApplication.boot()` and `hasWarnedBootDeprecated` are gone from `core-server`;
+`IApplicationConfigs.bootOptions` and its kernel mirror (`IApplicationArtifactOptions`,
+`IApplicationBootOptions`) are gone from `kernel`. `BindingNamespaces.BOOTERS` is gone, and so is
+the dead `base/services/base-crud.ts` placeholder.
+
+User-ordered full removal, not a deprecation cycle: measured zero IGNIS usage outside the deleted
+sites before deleting. BANA carries 3 `.boot()` call sites and 2 `bootOptions` config literals that
+now fail to compile. See the [changelog](/changelogs/2026-09-03-deprecated-boot-api-removed).
+
 ## 2026-09-03 - file split wave 4: connectors, core-worker, boot, filter, inversion
 
 Five tasks (4.1-4.5), the 4.6a link-rot repair and a 4.7 follow-up closed wave 4. Typesense's

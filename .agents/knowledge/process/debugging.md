@@ -22,12 +22,11 @@ tags: [process, debugging]
    response-serialization time. Also verify `experimentalDecorators` and `emitDecoratorMetadata`
    are actually active for the file in question - a `tsconfig` `extends` chain the runtime can't
    resolve is discarded WHOLE, flags included, and `@inject` silently records nothing.
-3. Check the boot phase. If a controller/service/repository/datasource isn't being picked up, it's
-   almost always the wrong directory or the wrong extension: booters default to `controllers/`
-   (`.controller.js`), `services/` (`.service.js`), `repositories/` (`.repository.js`),
-   `datasources/` (`.datasource.js`) - note these are `.js` extensions, matched against COMPILED
-   output, not `.ts` source. An unbuilt or stale `dist/` means the boot phase finds nothing, which
-   looks identical to a misconfigured directory.
+3. Check artifact registration. If a controller/service/repository/datasource isn't being picked up,
+   check the generated index first - a stale `src/generated/artifacts.ts` registers yesterday's
+   classes and `check:artifacts` catches exactly that. Then check the class: it must be a named
+   export, not `abstract`, and decorated with a stereotype imported directly from `@venizia/ignis` or
+   `@venizia/ignis-kernel` - the generator logs a skip reason for each miss.
 4. Check the transaction lifecycle for anything touching the database. Every transaction opened
    with `dataSource.beginTransaction()` must reach exactly one of `commit()` or `rollback()` -
    an uncommitted or unreleased connection leaks from the pool. Wrap the work in try/catch and

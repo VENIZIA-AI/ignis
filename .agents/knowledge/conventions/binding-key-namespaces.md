@@ -20,7 +20,6 @@ export class BindingNamespaces {
   static readonly MIDDLEWARE = BindingNamespaces.createNamespace({ name: 'middlewares' });
   static readonly PROVIDER = BindingNamespaces.createNamespace({ name: 'providers' });
   static readonly CONTROLLER = BindingNamespaces.createNamespace({ name: 'controllers' });
-  static readonly BOOTERS = BindingNamespaces.createNamespace({ name: 'booters' });
 }
 ```
 
@@ -28,8 +27,7 @@ A binding key is namespace + `.` + class name: `controllers.UserController`,
 `services.AuthService`, `repositories.UserRepository`, `datasources.PostgresDataSource`,
 `components.HealthComponent`. This is what the five registration methods and `registerArtifacts` derive
 when a class declares no `binding`, and what `@inject({ key })` targets when a dependency needs an
-explicit key rather than relying on auto-injection. `BOOTERS` has no writer since the runtime boot
-system left; it stays for compatibility.
+explicit key rather than relying on auto-injection.
 
 **Keys stay with their owner.** A component's binding-key const class lives in that component's own
 `common/` (`HealthCheckBindingKeys`, `AuthenticateBindingKeys`, `AuthorizeBindingKeys`), an

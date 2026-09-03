@@ -27,9 +27,6 @@ a peer dependency because the scanner is an AST walk. Dual CJS + ESM build, sub-
 - `src/generator/index.ts` - `generateArtifactIndex`, `checkArtifactIndex`, `IGenerateOptions`.
 - `src/generator/common/` - `ArtifactStereotypes` (`BY_DECORATOR`, `ROOT_DECORATOR`, `SOURCE_MODULES`,
   `DEFAULT_IGNORE`, `EMIT_ORDER`, with `SCHEME_SET`/`isValid`), `IScannedArtifact`, `IScanOptions`.
-- `src/common/` - deprecated `IBootOptions`, `IArtifactOptions`, `TBootPhase`, `IBootPhaseReport`,
-  `IBootReport`, `IBootableApplication`, `BootPhases`. Kept only so an existing `configs.bootOptions`
-  and `override boot()` still type-check; nothing reads them.
 
 ## Detection rules
 
@@ -89,6 +86,11 @@ exit 2.
 `Bootstrapper`, `BaseArtifactBooter`, `ControllerBooter`, `ServiceBooter`, `RepositoryBooter`,
 `DatasourceBooter`, `BootMixin`, `discoverFiles`, `loadClasses` and the `isClass` re-export left with
 the runtime boot system on 2026-09-02. `isClass` still lives in `inversion`.
+
+`src/common/` and its deprecated `IBootOptions`, `IArtifactOptions`, `TBootPhase`, `IBootPhaseReport`,
+`IBootReport`, `IBootableApplication` and `BootPhases` left on 2026-09-03, with `BaseApplication.boot()`
+and `IApplicationConfigs.bootOptions` in `core-server` and `kernel`. See the
+[changelog](/changelogs/2026-09-03-deprecated-boot-api-removed).
 
 ## Related
 

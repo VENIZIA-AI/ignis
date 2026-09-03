@@ -8,7 +8,7 @@ tags: [reference, bindings, di]
 
 > Generated from source - do not edit; run `make okf-gen`. Namespaces: [binding key namespaces](/conventions/binding-key-namespaces.md).
 
-**16 keys across 2 binding classes.**
+**15 keys across 2 binding classes.**
 
 ## BindingNamespaces
 
@@ -22,7 +22,6 @@ tags: [reference, bindings, di]
 | `MIDDLEWARE` | `middlewares` |
 | `PROVIDER` | `providers` |
 | `CONTROLLER` | `controllers` |
-| `BOOTERS` | `booters` |
 
 ## CoreBindings
 

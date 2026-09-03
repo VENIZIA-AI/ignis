@@ -14,16 +14,15 @@ base is a four-class chain split across two packages:
 | `AbstractApplication extends Container` | `packages/kernel/src/base/applications/abstract.ts` | config normalisation, project root, post-start/post-stop hooks, `init()` and `registerCoreBindings()`. No router, no server. |
 | `RestApplication` | `packages/kernel/src/base/applications/rest.ts` | the two `OpenAPIHono` instances, `getServer()`, `getRootRouter()`, `inspectRoutes()`, and the `APPLICATION_SERVER` / `APPLICATION_ROOT_ROUTER` bindings. |
 | `ServerApplication` | `packages/core-server/src/base/applications/server.ts` | the only layer that touches a socket: `getServerHost/Port/Address`, `startBunModule`, `startNodeModule`, `start()`, `stop()`. |
-| `BaseApplication` | `packages/core-server/src/base/applications/base.ts` | the configuration sequence, secrets, the deprecated `boot()` no-op. |
+| `BaseApplication` | `packages/core-server/src/base/applications/base.ts` | the configuration sequence, secrets. |
 
 The cut is deliberate. The first two layers are browser-pure and ship in `@venizia/ignis-kernel`, so
 a Worker or a gRPC-only host can extend `RestApplication` without pulling in `Bun.serve` or
 `@hono/node-server`. `packages/core-server/src/base/applications/index.ts` re-exports the kernel classes, so
 `@venizia/ignis` consumers see no change.
 
-The outermost order is `new Application({ scope, config })` -> `init()` -> `start()`. The old
-`boot()` step is a deprecated no-op (warns once, returns an empty report); artifacts come from
-`configs.artifacts` inside `start()`. **`init()` is not called for you.** It runs `registerCoreBindings()`, which binds
+The outermost order is `new Application({ scope, config })` -> `init()` -> `start()`. Artifacts come
+from `configs.artifacts` inside `start()`. **`init()` is not called for you.** It runs `registerCoreBindings()`, which binds
 `APPLICATION_INSTANCE` (on `AbstractApplication`) plus `APPLICATION_SERVER` and
 `APPLICATION_ROOT_ROUTER` (on `RestApplication`). Skip it and every `@inject`ed application reference - including the
 one `registerArtifacts` hands to each `when` condition - is unresolvable. `APPLICATION_PROJECT_ROOT` is bound earlier still,
@@ -142,12 +141,6 @@ state - reading an instance field from one silently yields `undefined`.
 configures `RestComponent` and/or `GrpcComponent` accordingly. It also warns loudly when a gRPC
 controller was discovered but the gRPC transport was never enabled - otherwise those endpoints just
 silently do not exist.
-
-## Boot is separate
-
-`boot()` is not part of `initialize()`. It registers the booters, resolves the `Bootstrapper` and
-runs the three boot phases. An application that uses convention-based discovery calls `boot()` before
-`start()`; one that registers everything by hand in `preConfigure()` never calls it.
 
 ## Starting and stopping
 
