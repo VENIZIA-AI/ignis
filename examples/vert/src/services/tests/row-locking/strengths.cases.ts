@@ -3,7 +3,8 @@ import { DataTypes, getUID } from '@venizia/ignis-helpers';
 import { BaseTestCases } from '../base-test.cases';
 
 // ----------------------------------------------------------------
-// Strengths Cases - acquiring each lock strength (UPDATE/SHARE/NO_KEY_UPDATE/KEY_SHARE) via findOne/find/findById
+// Strengths Cases - acquiring each lock strength (UPDATE/SHARE/NO_KEY_UPDATE/KEY_SHARE)
+// via findOne/find/findById
 // ----------------------------------------------------------------
 export class StrengthsCases extends BaseTestCases {
   // ----------------------------------------------------------------

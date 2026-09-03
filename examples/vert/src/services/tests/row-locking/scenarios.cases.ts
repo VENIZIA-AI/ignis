@@ -2,7 +2,8 @@ import { DataTypes, getUID } from '@venizia/ignis-helpers';
 import { BaseTestCases } from '../base-test.cases';
 
 // ----------------------------------------------------------------
-// Scenarios Cases - SKIP LOCKED, NOWAIT, read-modify-write, cross-repository locking and concurrent SHARE readers
+// Scenarios Cases - SKIP LOCKED, NOWAIT, read-modify-write, cross-repository locking
+// and concurrent SHARE readers
 // ----------------------------------------------------------------
 export class ScenariosCases extends BaseTestCases {
   // ----------------------------------------------------------------

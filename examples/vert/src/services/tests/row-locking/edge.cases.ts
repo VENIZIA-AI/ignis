@@ -2,7 +2,8 @@ import { LockStrengths } from '@venizia/ignis';
 import { BaseTestCases } from '../base-test.cases';
 
 // ----------------------------------------------------------------
-// Edge Cases - validation errors (no transaction, incompatible Query API options) and the LockStrengths contract
+// Edge Cases - validation errors (no transaction, incompatible Query API options)
+// and the LockStrengths contract
 // ----------------------------------------------------------------
 export class EdgeCases extends BaseTestCases {
   // ----------------------------------------------------------------
