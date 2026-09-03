@@ -1,12 +1,17 @@
 /**
- * Checks that every source path the wiki and the knowledge bundle name still exists on disk.
- * Walks every `.md` file under the given directories and extracts two kinds of reference: a
- * `blob/main/<path>` link target (checked in every file) and a backticked path starting with
- * `packages/`, `examples/`, `scripts/`, `docs/` or `.agents/` and ending in a source or doc
- * extension (checked outside `skipProseUnder`, where a changelog is allowed to name history).
- * Run from the repo root: bun scripts/wiki-source-links.ts (paths resolve against the current
- * working directory).
+ * Checks that every source path the wiki and the knowledge bundle name is tracked by git. Walks
+ * every `.md` file under the given directories and extracts two kinds of reference: an IGNIS
+ * `blob/main/<path>` or `tree/main/<path>` GitHub link target - scoped to the `VENIZIA-AI/ignis`
+ * repo, so a link into another project's repo is never checked - (checked in every file) and a
+ * backticked path starting with `packages/`, `examples/`, `scripts/`, `docs/` or `.agents/` and
+ * ending in a source or doc extension (checked outside `skipProseUnder`, where a changelog is
+ * allowed to name history). A path exists when `git ls-files` tracks it, as a file or as a
+ * directory prefix - a gitignored build artifact or local planning doc is never a valid target,
+ * since GitHub, and a tracked-only checkout, never has it either. Run from the repo root:
+ * bun scripts/wiki-source-links.ts (both the file walk and `git ls-files` resolve against the
+ * current working directory).
  */
+import { execFileSync } from 'node:child_process';
 import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { join, relative, resolve } from 'node:path';
 
@@ -14,10 +19,15 @@ import { join, relative, resolve } from 'node:path';
 const ALWAYS_SKIP = ['.agents/knowledge/log.md', '.agents/knowledge/reference'];
 const BACKTICK_PREFIXES = ['packages/', 'examples/', 'scripts/', 'docs/', '\\.agents/'];
 const BACKTICK_EXTENSIONS = ['ts', 'tsx', 'md', 'json', 'mjs', 'js', 'yaml', 'yml'];
-// `{}`, `*` and `<>` mark a naming pattern (a template placeholder or a glob), not one named file.
-const BLOB_MAIN_PATTERN = /blob\/main\/([^\s)\]"'`<>]+)/g;
+// `<>` is placeholder notation (docs describing the pattern itself), never a real GitHub path.
+// Anchored to this repo, so a link into someone else's GitHub project is never a checked target.
+const GITHUB_LINK_PATTERN = /VENIZIA-AI\/ignis\/(?:blob|tree)\/main\/([^\s)\]"'`<>]+)/g;
+// `{}` and `*` mark a template placeholder or a glob (a naming pattern, not one file); `<>` is the
+// same placeholder notation as above. The optional `:<line>`/`#L<n>` suffix stays inside the
+// capture so `stripLineSuffix` below has something to strip on this branch too.
 const BACKTICK_PATTERN = new RegExp(
-  `\`((?:${BACKTICK_PREFIXES.join('|')})[^\`{}*<>]+?\\.(?:${BACKTICK_EXTENSIONS.join('|')}))\``,
+  `\`((?:${BACKTICK_PREFIXES.join('|')})[^\`{}*<>]+?\\.(?:${BACKTICK_EXTENSIONS.join('|')})` +
+    '(?::\\d+|#L\\d+)?)`',
   'g',
 );
 const LINE_SUFFIX_PATTERN = /(:\d+|#L\d+)$/;
@@ -26,6 +36,11 @@ interface IMiss {
   file: string;
   line: number;
   path: string;
+}
+
+interface ITrackedPaths {
+  files: Set<string>;
+  dirs: Set<string>;
 }
 
 export class SourceLinkCheck {
@@ -40,6 +55,7 @@ export class SourceLinkCheck {
 
   run(): { checked: number; missing: IMiss[] } {
     const repoRoot = process.cwd();
+    const tracked = SourceLinkCheck.loadTracked(repoRoot);
     const files = this.dirs.flatMap(dir => SourceLinkCheck.walk(resolve(repoRoot, dir)));
     let checked = 0;
     const missing: IMiss[] = [];
@@ -53,7 +69,7 @@ export class SourceLinkCheck {
       lines.forEach((text, index) => {
         for (const path of SourceLinkCheck.extractPaths(text, skipProse)) {
           checked += 1;
-          if (!existsSync(join(repoRoot, path))) {
+          if (!SourceLinkCheck.exists(tracked, path)) {
             missing.push({ file: relPath, line: index + 1, path });
           }
         }
@@ -63,8 +79,29 @@ export class SourceLinkCheck {
     return { checked, missing };
   }
 
+  // `git ls-files` is the source of truth, not `existsSync` - a gitignored file (a build artifact,
+  // a local planning doc) must never pass, because GitHub and a tracked-only checkout don't have
+  // it. `dirs` covers `tree/main/<path>` links: a directory "exists" when some tracked file sits
+  // under it.
+  private static loadTracked(repoRoot: string): ITrackedPaths {
+    const output = execFileSync('git', ['ls-files', '-z'], { cwd: repoRoot, encoding: 'utf8' });
+    const files = new Set(output.split('\0').filter(Boolean));
+    const dirs = new Set<string>();
+    for (const file of files) {
+      const segments = file.split('/');
+      for (let depth = 1; depth < segments.length; depth += 1) {
+        dirs.add(segments.slice(0, depth).join('/'));
+      }
+    }
+    return { files, dirs };
+  }
+
+  private static exists(tracked: ITrackedPaths, path: string): boolean {
+    return tracked.files.has(path) || tracked.dirs.has(path);
+  }
+
   private static extractPaths(text: string, skipProse: boolean): string[] {
-    const found = [...text.matchAll(BLOB_MAIN_PATTERN)].map(match =>
+    const found = [...text.matchAll(GITHUB_LINK_PATTERN)].map(match =>
       SourceLinkCheck.stripLineSuffix(match[1]),
     );
     if (skipProse) {
