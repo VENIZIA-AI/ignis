@@ -5,7 +5,7 @@ export * from './crud';
 export * from './default-filter';
 export * from './field-selection-test.service';
 export * from './hidden-properties';
-export * from './inclusion-test.service';
+export * from './inclusion';
 export * from './json-filter-test.service';
 export * from './json-orderby-test.service';
 export * from './operators';
