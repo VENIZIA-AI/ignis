@@ -17,7 +17,15 @@ import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { join, relative, resolve } from 'node:path';
 
 // Auto-generated or free-form history content; never held to the "path exists" gate.
-const ALWAYS_SKIP = ['.agents/knowledge/log.md', '.agents/knowledge/reference'];
+const ALWAYS_SKIP = [
+  '.agents/knowledge/log.md',
+  '.agents/knowledge/reference/public-surface.md',
+  '.agents/knowledge/reference/source-map.md',
+  '.agents/knowledge/reference/components.md',
+  '.agents/knowledge/reference/helpers.md',
+  '.agents/knowledge/reference/binding-keys.md',
+  '.agents/knowledge/reference/makefile-targets.md',
+];
 const BACKTICK_PREFIXES = ['packages/', 'examples/', 'scripts/', 'docs/', '\\.agents/'];
 const BACKTICK_EXTENSIONS = ['ts', 'tsx', 'md', 'json', 'mjs', 'js', 'yaml', 'yml'];
 // Same five roots as BACKTICK_PREFIXES, unescaped for a plain `.startsWith()` check against a
