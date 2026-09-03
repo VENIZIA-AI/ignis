@@ -1,12 +1,10 @@
 import { DataTypes, getUID } from '@venizia/ignis-helpers';
-import type { ITestCaseContext } from '../base-test.cases';
+import { BaseTestCases } from '../base-test.cases';
 
 // ----------------------------------------------------------------
 // Operator Test Fixture - shared setup/cleanup for the comprehensive operator suite
 // ----------------------------------------------------------------
-export class OperatorTestFixture {
-  constructor(private readonly context: ITestCaseContext) {}
-
+export class OperatorTestFixture extends BaseTestCases {
   // ================================================================
   // SETUP
   // ================================================================

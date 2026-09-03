@@ -1,19 +1,12 @@
 import { DataTypes, getUID } from '@venizia/ignis-helpers';
 import { eq } from 'drizzle-orm';
 import { Configuration } from '../../../models/entities';
-import { BaseTestCases } from '../base-test.cases';
-import { UserAuditFixture } from './support';
+import { UserAuditCases } from './support';
 
 // ----------------------------------------------------------------
 // Modified-By Cases - modifiedBy across single, bulk, concurrent, and sequential updates
 // ----------------------------------------------------------------
-export class ModifiedByCases extends BaseTestCases {
-  private readonly fixture = new UserAuditFixture(this.context);
-
-  private createTestUser(name: string): Promise<string> {
-    return this.fixture.createTestUser(name);
-  }
-
+export class ModifiedByCases extends UserAuditCases {
   // ----------------------------------------------------------------
   // CASE 4: UpdateById - modifiedBy should change
   // ----------------------------------------------------------------

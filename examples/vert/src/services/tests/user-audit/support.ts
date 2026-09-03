@@ -1,12 +1,10 @@
 import { getUID } from '@venizia/ignis-helpers';
-import type { ITestCaseContext } from '../base-test.cases';
+import { BaseTestCases } from '../base-test.cases';
 
 // ----------------------------------------------------------------
 // User Audit Fixture - creates and caches audit-test users by name
 // ----------------------------------------------------------------
-export class UserAuditFixture {
-  constructor(private readonly context: ITestCaseContext) {}
-
+export class UserAuditFixture extends BaseTestCases {
   // Helper to create test users and get their IDs
   private testUsers: Map<string, string> = new Map();
 
@@ -28,5 +26,14 @@ export class UserAuditFixture {
     const userId = result.data!.id;
     this.testUsers.set(name, userId);
     return userId;
+  }
+}
+
+/** Shared by every user-audit case group: one fixture per group, reached through `createTestUser`. */
+export abstract class UserAuditCases extends BaseTestCases {
+  protected readonly fixture = new UserAuditFixture(this.context);
+
+  protected createTestUser(name: string): Promise<string> {
+    return this.fixture.createTestUser(name);
   }
 }

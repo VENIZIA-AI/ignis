@@ -1,19 +1,12 @@
 import { DataTypes, getUID } from '@venizia/ignis-helpers';
 import { eq } from 'drizzle-orm';
 import { Configuration } from '../../../models/entities';
-import { BaseTestCases } from '../base-test.cases';
-import { UserAuditFixture } from './support';
+import { UserAuditCases } from './support';
 
 // ----------------------------------------------------------------
 // Created-By Cases - createdBy at creation time, and its immutability on update
 // ----------------------------------------------------------------
-export class CreatedByCases extends BaseTestCases {
-  private readonly fixture = new UserAuditFixture(this.context);
-
-  private createTestUser(name: string): Promise<string> {
-    return this.fixture.createTestUser(name);
-  }
-
+export class CreatedByCases extends UserAuditCases {
   // ----------------------------------------------------------------
   // CASE 1: Create with explicit audit fields
   // ----------------------------------------------------------------

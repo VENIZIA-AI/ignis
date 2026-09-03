@@ -1,19 +1,12 @@
 import { DataTypes, getUID } from '@venizia/ignis-helpers';
 import { eq } from 'drizzle-orm';
 import { Configuration } from '../../../models/entities';
-import { BaseTestCases } from '../base-test.cases';
-import { UserAuditFixture } from './support';
+import { UserAuditCases } from './support';
 
 // ----------------------------------------------------------------
 // Edge Cases - null handling, transactions, FK/data-type limits, security, cleanup
 // ----------------------------------------------------------------
-export class EdgeCases extends BaseTestCases {
-  private readonly fixture = new UserAuditFixture(this.context);
-
-  private createTestUser(name: string): Promise<string> {
-    return this.fixture.createTestUser(name);
-  }
-
+export class EdgeCases extends UserAuditCases {
   // ----------------------------------------------------------------
   // CASE 8: Null to non-null audit field update
   // ----------------------------------------------------------------

@@ -1,19 +1,12 @@
 import { DataTypes, getUID } from '@venizia/ignis-helpers';
 import { eq } from 'drizzle-orm';
 import { Configuration } from '../../../models/entities';
-import { BaseTestCases } from '../base-test.cases';
-import { UserAuditFixture } from './support';
+import { UserAuditCases } from './support';
 
 // ----------------------------------------------------------------
 // Queries Cases - reading audit fields back via verify, filter, relations, count/exists
 // ----------------------------------------------------------------
-export class QueriesCases extends BaseTestCases {
-  private readonly fixture = new UserAuditFixture(this.context);
-
-  private createTestUser(name: string): Promise<string> {
-    return this.fixture.createTestUser(name);
-  }
-
+export class QueriesCases extends UserAuditCases {
   // ----------------------------------------------------------------
   // CASE 9: Verify audit fields actually stored in database
   // ----------------------------------------------------------------
