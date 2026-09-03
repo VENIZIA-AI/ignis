@@ -29,7 +29,8 @@ export class UserAuditFixture extends BaseTestCases {
   }
 }
 
-/** Shared by every user-audit case group: one fixture per group, reached through `createTestUser`. */
+/** Shared by every user-audit case group: one fixture per group, reached through
+ * `createTestUser`. */
 export abstract class UserAuditCases extends BaseTestCases {
   protected readonly fixture = new UserAuditFixture(this.context);
 
