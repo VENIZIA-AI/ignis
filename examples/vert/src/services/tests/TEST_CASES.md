@@ -1,4 +1,4 @@
-# Ignis Framework - Repository Test Cases
+# IGNIS Framework - Repository Test Cases
 
 This document lists all test cases implemented in the `examples/vert/src/services/tests` directory.
 
@@ -13,7 +13,14 @@ This document lists all test cases implemented in the `examples/vert/src/service
 | DefaultFilterTestService | 31 | Default filter functionality |
 | HiddenPropertiesTestService | 18 | Hidden properties filtering |
 | UserAuditTestService | 21 | User audit tracking (createdBy/modifiedBy) |
-| **Total** | **145** | |
+| AdvancedFilterQueryTestService | 11 | Complex nested filters, stress and security edge cases |
+| JsonFilterTestService | 20 | JSON/JSONB path filtering |
+| JsonUpdateTestService | 16 | Nested JSON/JSONB field updates |
+| ComprehensiveOperatorTestService | 54 | All query operators, edge cases, and combinations |
+| RowLockingTestService | 15 | Row-level locking (FOR UPDATE) |
+| FieldSelectionTestService | 6 | toColumns/fields filtering |
+| JsonOrderByTestService | 7 | JSON/JSONB ordering |
+| **Total** | **274** | |
 
 ---
 
@@ -201,23 +208,24 @@ Tests for hidden properties filtering (password, secret fields excluded from res
 
 | Case | Name | Description |
 |------|------|-------------|
-| 1 | CreateReturnsHiddenExcluded | Create operation excludes hidden properties from response |
-| 2 | FindOperationsExcludeHidden | findOne, find, findById all exclude hidden properties |
-| 5 | UpdateByIdExcludesHidden | UpdateById excludes hidden properties from response |
-| 6 | DirectConnectorReturnsAll | Direct connector access returns hidden properties |
-| 7 | CreateAllExcludesHidden | Batch create excludes hidden properties |
-| 8 | UpdateAllExcludesHidden | Batch update excludes hidden properties |
-| 9 | HiddenWithInclusion | Hidden exclusion works with relation includes |
-| 10 | HiddenWithFieldSelection | Selected fields respected, hidden still excluded |
-| 11 | PartialHiddenFields | Only hidden fields excluded, non-hidden returned |
-| 12 | HiddenInTransaction | Hidden exclusion works within transactions |
-| 13 | FindWithFilterExcludesHidden | Hidden excluded with complex where filters |
-| 14 | CountOperationIgnoresHidden | Count works (hidden filtering N/A for counts) |
-| 15 | DeleteByIdExcludesHidden | Delete excludes hidden from returned data |
-| 16 | DeleteAllExcludesHidden | Batch delete excludes hidden from returned data |
-| 18 | MultipleUsersHiddenExcluded | Multiple records all have hidden excluded |
-| 19 | HiddenWithPagination | Pagination works with hidden exclusion |
-| 20 | Cleanup | Delete all test users |
+| 1 | CreateUserWithHiddenFields | Create user with hidden fields - verify they are not returned |
+| 2 | FindOperationsExcludeHidden | All find operations (findOne, find, findById) exclude hidden properties |
+| 5 | UpdateByIdExcludesHidden | UpdateById excludes hidden properties in response |
+| 6 | Cleanup | Cleanup test data (runs last in test sequence) |
+| 7 | ConnectorQueryReturnsHidden | Connector query SHOULD return hidden properties (bypass repository) |
+| 8 | CreateAllExcludesHidden | CreateAll (batch create) excludes hidden properties |
+| 9 | UpdateAllExcludesHidden | UpdateAll (bulk update) excludes hidden properties |
+| 10 | DeleteByIdExcludesHidden | DeleteById excludes hidden properties from response |
+| 11 | FieldsSelectionStillExcludesHidden | Fields selection still excludes hidden, even if explicitly requested |
+| 12 | VerifyDataActuallyStoredInDB | Verify data is actually stored in DB (via connector) |
+| 13 | WhereClauseCanFilterByHidden | Where clause CAN filter by hidden field |
+| 14 | CountWithHiddenInWhere | Count operation with hidden field in where clause |
+| 15 | ExistsWithHiddenInWhere | ExistsWith operation with hidden field in where clause |
+| 16 | TransactionContextHidden | Transaction context - hidden properties should work in transactions |
+| 18 | MultipleUsersHiddenExcluded | Multiple users with mixed null/non-null hidden values all have hidden excluded |
+| 19 | UpdateOnlyHiddenFields | Update ONLY hidden fields - should work but response excludes them |
+| 20 | NullHiddenFieldValues | Null/undefined hidden field values - edge case |
+| 21 | RelationHiddenProperties | Included relations should exclude hidden properties too |
 
 ---
 
