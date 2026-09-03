@@ -16,6 +16,7 @@ export class MessageCode {
   /**
    * Registered by the package entry at module init; keeps the throws identical without a
    * static import of app-error (that import was the cycle).
+   * @internal Framework wiring; consumers must not replace the factory.
    */
   static useErrorFactory(opts: { factory: TErrorFactory }): void {
     this.errorFactory = opts.factory;
