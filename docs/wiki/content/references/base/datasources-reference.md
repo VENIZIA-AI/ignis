@@ -404,7 +404,7 @@ export class PostgresDataSource extends BasePostgresDataSource<IDataSourceConfig
 
 ## Driver interface
 
-`Source ->` [`packages/core-server/src/connectors/postgres/drivers`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/connectors/postgres/drivers)
+`Source ->` [`packages/connectors/src/relational/core/drivers/driver.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/connectors/src/relational/core/drivers/driver.ts)
 
 `IRelationalDriver` owns connection acquisition and the raw control statements (`BEGIN`/`COMMIT`/`ROLLBACK`) - the only two places the connector is hard-wired to a specific client library.
 

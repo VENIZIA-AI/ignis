@@ -35,7 +35,7 @@ Now there is one shape - `{ text, code, args }` - and it is the same at every st
 
 ### One shape for a message
 
-**File:** [`packages/inversion/src/modules/error/types.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/inversion/src/modules/error/common/types.ts)
+**File:** [`packages/inversion/src/modules/error/common/types.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/inversion/src/modules/error/common/types.ts)
 
 **Problem:** the code and the interpolation args lived in a different field at every stage. A catalog
 used `key`. A throw site used `messageCode`. The wire used `normalized.code`.
@@ -65,7 +65,7 @@ getError({ error: StockErrors.LOW, messageArgs: { n: 2 } });                    
 
 ### The catalogued form takes a partial override
 
-**File:** [`packages/inversion/src/modules/error/types.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/inversion/src/modules/error/common/types.ts)
+**File:** [`packages/inversion/src/modules/error/common/types.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/inversion/src/modules/error/common/types.ts)
 
 ```typescript
 getError({ error: SlugErrors.TAKEN, message: { args: { slug: 've-hoa-nhac' } } }); // amends args
@@ -112,7 +112,7 @@ object is now the free-form input shape, so the spread resolves identically to `
 
 ### `TErrorDefinition` nests its message
 
-**File:** [`packages/inversion/src/modules/error/types.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/inversion/src/modules/error/common/types.ts)
+**File:** [`packages/inversion/src/modules/error/common/types.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/inversion/src/modules/error/common/types.ts)
 
 ```typescript
 // Before

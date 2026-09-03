@@ -54,7 +54,7 @@ When you bump ignis, these stop compiling/working:
    - `CasbinRuleVariants.GROUP` / `CasbinRuleVariants.POLICY` → removed.
    - `this.entities.role.principalType` / `this.entities.permission.principalType` → `entities` no longer provided by the base.
 
-2. **`examples/vert/src/repositories/policy-definition.repository.ts`**
+2. **nx-seller's `repositories/policy-definition.repository.ts`**
    - Many `eq(pd.variant, CasbinRuleVariants.GROUP)` / `.POLICY` → constant removed. This file is the
      biggest single breakage surface outside the adapter.
 
