@@ -11,7 +11,7 @@ Technical reference for the `Secrets` provider family. It covers how IGNIS loads
 > [!IMPORTANT] Dormant by default
 > An application that does not override `registerSecrets()` gets the `system-envs` provider, which reads `process.env` exactly as before. The whole subsystem is additive - existing apps behave identically until they opt in.
 
-**Files:** `packages/helpers/src/modules/secrets/*.ts` (provider family) and `packages/core/src/base/applications/base.ts` (`hydrateSecrets()` lifecycle, DI binding, rotation wiring)
+**Files:** `packages/helpers/src/modules/secrets/*.ts` (provider family) and `packages/core-server/src/base/applications/base.ts` (`hydrateSecrets()` lifecycle, DI binding, rotation wiring)
 
 ## Quick Reference
 
@@ -121,7 +121,7 @@ interface ISecretsRegistration {
 ### `registerSecrets()` default
 
 ```typescript
-// packages/core/src/base/applications/base.ts
+// packages/core-server/src/base/applications/base.ts
 registerSecrets(): ValueOrPromise<ISecretsRegistration> {
   return { provider: SecretProviders.SYSTEM_ENVS };
 }

@@ -149,7 +149,7 @@ export interface ICryptoAlgorithm<
 | `src/helpers/crypto/algorithms/index.ts` | Added ECDH export |
 | `src/__tests__/crypto/algorithms.test.ts` | New - 79 tests, 110 assertions |
 
-### Core Package (`packages/core`)
+### Core Package (`packages/core-server`)
 
 | File | Changes |
 |------|---------|
@@ -214,4 +214,4 @@ class MyAlgo extends BaseCryptoAlgorithm<MyType, string, string, string, string,
 | `packages/helpers` rebuild | Clean |
 | `packages/helpers` lint | Clean (0 errors, 0 warnings) |
 | `packages/helpers` tests | 79 pass, 0 fail, 110 expect() calls |
-| `packages/core` rebuild | Clean |
+| `packages/core-server` rebuild | Clean |

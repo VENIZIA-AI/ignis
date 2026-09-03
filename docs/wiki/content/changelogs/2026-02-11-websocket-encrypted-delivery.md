@@ -135,7 +135,7 @@ type TWebSocketHandshakeFn = (opts: {
 
 ### 6. Component Binding Keys
 
-**File:** `packages/core/src/components/websocket/common/keys.ts`
+**File:** `packages/core-server/src/components/websocket/common/keys.ts`
 
 New binding keys for encryption support:
 
@@ -183,7 +183,7 @@ this.bind<TWebSocketHandshakeFn>({
 | `src/helpers/socket/websocket/common/constants.ts` | Added `ENCRYPTED_BATCH_LIMIT = 10` to `WebSocketDefaults` |
 | `src/helpers/socket/websocket/server/helper.ts` | Added `sendToClientAsync()`, import `executePromiseWithLimit`, conditional delivery in `sendToRoom()`/`broadcast()`, `enableClientEncryption()`, `encryptedBatchLimit` field, `requireEncryption` field, `handshakeFn` field, combined auth+handshake in `handleAuthenticate()` |
 
-### Core Package (`packages/core`)
+### Core Package (`packages/core-server`)
 
 | File | Changes |
 |------|---------|
@@ -206,4 +206,4 @@ this.bind<TWebSocketHandshakeFn>({
 |-------|--------|
 | `packages/helpers` rebuild | Clean |
 | `packages/helpers` lint | Clean (0 errors, 0 warnings) |
-| `packages/core` tests (WebSocket) | 11 pass, 0 fail, 18 expect() calls |
+| `packages/core-server` tests (WebSocket) | 11 pass, 0 fail, 18 expect() calls |

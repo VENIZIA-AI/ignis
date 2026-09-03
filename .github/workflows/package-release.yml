@@ -13,7 +13,10 @@ on:
           - filter
           - helpers
           - boot
-          - core
+          - kernel
+          - connectors
+          - core-server
+          - core-worker
           - docs-mcp
         required: true
       build_mode:
@@ -30,7 +33,23 @@ on:
         required: true
         default: "patch"
 
-# Build order comes from the Makefile chain (dev-configs -> inversion -> {filter, helpers} -> boot -> core); per-package dist dirs are in the `case` below.
+# Build order comes from the Makefile chain (dev-configs -> inversion -> {filter, helpers} -> {boot, kernel} -> connectors -> {core-server, core-worker}); per-package dist dirs are in the `case` below. `kernel` sits beside `boot`, not after it. `core-server` (published as `@venizia/ignis`) depends on `kernel` AND `connectors` by version range, so both must be published first or the registry-existence check fails. `core-worker` depends on `kernel` only.
+#
+# A DEPENDENCY RANGE IS NOT A CONTRACT ABOUT CONTENTS. The registry-existence step below checks that a
+# version exists, not what it exports, and `force-update highest` can only rewrite to the highest
+# PUBLISHED version - so it cannot lift a floor for a package whose new exports are not out yet. When
+# a change adds an export to `helpers`, bump `helpers` AND raise the floor in every package that calls
+# the new symbol, and release `helpers` first. Otherwise a consumer resolves the old tarball and dies
+# at runtime on a symbol that exists only in this repository.
+
+# One release at a time, repository-wide. A release mutates a shared branch and the registry, and
+# the packages form a dependency chain, so two runs must never interleave. `cancel-in-progress: false`
+# makes a second dispatch WAIT rather than kill a run that is mid-publish. GitHub keeps only one run
+# pending per group: dispatch a third while one runs and one waits and the waiting one is cancelled -
+# acceptable here, because the chain has to be released in order anyway.
+concurrency:
+  group: npm-release
+  cancel-in-progress: false
 
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
@@ -79,29 +98,78 @@ jobs:
           PACKAGE_NAME=$(jq -r .name "$PACKAGE_PATH/package.json")
           CURRENT_VERSION=$(jq -r .version "$PACKAGE_PATH/package.json")
 
-          # Set dist directories for validation
-          case $PACKAGE in
-            docs-mcp)        DIST_DIRS="dist/mcp-server" ;;
-            inversion|filter|boot)  DIST_DIRS="dist/cjs dist/esm" ;;
-            *)               DIST_DIRS="dist" ;;
-          esac
-
           echo "PACKAGE_PATH=$PACKAGE_PATH" >> $GITHUB_ENV
           echo "PACKAGE_NAME=$PACKAGE_NAME" >> $GITHUB_ENV
-          echo "DIST_DIRS=$DIST_DIRS" >> $GITHUB_ENV
 
           echo "┌─────────────────────────────────────────────────"
           echo "│ Package:     $PACKAGE_NAME"
           echo "│ Path:        $PACKAGE_PATH"
           echo "│ Version:     $CURRENT_VERSION → $BUILD_MODE"
-          echo "│ Dist:        $DIST_DIRS"
           echo "└─────────────────────────────────────────────────"
+
+      # BEFORE the install, and across the WHOLE workspace - not just the package being released.
+      #
+      # Before the install, because `force-update` rewrites the internal version ranges and an
+      # install that ran first has already resolved the OLD ones. When a sibling moves past a
+      # declared range, that range stops covering the workspace copy, so bun downloads the published
+      # tarball instead of linking the source tree, and the build silently type-checks against a
+      # package one release behind: 15 x TS2305 on `@venizia/ignis-helpers/core` cost one run.
+      #
+      # Across the whole workspace, because `bun install` resolves every member, so ANY package with
+      # a stale range fails the run - even one the release does not touch. A core-worker release died
+      # exactly that way, on a range belonging to core-server, six minutes after a connectors release
+      # made it stale. Only the released package's manifest is committed later; the rest are repaired
+      # in the runner and repaired again next time.
+      - name: Force update workspace
+        run: bun run --filter "@venizia/*" force-update "highest"
 
       - name: Install
         run: bun install
 
-      - name: Force update package
-        run: bun run --filter "$PACKAGE_NAME" force-update "highest"
+      # Every `@venizia/*` dependency is a member of this workspace, so resolving one to a registry
+      # tarball is always wrong: it means the declared range excludes the version sitting in the
+      # tree, and the build is validating code that is not in this repository. The failure mode is
+      # invisible otherwise - install succeeds, and the lie surfaces as unrelated-looking type errors.
+      - name: Assert internal dependencies link to the workspace
+        run: |
+          cd $PACKAGE_PATH
+          bun -e '
+            const { existsSync, readFileSync, realpathSync } = require("fs");
+            const { join, sep } = require("path");
+
+            const root = process.env.GITHUB_WORKSPACE;
+            const manifest = JSON.parse(readFileSync("package.json", "utf8"));
+            const internal = Object.keys({ ...manifest.dependencies, ...manifest.devDependencies })
+              .filter((name) => name.startsWith("@venizia/"))
+              .sort();
+
+            const strays = [];
+            for (const name of internal) {
+              const found = [join(process.cwd(), "node_modules", name), join(root, "node_modules", name)]
+                .find((path) => existsSync(path));
+
+              if (!found) {
+                strays.push(name + " - declared but not installed");
+                continue;
+              }
+
+              const real = realpathSync(found);
+              if (!real.includes(sep + "node_modules" + sep)) { continue; }
+
+              const range = manifest.dependencies?.[name] ?? manifest.devDependencies?.[name];
+              const version = JSON.parse(readFileSync(join(real, "package.json"), "utf8")).version;
+              strays.push(name + " - range " + range + " pulled the published " + version + " instead of the workspace copy");
+            }
+
+            if (strays.length > 0) {
+              console.error("ERROR: internal dependencies resolved to the registry, not this workspace:");
+              for (const entry of strays) { console.error("  " + entry); }
+              console.error("Raise the range so it covers the version in packages/, then re-run.");
+              process.exit(1);
+            }
+
+            console.log("    ✓ all " + internal.length + " internal dependencies link to the workspace");
+          '
 
       # -------------------------------------------------------------------------
       # BUILD, LINT & VALIDATE (uses Makefile dependency chain)
@@ -112,29 +180,77 @@ jobs:
       - name: Lint
         run: make lint-$PACKAGE
 
+      # The gate's own regression tests run first: a probe that silently stopped detecting anything
+      # would leave every `purity-*` target green for the wrong reason.
+      - name: Purity probe self-test
+        run: make purity-test
+
+      - name: Purity gate
+        run: make purity-$PACKAGE
+
+      # Derived from the package's own `exports` map, never a hand-written list. The list this
+      # replaced named three dual-build packages by hand and went stale the day four more were dual
+      # built: `helpers` then looked for `dist/index.js`, which its build stopped emitting, and the
+      # release died here. Checking every PUBLISHED target is also strictly stronger than checking
+      # one index - a sub-path whose file never got emitted fails here instead of at a consumer's
+      # first import.
       - name: Validate build artifacts
         run: |
           cd $PACKAGE_PATH
-          for dir in $DIST_DIRS; do
-            [ -f "$dir/index.js" ] && [ -f "$dir/index.d.ts" ] || { echo "ERROR: $dir missing files"; exit 1; }
-            echo "    ✓ $dir"
-          done
+          bun -e '
+            const { existsSync, readFileSync } = require("fs");
+            const manifest = JSON.parse(readFileSync("package.json", "utf8"));
+
+            if (!manifest.exports) {
+              console.error("ERROR: no `exports` map - there is nothing to validate against");
+              process.exit(1);
+            }
+
+            const targets = new Set();
+            for (const target of Object.values(manifest.exports)) {
+              if (typeof target === "string") { targets.add(target); continue; }
+              for (const file of Object.values(target)) targets.add(file);
+            }
+
+            const missing = [...targets].filter((file) => !existsSync(file));
+            if (missing.length > 0) {
+              console.error("ERROR: `exports` names files the build did not emit:");
+              for (const file of missing) console.error(`  ${file}`);
+              process.exit(1);
+            }
+
+            console.log(`    ✓ all ${targets.size} published entries exist`);
+          '
 
       - name: Check dependency catalog
         run: make catalog-check
 
-      # Manifests carry `catalog:` on purpose; only `bun publish` resolves it while packing, so this asserts both that the publisher is still bun and that the tarball it uploads is actually clean.
-      - name: Validate packed manifest
+      # A policy assertion about THIS file, not about the package - so it stands on its own. Only
+      # `bun publish` resolves `catalog:` while packing; npm ships it verbatim and breaks every
+      # consumer, so the publish step below may never be switched to npm.
+      - name: Assert the publisher is bun
         run: |
           grep -q 'bun publish' "$GITHUB_WORKSPACE/.github/workflows/package-release.yml" \
             || { echo "ERROR: the publish step must use 'bun publish' - npm ships catalog: verbatim"; exit 1; }
 
+          echo "    ✓ the publish step still uses bun"
+
+      # Packed once, read by every validator below. Packing per check ran the same work twice, and
+      # the point of the checks is that they all see the SAME manifest - the one npm receives, not
+      # the one in the working tree.
+      - name: Pack the release tarball
+        run: |
           cd $PACKAGE_PATH
           bun pm pack --quiet > /dev/null
           TARBALL=$(ls -t ./*.tgz | head -1)
-
-          MANIFEST=$(tar -xzOf "$TARBALL" package/package.json)
+          tar -xzOf "$TARBALL" package/package.json > "$RUNNER_TEMP/packed-manifest.json"
           rm -f "$TARBALL"
+
+          echo "    ✓ extracted the manifest from $TARBALL"
+
+      - name: Validate packed manifest
+        run: |
+          MANIFEST=$(cat "$RUNNER_TEMP/packed-manifest.json")
 
           if echo "$MANIFEST" | grep -qE '"(catalog|workspace):'; then
             echo "ERROR: unresolved workspace protocol survives into the published manifest:"
@@ -142,7 +258,51 @@ jobs:
             exit 1
           fi
 
-          echo "    ✓ publisher is bun and the packed manifest resolves every protocol"
+          echo "    ✓ the packed manifest resolves every protocol"
+
+      # The check above only rejects an *unresolved* protocol. A `workspace:*` on a package that was
+      # never published resolves cleanly to a literal version while packing, so the tarball ships a
+      # manifest naming a package the registry has never heard of and every `npm install` of the
+      # release fails. `force-update.sh` cannot catch it either - `npm view` returns nothing and it
+      # logs SKIP. This step asks the registry directly, for every runtime dependency.
+      - name: Validate dependencies exist on the registry
+        run: |
+          MANIFEST="$(cat "$RUNNER_TEMP/packed-manifest.json")" bun -e '
+            const dependencies = Object.entries(JSON.parse(process.env.MANIFEST).dependencies ?? {});
+            const missing = [];
+
+            for (const [name, range] of dependencies) {
+              let packument;
+              try {
+                const response = await fetch(`https://registry.npmjs.org/${name}`);
+                if (!response.ok) {
+                  missing.push(`${name}@${range} - the package itself is not on the registry (HTTP ${response.status})`);
+                  continue;
+                }
+                packument = await response.json();
+              } catch (error) {
+                // A network failure is not "package not found" - it must still fail the release, not be waved through.
+                missing.push(`${name}@${range} - could not reach the registry (${error.message})`);
+                continue;
+              }
+
+              const versions = Object.keys(packument.versions ?? {});
+              const satisfied = versions.some((version) => Bun.semver.satisfies(version, range));
+              if (!satisfied) {
+                missing.push(`${name}@${range} - no published version satisfies this range`);
+              }
+            }
+
+            if (missing.length > 0) {
+              console.error("ERROR: the packed manifest depends on something the registry cannot serve:");
+              for (const entry of missing) {
+                console.error(`  - ${entry}`);
+              }
+              process.exit(1);
+            }
+
+            console.log(`    ✓ all ${dependencies.length} runtime dependencies resolve on the registry`);
+          '
 
       # -------------------------------------------------------------------------
       # VERSION & GIT
@@ -157,24 +317,19 @@ jobs:
           echo "TAG_NAME=$PACKAGE-v$NEW_VERSION" >> $GITHUB_ENV
           echo ">>> New version: $NEW_VERSION"
 
-      - name: Commit & Push
-        run: |
-          cd $PACKAGE_PATH
-          git fetch origin && git checkout develop && git pull origin develop
-          git add package.json
-          git commit -m "chore($PACKAGE): release v$NEW_VERSION [$BUILD_MODE]"
-          git push origin develop
-          echo "IS_PUSHED=true" >> $GITHUB_ENV
-
-      - name: Create tag
-        run: |
-          git tag -a "$TAG_NAME" -m "$PACKAGE_NAME v$NEW_VERSION"
-          git push origin "$TAG_NAME"
-          echo "IS_TAG_CREATED=true" >> $GITHUB_ENV
+      - name: Sync develop
+        run: git fetch origin && git checkout develop && git pull origin develop
 
       # -------------------------------------------------------------------------
-      # PUBLISH
+      # PUBLISH - deliberately ahead of every git write
       # -------------------------------------------------------------------------
+      # The publish is the only step that cannot be undone, so it runs FIRST among the mutations.
+      # Publishing last meant the COMMON failure - a rejected publish - was repaired by force-pushing
+      # a shared branch back one commit, mid-release, while sibling releases were running. This way a
+      # failed publish leaves git untouched and there is nothing to roll back. The cost is the rarer
+      # inverse - the publish lands and the follow-up push fails - which is both safe and loud:
+      # develop keeps the old version, so the next release retries this one and the registry refuses
+      # it as a duplicate.
       - name: Publish to NPM
         run: |
           cd $PACKAGE_PATH
@@ -184,10 +339,16 @@ jobs:
             *)                 NPM_TAG="next" ;;
           esac
 
+          # BEFORE the publish, not after: a publish that succeeds and loses its response leaves npm
+          # permanently holding the version while this step fails, and the failure reports would then
+          # say nothing about a release that is live. `$GITHUB_ENV` is read by LATER steps, so writing
+          # it first changes nothing else. The flag means "a publish was attempted", which is exactly
+          # what those reports have to assume.
+          echo "IS_PUBLISHED=true" >> $GITHUB_ENV
+
           # `bun publish`, not npm: bun resolves `catalog:`/`workspace:` while packing, npm ships them verbatim and breaks every consumer. --ignore-scripts skips the already-run prepublishOnly.
           bun publish --access public --tag $NPM_TAG --ignore-scripts
 
-          echo "IS_PUBLISHED=true" >> $GITHUB_ENV
           echo "✓ Published $PACKAGE_NAME@$NEW_VERSION ($NPM_TAG)"
         env:
           # NPM_CONFIG_TOKEN, not NODE_AUTH_TOKEN: bun ignores the NPM_CONFIG_USERCONFIG path that actions/setup-node writes its .npmrc to, and does not read NODE_AUTH_TOKEN or BUN_AUTH_TOKEN - measured, all three fail with "missing authentication".
@@ -203,25 +364,52 @@ jobs:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_ACCESS_TOKEN }}
 
       # -------------------------------------------------------------------------
-      # ROLLBACK
+      # RECORD IN GIT
       # -------------------------------------------------------------------------
-      - name: Rollback on failure
-        if: failure()
+      - name: Commit release
         run: |
-          echo ">>> ROLLBACK STARTED"
+          cd $PACKAGE_PATH
+          git add package.json
+          git commit -m "chore($PACKAGE): release v$NEW_VERSION [$BUILD_MODE]"
 
-          [ "$IS_TAG_CREATED" == "true" ] && {
-            git push --delete origin "$TAG_NAME" 2>/dev/null || true
-            git tag -d "$TAG_NAME" 2>/dev/null || true
+      # Separate from the commit above so the run tells you WHICH half failed: a rejected push is a
+      # race or a permissions problem, a failed commit is an empty diff or a hook.
+      - name: Push release
+        run: |
+          # develop can move between the sync and this push - a human merge, or the previous package
+          # of a release chain. The version is already on the registry by now, so rebase and retry
+          # once instead of leaving develop behind a release that really happened.
+          git push origin develop || {
+            git pull --rebase origin develop
+            git push origin develop
           }
 
-          [ "$IS_PUSHED" == "true" ] && {
-            git checkout develop && git reset --hard HEAD~1 && git push --force origin develop
-          }
+          echo "IS_PUSHED=true" >> $GITHUB_ENV
 
-          [ "$IS_MERGED" == "true" ] && {
-            git checkout main && git reset --hard HEAD~1 && git push --force origin main
-          }
+      - name: Create tag
+        run: |
+          git tag -a "$TAG_NAME" -m "$PACKAGE_NAME v$NEW_VERSION"
+          git push origin "$TAG_NAME"
 
-          echo ">>> ROLLBACK COMPLETED"
-          [ "$IS_PUBLISHED" == "true" ] && echo "⚠️  NPM package published - run: npm deprecate $PACKAGE_NAME@$NEW_VERSION 'Accidental release'"
+      # -------------------------------------------------------------------------
+      # FAILURE REPORTS
+      # -------------------------------------------------------------------------
+      # No rollback remains to perform. Nothing reaches the registry or the remote until the publish
+      # succeeds, so a failed run either touched neither, or it published and only bookkeeping is
+      # left undone. Both are REPORTED, never repaired: npm cannot un-publish, and force-pushing
+      # develop to chase a live version does more damage than the mismatch it would fix.
+      - name: Report - published, develop not updated
+        if: failure() && env.IS_PUBLISHED == 'true' && env.IS_PUSHED != 'true'
+        run: |
+          echo "⚠️  $PACKAGE_NAME@$NEW_VERSION was published, but develop still records the old version"
+          echo "    confirm first:  npm view $PACKAGE_NAME versions"
+          echo "    if it IS live, bump develop by hand so the next release does not retry $NEW_VERSION:"
+          echo "      cd $PACKAGE_PATH && npm version $NEW_VERSION --no-git-tag-version --workspaces-update=false"
+          echo "    if it is NOT live, nothing to clean up - re-run this workflow"
+
+      - name: Report - published and pushed, tag missing
+        if: failure() && env.IS_PUBLISHED == 'true' && env.IS_PUSHED == 'true'
+        run: |
+          echo "⚠️  $PACKAGE_NAME@$NEW_VERSION is published and develop is updated - only the git tag is missing"
+          echo "    create it by hand:"
+          echo "      git tag -a $TAG_NAME -m \"$PACKAGE_NAME v$NEW_VERSION\" && git push origin $TAG_NAME"

@@ -106,13 +106,13 @@ instead of `core.system_error`:
 
 | Catalog | Codes | Where |
 |---|---|---|
-| `AuthenticationErrors` | `core.authentication.*` | `components/auth/authenticate/common/errors.ts` |
-| `AuthorizationErrors` | `core.authorization.*` | `components/auth/authorize/common/errors.ts` |
-| `StaticAssetErrors` | `core.static_asset.*` | `components/static-asset/common/errors.ts` |
-| `RepositoryErrors` | `core.repository.*` | `base/repositories/common/errors.ts` |
-| `RequestErrors` | `core.request.*` | `base/middlewares/common/errors.ts` |
-| `SearchErrors` | `core.search_engine.*` | `connectors/search/common/errors.ts` |
-| `MailErrors` | `core.mail.*` | `components/mail/common/errors.ts` |
+| `AuthenticationErrors` | `core.authentication.*` | `packages/kernel/src/base/auth/authenticate/common/errors.ts` |
+| `AuthorizationErrors` | `core.authorization.*` | `packages/kernel/src/base/auth/authorize/common/errors.ts` |
+| `RepositoryErrors` | `core.repository.*` | `packages/kernel/src/base/repositories/common/errors.ts` |
+| `RequestErrors` | `core.request.*` | `packages/kernel/src/base/middlewares/common/errors.ts` |
+| `StaticAssetErrors` | `core.static_asset.*` | `packages/core-server/src/components/static-asset/common/errors.ts` |
+| `SearchErrors` | `core.search_engine.*` | `packages/core-server/src/connectors/search/common/errors.ts` |
+| `MailErrors` | `core.mail.*` | `packages/core-server/src/components/mail/common/errors.ts` |
 
 ```typescript
 throw getError({ error: AuthenticationErrors.TOKEN_INVALID, cause: joseError });

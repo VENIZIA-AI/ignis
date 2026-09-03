@@ -65,7 +65,7 @@ import {
 } from './repositories';
 import { AuthenticationService } from './services';
 import { RowLockingTestService } from './services/tests/row-locking-test.service';
-// import { AuthorizationExampleController, TestController } from './controllers';
+import { AuthorizationExampleController } from './controllers';
 import { Organization, Permission, PolicyDefinition, Role } from './models/entities';
 
 // -----------------------------------------------------------------------------------------------
@@ -297,7 +297,7 @@ export class Application extends BaseApplication {
     // this.component(StaticAssetComponent);
 
     // this.controller(TestController);
-    // this.controller(AuthorizationExampleController);
+    this.controller(AuthorizationExampleController);
   }
 
   // --------------------------------------------------------------------------------

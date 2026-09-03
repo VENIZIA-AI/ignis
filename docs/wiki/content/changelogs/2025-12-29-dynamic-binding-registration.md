@@ -27,7 +27,7 @@ The new datasource never gets its `configure()` called.
 
 ## Solution (Simple Fix)
 
-**File:** `packages/core/src/base/applications/base.ts`
+**File:** `packages/core-server/src/base/applications/base.ts`
 
 Call `registerDataSources()` again after `registerComponents()`:
 
@@ -46,7 +46,7 @@ await this.registerControllers();
 
 ## Files Changed
 
-### Core Package (`packages/core`)
+### Core Package (`packages/core-server`)
 
 | File | Changes |
 |------|---------|

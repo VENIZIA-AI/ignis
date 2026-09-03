@@ -1,0 +1,321 @@
+import type { TBindingNamespace } from '@/common/bindings';
+import { BindingNamespaces, CoreBindings } from '@/common/bindings';
+import type { Binding } from '@/helpers/inversion';
+import { BindingKeys, BindingScopes } from '@/helpers/inversion';
+import type { BaseComponent } from '../components';
+import { RestComponent } from '../components/controller/rest/rest.component';
+import { ControllerTransports } from '../controllers/common/constants';
+import type { IDataSource } from '../datasources';
+import type { IRepository } from '../repositories';
+import type { IService } from '../services';
+import type { TMixinOpts } from '../mixins/types';
+import { OpenAPIHono } from '@hono/zod-openapi';
+import type {
+  AnyObject,
+  IConfigurable,
+  TClass,
+  ValueOrPromise,
+} from '@venizia/ignis-helpers/common';
+import { executeWithPerformanceMeasure, RequestIdGenerator } from '@venizia/ignis-helpers/core';
+import type { Env, Schema } from 'hono';
+import { showRoutes as showApplicationRoutes } from 'hono/dev';
+import { requestId } from 'hono/request-id';
+import { BaseAppErrorMiddleware } from '../middlewares/app-error/app-error.middleware';
+import { notFoundHandler } from '../middlewares/not-found/not-found.middleware';
+import { AbstractApplication } from './abstract';
+import type { IApplicationConfigs } from './types';
+
+interface IRegisterDynamicBindingsOptions<T extends IConfigurable = IConfigurable> {
+  namespace: TBindingNamespace;
+
+  onBeforeConfigure?: (opts: { binding: Binding<T> }) => Promise<void>;
+  onAfterConfigure?: (opts: { binding: Binding<T>; instance: T }) => Promise<void>;
+}
+
+/** Adds the `OpenAPIHono` router surface on top of `AbstractApplication` - no listening server, so this is the layer a browser Worker or gRPC-only host can extend without pulling in `Bun.serve` / `@hono/node-server`. */
+export abstract class RestApplication<
+  AppEnv extends Env = Env,
+  AppSchema extends Schema = {},
+  BasePath extends string = '/',
+> extends AbstractApplication {
+  private registeredBindings: Record<string, Set<string>> = {};
+
+  /** The router, and nothing else. What runtime is underneath and what socket is bound are `ServerApplication`'s to know - a browser Worker has neither, and carrying the union here made `RuntimeModules.detect()` answer `'node'` inside a Worker. */
+  protected server: { hono: OpenAPIHono<AppEnv, AppSchema, BasePath> };
+
+  protected rootRouter: OpenAPIHono<AppEnv, AppSchema, BasePath>;
+  protected readonly requestIdGenerator: RequestIdGenerator;
+
+  constructor(opts: { scope: string; config: IApplicationConfigs }) {
+    super(opts);
+
+    this.requestIdGenerator = new RequestIdGenerator({ scope: opts.scope });
+
+    const honoServer = new OpenAPIHono<AppEnv, AppSchema, BasePath>({
+      strict: this.configs.strictPath ?? true,
+    });
+    this.rootRouter = new OpenAPIHono({
+      strict: this.configs.strictPath ?? true,
+    });
+
+    this.server = { hono: honoServer };
+  }
+
+  getRootRouter(): OpenAPIHono<AppEnv, AppSchema, BasePath> {
+    return this.rootRouter;
+  }
+
+  getServer(): OpenAPIHono<AppEnv, AppSchema, BasePath> {
+    return this.server.hono;
+  }
+
+  protected override registerCoreBindings() {
+    super.registerCoreBindings();
+
+    this.bind<typeof this.server>({
+      key: CoreBindings.APPLICATION_SERVER,
+    }).toProvider(_ => this.server);
+    this.bind<typeof this.rootRouter>({
+      key: CoreBindings.APPLICATION_ROOT_ROUTER,
+    }).toProvider(_ => this.rootRouter);
+  }
+
+  /** The correlation id every host stamps - see {@link RequestIdGenerator} for why `crypto.randomUUID` is refused. */
+  protected generateRequestId(): string {
+    return this.requestIdGenerator.nextId();
+  }
+
+  /** The error handler the default stack installs. `@venizia/ignis` overrides it to swap in the `ErrorPrettier`-backed formatter, which reaches `node:util` and so cannot live here. */
+  protected buildErrorMiddleware(): BaseAppErrorMiddleware {
+    const environment = this.configs.error?.environment;
+
+    return new BaseAppErrorMiddleware({
+      logger: this.logger,
+      rootKey: this.configs.error?.rootKey ?? undefined,
+      // Spread, not `environment: () => environment`: the option's PRESENCE is what claims this host
+      // has an ambient environment at all, so an unset config must leave it absent.
+      ...(environment === undefined ? {} : { environment: () => environment }),
+    });
+  }
+
+  /**
+   * The three registrations every host needs, in one place, so a server and a browser Worker cannot
+   * drift: a request id, the framework's error envelope, and a JSON 404.
+   *
+   * None is optional. Hono's own defaults answer a thrown `ApplicationError` with a generic 500 and
+   * an unrouted path with `text/plain` - a caller doing `response.json()` on that 404 gets a
+   * `SyntaxError` instead of an error envelope. And without `requestId()`, `context.get(REQUEST_ID_KEY)`
+   * is `undefined`, so `context.json` drops the one field that ties a response to a log line.
+   *
+   * Registered before `initialize()`, so an application installing its own handlers still wins.
+   */
+  protected registerDefaultMiddlewares(): ValueOrPromise<void> {
+    const server = this.getServer();
+
+    server.use(requestId({ generator: () => this.generateRequestId() }));
+    server.onError(this.buildErrorMiddleware().value());
+    server.notFound(notFoundHandler({ logger: this.logger }));
+  }
+
+  /**
+   * The artifact ordering, stated ONCE: datasources before repositories can auto-resolve them, and
+   * components before controllers because a component may contribute either.
+   *
+   * A browser Worker application inherits this and writes none of it. `BaseApplication` in
+   * `@venizia/ignis` is the one deliberate override - it interleaves phases only a server has
+   * (start-up banner, env validation, secret hydration and rotation) between these steps.
+   */
+  async initialize(): Promise<void> {
+    this.staticConfigure();
+
+    await this.preConfigure();
+
+    await this.registerDataSources();
+    await this.registerComponents();
+    await this.registerControllers();
+
+    await this.postConfigure();
+  }
+
+  protected inspectRoutes() {
+    const t = performance.now();
+    const shouldShowRoutes = this.configs?.debug?.shouldShowRoutes ?? false;
+
+    if (!shouldShowRoutes) {
+      return;
+    }
+
+    this.logger.for(this.inspectRoutes.name).info('START | Inspect all application route(s)');
+    showApplicationRoutes(this.getServer());
+    this.logger
+      .for(this.inspectRoutes.name)
+      .info('DONE | Inspect all application route(s) | Took: %s (ms)', performance.now() - t);
+  }
+
+  protected async registerDynamicBindings<T extends IConfigurable = IConfigurable>(
+    opts: IRegisterDynamicBindingsOptions<T>,
+  ): Promise<void> {
+    const logger = this.logger.for(this.registerDynamicBindings.name);
+    const { namespace, onBeforeConfigure, onAfterConfigure } = opts;
+
+    if (!this.registeredBindings[namespace]) {
+      this.registeredBindings[namespace] = new Set<string>();
+    }
+    const configured = this.registeredBindings[namespace];
+
+    // A whole batch is drained before re-scanning: the re-scan exists only to pick up bindings a
+    // `configure()` added, and asking after every single item makes boot N+1 full scans of the
+    // binding map - 3.5ms at 200 controllers, against 0.04ms for this shape.
+    let bindings = this.findByTag({ tag: namespace, exclude: configured });
+    while (bindings.length > 0) {
+      for (const binding of bindings) {
+        // Within a batch a nested `configure()` may already have taken this one.
+        if (configured.has(binding.key)) {
+          continue;
+        }
+
+        if (onBeforeConfigure) {
+          await onBeforeConfigure({ binding });
+        }
+
+        const instance = this.get<T>({ key: binding.key, isOptional: false });
+        if (!instance) {
+          logger.debug('No binding instance | namespace: %s | key: %s', namespace, binding.key);
+          configured.add(binding.key);
+          continue;
+        }
+
+        await instance.configure();
+        configured.add(binding.key);
+
+        if (onAfterConfigure) {
+          await onAfterConfigure({ binding, instance });
+        }
+      }
+
+      // Re-fetch excluding already configured - picks up dynamically added bindings
+      bindings = this.findByTag({ tag: namespace, exclude: configured });
+    }
+  }
+
+  component<Base extends BaseComponent, Args extends AnyObject = any>(
+    ctor: TClass<Base>,
+    opts?: TMixinOpts<Args>,
+  ): Binding<Base> {
+    return this.bind<Base>({
+      key: BindingKeys.build(
+        opts?.binding ?? { namespace: BindingNamespaces.COMPONENT, key: ctor.name },
+      ),
+    })
+      .toClass(ctor)
+      .setScope(BindingScopes.SINGLETON);
+  }
+
+  async registerComponents(): Promise<void> {
+    await executeWithPerformanceMeasure({
+      logger: this.logger,
+      scope: this.registerComponents.name,
+      description: 'Register application components',
+      task: async () => {
+        await this.registerDynamicBindings({
+          namespace: BindingNamespaces.COMPONENT,
+          onAfterConfigure: async () => {
+            // Register any datasources dynamically added by this component
+            await this.registerDynamicBindings({ namespace: BindingNamespaces.DATASOURCE });
+          },
+        });
+      },
+    });
+  }
+
+  /**
+   * Handles the REST branch only - the kernel has no notion of gRPC (it reaches `node:module` via
+   * `AbstractGrpcController`, core-only). `BaseApplication` extends this with the gRPC branch, the
+   * unsupported-transport error and the orphaned-gRPC-controller warning.
+   */
+  async registerControllers(): Promise<void> {
+    await executeWithPerformanceMeasure({
+      logger: this.logger,
+      description: 'Register application REST controllers',
+      scope: this.registerControllers.name,
+      task: async () => {
+        const transports = this.configs.transports ?? [ControllerTransports.REST];
+        if (!transports.includes(ControllerTransports.REST)) {
+          return;
+        }
+
+        const restComponent = new RestComponent(this);
+        await restComponent.configure();
+      },
+    });
+  }
+
+  controller<Base, Args extends AnyObject = any>(
+    ctor: TClass<Base>,
+    opts?: TMixinOpts<Args>,
+  ): Binding<Base> {
+    return this.bind<Base>({
+      key: BindingKeys.build(
+        opts?.binding ?? {
+          namespace: BindingNamespaces.CONTROLLER,
+          key: ctor.name,
+        },
+      ),
+    }).toClass(ctor);
+  }
+
+  service<Base extends IService, Args extends AnyObject = any>(
+    ctor: TClass<Base>,
+    opts?: TMixinOpts<Args>,
+  ): Binding<Base> {
+    return this.bind<Base>({
+      key: BindingKeys.build(
+        opts?.binding ?? {
+          namespace: BindingNamespaces.SERVICE,
+          key: ctor.name,
+        },
+      ),
+    }).toClass(ctor);
+  }
+
+  repository<Base extends IRepository, Args extends AnyObject = any>(
+    ctor: TClass<Base>,
+    opts?: TMixinOpts<Args>,
+  ): Binding<Base> {
+    return this.bind<Base>({
+      key: BindingKeys.build(
+        opts?.binding ?? {
+          namespace: BindingNamespaces.REPOSITORY,
+          key: ctor.name,
+        },
+      ),
+    }).toClass(ctor);
+  }
+
+  dataSource<Base extends IDataSource, Args extends AnyObject = any>(
+    ctor: TClass<Base>,
+    opts?: TMixinOpts<Args>,
+  ): Binding<Base> {
+    return this.bind<Base>({
+      key: BindingKeys.build(
+        opts?.binding ?? {
+          namespace: BindingNamespaces.DATASOURCE,
+          key: ctor.name,
+        },
+      ),
+    })
+      .toClass(ctor)
+      .setScope(BindingScopes.SINGLETON);
+  }
+
+  async registerDataSources(): Promise<void> {
+    await executeWithPerformanceMeasure({
+      logger: this.logger,
+      scope: this.registerDataSources.name,
+      description: 'Register application data sources',
+      task: async () => {
+        await this.registerDynamicBindings({ namespace: BindingNamespaces.DATASOURCE });
+      },
+    });
+  }
+}

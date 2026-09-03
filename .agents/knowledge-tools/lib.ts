@@ -12,7 +12,7 @@ import { BUNDLE, PRUNE_DIRS, RESERVED_FILES } from './config.ts';
 export { REPO, BUNDLE } from './config.ts';
 
 export type Concept = {
-  id: string; // bundle-relative, leading slash, no extension - e.g. "/packages/core"
+  id: string; // bundle-relative, leading slash, no extension - e.g. "/packages/core-server"
   file: string; // absolute path
   type: string;
   title: string;
@@ -149,7 +149,7 @@ export const loadConcepts = (): Concept[] => {
   });
 };
 
-/** Normalize a user-supplied id to canonical form ("/packages/core"). */
+/** Normalize a user-supplied id to canonical form ("/packages/core-server"). */
 export const normalizeId = (opts: { raw: string }): string => {
   let id = opts.raw.trim().replace(/\.md$/, '');
 

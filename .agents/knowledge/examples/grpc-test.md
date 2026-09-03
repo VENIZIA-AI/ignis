@@ -33,4 +33,4 @@ gRPC endpoints are exposed at `/grpc/<package>.<Service>/*` using the Connect pr
 
 ## Related
 - [Controller system](/architecture/controller-system.md)
-- [core package](/packages/core.md)
+- [core package](/packages/core-server.md)

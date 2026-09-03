@@ -1,5 +1,8 @@
 import { HTTP, THttpMethod } from '@/common/constants/http';
 import { AnyObject } from '@/common/types';
+// The leaf file, never the logger BARREL: that barrel reaches `node:module` and would drag this
+// browser-pure fetcher contract with it.
+import type { ILogger } from '@/modules/logger/common/types';
 import { TFetcherVariant } from '../types';
 
 export interface IRequestOptions {
@@ -16,13 +19,13 @@ export interface IFetchable<
   RS,
   W = unknown,
 > {
-  send(opts: RQ, logger?: any): Promise<RS>;
-  get(opts: RQ, logger?: any): Promise<RS>;
-  post(opts: RQ, logger?: any): Promise<RS>;
-  put(opts: RQ, logger?: any): Promise<RS>;
-  patch(opts: RQ, logger?: any): Promise<RS>;
-  delete(opts: RQ, logger?: any): Promise<RS>;
-  query(opts: RQ, logger?: any): Promise<RS>;
+  send(opts: RQ, logger?: ILogger): Promise<RS>;
+  get(opts: RQ, logger?: ILogger): Promise<RS>;
+  post(opts: RQ, logger?: ILogger): Promise<RS>;
+  put(opts: RQ, logger?: ILogger): Promise<RS>;
+  patch(opts: RQ, logger?: ILogger): Promise<RS>;
+  delete(opts: RQ, logger?: ILogger): Promise<RS>;
+  query(opts: RQ, logger?: ILogger): Promise<RS>;
 
   getVariant(): V;
   getWorker(): W;
@@ -44,7 +47,7 @@ export abstract class AbstractNetworkFetchableHelper<
     this.variant = opts.variant;
   }
 
-  abstract send(opts: RQ, logger?: any): Promise<RS>;
+  abstract send(opts: RQ, logger?: ILogger): Promise<RS>;
 
   getProtocol(url: string) {
     return url.startsWith('http:') ? HTTP.Protocols.HTTP : HTTP.Protocols.HTTPS;
@@ -58,32 +61,32 @@ export abstract class AbstractNetworkFetchableHelper<
     return this.worker;
   }
 
-  get(opts: RQ, logger?: any) {
+  get(opts: RQ, logger?: ILogger) {
     const { ...rest } = opts;
     return this.send({ ...rest, method: HTTP.Methods.GET }, logger);
   }
 
-  post(opts: RQ, logger?: any) {
+  post(opts: RQ, logger?: ILogger) {
     const { ...rest } = opts;
     return this.send({ ...rest, method: HTTP.Methods.POST }, logger);
   }
 
-  put(opts: RQ, logger?: any) {
+  put(opts: RQ, logger?: ILogger) {
     const { ...rest } = opts;
     return this.send({ ...rest, method: HTTP.Methods.PUT }, logger);
   }
 
-  patch(opts: RQ, logger?: any) {
+  patch(opts: RQ, logger?: ILogger) {
     const { ...rest } = opts;
     return this.send({ ...rest, method: HTTP.Methods.PATCH }, logger);
   }
 
-  delete(opts: RQ, logger?: any) {
+  delete(opts: RQ, logger?: ILogger) {
     const { ...rest } = opts;
     return this.send({ ...rest, method: HTTP.Methods.DELETE }, logger);
   }
 
-  query(opts: RQ, logger?: any) {
+  query(opts: RQ, logger?: ILogger) {
     const { ...rest } = opts;
     return this.send({ ...rest, method: HTTP.Methods.QUERY }, logger);
   }

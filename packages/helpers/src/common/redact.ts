@@ -14,6 +14,15 @@ const SECRET_KEY_PATTERN = new RegExp(
     // Any `*_token` (snake_case) or `*Token` (camelCase) key; a preceding character is required so the bare word `token` (already covered above) is not the whole match, and so ordinary words are not swallowed.
     '|_token$|[a-z0-9]token$',
 
+    // The `*Secret` counterpart the `*Token` rule always lacked. `clientSecret` / `client_secret` is the RFC 6749 parameter name and a live field on the search connector's model options, and `webhookSecret` is the standard spelling everywhere; none of them matched the anchored list above.
+    '|_secret$|[a-z0-9]secret$',
+
+    // Connection descriptors: `connectionString` was anchored above but its snake_case twin was not, and `dsn` is the third common spelling for the same thing.
+    '|^(connection_string|dsn|database_url|databaseUrl)$',
+
+    // Any `*_password` / `*Password` key - `dbPassword`, `admin_password`. The bare word is anchored above; this catches the prefixed forms.
+    '|_password$|[a-z0-9]password$',
+
     // HTTP HEADER spellings: header names are kebab-case and often `x-`-prefixed, none of which the camelCase list above matches; `vault` is included so `X-Vault-Token` (node-vault's auth header) is caught.
     '|^(x-)?(api|auth|access|secret|session|csrf|xsrf|vault)-(key|token|secret|id)$',
     '|^(cookie|set-cookie|proxy-authorization|www-authenticate)$',
@@ -27,8 +36,22 @@ export const REDACTED = '[REDACTED]';
 const isRedactionEnabled = (): boolean =>
   globalThis.process?.env?.APP_ENV_LOGGER_DO_REDACT !== 'false';
 
-const deepRedactSecrets = (value: unknown, seen: WeakSet<object>): unknown => {
+type TSanitizeContext = {
+  seen: WeakSet<object>;
+  doRedact: boolean;
+  /** Levels still allowed BELOW the current one; `Infinity` walks the whole graph. */
+  depth: number;
+};
+
+const deepSanitize = (value: unknown, context: TSanitizeContext): unknown => {
+  const { seen, doRedact, depth } = context;
+
   if (value === null || typeof value !== 'object') {
+    return value;
+  }
+
+  // A Date holds its value in an internal slot, so the generic branch below - which reads Object.keys() - would flatten it to `{}`. Checked BEFORE `seen`: a Date cannot carry a cycle, and entering the set would make a second reference to the same instance read as `[Circular]`.
+  if (value instanceof Date) {
     return value;
   }
 
@@ -36,7 +59,16 @@ const deepRedactSecrets = (value: unknown, seen: WeakSet<object>): unknown => {
     return '[Circular]';
   }
 
+  if (ArrayBuffer.isView(value) || value instanceof ArrayBuffer) {
+    return `[Binary ${(value as ArrayBufferView).byteLength ?? 0} bytes]`;
+  }
+
+  if (depth <= 0) {
+    return Array.isArray(value) ? '[Array]' : '[Object]';
+  }
+
   seen.add(value);
+  const nested: TSanitizeContext = { seen, doRedact, depth: depth - 1 };
 
   // Error keeps name/message/stack NON-enumerable, so Object.keys() skips them and naive redaction would drop the message - reproject into a plain object carrying those fields plus its redacted enumerable own-props.
   if (value instanceof Error) {
@@ -48,42 +80,64 @@ const deepRedactSecrets = (value: unknown, seen: WeakSet<object>): unknown => {
     };
 
     for (const key of Object.keys(source)) {
-      result[key] = SECRET_KEY_PATTERN.test(key) ? REDACTED : deepRedactSecrets(source[key], seen);
+      result[key] =
+        doRedact && SECRET_KEY_PATTERN.test(key) ? REDACTED : deepSanitize(source[key], nested);
     }
 
     return result;
   }
 
   if (Array.isArray(value)) {
-    return value.map(entry => deepRedactSecrets(entry, seen));
-  }
-
-  if (ArrayBuffer.isView(value) || value instanceof ArrayBuffer) {
-    return `[Binary ${(value as ArrayBufferView).byteLength ?? 0} bytes]`;
+    return value.map(entry => deepSanitize(entry, nested));
   }
 
   const source = value;
   const result: AnyObject = {};
 
   for (const key of Object.keys(source)) {
-    if (SECRET_KEY_PATTERN.test(key)) {
+    if (doRedact && SECRET_KEY_PATTERN.test(key)) {
       result[key] = REDACTED;
       continue;
     }
 
-    result[key] = deepRedactSecrets(source[key], seen);
+    result[key] = deepSanitize(source[key], nested);
   }
 
   return result;
 };
 
-/** Redacts every secret-looking KEY (not value shape - buffers/typed arrays are summarized, not serialized). `APP_ENV_LOGGER_DO_REDACT=false` makes this the identity function. */
-export const redactSecrets = (value: unknown, seen?: WeakSet<object>): unknown => {
+/**
+ * Redacts every secret-looking KEY (not value shape - buffers/typed arrays are summarized, not
+ * serialized). `APP_ENV_LOGGER_DO_REDACT=false` makes this the identity function.
+ *
+ * `depth` bounds the walk, exactly as {@link toJsonSafe} already does. It defaults to `Infinity` for
+ * callers that really do want the whole graph, but the logger passes its own bound: rendering only
+ * inspects a handful of levels, so walking to `Infinity` did work whose result was thrown away -
+ * 12x on a deep graph, and a `RangeError` on a very deep chain.
+ */
+export const redactSecrets = (
+  value: unknown,
+  seen?: WeakSet<object>,
+  depth: number = Infinity,
+): unknown => {
   if (!isRedactionEnabled()) {
     return value;
   }
 
-  return deepRedactSecrets(value, seen ?? new WeakSet<object>());
+  return deepSanitize(value, {
+    seen: seen ?? new WeakSet<object>(),
+    doRedact: true,
+    depth,
+  });
+};
+
+/** Projects a value into something `JSON.stringify` can render: it answers `[Circular]` for the WHOLE payload when one cycle sits anywhere inside it, so cycles must be broken per-branch first. `depth` bounds the walk the way `util.inspect` does - a log argument may hold a live connector or request context, whose graph is effectively unbounded. The projection itself is unconditional: `APP_ENV_LOGGER_DO_REDACT=false` turns off the key masking, never the structural pass. */
+export const toJsonSafe = (opts: { value: unknown; depth?: number }): unknown => {
+  return deepSanitize(opts.value, {
+    seen: new WeakSet<object>(),
+    doRedact: isRedactionEnabled(),
+    depth: opts.depth ?? Infinity,
+  });
 };
 
 /** Strips credentials from a connection URL's authority section (`user:hunter2@host` -> `user:[REDACTED]@host`) - {@link redactSecrets} matches on KEY names and can't see them there. A value that fails to parse as a URL is returned unchanged. */

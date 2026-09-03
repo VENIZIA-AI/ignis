@@ -6,7 +6,7 @@ difficulty: intermediate
 
 # Crypto - Full Reference
 
-Exhaustive reference for `AES`, `RSA`, `ECDH`, the shared `AbstractCryptoAlgorithm`/`BaseCryptoAlgorithm` base classes, and the standalone `hash()` utility. For a readable introduction and the most common tasks, start with the [Crypto overview](/extensions/helpers/crypto/).
+Exhaustive reference for `AES`, `RSA`, `ECDH`, the shared `AbstractCryptoAlgorithm`/`BaseCryptoAlgorithm` base classes, and `Hash`. For a readable introduction and the most common tasks, start with the [Crypto overview](/extensions/helpers/crypto/).
 
 **Files:**
 
@@ -15,8 +15,8 @@ Exhaustive reference for `AES`, `RSA`, `ECDH`, the shared `AbstractCryptoAlgorit
 - [`packages/helpers/src/modules/crypto/algorithms/rsa.algorithm.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/crypto/algorithms/rsa.algorithm.ts) - `RSA`, `RSAAlgorithmType`
 - [`packages/helpers/src/modules/crypto/algorithms/ecdh.algorithm.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/crypto/algorithms/ecdh.algorithm.ts) - `ECDH`, `ECDHAlgorithmType`, `IECDHEncryptedPayload`, `IECDHExtraOptions`
 - [`packages/helpers/src/modules/crypto/common/types.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/crypto/common/types.ts) - `ICryptoAlgorithm`
-- [`packages/helpers/src/modules/crypto/common/constants.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/crypto/common/constants.ts) - `DEFAULT_CIPHER_BITS`, `DEFAULT_PAD_END`
-- [`packages/helpers/src/utilities/crypto.utility.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/utilities/crypto.utility.ts) - `hash()`
+- [`packages/helpers/src/modules/crypto/common/constants.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/crypto/common/constants.ts) - `DEFAULT_CIPHER_BITS`, `DEFAULT_PAD_END`, `HashAlgorithms`, `HashOutputEncodings`
+- [`packages/helpers/src/modules/crypto/algorithms/hash.algorithm.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/crypto/algorithms/hash.algorithm.ts) - `Hash`
 
 ## Quick Reference
 
@@ -25,16 +25,16 @@ Exhaustive reference for `AES`, `RSA`, `ECDH`, the shared `AbstractCryptoAlgorit
 | `AES` | `BaseCryptoAlgorithm` | `string` | No | Node `node:crypto` |
 | `RSA` | `BaseCryptoAlgorithm` | `string` (base64 DER key) | No | Node `node:crypto` |
 | `ECDH` | `AbstractCryptoAlgorithm` | `CryptoKey` | Yes | Web Crypto (`crypto.subtle`) |
-| `hash()` | _(standalone function)_ | `string` (HMAC secret, SHA256 only) | No | Node `node:crypto` |
+| `Hash` | `BaseHelper` | `string` (HMAC only - `digest` takes none) | No | Node `node:crypto` |
 
 ### Import paths
 
 ```typescript
 // Algorithm classes
-import { AES, RSA, ECDH } from '@venizia/ignis-helpers';
+import { AES, RSA, ECDH, Hash } from '@venizia/ignis-helpers';
 
-// Hash utility function
-import { hash } from '@venizia/ignis-helpers';
+// Hash const-classes
+import { HashAlgorithms, HashOutputEncodings } from '@venizia/ignis-helpers';
 
 // Types
 import type {
@@ -426,36 +426,48 @@ const decrypted = await ecdh.decrypt({ message: encrypted, secret: bobKey });
 
 ## Hashing
 
-`Source ->` [`crypto.utility.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/utilities/crypto.utility.ts)
+`Source ->` [`hash.algorithm.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/crypto/algorithms/hash.algorithm.ts)
 
-`hash()` is a standalone function, not a class - it isn't part of the `AES`/`RSA`/`ECDH` hierarchy. It's exported from `packages/helpers/src/utilities`, not `modules/crypto`. It is documented in full on the [Crypto Utility reference](/references/utilities/crypto).
+`Hash` lives in `modules/crypto` alongside `AES`/`RSA`/`ECDH`, but does not implement `ICryptoAlgorithm` - a digest cannot be reversed, so there is no `decrypt`. It extends `BaseHelper` directly and follows the same `withAlgorithm()` factory shape as the other algorithms.
 
 ```typescript
-function hash(
-  text: string,
-  options: {
-    algorithm: 'SHA256' | 'MD5';
-    secret?: string;
-    outputType: C.BinaryToTextEncoding; // 'hex' | 'base64' | 'base64url' | 'latin1'
-  },
-): string;
+class Hash extends BaseHelper {
+  static withAlgorithm(algorithm: THashAlgorithm): Hash;
+
+  digest(opts: { message: string; opts?: { outputEncoding?: THashOutputEncoding } }): string;
+  hmac(opts: { message: string; secret: string; opts?: { outputEncoding?: THashOutputEncoding } }): string;
+}
 ```
 
-| Option | Type | Required | Description |
-|--------|------|----------|-------------|
-| `algorithm` | `'SHA256' \| 'MD5'` | Yes | Hashing algorithm |
-| `secret` | `string` | Only for `SHA256` | HMAC secret key; ignored for `MD5` |
-| `outputType` | `'hex' \| 'base64' \| 'base64url' \| 'latin1'` | Yes | Digest output encoding |
+| Member | Signature | Description |
+|--------|-----------|--------------|
+| `Hash.withAlgorithm(algorithm)` | `(algorithm: THashAlgorithm) => Hash` | Returns a memoized instance for `algorithm` - at most five instances ever exist, one per algorithm |
+| `digest` | `(opts: { message: string; opts?: IHashExtraOptions }) => string` | Plain digest. Takes no secret at all |
+| `hmac` | `(opts: { message: string; secret: string; opts?: IHashExtraOptions }) => string` | Keyed HMAC. `secret` is required and validated non-empty; throws via `getError` if empty |
+
+| Const-class | Values |
+|---|---|
+| `HashAlgorithms` | `MD5`, `SHA1`, `SHA256`, `SHA384`, `SHA512` |
+| `HashOutputEncodings` | `HEX` (default), `BASE64`, `BASE64URL` |
 
 > [!WARNING]
-> `SHA256` uses `createHmac` and **requires** `secret`. If `secret` is `undefined`, the function short-circuits and returns `text` unchanged - no hash is computed, no error is thrown. `MD5` never needs a secret and always hashes.
+> MD5 and SHA1 are cryptographically broken/weak. They are kept only for wire-protocol compatibility (VNPay checksums and similar); never use them for a security decision such as integrity or authenticity.
 
 ```typescript
-import { hash } from '@venizia/ignis-helpers';
+import { Hash, HashAlgorithms, HashOutputEncodings } from '@venizia/ignis-helpers';
 
-const md5Hash = hash('some text', { algorithm: 'MD5', outputType: 'hex' });
-const sha256Hmac = hash('some text', { algorithm: 'SHA256', secret: 'a-secret-key', outputType: 'hex' });
+const md5Digest = Hash.withAlgorithm(HashAlgorithms.MD5).digest({ message: 'some text' });
+// outputEncoding defaults to 'hex'
+
+const sha256Hmac = Hash.withAlgorithm(HashAlgorithms.SHA256).hmac({
+  message: 'some text',
+  secret: 'a-secret-key',
+  opts: { outputEncoding: HashOutputEncodings.BASE64 },
+});
 ```
+
+> [!NOTE]
+> The old standalone `hash(text, options)` function is removed - see the [2026-08-30 changelog](/changelogs/2026-08-30-crypto-hashing) for the migration table.
 
 ## API Summary
 
@@ -476,7 +488,9 @@ const sha256Hmac = hash('some text', { algorithm: 'SHA256', secret: 'a-secret-ke
 | `deriveAESKey(opts)` | `ECDH` | `Promise<{ key: CryptoKey; salt: string }>` | Derive an AES-256-GCM key via HKDF |
 | `encrypt(opts)` | `ECDH` | `Promise<IECDHEncryptedPayload>` | Encrypt with a derived AES key |
 | `decrypt(opts)` | `ECDH` | `Promise<string>` | Decrypt with a derived AES key |
-| `hash(text, options)` | _(function)_ | `string` | MD5 digest or HMAC-SHA256 |
+| `Hash.withAlgorithm(algorithm)` | `Hash` | `Hash` | Get the memoized instance for an algorithm |
+| `digest(opts)` | `Hash` | `string` | Plain digest, no secret |
+| `hmac(opts)` | `Hash` | `string` | Keyed HMAC, secret required |
 
 ## Troubleshooting
 
@@ -510,19 +524,21 @@ const ecdh = ECDH.withAlgorithm();             // no parameter needed
 
 **Fix:** The initiator calls `deriveAESKey` without `salt` and sends the returned `salt` to the responder. The responder passes that exact `salt` into their own `deriveAESKey` call.
 
-### SHA256 hash returns the original text instead of a hash
+### "[Hash][hmac] Missing secret for HMAC-..."
 
-**Cause:** `hash()` with `algorithm: 'SHA256'` requires `secret`. When `secret` is `undefined`, it short-circuits and returns `text` unchanged.
+**Cause:** `hmac()` was called with an empty or missing `secret`. Unlike the removed `hash()` function, `Hash` never silently degrades to a plain digest - it throws instead.
 
 **Fix:**
 
 ```typescript
-const hashed = hash('text', { algorithm: 'SHA256', secret: 'my-hmac-key', outputType: 'hex' });
+const signature = Hash.withAlgorithm(HashAlgorithms.SHA256).hmac({ message: 'text', secret: 'my-hmac-key' });
 ```
+
+Use `digest()` instead of `hmac()` if a plain digest (no secret) is what you actually want.
 
 ## See also
 
 - [Crypto overview](/extensions/helpers/crypto/) - introduction and the most common tasks
-- [Crypto Utility](/references/utilities/crypto) - full `hash()` reference
+- [2026-08-30 changelog](/changelogs/2026-08-30-crypto-hashing) - `Hash` added, `hash()` removed, migration table
 - [Authentication Component](/extensions/components/authentication/) - JWT and password verification
 - [Security Guidelines](/best-practices/security-guidelines) - cryptographic best practices

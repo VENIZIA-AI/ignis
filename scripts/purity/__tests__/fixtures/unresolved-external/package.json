@@ -1,0 +1,6 @@
+{
+  "name": "unresolved-external-fixture",
+  "browser": {
+    "native-only-dependency": false
+  }
+}

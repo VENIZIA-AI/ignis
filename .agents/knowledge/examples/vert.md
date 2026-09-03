@@ -12,7 +12,7 @@ tags: [examples, reference-app]
 
 - **Authentication** - JWKS-issuer JWT strategy plus Basic auth, both registered through `AuthenticationStrategyRegistry`, backed by a custom `AuthenticationService` and the built-in `AuthenticateComponent` (sign-in/sign-up/change-password wired via `TAuthenticationRestOptions`).
 - **Scoped multi-tenant authorization** - `ScopedCasbinAdapter` over `PostgresDataSource`, the domain-scoped RBAC model (`CASBIN_RBAC_DOMAIN_SCOPED_MODEL`), a `domainResolver` that derives the request's organization from the authenticated user, an `alwaysAllowRoles` bypass, and a Redis-backed policy cache with a 5-minute TTL.
-- **Repository correctness** - `src/services/tests/` is a battery of `*-test.service.ts` files (transactions, row locking, JSON filters, JSON order-by, JSON update, array operators, default filters, field selection, hidden properties, inclusion, user audit, advanced filter queries) run automatically from `postConfigure()` via `RowLockingTestService.run()`.
+- **Repository correctness** - `src/services/tests/` is a battery of `*-test.service.ts` files (transactions, row locking, JSON filters, JSON order-by, JSON update, array operators, default filters, field selection, hidden properties, inclusion, user audit, advanced filter queries), orchestrated by `RepositoryTestService`. Only the row-locking suite runs today: `postConfigure()` registers and invokes `RowLockingTestService.run()` directly, while `RepositoryTestService` - the class that injects and wires up every other suite - is referenced nowhere in `application.ts`, so the rest of the battery sits unexercised by the running app.
 - **Health checks and API reference** - `HealthCheckComponent` at `/health-check` and `ApiReferenceComponent` for interactive docs, registered the same way every other example registers them.
 
 ## How to run it
@@ -36,4 +36,4 @@ bash scripts/test-authorization.sh   # 25-case authorization test suite (needs j
 ## Related
 - [Application lifecycle](/architecture/application-lifecycle.md)
 - [Repository hierarchy](/architecture/repository-hierarchy.md)
-- [core package](/packages/core.md)
+- [core package](/packages/core-server.md)

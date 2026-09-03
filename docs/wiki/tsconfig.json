@@ -15,6 +15,6 @@
       "@/*": ["./*"]
     }
   },
-  "include": ["mcp-server/**/*.ts", "site/**/*.ts", "site/**/*.mts"],
+  "include": ["mcp-server/**/*.ts", "site/**/*.ts", "site/**/*.mts", "scripts/**/*.ts"],
   "exclude": ["node_modules", "dist", "mcp-server/dist", "wiki"]
 }

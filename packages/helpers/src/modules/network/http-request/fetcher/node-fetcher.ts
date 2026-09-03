@@ -3,6 +3,7 @@ import { HTTP, THttpMethod } from '@/common/constants/http';
 import { AnyObject } from '@/common/types';
 import { stringify } from 'node:querystring';
 import { BaseNetworkRequest } from '../base-network-request.helper';
+import type { ILogger } from '@/modules/logger/common/types';
 import { AbstractNetworkFetchableHelper, IRequestOptions } from './base-fetcher';
 
 export interface INodeFetchRequestOptions extends RequestInit, IRequestOptions {
@@ -19,7 +20,7 @@ export class NodeFetcher extends AbstractNetworkFetchableHelper<
 > {
   private defaultConfigs: RequestInit;
 
-  constructor(opts: { name: string; defaultConfigs: RequestInit; logger?: any }) {
+  constructor(opts: { name: string; defaultConfigs: RequestInit; logger?: ILogger }) {
     super({ name: opts.name, variant: 'node-fetch' });
     const { name, defaultConfigs } = opts;
     this.name = name;
@@ -28,7 +29,7 @@ export class NodeFetcher extends AbstractNetworkFetchableHelper<
     this.defaultConfigs = defaultConfigs;
   }
 
-  override async send(opts: INodeFetchRequestOptions, logger?: any) {
+  override async send(opts: INodeFetchRequestOptions, logger?: ILogger) {
     const {
       url,
       method = HTTP.Methods.GET,
@@ -71,9 +72,19 @@ export class NodeFetcher extends AbstractNetworkFetchableHelper<
       ? `${url}${url.includes('?') ? '&' : '?'}${serializedParams}`
       : url;
 
+    // The body is NEVER logged, only its size. `fetch` bodies are strings, and `redactSecrets` walks
+    // object keys - so a JSON credential payload passed straight through as a string was printed in
+    // full, with no key for the redactor to match on. Headers are normalised through `Headers` first
+    // because the `string[][]` form is a list of tuples, which key matching cannot see either.
+    const loggableConfigs = {
+      ...requestConfigs,
+      body: typeof body === 'string' ? `[body ${body.length} chars]` : body ? '[body]' : undefined,
+      headers: headers ? Object.fromEntries(new Headers(headers)) : undefined,
+    };
+
     logger
       ?.for(this.send.name)
-      .info('URL: %s | Props: %s | Timeout: %s', url, redactSecrets(requestConfigs), timeout);
+      .info('URL: %s | Props: %s | Timeout: %s', url, redactSecrets(loggableConfigs), timeout);
 
     try {
       const rs = await fetch(requestUrl, requestConfigs);

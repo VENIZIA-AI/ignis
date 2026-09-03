@@ -82,7 +82,7 @@ The new approach using `export type *` (TypeScript 5.0+):
 
 ## Files Changed
 
-### Core Package (`packages/core`)
+### Core Package (`packages/core-server`)
 
 | File | Changes |
 |------|---------|

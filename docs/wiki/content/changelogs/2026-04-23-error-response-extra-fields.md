@@ -23,7 +23,7 @@ The application error middleware now propagates a machine-readable `messageCode`
 
 ### `messageCode` + `extra` in the error response
 
-**File:** `packages/core/src/base/middlewares/app-error.middleware.ts`
+**File:** `packages/core-server/src/base/middlewares/app-error.middleware.ts`
 
 **Problem:** Clients only received `message` (human text) and `statusCode`. There was no stable code to branch on for i18n/handling, and no way to attach structured context (entity id, field, etc.) to an error.
 
@@ -107,7 +107,7 @@ Response body:
 
 ## Files Changed
 
-### Core Package (`packages/core`)
+### Core Package (`packages/core-server`)
 
 | File | Changes |
 |------|---------|

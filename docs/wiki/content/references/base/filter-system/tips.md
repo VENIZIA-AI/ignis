@@ -6,7 +6,7 @@ difficulty: intermediate
 
 # Pro Tips & Edge Cases
 
-A filter can return the wrong rows even when every operator name looks right. Each entry below is verified against `FilterBuilder`/`PostgresQueryOperators` in `packages/core`.
+A filter can return the wrong rows even when every operator name looks right. Each entry below is verified against `FilterBuilder`/`PostgresQueryOperators` in `packages/core-server`.
 
 ## `NOT IN` and `!=` silently exclude `NULL`
 
@@ -150,5 +150,5 @@ const products = await productRepository.find({
 
 **Files:**
 
-- [`packages/core/src/connectors/relational/repositories/dialect/filter.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core/src/connectors/relational/repositories/dialect/filter.ts) - `FilterBuilder`, JSON path casting, `toColumns`
-- [`packages/core/src/connectors/postgres/repositories/dialect/query.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core/src/connectors/postgres/repositories/dialect/query.ts) - `PostgresQueryOperators.FNS`, empty-array and array-operator handling
+- [`packages/core-server/src/connectors/relational/repositories/dialect/filter.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/connectors/relational/repositories/dialect/filter.ts) - `FilterBuilder`, JSON path casting, `toColumns`
+- [`packages/core-server/src/connectors/postgres/repositories/dialect/query.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/connectors/postgres/repositories/dialect/query.ts) - `PostgresQueryOperators.FNS`, empty-array and array-operator handling

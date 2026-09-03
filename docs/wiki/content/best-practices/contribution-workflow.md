@@ -161,8 +161,8 @@ make lint-all
 # Build all packages (from root)
 make build
 
-# Run tests (from a package directory, e.g. packages/core or packages/boot)
-cd packages/core && bun test
+# Run tests (from a package directory, e.g. packages/core-server or packages/boot)
+cd packages/core-server && bun test
 ```
 
 > [!WARNING]

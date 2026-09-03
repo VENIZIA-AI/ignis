@@ -45,7 +45,7 @@ await migrator.automigrate(); // Drops and recreates all tables
 
 ### Step 1: Define Migrator Types
 
-**File:** `packages/core/src/base/datasources/common/types.ts`
+**File:** `packages/core-server/src/base/datasources/common/types.ts`
 
 ```typescript
 /** Column information from database introspection */
@@ -104,7 +104,7 @@ export interface IMigrationResult {
 
 ### Step 2: Create Schema Introspector
 
-**File:** `packages/core/src/base/datasources/introspector.ts`
+**File:** `packages/core-server/src/base/datasources/introspector.ts`
 
 ```typescript
 import { sql } from 'drizzle-orm';
@@ -160,7 +160,7 @@ WHERE t.relname = $1;
 
 ### Step 3: Create Schema Differ
 
-**File:** `packages/core/src/base/datasources/differ.ts`
+**File:** `packages/core-server/src/base/datasources/differ.ts`
 
 ```typescript
 import { getTableConfig, PgTable, PgColumn } from 'drizzle-orm/pg-core';
@@ -254,7 +254,7 @@ async diffTable(schema: PgTable): Promise<TSchemaChange[]> {
 
 ### Step 4: Create Type Mapper
 
-**File:** `packages/core/src/base/datasources/type-mapper.ts`
+**File:** `packages/core-server/src/base/datasources/type-mapper.ts`
 
 ```typescript
 import { PgColumn } from 'drizzle-orm/pg-core';
@@ -290,7 +290,7 @@ export class TypeMapper {
 
 ### Step 5: Create Schema Migrator
 
-**File:** `packages/core/src/base/datasources/migrator.ts`
+**File:** `packages/core-server/src/base/datasources/migrator.ts`
 
 ```typescript
 import { MetadataRegistry } from '@/helpers/inversion';
@@ -375,7 +375,7 @@ export class SchemaMigrator {
 
 ### Step 6: Integrate with DataSource
 
-**File:** `packages/core/src/base/datasources/base.ts`
+**File:** `packages/core-server/src/base/datasources/base.ts`
 
 ```typescript
 export abstract class BaseDataSource<...> {
@@ -413,18 +413,18 @@ export abstract class BaseDataSource<...> {
 
 | File | Purpose |
 |------|---------|
-| `packages/core/src/base/datasources/migrator.ts` | Main SchemaMigrator class |
-| `packages/core/src/base/datasources/introspector.ts` | Database schema introspection |
-| `packages/core/src/base/datasources/differ.ts` | Schema comparison logic |
-| `packages/core/src/base/datasources/type-mapper.ts` | Drizzle ↔ PostgreSQL type mapping |
+| `packages/core-server/src/base/datasources/migrator.ts` | Main SchemaMigrator class |
+| `packages/core-server/src/base/datasources/introspector.ts` | Database schema introspection |
+| `packages/core-server/src/base/datasources/differ.ts` | Schema comparison logic |
+| `packages/core-server/src/base/datasources/type-mapper.ts` | Drizzle ↔ PostgreSQL type mapping |
 
 ## Files to Modify
 
 | File | Changes |
 |------|---------|
-| `packages/core/src/base/datasources/common/types.ts` | Add migration types and interfaces |
-| `packages/core/src/base/datasources/base.ts` | Add `getMigrator()`, `autoupdate()`, `automigrate()` |
-| `packages/core/src/base/datasources/index.ts` | Export new classes |
+| `packages/core-server/src/base/datasources/common/types.ts` | Add migration types and interfaces |
+| `packages/core-server/src/base/datasources/base.ts` | Add `getMigrator()`, `autoupdate()`, `automigrate()` |
+| `packages/core-server/src/base/datasources/index.ts` | Export new classes |
 
 
 ## Drizzle to PostgreSQL Type Mapping

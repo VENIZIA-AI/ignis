@@ -22,8 +22,8 @@ This release adds powerful query capabilities for JSON/JSONB columns and Postgre
 ### JSON Path Filtering
 
 **Files:**
-- `packages/core/src/base/repositories/operators/filter.ts`
-- `packages/core/src/base/repositories/operators/query.ts`
+- `packages/core-server/src/base/repositories/operators/filter.ts`
+- `packages/core-server/src/base/repositories/operators/query.ts`
 
 **Problem:** Filtering by nested JSON/JSONB fields required raw SQL or manual extraction, making queries complex and error-prone.
 
@@ -93,7 +93,7 @@ This ensures:
 
 ### PostgreSQL Array Column Operators
 
-**File:** `packages/core/src/base/repositories/operators/query.ts`
+**File:** `packages/core-server/src/base/repositories/operators/query.ts`
 
 **Problem:** PostgreSQL array columns (`varchar[]`, `integer[]`, etc.) require special operators (`@>`, `<@`, `&&`) that weren't available in the filter builder.
 
@@ -148,7 +148,7 @@ await repo.find({
 
 ### NOT BETWEEN Operator
 
-**File:** `packages/core/src/base/repositories/operators/query.ts`
+**File:** `packages/core-server/src/base/repositories/operators/query.ts`
 
 **Problem:** No way to filter for values outside a range.
 
@@ -188,7 +188,7 @@ JSON path components are validated against a strict pattern to prevent SQL injec
 
 ## Files Changed
 
-### Core Package (`packages/core`)
+### Core Package (`packages/core-server`)
 
 | File | Changes |
 |------|---------|

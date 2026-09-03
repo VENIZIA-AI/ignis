@@ -19,7 +19,7 @@ This release adds HTTP Basic Authentication support to the IGNIS authentication 
 
 ### BasicAuthenticationStrategy
 
-**File:** `packages/core/src/components/auth/authenticate/strategies/basic.strategy.ts`
+**File:** `packages/core-server/src/components/auth/authenticate/strategies/basic.strategy.ts`
 
 New authentication strategy that:
 - Extracts credentials from `Authorization: Basic <base64>` header
@@ -29,7 +29,7 @@ New authentication strategy that:
 
 ### BasicTokenService
 
-**File:** `packages/core/src/components/auth/authenticate/services/basic-token.service.ts`
+**File:** `packages/core-server/src/components/auth/authenticate/services/basic-token.service.ts`
 
 Service handling credential extraction and verification:
 - Parses `Authorization` header with `Basic` scheme
@@ -86,7 +86,7 @@ curl -X GET http://api.example.com/users \
 
 ## Files Changed
 
-### Core Package (`packages/core`)
+### Core Package (`packages/core-server`)
 
 | File | Changes |
 |------|---------|

@@ -28,7 +28,8 @@ flowchart TD
     S4 -->|DENY| E403a[/"403: Authorization denied by voter"/]
     S4 -->|ALLOW/ABSTAIN| S5{"Step 5: Enforcers registered?"}
 
-    S5 -->|No enforcers| OK3([No error - skip])
+    S5 -->|No enforcers, defaultDecision: allow| OK3([No error - allow, warning logged])
+    S5 -->|No enforcers, defaultDecision: deny or unset| E403c[/"403: no enforcer registered"/]
     S5 -->|Yes| S5b{"Resolve enforcer"}
     S5b -->|Name not found| E400b[/"400: Descriptor not found"/]
     S5b -->|DI fails| E400c[/"400: Failed to resolve"/]
@@ -47,6 +48,7 @@ flowchart TD
     style E401 fill:#f8d7da,stroke:#dc3545
     style E403a fill:#f8d7da,stroke:#dc3545
     style E403b fill:#f8d7da,stroke:#dc3545
+    style E403c fill:#f8d7da,stroke:#dc3545
     style E400b fill:#fff3cd,stroke:#ffc107
     style E400c fill:#fff3cd,stroke:#ffc107
     style E400d fill:#fff3cd,stroke:#ffc107
@@ -81,7 +83,7 @@ Thrown during `binding()`, at application startup.
 | <code v-pre>[AuthorizationEnforcerRegistry] Enforcer "{{name}}" does not support cache invalidation</code> | 400 | `invalidateUserCache` / `rebuildUserCache` | The resolved enforcer doesn't implement the optional cache-management methods |
 
 > [!NOTE]
-> `[AuthorizationEnforcerRegistry] No items registered` can only surface if `getDefaultEnforcerName()` is called directly. During normal middleware execution, the provider checks `registry.hasEnforcers()` first. It skips authorization when no enforcers exist, so it never reaches this throw.
+> `[AuthorizationEnforcerRegistry] No items registered` can only surface if `getDefaultEnforcerName()` is called directly. During normal middleware execution, the provider checks `registry.hasEnforcers()` first and denies (or, with `defaultDecision: 'allow'`, proceeds) before ever calling `getDefaultEnforcerName()`, so it never reaches this throw.
 
 ### Authorization Provider Errors (`AuthorizationProvider` - the request pipeline)
 
@@ -91,6 +93,7 @@ The only errors in the module with an **explicit** `statusCode`.
 |---------------|--------|------|-------|
 | `Authorization failed: No authenticated user found` | 401 | 2 - User check | `Authentication.CURRENT_USER` is missing from the Hono context |
 | <code v-pre>Authorization denied by voter &#124; action: {{action}} &#124; resource: {{resource}}</code> | 403 | 4 - Voters | A voter function returned `AuthorizationDecisions.DENY` |
+| <code v-pre>Authorization failed: authorize() was declared for this route but no enforcer is registered &#124; path: {{path}}</code> | 403 | 5 - Resolve enforcer | `hasEnforcers()` is `false` and `defaultDecision` is `'deny'` (the default) or unset |
 | `Authorization failed: user.principalType is required for enforcer-based authorization` | 400 | 6 - Build rules | The authenticated user object has no `principalType` field |
 | <code v-pre>Authorization denied &#124; action: {{action}} &#124; resource: {{resource}}</code> | 403 | 7 - Evaluate | The enforcer returned `DENY`, or `ABSTAIN` and `defaultDecision` resolved to `'deny'` |
 
@@ -363,7 +366,7 @@ Check, in order:
 1. `authorize` is actually set on the route config (not just `authenticate`).
 2. `authenticate` isn't `{ skip: true }` - that skips authorization too, in both raw route configs and the CRUD factory.
 3. The component is registered AND at least one enforcer is registered via `AuthorizationEnforcerRegistry`.
-4. If no enforcers are registered, the middleware skips authorization silently by calling `next()` rather than throwing. This is often the real cause of "authorization does nothing" during rollout.
+4. If no enforcers are registered, the middleware denies with a 403 naming the missing enforcer - unless `defaultDecision: 'allow'` is set, in which case it proceeds and logs a warning. A warning in your logs on every request is often the real sign of "no enforcer registered" during rollout.
 
 ### Rules are rebuilt on every request
 

@@ -27,7 +27,7 @@ bun run compile:linux           # bun build --compile, standalone linux-x64 bina
 ## Notable / non-obvious
 
 - The committed `main` field points at `dist/index.js`, and the same `compile:linux` script (`bun build --compile --minify --sourcemap --target=bun-linux-x64 ... --outfile ./dist/vert`) also appears verbatim in `vert`'s package.json, output filename `vert` included - a copy-paste artifact.
-- `rpc-client-app`'s committed `schema.d.ts` includes `/test/:id`, `/test/2`, `/`, `/about`, and `/health-check` paths that match this server exactly, but also `/auth/sign-in`, `/auth/sign-up`, `/auth/change-password`, `/auth/who-am-i` - none of which this server's `application.ts` currently registers. The generated types are stale relative to the committed backend.
+- `rpc-client-app`'s committed `schema.d.ts` is stale relative to this backend in two ways. Its test paths are the literal keys `/test/1` and `/test/2`, with byte-identical bodies and no parameterized path anywhere in the file, while `TestController` actually serves `/:id` and `/2` - the types were captured against an earlier route shape. It also declares `/auth/sign-in`, `/auth/sign-up`, `/auth/change-password`, and `/auth/who-am-i`, none of which this server's `application.ts` currently registers. Only `/`, `/about`, and `/health-check` still match.
 
 ## Related
 - [rpc-client-app](/examples/rpc-client-app.md)

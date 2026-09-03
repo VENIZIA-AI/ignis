@@ -69,9 +69,9 @@ When documenting a component, find source material here:
 
 | What | Path |
 |------|------|
-| Binding keys | `packages/core/src/components/{name}/common/keys.ts` |
-| Config types | `packages/core/src/components/{name}/common/types.ts` |
-| Error messages | `packages/core/src/components/{name}/component.ts` -- look for `throw getError()` |
+| Binding keys | `packages/core-server/src/components/{name}/common/keys.ts` |
+| Config types | `packages/core-server/src/components/{name}/common/types.ts` |
+| Error messages | `packages/core-server/src/components/{name}/component.ts` -- look for `throw getError()` |
 | Helper source | `packages/helpers/src/helpers/{name}/` |
 
 ## Callout Standard

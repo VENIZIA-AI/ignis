@@ -174,9 +174,9 @@ const data = this.verificationGenerator.generateVerificationData({
 
 **Files:**
 
-- [`packages/core/src/components/mail/component.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core/src/components/mail/component.ts) -- `MailComponent`
-- [`packages/core/src/components/mail/services/mail.service.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core/src/components/mail/services/mail.service.ts) -- `MailService`
-- [`packages/core/src/components/mail/services/template.service.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core/src/components/mail/services/template.service.ts) -- `TemplateEngineService`
-- [`packages/core/src/components/mail/services/generator.service.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core/src/components/mail/services/generator.service.ts) -- verification generators
-- [`packages/core/src/components/mail/common/keys.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core/src/components/mail/common/keys.ts) -- `MailKeys`
-- [`packages/core/src/components/mail/common/types.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core/src/components/mail/common/types.ts) -- `TMailOptions`, `IMailMessage`, and every mail interface
+- [`packages/core-server/src/components/mail/component.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/components/mail/component.ts) -- `MailComponent`
+- [`packages/core-server/src/components/mail/services/mail.service.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/components/mail/services/mail.service.ts) -- `MailService`
+- [`packages/core-server/src/components/mail/services/template.service.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/components/mail/services/template.service.ts) -- `TemplateEngineService`
+- [`packages/core-server/src/components/mail/services/generator.service.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/components/mail/services/generator.service.ts) -- verification generators
+- [`packages/core-server/src/components/mail/common/keys.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/components/mail/common/keys.ts) -- `MailKeys`
+- [`packages/core-server/src/components/mail/common/types.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/components/mail/common/types.ts) -- `TMailOptions`, `IMailMessage`, and every mail interface

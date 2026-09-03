@@ -44,7 +44,7 @@ Five levels, each with a direct method: `debug`, `info`, `warn`, `error`, `emerg
 | Daily-rotating file | `APP_ENV_LOGGER_FOLDER_PATH` is set |
 | UDP (`DgramTransport`) | All four UDP `APP_ENV_LOGGER_DGRAM_*` variables are set |
 
-Output shape (plain text or JSON) follows `APP_ENV_LOGGER_FORMAT`. Color codes appear only on the console - file and UDP output never carries ANSI escapes.
+Output shape (plain text or JSON) follows `APP_ENV_LOGGER_FORMAT`. Color codes appear only on the console, and only in a development `NODE_ENV` - file and UDP output never carries ANSI escapes. See [Color](./reference#color) to override.
 
 For extreme hot paths, `HfLogger` is a separate ring-buffer logger outside this pipeline, with its own [usage guide](/extensions/helpers/logger/hf-logger). The [Full reference](/extensions/helpers/logger/reference) covers everything else, including the `ApplicationLogger` facade.
 
@@ -78,11 +78,13 @@ class UserService {
 
 ### Log an Error with `%s`, never `%j`
 
-`message` and `stack` are non-enumerable on a native `Error`. `%j` formats via `JSON.stringify`, which only visits enumerable own properties. So it silently drops both. Always pair an `Error` argument with `%s`.
+`%s` routes the error through `ErrorPrettier`, which projects it down to identity, cause and frames. `%j` keeps every enumerable own property instead, so a driver error takes its whole query along and a `jose` error its whole payload. Always pair an `Error` argument with `%s`.
 
 ```typescript
 logger.error('Failed to create user: %s', error); // prints message + stack
 ```
+
+A mistaken `%j` is no longer a silent loss: the formatter projects `message` and `stack` in before `JSON.stringify` runs, which on its own would drop both (they are non-enumerable). It is still the wrong placeholder for an error.
 
 ### Keep a driver error readable with `ErrorPrettier`
 

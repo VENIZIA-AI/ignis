@@ -31,15 +31,18 @@ keep the ~140k req/s ballpark while giving growing APIs the structure LB4 offere
 
 The same layered shape LB4 popularized: Controller -> Service (optional) -> Repository ->
 DataSource -> PostgreSQL. Controllers wrap `OpenAPIHono` instances and use
-`@hono/zod-openapi` for type-safe OpenAPI. Repositories follow a
-AbstractRepository -> ReadableRepository -> PersistableRepository -> DefaultCRUDRepository
-hierarchy. DataSources wrap Drizzle connection pools and are singletons, shared across
-repositories. A convention-based boot system auto-discovers controllers, services,
-repositories, and datasources by file suffix, the same way LB4's Booter system did.
+`@hono/zod-openapi` for type-safe OpenAPI. Repositories build on an engine-neutral chain -
+AbstractRepository -> RelationalBaseRepository -> ReadableRelationalRepository ->
+PersistableRelationalRepository -> DefaultRelationalRepository - which the Postgres connector
+binds to its own `ReadableRepository`, `PersistableRepository`, and `DefaultCRUDRepository`
+names, each a thin subclass of its relational-tier counterpart. DataSources wrap Drizzle
+connection pools and are singletons, shared across repositories. A convention-based boot system
+auto-discovers controllers, services, repositories, and datasources by file suffix, the same way
+LB4's Booter system did.
 
-Dependency injection runs through a standalone IoC container (`inversion`, ~350 lines) rather
-than a monolith - Binding fluent API, a MetadataRegistry, the `@inject` decorator,
-singleton/transient scopes, constructor and property injection.
+Dependency injection runs through a standalone IoC container (`inversion`) rather than a
+monolith - Binding fluent API, a MetadataRegistry, the `@inject` decorator, singleton/transient
+scopes, constructor and property injection.
 
 ## Who it's for
 

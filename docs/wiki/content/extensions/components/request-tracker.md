@@ -12,7 +12,7 @@ Automatic request logging middleware that assigns a UUID request ID to every req
 | **Package** | `@venizia/ignis` |
 | **Component** | `RequestTrackerComponent` |
 | **Middleware** | `RequestSpyMiddleware` |
-| **Utility** | `getIncomingIp()` |
+| **Utility** | `NetworkUtility.getIncomingIp()` |
 | **Runtimes** | Both (Bun and Node.js) |
 
 #### Import Paths
@@ -29,7 +29,8 @@ Nothing to configure - once the application starts, every request is logged auto
 [SpyMW] [<request-id>][127.0.0.1][<=] GET      /hello | Took: 1.23 (ms)
 ```
 
-In **production** (`NODE_ENV=production`), the body is omitted; query is still logged:
+Bodies are logged only in a development environment. Everywhere else - including when `NODE_ENV` is
+unset - the body is omitted and query is still logged:
 
 ```
 [SpyMW] [<request-id>][127.0.0.1][=>] GET      /hello | query: {}
@@ -45,9 +46,12 @@ The HTTP method is padded to 8 characters for consistent alignment.
 
 ## How it works
 
-- **Two middlewares, one component.** `binding()` registers Hono's own `requestId()` from `hono/request-id` first. Then it resolves `RequestSpyMiddleware` from the DI container and registers it. `requestId()` must run first so the spy can read the ID off the context.
+- **One middleware, and an ID it does not install.** `requestId()` comes from `RestApplication.registerDefaultMiddlewares()`, which runs before any component, so it is already in place when `binding()` resolves `RequestSpyMiddleware` from the DI container and registers it. The generator is IGNIS's `RequestIdGenerator`, not hono's `crypto.randomUUID` default - that keeps a server and a browser-Worker BFF stamping the same format.
 - **IP resolution is best-effort, never fatal.** The middleware falls through several sources before giving up - see the resolution order below. An unresolved IP never fails the request; this middleware observes traffic, it does not gate it.
-- **Body logging is environment-gated.** `RequestSpyMiddleware` reads `NODE_ENV` once in its constructor. Any value other than `'production'` logs the body; `'production'` logs query only. Query is always logged in every environment.
+- **Body logging is environment-gated, and it fails closed.** `RequestSpyMiddleware` reads `NODE_ENV` once in its constructor and logs the body only when the value is one of `local`, `debug`, `development`, `dev`, `sit`. Anything else - `staging`, `uat`, `production`, or `NODE_ENV` unset entirely - logs query only. Query is always logged in every environment.
+
+> [!WARNING]
+> This rule used to be "anything that is not `production`", which logged full request bodies in `staging`, `uat` and with `NODE_ENV` unset. If you relied on bodies appearing outside a development environment, set `NODE_ENV` to one of the five values above.
 - **Body parsing follows Content-Type.** See the outcomes table below for what each Content-Type resolves to. A parse failure throws `'Malformed Body Payload'` (HTTP 400).
 - **The middleware is an `IProvider`, not a plain function.** `RequestSpyMiddleware` implements `IProvider<MiddlewareHandler>` from `@venizia/ignis-inversion`. The container instantiates the class, so it can hold `isDebugMode` state as an instance field. It then calls `.value()` to obtain the actual Hono handler.
 
@@ -73,7 +77,7 @@ async parseBody(opts: { req: TContext['req'] }): Promise<unknown>
 ### Understand the client IP resolution order
 | Priority | Source | Notes |
 |----------|--------|-------|
-| 1 | `getIncomingIp(context)` | Native connection info - `hono/bun` on Bun, `@hono/node-server/conninfo` on Node.js |
+| 1 | `NetworkUtility.getIncomingIp(context)` | Native connection info - `hono/bun` on Bun, `@hono/node-server/conninfo` on Node.js |
 | 2 | `x-real-ip` header | Set by reverse proxies (e.g., Nginx `proxy_set_header X-Real-IP`) |
 | 3 | `x-forwarded-for` header | Standard proxy header |
 | 4 | `'unknown'` | Logged when none of the above resolve - the request still proceeds |
@@ -116,7 +120,7 @@ class RequestSpyMiddleware extends BaseHelper implements IProvider<MiddlewareHan
 
 ### Component lifecycle
 1. **`constructor()`** - Receives `BaseApplication` via DI. Defines the middleware binding as a singleton provider.
-2. **`binding()`** - Registers `requestId()` on the server. Resolves the `RequestSpyMiddleware` binding, throwing if it cannot be resolved. Registers the resolved middleware on the server.
+2. **`binding()`** - Resolves the `RequestSpyMiddleware` binding, throwing if it cannot be resolved. Registers the resolved middleware on the server. The request ID is already installed by the application's default stack.
 
 ## Troubleshooting
 
@@ -143,6 +147,6 @@ class RequestSpyMiddleware extends BaseHelper implements IProvider<MiddlewareHan
 
 **Files:**
 
-- [`packages/core/src/components/request-tracker/component.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core/src/components/request-tracker/component.ts) - `RequestTrackerComponent`
-- [`packages/core/src/base/middlewares/request-spy/request-spy.middleware.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core/src/base/middlewares/request-spy/request-spy.middleware.ts) - `RequestSpyMiddleware`
-- [`packages/core/src/utilities/network.utility.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core/src/utilities/network.utility.ts) - `getIncomingIp()`
+- [`packages/core-server/src/components/request-tracker/component.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/components/request-tracker/component.ts) - `RequestTrackerComponent`
+- [`packages/core-server/src/base/middlewares/request-spy/request-spy.middleware.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/base/middlewares/request-spy/request-spy.middleware.ts) - `RequestSpyMiddleware`
+- [`packages/core-server/src/utilities/network.utility.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/utilities/network.utility.ts) - `NetworkUtility.getIncomingIp()`

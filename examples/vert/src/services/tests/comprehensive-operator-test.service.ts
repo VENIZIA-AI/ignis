@@ -1758,7 +1758,7 @@ export class ComprehensiveOperatorTestService extends BaseTestService {
         filter: {
           where: {
             group: 'COMPREHENSIVE_TEST',
-            createdAt: { gte: oneHourAgo, lte: now },
+            createdAt: { gte: oneHourAgo.toISOString(), lte: now.toISOString() },
           },
         },
       });

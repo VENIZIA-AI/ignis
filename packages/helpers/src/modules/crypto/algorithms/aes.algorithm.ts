@@ -9,9 +9,13 @@ const CIPHERTEXT_VERSION = 0x01;
 const DEFAULT_KEY_ID = '0';
 
 interface IAESDecryptOptions {
-  inputEncoding?: C.Encoding;
-  outputEncoding?: C.Encoding;
+  inputEncoding?: BufferEncoding;
+  outputEncoding?: BufferEncoding;
   doThrow?: boolean;
+  /** Per-deployment PBKDF2 salt override. Must be supplied identically on encrypt and decrypt; omit for the shipped default. */
+  kdfSalt?: string;
+  /** PBKDF2 iteration count override. Must be supplied identically on encrypt and decrypt; omit for the shipped default. */
+  kdfIterations?: number;
 }
 
 /** `iv` is encrypt-only: the envelope carries the IV, so decrypt reads it from there and a supplied one would be silently ignored. */
@@ -45,7 +49,12 @@ export class AES extends BaseCryptoAlgorithm<
     return new AES({ algorithm });
   }
 
-  protected resolveEncryptKey(secret: TAESSecret): { id: string; key: Buffer } {
+  protected resolveEncryptKey(opts: {
+    secret: TAESSecret;
+    kdfSalt?: string;
+    kdfIterations?: number;
+  }): { id: string; key: Buffer } {
+    const { secret, kdfSalt, kdfIterations } = opts;
     const entry = Array.isArray(secret) ? secret[0] : { id: DEFAULT_KEY_ID, secret };
 
     if (!entry || isEmpty(entry.secret)) {
@@ -55,15 +64,23 @@ export class AES extends BaseCryptoAlgorithm<
     const key = this.normalizeSecretKey({
       secret: entry.secret,
       length: this.getAlgorithmKeySize(),
+      kdfSalt,
+      kdfIterations,
     });
     return { id: entry.id, key };
   }
 
-  protected resolveDecryptKey(secret: TAESSecret, id: string): Buffer {
+  protected resolveDecryptKey(opts: {
+    secret: TAESSecret;
+    id: string;
+    kdfSalt?: string;
+    kdfIterations?: number;
+  }): Buffer {
+    const { secret, id, kdfSalt, kdfIterations } = opts;
     const length = this.getAlgorithmKeySize();
 
     if (!Array.isArray(secret)) {
-      return this.normalizeSecretKey({ secret, length });
+      return this.normalizeSecretKey({ secret, length, kdfSalt, kdfIterations });
     }
 
     const entry = secret.find(e => e.id === id);
@@ -80,7 +97,7 @@ export class AES extends BaseCryptoAlgorithm<
       });
     }
 
-    return this.normalizeSecretKey({ secret: entry.secret, length });
+    return this.normalizeSecretKey({ secret: entry.secret, length, kdfSalt, kdfIterations });
   }
 
   encrypt(opts: { message: string; secret: TAESSecret; opts?: IAESExtraOptions }) {
@@ -90,10 +107,12 @@ export class AES extends BaseCryptoAlgorithm<
       inputEncoding = 'utf-8',
       outputEncoding = 'base64',
       doThrow = true,
+      kdfSalt,
+      kdfIterations,
     } = opts.opts ?? {};
 
     try {
-      const { id, key } = this.resolveEncryptKey(secret);
+      const { id, key } = this.resolveEncryptKey({ secret, kdfSalt, kdfIterations });
       const idBuffer = Buffer.from(id, 'utf-8');
       if (idBuffer.length > 0xff) {
         throw getError({ message: '[AES][encrypt] Key id too long (max 255 bytes)' });
@@ -145,7 +164,13 @@ export class AES extends BaseCryptoAlgorithm<
 
   decrypt(opts: { message: string; secret: TAESSecret; opts?: IAESDecryptOptions }) {
     const { message, secret } = opts;
-    const { inputEncoding = 'base64', outputEncoding = 'utf-8', doThrow = true } = opts.opts ?? {};
+    const {
+      inputEncoding = 'base64',
+      outputEncoding = 'utf-8',
+      doThrow = true,
+      kdfSalt,
+      kdfIterations,
+    } = opts.opts ?? {};
 
     try {
       const raw = Buffer.from(message, inputEncoding);
@@ -164,7 +189,7 @@ export class AES extends BaseCryptoAlgorithm<
       const iv = raw.subarray(cursor, cursor + DEFAULT_LENGTH);
       cursor += DEFAULT_LENGTH;
 
-      const key = this.resolveDecryptKey(secret, id);
+      const key = this.resolveDecryptKey({ secret, id, kdfSalt, kdfIterations });
       const decipher = C.createDecipheriv(this.algorithm, key, iv);
 
       switch (this.algorithm) {

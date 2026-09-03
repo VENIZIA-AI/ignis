@@ -88,7 +88,7 @@ type IdType = 'number' | 'string';
 
 ## Files Changed
 
-### Core Package (`packages/core`)
+### Core Package (`packages/core-server`)
 
 | File | Changes |
 |------|---------|

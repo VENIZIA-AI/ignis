@@ -456,10 +456,25 @@ describe('Crypto Algorithms', () => {
         expect(keys.publicKey.length).toBeGreaterThan(200);
       });
 
-      test('TC-046: generateDERKeyPair with custom modulus (1024)', () => {
-        const keys = rsa.generateDERKeyPair({ modulus: 1024 });
-        // 1024-bit key is smaller than 2048-bit
-        expect(keys.publicKey.length).toBeLessThan(keyPair.publicKey.length);
+      test('TC-046: a modulus below 2048 is rejected, not generated', () => {
+        expect(() => rsa.generateDERKeyPair({ modulus: 1024 })).toThrow();
+      });
+
+      test('TC-046b: the rejection names the size and the floor, so a caller can act on it', () => {
+        let caught: unknown;
+        try {
+          rsa.generateDERKeyPair({ modulus: 512 });
+        } catch (error) {
+          caught = error;
+        }
+
+        expect((caught as Error).message).toContain('512');
+        expect((caught as Error).message).toContain('2048');
+      });
+
+      test('TC-046c: a modulus above the floor is still accepted', () => {
+        const keys = rsa.generateDERKeyPair({ modulus: 3072 });
+        expect(keys.publicKey.length).toBeGreaterThan(keyPair.publicKey.length);
       });
 
       test('TC-047: each key pair is unique', () => {
@@ -1066,5 +1081,142 @@ describe('AES contract after the envelope change', () => {
 
     // The envelope wins regardless, which is exactly why the option must not typecheck.
     expect(decrypted).toBe('payload');
+  });
+});
+
+describe('kdfSalt / kdfIterations (per-deployment KDF override)', () => {
+  const SECRET = 'abcdefghijklmnopqrstuvwxyz012345';
+  const CUSTOM_SALT_A = 'deployment-a-salt-0123456789';
+  const CUSTOM_SALT_B = 'deployment-b-salt-9876543210';
+
+  test('KDF-001: default derivation is pinned - the shipped salt/iterations must never change', () => {
+    const aes = AES.withAlgorithm('aes-256-cbc');
+    const key = aes['normalizeSecretKey']({ secret: 'my-secret-passphrase', length: 32 });
+
+    // Computed with the literal shipped values, not read from the module's own constants,
+    // so a change to DEFAULT_KDF_SALT/DEFAULT_KDF_ITERATIONS fails this test.
+    const expected = C.pbkdf2Sync(
+      'my-secret-passphrase',
+      'ignis-kdf-salt-v1',
+      100_000,
+      32,
+      'sha256',
+    );
+    expect(key.equals(expected)).toBe(true);
+    expect(key.toString('hex')).toBe(
+      'e43a1ec1e939d4a221343c803e918dfab5934a9ac2f57f93abd70cccbdf6750c',
+    );
+  });
+
+  test('KDF-002: omitting kdfSalt keeps encrypt/decrypt byte-for-byte compatible with the pre-change default', () => {
+    const aes = AES.withAlgorithm('aes-256-gcm');
+    const iv = Buffer.alloc(16, 9);
+    const encrypted = aes.encrypt({
+      message: 'legacy default payload',
+      secret: SECRET,
+      opts: { iv },
+    });
+    const decrypted = aes.decrypt({ message: encrypted, secret: SECRET });
+    expect(decrypted).toBe('legacy default payload');
+  });
+
+  test('KDF-003: two different salts produce different ciphertext for the same input', () => {
+    const aes = AES.withAlgorithm('aes-256-cbc');
+    const iv = Buffer.alloc(16, 3);
+    const encryptedA = aes.encrypt({
+      message: 'same plaintext',
+      secret: SECRET,
+      opts: { iv, kdfSalt: CUSTOM_SALT_A },
+    });
+    const encryptedB = aes.encrypt({
+      message: 'same plaintext',
+      secret: SECRET,
+      opts: { iv, kdfSalt: CUSTOM_SALT_B },
+    });
+    expect(encryptedA).not.toBe(encryptedB);
+  });
+
+  test('KDF-004: ciphertext decrypts only with the salt it was encrypted under', () => {
+    const aes = AES.withAlgorithm('aes-256-gcm');
+    const encrypted = aes.encrypt({
+      message: 'isolated payload',
+      secret: SECRET,
+      opts: { kdfSalt: CUSTOM_SALT_A },
+    });
+
+    const decrypted = aes.decrypt({
+      message: encrypted,
+      secret: SECRET,
+      opts: { kdfSalt: CUSTOM_SALT_A },
+    });
+    expect(decrypted).toBe('isolated payload');
+
+    expect(() =>
+      aes.decrypt({ message: encrypted, secret: SECRET, opts: { kdfSalt: CUSTOM_SALT_B } }),
+    ).toThrow();
+    // Omitting kdfSalt on decrypt falls back to the shipped default, which is also the wrong key here.
+    expect(() => aes.decrypt({ message: encrypted, secret: SECRET })).toThrow();
+  });
+
+  test('KDF-005: a different kdfIterations value derives a different key', () => {
+    const aes = AES.withAlgorithm('aes-256-cbc');
+    const keyDefault = aes['normalizeSecretKey']({ secret: SECRET, length: 32 });
+    const keyOther = aes['normalizeSecretKey']({
+      secret: SECRET,
+      length: 32,
+      kdfIterations: 50_000,
+    });
+    expect(keyDefault.equals(keyOther)).toBe(false);
+  });
+
+  test('KDF-006: an empty kdfSalt is refused, not silently accepted', () => {
+    const aes = AES.withAlgorithm('aes-256-cbc');
+    expect(() => aes.encrypt({ message: 'x', secret: SECRET, opts: { kdfSalt: '' } })).toThrow(
+      /kdfSalt/,
+    );
+  });
+
+  test('KDF-007: a kdfSalt shorter than the 16-byte minimum is refused', () => {
+    const aes = AES.withAlgorithm('aes-256-cbc');
+    expect(() =>
+      aes.encrypt({ message: 'x', secret: SECRET, opts: { kdfSalt: 'short-salt' } }),
+    ).toThrow(/kdfSalt/);
+  });
+
+  test('KDF-008: a kdfSalt at exactly the 16-byte minimum is accepted', () => {
+    const aes = AES.withAlgorithm('aes-256-cbc');
+    const sixteenBytes = '0123456789abcdef';
+    expect(sixteenBytes.length).toBe(16);
+    const encrypted = aes.encrypt({
+      message: 'boundary',
+      secret: SECRET,
+      opts: { kdfSalt: sixteenBytes },
+    });
+    const decrypted = aes.decrypt({
+      message: encrypted,
+      secret: SECRET,
+      opts: { kdfSalt: sixteenBytes },
+    });
+    expect(decrypted).toBe('boundary');
+  });
+
+  test('KDF-009: the minimum is measured in UTF-8 bytes, not JS string length', () => {
+    const aes = AES.withAlgorithm('aes-256-cbc');
+    // 8 CJK characters = 24 UTF-8 bytes, well over the 16-byte minimum, despite a short .length.
+    const multiByteSalt = '盐值盐值盐值盐值';
+    expect(multiByteSalt.length).toBe(8);
+    expect(Buffer.byteLength(multiByteSalt, 'utf-8')).toBe(24);
+
+    const encrypted = aes.encrypt({
+      message: 'multibyte salt',
+      secret: SECRET,
+      opts: { kdfSalt: multiByteSalt },
+    });
+    const decrypted = aes.decrypt({
+      message: encrypted,
+      secret: SECRET,
+      opts: { kdfSalt: multiByteSalt },
+    });
+    expect(decrypted).toBe('multibyte salt');
   });
 });

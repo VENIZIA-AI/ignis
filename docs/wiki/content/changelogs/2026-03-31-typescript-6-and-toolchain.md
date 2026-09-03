@@ -65,7 +65,7 @@ The shared ESLint config now flags assignments whose value is never read before 
 
 ### Mail transporters: removed `validateModule` gate
 
-**File:** `packages/core/src/components/mail/helpers/transporters/{mailgun,nodemail}-transporter.helper.ts`
+**File:** `packages/core-server/src/components/mail/helpers/transporters/{mailgun,nodemail}-transporter.helper.ts`
 
 The transporters previously called `validateModule({ modules: ['mailgun.js'] })` (and the nodemailer equivalent) inside `configure()`. This threw at startup when the optional peer wasn't installed, even if that transporter was never used. The eager check was removed so the mail component loads without forcing every transporter's optional dependency.
 
@@ -91,7 +91,7 @@ Corrected a connection-type mismatch that broke the helpers build, and added the
 |------|---------|
 | `packages/*/package.json` | `typescript` bumped to `^6.0.2` |
 | `packages/*/tsconfig*.json` | Inherit ES2024 base config |
-| `packages/core/src/components/mail/helpers/transporters/*` | Removed `validateModule` startup gate |
+| `packages/core-server/src/components/mail/helpers/transporters/*` | Removed `validateModule` startup gate |
 | `packages/helpers/src/modules/redis/default.helper.ts` | Fixed redis connection type |
 | `packages/helpers/src/modules/queue/bullmq/helper.ts` | Fixed BullMQ connection type |
 

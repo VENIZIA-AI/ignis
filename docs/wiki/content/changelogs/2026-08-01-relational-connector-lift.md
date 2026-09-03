@@ -323,7 +323,7 @@ type TArchivableRow = TTableObject<TArchivableTableSchema>; // TS2344 before the
 ```
 
 Nothing to migrate. The break never reached a release, and both sides of the root barrel are
-`PgTable`-branded again. `packages/core/src/__tests__/connectors/postgres/root-barrel-composability.test.ts`
+`PgTable`-branded again. `packages/core-server/src/__tests__/connectors/postgres/root-barrel-composability.test.ts`
 pins it - `bun run typecheck` is the gate, since `bun test` erases types.
 
 ### `getIdType` is one function again

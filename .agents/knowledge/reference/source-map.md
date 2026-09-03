@@ -8,7 +8,7 @@ tags: [reference, source-map, packages]
 
 > Generated from source - do not edit; run `make okf-gen`. Layout: [monorepo layout](/overview/monorepo-layout.md).
 
-**673 source files across 6 packages.**
+**781 source files across 9 packages.**
 
 ## boot  (15 source files)
 
@@ -19,18 +19,34 @@ tags: [reference, source-map, packages]
 | `base/` | 2 |
 | `utilities/` | 2 |
 
-## core  (427 source files)
+## connectors  (176 source files)
 
 | Subsystem | Files |
 |---|---|
-| `connectors/` | 168 |
-| `components/` | 153 |
-| `base/` | 77 |
-| `helpers/` | 16 |
-| `common/` | 6 |
-| `utilities/` | 6 |
+| `relational/` | 115 |
+| `search/` | 58 |
+| `common/` | 2 |
 
-## dev-configs  (3 source files)
+## core-server  (172 source files)
+
+| Subsystem | Files |
+|---|---|
+| `components/` | 130 |
+| `base/` | 19 |
+| `connectors/` | 14 |
+| `common/` | 3 |
+| `utilities/` | 3 |
+| `helpers/` | 2 |
+
+## core-worker  (13 source files)
+
+| Subsystem | Files |
+|---|---|
+| `transport/` | 7 |
+| `envelope/` | 3 |
+| `applications/` | 2 |
+
+## dev-configs  (4 source files)
 
 _Flat `src/` - no subsystem directories._
 
@@ -41,13 +57,13 @@ _Flat `src/` - no subsystem directories._
 | `common/` | 3 |
 | `schemas/` | 3 |
 
-## helpers  (191 source files)
+## helpers  (213 source files)
 
 | Subsystem | Files |
 |---|---|
-| `modules/` | 171 |
-| `common/` | 9 |
-| `utilities/` | 9 |
+| `modules/` | 193 |
+| `common/` | 10 |
+| `utilities/` | 8 |
 
 ## inversion  (30 source files)
 
@@ -55,3 +71,12 @@ _Flat `src/` - no subsystem directories._
 |---|---|
 | `modules/` | 25 |
 | `common/` | 4 |
+
+## kernel  (151 source files)
+
+| Subsystem | Files |
+|---|---|
+| `base/` | 125 |
+| `helpers/` | 17 |
+| `common/` | 4 |
+| `utilities/` | 4 |

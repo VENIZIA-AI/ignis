@@ -2,7 +2,7 @@
 type: Convention
 title: Options objects
 description: Every function takes a single options object, never positional parameters.
-resource: packages/core/src
+resource: packages/core-server/src
 tags: [conventions, api-design]
 ---
 
@@ -21,8 +21,9 @@ repositories, controllers, the container, and internal utilities alike.
 
 ## In source
 
-`PersistableRepository.create` in `packages/core/src/connectors/postgres/repositories/core/persistable.ts`
-overloads purely on the shape of one options object:
+`PersistableRelationalRepository.create` in
+`packages/core-server/src/connectors/relational/repositories/core/persistable.ts` overloads purely on the
+shape of one options object:
 
 ```typescript
 override create(opts: {
@@ -34,6 +35,9 @@ override create<R = DataObject>(opts: {
   options?: ExtraOptions & { shouldReturn?: true };
 }): Promise<TCount & { data: R }>;
 ```
+
+The postgres-specific `PersistableRepository` is an empty subclass and inherits these overloads
+unchanged, so the engine-neutral relational tier is where the shape is defined.
 
 `BaseHelper` in `packages/helpers/src/modules/base.ts` follows the same rule for construction:
 `constructor(opts: { scope: string; identifier?: string })`.

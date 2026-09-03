@@ -316,23 +316,25 @@ class UserService {
 
 ### Logging errors: `%s`, never `%j`
 
-- **`message` and `stack` are non-enumerable** on a native `Error`.
-- **`%j` formats via `JSON.stringify`**, which only visits enumerable own properties. So `logger.error('Failed: %j', error)` silently drops both `message` and `stack` - the two fields the log line exists to capture.
+- **`%s` routes an Error through `ErrorPrettier`**, which projects it down to identity, cause and frames.
+- **`%j` keeps every enumerable own property**, so a `pg` error carries its whole query along and a `jose` error its whole payload. That projection is the reason the rule exists.
 - **Always pair an `Error` argument with `%s`**; reserve `%j`/`%o` for plain data objects.
 
 ```typescript
 // Good - %s prints message + stack
 logger.error('Failed to create user: %s', error);
 
-// Bad - %j drops message and stack (non-enumerable on Error)
+// Bad - %j dumps every own property the error happens to carry
 logger.error('Failed to create user: %j', error);
 ```
 
-### Object inspection depth for `%s`
+`message` and `stack` are non-enumerable, so `JSON.stringify` alone would render an Error as `{}`. The formatter projects both in first, which makes a mistaken `%j` merely noisy rather than empty.
+
+### Object inspection depth for `%s` and `%j`
 
 - **Node hard-codes `depth: 0` for `%s`** in `util.format`. An object passed to `%s` collapses to `[Object]`, hiding the nested `extra` or `cause` a wrapped error carries.
 - **`deepSplat` widens that depth.** The formatter (`formatLogMessage`) pre-inspects any object bound to a `%s` placeholder before handing the message to Winston. So nested fields print instead of collapsing.
-- **Applies per-placeholder.** Only arguments matched to a `%s` token are affected, so `%j` still gets `JSON.stringify` semantics.
+- **`%j` is capped at the same depth**, and keeps JSON semantics. Below the cap it prints `"[Object]"`.
 
 ```typescript
 logger.error('Failed: %s', error); // nested `error.cause` is now visible, not `[Object]`
@@ -345,6 +347,25 @@ APP_ENV_LOGGER_INSPECT_DEPTH=8
 ```
 
 The value must be a non-negative integer. An absent, empty, negative, or unparseable value falls back to the default of `5` - there is no "unlimited" setting.
+
+### `%j` projects the argument first
+
+`JSON.stringify` renders the WHOLE argument as `[Circular]` when a single cycle sits anywhere inside it. One live handle in the payload - a transaction, a connector, a request context - therefore erased every other field:
+
+```typescript
+logger.debug('Updating user | Args: %j', { id, data, transaction });
+// Before: Updating user | Args: [Circular]
+```
+
+The formatter now projects a `%j` argument before `util.format` sees it. Three consequences:
+
+| Concern | Behavior |
+|---|---|
+| Cycles | Collapse to `"[Circular]"` on the offending branch only; sibling fields survive |
+| Secret-looking keys | Redacted, exactly as under `%s` |
+| Depth | Capped by `APP_ENV_LOGGER_INSPECT_DEPTH`, so a live connector cannot flood one line |
+
+A payload holding a transaction still prints its own fields, but the handle itself is noise. Keep live objects out of the logged arguments.
 
 ### ErrorPrettier - a readable block instead of an object dump
 
@@ -463,6 +484,8 @@ const jsonFormatter = defineJsonLoggerFormatter({ label: 'my-app' });
 const prettyFormatter = definePrettyLoggerFormatter({ label: 'my-app' });
 const plainFormatter = definePrettyLoggerFormatter({ label: 'my-app', colorize: false });
 ```
+
+Without an explicit `colorize`, `definePrettyLoggerFormatter` follows the [Color](#color) rules.
 
 `defineLogFormatter` throws an `ApplicationError` if `format` (or `APP_ENV_LOGGER_FORMAT`) is not `'json'` or `'text'`.
 
@@ -603,6 +626,7 @@ interface ICustomLoggerOptions {
   formatter?: ReturnType<typeof winston.format.combine>;
   format?: TLoggerFormat; // 'json' | 'text'; defaults to APP_ENV_LOGGER_FORMAT
   level?: TLogLevel;      // logger-level floor; defaults to APP_ENV_LOGGER_LEVEL, then 'debug'
+  colorize?: boolean;     // console ANSI color; defaults to the Color rules above
   transports: {
     info: {
       file?: IFileTransportOptions;
@@ -760,9 +784,31 @@ The buffer wraps at 65,536 entries, using bitwise AND masking (`writeIndex & (BU
 | `APP_ENV_LOGGER_FOLDER_PATH` | _(unset)_ | Log files directory. File logging is OFF when unset |
 | `APP_ENV_LOGGER_INSPECT_DEPTH` | `5` | Object inspection depth for `%s` placeholders. Non-negative integer only - invalid or absent falls back to `5` |
 | `APP_ENV_LOGGER_DO_REDACT` | `true` | Secret redaction in log arguments. See the warning below before touching this |
+| `APP_ENV_LOGGER_COLOR` | _(unset)_ | ANSI color on console log lines. Unset means auto - see [Color](#color) |
 
 > [!WARNING]
 > Only the literal string `false` disables `APP_ENV_LOGGER_DO_REDACT`. Any other value - including unset - keeps redaction ON. Once disabled, raw secrets (passwords, tokens, connection URLs) reach the log sinks. Never disable this in production.
+
+### Color
+
+Color is a terminal affordance. In a deployed environment the same bytes land in a file or an aggregator as escape noise, so IGNIS turns color off outside a development `NODE_ENV`.
+
+The first rule that matches wins:
+
+| Rule | Result |
+|------|--------|
+| `APP_ENV_LOGGER_COLOR` is set | That value. `false` or `0` is off, anything else is on |
+| `NO_COLOR` is set and non-empty | Off ([no-color.org](https://no-color.org)) |
+| `NODE_ENV` is `local`, `debug`, `development`, `dev` or `sit` - or unset | On |
+| Anything else, including `production`, `staging`, `uat` and unrecognized names | Off |
+
+To keep color in a production terminal, set it back explicitly:
+
+```bash
+APP_ENV_LOGGER_COLOR=true
+```
+
+The file and UDP transports never colorize, in any environment. Under the pino provider the rule is a veto only: when it allows color, `pino-pretty` still suppresses it if stdout is not a terminal.
 
 ### File rotation
 

@@ -10,17 +10,23 @@ const identityDecorator: TSchemaDecorator = schema => schema;
 export const buildQuerySchemas = (opts?: { decorate?: TSchemaDecorator }) => {
   const decorate = opts?.decorate ?? identityDecorator;
 
-  const LimitSchema = decorate(z.number().optional(), {
+  /**
+   * `int().nonnegative()`, not a bare `number()`. A NEGATIVE limit is not a smaller page - Drizzle
+   * renders the LIMIT clause only when the value is `>= 0`, so `filter={"limit":-1}` emitted a
+   * `select` with no LIMIT at all and returned the whole table. A fractional limit reaches the
+   * driver as `LIMIT 1.5` and errors there instead of here.
+   */
+  const LimitSchema = decorate(z.number().int().nonnegative().optional(), {
     description: 'Maximum number of items to return. Defaults to 10 for top-level list queries.',
     examples: [1, 2, 3],
   });
 
-  const OffsetSchema = decorate(z.number().optional(), {
+  const OffsetSchema = decorate(z.number().int().nonnegative().optional(), {
     description: 'Number of items to offset for pagination.',
     examples: [1, 2, 3],
   });
 
-  const SkipSchema = decorate(z.number().optional(), {
+  const SkipSchema = decorate(z.number().int().nonnegative().optional(), {
     description: 'Number of items to skip for pagination.',
     examples: [1, 2, 3],
   });
@@ -65,12 +71,20 @@ export const buildQuerySchemas = (opts?: { decorate?: TSchemaDecorator }) => {
       RecursiveWhereSchema,
       z
         .string()
-        .transform(val => {
-          if (val) {
-            return JSON.parse(val);
+        // A caught parse, never a bare `JSON.parse`. zod lets a thrown SyntaxError escape
+        // `safeParse`, so the controller's validation hook never ran and `?where=not-json` surfaced
+        // as a 500 with a stack - for what is simply a malformed query string.
+        .transform((val, ctx) => {
+          if (!val) {
+            return undefined;
           }
 
-          return undefined;
+          try {
+            return JSON.parse(val);
+          } catch {
+            ctx.addIssue({ code: 'custom', message: 'where must be valid JSON' });
+            return z.NEVER;
+          }
         })
         .pipe(RecursiveWhereSchema),
     ]),
@@ -89,9 +103,11 @@ export const buildQuerySchemas = (opts?: { decorate?: TSchemaDecorator }) => {
               .optional(),
             { description: 'Model relation filter' },
           ),
-          shouldSkipDefaultFilter: decorate(z.boolean().optional(), {
-            description: 'Skip the default filter for this relation',
-          }),
+          // `shouldSkipDefaultFilter` is deliberately NOT on the wire schema. It stays on the
+          // internal `TInclusion` type, so server-side callers keep it, but a client could
+          // otherwise send `include[].shouldSkipDefaultFilter` and the relation would be emitted
+          // with no where clause at all - erasing the `@model` defaultFilter that implements
+          // soft-delete and the static visibility scopes.
         }),
       )
       .optional(),
@@ -122,12 +138,19 @@ export const buildQuerySchemas = (opts?: { decorate?: TSchemaDecorator }) => {
         InternalFilterSchema,
         z
           .string()
-          .transform(val => {
-            if (val) {
-              return JSON.parse(val);
+          // Same reason as `where` above: a malformed filter is the caller's mistake, so it has to
+          // become a validation issue rather than an uncaught throw.
+          .transform((val, ctx) => {
+            if (!val) {
+              return {};
             }
 
-            return {};
+            try {
+              return JSON.parse(val);
+            } catch {
+              ctx.addIssue({ code: 'custom', message: 'filter must be valid JSON' });
+              return z.NEVER;
+            }
           })
           .pipe(InternalFilterSchema),
       ])

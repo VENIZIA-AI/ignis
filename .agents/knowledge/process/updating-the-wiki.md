@@ -13,13 +13,21 @@ tags: [process, docs, wiki]
    of `packages/`, package name `@venizia/ignis-docs`), not inside `packages/`. This
    `.agents/knowledge/` bundle (what this file is part of) is a separate, agent-facing artifact -
    editing one does not update the other.
-2. All prose lives under `docs/wiki/content/`: `guides/` (get started, core concepts, tutorials),
-   `references/` (API docs for base, components, helpers, utilities), `best-practices/`
-   (architecture, testing, deployment), `changelogs/` (feature announcements - excluded from MCP
-   search on purpose).
+2. All prose lives under `docs/wiki/content/`: `guides/` (get started, core concepts, tutorials,
+   migrations), `references/` (base API - application, dependency injection, models, repositories,
+   datasources - plus `utilities/` and `configuration/`), `extensions/` (the per-component and
+   per-helper API references, under `extensions/components/` and `extensions/helpers/`),
+   `best-practices/` (architecture, testing, deployment), `changelogs/` (feature announcements -
+   excluded from MCP search on purpose).
 3. To add a new doc page: create the `.md` file under the right `content/` subdirectory, then add
    it to the VitePress sidebar config at `docs/wiki/site/.vitepress/config.mts` - a page that
-   exists but isn't in the sidebar config is unreachable from site navigation.
+   exists but isn't in the sidebar config is unreachable from site navigation. This is enforced,
+   not merely a convention: `bun run docs:build` (and so `make docs`) runs
+   `scripts/check-sidebar.ts` right before the VitePress build, and it fails the build if any
+   `content/**/*.md` page has no menu link, or if a menu link points at a page that no longer
+   exists. The only exemptions are the template skeletons under
+   `extensions/components/template/` and `extensions/helpers/template/`, and the content root
+   `index.md` (the script's `UNLISTED` list).
 4. Preview locally: `cd docs/wiki && bun run docs:dev` (VitePress dev server). Build the static
    site with `bun run docs:build` (`make docs` also builds it, without the dependency chain the
    other Makefile targets carry - `docs` has no prerequisite target). Clean with `bun run

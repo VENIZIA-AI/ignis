@@ -314,7 +314,7 @@ interface IAxiosRequestOptions extends AxiosRequestConfig, IRequestOptions {
 > [!NOTE]
 > - **`body` maps to Axios's `data`** field internally.
 > - **Query `params` are serialized** using `node:querystring` via Axios's `paramsSerializer`.
-> - **HTTPS gets an `https.Agent` automatically.** `rejectUnauthorized` defaults to `false` - override it per request with `rejectUnauthorized: true`.
+> - **HTTPS gets an `https.Agent` automatically.** Certificate verification is ON, and connections are kept alive. Pass `rejectUnauthorized: false` - on the fetcher, for the whole instance, or on a single request - only when you genuinely mean to accept an unverified certificate. A caller-supplied `httpsAgent` always wins, so a custom CA, pinning or mTLS agent is honoured as given.
 
 #### Methods
 

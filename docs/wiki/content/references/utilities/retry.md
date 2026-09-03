@@ -1,28 +1,28 @@
 ---
 title: Retry Utility
-description: Backoff-driven retry helpers - executeWithRetry retries on errors, executeWithRetryUntil retries until a result looks right
+description: Backoff-driven retry helpers on RetryHelper - executeWithRetry retries on errors, executeWithRetryUntil retries until a result looks right
 difficulty: intermediate
-lastUpdated: 2026-07-18
+lastUpdated: 2026-08-30
 ---
 
 # Retry Utility
 
-Two retry helpers. One retries when a call **throws**. The other retries when a call **succeeds but the result is not what you want yet**.
+Two retry helpers on `RetryHelper`. One retries when a call **throws**. The other retries when a call **succeeds but the result is not what you want yet**.
 
 ## In one example
 
 ```typescript
-import { executeWithRetry, executeWithRetryUntil } from '@venizia/ignis-helpers';
+import { RetryHelper } from '@venizia/ignis-helpers';
 
 // Retries because the call THREW
-const data = await executeWithRetry({
+const data = await RetryHelper.executeWithRetry({
   operation: 'fetch-remote-config',
   execution: () => fetchConfig(),
   maxAttempts: 5,
 });
 
 // Retries because the result is not YET what we want
-const order = await executeWithRetryUntil({
+const order = await RetryHelper.executeWithRetryUntil({
   operation: 'wait-for-paid-order',
   execution: () => orderRepository.findById({ id: orderId }),
   until: result => result?.status === 'PAID',
@@ -30,19 +30,26 @@ const order = await executeWithRetryUntil({
 });
 ```
 
+> [!TIP] Works in the browser
+> Import from `@venizia/ignis-helpers/core` instead, and every method above is available - the whole class is part of the browser-pure surface, verified by the repo's purity gate rather than by inspection.
+>
+> ```typescript
+> import { RetryHelper } from '@venizia/ignis-helpers/core';
+> ```
+
 ## Which one do I need?
 
-| Function | Retries when | Typical use |
+| Method | Retries when | Typical use |
 |---|---|---|
-| `executeWithRetry` | `execution` throws | Flaky network calls, connection setup |
-| `executeWithRetryUntil` | `until(result)` returns `false` | Polling until data is fresh or a job is done. Powers the repository [`retry` option](/references/base/repositories/advanced#read-retry-replica-lag). |
+| `RetryHelper.executeWithRetry` | `execution` throws | Flaky network calls, connection setup |
+| `RetryHelper.executeWithRetryUntil` | `until(result)` returns `false` | Polling until data is fresh or a job is done. Powers the repository [`retry` option](/references/base/repositories/advanced#read-retry-replica-lag). |
 
 Both share the same backoff engine and the same habit: on exhaustion, log one `logger.warn` and hand back the LAST outcome.
 
-## `executeWithRetry`
+## `RetryHelper.executeWithRetry`
 
 ```typescript
-const executeWithRetry: <T>(opts: {
+static executeWithRetry: <T>(opts: {
   operation: string;
   execution: (context: { attempt: number; signal?: AbortSignal }) => ValueOrPromise<T>;
   maxAttempts?: number; // default 3
@@ -62,10 +69,10 @@ The rules:
 - Out of attempts or budget? The LAST error is thrown.
 - `signal` aborts between attempts and during sleeps. It is also passed to `execution` - a running promise cannot be cancelled from outside, so honor it inside if you can.
 
-## `executeWithRetryUntil`
+## `RetryHelper.executeWithRetryUntil`
 
 ```typescript
-const executeWithRetryUntil: <T>(opts: {
+static executeWithRetryUntil: <T>(opts: {
   operation: string;
   execution: (context: { attempt: number; signal?: AbortSignal }) => ValueOrPromise<T>;
   until: (result: T) => boolean; // return true to stop: "the result is good"
@@ -124,9 +131,9 @@ Prefer named constants? `RetryBackoffStrategies.EXPONENTIAL`, `RetryJitterModes.
 
 | Export | What it does |
 |---|---|
-| `runWithTimeout({ operation, timeoutMs, execution })` | Races `execution` against a timeout. Omitted or `<= 0` means no timeout. |
-| `isRetryTimeoutError(error)` | `true` when the error is a timeout from `runWithTimeout`/`executeWithRetry`. |
-| `computeBackoffDelayMs({ attempt, backoff })` | The delay both helpers use, exposed for your own loops. |
+| `RetryHelper.runWithTimeout({ operation, timeoutMs, execution })` | Races `execution` against a timeout. Omitted or `<= 0` means no timeout. |
+| `RetryHelper.isRetryTimeoutError(error)` | `true` when the error is a timeout from `runWithTimeout`/`executeWithRetry`. |
+| `RetryHelper.computeBackoffDelayMs({ attempt, backoff })` | The delay both helpers use, exposed for your own loops. |
 
 ## See also
 
@@ -136,4 +143,6 @@ Prefer named constants? `RetryBackoffStrategies.EXPONENTIAL`, `RetryJitterModes.
 
 **Files:**
 
-- [`packages/helpers/src/utilities/retry.utility.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/utilities/retry.utility.ts)
+- [`packages/helpers/src/modules/retry/helper.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/retry/helper.ts)
+- [`packages/helpers/src/modules/retry/common/constants.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/retry/common/constants.ts)
+- [`packages/helpers/src/modules/retry/common/types.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/retry/common/types.ts)

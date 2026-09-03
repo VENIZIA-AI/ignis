@@ -443,9 +443,9 @@ export const policyDefinitions = pgTable('policy_definitions', { ...generateIdCo
 
 | Column | DB column | Type | Nullable | Description |
 |--------|-----------|------|----------|-------------|
-| `variant` | `variant` | `text` | No | `'p'` (policy) or `'g'` (grouping) |
-| `subjectType` | `subject_type` | `text` | No | For example, `'user'`, `'role'` |
-| `targetType` | `target_type` | `text` | No | For example, `'permission'`, `'role'` |
+| `variant` | `variant` | `text` | No | One of the seven `AuthorizationPolicyVariants` edge kinds: `grant`, `assign_role`, `role_inherits`, `join_domain`, `domain_inherits`, `resource_inherits`, `action_inherits` |
+| `subjectType` | `subject_type` | `text` | No | For example, `'user'`, `'Role'` |
+| `targetType` | `target_type` | `text` | No | For example, `'Permission'`, `'Role'` |
 | `action` | `action` | `text` | Yes | Policy action |
 | `effect` | `effect` | `text` | Yes | `'allow'` / `'deny'` |
 | `domain` | `domain` | `text` | Yes | Multi-tenancy domain |
@@ -454,6 +454,8 @@ export const policyDefinitions = pgTable('policy_definitions', { ...generateIdCo
 | `metadata` | `metadata` | `jsonb` | Yes | Free-form metadata. Only some grants populate it |
 
 All `idType` options default to `'number'` (`integer` columns). Pass `'string'` for `text` columns - UUID primary keys, for example.
+
+`'p'` and `'g'` are Casbin rule prefixes, not `variant` values - each `variant` maps to one of them internally. See the [Authorization component](../authorization/) to build these tables end to end. Its [Usage guide](../authorization/usage) covers policy definitions, domain scoping, and the adapter that reads this table.
 
 ## See also
 

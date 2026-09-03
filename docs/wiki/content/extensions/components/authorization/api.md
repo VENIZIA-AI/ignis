@@ -10,10 +10,10 @@ Every option, binding key, class, and method the Authorization component exposes
 
 **Files:**
 
-- [`packages/core/src/components/auth/authorize/`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core/src/components/auth/authorize) - component, providers, enforcers, adapters, models, middleware
-- [`packages/core/src/components/auth/base/abstract-auth-registry.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core/src/components/auth/base/abstract-auth-registry.ts) - `AbstractAuthRegistry` (shared with Authentication)
-- [`packages/core/src/base/metadata/persistents.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core/src/base/metadata/persistents.ts) - `@model` populating `AUTHORIZATION_SUBJECT`
-- [`packages/core/src/helpers/inversion/mixins/model.mixin.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core/src/helpers/inversion/mixins/model.mixin.ts) - `MetadataRegistry` authorize-settings queries
+- [`packages/core-server/src/components/auth/authorize/`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/components/auth/authorize) - component, providers, enforcers, adapters, models, middleware
+- [`packages/core-server/src/components/auth/base/abstract-auth-registry.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/components/auth/base/abstract-auth-registry.ts) - `AbstractAuthRegistry` (shared with Authentication)
+- [`packages/core-server/src/base/metadata/persistents.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/base/metadata/persistents.ts) - `@model` populating `AUTHORIZATION_SUBJECT`
+- [`packages/core-server/src/helpers/inversion/mixins/model.mixin.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/helpers/inversion/mixins/model.mixin.ts) - `MetadataRegistry` authorize-settings queries
 
 ## Find what you need
 
@@ -133,7 +133,8 @@ flowchart TD
     Voters -->|DENY| E403a[/403 Denied by voter/]
     Voters -->|ALLOW| Next4([next - voter allow])
     Voters -->|ABSTAIN / none| HasEnforcers{Enforcers registered?}
-    HasEnforcers -->|No| Next6([next - skip, no enforcers])
+    HasEnforcers -->|No, defaultDecision: allow| Next6([next - allow, warning logged])
+    HasEnforcers -->|No, defaultDecision: deny or unset| E403c[/403 no enforcer registered/]
     HasEnforcers -->|Yes| Resolve[Resolve enforcer by name]
     Resolve --> ResolveDomain["Resolve domain (if spec.domain or domainResolver)"]
     ResolveDomain --> Cache{Rules cached?}
@@ -249,7 +250,7 @@ components/auth/authorize/
 | Rules caching | Built rules cached on the Hono context per-request - avoids rebuilding for multi-spec routes |
 | Registry singleton | Mirrors `AuthenticationStrategyRegistry` - shares `AbstractAuthRegistry<T>` |
 | Filtered adapter pattern | `BaseFilteredAdapter` is a thin read-only base; subclasses implement only `loadFilteredPolicy` |
-| No-enforcer fallback | No enforcers registered -> the middleware skips authorization and calls `next()` instead of throwing |
+| No-enforcer fallback | No enforcers registered -> the middleware honors `defaultDecision`: `deny` (default) throws a named 403, `allow` proceeds and logs a warning |
 | Single edge table (scoped model) | `ScopedCasbinAdapter` reads one `PolicyDefinition` table for every edge type - no per-relation tables |
 
 ## AuthorizeComponent
@@ -272,7 +273,7 @@ class AuthorizeComponent extends BaseComponent {
 > [!NOTE]
 > Enforcer registration is separate - `AuthorizeComponent` only validates global options. Register enforcers via `AuthorizationEnforcerRegistry.register()`.
 
-Source -> [`component.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core/src/components/auth/authorize/component.ts)
+Source -> [`component.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/components/auth/authorize/component.ts)
 
 ## Binding keys
 
@@ -294,7 +295,7 @@ class AuthorizeBindingKeys {
 
 `AuthorizeBindingKeys.enforcerOptions(name)` is called automatically by `AuthorizationEnforcerRegistry.register()` when `options` is provided; `CasbinAuthorizationEnforcer` injects its options from `AuthorizeBindingKeys.enforcerOptions('casbin')`.
 
-Source -> [`common/constants.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core/src/components/auth/authorize/common/constants.ts)
+Source -> [`common/constants.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/components/auth/authorize/common/constants.ts)
 
 ## Option interfaces
 
@@ -348,6 +349,15 @@ interface ICasbinEnforcerOptions<E extends Env = Env, TAction = string, TResourc
 
 > [!NOTE]
 > `cached.options.expiresIn` must be `>= 10_000` ms (`MIN_EXPIRES_IN`). Caching is **Redis-only** - the in-memory driver was removed.
+
+### Domain hierarchy edges (`g3`)
+
+There is no enforcer-level option for domain hierarchy - a role assignment (`g`), a grant (`g3`), or a domain membership (`g2`) declared at a parent domain reaching its children is driven entirely by `g3` policy lines already present in a principal's own line set, whenever `isScoped: true`. Two sources produce those lines - see `resolveDomainEdges` on [`ScopedCasbinAdapter`](#scopedcasbinadapter) below for the second one:
+
+- `domain_inherits` rows reachable from the principal's domain closure (`ScopedCasbinAdapter`'s `DOMAIN_EDGE` branch, always on).
+- `ScopedCasbinAdapter`'s `resolveDomainEdges` constructor hook, for a hierarchy the app already owns on a business table.
+
+`registerMatchers()` (see [`configure()`](#configure) below) wires this unconditionally for every scoped model, sharing one overlay across the three role managers. Freshness is whatever the per-user policy-line cache already guarantees; there is no separate TTL or invalidation call to reason about.
 
 **Cache configuration (discriminated union):**
 
@@ -434,7 +444,7 @@ interface IAuthorizationRequest<TAction = string, TResource = string> {
 }
 ```
 
-Source -> [`common/types.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core/src/components/auth/authorize/common/types.ts)
+Source -> [`common/types.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/components/auth/authorize/common/types.ts)
 
 ## Constants
 
@@ -516,6 +526,14 @@ All constant classes follow the same pattern: static readonly values + `SCHEME_S
 
 `isValidAction(input)` / `isValidRule(input)` check membership; `ACTION_SCHEME_SET` / `RULE_SCHEME_SET` hold the sets.
 
+The `variant` column's TypeScript type (`extraPolicyDefinitionColumns` in [`policy-definition.model.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/components/auth/models/entities/policy-definition.model.ts)) is closed to these seven values by default - `extraPolicyDefinitionColumns()`. An application with its own edge type stored in the same table declares it explicitly, and only that call site's column type widens:
+
+```typescript
+extraPolicyDefinitionColumns({ idType: 'string', extraVariants: ['merchant_role'] });
+```
+
+`ScopedCasbinAdapter` never selects an undeclared variant - it is purely the application's own data alongside the seven above.
+
 **`AuthorizationDomainScopes`** - sentinel domain values on `grant` rows.
 
 | Constant | Value | Meaning |
@@ -533,7 +551,7 @@ All constant classes follow the same pattern: static readonly values + `SCHEME_S
 | `GUEST` | `'001_guest'` | 1 |
 | `UNKNOWN_USER` | `'000_unknown-user'` | 0 |
 
-Source -> [`common/constants.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core/src/components/auth/authorize/common/constants.ts)
+Source -> [`common/constants.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/components/auth/authorize/common/constants.ts)
 
 ## CASBIN_RBAC_DOMAIN_SCOPED_MODEL
 
@@ -581,7 +599,7 @@ m = g(r.sub, p.sub, r.dom) && (p.dom == "SYSTEM_WIDE" || (p.dom == "ANY_MEMBER" 
 > [!NOTE]
 > Relies on the default `DefaultRoleManager`'s self-link behavior (`hasLink(name, name) === true`) for `g3`/`g4`/`g5` - a custom role manager must preserve self-links.
 
-Source -> [`enforcers/models/rbac-domain.model.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core/src/components/auth/authorize/enforcers/models/rbac-domain.model.ts)
+Source -> [`enforcers/models/rbac-domain.model.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/components/auth/authorize/enforcers/models/rbac-domain.model.ts)
 
 ## AbstractAuthRegistry
 
@@ -614,7 +632,7 @@ type TRegistryDescriptor<TItem> = { container: Container; targetClass: TClass<TI
 
 `AuthorizationEnforcerRegistry.getBindingPrefix()` returns `Authorization.ENFORCER` (`'authorization.enforcer'`).
 
-Source -> [`base/abstract-auth-registry.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core/src/components/auth/base/abstract-auth-registry.ts)
+Source -> [`base/abstract-auth-registry.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/components/auth/base/abstract-auth-registry.ts)
 
 ## AuthorizationEnforcerRegistry
 
@@ -649,7 +667,7 @@ class AuthorizationEnforcerRegistry extends AbstractAuthRegistry<IAuthorizationE
 |--------|---------|-------------|
 | `getInstance()` | `AuthorizationEnforcerRegistry` | Singleton instance (created on first call) |
 | `register(opts)` | `this` | Registers enforcers with type-safe options (chainable) |
-| `hasEnforcers()` | `boolean` | `descriptors.size > 0` - used by the middleware to skip authorization when no enforcers exist |
+| `hasEnforcers()` | `boolean` | `descriptors.size > 0` - used by the middleware to decide whether to honor `defaultDecision` instead of resolving an enforcer |
 | `getDefaultEnforcerName()` | `string` | Delegates to `getDefaultName()` |
 | `resolveEnforcer({ name })` | `Promise<IAuthorizationEnforcer>` | Resolves + auto-configures once (`configuredEnforcers` Set) |
 | `resolveOptions()` | `IAuthorizeOptions \| undefined` | Iterates all registered containers looking for `AuthorizeBindingKeys.OPTIONS` |
@@ -677,7 +695,7 @@ async resolveEnforcer(opts: { name: string }): Promise<IAuthorizationEnforcer> {
 }
 ```
 
-Source -> [`enforcers/enforcer-registry.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core/src/components/auth/authorize/enforcers/enforcer-registry.ts)
+Source -> [`enforcers/enforcer-registry.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/components/auth/authorize/enforcers/enforcer-registry.ts)
 
 ## IAuthorizationEnforcer interface
 
@@ -773,6 +791,16 @@ Called once by the registry on first use:
 
 `g4` skips `addNamedMatchingFunc` on purpose. It sets casbin's `hasPattern`, which disables `DefaultRoleManager`'s fast path on every link check, not just `g4` lookups.
 
+For every scoped model, three more role managers are wired unconditionally - not behind a separate option:
+
+| Registers | On | Notes |
+|---|---|---|
+| `MembershipRoleManager` | `g2` | Joining a parent domain membership makes the request domain's ancestors match too |
+| `DomainHierarchyRoleManager` | `g3` | Grant domain nesting, request-domain-first |
+| `DomainHierarchyRoleManager` (`reversed: true`) | `g`, via casbin's own `DefaultRoleManager.addDomainHierarchy()` | Role-assignment domain, stored-domain-first - the opposite argument order from `g3` |
+
+The `g3` instance, the reversed `g` instance and `MembershipRoleManager` on `g2` are handed the same overlay `Map<child, Set<parent>>`. Casbin's `buildRoleLinks()` feeds every `g3` policy line to the `g3` instance via `addLink`, which writes into that shared overlay - the reversed `g` instance and `MembershipRoleManager` only ever read it, since casbin never puts the `g`-axis manager in its own `rmMap` and so never calls `addLink` on it directly. See [Domain hierarchy edges (`g3`)](#domain-hierarchy-edges-g3) above for where those `g3` lines come from.
+
 When `domainMatching` is set (flat model), `registerMatchers()` registers the chosen `Util.*Func` on the named role definition instead, and always finishes with `buildRoleLinks()`.
 
 **`assertMatcherCompilesSync()`** is a boot-time smoke test. It forces casbin's lazy matcher compile with one dummy `enforceSync` call (4 args when scoped/`normalizePayloadFn`, else 3). A malformed matcher, an unregistered function, or an arity mismatch fails at warmup, not on the first real request.
@@ -805,7 +833,7 @@ On any error inside `pool.use`, the pool **destroys** the borrowed enforcer (fai
 
 Redis-only - both throw if caching is disabled. `invalidateUserCache` deletes the user's shared Redis key; the next request rebuilds lazily. `rebuildUserCache` deletes, then immediately re-extracts (on a throwaway enforcer) and re-caches. The key is shared in Redis, so one call is correct across every instance.
 
-Source -> [`enforcers/casbin.enforcer.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core/src/components/auth/authorize/enforcers/casbin.enforcer.ts)
+Source -> [`enforcers/casbin.enforcer.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/components/auth/authorize/enforcers/casbin.enforcer.ts)
 
 ## BaseFilteredAdapter
 
@@ -859,7 +887,7 @@ protected async loadLines(opts: { model: Model; lines: string[] }): Promise<void
 }
 ```
 
-Source -> [`adapters/base-filtered.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core/src/components/auth/authorize/adapters/base-filtered.ts), [`adapters/types.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core/src/components/auth/authorize/adapters/types.ts)
+Source -> [`adapters/base-filtered.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/components/auth/authorize/adapters/base-filtered.ts), [`adapters/types.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/components/auth/authorize/adapters/types.ts)
 
 ## ScopedCasbinAdapter
 
@@ -868,7 +896,12 @@ The generic, read-only `FilteredAdapter` for the scoped RBAC model. Reads **one 
 ```typescript
 class ScopedCasbinAdapter extends BaseFilteredAdapter<IScopedCasbinPolicyFilter> {
   protected readonly entities: IScopedCasbinEntities;
-  constructor(opts: { dataSource: ICasbinPolicySource; entities: IScopedCasbinEntities });
+  protected readonly resolveDomainEdges?: TResolveDomainEdgesFn;
+  constructor(opts: {
+    dataSource: ICasbinPolicySource;
+    entities: IScopedCasbinEntities;
+    resolveDomainEdges?: TResolveDomainEdgesFn;
+  });
 
   async loadFilteredPolicy(model: Model, filter: IScopedCasbinPolicyFilter): Promise<void>;
 
@@ -999,7 +1032,37 @@ const adapter = new ScopedCasbinAdapter({
 });
 ```
 
-Source -> [`adapters/scoped-casbin.adapter.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core/src/components/auth/authorize/adapters/scoped-casbin.adapter.ts)
+Source -> [`adapters/scoped-casbin.adapter.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/components/auth/authorize/adapters/scoped-casbin.adapter.ts)
+
+### `resolveDomainEdges` - `g3` edges from business data
+
+A second, opt-in source of `g3` edges, alongside the `DOMAIN_EDGE` branch above. Configured on the constructor, for a tenant hierarchy the app already owns as a plain foreign key on a business table rather than `domain_inherits` rows:
+
+```typescript
+type TResolveDomainEdgesFn = (opts: {
+  principal: { type: string; id: IdType };
+  domains: string[];
+}) => Promise<Array<{ child: string; parent: string }>>;
+
+new ScopedCasbinAdapter({
+  dataSource,
+  entities,
+  resolveDomainEdges: async ({ principal, domains }) => [{ child, parent }, ...],
+});
+```
+
+`domains` is the principal's own domain closure, reconstructed from rows `queryPrincipalPolicies` already fetched (the `join_domain` seed plus both ends of every `domainEdge` row) rather than a third query. The hook returns `{ child, parent }` pairs as already-formed `<Type>_<id>` tokens; `loadFilteredPolicy` turns each into a `g3, <child>, <parent>` line, the exact shape a real `domain_inherits` row produces - nothing downstream can tell which source produced a given edge. A hook edge duplicating a real `domain_inherits` row is harmless: `DomainHierarchyRoleManager.addLink` stores parents in a `Set`, so the duplicate `addLink` call is a no-op.
+
+A throwing hook is caught, logged, and treated as no edges for that one load - the rows already gathered (direct grants, role assignments, table-sourced `g3` rows) still load normally. This is the fail-secure direction: a missing `g3` edge only narrows what `g`/`g2`/`g3` reach, it can never widen it. The hook cannot join `queryPrincipalPolicies`'s wave (it needs that query's rows to compute `domains`) but does not wait on the independent `queryEdgePolicies` either - both resolve concurrently once the closure is known.
+
+> [!WARNING]
+> `domains` is a **membership closure**, built from `join_domain` rows plus both ends of every `domainEdge` row. It is **not** the set of domains the principal holds a role in through `assign_role`. A principal can hold `assign_role` at a domain it never joined. Porting a hook from a mechanism that derived its domains from `assign_role` will silently lose access for exactly those principals - no error, no log, just fewer `g3` edges than before. Measured on one production dataset: 17 principals held `assign_role` with no matching `join_domain`, 3 of them pointing at live records.
+
+A tenant hierarchy with more than one axis - an organizer tree and a separate, unrelated region tree, say - does not get a second hook. `resolveDomainEdges` is deliberately a single function, so composition stays visible in the application rather than hidden inside the framework:
+
+```typescript
+resolveDomainEdges: async opts => [...(await organizerEdges(opts)), ...(await regionEdges(opts))],
+```
 
 ### Subset grants (custom rows)
 
@@ -1030,7 +1093,7 @@ A row that passes all four checks can still drop an individual **unresolvable op
 
 **Composing a grant:** use `planGrant` (below) rather than hand-building a custom row. It collapses an operation selection into tier grants wherever possible. What does not collapse falls back to a custom row, or a single per-operation row.
 
-Source -> [`adapters/scoped-casbin.adapter.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core/src/components/auth/authorize/adapters/scoped-casbin.adapter.ts)
+Source -> [`adapters/scoped-casbin.adapter.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/components/auth/authorize/adapters/scoped-casbin.adapter.ts)
 
 ## AuthorizationPermissionBuilder.objectMatch
 
@@ -1057,7 +1120,7 @@ enforcer.addFunction('objectMatch', AuthorizationPermissionBuilder.objectMatch);
 | `objectMatch('Activation.findById', 'Activation')` | `true` | Dotted nesting - endpoint under subject |
 | `objectMatch('OrderItem', 'Order')` | `false`, unless a `resource_inherits` (`g4`) edge links them | Non-standard nesting always needs an explicit edge |
 
-Source -> [`builders/permission.builder.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core/src/components/auth/authorize/builders/permission.builder.ts)
+Source -> [`builders/permission.builder.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/components/auth/authorize/builders/permission.builder.ts)
 
 ## AuthorizationProvider
 
@@ -1097,8 +1160,11 @@ for (const voter of spec.voters ?? []) {
   // ABSTAIN -> next voter
 }
 
-// 5. Resolve enforcer (no-enforcer fallback)
-if (!registry.hasEnforcers()) return next();
+// 5. Resolve enforcer (no-enforcer fallback honors defaultDecision - fails closed by default)
+if (!registry.hasEnforcers()) {
+  if (options?.defaultDecision === 'allow') return next(); // logs a warning
+  throw 403 'no enforcer registered'; // AuthorizationErrors.ENFORCER_NOT_REGISTERED
+}
 const enforcer = await registry.resolveEnforcer({ name: enforcerName ?? registry.getDefaultEnforcerName() });
 
 // 5b. Resolve request domain - only when spec.domain or a global domainResolver is in play
@@ -1128,7 +1194,7 @@ await next();
 roles.map(r => typeof r === 'string' ? r : (r.identifier ?? r.name ?? String(r.id ?? '')));
 ```
 
-Source -> [`providers/authorization.provider.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core/src/components/auth/authorize/providers/authorization.provider.ts)
+Source -> [`providers/authorization.provider.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/components/auth/authorize/providers/authorization.provider.ts)
 
 ## Standalone authorize() function
 
@@ -1141,7 +1207,7 @@ export const authorize = (opts: { spec: IAuthorizationSpec; enforcerName?: strin
 
 A module-level singleton `AuthorizationProvider`; the returned handler is a standard Hono `MiddlewareHandler`.
 
-Source -> [`middlewares/authorize.middleware.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core/src/components/auth/authorize/middlewares/authorize.middleware.ts)
+Source -> [`middlewares/authorize.middleware.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/components/auth/authorize/middlewares/authorize.middleware.ts)
 
 ## AuthorizationRole
 
@@ -1167,7 +1233,7 @@ class AuthorizationRole implements IAuthorizationRole {
 interface IAuthorizationRole { readonly name: string; readonly priority: number; readonly identifier: string; }
 ```
 
-Source -> [`models/authorization-role.model.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core/src/components/auth/authorize/models/authorization-role.model.ts)
+Source -> [`models/authorization-role.model.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/components/auth/authorize/models/authorization-role.model.ts)
 
 ## Policy and permission builders
 
@@ -1235,7 +1301,7 @@ class AuthorizationPermissionBuilder {
 }
 ```
 
-Source -> [`builders/policy.builder.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core/src/components/auth/authorize/builders/policy.builder.ts), [`builders/permission.builder.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core/src/components/auth/authorize/builders/permission.builder.ts)
+Source -> [`builders/policy.builder.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/components/auth/authorize/builders/policy.builder.ts), [`builders/permission.builder.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/components/auth/authorize/builders/permission.builder.ts)
 
 ### GrantBuilder.planGrant
 
@@ -1272,7 +1338,7 @@ Throws (`getError`) on an invalid tier, an empty `ops`, or an `ops` entry absent
 
 Mirrors `ScopedCasbinAdapter.buildGrantLines`'s expansion: a planned custom row and the equivalent per-operation rows expand to identical casbin lines - see [Subset grants](#subset-grants-custom-rows).
 
-Source -> [`builders/grant.builder.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core/src/components/auth/authorize/builders/grant.builder.ts)
+Source -> [`builders/grant.builder.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/components/auth/authorize/builders/grant.builder.ts)
 
 ## Model-based authorization metadata
 
@@ -1310,7 +1376,7 @@ getAuthorizeModelSettings(opts: { format: 'array' }): Array<{ name: string; auth
 getAuthorizeModelSettings(opts: { format: 'record' }): Record<string, { authorize: IModelAuthorizeSettings; entry: IModelRegistryEntry }>;
 ```
 
-Source -> [`base/metadata/persistents.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core/src/base/metadata/persistents.ts), [`helpers/inversion/mixins/model.mixin.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core/src/helpers/inversion/mixins/model.mixin.ts)
+Source -> [`base/metadata/persistents.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/base/metadata/persistents.ts), [`helpers/inversion/mixins/model.mixin.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/helpers/inversion/mixins/model.mixin.ts)
 
 ## Controller integration
 
@@ -1385,7 +1451,7 @@ type TRouteAuthConfig = { authenticate?: TRouteAuthenticateConfig; authorize?: T
 
 Applied identically to `count`, `find`, `findById`, `findOne`, `create`, `updateById`, `updateBy`, `deleteById`, `deleteBy`.
 
-Source -> [`base/controllers/rest/abstract.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core/src/base/controllers/rest/abstract.ts), [`base/controllers/grpc/abstract.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core/src/base/controllers/grpc/abstract.ts), [`base/controllers/factory/definition.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core/src/base/controllers/factory/definition.ts)
+Source -> [`base/controllers/rest/abstract.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/base/controllers/rest/abstract.ts), [`base/controllers/grpc/abstract.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/base/controllers/grpc/abstract.ts), [`base/controllers/factory/definition.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/base/controllers/factory/definition.ts)
 
 ## Context variables
 
@@ -1398,7 +1464,7 @@ declare module 'hono' {
     [Authentication.AUDIT_USER_ID]: IdType;
     [Authentication.SKIP_AUTHENTICATION]: boolean;
 
-    [Authorization.RULES]: unknown;
+    [Authorization.RULES]: Map<string, unknown>;
     [Authorization.SKIP_AUTHORIZATION]: boolean;
     [Authorization.DOMAIN]: string;
   }

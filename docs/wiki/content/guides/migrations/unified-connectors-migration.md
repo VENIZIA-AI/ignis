@@ -7,7 +7,7 @@ description: What changed in @venizia/ignis 0.0.11-0 / @venizia/ignis-helpers 0.
 
 **Target audience:** the BANA (nx-seller) team, and any application upgrading from `@venizia/ignis@0.0.10-x` / `@venizia/ignis-helpers@0.0.9-x`.
 
-**Verification status:** every step below was validated against a full copy of BANA's `packages/core` source compiled against the release tarballs. The migration ends at **zero compile errors**. The search branch was additionally validated end to end against a live 3-node Typesense cluster.
+**Verification status:** every step below was validated against a full copy of BANA's `packages/core-server` source compiled against the release tarballs. The migration ends at **zero compile errors**. The search branch was additionally validated end to end against a live 3-node Typesense cluster.
 
 ## What changed (summary)
 

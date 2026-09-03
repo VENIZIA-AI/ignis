@@ -127,5 +127,5 @@ this.defineJSXRoute({
 
 **Files:**
 
-- [`packages/core/src/utilities/jsx.utility.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core/src/utilities/jsx.utility.ts) - `htmlContent`, `htmlResponse`
-- [`packages/core/src/base/controllers/rest/base.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core/src/base/controllers/rest/base.ts) - `defineJSXRoute`
+- [`packages/core-server/src/utilities/jsx.utility.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/utilities/jsx.utility.ts) - `htmlContent`, `htmlResponse`
+- [`packages/core-server/src/base/controllers/rest/base.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/base/controllers/rest/base.ts) - `defineJSXRoute`

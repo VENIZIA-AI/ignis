@@ -31,7 +31,7 @@ HOW TO OBTAIN:
 - Navigate from root directory down to the specific file
 
 EXAMPLES:
-- "packages/core/src/application.ts"
+- "packages/core-server/src/application.ts"
 - "examples/5-mins-qs/src/index.ts"
 - "package.json"
 `;

@@ -17,6 +17,28 @@ This section tracks the history of significant changes, refactors, and updates t
 
 | Date | Title | Type |
 |------|-------|------|
+| 2026-08-31 | [EventBus Retry Gets Jitter, a Bounded Per-Registration Window, and a Tagged Handler Reference](./2026-08-31-event-bus-retry) | New Feature, Enhancement, Breaking Change |
+| 2026-08-31 | [TEntityId Makes a String Id Impossible to Confuse With a String](./2026-08-31-entity-id-brand) | New Feature |
+| 2026-08-31 | [PolicyDefinition Gets domain_type and domain_id (Release A - Both Forms Written)](./2026-08-31-policy-domain-split) | New Feature, Migration Required |
+| 2026-08-31 | [An Application Refuses to Start When scopeFilter Cannot Take Effect](./2026-08-31-scope-filter-boot-checks) | Security, Behavior Change |
+| 2026-08-31 | [PolicyDefinition Reads the Domain Pair and the domain Column Is Gone (Release B)](./2026-08-31-policy-domain-split-release-b) | Breaking Change, Migration Required |
+| 2026-08-30 | [A Row Scope Every Query Carries, Denied by Default When It Cannot Be Resolved](./2026-08-30-row-scope-filter) | New Feature, Security |
+| 2026-08-30 | [Where Clauses Now Type-Check the Value, Not Just the Column](./2026-08-30-typed-where-clauses) | Breaking Change, Enhancement |
+| 2026-08-30 | [Tree Utilities Join helpers, and RecursiveTreeSql Bounds Every Recursive Walk in kernel](./2026-08-30-tree-and-recursive-sql) | New Feature, Security |
+| 2026-08-30 | [A Real Hash Class Replaces the Removed hash() Utility](./2026-08-30-crypto-hashing) | New Feature, Security, Breaking Change |
+| 2026-08-30 | [PolicyDefinition.variant Stays Closed by Default, but an App Can Now Declare Its Own Edge Kinds](./2026-08-30-policy-definition-extra-variants) | Enhancement |
+| 2026-08-30 | [authorize() Denies When No Enforcer Is Registered](./2026-08-30-authorize-no-enforcer-fails-closed) | Security, Breaking Change |
+| 2026-08-30 | [getHealth() Never Throws, Imports Keep Progress, and collectionExists() Never Lies About Absence](./2026-08-30-search-connector-health-and-import-contract) | Behavior Change, Bug Fix |
+| 2026-08-29 | [Casbin Domain Hierarchy - Parent Domains Reach Their Children](./2026-08-29-casbin-domain-hierarchy) | New Feature |
+| 2026-08-24 | [Two Query Shapes You No Longer Have to Rebuild](./2026-08-24-query-wrapper-schemas) | New API, Enhancement |
+| 2026-08-22 | [Log Lines Stop Carrying Color Outside Development](./2026-08-22-logger-color-off-outside-development) | Behavior Change, Enhancement |
+| 2026-08-21 | [Services Prove Themselves to Each Other, Without a Shared Password](./2026-08-21-service-authentication-strategy) | New Feature, Security |
+| 2026-08-19 | [Your Own Authentication Strategies, and Tokens That Say Who They Are For](./2026-08-19-service-authentication-phase-1) | New Feature, Security, Enhancement, Breaking Change |
+| 2026-08-19 | [A Browser BFF That Survives a Second Tab](./2026-08-19-browser-bff-multi-tab) | New Feature, Security, Breaking Change, Bug Fix |
+| 2026-08-18 | [A Second ID Generator, for IDs People Read](./2026-08-18-opaque-uid-helper) | New Feature |
+| 2026-08-18 | [Every Browser-Safe Package Now Ships ESM](./2026-08-18-esm-builds-and-one-default-stack) | Enhancement, Bug Fix, Behavior Change |
+| 2026-08-13 | [A Browser-Pure Kernel Under `@venizia/ignis`](./2026-08-13-browser-pure-kernel) | New Feature, Enhancement, Internal Refactor |
+| 2026-08-12 | [Log Arguments Under `%j` No Longer Collapse to `[Circular]`](./2026-08-12-json-log-arguments) | Bug Fix, Security, Behavior Change |
 | 2026-08-07 | [Call Sites No Longer Have to Know Which Fields Are Text](./2026-08-07-default-query-by) | New Feature, Enhancement |
 | 2026-08-07 | [Nested i18n Fields Become Filterable and Sortable](./2026-08-07-nested-fields-and-order-validation) | New Feature, Bug Fix, Behavior Change |
 | 2026-08-07 | [One Transport for Every Typesense Search](./2026-08-07-typesense-multi-search-transport) | New Feature, Bug Fix, Behavior Change |

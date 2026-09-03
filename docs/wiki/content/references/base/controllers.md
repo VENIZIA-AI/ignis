@@ -12,14 +12,14 @@ Technical reference for REST controller classes - the foundation for creating HT
 > This page covers **REST controllers** (HTTP/JSON). For gRPC controllers using ConnectRPC, see the [gRPC Controllers Reference](./grpc-controllers.md).
 
 **Files:**
-- `packages/core/src/base/controllers/rest/abstract.ts` - Abstract base class
-- `packages/core/src/base/controllers/rest/base.ts` - Concrete base class
-- `packages/core/src/base/controllers/common/types.ts` - Shared types and interfaces
-- `packages/core/src/base/controllers/common/constants.ts` - Transport constants and headers
-- `packages/core/src/base/metadata/routes/rest.ts` - Route decorators (`@api`, `@get`, `@post`, etc.)
-- `packages/core/src/base/metadata/routes/controller.ts` - `@controller` decorator
-- `packages/core/src/base/controllers/factory/controller.ts` - CRUD controller factory
-- `packages/core/src/components/controller/rest/rest.component.ts` - RestComponent
+- `packages/core-server/src/base/controllers/rest/abstract.ts` - Abstract base class
+- `packages/core-server/src/base/controllers/rest/base.ts` - Concrete base class
+- `packages/core-server/src/base/controllers/common/types.ts` - Shared types and interfaces
+- `packages/core-server/src/base/controllers/common/constants.ts` - Transport constants and headers
+- `packages/core-server/src/base/metadata/routes/rest.ts` - Route decorators (`@api`, `@get`, `@post`, etc.)
+- `packages/core-server/src/base/metadata/routes/controller.ts` - `@controller` decorator
+- `packages/core-server/src/base/controllers/factory/controller.ts` - CRUD controller factory
+- `packages/core-server/src/components/controller/rest/rest.component.ts` - RestComponent
 
 ## Quick Reference
 
@@ -89,7 +89,7 @@ During `registerControllers()`, the application creates a `RestComponent` for RE
 
 ## `RestComponent`
 
-**File:** `packages/core/src/components/controller/rest/rest.component.ts`
+**File:** `packages/core-server/src/components/controller/rest/rest.component.ts`
 
 The `RestComponent` is responsible for discovering, configuring, and mounting all REST controllers onto the application's root Hono router. It is automatically instantiated by `BaseApplication.registerControllers()` when the REST transport is enabled.
 
@@ -400,7 +400,7 @@ interface ICustomizableRoutes<
 
 ## Route Decorators
 
-**File:** `packages/core/src/base/metadata/routes/rest.ts`
+**File:** `packages/core-server/src/base/metadata/routes/rest.ts`
 
 ### `@controller` Decorator
 
@@ -618,7 +618,7 @@ request: {
 
 ## Standard Headers and Constants
 
-**File:** `packages/core/src/base/controllers/common/constants.ts`
+**File:** `packages/core-server/src/base/controllers/common/constants.ts`
 
 ### `RestPaths`
 
@@ -644,7 +644,7 @@ class RestPaths {
 
 The `ControllerFactory` provides a static method `defineCrudController` to quickly generate a pre-configured CRUD controller for any given `AbstractEntity` subclass (e.g. `BaseEntity` for Postgres) and its corresponding repository.
 
-**File:** `packages/core/src/base/controllers/factory/controller.ts`
+**File:** `packages/core-server/src/base/controllers/factory/controller.ts`
 
 ### `static defineCrudController<TDataObject, TPersistObject = TDataObject, Routes extends ICustomizableRoutes = ICustomizableRoutes>(opts: ICrudControllerOptions<Routes>)`
 

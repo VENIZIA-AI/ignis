@@ -438,13 +438,29 @@ export class SocketIOServerHelper extends BaseHelper {
     });
   }
 
+  /**
+   * Narrows an untrusted room payload to the strings it actually contains.
+   *
+   * The listeners below run on data any authenticated client sends. Destructuring `{ rooms = [] }`
+   * out of an `any` and testing `rooms?.length` accepts a STRING - `{"rooms":"lobby"}` has a
+   * length of 5 - and the next line calls `rooms.map`, which a string does not have. socket.io
+   * dispatches on `process.nextTick` with no try/catch around the handler, so that TypeError
+   * escapes as an uncaught exception and takes the process with it.
+   */
+  private static toRoomList(payload: unknown): string[] {
+    const rooms = (payload as { rooms?: unknown } | null | undefined)?.rooms;
+    return Array.isArray(rooms)
+      ? rooms.filter((room): room is string => typeof room === 'string')
+      : [];
+  }
+
   private registerRoomHandlers(opts: { socket: IOSocket; clientId: string }) {
     const { socket, clientId: id } = opts;
 
     const joinLogger = this.logger.for(SocketIOConstants.EVENT_JOIN);
     socket.on(SocketIOConstants.EVENT_JOIN, (payload: any) => {
-      const { rooms = [] } = payload ?? { rooms: [] };
-      if (!rooms?.length) {
+      const rooms = SocketIOServerHelper.toRoomList(payload);
+      if (!rooms.length) {
         return;
       }
 
@@ -494,14 +510,17 @@ export class SocketIOServerHelper extends BaseHelper {
 
     const leaveLogger = this.logger.for(SocketIOConstants.EVENT_LEAVE);
     socket.on(SocketIOConstants.EVENT_LEAVE, (payload: any) => {
-      const { rooms = [] } = payload ?? { rooms: [] };
-      if (!rooms?.length) {
+      const rooms = SocketIOServerHelper.toRoomList(payload);
+      if (!rooms.length) {
         return;
       }
 
       leaveLogger.info('Leaving rooms | id: %s | rooms: %j', id, rooms);
 
-      Promise.all(rooms.map((room: string) => socket.leave(room)))
+      // `Promise.resolve` per room: socket.io declares `leave(room): Promise<void> | void` - the
+      // default adapter is synchronous, a clustered one is not - and `Promise.all` over a mixed
+      // iterable is what the previous `any`-typed payload was hiding.
+      Promise.all(rooms.map(room => Promise.resolve(socket.leave(room))))
         .then(() => {
           leaveLogger.info('Left rooms | id: %s | rooms: %s', id, rooms);
         })

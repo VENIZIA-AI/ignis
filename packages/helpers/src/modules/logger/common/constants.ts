@@ -48,3 +48,38 @@ export const resolveLoggerLevel = (opts: { configured?: string }): TLogLevel => 
 
   return normalized as TLogLevel;
 };
+
+/**
+ * Whether log lines may carry ANSI color, resolved at CALL time. First match wins:
+ *
+ * 1. `APP_ENV_LOGGER_COLOR` - an explicit yes or no from the operator.
+ * 2. `NO_COLOR`, set to anything non-empty - the no-color.org convention.
+ * 3. `NODE_ENV` outside {@link Environment.DEVELOPMENT_ENVS} - production, staging, uat and any
+ *    unrecognized name. Fail-closed, the same boundary the error sanitizer draws: colors are a
+ *    terminal affordance, and in a deployed environment the same bytes land in a file or an
+ *    aggregator as escape noise every grep then has to strip.
+ *
+ * `undefined` means the framework has no opinion, so a provider that detects a terminal itself
+ * keeps deciding - which is why the pino path forwards nothing in that case.
+ */
+export const resolveLoggerColorize = (opts?: {
+  configured?: string;
+  environment?: string;
+}): boolean | undefined => {
+  const configured = opts?.configured ?? process.env.APP_ENV_LOGGER_COLOR;
+  if (configured !== undefined && configured.trim() !== '') {
+    return toBoolean(configured.trim().toLowerCase());
+  }
+
+  const noColor = process.env.NO_COLOR;
+  if (noColor !== undefined && noColor !== '') {
+    return false;
+  }
+
+  const environment = opts?.environment ?? Environment.current;
+  if (!Environment.DEVELOPMENT_ENVS.has(environment)) {
+    return false;
+  }
+
+  return undefined;
+};

@@ -115,7 +115,7 @@ interface IAuthService {
 
 // Type aliases use 'T' prefix
 type TSignInRequest = z.infer<typeof SignInRequestSchema>;
-type TAuthStrategy = TConstValue<typeof AuthenticateStrategy>;
+type TJWKSMode = TConstValue<typeof JWKSModes>;
 
 // ❌ Never a bare string-literal union for an enumerable set - it has no runtime
 // values to validate against. Use a const class + TConstValue instead.

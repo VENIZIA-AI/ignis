@@ -1,12 +1,21 @@
 ---
 title: UID
-description: Snowflake ID generator with Base62 encoding for unique, time-sortable distributed identifiers
+description: Two ID generators - time-sortable Snowflake IDs, and short random IDs a human can read back
 difficulty: beginner
 ---
 
 # UID
 
-`SnowflakeUidHelper` generates 70-bit, time-sortable Snowflake IDs. It encodes them as compact Base62 strings, suitable as database primary keys.
+Two generators, and they answer different questions.
+
+| Helper | Reads back as | Pick it when |
+|---|---|---|
+| `SnowflakeUidHelper` | Timestamp, worker ID, sequence | The ID is a primary key and you want insert order for free |
+| `OpaqueUidHelper` | Nothing | The ID leaves your system - a human reads it, or a stranger sees it |
+
+A Snowflake ID is transparent by design. `parseId()` gives back the exact millisecond it was minted and the worker that minted it. That is what you want in a log, and what you do not want printed on an invoice a customer keeps.
+
+An opaque ID gives nothing back. You trade the ordering for that, and for a short ID a human can read out loud.
 
 ## In one example
 
@@ -93,6 +102,147 @@ try {
 }
 ```
 
+## OpaqueUidHelper
+
+```typescript
+import { OpaqueUidHelper } from '@venizia/ignis-helpers';
+
+const generator = new OpaqueUidHelper({
+  prefix: { enable: true, value: 'INV' },
+  delimiter: { enable: true, value: '-' },
+  length: 6,
+});
+
+generator.nextId();
+// => e.g. "INV-7K2MQ9"
+```
+
+`length` counts the body only. The prefix and the delimiter sit in front of it, so that ID is 10 characters.
+
+### Options
+
+| Option | Type | Default | Meaning |
+|---|---|---|---|
+| `prefix` | `{ enable, value? }` | disabled | Leads the ID. `value` survives being disabled, so you can toggle it back on |
+| `delimiter` | `{ enable, value? }` | disabled, `_` | Separates prefix from body. Requires a prefix |
+| `length` | `number` | `6` | Characters in the body |
+| `caseForm` | `'upper' \| 'lower' \| 'mixed'` | `'upper'` | Folds the alphabet before sampling |
+| `alphabet` | `string` | `UidAlphabets.CROCKFORD` | The characters to draw from |
+| `exclude` | `string` | `''` | Removed from `alphabet` |
+
+Four alphabets ship with it:
+
+| Alphabet | Size | Drops | Use for |
+|---|---|---|---|
+| `CROCKFORD` | 32 | Lowercase, `I` `L` `O` `U` | IDs a human reads, types, or says aloud |
+| `BASE58` | 58 | `0` `O` `I` `l` | IDs in a URL or a log |
+| `NO_VOWEL` | 50 | `BASE58` plus every vowel | Customer-facing IDs - no word can form |
+| `BASE62` | 62 | Nothing | Machines only |
+
+`getAlphabet()` returns the set actually in use, after the case fold and every exclusion. That is what `length` is measured against, so read it before calculating how many IDs a length affords you.
+
+### Six characters needs a unique index
+
+Six Crockford characters is 2^30 combinations, the size of an airline record locator. That works for airlines because of three things, not because 2^30 is large:
+
+1. **Scoped.** A record locator is unique per carrier, not worldwide.
+2. **Recycled.** The airline reuses it once the trip is over.
+3. **Retried.** The reservation system regenerates on conflict.
+
+> [!WARNING]
+> At the default length, a 1% chance of at least one collision arrives at roughly 4,600 IDs in one space, and 50% at roughly 38,000.
+
+A `prefix` PARTITIONS the space. `INV-7K2MQ9` can never collide with `CUS-7K2MQ9`, so ten entity types get ten separate spaces instead of sharing one. It does not make an ID unique inside its own space - within `INV`, the numbers above still hold.
+
+So do both. Give each entity type its own `prefix`, and put the column behind a unique index.
+
+### Reject an ID you already hold
+
+`nextId()` takes a callback. Return `true` to accept the ID, `false` to draw another.
+
+```typescript
+const issued = new Set<string>();
+const generator = new OpaqueUidHelper({ length: 8 });
+
+const id = generator.nextId({
+  isAvailable: candidate => !issued.has(candidate),
+});
+issued.add(id);
+```
+
+Every argument is optional, including the options object itself - `nextId()` alone is the common case.
+
+**`nextId()` options**
+
+| Option | Type | Default | Meaning |
+|---|---|---|---|
+| `prefix` | `string` | The configured prefix | Replaces it for this call |
+| `isAvailable` | `(id: string) => ValueOrPromise<boolean>` | none | `true` accepts, `false` draws again |
+| `maxAttempts` | `number` | `10` | Draws before it throws. Requires `isAvailable` |
+
+The callback sees the finished ID, prefix and delimiter included - the string the column stores.
+
+**The callback's return type decides `nextId`'s.** A synchronous check keeps the call synchronous, so no promise is allocated. An asynchronous one makes it a promise:
+
+```typescript
+const id = generator.nextId({ isAvailable: candidate => !issued.has(candidate) });
+// string
+
+const id = await generator.nextId({
+  isAvailable: async candidate => !(await invoiceRepository.exists(candidate)),
+});
+// Promise<string>
+```
+
+> [!WARNING]
+> An asynchronous check does not make an ID safe. Against a database it is a read and then a write with a gap between them, and another request can take the ID inside that gap. `isAvailable` lowers the collision rate; the unique index is what removes it.
+
+`maxAttempts` bounds the redraws. Repeated rejection means the space is full, and the helper throws with the length and alphabet size rather than looping.
+
+### Regenerate on conflict, never check first
+
+Insert and catch the violation. Checking whether an ID exists and then inserting it leaves a window where another request takes the same ID between the two statements.
+
+```typescript
+import { executeWithRetry, OpaqueUidHelper } from '@venizia/ignis-helpers';
+
+const generator = new OpaqueUidHelper({
+  prefix: { enable: true, value: 'INV' },
+  delimiter: { enable: true, value: '-' },
+});
+
+const invoice = await executeWithRetry({
+  operation: 'createInvoice',
+  maxAttempts: 5,
+  // A fresh ID per attempt - retrying with the same one would collide forever.
+  execution: () => invoiceRepository.create({ data: { id: generator.nextId(), total } }),
+  shouldRetry: context => isUniqueViolation(context.error),
+});
+```
+
+Five attempts is generous. At the default length a second collision on the same insert has a probability in the millionths.
+
+Or raise `length` - every extra character multiplies the space by 32.
+
+### What the constructor refuses
+
+Each of these fails loudly at construction, because each one fails silently at runtime:
+
+| Configuration | Why it is refused |
+|---|---|
+| `delimiter` enabled, `prefix` disabled | The delimiter would lead the ID and separate nothing |
+| A delimiter character that is in the alphabet | The ID could not be split back into prefix and body |
+| A `prefix` that disagrees with `caseForm` | A lowercase prefix on an uppercase ID defeats the reason for choosing one case |
+| `caseForm` folding a two-case alphabet | Uppercasing `BASE58` brings `I` and `O` back - the pair it drops so `1` and `0` stay readable |
+| An alphabet under 16 characters | `exclude` has eaten it |
+| `maxAttempts` passed without `isAvailable` | Nothing rejects a draw, so the retry it configures cannot happen |
+
+### Randomness
+
+`OpaqueUidHelper` draws from `crypto.getRandomValues`, and rejects samples that fall outside the alphabet rather than wrapping them. A `byte % 58` would favour the first 24 characters by about 1.5%, forever, and no caller could see it.
+
+Unlike `crypto.randomUUID`, `getRandomValues` works outside a secure context. The generator runs on a plain-http origin and inside a browser Worker.
+
 ## See also
 
 - [Models](/guides/core-concepts/persistent/models) - using UIDs as primary keys
@@ -104,4 +254,6 @@ try {
 **Files:**
 
 - [`packages/helpers/src/modules/uid/helper.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/uid/helper.ts) - `SnowflakeUidHelper`, `SnowflakeConfig`
+- [`packages/helpers/src/modules/uid/opaque.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/uid/opaque.ts) - `OpaqueUidHelper`
+- [`packages/helpers/src/modules/uid/common/constants.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/uid/common/constants.ts) - `UidAlphabets`, `UidCaseForms`
 - [`packages/helpers/src/modules/uid/index.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/uid/index.ts) - module barrel

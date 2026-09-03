@@ -2,7 +2,7 @@
 type: Architecture
 title: Controller system
 description: How IGNIS controllers wrap OpenAPIHono routers and the three ways to declare routes on them.
-resource: packages/core/src/base/controllers
+resource: packages/kernel/src/base/controllers
 tags: [architecture, controllers, rest, hono, openapi]
 ---
 
@@ -24,7 +24,13 @@ application does unless `configs.transports` says otherwise. Do not model it as 
 - `BaseRestController extends AbstractRestController` - the recommended base. Adds the concrete
   `bindRoute` / `defineRoute` / `defineJSXRoute` implementations plus `measure()`.
 
-A parallel `AbstractGrpcController` / `BaseGrpcController` pair lives under `base/controllers/grpc`.
+`AbstractRestController`, `BaseRestController`, `ControllerFactory` and the CRUD tiers all live in
+`@venizia/ignis-kernel`, under `packages/kernel/src/base/controllers`. gRPC is the one tier left in
+core, at `packages/core-server/src/base/controllers/grpc`, where a parallel `AbstractGrpcController` /
+`BaseGrpcController` pair sits: ConnectRPC reaches for `node:async_hooks` and `node:module`, so it
+can never be browser-pure. `packages/core-server/src/base/controllers/index.ts` re-exports the kernel
+barrel, so `@/base/controllers` and the `@venizia/ignis` root entrypoint still resolve every moved
+symbol.
 
 ## Three ways to declare a route
 
@@ -54,6 +60,12 @@ All three converge on `this.router.openapi(routeConfigs, handler)`. Route config
 `@hono/zod-openapi` `createRoute` shapes, so schemas are Zod, validation is generated from them, and
 the OpenAPI document derives from the same source rather than being hand-maintained alongside it.
 
+`configure()` registers routes in three passes, ordered by path **shape** rather than by source
+order: decorator routes with no path parameter first, then whatever `binding()` registers, then
+decorator routes carrying a path parameter last. Hono matches in registration order, so a `/{id}`
+route registered early would shadow a sibling literal route such as `/count`. A route declared
+imperatively inside `binding()` therefore always sits between the two decorator passes.
+
 ## The CRUD controller factory
 
 `ControllerFactory.defineCrudController({ controller, entity, authenticate, authorize, routes })`
@@ -78,8 +90,8 @@ Route decorators are legacy (`experimentalDecorators`) decorators: the runtime m
 calls them with `(method, context)` instead - there is no prototype to attach metadata to, so **the
 route is never registered and the endpoint silently 404s**.
 
-`isLegacyMethodDecoratorCall` detects the wrong call shape and records the dropped decorator;
-`reportDroppedRouteDecorators` warns once per process at `configure()` time (not at import time -
+`DroppedRouteDecorators.isLegacyCall` detects the wrong call shape and records the dropped decorator;
+`DroppedRouteDecorators.report` warns once per process at `configure()` time (not at import time -
 importing a module must stay free of side effects). If routes 404 for no visible reason, look for
 that warning: the cause is `experimentalDecorators` missing from the tsconfig **the runtime actually
 resolves**, and a tsconfig whose `extends` chain the runtime cannot resolve is discarded whole.

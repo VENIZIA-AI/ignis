@@ -96,8 +96,8 @@ const coreApiSidebar: DefaultTheme.SidebarItem[] = [
     collapsed: false,
     items: [
       { text: 'Overview', link: '/references/utilities/' },
-      { text: 'Crypto', link: '/references/utilities/crypto' },
       { text: 'Date', link: '/references/utilities/date' },
+      { text: 'Duration', link: '/references/utilities/duration' },
       {
         text: 'JSX',
         collapsed: true,
@@ -153,6 +153,7 @@ const extensionsSidebar: DefaultTheme.SidebarItem[] = [
         text: 'Authorization',
         collapsed: true,
         items: [
+          { text: 'Getting Started', link: '/extensions/components/authorization/getting-started' },
           { text: 'Setup & Configuration', link: '/extensions/components/authorization/' },
           { text: 'Usage & Examples', link: '/extensions/components/authorization/usage' },
           { text: 'API Reference', link: '/extensions/components/authorization/api' },
@@ -450,6 +451,154 @@ const config = defineConfig({
           text: 'History',
           collapsed: false,
           items: [
+            {
+              text: '2026-08-31',
+              collapsed: true,
+              items: [
+                {
+                  text: 'EventBus Retry Gets Jitter, a Bounded Per-Registration Window, and a Tagged Handler Reference',
+                  link: '/changelogs/2026-08-31-event-bus-retry',
+                },
+                {
+                  text: 'TEntityId Makes a String Id Impossible to Confuse With a String',
+                  link: '/changelogs/2026-08-31-entity-id-brand',
+                },
+                {
+                  text: 'PolicyDefinition Gets domain_type and domain_id (Release A)',
+                  link: '/changelogs/2026-08-31-policy-domain-split',
+                },
+                {
+                  text: 'An Application Refuses to Start When scopeFilter Cannot Take Effect',
+                  link: '/changelogs/2026-08-31-scope-filter-boot-checks',
+                },
+                {
+                  text: 'PolicyDefinition Reads the Domain Pair and the domain Column Is Gone (Release B)',
+                  link: '/changelogs/2026-08-31-policy-domain-split-release-b',
+                },
+              ],
+            },
+            {
+              text: '2026-08-30',
+              collapsed: true,
+              items: [
+                {
+                  text: 'A Row Scope Every Query Carries, Denied by Default When It Cannot Be Resolved',
+                  link: '/changelogs/2026-08-30-row-scope-filter',
+                },
+                {
+                  text: 'Where Clauses Now Type-Check the Value, Not Just the Column',
+                  link: '/changelogs/2026-08-30-typed-where-clauses',
+                },
+                {
+                  text: 'Tree Utilities Join helpers, and RecursiveTreeSql Bounds Every Recursive Walk in kernel',
+                  link: '/changelogs/2026-08-30-tree-and-recursive-sql',
+                },
+                {
+                  text: 'A Real Hash Class Replaces the Removed hash() Utility',
+                  link: '/changelogs/2026-08-30-crypto-hashing',
+                },
+                {
+                  text: 'PolicyDefinition.variant Stays Closed by Default, but an App Can Now Declare Its Own Edge Kinds',
+                  link: '/changelogs/2026-08-30-policy-definition-extra-variants',
+                },
+                {
+                  text: 'authorize() Denies When No Enforcer Is Registered',
+                  link: '/changelogs/2026-08-30-authorize-no-enforcer-fails-closed',
+                },
+                {
+                  text: 'getHealth() Never Throws, Imports Keep Progress, and collectionExists() Never Lies About Absence',
+                  link: '/changelogs/2026-08-30-search-connector-health-and-import-contract',
+                },
+              ],
+            },
+            {
+              text: '2026-08-29',
+              collapsed: true,
+              items: [
+                {
+                  text: 'Casbin Domain Hierarchy - Parent Domains Reach Their Children',
+                  link: '/changelogs/2026-08-29-casbin-domain-hierarchy',
+                },
+              ],
+            },
+            {
+              text: '2026-08-24',
+              collapsed: true,
+              items: [
+                {
+                  text: 'Two Query Shapes You No Longer Have to Rebuild',
+                  link: '/changelogs/2026-08-24-query-wrapper-schemas',
+                },
+              ],
+            },
+            {
+              text: '2026-08-22',
+              collapsed: true,
+              items: [
+                {
+                  text: 'Log Lines Stop Carrying Color Outside Development',
+                  link: '/changelogs/2026-08-22-logger-color-off-outside-development',
+                },
+              ],
+            },
+            {
+              text: '2026-08-21',
+              collapsed: true,
+              items: [
+                {
+                  text: 'Services Prove Themselves to Each Other, Without a Shared Password',
+                  link: '/changelogs/2026-08-21-service-authentication-strategy',
+                },
+              ],
+            },
+            {
+              text: '2026-08-19',
+              collapsed: true,
+              items: [
+                {
+                  text: 'Your Own Authentication Strategies, and Tokens That Say Who They Are For',
+                  link: '/changelogs/2026-08-19-service-authentication-phase-1',
+                },
+                {
+                  text: 'A Browser BFF That Survives a Second Tab',
+                  link: '/changelogs/2026-08-19-browser-bff-multi-tab',
+                },
+              ],
+            },
+            {
+              text: '2026-08-18',
+              collapsed: true,
+              items: [
+                {
+                  text: 'A Second ID Generator, for IDs People Read',
+                  link: '/changelogs/2026-08-18-opaque-uid-helper',
+                },
+                {
+                  text: 'Every Browser-Safe Package Now Ships ESM',
+                  link: '/changelogs/2026-08-18-esm-builds-and-one-default-stack',
+                },
+              ],
+            },
+            {
+              text: '2026-08-13',
+              collapsed: true,
+              items: [
+                {
+                  text: 'A Browser-Pure Kernel Under @venizia/ignis',
+                  link: '/changelogs/2026-08-13-browser-pure-kernel',
+                },
+              ],
+            },
+            {
+              text: '2026-08-12',
+              collapsed: true,
+              items: [
+                {
+                  text: 'Log Arguments Under %j No Longer Collapse to [Circular]',
+                  link: '/changelogs/2026-08-12-json-log-arguments',
+                },
+              ],
+            },
             {
               text: '2026-08-07',
               collapsed: true,

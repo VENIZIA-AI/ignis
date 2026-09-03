@@ -1,0 +1,99 @@
+import type { AnyType, IConfigurable, TClass, TConstValue } from '@venizia/ignis-helpers/common';
+
+export class DataSourceDrivers {
+  // Relational - PGlite is a Postgres DRIVER (Postgres compiled to WASM), not a separate engine.
+  static readonly NODE_POSTGRES = 'node-postgres';
+  static readonly POSTGRES_JS = 'postgres-js';
+  static readonly PGLITE = 'pglite';
+  static readonly LIBSQL = 'libsql';
+
+  // Search
+  static readonly TYPESENSE = 'typesense';
+  static readonly MEILISEARCH = 'meilisearch';
+
+  static readonly RELATIONAL_SCHEME_SET = new Set([
+    this.NODE_POSTGRES,
+    this.POSTGRES_JS,
+    this.PGLITE,
+    this.LIBSQL,
+  ]);
+  static readonly SEARCH_SCHEME_SET = new Set([this.TYPESENSE, this.MEILISEARCH]);
+
+  static readonly SCHEME_SET = new Set([
+    // Relational
+    this.NODE_POSTGRES,
+    this.POSTGRES_JS,
+    this.PGLITE,
+    this.LIBSQL,
+
+    // Search
+    this.TYPESENSE,
+    this.MEILISEARCH,
+  ]);
+
+  static isValid(value: string): boolean {
+    return this.SCHEME_SET.has(value);
+  }
+}
+
+// `(string & {})` keeps autocomplete for the known values
+// while still accepting any other engine-driver string.
+export type TDataSourceDriver = TConstValue<typeof DataSourceDrivers> | (string & {});
+
+/**
+ * A driver CLASS, named by `@datasource({ driver })`. The class reference is what pulls the peer
+ * package into a bundle - a name string pulls nothing, and a bare side-effect import may be
+ * dropped. Untyped because `IRelationalDriver` lives under `connectors/`, off-limits to `base/`.
+ */
+export type TDataSourceDriverClass = TClass<AnyType>;
+
+export type TAnyDataSourceSchema = Record<string, any>;
+
+/** Engine-neutral datasource contract - the root every connector family implements. */
+export interface IDataSource<
+  Settings extends object = {},
+  Schema extends TAnyDataSourceSchema = TAnyDataSourceSchema,
+  ConfigurableOptions extends object = {},
+> extends IConfigurable<ConfigurableOptions> {
+  name: string;
+  settings: Settings;
+  schema: Schema;
+
+  getSettings(): Settings;
+  getSchema(): Schema;
+}
+
+/**
+ * Neutral transaction options - isolation levels are engine vocabulary, so `isolationLevel` stays
+ * a loose string here and connectors narrow it in their own `ITransactionOptions` extension.
+ */
+export interface ITransactionOptions {
+  isolationLevel?: string;
+}
+
+/** Neutral transaction handle - the minimum shape every connector's transaction satisfies. */
+export interface ITransaction {
+  isActive: boolean;
+  commit(): Promise<void>;
+  rollback(): Promise<void>;
+}
+
+export interface IDataSourceCapabilities {
+  transactions: boolean;
+}
+
+export interface ISearchableDataSourceCapabilities extends IDataSourceCapabilities {
+  search?: {
+    /** Vector / semantic / hybrid search (search engines). */
+    vector?: boolean;
+
+    /** Batched multi-query search across collections. */
+    multi?: boolean;
+
+    /** Merged (union) result set across a multi-search. */
+    union?: boolean;
+
+    /** Synonym sets (multi-way / one-way). */
+    synonyms?: boolean;
+  };
+}

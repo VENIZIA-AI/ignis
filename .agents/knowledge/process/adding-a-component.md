@@ -1,22 +1,22 @@
 ---
 type: Playbook
 title: Adding a component
-description: Ordered steps to add a new component under packages/core/src/components.
-resource: packages/core/src/components
+description: Ordered steps to add a new component under packages/core-server/src/components.
+resource: packages/core-server/src/components
 tags: [process, component, core]
 ---
 
 ## Steps
 
-1. Create a directory under `packages/core/src/components/<name>/` with at least `component.ts` and
+1. Create a directory under `packages/core-server/src/components/<name>/` with at least `component.ts` and
    `index.ts`. Larger components (see `mail/`) add `common/` (types, keys, constants),
    `services/`, `helpers/`, `providers/`, `utilities/` as needed - none of that is required for a
    small component (see `health-check/` or `request-tracker/`, which are just `component.ts` +
    `index.ts` + a small `common/`).
-2. The component class extends `BaseComponent` (`@/base/components`), which itself extends
-   `BaseHelper`. Implement the one abstract method: `binding(): ValueOrPromise<void>` - this is
-   where the component does its actual work (register a controller, attach middleware, open a
-   client), NOT in the constructor.
+2. The component class extends `BaseComponent`, imported from `@venizia/ignis-kernel` (defined at
+   `packages/kernel/src/base/components/base.ts`), which itself extends `BaseHelper`. Implement the
+   one abstract method: `binding(): ValueOrPromise<void>` - this is where the component does its
+   actual work (register a controller, attach middleware, open a client), NOT in the constructor.
 3. Constructor: inject the running application via `@inject({ key:
    CoreBindings.APPLICATION_INSTANCE }) private application: BaseApplication`, and call `super({
    scope: <ClassName>.name, initDefault: { enable: true, container: application }, bindings: {...}
@@ -42,9 +42,9 @@ tags: [process, component, core]
    middleware from its own registered binding via `this.application.get({ key })` and throws (via
    `getError`) if that binding is missing, rather than silently no-op-ing.
 8. Export the component class from the directory's `index.ts`, and from
-   `packages/core/src/components/index.ts` if it should be part of the main `@venizia/ignis`
+   `packages/core-server/src/components/index.ts` if it should be part of the main `@venizia/ignis`
    entrypoint. A component with heavy optional peer dependencies instead gets its own sub-path
-   export in `packages/core/package.json` `exports` (see how `./mail`, `./socket-io`,
+   export in `packages/core-server/package.json` `exports` (see how `./mail`, `./socket-io`,
    `./static-asset` are wired) plus a matching `peerDependenciesMeta` optional entry.
 9. Wire it into an application by calling `this.component(YourComponent)` inside
    `registerComponents()` (or from an example app's override of it). `component()` binds the class

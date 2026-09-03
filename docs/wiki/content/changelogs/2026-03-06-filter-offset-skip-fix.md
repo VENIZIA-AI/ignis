@@ -18,7 +18,7 @@ Fixed two bugs in the filter/pagination system where the `offset` field was sile
 
 ### 1. `offset` field ignored in FilterBuilder
 
-**File:** `packages/core/src/base/repositories/operators/filter.ts`
+**File:** `packages/core-server/src/base/repositories/operators/filter.ts`
 
 **Problem:** The `FilterBuilder.build()` method only destructured `skip` from the filter, ignoring the `offset` field entirely. Users passing `{ offset: 20 }` instead of `{ skip: 20 }` would get no pagination offset applied.
 
@@ -48,7 +48,7 @@ return {
 
 ### 2. Incorrect `.default(0)` on Skip/Offset schemas
 
-**File:** `packages/core/src/base/repositories/common/types.ts`
+**File:** `packages/core-server/src/base/repositories/common/types.ts`
 
 **Problem:** `SkipSchema` and `OffsetSchema` used `.default(0)`, which meant any query parsed through these schemas would always have `skip: 0` or `offset: 0` even when the caller didn't provide them. This caused issues when `skip`/`offset` should be `undefined` (no pagination).
 
@@ -76,7 +76,7 @@ export const OffsetSchema = z.number().optional().openapi({
 
 ## Files Changed
 
-### Core Package (`packages/core`)
+### Core Package (`packages/core-server`)
 
 | File | Changes |
 |------|---------|

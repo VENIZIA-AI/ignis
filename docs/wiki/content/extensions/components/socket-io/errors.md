@@ -16,7 +16,7 @@ Every error condition the Socket.IO component and its two helpers can raise, plu
 |---|---|---|
 | `binding()` | `application` is falsy | `"[binding] Invalid application to bind SocketIOComponent"` |
 | `binding()` | Unsupported runtime | `"[SocketIOComponent] Unsupported runtime: <runtime>"` |
-| `resolveBindings()` | `REDIS_CONNECTION` not `instanceof AbstractRedisHelper` | `"Invalid instance of redisConnection..."` |
+| `resolveBindings()` | `REDIS_CONNECTION` fails `isRedisHelper()` | `"Invalid instance of redisConnection..."` |
 | `resolveBindings()` | `AUTHENTICATE_HANDLER` is falsy | `"[DANGER][SocketIOComponent] Invalid authenticateFn to setup io socket server!"` |
 | `registerNodeHook()` | HTTP server not available | `"[SocketIOComponent] HTTP server not available for Node.js runtime!"` |
 

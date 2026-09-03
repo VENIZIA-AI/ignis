@@ -9,7 +9,7 @@ Core classes that power every IGNIS application - from the Application entry poi
 
 | Class | Purpose | Extends |
 |-------|---------|---------|
-| `BaseApplication` | Application entry point, DI container | `AbstractApplication` |
+| `BaseApplication` | Application entry point, DI container | `ServerApplication` -> `RestApplication` -> `AbstractApplication` |
 | `BaseRestController` | REST/HTTP route handlers | `AbstractRestController` |
 | `BaseGrpcController` | gRPC route handlers (ConnectRPC) | `AbstractGrpcController` |
 | `BaseService` | Business logic layer | - |
@@ -79,8 +79,10 @@ Core classes that power every IGNIS application - from the Application entry poi
 ## Class Hierarchy
 
 ```
-AbstractApplication
-└── BaseApplication ──────► Your Application
+AbstractApplication (browser-pure, @venizia/ignis-kernel)
+└── RestApplication (browser-pure, owns the router)
+    └── ServerApplication (opens the socket)
+        └── BaseApplication ──────► Your Application
 
 AbstractRepository (engine-neutral, src/base)
 ├── PostgresBaseRepository (connectors/postgres)

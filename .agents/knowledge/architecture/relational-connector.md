@@ -2,7 +2,7 @@
 type: Architecture
 title: Relational connector
 description: The engine-neutral SQL tier under connectors/relational, the two ports a datasource supplies, and what stays Postgres-only.
-resource: packages/core/src/connectors/relational
+resource: packages/core-server/src/connectors/relational
 tags: [architecture, connectors, drizzle, postgres, sqlite, relational]
 ---
 
@@ -34,11 +34,11 @@ Every class is **declared** under a distinct name. The Postgres branch declares
 `AbstractRelationalDataSource` and `BaseRelationalDataSource`. Two classes never share a declaration
 name across the two barrels.
 
-The `*RelationalDataSource` spellings are still **exported** from `@venizia/ignis/postgres`, as
-aliases of the Postgres classes, because that is what apps imported before the lift. So the same
-name means different classes depending on the sub-path you import from - which is why
-`connectors/index.ts` never gains `export * from './relational'`. Reach the neutral tier only
-through the `@venizia/ignis/relational` sub-path, never through the root.
+The `*RelationalDataSource` spellings are served **only** from `@venizia/ignis/relational`:
+`connectors/postgres/datasources/index.ts` deliberately declines to alias them, so no datasource
+name resolves to two different classes across sibling sub-paths. `connectors/index.ts` still
+re-exports `./postgres` alone, so reach the neutral tier through the `@venizia/ignis/relational`
+sub-path, never through the root.
 
 The repository chain forks the same way: `RelationalBaseRepository` and its four subclasses are
 declared only in `connectors/relational`, and `connectors/postgres/repositories/core/*.ts` declares
@@ -123,10 +123,34 @@ declared `protected abstract`, because neutral code has no portable way to say i
 proves the seam is real rather than Postgres-only in disguise.
 
 The statement reaches `IRelationalConnection.execute()` **verbatim** - `BEGIN ... ISOLATION LEVEL $1`
-is not valid SQL, so nothing about it can be parameterized. Anything a branch interpolates into it
-must therefore be validated against a closed set before it is spliced in, which is what
-`BaseSqliteDataSource` does with `SqliteBeginModes.isValid` and `AbstractPostgresDataSource` does
-with its isolation-level constants.
+is not valid SQL, so nothing about it can be parameterized, which makes whatever a branch splices in
+raw SQL. The two branches guard that differently. `BaseSqliteDataSource` validates at runtime:
+`assertBeginMode()` runs `SqliteBeginModes.isValid` and throws on an unknown mode.
+`BasePostgresDataSource` relies on the compile-time `TIsolationLevel` type only - `IsolationLevels.isValid`
+exists but has no call site on the BEGIN path, so an untyped JavaScript caller can splice an
+arbitrary string into `BEGIN TRANSACTION ISOLATION LEVEL ...`. Both `buildBeginStatement` overrides
+live on the `Base*` classes; the `Abstract*` ones supply the dialect and executor instead.
+
+## Relation building crosses the kernel boundary through a registry
+
+`RepositoryMetadataMixin` builds Drizzle relations but must never import Drizzle: one value import
+of `createRelations` drags `drizzle-orm` into every graph that uses `@repository`. The seam is
+`RelationBuilderRegistry` (`packages/kernel/src/helpers/inversion/common/relation-builder.ts`), a
+class with static `set`/`resolve` whose `TRelationBuilder` signature is typed in `unknown`s, so the
+kernel names no engine type. `resolveModelRelations()` calls `RelationBuilderRegistry.resolve()`,
+and the mixin has zero `drizzle-orm` imports.
+
+The concrete builder is installed from the **module body** of
+`connectors/relational/datasources/base.ts` - its last line - not from `dialect/relation.ts`, which
+it deep-imports rather than reaching through a barrel. Both choices are about packaging: a
+`sideEffects: false` bundler drops a module reached only through an unused `export *` re-export, and
+`discoverSchema()` in that same file is the sole production caller of `resolveModelRelations()`, so
+this is the one module guaranteed to load whenever relations are actually needed.
+
+A model that declares relations with no builder installed makes `resolveModelRelations()` throw a
+named `getError` rather than emit an empty `with` clause that would surface much later. Falsified by
+`__tests__/connectors/relational/relation-builder-wiring.test.ts` and
+`__tests__/mixins/repository-mixin-imports.test.ts`.
 
 ## Rotation drains by capability, not by class
 
@@ -245,12 +269,12 @@ longer exported from `@venizia/ignis/postgres`; import them from `@venizia/ignis
 | Alias (`@venizia/ignis/postgres`) | Canonical name | Declared in |
 |---|---|---|
 | `BaseEntity`, `BasePostgresEntity` | `BaseRelationalEntity` | `connectors/relational` |
-| `AbstractRelationalDataSource` | `AbstractPostgresDataSource` | `connectors/postgres` (Postgres branch, not the neutral root) |
-| `BaseRelationalDataSource`, `BaseDataSource` | `BasePostgresDataSource` | `connectors/postgres` (Postgres branch, not the neutral root) |
+| `BaseDataSource` | `BasePostgresDataSource` | `connectors/postgres` |
 
-The last two rows are the only aliases whose spelling collides with a different class: from
-`@venizia/ignis/relational`, `AbstractRelationalDataSource` and `BaseRelationalDataSource` are the
-neutral classes. Import one sub-path per file and the collision never surfaces.
+`BaseDataSource` is the only datasource alias on that sub-path. `AbstractRelationalDataSource` and
+`BaseRelationalDataSource` are deliberately NOT aliased there - they are served only from
+`@venizia/ignis/relational` - so no datasource name means a different class depending on which of
+the two sub-paths you import from.
 
 **Withdrawn - `FilterBuilder`.** A third collision existed and was removed rather than kept.
 `connectors/postgres` used to re-export its subclass as `FilterBuilder`, so `@venizia/ignis/postgres`

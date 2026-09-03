@@ -6,7 +6,7 @@ resource: packages/dev-configs
 tags: [packages, dev-configs, tooling]
 ---
 
-`@venizia/dev-configs` is the root of the IGNIS build dependency chain (`dev-configs -> inversion -> helpers -> boot -> core`) - it has no dependency on any other IGNIS package, and every other package depends on it for lint, format, and compiler settings. It ships a single ESM build.
+`@venizia/dev-configs` is the root of the IGNIS build dependency chain (`dev-configs -> inversion -> {filter, helpers} -> {boot, kernel} -> core`) - it has no dependency on any other IGNIS package, and every other package depends on it for lint, format, and compiler settings. It ships a single ESM build.
 
 ## Exports
 

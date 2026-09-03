@@ -97,7 +97,7 @@ const adapter = await GrpcRequestAdapter.build({
 
 ### BaseGrpcController -- Full gRPC Controller with Decorator Support
 
-**File:** `packages/core/src/base/controllers/grpc/base.ts`
+**File:** `packages/core-server/src/base/controllers/grpc/base.ts`
 
 **Problem:** No first-class support for gRPC services within the IGNIS controller architecture.
 
@@ -115,7 +115,7 @@ export class GreeterController extends BaseGrpcController {
 
 ### RPC Decorators
 
-**File:** `packages/core/src/base/metadata/routes/rpc.ts`
+**File:** `packages/core-server/src/base/metadata/routes/rpc.ts`
 
 Declarative decorators for all four gRPC patterns:
 
@@ -128,7 +128,7 @@ Declarative decorators for all four gRPC patterns:
 
 ### GrpcRequestAdapter -- ConnectRPC Bridge with AsyncLocalStorage
 
-**File:** `packages/core/src/base/controllers/grpc/adapter.ts`
+**File:** `packages/core-server/src/base/controllers/grpc/adapter.ts`
 
 **Problem:** The previous `createHonoConnectAdapter` function lacked request context isolation, making it unsafe for concurrent requests in production.
 
@@ -148,7 +148,7 @@ const adapter = await GrpcRequestAdapter.build({
 
 ### IRpcRegistration -- Unified Handler + Metadata Type
 
-**File:** `packages/core/src/base/controllers/grpc/common/types.ts`
+**File:** `packages/core-server/src/base/controllers/grpc/common/types.ts`
 
 **Problem:** gRPC method handlers and their metadata were stored in separate maps (`implementation` and `definitions`), requiring manual synchronization.
 
@@ -167,7 +167,7 @@ New constants for gRPC protocol details:
 
 ### Dual Transport Support
 
-**File:** `packages/core/src/base/controllers/common/constants.ts`
+**File:** `packages/core-server/src/base/controllers/common/constants.ts`
 
 Applications can now serve both REST and gRPC from the same process using `ControllerTransports`:
 
@@ -181,7 +181,7 @@ export class UserGrpcController extends BaseGrpcController { /* ... */ }
 
 ### Component-Based gRPC Registration
 
-**File:** `packages/core/src/components/controller/grpc/grpc.component.ts`
+**File:** `packages/core-server/src/components/controller/grpc/grpc.component.ts`
 
 The `GrpcComponent` handles gRPC controller discovery and route mounting, following the same component pattern used by other IGNIS components:
 
@@ -195,7 +195,7 @@ export class Application extends BaseApplication {
 
 ## Files Changed
 
-### Core Package (`packages/core`)
+### Core Package (`packages/core-server`)
 
 | File | Changes |
 |------|---------|

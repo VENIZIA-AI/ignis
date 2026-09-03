@@ -10,9 +10,9 @@ Every option, binding key, class, and method the Authentication component expose
 
 **Files:**
 
-- [`packages/core/src/components/auth/authenticate/`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core/src/components/auth/authenticate) - component, services, strategies, controllers
-- [`packages/core/src/components/auth/models/`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core/src/components/auth/models) - entity column helpers + request schemas
-- [`packages/core/src/components/auth/base/abstract-auth-registry.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core/src/components/auth/base/abstract-auth-registry.ts) - `AbstractAuthRegistry`
+- [`packages/core-server/src/components/auth/authenticate/`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/components/auth/authenticate) - component, services, strategies, controllers
+- [`packages/core-server/src/components/auth/models/`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/components/auth/models) - entity column helpers + request schemas
+- [`packages/core-server/src/components/auth/base/abstract-auth-registry.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/components/auth/base/abstract-auth-registry.ts) - `AbstractAuthRegistry`
 
 ## Find what you need
 
@@ -38,6 +38,7 @@ import {
   AuthenticationModes,
   AuthenticationTokenTypes,
   AuthenticationStrategyRegistry,
+  ServiceAssertion,
 
   // JOSE standards + constants
   JOSEStandards,
@@ -50,6 +51,7 @@ import {
   JWKSIssuerAuthenticationStrategy,
   JWKSVerifierAuthenticationStrategy,
   BasicAuthenticationStrategy,
+  ServiceAuthenticationStrategy,
 
   // Services
   AbstractBearerTokenService,
@@ -81,6 +83,9 @@ import type {
   IJWKSVerifierOptions,
   TJWKSTokenServiceOptions,
   TBasicTokenServiceOptions,
+  IServiceAuthOptions,
+  IServiceAssertionClaims,
+  TServiceCallerEntry,
   IAuthenticateOptions,
   IAuthUser,
   IJWTTokenPayload,
@@ -147,6 +152,7 @@ Bearer token service hierarchy:
 |--------|---------|
 | `defineJWSAuth(opts)` | Validates `jwtSecret` and `getTokenExpiresFn`, binds `IJWSTokenServiceOptions` to `JWT_OPTIONS`, registers `JWSTokenService` |
 | `defineJWKSAuth(opts)` | Switches on `mode`.<br>**Issuer:** validates keys/format/kid/getTokenExpiresFn, binds to `JWKS_OPTIONS`, registers `JWKSIssuerTokenService` + `JWKSController`.<br>**Verifier:** validates `jwksUrl`, binds to `JWKS_OPTIONS`, registers `JWKSVerifierTokenService` |
+| `defineServiceAuth(opts)` | Validates `name` and `resolvePrincipal`, registers the verifier and the `service` strategy. With `keys` present it also registers the signer and mounts the certs route. Absent options: does nothing |
 | `defineBasicAuth(opts)` | Validates `verifyCredentials` presence, registers `BasicTokenService`. Skips (debug log) if `basicOptions` not bound |
 | `defineControllers(opts)` | Requires `jwtOptions` when `useAuthController: true`. Calls `defineAuthController()` and registers the generated controller |
 | `defineOAuth2()` | Public stub, called during `binding()`, performs no action - not yet implemented |
@@ -162,9 +168,11 @@ Bearer token service hierarchy:
 | `AuthenticateBindingKeys.JWT_OPTIONS` | `@app/authenticate/jwt-options` | `TJWTTokenServiceOptions` | Conditional | -- |
 | `AuthenticateBindingKeys.JWKS_OPTIONS` | `@app/authenticate/jwks-options` | `IJWKSIssuerOptions \| IJWKSVerifierOptions` | Internal | Bound by the component from `JWT_OPTIONS` |
 | `AuthenticateBindingKeys.BASIC_OPTIONS` | `@app/authenticate/basic-options` | `TBasicTokenServiceOptions` | Conditional | -- |
+| `AuthenticateBindingKeys.SERVICE_OPTIONS` | `@app/authenticate/service-options` | `IServiceAuthOptions` | Conditional | -- |
+| `AuthenticateBindingKeys.SERVICE_CERTS_PATH` | `@app/authenticate/service-certs-path` | `string` | Internal | Bound by the component from `serviceOptions.rest.path` |
 
 > [!IMPORTANT]
-> At least one of `JWT_OPTIONS` or `BASIC_OPTIONS` must be bound, or `AuthenticateComponent.binding()` throws.
+> At least one of `JWT_OPTIONS`, `BASIC_OPTIONS` or `SERVICE_OPTIONS` must be bound, or `AuthenticateComponent.binding()` throws. A service that only VERIFIES assertions needs neither jwt nor basic.
 
 ## Option interfaces
 
@@ -190,6 +198,8 @@ type TJWKSTokenServiceOptions = IJWKSIssuerOptions | IJWKSVerifierOptions; // di
 | `aesAlgorithm` | `AESAlgorithmType` | `'aes-256-cbc'` | No | AES algorithm for payload encryption |
 | `headerAlgorithm` | `string` | `'HS256'` | No | JWT signing algorithm |
 | `fieldCodecs` | `IPayloadFieldCodec[]` | `[]` | No | Custom serialize/deserialize per field name |
+| `verify` | `IJWTVerifyOptions` | -- | No | Claim checks on verify: `audience`, `issuer`, `subject`, `algorithms`, `clockTolerance`, `maxTokenAge`, `typ`, `requiredClaims`. Unset means signature and time claims only |
+| `sign` | `{ issuer?, audience? }` | -- | No | Claims stamped on every issued token. A configured value WINS over one supplied in the payload |
 
 > [!WARNING]
 > `jwtSecret` is mandatory - the component throws if it's missing or equals the placeholder `'unknown_secret'`. `applicationSecret` is optional. When you omit it, the JWT payload stays standard plaintext. Standard fields (`iss`, `sub`, `aud`, `jti`, `nbf`, `exp`, `iat`) are never encrypted either way.
@@ -210,6 +220,8 @@ type TJWKSTokenServiceOptions = IJWKSIssuerOptions | IJWKSVerifierOptions; // di
 | `aesAlgorithm` | `AESAlgorithmType` | `'aes-256-cbc'` | No | AES algorithm for payload encryption |
 | `applicationSecret` | `string` | -- | No | Enables AES payload field encryption when set |
 | `fieldCodecs` | `IPayloadFieldCodec[]` | `[]` | No | Custom serialize/deserialize per field name |
+| `verify` | `IJWTVerifyOptions` | -- | No | Claim checks on verify: `audience`, `issuer`, `subject`, `algorithms`, `clockTolerance`, `maxTokenAge`, `typ`, `requiredClaims`. Unset means signature and time claims only |
+| `sign` | `{ issuer?, audience? }` | -- | No | Claims stamped on every issued token. A configured value WINS over one supplied in the payload |
 
 ### IJWKSVerifierOptions
 
@@ -222,6 +234,7 @@ type TJWKSTokenServiceOptions = IJWKSIssuerOptions | IJWKSVerifierOptions; // di
 | `aesAlgorithm` | `AESAlgorithmType` | `'aes-256-cbc'` | No | AES algorithm for payload decryption |
 | `applicationSecret` | `string` | -- | No | Must match the issuer's secret to decrypt payloads |
 | `fieldCodecs` | `IPayloadFieldCodec[]` | `[]` | No | Must match the issuer's codecs to decrypt custom fields |
+| `verify` | `IJWTVerifyOptions` | -- | No | Claim checks on verify: `audience`, `issuer`, `subject`, `algorithms`, `clockTolerance`, `maxTokenAge`, `typ`, `requiredClaims`. Unset means signature and time claims only |
 
 > [!IMPORTANT]
 > `JWKSVerifierTokenService` cannot sign tokens - `getSigner()`, `getSigningKey()`, and `getDefaultTokenExpiresFn()` all throw. Only `verify()` and `extractCredentials()` are functional.
@@ -266,7 +279,7 @@ type TRouteAuthenticateConfig =
 
 | Field | Type | Default | Description |
 |-------|------|---------|-------------|
-| `authenticate.strategies` | `TAuthStrategy[]` | -- | Strategy names to try - for example, `['jwt']` or `['jwt', 'basic']` |
+| `authenticate.strategies` | `TAuthStrategy[]` | -- | Strategy names to try - for example, `['jwt']` or `['jwt', 'basic']`. Any name you register works too; `'jwt'` and `'basic'` are the ones the framework ships |
 | `authenticate.mode` | `'any' \| 'all'` | `'any'` | `'any'`: first success wins. `'all'`: every strategy must pass |
 | `authenticate.skip` | `true` | -- | Skips authentication for this route entirely |
 
@@ -442,7 +455,7 @@ AbstractBearerTokenService<E>          (extends BaseService)
 
 ### AbstractBearerTokenService
 
-**File:** [`packages/core/src/components/auth/authenticate/services/bearer/abstract.service.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core/src/components/auth/authenticate/services/bearer/abstract.service.ts)
+**File:** [`packages/core-server/src/components/auth/authenticate/services/bearer/abstract.service.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/components/auth/authenticate/services/bearer/abstract.service.ts)
 
 | Method | Signature | Description |
 |--------|-----------|-------------|
@@ -458,19 +471,19 @@ Static: `JWT_COMMON_FIELDS: Set<'iss'|'sub'|'aud'|'jti'|'nbf'|'exp'|'iat'>` - ne
 
 ### JWSTokenService
 
-**File:** [`packages/core/src/components/auth/authenticate/services/bearer/jws.service.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core/src/components/auth/authenticate/services/bearer/jws.service.ts)
+**File:** [`packages/core-server/src/components/auth/authenticate/services/bearer/jws.service.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/components/auth/authenticate/services/bearer/jws.service.ts)
 
 The constructor validates `jwtSecret` and `getTokenExpiresFn`, throwing `500` if either is missing. It encodes the secret to `Uint8Array` and calls `configurePayloadEncryption()`. `doVerify` calls `jose.jwtVerify()` with the shared secret. `getSigner` signs with header `HS256`, or `headerAlgorithm` if you set one.
 
 ### AbstractJWKSTokenService
 
-**File:** [`packages/core/src/components/auth/authenticate/services/bearer/jwks/abstract.service.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core/src/components/auth/authenticate/services/bearer/jwks/abstract.service.ts)
+**File:** [`packages/core-server/src/components/auth/authenticate/services/bearer/jwks/abstract.service.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/components/auth/authenticate/services/bearer/jwks/abstract.service.ts)
 
 `ensureInitialized()` lazily runs `initialize()` on the first call. Concurrent callers share the pending promise. If `initialize()` rejects, the promise resets - the next call retries instead of caching the failure.
 
 ### JWKSIssuerTokenService
 
-**File:** [`packages/core/src/components/auth/authenticate/services/bearer/jwks/issuer.service.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core/src/components/auth/authenticate/services/bearer/jwks/issuer.service.ts)
+**File:** [`packages/core-server/src/components/auth/authenticate/services/bearer/jwks/issuer.service.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/components/auth/authenticate/services/bearer/jwks/issuer.service.ts)
 
 `initialize()` runs in order:
 
@@ -486,13 +499,13 @@ The constructor validates `jwtSecret` and `getTokenExpiresFn`, throwing `500` if
 
 ### JWKSVerifierTokenService
 
-**File:** [`packages/core/src/components/auth/authenticate/services/bearer/jwks/verifier.service.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core/src/components/auth/authenticate/services/bearer/jwks/verifier.service.ts)
+**File:** [`packages/core-server/src/components/auth/authenticate/services/bearer/jwks/verifier.service.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/components/auth/authenticate/services/bearer/jwks/verifier.service.ts)
 
 `initialize()` calls `createRemoteJWKSet(jwksUrl, { cacheMaxAge: cacheTtlMs ?? 43_200_000, cooldownDuration: cooldownMs ?? 30_000 })`. `getSigner`/`getSigningKey`/`getDefaultTokenExpiresFn` all throw - this service is verify-only.
 
 ### BasicTokenService
 
-**File:** [`packages/core/src/components/auth/authenticate/services/basic/service.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core/src/components/auth/authenticate/services/basic/service.ts)
+**File:** [`packages/core-server/src/components/auth/authenticate/services/basic/service.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/components/auth/authenticate/services/basic/service.ts)
 
 | Method | Signature | Description |
 |--------|-----------|-------------|
@@ -512,10 +525,10 @@ All four strategies extend `BaseHelper` and implement `IAuthenticationStrategy<E
 
 | Strategy | `name` | Injects | File |
 |----------|--------|---------|------|
-| `JWSAuthenticationStrategy` | `Authentication.STRATEGY_JWT` | `JWSTokenService` | [`strategies/jws.strategy.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core/src/components/auth/authenticate/strategies/jws.strategy.ts) |
-| `JWKSIssuerAuthenticationStrategy` | `Authentication.STRATEGY_JWT` | `JWKSIssuerTokenService` | [`strategies/jwks.strategy.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core/src/components/auth/authenticate/strategies/jwks.strategy.ts) |
+| `JWSAuthenticationStrategy` | `Authentication.STRATEGY_JWT` | `JWSTokenService` | [`strategies/jws.strategy.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/components/auth/authenticate/strategies/jws.strategy.ts) |
+| `JWKSIssuerAuthenticationStrategy` | `Authentication.STRATEGY_JWT` | `JWKSIssuerTokenService` | [`strategies/jwks.strategy.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/components/auth/authenticate/strategies/jwks.strategy.ts) |
 | `JWKSVerifierAuthenticationStrategy` | `Authentication.STRATEGY_JWT` | `JWKSVerifierTokenService` | same file |
-| `BasicAuthenticationStrategy` | `Authentication.STRATEGY_BASIC` | `BasicTokenService` | [`strategies/basic.strategy.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core/src/components/auth/authenticate/strategies/basic.strategy.ts) |
+| `BasicAuthenticationStrategy` | `Authentication.STRATEGY_BASIC` | `BasicTokenService` | [`strategies/basic.strategy.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/components/auth/authenticate/strategies/basic.strategy.ts) |
 
 > [!NOTE]
 > Choose the strategy class that matches your JOSE standard. `JWKSIssuerAuthenticationStrategy` and `JWKSVerifierAuthenticationStrategy` both register under the same `'jwt'` name - use only one of the two per service.
@@ -524,7 +537,7 @@ All four strategies extend `BaseHelper` and implement `IAuthenticationStrategy<E
 
 Serves the JWKS endpoint (default path `/certs`, configurable via `rest.path`). Intentionally unauthenticated - it serves the public keys external verifiers need.
 
-**File:** [`packages/core/src/components/auth/authenticate/controllers/jwks/controller.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core/src/components/auth/authenticate/controllers/jwks/controller.ts)
+**File:** [`packages/core-server/src/components/auth/authenticate/controllers/jwks/controller.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/components/auth/authenticate/controllers/jwks/controller.ts)
 
 ```typescript
 class JWKSController extends BaseRestController {
@@ -551,7 +564,7 @@ The component applies `@controller({ path })` to `JWKSController` dynamically at
 
 `defineAuthController(opts: TDefineAuthControllerOpts): typeof AuthController` builds a `BaseRestController` subclass at runtime.
 
-**File:** [`packages/core/src/components/auth/authenticate/controllers/factory.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core/src/components/auth/authenticate/controllers/factory.ts)
+**File:** [`packages/core-server/src/components/auth/authenticate/controllers/factory.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/components/auth/authenticate/controllers/factory.ts)
 
 **How it works:**
 
@@ -593,7 +606,7 @@ type TPolicyDefinitionCommonColumns = {
 ## File structure
 
 ```
-packages/core/src/components/auth/
+packages/core-server/src/components/auth/
 ├── authenticate/
 │   ├── common/
 │   │   ├── codecs.ts             # AuthenticationFieldCodecs (ROLES_CODEC, build() factory)

@@ -91,7 +91,7 @@ authorize: [
 ```
 
 > [!NOTE]
-> When several specs run on the same route, rules are built once, via `enforcer.buildRules()`, and cached on `Authorization.RULES` for the rest of the request. The second spec reuses them instead of rebuilding.
+> When several specs run on the same route, rules are built once per ENFORCER, via `enforcer.buildRules()`, and cached on `Authorization.RULES` - a `Map` keyed by enforcer name - for the rest of the request. A second spec on the same enforcer reuses them; a spec on a different enforcer builds its own. The cache used to be a single slot shared by every enforcer, so one enforcer's rules could answer another's check.
 
 **gRPC route.** Same `authorize` field, inside RPC metadata. `AbstractGrpcController.buildRpcMiddlewares()` injects it in the same order as REST: authenticate, then authorize.
 

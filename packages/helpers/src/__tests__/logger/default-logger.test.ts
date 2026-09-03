@@ -45,7 +45,7 @@ const findFileTransport = (logger: winston.Logger): winston.transport => {
   return transport!;
 };
 
-const buildTextLogger = (extra?: { level?: 'warn' }) => {
+const buildTextLogger = (extra?: { level?: 'warn'; colorize?: boolean }) => {
   return defineCustomLogger({
     format: 'text',
     ...extra,
@@ -70,8 +70,11 @@ describe('defineCustomLogger - format wiring per transport', () => {
     expect(rendered).not.toContain(ANSI_ESCAPE);
   });
 
+  // Explicit, because the DEFAULT is env-driven: `bun test` runs under `NODE_ENV=test`, which is
+  // not a development environment, so the resolver vetoes color. This asserts the WIRING - console
+  // gets the colorizer, the file transport never does - not the policy.
   test('text mode: what the console transport writes is colorized', () => {
-    const logger = buildTextLogger();
+    const logger = buildTextLogger({ colorize: true });
 
     const rendered = renderThroughTransport({
       logger,

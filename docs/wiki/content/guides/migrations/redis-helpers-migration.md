@@ -99,15 +99,16 @@ function useRedis(connection: IRedisHelper) { /* ... */ }
 
 ### instanceof checks and concrete bindings
 
-Use the concrete base class (you cannot `instanceof` an interface):
+Use the `isRedisHelper` brand check (you cannot `instanceof` an interface, and `instanceof` against
+the base class answers `false` for a helper built by a second installed copy of the package):
 
 ```typescript
 // Before
 if (connection instanceof DefaultRedisHelper) { /* ... */ }
 
 // After
-import { AbstractRedisHelper } from '@venizia/ignis-helpers';
-if (connection instanceof AbstractRedisHelper) { /* ... */ }
+import { isRedisHelper } from '@venizia/ignis-helpers';
+if (isRedisHelper(connection)) { /* ... */ }
 ```
 
 ### Options type rename

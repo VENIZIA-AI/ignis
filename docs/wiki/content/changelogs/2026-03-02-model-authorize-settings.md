@@ -21,9 +21,9 @@ Models can now declare their authorization principal directly in the `@model` de
 ### Model-Level Authorization Settings
 
 **Files:**
-- `packages/core/src/helpers/inversion/common/types.ts`
-- `packages/core/src/base/metadata/persistents.ts`
-- `packages/core/src/base/models/base.ts`
+- `packages/core-server/src/helpers/inversion/common/types.ts`
+- `packages/core-server/src/base/metadata/persistents.ts`
+- `packages/core-server/src/base/models/base.ts`
 
 **Problem:** Authorization subjects (resources) were raw strings with no connection to the models they represent. Permission configs like `resource: 'Article'` had to be kept in sync manually.
 
@@ -64,7 +64,7 @@ authorize: {
 
 ### MetadataRegistry Query Methods
 
-**File:** `packages/core/src/helpers/inversion/mixins/model.mixin.ts`
+**File:** `packages/core-server/src/helpers/inversion/mixins/model.mixin.ts`
 
 Three new methods on `MetadataRegistry` for querying authorization metadata:
 
@@ -141,7 +141,7 @@ Auto-population logic in the `@model` decorator:
 
 ## Files Changed
 
-### Core Package (`packages/core`)
+### Core Package (`packages/core-server`)
 
 | File | Changes |
 |------|---------|

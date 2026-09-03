@@ -1,12 +1,12 @@
 ---
 title: Crypto
-description: AES symmetric encryption, RSA asymmetric encryption, and ECDH key exchange helpers
+description: AES symmetric encryption, RSA asymmetric encryption, ECDH key exchange, and Hash digests/HMACs
 difficulty: intermediate
 ---
 
 # Crypto
 
-Cryptographic helpers for AES symmetric encryption, RSA asymmetric encryption, and ECDH ephemeral key exchange, each wrapped in a scoped `BaseHelper` class.
+Cryptographic helpers for AES symmetric encryption, RSA asymmetric encryption, ECDH ephemeral key exchange, and `Hash` digests/HMACs, each wrapped in a scoped `BaseHelper` class.
 
 ## In one example
 
@@ -47,10 +47,11 @@ const decrypted = aes.decrypt({ message: encrypted, secret });
 | `AES` | `BaseCryptoAlgorithm` | `string` | No | Encrypting data at rest, fast bulk encryption |
 | `RSA` | `BaseCryptoAlgorithm` | `string` (base64 DER key) | No | Public-key encryption, small payloads |
 | `ECDH` | `AbstractCryptoAlgorithm` | `CryptoKey` | Yes | Session key exchange with forward secrecy |
+| `Hash` | `BaseHelper` | `string` (HMAC only, no secret for a plain digest) | No | Digests and HMACs - no `decrypt`, a digest cannot be reversed |
 
 `AES` supports two modes selected at construction: `aes-256-cbc` (plain block cipher) and `aes-256-gcm` (authenticated - detects tampering). Everything on this page uses the default options.
 
-See the [Full reference](/extensions/helpers/crypto/reference) for every option, the ECDH key-exchange flow, `IECDHEncryptedPayload`, and the standalone `hash()` utility.
+See the [Full reference](/extensions/helpers/crypto/reference) for every option, the ECDH key-exchange flow, `IECDHEncryptedPayload`, and `Hash`'s digest/HMAC methods.
 
 ## Common tasks
 
@@ -96,6 +97,17 @@ const result = rsa.encrypt({ message: 'test', secret: 'invalid-key', opts: { doT
 // result === 'test' (original message, no throw)
 ```
 
+### Hash or HMAC a message
+
+`Hash` covers one-way digests and keyed HMACs. `digest` takes no secret; `hmac` requires one and throws if it is empty.
+
+```typescript
+import { Hash, HashAlgorithms } from '@venizia/ignis-helpers';
+
+const checksum = Hash.withAlgorithm(HashAlgorithms.SHA256).digest({ message: 'payload' });
+const signature = Hash.withAlgorithm(HashAlgorithms.SHA256).hmac({ message: 'payload', secret: webhookSecret });
+```
+
 ### Derive a shared session key with ECDH
 
 `ECDH` is async (Web Crypto) and needs a `deriveAESKey()` step before either side can encrypt. See the [Full reference](/extensions/helpers/crypto/reference#ecdh-key-exchange) for the complete key-exchange flow, salt handling, and additional authenticated data (AAD).
@@ -110,8 +122,7 @@ const bob = await ecdh.generateKeyPair();
 
 ## See also
 
-- [Full reference](/extensions/helpers/crypto/reference) - every option, the ECDH flow, `hash()`, and troubleshooting
-- [Crypto Utility](/references/utilities/crypto) - the standalone `hash()` function for MD5/HMAC-SHA256
+- [Full reference](/extensions/helpers/crypto/reference) - every option, the ECDH flow, `Hash`, and troubleshooting
 - [Authentication Component](/extensions/components/authentication/) - JWT and password verification
 - [Helpers Overview](/extensions/helpers/) - all available helpers
 - [Security Guidelines](/best-practices/security-guidelines) - cryptographic best practices
@@ -122,3 +133,4 @@ const bob = await ecdh.generateKeyPair();
 - [`packages/helpers/src/modules/crypto/algorithms/aes.algorithm.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/crypto/algorithms/aes.algorithm.ts) - `AES`
 - [`packages/helpers/src/modules/crypto/algorithms/rsa.algorithm.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/crypto/algorithms/rsa.algorithm.ts) - `RSA`
 - [`packages/helpers/src/modules/crypto/algorithms/ecdh.algorithm.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/crypto/algorithms/ecdh.algorithm.ts) - `ECDH`
+- [`packages/helpers/src/modules/crypto/algorithms/hash.algorithm.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/crypto/algorithms/hash.algorithm.ts) - `Hash`

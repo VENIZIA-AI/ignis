@@ -2,7 +2,7 @@
 type: Convention
 title: Coding style
 description: Hard style rules that apply to every file in the monorepo.
-resource: packages/core/src
+resource: packages/core-server/src
 tags: [conventions, style]
 ---
 
@@ -11,7 +11,7 @@ review, not waved through.
 
 ## No silent catch
 
-Every `catch` block logs. `BullMqQueueHelper.close`
+Every `catch` block logs. `BullMQHelper.close`
 (`packages/helpers/src/modules/queue/bullmq/helper.ts`) shows the pattern: close both connections
 even if the first fails, but log each failure through the scoped logger before continuing:
 
@@ -30,7 +30,8 @@ No single-statement `if` without `{ }` - it removes a whole class of dangling-el
 
 ## Early return over nesting
 
-Guard clauses at the top of a function, not a pyramid of nested `if`:
+Guard clauses at the top of a function, not a pyramid of nested `if`. `ServerApplication.stop`
+(`packages/core-server/src/base/applications/server.ts`) bails out before touching the server instance:
 
 ```typescript
 if (!instance) {
@@ -41,7 +42,7 @@ if (!instance) {
 
 ## switch + default over if-else chains
 
-`AbstractApplication.start`/`.stop` (`packages/core/src/base/applications/abstract.ts`) dispatch on
+`ServerApplication.start`/`.stop` (`packages/core-server/src/base/applications/server.ts`) dispatch on
 `this.server.runtime` with a `switch`, whose `default` throws via
 [`getError`](/conventions/error-handling.md) rather than falling through silently:
 
@@ -57,6 +58,20 @@ switch (this.server.runtime) {
 
 No `any` unless truly unavoidable. When a cast cannot be avoided, prefer a simple `as any` over a
 baroque `as unknown as SomeType` - the simple cast is honest about being an escape hatch.
+
+## State belongs to a class, not to the module
+
+A `let`, a cache `Map` or a `WeakMap` at module scope with exported arrows reading it is state with
+no owner: nothing names it, nothing bounds who may mutate it, and a test cannot reach it to reset
+it. Put the state and the operations on it in a class, as `static` members - `HfLogRing`,
+`PinoBackingLogger`, `TableColumnCache`, `DroppedRouteDecorators` are the shape.
+
+Two limits on this. A pure exported function that holds nothing stays a function - a class around it
+buys nothing. And a name that is already published stays exported, as a one-line delegate to the
+class, the way `getError` delegates to `ApplicationError.getError`.
+
+Inside a class, reach for statics by class name (`HfLogger.textEncoder`), not `this` - a static
+called through a detached reference has no `this`.
 
 ## Comments state constraints, not history or narration
 

@@ -2,8 +2,8 @@ import { describe, expect, test } from 'bun:test';
 import { getError } from '@/modules/error';
 import { formatLogMessage } from '@/modules/logger';
 
-/** `Error.message`/`stack` are non-enumerable, so `%j` silently drops both - always log errors with `%s`; `%j` keeps only incidental message text via `extra.message.text`. */
-describe('logging an Error - %s keeps it, %j guts it', () => {
+/** `Error.message`/`stack` are non-enumerable, so raw `JSON.stringify` drops both - the `%j` path projects the error first, so a mistaken `%j` still carries them. `%s` stays the rule: only it routes through `ErrorPrettier`, which projects unmodelled own properties away. */
+describe('logging an Error - %s is the rule, %j is no longer a silent loss', () => {
   const buildError = () => {
     const error = getError({
       message: 'boom',
@@ -24,13 +24,23 @@ describe('logging an Error - %s keeps it, %j guts it', () => {
     expect(formatted).toContain('Key (email) already exists'); // the cause's own message
   });
 
-  test('%j loses the stack - this is why no error log line may use it', () => {
+  test('%j keeps the message and the stack, which JSON.stringify alone would drop', () => {
     const formatted = formatLogMessage({ message: 'Error: %j', args: [buildError()] });
 
-    expect(formatted).not.toContain('at '); // no stack frame - the reason the rule exists
-    // `Error.message` itself is gone: the text below comes from the enumerable `extra.message`.
-    expect(formatted).toContain('core.mail.send_failed');
     expect(formatted).toContain('boom');
+    expect(formatted).toContain('at '); // a stack frame
+    expect(formatted).toContain('core.mail.send_failed');
+  });
+
+  /** The reason the rule survives: `%j` carries every enumerable own property, so a driver's `query` or a `jose` payload rides along. */
+  test('%j still dumps unmodelled own properties - %s projects them away', () => {
+    const error = buildError();
+    (error as unknown as Record<string, unknown>).query = 'SELECT secret FROM users';
+
+    expect(formatLogMessage({ message: 'Error: %j', args: [error] })).toContain('SELECT secret');
+    expect(formatLogMessage({ message: 'Error: %s', args: [error] })).not.toContain(
+      'SELECT secret',
+    );
   });
 
   test('a nested cause under %s survives the default depth', () => {

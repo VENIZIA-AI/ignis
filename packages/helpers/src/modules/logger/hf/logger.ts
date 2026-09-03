@@ -14,23 +14,14 @@ import {
   OFFSET_MESSAGE_LENGTH,
   OFFSET_SCOPE,
   OFFSET_SCOPE_LENGTH,
+  TRingState,
 } from './common';
-import { getRing } from './ring';
-
-const textEncoder = new TextEncoder();
-const scopeCache = new Map<string, Uint8Array>();
-
-const encodeScope = (scope: string): Uint8Array => {
-  let bytes = scopeCache.get(scope);
-  if (!bytes) {
-    bytes = textEncoder.encode(scope).subarray(0, HF_SCOPE_MAX_BYTES);
-    scopeCache.set(scope, bytes);
-  }
-  return bytes;
-};
+import { HfLogRing } from './ring';
 
 /** Ring-buffer logger for hot paths; extends AbstractLogger, NOT BaseLogger - BaseLogger's string-sink plumbing is exactly the cost this implementation exists to avoid. */
 export class HfLogger extends AbstractLogger {
+  private static readonly textEncoder = new TextEncoder();
+  private static readonly scopeCache = new Map<string, Uint8Array>();
   private static cache = new Map<string, HfLogger>();
   private static messageCache = new Map<string, Uint8Array>();
 
@@ -38,14 +29,23 @@ export class HfLogger extends AbstractLogger {
   private readonly scopeBytes: Uint8Array;
   private readonly scopeLength: number;
   // Resolved once at construction (get() has already allocated the ring): saves a call and a null-check per log on a path budgeted in nanoseconds.
-  private readonly ring: ReturnType<typeof getRing>;
+  private readonly ring: TRingState;
 
   private constructor(scope: string) {
     super();
     this.scope = scope;
-    this.scopeBytes = encodeScope(scope);
+    this.scopeBytes = HfLogger.encodeScope(scope);
     this.scopeLength = this.scopeBytes.length;
-    this.ring = getRing();
+    this.ring = HfLogRing.get();
+  }
+
+  private static encodeScope(scope: string): Uint8Array {
+    let bytes = HfLogger.scopeCache.get(scope);
+    if (!bytes) {
+      bytes = HfLogger.textEncoder.encode(scope).subarray(0, HF_SCOPE_MAX_BYTES);
+      HfLogger.scopeCache.set(scope, bytes);
+    }
+    return bytes;
   }
 
   static get(scope: string): HfLogger {
@@ -64,7 +64,7 @@ export class HfLogger extends AbstractLogger {
       return cached;
     }
 
-    const bytes = textEncoder.encode(message);
+    const bytes = HfLogger.textEncoder.encode(message);
     if (this.messageCache.size >= MESSAGE_CACHE_CAP) {
       this.evictOldestMessage();
     }
@@ -103,7 +103,7 @@ export class HfLogger extends AbstractLogger {
   private writeString(levelCode: number, message: string, args: Array<AnyType>): void {
     if (args.length > 0) {
       // Slow path, documented: args are formatted (deep inspection + redaction) - never dropped.
-      this.writeEntry(levelCode, textEncoder.encode(formatLogMessage({ message, args })));
+      this.writeEntry(levelCode, HfLogger.textEncoder.encode(formatLogMessage({ message, args })));
       return;
     }
     this.writeEntry(levelCode, HfLogger.encodeMessage(message));

@@ -1,17 +1,34 @@
 ---
 type: Architecture
 title: Application lifecycle
-description: The real order in which BaseApplication configures itself and starts serving, and why each step sits where it does.
-resource: packages/core/src/base/applications
+description: The four application layers, the real order in which BaseApplication configures itself and starts serving, and why each step sits where it does.
+resource: packages/kernel/src/base/applications
 tags: [architecture, lifecycle, application, bootstrap]
 ---
 
-An IGNIS application is a container that owns a Hono server. `AbstractApplication extends Container`
-holds the server plumbing and the generic start/stop machinery; `BaseApplication extends
-AbstractApplication` implements the configuration sequence. There are two entry points, and the order
-matters more than the phase names suggest.
+An IGNIS application is a container that grows a router and then a server, one layer at a time. The
+base is a four-class chain split across two packages:
 
-`start()` (on `AbstractApplication`) is the outer driver:
+| Class | Lives in | Adds |
+|---|---|---|
+| `AbstractApplication extends Container` | `packages/kernel/src/base/applications/abstract.ts` | config normalisation, project root, post-start/post-stop hooks, `init()` and `registerCoreBindings()`. No router, no server. |
+| `RestApplication` | `packages/kernel/src/base/applications/rest.ts` | the two `OpenAPIHono` instances, `getServer()`, `getRootRouter()`, `inspectRoutes()`, and the `APPLICATION_SERVER` / `APPLICATION_ROOT_ROUTER` bindings. |
+| `ServerApplication` | `packages/core-server/src/base/applications/server.ts` | the only layer that touches a socket: `getServerHost/Port/Address`, `startBunModule`, `startNodeModule`, `start()`, `stop()`. |
+| `BaseApplication` | `packages/core-server/src/base/applications/base.ts` | the configuration sequence, secrets, boot wiring. |
+
+The cut is deliberate. The first two layers are browser-pure and ship in `@venizia/ignis-kernel`, so
+a Worker or a gRPC-only host can extend `RestApplication` without pulling in `Bun.serve` or
+`@hono/node-server`. `packages/core-server/src/base/applications/index.ts` re-exports the kernel classes, so
+`@venizia/ignis` consumers see no change.
+
+The outermost order is `new Application({ scope, config })` -> `init()` -> optional `boot()` ->
+`start()`. **`init()` is not called for you.** It runs `registerCoreBindings()`, which binds
+`APPLICATION_INSTANCE` (on `AbstractApplication`) plus `APPLICATION_SERVER` and
+`APPLICATION_ROOT_ROUTER` (on `RestApplication`). Skip it and the `Bootstrapper` and every
+`@inject`ed application reference are unresolvable. `APPLICATION_PROJECT_ROOT` is bound earlier still,
+from the constructor.
+
+`start()` (on `ServerApplication`) is the outer driver:
 
 ```typescript
 async start() {
@@ -30,14 +47,22 @@ async start() {
 2. `validateEnvs()` - every registered application env key must be non-empty, unless
    `ALLOW_EMPTY_ENV_VALUE` is set. Failing here is intentional: a half-configured app should never
    reach the network.
-3. `registerDefaultMiddlewares()` - installs the Hono `onError` handler, the async context storage
-   (when enabled), the not-found handler, the `RequestTrackerComponent`, and the favicon middleware.
+3. `registerDefaultMiddlewares()` - calls the kernel's, which installs `requestId()`, the Hono
+   `onError` handler and the not-found handler, then adds the async context storage (when enabled),
+   the `RequestTrackerComponent` and the favicon middleware.
 4. `staticConfigure()` - pre-DI static setup, e.g. static file roots.
 5. `preConfigure()` - your hook: register controllers, services, components manually.
-6. `registerDataSources()`
-7. `registerComponents()`
-8. `registerControllers()`
-9. `postConfigure()` - post-registration hook.
+6. `hydrateSecrets()` - resolves the provider from the overridable `registerSecrets()` (default
+   `SecretProviders.SYSTEM_ENVS`), merges each secret bundle into `process.env` and the application
+   environment, binds the provider under `CoreBindings.APPLICATION_CONFIG`, and registers a post-stop
+   shutdown hook. Outside a development env, a failed provider - or a hydrate entry that declared
+   `keys` or a `prefix` yet resolved to nothing - throws instead of falling back.
+7. `registerDataSources()`
+8. `registerComponents()`
+9. `wireSecretRotatables()` - deliberately after both registration phases: a lease key may point at a
+   datasource that a component contributed.
+10. `registerControllers()`
+11. `postConfigure()` - post-registration hook.
 
 Note two things that a phase list written as `... -> setupMiddlewares -> start` gets wrong: the
 default middlewares are installed **early inside `initialize`**, before any user configuration, and
@@ -61,6 +86,25 @@ one artifact may bind more artifacts of the same kind.
 registered in `postConfigure` are never auto-configured**. If you must add one there, call its
 `configure()` yourself.
 
+## Environment seams
+
+The kernel layers touch no `process` at all, because a browser Worker has none. `getProjectRoot()`
+returns `''` (it still binds `APPLICATION_PROJECT_ROOT`), and `getDefaultAsyncContextEnabled()`
+returns `false` - a router-only or router-less application must not install `hono/context-storage`,
+which needs `node:async_hooks`. Address resolution is not a seam: `host`/`port` are absent from the
+kernel entirely, and `ServerApplication`'s constructor resolves them from `HOST` /
+`APP_ENV_SERVER_HOST` and `PORT` / `APP_ENV_SERVER_PORT`.
+
+`ServerApplication` overrides both to restore the serving behaviour: `process.cwd()`, and async
+context on. An application may override
+`getProjectRoot()` further. Host falls back to `localhost` and port to `3000`; port `0` survives
+resolution because candidates are rejected on validity, not falsiness, and `0` legitimately asks the
+OS for an ephemeral port.
+
+All of these seams are called from the `AbstractApplication` **constructor**, before any subclass
+field initialiser has run. An override must therefore return a pure literal or read only module-level
+state - reading an instance field from one silently yields `undefined`.
+
 ## Transports
 
 `registerControllers()` reads `configs.transports` (defaulting to `[ControllerTransports.REST]`) and
@@ -76,15 +120,16 @@ runs the three boot phases. An application that uses convention-based discovery 
 
 ## Starting and stopping
 
+`start()`, `stop()`, `startBunModule()` and `startNodeModule()` all live on `ServerApplication`.
 `RuntimeModules.detect()` picks Bun or Node. The Node path imports `@hono/node-server` dynamically
 and resolves from the listening callback rather than from `serve()`'s synchronous return - only then
 is the socket actually bound and an OS-assigned port (config port `0`) known. `stop()` bridges Node's
 callback-based `close()` into a promise for the same reason: otherwise it resolves while the socket
 is still bound and an immediate restart races the old listener.
 
-`executePostStartHooks()` runs every registered hook **in isolation**. The server is already
-listening, so a hook that throws must not cancel the hooks queued behind it - failures are collected
-and thrown as one error once every hook has had its turn.
+`executePostStartHooks()` and `executePostStopHooks()` stay on `AbstractApplication`. Post-start hooks
+run **in isolation**: the server is already listening, so a hook that throws must not cancel the hooks
+queued behind it - failures are collected and thrown as one error once every hook has had its turn.
 
 ## Related
 

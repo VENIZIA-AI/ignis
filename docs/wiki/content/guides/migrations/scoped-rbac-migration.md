@@ -47,18 +47,18 @@ Both are described below with exact before/after.
 
 When you bump ignis, these stop compiling/working:
 
-1. **`packages/core/src/security/application-casbin-adapter.ts`**
+1. **`packages/core-server/src/security/application-casbin-adapter.ts`**
    - `extends DrizzleCasbinAdapter` → class removed.
    - `import { DrizzleCasbinAdapter, IDrizzleCasbinAdapterOptions, ICasbinPolicyFilter } from '@venizia/ignis'` → first two removed; `ICasbinPolicyFilter` still exists but its **shape changed**.
    - `filter.principalValue` / `filter.principalType` → now `filter.principal.id` / `filter.principal.type`.
    - `CasbinRuleVariants.GROUP` / `CasbinRuleVariants.POLICY` → removed.
    - `this.entities.role.principalType` / `this.entities.permission.principalType` → `entities` no longer provided by the base.
 
-2. **`packages/core/src/repositories/public/policy-definition.repository.ts`**
+2. **`packages/core-server/src/repositories/public/policy-definition.repository.ts`**
    - Many `eq(pd.variant, CasbinRuleVariants.GROUP)` / `.POLICY` → constant removed. This file is the
      biggest single breakage surface outside the adapter.
 
-3. **`packages/core/src/application/verifier.ts`** (enforcer registration)
+3. **`packages/core-server/src/application/verifier.ts`** (enforcer registration)
    - The Redis-absent fallback uses `CasbinEnforcerCachedDrivers.IN_MEMORY` → removed. You must pick
      Redis or `{ use: false }`.
 
@@ -78,7 +78,7 @@ your `group`/`policy` variant values, and all bespoke logic (global roles, HQ-ow
 Own these strings locally so you are decoupled from ignis's casbin-prefix enum:
 
 ```ts
-// packages/core/src/security/policy-variant.ts
+// packages/core-server/src/security/policy-variant.ts
 export class PolicyDefinitionVariant {
   /** user→role assignment + user→merchant membership rows. */
   static readonly GROUP = 'group';
@@ -292,7 +292,7 @@ the bespoke adapter and gain resource/action/domain hierarchies for free.
 
 ## 7. Reference - current nx-seller wiring (before)
 
-For context, the current registration (`packages/core/src/application/verifier.ts`) uses:
+For context, the current registration (`packages/core-server/src/application/verifier.ts`) uses:
 `ApplicationCasbinAdapter` (subclass of removed `DrizzleCasbinAdapter`), `CASBIN_RBAC_MODEL` (flat
 `g + p`, exact `r.obj == p.obj`), a Redis-or-in-memory `cached`, `domainMatching { roleDefinition: 'g',
 fn: keyMatch }`, and a `normalizePayloadFn` mapping subject/domain via

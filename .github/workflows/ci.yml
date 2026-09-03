@@ -1,0 +1,122 @@
+name: CI
+run-name: "CI | ${{ github.event_name }} | ${{ github.head_ref || github.ref_name }}"
+
+# Manual only, by decision. These gates are a full build, seven test suites, lint and the purity
+# probe, and they used to fire on every pull request AND every push to develop - including the
+# release workflow's own commits, so a four-package release chain paid for four extra full runs.
+# Nothing enforces this workflow as a required status check, so running it on demand blocks nothing.
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
+jobs:
+  gates:
+    name: Source gates
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6.0.3
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install
+        id: install
+        run: bun install
+
+      - name: Dependency catalog
+        if: ${{ !cancelled() && steps.install.outcome == 'success' }}
+        run: make catalog-check
+
+      - name: Knowledge bundle
+        if: ${{ !cancelled() && steps.install.outcome == 'success' }}
+        run: make okf-check
+
+      - name: Browser purity probe
+        if: ${{ !cancelled() && steps.install.outcome == 'success' }}
+        run: make purity-test
+
+  build-and-test:
+    name: Build, test and lint
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6.0.3
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install
+        id: install
+        run: bun install
+
+      - name: Build
+        id: build
+        run: make build-all
+
+      - name: Test - inversion
+        if: ${{ !cancelled() && steps.build.outcome == 'success' }}
+        working-directory: packages/inversion
+        run: bun test
+
+      - name: Test - helpers
+        if: ${{ !cancelled() && steps.build.outcome == 'success' }}
+        working-directory: packages/helpers
+        run: bun test
+
+      - name: Test - boot
+        if: ${{ !cancelled() && steps.build.outcome == 'success' }}
+        working-directory: packages/boot
+        run: bun test
+
+      - name: Test - kernel
+        if: ${{ !cancelled() && steps.build.outcome == 'success' }}
+        working-directory: packages/kernel
+        run: bun test
+
+      - name: Test - connectors
+        if: ${{ !cancelled() && steps.build.outcome == 'success' }}
+        working-directory: packages/connectors
+        run: bun test
+
+      - name: Test - core-worker
+        if: ${{ !cancelled() && steps.build.outcome == 'success' }}
+        working-directory: packages/core-worker
+        run: bun test
+
+      - name: Test - core-server
+        if: ${{ !cancelled() && steps.build.outcome == 'success' }}
+        working-directory: packages/core-server
+        run: bun test
+
+      - name: Lint
+        if: ${{ !cancelled() && steps.build.outcome == 'success' }}
+        run: make lint-all
+
+      # One loop, no allowlist: connectors' known-impure engine clients are waived inside
+      # scripts/purity/manifest.ts, where the release workflow's `make purity-<pkg>` sees them too.
+      # This step used to carry its own copy of that list, so the two gates could disagree - and did:
+      # `make purity-connectors` could never pass, which failed a connectors release outright.
+      - name: Browser purity
+        if: ${{ !cancelled() && steps.build.outcome == 'success' }}
+        run: |
+          failed=0
+          for target in purity-inversion purity-filter purity-helpers purity-kernel purity-core-worker purity-connectors; do
+            make "$target" || failed=1
+          done
+          exit $failed

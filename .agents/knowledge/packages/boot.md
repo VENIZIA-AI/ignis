@@ -6,7 +6,7 @@ resource: packages/boot
 tags: [packages, boot, bootstrapping]
 ---
 
-`@venizia/ignis-boot` sits between `helpers` and `core` in the dependency chain (`dev-configs -> inversion -> helpers -> boot -> core`). It discovers artifact files by glob pattern and registers them into the IoC container, so applications do not have to manually wire up every controller, service, repository, and datasource. It depends only on `@venizia/ignis-inversion` and `glob`, and ships a dual CJS + ESM build. See [Boot lifecycle](/architecture/boot-lifecycle.md).
+`@venizia/ignis-boot` sits between `helpers` and `core` in the dependency chain (`dev-configs -> inversion -> {filter, helpers} -> {boot, kernel} -> core`); `kernel` is a sibling, not a link - neither package depends on the other, and `core` pulls in both. It discovers artifact files by glob pattern and registers them into the IoC container, so applications do not have to manually wire up every controller, service, repository, and datasource. It depends on `@venizia/ignis-inversion`, `@venizia/ignis-helpers`, and `glob`, and ships a dual CJS + ESM build. See [Boot lifecycle](/architecture/boot-lifecycle.md).
 
 ## Three-phase lifecycle
 
@@ -43,11 +43,11 @@ A custom booter (e.g. for `handlers/`) extends `BaseArtifactBooter`, implements 
 
 ## Gotcha: `isClass`
 
-`isClass` is not declared in boot. It lives in `inversion` (`common/types.ts`) because the container, controller factories, and `resolveValue` all need to branch on the exact same predicate; `helpers` re-exports it, and boot imports it from `@venizia/ignis-helpers` rather than redeclaring it. The predicate checks class syntax specifically (`typeof x === 'function' && x.prototype !== undefined`), not mere callability - a plain non-arrow function would otherwise satisfy a looser check and get discovered and instantiated as if it were an artifact class.
+`isClass` is not declared in boot. It lives in `inversion` (`common/types.ts`) because the container, controller factories, and `resolveValue` all need to branch on the exact same predicate; `helpers` re-exports it, and boot imports it from `@venizia/ignis-helpers` rather than redeclaring it. The predicate does not stop at `typeof x === 'function' && x.prototype !== undefined` - a plain non-arrow function satisfies that too. It also runs `/^class[\s{]/.test(Function.prototype.toString.call(target))` on the source text, and that is what keeps a plain function from being discovered and instantiated as if it were an artifact class.
 
 ## Related
 
 - [Boot lifecycle](/architecture/boot-lifecycle.md)
 - [inversion](/packages/inversion.md)
-- [core](/packages/core.md)
+- [core](/packages/core-server.md)
 - [Application lifecycle](/architecture/application-lifecycle.md)

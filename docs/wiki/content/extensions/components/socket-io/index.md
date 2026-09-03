@@ -111,6 +111,6 @@ Every `DEFAULT_SERVER_OPTIONS` field, the binding key table, system events, defa
 
 **Files:**
 
-- [`packages/core/src/components/socket-io/component.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core/src/components/socket-io/component.ts) - `SocketIOComponent`
-- [`packages/core/src/components/socket-io/common/keys.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core/src/components/socket-io/common/keys.ts) - `SocketIOBindingKeys`
-- [`packages/core/src/components/socket-io/common/types.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core/src/components/socket-io/common/types.ts) - `IServerOptions`, `DEFAULT_SERVER_OPTIONS`
+- [`packages/core-server/src/components/socket-io/component.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/components/socket-io/component.ts) - `SocketIOComponent`
+- [`packages/core-server/src/components/socket-io/common/keys.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/components/socket-io/common/keys.ts) - `SocketIOBindingKeys`
+- [`packages/core-server/src/components/socket-io/common/types.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/components/socket-io/common/types.ts) - `IServerOptions`, `DEFAULT_SERVER_OPTIONS`

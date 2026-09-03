@@ -1,4 +1,4 @@
-import { redactSecrets } from '@/common/redact';
+import { redactSecrets, toJsonSafe } from '@/common/redact';
 import util from 'node:util';
 import { ErrorPrettier } from './error-prettier';
 
@@ -35,7 +35,7 @@ const buildInspectOptions = (): util.InspectOptions => {
   };
 };
 
-/** Formats like `util.format`, but `%s` inspects to configured depth instead of Node's hard-coded `depth: 0` (no inspect option overrides that). Per-placeholder only - widening ALL args would turn `%j` into a JSON-quoted string instead of an object. */
+/** Formats like `util.format`, but `%s` inspects to configured depth instead of Node's hard-coded `depth: 0` (no inspect option overrides that), and `%j` is projected into a JSON-safe shape first. Per-placeholder only - handing `%j` the widened STRING would emit a JSON-quoted inspect dump instead of an object. */
 export const formatLogMessage = (opts: {
   message: string;
   args: Array<unknown>;
@@ -46,10 +46,34 @@ export const formatLogMessage = (opts: {
   const placeholders = (message.match(PLACEHOLDER_PATTERN) ?? []).filter(token => token !== '%%');
 
   const widened = args.map((arg, index) => {
-    const isStringPlaceholder = placeholders[index] === '%s';
+    const placeholder = placeholders[index];
     const isInspectable = typeof arg === 'object' && arg !== null;
 
-    if (!isStringPlaceholder || !isInspectable) {
+    if (!isInspectable) {
+      return arg;
+    }
+
+    // `%j` runs JSON.stringify, which answers `[Circular]` for the WHOLE argument when one cycle sits anywhere inside it - a transaction handle in the payload wipes out every other field. It also has no notion of secret keys, and no depth limit of its own. Project the value first, under the same depth cap `%s` gets.
+    if (placeholder === '%j') {
+      return toJsonSafe({ value: arg, depth: inspectOptions.depth ?? resolveDepth() });
+    }
+
+    // `%o`, `%O` and arguments with NO placeholder (`util.format` appends those) are redacted but
+    // left as objects, so `util.formatWithOptions` still renders them the way that placeholder
+    // means. Pre-inspecting them into a string here would make `%o` print a quoted, escaped string
+    // instead of an object. Only the redaction is added; the rendering is unchanged.
+    //
+    // Before this, `logger.info('login failed', { password })` printed the password verbatim: the
+    // redactor only ever saw `%s`, while the reference docs recommend `%o` for data objects.
+    //
+    // Bounded like the `%s` path below, and for the same reason: an unbounded walk on a very deep
+    // graph is work whose result the renderer discards, and deep enough it is a `RangeError` on a
+    // call that could not throw before. `%o` renders at `depth`, so `+2` covers what is shown.
+    if (placeholder === undefined || placeholder === '%o' || placeholder === '%O') {
+      return redactSecrets(arg, undefined, (inspectOptions.depth ?? resolveDepth()) + 2);
+    }
+
+    if (placeholder !== '%s') {
       return arg;
     }
 
@@ -58,7 +82,13 @@ export const formatLogMessage = (opts: {
       return `\n${ErrorPrettier.format({ error: arg, inspectOptions })}`;
     }
 
-    return util.inspect(redactSecrets(arg), inspectOptions);
+    // Bounded to just past what `util.inspect` will actually render. `+2`, not `+1`: at exactly
+    // `depth + 1` the redactor replaces the last level with a string, and inspect then prints a
+    // QUOTED `'[Object]'` instead of its own bare `[Object]`.
+    return util.inspect(
+      redactSecrets(arg, undefined, (inspectOptions.depth ?? resolveDepth()) + 2),
+      inspectOptions,
+    );
   });
 
   return util.formatWithOptions(inspectOptions, message, ...widened);

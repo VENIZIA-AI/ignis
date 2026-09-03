@@ -8,6 +8,9 @@ difficulty: advanced
 
 `AuthorizeComponent` decides whether an authenticated request is allowed to proceed. It evaluates role shortcuts, custom voters, and a Casbin RBAC enforcer, in that order, through the `authorize()` middleware. The middleware runs after authentication. Casbin's optional domain-scoped model adds multi-tenant grants on top.
 
+> [!TIP]
+> New to this component? Start with [Getting Started](./getting-started) - it builds the mental model (a graph of edges, not a rule table), then seeds one grant and protects one route end to end before you read the reference material below.
+
 ## In one example
 
 The recommended setup: scoped Casbin RBAC backed by one `PolicyDefinition` edge table, then a protected route.
@@ -75,7 +78,7 @@ const DELETE_ARTICLE_CONFIG = {
 
 - **Enforcer-based and pluggable.** `authorize({ spec })` returns Hono middleware built by `AuthorizationProvider`, which resolves an `IAuthorizationEnforcer` from `AuthorizationEnforcerRegistry` by name (default: the first registered). Swap `CasbinAuthorizationEnforcer` for a custom class without touching route configs.
 - **Runs after authentication.** The middleware reads `Authentication.CURRENT_USER` from the Hono context. `AuthenticateComponent` must run first, and the route needs an `authenticate` config alongside `authorize`.
-- **No enforcers registered = no-op.** If `AuthorizationEnforcerRegistry.hasEnforcers()` is `false`, the middleware calls `next()` and skips authorization entirely. That's useful during incremental rollout, but dangerous if you forget to register an enforcer in production.
+- **No enforcers registered = deny, unless you opt into allow.** If `AuthorizationEnforcerRegistry.hasEnforcers()` is `false`, the middleware throws a 403 naming the missing enforcer. Set `defaultDecision: 'allow'` on `IAuthorizeOptions` to proceed instead - useful during incremental rollout - and the middleware logs a warning each time it does.
 - **Casbin's scoped RBAC model is the recommended engine.** Combine `CASBIN_RBAC_DOMAIN_SCOPED_MODEL`, `isScoped: true`, and `ScopedCasbinAdapter` to read one principal's policy edges from a single `PolicyDefinition` table. See [RBAC with domains](./usage#rbac-with-domains-multi-tenant) for multi-tenant grant scoping.
 - **Per-request enforcers, cached lines.** Each Casbin evaluation borrows an isolated enforcer from an internal pool, loads that user's policy lines into it, then evaluates. The datasource query runs only on a cache miss, or every time if `cached.use: false`.
 
@@ -87,7 +90,7 @@ const DELETE_ARTICLE_CONFIG = {
 | 2 | Read `Authentication.CURRENT_USER` | Missing -> 401 |
 | 3 | Role shortcuts (`alwaysAllowRoles` + `allowedRoles`) | Match -> `next()` |
 | 4 | Voters (per-route) | `ALLOW`/`DENY` -> `next()` / 403 |
-| 5 | Resolve enforcer | None registered -> `next()` |
+| 5 | Resolve enforcer | None registered -> 403, or `next()` if `defaultDecision: 'allow'` |
 | 6 | Build/cache rules (+ resolve domain, if any) | - |
 | 7 | `enforcer.evaluate()` | `DENY`/`ABSTAIN`-as-deny -> 403 |
 
@@ -143,10 +146,10 @@ authorize: { action: AuthorizationActions.READ, resource: Article.AUTHORIZATION_
 
 **Files:**
 
-- [`packages/core/src/components/auth/authorize/component.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core/src/components/auth/authorize/component.ts) - `AuthorizeComponent`
-- [`packages/core/src/components/auth/authorize/common/`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core/src/components/auth/authorize/common) - constants, binding keys, types, policy/permission builders
-- [`packages/core/src/components/auth/authorize/providers/authorization.provider.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core/src/components/auth/authorize/providers/authorization.provider.ts) - `AuthorizationProvider` (the 7-step pipeline)
-- [`packages/core/src/components/auth/authorize/enforcers/`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core/src/components/auth/authorize/enforcers) - `CasbinAuthorizationEnforcer`, `AuthorizationEnforcerRegistry`, `CASBIN_RBAC_DOMAIN_SCOPED_MODEL`
-- [`packages/core/src/components/auth/authorize/adapters/`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core/src/components/auth/authorize/adapters) - `BaseFilteredAdapter`, `ScopedCasbinAdapter`
-- [`packages/core/src/components/auth/authorize/models/authorization-role.model.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core/src/components/auth/authorize/models/authorization-role.model.ts) - `AuthorizationRole`
-- [`packages/core/src/base/metadata/persistents.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core/src/base/metadata/persistents.ts) - `@model` auto-populating `AUTHORIZATION_SUBJECT` from `settings.authorize.principal`
+- [`packages/core-server/src/components/auth/authorize/component.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/components/auth/authorize/component.ts) - `AuthorizeComponent`
+- [`packages/core-server/src/components/auth/authorize/common/`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/components/auth/authorize/common) - constants, binding keys, types, policy/permission builders
+- [`packages/core-server/src/components/auth/authorize/providers/authorization.provider.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/components/auth/authorize/providers/authorization.provider.ts) - `AuthorizationProvider` (the 7-step pipeline)
+- [`packages/core-server/src/components/auth/authorize/enforcers/`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/components/auth/authorize/enforcers) - `CasbinAuthorizationEnforcer`, `AuthorizationEnforcerRegistry`, `CASBIN_RBAC_DOMAIN_SCOPED_MODEL`
+- [`packages/core-server/src/components/auth/authorize/adapters/`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/components/auth/authorize/adapters) - `BaseFilteredAdapter`, `ScopedCasbinAdapter`
+- [`packages/core-server/src/components/auth/authorize/models/authorization-role.model.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/components/auth/authorize/models/authorization-role.model.ts) - `AuthorizationRole`
+- [`packages/core-server/src/base/metadata/persistents.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/base/metadata/persistents.ts) - `@model` auto-populating `AUTHORIZATION_SUBJECT` from `settings.authorize.principal`

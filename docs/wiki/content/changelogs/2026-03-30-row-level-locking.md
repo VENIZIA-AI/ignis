@@ -20,7 +20,7 @@ Repositories now support PostgreSQL row-level locking (`SELECT ... FOR UPDATE / 
 
 ### `LockStrengths` Constant Class
 
-**File:** `packages/core/src/base/repositories/common/constants.ts`
+**File:** `packages/core-server/src/base/repositories/common/constants.ts`
 
 **Problem:** No way to express row-level locking in repository queries. Developers had to drop down to raw Drizzle connector access to use `SELECT ... FOR UPDATE`.
 
@@ -120,7 +120,7 @@ await repo.findOne({
 
 ## Files Changed
 
-### Core Package (`packages/core`)
+### Core Package (`packages/core-server`)
 
 | File | Changes |
 |------|---------|

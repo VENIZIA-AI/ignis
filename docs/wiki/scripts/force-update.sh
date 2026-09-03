@@ -22,7 +22,11 @@ for pkg in $PACKAGES; do
 
   if [ "$TAG" = "highest" ]; then
     # Get the highest released version by semver sort
-    VERSION=$(npm view "$pkg" versions --json 2>/dev/null | grep '"' | tail -1 | tr -d ' ",' )
+    # jq, not `grep '"' | tail -1`: with --json, npm prints its E404 body on STDOUT, so the old
+    # pipe turned the error text into the "version" and handed it to sed. A package that is not
+    # published yet must resolve to nothing, so the loop skips it. npm already returns versions
+    # semver-sorted, and a package with exactly one version returns a bare string, not an array.
+    VERSION=$(npm view "$pkg" versions --json 2>/dev/null | jq -r 'if type == "array" then .[-1] elif type == "string" then . else empty end')
   else
     # Get version for specific dist-tag from npm registry
     VERSION=$(npm view "$pkg" dist-tags."$TAG" 2>/dev/null)

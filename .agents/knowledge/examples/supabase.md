@@ -10,7 +10,7 @@ tags: [examples, postgres, supabase]
 
 ## What it demonstrates
 
-- **The driver seam is real** - `useDriver()` in `src/datasources/supabase.datasource.ts` wires a `PostgresJsDriver` and builds the pooled connector in one step; `getClient()` is typed as postgres-js's `Sql`, not `pg.Pool`.
+- **The driver seam is real** - `src/datasources/supabase.datasource.ts` declares `@datasource({ driver: PostgresJsDriver })` and its `configure()` builds only the client, `this.client = postgres(url, buildPostgresJsOptions({ mode, max }))`. The framework constructs the `PostgresJsDriver` over that client and its pooled connector lazily on first use, through its own internal `useDriver()` call - no such call appears in the example. `getClient()` is typed as postgres-js's `Sql`, not `pg.Pool`.
 - **Pooler mode as a correctness switch** - `buildPostgresJsOptions({ mode })` sets `prepare: false` only for `TRANSACTION` mode, because Supavisor rebinds the backend per transaction and a server-side prepared statement from one backend won't exist on the next.
 - **RLS lives in the model** - `pgPolicy` on the `note` entity, using re-exported `authenticatedRole`/`authUid`; drizzle-kit generates the policies and `ENABLE ROW LEVEL SECURITY`.
 - **`withAuthContext` makes `auth.uid()` resolve** - every `NoteService` call opens a transaction and sets the caller's claims with `SET LOCAL`/`set_config(..., true)` inside it, which is transaction-scoped and therefore pooler-safe (a plain `SET` would leak identity to the next connection borrower).

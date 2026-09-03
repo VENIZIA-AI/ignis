@@ -45,7 +45,7 @@ A Typesense datasource follows the same shape but extends the search connector's
 
 ## How it works
 
-- **Three engine-neutral roots.** `packages/core/src/base` declares three roots every connector implements:
+- **Three engine-neutral roots.** `packages/core-server/src/base` declares three roots every connector implements:
 
 | Root | Purpose | Neutral default |
 |---|---|---|
@@ -53,7 +53,7 @@ A Typesense datasource follows the same shape but extends the search connector's
 | `AbstractEntity` | Model/schema contract | `name`, `getSchema()`, `getIdType()` |
 | `AbstractRepository` | Data access contract | Generics named for role (data/persist/options), not any one engine's vocabulary |
 
-- **Connectors narrow the roots into a real engine.** `packages/core/src/connectors/<engine>` adds engine-specific members:
+- **Connectors narrow the roots into a real engine.** `packages/core-server/src/connectors/<engine>` adds engine-specific members:
 
 | Connector | Adds | `getCapabilities()` |
 |---|---|---|
@@ -114,8 +114,8 @@ import { MeilisearchDataSource } from '@venizia/ignis/meilisearch';
 
 **Files:**
 
-- [`packages/core/src/base/datasources/abstract.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core/src/base/datasources/abstract.ts) - neutral `AbstractDataSource`
-- [`packages/core/src/base/models/base.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core/src/base/models/base.ts) - neutral `AbstractEntity`
-- [`packages/core/src/base/repositories/core/abstract.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core/src/base/repositories/core/abstract.ts) - neutral `AbstractRepository`
-- [`packages/core/src/connectors/postgres/datasources/base.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core/src/connectors/postgres/datasources/base.ts) - `BaseRelationalDataSource` (alias `BasePostgresDataSource`)
-- [`packages/core/src/connectors/search/datasources/base.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core/src/connectors/search/datasources/base.ts) - `BaseSearchDataSource`, shared by typesense and meilisearch
+- [`packages/core-server/src/base/datasources/abstract.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/base/datasources/abstract.ts) - neutral `AbstractDataSource`
+- [`packages/core-server/src/base/models/base.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/base/models/base.ts) - neutral `AbstractEntity`
+- [`packages/core-server/src/base/repositories/core/abstract.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/base/repositories/core/abstract.ts) - neutral `AbstractRepository`
+- [`packages/core-server/src/connectors/postgres/datasources/base.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/connectors/postgres/datasources/base.ts) - `BaseRelationalDataSource` (alias `BasePostgresDataSource`)
+- [`packages/core-server/src/connectors/search/datasources/base.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/connectors/search/datasources/base.ts) - `BaseSearchDataSource`, shared by typesense and meilisearch
