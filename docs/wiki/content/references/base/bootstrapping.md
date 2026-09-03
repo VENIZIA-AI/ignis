@@ -239,7 +239,7 @@ ignis-artifacts <generate|check> [--root src] [--out src/generated/artifacts.ts]
 |---|---|---|
 | `--root` | `src` | Directory to scan, recursively |
 | `--out` | `src/generated/artifacts.ts` | Path of the generated file; import paths are relative to it |
-| `--ignore` | none | Comma-separated globs, added to the default ignore list |
+| `--ignore` | `**/__tests__/**`, `**/*.test.ts`, `**/*.spec.ts`, `**/generated/**` | Comma-separated globs, merged with the default ignore list - never replaces it |
 | `--export` | `GeneratedArtifacts` | Name of the exported constant |
 
 | Command | Effect | Exit code |
