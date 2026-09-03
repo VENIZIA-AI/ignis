@@ -6,6 +6,81 @@ not how.
 This file and `index.md` are reserved OKF filenames - they carry no `type:` frontmatter and are not
 counted as concepts.
 
+## 2026-09-03 - file split wave 5: vert test services
+
+Twelve `examples/vert/src/services/tests/*-test.service.ts` files became a runner `service.ts` plus
+one `<group>.cases.ts` file per case group: 77 files holding 261 case methods across twelve
+folders. Every case-group class extends the new `BaseTestCases` (`base-test.cases.ts`, task 5.1,
+`6a121fcf`), built from a shared `ITestCaseContext` that `BaseTestService.caseContext()` assembles
+once per run. Two suites stayed one file each - `field-selection-test.service.ts` and
+`json-orderby-test.service.ts` - too small to be worth splitting.
+
+5.2 (`4a2171d7`) split `crud` into `create`/`read`/`update`/`delete`/`values`. 5.3-A split
+`operators` (`e0ceb3e6`, 54 cases, the largest group), `user-audit` (`7ac5d344`) and
+`default-filter` (`0a059813`, recovered mid-session after the first implementer died with the
+rename staged). 5.3-B split `hidden-properties` (`8f42ab25`), `inclusion` (`27aa705d`),
+`transaction` (`d5a34980`) and `json-filter` (`e5abe727`). 5.3-C split `json-update` (`39caeae7`),
+`array-operator` (`d4233a0d`), `row-locking` (`8cdeddb7`) and `advanced-filter-query` (`aa047639`).
+`row-locking` is the one `@service()`-decorated suite and the only one `postConfigure()` runs
+today; its split also regenerated `src/generated/artifacts.ts` and repointed `application.ts`'s
+file-path import at the new folder. Several group names departed from the task briefs' pre-read
+guesses once the case bodies were actually read: `transaction`'s guessed `nested` became
+`composite`, since no savepoint API exists anywhere in the file; `json-update`'s guessed
+`set`/`merge`/`remove` became `paths`/`multi-path`/`integrity`, since every case is a dot-path set
+and none is a merge or a delete. Every moved case was verified byte-for-byte against its pre-split
+body, allowing only three mechanical rewrites (`this.<repo>` -> `this.context.<repo>`,
+`this.logCase(` -> `this.context.logCase(`, `this.logger` -> `this.context.logger`) plus dropping
+`private` from the signature; each service's `run()` call order was diffed unchanged.
+
+A fix round (`73601fd0`) gave the two suites with a shared per-case fixture - `operators` and
+`user-audit` - a common shape: `support.ts` exports the fixture class (`extends BaseTestCases`) and
+an abstract `XxxCases extends BaseTestCases` that holds the fixture instance and its wrapper
+method, so the case-group classes stop each duplicating the same private fields.
+
+D1 (removal of the deprecated runtime boot API - see the entry above and the
+[changelog](/changelogs/2026-09-03-deprecated-boot-api-removed)) ran on this same branch,
+interleaved between 5.3-A and 5.3-B: `a6d5e5e9`, `a057ec4c`, `33f61fef`, `58cdaef5`, then a fix
+round `63ba805c`, `6a6b003a`, `43253309`, `76bba91b`. `63ba805c` carries an accidental passenger: a
+concurrent implementer's already-staged, content-identical rename of
+`hidden-properties-test.service.ts` to `hidden-properties/service.ts` rode along on a bare `git
+commit` that picked up the whole shared index, not just the three boot files it named. Confirmed a
+pure rename, 0 content lines changed, by both implementers' reports; left in history rather than
+rewritten. Every commit on either side of the interleave after that point used `git commit --
+<paths>` instead of a bare `git commit`.
+
+Gate (task 5.4 close): vert `build`/`lint`/`check:artifacts`/`compile:linux` all exit 0. The
+compiled binary, run against refused Postgres/Redis ports, reaches `postConfigure` (boot step
+13/14) and fails with `ECONNREFUSED`, proving `RowLockingTestService` still resolves through DI
+after the folder move. `make lint-examples` is clean across every example package.
+`scripts/split-report.ts` never scanned `examples/` by default anywhere in this epic (confirmed
+absent from the wave-0 baseline too); run with an explicit `examples/vert` argument, it shows no
+file over 800 lines under `services/tests` - the largest is `user-audit/edge.cases.ts` at 582
+lines. Whole-repo `make build-all` (ten package rebuilds, docs, docs-mcp, surface-check,
+wiki-links-check) exits 0; `wiki-links-check` reports 1230 paths checked, 0 missing; the wiki
+builds 289 pages, 280 links, no orphan and no dead link. `make okf-gen && make okf-check`
+regenerate byte-identical and report `check: OK - 70 files, 68 concepts, all conform`. Diffed
+against the epic's wave-0 baseline, `split-report`'s cycle count is 0 in every package, stray
+`types.ts` is 0 in every package, and every scope folder has a barrel except the two intentional
+driver alias folders in `core-server` (`connectors/{postgres,sqlite}/drivers`) - all three match
+the plan's end-state goal exactly. Hub candidates do not: `connectors`, `boot`, `core-worker`,
+`core-server` and `dev-configs` are at 0, but `helpers` (5), `filter` (1), `kernel` (2) and
+`inversion` (2) still carry residuals from earlier waves, out of wave 5's scope and already named
+as deliberately unfinished in the wave-3 and wave-4 entries above. `public-surface.md`'s entire git
+history is three commits - the epic's baseline, wave 1's `RouteConfigResolver` rename, and D1's
+removals - confirming nothing else in the whole epic touched the public surface.
+
+Closed leftovers: `user-audit/support.ts`'s one-line doc comment (102 columns) wrapped to two;
+three row-locking header comments a review found at 113-114 columns
+(`edge`/`scenarios`/`strengths.cases.ts`) wrapped the same way; `examples/vert.md`'s "Repository
+correctness" bullet rewritten for the folder layout instead of the old `*-test.service.ts` framing,
+and its stale twelve-suite enumeration corrected to fourteen - it was missing `crud` and the
+comprehensive-operator suite before this wave, unrelated to the split;
+`references/base/services.md`'s "Abstract Base Services" sample corrected, since it showed
+`BaseTestService` doing property injection into a zero-parameter concrete subclass, which was never
+what the real file does (constructor injection of every shared repository; `scope` is hardcoded and
+forwarded through `super()` instead of ever being a parameter) - true since before this wave and
+unrelated to the split; `conventions/file-splitting.md` gained the epic's closing sentence.
+
 ## 2026-09-03 - deprecated boot API removed (D1)
 
 `IArtifactOptions`, `IBootOptions`, `IBootReport`, `IBootPhaseReport`, `TBootPhase`, `BootPhases`,

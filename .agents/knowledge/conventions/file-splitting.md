@@ -103,3 +103,6 @@ not to force the split.
 Correctly split does not mean short. A file can serve exactly one lifecycle stage and still run past
 a thousand lines. The gain is that a reader knows **which file to open** - which is the thing a long
 file actually costs them.
+
+The 2026-09 split brought every hub to one topic per file; `make split-report` is how the next one
+is caught early.
