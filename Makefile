@@ -1,7 +1,7 @@
 .PHONY: all build build-all release release-plan core core-server connectors core-worker dev-configs docs docs-mcp filter helpers inversion boot kernel \
         help install clean setup-hooks agent-setup \
         lint lint-all lint-packages lint-examples artifacts-check \
-        lint-dev-configs lint-inversion lint-filter lint-helpers lint-boot lint-core lint-core-server lint-kernel lint-connectors lint-core-worker lint-docs-mcp \
+        lint-dev-configs lint-inversion lint-filter lint-helpers lint-boot lint-core lint-core-server lint-kernel lint-connectors lint-core-worker lint-docs-mcp lint-scripts \
         purity purity-test purity-inversion purity-filter purity-helpers purity-kernel \
         purity-dev-configs purity-boot purity-core purity-core-server purity-connectors purity-core-worker purity-docs-mcp \
         okf-check okf-gen okf-coverage okf-viz split-report surface-gen surface-check wiki-links-check \
@@ -192,7 +192,7 @@ lint: lint-packages
 
 # Includes lint-docs-mcp: the release workflow lints it, so leaving it out of `all` hides a failure
 # until release time.
-lint-all: lint-packages lint-examples lint-docs-mcp
+lint-all: lint-packages lint-examples lint-docs-mcp lint-scripts
 	@echo "✅ All linting completed."
 
 lint-packages:
@@ -250,6 +250,12 @@ lint-core-worker:
 lint-docs-mcp:
 	@echo "🔍 Linting @venizia/ignis-docs (MCP Server)..."
 	@bun run --filter "@venizia/ignis-docs" lint
+
+# `scripts/` is not a workspace member, so it has no local `lint` script to filter into - prettier
+# runs directly against the config's relative import of packages/dev-configs.
+lint-scripts:
+	@echo "🔍 Linting scripts/..."
+	@bunx prettier --config scripts/.prettierrc.mjs -l 'scripts/*.ts'
 
 # ----------------------------------------------------------------------------
 # PURITY TARGETS
@@ -340,6 +346,7 @@ help:
 	@echo "  lint-boot         - Lint @venizia/ignis-boot."
 	@echo "  lint-core         - Lint @venizia/ignis (core)."
 	@echo "  lint-docs-mcp     - Lint @venizia/ignis-docs (MCP Server)."
+	@echo "  lint-scripts      - Lint scripts/ (prettier format check only, no eslint target)."
 	@echo ""
 	@echo "Knowledge bundle (.agents/knowledge):"
 	@echo "  okf-check        - Gate: frontmatter, links, coverage, freshness (runs in pre-commit)."

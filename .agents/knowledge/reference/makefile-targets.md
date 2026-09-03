@@ -8,7 +8,7 @@ tags: [reference, make, build]
 
 > Generated from source - do not edit; run `make okf-gen`. Playbook: [build system](/process/build-system.md).
 
-**66 targets.**
+**67 targets.**
 
 | Target | Depends on | Description |
 |---|---|---|
@@ -54,7 +54,7 @@ tags: [reference, make, build]
 | `make update-boot` | - | Force updating @venizia/ignis-boot |
 | `make update-kernel` | - | Force updating @venizia/ignis-kernel |
 | `make lint` | `lint-packages` | Linting completed. |
-| `make lint-all` | `lint-packages lint-examples lint-docs-mcp` | All linting completed. |
+| `make lint-all` | `lint-packages lint-examples lint-docs-mcp lint-scripts` | All linting completed. |
 | `make lint-packages` | - | Linting all packages |
 | `make lint-examples` | `artifacts-check` | Linting all examples |
 | `make artifacts-check` | - | Checking generated artifact indexes |
@@ -69,6 +69,7 @@ tags: [reference, make, build]
 | `make lint-connectors` | - | Linting @venizia/ignis-connectors |
 | `make lint-core-worker` | - | Linting @venizia/ignis-worker |
 | `make lint-docs-mcp` | - | Linting @venizia/ignis-docs (MCP Server) |
+| `make lint-scripts` | - | Linting scripts/ |
 | `make purity` | - | Checking browser purity for all claimed entries |
 | `make purity-test` | - | Running the purity probe's regression tests |
 | `make purity-inversion` | - | Checking browser purity for @venizia/ignis-inversion |

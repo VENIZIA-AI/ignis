@@ -37,13 +37,7 @@ const RELEASE_ORDER = [
 ] as const;
 
 type TReleaseMode =
-  | 'patch'
-  | 'minor'
-  | 'major'
-  | 'prepatch'
-  | 'preminor'
-  | 'premajor'
-  | 'prerelease';
+  'patch' | 'minor' | 'major' | 'prepatch' | 'preminor' | 'premajor' | 'prerelease';
 
 interface IPackageState {
   name: string;
@@ -199,14 +193,25 @@ const assertReleasable = async (opts: { isDryRun: boolean }): Promise<void> => {
     complain(`${ahead} commit(s) not pushed. The workflow builds origin/${BRANCH}; push first.`);
   }
   if (behind > 0) {
-    complain(`${behind} commit(s) behind origin/${BRANCH}. Pull first, or you will read stale versions.`);
+    complain(
+      `${behind} commit(s) behind origin/${BRANCH}. Pull first, or you will read stale versions.`,
+    );
   }
 };
 
 /** The most recent run id for this workflow, so a new dispatch can be told apart from it. */
 const resolveLatestRunId = async (): Promise<string> => {
   const { stdout } = await run({
-    command: ['gh', 'run', 'list', `--workflow=${WORKFLOW}`, '--limit', '1', '--json', 'databaseId'],
+    command: [
+      'gh',
+      'run',
+      'list',
+      `--workflow=${WORKFLOW}`,
+      '--limit',
+      '1',
+      '--json',
+      'databaseId',
+    ],
   });
 
   const runs = JSON.parse(stdout) as Array<{ databaseId: number }>;
@@ -270,7 +275,10 @@ const assertPublished = async (opts: { state: IPackageState }): Promise<string> 
   );
 };
 
-const releasePackage = async (opts: { state: IPackageState; mode: TReleaseMode }): Promise<void> => {
+const releasePackage = async (opts: {
+  state: IPackageState;
+  mode: TReleaseMode;
+}): Promise<void> => {
   const { state, mode } = opts;
 
   console.log(`\n▶ ${state.name} (${state.localVersion} -> ${mode})`);
@@ -295,7 +303,9 @@ const releasePackage = async (opts: { state: IPackageState; mode: TReleaseMode }
 
   const conclusion = await waitForCompletion({ runId });
   if (conclusion !== 'success') {
-    throw new Error(`Run ${runId} finished '${conclusion}'. See: gh run view ${runId} --log-failed`);
+    throw new Error(
+      `Run ${runId} finished '${conclusion}'. See: gh run view ${runId} --log-failed`,
+    );
   }
 
   const published = await assertPublished({ state });
@@ -314,11 +324,14 @@ const main = async (): Promise<void> => {
   const mode = (modeIndex >= 0 ? args[modeIndex + 1] : 'prerelease') as TReleaseMode;
 
   const requested = args.filter(arg => !arg.startsWith('--') && arg !== mode);
-  const candidates = requested.length > 0 ? RELEASE_ORDER.filter(n => requested.includes(n)) : RELEASE_ORDER;
+  const candidates =
+    requested.length > 0 ? RELEASE_ORDER.filter(n => requested.includes(n)) : RELEASE_ORDER;
 
   const unknown = requested.filter(name => !RELEASE_ORDER.includes(name as never));
   if (unknown.length > 0) {
-    throw new Error(`Unknown package(s): ${unknown.join(', ')}. Known: ${RELEASE_ORDER.join(', ')}`);
+    throw new Error(
+      `Unknown package(s): ${unknown.join(', ')}. Known: ${RELEASE_ORDER.join(', ')}`,
+    );
   }
 
   await assertReleasable({ isDryRun });
@@ -334,7 +347,10 @@ const main = async (): Promise<void> => {
 
   console.log(`Release plan (${mode}), in dependency order:\n`);
   for (const state of plan) {
-    const changed = state.changedFiles === Number.POSITIVE_INFINITY ? 'never released' : `${state.changedFiles} file(s)`;
+    const changed =
+      state.changedFiles === Number.POSITIVE_INFINITY
+        ? 'never released'
+        : `${state.changedFiles} file(s)`;
     console.log(
       `  ${state.name.padEnd(13)} ${state.localVersion.padEnd(10)} npm:${(state.publishedVersion ?? '-').padEnd(10)} ${changed}`,
     );

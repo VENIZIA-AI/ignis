@@ -62,10 +62,7 @@ export class ModuleGraph {
           visit(next);
           lowLinks.set(node, Math.min(lowLinks.get(node)!, lowLinks.get(next)!));
         } else if (onStack.has(next)) {
-          lowLinks.set(
-            node,
-            Math.min(lowLinks.get(node)!, indices.get(next)!),
-          );
+          lowLinks.set(node, Math.min(lowLinks.get(node)!, indices.get(next)!));
         }
       }
 
@@ -106,10 +103,7 @@ export class ModuleGraph {
     return out;
   }
 
-  private static resolveRelative(opts: {
-    from: string;
-    specifier: string;
-  }): string | undefined {
+  private static resolveRelative(opts: { from: string; specifier: string }): string | undefined {
     if (!opts.specifier.startsWith('.')) {
       return undefined;
     }
@@ -131,18 +125,14 @@ const run = (): number => {
   });
   const dir = positionals[0];
   if (!dir) {
-    console.error(
-      'usage: bun scripts/module-cycles.ts <dist/esm dir> [--max <n>]',
-    );
+    console.error('usage: bun scripts/module-cycles.ts <dist/esm dir> [--max <n>]');
     return 2;
   }
 
   let max = Number.POSITIVE_INFINITY;
   if (values.max !== undefined) {
     if (!/^\d+$/.test(values.max)) {
-      console.error(
-        'usage: bun scripts/module-cycles.ts <dist/esm dir> [--max <n>]',
-      );
+      console.error('usage: bun scripts/module-cycles.ts <dist/esm dir> [--max <n>]');
       return 2;
     }
     max = Number(values.max);
