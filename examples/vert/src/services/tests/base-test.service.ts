@@ -6,6 +6,7 @@ import {
   SaleChannelRepository,
   UserRepository,
 } from '../../repositories';
+import type { ITestCaseContext } from './base-test.cases';
 
 // ----------------------------------------------------------------
 // Base Test Service - Provides common repositories for all test services
@@ -66,5 +67,17 @@ export abstract class BaseTestService extends BaseService {
   protected logCase(title: string): void {
     this.logger.info('-'.repeat(80));
     this.logger.info(title);
+  }
+
+  protected caseContext(): ITestCaseContext {
+    return {
+      logger: this.logger,
+      logCase: title => this.logCase(title),
+      configurationRepository: this.configurationRepository,
+      productRepository: this.productRepository,
+      saleChannelRepository: this.saleChannelRepository,
+      saleChannelProductRepository: this.saleChannelProductRepository,
+      userRepository: this.userRepository,
+    };
   }
 }
