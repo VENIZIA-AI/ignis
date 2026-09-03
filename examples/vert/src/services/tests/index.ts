@@ -6,7 +6,7 @@ export * from './default-filter';
 export * from './field-selection-test.service';
 export * from './hidden-properties';
 export * from './inclusion';
-export * from './json-filter-test.service';
+export * from './json-filter';
 export * from './json-orderby-test.service';
 export * from './operators';
 export * from './row-locking-test.service';
