@@ -1,7 +1,6 @@
 export * from './advanced-filter-query-test.service';
 export * from './array-operator-test.service';
 export * from './base-test.service';
-export * from './comprehensive-operator-test.service';
 export * from './crud';
 export * from './default-filter-test.service';
 export * from './field-selection-test.service';
@@ -9,6 +8,7 @@ export * from './hidden-properties-test.service';
 export * from './inclusion-test.service';
 export * from './json-filter-test.service';
 export * from './json-orderby-test.service';
+export * from './operators';
 export * from './row-locking-test.service';
 export * from './transaction-test.service';
 export * from './user-audit-test.service';
