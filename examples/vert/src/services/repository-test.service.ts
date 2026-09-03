@@ -13,7 +13,7 @@ import {
   RowLockingTestService,
   TransactionTestService,
 } from './tests';
-import { UserAuditTestService } from './tests/user-audit-test.service';
+import { UserAuditTestService } from './tests/user-audit';
 import { JsonUpdateTestService } from './tests/json-update-test.service';
 
 // ----------------------------------------------------------------
