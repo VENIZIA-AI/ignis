@@ -10,5 +10,5 @@ export * from './json-filter-test.service';
 export * from './json-orderby-test.service';
 export * from './operators';
 export * from './row-locking-test.service';
-export * from './transaction-test.service';
+export * from './transaction';
 export * from './user-audit';
