@@ -1,4 +1,4 @@
-export * from './advanced-filter-query-test.service';
+export * from './advanced-filter';
 export * from './array-operators';
 export * from './base-test.service';
 export * from './crud';
