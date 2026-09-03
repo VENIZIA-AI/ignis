@@ -862,7 +862,7 @@ There are two distinct `getIdType`s in the framework - do not confuse them.
 
 | | Neutral instance method | PostgreSQL utility function |
 |---|---|---|
-| Location | `AbstractEntity.getIdType()` ([`base/models/base.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/kernel/src/base/models/base.ts)) | `getIdType()` ([`connectors/postgres/models/common/types/table.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/connectors/src/relational/postgres/models/common/types/table.ts)) |
+| Location | `AbstractEntity.getIdType()` ([`base/models/base.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/kernel/src/base/models/base.ts)) | `getIdType()` ([`connectors/core/models/common/types.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/connectors/src/relational/core/models/common/types.ts)) |
 | Signature | `getIdType(): TIdSchemaType` | `getIdType<T extends TTableSchemaWithId>(opts: { entity: T }): string` |
 | Purpose | Neutral capability every engine's entity implements - returns `'string'` \| `'number'` at the entity level. Used by `idParamsSchema` to build the right Zod schema for path parameters. | PostgreSQL-specific - inspects a Drizzle table schema's `id` column and returns its `dataType`, or `'unknown'` if not determinable |
 
