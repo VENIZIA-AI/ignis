@@ -2,6 +2,7 @@
  * Informational report behind the file-splitting convention (conventions/file-splitting.md):
  * hub candidates, stray types files, scope folders without a barrel, files over the soft mark,
  * and import cycles per package. Never a gate. Usage: bun scripts/split-report.ts [packages/kernel]
+ * - with no argument, scans every packages/* and examples/* directory that has a src/.
  */
 import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
 import { basename, join, relative, resolve } from 'node:path';
@@ -65,6 +66,15 @@ export class SplitReport {
     SplitReport.section({ title: longTitle, rows: longRows });
     const cycleMsg = cycles < 0 ? 'no dist' : cycles;
     console.log(`- import cycles in dist/esm: ${cycleMsg}`);
+  }
+
+  /** Every packages/* directory, plus every examples/* directory that has a src/ folder. */
+  static defaultTargets(): string[] {
+    const packages = readdirSync(resolve('packages')).map(name => resolve('packages', name));
+    const examples = readdirSync(resolve('examples'))
+      .map(name => resolve('examples', name))
+      .filter(dir => existsSync(join(dir, 'src')));
+    return [...packages, ...examples];
   }
 
   private static section(opts: { title: string; rows: string[] }): void {
@@ -134,7 +144,7 @@ if (import.meta.main) {
   const targets = process.argv.slice(2);
   const packages = targets.length
     ? targets.map(target => resolve(target))
-    : readdirSync(resolve('packages')).map(name => resolve('packages', name));
+    : SplitReport.defaultTargets();
   for (const packageDir of packages) {
     SplitReport.run({ packageDir });
   }
