@@ -1,4 +1,4 @@
-import type { IdType } from '@/base/models/common/types';
+import type { IdType } from '@/base/models/common';
 import type { Authentication } from './authenticate/common/constants';
 import type { Authorization } from './authorize/common/constants';
 import type { IAuthUser } from './authenticate/common/types';

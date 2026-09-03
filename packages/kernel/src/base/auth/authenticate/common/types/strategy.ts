@@ -1,5 +1,5 @@
 import type { TContext } from '@/base/controllers/common/types';
-import type { IdType } from '@/base/models/common/types';
+import type { IdType } from '@/base/models/common';
 import type { AnyObject } from '@venizia/ignis-helpers/common';
 import type { Env, MiddlewareHandler } from 'hono';
 import type {

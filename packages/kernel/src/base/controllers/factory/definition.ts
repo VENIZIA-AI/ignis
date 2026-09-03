@@ -1,7 +1,7 @@
 import type { TAuthMode, TAuthStrategy } from '@/base/auth/authenticate/common/constants';
 import type { IAuthorizationSpec } from '@/base/auth/authorize/common/types';
-import type { TIdSchemaType } from '@/base/models/common/types';
-import { idParamsSchema, jsonContent, jsonResponse } from '@/base/models/common/types';
+import type { TIdSchemaType } from '@/base/models/common';
+import { idParamsSchema, jsonContent, jsonResponse } from '@/base/models/common';
 import { CountSchema } from '@/base/repositories/common';
 import { FilterQuerySchema, WhereSchema } from '@/base/repositories/query-schemas';
 import type { TAnyObjectSchema } from '@/utilities/schema.utility';

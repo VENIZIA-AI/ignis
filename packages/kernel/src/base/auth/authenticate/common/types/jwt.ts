@@ -1,4 +1,4 @@
-import type { IdType } from '@/base/models/common/types';
+import type { IdType } from '@/base/models/common';
 import type { ValueOrPromise } from '@venizia/ignis-helpers/common';
 import type { AESAlgorithmType, IPayloadCipher } from '@venizia/ignis-helpers/core';
 import type { JWTPayload } from 'jose';

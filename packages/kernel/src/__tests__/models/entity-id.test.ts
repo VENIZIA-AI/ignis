@@ -6,8 +6,8 @@
  */
 
 import { describe, expect, test } from 'bun:test';
-import { toEntityId } from '@/base/models/common/types';
-import type { TEntityId } from '@/base/models/common/types';
+import { toEntityId } from '@/base/models/common';
+import type { TEntityId } from '@/base/models/common';
 
 describe('TEntityId', () => {
   test('a plain string does not assign - the reason the type exists', () => {
