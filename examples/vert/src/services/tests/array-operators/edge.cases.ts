@@ -2,7 +2,8 @@ import { getUID } from '@venizia/ignis-helpers';
 import { BaseTestCases } from '../base-test.cases';
 
 // ----------------------------------------------------------------
-// Edge Cases - cleanup and data-shape robustness: large arrays, special/unicode characters, duplicates, case sensitivity, empty strings, numeric-like strings and null columns
+// Edge Cases - cleanup and data-shape robustness: large arrays, special/unicode characters,
+// duplicates, case sensitivity, empty strings, numeric-like strings and null columns
 // ----------------------------------------------------------------
 export class EdgeCases extends BaseTestCases {
   // ----------------------------------------------------------------

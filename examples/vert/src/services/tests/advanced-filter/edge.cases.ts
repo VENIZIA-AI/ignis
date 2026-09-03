@@ -1,10 +1,11 @@
 import { BaseTestCases } from '../base-test.cases';
 
 // ----------------------------------------------------------------
-// Edge Cases - type coercion, null on a non-nullable field, a massive IN array, and malformed JSON-path injection
+// Edge Cases - type coercion, null on a non-nullable field, a massive IN array, and
+// malformed JSON-path injection
 // ----------------------------------------------------------------
 export class EdgeCases extends BaseTestCases {
-  async testTypeCoercionStringToNumber() {
+  async testTypeCoercionStringToNumber(): Promise<void> {
     this.context.logCase('[TYPE] String passed to Number field');
     // nValue: "100" -> Should be cast to 100 or fail?
     // Drizzle/Ignis usually allows implicit casting if the DB supports it,
@@ -36,7 +37,7 @@ export class EdgeCases extends BaseTestCases {
     }
   }
 
-  async testTypeSafetyNullToNonNullable() {
+  async testTypeSafetyNullToNonNullable(): Promise<void> {
     this.context.logCase('[TYPE] Null passed to Non-Nullable field');
     // 'code' is usually non-nullable.
 
@@ -59,7 +60,7 @@ export class EdgeCases extends BaseTestCases {
     }
   }
 
-  async testMassiveArrayInOperator() {
+  async testMassiveArrayInOperator(): Promise<void> {
     this.context.logCase('[STRESS] Massive IN Array (1000+ items)');
 
     const massiveArray = Array.from({ length: 2000 }, (_, i) => i);
@@ -91,7 +92,7 @@ export class EdgeCases extends BaseTestCases {
     }
   }
 
-  async testMalformedJsonPaths() {
+  async testMalformedJsonPaths(): Promise<void> {
     this.context.logCase('[SECURITY] Malformed JSON Path Injection');
     // Try to inject SQL via JSON key: "jValue.metadata' OR 1=1 --"
 

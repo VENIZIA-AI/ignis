@@ -2,10 +2,11 @@ import { getUID } from '@venizia/ignis-helpers';
 import { BaseTestCases } from '../base-test.cases';
 
 // ----------------------------------------------------------------
-// Scenarios Cases - real-world queries: e-commerce search, date-range filtering, scoped relation filtering
+// Scenarios Cases - real-world queries: e-commerce search, date-range filtering, scoped
+// relation filtering
 // ----------------------------------------------------------------
 export class ScenariosCases extends BaseTestCases {
-  async testEcommerceProductSearch() {
+  async testEcommerceProductSearch(): Promise<void> {
     this.context.logCase('[SCENARIO] E-commerce Search: Price Range + Tag Overlap + Sort');
     // Scenario: User wants "gaming" items (electronics or furniture) between $100 and $1000,
     // sorted by price descending.
@@ -43,7 +44,7 @@ export class ScenariosCases extends BaseTestCases {
     }
   }
 
-  async testComplexDateRanges() {
+  async testComplexDateRanges(): Promise<void> {
     this.context.logCase('[SCENARIO] Complex Date Logic (Json Path String Comparison)');
     // Find configs created in 2025 ( >= 2025-01-01 AND < 2026-01-01 )
 
@@ -80,7 +81,7 @@ export class ScenariosCases extends BaseTestCases {
     }
   }
 
-  async testScopedRelationFiltering() {
+  async testScopedRelationFiltering(): Promise<void> {
     this.context.logCase('[RELATION] Scoped Include with Filter');
     // Find Products, include SaleChannels where channel.name = 'Online Store'
 

@@ -1,10 +1,11 @@
 import { BaseTestCases } from '../base-test.cases';
 
 // ----------------------------------------------------------------
-// Composition Cases - logical tree composition: AND/OR nesting, De Morgan, deep recursion, implicit/explicit mixing
+// Composition Cases - logical tree composition: AND/OR nesting, De Morgan, deep recursion,
+// implicit/explicit mixing
 // ----------------------------------------------------------------
 export class CompositionCases extends BaseTestCases {
-  async testComplexLogicalTreeAoBAndCoD() {
+  async testComplexLogicalTreeAoBAndCoD(): Promise<void> {
     this.context.logCase('[LOGIC] (A OR B) AND (C OR D)');
     // (nValue > 150 OR nValue < 50) AND (tValue like 'status_pending' OR tValue like 'status_archived')
 
@@ -39,7 +40,7 @@ export class CompositionCases extends BaseTestCases {
     }
   }
 
-  async testDeMorgansLawNotAorB() {
+  async testDeMorgansLawNotAorB(): Promise<void> {
     this.context.logCase('[LOGIC] NOT (A OR B) -> via explicit NOT IN operator');
     // Testing: nValue NOT IN [100, 200]
     // Equivalent to NOT (n=100 OR n=200) -> n!=100 AND n!=200
@@ -68,7 +69,7 @@ export class CompositionCases extends BaseTestCases {
     }
   }
 
-  async testDeeplyNestedRecursion() {
+  async testDeeplyNestedRecursion(): Promise<void> {
     this.context.logCase('[LOGIC] Deeply Nested Recursion (10+ levels)');
     // Construct a deeply nested AND chain: AND(AND(AND(...)))
 
@@ -104,7 +105,7 @@ export class CompositionCases extends BaseTestCases {
     }
   }
 
-  async testImplicitExplicitLogicMixing() {
+  async testImplicitExplicitLogicMixing(): Promise<void> {
     this.context.logCase('[LOGIC] Mixing implicit object keys AND explicit operators');
     // { nValue: 100, or: [{ tValue: 'x' }, { tValue: 'status_active' }] }
     // Should be parsed as: nValue = 100 AND (tValue = 'x' OR tValue = 'status_active')
