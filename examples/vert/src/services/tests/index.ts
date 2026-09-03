@@ -1,5 +1,5 @@
 export * from './advanced-filter-query-test.service';
-export * from './array-operator-test.service';
+export * from './array-operators';
 export * from './base-test.service';
 export * from './crud';
 export * from './default-filter';
