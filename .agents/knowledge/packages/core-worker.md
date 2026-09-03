@@ -31,7 +31,7 @@ const response = await bff.fetch({ request: new Request('http://ignis.internal/a
 
 ## The package is small on purpose
 
-Thirteen source files, three subsystems, one export entry.
+Eighteen source files, three subsystems, one export entry.
 
 | Subsystem | What it holds |
 |---|---|

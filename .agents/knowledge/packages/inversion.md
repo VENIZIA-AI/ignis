@@ -32,7 +32,9 @@ Key `BaseContainer` members: `bind<T>({ key })`, `get<T>({ key, isOptional? })`,
 
 ## Error system
 
-`src/modules/error/` (`app-error.ts`, `definition.ts`, `message-code.ts`, `types.ts`) defines `ApplicationError` and `getError` - the framework-wide error primitives every IGNIS package uses instead of throwing a raw `Error`. They live in inversion rather than helpers so that a browser-only consumer gets structured errors without pulling in the server-only helpers surface.
+`src/modules/error/` (`app-error.ts`, `definition.ts`, `message-code.ts`, `common/types.ts`) defines `ApplicationError` and `getError` - the framework-wide error primitives every IGNIS package uses instead of throwing a raw `Error`. They live in inversion rather than helpers so that a browser-only consumer gets structured errors without pulling in the server-only helpers surface.
+
+`message-code.ts` never imports `app-error.ts` - that import was the cycle `module-cycles` flagged. `MessageCode.build()` throws through a private `errorFactory` field, and `src/index.ts` sets the real one: `MessageCode.useErrorFactory({ factory: getError })`. That call has to live in `src/index.ts` - the package's one exports entry, and the only module `sideEffects` names. A bundler can drop a module-level side effect from any other file the moment nothing imports its exports.
 
 ## Folder convention
 

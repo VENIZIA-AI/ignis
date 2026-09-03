@@ -87,6 +87,13 @@ expressions and `@/modules/<scope>/types` alias imports in tests. Sweep before e
 tests. The clean rebuild, `make <pkg>`, is the real completeness check - a missed importer surfaces
 there instead.
 
+A module-level statement that registers something - a factory, a default, a listener - only runs
+inside a tree-shaken bundle when it sits in a module the package's `sideEffects` array names. Moving
+that statement into a file split out for topic reasons, while `sideEffects` still names only the
+entry point, lets a bundler drop it: the module still loads for its exports, but the registration
+line never executes. Keep a load-bearing module-level side effect in a module `sideEffects` lists -
+normally the package's own entry point - even when the split would otherwise put it elsewhere.
+
 ## Why this is written down
 
 Splitting on pain alone, with no stated threshold, is how a codebase accumulates files past 1500

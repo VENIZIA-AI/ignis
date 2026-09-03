@@ -2,7 +2,7 @@
 type: Architecture
 title: SQLite connector
 description: The second SQL engine on the relational tier - the libsql driver, BEGIN IMMEDIATE, and every capability SQLite refuses instead of faking.
-resource: packages/core-server/src/connectors/sqlite
+resource: packages/connectors/src/relational/sqlite
 tags: [architecture, connectors, drizzle, sqlite, libsql, relational]
 ---
 

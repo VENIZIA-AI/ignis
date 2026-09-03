@@ -2,7 +2,7 @@
 type: Architecture
 title: Relational connector
 description: The engine-neutral SQL tier under connectors/relational, the two ports a datasource supplies, and what stays Postgres-only.
-resource: packages/core-server/src/connectors/relational
+resource: packages/connectors/src/relational
 tags: [architecture, connectors, drizzle, postgres, sqlite, relational]
 ---
 

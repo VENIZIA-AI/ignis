@@ -2,7 +2,7 @@
 type: Architecture
 title: Filter system
 description: The engine-neutral filter vocabulary, how FilterBuilder translates it into Drizzle, and why find() silently switches between two different Drizzle query APIs.
-resource: packages/core-server/src/connectors/relational/repositories/dialect/filter.ts
+resource: packages/connectors/src/relational/core/repositories/dialect/filter.ts
 tags: [architecture, filter, query, drizzle, postgres]
 ---
 
@@ -42,13 +42,13 @@ Do not enable `PRAGMA case_sensitive_like=ON` on a SQLite datasource: it makes `
 
 ## Translation
 
-`FilterBuilder` (`connectors/relational/repositories/dialect/filter.ts`) turns a filter into Drizzle pieces: `toWhere()`, `toOrderBy()`, `toInclude()`, plus column selection. It is **abstract** and emits no engine-specific SQL: `operators`, `buildJsonWhereCondition` and `buildJsonOrderBy` are all `protected abstract`, so every engine subclasses to supply its operator table and its own JSON extraction syntax. It has zero `drizzle-orm/pg-core` imports.
+`FilterBuilder` (`packages/connectors/src/relational/core/repositories/dialect/filter.ts`) turns a filter into Drizzle pieces: `toWhere()`, `toOrderBy()`, `toInclude()`, plus column selection. It is **abstract** and emits no engine-specific SQL: `operators`, `buildJsonWhereCondition` and `buildJsonOrderBy` are all `protected abstract`, so every engine subclasses to supply its operator table and its own JSON extraction syntax. It has zero `drizzle-orm/pg-core` imports.
 
 Three classes, in a line:
 
 | Class | Declared in | Adds |
 |---|---|---|
-| `FilterBuilder` (abstract) | `connectors/relational/repositories/dialect/filter.ts` | The whole `where`/`order`/`include`/columns walk; `operators` and both JSON extractions left abstract |
+| `FilterBuilder` (abstract) | `packages/connectors/src/relational/core/repositories/dialect/filter.ts` | The whole `where`/`order`/`include`/columns walk; `operators` and both JSON extractions left abstract |
 | `PostgresFilterBuilder` | `connectors/postgres/repositories/dialect/filter.ts` | `operators` returns `PostgresQueryOperators.FNS`, plus the `#>>`/`#>` extractions and the `::numeric` guard cast |
 | `PostgresQueryDialect` | `connectors/postgres/repositories/dialect/query-dialect.ts` | `implements IRelationalQueryDialect`; adds `transformUpdate()`/`toUpdateData()`, backed by `UpdateBuilder` |
 
