@@ -29,7 +29,7 @@ Technical reference for `BaseService` - the foundation for the business logic la
 Abstract class that all application services must extend.
 
 ```typescript
-// packages/core-server/src/base/services/base.ts
+// packages/kernel/src/base/services/base.ts
 import { BaseHelper } from '@venizia/ignis-helpers';
 import { IService } from './types';
 

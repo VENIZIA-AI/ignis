@@ -514,14 +514,14 @@ Only engines that declare `getCapabilities().transactions === true` implement re
 `src/base` declares the engine-neutral shape; the PostgreSQL connector narrows it with connection details.
 
 ```typescript
-// packages/core-server/src/base/datasources/common/types.ts - engine-neutral
+// packages/kernel/src/base/datasources/common/types.ts - engine-neutral
 interface ITransaction {
   isActive: boolean;
   commit(): Promise<void>;
   rollback(): Promise<void>;
 }
 
-// packages/core-server/src/connectors/postgres/datasources/common/types.ts - PostgreSQL
+// packages/connectors/src/relational/postgres/datasources/common/types.ts - PostgreSQL
 interface IDatabaseTransaction<Schema extends TAnyDataSourceSchema = TAnyDataSourceSchema>
   extends ITransaction {
   connector: TRelationalConnector<Schema>;
