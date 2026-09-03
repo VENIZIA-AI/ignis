@@ -6,6 +6,65 @@ not how.
 This file and `index.md` are reserved OKF filenames - they carry no `type:` frontmatter and are not
 counted as concepts.
 
+## 2026-09-03 - file split: last multi-topic hubs, split-report covers examples
+
+Task F2 closed the file-split epic's last three multi-topic hub files and made `split-report` scan
+`examples/*/src` by default, alongside `packages/*/src`.
+
+`helpers/modules/secrets/common/types.ts` (13 exports) split into `common/types/{lease,helper,
+registration,timer}.ts` plus an index barrel. `lease.ts` holds `ISecretLease`,
+`ISecretRotationEvent`, `TSecretRotationHandler`, `ISecretRotatable`; `timer.ts` holds `IClock`,
+`TTimerHandle`, `ITimerAdapter`; `registration.ts` holds `ISecretHydrateEntry`,
+`ISecretLeaseEntry`, `ISecretsRegistration`; `helper.ts` holds `IGetSecretOptions`,
+`ISecretsHelper`, `ISecretsHelperOptions`. Measured, not the pre-scan's guess: `helper.ts` is the
+one parent file, importing both `./lease` and `./timer`; `registration.ts` needs neither sibling,
+only `../constants` for `TSecretProvider`.
+
+`helpers/modules/socket/socket-io/common/types.ts` (13 exports) split into
+`common/types/{client,hooks,server}.ts`, mirroring the wave-3 websocket split. `client.ts`
+(`IHandshake`, `TSocketIOClientState`, `ISocketIOClient`, `IOptions`, `ISocketIOClientOptions`)
+imports no sibling; `hooks.ts` (the four `TSocketIO*Fn` handler types) imports `./client` for
+`IHandshake`; `server.ts` (the three `ISocketIOServer*Options` interfaces plus
+`TSocketIOServerOptions`) imports `./hooks` for the handler types - one sibling import per file,
+chained client -> hooks -> server.
+
+`kernel/base/models/common/types.ts` (12 exports) split by kind as well as topic. The six pure id
+types - `NumberIdType`, `StringIdType`, `BigIntIdType`, `IdType`, `TEntityId` with its
+`entityIdBrand` symbol, `TIdSchemaType` - moved to `common/types/id.ts`, the only file under
+`types/`. The six runtime values moved to two new code files beside `types/`: `ErrorSchema`,
+`idParamsSchema`, `jsonContent`, `jsonResponse` (zod/OpenAPI builders) to `common/schemas.ts`;
+`toEntityId`, `snakeToCamel` to `common/utilities.ts`. `common/index.ts` now exports `./constants`,
+`./schemas`, `./types`, `./utilities`. Six importers repointed from `@/base/models/common/types` to
+the barrel `@/base/models/common`; names and import order both unaffected.
+
+Ruling on the ten hub candidates `split-report` has flagged since wave 0: three split (this task),
+seven kept as single-topic or const-family files despite the export count.
+
+| File | Exports | Verdict | Why |
+|---|---|---|---|
+| `helpers/modules/secrets/common/types.ts` | 13 | split | four topics: lease/rotation, helper contract, hydrate/lease registration, clock/timer |
+| `helpers/modules/socket/socket-io/common/types.ts` | 13 | split | three topics: client shape, event/auth hooks, server options |
+| `kernel/base/models/common/types.ts` | 12 | split | id types vs. zod/OpenAPI runtime code - a kind split, not just a topic split |
+| `filter/common/types.ts` | 11 | kept | one filter-query DSL (`TWhere`/`TFilter`/`TInclusion`/...), no internal seam |
+| `inversion/common/types.ts` | 11 | kept | 27 lines - a small utility-type grab bag, not a real hub |
+| `inversion/modules/error/common/types.ts` | 15 | kept | one error DSL - every export is part of one layered error vocabulary |
+| `helpers/modules/crypto/common/constants.ts` | 12 | kept | one hashing/KDF constants family |
+| `helpers/modules/logger/hf/common/constants.ts` | 14 | kept | one binary ring-buffer record layout |
+| `helpers/modules/tree/common/types.ts` | 11 | kept | one generic tree-walk API |
+| `kernel/base/repositories/common/constants.ts` | 13 | kept | six related const classes, a family |
+
+`scripts/split-report.ts`'s CLI default now scans every `packages/*` directory plus every
+`examples/*` directory that has a `src/`; previously `examples/` was scanned only when named
+explicitly on the command line (see the wave-5 entry below). Two entries below are corrected in
+place: wave 1's "every hub file...split" now names the two it left; wave 3's "five remaining hub
+candidates" now says which two this task split and which three stay by ruling.
+
+Gate: helpers 1461/16/0, kernel 197/0, core-server 1309/1/0 (the task brief's expected 1308 was
+D1's own count before its fix round added `removed-members.test.ts`; 1309 is the true, unchanged
+baseline). Lint clean across helpers, kernel, core-server and examples. Cycles 0 on helpers and
+kernel `dist/esm`. Surface fresh - no export added or removed. `split-report` hub candidates:
+helpers 5 -> 3, kernel 2 -> 1; `examples/vert` now appears in the report with no argument.
+
 ## 2026-09-03 - file split wave 5: vert test services
 
 Twelve `examples/vert/src/services/tests/*-test.service.ts` files became a runner `service.ts` plus
@@ -177,9 +236,12 @@ clean rebuild as the real completeness check.
 
 Stayed out of scope: the four files over 500 lines (`queue/kafka/consumer.ts`,
 `redis/base/abstract.helper.ts`, `socket/socket-io/server/helper.ts`,
-`socket/websocket/server/helper.ts`) and five remaining hub candidates (`secrets/common/types.ts`,
-`crypto/common/constants.ts`, `logger/hf/common/constants.ts`, `socket/socket-io/common/types.ts`,
-`tree/common/types.ts`) - none were touched this wave.
+`socket/websocket/server/helper.ts`) - none were touched this wave - and five remaining hub
+candidates. Task F2 later split two of the five, `secrets/common/types.ts` and
+`socket/socket-io/common/types.ts`, the same way as this wave's own hubs. The other three stay by
+ruling, each one topic despite the export count: `crypto/common/constants.ts` (one hashing/KDF
+constants family), `logger/hf/common/constants.ts` (one binary ring-buffer record layout), and
+`tree/common/types.ts` (one generic tree-walk API).
 
 Gate: helpers 1461/16/0, kernel 197/0, core-server 1311/1/0, lint 0 across helpers/kernel/core-server/
 examples, module cycles 0 (helpers and kernel `dist/esm`), surface fresh, okf check OK, docs build
@@ -216,7 +278,10 @@ core-server 1311/1/0, lint 0, surface fresh, okf check OK, docs build clean.
 
 ## 2026-09-02 - file split wave 1: kernel
 
-Eleven kernel tasks split every hub file `make split-report` flagged, one topic per file.
+Eleven kernel tasks split every hub file `make split-report` flagged, one topic per file - except
+two, both named in the wave-0 baseline. `base/repositories/common/constants.ts` (13 exports) stayed
+whole: six related const classes are a family, not a topic mix. `base/models/common/types.ts`
+(12 exports) stayed unsplit until task F2.
 `base/auth/authorize/common/constants/` split `Authorization` and its sibling const classes by
 topic. `base/auth/authorize/common/types/` split the authorize option and policy interfaces by
 topic. `base/auth/authenticate/common/types/` split the authenticate option interfaces by topic.
