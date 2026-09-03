@@ -241,38 +241,54 @@ this.service(OrderService);
 
 For shared dependencies across multiple related services, define an abstract base. The container only ever `instantiate()`s the **concrete** class - `this.service(UserAuditTestService)` registers `UserAuditTestService`, never `BaseTestService`. The hard DI rule - every constructor parameter of a container-instantiated class must carry `@inject` - applies to that concrete constructor.
 
-A `scope: string` computed from `ClassName.name` is not something the container can supply. So it cannot sit as a bare constructor parameter next to an `@inject`-decorated one. The shared repository is injected as a **property** on the base instead. The concrete subclass's constructor is left with zero parameters - nothing to decorate, nothing to violate:
+A `scope: string` is not something the container can supply, so it cannot appear as a parameter on the concrete class at all. `examples/vert`'s test services solve this by never declaring `scope` as a parameter: the concrete class hardcodes its own name and forwards it through `super()`, alongside every shared repository. Each repository stays `@inject`-decorated on both classes - the base declares it to store it, the concrete class repeats it because the container calls the concrete constructor, never the base's:
 
 ```typescript
-// Shared repository access for a group of test services - property injection,
-// so the concrete subclass's constructor stays free of undecorated parameters
 export abstract class BaseTestService extends BaseService {
-  @inject({
-    key: BindingKeys.build({
-      namespace: BindingNamespaces.REPOSITORY,
-      key: UserRepository.name,
-    }),
-  })
-  protected userRepository!: UserRepository;
-
-  constructor(opts: { scope: string }) {
-    super(opts);
+  constructor(
+    scope: string,
+    @inject({
+      key: BindingKeys.build({
+        namespace: BindingNamespaces.REPOSITORY,
+        key: UserRepository.name,
+      }),
+    })
+    protected readonly userRepository: UserRepository,
+    // ...one @inject parameter per other shared repository
+  ) {
+    super({ scope });
   }
 
   abstract run(): Promise<void>;
+
+  // Bundles the shared repositories for case-group classes to consume
+  protected caseContext(): ITestCaseContext {
+    return {
+      logger: this.logger,
+      logCase: title => this.logCase(title),
+      userRepository: this.userRepository,
+    };
+  }
 }
 
-// Concrete subclass takes no constructor parameters - only container-instantiated
-// classes are subject to the "every parameter decorated" rule, and an empty
-// parameter list trivially satisfies it
+// Repeats the base's @inject parameters - the container calls THIS constructor,
+// never the base's - and hardcodes the scope BaseTestService cannot take as a parameter
 export class UserAuditTestService extends BaseTestService {
-  constructor() {
-    super({ scope: UserAuditTestService.name });
+  constructor(
+    @inject({
+      key: BindingKeys.build({
+        namespace: BindingNamespaces.REPOSITORY,
+        key: UserRepository.name,
+      }),
+    })
+    userRepository: UserRepository,
+  ) {
+    super(UserAuditTestService.name, userRepository);
   }
 
   async run(): Promise<void> {
-    this.logger.for('run').info('Running user audit tests');
-    // ...
+    const context = this.caseContext();
+    // ...build case-group instances from context and run their cases
   }
 }
 ```
@@ -284,7 +300,7 @@ this.service(UserAuditTestService);
 ```
 
 > [!IMPORTANT]
-> `BaseTestService`'s own constructor (`opts: { scope: string }`) is never processed by the container - `BaseTestService` is abstract and is never passed to `instantiate()`. Only the concrete class the container actually instantiates is subject to the "every parameter decorated" rule. See [Dependency Injection Reference](./dependency-injection.md#instantiation-algorithm-two-phase) for the full rule.
+> `BaseTestService`'s own constructor is never processed by the container - `BaseTestService` is abstract and is never passed to `instantiate()`. Only the concrete class the container actually instantiates is subject to the "every parameter decorated" rule. See [Dependency Injection Reference](./dependency-injection.md#instantiation-algorithm-two-phase) for the full rule.
 
 ---
 
