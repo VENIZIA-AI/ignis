@@ -1,8 +1,9 @@
 /**
  * Snapshot of every exported symbol (values and types) of every package `exports` entry, read
- * from the built `.d.ts` with the TypeScript compiler API. Frozen during the file split: `check`
- * fails when a symbol appears, disappears or changes kind. Usage: bun scripts/public-surface.ts
- * gen|check
+ * from the built `.d.ts` with the TypeScript compiler API. Records name and kind only - never a
+ * signature, generics, class members or a type body - so a fresh snapshot does not prove a
+ * signature is unchanged. `check` fails when a symbol appears, disappears or changes kind. Usage:
+ * bun scripts/public-surface.ts gen|check
  */
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
@@ -24,9 +25,9 @@ const PACKAGES = [
 ];
 // The tooling keeps no dependency of its own; the compiler comes from a package that already has
 // it.
-const ts: typeof TypeScript = createRequire(
-  resolve(REPO, 'packages/boot/package.json'),
-)('typescript');
+const ts: typeof TypeScript = createRequire(resolve(REPO, 'packages/boot/package.json'))(
+  'typescript',
+);
 
 interface IEntrySurface {
   entry: string;
@@ -117,9 +118,10 @@ export class PublicSurface {
     checker: TypeScript.TypeChecker;
     symbol: TypeScript.Symbol;
   }): string {
-    const resolved = opts.symbol.flags & ts.SymbolFlags.Alias
-      ? opts.checker.getAliasedSymbol(opts.symbol)
-      : opts.symbol;
+    const resolved =
+      opts.symbol.flags & ts.SymbolFlags.Alias
+        ? opts.checker.getAliasedSymbol(opts.symbol)
+        : opts.symbol;
     const flags = resolved.flags;
     if (flags & ts.SymbolFlags.Class) {
       return 'class';

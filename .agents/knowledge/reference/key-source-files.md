@@ -23,10 +23,10 @@ generated file inventory.
 | `packages/core-server/src/base/applications/server.ts` | `ServerApplication` - the only layer that binds a socket (`Bun.serve` / `@hono/node-server`), and the layer that restores env and cwd defaults. |
 | `packages/core-server/src/base/applications/base.ts` | `BaseApplication` - the boot-aware application base combining all mixins and the lifecycle phases. |
 | `packages/kernel/src/common/bindings.ts` | `BindingNamespaces` and `CoreBindings` const-classes - every namespace and core binding key in one place. |
-| `packages/boot/src/base/base-artifact-booter.ts` | `BaseArtifactBooter` - the template-method base every built-in booter extends (configure -> discover -> load). |
-| `packages/boot/src/booters/index.ts` | Barrel for the four built-in booters: controller, service, repository, datasource. |
+| `packages/boot/src/generator/scanner.ts` | `ArtifactScanner.getInstance().scan({ root, ignore })` - the AST walk that finds every decorated artifact class. |
+| `packages/boot/src/generator/index.ts` | `generateArtifactIndex` / `checkArtifactIndex` - render-and-write and render-and-compare, the two entry points the CLI and `check:artifacts` call. |
 | `packages/kernel/src/base/repositories/core/abstract.ts` | `AbstractRepository` - the one engine-neutral repository base every connector chain builds on. |
-| `packages/core-server/src/connectors/postgres/repositories/core/index.ts` | The Postgres repository chain - five real subclasses of the neutral `connectors/relational` chain, each rebinding `ExtraOptions` and `TDataSource` to the Postgres types. |
+| `packages/connectors/src/relational/postgres/repositories/core/index.ts` | The Postgres repository chain - five real subclasses of the neutral `connectors/relational` chain, each rebinding `ExtraOptions` and `TDataSource` to the Postgres types. |
 | `packages/kernel/src/base/datasources/abstract.ts` | `AbstractDataSource` - engine-neutral datasource root; no SQL, no document-store specifics. |
 | `packages/kernel/src/base/components/base.ts` | `BaseComponent` - the base every pluggable component (health check, auth, mail, Socket.IO, ...) extends. |
 | `packages/kernel/src/base/metadata/persistents.ts` | `registerDataSourceInjection` - the strict logic behind `@repository`'s auto-injected DataSource at constructor param[0]. |

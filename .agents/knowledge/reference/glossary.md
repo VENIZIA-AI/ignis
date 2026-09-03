@@ -9,13 +9,15 @@ tags: [reference, glossary]
 Alphabetical lookup table. See [what is IGNIS](/overview/what-is-ignis.md) for the narrative version.
 
 **Application / BaseApplication** - `BaseApplication` in `packages/core-server/src/base/applications/base.ts`
-extends `AbstractApplication` (itself a `Container`) and implements the boot-aware, mixin-composed
-REST application: `preConfigure` -> `registerDataSources` -> `registerComponents` ->
-`registerControllers` -> `postConfigure` -> `setupMiddlewares` -> `start`.
+extends `AbstractApplication` (itself a `Container`), a mixin-composed REST application. Its boot
+sequence runs `registerArtifacts` - binding `configs.artifacts`, the generated artifact index -
+before `preConfigure` -> `registerDataSources` -> `registerComponents` -> `registerControllers` ->
+`postConfigure` -> `setupMiddlewares` -> `start`.
 
-**Artifact** - A boot-discoverable unit (controller, service, repository, or datasource) that a
-`BaseArtifactBooter` subclass finds by directory + file extension, loads, and binds into the
-container. Not to be confused with a claude.ai Artifact.
+**Artifact** - A decorated class (`component`, `controller`, `service`, `repository`, or
+`datasource`) that `ignis-artifacts generate` finds by AST scan, listed in
+`src/generated/artifacts.ts`. The `registerArtifacts` boot step binds that file's
+`configs.artifacts` index into the container. Not to be confused with a claude.ai Artifact.
 
 **BaseHelper** - `packages/helpers/src/modules/base.ts`. The base class every helper (and most
 core/inversion classes) extends for a `scope`-tagged, per-method logger via `this.logger.for(...)`.
@@ -26,10 +28,6 @@ container entry: its key, value/class, scope (`singleton`/`transient`), and tags
 **Binding key** - The string identifier a `Binding` is registered under, namespaced as
 `<namespace>.<Name>` (e.g. `repositories.UserRepository`). See `CoreBindings` and
 `BindingNamespaces` in `packages/kernel/src/common/bindings.ts`.
-
-**Booter** - A class implementing `IBooter` (`packages/boot/src/common/types.ts`) that runs the
-three-phase artifact lifecycle (configure -> discover -> load). Built-ins:
-`ControllerBooter`, `ServiceBooter`, `RepositoryBooter`, `DatasourceBooter`.
 
 **Component** - `BaseComponent` in `packages/kernel/src/base/components/base.ts`. A pluggable unit an
 application registers via `registerComponents()` to add cross-cutting behaviour (health checks,

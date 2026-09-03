@@ -80,10 +80,12 @@ path, because the column was never fetched.
 
 ## Convention over configuration
 
-Default directories (`controllers/`, `services/`, ...), default file extensions
-(`.controller.js`, ...), all overridable via boot options - mirrors LB4's Booter system. A new
-engineer or agent can predict where a file lives without reading a config file first, and an
-override always exists for the case where convention doesn't fit.
+This repo puts controllers under `controllers/`, services under `services/`, and so on - a
+human-readable convention, not a rule the tool checks. `ignis-artifacts generate` finds an artifact
+by its stereotype decorator, walking every `.ts` file under `--root`, so a class registers no
+matter which directory or file name holds it. `configs.artifacts`, the generated index, is what an
+engineer or agent reads to see what is actually registered; `--root`, `--out` and `--ignore` are
+the override knobs.
 
 ## A browser-pure kernel, proven by a gate
 

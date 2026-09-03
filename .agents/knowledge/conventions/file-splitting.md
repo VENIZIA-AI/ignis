@@ -18,6 +18,21 @@ the single job the file does. If naming that job needs the word "and", the file 
 job is genuinely one thing that takes many lines - a dialect translation table, a wrapper over a wide
 external surface - leave it and say so.
 
+Seven hub candidates were judged this way and kept on purpose, each one topic wide rather than
+several topics stacked:
+
+| File | Why it stays a hub |
+|---|---|
+| filter `common/types.ts` | one filter DSL |
+| inversion `common/types.ts` | a 27-line utility set |
+| inversion `error/common/types.ts` | one error DSL |
+| helpers `crypto/common/constants.ts` | cipher/hash defaults |
+| helpers `logger/hf/common/constants.ts` | one binary record layout |
+| helpers `tree/common/types.ts` | one walker API |
+| kernel `base/repositories/common/constants.ts` | const families, spec ruling |
+
+`split-report` keeps counting these seven as hub candidates - that count is expected, not a defect.
+
 There is no hard cap and no lint rule. A cap produces files that satisfy the cap.
 
 ## The axis: lifecycle stage, not layer and not CRUD verb
@@ -37,6 +52,10 @@ purchase-order/
 Splitting by CRUD verb instead (`create.service.ts`, `update.service.ts`) produces near-twin files:
 a change to one has to be remembered in the other. Splitting by layer scatters one narrative across
 the layers a reader has to reassemble.
+
+Test case groups are the deliberate exception:
+`examples/vert/src/services/tests/<service>/<group>.cases.ts` splits by what each group exercises,
+including CRUD verbs. Each group is read alone, never edited as a pair.
 
 One narrow axis worth copying on its own: **lift raw SQL out of a repository** into
 `sqls/<topic>.sql.ts`, leaving the repository as pure orchestration.
@@ -70,8 +89,11 @@ have to call back into a sibling, do not extract it - leave it in the parent.
   lines, cycles per package. Informational.
 - `bun scripts/module-cycles.ts packages/<p>/dist/esm --max 0` - fails on an import cycle. bun turns
   cycle members into lazy initializers; a barrel over one can export `undefined`.
-- `make surface-check` - the public surface equals `reference/public-surface.md`. A split that
-  changes it is wrong; an intended API change runs `make surface-gen` and shows the diff in review.
+- `make surface-check` - the public surface equals `reference/public-surface.md`. The snapshot
+  records exported symbol names and kinds only, never a signature, generics, class members or a
+  type body, so "fresh" does not prove a signature is unchanged - it catches an export added,
+  removed or renamed. A split that changes the symbol list is wrong; an intended API change runs
+  `make surface-gen` and shows the diff in review.
 - `make wiki-links-check` - every `blob/main/<path>` link and backticked source path named in the
   wiki or the knowledge bundle still exists on disk. Catches paths a split forgot to update.
 

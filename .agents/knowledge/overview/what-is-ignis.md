@@ -36,9 +36,10 @@ AbstractRepository -> RelationalBaseRepository -> ReadableRelationalRepository -
 PersistableRelationalRepository -> DefaultRelationalRepository - which the Postgres connector
 binds to its own `ReadableRepository`, `PersistableRepository`, and `DefaultCRUDRepository`
 names, each a thin subclass of its relational-tier counterpart. DataSources wrap Drizzle
-connection pools and are singletons, shared across repositories. A convention-based boot system
-auto-discovers controllers, services, repositories, and datasources by file suffix, the same way
-LB4's Booter system did.
+connection pools and are singletons, shared across repositories. A build-time generator
+(`ignis-artifacts generate`) finds every decorated controller, service, repository, and datasource
+by an AST scan, and writes a static index the application registers at boot - LB4's Booter system
+did the same discovery, but by scanning the file system at runtime.
 
 Dependency injection runs through a standalone IoC container (`inversion`) rather than a
 monolith - Binding fluent API, a MetadataRegistry, the `@inject` decorator, singleton/transient
