@@ -229,8 +229,9 @@ and value RAW - `jsonb_set` takes `text[]` and `jsonb`, and a bound parameter ar
 `SqliteUpdateBuilder` returns `json_set(target, ?, json(?))` with both BOUND.
 
 Error messages interpolate `this.scope`, the concrete subclass name, so `[UpdateBuilder][transform]`
-and `[SqliteUpdateBuilder.transform]` still name the builder that actually ran. Full measurement in
-[the SQLite connector research spec](https://github.com/VENIZIA-AI/ignis/blob/main/docs/superpowers/specs/2026-07-31-sqlite-connector-research.md).
+and `[SqliteUpdateBuilder.transform]` still name the builder that actually ran. Full measurement is
+in the SQLite connector research spec, a local planning artifact under `docs/superpowers/`
+(gitignored, not published).
 
 ## `UpdateBuilder` is reachable two ways - use the dialect
 
