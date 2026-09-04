@@ -6,6 +6,17 @@ not how.
 This file and `index.md` are reserved OKF filenames - they carry no `type:` frontmatter and are not
 counted as concepts.
 
+## 2026-09-04 - dependency floors raised; audit 126 -> 6 with reasons
+
+Every catalog range moved to its latest compatible release (hono 4.13.5, zod 4.5.4, @hono/zod-openapi 1.6.2, pg 8.23.0,
+typesense 3.0.6, bullmq 5.81.4, @scalar/hono-api-reference 0.11.16, tsc-alias 1.9.4, @types/bun 1.4.0, eslint 10.9.1,
+prettier 3.9.6); docs-mcp `@mastra/*` minors; `eslint-plugin-unicorn` 74 and `@vitejs/plugin-react` 6 (dev only) kept
+because lint and the example build stayed green. bun-types 1.4 forced `IWebSocket.send` / `IBunServer.publish` to
+concrete binary types (gotcha recorded). Not bumped: ioredis 6 (BullMQ needs 5), @scalar 0.12 (apps pin 0.11.11),
+@libsql/client 0.18 (broke the sqlite example types). Audit: 126 -> 6; the six that stay are named with reasons in
+the changelog and in gotchas. Lockfile refreshed (it was stale against the manifests). Consumers pinning exact versions
+raise their overrides per the migration guide table.
+
 ## 2026-09-03 - file split: last multi-topic hubs, split-report covers examples
 
 Task F2 closed the file-split epic's last three multi-topic hub files and made `split-report` scan

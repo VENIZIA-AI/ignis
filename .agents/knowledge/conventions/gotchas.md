@@ -326,6 +326,23 @@ by giving both methods an explicit return type. Check any other builder whose re
 a `TConstValue`-derived field for the same gap - it only surfaces once something downstream assigns
 the result into an equally-narrowed type, so it can sit latent for a long time.
 
+## bun-types 1.4 types binary data as typed arrays and DataView, never a bare ArrayBufferView
+
+`BufferSource` in bun-types 1.4 is `NodeJS.TypedArray | DataView | ArrayBufferLike`. A mirror interface that
+declares `data: string | ArrayBufferView | ArrayBuffer` (`IWebSocket.send`, `IBunServer.publish` before
+2026-09-04) is wider than what Bun accepts, so `Bun.serve()` stops being assignable to the mirror and
+core-server fails to build. Mirror Bun with concrete types: `string | ArrayBuffer | SharedArrayBuffer |
+Uint8Array | DataView`. Narrowing a parameter keeps older bun-types assignable (contravariance).
+
+## Four transitive advisories stay by decision - do not "fix" them with an override
+
+`bun audit` reports `decode-uri-component` and `stream-json` under `minio`, and `esbuild`/`vite` 5 under
+`vitepress` and `drizzle-kit`. The patched releases of the first two are ESM-only while `minio` uses
+`require()`; `stream-json` also renamed the `jsonl/Parser.js` path `minio` imports. A workspace-wide
+`esbuild` override forces `vite` 5 onto an esbuild it does not support, and `vitepress` 1.6.4 is the
+latest and pins `vite` 5. All four are dev-server or self-built-input exposures; the changelog
+`2026-09-04-dependency-floors-raised` carries the reasoning. A new advisory beyond these six is a real finding.
+
 ## Related
 
 - [Options objects](/conventions/options-objects.md)
