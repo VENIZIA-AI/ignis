@@ -4,10 +4,14 @@
   "workspaces": {
     "": {
       "name": "@venizia/lib",
+      "devDependencies": {
+        "@types/bun": "catalog:",
+        "typescript": "catalog:",
+      },
     },
     "docs/wiki": {
       "name": "@venizia/ignis-docs",
-      "version": "0.2.1-0",
+      "version": "0.2.1-1",
       "bin": {
         "ignis-docs-mcp": "./dist/mcp-server/index.js",
       },
@@ -358,32 +362,33 @@
     },
     "packages/boot": {
       "name": "@venizia/ignis-boot",
-      "version": "0.2.0-1",
+      "version": "0.2.0-7",
+      "bin": {
+        "ignis-artifacts": "./dist/cjs/cli.js",
+      },
       "dependencies": {
-        "@venizia/ignis-helpers": "^0.2.0-0",
-        "@venizia/ignis-inversion": "^0.2.0-0",
-        "glob": "^13.0.6",
-        "lodash": "catalog:",
-        "reflect-metadata": "catalog:",
+        "@venizia/ignis-helpers": "^0.2.0-8",
       },
       "devDependencies": {
         "@types/bun": "catalog:",
-        "@types/lodash": "catalog:",
-        "@venizia/dev-configs": "^0.2.0-0",
+        "@venizia/dev-configs": "^0.2.0-3",
         "eslint": "catalog:",
         "prettier": "catalog:",
         "tsc-alias": "catalog:",
         "typescript": "catalog:",
       },
+      "peerDependencies": {
+        "typescript": ">=5.0.0",
+      },
     },
     "packages/connectors": {
       "name": "@venizia/ignis-connectors",
-      "version": "0.2.0-1",
+      "version": "0.2.0-13",
       "dependencies": {
-        "@venizia/ignis-filter": "^0.2.0-0",
-        "@venizia/ignis-helpers": "^0.2.0-1",
-        "@venizia/ignis-inversion": "^0.2.0-0",
-        "@venizia/ignis-kernel": "^0.2.0-1",
+        "@venizia/ignis-filter": "^0.2.0-5",
+        "@venizia/ignis-helpers": "^0.2.0-8",
+        "@venizia/ignis-inversion": "^0.2.0-3",
+        "@venizia/ignis-kernel": "^0.2.0-13",
         "lodash": "catalog:",
         "reflect-metadata": "catalog:",
         "zod": "catalog:",
@@ -391,7 +396,8 @@
       "devDependencies": {
         "@types/bun": "catalog:",
         "@types/lodash": "catalog:",
-        "@venizia/dev-configs": "^0.2.0-0",
+        "@types/pg": "catalog:",
+        "@venizia/dev-configs": "^0.2.0-3",
         "eslint": "catalog:",
         "prettier": "catalog:",
         "tsc-alias": "catalog:",
@@ -420,7 +426,7 @@
     },
     "packages/core-server": {
       "name": "@venizia/ignis",
-      "version": "0.2.0-1",
+      "version": "0.2.0-13",
       "dependencies": {
         "@venizia/ignis-boot": "^0.2.0-0",
         "@venizia/ignis-connectors": "^0.1.1-0",
@@ -507,7 +513,7 @@
     },
     "packages/core-worker": {
       "name": "@venizia/ignis-worker",
-      "version": "0.2.0-1",
+      "version": "0.2.0-14",
       "dependencies": {
         "@venizia/ignis-helpers": "^0.2.0-1",
         "@venizia/ignis-inversion": "^0.2.0-0",
@@ -529,7 +535,7 @@
     },
     "packages/dev-configs": {
       "name": "@venizia/dev-configs",
-      "version": "0.2.0-0",
+      "version": "0.2.0-3",
       "dependencies": {
         "@minimaltech/eslint-node": "catalog:",
         "eslint-plugin-unicorn": "^72.0.0",
@@ -553,14 +559,14 @@
     },
     "packages/filter": {
       "name": "@venizia/ignis-filter",
-      "version": "0.2.0-0",
+      "version": "0.2.0-5",
       "dependencies": {
-        "@venizia/ignis-inversion": "^0.2.0-0",
+        "@venizia/ignis-inversion": "^0.2.0-3",
         "zod": "catalog:",
       },
       "devDependencies": {
         "@types/bun": "catalog:",
-        "@venizia/dev-configs": "^0.2.0-0",
+        "@venizia/dev-configs": "^0.2.0-3",
         "eslint": "catalog:",
         "prettier": "catalog:",
         "tsc-alias": "catalog:",
@@ -569,9 +575,9 @@
     },
     "packages/helpers": {
       "name": "@venizia/ignis-helpers",
-      "version": "0.2.0-1",
+      "version": "0.2.0-8",
       "dependencies": {
-        "@venizia/ignis-inversion": "^0.2.0-0",
+        "@venizia/ignis-inversion": "^0.2.0-3",
         "dayjs": "catalog:",
         "ioredis": "catalog:",
         "lodash": "catalog:",
@@ -586,7 +592,7 @@
         "@socket.io/redis-emitter": "catalog:",
         "@types/bun": "catalog:",
         "@types/lodash": "catalog:",
-        "@venizia/dev-configs": "^0.2.0-0",
+        "@venizia/dev-configs": "^0.2.0-3",
         "axios": "^1.18.1",
         "bullmq": "catalog:",
         "cron": "^4.3.3",
@@ -652,7 +658,7 @@
     },
     "packages/inversion": {
       "name": "@venizia/ignis-inversion",
-      "version": "0.2.0-0",
+      "version": "0.2.0-3",
       "dependencies": {
         "lodash": "catalog:",
         "reflect-metadata": "catalog:",
@@ -661,7 +667,7 @@
       "devDependencies": {
         "@types/bun": "catalog:",
         "@types/lodash": "catalog:",
-        "@venizia/dev-configs": "^0.2.0-0",
+        "@venizia/dev-configs": "^0.2.0-3",
         "eslint": "catalog:",
         "prettier": "catalog:",
         "tsc-alias": "catalog:",
@@ -670,11 +676,11 @@
     },
     "packages/kernel": {
       "name": "@venizia/ignis-kernel",
-      "version": "0.2.0-1",
+      "version": "0.2.0-13",
       "dependencies": {
-        "@venizia/ignis-filter": "^0.2.0-0",
-        "@venizia/ignis-helpers": "^0.2.0-1",
-        "@venizia/ignis-inversion": "^0.2.0-0",
+        "@venizia/ignis-filter": "^0.2.0-5",
+        "@venizia/ignis-helpers": "^0.2.0-8",
+        "@venizia/ignis-inversion": "^0.2.0-3",
         "lodash": "catalog:",
         "reflect-metadata": "catalog:",
         "zod": "catalog:",
@@ -682,7 +688,7 @@
       "devDependencies": {
         "@types/bun": "catalog:",
         "@types/lodash": "catalog:",
-        "@venizia/dev-configs": "^0.2.0-0",
+        "@venizia/dev-configs": "^0.2.0-3",
         "casbin": "^5.51.1",
         "eslint": "catalog:",
         "prettier": "catalog:",
@@ -2143,8 +2149,6 @@
 
     "get-tsconfig": ["get-tsconfig@4.13.7", "", { "dependencies": { "resolve-pkg-maps": "^1.0.0" } }, "sha512-7tN6rFgBlMgpBML5j8typ92BKFi2sFQvIdpAqLA2beia5avZDrMs0FLZiM5etShWq5irVyGcGMEA1jcDaK7A/Q=="],
 
-    "glob": ["glob@13.0.6", "", { "dependencies": { "minimatch": "^10.2.2", "minipass": "^7.1.3", "path-scurry": "^2.0.2" } }, "sha512-Wjlyrolmm8uDpm/ogGyXZXb1Z+Ca2B8NbJwqBVg0axK9GbBeoS7yGV6vjXnYdGm6X53iehEuxxbyiKp8QmN4Vw=="],
-
     "glob-parent": ["glob-parent@6.0.2", "", { "dependencies": { "is-glob": "^4.0.3" } }, "sha512-XxwI8EOhVQgWp6iDL+3b0r86f4d6AX6zSU55HfB4ydCEuXLXc5FcYeOu+nnGftS4TEju/11rt4KJPTMgbfmv4A=="],
 
     "globals": ["globals@17.7.0", "", {}, "sha512-Czmyns5dUsq4seFBR/Kdydhmo8y9kC79hiSkPn0YcGtNnYWnrgt0vjrSjx9tspoDGWm2CMarffRuLjM4xUz8xg=="],
@@ -2471,8 +2475,6 @@
 
     "minio": ["minio@8.0.7", "", { "dependencies": { "async": "^3.2.4", "block-stream2": "^2.1.0", "browser-or-node": "^2.1.1", "buffer-crc32": "^1.0.0", "eventemitter3": "^5.0.1", "fast-xml-parser": "^5.3.4", "ipaddr.js": "^2.0.1", "lodash": "^4.17.21", "mime-types": "^2.1.35", "query-string": "^7.1.3", "stream-json": "^1.8.0", "through2": "^4.0.2", "xml2js": "^0.5.0 || ^0.6.2" } }, "sha512-E737MgufW8CeQAsTAtnEMrxZ9scMSf29kkhZoXzDTKj/Jszzo2SfeZUH9wbDQH2Rsq6TCtl/yQL0+XdVKZansQ=="],
 
-    "minipass": ["minipass@7.1.3", "", {}, "sha512-tEBHqDnIoM/1rXME1zgka9g6Q2lcoCkxHLuc7ODJ5BxbP5d4c2Z5cGgtXAku59200Cx7diuHTOYfSBD8n6mm8A=="],
-
     "minisearch": ["minisearch@7.2.0", "", {}, "sha512-dqT2XBYUOZOiC5t2HRnwADjhNS2cecp9u+TJRiJ1Qp/f5qjkeT5APcGPjHw+bz89Ms8Jp+cG4AlE+QZ/QnDglg=="],
 
     "mitt": ["mitt@3.0.1", "", {}, "sha512-vKivATfr97l2/QBCYAkXYDbrIWPM2IIKEl7YPhjCvKlG3kE2gm+uBo6nEXK3M5/Ffh/FLpKExzOQ3JJoJGFKBw=="],
@@ -2588,8 +2590,6 @@
     "path-expression-matcher": ["path-expression-matcher@1.2.0", "", {}, "sha512-DwmPWeFn+tq7TiyJ2CxezCAirXjFxvaiD03npak3cRjlP9+OjTmSy1EpIrEbh+l6JgUundniloMLDQ/6VTdhLQ=="],
 
     "path-key": ["path-key@3.1.1", "", {}, "sha512-ojmeN0qd+y0jszEtoY48r0Peq5dwMEkIlCOu6Q5f41lfkswXuKtYrhgoTpLnyIcHm24Uhqx+5Tqm2InSwLhE6Q=="],
-
-    "path-scurry": ["path-scurry@2.0.2", "", { "dependencies": { "lru-cache": "^11.0.0", "minipass": "^7.1.2" } }, "sha512-3O/iVVsJAPsOnpwWIeD+d6z/7PmqApyQePUtCndjatj/9I5LylHvt5qluFaBT3I5h3r1ejfR056c+FCv+NnNXg=="],
 
     "path-to-regexp": ["path-to-regexp@8.4.1", "", {}, "sha512-fvU78fIjZ+SBM9YwCknCvKOUKkLVqtWDVctl0s7xIqfmfb38t2TT4ZU2gHm+Z8xGwgW+QWEU3oQSAzIbo89Ggw=="],
 
@@ -2947,8 +2947,6 @@
 
     "ts-api-utils": ["ts-api-utils@2.5.0", "", { "peerDependencies": { "typescript": ">=4.8.4" } }, "sha512-OJ/ibxhPlqrMM0UiNHJ/0CKQkoKF243/AEmplt3qpRgkW8VG7IfOS41h7V8TjITqdByHzrjcS/2si+y4lIh8NA=="],
 
-    "ts-declaration-location": ["ts-declaration-location@1.0.7", "", { "dependencies": { "picomatch": "^4.0.2" }, "peerDependencies": { "typescript": ">=4.0.0" } }, "sha512-EDyGAwH1gO0Ausm9gV6T2nUvBgXT5kGoCMJPllOaooZ+4VvJiKBdZE7wK18N1deEowhcUptS+5GXZK8U/fvpwA=="],
-
     "ts-dedent": ["ts-dedent@2.2.0", "", {}, "sha512-q5W7tVM71e2xjHZTlgfTDoPF/SmqKG5hddq9SzR49CH2hayqRKJtQ4mtRlSxKaJlR/+9rEM+mnBHf7I2/BQcpQ=="],
 
     "tsc-alias": ["tsc-alias@1.9.1", "", { "dependencies": { "chokidar": "^3.5.3", "commander": "^9.0.0", "get-tsconfig": "^4.10.0", "globby": "^11.0.4", "mylas": "^2.1.9", "normalize-path": "^3.0.0", "plimit-lit": "^1.2.6" }, "bin": { "tsc-alias": "dist/bin/index.js" } }, "sha512-sFZdVFthH8uvdplPJrOYGOHcxu6UPtcAcY678JPwEQiMzgLZYFO7Qc/rzELp7ingTc+OxtzH6n+8Pn2eVQep6w=="],
@@ -3103,11 +3101,15 @@
 
     "@ai-sdk/provider-utils/secure-json-parse": ["secure-json-parse@2.7.0", "", {}, "sha512-6aU+Rwsezw7VR8/nyvKTx8QpWH9FrcYiXXlqC4z5d5XQBDRqtbfsRjnwGyqbi3gddNtWHuEk9OANUotL26qKUw=="],
 
+    "@ai-sdk/provider-utils/zod": ["zod@3.25.76", "", {}, "sha512-gzUt/qt81nXsFGKIFcC3YnfEAx5NkunCfnDlvuBSSFS02bcXu4Lmea0AFIUwbLWxWPx3d9p8S5QoaujKcNQxcQ=="],
+
     "@ai-sdk/provider-utils-v6/@ai-sdk/provider": ["@ai-sdk/provider@3.0.14", "", { "dependencies": { "json-schema": "^0.4.0" } }, "sha512-5X1k57JBJ4H7H1QjX7CnJYAB1I19r/trVZTMcSms7/kLNZ8RaU4Nt2agcwZzv82Hfx6Q7/TOLU7agAKeFfc8cA=="],
 
     "@ai-sdk/provider-utils-v7/@ai-sdk/provider": ["@ai-sdk/provider@4.0.3", "", { "dependencies": { "json-schema": "^0.4.0" } }, "sha512-e0CpNWJUY7OxAFAnCZkw+ri9QOHWwTs1tXP42782KFGCU07qt8NiXCrCVowyCB5dP2r5/Uls+g2oPd8kOJn9dw=="],
 
     "@ai-sdk/ui-utils-v5/@ai-sdk/provider": ["@ai-sdk/provider@1.1.3", "", { "dependencies": { "json-schema": "^0.4.0" } }, "sha512-qZMxYJ0qqX/RfnuIaab+zp8UAeJn/ygXXAffR5I4N0n1IrvA6qBsjc8hXLmBiMV2zoXlifkacF7sEFnYnjBcqg=="],
+
+    "@ai-sdk/ui-utils-v5/zod": ["zod@3.25.76", "", {}, "sha512-gzUt/qt81nXsFGKIFcC3YnfEAx5NkunCfnDlvuBSSFS02bcXu4Lmea0AFIUwbLWxWPx3d9p8S5QoaujKcNQxcQ=="],
 
     "@ant-design/cssinjs/@rc-component/util": ["@rc-component/util@1.10.0", "", { "dependencies": { "is-mobile": "^5.0.0", "react-is": "^18.2.0" }, "peerDependencies": { "react": ">=18.0.0", "react-dom": ">=18.0.0" } }, "sha512-aY9GLBuiUdpyfIUpAWSYer4Tu3mVaZCo5A0q9NtXcazT3MRiI3/WNHCR+DUn5VAtR6iRRf0ynCqQUcHli5UdYw=="],
 
@@ -3434,8 +3436,6 @@
     "thread-stream/real-require": ["real-require@1.0.0", "", {}, "sha512-P4nbQYQfePJxRSmY+v/KINxVucm4NF3p3s7pJveMTtom52FR4YGltUQLB8idDXwDDWW+eYrWDFbuzUnjoWHF7g=="],
 
     "through2/readable-stream": ["readable-stream@3.6.2", "", { "dependencies": { "inherits": "^2.0.3", "string_decoder": "^1.1.1", "util-deprecate": "^1.0.1" } }, "sha512-9u/sniCrY3D5WdsERHzHE4G2YCXqoG5FTHUiCC4SIbr6XcLZBY05ya9EKjYek9O5xOAwjGq+1JdGBAS7Q9ScoA=="],
-
-    "ts-declaration-location/picomatch": ["picomatch@4.0.4", "", {}, "sha512-QP88BAKvMam/3NxH6vj2o21R6MjxZUAd6nlwAS/pnGvN9IVLocLHxGYIzFhg6fUQ+5th6P4dv4eW9jX3DSIj7A=="],
 
     "tsx/esbuild": ["esbuild@0.28.0", "", { "optionalDependencies": { "@esbuild/aix-ppc64": "0.28.0", "@esbuild/android-arm": "0.28.0", "@esbuild/android-arm64": "0.28.0", "@esbuild/android-x64": "0.28.0", "@esbuild/darwin-arm64": "0.28.0", "@esbuild/darwin-x64": "0.28.0", "@esbuild/freebsd-arm64": "0.28.0", "@esbuild/freebsd-x64": "0.28.0", "@esbuild/linux-arm": "0.28.0", "@esbuild/linux-arm64": "0.28.0", "@esbuild/linux-ia32": "0.28.0", "@esbuild/linux-loong64": "0.28.0", "@esbuild/linux-mips64el": "0.28.0", "@esbuild/linux-ppc64": "0.28.0", "@esbuild/linux-riscv64": "0.28.0", "@esbuild/linux-s390x": "0.28.0", "@esbuild/linux-x64": "0.28.0", "@esbuild/netbsd-arm64": "0.28.0", "@esbuild/netbsd-x64": "0.28.0", "@esbuild/openbsd-arm64": "0.28.0", "@esbuild/openbsd-x64": "0.28.0", "@esbuild/openharmony-arm64": "0.28.0", "@esbuild/sunos-x64": "0.28.0", "@esbuild/win32-arm64": "0.28.0", "@esbuild/win32-ia32": "0.28.0", "@esbuild/win32-x64": "0.28.0" }, "bin": { "esbuild": "bin/esbuild" } }, "sha512-sNR9MHpXSUV/XB4zmsFKN+QgVG82Cc7+/aaxJ8Adi8hyOac+EXptIp45QBPaVyX3N70664wRbTcLTOemCAnyqw=="],
 
