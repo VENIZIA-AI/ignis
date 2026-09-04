@@ -38,7 +38,7 @@ Key `BaseContainer` members: `bind<T>({ key })`, `get<T>({ key, isOptional? })`,
 
 ## Folder convention
 
-Every scope owns its folder under `src/modules/` with an `index.ts` barrel, and nests its own `common/{types,constants}.ts` behind a `common/index.ts` barrel - contracts live in `types.ts`, free of concrete classes, which is what keeps `binding/` and `container/` decoupled. Cross-cutting types shared by every scope (`TBindingKey`, `TClass`, `TConstValue`, `isClass`) sit in a package-level `src/common/`, outside `modules/`. This is the template every other IGNIS package's folder layout follows.
+Every scope owns its folder under `src/modules/` with an `index.ts` barrel, and nests its own `common/{types,constants}.ts` behind a `common/index.ts` barrel - contracts live in `types.ts`, free of concrete classes, which is what keeps `binding/` and `container/` decoupled. Cross-cutting types shared by every scope (`TBindingKey`, `TClass`, `TConstValue`) and the `isClass` guard (`src/common/utilities.ts`) sit in a package-level `src/common/`, outside `modules/`. This is the template every other IGNIS package's folder layout follows.
 
 ## Gotcha: dual build is load-bearing
 
