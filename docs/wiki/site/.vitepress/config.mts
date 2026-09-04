@@ -1309,6 +1309,7 @@ const config = defineConfig({
             { text: 'Unified Connectors (BANA)', link: '/guides/migrations/unified-connectors-migration' },
           { text: 'Scoped RBAC (from DrizzleCasbinAdapter)', link: '/guides/migrations/scoped-rbac-migration' },
             { text: 'Redis Helper API (rename + camelCase)', link: '/guides/migrations/redis-helpers-migration' },
+            { text: 'Boot API removal (BANA upgrade)', link: '/guides/migrations/boot-api-removal-migration' },
           ],
         },
       ],

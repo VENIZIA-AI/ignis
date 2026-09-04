@@ -36,6 +36,7 @@ await application.start();
 - **Configs that set `bootOptions`.** Delete the key; it has been ignored since 2026-09-02.
 - **Classes that `implements IBootableApplication` or `override boot()`.** Delete both - the interface and the base method no longer exist.
 - **Everyone already on `configs.artifacts`.** No action needed - see the [2026-09-02 changelog](./2026-09-02-decorator-artifact-registration) if you have not migrated yet.
+- **Upgrading nx-seller?** Follow the [migration guide](/guides/migrations/boot-api-removal-migration) - it lists every file and the order to fix them.
 - **Known internal call sites and overrides, for coordination (21 across BANA/nx-seller).** Every
   row fails to compile until it's deleted. 3 call `.boot()`, 2 set `bootOptions`, and 16 declare
   `override async boot()` - none of the 16 calls `super.boot()` and every one returns the literal
