@@ -92,7 +92,7 @@
   },
   "dependencies": {
     "@minimaltech/eslint-node": "catalog:",
-    "eslint-plugin-unicorn": "^72.0.0"
+    "eslint-plugin-unicorn": "^74.0.0"
   },
   "peerDependencies": {
     "eslint": "^9.0.0 || ^10.0.0",

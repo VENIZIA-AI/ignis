@@ -52,7 +52,7 @@
     "@types/react": "^19.2.0",
     "@types/react-dom": "^19.2.0",
     "@venizia/dev-configs": "workspace:*",
-    "@vitejs/plugin-react": "^5.1.0",
+    "@vitejs/plugin-react": "^6.1.1",
     "eslint": "catalog:",
     "prettier": "catalog:",
     "tailwindcss": "^4.3.3",

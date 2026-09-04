@@ -116,8 +116,8 @@
     "rebuild": "sh ./scripts/mcp-rebuild.sh no-version"
   },
   "dependencies": {
-    "@mastra/core": "^1.51.0",
-    "@mastra/mcp": "^1.14.0",
+    "@mastra/core": "^1.64.0",
+    "@mastra/mcp": "^1.17.3",
     "cytoscape": "^3.34.0",
     "cytoscape-cose-bilkent": "^4.1.0",
     "dayjs": "catalog:",
