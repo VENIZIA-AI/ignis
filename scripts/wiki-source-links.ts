@@ -62,14 +62,19 @@ export class SourceLinkCheck {
   private constructor(
     private readonly dirs: string[],
     private readonly skipProseUnder: string[],
+    private readonly repoRoot: string,
   ) {}
 
-  static fromDirectories(opts: { dirs: string[]; skipProseUnder: string[] }): SourceLinkCheck {
-    return new SourceLinkCheck(opts.dirs, opts.skipProseUnder);
+  static fromDirectories(opts: {
+    dirs: string[];
+    skipProseUnder: string[];
+    repoRoot?: string;
+  }): SourceLinkCheck {
+    return new SourceLinkCheck(opts.dirs, opts.skipProseUnder, opts.repoRoot ?? process.cwd());
   }
 
   run(): { checked: number; missing: IMiss[] } {
-    const repoRoot = process.cwd();
+    const repoRoot = this.repoRoot;
     const tracked = SourceLinkCheck.loadTracked(repoRoot);
     const files = this.dirs.flatMap(dir => SourceLinkCheck.walk(resolve(repoRoot, dir)));
     let checked = 0;

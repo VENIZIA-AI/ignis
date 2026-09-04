@@ -35,8 +35,10 @@ interface IEntrySurface {
 }
 
 export class PublicSurface {
-  static render(): string {
-    const sections = PACKAGES.map(name => PublicSurface.renderPackage({ name }));
+  static render(opts: { repoRoot?: string; packages?: string[] } = {}): string {
+    const repoRoot = opts.repoRoot ?? REPO;
+    const packages = opts.packages ?? PACKAGES;
+    const sections = packages.map(name => PublicSurface.renderPackage({ repoRoot, name }));
     return [
       '---',
       'type: Reference',
@@ -55,14 +57,17 @@ export class PublicSurface {
     ].join('\n');
   }
 
-  static check(): boolean {
-    const expected = PublicSurface.render();
-    const actual = existsSync(OUTPUT) ? readFileSync(OUTPUT, 'utf8') : '';
+  static check(
+    opts: { repoRoot?: string; packages?: string[]; outputPath?: string } = {},
+  ): boolean {
+    const outputPath = opts.outputPath ?? OUTPUT;
+    const expected = PublicSurface.render({ repoRoot: opts.repoRoot, packages: opts.packages });
+    const actual = existsSync(outputPath) ? readFileSync(outputPath, 'utf8') : '';
     return PublicSurface.normalize(expected) === PublicSurface.normalize(actual);
   }
 
-  private static renderPackage(opts: { name: string }): string {
-    const dir = resolve(REPO, 'packages', opts.name);
+  private static renderPackage(opts: { repoRoot: string; name: string }): string {
+    const dir = resolve(opts.repoRoot, 'packages', opts.name);
     const manifest = JSON.parse(readFileSync(resolve(dir, 'package.json'), 'utf8')) as {
       name: string;
       exports: Record<string, string | { types?: string }>;
