@@ -203,7 +203,7 @@ driver - and reported `11/11` green while saying nothing about the other eleven.
 guards this package either: `eslint.config.mjs` is the shared preset alone, unlike `core-worker`,
 which adds a `no-restricted-globals` and `no-restricted-imports` layer.
 
-Eight rows cannot pass, so the claim names them in `impure` and `make purity-connectors` exits 0.
+Seven rows cannot pass, so the claim names them in `impure` and `make purity-connectors` exits 0.
 The waiver is exact in both directions: a listed row that turns out to be pure fails as loudly as an
 unlisted one that is not, and deriving still owns the row set, so a sub-path added later is claimed
 pure by default. The list lived in `.github/workflows/ci.yml` before, which meant `make
@@ -216,13 +216,14 @@ because the release workflow calls that target directly.
 | `postgres/postgres-js` (import, require) | `postgres` - reaches for `tls` |
 | `sqlite/libsql` (require) | `@libsql/client` - `child_process`; the `import` twin is pure |
 | `typesense` (import, require) | 17 node builtins from the client |
-| `postgres/supabase` (import) | not an engine client - see below |
 
-`postgres/supabase [import]` is a real defect, waived only to keep the gate running. Under
-`--target=browser` Bun drops the `export { anonRole, ... } from 'drizzle-orm/supabase'` re-export and
-still lists those names in the bundle's export block, so the output exports identifiers it never
-binds - `anonRole` appears exactly once in the emitted file, inside `export { ... }`. The `require`
-twin bundles the same module fine.
+`postgres/supabase [import]` is measured, and the verdict depends on the Bun version. Bun 1.4.0
+dropped the `export { anonRole, ... } from 'drizzle-orm/supabase'` re-export under
+`--target=browser` while still listing the names in the bundle's export block, and the row failed
+with `drizzle-orm/supabase` as an unresolved external import. Bun 1.4.1 binds them and the row is
+pure. The row carried a waiver for the 1.4.0 defect until a connectors release on 1.4.1 failed the
+gate with "STALE WAIVER"; the gate needs Bun >= 1.4.1 for that row, and the release workflow runs
+`bun-version: latest`.
 
 `/postgres` and `/sqlite` were red too, on `node:async_hooks`. Both user-audit enrichers imported
 `tryGetContext` from `hono/context-storage`, whose module body runs `var asyncLocalStorage = new

@@ -77,22 +77,18 @@ const PURITY_CLAIMS: IPurityClaim[] = [
   { package: 'core-worker' },
   {
     package: 'connectors',
-    // Two different reasons, both pinned exactly so a NEW impure entry still fails.
+    // One reason, pinned exactly so a NEW impure entry still fails: the engine clients -
+    // node-postgres, postgres-js, libsql, typesense - each speak a wire protocol to a server
+    // process, so they reach for sockets, TLS or child processes and can never run in a browser
+    // tab. They stay published because a Node consumer needs them.
     //
-    // The engine clients - node-postgres, postgres-js, libsql, typesense - each speak a wire
-    // protocol to a server process, so they reach for sockets, TLS or child processes and can never
-    // run in a browser tab. They stay published because a Node consumer needs them.
-    //
-    // `./postgres/supabase` under `import` is NOT that, and is not acceptable either: it is a real
-    // defect in the ESM build. Under `--target=browser` Bun drops the
-    // `export { anonRole, ... } from 'drizzle-orm/supabase'` re-export yet still lists those names
-    // in the bundle's export block, so the output exports identifiers it never binds - measured on
-    // the emitted file, where `anonRole` appears once and only inside `export { ... }`. The
-    // `require` twin bundles the same module fine. Waived to keep the gate running, not to bless it.
+    // `./postgres/supabase` under `import` is measured, and needs Bun >= 1.4.1: under 1.4.0 the
+    // `--target=browser` bundle listed the `drizzle-orm/supabase` re-exports (`anonRole`, ...) in
+    // its export block without binding them, and this row fails with `drizzle-orm/supabase` as an
+    // unresolved external import.
     impure: {
       './postgres/node-postgres': ['import', 'require'],
       './postgres/postgres-js': ['import', 'require'],
-      './postgres/supabase': ['import'],
       './sqlite/libsql': ['require'],
       './typesense': ['import', 'require'],
     },

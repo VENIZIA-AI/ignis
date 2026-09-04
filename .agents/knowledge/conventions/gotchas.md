@@ -134,6 +134,15 @@ unbundled. The packages that import it therefore list their entry:
 an extensionless FILE import (a directory with an `index.js` resolves either way, which is why this
 looks like it works until it doesn't).
 
+## A purity verdict can change with the Bun version, and a waiver is exact both ways
+
+The probe spawns the `bun` on `PATH`, so the bundler's own bugs are part of the measurement. Bun
+1.4.0 emitted `connectors/postgres/supabase` under `--target=browser` with the `drizzle-orm/supabase`
+re-exports listed but unbound, and the row was waived as impure; Bun 1.4.1 binds them, and the same
+waiver failed a connectors release with "STALE WAIVER" because the workflow installs
+`bun-version: latest`. Before a release, run `make purity-<package>` on the Bun version CI will
+use, and when a waiver goes stale, delete it rather than loosening the gate.
+
 ## Kernel state is realm-anchored, so never reach for `instanceof` across packages
 
 `@venizia/ignis-kernel` is a plain `dependencies` entry of `connectors`, `core-server` and

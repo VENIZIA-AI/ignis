@@ -49,10 +49,12 @@ tags: [process, build]
    `helpers`, and `kernel`.
 8. `make purity` bundles every entry in `scripts/purity/manifest.ts` with
    `bun build --target=browser` and fails on node builtins or node globals (`process.`,
-   `__dirname`, `__filename`, `createRequire`). Only `inversion` (ESM and CJS), `filter` (ESM and
-   CJS), `helpers` (`/core` and `/common`), and `kernel` claim a browser-pure entry;
-   `make purity-<package>` for the others prints a no-op. It reads `dist/`, so run it after a build,
-   never instead of one.
+   `__dirname`, `__filename`, `createRequire`). Six packages claim a browser-pure surface:
+   `inversion`, `filter`, `helpers` (`/core` and `/common` only), `kernel`, `core-worker` and
+   `connectors` (engine-client rows waived in the manifest); `make purity-<package>` for the others
+   prints a no-op. It reads `dist/`, so run it after a build, never instead of one. Run it on
+   Bun >= 1.4.1: `connectors/postgres/supabase [import]` is pure on 1.4.1 and red on 1.4.0, and the
+   release workflow installs `bun-version: latest`.
 9. Two details keep that gate honest - do not "simplify" them away. It inspects the `--metafile`
    module graph instead of grepping the bundle for a `node:` prefix, because
    `bun build --target=browser` silently stubs unpolyfillable builtins to an empty object, exits 0,

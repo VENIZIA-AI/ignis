@@ -6,6 +6,15 @@ not how.
 This file and `index.md` are reserved OKF filenames - they carry no `type:` frontmatter and are not
 counted as concepts.
 
+## 2026-09-04 - supabase import purity waiver dropped; the gate needs Bun >= 1.4.1
+
+The connectors release (run 33859305837) failed the purity gate with "STALE WAIVER":
+`connectors/postgres/supabase [import]` is browser-pure under Bun 1.4.1, which the release workflow
+installs via `bun-version: latest`, while Bun 1.4.0 still fails the row with `drizzle-orm/supabase`
+unresolved. The waiver in `scripts/purity/manifest.ts` is gone; the row is measured (21/21 pure, 7
+waived on 1.4.1; exactly that row red on 1.4.0). `packages/connectors.md` waiver table now lists
+seven rows; `process/build-system.md` item 8 names all six claiming packages; gotcha recorded.
+
 ## 2026-09-04 - dependency floors raised; audit 126 -> 6 with reasons
 
 Every catalog range moved to its latest compatible release (hono 4.13.5, zod 4.5.4, @hono/zod-openapi 1.6.2, pg 8.23.0,
