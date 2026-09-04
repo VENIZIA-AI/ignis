@@ -17,6 +17,7 @@ This section tracks the history of significant changes, refactors, and updates t
 
 | Date | Title | Type |
 |------|-------|------|
+| 2026-09-04 | [Dependency Floors Raised Across the Chain, Audit Down to Six Accepted Advisories](./2026-09-04-dependency-floors-raised) | Enhancement, Security, Breaking Change |
 | 2026-09-03 | [The Deprecated Runtime Boot API Is Fully Removed](./2026-09-03-deprecated-boot-api-removed) | Breaking Change |
 | 2026-09-02 | [Bundled and Compiled Apps - Helpers Exports Stay Defined, NODE_ENV Stays a Runtime Read, One Logger Provider Across Copies](./2026-09-02-bundle-safe-helpers) | Bug Fix, Enhancement |
 | 2026-09-02 | [Artifacts Register From a Generated Index, and the Runtime Boot System Is Retired](./2026-09-02-decorator-artifact-registration) | New Feature, Breaking Change |

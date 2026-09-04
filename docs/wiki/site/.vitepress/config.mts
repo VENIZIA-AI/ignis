@@ -452,6 +452,16 @@ const config = defineConfig({
           collapsed: false,
           items: [
             {
+              text: '2026-09-04',
+              collapsed: true,
+              items: [
+                {
+                  text: 'Dependency Floors Raised Across the Chain',
+                  link: '/changelogs/2026-09-04-dependency-floors-raised',
+                },
+              ],
+            },
+            {
               text: '2026-09-03',
               collapsed: true,
               items: [

@@ -15,7 +15,20 @@ Measured by compiling every nx-seller package against the new build: exactly the
 
 ## Step 1 - pin the new versions
 
-In the root `package.json` `overrides`, replace the six `@venizia/*` versions with the ones the IGNIS release printed, and set `"zod": "^4.4.3"`. Then:
+In the root `package.json` `overrides`, replace the six `@venizia/*` versions with the ones the IGNIS release printed, and raise every library pin that sits below the framework's new floor - an override forces the older library onto the framework otherwise:
+
+| Override | Raise to at least |
+|---|---|
+| `zod` | 4.5.4 |
+| `hono` | 4.13.5 |
+| `@hono/zod-openapi` | 1.6.2 |
+| `@scalar/hono-api-reference` | 0.11.16 |
+| `pg` | 8.23.0 |
+| `typesense` | 3.0.6 |
+| `bullmq` | 5.81.4 |
+| `tsc-alias` | 1.9.4 |
+
+`drizzle-orm` 0.45.2 and `typescript` 6.0.3 are unchanged. Then:
 
 ```bash
 bun install
