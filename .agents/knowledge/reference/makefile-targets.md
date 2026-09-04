@@ -8,7 +8,7 @@ tags: [reference, make, build]
 
 > Generated from source - do not edit; run `make okf-gen`. Playbook: [build system](/process/build-system.md).
 
-**67 targets.**
+**68 targets.**
 
 | Target | Depends on | Description |
 |---|---|---|
@@ -72,6 +72,7 @@ tags: [reference, make, build]
 | `make lint-scripts` | - | Linting scripts/ |
 | `make purity` | - | Checking browser purity for all claimed entries |
 | `make purity-test` | - | Running the purity probe's regression tests |
+| `make test-scripts` | - | Running the repository gate scripts' regression tests |
 | `make purity-inversion` | - | Checking browser purity for @venizia/ignis-inversion |
 | `make purity-filter` | - | Checking browser purity for @venizia/ignis-filter |
 | `make purity-helpers` | - | Checking browser purity for @venizia/ignis-helpers |
