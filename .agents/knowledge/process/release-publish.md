@@ -6,6 +6,22 @@ resource: .github/workflows/package-release.yml
 tags: [process, release, ci]
 ---
 
+## Before a chain release
+
+- Release from `develop` through `bun scripts/release.ts` (`--dry-run` first): it dispatches this
+  workflow one package at a time in dependency order (dev-configs, inversion, filter, helpers, boot,
+  kernel, connectors, core-worker, core-server), waits for each run, and reads the registry back
+  before the next dispatch - a range that goes stale mid-flight fails the run. The script refuses an
+  unpushed or non-`develop` checkout because the workflow builds `origin/develop`.
+- Measure the downstream consumer before dispatching, not after: copy the consumer repository to a
+  temp directory without `node_modules`, recreate its `node_modules` as symlinks to the original
+  entries with every `@venizia/*` entry pointed at the freshly built `packages/<name>` (dependency
+  versions pinned to the consumer's own resolved copies, or two `zod`/`hono` trees land in one
+  program), run `tsc --noEmit` per consumer package, and diff against the same run with the
+  pinned versions. Every new error must map to a documented breaking change; the rest is the
+  finding. The public-surface snapshot tracks names and kinds only, so this is the check for
+  signatures.
+
 ## Steps
 
 1. This is a `workflow_dispatch` workflow ("NPM Release") - it never runs on push, tag, or PR. A
