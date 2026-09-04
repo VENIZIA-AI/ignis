@@ -300,11 +300,15 @@ literal, so compile with `--env=disable`. The positive control in the same test 
 ## Compiled binaries: renamed classes, two module copies, no default logger
 
 - bun renames a decorated class expression that shadows its own variable - tsc emits
-  `let X = X_1 = class X` for every decorated class - so `X.name` becomes `X2` (plain build) or
-  `X_1` (`--minify-syntax`); `--keep-names` does not help. Keys and scopes built from `Class.name`
-  stay consistent with each other; a literal `'services.X'` does not. Build keys with
-  `BindingKeys.build({ namespace, key: X.name })`, never from a string. `--minify` (identifiers)
-  turns names into `Aw`/`Iw` - use `--minify-whitespace --minify-syntax`.
+  `let X = X_1 = class X` for every decorated class - so `X.name` becomes `X_1` under
+  `--minify-syntax`, the flag every compiled binary uses (`dev-configs` `BunCompiler`, the vert
+  `compile:*` scripts). Bun 1.4.1 fixed only the plain build, which used to emit `X2`; measured on
+  1.4.1 with a two-class fixture: plain build and `--compile` without minify keep `X`,
+  `--minify-syntax` and `--compile --minify-syntax` still produce `X_1`. `--keep-names` does not
+  help. Keys and scopes built from `Class.name` stay consistent with each other; a literal
+  `'services.X'` does not. Build keys with `BindingKeys.build({ namespace, key: X.name })`, never
+  from a string. `--minify` (identifiers) turns names into `Aw`/`Iw` - use
+  `--minify-whitespace --minify-syntax`.
 - The bundle carries helpers twice: the application's ESM import and core's CJS require.
   `LoggerFactory` keeps the provider in `globalThis[Symbol.for('ignis:logger-provider')]` so `use()`
   in one copy is seen by the other. Register a provider at the entrypoint

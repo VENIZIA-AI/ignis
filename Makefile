@@ -3,6 +3,7 @@
         lint lint-all lint-packages lint-examples artifacts-check \
         lint-dev-configs lint-inversion lint-filter lint-helpers lint-boot lint-core lint-core-server lint-kernel lint-connectors lint-core-worker lint-docs-mcp lint-scripts \
         purity purity-test test-scripts purity-inversion purity-filter purity-helpers purity-kernel \
+        test-all test-inversion test-helpers test-boot test-kernel test-connectors test-core-worker test-core-server \
         purity-dev-configs purity-boot purity-core purity-core-server purity-connectors purity-core-worker purity-docs-mcp \
         okf-check okf-gen okf-coverage okf-viz split-report surface-gen surface-check wiki-links-check \
         catalog-check \
@@ -279,6 +280,39 @@ test-scripts:
 	@echo "🔍 Running the repository gate scripts' regression tests..."
 	@bun test scripts/__tests__
 
+# ----------------------------------------------------------------------------
+# TEST TARGETS
+# The one home of the test flags: CI calls these targets, and so should you. `--parallel` runs the
+# files across worker processes and implies `--isolate` - a fresh global and module registry per
+# file, servers and timers a file left open closed between files - so a mock, env or TLS setting one
+# file leaks cannot pass or fail another. `filter` has no suite. Needs a build first (B-05).
+# ----------------------------------------------------------------------------
+BUN_TEST_FLAGS ?= --parallel
+
+test-all: test-inversion test-helpers test-boot test-kernel test-connectors test-core-worker test-core-server
+
+test-inversion:
+	@cd packages/inversion && bun test $(BUN_TEST_FLAGS)
+
+test-helpers:
+	@cd packages/helpers && bun test $(BUN_TEST_FLAGS)
+
+# boot's package.json owns its command (NODE_ENV=test + .env.test); `bun run` appends the flags to it.
+test-boot:
+	@cd packages/boot && bun run test $(BUN_TEST_FLAGS)
+
+test-kernel:
+	@cd packages/kernel && bun test $(BUN_TEST_FLAGS)
+
+test-connectors:
+	@cd packages/connectors && bun test $(BUN_TEST_FLAGS)
+
+test-core-worker:
+	@cd packages/core-worker && bun test $(BUN_TEST_FLAGS)
+
+test-core-server:
+	@cd packages/core-server && bun test $(BUN_TEST_FLAGS)
+
 purity-inversion:
 	@echo "🔍 Checking browser purity for @venizia/ignis-inversion..."
 	@bun scripts/purity/cli.ts inversion
@@ -365,6 +399,10 @@ help:
 	@echo "  surface-check    - Gate: the public surface equals the snapshot."
 	@echo "  wiki-links-check - Gate: every source path the wiki and knowledge bundle name exists."
 	@echo "  agent-setup      - Link your agent's tool file + skills to the tracked AGENTS.md."
+	@echo ""
+	@echo "Tests:"
+	@echo "  test-all      - Every package suite with BUN_TEST_FLAGS (default --parallel, implies --isolate)."
+	@echo "  test-<pkg>    - One suite: inversion, helpers, boot, kernel, connectors, core-worker, core-server."
 	@echo ""
 	@echo "Browser purity:"
 	@echo "  purity        - Gate: every entry claimed browser-pure has no node builtin or global."

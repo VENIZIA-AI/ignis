@@ -6,6 +6,18 @@ not how.
 This file and `index.md` are reserved OKF filenames - they carry no `type:` frontmatter and are not
 counted as concepts.
 
+## 2026-09-04 - Bun 1.4.1 follow-ups: make test targets run --parallel (implies --isolate); class-rename gotcha split by build mode
+
+`make test-<package>` / `make test-all` are now the one home of the test flags (`BUN_TEST_FLAGS`,
+default `--parallel`) and CI calls them. Bun 1.4.1 stopped `--isolate` leaking between files; every
+suite is green under it with unchanged counts (helpers 1461 + 16 skip, core-server 1309 + 1 skip,
+connectors 1238 + 1, kernel 197, core-worker 85, inversion 41, boot 9). Speed is a wash (helpers 11.0s
+against 11.9s, core-worker slower); the gain is isolation. `testing.md` step 3 corrected: boot runs its
+`src/__tests__` sources, not compiled dist tests. Gotcha "renamed classes": 1.4.1 fixed the plain build
+(`X2` gone) but not `--minify-syntax` (`X_1`), which every compiled binary uses, so the `Class.name`
+key rule stays. WebSocket `pause`/`resume`/`bufferedAmount` mirrors wait for `@types/bun@1.4.1`
+(`@types/bun@1.4.0` pins `bun-types@1.4.0` exactly).
+
 ## 2026-09-04 - supabase import purity waiver dropped; the gate needs Bun >= 1.4.1
 
 The connectors release (run 33859305837) failed the purity gate with "STALE WAIVER":

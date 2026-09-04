@@ -69,40 +69,35 @@ jobs:
         id: build
         run: make build-all
 
+      # The make targets own the test flags (BUN_TEST_FLAGS, default --parallel, implies --isolate),
+      # so CI and a developer's `make test-<pkg>` run the very same command.
       - name: Test - inversion
         if: ${{ !cancelled() && steps.build.outcome == 'success' }}
-        working-directory: packages/inversion
-        run: bun test
+        run: make test-inversion
 
       - name: Test - helpers
         if: ${{ !cancelled() && steps.build.outcome == 'success' }}
-        working-directory: packages/helpers
-        run: bun test
+        run: make test-helpers
 
       - name: Test - boot
         if: ${{ !cancelled() && steps.build.outcome == 'success' }}
-        working-directory: packages/boot
-        run: bun test
+        run: make test-boot
 
       - name: Test - kernel
         if: ${{ !cancelled() && steps.build.outcome == 'success' }}
-        working-directory: packages/kernel
-        run: bun test
+        run: make test-kernel
 
       - name: Test - connectors
         if: ${{ !cancelled() && steps.build.outcome == 'success' }}
-        working-directory: packages/connectors
-        run: bun test
+        run: make test-connectors
 
       - name: Test - core-worker
         if: ${{ !cancelled() && steps.build.outcome == 'success' }}
-        working-directory: packages/core-worker
-        run: bun test
+        run: make test-core-worker
 
       - name: Test - core-server
         if: ${{ !cancelled() && steps.build.outcome == 'success' }}
-        working-directory: packages/core-server
-        run: bun test
+        run: make test-core-server
 
       - name: Lint
         if: ${{ !cancelled() && steps.build.outcome == 'success' }}
