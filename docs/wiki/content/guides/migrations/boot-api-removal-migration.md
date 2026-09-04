@@ -1,6 +1,6 @@
 # Upgrading past the runtime boot removal (ignis 0.2.0-13 to the next release)
 
-> **Audience:** the team maintaining **nx-seller** (BANA), or any application still on `@venizia/ignis` 0.2.0-13. One upgrade of the whole `@venizia/*` chain brings three changes at once: artifacts register from a generated index, the runtime boot API is gone, and the framework's `zod` moved to 4.4. This page lists exactly what stops compiling and the order to fix it.
+> **Audience:** the team maintaining **nx-seller** (BANA), or any application still on `@venizia/ignis` 0.2.0-13. One upgrade of the whole `@venizia/*` chain brings three changes at once: artifacts register from a generated index, the runtime boot API is gone, and the framework's `zod` moved to 4.5.4. This page lists exactly what stops compiling and the order to fix it.
 
 ## What breaks, measured against nx-seller
 
@@ -15,18 +15,18 @@ Measured by compiling every nx-seller package against the new build: exactly the
 
 ## Step 1 - pin the new versions
 
-In the root `package.json` `overrides`, replace the six `@venizia/*` versions with the ones the IGNIS release printed, and raise every library pin that sits below the framework's new floor - an override forces the older library onto the framework otherwise:
+In the root `package.json` `overrides`, replace the six `@venizia/*` versions with the ones the IGNIS release printed. One library pin is required and the rest are recommended - they are the versions the release was built and tested against, and the published peer ranges still accept the older pins:
 
-| Override | Raise to at least |
-|---|---|
-| `zod` | 4.5.4 |
-| `hono` | 4.13.5 |
-| `@hono/zod-openapi` | 1.6.2 |
-| `@scalar/hono-api-reference` | 0.11.16 |
-| `pg` | 8.23.0 |
-| `typesense` | 3.0.6 |
-| `bullmq` | 5.81.4 |
-| `tsc-alias` | 1.9.4 |
+| Override | Raise to | Required? |
+|---|---|---|
+| `zod` | 4.5.4 | yes - every `@venizia/*` package depends on `zod ^4.5.4`, and an override below it forces two incompatible zod type trees |
+| `hono` | 4.13.5 | recommended (peer range `^4.12.30`) |
+| `@hono/zod-openapi` | 1.6.2 | recommended (peer range `^1.5.1`) |
+| `@scalar/hono-api-reference` | 0.11.16 | recommended (peer range `^0.11.11`) |
+| `pg` | 8.23.0 | recommended (peer range `^8.21.0`) |
+| `typesense` | 3.0.6 | recommended (peer range `^3.0.3`) |
+| `bullmq` | 5.81.4 | recommended (peer range `^5.80.8`) |
+| `tsc-alias` | 1.9.4 | recommended (build tool only) |
 
 `drizzle-orm` 0.45.2 and `typescript` 6.0.3 are unchanged. Then:
 
