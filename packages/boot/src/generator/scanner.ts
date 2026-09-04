@@ -1,7 +1,7 @@
 import { BaseHelper, getError } from '@venizia/ignis-helpers';
 import { readFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
-import * as ts from 'typescript';
+import ts from 'typescript';
 import {
   ArtifactStereotypes,
   ArtifactTypes,
