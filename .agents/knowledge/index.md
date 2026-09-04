@@ -87,6 +87,7 @@ How the work gets done.
 - [Release and publish](/process/release-publish.md)
 - [Adding a component](/process/adding-a-component.md)
 - [Adding a helper](/process/adding-a-helper.md)
+- [Splitting a hub file by topic](/process/splitting-a-hub-file.md)
 - [Updating the wiki](/process/updating-the-wiki.md)
 
 ## Examples

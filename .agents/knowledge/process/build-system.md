@@ -62,6 +62,9 @@ tags: [process, build]
    the exact read the gate exists to catch.
 10. `make lint` / `make lint-all` (packages only vs. packages + `examples/`) do not build anything -
     run them after a build, not instead of one.
+11. Repository scripts under `scripts/` are TypeScript run by Bun with no build; `scripts/tsconfig.json`
+    (bun types, bundler resolution, `noEmit`) is what the editor and `make lint-scripts` check - that
+    target runs prettier and `tsc -p scripts/tsconfig.json` and is part of `make lint-all`.
 
 ## Related
 
