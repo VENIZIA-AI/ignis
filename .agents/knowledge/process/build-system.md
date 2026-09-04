@@ -65,6 +65,7 @@ tags: [process, build]
 11. Repository scripts under `scripts/` are TypeScript run by Bun with no build; `scripts/tsconfig.json`
     (bun types, bundler resolution, `noEmit`) is what the editor and `make lint-scripts` check - that
     target runs prettier and `tsc -p scripts/tsconfig.json` and is part of `make lint-all`.
+    `make test-scripts` runs their unit tests (`scripts/__tests__`, positive and negative case per gate).
 
 ## Related
 
