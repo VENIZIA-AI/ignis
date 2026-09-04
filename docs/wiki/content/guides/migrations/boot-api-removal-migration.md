@@ -7,11 +7,11 @@
 | Symptom after `bun install` | Where | Fix |
 |---|---|---|
 | `TS4113` - `boot` does not exist in the base class | 16 files: `nx-seller/packages/{commerce,finance,helpdesk,identity,inventory,invoice,ledger,licensing,outreach,payment,pricing,sale,search,signal,taxation}/src/application.ts` and `nx-seller/packages/search/src/migrations/bootstrap.ts` | delete the whole `override async boot()` method (none of them calls `super.boot()`) |
-| `TS2339` - property `boot` does not exist | `nx-seller/packages/search/src/migrations/bootstrap.ts` (line 104), `nx-seller/packages/core/src/helpers/bootstraps/worker.ts` (34), `nx-seller/packages/core/src/helpers/bootstraps/migration.ts` (31) | delete the `await app.boot();` line; `initialize()` and `start()` are unchanged |
-| still compiles, ignored | `bootOptions` keys in `nx-seller/packages/core/src/common/app-config.ts` and `.../bootstraps/migration.ts` | delete the key |
+| `TS2339` - property `boot` does not exist | `nx-seller/packages/core/src/helpers/bootstraps/worker.ts` (line 34), `nx-seller/packages/core/src/helpers/bootstraps/migration.ts` (31), and `nx-seller/packages/search/src/migrations/bootstrap.ts` (104) once its own override at line 61 is gone | delete the `await app.boot();` line; `initialize()` and `start()` are unchanged. In `bootstrap.ts` delete lines 61 and 104 in one edit - the call only starts failing after the override is removed |
+| compiles silently (`IApplicationConfigs` keeps an index signature), ignored | `bootOptions` keys in `nx-seller/packages/core/src/common/app-config.ts` and `.../bootstraps/migration.ts` | delete the key - no compiler will point at it, grep for it |
 | duplicate `zod` types | any schema passed into `@venizia/ignis` | raise the root `overrides.zod` to `^4.4.3` |
 
-Nothing else in the public API that nx-seller uses changed shape. The full diff is in the IGNIS release audit; the two changelogs behind it are [Artifacts register from a generated index](/changelogs/2026-09-02-decorator-artifact-registration) and [The deprecated boot API is removed](/changelogs/2026-09-03-deprecated-boot-api-removed).
+Measured by compiling every nx-seller package against the new build: exactly these 18 errors appear (16 overrides, 2 calls; the third call surfaces after its override goes) and nothing else. Nothing else in the public API that nx-seller uses changed shape. The full diff is in the IGNIS release audit; the two changelogs behind it are [Artifacts register from a generated index](/changelogs/2026-09-02-decorator-artifact-registration) and [The deprecated boot API is removed](/changelogs/2026-09-03-deprecated-boot-api-removed).
 
 ## Step 1 - pin the new versions
 

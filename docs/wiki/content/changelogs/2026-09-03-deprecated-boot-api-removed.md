@@ -54,7 +54,7 @@ await application.start();
   | `packages/commerce/src/application.ts` | 169 | `override async boot()` |
   | `packages/finance/src/application.ts` | 47 | `override async boot()` |
   | `packages/helpdesk/src/application.ts` | 204 | `override async boot()` |
-  | `packages/identity/src/application.ts` | 99 | `override async boot()` |
+  | `packages/identity/src/application.ts` | 100 | `override async boot()` |
   | `packages/inventory/src/application.ts` | 121 | `override async boot()` |
   | `packages/invoice/src/application.ts` | 113 | `override async boot()` |
   | `packages/ledger/src/application.ts` | 83 | `override async boot()` |
