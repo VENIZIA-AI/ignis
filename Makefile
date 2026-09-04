@@ -256,6 +256,7 @@ lint-docs-mcp:
 lint-scripts:
 	@echo "🔍 Linting scripts/..."
 	@bunx prettier --config scripts/.prettierrc.mjs -l 'scripts/*.ts'
+	@bunx tsc -p scripts/tsconfig.json
 
 # ----------------------------------------------------------------------------
 # PURITY TARGETS
@@ -346,7 +347,7 @@ help:
 	@echo "  lint-boot         - Lint @venizia/ignis-boot."
 	@echo "  lint-core         - Lint @venizia/ignis (core)."
 	@echo "  lint-docs-mcp     - Lint @venizia/ignis-docs (MCP Server)."
-	@echo "  lint-scripts      - Lint scripts/ (prettier format check only, no eslint target)."
+	@echo "  lint-scripts      - Lint scripts/ (prettier format check + tsc type-check against scripts/tsconfig.json)."
 	@echo ""
 	@echo "Knowledge bundle (.agents/knowledge):"
 	@echo "  okf-check        - Gate: frontmatter, links, coverage, freshness (runs in pre-commit)."

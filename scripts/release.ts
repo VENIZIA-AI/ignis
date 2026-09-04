@@ -374,3 +374,5 @@ const main = async (): Promise<void> => {
 };
 
 await main();
+
+export {};
