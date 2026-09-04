@@ -14,7 +14,7 @@ export interface IBunServer {
   readonly pendingWebSockets: number;
   publish(
     topic: string,
-    data: string | ArrayBufferView | ArrayBuffer | SharedArrayBuffer,
+    data: string | ArrayBuffer | SharedArrayBuffer | Uint8Array | DataView,
     compress?: boolean,
   ): number;
 }

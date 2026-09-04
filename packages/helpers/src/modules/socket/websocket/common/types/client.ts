@@ -6,8 +6,9 @@ export interface IWebSocket<T = unknown> {
   readonly remoteAddress: string;
   readonly readyState: number;
 
+  // Bun accepts TypedArray | DataView | ArrayBuffer | SharedArrayBuffer | string; a bare ArrayBufferView is wider than that.
   send(
-    data: string | ArrayBufferView | ArrayBuffer | SharedArrayBuffer,
+    data: string | ArrayBuffer | SharedArrayBuffer | Uint8Array | DataView,
     compress?: boolean,
   ): number;
   subscribe(topic: string): void;
