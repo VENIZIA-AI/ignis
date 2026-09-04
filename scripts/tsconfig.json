@@ -17,7 +17,8 @@
   },
   "include": [
     "./*.ts",
-    "./purity/**/*.ts"
+    "./purity/**/*.ts",
+    "./__tests__/**/*.ts"
   ],
   "exclude": [
     "./purity/__tests__/fixtures"

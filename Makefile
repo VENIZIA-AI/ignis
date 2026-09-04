@@ -2,7 +2,7 @@
         help install clean setup-hooks agent-setup \
         lint lint-all lint-packages lint-examples artifacts-check \
         lint-dev-configs lint-inversion lint-filter lint-helpers lint-boot lint-core lint-core-server lint-kernel lint-connectors lint-core-worker lint-docs-mcp lint-scripts \
-        purity purity-test purity-inversion purity-filter purity-helpers purity-kernel \
+        purity purity-test test-scripts purity-inversion purity-filter purity-helpers purity-kernel \
         purity-dev-configs purity-boot purity-core purity-core-server purity-connectors purity-core-worker purity-docs-mcp \
         okf-check okf-gen okf-coverage okf-viz split-report surface-gen surface-check wiki-links-check \
         catalog-check \
@@ -273,6 +273,12 @@ purity-test:
 	@echo "🔍 Running the purity probe's regression tests..."
 	@bun test scripts/purity/__tests__
 
+# The repository gate scripts' own regression tests (module-cycles, split-report, public-surface,
+# wiki-source-links) - same reasoning as purity-test, nothing else runs them.
+test-scripts:
+	@echo "🔍 Running the repository gate scripts' regression tests..."
+	@bun test scripts/__tests__
+
 purity-inversion:
 	@echo "🔍 Checking browser purity for @venizia/ignis-inversion..."
 	@bun scripts/purity/cli.ts inversion
@@ -363,6 +369,7 @@ help:
 	@echo "Browser purity:"
 	@echo "  purity        - Gate: every entry claimed browser-pure has no node builtin or global."
 	@echo "  purity-test   - Run the purity probe's own regression tests."
+	@echo "  test-scripts  - Run the repository gate scripts' own regression tests."
 	@echo ""
 	@echo "Dependencies:"
 	@echo "  catalog-check - Gate: every catalogued dep is referenced as \"catalog:\", none drifted."
