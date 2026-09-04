@@ -162,7 +162,7 @@ function MyMixin<T extends TMixinTarget<BaseClass>>(Base: T) {
 
 ### isClass
 
-`Source ->` [`packages/inversion/src/common/types.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/inversion/src/common/types.ts)
+`Source ->` [`packages/inversion/src/common/utilities.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/inversion/src/common/utilities.ts)
 
 ```typescript
 const isClass: <T>(target: any) => target is TClass<T>;

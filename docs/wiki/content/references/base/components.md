@@ -68,10 +68,13 @@ src/components/auth/
 │   │       └── jwks/
 │   └── strategies/
 │       ├── index.ts
-│       ├── jws.strategy.ts
-│       ├── jwks.strategy.ts
 │       ├── basic.strategy.ts
-│       └── strategy-registry.ts
+│       ├── jwks/
+│       │   ├── index.ts
+│       │   ├── issuer.ts
+│       │   └── verifier.ts
+│       ├── jws.strategy.ts
+│       └── service.strategy.ts
 └── models/
     ├── index.ts
     ├── entities/

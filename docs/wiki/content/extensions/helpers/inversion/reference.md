@@ -20,7 +20,8 @@ Exhaustive reference for `Container`, `Binding`, `MetadataRegistry`, the `@injec
 - [`packages/inversion/src/modules/metadata/common/constants.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/inversion/src/modules/metadata/common/constants.ts) - `MetadataKeys`
 - [`packages/inversion/src/modules/registry/registry.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/inversion/src/modules/registry/registry.ts) - `MetadataRegistry`, `metadataRegistry`
 - [`packages/inversion/src/modules/registry/common/types.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/inversion/src/modules/registry/common/types.ts) - `IInjectMetadata`, `IPropertyMetadata`
-- [`packages/inversion/src/common/types.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/inversion/src/common/types.ts) - `TNullable`, `ValueOrPromise`, `TClass`, `TConstValue`, `isClass`
+- [`packages/inversion/src/common/types.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/inversion/src/common/types.ts) - `TNullable`, `ValueOrPromise`, `TClass`, `TConstValue`
+- [`packages/inversion/src/common/utilities.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/inversion/src/common/utilities.ts) - `isClass`
 - [`packages/inversion/src/modules/error/app-error.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/inversion/src/modules/error/app-error.ts) - `ApplicationError`, `getError`, `isApplicationError`
 - [`packages/inversion/src/modules/error/common/types.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/inversion/src/modules/error/common/types.ts) - `TError`, `TErrorDefinition`, `TErrorNormalized`, `IErrorKeyRegistry`
 - [`packages/inversion/src/common/logger.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/inversion/src/common/logger.ts) - `Logger`
@@ -393,7 +394,7 @@ Logger.debug('Resolved binding: %s', key);          // console.log('[DEBUG] ...'
 
 ### Type guards and shared types
 
-`Source ->` [`common/types.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/inversion/src/common/types.ts)
+`Source ->` [`common/types.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/inversion/src/common/types.ts) and [`common/utilities.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/inversion/src/common/utilities.ts) (`isClass`)
 
 ```typescript
 type TNullable<T> = T | undefined | null;
