@@ -456,6 +456,10 @@ const config = defineConfig({
               collapsed: true,
               items: [
                 {
+                  text: 'Boot Checks',
+                  link: '/changelogs/2026-09-05-boot-checks',
+                },
+                {
                   text: 'List Responses Share One Contract',
                   link: '/changelogs/2026-09-05-list-response-contract',
                 },

@@ -151,7 +151,7 @@ Every stereotype accepts the same five options. Use them on the class, never at 
 | `order` | two classes of one kind must register in a fixed order | `@component({ order: -10 })` registers before the default `0` |
 | `scope` | the default scope is wrong for this class | `@service({ scope: BindingScopes.SINGLETON })` |
 | `binding` | the key must differ from `<namespace>.<Class>` | `@controller({ path: '/v2/users', binding: { namespace: 'controllers', key: 'UsersV2' } })` |
-| `allowOverride` | a same-key re-registration must throw instead of silently winning | `@repository({ model, dataSource, allowOverride: false })` |
+| `allowOverride` | a same-key re-registration must throw instead of silently winning - or, under `bootChecks.binding.allowOverride: false`, this one class must be allowed to win | `@repository({ model, dataSource, allowOverride: false })` |
 
 `when` runs at the `registerArtifacts` boot step, before `preConfigure`, so it may read config and environment and nothing from the container. It may be `async`. A skipped class is logged at debug: `Skipped by condition | kind: components | class: KafkaComponent`.
 
@@ -174,7 +174,7 @@ import { GeneratedArtifacts } from './generated/artifacts';
 artifacts: [InventoryArtifacts, GeneratedArtifacts, { components: [HealthCheckComponent] }],
 ```
 
-Arrays nest to any depth. A class listed twice registers once at its first position; a class registered by hand before the step keeps its earlier position.
+Arrays nest to any depth. A class listed twice registers once at its first position; a class registered by hand before the step keeps its earlier position. Both are same-key re-registrations, which `bootChecks.binding.allowOverride: false` refuses.
 
 ## Keep the index fresh
 
@@ -195,7 +195,7 @@ artifacts-check:
 Start with debug logging and read the boot log:
 
 ```
-Boot step 5/14 registerArtifacts
+Boot step 5/15 registerArtifacts
 Skipped by condition | kind: controllers | class: TestController
 ```
 
@@ -206,6 +206,24 @@ application.init();
 await application.registerArtifacts(configs.artifacts!);
 application.isBound({ key: 'services.PricingService' }); // true
 ```
+
+A bound key is not yet a resolvable one: a dependency a `when` excluded, or an `@inject` key nobody binds, only fails at the first `get`. Turn on the boot checks while you migrate, and the boot itself proves all three:
+
+```typescript
+export const configs: IApplicationConfigs = {
+  path: { base: '/api', isStrict: true },
+  artifacts: GeneratedArtifacts,
+  bootChecks: {
+    binding: {
+      doVerify: process.env.NODE_ENV !== 'production',
+      allowManual: false,
+      allowOverride: false,
+    },
+  },
+};
+```
+
+`doVerify` resolves every service and repository once at the end of the sequence and fails with the whole list of broken keys. `allowManual: false` fails on any registration call left in `preConfigure()` or `postConfigure()` - the hand call would otherwise run after the index step and override it silently. `allowOverride: false` fails on any two registrations behind one key, such as two run-mode datasources that share a `binding` and whose `when` conditions overlap; the class that must win says `allowOverride: true` on its decorator. The three are one group of required booleans: without the group nothing is checked. See [`bootChecks`](/references/base/bootstrapping#bootchecks).
 
 ## If bun runs your source directly
 
@@ -248,7 +266,7 @@ One production application went from 286 lines and 99 `this.controller(...)`-sty
 ## See also
 
 - [Artifact registration reference](/references/base/bootstrapping) - every option, the CLI, detection rules
-- [Application reference](/references/base/application) - the 14-step boot sequence
+- [Application reference](/references/base/application) - the 15-step boot sequence
 - [Components](/references/base/components) - writing a component
 - [Changelog 2026-09-02](/changelogs/2026-09-02-decorator-artifact-registration) - what changed and who is affected
 - [Changelog 2026-09-03](/changelogs/2026-09-03-deprecated-boot-api-removed) - the deprecated boot API removed

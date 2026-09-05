@@ -25,7 +25,7 @@ Everything under `src/base/` was the engine-neutral half of `packages/core-serve
 
 | Subsystem | What lives there |
 |---|---|
-| `applications/` | `AbstractApplication` (container, config, lifecycle hooks), `RestApplication` (adds the router) |
+| `applications/` | `AbstractApplication` (container, config, lifecycle hooks), `RestApplication` (adds the router, `registerArtifacts` - the index resolution behind it lives in `ArtifactIndexHelper`, `applications/artifact-index.ts`, internal - and the opt-in `configs.bootChecks.binding`: `doVerify` resolves every service and repository at the `verifyBindings` step and fails the boot with every broken key, `allowManual: false` rejects a hand registration inside `preConfigure`/`postConfigure` while `configs.artifacts` is set, `allowOverride: false` makes every artifact registration refuse an already-bound key) |
 | `auth/` | The authentication and authorization seams - registries, middlewares, providers, policy builders |
 | `components/` | `BaseComponent` and its `binding()` contract |
 | `controllers/` | `AbstractRestController`, `BaseRestController` (route helpers and the response helpers `respond({ context, format, payload, range? })` and `setListHeaders` - the one home of the `Content-Range` / `X-Response-Count` / `X-Response-Format` contract; `format` is the `ResponseFormats` const class), `ControllerFactory` |

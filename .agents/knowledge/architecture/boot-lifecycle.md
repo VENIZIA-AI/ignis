@@ -33,7 +33,8 @@ likewise requires the decorator on the class itself. `@provide` methods accumula
 `registerArtifact` (private, behind all five registration methods) resolves each of `binding`,
 `scope` and `allowOverride` in this order: explicit `TMixinOpts` at the call site, then the class's
 decorator metadata, then the derived default - key `<namespace>.<Class>`, scope `SINGLETON` for
-datasource, component and controller, `TRANSIENT` for repository and service, `allowOverride: true`.
+datasource, component and controller, `TRANSIENT` for repository and service, `allowOverride: true`
+(`configs.bootChecks.binding.allowOverride` when that group is set).
 A hand-written `this.controller(Ctor)` therefore already honours `@controller({ scope })`.
 
 ## What `registerArtifacts` does
@@ -41,15 +42,17 @@ A hand-written `this.controller(Ctor)` therefore already honours `@controller({ 
 1. Flattens `TArtifactIndexInput` (an index, or arrays nested to any depth) into a list.
 2. Per kind, in dependency order `dataSources -> components -> repositories -> services -> controllers`,
    collects the classes across every index.
-3. Awaits each class's `when({ application })`; `false` skips it and logs at debug
+3. Evaluates every class's `when({ application })` concurrently (`ArtifactIndexHelper`,
+   `applications/artifact-index.ts`); `false` skips it and logs at debug
    `Skipped by condition | kind: <field> | class: <Class>`.
 4. Stable-sorts survivors by `order` (default 0).
 5. Registers each through the matching method; for a component, binds every `@provide` key.
 
 `when` runs before `preConfigure`, so it may read `application.configs` and the environment and
 never another artifact's binding. A class registered by hand earlier keeps its earlier position in
-the binding map; the later registration overwrites the binding unless `allowOverride: false` makes
-it throw. Registering the same index twice is therefore harmless.
+the binding map; the later registration overwrites the binding unless `allowOverride: false`, or
+`configs.bootChecks.binding.allowOverride: false`, makes it throw. Registering the same index twice is
+therefore harmless only while that check is off.
 
 ## `@provide`
 

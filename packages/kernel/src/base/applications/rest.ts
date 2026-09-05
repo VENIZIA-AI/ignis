@@ -22,10 +22,10 @@ import type { TMixinOpts } from '../mixins/common';
 import type { IRepository } from '../repositories';
 import type { IService } from '../services';
 import { AbstractApplication } from './abstract';
+import { ArtifactIndexHelper } from './artifact-index';
 import type { IBootSequenceStep } from './boot-sequence';
 import { BootSteps } from './boot-sequence';
-import { ArtifactIndexFields } from './common';
-import type { IApplicationConfigs, IArtifactIndex, TArtifactIndexInput } from './common';
+import type { IApplicationConfigs, TArtifactIndexInput } from './common';
 
 interface IRegisterDynamicBindingsOptions<T extends IConfigurable = IConfigurable> {
   namespace: TBindingNamespace;
@@ -122,7 +122,14 @@ export abstract class RestApplication<
     return [
       { name: BootSteps.STATIC_CONFIGURE, run: () => this.staticConfigure() },
       { name: BootSteps.REGISTER_ARTIFACTS, run: () => this.registerConfiguredArtifacts() },
-      { name: BootSteps.PRE_CONFIGURE, run: () => this.preConfigure() },
+      {
+        name: BootSteps.PRE_CONFIGURE,
+        run: () =>
+          this.runApplicationHook({
+            name: BootSteps.PRE_CONFIGURE,
+            hook: () => this.preConfigure(),
+          }),
+      },
       { name: BootSteps.REGISTER_DATA_SOURCES, run: () => this.registerDataSources() },
       { name: BootSteps.REGISTER_COMPONENTS, run: () => this.registerComponents() },
       {
@@ -130,12 +137,69 @@ export abstract class RestApplication<
         run: () => this.registerContributedDataSources(),
       },
       { name: BootSteps.REGISTER_CONTROLLERS, run: () => this.registerControllers() },
-      { name: BootSteps.POST_CONFIGURE, run: () => this.postConfigure() },
+      {
+        name: BootSteps.POST_CONFIGURE,
+        run: () =>
+          this.runApplicationHook({
+            name: BootSteps.POST_CONFIGURE,
+            hook: () => this.postConfigure(),
+          }),
+      },
+      { name: BootSteps.VERIFY_BINDINGS, run: () => this.verifyBindings() },
     ];
   }
 
   async initialize(): Promise<void> {
     await this.runBootSequence({ steps: this.getBootSequence() });
+  }
+
+  /** The application hook currently running, so `registerArtifact` can tell a hand registration inside `preConfigure`/`postConfigure` from one the index step made. */
+  private runningApplicationHook: string | undefined;
+
+  private async runApplicationHook(opts: {
+    name: string;
+    hook: () => ValueOrPromise<void>;
+  }): Promise<void> {
+    this.runningApplicationHook = opts.name;
+    try {
+      await opts.hook();
+    } finally {
+      this.runningApplicationHook = undefined;
+    }
+  }
+
+  /** `bootChecks.binding.doVerify`: resolve every service and repository once, collect every failure, throw once with the whole list - a made-up `@inject` key or a dependency a `when` excluded then fails the boot, not the first request. */
+  protected verifyBindings(): void {
+    if (!this.configs.bootChecks?.binding?.doVerify) {
+      return;
+    }
+
+    const logger = this.logger.for(this.verifyBindings.name);
+    const tags = [BindingNamespaces.SERVICE, BindingNamespaces.REPOSITORY];
+    const failures: string[] = [];
+    let verified = 0;
+
+    for (const tag of tags) {
+      const bindings = this.findByTag({ tag });
+      for (const binding of bindings) {
+        try {
+          this.get({ key: binding.key });
+          verified += 1;
+        } catch (error) {
+          failures.push(
+            `${binding.key}: ${error instanceof Error ? error.message : String(error)}`,
+          );
+        }
+      }
+    }
+
+    if (failures.length > 0) {
+      throw getError({
+        message: `[${this.verifyBindings.name}] ${failures.length} binding(s) cannot be resolved | ${failures.join(' | ')}`,
+      });
+    }
+
+    logger.info('Every service and repository binding resolves | verified: %d', verified);
   }
 
   /** One measured log line per step, and a failure names its step before rethrowing, so a hung or failed boot is attributable without reading the sequence. */
@@ -257,20 +321,27 @@ export abstract class RestApplication<
     });
   }
 
-  /** The same-key guard behind every artifact registration (`component`/`controller`/`service`/`repository`/`dataSource`, and core-server's `booter`). `allowOverride` defaults true to match `bind()`'s overwrite behavior - `allowOverride: false` opts into strict mode. */
+  /** The same-key guard behind every artifact registration (`component`/`controller`/`service`/`repository`/`dataSource`). `allowOverride` defaults true to match `bind()`'s overwrite behavior; `allowOverride: false` on one registration, or `bootChecks.binding.allowOverride: false` for the whole application, opts into strict mode. */
   protected assertNoBindingCollision(opts: {
     key: string;
     allowOverride?: boolean;
     caller: string;
   }): void {
-    const { key, allowOverride = true, caller } = opts;
+    const { key, caller } = opts;
+    const allowOverride =
+      opts.allowOverride ?? this.configs.bootChecks?.binding?.allowOverride ?? true;
 
     if (allowOverride || !this.isBound({ key })) {
       return;
     }
 
+    const reason =
+      opts.allowOverride === false
+        ? `'allowOverride: false' was set and this key collides with an existing binding | Use a distinct 'opts.binding' key, or drop 'allowOverride: false' if overriding is intentional`
+        : `'bootChecks.binding.allowOverride' is false and this key collides with an existing binding | Use a distinct 'opts.binding' key, or set 'allowOverride: true' on this registration if overriding is intentional`;
+
     throw getError({
-      message: `[${caller}] Binding key already registered: '${key}' | 'allowOverride: false' was set and this key collides with an existing binding | Use a distinct 'opts.binding' key, or drop 'allowOverride: false' if overriding is intentional`,
+      message: `[${caller}] Binding key already registered: '${key}' | ${reason}`,
     });
   }
 
@@ -284,6 +355,16 @@ export abstract class RestApplication<
   }): Binding<Base> {
     const { ctor, namespace, defaultScope, caller } = opts;
     const declared = MetadataRegistry.getInstance().getArtifactMetadata({ target: ctor });
+
+    if (
+      this.runningApplicationHook &&
+      this.configs.artifacts &&
+      this.configs.bootChecks?.binding?.allowManual === false
+    ) {
+      throw getError({
+        message: `[${caller}] '${ctor.name}' is registered by hand inside ${this.runningApplicationHook}() while 'configs.artifacts' is set and 'bootChecks.binding.allowManual' is false | Move the class into the generated index (or an explicit entry of 'configs.artifacts'), or allow manual registration`,
+      });
+    }
 
     const key = BindingKeys.build(
       opts.opts?.binding ?? declared?.binding ?? { namespace, key: ctor.name },
@@ -395,45 +476,31 @@ export abstract class RestApplication<
     });
   }
 
-  /** Registers one index or a composition of indexes in dependency order: datasources, components, repositories, services, controllers. `when` and `order` from each class's decorator apply; a class registered by hand before this call keeps its earlier position. */
+  /** The boot step body behind `configs.artifacts`, also callable by hand: registers every kind in dependency order across the given indexes. */
   async registerArtifacts(index: TArtifactIndexInput): Promise<void> {
-    const indexes = this.flattenArtifactIndex({ input: index });
-
-    const dataSources = await this.selectArtifacts({
-      indexes,
-      field: ArtifactIndexFields.DATA_SOURCES,
+    const resolved = await ArtifactIndexHelper.getInstance().resolve({
+      input: index,
+      application: this,
     });
-    for (const ctor of dataSources) {
+
+    for (const ctor of resolved.dataSources) {
       this.dataSource(ctor);
     }
 
-    const components = await this.selectArtifacts({
-      indexes,
-      field: ArtifactIndexFields.COMPONENTS,
-    });
-    for (const ctor of components) {
+    for (const ctor of resolved.components) {
       this.component(ctor);
       this.bindProvidedKeys({ ctor });
     }
 
-    const repositories = await this.selectArtifacts({
-      indexes,
-      field: ArtifactIndexFields.REPOSITORIES,
-    });
-    for (const ctor of repositories) {
+    for (const ctor of resolved.repositories) {
       this.repository(ctor);
     }
 
-    const services = await this.selectArtifacts({ indexes, field: ArtifactIndexFields.SERVICES });
-    for (const ctor of services) {
+    for (const ctor of resolved.services) {
       this.service(ctor);
     }
 
-    const controllers = await this.selectArtifacts({
-      indexes,
-      field: ArtifactIndexFields.CONTROLLERS,
-    });
-    for (const ctor of controllers) {
+    for (const ctor of resolved.controllers) {
       this.controller(ctor);
     }
   }
@@ -446,46 +513,6 @@ export abstract class RestApplication<
     }
 
     await this.registerArtifacts(artifacts);
-  }
-
-  private flattenArtifactIndex(opts: { input: TArtifactIndexInput }): IArtifactIndex[] {
-    const { input } = opts;
-    if (Array.isArray(input)) {
-      return input.flatMap(entry => this.flattenArtifactIndex({ input: entry }));
-    }
-
-    return [input];
-  }
-
-  /** The classes of one kind across every index, minus those whose `when` says no, sorted by `order` (stable). */
-  private async selectArtifacts<Field extends keyof IArtifactIndex>(opts: {
-    indexes: IArtifactIndex[];
-    field: Field;
-  }): Promise<NonNullable<IArtifactIndex[Field]>[number][]> {
-    const { indexes, field } = opts;
-    const logger = this.logger.for(this.registerArtifacts.name);
-    const registry = MetadataRegistry.getInstance();
-
-    const listed = indexes.flatMap(index => [...(index[field] ?? [])]);
-    const kept: typeof listed = [];
-
-    for (const ctor of listed) {
-      const when = registry.getArtifactMetadata({ target: ctor })?.when;
-      if (!when || (await when({ application: this }))) {
-        kept.push(ctor);
-        continue;
-      }
-      logger.debug('Skipped by condition | kind: %s | class: %s', field, ctor.name);
-    }
-
-    return kept
-      .map((ctor, position) => ({
-        ctor,
-        position,
-        order: registry.getArtifactMetadata({ target: ctor })?.order ?? 0,
-      }))
-      .sort((a, b) => a.order - b.order || a.position - b.position)
-      .map(entry => entry.ctor);
   }
 
   /** Each `@provide` method becomes a lazy provider: the component is resolved (SINGLETON) and the method called on first `get`, so a provided value may depend on datasources or secrets that do not exist yet at registration time. */

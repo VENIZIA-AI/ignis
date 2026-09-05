@@ -30,10 +30,12 @@ middlewares.
 ## Application lifecycle
 
 `BaseApplication` (`src/base/applications/base.ts`) extends `ServerApplication`, which extends the
-kernel's `RestApplication` and `AbstractApplication`. It runs eleven ordered phases:
+kernel's `RestApplication` and `AbstractApplication`. It runs twelve ordered phases:
 `staticConfigure`, `preConfigure`, `hydrateSecrets`, `registerDataSources`, `registerComponents`,
-`wireSecretRotatables`, `registerControllers`, `postConfigure`, `setupMiddlewares`, `start`,
-`executePostStartHooks`. See [Application lifecycle](/architecture/application-lifecycle.md) for the
+`wireSecretRotatables`, `registerControllers`, `postConfigure`, `verifyBindings` (opt-in through
+`configs.bootChecks.binding.doVerify`), `setupMiddlewares`, `start`, `executePostStartHooks`.
+The full server boot sequence is 15 named steps, ending `postConfigure -> verifyBindings ->
+validateScopeFilterSupport`. See [Application lifecycle](/architecture/application-lifecycle.md) for the
 full contract.
 
 ## Controllers

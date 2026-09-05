@@ -12,6 +12,7 @@ export class BootSteps {
   static readonly REGISTER_CONTRIBUTED_DATA_SOURCES = 'registerContributedDataSources';
   static readonly REGISTER_CONTROLLERS = 'registerControllers';
   static readonly POST_CONFIGURE = 'postConfigure';
+  static readonly VERIFY_BINDINGS = 'verifyBindings';
 
   static readonly SCHEME_SET = new Set<string>([
     this.STATIC_CONFIGURE,
@@ -23,6 +24,7 @@ export class BootSteps {
     this.REGISTER_CONTRIBUTED_DATA_SOURCES,
     this.REGISTER_CONTROLLERS,
     this.POST_CONFIGURE,
+    this.VERIFY_BINDINGS,
   ]);
 
   static isValid(value: string): boolean {

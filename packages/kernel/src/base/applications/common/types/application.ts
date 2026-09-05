@@ -21,6 +21,10 @@ export interface IApplicationConfigs {
   asyncContext?: { enable: boolean };
   /** Generated indexes to register before `preConfigure` - one, or an array composed from several packages. */
   artifacts?: TArtifactIndexInput;
+  /** Boot-time checks. Without `binding`, nothing is verified, and hand registration and same-key override stay allowed. */
+  bootChecks?: {
+    binding?: { doVerify: boolean; allowManual: boolean; allowOverride: boolean };
+  };
   debug?: { shouldShowRoutes?: boolean };
   /** Controller transports to enable. Defaults to ['rest']. */
   transports?: TControllerTransport[];

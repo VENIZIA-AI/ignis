@@ -67,7 +67,7 @@ type TArtifactCondition<ApplicationType = unknown> = (opts: {
 | Option | Type | Default | Meaning |
 |---|---|---|---|
 | `binding` | `{ namespace: string; key: string }` | `<namespace>.<Class>` | The binding key |
-| `allowOverride` | `boolean` | `true` | `false` makes a same-key re-registration throw instead of overwriting |
+| `allowOverride` | `boolean` | `true`; `bootChecks.binding.allowOverride` when that group is set | `false` makes a same-key re-registration throw instead of overwriting; `true` opts one registration out of the app-wide check |
 | `scope` | `TBindingScope` | `SINGLETON` for datasource, component, controller; `TRANSIENT` for repository, service | Binding scope |
 | `order` | `number` | `0` | Lower registers first within its kind; ties keep index order |
 | `when` | `TArtifactCondition` | always register | Sync or async. Runs at the `registerArtifacts` step, before `preConfigure`; may read config and env, not another artifact's binding |
@@ -196,12 +196,12 @@ Behavior, in order:
 
 1. Flattens nested arrays into a list of `IArtifactIndex`.
 2. For each kind in dependency order - `dataSources`, `components`, `repositories`, `services`, `controllers` - collects the classes across every index.
-3. Awaits each class's `when`; a `false` skips the class and logs at debug `Skipped by condition | kind: <field> | class: <Class>`.
+3. Evaluates every class's `when` concurrently; a `false` skips the class and logs at debug `Skipped by condition | kind: <field> | class: <Class>`.
 4. Stable-sorts the survivors by `order` (default `0`).
 5. Registers each through `dataSource()` / `component()` / `repository()` / `service()` / `controller()`, which read the class's decorator defaults (`binding`, `scope`, `allowOverride`).
 6. For a component, binds every `@provide` key to a lazy provider.
 
-A class registered by hand before this call keeps its earlier position in the binding map; the later registration overwrites the binding unless `allowOverride: false` makes it throw.
+A class registered by hand before this call keeps its earlier position in the binding map; the later registration overwrites the binding unless `allowOverride: false`, or [`bootChecks.binding.allowOverride: false`](#bootchecks), makes it throw.
 
 ## `registerConfiguredArtifacts`
 
@@ -223,9 +223,28 @@ The boot step. Calls `registerArtifacts(this.configs.artifacts)` when the config
 | 4 | `staticConfigure` | 11 | `wireSecretRotatables` |
 | 5 | **`registerArtifacts`** | 12 | `registerControllers` |
 | 6 | `preConfigure` | 13 | `postConfigure` |
-| 7 | `hydrateSecrets` | 14 | `validateScopeFilterSupport` |
+| 7 | `hydrateSecrets` | 14 | `verifyBindings` |
+| | | 15 | `validateScopeFilterSupport` |
 
-Every step logs `Boot step n/14 <name>` at debug. An application that inserts its own step targets these names through `BootSequence.insertAfter`.
+Every step logs `Boot step n/15 <name>` at debug. An application that inserts its own step targets these names through `BootSequence.insertAfter`.
+
+## `bootChecks`
+
+```typescript
+bootChecks?: {
+  binding?: { doVerify: boolean; allowManual: boolean; allowOverride: boolean };
+};
+```
+
+One group of three binding decisions on `IApplicationConfigs`. Without `binding`, nothing is verified, and hand registration and same-key override stay allowed.
+
+| Setting | What it does | When it fails |
+|---|---|---|
+| `doVerify: true` | The `verifyBindings` step (`BootSteps.VERIFY_BINDINGS`, after `postConfigure`) resolves every binding in the `services` and `repositories` namespaces once | Throws once with every failing key: `[verifyBindings] 2 binding(s) cannot be resolved \| services.ReportService: Binding key: repositories.Missing is not bounded in context! \| ...` |
+| `allowManual: false` | While `configs.artifacts` is set, a `service` / `repository` / `controller` / `component` / `dataSource` call inside `preConfigure()` or `postConfigure()` is refused | Throws at that call: `[service] 'PricingService' is registered by hand inside preConfigure() while 'configs.artifacts' is set and 'bootChecks.binding.allowManual' is false ...` |
+| `allowOverride: false` | Every artifact registration behaves as if it said `allowOverride: false`: a key that is already bound is refused. A registration that says `allowOverride: true`, on the decorator or at the call site, still overrides | Throws at that registration: `[service] Binding key already registered: 'services.RunModeService' \| 'bootChecks.binding.allowOverride' is false ...` |
+
+Resolving at boot builds the singletons then, so a constructor with a side effect runs during `verifyBindings`; turn `doVerify` on in development and UAT. Registrations made by the index step and by the framework's own steps are never counted as manual. The override setting covers the five registration methods only: `bind()`, `set()` and a `@provide` key never pass through it, so a key can still be rebound at runtime.
 
 ## `ignis-artifacts` (CLI)
 

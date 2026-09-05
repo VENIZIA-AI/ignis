@@ -134,12 +134,12 @@ describe('BaseApplication - getBootSequence()', () => {
 
     const stepNames = application['getBootSequence']().map(step => step.name);
 
-    expect(ServerBootSteps.SCHEME_SET.size).toBe(14);
+    expect(ServerBootSteps.SCHEME_SET.size).toBe(15);
     expect(stepNames.every(name => ServerBootSteps.isValid(name))).toBe(true);
     expect(ServerBootSteps.isValid('not-a-step')).toBe(false);
   });
 
-  test('composes the documented 14-step order: kernel base + core-server splices, in order', () => {
+  test('composes the documented 15-step order: kernel base + core-server splices, in order', () => {
     const application = new TraceApplication({
       scope: 'BootSequenceApplication',
       config: buildConfigs(),
@@ -161,6 +161,7 @@ describe('BaseApplication - getBootSequence()', () => {
       'wireSecretRotatables',
       'registerControllers',
       'postConfigure',
+      'verifyBindings',
       'validateScopeFilterSupport',
     ]);
   });
@@ -423,5 +424,34 @@ describe('BaseApplication - server port resolution', () => {
     const response = await fetch(`http://127.0.0.1:${port}/favicon.ico`);
     expect(response.status).toBe(200);
     expect(response.headers.get('content-type')).toBe('image/svg+xml');
+  });
+});
+
+describe('BaseApplication - bootChecks.binding.allowManual', () => {
+  class Stray {}
+
+  /** The server sequence must keep the kernel's wrapped hooks, or the check silently never fires for a server application. */
+  class HandRegisteringApplication extends TraceApplication {
+    override preConfigure(): void {
+      super.preConfigure();
+      this.service(Stray);
+    }
+  }
+
+  test('false: a hand registration inside preConfigure fails the server boot and names the hook', async () => {
+    const application = new HandRegisteringApplication({
+      scope: 'HandRegisteringApplication',
+      config: buildConfigs({
+        artifacts: { services: [] },
+        bootChecks: { binding: { doVerify: false, allowManual: false, allowOverride: true } },
+      }),
+    });
+    application.init();
+
+    const failure = await application.initialize().catch((error: unknown) => error);
+
+    expect(failure).toBeInstanceOf(Error);
+    expect(String(failure)).toContain("'Stray' is registered by hand inside preConfigure()");
+    expect(String(failure)).toContain("'bootChecks.binding.allowManual' is false");
   });
 });

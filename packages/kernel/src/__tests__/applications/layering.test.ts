@@ -29,7 +29,6 @@ const REST_APPLICATION_MEMBERS = [
   'controller',
   'dataSource',
   'drainByTag',
-  'flattenArtifactIndex',
   'generateRequestId',
   'getBootSequence',
   'getRootRouter',
@@ -47,9 +46,10 @@ const REST_APPLICATION_MEMBERS = [
   'registerDefaultMiddlewares',
   'registerDynamicBindings',
   'repository',
+  'runApplicationHook',
   'runBootSequence',
-  'selectArtifacts',
   'service',
+  'verifyBindings',
 ];
 
 /** Members `@venizia/ignis`'s `ServerApplication` owns. A browser Worker extends `RestApplication`, so neither kernel layer may carry any of them - inherited counts as carrying. */

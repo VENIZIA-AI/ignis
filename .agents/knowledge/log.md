@@ -6,6 +6,31 @@ not how.
 This file and `index.md` are reserved OKF filenames - they carry no `type:` frontmatter and are not
 counted as concepts.
 
+## 2026-09-05 - opt-in boot checks: verifyBindings step, no-hand-registration strict mode, app-wide no-override
+
+Asked for by BANA's identity lane (iden-1) for the artifact-index migration, approved by the PO.
+`configs.bootChecks.binding.doVerify` adds `BootSteps.VERIFY_BINDINGS` after `postConfigure`
+(server sequence: 15 steps, `verifyBindings` before `validateScopeFilterSupport`): `get` every binding
+in the `services` and `repositories` namespaces, collect, throw once with every failing key - a made-up
+`@inject` key or a `when`-excluded dependency fails the boot instead of the first request.
+`configs.bootChecks.binding.allowManual: false` makes `registerArtifact` throw when called inside
+`preConfigure()`/`postConfigure()` while `configs.artifacts` is set (the hooks run under
+`runApplicationHook`, so index and framework registrations are exempt).
+`configs.bootChecks.binding.allowOverride: false` makes `assertNoBindingCollision` default `allowOverride`
+to `false` (an explicit `true` on the decorator or at the call site still wins); `bind()`, `set()` and
+`@provide` never pass through the guard, so runtime rebinding is untouched - the PO approved this once
+that was measured. The three are one `binding` group of required booleans (the PO reshaped it from three `should*` flags mid-task); without the group nothing is checked. One proposal was declined on purpose: index entries as
+option objects (no consumer once iden-1 found the "shared class with two conditions" was two same-named
+classes).
+Tests: `kernel/__tests__/applications/boot-checks.test.ts`; step-count assertions moved 8/9 -> 9 and
+14 -> 15 in `boot-sequence.test.ts`, `layering.test.ts`, core-server `lifecycle.test.ts`. In the same
+change `registerArtifacts` handed index resolution (flatten, `when`, `order`) to `ArtifactIndexHelper`
+(`applications/artifact-index.ts`, a `BaseHelper` singleton kept out of the barrel), and the `when`
+conditions of one kind are now evaluated concurrently instead of awaited one by one - `rest.ts` went
+609 -> 554 lines, still over the 500-line prompt on purpose: what is left is the application's own
+lifecycle (boot orchestration, registration, HTTP shell). `artifact-index.test.ts` holds a positive
+control for the concurrency (a `when` that waits for a later one).
+
 ## 2026-09-05 - list-response contract: respond takes a range, setListHeaders, ResponseFormats; POST /search sends the list headers
 
 `respond` and `normalizeCountData` moved up from `AbstractCrudController` to `BaseRestController` (they had no

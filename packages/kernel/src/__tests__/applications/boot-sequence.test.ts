@@ -65,7 +65,7 @@ describe('BootSequence', () => {
   });
 
   test('BootSteps knows its own names and rejects a server-only one', () => {
-    expect(BootSteps.SCHEME_SET.size).toBe(9);
+    expect(BootSteps.SCHEME_SET.size).toBe(10);
     expect(BootSteps.isValid(BootSteps.REGISTER_CONTRIBUTED_DATA_SOURCES)).toBe(true);
     expect(BootSteps.isValid('hydrateSecrets')).toBe(false);
   });
@@ -164,22 +164,23 @@ describe('RestApplication boot sequence', () => {
       .filter(call => call.level === 'debug' && call.message.includes('DONE'))
       .map(call => call.args[1]);
     expect(completed).toEqual([
-      'Boot step 1/8 staticConfigure',
-      'Boot step 2/8 registerArtifacts',
-      'Boot step 3/8 preConfigure',
-      'Boot step 4/8 registerDataSources',
-      'Boot step 5/8 registerComponents',
-      'Boot step 6/8 registerContributedDataSources',
-      'Boot step 7/8 registerControllers',
-      'Boot step 8/8 postConfigure',
+      'Boot step 1/9 staticConfigure',
+      'Boot step 2/9 registerArtifacts',
+      'Boot step 3/9 preConfigure',
+      'Boot step 4/9 registerDataSources',
+      'Boot step 5/9 registerComponents',
+      'Boot step 6/9 registerContributedDataSources',
+      'Boot step 7/9 registerControllers',
+      'Boot step 8/9 postConfigure',
+      'Boot step 9/9 verifyBindings',
     ]);
 
     const summary = logger.calls.find(
       call => call.level === 'info' && call.message.startsWith('Boot sequence complete'),
     );
-    expect(summary?.args[0]).toBe(8);
+    expect(summary?.args[0]).toBe(9);
     expect(summary?.args[2]).toBe(
-      'staticConfigure -> registerArtifacts -> preConfigure -> registerDataSources -> registerComponents -> registerContributedDataSources -> registerControllers -> postConfigure',
+      'staticConfigure -> registerArtifacts -> preConfigure -> registerDataSources -> registerComponents -> registerContributedDataSources -> registerControllers -> postConfigure -> verifyBindings',
     );
   });
 
@@ -203,7 +204,7 @@ describe('RestApplication boot sequence', () => {
 
     const failed = logger.calls.find(call => call.level === 'error');
     expect(failed?.message).toStartWith('Boot step failed');
-    expect(failed?.args.slice(0, 3)).toEqual(['preConfigure', 3, 8]);
+    expect(failed?.args.slice(0, 3)).toEqual(['preConfigure', 3, 9]);
   });
 });
 

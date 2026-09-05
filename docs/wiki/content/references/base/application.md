@@ -223,6 +223,9 @@ The options describe the registration, never the artifact: what a class needs go
 `allowOverride` defaults to `true`, matching `bind()`'s own silent-overwrite behavior: register the
 same key twice and the second registration wins, no warning. Set it to `false` to make a same-key
 re-registration throw instead of silently shadowing the first one.
+[`bootChecks.binding.allowOverride: false`](/references/base/bootstrapping#bootchecks) flips that
+default for every registration in the application; `allowOverride: true` on a registration opts it out
+again.
 
 ```typescript
 this.controller(UserController, { allowOverride: false });
@@ -288,10 +291,11 @@ graph TD
     J --> K(wireSecretRotatables);
     K --> L(registerControllers);
     L --> M(postConfigure);
-    M --> N(validateScopeFilterSupport);
+    M --> N(verifyBindings);
+    N --> O(validateScopeFilterSupport);
 ```
 
-Fourteen steps. `getBootSequence()` returns them as data (`ServerBootSteps` names each one), `runBootSequence()` logs `Boot step n/14 <name>` per step, and a subclass inserts its own step with `BootSequence.insertAfter({ steps, target, step })`.
+Fifteen steps. `getBootSequence()` returns them as data (`ServerBootSteps` names each one), `runBootSequence()` logs `Boot step n/15 <name>` per step, and a subclass inserts its own step with `BootSequence.insertAfter({ steps, target, step })`.
 
 | Hook | When to Use | Notes |
 |------|-------------|-------|

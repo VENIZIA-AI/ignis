@@ -43,9 +43,11 @@ then has `.value(container)` called.
 `bind()` itself overwrites silently - rebinding an already-bound key just replaces it, no warning. The
 artifact-registration methods (`component`/`controller`/`service`/`repository`/`dataSource`) sit on
 top of `bind()` and take `TMixinOpts.allowOverride`: default `true` preserves that silent-overwrite
-behavior, `false` makes a same-key re-registration throw instead. The check is
-`RestApplication.assertNoBindingCollision()`, a protected method - a subclass adding a registration
-method of its own calls it instead of re-wording the error.
+behavior, `false` makes a same-key re-registration throw instead, and
+`configs.bootChecks.binding.allowOverride: false` makes `false` the default for the whole application
+(an explicit `true` still wins). The check is `RestApplication.assertNoBindingCollision()`, a
+protected method - a subclass adding a registration method of its own calls it instead of re-wording
+the error, and inherits the app-wide default.
 
 **A binding's key, scope and override rule have three inputs**, resolved in this order by the private
 `registerArtifact` behind all five methods: the explicit `TMixinOpts` at the call site, then the
