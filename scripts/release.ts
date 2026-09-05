@@ -34,6 +34,7 @@ const RELEASE_ORDER = [
   'connectors',
   'core-worker',
   'core-server',
+  'atlas',
 ] as const;
 
 type TReleaseMode =

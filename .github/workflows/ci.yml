@@ -99,6 +99,10 @@ jobs:
         if: ${{ !cancelled() && steps.build.outcome == 'success' }}
         run: make test-core-server
 
+      - name: Test - atlas
+        if: ${{ !cancelled() && steps.build.outcome == 'success' }}
+        run: make test-atlas
+
       - name: Lint
         if: ${{ !cancelled() && steps.build.outcome == 'success' }}
         run: make lint-all

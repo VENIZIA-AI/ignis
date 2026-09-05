@@ -1,13 +1,13 @@
-.PHONY: all build build-all release release-plan core core-server connectors core-worker dev-configs docs docs-mcp filter helpers inversion boot kernel \
+.PHONY: all build build-all release release-plan core core-server connectors core-worker dev-configs docs filter helpers inversion boot atlas kernel \
         help install clean setup-hooks agent-setup \
         lint lint-all lint-packages lint-examples artifacts-check \
-        lint-dev-configs lint-inversion lint-filter lint-helpers lint-boot lint-core lint-core-server lint-kernel lint-connectors lint-core-worker lint-docs-mcp lint-scripts \
+        lint-dev-configs lint-inversion lint-filter lint-helpers lint-boot lint-core lint-core-server lint-kernel lint-connectors lint-core-worker lint-atlas lint-scripts \
         purity purity-test test-scripts purity-inversion purity-filter purity-helpers purity-kernel \
-        test-all test-inversion test-helpers test-boot test-kernel test-connectors test-core-worker test-core-server \
-        purity-dev-configs purity-boot purity-core purity-core-server purity-connectors purity-core-worker purity-docs-mcp \
+        test-all test-inversion test-helpers test-boot test-kernel test-connectors test-core-worker test-core-server test-atlas \
+        purity-dev-configs purity-boot purity-core purity-core-server purity-connectors purity-core-worker purity-atlas \
         okf-check okf-gen okf-coverage okf-viz split-report surface-gen surface-check wiki-links-check \
         catalog-check \
-        update update-all update-core update-core-server update-dev-configs update-docs-mcp update-filter update-helpers update-inversion update-boot
+        update update-all update-core update-core-server update-dev-configs update-atlas update-filter update-helpers update-inversion update-boot
 
 DEFAULT_GOAL := help
 
@@ -83,7 +83,7 @@ release:
 # ----------------------------------------------------------------------------
 build: build-all
 
-build-all: core core-worker boot docs docs-mcp surface-check wiki-links-check
+build-all: core core-worker boot atlas docs surface-check wiki-links-check
 	@echo "🚀 All packages rebuilt successfully."
 
 # Granular build targets for individual packages
@@ -116,6 +116,12 @@ boot: helpers
 	@echo "📦 Rebuilding @venizia/ignis-boot..."
 	@bun run --filter "@venizia/ignis-boot" rebuild
 
+# `atlas` hangs off dev-configs only (no other workspace package) and is consumed by neither core
+# nor examples - `build-all` names it explicitly, the same reason `boot` is named explicitly above.
+atlas: dev-configs
+	@echo "📦 Rebuilding @venizia/ignis-atlas..."
+	@bun run --filter "@venizia/ignis-atlas" rebuild
+
 kernel: helpers filter
 	@echo "📦 Rebuilding @venizia/ignis-kernel..."
 	@bun run --filter "@venizia/ignis-kernel" rebuild
@@ -140,10 +146,6 @@ docs:
 	@echo "📦 Rebuilding wiki (VitePress)..."
 	@bun run --filter "@venizia/ignis-docs" docs:build
 
-docs-mcp: dev-configs
-	@echo "📦 Rebuilding @venizia/ignis-docs (MCP Server)..."
-	@bun run --filter "@venizia/ignis-docs" mcp:rebuild
-
 # ----------------------------------------------------------------------------
 # FORCE UPDATE TARGETS (fetch latest from NPM registry)
 # Note: 'bun install' triggers postinstall which runs force-update automatically
@@ -162,9 +164,9 @@ update-dev-configs:
 	@echo "🔄 Force updating @venizia/dev-configs..."
 	@bun run --filter "@venizia/dev-configs" force-update
 
-update-docs-mcp:
-	@echo "🔄 Force updating @venizia/ignis-docs (MCP Server)..."
-	@bun run --filter "@venizia/ignis-docs" force-update
+update-atlas:
+	@echo "🔄 Force updating @venizia/ignis-atlas..."
+	@bun run --filter "@venizia/ignis-atlas" force-update
 
 update-helpers:
 	@echo "🔄 Force updating @venizia/ignis-helpers..."
@@ -193,9 +195,9 @@ update-kernel:
 lint: lint-packages
 	@echo "✅ Linting completed."
 
-# Includes lint-docs-mcp: the release workflow lints it, so leaving it out of `all` hides a failure
+# Includes lint-atlas: the release workflow lints it, so leaving it out of `all` hides a failure
 # until release time.
-lint-all: lint-packages lint-examples lint-docs-mcp lint-scripts
+lint-all: lint-packages lint-examples lint-atlas lint-scripts
 	@echo "✅ All linting completed."
 
 lint-packages:
@@ -250,9 +252,9 @@ lint-core-worker:
 	@echo "🔍 Linting @venizia/ignis-worker..."
 	@bun run --filter "@venizia/ignis-worker" lint
 
-lint-docs-mcp:
-	@echo "🔍 Linting @venizia/ignis-docs (MCP Server)..."
-	@bun run --filter "@venizia/ignis-docs" lint
+lint-atlas:
+	@echo "🔍 Linting @venizia/ignis-atlas..."
+	@bun run --filter "@venizia/ignis-atlas" lint
 
 # `scripts/` is not a workspace member, so it has no local `lint` script to filter into - prettier
 # runs directly against the config's relative import of packages/dev-configs.
@@ -291,7 +293,7 @@ test-scripts:
 # ----------------------------------------------------------------------------
 BUN_TEST_FLAGS ?= --parallel
 
-test-all: test-inversion test-helpers test-boot test-kernel test-connectors test-core-worker test-core-server
+test-all: test-inversion test-helpers test-boot test-kernel test-connectors test-core-worker test-core-server test-atlas
 
 test-inversion:
 	@cd packages/inversion && bun test $(BUN_TEST_FLAGS)
@@ -314,6 +316,10 @@ test-core-worker:
 
 test-core-server:
 	@cd packages/core-server && bun test $(BUN_TEST_FLAGS)
+
+# atlas's package.json owns its command (NODE_ENV=test + .env.test); `bun run` appends the flags to it.
+test-atlas:
+	@cd packages/atlas && bun run test $(BUN_TEST_FLAGS)
 
 purity-inversion:
 	@echo "🔍 Checking browser purity for @venizia/ignis-inversion..."
@@ -339,7 +345,7 @@ purity-core-worker:
 	@echo "🔍 Checking browser purity for @venizia/ignis-worker..."
 	@bun scripts/purity/cli.ts core-worker
 
-purity-dev-configs purity-boot purity-core purity-core-server purity-docs-mcp:
+purity-dev-configs purity-boot purity-core purity-core-server purity-atlas:
 	@echo "ℹ️  No browser-pure entry claimed for this package - skipping."
 
 # ----------------------------------------------------------------------------
@@ -363,7 +369,6 @@ help:
 	@echo "  update-all        - Same as 'update'."
 	@echo "  update-core       - Force update @venizia/ignis (core) dependencies."
 	@echo "  update-dev-configs- Force update @venizia/dev-configs dependencies."
-	@echo "  update-docs-mcp   - Force update @venizia/ignis-docs (MCP) dependencies."
 	@echo "  update-helpers    - Force update @venizia/ignis-helpers dependencies."
 	@echo "  update-inversion  - Force update @venizia/ignis-inversion dependencies."
 	@echo "  update-boot       - Force update @venizia/ignis-boot dependencies."
@@ -373,7 +378,6 @@ help:
 	@echo "  boot          - Rebuilds @venizia/ignis-boot (after its dependencies)."
 	@echo "  dev-configs   - Rebuilds @venizia/dev-configs."
 	@echo "  docs          - Rebuilds wiki (VitePress) for GitHub Pages."
-	@echo "  docs-mcp      - Rebuilds @venizia/ignis-docs (MCP Server) for NPM."
 	@echo "  helpers       - Rebuilds @venizia/ignis-helpers."
 	@echo "  inversion     - Rebuilds @venizia/ignis-inversion."
 	@echo ""
@@ -388,7 +392,6 @@ help:
 	@echo "  lint-helpers      - Lint @venizia/ignis-helpers."
 	@echo "  lint-boot         - Lint @venizia/ignis-boot."
 	@echo "  lint-core         - Lint @venizia/ignis (core)."
-	@echo "  lint-docs-mcp     - Lint @venizia/ignis-docs (MCP Server)."
 	@echo "  lint-scripts      - Lint scripts/ (prettier format check + tsc type-check against scripts/tsconfig.json)."
 	@echo ""
 	@echo "Knowledge bundle (.agents/knowledge):"
@@ -404,7 +407,7 @@ help:
 	@echo ""
 	@echo "Tests:"
 	@echo "  test-all      - Every package suite with BUN_TEST_FLAGS (default --parallel, implies --isolate)."
-	@echo "  test-<pkg>    - One suite: inversion, helpers, boot, kernel, connectors, core-worker, core-server."
+	@echo "  test-<pkg>    - One suite: inversion, helpers, boot, kernel, connectors, core-worker, core-server, atlas."
 	@echo ""
 	@echo "Browser purity:"
 	@echo "  purity        - Gate: every entry claimed browser-pure has no node builtin or global."

@@ -360,9 +360,27 @@
         "typescript": "catalog:",
       },
     },
+    "packages/atlas": {
+      "name": "@venizia/ignis-atlas",
+      "version": "0.1.0-0",
+      "bin": {
+        "ignis-atlas": "./dist/cjs/cli.js",
+      },
+      "dependencies": {
+        "zod": "catalog:",
+      },
+      "devDependencies": {
+        "@types/bun": "catalog:",
+        "@venizia/dev-configs": "^0.2.0-3",
+        "eslint": "catalog:",
+        "prettier": "catalog:",
+        "tsc-alias": "catalog:",
+        "typescript": "catalog:",
+      },
+    },
     "packages/boot": {
       "name": "@venizia/ignis-boot",
-      "version": "0.2.0-9",
+      "version": "0.2.0-10",
       "bin": {
         "ignis-artifacts": "./dist/cjs/cli.js",
       },
@@ -383,7 +401,7 @@
     },
     "packages/connectors": {
       "name": "@venizia/ignis-connectors",
-      "version": "0.2.0-16",
+      "version": "0.2.0-17",
       "dependencies": {
         "@venizia/ignis-filter": "^0.2.0-6",
         "@venizia/ignis-helpers": "^0.2.0-10",
@@ -426,7 +444,7 @@
     },
     "packages/core-server": {
       "name": "@venizia/ignis",
-      "version": "0.2.0-16",
+      "version": "0.2.0-17",
       "dependencies": {
         "@venizia/ignis-connectors": "^0.2.0-16",
         "@venizia/ignis-filter": "^0.2.0-6",
@@ -512,7 +530,7 @@
     },
     "packages/core-worker": {
       "name": "@venizia/ignis-worker",
-      "version": "0.2.0-17",
+      "version": "0.2.0-18",
       "dependencies": {
         "@venizia/ignis-helpers": "^0.2.0-9",
         "@venizia/ignis-inversion": "^0.2.0-4",
@@ -558,7 +576,7 @@
     },
     "packages/filter": {
       "name": "@venizia/ignis-filter",
-      "version": "0.2.0-6",
+      "version": "0.2.0-7",
       "dependencies": {
         "@venizia/ignis-inversion": "^0.2.0-4",
         "zod": "catalog:",
@@ -574,7 +592,7 @@
     },
     "packages/helpers": {
       "name": "@venizia/ignis-helpers",
-      "version": "0.2.0-10",
+      "version": "0.2.0-11",
       "dependencies": {
         "@venizia/ignis-inversion": "^0.2.0-4",
         "dayjs": "catalog:",
@@ -657,7 +675,7 @@
     },
     "packages/inversion": {
       "name": "@venizia/ignis-inversion",
-      "version": "0.2.0-4",
+      "version": "0.2.0-5",
       "dependencies": {
         "lodash": "catalog:",
         "reflect-metadata": "catalog:",
@@ -675,7 +693,7 @@
     },
     "packages/kernel": {
       "name": "@venizia/ignis-kernel",
-      "version": "0.2.0-16",
+      "version": "0.2.0-17",
       "dependencies": {
         "@venizia/ignis-filter": "^0.2.0-6",
         "@venizia/ignis-helpers": "^0.2.0-10",
@@ -1585,6 +1603,8 @@
     "@venizia/dev-configs": ["@venizia/dev-configs@workspace:packages/dev-configs"],
 
     "@venizia/ignis": ["@venizia/ignis@workspace:packages/core-server"],
+
+    "@venizia/ignis-atlas": ["@venizia/ignis-atlas@workspace:packages/atlas"],
 
     "@venizia/ignis-boot": ["@venizia/ignis-boot@workspace:packages/boot"],
 
