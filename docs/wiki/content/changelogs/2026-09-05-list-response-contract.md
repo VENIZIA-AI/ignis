@@ -55,7 +55,7 @@ A list never depends on a `/count` route. The CRUD factory keeps its `count` ver
 ## Who is affected
 
 - **Hand-written list routes that set the headers themselves.** nx-seller's per-request `normalizeCountableData(rs)` closure and `applyListResponseHeaders(...)` produce the same headers and body: inside a controller, `context.json(normalizeCountableData(rs), Ok)` becomes `context.json(this.respond({ context, format: ResponseFormats.ARRAY, payload: { count: rs.data.length, data: rs.data }, range: rs.range }), Ok)`, and a body that is not `{ count, data }` calls `this.setListHeaders(...)` instead. Then delete the copies. No wire change.
-- **Callers of `normalizeCountData({ context, responseData })`.** Rename the option to `payload` (nx-seller: 6 call sites in the identity role and permission controllers). The compiler points at each one.
+- **Callers of `respond({ ..., responseData })` or `normalizeCountData({ context, responseData })`.** Rename the option to `payload` (nx-seller: 11 call sites - identity role and permission controllers, the sale-item controller, and mq-pay's transaction controller). The compiler points at each one.
 - **Clients of `POST /search`.** New headers only. Read `Content-Range` for paging; when the body says `isFoundExact: false`, the engine stopped counting early and more may exist.
 - **Generated CRUD controllers.** No action needed.
 
