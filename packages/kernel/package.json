@@ -1,6 +1,6 @@
 {
   "name": "@venizia/ignis-kernel",
-  "version": "0.2.0-14",
+  "version": "0.2.0-15",
   "description": "Browser-pure kernel of the IGNIS framework: dependency injection, lifecycle, REST controllers, repository and datasource abstractions, and the authentication and authorization seams. No node builtin and no server-only peer, so the same kernel serves a Bun server and a browser Worker.",
   "keywords": [
     "authentication",
@@ -80,7 +80,7 @@
   },
   "dependencies": {
     "@venizia/ignis-filter": "^0.2.0-6",
-    "@venizia/ignis-helpers": "^0.2.0-9",
+    "@venizia/ignis-helpers": "^0.2.0-10",
     "@venizia/ignis-inversion": "^0.2.0-4",
     "lodash": "catalog:",
     "reflect-metadata": "catalog:",
