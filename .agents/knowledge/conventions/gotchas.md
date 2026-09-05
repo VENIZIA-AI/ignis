@@ -143,6 +143,17 @@ waiver failed a connectors release with "STALE WAIVER" because the workflow inst
 `bun-version: latest`. Before a release, run `make purity-<package>` on the Bun version CI will
 use, and when a waiver goes stale, delete it rather than loosening the gate.
 
+## `bun update` rewrites peerDependencies floors, not only devDependencies
+
+`bun update --filter '*'` bumps every declared range in every workspace manifest to the version it
+resolved - including `peerDependencies`. On 2026-09-04 one run raised 28 peer floors across
+`connectors`, `core-server`, `core-worker`, `helpers`, `kernel` and `dev-configs` (`hono ^4.12.30 ->
+^4.13.7`, `pg ^8.21.0 -> ^8.23.0`, `prettier ^3.0.0 -> ^3.9.6`, ...). A published peer floor is a
+consumer contract: nx-seller pins `hono` 4.12.30 and `pg` 8.21.0 through `overrides`, and the
+migration guide promises those still satisfy the peers. After any `bun update`, diff
+`peerDependencies` against HEAD and restore every floor you did not mean to raise; widen or narrow a
+peer only as its own deliberate change with a changelog line.
+
 ## Kernel state is realm-anchored, so never reach for `instanceof` across packages
 
 `@venizia/ignis-kernel` is a plain `dependencies` entry of `connectors`, `core-server` and
@@ -183,7 +194,7 @@ CLASS (`isDataSourceClass`), an instance field when it receives an INSTANCE (`is
 
 ## The PGlite pin lives in the root package.json
 
-The root `package.json` carries `"overrides": { "@electric-sql/pglite": "0.5.5" }`, an exact version,
+The root `package.json` carries `"overrides": { "@electric-sql/pglite": "0.5.8" }`, an exact version,
 repository-wide. It looks like something to relax or delete. It is not.
 
 Pinning it in one package alone forks `drizzle-orm` into two Bun store entries, because Bun keys a

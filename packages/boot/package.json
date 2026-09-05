@@ -89,7 +89,7 @@
     "typescript": "catalog:"
   },
   "peerDependencies": {
-    "typescript": ">=5.0.0"
+    "typescript": "^5.0.0 || ^6.0.0"
   },
   "bin": {
     "ignis-artifacts": "./dist/cjs/cli.js"

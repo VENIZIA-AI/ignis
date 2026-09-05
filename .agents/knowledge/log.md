@@ -6,6 +6,41 @@ not how.
 This file and `index.md` are reserved OKF filenames - they carry no `type:` frontmatter and are not
 counted as concepts.
 
+## 2026-09-04 - evening dependency pass: every in-range update taken, three majors held with reasons
+
+`bun outdated --filter '*'` listed 32 rows. The 23 in-range ones moved via `bun update` (catalog
+`hono` ^4.13.7 and `@hono/zod-openapi` ^1.6.3 rewritten by it; pglite 0.5.8, kafka client 2.11,
+dotenvx 2.23, react 19.2.8, vite 8.2.2 and friends in the lockfile). Two range changes measured
+green: `meilisearch` peer `^0.59.0 || ^0.60.0` (dev 0.60.0), and the exact PGlite override 0.5.8
+(the pin stays exact - Drizzle store identity - only the number moved; gotcha updated). Held: `bullmq`
+6 (backend factory, repeatables removed, ioredis optional peer), `ioredis` 6 (RESP3 default), `typescript`
+7 (no JS API), `@libsql/client` 0.18, `@scalar` 0.12. Trap met on the way: `bun update --filter '*'`
+also raised 28 `peerDependencies` floors; all restored to HEAD except the two deliberate ones (gotcha
+added). `@platformatic/kafka` 2.11 (dev) surfaced that 2.10 removed the module-scope `require()` the
+`platformaticRequirePlugin` hoists: the two negative-control tests in `kafka/bundler.test.ts` now assert
+the upstream fix (no bare specifier, binary boots without the plugin); the plugin stays, inert on >= 2.10
+and needed for 2.8-2.9 (peer range `^2.6.1`); wiki `compile-binary.md` says so. Gate after the pass: see
+the next commit.
+
+## 2026-09-04 - boot peer `typescript` narrowed to `^5.0.0 || ^6.0.0`; eslint floor 10.10.0
+
+`bun outdated` offered TypeScript 7.0.2 as an in-range update for `@venizia/ignis-boot`'s peer
+`>=5.0.0`. Measured: `typescript@7.0.2` exports only `version` and `versionMajorMinor`, while the
+artifact scanner calls `ts.createSourceFile`, `ts.forEachChild`, `ts.SyntaxKind`, so a 7.x install
+would have crashed `ignis-artifacts`. Peer narrowed to the two majors that carry the JS API (same
+range as dev-configs); `packages/boot.md` and the wiki bootstrapping reference say so. TypeScript itself
+stays 6.0.3 (typescript-eslint 8.69 still peers `<6.1.0`). eslint catalog ^10.10.0, lint-all clean.
+The peer change is a published manifest: it ships with the next boot release.
+
+## 2026-09-04 - @types/bun ^1.4.1; the 1.4.1 WebSocket pause/resume API is client-side, nothing to mirror
+
+Catalog `@types/bun` moved to ^1.4.1 the hour it was published, so the types match the Bun CI installs.
+build-all, lint-all, helpers and core-server suites unchanged. Measured in bun-types 1.4.1: `pause()`,
+`resume()` and `isPaused` live on the client `WebSocket` and the TCP `Socket`, not on
+`ServerWebSocket`, which helpers' `IWebSocket` mirrors - `getBufferedAmount()` there predates 1.4.1.
+The only server-side addition is `binaryType: 'blob'` in the handler config, which the mirror does not
+expose because the `message` handler type would have to follow it. No mirror change.
+
 ## 2026-09-04 - Bun 1.4.1 follow-ups: make test targets run --parallel (implies --isolate); class-rename gotcha split by build mode
 
 `make test-<package>` / `make test-all` are now the one home of the test flags (`BUN_TEST_FLAGS`,

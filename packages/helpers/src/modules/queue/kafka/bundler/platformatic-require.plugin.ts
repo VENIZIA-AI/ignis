@@ -1,7 +1,7 @@
 import type { BunPlugin } from 'bun';
 import { KafkaBundlerPluginNames, PlatformaticRequireSpecifiers } from './common';
 
-/** `@platformatic/kafka` resolves some dependencies through `createRequire(import.meta.url)` at module scope; `bun build --compile` cannot see through that, so the specifier stays unresolved and the binary dies with "Cannot find package" before boot - this plugin hoists those calls to static imports at bundle time. */
+/** `@platformatic/kafka` 2.8-2.9 resolves some dependencies through `createRequire(import.meta.url)` at module scope; `bun build --compile` cannot see through that, so the specifier stays unresolved and the binary dies with "Cannot find package" before boot - this plugin hoists those calls to static imports at bundle time. 2.10 removed the module-scope require(), so on >= 2.10 the plugin matches nothing and is inert. */
 export const platformaticRequirePlugin = (): BunPlugin => ({
   name: KafkaBundlerPluginNames.PLATFORMATIC_REQUIRE,
   setup(build) {

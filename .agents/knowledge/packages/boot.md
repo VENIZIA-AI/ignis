@@ -14,7 +14,7 @@ plus one exported object in the `IArtifactIndex` shape. The application passes t
 index becomes bindings - is [Artifact registration](/architecture/boot-lifecycle.md).
 
 Position in the chain is unchanged: `{boot, kernel} -> core`; `boot` and `kernel` do not depend on
-each other. Runtime dependency: `@venizia/ignis-helpers` only (the logger). `typescript >= 5.0.0` is
+each other. Runtime dependency: `@venizia/ignis-helpers` only (the logger). `typescript` 5 or 6 (peer `^5.0.0 || ^6.0.0`; TypeScript 7 drops the JS API the scanner calls) is
 a peer dependency because the scanner is an AST walk. Dual CJS + ESM build, sub-path export
 `./generator`, bin `ignis-artifacts -> dist/cjs/cli.js` with a `bun` shebang (the scanner uses
 `Bun.Glob`).

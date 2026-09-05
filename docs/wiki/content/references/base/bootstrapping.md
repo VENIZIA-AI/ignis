@@ -229,7 +229,7 @@ Every step logs `Boot step n/14 <name>` at debug. An application that inserts it
 
 ## `ignis-artifacts` (CLI)
 
-Shipped by `@venizia/ignis-boot` as a binary. Requires `typescript >= 5` (peer dependency) and runs under bun.
+Shipped by `@venizia/ignis-boot` as a binary. Requires `typescript` 5 or 6 (peer `^5.0.0 || ^6.0.0`; TypeScript 7 no longer exports the JS API the scanner calls) and runs under bun.
 
 ```
 ignis-artifacts <generate|check> [--root src] [--out src/generated/artifacts.ts] [--ignore a,b] [--export GeneratedArtifacts]
