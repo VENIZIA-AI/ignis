@@ -205,7 +205,29 @@ Override to register routes manually using `bindRoute` or `defineRoute`.
 
 ## `BaseRestController`
 
-Extends `AbstractRestController` with concrete implementations for `bindRoute`, `defineRoute`, and `defineJSXRoute`.
+Extends `AbstractRestController` with concrete implementations for `bindRoute`, `defineRoute`, and `defineJSXRoute`, plus the response helpers every controller shares.
+
+### `respond<R>(opts: { context, format, payload, range? })`
+
+The one response call. Sets `X-Response-Format` (`ResponseFormats.ARRAY` or `ResponseFormats.OBJECT`), and with `range` also `Content-Range: records <start>-<end>/<total>` (`records */<total>` for an empty page); then returns `payload` (`{ count, data }`) through `normalizeCountData`, which writes `X-Response-Count` from `payload.count` and returns the bare `data` when the client sent `x-request-count: false`. `payload.count` is the rows of this response, never the total.
+
+```typescript
+const { data, range } = await this.repository.find({ filter, options: { shouldQueryRange: true } });
+return context.json(
+  this.respond({ context, format: ResponseFormats.ARRAY, payload: { count: data.length, data }, range }),
+  HTTP.ResultCodes.RS_2.Ok,
+);
+```
+
+`range` is the repository's `TDataRange` (`{ start, end, total }`, `end` inclusive); `buildDataRange({ skip, offset, dataLength, total })` builds one when the rows come from somewhere else. The CRUD verbs `findById`, `findOne`, `create`, `updateById` and `deleteById` answer with `format: ResponseFormats.OBJECT` and no range.
+
+### `setListHeaders(opts: { context, range, count })`
+
+The list headers without the body, for a response whose body is not a `{ count, data }` envelope. `POST /search` uses it and keeps its `{ found, isFoundExact, hits }` body.
+
+### `normalizeCountData(opts: { context, payload })`
+
+Sets `X-Response-Count` from `payload.count` and returns the whole envelope, or only `payload.data` when the request carried `x-request-count: false`.
 
 ### `defineRoute<RouteConfig, ResponseType>(opts)`
 

@@ -28,7 +28,7 @@ Everything under `src/base/` was the engine-neutral half of `packages/core-serve
 | `applications/` | `AbstractApplication` (container, config, lifecycle hooks), `RestApplication` (adds the router) |
 | `auth/` | The authentication and authorization seams - registries, middlewares, providers, policy builders |
 | `components/` | `BaseComponent` and its `binding()` contract |
-| `controllers/` | `AbstractRestController`, `BaseRestController`, `ControllerFactory` |
+| `controllers/` | `AbstractRestController`, `BaseRestController` (route helpers and the response helpers `respond({ context, format, payload, range? })` and `setListHeaders` - the one home of the `Content-Range` / `X-Response-Count` / `X-Response-Format` contract; `format` is the `ResponseFormats` const class), `ControllerFactory` |
 | `datasources/` | `AbstractDataSource` - the engine-neutral root with no SQL members |
 | `events/` | `EventBus` - in-process, fire-and-forget domain event bus with per-registration retry |
 | `metadata/` | The decorator layer: `@controller`, `@model`, `@datasource`, `@repository`, `@inject`, the REST verbs, the RPC verbs |

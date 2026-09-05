@@ -1,14 +1,26 @@
 import type { Hook, OpenAPIHono } from '@hono/zod-openapi';
-import type { ValueOrPromise } from '@venizia/ignis-helpers/common';
-import { executeWithPerformanceMeasure } from '@venizia/ignis-helpers/core';
+import type { TDataRange } from '@/base/repositories/common/types';
+import type { AnyType, TNullable, ValueOrPromise } from '@venizia/ignis-helpers/common';
+import { HTTP } from '@venizia/ignis-helpers/common';
+import { executeWithPerformanceMeasure, toBoolean } from '@venizia/ignis-helpers/core';
 import type { Env, Schema } from 'hono';
+import { ResponseFormats } from '../common/constants';
+import type { TResponseFormat } from '../common/constants';
 import type {
   IAuthRouteConfig,
   IBindRouteOptions,
   IDefineRouteOptions,
+  TRouteContext,
   TRouteHandler,
 } from '../common/types';
 import { AbstractRestController } from './abstract';
+
+/** `Content-Range` of a page: inclusive `end`, and `records * /<total>` (no space) when the page is empty. */
+const toContentRange = (opts: { range: TDataRange; count: number }): string => {
+  const { range, count } = opts;
+  const { start, end, total } = range;
+  return count > 0 ? `records ${start}-${end}/${total}` : `records */${total}`;
+};
 
 /** Recommended base class for REST controllers with concrete bindRoute and defineRoute implementations. */
 export abstract class BaseRestController<
@@ -34,6 +46,54 @@ export abstract class BaseRestController<
       args: opts.args,
       task: opts.task,
     });
+  }
+
+  /** Returns the full `{ count, data }` envelope, or just `data` when the client sent `x-request-count: false`; `X-Response-Count` is set either way. */
+  normalizeCountData<
+    ResponseSchema extends AnyType,
+    RequestContext extends TRouteContext<RouteEnv> = TRouteContext<RouteEnv>,
+    ResponseData extends {
+      count: number;
+      data?: TNullable<ResponseSchema>;
+    } = { count: number; data?: TNullable<ResponseSchema> },
+  >(opts: { context: RequestContext; payload: ResponseData }) {
+    const { context, payload } = opts;
+    const requestCountData = context.req.header(HTTP.Headers.REQUEST_COUNT_DATA) ?? 'true';
+    const useCountData = toBoolean(requestCountData);
+
+    context.header(HTTP.Headers.RESPONSE_COUNT_DATA, payload.count.toString());
+
+    if (useCountData) {
+      return payload;
+    }
+
+    return payload.data;
+  }
+
+  /** The one response call. Sets `X-Response-Format`, and with `range` (a list) also `Content-Range` - `payload.count` is the rows of THIS response, never the total - then normalizes count/data per the request-count header. */
+  respond<R>(opts: {
+    context: TRouteContext<RouteEnv>;
+    format: TResponseFormat;
+    payload: { count: number; data?: TNullable<R> };
+    range?: TDataRange;
+  }) {
+    const { context, format, payload, range } = opts;
+
+    if (range) {
+      context.header(HTTP.Headers.CONTENT_RANGE, toContentRange({ range, count: payload.count }));
+    }
+    context.header(HTTP.Headers.RESPONSE_FORMAT, format);
+
+    return this.normalizeCountData<R>({ context, payload });
+  }
+
+  /** The list headers without the body, for a list whose body is not a `{ count, data }` envelope: `Content-Range`, `X-Response-Count` = rows in THIS response, `X-Response-Format: array`. */
+  setListHeaders(opts: { context: TRouteContext<RouteEnv>; range: TDataRange; count: number }) {
+    const { context, range, count } = opts;
+
+    context.header(HTTP.Headers.CONTENT_RANGE, toContentRange({ range, count }));
+    context.header(HTTP.Headers.RESPONSE_COUNT_DATA, count.toString());
+    context.header(HTTP.Headers.RESPONSE_FORMAT, ResponseFormats.ARRAY);
   }
 
   /** TRouteHandler's TRouteContext is a lightweight custom shape (different `json`/`req.valid` signatures) built on Hono's real Context, not a subtype of the RouteHandler `.openapi()` expects - genuinely different handler types bridged here. */

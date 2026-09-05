@@ -784,7 +784,7 @@ tags: [reference, exports, api]
 
 ## kernel
 
-### `@venizia/ignis-kernel` (386)
+### `@venizia/ignis-kernel` (388)
 
 - `AbstractApplication` class
 - `AbstractAuthRegistry` class
@@ -1026,6 +1026,7 @@ tags: [reference, exports, api]
 - `resolveFindConfig` const
 - `resolveFindOneConfig` const
 - `resolveRequestDomain` const
+- `ResponseFormats` class
 - `RestApplication` class
 - `RestBindingKeys` class
 - `RestComponent` class
@@ -1147,6 +1148,7 @@ tags: [reference, exports, api]
 - `TRepositoryOperationScope` type
 - `TRequestContextResolver` type
 - `TResponseBodyOf` type
+- `TResponseFormat` type
 - `TResponseHeaderObject` type
 - `TResponseHeaders` type
 - `TRouteAuthConfig` type
@@ -1707,7 +1709,7 @@ tags: [reference, exports, api]
 
 ## core-server
 
-### `@venizia/ignis` (904)
+### `@venizia/ignis` (906)
 
 - `AbstractApplication` class
 - `AbstractAuthRegistry` class
@@ -2287,6 +2289,7 @@ tags: [reference, exports, api]
 - `resolveValue` const
 - `resolveValueAsync` const
 - `ResourceRoleManager` class
+- `ResponseFormats` class
 - `RestApplication` class
 - `RestBindingKeys` class
 - `RestComponent` class
@@ -2532,6 +2535,7 @@ tags: [reference, exports, api]
 - `TResolver` type
 - `TResponseBodyOf` type
 - `TResponsedError` type
+- `TResponseFormat` type
 - `TResponseHeaderObject` type
 - `TResponseHeaders` type
 - `TRetryBackoffStrategy` type

@@ -452,6 +452,16 @@ const config = defineConfig({
           collapsed: false,
           items: [
             {
+              text: '2026-09-05',
+              collapsed: true,
+              items: [
+                {
+                  text: 'List Responses Share One Contract',
+                  link: '/changelogs/2026-09-05-list-response-contract',
+                },
+              ],
+            },
+            {
               text: '2026-09-04',
               collapsed: true,
               items: [

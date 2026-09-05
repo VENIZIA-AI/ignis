@@ -6,6 +6,25 @@ not how.
 This file and `index.md` are reserved OKF filenames - they carry no `type:` frontmatter and are not
 counted as concepts.
 
+## 2026-09-05 - list-response contract: respond takes a range, setListHeaders, ResponseFormats; POST /search sends the list headers
+
+`respond` and `normalizeCountData` moved up from `AbstractCrudController` to `BaseRestController` (they had no
+caller outside it). `respond({ context, format, payload, range? })` is the ONE response call - with `range` it also
+writes `Content-Range` (a `respondList` was built first and folded back in on the PO's call: one method with
+options, not a specialised sibling); `setListHeaders({ context, range, count })` serves bodies that are not the
+envelope; `format` is the const class `ResponseFormats` (`OBJECT`/`ARRAY`, `TResponseFormat`) instead of string
+literals; the option `responseData` is now `payload` (BANA: 6 `normalizeCountData` call sites rename). The CRUD
+`find()` passes its range. `AbstractSearchController.search()`
+used to answer with a bare `context.json()` and no header at all - the one place in the repo that set
+`Content-Range` was the CRUD read tier - so it now sets the list headers (`start` from `filter.skip`/`filter.offset`,
+raw mode from the engine's `offset` or `page` x `per_page`; `total` from `found`), body unchanged; `isFoundExact`
+in the body stays the only "found is an estimate" signal (an `X-Response-Count-Exact` header was built and then
+dropped on the PO's call the same day).
+Contract locked by the PO on 2026-09-05: `total` exact and never `*`, `X-Response-Count` = rows of this response,
+`X-Response-Format: array`, `{ count, data }` or the bare array on `x-request-count: false`, no list depends on
+`/count` (the factory verb stays opt-in). Not adopted: window counts (measured 1.9 s at 237k rows by BANA).
+Tests: `kernel/__tests__/controllers/list-response.test.ts`, `connectors/__tests__/search/controllers/factory.test.ts`.
+
 ## 2026-09-04 - evening dependency pass: every in-range update taken, three majors held with reasons
 
 `bun outdated --filter '*'` listed 32 rows. The 23 in-range ones moved via `bun update` (catalog

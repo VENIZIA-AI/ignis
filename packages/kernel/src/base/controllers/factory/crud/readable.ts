@@ -5,6 +5,7 @@ import { HTTP } from '@venizia/ignis-helpers/common';
 import type { Env, Schema } from 'hono';
 import type { TEntityDataObject, TEntityPersistObject, TRouteContext } from '../../common';
 import { AbstractCrudController } from './abstract';
+import { ResponseFormats } from '../../common';
 
 /** Read tier: count / find / findById / findOne. Read-only controllers can extend this directly. */
 export abstract class ReadableCrudController<
@@ -51,17 +52,12 @@ export abstract class ReadableCrudController<
           filter,
           options: { shouldQueryRange: true },
         });
-        const { start, end, total } = range;
-
-        context.header(
-          HTTP.Headers.CONTENT_RANGE,
-          data.length > 0 ? `records ${start}-${end}/${total}` : `records */${total}`,
-        );
 
         return this.respond<Array<TDataObject>>({
           context,
-          format: 'array',
-          responseData: { count: data.length, data },
+          format: ResponseFormats.ARRAY,
+          payload: { count: data.length, data },
+          range,
         });
       },
     });
@@ -82,8 +78,8 @@ export abstract class ReadableCrudController<
         const record = await this.repository.findById({ id, filter });
         return this.respond<TDataObject>({
           context,
-          format: 'object',
-          responseData: { count: record ? 1 : 0, data: record },
+          format: ResponseFormats.OBJECT,
+          payload: { count: record ? 1 : 0, data: record },
         });
       },
     });
@@ -103,8 +99,8 @@ export abstract class ReadableCrudController<
         const record = await this.repository.findOne({ filter });
         return this.respond<TDataObject>({
           context,
-          format: 'object',
-          responseData: { count: record ? 1 : 0, data: record },
+          format: ResponseFormats.OBJECT,
+          payload: { count: record ? 1 : 0, data: record },
         });
       },
     });

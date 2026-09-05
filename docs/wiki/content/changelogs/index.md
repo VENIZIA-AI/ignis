@@ -17,6 +17,7 @@ This section tracks the history of significant changes, refactors, and updates t
 
 | Date | Title | Type |
 |------|-------|------|
+| 2026-09-05 | [List Responses Share One Contract - respond Takes a Range on BaseRestController, and POST /search Gets Its Headers](./2026-09-05-list-response-contract) | New Feature, Bug Fix, Breaking Change |
 | 2026-09-04 | [Dependency Floors Raised Across the Chain, Audit Down to Six Accepted Advisories](./2026-09-04-dependency-floors-raised) | Enhancement, Security, Breaking Change |
 | 2026-09-03 | [The Deprecated Runtime Boot API Is Fully Removed](./2026-09-03-deprecated-boot-api-removed) | Breaking Change |
 | 2026-09-02 | [Bundled and Compiled Apps - Helpers Exports Stay Defined, NODE_ENV Stays a Runtime Read, One Logger Provider Across Copies](./2026-09-02-bundle-safe-helpers) | Bug Fix, Enhancement |

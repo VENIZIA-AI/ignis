@@ -36,12 +36,19 @@ class SearchFactoryDataSource extends FakeSearchDataSource {
 class SearchFactoryProductRepository extends DefaultSearchRepository {}
 
 /** Minimal `TRouteContext`-shaped fake: records the JSON body/status the handler responds with. */
-const fakeContext = <TInput>(input: TInput) => {
+const fakeContext = <TInput>(input: TInput, requestHeaders: Record<string, string> = {}) => {
   let jsonBody: unknown;
   let jsonStatus: number | undefined;
+  const responseHeaders: Record<string, string> = {};
 
   const context = {
-    req: { valid: () => input },
+    req: {
+      valid: () => input,
+      header: (name: string) => requestHeaders[name.toLowerCase()],
+    },
+    header: (name: string, value: string) => {
+      responseHeaders[name.toLowerCase()] = value;
+    },
     json: (body: unknown, status?: number) => {
       jsonBody = body;
       jsonStatus = status;
@@ -49,7 +56,12 @@ const fakeContext = <TInput>(input: TInput) => {
     },
   };
 
-  return { context: context as any, getJsonBody: () => jsonBody, getJsonStatus: () => jsonStatus };
+  return {
+    context: context as any,
+    responseHeaders,
+    getJsonBody: () => jsonBody,
+    getJsonStatus: () => jsonStatus,
+  };
 };
 
 describe('SearchControllerFactory.defineSearchController', () => {
@@ -154,5 +166,94 @@ describe('SearchControllerFactory.defineSearchController', () => {
     ]);
     expect(getJsonBody()).toEqual({ results: [{ found: 2, isFoundExact: true, hits: [] }] });
     expect(getJsonStatus()).toBe(HTTP.ResultCodes.RS_2.Ok);
+  });
+});
+
+describe('AbstractSearchController list headers', () => {
+  const twoHits = [
+    { document: { id: '1', title: 'foo' } },
+    { document: { id: '2', title: 'bar' } },
+  ];
+
+  const makeController = (opts: {
+    name: string;
+    found: number;
+    isFoundExact: boolean;
+    hits: Array<{ document: { id: string; title: string } }>;
+  }) => {
+    const dataSource = new SearchFactoryDataSource({ name: opts.name, config: {} });
+    dataSource.fakeConnector.searchResponse = {
+      found: opts.found,
+      isFoundExact: opts.isFoundExact,
+      hits: opts.hits,
+    };
+    const Controller = SearchControllerFactory.defineSearchController({
+      entity: ProductDocument,
+      repository: { name: SearchFactoryProductRepository.name },
+      controller: { name: `${opts.name}-controller`, basePath: '/products' },
+    });
+    return new Controller(new SearchFactoryProductRepository(dataSource));
+  };
+
+  test('POST /search sets Content-Range from offset and found, X-Response-Count from the page, and keeps the body', async () => {
+    const controller = makeController({
+      name: 'factory-test-ds-headers-1',
+      found: 7,
+      isFoundExact: false,
+      hits: twoHits,
+    });
+    const { context, responseHeaders, getJsonBody } = fakeContext({
+      mode: SearchModes.KEYWORD,
+      query: 'foo',
+      queryBy: ['title'],
+      filter: { offset: 3, limit: 2 },
+    });
+
+    await controller['search']({ context });
+
+    expect(responseHeaders[HTTP.Headers.CONTENT_RANGE]).toBe('records 3-4/7');
+    expect(responseHeaders[HTTP.Headers.RESPONSE_COUNT_DATA]).toBe('2');
+    expect(responseHeaders[HTTP.Headers.RESPONSE_FORMAT]).toBe('array');
+    // The body keeps its shape: `isFoundExact` has no place in a `{ count, data }` envelope.
+    expect(getJsonBody()).toEqual({ found: 7, isFoundExact: false, hits: twoHits });
+  });
+
+  test('POST /search in raw mode derives the start from page and per_page', async () => {
+    const controller = makeController({
+      name: 'factory-test-ds-headers-2',
+      found: 7,
+      isFoundExact: true,
+      hits: twoHits,
+    });
+    // Raw params are the engine wire form; the snake_case keys are assigned through string access so no object-literal key carries them.
+    const rawParams: Record<string, unknown> = { q: 'foo', page: 2 };
+    rawParams['query_by'] = 'title';
+    rawParams['per_page'] = 2;
+    const { context, responseHeaders } = fakeContext({ mode: SearchModes.RAW, params: rawParams });
+
+    await controller['search']({ context });
+
+    expect(responseHeaders[HTTP.Headers.CONTENT_RANGE]).toBe('records 2-3/7');
+    expect(responseHeaders[HTTP.Headers.RESPONSE_COUNT_DATA]).toBe('2');
+  });
+
+  test('an empty search page reports records */found', async () => {
+    const controller = makeController({
+      name: 'factory-test-ds-headers-3',
+      found: 0,
+      isFoundExact: true,
+      hits: [],
+    });
+    const { context, responseHeaders } = fakeContext({
+      mode: SearchModes.KEYWORD,
+      query: 'zzz',
+      queryBy: ['title'],
+      filter: { offset: 0, limit: 2 },
+    });
+
+    await controller['search']({ context });
+
+    expect(responseHeaders[HTTP.Headers.CONTENT_RANGE]).toBe('records */0');
+    expect(responseHeaders[HTTP.Headers.RESPONSE_COUNT_DATA]).toBe('0');
   });
 });
