@@ -57,15 +57,19 @@ export const pickRegistrationOptions = <ApplicationType = unknown>(opts: {
   if (binding !== undefined) {
     registration.binding = binding;
   }
+
   if (allowOverride !== undefined) {
     registration.allowOverride = allowOverride;
   }
+
   if (scope !== undefined) {
     registration.scope = scope;
   }
+
   if (order !== undefined) {
     registration.order = order;
   }
+
   if (when !== undefined) {
     registration.when = when;
   }
