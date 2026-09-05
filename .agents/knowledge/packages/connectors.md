@@ -11,8 +11,9 @@ reaches a backing engine. Wave 3 of the kernel refactor carved it out of
 `packages/core-server/src/connectors` - 168 source files outside `__tests__`, around 14,200 lines.
 
 It depends on `kernel`, `filter`, `helpers`, and `inversion`, and sits between `kernel` and `core`:
-`dev-configs -> inversion -> {filter, helpers} -> {boot, kernel} -> connectors -> core`.
-`make connectors` needs `kernel`; `make core` needs `boot connectors`. It ships a **single-format
+`dev-configs -> inversion -> {filter, helpers} -> kernel -> connectors -> core` (`boot` is a leaf off
+`helpers` that only applications consume). `make connectors` needs `kernel`; `make core` needs
+`connectors`. It ships a **single-format
 CommonJS build**, like `kernel` and unlike `inversion`, `filter`, and `boot`.
 
 `core-worker` does NOT depend on it. A browser application that wants a database installs this

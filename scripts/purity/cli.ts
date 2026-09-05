@@ -34,7 +34,9 @@ const run = async (): Promise<void> => {
     if (!existsSync(entry)) {
       failed += 1;
       console.log(`  ✗ ${row.label.padEnd(labelWidth)} MISSING ${row.entry}`);
-      console.log(`    The package's \`exports\` map points here and nothing is built - run \`make ${row.package}\``);
+      console.log(
+        `    The package's \`exports\` map points here and nothing is built - run \`make ${row.package}\``,
+      );
       continue;
     }
 
@@ -59,8 +61,12 @@ const run = async (): Promise<void> => {
       // the reader who trusts it next will be trusting it about a different entry.
       if (result.ok) {
         failed += 1;
-        console.log(`  ✗ ${row.label.padEnd(labelWidth)} STALE WAIVER - this entry is browser-pure now`);
-        console.log(`    Drop it from \`impure\` in scripts/purity/manifest.ts so the gate measures it again`);
+        console.log(
+          `  ✗ ${row.label.padEnd(labelWidth)} STALE WAIVER - this entry is browser-pure now`,
+        );
+        console.log(
+          `    Drop it from \`impure\` in scripts/purity/manifest.ts so the gate measures it again`,
+        );
         continue;
       }
 

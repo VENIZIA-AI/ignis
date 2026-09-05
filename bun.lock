@@ -362,7 +362,7 @@
     },
     "packages/boot": {
       "name": "@venizia/ignis-boot",
-      "version": "0.2.0-8",
+      "version": "0.2.0-9",
       "bin": {
         "ignis-artifacts": "./dist/cjs/cli.js",
       },
@@ -383,12 +383,12 @@
     },
     "packages/connectors": {
       "name": "@venizia/ignis-connectors",
-      "version": "0.2.0-14",
+      "version": "0.2.0-16",
       "dependencies": {
         "@venizia/ignis-filter": "^0.2.0-6",
-        "@venizia/ignis-helpers": "^0.2.0-9",
+        "@venizia/ignis-helpers": "^0.2.0-10",
         "@venizia/ignis-inversion": "^0.2.0-4",
-        "@venizia/ignis-kernel": "^0.2.0-14",
+        "@venizia/ignis-kernel": "^0.2.0-16",
         "lodash": "catalog:",
         "reflect-metadata": "catalog:",
         "zod": "catalog:",
@@ -426,14 +426,13 @@
     },
     "packages/core-server": {
       "name": "@venizia/ignis",
-      "version": "0.2.0-14",
+      "version": "0.2.0-16",
       "dependencies": {
-        "@venizia/ignis-boot": "^0.2.0-8",
-        "@venizia/ignis-connectors": "^0.2.0-14",
+        "@venizia/ignis-connectors": "^0.2.0-16",
         "@venizia/ignis-filter": "^0.2.0-6",
-        "@venizia/ignis-helpers": "^0.2.0-9",
+        "@venizia/ignis-helpers": "^0.2.0-10",
         "@venizia/ignis-inversion": "^0.2.0-4",
-        "@venizia/ignis-kernel": "^0.2.0-14",
+        "@venizia/ignis-kernel": "^0.2.0-16",
         "lodash": "catalog:",
         "reflect-metadata": "catalog:",
         "zod": "catalog:",
@@ -513,7 +512,7 @@
     },
     "packages/core-worker": {
       "name": "@venizia/ignis-worker",
-      "version": "0.2.0-15",
+      "version": "0.2.0-17",
       "dependencies": {
         "@venizia/ignis-helpers": "^0.2.0-9",
         "@venizia/ignis-inversion": "^0.2.0-4",
@@ -575,7 +574,7 @@
     },
     "packages/helpers": {
       "name": "@venizia/ignis-helpers",
-      "version": "0.2.0-9",
+      "version": "0.2.0-10",
       "dependencies": {
         "@venizia/ignis-inversion": "^0.2.0-4",
         "dayjs": "catalog:",
@@ -676,10 +675,10 @@
     },
     "packages/kernel": {
       "name": "@venizia/ignis-kernel",
-      "version": "0.2.0-14",
+      "version": "0.2.0-16",
       "dependencies": {
         "@venizia/ignis-filter": "^0.2.0-6",
-        "@venizia/ignis-helpers": "^0.2.0-9",
+        "@venizia/ignis-helpers": "^0.2.0-10",
         "@venizia/ignis-inversion": "^0.2.0-4",
         "lodash": "catalog:",
         "reflect-metadata": "catalog:",

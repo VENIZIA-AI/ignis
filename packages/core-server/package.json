@@ -198,7 +198,6 @@
     "prepublishOnly": "bun run rebuild"
   },
   "dependencies": {
-    "@venizia/ignis-boot": "^0.2.0-9",
     "@venizia/ignis-connectors": "^0.2.0-16",
     "@venizia/ignis-filter": "^0.2.0-6",
     "@venizia/ignis-helpers": "^0.2.0-10",

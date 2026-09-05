@@ -7,9 +7,9 @@ tags: [packages, core-server, framework]
 ---
 
 `@venizia/ignis` is the main framework package - the top of the dependency chain
-(`dev-configs -> inversion -> {filter, helpers} -> {boot, kernel} -> core`). `filter` is isomorphic
-and depends on `inversion` only; `kernel` is the browser-pure tree and sits beside `boot`, never
-after it, so it never picks up boot's node-only glob discovery. Core is built on Hono for HTTP and
+(`dev-configs -> inversion -> {filter, helpers} -> kernel -> connectors -> core`). `filter` is
+isomorphic and depends on `inversion` only; `kernel` is the browser-pure tree; `boot` is a leaf beside
+`kernel` that core does not depend on (an application declares it itself for the generator). Core is built on Hono for HTTP and
 Drizzle ORM for SQL access, with `hono`, `drizzle-orm`, `zod`, `@hono/zod-openapi`, and `jose` as
 required peers. Database clients (`pg`, `postgres`, `@libsql/client`, `typesense`, `meilisearch`)
 and `socket.io` are optional peers installed only by apps that need them.

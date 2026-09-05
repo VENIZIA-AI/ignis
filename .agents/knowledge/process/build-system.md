@@ -18,10 +18,11 @@ tags: [process, build]
 3. To build one package plus its dependencies: `make <package>`, e.g. `make helpers` runs
    `dev-configs -> inversion -> helpers` in order (each Makefile target declares its dependencies
    as prerequisites). The chain is a DAG, not a line:
-   `dev-configs -> inversion -> {filter, helpers} -> {boot, kernel} -> core`. `filter` branches off
-   `inversion` alone - it is isomorphic and deliberately does not sit after `helpers`. `kernel`
-   needs both `helpers` and `filter`, and sits beside `boot` rather than after it, so it never
-   depends on boot's node-only glob discovery. This concept is the canonical copy of the chain -
+   `dev-configs -> inversion -> {filter, helpers} -> kernel -> connectors -> core`, with `boot`
+   hanging off `helpers` as a leaf that only applications consume (`make build-all` names it
+   explicitly because `core` no longer depends on it). `filter` branches off `inversion` alone - it
+   is isomorphic and deliberately does not sit after `helpers`. `kernel` needs both `helpers` and
+   `filter`. This concept is the canonical copy of the chain -
    other concepts link here rather than restate it.
 4. To build a single package without walking its dependency chain (they're already built):
    `cd packages/<name> && bun run rebuild`. `rebuild` is `sh ./scripts/rebuild.sh`:

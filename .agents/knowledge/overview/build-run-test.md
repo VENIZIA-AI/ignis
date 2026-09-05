@@ -10,7 +10,7 @@ tags: [overview, build, test, bun]
 
 ```bash
 make build          # alias: make build-all - rebuilds every package in dependency order
-make core           # rebuilds dev-configs -> inversion -> {filter, helpers} -> {boot, kernel} -> core
+make core           # rebuilds dev-configs -> inversion -> {filter, helpers} -> kernel -> core
 make boot           # rebuilds dev-configs -> inversion -> helpers -> boot
 ```
 

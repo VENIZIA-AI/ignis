@@ -6,7 +6,7 @@ resource: packages/inversion
 tags: [packages, inversion, di, ioc]
 ---
 
-`@venizia/ignis-inversion` is the foundation layer of the framework - the start of the dependency chain (`dev-configs -> inversion -> {filter, helpers} -> {boot, kernel} -> core`). It is a small, standalone dependency injection and IoC container (on the order of a few hundred lines of core logic) with no dependency on the rest of IGNIS: only `lodash`, `reflect-metadata`, and `zod`. See [DI container](/architecture/di-container.md).
+`@venizia/ignis-inversion` is the foundation layer of the framework - the start of the dependency chain (`dev-configs -> inversion -> {filter, helpers} -> kernel -> core`). It is a small, standalone dependency injection and IoC container (on the order of a few hundred lines of core logic) with no dependency on the rest of IGNIS: only `lodash`, `reflect-metadata`, and `zod`. See [DI container](/architecture/di-container.md).
 
 ## Container tiering
 

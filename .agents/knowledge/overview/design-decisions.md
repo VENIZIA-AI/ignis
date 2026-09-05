@@ -98,7 +98,7 @@ imports the helpers root barrel, only the two audited isomorphic surfaces
 `@venizia/ignis-helpers/core` and `@venizia/ignis-helpers/common`.
 
 Two consequences worth knowing before editing kernel. It does not depend on `@venizia/ignis-boot`:
-importing it would invert the `{boot, kernel} -> core` layering - kernel sits beside boot, not after
+importing it would invert the `kernel -> core` layering - kernel sits beside boot, not after
 it, so kernel never imports a boot type, not even for a structural mirror. And the boundary is
 machine-checked, not conventional: `make purity` (`scripts/purity`) bundles each claimed entry and
 fails on any node reference. `@venizia/ignis` re-exports the kernel barrel in full, so nothing moved

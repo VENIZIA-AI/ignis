@@ -6,6 +6,14 @@ not how.
 This file and `index.md` are reserved OKF filenames - they carry no `type:` frontmatter and are not
 counted as concepts.
 
+## 2026-09-05 - core-server drops its unused `@venizia/ignis-boot` dependency; `make lint-scripts` covers `scripts/purity/`
+
+`packages/core-server/src` had no import of `ignis-boot` since the runtime boot API was removed, so the
+`dependencies` entry only forced every consumer to install it. Removed; `boot` is now a leaf off
+`helpers` that applications declare themselves for `ignis-artifacts`, `make build-all` names it
+explicitly, and the chain concepts read `... -> kernel -> connectors -> core`. `make lint-scripts`
+now globs `scripts/**/*.ts` (it skipped `scripts/purity/`; the four files were formatted).
+
 ## 2026-09-05 - opt-in boot checks: verifyBindings step, no-hand-registration strict mode, app-wide no-override
 
 Asked for by BANA's identity lane (iden-1) for the artifact-index migration, approved by the PO.
@@ -2146,7 +2154,7 @@ largest change, `packages/kernel` itself, was still staged when this ran.
 browser-pure half of the framework - the DI container, the application lifecycle, the REST controller
 layer, the repository and datasource abstractions, and the authentication and authorization seams -
 about 128 files. It sits *beside* `boot`, not after it (`dev-configs -> inversion -> {filter,
-helpers} -> {boot, kernel} -> core`), which is what keeps boot's node-only glob discovery out of the
+helpers} -> kernel -> core`), which is what keeps boot's node-only glob discovery out of the
 kernel graph. `packages/core-server/src/index.ts` re-exports the kernel wholesale, so `@venizia/ignis` keeps
 its published name and its whole public surface and no consumer import changed. New concept:
 [kernel](/packages/kernel.md).

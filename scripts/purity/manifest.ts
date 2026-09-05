@@ -163,7 +163,9 @@ const readExportsMap = (opts: { package: string }): Record<string, TExportsTarge
  * end up importing, so each is probed. `default` normally repeats `require`, so files are deduped
  * and the FIRST condition naming a file is the one that labels it.
  */
-const listConditionTargets = (target: TExportsTarget): Array<{ condition: string; file: string }> => {
+const listConditionTargets = (
+  target: TExportsTarget,
+): Array<{ condition: string; file: string }> => {
   if (typeof target === 'string') {
     return [{ condition: 'default', file: target }];
   }

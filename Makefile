@@ -83,11 +83,13 @@ release:
 # ----------------------------------------------------------------------------
 build: build-all
 
-build-all: core core-worker docs docs-mcp surface-check wiki-links-check
+build-all: core core-worker boot docs docs-mcp surface-check wiki-links-check
 	@echo "🚀 All packages rebuilt successfully."
 
 # Granular build targets for individual packages
-# Dependency chain: dev-configs → inversion → {filter, helpers} → {boot, kernel} → connectors → core
+# Dependency chain: dev-configs → inversion → {filter, helpers} → kernel → connectors → core.
+# `boot` hangs off helpers and is consumed by applications only (the `ignis-artifacts` generator) -
+# core does not depend on it, so `build-all` names it explicitly.
 # `filter` is isomorphic and depends on inversion only - it deliberately does NOT sit after helpers.
 # `kernel` is the browser-pure tree (DI container, base classes, REST controllers, auth seam) -
 # it sits beside `boot`, not after it, so it never depends on boot's node-only glob discovery.
@@ -126,7 +128,7 @@ core-worker: kernel
 	@echo "📦 Rebuilding @venizia/ignis-worker..."
 	@bun run --filter "@venizia/ignis-worker" rebuild
 
-core-server: boot connectors
+core-server: connectors
 	@echo "📦 Rebuilding @venizia/ignis (core-server)..."
 	@bun run --filter "@venizia/ignis" rebuild
 
@@ -256,7 +258,7 @@ lint-docs-mcp:
 # runs directly against the config's relative import of packages/dev-configs.
 lint-scripts:
 	@echo "🔍 Linting scripts/..."
-	@bunx prettier --config scripts/.prettierrc.mjs -l 'scripts/*.ts'
+	@bunx prettier --config scripts/.prettierrc.mjs -l 'scripts/**/*.ts'
 	@bunx tsc -p scripts/tsconfig.json
 
 # ----------------------------------------------------------------------------

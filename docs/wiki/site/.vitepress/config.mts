@@ -456,6 +456,10 @@ const config = defineConfig({
               collapsed: true,
               items: [
                 {
+                  text: 'ignis Drops ignis-boot',
+                  link: '/changelogs/2026-09-05-core-drops-boot-dependency',
+                },
+                {
                   text: 'Boot Checks',
                   link: '/changelogs/2026-09-05-boot-checks',
                 },

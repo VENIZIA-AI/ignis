@@ -8,9 +8,9 @@ tags: [packages, kernel, browser, isomorphic, di]
 
 `@venizia/ignis-kernel` holds everything in the framework that needs neither a node builtin nor a
 server-only peer, so the same kernel serves a Bun server and a browser Worker. It sits beside `boot`
-in the dependency chain (`dev-configs -> inversion -> {filter, helpers} -> {boot, kernel} -> core`)
+in the dependency chain (`dev-configs -> inversion -> {filter, helpers} -> kernel -> core`)
 and depends on `filter`, `helpers`, and `inversion`. `boot` is a sibling, not a link - neither
-package depends on the other, and `core` pulls in both (`make core` needs `boot kernel`). Sitting
+package depends on the other, and only `kernel` feeds `core` (`make core` needs `connectors`; `boot` is a devDependency an application declares for the generator). Sitting
 beside `boot` rather than after it is what keeps boot's node-only glob discovery out of the kernel
 graph.
 

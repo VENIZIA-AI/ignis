@@ -29,7 +29,7 @@ tags: [reference, make, build]
 | `make release-plan` | - | - |
 | `make release` | - | - |
 | `make build` | `build-all` | - |
-| `make build-all` | `core core-worker docs docs-mcp surface-check wiki-links-check` | All packages rebuilt successfully. |
+| `make build-all` | `core core-worker boot docs docs-mcp surface-check wiki-links-check` | All packages rebuilt successfully. |
 | `make dev-configs` | - | Rebuilding @venizia/dev-configs |
 | `make inversion` | `dev-configs` | Rebuilding @venizia/ignis-inversion |
 | `make filter` | `inversion` | Rebuilding @venizia/ignis-filter |
@@ -38,7 +38,7 @@ tags: [reference, make, build]
 | `make kernel` | `helpers filter` | Rebuilding @venizia/ignis-kernel |
 | `make connectors` | `kernel` | Rebuilding @venizia/ignis-connectors |
 | `make core-worker` | `kernel` | Rebuilding @venizia/ignis-worker |
-| `make core-server` | `boot connectors` | Rebuilding @venizia/ignis (core-server) |
+| `make core-server` | `connectors` | Rebuilding @venizia/ignis (core-server) |
 | `make core` | `core-server` | - |
 | `make docs` | - | Rebuilding wiki (VitePress) |
 | `make docs-mcp` | `dev-configs` | Rebuilding @venizia/ignis-docs (MCP Server) |

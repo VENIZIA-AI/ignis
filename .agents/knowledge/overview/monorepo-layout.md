@@ -31,12 +31,12 @@ versions churn on every release and would make the bundle stale for no gain.
 Packages build in a fixed dependency order - see [build system](/process/build-system.md):
 
 ```
-dev-configs -> inversion -> {filter, helpers} -> {boot, kernel} -> core
+dev-configs -> inversion -> {filter, helpers} -> kernel -> connectors -> core
+                                      helpers -> boot   (applications only)
 ```
 
 `filter` is isomorphic and depends on `inversion` only - it deliberately does not sit after
-`helpers`. `kernel` is the browser-pure tree and sits beside `boot`, not after it, so it never picks
-up boot's node-only glob discovery.
+`helpers`. `kernel` is the browser-pure tree; `boot` is a leaf no framework package depends on.
 
 ## Other top-level directories
 

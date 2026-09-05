@@ -6,7 +6,7 @@ resource: packages/helpers
 tags: [packages, helpers, utilities]
 ---
 
-`@venizia/ignis-helpers` sits one layer above `inversion` in the dependency chain (`dev-configs -> inversion -> {filter, helpers} -> {boot, kernel} -> core`) - it depends on `inversion` alone, and `boot`, `kernel` and `core` all depend on it. It is a production-ready utility library designed to integrate with the IGNIS IoC container, and ships a dual CJS + ESM build. See the full catalog at [helpers catalog](/reference/helpers.md).
+`@venizia/ignis-helpers` sits one layer above `inversion` in the dependency chain (`dev-configs -> inversion -> {filter, helpers} -> kernel -> core`) - it depends on `inversion` alone, and `boot`, `kernel` and `core` all depend on it. It is a production-ready utility library designed to integrate with the IGNIS IoC container, and ships a dual CJS + ESM build. See the full catalog at [helpers catalog](/reference/helpers.md).
 
 ## Module map
 
