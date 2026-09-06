@@ -11,10 +11,6 @@ import { existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { FreshnessGuard } from './server/freshness';
 
-// Informational only (the `initialize` response) - not read from package.json: the relative depth
-// to it differs between running from source and running the built `dist/cjs/` output.
-const SERVER_VERSION = '0.1.0-0';
-
 const REPO_WIKI_MARKER = 'docs/wiki/content';
 const REPO_KNOWLEDGE_MARKER = '.agents/knowledge';
 const SNAPSHOT_DIRECTORY = 'corpus';
@@ -66,8 +62,12 @@ const buildGuardedTool = (opts: {
  * Builds the MCP transport for one session. Repo mode indexes the live tree and re-checks
  * freshness on every tool call; snapshot mode indexes the packaged corpus once, immutably.
  */
-export const buildServer = (opts: { mode: TAtlasMode; root: string }): Transport => {
-  const { mode, root } = opts;
+export const buildServer = (opts: {
+  mode: TAtlasMode;
+  root: string;
+  version: string;
+}): Transport => {
+  const { mode, root, version } = opts;
   const guard = new FreshnessGuard({ mode, roots: resolveRoots({ mode, root }) });
   const initialStore = guard.getStore();
 
@@ -77,6 +77,6 @@ export const buildServer = (opts: { mode: TAtlasMode; root: string }): Transport
       buildGuardedTool({ guard, initialStore, build: buildGetTool }),
     ],
     serverName: AtlasConstants.SERVER_NAME,
-    serverVersion: SERVER_VERSION,
+    serverVersion: version,
   });
 };

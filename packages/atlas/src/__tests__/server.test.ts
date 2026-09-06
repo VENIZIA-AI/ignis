@@ -11,6 +11,7 @@ import { afterEach, describe, expect, spyOn, test } from 'bun:test';
 // __tests__, and this package's module mode treats every file as CommonJS output.
 const REPO_ROOT = join(__dirname, '../../../..');
 const FIXTURES = join(__dirname, 'fixtures/corpus');
+const TEST_VERSION = '0.0.0-test';
 
 const tempDirs: string[] = [];
 
@@ -30,7 +31,11 @@ afterEach(() => {
 const parseReply = (
   line: string | null,
 ): {
-  result?: { tools?: { name: string }[]; content?: { text: string }[] };
+  result?: {
+    tools?: { name: string }[];
+    content?: { text: string }[];
+    serverInfo?: { version?: string };
+  };
   error?: { message: string };
 } => JSON.parse(line ?? 'null');
 
@@ -47,8 +52,27 @@ const listToolNames = async (opts: {
 
 describe('buildServer', () => {
   test('repo mode exposes exactly the search and get tools', async () => {
-    const transport = buildServer({ mode: AtlasModes.REPO, root: REPO_ROOT });
+    const transport = buildServer({
+      mode: AtlasModes.REPO,
+      root: REPO_ROOT,
+      version: TEST_VERSION,
+    });
     expect(await listToolNames({ transport })).toEqual(['search', 'get']);
+  });
+
+  test('serverInfo.version is whatever version buildServer was given, not a hardcoded string (I6)', async () => {
+    const transport = buildServer({
+      mode: AtlasModes.REPO,
+      root: REPO_ROOT,
+      version: TEST_VERSION,
+    });
+    const reply = parseReply(
+      await transport.handleLine({
+        line: JSON.stringify({ jsonrpc: '2.0', id: 1, method: 'initialize', params: {} }),
+      }),
+    );
+
+    expect(reply.result?.serverInfo?.version).toBe(TEST_VERSION);
   });
 
   test('snapshot mode loads the packaged corpus and can answer a search', async () => {
@@ -56,7 +80,7 @@ describe('buildServer', () => {
     cpSync(join(FIXTURES, 'wiki'), join(root, 'corpus/wiki'), { recursive: true });
     cpSync(join(FIXTURES, 'changelogs'), join(root, 'corpus/changelogs'), { recursive: true });
 
-    const transport = buildServer({ mode: AtlasModes.SNAPSHOT, root });
+    const transport = buildServer({ mode: AtlasModes.SNAPSHOT, root, version: TEST_VERSION });
     expect(await listToolNames({ transport })).toEqual(['search', 'get']);
 
     const reply = parseReply(
@@ -85,7 +109,7 @@ describe('buildServer', () => {
       for (const mode of modes) {
         let caught: unknown;
         try {
-          buildServer({ mode, root });
+          buildServer({ mode, root, version: TEST_VERSION });
         } catch (error) {
           caught = error;
         }

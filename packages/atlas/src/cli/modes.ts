@@ -20,15 +20,26 @@ export interface IResolvedMode {
   root: string;
 }
 
-const readPackageName = (opts: { directory: string }): string | undefined => {
+interface IPackageManifest {
+  name?: string;
+  version?: string;
+}
+
+const readManifest = (opts: { directory: string }): IPackageManifest | undefined => {
   const manifestPath = join(opts.directory, 'package.json');
   if (!existsSync(manifestPath)) {
     return undefined;
   }
 
-  const manifest: { name?: string } = JSON.parse(readFileSync(manifestPath, 'utf8'));
-  return manifest.name;
+  return JSON.parse(readFileSync(manifestPath, 'utf8'));
 };
+
+const readPackageName = (opts: { directory: string }): string | undefined =>
+  readManifest(opts)?.name;
+
+/** The located package's own `version` - read fresh so a release bump is never stale in the running server. */
+export const readPackageVersion = (opts: { directory: string }): string | undefined =>
+  readManifest(opts)?.version;
 
 /** `startDirectory` and every directory above it, up to and including the filesystem root. */
 const ancestorsOf = (opts: { startDirectory: string }): string[] => {

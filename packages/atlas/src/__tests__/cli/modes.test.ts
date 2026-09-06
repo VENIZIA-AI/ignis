@@ -1,5 +1,5 @@
 import { AtlasModes } from '@/common';
-import { findPackageDirectory, ModeUsageError, resolveMode } from '@/cli/modes';
+import { findPackageDirectory, ModeUsageError, readPackageVersion, resolveMode } from '@/cli/modes';
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -87,5 +87,27 @@ describe('findPackageDirectory', () => {
   test('throws when no ancestor package.json names this package', () => {
     const orphan = makeTempDir({ prefix: 'atlas-modes-orphan-' });
     expect(() => findPackageDirectory({ startDirectory: orphan })).toThrow();
+  });
+});
+
+describe('readPackageVersion (I6)', () => {
+  test('reads the version field from the located package.json', () => {
+    const packageDirectory = makeTempDir({ prefix: 'atlas-modes-version-' });
+    writeFileSync(
+      join(packageDirectory, 'package.json'),
+      JSON.stringify({ name: '@venizia/ignis-atlas', version: '9.9.9-test' }),
+    );
+
+    expect(readPackageVersion({ directory: packageDirectory })).toBe('9.9.9-test');
+  });
+
+  test('is undefined when the directory has no package.json', () => {
+    const empty = makeTempDir({ prefix: 'atlas-modes-no-manifest-' });
+    expect(readPackageVersion({ directory: empty })).toBeUndefined();
+  });
+
+  test('reads the real packages/atlas version from this test file location', () => {
+    const packageDirectory = findPackageDirectory({ startDirectory: __dirname });
+    expect(readPackageVersion({ directory: packageDirectory })).toMatch(/^\d+\.\d+\.\d+/);
   });
 });
