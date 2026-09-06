@@ -1,5 +1,6 @@
 import { AtlasModes } from '@/common';
 import type { TAtlasMode } from '@/common';
+import { getError } from '@venizia/ignis-helpers/core';
 import { existsSync, readFileSync } from 'node:fs';
 import { dirname, join, parse } from 'node:path';
 
@@ -52,9 +53,9 @@ export const findPackageDirectory = (opts: { startDirectory: string }): string =
   );
 
   if (!found) {
-    throw new Error(
-      `[findPackageDirectory] no ${PACKAGE_NAME} package.json found above ${opts.startDirectory}`,
-    );
+    throw getError({
+      message: `[findPackageDirectory] no ${PACKAGE_NAME} package.json found | started at: ${opts.startDirectory}`,
+    });
   }
 
   return found;
