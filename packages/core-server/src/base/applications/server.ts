@@ -1,4 +1,5 @@
 import { CoreBindings, RestApplication } from '@venizia/ignis-kernel';
+import { ModuleUtility } from '@venizia/ignis-helpers';
 import { getError } from '@venizia/ignis-helpers/core';
 import { RuntimeModules } from '@venizia/ignis-helpers/common';
 import type { Env, Schema } from 'hono';
@@ -82,10 +83,11 @@ export abstract class ServerApplication<
     return true;
   }
 
-  /** `configs.projectRoot` wins, else the process cwd - a listening server has a real one. Overriding still works for anything the config cannot express. */
+  /** `configs.projectRoot` wins, else the process cwd. The value is bound AND handed to `ModuleUtility`, so every peer lookup (optional modules, the gRPC adapter) resolves under it - a compiled binary sets it to where its `node_modules` really is. */
   override getProjectRoot(): string {
     const projectRoot = this.configs.projectRoot ?? process.cwd();
     this.bind<string>({ key: CoreBindings.APPLICATION_PROJECT_ROOT }).toValue(projectRoot);
+    ModuleUtility.setProjectRoot({ projectRoot });
     return projectRoot;
   }
 

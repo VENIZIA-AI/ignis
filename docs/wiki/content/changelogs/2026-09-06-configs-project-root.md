@@ -27,8 +27,11 @@ export const configs: IServerApplicationConfigs = {
 | Symbol | Change | Package |
 |---|---|---|
 | `IServerApplicationConfigs.projectRoot` | New optional string | core-server |
-| `ServerApplication.getProjectRoot()` | Returns `configs.projectRoot ?? process.cwd()`; still binds `CoreBindings.APPLICATION_PROJECT_ROOT` | core-server |
+| `ServerApplication.getProjectRoot()` | Returns `configs.projectRoot ?? process.cwd()`; still binds `CoreBindings.APPLICATION_PROJECT_ROOT`; hands the value to `ModuleUtility.setProjectRoot()` | core-server |
+| `ModuleUtility.setProjectRoot()` / `getProjectRoot()` | New; every optional-peer lookup (`loadSync`, `assertInstalled`) resolves under `<projectRoot>/node_modules` instead of the process cwd | helpers |
+| `GrpcRequestAdapter` | Resolves `@connectrpc/connect` under the same root | core-server |
 
+- Until now the binding had no reader: nothing in the framework resolved anything from it. It now decides where optional peers are looked up, so a compiled binary or a process started from another directory sets `projectRoot` to where its `node_modules` lives.
 - The value is read in the base constructor, before `preConfigure()`, so it must come from the config object, not from something bound later.
 - An override of `getProjectRoot()` still wins; nothing forces the change.
 

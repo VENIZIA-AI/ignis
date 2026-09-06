@@ -4,8 +4,9 @@ import { ServerApplication } from '@/base/applications';
 import type { IServerApplicationConfigs } from '@/base/applications';
 import { CoreBindings } from '@venizia/ignis-kernel';
 import type { IApplicationInfo } from '@venizia/ignis-kernel';
+import { ModuleUtility } from '@venizia/ignis-helpers';
 import type { ValueOrPromise } from '@venizia/ignis-helpers/common';
-import { describe, expect, test } from 'bun:test';
+import { afterEach, describe, expect, test } from 'bun:test';
 import { join } from 'node:path';
 
 class ProjectRootApplication extends ServerApplication {
@@ -35,6 +36,10 @@ const buildConfigs = (opts?: Partial<IServerApplicationConfigs>): IServerApplica
 });
 
 describe('ServerApplication - configs.projectRoot', () => {
+  afterEach(() => {
+    ModuleUtility.setProjectRoot({ projectRoot: process.cwd() });
+  });
+
   test('absent: the project root is the process cwd, bound under APPLICATION_PROJECT_ROOT', () => {
     const application = new ProjectRootApplication({ scope: 'default', config: buildConfigs() });
 
@@ -55,6 +60,13 @@ describe('ServerApplication - configs.projectRoot', () => {
     expect(application.get<string>({ key: CoreBindings.APPLICATION_PROJECT_ROOT })).toBe(
       projectRoot,
     );
+  });
+
+  test('the configured root reaches ModuleUtility, so peer lookups resolve under it', () => {
+    const projectRoot = join('/srv', 'finance');
+    new ProjectRootApplication({ scope: 'shared-root', config: buildConfigs({ projectRoot }) });
+
+    expect(ModuleUtility.getProjectRoot()).toBe(projectRoot);
   });
 
   test('an override still wins over the config', () => {
