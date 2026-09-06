@@ -36,8 +36,19 @@ export class ArtifactScanner extends BaseHelper {
 
     return {
       artifacts: this.sortArtifacts(kept.flatMap(filePath => this.scanFile({ filePath }))),
-      ignored: this.sortArtifacts(hidden.flatMap(filePath => this.scanFile({ filePath }))),
+      ignored: this.sortArtifacts(hidden.flatMap(filePath => this.scanHiddenFile({ filePath }))),
     };
+  }
+
+  /** A hidden file is only reported on, never a reason to fail: a scan error becomes one warning and the file contributes nothing. */
+  private scanHiddenFile(opts: { filePath: string }): IScannedArtifact[] {
+    try {
+      return this.scanFile({ filePath: opts.filePath, isHidden: true });
+    } catch (error) {
+      const reason = error instanceof Error ? error.message : String(error);
+      this.logger.for('scanHiddenFile').warn('Skipped hidden file %s | %s', opts.filePath, reason);
+      return [];
+    }
   }
 
   private sortArtifacts(artifacts: IScannedArtifact[]): IScannedArtifact[] {
@@ -66,8 +77,8 @@ export class ArtifactScanner extends BaseHelper {
     return { kept: kept.sort(), hidden: hidden.sort() };
   }
 
-  private scanFile(opts: { filePath: string }): IScannedArtifact[] {
-    const { filePath } = opts;
+  private scanFile(opts: { filePath: string; isHidden?: boolean }): IScannedArtifact[] {
+    const { filePath, isHidden = false } = opts;
     const source = ts.createSourceFile(
       filePath,
       readFileSync(filePath, 'utf8'),
@@ -112,14 +123,16 @@ export class ArtifactScanner extends BaseHelper {
       const isAbstract = has(ts.SyntaxKind.AbstractKeyword);
 
       if (!isNamedExport || isAbstract) {
-        this.logger
-          .for('scanFile')
-          .warn(
-            'Skipped %s in %s | %s',
-            className,
-            filePath,
-            isAbstract ? 'abstract' : 'not a named export',
-          );
+        if (!isHidden) {
+          this.logger
+            .for('scanFile')
+            .warn(
+              'Skipped %s in %s | %s',
+              className,
+              filePath,
+              isAbstract ? 'abstract' : 'not a named export',
+            );
+        }
         return;
       }
 

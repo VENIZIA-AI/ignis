@@ -12,7 +12,19 @@ class FakeMessagesStream extends EventEmitter {
 
   isClosed = false;
   destroyCount = 0;
+  destroyedWith: Error | undefined;
 
+  constructor() {
+    super();
+    // A real Readable's async iterator rejects on 'error' whether or not destroy() was called.
+    this.on('error', (error: Error) => {
+      this.destroyedWith = error;
+      this.isClosed = true;
+      this.release();
+    });
+  }
+
+  /** Like a real Readable: `destroy(error)` rejects the pending iteration, so loop-mode tests exercise `drainStream`'s catch. */
   async *[Symbol.asyncIterator](): AsyncGenerator<AnyType> {
     while (!this.isClosed) {
       const next = this.pending.shift();
@@ -24,6 +36,9 @@ class FakeMessagesStream extends EventEmitter {
       await new Promise<void>(resolve => {
         this.wakeUp = resolve;
       });
+    }
+    if (this.destroyedWith) {
+      throw this.destroyedWith;
     }
   }
 
@@ -37,8 +52,9 @@ class FakeMessagesStream extends EventEmitter {
     this.release();
   }
 
-  destroy(_error?: Error): void {
+  destroy(error?: Error): void {
     this.destroyCount += 1;
+    this.destroyedWith = error;
     this.isClosed = true;
     this.release();
   }

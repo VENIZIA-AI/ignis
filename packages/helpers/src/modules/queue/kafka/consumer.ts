@@ -195,15 +195,7 @@ export class KafkaConsumerHelper<
     // Always attached, hook or not: a stream 'error' with ZERO listeners is rethrown by EventEmitter as an uncaught exception, so a pull-style consumer (start() + getStream(), no onMessage/onMessageError) would take the whole process down on the first broker drop.
     this.stream.on(KafkaClientEvents.STREAM_ERROR, (streamError: Error) => {
       this.logger.for('start').error('Kafka stream ERROR | Error: %s', streamError);
-
-      invokeHook({
-        logger: this.logger,
-        scope: 'start',
-        execution: () =>
-          this.onStreamError
-            ? this.onStreamError({ error: streamError })
-            : this.onMessageError?.({ error: streamError }),
-      });
+      this.reportStreamError({ error: streamError, scope: 'start' });
     });
 
     if (this.onMessage) {
@@ -357,6 +349,22 @@ export class KafkaConsumerHelper<
     }
   }
 
+  /** Pull mode only: in loop mode the iterator rejects with the same error and `drainStream` reports it once, so the listener stays silent to avoid a double delivery. */
+  protected reportStreamError(opts: { error: Error; scope: string }): void {
+    if (this.consumeLoop) {
+      return;
+    }
+
+    invokeHook({
+      logger: this.logger,
+      scope: opts.scope,
+      execution: () =>
+        this.onStreamError
+          ? this.onStreamError({ error: opts.error })
+          : this.onMessageError?.({ error: opts.error }),
+    });
+  }
+
   protected async *drainStream(opts: {
     errorHandler?: TKafkaMessageErrorCallback<KeyType, ValueType, HeaderKeyType, HeaderValueType>;
   }) {
@@ -378,7 +386,10 @@ export class KafkaConsumerHelper<
       invokeHook({
         logger: this.logger,
         scope: 'drainStream',
-        execution: () => opts.errorHandler?.({ error: normalizedError }),
+        execution: () =>
+          this.onStreamError
+            ? this.onStreamError({ error: normalizedError })
+            : opts.errorHandler?.({ error: normalizedError }),
       });
     }
 
@@ -451,15 +462,7 @@ export class KafkaConsumerHelper<
       // Always attached, hook or not, like the listener in start(): a stream 'error' with ZERO listeners is rethrown by EventEmitter and takes the process down.
       this.stream.on(KafkaClientEvents.STREAM_ERROR, (streamError: Error) => {
         this.logger.for('attemptReconnect').error('Kafka stream ERROR | Error: %s', streamError);
-
-        invokeHook({
-          logger: this.logger,
-          scope: 'attemptReconnect',
-          execution: () =>
-            this.onStreamError
-              ? this.onStreamError({ error: streamError })
-              : this.onMessageError?.({ error: streamError }),
-        });
+        this.reportStreamError({ error: streamError, scope: 'attemptReconnect' });
       });
 
       this.sessionLikelyStale = false;

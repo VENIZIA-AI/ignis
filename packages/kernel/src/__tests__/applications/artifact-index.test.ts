@@ -1,5 +1,6 @@
 import { ArtifactIndexHelper } from '@/base/applications/artifact-index';
 import { ArtifactIndexFields } from '@/base/applications/common';
+import type { TArtifactIndexInput } from '@/base/applications/common';
 import { service } from '@/base/metadata';
 import { describe, expect, test } from 'bun:test';
 
@@ -39,6 +40,25 @@ describe('ArtifactIndexHelper.flatten', () => {
       application,
     });
     expect(dropped).toEqual([services]);
+  });
+
+  test('a consumer filter that destructures kinds from a non-array input still compiles and runs', async () => {
+    const dropControllers = (input: TArtifactIndexInput): TArtifactIndexInput => {
+      if (Array.isArray(input)) {
+        return input.map(dropControllers);
+      }
+      const { controllers, ...rest } = input;
+      return controllers ? rest : input;
+    };
+
+    const filtered = dropControllers([
+      { controllers: [Plain], services: [AlsoPlain] },
+      { when: () => true, index: { services: [Plain] } },
+    ]);
+    const resolved = await helper.resolve({ input: filtered, application });
+
+    expect(resolved.controllers).toEqual([]);
+    expect(resolved.services).toEqual([AlsoPlain, Plain]);
   });
 
   test('when receives the application and may be async; the gate reads run mode from it', async () => {

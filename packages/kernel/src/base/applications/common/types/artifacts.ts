@@ -14,8 +14,8 @@ export interface IArtifactIndex {
   controllers?: ReadonlyArray<TClass<unknown>>;
 }
 
-/** An index (or nested indexes) registered only when `when` answers true - the run-mode gate: a worker keeps its controllers out of the container instead of mounting routes no security step guards. */
-export interface IConditionalArtifactIndex {
+/** An index (or nested indexes) registered only when `when` answers true - the run-mode gate: a worker keeps its controllers out of the container instead of mounting routes no security step guards. Extends the never-typed kind fields so code that destructures kinds from a non-array input still compiles against the union. */
+export interface IConditionalArtifactIndex extends Partial<Record<keyof IArtifactIndex, never>> {
   when: TArtifactCondition;
   index: TArtifactIndexInput;
 }

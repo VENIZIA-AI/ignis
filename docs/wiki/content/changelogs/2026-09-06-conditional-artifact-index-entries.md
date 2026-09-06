@@ -39,6 +39,7 @@ export const configs: IApplicationConfigs = {
 - `when` receives `{ application }` and may be async, the same signature as the `when` on a class decorator. It may ignore its argument and read the environment instead.
 - A false `when` drops the whole subtree, nested arrays included. Nothing behind it is bound, so `bootChecks.binding.doVerify` never sees it either.
 - A per-class `when` on a decorator still applies inside a kept subtree.
+- The entry also carries the five kind fields typed `never`, so code that destructures `controllers`, `services` and so on from a non-array input still compiles against the widened union.
 
 ## Who is affected
 

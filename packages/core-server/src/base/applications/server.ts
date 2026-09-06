@@ -3,6 +3,7 @@ import { ModuleUtility } from '@venizia/ignis-helpers';
 import { getError } from '@venizia/ignis-helpers/core';
 import { RuntimeModules } from '@venizia/ignis-helpers/common';
 import type { Env, Schema } from 'hono';
+import { existsSync } from 'node:fs';
 import path from 'node:path';
 import type {
   IServerApplication,
@@ -86,6 +87,14 @@ export abstract class ServerApplication<
   /** `configs.projectRoot` wins, else the process cwd. The value is bound AND handed to `ModuleUtility`, so every peer lookup (optional modules, the gRPC adapter) resolves under it - a compiled binary sets it to where its `node_modules` really is. */
   override getProjectRoot(): string {
     const projectRoot = this.configs.projectRoot ?? process.cwd();
+    if (this.configs.projectRoot && !existsSync(path.join(projectRoot, 'node_modules'))) {
+      this.logger
+        .for(this.getProjectRoot.name)
+        .warn(
+          'configs.projectRoot has no node_modules | root: %s | optional peers will not resolve from it',
+          projectRoot,
+        );
+    }
     this.bind<string>({ key: CoreBindings.APPLICATION_PROJECT_ROOT }).toValue(projectRoot);
     ModuleUtility.setProjectRoot({ projectRoot });
     return projectRoot;

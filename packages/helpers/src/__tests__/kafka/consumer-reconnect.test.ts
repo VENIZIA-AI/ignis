@@ -659,3 +659,56 @@ describe('KafkaConsumerHelper - reconnect error routing, the other two sites', (
     expect(() => stream.emit('error', new Error('broker dropped'))).not.toThrow();
   });
 });
+
+describe('KafkaConsumerHelper - one delivery per stream error on a real Readable', () => {
+  test('TC-180: loop mode - a destroyed Readable reaches onStreamError exactly once and onMessageError never', async () => {
+    const streamErrors: Error[] = [];
+    const messageErrors: Error[] = [];
+    const stream = new Readable({ objectMode: true, read: () => {} });
+
+    const helper = KafkaConsumerHelper.newInstance({
+      clientId: 'ignis-test-once',
+      bootstrapBrokers: ['127.0.0.1:9092'],
+      groupId: 'ignis-test-once-group',
+      onMessage: async () => {},
+      onStreamError: opts => {
+        streamErrors.push(opts.error);
+      },
+      onMessageError: opts => {
+        messageErrors.push(opts.error);
+      },
+      maxReconnectAttempts: 0,
+    });
+    (helper.getConsumer() as AnyType as { consume: (opts: unknown) => Promise<unknown> }).consume =
+      async () => stream;
+
+    await helper.start({ topics: ['t'] });
+    stream.destroy(new Error('broker dropped'));
+    await sleep(50);
+
+    expect(streamErrors.map(error => error.message)).toEqual(['broker dropped']);
+    expect(messageErrors).toEqual([]);
+  });
+
+  test('TC-181: pull mode - the same error reaches onStreamError once through the listener', async () => {
+    const streamErrors: Error[] = [];
+    const stream = new Readable({ objectMode: true, read: () => {} });
+
+    const helper = KafkaConsumerHelper.newInstance({
+      clientId: 'ignis-test-once-pull',
+      bootstrapBrokers: ['127.0.0.1:9092'],
+      groupId: 'ignis-test-once-pull-group',
+      onStreamError: opts => {
+        streamErrors.push(opts.error);
+      },
+    });
+    (helper.getConsumer() as AnyType as { consume: (opts: unknown) => Promise<unknown> }).consume =
+      async () => stream;
+
+    await helper.start({ topics: ['t'] });
+    stream.destroy(new Error('broker dropped'));
+    await sleep(20);
+
+    expect(streamErrors.map(error => error.message)).toEqual(['broker dropped']);
+  });
+});

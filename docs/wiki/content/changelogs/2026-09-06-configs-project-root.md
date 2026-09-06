@@ -14,7 +14,7 @@ description: IServerApplicationConfigs gains projectRoot; ServerApplication.getP
 ```typescript
 export const configs: IServerApplicationConfigs = {
   path: { base: '/api', isStrict: true },
-  projectRoot: __dirname,
+  projectRoot: process.env.APP_ROOT ?? process.cwd(),
 };
 ```
 
@@ -31,13 +31,14 @@ export const configs: IServerApplicationConfigs = {
 | `ModuleUtility.setProjectRoot()` / `getProjectRoot()` | New; every optional-peer lookup (`loadSync`, `assertInstalled`) resolves under `<projectRoot>/node_modules` instead of the process cwd | helpers |
 | `GrpcRequestAdapter` | Resolves `@connectrpc/connect` under the same root | core-server |
 
-- Until now the binding had no reader: nothing in the framework resolved anything from it. It now decides where optional peers are looked up, so a compiled binary or a process started from another directory sets `projectRoot` to where its `node_modules` lives.
+- Until now the binding had no reader: nothing in the framework resolved anything from it. It now decides where optional peers are looked up: `ModuleUtility.loadSync`/`assertInstalled` (mail transports, the secrets providers) and the gRPC adapter. The pino transports resolve at the first log line, usually before an application exists, and keep using the cwd.
+- Set `projectRoot` only to the directory that holds `node_modules` **at run time**. In a `bun build --compile` binary `__dirname` is the compile-time directory and `import.meta.dir` is virtual, so a binary leaves the option unset (the cwd) or derives it from `process.execPath`. When the option is set and `<projectRoot>/node_modules` does not exist, the boot log carries one warning.
 - The value is read in the base constructor, before `preConfigure()`, so it must come from the config object, not from something bound later.
 - An override of `getProjectRoot()` still wins; nothing forces the change.
 
 ## Who is affected
 
-- **Applications that override `getProjectRoot()` only to return `__dirname`.** Set `projectRoot: __dirname` where the config is built and delete the override.
+- **Applications that override `getProjectRoot()` only to return `__dirname`.** Delete the override; the default (`process.cwd()`) is what peer resolution used all along. Set `projectRoot` only when the process really runs from another directory, and never to `__dirname` in a compiled binary.
 - **Everyone else.** No action needed.
 
 ## Details

@@ -104,3 +104,32 @@ describe('generate / check report the decorated classes a user --ignore hides', 
     rmSync(root, { recursive: true, force: true });
   });
 });
+
+describe('a broken file under a user --ignore never fails the run', () => {
+  test('two stereotypes on one hidden class: generate succeeds, the class is reported nowhere', () => {
+    const root = mkdtempSync(join(tmpdir(), 'ignis-ignored-broken-'));
+    const fixture = readFileSync(join(FIXTURES, 'services', 'greeter.service.ts'), 'utf8');
+    writeFileSync(join(root, 'kept.service.ts'), fixture.replace('GreeterService', 'KeptService'));
+    mkdirSync(join(root, 'legacy'), { recursive: true });
+    writeFileSync(
+      join(root, 'legacy', 'broken.ts'),
+      [
+        "import { service, controller } from '@venizia/ignis';",
+        '',
+        '@service()',
+        '@controller()',
+        'export class BrokenArtifact {}',
+        '',
+      ].join('\n'),
+    );
+
+    const out = join(root, 'artifacts.ts');
+    const generated = generateArtifactIndex({ root, out, ignore: ['legacy/**'] });
+    expect(generated.artifacts.map(a => a.className)).toEqual(['KeptService']);
+    expect(generated.ignored).toEqual([]);
+
+    expect(() => generateArtifactIndex({ root, out })).toThrow('carries 2 stereotypes');
+
+    rmSync(root, { recursive: true, force: true });
+  });
+});
