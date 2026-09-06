@@ -53,6 +53,13 @@ kept. A field wider than 100 columns wraps one name per line with trailing comma
 the repo's `prettier -l` untouched. No IGNIS import in the file - the object is type-checked where
 `registerArtifacts` receives it.
 
+## Generated header names the command
+
+The first line of a generated index is `ArtifactIndexEmitter.renderHeader({ root, out, ignore, exportName })`:
+the flags the CLI actually received, `--ignore` only when non-empty, `--export` only when the name is
+not `GeneratedArtifacts`. Changing the header makes `ignis-artifacts check` report every existing
+index stale once, so a build must run `generate` before `check`.
+
 ## CLI
 
 | Flag | Default | Meaning |

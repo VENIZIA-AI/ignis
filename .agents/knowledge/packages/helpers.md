@@ -43,6 +43,12 @@ unref'd `start()`, `stop()`, exact per-batch `dropped` lap accounting). `LoggerF
 
 ## Sub-path exports isolate optional peers
 
+The root barrel itself has one REQUIRED peer beyond its dependencies: `@hono/zod-openapi`, loaded by
+`error/schemas.ts` (`ErrorSchema`, kept on the root because BANA imports it there). The manifest
+declares it since 0.2.0-14; `src/__tests__/manifest/root-barrel-dependencies.test.ts` walks every
+static import reachable from `src/index.ts` and fails on any bare package that is neither a
+dependency nor a peer - the gate that would have caught the Atlas tarball dying on this import.
+
 Helpers that depend on an optional peer package are never re-exported from the root barrel - they are reachable only via their own sub-path, so importing `@venizia/ignis-helpers` never forces that peer into a consumer's bundle. Confirmed sub-path-only exports: `@venizia/ignis-helpers/socket-io`, `/bullmq`, `/mqtt`, `/minio`, `/bun-s3`, `/axios`, `/cron`, `/kafka`, `/hashicorp-vault`, `/dotenv-vault`, `/winston`, and `/pino`. Dedicated tests assert the root barrel never re-exports the axios fetcher, never loads winston, and never resolves pino.
 
 `/common` is a sub-path of a different kind: it does not isolate a peer, it exposes the surface that is already browser-safe. The root barrel is `export * from './modules'`, so reaching one constant through it drags 14 node builtins and 27 packages (winston, ioredis, hono, dayjs) into a browser bundle - measured, not assumed. `@venizia/ignis-helpers/common` carries `HTTP`, `TConstValue`, the constant and redaction tables, and resolves to only `@venizia/ignis-inversion`, `lodash`, `reflect-metadata` with zero builtins. The error layer is deliberately NOT re-exported there: `getError`, `ApplicationError`, `ErrorScopes` and the `TError*` types live in `@venizia/ignis-inversion`, which is browser-clean on its own, so a browser consumer imports them from inversion directly rather than through a second path. This sub-path and `/core` are guarded together by the repo-root purity gate described below.

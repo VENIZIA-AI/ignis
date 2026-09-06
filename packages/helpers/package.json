@@ -224,6 +224,7 @@
   },
   "peerDependencies": {
     "hono": "^4.12.30",
+    "@hono/zod-openapi": "^1.5.1",
     "winston": "^3.17.0",
     "winston-daily-rotate-file": "^5.0.0",
     "winston-transport": "^4.9.0",

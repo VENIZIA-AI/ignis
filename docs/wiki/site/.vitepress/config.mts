@@ -454,6 +454,10 @@ const config = defineConfig({
               collapsed: true,
               items: [
                 {
+                  text: 'helpers zod-openapi Peer and Generator Header',
+                  link: '/changelogs/2026-09-06-helpers-peer-and-generator-header',
+                },
+                {
                   text: 'Bun.serve Options in configs.server',
                   link: '/changelogs/2026-09-06-bun-serve-options',
                 },

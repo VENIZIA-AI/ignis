@@ -6,6 +6,17 @@ not how.
 This file and `index.md` are reserved OKF filenames - they carry no `type:` frontmatter and are not
 counted as concepts.
 
+## 2026-09-06 - helpers declares `@hono/zod-openapi` as a peer; generator header prints the real command
+
+The packed `@venizia/ignis-atlas` died outside the workspace on `Cannot find module '@hono/zod-openapi'`
+from the helpers root barrel: `error/schemas.ts` imports it and helpers listed it only in
+`devDependencies` (kernel, connectors, core-server, core-worker all declare it as a peer). Now a peer
+(`^1.5.1`) plus `root-barrel-dependencies.test.ts`, which walks the static import closure of
+`src/index.ts` and reported exactly this package before the fix. In boot, `ArtifactIndexEmitter`
+lost the fixed `HEADER` string; `renderHeader({ root, out, ignore, exportName })` prints the flags
+the CLI ran with (BANA writes `src/_artifacts.ts` with `--ignore`, and the header pointed at
+`src/generated/artifacts.ts`). Changelog `2026-09-06-helpers-peer-and-generator-header`.
+
 ## 2026-09-06 - `configs.server` carries `Bun.serve` options
 
 BANA's commerce package copied the whole of `startBunModule` (40 lines, frozen at the 2026-08-21

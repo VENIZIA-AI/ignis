@@ -17,7 +17,8 @@ const render = (opts: IGenerateOptions): { content: string; artifacts: IScannedA
   const content = ArtifactIndexEmitter.render({
     artifacts,
     outFile: resolve(opts.out),
-    exportName: opts.exportName ?? 'GeneratedArtifacts',
+    exportName: opts.exportName ?? ArtifactIndexEmitter.DEFAULT_EXPORT_NAME,
+    command: { root: opts.root, out: opts.out, ignore: opts.ignore },
   });
 
   return { content, artifacts };
