@@ -42,4 +42,14 @@ if [ ! -f "$SYMBOLS_FILE" ]; then
 fi
 cp "$SYMBOLS_FILE" dist/corpus/symbols.json
 
+# The release table travels with the snapshot for the same reason - `version` and `changes` are
+# dead in an npm install without it.
+echo ">>> Copying the release table..."
+RELEASES_FILE="../../.agents/knowledge/reference/releases.json"
+if [ ! -f "$RELEASES_FILE" ]; then
+  echo "ERROR | $RELEASES_FILE is missing - run 'make releases-gen' first" >&2
+  exit 1
+fi
+cp "$RELEASES_FILE" dist/corpus/releases.json
+
 echo "DONE | Build completed successfully!"

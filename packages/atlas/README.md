@@ -4,7 +4,7 @@
 
 # :fire: IGNIS - `@venizia/ignis-atlas`
 
-**MCP server for IGNIS: search and read the wiki, changelogs and knowledge bundle by section.**
+**MCP server for IGNIS: search the wiki, changelogs and knowledge bundle, look up an exported symbol, and read what changed between two versions.**
 
 [![Docs](https://img.shields.io/badge/Docs-ignis.venizia.ai-2563EB.svg?style=flat-square)](https://ignis.venizia.ai/extensions/atlas)
 [![npm](https://img.shields.io/npm/v/@venizia/ignis-atlas.svg?style=flat-square&color=cb3837&label=@venizia/ignis-atlas)](https://www.npmjs.com/package/@venizia/ignis-atlas)
@@ -78,7 +78,7 @@ search({ query: "hidden fields on write" })
       "title": "Hidden fields on the write path",
       "headingPath": "Typesense search connector > Hidden fields on the write path",
       "anchor": "hidden-fields-on-the-write-path",
-      "snippet": "... Search [write] responses therefore used to leak [hidden] properties ...",
+      "snippet": "... Search write responses therefore used to leak hidden properties ...",
       "score": -16.03
     }
   ]
@@ -120,6 +120,93 @@ get({ id: "okf:architecture/search-typesense.md#hidden-fields-on-the-write-path"
 | `cursor` | string, from a previous reply's `next` | start of the body |
 
 A body longer than `maxChars` returns `next`; pass it back as `cursor` for the following page.
+
+### `symbol`
+
+Look up an exported symbol: what it is, where it is declared, and which pages document it.
+
+```
+symbol({ name: "getError", package: "inversion" })
+```
+
+```json
+{
+  "name": "getError",
+  "package": "@venizia/ignis-inversion",
+  "specifier": "@venizia/ignis-inversion",
+  "kind": "const",
+  "file": "packages/inversion/src/modules/error/app-error.ts",
+  "line": 89,
+  "signature": "getError: (opts: TError) => ApplicationError",
+  "docs": ["okf:conventions/error-handling.md#", "wiki:extensions/helpers/error/index.md#in-one-example"]
+}
+```
+
+| Input | Type | Default |
+| :--- | :--- | :--- |
+| `name` | string, the exported name | required |
+| `package` | `helpers` or `@venizia/ignis-helpers` | every package |
+
+The table is generated from each package's built declarations, so `file` and `line` name the
+source. A name exported from several packages returns `matches`. An unknown name is an error
+naming the closest candidates. `docs` ids go straight into `get`.
+
+### `version`
+
+Compare what a project has installed with what this build knows.
+
+```
+version({ cwd: "/path/to/your/project" })
+```
+
+```json
+{
+  "installed": { "@venizia/ignis-kernel": "0.2.0-19" },
+  "snapshot": { "kernel": "0.2.0-21", "helpers": "0.2.0-15" },
+  "behind": [{ "package": "kernel", "installed": "0.2.0-19", "newest": "0.2.0-21" }]
+}
+```
+
+| Input | Type | Default |
+| :--- | :--- | :--- |
+| `cwd` | string, a project directory | the process working directory |
+
+`installed` reads the real version out of `node_modules`, never a dependency range; a package it
+cannot resolve is `null`. These are the versions this build knows about, not the registry.
+
+### `changes`
+
+List the changelog entries between two versions of a package.
+
+```
+changes({ package: "kernel", from: "0.2.0-13", to: "0.2.0-16" })
+```
+
+```json
+{
+  "package": "kernel",
+  "from": "0.2.0-13",
+  "to": "0.2.0-16",
+  "entries": [
+    {
+      "id": "changelog:2026-09-05-boot-checks",
+      "date": "2026-09-05",
+      "title": "Boot Checks - Every Binding Resolves ...",
+      "kind": "New Feature",
+      "packages": ["kernel"]
+    }
+  ]
+}
+```
+
+| Input | Type | Default |
+| :--- | :--- | :--- |
+| `package` | a package directory name | every package |
+| `from` | a version of `package`, or a date without one | the previous known version |
+| `to` | a version of `package`, or a date without one | the newest known version |
+
+Each `id` reads in full through `get`. A window wider than the reply budget is trimmed to the
+newest entries and marked `truncated`.
 
 ## `--root`
 

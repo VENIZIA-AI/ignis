@@ -90,8 +90,11 @@ const main = (): void => {
     const toolList = messages.find(message => message.id === 2)?.result as
       { tools?: { name: string }[] } | undefined;
     const names = (toolList?.tools ?? []).map(tool => tool.name).sort();
-    if (names.join(',') !== 'get,search,symbol') {
-      fail(`tools/list returned [${names.join(', ')}], expected [get, search, symbol]`);
+    const expected = 'changes,get,search,symbol,version';
+    if (names.join(',') !== expected) {
+      fail(
+        `tools/list returned [${names.join(', ')}], expected [${expected.split(',').join(', ')}]`,
+      );
     }
 
     const searched = messages.find(message => message.id === 3)?.result as

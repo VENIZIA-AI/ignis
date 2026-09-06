@@ -5,9 +5,16 @@ import { resolveRepositoryRoots } from '@/corpus';
 import type { ICorpusRoot } from '@/corpus';
 import { Transport } from '@/protocol';
 import type { IToolHandler } from '@/protocol';
+import { ReleaseStore } from '@/releases';
 import type { ChunkStore } from '@/search/store';
 import { SymbolStore } from '@/symbols';
-import { buildGetTool, buildSearchTool, buildSymbolTool } from '@/tools';
+import {
+  buildChangesTool,
+  buildGetTool,
+  buildSearchTool,
+  buildSymbolTool,
+  buildVersionTool,
+} from '@/tools';
 import { getError } from '@venizia/ignis-helpers/core';
 import { existsSync } from 'node:fs';
 import { join } from 'node:path';
@@ -66,8 +73,10 @@ export const buildServer = (opts: {
   const { mode, root, version } = opts;
   const guard = new FreshnessGuard({ mode, roots: resolveRoots({ mode, root }) });
   const initialStore = guard.getStore();
-  // Built once: the symbol table is generated from `dist`, so corpus freshness never moves it.
+  // Built once: both generated tables come from outside the corpus, so its freshness never moves
+  // them - the symbol table from `dist`, the release table from `git log`.
   const symbols = SymbolStore.load({ mode, root });
+  const releases = ReleaseStore.load({ mode, root });
 
   return new Transport({
     tools: [
@@ -82,6 +91,8 @@ export const buildServer = (opts: {
         initialStore,
         build: ({ store }) => buildSymbolTool({ store, symbols }),
       }),
+      buildVersionTool({ releases }),
+      buildChangesTool({ releases }),
     ],
     serverName: AtlasConstants.SERVER_NAME,
     serverVersion: version,

@@ -17,6 +17,10 @@ This section tracks the history of significant changes, refactors, and updates t
 
 | Date | Title | Type |
 |------|-------|------|
+| 2026-09-07 | [Atlas Gains version and changes Tools and a Generated Release Table](./2026-09-07-atlas-versions) | New Feature |
+| 2026-09-07 | [CRUD Controllers Narrow Their Rows; The Asset Controller Takes Two Hooks](./2026-09-07-crud-scope-and-asset-hooks) | New Feature |
+| 2026-09-07 | [WorkerApplication Gains configs.projectRoot; BaseKafkaHelper Turns protected](./2026-09-07-worker-project-root-and-kafka-base-seams) | New Feature |
+| 2026-09-07 | [Atlas Gains a symbol Tool and a Generated Symbol Table](./2026-09-07-atlas-symbols) | New Feature |
 | 2026-09-06 | [BullMQHelper and KafkaConsumerHelper Gain Extension Seams](./2026-09-06-helpers-queue-seams) | New Feature |
 | 2026-09-06 | [setListHeaders Takes offset + total; toContentRange Is Exported](./2026-09-06-list-headers-from-offset-and-total) | New Feature |
 | 2026-09-06 | [ignis-artifacts Warns When an --ignore Pattern Hides a Decorated Class](./2026-09-06-generator-warns-on-ignored-artifacts) | New Feature |

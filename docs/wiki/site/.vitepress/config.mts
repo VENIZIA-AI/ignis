@@ -450,6 +450,28 @@ const config = defineConfig({
           collapsed: false,
           items: [
             {
+              text: '2026-09-07',
+              collapsed: true,
+              items: [
+                {
+                  text: 'Atlas version and changes Tools',
+                  link: '/changelogs/2026-09-07-atlas-versions',
+                },
+                {
+                  text: 'CRUD Base Where and Asset Hooks',
+                  link: '/changelogs/2026-09-07-crud-scope-and-asset-hooks',
+                },
+                {
+                  text: 'Worker projectRoot and Kafka Base Seams',
+                  link: '/changelogs/2026-09-07-worker-project-root-and-kafka-base-seams',
+                },
+                {
+                  text: 'Atlas symbol Tool and Symbol Table',
+                  link: '/changelogs/2026-09-07-atlas-symbols',
+                },
+              ],
+            },
+            {
               text: '2026-09-06',
               collapsed: true,
               items: [

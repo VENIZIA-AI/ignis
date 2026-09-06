@@ -5,7 +5,8 @@
         purity purity-test test-scripts purity-inversion purity-filter purity-helpers purity-kernel \
         test-all test-inversion test-helpers test-boot test-kernel test-connectors test-core-worker test-core-server test-atlas \
         purity-dev-configs purity-boot purity-core purity-core-server purity-connectors purity-core-worker purity-atlas \
-        okf-check okf-gen okf-coverage okf-viz split-report surface-gen surface-check symbols-gen symbols-check wiki-links-check \
+        okf-check okf-gen okf-coverage okf-viz split-report surface-gen surface-check symbols-gen symbols-check \
+        releases-gen releases-check wiki-links-check \
         catalog-check \
         update update-all update-core update-core-server update-dev-configs update-atlas update-filter update-helpers update-inversion update-boot
 
@@ -65,6 +66,13 @@ symbols-gen:
 symbols-check:
 	@bun scripts/atlas-symbols.ts check
 
+# The Atlas `version` and `changes` tools' table. Reads `git log` and the changelogs, not `dist`.
+releases-gen:
+	@bun scripts/atlas-releases.ts gen
+
+releases-check:
+	@bun scripts/atlas-releases.ts check
+
 wiki-links-check:
 	@bun scripts/wiki-source-links.ts
 
@@ -90,7 +98,7 @@ release:
 # ----------------------------------------------------------------------------
 build: build-all
 
-build-all: core core-worker boot atlas docs surface-check symbols-check wiki-links-check
+build-all: core core-worker boot atlas docs surface-check symbols-check releases-check wiki-links-check
 	@echo "🚀 All packages rebuilt successfully."
 
 # Granular build targets for individual packages
@@ -411,6 +419,8 @@ help:
 	@echo "  surface-check    - Gate: the public surface equals the snapshot."
 	@echo "  symbols-gen      - Regenerate .agents/knowledge/reference/symbols.json for the Atlas symbol tool."
 	@echo "  symbols-check    - Gate: the symbol table matches the built .d.ts."
+	@echo "  releases-gen     - Regenerate .agents/knowledge/reference/releases.json for the Atlas version and changes tools."
+	@echo "  releases-check   - Gate: the release table matches the release commits and the changelogs."
 	@echo "  wiki-links-check - Gate: every source path the wiki and knowledge bundle name exists."
 	@echo "  agent-setup      - Link your agent's tool file + skills to the tracked AGENTS.md."
 	@echo ""

@@ -44,6 +44,8 @@ A repository checkout also indexes the knowledge bundle, and re-checks the corpu
 | `search` | `query` (2+ characters), `corpus?` (`all`, `wiki`, `changelog`, `knowledge`), `limit?` (1-50, default 10), `offset?` | `total`, `returned`, `nextOffset?`, and a page of `hits`: `id`, `corpus`, `title`, `headingPath`, `anchor`, `snippet`, `score` |
 | `get` | `id` (from a search hit), `maxChars?` (500-50000, default 8000), `cursor?` | `id`, `title`, `headingPath`, `body`, and `next` when the body continues |
 | `symbol` | `name` (an exported symbol), `package?` (`helpers` or `@venizia/ignis-helpers`) | `name`, `package`, `subpath`, `specifier`, `kind`, `file`, `line`, `signature`, `docs`; or `matches` when the name exists in several packages |
+| `version` | `cwd?` (a directory with a `package.json`, default the server's own) | `installed` (per npm name, `null` when nothing resolves), `snapshot` (newest known, per package), `behind` |
+| `changes` | `package?`, `from?`, `to?` (versions with a package, `YYYY-MM-DD` dates without one) | `package`, `from`, `to`, `entries`: `id`, `date`, `title`, `kind`, `packages`; plus `truncated` when the budget trimmed it |
 
 Pass a `hits[].id` straight to `get` to read the full section it points at.
 
@@ -81,6 +83,60 @@ right: `unknown symbol 'LoggerFactroy'; did you mean LoggerFactory?`.
 A `search` whose query is one identifier the table knows carries the same record beside its hits,
 without the signature or the docs.
 
+## Checking versions
+
+`version` compares one directory's installed `@venizia/*` packages against the newest versions this
+build knows:
+
+```json
+{ "cwd": "/path/to/your/app" }
+```
+
+```json
+{
+  "installed": { "@venizia/ignis-kernel": "0.2.0-11" },
+  "snapshot": { "helpers": "0.2.0-15", "kernel": "0.2.0-21" },
+  "behind": [{ "package": "kernel", "installed": "0.2.0-11", "newest": "0.2.0-21" }]
+}
+```
+
+`installed` is the version resolved from `node_modules`, never the declared range. It reads `null`
+when nothing resolves. `snapshot` is what the packaged release table carries, not the npm registry -
+this server makes no network call.
+
+## Reading what changed
+
+`changes` lists the changelog entries between two releases. Give it a package and two of its
+versions:
+
+```json
+{ "package": "kernel", "from": "0.2.0-13", "to": "0.2.0-16" }
+```
+
+```json
+{
+  "package": "kernel",
+  "from": "0.2.0-13",
+  "to": "0.2.0-16",
+  "entries": [
+    {
+      "id": "changelog:2026-09-05-boot-checks",
+      "date": "2026-09-05",
+      "title": "Boot Checks - Every Binding Resolves",
+      "kind": "New Feature",
+      "packages": ["kernel"]
+    }
+  ]
+}
+```
+
+Every `id` is a citation `get` reads in full. Leave `package` out and the answer spans every
+package; `from` and `to` are then `YYYY-MM-DD` dates.
+
+The window is dates, not commits. Its lower bound is open and its upper bound closed, so an entry
+dated on `from` is out and one dated on `to` is in. Two releases on one day therefore leave an
+empty window.
+
 ## Citations
 
 Every id names its source, so an answer is checkable.
@@ -94,5 +150,6 @@ Every id names its source, so an answer is checkable.
 
 ## See also
 
+- [Changelog: Atlas gains version and changes tools and a generated release table](/changelogs/2026-09-07-atlas-versions)
 - [Changelog: Atlas gains a symbol tool and a generated symbol table](/changelogs/2026-09-07-atlas-symbols)
 - [Changelog: ignis-docs-mcp is replaced by @venizia/ignis-atlas](/changelogs/2026-09-06-ignis-atlas)

@@ -14,11 +14,20 @@ export const SNAPSHOT_DIRECTORY = 'corpus';
 /** The generated symbol table's file name, the same in both modes - only the directory differs. */
 export const SYMBOLS_FILE = 'symbols.json';
 
+/** The generated release table's file name, the same in both modes - only the directory differs. */
+export const RELEASES_FILE = 'releases.json';
+
 /** Where `SYMBOLS_FILE` lives: the knowledge bundle in repo mode, the packaged corpus in snapshot mode. */
 export const symbolsFileOf = (opts: { mode: TAtlasMode; root: string }): string =>
   opts.mode === AtlasModes.REPOSITORY
     ? join(opts.root, KNOWLEDGE_DIRECTORY, 'reference', SYMBOLS_FILE)
     : join(opts.root, SNAPSHOT_DIRECTORY, SYMBOLS_FILE);
+
+/** Where `RELEASES_FILE` lives - the same two homes `symbolsFileOf` picks between. */
+export const releasesFileOf = (opts: { mode: TAtlasMode; root: string }): string =>
+  opts.mode === AtlasModes.REPOSITORY
+    ? join(opts.root, KNOWLEDGE_DIRECTORY, 'reference', RELEASES_FILE)
+    : join(opts.root, SNAPSHOT_DIRECTORY, RELEASES_FILE);
 
 /** Whether `root` is an IGNIS checkout: it carries both the wiki and the knowledge bundle. */
 export const isRepositoryCheckout = (opts: { root: string }): boolean =>

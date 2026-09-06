@@ -14,6 +14,16 @@ export const SymbolInputSchema = z.object({
   package: z.string().min(1).optional(),
 });
 
+export const VersionInputSchema = z.object({
+  cwd: z.string().min(1).optional(),
+});
+
+export const ChangesInputSchema = z.object({
+  package: z.string().min(1).optional(),
+  from: z.string().min(1).optional(),
+  to: z.string().min(1).optional(),
+});
+
 export const GetInputSchema = z.object({
   id: z.string().min(1),
   maxChars: z.number().int().min(500).max(50000).optional(),

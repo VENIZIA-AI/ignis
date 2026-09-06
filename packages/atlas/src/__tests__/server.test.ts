@@ -51,13 +51,19 @@ const listToolNames = async (opts: {
 };
 
 describe('buildServer', () => {
-  test('repo mode exposes exactly the search, get and symbol tools', async () => {
+  test('repo mode exposes exactly the search, get, symbol, version and changes tools', async () => {
     const transport = buildServer({
       mode: AtlasModes.REPOSITORY,
       root: REPOSITORY_ROOT,
       version: TEST_VERSION,
     });
-    expect(await listToolNames({ transport })).toEqual(['search', 'get', 'symbol']);
+    expect(await listToolNames({ transport })).toEqual([
+      'search',
+      'get',
+      'symbol',
+      'version',
+      'changes',
+    ]);
   });
 
   test('serverInfo.version is whatever version buildServer was given, not a hardcoded string (I6)', async () => {
@@ -81,7 +87,13 @@ describe('buildServer', () => {
     cpSync(join(FIXTURES, 'changelogs'), join(root, 'corpus/changelogs'), { recursive: true });
 
     const transport = buildServer({ mode: AtlasModes.SNAPSHOT, root, version: TEST_VERSION });
-    expect(await listToolNames({ transport })).toEqual(['search', 'get', 'symbol']);
+    expect(await listToolNames({ transport })).toEqual([
+      'search',
+      'get',
+      'symbol',
+      'version',
+      'changes',
+    ]);
 
     const reply = parseReply(
       await transport.handleLine({
@@ -117,6 +129,57 @@ describe('buildServer', () => {
     );
 
     expect(reply.error?.message).toBe('no symbol table in this build');
+  });
+
+  test('a snapshot packaged without a release table says so instead of failing to start', async () => {
+    const root = makeTempDirectory();
+    cpSync(join(FIXTURES, 'wiki'), join(root, 'corpus/wiki'), { recursive: true });
+    cpSync(join(FIXTURES, 'changelogs'), join(root, 'corpus/changelogs'), { recursive: true });
+
+    const transport = buildServer({ mode: AtlasModes.SNAPSHOT, root, version: TEST_VERSION });
+
+    for (const name of ['version', 'changes']) {
+      const reply = parseReply(
+        await transport.handleLine({
+          line: JSON.stringify({
+            jsonrpc: '2.0',
+            id: 2,
+            method: 'tools/call',
+            params: { name, arguments: {} },
+          }),
+        }),
+      );
+
+      expect(reply.error?.message).toBe('no release table in this build');
+    }
+  });
+
+  test('repo mode answers changes from the generated release table', async () => {
+    const transport = buildServer({
+      mode: AtlasModes.REPOSITORY,
+      root: REPOSITORY_ROOT,
+      version: TEST_VERSION,
+    });
+    const reply = parseReply(
+      await transport.handleLine({
+        line: JSON.stringify({
+          jsonrpc: '2.0',
+          id: 2,
+          method: 'tools/call',
+          params: {
+            name: 'changes',
+            arguments: { package: 'kernel', from: '0.2.0-13', to: '0.2.0-16' },
+          },
+        }),
+      }),
+    );
+
+    const payload: { entries?: { id: string }[] } = JSON.parse(
+      reply.result?.content?.[0]?.text ?? '{}',
+    );
+
+    expect(reply.error?.message).toBeUndefined();
+    expect((payload.entries ?? []).length).toBeGreaterThan(0);
   });
 
   test('repo mode answers symbol from the generated table', async () => {
