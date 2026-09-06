@@ -24,6 +24,17 @@ describe('CorpusLoader', () => {
     expect(guide?.body.trim().startsWith('# Artifact registration guide')).toBe(true);
   });
 
+  test('falls back to the first H1 line when there is no frontmatter title (I3)', () => {
+    const documents = CorpusLoader.getInstance().load({
+      roots: [{ corpus: Corpora.WIKI, directory: join(FIXTURES_ROOT, 'wiki') }],
+    });
+
+    const document = documents.find(entry => entry.path === 'no-frontmatter.md');
+    expect(document).toBeDefined();
+    expect(document?.title).toBe('No Frontmatter Title');
+    expect(document?.frontmatter).toEqual({});
+  });
+
   test('loads a knowledge document under the okf corpus', () => {
     const documents = CorpusLoader.getInstance().load({
       roots: [{ corpus: Corpora.KNOWLEDGE, directory: join(FIXTURES_ROOT, 'knowledge') }],

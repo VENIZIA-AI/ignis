@@ -12,8 +12,17 @@ const isExcluded = (opts: { relativePath: string; exclude: string[] }): boolean 
     prefix => opts.relativePath === prefix || opts.relativePath.startsWith(`${prefix}/`),
   );
 
-const titleOf = (opts: { data: Record<string, unknown>; path: string }): string =>
-  typeof opts.data.title === 'string' && opts.data.title.length > 0 ? opts.data.title : opts.path;
+const H1_PATTERN = /^#\s+(.+?)\s*$/m;
+
+/** Frontmatter `title`, else the document's first `# ` line, else the path - never blank. */
+const titleOf = (opts: { data: Record<string, unknown>; body: string; path: string }): string => {
+  if (typeof opts.data.title === 'string' && opts.data.title.length > 0) {
+    return opts.data.title;
+  }
+
+  const heading = opts.body.match(H1_PATTERN);
+  return heading ? heading[1] : opts.path;
+};
 
 /** Reads `.md` files under each root into `IDocument`s. Never chunks - see `Chunker` for that. */
 export class CorpusLoader extends BaseHelper {
@@ -61,7 +70,7 @@ export class CorpusLoader extends BaseHelper {
       return {
         corpus: root.corpus,
         path: relativePath,
-        title: titleOf({ data, path: relativePath }),
+        title: titleOf({ data, body, path: relativePath }),
         frontmatter: data,
         body,
       };
