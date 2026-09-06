@@ -1,6 +1,6 @@
 {
   "name": "@venizia/ignis-boot",
-  "version": "0.2.0-13",
+  "version": "0.2.0-14",
   "description": "Build-time artifact index generator for IGNIS applications: scans decorated classes with the TypeScript AST and emits one static registration file per package, so bun build --compile sees plain imports.",
   "keywords": [
     "artifact-index",
