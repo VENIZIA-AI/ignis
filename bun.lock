@@ -367,6 +367,7 @@
         "ignis-atlas": "./dist/cjs/cli.js",
       },
       "dependencies": {
+        "@venizia/ignis-helpers": "^0.2.0-11",
         "zod": "catalog:",
       },
       "devDependencies": {
@@ -594,7 +595,7 @@
       "name": "@venizia/ignis-helpers",
       "version": "0.2.0-11",
       "dependencies": {
-        "@venizia/ignis-inversion": "^0.2.0-4",
+        "@venizia/ignis-inversion": "^0.2.0-5",
         "dayjs": "catalog:",
         "ioredis": "catalog:",
         "lodash": "catalog:",

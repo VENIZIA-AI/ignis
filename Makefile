@@ -116,9 +116,9 @@ boot: helpers
 	@echo "📦 Rebuilding @venizia/ignis-boot..."
 	@bun run --filter "@venizia/ignis-boot" rebuild
 
-# `atlas` hangs off dev-configs only (no other workspace package) and is consumed by neither core
-# nor examples - `build-all` names it explicitly, the same reason `boot` is named explicitly above.
-atlas: dev-configs
+# `atlas` depends on helpers (transitively rebuilding dev-configs and inversion) and is consumed by
+# neither core nor examples - `build-all` names it explicitly, the same reason `boot` is above.
+atlas: helpers
 	@echo "📦 Rebuilding @venizia/ignis-atlas..."
 	@bun run --filter "@venizia/ignis-atlas" rebuild
 
