@@ -1,4 +1,5 @@
 import type { Hook, OpenAPIHono } from '@hono/zod-openapi';
+import { buildDataRange } from '@/base/repositories/common/types';
 import type { TDataRange } from '@/base/repositories/common/types';
 import type { AnyType, TNullable, ValueOrPromise } from '@venizia/ignis-helpers/common';
 import { HTTP } from '@venizia/ignis-helpers/common';
@@ -15,8 +16,8 @@ import type {
 } from '../common/types';
 import { AbstractRestController } from './abstract';
 
-/** `Content-Range` of a page: inclusive `end`, and `records * /<total>` (no space) when the page is empty. */
-const toContentRange = (opts: { range: TDataRange; count: number }): string => {
+/** `Content-Range` of a page: inclusive `end`, and `records * /<total>` (no space) when the page is empty. Exported so a route that writes the header itself uses the one formatter. */
+export const toContentRange = (opts: { range: TDataRange; count: number }): string => {
   const { range, count } = opts;
   const { start, end, total } = range;
   return count > 0 ? `records ${start}-${end}/${total}` : `records */${total}`;
@@ -87,9 +88,17 @@ export abstract class BaseRestController<
     return this.normalizeCountData<R>({ context, payload });
   }
 
-  /** The list headers without the body, for a list whose body is not a `{ count, data }` envelope: `Content-Range`, `X-Response-Count` = rows in THIS response, `X-Response-Format: array`. */
-  setListHeaders(opts: { context: TRouteContext<RouteEnv>; range: TDataRange; count: number }) {
-    const { context, range, count } = opts;
+  /** The list headers without the body, for a list whose body is not a `{ count, data }` envelope: `Content-Range`, `X-Response-Count` = rows in THIS response, `X-Response-Format: array`. Pass a `range`, or `offset` + `total` for an engine that reports those (a search page): the range is derived with the same inclusive-end rule. */
+  setListHeaders(
+    opts: { context: TRouteContext<RouteEnv>; count: number } & (
+      { range: TDataRange } | { offset: number; total: number }
+    ),
+  ) {
+    const { context, count } = opts;
+    const range =
+      'range' in opts
+        ? opts.range
+        : buildDataRange({ offset: opts.offset, dataLength: count, total: opts.total });
 
     context.header(HTTP.Headers.CONTENT_RANGE, toContentRange({ range, count }));
     context.header(HTTP.Headers.RESPONSE_COUNT_DATA, count.toString());

@@ -454,6 +454,10 @@ const config = defineConfig({
               collapsed: true,
               items: [
                 {
+                  text: 'setListHeaders from offset + total',
+                  link: '/changelogs/2026-09-06-list-headers-from-offset-and-total',
+                },
+                {
                   text: 'ignis-artifacts Warns on Hidden Artifacts',
                   link: '/changelogs/2026-09-06-generator-warns-on-ignored-artifacts',
                 },

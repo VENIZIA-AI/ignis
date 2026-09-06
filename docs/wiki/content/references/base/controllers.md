@@ -221,9 +221,13 @@ return context.json(
 
 `range` is the repository's `TDataRange` (`{ start, end, total }`, `end` inclusive); `buildDataRange({ skip, offset, dataLength, total })` builds one when the rows come from somewhere else. The CRUD verbs `findById`, `findOne`, `create`, `updateById` and `deleteById` answer with `format: ResponseFormats.OBJECT` and no range.
 
-### `setListHeaders(opts: { context, range, count })`
+### `setListHeaders(opts: { context, count } & ({ range } | { offset, total }))`
 
-The list headers without the body, for a response whose body is not a `{ count, data }` envelope. `POST /search` uses it and keeps its `{ found, isFoundExact, hits }` body.
+The list headers without the body, for a response whose body is not a `{ count, data }` envelope. `POST /search` uses it and keeps its `{ found, isFoundExact, hits }` body. Pass the repository's `range`, or `offset` + `total` when the engine reports those; the range is derived with `buildDataRange` (inclusive `end`, empty page collapses onto `start`).
+
+### `toContentRange(opts: { range, count })`
+
+The one `Content-Range` formatter, exported from `@venizia/ignis-kernel`: `records <start>-<end>/<total>`, or `records */<total>` when `count` is 0. Use it only where the header is written without `respond` or `setListHeaders`.
 
 ### `normalizeCountData(opts: { context, payload })`
 

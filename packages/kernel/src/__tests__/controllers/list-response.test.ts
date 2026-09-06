@@ -2,7 +2,7 @@ import { describe, expect, test } from 'bun:test';
 import { HTTP } from '@venizia/ignis-helpers/common';
 import { ResponseFormats } from '@/base/controllers/common';
 import type { TRouteContext } from '@/base/controllers/common';
-import { BaseRestController } from '@/base/controllers/rest/base';
+import { BaseRestController, toContentRange } from '@/base/controllers/rest/base';
 
 class ItemsController extends BaseRestController {
   constructor() {
@@ -112,6 +112,28 @@ describe('BaseRestController list responses', () => {
     expect(responseHeaders[HTTP.Headers.RESPONSE_COUNT_DATA]).toBe('2');
     expect(responseHeaders[HTTP.Headers.RESPONSE_FORMAT]).toBe(ResponseFormats.ARRAY);
     expect(Object.keys(responseHeaders)).toHaveLength(3);
+  });
+
+  test('setListHeaders accepts offset + total and derives the inclusive range', () => {
+    const controller = new ItemsController();
+    const { context, responseHeaders } = fakeContext();
+
+    controller.setListHeaders({ context, offset: 3, total: 7, count: 2 });
+    expect(responseHeaders[HTTP.Headers.CONTENT_RANGE]).toBe('records 3-4/7');
+    expect(responseHeaders[HTTP.Headers.RESPONSE_COUNT_DATA]).toBe('2');
+    expect(responseHeaders[HTTP.Headers.RESPONSE_FORMAT]).toBe(ResponseFormats.ARRAY);
+
+    controller.setListHeaders({ context, offset: 3, total: 7, count: 0 });
+    expect(responseHeaders[HTTP.Headers.CONTENT_RANGE]).toBe('records */7');
+  });
+
+  test('toContentRange is exported and pure', () => {
+    expect(toContentRange({ range: { start: 0, end: 9, total: 42 }, count: 10 })).toBe(
+      'records 0-9/42',
+    );
+    expect(toContentRange({ range: { start: 0, end: 0, total: 42 }, count: 0 })).toBe(
+      'records */42',
+    );
   });
 
   test('ResponseFormats is a closed set', () => {
