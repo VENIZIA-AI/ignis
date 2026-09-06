@@ -354,6 +354,7 @@
         "ignis-atlas": "./dist/cjs/cli.js",
       },
       "dependencies": {
+        "@hono/zod-openapi": "catalog:",
         "@venizia/ignis-helpers": "^0.2.0-11",
         "zod": "catalog:",
       },
@@ -368,7 +369,7 @@
     },
     "packages/boot": {
       "name": "@venizia/ignis-boot",
-      "version": "0.2.0-10",
+      "version": "0.2.0-12",
       "bin": {
         "ignis-artifacts": "./dist/cjs/cli.js",
       },
@@ -389,7 +390,7 @@
     },
     "packages/connectors": {
       "name": "@venizia/ignis-connectors",
-      "version": "0.2.0-17",
+      "version": "0.2.0-19",
       "dependencies": {
         "@venizia/ignis-filter": "^0.2.0-6",
         "@venizia/ignis-helpers": "^0.2.0-10",
@@ -432,7 +433,7 @@
     },
     "packages/core-server": {
       "name": "@venizia/ignis",
-      "version": "0.2.0-17",
+      "version": "0.2.0-19",
       "dependencies": {
         "@venizia/ignis-connectors": "^0.2.0-16",
         "@venizia/ignis-filter": "^0.2.0-6",
@@ -518,7 +519,7 @@
     },
     "packages/core-worker": {
       "name": "@venizia/ignis-worker",
-      "version": "0.2.0-18",
+      "version": "0.2.0-20",
       "dependencies": {
         "@venizia/ignis-helpers": "^0.2.0-9",
         "@venizia/ignis-inversion": "^0.2.0-4",
@@ -580,7 +581,7 @@
     },
     "packages/helpers": {
       "name": "@venizia/ignis-helpers",
-      "version": "0.2.0-11",
+      "version": "0.2.0-13",
       "dependencies": {
         "@venizia/ignis-inversion": "^0.2.0-5",
         "dayjs": "catalog:",
@@ -681,7 +682,7 @@
     },
     "packages/kernel": {
       "name": "@venizia/ignis-kernel",
-      "version": "0.2.0-17",
+      "version": "0.2.0-19",
       "dependencies": {
         "@venizia/ignis-filter": "^0.2.0-6",
         "@venizia/ignis-helpers": "^0.2.0-10",

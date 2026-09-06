@@ -13,7 +13,7 @@ citation on every answer. It replaces two retired servers, `ignis-docs-mcp`
 see the [changelog](/changelogs/2026-09-06-ignis-atlas).
 
 Position in the chain: `helpers -> atlas`, a leaf like `boot` - nothing in the framework depends on
-it. Runtime dependency: `@venizia/ignis-helpers` and `zod` only. Single CJS build, no ESM pass -
+it. Runtime dependencies: `@venizia/ignis-helpers`, `zod` and `@hono/zod-openapi` - the last one because the helpers root barrel (the only entry that exports `LoggerFactory`) requires it while helpers declares it only as a devDependency; `scripts/atlas-pack-smoke.ts` proves the packed tarball starts in an empty directory, and the release workflow runs it for `atlas`. Single CJS build, no ESM pass -
 the package ships one CLI, not an importable runtime surface. Its own `index.ts` re-exports
 `common` only (constants and types); `buildServer` and the tools are reached through the CLI, not
 imported. Bin `ignis-atlas -> dist/cjs/cli.js` with a `bun` shebang. Bun-only: the index is

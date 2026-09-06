@@ -1709,7 +1709,7 @@ tags: [reference, exports, api]
 
 ## core-server
 
-### `@venizia/ignis` (906)
+### `@venizia/ignis` (907)
 
 - `AbstractApplication` class
 - `AbstractAuthRegistry` class
@@ -2136,6 +2136,7 @@ tags: [reference, exports, api]
 - `IServerApplication` interface
 - `IServerApplicationConfigs` interface
 - `IServerConfigMixin` interface
+- `IServerRuntimeConfigs` interface
 - `IService` interface
 - `IServiceAssertionClaims` interface
 - `IServiceAuthOptions` interface
