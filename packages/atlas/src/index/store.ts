@@ -1,0 +1,163 @@
+import { AtlasConstants } from '@/common';
+import type { TCorpus } from '@/common';
+import type { IChunk } from '@/corpus';
+import { BaseHelper } from '@venizia/ignis-helpers/core';
+import { Database } from 'bun:sqlite';
+import { QueryPlanner } from './planner';
+import type { IHit } from './common';
+
+// SQLite treats a negative LIMIT as "no limit" - the AND and OR plans are fetched whole so paging
+// can apply to their concatenation instead of to each plan separately.
+const NO_LIMIT = -1;
+
+const CREATE_TABLE_SQL = `
+  CREATE VIRTUAL TABLE chunks USING fts5(
+    id UNINDEXED, corpus UNINDEXED, document UNINDEXED, anchor UNINDEXED,
+    heading_path, title, body, symbols,
+    tokenize = 'porter unicode61'
+  )
+`;
+
+const INSERT_SQL = `
+  INSERT INTO chunks (id, corpus, document, anchor, heading_path, title, body, symbols)
+  VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+`;
+
+// Column order matches CREATE_TABLE_SQL; the four UNINDEXED columns each take a 0 weight.
+const SEARCH_SQL = `
+  SELECT id, corpus, anchor, heading_path AS headingPath, title,
+    bm25(chunks, 0, 0, 0, 0, 3.0, 5.0, 1.0, 4.0) AS score,
+    snippet(chunks, 6, '[', ']', ' ... ', 12) AS snippet
+  FROM chunks
+  WHERE chunks MATCH ? AND (? IS NULL OR corpus = ?)
+  ORDER BY score
+  LIMIT ${NO_LIMIT}
+`;
+
+const SELECT_BY_ID_SQL = `
+  SELECT id, corpus, document, anchor, heading_path AS headingPath, title, body, symbols
+  FROM chunks WHERE id = ?
+`;
+
+const SELECT_BY_DOCUMENT_SQL = `
+  SELECT id, corpus, document, anchor, heading_path AS headingPath, title, body, symbols
+  FROM chunks WHERE document = ?
+`;
+
+type TInsertParams = [string, string, string, string, string, string, string, string];
+type TSearchParams = [string, string | null, string | null];
+type TIdParams = [string];
+type TDocumentParams = [string];
+
+/** One `bm25`-ranked row before its snippet is prefixed with the heading path and capped. */
+interface ISearchRow {
+  id: string;
+  corpus: TCorpus;
+  anchor: string;
+  headingPath: string;
+  title: string;
+  score: number;
+  snippet: string;
+}
+
+/** Prefixes the FTS5 snippet with the heading path, then caps the result to `SNIPPET_MAX_CHARS`. */
+const snippetOf = (opts: { headingPath: string; snippet: string }): string => {
+  const full = `${opts.headingPath}: ${opts.snippet}`;
+  return full.length <= AtlasConstants.SNIPPET_MAX_CHARS
+    ? full
+    : full.slice(0, AtlasConstants.SNIPPET_MAX_CHARS);
+};
+
+const hitOf = (row: ISearchRow): IHit => ({
+  id: row.id,
+  corpus: row.corpus,
+  title: row.title,
+  headingPath: row.headingPath,
+  anchor: row.anchor,
+  score: row.score,
+  snippet: snippetOf({ headingPath: row.headingPath, snippet: row.snippet }),
+});
+
+/**
+ * In-memory `bun:sqlite` FTS5 index over `IChunk`s: BM25 ranking weighted toward titles and
+ * identifiers, AND-first search with an OR fallback, corpus filtering, and offset/limit paging
+ * over the concatenated AND+OR list. One instance owns one database - build a new one to reindex.
+ */
+export class ChunkStore extends BaseHelper {
+  private readonly db: Database;
+  private readonly planner = new QueryPlanner();
+
+  constructor() {
+    super({ scope: ChunkStore.name });
+    this.db = new Database(':memory:');
+    this.db.run(CREATE_TABLE_SQL);
+  }
+
+  add(opts: { chunks: IChunk[] }): void {
+    const { chunks } = opts;
+    if (chunks.length === 0) {
+      return;
+    }
+
+    const insert = this.db.query<null, TInsertParams>(INSERT_SQL);
+    const insertAll = this.db.transaction((rows: IChunk[]) => {
+      for (const chunk of rows) {
+        insert.run(
+          chunk.id,
+          chunk.corpus,
+          chunk.document,
+          chunk.anchor,
+          chunk.headingPath,
+          chunk.title,
+          chunk.body,
+          chunk.symbols,
+        );
+      }
+    });
+    insertAll(chunks);
+
+    this.logger.for('add').debug(`indexed chunks | count: ${chunks.length}`);
+  }
+
+  search(opts: { query: string; corpus?: TCorpus; limit: number; offset: number }): {
+    total: number;
+    hits: IHit[];
+  } {
+    const { query, limit, offset } = opts;
+    const plan = this.planner.plan({ query });
+
+    // An empty term list (e.g. a query that was only a `corpus:` filter) would MATCH '' - fts5
+    // throws a syntax error on that, so there is nothing to search instead of a crash.
+    if (plan.and.length === 0) {
+      return { total: 0, hits: [] };
+    }
+
+    const corpus = opts.corpus ?? plan.corpus ?? null;
+    const andRows = this.matchRows({ match: plan.and, corpus });
+    const andIds = new Set(andRows.map(row => row.id));
+    const orRows = this.matchRows({ match: plan.or, corpus }).filter(row => !andIds.has(row.id));
+
+    const combined = [...andRows, ...orRows];
+    const hits = combined.slice(offset, offset + limit).map(hitOf);
+
+    this.logger
+      .for('search')
+      .debug(`query: ${query} | corpus: ${corpus ?? 'all'} | total: ${combined.length}`);
+
+    return { total: combined.length, hits };
+  }
+
+  get(opts: { id: string }): IChunk | undefined {
+    const row = this.db.query<IChunk, TIdParams>(SELECT_BY_ID_SQL).get(opts.id);
+    return row ?? undefined;
+  }
+
+  list(opts: { document: string }): IChunk[] {
+    return this.db.query<IChunk, TDocumentParams>(SELECT_BY_DOCUMENT_SQL).all(opts.document);
+  }
+
+  private matchRows(opts: { match: string; corpus: string | null }): ISearchRow[] {
+    const { match, corpus } = opts;
+    return this.db.query<ISearchRow, TSearchParams>(SEARCH_SQL).all(match, corpus, corpus);
+  }
+}
