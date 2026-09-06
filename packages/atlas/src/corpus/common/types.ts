@@ -19,7 +19,7 @@ export interface IChunk {
   title: string;
   body: string;
   symbols: string;
-  /** Frontmatter `title`, `description`, `type` and `tags`, space-joined; the same on every chunk of the document. */
+  /** Frontmatter `description`, `type` and `tags`, space-joined; the same on every chunk of the document. `title` is excluded - `headingPath` already carries it. */
   metadata: string;
   /** Multiplies into the `bm25` score - lower for a document kind that is trusted less as a primary source. */
   authority: number;

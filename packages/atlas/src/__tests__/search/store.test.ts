@@ -111,32 +111,41 @@ describe('ChunkStore', () => {
         offset: 0,
       });
 
-      // All three WIKI matches share `guide.md` - the per-document cap drops the third rather than
-      // returning it, even though a page of 3 was requested and `total` still counts all three.
+      // All three WIKI matches share `guide.md` - diversification drops the third from the ranked
+      // list before paging even runs, and there is no fourth WIKI document to fill the gap here, so
+      // both the page and `total` reflect only the two survivors, not the raw three-way union.
       expect(hits.map(hit => hit.id)).toEqual([AND_MATCH.id, OR_REGISTER_ONLY.id]);
       expect(new Set(hits.map(hit => hit.id)).size).toBe(hits.length);
-      expect(total).toBe(3);
+      expect(total).toBe(2);
     });
 
-    test('total counts the distinct union of the AND and OR plans, independent of the page size', () => {
+    test('total counts the diversified list, independent of the page size', () => {
       const { total } = store.search({
         query: 'register artifacts',
         corpus: Corpora.WIKI,
         limit: 1,
         offset: 0,
       });
-      expect(total).toBe(3);
+      expect(total).toBe(2);
     });
 
-    test('offset pages across the concatenated AND+OR list', () => {
-      const page = store.search({
+    test('offset pages across the diversified list, in order', () => {
+      const firstPage = store.search({
         query: 'register artifacts',
         corpus: Corpora.WIKI,
-        limit: 2,
+        limit: 1,
+        offset: 0,
+      });
+      const secondPage = store.search({
+        query: 'register artifacts',
+        corpus: Corpora.WIKI,
+        limit: 1,
         offset: 1,
       });
-      expect(page.hits.map(hit => hit.id)).toEqual([OR_REGISTER_ONLY.id, OR_ARTIFACTS_ONLY.id]);
-      expect(page.total).toBe(3);
+      expect(firstPage.hits.map(hit => hit.id)).toEqual([AND_MATCH.id]);
+      expect(secondPage.hits.map(hit => hit.id)).toEqual([OR_REGISTER_ONLY.id]);
+      expect(firstPage.total).toBe(2);
+      expect(secondPage.total).toBe(2);
     });
   });
 
@@ -149,7 +158,7 @@ describe('ChunkStore', () => {
         offset: 0,
       });
       expect(hits.some(hit => hit.id === OTHER_CORPUS.id)).toBe(false);
-      expect(total).toBe(3);
+      expect(total).toBe(2);
     });
 
     test('a different corpus filter finds only its own match', () => {
@@ -218,7 +227,7 @@ describe('ChunkStore', () => {
   });
 
   describe('per-document diversification', () => {
-    test('a document with three matching sections contributes at most two hits to a page of five', () => {
+    test('a document with three matching sections contributes at most two hits, and total reflects the diversified count', () => {
       const denseDocument = [1, 2, 3].map(index =>
         buildChunk({
           id: `wiki:dense.md#section-${index}`,
@@ -241,10 +250,52 @@ describe('ChunkStore', () => {
       const isolated = new ChunkStore();
       isolated.add({ chunks: [...denseDocument, ...otherDocuments] });
 
+      // Diversification runs over the whole ranked list before paging: `dense.md`'s third match
+      // never survives at all (dropped, not merely excluded from this page), so `total` - the
+      // diversified count - is 4 of the 5 raw matches, not 5.
       const { hits, total } = isolated.search({ query: 'verifybindings', limit: 5, offset: 0 });
-      expect(total).toBe(5);
+      expect(total).toBe(4);
       expect(hits).toHaveLength(4);
       expect(hits.filter(hit => hit.id.startsWith('wiki:dense.md#'))).toHaveLength(2);
+      isolated.close();
+    });
+  });
+
+  describe('limit is a length guarantee', () => {
+    test('limit: 3 returns 3 hits when the top 3 raw matches come from one document and a fourth document exists', () => {
+      const denseDocument = [1, 2, 3].map(index =>
+        buildChunk({
+          id: `wiki:dense.md#section-${index}`,
+          document: 'dense.md',
+          anchor: `section-${index}`,
+          title: `Section ${index}`,
+          body: `Mentions verifybindings once in prose, in section ${index}. Verifybindings verifybindings.`,
+        }),
+      );
+      // Diluted on purpose: a longer paragraph around the one mention keeps this chunk's raw score
+      // below all three `dense.md` chunks, so it is genuinely the fourth-ranked candidate, not a
+      // beneficiary of `dense.md`'s own cap by chance.
+      const fourthDocument = buildChunk({
+        id: 'wiki:fourth.md#section',
+        document: 'fourth.md',
+        anchor: 'section',
+        title: 'Fourth document',
+        body:
+          'Also mentions verifybindings once in a much longer paragraph of surrounding prose that ' +
+          'pads this section out considerably further than the three dense sections above it, ' +
+          'diluting the term density on purpose so it ranks behind them here.',
+      });
+
+      const isolated = new ChunkStore();
+      isolated.add({ chunks: [...denseDocument, fourthDocument] });
+
+      // Diversifying before paging means the dropped third `dense.md` hit is backfilled by the
+      // next-ranked distinct document instead of shortening the page - `limit` is honoured in full.
+      const { hits, total } = isolated.search({ query: 'verifybindings', limit: 3, offset: 0 });
+      expect(total).toBe(3);
+      expect(hits).toHaveLength(3);
+      expect(hits.filter(hit => hit.id.startsWith('wiki:dense.md#'))).toHaveLength(2);
+      expect(hits.some(hit => hit.id === fourthDocument.id)).toBe(true);
       isolated.close();
     });
   });

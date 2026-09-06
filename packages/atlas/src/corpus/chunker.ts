@@ -246,14 +246,16 @@ const buildId = (opts: { corpus: TCorpus; path: string; anchor: string }): strin
 const isNonEmptyString = (value: unknown): value is string =>
   typeof value === 'string' && value.length > 0;
 
-/** Frontmatter `title`, `description`, `type`, then every string in `tags` - a missing key contributes nothing. */
+/**
+ * Frontmatter `description`, `type`, then every string in `tags` - a missing key contributes
+ * nothing. `title` is deliberately excluded: it already leads every chunk's `headingPath`, so
+ * including it here too would double-count a title match (HEADING_PATH + METADATA) against a
+ * document that only earns its relevance through `symbols` or `body`.
+ */
 const metadataOf = (opts: { frontmatter: Record<string, unknown> }): string => {
   const { frontmatter } = opts;
   const parts: string[] = [];
 
-  if (isNonEmptyString(frontmatter.title)) {
-    parts.push(frontmatter.title);
-  }
   if (isNonEmptyString(frontmatter.description)) {
     parts.push(frontmatter.description);
   }

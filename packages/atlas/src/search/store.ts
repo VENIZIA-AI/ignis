@@ -24,11 +24,11 @@ const INSERT_SQL = `
   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 `;
 
-// Column order matches CREATE_TABLE_SQL; the five UNINDEXED columns each take a 0 weight - the
-// score itself is the bm25 result multiplied by the document's authority.
+// Column order matches CREATE_TABLE_SQL; the score itself is the bm25 result multiplied by the
+// document's authority.
 const SEARCH_SQL = `
   SELECT id, corpus, document, anchor, heading_path AS headingPath, title,
-    bm25(chunks, 0, 0, 0, 0, ${RankingWeights.HEADING_PATH}, ${RankingWeights.TITLE}, ${RankingWeights.BODY}, ${RankingWeights.SYMBOLS}, ${RankingWeights.METADATA}, 0) * authority AS score,
+    bm25(chunks, ${RankingWeights.UNINDEXED}, ${RankingWeights.UNINDEXED}, ${RankingWeights.UNINDEXED}, ${RankingWeights.UNINDEXED}, ${RankingWeights.HEADING_PATH}, ${RankingWeights.TITLE}, ${RankingWeights.BODY}, ${RankingWeights.SYMBOLS}, ${RankingWeights.METADATA}, ${RankingWeights.UNINDEXED}) * authority AS score,
     snippet(chunks, 6, '[', ']', ' ... ', 12) AS snippet
   FROM chunks
   WHERE chunks MATCH ? AND (? IS NULL OR corpus = ?)
@@ -92,7 +92,7 @@ const hitOf = (row: ISearchRow): IHit => ({
   snippet: snippetOf({ headingPath: row.headingPath, snippet: row.snippet }),
 });
 
-/** Keeps at most `maxPerDocument` rows per `document`, in order; a document's surplus rows are dropped, never backfilled from further down the list. */
+/** Keeps at most `maxPerDocument` rows per `document`, in order; a document's surplus rows are dropped. Applied before paging, so a later, different document can still fill the slot a dropped surplus row leaves behind. */
 const diversify = (opts: { rows: ISearchRow[]; maxPerDocument: number }): ISearchRow[] => {
   const counts = new Map<string, number>();
   const kept: ISearchRow[] = [];
@@ -112,8 +112,8 @@ const diversify = (opts: { rows: ISearchRow[]; maxPerDocument: number }): ISearc
 /**
  * In-memory `bun:sqlite` FTS5 index over `IChunk`s: BM25 ranking weighted toward titles and
  * identifiers, scaled by each document's authority, AND-first search with an OR fallback, corpus
- * filtering, and offset/limit paging over the concatenated AND+OR list, diversified afterward so
- * one document cannot fill a whole page. One instance owns one database - build a new one to reindex.
+ * filtering, diversified so one document holds at most a few slots of the ranked list, then paged
+ * by offset/limit. One instance owns one database - build a new one to reindex.
  */
 export class ChunkStore extends BaseHelper {
   private readonly db: Database;
@@ -178,17 +178,17 @@ export class ChunkStore extends BaseHelper {
         : this.matchRows({ match: plan.or, corpus }).filter(row => !andIds.has(row.id));
 
     const combined = [...andRows, ...orRows];
-    const page = combined.slice(offset, offset + limit);
-    const hits = diversify({
-      rows: page,
+    const diversified = diversify({
+      rows: combined,
       maxPerDocument: RankingWeights.MAX_HITS_PER_DOCUMENT,
-    }).map(hitOf);
+    });
+    const hits = diversified.slice(offset, offset + limit).map(hitOf);
 
     this.logger
       .for('search')
-      .debug(`query: ${query} | corpus: ${corpus ?? 'all'} | total: ${combined.length}`);
+      .debug(`query: ${query} | corpus: ${corpus ?? 'all'} | total: ${diversified.length}`);
 
-    return { total: combined.length, hits };
+    return { total: diversified.length, hits };
   }
 
   get(opts: { id: string }): IChunk | undefined {

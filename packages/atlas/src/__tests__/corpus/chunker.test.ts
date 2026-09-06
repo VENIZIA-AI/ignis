@@ -274,7 +274,7 @@ describe('Chunker - oversized sections split at paragraph boundaries', () => {
 });
 
 describe('Chunker - metadata from frontmatter', () => {
-  test('joins title, description, type and tags, in that order, the same string on every chunk', () => {
+  test('joins description, type and tags, in that order, the same string on every chunk - title is excluded', () => {
     const text = [
       '---',
       'title: Sample guide',
@@ -305,8 +305,22 @@ describe('Chunker - metadata from frontmatter', () => {
     const chunks = Chunker.getInstance().chunk({ document });
     expect(chunks.length).toBeGreaterThan(1);
     for (const chunk of chunks) {
-      expect(chunk.metadata).toBe('Sample guide How this works. Playbook alpha beta');
+      expect(chunk.metadata).toBe('How this works. Playbook alpha beta');
+      expect(chunk.metadata).not.toContain('Sample guide');
     }
+  });
+
+  test('a frontmatter title with no other metadata key contributes nothing - headingPath already carries it', () => {
+    const document: IDocument = {
+      corpus: Corpora.WIKI,
+      path: 'doc.md',
+      title: 'Sample guide',
+      frontmatter: { title: 'Sample guide' },
+      body: '## Section\n\nSome body text.',
+    };
+
+    const [chunk] = Chunker.getInstance().chunk({ document });
+    expect(chunk.metadata).toBe('');
   });
 
   test('a document with no frontmatter has empty metadata', () => {

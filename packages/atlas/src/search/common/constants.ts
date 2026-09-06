@@ -1,5 +1,7 @@
 /** `bm25()` per-column weights, plus the per-document cap on a returned page. */
 export class RankingWeights {
+  /** An FTS5 `UNINDEXED` column still needs a weight argument in `bm25()`'s positional list - it never matches, so the value is inert. */
+  static readonly UNINDEXED = 0;
   static readonly TITLE = 5.0;
   static readonly HEADING_PATH = 3.0;
   static readonly BODY = 1.0;

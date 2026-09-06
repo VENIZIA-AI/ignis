@@ -24,7 +24,7 @@ const buildDocument = (opts: {
   body: opts.body,
 });
 
-// Seven small documents, each earning its place:
+// Nine small documents, each earning its place:
 // - RELEASE_PLAYBOOK: `type: Playbook` in frontmatter, the word "playbook" never appears in the body.
 // - REGISTERING_ARTIFACTS: an H3 ("Advanced options") whose own title and body never say
 //   "register" or "artifacts" - only its heading path, prefixed with the document title, does.
@@ -32,6 +32,10 @@ const buildDocument = (opts: {
 //   a canonical one - authority should outrank raw term frequency.
 // - DENSE_WIDGETS / OTHER_WIDGET_1 / OTHER_WIDGET_2: one document with three matching sections,
 //   two documents with one match each - five matches total, for the per-document cap.
+// - GIZMO_GUIDE / GIZMO_REFERENCE: a document titled with the query word, whose own section is
+//   unrelated (only the heading path, via the propagated title, matches), against a document
+//   whose `symbols` carry the exact identifier - the metadata fix must not let the first outrank
+//   the second (HEADING_PATH alone is 3.0, below SYMBOLS's 4.0).
 const RELEASE_PLAYBOOK = buildDocument({
   corpus: Corpora.KNOWLEDGE,
   path: 'process/release-publish.md',
@@ -141,6 +145,37 @@ const OTHER_WIDGET_2 = buildDocument({
   ].join('\n'),
 });
 
+const GIZMO_GUIDE = buildDocument({
+  corpus: Corpora.WIKI,
+  path: 'guides/gizmo-assembly.md',
+  title: 'Gizmo assembly guide',
+  body: [
+    '# Gizmo assembly guide',
+    '',
+    'Intro text long enough to clear the merge threshold, unrelated to the section below it in ' +
+      `every way that matters here.${PAD}`,
+    '',
+    '## Safety notes',
+    '',
+    'Wear gloves and eye protection before starting any work here, and keep the workspace clear ' +
+      `of clutter at all times.${PAD}`,
+  ].join('\n'),
+});
+
+const GIZMO_REFERENCE = buildDocument({
+  corpus: Corpora.WIKI,
+  path: 'reference/other.md',
+  title: 'Reference notes',
+  body: [
+    '# Reference notes',
+    '',
+    '## Usage',
+    '',
+    'Call `gizmo` once during setup to confirm the configuration resolved cleanly before anything ' +
+      `else starts.${PAD}`,
+  ].join('\n'),
+});
+
 const DOCUMENTS: IDocument[] = [
   RELEASE_PLAYBOOK,
   REGISTERING_ARTIFACTS,
@@ -149,6 +184,8 @@ const DOCUMENTS: IDocument[] = [
   DENSE_WIDGETS,
   OTHER_WIDGET_1,
   OTHER_WIDGET_2,
+  GIZMO_GUIDE,
+  GIZMO_REFERENCE,
 ];
 
 const buildStore = (): ChunkStore => {
@@ -187,11 +224,25 @@ describe('ranking quality over a small fixture corpus', () => {
     expect(historyRank).toBeGreaterThan(canonicalRank);
   });
 
-  test('a document with three matching sections contributes at most two hits to a page of five', () => {
+  test('a document with three matching sections contributes at most two hits, and total reflects the diversified count', () => {
     const { hits, total } = store.search({ query: 'widget', limit: 5, offset: 0 });
 
-    expect(total).toBe(5);
+    // Diversification runs before paging: the dense document's third section is dropped from the
+    // ranked list outright, so of the 5 raw matches only 4 survive - `total` counts those 4.
+    expect(total).toBe(4);
     expect(hits).toHaveLength(4);
     expect(hits.filter(hit => hit.id.startsWith('wiki:reference/dense.md#'))).toHaveLength(2);
+  });
+
+  test('a chunk whose only match is its document title, carried by the heading path, ranks below a genuine symbols match', () => {
+    const { hits } = store.search({ query: 'gizmo', limit: 10, offset: 0 });
+    const titleOnlyRank = hits.findIndex(
+      hit => hit.id === 'wiki:guides/gizmo-assembly.md#safety-notes',
+    );
+    const symbolsRank = hits.findIndex(hit => hit.id === 'wiki:reference/other.md#usage');
+
+    expect(titleOnlyRank).toBeGreaterThanOrEqual(0);
+    expect(symbolsRank).toBeGreaterThanOrEqual(0);
+    expect(symbolsRank).toBeLessThan(titleOnlyRank);
   });
 });
