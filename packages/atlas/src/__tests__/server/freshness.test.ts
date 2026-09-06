@@ -2,7 +2,15 @@ import { AtlasModes, Corpora } from '@/common';
 import { CorpusLoader, resolveRepoRoots } from '@/corpus';
 import type { ICorpusRoot } from '@/corpus';
 import { FreshnessGuard } from '@/server/freshness';
-import { cpSync, mkdtempSync, readFileSync, rmSync, utimesSync, writeFileSync } from 'node:fs';
+import {
+  cpSync,
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  statSync,
+  utimesSync,
+  writeFileSync,
+} from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, describe, expect, spyOn, test } from 'bun:test';
@@ -51,6 +59,25 @@ describe('FreshnessGuard', () => {
       `${original}\n\nA paragraph mentioning ${FRESHNESS_MARKER} after the edit.\n`,
     );
     touchIntoTheFuture({ path: guidePath });
+
+    const after = guard.getStore().search({ query: FRESHNESS_MARKER, limit: 5, offset: 0 });
+    expect(after.hits.length).toBeGreaterThan(0);
+  });
+
+  test('a same-count swap that preserves mtime is still seen, via the byte-size change', () => {
+    const roots = makeWikiRoot();
+    const guard = new FreshnessGuard({ mode: AtlasModes.REPO, roots });
+
+    const before = guard.getStore().search({ query: FRESHNESS_MARKER, limit: 5, offset: 0 });
+    expect(before.hits.length).toBe(0);
+
+    const guidePath = join(roots[0].directory, 'guide.md');
+    const originalStat = statSync(guidePath);
+
+    // Same file count, mtime pinned back to its original value - only the byte size moves, which
+    // is exactly the case a count-plus-mtime-only fingerprint would have missed.
+    writeFileSync(guidePath, `A short replacement body mentioning ${FRESHNESS_MARKER}.`);
+    utimesSync(guidePath, originalStat.atime, originalStat.mtime);
 
     const after = guard.getStore().search({ query: FRESHNESS_MARKER, limit: 5, offset: 0 });
     expect(after.hits.length).toBeGreaterThan(0);

@@ -7,10 +7,17 @@ import { BaseHelper } from '@venizia/ignis-helpers/core';
 import { statSync } from 'node:fs';
 import { join } from 'node:path';
 
-/** Total `.md` files plus the newest mtime across every corpus root - cheap enough to compute before every tool call. */
+/**
+ * Total `.md` files, the newest mtime, and total bytes across every corpus root - cheap enough to
+ * compute before every tool call. Total bytes catches a same-count file swap that preserves mtime
+ * (a build step that overwrites a file's content without touching its timestamp); a pure rename -
+ * identical bytes, identical mtime, only the path changes - still stays invisible, since nothing
+ * here reads the path itself.
+ */
 interface ICorpusFingerprint {
   count: number;
   newestMtimeMs: number;
+  totalBytes: number;
 }
 
 /** Mirrors `CorpusLoader`'s own exclude semantics: an excluded relative path, or anything under it, is never counted. */
@@ -23,6 +30,7 @@ const isExcluded = (opts: { relativePath: string; exclude: string[] }): boolean 
 const fingerprintOf = (opts: { roots: ICorpusRoot[] }): ICorpusFingerprint => {
   let count = 0;
   let newestMtimeMs = 0;
+  let totalBytes = 0;
 
   for (const root of opts.roots) {
     const exclude = root.exclude ?? [];
@@ -34,16 +42,19 @@ const fingerprintOf = (opts: { roots: ICorpusRoot[] }): ICorpusFingerprint => {
       }
 
       count += 1;
-      const { mtimeMs } = statSync(join(root.directory, relativePath));
+      const { mtimeMs, size } = statSync(join(root.directory, relativePath));
       newestMtimeMs = Math.max(newestMtimeMs, mtimeMs);
+      totalBytes += size;
     }
   }
 
-  return { count, newestMtimeMs };
+  return { count, newestMtimeMs, totalBytes };
 };
 
 const sameFingerprint = (opts: { left: ICorpusFingerprint; right: ICorpusFingerprint }): boolean =>
-  opts.left.count === opts.right.count && opts.left.newestMtimeMs === opts.right.newestMtimeMs;
+  opts.left.count === opts.right.count &&
+  opts.left.newestMtimeMs === opts.right.newestMtimeMs &&
+  opts.left.totalBytes === opts.right.totalBytes;
 
 const buildStore = (opts: { roots: ICorpusRoot[] }): ChunkStore => {
   const chunker = Chunker.getInstance();

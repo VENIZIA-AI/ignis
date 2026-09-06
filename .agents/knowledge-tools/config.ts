@@ -3,7 +3,7 @@
  *
  * Everything that knows the shape of THIS repository lives here: paths, denylists,
  * section order/labels, and the coverage axes. Porting the bundle to another repo
- * means editing this file; okf.ts / lib.ts / mcp.ts / viz.ts stay untouched.
+ * means editing this file; okf.ts / lib.ts / viz.ts stay untouched.
  *
  * Renderers themselves are code, not config - they live in the RENDERERS registry
  * at the top of okf.ts and read their paths from here.

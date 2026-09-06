@@ -1,9 +1,8 @@
 #!/usr/bin/env bun
 import { LoggerFactory } from '@venizia/ignis-helpers';
-import { existsSync } from 'node:fs';
-import { join } from 'node:path';
-import { AtlasConstants, AtlasModes } from './common';
+import { AtlasConstants } from './common';
 import type { TAtlasMode } from './common';
+import { findPackageDirectory, ModeUsageError, resolveMode } from './cli/modes';
 import { StderrLogger } from './common/logger';
 import { buildServer } from './server';
 
@@ -11,9 +10,6 @@ import { buildServer } from './server';
 LoggerFactory.use({ provider: StderrLogger });
 
 const USAGE = `usage: ${AtlasConstants.SERVER_NAME} [mcp] [--root <dir>]`;
-const REPO_WIKI_MARKER = 'docs/wiki/content';
-const REPO_KNOWLEDGE_MARKER = '.agents/knowledge';
-const SNAPSHOT_DIRECTORY = 'dist/corpus';
 
 const messageOf = (error: unknown): string =>
   error instanceof Error ? error.message : String(error);
@@ -33,28 +29,17 @@ const readRoot = (opts: { argv: string[] }): string => {
   return index === -1 ? process.cwd() : (opts.argv[index + 1] ?? process.cwd());
 };
 
-const isRepoCheckout = (opts: { root: string }): boolean =>
-  existsSync(join(opts.root, REPO_WIKI_MARKER)) &&
-  existsSync(join(opts.root, REPO_KNOWLEDGE_MARKER));
-
-// The built CLI lives in `dist/cjs/`, two levels under the package root.
-const packageDirectory = join(__dirname, '..', '..');
-
-/** Repo mode wins when `root` is a checkout; otherwise the packaged snapshot next to this CLI; otherwise a usage error. */
-const resolveServerOptions = (opts: { root: string }): { mode: TAtlasMode; root: string } => {
-  const { root } = opts;
-
-  if (isRepoCheckout({ root })) {
-    return { mode: AtlasModes.REPO, root };
+/** Resolves `{ mode, root }` from `argv`, or prints usage and exits 2 - never throws. */
+const resolveServerOptions = (opts: { argv: string[] }): { mode: TAtlasMode; root: string } => {
+  try {
+    const packageDirectory = findPackageDirectory({ startDirectory: __dirname });
+    return resolveMode({ root: readRoot({ argv: opts.argv }), packageDirectory });
+  } catch (error) {
+    if (error instanceof ModeUsageError) {
+      return usageError(error.message);
+    }
+    throw error;
   }
-
-  if (existsSync(join(packageDirectory, SNAPSHOT_DIRECTORY))) {
-    return { mode: AtlasModes.SNAPSHOT, root: join(packageDirectory, 'dist') };
-  }
-
-  return usageError(
-    `no IGNIS checkout at ${root} and no packaged snapshot - pass --root <dir> pointing at a checkout`,
-  );
 };
 
 const argv = process.argv.slice(2);
@@ -63,7 +48,7 @@ if (subcommand !== 'mcp') {
   usageError(`unknown subcommand: ${subcommand}`);
 }
 
-const { mode, root } = resolveServerOptions({ root: readRoot({ argv }) });
+const { mode, root } = resolveServerOptions({ argv });
 
 try {
   buildServer({ mode, root })

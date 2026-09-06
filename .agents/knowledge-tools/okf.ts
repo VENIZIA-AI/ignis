@@ -25,7 +25,7 @@ import {
   REPO,
   RESERVED_FILES,
 } from './config.ts';
-import { loadConcepts, stripCode } from './lib.ts';
+import { loadConcepts, loadConceptsOrExit, stripCode } from './lib.ts';
 
 // --- source scanning ---
 
@@ -690,7 +690,7 @@ const pad = (opts: { value: string; width: number }): string => {
 };
 
 const coverage = (): void => {
-  const concepts = loadConcepts().filter((concept) => !concept.reserved);
+  const concepts = loadConceptsOrExit().filter((concept) => !concept.reserved);
   const ids = new Set(concepts.map((concept) => concept.id));
 
   const hasId = (opts: { id: string }): boolean => ids.has(opts.id);
