@@ -41,10 +41,13 @@ A repository checkout also indexes the knowledge bundle, and re-checks the corpu
 
 | Tool | Input | Returns |
 |---|---|---|
-| `search` | `query` (2+ characters), `corpus?` (`all`, `wiki`, `changelog`, `knowledge`), `limit?` (1-50, default 10), `offset?` | `total`, and a page of `hits`: `id`, `corpus`, `title`, `headingPath`, `anchor`, `snippet`, `score` |
+| `search` | `query` (2+ characters), `corpus?` (`all`, `wiki`, `changelog`, `knowledge`), `limit?` (1-50, default 10), `offset?` | `total`, `returned`, `nextOffset?`, and a page of `hits`: `id`, `corpus`, `title`, `headingPath`, `anchor`, `snippet`, `score` |
 | `get` | `id` (from a search hit), `maxChars?` (500-50000, default 8000), `cursor?` | `id`, `title`, `headingPath`, `body`, and `next` when the body continues |
 
 Pass a `hits[].id` straight to `get` to read the full section it points at.
+
+The reply-size budget can return fewer hits than `limit`. Page with `offset: nextOffset`, not
+`offset + limit` - `nextOffset` is absent once nothing more matches.
 
 ## Citations
 

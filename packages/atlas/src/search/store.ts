@@ -62,7 +62,7 @@ type TSearchParams = [string, string | null, string | null];
 type TIdParams = [string];
 type TDocumentParams = [string];
 
-/** One `bm25`-ranked row before its snippet is prefixed with the heading path and capped. */
+/** One `bm25`-ranked row before its snippet is capped. */
 interface ISearchRow {
   id: string;
   corpus: TCorpus;
@@ -74,13 +74,11 @@ interface ISearchRow {
   snippet: string;
 }
 
-/** Prefixes the FTS5 snippet with the heading path, then caps the result to `SNIPPET_MAX_CHARS`. */
-const snippetOf = (opts: { headingPath: string; snippet: string }): string => {
-  const full = `${opts.headingPath}: ${opts.snippet}`;
-  return full.length <= AtlasConstants.SNIPPET_MAX_CHARS
-    ? full
-    : full.slice(0, AtlasConstants.SNIPPET_MAX_CHARS);
-};
+/** Caps the raw FTS5 snippet to `SNIPPET_MAX_CHARS` - the hit's own `headingPath` field already carries that context, so the snippet does not repeat it. */
+const snippetOf = (opts: { snippet: string }): string =>
+  opts.snippet.length <= AtlasConstants.SNIPPET_MAX_CHARS
+    ? opts.snippet
+    : opts.snippet.slice(0, AtlasConstants.SNIPPET_MAX_CHARS);
 
 const hitOf = (row: ISearchRow): IHit => ({
   id: row.id,
@@ -89,7 +87,7 @@ const hitOf = (row: ISearchRow): IHit => ({
   headingPath: row.headingPath,
   anchor: row.anchor,
   score: row.score,
-  snippet: snippetOf({ headingPath: row.headingPath, snippet: row.snippet }),
+  snippet: snippetOf({ snippet: row.snippet }),
 });
 
 /** Keeps at most `maxPerDocument` rows per `document`, in order; a document's surplus rows are dropped. Applied before paging, so a later, different document can still fill the slot a dropped surplus row leaves behind. */

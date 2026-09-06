@@ -7,13 +7,17 @@ import { z } from 'zod';
 import { parseInput, SearchInputSchema } from './common';
 
 const DESCRIPTION =
-  'Search the wiki, changelogs and knowledge bundle for chunks matching a keyword query, ranked by relevance.';
+  'Search the wiki, changelogs and knowledge bundle for chunks matching a keyword query, ranked ' +
+  'by relevance. The reply size budget can return fewer hits than `limit` - page with ' +
+  '`offset: nextOffset` (present only when more hits remain) to see every hit exactly once.';
 
 type TSearchCorpus = z.infer<typeof SearchInputSchema>['corpus'];
 
 interface ISearchToolResponse {
   total: number;
+  returned: number;
   hits: IHit[];
+  nextOffset?: number;
 }
 
 /** `'all'` (or omitted) means no corpus filter; every other value is already a `TCorpus`. */
@@ -25,14 +29,32 @@ const corpusFilterOf = (opts: { corpus?: TSearchCorpus }): TCorpus | undefined =
   return opts.corpus;
 };
 
+/**
+ * `nextOffset` is where this page's own hits end, not `offset + limit` - the budget below can
+ * return fewer hits than `limit`, and a caller that paged by `offset + limit` instead would skip
+ * every hit the budget trimmed. Absent once there is nothing left to page to.
+ */
+const responseOf = (opts: { total: number; hits: IHit[]; offset: number }): ISearchToolResponse => {
+  const { total, hits, offset } = opts;
+  const nextOffset = offset + hits.length;
+  const response: ISearchToolResponse = { total, returned: hits.length, hits };
+
+  return nextOffset < total ? { ...response, nextOffset } : response;
+};
+
 /** Drops trailing hits until the JSON reply fits `SEARCH_BUDGET_CHARS`; `total` is left untouched, and the last hit always survives. */
-const withinBudget = (opts: { response: ISearchToolResponse }): ISearchToolResponse => {
-  const hits = [...opts.response.hits];
-  let response: ISearchToolResponse = { total: opts.response.total, hits };
+const withinBudget = (opts: {
+  total: number;
+  hits: IHit[];
+  offset: number;
+}): ISearchToolResponse => {
+  const { total, offset } = opts;
+  const hits = [...opts.hits];
+  let response = responseOf({ total, hits, offset });
 
   while (hits.length > 1 && JSON.stringify(response).length > AtlasConstants.SEARCH_BUDGET_CHARS) {
     hits.pop();
-    response = { total: opts.response.total, hits };
+    response = responseOf({ total, hits, offset });
   }
 
   return response;
@@ -46,13 +68,14 @@ export const buildSearchTool = (opts: { store: ChunkStore }): IToolHandler => ({
   },
   call: async ({ args }) => {
     const input = parseInput({ schema: SearchInputSchema, args });
+    const offset = input.offset ?? 0;
     const result = opts.store.search({
       query: input.query,
       corpus: corpusFilterOf({ corpus: input.corpus }),
       limit: input.limit ?? AtlasConstants.SEARCH_DEFAULT_LIMIT,
-      offset: input.offset ?? 0,
+      offset,
     });
 
-    return withinBudget({ response: result });
+    return withinBudget({ total: result.total, hits: result.hits, offset });
   },
 });

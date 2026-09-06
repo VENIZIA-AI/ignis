@@ -1,5 +1,6 @@
 import { Corpora } from '@/common';
 import { Chunker, CorpusLoader } from '@/corpus';
+import type { IDocument } from '@/corpus';
 import { Transport } from '@/protocol';
 import { ChunkStore } from '@/search/store';
 import { buildSearchTool } from '@/tools/search.tool';
@@ -72,5 +73,75 @@ describe('search tool', () => {
     const withExplicitTen = await callSearch({ store, args: { query: 'artifacts', limit: 10 } });
 
     expect(withDefault.result?.content[0]?.text).toBe(withExplicitTen.result?.content[0]?.text);
+  });
+});
+
+describe('search tool: response budget and paging (I1)', () => {
+  const TERM = 'zephyrqueryterm';
+  const DOCUMENT_COUNT = 14;
+
+  // One document per hit (never two sections in the same document) - the per-document diversify
+  // cap would otherwise drop matches before the budget even gets a chance to bite.
+  const documents: IDocument[] = Array.from({ length: DOCUMENT_COUNT }, (_, index) => ({
+    corpus: Corpora.WIKI,
+    path: `guides/budget-fixture-${index}.md`,
+    title: `Budget fixture document number ${index} about ${TERM}`,
+    frontmatter: {},
+    body: [
+      `## Section about ${TERM} in document ${index}`,
+      '',
+      `This section repeats the term ${TERM} a few times across a longer paragraph of prose so the ` +
+        `excerpt has real surrounding context, padded well past the two-hundred character tiny-merge ` +
+        `threshold on its own for fixture document number ${index} here, comfortably.`,
+    ].join('\n'),
+  }));
+
+  const buildBudgetStore = (): ChunkStore => {
+    const chunker = Chunker.getInstance();
+    const store = new ChunkStore();
+    store.add({ chunks: documents.flatMap(document => chunker.chunk({ document })) });
+    return store;
+  };
+
+  test('the budget trims below limit on the first page, and nextOffset never skips a hit while paging', async () => {
+    const store = buildBudgetStore();
+    const limit = 10;
+    const seen = new Set<string>();
+    let offset = 0;
+
+    for (let guard = 0; guard < DOCUMENT_COUNT; guard += 1) {
+      const reply = await callSearch({ store, args: { query: TERM, limit, offset } });
+      const result = JSON.parse(reply.result?.content[0]?.text ?? '{}');
+
+      expect(result.returned).toBe(result.hits.length);
+      if (offset === 0) {
+        expect(result.total).toBe(DOCUMENT_COUNT);
+        expect(result.returned).toBeLessThan(limit);
+      }
+
+      for (const hit of result.hits as { id: string }[]) {
+        expect(seen.has(hit.id)).toBe(false);
+        seen.add(hit.id);
+      }
+
+      if (result.nextOffset === undefined) {
+        expect(offset + result.returned).toBe(result.total);
+        break;
+      }
+
+      expect(result.nextOffset).toBe(offset + result.returned);
+      offset = result.nextOffset;
+    }
+
+    expect(seen.size).toBe(DOCUMENT_COUNT);
+  });
+
+  test('a snippet no longer repeats the heading path the hit already carries as its own field', async () => {
+    const store = buildBudgetStore();
+    const reply = await callSearch({ store, args: { query: TERM, limit: 1, offset: 0 } });
+    const result = JSON.parse(reply.result?.content[0]?.text ?? '{}');
+    const [hit] = result.hits as { headingPath: string; snippet: string }[];
+
+    expect(hit.snippet.startsWith(hit.headingPath)).toBe(false);
   });
 });

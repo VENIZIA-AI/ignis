@@ -43,7 +43,8 @@ would otherwise double-count. Authority discounts `log.md` (history) and changel
 canonical page, so a page that only mentions a term does not outrank the page that is about it.
 Query planning is AND-first: every term must match, and only when that yields too few rows does a
 second, OR pass run and append. A result page keeps at most 2 chunks per document, backfilled from
-the next distinct document in rank order so `limit` stays a true length guarantee.
+the next distinct document in rank order - `limit` hits at that stage, before the reply-size
+budget below can still trim the page further.
 
 Every chunk id is a citation: `wiki:<path>#<anchor>`, `changelog:<date>-<slug>#<anchor>`,
 `okf:<path>#<anchor>`. `get` reads a chunk's full body by that id.
@@ -51,10 +52,12 @@ Every chunk id is a citation: `wiki:<path>#<anchor>`, `changelog:<date>-<slug>#<
 ## Budgets
 
 `search` replies stay under 2,000 characters, trimming trailing hits - never `total` - until it
-fits. `get` pages a body at 8,000 characters by default (`maxChars` widens this to 50,000),
-returning a base64 offset `cursor` for the next page. Neither tool returns a whole file uncapped -
-the two servers this replaces both did; `ignis-knowledge` served one 87,709-character response for
-a single reference page.
+fits. The response carries `returned` (hits actually in this reply) and `nextOffset` (absent when
+nothing follows); page with `offset: nextOffset`, not `offset + limit`, so a page the budget
+trimmed is never skipped. `get` pages a body at 8,000 characters by default (`maxChars` widens
+this to 50,000), returning a base64 offset `cursor` for the next page. Neither tool returns a
+whole file uncapped - the two servers this replaces both did; `ignis-knowledge` served one
+87,709-character response for a single reference page.
 
 ## Freshness
 
