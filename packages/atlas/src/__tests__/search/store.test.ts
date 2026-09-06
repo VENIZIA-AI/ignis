@@ -1,11 +1,8 @@
 import { Corpora } from '@/common';
 import type { TCorpus } from '@/common';
 import type { IChunk } from '@/corpus';
-import { ChunkStore } from '@/index/store';
+import { ChunkStore } from '@/search/store';
 import { describe, expect, test } from 'bun:test';
-
-// `@/index` resolves to the package's top-level `src/index.ts` barrel, not `src/index/index.ts` -
-// import the submodule file directly.
 
 const buildChunk = (opts: {
   id: string;

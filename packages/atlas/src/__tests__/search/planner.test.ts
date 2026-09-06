@@ -1,9 +1,6 @@
 import { Corpora } from '@/common';
-import { QueryPlanner } from '@/index/planner';
+import { QueryPlanner } from '@/search/planner';
 import { describe, expect, test } from 'bun:test';
-
-// `@/index` resolves to the package's top-level `src/index.ts` barrel, not `src/index/index.ts` -
-// import the submodule file directly.
 
 describe('QueryPlanner', () => {
   const planner = new QueryPlanner();
