@@ -47,7 +47,7 @@ This package uses the following open-source libraries. We are grateful to the au
 
 | Library | License | Description |
 |---------|---------|-------------|
-| [@venizia/ignis-helpers](https://github.com/VENIZIA-AI/ignis) | MIT | Ignis utility helpers |
+| [@venizia/ignis-helpers](https://github.com/VENIZIA-AI/ignis) | MIT | IGNIS utility helpers |
 | [Zod](https://github.com/colinhacks/zod) | MIT | TypeScript-first schema validation |
 | [@hono/zod-openapi](https://github.com/honojs/middleware) | MIT | OpenAPI wrapper for Hono, Zod-validated |
 

@@ -126,6 +126,13 @@ export class KafkaConsumerHelper<
     return new KafkaConsumerHelper<KeyType, ValueType, HeaderKeyType, HeaderValueType>(opts);
   }
 
+  /** The instance seam every rebuild goes through; the constructor alone uses the static factory because no instance exists yet. Override this to hand a rebuilt consumer different options or a test double. */
+  protected buildClient(opts: {
+    options: IKafkaConsumerOptions<KeyType, ValueType, HeaderKeyType, HeaderValueType>;
+  }): Consumer<KeyType, ValueType, HeaderKeyType, HeaderValueType> {
+    return KafkaConsumerHelper.buildConsumerClient(opts.options);
+  }
+
   protected static buildConsumerClient<
     KeyType = string,
     ValueType = string,
@@ -501,7 +508,7 @@ export class KafkaConsumerHelper<
     );
 
     const oldClient = this.client;
-    const newClient = KafkaConsumerHelper.buildConsumerClient(this.initialOptions);
+    const newClient = this.buildClient({ options: this.initialOptions });
 
     this.swapClient(newClient);
 

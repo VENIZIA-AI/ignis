@@ -406,3 +406,26 @@ describe('KafkaConsumerHelper — lifecycle, hooks, shutdown', () => {
     expect(unhandledRejections).toEqual([]);
   });
 });
+
+describe('KafkaConsumerHelper - buildClient is the rebuild seam', () => {
+  test('a subclass override of buildClient supplies the consumer that rebuildClient swaps in', async () => {
+    const replacement = new FakeConsumerClient();
+    class SeamHelper extends KafkaConsumerHelper {
+      protected override buildClient(): AnyType {
+        return replacement;
+      }
+    }
+
+    const helper = new SeamHelper({
+      clientId: 'ignis-test-seam',
+      bootstrapBrokers: ['127.0.0.1:9092'],
+      groupId: 'ignis-test-seam-group',
+    });
+    const original = helper.getConsumer();
+
+    await helper['rebuildClient']();
+
+    expect(helper.getConsumer()).toBe(replacement as AnyType);
+    expect(helper.getConsumer()).not.toBe(original);
+  });
+});

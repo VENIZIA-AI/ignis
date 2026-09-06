@@ -99,6 +99,17 @@ describe('resolveMode', () => {
 });
 
 describe('readRootArgument (M11)', () => {
+  test('--root=<dir> is the same as --root <dir>; an empty value or a following flag is a usage error', () => {
+    expect(readRootArgument({ argv: ['--root=/srv/ignis'] })).toEqual({
+      value: '/srv/ignis',
+      explicit: true,
+    });
+    expect(() => readRootArgument({ argv: ['--root='] })).toThrow('--root requires a value');
+    expect(() => readRootArgument({ argv: ['--root', '--verbose'] })).toThrow(
+      '--root requires a value',
+    );
+  });
+
   test('no --root flag reads cwd and is not explicit', () => {
     expect(readRootArgument({ argv: [] })).toEqual({ value: process.cwd(), explicit: false });
   });

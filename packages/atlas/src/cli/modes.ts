@@ -82,13 +82,22 @@ export const findPackageDirectory = (opts: { startDirectory: string }): string =
 
 /** `--root`'s value from `argv`; cwd when absent. Throws when the flag is present with no value. */
 export const readRootArgument = (opts: { argv: string[] }): IRootArgument => {
+  const joined = opts.argv.find(argument => argument.startsWith('--root='));
+  if (joined !== undefined) {
+    const value = joined.slice('--root='.length);
+    if (value.length === 0) {
+      throw new ModeUsageError('--root requires a value');
+    }
+    return { value, explicit: true };
+  }
+
   const index = opts.argv.indexOf('--root');
   if (index === -1) {
     return { value: process.cwd(), explicit: false };
   }
 
   const value = opts.argv[index + 1];
-  if (value === undefined) {
+  if (value === undefined || value.startsWith('--')) {
     throw new ModeUsageError('--root requires a value');
   }
 

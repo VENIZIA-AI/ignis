@@ -38,7 +38,7 @@ export const configs: IServerApplicationConfigs = {
 
 ## Who is affected
 
-- **Applications that override `getProjectRoot()` only to return `__dirname`.** Delete the override; the default (`process.cwd()`) is what peer resolution used all along. Set `projectRoot` only when the process really runs from another directory, and never to `__dirname` in a compiled binary.
+- **Applications that override `getProjectRoot()` only to return `__dirname`.** (A consumer that already deleted its overrides keeps the cwd and sees no change at this bump.) Delete the override; the default (`process.cwd()`) is what peer resolution used all along. Set `projectRoot` only when the process really runs from another directory, and never to `__dirname` in a compiled binary.
 - **Everyone else.** No action needed.
 
 ## Details

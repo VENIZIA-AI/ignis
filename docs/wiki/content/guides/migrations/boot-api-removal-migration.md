@@ -74,7 +74,7 @@ artifacts: [
 ],
 ```
 
-A false `when` drops the whole subtree, so nothing behind it is bound or verified. Check the result the way Step 4 does: a worker boot logs zero routes.
+A false `when` drops the whole subtree, so nothing behind it is bound or verified. Check it with `debug: { shouldShowRoutes: true }`: a worker boot lists zero routes.
 
 ## Step 3 - delete the boot code
 

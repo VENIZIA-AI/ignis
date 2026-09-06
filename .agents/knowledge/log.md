@@ -8,7 +8,7 @@ counted as concepts.
 
 ## 2026-09-06 - one-release batch: projectRoot has readers, conditional index entries, generator ignore warning, check ignores the header, setListHeaders from offset + total
 
-Six framework changes land together and ship in one chain (Phat's rule: small releases, not one per item, and never bundle unrelated features - these are all seams BANA copied code to work around).
+Five framework changes land together and ship in one chain (Phat's rule: small releases, not one per item, and never bundle unrelated features - these are all seams BANA copied code to work around); the sixth item below, `check` comparing the body, already shipped in boot 0.2.0-14.
 `configs.projectRoot` (core-server) now has real readers: `ServerApplication.getProjectRoot()` calls `ModuleUtility.setProjectRoot()` (globalThis slot `ignis:project-root`), so `loadSync`/`assertInstalled` and the gRPC adapter resolve peers under `<projectRoot>/node_modules` - before this the binding was write-only and 16 BANA packages overrode the method to change a value nothing read.
 `configs.artifacts` accepts `{ when, index }` entries (`IConditionalArtifactIndex`; `ArtifactIndexHelper.flatten` is async and takes `application`): the run-mode gate belongs here because `registerArtifacts` runs before `preConfigure` - a worker that gated controllers there mounted 7 unauthenticated routes.
 `ignis-artifacts generate|check` print one `warning:` line per decorated class hidden by a USER `--ignore` glob (`ArtifactScanner.scanWithReport`); defaults stay silent. `check` compares the body below the header line, so a flag change alone is not drift.

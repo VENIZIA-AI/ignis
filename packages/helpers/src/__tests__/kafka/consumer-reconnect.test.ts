@@ -677,12 +677,11 @@ describe('KafkaConsumerHelper - one delivery per stream error on a real Readable
       onMessageError: opts => {
         messageErrors.push(opts.error);
       },
-      maxReconnectAttempts: 0,
     });
     (helper.getConsumer() as AnyType as { consume: (opts: unknown) => Promise<unknown> }).consume =
       async () => stream;
 
-    await helper.start({ topics: ['t'] });
+    await helper.start({ topics: ['t'], maxReconnectAttempts: 0 });
     stream.destroy(new Error('broker dropped'));
     await sleep(50);
 
