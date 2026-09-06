@@ -4,6 +4,7 @@ import type { IChunk } from '@/corpus';
 import { BaseHelper } from '@venizia/ignis-helpers/core';
 import { Database } from 'bun:sqlite';
 import { QueryPlanner } from './planner';
+import { RankingWeights } from './common';
 import type { IHit } from './common';
 
 // SQLite treats a negative LIMIT as "no limit" - the AND and OR plans are fetched whole so paging
@@ -13,20 +14,21 @@ const NO_LIMIT = -1;
 const CREATE_TABLE_SQL = `
   CREATE VIRTUAL TABLE chunks USING fts5(
     id UNINDEXED, corpus UNINDEXED, document UNINDEXED, anchor UNINDEXED,
-    heading_path, title, body, symbols,
+    heading_path, title, body, symbols, metadata, authority UNINDEXED,
     tokenize = 'porter unicode61'
   )
 `;
 
 const INSERT_SQL = `
-  INSERT INTO chunks (id, corpus, document, anchor, heading_path, title, body, symbols)
-  VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+  INSERT INTO chunks (id, corpus, document, anchor, heading_path, title, body, symbols, metadata, authority)
+  VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 `;
 
-// Column order matches CREATE_TABLE_SQL; the four UNINDEXED columns each take a 0 weight.
+// Column order matches CREATE_TABLE_SQL; the five UNINDEXED columns each take a 0 weight - the
+// score itself is the bm25 result multiplied by the document's authority.
 const SEARCH_SQL = `
-  SELECT id, corpus, anchor, heading_path AS headingPath, title,
-    bm25(chunks, 0, 0, 0, 0, 3.0, 5.0, 1.0, 4.0) AS score,
+  SELECT id, corpus, document, anchor, heading_path AS headingPath, title,
+    bm25(chunks, 0, 0, 0, 0, ${RankingWeights.HEADING_PATH}, ${RankingWeights.TITLE}, ${RankingWeights.BODY}, ${RankingWeights.SYMBOLS}, ${RankingWeights.METADATA}, 0) * authority AS score,
     snippet(chunks, 6, '[', ']', ' ... ', 12) AS snippet
   FROM chunks
   WHERE chunks MATCH ? AND (? IS NULL OR corpus = ?)
@@ -35,16 +37,27 @@ const SEARCH_SQL = `
 `;
 
 const SELECT_BY_ID_SQL = `
-  SELECT id, corpus, document, anchor, heading_path AS headingPath, title, body, symbols
+  SELECT id, corpus, document, anchor, heading_path AS headingPath, title, body, symbols, metadata, authority
   FROM chunks WHERE id = ?
 `;
 
 const SELECT_BY_DOCUMENT_SQL = `
-  SELECT id, corpus, document, anchor, heading_path AS headingPath, title, body, symbols
+  SELECT id, corpus, document, anchor, heading_path AS headingPath, title, body, symbols, metadata, authority
   FROM chunks WHERE document = ?
 `;
 
-type TInsertParams = [string, string, string, string, string, string, string, string];
+type TInsertParams = [
+  string,
+  string,
+  string,
+  string,
+  string,
+  string,
+  string,
+  string,
+  string,
+  number,
+];
 type TSearchParams = [string, string | null, string | null];
 type TIdParams = [string];
 type TDocumentParams = [string];
@@ -53,6 +66,7 @@ type TDocumentParams = [string];
 interface ISearchRow {
   id: string;
   corpus: TCorpus;
+  document: string;
   anchor: string;
   headingPath: string;
   title: string;
@@ -78,10 +92,28 @@ const hitOf = (row: ISearchRow): IHit => ({
   snippet: snippetOf({ headingPath: row.headingPath, snippet: row.snippet }),
 });
 
+/** Keeps at most `maxPerDocument` rows per `document`, in order; a document's surplus rows are dropped, never backfilled from further down the list. */
+const diversify = (opts: { rows: ISearchRow[]; maxPerDocument: number }): ISearchRow[] => {
+  const counts = new Map<string, number>();
+  const kept: ISearchRow[] = [];
+
+  for (const row of opts.rows) {
+    const count = counts.get(row.document) ?? 0;
+    if (count >= opts.maxPerDocument) {
+      continue;
+    }
+    counts.set(row.document, count + 1);
+    kept.push(row);
+  }
+
+  return kept;
+};
+
 /**
  * In-memory `bun:sqlite` FTS5 index over `IChunk`s: BM25 ranking weighted toward titles and
- * identifiers, AND-first search with an OR fallback, corpus filtering, and offset/limit paging
- * over the concatenated AND+OR list. One instance owns one database - build a new one to reindex.
+ * identifiers, scaled by each document's authority, AND-first search with an OR fallback, corpus
+ * filtering, and offset/limit paging over the concatenated AND+OR list, diversified afterward so
+ * one document cannot fill a whole page. One instance owns one database - build a new one to reindex.
  */
 export class ChunkStore extends BaseHelper {
   private readonly db: Database;
@@ -111,6 +143,8 @@ export class ChunkStore extends BaseHelper {
           chunk.title,
           chunk.body,
           chunk.symbols,
+          chunk.metadata,
+          chunk.authority,
         );
       }
     });
@@ -144,7 +178,11 @@ export class ChunkStore extends BaseHelper {
         : this.matchRows({ match: plan.or, corpus }).filter(row => !andIds.has(row.id));
 
     const combined = [...andRows, ...orRows];
-    const hits = combined.slice(offset, offset + limit).map(hitOf);
+    const page = combined.slice(offset, offset + limit);
+    const hits = diversify({
+      rows: page,
+      maxPerDocument: RankingWeights.MAX_HITS_PER_DOCUMENT,
+    }).map(hitOf);
 
     this.logger
       .for('search')

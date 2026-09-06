@@ -1,6 +1,7 @@
 import { Corpora } from '@/common';
 import type { TCorpus } from '@/common';
 import type { IChunk } from '@/corpus';
+import { Authorities } from '@/search/common';
 import { ChunkStore } from '@/search/store';
 import { describe, expect, test } from 'bun:test';
 
@@ -12,6 +13,8 @@ const buildChunk = (opts: {
   title: string;
   body: string;
   symbols?: string;
+  metadata?: string;
+  authority?: number;
 }): IChunk => ({
   id: opts.id,
   corpus: opts.corpus ?? Corpora.WIKI,
@@ -21,6 +24,8 @@ const buildChunk = (opts: {
   title: opts.title,
   body: opts.body,
   symbols: opts.symbols ?? '',
+  metadata: opts.metadata ?? '',
+  authority: opts.authority ?? Authorities.CANONICAL,
 });
 
 // Six chunks, each earning its place in the fixture:
@@ -98,7 +103,7 @@ describe('ChunkStore', () => {
       expect(hits[0]?.id).toBe(AND_MATCH.id);
     });
 
-    test('when the AND plan yields fewer than the limit, OR hits fill the rest without duplicates', () => {
+    test('when the AND plan yields fewer than the limit, OR hits fill the rest, capped at two per document', () => {
       const { hits, total } = store.search({
         query: 'register artifacts',
         corpus: Corpora.WIKI,
@@ -106,11 +111,9 @@ describe('ChunkStore', () => {
         offset: 0,
       });
 
-      expect(hits.map(hit => hit.id)).toEqual([
-        AND_MATCH.id,
-        OR_REGISTER_ONLY.id,
-        OR_ARTIFACTS_ONLY.id,
-      ]);
+      // All three WIKI matches share `guide.md` - the per-document cap drops the third rather than
+      // returning it, even though a page of 3 was requested and `total` still counts all three.
+      expect(hits.map(hit => hit.id)).toEqual([AND_MATCH.id, OR_REGISTER_ONLY.id]);
       expect(new Set(hits.map(hit => hit.id)).size).toBe(hits.length);
       expect(total).toBe(3);
     });
@@ -183,6 +186,66 @@ describe('ChunkStore', () => {
       const { hits, total } = store.search({ query: 'verifybindings', limit: 10, offset: 0 });
       expect(total).toBe(2);
       expect(hits.map(hit => hit.id)).toEqual([SYMBOL_HIT.id, PROSE_HIT.id]);
+    });
+  });
+
+  describe('authority scales the score', () => {
+    test('an identical match ranks below default authority when its document carries HISTORY authority', () => {
+      const canonical = buildChunk({
+        id: 'wiki:high.md#match',
+        document: 'high.md',
+        anchor: 'match',
+        title: 'Canonical match',
+        body: 'A concept about verifybindings, mentioned once in prose here.',
+      });
+      const history = buildChunk({
+        id: 'okf:log.md#match',
+        corpus: Corpora.KNOWLEDGE,
+        document: 'log.md',
+        anchor: 'match',
+        title: 'History match',
+        body: 'A concept about verifybindings, mentioned once in prose here.',
+        authority: Authorities.HISTORY,
+      });
+
+      const isolated = new ChunkStore();
+      isolated.add({ chunks: [history, canonical] });
+
+      const { hits } = isolated.search({ query: 'verifybindings', limit: 10, offset: 0 });
+      expect(hits.map(hit => hit.id)).toEqual([canonical.id, history.id]);
+      isolated.close();
+    });
+  });
+
+  describe('per-document diversification', () => {
+    test('a document with three matching sections contributes at most two hits to a page of five', () => {
+      const denseDocument = [1, 2, 3].map(index =>
+        buildChunk({
+          id: `wiki:dense.md#section-${index}`,
+          document: 'dense.md',
+          anchor: `section-${index}`,
+          title: `Section ${index}`,
+          body: `Mentions verifybindings once in prose, in section ${index}.`,
+        }),
+      );
+      const otherDocuments = [1, 2].map(index =>
+        buildChunk({
+          id: `wiki:other-${index}.md#section`,
+          document: `other-${index}.md`,
+          anchor: 'section',
+          title: `Other document ${index}`,
+          body: 'Also mentions verifybindings once in prose here.',
+        }),
+      );
+
+      const isolated = new ChunkStore();
+      isolated.add({ chunks: [...denseDocument, ...otherDocuments] });
+
+      const { hits, total } = isolated.search({ query: 'verifybindings', limit: 5, offset: 0 });
+      expect(total).toBe(5);
+      expect(hits).toHaveLength(4);
+      expect(hits.filter(hit => hit.id.startsWith('wiki:dense.md#'))).toHaveLength(2);
+      isolated.close();
     });
   });
 

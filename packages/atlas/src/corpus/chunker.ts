@@ -1,5 +1,6 @@
 import { Corpora } from '@/common';
 import type { TCorpus } from '@/common';
+import { Authorities } from '@/search/common';
 import { BaseHelper, getError } from '@venizia/ignis-helpers/core';
 import type { IChunk, IDocument } from './common';
 
@@ -102,7 +103,10 @@ const splitIntoSections = (opts: { document: IDocument }): IRawSection[] => {
 
     level = heading[1].length === 2 ? 2 : 3;
     title = heading[2];
-    headingPath = level === 3 && currentH2 ? `${currentH2} > ${title}` : title;
+    headingPath =
+      level === 3 && currentH2
+        ? `${document.title} > ${currentH2} > ${title}`
+        : `${document.title} > ${title}`;
   }
 
   closeCurrent();
@@ -239,6 +243,46 @@ const citationDocumentOf = (opts: { corpus: TCorpus; path: string }): string =>
 const buildId = (opts: { corpus: TCorpus; path: string; anchor: string }): string =>
   `${citationPrefixOf(opts.corpus)}:${citationDocumentOf(opts)}#${opts.anchor}`;
 
+const isNonEmptyString = (value: unknown): value is string =>
+  typeof value === 'string' && value.length > 0;
+
+/** Frontmatter `title`, `description`, `type`, then every string in `tags` - a missing key contributes nothing. */
+const metadataOf = (opts: { frontmatter: Record<string, unknown> }): string => {
+  const { frontmatter } = opts;
+  const parts: string[] = [];
+
+  if (isNonEmptyString(frontmatter.title)) {
+    parts.push(frontmatter.title);
+  }
+  if (isNonEmptyString(frontmatter.description)) {
+    parts.push(frontmatter.description);
+  }
+  if (isNonEmptyString(frontmatter.type)) {
+    parts.push(frontmatter.type);
+  }
+  if (Array.isArray(frontmatter.tags)) {
+    parts.push(...frontmatter.tags.filter(isNonEmptyString));
+  }
+
+  return parts.join(' ');
+};
+
+/** `okf:log.md` is HISTORY, every other changelog entry is CHANGELOG, everything else is CANONICAL. */
+const authorityOf = (opts: { corpus: TCorpus; path: string }): number => {
+  const { corpus, path } = opts;
+  switch (corpus) {
+    case Corpora.CHANGELOG: {
+      return Authorities.CHANGELOG;
+    }
+    case Corpora.KNOWLEDGE: {
+      return path === 'log.md' ? Authorities.HISTORY : Authorities.CANONICAL;
+    }
+    default: {
+      return Authorities.CANONICAL;
+    }
+  }
+};
+
 /** Splits a document into H2/H3 sections: never inside a fence, tiny siblings merged, oversized ones paged. */
 export class Chunker extends BaseHelper {
   private static instance?: Chunker;
@@ -255,6 +299,8 @@ export class Chunker extends BaseHelper {
     const { document } = opts;
     const sections = splitIntoSections({ document });
     const anchors = anchorsOf({ sections });
+    const metadata = metadataOf({ frontmatter: document.frontmatter });
+    const authority = authorityOf({ corpus: document.corpus, path: document.path });
 
     const chunks: IChunk[] = [];
     sections.forEach((section, index) => {
@@ -277,6 +323,8 @@ export class Chunker extends BaseHelper {
           title: section.title,
           body,
           symbols: symbolsOf({ body }),
+          metadata,
+          authority,
         });
       });
     });

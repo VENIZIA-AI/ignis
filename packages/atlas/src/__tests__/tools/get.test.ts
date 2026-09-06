@@ -2,6 +2,7 @@ import { Corpora } from '@/common';
 import { Chunker, CorpusLoader } from '@/corpus';
 import type { IChunk } from '@/corpus';
 import { Transport } from '@/protocol';
+import { Authorities } from '@/search/common';
 import { ChunkStore } from '@/search/store';
 import { buildGetTool } from '@/tools/get.tool';
 import { join } from 'node:path';
@@ -111,6 +112,8 @@ describe('get tool: code-point paging and cursor validation', () => {
       title: 'Multibyte body',
       body: MULTIBYTE_BODY,
       symbols: '',
+      metadata: '',
+      authority: Authorities.CANONICAL,
     };
     const store = new ChunkStore();
     store.add({ chunks: [chunk] });

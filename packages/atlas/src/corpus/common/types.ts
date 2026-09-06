@@ -19,6 +19,10 @@ export interface IChunk {
   title: string;
   body: string;
   symbols: string;
+  /** Frontmatter `title`, `description`, `type` and `tags`, space-joined; the same on every chunk of the document. */
+  metadata: string;
+  /** Multiplies into the `bm25` score - lower for a document kind that is trusted less as a primary source. */
+  authority: number;
 }
 
 /** One directory to load into a corpus. `exclude` entries are relative-path prefixes to skip. */

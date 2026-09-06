@@ -2,6 +2,7 @@ import { Corpora } from '@/common';
 import type { TCorpus } from '@/common';
 import { Chunker, parseFrontmatter } from '@/corpus';
 import type { IDocument } from '@/corpus';
+import { Authorities } from '@/search/common';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, test } from 'bun:test';
@@ -67,10 +68,12 @@ describe('Chunker - guide.md fixture (fence, tiny merge, heading path, anchors)'
     expect(chunks.some(chunk => chunk.title === 'not a heading')).toBe(false);
   });
 
-  test('an H3 under an H2 gets a heading path joining both, and its own anchor', () => {
+  test('an H3 under an H2 gets a heading path joining the title, the H2 and the H3, and its own anchor', () => {
     const resolving = chunks[3];
     expect(resolving.title).toBe('Resolving bindings');
-    expect(resolving.headingPath).toBe('Symbols and lookups > Resolving bindings');
+    expect(resolving.headingPath).toBe(
+      'Artifact registration guide > Symbols and lookups > Resolving bindings',
+    );
     expect(resolving.anchor).toBe('resolving-bindings');
     expect(resolving.id).toBe('wiki:guide.md#resolving-bindings');
   });
@@ -80,10 +83,10 @@ describe('Chunker - guide.md fixture (fence, tiny merge, heading path, anchors)'
     expect(chunks[3].body).toContain('See the index.');
   });
 
-  test('the second H2 section on its own has no parent in its heading path', () => {
+  test('the second H2 section on its own has only the document title as a parent in its heading path', () => {
     const symbolsSection = chunks[2];
     expect(symbolsSection.title).toBe('Symbols and lookups');
-    expect(symbolsSection.headingPath).toBe('Symbols and lookups');
+    expect(symbolsSection.headingPath).toBe('Artifact registration guide > Symbols and lookups');
     expect(symbolsSection.anchor).toBe('symbols-and-lookups');
   });
 });
@@ -255,7 +258,7 @@ describe('Chunker - oversized sections split at paragraph boundaries', () => {
     expect(parts.length).toBeGreaterThan(1);
 
     parts.forEach((part, index) => {
-      expect(part.headingPath).toBe('Big section');
+      expect(part.headingPath).toBe('Doc > Big section');
       expect(part.title).toBe('Big section');
       expect(part.body.length).toBeLessThanOrEqual(6000);
       expect(part.anchor).toBe(index === 0 ? 'big-section' : `big-section-part${index + 1}`);
@@ -267,5 +270,92 @@ describe('Chunker - oversized sections split at paragraph boundaries', () => {
       const occurrences = parts.filter(part => part.body.includes(marker)).length;
       expect(occurrences).toBe(1);
     }
+  });
+});
+
+describe('Chunker - metadata from frontmatter', () => {
+  test('joins title, description, type and tags, in that order, the same string on every chunk', () => {
+    const text = [
+      '---',
+      'title: Sample guide',
+      'description: How this works.',
+      'type: Playbook',
+      'tags: [alpha, beta]',
+      '---',
+      '',
+      '# Sample guide',
+      '',
+      'Intro text long enough to survive on its own past the two-hundred character tiny-merge threshold this section is checked against here.',
+      '',
+      '## Section',
+      '',
+      'More text long enough to survive on its own past the two-hundred character tiny-merge threshold ' +
+        'this second section is checked against here too, padded a little further so it clears two ' +
+        'hundred characters on its own without help from the intro chunk above it in the walk.',
+    ].join('\n');
+    const { data, body } = parseFrontmatter({ text, path: 'doc.md' });
+    const document: IDocument = {
+      corpus: Corpora.WIKI,
+      path: 'doc.md',
+      title: 'Sample guide',
+      frontmatter: data,
+      body,
+    };
+
+    const chunks = Chunker.getInstance().chunk({ document });
+    expect(chunks.length).toBeGreaterThan(1);
+    for (const chunk of chunks) {
+      expect(chunk.metadata).toBe('Sample guide How this works. Playbook alpha beta');
+    }
+  });
+
+  test('a document with no frontmatter has empty metadata', () => {
+    const [chunk] = Chunker.getInstance().chunk({
+      document: buildDocument({ body: '## Section\n\nSome body text.' }),
+    });
+    expect(chunk.metadata).toBe('');
+  });
+});
+
+describe('Chunker - authority by document', () => {
+  const anchoredBody =
+    '## Anchor\n\nJust enough text to keep this section out of the tiny-merge threshold, comfortably ' +
+    'past two hundred characters so it survives as its own chunk without being folded into anything ' +
+    'that came before it in the document.';
+
+  test('okf:log.md gets HISTORY authority', () => {
+    const [chunk] = Chunker.getInstance().chunk({
+      document: buildDocument({ corpus: Corpora.KNOWLEDGE, path: 'log.md', body: anchoredBody }),
+    });
+    expect(chunk.authority).toBe(Authorities.HISTORY);
+  });
+
+  test('a changelog document gets CHANGELOG authority', () => {
+    const [chunk] = Chunker.getInstance().chunk({
+      document: buildDocument({
+        corpus: Corpora.CHANGELOG,
+        path: '2026-01-01-thing.md',
+        body: anchoredBody,
+      }),
+    });
+    expect(chunk.authority).toBe(Authorities.CHANGELOG);
+  });
+
+  test('a knowledge document other than log.md gets CANONICAL authority', () => {
+    const [chunk] = Chunker.getInstance().chunk({
+      document: buildDocument({
+        corpus: Corpora.KNOWLEDGE,
+        path: 'concept.md',
+        body: anchoredBody,
+      }),
+    });
+    expect(chunk.authority).toBe(Authorities.CANONICAL);
+  });
+
+  test('a wiki document gets CANONICAL authority', () => {
+    const [chunk] = Chunker.getInstance().chunk({
+      document: buildDocument({ corpus: Corpora.WIKI, path: 'guide.md', body: anchoredBody }),
+    });
+    expect(chunk.authority).toBe(Authorities.CANONICAL);
   });
 });

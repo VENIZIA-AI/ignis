@@ -45,4 +45,28 @@ describe('QueryPlanner', () => {
     expect(plan.and).toBe('"config:value"');
     expect(plan.or).toBe('"config:value"');
   });
+
+  describe('stopwords', () => {
+    test('filler words are dropped when a content word remains, matching the plan without them', () => {
+      const withFiller = planner.plan({ query: 'how do I register artifacts' });
+      const withoutFiller = planner.plan({ query: 'register artifacts' });
+      expect(withFiller).toEqual(withoutFiller);
+    });
+
+    test('case does not matter - a capitalised stopword is still dropped', () => {
+      const plan = planner.plan({ query: 'How Do I register artifacts' });
+      expect(plan.and).toBe('"register" AND "artifacts"');
+    });
+
+    test('a query made only of stopwords keeps them instead of searching on nothing', () => {
+      const plan = planner.plan({ query: 'how do' });
+      expect(plan.and).toBe('"how" AND "do"');
+      expect(plan.or).toBe('"how" OR "do"');
+    });
+
+    test('a quoted phrase is never filtered, even if every word in it is a stopword', () => {
+      const plan = planner.plan({ query: '"how to" register' });
+      expect(plan.and).toBe('"how to" AND "register"');
+    });
+  });
 });
