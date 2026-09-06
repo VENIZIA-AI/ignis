@@ -320,13 +320,6 @@ const extensionsSidebar: DefaultTheme.SidebarItem[] = [
       },
     ],
   },
-  {
-    text: 'Framework Internals',
-    collapsed: true,
-    items: [
-      { text: 'MCP Docs Server', link: '/extensions/src-details/mcp-server' },
-    ],
-  },
 ];
 
 // https://vitepress.dev/reference/site-config

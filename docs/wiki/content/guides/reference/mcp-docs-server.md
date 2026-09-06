@@ -759,7 +759,6 @@ If this works, the issue is specific to `@venizia/ignis-docs`.
 
 ## What's Next?
 
-- **Learn the Tools:** Read the [Deep Dive Guide](/extensions/src-details/mcp-server) to understand all 10 available tools
 - **Advanced Usage:** Explore how to chain tools for complex documentation queries
 - **Contribute:** Help improve the docs or add new features
 

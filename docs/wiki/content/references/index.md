@@ -29,11 +29,6 @@ Complete reference documentation for the IGNIS framework. Find detailed API docs
 <p>Environment variables and settings</p>
 </a>
 
-<a href="/ignis/extensions/src-details/" class="guide-card">
-<h3>Framework Internals</h3>
-<p>Package structure and architecture</p>
-</a>
-
 </div>
 
 ## Find What You Need
