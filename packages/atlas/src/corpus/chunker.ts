@@ -1,6 +1,6 @@
 import { Corpora } from '@/common';
 import type { TCorpus } from '@/common';
-import { Authorities } from '@/search/common';
+import { Authorities, Stopwords } from '@/search/common';
 import { BaseHelper, getError } from '@venizia/ignis-helpers/core';
 import type { IChunk, IDocument } from './common';
 
@@ -12,6 +12,9 @@ const FENCE_OPEN_PATTERN = /^(`{3,}|~{3,})/;
 const CODE_SPAN_PATTERN = /`([^`\n]+)`/g;
 const IDENTIFIER_PATTERN = /[A-Za-z_][A-Za-z0-9_.]*/g;
 const CAMEL_BOUNDARY_PATTERN = /(?<=[a-z0-9])(?=[A-Z])/;
+const CASE_TRANSITION_PATTERN = /[a-z][A-Z]/;
+const SCREAMING_PATTERN = /^[A-Z][A-Z0-9]*$/;
+const DOTTED_PATH_PATTERN = /^[A-Za-z_][A-Za-z0-9_]*(?:\.[A-Za-z_][A-Za-z0-9_]*)+$/;
 
 /** One section of a document before anchors, ids and oversized-splitting are applied. */
 interface IRawSection {
@@ -192,12 +195,25 @@ const dedupe = (values: string[]): string[] => {
 /** A whitespace-delimited word that is a URL, not an identifier: `://` anywhere, or a leading `http`. */
 const isUrlShaped = (word: string): boolean => word.includes('://') || word.startsWith('http');
 
-/** Every `[A-Za-z_][A-Za-z0-9_.]*` token in `text`, split on `.` into its dotted segments; a URL-shaped word contributes nothing. */
+const isStopword = (word: string): boolean => Stopwords.isValid(word.toLowerCase());
+
+/** camelCase/PascalCase (an internal lower-to-upper transition), snake_case or SCREAMING_CASE (an underscore or an all-uppercase acronym), or a dotted path - never a stopword or a plain lowercase word. */
+const isIdentifierShaped = (token: string): boolean =>
+  !isStopword(token) &&
+  (CASE_TRANSITION_PATTERN.test(token) ||
+    token.includes('_') ||
+    SCREAMING_PATTERN.test(token) ||
+    DOTTED_PATH_PATTERN.test(token));
+
+/** Every identifier-shaped `[A-Za-z_][A-Za-z0-9_.]*` token in `text`, split on `.` into its dotted segments; a URL-shaped word or plain prose contributes nothing. */
 const identifiersOf = (text: string): string[] => {
   const tokens: string[] = [];
   const words = text.split(/\s+/).filter(word => !isUrlShaped(word));
   const matches = words.join(' ').match(IDENTIFIER_PATTERN) ?? [];
   for (const match of matches) {
+    if (!isIdentifierShaped(match)) {
+      continue;
+    }
     for (const segment of match.split('.')) {
       if (segment) {
         tokens.push(segment);
@@ -208,10 +224,8 @@ const identifiersOf = (text: string): string[] => {
 };
 
 /**
- * Identifiers from a chunk's code spans and fenced code: raw dotted segments first, then their
- * camelCase-split, lower-cased pieces (`bootChecks` also indexes `boot checks`), de-duplicated.
- * A fence's own opening line (the delimiter plus its info string, e.g. `` ```typescript ``) is
- * skipped - the language tag is not a code identifier.
+ * Identifier-shaped tokens from a chunk's code spans and fenced code, plus their camelCase-split,
+ * lower-cased pieces, de-duplicated. A fence's opening line (delimiter plus info string) is skipped.
  */
 const symbolsOf = (opts: { body: string }): string => {
   const fence = new FenceTracker();
@@ -271,10 +285,8 @@ const isNonEmptyString = (value: unknown): value is string =>
   typeof value === 'string' && value.length > 0;
 
 /**
- * Frontmatter `description`, `type`, then every string in `tags` - a missing key contributes
- * nothing. `title` is deliberately excluded: it already leads every chunk's `headingPath`, so
- * including it here too would double-count a title match (HEADING_PATH + METADATA) against a
- * document that only earns its relevance through `symbols` or `body`.
+ * Frontmatter `description`, `type`, then every `tags` string - a missing key contributes nothing.
+ * `title` is excluded: it already leads `headingPath`, so including it would double-count a match.
  */
 const metadataOf = (opts: { frontmatter: Record<string, unknown> }): string => {
   const { frontmatter } = opts;

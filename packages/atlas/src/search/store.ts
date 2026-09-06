@@ -25,15 +25,23 @@ const INSERT_SQL = `
 `;
 
 // Column order matches CREATE_TABLE_SQL; the score itself is the bm25 result multiplied by the
-// document's authority.
-const SEARCH_SQL = `
+// document's authority. No `snippet()` here - ranking must see every matching row, but a snippet
+// is only ever fetched for the page `search()` actually returns (see `snippetSql`).
+const RANK_SQL = `
   SELECT id, corpus, document, anchor, heading_path AS headingPath, title,
-    bm25(chunks, ${RankingWeights.UNINDEXED}, ${RankingWeights.UNINDEXED}, ${RankingWeights.UNINDEXED}, ${RankingWeights.UNINDEXED}, ${RankingWeights.HEADING_PATH}, ${RankingWeights.TITLE}, ${RankingWeights.BODY}, ${RankingWeights.SYMBOLS}, ${RankingWeights.METADATA}, ${RankingWeights.UNINDEXED}) * authority AS score,
-    snippet(chunks, 6, '[', ']', ' ... ', 12) AS snippet
+    bm25(chunks, ${RankingWeights.UNINDEXED}, ${RankingWeights.UNINDEXED}, ${RankingWeights.UNINDEXED}, ${RankingWeights.UNINDEXED}, ${RankingWeights.HEADING_PATH}, ${RankingWeights.TITLE}, ${RankingWeights.BODY}, ${RankingWeights.SYMBOLS}, ${RankingWeights.METADATA}, ${RankingWeights.UNINDEXED}) * authority AS score
   FROM chunks
   WHERE chunks MATCH ? AND (? IS NULL OR corpus = ?)
   ORDER BY score
   LIMIT ${NO_LIMIT}
+`;
+
+// `id` is UNINDEXED, so this filters after FTS5 has already matched - the same `MATCH` a row's
+// score came from must be repeated, since `snippet()` reads the matched-phrase state of this query.
+const snippetSql = (opts: { idCount: number }): string => `
+  SELECT id, snippet(chunks, 6, '', '', ' ... ', 12) AS snippet
+  FROM chunks
+  WHERE chunks MATCH ? AND id IN (${Array.from({ length: opts.idCount }, () => '?').join(', ')})
 `;
 
 const SELECT_BY_ID_SQL = `
@@ -60,11 +68,12 @@ type TInsertParams = [
   number,
 ];
 type TSearchParams = [string, string | null, string | null];
+type TSnippetParams = string[];
 type TIdParams = [string];
 type TDocumentParams = [string];
 
-/** One `bm25`-ranked row before its snippet is capped. */
-interface ISearchRow {
+/** One `bm25`-ranked row, before the page it lands on is known and its snippet is fetched. */
+interface IRankedRow {
   id: string;
   corpus: TCorpus;
   document: string;
@@ -72,6 +81,10 @@ interface ISearchRow {
   headingPath: string;
   title: string;
   score: number;
+}
+
+interface ISnippetRow {
+  id: string;
   snippet: string;
 }
 
@@ -81,20 +94,20 @@ const snippetOf = (opts: { snippet: string }): string =>
     ? opts.snippet
     : opts.snippet.slice(0, AtlasConstants.SNIPPET_MAX_CHARS);
 
-const hitOf = (row: ISearchRow): IHit => ({
-  id: row.id,
-  corpus: row.corpus,
-  title: row.title,
-  headingPath: row.headingPath,
-  anchor: row.anchor,
-  score: row.score,
-  snippet: snippetOf({ snippet: row.snippet }),
+const hitOf = (opts: { row: IRankedRow; snippet: string }): IHit => ({
+  id: opts.row.id,
+  corpus: opts.row.corpus,
+  title: opts.row.title,
+  headingPath: opts.row.headingPath,
+  anchor: opts.row.anchor,
+  score: opts.row.score,
+  snippet: snippetOf({ snippet: opts.snippet }),
 });
 
 /** Keeps at most `maxPerDocument` rows per `document`, in order; a document's surplus rows are dropped. Applied before paging, so a later, different document can still fill the slot a dropped surplus row leaves behind. */
-const diversify = (opts: { rows: ISearchRow[]; maxPerDocument: number }): ISearchRow[] => {
+const diversify = (opts: { rows: IRankedRow[]; maxPerDocument: number }): IRankedRow[] => {
   const counts = new Map<string, number>();
-  const kept: ISearchRow[] = [];
+  const kept: IRankedRow[] = [];
 
   for (const row of opts.rows) {
     const count = counts.get(row.document) ?? 0;
@@ -109,10 +122,9 @@ const diversify = (opts: { rows: ISearchRow[]; maxPerDocument: number }): ISearc
 };
 
 /**
- * In-memory `bun:sqlite` FTS5 index over `IChunk`s: BM25 ranking weighted toward titles and
- * identifiers, scaled by each document's authority, AND-first search with an OR fallback, corpus
- * filtering, diversified so one document holds at most a few slots of the ranked list, then paged
- * by offset/limit. One instance owns one database - build a new one to reindex.
+ * In-memory `bun:sqlite` FTS5 index over `IChunk`s: BM25-ranked, AND-first with an OR fallback,
+ * corpus-filterable, diversified per document, then paged. One instance owns one database - build
+ * a new one to reindex.
  */
 export class ChunkStore extends BaseHelper {
   private readonly database: Database;
@@ -181,7 +193,9 @@ export class ChunkStore extends BaseHelper {
       rows: combined,
       maxPerDocument: RankingWeights.MAX_HITS_PER_DOCUMENT,
     });
-    const hits = diversified.slice(offset, offset + limit).map(hitOf);
+    const page = diversified.slice(offset, offset + limit);
+    const snippets = this.snippetsFor({ match: plan.or, ids: page.map(row => row.id) });
+    const hits = page.map(row => hitOf({ row, snippet: snippets.get(row.id) ?? '' }));
 
     this.logger
       .for('search')
@@ -204,8 +218,21 @@ export class ChunkStore extends BaseHelper {
     this.database.close();
   }
 
-  private matchRows(opts: { match: string; corpus: string | null }): ISearchRow[] {
+  private matchRows(opts: { match: string; corpus: string | null }): IRankedRow[] {
     const { match, corpus } = opts;
-    return this.database.query<ISearchRow, TSearchParams>(SEARCH_SQL).all(match, corpus, corpus);
+    return this.database.query<IRankedRow, TSearchParams>(RANK_SQL).all(match, corpus, corpus);
+  }
+
+  /** Every AND row also matches the OR expression (a superset of the same terms), so one query with `plan.or` covers a page regardless of which pass ranked each row. Empty `ids` would otherwise compile to an invalid `IN ()`. */
+  private snippetsFor(opts: { match: string; ids: string[] }): Map<string, string> {
+    const { match, ids } = opts;
+    if (ids.length === 0) {
+      return new Map();
+    }
+
+    const rows = this.database
+      .query<ISnippetRow, TSnippetParams>(snippetSql({ idCount: ids.length }))
+      .all(match, ...ids);
+    return new Map(rows.map(row => [row.id, row.snippet]));
   }
 }

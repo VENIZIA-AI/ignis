@@ -1,5 +1,6 @@
 import { AtlasConstants, AtlasModes, Corpora } from '@/common';
 import type { TAtlasMode } from '@/common';
+import { isRepositoryCheckout, SNAPSHOT_DIRECTORY } from '@/common/layout';
 import { resolveRepositoryRoots } from '@/corpus';
 import type { ICorpusRoot } from '@/corpus';
 import { Transport } from '@/protocol';
@@ -11,19 +12,12 @@ import { existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { FreshnessGuard } from './server/freshness';
 
-const REPOSITORY_WIKI_MARKER = 'docs/wiki/content';
-const REPOSITORY_KNOWLEDGE_MARKER = '.agents/knowledge';
-const SNAPSHOT_DIRECTORY = 'corpus';
-
 /** Repo mode's three live-tree roots, or snapshot mode's two packaged roots - `knowledge` is never shipped. */
 const resolveRoots = (opts: { mode: TAtlasMode; root: string }): ICorpusRoot[] => {
   const { mode, root } = opts;
 
   if (mode === AtlasModes.REPOSITORY) {
-    const isCheckout =
-      existsSync(join(root, REPOSITORY_WIKI_MARKER)) &&
-      existsSync(join(root, REPOSITORY_KNOWLEDGE_MARKER));
-    if (!isCheckout) {
+    if (!isRepositoryCheckout({ root })) {
       throw getError({ message: `[resolveRoots] not an IGNIS checkout | root: ${root}` });
     }
 

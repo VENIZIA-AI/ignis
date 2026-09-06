@@ -13,7 +13,7 @@ citation on every answer. It replaces two retired servers, `ignis-docs-mcp`
 see the [changelog](/changelogs/2026-09-06-ignis-atlas).
 
 Position in the chain: `helpers -> atlas`, a leaf like `boot` - nothing in the framework depends on
-it. Runtime dependencies: `@venizia/ignis-helpers`, `zod` and `@hono/zod-openapi` - the last one because the helpers root barrel (the only entry that exports `LoggerFactory`) requires it while helpers declares it only as a devDependency; `scripts/atlas-pack-smoke.ts` proves the packed tarball starts in an empty directory, and the release workflow runs it for `atlas`. Single CJS build, no ESM pass -
+it. Runtime dependencies: `@venizia/ignis-helpers`, `zod` and `@hono/zod-openapi` - the last one because the helpers root barrel (the only entry that exports `LoggerFactory`) needs it; helpers lists it only as a peer dependency, and atlas, a leaf with nothing downstream to satisfy that peer from, pins it directly. `scripts/atlas-pack-smoke.ts` proves the packed tarball starts in an empty directory, and the release workflow runs it for `atlas`. Single CJS build, no ESM pass -
 the package ships one CLI, not an importable runtime surface. Its own `index.ts` re-exports
 `common` only (constants and types); `buildServer` and the tools are reached through the CLI, not
 imported. Bin `ignis-atlas -> dist/cjs/cli.js` with a `bun` shebang. Bun-only: the index is
@@ -67,11 +67,10 @@ the packaged corpus is immutable for the life of the process.
 
 ## Golden test
 
-`src/__tests__/golden/queries.json` fixes a query set against the real repository corpus (364
-documents, 4165 chunks, an index build around 265 ms) with the expected chunk in the top 3 and,
-where a past regression named a document that must not reappear, a `rejectAnyOf` prefix. 7 of 7
-pass; a ranking change that drops one below the top 3 fails the build, not a human eyeballing a
-table.
+`src/__tests__/golden/queries.json` fixes a query set against the real repository corpus, with the
+expected chunk in the top 3 and, where a past regression named a document that must not reappear, a
+`rejectAnyOf` prefix. Every golden query must pass; a ranking change that drops one below the top 3
+fails the build, not a human eyeballing a table.
 
 ## Constraints the code cannot show
 
@@ -80,7 +79,6 @@ table.
   never know a guard exists.
 - **The fingerprint cannot see a pure rename.** Identical bytes, identical mtime, only the path
   changed - nothing in the fingerprint reads the path itself, so the guard skips the rebuild.
-  Measured under 1 ms over the real repository roots.
 - **`knowledge` is never shipped.** The npm snapshot packages `wiki` and `changelog` only - the
   bundle documents internal process, not something a consumer's agent should search.
 - **Diagnostics are stderr-only.** A stdout discipline test asserts the process writes nothing but

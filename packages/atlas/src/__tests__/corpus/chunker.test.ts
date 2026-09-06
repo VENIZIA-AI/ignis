@@ -135,6 +135,30 @@ describe('Chunker - symbols from code spans', () => {
     expect(chunk.symbols).not.toContain('sentence');
   });
 
+  test('a fence mixing prose and identifiers keeps only the identifier-shaped tokens (M14)', () => {
+    const document = buildDocument({
+      body: [
+        '## Mixed',
+        '',
+        '```ts',
+        '// Read package.json, then call ChunkStore.getInstance to fetch SNAPSHOT_DIRECTORY.',
+        '```',
+      ].join('\n'),
+    });
+
+    const [chunk] = Chunker.getInstance().chunk({ document });
+
+    expect(chunk.symbols).toContain('ChunkStore');
+    expect(chunk.symbols).toContain('getInstance');
+    expect(chunk.symbols).toContain('SNAPSHOT_DIRECTORY');
+    expect(chunk.symbols).toContain('package');
+    expect(chunk.symbols).toContain('json');
+    expect(chunk.symbols).not.toContain('read');
+    expect(chunk.symbols).not.toContain('call');
+    expect(chunk.symbols).not.toContain('fetch');
+    expect(chunk.symbols).not.toContain('then');
+  });
+
   test('a URL-shaped code span and a fence info string contribute nothing to symbols', () => {
     const document = buildDocument({
       body: [

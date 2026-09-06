@@ -147,11 +147,9 @@ describe('get tool: a document id with no anchor reads the whole document (I4)',
 describe('get tool: code-point paging and cursor validation', () => {
   const MULTIBYTE_ID = 'wiki:multibyte.md#body';
 
-  // `GetInputSchema.maxChars` floors at 500, so a "small maxChars" page boundary can only ever land
-  // at code-point offset 500 - this body places an astral emoji (a surrogate pair in UTF-16)
-  // exactly at code-point index 499, the last code point of a maxChars: 500 first page. Slicing by
-  // UTF-16 unit instead of code point would cut this exact emoji in half (verified with a throwaway
-  // script: `body.slice(0, 500)` on this fixture is NOT `String.prototype.isWellFormed()`).
+  // `GetInputSchema.maxChars` floors at 500; this body places an astral emoji (a UTF-16 surrogate
+  // pair) exactly at code-point index 499, the last code point of a maxChars: 500 first page - byte
+  // slicing instead of code-point slicing would cut it in half.
   const FILLER = 'a'.repeat(499);
   const MULTIBYTE_BODY = `${FILLER}😀 và các bạn tiếng Việt có dấu nhé, cùng một biểu tượng nữa 🎉 để kiểm tra trang tiếp theo.`;
 

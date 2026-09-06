@@ -7,13 +7,7 @@ import { BaseHelper } from '@venizia/ignis-helpers/core';
 import { statSync } from 'node:fs';
 import { join } from 'node:path';
 
-/**
- * Total `.md` files, the newest mtime, and total bytes across every corpus root - cheap enough to
- * compute before every tool call. Total bytes catches a same-count file swap that preserves mtime
- * (a build step that overwrites a file's content without touching its timestamp); a pure rename -
- * identical bytes, identical mtime, only the path changes - still stays invisible, since nothing
- * here reads the path itself.
- */
+/** Total `.md` files, newest mtime, and total bytes across every corpus root - catches a same-count content swap that preserves mtime; a pure rename stays invisible. */
 interface ICorpusFingerprint {
   count: number;
   newestMtimeMs: number;
@@ -66,11 +60,8 @@ const buildStore = (opts: { roots: ICorpusRoot[] }): ChunkStore => {
 };
 
 /**
- * Keeps one `ChunkStore` current for a fixed set of `roots`. Repo mode fingerprints the corpus
- * (file count plus newest mtime, one glob walk per root) before every `getStore()` and rebuilds -
- * new loader pass, new chunker pass, new store, the old one `close()`d - when it moved, so a long
- * session never answers from documents it has already outlived. Snapshot mode never rebuilds: the
- * packaged corpus is immutable for the life of the process.
+ * Keeps one `ChunkStore` current for `roots`. Repo mode fingerprints before every `getStore()`
+ * and rebuilds when it moved; snapshot mode never rebuilds.
  */
 export class FreshnessGuard extends BaseHelper {
   private readonly mode: TAtlasMode;
@@ -83,8 +74,8 @@ export class FreshnessGuard extends BaseHelper {
 
     this.mode = opts.mode;
     this.roots = opts.roots;
-    this.store = buildStore({ roots: this.roots });
     this.lastFingerprint = this.watches() ? this.fingerprint() : undefined;
+    this.store = buildStore({ roots: this.roots });
   }
 
   /** The corpus fingerprint right now - one glob walk per root, no rebuild. */

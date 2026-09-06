@@ -12,11 +12,6 @@
     "docs/wiki": {
       "name": "@venizia/ignis-docs",
       "version": "0.2.1-1",
-      "dependencies": {
-        "cytoscape": "^3.34.2",
-        "dayjs": "catalog:",
-        "zod": "catalog:",
-      },
       "devDependencies": {
         "@types/bun": "catalog:",
         "@venizia/dev-configs": "^0.2.0-3",
@@ -349,7 +344,7 @@
     },
     "packages/atlas": {
       "name": "@venizia/ignis-atlas",
-      "version": "0.1.0-0",
+      "version": "0.1.0-1",
       "bin": {
         "ignis-atlas": "./dist/cjs/cli.js",
       },
@@ -369,7 +364,7 @@
     },
     "packages/boot": {
       "name": "@venizia/ignis-boot",
-      "version": "0.2.0-12",
+      "version": "0.2.0-14",
       "bin": {
         "ignis-artifacts": "./dist/cjs/cli.js",
       },
@@ -390,7 +385,7 @@
     },
     "packages/connectors": {
       "name": "@venizia/ignis-connectors",
-      "version": "0.2.0-19",
+      "version": "0.2.0-20",
       "dependencies": {
         "@venizia/ignis-filter": "^0.2.0-6",
         "@venizia/ignis-helpers": "^0.2.0-10",
@@ -433,7 +428,7 @@
     },
     "packages/core-server": {
       "name": "@venizia/ignis",
-      "version": "0.2.0-19",
+      "version": "0.2.0-20",
       "dependencies": {
         "@venizia/ignis-connectors": "^0.2.0-16",
         "@venizia/ignis-filter": "^0.2.0-6",
@@ -519,7 +514,7 @@
     },
     "packages/core-worker": {
       "name": "@venizia/ignis-worker",
-      "version": "0.2.0-20",
+      "version": "0.2.0-21",
       "dependencies": {
         "@venizia/ignis-helpers": "^0.2.0-9",
         "@venizia/ignis-inversion": "^0.2.0-4",
@@ -581,7 +576,7 @@
     },
     "packages/helpers": {
       "name": "@venizia/ignis-helpers",
-      "version": "0.2.0-13",
+      "version": "0.2.0-14",
       "dependencies": {
         "@venizia/ignis-inversion": "^0.2.0-5",
         "dayjs": "catalog:",
@@ -621,6 +616,7 @@
       },
       "peerDependencies": {
         "@dotenvx/dotenvx": "^2.14.0",
+        "@hono/zod-openapi": "^1.5.1",
         "@platformatic/kafka": "^2.6.1",
         "@socket.io/redis-adapter": "^8.3.0",
         "@socket.io/redis-emitter": "^5.1.0",
@@ -682,7 +678,7 @@
     },
     "packages/kernel": {
       "name": "@venizia/ignis-kernel",
-      "version": "0.2.0-19",
+      "version": "0.2.0-20",
       "dependencies": {
         "@venizia/ignis-filter": "^0.2.0-6",
         "@venizia/ignis-helpers": "^0.2.0-10",

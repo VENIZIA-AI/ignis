@@ -23,6 +23,10 @@ const CORPUS_BY_PREFIX: Record<string, TCorpus> = {
 
 const CONTINUATION_PART_PATTERN = /-part\d+$/;
 
+// Built once at module load - a guarded tool that re-resolves its store on every call never needs
+// to rebuild this.
+const INPUT_JSON_SCHEMA = z.toJSONSchema(GetInputSchema);
+
 interface IGetToolResponse {
   id: string;
   title: string;
@@ -126,7 +130,7 @@ export const buildGetTool = (opts: { store: ChunkStore }): IToolHandler => ({
   definition: {
     name: 'get',
     description: DESCRIPTION,
-    inputSchema: z.toJSONSchema(GetInputSchema),
+    inputSchema: INPUT_JSON_SCHEMA,
   },
   call: async ({ args }) => {
     const input = parseInput({ schema: GetInputSchema, args });

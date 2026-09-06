@@ -24,18 +24,9 @@ const buildDocument = (opts: {
   body: opts.body,
 });
 
-// Nine small documents, each earning its place:
-// - RELEASE_PLAYBOOK: `type: Playbook` in frontmatter, the word "playbook" never appears in the body.
-// - REGISTERING_ARTIFACTS: an H3 ("Advanced options") whose own title and body never say
-//   "register" or "artifacts" - only its heading path, prefixed with the document title, does.
-// - LOG / CACHING_CONCEPT: the same term, "caching", four times in a history document and twice in
-//   a canonical one - authority should outrank raw term frequency.
-// - DENSE_WIDGETS / OTHER_WIDGET_1 / OTHER_WIDGET_2: one document with three matching sections,
-//   two documents with one match each - five matches total, for the per-document cap.
-// - GIZMO_GUIDE / GIZMO_REFERENCE: a document titled with the query word, whose own section is
-//   unrelated (only the heading path, via the propagated title, matches), against a document
-//   whose `symbols` carry the exact identifier - the metadata fix must not let the first outrank
-//   the second (HEADING_PATH alone is 3.0, below SYMBOLS's 4.0).
+// Nine documents probing frontmatter search, heading-path-only matches, authority vs. term
+// frequency, per-document diversification, and symbols-vs-heading-path ranking - see each test
+// for which document it targets.
 const RELEASE_PLAYBOOK = buildDocument({
   corpus: Corpora.KNOWLEDGE,
   path: 'process/release-publish.md',
@@ -171,8 +162,8 @@ const GIZMO_REFERENCE = buildDocument({
     '',
     '## Usage',
     '',
-    'Call `gizmo` once during setup to confirm the configuration resolved cleanly before anything ' +
-      `else starts.${PAD}`,
+    'Call `gizmoConfig` once during setup to confirm the configuration resolved cleanly before ' +
+      `anything else starts.${PAD}`,
   ].join('\n'),
 });
 

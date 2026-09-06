@@ -2,7 +2,13 @@
 import { LoggerFactory } from '@venizia/ignis-helpers';
 import { AtlasConstants } from './common';
 import type { TAtlasMode } from './common';
-import { findPackageDirectory, ModeUsageError, readPackageVersion, resolveMode } from './cli/modes';
+import {
+  findPackageDirectory,
+  ModeUsageError,
+  readPackageVersion,
+  readRootArgument,
+  resolveMode,
+} from './cli/modes';
 import { StderrLogger } from './common/logger';
 import { buildServer } from './server';
 
@@ -24,11 +30,6 @@ const readSubcommand = (opts: { argv: string[] }): string => {
   return first === undefined || first.startsWith('--') ? 'mcp' : first;
 };
 
-const readRoot = (opts: { argv: string[] }): string => {
-  const index = opts.argv.indexOf('--root');
-  return index === -1 ? process.cwd() : (opts.argv[index + 1] ?? process.cwd());
-};
-
 // package.json has no version yet only in a manifest hand-edited before its first publish.
 const FALLBACK_VERSION = '0.0.0';
 
@@ -38,7 +39,12 @@ const resolveServerOptions = (opts: {
 }): { mode: TAtlasMode; root: string; version: string } => {
   try {
     const packageDirectory = findPackageDirectory({ startDirectory: __dirname });
-    const { mode, root } = resolveMode({ root: readRoot({ argv: opts.argv }), packageDirectory });
+    const rootArgument = readRootArgument({ argv: opts.argv });
+    const { mode, root } = resolveMode({
+      root: rootArgument.value,
+      packageDirectory,
+      explicitRoot: rootArgument.explicit,
+    });
     const version = readPackageVersion({ directory: packageDirectory }) ?? FALLBACK_VERSION;
     return { mode, root, version };
   } catch (error) {

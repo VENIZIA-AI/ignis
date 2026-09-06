@@ -1,10 +1,7 @@
 import { Corpora } from '@/common';
+import { CHANGELOG_DIRECTORY, KNOWLEDGE_DIRECTORY, WIKI_DIRECTORY } from '@/common/layout';
 import { join } from 'node:path';
 import type { ICorpusRoot } from './common';
-
-const WIKI_DIRECTORY = 'docs/wiki/content';
-const CHANGELOG_DIRECTORY = 'docs/wiki/content/changelogs';
-const KNOWLEDGE_DIRECTORY = '.agents/knowledge';
 
 /**
  * The three live-tree roots for repo mode, rooted at `repositoryRoot`: `wiki` carves its

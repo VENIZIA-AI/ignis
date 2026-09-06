@@ -1,3 +1,4 @@
+import { AtlasConstants } from '@/common';
 import { Transport } from '@/protocol';
 import type { IToolHandler } from '@/protocol';
 import { describe, expect, spyOn, test } from 'bun:test';
@@ -34,6 +35,35 @@ describe('Transport', () => {
     );
     expect(reply.result.serverInfo.name).toBe('atlas-test');
     expect(reply.result.capabilities.tools).toEqual({});
+    expect(reply.result.protocolVersion).toBe('2025-06-18');
+  });
+
+  test('initialize echoes an older supported version instead of negotiating up to the newest (M21)', async () => {
+    const reply = parse(
+      await buildTransport().handleLine({
+        line: JSON.stringify({
+          jsonrpc: '2.0',
+          id: 1,
+          method: 'initialize',
+          params: { protocolVersion: '2024-11-05' },
+        }),
+      }),
+    );
+    expect(reply.result.protocolVersion).toBe('2024-11-05');
+  });
+
+  test('initialize answers with the newest supported version when the client requests an unsupported one (M21)', async () => {
+    const reply = parse(
+      await buildTransport().handleLine({
+        line: JSON.stringify({
+          jsonrpc: '2.0',
+          id: 1,
+          method: 'initialize',
+          params: { protocolVersion: '1999-01-01' },
+        }),
+      }),
+    );
+    expect(reply.result.protocolVersion).toBe(AtlasConstants.PROTOCOL_VERSION);
   });
 
   test('tools/list returns every definition', async () => {

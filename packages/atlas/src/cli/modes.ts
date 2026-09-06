@@ -1,5 +1,11 @@
 import { AtlasModes } from '@/common';
 import type { TAtlasMode } from '@/common';
+import {
+  isRepositoryCheckout,
+  KNOWLEDGE_DIRECTORY,
+  SNAPSHOT_DIRECTORY,
+  WIKI_DIRECTORY,
+} from '@/common/layout';
 import { getError } from '@venizia/ignis-helpers/core';
 import { existsSync, readFileSync } from 'node:fs';
 import { dirname, join, parse } from 'node:path';
@@ -8,16 +14,18 @@ import { dirname, join, parse } from 'node:path';
 // this is what identifies the package directory itself, from its own `package.json`.
 const PACKAGE_NAME = '@venizia/ignis-atlas';
 
-const REPOSITORY_WIKI_MARKER = 'docs/wiki/content';
-const REPOSITORY_KNOWLEDGE_MARKER = '.agents/knowledge';
-const SNAPSHOT_DIRECTORY = 'dist/corpus';
-
-/** A `root`/`packageDirectory` pair that satisfies neither repo mode nor snapshot mode. */
+/** A `root`/`packageDirectory` pair that satisfies neither mode, or a malformed `--root` flag. */
 export class ModeUsageError extends Error {}
 
 export interface IResolvedMode {
   mode: TAtlasMode;
   root: string;
+}
+
+/** `--root`'s value from `argv`, and whether the caller passed it explicitly (cwd is the fallback). */
+export interface IRootArgument {
+  value: string;
+  explicit: boolean;
 }
 
 interface IPackageManifest {
@@ -72,23 +80,46 @@ export const findPackageDirectory = (opts: { startDirectory: string }): string =
   return found;
 };
 
-const isRepositoryCheckout = (opts: { root: string }): boolean =>
-  existsSync(join(opts.root, REPOSITORY_WIKI_MARKER)) &&
-  existsSync(join(opts.root, REPOSITORY_KNOWLEDGE_MARKER));
+/** `--root`'s value from `argv`; cwd when absent. Throws when the flag is present with no value. */
+export const readRootArgument = (opts: { argv: string[] }): IRootArgument => {
+  const index = opts.argv.indexOf('--root');
+  if (index === -1) {
+    return { value: process.cwd(), explicit: false };
+  }
+
+  const value = opts.argv[index + 1];
+  if (value === undefined) {
+    throw new ModeUsageError('--root requires a value');
+  }
+
+  return { value, explicit: true };
+};
 
 /**
  * Repo mode wins when `root` is a checkout; otherwise the packaged snapshot next to
- * `packageDirectory`; otherwise a `ModeUsageError` naming both paths it checked.
+ * `packageDirectory`; otherwise a `ModeUsageError` naming both paths it checked. An explicit
+ * `--root` that is not a checkout never falls back to the snapshot - it named the wrong directory.
  */
-export const resolveMode = (opts: { root: string; packageDirectory: string }): IResolvedMode => {
-  const { root, packageDirectory } = opts;
+export const resolveMode = (opts: {
+  root: string;
+  packageDirectory: string;
+  explicitRoot?: boolean;
+}): IResolvedMode => {
+  const { root, packageDirectory, explicitRoot = false } = opts;
 
   if (isRepositoryCheckout({ root })) {
     return { mode: AtlasModes.REPOSITORY, root };
   }
 
-  if (existsSync(join(packageDirectory, SNAPSHOT_DIRECTORY))) {
-    return { mode: AtlasModes.SNAPSHOT, root: join(packageDirectory, 'dist') };
+  if (explicitRoot) {
+    throw new ModeUsageError(
+      `${root} is not an IGNIS checkout - a checkout needs ${WIKI_DIRECTORY} and ${KNOWLEDGE_DIRECTORY}`,
+    );
+  }
+
+  const distDirectory = join(packageDirectory, 'dist');
+  if (existsSync(join(distDirectory, SNAPSHOT_DIRECTORY))) {
+    return { mode: AtlasModes.SNAPSHOT, root: distDirectory };
   }
 
   throw new ModeUsageError(

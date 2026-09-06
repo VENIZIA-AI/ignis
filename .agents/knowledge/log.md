@@ -6,6 +6,30 @@ not how.
 This file and `index.md` are reserved OKF filenames - they carry no `type:` frontmatter and are not
 counted as concepts.
 
+## 2026-09-06 - one-release batch: projectRoot has readers, conditional index entries, generator ignore warning, check ignores the header, setListHeaders from offset + total
+
+Six framework changes land together and ship in one chain (Phat's rule: small releases, not one per item, and never bundle unrelated features - these are all seams BANA copied code to work around).
+`configs.projectRoot` (core-server) now has real readers: `ServerApplication.getProjectRoot()` calls `ModuleUtility.setProjectRoot()` (globalThis slot `ignis:project-root`), so `loadSync`/`assertInstalled` and the gRPC adapter resolve peers under `<projectRoot>/node_modules` - before this the binding was write-only and 16 BANA packages overrode the method to change a value nothing read.
+`configs.artifacts` accepts `{ when, index }` entries (`IConditionalArtifactIndex`; `ArtifactIndexHelper.flatten` is async and takes `application`): the run-mode gate belongs here because `registerArtifacts` runs before `preConfigure` - a worker that gated controllers there mounted 7 unauthenticated routes.
+`ignis-artifacts generate|check` print one `warning:` line per decorated class hidden by a USER `--ignore` glob (`ArtifactScanner.scanWithReport`); defaults stay silent. `check` compares the body below the header line, so a flag change alone is not drift.
+`BaseRestController.setListHeaders` takes `{ offset, total }` beside `{ range }` (derived with `buildDataRange`); `toContentRange` is exported. Testing guide gained "one invocation per project" (env file, scope, preload).
+
+## 2026-09-06 - atlas minor-findings round: level-aware logging, page-only snippets, one layout module
+
+`StderrLogger` now honours a threshold (`APP_ENV_LOGGER_LEVEL`, default `info`), read once per
+instance so debug lines from `ChunkStore`/`Chunker` no longer reach a client by default. `search()`
+now fetches `snippet()` only for the page it returns, not every matching row (`a*` 85-90ms -> 35-40ms
+on the real corpus); the snippet itself drops its `[`/`]` highlight markers. `symbols` keeps only
+identifier-shaped tokens (camelCase/PascalCase/snake_case/SCREAMING_CASE/dotted), dropping plain
+prose swept in from fenced code. `common/layout.ts` is now the one place owning the checkout markers
+and the snapshot directory name, replacing three separate copies. `--root` is validated: given
+explicitly and not a checkout, the server exits 2 naming the directory instead of silently falling
+back to a packaged snapshot; given with no value, exit 2 with usage instead of silently using `cwd`.
+`FreshnessGuard`'s constructor now fingerprints before it builds, matching `getStore()`, so a file
+added during the initial build is no longer permanently invisible. `initialize` negotiates
+`protocolVersion` against three supported versions instead of echoing anything a client sends.
+No changelog - a fix round on unreleased Minor findings, not a user-facing feature.
+
 ## 2026-09-06 - helpers declares `@hono/zod-openapi` as a peer; generator header prints the real command
 
 The packed `@venizia/ignis-atlas` died outside the workspace on `Cannot find module '@hono/zod-openapi'`

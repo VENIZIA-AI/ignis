@@ -25,10 +25,8 @@ const quoteWord = (word: IBareWord): string =>
   word.isPrefix ? `${quoteTerm(word.raw)}*` : quoteTerm(word.raw);
 
 /**
- * Splits a free-text query into already-quoted FTS5 terms, plus an optional `corpus:` filter.
- * A bare word that is a stopword (`how`, `do`, ...) is dropped, unless every bare word is one - a
- * query made only of stopwords keeps them rather than searching on nothing. A quoted phrase is
- * never filtered - it was typed as one deliberate unit.
+ * Splits a free-text query into already-quoted FTS5 terms, plus an optional `corpus:` filter. A
+ * stopword bare word is dropped unless every bare word is one; a quoted phrase is never filtered.
  */
 const termsOf = (opts: { query: string }): { terms: string[]; corpus?: TCorpus } => {
   const phraseTerms: string[] = [];
@@ -64,9 +62,8 @@ const termsOf = (opts: { query: string }): { terms: string[]; corpus?: TCorpus }
 
 /**
  * Builds an AND-first and an OR-fallback FTS5 `MATCH` string from one free-text query. A quoted
- * phrase stays one term, `corpus:<value>` sets the corpus filter instead of becoming a term, and a
- * trailing `*` on a bare word becomes a prefix query. Every term is quoted, which neutralises the
- * FTS5 syntax characters (`:`, `(`, `)`, `-`, ...) a raw term could otherwise trip over.
+ * phrase stays one term, `corpus:<value>` sets the corpus filter, and a trailing `*` makes a prefix
+ * query. Every term is quoted, neutralising FTS5 syntax characters (`:`, `(`, `)`, `-`, ...).
  */
 export class QueryPlanner {
   plan(opts: { query: string }): IQueryPlan {

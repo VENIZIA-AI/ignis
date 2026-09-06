@@ -26,7 +26,7 @@ Switch an existing MCP config from the old bin to the new one:
 
 ## The problem it solves
 
-Two servers answered the same kind of question: `ignis-docs-mcp` for the wiki, `ignis-knowledge` for the agent-facing knowledge bundle. Neither shared code with the other, and neither ranked results well. `ignis-docs-mcp`'s fuzzy search returned off-topic pages for most engineering queries. A malformed YAML file in `ignis-knowledge` loaded silently as an empty concept. On the maintainer's machine on 2026-09-06, one cold `ignis-docs-mcp` query took 538-881 ms, most of it building a fresh search index every run.
+Two servers answered the same kind of question: `ignis-docs-mcp` for the wiki, `ignis-knowledge` for the agent-facing knowledge bundle. Neither shared code with the other, and neither ranked results well. `ignis-docs-mcp`'s fuzzy search returned off-topic pages for most engineering queries. A malformed YAML file in `ignis-knowledge` loaded silently as an empty concept. On the maintainer's machine on 2026-09-05, one cold `ignis-docs-mcp` query took 538-881 ms, most of it building a fresh search index every run.
 
 ## What changed
 

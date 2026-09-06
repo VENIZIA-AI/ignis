@@ -43,46 +43,13 @@ This monorepo contains the following packages, all licensed under MIT:
 
 ## Third-Party Dependencies
 
-Ignis uses the following open-source libraries. We are grateful to the authors and contributors of these projects.
-
-### Core Dependencies
+This package uses the following open-source libraries. We are grateful to the authors and contributors of these projects.
 
 | Library | License | Description |
 |---------|---------|-------------|
-| [Hono](https://github.com/honojs/hono) | MIT | Ultrafast web framework |
+| [@venizia/ignis-helpers](https://github.com/VENIZIA-AI/ignis) | MIT | Ignis utility helpers |
 | [Zod](https://github.com/colinhacks/zod) | MIT | TypeScript-first schema validation |
-| [Drizzle ORM](https://github.com/drizzle-team/drizzle-orm) | Apache-2.0 | TypeScript ORM |
-| [Jose](https://github.com/panva/jose) | MIT | JavaScript Object Signing and Encryption |
-
-### Helpers Dependencies
-
-| Library | License | Description |
-|---------|---------|-------------|
-| [Winston](https://github.com/winstonjs/winston) | MIT | Universal logging library |
-| [BullMQ](https://github.com/taskforcesh/bullmq) | MIT | Message queue and job scheduling |
-| [IORedis](https://github.com/redis/ioredis) | MIT | Redis client for Node.js |
-| [MinIO](https://github.com/minio/minio-js) | Apache-2.0 | S3-compatible object storage client |
-| [Axios](https://github.com/axios/axios) | MIT | HTTP client |
-| [Day.js](https://github.com/iamkun/dayjs) | MIT | Date manipulation library |
-| [Cron](https://github.com/kelektiv/node-cron) | MIT | Cron job scheduler |
-| [Socket.IO](https://github.com/socketio/socket.io) | MIT | Real-time bidirectional communication |
-| [MQTT.js](https://github.com/mqttjs/MQTT.js) | MIT | MQTT client |
-
-### Utility Dependencies
-
-| Library | License | Description |
-|---------|---------|-------------|
-| [Lodash](https://github.com/lodash/lodash) | MIT | Utility library |
-| [reflect-metadata](https://github.com/rbuckton/reflect-metadata) | Apache-2.0 | Metadata reflection API |
-| [glob](https://github.com/isaacs/node-glob) | ISC | File pattern matching (used by boot) |
-
-### Documentation Dependencies
-
-| Library | License | Description |
-|---------|---------|-------------|
-| [VitePress](https://github.com/vuejs/vitepress) | MIT | Static site generator |
-| [Fuse.js](https://github.com/krisk/fuse) | Apache-2.0 | Fuzzy search library |
-| [gray-matter](https://github.com/jonschlinkert/gray-matter) | MIT | Front-matter parser |
+| [@hono/zod-openapi](https://github.com/honojs/middleware) | MIT | OpenAPI wrapper for Hono, Zod-validated |
 
 ---
 

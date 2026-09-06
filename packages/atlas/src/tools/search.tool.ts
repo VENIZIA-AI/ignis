@@ -8,8 +8,13 @@ import { parseInput, SearchInputSchema } from './common';
 
 const DESCRIPTION =
   'Search the wiki, changelogs and knowledge bundle for chunks matching a keyword query, ranked ' +
-  'by relevance. The reply size budget can return fewer hits than `limit` - page with ' +
+  "by relevance. Each hit's `score` is bm25 times authority, lower is better, only comparable " +
+  'within one response. The reply size budget can return fewer hits than `limit` - page with ' +
   '`offset: nextOffset` (present only when more hits remain) to see every hit exactly once.';
+
+// Built once at module load - `z.toJSONSchema` is pure over the schema, so a guarded tool that
+// re-resolves its store on every call never needs to rebuild this.
+const INPUT_JSON_SCHEMA = z.toJSONSchema(SearchInputSchema);
 
 type TSearchCorpus = z.infer<typeof SearchInputSchema>['corpus'];
 
@@ -64,7 +69,7 @@ export const buildSearchTool = (opts: { store: ChunkStore }): IToolHandler => ({
   definition: {
     name: 'search',
     description: DESCRIPTION,
-    inputSchema: z.toJSONSchema(SearchInputSchema),
+    inputSchema: INPUT_JSON_SCHEMA,
   },
   call: async ({ args }) => {
     const input = parseInput({ schema: SearchInputSchema, args });

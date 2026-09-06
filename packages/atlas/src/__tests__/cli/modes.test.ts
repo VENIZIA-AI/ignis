@@ -1,5 +1,11 @@
 import { AtlasModes } from '@/common';
-import { findPackageDirectory, ModeUsageError, readPackageVersion, resolveMode } from '@/cli/modes';
+import {
+  findPackageDirectory,
+  ModeUsageError,
+  readPackageVersion,
+  readRootArgument,
+  resolveMode,
+} from '@/cli/modes';
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -68,6 +74,44 @@ describe('resolveMode', () => {
     const packageDirectory = makePackageDirectory({ withSnapshot: false });
 
     expect(() => resolveMode({ root, packageDirectory })).toThrow(ModeUsageError);
+  });
+
+  test('an explicit --root that is not a checkout throws naming the directory and the markers, even with a snapshot available (M11)', () => {
+    const root = makeTempDirectory({ prefix: 'atlas-modes-explicit-bad-' });
+    const packageDirectory = makePackageDirectory({ withSnapshot: true });
+    const resolve = () => resolveMode({ root, packageDirectory, explicitRoot: true });
+
+    expect(resolve).toThrow(ModeUsageError);
+    expect(resolve).toThrow(root);
+    expect(resolve).toThrow('docs/wiki/content');
+    expect(resolve).toThrow('.agents/knowledge');
+  });
+
+  test('an explicit --root that is a checkout still resolves to repo mode', () => {
+    const root = makeRepositoryRoot();
+    const packageDirectory = makePackageDirectory({ withSnapshot: false });
+
+    expect(resolveMode({ root, packageDirectory, explicitRoot: true })).toEqual({
+      mode: AtlasModes.REPOSITORY,
+      root,
+    });
+  });
+});
+
+describe('readRootArgument (M11)', () => {
+  test('no --root flag reads cwd and is not explicit', () => {
+    expect(readRootArgument({ argv: [] })).toEqual({ value: process.cwd(), explicit: false });
+  });
+
+  test('--root <dir> reads the given directory and is explicit', () => {
+    expect(readRootArgument({ argv: ['--root', '/some/dir'] })).toEqual({
+      value: '/some/dir',
+      explicit: true,
+    });
+  });
+
+  test('--root with no value throws ModeUsageError instead of silently falling back to cwd', () => {
+    expect(() => readRootArgument({ argv: ['--root'] })).toThrow(ModeUsageError);
   });
 });
 

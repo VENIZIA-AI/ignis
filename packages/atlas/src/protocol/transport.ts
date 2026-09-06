@@ -1,4 +1,4 @@
-import { AtlasConstants } from '@/common';
+import { AtlasConstants, ProtocolVersions } from '@/common';
 import { BaseHelper } from '@venizia/ignis-helpers/core';
 import { RpcError, RpcErrorCodes } from './common';
 import type { IRpcRequest, IRpcResponse, IToolHandler } from './common';
@@ -91,8 +91,11 @@ export class Transport extends BaseHelper {
   private async route(request: IRpcRequest): Promise<string | null> {
     switch (request.method) {
       case 'initialize': {
+        const requested = readString(request.params?.protocolVersion);
         const protocolVersion =
-          readString(request.params?.protocolVersion) ?? AtlasConstants.PROTOCOL_VERSION;
+          requested && ProtocolVersions.isValid(requested)
+            ? requested
+            : AtlasConstants.PROTOCOL_VERSION;
         return this.reply({
           id: request.id,
           result: {

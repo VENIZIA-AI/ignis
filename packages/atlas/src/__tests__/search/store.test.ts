@@ -28,12 +28,9 @@ const buildChunk = (opts: {
   authority: opts.authority ?? Authorities.CANONICAL,
 });
 
-// Six chunks, each earning its place in the fixture:
-// - AND_MATCH contains both query terms - the AND plan's one hit.
-// - OR_REGISTER_ONLY / OR_ARTIFACTS_ONLY each contain one term - only the OR plan finds them.
-// - OTHER_CORPUS contains both terms too, but in a different corpus, to prove the filter excludes it.
-// - SYMBOL_HIT / PROSE_HIT carry the same identifier in `symbols` vs. prose in `body`, to prove the
-//   symbols column's higher bm25 weight outranks a plain mention.
+// AND_MATCH has both terms (the AND hit); OR_REGISTER_ONLY/OR_ARTIFACTS_ONLY have one each (OR
+// only); OTHER_CORPUS has both but in another corpus; SYMBOL_HIT/PROSE_HIT carry the same term in
+// `symbols` vs. `body`, to compare ranking weight.
 const AND_MATCH = buildChunk({
   id: 'wiki:guide.md#and-match',
   anchor: 'and-match',
@@ -174,7 +171,7 @@ describe('ChunkStore', () => {
   });
 
   describe('snippets', () => {
-    test('carry the highlighted term and never exceed 300 characters', () => {
+    test('carry no highlight markers and never exceed 300 characters (M3)', () => {
       const { hits } = store.search({
         query: 'register artifacts',
         corpus: Corpora.WIKI,
@@ -184,8 +181,8 @@ describe('ChunkStore', () => {
 
       expect(hits).toHaveLength(1);
       const [hit] = hits;
-      expect(hit?.snippet).toContain('[');
-      expect(hit?.snippet).toContain(']');
+      expect(hit?.snippet).not.toContain('[');
+      expect(hit?.snippet).not.toContain(']');
       expect(hit?.snippet.length).toBeLessThanOrEqual(300);
     });
   });

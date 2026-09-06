@@ -61,10 +61,8 @@ const collectStdout = async (opts: {
 };
 
 /**
- * Black-box, not `Transport.handleLine()` in-process: this spawns the real `bun src/cli.ts mcp`
- * command a client would run, so a stray `console.log`, a dependency's startup banner, or anything
- * else writing to stdout outside `Transport.run()` fails here instead of corrupting a client's
- * stdio stream. `Transport`'s own discipline is covered in `transport.test.ts`.
+ * Black-box, not in-process: spawns the real `bun src/cli.ts mcp` a client would run, so anything
+ * writing to stdout outside `Transport.run()` fails here, not at a client's stdio stream.
  */
 describe('stdout discipline - the mcp subprocess over real stdio', () => {
   test('writes nothing but JSON-RPC frames to stdout for initialize, tools/list and search', async () => {

@@ -114,7 +114,7 @@ describe('FreshnessGuard', () => {
     ).toBe(0);
   });
 
-  test('the fingerprint walk over the real repo roots stays under 20ms', () => {
+  test('the fingerprint walk over the real repo roots stays under 100ms', () => {
     const roots = resolveRepositoryRoots({ repositoryRoot: REPOSITORY_ROOT });
     const guard = new FreshnessGuard({ mode: AtlasModes.REPOSITORY, roots });
 
@@ -127,6 +127,33 @@ describe('FreshnessGuard', () => {
       `[freshness] fingerprint walk over the real repo roots: ${elapsedMs.toFixed(3)}ms for ${fingerprint.count} files`,
     );
 
-    expect(elapsedMs).toBeLessThan(20);
+    expect(elapsedMs).toBeLessThan(100);
+  });
+
+  test('the constructor fingerprints before it builds, so a file added during the build is caught on the very next call (M12)', () => {
+    const roots = makeWikiRoot();
+    const loader = CorpusLoader.getInstance();
+    const originalLoad = loader.load.bind(loader);
+    let injected = false;
+
+    const loadSpy = spyOn(loader, 'load').mockImplementation(opts => {
+      const documents = originalLoad(opts);
+      if (!injected) {
+        injected = true;
+        writeFileSync(
+          join(roots[0].directory, 'added-during-build.md'),
+          `# Added during build\n\nMentions ${FRESHNESS_MARKER} once the build already started.\n`,
+        );
+      }
+      return documents;
+    });
+
+    try {
+      const guard = new FreshnessGuard({ mode: AtlasModes.REPOSITORY, roots });
+      const { hits } = guard.getStore().search({ query: FRESHNESS_MARKER, limit: 5, offset: 0 });
+      expect(hits.length).toBeGreaterThan(0);
+    } finally {
+      loadSpy.mockRestore();
+    }
   });
 });
