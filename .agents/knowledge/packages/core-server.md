@@ -1,7 +1,7 @@
 ---
 type: Package
 title: core-server
-description: The main IGNIS framework package - the server layer on top of the browser-pure kernel: application lifecycle, connectors, and the built-in components.
+description: "The main IGNIS framework package - the server layer on top of the browser-pure kernel: application lifecycle, connectors, and the built-in components."
 resource: packages/core-server
 tags: [packages, core-server, framework]
 ---

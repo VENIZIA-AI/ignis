@@ -66,9 +66,5 @@ export const SECTION_LABELS: Record<string, string> = {
   reference: 'Reference',
 };
 
-/** Name advertised over the MCP stdio transport. */
-export const MCP_SERVER_NAME = 'ignis-knowledge';
-export const MCP_SERVER_VERSION = '0.1.0';
-
 /** Reserved OKF filenames that carry no `type:` frontmatter and are never counted as concepts. */
 export const RESERVED_FILES = new Set(['index.md', 'log.md']);

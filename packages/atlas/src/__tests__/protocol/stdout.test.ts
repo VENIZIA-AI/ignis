@@ -67,23 +67,20 @@ const collectStdout = async (opts: {
  * stdio stream. `Transport`'s own discipline is covered in `transport.test.ts`.
  */
 describe('stdout discipline - the mcp subprocess over real stdio', () => {
-  test.todo(
-    'writes nothing but JSON-RPC frames to stdout for initialize, tools/list and search',
-    async () => {
-      const proc = Bun.spawn(['bun', 'src/cli.ts', 'mcp', '--root', REPO_ROOT], {
-        cwd: PACKAGE_ROOT,
-        stdin: 'pipe',
-        stdout: 'pipe',
-        stderr: 'pipe',
-      });
+  test('writes nothing but JSON-RPC frames to stdout for initialize, tools/list and search', async () => {
+    const proc = Bun.spawn(['bun', 'src/cli.ts', 'mcp', '--root', REPO_ROOT], {
+      cwd: PACKAGE_ROOT,
+      stdin: 'pipe',
+      stdout: 'pipe',
+      stderr: 'pipe',
+    });
 
-      const stdout = await collectStdout({ process: proc, windowMs: READ_WINDOW_MS });
-      const lines = stdout.split('\n').filter(line => line.trim().length > 0);
+    const stdout = await collectStdout({ process: proc, windowMs: READ_WINDOW_MS });
+    const lines = stdout.split('\n').filter(line => line.trim().length > 0);
 
-      expect(lines.length).toBeGreaterThan(0);
-      for (const line of lines) {
-        expect(isJsonRpcLine(line), `not a JSON-RPC line: ${line}`).toBe(true);
-      }
-    },
-  );
+    expect(lines.length).toBeGreaterThan(0);
+    for (const line of lines) {
+      expect(isJsonRpcLine(line), `not a JSON-RPC line: ${line}`).toBe(true);
+    }
+  });
 });

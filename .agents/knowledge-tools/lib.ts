@@ -97,7 +97,7 @@ export const parseFrontmatter = (opts: { text: string; file: string }): {
       data = parsed as Record<string, unknown>;
     }
   } catch (error) {
-    console.warn(`lib: invalid YAML frontmatter in ${file} - ${(error as Error).message}`);
+    throw new Error(`invalid YAML frontmatter in ${file} - ${(error as Error).message}`);
   }
 
   return { data, body: match[2] };

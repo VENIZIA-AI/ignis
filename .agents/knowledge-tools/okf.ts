@@ -6,7 +6,6 @@
  *   bun .agents/knowledge-tools/okf.ts check      # CI gate: conformance + links + coverage + freshness
  *   bun .agents/knowledge-tools/okf.ts coverage   # measure the bundle against the source inventory
  *   bun .agents/knowledge-tools/okf.ts viz        # build the offline knowledge-graph explorer
- *   bun .agents/knowledge-tools/okf.ts mcp        # serve the bundle over MCP stdio
  *
  * Source-derived content is either a whole generated file (reference/*) or lives inside a
  * managed region delimited by `<!-- okf:generated:<id> start -->` … `<!-- okf:generated:<id> end -->`.
@@ -590,6 +589,15 @@ const check = (): void => {
 
   let conceptCount = 0;
 
+  // 0. every concept parses through the shared loader - a bad frontmatter fails here, file named.
+  // The regex checks below never parse YAML, so on their own they would report OK on a concept
+  // `loadConcepts()` had already silently downgraded to type Unknown.
+  try {
+    loadConcepts();
+  } catch (error) {
+    problems.push((error as Error).message);
+  }
+
   // 1. conformance + 2. links
   for (const file of files) {
     const text = readFileSync(file, 'utf8');
@@ -822,13 +830,8 @@ switch (command) {
     break;
   }
 
-  case 'mcp': {
-    await (await import('./mcp.ts')).runMcp();
-    break;
-  }
-
   default: {
-    console.error('usage: bun .agents/knowledge-tools/okf.ts <gen|check|coverage|viz|mcp>');
+    console.error('usage: bun .agents/knowledge-tools/okf.ts <gen|check|coverage|viz>');
     process.exit(2);
   }
 }

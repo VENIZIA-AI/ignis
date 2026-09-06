@@ -1,8 +1,8 @@
 {
   "mcpServers": {
-    "ignis-knowledge": {
+    "ignis-atlas": {
       "command": "bun",
-      "args": [".agents/knowledge-tools/okf.ts", "mcp"]
+      "args": ["packages/atlas/src/cli.ts", "mcp"]
     }
   }
 }
