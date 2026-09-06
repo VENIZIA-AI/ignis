@@ -5,7 +5,7 @@
         purity purity-test test-scripts purity-inversion purity-filter purity-helpers purity-kernel \
         test-all test-inversion test-helpers test-boot test-kernel test-connectors test-core-worker test-core-server test-atlas \
         purity-dev-configs purity-boot purity-core purity-core-server purity-connectors purity-core-worker purity-atlas \
-        okf-check okf-gen okf-coverage okf-viz split-report surface-gen surface-check wiki-links-check \
+        okf-check okf-gen okf-coverage okf-viz split-report surface-gen surface-check symbols-gen symbols-check wiki-links-check \
         catalog-check \
         update update-all update-core update-core-server update-dev-configs update-atlas update-filter update-helpers update-inversion update-boot
 
@@ -58,6 +58,13 @@ surface-gen:
 surface-check:
 	@bun scripts/public-surface.ts check
 
+# The Atlas `symbol` tool's table. Reads the same built .d.ts surface-gen does; run after a build.
+symbols-gen:
+	@bun scripts/atlas-symbols.ts gen
+
+symbols-check:
+	@bun scripts/atlas-symbols.ts check
+
 wiki-links-check:
 	@bun scripts/wiki-source-links.ts
 
@@ -83,7 +90,7 @@ release:
 # ----------------------------------------------------------------------------
 build: build-all
 
-build-all: core core-worker boot atlas docs surface-check wiki-links-check
+build-all: core core-worker boot atlas docs surface-check symbols-check wiki-links-check
 	@echo "🚀 All packages rebuilt successfully."
 
 # Granular build targets for individual packages
@@ -402,6 +409,8 @@ help:
 	@echo "  split-report     - Report hub files, stray types, missing barrels, long files, cycles (informational)."
 	@echo "  surface-gen      - Snapshot every exported symbol into .agents/knowledge/reference/public-surface.md."
 	@echo "  surface-check    - Gate: the public surface equals the snapshot."
+	@echo "  symbols-gen      - Regenerate .agents/knowledge/reference/symbols.json for the Atlas symbol tool."
+	@echo "  symbols-check    - Gate: the symbol table matches the built .d.ts."
 	@echo "  wiki-links-check - Gate: every source path the wiki and knowledge bundle name exists."
 	@echo "  agent-setup      - Link your agent's tool file + skills to the tracked AGENTS.md."
 	@echo ""

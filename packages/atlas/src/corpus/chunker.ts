@@ -198,7 +198,7 @@ const isUrlShaped = (word: string): boolean => word.includes('://') || word.star
 const isStopword = (word: string): boolean => Stopwords.isValid(word.toLowerCase());
 
 /** camelCase/PascalCase (an internal lower-to-upper transition), snake_case or SCREAMING_CASE (an underscore or an all-uppercase acronym), or a dotted path - never a stopword or a plain lowercase word. */
-const isIdentifierShaped = (token: string): boolean =>
+export const isIdentifierShaped = (token: string): boolean =>
   !isStopword(token) &&
   (CASE_TRANSITION_PATTERN.test(token) ||
     token.includes('_') ||

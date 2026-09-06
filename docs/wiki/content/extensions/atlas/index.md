@@ -43,11 +43,43 @@ A repository checkout also indexes the knowledge bundle, and re-checks the corpu
 |---|---|---|
 | `search` | `query` (2+ characters), `corpus?` (`all`, `wiki`, `changelog`, `knowledge`), `limit?` (1-50, default 10), `offset?` | `total`, `returned`, `nextOffset?`, and a page of `hits`: `id`, `corpus`, `title`, `headingPath`, `anchor`, `snippet`, `score` |
 | `get` | `id` (from a search hit), `maxChars?` (500-50000, default 8000), `cursor?` | `id`, `title`, `headingPath`, `body`, and `next` when the body continues |
+| `symbol` | `name` (an exported symbol), `package?` (`helpers` or `@venizia/ignis-helpers`) | `name`, `package`, `subpath`, `specifier`, `kind`, `file`, `line`, `signature`, `docs`; or `matches` when the name exists in several packages |
 
 Pass a `hits[].id` straight to `get` to read the full section it points at.
 
 The reply-size budget can return fewer hits than `limit`. Page with `offset: nextOffset`, not
 `offset + limit` - `nextOffset` is absent once nothing more matches.
+
+## Finding a symbol
+
+`symbol` reads a table generated from every package's built `.d.ts`, so `file` and `line` point at
+the declaration in `packages/<name>/src/`:
+
+```json
+{ "name": "getError", "package": "inversion" }
+```
+
+```json
+{
+  "name": "getError",
+  "package": "@venizia/ignis-inversion",
+  "subpath": ".",
+  "specifier": "@venizia/ignis-inversion",
+  "kind": "const",
+  "file": "packages/inversion/src/modules/error/app-error.ts",
+  "line": 89,
+  "signature": "getError: (opts: TError) => ApplicationError",
+  "docs": ["wiki:extensions/helpers/error/index.md#in-one-example"]
+}
+```
+
+Import it from `specifier`, and pass a `docs` id to `get` to read what the manual says about it.
+
+A misspelt name answers with an error naming the closest candidates, so a second call can be
+right: `unknown symbol 'LoggerFactroy'; did you mean LoggerFactory?`.
+
+A `search` whose query is one identifier the table knows carries the same record beside its hits,
+without the signature or the docs.
 
 ## Citations
 
@@ -62,4 +94,5 @@ Every id names its source, so an answer is checkable.
 
 ## See also
 
+- [Changelog: Atlas gains a symbol tool and a generated symbol table](/changelogs/2026-09-07-atlas-symbols)
 - [Changelog: ignis-docs-mcp is replaced by @venizia/ignis-atlas](/changelogs/2026-09-06-ignis-atlas)

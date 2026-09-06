@@ -32,4 +32,14 @@ mkdir -p dist/corpus/wiki dist/corpus/changelogs
     cp "$WIKI_CONTENT_DIR/changelogs/$relative_path" "dist/corpus/changelogs/$relative_path"
   done
 
+# The generated symbol table travels with the snapshot - `symbol` is dead in an npm install
+# without it, so a missing table fails the build instead of shipping a half-working server.
+echo ">>> Copying the symbol table..."
+SYMBOLS_FILE="../../.agents/knowledge/reference/symbols.json"
+if [ ! -f "$SYMBOLS_FILE" ]; then
+  echo "ERROR | $SYMBOLS_FILE is missing - run 'make symbols-gen' first" >&2
+  exit 1
+fi
+cp "$SYMBOLS_FILE" dist/corpus/symbols.json
+
 echo "DONE | Build completed successfully!"

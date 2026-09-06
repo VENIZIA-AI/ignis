@@ -9,6 +9,11 @@ export const SearchInputSchema = z.object({
   offset: z.number().int().min(0).optional(),
 });
 
+export const SymbolInputSchema = z.object({
+  name: z.string().min(1),
+  package: z.string().min(1).optional(),
+});
+
 export const GetInputSchema = z.object({
   id: z.string().min(1),
   maxChars: z.number().int().min(500).max(50000).optional(),

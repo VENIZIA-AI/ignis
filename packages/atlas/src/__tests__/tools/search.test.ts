@@ -3,6 +3,7 @@ import { Chunker, CorpusLoader } from '@/corpus';
 import type { IDocument } from '@/corpus';
 import { Transport } from '@/protocol';
 import { ChunkStore } from '@/search/store';
+import { SymbolStore } from '@/symbols';
 import { buildSearchTool } from '@/tools/search.tool';
 import { join } from 'node:path';
 import { describe, expect, test } from 'bun:test';
@@ -143,5 +144,65 @@ describe('search tool: response budget and paging (I1)', () => {
     const [hit] = result.hits as { headingPath: string; snippet: string }[];
 
     expect(hit.snippet.startsWith(hit.headingPath)).toBe(false);
+  });
+});
+
+describe('search tool: the symbol field', () => {
+  const symbols = new SymbolStore({
+    symbols: [
+      {
+        name: 'bootChecks',
+        package: '@venizia/ignis-boot',
+        subpath: '.',
+        specifier: '@venizia/ignis-boot',
+        kind: 'const',
+        file: 'packages/boot/src/common/types.ts',
+        line: 12,
+        signature: 'const bootChecks: IBootChecks',
+      },
+    ],
+  });
+
+  const callWithSymbols = async (query: string) => {
+    const transport = new Transport({
+      tools: [buildSearchTool({ store: buildFixtureStore(), symbols })],
+      serverName: 'atlas-test',
+      serverVersion: '0.0.0',
+    });
+    const reply = await transport.handleLine({
+      line: JSON.stringify({
+        jsonrpc: '2.0',
+        id: 1,
+        method: 'tools/call',
+        params: { name: 'search', arguments: { query } },
+      }),
+    });
+    const parsed = JSON.parse(reply ?? 'null');
+    return JSON.parse(parsed.result?.content[0]?.text ?? '{}');
+  };
+
+  test('a single identifier the table knows carries the symbol beside the hits', async () => {
+    const result = await callWithSymbols('bootChecks');
+
+    expect(result.symbol).toEqual({
+      name: 'bootChecks',
+      package: '@venizia/ignis-boot',
+      specifier: '@venizia/ignis-boot',
+      kind: 'const',
+      file: 'packages/boot/src/common/types.ts',
+      line: 12,
+    });
+  });
+
+  test('a prose query carries no symbol', async () => {
+    const result = await callWithSymbols('how do artifacts register');
+
+    expect(result.symbol).toBeUndefined();
+  });
+
+  test('a single identifier the table does not know carries no symbol', async () => {
+    const result = await callWithSymbols('unknownIdentifier');
+
+    expect(result.symbol).toBeUndefined();
   });
 });

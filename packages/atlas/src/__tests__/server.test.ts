@@ -51,13 +51,13 @@ const listToolNames = async (opts: {
 };
 
 describe('buildServer', () => {
-  test('repo mode exposes exactly the search and get tools', async () => {
+  test('repo mode exposes exactly the search, get and symbol tools', async () => {
     const transport = buildServer({
       mode: AtlasModes.REPOSITORY,
       root: REPOSITORY_ROOT,
       version: TEST_VERSION,
     });
-    expect(await listToolNames({ transport })).toEqual(['search', 'get']);
+    expect(await listToolNames({ transport })).toEqual(['search', 'get', 'symbol']);
   });
 
   test('serverInfo.version is whatever version buildServer was given, not a hardcoded string (I6)', async () => {
@@ -81,7 +81,7 @@ describe('buildServer', () => {
     cpSync(join(FIXTURES, 'changelogs'), join(root, 'corpus/changelogs'), { recursive: true });
 
     const transport = buildServer({ mode: AtlasModes.SNAPSHOT, root, version: TEST_VERSION });
-    expect(await listToolNames({ transport })).toEqual(['search', 'get']);
+    expect(await listToolNames({ transport })).toEqual(['search', 'get', 'symbol']);
 
     const reply = parseReply(
       await transport.handleLine({
@@ -97,6 +97,52 @@ describe('buildServer', () => {
     const text = reply.result?.content?.[0]?.text ?? '{}';
     const searchResult: { hits: unknown[] } = JSON.parse(text);
     expect(searchResult.hits.length).toBeGreaterThan(0);
+  });
+
+  test('a snapshot packaged without a symbol table says so instead of failing to start', async () => {
+    const root = makeTempDirectory();
+    cpSync(join(FIXTURES, 'wiki'), join(root, 'corpus/wiki'), { recursive: true });
+    cpSync(join(FIXTURES, 'changelogs'), join(root, 'corpus/changelogs'), { recursive: true });
+
+    const transport = buildServer({ mode: AtlasModes.SNAPSHOT, root, version: TEST_VERSION });
+    const reply = parseReply(
+      await transport.handleLine({
+        line: JSON.stringify({
+          jsonrpc: '2.0',
+          id: 2,
+          method: 'tools/call',
+          params: { name: 'symbol', arguments: { name: 'getError' } },
+        }),
+      }),
+    );
+
+    expect(reply.error?.message).toBe('no symbol table in this build');
+  });
+
+  test('repo mode answers symbol from the generated table', async () => {
+    const transport = buildServer({
+      mode: AtlasModes.REPOSITORY,
+      root: REPOSITORY_ROOT,
+      version: TEST_VERSION,
+    });
+    const reply = parseReply(
+      await transport.handleLine({
+        line: JSON.stringify({
+          jsonrpc: '2.0',
+          id: 2,
+          method: 'tools/call',
+          params: { name: 'symbol', arguments: { name: 'getError', package: 'helpers' } },
+        }),
+      }),
+    );
+
+    const payload: { name?: string; file?: string; matches?: unknown[] } = JSON.parse(
+      reply.result?.content?.[0]?.text ?? '{}',
+    );
+    const first = payload.matches ? payload.matches[0] : payload;
+
+    expect(reply.error?.message).toBeUndefined();
+    expect(JSON.stringify(first)).toContain('getError');
   });
 
   test('a root with neither docs/wiki/content nor corpus/ throws a plain, RpcError-free error before any stdout write', () => {

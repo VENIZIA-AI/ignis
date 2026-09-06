@@ -120,10 +120,8 @@ export class PublicSurface {
     return { entry: opts.entry, symbols };
   }
 
-  private static kindOf(opts: {
-    checker: TypeScript.TypeChecker;
-    symbol: TypeScript.Symbol;
-  }): string {
+  /** Public so `atlas-symbols.ts` records the same vocabulary this snapshot does, never a second one. */
+  static kindOf(opts: { checker: TypeScript.TypeChecker; symbol: TypeScript.Symbol }): string {
     const resolved =
       opts.symbol.flags & ts.SymbolFlags.Alias
         ? opts.checker.getAliasedSymbol(opts.symbol)
