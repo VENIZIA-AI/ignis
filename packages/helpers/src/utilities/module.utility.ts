@@ -3,6 +3,7 @@ import path from 'node:path';
 import type { AnyType } from '@/common/types';
 import { LoggerFactory } from '@/modules/logger';
 import { getError } from '@/modules/error';
+import { ProjectRootRegistry } from './project-root.utility';
 
 const logger = LoggerFactory.getLogger(['ModuleUtility']);
 
@@ -24,17 +25,13 @@ export class ModuleUtility {
     return created;
   }
 
-  /** The application's project root, shared across module copies like the registry; `process.cwd()` until an application sets it. */
-  private static readonly PROJECT_ROOT_SLOT = Symbol.for('ignis:project-root');
-
-  /** Called by the application once it knows its root (`configs.projectRoot` or the cwd); every peer lookup below follows it. */
+  /** Called by the application once it knows its root (`configs.projectRoot` or the cwd); every peer lookup below follows it. Delegates to `ProjectRootRegistry`, which a browser Worker host reaches too through `/core` - the two must share ONE slot. */
   static setProjectRoot(opts: { projectRoot: string }): void {
-    Reflect.set(globalThis, this.PROJECT_ROOT_SLOT, opts.projectRoot);
+    ProjectRootRegistry.set(opts);
   }
 
   static getProjectRoot(): string {
-    const shared: string | undefined = Reflect.get(globalThis, this.PROJECT_ROOT_SLOT);
-    return shared ?? process.cwd();
+    return ProjectRootRegistry.getShared() ?? process.cwd();
   }
 
   /** Resolves peers against the APP's node_modules (under the project root), not this package's own `dist/` location. */

@@ -217,6 +217,7 @@ is for.
   `RequestIdGenerator`. They once differed - the Worker minted a base62 Snowflake while the server
   kept hono's default - and correlating one request across the two halves meant knowing which end
   produced which shape.
+- **`WorkerApplication.getProjectRoot()` mirrors `ServerApplication`'s `configs.projectRoot` seam, minus the `node_modules` check** - a browser Worker has no filesystem to check, so it reads the cwd defensively through `globalThis.process?.cwd?.()` and shares the result with `ModuleUtility` via the Node-import-free `ProjectRootRegistry` (`@venizia/ignis-helpers/core`), never the root barrel.
 
 ## Related
 
