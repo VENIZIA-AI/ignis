@@ -1,5 +1,5 @@
 import { AtlasConstants } from '@/common';
-import { BaseHelper, getError } from '@venizia/ignis-helpers/core';
+import { BaseHelper } from '@venizia/ignis-helpers/core';
 import { RpcErrorCodes } from './common';
 import type { IRpcRequest, IRpcResponse, IToolHandler, TRpcErrorCode } from './common';
 
@@ -135,19 +135,27 @@ export class Transport extends BaseHelper {
 
   private async callTool(request: IRpcRequest): Promise<string> {
     const name = readString(request.params?.name) ?? '';
+    const handler = this.tools.find(tool => tool.definition.name === name);
+
+    // MCP maps an unknown tool name to invalid params, not an internal error.
+    if (!handler) {
+      return this.errorReply({
+        id: request.id,
+        code: RpcErrorCodes.INVALID_PARAMS,
+        message: `unknown tool: ${name}`,
+      });
+    }
 
     try {
-      const handler = this.tools.find(tool => tool.definition.name === name);
-      if (!handler) {
-        throw getError({ message: `unknown tool: ${name}` });
-      }
-
       const result = await handler.call({ args: request.params?.arguments });
       return this.reply({
         id: request.id,
         result: { content: [{ type: 'text', text: JSON.stringify(result) }] },
       });
     } catch (error) {
+      this.logger
+        .for(this.callTool.name)
+        .error('Tool call failed | tool: %s | error: %s', name, error);
       return this.errorReply({
         id: request.id,
         code: RpcErrorCodes.INTERNAL,

@@ -10,6 +10,12 @@ const echo: IToolHandler = {
   },
   call: async ({ args }) => args,
 };
+const failing: IToolHandler = {
+  definition: { ...echo.definition, name: 'fail' },
+  call: async () => {
+    throw new Error('boom');
+  },
+};
 const buildTransport = () =>
   new Transport({ tools: [echo], serverName: 'atlas-test', serverVersion: '0.0.0' });
 const parse = (line: string | null) => JSON.parse(line ?? 'null');
@@ -72,12 +78,6 @@ describe('Transport', () => {
   });
 
   test('a tool that throws becomes -32603 with the message', async () => {
-    const failing: IToolHandler = {
-      definition: { ...echo.definition, name: 'fail' },
-      call: async () => {
-        throw new Error('boom');
-      },
-    };
     const transport = new Transport({ tools: [failing], serverName: 'x', serverVersion: '0' });
     const reply = parse(
       await transport.handleLine({
@@ -92,8 +92,26 @@ describe('Transport', () => {
     expect(reply.error).toEqual({ code: -32603, message: 'boom' });
   });
 
+  test('tools/call with an unknown tool name is -32602 (invalid params)', async () => {
+    const reply = parse(
+      await buildTransport().handleLine({
+        line: JSON.stringify({
+          jsonrpc: '2.0',
+          id: 9,
+          method: 'tools/call',
+          params: { name: 'nope', arguments: {} },
+        }),
+      }),
+    );
+    expect(reply.error).toEqual({ code: -32602, message: 'unknown tool: nope' });
+  });
+
   test('handling lines writes nothing to stdout - only run() may write to it', async () => {
-    const transport = buildTransport();
+    const transport = new Transport({
+      tools: [echo, failing],
+      serverName: 'atlas-test',
+      serverVersion: '0.0.0',
+    });
     const writeSpy = spyOn(process.stdout, 'write').mockImplementation(() => true);
 
     try {
@@ -109,6 +127,23 @@ describe('Transport', () => {
           id: 8,
           method: 'tools/call',
           params: { name: 'echo', arguments: { text: 'hi' } },
+        }),
+      });
+      // Both tools/call error paths log through `this.logger` - must land on stderr, not stdout.
+      await transport.handleLine({
+        line: JSON.stringify({
+          jsonrpc: '2.0',
+          id: 9,
+          method: 'tools/call',
+          params: { name: 'nope', arguments: {} },
+        }),
+      });
+      await transport.handleLine({
+        line: JSON.stringify({
+          jsonrpc: '2.0',
+          id: 10,
+          method: 'tools/call',
+          params: { name: 'fail', arguments: {} },
         }),
       });
       await transport.handleLine({ line: '{not json' });
