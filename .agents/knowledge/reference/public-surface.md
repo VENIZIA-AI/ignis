@@ -631,9 +631,10 @@ tags: [reference, exports, api]
 - `TSocketIOServerOptions` type
 - `TSocketIOValidateRoomFn` type
 
-### `@venizia/ignis-helpers/bullmq` (1)
+### `@venizia/ignis-helpers/bullmq` (2)
 
 - `BullMQHelper` class
+- `IBullMQOptions` interface
 
 ### `@venizia/ignis-helpers/mqtt` (2)
 
@@ -662,7 +663,7 @@ tags: [reference, exports, api]
 - `CronHelper` class
 - `ICronHelperOptions` interface
 
-### `@venizia/ignis-helpers/kafka` (38)
+### `@venizia/ignis-helpers/kafka` (40)
 
 - `BaseKafkaHelper` class
 - `IKafkaAdminOptions` interface
@@ -701,6 +702,8 @@ tags: [reference, exports, api]
 - `TKafkaMessageCallback` type
 - `TKafkaMessageDoneCallback` type
 - `TKafkaMessageErrorCallback` type
+- `TKafkaReconnectErrorCallback` type
+- `TKafkaStreamErrorCallback` type
 - `TKafkaTransactionCallback` type
 
 ### `@venizia/ignis-helpers/hashicorp-vault` (4)
@@ -752,7 +755,7 @@ tags: [reference, exports, api]
 
 ## boot
 
-### `@venizia/ignis-boot` (12)
+### `@venizia/ignis-boot` (13)
 
 - `ArtifactIndexEmitter` class
 - `ArtifactIndexFields` class
@@ -764,10 +767,11 @@ tags: [reference, exports, api]
 - `IGenerateOptions` interface
 - `IScannedArtifact` interface
 - `IScanOptions` interface
+- `IScanReport` interface
 - `TArtifactIndexField` type
 - `TArtifactType` type
 
-### `@venizia/ignis-boot/generator` (12)
+### `@venizia/ignis-boot/generator` (13)
 
 - `ArtifactIndexEmitter` class
 - `ArtifactIndexFields` class
@@ -779,12 +783,13 @@ tags: [reference, exports, api]
 - `IGenerateOptions` interface
 - `IScannedArtifact` interface
 - `IScanOptions` interface
+- `IScanReport` interface
 - `TArtifactIndexField` type
 - `TArtifactType` type
 
 ## kernel
 
-### `@venizia/ignis-kernel` (388)
+### `@venizia/ignis-kernel` (390)
 
 - `AbstractApplication` class
 - `AbstractAuthRegistry` class
@@ -907,6 +912,7 @@ tags: [reference, exports, api]
 - `ICasbinRules` interface
 - `IComponentMixin` interface
 - `ICompressOptions` interface
+- `IConditionalArtifactIndex` interface
 - `IController` interface
 - `IControllerMixin` interface
 - `IControllerOptions` interface
@@ -1130,6 +1136,7 @@ tags: [reference, exports, api]
 - `TLockStrength` type
 - `TMixinOpts` type
 - `TModelClass` type
+- `toContentRange` const
 - `toEntityId` const
 - `TOffset` type
 - `TOrderBy` type
@@ -1709,7 +1716,7 @@ tags: [reference, exports, api]
 
 ## core-server
 
-### `@venizia/ignis` (907)
+### `@venizia/ignis` (909)
 
 - `AbstractApplication` class
 - `AbstractAuthRegistry` class
@@ -1982,6 +1989,7 @@ tags: [reference, exports, api]
 - `IClock` interface
 - `IComponentMixin` interface
 - `ICompressOptions` interface
+- `IConditionalArtifactIndex` interface
 - `IConfigurable` interface
 - `IConnectAdapterResult` interface
 - `IConnectRpcModule` interface
@@ -2487,6 +2495,7 @@ tags: [reference, exports, api]
 - `TObjectFromFieldMappings` type
 - `toBoolean` const
 - `toCamel` const
+- `toContentRange` const
 - `toDelimitedArray` const
 - `toEntityId` const
 - `toError` const
@@ -3153,11 +3162,12 @@ tags: [reference, exports, api]
 
 ## atlas
 
-### `@venizia/ignis-atlas` (5)
+### `@venizia/ignis-atlas` (6)
 
 - `AtlasConstants` class
 - `AtlasModes` class
 - `Corpora` class
+- `ProtocolVersions` class
 - `TAtlasMode` type
 - `TCorpus` type
 
