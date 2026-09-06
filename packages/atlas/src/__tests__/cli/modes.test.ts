@@ -7,24 +7,24 @@ import { afterEach, describe, expect, test } from 'bun:test';
 
 const PACKAGE_MANIFEST = JSON.stringify({ name: '@venizia/ignis-atlas' });
 
-const tempDirs: string[] = [];
+const tempDirectories: string[] = [];
 
-const makeTempDir = (opts: { prefix: string }): string => {
-  const dir = mkdtempSync(join(tmpdir(), opts.prefix));
-  tempDirs.push(dir);
-  return dir;
+const makeTempDirectory = (opts: { prefix: string }): string => {
+  const directory = mkdtempSync(join(tmpdir(), opts.prefix));
+  tempDirectories.push(directory);
+  return directory;
 };
 
 afterEach(() => {
-  for (const dir of tempDirs) {
-    rmSync(dir, { recursive: true, force: true });
+  for (const directory of tempDirectories) {
+    rmSync(directory, { recursive: true, force: true });
   }
-  tempDirs.length = 0;
+  tempDirectories.length = 0;
 });
 
 /** A scratch directory laid out like a real checkout: `docs/wiki/content` and `.agents/knowledge`. */
-const makeRepoRoot = (): string => {
-  const root = makeTempDir({ prefix: 'atlas-modes-repo-' });
+const makeRepositoryRoot = (): string => {
+  const root = makeTempDirectory({ prefix: 'atlas-modes-repo-' });
   mkdirSync(join(root, 'docs/wiki/content'), { recursive: true });
   mkdirSync(join(root, '.agents/knowledge'), { recursive: true });
   return root;
@@ -32,7 +32,7 @@ const makeRepoRoot = (): string => {
 
 /** A scratch package directory with a real `package.json` naming this package. */
 const makePackageDirectory = (opts: { withSnapshot: boolean }): string => {
-  const packageDirectory = makeTempDir({ prefix: 'atlas-modes-pkg-' });
+  const packageDirectory = makeTempDirectory({ prefix: 'atlas-modes-pkg-' });
   writeFileSync(join(packageDirectory, 'package.json'), PACKAGE_MANIFEST);
 
   if (opts.withSnapshot) {
@@ -44,14 +44,17 @@ const makePackageDirectory = (opts: { withSnapshot: boolean }): string => {
 
 describe('resolveMode', () => {
   test('a repo-layout root resolves to repo mode with that root unchanged', () => {
-    const root = makeRepoRoot();
+    const root = makeRepositoryRoot();
     const packageDirectory = makePackageDirectory({ withSnapshot: false });
 
-    expect(resolveMode({ root, packageDirectory })).toEqual({ mode: AtlasModes.REPO, root });
+    expect(resolveMode({ root, packageDirectory })).toEqual({
+      mode: AtlasModes.REPOSITORY,
+      root,
+    });
   });
 
   test('a package directory with a packaged snapshot resolves to snapshot mode', () => {
-    const root = makeTempDir({ prefix: 'atlas-modes-empty-' });
+    const root = makeTempDirectory({ prefix: 'atlas-modes-empty-' });
     const packageDirectory = makePackageDirectory({ withSnapshot: true });
 
     expect(resolveMode({ root, packageDirectory })).toEqual({
@@ -61,7 +64,7 @@ describe('resolveMode', () => {
   });
 
   test('neither a repo checkout nor a packaged snapshot throws ModeUsageError', () => {
-    const root = makeTempDir({ prefix: 'atlas-modes-empty-' });
+    const root = makeTempDirectory({ prefix: 'atlas-modes-empty-' });
     const packageDirectory = makePackageDirectory({ withSnapshot: false });
 
     expect(() => resolveMode({ root, packageDirectory })).toThrow(ModeUsageError);
@@ -85,14 +88,14 @@ describe('findPackageDirectory', () => {
   });
 
   test('throws when no ancestor package.json names this package', () => {
-    const orphan = makeTempDir({ prefix: 'atlas-modes-orphan-' });
+    const orphan = makeTempDirectory({ prefix: 'atlas-modes-orphan-' });
     expect(() => findPackageDirectory({ startDirectory: orphan })).toThrow();
   });
 });
 
 describe('readPackageVersion (I6)', () => {
   test('reads the version field from the located package.json', () => {
-    const packageDirectory = makeTempDir({ prefix: 'atlas-modes-version-' });
+    const packageDirectory = makeTempDirectory({ prefix: 'atlas-modes-version-' });
     writeFileSync(
       join(packageDirectory, 'package.json'),
       JSON.stringify({ name: '@venizia/ignis-atlas', version: '9.9.9-test' }),
@@ -102,7 +105,7 @@ describe('readPackageVersion (I6)', () => {
   });
 
   test('is undefined when the directory has no package.json', () => {
-    const empty = makeTempDir({ prefix: 'atlas-modes-no-manifest-' });
+    const empty = makeTempDirectory({ prefix: 'atlas-modes-no-manifest-' });
     expect(readPackageVersion({ directory: empty })).toBeUndefined();
   });
 

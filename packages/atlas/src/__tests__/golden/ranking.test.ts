@@ -1,4 +1,4 @@
-import { Chunker, CorpusLoader, resolveRepoRoots } from '@/corpus';
+import { Chunker, CorpusLoader, resolveRepositoryRoots } from '@/corpus';
 import { ChunkStore } from '@/search';
 import { join } from 'node:path';
 import { describe, expect, test } from 'bun:test';
@@ -15,7 +15,7 @@ interface IGoldenQuery {
 
 // __dirname, not import.meta: tsconfig.json (unlike tsconfig.build.json) does not exclude
 // __tests__, and this package's module mode treats every file as CommonJS output.
-const REPO_ROOT = join(__dirname, '../../../../..');
+const REPOSITORY_ROOT = join(__dirname, '../../../../..');
 const TOP_N = 3;
 
 const queries: IGoldenQuery[] = golden;
@@ -23,7 +23,7 @@ const queries: IGoldenQuery[] = golden;
 const buildStore = (): ChunkStore => {
   const chunker = Chunker.getInstance();
   const documents = CorpusLoader.getInstance().load({
-    roots: resolveRepoRoots({ repoRoot: REPO_ROOT }),
+    roots: resolveRepositoryRoots({ repositoryRoot: REPOSITORY_ROOT }),
   });
 
   const store = new ChunkStore();

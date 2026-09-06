@@ -8,8 +8,8 @@ import { dirname, join, parse } from 'node:path';
 // this is what identifies the package directory itself, from its own `package.json`.
 const PACKAGE_NAME = '@venizia/ignis-atlas';
 
-const REPO_WIKI_MARKER = 'docs/wiki/content';
-const REPO_KNOWLEDGE_MARKER = '.agents/knowledge';
+const REPOSITORY_WIKI_MARKER = 'docs/wiki/content';
+const REPOSITORY_KNOWLEDGE_MARKER = '.agents/knowledge';
 const SNAPSHOT_DIRECTORY = 'dist/corpus';
 
 /** A `root`/`packageDirectory` pair that satisfies neither repo mode nor snapshot mode. */
@@ -72,9 +72,9 @@ export const findPackageDirectory = (opts: { startDirectory: string }): string =
   return found;
 };
 
-const isRepoCheckout = (opts: { root: string }): boolean =>
-  existsSync(join(opts.root, REPO_WIKI_MARKER)) &&
-  existsSync(join(opts.root, REPO_KNOWLEDGE_MARKER));
+const isRepositoryCheckout = (opts: { root: string }): boolean =>
+  existsSync(join(opts.root, REPOSITORY_WIKI_MARKER)) &&
+  existsSync(join(opts.root, REPOSITORY_KNOWLEDGE_MARKER));
 
 /**
  * Repo mode wins when `root` is a checkout; otherwise the packaged snapshot next to
@@ -83,8 +83,8 @@ const isRepoCheckout = (opts: { root: string }): boolean =>
 export const resolveMode = (opts: { root: string; packageDirectory: string }): IResolvedMode => {
   const { root, packageDirectory } = opts;
 
-  if (isRepoCheckout({ root })) {
-    return { mode: AtlasModes.REPO, root };
+  if (isRepositoryCheckout({ root })) {
+    return { mode: AtlasModes.REPOSITORY, root };
   }
 
   if (existsSync(join(packageDirectory, SNAPSHOT_DIRECTORY))) {

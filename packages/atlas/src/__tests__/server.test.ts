@@ -9,23 +9,23 @@ import { afterEach, describe, expect, spyOn, test } from 'bun:test';
 
 // __dirname, not import.meta: tsconfig.json (unlike tsconfig.build.json) does not exclude
 // __tests__, and this package's module mode treats every file as CommonJS output.
-const REPO_ROOT = join(__dirname, '../../../..');
+const REPOSITORY_ROOT = join(__dirname, '../../../..');
 const FIXTURES = join(__dirname, 'fixtures/corpus');
 const TEST_VERSION = '0.0.0-test';
 
-const tempDirs: string[] = [];
+const tempDirectories: string[] = [];
 
-const makeTempDir = (): string => {
-  const dir = mkdtempSync(join(tmpdir(), 'atlas-server-test-'));
-  tempDirs.push(dir);
-  return dir;
+const makeTempDirectory = (): string => {
+  const directory = mkdtempSync(join(tmpdir(), 'atlas-server-test-'));
+  tempDirectories.push(directory);
+  return directory;
 };
 
 afterEach(() => {
-  for (const dir of tempDirs) {
-    rmSync(dir, { recursive: true, force: true });
+  for (const directory of tempDirectories) {
+    rmSync(directory, { recursive: true, force: true });
   }
-  tempDirs.length = 0;
+  tempDirectories.length = 0;
 });
 
 const parseReply = (
@@ -53,8 +53,8 @@ const listToolNames = async (opts: {
 describe('buildServer', () => {
   test('repo mode exposes exactly the search and get tools', async () => {
     const transport = buildServer({
-      mode: AtlasModes.REPO,
-      root: REPO_ROOT,
+      mode: AtlasModes.REPOSITORY,
+      root: REPOSITORY_ROOT,
       version: TEST_VERSION,
     });
     expect(await listToolNames({ transport })).toEqual(['search', 'get']);
@@ -62,8 +62,8 @@ describe('buildServer', () => {
 
   test('serverInfo.version is whatever version buildServer was given, not a hardcoded string (I6)', async () => {
     const transport = buildServer({
-      mode: AtlasModes.REPO,
-      root: REPO_ROOT,
+      mode: AtlasModes.REPOSITORY,
+      root: REPOSITORY_ROOT,
       version: TEST_VERSION,
     });
     const reply = parseReply(
@@ -76,7 +76,7 @@ describe('buildServer', () => {
   });
 
   test('snapshot mode loads the packaged corpus and can answer a search', async () => {
-    const root = makeTempDir();
+    const root = makeTempDirectory();
     cpSync(join(FIXTURES, 'wiki'), join(root, 'corpus/wiki'), { recursive: true });
     cpSync(join(FIXTURES, 'changelogs'), join(root, 'corpus/changelogs'), { recursive: true });
 
@@ -100,10 +100,10 @@ describe('buildServer', () => {
   });
 
   test('a root with neither docs/wiki/content nor corpus/ throws a plain, RpcError-free error before any stdout write', () => {
-    const root = makeTempDir();
+    const root = makeTempDirectory();
     const writeSpy = spyOn(process.stdout, 'write').mockImplementation(() => true);
 
-    const modes: TAtlasMode[] = [AtlasModes.REPO, AtlasModes.SNAPSHOT];
+    const modes: TAtlasMode[] = [AtlasModes.REPOSITORY, AtlasModes.SNAPSHOT];
 
     try {
       for (const mode of modes) {

@@ -1,4 +1,4 @@
-import { Chunker, CorpusLoader, resolveRepoRoots } from '@/corpus';
+import { Chunker, CorpusLoader, resolveRepositoryRoots } from '@/corpus';
 import { Transport } from '@/protocol';
 import { ChunkStore } from '@/search';
 import { buildGetTool } from '@/tools/get.tool';
@@ -8,8 +8,8 @@ import { describe, expect, test } from 'bun:test';
 
 // __dirname, not import.meta: tsconfig.json (unlike tsconfig.build.json) does not exclude
 // __tests__, and this package's module mode treats every file as CommonJS output.
-const REPO_ROOT = join(__dirname, '../../../../..');
-const EXTENSION_PAGE = join(REPO_ROOT, 'docs/wiki/content/extensions/atlas/index.md');
+const REPOSITORY_ROOT = join(__dirname, '../../../../..');
+const EXTENSION_PAGE = join(REPOSITORY_ROOT, 'docs/wiki/content/extensions/atlas/index.md');
 
 // A real citation id, e.g. `wiki:guide.md#anchor` - never a format placeholder like
 // `wiki:<path>#<anchor>`, which is excluded by rejecting `<`/`>` inside the match.
@@ -21,8 +21,8 @@ const idsQuotedOn = (opts: { page: string }): string[] => {
 };
 
 const hasRepositoryRoots =
-  existsSync(join(REPO_ROOT, 'docs/wiki/content')) &&
-  existsSync(join(REPO_ROOT, '.agents/knowledge'));
+  existsSync(join(REPOSITORY_ROOT, 'docs/wiki/content')) &&
+  existsSync(join(REPOSITORY_ROOT, '.agents/knowledge'));
 
 const parseReply = (line: string | null): { error?: { message: string } } =>
   JSON.parse(line ?? 'null');
@@ -32,7 +32,7 @@ describe.skipIf(!hasRepositoryRoots)(
   () => {
     const ids = idsQuotedOn({ page: EXTENSION_PAGE });
     const documents = CorpusLoader.getInstance().load({
-      roots: resolveRepoRoots({ repoRoot: REPO_ROOT }),
+      roots: resolveRepositoryRoots({ repositoryRoot: REPOSITORY_ROOT }),
     });
     const chunker = Chunker.getInstance();
     const store = new ChunkStore();

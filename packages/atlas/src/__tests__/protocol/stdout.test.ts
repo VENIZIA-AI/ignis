@@ -4,7 +4,7 @@ import { describe, expect, test } from 'bun:test';
 // __dirname, not import.meta: tsconfig.json (unlike tsconfig.build.json) does not exclude
 // __tests__, and this package's module mode treats every file as CommonJS output.
 const PACKAGE_ROOT = join(__dirname, '../../..');
-const REPO_ROOT = join(PACKAGE_ROOT, '../..');
+const REPOSITORY_ROOT = join(PACKAGE_ROOT, '../..');
 const READ_WINDOW_MS = 2000;
 
 const REQUESTS = [
@@ -36,25 +36,25 @@ const collectStdout = async (opts: {
   process: Bun.PipedSubprocess;
   windowMs: number;
 }): Promise<string> => {
-  const { process: proc, windowMs } = opts;
+  const { process: child, windowMs } = opts;
 
   for (const request of REQUESTS) {
-    await proc.stdin.write(`${JSON.stringify(request)}\n`);
+    await child.stdin.write(`${JSON.stringify(request)}\n`);
   }
-  await proc.stdin.end();
+  await child.stdin.end();
 
   const decoder = new TextDecoder();
   let stdout = '';
   const reading = (async () => {
-    for await (const chunk of proc.stdout) {
+    for await (const chunk of child.stdout) {
       stdout += decoder.decode(chunk, { stream: true });
     }
   })();
   // Drained but never asserted on: an unread stderr pipe would fill and block the child.
-  const draining = proc.stderr.pipeTo(new WritableStream());
+  const draining = child.stderr.pipeTo(new WritableStream());
 
   await Promise.race([reading, Bun.sleep(windowMs)]);
-  proc.kill();
+  child.kill();
   await Promise.all([reading, draining]);
 
   return stdout;
@@ -68,14 +68,14 @@ const collectStdout = async (opts: {
  */
 describe('stdout discipline - the mcp subprocess over real stdio', () => {
   test('writes nothing but JSON-RPC frames to stdout for initialize, tools/list and search', async () => {
-    const proc = Bun.spawn(['bun', 'src/cli.ts', 'mcp', '--root', REPO_ROOT], {
+    const child = Bun.spawn(['bun', 'src/cli.ts', 'mcp', '--root', REPOSITORY_ROOT], {
       cwd: PACKAGE_ROOT,
       stdin: 'pipe',
       stdout: 'pipe',
       stderr: 'pipe',
     });
 
-    const stdout = await collectStdout({ process: proc, windowMs: READ_WINDOW_MS });
+    const stdout = await collectStdout({ process: child, windowMs: READ_WINDOW_MS });
     const lines = stdout.split('\n').filter(line => line.trim().length > 0);
 
     expect(lines.length).toBeGreaterThan(0);

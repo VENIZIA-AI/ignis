@@ -115,13 +115,13 @@ const diversify = (opts: { rows: ISearchRow[]; maxPerDocument: number }): ISearc
  * by offset/limit. One instance owns one database - build a new one to reindex.
  */
 export class ChunkStore extends BaseHelper {
-  private readonly db: Database;
+  private readonly database: Database;
   private readonly planner = new QueryPlanner();
 
   constructor() {
     super({ scope: ChunkStore.name });
-    this.db = new Database(':memory:');
-    this.db.run(CREATE_TABLE_SQL);
+    this.database = new Database(':memory:');
+    this.database.run(CREATE_TABLE_SQL);
   }
 
   add(opts: { chunks: IChunk[] }): void {
@@ -130,8 +130,8 @@ export class ChunkStore extends BaseHelper {
       return;
     }
 
-    const insert = this.db.query<null, TInsertParams>(INSERT_SQL);
-    const insertAll = this.db.transaction((rows: IChunk[]) => {
+    const insert = this.database.query<null, TInsertParams>(INSERT_SQL);
+    const insertAll = this.database.transaction((rows: IChunk[]) => {
       for (const chunk of rows) {
         insert.run(
           chunk.id,
@@ -191,21 +191,21 @@ export class ChunkStore extends BaseHelper {
   }
 
   get(opts: { id: string }): IChunk | undefined {
-    const row = this.db.query<IChunk, TIdParams>(SELECT_BY_ID_SQL).get(opts.id);
+    const row = this.database.query<IChunk, TIdParams>(SELECT_BY_ID_SQL).get(opts.id);
     return row ?? undefined;
   }
 
   list(opts: { document: string }): IChunk[] {
-    return this.db.query<IChunk, TDocumentParams>(SELECT_BY_DOCUMENT_SQL).all(opts.document);
+    return this.database.query<IChunk, TDocumentParams>(SELECT_BY_DOCUMENT_SQL).all(opts.document);
   }
 
   /** Closes the underlying database. Safe to call more than once; using the store after throws. */
   close(): void {
-    this.db.close();
+    this.database.close();
   }
 
   private matchRows(opts: { match: string; corpus: string | null }): ISearchRow[] {
     const { match, corpus } = opts;
-    return this.db.query<ISearchRow, TSearchParams>(SEARCH_SQL).all(match, corpus, corpus);
+    return this.database.query<ISearchRow, TSearchParams>(SEARCH_SQL).all(match, corpus, corpus);
   }
 }

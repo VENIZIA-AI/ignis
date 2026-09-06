@@ -117,6 +117,6 @@ export class FreshnessGuard extends BaseHelper {
   }
 
   private watches(): boolean {
-    return this.mode === AtlasModes.REPO;
+    return this.mode === AtlasModes.REPOSITORY;
   }
 }
