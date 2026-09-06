@@ -12,14 +12,23 @@
   },
   {
     "query": "purity",
-    "expectAnyOf": ["okf:process/testing.md", "changelog:2026-08-13-browser-pure-kernel"]
+    "expectAnyOf": [
+      "okf:process/testing.md",
+      "changelog:2026-08-13-browser-pure-kernel",
+      "okf:conventions/gotchas.md",
+      "okf:packages/core-worker.md"
+    ],
+    "rejectAnyOf": ["okf:log.md"],
+    "why": "A one-word query correctly returns canonical purity pages (gotchas.md's purity entries, core-worker.md's purity enforcement); the regression that mattered was okf:log.md's history entries filling the top 3, and authority now keeps them out."
   },
   {
     "query": "repository transaction",
     "expectAnyOf": [
       "okf:architecture/transactions.md",
-      "wiki:guides/core-concepts/persistent/transactions.md"
-    ]
+      "wiki:guides/core-concepts/persistent/transactions.md",
+      "wiki:references/base/repositories/"
+    ],
+    "why": "The repository reference sections (transaction-safety, run-inside-a-transaction) are better how-to answers for this query than the architecture concept page."
   },
   {
     "query": "verifyBindings",

@@ -7,6 +7,10 @@ import golden from './queries.json';
 interface IGoldenQuery {
   query: string;
   expectAnyOf: string[];
+  /** Ids that must never appear in the top 3 - a rejected regression, not merely an unlisted answer. */
+  rejectAnyOf?: string[];
+  /** Human-readable ruling behind a widened `expectAnyOf`; read by a reviewer, ignored by this test. */
+  why?: string;
 }
 
 // __dirname, not import.meta: tsconfig.json (unlike tsconfig.build.json) does not exclude
@@ -34,18 +38,30 @@ const buildStore = (): ChunkStore => {
  */
 describe('golden ranking set over the real repository corpus', () => {
   const store = buildStore();
-  const rows: Array<[string, string[]]> = queries.map(row => [row.query, row.expectAnyOf]);
+  const rows: Array<[string, string[], string[]]> = queries.map(row => [
+    row.query,
+    row.expectAnyOf,
+    row.rejectAnyOf ?? [],
+  ]);
 
-  test.each(rows)('"%s" ranks an expected id in the top 3', (query, expectAnyOf) => {
-    const { hits } = store.search({ query, limit: TOP_N, offset: 0 });
-    const top3 = hits.map(hit => hit.id);
-    const matched = top3.some(id => expectAnyOf.some(prefix => id.startsWith(prefix)));
+  test.each(rows)(
+    '"%s" ranks an expected id in the top 3, with no rejected id present',
+    (query, expectAnyOf, rejectAnyOf) => {
+      const { hits } = store.search({ query, limit: TOP_N, offset: 0 });
+      const top3 = hits.map(hit => hit.id);
+      const matched = top3.some(id => expectAnyOf.some(prefix => id.startsWith(prefix)));
+      const rejectedHit = top3.find(id => rejectAnyOf.some(prefix => id.startsWith(prefix)));
 
-    // The custom message - not just a boolean - is what a miss prints, so the actual top 3
-    // reads straight off the test output instead of requiring a rerun under a debugger.
-    expect(
-      matched,
-      `expected one of [${expectAnyOf.join(', ')}] in the top 3, got [${top3.join(', ')}]`,
-    ).toBe(true);
-  });
+      // The custom message - not just a boolean - is what a miss prints, so the actual top 3
+      // reads straight off the test output instead of requiring a rerun under a debugger.
+      expect(
+        matched,
+        `expected one of [${expectAnyOf.join(', ')}] in the top 3, got [${top3.join(', ')}]`,
+      ).toBe(true);
+      expect(
+        rejectedHit,
+        `top 3 must not contain any of [${rejectAnyOf.join(', ')}], got [${top3.join(', ')}]`,
+      ).toBeUndefined();
+    },
+  );
 });
