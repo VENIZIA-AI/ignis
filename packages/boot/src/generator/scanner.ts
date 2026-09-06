@@ -6,6 +6,7 @@ import {
   ArtifactStereotypes,
   ArtifactTypes,
   type IScanOptions,
+  type IScanReport,
   type IScannedArtifact,
   type TArtifactType,
 } from './common';
@@ -23,30 +24,46 @@ export class ArtifactScanner extends BaseHelper {
   }
 
   scan(opts: IScanOptions): IScannedArtifact[] {
+    return this.scanWithReport(opts).artifacts;
+  }
+
+  /** `scan` plus the decorated classes a caller's own `ignore` pattern hid - the generator prints them so a stale pattern cannot drop an artifact in silence. */
+  scanWithReport(opts: IScanOptions): IScanReport {
     const root = resolve(opts.root);
-    const ignore = [...new Set([...ArtifactStereotypes.DEFAULT_IGNORE, ...(opts.ignore ?? [])])];
+    const defaultGlobs = ArtifactStereotypes.DEFAULT_IGNORE.map(pattern => new Bun.Glob(pattern));
+    const userGlobs = (opts.ignore ?? []).map(pattern => new Bun.Glob(pattern));
+    const { kept, hidden } = this.partitionSourceFiles({ root, defaultGlobs, userGlobs });
 
-    const artifacts = this.listSourceFiles({ root, ignore }).flatMap(filePath =>
-      this.scanFile({ filePath }),
-    );
+    return {
+      artifacts: this.sortArtifacts(kept.flatMap(filePath => this.scanFile({ filePath }))),
+      ignored: this.sortArtifacts(hidden.flatMap(filePath => this.scanFile({ filePath }))),
+    };
+  }
 
+  private sortArtifacts(artifacts: IScannedArtifact[]): IScannedArtifact[] {
     return artifacts.sort(
       (a, b) => a.type.localeCompare(b.type) || a.className.localeCompare(b.className),
     );
   }
 
-  private listSourceFiles(opts: { root: string; ignore: string[] }): string[] {
-    const ignoreGlobs = opts.ignore.map(pattern => new Bun.Glob(pattern));
-    const files: string[] = [];
+  /** `kept` feeds the index; `hidden` is what only a user pattern excluded (a default pattern wins, so tests and generated files are never reported). */
+  private partitionSourceFiles(opts: {
+    root: string;
+    defaultGlobs: Bun.Glob[];
+    userGlobs: Bun.Glob[];
+  }): { kept: string[]; hidden: string[] } {
+    const kept: string[] = [];
+    const hidden: string[] = [];
 
     for (const relative of new Bun.Glob('**/*.ts').scanSync({ cwd: opts.root })) {
-      if (relative.endsWith('.d.ts') || ignoreGlobs.some(glob => glob.match(relative))) {
+      if (relative.endsWith('.d.ts') || opts.defaultGlobs.some(glob => glob.match(relative))) {
         continue;
       }
-      files.push(join(opts.root, relative));
+      const target = opts.userGlobs.some(glob => glob.match(relative)) ? hidden : kept;
+      target.push(join(opts.root, relative));
     }
 
-    return files.sort();
+    return { kept: kept.sort(), hidden: hidden.sort() };
   }
 
   private scanFile(opts: { filePath: string }): IScannedArtifact[] {

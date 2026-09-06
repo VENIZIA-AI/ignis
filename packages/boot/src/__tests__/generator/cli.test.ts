@@ -1,6 +1,6 @@
 import { checkArtifactIndex, generateArtifactIndex } from '@/generator';
 import { describe, expect, test } from 'bun:test';
-import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 
@@ -55,5 +55,52 @@ describe('checkArtifactIndex - the header is not drift', () => {
     expect(checkArtifactIndex({ root: FIXTURES, out }).isFresh).toBe(false);
 
     rmSync(out, { force: true });
+  });
+});
+
+describe('generate / check report the decorated classes a user --ignore hides', () => {
+  const fixture = readFileSync(join(FIXTURES, 'services', 'greeter.service.ts'), 'utf8');
+
+  const buildRoot = (): string => {
+    const root = mkdtempSync(join(tmpdir(), 'ignis-ignored-'));
+    writeFileSync(join(root, 'kept.service.ts'), fixture.replace('GreeterService', 'KeptService'));
+    mkdirSync(join(root, 'legacy'), { recursive: true });
+    writeFileSync(
+      join(root, 'legacy', 'old.service.ts'),
+      fixture.replace('GreeterService', 'OldService'),
+    );
+    mkdirSync(join(root, '__tests__'), { recursive: true });
+    writeFileSync(
+      join(root, '__tests__', 'probe.service.ts'),
+      fixture.replace('GreeterService', 'ProbeService'),
+    );
+    return root;
+  };
+
+  test('a user pattern hides OldService and the report names it; default patterns stay silent', () => {
+    const root = buildRoot();
+    const out = join(root, 'artifacts.ts');
+
+    const generated = generateArtifactIndex({ root, out, ignore: ['legacy/**'] });
+    expect(generated.artifacts.map(a => a.className)).toEqual(['KeptService']);
+    expect(generated.ignored.map(a => a.className)).toEqual(['OldService']);
+    expect(generated.ignored[0].filePath).toBe(join(root, 'legacy', 'old.service.ts'));
+
+    const checked = checkArtifactIndex({ root, out, ignore: ['legacy/**'] });
+    expect(checked.isFresh).toBe(true);
+    expect(checked.ignored.map(a => a.className)).toEqual(['OldService']);
+
+    rmSync(root, { recursive: true, force: true });
+  });
+
+  test('without a user pattern nothing is reported and OldService is indexed (positive control)', () => {
+    const root = buildRoot();
+    const out = join(root, 'artifacts.ts');
+
+    const generated = generateArtifactIndex({ root, out });
+    expect(generated.artifacts.map(a => a.className).sort()).toEqual(['KeptService', 'OldService']);
+    expect(generated.ignored).toEqual([]);
+
+    rmSync(root, { recursive: true, force: true });
   });
 });

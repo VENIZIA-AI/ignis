@@ -454,6 +454,10 @@ const config = defineConfig({
               collapsed: true,
               items: [
                 {
+                  text: 'ignis-artifacts Warns on Hidden Artifacts',
+                  link: '/changelogs/2026-09-06-generator-warns-on-ignored-artifacts',
+                },
+                {
                   text: 'Conditional Artifact Index Entries',
                   link: '/changelogs/2026-09-06-conditional-artifact-index-entries',
                 },

@@ -1,6 +1,6 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
-import type { IScannedArtifact } from './common';
+import type { IScanReport, IScannedArtifact } from './common';
 import { ArtifactIndexEmitter } from './emitter';
 import { ArtifactScanner } from './scanner';
 
@@ -12,8 +12,11 @@ export interface IGenerateOptions {
   exportName?: string;
 }
 
-const render = (opts: IGenerateOptions): { content: string; artifacts: IScannedArtifact[] } => {
-  const artifacts = ArtifactScanner.getInstance().scan({ root: opts.root, ignore: opts.ignore });
+const render = (opts: IGenerateOptions): { content: string } & IScanReport => {
+  const { artifacts, ignored } = ArtifactScanner.getInstance().scanWithReport({
+    root: opts.root,
+    ignore: opts.ignore,
+  });
   const content = ArtifactIndexEmitter.render({
     artifacts,
     outFile: resolve(opts.out),
@@ -21,25 +24,25 @@ const render = (opts: IGenerateOptions): { content: string; artifacts: IScannedA
     command: { root: opts.root, out: opts.out, ignore: opts.ignore },
   });
 
-  return { content, artifacts };
+  return { content, artifacts, ignored };
 };
 
 /** Writes the index only when its content changed, so an unchanged tree leaves the file's mtime alone. */
 export const generateArtifactIndex = (
   opts: IGenerateOptions,
-): { content: string; artifacts: IScannedArtifact[]; written: boolean } => {
-  const { content, artifacts } = render(opts);
+): { content: string; written: boolean } & IScanReport => {
+  const { content, artifacts, ignored } = render(opts);
   const out = resolve(opts.out);
   const current = existsSync(out) ? readFileSync(out, 'utf8') : undefined;
 
   if (current === content) {
-    return { content, artifacts, written: false };
+    return { content, artifacts, ignored, written: false };
   }
 
   mkdirSync(dirname(out), { recursive: true });
   writeFileSync(out, content);
 
-  return { content, artifacts, written: true };
+  return { content, artifacts, ignored, written: true };
 };
 
 /** Everything below the first line: the header only records the command, so a flag change alone must not read as drift. */
@@ -48,13 +51,18 @@ const bodyOf = (content: string): string => content.slice(content.indexOf('\n') 
 /** Renders in memory and compares the body with the committed file - the staleness gate for lint and CI. */
 export const checkArtifactIndex = (
   opts: IGenerateOptions,
-): { isFresh: boolean; expected: string; actual: string | undefined } => {
-  const { content: expected } = render(opts);
+): {
+  isFresh: boolean;
+  expected: string;
+  actual: string | undefined;
+  ignored: IScannedArtifact[];
+} => {
+  const { content: expected, ignored } = render(opts);
   const out = resolve(opts.out);
   const actual = existsSync(out) ? readFileSync(out, 'utf8') : undefined;
   const isFresh = actual !== undefined && bodyOf(actual) === bodyOf(expected);
 
-  return { isFresh, expected, actual };
+  return { isFresh, expected, actual, ignored };
 };
 
 export * from './common';

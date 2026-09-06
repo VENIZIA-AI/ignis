@@ -40,7 +40,9 @@ A class is emitted when every rule holds; every miss is logged with its reason.
   `@venizia/ignis` or `@venizia/ignis-kernel`** (aliases resolved), or with `injectable({ type })`
   where `type` is a string literal or `ArtifactTypes.<NAME>`.
 - Not under an ignored glob: `**/__tests__/**`, `**/*.test.ts`, `**/*.spec.ts`, `**/generated/**`,
-  plus `--ignore`.
+  plus `--ignore`. A decorated class under a USER pattern is still scanned and reported in
+  `scanWithReport().ignored`; the CLI prints one `warning:` line per class on stderr (default patterns
+  stay silent) so a stale `--ignore` cannot drop an artifact without a trace.
 
 `model` is recognised and never emitted - a model is reached through its repository.
 
