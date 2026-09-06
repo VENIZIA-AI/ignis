@@ -70,7 +70,10 @@ class ComponentDataSourceApp extends BaseApplication {
 
 describe('wireSecretRotatables ordering', () => {
   test('a datasource contributed by a component is still wired as a rotatable', async () => {
-    const app = new ComponentDataSourceApp({ scope: 'probe', config: {} as AnyType });
+    const app = new ComponentDataSourceApp({
+      scope: 'probe',
+      config: { path: { base: '', isStrict: false } },
+    });
     await app.initialize();
     expect(app.provider.wired).toEqual([COMPONENT_DATASOURCE_KEY]);
   });

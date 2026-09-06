@@ -51,6 +51,13 @@ export abstract class RestApplication<
   constructor(opts: { scope: string; config: IApplicationConfigs }) {
     super(opts);
 
+    // A config built from the environment can lose `path.base` at run time; the router would only fail later, inside `route()`, with a message that names nothing.
+    if (typeof this.configs.path?.base !== 'string') {
+      throw getError({
+        message: `[${opts.scope}] configs.path.base must be a string | value: ${String(this.configs.path?.base)} | an empty string mounts the application at the root`,
+      });
+    }
+
     this.requestIdGenerator = new RequestIdGenerator({ scope: opts.scope });
 
     const honoServer = new OpenAPIHono<AppEnv, AppSchema, BasePath>({

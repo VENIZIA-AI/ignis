@@ -32,7 +32,7 @@ class OrderApp extends BaseApplication {
 
 describe('lifecycle order', () => {
   test('hydrateSecrets precedes registerDataSources', async () => {
-    const app = new OrderApp({ scope: 'probe', config: {} as AnyType });
+    const app = new OrderApp({ scope: 'probe', config: { path: { base: '', isStrict: false } } });
     await app.initialize();
     expect(app.order).toEqual(['hydrate', 'datasources']);
   });

@@ -73,10 +73,25 @@ export class ApplicationEnvironment extends BaseHelper implements IApplicationEn
   }
 }
 
-export const applicationEnvironment = new ApplicationEnvironment({
-  prefix: process.env.APPLICATION_ENV_PREFIX ?? 'APP_ENV',
-  envs: process.env,
-});
+/** A process can carry two copies of this module - an application's ESM import beside a CommonJS require. The instance lives in this globalThis slot so a `set()` through one copy is read through the other. */
+const INSTANCE_SLOT = Symbol.for('ignis:application-environment');
+
+const resolveApplicationEnvironment = (): ApplicationEnvironment => {
+  const shared: ApplicationEnvironment | undefined = Reflect.get(globalThis, INSTANCE_SLOT);
+  if (shared) {
+    return shared;
+  }
+
+  const created = new ApplicationEnvironment({
+    prefix: process.env.APPLICATION_ENV_PREFIX ?? 'APP_ENV',
+    envs: process.env,
+  });
+  Reflect.set(globalThis, INSTANCE_SLOT, created);
+
+  return created;
+};
+
+export const applicationEnvironment = resolveApplicationEnvironment();
 
 export const AppEnvs = applicationEnvironment;
 export const Envs = applicationEnvironment;

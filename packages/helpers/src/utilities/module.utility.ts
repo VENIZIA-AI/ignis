@@ -8,8 +8,21 @@ const logger = LoggerFactory.getLogger(['ModuleUtility']);
 
 /** Loads an optional peer without letting `Bun.build` see it: every specifier stays a parameter, so there is no literal (nor a `minify.syntax`-folded const) for the bundler to resolve. */
 export class ModuleUtility {
-  /** Peers handed over by the application, keyed by specifier. Checked before any filesystem lookup. */
-  private static readonly registered = new Map<string, AnyType>();
+  /** Peers handed over by the application, keyed by specifier. Checked before any filesystem lookup. The map lives in a globalThis slot because a process (or a compiled bundle) can carry two copies of this module, and a peer registered through one copy must be found by the other. */
+  private static readonly registered: Map<string, AnyType> = ModuleUtility.sharedRegistry();
+
+  private static sharedRegistry(): Map<string, AnyType> {
+    const slot = Symbol.for('ignis:module-registry');
+    const shared: Map<string, AnyType> | undefined = Reflect.get(globalThis, slot);
+    if (shared) {
+      return shared;
+    }
+
+    const created = new Map<string, AnyType>();
+    Reflect.set(globalThis, slot, created);
+
+    return created;
+  }
 
   /** Resolves peers against the APP's node_modules, not this package's own `dist/` location. */
   private static appRequire() {
