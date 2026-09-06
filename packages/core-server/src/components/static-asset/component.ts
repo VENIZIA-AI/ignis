@@ -29,7 +29,7 @@ export class StaticAssetComponent extends BaseComponent {
     });
 
     for (const [key, opt] of Object.entries(componentOptions)) {
-      const { storage, controller, helper, extra } = opt;
+      const { storage, controller, helper, extra, resolveObjectName, defineExtraRoutes } = opt;
 
       this.application.controller(
         AssetControllerFactory.defineAssetController({
@@ -38,6 +38,8 @@ export class StaticAssetComponent extends BaseComponent {
           helper,
           useMetaLink: opt.useMetaLink,
           metaLink: opt.useMetaLink ? opt.metaLink : undefined,
+          resolveObjectName,
+          defineExtraRoutes,
           options: {
             ...extra,
             normalizeLinkFn:

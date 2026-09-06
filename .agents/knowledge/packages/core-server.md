@@ -103,6 +103,10 @@ RBAC), `RequestTrackerComponent`, `RestComponent`, `GrpcComponent`, `StaticAsset
 `ApiReferenceComponent`, and `RestComponent`; `GrpcComponent`, `MailComponent`, `SocketIOComponent`,
 `StaticAssetComponent`, and `WebSocketComponent` are excluded from the barrel and must be imported
 from their sub-path (`@venizia/ignis/grpc`, `/mail`, `/socket-io`, `/static-asset`, `/websocket`).
+`StaticAssetComponent`'s generated controller takes two optional extension hooks rather than being
+copied: `resolveObjectName({ originalName, defaultName, bucket })` decides the stored object name
+(`defaultName` is what the storage helper would have written), and `defineExtraRoutes({ controller,
+helper, basePath })` runs after every built-in route so a built-in wins a path collision.
 See [component model](/architecture/component-model.md) and the
 [components catalog](/reference/components.md).
 

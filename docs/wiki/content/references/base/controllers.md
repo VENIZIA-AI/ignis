@@ -19,6 +19,7 @@ Technical reference for REST controller classes - the foundation for creating HT
 - `packages/kernel/src/base/metadata/routes/rest.ts` - Route decorators (`@api`, `@get`, `@post`, etc.)
 - `packages/kernel/src/base/metadata/routes/controller.ts` - `@controller` decorator
 - `packages/kernel/src/base/controllers/factory/controller.ts` - CRUD controller factory
+- `packages/kernel/src/base/controllers/factory/crud/readable.ts` - CRUD read verbs and `getBaseWhere`
 - `packages/kernel/src/base/components/controller/rest/rest.component.ts` - RestComponent
 
 ## Quick Reference
@@ -687,6 +688,32 @@ Returns a `BaseRestController` subclass with standard CRUD endpoints pre-configu
 | `updateBy` | `PATCH` | `/` | Bulk update records matching a `where` filter |
 | `deleteById` | `DELETE` | `/{id}` | Delete a record by its ID |
 | `deleteBy` | `DELETE` | `/` | Bulk delete records matching a `where` filter |
+
+### `getBaseWhere(opts: { context }): Promise<TWhere<TDataObject> | undefined>`
+
+Narrows every read of one controller. Override it to scope rows to a tenant, an owner or a status. The default returns `undefined`, and then every read verb passes the request filter through untouched.
+
+```typescript
+class OrderController extends ControllerFactory.defineCrudController({ ... }) {
+  override async getBaseWhere(opts: { context: TRouteContext }) {
+    const tenantId = opts.context.req.header('x-tenant-id');
+    return tenantId ? { tenantId } : undefined;
+  }
+}
+```
+
+Each read verb combines the two sides as `{ and: [baseWhere, requestWhere] }`. A request without its own `where` gets the base where alone. Nothing is wrapped that does not need to be.
+
+| Verb | How the base where is applied |
+| :--- | :--- |
+| `count` | ANDed into the request `where` |
+| `find` | ANDed into `filter.where` |
+| `findOne` | ANDed into `filter.where` |
+| `findById` | ANDed with `{ id }`, and the read goes through `repository.findOne` |
+
+`findById` takes the detour because `repository.findById` accepts no `where`. An id outside the scope answers the same body as an id that does not exist: `{ count: 0, data: null }`.
+
+The method is public, not protected: a generated controller's declaration file cannot carry a protected member (TypeScript error TS4094).
 
 ### `ICrudControllerOptions<Routes>`
 

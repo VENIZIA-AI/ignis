@@ -14,10 +14,12 @@ import { Env } from 'hono';
 import { readFileSync, rmSync } from 'node:fs';
 import {
   TBucketParams,
+  TDefineExtraRoutes,
   TListQuery,
   StaticAssetErrors,
   TMetaLinkConfig,
   TObjectParams,
+  TResolveObjectName,
   TStaticAssetExtraOptions,
   TStaticAssetsComponentOptions,
   TStaticAssetStorageType,
@@ -33,6 +35,12 @@ export interface IAssetControllerOptions {
   useMetaLink?: boolean;
   metaLink?: TMetaLinkConfig;
   options?: TStaticAssetExtraOptions;
+
+  /** Decides the stored object name of each uploaded file. Absent leaves the storage helper's own naming untouched. */
+  resolveObjectName?: TResolveObjectName;
+
+  /** Registers the application's own routes on the generated controller, after every built-in one. */
+  defineExtraRoutes?: TDefineExtraRoutes;
 }
 
 /** Hono ALREADY percent-decodes path params - a second decodeURIComponent throws on `report_100%.pdf` and turns `a%2Fb.png` into a DIFFERENT object; `isValidName`/`isValidPath` still run on this value, so traversal is still rejected. */
@@ -41,6 +49,20 @@ const readObjectName: (rawObjectName: string) => string = rawObjectName => rawOb
 /** Encodes an object path into a SINGLE url segment: `{objectName}` matches one segment only, so `/` must be percent-encoded too (Hono decodes it back before the handler reads the param). */
 const encodeObjectPath: (objectPath: string) => string = objectPath => {
   return encodeURIComponent(objectPath);
+};
+
+/** Mirrors `BaseStorageHelper.normalizeObjectName`, which is protected: `resolveObjectName` is offered the very name the helper would otherwise have written. */
+const defaultObjectName: (opts: { originalName: string; folderPath?: string }) => string = ({
+  originalName,
+  folderPath,
+}) => {
+  const normalizedFileName = originalName.toLowerCase().replace(/ /g, '_');
+
+  if (!folderPath) {
+    return normalizedFileName;
+  }
+
+  return `${folderPath.toLowerCase().replace(/ /g, '_')}/${normalizedFileName}`;
 };
 
 /** Sets whitelisted metadata headers on the response context. */
@@ -63,6 +85,7 @@ export class AssetControllerFactory extends BaseHelper {
 
   static defineAssetController(opts: IAssetControllerOptions) {
     const { controller, helper, options, useMetaLink, metaLink, storage } = opts;
+    const { resolveObjectName, defineExtraRoutes } = opts;
     const { name, basePath, routes, isStrict = true } = controller;
     const maxFolderDepth = options?.maxFolderDepth ?? BaseStorageHelper.DEFAULT_MAX_FOLDER_DEPTH;
 
@@ -276,10 +299,26 @@ export class AssetControllerFactory extends BaseHelper {
                 };
               });
 
+              // Built per request: the hook is offered the bucket, which only the route knows. No
+              // hook leaves `normalizeNameFn` exactly as configured, so the stored name is unchanged.
+              const normalizeNameFn = resolveObjectName
+                ? (nameOptions: { originalName: string; folderPath?: string }) => {
+                    const defaultName = options?.normalizeNameFn
+                      ? options.normalizeNameFn(nameOptions)
+                      : defaultObjectName(nameOptions);
+
+                    return resolveObjectName({
+                      originalName: nameOptions.originalName,
+                      defaultName,
+                      bucket: bucketName,
+                    });
+                  }
+                : options?.normalizeNameFn;
+
               uploaded = await helper.upload({
                 bucket: bucketName,
                 files: modifiedFiles,
-                normalizeNameFn: options?.normalizeNameFn,
+                normalizeNameFn,
                 normalizeLinkFn: options?.normalizeLinkFn,
                 // Without this the helper re-validates against its own hard default of 2, so an app configured for a deeper tree spools the body and only then fails inside the helper.
                 maxFolderDepth,
@@ -524,6 +563,9 @@ export class AssetControllerFactory extends BaseHelper {
             },
           });
         }
+
+        // Last, so a built-in route always wins a path collision with an application's own.
+        defineExtraRoutes?.({ controller: this, helper, basePath: normalizedBasePath });
       }
     }
 

@@ -3,8 +3,16 @@ import { BaseApplication } from '@/base/applications';
 import type { IApplicationConfigs, IApplicationInfo } from '@venizia/ignis-kernel';
 import { ControllerTransports } from '@venizia/ignis-kernel';
 import { AssetControllerFactory } from '@/components/static-asset/controller';
-import type { TMetaLinkConfig, TStaticAssetExtraOptions } from '@/components/static-asset/common';
+import type {
+  TDefineExtraRoutes,
+  TMetaLinkConfig,
+  TResolveObjectName,
+  TStaticAssetExtraOptions,
+} from '@/components/static-asset/common';
 import { StaticAssetStorageTypes } from '@/components/static-asset/common';
+import { jsonResponse } from '@venizia/ignis-kernel';
+import { z } from '@hono/zod-openapi';
+import { HTTP } from '@venizia/ignis-helpers/common';
 import { AppErrorMiddleware } from '@/base/middlewares';
 import { MetadataRegistry } from '@venizia/ignis-kernel';
 import type { OpenAPIHono } from '@hono/zod-openapi';
@@ -90,8 +98,17 @@ const mountAssetController = async (opts: {
   options?: TStaticAssetExtraOptions;
   isStrict?: boolean;
   metaLink?: TMetaLinkConfig;
+  resolveObjectName?: TResolveObjectName;
+  defineExtraRoutes?: TDefineExtraRoutes;
 }): Promise<OpenAPIHono> => {
-  const { helper, options, isStrict = false, metaLink } = opts;
+  const {
+    helper,
+    options,
+    isStrict = false,
+    metaLink,
+    resolveObjectName,
+    defineExtraRoutes,
+  } = opts;
 
   MetadataRegistry.getInstance().clearAll();
   const application = new TestApplication({ scope: 'StaticAssetTestApp', config: TEST_CONFIGS });
@@ -104,6 +121,8 @@ const mountAssetController = async (opts: {
     options,
     useMetaLink: Boolean(metaLink),
     metaLink,
+    resolveObjectName,
+    defineExtraRoutes,
   });
 
   application.controller(AssetController);
@@ -439,5 +458,172 @@ describe('StaticAsset controller — disk-buffered multipart storage', () => {
     } finally {
       rmSync(uploadDir, { recursive: true, force: true });
     }
+  });
+});
+
+describe('StaticAsset controller — resolveObjectName hook', () => {
+  test('no hook keeps the generated name', async () => {
+    const helper = new FakeStorageHelper();
+    const router = await mountAssetController({ helper });
+
+    const response = await uploadFiles({
+      router,
+      files: [new File(['x'], 'My Photo.JPG', { type: 'image/jpeg' })],
+    });
+    expect(response.status).toBe(200);
+
+    const uploaded = (await response.json()) as Array<{ objectName: string }>;
+    expect(uploaded[0].objectName).toBe('my_photo.jpg');
+    expect(helper.hasObject({ bucket: 'images', name: 'my_photo.jpg' })).toBe(true);
+  });
+
+  test('a hook returning a fixed name stores the object under it', async () => {
+    const helper = new FakeStorageHelper();
+    const router = await mountAssetController({
+      helper,
+      resolveObjectName: () => 'fixed-name.bin',
+    });
+
+    const response = await uploadFiles({
+      router,
+      files: [new File(['x'], 'My Photo.JPG', { type: 'image/jpeg' })],
+    });
+    expect(response.status).toBe(200);
+
+    const uploaded = (await response.json()) as Array<{ objectName: string }>;
+    expect(uploaded[0].objectName).toBe('fixed-name.bin');
+    expect(helper.hasObject({ bucket: 'images', name: 'fixed-name.bin' })).toBe(true);
+    expect(helper.hasObject({ bucket: 'images', name: 'my_photo.jpg' })).toBe(false);
+  });
+
+  test('the hook is offered the original name, the default name and the bucket', async () => {
+    const seen: Array<{ originalName: string; defaultName: string; bucket: string }> = [];
+    const helper = new FakeStorageHelper();
+    const router = await mountAssetController({
+      helper,
+      resolveObjectName: hookOptions => {
+        seen.push({ ...hookOptions });
+        return hookOptions.originalName;
+      },
+    });
+
+    const response = await uploadFiles({
+      router,
+      files: [new File(['x'], 'My Photo.JPG', { type: 'image/jpeg' })],
+      query: '?folderPath=Photos/2024',
+    });
+    expect(response.status).toBe(200);
+
+    expect(seen).toEqual([
+      {
+        originalName: 'My Photo.JPG',
+        defaultName: 'photos/2024/my_photo.jpg',
+        bucket: 'images',
+      },
+    ]);
+
+    // `defaultName` must stay the name the storage helper writes on its own: the factory mirrors
+    // `BaseStorageHelper.normalizeObjectName`, which is protected, and this pins the two together.
+    const plainHelper = new FakeStorageHelper();
+    const plainRouter = await mountAssetController({ helper: plainHelper });
+    const plainResponse = await uploadFiles({
+      router: plainRouter,
+      files: [new File(['x'], 'My Photo.JPG', { type: 'image/jpeg' })],
+      query: '?folderPath=Photos/2024',
+    });
+
+    const plainUploaded = (await plainResponse.json()) as Array<{ objectName: string }>;
+    expect(plainUploaded[0].objectName).toBe(seen[0].defaultName);
+  });
+
+  test('a configured normalizeNameFn is what the hook sees as the default name', async () => {
+    const seen: Array<string> = [];
+    const helper = new FakeStorageHelper();
+    const router = await mountAssetController({
+      helper,
+      options: { normalizeNameFn: nameOptions => `custom-${nameOptions.originalName}` },
+      resolveObjectName: hookOptions => {
+        seen.push(hookOptions.defaultName);
+        return hookOptions.defaultName;
+      },
+    });
+
+    const response = await uploadFiles({
+      router,
+      files: [new File(['x'], 'photo.jpg', { type: 'image/jpeg' })],
+    });
+    expect(response.status).toBe(200);
+    expect(seen).toEqual(['custom-photo.jpg']);
+  });
+});
+
+describe('StaticAsset controller — defineExtraRoutes hook', () => {
+  test('the hook runs once and its route answers', async () => {
+    const helper = new FakeStorageHelper();
+    let callCount = 0;
+
+    const router = await mountAssetController({
+      helper,
+      defineExtraRoutes: ({ controller, basePath }) => {
+        callCount += 1;
+        controller.defineRoute({
+          configs: {
+            method: 'get',
+            path: '/health',
+            responses: jsonResponse({ schema: z.object({ basePath: z.string() }) }),
+          },
+          handler: context => context.json({ basePath }, HTTP.ResultCodes.RS_2.Ok),
+        });
+      },
+    });
+
+    expect(callCount).toBe(1);
+
+    const response = await router.request('/assets/health');
+    expect(response.status).toBe(200);
+    expect(await readJson(response)).toEqual({ basePath: '/assets' });
+  });
+
+  test('the built-in routes still answer with both hooks set', async () => {
+    const helper = new FakeStorageHelper();
+    const router = await mountAssetController({
+      helper,
+      resolveObjectName: hookOptions => `scoped/${hookOptions.defaultName}`,
+      defineExtraRoutes: ({ controller, helper: hookHelper }) => {
+        controller.defineRoute({
+          configs: {
+            method: 'get',
+            path: '/health',
+            responses: jsonResponse({ schema: z.object({ buckets: z.number() }) }),
+          },
+          handler: async context => {
+            const buckets = await hookHelper.getBuckets();
+            return context.json({ buckets: buckets.length }, HTTP.ResultCodes.RS_2.Ok);
+          },
+        });
+      },
+    });
+
+    const uploadResponse = await uploadFiles({
+      router,
+      files: [new File(['both'], 'photo.jpg', { type: 'image/jpeg' })],
+    });
+    expect(uploadResponse.status).toBe(200);
+
+    const uploaded = (await uploadResponse.json()) as Array<{ objectName: string }>;
+    expect(uploaded[0].objectName).toBe('scoped/photo.jpg');
+
+    const objectResponse = await router.request(
+      `/assets/buckets/images/objects/${encodeURIComponent('scoped/photo.jpg')}`,
+    );
+    expect(objectResponse.status).toBe(200);
+    expect(await objectResponse.text()).toBe('both');
+
+    const listResponse = await router.request('/assets/buckets/images/objects');
+    expect(listResponse.status).toBe(200);
+
+    const healthResponse = await router.request('/assets/health');
+    expect(healthResponse.status).toBe(200);
+    expect(await readJson(healthResponse)).toEqual({ buckets: 1 });
   });
 });
