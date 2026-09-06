@@ -80,13 +80,12 @@ const splitIntoSections = (opts: { document: IDocument }): IRawSection[] => {
 
     const previous = sections[sections.length - 1];
     if (body.length < TINY_CHUNK_MAX_CHARS && previous) {
-      previous.body = `${previous.body}\n\n${body}`.trim();
+      // The heading text itself keeps the words searchable - only the body was folded away before.
+      const merged = body.length > 0 ? `${title}\n\n${body}` : title;
+      previous.body = `${previous.body}\n\n${merged}`.trim();
       return;
     }
 
-    if (level === 2) {
-      currentH2 = title;
-    }
     sections.push({ level, title, headingPath, body });
   };
 
@@ -103,6 +102,11 @@ const splitIntoSections = (opts: { document: IDocument }): IRawSection[] => {
 
     level = heading[1].length === 2 ? 2 : 3;
     title = heading[2];
+    // Set as soon as the H2 line is read, not when it closes - an H2 that immediately introduces
+    // H3s is tiny and merges away, but its children must still resolve it as their parent.
+    if (level === 2) {
+      currentH2 = title;
+    }
     headingPath =
       level === 3 && currentH2
         ? `${document.title} > ${currentH2} > ${title}`

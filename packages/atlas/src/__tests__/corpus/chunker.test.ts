@@ -3,6 +3,7 @@ import type { TCorpus } from '@/common';
 import { Chunker, parseFrontmatter } from '@/corpus';
 import type { IDocument } from '@/corpus';
 import { Authorities } from '@/search/common';
+import { ChunkStore } from '@/search';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, test } from 'bun:test';
@@ -371,5 +372,50 @@ describe('Chunker - authority by document', () => {
       document: buildDocument({ corpus: Corpora.WIKI, path: 'guide.md', body: anchoredBody }),
     });
     expect(chunk.authority).toBe(Authorities.CANONICAL);
+  });
+});
+
+describe('Chunker - a tiny H2 immediately followed by H3s (C1)', () => {
+  // "Parent" has no body of its own before "Child" starts - the most common wiki structure, and
+  // the one the tiny-merge threshold silently mislabels when currentH2 updates too late. "Lonely"
+  // has one short line and no children, and must still be searchable after it merges away.
+  const body = [
+    'Intro paragraph long enough to clear the two-hundred character tiny-merge threshold ' +
+      'comfortably on its own, so it survives as its own chunk and gives the tiny headings below ' +
+      'something real to merge into when they fold away.',
+    '',
+    '## Parent',
+    '### Child',
+    '',
+    'Child body long enough to clear the two-hundred character tiny-merge threshold comfortably on ' +
+      'its own, so it becomes its own chunk instead of folding into whatever section came directly ' +
+      'before it in the document here.',
+    '',
+    '## Lonely',
+    '',
+    'One short line.',
+  ].join('\n');
+
+  const chunks = Chunker.getInstance().chunk({ document: buildDocument({ body }) });
+
+  test('the H3 heading path names its immediate H2 parent, even though the H2 is tiny and merges away', () => {
+    const child = chunks.find(chunk => chunk.title === 'Child');
+    expect(child?.headingPath).toBe('Doc > Parent > Child');
+  });
+
+  test('the tiny H2 does not survive as a chunk of its own', () => {
+    expect(chunks.some(chunk => chunk.title === 'Parent')).toBe(false);
+  });
+
+  test('a one-line H2 with no children still has its heading text searchable once it merges away', () => {
+    const store = new ChunkStore();
+    store.add({ chunks });
+
+    try {
+      const { hits } = store.search({ query: 'Lonely', limit: 10, offset: 0 });
+      expect(hits.length).toBeGreaterThan(0);
+    } finally {
+      store.close();
+    }
   });
 });
