@@ -16,6 +16,8 @@ import {
   TKafkaMessageCallback,
   TKafkaMessageDoneCallback,
   TKafkaMessageErrorCallback,
+  TKafkaReconnectErrorCallback,
+  TKafkaStreamErrorCallback,
 } from './callbacks';
 import { IKafkaConnectionOptions } from './connection';
 
@@ -48,6 +50,10 @@ export interface IKafkaConsumerOptions<
   onMessage?: TKafkaMessageCallback<KeyType, ValueType, HeaderKeyType, HeaderValueType>;
   onMessageDone?: TKafkaMessageDoneCallback<KeyType, ValueType, HeaderKeyType, HeaderValueType>;
   onMessageError?: TKafkaMessageErrorCallback<KeyType, ValueType, HeaderKeyType, HeaderValueType>;
+  /** Stream 'error' events; falls back to `onMessageError` when unset. */
+  onStreamError?: TKafkaStreamErrorCallback;
+  /** Reconnect failures (client rebuild or the reconnect attempt); falls back to `onMessageError` when unset. */
+  onReconnectError?: TKafkaReconnectErrorCallback;
 
   onGroupJoin?: TKafkaGroupJoinCallback;
   onGroupLeave?: TKafkaGroupLeaveCallback;

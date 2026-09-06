@@ -39,6 +39,16 @@ export type TKafkaMessageErrorCallback<
   message?: Message<KeyType, ValueType, HeaderKeyType, HeaderValueType>;
 }) => ValueOrPromise<void>;
 
+/** The stream 'error' event - falls back to `onMessageError` when unset. */
+export type TKafkaStreamErrorCallback = (opts: { error: Error }) => ValueOrPromise<void>;
+
+/** A reconnect failure (client rebuild or the reconnect attempt itself) - falls back to `onMessageError` when unset. */
+export type TKafkaReconnectErrorCallback = (opts: {
+  error: Error;
+  attempt: number;
+  maxAttempts: number;
+}) => ValueOrPromise<void>;
+
 export type TKafkaGroupJoinCallback = (opts: {
   groupId: string;
   memberId: string;

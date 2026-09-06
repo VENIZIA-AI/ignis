@@ -454,6 +454,10 @@ const config = defineConfig({
               collapsed: true,
               items: [
                 {
+                  text: 'BullMQ/Kafka Helper Extension Seams',
+                  link: '/changelogs/2026-09-06-helpers-queue-seams',
+                },
+                {
                   text: 'setListHeaders from offset + total',
                   link: '/changelogs/2026-09-06-list-headers-from-offset-and-total',
                 },

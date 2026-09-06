@@ -6,6 +6,7 @@ import { KafkaConsumerHelper } from '@/modules/queue/kafka';
 import { KafkaClientEvents, KafkaHealthStatuses } from '@/modules/queue/kafka/common/constants';
 import type { MessagesStream } from '@platformatic/kafka';
 import { describe, expect, test } from 'bun:test';
+import { EventEmitter } from 'node:events';
 import { Readable } from 'node:stream';
 
 const newConsumer = () =>
@@ -432,7 +433,12 @@ describe('KafkaConsumerHelper - client rebuild on attemptReconnect', () => {
     };
 
     // Three retry attempts back-to-back.
-    await helper['attemptReconnect']({ attempt: 1, maxAttempts: 5, delayMs: 1 });
+    await helper['attemptReconnect']({
+      attempt: 1,
+      maxAttempts: 5,
+      delayMs: 1,
+      errorHandler: undefined,
+    });
     await helper['attemptReconnect']({ attempt: 2, maxAttempts: 5, delayMs: 1 });
     await helper['attemptReconnect']({ attempt: 3, maxAttempts: 5, delayMs: 1 });
 
@@ -463,6 +469,94 @@ describe('KafkaConsumerHelper - client rebuild on attemptReconnect', () => {
     // After BROKER_FAILED-to-zero: count is 0, flag is set, stream destroyed.
     expect(helper.getConnectedBrokerCount()).toBe(0);
     expect(helper['sessionLikelyStale']).toBe(true);
+    expect(helper.getStream()).toBeNull();
+  });
+
+  test('TC-160: attemptReconnect routes a failed reconnect to onReconnectError with {error, attempt, maxAttempts}, and onMessageError is NOT called', async () => {
+    const reconnectErrors: Array<{ error: Error; attempt: number; maxAttempts: number }> = [];
+    const messageErrors: Array<{ error: Error }> = [];
+
+    const helper = KafkaConsumerHelper.newInstance({
+      clientId: 'ignis-test-reconnect-error',
+      bootstrapBrokers: ['127.0.0.1:9092'],
+      groupId: 'ignis-test-reconnect-error-group',
+      onReconnectError: opts => {
+        reconnectErrors.push(opts);
+      },
+      onMessageError: opts => {
+        messageErrors.push(opts);
+      },
+    });
+
+    helper['consumeStartOptions'] = { topics: ['t'] };
+    (helper.getConsumer() as AnyType as { consume: (opts: unknown) => Promise<unknown> }).consume =
+      async () => {
+        throw new Error('brokers still unreachable');
+      };
+
+    await helper['attemptReconnect']({
+      attempt: 2,
+      maxAttempts: 5,
+      delayMs: 1,
+      errorHandler: opts => {
+        messageErrors.push(opts);
+      },
+    });
+
+    expect(reconnectErrors.length).toBe(1);
+    expect(reconnectErrors[0].attempt).toBe(2);
+    expect(reconnectErrors[0].maxAttempts).toBe(5);
+    expect(reconnectErrors[0].error).toBeInstanceOf(Error);
+    expect(reconnectErrors[0].error.message).toBe('brokers still unreachable');
+    expect(messageErrors.length).toBe(0);
+  });
+
+  test('TC-161: attemptReconnect falls back to the errorHandler (onMessageError) when onReconnectError is not set', async () => {
+    const messageErrors: Array<{ error: Error }> = [];
+
+    const helper = newConsumer();
+
+    helper['consumeStartOptions'] = { topics: ['t'] };
+    (helper.getConsumer() as AnyType as { consume: (opts: unknown) => Promise<unknown> }).consume =
+      async () => {
+        throw new Error('brokers still unreachable');
+      };
+
+    await helper['attemptReconnect']({
+      attempt: 1,
+      maxAttempts: 5,
+      delayMs: 1,
+      errorHandler: opts => {
+        messageErrors.push(opts);
+      },
+    });
+
+    expect(messageErrors.length).toBe(1);
+    expect(messageErrors[0].error.message).toBe('brokers still unreachable');
+  });
+});
+
+describe('KafkaConsumerHelper - protected extension seam', () => {
+  test('TC-170: a subclass can override a formerly-private method (compile-time proof)', () => {
+    // If destroyDeadStream were still `private`, this `override` would fail to compile (TS2415) - verified against the pre-change source.
+    class ExtendedConsumerHelper extends KafkaConsumerHelper {
+      destroyCalls = 0;
+
+      protected override destroyDeadStream(): void {
+        this.destroyCalls += 1;
+        super.destroyDeadStream();
+      }
+    }
+
+    const helper = new ExtendedConsumerHelper({
+      clientId: 'ignis-test-protected-seam',
+      bootstrapBrokers: ['127.0.0.1:9092'],
+      groupId: 'ignis-test-protected-seam-group',
+    });
+
+    helper['destroyDeadStream']();
+
+    expect(helper.destroyCalls).toBe(1);
     expect(helper.getStream()).toBeNull();
   });
 });
@@ -500,5 +594,68 @@ describe('KafkaConsumerHelper - broker health tracking', () => {
     // A failed event on an already-empty pool stays at 0 (no negative count).
     emit(helper, KafkaClientEvents.BROKER_FAILED, 'h3', 9092);
     expect(helper.getConnectedBrokerCount()).toBe(0);
+  });
+});
+
+describe('KafkaConsumerHelper - reconnect error routing, the other two sites', () => {
+  test('TC-162: a failed client rebuild routes to onReconnectError with {error, attempt, maxAttempts}; onMessageError stays silent', async () => {
+    const reconnectErrors: Array<{ error: Error; attempt: number; maxAttempts: number }> = [];
+    const messageErrors: Array<{ error: Error }> = [];
+
+    const helper = KafkaConsumerHelper.newInstance({
+      clientId: 'ignis-test-rebuild-error',
+      bootstrapBrokers: ['127.0.0.1:9092'],
+      groupId: 'ignis-test-rebuild-error-group',
+      onReconnectError: opts => {
+        reconnectErrors.push(opts);
+      },
+      onMessageError: opts => {
+        messageErrors.push(opts);
+      },
+    });
+
+    helper['consumeStartOptions'] = { topics: ['t'] };
+    helper['sessionLikelyStale'] = true;
+    helper['rebuildClient'] = async () => {
+      throw new Error('rebuild boom');
+    };
+
+    await helper['attemptReconnect']({
+      attempt: 3,
+      maxAttempts: 5,
+      delayMs: 1,
+      errorHandler: opts => {
+        messageErrors.push(opts);
+      },
+    });
+
+    expect(reconnectErrors.length).toBe(1);
+    expect(reconnectErrors[0].attempt).toBe(3);
+    expect(reconnectErrors[0].maxAttempts).toBe(5);
+    expect(reconnectErrors[0].error.message).toBe('rebuild boom');
+    expect(messageErrors.length).toBe(0);
+  });
+
+  test('TC-171: the stream obtained by a successful reconnect always carries an error listener, even with no hook set', async () => {
+    const helper = KafkaConsumerHelper.newInstance({
+      clientId: 'ignis-test-reconnect-listener',
+      bootstrapBrokers: ['127.0.0.1:9092'],
+      groupId: 'ignis-test-reconnect-listener-group',
+    });
+
+    const stream = new EventEmitter();
+    helper['consumeStartOptions'] = { topics: ['t'] };
+    (helper.getConsumer() as AnyType as { consume: (opts: unknown) => Promise<unknown> }).consume =
+      async () => stream;
+
+    await helper['attemptReconnect']({
+      attempt: 1,
+      maxAttempts: 5,
+      delayMs: 1,
+      errorHandler: undefined,
+    });
+
+    expect(stream.listenerCount('error')).toBe(1);
+    expect(() => stream.emit('error', new Error('broker dropped'))).not.toThrow();
   });
 });

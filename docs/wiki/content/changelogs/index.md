@@ -17,6 +17,7 @@ This section tracks the history of significant changes, refactors, and updates t
 
 | Date | Title | Type |
 |------|-------|------|
+| 2026-09-06 | [BullMQHelper and KafkaConsumerHelper Gain Extension Seams](./2026-09-06-helpers-queue-seams) | New Feature |
 | 2026-09-06 | [setListHeaders Takes offset + total; toContentRange Is Exported](./2026-09-06-list-headers-from-offset-and-total) | New Feature |
 | 2026-09-06 | [ignis-artifacts Warns When an --ignore Pattern Hides a Decorated Class](./2026-09-06-generator-warns-on-ignored-artifacts) | New Feature |
 | 2026-09-06 | [configs.artifacts Accepts { when, index } Entries - the Run-Mode Gate Lives in the Config](./2026-09-06-conditional-artifact-index-entries) | New Feature |

@@ -229,6 +229,57 @@ describe('KafkaConsumerHelper — lifecycle, hooks, shutdown', () => {
     await helper.close();
   });
 
+  test('a stream error is routed to onStreamError when set, and onMessageError is NOT called', async () => {
+    const client = new FakeConsumerClient();
+    const streamErrors: unknown[] = [];
+    const messageErrors: unknown[] = [];
+
+    const helper = buildHelper({
+      client,
+      hooks: {
+        onMessage: () => {},
+        onStreamError: ({ error }: AnyType) => {
+          streamErrors.push(error);
+        },
+        onMessageError: ({ error }: AnyType) => {
+          messageErrors.push(error);
+        },
+      },
+    });
+
+    await helper.start({ topics: ['orders'] });
+    client.streams[0].emit('error', new Error('stream blew up')); // raw driver error
+    await flush();
+
+    expect(streamErrors.length).toBe(1);
+    expect(messageErrors.length).toBe(0);
+
+    await helper.close();
+  });
+
+  test('a stream error falls back to onMessageError when onStreamError is not set (fallback positive control)', async () => {
+    const client = new FakeConsumerClient();
+    const messageErrors: unknown[] = [];
+
+    const helper = buildHelper({
+      client,
+      hooks: {
+        onMessage: () => {},
+        onMessageError: ({ error }: AnyType) => {
+          messageErrors.push(error);
+        },
+      },
+    });
+
+    await helper.start({ topics: ['orders'] });
+    client.streams[0].emit('error', new Error('stream blew up')); // raw driver error
+    await flush();
+
+    expect(messageErrors.length).toBe(1);
+
+    await helper.close();
+  });
+
   test('BUG: SYNC-throwing consumer group/heartbeat/lag hooks must not escape the client emitter', async () => {
     const client = new FakeConsumerClient();
 
