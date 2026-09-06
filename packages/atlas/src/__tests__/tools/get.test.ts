@@ -1,5 +1,6 @@
 import { Corpora } from '@/common';
 import { Chunker, CorpusLoader } from '@/corpus';
+import type { IChunk } from '@/corpus';
 import { Transport } from '@/protocol';
 import { ChunkStore } from '@/search/store';
 import { buildGetTool } from '@/tools/get.tool';
@@ -86,5 +87,77 @@ describe('get tool', () => {
   test('an unknown id is -32602 pointing back at search', async () => {
     const reply = await callGet({ store, args: { id: 'wiki:missing#nope' } });
     expect(reply.error).toEqual({ code: -32602, message: 'unknown id; ids come from search' });
+  });
+});
+
+describe('get tool: code-point paging and cursor validation', () => {
+  const MULTIBYTE_ID = 'wiki:multibyte.md#body';
+
+  // `GetInputSchema.maxChars` floors at 500, so a "small maxChars" page boundary can only ever land
+  // at code-point offset 500 - this body places an astral emoji (a surrogate pair in UTF-16)
+  // exactly at code-point index 499, the last code point of a maxChars: 500 first page. Slicing by
+  // UTF-16 unit instead of code point would cut this exact emoji in half (verified with a throwaway
+  // script: `body.slice(0, 500)` on this fixture is NOT `String.prototype.isWellFormed()`).
+  const FILLER = 'a'.repeat(499);
+  const MULTIBYTE_BODY = `${FILLER}😀 và các bạn tiếng Việt có dấu nhé, cùng một biểu tượng nữa 🎉 để kiểm tra trang tiếp theo.`;
+
+  const buildMultibyteStore = (): ChunkStore => {
+    const chunk: IChunk = {
+      id: MULTIBYTE_ID,
+      corpus: Corpora.WIKI,
+      document: 'multibyte.md',
+      anchor: 'body',
+      headingPath: 'Multibyte body',
+      title: 'Multibyte body',
+      body: MULTIBYTE_BODY,
+      symbols: '',
+    };
+    const store = new ChunkStore();
+    store.add({ chunks: [chunk] });
+    return store;
+  };
+
+  test('paging a body with Vietnamese text and emoji never splits a code point', async () => {
+    const store = buildMultibyteStore();
+    const totalCodePoints = Array.from(MULTIBYTE_BODY).length;
+    expect(totalCodePoints).toBeGreaterThan(500);
+
+    const first = await callGet({ store, args: { id: MULTIBYTE_ID, maxChars: 500 } });
+    const firstResult = JSON.parse(first.result?.content[0]?.text ?? '{}');
+    expect(Array.from(firstResult.body).length).toBe(500);
+    expect(firstResult.body.isWellFormed()).toBe(true);
+    expect(typeof firstResult.next).toBe('string');
+
+    const second = await callGet({
+      store,
+      args: { id: MULTIBYTE_ID, maxChars: 500, cursor: firstResult.next },
+    });
+    const secondResult = JSON.parse(second.result?.content[0]?.text ?? '{}');
+    expect(secondResult.body.isWellFormed()).toBe(true);
+    expect(secondResult.next).toBeUndefined();
+
+    // No gap, no overlap, and no code point lost or corrupted at the page boundary.
+    expect(firstResult.body + secondResult.body).toBe(MULTIBYTE_BODY);
+  });
+
+  test('a malformed cursor is -32602 invalid cursor', async () => {
+    const store = buildMultibyteStore();
+    const reply = await callGet({
+      store,
+      args: { id: MULTIBYTE_ID, cursor: 'not-a-cursor' },
+    });
+    expect(reply.error).toEqual({ code: -32602, message: 'invalid cursor' });
+  });
+
+  test('a cursor pointing past the end of the body is -32602 invalid cursor', async () => {
+    const store = buildMultibyteStore();
+    const totalCodePoints = Array.from(MULTIBYTE_BODY).length;
+    const pastTheEnd = Buffer.from(String(totalCodePoints + 1), 'utf8').toString('base64');
+
+    const reply = await callGet({
+      store,
+      args: { id: MULTIBYTE_ID, cursor: pastTheEnd },
+    });
+    expect(reply.error).toEqual({ code: -32602, message: 'invalid cursor' });
   });
 });
