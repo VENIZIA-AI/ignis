@@ -1,7 +1,7 @@
 import { AtlasConstants } from '@/common';
 import { BaseHelper } from '@venizia/ignis-helpers/core';
-import { RpcErrorCodes } from './common';
-import type { IRpcRequest, IRpcResponse, IToolHandler, TRpcErrorCode } from './common';
+import { RpcError, RpcErrorCodes } from './common';
+import type { IRpcRequest, IRpcResponse, IToolHandler } from './common';
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null;
@@ -156,6 +156,12 @@ export class Transport extends BaseHelper {
       this.logger
         .for(this.callTool.name)
         .error('Tool call failed | tool: %s | error: %s', name, error);
+
+      // A tool's own RpcError already carries the JSON-RPC code it wants reported.
+      if (error instanceof RpcError) {
+        return this.errorReply({ id: request.id, code: error.code, message: error.message });
+      }
+
       return this.errorReply({
         id: request.id,
         code: RpcErrorCodes.INTERNAL,
@@ -171,7 +177,7 @@ export class Transport extends BaseHelper {
 
   private errorReply(opts: {
     id: number | string | null | undefined;
-    code: TRpcErrorCode;
+    code: number;
     message: string;
   }): string {
     const response: IRpcResponse = {

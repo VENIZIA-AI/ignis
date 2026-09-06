@@ -21,8 +21,9 @@ export interface IRpcRequest {
   params?: Record<string, unknown>;
 }
 
+/** `code` is a plain number, not `TRpcErrorCode`: a tool-thrown `RpcError` can carry any code, not only the five reserved ones. */
 export interface IRpcError {
-  code: TRpcErrorCode;
+  code: number;
   message: string;
 }
 

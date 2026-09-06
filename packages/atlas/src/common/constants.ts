@@ -4,6 +4,7 @@ export class AtlasConstants {
   static readonly SEARCH_BUDGET_CHARS = 2000;
   static readonly GET_BUDGET_CHARS = 8000;
   static readonly SNIPPET_MAX_CHARS = 300;
+  static readonly SEARCH_DEFAULT_LIMIT = 10;
 }
 
 export class AtlasModes {
