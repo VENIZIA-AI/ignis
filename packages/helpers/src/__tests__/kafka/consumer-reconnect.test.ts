@@ -711,3 +711,37 @@ describe('KafkaConsumerHelper - one delivery per stream error on a real Readable
     expect(streamErrors.map(error => error.message)).toEqual(['broker dropped']);
   });
 });
+
+describe('KafkaConsumerHelper - errors after the loop gave up are still reported', () => {
+  test('TC-182: once reconnects are exhausted, a later error on the dead stream still reaches onStreamError', async () => {
+    const streamErrors: Error[] = [];
+    const messageErrors: Error[] = [];
+    const stream = new Readable({ objectMode: true, read: () => {} });
+
+    const helper = KafkaConsumerHelper.newInstance({
+      clientId: 'ignis-test-after-exhaustion',
+      bootstrapBrokers: ['127.0.0.1:9092'],
+      groupId: 'ignis-test-after-exhaustion-group',
+      onMessage: async () => {},
+      onStreamError: opts => {
+        streamErrors.push(opts.error);
+      },
+      onMessageError: opts => {
+        messageErrors.push(opts.error);
+      },
+    });
+    (helper.getConsumer() as AnyType as { consume: (opts: unknown) => Promise<unknown> }).consume =
+      async () => stream;
+
+    await helper.start({ topics: ['t'], maxReconnectAttempts: 0 });
+    stream.destroy(new Error('first drop'));
+    await sleep(50);
+    expect(helper['consumeLoop']).toBeNull();
+
+    stream.emit('error', new Error('late error'));
+    await sleep(20);
+
+    expect(streamErrors.map(error => error.message)).toEqual(['first drop', 'late error']);
+    expect(messageErrors).toEqual([]);
+  });
+});

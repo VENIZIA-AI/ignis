@@ -200,19 +200,26 @@ export class KafkaConsumerHelper<
     this.sessionLikelyStale = false;
 
     // Always attached, hook or not: a stream 'error' with ZERO listeners is rethrown by EventEmitter as an uncaught exception, so a pull-style consumer (start() + getStream(), no onMessage/onMessageError) would take the whole process down on the first broker drop.
-    this.stream.on(KafkaClientEvents.STREAM_ERROR, (streamError: Error) => {
+    const startedStream = this.stream;
+    startedStream.on(KafkaClientEvents.STREAM_ERROR, (streamError: Error) => {
       this.logger.for('start').error('Kafka stream ERROR | Error: %s', streamError);
-      this.reportStreamError({ error: streamError, scope: 'start' });
+      this.reportStreamError({ error: streamError, scope: 'start', stream: startedStream });
     });
 
     if (this.onMessage) {
-      this.consumeLoop = this.startConsumeLoop({
+      const loop = this.startConsumeLoop({
         messageHandler: this.onMessage,
         doneHandler: this.onMessageDone,
         errorHandler: this.onMessageError,
         reconnectDelayMs: opts.reconnectDelayMs ?? KafkaDefaults.RECONNECT_DELAY,
         maxReconnectAttempts: opts.maxReconnectAttempts ?? KafkaDefaults.MAX_RECONNECT_ATTEMPTS,
+      }).finally(() => {
+        // A finished loop (exhausted reconnects or shutdown) no longer reports stream errors; the listeners take over.
+        if (this.consumeLoop === loop) {
+          this.consumeLoop = null;
+        }
       });
+      this.consumeLoop = loop;
     }
 
     this.logger.info('[start] Consumer started | Topics: %j', opts.topics);
@@ -356,9 +363,9 @@ export class KafkaConsumerHelper<
     }
   }
 
-  /** Pull mode only: in loop mode the iterator rejects with the same error and `drainStream` reports it once, so the listener stays silent to avoid a double delivery. */
-  protected reportStreamError(opts: { error: Error; scope: string }): void {
-    if (this.consumeLoop) {
+  /** Silent only while the consume loop is alive AND the erroring stream is the one it drains - the iterator then reports the same error once. A dead or replaced stream, or pull mode, reports here. */
+  protected reportStreamError(opts: { error: Error; scope: string; stream: unknown }): void {
+    if (this.consumeLoop && this.stream === opts.stream) {
       return;
     }
 
@@ -467,9 +474,14 @@ export class KafkaConsumerHelper<
       });
 
       // Always attached, hook or not, like the listener in start(): a stream 'error' with ZERO listeners is rethrown by EventEmitter and takes the process down.
-      this.stream.on(KafkaClientEvents.STREAM_ERROR, (streamError: Error) => {
+      const reconnectedStream = this.stream;
+      reconnectedStream.on(KafkaClientEvents.STREAM_ERROR, (streamError: Error) => {
         this.logger.for('attemptReconnect').error('Kafka stream ERROR | Error: %s', streamError);
-        this.reportStreamError({ error: streamError, scope: 'attemptReconnect' });
+        this.reportStreamError({
+          error: streamError,
+          scope: 'attemptReconnect',
+          stream: reconnectedStream,
+        });
       });
 
       this.sessionLikelyStale = false;
