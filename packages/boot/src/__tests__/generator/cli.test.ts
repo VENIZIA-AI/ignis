@@ -36,3 +36,24 @@ describe('generateArtifactIndex / checkArtifactIndex', () => {
     expect(result.actual).toBeUndefined();
   });
 });
+
+describe('checkArtifactIndex - the header is not drift', () => {
+  test('a file whose first line differs but whose body matches is fresh; a body change is stale', () => {
+    const out = join(mkdtempSync(join(tmpdir(), 'ignis-artifacts-')), 'artifacts.ts');
+    const generated = generateArtifactIndex({ root: FIXTURES, out });
+    const [header, ...body] = generated.content.split('\n');
+
+    writeFileSync(out, [`${header} --ignore legacy/**`, ...body].join('\n'));
+    const headerOnly = checkArtifactIndex({ root: FIXTURES, out });
+    expect(headerOnly.actual).not.toBe(headerOnly.expected);
+    expect(headerOnly.isFresh).toBe(true);
+
+    writeFileSync(
+      out,
+      [header, ...body.filter(line => !line.includes('GreeterService'))].join('\n'),
+    );
+    expect(checkArtifactIndex({ root: FIXTURES, out }).isFresh).toBe(false);
+
+    rmSync(out, { force: true });
+  });
+});

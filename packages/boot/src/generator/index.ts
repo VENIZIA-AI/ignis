@@ -42,15 +42,19 @@ export const generateArtifactIndex = (
   return { content, artifacts, written: true };
 };
 
-/** Renders in memory and compares with the committed file - the staleness gate for lint and CI. */
+/** Everything below the first line: the header only records the command, so a flag change alone must not read as drift. */
+const bodyOf = (content: string): string => content.slice(content.indexOf('\n') + 1);
+
+/** Renders in memory and compares the body with the committed file - the staleness gate for lint and CI. */
 export const checkArtifactIndex = (
   opts: IGenerateOptions,
 ): { isFresh: boolean; expected: string; actual: string | undefined } => {
   const { content: expected } = render(opts);
   const out = resolve(opts.out);
   const actual = existsSync(out) ? readFileSync(out, 'utf8') : undefined;
+  const isFresh = actual !== undefined && bodyOf(actual) === bodyOf(expected);
 
-  return { isFresh: actual === expected, expected, actual };
+  return { isFresh, expected, actual };
 };
 
 export * from './common';

@@ -57,8 +57,8 @@ the repo's `prettier -l` untouched. No IGNIS import in the file - the object is 
 
 The first line of a generated index is `ArtifactIndexEmitter.renderHeader({ root, out, ignore, exportName })`:
 the flags the CLI actually received, `--ignore` only when non-empty, `--export` only when the name is
-not `GeneratedArtifacts`. Changing the header makes `ignis-artifacts check` report every existing
-index stale once, so a build must run `generate` before `check`.
+not `GeneratedArtifacts`. `ignis-artifacts check` compares only the body below that line (`checkArtifactIndex`), so a flag
+change alone never reads as drift; `generate` still rewrites the file when the header differs.
 
 ## CLI
 

@@ -454,6 +454,10 @@ const config = defineConfig({
               collapsed: true,
               items: [
                 {
+                  text: 'ignis-artifacts check Ignores the Header',
+                  link: '/changelogs/2026-09-06-artifacts-check-compares-the-body',
+                },
+                {
                   text: 'helpers zod-openapi Peer and Generator Header',
                   link: '/changelogs/2026-09-06-helpers-peer-and-generator-header',
                 },
