@@ -456,6 +456,10 @@ const config = defineConfig({
               collapsed: true,
               items: [
                 {
+                  text: 'Bare @repository() and Quiet CLI',
+                  link: '/changelogs/2026-09-06-repository-inheritance-and-quiet-cli',
+                },
+                {
                   text: 'Shared Singletons Across Module Copies',
                   link: '/changelogs/2026-09-06-shared-singletons-across-module-copies',
                 },

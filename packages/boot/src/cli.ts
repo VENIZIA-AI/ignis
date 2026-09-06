@@ -1,4 +1,5 @@
 #!/usr/bin/env bun
+import './common/install-quiet-logger';
 import { parseArgs } from 'node:util';
 import { checkArtifactIndex, generateArtifactIndex } from './generator';
 

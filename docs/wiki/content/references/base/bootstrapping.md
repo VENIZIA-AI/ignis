@@ -203,6 +203,8 @@ Behavior, in order:
 
 A class registered by hand before this call keeps its earlier position in the binding map; the later registration overwrites the binding unless `allowOverride: false`, or [`bootChecks.binding.allowOverride: false`](#bootchecks), makes it throw.
 
+The step binds and constructs nothing. Datasources are constructed at `registerDataSources` and components at `registerComponents`, both after `preConfigure()`; repositories and services are constructed on their first `get` (or at `verifyBindings` when `doVerify` is on). A subclass without its own decorator inherits the repository metadata (`model`, `dataSource`, read through the prototype chain) but not the artifact metadata (`binding`, `scope`, `order`, `when`, `allowOverride`, read as own metadata), so the generator does not list it. Decorate the subclass with a bare `@repository()` - it inherits `model`, `dataSource` and `operationScope` from the nearest decorated parent and registers under its own name - or name it in the index by hand.
+
 ## `registerConfiguredArtifacts`
 
 ```typescript

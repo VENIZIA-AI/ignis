@@ -47,6 +47,13 @@ A hand-written `this.controller(Ctor)` therefore already honours `@controller({ 
    `Skipped by condition | kind: <field> | class: <Class>`.
 4. Stable-sorts survivors by `order` (default 0).
 5. Registers each through the matching method; for a component, binds every `@provide` key.
+   Registration binds only: datasources are constructed at `registerDataSources`, components at
+   `registerComponents` (both after `preConfigure`), repositories and services on first `get`.
+   Artifact metadata is own metadata (`Reflect.getOwnMetadata`, `artifact.mixin.ts`), so an
+   undecorated subclass is invisible to the generator; repository metadata (`model`, `dataSource`)
+   is read through the prototype chain and is inherited. A bare `@repository()` on the subclass (no
+argument) copies the parent's `model`, `dataSource` and `operationScope` into own metadata and
+declares artifact metadata of its own, so the generator lists it and it registers under its own name.
 
 `when` runs before `preConfigure`, so it may read `application.configs` and the environment and
 never another artifact's binding. A class registered by hand earlier keeps its earlier position in

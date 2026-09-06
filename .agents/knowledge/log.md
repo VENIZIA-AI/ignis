@@ -6,6 +6,18 @@ not how.
 This file and `index.md` are reserved OKF filenames - they carry no `type:` frontmatter and are not
 counted as concepts.
 
+## 2026-09-06 - bare `@repository()` inherits the parent's model and datasource; console-fallback warning moves to the first log line; ignis-artifacts is quiet
+
+BANA's index adoption (iden-2) has 54 repository subclasses that only add methods. `repository(metadata?)` now
+takes an optional argument: with none it reads the nearest decorated parent's `model`/`dataSource`/`operationScope`
+through the prototype chain (own metadata does not exist yet at decoration time) and declares its own artifact
+metadata with no registration options, so the generator lists the subclass and it registers under its own name;
+no parent -> throws at decoration naming the class (`kernel/src/base/metadata/persistents.ts`). In helpers,
+`LoggerResolver` warns about the console fallback inside the console resolver (first routed line), not in
+`resolve()` - the old placement fired during the barrel import because `applicationEnvironment` (a `BaseHelper`)
+is constructed before `logger/factory` evaluates. The `ignis-artifacts` CLI imports `common/install-quiet-logger`
+first (`QuietLogger`: debug/info dropped, warn+ to stderr). Changelog `2026-09-06-repository-inheritance-and-quiet-cli`.
+
 ## 2026-09-06 - applicationEnvironment and ModuleUtility's registry shared across module copies; configs.path.base guard
 
 BANA proved seven long-red invoice tests came from two `applicationEnvironment` instances in one process (the

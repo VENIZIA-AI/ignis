@@ -110,6 +110,8 @@ export const configs: IApplicationConfigs = {
 
 The framework components you turn on are listed once, by hand, next to the generated index. Order inside the array does not matter for dependencies: the kernel registers datasources first, then components, repositories, services, controllers, across every index it was given.
 
+Registering means binding a class to its key; nothing is constructed at this step. Datasources are constructed at `registerDataSources` and components at `registerComponents`, both after `preConfigure()`, so an option you bind in `preConfigure()` (or provide through `@provide`) is in place when the component starts. What the index cannot do is share a connection a hook already opened: a helper that `preConfigure()` connects and a component that connects again on construction collide, whichever way the component was registered.
+
 Delete the registration calls from `preConfigure()`. Keep what is not a binding - a registry call such as `AuthenticationStrategyRegistry.getInstance().register(...)` stays where it was.
 
 ## 4. Provide the options a framework component reads
