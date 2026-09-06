@@ -17,6 +17,7 @@ This section tracks the history of significant changes, refactors, and updates t
 
 | Date | Title | Type |
 |------|-------|------|
+| 2026-09-06 | [configs.projectRoot Replaces the getProjectRoot() Override](./2026-09-06-configs-project-root) | New Feature |
 | 2026-09-06 | [ignis-artifacts check Compares the Index Body, Not Its Header Line](./2026-09-06-artifacts-check-compares-the-body) | Behavior Change |
 | 2026-09-06 | [helpers Declares Its @hono/zod-openapi Peer; the Generated Index Header Names the Command That Produced It](./2026-09-06-helpers-peer-and-generator-header) | Behavior Change |
 | 2026-09-06 | [configs.server Passes idleTimeout and maxRequestBodySize to Bun.serve](./2026-09-06-bun-serve-options) | New Feature |

@@ -454,6 +454,10 @@ const config = defineConfig({
               collapsed: true,
               items: [
                 {
+                  text: 'configs.projectRoot',
+                  link: '/changelogs/2026-09-06-configs-project-root',
+                },
+                {
                   text: 'ignis-artifacts check Ignores the Header',
                   link: '/changelogs/2026-09-06-artifacts-check-compares-the-body',
                 },

@@ -341,6 +341,7 @@ interface IApplicationConfigs {
   host?: string;                          // Server host (default: process.env.HOST || 'localhost')
   port?: number;                          // Server port (default: process.env.PORT || 3000)
   server?: { idleTimeout?: number; maxRequestBodySize?: number }; // Bun.serve options, Bun runtime only
+  projectRoot?: string;                   // Server only: bound as APPLICATION_PROJECT_ROOT (default: process.cwd())
   path: { base: string; isStrict: boolean }; // Base path config (required)
   requestId?: { isStrict: boolean };      // Request ID validation
   favicon?: string;                       // Favicon emoji (default: '🔥')

@@ -82,9 +82,9 @@ export abstract class ServerApplication<
     return true;
   }
 
-  /** Restores the pre-split default: a listening server has a real process cwd. An application may still override this further (several already do, with `__dirname`). */
+  /** `configs.projectRoot` wins, else the process cwd - a listening server has a real one. Overriding still works for anything the config cannot express. */
   override getProjectRoot(): string {
-    const projectRoot = process.cwd();
+    const projectRoot = this.configs.projectRoot ?? process.cwd();
     this.bind<string>({ key: CoreBindings.APPLICATION_PROJECT_ROOT }).toValue(projectRoot);
     return projectRoot;
   }

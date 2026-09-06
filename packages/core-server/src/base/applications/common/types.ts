@@ -15,6 +15,8 @@ export type TNodeServerInstance = any;
 export interface IServerApplicationConfigs extends IKernelApplicationConfigs {
   host?: string;
   port?: number;
+  /** Bound as `CoreBindings.APPLICATION_PROJECT_ROOT` at construction; default `process.cwd()`. An application that overrode `getProjectRoot()` only to return `__dirname` passes it here instead. */
+  projectRoot?: string;
   /** Bun-only socket options passed straight to `Bun.serve`; the node runtime logs a warning and ignores them. Unset keys keep Bun's own defaults. */
   server?: IServerRuntimeConfigs;
 }
