@@ -89,7 +89,6 @@
   "scripts": {
     "force-update": "bun run --filter \"@venizia/*\" force-update",
     "docs:dev": "bun run --filter \"@venizia/ignis-docs\" docs:dev",
-    "mcp:dev": "bun run --filter \"@venizia/ignis-docs\" mcp:dev",
     "purity": "bun scripts/purity/cli.ts"
   },
   "devDependencies": {

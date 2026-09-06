@@ -30,6 +30,26 @@ consumer's `process.env.X!` produced `undefined` and the failure surfaced inside
 `route()` at `start()`). Rule for new code: module-level state in helpers goes behind a `Symbol.for('ignis:...')`
 slot; in kernel behind `SingletonRealm`. Changelog `2026-09-06-shared-singletons-across-module-copies`.
 
+## 2026-09-06 - `ignis-docs-mcp` and `ignis-knowledge` retire; `@venizia/ignis-atlas` is the one MCP server
+
+Both retrieval MCP servers are gone. `ignis-docs-mcp` (`docs/wiki/mcp-server`, 10 tools, Fuse.js
+fuzzy search, changelogs excluded, uncapped whole-file reads) and `ignis-knowledge`
+(`.agents/knowledge-tools/mcp.ts`, `okf_search`/`okf_list_concepts`/`okf_get_concept`,
+presence-only ranking) are both replaced by one new package, `@venizia/ignis-atlas`
+(`packages/atlas`). Two tools, `search` and `get`, cover both: `bun:sqlite` FTS5, BM25 ranking,
+budgeted responses, and a citation on every hit.
+
+Repo mode indexes the wiki, the changelogs and this bundle from the live tree, and re-checks
+freshness before every call (measured under 1 ms). Npm mode (`bunx @venizia/ignis-atlas`) runs the
+same engine over a packaged snapshot of the wiki and the changelogs only - this bundle is never
+shipped. Golden ranking test: 7 of 7 on the real corpus, 364 documents, 4165 chunks, an index build
+around 265 ms.
+
+`.mcp.json` now starts `ignis-atlas`. Every `okf_search`/`okf_list_concepts`/`okf_get_concept`/
+`ignis-docs-mcp` mention across `AGENTS.md`, this bundle and the wiki is updated to `search`/`get`.
+New concept: [atlas](/packages/atlas.md). Changelog:
+[ignis-docs-mcp is replaced by @venizia/ignis-atlas](/changelogs/2026-09-06-ignis-atlas).
+
 ## 2026-09-05 - core-server drops its unused `@venizia/ignis-boot` dependency; `make lint-scripts` covers `scripts/purity/`
 
 `packages/core-server/src` had no import of `ignis-boot` since the runtime boot API was removed, so the

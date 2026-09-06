@@ -126,7 +126,7 @@ const coreApiSidebar: DefaultTheme.SidebarItem[] = [
 ];
 
 // ── Sidebar: Extensions ──
-// Shown for: /extensions/components/*, /extensions/helpers/*, /extensions/src-details/*
+// Shown for: /extensions/components/*, /extensions/helpers/*, /extensions/atlas/*
 const extensionsSidebar: DefaultTheme.SidebarItem[] = [
   {
     text: 'Extensions',
@@ -320,6 +320,11 @@ const extensionsSidebar: DefaultTheme.SidebarItem[] = [
       },
     ],
   },
+  {
+    text: 'Atlas',
+    collapsed: false,
+    items: [{ text: 'Overview', link: '/extensions/atlas/' }],
+  },
 ];
 
 // https://vitepress.dev/reference/site-config
@@ -455,6 +460,10 @@ const config = defineConfig({
                 {
                   text: 'Shared Singletons Across Module Copies',
                   link: '/changelogs/2026-09-06-shared-singletons-across-module-copies',
+                },
+                {
+                  text: 'ignis-docs-mcp Becomes ignis-atlas',
+                  link: '/changelogs/2026-09-06-ignis-atlas',
                 },
               ],
             },
@@ -1332,10 +1341,7 @@ const config = defineConfig({
         {
           text: 'Reference',
           collapsed: true,
-          items: [
-            { text: 'Glossary', link: '/guides/reference/glossary' },
-            { text: 'MCP Docs Server', link: '/guides/reference/mcp-docs-server' },
-          ],
+          items: [{ text: 'Glossary', link: '/guides/reference/glossary' }],
         },
         {
           text: 'Migrations',
@@ -1360,7 +1366,7 @@ const config = defineConfig({
       '/extensions/': extensionsSidebar,
       '/extensions/components/': extensionsSidebar,
       '/extensions/helpers/': extensionsSidebar,
-      '/extensions/src-details/': extensionsSidebar,
+      '/extensions/atlas/': extensionsSidebar,
     },
 
     socialLinks: [{ icon: 'github', link: 'https://github.com/VENIZIA-AI/ignis' }],

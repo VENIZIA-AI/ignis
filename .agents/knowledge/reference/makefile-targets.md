@@ -8,7 +8,7 @@ tags: [reference, make, build]
 
 > Generated from source - do not edit; run `make okf-gen`. Playbook: [build system](/process/build-system.md).
 
-**76 targets.**
+**77 targets.**
 
 | Target | Depends on | Description |
 |---|---|---|
@@ -29,32 +29,32 @@ tags: [reference, make, build]
 | `make release-plan` | - | - |
 | `make release` | - | - |
 | `make build` | `build-all` | - |
-| `make build-all` | `core core-worker boot docs docs-mcp surface-check wiki-links-check` | All packages rebuilt successfully. |
+| `make build-all` | `core core-worker boot atlas docs surface-check wiki-links-check` | All packages rebuilt successfully. |
 | `make dev-configs` | - | Rebuilding @venizia/dev-configs |
 | `make inversion` | `dev-configs` | Rebuilding @venizia/ignis-inversion |
 | `make filter` | `inversion` | Rebuilding @venizia/ignis-filter |
 | `make helpers` | `inversion` | Rebuilding @venizia/ignis-helpers |
 | `make boot` | `helpers` | Rebuilding @venizia/ignis-boot |
+| `make atlas` | `helpers` | Rebuilding @venizia/ignis-atlas |
 | `make kernel` | `helpers filter` | Rebuilding @venizia/ignis-kernel |
 | `make connectors` | `kernel` | Rebuilding @venizia/ignis-connectors |
 | `make core-worker` | `kernel` | Rebuilding @venizia/ignis-worker |
 | `make core-server` | `connectors` | Rebuilding @venizia/ignis (core-server) |
 | `make core` | `core-server` | - |
 | `make docs` | - | Rebuilding wiki (VitePress) |
-| `make docs-mcp` | `dev-configs` | Rebuilding @venizia/ignis-docs (MCP Server) |
 | `make update` | `install` | - |
 | `make update-all` | `install` | - |
 | `make update-core-server` | - | Force updating @venizia/ignis (core-server) |
 | `make update-core` | `update-core-server` | - |
 | `make update-dev-configs` | - | Force updating @venizia/dev-configs |
-| `make update-docs-mcp` | - | Force updating @venizia/ignis-docs (MCP Server) |
+| `make update-atlas` | - | Force updating @venizia/ignis-atlas |
 | `make update-helpers` | - | Force updating @venizia/ignis-helpers |
 | `make update-inversion` | - | Force updating @venizia/ignis-inversion |
 | `make update-filter` | - | Force updating @venizia/ignis-filter |
 | `make update-boot` | - | Force updating @venizia/ignis-boot |
 | `make update-kernel` | - | Force updating @venizia/ignis-kernel |
 | `make lint` | `lint-packages` | Linting completed. |
-| `make lint-all` | `lint-packages lint-examples lint-docs-mcp lint-scripts` | All linting completed. |
+| `make lint-all` | `lint-packages lint-examples lint-atlas lint-scripts` | All linting completed. |
 | `make lint-packages` | - | Linting all packages |
 | `make lint-examples` | `artifacts-check` | Linting all examples |
 | `make artifacts-check` | - | Checking generated artifact indexes |
@@ -68,12 +68,12 @@ tags: [reference, make, build]
 | `make lint-kernel` | - | Linting @venizia/ignis-kernel |
 | `make lint-connectors` | - | Linting @venizia/ignis-connectors |
 | `make lint-core-worker` | - | Linting @venizia/ignis-worker |
-| `make lint-docs-mcp` | - | Linting @venizia/ignis-docs (MCP Server) |
+| `make lint-atlas` | - | Linting @venizia/ignis-atlas |
 | `make lint-scripts` | - | Linting scripts/ |
 | `make purity` | - | Checking browser purity for all claimed entries |
 | `make purity-test` | - | Running the purity probe's regression tests |
 | `make test-scripts` | - | Running the repository gate scripts' regression tests |
-| `make test-all` | `test-inversion test-helpers test-boot test-kernel test-connectors test-core-worker test-core-server` | - |
+| `make test-all` | `test-inversion test-helpers test-boot test-kernel test-connectors test-core-worker test-core-server test-atlas` | - |
 | `make test-inversion` | - | - |
 | `make test-helpers` | - | - |
 | `make test-boot` | - | - |
@@ -81,6 +81,7 @@ tags: [reference, make, build]
 | `make test-connectors` | - | - |
 | `make test-core-worker` | - | - |
 | `make test-core-server` | - | - |
+| `make test-atlas` | - | - |
 | `make purity-inversion` | - | Checking browser purity for @venizia/ignis-inversion |
 | `make purity-filter` | - | Checking browser purity for @venizia/ignis-filter |
 | `make purity-helpers` | - | Checking browser purity for @venizia/ignis-helpers |

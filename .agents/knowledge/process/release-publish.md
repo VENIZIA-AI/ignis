@@ -10,7 +10,7 @@ tags: [process, release, ci]
 
 - Release from `develop` through `bun scripts/release.ts` (`--dry-run` first): it dispatches this
   workflow one package at a time in dependency order (dev-configs, inversion, filter, helpers, boot,
-  kernel, connectors, core-worker, core-server), waits for each run, and reads the registry back
+  kernel, connectors, core-worker, core-server, atlas), waits for each run, and reads the registry back
   before the next dispatch - a range that goes stale mid-flight fails the run. The script refuses an
   unpushed or non-`develop` checkout because the workflow builds `origin/develop`.
 - Measure the downstream consumer before dispatching, not after: copy the consumer repository to a
@@ -28,13 +28,15 @@ tags: [process, release, ci]
    human triggers it from the GitHub Actions tab (or `gh workflow run`) and picks two required
    inputs:
    - `package`: one of `dev-configs`, `inversion`, `filter`, `helpers`, `boot`, `kernel`,
-     `connectors`, `core-server`, `core-worker`, `docs-mcp`.
+     `connectors`, `core-server`, `core-worker`, `atlas`.
    - `build_mode`: the semver bump - `patch`, `minor`, `major`, `prepatch`, `preminor`, `premajor`,
      or `prerelease` (default `patch`).
    A repository-wide `concurrency: npm-release` group serialises runs. A second dispatch waits; a
    third one cancels the waiting one, because the chain has to be released in order anyway.
-2. The job resolves `PACKAGE_PATH` from the chosen package (`docs-mcp` maps to `docs/wiki`,
-   everything else to `packages/<name>`) and reads its current `package.json` name and version.
+2. The job resolves `PACKAGE_PATH` as `packages/<name>` for the chosen package and reads its
+   current `package.json` name and version. `docs/wiki` (`@venizia/ignis-docs`) has no entry in
+   this list - it lost its release path when the `docs-mcp` input retired with the MCP server it
+   built, and is not currently republished through this workflow.
 3. `bun run --filter "@venizia/*" force-update "highest"` runs BEFORE `bun install`, and over the
    WHOLE workspace rather than the one package being released.
    - Before the install, because `force-update` rewrites the internal version ranges and an install

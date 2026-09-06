@@ -64,7 +64,7 @@ const minimapShape = marked({ name: 'minimap-shape' });
 console.log('# IGNIS project rules - read this before acting');
 console.log();
 console.log('The full rule set lives in `.agents/rules.md`. Facts live in `.agents/knowledge/`');
-console.log('(query it with the `ignis-knowledge` MCP). Open the rule file itself before a task that');
+console.log('(query it with the `ignis-atlas` MCP). Open the rule file itself before a task that');
 console.log('touches an area you have not worked in this session - this digest is the floor, not the');
 console.log('whole floor.');
 console.log();

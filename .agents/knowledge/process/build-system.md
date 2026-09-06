@@ -12,17 +12,18 @@ tags: [process, build]
    package, and every package's `exports` field points at `dist/` - `packages/core-server` importing
    `@venizia/ignis-helpers` resolves to `packages/helpers/dist/...`. Skip this and you get a wall
    of module-resolution errors that have nothing to do with your change.
-2. To rebuild everything: `make build` (alias `make build-all`). This runs `core docs docs-mcp` -
-   the `core` target pulls in the full dependency chain first, so this also rebuilds
-   `dev-configs`, `inversion`, `helpers`, `boot`, `filter`, and `kernel`.
+2. To rebuild everything: `make build` (alias `make build-all`). This runs
+   `core core-worker boot atlas docs surface-check wiki-links-check` - the `core` target pulls in
+   the full dependency chain first, so this also rebuilds `dev-configs`, `inversion`, `helpers`,
+   `filter`, and `kernel`.
 3. To build one package plus its dependencies: `make <package>`, e.g. `make helpers` runs
    `dev-configs -> inversion -> helpers` in order (each Makefile target declares its dependencies
    as prerequisites). The chain is a DAG, not a line:
-   `dev-configs -> inversion -> {filter, helpers} -> kernel -> connectors -> core`, with `boot`
-   hanging off `helpers` as a leaf that only applications consume (`make build-all` names it
-   explicitly because `core` no longer depends on it). `filter` branches off `inversion` alone - it
-   is isomorphic and deliberately does not sit after `helpers`. `kernel` needs both `helpers` and
-   `filter`. This concept is the canonical copy of the chain -
+   `dev-configs -> inversion -> {filter, helpers} -> kernel -> connectors -> core`, with `boot` and
+   `atlas` hanging off `helpers` as leaves that only applications and agents consume (`make
+   build-all` names both explicitly because `core` no longer depends on either). `filter` branches
+   off `inversion` alone - it is isomorphic and deliberately does not sit after `helpers`. `kernel`
+   needs both `helpers` and `filter`. This concept is the canonical copy of the chain -
    other concepts link here rather than restate it.
 4. To build a single package without walking its dependency chain (they're already built):
    `cd packages/<name> && bun run rebuild`. `rebuild` is `sh ./scripts/rebuild.sh`:

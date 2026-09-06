@@ -39,13 +39,13 @@ in the knowledge bundle instead.
 Canonical, tool-neutral facts for IGNIS, in Open Knowledge Format (markdown + YAML frontmatter, one
 concept per file, links are the graph edges). Start at `.agents/knowledge/index.md`.
 
-It is also served over MCP as **`ignis-knowledge`** (registered in `.mcp.json`):
+It is also served over MCP by **`ignis-atlas`** (registered in `.mcp.json`, package
+`@venizia/ignis-atlas`), the same server that answers over the wiki and the changelogs:
 
 | Tool | Use it for |
 |---|---|
-| `okf_search` | Find concepts by keyword - start here |
-| `okf_list_concepts` | Browse by type (Package, Architecture, Convention, Playbook) |
-| `okf_get_concept` | Read one concept in full |
+| `search` | Find a chunk by keyword - pass `corpus: "knowledge"` to search this bundle only |
+| `get` | Read one chunk in full, by the id a search hit returned |
 
 Maintaining it is rule P-03: change a fact in the code, update the concept and `log.md` in the same
 change. Generated content comes from `make okf-gen`; `make okf-check` validates and is not a commit
@@ -56,7 +56,7 @@ gate. The `knowledge-sync` skill re-verifies the bundle against the code periodi
 ```
 .agents/
 ├── rules.md          # THE rules - W · S · P · B · C, cited by ID
-├── knowledge/        # THE knowledge bundle; knowledge-tools/ holds gen · check · coverage · mcp
+├── knowledge/        # THE knowledge bundle; knowledge-tools/ holds gen · check · coverage · viz
 ├── plugin/           # setup.ts, the project skills, the shared Claude settings and session hook
 │   ├── skills/       # knowledge-sync · update-wiki - symlinked into your agent by setup
 │   └── claude/       # settings.json + hooks/session-start.ts - merged into .claude/ by setup

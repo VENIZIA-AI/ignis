@@ -22,8 +22,6 @@
         "@venizia/dev-configs": "^0.2.0-3",
         "eslint": "catalog:",
         "prettier": "catalog:",
-        "tsc-alias": "catalog:",
-        "tsx": "catalog:",
         "typescript": "catalog:",
         "vitepress": "^1.6.4",
         "vitepress-plugin-mermaid": "^2.0.17",

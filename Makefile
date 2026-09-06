@@ -422,4 +422,4 @@ help:
 	@echo ""
 	@echo "Development (use bun run directly):"
 	@echo "  bun run docs:dev  - Start documentation site in development mode."
-	@echo "  bun run mcp:dev   - Start MCP server in development mode."
+	@echo "  bun packages/atlas/src/cli.ts mcp - Start the Atlas MCP server (repo mode)."
