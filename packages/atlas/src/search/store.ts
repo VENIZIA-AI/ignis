@@ -134,8 +134,14 @@ export class ChunkStore extends BaseHelper {
 
     const corpus = opts.corpus ?? plan.corpus ?? null;
     const andRows = this.matchRows({ match: plan.and, corpus });
+
+    // A single-term query has an identical AND and OR plan - the OR pass would only re-fetch rows
+    // already in andRows, all filtered back out, so skip it instead of querying twice for nothing.
     const andIds = new Set(andRows.map(row => row.id));
-    const orRows = this.matchRows({ match: plan.or, corpus }).filter(row => !andIds.has(row.id));
+    const orRows =
+      plan.and === plan.or
+        ? []
+        : this.matchRows({ match: plan.or, corpus }).filter(row => !andIds.has(row.id));
 
     const combined = [...andRows, ...orRows];
     const hits = combined.slice(offset, offset + limit).map(hitOf);
@@ -154,6 +160,11 @@ export class ChunkStore extends BaseHelper {
 
   list(opts: { document: string }): IChunk[] {
     return this.db.query<IChunk, TDocumentParams>(SELECT_BY_DOCUMENT_SQL).all(opts.document);
+  }
+
+  /** Closes the underlying database. Safe to call more than once; using the store after throws. */
+  close(): void {
+    this.db.close();
   }
 
   private matchRows(opts: { match: string; corpus: string | null }): ISearchRow[] {

@@ -25,6 +25,13 @@ describe('QueryPlanner', () => {
     expect(plan.or).toBe('"purity"');
   });
 
+  test('an unrecognised corpus: value sets no filter and is quoted as a literal term instead', () => {
+    const plan = planner.plan({ query: 'corpus:bogus purity' });
+    expect(plan.corpus).toBeUndefined();
+    expect(plan.and).toBe('"corpus:bogus" AND "purity"');
+    expect(plan.or).toBe('"corpus:bogus" OR "purity"');
+  });
+
   test('a trailing * turns a word into a prefix query, the star kept outside the quotes', () => {
     const plan = planner.plan({ query: 'resp*' });
     expect(plan.and).toBe('"resp"*');

@@ -206,4 +206,16 @@ describe('ChunkStore', () => {
       );
     });
   });
+
+  describe('close', () => {
+    // Its own store: closing the shared `store` above would break every other test in this file.
+    test('search() after close() throws; closing an already-closed store is harmless', () => {
+      const disposable = new ChunkStore();
+      disposable.add({ chunks: [AND_MATCH] });
+
+      disposable.close();
+      expect(() => disposable.close()).not.toThrow();
+      expect(() => disposable.search({ query: 'register', limit: 10, offset: 0 })).toThrow();
+    });
+  });
 });
