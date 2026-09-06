@@ -189,6 +189,12 @@ move `isApplicationError` already makes for `ApplicationError`, and `isRedisHelp
 Worker are separate realms and still get one registry each, which is correct - they run separate
 applications.
 
+The same rule holds in helpers, which has no `SingletonRealm`: `LoggerFactory`'s provider, `applicationEnvironment`
+and `ModuleUtility`'s registry each live in a `globalThis` slot keyed `Symbol.for('ignis:<name>')` (2026-09-06;
+two of the three were bare module instances before, and a consumer's `AppEnvs.set()` in the ESM copy was invisible to
+the CommonJS copy). A new module-level singleton in helpers follows the same shape, and its test loads the module
+twice through `require` plus `delete require.cache[path]` - a `?query` import does not give Bun a second copy.
+
 The brand goes where the check looks: `static readonly [BRAND] = true` when the check receives a
 CLASS (`isDataSourceClass`), an instance field when it receives an INSTANCE (`isRedisHelper`).
 

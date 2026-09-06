@@ -452,6 +452,16 @@ const config = defineConfig({
           collapsed: false,
           items: [
             {
+              text: '2026-09-06',
+              collapsed: true,
+              items: [
+                {
+                  text: 'Shared Singletons Across Module Copies',
+                  link: '/changelogs/2026-09-06-shared-singletons-across-module-copies',
+                },
+              ],
+            },
+            {
               text: '2026-09-05',
               collapsed: true,
               items: [

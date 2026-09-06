@@ -17,6 +17,7 @@ This section tracks the history of significant changes, refactors, and updates t
 
 | Date | Title | Type |
 |------|-------|------|
+| 2026-09-06 | [applicationEnvironment and the Module Registry Are Shared Across Module Copies; configs.path.base Is Checked at Construction](./2026-09-06-shared-singletons-across-module-copies) | Bug Fix |
 | 2026-09-05 | [@venizia/ignis No Longer Depends on @venizia/ignis-boot](./2026-09-05-core-drops-boot-dependency) | Behavior Change |
 | 2026-09-05 | [Boot Checks - Every Binding Resolves, No Hand Registration Beside the Generated Index, No Silent Key Override](./2026-09-05-boot-checks) | New Feature |
 | 2026-09-05 | [List Responses Share One Contract - respond Takes a Range on BaseRestController, and POST /search Gets Its Headers](./2026-09-05-list-response-contract) | New Feature, Bug Fix, Breaking Change |

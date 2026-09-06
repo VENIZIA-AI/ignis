@@ -6,6 +6,18 @@ not how.
 This file and `index.md` are reserved OKF filenames - they carry no `type:` frontmatter and are not
 counted as concepts.
 
+## 2026-09-06 - applicationEnvironment and ModuleUtility's registry shared across module copies; configs.path.base guard
+
+BANA proved seven long-red invoice tests came from two `applicationEnvironment` instances in one process (the
+TypeScript test through `import` -> dist/esm, `@nx/core/dist` through `require` -> dist/cjs). Both now live in
+`globalThis` under `Symbol.for('ignis:application-environment')` and `Symbol.for('ignis:module-registry')`, the
+pattern `LoggerFactory` already used. The test that proves it loads the module twice through `require` plus
+`delete require.cache[path]` - Bun does NOT create a second copy for a `?query` URL, so that form is not a
+positive control. `RestApplication` now throws at construction when `configs.path.base` is not a string (a
+consumer's `process.env.X!` produced `undefined` and the failure surfaced inside `@hono/zod-openapi`'s
+`route()` at `start()`). Rule for new code: module-level state in helpers goes behind a `Symbol.for('ignis:...')`
+slot; in kernel behind `SingletonRealm`. Changelog `2026-09-06-shared-singletons-across-module-copies`.
+
 ## 2026-09-05 - core-server drops its unused `@venizia/ignis-boot` dependency; `make lint-scripts` covers `scripts/purity/`
 
 `packages/core-server/src` had no import of `ignis-boot` since the runtime boot API was removed, so the

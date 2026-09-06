@@ -28,6 +28,13 @@ In the root `package.json` `overrides`, replace the six `@venizia/*` versions wi
 | `bullmq` | 5.81.4 | recommended (peer range `^5.80.8`) |
 | `tsc-alias` | 1.9.4 | recommended (build tool only) |
 
+One zod 4.5 change breaks at module load, not at compile time. Spreading a `ZodObject` and calling a
+method on its `.shape` (`z.object({ ...schema }).shape.optional()`) worked on 4.3.x only because the
+spread copied methods onto the plain object; on 4.5.x `.shape.optional` is `undefined`, and every
+module importing the file fails to load while `tsc` stays green. Write the derivation on the schema
+itself: `Schema.omit({ ... }).partial().optional()`. Found by the nx-seller identity lane during the
+0.2.0-17 upgrade, one site in their repository.
+
 `drizzle-orm` 0.45.2 and `typescript` 6.0.3 are unchanged. Then:
 
 ```bash
