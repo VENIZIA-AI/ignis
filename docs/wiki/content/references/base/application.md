@@ -340,6 +340,7 @@ A component may register more components while it is configured, at any nesting 
 interface IApplicationConfigs {
   host?: string;                          // Server host (default: process.env.HOST || 'localhost')
   port?: number;                          // Server port (default: process.env.PORT || 3000)
+  server?: { idleTimeout?: number; maxRequestBodySize?: number }; // Bun.serve options, Bun runtime only
   path: { base: string; isStrict: boolean }; // Base path config (required)
   requestId?: { isStrict: boolean };      // Request ID validation
   favicon?: string;                       // Favicon emoji (default: '🔥')

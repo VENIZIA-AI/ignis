@@ -6,6 +6,15 @@ not how.
 This file and `index.md` are reserved OKF filenames - they carry no `type:` frontmatter and are not
 counted as concepts.
 
+## 2026-09-06 - `configs.server` carries `Bun.serve` options
+
+BANA's commerce package copied the whole of `startBunModule` (40 lines, frozen at the 2026-08-21
+kernel) to add one line, `idleTimeout: 60`. `IServerApplicationConfigs.server` now takes
+`idleTimeout` and `maxRequestBodySize`; `getServerRuntimeOptions()` drops unset keys so Bun's
+defaults survive, `startBunModule` spreads the result into `Bun.serve`, and `startNodeModule`
+warns that the group is ignored. Core-server only - the kernel stays free of Bun types. Changelog
+`2026-09-06-bun-serve-options`.
+
 ## 2026-09-06 - bare `@repository()` inherits the parent's model and datasource; console-fallback warning moves to the first log line; ignis-artifacts is quiet
 
 BANA's index adoption (iden-2) has 54 repository subclasses that only add methods. `repository(metadata?)` now

@@ -15,6 +15,16 @@ export type TNodeServerInstance = any;
 export interface IServerApplicationConfigs extends IKernelApplicationConfigs {
   host?: string;
   port?: number;
+  /** Bun-only socket options passed straight to `Bun.serve`; the node runtime logs a warning and ignores them. Unset keys keep Bun's own defaults. */
+  server?: IServerRuntimeConfigs;
+}
+
+/** The `Bun.serve` options an application has a reason to change without re-implementing `startBunModule`. */
+export interface IServerRuntimeConfigs {
+  /** Seconds a connection may sit idle before Bun closes it; Bun caps it at 255. */
+  idleTimeout?: number;
+  /** Largest request body in bytes. */
+  maxRequestBodySize?: number;
 }
 
 /**

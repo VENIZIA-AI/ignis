@@ -454,6 +454,10 @@ const config = defineConfig({
               collapsed: true,
               items: [
                 {
+                  text: 'Bun.serve Options in configs.server',
+                  link: '/changelogs/2026-09-06-bun-serve-options',
+                },
+                {
                   text: 'Bare @repository() and Quiet CLI',
                   link: '/changelogs/2026-09-06-repository-inheritance-and-quiet-cli',
                 },

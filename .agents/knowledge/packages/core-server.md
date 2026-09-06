@@ -38,6 +38,12 @@ The full server boot sequence is 15 named steps, ending `postConfigure -> verify
 validateScopeFilterSupport`. See [Application lifecycle](/architecture/application-lifecycle.md) for the
 full contract.
 
+`IServerApplicationConfigs` adds `host`, `port` and `server` on top of the kernel's shape.
+`configs.server` (`idleTimeout` in seconds, `maxRequestBodySize` in bytes) is spread into
+`Bun.serve` by `startBunModule`; unset keys keep Bun's defaults, and the node runtime logs a
+warning and ignores the group. Override `getServerRuntimeOptions()` for anything beyond those two
+keys instead of re-implementing `startBunModule`.
+
 ## Controllers
 
 `BaseRestController` (`packages/kernel/src/base/controllers/rest/`) wraps an `OpenAPIHono` router.
