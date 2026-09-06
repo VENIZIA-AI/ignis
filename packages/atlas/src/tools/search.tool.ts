@@ -1,6 +1,5 @@
 import { AtlasConstants } from '@/common';
 import type { TCorpus } from '@/common';
-import { isIdentifierShaped } from '@/corpus/chunker';
 import type { IToolHandler } from '@/protocol/common';
 import type { IHit } from '@/search/common';
 import type { ChunkStore } from '@/search/store';
@@ -28,10 +27,10 @@ interface ISearchToolResponse {
   nextOffset?: number;
 }
 
-/** The query as one identifier, or `undefined` for prose - a multi-word query never names a symbol. */
+/** The query as one word, or `undefined` for prose - a multi-word query never names a symbol. */
 const identifierOf = (opts: { query: string }): string | undefined => {
   const tokens = opts.query.trim().split(/\s+/);
-  return tokens.length === 1 && isIdentifierShaped(tokens[0]) ? tokens[0] : undefined;
+  return tokens.length === 1 ? tokens[0] : undefined;
 };
 
 /** The first exact match for a single-identifier query; absent for prose, or a name no table knows. */

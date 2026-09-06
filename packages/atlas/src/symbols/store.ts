@@ -7,13 +7,24 @@ import type { ISymbolRecord, ISymbolTable } from './common';
 const DEFAULT_SUGGESTION_LIMIT = 5;
 const MAX_SUGGESTION_DISTANCE = 2;
 
-/** `@venizia/ignis-helpers` and `helpers` name the same package - the scope and the `ignis-` prefix are both optional. */
-const normalizePackage = (value: string): string =>
-  value
+/**
+ * Every spelling of one package as its directory name: `@venizia/ignis-helpers`, `ignis-helpers`
+ * and `helpers` are one, `@venizia/ignis` is `core-server` and `@venizia/ignis-worker` is
+ * `core-worker` - the same names `version` and `changes` answer with.
+ */
+const normalizePackage = (value: string): string => {
+  const bare = value
     .trim()
     .toLowerCase()
-    .replace(/^@[^/]+\//, '')
-    .replace(/^ignis-/, '');
+    .replace(/^@[^/]+\//, '');
+
+  if (bare === 'ignis') {
+    return 'core-server';
+  }
+
+  const suffix = bare.replace(/^ignis-/, '');
+  return suffix === 'worker' ? 'core-worker' : suffix;
+};
 
 /**
  * Levenshtein distance over two rows, abandoned once every cell of a row exceeds `max` - a typo

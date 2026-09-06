@@ -87,6 +87,6 @@ The release commits already did. Nothing read them.
 | `releases.json` (generated) | New | `.agents/knowledge/reference` |
 | `make releases-gen`, `make releases-check` | New | Makefile |
 
-Two limits are worth knowing. A window is dates, not commits: two releases on one day leave an empty window. A changelog file that names no package carries an empty `packages`, so a package filter never returns it - 27 files today.
+One limit is worth knowing. A changelog file that names no package carries an empty `packages`, so a package filter never returns it - 9 files today. A window between two versions is keyed by commit position, so two releases of one day are still separable.
 
 - Extension page: [Atlas](/extensions/atlas/).

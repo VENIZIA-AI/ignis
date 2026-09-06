@@ -15,7 +15,8 @@ description: ReadableCrudController gains getBaseWhere, a per-controller scope t
 class OrderController extends ControllerFactory.defineCrudController({ ... }) {
   override async getBaseWhere(opts: { context: TRouteContext }) {
     const tenantId = opts.context.req.header('x-tenant-id');
-    return tenantId ? { tenantId } : undefined;
+    // Fail closed: a request with no tenant reads nothing, never every tenant.
+    return { tenantId: tenantId ?? null };
   }
 }
 ```
@@ -47,6 +48,8 @@ The method is public, not protected. A generated controller's declaration file c
 
 - **Controllers that override `find` or `count` only to narrow rows.** Delete the override and return the scope from `getBaseWhere`.
 - **Everyone else.** No action needed. Without an override every verb passes the request filter through untouched.
+
+Write the scope so it fails closed: a request missing the value it keys on must narrow to nothing. Only the read verbs call `getBaseWhere`; `create`, `updateById`, `deleteById` and `deleteBy` do not.
 
 ## The static-asset controller takes two hooks
 

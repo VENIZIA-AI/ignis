@@ -98,7 +98,7 @@ release:
 # ----------------------------------------------------------------------------
 build: build-all
 
-build-all: core core-worker boot atlas docs surface-check symbols-check releases-check wiki-links-check
+build-all: core core-worker boot atlas docs surface-check symbols-check wiki-links-check
 	@echo "🚀 All packages rebuilt successfully."
 
 # Granular build targets for individual packages

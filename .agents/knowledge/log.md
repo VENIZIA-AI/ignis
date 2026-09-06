@@ -20,8 +20,12 @@ window walks back to the newest version of an EARLIER day, because several relea
 on one day are normal here and the naive predecessor answers nothing; `version.snapshot` lists only
 the packages that exist today (`livePackages`), while `changes` still reads a retired package's
 history. A changelog's packages are inferred by four rules in order - `packages:` frontmatter, a
-Details table's `Package` column, `@venizia/ignis...` mentions, then `packages/<dir>` paths - and 9
-of 118 files legitimately name none.
+Details table's `Package` column, `@venizia/ignis...` mentions, then `packages/<dir>` paths - and a
+bare word must name a directory this repository released, so a `Package` column carrying prose never
+invents a package; 9 of 118 files legitimately name none. A version window is keyed by COMMIT
+position (`order`, first-parent history), not by date: four kernel releases shipped on 2026-09-06
+and a date window between any two of them is empty. `version` also reads a workspace root's
+`overrides`/`resolutions`, because that is where a monorepo pins its dependency graph.
 
 Four extension seams closed the copied-code list BANA measured. `BaseKafkaHelper`'s members are
 `protected`. A worker application takes `configs.projectRoot`; because core-worker is browser-pure

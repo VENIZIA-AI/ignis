@@ -24,6 +24,10 @@ interface IManifest {
   version?: unknown;
   dependencies?: Record<string, string>;
   devDependencies?: Record<string, string>;
+  /** A workspace root pins its dependency graph here rather than depending on it. */
+  overrides?: Record<string, string>;
+  /** Yarn spells the same thing this way. */
+  resolutions?: Record<string, string>;
 }
 
 interface IBehindRow {
@@ -54,11 +58,17 @@ const readManifest = (opts: { file: string }): IManifest | undefined => {
   }
 };
 
-/** Every `@venizia/*` dependency the manifest declares, runtime and development alike, sorted. */
+/**
+ * Every `@venizia/*` version the manifest declares, sorted. A workspace root often declares none
+ * and pins every package under `overrides` (or yarn's `resolutions`) instead; reading only
+ * dependencies answers "nothing installed" for exactly the repository that pins the most.
+ */
 const declaredOf = (opts: { manifest?: IManifest }): [string, string][] => {
   const declared = {
     ...(opts.manifest?.dependencies ?? {}),
     ...(opts.manifest?.devDependencies ?? {}),
+    ...(opts.manifest?.resolutions ?? {}),
+    ...(opts.manifest?.overrides ?? {}),
   };
 
   return Object.entries(declared)

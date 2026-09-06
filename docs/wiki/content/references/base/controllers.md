@@ -697,12 +697,17 @@ Narrows every read of one controller. Override it to scope rows to a tenant, an 
 class OrderController extends ControllerFactory.defineCrudController({ ... }) {
   override async getBaseWhere(opts: { context: TRouteContext }) {
     const tenantId = opts.context.req.header('x-tenant-id');
-    return tenantId ? { tenantId } : undefined;
+    // Fail closed: a request with no tenant reads nothing, never every tenant.
+    return { tenantId: tenantId ?? null };
   }
 }
 ```
 
 Each read verb combines the two sides as `{ and: [baseWhere, requestWhere] }`. A request without its own `where` gets the base where alone. Nothing is wrapped that does not need to be.
+
+Returning `undefined` reads every row. Write a scope that fails closed: a request missing the value your scope keys on must narrow to nothing, not widen to everything.
+
+**Only the read verbs are scoped.** `create`, `updateById`, `deleteById` and `deleteBy` do not call `getBaseWhere`. A controller that must reject a write outside its scope checks that in the verb or in an authorization strategy.
 
 | Verb | How the base where is applied |
 | :--- | :--- |

@@ -33,7 +33,7 @@ tags: [reference, make, build]
 | `make release-plan` | - | - |
 | `make release` | - | - |
 | `make build` | `build-all` | - |
-| `make build-all` | `core core-worker boot atlas docs surface-check symbols-check releases-check wiki-links-check` | All packages rebuilt successfully. |
+| `make build-all` | `core core-worker boot atlas docs surface-check symbols-check wiki-links-check` | All packages rebuilt successfully. |
 | `make dev-configs` | - | Rebuilding @venizia/dev-configs |
 | `make inversion` | `dev-configs` | Rebuilding @venizia/ignis-inversion |
 | `make filter` | `inversion` | Rebuilding @venizia/ignis-filter |

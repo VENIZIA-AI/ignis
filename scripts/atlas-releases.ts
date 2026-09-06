@@ -15,11 +15,16 @@ export const RELEASES_OUTPUT = resolve(REPO, '.agents/knowledge/reference/releas
 const CHANGELOG_DIRECTORY = 'docs/wiki/content/changelogs';
 const SHORT_SHA_LENGTH = 8;
 
+/** A file the history does not carry yet: it sorts after every committed entry, so a fresh changelog is inside the newest window. */
+const UNCOMMITTED_ORDER = Number.MAX_SAFE_INTEGER;
+
 /** One published version of one package, as its release commit recorded it. */
 export interface IReleaseRecord {
   version: string;
   date: string;
   sha: string;
+  /** Position of the release commit in first-parent history, oldest first - the only ordering that separates two releases of one day. */
+  order: number;
 }
 
 /** One dated changelog entry; `id` is the citation id `search` and `get` already use. */
@@ -30,6 +35,8 @@ export interface IChangelogRecord {
   title: string;
   packages: string[];
   kind: string | null;
+  /** Position of the commit that ADDED the file, oldest first; `-1` when the file is not committed yet. */
+  order: number;
 }
 
 export interface IReleaseTable {
@@ -61,6 +68,24 @@ const SCOPED_NAME_EXACT_PATTERN = /^@venizia\/ignis(?:-([a-z0-9-]+))?$/;
 // A package directory name: lower-case words joined by single hyphens, nothing else.
 const PACKAGE_DIRECTORY_PATTERN = /^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$/;
 
+// Every directory this repository has ever released, live or retired - the set a bare word in a
+// `Package` column must belong to. Retired names stay so an old changelog keeps its package.
+const KNOWN_PACKAGES = [
+  'atlas',
+  'boot',
+  'connectors',
+  'core',
+  'core-server',
+  'core-worker',
+  'dev-configs',
+  'docs',
+  'docs-mcp',
+  'filter',
+  'helpers',
+  'inversion',
+  'kernel',
+];
+
 const byText = (left: string, right: string): number => {
   if (left === right) {
     return 0;
@@ -83,20 +108,37 @@ const directoryOfSuffix = (suffix?: string): string => {
   }
 };
 
-/** A table cell or a frontmatter item as a package directory name, or `undefined` when it names none. */
-const directoryOfValue = (value: string): string | undefined => {
-  const cleaned = value.replace(/`/g, '').trim();
+/** The bare words a `Package` column uses for a package whose directory has another name. */
+const DIRECTORY_ALIASES: Record<string, string> = {
+  core: 'core-server',
+  ignis: 'core-server',
+  worker: 'core-worker',
+};
+
+/**
+ * A table cell or a frontmatter item as a package directory name, or `undefined` when it names
+ * none. A bare word must be a directory this repository has released; a `Package` column also
+ * carries prose, and filing an entry under an invented name hides it from every real package.
+ */
+const directoryOfValue = (opts: { value: string; known: string[] }): string | undefined => {
+  const cleaned = opts.value.replace(/`/g, '').trim();
   const scoped = cleaned.match(SCOPED_NAME_EXACT_PATTERN);
   if (scoped) {
     return directoryOfSuffix(scoped[1]);
   }
 
-  return PACKAGE_DIRECTORY_PATTERN.test(cleaned) ? cleaned : undefined;
+  const withoutPrefix = cleaned.startsWith('ignis-') ? cleaned.slice('ignis-'.length) : cleaned;
+  const aliased = DIRECTORY_ALIASES[withoutPrefix] ?? withoutPrefix;
+  if (!PACKAGE_DIRECTORY_PATTERN.test(aliased)) {
+    return undefined;
+  }
+
+  return opts.known.includes(aliased) ? aliased : undefined;
 };
 
-const resolveAll = (values: string[]): string[] => {
-  const resolved = values
-    .map(directoryOfValue)
+const resolveAll = (opts: { values: string[]; known: string[] }): string[] => {
+  const resolved = opts.values
+    .map(value => directoryOfValue({ value, known: opts.known }))
     .filter((name): name is string => name !== undefined);
   return [...new Set(resolved)].sort(byText);
 };
@@ -203,26 +245,30 @@ export class AtlasReleases {
    * list, a Details table's `Package` column, `@venizia/ignis...` mentions, then `packages/<dir>`
    * paths. A file none of the four answer for resolves to none - the generator never guesses one.
    */
-  static packagesOf(opts: { text: string }): string[] {
+  static packagesOf(opts: { text: string; known?: string[] }): string[] {
     const { data, body } = splitFrontmatter(opts.text);
+    const known = opts.known ?? KNOWN_PACKAGES;
 
     const listed: unknown[] = Array.isArray(data.packages) ? data.packages : [];
-    const declared = resolveAll(listed.filter((item): item is string => typeof item === 'string'));
+    const declared = resolveAll({
+      values: listed.filter((item): item is string => typeof item === 'string'),
+      known,
+    });
     if (declared.length > 0) {
       return declared;
     }
 
-    const tabled = resolveAll(packageColumnValuesOf({ body }));
+    const tabled = resolveAll({ values: packageColumnValuesOf({ body }), known });
     if (tabled.length > 0) {
       return tabled;
     }
 
-    const mentioned = resolveAll(bodyMentionsOf({ body }));
+    const mentioned = resolveAll({ values: bodyMentionsOf({ body }), known });
     if (mentioned.length > 0) {
       return mentioned;
     }
 
-    return resolveAll(bodyPathsOf({ body }));
+    return resolveAll({ values: bodyPathsOf({ body }), known });
   }
 
   /** The first `<Badge ... text="X" />` in the file, or `null` when it carries none. */
@@ -254,6 +300,7 @@ export class AtlasReleases {
 
     const byPackage = new Map<string, IReleaseRecord[]>();
     const lines = (log.stdout ?? '').split('\n').filter(line => line.length > 0);
+    const order = AtlasReleases.commitOrderOf({ repoRoot: opts.repoRoot });
 
     for (const line of lines) {
       const [hash, date, ...rest] = line.split('|');
@@ -263,7 +310,12 @@ export class AtlasReleases {
       }
 
       const records = byPackage.get(parsed.package) ?? [];
-      records.push({ version: parsed.version, date, sha: hash.slice(0, SHORT_SHA_LENGTH) });
+      records.push({
+        version: parsed.version,
+        date,
+        sha: hash.slice(0, SHORT_SHA_LENGTH),
+        order: order.get(hash) ?? UNCOMMITTED_ORDER,
+      });
       byPackage.set(parsed.package, records);
     }
 
@@ -272,6 +324,59 @@ export class AtlasReleases {
       sorted[name] = byPackage.get(name) ?? [];
     }
     return sorted;
+  }
+
+  /** Every commit of first-parent history mapped to its position, oldest first. One `git log`, reused by both collectors. */
+  private static commitOrderOf(opts: { repoRoot: string }): Map<string, number> {
+    const log = spawnSync('git', ['rev-list', '--first-parent', '--reverse', 'HEAD'], {
+      cwd: opts.repoRoot,
+      encoding: 'utf8',
+      maxBuffer: 64 * 1024 * 1024,
+    });
+    if (log.status !== 0) {
+      throw new Error(`[atlas-releases] git rev-list exited ${log.status}\n${log.stderr ?? ''}`);
+    }
+
+    const order = new Map<string, number>();
+    const hashes = (log.stdout ?? '').split('\n').filter(line => line.length > 0);
+    hashes.forEach((hash, index) => order.set(hash, index));
+    return order;
+  }
+
+  /** The position of the commit that added each changelog file, keyed by file name. */
+  private static changelogOrderOf(opts: { repoRoot: string }): Map<string, number> {
+    const order = AtlasReleases.commitOrderOf({ repoRoot: opts.repoRoot });
+    const log = spawnSync(
+      'git',
+      [
+        'log',
+        '--first-parent',
+        '--diff-filter=A',
+        '--name-only',
+        '--format=commit %H',
+        '--',
+        CHANGELOG_DIRECTORY,
+      ],
+      { cwd: opts.repoRoot, encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 },
+    );
+    if (log.status !== 0) {
+      throw new Error(`[atlas-releases] git log --diff-filter=A exited ${log.status}`);
+    }
+
+    const byFile = new Map<string, number>();
+    let current = UNCOMMITTED_ORDER;
+    for (const line of (log.stdout ?? '').split('\n')) {
+      if (line.startsWith('commit ')) {
+        current = order.get(line.slice('commit '.length).trim()) ?? UNCOMMITTED_ORDER;
+        continue;
+      }
+      const file = line.trim().split('/').pop();
+      if (file && line.endsWith('.md') && !byFile.has(file)) {
+        byFile.set(file, current);
+      }
+    }
+
+    return byFile;
   }
 
   /**
@@ -287,6 +392,7 @@ export class AtlasReleases {
       .reverse();
 
     const records: IChangelogRecord[] = [];
+    const order = AtlasReleases.changelogOrderOf({ repoRoot: opts.repoRoot });
     for (const file of files) {
       const dated = file.match(DATE_PREFIX_PATTERN);
       if (!dated) {
@@ -301,6 +407,7 @@ export class AtlasReleases {
         title: AtlasReleases.titleOf({ text, file }),
         packages: AtlasReleases.packagesOf({ text }),
         kind: AtlasReleases.kindOf({ text }),
+        order: order.get(file) ?? UNCOMMITTED_ORDER,
       });
     }
 

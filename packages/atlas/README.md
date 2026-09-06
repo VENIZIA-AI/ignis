@@ -202,7 +202,7 @@ changes({ package: "kernel", from: "0.2.0-13", to: "0.2.0-16" })
 | Input | Type | Default |
 | :--- | :--- | :--- |
 | `package` | a package directory name | every package |
-| `from` | a version of `package`, or a date without one | the previous known version |
+| `from` | a version of `package`, or a date without one | the newest version released on an earlier day |
 | `to` | a version of `package`, or a date without one | the newest known version |
 
 Each `id` reads in full through `get`. A window wider than the reply budget is trimmed to the
@@ -210,8 +210,10 @@ newest entries and marked `truncated`.
 
 ## `--root`
 
-`--root <dir>` points the server at an IGNIS checkout, or a directory holding a packaged snapshot.
-It defaults to the current working directory.
+`--root <dir>` points the server at an IGNIS checkout. Given explicitly, it must be one: the server
+exits 2 rather than falling back to the packaged snapshot, which would answer from the wrong corpus.
+Without the flag the working directory decides, and a directory that is not a checkout uses the
+snapshot packaged with the release.
 
 ## Exit codes
 

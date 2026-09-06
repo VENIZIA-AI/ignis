@@ -20,6 +20,9 @@ const DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
 // Sorts below every real date, so a window with no lower bound opens before the first entry.
 const OPEN_LOWER_BOUND = '';
 
+/** The lower bound of a window that starts at the first release: every recorded position is above it. */
+const OPEN_LOWER_ORDER = -1;
+
 /** One entry as the tool reports it - the store's record without the file name. */
 interface IChangesEntry {
   id: string;
@@ -44,6 +47,9 @@ interface IWindow {
   to: string;
   fromDate: string;
   toDate: string;
+  /** Commit positions of the two bounds; present only for a version window, and only when the table records them. */
+  fromOrder?: number;
+  toOrder?: number;
 }
 
 const invalidParams = (message: string): RpcError =>
@@ -114,6 +120,12 @@ const packageWindowOf = (opts: {
     throw unknownVersionError({ package: name, version: from, known: versions });
   }
 
+  const toOrder = opts.releases.releaseOrderOf({ package: name, version: to });
+  const fromOrder =
+    from === undefined
+      ? OPEN_LOWER_ORDER
+      : opts.releases.releaseOrderOf({ package: name, version: from });
+
   return {
     package: name,
     from: from ?? null,
@@ -123,6 +135,8 @@ const packageWindowOf = (opts: {
         ? OPEN_LOWER_BOUND
         : (opts.releases.releaseDateOf({ package: name, version: from }) ?? OPEN_LOWER_BOUND),
     toDate: toDate ?? OPEN_LOWER_BOUND,
+    fromOrder,
+    toOrder,
   };
 };
 
@@ -198,11 +212,22 @@ export const buildChangesTool = (opts: { releases: ReleaseStore }): IToolHandler
             to: input.to,
           });
 
-    const found = opts.releases.entriesBetween({
-      package: resolved.package ?? undefined,
-      fromDate: resolved.fromDate,
-      toDate: resolved.toDate,
-    });
+    // Commit order when the table records both bounds: two releases of one day share a date, and
+    // a date window between them is empty however the versions differ.
+    const found =
+      resolved.fromOrder !== undefined && resolved.toOrder !== undefined
+        ? opts.releases.entriesBetweenOrders({
+            package: resolved.package ?? undefined,
+            fromOrder: resolved.fromOrder,
+            toOrder: resolved.toOrder,
+            fromDate: resolved.fromDate,
+            toDate: resolved.toDate,
+          })
+        : opts.releases.entriesBetween({
+            package: resolved.package ?? undefined,
+            fromDate: resolved.fromDate,
+            toDate: resolved.toDate,
+          });
 
     return withinBudget({ window: resolved, entries: found.map(entryOf) });
   },

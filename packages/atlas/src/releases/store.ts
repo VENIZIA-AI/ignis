@@ -133,6 +133,38 @@ export class ReleaseStore extends BaseHelper {
     });
   }
 
+  /**
+   * The same window keyed by commit position instead of date, for two releases of one day: a date
+   * window between them is empty, and their commit order is the only thing that separates them.
+   * An entry with no recorded position falls back to its date against the bounds' dates.
+   */
+  entriesBetweenOrders(opts: {
+    package?: string;
+    fromOrder: number;
+    toOrder: number;
+    fromDate: string;
+    toDate: string;
+  }): IChangelogRecord[] {
+    const wanted = opts.package === undefined ? undefined : toPackageDirectory(opts.package);
+
+    return this.changelogs.filter(entry => {
+      const inside =
+        entry.order === undefined
+          ? entry.date > opts.fromDate && entry.date <= opts.toDate
+          : entry.order > opts.fromOrder && entry.order <= opts.toOrder;
+      if (!inside) {
+        return false;
+      }
+
+      return wanted === undefined || entry.packages.includes(wanted);
+    });
+  }
+
+  /** The recorded commit position of one release, or `undefined` when the table carries none. */
+  releaseOrderOf(opts: { package: string; version: string }): number | undefined {
+    return this.recordsOf(opts).find(record => record.version === opts.version)?.order;
+  }
+
   private recordsOf(opts: { package: string }): IReleaseRecord[] {
     return this.releases.get(toPackageDirectory(opts.package)) ?? [];
   }
