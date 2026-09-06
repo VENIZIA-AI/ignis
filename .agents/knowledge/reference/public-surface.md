@@ -3150,3 +3150,13 @@ tags: [reference, exports, api]
 - `WorkerApplication` class
 - `WorkerBffTransport` class
 
+## atlas
+
+### `@venizia/ignis-atlas` (5)
+
+- `AtlasConstants` class
+- `AtlasModes` class
+- `Corpora` class
+- `TAtlasMode` type
+- `TCorpus` type
+

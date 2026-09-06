@@ -22,6 +22,7 @@ const PACKAGES = [
   'connectors',
   'core-server',
   'core-worker',
+  'atlas',
 ];
 // The tooling keeps no dependency of its own; the compiler comes from a package that already has
 // it.
