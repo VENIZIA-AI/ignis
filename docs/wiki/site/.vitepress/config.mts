@@ -454,6 +454,10 @@ const config = defineConfig({
               collapsed: true,
               items: [
                 {
+                  text: 'Conditional Artifact Index Entries',
+                  link: '/changelogs/2026-09-06-conditional-artifact-index-entries',
+                },
+                {
                   text: 'configs.projectRoot',
                   link: '/changelogs/2026-09-06-configs-project-root',
                 },

@@ -1,3 +1,4 @@
+import type { TArtifactCondition } from '@/helpers/inversion/common/types';
 import type { TClass } from '@venizia/ignis-helpers/common';
 import type { BaseComponent } from '../../../components';
 import type { IDataSource } from '../../../datasources';
@@ -13,5 +14,12 @@ export interface IArtifactIndex {
   controllers?: ReadonlyArray<TClass<unknown>>;
 }
 
-/** One index, or any nesting of arrays of indexes - a library exports one, an application composes several. */
-export type TArtifactIndexInput = IArtifactIndex | TArtifactIndexInput[];
+/** An index (or nested indexes) registered only when `when` answers true - the run-mode gate: a worker keeps its controllers out of the container instead of mounting routes no security step guards. */
+export interface IConditionalArtifactIndex {
+  when: TArtifactCondition;
+  index: TArtifactIndexInput;
+}
+
+/** One index, a conditional entry, or any nesting of arrays of them - a library exports one, an application composes several. */
+export type TArtifactIndexInput =
+  IArtifactIndex | IConditionalArtifactIndex | TArtifactIndexInput[];

@@ -9,13 +9,54 @@ class Plain {}
 class AlsoPlain {}
 
 describe('ArtifactIndexHelper.flatten', () => {
-  test('one index stays one; arrays nested to any depth flatten in input order', () => {
+  const application = { runMode: 'worker' };
+
+  test('one index stays one; arrays nested to any depth flatten in input order', async () => {
     const first = { services: [Plain] };
     const second = { services: [AlsoPlain] };
     const third = { controllers: [Plain] };
 
-    expect(helper.flatten({ input: first })).toEqual([first]);
-    expect(helper.flatten({ input: [first, [second, [third]]] })).toEqual([first, second, third]);
+    expect(await helper.flatten({ input: first, application })).toEqual([first]);
+    expect(await helper.flatten({ input: [first, [second, [third]]], application })).toEqual([
+      first,
+      second,
+      third,
+    ]);
+  });
+
+  test('a conditional entry contributes its subtree when its when answers true and nothing when false', async () => {
+    const controllers = { controllers: [Plain] };
+    const services = { services: [AlsoPlain] };
+
+    const kept = await helper.flatten({
+      input: [{ when: () => true, index: controllers }, services],
+      application,
+    });
+    expect(kept).toEqual([controllers, services]);
+
+    const dropped = await helper.flatten({
+      input: [{ when: () => false, index: [controllers, [controllers]] }, services],
+      application,
+    });
+    expect(dropped).toEqual([services]);
+  });
+
+  test('when receives the application and may be async; the gate reads run mode from it', async () => {
+    const controllers = { controllers: [Plain] };
+    const seen: unknown[] = [];
+    const gate = async (opts: { application: unknown }) => {
+      seen.push(opts.application);
+      return Reflect.get(Object(opts.application), 'runMode') !== 'worker';
+    };
+
+    const resolved = await helper.resolve({
+      input: [{ when: gate, index: controllers }, { services: [AlsoPlain] }],
+      application,
+    });
+
+    expect(seen).toEqual([application]);
+    expect(resolved.controllers).toEqual([]);
+    expect(resolved.services).toEqual([AlsoPlain]);
   });
 });
 

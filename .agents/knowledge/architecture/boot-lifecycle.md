@@ -39,7 +39,7 @@ A hand-written `this.controller(Ctor)` therefore already honours `@controller({ 
 
 ## What `registerArtifacts` does
 
-1. Flattens `TArtifactIndexInput` (an index, or arrays nested to any depth) into a list.
+1. Flattens `TArtifactIndexInput` (an index, a `{ when, index }` entry, or arrays nested to any depth) into a list; a conditional entry whose `when({ application })` answers false contributes nothing, nested arrays included. This is where a run-mode gate belongs - `registerArtifacts` runs before `preConfigure`, so a gate written there is too late and a worker would mount unauthenticated routes.
 2. Per kind, in dependency order `dataSources -> components -> repositories -> services -> controllers`,
    collects the classes across every index.
 3. Evaluates every class's `when({ application })` concurrently (`ArtifactIndexHelper`,

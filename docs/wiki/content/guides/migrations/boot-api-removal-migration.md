@@ -58,6 +58,24 @@ Each application that still lists its artifacts by hand follows the [bootstrappi
 
 An application that keeps registering by hand in `preConfigure()` still works. Only the boot code below has to go.
 
+## Step 2b - gate the index by run mode
+
+`registerArtifacts` runs at boot step 5, before `preConfigure()`. A gate that used to skip `configureControllers()` or `configureSecurity()` in `preConfigure()` now runs too late: the index has already bound the controllers, and a worker boot mounts them with no authentication strategy. A migration run starts every component the same way.
+
+Put the gate in the config with a conditional entry. Its `when` may ignore the application and read the environment:
+
+```typescript
+const runMode = process.env.RUN_MODE ?? 'server';
+
+artifacts: [
+  { dataSources: GeneratedArtifacts.dataSources, repositories: GeneratedArtifacts.repositories },
+  { when: () => runMode !== 'migrate', index: { services: GeneratedArtifacts.services, components: GeneratedArtifacts.components } },
+  { when: () => runMode === 'server', index: { controllers: GeneratedArtifacts.controllers } },
+],
+```
+
+A false `when` drops the whole subtree, so nothing behind it is bound or verified. Check the result the way Step 4 does: a worker boot logs zero routes.
+
 ## Step 3 - delete the boot code
 
 ```bash

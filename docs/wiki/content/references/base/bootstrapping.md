@@ -177,10 +177,15 @@ interface IArtifactIndex {
   controllers?: ReadonlyArray<TClass<unknown>>;
 }
 
-type TArtifactIndexInput = IArtifactIndex | TArtifactIndexInput[];
+interface IConditionalArtifactIndex {
+  when: TArtifactCondition; // ({ application }) => boolean | Promise<boolean>
+  index: TArtifactIndexInput;
+}
+
+type TArtifactIndexInput = IArtifactIndex | IConditionalArtifactIndex | TArtifactIndexInput[];
 ```
 
-`IApplicationConfigs.artifacts?: TArtifactIndexInput` - one index, or arrays of indexes nested to any depth. The field names are the const class `ArtifactIndexFields` (`DATA_SOURCES`, `COMPONENTS`, `REPOSITORIES`, `SERVICES`, `CONTROLLERS`, with `SCHEME_SET` and `isValid`); `registerArtifacts` reads the index through it, never through a string literal.
+`IApplicationConfigs.artifacts?: TArtifactIndexInput` - one index, a conditional entry, or arrays of them nested to any depth. A conditional entry registers its `index` only when `when` answers true; a false answer drops the whole subtree. Use it for the run-mode gate: `{ when: () => runMode === 'server', index: { controllers: GeneratedArtifacts.controllers } }` keeps a worker's routes out of the container. The field names are the const class `ArtifactIndexFields` (`DATA_SOURCES`, `COMPONENTS`, `REPOSITORIES`, `SERVICES`, `CONTROLLERS`, with `SCHEME_SET` and `isValid`); `registerArtifacts` reads the index through it, never through a string literal.
 
 ```typescript
 artifacts: [InventoryArtifacts, GeneratedArtifacts, { components: [HealthCheckComponent] }],
