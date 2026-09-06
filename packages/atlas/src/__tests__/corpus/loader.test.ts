@@ -57,6 +57,17 @@ describe('CorpusLoader', () => {
     expect(documents.some(document => document.path === 'guide.md')).toBe(true);
   });
 
+  test('excludes an exact file match, not only a directory prefix', () => {
+    const documents = CorpusLoader.getInstance().load({
+      roots: [
+        { corpus: Corpora.WIKI, directory: join(FIXTURES_ROOT, 'wiki'), exclude: ['guide.md'] },
+      ],
+    });
+
+    expect(documents.some(document => document.path === 'guide.md')).toBe(false);
+    expect(documents.some(document => document.path === 'excluded/skip-me.md')).toBe(true);
+  });
+
   test('skips a document with invalid YAML frontmatter, records it, and warns through the logger', () => {
     const loader = CorpusLoader.getInstance();
     const warnSpy = spyOn(console, 'warn').mockImplementation(() => undefined);

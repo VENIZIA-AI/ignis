@@ -1,0 +1,39 @@
+[
+  {
+    "query": "how do I register artifacts",
+    "expectAnyOf": [
+      "wiki:guides/core-concepts/application/bootstrapping.md",
+      "okf:architecture/boot-lifecycle.md"
+    ]
+  },
+  {
+    "query": "bootChecks",
+    "expectAnyOf": ["wiki:references/base/bootstrapping.md", "changelog:2026-09-05-boot-checks"]
+  },
+  {
+    "query": "purity",
+    "expectAnyOf": ["okf:process/testing.md", "changelog:2026-08-13-browser-pure-kernel"]
+  },
+  {
+    "query": "repository transaction",
+    "expectAnyOf": [
+      "okf:architecture/transactions.md",
+      "wiki:guides/core-concepts/persistent/transactions.md"
+    ]
+  },
+  {
+    "query": "verifyBindings",
+    "expectAnyOf": ["wiki:references/base/bootstrapping.md", "changelog:2026-09-05-boot-checks"]
+  },
+  {
+    "query": "release playbook",
+    "expectAnyOf": ["okf:process/release-publish.md"]
+  },
+  {
+    "query": "respond payload range",
+    "expectAnyOf": [
+      "wiki:references/base/controllers.md",
+      "changelog:2026-09-05-list-response-contract"
+    ]
+  }
+]

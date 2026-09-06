@@ -161,10 +161,14 @@ const dedupe = (values: string[]): string[] => {
   return result;
 };
 
-/** Every `[A-Za-z_][A-Za-z0-9_.]*` token in `text`, split on `.` into its dotted segments. */
+/** A whitespace-delimited word that is a URL, not an identifier: `://` anywhere, or a leading `http`. */
+const isUrlShaped = (word: string): boolean => word.includes('://') || word.startsWith('http');
+
+/** Every `[A-Za-z_][A-Za-z0-9_.]*` token in `text`, split on `.` into its dotted segments; a URL-shaped word contributes nothing. */
 const identifiersOf = (text: string): string[] => {
   const tokens: string[] = [];
-  const matches = text.match(IDENTIFIER_PATTERN) ?? [];
+  const words = text.split(/\s+/).filter(word => !isUrlShaped(word));
+  const matches = words.join(' ').match(IDENTIFIER_PATTERN) ?? [];
   for (const match of matches) {
     for (const segment of match.split('.')) {
       if (segment) {
@@ -178,14 +182,23 @@ const identifiersOf = (text: string): string[] => {
 /**
  * Identifiers from a chunk's code spans and fenced code: raw dotted segments first, then their
  * camelCase-split, lower-cased pieces (`bootChecks` also indexes `boot checks`), de-duplicated.
+ * A fence's own opening line (the delimiter plus its info string, e.g. `` ```typescript ``) is
+ * skipped - the language tag is not a code identifier.
  */
 const symbolsOf = (opts: { body: string }): string => {
   const fence = new FenceTracker();
   const rawTokens: string[] = [];
+  let wasFenced = false;
 
   for (const line of opts.body.split('\n')) {
-    if (fence.consume(line)) {
-      rawTokens.push(...identifiersOf(line));
+    const inFence = fence.consume(line);
+    const isFenceOpenLine = inFence && !wasFenced;
+    wasFenced = inFence;
+
+    if (inFence) {
+      if (!isFenceOpenLine) {
+        rawTokens.push(...identifiersOf(line));
+      }
       continue;
     }
 

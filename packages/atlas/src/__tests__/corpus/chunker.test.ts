@@ -130,6 +130,48 @@ describe('Chunker - symbols from code spans', () => {
     expect(chunk.symbols).toContain('getBaz');
     expect(chunk.symbols).not.toContain('sentence');
   });
+
+  test('a URL-shaped code span and a fence info string contribute nothing to symbols', () => {
+    const document = buildDocument({
+      body: [
+        '## Links',
+        '',
+        'See `https://github.com/org/repo` for the source.',
+        '',
+        '```typescript',
+        '```',
+      ].join('\n'),
+    });
+
+    const [chunk] = Chunker.getInstance().chunk({ document });
+    expect(chunk.symbols).toBe('');
+  });
+});
+
+describe('Chunker - tilde fences', () => {
+  test('a tilde fence suppresses heading detection just like a backtick fence', () => {
+    const document = buildDocument({
+      body: ['## Real heading', '', '~~~text', '## not a real heading', '~~~'].join('\n'),
+    });
+
+    const chunks = Chunker.getInstance().chunk({ document });
+    expect(chunks).toHaveLength(1);
+    expect(chunks[0].title).toBe('Real heading');
+    expect(chunks[0].body).toContain('## not a real heading');
+    expect(chunks.some(chunk => chunk.title === 'not a real heading')).toBe(false);
+  });
+
+  test('identifiers inside a tilde-fenced block are indexed the same as inside a backtick fence', () => {
+    const document = buildDocument({
+      body: ['## Fenced', '', '~~~ts', 'const fooBar = 1;', '~~~'].join('\n'),
+    });
+
+    const [chunk] = Chunker.getInstance().chunk({ document });
+    expect(chunk.symbols).toContain('fooBar');
+    expect(chunk.symbols).toContain('foo');
+    expect(chunk.symbols).toContain('bar');
+    expect(chunk.symbols).not.toContain('ts');
+  });
 });
 
 describe('Chunker - citation ids per corpus', () => {
