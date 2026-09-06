@@ -8,7 +8,7 @@ tags: [reference, helpers, catalog]
 
 > Generated from source - do not edit; run `make okf-gen`. Package: [helpers](/packages/helpers.md).
 
-**43 helper classes across 17 modules, 7 utilities.**
+**43 helper classes across 17 modules, 8 utilities.**
 
 ## Modules
 
@@ -34,4 +34,4 @@ tags: [reference, helpers, catalog]
 
 ## Utilities
 
-`date` · `module` · `parse` · `performance` · `promise` · `request` · `sleep`
+`date` · `module` · `parse` · `performance` · `project-root` · `promise` · `request` · `sleep`

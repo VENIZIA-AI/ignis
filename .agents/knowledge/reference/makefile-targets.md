@@ -8,7 +8,7 @@ tags: [reference, make, build]
 
 > Generated from source - do not edit; run `make okf-gen`. Playbook: [build system](/process/build-system.md).
 
-**77 targets.**
+**81 targets.**
 
 | Target | Depends on | Description |
 |---|---|---|
@@ -23,13 +23,17 @@ tags: [reference, make, build]
 | `make split-report` | - | - |
 | `make surface-gen` | - | - |
 | `make surface-check` | - | - |
+| `make symbols-gen` | - | - |
+| `make symbols-check` | - | - |
+| `make releases-gen` | - | - |
+| `make releases-check` | - | - |
 | `make wiki-links-check` | - | - |
 | `make agent-setup` | - | - |
 | `make catalog-check` | - | - |
 | `make release-plan` | - | - |
 | `make release` | - | - |
 | `make build` | `build-all` | - |
-| `make build-all` | `core core-worker boot atlas docs surface-check wiki-links-check` | All packages rebuilt successfully. |
+| `make build-all` | `core core-worker boot atlas docs surface-check symbols-check releases-check wiki-links-check` | All packages rebuilt successfully. |
 | `make dev-configs` | - | Rebuilding @venizia/dev-configs |
 | `make inversion` | `dev-configs` | Rebuilding @venizia/ignis-inversion |
 | `make filter` | `inversion` | Rebuilding @venizia/ignis-filter |

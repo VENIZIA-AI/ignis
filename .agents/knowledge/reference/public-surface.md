@@ -523,7 +523,7 @@ tags: [reference, exports, api]
 - `ValueOptionalExcept` type
 - `ValueOrPromise` type
 
-### `@venizia/ignis-helpers/core` (85)
+### `@venizia/ignis-helpers/core` (86)
 
 - `AbstractNetworkFetchableHelper` class
 - `AbstractPoolHelper` class
@@ -575,6 +575,7 @@ tags: [reference, exports, api]
 - `MessageCode` class
 - `MIN_UID_ALPHABET_SIZE` const
 - `OpaqueUidHelper` class
+- `ProjectRootRegistry` class
 - `RequestIdGenerator` class
 - `RetryBackoffStrategies` class
 - `RetryHelper` class
@@ -3019,7 +3020,7 @@ tags: [reference, exports, api]
 - `IConnectRpcModule` interface
 - `IGrpcComponentConfig` interface
 
-### `@venizia/ignis/static-asset` (19)
+### `@venizia/ignis/static-asset` (21)
 
 - `AssetControllerFactory` class
 - `BaseMetaLinkModel` class
@@ -3030,11 +3031,13 @@ tags: [reference, exports, api]
 - `StaticAssetErrors` const
 - `StaticAssetStorageTypes` class
 - `TBucketParams` type
+- `TDefineExtraRoutes` type
 - `TListQuery` type
 - `TMetaLink` type
 - `TMetaLinkConfig` type
 - `TMetaLinkSchema` type
 - `TObjectParams` type
+- `TResolveObjectName` type
 - `TStaticAssetExtraOptions` type
 - `TStaticAssetsComponentOptions` type
 - `TStaticAssetStorageType` type
@@ -3140,7 +3143,7 @@ tags: [reference, exports, api]
 
 ## core-worker
 
-### `@venizia/ignis-worker` (17)
+### `@venizia/ignis-worker` (18)
 
 - `BFF_SYNTHETIC_ORIGIN` const
 - `BffEnvelope` class
@@ -3153,6 +3156,7 @@ tags: [reference, exports, api]
 - `InProcessBffTransport` class
 - `installBffFetch` const
 - `ISharedBffTransportOptions` interface
+- `IWorkerApplicationConfigs` interface
 - `IWorkerMessageScope` interface
 - `SharedBffTransport` class
 - `TBffRole` type
