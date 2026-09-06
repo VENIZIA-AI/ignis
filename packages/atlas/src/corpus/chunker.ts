@@ -45,6 +45,11 @@ class FenceTracker {
     }
     return true;
   }
+
+  /** Whether a fence opened earlier has not yet closed, as of the last `consume()` call - unlike `consume()`'s own return value, this reads `false` again on the very line that closes it. */
+  isOpen(): boolean {
+    return this.length !== 0;
+  }
 }
 
 /** GitHub-style anchor slug: lower-case, strip punctuation, spaces become hyphens. */
@@ -134,27 +139,42 @@ const anchorsOf = (opts: { sections: IRawSection[] }): string[] => {
   });
 };
 
-/** Packs paragraphs (blank-line separated) into parts no larger than 6000 chars, never splitting one. */
-const splitOversized = (opts: { body: string }): string[] => {
+/** `splitOversized`'s result: the packed parts, plus whether the body ended with a fence still open. */
+interface ISplitResult {
+  parts: string[];
+  endedInsideFence: boolean;
+}
+
+/**
+ * Packs paragraphs (blank-line separated) into parts no larger than 6000 chars, never splitting one -
+ * and never cutting while a fence opened earlier in the body has not yet closed, even past the
+ * limit. `endedInsideFence` is true when the body's last fence never closed - a source bug.
+ */
+const splitOversized = (opts: { body: string }): ISplitResult => {
   const paragraphs = opts.body.split(/\n{2,}/);
+  const fence = new FenceTracker();
   const parts: string[] = [];
   let current = '';
 
   for (const paragraph of paragraphs) {
     const candidate = current ? `${current}\n\n${paragraph}` : paragraph;
-    if (current && candidate.length > OVERSIZED_CHUNK_MAX_CHARS) {
+    if (current && !fence.isOpen() && candidate.length > OVERSIZED_CHUNK_MAX_CHARS) {
       parts.push(current);
       current = paragraph;
-      continue;
+    } else {
+      current = candidate;
     }
-    current = candidate;
+
+    for (const line of paragraph.split('\n')) {
+      fence.consume(line);
+    }
   }
 
   if (current) {
     parts.push(current);
   }
 
-  return parts.length > 0 ? parts : [opts.body];
+  return { parts: parts.length > 0 ? parts : [opts.body], endedInsideFence: fence.isOpen() };
 };
 
 const dedupe = (values: string[]): string[] => {
@@ -311,11 +331,18 @@ export class Chunker extends BaseHelper {
     const chunks: IChunk[] = [];
     sections.forEach((section, index) => {
       const baseAnchor = anchors[index];
-      const parts = splitOversized({ body: section.body });
+      const { parts, endedInsideFence } = splitOversized({ body: section.body });
       if (parts.length > 1) {
         this.logger
           .for('chunk')
           .debug(`split an oversized section | anchor: ${baseAnchor} | parts: ${parts.length}`);
+      }
+      if (endedInsideFence) {
+        this.logger
+          .for('chunk')
+          .warn(
+            `document ended inside an open fence | corpus: ${document.corpus} | path: ${document.path}`,
+          );
       }
 
       parts.forEach((body, partIndex) => {

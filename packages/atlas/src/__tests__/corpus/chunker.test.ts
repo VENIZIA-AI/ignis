@@ -6,7 +6,7 @@ import { Authorities } from '@/search/common';
 import { ChunkStore } from '@/search';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { describe, expect, test } from 'bun:test';
+import { describe, expect, spyOn, test } from 'bun:test';
 
 // __dirname, not import.meta: this package emits CommonJS.
 const FIXTURES_ROOT = join(__dirname, '../fixtures/corpus');
@@ -416,6 +416,49 @@ describe('Chunker - a tiny H2 immediately followed by H3s (C1)', () => {
       expect(hits.length).toBeGreaterThan(0);
     } finally {
       store.close();
+    }
+  });
+});
+
+describe('Chunker - splitOversized never breaks inside a fence (I2)', () => {
+  test('a fenced block with blank lines inside stays in one chunk past the 6000-character limit', () => {
+    const codeLines = Array.from({ length: 220 }, (_, index) =>
+      index % 5 === 4
+        ? ''
+        : `const marker_${index} = ${index}; // padding so this fenced block clears six thousand characters total on its own.`,
+    );
+    const body = ['## Big fenced section', '', '```text', ...codeLines, '```'].join('\n');
+
+    const chunks = Chunker.getInstance().chunk({ document: buildDocument({ body }) });
+
+    expect(chunks).toHaveLength(1);
+    expect(chunks[0].body.length).toBeGreaterThan(6000);
+    expect(chunks[0].body.startsWith('```text')).toBe(true);
+    expect(chunks[0].body.trim().endsWith('```')).toBe(true);
+    for (const index of [0, 100, 218]) {
+      expect(chunks[0].body).toContain(`marker_${index}`);
+    }
+  });
+
+  test('a document ending inside an open fence gets one warning naming the file', () => {
+    const warnSpy = spyOn(console, 'warn').mockImplementation(() => undefined);
+    const body = [
+      '## Broken fence section',
+      '',
+      '```text',
+      'Some code that never closes before the document ends, which is exactly the kind of source ' +
+        'bug this warning exists to surface for free instead of silently swallowing every heading ' +
+        'that would otherwise follow it in the same file.',
+    ].join('\n');
+
+    try {
+      Chunker.getInstance().chunk({ document: buildDocument({ path: 'broken-fence.md', body }) });
+
+      expect(warnSpy).toHaveBeenCalled();
+      const [message] = warnSpy.mock.calls[warnSpy.mock.calls.length - 1];
+      expect(String(message)).toContain('broken-fence.md');
+    } finally {
+      warnSpy.mockRestore();
     }
   });
 });
