@@ -58,6 +58,7 @@ Every id names its source, so an answer is checkable.
 | `wiki` | `wiki:<path>#<anchor>` | `wiki:guides/core-concepts/application/bootstrapping.md#bootchecks` |
 | `changelog` | `changelog:<date>-<slug>#<anchor>` | `changelog:2026-09-05-list-response-contract#details` |
 | `knowledge` | `okf:<path>#<anchor>` | `okf:packages/boot.md#layout` |
+| any | drop `#<anchor>` | `wiki:guides/core-concepts/application/bootstrapping.md` reads the whole document |
 
 ## See also
 

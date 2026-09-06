@@ -41,9 +41,10 @@ const SELECT_BY_ID_SQL = `
   FROM chunks WHERE id = ?
 `;
 
+// ORDER BY rowid: document order, the same order chunks() produced and add() inserted them in.
 const SELECT_BY_DOCUMENT_SQL = `
   SELECT id, corpus, document, anchor, heading_path AS headingPath, title, body, symbols, metadata, authority
-  FROM chunks WHERE document = ?
+  FROM chunks WHERE document = ? ORDER BY rowid
 `;
 
 type TInsertParams = [

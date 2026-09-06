@@ -91,6 +91,59 @@ describe('get tool', () => {
   });
 });
 
+describe('get tool: a document id with no anchor reads the whole document (I4)', () => {
+  const store = buildFixtureStore();
+  const DOCUMENT_ID = 'wiki:guide.md';
+
+  test('joins every section in document order, each preceded by its own heading', async () => {
+    const chunks = store.list({ document: 'guide.md' });
+    expect(chunks.length).toBeGreaterThan(1);
+
+    const reply = await callGet({ store, args: { id: DOCUMENT_ID, maxChars: 50000 } });
+    const result = JSON.parse(reply.result?.content[0]?.text ?? '{}');
+
+    expect(result.id).toBe(DOCUMENT_ID);
+    expect(result.next).toBeUndefined();
+    for (const chunk of chunks) {
+      expect(result.body).toContain(chunk.body);
+      if (chunk.anchor !== '') {
+        expect(result.body).toContain(chunk.title);
+      }
+    }
+  });
+
+  test('pages the joined body under the same maxChars and cursor rules as a single chunk', async () => {
+    const whole = await callGet({ store, args: { id: DOCUMENT_ID, maxChars: 50000 } });
+    const wholeResult = JSON.parse(whole.result?.content[0]?.text ?? '{}');
+    expect(wholeResult.body.length).toBeGreaterThan(1000);
+
+    const first = await callGet({ store, args: { id: DOCUMENT_ID, maxChars: 500 } });
+    const firstResult = JSON.parse(first.result?.content[0]?.text ?? '{}');
+    expect(firstResult.body.length).toBe(500);
+    expect(typeof firstResult.next).toBe('string');
+
+    const second = await callGet({
+      store,
+      args: { id: DOCUMENT_ID, maxChars: 500, cursor: firstResult.next },
+    });
+    const secondResult = JSON.parse(second.result?.content[0]?.text ?? '{}');
+
+    expect(firstResult.body + secondResult.body).toBe(
+      wholeResult.body.slice(0, firstResult.body.length + secondResult.body.length),
+    );
+  });
+
+  test('an unknown document id is -32602 pointing back at search, same as an unknown chunk id', async () => {
+    const reply = await callGet({ store, args: { id: 'wiki:no-such-document.md' } });
+    expect(reply.error).toEqual({ code: -32602, message: 'unknown id; ids come from search' });
+  });
+
+  test('an id with an unknown corpus prefix is -32602 pointing back at search', async () => {
+    const reply = await callGet({ store, args: { id: 'bogus:guide.md' } });
+    expect(reply.error).toEqual({ code: -32602, message: 'unknown id; ids come from search' });
+  });
+});
+
 describe('get tool: code-point paging and cursor validation', () => {
   const MULTIBYTE_ID = 'wiki:multibyte.md#body';
 
