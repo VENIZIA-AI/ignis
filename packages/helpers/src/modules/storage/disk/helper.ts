@@ -2,10 +2,18 @@ import { getError } from '@/modules/error';
 import { ErrorPrettier } from '@/modules/logger';
 import fs from 'node:fs';
 import fsp from 'node:fs/promises';
+import type { Stats } from 'node:fs';
 import path from 'node:path';
 import { Readable } from 'node:stream';
 import { BaseStorageHelper } from '../base';
-import { IBucketInfo, IFileStat, IObjectInfo, IStorageHelperOptions, IUploadFile } from '../common';
+import {
+  IBucketInfo,
+  IFileStat,
+  IObjectInfo,
+  IStorageHelperOptions,
+  IUploadFile,
+  StorageErrors,
+} from '../common';
 
 export interface IDiskHelperOptions extends IStorageHelperOptions {
   basePath: string; // Base directory for storage
@@ -34,37 +42,67 @@ export class DiskHelper extends BaseStorageHelper {
     return path.join(this.getBucketPath(bucketName), objectName);
   }
 
-  private async exists(pathToCheck: string): Promise<boolean> {
+  /**
+   * Every read and delete resolves through here. Name validation alone is not enough: it is a rule about
+   * the input, and containment is a fact about the resolved path, so both are checked - the second one
+   * is what survives a rule we get wrong.
+   */
+  private resolveObjectPath(opts: { bucket: string; name: string }): string {
+    const { bucket, name } = opts;
+
+    if (!this.isValidName({ name: bucket })) {
+      throw getError({ message: `[storage] Invalid bucket name | bucket: ${bucket}` });
+    }
+
+    if (!this.isValidPath({ path: name, maxDepth: Number.MAX_SAFE_INTEGER })) {
+      throw getError({ message: `[storage] Invalid object name | name: ${name}` });
+    }
+
+    const bucketPath = this.getBucketPath(bucket);
+    const objectPath = path.resolve(bucketPath, name);
+
+    if (objectPath !== bucketPath && !objectPath.startsWith(`${bucketPath}${path.sep}`)) {
+      throw getError({ message: `[storage] Invalid object name | name: ${name}` });
+    }
+
+    return objectPath;
+  }
+
+  /**
+   * One syscall that answers existence AND type. `null` means "not there"; anything other than ENOENT
+   * is logged, because EACCES or EIO mean the path may well exist and simply cannot be read.
+   */
+  private async statOrNull(opts: { target: string }): Promise<Stats | null> {
+    const { target } = opts;
+
     try {
-      await fsp.access(pathToCheck);
-      return true;
+      return await fsp.stat(target);
     } catch (error) {
-      // ENOENT is the answer, not a failure; EACCES/EIO mean the path may well exist and is unreadable.
       if ((error as NodeJS.ErrnoException)?.code !== 'ENOENT') {
         this.logger.warn(
-          '[exists] Cannot determine existence, reporting false | path: %s | %s',
-          pathToCheck,
+          '[statOrNull] Cannot determine existence, reporting missing | path: %s | %s',
+          target,
           ErrorPrettier.format({ error }),
         );
       }
 
-      return false;
+      return null;
     }
   }
 
+  private async exists(pathToCheck: string): Promise<boolean> {
+    return (await this.statOrNull({ target: pathToCheck })) !== null;
+  }
+
+  /** One `stat` answers both "is it there" and "is it a directory"; `access` first only doubled the syscalls. */
   async isBucketExists(opts: { name: string }): Promise<boolean> {
     const { name } = opts;
-    if (!this.isValidName(name)) {
+    if (!this.isValidName({ name })) {
       return false;
     }
 
-    const bucketPath = this.getBucketPath(name);
-    if (!(await this.exists(bucketPath))) {
-      return false;
-    }
-
-    const stat = await fsp.stat(bucketPath);
-    return stat.isDirectory();
+    const stat = await this.statOrNull({ target: this.getBucketPath(name) });
+    return stat?.isDirectory() ?? false;
   }
 
   async getBuckets(): Promise<IBucketInfo[]> {
@@ -91,23 +129,22 @@ export class DiskHelper extends BaseStorageHelper {
 
   async getBucket(opts: { name: string }): Promise<IBucketInfo | null> {
     const { name } = opts;
-    const isExists = await this.isBucketExists(opts);
-    if (!isExists) {
+    if (!this.isValidName({ name })) {
       return null;
     }
 
-    const bucketPath = this.getBucketPath(name);
-    const stat = await fsp.stat(bucketPath);
+    const stat = await this.statOrNull({ target: this.getBucketPath(name) });
 
-    return {
-      name,
-      creationDate: stat.birthtime,
-    };
+    if (!stat?.isDirectory()) {
+      return null;
+    }
+
+    return { name, creationDate: stat.birthtime };
   }
 
   async createBucket(opts: { name: string }): Promise<IBucketInfo | null> {
     const { name } = opts;
-    if (!this.isValidName(name)) {
+    if (!this.isValidName({ name })) {
       throw getError({
         message: '[createBucket] Invalid name to create bucket!',
       });
@@ -127,7 +164,7 @@ export class DiskHelper extends BaseStorageHelper {
 
   async removeBucket(opts: { name: string }): Promise<boolean> {
     const { name } = opts;
-    if (!this.isValidName(name)) {
+    if (!this.isValidName({ name })) {
       throw getError({
         message: '[removeBucket] Invalid name to remove bucket!',
       });
@@ -164,68 +201,93 @@ export class DiskHelper extends BaseStorageHelper {
     const { bucket, normalizeName, file } = opts;
 
     const objectPath = this.getObjectPath(bucket, normalizeName);
-    const objectDir = path.dirname(objectPath);
 
-    if (!(await this.exists(objectDir))) {
-      await fsp.mkdir(objectDir, { recursive: true });
-    }
-
+    // `recursive` already succeeds on an existing directory, so an existence probe first is a wasted syscall per file.
+    await fsp.mkdir(path.dirname(objectPath), { recursive: true });
     await fsp.writeFile(objectPath, file.buffer);
   }
 
   async getFile(opts: { bucket: string; name: string; options?: any }): Promise<Readable> {
     const { bucket, name } = opts;
-    const objectPath = this.getObjectPath(bucket, name);
+    const objectPath = this.resolveObjectPath({ bucket, name });
 
     if (!(await this.exists(objectPath))) {
       throw getError({
-        message: `[getFile] File not found | bucket: ${bucket} | name: ${name}`,
+        error: StorageErrors.OBJECT_NOT_FOUND,
+        message: `[getFile] Object not found | bucket: ${bucket} | name: ${name}`,
       });
     }
 
     return fs.createReadStream(objectPath);
   }
 
-  async getStat(opts: { bucket: string; name: string }): Promise<IFileStat> {
-    const { bucket, name } = opts;
-    const objectPath = this.getObjectPath(bucket, name);
+  /** `createReadStream` seeks natively, so a range never reads the bytes before it. */
+  override async getFileStream(opts: {
+    bucket: string;
+    name: string;
+    range?: { start: number; end?: number };
+  }): Promise<ReadableStream<Uint8Array>> {
+    const { bucket, name, range } = opts;
+    const objectPath = this.resolveObjectPath({ bucket, name });
 
     if (!(await this.exists(objectPath))) {
       throw getError({
-        message: `[getStat] File not found | bucket: ${bucket} | name: ${name}`,
+        error: StorageErrors.OBJECT_NOT_FOUND,
+        message: `[getFileStream] Object not found | bucket: ${bucket} | name: ${name}`,
       });
     }
 
-    const stat = await fsp.stat(objectPath);
+    const source = fs.createReadStream(
+      objectPath,
+      range ? { start: range.start, end: range.end } : {},
+    );
+
+    return Readable.toWeb(source) as ReadableStream<Uint8Array>;
+  }
+
+  async getStat(opts: { bucket: string; name: string }): Promise<IFileStat> {
+    const { bucket, name } = opts;
+    const objectPath = this.resolveObjectPath({ bucket, name });
+    const stat = await this.statOrNull({ target: objectPath });
+
+    if (!stat) {
+      throw getError({
+        error: StorageErrors.OBJECT_NOT_FOUND,
+        message: `[getStat] Object not found | bucket: ${bucket} | name: ${name}`,
+      });
+    }
 
     return {
       size: stat.size,
       lastModified: stat.mtime,
       metadata: {
-        mimetype: this.getMimeType(name),
+        mimetype: this.getMimeType({ filename: name }),
       },
     };
   }
 
   async removeObject(opts: { bucket: string; name: string }): Promise<void> {
     const { bucket, name } = opts;
-    const objectPath = this.getObjectPath(bucket, name);
+    const objectPath = this.resolveObjectPath({ bucket, name });
 
     if (!(await this.exists(objectPath))) {
       throw getError({
-        message: `[removeObject] File not found | bucket: ${bucket} | name: ${name}`,
+        error: StorageErrors.OBJECT_NOT_FOUND,
+        message: `[removeObject] Object not found | bucket: ${bucket} | name: ${name}`,
       });
     }
 
     await fsp.unlink(objectPath);
   }
 
+  // Same shape as every other backend: bounded concurrency, and one failure stops the batch there.
   async removeObjects(opts: { bucket: string; names: string[] }): Promise<void> {
     const { bucket, names } = opts;
 
-    for (const name of names) {
-      await this.removeObject({ bucket, name });
-    }
+    await this.mapWithConcurrency({
+      items: names,
+      task: ({ item: name }) => this.removeObject({ bucket, name }),
+    });
   }
 
   async listObjects(opts: {
@@ -235,8 +297,18 @@ export class DiskHelper extends BaseStorageHelper {
     maxKeys?: number;
   }): Promise<IObjectInfo[]> {
     const { bucket, prefix = '', useRecursive = false, maxKeys } = opts;
-    const bucketPath = this.getBucketPath(bucket);
 
+    if (!this.isValidName({ name: bucket })) {
+      throw getError({ message: `[listObjects] Invalid bucket name | bucket: ${bucket}` });
+    }
+
+    // `maxKeys: 0` means zero, not unlimited - a truthiness check silently turned it into "no limit".
+    const limit = maxKeys ?? Number.POSITIVE_INFINITY;
+    if (limit <= 0) {
+      return [];
+    }
+
+    const bucketPath = this.getBucketPath(bucket);
     if (!(await this.exists(bucketPath))) {
       return [];
     }
@@ -244,41 +316,39 @@ export class DiskHelper extends BaseStorageHelper {
     const objects: IObjectInfo[] = [];
 
     const scanDirectory = async (dirPath: string, currentPrefix: string = '') => {
-      if (maxKeys && objects.length >= maxKeys) {
+      if (objects.length >= limit) {
         return;
       }
 
       const entries = await fsp.readdir(dirPath, { withFileTypes: true });
 
       for (const entry of entries) {
+        if (objects.length >= limit) {
+          return;
+        }
+
         const fullName = currentPrefix ? `${currentPrefix}/${entry.name}` : entry.name;
         const fullPath = path.join(dirPath, entry.name);
-        const isDirectory = entry.isDirectory();
 
-        if (isDirectory && useRecursive) {
-          await scanDirectory(fullPath, fullName);
+        if (entry.isDirectory()) {
+          // A prefix that cannot match anything below this directory makes descending pointless.
+          const canMatch = !prefix || prefix.startsWith(fullName) || fullName.startsWith(prefix);
+          if (useRecursive && canMatch) {
+            await scanDirectory(fullPath, fullName);
+          }
           continue;
         }
 
-        if (isDirectory || !entry.isFile()) {
+        if (!entry.isFile() || (prefix && !fullName.startsWith(prefix))) {
           continue;
         }
 
-        if (prefix && !fullName.startsWith(prefix)) {
+        const stat = await this.statOrNull({ target: fullPath });
+        if (!stat) {
           continue;
         }
 
-        const stat = await fsp.stat(fullPath);
-        objects.push({
-          name: fullName,
-          size: stat.size,
-          lastModified: stat.mtime,
-          etag: undefined,
-        });
-
-        if (maxKeys && objects.length >= maxKeys) {
-          break;
-        }
+        objects.push({ name: fullName, size: stat.size, lastModified: stat.mtime });
       }
     };
 

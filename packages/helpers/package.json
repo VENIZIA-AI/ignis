@@ -1,7 +1,7 @@
 {
   "name": "@venizia/ignis-helpers",
   "version": "0.2.0-16",
-  "description": "Production-ready TypeScript utility library: pluggable logging (winston or pino behind one ILogger contract), Redis single/cluster/sentinel with pub/sub, BullMQ/MQTT/Kafka message queues, MinIO/Disk/Bun-S3 object storage, AES-256/RSA/ECDH cryptography, Snowflake UID generation, cron scheduling, Socket.IO/WebSocket, TCP/TLS/UDP networking, HTTP clients, secrets/Vault, worker thread pools, and environment management. Sub-path imports isolate optional peer dependencies so the root barrel never forces a peer into your bundle.",
+  "description": "Production-ready TypeScript utility library: pluggable logging (winston or pino behind one ILogger contract), Redis single/cluster/sentinel with pub/sub, BullMQ/MQTT/Kafka message queues, S3-compatible and disk object storage, AES-256/RSA/ECDH cryptography, Snowflake UID generation, cron scheduling, Socket.IO/WebSocket, TCP/TLS/UDP networking, HTTP clients, secrets/Vault, worker thread pools, and environment management. Sub-path imports isolate optional peer dependencies so the root barrel never forces a peer into your bundle.",
   "keywords": [
     "aes",
     "aes-256",
@@ -36,7 +36,6 @@
     "logger",
     "logging",
     "message-queue",
-    "minio",
     "mqtt",
     "network",
     "nodejs",
@@ -128,12 +127,6 @@
       "import": "./dist/esm/modules/queue/mqtt/index.js",
       "require": "./dist/cjs/modules/queue/mqtt/index.js",
       "default": "./dist/cjs/modules/queue/mqtt/index.js"
-    },
-    "./minio": {
-      "types": "./dist/cjs/modules/storage/minio/index.d.ts",
-      "import": "./dist/esm/modules/storage/minio/index.js",
-      "require": "./dist/cjs/modules/storage/minio/index.js",
-      "default": "./dist/cjs/modules/storage/minio/index.js"
     },
     "./bun-s3": {
       "types": "./dist/cjs/modules/storage/bun-s3/index.d.ts",
@@ -233,7 +226,6 @@
     "axios": "^1.16.1",
     "bullmq": "^5.80.8",
     "cron": "^4.3.3",
-    "minio": "^8.0.6",
     "mqtt": "^5.15.2",
     "socket.io": "^4.8.1",
     "socket.io-client": "^4.8.1",
@@ -258,9 +250,6 @@
       "optional": true
     },
     "cron": {
-      "optional": true
-    },
-    "minio": {
       "optional": true
     },
     "mqtt": {
@@ -317,7 +306,6 @@
     "cron": "^4.4.0",
     "eslint": "catalog:",
     "hono": "catalog:",
-    "minio": "^8.0.7",
     "mqtt": "^5.15.2",
     "node-vault": "^0.12.0",
     "pino": "^10.3.1",

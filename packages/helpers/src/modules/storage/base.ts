@@ -1,10 +1,12 @@
 import { MimeTypes } from '@/common';
 import { BaseHelper } from '@/modules/base';
 import { getError } from '@/modules/error';
+import { executePromiseWithLimit } from '@/utilities/promise.utility';
 import isEmpty from 'lodash/isEmpty';
 import path from 'node:path';
 import { Readable } from 'node:stream';
 import { IBucketInfo, IFileStat, IStorageHelper, IUploadFile, IUploadResult } from './common';
+import { isNotFoundError, StorageConcurrency, StorageErrors } from './common';
 
 export abstract class BaseStorageHelper extends BaseHelper implements IStorageHelper {
   protected static MIME_MAP: Record<string, string> = {
@@ -33,12 +35,14 @@ export abstract class BaseStorageHelper extends BaseHelper implements IStorageHe
     super(opts);
   }
 
-  getMimeType(filename: string): string {
-    const ext = path.extname(filename).toLowerCase();
+  getMimeType(opts: { filename: string }): string {
+    const ext = path.extname(opts.filename).toLowerCase();
     return BaseStorageHelper.MIME_MAP[ext] || 'application/octet-stream';
   }
 
-  isValidName(name: string): boolean {
+  isValidName(opts: { name: string }): boolean {
+    const { name } = opts;
+
     if (typeof name !== 'string') {
       this.logger.for(this.isValidName.name).error('Invalid name provided: %j', name);
       return false;
@@ -99,8 +103,9 @@ export abstract class BaseStorageHelper extends BaseHelper implements IStorageHe
 
   static readonly DEFAULT_MAX_FOLDER_DEPTH = 2;
 
-  isValidPath(pathStr: string, opts?: { maxDepth?: number }): boolean {
-    const maxDepth = opts?.maxDepth ?? BaseStorageHelper.DEFAULT_MAX_FOLDER_DEPTH;
+  isValidPath(opts: { path: string; maxDepth?: number }): boolean {
+    const { path: pathStr } = opts;
+    const maxDepth = opts.maxDepth ?? BaseStorageHelper.DEFAULT_MAX_FOLDER_DEPTH;
 
     if (typeof pathStr !== 'string' || !pathStr || isEmpty(pathStr)) {
       this.logger.for(this.isValidPath.name).error('Empty or invalid path provided');
@@ -139,7 +144,7 @@ export abstract class BaseStorageHelper extends BaseHelper implements IStorageHe
     }
 
     for (const segment of segments) {
-      if (!this.isValidName(segment)) {
+      if (!this.isValidName({ name: segment })) {
         this.logger
           .for(this.isValidPath.name)
           .error('Path segment failed validation: %s (in path: %s)', segment, pathStr);
@@ -217,7 +222,7 @@ export abstract class BaseStorageHelper extends BaseHelper implements IStorageHe
     const { file, maxFolderDepth } = opts;
     const { originalName, size, folderPath } = file;
 
-    if (!this.isValidName(originalName)) {
+    if (!this.isValidName({ name: originalName })) {
       throw getError({ message: '[upload] Invalid original file name' });
     }
 
@@ -232,7 +237,7 @@ export abstract class BaseStorageHelper extends BaseHelper implements IStorageHe
         });
       }
 
-      if (!this.isValidPath(folderPath, { maxDepth: depthLimit })) {
+      if (!this.isValidPath({ path: folderPath, maxDepth: depthLimit })) {
         throw getError({ message: '[upload] Invalid folder path' });
       }
     }
@@ -266,43 +271,174 @@ export abstract class BaseStorageHelper extends BaseHelper implements IStorageHe
 
     this.validateUploadFiles({ files, maxFolderDepth });
 
-    const uploadPromises = files.map(async file => {
-      const { originalName, mimetype: mimeType, size, encoding, folderPath } = file;
-      const t = performance.now();
+    return this.mapWithConcurrency({
+      items: files,
+      task: async ({ item: file }) => {
+        const { originalName, mimetype: mimeType, size, encoding, folderPath } = file;
+        const t = performance.now();
 
-      const normalizeName = normalizeNameFn
-        ? normalizeNameFn({ originalName, folderPath })
-        : this.normalizeObjectName({ originalName, folderPath });
+        const normalizeName = normalizeNameFn
+          ? normalizeNameFn({ originalName, folderPath })
+          : this.normalizeObjectName({ originalName, folderPath });
 
-      // The caller's normalizeNameFn output is what DiskHelper path.join()s under the bucket root - an unvalidated `../../../etc/cron.d/pwn` writes outside it; the original name was validated above, this validates what actually reaches the filesystem.
-      if (!this.isValidPath(normalizeName, { maxDepth: maxFolderDepth })) {
-        throw getError({
-          message: `[upload] Invalid normalized object name | name: ${normalizeName}`,
-        });
-      }
+        // The caller's normalizeNameFn output is what DiskHelper path.join()s under the bucket root - an unvalidated `../../../etc/cron.d/pwn` writes outside it; the original name was validated above, this validates what actually reaches the filesystem.
+        if (!this.isValidPath({ path: normalizeName, maxDepth: maxFolderDepth })) {
+          throw getError({
+            message: `[upload] Invalid normalized object name | name: ${normalizeName}`,
+          });
+        }
 
-      const normalizeLink = normalizeLinkFn
-        ? normalizeLinkFn({ bucketName: bucket, normalizeName })
-        : this.normalizeObjectLink({ bucketName: bucket, normalizeName });
+        const normalizeLink = normalizeLinkFn
+          ? normalizeLinkFn({ bucketName: bucket, normalizeName })
+          : this.normalizeObjectLink({ bucketName: bucket, normalizeName });
 
-      await this.writeObject({ bucket, normalizeName, file });
+        await this.writeObject({ bucket, normalizeName, file });
 
-      this.logger
-        .for(this.upload.name)
-        .info(
-          'Uploaded: %j | Took: %s (ms)',
-          { normalizeName, normalizeLink, mimeType, encoding, size },
-          performance.now() - t,
-        );
+        this.logger
+          .for(this.upload.name)
+          .info(
+            'Uploaded: %j | Took: %s (ms)',
+            { normalizeName, normalizeLink, mimeType, encoding, size },
+            performance.now() - t,
+          );
 
-      return {
-        bucketName: bucket,
-        objectName: normalizeName,
-        link: normalizeLink,
-      };
+        return {
+          bucketName: bucket,
+          objectName: normalizeName,
+          link: normalizeLink,
+        };
+      },
+    });
+  }
+
+  /**
+   * Correct for any backend, and overridden by the ones that can do better: a helper whose transport is
+   * already a web stream should return it untouched rather than round trip through a Node `Readable`.
+   */
+  async getFileStream(opts: {
+    bucket: string;
+    name: string;
+    range?: { start: number; end?: number };
+  }): Promise<ReadableStream<Uint8Array>> {
+    const { bucket, name, range } = opts;
+    const source = await this.getFile({ bucket, name });
+
+    if (!range) {
+      return Readable.toWeb(source) as ReadableStream<Uint8Array>;
+    }
+
+    // No native range on this backend: take the requested window off the front of the full stream.
+    const { start, end } = range;
+    let offset = 0;
+
+    const sliced = new ReadableStream<Uint8Array>({
+      async start(controller) {
+        for await (const chunk of source) {
+          const bytes = chunk as Uint8Array;
+          const chunkEnd = offset + bytes.byteLength;
+          const from = Math.max(start - offset, 0);
+          const to =
+            end === undefined ? bytes.byteLength : Math.min(end + 1 - offset, bytes.byteLength);
+
+          if (chunkEnd > start && from < to) {
+            controller.enqueue(bytes.subarray(from, to));
+          }
+
+          offset = chunkEnd;
+
+          if (end !== undefined && offset > end) {
+            break;
+          }
+        }
+
+        source.destroy();
+        controller.close();
+      },
     });
 
-    return Promise.all(uploadPromises);
+    return sliced;
+  }
+
+  /**
+   * Bounded fan-out over a caller-supplied list, on the repository's one limiter rather than a second
+   * implementation of it. An unbounded `Promise.all` here turns a 10,000-key delete into 10,000
+   * simultaneous requests, which exhausts sockets locally and gets rate limited at the provider.
+   */
+  protected async mapWithConcurrency<Item, Result>(opts: {
+    items: Item[];
+    limit?: number;
+    task: (taskOptions: { item: Item; index: number }) => Promise<Result>;
+  }): Promise<Result[]> {
+    const { items, task } = opts;
+
+    if (items.length === 0) {
+      return [];
+    }
+
+    return executePromiseWithLimit({
+      limit: Math.max(1, opts.limit ?? StorageConcurrency.DEFAULT_LIMIT),
+      tasks: items.map((item, index) => () => task({ item, index })),
+    });
+  }
+
+  /**
+   * Turns a backend's own "not there" failure into one catalogued error carrying a 404, and leaves every
+   * other failure exactly as it was - a storage outage must never be reported as a missing object.
+   */
+  protected asStorageError(opts: {
+    error: unknown;
+    operation: string;
+    bucket: string;
+    name: string;
+  }): unknown {
+    const { error, operation, bucket, name } = opts;
+
+    if (!isNotFoundError({ error })) {
+      return error;
+    }
+
+    return getError({
+      error: StorageErrors.OBJECT_NOT_FOUND,
+      message: `[${operation}] Object not found | bucket: ${bucket} | name: ${name}`,
+    });
+  }
+
+  // A backend with no presign/tagging transport says so - returning undefined would read as a valid, empty link or tag set.
+  async presignPut(_opts: {
+    bucket: string;
+    name: string;
+    expiresInSeconds?: number;
+  }): Promise<string> {
+    throw getError({
+      message: `[${this.constructor.name}.presignPut] Presigned PUT URLs are not supported by this helper`,
+    });
+  }
+
+  async presignGet(_opts: {
+    bucket: string;
+    name: string;
+    expiresInSeconds?: number;
+    responseContentType?: string;
+  }): Promise<string> {
+    throw getError({
+      message: `[${this.constructor.name}.presignGet] Presigned GET URLs are not supported by this helper`,
+    });
+  }
+
+  async getObjectTags(_opts: { bucket: string; name: string }): Promise<Record<string, string>> {
+    throw getError({
+      message: `[${this.constructor.name}.getObjectTags] Object tagging is not supported by this helper`,
+    });
+  }
+
+  async setObjectTags(_opts: {
+    bucket: string;
+    name: string;
+    tags: Record<string, string>;
+  }): Promise<void> {
+    throw getError({
+      message: `[${this.constructor.name}.setObjectTags] Object tagging is not supported by this helper`,
+    });
   }
 
   abstract isBucketExists(opts: { name: string }): Promise<boolean>;

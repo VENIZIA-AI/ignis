@@ -5,7 +5,7 @@ import { CoreBindings } from '@venizia/ignis-kernel';
 import { Binding } from '@venizia/ignis-kernel';
 import { ValueOrPromise } from '@venizia/ignis-helpers/common';
 import { StaticAssetComponentBindingKeys, TStaticAssetsComponentOptions } from './common';
-import { AssetControllerFactory } from './controller';
+import { AssetControllerFactory, buildObjectLink } from './controller';
 
 export class StaticAssetComponent extends BaseComponent {
   constructor(
@@ -29,7 +29,15 @@ export class StaticAssetComponent extends BaseComponent {
     });
 
     for (const [key, opt] of Object.entries(componentOptions)) {
-      const { storage, controller, helper, extra, resolveObjectName, defineExtraRoutes } = opt;
+      const {
+        storage,
+        controller,
+        helper,
+        extra,
+        resolveObjectName,
+        defineRoutesBefore,
+        defineExtraRoutes,
+      } = opt;
 
       this.application.controller(
         AssetControllerFactory.defineAssetController({
@@ -39,16 +47,21 @@ export class StaticAssetComponent extends BaseComponent {
           useMetaLink: opt.useMetaLink,
           metaLink: opt.useMetaLink ? opt.metaLink : undefined,
           resolveObjectName,
+          defineRoutesBefore,
           defineExtraRoutes,
           options: {
             ...extra,
             normalizeLinkFn:
               extra?.normalizeLinkFn ??
-              (opts => {
-                // The object route binds `{objectName}` as one Hono path segment, so a nested path must be encoded whole - a raw `/` produces a 404 link.
-                const encodedPath = encodeURIComponent(opts.normalizeName);
-                return `${controller.basePath}/buckets/${opts.bucketName}/objects/${encodedPath}`;
-              }),
+              // The link follows the URL shape the controller serves: `{objectName}` is one Hono path segment unless `rawObjectPath` widens it, and a configured bucket leaves the path.
+              (linkOptions =>
+                buildObjectLink({
+                  basePath: controller.basePath,
+                  bucketName: linkOptions.bucketName,
+                  objectName: linkOptions.normalizeName,
+                  hasConfiguredBucket: controller.bucket !== undefined,
+                  rawObjectPath: controller.rawObjectPath,
+                })),
           },
         }),
       );

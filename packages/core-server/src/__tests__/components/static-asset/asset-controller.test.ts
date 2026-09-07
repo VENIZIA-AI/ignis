@@ -99,7 +99,10 @@ const mountAssetController = async (opts: {
   isStrict?: boolean;
   metaLink?: TMetaLinkConfig;
   resolveObjectName?: TResolveObjectName;
+  defineRoutesBefore?: TDefineExtraRoutes;
   defineExtraRoutes?: TDefineExtraRoutes;
+  bucket?: string | (() => string);
+  rawObjectPath?: boolean;
 }): Promise<OpenAPIHono> => {
   const {
     helper,
@@ -107,7 +110,10 @@ const mountAssetController = async (opts: {
     isStrict = false,
     metaLink,
     resolveObjectName,
+    defineRoutesBefore,
     defineExtraRoutes,
+    bucket,
+    rawObjectPath,
   } = opts;
 
   MetadataRegistry.getInstance().clearAll();
@@ -115,13 +121,20 @@ const mountAssetController = async (opts: {
   application.init();
 
   const AssetController = AssetControllerFactory.defineAssetController({
-    controller: { name: 'TestAssetController', basePath: '/assets', isStrict },
+    controller: {
+      name: 'TestAssetController',
+      basePath: '/assets',
+      isStrict,
+      bucket,
+      rawObjectPath,
+    },
     storage: StaticAssetStorageTypes.DISK,
     helper,
     options,
     useMetaLink: Boolean(metaLink),
     metaLink,
     resolveObjectName,
+    defineRoutesBefore,
     defineExtraRoutes,
   });
 
@@ -134,21 +147,28 @@ const mountAssetController = async (opts: {
   return server;
 };
 
-/** Uploads `files` through the multipart endpoint. */
+/** Uploads `files` through the multipart endpoint. `uploadPath` follows the controller's URL shape - a configured bucket serves `/assets/upload`. */
 const uploadFiles = async (opts: {
   router: OpenAPIHono;
   files: File[];
   query?: string;
   fieldName?: string;
+  uploadPath?: string;
 }): Promise<Response> => {
-  const { router, files, query = '', fieldName = 'files' } = opts;
+  const {
+    router,
+    files,
+    query = '',
+    fieldName = 'files',
+    uploadPath = '/assets/buckets/images/upload',
+  } = opts;
   const formData = new FormData();
 
   for (const file of files) {
     formData.append(fieldName, file);
   }
 
-  return router.request(`/assets/buckets/images/upload${query}`, {
+  return router.request(`${uploadPath}${query}`, {
     method: 'POST',
     body: formData,
   });
@@ -265,6 +285,103 @@ describe('StaticAsset controller — download headers', () => {
     expect(disposition).not.toContain('\r');
     expect(disposition).not.toContain('\n');
     expect(response.headers.get('x-content-type-options')).toBe('nosniff');
+  });
+});
+
+describe('StaticAsset controller - a missing object is a 404, and only a missing object', () => {
+  const readRoutes = [
+    ['GET', '/assets/buckets/images/objects/absent.jpg'],
+    ['DOWNLOAD', '/assets/buckets/images/download/absent.jpg'],
+  ] as const;
+
+  test.each(readRoutes)('%s answers 404 with the catalogued code', async (_label, path) => {
+    const helper = new FakeStorageHelper();
+    const router = await mountAssetController({ helper });
+
+    const response = await router.request(path);
+    expect(response.status).toBe(404);
+
+    const body = await readJson(response);
+    expect(body.normalized?.code).toBe('core.storage.object_not_found');
+  });
+
+  /** The discrimination is the point: a backend that is merely broken must not read as a missing file. */
+  test('a storage failure that is not a missing object still answers 500', async () => {
+    const helper = new FakeStorageHelper();
+    const router = await mountAssetController({ helper });
+    helper.getStat = async () => {
+      throw new Error('connection reset by peer');
+    };
+
+    const response = await router.request('/assets/buckets/images/objects/photo.jpg');
+    expect(response.status).toBe(500);
+  });
+
+  test('an object that exists still answers 200', async () => {
+    const helper = new FakeStorageHelper();
+    const router = await mountAssetController({ helper });
+    await uploadFiles({ router, files: [new File(['hello'], 'photo.jpg')] });
+
+    const response = await router.request('/assets/buckets/images/objects/photo.jpg');
+    expect(response.status).toBe(200);
+  });
+
+  /** Deliberately unchanged: S3 deletes idempotently and consumers already depend on the 200. */
+  test('DELETE of an object that was never there still answers 200', async () => {
+    const helper = new FakeStorageHelper();
+    const router = await mountAssetController({ helper });
+
+    const response = await router.request('/assets/buckets/images/objects/absent.jpg', {
+      method: 'DELETE',
+    });
+    expect(response.status).toBe(200);
+    expect(helper.calls.filter(call => call.method === 'removeObject')).toHaveLength(1);
+  });
+});
+
+describe('StaticAsset controller - a stored object never renders on the API origin', () => {
+  /**
+   * Serving an uploaded file as a renderable type on the API's own origin is stored XSS: the script
+   * runs with the application's cookies. `nosniff` cannot help, because the type is declared here.
+   */
+  const renderableExtensions = ['payload.html', 'payload.svg', 'payload.xhtml', 'payload.xml'];
+
+  test.each(renderableExtensions)('%s is not served as a renderable type', async fileName => {
+    const helper = new FakeStorageHelper();
+    const router = await mountAssetController({ helper });
+    const uploadResponse = await uploadFiles({
+      router,
+      files: [new File(['<script>alert(1)</script>'], fileName)],
+    });
+    expect(uploadResponse.status).toBe(200);
+
+    const response = await router.request(`/assets/buckets/images/objects/${fileName}`);
+    expect(response.status).toBe(200);
+
+    const served = response.headers.get('content-type') ?? '';
+    expect(served).toContain(HTTP.HeaderValues.APPLICATION_OCTET_STREAM);
+    expect(response.headers.get('content-disposition') ?? '').toContain('attachment');
+  });
+
+  test('an image is still served with its own type, so the fix does not break display', async () => {
+    const helper = new FakeStorageHelper();
+    const router = await mountAssetController({ helper });
+    await uploadFiles({ router, files: [new File(['binary'], 'photo.png')] });
+
+    const response = await router.request('/assets/buckets/images/objects/photo.png');
+    expect(response.status).toBe(200);
+    expect(response.headers.get('content-type') ?? '').toContain('image/png');
+  });
+
+  /** The served type is decided from the object name, so a backend reporting nothing still serves right. */
+  test('the type comes from the object name, not from what the backend reports', async () => {
+    const helper = new FakeStorageHelper();
+    helper.statMetadataOverride = { 'content-type': 'text/html' };
+    const router = await mountAssetController({ helper });
+    await uploadFiles({ router, files: [new File(['binary'], 'photo.png')] });
+
+    const response = await router.request('/assets/buckets/images/objects/photo.png');
+    expect(response.headers.get('content-type') ?? '').toContain('image/png');
   });
 });
 
@@ -632,5 +749,355 @@ describe('StaticAsset controller — defineExtraRoutes hook', () => {
     const healthResponse = await router.request('/assets/health');
     expect(healthResponse.status).toBe(200);
     expect(await readJson(healthResponse)).toEqual({ buckets: 1 });
+  });
+});
+
+describe('StaticAsset controller — a configured bucket', () => {
+  test('object routes drop the bucket segment and the management routes are absent', async () => {
+    const helper = new FakeStorageHelper();
+    const router = await mountAssetController({ helper, bucket: 'images' });
+
+    const uploadResponse = await uploadFiles({
+      router,
+      files: [new File(['single'], 'photo.jpg', { type: 'image/jpeg' })],
+      uploadPath: '/assets/upload',
+    });
+    expect(uploadResponse.status).toBe(200);
+
+    const getResponse = await router.request('/assets/objects/photo.jpg');
+    expect(getResponse.status).toBe(200);
+    expect(await getResponse.text()).toBe('single');
+
+    const listResponse = await router.request('/assets/objects');
+    expect(listResponse.status).toBe(200);
+
+    // The bucket-in-path shape is not registered at all.
+    expect((await router.request('/assets/buckets/images/objects/photo.jpg')).status).toBe(404);
+
+    // A single-bucket application exposes no bucket management.
+    expect((await router.request('/assets/buckets')).status).toBe(404);
+    expect((await router.request('/assets/buckets/images')).status).toBe(404);
+    expect((await router.request('/assets/buckets/other', { method: 'POST' })).status).toBe(404);
+    expect((await router.request('/assets/buckets/images', { method: 'DELETE' })).status).toBe(404);
+  });
+
+  test('the default shape keeps the bucket in the URL and the management routes', async () => {
+    const helper = new FakeStorageHelper();
+    const router = await mountAssetController({ helper });
+
+    expect((await router.request('/assets/buckets')).status).toBe(200);
+    expect((await router.request('/assets/buckets/images')).status).toBe(200);
+    expect((await router.request('/assets/objects/photo.jpg')).status).toBe(404);
+  });
+
+  test('a function bucket is read per request, not once at construction', async () => {
+    const helper = new FakeStorageHelper();
+    let bucketCalls = 0;
+    const router = await mountAssetController({
+      helper,
+      bucket: () => {
+        bucketCalls += 1;
+        return 'images';
+      },
+    });
+
+    expect(bucketCalls).toBe(0);
+
+    const uploadResponse = await uploadFiles({
+      router,
+      files: [new File(['lazy'], 'photo.jpg', { type: 'image/jpeg' })],
+      uploadPath: '/assets/upload',
+    });
+    expect(uploadResponse.status).toBe(200);
+
+    bucketCalls = 0;
+    expect((await router.request('/assets/objects/photo.jpg')).status).toBe(200);
+    expect((await router.request('/assets/objects/photo.jpg')).status).toBe(200);
+    expect(bucketCalls).toBe(2);
+  });
+});
+
+describe('StaticAsset controller — raw nested object paths', () => {
+  test('a raw nested path resolves and the encoded form keeps working', async () => {
+    const helper = new FakeStorageHelper();
+    const router = await mountAssetController({ helper, rawObjectPath: true });
+
+    const uploadResponse = await uploadFiles({
+      router,
+      files: [new File(['nested'], 'photo.jpg', { type: 'image/jpeg' })],
+      query: '?folderPath=photos/2024',
+    });
+    expect(uploadResponse.status).toBe(200);
+
+    const rawResponse = await router.request(
+      '/assets/buckets/images/objects/photos/2024/photo.jpg',
+    );
+    expect(rawResponse.status).toBe(200);
+    expect(await rawResponse.text()).toBe('nested');
+
+    const encodedResponse = await router.request(
+      `/assets/buckets/images/objects/${encodeURIComponent('photos/2024/photo.jpg')}`,
+    );
+    expect(encodedResponse.status).toBe(200);
+    expect(await encodedResponse.text()).toBe('nested');
+  });
+
+  test('both options: the object URL and the upload link carry neither bucket nor encoded slash', async () => {
+    const helper = new FakeStorageHelper();
+    const router = await mountAssetController({ helper, bucket: 'images', rawObjectPath: true });
+
+    const uploadResponse = await uploadFiles({
+      router,
+      files: [new File(['nested'], 'photo.jpg', { type: 'image/jpeg' })],
+      query: '?folderPath=photos/2024',
+      uploadPath: '/assets/upload',
+    });
+    expect(uploadResponse.status).toBe(200);
+
+    const uploaded = (await uploadResponse.json()) as Array<{ link: string }>;
+    expect(uploaded[0].link).toBe('/assets/objects/photos/2024/photo.jpg');
+
+    const getResponse = await router.request(uploaded[0].link);
+    expect(getResponse.status).toBe(200);
+    expect(await getResponse.text()).toBe('nested');
+  });
+
+  /**
+   * The pair is what pins the boundary: `isValidPath` measures `segments.length - 1` and rejects on
+   * `>`, so only a path AT the cap passing and the next one failing tells the two readings apart.
+   */
+  test('maxFolderDepth counts folders, not segments: at the cap resolves, one deeper is a 400', async () => {
+    const helper = new FakeStorageHelper();
+    const router = await mountAssetController({
+      helper,
+      rawObjectPath: true,
+      options: { maxFolderDepth: 2 },
+    });
+
+    const uploadResponse = await uploadFiles({
+      router,
+      files: [new File(['at-cap'], 'photo.jpg', { type: 'image/jpeg' })],
+      query: '?folderPath=photos/2024',
+    });
+    expect(uploadResponse.status).toBe(200);
+
+    // Two folders plus the filename is depth 2 - the cap itself, which must resolve.
+    const atCap = await router.request('/assets/buckets/images/objects/photos/2024/photo.jpg');
+    expect(atCap.status).toBe(200);
+    expect(await atCap.text()).toBe('at-cap');
+
+    const overCap = await router.request('/assets/buckets/images/objects/a/b/c/photo.jpg');
+    expect(overCap.status).toBe(400);
+
+    const body = await readJson(overCap);
+    expect(body.normalized?.code).toBe('core.static_asset.object_name_invalid');
+  });
+
+  test('a configured maxFolderDepth still rejects a deeper raw path', async () => {
+    const helper = new FakeStorageHelper();
+    const router = await mountAssetController({
+      helper,
+      rawObjectPath: true,
+      options: { maxFolderDepth: 1 },
+    });
+
+    const response = await router.request('/assets/buckets/images/objects/a/b/c/photo.jpg');
+    expect(response.status).toBe(400);
+
+    const body = await readJson(response);
+    expect(body.normalized?.code).toBe('core.static_asset.object_name_invalid');
+    expect(helper.calls.filter(call => ['getFile', 'getStat'].includes(call.method))).toEqual([]);
+  });
+});
+
+describe('StaticAsset controller — the OpenAPI document', () => {
+  /** The catch-all is written inside the OpenAPI path string, so the document must still generate. */
+  const documentPaths = async (opts: {
+    bucket?: string;
+    rawObjectPath?: boolean;
+  }): Promise<string[]> => {
+    const router = await mountAssetController({ helper: new FakeStorageHelper(), ...opts });
+    const document = router.getOpenAPIDocument({
+      openapi: '3.1.0',
+      info: { title: 'assets', version: '1.0.0' },
+    });
+
+    return Object.keys(document.paths ?? {});
+  };
+
+  test('every option combination produces a document', async () => {
+    expect(await documentPaths({})).toContain('/assets/buckets/{bucketName}/objects/{objectName}');
+    expect(await documentPaths({ rawObjectPath: true })).toContain(
+      '/assets/buckets/{bucketName}/objects/{objectName}{.+}',
+    );
+    expect(await documentPaths({ bucket: 'images' })).toContain('/assets/objects/{objectName}');
+    expect(await documentPaths({ bucket: 'images', rawObjectPath: true })).toContain(
+      '/assets/objects/{objectName}{.+}',
+    );
+  });
+
+  test('a configured bucket documents no bucket-management path', async () => {
+    const paths = await documentPaths({ bucket: 'images' });
+
+    expect(paths).not.toContain('/assets/buckets');
+    expect(paths).not.toContain('/assets/buckets/{bucketName}');
+  });
+});
+
+describe('StaticAsset controller — strict routing', () => {
+  /** Every other test mounts with `isStrict: false`; `true` is the factory default an application runs. */
+  test('the catch-all resolves under the strict router too', async () => {
+    const helper = new FakeStorageHelper();
+    const router = await mountAssetController({
+      helper,
+      bucket: 'images',
+      rawObjectPath: true,
+      isStrict: true,
+    });
+
+    await uploadFiles({
+      router,
+      files: [new File(['strict'], 'photo.jpg', { type: 'image/jpeg' })],
+      query: '?folderPath=photos/2024',
+      uploadPath: '/assets/upload',
+    });
+
+    const response = await router.request('/assets/objects/photos/2024/photo.jpg');
+    expect(response.status).toBe(200);
+    expect(await response.text()).toBe('strict');
+  });
+});
+
+describe('StaticAsset controller - defineRoutesBefore wins a path collision', () => {
+  test('a literal route registered before the catch-all answers its own path, and the catch-all still serves the rest', async () => {
+    const helper = new FakeStorageHelper();
+    const router = await mountAssetController({
+      helper,
+      bucket: 'images',
+      rawObjectPath: true,
+      defineRoutesBefore: ({ controller }) => {
+        controller.defineRoute({
+          configs: {
+            method: 'get',
+            path: '/objects/i18n',
+            responses: { 200: { description: 'translations' } },
+          },
+          handler: context => context.json({ translations: true }),
+        });
+      },
+    });
+
+    const literal = await router.request('/assets/objects/i18n');
+    expect(literal.status).toBe(200);
+    expect(await literal.json()).toEqual({ translations: true });
+
+    // A configured bucket serves the upload at `/assets/upload`, not the bucket-in-path default.
+    const uploaded = await uploadFiles({
+      router,
+      files: [new File(['nested'], 'photo.jpg', { type: 'image/jpeg' })],
+      query: '?folderPath=photos/2024',
+      uploadPath: '/assets/upload',
+    });
+    expect(uploaded.status).toBe(200);
+
+    const object = await router.request('/assets/objects/photos/2024/photo.jpg');
+    expect(object.status).toBe(200);
+    expect(await object.text()).toBe('nested');
+  });
+
+  test('the same route registered after the catch-all never answers (the collision rule)', async () => {
+    const helper = new FakeStorageHelper();
+    const router = await mountAssetController({
+      helper,
+      bucket: 'images',
+      rawObjectPath: true,
+      defineExtraRoutes: ({ controller }) => {
+        controller.defineRoute({
+          configs: {
+            method: 'get',
+            path: '/objects/i18n',
+            responses: { 200: { description: 'translations' } },
+          },
+          handler: context => context.json({ translations: true }),
+        });
+      },
+    });
+
+    const shadowed = await router.request('/assets/objects/i18n');
+    expect(shadowed.status).not.toBe(200);
+  });
+});
+
+describe('StaticAsset controller - byte ranges make a stored object seekable', () => {
+  const buildRouter = async () => {
+    const helper = new FakeStorageHelper();
+    const router = await mountAssetController({ helper });
+    await uploadFiles({
+      router,
+      files: [new File(['0123456789'], 'clip.mp4')],
+    });
+
+    return router;
+  };
+
+  test('a full request advertises range support', async () => {
+    const router = await buildRouter();
+
+    const response = await router.request('/assets/buckets/images/objects/clip.mp4');
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get('accept-ranges')).toBe('bytes');
+    expect(response.headers.get('content-length')).toBe('10');
+  });
+
+  test('a byte range answers 206 with only those bytes', async () => {
+    const router = await buildRouter();
+
+    const response = await router.request('/assets/buckets/images/objects/clip.mp4', {
+      headers: { range: 'bytes=2-5' },
+    });
+
+    expect(response.status).toBe(206);
+    expect(response.headers.get('content-range')).toBe('bytes 2-5/10');
+    expect(response.headers.get('content-length')).toBe('4');
+    expect(await response.text()).toBe('2345');
+  });
+
+  test('an open-ended range runs to the last byte', async () => {
+    const router = await buildRouter();
+
+    const response = await router.request('/assets/buckets/images/objects/clip.mp4', {
+      headers: { range: 'bytes=7-' },
+    });
+
+    expect(response.status).toBe(206);
+    expect(response.headers.get('content-range')).toBe('bytes 7-9/10');
+    expect(await response.text()).toBe('789');
+  });
+
+  /** `bytes=-3` is the LAST three bytes, not the first three - reading it the other way serves wrong data. */
+  test('a suffix range counts back from the end', async () => {
+    const router = await buildRouter();
+
+    const response = await router.request('/assets/buckets/images/objects/clip.mp4', {
+      headers: { range: 'bytes=-3' },
+    });
+
+    expect(response.status).toBe(206);
+    expect(response.headers.get('content-range')).toBe('bytes 7-9/10');
+    expect(await response.text()).toBe('789');
+  });
+
+  const ignoredRanges = ['bytes=20-30', 'bytes=5-2', 'lines=1-2', 'bytes=abc'];
+
+  test.each(ignoredRanges)('an unusable range %s serves the whole object', async header => {
+    const router = await buildRouter();
+
+    const response = await router.request('/assets/buckets/images/objects/clip.mp4', {
+      headers: { range: header },
+    });
+
+    expect(response.status).toBe(200);
+    expect(await response.text()).toBe('0123456789');
   });
 });

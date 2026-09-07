@@ -80,7 +80,6 @@ backends you imported by name.
 | `/bullmq` | `BullMQHelper` | `bullmq` |
 | `/mqtt` | `MQTTClientHelper` | `mqtt` |
 | `/kafka` | `KafkaProducerHelper`, `KafkaConsumerHelper`, `KafkaAdminHelper`, ... | `@platformatic/kafka` |
-| `/minio` | `MinioHelper` | `minio` |
 | `/bun-s3` | `BunS3Helper` | none - Bun's native S3 client |
 | `/socket-io` | `SocketIOServerHelper`, `SocketIOClientHelper` | `socket.io`, `socket.io-client` (+ `@socket.io/redis-adapter`, `@socket.io/redis-emitter` for multi-node) |
 | `/axios` | `AxiosFetcher`, `AxiosNetworkRequest` | `axios` |
@@ -89,8 +88,8 @@ backends you imported by name.
 | `/dotenv-vault` | `DotenvVaultHelper` | `@dotenvx/dotenvx` |
 
 ```bash
-# example: pino logging + BullMQ jobs + MinIO storage
-bun add pino bullmq minio
+# example: pino logging + BullMQ jobs
+bun add pino bullmq
 ```
 
 Everything else - Redis (`ioredis` is a real dependency), disk and in-memory storage, crypto,
@@ -103,7 +102,7 @@ network, UID, env, pool, worker threads - comes straight off the root barrel.
 | [logger](https://ignis.venizia.ai/extensions/helpers/logger/) | Scoped `ILogger` over a pluggable winston or pino backend, plus `HfLogger` for hot paths |
 | [redis](https://ignis.venizia.ai/extensions/helpers/redis/) | Single, cluster, and sentinel clients over `ioredis`: key-value, hash, RedisJSON, pub/sub |
 | [queue](https://ignis.venizia.ai/extensions/helpers/queue/) | BullMQ jobs, MQTT topics, [Kafka](https://ignis.venizia.ai/extensions/helpers/kafka/) producers and consumers, plus an in-process `SequentialQueueHelper` |
-| [storage](https://ignis.venizia.ai/extensions/helpers/storage/) | One `IStorageHelper` interface over MinIO/S3, Bun S3, local disk, and memory |
+| [storage](https://ignis.venizia.ai/extensions/helpers/storage/) | One `IStorageHelper` interface over any S3-compatible provider, local disk, and memory |
 | [crypto](https://ignis.venizia.ai/extensions/helpers/crypto/) | `AES`, `RSA`, `ECDH` - encryption, signing, and key exchange |
 | [cron](https://ignis.venizia.ai/extensions/helpers/cron/) | `CronHelper`: declarative schedules with lifecycle hooks |
 | [socket](https://ignis.venizia.ai/extensions/helpers/socket-io/) | Socket.IO server and client, plus a [Bun-native WebSocket](https://ignis.venizia.ai/extensions/helpers/websocket/) server |

@@ -52,8 +52,8 @@ export interface IStorageHelperOptions {
 }
 
 export interface IStorageHelper {
-  isValidName(name: string): boolean;
-  isValidPath(pathStr: string, opts?: { maxDepth?: number }): boolean;
+  isValidName(opts: { name: string }): boolean;
+  isValidPath(opts: { path: string; maxDepth?: number }): boolean;
 
   isBucketExists(opts: { name: string }): Promise<boolean>;
   getBuckets(): Promise<IBucketInfo[]>;
@@ -61,20 +61,48 @@ export interface IStorageHelper {
   createBucket(opts: { name: string }): Promise<IBucketInfo | null>;
   removeBucket(opts: { name: string }): Promise<boolean>;
 
+  getFile(opts: { bucket: string; name: string; options?: any }): Promise<Readable>;
+
+  /**
+   * The same bytes as `getFile`, as a web stream. This is what a `Response` body wants, so an HTTP
+   * backend avoids the round trip through a Node `Readable` and back. `range` is a byte range,
+   * inclusive of `end` like the HTTP header - it is what makes a video seekable.
+   */
+  getFileStream(opts: {
+    bucket: string;
+    name: string;
+    range?: { start: number; end?: number };
+  }): Promise<ReadableStream<Uint8Array>>;
+  getStat(opts: { bucket: string; name: string }): Promise<IFileStat>;
+  listObjects(opts: IListObjectsOptions): Promise<IObjectInfo[]>;
+
   upload(opts: {
     bucket: string;
     files: IUploadFile[];
+    maxFolderDepth?: number;
     normalizeNameFn?: (opts: { originalName: string; folderPath?: string }) => string;
     normalizeLinkFn?: (opts: { bucketName: string; normalizeName: string }) => string;
-    /** Folder nesting the caller allows. Omitted -> `BaseStorageHelper.DEFAULT_MAX_FOLDER_DEPTH`. */
-    maxFolderDepth?: number;
   }): Promise<IUploadResult[]>;
 
-  getFile(opts: { bucket: string; name: string; options?: any }): Promise<Readable>;
-  getStat(opts: { bucket: string; name: string }): Promise<IFileStat>;
   removeObject(opts: { bucket: string; name: string }): Promise<void>;
   removeObjects(opts: { bucket: string; names: string[] }): Promise<void>;
-  listObjects(opts: IListObjectsOptions): Promise<IObjectInfo[]>;
+
+  presignPut(opts: { bucket: string; name: string; expiresInSeconds?: number }): Promise<string>;
+  presignGet(opts: {
+    bucket: string;
+    name: string;
+    expiresInSeconds?: number;
+    responseContentType?: string;
+    responseContentDisposition?: string;
+  }): Promise<string>;
+
+  getObjectTags(opts: { bucket: string; name: string }): Promise<Record<string, string>>;
+  setObjectTags(opts: {
+    bucket: string;
+    name: string;
+    tags: Record<string, string>;
+  }): Promise<void>;
 
   getFileType(opts: { mimeType: string }): string;
+  getMimeType(opts: { filename: string }): string;
 }

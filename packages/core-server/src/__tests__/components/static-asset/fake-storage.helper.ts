@@ -1,5 +1,6 @@
 import { getError } from '@venizia/ignis-helpers/core';
 import {
+  StorageErrors,
   BaseStorageHelper,
   type IBucketInfo,
   type IFileStat,
@@ -21,6 +22,9 @@ export class FakeStorageHelper extends BaseStorageHelper {
 
   /** originalName of a file whose writeObject must fail (storage failure simulation). */
   failWriteOnName?: string;
+
+  /** Stands in for a backend reporting its own content type - minio does, bun-s3 reports camelCase keys. */
+  statMetadataOverride?: Record<string, string>;
 
   constructor() {
     super({ scope: FakeStorageHelper.name, identifier: 'fake-storage' });
@@ -102,7 +106,10 @@ export class FakeStorageHelper extends BaseStorageHelper {
     const found = this.objects.get(`${opts.bucket}/${opts.name}`);
 
     if (!found) {
-      throw getError({ message: `[getFile] Not found | ${opts.bucket}/${opts.name}` });
+      throw getError({
+        error: StorageErrors.OBJECT_NOT_FOUND,
+        message: `[getFile] Object not found | ${opts.bucket}/${opts.name}`,
+      });
     }
 
     return Readable.from([found.buffer]);
@@ -113,20 +120,33 @@ export class FakeStorageHelper extends BaseStorageHelper {
     const found = this.objects.get(`${opts.bucket}/${opts.name}`);
 
     if (!found) {
-      throw getError({ message: `[getStat] Not found | ${opts.bucket}/${opts.name}` });
+      throw getError({
+        error: StorageErrors.OBJECT_NOT_FOUND,
+        message: `[getStat] Object not found | ${opts.bucket}/${opts.name}`,
+      });
     }
 
     return {
       size: found.buffer.length,
-      metadata: { mimetype: found.mimetype, 'content-type': found.mimetype },
+      metadata: this.statMetadataOverride ?? {
+        mimetype: found.mimetype,
+        'content-type': found.mimetype,
+      },
       etag: 'fake-etag',
       lastModified: new Date('2024-01-01T00:00:00Z'),
     };
   }
 
+  /** Throws like `disk` does, so the controller's idempotent DELETE is exercised rather than assumed. */
   async removeObject(opts: { bucket: string; name: string }): Promise<void> {
     this.calls.push({ method: 'removeObject', args: { ...opts } });
-    this.objects.delete(`${opts.bucket}/${opts.name}`);
+
+    if (!this.objects.delete(`${opts.bucket}/${opts.name}`)) {
+      throw getError({
+        error: StorageErrors.OBJECT_NOT_FOUND,
+        message: `[removeObject] Object not found | ${opts.bucket}/${opts.name}`,
+      });
+    }
   }
 
   async removeObjects(opts: { bucket: string; names: string[] }): Promise<void> {

@@ -1,9 +1,10 @@
 import type { AnyType } from '@/common/types';
-import { voidExecution } from '@/utilities/promise.utility';
+import { executePromiseWithLimit, voidExecution } from '@/utilities/promise.utility';
 import { BaseHelper } from '@/modules/base';
 import isEmpty from 'lodash/isEmpty';
 import { EventEmitter } from 'node:events';
 import zlib from 'node:zlib';
+import { RedisConcurrency } from './../common/constants';
 import { IRedisHelper } from './../common/interfaces';
 import { IRedisHelperCallbacks, TRedisClient } from './../common/types';
 
@@ -514,7 +515,11 @@ export class AbstractRedisHelper<ClientType extends TRedisClient = TRedisClient>
     const message = Buffer.from(JSON.stringify(payload));
     const packet = useCompress ? zlib.deflateSync(message) : message;
 
-    await Promise.all(validTopics.map(topic => this.client.publish(topic, packet)));
+    // `topics` is caller-supplied, so an unbounded fan-out here is a caller-sized burst on one connection.
+    await executePromiseWithLimit({
+      limit: RedisConcurrency.PUBLISH_LIMIT,
+      tasks: validTopics.map(topic => () => this.client.publish(topic, packet)),
+    });
   }
 
   subscribe(opts: { topic: string }) {

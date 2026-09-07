@@ -1,42 +1,53 @@
 import { AnyObject } from '@/common';
 import { BaseHelper } from '@/modules/base';
 
+/**
+ * An in-process keyed container. It is NOT an `IStorageHelper` and never has been - it stores values in
+ * memory, not objects in a bucket - so it deliberately extends `BaseHelper` rather than
+ * `BaseStorageHelper`. It keeps living under `storage/` because that is where consumers import it from.
+ */
 export class MemoryStorageHelper<T extends object = AnyObject> extends BaseHelper {
-  private container: T;
+  private container = new Map<keyof T, T[keyof T]>();
 
   constructor(opts?: { scope?: string }) {
-    super({
-      scope: opts?.scope ?? MemoryStorageHelper.name,
-    });
-
-    this.container = Object.assign({});
+    super({ scope: opts?.scope ?? MemoryStorageHelper.name });
   }
 
   static newInstance<T extends object = AnyObject>() {
     return new MemoryStorageHelper<T>();
   }
 
-  isBound(key: string) {
-    return key in this.container;
+  isBound(key: keyof T): boolean {
+    return this.container.has(key);
   }
 
-  get<R>(key: keyof T) {
-    return this.container[key] as R;
+  get<K extends keyof T>(key: K): T[K] | undefined {
+    return this.container.get(key) as T[K] | undefined;
   }
 
-  set<R>(key: string, value: R) {
-    this.container = Object.assign(this.container, { [key]: value });
+  set<K extends keyof T>(key: K, value: T[K]): void {
+    this.container.set(key, value);
   }
 
-  keys() {
-    return Object.keys(this.container);
+  /** `false` when the key was not bound, so a caller can tell a removal from a no-op. */
+  unset(key: keyof T): boolean {
+    return this.container.delete(key);
   }
 
-  clear() {
-    this.container = Object.assign({});
+  keys(): Array<keyof T> {
+    return [...this.container.keys()];
   }
 
-  getContainer() {
-    return this.container;
+  get size(): number {
+    return this.container.size;
+  }
+
+  clear(): void {
+    this.container.clear();
+  }
+
+  /** A COPY: handing out the live map let a caller mutate this helper's state behind its back. */
+  getContainer(): Record<string, unknown> {
+    return Object.fromEntries(this.container as Map<string, unknown>);
   }
 }

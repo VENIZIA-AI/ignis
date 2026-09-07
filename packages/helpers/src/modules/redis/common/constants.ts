@@ -26,3 +26,8 @@ export class RedisSentinelRoles {
 }
 
 export type TRedisSentinelRole = TConstValue<typeof RedisSentinelRoles>;
+
+/** Ceiling on a caller-sized fan-out over one connection; a burst larger than this queues rather than piles up. */
+export class RedisConcurrency {
+  static readonly PUBLISH_LIMIT = 32;
+}
