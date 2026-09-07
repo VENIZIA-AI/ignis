@@ -9273,7 +9273,7 @@
       "specifier": "@venizia/ignis/mail",
       "kind": "interface",
       "file": "packages/core-server/src/components/mail/common/types/message.ts",
-      "line": 19,
+      "line": 13,
       "signature": "interface IMailMessage"
     },
     {
@@ -9333,7 +9333,7 @@
       "specifier": "@venizia/ignis/mail",
       "kind": "interface",
       "file": "packages/core-server/src/components/mail/common/types/message.ts",
-      "line": 34,
+      "line": 28,
       "signature": "interface IMailSendResult"
     },
     {
@@ -9343,7 +9343,7 @@
       "specifier": "@venizia/ignis/mail",
       "kind": "interface",
       "file": "packages/core-server/src/components/mail/common/types/message.ts",
-      "line": 47,
+      "line": 41,
       "signature": "interface IMailService"
     },
     {
@@ -9363,7 +9363,7 @@
       "specifier": "@venizia/ignis/mail",
       "kind": "interface",
       "file": "packages/core-server/src/components/mail/common/types/message.ts",
-      "line": 41,
+      "line": 35,
       "signature": "interface IMailTransport"
     },
     {
@@ -9743,8 +9743,18 @@
       "specifier": "@venizia/ignis/mail",
       "kind": "function",
       "file": "packages/core-server/src/components/mail/utilities/mime.utility.ts",
-      "line": 357,
+      "line": 399,
       "signature": "function buildRawMimeMessage(message: IMailMessage): Promise<Buffer>"
+    },
+    {
+      "name": "formatAddressHeader",
+      "package": "@venizia/ignis",
+      "subpath": "./mail",
+      "specifier": "@venizia/ignis/mail",
+      "kind": "function",
+      "file": "packages/core-server/src/components/mail/utilities/mime.utility.ts",
+      "line": 99,
+      "signature": "function formatAddressHeader(value: string | string[]): string"
     },
     {
       "name": "getExpiryTime",
