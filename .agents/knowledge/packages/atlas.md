@@ -28,6 +28,11 @@ Two modes share one engine, chosen by what `--root` (default `process.cwd()`) lo
 | repo | `--root` has `docs/wiki/content` and `.agents/knowledge` | the live tree | wiki, changelog, knowledge |
 | snapshot | otherwise, when the package directory has `dist/corpus` | the packaged snapshot | wiki, changelog (no knowledge) |
 
+A checkout is recognised by all three corpus directories AND a root `package.json` named
+`@venizia/ignis-workspace`. The directories alone are a layout consumers copy: one carried both and
+no `changelogs`, and the server died on `ENOENT` before its first JSON-RPC line instead of serving
+its own snapshot.
+
 `src/cli/modes.ts`'s `findPackageDirectory` walks up from `__dirname` to the directory whose
 `package.json` names `@venizia/ignis-atlas` - never a fixed number of `..` segments, since a
 source run starts at `src/` and the built CLI starts at `dist/cjs/`. A root that satisfies neither

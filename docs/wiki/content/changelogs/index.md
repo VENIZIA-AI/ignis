@@ -17,6 +17,7 @@ This section tracks the history of significant changes, refactors, and updates t
 
 | Date | Title | Type |
 |------|-------|------|
+| 2026-09-07 | [Atlas Recognises the IGNIS Checkout by Its Workspace Manifest](./2026-09-07-atlas-checkout-detection) | Bug Fix |
 | 2026-09-07 | [Atlas Gains version and changes Tools and a Generated Release Table](./2026-09-07-atlas-versions) | New Feature |
 | 2026-09-07 | [CRUD Controllers Narrow Their Rows; The Asset Controller Takes Two Hooks](./2026-09-07-crud-scope-and-asset-hooks) | New Feature |
 | 2026-09-07 | [WorkerApplication Gains configs.projectRoot; BaseKafkaHelper Turns protected](./2026-09-07-worker-project-root-and-kafka-base-seams) | New Feature |

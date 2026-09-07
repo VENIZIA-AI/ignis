@@ -454,6 +454,10 @@ const config = defineConfig({
               collapsed: true,
               items: [
                 {
+                  text: 'Atlas Checkout Detection',
+                  link: '/changelogs/2026-09-07-atlas-checkout-detection',
+                },
+                {
                   text: 'Atlas version and changes Tools',
                   link: '/changelogs/2026-09-07-atlas-versions',
                 },

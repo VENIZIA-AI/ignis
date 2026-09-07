@@ -6,8 +6,15 @@ import {
   readRootArgument,
   resolveMode,
 } from '@/cli/modes';
+import {
+  CHANGELOG_DIRECTORY,
+  isRepositoryCheckout,
+  KNOWLEDGE_DIRECTORY,
+  WIKI_DIRECTORY,
+  WORKSPACE_PACKAGE_NAME,
+} from '@/common/layout';
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
-import { tmpdir } from 'node:os';
+import { homedir, tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, describe, expect, test } from 'bun:test';
 
@@ -31,8 +38,10 @@ afterEach(() => {
 /** A scratch directory laid out like a real checkout: `docs/wiki/content` and `.agents/knowledge`. */
 const makeRepositoryRoot = (): string => {
   const root = makeTempDirectory({ prefix: 'atlas-modes-repo-' });
-  mkdirSync(join(root, 'docs/wiki/content'), { recursive: true });
+  mkdirSync(join(root, 'docs/wiki/content/changelogs'), { recursive: true });
   mkdirSync(join(root, '.agents/knowledge'), { recursive: true });
+  // The manifest name is the marker: the directories alone are a layout a consumer also copies.
+  writeFileSync(join(root, 'package.json'), JSON.stringify({ name: WORKSPACE_PACKAGE_NAME }));
   return root;
 };
 
@@ -167,5 +176,49 @@ describe('readPackageVersion (I6)', () => {
   test('reads the real packages/atlas version from this test file location', () => {
     const packageDirectory = findPackageDirectory({ startDirectory: __dirname });
     expect(readPackageVersion({ directory: packageDirectory })).toMatch(/^\d+\.\d+\.\d+/);
+  });
+});
+
+describe('isRepositoryCheckout - only the IGNIS workspace', () => {
+  const roots: string[] = [];
+
+  const buildRoot = (opts: { name?: string; changelogs?: boolean }): string => {
+    const cacheDirectory = join(homedir(), '.cache');
+    mkdirSync(cacheDirectory, { recursive: true });
+    const root = mkdtempSync(join(cacheDirectory, 'ignis-checkout-marker-'));
+    roots.push(root);
+    mkdirSync(join(root, WIKI_DIRECTORY), { recursive: true });
+    mkdirSync(join(root, KNOWLEDGE_DIRECTORY), { recursive: true });
+    if (opts.changelogs !== false) {
+      mkdirSync(join(root, CHANGELOG_DIRECTORY), { recursive: true });
+    }
+    if (opts.name !== undefined) {
+      writeFileSync(join(root, 'package.json'), JSON.stringify({ name: opts.name }));
+    }
+    return root;
+  };
+
+  afterEach(() => {
+    for (const root of roots.splice(0)) {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  test('a consumer that copies the docs and knowledge layout is not a checkout', () => {
+    // The shape that killed the server in a consumer repository: both directories, another manifest.
+    expect(isRepositoryCheckout({ root: buildRoot({ name: '@nx/seller-monorepo' }) })).toBe(false);
+  });
+
+  test('the IGNIS workspace with every corpus directory is a checkout', () => {
+    expect(isRepositoryCheckout({ root: buildRoot({ name: WORKSPACE_PACKAGE_NAME }) })).toBe(true);
+  });
+
+  test('the IGNIS name without the changelog directory is not a checkout', () => {
+    const root = buildRoot({ name: WORKSPACE_PACKAGE_NAME, changelogs: false });
+    expect(isRepositoryCheckout({ root })).toBe(false);
+  });
+
+  test('no manifest at all is not a checkout', () => {
+    expect(isRepositoryCheckout({ root: buildRoot({}) })).toBe(false);
   });
 });

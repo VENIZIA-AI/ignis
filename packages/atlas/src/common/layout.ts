@@ -1,4 +1,4 @@
-import { existsSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { AtlasModes } from './constants';
 import type { TAtlasMode } from './types';
@@ -29,6 +29,32 @@ export const releasesFileOf = (opts: { mode: TAtlasMode; root: string }): string
     ? join(opts.root, KNOWLEDGE_DIRECTORY, 'reference', RELEASES_FILE)
     : join(opts.root, SNAPSHOT_DIRECTORY, RELEASES_FILE);
 
-/** Whether `root` is an IGNIS checkout: it carries both the wiki and the knowledge bundle. */
+/** The name of the IGNIS workspace manifest - the only marker no other repository shares. */
+export const WORKSPACE_PACKAGE_NAME = '@venizia/ignis-workspace';
+
+/** The IGNIS workspace manifest, or `undefined` when `root` has none or it is unreadable. */
+const workspaceNameOf = (opts: { root: string }): string | undefined => {
+  const file = join(opts.root, 'package.json');
+  if (!existsSync(file)) {
+    return undefined;
+  }
+
+  try {
+    const manifest: { name?: unknown } = JSON.parse(readFileSync(file, 'utf8'));
+    return typeof manifest.name === 'string' ? manifest.name : undefined;
+  } catch {
+    return undefined;
+  }
+};
+
+/**
+ * Whether `root` is the IGNIS checkout. Every corpus directory must exist AND the root manifest
+ * must be the IGNIS workspace: a consumer that copies the `docs/wiki` and `.agents/knowledge`
+ * layout would otherwise be read as a checkout, and the server would die on the first missing
+ * directory instead of serving its own packaged snapshot.
+ */
 export const isRepositoryCheckout = (opts: { root: string }): boolean =>
-  existsSync(join(opts.root, WIKI_DIRECTORY)) && existsSync(join(opts.root, KNOWLEDGE_DIRECTORY));
+  existsSync(join(opts.root, WIKI_DIRECTORY)) &&
+  existsSync(join(opts.root, CHANGELOG_DIRECTORY)) &&
+  existsSync(join(opts.root, KNOWLEDGE_DIRECTORY)) &&
+  workspaceNameOf({ root: opts.root }) === WORKSPACE_PACKAGE_NAME;

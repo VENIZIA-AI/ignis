@@ -1,10 +1,12 @@
 import { AtlasModes } from '@/common';
 import type { TAtlasMode } from '@/common';
 import {
+  CHANGELOG_DIRECTORY,
   isRepositoryCheckout,
   KNOWLEDGE_DIRECTORY,
   SNAPSHOT_DIRECTORY,
   WIKI_DIRECTORY,
+  WORKSPACE_PACKAGE_NAME,
 } from '@/common/layout';
 import { getError } from '@venizia/ignis-helpers/core';
 import { existsSync, readFileSync } from 'node:fs';
@@ -122,7 +124,7 @@ export const resolveMode = (opts: {
 
   if (explicitRoot) {
     throw new ModeUsageError(
-      `${root} is not an IGNIS checkout - a checkout needs ${WIKI_DIRECTORY} and ${KNOWLEDGE_DIRECTORY}`,
+      `${root} is not an IGNIS checkout - a checkout needs ${WIKI_DIRECTORY}, ${CHANGELOG_DIRECTORY}, ${KNOWLEDGE_DIRECTORY} and a root package.json named ${WORKSPACE_PACKAGE_NAME}`,
     );
   }
 

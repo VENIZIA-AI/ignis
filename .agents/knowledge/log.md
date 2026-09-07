@@ -36,6 +36,16 @@ not protected, because a protected member on the factory's anonymous returned cl
 declaration emit with TS4094. The static-asset controller takes `resolveObjectName` and
 `defineExtraRoutes`, threaded through the component options.
 
+## 2026-09-07 - Atlas recognised the wrong repository as its own checkout
+
+`isRepositoryCheckout` asked for two directories, `docs/wiki/content` and `.agents/knowledge` - a
+layout IGNIS invented and its consumers copy. BANA has both and no `docs/wiki/content/changelogs`,
+so repo mode was chosen in their repository and the loader threw `ENOENT` before the first JSON-RPC
+line; the MCP client reported `CONNECTION_CLOSED` and the packaged snapshot beside the binary was
+never reached. A marker must identify the repository, not its shape: the check now also requires the
+changelog directory and a root `package.json` named `@venizia/ignis-workspace`. Fixed in atlas
+0.1.0-4; regression tests build a foreign-manifest root and assert it is not a checkout.
+
 ## 2026-09-07 - two stale claims corrected against the source
 
 `WorkerApplication` was documented as having no `initialize()`, with "the only implementation is
