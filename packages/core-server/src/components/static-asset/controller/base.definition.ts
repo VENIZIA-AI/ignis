@@ -76,7 +76,7 @@ export const StaticAssetDefinitions = {
   GET_OBJECT_BY_NAME: {
     method: 'get',
     path: '/buckets/{bucketName}/objects/{objectName}',
-    // Native Hono path: /buckets/:bucketName/objects/:objectName{.+} - the regex param is what allows folder paths (photos/2024/file.jpg).
+    // `{objectName}` is ONE segment: a folder path travels percent-encoded (`photos%2F2024%2Ff.jpg`), not raw. A raw nested URL 404s - asserted in asset-controller.test.ts.
     request: {
       params: z.object({
         bucketName: z.string().openapi({
@@ -114,7 +114,7 @@ export const StaticAssetDefinitions = {
   DOWNLOAD_OBJECT_BY_NAME: {
     method: 'get',
     path: '/buckets/{bucketName}/download/{objectName}',
-    // Native Hono path: /buckets/:bucketName/download/:objectName{.+} - the action prefix must precede the wildcard because the Hono catch-all is greedy.
+    // `{objectName}` is ONE segment; a folder path travels percent-encoded, and the action prefix precedes it.
     request: {
       params: z.object({
         bucketName: z.string().openapi({
@@ -221,7 +221,7 @@ export const StaticAssetDefinitions = {
   DELETE_OBJECT: {
     method: 'delete',
     path: '/buckets/{bucketName}/objects/{objectName}',
-    // Native Hono path: /buckets/:bucketName/objects/:objectName{.+}
+    // `{objectName}` is ONE segment; a folder path travels percent-encoded.
     request: {
       params: z.object({
         bucketName: z.string().openapi({
@@ -311,7 +311,7 @@ export const StaticAssetDefinitions = {
   RECREATE_METALINK: {
     method: 'put',
     path: '/buckets/{bucketName}/meta-links/{objectName}',
-    // Native Hono path: /buckets/:bucketName/meta-links/:objectName{.+} - the action prefix must precede the wildcard because the Hono catch-all is greedy.
+    // `{objectName}` is ONE segment; a folder path travels percent-encoded, and the action prefix precedes it.
     request: {
       params: z.object({
         bucketName: z.string().openapi({

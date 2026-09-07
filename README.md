@@ -128,16 +128,24 @@ then [build a CRUD API](https://ignis.venizia.ai/guides/tutorials/building-a-cru
 
 ## Packages
 
-Each builds on the one above it - a change in `inversion` reaches everything.
+In release order - each builds on the ones above it, so a change in `inversion` reaches everything.
 
-| Package | Role |
-| :--- | :--- |
-| [`@venizia/ignis`](packages/core-server/) | The framework: application, controllers, repositories, models, components |
-| [`@venizia/ignis-boot`](packages/boot/) | Convention-based discovery and bootstrapping |
-| [`@venizia/ignis-helpers`](packages/helpers/) | Logger, Redis, queues, storage, crypto, network, UID |
-| [`@venizia/ignis-inversion`](packages/inversion/) | Standalone IoC container and decorators |
-| [`@venizia/dev-configs`](packages/dev-configs/) | Shared ESLint, Prettier, TypeScript configs |
-| [`@venizia/ignis-docs`](docs/wiki/) | Documentation site and MCP server |
+| Package | Role | Latest | Highest |
+| :--- | :--- | ---: | ---: |
+| [`@venizia/dev-configs`](packages/dev-configs/) | Shared ESLint, Prettier and TypeScript configs | [![npm](https://img.shields.io/npm/v/@venizia/dev-configs.svg?style=flat-square&color=cb3837)](https://www.npmjs.com/package/@venizia/dev-configs) | [![npm highest](https://img.shields.io/npm/v/@venizia/dev-configs/highest.svg?style=flat-square&color=f59e0b)](https://www.npmjs.com/package/@venizia/dev-configs) |
+| [`@venizia/ignis-inversion`](packages/inversion/) | Standalone IoC container, decorators and the error shape | [![npm](https://img.shields.io/npm/v/@venizia/ignis-inversion.svg?style=flat-square&color=cb3837)](https://www.npmjs.com/package/@venizia/ignis-inversion) | [![npm highest](https://img.shields.io/npm/v/@venizia/ignis-inversion/highest.svg?style=flat-square&color=f59e0b)](https://www.npmjs.com/package/@venizia/ignis-inversion) |
+| [`@venizia/ignis-filter`](packages/filter/) | The query filter language shared by every connector | [![npm](https://img.shields.io/npm/v/@venizia/ignis-filter.svg?style=flat-square&color=cb3837)](https://www.npmjs.com/package/@venizia/ignis-filter) | [![npm highest](https://img.shields.io/npm/v/@venizia/ignis-filter/highest.svg?style=flat-square&color=f59e0b)](https://www.npmjs.com/package/@venizia/ignis-filter) |
+| [`@venizia/ignis-helpers`](packages/helpers/) | Logger, Redis, queues, storage, crypto, network, UID | [![npm](https://img.shields.io/npm/v/@venizia/ignis-helpers.svg?style=flat-square&color=cb3837)](https://www.npmjs.com/package/@venizia/ignis-helpers) | [![npm highest](https://img.shields.io/npm/v/@venizia/ignis-helpers/highest.svg?style=flat-square&color=f59e0b)](https://www.npmjs.com/package/@venizia/ignis-helpers) |
+| [`@venizia/ignis-boot`](packages/boot/) | Artifact discovery and the generated index | [![npm](https://img.shields.io/npm/v/@venizia/ignis-boot.svg?style=flat-square&color=cb3837)](https://www.npmjs.com/package/@venizia/ignis-boot) | [![npm highest](https://img.shields.io/npm/v/@venizia/ignis-boot/highest.svg?style=flat-square&color=f59e0b)](https://www.npmjs.com/package/@venizia/ignis-boot) |
+| [`@venizia/ignis-kernel`](packages/kernel/) | Browser-pure core: DI, lifecycle, controllers, repositories | [![npm](https://img.shields.io/npm/v/@venizia/ignis-kernel.svg?style=flat-square&color=cb3837)](https://www.npmjs.com/package/@venizia/ignis-kernel) | [![npm highest](https://img.shields.io/npm/v/@venizia/ignis-kernel/highest.svg?style=flat-square&color=f59e0b)](https://www.npmjs.com/package/@venizia/ignis-kernel) |
+| [`@venizia/ignis-connectors`](packages/connectors/) | Relational and search datasources and repositories | [![npm](https://img.shields.io/npm/v/@venizia/ignis-connectors.svg?style=flat-square&color=cb3837)](https://www.npmjs.com/package/@venizia/ignis-connectors) | [![npm highest](https://img.shields.io/npm/v/@venizia/ignis-connectors/highest.svg?style=flat-square&color=f59e0b)](https://www.npmjs.com/package/@venizia/ignis-connectors) |
+| [`@venizia/ignis-worker`](packages/core-worker/) | The browser Worker host for a BFF | [![npm](https://img.shields.io/npm/v/@venizia/ignis-worker.svg?style=flat-square&color=cb3837)](https://www.npmjs.com/package/@venizia/ignis-worker) | [![npm highest](https://img.shields.io/npm/v/@venizia/ignis-worker/highest.svg?style=flat-square&color=f59e0b)](https://www.npmjs.com/package/@venizia/ignis-worker) |
+| [`@venizia/ignis`](packages/core-server/) | The server framework: application, components, static assets | [![npm](https://img.shields.io/npm/v/@venizia/ignis.svg?style=flat-square&color=cb3837)](https://www.npmjs.com/package/@venizia/ignis) | [![npm highest](https://img.shields.io/npm/v/@venizia/ignis/highest.svg?style=flat-square&color=f59e0b)](https://www.npmjs.com/package/@venizia/ignis) |
+| [`@venizia/ignis-atlas`](packages/atlas/) | MCP server over the wiki, changelogs, symbols and releases | [![npm](https://img.shields.io/npm/v/@venizia/ignis-atlas.svg?style=flat-square&color=cb3837)](https://www.npmjs.com/package/@venizia/ignis-atlas) | [![npm highest](https://img.shields.io/npm/v/@venizia/ignis-atlas/highest.svg?style=flat-square&color=f59e0b)](https://www.npmjs.com/package/@venizia/ignis-atlas) |
+
+**Latest** is the stable line. **Highest** is the newest published version, prerelease included, and
+it is the tag this repository releases to today. The documentation site lives in [`docs/wiki`](docs/wiki/)
+and is not published to npm.
 
 ## Is IGNIS for you?
 
