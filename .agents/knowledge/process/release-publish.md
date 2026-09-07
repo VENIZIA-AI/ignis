@@ -22,6 +22,22 @@ tags: [process, release, ci]
   finding. The public-surface snapshot tracks names and kinds only, so this is the check for
   signatures.
 
+## Atlas closes every chain
+
+`scripts/release.ts` appends `atlas` to any plan that carries a framework package, and refreshes the
+generated tables before releasing it. `--no-atlas` opts out for a single-package fix.
+
+- **Why the tail exists.** The atlas snapshot ships `releases.json` and `symbols.json`. Both are
+  generated FROM release commits and from built declarations, so a chain that ships without atlas
+  leaves the published tables one release behind, and `changes` answers "unknown version" for
+  exactly what just shipped.
+- **Why the refresh sits between them.** The tables cannot contain the release commits that create
+  them. The tail runs `make releases-gen` and `make symbols-gen` after the last framework package
+  has published, commits the two files when they moved, pushes, and only then releases atlas - so
+  the tarball is built from a commit that knows the whole chain.
+- **Why `releases-check` is not a build gate.** For the same reason: it is red between a release
+  and its refresh. It stays a target a human runs, never part of `make build-all`.
+
 ## Steps
 
 1. This is a `workflow_dispatch` workflow ("NPM Release") - it never runs on push, tag, or PR. A
