@@ -36,6 +36,18 @@ not protected, because a protected member on the factory's anonymous returned cl
 declaration emit with TS4094. The static-asset controller takes `resolveObjectName` and
 `defineExtraRoutes`, threaded through the component options.
 
+## 2026-09-07 - two stale claims corrected against the source
+
+`WorkerApplication` was documented as having no `initialize()`, with "the only implementation is
+`BaseApplication`'s, in core-server". Wrong since `ac7fd020` (2026-08-18): `RestApplication`
+implements it as one line handing `getBootSequence()` to `runBootSequence()`, and the worker
+inherits it - `startServing()` calls it, and a test subclass calls `super.initialize()`. What a
+worker really lacks is what core-server composes AROUND the nine kernel steps: `printStartUpInfo`,
+`validateEnvs`, `hydrateSecrets`, `wireSecretRotatables`, the scope-filter check. The changelog
+`2025-12-18-repository-validation-security` also ended on a stray opening fence left by the
+2026-06-14 docs refactor, which swallowed its last section out of the Atlas index and rendered it as
+code; closing it removed the only warning the server printed at startup.
+
 ## 2026-09-06 - one-release batch: projectRoot has readers, conditional index entries, generator ignore warning, check ignores the header, setListHeaders from offset + total
 
 Five framework changes land together and ship in one chain (Phat's rule: small releases, not one per item, and never bundle unrelated features - these are all seams BANA copied code to work around); the sixth item below, `check` comparing the body, already shipped in boot 0.2.0-14.
