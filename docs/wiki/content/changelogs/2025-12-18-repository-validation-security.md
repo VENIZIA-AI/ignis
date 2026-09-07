@@ -251,5 +251,3 @@ Ensure all `@repository` decorators have both `model` and `dataSource`.
 Replace MySQL-style REGEXP with PostgreSQL syntax:
 - `REGEXP` → uses `~` (case-sensitive)
 - `IREGEXP` → uses `~*` (case-insensitive)
-
-```
