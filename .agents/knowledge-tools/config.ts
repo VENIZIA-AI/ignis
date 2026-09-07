@@ -3,7 +3,7 @@
  *
  * Everything that knows the shape of THIS repository lives here: paths, denylists,
  * section order/labels, and the coverage axes. Porting the bundle to another repo
- * means editing this file; okf.ts / lib.ts / mcp.ts / viz.ts stay untouched.
+ * means editing this file; okf.ts / lib.ts / viz.ts stay untouched.
  *
  * Renderers themselves are code, not config - they live in the RENDERERS registry
  * at the top of okf.ts and read their paths from here.
@@ -30,7 +30,7 @@ export const PATHS = {
   examples: resolve(REPO, 'examples'),
   docs: resolve(REPO, 'docs/wiki'),
   coreComponents: resolve(REPO, 'packages/core-server/src/components'),
-  coreBindings: resolve(REPO, 'packages/core-server/src/common/bindings.ts'),
+  coreBindings: resolve(REPO, 'packages/kernel/src/common/bindings.ts'),
   bootBooters: resolve(REPO, 'packages/boot/src/booters'),
   helpersModules: resolve(REPO, 'packages/helpers/src/modules'),
   helpersUtilities: resolve(REPO, 'packages/helpers/src/utilities'),
@@ -65,10 +65,6 @@ export const SECTION_LABELS: Record<string, string> = {
   examples: 'Examples',
   reference: 'Reference',
 };
-
-/** Name advertised over the MCP stdio transport. */
-export const MCP_SERVER_NAME = 'ignis-knowledge';
-export const MCP_SERVER_VERSION = '0.1.0';
 
 /** Reserved OKF filenames that carry no `type:` frontmatter and are never counted as concepts. */
 export const RESERVED_FILES = new Set(['index.md', 'log.md']);

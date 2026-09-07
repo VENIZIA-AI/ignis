@@ -150,5 +150,5 @@ const products = await productRepository.find({
 
 **Files:**
 
-- [`packages/core-server/src/connectors/relational/repositories/dialect/filter.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/connectors/relational/repositories/dialect/filter.ts) - `FilterBuilder`, JSON path casting, `toColumns`
-- [`packages/core-server/src/connectors/postgres/repositories/dialect/query.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/connectors/postgres/repositories/dialect/query.ts) - `PostgresQueryOperators.FNS`, empty-array and array-operator handling
+- [`packages/connectors/src/relational/core/repositories/dialect/filter.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/connectors/src/relational/core/repositories/dialect/filter.ts) - `FilterBuilder`, JSON path casting, `toColumns`
+- [`packages/connectors/src/relational/postgres/repositories/dialect/query.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/connectors/src/relational/postgres/repositories/dialect/query.ts) - `PostgresQueryOperators.FNS`, empty-array and array-operator handling

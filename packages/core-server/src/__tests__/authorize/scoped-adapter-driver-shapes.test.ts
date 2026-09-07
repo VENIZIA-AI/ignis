@@ -1,10 +1,10 @@
 import { describe, expect, test } from 'bun:test';
 import { type SQL } from 'drizzle-orm';
-import { ScopedCasbinAdapter } from '@/components/auth/authorize/adapters/scoped-casbin.adapter';
+import { ScopedCasbinAdapter } from '@/components/auth/authorize/adapters/scoped-casbin';
 import type {
   ICasbinPolicySource,
   IScopedCasbinEntities,
-} from '@/components/auth/authorize/adapters/types';
+} from '@/components/auth/authorize/adapters/common';
 
 const entities = (): IScopedCasbinEntities => ({
   policyDefinition: { tableName: 'PolicyDefinition', schemaName: 'identity' },

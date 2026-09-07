@@ -40,7 +40,11 @@ export interface IPurityResult {
  *
  * Exported for `probe.test.ts` to assert against directly, alongside {@link stripBundlerPathComments}.
  */
-export const GLOBAL_PATTERNS: Array<{ name: string; pattern: RegExp; severity: 'error' | 'guarded' }> = [
+export const GLOBAL_PATTERNS: Array<{
+  name: string;
+  pattern: RegExp;
+  severity: 'error' | 'guarded';
+}> = [
   { name: 'process', pattern: /(?<![A-Za-z0-9_$.])process\s*\./, severity: 'error' },
   { name: 'process?.', pattern: /(?<![A-Za-z0-9_$.])process\s*\?\./, severity: 'guarded' },
   {
@@ -53,7 +57,11 @@ export const GLOBAL_PATTERNS: Array<{ name: string; pattern: RegExp; severity: '
     pattern: /(?<![A-Za-z0-9_$.])globalThis\s*\.\s*process\s*\?\./,
     severity: 'guarded',
   },
-  { name: '__dirname', pattern: /(?<![A-Za-z0-9_$.])__dirname(?![A-Za-z0-9_$])/, severity: 'error' },
+  {
+    name: '__dirname',
+    pattern: /(?<![A-Za-z0-9_$.])__dirname(?![A-Za-z0-9_$])/,
+    severity: 'error',
+  },
   {
     name: '__filename',
     pattern: /(?<![A-Za-z0-9_$.])__filename(?![A-Za-z0-9_$])/,
@@ -188,7 +196,11 @@ const findUnresolvedExternalSpecifiers = (opts: {
       }
 
       const specifier = dependency.original ?? dependency.path;
-      if (isRelativeSpecifier(specifier) || builtins.has(specifier) || isRequestedExternal(specifier)) {
+      if (
+        isRelativeSpecifier(specifier) ||
+        builtins.has(specifier) ||
+        isRequestedExternal(specifier)
+      ) {
         continue;
       }
 

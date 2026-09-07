@@ -1,0 +1,270 @@
+import { BaseHelper, getError } from '@venizia/ignis-helpers';
+import { readFileSync } from 'node:fs';
+import { join, resolve } from 'node:path';
+import ts from 'typescript';
+import {
+  ArtifactStereotypes,
+  ArtifactTypes,
+  type IScanOptions,
+  type IScanReport,
+  type IScannedArtifact,
+  type TArtifactType,
+} from './common';
+
+/** Finds exported classes carrying a stereotype decorator by reading the source, never by running it. */
+export class ArtifactScanner extends BaseHelper {
+  private static instance?: ArtifactScanner;
+
+  private constructor() {
+    super({ scope: ArtifactScanner.name });
+  }
+
+  static getInstance(): ArtifactScanner {
+    return (this.instance ??= new ArtifactScanner());
+  }
+
+  scan(opts: IScanOptions): IScannedArtifact[] {
+    return this.scanWithReport(opts).artifacts;
+  }
+
+  /** `scan` plus the decorated classes a caller's own `ignore` pattern hid - the generator prints them so a stale pattern cannot drop an artifact in silence. */
+  scanWithReport(opts: IScanOptions): IScanReport {
+    const root = resolve(opts.root);
+    const defaultGlobs = ArtifactStereotypes.DEFAULT_IGNORE.map(pattern => new Bun.Glob(pattern));
+    const userGlobs = (opts.ignore ?? []).map(pattern => new Bun.Glob(pattern));
+    const { kept, hidden } = this.partitionSourceFiles({ root, defaultGlobs, userGlobs });
+
+    return {
+      artifacts: this.sortArtifacts(kept.flatMap(filePath => this.scanFile({ filePath }))),
+      ignored: this.sortArtifacts(hidden.flatMap(filePath => this.scanHiddenFile({ filePath }))),
+    };
+  }
+
+  /** A hidden file is only reported on, never a reason to fail: a scan error becomes one warning and the file contributes nothing. */
+  private scanHiddenFile(opts: { filePath: string }): IScannedArtifact[] {
+    try {
+      return this.scanFile({ filePath: opts.filePath, isHidden: true });
+    } catch (error) {
+      const reason = error instanceof Error ? error.message : String(error);
+      this.logger.for('scanHiddenFile').warn('Skipped hidden file %s | %s', opts.filePath, reason);
+      return [];
+    }
+  }
+
+  private sortArtifacts(artifacts: IScannedArtifact[]): IScannedArtifact[] {
+    return artifacts.sort(
+      (a, b) => a.type.localeCompare(b.type) || a.className.localeCompare(b.className),
+    );
+  }
+
+  /** `kept` feeds the index; `hidden` is what only a user pattern excluded (a default pattern wins, so tests and generated files are never reported). */
+  private partitionSourceFiles(opts: {
+    root: string;
+    defaultGlobs: Bun.Glob[];
+    userGlobs: Bun.Glob[];
+  }): { kept: string[]; hidden: string[] } {
+    const kept: string[] = [];
+    const hidden: string[] = [];
+
+    for (const relative of new Bun.Glob('**/*.ts').scanSync({ cwd: opts.root })) {
+      if (relative.endsWith('.d.ts') || opts.defaultGlobs.some(glob => glob.match(relative))) {
+        continue;
+      }
+      const target = opts.userGlobs.some(glob => glob.match(relative)) ? hidden : kept;
+      target.push(join(opts.root, relative));
+    }
+
+    return { kept: kept.sort(), hidden: hidden.sort() };
+  }
+
+  private scanFile(opts: { filePath: string; isHidden?: boolean }): IScannedArtifact[] {
+    const { filePath, isHidden = false } = opts;
+    const source = ts.createSourceFile(
+      filePath,
+      readFileSync(filePath, 'utf8'),
+      ts.ScriptTarget.Latest,
+      true,
+    );
+
+    const stereotypeByLocalName = this.collectStereotypeImports({ source });
+    if (stereotypeByLocalName.size === 0) {
+      return [];
+    }
+
+    const exportedNames = this.collectExportClauseNames({ source });
+    const found: IScannedArtifact[] = [];
+
+    ts.forEachChild(source, node => {
+      if (!ts.isClassDeclaration(node) || !node.name) {
+        return;
+      }
+
+      const className = node.name.text;
+      const types = this.artifactTypesOf({
+        node,
+        stereotypeByLocalName,
+        filePath,
+        className,
+      });
+      if (types.length === 0) {
+        return;
+      }
+      if (types.length > 1) {
+        throw getError({
+          message: `[ArtifactScanner] ${filePath} | class ${className} carries ${types.length} stereotypes (${types.join(', ')}) - one class is one artifact`,
+        });
+      }
+
+      const modifiers = ts.getModifiers(node) ?? [];
+      const has = (kind: ts.SyntaxKind): boolean => modifiers.some(m => m.kind === kind);
+      const isNamedExport =
+        (has(ts.SyntaxKind.ExportKeyword) && !has(ts.SyntaxKind.DefaultKeyword)) ||
+        exportedNames.has(className);
+      const isAbstract = has(ts.SyntaxKind.AbstractKeyword);
+
+      if (!isNamedExport || isAbstract) {
+        if (!isHidden) {
+          this.logger
+            .for('scanFile')
+            .warn(
+              'Skipped %s in %s | %s',
+              className,
+              filePath,
+              isAbstract ? 'abstract' : 'not a named export',
+            );
+        }
+        return;
+      }
+
+      found.push({ className, filePath, type: types[0] });
+    });
+
+    return found;
+  }
+
+  /** local identifier -> stereotype name, for named imports from an IGNIS module (aliases resolved). */
+  private collectStereotypeImports(opts: { source: ts.SourceFile }): Map<string, string> {
+    const result = new Map<string, string>();
+
+    for (const statement of opts.source.statements) {
+      if (!ts.isImportDeclaration(statement) || !ts.isStringLiteral(statement.moduleSpecifier)) {
+        continue;
+      }
+      if (!ArtifactStereotypes.SOURCE_MODULES.test(statement.moduleSpecifier.text)) {
+        continue;
+      }
+
+      const bindings = statement.importClause?.namedBindings;
+      if (!bindings || !ts.isNamedImports(bindings)) {
+        continue;
+      }
+
+      for (const element of bindings.elements) {
+        const imported = (element.propertyName ?? element.name).text;
+        const isStereotype =
+          imported in ArtifactStereotypes.BY_DECORATOR ||
+          imported === ArtifactStereotypes.ROOT_DECORATOR;
+        if (isStereotype) {
+          result.set(element.name.text, imported);
+        }
+      }
+    }
+
+    return result;
+  }
+
+  private collectExportClauseNames(opts: { source: ts.SourceFile }): Set<string> {
+    const names = new Set<string>();
+
+    for (const statement of opts.source.statements) {
+      if (
+        ts.isExportDeclaration(statement) &&
+        statement.exportClause &&
+        ts.isNamedExports(statement.exportClause)
+      ) {
+        for (const element of statement.exportClause.elements) {
+          names.add((element.propertyName ?? element.name).text);
+        }
+      }
+    }
+
+    return names;
+  }
+
+  private artifactTypesOf(opts: {
+    node: ts.ClassDeclaration;
+    stereotypeByLocalName: Map<string, string>;
+    filePath: string;
+    className: string;
+  }): TArtifactType[] {
+    const { node, stereotypeByLocalName, filePath, className } = opts;
+    const types: TArtifactType[] = [];
+
+    for (const decorator of ts.getDecorators(node) ?? []) {
+      const expression = decorator.expression;
+      if (!ts.isCallExpression(expression) || !ts.isIdentifier(expression.expression)) {
+        continue;
+      }
+
+      const stereotype = stereotypeByLocalName.get(expression.expression.text);
+      if (!stereotype) {
+        continue;
+      }
+      if (stereotype !== ArtifactStereotypes.ROOT_DECORATOR) {
+        types.push(ArtifactStereotypes.BY_DECORATOR[stereotype]);
+        continue;
+      }
+
+      const type = this.typeOfInjectableCall({ call: expression });
+      if (!type) {
+        this.logger
+          .for('artifactTypesOf')
+          .warn(
+            'Skipped %s in %s | @injectable type is not a literal or ArtifactTypes.<NAME>',
+            className,
+            filePath,
+          );
+        continue;
+      }
+      types.push(type);
+    }
+
+    return types;
+  }
+
+  private typeOfInjectableCall(opts: { call: ts.CallExpression }): TArtifactType | undefined {
+    const [argument] = opts.call.arguments;
+    if (!argument || !ts.isObjectLiteralExpression(argument)) {
+      return undefined;
+    }
+
+    const property = argument.properties.find(
+      (entry): entry is ts.PropertyAssignment =>
+        ts.isPropertyAssignment(entry) && ts.isIdentifier(entry.name) && entry.name.text === 'type',
+    );
+    if (!property) {
+      return undefined;
+    }
+
+    const value = property.initializer;
+    if (ts.isStringLiteral(value)) {
+      return this.asArtifactType({ raw: value.text });
+    }
+    if (
+      ts.isPropertyAccessExpression(value) &&
+      ts.isIdentifier(value.expression) &&
+      value.expression.text === 'ArtifactTypes'
+    ) {
+      return this.asArtifactType({ raw: value.name.text.toLowerCase() });
+    }
+
+    return undefined;
+  }
+
+  private asArtifactType(opts: { raw: string }): TArtifactType | undefined {
+    const { raw } = opts;
+    return ArtifactStereotypes.EMIT_ORDER.map(entry => entry.type)
+      .concat(ArtifactTypes.MODEL)
+      .find(type => type === raw);
+  }
+}

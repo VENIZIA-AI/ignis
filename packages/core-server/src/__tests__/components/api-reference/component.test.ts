@@ -10,7 +10,7 @@ import {
   type IUIConfig,
   type IUIProvider,
 } from '@/components/api-reference/common';
-import { UIProviderFactory } from '@/components/api-reference/ui-factory';
+import { UIProviderFactory } from '@/components/api-reference/ui';
 import type { Context } from 'hono';
 import type { AnyType, ValueOrPromise } from '@venizia/ignis-helpers/common';
 import { describe, expect, test } from 'bun:test';

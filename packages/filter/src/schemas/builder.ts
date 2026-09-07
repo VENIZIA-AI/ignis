@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-import type { TSchemaDecorator } from './common/types';
+import type { TSchemaDecorator } from './common';
 
 /** The schemas are built by a factory rather than declared at module scope because documentation metadata has to be injected. `.openapi()` returns a NEW schema instead of mutating, and three of these decorations sit on inner nodes of a nested tree, so a consumer cannot annotate them after the tree is composed - the outer node would still hold the undecorated children. */
 /** Built with plain `zod`, never `@hono/zod-openapi`: the OpenAPI layer pulls in Hono, and these schemas must stay usable in a browser. `@hono/zod-openapi` declares `zod` as a peer, so it patches the same prototype - a server that imports it can decorate these schemas even though they were built without it. */

@@ -1,7 +1,7 @@
 import { BaseHelper } from '@/modules/base';
 import { getError } from '@/modules/error';
 import os from 'node:os';
-import { IWorker } from './types';
+import { IWorker } from './common';
 
 export class WorkerPoolHelper extends BaseHelper {
   private static instance: WorkerPoolHelper;

@@ -1,9 +1,9 @@
 import { BaseHelper } from '@/modules/base';
 import { getError } from '@/modules/error';
 import isEmpty from 'lodash/isEmpty';
+import { TFetcherVariant } from './common';
 import { IFetchable, IRequestOptions } from './fetcher/base-fetcher';
-import { TFetcherResponse, TFetcherWorker } from './fetcher/types';
-import { TFetcherVariant } from './types';
+import { TFetcherResponse, TFetcherWorker } from './fetcher/common';
 
 export class BaseNetworkRequest<T extends TFetcherVariant> extends BaseHelper {
   protected baseUrl: string;

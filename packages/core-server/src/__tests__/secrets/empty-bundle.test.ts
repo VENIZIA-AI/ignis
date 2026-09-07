@@ -38,7 +38,10 @@ afterEach(() => {
 describe('hydrateSecrets empty-bundle handling', () => {
   test('production: an empty bundle for a keyed hydrate entry fails closed', async () => {
     process.env.NODE_ENV = 'production';
-    const app = new EmptyHydrateApp({ scope: 'probe', config: {} as AnyType });
+    const app = new EmptyHydrateApp({
+      scope: 'probe',
+      config: { path: { base: '', isStrict: false } },
+    });
 
     await expectRejection({
       task: app.hydrateSecrets(),
@@ -48,7 +51,10 @@ describe('hydrateSecrets empty-bundle handling', () => {
 
   test('development: an empty bundle warns and boot continues', async () => {
     process.env.NODE_ENV = 'development';
-    const app = new EmptyHydrateApp({ scope: 'probe', config: {} as AnyType });
+    const app = new EmptyHydrateApp({
+      scope: 'probe',
+      config: { path: { base: '', isStrict: false } },
+    });
 
     expect(await app.hydrateSecrets()).toBeUndefined();
   });

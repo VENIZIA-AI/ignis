@@ -1,5 +1,7 @@
 import type { TNullable } from '@/common/types';
-import { getError } from './app-error';
+import type { TError } from './common';
+
+type TErrorFactory = (opts: TError) => Error;
 
 export class MessageCode {
   static readonly SEPARATOR = '.';
@@ -7,12 +9,25 @@ export class MessageCode {
   static readonly MIN_SEGMENTS = 2;
   static readonly DEFAULT = 'core.system_error';
 
+  // The one permitted raw `new Error`, used only until `src/index.ts` registers `getError`.
+  private static errorFactory: TErrorFactory = opts =>
+    new Error(typeof opts.message === 'string' ? opts.message : JSON.stringify(opts.message));
+
+  /**
+   * Registered by the package entry at module init; keeps the throws identical without a
+   * static import of app-error (that import was the cycle).
+   * @internal Framework wiring; consumers must not replace the factory.
+   */
+  static useErrorFactory(opts: { factory: TErrorFactory }): void {
+    this.errorFactory = opts.factory;
+  }
+
   /** Builds a code from its segments, throwing on a malformed one - codes are declared at module scope, so a bad code fails the process at import instead of shipping dead into production. */
   static build(opts: { parts: Array<string> }): string {
     const { parts } = opts;
 
     if (parts.length < this.MIN_SEGMENTS) {
-      throw getError({
+      throw this.errorFactory({
         messageCode: 'core.message_code.invalid_segment_count',
         message: `[MessageCode][build] A code needs at least ${this.MIN_SEGMENTS} segments (namespace + reason) | Got: ${JSON.stringify(parts)}`,
       });
@@ -20,7 +35,7 @@ export class MessageCode {
 
     for (const segment of parts) {
       if (!this.SEGMENT_PATTERN.test(segment)) {
-        throw getError({
+        throw this.errorFactory({
           messageCode: 'core.message_code.invalid_segment_format',
           message: `[MessageCode][build] Invalid segment '${segment}' | Expected lower snake_case (a-z, 0-9, '_') | Full: ${JSON.stringify(parts)}`,
         });

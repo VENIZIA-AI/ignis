@@ -25,7 +25,7 @@ const coreApiSidebar: DefaultTheme.SidebarItem[] = [
     items: [
       { text: 'Overview', link: '/references/base/' },
       { text: 'Application', link: '/references/base/application' },
-      { text: 'Bootstrapping', link: '/references/base/bootstrapping' },
+      { text: 'Artifact Registration', link: '/references/base/bootstrapping' },
       { text: 'Components', link: '/references/base/components' },
       {
         text: 'Controllers',
@@ -126,7 +126,7 @@ const coreApiSidebar: DefaultTheme.SidebarItem[] = [
 ];
 
 // ── Sidebar: Extensions ──
-// Shown for: /extensions/components/*, /extensions/helpers/*, /extensions/src-details/*
+// Shown for: /extensions/components/*, /extensions/helpers/*, /extensions/atlas/*
 const extensionsSidebar: DefaultTheme.SidebarItem[] = [
   {
     text: 'Extensions',
@@ -321,11 +321,9 @@ const extensionsSidebar: DefaultTheme.SidebarItem[] = [
     ],
   },
   {
-    text: 'Framework Internals',
-    collapsed: true,
-    items: [
-      { text: 'MCP Docs Server', link: '/extensions/src-details/mcp-server' },
-    ],
+    text: 'Atlas',
+    collapsed: false,
+    items: [{ text: 'Overview', link: '/extensions/atlas/' }],
   },
 ];
 
@@ -451,6 +449,134 @@ const config = defineConfig({
           text: 'History',
           collapsed: false,
           items: [
+            {
+              text: '2026-09-07',
+              collapsed: true,
+              items: [
+                {
+                  text: 'Atlas Checkout Detection',
+                  link: '/changelogs/2026-09-07-atlas-checkout-detection',
+                },
+                {
+                  text: 'Atlas version and changes Tools',
+                  link: '/changelogs/2026-09-07-atlas-versions',
+                },
+                {
+                  text: 'CRUD Base Where and Asset Hooks',
+                  link: '/changelogs/2026-09-07-crud-scope-and-asset-hooks',
+                },
+                {
+                  text: 'Worker projectRoot and Kafka Base Seams',
+                  link: '/changelogs/2026-09-07-worker-project-root-and-kafka-base-seams',
+                },
+                {
+                  text: 'Atlas symbol Tool and Symbol Table',
+                  link: '/changelogs/2026-09-07-atlas-symbols',
+                },
+              ],
+            },
+            {
+              text: '2026-09-06',
+              collapsed: true,
+              items: [
+                {
+                  text: 'BullMQ/Kafka Helper Extension Seams',
+                  link: '/changelogs/2026-09-06-helpers-queue-seams',
+                },
+                {
+                  text: 'setListHeaders from offset + total',
+                  link: '/changelogs/2026-09-06-list-headers-from-offset-and-total',
+                },
+                {
+                  text: 'ignis-artifacts Warns on Hidden Artifacts',
+                  link: '/changelogs/2026-09-06-generator-warns-on-ignored-artifacts',
+                },
+                {
+                  text: 'Conditional Artifact Index Entries',
+                  link: '/changelogs/2026-09-06-conditional-artifact-index-entries',
+                },
+                {
+                  text: 'configs.projectRoot',
+                  link: '/changelogs/2026-09-06-configs-project-root',
+                },
+                {
+                  text: 'ignis-artifacts check Ignores the Header',
+                  link: '/changelogs/2026-09-06-artifacts-check-compares-the-body',
+                },
+                {
+                  text: 'helpers zod-openapi Peer and Generator Header',
+                  link: '/changelogs/2026-09-06-helpers-peer-and-generator-header',
+                },
+                {
+                  text: 'Bun.serve Options in configs.server',
+                  link: '/changelogs/2026-09-06-bun-serve-options',
+                },
+                {
+                  text: 'Bare @repository() and Quiet CLI',
+                  link: '/changelogs/2026-09-06-repository-inheritance-and-quiet-cli',
+                },
+                {
+                  text: 'Shared Singletons Across Module Copies',
+                  link: '/changelogs/2026-09-06-shared-singletons-across-module-copies',
+                },
+                {
+                  text: 'ignis-docs-mcp Becomes ignis-atlas',
+                  link: '/changelogs/2026-09-06-ignis-atlas',
+                },
+              ],
+            },
+            {
+              text: '2026-09-05',
+              collapsed: true,
+              items: [
+                {
+                  text: 'ignis Drops ignis-boot',
+                  link: '/changelogs/2026-09-05-core-drops-boot-dependency',
+                },
+                {
+                  text: 'Boot Checks',
+                  link: '/changelogs/2026-09-05-boot-checks',
+                },
+                {
+                  text: 'List Responses Share One Contract',
+                  link: '/changelogs/2026-09-05-list-response-contract',
+                },
+              ],
+            },
+            {
+              text: '2026-09-04',
+              collapsed: true,
+              items: [
+                {
+                  text: 'Dependency Floors Raised Across the Chain',
+                  link: '/changelogs/2026-09-04-dependency-floors-raised',
+                },
+              ],
+            },
+            {
+              text: '2026-09-03',
+              collapsed: true,
+              items: [
+                {
+                  text: 'The Deprecated Runtime Boot API Is Fully Removed',
+                  link: '/changelogs/2026-09-03-deprecated-boot-api-removed',
+                },
+              ],
+            },
+            {
+              text: '2026-09-02',
+              collapsed: true,
+              items: [
+                {
+                  text: 'Bundled and Compiled Apps - Helpers Exports Stay Defined, NODE_ENV Stays a Runtime Read, One Logger Provider Across Copies',
+                  link: '/changelogs/2026-09-02-bundle-safe-helpers',
+                },
+                {
+                  text: 'Artifacts Register From a Generated Index, and the Runtime Boot System Is Retired',
+                  link: '/changelogs/2026-09-02-decorator-artifact-registration',
+                },
+              ],
+            },
             {
               text: '2026-08-31',
               collapsed: true,
@@ -1224,7 +1350,7 @@ const config = defineConfig({
               collapsed: true,
               items: [
                 { text: 'Overview', link: '/guides/core-concepts/application/' },
-                { text: 'Bootstrapping', link: '/guides/core-concepts/application/bootstrapping' },
+                { text: 'Registering Artifacts', link: '/guides/core-concepts/application/bootstrapping' },
               ],
             },
             {
@@ -1273,10 +1399,7 @@ const config = defineConfig({
         {
           text: 'Reference',
           collapsed: true,
-          items: [
-            { text: 'Glossary', link: '/guides/reference/glossary' },
-            { text: 'MCP Docs Server', link: '/guides/reference/mcp-docs-server' },
-          ],
+          items: [{ text: 'Glossary', link: '/guides/reference/glossary' }],
         },
         {
           text: 'Migrations',
@@ -1285,6 +1408,7 @@ const config = defineConfig({
             { text: 'Unified Connectors (BANA)', link: '/guides/migrations/unified-connectors-migration' },
           { text: 'Scoped RBAC (from DrizzleCasbinAdapter)', link: '/guides/migrations/scoped-rbac-migration' },
             { text: 'Redis Helper API (rename + camelCase)', link: '/guides/migrations/redis-helpers-migration' },
+            { text: 'Boot API removal (BANA upgrade)', link: '/guides/migrations/boot-api-removal-migration' },
           ],
         },
       ],
@@ -1300,7 +1424,7 @@ const config = defineConfig({
       '/extensions/': extensionsSidebar,
       '/extensions/components/': extensionsSidebar,
       '/extensions/helpers/': extensionsSidebar,
-      '/extensions/src-details/': extensionsSidebar,
+      '/extensions/atlas/': extensionsSidebar,
     },
 
     socialLinks: [{ icon: 'github', link: 'https://github.com/VENIZIA-AI/ignis' }],

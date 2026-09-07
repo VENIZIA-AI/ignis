@@ -66,7 +66,7 @@ const wasm = readFileSync(new URL('../dist/native.wasm', import.meta.url));
 
 ## Why the package lookup fails
 
-Since 2.8.0, `@platformatic/kafka` resolves two dependencies at module scope through `createRequire`:
+`@platformatic/kafka` 2.8 and 2.9 resolve two dependencies at module scope through `createRequire` (2.10.0 removed both `require()` calls, see below):
 
 ```javascript
 // @platformatic/kafka/dist/registries/confluent-schema-registry.js
@@ -82,6 +82,8 @@ Three facts make that fatal in a binary:
 - **A compiled binary has no `node_modules`.** `import.meta.url` resolves against `/$bunfs` and the lookup fails.
 
 `platformaticRequirePlugin()` rewrites each module-scope `require()` into a static import at bundle time, so the bundler pulls the module into the binary.
+
+On `@platformatic/kafka` 2.10.0 and later the module-scope `require()` is gone (platformatic/kafka#378) and this plugin matches nothing. Keep `platformaticKafkaPlugins()` anyway: the wasm read above still needs `platformaticWasmPlugin()`, and the require plugin still protects a compile that resolves 2.8 or 2.9.
 
 > [!WARNING]
 > Installing `ajv-draft-04` as a direct dependency does not fix this. The defect is the resolution mechanism, not a missing package, so the second line fails identically.

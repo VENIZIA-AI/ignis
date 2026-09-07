@@ -1,5 +1,9 @@
 import { LoggerFactory } from '@venizia/ignis-helpers';
+import { WinstonLogger } from '@venizia/ignis-helpers/winston';
 import { Application, beConfigs } from './application';
+
+// A compiled binary cannot load the default provider at run time; only a class reference carries it into the bundle.
+LoggerFactory.use({ provider: WinstonLogger });
 
 const logger = LoggerFactory.getLogger(['main']);
 

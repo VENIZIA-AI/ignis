@@ -8,7 +8,7 @@ import type { Context, Next } from 'hono';
 import { Authentication } from '../auth';
 import { ServiceAssertion } from '@venizia/ignis-kernel';
 import { ApiReferenceBindingKeys, DocumentUITypes, IApiReferenceOptions } from './common';
-import { UIProviderFactory } from './ui-factory';
+import { UIProviderFactory } from './ui';
 
 const DEFAULT_API_REFERENCE_OPTIONS: IApiReferenceOptions = {
   restOptions: {

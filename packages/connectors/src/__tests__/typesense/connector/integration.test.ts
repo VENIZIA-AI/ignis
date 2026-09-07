@@ -1,7 +1,7 @@
 // Env-gated (skips unless APP_ENV_TYPESENSE_NODES / APP_ENV_TYPESENSE_API_KEY are set).
 import { describe, test, expect } from 'bun:test';
 import { TypesenseConnector } from '@/search/typesense/connector';
-import { TypesenseImportActions } from '@/search/typesense/types';
+import { TypesenseImportActions } from '@/search/typesense/common';
 
 const rawNodes = process.env['APP_ENV_TYPESENSE_NODES'];
 const apiKey = process.env['APP_ENV_TYPESENSE_API_KEY'];

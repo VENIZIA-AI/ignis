@@ -12,16 +12,19 @@ tags: [process, test, bun]
    (`dist/`), so an unbuilt dependency produces hundreds of module-resolution failures that look
    like test failures but are not. Run `make build` or at least build everything upstream of the
    package you're testing (see [build system](/process/build-system.md)).
-2. `core`, `helpers`, and `inversion` have no `test` script in `package.json`. Run tests directly:
-   `cd packages/core-server && bun test` (or `packages/helpers`, `packages/inversion`). `bun test`
-   discovers `*.test.ts` under `src/__tests__/` and runs the TypeScript sources directly - no
-   compile step needed for the tests themselves.
-3. `boot` is the exception. Its `package.json` defines `"test": "NODE_ENV=test bun test
-   --env-file=.env.test dist/cjs/__tests__/{**/**,**}/*.test.js"` with `"pretest": "bun run
-   rebuild"`. Running `cd packages/boot && bun test` first rebuilds the package, then runs the
-   *compiled* `.js` tests out of `dist/cjs/__tests__/`, not the `.ts` sources. `boot`'s `build.sh`
-   intentionally includes `__tests__` in its CJS/ESM output for exactly this reason (unlike
-   `core`/`helpers`, whose `tsconfig.build.json` excludes tests from what ships).
+2. Run a suite through its make target from the repository root: `make test-<package>`
+   (`inversion`, `helpers`, `boot`, `kernel`, `connectors`, `core-worker`, `core-server`) or
+   `make test-all`. The targets are the one home of the test flags - `BUN_TEST_FLAGS`, default
+   `--parallel`, which implies `--isolate`: a fresh global and module registry per file, and the
+   servers and timers a file left open are closed between files. CI calls the same targets, so a
+   suite that is green for you is green there under the same command. `bun test` discovers
+   `*.test.ts` under `src/__tests__/` and runs the TypeScript sources directly - no compile step
+   for the tests themselves. A bare `cd packages/<name> && bun test` still works, without the
+   isolation. `filter` has no suite.
+3. `boot` is the exception: its `package.json` defines `"test": "NODE_ENV=test bun test
+   --env-file=.env.test"`, and `make test-boot` runs `bun run test` so that script stays the single
+   owner of boot's environment (`bun run` appends the flags to it). Its tests are sources under
+   `src/__tests__/` like every other package.
 4. Set `NODE_ENV=test` (or use `--env-file=.env.test`, as `boot` does) so each package's
    `.env.test` loads - it points log/audit output at `./app_data/` (gitignored) instead of the
    package root.

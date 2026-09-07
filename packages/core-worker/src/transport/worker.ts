@@ -1,7 +1,7 @@
 import { BaseHelper, getError } from '@venizia/ignis-helpers/core';
 import { RequestIdGenerator } from '@venizia/ignis-helpers/core';
 import { BffEnvelope } from '@/envelope/encode';
-import type { IBffErrorEnvelope, IBffResponseEnvelope } from '@/envelope/types';
+import type { IBffErrorEnvelope, IBffResponseEnvelope } from '@/envelope/common';
 import type { IBffTransport } from './common/types';
 
 const DEFAULT_TIMEOUT_MS = 30_000;

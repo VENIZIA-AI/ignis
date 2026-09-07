@@ -13,7 +13,7 @@ import {
   ISearchSynonymSetScoped,
 } from '@/search/core';
 import { BaseSearchEntity, defineSearchCollection, field, ISynonym } from '@/search/core/models';
-import { ITypesenseDataSourceSettings } from '@/search/typesense/types';
+import { ITypesenseDataSourceSettings } from '@/search/typesense/common';
 
 /** Records every connector call and serves canned responses; shared across the repository test suites so the fake stays in one place. */
 export class FakeSearchEngineHelper implements ISearchConnector {

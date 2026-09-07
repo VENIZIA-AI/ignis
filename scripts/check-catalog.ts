@@ -13,7 +13,11 @@ interface IProblem {
   message: string;
 }
 
-const WORKSPACE_GLOBS = ['packages/*/package.json', 'examples/*/package.json', 'docs/*/package.json'];
+const WORKSPACE_GLOBS = [
+  'packages/*/package.json',
+  'examples/*/package.json',
+  'docs/*/package.json',
+];
 
 /** `peerDependencies` are compatibility statements for consumers and stay deliberately looser than the install range. */
 const CATALOGUED_BLOCKS = ['dependencies', 'devDependencies'] as const;
@@ -36,7 +40,10 @@ for (const pattern of WORKSPACE_GLOBS) {
     try {
       json = JSON.parse(await Bun.file(file).text());
     } catch (error) {
-      problems.push({ file, message: `invalid JSON - ${error instanceof Error ? error.message : error}` });
+      problems.push({
+        file,
+        message: `invalid JSON - ${error instanceof Error ? error.message : error}`,
+      });
       continue;
     }
 
@@ -79,11 +86,16 @@ for (const dep of Object.keys(catalog)) {
     continue;
   }
 
-  problems.push({ file: 'package.json', message: `catalog entry "${dep}" is referenced by no workspace - drop it` });
+  problems.push({
+    file: 'package.json',
+    message: `catalog entry "${dep}" is referenced by no workspace - drop it`,
+  });
 }
 
 if (problems.length === 0) {
-  console.log(`check-catalog: OK - ${Object.keys(catalog).length} entries, ${referenced.size} referenced`);
+  console.log(
+    `check-catalog: OK - ${Object.keys(catalog).length} entries, ${referenced.size} referenced`,
+  );
   process.exit(0);
 }
 

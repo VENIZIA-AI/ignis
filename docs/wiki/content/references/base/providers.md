@@ -10,7 +10,7 @@ lastUpdated: 2026-03-15
 Providers implement the Factory pattern in IGNIS, allowing you to create and configure instances dynamically at runtime based on configuration or context. Unlike services that contain business logic, providers are factories that produce values, instances, or functions.
 
 **Files:**
-- `packages/core-server/src/base/providers/base.ts`
+- `packages/kernel/src/base/providers/base.ts`
 
 ## Prerequisites
 

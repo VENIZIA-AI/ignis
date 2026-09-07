@@ -4,7 +4,7 @@ import { BaseFilteredAdapter } from '@/components/auth/authorize/adapters/base-f
 import type {
   ICasbinPolicyFilter,
   ICasbinPolicySource,
-} from '@/components/auth/authorize/adapters/types';
+} from '@/components/auth/authorize/adapters/common';
 
 /** The base is a thin, read-only template, so a tiny subclass exercises every branch - the only abstract member is loadFilteredPolicy. */
 

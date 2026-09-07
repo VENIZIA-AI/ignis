@@ -470,7 +470,7 @@ export abstract class BaseDataSource<...> {
 ```typescript
 // Boot application
 const app = new MyApplication();
-await app.boot();
+await app.start();
 
 // Auto-update all models
 const dataSource = app.getSync<PostgresDataSource>('datasources.PostgresDataSource');

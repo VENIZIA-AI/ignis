@@ -6,19 +6,53 @@ resource: .github/workflows/package-release.yml
 tags: [process, release, ci]
 ---
 
+## Before a chain release
+
+- Release from `develop` through `bun scripts/release.ts` (`--dry-run` first): it dispatches this
+  workflow one package at a time in dependency order (dev-configs, inversion, filter, helpers, boot,
+  kernel, connectors, core-worker, core-server, atlas), waits for each run, and reads the registry back
+  before the next dispatch - a range that goes stale mid-flight fails the run. The script refuses an
+  unpushed or non-`develop` checkout because the workflow builds `origin/develop`.
+- Measure the downstream consumer before dispatching, not after: copy the consumer repository to a
+  temp directory without `node_modules`, recreate its `node_modules` as symlinks to the original
+  entries with every `@venizia/*` entry pointed at the freshly built `packages/<name>` (dependency
+  versions pinned to the consumer's own resolved copies, or two `zod`/`hono` trees land in one
+  program), run `tsc --noEmit` per consumer package, and diff against the same run with the
+  pinned versions. Every new error must map to a documented breaking change; the rest is the
+  finding. The public-surface snapshot tracks names and kinds only, so this is the check for
+  signatures.
+
+## Atlas closes every chain
+
+`scripts/release.ts` appends `atlas` to any plan that carries a framework package, and refreshes the
+generated tables before releasing it. `--no-atlas` opts out for a single-package fix.
+
+- **Why the tail exists.** The atlas snapshot ships `releases.json` and `symbols.json`. Both are
+  generated FROM release commits and from built declarations, so a chain that ships without atlas
+  leaves the published tables one release behind, and `changes` answers "unknown version" for
+  exactly what just shipped.
+- **Why the refresh sits between them.** The tables cannot contain the release commits that create
+  them. The tail runs `make releases-gen` and `make symbols-gen` after the last framework package
+  has published, commits the two files when they moved, pushes, and only then releases atlas - so
+  the tarball is built from a commit that knows the whole chain.
+- **Why `releases-check` is not a build gate.** For the same reason: it is red between a release
+  and its refresh. It stays a target a human runs, never part of `make build-all`.
+
 ## Steps
 
 1. This is a `workflow_dispatch` workflow ("NPM Release") - it never runs on push, tag, or PR. A
    human triggers it from the GitHub Actions tab (or `gh workflow run`) and picks two required
    inputs:
    - `package`: one of `dev-configs`, `inversion`, `filter`, `helpers`, `boot`, `kernel`,
-     `connectors`, `core-server`, `core-worker`, `docs-mcp`.
+     `connectors`, `core-server`, `core-worker`, `atlas`.
    - `build_mode`: the semver bump - `patch`, `minor`, `major`, `prepatch`, `preminor`, `premajor`,
      or `prerelease` (default `patch`).
    A repository-wide `concurrency: npm-release` group serialises runs. A second dispatch waits; a
    third one cancels the waiting one, because the chain has to be released in order anyway.
-2. The job resolves `PACKAGE_PATH` from the chosen package (`docs-mcp` maps to `docs/wiki`,
-   everything else to `packages/<name>`) and reads its current `package.json` name and version.
+2. The job resolves `PACKAGE_PATH` as `packages/<name>` for the chosen package and reads its
+   current `package.json` name and version. `docs/wiki` (`@venizia/ignis-docs`) has no entry in
+   this list - it lost its release path when the `docs-mcp` input retired with the MCP server it
+   built, and is not currently republished through this workflow.
 3. `bun run --filter "@venizia/*" force-update "highest"` runs BEFORE `bun install`, and over the
    WHOLE workspace rather than the one package being released.
    - Before the install, because `force-update` rewrites the internal version ranges and an install

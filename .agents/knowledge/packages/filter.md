@@ -58,7 +58,7 @@ even fixing the original sites. Each of the four sites instead carries a narrow
 `as TWhere<DataObject>` cast with a one-line comment.
 
 It sits **beside** helpers in the dependency chain, not after it:
-`dev-configs -> inversion -> {filter, helpers} -> {boot, kernel} -> core`. Its only dependency is
+`dev-configs -> inversion -> {filter, helpers} -> kernel -> core`. Its only dependency is
 `@venizia/ignis-inversion`, which supplies both `getError` and `TConstValue` - helpers duplicates
 `TConstValue`, so depending on helpers would have been a heavier edge for no gain.
 

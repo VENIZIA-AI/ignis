@@ -20,7 +20,11 @@ export interface IKafkaBaseOptions<TClient extends Base<BaseOptions>> {
   onBrokerDisconnect?: TKafkaBrokerEventCallback;
 }
 
-/** Shared health tracking and broker event wiring for all Kafka helpers (producer, consumer, admin); `TClient` is the platformatic client type, passed by subclasses via `super({ client })`. */
+/**
+ * Shared health tracking and broker event wiring for all Kafka helpers (producer, consumer, admin); `TClient` is the platformatic client type, passed by subclasses via `super({ client })`.
+ *
+ * Every member below is `protected`, not `private`, so a producer, consumer, or admin helper can extend this class instead of forking it. That visibility is not a stable contract between minor versions.
+ */
 export abstract class BaseKafkaHelper<TClient extends Base<BaseOptions>> extends BaseHelper {
   protected client: TClient;
   protected readonly shutdownTimeout: number;
@@ -28,10 +32,10 @@ export abstract class BaseKafkaHelper<TClient extends Base<BaseOptions>> extends
   protected healthStatus: TKafkaHealthStatus = KafkaHealthStatuses.UNKNOWN;
 
   /** Per-broker connection state. Key = "host:port" */
-  private readonly connectedBrokers = new Set<string>();
+  protected readonly connectedBrokers = new Set<string>();
 
-  private readonly onBrokerConnect?: TKafkaBrokerEventCallback;
-  private readonly onBrokerDisconnect?: TKafkaBrokerEventCallback;
+  protected readonly onBrokerConnect?: TKafkaBrokerEventCallback;
+  protected readonly onBrokerDisconnect?: TKafkaBrokerEventCallback;
 
   constructor(opts: IKafkaBaseOptions<TClient>) {
     super({ scope: opts.scope, identifier: opts.identifier });

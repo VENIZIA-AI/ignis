@@ -6,6 +6,7 @@ import { HTTP } from '@venizia/ignis-helpers/common';
 import type { Env, Schema } from 'hono';
 import type { TEntityDataObject, TEntityPersistObject, TRouteContext } from '../../common';
 import { ReadableCrudController } from './readable';
+import { ResponseFormats } from '../../common';
 
 /** Write tier: create / updateById / updateBy / deleteById / deleteBy. Inherits the read verbs. */
 export abstract class PersistableCrudController<
@@ -36,8 +37,8 @@ export abstract class PersistableCrudController<
       task: async () =>
         this.respond<TDataObject>({
           context,
-          format: 'object',
-          responseData: await this.repository.create({ data }),
+          format: ResponseFormats.OBJECT,
+          payload: await this.repository.create({ data }),
         }),
     });
 
@@ -56,8 +57,8 @@ export abstract class PersistableCrudController<
       task: async () =>
         this.respond<TDataObject>({
           context,
-          format: 'object',
-          responseData: await this.repository.updateById({ id, data }),
+          format: ResponseFormats.OBJECT,
+          payload: await this.repository.updateById({ id, data }),
         }),
     });
 
@@ -82,8 +83,8 @@ export abstract class PersistableCrudController<
       task: async () =>
         this.respond<Array<TDataObject>>({
           context,
-          format: 'array',
-          responseData: await this.repository.updateBy({ where, data }),
+          format: ResponseFormats.ARRAY,
+          payload: await this.repository.updateBy({ where, data }),
         }),
     });
 
@@ -101,8 +102,8 @@ export abstract class PersistableCrudController<
       task: async () =>
         this.respond<TDataObject>({
           context,
-          format: 'object',
-          responseData: await this.repository.deleteById({ id }),
+          format: ResponseFormats.OBJECT,
+          payload: await this.repository.deleteById({ id }),
         }),
     });
 
@@ -125,8 +126,8 @@ export abstract class PersistableCrudController<
       task: async () =>
         this.respond<Array<TDataObject>>({
           context,
-          format: 'array',
-          responseData: await this.repository.deleteBy({ where }),
+          format: ResponseFormats.ARRAY,
+          payload: await this.repository.deleteBy({ where }),
         }),
     });
 

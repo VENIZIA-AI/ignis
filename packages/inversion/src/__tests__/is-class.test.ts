@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test';
-import { isClass } from '@/common/types';
+import { isClass } from '@/common/utilities';
 
 /** `isClass` tells a CONSTRUCTOR from a RESOLVER framework-wide; `prototype !== undefined` is true of every non-arrow function, so these pin the source-text check. */
 describe('isClass', () => {

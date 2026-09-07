@@ -221,7 +221,7 @@ await repository.find({
                               +------------------+
 ```
 
-`RelationalBaseRepository` (compatibility alias `PostgresBaseRepository`, `packages/core-server/src/connectors/postgres/repositories/core/base.ts`) implements the default-filter behavior directly - no mixin is composed onto it:
+`RelationalBaseRepository` (compatibility alias `PostgresBaseRepository`, `packages/connectors/src/relational/postgres/repositories/core/base.ts`) implements the default-filter behavior directly - no mixin is composed onto it:
 
 ```typescript
 hasDefaultFilter(): boolean
@@ -259,9 +259,9 @@ queryDialect.mergeFilter({
 
 **Files:**
 
-- [`packages/core-server/src/connectors/relational/repositories/dialect/filter.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/connectors/relational/repositories/dialect/filter.ts) - `FilterBuilder.mergeFilter()`/`mergeWhere()`, the narrowing merge
-- [`packages/core-server/src/connectors/postgres/repositories/core/base.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/connectors/postgres/repositories/core/base.ts) - `RelationalBaseRepository`, `applyDefaultFilter`/`getDefaultFilter`/`getDefaultLimit`
-- [`packages/core-server/src/connectors/postgres/repositories/core/readable.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/connectors/postgres/repositories/core/readable.ts) - `find`/`findOne`/`count` calling `applyDefaultFilter`
-- [`packages/core-server/src/connectors/postgres/repositories/core/persistable.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/connectors/postgres/repositories/core/persistable.ts) - `_update`/`_delete` calling `applyDefaultFilter` for `updateById`/`updateAll`/`deleteById`/`deleteAll`
-- [`packages/core-server/src/base/metadata/persistents.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/base/metadata/persistents.ts) - `@model` decorator, `defaultLimit` validation
-- [`packages/core-server/src/base/repositories/common/types.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/base/repositories/common/types.ts) - `IExtraOptions`, `IWithTransaction`
+- [`packages/connectors/src/relational/core/repositories/dialect/filter.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/connectors/src/relational/core/repositories/dialect/filter.ts) - `FilterBuilder.mergeFilter()`/`mergeWhere()`, the narrowing merge
+- [`packages/connectors/src/relational/postgres/repositories/core/base.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/connectors/src/relational/postgres/repositories/core/base.ts) - `RelationalBaseRepository`, `applyDefaultFilter`/`getDefaultFilter`/`getDefaultLimit`
+- [`packages/connectors/src/relational/postgres/repositories/core/readable.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/connectors/src/relational/postgres/repositories/core/readable.ts) - `find`/`findOne`/`count` calling `applyDefaultFilter`
+- [`packages/connectors/src/relational/postgres/repositories/core/persistable.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/connectors/src/relational/postgres/repositories/core/persistable.ts) - `_update`/`_delete` calling `applyDefaultFilter` for `updateById`/`updateAll`/`deleteById`/`deleteAll`
+- [`packages/kernel/src/base/metadata/persistents.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/kernel/src/base/metadata/persistents.ts) - `@model` decorator, `defaultLimit` validation
+- [`packages/kernel/src/base/repositories/common/types/options.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/kernel/src/base/repositories/common/types/options.ts) - `IExtraOptions`, `IWithTransaction`

@@ -3,24 +3,15 @@ import { ControllerTransports } from '@venizia/ignis-kernel';
 import { BindingNamespaces, CoreBindings } from '@venizia/ignis-kernel';
 import { RequestTrackerComponent } from '@/components';
 import { GrpcComponent } from '@/components/controller/grpc';
-import type { Binding } from '@venizia/ignis-kernel';
 import {
-  BindingKeys,
   BindingScopes,
   BindingValueTypes,
+  BootSequence,
   MetadataRegistry,
   RequestContextRegistry,
 } from '@venizia/ignis-kernel';
-import type { IBootableApplication, IBooter, IBootReport } from '@venizia/ignis-boot';
-import {
-  Bootstrapper,
-  ControllerBooter,
-  DatasourceBooter,
-  RepositoryBooter,
-  ServiceBooter,
-} from '@venizia/ignis-boot';
 import type { ILogger } from '@venizia/ignis-helpers/core';
-import type { AnyObject, TClass, ValueOrPromise } from '@venizia/ignis-helpers/common';
+import type { ValueOrPromise } from '@venizia/ignis-helpers/common';
 import type {
   ISecretHydrateEntry,
   ISecretRotatable,
@@ -39,10 +30,11 @@ import {
 } from '@venizia/ignis-helpers';
 import { contextStorage, tryGetContext } from 'hono/context-storage';
 import isEmpty from 'lodash/isEmpty';
-import type { TMixinOpts } from '@venizia/ignis-kernel';
 import { AppErrorMiddleware, emojiFavicon } from '../middlewares';
+import { ServerBootSteps } from './boot-steps';
 import { ServerApplication } from './server';
 import type { IRestApplication } from '@venizia/ignis-kernel';
+import type { IBootSequenceStep } from '@venizia/ignis-kernel';
 
 const {
   NODE_ENV,
@@ -85,10 +77,7 @@ const selectSecretEnvKeys = (opts: {
   return merged;
 };
 
-export abstract class BaseApplication
-  extends ServerApplication
-  implements IRestApplication, IBootableApplication
-{
+export abstract class BaseApplication extends ServerApplication implements IRestApplication {
   protected secretsProvider?: ISecretsHelper;
   protected secretsRegistration?: ISecretsRegistration;
 
@@ -97,11 +86,7 @@ export abstract class BaseApplication
     return joined || '/';
   }
 
-  /**
-   * Extends the inherited REST registration (`RestApplication.registerControllers()`, kernel) with
-   * the gRPC branch, which the kernel cannot own: `GrpcComponent` needs `AbstractGrpcController`
-   * from `@/base/controllers/grpc`, core-only code that reaches `node:module`.
-   */
+  /** Adds the gRPC branch the kernel cannot own: `GrpcComponent` needs `AbstractGrpcController`, core-only code that reaches `node:module`. */
   override async registerControllers(): Promise<void> {
     await super.registerControllers();
 
@@ -301,36 +286,6 @@ export abstract class BaseApplication
     }
   }
 
-  booter<Base extends IBooter, Args extends AnyObject = any>(
-    ctor: TClass<Base>,
-    opts?: TMixinOpts<Args>,
-  ): Binding<Base> {
-    return this.bind<Base>({
-      key: BindingKeys.build(
-        opts?.binding ?? { namespace: BindingNamespaces.BOOTERS, key: ctor.name },
-      ),
-    })
-      .toClass(ctor)
-      .setTags('booter');
-  }
-
-  async registerBooters() {
-    await executeWithPerformanceMeasure({
-      logger: this.logger,
-      scope: this.registerBooters.name,
-      description: 'Register application booters',
-      task: async () => {
-        this.bind({ key: `@app/boot-options` }).toValue(this.configs.bootOptions ?? {});
-        this.bind({ key: 'bootstrapper' }).toClass(Bootstrapper).setScope(BindingScopes.SINGLETON);
-
-        this.booter(DatasourceBooter);
-        this.booter(RepositoryBooter);
-        this.booter(ServiceBooter);
-        this.booter(ControllerBooter);
-      },
-    });
-  }
-
   static(opts: { restPath?: string; folderPath: string }) {
     const { restPath = '*', folderPath } = opts;
     const server = this.getServer();
@@ -421,11 +376,9 @@ export abstract class BaseApplication
 
         await super.registerDefaultMiddlewares();
 
-        // Deliberately NOT inside the `asyncContext.enable` branch below. `tryGetContext()` already
-        // answers "no request context" when no store exists, so installing it always costs nothing
-        // and keeps a `contextStorage()` an application registered itself visible to the enrichers -
-        // which is what reading `hono/context-storage` directly used to do. A method body, not this
-        // module's body: every package here declares `sideEffects: false`.
+        // Always installed, not only under `asyncContext.enable`: `tryGetContext()` answers "no context"
+        // without a store, and a `contextStorage()` the application registered itself stays visible to
+        // the enrichers. Inside a method body because every package declares `sideEffects: false`.
         RequestContextRegistry.setResolver({ resolver: () => tryGetContext() });
 
         if (this.configs.asyncContext?.enable) {
@@ -439,12 +392,6 @@ export abstract class BaseApplication
         server.use(emojiFavicon({ icon: this.configs.favicon ?? '🔥' }));
       },
     });
-  }
-
-  async boot(): Promise<IBootReport> {
-    await this.registerBooters();
-    const bootstrapper = this.get<Bootstrapper>({ key: 'bootstrapper' });
-    return bootstrapper.boot({});
   }
 
   /** Lives here rather than on `AbstractApplication` - `applicationEnvironment` reads `process.env` at module load, so a kernel-pure ancestor cannot carry it; this is the layer that already depends on it. */
@@ -476,38 +423,58 @@ export abstract class BaseApplication
       );
   }
 
-  override async initialize() {
-    this.printStartUpInfo({ scope: this.initialize.name });
-    this.validateEnvs();
+  /**
+   * Version tripwire, body identical to `RestApplication.initialize()`: a stale kernel without
+   * `getBootSequence()`/`runBootSequence()` throws here before any socket binds.
+   */
+  override async initialize(): Promise<void> {
+    await this.runBootSequence({ steps: this.getBootSequence() });
+  }
 
-    await this.registerDefaultMiddlewares();
-    this.staticConfigure();
+  protected override getBootSequence(): IBootSequenceStep[] {
+    const steps: IBootSequenceStep[] = [
+      {
+        name: ServerBootSteps.PRINT_START_UP_INFO,
+        run: () => this.printStartUpInfo({ scope: this.initialize.name }),
+      },
+      { name: ServerBootSteps.VALIDATE_ENVS, run: () => this.validateEnvs() },
+      {
+        name: ServerBootSteps.REGISTER_DEFAULT_MIDDLEWARES,
+        run: () => this.registerDefaultMiddlewares(),
+      },
+      ...super.getBootSequence(),
+    ];
 
-    await this.preConfigure();
+    const withHydrate = BootSequence.insertAfter({
+      steps,
+      target: ServerBootSteps.PRE_CONFIGURE,
+      step: { name: ServerBootSteps.HYDRATE_SECRETS, run: () => this.hydrateSecrets() },
+    });
 
-    await this.hydrateSecrets();
+    // Components can contribute datasources, so wire rotatables only after the contributed sweep -
+    // a lease key pointing at a component-contributed datasource would otherwise resolve to nothing.
+    const withRotatables = BootSequence.insertAfter({
+      steps: withHydrate,
+      target: ServerBootSteps.REGISTER_CONTRIBUTED_DATA_SOURCES,
+      step: {
+        name: ServerBootSteps.WIRE_SECRET_ROTATABLES,
+        run: () => this.wireSecretRotatables(),
+      },
+    });
 
-    // DataSources must be registered before repositories so they're available for auto-resolution
-    await this.registerDataSources();
-    await this.registerComponents();
-
-    // Components can contribute datasources, so wire rotatables only after both registration phases - a lease key pointing at a component-contributed datasource would otherwise resolve to nothing.
-    await this.wireSecretRotatables();
-
-    await this.registerControllers();
-
-    // Do not register new datasources/components/controllers in postConfigure - they are not auto-registered; call configure() manually if needed.
-    await this.postConfigure();
-
-    // Last, so a model registered by a component is covered too.
-    this.validateScopeFilterSupport();
+    return [
+      ...withRotatables,
+      // Last, so a model registered by a component is covered too.
+      {
+        name: ServerBootSteps.VALIDATE_SCOPE_FILTER_SUPPORT,
+        run: () => this.validateScopeFilterSupport(),
+      },
+    ];
   }
 
   /**
-   * Refuses to start when a model declares `settings.scopeFilter` somewhere it cannot take effect.
-   * Both cases are silent at runtime and fail in OPPOSITE directions - a search-backed model returns
-   * more rows than intended, a context-less one returns none - so neither shows up as an error a
-   * caller can trace back to the declaration.
+   * Refuses to start when a model's `settings.scopeFilter` cannot take effect. Both failures are
+   * silent at runtime and opposite: a search-backed model returns too many rows, a context-less one none.
    */
   protected validateScopeFilterSupport(): void {
     assertScopeFilterSupported({ asyncContextEnabled: this.configs.asyncContext?.enable ?? false });

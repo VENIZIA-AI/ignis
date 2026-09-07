@@ -191,4 +191,4 @@ const consumer = KafkaConsumerHelper.newInstance({
 **Files:**
 
 - [`packages/helpers/src/modules/queue/kafka/schema/registry.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/queue/kafka/schema/registry.ts) - `KafkaSchemaRegistryHelper`
-- [`packages/helpers/src/modules/queue/kafka/common/types.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/queue/kafka/common/types.ts) - `IKafkaSchemaRegistryOptions`
+- [`packages/helpers/src/modules/queue/kafka/common/types/connection.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/queue/kafka/common/types/connection.ts) - `IKafkaSchemaRegistryOptions`

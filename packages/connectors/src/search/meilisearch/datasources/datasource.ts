@@ -7,7 +7,7 @@ import type { IMeilisearchIndexPlan } from '../compiler';
 import { compileMeilisearchCollection } from '../compiler';
 import { MeilisearchConnector } from '../connector';
 import { MeilisearchQueryDialect } from '../repositories/dialect/query-dialect';
-import type { IMeilisearchConnectorOptions, IMeilisearchDataSourceSettings } from '../types';
+import type { IMeilisearchConnectorOptions, IMeilisearchDataSourceSettings } from '../common';
 
 /** Meilisearch-backed search datasource: builds/injects a connector, compiles the neutral DSL, and provisions discovered collections. */
 export class MeilisearchDataSource extends BaseSearchDataSource<

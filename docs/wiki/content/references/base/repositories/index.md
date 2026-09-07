@@ -148,5 +148,5 @@ Full options and rules: [Advanced Features - Read Retry](./advanced#read-retry-r
 
 **Files:**
 
-- [`packages/core-server/src/base/repositories/core/abstract.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/base/repositories/core/abstract.ts) - neutral `AbstractRepository`
-- [`packages/core-server/src/connectors/postgres/repositories/core/index.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/connectors/postgres/repositories/core/index.ts) - PostgreSQL hierarchy + compatibility aliases
+- [`packages/kernel/src/base/repositories/core/abstract.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/kernel/src/base/repositories/core/abstract.ts) - neutral `AbstractRepository`
+- [`packages/connectors/src/relational/postgres/repositories/core/index.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/connectors/src/relational/postgres/repositories/core/index.ts) - PostgreSQL hierarchy + compatibility aliases

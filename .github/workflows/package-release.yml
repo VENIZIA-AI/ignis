@@ -17,7 +17,7 @@ on:
           - connectors
           - core-server
           - core-worker
-          - docs-mcp
+          - atlas
         required: true
       build_mode:
         type: choice
@@ -91,8 +91,7 @@ jobs:
         run: |
           # Map package input to actual folder path
           case $PACKAGE in
-            docs-mcp)  PACKAGE_PATH="docs/wiki" ;;
-            *)         PACKAGE_PATH="packages/$PACKAGE" ;;
+            *) PACKAGE_PATH="packages/$PACKAGE" ;;
           esac
 
           PACKAGE_NAME=$(jq -r .name "$PACKAGE_PATH/package.json")
@@ -307,6 +306,13 @@ jobs:
       # -------------------------------------------------------------------------
       # VERSION & GIT
       # -------------------------------------------------------------------------
+      # The gate above proves the manifest names published packages; this proves the published
+      # artifact STARTS outside the workspace. A dependency the workspace hoists but the manifest
+      # never declared passes every other step and dies on the consumer's first `bunx`.
+      - name: Smoke the packed CLI outside the workspace
+        if: env.PACKAGE == 'atlas'
+        run: bun scripts/atlas-pack-smoke.ts
+
       - name: Version bump
         run: |
           cd $PACKAGE_PATH

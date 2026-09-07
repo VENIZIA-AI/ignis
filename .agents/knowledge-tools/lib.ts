@@ -97,7 +97,7 @@ export const parseFrontmatter = (opts: { text: string; file: string }): {
       data = parsed as Record<string, unknown>;
     }
   } catch (error) {
-    console.warn(`lib: invalid YAML frontmatter in ${file} - ${(error as Error).message}`);
+    throw new Error(`invalid YAML frontmatter in ${file} - ${(error as Error).message}`);
   }
 
   return { data, body: match[2] };
@@ -147,6 +147,21 @@ export const loadConcepts = (): Concept[] => {
       reserved,
     };
   });
+};
+
+/**
+ * `loadConcepts()`, printing `okf: <message>` to stderr and exiting 1 on a bad frontmatter instead
+ * of an unhandled exception. `check()` handles the same failure itself (it reports every problem
+ * together rather than stopping at the first); every other command that reads the whole bundle
+ * calls this instead of `loadConcepts()` directly.
+ */
+export const loadConceptsOrExit = (): Concept[] => {
+  try {
+    return loadConcepts();
+  } catch (error) {
+    console.error(`okf: ${(error as Error).message}`);
+    process.exit(1);
+  }
 };
 
 /** Normalize a user-supplied id to canonical form ("/packages/core-server"). */

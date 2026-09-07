@@ -1,15 +1,15 @@
 ---
 type: Package
 title: core-server
-description: The main IGNIS framework package - the server layer on top of the browser-pure kernel: application lifecycle, connectors, and the built-in components.
+description: "The main IGNIS framework package - the server layer on top of the browser-pure kernel: application lifecycle, connectors, and the built-in components."
 resource: packages/core-server
 tags: [packages, core-server, framework]
 ---
 
 `@venizia/ignis` is the main framework package - the top of the dependency chain
-(`dev-configs -> inversion -> {filter, helpers} -> {boot, kernel} -> core`). `filter` is isomorphic
-and depends on `inversion` only; `kernel` is the browser-pure tree and sits beside `boot`, never
-after it, so it never picks up boot's node-only glob discovery. Core is built on Hono for HTTP and
+(`dev-configs -> inversion -> {filter, helpers} -> kernel -> connectors -> core`). `filter` is
+isomorphic and depends on `inversion` only; `kernel` is the browser-pure tree; `boot` is a leaf beside
+`kernel` that core does not depend on (an application declares it itself for the generator). Core is built on Hono for HTTP and
 Drizzle ORM for SQL access, with `hono`, `drizzle-orm`, `zod`, `@hono/zod-openapi`, and `jose` as
 required peers. Database clients (`pg`, `postgres`, `@libsql/client`, `typesense`, `meilisearch`)
 and `socket.io` are optional peers installed only by apps that need them.
@@ -30,11 +30,23 @@ middlewares.
 ## Application lifecycle
 
 `BaseApplication` (`src/base/applications/base.ts`) extends `ServerApplication`, which extends the
-kernel's `RestApplication` and `AbstractApplication`. It runs eleven ordered phases:
+kernel's `RestApplication` and `AbstractApplication`. It runs twelve ordered phases:
 `staticConfigure`, `preConfigure`, `hydrateSecrets`, `registerDataSources`, `registerComponents`,
-`wireSecretRotatables`, `registerControllers`, `postConfigure`, `setupMiddlewares`, `start`,
-`executePostStartHooks`. See [Application lifecycle](/architecture/application-lifecycle.md) for the
+`wireSecretRotatables`, `registerControllers`, `postConfigure`, `verifyBindings` (opt-in through
+`configs.bootChecks.binding.doVerify`), `setupMiddlewares`, `start`, `executePostStartHooks`.
+The full server boot sequence is 15 named steps, ending `postConfigure -> verifyBindings ->
+validateScopeFilterSupport`. See [Application lifecycle](/architecture/application-lifecycle.md) for the
 full contract.
+
+`IServerApplicationConfigs` adds `host`, `port`, `projectRoot` and `server` on top of the kernel's shape.
+`projectRoot` is read by `getProjectRoot()` inside the base constructor (before `preConfigure`), default
+`process.cwd()`; an override of the method still wins. The value has real readers since 0.2.0-21:
+`getProjectRoot()` calls `ModuleUtility.setProjectRoot()`, so optional-peer lookups and the gRPC
+adapter's `@connectrpc/connect` resolution happen under `<projectRoot>/node_modules`.
+`configs.server` (`idleTimeout` in seconds, `maxRequestBodySize` in bytes) is spread into
+`Bun.serve` by `startBunModule`; unset keys keep Bun's defaults, and the node runtime logs a
+warning and ignores the group. Override `getServerRuntimeOptions()` for anything beyond those two
+keys instead of re-implementing `startBunModule`.
 
 ## Controllers
 
@@ -91,6 +103,10 @@ RBAC), `RequestTrackerComponent`, `RestComponent`, `GrpcComponent`, `StaticAsset
 `ApiReferenceComponent`, and `RestComponent`; `GrpcComponent`, `MailComponent`, `SocketIOComponent`,
 `StaticAssetComponent`, and `WebSocketComponent` are excluded from the barrel and must be imported
 from their sub-path (`@venizia/ignis/grpc`, `/mail`, `/socket-io`, `/static-asset`, `/websocket`).
+`StaticAssetComponent`'s generated controller takes two optional extension hooks rather than being
+copied: `resolveObjectName({ originalName, defaultName, bucket })` decides the stored object name
+(`defaultName` is what the storage helper would have written), and `defineExtraRoutes({ controller,
+helper, basePath })` runs after every built-in route so a built-in wins a path collision.
 See [component model](/architecture/component-model.md) and the
 [components catalog](/reference/components.md).
 

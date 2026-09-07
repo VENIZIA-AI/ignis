@@ -5,7 +5,7 @@ import fsp from 'node:fs/promises';
 import path from 'node:path';
 import { Readable } from 'node:stream';
 import { BaseStorageHelper } from '../base';
-import { IBucketInfo, IFileStat, IObjectInfo, IStorageHelperOptions, IUploadFile } from '../types';
+import { IBucketInfo, IFileStat, IObjectInfo, IStorageHelperOptions, IUploadFile } from '../common';
 
 export interface IDiskHelperOptions extends IStorageHelperOptions {
   basePath: string; // Base directory for storage

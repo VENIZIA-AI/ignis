@@ -17,7 +17,7 @@ class ProbeApp extends BaseApplication {
 
 describe('post-stop hooks', () => {
   test('executePostStopHooks runs every registered hook', async () => {
-    const app = new ProbeApp({ scope: 'probe', config: {} as AnyType });
+    const app = new ProbeApp({ scope: 'probe', config: { path: { base: '', isStrict: false } } });
     const ran: string[] = [];
     app.registerPostStopHook({
       identifier: 'a',

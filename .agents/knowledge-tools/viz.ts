@@ -10,7 +10,7 @@ import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join, relative } from 'node:path';
 
 import { BUNDLE, REPO, SECTION_LABELS, SECTION_ORDER } from './config.ts';
-import { loadConcepts } from './lib.ts';
+import { loadConceptsOrExit } from './lib.ts';
 
 const sectionTitle = (opts: { key: string }): string => {
   const { key } = opts;
@@ -26,7 +26,7 @@ const sectionOf = (opts: { id: string }): string => {
 };
 
 export const buildViz = (): void => {
-  const concepts = loadConcepts().filter((concept) => !concept.reserved);
+  const concepts = loadConceptsOrExit().filter((concept) => !concept.reserved);
   const ids = new Set(concepts.map((concept) => concept.id));
 
   const nodes = concepts.map((concept) => ({

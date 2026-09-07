@@ -134,6 +134,26 @@ unbundled. The packages that import it therefore list their entry:
 an extensionless FILE import (a directory with an `index.js` resolves either way, which is why this
 looks like it works until it doesn't).
 
+## A purity verdict can change with the Bun version, and a waiver is exact both ways
+
+The probe spawns the `bun` on `PATH`, so the bundler's own bugs are part of the measurement. Bun
+1.4.0 emitted `connectors/postgres/supabase` under `--target=browser` with the `drizzle-orm/supabase`
+re-exports listed but unbound, and the row was waived as impure; Bun 1.4.1 binds them, and the same
+waiver failed a connectors release with "STALE WAIVER" because the workflow installs
+`bun-version: latest`. Before a release, run `make purity-<package>` on the Bun version CI will
+use, and when a waiver goes stale, delete it rather than loosening the gate.
+
+## `bun update` rewrites peerDependencies floors, not only devDependencies
+
+`bun update --filter '*'` bumps every declared range in every workspace manifest to the version it
+resolved - including `peerDependencies`. On 2026-09-04 one run raised 28 peer floors across
+`connectors`, `core-server`, `core-worker`, `helpers`, `kernel` and `dev-configs` (`hono ^4.12.30 ->
+^4.13.7`, `pg ^8.21.0 -> ^8.23.0`, `prettier ^3.0.0 -> ^3.9.6`, ...). A published peer floor is a
+consumer contract: nx-seller pins `hono` 4.12.30 and `pg` 8.21.0 through `overrides`, and the
+migration guide promises those still satisfy the peers. After any `bun update`, diff
+`peerDependencies` against HEAD and restore every floor you did not mean to raise; widen or narrow a
+peer only as its own deliberate change with a changelog line.
+
 ## Kernel state is realm-anchored, so never reach for `instanceof` across packages
 
 `@venizia/ignis-kernel` is a plain `dependencies` entry of `connectors`, `core-server` and
@@ -169,12 +189,18 @@ move `isApplicationError` already makes for `ApplicationError`, and `isRedisHelp
 Worker are separate realms and still get one registry each, which is correct - they run separate
 applications.
 
+The same rule holds in helpers, which has no `SingletonRealm`: `LoggerFactory`'s provider, `applicationEnvironment`
+and `ModuleUtility`'s registry each live in a `globalThis` slot keyed `Symbol.for('ignis:<name>')` (2026-09-06;
+two of the three were bare module instances before, and a consumer's `AppEnvs.set()` in the ESM copy was invisible to
+the CommonJS copy). A new module-level singleton in helpers follows the same shape, and its test loads the module
+twice through `require` plus `delete require.cache[path]` - a `?query` import does not give Bun a second copy.
+
 The brand goes where the check looks: `static readonly [BRAND] = true` when the check receives a
 CLASS (`isDataSourceClass`), an instance field when it receives an INSTANCE (`isRedisHelper`).
 
 ## The PGlite pin lives in the root package.json
 
-The root `package.json` carries `"overrides": { "@electric-sql/pglite": "0.5.5" }`, an exact version,
+The root `package.json` carries `"overrides": { "@electric-sql/pglite": "0.5.8" }`, an exact version,
 repository-wide. It looks like something to relax or delete. It is not.
 
 Pinning it in one package alone forks `drizzle-orm` into two Bun store entries, because Bun keys a
@@ -243,8 +269,70 @@ If an app's `tsconfig.json` only does `extends: "@venizia/dev-configs/..."` and 
 resolve that chain at run time, `experimentalDecorators` effectively turns off and parameter
 decorators are dropped silently - no error, just an injected value that is `undefined` at runtime.
 Class/property decorators (`@controller`, `@model`) keep working, so boot looks fine until a
-handler touches the missing dependency. Fix: declare `experimentalDecorators` /
-`emitDecoratorMetadata` directly in the app's own `tsconfig.json`, not only via `extends`.
+handler touches the missing dependency. Method decorators fare worse: Bun falls back to TC39
+decorators, which call the decorator with `(value, context)`, so `@provide` records nothing and a
+provided key is never bound. Fix: declare `experimentalDecorators` directly in the app's own
+`tsconfig.json`, not only via `extends` (kernel and every example do). Add `emitDecoratorMetadata`
+only if something reads `design:*` metadata - IGNIS does not: under Bun it turns an interface-typed
+constructor parameter (`IAuthService`) into a runtime import that fails to link, which is why
+core-server's `tsconfig.core.json` declares `experimentalDecorators` alone.
+
+## Under bun-runs-source, a type used on a decorated member must come from `import type`
+
+`bun src/index.ts` transpiles each file alone. A decorated member whose type is imported by value -
+`@provide` returning `IHealthCheckOptions`, a class-decorated constructor taking `IControllerOptions` -
+keeps that import alive for `design:*` metadata, and linking then fails with `Export named 'X' not
+found` against the CJS dist. `import type { ... }` fixes it. `tsc` output is unaffected (types are
+elided), so an application that builds first and runs `bun dist/index.js` never sees it - which is
+why `examples/vert` still has two value-imported `IControllerOptions` and only a source-run probe
+notices.
+
+## The artifact generator never executes a module
+
+`ignis-artifacts` is an AST walk: no decorator runs, no import fires. A stereotype re-exported
+through a local wrapper module is invisible to it - the decorator must be imported from
+`@venizia/ignis` or `@venizia/ignis-kernel`. The flip side is safety: a datasource file that opens a
+pool at import cannot leak into a build.
+
+## A dynamic `import('./own-module')` in library code makes bun bundle the barrel with undefined exports
+
+`secrets/factory.ts` used `await import('./hashicorp/index.js')`. bun turns the target and everything
+it reaches (`BaseHelper`, the logger, `env`) into lazy `__esm` initializers, and the `export *`
+barrel never calls the initializer for `env/app-env` - a bundle of
+`import { Environment } from '@venizia/ignis-helpers'` printed `undefined` for `Environment`,
+`applicationEnvironment` and `LoggerFactory`, and every compiled example crashed at import. Import
+our own modules statically; keep optional peers behind `ModuleUtility.load`. Guard:
+`packages/helpers/src/__tests__/env/bundle-safe-reads.test.ts` bundles the barrel with the
+`bun build` CLI in a subprocess and reads the exports back.
+
+## `bun build` folds `process.env.NODE_ENV` into the BUILD machine's value
+
+Even under `--compile`: the dot form becomes the literal the build host had (`development` when
+unset, `test` under `bun test`), and `--minify-syntax` folds the bracket form too. A destructured
+read (`const { NODE_ENV } = process.env`) survives - that is `Environment.ambient` (`undefined` when
+unset; `Environment.current` defaults to `development`). Framework reads go through it: the error
+middleware's leak boundary, the request spy, the logger debug gate. Third-party code still gets the
+literal, so compile with `--env=disable`. The positive control in the same test proves the folding.
+
+## Compiled binaries: renamed classes, two module copies, no default logger
+
+- bun renames a decorated class expression that shadows its own variable - tsc emits
+  `let X = X_1 = class X` for every decorated class - so `X.name` becomes `X_1` under
+  `--minify-syntax`, the flag every compiled binary uses (`dev-configs` `BunCompiler`, the vert
+  `compile:*` scripts). Bun 1.4.1 fixed only the plain build, which used to emit `X2`; measured on
+  1.4.1 with a two-class fixture: plain build and `--compile` without minify keep `X`,
+  `--minify-syntax` and `--compile --minify-syntax` still produce `X_1`. `--keep-names` does not
+  help. Keys and scopes built from `Class.name` stay consistent with each other; a literal
+  `'services.X'` does not. Build keys with `BindingKeys.build({ namespace, key: X.name })`, never
+  from a string. `--minify` (identifiers) turns names into `Aw`/`Iw` - use
+  `--minify-whitespace --minify-syntax`.
+- The bundle carries helpers twice: the application's ESM import and core's CJS require.
+  `LoggerFactory` keeps the provider in `globalThis[Symbol.for('ignis:logger-provider')]` so `use()`
+  in one copy is seen by the other. Register a provider at the entrypoint
+  (`LoggerFactory.use({ provider: WinstonLogger })`): the winston default is loaded with
+  `createRequire('./winston')`, which cannot resolve inside a binary.
+- Proof recipe: run the binary with `APP_ENV_POSTGRES_HOST=127.0.0.1 APP_ENV_POSTGRES_PORT=1`. It
+  must reach `postConfigure` and fail with `ECONNREFUSED`, never at import.
 
 ## A self-refreshing cache must gate its retry on the last attempt, not the last success
 
@@ -267,6 +355,23 @@ parameter came back out as `effect: string` in the inferred return type, which s
 by giving both methods an explicit return type. Check any other builder whose return object carries
 a `TConstValue`-derived field for the same gap - it only surfaces once something downstream assigns
 the result into an equally-narrowed type, so it can sit latent for a long time.
+
+## bun-types 1.4 types binary data as typed arrays and DataView, never a bare ArrayBufferView
+
+`BufferSource` in bun-types 1.4 is `NodeJS.TypedArray | DataView | ArrayBufferLike`. A mirror interface that
+declares `data: string | ArrayBufferView | ArrayBuffer` (`IWebSocket.send`, `IBunServer.publish` before
+2026-09-04) is wider than what Bun accepts, so `Bun.serve()` stops being assignable to the mirror and
+core-server fails to build. Mirror Bun with concrete types: `string | ArrayBuffer | SharedArrayBuffer |
+Uint8Array | DataView`. Narrowing a parameter keeps older bun-types assignable (contravariance).
+
+## Four transitive advisories stay by decision - do not "fix" them with an override
+
+`bun audit` reports `decode-uri-component` and `stream-json` under `minio`, and `esbuild`/`vite` 5 under
+`vitepress` and `drizzle-kit`. The patched releases of the first two are ESM-only while `minio` uses
+`require()`; `stream-json` also renamed the `jsonl/Parser.js` path `minio` imports. A workspace-wide
+`esbuild` override forces `vite` 5 onto an esbuild it does not support, and `vitepress` 1.6.4 is the
+latest and pins `vite` 5. All four are dev-server or self-built-input exposures; the changelog
+`2026-09-04-dependency-floors-raised` carries the reasoning. A new advisory beyond these six is a real finding.
 
 ## Related
 

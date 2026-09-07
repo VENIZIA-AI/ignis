@@ -10,7 +10,8 @@ Exhaustive reference for every utility type, resolver function, and constant cla
 
 **Files:**
 
-- [`packages/helpers/src/common/types.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/common/types.ts) - utility types, resolvers, field-mapping types
+- [`packages/helpers/src/common/types/`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/common/types) - utility, class, const-value, resolver, field-mapping, and injection types
+- [`packages/helpers/src/common/resolvers.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/common/resolvers.ts) - `resolveValue`, `resolveValueAsync`, `resolveClass`
 - [`packages/helpers/src/common/constants/app.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/common/constants/app.ts) - `Defaults`, `RuntimeModules`, `DataTypes`
 - [`packages/helpers/src/common/constants/http.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/common/constants/http.ts) - `HTTP`
 - [`packages/helpers/src/common/constants/grpc.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/common/constants/grpc.ts) - `GRPC`
@@ -101,7 +102,7 @@ All of the above resolve through the root `@venizia/ignis-helpers` barrel. It re
 
 ## General Purpose Types
 
-`Source ->` [`types.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/common/types.ts)
+`Source ->` [`types/utility.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/common/types/utility.ts)
 
 ```typescript
 type AnyType = any;
@@ -117,6 +118,8 @@ type TOptions<T extends object = {}> = T;
 
 ## Nullable and Promise Types
 
+`Source ->` [`types/utility.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/common/types/utility.ts)
+
 ```typescript
 type TNullable<T> = T | undefined | null;
 type ValueOrPromise<T> = T | Promise<T>;
@@ -128,6 +131,8 @@ type ValueOrPromise<T> = T | Promise<T>;
 | `ValueOrPromise<T>` | `T \| Promise<T>` | A method or callback that may be implemented sync or async |
 
 ## Class and Constructor Types
+
+`Source ->` [`types/class.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/common/types/class.ts)
 
 ```typescript
 type TConstructor<T> = new (...args: any[]) => T;
@@ -157,19 +162,21 @@ function MyMixin<T extends TMixinTarget<BaseClass>>(Base: T) {
 
 ### isClass
 
-`Source ->` [`packages/inversion/src/common/types.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/inversion/src/common/types.ts)
+`Source ->` [`packages/inversion/src/common/utilities.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/inversion/src/common/utilities.ts)
 
 ```typescript
 const isClass: <T>(target: any) => target is TClass<T>;
 ```
 
-Declared in `@venizia/ignis-inversion` and re-exported by `helpers`. It's the single predicate that tells a constructor from a resolver function. The boot booters, controller factories, and `resolveValue`/`resolveValueAsync`/`resolveClass` all branch on it.
+Declared in `@venizia/ignis-inversion` and re-exported by `helpers`. It's the single predicate that tells a constructor from a resolver function. Controller factories and `resolveValue`/`resolveValueAsync`/`resolveClass` all branch on it.
 
 - **Filters to functions with a `prototype`** - true of every non-arrow function, so this alone is not sufficient.
 - **Decompiles the function via `Function.prototype.toString`** and regex-tests that the source text literally starts with the `class` keyword.
 - **Sound only when targeting ES2024+** - a class is emitted as `class`, never as an ES5 constructor function. Bundling this package down to ES5 breaks the predicate.
 
 ## Object Utility Types
+
+`Source ->` [`types/utility.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/common/types/utility.ts)
 
 ```typescript
 type ValueOf<T> = T[keyof T];
@@ -186,6 +193,8 @@ type TPrettify<T> = { [K in keyof T]: T[K] } & {};
 | `TPrettify<T>` | Flattens an intersection (`A & B`) into one object type | Readable IDE hover tooltips when combining types with `&` |
 
 ## Const Value Extraction Types
+
+`Source ->` [`types/const-value.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/common/types/const-value.ts)
 
 ```typescript
 type TStringConstValue<T extends TClass<any>> = Extract<ValueOf<T>, string>;
@@ -210,6 +219,8 @@ Types and functions for lazy/deferred value resolution - a core pattern in the f
 
 ### Types
 
+`Source ->` [`types/resolver.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/common/types/resolver.ts)
+
 ```typescript
 type TResolver<T> = (...args: any[]) => T;
 type TAsyncResolver<T> = (...args: any[]) => T | Promise<T>;
@@ -225,6 +236,8 @@ type TValueOrAsyncResolver<T> = T | TAsyncResolver<T>;
 | `TValueOrAsyncResolver<T>` | `T \| TAsyncResolver<T>` | Config options that accept an eager value or a sync/async resolver |
 
 ### resolveValue
+
+`Source ->` [`resolvers.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/common/resolvers.ts) (also `resolveValueAsync`, `resolveClass`)
 
 ```typescript
 const resolveValue: <T>(valueOrResolver: TValueOrResolver<T>) => T;
@@ -292,6 +305,8 @@ const resolved = await resolveValueAsync(config3);
 
 ## Field Mapping Types
 
+`Source ->` [`types/field-mapping.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/common/types/field-mapping.ts)
+
 Types for declarative field-to-type mappings, used for configuration-driven data transformation.
 
 ```typescript
@@ -328,6 +343,8 @@ type TObjectFromFieldMappings<
 
 ## DI and Lifecycle Types
 
+`Source ->` [`types/injection.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/common/types/injection.ts)
+
 ```typescript
 type TInjectionGetter = <T>(opts: { key: string | symbol }) => T;
 
@@ -342,6 +359,8 @@ interface IConfigurable<Options extends object = any, Result = any> {
 | `IConfigurable<Options, Result>` | Interface with one `configure(opts?)` method | Implemented by helpers and components that expose an explicit initialization step |
 
 ## JSX Types
+
+`Source ->` [`jsx.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/common/jsx.ts)
 
 Re-exported from `hono/jsx` for convenience when building JSX-based views:
 

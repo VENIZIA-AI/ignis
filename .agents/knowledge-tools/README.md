@@ -1,8 +1,8 @@
 # knowledge-tools
 
-Generator, conformance gate, MCP server, and graph explorer for the IGNIS knowledge bundle at
+Generator, conformance gate, and graph explorer for the IGNIS knowledge bundle at
 `.agents/knowledge/`. Zero runtime dependencies - plain Bun scripts plus vendored Cytoscape for the
-explorer.
+explorer. The bundle is served over MCP by `@venizia/ignis-atlas` (`packages/atlas`), not from here.
 
 ## Commands
 
@@ -14,7 +14,6 @@ Run via make (preferred) or directly with Bun.
 | `make okf-check` | `bun .agents/knowledge-tools/okf.ts check` | Gate: frontmatter, links, structural coverage, freshness |
 | `make okf-coverage` | `bun .agents/knowledge-tools/okf.ts coverage` | Report the bundle against the source inventory |
 | `make okf-viz` | `bun .agents/knowledge-tools/okf.ts viz` | Build the offline graph explorer |
-| - | `bun .agents/knowledge-tools/okf.ts mcp` | Serve the bundle over MCP stdio |
 
 `okf-check` exits non-zero on any problem. It is deliberately **not** wired into `.githooks/pre-commit`:
 the curated concepts only stay honest when someone re-reads the code, which a per-commit gate cannot
@@ -26,10 +25,9 @@ do. Freshness is maintained by running knowledge sync periodically instead.
 
 | File | Role |
 |---|---|
-| `config.ts` | **The only repo-specific file.** Paths, denylists, section order/labels, MCP server name. |
+| `config.ts` | **The only repo-specific file.** Paths, denylists, section order/labels. |
 | `okf.ts` | CLI. Source scanning, shared heuristics, renderers, `gen`/`check`/`coverage`. |
 | `lib.ts` | Bundle loader: frontmatter parsing, link extraction, concept model. |
-| `mcp.ts` | MCP stdio server (`okf_list_concepts`, `okf_get_concept`, `okf_search`). |
 | `viz.ts` | Builds `.agents/knowledge/viz.html` from the vendored libs in `vendor/`. |
 
 Porting this tooling to another repo should mean editing `config.ts` and the renderer list in

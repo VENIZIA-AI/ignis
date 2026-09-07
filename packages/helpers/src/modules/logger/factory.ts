@@ -53,6 +53,9 @@ class LoggerDelegator extends AbstractLogger {
   }
 }
 
+/** A bundle can carry two copies of this module - the application's ESM import and core's CJS require. The provider lives in this globalThis slot so `use()` in one copy is seen by the other. */
+const PROVIDER_SLOT = Symbol.for('ignis:logger-provider');
+
 /** Provider-agnostic acquisition path. Exactly ONE provider is ever loaded - the one registered via `use()`, or the winston default at first unregistered log call. */
 export class LoggerFactory {
   private static provider?: ILoggerProvider;
@@ -61,13 +64,25 @@ export class LoggerFactory {
   /** Register the application's provider. Re-points every wrapper issued so far. */
   static use(opts: { provider: ILoggerProvider }): void {
     this.provider = opts.provider;
+    Reflect.set(globalThis, PROVIDER_SLOT, opts.provider);
     for (const wrapper of this.cache.values()) {
       wrapper.repoint(opts.provider);
     }
   }
 
   static currentProvider(): ILoggerProvider {
-    return (this.provider ??= this.loadDefaultProvider());
+    if (!this.provider) {
+      this.provider = this.sharedProvider() ?? this.loadDefaultProvider();
+      Reflect.set(globalThis, PROVIDER_SLOT, this.provider);
+    }
+
+    return this.provider;
+  }
+
+  /** The provider another copy of this module registered, if any. */
+  private static sharedProvider(): ILoggerProvider | undefined {
+    const shared: ILoggerProvider | undefined = Reflect.get(globalThis, PROVIDER_SLOT);
+    return shared;
   }
 
   // winston is an optional peer; compiled binaries must register a provider explicitly because only a class reference carries a provider into a bundle.

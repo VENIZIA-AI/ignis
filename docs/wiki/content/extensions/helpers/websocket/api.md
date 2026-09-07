@@ -12,7 +12,7 @@ Exhaustive reference for `WebSocketServerHelper` and `WebSocketEmitter`. For a r
 
 - [`packages/helpers/src/modules/socket/websocket/server/helper.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/socket/websocket/server/helper.ts) - `WebSocketServerHelper`
 - [`packages/helpers/src/modules/socket/websocket/emitter/helper.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/socket/websocket/emitter/helper.ts) - `WebSocketEmitter`
-- [`packages/helpers/src/modules/socket/websocket/common/types.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/socket/websocket/common/types.ts) - option, callback, and wire types
+- [`packages/helpers/src/modules/socket/websocket/common/types/`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/socket/websocket/common/types) - option, callback, and wire types
 - [`packages/helpers/src/modules/socket/websocket/common/constants.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/socket/websocket/common/constants.ts) - `WebSocketEvents`, `WebSocketChannels`, `WebSocketDefaults`, `WebSocketMessageTypes`, `WebSocketClientStates`
 
 ## Find what you need
@@ -556,7 +556,7 @@ Quits the duplicated Redis connection.
 
 ## Types Reference
 
-`Source ->` [`common/types.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/socket/websocket/common/types.ts)
+`Source ->` [`common/types/`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/socket/websocket/common/types)
 
 ### Wire protocol
 

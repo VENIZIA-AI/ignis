@@ -12,7 +12,7 @@ Exhaustive reference for `SocketIOServerHelper` and `SocketIOClientHelper`. For 
 
 - [`packages/helpers/src/modules/socket/socket-io/server/helper.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/socket/socket-io/server/helper.ts) - `SocketIOServerHelper`
 - [`packages/helpers/src/modules/socket/socket-io/client/helper.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/socket/socket-io/client/helper.ts) - `SocketIOClientHelper`
-- [`packages/helpers/src/modules/socket/socket-io/common/types.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/socket/socket-io/common/types.ts) - option and callback types
+- [`packages/helpers/src/modules/socket/socket-io/common/types/`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/socket/socket-io/common/types) - option and callback types
 - [`packages/helpers/src/modules/socket/socket-io/common/constants.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/socket/socket-io/common/constants.ts) - `SocketIOConstants`, `SocketIOClientStates`
 - [`packages/helpers/src/modules/socket/socket-io/index.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/socket/socket-io/index.ts) - barrel export (`@venizia/ignis-helpers/socket-io`)
 

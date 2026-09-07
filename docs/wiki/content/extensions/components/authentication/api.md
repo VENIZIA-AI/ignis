@@ -12,7 +12,7 @@ Every option, binding key, class, and method the Authentication component expose
 
 - [`packages/core-server/src/components/auth/authenticate/`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/components/auth/authenticate) - component, services, strategies, controllers
 - [`packages/core-server/src/components/auth/models/`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/components/auth/models) - entity column helpers + request schemas
-- [`packages/core-server/src/components/auth/base/abstract-auth-registry.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/components/auth/base/abstract-auth-registry.ts) - `AbstractAuthRegistry`
+- [`packages/kernel/src/base/auth/base/abstract-auth-registry.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/kernel/src/base/auth/base/abstract-auth-registry.ts) - `AbstractAuthRegistry`
 
 ## Find what you need
 
@@ -526,8 +526,8 @@ All four strategies extend `BaseHelper` and implement `IAuthenticationStrategy<E
 | Strategy | `name` | Injects | File |
 |----------|--------|---------|------|
 | `JWSAuthenticationStrategy` | `Authentication.STRATEGY_JWT` | `JWSTokenService` | [`strategies/jws.strategy.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/components/auth/authenticate/strategies/jws.strategy.ts) |
-| `JWKSIssuerAuthenticationStrategy` | `Authentication.STRATEGY_JWT` | `JWKSIssuerTokenService` | [`strategies/jwks.strategy.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/components/auth/authenticate/strategies/jwks.strategy.ts) |
-| `JWKSVerifierAuthenticationStrategy` | `Authentication.STRATEGY_JWT` | `JWKSVerifierTokenService` | same file |
+| `JWKSIssuerAuthenticationStrategy` | `Authentication.STRATEGY_JWT` | `JWKSIssuerTokenService` | [`strategies/jwks/issuer.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/components/auth/authenticate/strategies/jwks/issuer.ts) |
+| `JWKSVerifierAuthenticationStrategy` | `Authentication.STRATEGY_JWT` | `JWKSVerifierTokenService` | [`strategies/jwks/verifier.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/components/auth/authenticate/strategies/jwks/verifier.ts) |
 | `BasicAuthenticationStrategy` | `Authentication.STRATEGY_BASIC` | `BasicTokenService` | [`strategies/basic.strategy.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/components/auth/authenticate/strategies/basic.strategy.ts) |
 
 > [!NOTE]

@@ -55,7 +55,7 @@ export const RouteConfigs: Record<string, IAuthRouteConfig> = {
     method: HTTP.Methods.DELETE,
     path: '/:id',
     authenticate: authenticated,
-    request: { params: z.object({ id: z.string().uuid() }) },
+    request: { params: z.object({ id: z.uuid() }) },
     responses: jsonResponse({
       description: 'Rows deleted. A note owned by someone else matches nothing, so count is 0.',
       schema: z.object({ count: z.number().int() }),

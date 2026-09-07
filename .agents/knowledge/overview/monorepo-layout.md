@@ -17,7 +17,8 @@ versions churn on every release and would make the bundle stale for no gain.
 <!-- okf:generated:packages-table start -->
 | Package | npm name | Description |
 |---|---|---|
-| [`boot`](/packages/boot.md) | `@venizia/ignis-boot` | Convention-based auto-discovery and bootstrapping system for TypeScript applications. |
+| [`atlas`](/packages/atlas.md) | `@venizia/ignis-atlas` | MCP server for IGNIS: search and read the wiki, changelogs and knowledge bundle by section, with citations. |
+| [`boot`](/packages/boot.md) | `@venizia/ignis-boot` | Build-time artifact index generator for IGNIS applications: scans decorated classes with the TypeScript AST and emits one static registration file per package, so bun build --compile sees plain imports. |
 | [`connectors`](/packages/connectors.md) | `@venizia/ignis-connectors` | Datasource and repository connectors for the IGNIS framework: the engine-neutral relational and search tiers, plus Postgres, SQLite, PGlite, Typesense and Meilisearch behind sub-paths. |
 | [`core-server`](/packages/core-server.md) | `@venizia/ignis` | High-performance TypeScript server infrastructure combining LoopBack 4 enterprise architecture (decorator-based DI, repository pattern, component system) with Hono speed (~140k req/s). |
 | [`core-worker`](/packages/core-worker.md) | `@venizia/ignis-worker` | Browser Web Worker host for the IGNIS framework: the request/response envelope, the transport contract, and WorkerApplication - the layer that listens on `onmessage` instead of a socket, so a RestApplication can serve its controllers with no server anywhere. |
@@ -31,21 +32,22 @@ versions churn on every release and would make the bundle stale for no gain.
 Packages build in a fixed dependency order - see [build system](/process/build-system.md):
 
 ```
-dev-configs -> inversion -> {filter, helpers} -> {boot, kernel} -> core
+dev-configs -> inversion -> {filter, helpers} -> kernel -> connectors -> core
+                                      helpers -> {boot, atlas}   (applications only)
 ```
 
 `filter` is isomorphic and depends on `inversion` only - it deliberately does not sit after
-`helpers`. `kernel` is the browser-pure tree and sits beside `boot`, not after it, so it never picks
-up boot's node-only glob discovery.
+`helpers`. `kernel` is the browser-pure tree; `boot` and `atlas` are leaves no framework package
+depends on.
 
 ## Other top-level directories
 
 | Path | What it holds |
 |---|---|
 | `examples/` | Runnable apps exercising the framework - see [examples](/examples/vert.md) |
-| `docs/wiki/` | The human-facing VitePress site and its MCP server. Not part of this bundle. |
+| `docs/wiki/` | The human-facing VitePress site. Not part of this bundle. |
 | `.agents/knowledge/` | This bundle - the agent-facing source of truth |
-| `.agents/knowledge-tools/` | Generator, gate, MCP server, and graph explorer for the bundle |
+| `.agents/knowledge-tools/` | Generator, gate, and graph explorer for the bundle |
 | `scripts/` | Repo-wide gates run from the Makefile - `check-catalog.ts` behind `make catalog-check`, and `purity/` (the browser-purity bundler probe) behind `make purity` |
 | `.githooks/` | Repo-managed git hooks, enabled via `make setup-hooks` |
 

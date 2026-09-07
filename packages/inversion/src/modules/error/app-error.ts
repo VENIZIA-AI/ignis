@@ -1,7 +1,7 @@
 import { AnyType, TNullable } from '@/common/types';
 import omit from 'lodash/omit';
 import { MessageCode } from './message-code';
-import type { TError, TErrorLogLevel, TErrorNormalized, TResponsedError } from './types';
+import type { TError, TErrorLogLevel, TErrorNormalized, TResponsedError } from './common';
 
 /** Consumed keys. Everything else rides into `extra`. */
 const KNOWN_KEYS = [

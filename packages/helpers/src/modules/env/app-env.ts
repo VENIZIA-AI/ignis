@@ -1,16 +1,17 @@
 import { BaseHelper } from '@/modules/base';
 import { EnvironmentNames } from './names';
-import { IApplicationEnvironment } from './types';
+import { IApplicationEnvironment } from './common';
 
 /** Adds the `NODE_ENV` reads to {@link EnvironmentNames}. Every name and set is inherited, so `Environment.PRODUCTION`, `Environment.COMMON_ENVS` and `Environment.DEVELOPMENT_ENVS` keep resolving here; only these two members need a `process`. */
 export class Environment extends EnvironmentNames {
-  static get current(): string {
+  /** `NODE_ENV` exactly as the host has it, `undefined` when unset. Destructured on purpose: `bun build` rewrites `process.env.NODE_ENV` to a literal at build time, a destructured read stays a runtime read. */
+  static get ambient(): string | undefined {
     const { NODE_ENV } = process.env;
-    if (!NODE_ENV) {
-      return Environment.DEVELOPMENT;
-    }
-
     return NODE_ENV;
+  }
+
+  static get current(): string {
+    return Environment.ambient ?? Environment.DEVELOPMENT;
   }
 
   static is(opts: { name: string }) {
@@ -64,8 +65,7 @@ export class ApplicationEnvironment extends BaseHelper implements IApplicationEn
   }
 
   isDevelopment() {
-    const { NODE_ENV } = process.env;
-    return NODE_ENV === 'development';
+    return Environment.ambient === 'development';
   }
 
   keys() {
@@ -73,10 +73,25 @@ export class ApplicationEnvironment extends BaseHelper implements IApplicationEn
   }
 }
 
-export const applicationEnvironment = new ApplicationEnvironment({
-  prefix: process.env.APPLICATION_ENV_PREFIX ?? 'APP_ENV',
-  envs: process.env,
-});
+/** A process can carry two copies of this module - an application's ESM import beside a CommonJS require. The instance lives in this globalThis slot so a `set()` through one copy is read through the other. */
+const INSTANCE_SLOT = Symbol.for('ignis:application-environment');
+
+const resolveApplicationEnvironment = (): ApplicationEnvironment => {
+  const shared: ApplicationEnvironment | undefined = Reflect.get(globalThis, INSTANCE_SLOT);
+  if (shared) {
+    return shared;
+  }
+
+  const created = new ApplicationEnvironment({
+    prefix: process.env.APPLICATION_ENV_PREFIX ?? 'APP_ENV',
+    envs: process.env,
+  });
+  Reflect.set(globalThis, INSTANCE_SLOT, created);
+
+  return created;
+};
+
+export const applicationEnvironment = resolveApplicationEnvironment();
 
 export const AppEnvs = applicationEnvironment;
 export const Envs = applicationEnvironment;

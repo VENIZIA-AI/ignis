@@ -122,3 +122,6 @@ node_modules.zip
 
 docs/generate
 docs/temp
+
+*.bun-build
+.*.bun-build

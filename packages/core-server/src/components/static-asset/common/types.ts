@@ -1,4 +1,5 @@
-import type { IAuthRouteConfig } from '@/base';
+import type { BaseRestController, IAuthRouteConfig } from '@/base';
+import type { IStorageHelper } from '@venizia/ignis-helpers';
 import type { BaseRelationalEntity } from '@venizia/ignis-connectors/postgres';
 import type { DefaultCRUDRepository } from '@venizia/ignis-connectors/postgres';
 import type { AnyType, ValueOrPromise } from '@venizia/ignis-helpers/common';
@@ -22,6 +23,20 @@ export type TStaticAssetExtraOptions = {
   maxFolderDepth?: number;
   [key: string]: AnyType;
 };
+
+/** Decides the object name one uploaded file is stored under. `defaultName` is what IGNIS would have written; returning it changes nothing. */
+export type TResolveObjectName = (opts: {
+  originalName: string;
+  defaultName: string;
+  bucket: string;
+}) => string;
+
+/** Adds routes of the application's own to a generated asset controller. Runs after every built-in route, so a built-in route always wins a path collision. `basePath` is the mount path with exactly one leading slash. */
+export type TDefineExtraRoutes = (opts: {
+  controller: BaseRestController;
+  helper: IStorageHelper;
+  basePath: string;
+}) => void;
 
 // Declared by hand rather than inferred: RouteHandler inference here is heavy.
 export type TBucketParams = { bucketName: string };
@@ -66,6 +81,12 @@ export type TStaticAssetsComponentOptions = {
       };
     };
     extra?: TStaticAssetExtraOptions;
+
+    /** Decides the stored object name of each uploaded file; absent keeps the storage helper's own naming. */
+    resolveObjectName?: TResolveObjectName;
+
+    /** Registers the application's own routes on the generated controller, after every built-in one. */
+    defineExtraRoutes?: TDefineExtraRoutes;
   } & (
     | { storage: typeof StaticAssetStorageTypes.BUN_S3; helper: BunS3Helper }
     | { storage: typeof StaticAssetStorageTypes.DISK; helper: DiskHelper }

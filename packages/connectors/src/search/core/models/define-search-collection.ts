@@ -8,8 +8,8 @@ import type {
   TFieldFlags,
   TSearchFieldType,
   TVectorDistance,
-} from './types';
-import { SearchFieldTypes } from './types';
+} from './common';
+import { SearchFieldTypes } from './common';
 
 /** `<const N, const O>` preserve the field's name/flag literals - a widened `ISearchFieldDefinition` return would break `TSearchDocument`, which needs literal types. */
 const buildField = <

@@ -68,8 +68,8 @@ export class GrpcRequestAdapter<
       return;
     }
 
-    /** Resolves peer deps from the app's node_modules at runtime - nothing to resolve against in a compiled binary, which is what `module` is for. */
-    const appRequire = createRequire(path.join(process.cwd(), 'node_modules'));
+    /** Resolves peer deps under the application's project root at runtime - nothing to resolve against in a compiled binary, which is what `module` is for. */
+    const appRequire = createRequire(path.join(ModuleUtility.getProjectRoot(), 'node_modules'));
 
     this.createConnectRouter = appRequire('@connectrpc/connect').createConnectRouter;
     const proto = appRequire('@connectrpc/connect/protocol');

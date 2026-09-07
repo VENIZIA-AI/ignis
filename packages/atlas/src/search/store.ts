@@ -1,0 +1,238 @@
+import { AtlasConstants } from '@/common';
+import type { TCorpus } from '@/common';
+import type { IChunk } from '@/corpus';
+import { BaseHelper } from '@venizia/ignis-helpers/core';
+import { Database } from 'bun:sqlite';
+import { QueryPlanner } from './planner';
+import { RankingWeights } from './common';
+import type { IHit } from './common';
+
+// SQLite treats a negative LIMIT as "no limit" - the AND and OR plans are fetched whole so paging
+// can apply to their concatenation instead of to each plan separately.
+const NO_LIMIT = -1;
+
+const CREATE_TABLE_SQL = `
+  CREATE VIRTUAL TABLE chunks USING fts5(
+    id UNINDEXED, corpus UNINDEXED, document UNINDEXED, anchor UNINDEXED,
+    heading_path, title, body, symbols, metadata, authority UNINDEXED,
+    tokenize = 'porter unicode61'
+  )
+`;
+
+const INSERT_SQL = `
+  INSERT INTO chunks (id, corpus, document, anchor, heading_path, title, body, symbols, metadata, authority)
+  VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+`;
+
+// Column order matches CREATE_TABLE_SQL; the score itself is the bm25 result multiplied by the
+// document's authority. No `snippet()` here - ranking must see every matching row, but a snippet
+// is only ever fetched for the page `search()` actually returns (see `snippetSql`).
+const RANK_SQL = `
+  SELECT id, corpus, document, anchor, heading_path AS headingPath, title,
+    bm25(chunks, ${RankingWeights.UNINDEXED}, ${RankingWeights.UNINDEXED}, ${RankingWeights.UNINDEXED}, ${RankingWeights.UNINDEXED}, ${RankingWeights.HEADING_PATH}, ${RankingWeights.TITLE}, ${RankingWeights.BODY}, ${RankingWeights.SYMBOLS}, ${RankingWeights.METADATA}, ${RankingWeights.UNINDEXED}) * authority AS score
+  FROM chunks
+  WHERE chunks MATCH ? AND (? IS NULL OR corpus = ?)
+  ORDER BY score
+  LIMIT ${NO_LIMIT}
+`;
+
+// `id` is UNINDEXED, so this filters after FTS5 has already matched - the same `MATCH` a row's
+// score came from must be repeated, since `snippet()` reads the matched-phrase state of this query.
+const snippetSql = (opts: { idCount: number }): string => `
+  SELECT id, snippet(chunks, 6, '', '', ' ... ', 12) AS snippet
+  FROM chunks
+  WHERE chunks MATCH ? AND id IN (${Array.from({ length: opts.idCount }, () => '?').join(', ')})
+`;
+
+const SELECT_BY_ID_SQL = `
+  SELECT id, corpus, document, anchor, heading_path AS headingPath, title, body, symbols, metadata, authority
+  FROM chunks WHERE id = ?
+`;
+
+// ORDER BY rowid: document order, the same order chunks() produced and add() inserted them in.
+const SELECT_BY_DOCUMENT_SQL = `
+  SELECT id, corpus, document, anchor, heading_path AS headingPath, title, body, symbols, metadata, authority
+  FROM chunks WHERE document = ? ORDER BY rowid
+`;
+
+type TInsertParams = [
+  string,
+  string,
+  string,
+  string,
+  string,
+  string,
+  string,
+  string,
+  string,
+  number,
+];
+type TSearchParams = [string, string | null, string | null];
+type TSnippetParams = string[];
+type TIdParams = [string];
+type TDocumentParams = [string];
+
+/** One `bm25`-ranked row, before the page it lands on is known and its snippet is fetched. */
+interface IRankedRow {
+  id: string;
+  corpus: TCorpus;
+  document: string;
+  anchor: string;
+  headingPath: string;
+  title: string;
+  score: number;
+}
+
+interface ISnippetRow {
+  id: string;
+  snippet: string;
+}
+
+/** Caps the raw FTS5 snippet to `SNIPPET_MAX_CHARS` - the hit's own `headingPath` field already carries that context, so the snippet does not repeat it. */
+const snippetOf = (opts: { snippet: string }): string =>
+  opts.snippet.length <= AtlasConstants.SNIPPET_MAX_CHARS
+    ? opts.snippet
+    : opts.snippet.slice(0, AtlasConstants.SNIPPET_MAX_CHARS);
+
+const hitOf = (opts: { row: IRankedRow; snippet: string }): IHit => ({
+  id: opts.row.id,
+  corpus: opts.row.corpus,
+  title: opts.row.title,
+  headingPath: opts.row.headingPath,
+  anchor: opts.row.anchor,
+  score: opts.row.score,
+  snippet: snippetOf({ snippet: opts.snippet }),
+});
+
+/** Keeps at most `maxPerDocument` rows per `document`, in order; a document's surplus rows are dropped. Applied before paging, so a later, different document can still fill the slot a dropped surplus row leaves behind. */
+const diversify = (opts: { rows: IRankedRow[]; maxPerDocument: number }): IRankedRow[] => {
+  const counts = new Map<string, number>();
+  const kept: IRankedRow[] = [];
+
+  for (const row of opts.rows) {
+    const count = counts.get(row.document) ?? 0;
+    if (count >= opts.maxPerDocument) {
+      continue;
+    }
+    counts.set(row.document, count + 1);
+    kept.push(row);
+  }
+
+  return kept;
+};
+
+/**
+ * In-memory `bun:sqlite` FTS5 index over `IChunk`s: BM25-ranked, AND-first with an OR fallback,
+ * corpus-filterable, diversified per document, then paged. One instance owns one database - build
+ * a new one to reindex.
+ */
+export class ChunkStore extends BaseHelper {
+  private readonly database: Database;
+  private readonly planner = new QueryPlanner();
+
+  constructor() {
+    super({ scope: ChunkStore.name });
+    this.database = new Database(':memory:');
+    this.database.run(CREATE_TABLE_SQL);
+  }
+
+  add(opts: { chunks: IChunk[] }): void {
+    const { chunks } = opts;
+    if (chunks.length === 0) {
+      return;
+    }
+
+    const insert = this.database.query<null, TInsertParams>(INSERT_SQL);
+    const insertAll = this.database.transaction((rows: IChunk[]) => {
+      for (const chunk of rows) {
+        insert.run(
+          chunk.id,
+          chunk.corpus,
+          chunk.document,
+          chunk.anchor,
+          chunk.headingPath,
+          chunk.title,
+          chunk.body,
+          chunk.symbols,
+          chunk.metadata,
+          chunk.authority,
+        );
+      }
+    });
+    insertAll(chunks);
+
+    this.logger.for('add').debug(`indexed chunks | count: ${chunks.length}`);
+  }
+
+  search(opts: { query: string; corpus?: TCorpus; limit: number; offset: number }): {
+    total: number;
+    hits: IHit[];
+  } {
+    const { query, limit, offset } = opts;
+    const plan = this.planner.plan({ query });
+
+    // An empty term list (e.g. a query that was only a `corpus:` filter) would MATCH '' - fts5
+    // throws a syntax error on that, so there is nothing to search instead of a crash.
+    if (plan.and.length === 0) {
+      return { total: 0, hits: [] };
+    }
+
+    const corpus = opts.corpus ?? plan.corpus ?? null;
+    const andRows = this.matchRows({ match: plan.and, corpus });
+
+    // A single-term query has an identical AND and OR plan - the OR pass would only re-fetch rows
+    // already in andRows, all filtered back out, so skip it instead of querying twice for nothing.
+    const andIds = new Set(andRows.map(row => row.id));
+    const orRows =
+      plan.and === plan.or
+        ? []
+        : this.matchRows({ match: plan.or, corpus }).filter(row => !andIds.has(row.id));
+
+    const combined = [...andRows, ...orRows];
+    const diversified = diversify({
+      rows: combined,
+      maxPerDocument: RankingWeights.MAX_HITS_PER_DOCUMENT,
+    });
+    const page = diversified.slice(offset, offset + limit);
+    const snippets = this.snippetsFor({ match: plan.or, ids: page.map(row => row.id) });
+    const hits = page.map(row => hitOf({ row, snippet: snippets.get(row.id) ?? '' }));
+
+    this.logger
+      .for('search')
+      .debug(`query: ${query} | corpus: ${corpus ?? 'all'} | total: ${diversified.length}`);
+
+    return { total: diversified.length, hits };
+  }
+
+  get(opts: { id: string }): IChunk | undefined {
+    const row = this.database.query<IChunk, TIdParams>(SELECT_BY_ID_SQL).get(opts.id);
+    return row ?? undefined;
+  }
+
+  list(opts: { document: string }): IChunk[] {
+    return this.database.query<IChunk, TDocumentParams>(SELECT_BY_DOCUMENT_SQL).all(opts.document);
+  }
+
+  /** Closes the underlying database. Safe to call more than once; using the store after throws. */
+  close(): void {
+    this.database.close();
+  }
+
+  private matchRows(opts: { match: string; corpus: string | null }): IRankedRow[] {
+    const { match, corpus } = opts;
+    return this.database.query<IRankedRow, TSearchParams>(RANK_SQL).all(match, corpus, corpus);
+  }
+
+  /** Every AND row also matches the OR expression (a superset of the same terms), so one query with `plan.or` covers a page regardless of which pass ranked each row. Empty `ids` would otherwise compile to an invalid `IN ()`. */
+  private snippetsFor(opts: { match: string; ids: string[] }): Map<string, string> {
+    const { match, ids } = opts;
+    if (ids.length === 0) {
+      return new Map();
+    }
+
+    const rows = this.database
+      .query<ISnippetRow, TSnippetParams>(snippetSql({ idCount: ids.length }))
+      .all(match, ...ids);
+    return new Map(rows.map(row => [row.id, row.snippet]));
+  }
+}

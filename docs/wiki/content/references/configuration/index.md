@@ -129,4 +129,4 @@ import { EnvironmentKeys } from '@venizia/ignis';
 
 - [`packages/core-server/src/common/environments.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/common/environments.ts) - `EnvironmentKeys`
 - [`packages/helpers/src/modules/env/app-env.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/env/app-env.ts) - `applicationEnvironment`, `Environment`, `ApplicationEnvironment`
-- [`packages/core-server/src/base/applications/abstract.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/base/applications/abstract.ts) - `validateEnvs()`, host/port resolution
+- [`packages/kernel/src/base/applications/abstract.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/kernel/src/base/applications/abstract.ts) - `validateEnvs()`, host/port resolution

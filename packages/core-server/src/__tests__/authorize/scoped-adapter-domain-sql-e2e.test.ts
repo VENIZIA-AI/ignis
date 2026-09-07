@@ -15,11 +15,11 @@ import type { SQL } from 'drizzle-orm';
 import { PgDialect } from 'drizzle-orm/pg-core';
 import { CustomGrantExpander } from '@/components/auth/authorize/adapters/custom-grant-expander';
 import { CASBIN_RBAC_DOMAIN_SCOPED_MODEL } from '@/components/auth/authorize/enforcers/models';
-import { ScopedCasbinAdapter } from '@/components/auth/authorize/adapters/scoped-casbin.adapter';
+import { ScopedCasbinAdapter } from '@/components/auth/authorize/adapters/scoped-casbin';
 import type {
   ICasbinPolicySource,
   IScopedCasbinEntities,
-} from '@/components/auth/authorize/adapters/types';
+} from '@/components/auth/authorize/adapters/common';
 
 const dialect = new PgDialect();
 

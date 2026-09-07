@@ -1,29 +1,31 @@
 import type { TBindingNamespace } from '@/common/bindings';
 import { BindingNamespaces, CoreBindings } from '@/common/bindings';
-import type { Binding } from '@/helpers/inversion';
-import { BindingKeys, BindingScopes } from '@/helpers/inversion';
+import type { Binding, TBindingScope } from '@/helpers/inversion';
+import { BindingKeys, BindingScopes, MetadataRegistry } from '@/helpers/inversion';
+import { OpenAPIHono } from '@hono/zod-openapi';
+import type { IConfigurable, TClass, ValueOrPromise } from '@venizia/ignis-helpers/common';
+import {
+  executeWithPerformanceMeasure,
+  getError,
+  RequestIdGenerator,
+} from '@venizia/ignis-helpers/core';
+import type { Env, Schema } from 'hono';
+import { showRoutes as showApplicationRoutes } from 'hono/dev';
+import { requestId } from 'hono/request-id';
 import type { BaseComponent } from '../components';
 import { RestComponent } from '../components/controller/rest/rest.component';
 import { ControllerTransports } from '../controllers/common/constants';
 import type { IDataSource } from '../datasources';
-import type { IRepository } from '../repositories';
-import type { IService } from '../services';
-import type { TMixinOpts } from '../mixins/types';
-import { OpenAPIHono } from '@hono/zod-openapi';
-import type {
-  AnyObject,
-  IConfigurable,
-  TClass,
-  ValueOrPromise,
-} from '@venizia/ignis-helpers/common';
-import { executeWithPerformanceMeasure, RequestIdGenerator } from '@venizia/ignis-helpers/core';
-import type { Env, Schema } from 'hono';
-import { showRoutes as showApplicationRoutes } from 'hono/dev';
-import { requestId } from 'hono/request-id';
 import { BaseAppErrorMiddleware } from '../middlewares/app-error/app-error.middleware';
 import { notFoundHandler } from '../middlewares/not-found/not-found.middleware';
+import type { TMixinOpts } from '../mixins/common';
+import type { IRepository } from '../repositories';
+import type { IService } from '../services';
 import { AbstractApplication } from './abstract';
-import type { IApplicationConfigs } from './types';
+import { ArtifactIndexHelper } from './artifact-index';
+import type { IBootSequenceStep } from './boot-sequence';
+import { BootSteps } from './boot-sequence';
+import type { IApplicationConfigs, TArtifactIndexInput } from './common';
 
 interface IRegisterDynamicBindingsOptions<T extends IConfigurable = IConfigurable> {
   namespace: TBindingNamespace;
@@ -48,6 +50,13 @@ export abstract class RestApplication<
 
   constructor(opts: { scope: string; config: IApplicationConfigs }) {
     super(opts);
+
+    // A config built from the environment can lose `path.base` at run time; the router would only fail later, inside `route()`, with a message that names nothing.
+    if (typeof this.configs.path?.base !== 'string') {
+      throw getError({
+        message: `[${opts.scope}] configs.path.base must be a string | value: ${String(this.configs.path?.base)} | an empty string mounts the application at the root`,
+      });
+    }
 
     this.requestIdGenerator = new RequestIdGenerator({ scope: opts.scope });
 
@@ -99,15 +108,9 @@ export abstract class RestApplication<
   }
 
   /**
-   * The three registrations every host needs, in one place, so a server and a browser Worker cannot
-   * drift: a request id, the framework's error envelope, and a JSON 404.
-   *
-   * None is optional. Hono's own defaults answer a thrown `ApplicationError` with a generic 500 and
-   * an unrouted path with `text/plain` - a caller doing `response.json()` on that 404 gets a
-   * `SyntaxError` instead of an error envelope. And without `requestId()`, `context.get(REQUEST_ID_KEY)`
-   * is `undefined`, so `context.json` drops the one field that ties a response to a log line.
-   *
-   * Registered before `initialize()`, so an application installing its own handlers still wins.
+   * The three registrations every host needs: request id, error envelope, JSON 404 - without them a
+   * thrown `ApplicationError` is a generic 500, a 404 is `text/plain`, and no response carries a request id.
+   * Registered before `initialize()`, so an application's own handlers still win.
    */
   protected registerDefaultMiddlewares(): ValueOrPromise<void> {
     const server = this.getServer();
@@ -118,23 +121,126 @@ export abstract class RestApplication<
   }
 
   /**
-   * The artifact ordering, stated ONCE: datasources before repositories can auto-resolve them, and
-   * components before controllers because a component may contribute either.
-   *
-   * A browser Worker application inherits this and writes none of it. `BaseApplication` in
-   * `@venizia/ignis` is the one deliberate override - it interleaves phases only a server has
-   * (start-up banner, env validation, secret hydration and rotation) between these steps.
+   * The artifact order, stated once: datasources before the repositories that auto-resolve them,
+   * components before the controllers they may contribute. `BaseApplication` splices its server-only
+   * steps around these by name instead of rewriting the list.
    */
+  protected getBootSequence(): IBootSequenceStep[] {
+    return [
+      { name: BootSteps.STATIC_CONFIGURE, run: () => this.staticConfigure() },
+      { name: BootSteps.REGISTER_ARTIFACTS, run: () => this.registerConfiguredArtifacts() },
+      {
+        name: BootSteps.PRE_CONFIGURE,
+        run: () =>
+          this.runApplicationHook({
+            name: BootSteps.PRE_CONFIGURE,
+            hook: () => this.preConfigure(),
+          }),
+      },
+      { name: BootSteps.REGISTER_DATA_SOURCES, run: () => this.registerDataSources() },
+      { name: BootSteps.REGISTER_COMPONENTS, run: () => this.registerComponents() },
+      {
+        name: BootSteps.REGISTER_CONTRIBUTED_DATA_SOURCES,
+        run: () => this.registerContributedDataSources(),
+      },
+      { name: BootSteps.REGISTER_CONTROLLERS, run: () => this.registerControllers() },
+      {
+        name: BootSteps.POST_CONFIGURE,
+        run: () =>
+          this.runApplicationHook({
+            name: BootSteps.POST_CONFIGURE,
+            hook: () => this.postConfigure(),
+          }),
+      },
+      { name: BootSteps.VERIFY_BINDINGS, run: () => this.verifyBindings() },
+    ];
+  }
+
   async initialize(): Promise<void> {
-    this.staticConfigure();
+    await this.runBootSequence({ steps: this.getBootSequence() });
+  }
 
-    await this.preConfigure();
+  /** The application hook currently running, so `registerArtifact` can tell a hand registration inside `preConfigure`/`postConfigure` from one the index step made. */
+  private runningApplicationHook: string | undefined;
 
-    await this.registerDataSources();
-    await this.registerComponents();
-    await this.registerControllers();
+  private async runApplicationHook(opts: {
+    name: string;
+    hook: () => ValueOrPromise<void>;
+  }): Promise<void> {
+    this.runningApplicationHook = opts.name;
+    try {
+      await opts.hook();
+    } finally {
+      this.runningApplicationHook = undefined;
+    }
+  }
 
-    await this.postConfigure();
+  /** `bootChecks.binding.doVerify`: resolve every service and repository once, collect every failure, throw once with the whole list - a made-up `@inject` key or a dependency a `when` excluded then fails the boot, not the first request. */
+  protected verifyBindings(): void {
+    if (!this.configs.bootChecks?.binding?.doVerify) {
+      return;
+    }
+
+    const logger = this.logger.for(this.verifyBindings.name);
+    const tags = [BindingNamespaces.SERVICE, BindingNamespaces.REPOSITORY];
+    const failures: string[] = [];
+    let verified = 0;
+
+    for (const tag of tags) {
+      const bindings = this.findByTag({ tag });
+      for (const binding of bindings) {
+        try {
+          this.get({ key: binding.key });
+          verified += 1;
+        } catch (error) {
+          failures.push(
+            `${binding.key}: ${error instanceof Error ? error.message : String(error)}`,
+          );
+        }
+      }
+    }
+
+    if (failures.length > 0) {
+      throw getError({
+        message: `[${this.verifyBindings.name}] ${failures.length} binding(s) cannot be resolved | ${failures.join(' | ')}`,
+      });
+    }
+
+    logger.info('Every service and repository binding resolves | verified: %d', verified);
+  }
+
+  /** One measured log line per step, and a failure names its step before rethrowing, so a hung or failed boot is attributable without reading the sequence. */
+  protected async runBootSequence(opts: { steps: IBootSequenceStep[] }): Promise<void> {
+    const { steps } = opts;
+    const logger = this.logger.for(this.initialize.name);
+    const t = performance.now();
+
+    for (const [index, step] of steps.entries()) {
+      try {
+        await executeWithPerformanceMeasure({
+          logger: this.logger,
+          scope: this.initialize.name,
+          description: `Boot step ${index + 1}/${steps.length} ${step.name}`,
+          task: () => step.run(),
+        });
+      } catch (error) {
+        logger.error(
+          'Boot step failed | step: %s (%d/%d) | error: %s',
+          step.name,
+          index + 1,
+          steps.length,
+          error,
+        );
+        throw error;
+      }
+    }
+
+    logger.info(
+      'Boot sequence complete | %d step(s) | Took: %s (ms) | %s',
+      steps.length,
+      performance.now() - t,
+      steps.map(step => step.name).join(' -> '),
+    );
   }
 
   protected inspectRoutes() {
@@ -152,6 +258,39 @@ export abstract class RestApplication<
       .info('DONE | Inspect all application route(s) | Took: %s (ms)', performance.now() - t);
   }
 
+  /**
+   * `configured` is the drain's state, mutated in place: a fresh `Set` gives a one-shot complete
+   * drain (`RestComponent`); `registerDynamicBindings` passes its persistent per-namespace `Set`,
+   * which is why a second sweep touches only what the first one missed.
+   */
+  async drainByTag<T>(opts: {
+    tag: string;
+    configured: Set<string>;
+    onEach: (opts: { binding: Binding<T> }) => Promise<void>;
+  }): Promise<void> {
+    const { tag, configured, onEach } = opts;
+
+    // A whole batch is drained before re-scanning: the re-scan exists only to pick up bindings a
+    // `configure()` added, and asking after every single item makes boot N+1 full scans of the
+    // binding map - 3.5ms at 200 controllers, against 0.04ms for this shape.
+    let bindings = this.findByTag<T>({ tag, exclude: configured });
+
+    while (bindings.length > 0) {
+      for (const binding of bindings) {
+        // Within a batch a nested `configure()` may already have taken this one.
+        if (configured.has(binding.key)) {
+          continue;
+        }
+
+        await onEach({ binding });
+        configured.add(binding.key);
+      }
+
+      // Re-fetch excluding already configured - picks up dynamically added bindings
+      bindings = this.findByTag<T>({ tag, exclude: configured });
+    }
+  }
+
   protected async registerDynamicBindings<T extends IConfigurable = IConfigurable>(
     opts: IRegisterDynamicBindingsOptions<T>,
   ): Promise<void> {
@@ -163,17 +302,10 @@ export abstract class RestApplication<
     }
     const configured = this.registeredBindings[namespace];
 
-    // A whole batch is drained before re-scanning: the re-scan exists only to pick up bindings a
-    // `configure()` added, and asking after every single item makes boot N+1 full scans of the
-    // binding map - 3.5ms at 200 controllers, against 0.04ms for this shape.
-    let bindings = this.findByTag({ tag: namespace, exclude: configured });
-    while (bindings.length > 0) {
-      for (const binding of bindings) {
-        // Within a batch a nested `configure()` may already have taken this one.
-        if (configured.has(binding.key)) {
-          continue;
-        }
-
+    await this.drainByTag<T>({
+      tag: namespace,
+      configured,
+      onEach: async ({ binding }) => {
         if (onBeforeConfigure) {
           await onBeforeConfigure({ binding });
         }
@@ -181,34 +313,88 @@ export abstract class RestApplication<
         const instance = this.get<T>({ key: binding.key, isOptional: false });
         if (!instance) {
           logger.debug('No binding instance | namespace: %s | key: %s', namespace, binding.key);
-          configured.add(binding.key);
-          continue;
+          return;
         }
 
         await instance.configure();
+
+        // Marked before the after-hook runs, so the hook sees its own binding as configured.
         configured.add(binding.key);
 
         if (onAfterConfigure) {
           await onAfterConfigure({ binding, instance });
         }
-      }
-
-      // Re-fetch excluding already configured - picks up dynamically added bindings
-      bindings = this.findByTag({ tag: namespace, exclude: configured });
-    }
+      },
+    });
   }
 
-  component<Base extends BaseComponent, Args extends AnyObject = any>(
-    ctor: TClass<Base>,
-    opts?: TMixinOpts<Args>,
-  ): Binding<Base> {
-    return this.bind<Base>({
-      key: BindingKeys.build(
-        opts?.binding ?? { namespace: BindingNamespaces.COMPONENT, key: ctor.name },
-      ),
-    })
+  /** The same-key guard behind every artifact registration (`component`/`controller`/`service`/`repository`/`dataSource`). `allowOverride` defaults true to match `bind()`'s overwrite behavior; `allowOverride: false` on one registration, or `bootChecks.binding.allowOverride: false` for the whole application, opts into strict mode. */
+  protected assertNoBindingCollision(opts: {
+    key: string;
+    allowOverride?: boolean;
+    caller: string;
+  }): void {
+    const { key, caller } = opts;
+    const allowOverride =
+      opts.allowOverride ?? this.configs.bootChecks?.binding?.allowOverride ?? true;
+
+    if (allowOverride || !this.isBound({ key })) {
+      return;
+    }
+
+    const reason =
+      opts.allowOverride === false
+        ? `'allowOverride: false' was set and this key collides with an existing binding | Use a distinct 'opts.binding' key, or drop 'allowOverride: false' if overriding is intentional`
+        : `'bootChecks.binding.allowOverride' is false and this key collides with an existing binding | Use a distinct 'opts.binding' key, or set 'allowOverride: true' on this registration if overriding is intentional`;
+
+    throw getError({
+      message: `[${caller}] Binding key already registered: '${key}' | ${reason}`,
+    });
+  }
+
+  /** Resolution order for every registration: explicit `opts` > the class's `@injectable` defaults > the derived key and the kind's default scope. `order` and `when` are `registerArtifacts`' concern, not this one. */
+  private registerArtifact<Base>(opts: {
+    ctor: TClass<Base>;
+    namespace: TBindingNamespace;
+    defaultScope: TBindingScope;
+    caller: string;
+    opts?: TMixinOpts;
+  }): Binding<Base> {
+    const { ctor, namespace, defaultScope, caller } = opts;
+    const declared = MetadataRegistry.getInstance().getArtifactMetadata({ target: ctor });
+
+    if (
+      this.runningApplicationHook &&
+      this.configs.artifacts &&
+      this.configs.bootChecks?.binding?.allowManual === false
+    ) {
+      throw getError({
+        message: `[${caller}] '${ctor.name}' is registered by hand inside ${this.runningApplicationHook}() while 'configs.artifacts' is set and 'bootChecks.binding.allowManual' is false | Move the class into the generated index (or an explicit entry of 'configs.artifacts'), or allow manual registration`,
+      });
+    }
+
+    const key = BindingKeys.build(
+      opts.opts?.binding ?? declared?.binding ?? { namespace, key: ctor.name },
+    );
+    this.assertNoBindingCollision({
+      key,
+      allowOverride: opts.opts?.allowOverride ?? declared?.allowOverride,
+      caller,
+    });
+
+    return this.bind<Base>({ key })
       .toClass(ctor)
-      .setScope(BindingScopes.SINGLETON);
+      .setScope(declared?.scope ?? defaultScope);
+  }
+
+  component<Base extends BaseComponent>(ctor: TClass<Base>, opts?: TMixinOpts): Binding<Base> {
+    return this.registerArtifact({
+      ctor,
+      namespace: BindingNamespaces.COMPONENT,
+      defaultScope: BindingScopes.SINGLETON,
+      caller: this.component.name,
+      opts,
+    });
   }
 
   async registerComponents(): Promise<void> {
@@ -217,22 +403,28 @@ export abstract class RestApplication<
       scope: this.registerComponents.name,
       description: 'Register application components',
       task: async () => {
-        await this.registerDynamicBindings({
-          namespace: BindingNamespaces.COMPONENT,
-          onAfterConfigure: async () => {
-            // Register any datasources dynamically added by this component
-            await this.registerDynamicBindings({ namespace: BindingNamespaces.DATASOURCE });
-          },
-        });
+        await this.registerDynamicBindings({ namespace: BindingNamespaces.COMPONENT });
       },
     });
   }
 
   /**
-   * Handles the REST branch only - the kernel has no notion of gRPC (it reaches `node:module` via
-   * `AbstractGrpcController`, core-only). `BaseApplication` extends this with the gRPC branch, the
-   * unsupported-transport error and the orphaned-gRPC-controller warning.
+   * Second DATASOURCE sweep, for datasources components contributed at any depth. Calls
+   * `registerDynamicBindings` directly: `this.registerDataSources()` is polymorphic and an override
+   * would run twice. Runs after every component, so a component a datasource registers is never configured.
    */
+  async registerContributedDataSources(): Promise<void> {
+    await executeWithPerformanceMeasure({
+      logger: this.logger,
+      scope: this.registerContributedDataSources.name,
+      description: 'Register application contributed data sources',
+      task: async () => {
+        await this.registerDynamicBindings({ namespace: BindingNamespaces.DATASOURCE });
+      },
+    });
+  }
+
+  /** REST only - the kernel has no gRPC (it reaches `node:module`). `BaseApplication` adds the gRPC branch on top. */
   async registerControllers(): Promise<void> {
     await executeWithPerformanceMeasure({
       logger: this.logger,
@@ -250,62 +442,110 @@ export abstract class RestApplication<
     });
   }
 
-  controller<Base, Args extends AnyObject = any>(
-    ctor: TClass<Base>,
-    opts?: TMixinOpts<Args>,
-  ): Binding<Base> {
-    return this.bind<Base>({
-      key: BindingKeys.build(
-        opts?.binding ?? {
-          namespace: BindingNamespaces.CONTROLLER,
-          key: ctor.name,
-        },
-      ),
-    }).toClass(ctor);
+  /** SINGLETON like `component()`: `RestComponent` mounts the one instance it resolves, so a second resolution must be that instance, not an unmounted twin. */
+  controller<Base>(ctor: TClass<Base>, opts?: TMixinOpts): Binding<Base> {
+    return this.registerArtifact({
+      ctor,
+      namespace: BindingNamespaces.CONTROLLER,
+      defaultScope: BindingScopes.SINGLETON,
+      caller: this.controller.name,
+      opts,
+    });
   }
 
-  service<Base extends IService, Args extends AnyObject = any>(
-    ctor: TClass<Base>,
-    opts?: TMixinOpts<Args>,
-  ): Binding<Base> {
-    return this.bind<Base>({
-      key: BindingKeys.build(
-        opts?.binding ?? {
-          namespace: BindingNamespaces.SERVICE,
-          key: ctor.name,
-        },
-      ),
-    }).toClass(ctor);
+  service<Base extends IService>(ctor: TClass<Base>, opts?: TMixinOpts): Binding<Base> {
+    return this.registerArtifact({
+      ctor,
+      namespace: BindingNamespaces.SERVICE,
+      defaultScope: BindingScopes.TRANSIENT,
+      caller: this.service.name,
+      opts,
+    });
   }
 
-  repository<Base extends IRepository, Args extends AnyObject = any>(
-    ctor: TClass<Base>,
-    opts?: TMixinOpts<Args>,
-  ): Binding<Base> {
-    return this.bind<Base>({
-      key: BindingKeys.build(
-        opts?.binding ?? {
-          namespace: BindingNamespaces.REPOSITORY,
-          key: ctor.name,
-        },
-      ),
-    }).toClass(ctor);
+  repository<Base extends IRepository>(ctor: TClass<Base>, opts?: TMixinOpts): Binding<Base> {
+    return this.registerArtifact({
+      ctor,
+      namespace: BindingNamespaces.REPOSITORY,
+      defaultScope: BindingScopes.TRANSIENT,
+      caller: this.repository.name,
+      opts,
+    });
   }
 
-  dataSource<Base extends IDataSource, Args extends AnyObject = any>(
-    ctor: TClass<Base>,
-    opts?: TMixinOpts<Args>,
-  ): Binding<Base> {
-    return this.bind<Base>({
-      key: BindingKeys.build(
-        opts?.binding ?? {
-          namespace: BindingNamespaces.DATASOURCE,
-          key: ctor.name,
-        },
-      ),
-    })
-      .toClass(ctor)
-      .setScope(BindingScopes.SINGLETON);
+  dataSource<Base extends IDataSource>(ctor: TClass<Base>, opts?: TMixinOpts): Binding<Base> {
+    return this.registerArtifact({
+      ctor,
+      namespace: BindingNamespaces.DATASOURCE,
+      defaultScope: BindingScopes.SINGLETON,
+      caller: this.dataSource.name,
+      opts,
+    });
+  }
+
+  /** The boot step body behind `configs.artifacts`, also callable by hand: registers every kind in dependency order across the given indexes. */
+  async registerArtifacts(index: TArtifactIndexInput): Promise<void> {
+    const resolved = await ArtifactIndexHelper.getInstance().resolve({
+      input: index,
+      application: this,
+    });
+
+    for (const ctor of resolved.dataSources) {
+      this.dataSource(ctor);
+    }
+
+    for (const ctor of resolved.components) {
+      this.component(ctor);
+      this.bindProvidedKeys({ ctor });
+    }
+
+    for (const ctor of resolved.repositories) {
+      this.repository(ctor);
+    }
+
+    for (const ctor of resolved.services) {
+      this.service(ctor);
+    }
+
+    for (const ctor of resolved.controllers) {
+      this.controller(ctor);
+    }
+  }
+
+  /** The boot step behind `configs.artifacts`; an application with none configured registers nothing here. */
+  protected async registerConfiguredArtifacts(): Promise<void> {
+    const artifacts = this.configs.artifacts;
+    if (!artifacts) {
+      return;
+    }
+
+    await this.registerArtifacts(artifacts);
+  }
+
+  /** Each `@provide` method becomes a lazy provider: the component is resolved (SINGLETON) and the method called on first `get`, so a provided value may depend on datasources or secrets that do not exist yet at registration time. */
+  private bindProvidedKeys(opts: { ctor: TClass<BaseComponent> }): void {
+    const { ctor } = opts;
+    const registry = MetadataRegistry.getInstance();
+    const provides = registry.getProvideMetadata({ target: ctor });
+    if (provides.length === 0) {
+      return;
+    }
+
+    const declared = registry.getArtifactMetadata({ target: ctor });
+    const componentKey = BindingKeys.build(
+      declared?.binding ?? { namespace: BindingNamespaces.COMPONENT, key: ctor.name },
+    );
+
+    for (const entry of provides) {
+      this.bind({ key: entry.key })
+        .toProvider(container => {
+          const instance = container.get<Record<string | symbol, () => unknown>>({
+            key: componentKey,
+          });
+          return instance[entry.methodName]();
+        })
+        .setScope(entry.scope ?? BindingScopes.SINGLETON);
+    }
   }
 
   async registerDataSources(): Promise<void> {

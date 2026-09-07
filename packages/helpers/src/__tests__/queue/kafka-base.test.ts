@@ -1,6 +1,7 @@
 import { AnyType } from '@/common/types';
 import { getError, isApplicationError } from '@/modules/error';
-import { KafkaHealthStatuses } from '@/modules/queue/kafka/common/constants';
+import { invokeHook } from '@/modules/queue/common';
+import { KafkaClientEvents, KafkaHealthStatuses } from '@/modules/queue/kafka/common/constants';
 import { BaseKafkaHelper } from '@/modules/queue/kafka/base';
 import { EventEmitter } from 'node:events';
 import { afterEach, beforeEach, describe, expect, test } from 'bun:test';
@@ -245,5 +246,64 @@ describe('BaseKafkaHelper — broker events, health tracking, close paths', () =
 
     expect(isApplicationError(error)).toBe(true);
     expect((error as Error).message).toContain('Shutdown timed out');
+  });
+});
+
+/**
+ * Proves the extension seam directly: `connectedBrokers`, `onBrokerConnect`, and `onBrokerDisconnect`
+ * were `private` on `BaseKafkaHelper` before this class could compile - overriding a broker hook and
+ * reaching into that state from here was a type error, and `bun run build` type-checks this file.
+ */
+class ExtendingKafkaHelper extends BaseKafkaHelper<AnyType> {
+  constructor(opts: {
+    client: FakeKafkaClient;
+    onBrokerConnect?: (opts: { broker: AnyType }) => void;
+  }) {
+    super({
+      scope: ExtendingKafkaHelper.name,
+      identifier: 'kafka-base-extension-test',
+      client: opts.client,
+      onBrokerConnect: opts.onBrokerConnect,
+    });
+
+    this.configureBrokerEvents();
+  }
+
+  /** Replaces the base hook entirely instead of extending it, using only what used to be private. */
+  protected override configureBrokerConnect(): void {
+    this.client.on(
+      KafkaClientEvents.BROKER_CONNECT,
+      (payload: { broker: { host: string; port: number } }) => {
+        const brokerKey = `${payload.broker.host}:${payload.broker.port}`;
+        this.connectedBrokers.add(brokerKey);
+        invokeHook({
+          logger: this.logger,
+          scope: 'configureBrokerConnect',
+          execution: () => this.onBrokerConnect?.({ broker: payload.broker }),
+        });
+      },
+    );
+  }
+
+  exposeConnectedBrokers(): string[] {
+    return [...this.connectedBrokers];
+  }
+}
+
+describe('BaseKafkaHelper — the protected extension seam', () => {
+  test('a subclass overriding configureBrokerConnect reads and writes connectedBrokers and onBrokerConnect directly', () => {
+    const client = new FakeKafkaClient();
+    const received: string[] = [];
+    const helper = new ExtendingKafkaHelper({
+      client,
+      onBrokerConnect: ({ broker }) => {
+        received.push(`${broker.host}:${broker.port}`);
+      },
+    });
+
+    client.emit(KafkaClientEvents.BROKER_CONNECT, brokerPayload({ host: 'x', port: 9092 }));
+
+    expect(helper.exposeConnectedBrokers()).toEqual(['x:9092']);
+    expect(received).toEqual(['x:9092']);
   });
 });

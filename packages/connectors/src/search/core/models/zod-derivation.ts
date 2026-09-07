@@ -4,8 +4,8 @@ import omit from 'lodash/omit';
 
 import type { TSchemaType } from '@venizia/ignis-kernel';
 import { SchemaTypes } from '@venizia/ignis-kernel';
-import type { ISearchCollectionDefinition, ISearchFieldDefinition } from './types';
-import { SearchFieldTypes } from './types';
+import type { ISearchCollectionDefinition, ISearchFieldDefinition } from './common';
+import { SearchFieldTypes } from './common';
 
 const buildBaseFieldSchema = (field: ISearchFieldDefinition): z.ZodTypeAny => {
   switch (field.type) {

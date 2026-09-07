@@ -58,7 +58,7 @@ surface. `MetadataRegistry` (`packages/kernel/src/helpers/inversion/registry.ts`
 `DatasourceMetadataMixin`, `ModelMetadataMixin`, `RepositoryMetadataMixin`,
 `ControllerMetadataMixin`, `RestControllerMetadataMixin` and `GrpcControllerMetadataMixin`, so a
 protocol adds its metadata handling without widening one class. On the application side,
-`packages/kernel/src/base/mixins/types.ts` declares `IComponentMixin`, `IControllerMixin`,
+`packages/kernel/src/base/mixins/common/types.ts` declares `IComponentMixin`, `IControllerMixin`,
 `IRepositoryMixin`, `IServiceMixin`, `IServerConfigMixin` and `IStaticServeMixin`; `IRestApplication`
 composes the registration surfaces it actually needs rather than inheriting one base class that
 accretes all of them - the trap LB4's own inheritance-heavy juggler eventually fell into.
@@ -80,10 +80,12 @@ path, because the column was never fetched.
 
 ## Convention over configuration
 
-Default directories (`controllers/`, `services/`, ...), default file extensions
-(`.controller.js`, ...), all overridable via boot options - mirrors LB4's Booter system. A new
-engineer or agent can predict where a file lives without reading a config file first, and an
-override always exists for the case where convention doesn't fit.
+This repo puts controllers under `controllers/`, services under `services/`, and so on - a
+human-readable convention, not a rule the tool checks. `ignis-artifacts generate` finds an artifact
+by its stereotype decorator, walking every `.ts` file under `--root`, so a class registers no
+matter which directory or file name holds it. `configs.artifacts`, the generated index, is what an
+engineer or agent reads to see what is actually registered; `--root`, `--out` and `--ignore` are
+the override knobs.
 
 ## A browser-pure kernel, proven by a gate
 
@@ -96,11 +98,11 @@ imports the helpers root barrel, only the two audited isomorphic surfaces
 `@venizia/ignis-helpers/core` and `@venizia/ignis-helpers/common`.
 
 Two consequences worth knowing before editing kernel. It does not depend on `@venizia/ignis-boot`:
-boot's `IBootOptions` is mirrored structurally in `packages/kernel/src/base/applications/types.ts`,
-because importing boot would invert the `{boot, kernel} -> core` layering - kernel sits beside boot,
-not after it. And the boundary is machine-checked, not conventional: `make purity`
-(`scripts/purity`) bundles each claimed entry and fails on any node reference. `@venizia/ignis`
-re-exports the kernel barrel in full, so nothing moved for consumers.
+importing it would invert the `kernel -> core` layering - kernel sits beside boot, not after
+it, so kernel never imports a boot type, not even for a structural mirror. And the boundary is
+machine-checked, not conventional: `make purity` (`scripts/purity`) bundles each claimed entry and
+fails on any node reference. `@venizia/ignis` re-exports the kernel barrel in full, so nothing moved
+for consumers.
 
 ## Hono as the HTTP engine, Drizzle as the ORM
 

@@ -4,8 +4,7 @@ import { FilterBuilder } from '@/relational/core/repositories/dialect/filter';
 import type { TConstValue } from '@venizia/ignis-helpers/common';
 import type { SQL } from 'drizzle-orm';
 import { sql } from 'drizzle-orm';
-import { assertNotBlobJsonColumn } from './internal/json-column';
-import { toSqliteJsonExtraction } from './internal/json-path';
+import { assertNotBlobJsonColumn, toSqliteJsonExtraction } from './internal';
 import { SqliteQueryOperators } from './query';
 
 /**

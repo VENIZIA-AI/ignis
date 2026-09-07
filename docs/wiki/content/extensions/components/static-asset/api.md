@@ -94,6 +94,8 @@ type TStaticAssetsComponentOptions = {
       };
     };
     extra?: TStaticAssetExtraOptions;
+    resolveObjectName?: TResolveObjectName;
+    defineExtraRoutes?: TDefineExtraRoutes;
   } & (
     | { storage: typeof StaticAssetStorageTypes.BUN_S3; helper: BunS3Helper }
     | { storage: typeof StaticAssetStorageTypes.DISK; helper: DiskHelper }
@@ -114,6 +116,8 @@ type TStaticAssetsComponentOptions = {
 | `extra` | `TStaticAssetExtraOptions` | `undefined` | Multipart parsing mode, name/link normalization, max folder depth |
 | `useMetaLink` | `boolean` | `false` | Enables the `PUT .../meta-links/:objectName` route and DB tracking on upload/delete |
 | `metaLink` | `TMetaLinkConfig` | - | Required when `useMetaLink: true`; ignored otherwise |
+| `resolveObjectName` | `TResolveObjectName` | `undefined` | Decides the stored object name - see [`resolveObjectName`](#resolveobjectname) |
+| `defineExtraRoutes` | `TDefineExtraRoutes` | `undefined` | Adds your own routes to the generated controller - see [`defineExtraRoutes`](#defineextraroutes) |
 
 ### Per-route overrides
 
@@ -395,6 +399,8 @@ interface IAssetControllerOptions {
   useMetaLink?: boolean;
   metaLink?: TMetaLinkConfig;
   options?: TStaticAssetExtraOptions;
+  resolveObjectName?: TResolveObjectName;
+  defineExtraRoutes?: TDefineExtraRoutes;
 }
 ```
 
@@ -402,7 +408,8 @@ interface IAssetControllerOptions {
 2. Renames it via `Object.defineProperty(GeneratedStaticAssetController, 'name', { value: name, configurable: true })` so logs and DI bindings show your configured `controller.name`, not a generic factory name.
 3. Binds every route in `binding()` with `this.bindRoute({ configs }).to({ handler })`, spread-merging each base definition with its `routes?.<key>` override.
 4. Registers `recreateMetaLink` only when `useMetaLink && metaLink` are both set.
-5. `StaticAssetComponent.binding()` registers the resulting class with `this.application.controller(...)`.
+5. Calls `defineExtraRoutes` last, after every built-in route.
+6. `StaticAssetComponent.binding()` registers the resulting class with `this.application.controller(...)`.
 
 ```
 StaticAssetComponent.binding()
@@ -414,6 +421,58 @@ class GeneratedStaticAssetController extends BaseRestController { ... }
     | registered via
 this.application.controller(GeneratedStaticAssetController)
 ```
+
+### `resolveObjectName`
+
+Decides the object name one uploaded file is stored under. Set it instead of copying the factory to rename a single upload.
+
+```typescript
+type TResolveObjectName = (opts: {
+  originalName: string;
+  defaultName: string;
+  bucket: string;
+}) => string;
+```
+
+`defaultName` is the name IGNIS would have written without the hook. That is your `extra.normalizeNameFn` output when you configured one. Otherwise it is the storage helper's lowercase, `_`-for-space name. Return `defaultName` and nothing changes.
+
+```typescript
+resolveObjectName: ({ originalName, defaultName }) => {
+  return originalName.startsWith('invoice-') ? originalName : defaultName;
+};
+```
+
+The returned name is still validated with `isValidPath()` before the write, so a traversal cannot leave the bucket.
+
+### `defineExtraRoutes`
+
+Adds routes of your own to the generated controller.
+
+```typescript
+type TDefineExtraRoutes = (opts: {
+  controller: BaseRestController;
+  helper: IStorageHelper;
+  basePath: string;
+}) => void;
+```
+
+```typescript
+defineExtraRoutes: ({ controller, helper }) => {
+  controller.defineRoute({
+    configs: {
+      method: 'get',
+      path: '/health',
+      responses: jsonResponse({ schema: z.object({ buckets: z.number() }) }),
+    },
+    handler: async context => {
+      const buckets = await helper.getBuckets();
+      return context.json({ buckets: buckets.length }, HTTP.ResultCodes.RS_2.Ok);
+    },
+  });
+};
+```
+
+The hook runs after every built-in route, so a built-in route wins a path collision with yours. `basePath` is the mount path with exactly one leading slash, the same value the default `normalizeLinkFn` builds links from.
 
 ### `MultipartBodySchema`
 

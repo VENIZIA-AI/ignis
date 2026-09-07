@@ -18,6 +18,21 @@ the single job the file does. If naming that job needs the word "and", the file 
 job is genuinely one thing that takes many lines - a dialect translation table, a wrapper over a wide
 external surface - leave it and say so.
 
+Seven hub candidates were judged this way and kept on purpose, each one topic wide rather than
+several topics stacked:
+
+| File | Why it stays a hub |
+|---|---|
+| filter `common/types.ts` | one filter DSL |
+| inversion `common/types.ts` | a 27-line utility set |
+| inversion `error/common/types.ts` | one error DSL |
+| helpers `crypto/common/constants.ts` | cipher/hash defaults |
+| helpers `logger/hf/common/constants.ts` | one binary record layout |
+| helpers `tree/common/types.ts` | one walker API |
+| kernel `base/repositories/common/constants.ts` | const families, spec ruling |
+
+`split-report` still counts six of these seven as hub candidates (inversion `common/types.ts` fell to ten exports once `isClass` moved to `common/utilities.ts`) - that count is expected, not a defect.
+
 There is no hard cap and no lint rule. A cap produces files that satisfy the cap.
 
 ## The axis: lifecycle stage, not layer and not CRUD verb
@@ -37,6 +52,10 @@ purchase-order/
 Splitting by CRUD verb instead (`create.service.ts`, `update.service.ts`) produces near-twin files:
 a change to one has to be remembered in the other. Splitting by layer scatters one narrative across
 the layers a reader has to reassemble.
+
+Test case groups are the deliberate exception:
+`examples/vert/src/services/tests/<service>/<group>.cases.ts` splits by what each group exercises,
+including CRUD verbs. Each group is read alone, never edited as a pair.
 
 One narrow axis worth copying on its own: **lift raw SQL out of a repository** into
 `sqls/<topic>.sql.ts`, leaving the repository as pure orchestration.
@@ -64,6 +83,41 @@ leaves know about each other.
 Reject a split that fails this check, even when every resulting file is short. When a piece would
 have to call back into a sibling, do not extract it - leave it in the parent.
 
+## Tools
+
+- `make split-report` - hub candidates, stray `types.ts`, folders without a barrel, files over 500
+  lines, cycles per package. Informational.
+- `bun scripts/module-cycles.ts packages/<p>/dist/esm --max 0` - fails on an import cycle. bun turns
+  cycle members into lazy initializers; a barrel over one can export `undefined`.
+- `make surface-check` - the public surface equals `reference/public-surface.md`. The snapshot
+  records exported symbol names and kinds only, never a signature, generics, class members or a
+  type body, so "fresh" does not prove a signature is unchanged - it catches an export added,
+  removed or renamed. A split that changes the symbol list is wrong; an intended API change runs
+  `make surface-gen` and shows the diff in review.
+- `make wiki-links-check` - every `blob/main/<path>` link and backticked source path named in the
+  wiki or the knowledge bundle still exists on disk. Catches paths a split forgot to update.
+
+A scope folder may stay without an `index.ts` on purpose when every file in it is a sub-path entry
+carrying an optional peer - `core-server/connectors/{postgres,sqlite}/drivers/` is the case: each
+driver file is an alias barrel for one `@venizia/ignis-connectors/<engine>/<driver>` sub-path, and a
+folder-level barrel would let one `export *` pull every peer into the root. `split-report` keeps
+listing these folders under "scope folders without index.ts" - that line is expected, not a defect.
+
+An importer list built only from `from '...'` statements misses inline `import('./types').X`
+expressions and `@/modules/<scope>/types` alias imports in tests. Sweep before every move with
+`grep -rnE "from '[./]*types'|import\('[./]*types'\)|@/modules/<scope>/types"` over `src`, including
+tests. The clean rebuild, `make <pkg>`, is the real completeness check - a missed importer surfaces
+there instead.
+
+A module-level statement that registers something - a factory, a default, a listener - only runs
+inside a tree-shaken bundle when it sits in a module the package's `sideEffects` array names. Moving
+that statement into a file split out for topic reasons, while `sideEffects` still names only the
+entry point, lets a bundler drop it: the module still loads for its exports, but the registration
+line never executes. Keep a load-bearing module-level side effect in a module `sideEffects` lists -
+normally the package's own entry point - even when the split would otherwise put it elsewhere.
+Adding a sub-path export to inversion later would silently bypass the registration. The bundled
+pinning test in `src/__tests__/error-factory.test.ts` is the tripwire.
+
 ## Why this is written down
 
 Splitting on pain alone, with no stated threshold, is how a codebase accumulates files past 1500
@@ -73,3 +127,6 @@ not to force the split.
 Correctly split does not mean short. A file can serve exactly one lifecycle stage and still run past
 a thousand lines. The gain is that a reader knows **which file to open** - which is the thing a long
 file actually costs them.
+
+The 2026-09 split brought every hub to one topic per file; `make split-report` is how the next one
+is caught early.

@@ -1,6 +1,6 @@
 import 'reflect-metadata';
 
-import { BaseApplication } from '@/base/applications';
+import { BaseApplication, ServerBootSteps } from '@/base/applications';
 import type { IApplicationConfigs, IApplicationInfo } from '@/base/applications';
 import { BindingNamespaces } from '@venizia/ignis-kernel';
 import { RequestTrackerComponent } from '@/components';
@@ -10,11 +10,11 @@ import { getError } from '@venizia/ignis-helpers/core';
 import { RuntimeModules } from '@venizia/ignis-helpers/common';
 import { afterEach, beforeEach, describe, expect, test } from 'bun:test';
 
-/** Records the invocation order of every lifecycle step so the 9-step contract is asserted as a whole rather than step by step. */
+/** Records the invocation order of the seven traced lifecycle steps so their relative order is asserted as a whole rather than step by step. Does not cover the full 14-step `getBootSequence()` contract - see `BaseApplication - getBootSequence()` below for that. */
 class TraceApplication extends BaseApplication {
   readonly trace: string[] = [];
 
-  /** `bun test` transpiles without legacy parameter decorators, so RequestTrackerComponent's `@inject`ed application never reaches the container - rebound to an explicit instance. */
+  /** Rebound to an explicit instance so the trace does not depend on how the container resolves RequestTrackerComponent. */
   override async registerDefaultMiddlewares(): Promise<void> {
     await super.registerDefaultMiddlewares();
 
@@ -81,7 +81,7 @@ describe('BaseApplication - lifecycle order', () => {
     application = undefined;
   });
 
-  test('the 9 documented steps run in order, exactly once each', async () => {
+  test('the 7 traced steps run in order, exactly once each', async () => {
     application = new TraceApplication({ scope: 'TraceApplication', config: buildConfigs() });
     application.init();
 
@@ -122,6 +122,82 @@ describe('BaseApplication - lifecycle order', () => {
     expect(String(startResult)).toContain('preConfigure exploded');
     expect(application.getServerInstance()).toBeUndefined();
     expect(application.trace).toEqual(['staticConfigure']);
+  });
+});
+
+describe('BaseApplication - getBootSequence()', () => {
+  test('ServerBootSteps validates every name the sequence uses, kernel ones included', () => {
+    const application = new TraceApplication({
+      scope: 'BootStepsApplication',
+      config: buildConfigs(),
+    });
+
+    const stepNames = application['getBootSequence']().map(step => step.name);
+
+    expect(ServerBootSteps.SCHEME_SET.size).toBe(15);
+    expect(stepNames.every(name => ServerBootSteps.isValid(name))).toBe(true);
+    expect(ServerBootSteps.isValid('not-a-step')).toBe(false);
+  });
+
+  test('composes the documented 15-step order: kernel base + core-server splices, in order', () => {
+    const application = new TraceApplication({
+      scope: 'BootSequenceApplication',
+      config: buildConfigs(),
+    });
+
+    const stepNames = application['getBootSequence']().map(step => step.name);
+
+    expect(stepNames).toEqual([
+      'printStartUpInfo',
+      'validateEnvs',
+      'registerDefaultMiddlewares',
+      'staticConfigure',
+      'registerArtifacts',
+      'preConfigure',
+      'hydrateSecrets',
+      'registerDataSources',
+      'registerComponents',
+      'registerContributedDataSources',
+      'wireSecretRotatables',
+      'registerControllers',
+      'postConfigure',
+      'verifyBindings',
+      'validateScopeFilterSupport',
+    ]);
+  });
+
+  /** The name list above cannot tell a live `run` from an emptied one, so this subclass traces the two core-server-only steps no lifecycle hook already covers. */
+  class StepBodyApplication extends TraceApplication {
+    protected override validateEnvs(): void {
+      this.trace.push('validateEnvs');
+      super.validateEnvs();
+    }
+
+    protected override validateScopeFilterSupport(): void {
+      this.trace.push('validateScopeFilterSupport');
+      super.validateScopeFilterSupport();
+    }
+  }
+
+  test('initialize() RUNS validateEnvs first and validateScopeFilterSupport last, around the traced hooks', async () => {
+    const application = new StepBodyApplication({
+      scope: 'StepBodyApplication',
+      config: buildConfigs(),
+    });
+    application.init();
+
+    await application.initialize();
+
+    expect(application.trace).toEqual([
+      'validateEnvs',
+      'staticConfigure',
+      'preConfigure',
+      'registerDataSources',
+      'registerComponents',
+      'registerControllers',
+      'postConfigure',
+      'validateScopeFilterSupport',
+    ]);
   });
 });
 
@@ -283,9 +359,8 @@ describe('BaseApplication - server port resolution', () => {
     expect(application.getServerPort()).toBe(3000);
   });
 
-  // Review finding C5: every case above sets ONE variable, so nothing exercised the fallback
-  // between them - and the extracted `getEnvServerPort()` had collapsed a validity chain into a
-  // `.find(Boolean)` truthiness pick, letting an unusable PORT shadow a usable APP_ENV_SERVER_PORT.
+  // One variable per case above never exercises the fallback between them: an unusable PORT must
+  // not shadow a usable APP_ENV_SERVER_PORT.
   test('an invalid PORT falls through to a valid APP_ENV_SERVER_PORT', () => {
     process.env.PORT = 'abc';
     process.env.APP_ENV_SERVER_PORT = '8080';
@@ -349,5 +424,34 @@ describe('BaseApplication - server port resolution', () => {
     const response = await fetch(`http://127.0.0.1:${port}/favicon.ico`);
     expect(response.status).toBe(200);
     expect(response.headers.get('content-type')).toBe('image/svg+xml');
+  });
+});
+
+describe('BaseApplication - bootChecks.binding.allowManual', () => {
+  class Stray {}
+
+  /** The server sequence must keep the kernel's wrapped hooks, or the check silently never fires for a server application. */
+  class HandRegisteringApplication extends TraceApplication {
+    override preConfigure(): void {
+      super.preConfigure();
+      this.service(Stray);
+    }
+  }
+
+  test('false: a hand registration inside preConfigure fails the server boot and names the hook', async () => {
+    const application = new HandRegisteringApplication({
+      scope: 'HandRegisteringApplication',
+      config: buildConfigs({
+        artifacts: { services: [] },
+        bootChecks: { binding: { doVerify: false, allowManual: false, allowOverride: true } },
+      }),
+    });
+    application.init();
+
+    const failure = await application.initialize().catch((error: unknown) => error);
+
+    expect(failure).toBeInstanceOf(Error);
+    expect(String(failure)).toContain("'Stray' is registered by hand inside preConfigure()");
+    expect(String(failure)).toContain("'bootChecks.binding.allowManual' is false");
   });
 });

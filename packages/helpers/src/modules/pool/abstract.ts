@@ -2,7 +2,7 @@ import { TNullable, ValueOrPromise } from '@/common/types';
 import { BaseHelper } from '@/modules/base';
 import { getError } from '@/modules/error';
 import { HfQueueHelper } from '@/modules/queue/internal/hf';
-import { IPool, IPoolControlOptions, IPoolStats, IPoolWaiter } from './types';
+import { IPool, IPoolControlOptions, IPoolStats, IPoolWaiter } from './common';
 
 /** Single-borrower pool skeleton: subclasses override {@link create} (required) and optionally validateResource/resetResource/onDestroyResource. All resource-waiter pairing flows through ONE re-entrancy-guarded `dispatch()` loop; the waiter queue is {@link HfQueueHelper} - O(1), no shift/splice. */
 export abstract class AbstractPoolHelper<T> extends BaseHelper implements IPool<T> {

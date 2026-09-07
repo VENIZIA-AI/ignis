@@ -48,7 +48,7 @@ const worker = BullMQHelper.newInstance({
 | Backend | Class | Peer dependency | Reach for it when |
 |---------|-------|------------------|--------------------|
 | BullMQ | `BullMQHelper` | `bullmq` | Jobs must survive a process restart or run across multiple workers |
-| In-memory | `SequentialQueueHelper` (alias `QueueHelper`) | none | Sequential, single-process work that does not need persistence |
+| In-memory | `SequentialQueueHelper` | none | Sequential, single-process work that does not need persistence |
 | MQTT | `MQTTClientHelper` | `mqtt` | Pub/sub for IoT and lightweight real-time events, not job processing |
 
 - **`BullMQHelper` takes one `role` per instance, fixed at construction.**
@@ -161,5 +161,5 @@ await client.publish({ topic: 'sensors/temperature', message: '23.5' });
 **Files:**
 
 - [`packages/helpers/src/modules/queue/bullmq/helper.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/queue/bullmq/helper.ts) - `BullMQHelper`
-- [`packages/helpers/src/modules/queue/internal/sequential/helper.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/queue/internal/sequential/helper.ts) - `SequentialQueueHelper` (deprecated alias `QueueHelper`)
+- [`packages/helpers/src/modules/queue/internal/sequential/helper.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/queue/internal/sequential/helper.ts) - `SequentialQueueHelper`
 - [`packages/helpers/src/modules/queue/mqtt/helper.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/queue/mqtt/helper.ts) - `MQTTClientHelper`

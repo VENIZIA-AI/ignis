@@ -1,6 +1,6 @@
 {
   "name": "@venizia/ignis-connectors",
-  "version": "0.2.0-13",
+  "version": "0.2.0-22",
   "description": "Datasource and repository connectors for the IGNIS framework: the engine-neutral relational and search tiers, plus Postgres, SQLite, PGlite, Typesense and Meilisearch behind sub-paths.",
   "license": "MIT",
   "engines": {
@@ -120,10 +120,10 @@
     "prepublishOnly": "bun run rebuild"
   },
   "dependencies": {
-    "@venizia/ignis-filter": "^0.2.0-5",
-    "@venizia/ignis-helpers": "^0.2.0-8",
-    "@venizia/ignis-inversion": "^0.2.0-3",
-    "@venizia/ignis-kernel": "^0.2.0-13",
+    "@venizia/ignis-filter": "^0.2.0-7",
+    "@venizia/ignis-helpers": "^0.2.0-16",
+    "@venizia/ignis-inversion": "^0.2.0-5",
+    "@venizia/ignis-kernel": "^0.2.0-22",
     "lodash": "catalog:",
     "reflect-metadata": "catalog:",
     "zod": "catalog:"
@@ -135,7 +135,7 @@
     "drizzle-orm": "^0.45.2",
     "drizzle-zod": "^0.8.3",
     "hono": "^4.12.30",
-    "meilisearch": "^0.59.0",
+    "meilisearch": "^0.59.0 || ^0.60.0",
     "pg": "^8.21.0",
     "postgres": "^3.4.0",
     "typesense": "^3.0.3"
@@ -163,6 +163,7 @@
   "devDependencies": {
     "@types/bun": "catalog:",
     "@types/lodash": "catalog:",
+    "@types/pg": "catalog:",
     "@venizia/dev-configs": "^0.2.0-3",
     "eslint": "catalog:",
     "prettier": "catalog:",

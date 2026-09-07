@@ -6,7 +6,6 @@
  *   bun .agents/knowledge-tools/okf.ts check      # CI gate: conformance + links + coverage + freshness
  *   bun .agents/knowledge-tools/okf.ts coverage   # measure the bundle against the source inventory
  *   bun .agents/knowledge-tools/okf.ts viz        # build the offline knowledge-graph explorer
- *   bun .agents/knowledge-tools/okf.ts mcp        # serve the bundle over MCP stdio
  *
  * Source-derived content is either a whole generated file (reference/*) or lives inside a
  * managed region delimited by `<!-- okf:generated:<id> start -->` … `<!-- okf:generated:<id> end -->`.
@@ -26,7 +25,7 @@ import {
   REPO,
   RESERVED_FILES,
 } from './config.ts';
-import { loadConcepts, stripCode } from './lib.ts';
+import { loadConcepts, loadConceptsOrExit, stripCode } from './lib.ts';
 
 // --- source scanning ---
 
@@ -474,8 +473,8 @@ const renderBindingKeys = (): GeneratedFile => {
     content:
       refHeader({
         title: 'Binding keys',
-        description: 'Every dependency-injection binding key declared in core (generated).',
-        resource: 'packages/core-server/src/common/bindings.ts',
+        description: 'Every dependency-injection binding key declared in the kernel (generated).',
+        resource: 'packages/kernel/src/common/bindings.ts',
         tags: 'reference, bindings, di',
       }) +
       generatedNote({ seeAlso: 'Namespaces: [binding key namespaces](/conventions/binding-key-namespaces.md).' }) +
@@ -590,6 +589,15 @@ const check = (): void => {
 
   let conceptCount = 0;
 
+  // 0. every concept parses through the shared loader - a bad frontmatter fails here, file named.
+  // The regex checks below never parse YAML, so on their own they would report OK on a concept
+  // `loadConcepts()` had already silently downgraded to type Unknown.
+  try {
+    loadConcepts();
+  } catch (error) {
+    problems.push((error as Error).message);
+  }
+
   // 1. conformance + 2. links
   for (const file of files) {
     const text = readFileSync(file, 'utf8');
@@ -682,7 +690,7 @@ const pad = (opts: { value: string; width: number }): string => {
 };
 
 const coverage = (): void => {
-  const concepts = loadConcepts().filter((concept) => !concept.reserved);
+  const concepts = loadConceptsOrExit().filter((concept) => !concept.reserved);
   const ids = new Set(concepts.map((concept) => concept.id));
 
   const hasId = (opts: { id: string }): boolean => ids.has(opts.id);
@@ -822,13 +830,8 @@ switch (command) {
     break;
   }
 
-  case 'mcp': {
-    await (await import('./mcp.ts')).runMcp();
-    break;
-  }
-
   default: {
-    console.error('usage: bun .agents/knowledge-tools/okf.ts <gen|check|coverage|viz|mcp>');
+    console.error('usage: bun .agents/knowledge-tools/okf.ts <gen|check|coverage|viz>');
     process.exit(2);
   }
 }

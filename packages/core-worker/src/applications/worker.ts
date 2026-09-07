@@ -1,9 +1,10 @@
-import { getError } from '@venizia/ignis-helpers/core';
+import { getError, ProjectRootRegistry } from '@venizia/ignis-helpers/core';
 import { HTTP } from '@venizia/ignis-helpers/common';
-import { RestApplication } from '@venizia/ignis-kernel';
+import { CoreBindings, RestApplication } from '@venizia/ignis-kernel';
 import type { Env, Schema } from 'hono';
 import { BffEnvelope } from '@/envelope/encode';
-import type { IBffRequestEnvelope, IBffResponseEnvelope } from '@/envelope/types';
+import type { IBffRequestEnvelope, IBffResponseEnvelope } from '@/envelope/common';
+import type { IWorkerApplicationConfigs } from './common';
 
 /**
  * Structural shape of the two globals `listen()` can attach to. Never `DedicatedWorkerGlobalScope`:
@@ -29,12 +30,32 @@ export abstract class WorkerApplication<
   AppSchema extends Schema = {},
   BasePath extends string = '/',
 > extends RestApplication<AppEnv, AppSchema, BasePath> {
+  /** Widened by this layer, the only one with an optional `projectRoot` to read. Assigned by the base constructor - `declare` so no field initializer runs here and overwrites it with `undefined`. */
+  declare protected configs: IWorkerApplicationConfigs;
+
   /** Resolves once the router tree is mounted - what an envelope arriving during boot waits on. */
   private servingPromise?: Promise<void>;
   /** The whole `listen()` call, kept so a second one is a no-op instead of a second listener. */
   private listenPromise?: Promise<void>;
   private detachFromScope?: () => void;
   private isStopped = false;
+
+  /**
+   * `configs.projectRoot` wins, else the host's own working directory - read as
+   * `globalThis.process?.cwd?.()`, never a bare `process.cwd()`, because a real browser Worker has no
+   * such global and this class ships there. Bound AND shared with `ModuleUtility` (through the
+   * purity-safe `ProjectRootRegistry`), the same seam `ServerApplication` gives a socket host. No
+   * `node_modules` check here, unlike that host: a browser has no filesystem to check, and `node:fs`
+   * would bundle a Node builtin straight into a Worker.
+   */
+  override getProjectRoot(): string {
+    const projectRoot = this.configs.projectRoot ?? globalThis.process?.cwd?.() ?? '';
+
+    this.bind<string>({ key: CoreBindings.APPLICATION_PROJECT_ROOT }).toValue(projectRoot);
+    ProjectRootRegistry.set({ projectRoot });
+
+    return projectRoot;
+  }
 
   /**
    * Every failure here is posted back as an `IBffErrorEnvelope`, the failed `postMessage` included:

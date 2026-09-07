@@ -170,6 +170,24 @@ describe('Container - storage semantics', () => {
     expect(container.get<number>({ key: 'external' })).toBe(7);
   });
 
+  // Binding identity, not only the resolved value: a container that handed back the first binding
+  // would still let the chained `.toClass()` re-point it, so a value check cannot tell replace from
+  // reuse. Every `allowOverride: true` registration upstream relies on replace.
+  test('a second bind() on the same key replaces the first binding instead of reusing it', () => {
+    const first = container
+      .bind({ key: 'greeter' })
+      .toClass(Greeter)
+      .setScope(BindingScopes.SINGLETON);
+    const second = container.bind({ key: 'greeter' }).toClass(Greeter);
+
+    expect(second).not.toBe(first);
+    expect(container.getBinding({ key: 'greeter' })).toBe(second);
+    // The replacement starts from defaults - TRANSIENT again, so two resolutions are two instances.
+    expect(container.get<Greeter>({ key: 'greeter' })).not.toBe(
+      container.get<Greeter>({ key: 'greeter' }),
+    );
+  });
+
   test('findByTag returns namespace-tagged bindings, honouring exclude as Array and as Set', () => {
     container.bind({ key: 'services.Alpha' }).toValue('a');
     container.bind({ key: 'services.Beta' }).toValue('b');

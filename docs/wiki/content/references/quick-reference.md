@@ -376,7 +376,7 @@ import {
   RedisSingleHelper,
 
   // Queues
-  QueueHelper,
+  SequentialQueueHelper,
 
   // Crypto
   hash,

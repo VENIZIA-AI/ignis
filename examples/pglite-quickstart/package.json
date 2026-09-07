@@ -21,7 +21,7 @@
     "start": "APP_ENV_LOGGER_FOLDER_PATH=./app_data/logs bun run src/index.ts"
   },
   "dependencies": {
-    "@electric-sql/pglite": "^0.5.4",
+    "@electric-sql/pglite": "^0.5.8",
     "@hono/zod-openapi": "catalog:",
     "@scalar/hono-api-reference": "catalog:",
     "@venizia/ignis": "workspace:*",

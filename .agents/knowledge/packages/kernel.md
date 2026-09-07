@@ -8,9 +8,9 @@ tags: [packages, kernel, browser, isomorphic, di]
 
 `@venizia/ignis-kernel` holds everything in the framework that needs neither a node builtin nor a
 server-only peer, so the same kernel serves a Bun server and a browser Worker. It sits beside `boot`
-in the dependency chain (`dev-configs -> inversion -> {filter, helpers} -> {boot, kernel} -> core`)
+in the dependency chain (`dev-configs -> inversion -> {filter, helpers} -> kernel -> core`)
 and depends on `filter`, `helpers`, and `inversion`. `boot` is a sibling, not a link - neither
-package depends on the other, and `core` pulls in both (`make core` needs `boot kernel`). Sitting
+package depends on the other, and only `kernel` feeds `core` (`make core` needs `connectors`; `boot` is a devDependency an application declares for the generator). Sitting
 beside `boot` rather than after it is what keeps boot's node-only glob discovery out of the kernel
 graph.
 
@@ -25,10 +25,10 @@ Everything under `src/base/` was the engine-neutral half of `packages/core-serve
 
 | Subsystem | What lives there |
 |---|---|
-| `applications/` | `AbstractApplication` (container, config, lifecycle hooks), `RestApplication` (adds the router) |
+| `applications/` | `AbstractApplication` (container, config, lifecycle hooks), `RestApplication` (adds the router, `registerArtifacts` - the index resolution behind it lives in `ArtifactIndexHelper`, `applications/artifact-index.ts`, internal - and the opt-in `configs.bootChecks.binding`: `doVerify` resolves every service and repository at the `verifyBindings` step and fails the boot with every broken key, `allowManual: false` rejects a hand registration inside `preConfigure`/`postConfigure` while `configs.artifacts` is set, `allowOverride: false` makes every artifact registration refuse an already-bound key) |
 | `auth/` | The authentication and authorization seams - registries, middlewares, providers, policy builders |
 | `components/` | `BaseComponent` and its `binding()` contract |
-| `controllers/` | `AbstractRestController`, `BaseRestController`, `ControllerFactory` |
+| `controllers/` | `AbstractRestController`, `BaseRestController` (route helpers and the response helpers `respond({ context, format, payload, range? })` and `setListHeaders({ context, count } & ({ range } | { offset, total }))`, plus the exported `toContentRange` - the one home of the `Content-Range` / `X-Response-Count` / `X-Response-Format` contract; `format` is the `ResponseFormats` const class), `ControllerFactory`, and `ReadableCrudController.getBaseWhere({ context })` - the per-controller scope every read verb ANDs into the request filter as `{ and: [baseWhere, requestWhere] }`, public rather than protected because a generated controller's declaration cannot carry a protected member (TS4094) |
 | `datasources/` | `AbstractDataSource` - the engine-neutral root with no SQL members |
 | `events/` | `EventBus` - in-process, fire-and-forget domain event bus with per-registration retry |
 | `metadata/` | The decorator layer: `@controller`, `@model`, `@datasource`, `@repository`, `@inject`, the REST verbs, the RPC verbs |
@@ -47,8 +47,8 @@ and `Statuses`; `src/helpers/inversion/` carries the kernel `Container` and `Met
 ## Browser purity is the design constraint, and it is measured
 
 `scripts/purity/manifest.ts` claims this package's whole published surface and derives its rows from
-the `exports` map, so today that is `packages/kernel/dist/index.js` and whatever is added next.
-`make purity-kernel`
+the `exports` map, so today the map resolves to `dist/esm/index.js` inside this package, and
+whatever is added next. `make purity-kernel`
 bundles it for `target: 'browser'` and fails on any node builtin or node global. Purity is a property
 of the resolved graph, so the rule is about how peers are reached, not which peers are declared:
 `drizzle-orm`, `casbin`, and `jose` are reached through `import type` only and never survive into the
@@ -157,7 +157,7 @@ side effect (patching `.openapi()` onto the shared prototype) and calls
 Server code must import them from here, never from `@venizia/ignis-filter/schemas` - the undecorated
 instances validate identically and document nothing.
 
-`IModelSettings.scopeFilter` (`helpers/inversion/common/types.ts`) is the model-settings surface for
+`IModelSettings.scopeFilter` (`helpers/inversion/common/types/model.ts`) is the model-settings surface for
 a per-request row scope. `resolve()` returns one of three states, and the order they are checked in
 is the whole safety property: a `TWhere` ANDs in; the exact symbol `ScopeFilters.UNRESTRICTED`
 (`base/repositories/common/constants.ts`) applies no scope for THIS call, checked before the

@@ -4,7 +4,7 @@ import { getError } from '@/modules/error';
 import isEmpty from 'lodash/isEmpty';
 import path from 'node:path';
 import { Readable } from 'node:stream';
-import { IBucketInfo, IFileStat, IStorageHelper, IUploadFile, IUploadResult } from './types';
+import { IBucketInfo, IFileStat, IStorageHelper, IUploadFile, IUploadResult } from './common';
 
 export abstract class BaseStorageHelper extends BaseHelper implements IStorageHelper {
   protected static MIME_MAP: Record<string, string> = {
@@ -320,5 +320,5 @@ export abstract class BaseStorageHelper extends BaseHelper implements IStorageHe
     prefix?: string;
     useRecursive?: boolean;
     maxKeys?: number;
-  }): Promise<import('./types').IObjectInfo[]>;
+  }): Promise<import('./common').IObjectInfo[]>;
 }

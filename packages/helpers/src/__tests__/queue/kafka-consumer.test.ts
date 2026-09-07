@@ -12,7 +12,19 @@ class FakeMessagesStream extends EventEmitter {
 
   isClosed = false;
   destroyCount = 0;
+  destroyedWith: Error | undefined;
 
+  constructor() {
+    super();
+    // A real Readable's async iterator rejects on 'error' whether or not destroy() was called.
+    this.on('error', (error: Error) => {
+      this.destroyedWith = error;
+      this.isClosed = true;
+      this.release();
+    });
+  }
+
+  /** Like a real Readable: `destroy(error)` rejects the pending iteration, so loop-mode tests exercise `drainStream`'s catch. */
   async *[Symbol.asyncIterator](): AsyncGenerator<AnyType> {
     while (!this.isClosed) {
       const next = this.pending.shift();
@@ -24,6 +36,9 @@ class FakeMessagesStream extends EventEmitter {
       await new Promise<void>(resolve => {
         this.wakeUp = resolve;
       });
+    }
+    if (this.destroyedWith) {
+      throw this.destroyedWith;
     }
   }
 
@@ -37,8 +52,9 @@ class FakeMessagesStream extends EventEmitter {
     this.release();
   }
 
-  destroy(_error?: Error): void {
+  destroy(error?: Error): void {
     this.destroyCount += 1;
+    this.destroyedWith = error;
     this.isClosed = true;
     this.release();
   }
@@ -229,6 +245,57 @@ describe('KafkaConsumerHelper — lifecycle, hooks, shutdown', () => {
     await helper.close();
   });
 
+  test('a stream error is routed to onStreamError when set, and onMessageError is NOT called', async () => {
+    const client = new FakeConsumerClient();
+    const streamErrors: unknown[] = [];
+    const messageErrors: unknown[] = [];
+
+    const helper = buildHelper({
+      client,
+      hooks: {
+        onMessage: () => {},
+        onStreamError: ({ error }: AnyType) => {
+          streamErrors.push(error);
+        },
+        onMessageError: ({ error }: AnyType) => {
+          messageErrors.push(error);
+        },
+      },
+    });
+
+    await helper.start({ topics: ['orders'] });
+    client.streams[0].emit('error', new Error('stream blew up')); // raw driver error
+    await flush();
+
+    expect(streamErrors.length).toBe(1);
+    expect(messageErrors.length).toBe(0);
+
+    await helper.close();
+  });
+
+  test('a stream error falls back to onMessageError when onStreamError is not set (fallback positive control)', async () => {
+    const client = new FakeConsumerClient();
+    const messageErrors: unknown[] = [];
+
+    const helper = buildHelper({
+      client,
+      hooks: {
+        onMessage: () => {},
+        onMessageError: ({ error }: AnyType) => {
+          messageErrors.push(error);
+        },
+      },
+    });
+
+    await helper.start({ topics: ['orders'] });
+    client.streams[0].emit('error', new Error('stream blew up')); // raw driver error
+    await flush();
+
+    expect(messageErrors.length).toBe(1);
+
+    await helper.close();
+  });
+
   test('BUG: SYNC-throwing consumer group/heartbeat/lag hooks must not escape the client emitter', async () => {
     const client = new FakeConsumerClient();
 
@@ -337,5 +404,28 @@ describe('KafkaConsumerHelper — lifecycle, hooks, shutdown', () => {
     expect(client.consumeCalls.length).toBe(consumeCallsAtClose); // no reconnect after shutdown
     expect(helper.getStream()).toBeNull();
     expect(unhandledRejections).toEqual([]);
+  });
+});
+
+describe('KafkaConsumerHelper - buildClient is the rebuild seam', () => {
+  test('a subclass override of buildClient supplies the consumer that rebuildClient swaps in', async () => {
+    const replacement = new FakeConsumerClient();
+    class SeamHelper extends KafkaConsumerHelper {
+      protected override buildClient(): AnyType {
+        return replacement;
+      }
+    }
+
+    const helper = new SeamHelper({
+      clientId: 'ignis-test-seam',
+      bootstrapBrokers: ['127.0.0.1:9092'],
+      groupId: 'ignis-test-seam-group',
+    });
+    const original = helper.getConsumer();
+
+    await helper['rebuildClient']();
+
+    expect(helper.getConsumer()).toBe(replacement as AnyType);
+    expect(helper.getConsumer()).not.toBe(original);
   });
 });

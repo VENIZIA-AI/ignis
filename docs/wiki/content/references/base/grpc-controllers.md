@@ -15,7 +15,7 @@ IGNIS gRPC controllers follow the same patterns as REST controllers (decorator-b
 - `packages/core-server/src/base/controllers/grpc/base.ts`
 - `packages/core-server/src/base/controllers/grpc/adapter.ts`
 - `packages/core-server/src/base/controllers/grpc/common/types.ts`
-- `packages/core-server/src/base/metadata/routes/rpc.ts`
+- `packages/kernel/src/base/metadata/routes/rpc.ts`
 - `packages/core-server/src/components/controller/grpc/grpc.component.ts`
 - `packages/core-server/src/components/controller/grpc/common/types.ts`
 
@@ -229,7 +229,7 @@ The `configure()` method on `AbstractGrpcController` is idempotent (guarded by `
 
 ## RPC Decorators
 
-All RPC decorators live in `packages/core-server/src/base/metadata/routes/rpc.ts`. They register metadata in the `MetadataRegistry`, which is read during `configure()`.
+All RPC decorators live in `packages/kernel/src/base/metadata/routes/rpc.ts`. They register metadata in the `MetadataRegistry`, which is read during `configure()`.
 
 ### `@rpc` -- Generic
 

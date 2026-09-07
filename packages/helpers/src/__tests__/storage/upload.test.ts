@@ -2,9 +2,9 @@
 
 import { AnyType } from '@/common';
 import { BunS3Helper } from '@/modules/storage/bun-s3';
+import { IUploadFile } from '@/modules/storage/common';
 import { DiskHelper } from '@/modules/storage/disk';
 import { MinioHelper } from '@/modules/storage/minio';
-import { IUploadFile } from '@/modules/storage/types';
 import { afterEach, beforeEach, describe, expect, spyOn, test } from 'bun:test';
 import fs from 'node:fs';
 import fsp from 'node:fs/promises';

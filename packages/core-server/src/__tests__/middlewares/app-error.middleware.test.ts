@@ -566,7 +566,7 @@ describe('AppErrorMiddleware - every branch emits normalized', () => {
 
   test('a validation error carries normalized', async () => {
     const app = buildApp(() => {
-      z.object({ email: z.string().email() }).parse({ email: 'nope' });
+      z.object({ email: z.email() }).parse({ email: 'nope' });
     });
 
     const body = await readNormalized(app);

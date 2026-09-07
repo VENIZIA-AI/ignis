@@ -1,7 +1,7 @@
 import type { ApplicationError } from '@venizia/ignis-helpers/core';
 import { fromError, getError, isApplicationError } from '@venizia/ignis-helpers/core';
 import { HTTP } from '@venizia/ignis-helpers/common';
-import type { IBffErrorEnvelope, IBffRequestEnvelope, IBffResponseEnvelope } from './types';
+import type { IBffErrorEnvelope, IBffRequestEnvelope, IBffResponseEnvelope } from './common';
 
 /**
  * Every request built inside the Worker uses this origin. Never `self.location.href`: a `blob:`

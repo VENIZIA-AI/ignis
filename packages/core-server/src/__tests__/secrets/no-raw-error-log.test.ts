@@ -61,7 +61,10 @@ describe('hydrateSecrets does not leak raw error objects to the logger', () => {
       },
     );
     try {
-      const app = new SystemEnvsBackedApp({ scope: 'probe', config: {} as AnyType });
+      const app = new SystemEnvsBackedApp({
+        scope: 'probe',
+        config: { path: { base: '', isStrict: false } },
+      });
       await app.hydrateSecrets();
 
       assertRedactedThroughLogger(warnSpy.mock.calls as unknown[][]);
@@ -85,7 +88,10 @@ describe('hydrateSecrets does not leak raw error objects to the logger', () => {
       },
     );
     try {
-      const app = new SystemEnvsBackedApp({ scope: 'probe', config: {} as AnyType });
+      const app = new SystemEnvsBackedApp({
+        scope: 'probe',
+        config: { path: { base: '', isStrict: false } },
+      });
       await app.hydrateSecrets();
 
       assertRedactedThroughLogger(errorSpy.mock.calls as unknown[][]);

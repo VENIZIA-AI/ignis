@@ -151,7 +151,8 @@ describe('probeEntry', () => {
     // Negative case: the strip must not blind the gate to a real leak sitting right next to a path
     // comment - only the comment LINE is removed, never a line of actual code.
     test('leaves a real unguarded process read alone, and the pattern still catches it', () => {
-      const bundled = '// packages/core-worker/dist/transport/in-process.js\nvar x = process.env.A;\n';
+      const bundled =
+        '// packages/core-worker/dist/transport/in-process.js\nvar x = process.env.A;\n';
 
       const stripped = stripBundlerPathComments(bundled);
 

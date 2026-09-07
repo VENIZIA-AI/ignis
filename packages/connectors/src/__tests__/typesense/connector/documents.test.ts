@@ -1,6 +1,6 @@
 import { describe, test, expect } from 'bun:test';
 import { ApplicationError, getError } from '@venizia/ignis-helpers/core';
-import { TypesenseDirtyValues, TypesenseImportActions } from '@/search/typesense/types';
+import { TypesenseDirtyValues, TypesenseImportActions } from '@/search/typesense/common';
 import { makeHelper } from './fake-client';
 
 interface IProduct {

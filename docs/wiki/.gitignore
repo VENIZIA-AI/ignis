@@ -1,5 +1,4 @@
 # Build outputs
-mcp-server/dist/
 site/.vitepress/dist/
 site/.vitepress/cache/
 *.tsbuildinfo

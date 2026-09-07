@@ -2,7 +2,7 @@
 type: Architecture
 title: Transactions
 description: How IGNIS opens explicit Postgres transactions, threads them through repository options, and guarantees that a failed COMMIT never resolves successfully.
-resource: packages/core-server/src/connectors/postgres/datasources/base.ts
+resource: packages/connectors/src/relational/postgres/datasources/base.ts
 tags: [architecture, transactions, postgres, correctness]
 ---
 

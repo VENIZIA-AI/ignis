@@ -29,50 +29,55 @@ import type {
   TKafkaStreamErrorCallback,
 } from './common/types';
 
-/** Wrapper around `@platformatic/kafka` Consumer with lifecycle management, health tracking, graceful shutdown, message callbacks, and lag monitoring. */
+/**
+ * Wrapper around `@platformatic/kafka` Consumer with lifecycle management, health tracking, graceful shutdown, message callbacks, and lag monitoring.
+ *
+ * Every member below is `protected`, not `private`, so a consumer extends this class instead of forking it. That visibility is not a stable contract between minor versions.
+ */
 export class KafkaConsumerHelper<
   KeyType = string,
   ValueType = string,
   HeaderKeyType = string,
   HeaderValueType = string,
 > extends BaseKafkaHelper<Consumer<KeyType, ValueType, HeaderKeyType, HeaderValueType>> {
-  private stream: MessagesStream<KeyType, ValueType, HeaderKeyType, HeaderValueType> | null = null;
-  private consumeLoop: Promise<void> | null = null;
-  private consumeStartOptions: IKafkaConsumeStartOptions | null = null;
-  private lagMonitoringActive = false;
-  private lagMonitoringOptions: { topics: string[]; interval?: number } | null = null;
-  private sessionLikelyStale = false;
+  protected stream: MessagesStream<KeyType, ValueType, HeaderKeyType, HeaderValueType> | null =
+    null;
+  protected consumeLoop: Promise<void> | null = null;
+  protected consumeStartOptions: IKafkaConsumeStartOptions | null = null;
+  protected lagMonitoringActive = false;
+  protected lagMonitoringOptions: { topics: string[]; interval?: number } | null = null;
+  protected sessionLikelyStale = false;
 
-  private readonly onMessage?: TKafkaMessageCallback<
+  protected readonly onMessage?: TKafkaMessageCallback<
     KeyType,
     ValueType,
     HeaderKeyType,
     HeaderValueType
   >;
-  private readonly onMessageDone?: TKafkaMessageDoneCallback<
+  protected readonly onMessageDone?: TKafkaMessageDoneCallback<
     KeyType,
     ValueType,
     HeaderKeyType,
     HeaderValueType
   >;
-  private readonly onMessageError?: TKafkaMessageErrorCallback<
+  protected readonly onMessageError?: TKafkaMessageErrorCallback<
     KeyType,
     ValueType,
     HeaderKeyType,
     HeaderValueType
   >;
-  private readonly onStreamError?: TKafkaStreamErrorCallback;
-  private readonly onReconnectError?: TKafkaReconnectErrorCallback;
+  protected readonly onStreamError?: TKafkaStreamErrorCallback;
+  protected readonly onReconnectError?: TKafkaReconnectErrorCallback;
 
-  private readonly onGroupJoin?: TKafkaGroupJoinCallback;
-  private readonly onGroupLeave?: TKafkaGroupLeaveCallback;
-  private readonly onGroupRebalance?: TKafkaGroupRebalanceCallback;
-  private readonly onHeartbeatError?: TKafkaHeartbeatErrorCallback;
+  protected readonly onGroupJoin?: TKafkaGroupJoinCallback;
+  protected readonly onGroupLeave?: TKafkaGroupLeaveCallback;
+  protected readonly onGroupRebalance?: TKafkaGroupRebalanceCallback;
+  protected readonly onHeartbeatError?: TKafkaHeartbeatErrorCallback;
 
-  private readonly onLag?: TKafkaLagCallback;
-  private readonly onLagError?: TKafkaLagErrorCallback;
+  protected readonly onLag?: TKafkaLagCallback;
+  protected readonly onLagError?: TKafkaLagErrorCallback;
 
-  private readonly initialOptions: IKafkaConsumerOptions<
+  protected readonly initialOptions: IKafkaConsumerOptions<
     KeyType,
     ValueType,
     HeaderKeyType,
@@ -121,7 +126,14 @@ export class KafkaConsumerHelper<
     return new KafkaConsumerHelper<KeyType, ValueType, HeaderKeyType, HeaderValueType>(opts);
   }
 
-  private static buildConsumerClient<
+  /** The instance seam every rebuild goes through; the constructor alone uses the static factory because no instance exists yet. Override this to hand a rebuilt consumer different options or a test double. */
+  protected buildClient(opts: {
+    options: IKafkaConsumerOptions<KeyType, ValueType, HeaderKeyType, HeaderValueType>;
+  }): Consumer<KeyType, ValueType, HeaderKeyType, HeaderValueType> {
+    return KafkaConsumerHelper.buildConsumerClient(opts.options);
+  }
+
+  protected static buildConsumerClient<
     KeyType = string,
     ValueType = string,
     HeaderKeyType = string,
@@ -187,40 +199,30 @@ export class KafkaConsumerHelper<
     // Successful consume() means we're freshly joined to the group; clear any stale-session flag set during initial broker negotiation (e.g. a transient BROKER_DISCONNECT during bootstrap).
     this.sessionLikelyStale = false;
 
-    this.attachStreamErrorListener(this.stream);
+    // Always attached, hook or not: a stream 'error' with ZERO listeners is rethrown by EventEmitter as an uncaught exception, so a pull-style consumer (start() + getStream(), no onMessage/onMessageError) would take the whole process down on the first broker drop.
+    const startedStream = this.stream;
+    startedStream.on(KafkaClientEvents.STREAM_ERROR, (streamError: Error) => {
+      this.logger.for('start').error('Kafka stream ERROR | Error: %s', streamError);
+      this.reportStreamError({ error: streamError, scope: 'start', stream: startedStream });
+    });
 
     if (this.onMessage) {
-      this.consumeLoop = this.startConsumeLoop({
+      const loop = this.startConsumeLoop({
         messageHandler: this.onMessage,
         doneHandler: this.onMessageDone,
+        errorHandler: this.onMessageError,
         reconnectDelayMs: opts.reconnectDelayMs ?? KafkaDefaults.RECONNECT_DELAY,
         maxReconnectAttempts: opts.maxReconnectAttempts ?? KafkaDefaults.MAX_RECONNECT_ATTEMPTS,
+      }).finally(() => {
+        // A finished loop (exhausted reconnects or shutdown) no longer reports stream errors; the listeners take over.
+        if (this.consumeLoop === loop) {
+          this.consumeLoop = null;
+        }
       });
+      this.consumeLoop = loop;
     }
 
     this.logger.info('[start] Consumer started | Topics: %j', opts.topics);
-  }
-
-  /** Wires the stream-level 'error' event to `onStreamError`, never `onMessageError` - no record was pulled, so there is nothing message-shaped to report. Always attached, hook or not: a stream 'error' with ZERO listeners is rethrown by EventEmitter as an uncaught exception, so a pull-style consumer (start() + getStream(), no onMessage) would take the whole process down on the first broker drop. */
-  private attachStreamErrorListener(
-    stream: MessagesStream<KeyType, ValueType, HeaderKeyType, HeaderValueType>,
-  ): void {
-    stream.on(KafkaClientEvents.STREAM_ERROR, (streamError: Error) => {
-      this.logger
-        .for('start')
-        .error(
-          'Kafka stream ERROR | ClientId: %s | GroupId: %s | Error: %s',
-          this.initialOptions.clientId,
-          this.initialOptions.groupId,
-          streamError,
-        );
-
-      invokeHook({
-        logger: this.logger,
-        scope: 'start',
-        execution: () => this.onStreamError?.({ error: streamError }),
-      });
-    });
   }
 
   startLagMonitoring(opts: { topics: string[]; interval?: number }): void {
@@ -280,15 +282,21 @@ export class KafkaConsumerHelper<
     this.logger.info('[close] Consumer closed | Force: %s', force);
   }
 
-  private async startConsumeLoop(opts: {
+  protected async startConsumeLoop(opts: {
     messageHandler: TKafkaMessageCallback<KeyType, ValueType, HeaderKeyType, HeaderValueType>;
     doneHandler?: TKafkaMessageDoneCallback<KeyType, ValueType, HeaderKeyType, HeaderValueType>;
+    errorHandler?: TKafkaMessageErrorCallback<KeyType, ValueType, HeaderKeyType, HeaderValueType>;
     reconnectDelayMs: number;
     maxReconnectAttempts: number;
   }): Promise<void> {
-    const { messageHandler, doneHandler, reconnectDelayMs, maxReconnectAttempts } = opts;
+    const { messageHandler, doneHandler, errorHandler, reconnectDelayMs, maxReconnectAttempts } =
+      opts;
 
-    for await (const message of this.consumeMessages({ reconnectDelayMs, maxReconnectAttempts })) {
+    for await (const message of this.consumeMessages({
+      reconnectDelayMs,
+      maxReconnectAttempts,
+      errorHandler,
+    })) {
       try {
         await messageHandler({ message });
         await doneHandler?.({ message });
@@ -301,19 +309,23 @@ export class KafkaConsumerHelper<
         invokeHook({
           logger: this.logger,
           scope: 'startConsumeLoop',
-          execution: () => this.onMessageError?.({ error: normalizedError, message }),
+          execution: () => errorHandler?.({ error: normalizedError, message }),
         });
       }
     }
   }
 
-  private async *consumeMessages(opts: { reconnectDelayMs: number; maxReconnectAttempts: number }) {
-    const { reconnectDelayMs, maxReconnectAttempts } = opts;
+  protected async *consumeMessages(opts: {
+    reconnectDelayMs: number;
+    maxReconnectAttempts: number;
+    errorHandler?: TKafkaMessageErrorCallback<KeyType, ValueType, HeaderKeyType, HeaderValueType>;
+  }) {
+    const { reconnectDelayMs, maxReconnectAttempts, errorHandler } = opts;
     let consecutiveErrors = 0;
 
     while (true) {
       if (this.stream) {
-        yield* this.drainStream();
+        yield* this.drainStream({ errorHandler });
       }
 
       if (!this.consumeStartOptions) {
@@ -335,6 +347,7 @@ export class KafkaConsumerHelper<
         attempt: consecutiveErrors,
         maxAttempts: maxReconnectAttempts,
         delayMs: reconnectDelayMs,
+        errorHandler,
       });
 
       if (!this.consumeStartOptions) {
@@ -350,7 +363,25 @@ export class KafkaConsumerHelper<
     }
   }
 
-  private async *drainStream() {
+  /** Silent only while the consume loop is alive AND the erroring stream is the one it drains - the iterator then reports the same error once. A dead or replaced stream, or pull mode, reports here. */
+  protected reportStreamError(opts: { error: Error; scope: string; stream: unknown }): void {
+    if (this.consumeLoop && this.stream === opts.stream) {
+      return;
+    }
+
+    invokeHook({
+      logger: this.logger,
+      scope: opts.scope,
+      execution: () =>
+        this.onStreamError
+          ? this.onStreamError({ error: opts.error })
+          : this.onMessageError?.({ error: opts.error }),
+    });
+  }
+
+  protected async *drainStream(opts: {
+    errorHandler?: TKafkaMessageErrorCallback<KeyType, ValueType, HeaderKeyType, HeaderValueType>;
+  }) {
     this.logger.debug('[drainStream] Consuming | Topics: %j', this.consumeStartOptions?.topics);
 
     try {
@@ -362,28 +393,30 @@ export class KafkaConsumerHelper<
     } catch (error) {
       const normalizedError = toError(error);
       this.logger.error(
-        '[drainStream] Stream error | ClientId: %s | GroupId: %s | Error: %s | Topics: %j',
-        this.initialOptions.clientId,
-        this.initialOptions.groupId,
+        '[drainStream] Stream error: %s | Topics: %j',
         normalizedError.message,
         this.consumeStartOptions?.topics,
       );
       invokeHook({
         logger: this.logger,
         scope: 'drainStream',
-        execution: () => this.onStreamError?.({ error: normalizedError }),
+        execution: () =>
+          this.onStreamError
+            ? this.onStreamError({ error: normalizedError })
+            : opts.errorHandler?.({ error: normalizedError }),
       });
     }
 
     this.destroyDeadStream();
   }
 
-  private async attemptReconnect(opts: {
+  protected async attemptReconnect(opts: {
     attempt: number;
     maxAttempts: number;
     delayMs: number;
+    errorHandler?: TKafkaMessageErrorCallback<KeyType, ValueType, HeaderKeyType, HeaderValueType>;
   }): Promise<void> {
-    const { attempt, maxAttempts, delayMs } = opts;
+    const { attempt, maxAttempts, delayMs, errorHandler } = opts;
 
     this.logger.info(
       '[attemptReconnect] Reconnecting %d/%d in %dms | Topics: %j | ConnectedBrokers: %d',
@@ -415,11 +448,9 @@ export class KafkaConsumerHelper<
       } catch (error) {
         const normalizedError = toError(error);
         this.logger.error(
-          '[attemptReconnect] Client rebuild failed (%d/%d) | ClientId: %s | GroupId: %s | Error: %s | Topics: %j',
+          '[attemptReconnect] Client rebuild failed (%d/%d): %s | Topics: %j',
           attempt,
           maxAttempts,
-          this.initialOptions.clientId,
-          this.initialOptions.groupId,
           normalizedError.message,
           this.consumeStartOptions?.topics,
         );
@@ -427,7 +458,9 @@ export class KafkaConsumerHelper<
           logger: this.logger,
           scope: 'attemptReconnect',
           execution: () =>
-            this.onReconnectError?.({ error: normalizedError, attempt, maxAttempts }),
+            this.onReconnectError
+              ? this.onReconnectError({ error: normalizedError, attempt, maxAttempts })
+              : errorHandler?.({ error: normalizedError }),
         });
         return;
       }
@@ -440,7 +473,16 @@ export class KafkaConsumerHelper<
         fallbackMode: this.consumeStartOptions.fallbackMode ?? KafkaDefaults.CONSUME_FALLBACK_MODE,
       });
 
-      this.attachStreamErrorListener(this.stream);
+      // Always attached, hook or not, like the listener in start(): a stream 'error' with ZERO listeners is rethrown by EventEmitter and takes the process down.
+      const reconnectedStream = this.stream;
+      reconnectedStream.on(KafkaClientEvents.STREAM_ERROR, (streamError: Error) => {
+        this.logger.for('attemptReconnect').error('Kafka stream ERROR | Error: %s', streamError);
+        this.reportStreamError({
+          error: streamError,
+          scope: 'attemptReconnect',
+          stream: reconnectedStream,
+        });
+      });
 
       this.sessionLikelyStale = false;
 
@@ -453,11 +495,9 @@ export class KafkaConsumerHelper<
     } catch (error) {
       const normalizedError = toError(error);
       this.logger.error(
-        '[attemptReconnect] Failed (%d/%d) | ClientId: %s | GroupId: %s | Error: %s | Topics: %j | ConnectedBrokers: %d',
+        '[attemptReconnect] Failed (%d/%d): %s | Topics: %j | ConnectedBrokers: %d',
         attempt,
         maxAttempts,
-        this.initialOptions.clientId,
-        this.initialOptions.groupId,
         normalizedError.message,
         this.consumeStartOptions?.topics,
         this.getConnectedBrokerCount(),
@@ -465,19 +505,22 @@ export class KafkaConsumerHelper<
       invokeHook({
         logger: this.logger,
         scope: 'attemptReconnect',
-        execution: () => this.onReconnectError?.({ error: normalizedError, attempt, maxAttempts }),
+        execution: () =>
+          this.onReconnectError
+            ? this.onReconnectError({ error: normalizedError, attempt, maxAttempts })
+            : errorHandler?.({ error: normalizedError }),
       });
     }
   }
 
-  private async rebuildClient(): Promise<void> {
+  protected async rebuildClient(): Promise<void> {
     this.logger.warn(
       '[rebuildClient] All brokers were disconnected; rebuilding @platformatic/kafka ' +
         'Consumer to force a clean group rejoin (cached session state is stale)',
     );
 
     const oldClient = this.client;
-    const newClient = KafkaConsumerHelper.buildConsumerClient(this.initialOptions);
+    const newClient = this.buildClient({ options: this.initialOptions });
 
     this.swapClient(newClient);
 
@@ -506,7 +549,7 @@ export class KafkaConsumerHelper<
     });
   }
 
-  private async closeOldClient(
+  protected async closeOldClient(
     oldClient: Consumer<KeyType, ValueType, HeaderKeyType, HeaderValueType>,
   ): Promise<void> {
     let timeoutHandle: NodeJS.Timeout | null = null;
@@ -532,7 +575,7 @@ export class KafkaConsumerHelper<
     }
   }
 
-  private handleAllBrokersDown(reason: 'disconnected' | 'failed'): void {
+  protected handleAllBrokersDown(reason: 'disconnected' | 'failed'): void {
     if (this.getConnectedBrokerCount() !== 0) {
       return;
     }
@@ -546,12 +589,12 @@ export class KafkaConsumerHelper<
     }
   }
 
-  private destroyDeadStream(): void {
+  protected destroyDeadStream(): void {
     this.stream?.destroy(getError({ message: '[destroyDeadStream] All brokers disconnected' }));
     this.stream = null;
   }
 
-  private async closeStream(): Promise<void> {
+  protected async closeStream(): Promise<void> {
     const stream = this.stream;
     this.stream = null;
     this.consumeStartOptions = null;

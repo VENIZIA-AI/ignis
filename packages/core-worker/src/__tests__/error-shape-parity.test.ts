@@ -14,7 +14,7 @@ import { HTTP } from '@venizia/ignis-helpers/common';
 import { z } from '@hono/zod-openapi';
 import { WorkerApplication } from '@/applications/worker';
 import { BffEnvelope } from '@/envelope/encode';
-import type { IBffRequestEnvelope, IBffResponseEnvelope } from '@/envelope/types';
+import type { IBffRequestEnvelope, IBffResponseEnvelope } from '@/envelope/common';
 
 const ORIGIN = 'http://ignis.internal';
 const ORDER_NOT_FOUND_CODE = 'server.sale.order.not_found';

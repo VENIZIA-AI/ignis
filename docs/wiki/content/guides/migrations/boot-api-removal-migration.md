@@ -1,0 +1,97 @@
+# Upgrading past the runtime boot removal (ignis 0.2.0-13 to the next release)
+
+> **Audience:** the team maintaining **nx-seller** (BANA), or any application still on `@venizia/ignis` 0.2.0-13. One upgrade of the whole `@venizia/*` chain brings three changes at once: artifacts register from a generated index, the runtime boot API is gone, and the framework's `zod` moved to 4.5.4. This page lists exactly what stops compiling and the order to fix it.
+
+## What breaks, measured against nx-seller
+
+| Symptom after `bun install` | Where | Fix |
+|---|---|---|
+| `TS4113` - `boot` does not exist in the base class | 16 files: `nx-seller/packages/{commerce,finance,helpdesk,identity,inventory,invoice,ledger,licensing,outreach,payment,pricing,sale,search,signal,taxation}/src/application.ts` and `nx-seller/packages/search/src/migrations/bootstrap.ts` | delete the whole `override async boot()` method (none of them calls `super.boot()`) |
+| `TS2339` - property `boot` does not exist | `nx-seller/packages/core/src/helpers/bootstraps/worker.ts` (line 34), `nx-seller/packages/core/src/helpers/bootstraps/migration.ts` (31), and `nx-seller/packages/search/src/migrations/bootstrap.ts` (104) once its own override at line 61 is gone | delete the `await app.boot();` line; `initialize()` and `start()` are unchanged. In `bootstrap.ts` delete lines 61 and 104 in one edit - the call only starts failing after the override is removed |
+| compiles silently (`IApplicationConfigs` keeps an index signature), ignored | `bootOptions` keys in `nx-seller/packages/core/src/common/app-config.ts` and `.../bootstraps/migration.ts` | delete the key - no compiler will point at it, grep for it |
+| duplicate `zod` types | any schema passed into `@venizia/ignis` | raise the root `overrides.zod` to `^4.4.3` |
+
+Measured by compiling every nx-seller package against the new build: exactly these 18 errors appear (16 overrides, 2 calls; the third call surfaces after its override goes) and nothing else. Nothing else in the public API that nx-seller uses changed shape. The full diff is in the IGNIS release audit; the two changelogs behind it are [Artifacts register from a generated index](/changelogs/2026-09-02-decorator-artifact-registration) and [The deprecated boot API is removed](/changelogs/2026-09-03-deprecated-boot-api-removed).
+
+## Step 1 - pin the new versions
+
+In the root `package.json` `overrides`, replace the six `@venizia/*` versions with the ones the IGNIS release printed. One library pin is required and the rest are recommended - they are the versions the release was built and tested against, and the published peer ranges still accept the older pins:
+
+| Override | Raise to | Required? |
+|---|---|---|
+| `zod` | 4.5.4 | yes - every `@venizia/*` package depends on `zod ^4.5.4`, and an override below it forces two incompatible zod type trees |
+| `hono` | 4.13.5 | recommended (peer range `^4.12.30`) |
+| `@hono/zod-openapi` | 1.6.2 | recommended (peer range `^1.5.1`) |
+| `@scalar/hono-api-reference` | 0.11.16 | recommended (peer range `^0.11.11`) |
+| `pg` | 8.23.0 | recommended (peer range `^8.21.0`) |
+| `typesense` | 3.0.6 | recommended (peer range `^3.0.3`) |
+| `bullmq` | 5.81.4 | recommended (peer range `^5.80.8`) |
+| `tsc-alias` | 1.9.4 | recommended (build tool only) |
+
+One zod 4.5 change breaks at module load, not at compile time. Spreading a `ZodObject` and calling a
+method on its `.shape` (`z.object({ ...schema }).shape.optional()`) worked on 4.3.x only because the
+spread copied methods onto the plain object; on 4.5.x `.shape.optional` is `undefined`, and every
+module importing the file fails to load while `tsc` stays green. Write the derivation on the schema
+itself: `Schema.omit({ ... }).partial().optional()`. Found by the nx-seller identity lane during the
+0.2.0-17 upgrade, one site in their repository.
+
+`drizzle-orm` 0.45.2 and `typescript` 6.0.3 are unchanged. Then:
+
+```bash
+bun install
+```
+
+## Step 2 - register artifacts from a generated index
+
+Each application that still lists its artifacts by hand follows the [bootstrapping guide](/guides/core-concepts/application/bootstrapping):
+
+1. Add `@venizia/ignis-boot` as a devDependency and the two scripts:
+
+```json
+"generate:artifacts": "ignis-artifacts generate --root src --out src/generated/artifacts.ts",
+"check:artifacts": "ignis-artifacts check --root src --out src/generated/artifacts.ts"
+```
+
+2. Put `@service()` on services and `@component()` on components.
+3. Run `bun run generate:artifacts` and commit `src/generated/artifacts.ts`.
+4. Set `artifacts: GeneratedArtifacts` in the application config.
+
+An application that keeps registering by hand in `preConfigure()` still works. Only the boot code below has to go.
+
+## Step 2b - gate the index by run mode
+
+`registerArtifacts` runs at boot step 5, before `preConfigure()`. A gate that used to skip `configureControllers()` or `configureSecurity()` in `preConfigure()` now runs too late: the index has already bound the controllers, and a worker boot mounts them with no authentication strategy. A migration run starts every component the same way.
+
+Put the gate in the config with a conditional entry. Its `when` may ignore the application and read the environment:
+
+```typescript
+const runMode = process.env.RUN_MODE ?? 'server';
+
+artifacts: [
+  { dataSources: GeneratedArtifacts.dataSources, repositories: GeneratedArtifacts.repositories },
+  { when: () => runMode !== 'migrate', index: { services: GeneratedArtifacts.services, components: GeneratedArtifacts.components } },
+  { when: () => runMode === 'server', index: { controllers: GeneratedArtifacts.controllers } },
+],
+```
+
+A false `when` drops the whole subtree, so nothing behind it is bound or verified. Check it with `debug: { shouldShowRoutes: true }`: a worker boot lists zero routes.
+
+## Step 3 - delete the boot code
+
+```bash
+grep -rn "override async boot\|\.boot()\|bootOptions" packages apps --include='*.ts' | grep -v node_modules
+```
+
+Delete every hit: the 16 override methods, the 3 `await app.boot()` lines, the 2 `bootOptions` keys. Start with `await application.start()` where the chain used to be `boot()` then `start()`.
+
+## Step 4 - verify
+
+```bash
+bun run --filter '*' tsc --noEmit
+```
+
+Zero errors means the upgrade is complete. A `TS2307` on `@venizia/ignis-boot` at this point means a runtime-boot import survived (`Bootstrapper`, `BootMixin`, a `*Booter` class, `discoverFiles`, `loadClasses`) - those exports no longer exist and have no replacement; the generated index does their job.
+
+## Why the boot API went away
+
+The file-glob boot discovered artifacts at runtime, which cannot work inside `bun build --compile`. The generated index is read at build time, so a compiled binary and a `bun run` start register the same artifacts. Details live in the [artifact registration reference](/references/base/bootstrapping).

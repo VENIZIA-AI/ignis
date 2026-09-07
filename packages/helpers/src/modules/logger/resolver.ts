@@ -59,6 +59,8 @@ class ResolvedLogger extends AbstractLogger {
 export class LoggerResolver {
   /** Declared before `active` because static field initialisers run in declaration order. */
   private static readonly consoleResolver: TLoggerResolver = opts => {
+    // Warned here, on the first line actually routed to the console, not when a helper merely acquires its logger: a script that imports the barrel and installs a provider before logging must stay silent.
+    LoggerResolver.warnConsoleFallbackOnce();
     return ConsoleLogger.get({ scope: opts.scopes.filter(el => el && el.length > 0).join('-') });
   };
 
@@ -91,7 +93,7 @@ export class LoggerResolver {
    * nothing. A guarded property read, never an import: even a dynamic `import('@venizia/ignis-helpers')`
    * behind a node check puts the root barrel in this bundle and turns `/core` impure.
    */
-  private static warnConsoleFallbackOnce(): void {
+  static warnConsoleFallbackOnce(): void {
     if (this.hasWarnedConsoleFallback || this.generation > 0) {
       return;
     }
@@ -107,8 +109,6 @@ export class LoggerResolver {
   }
 
   static resolve(opts: { scopes: Array<string> }): ILogger {
-    this.warnConsoleFallbackOnce();
-
     return new ResolvedLogger(opts.scopes);
   }
 

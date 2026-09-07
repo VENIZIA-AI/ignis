@@ -2,11 +2,11 @@ import { BaseHelper } from '@/modules/base';
 import { getError } from '@/modules/error';
 import { IRedisHelper } from '@/modules/redis';
 import { toError } from '@/utilities/promise.utility';
-import { ConnectionOptions, Job, Processor, Queue, Worker } from 'bullmq';
+import { Job, Processor, Queue, QueueOptions, Worker, WorkerOptions } from 'bullmq';
 import { Cluster } from 'ioredis';
 import { invokeHook, TBullQueueRole } from '../common';
 
-interface IBullMQOptions<TQueueElement = any, TQueueResult = any> {
+export interface IBullMQOptions<TQueueElement = any, TQueueResult = any> {
   queueName: string;
   identifier: string;
   role: TBullQueueRole;
@@ -14,6 +14,11 @@ interface IBullMQOptions<TQueueElement = any, TQueueResult = any> {
 
   numberOfWorker?: number;
   lockDuration?: number;
+
+  /** Merged over the framework defaults, under the fields the helper owns (`connection`) - see `queueOptionsFor`. */
+  queueOptions?: Omit<QueueOptions, 'connection'>;
+  /** Merged under the fields the helper owns (`connection`, `concurrency`, `lockDuration`) - see `workerOptionsFor`. */
+  workerOptions?: Omit<WorkerOptions, 'connection' | 'concurrency' | 'lockDuration'>;
 
   onWorkerData?: (job: Job<TQueueElement, TQueueResult>) => Promise<any>;
   onWorkerDataCompleted?: (job: Job<TQueueElement, TQueueResult>, result: any) => Promise<void>;
@@ -34,6 +39,9 @@ export class BullMQHelper<TQueueElement = any, TQueueResult = any> extends BaseH
   protected numberOfWorker = 1;
   protected lockDuration = 90 * 60 * 1000;
 
+  protected queueOptions?: Omit<QueueOptions, 'connection'>;
+  protected workerOptions?: Omit<WorkerOptions, 'connection' | 'concurrency' | 'lockDuration'>;
+
   protected onWorkerData?: (job: Job<TQueueElement, TQueueResult>) => Promise<any>;
   protected onWorkerDataCompleted?: (
     job: Job<TQueueElement, TQueueResult>,
@@ -52,6 +60,8 @@ export class BullMQHelper<TQueueElement = any, TQueueResult = any> extends BaseH
       role,
       numberOfWorker = 1,
       lockDuration = 90 * 60 * 1000,
+      queueOptions,
+      workerOptions,
       onWorkerData,
       onWorkerDataCompleted,
       onWorkerDataFail,
@@ -64,6 +74,9 @@ export class BullMQHelper<TQueueElement = any, TQueueResult = any> extends BaseH
     this.numberOfWorker = numberOfWorker;
     this.lockDuration = lockDuration;
 
+    this.queueOptions = queueOptions;
+    this.workerOptions = workerOptions;
+
     this.onWorkerData = onWorkerData;
     this.onWorkerDataCompleted = onWorkerDataCompleted;
     this.onWorkerDataFail = onWorkerDataFail;
@@ -75,9 +88,23 @@ export class BullMQHelper<TQueueElement = any, TQueueResult = any> extends BaseH
     return new BullMQHelper<T, R>(opts);
   }
 
-  private resolveQueueName(): string {
-    const isCluster = this.redisConnection.getClient() instanceof Cluster;
-    if (isCluster && !this.queueName.startsWith('{')) {
+  /** Structural cluster check: catches a real `Cluster` instance, a duplicated cluster client, and one built from a second ioredis copy (fails `instanceof` across module copies). */
+  protected isClusterClient(): boolean {
+    const client = Object(this.redisConnection.getClient());
+
+    if (client instanceof Cluster) {
+      return true;
+    }
+
+    if (Reflect.get(client, 'isCluster') === true) {
+      return true;
+    }
+
+    return typeof Reflect.get(client, 'nodes') === 'function';
+  }
+
+  protected resolveQueueName(): string {
+    if (this.isClusterClient() && !this.queueName.startsWith('{')) {
       return `{${this.queueName}}`;
     }
 
@@ -108,15 +135,42 @@ export class BullMQHelper<TQueueElement = any, TQueueResult = any> extends BaseH
     });
   }
 
-  /** Client factory seam - overridden in tests to run the helper without Redis. */
-  protected buildQueue(opts: { queueName: string }): Queue<TQueueElement, TQueueResult> {
-    return new Queue<TQueueElement, TQueueResult>(opts.queueName, {
-      connection: this.redisConnection.duplicateClient() as ConnectionOptions,
+  /** Full `Queue` options: framework defaults, then `this.queueOptions`, then the connection the helper owns - in that precedence order. */
+  protected queueOptionsFor(opts: { queueName: string }): QueueOptions {
+    this.logger
+      .for(this.queueOptionsFor.name)
+      .debug('Building queue options | Queue: %s | ID: %s', opts.queueName, this.identifier);
+
+    return {
       defaultJobOptions: {
         removeOnComplete: true,
         removeOnFail: true,
       },
-    });
+      ...this.queueOptions,
+      connection: this.redisConnection.duplicateClient(),
+    };
+  }
+
+  /** Full `Worker` options: `this.workerOptions`, then the connection/concurrency/lock fields the helper owns - in that precedence order. */
+  protected workerOptionsFor(opts: {
+    queueName: string;
+    processor: Processor<TQueueElement, TQueueResult>;
+  }): WorkerOptions {
+    this.logger
+      .for(this.workerOptionsFor.name)
+      .debug('Building worker options | Queue: %s | ID: %s', opts.queueName, this.identifier);
+
+    return {
+      ...this.workerOptions,
+      connection: this.redisConnection.duplicateClient(),
+      concurrency: this.numberOfWorker,
+      lockDuration: this.lockDuration,
+    };
+  }
+
+  /** Client factory seam - overridden in tests to run the helper without Redis. */
+  protected buildQueue(opts: { queueName: string }): Queue<TQueueElement, TQueueResult> {
+    return new Queue<TQueueElement, TQueueResult>(opts.queueName, this.queueOptionsFor(opts));
   }
 
   /** Client factory seam - overridden in tests to run the helper without Redis. */
@@ -124,11 +178,11 @@ export class BullMQHelper<TQueueElement = any, TQueueResult = any> extends BaseH
     queueName: string;
     processor: Processor<TQueueElement, TQueueResult>;
   }): Worker<TQueueElement, TQueueResult> {
-    return new Worker<TQueueElement, TQueueResult>(opts.queueName, opts.processor, {
-      connection: this.redisConnection.duplicateClient() as ConnectionOptions,
-      concurrency: this.numberOfWorker,
-      lockDuration: this.lockDuration,
-    });
+    return new Worker<TQueueElement, TQueueResult>(
+      opts.queueName,
+      opts.processor,
+      this.workerOptionsFor(opts),
+    );
   }
 
   configureWorker() {

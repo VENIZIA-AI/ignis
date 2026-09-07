@@ -237,8 +237,8 @@ console.log(`Showing ${range.start}-${range.end} of ${range.total}`);
 
 **Files:**
 
-- [`packages/core-server/src/connectors/relational/repositories/dialect/filter.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/connectors/relational/repositories/dialect/filter.ts) - `FilterBuilder`, `toColumns`/`toOrderBy`
-- [`packages/core-server/src/connectors/postgres/repositories/core/readable.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/connectors/postgres/repositories/core/readable.ts) - `find()`'s `query.limit ?? getDefaultLimit() ?? DEFAULT_LIMIT` resolution
+- [`packages/connectors/src/relational/core/repositories/dialect/filter.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/connectors/src/relational/core/repositories/dialect/filter.ts) - `FilterBuilder`, `toColumns`/`toOrderBy`
+- [`packages/connectors/src/relational/postgres/repositories/core/readable.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/connectors/src/relational/postgres/repositories/core/readable.ts) - `find()`'s `query.limit ?? getDefaultLimit() ?? DEFAULT_LIMIT` resolution
 - [`packages/filter/src/common/operators.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/filter/src/common/operators.ts) - `Sorts` constants
-- [`packages/core-server/src/base/repositories/common/constants.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/base/repositories/common/constants.ts) - `DEFAULT_LIMIT`
-- [`packages/core-server/src/base/repositories/common/types.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/base/repositories/common/types.ts) - `TDataRange`, `buildDataRange`
+- [`packages/kernel/src/base/repositories/common/constants.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/kernel/src/base/repositories/common/constants.ts) - `DEFAULT_LIMIT`
+- [`packages/kernel/src/base/repositories/common/types/results.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/kernel/src/base/repositories/common/types/results.ts) - `TDataRange`, `buildDataRange`

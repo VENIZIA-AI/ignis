@@ -17,4 +17,4 @@ export * from './utilities';
  * `export *` lines is ambiguous and TypeScript then exports NEITHER, silently. An explicit export
  * beats every star export, so this line is what makes the widened shape win.
  */
-export type { IServerApplicationConfigs as IApplicationConfigs } from './base/applications/types';
+export type { IServerApplicationConfigs as IApplicationConfigs } from './base/applications/common/types';

@@ -26,10 +26,7 @@ export class Hash extends BaseHelper {
     this.algorithm = opts.algorithm;
   }
 
-  /**
-   * Memoized - `BaseHelper`'s constructor resolves a logger on every allocation, measured at ~50ns,
-   * paid per call by the deprecated `hash()` shim that downstream payment code calls per request.
-   */
+  /** Memoized - `BaseHelper`'s constructor resolves a logger on every allocation (~50ns), and downstream token code calls `withAlgorithm` per request. */
   private static readonly instances = new Map<THashAlgorithm, Hash>();
 
   static withAlgorithm(algorithm: THashAlgorithm) {

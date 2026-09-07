@@ -8,7 +8,7 @@ difficulty: beginner
 
 Technical reference for `BaseService` - the foundation for the business logic layer in IGNIS.
 
-**File:** `packages/core-server/src/base/services/base.ts`
+**File:** `packages/kernel/src/base/services/base.ts`
 
 ## Quick Reference
 
@@ -29,7 +29,7 @@ Technical reference for `BaseService` - the foundation for the business logic la
 Abstract class that all application services must extend.
 
 ```typescript
-// packages/core-server/src/base/services/base.ts
+// packages/kernel/src/base/services/base.ts
 import { BaseHelper } from '@venizia/ignis-helpers';
 import { IService } from './types';
 
@@ -62,22 +62,17 @@ this.service(AuthenticationService);  // binds as 'services.AuthenticationServic
 this.service(GreeterService);         // binds as 'services.GreeterService'
 ```
 
-`this.service(Ctor)` is implemented directly on `BaseApplication`:
+`this.service(Ctor)` is implemented on the kernel's `RestApplication`, which `BaseApplication` extends:
 
 ```typescript
-// packages/core-server/src/base/applications/base.ts
-service<Base extends IService, Args extends AnyObject = any>(
-  ctor: TClass<Base>,
-  opts?: TMixinOpts<Args>,
-): Binding<Base> {
-  return this.bind<Base>({
-    key: BindingKeys.build(
-      opts?.binding ?? {
-        namespace: BindingNamespaces.SERVICE, // 'services'
-        key: ctor.name,                       // class name
-      },
-    ),
-  }).toClass(ctor);
+// packages/kernel/src/base/applications/rest.ts
+service<Base extends IService>(ctor: TClass<Base>, opts?: TMixinOpts): Binding<Base> {
+  const key = BindingKeys.build(
+    opts?.binding ?? { namespace: BindingNamespaces.SERVICE, key: ctor.name }, // 'services.<ClassName>'
+  );
+  this.assertNoBindingCollision({ key, allowOverride: opts?.allowOverride, caller: this.service.name });
+
+  return this.bind<Base>({ key }).toClass(ctor);
 }
 ```
 
@@ -246,38 +241,54 @@ this.service(OrderService);
 
 For shared dependencies across multiple related services, define an abstract base. The container only ever `instantiate()`s the **concrete** class - `this.service(UserAuditTestService)` registers `UserAuditTestService`, never `BaseTestService`. The hard DI rule - every constructor parameter of a container-instantiated class must carry `@inject` - applies to that concrete constructor.
 
-A `scope: string` computed from `ClassName.name` is not something the container can supply. So it cannot sit as a bare constructor parameter next to an `@inject`-decorated one. The shared repository is injected as a **property** on the base instead. The concrete subclass's constructor is left with zero parameters - nothing to decorate, nothing to violate:
+A `scope: string` is not something the container can supply, so it cannot appear as a parameter on the concrete class at all. `examples/vert`'s test services solve this by never declaring `scope` as a parameter: the concrete class hardcodes its own name and forwards it through `super()`, alongside every shared repository. Each repository stays `@inject`-decorated on both classes - the base declares it to store it, the concrete class repeats it because the container calls the concrete constructor, never the base's:
 
 ```typescript
-// Shared repository access for a group of test services - property injection,
-// so the concrete subclass's constructor stays free of undecorated parameters
 export abstract class BaseTestService extends BaseService {
-  @inject({
-    key: BindingKeys.build({
-      namespace: BindingNamespaces.REPOSITORY,
-      key: UserRepository.name,
-    }),
-  })
-  protected userRepository!: UserRepository;
-
-  constructor(opts: { scope: string }) {
-    super(opts);
+  constructor(
+    scope: string,
+    @inject({
+      key: BindingKeys.build({
+        namespace: BindingNamespaces.REPOSITORY,
+        key: UserRepository.name,
+      }),
+    })
+    protected readonly userRepository: UserRepository,
+    // ...one @inject parameter per other shared repository
+  ) {
+    super({ scope });
   }
 
   abstract run(): Promise<void>;
+
+  // Bundles the shared repositories for case-group classes to consume
+  protected caseContext(): ITestCaseContext {
+    return {
+      logger: this.logger,
+      logCase: title => this.logCase(title),
+      userRepository: this.userRepository,
+    };
+  }
 }
 
-// Concrete subclass takes no constructor parameters - only container-instantiated
-// classes are subject to the "every parameter decorated" rule, and an empty
-// parameter list trivially satisfies it
+// Repeats the base's @inject parameters - the container calls THIS constructor,
+// never the base's - and hardcodes the scope BaseTestService cannot take as a parameter
 export class UserAuditTestService extends BaseTestService {
-  constructor() {
-    super({ scope: UserAuditTestService.name });
+  constructor(
+    @inject({
+      key: BindingKeys.build({
+        namespace: BindingNamespaces.REPOSITORY,
+        key: UserRepository.name,
+      }),
+    })
+    userRepository: UserRepository,
+  ) {
+    super(UserAuditTestService.name, userRepository);
   }
 
   async run(): Promise<void> {
-    this.logger.for('run').info('Running user audit tests');
-    // ...
+    const context = this.caseContext();
+    // ...build case-group instances from context and run their cases
   }
 }
 ```
@@ -289,7 +300,7 @@ this.service(UserAuditTestService);
 ```
 
 > [!IMPORTANT]
-> `BaseTestService`'s own constructor (`opts: { scope: string }`) is never processed by the container - `BaseTestService` is abstract and is never passed to `instantiate()`. Only the concrete class the container actually instantiates is subject to the "every parameter decorated" rule. See [Dependency Injection Reference](./dependency-injection.md#instantiation-algorithm-two-phase) for the full rule.
+> `BaseTestService`'s own constructor is never processed by the container - `BaseTestService` is abstract and is never passed to `instantiate()`. Only the concrete class the container actually instantiates is subject to the "every parameter decorated" rule. See [Dependency Injection Reference](./dependency-injection.md#instantiation-algorithm-two-phase) for the full rule.
 
 ---
 

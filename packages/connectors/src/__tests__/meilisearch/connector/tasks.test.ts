@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, test } from 'bun:test';
 import { MeilisearchConnector } from '@/search/meilisearch/connector';
-import { MeilisearchTaskStatuses } from '@/search/meilisearch/types';
+import { MeilisearchTaskStatuses } from '@/search/meilisearch/common';
 import { FakeMeilisearchClient } from './fake-client';
 import { captureRejection } from './test-helpers';
 

@@ -11,7 +11,7 @@
   "scripts": {
     "build": "tsc -p tsconfig.json && tsc-alias -p tsconfig.json",
     "clean": "sh ./scripts/clean.sh",
-    "compile:linux": "bun build --compile --minify --sourcemap --target=bun-linux-x64 ./src/index.ts --outfile ./dist/vert",
+    "compile:linux": "bun build --compile --minify-whitespace --minify-syntax --sourcemap --env=disable --target=bun-linux-x64 ./src/index.ts --outfile ./dist/vert",
     "eslint": "eslint --report-unused-disable-directives .",
     "lint": "bun run eslint && bun run prettier:cli",
     "lint:fix": "bun run eslint --fix && bun run prettier:fix",

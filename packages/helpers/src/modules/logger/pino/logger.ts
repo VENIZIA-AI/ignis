@@ -2,7 +2,7 @@ import { AnyType } from '@/common/types';
 import { BaseLogger } from '../base';
 import { ILogger, TLogLevel } from '../common';
 import { formatLogMessage } from '../formatting';
-import { PinoBackingLogger } from './define';
+import { PinoBackingLogger } from './backing';
 
 /** pino provider satisfying `ILoggerProvider`, staying pino-native: numeric levels, `msg`, epoch `time`, pid/hostname pass through unchanged. No custom-instance param on `get()` unlike `WinstonLogger.get` - advanced/test injection goes through `PinoBackingLogger.set()`. */
 export class PinoLogger extends BaseLogger {

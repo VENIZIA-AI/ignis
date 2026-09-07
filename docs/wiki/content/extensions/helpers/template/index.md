@@ -65,5 +65,5 @@ Tier 2 helpers use two pages (`index.md` + `api.md`) -- see the existing Tier 2 
 |---------|------|
 | Helpers | `packages/helpers/src/modules/{name}/` |
 | Inversion | `packages/inversion/src/` |
-| Common types | `packages/helpers/src/common/types.ts` |
+| Common types | `packages/helpers/src/common/types/` |
 | Utilities | `packages/helpers/src/utilities/` |

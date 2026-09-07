@@ -72,22 +72,23 @@ describe('platformaticRequirePlugin', () => {
     expect(result.hasInlinedModule).toBe(true);
   });
 
-  test('bundling without the plugin leaves the specifier unresolved', () => {
+  /** `@platformatic/kafka` 2.10 dropped the module-scope require() (platformatic/kafka#378): an unpatched bundle carries no bare specifier, and an upstream regression flips this back to true. */
+  test('bundling without the plugin leaves no bare specifier on @platformatic/kafka >= 2.10', () => {
     const result = runProbe({ fixture: 'require-plugin-probe', args: [] });
 
     expect(result.success).toBe(true);
-    expect(result.hasBareSpecifier).toBe(true);
-    expect(result.hasInlinedModule).toBe(false);
+    expect(result.hasBareSpecifier).toBe(false);
+    expect(result.hasInlinedModule).toBe(true);
   });
 
-  /** Asserting the failure keeps the plugin from silently becoming unnecessary without anyone noticing. */
-  test('a compiled binary without the plugin dies before boot', () => {
+  /** The plugin is inert on >= 2.10 (the binary boots without it) and still hoists on 2.6-2.9, where the module-scope require() exists. */
+  test('a compiled binary without the plugin boots on @platformatic/kafka >= 2.10', () => {
     const result = runProbe({ fixture: 'require-plugin-probe', args: ['--compile'] });
 
     expect(result.success).toBe(true);
-    expect(result.exitCode).not.toBe(0);
-    expect(result.stderr).toContain("Cannot find package 'ajv-draft-04'");
-    expect(result.hasBareSpecifier).toBe(true);
+    expect(result.exitCode).toBe(0);
+    expect(result.stdout).toBe('ok');
+    expect(result.hasBareSpecifier).toBe(false);
   });
 
   test('a compiled binary with the plugin boots and validates a draft-06 schema', () => {

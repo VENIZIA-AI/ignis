@@ -10,7 +10,7 @@ tags: [overview, build, test, bun]
 
 ```bash
 make build          # alias: make build-all - rebuilds every package in dependency order
-make core           # rebuilds dev-configs -> inversion -> {filter, helpers} -> {boot, kernel} -> core
+make core           # rebuilds dev-configs -> inversion -> {filter, helpers} -> kernel -> core
 make boot           # rebuilds dev-configs -> inversion -> helpers -> boot
 ```
 
@@ -62,7 +62,7 @@ make setup-hooks      # git config core.hooksPath .githooks
 ```
 
 `purity` probes the built `dist/`, so build the package first; the packages with no browser-pure
-entry claimed (`dev-configs`, `boot`, `core`, `docs-mcp`) have a target that just skips.
+entry claimed (`dev-configs`, `boot`, `core`, `atlas`) have a target that just skips.
 
 `.githooks/pre-commit` runs **only** `make lint-all` - nothing else. Purity is a CI gate, run per
 package by the release workflow, so a green commit says nothing about it.

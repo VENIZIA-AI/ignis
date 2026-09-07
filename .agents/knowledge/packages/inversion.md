@@ -6,7 +6,7 @@ resource: packages/inversion
 tags: [packages, inversion, di, ioc]
 ---
 
-`@venizia/ignis-inversion` is the foundation layer of the framework - the start of the dependency chain (`dev-configs -> inversion -> {filter, helpers} -> {boot, kernel} -> core`). It is a small, standalone dependency injection and IoC container (on the order of a few hundred lines of core logic) with no dependency on the rest of IGNIS: only `lodash`, `reflect-metadata`, and `zod`. See [DI container](/architecture/di-container.md).
+`@venizia/ignis-inversion` is the foundation layer of the framework - the start of the dependency chain (`dev-configs -> inversion -> {filter, helpers} -> kernel -> core`). It is a small, standalone dependency injection and IoC container (on the order of a few hundred lines of core logic) with no dependency on the rest of IGNIS: only `lodash`, `reflect-metadata`, and `zod`. See [DI container](/architecture/di-container.md).
 
 ## Container tiering
 
@@ -32,11 +32,13 @@ Key `BaseContainer` members: `bind<T>({ key })`, `get<T>({ key, isOptional? })`,
 
 ## Error system
 
-`src/modules/error/` (`app-error.ts`, `definition.ts`, `message-code.ts`, `types.ts`) defines `ApplicationError` and `getError` - the framework-wide error primitives every IGNIS package uses instead of throwing a raw `Error`. They live in inversion rather than helpers so that a browser-only consumer gets structured errors without pulling in the server-only helpers surface.
+`src/modules/error/` (`app-error.ts`, `definition.ts`, `message-code.ts`, `common/types.ts`) defines `ApplicationError` and `getError` - the framework-wide error primitives every IGNIS package uses instead of throwing a raw `Error`. They live in inversion rather than helpers so that a browser-only consumer gets structured errors without pulling in the server-only helpers surface.
+
+`message-code.ts` never imports `app-error.ts` - that import was the cycle `module-cycles` flagged. `MessageCode.build()` throws through a private `errorFactory` field, and `src/index.ts` sets the real one: `MessageCode.useErrorFactory({ factory: getError })`. `package.json` `exports` lists only `"."` and `"./package.json"`, so no sub-path export can bypass this registration. That call has to live in `src/index.ts` - the package's one exports entry, and the only module `sideEffects` names. A bundler can drop a module-level side effect from any other file the moment nothing imports its exports.
 
 ## Folder convention
 
-Every scope owns its folder under `src/modules/` with an `index.ts` barrel, and nests its own `common/{types,constants}.ts` behind a `common/index.ts` barrel - contracts live in `types.ts`, free of concrete classes, which is what keeps `binding/` and `container/` decoupled. Cross-cutting types shared by every scope (`TBindingKey`, `TClass`, `TConstValue`, `isClass`) sit in a package-level `src/common/`, outside `modules/`. This is the template every other IGNIS package's folder layout follows.
+Every scope owns its folder under `src/modules/` with an `index.ts` barrel, and nests its own `common/{types,constants}.ts` behind a `common/index.ts` barrel - contracts live in `types.ts`, free of concrete classes, which is what keeps `binding/` and `container/` decoupled. Cross-cutting types shared by every scope (`TBindingKey`, `TClass`, `TConstValue`) and the `isClass` guard (`src/common/utilities.ts`) sit in a package-level `src/common/`, outside `modules/`. This is the template every other IGNIS package's folder layout follows.
 
 ## Gotcha: dual build is load-bearing
 

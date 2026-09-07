@@ -17,6 +17,29 @@ This section tracks the history of significant changes, refactors, and updates t
 
 | Date | Title | Type |
 |------|-------|------|
+| 2026-09-07 | [Atlas Recognises the IGNIS Checkout by Its Workspace Manifest](./2026-09-07-atlas-checkout-detection) | Bug Fix |
+| 2026-09-07 | [Atlas Gains version and changes Tools and a Generated Release Table](./2026-09-07-atlas-versions) | New Feature |
+| 2026-09-07 | [CRUD Controllers Narrow Their Rows; The Asset Controller Takes Two Hooks](./2026-09-07-crud-scope-and-asset-hooks) | New Feature |
+| 2026-09-07 | [WorkerApplication Gains configs.projectRoot; BaseKafkaHelper Turns protected](./2026-09-07-worker-project-root-and-kafka-base-seams) | New Feature |
+| 2026-09-07 | [Atlas Gains a symbol Tool and a Generated Symbol Table](./2026-09-07-atlas-symbols) | New Feature |
+| 2026-09-06 | [BullMQHelper and KafkaConsumerHelper Gain Extension Seams](./2026-09-06-helpers-queue-seams) | New Feature |
+| 2026-09-06 | [setListHeaders Takes offset + total; toContentRange Is Exported](./2026-09-06-list-headers-from-offset-and-total) | New Feature |
+| 2026-09-06 | [ignis-artifacts Warns When an --ignore Pattern Hides a Decorated Class](./2026-09-06-generator-warns-on-ignored-artifacts) | New Feature |
+| 2026-09-06 | [configs.artifacts Accepts { when, index } Entries - the Run-Mode Gate Lives in the Config](./2026-09-06-conditional-artifact-index-entries) | New Feature |
+| 2026-09-06 | [configs.projectRoot Replaces the getProjectRoot() Override](./2026-09-06-configs-project-root) | New Feature |
+| 2026-09-06 | [ignis-artifacts check Compares the Index Body, Not Its Header Line](./2026-09-06-artifacts-check-compares-the-body) | Behavior Change |
+| 2026-09-06 | [helpers Declares Its @hono/zod-openapi Peer; the Generated Index Header Names the Command That Produced It](./2026-09-06-helpers-peer-and-generator-header) | Behavior Change |
+| 2026-09-06 | [configs.server Passes idleTimeout and maxRequestBodySize to Bun.serve](./2026-09-06-bun-serve-options) | New Feature |
+| 2026-09-06 | [A Bare @repository() Inherits Its Parent's Model and Datasource; the Console Fallback Warns on the First Log Line; ignis-artifacts Runs Silently](./2026-09-06-repository-inheritance-and-quiet-cli) | New Feature, Bug Fix |
+| 2026-09-06 | [applicationEnvironment and the Module Registry Are Shared Across Module Copies; configs.path.base Is Checked at Construction](./2026-09-06-shared-singletons-across-module-copies) | Bug Fix |
+| 2026-09-06 | [ignis-docs-mcp Is Replaced by @venizia/ignis-atlas](./2026-09-06-ignis-atlas) | Behavior Change |
+| 2026-09-05 | [@venizia/ignis No Longer Depends on @venizia/ignis-boot](./2026-09-05-core-drops-boot-dependency) | Behavior Change |
+| 2026-09-05 | [Boot Checks - Every Binding Resolves, No Hand Registration Beside the Generated Index, No Silent Key Override](./2026-09-05-boot-checks) | New Feature |
+| 2026-09-05 | [List Responses Share One Contract - respond Takes a Range on BaseRestController, and POST /search Gets Its Headers](./2026-09-05-list-response-contract) | New Feature, Bug Fix, Breaking Change |
+| 2026-09-04 | [Dependency Floors Raised Across the Chain, Audit Down to Six Accepted Advisories](./2026-09-04-dependency-floors-raised) | Enhancement, Security, Breaking Change |
+| 2026-09-03 | [The Deprecated Runtime Boot API Is Fully Removed](./2026-09-03-deprecated-boot-api-removed) | Breaking Change |
+| 2026-09-02 | [Bundled and Compiled Apps - Helpers Exports Stay Defined, NODE_ENV Stays a Runtime Read, One Logger Provider Across Copies](./2026-09-02-bundle-safe-helpers) | Bug Fix, Enhancement |
+| 2026-09-02 | [Artifacts Register From a Generated Index, and the Runtime Boot System Is Retired](./2026-09-02-decorator-artifact-registration) | New Feature, Breaking Change |
 | 2026-08-31 | [EventBus Retry Gets Jitter, a Bounded Per-Registration Window, and a Tagged Handler Reference](./2026-08-31-event-bus-retry) | New Feature, Enhancement, Breaking Change |
 | 2026-08-31 | [TEntityId Makes a String Id Impossible to Confuse With a String](./2026-08-31-entity-id-brand) | New Feature |
 | 2026-08-31 | [PolicyDefinition Gets domain_type and domain_id (Release A - Both Forms Written)](./2026-08-31-policy-domain-split) | New Feature, Migration Required |

@@ -20,15 +20,19 @@ export class BindingNamespaces {
   static readonly MIDDLEWARE = BindingNamespaces.createNamespace({ name: 'middlewares' });
   static readonly PROVIDER = BindingNamespaces.createNamespace({ name: 'providers' });
   static readonly CONTROLLER = BindingNamespaces.createNamespace({ name: 'controllers' });
-  static readonly BOOTERS = BindingNamespaces.createNamespace({ name: 'booters' });
 }
 ```
 
 A binding key is namespace + `.` + class name: `controllers.UserController`,
 `services.AuthService`, `repositories.UserRepository`, `datasources.PostgresDataSource`,
-`components.HealthComponent`. This is what the auto-discovery booters use to register artifacts
-they find during boot, and what `@inject({ key })` targets when a dependency needs an explicit key
-rather than relying on auto-injection.
+`components.HealthComponent`. This is what the five registration methods and `registerArtifacts` derive
+when a class declares no `binding`, and what `@inject({ key })` targets when a dependency needs an
+explicit key rather than relying on auto-injection.
+
+**Keys stay with their owner.** A component's binding-key const class lives in that component's own
+`common/` (`HealthCheckBindingKeys`, `AuthenticateBindingKeys`, `AuthorizeBindingKeys`), an
+application's in its own `common/keys.ts`; there is no repo-wide key file to keep in sync. The
+repo-wide view is the generated catalog below, produced by `make okf-gen`.
 
 `CoreBindings` in the same file is the other binding class: fixed, non-namespaced keys for
 fundamental framework singletons (`@app/instance`, `@app/server`, `@app/config`, and so on) rather
@@ -46,4 +50,4 @@ The full generated list of every key currently registered lives at
 - [Const classes](/conventions/const-classes.md)
 - [DI container](/architecture/di-container.md)
 - [Binding keys reference](/reference/binding-keys.md)
-- [Boot lifecycle](/architecture/boot-lifecycle.md)
+- [Artifact registration](/architecture/boot-lifecycle.md)

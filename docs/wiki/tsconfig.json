@@ -1,6 +1,6 @@
 {
   "$schema": "http://json.schemastore.org/tsconfig",
-  "//": "Config that Vite/esbuild reads for the VitePress site. Standalone (does NOT extend the ES2024 dev-configs base) because esbuild rejects the ES2024 target. The MCP server build uses tsconfig.mcp.json, which extends the base and keeps ES2024.",
+  "//": "Config that Vite/esbuild reads for the VitePress site. Standalone (does NOT extend the ES2024 dev-configs base) because esbuild rejects the ES2024 target.",
   "compilerOptions": {
     "target": "ES2022",
     "module": "nodenext",
@@ -15,6 +15,6 @@
       "@/*": ["./*"]
     }
   },
-  "include": ["mcp-server/**/*.ts", "site/**/*.ts", "site/**/*.mts", "scripts/**/*.ts"],
-  "exclude": ["node_modules", "dist", "mcp-server/dist", "wiki"]
+  "include": ["site/**/*.ts", "site/**/*.mts", "scripts/**/*.ts"],
+  "exclude": ["node_modules", "dist", "wiki"]
 }

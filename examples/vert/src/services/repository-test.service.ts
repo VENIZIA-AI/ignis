@@ -13,8 +13,8 @@ import {
   RowLockingTestService,
   TransactionTestService,
 } from './tests';
-import { UserAuditTestService } from './tests/user-audit-test.service';
-import { JsonUpdateTestService } from './tests/json-update-test.service';
+import { UserAuditTestService } from './tests/user-audit';
+import { JsonUpdateTestService } from './tests/json-update';
 
 // ----------------------------------------------------------------
 // Repository Test Service - Orchestrates all repository test suites

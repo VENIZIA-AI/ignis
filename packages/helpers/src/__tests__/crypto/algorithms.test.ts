@@ -147,19 +147,32 @@ describe('Crypto Algorithms', () => {
         expect(e1).not.toBe(e2);
       });
 
-      test('TC-018: decrypt with wrong secret should throw by default', () => {
-        const encrypted = aes.encrypt({ message: 'secret data', secret: SECRET_32 });
-        expect(() => aes.decrypt({ message: encrypted, secret: 'wrong-secret-key' })).toThrow();
+      // A wrong key is NOT a deterministic failure: about one random IV in 256 leaves valid PKCS#7
+      // padding, so the cipher returns garbage instead of throwing (measured 76 of 20000 runs).
+      // The two contract tests therefore fail on a malformed message, which always fails.
+      test('TC-018: decrypt of a malformed message throws by default', () => {
+        expect(() => aes.decrypt({ message: 'not-a-ciphertext', secret: SECRET_32 })).toThrow();
       });
 
-      test('TC-019: decrypt with wrong secret and doThrow=false returns original message', () => {
+      test('TC-019: decrypt of a malformed message with doThrow=false returns the input', () => {
+        const message = 'not-a-ciphertext';
+        const result = aes.decrypt({ message, secret: SECRET_32, opts: { doThrow: false } });
+        expect(result).toBe(message);
+      });
+
+      test('TC-019b: a wrong secret never yields the plaintext, whichever way it fails', () => {
         const encrypted = aes.encrypt({ message: 'secret data', secret: SECRET_32 });
-        const result = aes.decrypt({
-          message: encrypted,
-          secret: 'wrong-secret-key',
-          opts: { doThrow: false },
-        });
-        expect(result).toBe(encrypted);
+
+        for (let attempt = 0; attempt < 200; attempt += 1) {
+          const result = aes.decrypt({
+            message: aes.encrypt({ message: 'secret data', secret: SECRET_32 }),
+            secret: 'wrong-secret-key',
+            opts: { doThrow: false },
+          });
+          expect(result).not.toBe('secret data');
+        }
+
+        expect(encrypted).not.toBe('secret data');
       });
 
       test('TC-020: encrypt with doThrow=false returns original on error', () => {

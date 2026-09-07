@@ -18,7 +18,8 @@ The default provider is **Winston**, paired with `winston-daily-rotate-file` for
 - [`packages/helpers/src/modules/logger/base/base.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/logger/base/base.ts) - `BaseLogger`
 - [`packages/helpers/src/modules/logger/formatting/deep-splat.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/logger/formatting/deep-splat.ts) - `formatLogMessage`, `%s` inspection widening
 - [`packages/helpers/src/modules/logger/winston/logger.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/logger/winston/logger.ts) - `WinstonLogger`, `Logger` alias
-- [`packages/helpers/src/modules/logger/winston/define.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/logger/winston/define.ts) - `defineCustomLogger`, formatters
+- [`packages/helpers/src/modules/logger/winston/logger-factory.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/logger/winston/logger-factory.ts) - `defineCustomLogger`
+- [`packages/helpers/src/modules/logger/winston/formats.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/logger/winston/formats.ts) - formatters
 - [`packages/helpers/src/modules/logger/winston/formatters/deep-splat.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/logger/winston/formatters/deep-splat.ts) - `deepSplat`
 - [`packages/helpers/src/modules/logger/winston/transports/dgram.transport.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/logger/winston/transports/dgram.transport.ts) - `DgramTransport`
 - [`packages/helpers/src/modules/logger/hf/logger.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/logger/hf/logger.ts) - `HfLogger`
@@ -60,7 +61,7 @@ ILogger (interface)                common/types.ts
 ```
 
 - **Consumers type against `ILogger`, never a concrete class.** `LoggerFactory.getLogger()` and `BaseHelper.logger` both return `ILogger`. Which provider produced the instance stays invisible behind the interface.
-- **Provider registration.** `LoggerFactory.use({ provider })` selects the application's provider (default: `WinstonLogger`). The factory hands out stable delegating wrappers.
+- **Provider registration.** `LoggerFactory.use({ provider })` selects the application's provider (default: `WinstonLogger`). The factory hands out stable delegating wrappers. The registration is stored on `globalThis` under `Symbol.for('ignis:logger-provider')`, so a bundle that carries two copies of `@venizia/ignis-helpers` still sees one provider. A compiled binary must call `use()` at its entrypoint: the winston default is loaded with `createRequire`, which cannot resolve inside a binary.
 - **`use()` re-points every wrapper, even ones captured at import time.** The per-call cost after that: one property read (measured ~0ns).
 - **Single-provider loading.** Exactly ONE provider is ever loaded. Delegates resolve lazily at the first log call, so an app that registers pino at its entrypoint never loads winston.
 - **The winston default loads only when `use()` was never called first.** It requires the winston peers installed: `bun add winston winston-transport winston-daily-rotate-file`.
@@ -214,7 +215,7 @@ const logger = ApplicationLogger.get('MyService'); // ILogger, follows LoggerFac
 
 ## Log Levels
 
-`Source ->` [`common/constants.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/logger/common/constants.ts), [`base/base.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/logger/base/base.ts), [`winston/define.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/logger/winston/define.ts)
+`Source ->` [`common/constants.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/logger/common/constants.ts), [`base/base.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/logger/base/base.ts), [`winston/logger-factory.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/logger/winston/logger-factory.ts)
 
 Five levels, each with a direct method on `ILogger`: `debug`, `info`, `warn`, `error`, `emerg`. The generic `log(level, ...)` remains for dynamic level selection.
 
@@ -491,7 +492,7 @@ Without an explicit `colorize`, `definePrettyLoggerFormatter` follows the [Color
 
 ## Transports
 
-`Source ->` [`winston/define.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/logger/winston/define.ts)
+`Source ->` [`winston/logger-factory.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/logger/winston/logger-factory.ts)
 
 Every logger created by `defineCustomLogger` always includes a **Console** transport. It inherits the logger-level floor (`APP_ENV_LOGGER_LEVEL`, default `debug`). File and UDP transports are optional, registered per transport group (`info`, `error`).
 

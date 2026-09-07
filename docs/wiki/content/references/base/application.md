@@ -13,7 +13,7 @@ Extend `BaseApplication`. The three classes above it exist so a host that cannot
 - `packages/kernel/src/base/applications/rest.ts`
 - `packages/core-server/src/base/applications/server.ts`
 - `packages/core-server/src/base/applications/base.ts`
-- `packages/kernel/src/base/applications/types.ts`
+- `packages/kernel/src/base/applications/common/types/`
 
 ## Quick Reference
 
@@ -24,7 +24,7 @@ Each layer adds one capability. The first two ship from `@venizia/ignis-kernel` 
 | **AbstractApplication** | config, lifecycle hooks, the DI container | `init()`, `registerPostStartHook()`, `registerPostStopHook()` |
 | **RestApplication** | the two `OpenAPIHono` routers | `getServer()`, `getRootRouter()`, `inspectRoutes()` |
 | **ServerApplication** | the socket | `start()`, `stop()`, `getServerHost()`, `getServerPort()`, `getServerAddress()` |
-| **BaseApplication** | resource registration, secrets, boot | `component()`, `controller()`, `service()`, `repository()`, `dataSource()`, `boot()`, `validateEnvs()` |
+| **BaseApplication** | resource registration, secrets, the server boot sequence | `component()`, `controller()`, `service()`, `repository()`, `dataSource()`, `registerArtifacts()`, `validateEnvs()` |
 
 > [!NOTE]
 > Every symbol still resolves from `@venizia/ignis` - `packages/core-server` re-exports the kernel wholesale. The split changed no import path.
@@ -162,26 +162,26 @@ protected server:
 
 ## `BaseApplication`
 
-Extends `ServerApplication` with concrete lifecycle implementations, resource registration, secrets hydration and boot support. Implements `IRestApplication` and `IBootableApplication`. This is the class your application extends.
+Extends `ServerApplication` with concrete lifecycle implementations, resource registration and secrets hydration. Implements `IRestApplication`. This is the class your application extends.
 
 ```typescript
 abstract class BaseApplication
   extends ServerApplication
-  implements IRestApplication, IBootableApplication
+  implements IRestApplication
 ```
 
 ### Resource Registration Methods
 
-`BaseApplication` provides a set of convenient methods for registering your application's building blocks. These methods bind the provided classes to the DI container with conventional keys.
+The six methods below bind classes to the DI container with conventional keys. Each of the five single-class methods reads the class's decorator defaults (`binding`, `scope`, `allowOverride`, set through `@controller`, `@service`, ...); an explicit `opts` at the call site wins over them. `registerArtifacts` is what the `registerArtifacts` boot step calls with `configs.artifacts` - see [Artifact Registration](/references/base/bootstrapping).
 
 | Method | DI Binding Key Convention | Scope |
 | :--- | :--- | :--- |
 | `component(ctor, opts?)` | `components.{Name}` | Singleton |
-| `controller(ctor, opts?)` | `controllers.{Name}` | Transient |
+| `controller(ctor, opts?)` | `controllers.{Name}` | Singleton |
 | `service(ctor, opts?)` | `services.{Name}` | Transient |
 | `repository(ctor, opts?)` | `repositories.{Name}` | Transient |
 | `dataSource(ctor, opts?)` | `datasources.{Name}` | Singleton |
-| `booter(ctor, opts?)` | `booters.{Name}` | Tagged with `'booter'` |
+| `registerArtifacts(index)` | one call per listed class, in dependency order | per class |
 
 > [!TIP]
 > All registration methods accept an optional `opts.binding` parameter to override the default namespace-based key:
@@ -194,44 +194,41 @@ abstract class BaseApplication
 ### Method Signatures
 
 ```typescript
-component<Base extends BaseComponent, Args extends AnyObject = any>(
-  ctor: TClass<Base>,
-  opts?: TMixinOpts<Args>,
-): Binding<Base>
-
-controller<Base, Args extends AnyObject = any>(
-  ctor: TClass<Base>,
-  opts?: TMixinOpts<Args>,
-): Binding<Base>
-
-service<Base extends IService, Args extends AnyObject = any>(
-  ctor: TClass<Base>,
-  opts?: TMixinOpts<Args>,
-): Binding<Base>
-
-repository<Base extends IRepository, Args extends AnyObject = any>(
-  ctor: TClass<Base>,
-  opts?: TMixinOpts<Args>,
-): Binding<Base>
-
-dataSource<Base extends IDataSource, Args extends AnyObject = any>(
-  ctor: TClass<Base>,
-  opts?: TMixinOpts<Args>,
-): Binding<Base>
-
-booter<Base extends IBooter, Args extends AnyObject = any>(
-  ctor: TClass<Base>,
-  opts?: TMixinOpts<Args>,
-): Binding<Base>
+component<Base extends BaseComponent>(ctor: TClass<Base>, opts?: TMixinOpts): Binding<Base>
+controller<Base>(ctor: TClass<Base>, opts?: TMixinOpts): Binding<Base>
+service<Base extends IService>(ctor: TClass<Base>, opts?: TMixinOpts): Binding<Base>
+repository<Base extends IRepository>(ctor: TClass<Base>, opts?: TMixinOpts): Binding<Base>
+dataSource<Base extends IDataSource>(ctor: TClass<Base>, opts?: TMixinOpts): Binding<Base>
+registerArtifacts(index: TArtifactIndexInput): Promise<void>
+protected registerConfiguredArtifacts(): Promise<void>
 ```
 
 Where `TMixinOpts` is:
 
 ```typescript
-type TMixinOpts<Args extends AnyObject = any> = {
-  binding: { namespace: string; key: string };
-  args?: Args;
+type TMixinOpts = {
+  binding?: { namespace: string; key: string };
+  allowOverride?: boolean;
 };
+```
+
+The options describe the registration, never the artifact: what a class needs goes on the class.
+
+| Method | Binding scope | Why |
+|---|---|---|
+| `component`, `dataSource`, `controller` | `SINGLETON` | One instance per application - a controller is mounted once, a datasource holds one pool |
+| `service`, `repository` | `TRANSIENT` | A new instance per resolution, so each injection point owns its own |
+
+`binding` is optional - omit it and the method derives `{ namespace, key }` from the class name.
+`allowOverride` defaults to `true`, matching `bind()`'s own silent-overwrite behavior: register the
+same key twice and the second registration wins, no warning. Set it to `false` to make a same-key
+re-registration throw instead of silently shadowing the first one.
+[`bootChecks.binding.allowOverride: false`](/references/base/bootstrapping#bootchecks) flips that
+default for every registration in the application; `allowOverride: true` on a registration opts it out
+again.
+
+```typescript
+this.controller(UserController, { allowOverride: false });
 ```
 
 ### Static File Serving
@@ -246,23 +243,18 @@ Serves static files using the appropriate runtime handler (`hono/bun` for Bun, `
 this.static({ restPath: '/public/*', folderPath: './public' });
 ```
 
-### Boot Support
+### Artifact registration
 
 ```typescript
-boot(): Promise<IBootReport>
+async registerArtifacts(index: TArtifactIndexInput): Promise<void>
+protected async registerConfiguredArtifacts(): Promise<void>
 ```
 
-Registers default booters (`DatasourceBooter`, `RepositoryBooter`, `ServiceBooter`, `ControllerBooter`) and runs the bootstrapper. The boot options come from `this.configs.bootOptions`.
-
-```typescript
-async registerBooters(): Promise<void>
-```
-
-Registers the `Bootstrapper` singleton and all four default booters with the `'booter'` tag.
+`registerArtifacts` registers one index or a composition of indexes: datasources, then components (plus their `@provide` keys), repositories, services, controllers; a class's `when` may skip it and `order` sorts within a kind. `registerConfiguredArtifacts` is the boot step that passes `configs.artifacts` to it. Full behavior: [Artifact Registration](/references/base/bootstrapping#registerartifacts).
 
 ### registerDynamicBindings
 
-Protected method for handling late-registration and circular dependency patterns. Iterates bindings in a namespace, configuring each instance and re-fetching to pick up dynamically added bindings.
+Protected. Scans one binding namespace, resolves each binding and calls its `configure()`, then re-scans until a pass adds nothing new. An artifact that a `configure()` registers is therefore picked up in the same call.
 
 ```typescript
 protected async registerDynamicBindings<T extends IConfigurable>(opts: {
@@ -275,10 +267,10 @@ protected async registerDynamicBindings<T extends IConfigurable>(opts: {
 | Parameter | Type | Description |
 |-----------|------|-------------|
 | `namespace` | `TBindingNamespace` | Binding namespace to scan (e.g., `'components'`, `'datasources'`) |
-| `onBeforeConfigure` | callback | Called before each binding's `configure()` |
-| `onAfterConfigure` | callback | Called after `configure()` |
+| `onBeforeConfigure` | callback | Runs before each binding's `configure()` |
+| `onAfterConfigure` | callback | Runs after `configure()`, once the binding is already marked configured |
 
-The method tracks already-configured bindings to prevent duplicates and re-fetches after each configuration to handle bindings registered during the configure phase.
+Configured keys are remembered per namespace, so a second call over the same namespace touches only what the first one missed.
 
 ### `initialize()` Method Flow
 
@@ -290,17 +282,26 @@ graph TD
     B --> C(validateEnvs);
     C --> D(registerDefaultMiddlewares);
     D --> E(staticConfigure);
-    E --> F(preConfigure);
-    F --> G(registerDataSources);
-    G --> H(registerComponents);
-    H --> I(registerControllers);
-    I --> J(postConfigure);
+    E --> E2(registerArtifacts);
+    E2 --> F(preConfigure);
+    F --> G(hydrateSecrets);
+    G --> H(registerDataSources);
+    H --> I(registerComponents);
+    I --> J(registerContributedDataSources);
+    J --> K(wireSecretRotatables);
+    K --> L(registerControllers);
+    L --> M(postConfigure);
+    M --> N(verifyBindings);
+    N --> O(validateScopeFilterSupport);
 ```
+
+Fifteen steps. `getBootSequence()` returns them as data (`ServerBootSteps` names each one), `runBootSequence()` logs `Boot step n/15 <name>` per step, and a subclass inserts its own step with `BootSequence.insertAfter({ steps, target, step })`.
 
 | Hook | When to Use | Notes |
 |------|-------------|-------|
-| **`staticConfigure()`** | Pre-DI static setup (static files, etc.) | Synchronous, called before `preConfigure` |
-| **`preConfigure()`** | Register all resources (datasources, services, controllers) | Nothing instantiated yet - order doesn't matter |
+| **`staticConfigure()`** | Pre-DI static setup (static files, etc.) | Synchronous, called before `registerArtifacts` |
+| **`registerArtifacts`** | Framework registers every class in `configs.artifacts` | Decorator `when` conditions run here, before `preConfigure` |
+| **`preConfigure()`** | Register what the index cannot express - registry calls, hand-made bindings | Nothing instantiated yet - order doesn't matter |
 | **`register...()`** | Framework iterates bindings and instantiates classes | DataSources initialized first (other layers depend on them) |
 | **`postConfigure()`** | Logic after all resources configured | Do not register new datasources/components/controllers here - they won't auto-configure |
 
@@ -331,7 +332,7 @@ For each transport in the array, the corresponding component (`RestComponent` or
 
 ### registerComponents
 
-When registering components, after each component's `configure()` completes, the framework also re-registers any datasources that the component may have added. This handles the pattern where components bring their own datasources.
+A component may register more components while it is configured, at any nesting depth, and may add a datasource of its own. Contributed datasources are configured by `registerContributedDataSources()`, one flat sweep that runs after every component has finished - not after each component in turn. A component that uses a datasource an earlier component contributed sees it unconfigured until that sweep runs.
 
 ## `IApplicationConfigs`
 
@@ -339,36 +340,35 @@ When registering components, after each component's `configure()` completes, the
 interface IApplicationConfigs {
   host?: string;                          // Server host (default: process.env.HOST || 'localhost')
   port?: number;                          // Server port (default: process.env.PORT || 3000)
+  server?: { idleTimeout?: number; maxRequestBodySize?: number }; // Bun.serve options, Bun runtime only
+  projectRoot?: string;                   // Server only: bound as APPLICATION_PROJECT_ROOT (default: process.cwd())
   path: { base: string; isStrict: boolean }; // Base path config (required)
   requestId?: { isStrict: boolean };      // Request ID validation
   favicon?: string;                       // Favicon emoji (default: '🔥')
   error?: { rootKey: string };            // Error response root key
   asyncContext?: { enable: boolean };     // Hono async context storage (default: true)
-  bootOptions?: IBootOptions;             // Boot system configuration
+  artifacts?: TArtifactIndexInput;        // Generated indexes registered before preConfigure
   debug?: { shouldShowRoutes?: boolean }; // Show registered routes on startup
   transports?: TControllerTransport[];    // Controller transports: 'rest' | 'grpc' (default: ['rest'])
   [key: string]: any;                     // Extensible (e.g. strictPath?: boolean - Hono strict path matching, default: true)
 }
 ```
 
-### `IBootOptions`
+### `TArtifactIndexInput`
 
 ```typescript
-interface IBootOptions {
-  controllers?: IArtifactOptions;
-  services?: IArtifactOptions;
-  repositories?: IArtifactOptions;
-  datasources?: IArtifactOptions;
-  [artifactType: string]: IArtifactOptions | undefined;
+interface IArtifactIndex {
+  dataSources?: ReadonlyArray<TClass<IDataSource>>;
+  components?: ReadonlyArray<TClass<BaseComponent>>;
+  repositories?: ReadonlyArray<TClass<IRepository>>;
+  services?: ReadonlyArray<TClass<IService>>;
+  controllers?: ReadonlyArray<TClass<unknown>>;
 }
 
-interface IArtifactOptions {
-  dirs?: string[];
-  extensions?: string[];
-  isNested?: boolean;
-  glob?: string;
-}
+type TArtifactIndexInput = IArtifactIndex | TArtifactIndexInput[];
 ```
+
+`bootOptions` is removed - see the [changelog](/changelogs/2026-09-03-deprecated-boot-api-removed) for migration.
 
 ### `TControllerTransport`
 
@@ -421,7 +421,6 @@ Standard namespaces for organizing DI bindings:
 | `MIDDLEWARE` | `'middlewares'` | Middleware bindings |
 | `PROVIDER` | `'providers'` | Provider bindings |
 | `CONTROLLER` | `'controllers'` | `controller()` |
-| `BOOTERS` | `'booters'` | `booter()` |
 
 ## Mixin Interfaces
 
@@ -464,16 +463,17 @@ interface IBaseMiddlewareOptions {
 
 - **Related Concepts:**
   - [Application Guide](/guides/core-concepts/application/) - Creating your first application
-  - [Bootstrapping](/guides/core-concepts/application/bootstrapping) - Auto-discovery of artifacts
+  - [Registering artifacts](/guides/core-concepts/application/bootstrapping) - Decorators, the generated index, `configs.artifacts`
   - [Dependency Injection](/guides/core-concepts/dependency-injection) - How DI works in IGNIS
   - [REST Controllers](/guides/core-concepts/rest-controllers) | [gRPC Controllers](/guides/core-concepts/grpc-controllers) - Registering HTTP/gRPC endpoints
 
 - **References:**
-  - [Bootstrapping API](/references/base/bootstrapping) - Boot system reference
+  - [Artifact Registration API](/references/base/bootstrapping) - Stereotypes, `@provide`, `registerArtifacts`, the generator
   - [Components API](/references/base/components) - Component system
   - [gRPC Controllers](/references/base/grpc-controllers) - gRPC transport reference
   - [Environment Variables](/references/configuration/environment-variables) - Configuration management
   - [Middlewares](/references/base/middlewares) - Request interceptors
+  - [Changelog 2026-09-03](/changelogs/2026-09-03-deprecated-boot-api-removed) - the deprecated boot API removed
 
 - **Tutorials:**
   - [5-Minute Quickstart](/guides/get-started/5-minute-quickstart) - Create your first app

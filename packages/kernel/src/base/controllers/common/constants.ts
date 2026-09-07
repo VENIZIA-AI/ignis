@@ -11,6 +11,20 @@ export class ControllerTransports {
 
 export type TControllerTransport = TConstValue<typeof ControllerTransports>;
 
+/** Shape of `data` in a `{ count, data }` response, echoed in the `X-Response-Format` header. */
+export class ResponseFormats {
+  static readonly OBJECT = 'object';
+  static readonly ARRAY = 'array';
+
+  static readonly SCHEME_SET = new Set<string>([this.OBJECT, this.ARRAY]);
+
+  static isValid(value: string): boolean {
+    return this.SCHEME_SET.has(value);
+  }
+}
+
+export type TResponseFormat = TConstValue<typeof ResponseFormats>;
+
 /** Standard REST API path constants for CRUD controllers. */
 export class RestPaths {
   static readonly ROOT = '/';

@@ -1,21 +1,25 @@
 import { BindingNamespaces } from '@/common/bindings';
 import type {
+  IArtifactRegistrationOptions,
   IDataSourceMetadata,
   IInjectMetadata,
   IModelMetadata,
   IRepositoryMetadata,
   IResolvedRepositoryMetadata,
 } from '@/helpers/inversion';
-import { BindingKeys, MetadataKeys, MetadataRegistry } from '@/helpers/inversion';
+import { ArtifactTypes, BindingKeys, MetadataKeys, MetadataRegistry } from '@/helpers/inversion';
 import { resolveClass, resolveValue } from '@venizia/ignis-helpers/common';
 import { getError } from '@venizia/ignis-helpers/core';
 import type { IDataSource } from '../datasources';
 import { isDataSourceClass } from '../datasources';
 import type { AbstractEntity } from '../models';
+import { injectable, pickRegistrationOptions } from './injectable';
 
 /** Registers a model class with its static schema and relations. */
 export const model = (metadata: IModelMetadata): ClassDecorator => {
   return target => {
+    injectable({ type: ArtifactTypes.MODEL, ...pickRegistrationOptions({ metadata }) })(target);
+
     const defaultLimit = metadata.settings?.defaultLimit;
     if (defaultLimit !== undefined && (!Number.isInteger(defaultLimit) || defaultLimit <= 0)) {
       throw getError({
@@ -45,6 +49,10 @@ export const model = (metadata: IModelMetadata): ClassDecorator => {
 /** Registers a datasource with driver and auto-discovery settings. */
 export const datasource = (metadata?: IDataSourceMetadata): ClassDecorator => {
   return target => {
+    injectable({
+      type: ArtifactTypes.DATASOURCE,
+      ...pickRegistrationOptions({ metadata: metadata ?? {} }),
+    })(target);
     MetadataRegistry.getInstance().setDataSourceMetadata({ target, metadata });
   };
 };
@@ -193,22 +201,67 @@ const resolveRepositoryMetadata = <
 };
 
 /** Binds a repository to a model and datasource for schema auto-discovery. */
+/** A bare `@repository()` on a subclass reuses the model and datasource its nearest decorated parent declared; the registration options (`binding`, `when`, ...) are never inherited, so the subclass registers under its own name. */
+const inheritRepositoryMetadata = (opts: {
+  target: Function;
+  registry: MetadataRegistry;
+}): IRepositoryMetadata => {
+  // Own metadata does not exist yet at decoration time, so this read walks the prototype chain.
+  const inherited = opts.registry.getRepositoryMetadata({ target: opts.target });
+  if (!inherited) {
+    throw getError({
+      message: `[@repository][${opts.target.name}] No metadata given and no decorated repository above it in the prototype chain | pass { model, dataSource } or decorate the parent`,
+    });
+  }
+
+  const { model: parentModel, dataSource: parentDataSource, operationScope } = inherited;
+  return { model: parentModel, dataSource: parentDataSource, operationScope };
+};
+
+const applyRepositoryMetadata = <
+  Model extends AbstractEntity = AbstractEntity,
+  DataSource extends IDataSource = IDataSource,
+>(opts: {
+  metadata: IRepositoryMetadata<Model, DataSource>;
+  registration: IArtifactRegistrationOptions;
+  target: Function;
+  registry: MetadataRegistry;
+}): void => {
+  const { metadata, registration, target, registry } = opts;
+  injectable({
+    type: ArtifactTypes.REPOSITORY,
+    ...pickRegistrationOptions({ metadata: registration }),
+  })(target);
+
+  const resolved = resolveRepositoryMetadata({ metadata, target, registry });
+
+  // `_resolved` is an internal cache field, not part of the public IRepositoryMetadata surface callers author - it is added here, so the merged literal needs the widened local type.
+  registry.setRepositoryMetadata({
+    target,
+    metadata: { ...metadata, _resolved: resolved } as IRepositoryMetadata<Model, DataSource> & {
+      _resolved?: IResolvedRepositoryMetadata<Model, DataSource>;
+    },
+  });
+};
+
 export const repository = <
   Model extends AbstractEntity = AbstractEntity,
   DataSource extends IDataSource = IDataSource,
 >(
-  metadata: IRepositoryMetadata<Model, DataSource>,
+  metadata?: IRepositoryMetadata<Model, DataSource>,
 ): ClassDecorator => {
   return target => {
     const registry = MetadataRegistry.getInstance();
-    const resolved = resolveRepositoryMetadata({ metadata, target, registry });
+    if (!metadata) {
+      applyRepositoryMetadata({
+        metadata: inheritRepositoryMetadata({ target, registry }),
+        registration: {},
+        target,
+        registry,
+      });
+      return;
+    }
 
-    // `_resolved` is an internal cache field, not part of the public IRepositoryMetadata surface callers author - it is added here, so the merged literal needs the widened local type.
-    registry.setRepositoryMetadata({
-      target,
-      metadata: { ...metadata, _resolved: resolved } as IRepositoryMetadata<Model, DataSource> & {
-        _resolved?: IResolvedRepositoryMetadata<Model, DataSource>;
-      },
-    });
+    applyRepositoryMetadata({ metadata, registration: metadata, target, registry });
   };
 };

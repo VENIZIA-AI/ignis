@@ -1,5 +1,9 @@
 import { LoggerFactory } from '@venizia/ignis-helpers';
+import { WinstonLogger } from '@venizia/ignis-helpers/winston';
 import { Application, beConfigs } from './application';
+
+// A compiled binary cannot load the default provider at run time; only a class reference carries it into the bundle.
+LoggerFactory.use({ provider: WinstonLogger });
 
 const logger = LoggerFactory.getLogger(['main']);
 
@@ -17,26 +21,16 @@ const main = async () => {
     .for('runApplication')
     .info(' Getting ready to start up %s Application...', applicationName);
 
-  return application
-    .boot()
-    .then(() => {
-      application.start().catch(err => {
-        logger.error(
-          '[main] Application start failed | Application Name: %s | Error: %s',
-          applicationName,
-          err,
-        );
-        process.exit(1);
-      });
-    })
-    .catch(err => {
-      logger.error(
-        '[main] Application boot failed | Application Name: %s | Error: %s',
-        applicationName,
-        err,
-      );
-      process.exit(1);
-    });
+  try {
+    await application.start();
+  } catch (error) {
+    logger.error(
+      '[main] Application start failed | Application Name: %s | Error: %s',
+      applicationName,
+      error,
+    );
+    process.exit(1);
+  }
 };
 
 export default main();

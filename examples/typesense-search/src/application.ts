@@ -26,7 +26,7 @@ export const beConfigs: IApplicationConfigs = {
   },
   error: { rootKey: 'error' },
   debug: {
-    shouldShowRoutes: process.env.NODE_ENV !== Environment.PRODUCTION,
+    shouldShowRoutes: !Environment.is({ name: Environment.PRODUCTION }),
   },
 };
 

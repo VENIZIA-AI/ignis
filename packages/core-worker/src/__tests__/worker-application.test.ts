@@ -12,7 +12,7 @@ import type {
   IBffErrorEnvelope,
   IBffRequestEnvelope,
   IBffResponseEnvelope,
-} from '@/envelope/types';
+} from '@/envelope/common';
 
 /** Counts how many times the route handler actually ran, which is what a duplicate listener costs: a POST inserting two rows. */
 let helloHandlerRunCount = 0;

@@ -366,7 +366,7 @@ export default main();
 ```
 
 > [!TIP]
-> `start()` runs the full lifecycle internally. You only need the explicit `init()` → `boot()` → `start()` sequence when using **auto-discovery** (glob-based booters) to discover controllers/repositories from the filesystem. For manual registration (as shown here), `start()` alone is sufficient.
+> `start()` runs the full lifecycle internally, so calling it alone - as shown here - is enough. There is no separate discovery step to run first.
 
 ## 5. Run Your Application
 

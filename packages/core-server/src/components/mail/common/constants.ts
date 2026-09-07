@@ -1,3 +1,4 @@
+import type { TConstValue } from '@venizia/ignis-helpers/common';
 import { MessageCode } from '@venizia/ignis-helpers/core';
 
 export class MailDefaults {
@@ -50,3 +51,13 @@ export class BullMQExecutorModes {
     return this.MODE_SET.has(value);
   }
 }
+
+export class MailProviders {
+  static readonly NODEMAILER = 'nodemailer';
+  static readonly MAILGUN = 'mailgun';
+  static readonly CUSTOM = 'custom';
+  // Amazon SES supports both SMTP and HTTPS - this provider is the HTTPS API path; SMTP goes through NODEMAILER instead.
+  static readonly AMAZON_SES = 'amazon_ses';
+}
+
+export type TMailProvider = TConstValue<typeof MailProviders>;

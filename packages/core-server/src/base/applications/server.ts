@@ -1,9 +1,16 @@
 import { CoreBindings, RestApplication } from '@venizia/ignis-kernel';
+import { ModuleUtility } from '@venizia/ignis-helpers';
 import { getError } from '@venizia/ignis-helpers/core';
 import { RuntimeModules } from '@venizia/ignis-helpers/common';
 import type { Env, Schema } from 'hono';
+import { existsSync } from 'node:fs';
 import path from 'node:path';
-import type { IServerApplication, IServerApplicationConfigs, TNodeServerInstance } from './types';
+import type {
+  IServerApplication,
+  IServerApplicationConfigs,
+  IServerRuntimeConfigs,
+  TNodeServerInstance,
+} from './common';
 
 /** Lives here, not in the kernel: `Bun.serve` resolves only through `@types/bun`, and emitting `Bun` into the kernel's published `.d.ts` would force that dependency on every browser consumer of `@venizia/ignis-kernel`. This package legitimately has Bun types - it is the layer that calls `Bun.serve`. */
 export type TBunServerInstance = ReturnType<typeof Bun.serve>;
@@ -77,10 +84,19 @@ export abstract class ServerApplication<
     return true;
   }
 
-  /** Restores the pre-split default: a listening server has a real process cwd. An application may still override this further (several already do, with `__dirname`). */
+  /** `configs.projectRoot` wins, else the process cwd. The value is bound AND handed to `ModuleUtility`, so every peer lookup (optional modules, the gRPC adapter) resolves under it - a compiled binary sets it to where its `node_modules` really is. */
   override getProjectRoot(): string {
-    const projectRoot = process.cwd();
+    const projectRoot = this.configs.projectRoot ?? process.cwd();
+    if (this.configs.projectRoot && !existsSync(path.join(projectRoot, 'node_modules'))) {
+      this.logger
+        .for(this.getProjectRoot.name)
+        .warn(
+          'configs.projectRoot has no node_modules | root: %s | optional peers will not resolve from it',
+          projectRoot,
+        );
+    }
     this.bind<string>({ key: CoreBindings.APPLICATION_PROJECT_ROOT }).toValue(projectRoot);
+    ModuleUtility.setProjectRoot({ projectRoot });
     return projectRoot;
   }
 
@@ -94,6 +110,15 @@ export abstract class ServerApplication<
 
   getServerAddress() {
     return `${this.getServerHost()}:${this.getServerPort()}`;
+  }
+
+  /** `configs.server` with unset keys dropped, so a missing option keeps Bun's default instead of passing `undefined`. */
+  protected getServerRuntimeOptions(): IServerRuntimeConfigs {
+    const { idleTimeout, maxRequestBodySize } = this.configs.server ?? {};
+    return {
+      ...(idleTimeout === undefined ? {} : { idleTimeout }),
+      ...(maxRequestBodySize === undefined ? {} : { maxRequestBodySize }),
+    };
   }
 
   getServerInstance<
@@ -121,6 +146,7 @@ export abstract class ServerApplication<
           port,
           hostname: host,
           fetch: server.fetch,
+          ...this.getServerRuntimeOptions(),
         }),
       )
         .then(rs => {
@@ -157,6 +183,12 @@ export abstract class ServerApplication<
       const port = this.getServerPort();
       const host = this.getServerHost();
       const server = this.getServer();
+      const ignored = Object.keys(this.getServerRuntimeOptions());
+      if (ignored.length > 0) {
+        this.logger
+          .for(this.startNodeModule.name)
+          .warn('configs.server is Bun-only | ignored on node: %s', ignored.join(', '));
+      }
 
       import('@hono/node-server')
         .then(module => {

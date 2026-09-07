@@ -10,7 +10,7 @@ import {
 } from '@venizia/ignis-kernel';
 import { sql, type SQL } from 'drizzle-orm';
 import { PolicyConnectorResolver } from './connector';
-import type { ICasbinPolicySource, IScopedCasbinEntities } from './types';
+import type { ICasbinPolicySource, IScopedCasbinEntities } from './common';
 
 const DEFAULT_SCHEMA = 'public';
 

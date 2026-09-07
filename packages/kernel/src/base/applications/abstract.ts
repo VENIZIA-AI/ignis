@@ -3,7 +3,7 @@ import { Container } from '@/helpers/inversion/container';
 import type { ValueOrPromise } from '@venizia/ignis-helpers/common';
 import { getError } from '@venizia/ignis-helpers/core';
 import { HTTP } from '@venizia/ignis-helpers/common';
-import type { IApplicationConfigs, IApplicationInfo } from './types';
+import type { IApplicationConfigs, IApplicationInfo } from './common';
 
 export abstract class AbstractApplication extends Container {
   protected configs: IApplicationConfigs;
@@ -28,6 +28,12 @@ export abstract class AbstractApplication extends Container {
 
   abstract getAppInfo(): ValueOrPromise<IApplicationInfo>;
   abstract preConfigure(): ValueOrPromise<void>;
+
+  /**
+   * Runs after every registration sweep (datasources, components, controllers) has already
+   * completed. Registering a new one here is not auto-registered and silently does nothing -
+   * call `configure()` manually instead.
+   */
   abstract postConfigure(): ValueOrPromise<void>;
 
   abstract staticConfigure(): void;

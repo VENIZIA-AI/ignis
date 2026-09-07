@@ -30,7 +30,7 @@ export const beConfigs: IApplicationConfigs = {
     isStrict: true,
   },
   debug: {
-    shouldShowRoutes: process.env.NODE_ENV !== Environment.PRODUCTION,
+    shouldShowRoutes: !Environment.is({ name: Environment.PRODUCTION }),
   },
 };
 

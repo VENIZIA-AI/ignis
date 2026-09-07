@@ -9,7 +9,7 @@ import type {
   IObjectInfo,
   IStorageHelperOptions,
   IUploadFile,
-} from '../types';
+} from '../common';
 import { buildSignedRequest } from './utility';
 
 export interface IBunS3HelperOptions extends IStorageHelperOptions {

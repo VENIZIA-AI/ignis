@@ -12,14 +12,15 @@ Technical reference for REST controller classes - the foundation for creating HT
 > This page covers **REST controllers** (HTTP/JSON). For gRPC controllers using ConnectRPC, see the [gRPC Controllers Reference](./grpc-controllers.md).
 
 **Files:**
-- `packages/core-server/src/base/controllers/rest/abstract.ts` - Abstract base class
-- `packages/core-server/src/base/controllers/rest/base.ts` - Concrete base class
-- `packages/core-server/src/base/controllers/common/types.ts` - Shared types and interfaces
-- `packages/core-server/src/base/controllers/common/constants.ts` - Transport constants and headers
-- `packages/core-server/src/base/metadata/routes/rest.ts` - Route decorators (`@api`, `@get`, `@post`, etc.)
-- `packages/core-server/src/base/metadata/routes/controller.ts` - `@controller` decorator
-- `packages/core-server/src/base/controllers/factory/controller.ts` - CRUD controller factory
-- `packages/core-server/src/components/controller/rest/rest.component.ts` - RestComponent
+- `packages/kernel/src/base/controllers/rest/abstract.ts` - Abstract base class
+- `packages/kernel/src/base/controllers/rest/base.ts` - Concrete base class
+- `packages/kernel/src/base/controllers/common/types/` - Shared types and interfaces
+- `packages/kernel/src/base/controllers/common/constants.ts` - Transport constants and headers
+- `packages/kernel/src/base/metadata/routes/rest.ts` - Route decorators (`@api`, `@get`, `@post`, etc.)
+- `packages/kernel/src/base/metadata/routes/controller.ts` - `@controller` decorator
+- `packages/kernel/src/base/controllers/factory/controller.ts` - CRUD controller factory
+- `packages/kernel/src/base/controllers/factory/crud/readable.ts` - CRUD read verbs and `getBaseWhere`
+- `packages/kernel/src/base/components/controller/rest/rest.component.ts` - RestComponent
 
 ## Quick Reference
 
@@ -89,7 +90,7 @@ During `registerControllers()`, the application creates a `RestComponent` for RE
 
 ## `RestComponent`
 
-**File:** `packages/core-server/src/components/controller/rest/rest.component.ts`
+**File:** `packages/kernel/src/base/components/controller/rest/rest.component.ts`
 
 The `RestComponent` is responsible for discovering, configuring, and mounting all REST controllers onto the application's root Hono router. It is automatically instantiated by `BaseApplication.registerControllers()` when the REST transport is enabled.
 
@@ -205,7 +206,33 @@ Override to register routes manually using `bindRoute` or `defineRoute`.
 
 ## `BaseRestController`
 
-Extends `AbstractRestController` with concrete implementations for `bindRoute`, `defineRoute`, and `defineJSXRoute`.
+Extends `AbstractRestController` with concrete implementations for `bindRoute`, `defineRoute`, and `defineJSXRoute`, plus the response helpers every controller shares.
+
+### `respond<R>(opts: { context, format, payload, range? })`
+
+The one response call. Sets `X-Response-Format` (`ResponseFormats.ARRAY` or `ResponseFormats.OBJECT`), and with `range` also `Content-Range: records <start>-<end>/<total>` (`records */<total>` for an empty page); then returns `payload` (`{ count, data }`) through `normalizeCountData`, which writes `X-Response-Count` from `payload.count` and returns the bare `data` when the client sent `x-request-count: false`. `payload.count` is the rows of this response, never the total.
+
+```typescript
+const { data, range } = await this.repository.find({ filter, options: { shouldQueryRange: true } });
+return context.json(
+  this.respond({ context, format: ResponseFormats.ARRAY, payload: { count: data.length, data }, range }),
+  HTTP.ResultCodes.RS_2.Ok,
+);
+```
+
+`range` is the repository's `TDataRange` (`{ start, end, total }`, `end` inclusive); `buildDataRange({ skip, offset, dataLength, total })` builds one when the rows come from somewhere else. The CRUD verbs `findById`, `findOne`, `create`, `updateById` and `deleteById` answer with `format: ResponseFormats.OBJECT` and no range.
+
+### `setListHeaders(opts: { context, count } & ({ range } | { offset, total }))`
+
+The list headers without the body, for a response whose body is not a `{ count, data }` envelope. `POST /search` uses it and keeps its `{ found, isFoundExact, hits }` body. Pass the repository's `range`, or `offset` + `total` when the engine reports those; the range is derived with `buildDataRange` (inclusive `end`, empty page collapses onto `start`).
+
+### `toContentRange(opts: { range, count })`
+
+The one `Content-Range` formatter, exported from `@venizia/ignis-kernel`: `records <start>-<end>/<total>`, or `records */<total>` when `count` is 0. Use it only where the header is written without `respond` or `setListHeaders`.
+
+### `normalizeCountData(opts: { context, payload })`
+
+Sets `X-Response-Count` from `payload.count` and returns the whole envelope, or only `payload.data` when the request carried `x-request-count: false`.
 
 ### `defineRoute<RouteConfig, ResponseType>(opts)`
 
@@ -400,7 +427,7 @@ interface ICustomizableRoutes<
 
 ## Route Decorators
 
-**File:** `packages/core-server/src/base/metadata/routes/rest.ts`
+**File:** `packages/kernel/src/base/metadata/routes/rest.ts`
 
 ### `@controller` Decorator
 
@@ -618,7 +645,7 @@ request: {
 
 ## Standard Headers and Constants
 
-**File:** `packages/core-server/src/base/controllers/common/constants.ts`
+**File:** `packages/kernel/src/base/controllers/common/constants.ts`
 
 ### `RestPaths`
 
@@ -644,7 +671,7 @@ class RestPaths {
 
 The `ControllerFactory` provides a static method `defineCrudController` to quickly generate a pre-configured CRUD controller for any given `AbstractEntity` subclass (e.g. `BaseEntity` for Postgres) and its corresponding repository.
 
-**File:** `packages/core-server/src/base/controllers/factory/controller.ts`
+**File:** `packages/kernel/src/base/controllers/factory/controller.ts`
 
 ### `static defineCrudController<TDataObject, TPersistObject = TDataObject, Routes extends ICustomizableRoutes = ICustomizableRoutes>(opts: ICrudControllerOptions<Routes>)`
 
@@ -661,6 +688,37 @@ Returns a `BaseRestController` subclass with standard CRUD endpoints pre-configu
 | `updateBy` | `PATCH` | `/` | Bulk update records matching a `where` filter |
 | `deleteById` | `DELETE` | `/{id}` | Delete a record by its ID |
 | `deleteBy` | `DELETE` | `/` | Bulk delete records matching a `where` filter |
+
+### `getBaseWhere(opts: { context }): Promise<TWhere<TDataObject> | undefined>`
+
+Narrows every read of one controller. Override it to scope rows to a tenant, an owner or a status. The default returns `undefined`, and then every read verb passes the request filter through untouched.
+
+```typescript
+class OrderController extends ControllerFactory.defineCrudController({ ... }) {
+  override async getBaseWhere(opts: { context: TRouteContext }) {
+    const tenantId = opts.context.req.header('x-tenant-id');
+    // Fail closed: a request with no tenant reads nothing, never every tenant.
+    return { tenantId: tenantId ?? null };
+  }
+}
+```
+
+Each read verb combines the two sides as `{ and: [baseWhere, requestWhere] }`. A request without its own `where` gets the base where alone. Nothing is wrapped that does not need to be.
+
+Returning `undefined` reads every row. Write a scope that fails closed: a request missing the value your scope keys on must narrow to nothing, not widen to everything.
+
+**Only the read verbs are scoped.** `create`, `updateById`, `deleteById` and `deleteBy` do not call `getBaseWhere`. A controller that must reject a write outside its scope checks that in the verb or in an authorization strategy.
+
+| Verb | How the base where is applied |
+| :--- | :--- |
+| `count` | ANDed into the request `where` |
+| `find` | ANDed into `filter.where` |
+| `findOne` | ANDed into `filter.where` |
+| `findById` | ANDed with `{ id }`, and the read goes through `repository.findOne` |
+
+`findById` takes the detour because `repository.findById` accepts no `where`. An id outside the scope answers the same body as an id that does not exist: `{ count: 0, data: null }`.
+
+The method is public, not protected: a generated controller's declaration file cannot carry a protected member (TypeScript error TS4094).
 
 ### `ICrudControllerOptions<Routes>`
 

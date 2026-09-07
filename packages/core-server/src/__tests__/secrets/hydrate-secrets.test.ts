@@ -30,7 +30,7 @@ class HydrateApp extends BaseApplication {
 describe('hydrateSecrets', () => {
   test('binds a provider at @app/config and merges mapped keys into Envs', async () => {
     process.env.SOURCE = 'hydrated';
-    const app = new HydrateApp({ scope: 'probe', config: {} as AnyType });
+    const app = new HydrateApp({ scope: 'probe', config: { path: { base: '', isStrict: false } } });
     await app.hydrateSecrets();
     const provider = app.get({ key: CoreBindings.APPLICATION_CONFIG, isOptional: false });
     expect(provider).toBeDefined();

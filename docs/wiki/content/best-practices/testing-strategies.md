@@ -115,6 +115,28 @@ bun test --coverage
 NODE_ENV=test bun test --env-file=.env.test
 ```
 
+### One invocation per project, written down once
+
+A bare `bun test` in a package directory is the fastest way to a false alarm: it runs every `*.test.ts` it finds, under whatever `NODE_ENV` the shell has, with no env file and no preload. One IGNIS consumer read 467 red tests that way; the real number was 19. Put the full command in `package.json` and call only that:
+
+```json
+{
+  "scripts": {
+    "test": "NODE_ENV=test bun test ./src/__tests__ --env-file=.env.test --preload ./src/__tests__/preload.ts"
+  }
+}
+```
+
+| Part | Why it is there |
+|---|---|
+| `NODE_ENV=test` | The error sanitizer, logger colour and env resolution all key off it; `test` is not a development env |
+| `./src/__tests__` (or `./dist/__tests__`) | Scopes the run to the tree the project tests from; without it Bun also collects tests under `dist`, fixtures and vendored code |
+| `--env-file=.env.test` | The suite's own variables (ports, log folder, feature flags) instead of the developer's shell |
+| `--preload ./src/__tests__/preload.ts` | Anything that must run before the first import: `reflect-metadata`, a logger provider, global fakes |
+| `--parallel` (optional) | Bun 1.4+: files run in isolated workers; keep it only if no test relies on module-level state from another file |
+
+Run the script, not the tool: `bun run test`. A CI job and a developer then execute the same line, and a red count means the same thing on both.
+
 ## 2. Unit Testing Services
 
 Test business logic in isolation by mocking dependencies.

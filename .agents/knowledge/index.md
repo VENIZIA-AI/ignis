@@ -12,8 +12,8 @@ re-deriving the project from the source each session.
 **The code is ground truth.** These concepts are curated prose over the code. When the two disagree,
 the code wins and the concept is a bug - fix it and note it in [log](/log.md).
 
-Served over MCP as `ignis-knowledge`: use `okf_search` to find a concept, `okf_list_concepts` to
-browse by type, `okf_get_concept` to read one.
+Served over MCP by [`ignis-atlas`](/packages/atlas.md), registered in `.mcp.json`: `search` with
+`corpus: "knowledge"` finds a concept, `get` reads one by the id a search hit returned.
 
 ## Start here
 
@@ -28,7 +28,7 @@ browse by type, `okf_get_concept` to read one.
 
 ## Packages
 
-The framework ships nine packages, built in dependency order.
+The framework ships ten packages, built in dependency order.
 
 | Package | Role |
 |---|---|
@@ -36,11 +36,12 @@ The framework ships nine packages, built in dependency order.
 | [core-worker](/packages/core-worker.md) | The browser BFF: an IGNIS application inside a dedicated Worker |
 | [kernel](/packages/kernel.md) | The browser-pure half: DI, lifecycle, controllers, repositories, auth seams |
 | [connectors](/packages/connectors.md) | Relational and search tiers, with engines behind sub-paths |
-| [boot](/packages/boot.md) | Convention-based auto-discovery and bootstrapping |
+| [boot](/packages/boot.md) | Build-time artifact index generator and the `ignis-artifacts` CLI |
 | [filter](/packages/filter.md) | The query filter language and its schemas |
 | [inversion](/packages/inversion.md) | The standalone IoC container |
 | [helpers](/packages/helpers.md) | Production utility modules |
 | [dev-configs](/packages/dev-configs.md) | Shared ESLint, Prettier, and TypeScript config |
+| [atlas](/packages/atlas.md) | The MCP server: search and read the wiki, changelogs and knowledge bundle |
 
 ## Architecture
 
@@ -48,7 +49,7 @@ How the pieces fit.
 
 - [DI container](/architecture/di-container.md) - bindings, scopes, injection rules
 - [Application lifecycle](/architecture/application-lifecycle.md) - the startup sequence
-- [Boot lifecycle](/architecture/boot-lifecycle.md) - configure, discover, load
+- [Artifact registration](/architecture/boot-lifecycle.md) - stereotype -> generated index -> configs.artifacts -> registerArtifacts step
 - [Component model](/architecture/component-model.md) - what a component is and how it wires
 - [Controller system](/architecture/controller-system.md) - the route APIs over Hono
 - [Repository hierarchy](/architecture/repository-hierarchy.md) - abstract to CRUD, plus mixins
@@ -87,6 +88,7 @@ How the work gets done.
 - [Release and publish](/process/release-publish.md)
 - [Adding a component](/process/adding-a-component.md)
 - [Adding a helper](/process/adding-a-helper.md)
+- [Splitting a hub file by topic](/process/splitting-a-hub-file.md)
 - [Updating the wiki](/process/updating-the-wiki.md)
 
 ## Examples

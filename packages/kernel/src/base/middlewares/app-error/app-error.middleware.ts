@@ -12,7 +12,7 @@ import {
   DATABASE_RETRYABLE_ERROR_CODE,
   DATABASE_RETRYABLE_ERROR_MESSAGE,
 } from './definition';
-import type { IResolvedApplicationError, TApplicationErrorType } from './types';
+import type { IResolvedApplicationError, TApplicationErrorType } from './common';
 import { formatZodError } from './zod.handler';
 
 const DEFAULT_INTERNAL_ERROR_MESSAGE = 'Internal Server Error';

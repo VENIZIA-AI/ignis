@@ -88,7 +88,7 @@ make helpers       # Build @venizia/ignis-helpers (builds dev-configs → invers
 make inversion     # Build @venizia/ignis-inversion (builds dev-configs → inversion)
 make dev-configs   # Build @venizia/dev-configs only
 make docs          # Build VitePress documentation (independent)
-make docs-mcp      # Build MCP documentation server
+make atlas         # Build the Atlas MCP server (search and read the wiki, changelogs, and knowledge bundle)
 ```
 
 **Force update individual packages:**
@@ -98,7 +98,7 @@ make update-boot
 make update-helpers
 make update-inversion
 make update-dev-configs
-make update-docs-mcp
+make update-atlas
 ```
 
 ## 2. Development Workflow

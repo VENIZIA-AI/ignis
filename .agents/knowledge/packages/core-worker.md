@@ -31,7 +31,7 @@ const response = await bff.fetch({ request: new Request('http://ignis.internal/a
 
 ## The package is small on purpose
 
-Thirteen source files, three subsystems, one export entry.
+Eighteen source files, three subsystems, one export entry.
 
 | Subsystem | What it holds |
 |---|---|
@@ -208,15 +208,22 @@ is for.
   package lacks `lib.webworker` - `tsconfig.json` sets `lib: ["ES2024", "WebWorker"]` and
   `browser-purity.test.ts` asserts it. Naming the DOM type in a public signature would force
   `lib.webworker` on every **consumer**.
-- **`WorkerApplication` has no `initialize()`.** `AbstractApplication` declares it abstract and the
-  only implementation is `BaseApplication`'s, in `packages/core-server`, which a browser cannot import. A
-  browser application restates the phase order by hand today.
+- **`WorkerApplication` inherits `initialize()` from the kernel, and a browser gets the phase order
+  for free.** `AbstractApplication` declares it abstract, but `RestApplication` implements it
+  (`packages/kernel/src/base/applications/rest.ts`) as one line handing `getBootSequence()` to
+  `runBootSequence()`; `startServing()` calls it. The nine kernel steps run: `staticConfigure`,
+  `registerArtifacts`, `preConfigure`, `registerDataSources`, `registerComponents`,
+  `registerContributedDataSources`, `registerControllers`, `postConfigure`, `verifyBindings`. What a
+  worker does NOT get is what core-server's `BaseApplication` composes around them -
+  `printStartUpInfo`, `validateEnvs`, `hydrateSecrets`, `wireSecretRotatables` and the scope-filter
+  check; a browser application that needs one of those adds its own step.
 - **A browser has no `NODE_ENV`,** so the error middleware fails closed and sanitises. Set it on the
   Hono env binding from a middleware to see unsanitised errors while developing.
 - The Worker and the server stamp the SAME `requestId` format, a UUID v4, because both go through
   `RequestIdGenerator`. They once differed - the Worker minted a base62 Snowflake while the server
   kept hono's default - and correlating one request across the two halves meant knowing which end
   produced which shape.
+- **`WorkerApplication.getProjectRoot()` mirrors `ServerApplication`'s `configs.projectRoot` seam, minus the `node_modules` check** - a browser Worker has no filesystem to check, so it reads the cwd defensively through `globalThis.process?.cwd?.()` and shares the result with `ModuleUtility` via the Node-import-free `ProjectRootRegistry` (`@venizia/ignis-helpers/core`), never the root barrel.
 
 ## Related
 

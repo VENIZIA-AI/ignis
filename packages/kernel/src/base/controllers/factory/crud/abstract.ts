@@ -1,14 +1,13 @@
 import type { AbstractEntity } from '@/base/models/base';
 import type { AbstractRepository } from '@/base/repositories';
 import type { TAnyObjectSchema } from '@/utilities/schema.utility';
-import type { AnyType, TNullable } from '@venizia/ignis-helpers/common';
+import type { AnyType } from '@venizia/ignis-helpers/common';
 import { HTTP } from '@venizia/ignis-helpers/common';
-import { toBoolean } from '@venizia/ignis-helpers/core';
 import type { Env, Schema } from 'hono';
 import type { TEntityDataObject, TEntityPersistObject, TRouteContext } from '../../common';
 import { BaseRestController } from '../../rest/base';
 
-/** Base tier of a generated CRUD controller - repository handle plus shared response helpers; read and write verbs are layered on by ReadableCrudController / PersistableCrudController. */
+/** Base tier of a generated CRUD controller - the repository handle; the response helpers (`respond`, `setListHeaders`) live on BaseRestController so hand-written controllers share them. Read and write verbs are layered on by ReadableCrudController / PersistableCrudController. */
 export abstract class AbstractCrudController<
   TEntity extends AbstractEntity<TAnyObjectSchema> = AbstractEntity<TAnyObjectSchema>,
   RouteEnv extends Env = Env,
@@ -30,41 +29,6 @@ export abstract class AbstractCrudController<
     super({ scope: opts.scope, path: opts.path, isStrict: opts.isStrict });
     this.repository = opts.repository;
     this.definitions = opts.definitions;
-  }
-
-  /** Returns the full `{ count, data }` envelope or just `data`, per the x-request-count header. */
-  normalizeCountData<
-    ResponseSchema extends AnyType,
-    RequestContext extends TRouteContext<RouteEnv> = TRouteContext<RouteEnv>,
-    ResponseData extends {
-      count: number;
-      data?: TNullable<ResponseSchema>;
-    } = { count: number; data?: TNullable<ResponseSchema> },
-  >(opts: { context: RequestContext; responseData: ResponseData }) {
-    const { context, responseData } = opts;
-    const requestCountData = context.req.header(HTTP.Headers.REQUEST_COUNT_DATA) ?? 'true';
-    const useCountData = toBoolean(requestCountData);
-
-    context.header(HTTP.Headers.RESPONSE_COUNT_DATA, responseData.count.toString());
-
-    if (useCountData) {
-      return responseData;
-    }
-
-    return responseData.data;
-  }
-
-  /** Sets the response-format header, then normalizes count/data per the request-count header. */
-  respond<R>(opts: {
-    context: TRouteContext<RouteEnv>;
-    format: 'object' | 'array';
-    responseData: { count: number; data?: TNullable<R> };
-  }) {
-    opts.context.header(HTTP.Headers.RESPONSE_FORMAT, opts.format);
-    return this.normalizeCountData<R>({
-      context: opts.context,
-      responseData: opts.responseData,
-    });
   }
 
   /** 400 when a bulk operation is missing its `where` filter; undefined when it is present. */

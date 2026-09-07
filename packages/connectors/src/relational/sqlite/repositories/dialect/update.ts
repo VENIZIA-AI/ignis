@@ -4,8 +4,7 @@ import { TableColumnCache } from '@/relational/core/repositories/common';
 import { RelationalUpdateBuilder } from '@/relational/core/repositories/dialect';
 import type { SQL } from 'drizzle-orm';
 import { sql } from 'drizzle-orm';
-import { assertNotBlobJsonColumn } from './internal/json-column';
-import { toSqliteJsonPaths } from './internal/json-path';
+import { assertNotBlobJsonColumn, toSqliteJsonPaths } from './internal';
 
 /**
  * Composes nested JSON path updates as chained `json_set` calls - SQLite's `jsonb_set`. The neutral

@@ -36,6 +36,7 @@ export type {
 // symbol below is verified free of node builtins/globals.
 export { toBoolean, int, toCamel, keysToCamel } from './utilities/parse.utility';
 export { executeWithPerformanceMeasure } from './utilities/performance.utility';
+export { ProjectRootRegistry } from './utilities/project-root.utility';
 
 // Type-only: erased at compile time, so re-exporting these carries no runtime/bundle cost even
 // though the concrete classes they describe (crypto algorithms, the ioredis-backed helper) are not

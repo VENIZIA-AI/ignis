@@ -41,32 +41,20 @@ export class RestComponent<
     const logger = this.logger.for(this.binding.name);
     const router = this.application.getRootRouter();
 
-    const configured = new Set<string>();
-
-    // Batch drained before re-scanning - see `RestApplication.registerDynamicBindings` for why.
-    let bindings = this.application.findByTag({
+    await this.application.drainByTag<AbstractRestController>({
       tag: BindingNamespaces.CONTROLLER,
-      exclude: configured,
-    });
-
-    while (bindings.length > 0) {
-      for (const binding of bindings) {
-        if (configured.has(binding.key)) {
-          continue;
-        }
-
+      configured: new Set<string>(),
+      onEach: async ({ binding }) => {
         const target = binding.getBindingMeta({ type: BindingValueTypes.CLASS });
         if (!target) {
-          configured.add(binding.key);
-          continue;
+          return;
         }
 
         const metadata = MetadataRegistry.getInstance().getControllerMetadata({ target });
 
         // Skip gRPC controllers - they are configured by GrpcComponent
         if (metadata?.transport === ControllerTransports.GRPC) {
-          configured.add(binding.key);
-          continue;
+          return;
         }
 
         if (!metadata?.path || isEmpty(metadata.path)) {
@@ -83,22 +71,14 @@ export class RestComponent<
 
         if (!instance) {
           logger.debug('No binding instance | key: %s', binding.key);
-          configured.add(binding.key);
-          continue;
+          return;
         }
 
         await instance.configure();
         router.route(metadata.path, instance.getRouter());
-        configured.add(binding.key);
 
         logger.info('Configured REST controller | key: %s | path: %s', binding.key, metadata.path);
-      }
-
-      // Re-fetch excluding already configured - picks up dynamically added controllers
-      bindings = this.application.findByTag({
-        tag: BindingNamespaces.CONTROLLER,
-        exclude: configured,
-      });
-    }
+      },
+    });
   }
 }

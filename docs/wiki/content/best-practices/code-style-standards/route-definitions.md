@@ -112,6 +112,39 @@ export class HealthCheckController extends BaseRestController {
 | `bindRoute` | Dynamic routes | Programmatic control | More verbose |
 | `defineRoute` | Simple inline routes | Quick setup | Less reusable |
 
+## List responses
+
+Every endpoint that returns a page of rows answers the same way, whether the CRUD factory generated it or you wrote it by hand. Call `respond` with the `range`; do not write the headers yourself, and never spell the format as a string.
+
+```typescript
+// Good
+const { data, range } = await this.repository.find({ filter, options: { shouldQueryRange: true } });
+return context.json(
+  this.respond({ context, format: ResponseFormats.ARRAY, payload: { count: data.length, data }, range }),
+  HTTP.ResultCodes.RS_2.Ok,
+);
+
+// Bad - a second copy of the contract that drifts, and a hardcoded format
+context.header('Content-Range', `records ${start}-${end}/${total}`);
+context.header('X-Response-Format', 'array');
+return context.json({ data, count: data.length });
+```
+
+What the client gets:
+
+| Header or body | Value |
+|---|---|
+| `Content-Range` | `records <start>-<end>/<total>`, or `records */<total>` for an empty page; `total` is exact |
+| `X-Response-Count` | rows in this response |
+| `X-Response-Format` | `array` |
+| Body | `{ count, data }`, or the bare array when the request sent `x-request-count: false` |
+
+Three rules follow from it:
+
+- **A list never depends on a `/count` route.** The total travels in `Content-Range`. The factory's `count` verb stays available for callers that want a count alone.
+- **Count with its own narrow query, next to the page query.** `shouldQueryRange: true` already does this (in parallel outside a transaction, one after the other inside one). Do not fold the count into the page query with `COUNT(*) OVER()`: it is free on a small table and costs seconds on a large one, because the window forces the whole scope to be walked before the page is cut.
+- **A body that is not `{ count, data }` still sends the headers.** Call `setListHeaders({ context, range, count })`; `POST /search` does this and keeps `{ found, isFoundExact, hits }` as its body.
+
 ## OpenAPI Schema Integration
 
 Use Zod with `.openapi()` for automatic documentation:

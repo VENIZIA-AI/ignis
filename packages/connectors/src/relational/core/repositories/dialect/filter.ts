@@ -42,7 +42,7 @@ import {
   parseJsonPath,
   validateJsonColumnType,
   validateJsonPathComponents,
-} from './internal/json-utils';
+} from './internal';
 
 /** Operators whose scalar operand determines the JSON numeric-cast need in jsonNeedsNumericCast. */
 /** What one registry lookup yields - named so the three setting readers can accept an already-resolved entry instead of each repeating the lookup. */

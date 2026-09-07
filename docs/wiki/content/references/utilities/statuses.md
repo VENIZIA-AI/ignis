@@ -118,5 +118,5 @@ await userRepository.create({
 
 **Files:**
 
-- [`packages/core-server/src/common/statuses.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/common/statuses.ts)
-- [`packages/core-server/src/common/bindings.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/common/bindings.ts)
+- [`packages/kernel/src/common/statuses/`](https://github.com/VENIZIA-AI/ignis/tree/main/packages/kernel/src/common/statuses)
+- [`packages/kernel/src/common/bindings.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/kernel/src/common/bindings.ts)

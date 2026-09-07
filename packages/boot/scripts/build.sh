@@ -3,17 +3,16 @@ set -e
 
 echo "START | Building application..."
 
-# NOTE: boot's test runner executes the COMPILED tests in dist/cjs/__tests__, so __tests__ are
-# intentionally included in the build here (unlike core/helpers, which run tests from src).
+# Type-check the whole project, including tests, without emitting (fails the build on any type error).
+tsc --noEmit -p tsconfig.json
 
-# Build CJS (Node.js)
+# Emit production output only - tests are excluded from dist via tsconfig.build.json.
 echo ">>> Building CJS..."
-tsc -p tsconfig.json --extendedDiagnostics
-tsc-alias -p tsconfig.json
+tsc -p tsconfig.build.json --extendedDiagnostics
+tsc-alias -p tsconfig.build.json
 
 echo ""
 
-# Build ESM (Client/Browser)
 echo ">>> Building ESM..."
 tsc -p tsconfig.esm.json --extendedDiagnostics
 tsc-alias -p tsconfig.esm.json

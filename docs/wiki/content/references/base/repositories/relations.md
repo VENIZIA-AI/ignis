@@ -373,7 +373,7 @@ const comments = await commentRepository.find({
 **Files:**
 
 - [`packages/filter/src/common/types.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/filter/src/common/types.ts) - `TFilter`, `TInclusion`
-- [`packages/core-server/src/base/repositories/common/constants.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/base/repositories/common/constants.ts) - `RelationTypes`
-- [`packages/core-server/src/connectors/postgres/repositories/common/types.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/connectors/postgres/repositories/common/types.ts) - `TRelationConfig`
-- [`packages/core-server/src/connectors/relational/repositories/dialect/filter.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/connectors/relational/repositories/dialect/filter.ts) - `FilterBuilder` (`resolveRelations`, `toInclude`)
-- [`packages/core-server/src/connectors/postgres/repositories/dialect/relation.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/connectors/postgres/repositories/dialect/relation.ts) - `createRelations` (config -> Drizzle `relations()`)
+- [`packages/kernel/src/base/repositories/common/constants.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/kernel/src/base/repositories/common/constants.ts) - `RelationTypes`
+- [`packages/connectors/src/relational/postgres/repositories/common/types.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/connectors/src/relational/postgres/repositories/common/types.ts) - `TRelationConfig`
+- [`packages/connectors/src/relational/core/repositories/dialect/filter.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/connectors/src/relational/core/repositories/dialect/filter.ts) - `FilterBuilder` (`resolveRelations`, `toInclude`)
+- [`packages/connectors/src/relational/postgres/repositories/dialect/relation.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/connectors/src/relational/postgres/repositories/dialect/relation.ts) - `createRelations` (config -> Drizzle `relations()`)

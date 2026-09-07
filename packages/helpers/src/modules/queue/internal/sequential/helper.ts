@@ -2,7 +2,7 @@ import { ValueOrPromise } from '@/common/types';
 import { BaseHelper } from '@/modules/base';
 import isEmpty from 'lodash/isEmpty';
 import { awaitHook, invokeHook } from '../../common';
-import { IQueueCallback, QueueStatuses, TQueueElement, TQueueStatus } from './types';
+import { IQueueCallback, QueueStatuses, TQueueElement, TQueueStatus } from './common';
 
 export class SequentialQueueHelper<TElementPayload> extends BaseHelper {
   public storage: Array<TQueueElement<TElementPayload>>;

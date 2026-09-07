@@ -42,6 +42,15 @@ class TestBullMQHelper extends BullMQHelper<AnyType, AnyType> {
   protected override buildWorker(opts: { queueName: string; processor: AnyType }): AnyType {
     return new FakeBullWorker(opts.queueName, opts.processor);
   }
+
+  /** Test-only seam: exposes the protected options builders without a live Queue/Worker. */
+  exposeQueueOptions(opts: { queueName: string }): AnyType {
+    return this.queueOptionsFor(opts);
+  }
+
+  exposeWorkerOptions(opts: { queueName: string; processor: AnyType }): AnyType {
+    return this.workerOptionsFor(opts);
+  }
 }
 
 const buildRedisConnection = (opts?: { client?: AnyType }): AnyType => {
@@ -141,6 +150,87 @@ describe('BullMQHelper — role dispatch, worker hooks, close', () => {
     } finally {
       cluster.disconnect();
     }
+  });
+
+  test('queue name is hash-tagged for a plain client shaped like a Cluster (isCluster duck-typing)', () => {
+    const duckTyped = new TestBullMQHelper({
+      queueName: 'mail',
+      identifier: 'duck-typed-iscluster',
+      role: 'queue',
+      redisConnection: buildRedisConnection({ client: { isCluster: true } }),
+    });
+    const duckTypedQueue: FakeBullClient = duckTyped.queue as AnyType;
+    expect(duckTypedQueue.queueName).toBe('{mail}');
+
+    const plain = new TestBullMQHelper({
+      queueName: 'mail',
+      identifier: 'duck-typed-plain',
+      role: 'queue',
+      redisConnection: buildRedisConnection({ client: {} }),
+    });
+    const plainQueue: FakeBullClient = plain.queue as AnyType;
+    expect(plainQueue.queueName).toBe('mail');
+  });
+
+  test('queue name is hash-tagged for a client shaped like a Cluster from a second ioredis copy (nodes() duck-typing)', () => {
+    const duckTyped = new TestBullMQHelper({
+      queueName: 'mail',
+      identifier: 'duck-typed-nodes',
+      role: 'queue',
+      redisConnection: buildRedisConnection({ client: { nodes: () => [] } }),
+    });
+    const duckTypedQueue: FakeBullClient = duckTyped.queue as AnyType;
+    expect(duckTypedQueue.queueName).toBe('{mail}');
+  });
+
+  test('queueOptionsFor merges framework defaults, then user queueOptions, then the owned connection', () => {
+    const client = {};
+
+    const withDefaults = new TestBullMQHelper({
+      queueName: 'mail',
+      identifier: 'queue-options-defaults',
+      role: 'queue',
+      redisConnection: buildRedisConnection({ client }),
+    });
+    expect(withDefaults.exposeQueueOptions({ queueName: 'mail' })).toEqual({
+      defaultJobOptions: { removeOnComplete: true, removeOnFail: true },
+      connection: client,
+    });
+
+    const withUserOptions = new TestBullMQHelper({
+      queueName: 'mail',
+      identifier: 'queue-options-user',
+      role: 'queue',
+      redisConnection: buildRedisConnection({ client }),
+      queueOptions: { defaultJobOptions: { removeOnComplete: false, attempts: 1 } },
+    });
+    // The user's defaultJobOptions REPLACES the framework default wholesale (shallow merge) - it does not deep-merge with removeOnFail.
+    expect(withUserOptions.exposeQueueOptions({ queueName: 'mail' })).toEqual({
+      defaultJobOptions: { removeOnComplete: false, attempts: 1 },
+      connection: client,
+    });
+  });
+
+  test('workerOptionsFor merges user workerOptions under the owned connection/concurrency/lockDuration', () => {
+    const client = {};
+    const helper = new TestBullMQHelper({
+      queueName: 'mail',
+      identifier: 'worker-options-user',
+      role: 'worker',
+      redisConnection: buildRedisConnection({ client }),
+      numberOfWorker: 7,
+      lockDuration: 12345,
+      workerOptions: { autorun: false },
+    });
+
+    expect(
+      helper.exposeWorkerOptions({ queueName: 'mail', processor: async () => undefined }),
+    ).toEqual({
+      autorun: false,
+      connection: client,
+      concurrency: 7,
+      lockDuration: 12345,
+    });
   });
 
   test('the worker processor delegates to onWorkerData and returns its result', async () => {

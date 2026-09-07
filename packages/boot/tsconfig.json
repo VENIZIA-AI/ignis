@@ -6,9 +6,20 @@
     "outDir": "dist/cjs",
     "rootDir": "src",
     "paths": {
-      "@/*": ["./src/*"]
+      "@/*": [
+        "./src/*"
+      ]
     }
   },
-  "include": ["src", "./*.config.*", ".prettierrc.*"],
-  "exclude": ["node_modules", "dist", "app_data"]
+  "include": [
+    "src",
+    "./*.config.*",
+    ".prettierrc.*"
+  ],
+  "exclude": [
+    "node_modules",
+    "dist",
+    "app_data",
+    "src/__tests__/fixtures/artifacts"
+  ]
 }

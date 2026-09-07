@@ -37,7 +37,7 @@ This monorepo contains the following packages, all licensed under MIT:
 | `@venizia/ignis-helpers` | Utility helpers - logging, cron, Redis, queues, storage |
 | `@venizia/ignis-inversion` | Dependency Injection & IoC container |
 | `@venizia/dev-configs` | Shared ESLint, Prettier, TypeScript configurations |
-| `@venizia/ignis-docs` | Documentation and MCP Server |
+| `@venizia/ignis-docs` | Documentation site content |
 
 ---
 
@@ -80,8 +80,6 @@ Ignis uses the following open-source libraries. We are grateful to the authors a
 | Library | License | Description |
 |---------|---------|-------------|
 | [VitePress](https://github.com/vuejs/vitepress) | MIT | Static site generator |
-| [Fuse.js](https://github.com/krisk/fuse) | Apache-2.0 | Fuzzy search library |
-| [gray-matter](https://github.com/jonschlinkert/gray-matter) | MIT | Front-matter parser |
 
 ---
 

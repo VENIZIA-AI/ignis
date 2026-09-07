@@ -32,14 +32,20 @@ afterEach(() => {
 describe('hydrateSecrets failure mode', () => {
   test('development env falls back without throwing', async () => {
     process.env.NODE_ENV = 'development';
-    const app = new FailingSecretsApp({ scope: 'probe', config: {} as AnyType });
+    const app = new FailingSecretsApp({
+      scope: 'probe',
+      config: { path: { base: '', isStrict: false } },
+    });
 
     expect(await app.hydrateSecrets()).toBeUndefined();
   });
 
   test('production env throws ApplicationError', async () => {
     process.env.NODE_ENV = 'production';
-    const app = new FailingSecretsApp({ scope: 'probe', config: {} as AnyType });
+    const app = new FailingSecretsApp({
+      scope: 'probe',
+      config: { path: { base: '', isStrict: false } },
+    });
 
     await expectRejection({
       task: app.hydrateSecrets(),

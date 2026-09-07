@@ -3,7 +3,7 @@ import { IAuthRouteConfig, jsonContent, jsonResponse } from '@venizia/ignis';
 import { HTTP } from '@venizia/ignis-helpers';
 
 export const SignInRequestSchema = z.object({
-  email: z.string().email(),
+  email: z.email(),
   password: z.string().min(1),
 });
 

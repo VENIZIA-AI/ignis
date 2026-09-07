@@ -1,6 +1,6 @@
 import { describe, test, expect } from 'bun:test';
 import { BaseFilteredAdapter } from '@/components/auth/authorize/adapters/base-filtered';
-import type { ICasbinPolicySource } from '@/components/auth/authorize/adapters/types';
+import type { ICasbinPolicySource } from '@/components/auth/authorize/adapters/common';
 
 /** Cold-datasource regression: `connector` prefers a lazy getConnector(), falls back to a pre-wired `connector` field, and fails loudly - never a bare TypeError - when neither is set. */
 
