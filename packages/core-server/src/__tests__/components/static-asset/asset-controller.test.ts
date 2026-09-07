@@ -404,6 +404,13 @@ describe('StaticAsset controller — nested folder objects', () => {
     );
     expect(getResponse.status).toBe(200);
     expect(await getResponse.text()).toBe('nested');
+
+    // The URL contract: `{objectName}` is ONE segment, so a RAW nested path 404s and only the
+    // percent-encoded form resolves. A consumer whose stored links carry the raw form needs its own route.
+    const rawResponse = await router.request(
+      `/assets/buckets/images/objects/${uploaded[0].objectName}`,
+    );
+    expect(rawResponse.status).toBe(404);
   });
 
   test('the RECREATE_METALINK fallback link resolves back to the object route', async () => {
