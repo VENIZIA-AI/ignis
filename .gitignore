@@ -119,3 +119,6 @@ node_modules.zip
 # AI Agent — tool-specific configs (local only, never committed)
 .agents/plans
 .agents/specs
+
+docs/generate
+docs/temp

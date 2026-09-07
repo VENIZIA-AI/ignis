@@ -16,17 +16,17 @@ import { KafkaClientEvents, KafkaDefaults, KafkaHealthStatuses } from './common/
 import type {
   IKafkaConsumeStartOptions,
   IKafkaConsumerOptions,
-  type TKafkaGroupJoinCallback,
-  type TKafkaGroupLeaveCallback,
-  type TKafkaGroupRebalanceCallback,
-  type TKafkaHeartbeatErrorCallback,
-  type TKafkaLagCallback,
-  type TKafkaLagErrorCallback,
-  type TKafkaMessageCallback,
-  type TKafkaMessageDoneCallback,
-  type TKafkaMessageErrorCallback,
-  type TKafkaReconnectErrorCallback,
-  type TKafkaStreamErrorCallback,
+  TKafkaGroupJoinCallback,
+  TKafkaGroupLeaveCallback,
+  TKafkaGroupRebalanceCallback,
+  TKafkaHeartbeatErrorCallback,
+  TKafkaLagCallback,
+  TKafkaLagErrorCallback,
+  TKafkaMessageCallback,
+  TKafkaMessageDoneCallback,
+  TKafkaMessageErrorCallback,
+  TKafkaReconnectErrorCallback,
+  TKafkaStreamErrorCallback,
 } from './common/types';
 
 /** Wrapper around `@platformatic/kafka` Consumer with lifecycle management, health tracking, graceful shutdown, message callbacks, and lag monitoring. */

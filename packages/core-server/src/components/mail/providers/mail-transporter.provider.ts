@@ -2,6 +2,7 @@ import { BaseProvider } from '@venizia/ignis-kernel';
 import type { Container } from '@/helpers';
 import { getError } from '@venizia/ignis-helpers/core';
 import type {
+  IAmazonSesMailOptions,
   ICustomMailOptions,
   IMailgunMailOptions,
   IMailTransport,
@@ -9,7 +10,11 @@ import type {
   TMailOptions,
 } from '../common';
 import { MailErrorCodes, MailProviders } from '../common';
-import { MailgunTransportHelper, NodemailerTransportHelper } from '../helpers';
+import {
+  AmazonSesTransporterHelper,
+  MailgunTransportHelper,
+  NodemailerTransportHelper,
+} from '../helpers';
 import { isMailTransport } from '../utilities';
 
 export type TGetMailTransportFn = (options: TMailOptions) => IMailTransport;
@@ -32,6 +37,10 @@ export class MailTransportProvider extends BaseProvider<TGetMailTransportFn> {
 
         case MailProviders.MAILGUN: {
           return this.createMailgunTransport(options);
+        }
+
+        case MailProviders.AMAZON_SES: {
+          return this.createAmazonSesTransport(options);
         }
 
         case MailProviders.CUSTOM: {
@@ -77,6 +86,19 @@ export class MailTransportProvider extends BaseProvider<TGetMailTransportFn> {
     });
   }
 
+  private createAmazonSesTransport(options: TMailOptions): AmazonSesTransporterHelper {
+    if (this.isAmazonSesOptions(options)) {
+      this.logger.for(this.createAmazonSesTransport.name).info('Initializing Amazon SES transport');
+      return new AmazonSesTransporterHelper({ config: options.config, module: options.module });
+    }
+
+    throw getError({
+      statusCode: 500,
+      messageCode: MailErrorCodes.INVALID_CONFIGURATION,
+      message: 'Invalid Amazon SES configuration',
+    });
+  }
+
   private createCustomTransport(options: TMailOptions): IMailTransport {
     if (!this.isCustomOptions(options)) {
       throw getError({
@@ -115,6 +137,10 @@ export class MailTransportProvider extends BaseProvider<TGetMailTransportFn> {
 
   private isMailgunOptions(options: TMailOptions): options is IMailgunMailOptions {
     return options.provider === MailProviders.MAILGUN && 'config' in options;
+  }
+
+  private isAmazonSesOptions(options: TMailOptions): options is IAmazonSesMailOptions {
+    return options.provider === MailProviders.AMAZON_SES && 'config' in options;
   }
 
   private isCustomOptions(options: TMailOptions): options is ICustomMailOptions {

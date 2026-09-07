@@ -8,6 +8,8 @@ export class MailProviders {
   static readonly NODEMAILER = 'nodemailer';
   static readonly MAILGUN = 'mailgun';
   static readonly CUSTOM = 'custom';
+  // Amazon SES support both STMP and HTTPS
+  static readonly AMAZON_SES = 'amazon_ses';
 }
 
 export type TMailProvider = TConstValue<typeof MailProviders>;
@@ -29,6 +31,12 @@ export interface IMailgunMailOptions extends IBaseMailOptions {
   module?: TMailgunModule;
 }
 
+export interface IAmazonSesMailOptions extends IBaseMailOptions {
+  provider: 'amazon_ses';
+  config: TAmazonSesConfig;
+  module?: TAmazonSesModule;
+}
+
 export interface ICustomMailOptions extends IBaseMailOptions {
   provider: 'custom';
   config: IMailTransport;
@@ -40,12 +48,26 @@ export interface IGenericMailOptions extends IBaseMailOptions {
 }
 
 export type TMailOptions =
-  INodemailerMailOptions | IMailgunMailOptions | ICustomMailOptions | IGenericMailOptions;
+  | INodemailerMailOptions
+  | IAmazonSesMailOptions
+  | IMailgunMailOptions
+  | ICustomMailOptions
+  | IGenericMailOptions;
 
 export type TNodemailerConfig = SMTPTransport | SMTPTransport.Options | string;
 
 // MailgunClientOptions & {domain: string}
 export type TMailgunConfig = AnyType & { domain: string };
+
+export type TAmazonSesConfig = {
+  region: string;
+  credentials?: {
+    accessKeyId: string;
+    secretAccessKey: string;
+    sessionToken?: string;
+  };
+  endpoint?: string;
+};
 
 /**
  * The peer module itself, handed over by an application that already holds it. A `bun build
@@ -59,6 +81,19 @@ export type TNodemailerModule = {
 };
 
 export type TMailgunModule = new (formData: AnyType) => AnyType;
+
+export type TAmazonSesModule<
+  TConfig extends AnyType = AnyType,
+  TClient extends AnyType = AnyType,
+> = {
+  SESv2Client: new (config: TConfig) => TClient;
+  SendEmailCommand: new (input: AnyType) => AnyType;
+  GetAccountCommand: new (input?: AnyType) => AnyType;
+};
+
+export type TAmazonSesClient = Pick<TAmazonSesModule, 'SendEmailCommand' | 'GetAccountCommand'> & {
+  client: AnyType;
+};
 
 export interface IMailAttachment {
   filename?: string;
