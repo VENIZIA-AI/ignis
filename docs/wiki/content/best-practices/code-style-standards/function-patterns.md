@@ -25,7 +25,8 @@ export function createUser() { }   // arrow functions only, never `function`
 
 ## The Options Object Pattern
 
-Prefer using a single object parameter (`opts`) over multiple positional arguments, especially for constructors and public methods with more than 2 arguments.
+Every function and constructor takes a single object parameter named `opts`. This is not a
+preference and it has no argument-count threshold.
 
 **Why?**
 - **Extensibility:** You can add new properties without breaking existing calls
@@ -48,6 +49,25 @@ class UserService {
 }
 // Usage: service.createUser('John', 'john@example.com');
 ```
+
+### One parameter is not an exception
+
+A single positional parameter is the tempting case. Take the object anyway.
+
+```typescript
+// ✅ GOOD
+isValidName(opts: { name: string }): boolean;
+
+// ❌ BAD
+isValidName(name: string): boolean;
+```
+
+One positional parameter reads fine until the second one arrives. By then the method is published,
+and the cost moves from the one person writing it to every caller. `IStorageHelper` kept three
+methods positional on that reasoning. Converting them later touched 72 call sites in this repository.
+
+Mixing both shapes inside one interface is its own defect. A reader cannot tell which shape a method
+takes without opening it.
 
 ## Function Naming Conventions
 

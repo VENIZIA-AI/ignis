@@ -35,24 +35,23 @@ console.log(result);
 // { bucketName: 'uploads', objectName: 'report.pdf', link: '/static-resources/uploads/report.pdf' }
 ```
 
-`MinioHelper` and `BunS3Helper` accept the same `upload()` call against S3-compatible storage - swap the constructor, keep everything else unchanged.
+`BunS3Helper` and `DiskHelper` accept the same `upload()` call - swap the constructor, keep everything else unchanged.
 
 ## How it works
 
 - **`BaseStorageHelper` owns the shared logic.** It's an abstract class implementing `IStorageHelper`: name/path validation, MIME type detection, and the `upload()` orchestration itself. Each backend only supplies two protected hooks: `defaultLinkPrefix` and `writeObject()`.
-- **Everything else is per-backend.** `isBucketExists`, `getBuckets`, `createBucket`, `getFile`, `getStat`, `removeObject`, `listObjects`, and the rest of `IStorageHelper` are implemented independently per backend. A filesystem `stat()` and a MinIO `statObject()` share nothing beyond the return shape.
+- **Everything else is per-backend.** `isBucketExists`, `getBuckets`, `createBucket`, `getFile`, `getStat`, `removeObject`, `listObjects`, and the rest of `IStorageHelper` are implemented independently per backend. A filesystem `stat()` and an S3 `stat()` share nothing beyond the return shape.
 - **The three backends are interchangeable.** Write services against `IStorageHelper`, not a concrete class, and swap backends by construction only.
 - **`MemoryStorageHelper` is unrelated.** It's a standalone generic key-value store for in-process caching, extending `BaseHelper` directly - no bucket or file concept.
 - **Every write path is validated first.** `originalName` and `folderPath` run through `isValidName()`/`isValidPath()` before touching the filesystem or object store.
 - **Validation blocks four kinds of bad input:** path traversal (`../`), shell-injection characters, hidden files, and folder nesting beyond `maxFolderDepth` (default `2`).
 - **A custom `normalizeNameFn` doesn't get a free pass.** Its output runs through the same check, so a traversal payload smuggled back from application code is rejected too.
-- **Two backends stay optional.** `MinioHelper` and `BunS3Helper` live behind separate sub-path exports. Apps that only need `DiskHelper` or `MemoryStorageHelper` don't pull in the `minio` package or require the Bun runtime.
+- **The S3 backend stays optional.** `BunS3Helper` lives behind a separate sub-path export, so an app that only needs `DiskHelper` or `MemoryStorageHelper` never requires the Bun runtime.
 
 **Backends**
 
 | Backend | Storage | Mechanism | Import |
 |---|---|---|---|
-| `MinioHelper` | S3-compatible object storage | `minio` SDK | `@venizia/ignis-helpers/minio` |
 | `BunS3Helper` | S3-compatible object storage | Bun's native `S3Client` (Bun runtime only) | `@venizia/ignis-helpers/bun-s3` |
 | `DiskHelper` | Local filesystem, one directory per bucket | Node `fs`/`fs/promises` | `@venizia/ignis-helpers` |
 | `MemoryStorageHelper` | In-process key-value cache | Plain object | `@venizia/ignis-helpers` |
@@ -63,16 +62,16 @@ console.log(result);
 
 ```typescript
 import { DiskHelper } from '@venizia/ignis-helpers';
-import { MinioHelper } from '@venizia/ignis-helpers/minio';
+import { BunS3Helper } from '@venizia/ignis-helpers/bun-s3';
 
 const disk = new DiskHelper({ basePath: './app_data/storage' });
 
-const minio = new MinioHelper({
-  endPoint: 'localhost',
-  port: 9000,
-  useSSL: false,
-  accessKey: 'minioadmin',
-  secretKey: 'minioadmin',
+// Any S3-compatible endpoint: AWS, Cloudflare R2, DigitalOcean Spaces, MinIO.
+const s3 = new BunS3Helper({
+  endpoint: 'http://localhost:9000',
+  accessKey: process.env.S3_ACCESS_KEY,
+  secretKey: process.env.S3_SECRET_KEY,
+  region: 'us-east-1',
 });
 ```
 
@@ -156,7 +155,6 @@ cache.get<number>('counter'); // 1
 **Files:**
 
 - [`packages/helpers/src/modules/storage/base.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/storage/base.ts) - `BaseStorageHelper`
-- [`packages/helpers/src/modules/storage/minio/helper.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/storage/minio/helper.ts) - `MinioHelper`
 - [`packages/helpers/src/modules/storage/bun-s3/helper.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/storage/bun-s3/helper.ts) - `BunS3Helper`
 - [`packages/helpers/src/modules/storage/disk/helper.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/storage/disk/helper.ts) - `DiskHelper`
 - [`packages/helpers/src/modules/storage/in-memory/helper.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/storage/in-memory/helper.ts) - `MemoryStorageHelper`

@@ -26,7 +26,7 @@ Every error condition the static asset controller and storage helpers can raise,
 | <code v-pre>[upload] Invalid file size \| size: {size}</code> | A file's `size` is `undefined`, `null`, or negative | `400` (default) |
 | <code v-pre>[upload] Invalid normalized object name \| name: {name}</code> | The name returned by `normalizeNameFn` fails `isValidPath()` | `400` (default) |
 | `[createBucket] Invalid name to create bucket!` | `createBucket()` called with a name failing `isValidName()` - only reachable calling a helper directly, the controller validates first | `400` (default) |
-| <code v-pre>[createBucket] Bucket already exists \| name: {name}</code> | `DiskHelper.createBucket()` called with a name that already exists on disk. `MinioHelper` and `BunS3Helper` throw their own SDK/S3 error text for the same case instead | `400` (default) |
+| <code v-pre>[createBucket] Bucket already exists \| name: {name}</code> | `DiskHelper.createBucket()` called with a name that already exists on disk. `BunS3Helper` throws whatever the S3 endpoint returns for the same case instead | `400` (default) |
 | `[removeBucket] Invalid name to remove bucket!` | `removeBucket()` called with a name failing `isValidName()` - only reachable calling a helper directly | `400` (default) |
 | <code v-pre>[removeBucket] Bucket does not exist \| name: {name}</code> | `DiskHelper.removeBucket()` - no directory at that bucket name | `400` (default) |
 | <code v-pre>[removeBucket] Bucket is not empty \| name: {name}</code> | `DiskHelper.removeBucket()` - the bucket directory still has files in it | `400` (default) |
@@ -128,13 +128,13 @@ this.component(StaticAssetComponent);
 - **Cause:** the process lacks filesystem permissions on `basePath`, or the disk is out of space. `DiskHelper`'s constructor already creates `basePath` if it does not exist, so a missing directory is rarely the issue.
 - **Fix:** verify the process has read/write permissions to the target path and enough free space.
 
-### Files not uploading (`MinioHelper`)
+### Files not uploading (`BunS3Helper`)
 
-- **Cause:** MinIO server connectivity or authentication failure.
+- **Cause:** endpoint connectivity or authentication failure.
 - **Fix:**
-  - Confirm the MinIO server is reachable at `endPoint`/`port`.
-  - Verify `accessKey`/`secretKey`.
-  - Check `useSSL` matches the server's actual TLS configuration.
+  - Confirm the endpoint is reachable from this process.
+  - Verify `accessKey`/`secretKey` and that `region` matches the bucket.
+  - Behind a private endpoint, set `publicEndpoint` so signed URLs carry a host a browser can reach.
 
 ### Large file uploads failing or timing out
 
@@ -150,7 +150,7 @@ extra: {
 ### `BunS3Helper` fails to construct or import
 
 - **Cause:** running on Node.js. `BunS3Helper` imports `S3Client` from the `bun` builtin module, which only resolves under the Bun runtime.
-- **Fix:** use `MinioHelper` (also S3-compatible) on Node.js, or run the app under Bun.
+- **Fix:** run the app under Bun, or use `DiskHelper` outside it.
 
 ## See also
 

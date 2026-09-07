@@ -169,8 +169,8 @@ export class Application extends BaseApplication {
     }).toValue({
       uploads: {
         controller: { name: 'UploadsController', basePath: '/uploads' },
-        storage: StaticAssetStorageTypes.MINIO,
-        helper: new MinioHelper({ /* ... */ }),
+        storage: StaticAssetStorageTypes.BUN_S3,
+        helper: new BunS3Helper({ /* ... */ }),
         useMetaLink: true,
         metaLink: {
           model: BaseMetaLinkModel,
@@ -204,7 +204,7 @@ metaLink: {
         mimetype: fileStat.metadata?.['mimetype'],
         size: fileStat.size,
         etag: fileStat.etag,
-        storageType: 'minio',
+        storageType: 'bun-s3',
         isSynced: true,
         principalId: query.principalId ? String(query.principalId) : undefined,
         principalType: query.principalType,

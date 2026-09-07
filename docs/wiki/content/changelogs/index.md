@@ -17,6 +17,9 @@ This section tracks the history of significant changes, refactors, and updates t
 
 | Date | Title | Type |
 |------|-------|------|
+| 2026-09-08 | [Storage Serves Safely, Answers 404, and Runs on Bun S3 Alone](./2026-09-08-storage-hardening-and-bun-s3-only) | Security |
+| 2026-09-07 | [Storage Gains Presigned URLs and Object Tagging](./2026-09-07-storage-presign-and-tagging) | New Feature |
+| 2026-09-07 | [The Static-Asset Controller Takes a Configured Bucket and Raw Nested Paths](./2026-09-07-asset-single-bucket-and-raw-paths) | New Feature |
 | 2026-09-07 | [Atlas Recognises the IGNIS Checkout by Its Workspace Manifest](./2026-09-07-atlas-checkout-detection) | Bug Fix |
 | 2026-09-07 | [Atlas Gains version and changes Tools and a Generated Release Table](./2026-09-07-atlas-versions) | New Feature |
 | 2026-09-07 | [CRUD Controllers Narrow Their Rows; The Asset Controller Takes Two Hooks](./2026-09-07-crud-scope-and-asset-hooks) | New Feature |

@@ -1,0 +1,160 @@
+---
+title: Storage Serves Safely, Answers 404, and Runs on Bun S3 Alone
+description: A stored upload no longer renders on your API origin, a missing object answers 404, MinioHelper is removed, and BunS3Helper gains provider options, byte ranges and bounded concurrency.
+---
+
+# Changelog - 2026-09-08
+
+## A stored upload no longer renders on your API origin
+
+<Badge type="danger" text="Security" />
+
+**In one line.** Upload `evil.html` and the API used to serve it back as `text/html` - a script
+running with your application's cookies, on your own origin.
+
+The served content type now comes from the object NAME, through an allow-list of types that are safe
+to render. Anything outside it is served as `application/octet-stream` with
+`Content-Disposition: attachment`. `image/svg+xml` is deliberately excluded, because an SVG carries
+script.
+
+`X-Content-Type-Options: nosniff` never helped here. It stops a browser guessing a type; it cannot
+stop one we declared ourselves.
+
+**This also fixes a plain bug.** What each backend reported was different, so the same object was
+served three ways:
+
+| Backend | Before | Now |
+|---|---|---|
+| minio | the type the uploader claimed | from the object name |
+| bun-s3 | always `application/octet-stream`, so images downloaded instead of displaying | from the object name |
+| disk | always `application/octet-stream` | from the object name |
+
+If your application relied on serving HTML or SVG from the asset routes, serve it from a separate
+domain instead. That is the structural control OWASP recommends and IGNIS cannot impose it for you.
+
+## A missing object answers 404
+
+<Badge type="warning" text="Behaviour Change" />
+
+Before, it depended on the backend: `disk` answered `400 core.system_error`, `bun-s3` and `minio`
+answered `500 core.system_error`. Neither is right, and they disagreed with each other.
+
+Storage helpers now throw a catalogued `core.storage.object_not_found` carrying a 404, so GET,
+DOWNLOAD and RECREATE_METALINK answer 404 with a code a client can branch on. A failure that is *not*
+a missing object still answers 500 - that discrimination is the point.
+
+`DELETE` of a missing object still answers **200** on every backend. S3 deletes idempotently and
+consumers depend on it. The `disk` backend used to answer 400 here and now matches.
+
+## Byte ranges, so a video is seekable
+
+<Badge type="tip" text="New Feature" />
+
+The object route honours a `Range` request header and answers `206` with `Content-Range`. Every
+response advertises `Accept-Ranges: bytes`, which is what makes a player offer a seek bar at all.
+
+```bash
+curl -H 'Range: bytes=1000-2000' /assets/buckets/videos/objects/clip.mp4
+# 206 Partial Content
+# Content-Range: bytes 1000-2000/50000
+```
+
+On S3 the range becomes a ranged GET, so only those bytes leave the bucket. A suffix range
+(`bytes=-500`) means the LAST 500 bytes. An unusable range serves the whole object with 200.
+
+## MinioHelper is removed
+
+<Badge type="danger" text="Breaking" />
+
+`@venizia/ignis-helpers/minio`, the `MinioHelper` class, the `minio` optional peer dependency and the
+`StaticAssetStorageTypes.MINIO` value are all gone.
+
+**This does not drop MinIO support.** MinIO speaks S3, and `BunS3Helper` takes any endpoint. Point it
+at your MinIO server:
+
+```typescript
+new BunS3Helper({
+  accessKey: process.env.S3_ACCESS_KEY,
+  secretKey: process.env.S3_SECRET_KEY,
+  endpoint: 'http://minio:9000',
+  publicEndpoint: 'https://cdn.example.com',
+});
+```
+
+## BunS3Helper works with every S3 provider
+
+<Badge type="tip" text="New Feature" />
+
+| Option | What it solves |
+|---|---|
+| `publicEndpoint` | `host` is inside every signature, so a URL signed against `http://minio:9000` cannot be rewritten afterwards. Sign against the name a browser can reach. |
+| `virtualHostedStyle` | AWS requires `bucket.s3.region.amazonaws.com` for newer buckets; MinIO and R2 take path style. Each bucket gets its own host, so one helper still serves many. |
+| `partSize`, `queueSize`, `retry` | Multipart tuning Bun already had and IGNIS did not expose. |
+
+## listObjects no longer stops at 1000 keys
+
+<Badge type="danger" text="Bug Fix" />
+
+S3 returns at most 1000 keys per call. The old code made one call and returned, so any larger bucket
+was silently truncated - no error, no warning. It now follows the continuation token.
+
+Two more corrections on the same method: `useRecursive: false` was ignored on `bun-s3` (it now maps
+to a delimiter, matching `disk`), and `maxKeys: 0` was read as "unlimited" instead of zero.
+
+## Storage validators take options objects
+
+<Badge type="danger" text="Breaking" />
+
+```typescript
+// before
+helper.isValidName(name);
+helper.isValidPath(objectName, { maxDepth: 3 });
+helper.getMimeType(fileName);
+
+// after
+helper.isValidName({ name });
+helper.isValidPath({ path: objectName, maxDepth: 3 });
+helper.getMimeType({ filename: fileName });
+```
+
+TypeScript catches every call site, so this breaks at compile time rather than silently.
+
+## Path containment on the disk backend
+
+<Badge type="danger" text="Security" />
+
+`DiskHelper.getFile`, `getStat` and `removeObject` joined the object name onto the bucket path with
+no validation. A name of `../secret.txt` read - and deleted - outside the bucket. `upload` had always
+validated; the read and delete paths had not.
+
+Both the name and the resolved path are now checked, so a rule we get wrong later still cannot escape
+the bucket root.
+
+## Bounded concurrency
+
+<Badge type="warning" text="Behaviour Change" />
+
+`upload` and `removeObjects` fanned out with an unbounded `Promise.all`: 10,000 keys meant 10,000
+simultaneous requests. Both now run at most 16 at a time, and `disk` and `bun-s3` finally agree - one
+used to run sequentially and stop halfway on the first failure. `RedisHelper.publish` is capped at 32
+for the same reason.
+
+## New APIs
+
+| Method | Use it for |
+|---|---|
+| `getFileStream({ bucket, name, range? })` | The bytes as a web stream, which is what a `Response` body wants. Ranged when asked. |
+| `writeStream({ bucket, name, source, contentType? })` | Upload without holding the object in memory. `upload` takes a `Buffer`, so a 5 GB file is 5 GB of heap; this is not. |
+| `presignPut`, `presignGet` | Signed URLs. `presignGet` takes `responseContentDisposition`, which keeps the attachment guarantee when S3 serves the object directly. |
+| `getObjectTags`, `setObjectTags` | Object tags, parsed into a plain object. |
+
+## MemoryStorageHelper
+
+<Badge type="warning" text="Behaviour Change" />
+
+It was never an `IStorageHelper` - it is an in-process keyed container - and it now says so. Built on
+a `Map`, with `unset` and `size` added. `getContainer()` returns a **copy**: it used to hand out the
+live object, so any caller could mutate the helper's state.
+
+`get()` now returns `T[K] | undefined` instead of asserting a type that was never guaranteed. A caller
+that checked `isBound` first will need to read the value once and check it.

@@ -450,9 +450,27 @@ const config = defineConfig({
           collapsed: false,
           items: [
             {
+              text: '2026-09-08',
+              collapsed: true,
+              items: [
+                {
+                  text: 'Storage Hardening and Bun S3 Only',
+                  link: '/changelogs/2026-09-08-storage-hardening-and-bun-s3-only',
+                },
+              ],
+            },
+            {
               text: '2026-09-07',
               collapsed: true,
               items: [
+                {
+                  text: 'Storage Presigned URLs and Tagging',
+                  link: '/changelogs/2026-09-07-storage-presign-and-tagging',
+                },
+                {
+                  text: 'Asset Configured Bucket and Raw Paths',
+                  link: '/changelogs/2026-09-07-asset-single-bucket-and-raw-paths',
+                },
                 {
                   text: 'Atlas Checkout Detection',
                   link: '/changelogs/2026-09-07-atlas-checkout-detection',

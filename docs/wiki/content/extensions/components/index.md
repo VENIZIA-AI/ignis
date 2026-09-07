@@ -13,7 +13,7 @@ Self-contained feature modules you register with `this.component(SomeComponent)`
 | [Request Tracker](./request-tracker) | Request ID, timing, structured request logging | Always on - registered automatically, nothing to configure |
 | [Socket.IO](./socket-io/) | Real-time over Socket.IO - Redis adapter, event-based | Clients need rooms or Socket.IO-specific features |
 | [WebSocket](./websocket/) | Native Bun WebSocket, Redis pub/sub, heartbeat | Clients need a raw WebSocket without Socket.IO |
-| [Static Asset](./static-asset/) | Upload/download files - MinIO, Bun S3, local disk | The app stores or serves user-uploaded files |
+| [Static Asset](./static-asset/) | Upload/download files - S3-compatible or local disk | The app stores or serves user-uploaded files |
 | [API Reference](./api-reference) | OpenAPI generation, Scalar UI by default, Swagger UI optional | You want a browsable UI for your REST routes |
 | [gRPC](/references/base/grpc-controllers) | ConnectRPC transport, unary RPC, decorator-based | The app serves gRPC alongside or instead of REST |
 

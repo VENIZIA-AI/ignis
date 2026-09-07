@@ -110,7 +110,7 @@ Chặn: <what blocks, or "không có">
 | ID | Rule |
 |---|---|
 | **C-01** | **English only in code** - identifiers, comments, commit messages, logs, docs. Vietnamese belongs in chat. |
-| **C-02** | **Options objects everywhere:** `fn({ key, value })`, never `fn(key, value)`. |
+| **C-02** | **Options objects everywhere:** `fn({ key, value })`, never `fn(key, value)`. **One parameter is not an exception** - `isValidName({ name })`, not `isValidName(name)`. A single positional parameter reads fine until the second one arrives, and by then the method is published and every call site pays. The cost is highest on an interface others implement: `IStorageHelper` carried three positional methods for exactly this reason and the migration touched 72 call sites. Mixing the two styles in one interface is itself the defect - a reader cannot tell which shape a method takes without opening it. |
 | **C-03** | **Every constructor parameter of a container-instantiated class carries `@inject`.** Mixing decorated and undecorated parameters is refused at boot - the container has no channel to supply an undecorated one. Options a controller needs go in `super({ scope: X.name })`, never as an undecorated parameter. |
 | **C-04** | **Never abbreviate identifiers:** `ProductRepository` not `ProductRepo`, `ProductDocument` not `ProductDoc`; type parameters too (`TDocument`, not `TDoc`). |
 | **C-05** | **Errors are `getError` / `ApplicationError`. Never `new Error`.** Never `instanceof ApplicationError` across a package boundary - the dual CJS+ESM build gives the class several identities; use `isApplicationError()`. |

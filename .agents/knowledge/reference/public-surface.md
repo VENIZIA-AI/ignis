@@ -3020,11 +3020,12 @@ tags: [reference, exports, api]
 - `IConnectRpcModule` interface
 - `IGrpcComponentConfig` interface
 
-### `@venizia/ignis/static-asset` (21)
+### `@venizia/ignis/static-asset` (22)
 
 - `AssetControllerFactory` class
 - `BaseMetaLinkModel` class
 - `BaseMetaLinkRepository` class
+- `buildObjectLink` const
 - `IAssetControllerOptions` interface
 - `StaticAssetComponent` class
 - `StaticAssetComponentBindingKeys` class

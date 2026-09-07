@@ -6,6 +6,70 @@ not how.
 This file and `index.md` are reserved OKF filenames - they carry no `type:` frontmatter and are not
 counted as concepts.
 
+## 2026-09-07 - a namespace that would lose its tag is refused, and zod's deprecated alias is gone
+
+`BindingNamespaces.createNamespace` now throws on a name holding `.` or whitespace, and on an empty
+or missing one. `Binding` tags itself with the first dot-separated segment of its key, so a namespace
+carrying a second segment produced a binding no boot step could drain by tag - bound, never
+configured, no error anywhere. The pattern is declared above the constants because they are built by
+the same method while the class initializes.
+
+`z.ZodTypeAny` is gone from the source: zod 4 deprecates it in favour of `z.ZodType`, and the two are
+the same type (identical `unknown` defaults), so the 26 sites were a rename. A type-aware
+`@typescript-eslint/no-deprecated` pass over all nine packages now reports zero deprecated usages.
+
+## 2026-09-08 - storage serves safely, answers 404, and runs on one S3 client
+
+A stored upload no longer renders on the API origin. The served content type is decided from the
+object NAME through an allow-list, never from what a backend reports - the three backends disagreed,
+and on minio the uploader's own claim was echoed back, which is stored XSS. `image/svg+xml` is
+excluded on purpose. Anything outside the list downloads. Bun derives a multipart part's type from
+the FILENAME and ignores the declared `Content-Type` header, so the attack arrives through the
+extension, not the header - measured, not assumed.
+
+A missing object throws a catalogued `core.storage.object_not_found` carrying 404. Before, `disk`
+answered 400 and `bun-s3` answered 500 for the same request. `DELETE` stays 200 on every backend,
+deliberately. `DiskHelper` read and deleted OUTSIDE its bucket for a name of `../secret.txt` -
+`upload` had always validated, the read and delete paths never did.
+
+`MinioHelper` is gone. MinIO speaks S3, so `BunS3Helper` with a MinIO endpoint replaces it. That
+leaves one S3 client instead of two, and it cost the POST-policy support minio-js had - which the
+next round has to write for bun-s3 anyway, since Bun has none.
+
+`listObjects` made ONE `list` call and returned, so any bucket past 1000 keys was silently
+truncated; it now follows the continuation token. `useRecursive` was ignored entirely on bun-s3.
+`maxKeys: 0` read as unlimited on both backends.
+
+Three validators moved to options objects. The old rule said "prefer options objects for methods with
+more than 2 arguments", which is exactly the loophole that let `isValidName(name)` survive - C-02 now
+says one parameter is not an exception, and the wiki page dropped both "prefer" and the threshold.
+
+`Promise.all` over a caller-supplied list is a caller-sized burst: `upload`, `removeObjects` and
+`RedisHelper.publish` now go through the repository's existing `executePromiseWithLimit` rather than
+a second limiter written beside it.
+
+## 2026-09-07 - the asset seam closes at both ends: one configured bucket, and presign plus tagging
+
+Two changes that together let an application drop its own S3 class.
+
+On the controller: `controller.bucket` takes a string or a function read per request, so an
+application whose bucket comes from one environment variable gets `/assets/{objectName}` with no
+`/buckets/{bucketName}` segment - and the bucket-management routes disappear, since they cannot mean
+anything when the bucket is fixed. `rawObjectPath` is the separate half: by default `{objectName}` is
+ONE segment, so a nested key travels percent-encoded and the raw form 404s. Both are needed to serve
+stored links of the shape `/assets/photos/2024/f.jpg`. `defineRoutesBefore` registers an
+application's own routes ahead of every built-in one, because Hono matches in registration order and
+a literal path must be able to beat the catch-all.
+
+On the helper: `IStorageHelper` gains `presignPut`, `presignGet`, `getObjectTags` and `setObjectTags`.
+`BaseStorageHelper` implements all four by throwing with its own class name - a backend with no
+transport for them says so, because returning undefined reads as a valid empty link or tag set. Bun's
+`S3Client` has `presign` natively but NO tagging method, so tagging goes over signed HTTP through
+`buildSignedRequest`, which grew a `query` option: SigV4 signs the query string as its own canonical
+component, and a `?tagging` folded into the path signs wrong. That signer now percent-encodes each
+path segment too - `fetch` encodes a key containing a space or non-ASCII text on the wire, so signing
+the raw key produced a request S3 answered 403 SignatureDoesNotMatch.
+
 ## 2026-09-07 - Atlas answers about code and releases; the last four copied-code seams open
 
 Atlas grew from two tools to five. `symbol { name, package? }` reads
