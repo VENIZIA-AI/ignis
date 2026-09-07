@@ -20,7 +20,7 @@ export interface IMailgunMailOptions extends IBaseMailOptions {
 }
 
 export interface IAmazonSesMailOptions extends IBaseMailOptions {
-  provider: 'amazon_ses';
+  provider: 'amazon-ses';
   config: TAmazonSesConfig;
   module?: TAmazonSesModule;
 }

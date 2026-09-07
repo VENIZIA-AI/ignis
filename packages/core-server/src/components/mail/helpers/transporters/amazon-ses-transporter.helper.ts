@@ -9,16 +9,16 @@ import {
   type TAmazonSesConfig,
   type TAmazonSesModule,
 } from '../../common';
-import { buildRawMimeMessage } from '../../utilities';
+import { buildRawMimeMessage, formatAddressHeader, splitAddressList } from '../../utilities';
 
-export class AmazonSesTransporterHelper extends BaseHelper implements IMailTransport {
+export class AmazonSesTransportHelper extends BaseHelper implements IMailTransport {
   private client: AnyType;
   private sendEmailCommandConstructor: AnyType;
   private getAccountCommandConstructor: AnyType;
   private module?: TAmazonSesModule<TAmazonSesConfig>;
 
   constructor(opts: { config: TAmazonSesConfig; module?: TAmazonSesModule }) {
-    super({ scope: AmazonSesTransporterHelper.name });
+    super({ scope: AmazonSesTransportHelper.name });
 
     this.module = opts.module;
     this.configure(opts.config);
@@ -33,21 +33,21 @@ export class AmazonSesTransporterHelper extends BaseHelper implements IMailTrans
 
       const rawMessage = await buildRawMimeMessage(message);
       const command = new this.sendEmailCommandConstructor({
-        FromEmailAddress: message.from,
+        // `FromEmailAddress` carries the same RFC 5321/5322 mailbox syntax as the raw `From:`
+        // header and is subject to the same 7-bit-ASCII requirement - encoding it separately
+        // here (instead of passing `message.from` through untouched) is what keeps a non-ASCII
+        // display name from reaching the SES API as raw UTF-8 bytes.
+        FromEmailAddress: message.from ? formatAddressHeader(message.from) : message.from,
         Destination: {
-          ToAddresses: Array.isArray(message.to) ? message.to : [message.to],
-          CcAddresses: message.cc
-            ? Array.isArray(message.cc)
-              ? message.cc
-              : [message.cc]
-            : undefined,
-          BccAddresses: message.bcc
-            ? Array.isArray(message.bcc)
-              ? message.bcc
-              : [message.bcc]
-            : undefined,
+          ToAddresses: splitAddressList(message.to),
+          CcAddresses: message.cc ? splitAddressList(message.cc) : undefined,
+          BccAddresses: message.bcc ? splitAddressList(message.bcc) : undefined,
         },
-        ReplyToAddresses: message.replyTo ? [message.replyTo] : undefined,
+        // No `ReplyToAddresses` here: `buildRawMimeMessage` already writes a single, RFC
+        // 2047-encoded `Reply-To` header into the raw content. Setting both sends the same
+        // address through two channels SES treats independently - a client can end up showing a
+        // reply-to derived from whichever one SES prioritizes, and the other becomes a silent,
+        // unencoded duplicate that skipped the address encoding path entirely.
         Content: {
           Raw: { Data: rawMessage },
         },

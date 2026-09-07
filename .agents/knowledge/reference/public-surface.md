@@ -2952,9 +2952,9 @@ tags: [reference, exports, api]
 - `SocketIOBindingKeys` class
 - `SocketIOComponent` class
 
-### `@venizia/ignis/mail` (64)
+### `@venizia/ignis/mail` (65)
 
-- `AmazonSesTransporterHelper` class
+- `AmazonSesTransportHelper` class
 - `buildRawMimeMessage` function
 - `BullMQExecutorModes` class
 - `BullMQMailExecutorHelper` class
@@ -3006,6 +3006,7 @@ tags: [reference, exports, api]
 - `NodemailerTransportHelper` class
 - `NumericCodeGenerator` class
 - `RandomTokenGenerator` class
+- `splitAddressList` function
 - `TAmazonSesClient` type
 - `TAmazonSesConfig` type
 - `TAmazonSesModule` type

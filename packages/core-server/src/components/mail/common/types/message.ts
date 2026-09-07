@@ -5,6 +5,7 @@ export interface IMailAttachment {
   contentType?: string;
   path?: string;
   content?: string | Buffer | Readable;
+  encoding?: BufferEncoding;
   cid?: string;
   [key: string]: any;
 }

@@ -11,7 +11,7 @@ import type {
 } from '../common';
 import { MailErrorCodes, MailProviders } from '../common';
 import {
-  AmazonSesTransporterHelper,
+  AmazonSesTransportHelper,
   MailgunTransportHelper,
   NodemailerTransportHelper,
 } from '../helpers';
@@ -86,10 +86,10 @@ export class MailTransportProvider extends BaseProvider<TGetMailTransportFn> {
     });
   }
 
-  private createAmazonSesTransport(options: TMailOptions): AmazonSesTransporterHelper {
+  private createAmazonSesTransport(options: TMailOptions): AmazonSesTransportHelper {
     if (this.isAmazonSesOptions(options)) {
       this.logger.for(this.createAmazonSesTransport.name).info('Initializing Amazon SES transport');
-      return new AmazonSesTransporterHelper({ config: options.config, module: options.module });
+      return new AmazonSesTransportHelper({ config: options.config, module: options.module });
     }
 
     throw getError({
