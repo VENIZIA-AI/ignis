@@ -36,6 +36,16 @@ not protected, because a protected member on the factory's anonymous returned cl
 declaration emit with TS4094. The static-asset controller takes `resolveObjectName` and
 `defineExtraRoutes`, threaded through the component options.
 
+## 2026-09-07 - two AES tests asserted a probabilistic outcome
+
+`TC-018`/`TC-019` decrypted with a wrong secret and asserted "throws" and "returns the input". A
+wrong key is not a deterministic failure: the IV is random per encrypt, and about one in 256 leaves
+valid PKCS#7 padding, so the cipher returns garbage instead of throwing. Measured with a probe in
+the package: 76 of 20000 runs, 0.38 percent - enough to redden a full-suite run every few hundred.
+Both tests now fail on a malformed message, which always fails, and a third test asserts the
+property that always holds: a wrong secret never yields the plaintext. Rule for a crypto test: assert
+the security property, or force a failure the algorithm cannot accidentally satisfy.
+
 ## 2026-09-07 - Atlas recognised the wrong repository as its own checkout
 
 `isRepositoryCheckout` asked for two directories, `docs/wiki/content` and `.agents/knowledge` - a

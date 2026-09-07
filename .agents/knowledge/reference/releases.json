@@ -14,6 +14,12 @@
   "releases": {
     "atlas": [
       {
+        "version": "0.1.0-4",
+        "date": "2026-09-07",
+        "sha": "c241445a",
+        "order": 1123
+      },
+      {
         "version": "0.1.0-3",
         "date": "2026-09-06",
         "sha": "9f1e41c7",
@@ -3067,6 +3073,17 @@
       ],
       "kind": "New Feature",
       "order": 1109
+    },
+    {
+      "id": "changelog:2026-09-07-atlas-checkout-detection",
+      "file": "2026-09-07-atlas-checkout-detection.md",
+      "date": "2026-09-07",
+      "title": "Atlas Recognises the IGNIS Checkout by Its Workspace Manifest",
+      "packages": [
+        "atlas"
+      ],
+      "kind": "Bug Fix",
+      "order": 1122
     },
     {
       "id": "changelog:2026-09-06-shared-singletons-across-module-copies",
