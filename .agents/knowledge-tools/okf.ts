@@ -156,9 +156,11 @@ const collectBindingKeys = (): BindingClass[] => {
   const out: BindingClass[] = [];
 
   for (const cls of src.matchAll(/export\s+class\s+(\w+)[^{]*\{([\s\S]*?)\n\}/g)) {
-    const keys = [...cls[2].matchAll(/static\s+readonly\s+(\w+)\s*[:=][^'"`]*['"`]([^'"`]+)['"`]/g)].map(
-      (match) => ({ key: match[1], value: match[2] }),
-    );
+    // Line-anchored and single-line on purpose: `^\s*static` skips a `private static` member, and a
+    // value class that cannot span lines stops a non-string member from swallowing the next constant.
+    const keys = [
+      ...cls[2].matchAll(/^\s*static\s+readonly\s+(\w+)\s*[:=][^'"`\n]*['"`]([^'"`\n]+)['"`]/gm),
+    ].map((match) => ({ key: match[1], value: match[2] }));
 
     if (keys.length) {
       out.push({ name: cls[1], keys });
@@ -826,7 +828,7 @@ switch (command) {
   }
 
   case 'viz': {
-    await (await import('./viz.ts')).buildViz();
+    (await import('./viz.ts')).buildViz();
     break;
   }
 

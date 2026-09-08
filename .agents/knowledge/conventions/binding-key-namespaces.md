@@ -20,8 +20,14 @@ export class BindingNamespaces {
   static readonly MIDDLEWARE = BindingNamespaces.createNamespace({ name: 'middlewares' });
   static readonly PROVIDER = BindingNamespaces.createNamespace({ name: 'providers' });
   static readonly CONTROLLER = BindingNamespaces.createNamespace({ name: 'controllers' });
+  static readonly CONFIGURATION = BindingNamespaces.createNamespace({ name: 'configurations' });
 }
 ```
+
+`createNamespace` throws on a name holding `.` or whitespace, and on an empty or missing one.
+`Binding` tags itself with the first dot-separated segment of its key, so `'acme.services'` would be
+tagged `acme` and no boot step would ever drain it - a failure that is otherwise silent. The check
+runs while the class initializes, so `NAME_PATTERN` is declared above the constants.
 
 A binding key is namespace + `.` + class name: `controllers.UserController`,
 `services.AuthService`, `repositories.UserRepository`, `datasources.PostgresDataSource`,

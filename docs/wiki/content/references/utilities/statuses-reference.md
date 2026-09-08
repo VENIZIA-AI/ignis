@@ -241,14 +241,24 @@ export class BindingNamespaces {
   static readonly MIDDLEWARE = 'middlewares';
   static readonly PROVIDER = 'providers';
   static readonly CONTROLLER = 'controllers';
+  static readonly CONFIGURATION = 'configurations';
 
   static createNamespace(opts: { name: string }): string;
 }
 ```
 
-Each namespace constant is itself built via `createNamespace()`; the method is also public for constructing custom namespace strings.
+Each namespace constant is built via `createNamespace()`, and the method is public so an application can mint its own.
 
-`TBindingNamespace` (`TConstValue<typeof BindingNamespaces>`) is the union type of all `BindingNamespaces` values, derived at compile time rather than hand-maintained.
+A namespace is the leading segment of a binding key, and a binding is tagged with that segment alone. `createNamespace` throws when the name would break that rule:
+
+| Name | Result |
+|---|---|
+| `'components'`, `'x-tenants'`, `'@app'` | returned unchanged |
+| `'acme.services'` | throws - only `acme` would become the tag |
+| `''` or a missing value | throws - the key would carry no namespace and no tag |
+| `'my services'` | throws - whitespace in a key |
+
+`TBindingNamespace` is `TConstValue<typeof BindingNamespaces>`. Since `createNamespace` returns `string`, the alias widens to `string` rather than narrowing to the nine values.
 
 ### `CoreBindings`
 
