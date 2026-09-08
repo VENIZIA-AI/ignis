@@ -3029,6 +3029,39 @@
   },
   "changelogs": [
     {
+      "id": "changelog:2026-09-08-storage-scoped-vocabulary",
+      "file": "2026-09-08-storage-scoped-vocabulary.md",
+      "date": "2026-09-08",
+      "title": "Every Storage Method Names Its Bucket and Its Object",
+      "packages": [],
+      "kind": "Breaking",
+      "order": 9007199254740991
+    },
+    {
+      "id": "changelog:2026-09-08-storage-hardening-and-bun-s3-only",
+      "file": "2026-09-08-storage-hardening-and-bun-s3-only.md",
+      "date": "2026-09-08",
+      "title": "Storage Serves Safely, Answers 404, and Runs on Bun S3 Alone",
+      "packages": [
+        "core-server",
+        "helpers"
+      ],
+      "kind": "Security",
+      "order": 1128
+    },
+    {
+      "id": "changelog:2026-09-08-binding-namespace-guard-and-zod-type",
+      "file": "2026-09-08-binding-namespace-guard-and-zod-type.md",
+      "date": "2026-09-08",
+      "title": "A Binding Namespace That Would Lose Its Tag Is Refused",
+      "packages": [
+        "connectors",
+        "kernel"
+      ],
+      "kind": "Behavior Change",
+      "order": 9007199254740991
+    },
+    {
       "id": "changelog:2026-09-07-worker-project-root-and-kafka-base-seams",
       "file": "2026-09-07-worker-project-root-and-kafka-base-seams.md",
       "date": "2026-09-07",
@@ -3039,6 +3072,17 @@
       ],
       "kind": "New Feature",
       "order": 1108
+    },
+    {
+      "id": "changelog:2026-09-07-storage-presign-and-tagging",
+      "file": "2026-09-07-storage-presign-and-tagging.md",
+      "date": "2026-09-07",
+      "title": "Storage Gains Presigned URLs and Object Tagging",
+      "packages": [
+        "helpers"
+      ],
+      "kind": "New Feature",
+      "order": 1128
     },
     {
       "id": "changelog:2026-09-07-crud-scope-and-asset-hooks",
@@ -3084,6 +3128,17 @@
       ],
       "kind": "Bug Fix",
       "order": 1122
+    },
+    {
+      "id": "changelog:2026-09-07-asset-single-bucket-and-raw-paths",
+      "file": "2026-09-07-asset-single-bucket-and-raw-paths.md",
+      "date": "2026-09-07",
+      "title": "The Asset Controller Serves One Bucket, And Raw Nested Object Paths",
+      "packages": [
+        "core-server"
+      ],
+      "kind": "New Feature",
+      "order": 1128
     },
     {
       "id": "changelog:2026-09-06-shared-singletons-across-module-copies",

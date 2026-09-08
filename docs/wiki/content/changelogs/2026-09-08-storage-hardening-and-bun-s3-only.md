@@ -32,6 +32,64 @@ served three ways:
 If your application relied on serving HTML or SVG from the asset routes, serve it from a separate
 domain instead. That is the structural control OWASP recommends and IGNIS cannot impose it for you.
 
+## WHITELIST_HEADERS no longer carries content-type
+
+<Badge type="warning" text="Behavior Change" />
+
+`WHITELIST_HEADERS` decides which backend metadata headers reach the response. `content-type` left the
+list on purpose: the served type is decided from the object name now, never from the backend. That
+list is the mechanism behind the XSS fix at the top of this page.
+
+**Which backend you use decides whether you notice.**
+
+| Backend | `getStat` metadata key | Reached the whitelist before? |
+|---|---|---|
+| minio | `content-type` | Yes - the uploader's claimed type was served back |
+| bun-s3, disk | `contentType` | No - `applyMetadataHeaders` lowercases to `contenttype`, which never matched |
+
+So on `bun-s3` and `disk` this changes nothing that was working. On `minio` it closes the exact hole:
+the type an uploader claimed no longer decides how a browser treats the file.
+
+**Serving objects from your own controller?** `resolveServedContentType` is exported now, so you make
+the same decision the built-in route makes instead of copying it:
+
+```ts
+import { resolveServedContentType, WHITELIST_HEADERS } from '@venizia/ignis/static-asset';
+
+applyMetadataHeaders({ ctx, metadata });
+
+const served = resolveServedContentType({ helper, objectName });
+ctx.header(HTTP.Headers.CONTENT_TYPE, served.contentType);
+```
+
+It returns `{ contentType, isRenderable }` - `isRenderable` is `false` when the type is served as an
+attachment, which is also when you want `Content-Disposition`.
+
+Nothing here breaks your build. The constant kept its name and its subpath, so TypeScript stays green
+either way.
+
+Serving through `AssetControllerFactory` or `StaticAssetComponent`? Nothing to do.
+
+## BunS3Helper.getStat drops the duplicated contentType key
+
+<Badge type="warning" text="Behavior Change" />
+
+`getStat().metadata` carried the same string twice, under `contentType` and under `mimetype`. Only
+`mimetype` remains:
+
+```ts
+// before
+metadata: { contentType: stat.type, mimetype: stat.type }
+// now
+metadata: { mimetype: stat.type }
+```
+
+`size`, `etag` and `lastModified` are untouched.
+
+**Persisting that object into a column?** Rows written after the upgrade have one fewer key than rows
+written before it, and nothing warns you. Read `mimetype`, and backfill if a consumer reads
+`contentType`.
+
 ## A missing object answers 404
 
 <Badge type="warning" text="Behaviour Change" />
@@ -62,15 +120,22 @@ curl -H 'Range: bytes=1000-2000' /assets/buckets/videos/objects/clip.mp4
 On S3 the range becomes a ranged GET, so only those bytes leave the bucket. A suffix range
 (`bytes=-500`) means the LAST 500 bytes. An unusable range serves the whole object with 200.
 
-## MinioHelper is removed
+## MinioHelper is deprecated, not removed
 
-<Badge type="danger" text="Breaking" />
+<Badge type="warning" text="Deprecated" />
 
 `@venizia/ignis-helpers/minio`, the `MinioHelper` class, the `minio` optional peer dependency and the
-`StaticAssetStorageTypes.MINIO` value are all gone.
+`StaticAssetStorageTypes.MINIO` value all still ship. Your editor now strikes them through, and they
+go away in a later release once the Bun S3 path has settled. Nothing to do today.
 
-**This does not drop MinIO support.** MinIO speaks S3, and `BunS3Helper` takes any endpoint. Point it
-at your MinIO server:
+Two methods changed name with the rest of the storage surface: `isBucketExists` is `hasBucket`, and
+`getFile` is `getObject`. A missing object throws the same catalogued 404 the other backends throw.
+
+`MinioHelper` does not implement presigned URLs or object tagging - those methods throw. Move to
+`BunS3Helper` when you need them.
+
+**Move when you can.** MinIO speaks S3, and `BunS3Helper` takes any endpoint, plus presigned URLs,
+object tagging and native byte ranges. Point it at your MinIO server:
 
 ```typescript
 new BunS3Helper({
@@ -195,6 +260,10 @@ call to learn what it just uploaded.
 | `setObjectTags` | `replaceObjectTags` | `set` hid the fact that it replaces the WHOLE tag set - a caller flipping one tag silently dropped `retention` and `classification` |
 
 TypeScript catches every one of these.
+
+**The names changed, the types did not.** `getObject` still returns `Promise<Readable>` and
+`getObjectStream` still returns `Promise<ReadableStream>`. There is no stream-versus-buffer trap
+hiding behind the rename - fix the name and you are done.
 
 ## Two route paths changed
 

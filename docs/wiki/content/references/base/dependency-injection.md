@@ -187,7 +187,7 @@ container.bind({ key: 'config.db' }).toProvider(DbConfigProvider);
 
 Builds namespaced binding keys from structured objects.
 
-**File:** `packages/inversion/src/common/types.ts`
+**File:** `packages/inversion/src/modules/binding/common/constants.ts`
 
 ```typescript
 BindingKeys.build({ namespace: 'services', key: 'UserService' });

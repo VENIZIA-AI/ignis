@@ -454,6 +454,14 @@ const config = defineConfig({
               collapsed: true,
               items: [
                 {
+                  text: 'Storage Scoped Vocabulary',
+                  link: '/changelogs/2026-09-08-storage-scoped-vocabulary',
+                },
+                {
+                  text: 'Binding Namespace Guard and zod Type Rename',
+                  link: '/changelogs/2026-09-08-binding-namespace-guard-and-zod-type',
+                },
+                {
                   text: 'Storage Hardening and Bun S3 Only',
                   link: '/changelogs/2026-09-08-storage-hardening-and-bun-s3-only',
                 },

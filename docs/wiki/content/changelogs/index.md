@@ -17,6 +17,8 @@ This section tracks the history of significant changes, refactors, and updates t
 
 | Date | Title | Type |
 |------|-------|------|
+| 2026-09-08 | [Every Storage Method Names Its Bucket and Its Object](./2026-09-08-storage-scoped-vocabulary) | Breaking |
+| 2026-09-08 | [A Binding Namespace That Would Lose Its Tag Is Refused](./2026-09-08-binding-namespace-guard-and-zod-type) | Behavior Change |
 | 2026-09-08 | [Storage Serves Safely, Answers 404, and Runs on Bun S3 Alone](./2026-09-08-storage-hardening-and-bun-s3-only) | Security |
 | 2026-09-07 | [Storage Gains Presigned URLs and Object Tagging](./2026-09-07-storage-presign-and-tagging) | New Feature |
 | 2026-09-07 | [The Static-Asset Controller Takes a Configured Bucket and Raw Nested Paths](./2026-09-07-asset-single-bucket-and-raw-paths) | New Feature |

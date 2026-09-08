@@ -6,7 +6,22 @@ not how.
 This file and `index.md` are reserved OKF filenames - they carry no `type:` frontmatter and are not
 counted as concepts.
 
-## 2026-09-07 - a namespace that would lose its tag is refused, and zod's deprecated alias is gone
+## 2026-09-08 (d) - MinioHelper comes back, deprecated
+
+The removal shipped in `2949e555` is reverted: `@venizia/ignis-helpers/minio`, `MinioHelper`, the
+optional `minio` peer and `StaticAssetStorageTypes.MINIO` all publish again, every one of them
+carrying `@deprecated`. They go away once the Bun S3 path is settled, not before - a consumer on
+MinIO should not have to move backend and absorb the storage reshape in the same upgrade.
+
+The restored class meets the NEW interface, not the old one: `hasBucket` (was `isBucketExists`),
+`getObject` (was `getFile`), a catalogued 404 through `asStorageError`, and `maxKeys: 0` meaning
+zero. Presign and tagging stay unimplemented, so they throw from `BaseStorageHelper`.
+
+`WHITELIST_HEADERS` dropping `content-type` only ever mattered on THIS backend: minio's
+`extractMetadata` keeps the hyphenated `content-type` key, while bun-s3 and disk return
+`contentType`, which `applyMetadataHeaders` lowercases to `contenttype` and never matched.
+
+## 2026-09-08 (c) - a namespace that would lose its tag is refused, and zod's deprecated alias is gone
 
 `BindingNamespaces.createNamespace` now throws on a name holding `.` or whitespace, and on an empty
 or missing one. `Binding` tags itself with the first dot-separated segment of its key, so a namespace
