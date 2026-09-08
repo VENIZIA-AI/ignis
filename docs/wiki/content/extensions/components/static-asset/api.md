@@ -228,14 +228,14 @@ type TStaticAssetStorageType = TConstValue<typeof StaticAssetStorageTypes>;
 
 ### `IStorageHelper` interface
 
-Every backend implements this contract; `BaseStorageHelper` (abstract) implements the shared parts (`isValidName`, `isValidPath`, `upload`, `getMimeType`, `getFileType`) and leaves the rest abstract.
+Every backend implements this contract; `BaseStorageHelper` (abstract) implements the shared parts (`isValidName`, `isValidPath`, `upload`, `getMimeType`, `getMediaType`) and leaves the rest abstract.
 
 ```typescript
 interface IStorageHelper {
   isValidName(name: string): boolean;
   isValidPath(pathStr: string, opts?: { maxDepth?: number }): boolean;
 
-  isBucketExists(opts: { name: string }): Promise<boolean>;
+  hasBucket(opts: { name: string }): Promise<boolean>;
   getBuckets(): Promise<IBucketInfo[]>;
   getBucket(opts: { name: string }): Promise<IBucketInfo | null>;
   createBucket(opts: { name: string }): Promise<IBucketInfo | null>;
@@ -249,20 +249,20 @@ interface IStorageHelper {
     maxFolderDepth?: number;
   }): Promise<IUploadResult[]>;
 
-  getFile(opts: { bucket: string; name: string; options?: any }): Promise<Readable>;
+  getObject(opts: { bucket: string; name: string; options?: any }): Promise<Readable>;
   getStat(opts: { bucket: string; name: string }): Promise<IFileStat>;
   removeObject(opts: { bucket: string; name: string }): Promise<void>;
   removeObjects(opts: { bucket: string; names: string[] }): Promise<void>;
   listObjects(opts: IListObjectsOptions): Promise<IObjectInfo[]>;
 
-  getFileType(opts: { mimeType: string }): string;
+  getMediaType(opts: { mimeType: string }): string;
 }
 ```
 
 ```
 IStorageHelper (interface)
     |
-BaseStorageHelper (abstract - implements isValidName/isValidPath/upload/getMimeType/getFileType)
+BaseStorageHelper (abstract - implements isValidName/isValidPath/upload/getMimeType/getMediaType)
     |
     +-- DiskHelper    (local filesystem)
     +-- BunS3Helper   (Bun-native S3, Bun only)
@@ -525,7 +525,7 @@ These run inside `helper.upload()`, separate from the controller checks above. T
 
 | Check | Error message | Default status |
 |-------|----------------|-----------------|
-| Bucket does not exist (`isBucketExists()` false) | <code v-pre>[upload] Bucket does not exist \| name: {bucket}</code> | `400` |
+| Bucket does not exist (`hasBucket()` false) | <code v-pre>[upload] Bucket does not exist \| name: {bucket}</code> | `400` |
 | `originalName` fails `isValidName()` | `[upload] Invalid original file name` | `400` |
 | `folderPath` segment count exceeds `maxFolderDepth` | <code v-pre>[upload] Invalid folder path \| depth: {n} \| max: {m}</code> | `400` |
 | `folderPath` fails `isValidPath()` for any other reason | `[upload] Invalid folder path` | `400` |

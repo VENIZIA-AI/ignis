@@ -40,7 +40,7 @@ console.log(result);
 ## How it works
 
 - **`BaseStorageHelper` owns the shared logic.** It's an abstract class implementing `IStorageHelper`: name/path validation, MIME type detection, and the `upload()` orchestration itself. Each backend only supplies two protected hooks: `defaultLinkPrefix` and `writeObject()`.
-- **Everything else is per-backend.** `isBucketExists`, `getBuckets`, `createBucket`, `getFile`, `getStat`, `removeObject`, `listObjects`, and the rest of `IStorageHelper` are implemented independently per backend. A filesystem `stat()` and an S3 `stat()` share nothing beyond the return shape.
+- **Everything else is per-backend.** `hasBucket`, `getBuckets`, `createBucket`, `getObject`, `getStat`, `removeObject`, `listObjects`, and the rest of `IStorageHelper` are implemented independently per backend. A filesystem `stat()` and an S3 `stat()` share nothing beyond the return shape.
 - **The three backends are interchangeable.** Write services against `IStorageHelper`, not a concrete class, and swap backends by construction only.
 - **`MemoryStorageHelper` is unrelated.** It's a standalone generic key-value store for in-process caching, extending `BaseHelper` directly - no bucket or file concept.
 - **Every write path is validated first.** `originalName` and `folderPath` run through `isValidName()`/`isValidPath()` before touching the filesystem or object store.
@@ -97,10 +97,10 @@ const [result] = await storage.upload({
 
 ### Download a file
 
-`getFile()` returns a Node.js `Readable` on every backend, so piping to a response or a write stream works identically.
+`getObject()` returns a Node.js `Readable` on every backend, so piping to a response or a write stream works identically.
 
 ```typescript
-const fileStream = await storage.getFile({ bucket: 'uploads', name: 'report.pdf' });
+const fileStream = await storage.getObject({ bucket: 'uploads', name: 'report.pdf' });
 fileStream.pipe(response);
 ```
 

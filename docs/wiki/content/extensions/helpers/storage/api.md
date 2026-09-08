@@ -28,7 +28,7 @@ Exhaustive reference for `BaseStorageHelper`, the three `IStorageHelper` backend
 | Understand what `upload()` validates and how it writes files | [upload (template method)](#upload-template-method-shared-by-every-backend) |
 | Validate a name or path before writing | [isValidName](#isvalidname) / [isValidPath](#isvalidpath) |
 | Look up every error message `upload()` can throw | [validateUploadFiles](#upload-template-method-shared-by-every-backend) |
-| Read a file back as a stream | [BunS3Helper#getFile](#getfile) / [DiskHelper#getFile](#getfile-1) |
+| Read a file back as a stream | [BunS3Helper#getObject](#getfile) / [DiskHelper#getObject](#getfile-1) |
 | List or delete objects in a bucket | per-backend Methods tables ([BunS3Helper](#methods), [DiskHelper](#methods-1)) |
 | Get a presigned URL, or read/write object tags | [Presign and object tagging](#presign-and-object-tagging) |
 | Cache values in-process (not bucket storage) | [MemoryStorageHelper](#memorystoragehelper) |
@@ -47,7 +47,7 @@ BaseHelper
 ```
 
 - **`upload()` is a template method.** It validates the bucket and every file. Then it calls two protected hooks each backend supplies: `defaultLinkPrefix` (a getter) and `writeObject()` (the write itself).
-- **Every other method is backend-specific.** `isBucketExists`, `getBuckets`, `getBucket`, `createBucket`, `removeBucket`, `getFile`, `getStat`, `removeObject`, `removeObjects`, and `listObjects` are declared `abstract` on `BaseStorageHelper`.
+- **Every other method is backend-specific.** `hasBucket`, `getBuckets`, `getBucket`, `createBucket`, `removeBucket`, `getObject`, `getStat`, `removeObject`, `removeObjects`, and `listObjects` are declared `abstract` on `BaseStorageHelper`.
   - Each one is fully reimplemented per backend - no logic is shared between a filesystem read and an S3 `stat()` call.
 
 > [!TIP] Typing rule
@@ -199,19 +199,19 @@ storage.isValidPath('a/b/c/d/file.pdf');     // false -- exceeds default max dep
 
 **Returns:** `true` if the path and all its segments are valid, `false` otherwise.
 
-#### getFileType
+#### getMediaType
 
 ```typescript
-getFileType(opts: { mimeType: string }): string
+getMediaType(opts: { mimeType: string }): string
 ```
 
 Categorizes a MIME type using the `MimeTypes` const-class: `UNKNOWN`, `IMAGE`, `VIDEO`, `TEXT`. It lowercases `mimeType` first, then checks whether it starts with `image`, `video`, or `text`.
 
 ```typescript
-storage.getFileType({ mimeType: 'image/png' });        // 'image'
-storage.getFileType({ mimeType: 'video/mp4' });         // 'video'
-storage.getFileType({ mimeType: 'text/plain' });        // 'text'
-storage.getFileType({ mimeType: 'application/pdf' });   // 'unknown'
+storage.getMediaType({ mimeType: 'image/png' });        // 'image'
+storage.getMediaType({ mimeType: 'video/mp4' });         // 'video'
+storage.getMediaType({ mimeType: 'text/plain' });        // 'text'
+storage.getMediaType({ mimeType: 'application/pdf' });   // 'unknown'
 ```
 
 **Returns:** one of `'image'`, `'video'`, `'text'`, or `'unknown'`.
@@ -231,7 +231,7 @@ async upload(opts: {
 Implemented once on `BaseStorageHelper`; `BunS3Helper` and `DiskHelper` do **not** override it. Steps, in order:
 
 1. Returns `[]` immediately if `files` is empty.
-2. Calls `isBucketExists({ name: bucket })`; throws if the bucket does not exist.
+2. Calls `hasBucket({ name: bucket })`; throws if the bucket does not exist.
 3. Validates every file (`validateUploadFiles`, below).
 4. For each file, in parallel via `Promise.all()`:
    - Computes `normalizeName` via `normalizeNameFn` if provided. Otherwise the default normalizer lowercases the name, replaces spaces with `_`, and prefixes `{folderPath}/` if set.
@@ -279,13 +279,13 @@ protected validateUploadFiles(opts: { files: IUploadFile[]; maxFolderDepth?: num
 ### Public abstract methods (reimplemented per backend, no shared logic)
 
 ```typescript
-abstract isBucketExists(opts: { name: string }): Promise<boolean>;
+abstract hasBucket(opts: { name: string }): Promise<boolean>;
 abstract getBuckets(): Promise<IBucketInfo[]>;
 abstract getBucket(opts: { name: string }): Promise<IBucketInfo | null>;
 abstract createBucket(opts: { name: string }): Promise<IBucketInfo | null>;
 abstract removeBucket(opts: { name: string }): Promise<boolean>;
 
-abstract getFile(opts: { bucket: string; name: string; options?: any }): Promise<Readable>;
+abstract getObject(opts: { bucket: string; name: string; options?: any }): Promise<Readable>;
 abstract getStat(opts: { bucket: string; name: string }): Promise<IFileStat>;
 abstract removeObject(opts: { bucket: string; name: string }): Promise<void>;
 abstract removeObjects(opts: { bucket: string; names: string[] }): Promise<void>;
@@ -310,7 +310,7 @@ presignGet(opts: {
   responseContentType?: string;
 }): Promise<string>;
 getObjectTags(opts: { bucket: string; name: string }): Promise<Record<string, string>>;
-setObjectTags(opts: { bucket: string; name: string; tags: Record<string, string> }): Promise<void>;
+replaceObjectTags(opts: { bucket: string; name: string; tags: Record<string, string> }): Promise<void>;
 ```
 
 Concrete on `BaseStorageHelper`, not abstract - every backend inherits a working default that throws:
@@ -332,7 +332,7 @@ The thrown message names the calling class and the method, so the error tells yo
 import { StoragePresignDefaults } from '@venizia/ignis-helpers';
 ```
 
-`getObjectTags` returns a plain `Record<string, string>` - parsing S3's tagging XML is the helper's job, not the caller's. A missing object answers `{}`, not a throw; any other failure throws with the response status and body attached. `setObjectTags` replaces the full tag set.
+`getObjectTags` returns a plain `Record<string, string>` - parsing S3's tagging XML is the helper's job, not the caller's. A missing object answers `{}`, not a throw; any other failure throws with the response status and body attached. `replaceObjectTags` replaces the full tag set.
 
 ## BunS3Helper
 
@@ -344,7 +344,7 @@ S3-compatible object storage using Bun's native `S3Client`. Extends `BaseStorage
 > Requires the **Bun runtime** - `bun:S3Client` is not available under Node.js.
 
 - **Bucket management is hand-built.** `getBuckets`, `createBucket`, and `removeBucket` use AWS Signature V4 signed `fetch()` requests via `buildSignedRequest()`, because Bun's `S3Client` has no bucket-management API.
-- **Object operations use the native SDK.** `upload`'s `writeObject`, `getFile`, `getStat`, `removeObject`, `removeObjects`, and `listObjects` all call Bun's native `S3Client` methods.
+- **Object operations use the native SDK.** `upload`'s `writeObject`, `getObject`, `getStat`, `removeObject`, `removeObjects`, and `listObjects` all call Bun's native `S3Client` methods.
 
 ### Constructor
 
@@ -381,7 +381,7 @@ Creates a Bun `S3Client` for object operations and stores `{ accessKey, secretKe
 
 | Method | Behavior |
 |---|---|
-| `isBucketExists` | Returns `false` if the name fails `isValidName()`. Otherwise attempts `client.list({ maxKeys: 1 }, { bucket: name })`, and returns `false` on any error - for example a network failure or a missing bucket. |
+| `hasBucket` | Returns `false` if the name fails `isValidName()`. Otherwise attempts `client.list({ maxKeys: 1 }, { bucket: name })`, and returns `false` on any error - for example a network failure or a missing bucket. |
 | `getBuckets` | Signed `GET /`; parses `<Bucket><Name>...<CreationDate>...` from the XML response. |
 | `getBucket` | Finds the entry in `getBuckets()`; `null` if not found. |
 | `createBucket` | Signed `PUT /{name}`. Throws `'[createBucket] Invalid name to create bucket!'` on invalid name, or `` `[createBucket] S3 error: {xml}` `` on a non-OK response. |
@@ -391,12 +391,12 @@ Creates a Bun `S3Client` for object operations and stores `{ accessKey, secretKe
 | `presignPut` | `client.presign(name, { bucket, method: 'PUT', expiresIn })`. Signs locally - no network call. |
 | `presignGet` | `client.presign(name, { bucket, method: 'GET', expiresIn, type })`; `type` is set to `responseContentType` only when the caller passes one. |
 | `getObjectTags` | Signed `GET /{bucket}/{name}?tagging=`; `404` returns `{}`, any other non-2xx throws with the status and body. |
-| `setObjectTags` | Signed `PUT /{bucket}/{name}?tagging=` with a hand-built `<Tagging>` XML body. |
+| `replaceObjectTags` | Signed `PUT /{bucket}/{name}?tagging=` with a hand-built `<Tagging>` XML body. |
 
-#### getFile
+#### getObject
 
 ```typescript
-async getFile(opts: { bucket: string; name: string; options?: any }): Promise<Readable>
+async getObject(opts: { bucket: string; name: string; options?: any }): Promise<Readable>
 ```
 
 Converts the Bun S3 file's web `ReadableStream` via `Readable.fromWeb()`. The `options` parameter is accepted for interface compatibility but not used.
@@ -459,7 +459,7 @@ async function buildSignedRequest(opts: {
 - **Builds the `Authorization` header from scratch.** Uses `crypto.subtle` for HMAC-SHA256 and SHA-256 digests, following the standard SigV4 derivation: `kDate -> kRegion -> kService -> kSigning`.
 - **Signs four headers.** `host`, `x-amz-content-sha256`, `x-amz-date`, and (if present) `x-amz-security-token`.
 - **`query` signs a canonical query string** - each key and value URI-encoded, sorted by key, joined with `&`, and appended to the returned `url`. Omitted or empty, the signature is byte-identical to before `query` existed.
-- **Used for bucket management and object tagging.** `getBuckets`, `createBucket`, `removeBucket`, `getObjectTags`, and `setObjectTags` on `BunS3Helper`. Tagging passes `query: { tagging: '' }` - the query string S3 expects on both a `GET`/`PUT` against an object's tag set.
+- **Used for bucket management and object tagging.** `getBuckets`, `createBucket`, `removeBucket`, `getObjectTags`, and `replaceObjectTags` on `BunS3Helper`. Tagging passes `query: { tagging: '' }` - the query string S3 expects on both a `GET`/`PUT` against an object's tag set.
 
 #### Tagging XML (buildTaggingXml / parseTaggingXml)
 
@@ -517,15 +517,15 @@ app_data/storage/           <-- basePath
 
 | Method | Behavior |
 |---|---|
-| `isBucketExists` | Returns `false` if the name fails validation. Otherwise checks the bucket path exists and `stat.isDirectory()`. |
+| `hasBucket` | Returns `false` if the name fails validation. Otherwise checks the bucket path exists and `stat.isDirectory()`. |
 | `getBuckets` | Lists directories under `basePath` via `fsp.readdir(..., { withFileTypes: true })`. Each directory's `birthtime` becomes `creationDate`. Returns `[]` if `basePath` does not exist. |
-| `getBucket` | `isBucketExists()` first; if true, returns `{ name, creationDate: stat.birthtime }`; else `null`. |
+| `getBucket` | `hasBucket()` first; if true, returns `{ name, creationDate: stat.birthtime }`; else `null`. |
 | `createBucket` | `fsp.mkdir(bucketPath, { recursive: true })`, then returns `getBucket()`. |
 | `removeBucket` | `fsp.rmdir(bucketPath)`. |
 | `removeObject` | Checks the object exists first (`fsp.access`); throws if missing. Otherwise `fsp.unlink(objectPath)`. |
 | `removeObjects` | Deletes **sequentially** by calling `removeObject()` per name in a `for` loop. If any file is missing, the error propagates immediately and remaining names are not attempted. |
 
-`presignPut`, `presignGet`, `getObjectTags`, and `setObjectTags` are not overridden - the local filesystem has nothing to presign or tag against, so all four inherit `BaseStorageHelper`'s throw. See [Presign and object tagging](#presign-and-object-tagging).
+`presignPut`, `presignGet`, `getObjectTags`, and `replaceObjectTags` are not overridden - the local filesystem has nothing to presign or tag against, so all four inherit `BaseStorageHelper`'s throw. See [Presign and object tagging](#presign-and-object-tagging).
 
 **`createBucket` throws:**
 
@@ -548,15 +548,15 @@ app_data/storage/           <-- basePath
 |---|---|
 | Object does not exist | `` `[removeObject] File not found | bucket: {bucket} | name: {name}` `` |
 
-#### getFile
+#### getObject
 
 ```typescript
-async getFile(opts: { bucket: string; name: string; options?: any }): Promise<Readable>
+async getObject(opts: { bucket: string; name: string; options?: any }): Promise<Readable>
 ```
 
 `fs.createReadStream(objectPath)`. The `options` parameter is accepted for interface compatibility but not used.
 
-**Throws:** `` `[getFile] File not found | bucket: {bucket} | name: {name}` `` if the file does not exist.
+**Throws:** `` `[getObject] File not found | bucket: {bucket} | name: {name}` `` if the file does not exist.
 
 #### getStat
 
@@ -664,7 +664,7 @@ interface IStorageHelper {
   isValidName(name: string): boolean;
   isValidPath(pathStr: string, opts?: { maxDepth?: number }): boolean;
 
-  isBucketExists(opts: { name: string }): Promise<boolean>;
+  hasBucket(opts: { name: string }): Promise<boolean>;
   getBuckets(): Promise<IBucketInfo[]>;
   getBucket(opts: { name: string }): Promise<IBucketInfo | null>;
   createBucket(opts: { name: string }): Promise<IBucketInfo | null>;
@@ -678,7 +678,7 @@ interface IStorageHelper {
     maxFolderDepth?: number;
   }): Promise<IUploadResult[]>;
 
-  getFile(opts: { bucket: string; name: string; options?: any }): Promise<Readable>;
+  getObject(opts: { bucket: string; name: string; options?: any }): Promise<Readable>;
   getStat(opts: { bucket: string; name: string }): Promise<IFileStat>;
   removeObject(opts: { bucket: string; name: string }): Promise<void>;
   removeObjects(opts: { bucket: string; names: string[] }): Promise<void>;
@@ -692,9 +692,9 @@ interface IStorageHelper {
     responseContentType?: string;
   }): Promise<string>;
   getObjectTags(opts: { bucket: string; name: string }): Promise<Record<string, string>>;
-  setObjectTags(opts: { bucket: string; name: string; tags: Record<string, string> }): Promise<void>;
+  replaceObjectTags(opts: { bucket: string; name: string; tags: Record<string, string> }): Promise<void>;
 
-  getFileType(opts: { mimeType: string }): string;
+  getMediaType(opts: { mimeType: string }): string;
 }
 ```
 
@@ -817,9 +817,9 @@ interface IBunS3HelperOptions extends IStorageHelperOptions {
 | Upload metadata persisted | `originalName`, `normalizeName`, `size`, `encoding`, `mimeType` | Content type only | None (mimetype detected at read time) |
 | `removeObjects` concurrency | Single batch SDK call | Parallel (`Promise.all`) | Sequential (`for` loop; stops at first missing file) |
 | `listObjects.useRecursive` | Honored | Accepted but not used | Honored |
-| `getFile` throws on missing file | No (SDK-level error) | No (SDK-level error) | Yes - explicit `'[getFile] File not found ...'` |
+| `getObject` throws on missing file | No (SDK-level error) | No (SDK-level error) | Yes - explicit `'[getObject] File not found ...'` |
 | Bucket-management transport | Hand-built AWS SigV4 signed requests | Node `fs`/`fs/promises` |
-| `presignPut` / `presignGet` / `getObjectTags` / `setObjectTags` | Implemented (`client.presign` natively; tagging via hand-built signed HTTP) | Inherits `BaseStorageHelper`'s throw - no object storage to presign or tag |
+| `presignPut` / `presignGet` / `getObjectTags` / `replaceObjectTags` | Implemented (`client.presign` natively; tagging via hand-built signed HTTP) | Inherits `BaseStorageHelper`'s throw - no object storage to presign or tag |
 
 ## Troubleshooting
 
@@ -849,7 +849,7 @@ await storage.createBucket({ name: 'my-bucket' });
 **Fix:** Check existence first.
 
 ```typescript
-const exists = await storage.isBucketExists({ name: 'my-bucket' });
+const exists = await storage.hasBucket({ name: 'my-bucket' });
 if (!exists) {
   await storage.createBucket({ name: 'my-bucket' });
 }
@@ -859,7 +859,7 @@ if (!exists) {
 
 **Cause:** `DiskHelper` throws when removing a directory that does not exist.
 
-**Fix:** Check existence before removal, same pattern as above with `isBucketExists`.
+**Fix:** Check existence before removal, same pattern as above with `hasBucket`.
 
 ### "[removeBucket] Bucket is not empty | name: {name}"
 
@@ -880,12 +880,12 @@ await storage.removeBucket({ name: 'my-bucket' });
 
 ### "[upload] Bucket does not exist | name: {bucket}"
 
-**Cause:** `upload()` calls `isBucketExists()` before writing anything, on every backend.
+**Cause:** `upload()` calls `hasBucket()` before writing anything, on every backend.
 
 **Fix:** Create the bucket first.
 
 ```typescript
-const exists = await storage.isBucketExists({ name: 'uploads' });
+const exists = await storage.hasBucket({ name: 'uploads' });
 if (!exists) {
   await storage.createBucket({ name: 'uploads' });
 }
@@ -933,7 +933,7 @@ const file: IUploadFile = {
 
 **Fix:** Ensure `normalizeNameFn` returns a plain relative name/path - no `..` segments, no leading `/`, no more folder segments than `maxFolderDepth` allows.
 
-### "[getFile] File not found | bucket: {bucket} | name: {name}"
+### "[getObject] File not found | bucket: {bucket} | name: {name}"
 
 **Cause:** `DiskHelper`-specific - it checks existence before opening a read stream. `BunS3Helper` throws the catalogued `core.storage.object_not_found`.
 
@@ -941,7 +941,7 @@ const file: IUploadFile = {
 
 ```typescript
 try {
-  const stream = await storage.getFile({ bucket: 'my-bucket', name: 'file.pdf' });
+  const stream = await storage.getObject({ bucket: 'my-bucket', name: 'file.pdf' });
 } catch (error) {
   // File not found -- handle gracefully
 }

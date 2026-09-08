@@ -18,6 +18,35 @@ the same method while the class initializes.
 the same type (identical `unknown` defaults), so the 26 sites were a rename. A type-aware
 `@typescript-eslint/no-deprecated` pass over all nine packages now reports zero deprecated usages.
 
+## 2026-09-08 (b) - the storage surface takes its final shape before direct upload lands
+
+`IUploadResult` was `{ bucketName, objectName }` - two entities flattened into a field pair, which is
+the one thing a downstream consumer's C-16 actually forbids. Now `{ bucket: { name }, object: { key,
+size, contentType } }`, and it carries size and content type so a caller needs no second `getStat`.
+`metaLink` + `metaLinkError` became a discriminated union: two flat fields allowed four states of
+which one meant anything.
+
+Five renames, all caught by the compiler: `isBucketExists` -> `hasBucket` (the old name is not
+English), `getFile`/`getFileStream` -> `getObject`/`getObjectStream` (one interface, two words for one
+thing), `getFileType` -> `getMediaType`, and `setObjectTags` -> `replaceObjectTags` because `set` hid
+that it replaces the WHOLE tag set.
+
+Two route paths moved and these do NOT fail at compile time: `POST /upload` -> `POST /objects`,
+`GET /download/{key}` -> `GET /downloads/{key}`. The action stays BEFORE the key, and that is forced,
+not chosen - measured on Hono, a suffix route after a `{.+}` catch-all never matches, so
+`/objects/{key}/download` is unreachable whenever nested keys are enabled.
+
+Two lessons about reading someone else's rules, both from the same afternoon. A downstream C-11 says
+that repository copies IGNIS, not the reverse - citing it to justify changing IGNIS inverted it. And
+their C-16 targets entity relationships flattened into pairs, so it never reached `getStat`, whose
+four fields describe one thing; reshaping that would have been churn dressed as compliance. Read the
+scope of a rule, not just its title.
+
+`assert*` and `has*` joined the verb prefix table. Counted across the downstream repository,
+`assert` appears 141 times and was absent from ours, while four prefixes ours lists (`extract`,
+`enrich`, `generate`, `to`) appear 1, 4, 11 and 13 times. The table describes utility functions;
+service methods use a wider set, and that distinction is now written down.
+
 ## 2026-09-08 - storage serves safely, answers 404, and runs on one S3 client
 
 A stored upload no longer renders on the API origin. The served content type is decided from the
@@ -61,7 +90,7 @@ stored links of the shape `/assets/photos/2024/f.jpg`. `defineRoutesBefore` regi
 application's own routes ahead of every built-in one, because Hono matches in registration order and
 a literal path must be able to beat the catch-all.
 
-On the helper: `IStorageHelper` gains `presignPut`, `presignGet`, `getObjectTags` and `setObjectTags`.
+On the helper: `IStorageHelper` gains `presignPut`, `presignGet`, `getObjectTags` and `replaceObjectTags`.
 `BaseStorageHelper` implements all four by throwing with its own class name - a backend with no
 transport for them says so, because returning undefined reads as a valid empty link or tag set. Bun's
 `S3Client` has `presign` natively but NO tagging method, so tagging goes over signed HTTP through

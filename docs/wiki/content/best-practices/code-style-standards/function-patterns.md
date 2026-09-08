@@ -79,10 +79,21 @@ Use consistent prefixes based on function purpose:
 | `build*` | Construct complex objects | `buildValueCondition()`, `buildJsonOrderBy()` |
 | `to*` | Convert/transform data | `toCamel()`, `toBoolean()` |
 | `is*` | Boolean validation/check | `isWeekday()`, `isInt()`, `isFloat()`, `isPromiseLike()` |
+| `has*` | Boolean ownership check | `hasBucket()`, `hasPermission()` |
+| `assert*` | Throws when the condition fails, returns nothing | `assertBucketExists()`, `assertOwner()` |
 | `extract*` | Pull out specific parts | `extractTimestamp()`, `extractWorkerId()`, `extractSequence()` |
 | `enrich*` | Enhance with additional data | `enrichUserAudit()`, `enrichWithMetadata()` |
 | `get*` | Retrieve/fetch data | `getSchema()`, `getConnector()`, `getError()` |
 | `resolve*` | Determine/compute value | `resolveValue()`, `resolveClass()` |
+
+### `is*` versus `assert*`
+
+They answer the same question and differ in what happens next. `is*` returns a boolean and leaves the
+decision to the caller. `assert*` throws and returns `void`, so the code after it can rely on the
+condition without a branch.
+
+Reach for `assert*` when every caller would throw on `false` anyway - the branch is then noise, and
+each caller writing its own error message is how one condition ends up with four different codes.
 
 **Examples:**
 

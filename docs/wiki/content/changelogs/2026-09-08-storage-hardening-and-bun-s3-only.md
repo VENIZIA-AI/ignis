@@ -123,7 +123,7 @@ TypeScript catches every call site, so this breaks at compile time rather than s
 
 <Badge type="danger" text="Security" />
 
-`DiskHelper.getFile`, `getStat` and `removeObject` joined the object name onto the bucket path with
+`DiskHelper.getObject`, `getStat` and `removeObject` joined the object name onto the bucket path with
 no validation. A name of `../secret.txt` read - and deleted - outside the bucket. `upload` had always
 validated; the read and delete paths had not.
 
@@ -143,10 +143,10 @@ for the same reason.
 
 | Method | Use it for |
 |---|---|
-| `getFileStream({ bucket, name, range? })` | The bytes as a web stream, which is what a `Response` body wants. Ranged when asked. |
+| `getObjectStream({ bucket, name, range? })` | The bytes as a web stream, which is what a `Response` body wants. Ranged when asked. |
 | `writeStream({ bucket, name, source, contentType? })` | Upload without holding the object in memory. `upload` takes a `Buffer`, so a 5 GB file is 5 GB of heap; this is not. |
 | `presignPut`, `presignGet` | Signed URLs. `presignGet` takes `responseContentDisposition`, which keeps the attachment guarantee when S3 serves the object directly. |
-| `getObjectTags`, `setObjectTags` | Object tags, parsed into a plain object. |
+| `getObjectTags`, `replaceObjectTags` | Object tags, parsed into a plain object. |
 
 ## MemoryStorageHelper
 
@@ -158,3 +158,74 @@ live object, so any caller could mutate the helper's state.
 
 `get()` now returns `T[K] | undefined` instead of asserting a type that was never guaranteed. A caller
 that checked `isBound` first will need to read the value once and check it.
+
+## The upload result is scoped, not a flat field pair
+
+<Badge type="danger" text="Breaking" />
+
+`bucketName` and `objectName` were two entities flattened into a field pair. `metaLink` and
+`metaLinkError` were a second pair where only one of four possible states ever meant anything.
+
+```typescript
+// before
+{ bucketName: 'images', objectName: 'photo.png', link: '/assets/...', metaLinkError: 'FAILED' }
+
+// after
+{
+  bucket: { name: 'images' },
+  object: { key: 'photo.png', size: 4823, contentType: 'image/png' },
+  link: '/assets/...',
+  metaLink: { error: 'META_LINK_CREATE_FAILED' },   // or { data: row }
+}
+```
+
+The result now carries `size` and `contentType` too, so a caller no longer needs a second `getStat`
+call to learn what it just uploaded.
+
+## Five methods renamed
+
+<Badge type="danger" text="Breaking" />
+
+| Before | After | Why |
+|---|---|---|
+| `isBucketExists` | `hasBucket` | `is` + `Exists` is not English. `has*` is the ownership question |
+| `getFile` | `getObject` | one interface was using two words for one thing |
+| `getFileStream` | `getObjectStream` | same |
+| `getFileType` | `getMediaType` | it returns `image`/`video`/`text`, and the old name read like `getMimeType` |
+| `setObjectTags` | `replaceObjectTags` | `set` hid the fact that it replaces the WHOLE tag set - a caller flipping one tag silently dropped `retention` and `classification` |
+
+TypeScript catches every one of these.
+
+## Two route paths changed
+
+<Badge type="danger" text="Breaking" />
+
+| Before | After |
+|---|---|
+| `POST {base}/upload` | `POST {base}/objects` |
+| `GET {base}/download/{objectName}` | `GET {base}/downloads/{objectName}` |
+
+`upload` was a verb sitting where a resource belongs; `POST` into the object collection already says
+it. `download` became plural for the same reason - it names a set of representations, not an action.
+
+**These two do NOT fail at compile time.** A client calling the old path gets a 404 at runtime.
+
+The action stays *before* the key rather than after it, and that is forced rather than chosen: with
+nested object keys enabled, a suffix route never matches at all. Measured on Hono, a request to
+`/objects/photos/2024/a.png/download` is served by the catch-all with the key
+`photos/2024/a.png/download` - the `/download` suffix route is unreachable.
+
+A static route an application registers itself - `/download/i18n`, say - is unaffected, because it is
+the application's own string. It also stops depending on registration order, since nothing catches
+all of `/download/*` any more.
+
+## assert* and has* join the verb prefix table
+
+<Badge type="tip" text="Enhancement" />
+
+`is*` returns a boolean and leaves the branch to the caller. `assert*` throws and returns `void`, so
+the code after it needs no branch - reach for it when every caller would throw on `false` anyway.
+`has*` is the ownership question.
+
+The table describes utility functions. Service and controller methods lean on a wider set (`find`,
+`create`, `update`, `validate`, `load`, `count`); do not force those into it.

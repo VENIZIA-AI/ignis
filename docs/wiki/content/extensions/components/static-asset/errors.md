@@ -19,7 +19,7 @@ Every error condition the static asset controller and storage helpers can raise,
 | <code v-pre>"Invalid folder path segment: {segment}"</code> | One `folderPath` segment fails `isValidName()` | `400` |
 | <code v-pre>"Empty file content \| name: {originalName}"</code> | The uploaded file's buffer is empty after multipart parsing (or after re-reading a disk-spooled file) | `400` |
 | <code v-pre>"Invalid maxKeys \| Expected a positive integer \| value: {value}"</code> | `listObjects`'s `maxKeys` query param does not parse to a positive integer | `400` |
-| <code v-pre>[upload] Bucket does not exist \| name: {bucket}</code> | `helper.upload()` found no matching bucket via `isBucketExists()` | `400` (default) |
+| <code v-pre>[upload] Bucket does not exist \| name: {bucket}</code> | `helper.upload()` found no matching bucket via `hasBucket()` | `400` (default) |
 | `[upload] Invalid original file name` | A file's `originalName` fails `isValidName()`, checked inside `helper.upload()` | `400` (default) |
 | <code v-pre>[upload] Invalid folder path \| depth: {n} \| max: {m}</code> | `helper.upload()`'s own check found more `folderPath` segments than `maxFolderDepth` allows | `400` (default) |
 | `[upload] Invalid folder path` | `helper.upload()`'s own `isValidPath()` check failed for any other reason | `400` (default) |
@@ -30,7 +30,7 @@ Every error condition the static asset controller and storage helpers can raise,
 | `[removeBucket] Invalid name to remove bucket!` | `removeBucket()` called with a name failing `isValidName()` - only reachable calling a helper directly | `400` (default) |
 | <code v-pre>[removeBucket] Bucket does not exist \| name: {name}</code> | `DiskHelper.removeBucket()` - no directory at that bucket name | `400` (default) |
 | <code v-pre>[removeBucket] Bucket is not empty \| name: {name}</code> | `DiskHelper.removeBucket()` - the bucket directory still has files in it | `400` (default) |
-| <code v-pre>[getFile] File not found \| bucket: {bucket} \| name: {name}</code> (also `[getStat]`, `[removeObject]`) | `DiskHelper` - no file at that bucket/object path | `400` (default) |
+| <code v-pre>[getObject] File not found \| bucket: {bucket} \| name: {name}</code> (also `[getStat]`, `[removeObject]`) | `DiskHelper` - no file at that bucket/object path | `400` (default) |
 | <code v-pre>[parseMultipartBody] storage: {storage} \| Invalid storage type \| Valids: ['memory', 'disk']</code> | `extra.parseMultipartBody.storage` set to something other than `'memory'`/`'disk'` - a configuration error, not user input | `400` (default) |
 
 > [!NOTE]
@@ -97,7 +97,7 @@ url.searchParams.set('maxKeys', '50'); // OK
 
 ### "[upload] Bucket does not exist"
 
-- **Cause:** `helper.upload()` checked `isBucketExists()` and found no match - the bucket was never created, or was deleted between requests.
+- **Cause:** `helper.upload()` checked `hasBucket()` and found no match - the bucket was never created, or was deleted between requests.
 - **Fix:** create the bucket first with `POST /buckets/:bucketName`, or check `GET /buckets/:bucketName` before uploading.
 
 ### "Bucket already exists"

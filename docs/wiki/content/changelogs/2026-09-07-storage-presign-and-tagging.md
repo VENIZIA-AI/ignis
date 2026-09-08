@@ -1,6 +1,6 @@
 ---
 title: Storage Gains Presigned URLs and Object Tagging
-description: IStorageHelper adds presignPut, presignGet, getObjectTags and setObjectTags. MinioHelper and BunS3Helper implement all four; a backend with no transport for them throws instead of returning a fake result.
+description: IStorageHelper adds presignPut, presignGet, getObjectTags and replaceObjectTags. MinioHelper and BunS3Helper implement all four; a backend with no transport for them throws instead of returning a fake result.
 ---
 
 # Changelog - 2026-09-07
@@ -15,14 +15,14 @@ description: IStorageHelper adds presignPut, presignGet, getObjectTags and setOb
 const putUrl = await storage.presignPut({ bucket: 'imports', name: 'q1-workbook.csv' });
 // hand putUrl to the browser - it uploads straight to S3, never through this backend
 
-await storage.setObjectTags({
+await storage.replaceObjectTags({
   bucket: 'imports',
   name: 'q1-workbook.csv',
   tags: { temp: 'true', total_rows: '48210' },
 });
 
 // once the row validates:
-await storage.setObjectTags({
+await storage.replaceObjectTags({
   bucket: 'imports',
   name: 'q1-workbook.csv',
   tags: { temp: 'false', total_rows: '48210', validated: 'true' },
@@ -40,7 +40,7 @@ A two-phase upload asks the backend for a presigned URL, uploads straight to S3,
 | `IStorageHelper.presignPut(opts)` | New. Returns a time-limited PUT URL | helpers |
 | `IStorageHelper.presignGet(opts)` | New. Returns a time-limited GET URL, with an optional response content type | helpers |
 | `IStorageHelper.getObjectTags(opts)` | New. Returns an object's tags as a plain `Record<string, string>` | helpers |
-| `IStorageHelper.setObjectTags(opts)` | New. Replaces an object's tags | helpers |
+| `IStorageHelper.replaceObjectTags(opts)` | New. Replaces an object's tags | helpers |
 | `StoragePresignDefaults` | New const class: `PUT_EXPIRES_IN_SECONDS` (600), `GET_EXPIRES_IN_SECONDS` (60) | helpers |
 
 | Method | `expiresInSeconds` default | Extra option |
@@ -52,7 +52,7 @@ A two-phase upload asks the backend for a presigned URL, uploads straight to S3,
 
 ### Who is affected
 
-- **Applications that hand-rolled presigned URLs or S3 tagging.** Switch to `presignPut`/`presignGet`/`getObjectTags`/`setObjectTags` and delete the custom class.
+- **Applications that hand-rolled presigned URLs or S3 tagging.** Switch to `presignPut`/`presignGet`/`getObjectTags`/`replaceObjectTags` and delete the custom class.
 - **Everyone else.** No action needed - the four methods are additive.
 
 ## Details
