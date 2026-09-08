@@ -7,7 +7,7 @@ import { Readable } from 'node:stream';
 
 // Concrete subclass to test abstract base methods
 class TestHelper extends BaseStorageHelper {
-  override isBucketExists(_opts: { name: string }): Promise<boolean> {
+  override hasBucket(_opts: { name: string }): Promise<boolean> {
     throw new Error('Method not implemented.');
   }
   override getBuckets(): Promise<IBucketInfo[]> {
@@ -32,7 +32,7 @@ class TestHelper extends BaseStorageHelper {
   }): Promise<void> {
     throw new Error('Method not implemented.');
   }
-  override getFile(_opts: { bucket: string; name: string; options?: any }): Promise<Readable> {
+  override getObject(_opts: { bucket: string; name: string; options?: any }): Promise<Readable> {
     throw new Error('Method not implemented.');
   }
   override getStat(_opts: { bucket: string; name: string }): Promise<IFileStat> {

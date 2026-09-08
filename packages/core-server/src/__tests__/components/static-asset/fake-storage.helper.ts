@@ -71,8 +71,8 @@ export class FakeStorageHelper extends BaseStorageHelper {
     });
   }
 
-  async isBucketExists(opts: { name: string }): Promise<boolean> {
-    this.calls.push({ method: 'isBucketExists', args: { ...opts } });
+  async hasBucket(opts: { name: string }): Promise<boolean> {
+    this.calls.push({ method: 'hasBucket', args: { ...opts } });
     return this.buckets.has(opts.name);
   }
 
@@ -101,14 +101,14 @@ export class FakeStorageHelper extends BaseStorageHelper {
     return this.buckets.delete(opts.name);
   }
 
-  async getFile(opts: { bucket: string; name: string }): Promise<Readable> {
-    this.calls.push({ method: 'getFile', args: { ...opts } });
+  async getObject(opts: { bucket: string; name: string }): Promise<Readable> {
+    this.calls.push({ method: 'getObject', args: { ...opts } });
     const found = this.objects.get(`${opts.bucket}/${opts.name}`);
 
     if (!found) {
       throw getError({
         error: StorageErrors.OBJECT_NOT_FOUND,
-        message: `[getFile] Object not found | ${opts.bucket}/${opts.name}`,
+        message: `[getObject] Object not found | ${opts.bucket}/${opts.name}`,
       });
     }
 

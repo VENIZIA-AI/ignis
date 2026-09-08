@@ -99,7 +99,7 @@ describe('BunS3Helper.listObjects - useRecursive', () => {
   });
 });
 
-describe('BunS3Helper.getFile - the object is streamed, not buffered', () => {
+describe('BunS3Helper.getObject - the object is streamed, not buffered', () => {
   test('returns a readable without reading the object first', async () => {
     const helper = new BunS3Helper({
       accessKey: 'AK',
@@ -109,7 +109,7 @@ describe('BunS3Helper.getFile - the object is streamed, not buffered', () => {
     });
 
     // The endpoint is unreachable on purpose: a lazy stream still constructs, a buffering read would throw.
-    const stream = await helper.getFile({ bucket: 'assets', name: 'photo.png' });
+    const stream = await helper.getObject({ bucket: 'assets', name: 'photo.png' });
 
     expect(stream).toBeInstanceOf(Readable);
   });

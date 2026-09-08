@@ -9,7 +9,7 @@ import { Readable } from 'node:stream';
 
 /** Minimal concrete subclass - proves the thrown message names THIS class, not a hardcoded one. */
 class BareStorageHelper extends BaseStorageHelper {
-  override isBucketExists(_opts: { name: string }): Promise<boolean> {
+  override hasBucket(_opts: { name: string }): Promise<boolean> {
     throw new Error('Method not implemented.');
   }
   override getBuckets(): Promise<IBucketInfo[]> {
@@ -34,7 +34,7 @@ class BareStorageHelper extends BaseStorageHelper {
   }): Promise<void> {
     throw new Error('Method not implemented.');
   }
-  override getFile(_opts: { bucket: string; name: string; options?: any }): Promise<Readable> {
+  override getObject(_opts: { bucket: string; name: string; options?: any }): Promise<Readable> {
     throw new Error('Method not implemented.');
   }
   override getStat(_opts: { bucket: string; name: string }): Promise<IFileStat> {
@@ -95,13 +95,17 @@ describe('BaseStorageHelper - presign/tagging refusal', () => {
     expect(message).toContain('getObjectTags');
   });
 
-  test('setObjectTags throws naming the class and the method', async () => {
+  test('replaceObjectTags throws naming the class and the method', async () => {
     const message = await captureErrorMessage({
-      task: helper.setObjectTags({ bucket: 'assets', name: 'file.png', tags: { temp: 'true' } }),
+      task: helper.replaceObjectTags({
+        bucket: 'assets',
+        name: 'file.png',
+        tags: { temp: 'true' },
+      }),
     });
 
     expect(message).toContain('BareStorageHelper');
-    expect(message).toContain('setObjectTags');
+    expect(message).toContain('replaceObjectTags');
   });
 });
 
@@ -137,12 +141,12 @@ describe('DiskHelper - inherits the base refusal (no fake URL, no fake tags)', (
     expect(message).toContain('getObjectTags');
   });
 
-  test('setObjectTags throws naming DiskHelper', async () => {
+  test('replaceObjectTags throws naming DiskHelper', async () => {
     const message = await captureErrorMessage({
-      task: helper.setObjectTags({ bucket: 'assets', name: 'file.png', tags: {} }),
+      task: helper.replaceObjectTags({ bucket: 'assets', name: 'file.png', tags: {} }),
     });
 
     expect(message).toContain('DiskHelper');
-    expect(message).toContain('setObjectTags');
+    expect(message).toContain('replaceObjectTags');
   });
 });

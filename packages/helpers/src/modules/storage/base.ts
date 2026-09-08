@@ -162,7 +162,7 @@ export abstract class BaseStorageHelper extends BaseHelper implements IStorageHe
     return true;
   }
 
-  getFileType(opts: { mimeType: string }): string {
+  getMediaType(opts: { mimeType: string }): string {
     const { mimeType } = opts;
     if (mimeType?.toLowerCase()?.startsWith(MimeTypes.IMAGE)) {
       return MimeTypes.IMAGE;
@@ -262,7 +262,7 @@ export abstract class BaseStorageHelper extends BaseHelper implements IStorageHe
       return [];
     }
 
-    const isExists = await this.isBucketExists({ name: bucket });
+    const isExists = await this.hasBucket({ name: bucket });
     if (!isExists) {
       throw getError({
         message: `[upload] Bucket does not exist | name: ${bucket}`,
@@ -303,8 +303,8 @@ export abstract class BaseStorageHelper extends BaseHelper implements IStorageHe
           );
 
         return {
-          bucketName: bucket,
-          objectName: normalizeName,
+          bucket: { name: bucket },
+          object: { key: normalizeName, size, contentType: mimeType },
           link: normalizeLink,
         };
       },
@@ -315,13 +315,13 @@ export abstract class BaseStorageHelper extends BaseHelper implements IStorageHe
    * Correct for any backend, and overridden by the ones that can do better: a helper whose transport is
    * already a web stream should return it untouched rather than round trip through a Node `Readable`.
    */
-  async getFileStream(opts: {
+  async getObjectStream(opts: {
     bucket: string;
     name: string;
     range?: { start: number; end?: number };
   }): Promise<ReadableStream<Uint8Array>> {
     const { bucket, name, range } = opts;
-    const source = await this.getFile({ bucket, name });
+    const source = await this.getObject({ bucket, name });
 
     if (!range) {
       return Readable.toWeb(source) as ReadableStream<Uint8Array>;
@@ -431,23 +431,23 @@ export abstract class BaseStorageHelper extends BaseHelper implements IStorageHe
     });
   }
 
-  async setObjectTags(_opts: {
+  async replaceObjectTags(_opts: {
     bucket: string;
     name: string;
     tags: Record<string, string>;
   }): Promise<void> {
     throw getError({
-      message: `[${this.constructor.name}.setObjectTags] Object tagging is not supported by this helper`,
+      message: `[${this.constructor.name}.replaceObjectTags] Object tagging is not supported by this helper`,
     });
   }
 
-  abstract isBucketExists(opts: { name: string }): Promise<boolean>;
+  abstract hasBucket(opts: { name: string }): Promise<boolean>;
   abstract getBuckets(): Promise<IBucketInfo[]>;
   abstract getBucket(opts: { name: string }): Promise<IBucketInfo | null>;
   abstract createBucket(opts: { name: string }): Promise<IBucketInfo | null>;
   abstract removeBucket(opts: { name: string }): Promise<boolean>;
 
-  abstract getFile(opts: { bucket: string; name: string; options?: any }): Promise<Readable>;
+  abstract getObject(opts: { bucket: string; name: string; options?: any }): Promise<Readable>;
   abstract getStat(opts: { bucket: string; name: string }): Promise<IFileStat>;
   abstract removeObject(opts: { bucket: string; name: string }): Promise<void>;
   abstract removeObjects(opts: { bucket: string; names: string[] }): Promise<void>;

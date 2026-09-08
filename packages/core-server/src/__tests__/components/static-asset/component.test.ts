@@ -78,7 +78,7 @@ describe('StaticAssetComponent', () => {
     const formData = new FormData();
     formData.append('files', new File(['flat'], 'photo.jpg', { type: 'image/jpeg' }));
 
-    const uploadResponse = await router.request('/assets/buckets/images/upload', {
+    const uploadResponse = await router.request('/assets/buckets/images/objects', {
       method: 'POST',
       body: formData,
     });
@@ -98,13 +98,16 @@ describe('StaticAssetComponent', () => {
     formData.append('files', new File(['nested'], 'photo.jpg', { type: 'image/jpeg' }));
 
     const uploadResponse = await router.request(
-      '/assets/buckets/images/upload?folderPath=photos/2024',
+      '/assets/buckets/images/objects?folderPath=photos/2024',
       { method: 'POST', body: formData },
     );
     expect(uploadResponse.status).toBe(200);
 
-    const uploaded = (await uploadResponse.json()) as Array<{ link: string; objectName: string }>;
-    expect(uploaded[0].objectName).toBe('photos/2024/photo.jpg');
+    const uploaded = (await uploadResponse.json()) as Array<{
+      link: string;
+      object: { key: string };
+    }>;
+    expect(uploaded[0].object.key).toBe('photos/2024/photo.jpg');
 
     const getResponse = await router.request(uploaded[0].link);
     expect(getResponse.status).toBe(200);

@@ -147,7 +147,7 @@ const mountAssetController = async (opts: {
   return server;
 };
 
-/** Uploads `files` through the multipart endpoint. `uploadPath` follows the controller's URL shape - a configured bucket serves `/assets/upload`. */
+/** Uploads `files` through the multipart endpoint. `uploadPath` follows the controller's URL shape - a configured bucket serves `/assets/objects`. */
 const uploadFiles = async (opts: {
   router: OpenAPIHono;
   files: File[];
@@ -160,7 +160,7 @@ const uploadFiles = async (opts: {
     files,
     query = '',
     fieldName = 'files',
-    uploadPath = '/assets/buckets/images/upload',
+    uploadPath = '/assets/buckets/images/objects',
   } = opts;
   const formData = new FormData();
 
@@ -204,7 +204,7 @@ describe('StaticAsset controller — path traversal hardening', () => {
       expect(response.status).toBeLessThan(500);
 
       const reachedStorage = helper.calls.filter(call =>
-        ['getFile', 'getStat'].includes(call.method),
+        ['getObject', 'getStat'].includes(call.method),
       );
       expect(reachedStorage).toEqual([]);
     });
@@ -219,10 +219,12 @@ describe('StaticAsset controller — path traversal hardening', () => {
     });
 
     test(`DOWNLOAD object rejects ${label} without reaching storage`, async () => {
-      const response = await router.request(`/assets/buckets/images/download/${objectName}`);
+      const response = await router.request(`/assets/buckets/images/downloads/${objectName}`);
       expect(response.status).toBeGreaterThanOrEqual(400);
       expect(response.status).toBeLessThan(500);
-      expect(helper.calls.filter(call => ['getFile', 'getStat'].includes(call.method))).toEqual([]);
+      expect(helper.calls.filter(call => ['getObject', 'getStat'].includes(call.method))).toEqual(
+        [],
+      );
     });
   }
 
@@ -235,7 +237,9 @@ describe('StaticAsset controller — path traversal hardening', () => {
     // Not found, because no such object exists - not a 200, and not an escape.
     expect(response.status).toBeGreaterThanOrEqual(400);
 
-    const storageCalls = helper.calls.filter(call => ['getFile', 'getStat'].includes(call.method));
+    const storageCalls = helper.calls.filter(call =>
+      ['getObject', 'getStat'].includes(call.method),
+    );
 
     for (const call of storageCalls) {
       const name = String((call as AnyType).args?.name ?? '');
@@ -276,7 +280,7 @@ describe('StaticAsset controller — download headers', () => {
       files: [new File(['payload'], 'report.pdf', { type: 'application/pdf' })],
     });
 
-    const response = await router.request('/assets/buckets/images/download/report.pdf');
+    const response = await router.request('/assets/buckets/images/downloads/report.pdf');
     expect(response.status).toBe(200);
 
     const disposition = response.headers.get('content-disposition') ?? '';
@@ -291,7 +295,7 @@ describe('StaticAsset controller — download headers', () => {
 describe('StaticAsset controller - a missing object is a 404, and only a missing object', () => {
   const readRoutes = [
     ['GET', '/assets/buckets/images/objects/absent.jpg'],
-    ['DOWNLOAD', '/assets/buckets/images/download/absent.jpg'],
+    ['DOWNLOAD', '/assets/buckets/images/downloads/absent.jpg'],
   ] as const;
 
   test.each(readRoutes)('%s answers 404 with the catalogued code', async (_label, path) => {
@@ -407,7 +411,7 @@ describe('StaticAsset controller — multipart upload edge cases', () => {
   });
 
   test('missing file field is a clean 4xx, not a silent empty 200', async () => {
-    const response = await router.request('/assets/buckets/images/upload', {
+    const response = await router.request('/assets/buckets/images/objects', {
       method: 'POST',
       body: new FormData(),
     });
@@ -513,11 +517,11 @@ describe('StaticAsset controller — nested folder objects', () => {
     });
     expect(uploadResponse.status).toBe(200);
 
-    const uploaded = (await uploadResponse.json()) as Array<{ objectName: string }>;
-    expect(uploaded[0].objectName).toBe('photos/2024/photo.jpg');
+    const uploaded = (await uploadResponse.json()) as Array<{ object: { key: string } }>;
+    expect(uploaded[0].object.key).toBe('photos/2024/photo.jpg');
 
     const getResponse = await router.request(
-      `/assets/buckets/images/objects/${encodeURIComponent(uploaded[0].objectName)}`,
+      `/assets/buckets/images/objects/${encodeURIComponent(uploaded[0].object.key)}`,
     );
     expect(getResponse.status).toBe(200);
     expect(await getResponse.text()).toBe('nested');
@@ -525,7 +529,7 @@ describe('StaticAsset controller — nested folder objects', () => {
     // The URL contract: `{objectName}` is ONE segment, so a RAW nested path 404s and only the
     // percent-encoded form resolves. A consumer whose stored links carry the raw form needs its own route.
     const rawResponse = await router.request(
-      `/assets/buckets/images/objects/${uploaded[0].objectName}`,
+      `/assets/buckets/images/objects/${uploaded[0].object.key}`,
     );
     expect(rawResponse.status).toBe(404);
   });
@@ -596,8 +600,8 @@ describe('StaticAsset controller — resolveObjectName hook', () => {
     });
     expect(response.status).toBe(200);
 
-    const uploaded = (await response.json()) as Array<{ objectName: string }>;
-    expect(uploaded[0].objectName).toBe('my_photo.jpg');
+    const uploaded = (await response.json()) as Array<{ object: { key: string } }>;
+    expect(uploaded[0].object.key).toBe('my_photo.jpg');
     expect(helper.hasObject({ bucket: 'images', name: 'my_photo.jpg' })).toBe(true);
   });
 
@@ -614,8 +618,8 @@ describe('StaticAsset controller — resolveObjectName hook', () => {
     });
     expect(response.status).toBe(200);
 
-    const uploaded = (await response.json()) as Array<{ objectName: string }>;
-    expect(uploaded[0].objectName).toBe('fixed-name.bin');
+    const uploaded = (await response.json()) as Array<{ object: { key: string } }>;
+    expect(uploaded[0].object.key).toBe('fixed-name.bin');
     expect(helper.hasObject({ bucket: 'images', name: 'fixed-name.bin' })).toBe(true);
     expect(helper.hasObject({ bucket: 'images', name: 'my_photo.jpg' })).toBe(false);
   });
@@ -656,8 +660,8 @@ describe('StaticAsset controller — resolveObjectName hook', () => {
       query: '?folderPath=Photos/2024',
     });
 
-    const plainUploaded = (await plainResponse.json()) as Array<{ objectName: string }>;
-    expect(plainUploaded[0].objectName).toBe(seen[0].defaultName);
+    const plainUploaded = (await plainResponse.json()) as Array<{ object: { key: string } }>;
+    expect(plainUploaded[0].object.key).toBe(seen[0].defaultName);
   });
 
   test('a configured normalizeNameFn is what the hook sees as the default name', async () => {
@@ -734,8 +738,8 @@ describe('StaticAsset controller — defineExtraRoutes hook', () => {
     });
     expect(uploadResponse.status).toBe(200);
 
-    const uploaded = (await uploadResponse.json()) as Array<{ objectName: string }>;
-    expect(uploaded[0].objectName).toBe('scoped/photo.jpg');
+    const uploaded = (await uploadResponse.json()) as Array<{ object: { key: string } }>;
+    expect(uploaded[0].object.key).toBe('scoped/photo.jpg');
 
     const objectResponse = await router.request(
       `/assets/buckets/images/objects/${encodeURIComponent('scoped/photo.jpg')}`,
@@ -760,7 +764,7 @@ describe('StaticAsset controller — a configured bucket', () => {
     const uploadResponse = await uploadFiles({
       router,
       files: [new File(['single'], 'photo.jpg', { type: 'image/jpeg' })],
-      uploadPath: '/assets/upload',
+      uploadPath: '/assets/objects',
     });
     expect(uploadResponse.status).toBe(200);
 
@@ -806,7 +810,7 @@ describe('StaticAsset controller — a configured bucket', () => {
     const uploadResponse = await uploadFiles({
       router,
       files: [new File(['lazy'], 'photo.jpg', { type: 'image/jpeg' })],
-      uploadPath: '/assets/upload',
+      uploadPath: '/assets/objects',
     });
     expect(uploadResponse.status).toBe(200);
 
@@ -850,7 +854,7 @@ describe('StaticAsset controller — raw nested object paths', () => {
       router,
       files: [new File(['nested'], 'photo.jpg', { type: 'image/jpeg' })],
       query: '?folderPath=photos/2024',
-      uploadPath: '/assets/upload',
+      uploadPath: '/assets/objects',
     });
     expect(uploadResponse.status).toBe(200);
 
@@ -906,7 +910,7 @@ describe('StaticAsset controller — raw nested object paths', () => {
 
     const body = await readJson(response);
     expect(body.normalized?.code).toBe('core.static_asset.object_name_invalid');
-    expect(helper.calls.filter(call => ['getFile', 'getStat'].includes(call.method))).toEqual([]);
+    expect(helper.calls.filter(call => ['getObject', 'getStat'].includes(call.method))).toEqual([]);
   });
 });
 
@@ -959,7 +963,7 @@ describe('StaticAsset controller — strict routing', () => {
       router,
       files: [new File(['strict'], 'photo.jpg', { type: 'image/jpeg' })],
       query: '?folderPath=photos/2024',
-      uploadPath: '/assets/upload',
+      uploadPath: '/assets/objects',
     });
 
     const response = await router.request('/assets/objects/photos/2024/photo.jpg');
@@ -991,12 +995,12 @@ describe('StaticAsset controller - defineRoutesBefore wins a path collision', ()
     expect(literal.status).toBe(200);
     expect(await literal.json()).toEqual({ translations: true });
 
-    // A configured bucket serves the upload at `/assets/upload`, not the bucket-in-path default.
+    // A configured bucket serves the upload at `/assets/objects`, not the bucket-in-path default.
     const uploaded = await uploadFiles({
       router,
       files: [new File(['nested'], 'photo.jpg', { type: 'image/jpeg' })],
       query: '?folderPath=photos/2024',
-      uploadPath: '/assets/upload',
+      uploadPath: '/assets/objects',
     });
     expect(uploaded.status).toBe(200);
 

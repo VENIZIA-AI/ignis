@@ -141,8 +141,8 @@ describe('Storage - upload', () => {
 
       expect(result).toEqual([
         {
-          bucketName: 'assets',
-          objectName: 'hello_world.png',
+          bucket: { name: 'assets' },
+          object: { key: 'hello_world.png', size: 7, contentType: 'image/png' },
           link: '/static-resources/assets/hello_world.png',
         },
       ]);
@@ -157,7 +157,7 @@ describe('Storage - upload', () => {
         files: [buildFile({ originalName: 'report v1+final.png', folderPath: 'My Folder' })],
       });
 
-      expect(result[0].objectName).toBe('my_folder/report_v1+final.png');
+      expect(result[0].object.key).toBe('my_folder/report_v1+final.png');
       expect(result[0].link).toBe('/static-resources/assets/my_folder/report_v1%2Bfinal.png');
     });
 
@@ -170,7 +170,7 @@ describe('Storage - upload', () => {
           `https://cdn/${bucketName}/${normalizeName}`,
       });
 
-      expect(result[0].objectName).toBe('custom/Hello World.png');
+      expect(result[0].object.key).toBe('custom/Hello World.png');
       expect(result[0].link).toBe('https://cdn/assets/custom/Hello World.png');
     });
   });
@@ -275,8 +275,8 @@ describe('Storage - upload', () => {
 
       expect(result).toEqual([
         {
-          bucketName: 'assets',
-          objectName: 'hello_world.png',
+          bucket: { name: 'assets' },
+          object: { key: 'hello_world.png', size: 7, contentType: 'image/png' },
           link: '/static-assets/assets/hello_world.png',
         },
       ]);
@@ -300,7 +300,7 @@ describe('Storage - upload', () => {
           `https://cdn/${bucketName}/${normalizeName}`,
       });
 
-      expect(result[0].objectName).toBe('custom/Hello World.png');
+      expect(result[0].object.key).toBe('custom/Hello World.png');
       expect(result[0].link).toBe('https://cdn/assets/custom/Hello World.png');
       expect(writes[0].objectName).toBe('custom/Hello World.png');
     });

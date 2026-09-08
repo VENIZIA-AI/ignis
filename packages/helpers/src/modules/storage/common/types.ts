@@ -10,12 +10,16 @@ export interface IUploadFile {
   [key: string | symbol]: any;
 }
 
+/**
+ * Scoped, not flat pairs: `bucketName` + `objectName` were two entities flattened into a field pair.
+ * `metaLink` is a discriminated union because the old `metaLink` + `metaLinkError` pair let both be
+ * present, or neither, and only one of those four states ever means anything.
+ */
 export interface IUploadResult {
-  bucketName: string;
-  objectName: string;
+  bucket: { name: string };
+  object: { key: string; size: number; contentType: string };
   link: string;
-  metaLink?: any;
-  metaLinkError?: any;
+  metaLink?: { data: any } | { error: string };
 }
 
 export interface IFileStat {
@@ -55,20 +59,20 @@ export interface IStorageHelper {
   isValidName(opts: { name: string }): boolean;
   isValidPath(opts: { path: string; maxDepth?: number }): boolean;
 
-  isBucketExists(opts: { name: string }): Promise<boolean>;
+  hasBucket(opts: { name: string }): Promise<boolean>;
   getBuckets(): Promise<IBucketInfo[]>;
   getBucket(opts: { name: string }): Promise<IBucketInfo | null>;
   createBucket(opts: { name: string }): Promise<IBucketInfo | null>;
   removeBucket(opts: { name: string }): Promise<boolean>;
 
-  getFile(opts: { bucket: string; name: string; options?: any }): Promise<Readable>;
+  getObject(opts: { bucket: string; name: string; options?: any }): Promise<Readable>;
 
   /**
-   * The same bytes as `getFile`, as a web stream. This is what a `Response` body wants, so an HTTP
+   * The same bytes as `getObject`, as a web stream. This is what a `Response` body wants, so an HTTP
    * backend avoids the round trip through a Node `Readable` and back. `range` is a byte range,
    * inclusive of `end` like the HTTP header - it is what makes a video seekable.
    */
-  getFileStream(opts: {
+  getObjectStream(opts: {
     bucket: string;
     name: string;
     range?: { start: number; end?: number };
@@ -97,12 +101,12 @@ export interface IStorageHelper {
   }): Promise<string>;
 
   getObjectTags(opts: { bucket: string; name: string }): Promise<Record<string, string>>;
-  setObjectTags(opts: {
+  replaceObjectTags(opts: {
     bucket: string;
     name: string;
     tags: Record<string, string>;
   }): Promise<void>;
 
-  getFileType(opts: { mimeType: string }): string;
+  getMediaType(opts: { mimeType: string }): string;
   getMimeType(opts: { filename: string }): string;
 }

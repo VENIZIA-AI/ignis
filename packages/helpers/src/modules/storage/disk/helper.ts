@@ -95,7 +95,7 @@ export class DiskHelper extends BaseStorageHelper {
   }
 
   /** One `stat` answers both "is it there" and "is it a directory"; `access` first only doubled the syscalls. */
-  async isBucketExists(opts: { name: string }): Promise<boolean> {
+  async hasBucket(opts: { name: string }): Promise<boolean> {
     const { name } = opts;
     if (!this.isValidName({ name })) {
       return false;
@@ -207,14 +207,14 @@ export class DiskHelper extends BaseStorageHelper {
     await fsp.writeFile(objectPath, file.buffer);
   }
 
-  async getFile(opts: { bucket: string; name: string; options?: any }): Promise<Readable> {
+  async getObject(opts: { bucket: string; name: string; options?: any }): Promise<Readable> {
     const { bucket, name } = opts;
     const objectPath = this.resolveObjectPath({ bucket, name });
 
     if (!(await this.exists(objectPath))) {
       throw getError({
         error: StorageErrors.OBJECT_NOT_FOUND,
-        message: `[getFile] Object not found | bucket: ${bucket} | name: ${name}`,
+        message: `[getObject] Object not found | bucket: ${bucket} | name: ${name}`,
       });
     }
 
@@ -222,7 +222,7 @@ export class DiskHelper extends BaseStorageHelper {
   }
 
   /** `createReadStream` seeks natively, so a range never reads the bytes before it. */
-  override async getFileStream(opts: {
+  override async getObjectStream(opts: {
     bucket: string;
     name: string;
     range?: { start: number; end?: number };
@@ -233,7 +233,7 @@ export class DiskHelper extends BaseStorageHelper {
     if (!(await this.exists(objectPath))) {
       throw getError({
         error: StorageErrors.OBJECT_NOT_FOUND,
-        message: `[getFileStream] Object not found | bucket: ${bucket} | name: ${name}`,
+        message: `[getObjectStream] Object not found | bucket: ${bucket} | name: ${name}`,
       });
     }
 

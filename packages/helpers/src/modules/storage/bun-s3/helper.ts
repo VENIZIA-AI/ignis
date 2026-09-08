@@ -125,7 +125,7 @@ export class BunS3Helper extends BaseStorageHelper {
     };
   }
 
-  async isBucketExists(opts: { name: string }): Promise<boolean> {
+  async hasBucket(opts: { name: string }): Promise<boolean> {
     const { name } = opts;
     if (!this.isValidName({ name })) {
       return false;
@@ -138,7 +138,7 @@ export class BunS3Helper extends BaseStorageHelper {
       // A missing bucket is the answer; credentials, region or network failures are not and must not vanish.
       if (!isNotFoundError({ error })) {
         this.logger.warn(
-          '[isBucketExists] Cannot determine bucket existence - reporting false | bucket: %s | %s',
+          '[hasBucket] Cannot determine bucket existence - reporting false | bucket: %s | %s',
           name,
           ErrorPrettier.format({ error }),
         );
@@ -324,7 +324,7 @@ export class BunS3Helper extends BaseStorageHelper {
     return parseTaggingXml(body);
   }
 
-  override async setObjectTags(opts: {
+  override async replaceObjectTags(opts: {
     bucket: string;
     name: string;
     tags: Record<string, string>;
@@ -351,7 +351,7 @@ export class BunS3Helper extends BaseStorageHelper {
     if (!response.ok) {
       const body = await response.text();
       throw getError({
-        message: `[setObjectTags] S3 error | status: ${response.status} | body: ${body}`,
+        message: `[replaceObjectTags] S3 error | status: ${response.status} | body: ${body}`,
       });
     }
   }
@@ -411,7 +411,7 @@ export class BunS3Helper extends BaseStorageHelper {
    * `try` around this call can never see a 404 - the failure arrives on the stream instead. The stream
    * is forwarded, never buffered, so object size does not become memory here.
    */
-  async getFile(opts: { bucket: string; name: string; options?: any }): Promise<Readable> {
+  async getObject(opts: { bucket: string; name: string; options?: any }): Promise<Readable> {
     const { bucket, name } = opts;
     const source = this.client.file(name, { bucket }).stream();
 
@@ -426,7 +426,7 @@ export class BunS3Helper extends BaseStorageHelper {
    * `slice` turns the range into a ranged GET, so only the requested bytes leave S3 - discarding them
    * locally would pay for the whole object to serve a seek.
    */
-  override async getFileStream(opts: {
+  override async getObjectStream(opts: {
     bucket: string;
     name: string;
     range?: { start: number; end?: number };

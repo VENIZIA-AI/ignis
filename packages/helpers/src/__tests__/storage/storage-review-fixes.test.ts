@@ -63,7 +63,7 @@ describe('upload runs with bounded concurrency', () => {
 
     const results = await helper.upload({ bucket: 'images', files });
 
-    expect(results.map(result => result.objectName)).toEqual(
+    expect(results.map(result => result.object.key)).toEqual(
       files.map(file => file.originalName.toLowerCase()),
     );
   });

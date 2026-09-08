@@ -339,7 +339,7 @@ export class AssetControllerFactory extends BaseHelper {
             }
 
             // The web stream is what a Response body wants, so no Node Readable sits in between.
-            const stream = await helper.getFileStream({
+            const stream = await helper.getObjectStream({
               bucket: bucketName,
               name: objectName,
               ...(range ? { range } : {}),
@@ -388,7 +388,7 @@ export class AssetControllerFactory extends BaseHelper {
             ctx.header('x-content-type-options', 'nosniff');
             ctx.header(HTTP.Headers.CONTENT_SECURITY_POLICY, 'sandbox');
 
-            const stream = await helper.getFileStream({ bucket: bucketName, name: objectName });
+            const stream = await helper.getObjectStream({ bucket: bucketName, name: objectName });
             return new Response(stream, {
               headers: ctx.res.headers,
               status: HTTP.ResultCodes.RS_2.Ok,
@@ -505,8 +505,8 @@ export class AssetControllerFactory extends BaseHelper {
             for (const uploadResult of uploaded) {
               try {
                 const fileStat = await helper.getStat({
-                  bucket: uploadResult.bucketName,
-                  name: uploadResult.objectName,
+                  bucket: uploadResult.bucket.name,
+                  name: uploadResult.object.key,
                 });
 
                 const { data: createdMetaLink } = metaLink.createMetaLink
@@ -517,8 +517,8 @@ export class AssetControllerFactory extends BaseHelper {
                     })
                   : await metaLink.repository.create({
                       data: {
-                        bucketName: uploadResult.bucketName,
-                        objectName: uploadResult.objectName,
+                        bucketName: uploadResult.bucket.name,
+                        objectName: uploadResult.object.key,
                         link: uploadResult.link,
                         mimetype: fileStat.metadata?.['mimetype'],
                         size: fileStat.size,
@@ -534,23 +534,22 @@ export class AssetControllerFactory extends BaseHelper {
                       },
                     });
 
-                results.push({ ...uploadResult, metaLink: createdMetaLink });
+                results.push({ ...uploadResult, metaLink: { data: createdMetaLink } });
               } catch (error) {
                 this.logger
                   .for('UPLOAD')
                   .error(
                     'Failed to create MetaLink | objectName: %s | Error: %s',
-                    uploadResult.objectName,
+                    uploadResult.object.key,
                     error,
                   );
                 results.push({
                   ...uploadResult,
-                  metaLink: null,
                   // A CODE, never the driver text. This handler returns 200, so it bypasses the
                   // error middleware and `database.handler` - the two places that strip
                   // `detail`/`table`/`constraint` - and shipped raw constraint names to the client.
                   // The real error is already logged in full immediately above.
-                  metaLinkError: 'META_LINK_CREATE_FAILED',
+                  metaLink: { error: 'META_LINK_CREATE_FAILED' },
                 });
               }
             }

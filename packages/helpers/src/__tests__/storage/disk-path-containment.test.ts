@@ -39,10 +39,10 @@ afterEach(() => {
 describe('DiskHelper - an object name cannot leave its bucket', () => {
   const escapes = ['../outside.txt', '../../outside.txt', 'nested/../../outside.txt'];
 
-  test.each(escapes)('getFile rejects %s', async name => {
+  test.each(escapes)('getObject rejects %s', async name => {
     const { helper } = buildStorage();
 
-    const message = await captureError({ task: helper.getFile({ bucket: 'images', name }) });
+    const message = await captureError({ task: helper.getObject({ bucket: 'images', name }) });
 
     expect(message).toContain('Invalid object name');
   });

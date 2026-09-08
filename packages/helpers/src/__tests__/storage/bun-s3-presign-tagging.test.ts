@@ -1,4 +1,4 @@
-/** BunS3Helper - presignPut/presignGet (real S3Client, no network) and getObjectTags/setObjectTags (stubbed fetch) (Task 4) */
+/** BunS3Helper - presignPut/presignGet (real S3Client, no network) and getObjectTags/replaceObjectTags (stubbed fetch) (Task 4) */
 
 import { AnyType } from '@/common';
 import { BunS3Helper } from '@/modules/storage/bun-s3';
@@ -75,7 +75,7 @@ describe('BunS3Helper.presignPut / presignGet - real S3Client, unreachable endpo
   });
 });
 
-describe('BunS3Helper.getObjectTags / setObjectTags - stubbed fetch', () => {
+describe('BunS3Helper.getObjectTags / replaceObjectTags - stubbed fetch', () => {
   test('getObjectTags sends GET with the tagging query and parses the response', async () => {
     let capturedUrl = '';
     let capturedMethod = '';
@@ -117,7 +117,7 @@ describe('BunS3Helper.getObjectTags / setObjectTags - stubbed fetch', () => {
     expect((error as Error).message).toContain('internal error');
   });
 
-  test('setObjectTags sends PUT with the tagging query and the built XML body', async () => {
+  test('replaceObjectTags sends PUT with the tagging query and the built XML body', async () => {
     let capturedUrl = '';
     let capturedMethod = '';
     let capturedBody = '';
@@ -129,7 +129,7 @@ describe('BunS3Helper.getObjectTags / setObjectTags - stubbed fetch', () => {
       return Promise.resolve(new Response('', { status: 200 }));
     }) as AnyType;
 
-    await buildHelper().setObjectTags({
+    await buildHelper().replaceObjectTags({
       bucket: 'assets',
       name: 'file.png',
       tags: { temp: 'true' },
@@ -143,11 +143,11 @@ describe('BunS3Helper.getObjectTags / setObjectTags - stubbed fetch', () => {
     );
   });
 
-  test('setObjectTags throws a getError carrying the status and body on a non-2xx response', async () => {
+  test('replaceObjectTags throws a getError carrying the status and body on a non-2xx response', async () => {
     globalThis.fetch = (() => Promise.resolve(new Response('denied', { status: 403 }))) as AnyType;
 
     const error = await buildHelper()
-      .setObjectTags({ bucket: 'assets', name: 'file.png', tags: {} })
+      .replaceObjectTags({ bucket: 'assets', name: 'file.png', tags: {} })
       .catch((caught: Error) => caught);
 
     expect(error).toBeInstanceOf(Error);

@@ -154,13 +154,13 @@ export const buildAssetDefinitions = (opts: {
     },
     DOWNLOAD_OBJECT_BY_NAME: {
       method: 'get',
-      path: `${bucketPrefix}/download/${objectSegment}`,
+      path: `${bucketPrefix}/downloads/${objectSegment}`,
       request: objectRequest(),
       responses: fileStreamResponses(),
     },
     UPLOAD: {
       method: 'post',
-      path: `${bucketPrefix}/upload`,
+      path: `${bucketPrefix}/objects`,
       request: {
         ...bucketRequest(),
         query: z.object({
@@ -190,11 +190,16 @@ export const buildAssetDefinitions = (opts: {
       responses: jsonResponse({
         schema: z.array(
           z.object({
-            objectName: z.string(),
+            bucket: z.object({ name: z.string() }),
+            object: z.object({
+              key: z.string(),
+              size: z.number(),
+              contentType: z.string(),
+            }),
             link: z.string(),
-            bucketName: z.string(),
-            metaLink: z.any().optional(),
-            metaLinkError: z.string().optional(),
+            metaLink: z
+              .union([z.object({ data: z.any() }), z.object({ error: z.string() })])
+              .optional(),
           }),
         ),
       }),
