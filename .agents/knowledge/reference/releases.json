@@ -444,6 +444,12 @@
     ],
     "connectors": [
       {
+        "version": "0.2.0-23",
+        "date": "2026-09-08",
+        "sha": "7442aa16",
+        "order": 1140
+      },
+      {
         "version": "0.2.0-22",
         "date": "2026-09-06",
         "sha": "613fcc95",
@@ -1432,6 +1438,12 @@
     ],
     "core-server": [
       {
+        "version": "0.2.0-23",
+        "date": "2026-09-08",
+        "sha": "fcc11e79",
+        "order": 1141
+      },
+      {
         "version": "0.2.0-22",
         "date": "2026-09-06",
         "sha": "02d29004",
@@ -2115,6 +2127,12 @@
       }
     ],
     "helpers": [
+      {
+        "version": "0.2.0-17",
+        "date": "2026-09-08",
+        "sha": "73ef8069",
+        "order": 1138
+      },
       {
         "version": "0.2.0-16",
         "date": "2026-09-06",
@@ -2888,6 +2906,12 @@
     ],
     "kernel": [
       {
+        "version": "0.2.0-23",
+        "date": "2026-09-08",
+        "sha": "a46fdb1b",
+        "order": 1139
+      },
+      {
         "version": "0.2.0-22",
         "date": "2026-09-06",
         "sha": "f55c3657",
@@ -3035,7 +3059,7 @@
       "title": "Every Storage Method Names Its Bucket and Its Object",
       "packages": [],
       "kind": "Breaking",
-      "order": 9007199254740991
+      "order": 1137
     },
     {
       "id": "changelog:2026-09-08-storage-hardening-and-bun-s3-only",
@@ -3059,7 +3083,7 @@
         "kernel"
       ],
       "kind": "Behavior Change",
-      "order": 9007199254740991
+      "order": 1137
     },
     {
       "id": "changelog:2026-09-07-worker-project-root-and-kafka-base-seams",
