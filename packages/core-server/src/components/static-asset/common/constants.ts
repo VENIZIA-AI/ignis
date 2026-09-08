@@ -34,9 +34,11 @@ export const RENDERABLE_CONTENT_TYPES = new Set<string>([
 
 export class StaticAssetStorageTypes {
   static readonly DISK = 'disk';
+  /** @deprecated Use {@link StaticAssetStorageTypes.BUN_S3}, which reaches MinIO over the same S3 API. */
+  static readonly MINIO = 'minio';
   static readonly BUN_S3 = 'bun-s3';
 
-  static readonly SCHEME_SET = new Set([this.DISK, this.BUN_S3]);
+  static readonly SCHEME_SET = new Set([this.DISK, this.MINIO, this.BUN_S3]);
 
   static isValid(orgType: string): boolean {
     return this.SCHEME_SET.has(orgType);
