@@ -442,7 +442,9 @@ describe('StaticAsset controller — multipart upload edge cases', () => {
     });
 
     expect(response.status).toBeGreaterThanOrEqual(400);
-    expect(helper.hasObject({ bucket: 'images', name: 'bad.txt' })).toBe(false);
+    expect(helper.hasObject({ bucket: { name: 'images' }, object: { key: 'bad.txt' } })).toBe(
+      false,
+    );
   });
 
   test('custom normalizeNameFn receives the requested folderPath', async () => {
@@ -451,9 +453,9 @@ describe('StaticAsset controller — multipart upload edge cases', () => {
     const localRouter = await mountAssetController({
       helper: localHelper,
       options: {
-        normalizeNameFn: opts => {
-          seen.push({ originalName: opts.originalName, folderPath: opts.folderPath });
-          return opts.folderPath ? `${opts.folderPath}/${opts.originalName}` : opts.originalName;
+        normalizeNameFn: ({ file }) => {
+          seen.push({ originalName: file.originalName, folderPath: file.folderPath });
+          return file.folderPath ? `${file.folderPath}/${file.originalName}` : file.originalName;
         },
       },
     });
@@ -602,7 +604,9 @@ describe('StaticAsset controller — resolveObjectName hook', () => {
 
     const uploaded = (await response.json()) as Array<{ object: { key: string } }>;
     expect(uploaded[0].object.key).toBe('my_photo.jpg');
-    expect(helper.hasObject({ bucket: 'images', name: 'my_photo.jpg' })).toBe(true);
+    expect(helper.hasObject({ bucket: { name: 'images' }, object: { key: 'my_photo.jpg' } })).toBe(
+      true,
+    );
   });
 
   test('a hook returning a fixed name stores the object under it', async () => {
@@ -620,18 +624,22 @@ describe('StaticAsset controller — resolveObjectName hook', () => {
 
     const uploaded = (await response.json()) as Array<{ object: { key: string } }>;
     expect(uploaded[0].object.key).toBe('fixed-name.bin');
-    expect(helper.hasObject({ bucket: 'images', name: 'fixed-name.bin' })).toBe(true);
-    expect(helper.hasObject({ bucket: 'images', name: 'my_photo.jpg' })).toBe(false);
+    expect(
+      helper.hasObject({ bucket: { name: 'images' }, object: { key: 'fixed-name.bin' } }),
+    ).toBe(true);
+    expect(helper.hasObject({ bucket: { name: 'images' }, object: { key: 'my_photo.jpg' } })).toBe(
+      false,
+    );
   });
 
-  test('the hook is offered the original name, the default name and the bucket', async () => {
-    const seen: Array<{ originalName: string; defaultName: string; bucket: string }> = [];
+  test('the hook is offered the file, the default key and the bucket', async () => {
+    const seen: Array<Parameters<TResolveObjectName>[0]> = [];
     const helper = new FakeStorageHelper();
     const router = await mountAssetController({
       helper,
       resolveObjectName: hookOptions => {
         seen.push({ ...hookOptions });
-        return hookOptions.originalName;
+        return hookOptions.file.originalName;
       },
     });
 
@@ -644,13 +652,13 @@ describe('StaticAsset controller — resolveObjectName hook', () => {
 
     expect(seen).toEqual([
       {
-        originalName: 'My Photo.JPG',
-        defaultName: 'photos/2024/my_photo.jpg',
-        bucket: 'images',
+        bucket: { name: 'images' },
+        file: { originalName: 'My Photo.JPG', folderPath: 'Photos/2024' },
+        defaultKey: 'photos/2024/my_photo.jpg',
       },
     ]);
 
-    // `defaultName` must stay the name the storage helper writes on its own: the factory mirrors
+    // `defaultKey` must stay the key the storage helper writes on its own: the factory mirrors
     // `BaseStorageHelper.normalizeObjectName`, which is protected, and this pins the two together.
     const plainHelper = new FakeStorageHelper();
     const plainRouter = await mountAssetController({ helper: plainHelper });
@@ -661,18 +669,18 @@ describe('StaticAsset controller — resolveObjectName hook', () => {
     });
 
     const plainUploaded = (await plainResponse.json()) as Array<{ object: { key: string } }>;
-    expect(plainUploaded[0].object.key).toBe(seen[0].defaultName);
+    expect(plainUploaded[0].object.key).toBe(seen[0].defaultKey);
   });
 
-  test('a configured normalizeNameFn is what the hook sees as the default name', async () => {
+  test('a configured normalizeNameFn is what the hook sees as the default key', async () => {
     const seen: Array<string> = [];
     const helper = new FakeStorageHelper();
     const router = await mountAssetController({
       helper,
-      options: { normalizeNameFn: nameOptions => `custom-${nameOptions.originalName}` },
+      options: { normalizeNameFn: ({ file }) => `custom-${file.originalName}` },
       resolveObjectName: hookOptions => {
-        seen.push(hookOptions.defaultName);
-        return hookOptions.defaultName;
+        seen.push(hookOptions.defaultKey);
+        return hookOptions.defaultKey;
       },
     });
 
@@ -716,7 +724,7 @@ describe('StaticAsset controller — defineExtraRoutes hook', () => {
     const helper = new FakeStorageHelper();
     const router = await mountAssetController({
       helper,
-      resolveObjectName: hookOptions => `scoped/${hookOptions.defaultName}`,
+      resolveObjectName: hookOptions => `scoped/${hookOptions.defaultKey}`,
       defineExtraRoutes: ({ controller, helper: hookHelper }) => {
         controller.defineRoute({
           configs: {

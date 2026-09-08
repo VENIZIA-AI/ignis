@@ -16,11 +16,7 @@ declare module '@venizia/ignis-inversion' {
   interface IErrorKeyRegistry extends TRegisterErrors<typeof StorageErrors> {}
 }
 
-/**
- * Recognises "the thing you asked for is not there" across SDKs. Neither minio nor Bun puts the reason
- * in `name` - both use the literal `S3Error` - so `code` and a numeric status are the branches that
- * fire. Buckets and objects share one predicate because both answer 404 to the caller.
- */
+/** "Not there", across SDKs. Both minio and Bun report `S3Error` in `name`, so `code` and status decide. */
 export const isNotFoundError = (opts: { error: unknown }): boolean => {
   const { error } = opts;
   const source = error as { statusCode?: number; status?: number; code?: string; name?: string };

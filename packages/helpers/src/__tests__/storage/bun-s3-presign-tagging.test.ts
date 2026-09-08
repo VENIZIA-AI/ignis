@@ -2,7 +2,8 @@
 
 import { AnyType } from '@/common';
 import { BunS3Helper } from '@/modules/storage/bun-s3';
-import { StoragePresignDefaults } from '@/modules/storage/common';
+import { DurationUnits } from '@/common';
+import { StoragePresignDefaults, toExpirySeconds } from '@/modules/storage/common';
 import { afterEach, describe, expect, test } from 'bun:test';
 
 const originalFetch = globalThis.fetch;
@@ -20,54 +21,67 @@ const buildHelper = (): BunS3Helper =>
   });
 
 describe('BunS3Helper.presignPut / presignGet - real S3Client, unreachable endpoint', () => {
-  test('presignPut embeds the bucket and key in the path, and honors the caller expiresInSeconds', async () => {
+  test('presignPut embeds the bucket and key in the path, and honors the caller expiresIn', async () => {
     const url = await buildHelper().presignPut({
-      bucket: 'assets',
-      name: 'reports/q1.csv',
-      expiresInSeconds: 120,
+      bucket: { name: 'assets' },
+      object: { key: 'reports/q1.csv' },
+      expiresIn: { unit: DurationUnits.SECOND, value: 120 },
     });
 
     expect(url).toContain('/assets/reports/q1.csv');
     expect(new URL(url).searchParams.get('X-Amz-Expires')).toBe('120');
   });
 
-  test('presignPut without expiresInSeconds falls back to the PUT default constant', async () => {
-    const url = await buildHelper().presignPut({ bucket: 'assets', name: 'file.png' });
+  test('presignPut without expiresIn falls back to the PUT default constant', async () => {
+    const url = await buildHelper().presignPut({
+      bucket: { name: 'assets' },
+      object: { key: 'file.png' },
+    });
 
     expect(new URL(url).searchParams.get('X-Amz-Expires')).toBe(
-      String(StoragePresignDefaults.PUT_EXPIRES_IN_SECONDS),
+      String(
+        toExpirySeconds({ expiresIn: StoragePresignDefaults.PUT_EXPIRES_IN, operation: 'test' }),
+      ),
     );
   });
 
   test('presignPut never sets response-content-type - fact 2 says it is a no-op on PUT', async () => {
-    const url = await buildHelper().presignPut({ bucket: 'assets', name: 'file.png' });
+    const url = await buildHelper().presignPut({
+      bucket: { name: 'assets' },
+      object: { key: 'file.png' },
+    });
 
     expect(new URL(url).searchParams.has('response-content-type')).toBe(false);
   });
 
-  test('presignGet embeds the bucket and key, and honors the caller expiresInSeconds', async () => {
+  test('presignGet embeds the bucket and key, and honors the caller expiresIn', async () => {
     const url = await buildHelper().presignGet({
-      bucket: 'assets',
-      name: 'reports/q1.csv',
-      expiresInSeconds: 30,
+      bucket: { name: 'assets' },
+      object: { key: 'reports/q1.csv' },
+      expiresIn: { unit: DurationUnits.SECOND, value: 30 },
     });
 
     expect(url).toContain('/assets/reports/q1.csv');
     expect(new URL(url).searchParams.get('X-Amz-Expires')).toBe('30');
   });
 
-  test('presignGet without expiresInSeconds falls back to the GET default constant', async () => {
-    const url = await buildHelper().presignGet({ bucket: 'assets', name: 'file.png' });
+  test('presignGet without expiresIn falls back to the GET default constant', async () => {
+    const url = await buildHelper().presignGet({
+      bucket: { name: 'assets' },
+      object: { key: 'file.png' },
+    });
 
     expect(new URL(url).searchParams.get('X-Amz-Expires')).toBe(
-      String(StoragePresignDefaults.GET_EXPIRES_IN_SECONDS),
+      String(
+        toExpirySeconds({ expiresIn: StoragePresignDefaults.GET_EXPIRES_IN, operation: 'test' }),
+      ),
     );
   });
 
   test('presignGet with responseContentType sets the response-content-type override', async () => {
     const url = await buildHelper().presignGet({
-      bucket: 'assets',
-      name: 'file.png',
+      bucket: { name: 'assets' },
+      object: { key: 'file.png' },
       responseContentType: 'image/png',
     });
 
@@ -88,7 +102,10 @@ describe('BunS3Helper.getObjectTags / replaceObjectTags - stubbed fetch', () => 
       return Promise.resolve(new Response(xml, { status: 200 }));
     }) as AnyType;
 
-    const tags = await buildHelper().getObjectTags({ bucket: 'assets', name: 'file.png' });
+    const tags = await buildHelper().getObjectTags({
+      bucket: { name: 'assets' },
+      object: { key: 'file.png' },
+    });
 
     expect(capturedMethod).toBe('GET');
     expect(capturedUrl).toContain('/assets/file.png');
@@ -99,7 +116,10 @@ describe('BunS3Helper.getObjectTags / replaceObjectTags - stubbed fetch', () => 
   test('getObjectTags returns an empty object on a 404 - not a throw', async () => {
     globalThis.fetch = (() => Promise.resolve(new Response('', { status: 404 }))) as AnyType;
 
-    const tags = await buildHelper().getObjectTags({ bucket: 'assets', name: 'missing.png' });
+    const tags = await buildHelper().getObjectTags({
+      bucket: { name: 'assets' },
+      object: { key: 'missing.png' },
+    });
 
     expect(tags).toEqual({});
   });
@@ -109,7 +129,7 @@ describe('BunS3Helper.getObjectTags / replaceObjectTags - stubbed fetch', () => 
       Promise.resolve(new Response('internal error', { status: 500 }))) as AnyType;
 
     const error = await buildHelper()
-      .getObjectTags({ bucket: 'assets', name: 'file.png' })
+      .getObjectTags({ bucket: { name: 'assets' }, object: { key: 'file.png' } })
       .catch((caught: Error) => caught);
 
     expect(error).toBeInstanceOf(Error);
@@ -130,8 +150,8 @@ describe('BunS3Helper.getObjectTags / replaceObjectTags - stubbed fetch', () => 
     }) as AnyType;
 
     await buildHelper().replaceObjectTags({
-      bucket: 'assets',
-      name: 'file.png',
+      bucket: { name: 'assets' },
+      object: { key: 'file.png' },
       tags: { temp: 'true' },
     });
 
@@ -147,7 +167,7 @@ describe('BunS3Helper.getObjectTags / replaceObjectTags - stubbed fetch', () => 
     globalThis.fetch = (() => Promise.resolve(new Response('denied', { status: 403 }))) as AnyType;
 
     const error = await buildHelper()
-      .replaceObjectTags({ bucket: 'assets', name: 'file.png', tags: {} })
+      .replaceObjectTags({ bucket: { name: 'assets' }, object: { key: 'file.png' }, tags: {} })
       .catch((caught: Error) => caught);
 
     expect(error).toBeInstanceOf(Error);

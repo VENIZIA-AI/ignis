@@ -42,7 +42,9 @@ describe('DiskHelper - an object name cannot leave its bucket', () => {
   test.each(escapes)('getObject rejects %s', async name => {
     const { helper } = buildStorage();
 
-    const message = await captureError({ task: helper.getObject({ bucket: 'images', name }) });
+    const message = await captureError({
+      task: helper.getObject({ bucket: { name: 'images' }, object: { key: name } }),
+    });
 
     expect(message).toContain('Invalid object name');
   });
@@ -50,7 +52,9 @@ describe('DiskHelper - an object name cannot leave its bucket', () => {
   test.each(escapes)('getStat rejects %s', async name => {
     const { helper } = buildStorage();
 
-    const message = await captureError({ task: helper.getStat({ bucket: 'images', name }) });
+    const message = await captureError({
+      task: helper.getStat({ bucket: { name: 'images' }, object: { key: name } }),
+    });
 
     expect(message).toContain('Invalid object name');
   });
@@ -59,7 +63,7 @@ describe('DiskHelper - an object name cannot leave its bucket', () => {
     const { root, helper } = buildStorage();
 
     const message = await captureError({
-      task: helper.removeObject({ bucket: 'images', name: '../outside.txt' }),
+      task: helper.removeObject({ bucket: { name: 'images' }, object: { key: '../outside.txt' } }),
     });
 
     expect(message).toContain('Invalid object name');
@@ -70,7 +74,7 @@ describe('DiskHelper - an object name cannot leave its bucket', () => {
     const { helper } = buildStorage();
 
     const message = await captureError({
-      task: helper.getStat({ bucket: '../..', name: 'outside.txt' }),
+      task: helper.getStat({ bucket: { name: '../..' }, object: { key: 'outside.txt' } }),
     });
 
     expect(message).toContain('Invalid bucket name');
@@ -81,7 +85,10 @@ describe('DiskHelper - an object name cannot leave its bucket', () => {
     mkdirSync(join(root, 'images', 'photos'), { recursive: true });
     writeFileSync(join(root, 'images', 'photos', 'a.png'), 'ok');
 
-    const stat = await helper.getStat({ bucket: 'images', name: 'photos/a.png' });
+    const stat = await helper.getStat({
+      bucket: { name: 'images' },
+      object: { key: 'photos/a.png' },
+    });
 
     expect(stat.size).toBe(2);
   });

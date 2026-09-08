@@ -1,14 +1,17 @@
-/** Presign expiry defaults, in seconds - a PUT carries a file and needs more time; a GET is a redirect. */
+import { DurationUnits, IDuration } from '@/common';
+
+/** Presign expiry defaults - a PUT carries a file and needs more time; a GET is a redirect. */
 export class StoragePresignDefaults {
-  static readonly PUT_EXPIRES_IN_SECONDS = 600;
-  static readonly GET_EXPIRES_IN_SECONDS = 60;
+  static readonly PUT_EXPIRES_IN: IDuration = { unit: DurationUnits.MINUTE, value: 10 };
+  static readonly GET_EXPIRES_IN: IDuration = { unit: DurationUnits.MINUTE, value: 1 };
 }
 
-/**
- * How many object operations run at once. An unbounded `Promise.all` over a caller-supplied list turns
- * a 10,000-key delete into 10,000 simultaneous requests, which exhausts sockets here and rate limits
- * at the provider. Sequential is the other extreme and is needlessly slow.
- */
+/** SigV4 refuses a presigned URL valid for longer than 7 days. */
+export class StoragePresignLimits {
+  static readonly MAX_EXPIRES_IN_SECONDS = 7 * 24 * 60 * 60;
+}
+
+/** Concurrent object operations. Unbounded exhausts sockets and gets rate limited. */
 export class StorageConcurrency {
   static readonly DEFAULT_LIMIT = 16;
 }

@@ -1,11 +1,7 @@
 import { AnyObject } from '@/common';
 import { BaseHelper } from '@/modules/base';
 
-/**
- * An in-process keyed container. It is NOT an `IStorageHelper` and never has been - it stores values in
- * memory, not objects in a bucket - so it deliberately extends `BaseHelper` rather than
- * `BaseStorageHelper`. It keeps living under `storage/` because that is where consumers import it from.
- */
+/** An in-process keyed container, NOT an `IStorageHelper`: it stores values, not objects in a bucket. */
 export class MemoryStorageHelper<T extends object = AnyObject> extends BaseHelper {
   private container = new Map<keyof T, T[keyof T]>();
 

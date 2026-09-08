@@ -3,8 +3,16 @@ import type { IStorageHelper } from '@venizia/ignis-helpers';
 import type { BaseRelationalEntity } from '@venizia/ignis-connectors/postgres';
 import type { DefaultCRUDRepository } from '@venizia/ignis-connectors/postgres';
 import type { AnyType, ValueOrPromise } from '@venizia/ignis-helpers/common';
-import type { DiskHelper, IFileStat, IUploadResult } from '@venizia/ignis-helpers';
+import type {
+  DiskHelper,
+  IBucketRef,
+  IFileStat,
+  IObjectLocation,
+  IUploadResult,
+  TUploadNaming,
+} from '@venizia/ignis-helpers';
 import type { BunS3Helper } from '@venizia/ignis-helpers/bun-s3';
+import type { MinioHelper } from '@venizia/ignis-helpers/minio';
 import type { TMetaLinkSchema } from '../models';
 import type { StaticAssetStorageTypes } from './constants';
 
@@ -15,19 +23,19 @@ export type TStaticAssetExtraOptions = {
   };
 
   /** `folderPath` carries the upload query's target folder - dropping it flattens nested uploads. */
-  normalizeNameFn?: (opts: { originalName: string; folderPath?: string }) => string;
-  normalizeLinkFn?: (opts: { bucketName: string; normalizeName: string }) => string;
+  normalizeNameFn?: (opts: { file: TUploadNaming }) => string;
+  normalizeLinkFn?: (opts: IObjectLocation) => string;
 
   /** Maximum folder nesting depth allowed in object paths. Default: 2 */
   maxFolderDepth?: number;
   [key: string]: AnyType;
 };
 
-/** Decides the object name one uploaded file is stored under. `defaultName` is what IGNIS would have written; returning it changes nothing. */
+/** Decides the key one uploaded file is stored under. `defaultKey` is what IGNIS would have written. */
 export type TResolveObjectName = (opts: {
-  originalName: string;
-  defaultName: string;
-  bucket: string;
+  bucket: IBucketRef;
+  file: TUploadNaming;
+  defaultKey: string;
 }) => string;
 
 /** Adds routes of the application's own to a generated asset controller. Runs after every built-in route, so a built-in route always wins a path collision. `basePath` is the mount path with exactly one leading slash. */
@@ -100,6 +108,7 @@ export type TStaticAssetsComponentOptions = {
   } & (
     | { storage: typeof StaticAssetStorageTypes.BUN_S3; helper: BunS3Helper }
     | { storage: typeof StaticAssetStorageTypes.DISK; helper: DiskHelper }
+    | { storage: typeof StaticAssetStorageTypes.MINIO; helper: MinioHelper }
   ) &
     ({ useMetaLink?: false | undefined } | { useMetaLink: true; metaLink: TMetaLinkConfig });
 };

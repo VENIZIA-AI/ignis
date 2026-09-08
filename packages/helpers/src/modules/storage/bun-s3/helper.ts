@@ -3,14 +3,19 @@ import { ErrorPrettier } from '@/modules/logger';
 import { S3Client } from 'bun';
 import { Readable } from 'node:stream';
 import { BaseStorageHelper } from '../base';
+import type { IDuration } from '@/common';
 import type {
   IBucketInfo,
+  IBucketRef,
   IFileStat,
+  IListObjectsOptions,
   IObjectInfo,
+  IObjectLocation,
+  IObjectRef,
   IStorageHelperOptions,
   IUploadFile,
 } from '../common';
-import { isNotFoundError, StoragePresignDefaults } from '../common';
+import { isNotFoundError, StoragePresignDefaults, toExpirySeconds } from '../common';
 import { buildSignedRequest, buildTaggingXml, parseTaggingXml } from './utility';
 
 export interface IBunS3HelperOptions extends IStorageHelperOptions {
@@ -20,23 +25,16 @@ export interface IBunS3HelperOptions extends IStorageHelperOptions {
   region?: string;
   sessionToken?: string;
 
-  /**
-   * The endpoint a BROWSER can reach, when it differs from the one this process talks to. A signed URL
-   * carries `host` inside its signature, so an internal endpoint like `http://minio:9000` cannot be
-   * rewritten afterwards - it has to be signed against the public name from the start.
-   */
+  /** The endpoint a browser can reach. `host` is inside the signature, so it cannot be rewritten after signing. */
   publicEndpoint?: string;
 
-  /**
-   * Addresses the bucket as `https://<bucket>.<endpoint>/<key>` instead of `<endpoint>/<bucket>/<key>`.
-   * AWS requires it for buckets created after path-style was retired; MinIO and R2 accept path-style.
-   */
+  /** `https://<bucket>.<endpoint>/<key>` instead of `<endpoint>/<bucket>/<key>`. AWS requires it; MinIO and R2 do not. */
   virtualHostedStyle?: boolean;
 
   /** Multipart part size in bytes. Bun's own default applies when omitted. */
   partSize?: number;
 
-  /** How many parts upload at once. Higher costs memory: roughly `partSize * queueSize` per transfer. */
+  /** Parts uploaded at once. Costs roughly `partSize * queueSize` of memory per transfer. */
   queueSize?: number;
 
   /** Retries Bun performs on a failed part before the write fails. */
@@ -54,7 +52,7 @@ export class BunS3Helper extends BaseStorageHelper {
     virtualHostedStyle: boolean;
   };
 
-  /** Left undefined when the caller said nothing, so Bun's own defaults stay in force. */
+  /** Undefined leaves Bun's own defaults in force. */
   private transfer: { partSize?: number; queueSize?: number; retry?: number };
 
   constructor(options: IBunS3HelperOptions) {
@@ -63,7 +61,7 @@ export class BunS3Helper extends BaseStorageHelper {
       identifier: options.identifier ?? BunS3Helper.name,
     });
 
-    // Signing uses the public endpoint when one is set, because `host` is inside every signature.
+    // `host` is inside every signature, so the public endpoint signs when one is set.
     const signingEndpoint = options.publicEndpoint ?? options.endpoint;
 
     this.credentials = {
@@ -91,12 +89,7 @@ export class BunS3Helper extends BaseStorageHelper {
     });
   }
 
-  /**
-   * Where one bucket's objects live, in whichever addressing style the provider needs. Virtual-hosted
-   * moves the bucket into the host, so `endpoint` here is configured WITHOUT it and the per-bucket host
-   * is derived - Bun's own client wants the bucket already in the endpoint, which cannot serve a helper
-   * whose bucket arrives per call.
-   */
+  /** One bucket's objects, in either addressing style. Virtual-hosted derives the per-bucket host, because the bucket arrives per call. */
   private objectEndpoint(opts: { bucket: string }): { endpoint: string; pathPrefix: string } {
     const { endpoint, virtualHostedStyle } = this.credentials;
 
@@ -125,9 +118,9 @@ export class BunS3Helper extends BaseStorageHelper {
     };
   }
 
-  async hasBucket(opts: { name: string }): Promise<boolean> {
-    const { name } = opts;
-    if (!this.isValidName({ name })) {
+  async hasBucket(opts: { bucket: IBucketRef }): Promise<boolean> {
+    const { name } = opts.bucket;
+    if (!this.isValidBucketName(opts)) {
       return false;
     }
 
@@ -135,7 +128,7 @@ export class BunS3Helper extends BaseStorageHelper {
       await this.client.list({ maxKeys: 1 }, { bucket: name });
       return true;
     } catch (error) {
-      // A missing bucket is the answer; credentials, region or network failures are not and must not vanish.
+      // A missing bucket is the answer; a credentials or network failure is not, and must not vanish.
       if (!isNotFoundError({ error })) {
         this.logger.warn(
           '[hasBucket] Cannot determine bucket existence - reporting false | bucket: %s | %s',
@@ -183,10 +176,10 @@ export class BunS3Helper extends BaseStorageHelper {
     return buckets;
   }
 
-  /** S3 exposes a bucket's creation date only through `ListBuckets`, so one full listing is the cheapest correct answer. */
-  async getBucket(opts: { name: string }): Promise<IBucketInfo | null> {
-    const { name } = opts;
-    if (!this.isValidName({ name })) {
+  /** S3 exposes a creation date only through `ListBuckets`, so one full listing is the cheapest correct answer. */
+  async getBucket(opts: { bucket: IBucketRef }): Promise<IBucketInfo | null> {
+    const { name } = opts.bucket;
+    if (!this.isValidBucketName(opts)) {
       return null;
     }
 
@@ -194,9 +187,9 @@ export class BunS3Helper extends BaseStorageHelper {
     return buckets.find(bucket => bucket.name === name) ?? null;
   }
 
-  async createBucket(opts: { name: string }): Promise<IBucketInfo | null> {
-    const { name } = opts;
-    if (!this.isValidName({ name })) {
+  async createBucket(opts: { bucket: IBucketRef }): Promise<IBucketInfo | null> {
+    const { name } = opts.bucket;
+    if (!this.isValidBucketName(opts)) {
       throw getError({ message: '[createBucket] Invalid name to create bucket!' });
     }
 
@@ -219,12 +212,12 @@ export class BunS3Helper extends BaseStorageHelper {
       throw getError({ message: `[createBucket] S3 error: ${xml}` });
     }
 
-    return this.getBucket({ name });
+    return this.getBucket(opts);
   }
 
-  async removeBucket(opts: { name: string }): Promise<boolean> {
-    const { name } = opts;
-    if (!this.isValidName({ name })) {
+  async removeBucket(opts: { bucket: IBucketRef }): Promise<boolean> {
+    const { name } = opts.bucket;
+    if (!this.isValidBucketName(opts)) {
       throw getError({ message: '[removeBucket] Invalid name to remove bucket!' });
     }
 
@@ -250,56 +243,50 @@ export class BunS3Helper extends BaseStorageHelper {
     return true;
   }
 
-  override async presignPut(opts: {
-    bucket: string;
-    name: string;
-    expiresInSeconds?: number;
-  }): Promise<string> {
-    const { bucket, name, expiresInSeconds = StoragePresignDefaults.PUT_EXPIRES_IN_SECONDS } = opts;
+  override async presignPut(opts: IObjectLocation & { expiresIn?: IDuration }): Promise<string> {
+    const { bucket, object, expiresIn = StoragePresignDefaults.PUT_EXPIRES_IN } = opts;
 
-    return this.client.presign(name, {
-      ...this.presignOptions({ bucket }),
+    return this.client.presign(object.key, {
+      ...this.presignOptions({ bucket: bucket.name }),
       method: 'PUT',
-      expiresIn: expiresInSeconds,
+      expiresIn: toExpirySeconds({ expiresIn, operation: 'presignPut' }),
     });
   }
 
-  override async presignGet(opts: {
-    bucket: string;
-    name: string;
-    expiresInSeconds?: number;
-    responseContentType?: string;
-    responseContentDisposition?: string;
-  }): Promise<string> {
+  override async presignGet(
+    opts: IObjectLocation & {
+      expiresIn?: IDuration;
+      responseContentType?: string;
+      responseContentDisposition?: string;
+    },
+  ): Promise<string> {
     const {
       bucket,
-      name,
-      expiresInSeconds = StoragePresignDefaults.GET_EXPIRES_IN_SECONDS,
+      object,
+      expiresIn = StoragePresignDefaults.GET_EXPIRES_IN,
       responseContentType,
       responseContentDisposition,
     } = opts;
 
-    return this.client.presign(name, {
-      ...this.presignOptions({ bucket }),
+    return this.client.presign(object.key, {
+      ...this.presignOptions({ bucket: bucket.name }),
       method: 'GET',
-      expiresIn: expiresInSeconds,
+      expiresIn: toExpirySeconds({ expiresIn, operation: 'presignGet' }),
       ...(responseContentType ? { type: responseContentType } : {}),
       ...(responseContentDisposition ? { contentDisposition: responseContentDisposition } : {}),
     });
   }
 
-  override async getObjectTags(opts: {
-    bucket: string;
-    name: string;
-  }): Promise<Record<string, string>> {
-    const { bucket, name } = opts;
+  override async getObjectTags(opts: IObjectLocation): Promise<Record<string, string>> {
+    const bucketName = opts.bucket.name;
+    const key = opts.object.key;
     const { accessKey, secretKey, region, sessionToken } = this.credentials;
-    const { endpoint, pathPrefix } = this.objectEndpoint({ bucket });
+    const { endpoint, pathPrefix } = this.objectEndpoint({ bucket: bucketName });
 
     const { url, headers } = await buildSignedRequest({
       method: 'GET',
       endpoint,
-      path: `${pathPrefix}/${name}`,
+      path: `${pathPrefix}/${key}`,
       accessKey,
       secretKey,
       region,
@@ -309,7 +296,7 @@ export class BunS3Helper extends BaseStorageHelper {
 
     const response = await fetch(url, { method: 'GET', headers });
 
-    // S3 answers a missing tag set with 404 - that is the empty case, not a failure.
+    // S3 answers a missing tag set with 404: the empty case, not a failure.
     if (response.status === 404) {
       return {};
     }
@@ -321,23 +308,23 @@ export class BunS3Helper extends BaseStorageHelper {
       });
     }
 
-    return parseTaggingXml(body);
+    return parseTaggingXml({ xml: body });
   }
 
-  override async replaceObjectTags(opts: {
-    bucket: string;
-    name: string;
-    tags: Record<string, string>;
-  }): Promise<void> {
-    const { bucket, name, tags } = opts;
+  override async replaceObjectTags(
+    opts: IObjectLocation & { tags: Record<string, string> },
+  ): Promise<void> {
+    const bucketName = opts.bucket.name;
+    const key = opts.object.key;
+    const { tags } = opts;
     const { accessKey, secretKey, region, sessionToken } = this.credentials;
-    const { endpoint, pathPrefix } = this.objectEndpoint({ bucket });
-    const requestBody = buildTaggingXml(tags);
+    const { endpoint, pathPrefix } = this.objectEndpoint({ bucket: bucketName });
+    const requestBody = buildTaggingXml({ tags });
 
     const { url, headers } = await buildSignedRequest({
       method: 'PUT',
       endpoint,
-      path: `${pathPrefix}/${name}`,
+      path: `${pathPrefix}/${key}`,
       accessKey,
       secretKey,
       region,
@@ -360,16 +347,13 @@ export class BunS3Helper extends BaseStorageHelper {
     return '/static-assets/';
   }
 
-  protected async writeObject(opts: {
-    bucket: string;
-    normalizeName: string;
-    file: IUploadFile;
-  }): Promise<void> {
-    const { bucket, normalizeName, file } = opts;
+  protected async writeObject(opts: IObjectLocation & { file: IUploadFile }): Promise<void> {
+    const { file } = opts;
+    const bucketName = opts.bucket.name;
     const { mimetype: mimeType, buffer } = file;
 
-    await this.client.write(normalizeName, buffer, {
-      bucket,
+    await this.client.write(opts.object.key, buffer, {
+      bucket: bucketName,
       type: mimeType,
       partSize: this.transfer.partSize,
       queueSize: this.transfer.queueSize,
@@ -377,28 +361,24 @@ export class BunS3Helper extends BaseStorageHelper {
     });
   }
 
-  /**
-   * Streams `source` to `name` without ever holding the object in memory. `upload` cannot do this: its
-   * `IUploadFile` carries a `Buffer`, so a 5 GB file is 5 GB of heap before the first byte leaves.
-   * Bun's multipart writer handles the chunking, so this is the path for anything large.
-   */
-  async writeStream(opts: {
-    bucket: string;
-    name: string;
-    source: ReadableStream<Uint8Array> | Blob | Response | Request;
-    contentType?: string;
-  }): Promise<void> {
-    const { bucket, name, source, contentType } = opts;
+  /** Streams without holding the object in memory. `upload` carries a `Buffer`, so it cannot; this is the path for anything large. */
+  async writeStream(
+    opts: IObjectLocation & {
+      source: ReadableStream<Uint8Array> | Blob | Response | Request;
+      contentType?: string;
+    },
+  ): Promise<void> {
+    const { bucket, object, source, contentType } = opts;
 
-    if (!this.isValidPath({ path: name, maxDepth: Number.MAX_SAFE_INTEGER })) {
-      throw getError({ message: `[writeStream] Invalid object name | name: ${name}` });
+    if (!this.isValidObjectKey({ object, maxDepth: Number.MAX_SAFE_INTEGER })) {
+      throw getError({ message: `[writeStream] Invalid object name | key: ${object.key}` });
     }
 
-    // Bun's `write` takes a Response but not a bare ReadableStream; wrapping streams it, never buffers it.
+    // Bun's `write` takes a Response, not a bare ReadableStream; wrapping streams, never buffers.
     const body = source instanceof ReadableStream ? new Response(source) : source;
 
-    await this.client.write(name, body, {
-      bucket,
+    await this.client.write(object.key, body, {
+      bucket: bucket.name,
       ...(contentType ? { type: contentType } : {}),
       partSize: this.transfer.partSize,
       queueSize: this.transfer.queueSize,
@@ -406,33 +386,26 @@ export class BunS3Helper extends BaseStorageHelper {
     });
   }
 
-  /**
-   * `S3File.stream()` is lazy: it returns a stream and only reaches the network on first read, so a
-   * `try` around this call can never see a 404 - the failure arrives on the stream instead. The stream
-   * is forwarded, never buffered, so object size does not become memory here.
-   */
-  async getObject(opts: { bucket: string; name: string; options?: any }): Promise<Readable> {
-    const { bucket, name } = opts;
-    const source = this.client.file(name, { bucket }).stream();
+  /** `S3File.stream()` is lazy: it reaches the network on first read, so a `try` here never sees a 404 - the failure arrives on the stream. */
+  async getObject(opts: IObjectLocation & { options?: any }): Promise<Readable> {
+    const bucketName = opts.bucket.name;
+    const key = opts.object.key;
+    const source = this.client.file(key, { bucket: bucketName }).stream();
 
     return Readable.fromWeb(source as ReadableStream<Uint8Array>, {
-      // Keeps the consumer's backpressure meaningful rather than draining S3 into memory.
+      // Keeps backpressure meaningful rather than draining S3 into memory.
       objectMode: false,
     });
   }
 
-  /**
-   * S3 already speaks web streams, so this is the conversion-free path a `Response` body wants.
-   * `slice` turns the range into a ranged GET, so only the requested bytes leave S3 - discarding them
-   * locally would pay for the whole object to serve a seek.
-   */
-  override async getObjectStream(opts: {
-    bucket: string;
-    name: string;
-    range?: { start: number; end?: number };
-  }): Promise<ReadableStream<Uint8Array>> {
-    const { bucket, name, range } = opts;
-    const file = this.client.file(name, { bucket });
+  /** The conversion-free path a `Response` body wants. `slice` makes it a ranged GET, so only the requested bytes leave S3. */
+  override async getObjectStream(
+    opts: IObjectLocation & { range?: { start: number; end?: number } },
+  ): Promise<ReadableStream<Uint8Array>> {
+    const bucketName = opts.bucket.name;
+    const key = opts.object.key;
+    const { range } = opts;
+    const file = this.client.file(key, { bucket: bucketName });
 
     if (!range) {
       return file.stream() as ReadableStream<Uint8Array>;
@@ -445,57 +418,60 @@ export class BunS3Helper extends BaseStorageHelper {
     return window.stream() as ReadableStream<Uint8Array>;
   }
 
-  async getStat(opts: { bucket: string; name: string }): Promise<IFileStat> {
-    const { bucket, name } = opts;
+  async getStat(opts: IObjectLocation): Promise<IFileStat> {
+    const bucketName = opts.bucket.name;
+    const key = opts.object.key;
 
     try {
-      const stat = await this.client.stat(name, { bucket });
+      const stat = await this.client.stat(key, { bucket: bucketName });
       return {
         size: stat.size,
-        // One key, not the same value under two spellings. The served type is decided from the object
-        // NAME anyway, so what a backend reports here is diagnostic rather than authoritative.
+        // One key, not two spellings. The served type comes from the object name; this is diagnostic.
         metadata: { mimetype: stat.type },
         lastModified: stat.lastModified,
         etag: stat.etag,
       };
     } catch (error) {
-      throw this.asStorageError({ error, operation: 'getStat', bucket, name });
+      throw this.asStorageError({
+        error,
+        operation: 'getStat',
+        bucket: opts.bucket,
+        object: opts.object,
+      });
     }
   }
 
-  async removeObject(opts: { bucket: string; name: string }): Promise<void> {
-    const { bucket, name } = opts;
+  async removeObject(opts: IObjectLocation): Promise<void> {
+    const bucketName = opts.bucket.name;
+    const key = opts.object.key;
 
     try {
-      await this.client.delete(name, { bucket });
+      await this.client.delete(key, { bucket: bucketName });
     } catch (error) {
-      throw this.asStorageError({ error, operation: 'removeObject', bucket, name });
+      throw this.asStorageError({
+        error,
+        operation: 'removeObject',
+        bucket: opts.bucket,
+        object: opts.object,
+      });
     }
   }
 
-  async removeObjects(opts: { bucket: string; names: string[] }): Promise<void> {
-    const { bucket, names } = opts;
+  async removeObjects(opts: { bucket: IBucketRef; objects: IObjectRef[] }): Promise<void> {
+    const { bucket, objects } = opts;
 
     await this.mapWithConcurrency({
-      items: names,
-      task: ({ item: name }) => this.removeObject({ bucket, name }),
+      items: objects,
+      task: ({ item: object }) => this.removeObject({ bucket, object }),
     });
   }
 
-  /**
-   * S3 returns at most 1000 keys per call and reports the rest through `nextContinuationToken`, so a
-   * single call silently truncated any larger bucket. `useRecursive: false` maps to `delimiter: '/'` -
-   * ignoring it made this backend disagree with `disk` on the same argument.
-   */
-  async listObjects(opts: {
-    bucket: string;
-    prefix?: string;
-    useRecursive?: boolean;
-    maxKeys?: number;
-  }): Promise<IObjectInfo[]> {
-    const { bucket, prefix, useRecursive = true, maxKeys } = opts;
+  /** S3 caps a call at 1000 keys and continues through `nextContinuationToken`. `useRecursive: false` maps to `delimiter: '/'`. */
+  async listObjects(opts: IListObjectsOptions): Promise<IObjectInfo[]> {
+    const { prefix, useRecursive = true, maxKeys } = opts;
+    const bucketName = opts.bucket.name;
 
-    // `maxKeys: 0` means zero, not "unlimited" - the truthiness reading of it was a bug on both backends.
+    // `maxKeys: 0` means zero, not unlimited.
     const limit = maxKeys ?? Number.POSITIVE_INFINITY;
     if (limit <= 0) {
       return [];
@@ -513,7 +489,7 @@ export class BunS3Helper extends BaseStorageHelper {
           ...(useRecursive ? {} : { delimiter: '/' }),
           ...(Number.isFinite(remaining) ? { maxKeys: Math.min(remaining, 1000) } : {}),
         },
-        { bucket },
+        { bucket: bucketName },
       );
 
       for (const entry of response.contents ?? []) {

@@ -57,7 +57,7 @@ describe('BaseStorageHelper.upload - the two guards on the shared path', () => {
 
   test('a ZERO-BYTE file uploads - an empty file is legal, not an invalid size', async () => {
     const results = await helper.upload({
-      bucket: 'assets',
+      bucket: { name: 'assets' },
       files: [buildFile({ size: 0, buffer: Buffer.alloc(0) })],
     });
 
@@ -67,7 +67,7 @@ describe('BaseStorageHelper.upload - the two guards on the shared path', () => {
 
   test('a MISSING size is still rejected', async () => {
     const task = helper.upload({
-      bucket: 'assets',
+      bucket: { name: 'assets' },
       files: [buildFile({ size: undefined as AnyType })],
     });
 
@@ -76,7 +76,7 @@ describe('BaseStorageHelper.upload - the two guards on the shared path', () => {
   });
 
   test('a NEGATIVE size is still rejected', async () => {
-    const task = helper.upload({ bucket: 'assets', files: [buildFile({ size: -1 })] });
+    const task = helper.upload({ bucket: { name: 'assets' }, files: [buildFile({ size: -1 })] });
 
     expect(await captureError({ task })).toMatch(/Invalid file size/);
   });
@@ -84,7 +84,7 @@ describe('BaseStorageHelper.upload - the two guards on the shared path', () => {
   test('a normalizeNameFn escaping the bucket is rejected before anything is written', async () => {
     // The original name passes validation; the traversal is injected by the caller's own normalizer, whose output is what DiskHelper joins under the bucket root.
     const task = helper.upload({
-      bucket: 'assets',
+      bucket: { name: 'assets' },
       files: [buildFile()],
       normalizeNameFn: () => '../../../etc/cron.d/pwn',
     });
@@ -96,7 +96,7 @@ describe('BaseStorageHelper.upload - the two guards on the shared path', () => {
   test('a configured maxFolderDepth is HONOURED - not silently replaced by the hard default of 2', async () => {
     // Regression: the helper re-validated folderPath against its own hardcoded default of 2 even when the app configured maxFolderDepth higher, so depth-4 requests spooled the whole body to disk before failing.
     const results = await helper.upload({
-      bucket: 'assets',
+      bucket: { name: 'assets' },
       files: [buildFile({ folderPath: 'a/b/c/d' })],
       maxFolderDepth: 4,
     });
@@ -107,7 +107,7 @@ describe('BaseStorageHelper.upload - the two guards on the shared path', () => {
 
   test('a folderPath DEEPER than the configured maxFolderDepth is still rejected', async () => {
     const task = helper.upload({
-      bucket: 'assets',
+      bucket: { name: 'assets' },
       files: [buildFile({ folderPath: 'a/b/c/d/e' })],
       maxFolderDepth: 4,
     });
@@ -118,7 +118,7 @@ describe('BaseStorageHelper.upload - the two guards on the shared path', () => {
 
   test('with no maxFolderDepth the default still applies', async () => {
     const task = helper.upload({
-      bucket: 'assets',
+      bucket: { name: 'assets' },
       files: [buildFile({ folderPath: 'a/b/c' })],
     });
 
@@ -127,7 +127,7 @@ describe('BaseStorageHelper.upload - the two guards on the shared path', () => {
 
   test('a well-formed normalizeNameFn output still writes', async () => {
     const results = await helper.upload({
-      bucket: 'assets',
+      bucket: { name: 'assets' },
       files: [buildFile()],
       normalizeNameFn: () => 'tenant-7/avatar.png',
     });

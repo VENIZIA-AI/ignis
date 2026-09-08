@@ -1,3 +1,4 @@
+import { IDuration } from '@/common';
 import { Readable } from 'node:stream';
 
 export interface IUploadFile {
@@ -10,21 +11,23 @@ export interface IUploadFile {
   [key: string | symbol]: any;
 }
 
-/**
- * Scoped, not flat pairs: `bucketName` + `objectName` were two entities flattened into a field pair.
- * `metaLink` is a discriminated union because the old `metaLink` + `metaLinkError` pair let both be
- * present, or neither, and only one of those four states ever means anything.
- */
+/** `metaLink` is a union: the old pair allowed both present, or neither. */
 export interface IUploadResult {
-  bucket: { name: string };
-  object: { key: string; size: number; contentType: string };
+  bucket: IBucketRef;
+  object: IObjectRef & { size: number; contentType: string };
   link: string;
   metaLink?: { data: any } | { error: string };
 }
 
+/** `mimetype` is named because consumers persist it; `any` let it be renamed silently. */
+export interface IObjectMetadata {
+  mimetype?: string;
+  [key: string]: any;
+}
+
 export interface IFileStat {
   size: number;
-  metadata: Record<string, any>;
+  metadata: IObjectMetadata;
   lastModified?: Date;
   etag?: string;
   versionId?: string;
@@ -43,8 +46,27 @@ export interface IObjectInfo {
   prefix?: string;
 }
 
+/** One bucket. */
+export interface IBucketRef {
+  name: string;
+}
+
+/** The parts of an upload a naming hook needs; `IUploadFile` already declares both. */
+export type TUploadNaming = Pick<IUploadFile, 'originalName' | 'folderPath'>;
+
+/** One object. `key` is the S3 term. */
+export interface IObjectRef {
+  key: string;
+}
+
+/** Which bucket, which object. */
+export interface IObjectLocation {
+  bucket: IBucketRef;
+  object: IObjectRef;
+}
+
 export interface IListObjectsOptions {
-  bucket: string;
+  bucket: IBucketRef;
   prefix?: string;
   useRecursive?: boolean;
   maxKeys?: number;
@@ -56,56 +78,47 @@ export interface IStorageHelperOptions {
 }
 
 export interface IStorageHelper {
-  isValidName(opts: { name: string }): boolean;
-  isValidPath(opts: { path: string; maxDepth?: number }): boolean;
+  isValidSegment(opts: { segment: string }): boolean;
+  isValidBucketName(opts: { bucket: IBucketRef }): boolean;
+  isValidObjectKey(opts: { object: IObjectRef; maxDepth?: number }): boolean;
 
-  hasBucket(opts: { name: string }): Promise<boolean>;
+  hasBucket(opts: { bucket: IBucketRef }): Promise<boolean>;
   getBuckets(): Promise<IBucketInfo[]>;
-  getBucket(opts: { name: string }): Promise<IBucketInfo | null>;
-  createBucket(opts: { name: string }): Promise<IBucketInfo | null>;
-  removeBucket(opts: { name: string }): Promise<boolean>;
+  getBucket(opts: { bucket: IBucketRef }): Promise<IBucketInfo | null>;
+  createBucket(opts: { bucket: IBucketRef }): Promise<IBucketInfo | null>;
+  removeBucket(opts: { bucket: IBucketRef }): Promise<boolean>;
 
-  getObject(opts: { bucket: string; name: string; options?: any }): Promise<Readable>;
+  getObject(opts: IObjectLocation & { options?: any }): Promise<Readable>;
 
-  /**
-   * The same bytes as `getObject`, as a web stream. This is what a `Response` body wants, so an HTTP
-   * backend avoids the round trip through a Node `Readable` and back. `range` is a byte range,
-   * inclusive of `end` like the HTTP header - it is what makes a video seekable.
-   */
-  getObjectStream(opts: {
-    bucket: string;
-    name: string;
-    range?: { start: number; end?: number };
-  }): Promise<ReadableStream<Uint8Array>>;
-  getStat(opts: { bucket: string; name: string }): Promise<IFileStat>;
+  /** A web stream, what a `Response` body wants. `range` includes `end`, like the HTTP header. */
+  getObjectStream(
+    opts: IObjectLocation & { range?: { start: number; end?: number } },
+  ): Promise<ReadableStream<Uint8Array>>;
+  getStat(opts: IObjectLocation): Promise<IFileStat>;
   listObjects(opts: IListObjectsOptions): Promise<IObjectInfo[]>;
 
   upload(opts: {
-    bucket: string;
+    bucket: IBucketRef;
     files: IUploadFile[];
     maxFolderDepth?: number;
-    normalizeNameFn?: (opts: { originalName: string; folderPath?: string }) => string;
-    normalizeLinkFn?: (opts: { bucketName: string; normalizeName: string }) => string;
+    normalizeNameFn?: (opts: { file: TUploadNaming }) => string;
+    normalizeLinkFn?: (opts: IObjectLocation) => string;
   }): Promise<IUploadResult[]>;
 
-  removeObject(opts: { bucket: string; name: string }): Promise<void>;
-  removeObjects(opts: { bucket: string; names: string[] }): Promise<void>;
+  removeObject(opts: IObjectLocation): Promise<void>;
+  removeObjects(opts: { bucket: IBucketRef; objects: IObjectRef[] }): Promise<void>;
 
-  presignPut(opts: { bucket: string; name: string; expiresInSeconds?: number }): Promise<string>;
-  presignGet(opts: {
-    bucket: string;
-    name: string;
-    expiresInSeconds?: number;
-    responseContentType?: string;
-    responseContentDisposition?: string;
-  }): Promise<string>;
+  presignPut(opts: IObjectLocation & { expiresIn?: IDuration }): Promise<string>;
+  presignGet(
+    opts: IObjectLocation & {
+      expiresIn?: IDuration;
+      responseContentType?: string;
+      responseContentDisposition?: string;
+    },
+  ): Promise<string>;
 
-  getObjectTags(opts: { bucket: string; name: string }): Promise<Record<string, string>>;
-  replaceObjectTags(opts: {
-    bucket: string;
-    name: string;
-    tags: Record<string, string>;
-  }): Promise<void>;
+  getObjectTags(opts: IObjectLocation): Promise<Record<string, string>>;
+  replaceObjectTags(opts: IObjectLocation & { tags: Record<string, string> }): Promise<void>;
 
   getMediaType(opts: { mimeType: string }): string;
   getMimeType(opts: { filename: string }): string;

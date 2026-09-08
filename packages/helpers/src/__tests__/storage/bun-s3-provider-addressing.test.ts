@@ -22,7 +22,10 @@ describe('BunS3Helper - bucket addressing per provider', () => {
   test('path style puts the bucket in the path, which MinIO and R2 expect', async () => {
     const helper = buildHelper({ endpoint: 'https://sgp1.digitaloceanspaces.com' });
 
-    const url = await helper.presignGet({ bucket: 'assets', name: 'photo.png' });
+    const url = await helper.presignGet({
+      bucket: { name: 'assets' },
+      object: { key: 'photo.png' },
+    });
 
     expect(new URL(url).host).toBe('sgp1.digitaloceanspaces.com');
     expect(new URL(url).pathname).toBe('/assets/photo.png');
@@ -39,7 +42,10 @@ describe('BunS3Helper - bucket addressing per provider', () => {
       virtualHostedStyle: true,
     });
 
-    const url = await helper.presignGet({ bucket: 'assets', name: 'photo.png' });
+    const url = await helper.presignGet({
+      bucket: { name: 'assets' },
+      object: { key: 'photo.png' },
+    });
 
     expect(new URL(url).host).toBe('assets.s3.us-east-1.amazonaws.com');
     expect(new URL(url).pathname).toBe('/photo.png');
@@ -51,8 +57,11 @@ describe('BunS3Helper - bucket addressing per provider', () => {
       virtualHostedStyle: true,
     });
 
-    const first = await helper.presignGet({ bucket: 'assets', name: 'a.png' });
-    const second = await helper.presignGet({ bucket: 'reports', name: 'b.png' });
+    const first = await helper.presignGet({ bucket: { name: 'assets' }, object: { key: 'a.png' } });
+    const second = await helper.presignGet({
+      bucket: { name: 'reports' },
+      object: { key: 'b.png' },
+    });
 
     expect(new URL(first).host).toBe('assets.s3.us-east-1.amazonaws.com');
     expect(new URL(second).host).toBe('reports.s3.us-east-1.amazonaws.com');
@@ -67,7 +76,10 @@ describe('BunS3Helper - publicEndpoint', () => {
       publicEndpoint: 'https://cdn.example.com',
     });
 
-    const url = await helper.presignGet({ bucket: 'assets', name: 'photo.png' });
+    const url = await helper.presignGet({
+      bucket: { name: 'assets' },
+      object: { key: 'photo.png' },
+    });
 
     expect(new URL(url).host).toBe('cdn.example.com');
     expect(url).not.toContain('minio:9000');
@@ -76,7 +88,10 @@ describe('BunS3Helper - publicEndpoint', () => {
   test('without publicEndpoint the endpoint is used unchanged', async () => {
     const helper = buildHelper({ endpoint: 'http://minio:9000' });
 
-    const url = await helper.presignGet({ bucket: 'assets', name: 'photo.png' });
+    const url = await helper.presignGet({
+      bucket: { name: 'assets' },
+      object: { key: 'photo.png' },
+    });
 
     expect(new URL(url).host).toBe('minio:9000');
   });
@@ -88,8 +103,8 @@ describe('BunS3Helper - the signed GET carries its own disposition', () => {
     const helper = buildHelper({ endpoint: 'https://s3.us-east-1.amazonaws.com' });
 
     const url = await helper.presignGet({
-      bucket: 'assets',
-      name: 'payload.html',
+      bucket: { name: 'assets' },
+      object: { key: 'payload.html' },
       responseContentDisposition: 'attachment; filename="payload.html"',
     });
 
@@ -100,7 +115,10 @@ describe('BunS3Helper - the signed GET carries its own disposition', () => {
   test('omitting it leaves the url without the parameter', async () => {
     const helper = buildHelper({ endpoint: 'https://s3.us-east-1.amazonaws.com' });
 
-    const url = await helper.presignGet({ bucket: 'assets', name: 'photo.png' });
+    const url = await helper.presignGet({
+      bucket: { name: 'assets' },
+      object: { key: 'photo.png' },
+    });
 
     expect(new URL(url).searchParams.get('response-content-disposition')).toBeNull();
   });

@@ -57,8 +57,8 @@ export class StaticAssetComponent extends BaseComponent {
               (linkOptions =>
                 buildObjectLink({
                   basePath: controller.basePath,
-                  bucketName: linkOptions.bucketName,
-                  objectName: linkOptions.normalizeName,
+                  bucket: linkOptions.bucket,
+                  object: linkOptions.object,
                   hasConfiguredBucket: controller.bucket !== undefined,
                   rawObjectPath: controller.rawObjectPath,
                 })),

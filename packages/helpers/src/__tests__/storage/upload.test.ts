@@ -80,7 +80,7 @@ describe('Storage - upload', () => {
     });
 
     test('returns empty array when no files provided', async () => {
-      const result = await helper.upload({ bucket: 'assets', files: [] });
+      const result = await helper.upload({ bucket: { name: 'assets' }, files: [] });
       expect(result).toEqual([]);
       expect(writes).toHaveLength(0);
     });
@@ -89,7 +89,7 @@ describe('Storage - upload', () => {
       bucketExists = false;
 
       const message = await captureErrorMessage({
-        task: helper.upload({ bucket: 'assets', files: [buildFile()] }),
+        task: helper.upload({ bucket: { name: 'assets' }, files: [buildFile()] }),
       });
 
       expect(message).toBe('[upload] Bucket does not exist | name: assets');
@@ -99,7 +99,7 @@ describe('Storage - upload', () => {
     test('rejects invalid original file name (security gate)', async () => {
       const message = await captureErrorMessage({
         task: helper.upload({
-          bucket: 'assets',
+          bucket: { name: 'assets' },
           files: [buildFile({ originalName: '../../etc/passwd' })],
         }),
       });
@@ -111,7 +111,7 @@ describe('Storage - upload', () => {
     test('rejects invalid folder path', async () => {
       const message = await captureErrorMessage({
         task: helper.upload({
-          bucket: 'assets',
+          bucket: { name: 'assets' },
           files: [buildFile({ folderPath: '../escape' })],
         }),
       });
@@ -123,7 +123,7 @@ describe('Storage - upload', () => {
     test('rejects a MISSING size, but accepts a zero-byte file', async () => {
       const message = await captureErrorMessage({
         task: helper.upload({
-          bucket: 'assets',
+          bucket: { name: 'assets' },
           files: [buildFile({ size: undefined as AnyType })],
         }),
       });
@@ -132,12 +132,12 @@ describe('Storage - upload', () => {
       expect(writes).toHaveLength(0);
 
       // An empty file is a legal upload - only an absent or negative size is invalid.
-      await helper.upload({ bucket: 'assets', files: [buildFile({ size: 0 })] });
+      await helper.upload({ bucket: { name: 'assets' }, files: [buildFile({ size: 0 })] });
       expect(writes).toHaveLength(1);
     });
 
     test('normalizes name and links with the disk prefix', async () => {
-      const result = await helper.upload({ bucket: 'assets', files: [buildFile()] });
+      const result = await helper.upload({ bucket: { name: 'assets' }, files: [buildFile()] });
 
       expect(result).toEqual([
         {
@@ -153,7 +153,7 @@ describe('Storage - upload', () => {
 
     test('prefixes normalized name with folder path and url-encodes link segments', async () => {
       const result = await helper.upload({
-        bucket: 'assets',
+        bucket: { name: 'assets' },
         files: [buildFile({ originalName: 'report v1+final.png', folderPath: 'My Folder' })],
       });
 
@@ -163,11 +163,10 @@ describe('Storage - upload', () => {
 
     test('honors normalizeNameFn and normalizeLinkFn overrides', async () => {
       const result = await helper.upload({
-        bucket: 'assets',
+        bucket: { name: 'assets' },
         files: [buildFile()],
-        normalizeNameFn: ({ originalName }) => `custom/${originalName}`,
-        normalizeLinkFn: ({ bucketName, normalizeName }) =>
-          `https://cdn/${bucketName}/${normalizeName}`,
+        normalizeNameFn: ({ file }) => `custom/${file.originalName}`,
+        normalizeLinkFn: ({ bucket, object }) => `https://cdn/${bucket.name}/${object.key}`,
       });
 
       expect(result[0].object.key).toBe('custom/Hello World.png');
@@ -214,7 +213,7 @@ describe('Storage - upload', () => {
     });
 
     test('returns empty array when no files provided', async () => {
-      const result = await helper.upload({ bucket: 'assets', files: [] });
+      const result = await helper.upload({ bucket: { name: 'assets' }, files: [] });
       expect(result).toEqual([]);
       expect(writes).toHaveLength(0);
     });
@@ -223,7 +222,7 @@ describe('Storage - upload', () => {
       bucketExists = false;
 
       const message = await captureErrorMessage({
-        task: helper.upload({ bucket: 'assets', files: [buildFile()] }),
+        task: helper.upload({ bucket: { name: 'assets' }, files: [buildFile()] }),
       });
 
       expect(message).toBe('[upload] Bucket does not exist | name: assets');
@@ -233,7 +232,7 @@ describe('Storage - upload', () => {
     test('rejects invalid original file name (security gate)', async () => {
       const message = await captureErrorMessage({
         task: helper.upload({
-          bucket: 'assets',
+          bucket: { name: 'assets' },
           files: [buildFile({ originalName: '../../etc/passwd' })],
         }),
       });
@@ -245,7 +244,7 @@ describe('Storage - upload', () => {
     test('rejects invalid folder path', async () => {
       const message = await captureErrorMessage({
         task: helper.upload({
-          bucket: 'assets',
+          bucket: { name: 'assets' },
           files: [buildFile({ folderPath: '../escape' })],
         }),
       });
@@ -257,7 +256,7 @@ describe('Storage - upload', () => {
     test('rejects a MISSING size, but accepts a zero-byte file', async () => {
       const message = await captureErrorMessage({
         task: helper.upload({
-          bucket: 'assets',
+          bucket: { name: 'assets' },
           files: [buildFile({ size: undefined as AnyType })],
         }),
       });
@@ -266,12 +265,12 @@ describe('Storage - upload', () => {
       expect(writes).toHaveLength(0);
 
       // An empty file is a legal upload - only an absent or negative size is invalid.
-      await helper.upload({ bucket: 'assets', files: [buildFile({ size: 0 })] });
+      await helper.upload({ bucket: { name: 'assets' }, files: [buildFile({ size: 0 })] });
       expect(writes).toHaveLength(1);
     });
 
     test('normalizes name and links with the object storage prefix', async () => {
-      const result = await helper.upload({ bucket: 'assets', files: [buildFile()] });
+      const result = await helper.upload({ bucket: { name: 'assets' }, files: [buildFile()] });
 
       expect(result).toEqual([
         {
@@ -283,7 +282,7 @@ describe('Storage - upload', () => {
     });
 
     test('writes with content type only', async () => {
-      await helper.upload({ bucket: 'assets', files: [buildFile()] });
+      await helper.upload({ bucket: { name: 'assets' }, files: [buildFile()] });
 
       expect(writes).toHaveLength(1);
       expect(writes[0].bucket).toBe('assets');
@@ -293,11 +292,10 @@ describe('Storage - upload', () => {
 
     test('honors normalizeNameFn and normalizeLinkFn overrides', async () => {
       const result = await helper.upload({
-        bucket: 'assets',
+        bucket: { name: 'assets' },
         files: [buildFile()],
-        normalizeNameFn: ({ originalName }) => `custom/${originalName}`,
-        normalizeLinkFn: ({ bucketName, normalizeName }) =>
-          `https://cdn/${bucketName}/${normalizeName}`,
+        normalizeNameFn: ({ file }) => `custom/${file.originalName}`,
+        normalizeLinkFn: ({ bucket, object }) => `https://cdn/${bucket.name}/${object.key}`,
       });
 
       expect(result[0].object.key).toBe('custom/Hello World.png');

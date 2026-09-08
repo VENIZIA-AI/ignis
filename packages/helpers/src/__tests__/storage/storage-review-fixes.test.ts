@@ -50,7 +50,7 @@ describe('upload runs with bounded concurrency', () => {
       return result;
     });
 
-    const results = await helper.upload({ bucket: 'images', files });
+    const results = await helper.upload({ bucket: { name: 'images' }, files });
 
     expect(results).toHaveLength(200);
     expect(peak).toBeLessThanOrEqual(StorageConcurrency.DEFAULT_LIMIT);
@@ -61,7 +61,7 @@ describe('upload runs with bounded concurrency', () => {
     const { helper } = buildDisk();
     const files = Array.from({ length: 40 }, (_, index) => buildFile(`ordered-${index}.png`));
 
-    const results = await helper.upload({ bucket: 'images', files });
+    const results = await helper.upload({ bucket: { name: 'images' }, files });
 
     expect(results.map(result => result.object.key)).toEqual(
       files.map(file => file.originalName.toLowerCase()),
@@ -75,7 +75,7 @@ describe('listObjects treats maxKeys as a number, not a truthiness', () => {
     writeFileSync(join(root, 'images', 'a.png'), 'a');
     writeFileSync(join(root, 'images', 'b.png'), 'b');
 
-    const objects = await helper.listObjects({ bucket: 'images', maxKeys: 0 });
+    const objects = await helper.listObjects({ bucket: { name: 'images' }, maxKeys: 0 });
 
     expect(objects).toEqual([]);
   });
@@ -86,7 +86,7 @@ describe('listObjects treats maxKeys as a number, not a truthiness', () => {
       writeFileSync(join(root, 'images', name), 'x');
     }
 
-    const objects = await helper.listObjects({ bucket: 'images', maxKeys: 2 });
+    const objects = await helper.listObjects({ bucket: { name: 'images' }, maxKeys: 2 });
 
     expect(objects).toHaveLength(2);
   });
@@ -97,7 +97,7 @@ describe('listObjects treats maxKeys as a number, not a truthiness', () => {
       writeFileSync(join(root, 'images', name), 'x');
     }
 
-    const objects = await helper.listObjects({ bucket: 'images' });
+    const objects = await helper.listObjects({ bucket: { name: 'images' } });
 
     expect(objects).toHaveLength(3);
   });

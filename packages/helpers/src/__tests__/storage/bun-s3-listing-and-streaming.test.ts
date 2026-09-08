@@ -49,7 +49,7 @@ describe('BunS3Helper.listObjects - pagination', () => {
       ],
     });
 
-    const objects = await helper.listObjects({ bucket: 'assets' });
+    const objects = await helper.listObjects({ bucket: { name: 'assets' } });
 
     expect(objects.map(object => object.name)).toEqual(['a', 'b', 'c', 'd', 'e']);
     expect(calls).toHaveLength(3);
@@ -65,7 +65,7 @@ describe('BunS3Helper.listObjects - pagination', () => {
       ],
     });
 
-    const objects = await helper.listObjects({ bucket: 'assets', maxKeys: 2 });
+    const objects = await helper.listObjects({ bucket: { name: 'assets' }, maxKeys: 2 });
 
     expect(objects).toHaveLength(2);
     expect(calls).toHaveLength(1);
@@ -74,7 +74,7 @@ describe('BunS3Helper.listObjects - pagination', () => {
   test('maxKeys 0 returns nothing and never calls the backend', async () => {
     const { helper, calls } = buildHelper({ pages: [{ keys: ['a'] }] });
 
-    const objects = await helper.listObjects({ bucket: 'assets', maxKeys: 0 });
+    const objects = await helper.listObjects({ bucket: { name: 'assets' }, maxKeys: 0 });
 
     expect(objects).toEqual([]);
     expect(calls).toEqual([]);
@@ -85,7 +85,7 @@ describe('BunS3Helper.listObjects - useRecursive', () => {
   test('useRecursive false groups by delimiter, matching the disk backend', async () => {
     const { helper, calls } = buildHelper({ pages: [{ keys: ['a'] }] });
 
-    await helper.listObjects({ bucket: 'assets', useRecursive: false });
+    await helper.listObjects({ bucket: { name: 'assets' }, useRecursive: false });
 
     expect(calls[0].delimiter).toBe('/');
   });
@@ -93,7 +93,7 @@ describe('BunS3Helper.listObjects - useRecursive', () => {
   test('the default stays recursive, so no delimiter is sent', async () => {
     const { helper, calls } = buildHelper({ pages: [{ keys: ['a'] }] });
 
-    await helper.listObjects({ bucket: 'assets' });
+    await helper.listObjects({ bucket: { name: 'assets' } });
 
     expect(calls[0].delimiter).toBeUndefined();
   });
@@ -109,7 +109,10 @@ describe('BunS3Helper.getObject - the object is streamed, not buffered', () => {
     });
 
     // The endpoint is unreachable on purpose: a lazy stream still constructs, a buffering read would throw.
-    const stream = await helper.getObject({ bucket: 'assets', name: 'photo.png' });
+    const stream = await helper.getObject({
+      bucket: { name: 'assets' },
+      object: { key: 'photo.png' },
+    });
 
     expect(stream).toBeInstanceOf(Readable);
   });
