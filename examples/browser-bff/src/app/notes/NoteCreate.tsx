@@ -16,7 +16,7 @@ export const NoteCreate = () => {
   const notify = useNotify();
   const refresh = useRefresh();
 
-  const onSubmit = (event: React.FormEvent<HTMLFormElement>): void => {
+  const onSubmit = (event: React.SubmitEvent<HTMLFormElement>): void => {
     event.preventDefault();
 
     if (title.trim().length === 0) {

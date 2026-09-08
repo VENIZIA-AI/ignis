@@ -21,8 +21,8 @@ export class BaseSearchEntity<
 
   static schema: ISearchCollectionDefinition;
 
-  static documentSchema?: z.ZodTypeAny;
-  private static readonly _schemaCache = new Map<Function, Map<TSchemaType, z.ZodTypeAny>>();
+  static documentSchema?: z.ZodType;
+  private static readonly _schemaCache = new Map<Function, Map<TSchemaType, z.ZodType>>();
 
   constructor(opts?: { name?: string; schema?: Schema }) {
     const ctor = new.target as typeof BaseSearchEntity;
@@ -52,7 +52,7 @@ export class BaseSearchEntity<
 
     let byType = BaseSearchEntity._schemaCache.get(ctor);
     if (!byType) {
-      byType = new Map<TSchemaType, z.ZodTypeAny>();
+      byType = new Map<TSchemaType, z.ZodType>();
       BaseSearchEntity._schemaCache.set(ctor, byType);
     }
 

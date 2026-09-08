@@ -7,7 +7,7 @@ import { SchemaTypes } from '@venizia/ignis-kernel';
 import type { ISearchCollectionDefinition, ISearchFieldDefinition } from './common';
 import { SearchFieldTypes } from './common';
 
-const buildBaseFieldSchema = (field: ISearchFieldDefinition): z.ZodTypeAny => {
+const buildBaseFieldSchema = (field: ISearchFieldDefinition): z.ZodType => {
   switch (field.type) {
     case SearchFieldTypes.STRING: {
       return z.string();
@@ -42,7 +42,7 @@ const buildBaseFieldSchema = (field: ISearchFieldDefinition): z.ZodTypeAny => {
 };
 
 // A vector field carrying `vector.embed` is server auto-embedded, never client-supplied input/output, so it is dropped from the shape entirely (mirrors TSearchDocument's embed exclusion).
-const buildFieldSchema = (field: ISearchFieldDefinition): z.ZodTypeAny | undefined => {
+const buildFieldSchema = (field: ISearchFieldDefinition): z.ZodType | undefined => {
   if (field.type === SearchFieldTypes.VECTOR && field.vector?.embed) {
     return undefined;
   }
@@ -52,10 +52,10 @@ const buildFieldSchema = (field: ISearchFieldDefinition): z.ZodTypeAny | undefin
   return field.optional ? baseSchema.optional() : baseSchema;
 };
 
-const buildShape = (fields: readonly ISearchFieldDefinition[]): Record<string, z.ZodTypeAny> => {
+const buildShape = (fields: readonly ISearchFieldDefinition[]): Record<string, z.ZodType> => {
   const entries = fields
     .map(field => [field.name, buildFieldSchema(field)] as const)
-    .filter((entry): entry is [string, z.ZodTypeAny] => entry[1] !== undefined);
+    .filter((entry): entry is [string, z.ZodType] => entry[1] !== undefined);
 
   return Object.fromEntries(entries);
 };
@@ -63,7 +63,7 @@ const buildShape = (fields: readonly ISearchFieldDefinition[]): Record<string, z
 export const deriveSearchDocumentSchema = (opts: {
   definition: ISearchCollectionDefinition;
   type: TSchemaType;
-}): z.ZodTypeAny => {
+}): z.ZodType => {
   const { definition, type } = opts;
   const shape = buildShape(definition.fields);
 

@@ -1,9 +1,8 @@
 import type { TAuthMode, TAuthStrategy } from '@/base/auth/authenticate/common/constants';
 import type { IAuthorizationSpec } from '@/base/auth/authorize/common/types';
 import type { TAnyObjectSchema } from '@/utilities/schema.utility';
+import type { createRoute, RouteConfig as HonoRouteConfig, OpenAPIHono, z } from '@hono/zod-openapi';
 import type { AnyType } from '@venizia/ignis-helpers/common';
-import type { RouteConfig as HonoRouteConfig } from '@hono/zod-openapi';
-import type { createRoute, OpenAPIHono, z } from '@hono/zod-openapi';
 import type { Env, Schema } from 'hono';
 import type { TRouteHandler } from './context';
 
@@ -75,7 +74,7 @@ export type TCustomizableRouteConfig = TRouteAuthConfig & {
     headers?: TAnyObjectSchema;
   };
   response?: {
-    schema?: z.ZodTypeAny;
+    schema?: z.ZodType;
     headers?: TResponseHeaders;
   };
 };

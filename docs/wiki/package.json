@@ -52,7 +52,7 @@
   },
   "scripts": {
     "docs:build": "sh ./scripts/docs-build.sh",
-    "docs:check-sidebar": "bun scripts/check-sidebar.ts",
+    "docs:check-sidebar": "bun scripts/check-sidebar.mts",
     "docs:clean": "sh ./scripts/docs-clean.sh",
     "docs:dev": "vitepress dev site",
     "docs:preview": "vitepress preview site",

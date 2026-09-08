@@ -6,7 +6,7 @@ import { HTTP } from '@venizia/ignis-helpers/common';
 import { MultiSearchInputSchema, SearchInputSchema } from '@/search/core/repositories/common';
 
 export const defineSearchRouteConfigs = (opts: {
-  selectSchema: z.ZodTypeAny;
+  selectSchema: z.ZodType;
   authenticate?: { strategies?: TAuthStrategy[]; mode?: TAuthMode };
   authorize?: IAuthorizationSpec | IAuthorizationSpec[];
 }) => {

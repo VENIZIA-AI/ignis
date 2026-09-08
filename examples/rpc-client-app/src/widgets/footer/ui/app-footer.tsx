@@ -12,12 +12,12 @@ const { Text, Link } = Typography;
 export function AppFooter() {
   return (
     <Footer style={{ textAlign: "center", marginTop: "auto" }}>
-      <Space direction="vertical" size="small">
+      <Space orientation="vertical" size="small">
         <Text type="secondary">
           Ignis Framework ©{new Date().getFullYear()} - Type-safe backend for
           TypeScript
         </Text>
-        <Space split="|">
+        <Space separator="|">
           <Link
             href="https://github.com/your-org/ignis"
             target="_blank"
