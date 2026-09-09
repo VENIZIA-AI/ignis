@@ -22,6 +22,8 @@ export interface IErrorSummary {
   /** An `ApplicationError`'s caller context - the one unmodelled payload worth keeping. */
   extra?: Record<string, unknown>;
   cause?: IErrorSummary;
+  /** Every reason an `AggregateError` collected. Its own message names none of them, so without this the log says only that something failed. */
+  errors?: Array<IErrorSummary>;
 }
 
 /** Turns a thrown value into something a human can read in a console - log this, never the raw error. */
@@ -47,6 +49,9 @@ export class ErrorPrettier {
 
   /** Issues rendered from a ZodError before the rest are counted off. */
   private static readonly MAX_ZOD_ISSUES = 10;
+
+  /** Members of an `AggregateError` rendered before the rest are counted off. */
+  private static readonly MAX_AGGREGATED_ERRORS = 10;
 
   private static readonly INSPECT_OPTIONS: util.InspectOptions = {
     depth: 5,
@@ -224,6 +229,27 @@ export class ErrorPrettier {
       });
     }
 
+    // A protocol client reports one member per thing that failed; the wrapper carries only a generic sentence.
+    if (Array.isArray(source.errors) && source.errors.length > 0 && depthLeft > 0) {
+      const members = source.errors.slice(0, this.MAX_AGGREGATED_ERRORS).map(member =>
+        this.summarizeNode({
+          value: member,
+          depthLeft: depthLeft - 1,
+          seen,
+          isRoot: false,
+          includeStack,
+          maxStackFrames,
+        }),
+      );
+
+      const remaining = source.errors.length - members.length;
+      if (remaining > 0) {
+        members.push({ message: `... and ${remaining} more` });
+      }
+
+      summary.errors = members;
+    }
+
     // Nothing recognizable: inspect it (redacted) so an unmodelled shape still reaches the log.
     if (Object.keys(summary).length === 0) {
       return { message: util.inspect(redactSecrets(value), this.INSPECT_OPTIONS) };
@@ -241,6 +267,18 @@ export class ErrorPrettier {
         lines.push(`${key}: ${diagnostic}`);
       }
     }
+  }
+
+  /** Under whichever node collected them: a wrapped `AggregateError` is the common shape, and its members are the whole reason this runs. */
+  private static pushAggregatedErrors(opts: { node: IErrorSummary; lines: Array<string> }): void {
+    const { node, lines } = opts;
+
+    node.errors?.forEach((member, index) => {
+      const memberCode = member.code ?? member.messageCode;
+      const code = memberCode === undefined ? '' : ` (code ${memberCode})`;
+      lines.push(`errors[${index}]: ${member.message ?? ''}${code}`);
+      this.pushDiagnostics({ node: member, lines });
+    });
   }
 
   /** Reduces any thrown value to {@link IErrorSummary} - always a summary, never a bare primitive. */
@@ -343,6 +381,10 @@ export class ErrorPrettier {
       payload.cause = summary.cause;
     }
 
+    if (summary.errors !== undefined) {
+      payload.errors = summary.errors;
+    }
+
     // An ARRAY, not the newline-joined string `text` prints: a monitor can count and slice frames.
     if (summary.stack !== undefined) {
       payload.stack = summary.stack.split('\n').map(frame => frame.trim());
@@ -371,12 +413,15 @@ export class ErrorPrettier {
       lines.push(`args: ${util.inspect(redactSecrets(summary.args), inspectOptions)}`);
     }
 
+    this.pushAggregatedErrors({ node: summary, lines });
+
     let cause = summary.cause;
     while (cause !== undefined) {
       const causeCode = cause.code ?? cause.messageCode;
       const code = causeCode === undefined ? '' : ` (code ${causeCode})`;
       lines.push(`cause: ${cause.message ?? ''}${code}`);
       this.pushDiagnostics({ node: cause, lines });
+      this.pushAggregatedErrors({ node: cause, lines });
       cause = cause.cause;
     }
 

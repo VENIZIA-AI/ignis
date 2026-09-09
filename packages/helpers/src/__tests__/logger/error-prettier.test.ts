@@ -23,6 +23,20 @@ const buildDrizzleError = () => {
   });
 };
 
+/** The shape a Kafka client throws: the wrapper message names nothing, and one member carries each thing that actually failed. */
+const buildAggregateError = (memberCount: number) => {
+  const members = Array.from({ length: memberCount }, (_, index) =>
+    Object.assign(new Error(`Topic authorization failed for topic ${index}.`), {
+      code: 'PLT_KFK_PROTOCOL',
+    }),
+  );
+
+  return Object.assign(
+    new AggregateError(members, 'Received response with error while executing API Metadata(v12)'),
+    { code: 'PLT_KFK_RESPONSE' },
+  );
+};
+
 describe('ErrorPrettier.summarize', () => {
   test('keeps name, message and code; drops query and params', () => {
     const summary = ErrorPrettier.summarize({ error: buildDrizzleError() });
@@ -125,6 +139,28 @@ describe('ErrorPrettier.summarize', () => {
     expect(summary.cause?.cause?.message).toBe('[Circular]');
   });
 
+  test('keeps every member of an AggregateError - the wrapper message names none of them', () => {
+    const summary = ErrorPrettier.summarize({ error: buildAggregateError(2) });
+
+    expect(summary.code).toBe('PLT_KFK_RESPONSE');
+    expect(summary.errors?.length).toBe(2);
+    expect(summary.errors?.[0].message).toBe('Topic authorization failed for topic 0.');
+    expect(summary.errors?.[0].code).toBe('PLT_KFK_PROTOCOL');
+  });
+
+  test('counts off AggregateError members beyond the cap instead of dropping them silently', () => {
+    const summary = ErrorPrettier.summarize({ error: buildAggregateError(13) });
+
+    expect(summary.errors?.length).toBe(11);
+    expect(summary.errors?.at(-1)?.message).toBe('... and 3 more');
+  });
+
+  test('an `errors` field that is not an array is left alone', () => {
+    const error = Object.assign(new Error('nope'), { errors: 'not an array' });
+
+    expect(ErrorPrettier.summarize({ error }).errors).toBeUndefined();
+  });
+
   /** A ZodError's `message` is its issue array as pretty JSON - dozens of lines for one bad field. */
   test('compresses a ZodError message to one `path: reason` line per issue', () => {
     const error = Object.assign(
@@ -201,6 +237,31 @@ describe('ErrorPrettier.format', () => {
       'cause: cannot update table "SaleOrder" because it does not have a replica identity (code 55000)',
     );
     expect(block).toContain('message: Failed query:');
+  });
+
+  test('renders one line per AggregateError member - the reason the wrapper hides', () => {
+    const block = ErrorPrettier.format({ error: buildAggregateError(2) });
+
+    expect(block).toContain(
+      'errors[0]: Topic authorization failed for topic 0. (code PLT_KFK_PROTOCOL)',
+    );
+    expect(block).toContain(
+      'errors[1]: Topic authorization failed for topic 1. (code PLT_KFK_PROTOCOL)',
+    );
+  });
+
+  /** The shape a datasource actually throws: the client's AggregateError arrives wrapped, not at the root. */
+  test('renders the members of an AggregateError reached through `cause`', () => {
+    const error = new Error('Failed to connect the kafka datasource', {
+      cause: buildAggregateError(2),
+    });
+
+    const block = ErrorPrettier.format({ error });
+
+    expect(block).toContain('cause: Received response with error while executing API Metadata(v12)');
+    expect(block).toContain(
+      'errors[0]: Topic authorization failed for topic 0. (code PLT_KFK_PROTOCOL)',
+    );
   });
 
   test('renders the message with REAL newlines, not escaped \\n', () => {
