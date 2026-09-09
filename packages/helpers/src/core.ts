@@ -9,6 +9,11 @@ export * from './modules/queue/internal/hf';
 export type { ILogger, ILoggerProvider, TLogLevel } from './modules/logger/common/types';
 export { LogLevels } from './modules/logger/common/types';
 export * from './modules/network/http-request/fetcher/base-fetcher';
+// The url guard, pure half only: `UrlPolicy` decides a url and a literal address with string and
+// number work. Its sibling `UrlIngest` reaches `node:dns` and stays out of this subpath.
+export * from './modules/network/url-safety/policy';
+export * from './modules/network/url-safety/common/constants';
+export type { IUrlSafetyPolicy } from './modules/network/url-safety/common/types';
 export { RetryHelper } from './modules/retry/helper';
 export { RetryBackoffStrategies, RetryJitterModes } from './modules/retry/common/constants';
 export type { TRetryBackoffStrategy, TRetryJitterMode } from './modules/retry/common/constants';
