@@ -829,7 +829,7 @@
       "specifier": "@venizia/ignis",
       "kind": "class",
       "file": "packages/helpers/src/modules/storage/base.ts",
-      "line": 23,
+      "line": 22,
       "signature": "class BaseStorageHelper extends BaseHelper implements IStorageHelper"
     },
     {
@@ -999,7 +999,7 @@
       "specifier": "@venizia/ignis",
       "kind": "const",
       "file": "packages/helpers/src/common/constants/mime.ts",
-      "line": 118,
+      "line": 157,
       "signature": "CONTENT_TYPE_BY_EXTENSION: Readonly<Partial<Record<string, TContentType>>>"
     },
     {
@@ -1102,6 +1102,16 @@
       "file": "packages/kernel/src/helpers/inversion/container.ts",
       "line": 7,
       "signature": "class Container extends DIContainer"
+    },
+    {
+      "name": "ContentTypeTable",
+      "package": "@venizia/ignis",
+      "subpath": ".",
+      "specifier": "@venizia/ignis",
+      "kind": "class",
+      "file": "packages/helpers/src/common/constants/mime.ts",
+      "line": 118,
+      "signature": "class ContentTypeTable"
     },
     {
       "name": "ContentTypes",
@@ -3833,6 +3843,16 @@
       "file": "packages/helpers/src/modules/storage/common/types.ts",
       "line": 15,
       "signature": "interface IUploadResult"
+    },
+    {
+      "name": "IUrlSafetyPolicy",
+      "package": "@venizia/ignis",
+      "subpath": ".",
+      "specifier": "@venizia/ignis",
+      "kind": "interface",
+      "file": "packages/helpers/src/modules/network/url-safety/common/types.ts",
+      "line": 7,
+      "signature": "interface IUrlSafetyPolicy"
     },
     {
       "name": "IValidRequestProps",
@@ -7526,6 +7546,16 @@
       "signature": "type TUploadNaming = Pick<IUploadFile, 'originalName' | 'folderPath'>"
     },
     {
+      "name": "TUrlScheme",
+      "package": "@venizia/ignis",
+      "subpath": ".",
+      "specifier": "@venizia/ignis",
+      "kind": "type",
+      "file": "packages/helpers/src/modules/network/url-safety/common/constants.ts",
+      "line": 14,
+      "signature": "type TUrlScheme = TConstValue<typeof UrlSchemes>"
+    },
+    {
       "name": "TUserAuditColumnOpts",
       "package": "@venizia/ignis",
       "subpath": ".",
@@ -7784,6 +7814,56 @@
       "file": "packages/connectors/src/relational/postgres/repositories/dialect/update.ts",
       "line": 9,
       "signature": "class UpdateBuilder extends RelationalUpdateBuilder"
+    },
+    {
+      "name": "UrlIngest",
+      "package": "@venizia/ignis",
+      "subpath": ".",
+      "specifier": "@venizia/ignis",
+      "kind": "class",
+      "file": "packages/helpers/src/modules/network/url-safety/ingest.ts",
+      "line": 13,
+      "signature": "class UrlIngest"
+    },
+    {
+      "name": "UrlPolicy",
+      "package": "@venizia/ignis",
+      "subpath": ".",
+      "specifier": "@venizia/ignis",
+      "kind": "class",
+      "file": "packages/helpers/src/modules/network/url-safety/policy.ts",
+      "line": 12,
+      "signature": "class UrlPolicy"
+    },
+    {
+      "name": "UrlSafetyDefaults",
+      "package": "@venizia/ignis",
+      "subpath": ".",
+      "specifier": "@venizia/ignis",
+      "kind": "class",
+      "file": "packages/helpers/src/modules/network/url-safety/common/constants.ts",
+      "line": 17,
+      "signature": "class UrlSafetyDefaults"
+    },
+    {
+      "name": "UrlSafetyErrors",
+      "package": "@venizia/ignis",
+      "subpath": ".",
+      "specifier": "@venizia/ignis",
+      "kind": "const",
+      "file": "packages/helpers/src/modules/network/url-safety/common/errors.ts",
+      "line": 10,
+      "signature": "UrlSafetyErrors: { readonly URL_REFUSED: { readonly message: { readonly text: \"Url refused by the safety policy\"; readonly code: \"core.url_safety.url_refused\"; }; readonly statusCode: 400; readonly category: \"business\"; }; }"
+    },
+    {
+      "name": "UrlSchemes",
+      "package": "@venizia/ignis",
+      "subpath": ".",
+      "specifier": "@venizia/ignis",
+      "kind": "class",
+      "file": "packages/helpers/src/modules/network/url-safety/common/constants.ts",
+      "line": 4,
+      "signature": "class UrlSchemes"
     },
     {
       "name": "UserPolicyLineCache",
@@ -8735,6 +8815,16 @@
       "file": "packages/helpers/src/modules/redis/base/abstract.helper.ts",
       "line": 14,
       "signature": "isRedisHelper: (value: unknown) => value is AbstractRedisHelper"
+    },
+    {
+      "name": "isUrlRefusedError",
+      "package": "@venizia/ignis",
+      "subpath": ".",
+      "specifier": "@venizia/ignis",
+      "kind": "const",
+      "file": "packages/helpers/src/modules/network/url-safety/common/errors.ts",
+      "line": 29,
+      "signature": "isUrlRefusedError: (opts: { error: unknown; }) => boolean"
     },
     {
       "name": "isWeekday",
@@ -12786,6 +12876,16 @@
       "signature": "class AssetControllerFactory extends BaseHelper"
     },
     {
+      "name": "AssetIngest",
+      "package": "@venizia/ignis",
+      "subpath": "./static-asset",
+      "specifier": "@venizia/ignis/static-asset",
+      "kind": "class",
+      "file": "packages/core-server/src/components/static-asset/ingest.ts",
+      "line": 64,
+      "signature": "class AssetIngest"
+    },
+    {
       "name": "BaseMetaLinkModel",
       "package": "@venizia/ignis",
       "subpath": "./static-asset",
@@ -12814,6 +12914,26 @@
       "file": "packages/core-server/src/components/static-asset/controller/factory.ts",
       "line": 37,
       "signature": "interface IAssetControllerOptions"
+    },
+    {
+      "name": "IIngestFromUrlOptions",
+      "package": "@venizia/ignis",
+      "subpath": "./static-asset",
+      "specifier": "@venizia/ignis/static-asset",
+      "kind": "interface",
+      "file": "packages/core-server/src/components/static-asset/ingest.ts",
+      "line": 27,
+      "signature": "interface IIngestFromUrlOptions"
+    },
+    {
+      "name": "IIngestFromUrlResult",
+      "package": "@venizia/ignis",
+      "subpath": "./static-asset",
+      "specifier": "@venizia/ignis/static-asset",
+      "kind": "interface",
+      "file": "packages/core-server/src/components/static-asset/ingest.ts",
+      "line": 21,
+      "signature": "interface IIngestFromUrlResult"
     },
     {
       "name": "RENDERABLE_CONTENT_TYPES",
@@ -19621,7 +19741,7 @@
       "specifier": "@venizia/ignis-helpers",
       "kind": "class",
       "file": "packages/helpers/src/modules/storage/base.ts",
-      "line": 23,
+      "line": 22,
       "signature": "class BaseStorageHelper extends BaseHelper implements IStorageHelper"
     },
     {
@@ -19681,7 +19801,7 @@
       "specifier": "@venizia/ignis-helpers",
       "kind": "const",
       "file": "packages/helpers/src/common/constants/mime.ts",
-      "line": 118,
+      "line": 157,
       "signature": "CONTENT_TYPE_BY_EXTENSION: Readonly<Partial<Record<string, TContentType>>>"
     },
     {
@@ -19704,6 +19824,16 @@
       "file": "packages/helpers/src/modules/logger/base/console.ts",
       "line": 6,
       "signature": "class ConsoleLogger extends AbstractLogger"
+    },
+    {
+      "name": "ContentTypeTable",
+      "package": "@venizia/ignis-helpers",
+      "subpath": ".",
+      "specifier": "@venizia/ignis-helpers",
+      "kind": "class",
+      "file": "packages/helpers/src/common/constants/mime.ts",
+      "line": 118,
+      "signature": "class ContentTypeTable"
     },
     {
       "name": "ContentTypes",
@@ -20945,6 +21075,16 @@
       "file": "packages/helpers/src/modules/storage/common/types.ts",
       "line": 15,
       "signature": "interface IUploadResult"
+    },
+    {
+      "name": "IUrlSafetyPolicy",
+      "package": "@venizia/ignis-helpers",
+      "subpath": ".",
+      "specifier": "@venizia/ignis-helpers",
+      "kind": "interface",
+      "file": "packages/helpers/src/modules/network/url-safety/common/types.ts",
+      "line": 7,
+      "signature": "interface IUrlSafetyPolicy"
     },
     {
       "name": "IWalkAsyncOptions",
@@ -22278,6 +22418,16 @@
       "signature": "type TUploadNaming = Pick<IUploadFile, 'originalName' | 'folderPath'>"
     },
     {
+      "name": "TUrlScheme",
+      "package": "@venizia/ignis-helpers",
+      "subpath": ".",
+      "specifier": "@venizia/ignis-helpers",
+      "kind": "type",
+      "file": "packages/helpers/src/modules/network/url-safety/common/constants.ts",
+      "line": 14,
+      "signature": "type TUrlScheme = TConstValue<typeof UrlSchemes>"
+    },
+    {
       "name": "TValueOrAsyncResolver",
       "package": "@venizia/ignis-helpers",
       "subpath": ".",
@@ -22446,6 +22596,56 @@
       "file": "packages/helpers/src/modules/uid/common/constants.ts",
       "line": 30,
       "signature": "class UidCaseForms"
+    },
+    {
+      "name": "UrlIngest",
+      "package": "@venizia/ignis-helpers",
+      "subpath": ".",
+      "specifier": "@venizia/ignis-helpers",
+      "kind": "class",
+      "file": "packages/helpers/src/modules/network/url-safety/ingest.ts",
+      "line": 13,
+      "signature": "class UrlIngest"
+    },
+    {
+      "name": "UrlPolicy",
+      "package": "@venizia/ignis-helpers",
+      "subpath": ".",
+      "specifier": "@venizia/ignis-helpers",
+      "kind": "class",
+      "file": "packages/helpers/src/modules/network/url-safety/policy.ts",
+      "line": 12,
+      "signature": "class UrlPolicy"
+    },
+    {
+      "name": "UrlSafetyDefaults",
+      "package": "@venizia/ignis-helpers",
+      "subpath": ".",
+      "specifier": "@venizia/ignis-helpers",
+      "kind": "class",
+      "file": "packages/helpers/src/modules/network/url-safety/common/constants.ts",
+      "line": 17,
+      "signature": "class UrlSafetyDefaults"
+    },
+    {
+      "name": "UrlSafetyErrors",
+      "package": "@venizia/ignis-helpers",
+      "subpath": ".",
+      "specifier": "@venizia/ignis-helpers",
+      "kind": "const",
+      "file": "packages/helpers/src/modules/network/url-safety/common/errors.ts",
+      "line": 10,
+      "signature": "UrlSafetyErrors: { readonly URL_REFUSED: { readonly message: { readonly text: \"Url refused by the safety policy\"; readonly code: \"core.url_safety.url_refused\"; }; readonly statusCode: 400; readonly category: \"business\"; }; }"
+    },
+    {
+      "name": "UrlSchemes",
+      "package": "@venizia/ignis-helpers",
+      "subpath": ".",
+      "specifier": "@venizia/ignis-helpers",
+      "kind": "class",
+      "file": "packages/helpers/src/modules/network/url-safety/common/constants.ts",
+      "line": 4,
+      "signature": "class UrlSchemes"
     },
     {
       "name": "ValueOf",
@@ -22889,6 +23089,16 @@
       "signature": "isRedisHelper: (value: unknown) => value is AbstractRedisHelper"
     },
     {
+      "name": "isUrlRefusedError",
+      "package": "@venizia/ignis-helpers",
+      "subpath": ".",
+      "specifier": "@venizia/ignis-helpers",
+      "kind": "const",
+      "file": "packages/helpers/src/modules/network/url-safety/common/errors.ts",
+      "line": 29,
+      "signature": "isUrlRefusedError: (opts: { error: unknown; }) => boolean"
+    },
+    {
       "name": "isWeekday",
       "package": "@venizia/ignis-helpers",
       "subpath": ".",
@@ -23215,8 +23425,18 @@
       "specifier": "@venizia/ignis-helpers/common",
       "kind": "const",
       "file": "packages/helpers/src/common/constants/mime.ts",
-      "line": 118,
+      "line": 157,
       "signature": "CONTENT_TYPE_BY_EXTENSION: Readonly<Partial<Record<string, TContentType>>>"
+    },
+    {
+      "name": "ContentTypeTable",
+      "package": "@venizia/ignis-helpers",
+      "subpath": "./common",
+      "specifier": "@venizia/ignis-helpers/common",
+      "kind": "class",
+      "file": "packages/helpers/src/common/constants/mime.ts",
+      "line": 118,
+      "signature": "class ContentTypeTable"
     },
     {
       "name": "ContentTypes",
@@ -24159,6 +24379,16 @@
       "signature": "interface IUidSegment"
     },
     {
+      "name": "IUrlSafetyPolicy",
+      "package": "@venizia/ignis-helpers",
+      "subpath": "./core",
+      "specifier": "@venizia/ignis-helpers/core",
+      "kind": "interface",
+      "file": "packages/helpers/src/modules/network/url-safety/common/types.ts",
+      "line": 7,
+      "signature": "interface IUrlSafetyPolicy"
+    },
+    {
       "name": "IWalkAsyncOptions",
       "package": "@venizia/ignis-helpers",
       "subpath": "./core",
@@ -24519,6 +24749,16 @@
       "signature": "type TUidCaseForm = TConstValue<typeof UidCaseForms>"
     },
     {
+      "name": "TUrlScheme",
+      "package": "@venizia/ignis-helpers",
+      "subpath": "./core",
+      "specifier": "@venizia/ignis-helpers/core",
+      "kind": "type",
+      "file": "packages/helpers/src/modules/network/url-safety/common/constants.ts",
+      "line": 14,
+      "signature": "type TUrlScheme = TConstValue<typeof UrlSchemes>"
+    },
+    {
       "name": "TreeBuilder",
       "package": "@venizia/ignis-helpers",
       "subpath": "./core",
@@ -24557,6 +24797,36 @@
       "file": "packages/helpers/src/modules/uid/common/constants.ts",
       "line": 30,
       "signature": "class UidCaseForms"
+    },
+    {
+      "name": "UrlPolicy",
+      "package": "@venizia/ignis-helpers",
+      "subpath": "./core",
+      "specifier": "@venizia/ignis-helpers/core",
+      "kind": "class",
+      "file": "packages/helpers/src/modules/network/url-safety/policy.ts",
+      "line": 12,
+      "signature": "class UrlPolicy"
+    },
+    {
+      "name": "UrlSafetyDefaults",
+      "package": "@venizia/ignis-helpers",
+      "subpath": "./core",
+      "specifier": "@venizia/ignis-helpers/core",
+      "kind": "class",
+      "file": "packages/helpers/src/modules/network/url-safety/common/constants.ts",
+      "line": 17,
+      "signature": "class UrlSafetyDefaults"
+    },
+    {
+      "name": "UrlSchemes",
+      "package": "@venizia/ignis-helpers",
+      "subpath": "./core",
+      "specifier": "@venizia/ignis-helpers/core",
+      "kind": "class",
+      "file": "packages/helpers/src/modules/network/url-safety/common/constants.ts",
+      "line": 4,
+      "signature": "class UrlSchemes"
     },
     {
       "name": "executeWithPerformanceMeasure",

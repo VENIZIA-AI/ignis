@@ -17,6 +17,7 @@ This section tracks the history of significant changes, refactors, and updates t
 
 | Date | Title | Type |
 |------|-------|------|
+| 2026-09-09 | [A Url From User Input Can No Longer Reach Inside Your Network](./2026-09-09-guarded-url-fetch) | Security |
 | 2026-09-08 | [Every Storage Method Names Its Bucket and Its Object](./2026-09-08-storage-scoped-vocabulary) | Breaking |
 | 2026-09-08 | [A Binding Namespace That Would Lose Its Tag Is Refused](./2026-09-08-binding-namespace-guard-and-zod-type) | Behavior Change |
 | 2026-09-08 | [Storage Serves Safely, Answers 404, and Runs on Bun S3 Alone](./2026-09-08-storage-hardening-and-bun-s3-only) | Security |

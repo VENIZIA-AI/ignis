@@ -106,7 +106,7 @@ tags: [reference, exports, api]
 
 ## helpers
 
-### `@venizia/ignis-helpers` (374)
+### `@venizia/ignis-helpers` (383)
 
 - `AbstractCryptoAlgorithm` class
 - `AbstractLogger` class
@@ -145,6 +145,7 @@ tags: [reference, exports, api]
 - `ConsoleLogger` class
 - `CONTENT_TYPE_BY_EXTENSION` const
 - `ContentTypes` class
+- `ContentTypeTable` class
 - `createContentDispositionHeader` const
 - `createRedisHelper` function
 - `createSecretsHelper` function
@@ -290,6 +291,7 @@ tags: [reference, exports, api]
 - `isRedisHelper` const
 - `IStorageHelper` interface
 - `IStorageHelperOptions` interface
+- `isUrlRefusedError` const
 - `isWeekday` const
 - `ITcpSocketClient` interface
 - `ITcpSocketServerOptions` interface
@@ -298,6 +300,7 @@ tags: [reference, exports, api]
 - `IUidSegment` interface
 - `IUploadFile` interface
 - `IUploadResult` interface
+- `IUrlSafetyPolicy` interface
 - `IWalkAsyncOptions` interface
 - `IWalkOptions` interface
 - `IWebSocket` interface
@@ -452,6 +455,7 @@ tags: [reference, exports, api]
 - `TTimerHandle` type
 - `TUidCaseForm` type
 - `TUploadNaming` type
+- `TUrlScheme` type
 - `TValueOrAsyncResolver` type
 - `TValueOrResolver` type
 - `TVaultAuthMethod` type
@@ -467,6 +471,11 @@ tags: [reference, exports, api]
 - `TWebSocketValidateRoomFn` type
 - `UidAlphabets` class
 - `UidCaseForms` class
+- `UrlIngest` class
+- `UrlPolicy` class
+- `UrlSafetyDefaults` class
+- `UrlSafetyErrors` const
+- `UrlSchemes` class
 - `ValueOf` type
 - `ValueOptional` type
 - `ValueOptionalExcept` type
@@ -483,12 +492,13 @@ tags: [reference, exports, api]
 - `WebSocketServerHelper` class
 - `WorkerPoolHelper` class
 
-### `@venizia/ignis-helpers/common` (59)
+### `@venizia/ignis-helpers/common` (60)
 
 - `AnyObject` type
 - `AnyType` type
 - `CONTENT_TYPE_BY_EXTENSION` const
 - `ContentTypes` class
+- `ContentTypeTable` class
 - `DataTypes` class
 - `Defaults` class
 - `DurationAliases` class
@@ -545,7 +555,7 @@ tags: [reference, exports, api]
 - `ValueOptionalExcept` type
 - `ValueOrPromise` type
 
-### `@venizia/ignis-helpers/core` (86)
+### `@venizia/ignis-helpers/core` (91)
 
 - `AbstractNetworkFetchableHelper` class
 - `AbstractPoolHelper` class
@@ -590,6 +600,7 @@ tags: [reference, exports, api]
 - `ISnowflakeParsedId` interface
 - `ITreeNode` interface
 - `IUidSegment` interface
+- `IUrlSafetyPolicy` interface
 - `IWalkAsyncOptions` interface
 - `IWalkOptions` interface
 - `keysToCamel` const
@@ -631,8 +642,12 @@ tags: [reference, exports, api]
 - `TRetryBackoffStrategy` type
 - `TRetryJitterMode` type
 - `TUidCaseForm` type
+- `TUrlScheme` type
 - `UidAlphabets` class
 - `UidCaseForms` class
+- `UrlPolicy` class
+- `UrlSafetyDefaults` class
+- `UrlSchemes` class
 
 ### `@venizia/ignis-helpers/socket-io` (17)
 
@@ -1739,7 +1754,7 @@ tags: [reference, exports, api]
 
 ## core-server
 
-### `@venizia/ignis` (926)
+### `@venizia/ignis` (935)
 
 - `AbstractApplication` class
 - `AbstractAuthRegistry` class
@@ -1863,6 +1878,7 @@ tags: [reference, exports, api]
 - `Container` class
 - `CONTENT_TYPE_BY_EXTENSION` const
 - `ContentTypes` class
+- `ContentTypeTable` class
 - `controller` const
 - `ControllerFactory` class
 - `ControllerTransports` class
@@ -2191,6 +2207,7 @@ tags: [reference, exports, api]
 - `IStaticServeMixin` interface
 - `IStorageHelper` interface
 - `IStorageHelperOptions` interface
+- `isUrlRefusedError` const
 - `isWeekday` const
 - `ITcpSocketClient` interface
 - `ITcpSocketServerOptions` interface
@@ -2205,6 +2222,7 @@ tags: [reference, exports, api]
 - `IUpdatableRepository` interface
 - `IUploadFile` interface
 - `IUploadResult` interface
+- `IUrlSafetyPolicy` interface
 - `IValidRequestProps` interface
 - `IWalkAsyncOptions` interface
 - `IWalkOptions` interface
@@ -2622,6 +2640,7 @@ tags: [reference, exports, api]
 - `TUidCaseForm` type
 - `TUpdateData` type
 - `TUploadNaming` type
+- `TUrlScheme` type
 - `TUserAuditColumnOpts` type
 - `TUserAuditEnricherOptions` type
 - `TUserAuditEnricherResult` type
@@ -2646,6 +2665,11 @@ tags: [reference, exports, api]
 - `UIProviderFactory` class
 - `unary` const
 - `UpdateBuilder` class
+- `UrlIngest` class
+- `UrlPolicy` class
+- `UrlSafetyDefaults` class
+- `UrlSafetyErrors` const
+- `UrlSchemes` class
 - `useRequestContext` const
 - `UserPolicyLineCache` class
 - `UserStatuses` class
@@ -3059,13 +3083,16 @@ tags: [reference, exports, api]
 - `IConnectRpcModule` interface
 - `IGrpcComponentConfig` interface
 
-### `@venizia/ignis/static-asset` (24)
+### `@venizia/ignis/static-asset` (27)
 
 - `AssetControllerFactory` class
+- `AssetIngest` class
 - `BaseMetaLinkModel` class
 - `BaseMetaLinkRepository` class
 - `buildObjectLink` const
 - `IAssetControllerOptions` interface
+- `IIngestFromUrlOptions` interface
+- `IIngestFromUrlResult` interface
 - `RENDERABLE_CONTENT_TYPES` const
 - `resolveServedContentType` const
 - `StaticAssetComponent` class

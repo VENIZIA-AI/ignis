@@ -450,6 +450,16 @@ const config = defineConfig({
           collapsed: false,
           items: [
             {
+              text: '2026-09-09',
+              collapsed: true,
+              items: [
+                {
+                  text: 'Guarded Url Fetch',
+                  link: '/changelogs/2026-09-09-guarded-url-fetch',
+                },
+              ],
+            },
+            {
               text: '2026-09-08',
               collapsed: true,
               items: [

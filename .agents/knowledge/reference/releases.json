@@ -14,6 +14,12 @@
   "releases": {
     "atlas": [
       {
+        "version": "0.1.0-5",
+        "date": "2026-09-08",
+        "sha": "08babb65",
+        "order": 1143
+      },
+      {
         "version": "0.1.0-4",
         "date": "2026-09-07",
         "sha": "c241445a",
@@ -3052,6 +3058,18 @@
     ]
   },
   "changelogs": [
+    {
+      "id": "changelog:2026-09-09-guarded-url-fetch",
+      "file": "2026-09-09-guarded-url-fetch.md",
+      "date": "2026-09-09",
+      "title": "A Url From User Input Can No Longer Reach Inside Your Network",
+      "packages": [
+        "core-server",
+        "helpers"
+      ],
+      "kind": "Security",
+      "order": 9007199254740991
+    },
     {
       "id": "changelog:2026-09-08-storage-scoped-vocabulary",
       "file": "2026-09-08-storage-scoped-vocabulary.md",
