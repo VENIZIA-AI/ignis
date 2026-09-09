@@ -14,6 +14,12 @@
   "releases": {
     "atlas": [
       {
+        "version": "0.1.0-6",
+        "date": "2026-09-09",
+        "sha": "29d5d94b",
+        "order": 1151
+      },
+      {
         "version": "0.1.0-5",
         "date": "2026-09-08",
         "sha": "08babb65",

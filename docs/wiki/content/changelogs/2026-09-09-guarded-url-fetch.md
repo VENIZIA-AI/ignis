@@ -103,15 +103,32 @@ The guard narrows the attack to that window; it does not shut it.
 ## Storing a remote object without buffering it
 
 ```ts
+import { isUrlRefusedError } from '@venizia/ignis-helpers';
 import { AssetIngest } from '@venizia/ignis/static-asset';
 
-const { upload, stat } = await AssetIngest.fromUrl({
-  helper,
-  url: entry.imageUrl,
-  bucket: { name: 'assets' },
-  folderPath: `${organizerId}/${merchantId}/images`,
-  policy: { allowedSchemes: ['http:', 'https:'] },
-});
+// A `let` outside the `try`, not a `const` on it: the refusal path returns rather than rethrows,
+// so the result has to outlive the block that produced it.
+let ingested;
+
+try {
+  ingested = await AssetIngest.fromUrl({
+    helper,
+    url: entry.imageUrl,
+    bucket: { name: 'assets' },
+    policy: { allowedSchemes: ['http:', 'https:'] },
+    resolveKey: () => `${organizerId}/${merchantId}/images/${crypto.randomUUID()}.png`,
+    maxFolderDepth: 3,
+    normalizeLinkFn: ({ object }) => buildObjectLink(object.key),
+  });
+} catch (error) {
+  if (isUrlRefusedError({ error })) {
+    return; // Permanent. The next attempt gets the same answer.
+  }
+
+  throw error;
+}
+
+const { upload, stat } = ingested;
 ```
 
 The guarded response body is handed straight to `writeStream`, so the bytes never land in the
@@ -137,8 +154,14 @@ buffers and a `BunS3Helper` override that does not.
 writeStream(opts: IObjectLocation & {
   source: ReadableStream<Uint8Array> | Blob | Response | Request;
   contentType?: string;
+  /** Omitted -> DEFAULT_MAX_FOLDER_DEPTH, the same rule `upload` applies. */
+  maxFolderDepth?: number;
 }): Promise<void>;
 ```
+
+`maxFolderDepth` is there because without it one object arriving through `writeStream` obeyed no
+depth rule while the same object arriving through `upload` obeyed one - same package, two doors, two
+answers.
 
 **Wrote your own `IStorageHelper`?** You inherit the buffering default from `BaseStorageHelper` and
 need do nothing. Override it if your backend takes a stream.
