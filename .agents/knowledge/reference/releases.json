@@ -1444,6 +1444,12 @@
     ],
     "core-server": [
       {
+        "version": "0.2.0-24",
+        "date": "2026-09-09",
+        "sha": "a68a16dd",
+        "order": 1149
+      },
+      {
         "version": "0.2.0-23",
         "date": "2026-09-08",
         "sha": "fcc11e79",
@@ -2133,6 +2139,12 @@
       }
     ],
     "helpers": [
+      {
+        "version": "0.2.0-18",
+        "date": "2026-09-09",
+        "sha": "045a8daa",
+        "order": 1148
+      },
       {
         "version": "0.2.0-17",
         "date": "2026-09-08",
@@ -3068,7 +3080,7 @@
         "helpers"
       ],
       "kind": "Security",
-      "order": 9007199254740991
+      "order": 1147
     },
     {
       "id": "changelog:2026-09-08-storage-scoped-vocabulary",
