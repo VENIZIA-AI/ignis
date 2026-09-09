@@ -11,12 +11,12 @@ Exhaustive reference for `BaseStorageHelper`, the three `IStorageHelper` backend
 **Files:**
 
 - [`packages/helpers/src/modules/storage/base.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/storage/base.ts) - `BaseStorageHelper`
-- [`packages/helpers/src/modules/storage/minio/helper.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/storage/minio/helper.ts) - `MinioHelper`
 - [`packages/helpers/src/modules/storage/bun-s3/helper.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/storage/bun-s3/helper.ts) - `BunS3Helper`
 - [`packages/helpers/src/modules/storage/bun-s3/utility.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/storage/bun-s3/utility.ts) - `buildSignedRequest` (AWS SigV4 for bucket management)
 - [`packages/helpers/src/modules/storage/disk/helper.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/storage/disk/helper.ts) - `DiskHelper`
 - [`packages/helpers/src/modules/storage/in-memory/helper.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/storage/in-memory/helper.ts) - `MemoryStorageHelper`
 - [`packages/helpers/src/modules/storage/common/types.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/storage/common/types.ts) - `IStorageHelper` and every option/result type
+- [`packages/helpers/src/modules/storage/common/constants.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/storage/common/constants.ts) - `StoragePresignDefaults`
 - [`packages/helpers/src/common/constants/mime.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/common/constants/mime.ts) - `MimeTypes` const-class
 
 ## Find what you need
@@ -24,12 +24,13 @@ Exhaustive reference for `BaseStorageHelper`, the three `IStorageHelper` backend
 | You want to | Go to |
 |---|---|
 | See which class implements which backend | [Class and Interface Model](#class-and-interface-model) |
-| Construct a backend and see its options | [MinioHelper](#miniohelper) / [BunS3Helper](#buns3helper) / [DiskHelper](#diskhelper) |
+| Construct a backend and see its options | [BunS3Helper](#buns3helper) / [DiskHelper](#diskhelper) |
 | Understand what `upload()` validates and how it writes files | [upload (template method)](#upload-template-method-shared-by-every-backend) |
 | Validate a name or path before writing | [isValidName](#isvalidname) / [isValidPath](#isvalidpath) |
 | Look up every error message `upload()` can throw | [validateUploadFiles](#upload-template-method-shared-by-every-backend) |
-| Read a file back as a stream | [MinioHelper#getFile](#getfile) / [BunS3Helper#getFile](#getfile-1) / [DiskHelper#getFile](#getfile-2) |
-| List or delete objects in a bucket | per-backend Methods tables ([MinioHelper](#methods), [BunS3Helper](#methods-1), [DiskHelper](#methods-2)) |
+| Read a file back as a stream | [BunS3Helper#getObject](#getfile) / [DiskHelper#getObject](#getfile-1) |
+| List or delete objects in a bucket | per-backend Methods tables ([BunS3Helper](#methods), [DiskHelper](#methods-1)) |
+| Get a presigned URL, or read/write object tags | [Presign and object tagging](#presign-and-object-tagging) |
 | Cache values in-process (not bucket storage) | [MemoryStorageHelper](#memorystoragehelper) |
 | Look up a type or option shape | [Types Reference](#types-reference) |
 | Compare backend differences at a glance | [Backend Behavior Matrix](#backend-behavior-matrix) |
@@ -40,18 +41,17 @@ Exhaustive reference for `BaseStorageHelper`, the three `IStorageHelper` backend
 ```
 BaseHelper
 ├── BaseStorageHelper (abstract, implements IStorageHelper)
-│   ├── MinioHelper       -- S3-compatible object storage (minio SDK)
 │   ├── BunS3Helper       -- S3-compatible object storage (Bun-native S3Client)
 │   └── DiskHelper        -- Local filesystem storage
 └── MemoryStorageHelper   -- In-memory key-value store (standalone, not IStorageHelper)
 ```
 
 - **`upload()` is a template method.** It validates the bucket and every file. Then it calls two protected hooks each backend supplies: `defaultLinkPrefix` (a getter) and `writeObject()` (the write itself).
-- **Every other method is backend-specific.** `isBucketExists`, `getBuckets`, `getBucket`, `createBucket`, `removeBucket`, `getFile`, `getStat`, `removeObject`, `removeObjects`, and `listObjects` are declared `abstract` on `BaseStorageHelper`.
-  - Each one is fully reimplemented per backend - no logic is shared between a filesystem read and a MinIO `statObject()` call.
+- **Every other method is backend-specific.** `hasBucket`, `getBuckets`, `getBucket`, `createBucket`, `removeBucket`, `getObject`, `getStat`, `removeObject`, `removeObjects`, and `listObjects` are declared `abstract` on `BaseStorageHelper`.
+  - Each one is fully reimplemented per backend - no logic is shared between a filesystem read and an S3 `stat()` call.
 
 > [!TIP] Typing rule
-> Declare parameters and bindings as `IStorageHelper` for `MinioHelper` / `BunS3Helper` / `DiskHelper`. `MemoryStorageHelper` does not implement it and has its own standalone API - see [MemoryStorageHelper](#memorystoragehelper).
+> Declare parameters and bindings as `IStorageHelper` for `BunS3Helper` / `DiskHelper`. `MemoryStorageHelper` does not implement it and has its own standalone API - see [MemoryStorageHelper](#memorystoragehelper).
 
 ### Import paths
 
@@ -59,8 +59,6 @@ BaseHelper
 // Disk and in-memory storage (root package export)
 import { DiskHelper, MemoryStorageHelper } from '@venizia/ignis-helpers';
 
-// MinIO storage (separate sub-path export - keeps `minio` an optional dependency)
-import { MinioHelper } from '@venizia/ignis-helpers/minio';
 
 // Bun S3 storage (separate sub-path export, Bun runtime only)
 import { BunS3Helper } from '@venizia/ignis-helpers/bun-s3';
@@ -77,7 +75,6 @@ import type {
   IObjectInfo,
   IListObjectsOptions,
 } from '@venizia/ignis-helpers';
-import type { IMinioHelperOptions } from '@venizia/ignis-helpers/minio';
 import type { IBunS3HelperOptions } from '@venizia/ignis-helpers/bun-s3';
 ```
 
@@ -202,19 +199,19 @@ storage.isValidPath('a/b/c/d/file.pdf');     // false -- exceeds default max dep
 
 **Returns:** `true` if the path and all its segments are valid, `false` otherwise.
 
-#### getFileType
+#### getMediaType
 
 ```typescript
-getFileType(opts: { mimeType: string }): string
+getMediaType(opts: { mimeType: string }): string
 ```
 
 Categorizes a MIME type using the `MimeTypes` const-class: `UNKNOWN`, `IMAGE`, `VIDEO`, `TEXT`. It lowercases `mimeType` first, then checks whether it starts with `image`, `video`, or `text`.
 
 ```typescript
-storage.getFileType({ mimeType: 'image/png' });        // 'image'
-storage.getFileType({ mimeType: 'video/mp4' });         // 'video'
-storage.getFileType({ mimeType: 'text/plain' });        // 'text'
-storage.getFileType({ mimeType: 'application/pdf' });   // 'unknown'
+storage.getMediaType({ mimeType: 'image/png' });        // 'image'
+storage.getMediaType({ mimeType: 'video/mp4' });         // 'video'
+storage.getMediaType({ mimeType: 'text/plain' });        // 'text'
+storage.getMediaType({ mimeType: 'application/pdf' });   // 'unknown'
 ```
 
 **Returns:** one of `'image'`, `'video'`, `'text'`, or `'unknown'`.
@@ -231,10 +228,10 @@ async upload(opts: {
 }): Promise<IUploadResult[]>
 ```
 
-Implemented once on `BaseStorageHelper`; `MinioHelper`, `BunS3Helper`, and `DiskHelper` do **not** override it. Steps, in order:
+Implemented once on `BaseStorageHelper`; `BunS3Helper` and `DiskHelper` do **not** override it. Steps, in order:
 
 1. Returns `[]` immediately if `files` is empty.
-2. Calls `isBucketExists({ name: bucket })`; throws if the bucket does not exist.
+2. Calls `hasBucket({ name: bucket })`; throws if the bucket does not exist.
 3. Validates every file (`validateUploadFiles`, below).
 4. For each file, in parallel via `Promise.all()`:
    - Computes `normalizeName` via `normalizeNameFn` if provided. Otherwise the default normalizer lowercases the name, replaces spaces with `_`, and prefixes `{folderPath}/` if set.
@@ -282,13 +279,13 @@ protected validateUploadFiles(opts: { files: IUploadFile[]; maxFolderDepth?: num
 ### Public abstract methods (reimplemented per backend, no shared logic)
 
 ```typescript
-abstract isBucketExists(opts: { name: string }): Promise<boolean>;
+abstract hasBucket(opts: { name: string }): Promise<boolean>;
 abstract getBuckets(): Promise<IBucketInfo[]>;
 abstract getBucket(opts: { name: string }): Promise<IBucketInfo | null>;
 abstract createBucket(opts: { name: string }): Promise<IBucketInfo | null>;
 abstract removeBucket(opts: { name: string }): Promise<boolean>;
 
-abstract getFile(opts: { bucket: string; name: string; options?: any }): Promise<Readable>;
+abstract getObject(opts: { bucket: string; name: string; options?: any }): Promise<Readable>;
 abstract getStat(opts: { bucket: string; name: string }): Promise<IFileStat>;
 abstract removeObject(opts: { bucket: string; name: string }): Promise<void>;
 abstract removeObjects(opts: { bucket: string; names: string[] }): Promise<void>;
@@ -302,107 +299,40 @@ abstract listObjects(opts: {
 
 See each backend's section below for behavior.
 
-## MinioHelper
-
-`Source ->` [`packages/helpers/src/modules/storage/minio/helper.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/storage/minio/helper.ts)
-
-S3-compatible object storage built on the `minio` package. Extends `BaseStorageHelper`.
-
-### Constructor
+### Presign and object tagging
 
 ```typescript
-constructor(options: IMinioHelperOptions)
-
-interface IMinioHelperOptions extends IStorageHelperOptions, ClientOptions {}
-```
-
-Creates a `minio.Client` internally and stores it as a private `client` field - not exposed. Extend `MinioHelper` in a subclass if you need direct SDK access.
-
-| Parameter | Type | Default | Description |
-|-----------|------|---------|-------------|
-| `options.endPoint` | `string` | - | MinIO server hostname. |
-| `options.port` | `number` | - | Server port. |
-| `options.useSSL` | `boolean` | - | Enable HTTPS. |
-| `options.accessKey` | `string` | - | Access key credential. |
-| `options.secretKey` | `string` | - | Secret key credential. |
-| `options.scope` | `string` | `'MinioHelper'` | Logger scope name. |
-| `options.identifier` | `string` | `'MinioHelper'` | Helper identifier. |
-
-All other `minio.ClientOptions` fields are also accepted and passed to the client: `region`, `transport`, `sessionToken`, `partSize`, `pathStyle`, and more. See the [minio JavaScript SDK docs](https://min.io/docs/minio/linux/developers/javascript/API.html) for the complete list.
-
-### defaultLinkPrefix and writeObject
-
-- `defaultLinkPrefix`: `'/static-assets/'`
-- `writeObject`: calls `client.putObject(bucket, normalizeName, buffer, size, metadata)`, where `metadata` is `{ originalName, normalizeName, size, encoding, mimeType }`. The full upload metadata is persisted server-side and returned later by `getStat()`.
-
-### Methods
-
-| Method | Behavior |
-|---|---|
-| `isBucketExists` | Returns `false` if the name fails `isValidName()`. Otherwise `client.bucketExists()`. |
-| `getBuckets` | `client.listBuckets()`. |
-| `getBucket` | `isBucketExists()` first; if true, finds the entry in `getBuckets()`; `null` if not found. |
-| `createBucket` | `client.makeBucket()`, then returns `getBucket()`. Throws `'[createBucket] Invalid name to create bucket!'` if the name fails validation. |
-| `removeBucket` | `client.removeBucket()`. Throws `'[removeBucket] Invalid name to remove bucket!'` if the name fails validation. |
-| `removeObject` | `client.removeObject()`. |
-| `removeObjects` | `client.removeObjects()` - a single batch SDK call. |
-
-#### getFile
-
-```typescript
-getFile(opts: {
+presignPut(opts: { bucket: string; name: string; expiresInSeconds?: number }): Promise<string>;
+presignGet(opts: {
   bucket: string;
   name: string;
-  options?: {
-    versionId?: string;
-    SSECustomerAlgorithm?: string;
-    SSECustomerKey?: string;
-    SSECustomerKeyMD5?: string;
-  };
-}): Promise<Readable>
+  expiresInSeconds?: number;
+  responseContentType?: string;
+}): Promise<string>;
+getObjectTags(opts: { bucket: string; name: string }): Promise<Record<string, string>>;
+replaceObjectTags(opts: { bucket: string; name: string; tags: Record<string, string> }): Promise<void>;
 ```
 
-Returns a readable stream via `client.getObject()`. Supports versioning and SSE-C server-side encryption.
+Concrete on `BaseStorageHelper`, not abstract - every backend inherits a working default that throws:
 
 ```typescript
-const fileStream = await minioStorage.getFile({
-  bucket: 'my-bucket',
-  name: 'report.pdf',
-  options: {
-    versionId: 'specific-version-id',
-    SSECustomerAlgorithm: 'AES256',
-    SSECustomerKey: 'encryption-key',
-    SSECustomerKeyMD5: 'key-md5-hash',
-  },
-});
+class StorageHelperClassName {
+  // "[StorageHelperClassName.presignPut] Presigned PUT URLs are not supported by this helper"
+}
 ```
 
-#### getStat
+The thrown message names the calling class and the method, so the error tells you which backend to swap rather than returning `undefined` or a broken link. `BunS3Helper` overrides all four; `DiskHelper` has no object storage to presign against and inherits the throw.
 
-```typescript
-async getStat(opts: { bucket: string; name: string }): Promise<IFileStat>
-```
-
-`client.statObject()`. Returns `size`, `metadata`, `lastModified`, `etag`, and `versionId`. `metadata` is MinIO's `metaData` field: the full dict written by `writeObject`. `versionId` is set only if versioning is enabled.
-
-#### listObjects
-
-```typescript
-async listObjects(opts: {
-  bucket: string;
-  prefix?: string;
-  useRecursive?: boolean;
-  maxKeys?: number;
-}): Promise<IObjectInfo[]>
-```
-
-Streams via `client.listObjects(bucket, prefix, useRecursive)`; the stream is destroyed early once `maxKeys` is reached.
-
-| Parameter | Default | Description |
+| Method | `expiresInSeconds` default | Notes |
 |---|---|---|
-| `prefix` | `''` | Filter by prefix. |
-| `useRecursive` | `false` | List recursively through subdirectories. |
-| `maxKeys` | `undefined` | Maximum objects to return. |
+| `presignPut` | `StoragePresignDefaults.PUT_EXPIRES_IN_SECONDS` (600) | No content type option - a presigned PUT signs only the `host` header, so S3 ignores one anyway. |
+| `presignGet` | `StoragePresignDefaults.GET_EXPIRES_IN_SECONDS` (60) | `responseContentType` overrides the `Content-Type` the download responds with. |
+
+```typescript
+import { StoragePresignDefaults } from '@venizia/ignis-helpers';
+```
+
+`getObjectTags` returns a plain `Record<string, string>` - parsing S3's tagging XML is the helper's job, not the caller's. A missing object answers `{}`, not a throw; any other failure throws with the response status and body attached. `replaceObjectTags` replaces the full tag set.
 
 ## BunS3Helper
 
@@ -414,7 +344,7 @@ S3-compatible object storage using Bun's native `S3Client`. Extends `BaseStorage
 > Requires the **Bun runtime** - `bun:S3Client` is not available under Node.js.
 
 - **Bucket management is hand-built.** `getBuckets`, `createBucket`, and `removeBucket` use AWS Signature V4 signed `fetch()` requests via `buildSignedRequest()`, because Bun's `S3Client` has no bucket-management API.
-- **Object operations use the native SDK.** `upload`'s `writeObject`, `getFile`, `getStat`, `removeObject`, `removeObjects`, and `listObjects` all call Bun's native `S3Client` methods.
+- **Object operations use the native SDK.** `upload`'s `writeObject`, `getObject`, `getStat`, `removeObject`, `removeObjects`, and `listObjects` all call Bun's native `S3Client` methods.
 
 ### Constructor
 
@@ -445,24 +375,28 @@ Creates a Bun `S3Client` for object operations and stores `{ accessKey, secretKe
 ### defaultLinkPrefix and writeObject
 
 - `defaultLinkPrefix`: `'/static-assets/'`
-- `writeObject`: `client.write(normalizeName, buffer, { bucket, type: mimeType })`. Only the content type is persisted. Unlike `MinioHelper`, no `originalName`/`encoding`/`size` metadata dictionary is stored.
+- `writeObject`: `client.write(normalizeName, buffer, { bucket, type: mimeType })`. Only the content type is persisted. No `originalName`/`encoding`/`size` metadata dictionary is stored.
 
 ### Methods
 
 | Method | Behavior |
 |---|---|
-| `isBucketExists` | Returns `false` if the name fails `isValidName()`. Otherwise attempts `client.list({ maxKeys: 1 }, { bucket: name })`, and returns `false` on any error - for example a network failure or a missing bucket. |
+| `hasBucket` | Returns `false` if the name fails `isValidName()`. Otherwise attempts `client.list({ maxKeys: 1 }, { bucket: name })`, and returns `false` on any error - for example a network failure or a missing bucket. |
 | `getBuckets` | Signed `GET /`; parses `<Bucket><Name>...<CreationDate>...` from the XML response. |
 | `getBucket` | Finds the entry in `getBuckets()`; `null` if not found. |
 | `createBucket` | Signed `PUT /{name}`. Throws `'[createBucket] Invalid name to create bucket!'` on invalid name, or `` `[createBucket] S3 error: {xml}` `` on a non-OK response. |
 | `removeBucket` | Signed `DELETE /{name}`. Throws `'[removeBucket] Invalid name to remove bucket!'` on invalid name, or `` `[removeBucket] S3 error: {xml}` `` on a non-OK response. |
 | `removeObject` | `client.delete(name, { bucket })`. |
 | `removeObjects` | Deletes in **parallel** via `Promise.all(names.map(...))`. |
+| `presignPut` | `client.presign(name, { bucket, method: 'PUT', expiresIn })`. Signs locally - no network call. |
+| `presignGet` | `client.presign(name, { bucket, method: 'GET', expiresIn, type })`; `type` is set to `responseContentType` only when the caller passes one. |
+| `getObjectTags` | Signed `GET /{bucket}/{name}?tagging=`; `404` returns `{}`, any other non-2xx throws with the status and body. |
+| `replaceObjectTags` | Signed `PUT /{bucket}/{name}?tagging=` with a hand-built `<Tagging>` XML body. |
 
-#### getFile
+#### getObject
 
 ```typescript
-async getFile(opts: { bucket: string; name: string; options?: any }): Promise<Readable>
+async getObject(opts: { bucket: string; name: string; options?: any }): Promise<Readable>
 ```
 
 Converts the Bun S3 file's web `ReadableStream` via `Readable.fromWeb()`. The `options` parameter is accepted for interface compatibility but not used.
@@ -517,13 +451,25 @@ async function buildSignedRequest(opts: {
   region: string;
   sessionToken?: string;
   body?: string;
+  query?: Record<string, string>;
 }): Promise<{ url: string; headers: Record<string, string> }>
 ```
 
 - **Internal only.** Not exported from the package barrel.
 - **Builds the `Authorization` header from scratch.** Uses `crypto.subtle` for HMAC-SHA256 and SHA-256 digests, following the standard SigV4 derivation: `kDate -> kRegion -> kService -> kSigning`.
 - **Signs four headers.** `host`, `x-amz-content-sha256`, `x-amz-date`, and (if present) `x-amz-security-token`.
-- **Used exclusively for bucket management.** `getBuckets`, `createBucket`, and `removeBucket` on `BunS3Helper`.
+- **`query` signs a canonical query string** - each key and value URI-encoded, sorted by key, joined with `&`, and appended to the returned `url`. Omitted or empty, the signature is byte-identical to before `query` existed.
+- **Used for bucket management and object tagging.** `getBuckets`, `createBucket`, `removeBucket`, `getObjectTags`, and `replaceObjectTags` on `BunS3Helper`. Tagging passes `query: { tagging: '' }` - the query string S3 expects on both a `GET`/`PUT` against an object's tag set.
+
+#### Tagging XML (buildTaggingXml / parseTaggingXml)
+
+`Source ->` [`packages/helpers/src/modules/storage/bun-s3/utility.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/storage/bun-s3/utility.ts)
+
+Bun's `S3Client` has no tagging method, so `BunS3Helper` reads and writes S3's tagging XML by hand rather than adding an XML dependency.
+
+- **`buildTaggingXml(tags: Record<string, string>): string`** - builds `<Tagging><TagSet><Tag><Key>..</Key><Value>..</Value></Tag>...</TagSet></Tagging>`, escaping `&`, `<`, `>`, `"`, and `'` in every key and value.
+- **`parseTaggingXml(xml: string): Record<string, string>`** - reads the same shape back, unescaping in the reverse order so a literal `&amp;` in the source never decodes twice. An empty `<TagSet/>` (or `<TagSet></TagSet>`) returns `{}`. A body missing a `<TagSet>`, or a `<Tag>` missing its `<Key>` or `<Value>`, throws via `getError` rather than returning a half-parsed object.
+- **Internal only.** Not exported from the package barrel.
 
 ## DiskHelper
 
@@ -571,13 +517,15 @@ app_data/storage/           <-- basePath
 
 | Method | Behavior |
 |---|---|
-| `isBucketExists` | Returns `false` if the name fails validation. Otherwise checks the bucket path exists and `stat.isDirectory()`. |
+| `hasBucket` | Returns `false` if the name fails validation. Otherwise checks the bucket path exists and `stat.isDirectory()`. |
 | `getBuckets` | Lists directories under `basePath` via `fsp.readdir(..., { withFileTypes: true })`. Each directory's `birthtime` becomes `creationDate`. Returns `[]` if `basePath` does not exist. |
-| `getBucket` | `isBucketExists()` first; if true, returns `{ name, creationDate: stat.birthtime }`; else `null`. |
+| `getBucket` | `hasBucket()` first; if true, returns `{ name, creationDate: stat.birthtime }`; else `null`. |
 | `createBucket` | `fsp.mkdir(bucketPath, { recursive: true })`, then returns `getBucket()`. |
 | `removeBucket` | `fsp.rmdir(bucketPath)`. |
 | `removeObject` | Checks the object exists first (`fsp.access`); throws if missing. Otherwise `fsp.unlink(objectPath)`. |
 | `removeObjects` | Deletes **sequentially** by calling `removeObject()` per name in a `for` loop. If any file is missing, the error propagates immediately and remaining names are not attempted. |
+
+`presignPut`, `presignGet`, `getObjectTags`, and `replaceObjectTags` are not overridden - the local filesystem has nothing to presign or tag against, so all four inherit `BaseStorageHelper`'s throw. See [Presign and object tagging](#presign-and-object-tagging).
 
 **`createBucket` throws:**
 
@@ -600,15 +548,15 @@ app_data/storage/           <-- basePath
 |---|---|
 | Object does not exist | `` `[removeObject] File not found | bucket: {bucket} | name: {name}` `` |
 
-#### getFile
+#### getObject
 
 ```typescript
-async getFile(opts: { bucket: string; name: string; options?: any }): Promise<Readable>
+async getObject(opts: { bucket: string; name: string; options?: any }): Promise<Readable>
 ```
 
 `fs.createReadStream(objectPath)`. The `options` parameter is accepted for interface compatibility but not used.
 
-**Throws:** `` `[getFile] File not found | bucket: {bucket} | name: {name}` `` if the file does not exist.
+**Throws:** `` `[getObject] File not found | bucket: {bucket} | name: {name}` `` if the file does not exist.
 
 #### getStat
 
@@ -709,14 +657,14 @@ cache.clear();
 
 ### IStorageHelper
 
-The interface implemented by `MinioHelper`, `BunS3Helper`, and `DiskHelper`:
+The interface implemented by `BunS3Helper` and `DiskHelper`:
 
 ```typescript
 interface IStorageHelper {
   isValidName(name: string): boolean;
   isValidPath(pathStr: string, opts?: { maxDepth?: number }): boolean;
 
-  isBucketExists(opts: { name: string }): Promise<boolean>;
+  hasBucket(opts: { name: string }): Promise<boolean>;
   getBuckets(): Promise<IBucketInfo[]>;
   getBucket(opts: { name: string }): Promise<IBucketInfo | null>;
   createBucket(opts: { name: string }): Promise<IBucketInfo | null>;
@@ -730,13 +678,23 @@ interface IStorageHelper {
     maxFolderDepth?: number;
   }): Promise<IUploadResult[]>;
 
-  getFile(opts: { bucket: string; name: string; options?: any }): Promise<Readable>;
+  getObject(opts: { bucket: string; name: string; options?: any }): Promise<Readable>;
   getStat(opts: { bucket: string; name: string }): Promise<IFileStat>;
   removeObject(opts: { bucket: string; name: string }): Promise<void>;
   removeObjects(opts: { bucket: string; names: string[] }): Promise<void>;
   listObjects(opts: IListObjectsOptions): Promise<IObjectInfo[]>;
 
-  getFileType(opts: { mimeType: string }): string;
+  presignPut(opts: { bucket: string; name: string; expiresInSeconds?: number }): Promise<string>;
+  presignGet(opts: {
+    bucket: string;
+    name: string;
+    expiresInSeconds?: number;
+    responseContentType?: string;
+  }): Promise<string>;
+  getObjectTags(opts: { bucket: string; name: string }): Promise<Record<string, string>>;
+  replaceObjectTags(opts: { bucket: string; name: string; tags: Record<string, string> }): Promise<void>;
+
+  getMediaType(opts: { mimeType: string }): string;
 }
 ```
 
@@ -748,6 +706,17 @@ interface IStorageHelperOptions {
   identifier?: string;
 }
 ```
+
+### StoragePresignDefaults
+
+```typescript
+class StoragePresignDefaults {
+  static readonly PUT_EXPIRES_IN_SECONDS = 600;
+  static readonly GET_EXPIRES_IN_SECONDS = 60;
+}
+```
+
+Default `expiresInSeconds` for `presignPut` and `presignGet` when the caller omits it. A PUT carries a file upload and gets the longer window; a GET is a redirect.
 
 ### IUploadFile
 
@@ -782,8 +751,7 @@ interface IFileStat {
   size: number;                     // File size in bytes
   metadata: Record<string, any>;    // Backend-specific metadata
   lastModified?: Date;               // Last modification date
-  etag?: string;                      // Entity tag (MinioHelper and BunS3Helper only)
-  versionId?: string;                  // Version ID (MinioHelper only, if versioning enabled)
+  etag?: string;                      // Entity tag (BunS3Helper only)
 }
 ```
 
@@ -827,14 +795,6 @@ interface IDiskHelperOptions extends IStorageHelperOptions {
 }
 ```
 
-### IMinioHelperOptions
-
-```typescript
-interface IMinioHelperOptions extends IStorageHelperOptions, ClientOptions {}
-```
-
-Inherits every `minio.ClientOptions` field: `endPoint`, `port`, `useSSL`, `accessKey`, `secretKey`, `region`, `transport`, `sessionToken`, `partSize`, `pathStyle`, and others.
-
 ### IBunS3HelperOptions
 
 ```typescript
@@ -849,7 +809,7 @@ interface IBunS3HelperOptions extends IStorageHelperOptions {
 
 ## Backend Behavior Matrix
 
-| Behavior | MinioHelper | BunS3Helper | DiskHelper |
+| Behavior | BunS3Helper | DiskHelper |
 |---|---|---|---|
 | Default link prefix | `/static-assets/` | `/static-assets/` | `/static-resources/` |
 | `getStat().etag` | Yes | Yes | Never (`undefined`) |
@@ -857,8 +817,9 @@ interface IBunS3HelperOptions extends IStorageHelperOptions {
 | Upload metadata persisted | `originalName`, `normalizeName`, `size`, `encoding`, `mimeType` | Content type only | None (mimetype detected at read time) |
 | `removeObjects` concurrency | Single batch SDK call | Parallel (`Promise.all`) | Sequential (`for` loop; stops at first missing file) |
 | `listObjects.useRecursive` | Honored | Accepted but not used | Honored |
-| `getFile` throws on missing file | No (SDK-level error) | No (SDK-level error) | Yes - explicit `'[getFile] File not found ...'` |
-| Bucket-management transport | `minio.Client` methods | Hand-built AWS SigV4 signed requests | Node `fs`/`fs/promises` |
+| `getObject` throws on missing file | No (SDK-level error) | No (SDK-level error) | Yes - explicit `'[getObject] File not found ...'` |
+| Bucket-management transport | Hand-built AWS SigV4 signed requests | Node `fs`/`fs/promises` |
+| `presignPut` / `presignGet` / `getObjectTags` / `replaceObjectTags` | Implemented (`client.presign` natively; tagging via hand-built signed HTTP) | Inherits `BaseStorageHelper`'s throw - no object storage to presign or tag |
 
 ## Troubleshooting
 
@@ -883,12 +844,12 @@ await storage.createBucket({ name: 'my-bucket' });
 
 ### "[createBucket] Bucket already exists | name: {name}"
 
-**Cause:** `DiskHelper` throws this exact message when `createBucket()` targets a directory that already exists. `MinioHelper` and `BunS3Helper` skip this check. An existing bucket instead surfaces whatever the `minio` SDK or the raw S3 `PUT` request returns, which depends on the server.
+**Cause:** `DiskHelper` throws this exact message when `createBucket()` targets a directory that already exists. `BunS3Helper` skips this check. An existing bucket instead surfaces whatever the raw S3 `PUT` request returns, which depends on the server.
 
 **Fix:** Check existence first.
 
 ```typescript
-const exists = await storage.isBucketExists({ name: 'my-bucket' });
+const exists = await storage.hasBucket({ name: 'my-bucket' });
 if (!exists) {
   await storage.createBucket({ name: 'my-bucket' });
 }
@@ -898,7 +859,7 @@ if (!exists) {
 
 **Cause:** `DiskHelper` throws when removing a directory that does not exist.
 
-**Fix:** Check existence before removal, same pattern as above with `isBucketExists`.
+**Fix:** Check existence before removal, same pattern as above with `hasBucket`.
 
 ### "[removeBucket] Bucket is not empty | name: {name}"
 
@@ -919,12 +880,12 @@ await storage.removeBucket({ name: 'my-bucket' });
 
 ### "[upload] Bucket does not exist | name: {bucket}"
 
-**Cause:** `upload()` calls `isBucketExists()` before writing anything, on every backend.
+**Cause:** `upload()` calls `hasBucket()` before writing anything, on every backend.
 
 **Fix:** Create the bucket first.
 
 ```typescript
-const exists = await storage.isBucketExists({ name: 'uploads' });
+const exists = await storage.hasBucket({ name: 'uploads' });
 if (!exists) {
   await storage.createBucket({ name: 'uploads' });
 }
@@ -972,15 +933,15 @@ const file: IUploadFile = {
 
 **Fix:** Ensure `normalizeNameFn` returns a plain relative name/path - no `..` segments, no leading `/`, no more folder segments than `maxFolderDepth` allows.
 
-### "[getFile] File not found | bucket: {bucket} | name: {name}"
+### "[getObject] File not found | bucket: {bucket} | name: {name}"
 
-**Cause:** `DiskHelper`-specific - it checks existence before opening a read stream. `MinioHelper` and `BunS3Helper` instead surface whatever error their SDK returns for a missing object.
+**Cause:** `DiskHelper`-specific - it checks existence before opening a read stream. `BunS3Helper` throws the catalogued `core.storage.object_not_found`.
 
 **Fix:** Handle the rejection, or check first.
 
 ```typescript
 try {
-  const stream = await storage.getFile({ bucket: 'my-bucket', name: 'file.pdf' });
+  const stream = await storage.getObject({ bucket: 'my-bucket', name: 'file.pdf' });
 } catch (error) {
   // File not found -- handle gracefully
 }
@@ -988,7 +949,7 @@ try {
 
 ### "[removeObject] File not found | bucket: {bucket} | name: {name}"
 
-**Cause:** `DiskHelper`-specific - it checks existence before unlinking. `MinioHelper` and `BunS3Helper` instead surface whatever error their SDK returns for a missing object.
+**Cause:** `DiskHelper`-specific - it checks existence before unlinking. `BunS3Helper` throws the catalogued `core.storage.object_not_found`.
 
 **Fix:** Handle the rejection, or check first.
 
@@ -1000,13 +961,12 @@ try {
 }
 ```
 
-### MinioHelper / BunS3Helper connection errors
+### BunS3Helper connection errors
 
 **Cause:** Network or configuration mismatch between the application and the S3-compatible server.
 
 **Checklist:**
 - The server is running and reachable at the configured `endPoint`/`endpoint` and `port`.
-- `useSSL` (MinioHelper) matches the server's TLS configuration.
 - `accessKey`/`secretKey` are correct.
 - For `BunS3Helper`, `region` matches what the server expects for SigV4 signing.
 - Network and firewall rules allow the connection.
@@ -1017,5 +977,3 @@ try {
 - [Helpers Index](../index) - all available helpers
 - [Static Asset Component](/extensions/components/static-asset/) - serving stored files over HTTP
 - [Request Utilities](/references/utilities/request) - `parseMultipartBody` for file uploads
-- [MinIO Documentation](https://min.io/docs/minio/linux/index.html) - MinIO object storage
-- [MinIO JavaScript SDK](https://min.io/docs/minio/linux/developers/javascript/API.html) - full minio client API

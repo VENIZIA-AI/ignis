@@ -1,3 +1,4 @@
+import { IDuration } from '@/common';
 import { Readable } from 'node:stream';
 
 export interface IUploadFile {
@@ -10,17 +11,23 @@ export interface IUploadFile {
   [key: string | symbol]: any;
 }
 
+/** `metaLink` is a union: the old pair allowed both present, or neither. */
 export interface IUploadResult {
-  bucketName: string;
-  objectName: string;
+  bucket: IBucketRef;
+  object: IObjectRef & { size: number; contentType: string };
   link: string;
-  metaLink?: any;
-  metaLinkError?: any;
+  metaLink?: { data: any } | { error: string };
+}
+
+/** `mimetype` is named because consumers persist it; `any` let it be renamed silently. */
+export interface IObjectMetadata {
+  mimetype?: string;
+  [key: string]: any;
 }
 
 export interface IFileStat {
   size: number;
-  metadata: Record<string, any>;
+  metadata: IObjectMetadata;
   lastModified?: Date;
   etag?: string;
   versionId?: string;
@@ -39,8 +46,27 @@ export interface IObjectInfo {
   prefix?: string;
 }
 
+/** One bucket. */
+export interface IBucketRef {
+  name: string;
+}
+
+/** The parts of an upload a naming hook needs; `IUploadFile` already declares both. */
+export type TUploadNaming = Pick<IUploadFile, 'originalName' | 'folderPath'>;
+
+/** One object. `key` is the S3 term. */
+export interface IObjectRef {
+  key: string;
+}
+
+/** Which bucket, which object. */
+export interface IObjectLocation {
+  bucket: IBucketRef;
+  object: IObjectRef;
+}
+
 export interface IListObjectsOptions {
-  bucket: string;
+  bucket: IBucketRef;
   prefix?: string;
   useRecursive?: boolean;
   maxKeys?: number;
@@ -52,29 +78,61 @@ export interface IStorageHelperOptions {
 }
 
 export interface IStorageHelper {
-  isValidName(name: string): boolean;
-  isValidPath(pathStr: string, opts?: { maxDepth?: number }): boolean;
+  isValidSegment(opts: { segment: string }): boolean;
+  isValidBucketName(opts: { bucket: IBucketRef }): boolean;
+  isValidObjectKey(opts: { object: IObjectRef; maxDepth?: number }): boolean;
 
-  isBucketExists(opts: { name: string }): Promise<boolean>;
+  hasBucket(opts: { bucket: IBucketRef }): Promise<boolean>;
   getBuckets(): Promise<IBucketInfo[]>;
-  getBucket(opts: { name: string }): Promise<IBucketInfo | null>;
-  createBucket(opts: { name: string }): Promise<IBucketInfo | null>;
-  removeBucket(opts: { name: string }): Promise<boolean>;
+  getBucket(opts: { bucket: IBucketRef }): Promise<IBucketInfo | null>;
+  createBucket(opts: { bucket: IBucketRef }): Promise<IBucketInfo | null>;
+  removeBucket(opts: { bucket: IBucketRef }): Promise<boolean>;
 
-  upload(opts: {
-    bucket: string;
-    files: IUploadFile[];
-    normalizeNameFn?: (opts: { originalName: string; folderPath?: string }) => string;
-    normalizeLinkFn?: (opts: { bucketName: string; normalizeName: string }) => string;
-    /** Folder nesting the caller allows. Omitted -> `BaseStorageHelper.DEFAULT_MAX_FOLDER_DEPTH`. */
-    maxFolderDepth?: number;
-  }): Promise<IUploadResult[]>;
+  getObject(opts: IObjectLocation & { options?: any }): Promise<Readable>;
 
-  getFile(opts: { bucket: string; name: string; options?: any }): Promise<Readable>;
-  getStat(opts: { bucket: string; name: string }): Promise<IFileStat>;
-  removeObject(opts: { bucket: string; name: string }): Promise<void>;
-  removeObjects(opts: { bucket: string; names: string[] }): Promise<void>;
+  /** A web stream, what a `Response` body wants. `range` includes `end`, like the HTTP header. */
+  getObjectStream(
+    opts: IObjectLocation & { range?: { start: number; end?: number } },
+  ): Promise<ReadableStream<Uint8Array>>;
+  getStat(opts: IObjectLocation): Promise<IFileStat>;
   listObjects(opts: IListObjectsOptions): Promise<IObjectInfo[]>;
 
-  getFileType(opts: { mimeType: string }): string;
+  upload(opts: {
+    bucket: IBucketRef;
+    files: IUploadFile[];
+    maxFolderDepth?: number;
+    normalizeNameFn?: (opts: { file: TUploadNaming }) => string;
+    normalizeLinkFn?: (opts: IObjectLocation) => string;
+  }): Promise<IUploadResult[]>;
+
+  /**
+   * Writes an object from a stream, so a large body never lands in this process. A backend whose
+   * transport takes a stream overrides it; the default buffers, which is the thing to avoid.
+   */
+  writeStream(
+    opts: IObjectLocation & {
+      source: ReadableStream<Uint8Array> | Blob | Response | Request;
+      contentType?: string;
+      /** Folder nesting the key may carry, as `upload` takes it. Omitted -> DEFAULT_MAX_FOLDER_DEPTH. */
+      maxFolderDepth?: number;
+    },
+  ): Promise<void>;
+
+  removeObject(opts: IObjectLocation): Promise<void>;
+  removeObjects(opts: { bucket: IBucketRef; objects: IObjectRef[] }): Promise<void>;
+
+  presignPut(opts: IObjectLocation & { expiresIn?: IDuration }): Promise<string>;
+  presignGet(
+    opts: IObjectLocation & {
+      expiresIn?: IDuration;
+      responseContentType?: string;
+      responseContentDisposition?: string;
+    },
+  ): Promise<string>;
+
+  getObjectTags(opts: IObjectLocation): Promise<Record<string, string>>;
+  replaceObjectTags(opts: IObjectLocation & { tags: Record<string, string> }): Promise<void>;
+
+  getMediaType(opts: { mimeType: string }): string;
+  getMimeType(opts: { filename: string }): string;
 }

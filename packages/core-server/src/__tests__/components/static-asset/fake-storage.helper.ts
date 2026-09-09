@@ -1,9 +1,14 @@
 import { getError } from '@venizia/ignis-helpers/core';
 import {
+  StorageErrors,
   BaseStorageHelper,
   type IBucketInfo,
+  type IBucketRef,
   type IFileStat,
+  type IListObjectsOptions,
   type IObjectInfo,
+  type IObjectLocation,
+  type IObjectRef,
   type IUploadFile,
 } from '@venizia/ignis-helpers';
 import { Readable } from 'node:stream';
@@ -22,6 +27,9 @@ export class FakeStorageHelper extends BaseStorageHelper {
   /** originalName of a file whose writeObject must fail (storage failure simulation). */
   failWriteOnName?: string;
 
+  /** Stands in for a backend reporting its own content type - minio does, bun-s3 reports camelCase keys. */
+  statMetadataOverride?: Record<string, string>;
+
   constructor() {
     super({ scope: FakeStorageHelper.name, identifier: 'fake-storage' });
     this.buckets.set('images', { name: 'images', creationDate: new Date('2024-01-01T00:00:00Z') });
@@ -38,38 +46,49 @@ export class FakeStorageHelper extends BaseStorageHelper {
       .map(call => String(call.args['name']));
   }
 
-  hasObject(opts: { bucket: string; name: string }): boolean {
-    return this.objects.has(`${opts.bucket}/${opts.name}`);
+  hasObject(opts: IObjectLocation): boolean {
+    return this.objects.has(`${opts.bucket.name}/${opts.object.key}`);
+  }
+
+  /** One place decides the map key, so reads and writes cannot drift apart. */
+  private toStoreKey(opts: IObjectLocation): string {
+    return `${opts.bucket.name}/${opts.object.key}`;
+  }
+
+  /** Assertions read `args.name`, so the recorded shape stays flat. */
+  private toCallArgs(opts: IObjectLocation): Record<string, unknown> {
+    return { bucket: opts.bucket.name, name: opts.object.key };
   }
 
   protected get defaultLinkPrefix(): string {
     return '/fake-storage/';
   }
 
-  protected async writeObject(opts: {
-    bucket: string;
-    normalizeName: string;
-    file: IUploadFile;
-  }): Promise<void> {
-    const { bucket, normalizeName, file } = opts;
+  protected async writeObject(opts: IObjectLocation & { file: IUploadFile }): Promise<void> {
+    const { bucket, object, file } = opts;
     this.calls.push({
       method: 'writeObject',
-      args: { bucket, normalizeName, bufferLength: file.buffer?.length ?? -1, size: file.size },
+      args: {
+        bucket: bucket.name,
+        name: object.key,
+        bufferLength: file.buffer?.length ?? -1,
+        size: file.size,
+      },
     });
 
     if (this.failWriteOnName && this.failWriteOnName === file.originalName) {
       throw getError({ message: `[writeObject] Simulated storage failure | ${file.originalName}` });
     }
 
-    this.objects.set(`${bucket}/${normalizeName}`, {
+    this.objects.set(`${bucket.name}/${object.key}`, {
       buffer: Buffer.from(file.buffer),
       mimetype: file.mimetype,
     });
   }
 
-  async isBucketExists(opts: { name: string }): Promise<boolean> {
-    this.calls.push({ method: 'isBucketExists', args: { ...opts } });
-    return this.buckets.has(opts.name);
+  async hasBucket(opts: { bucket: IBucketRef }): Promise<boolean> {
+    this.calls.push({ method: 'hasBucket', args: { bucket: opts.bucket.name } });
+    return this.buckets.has(opts.bucket.name);
   }
 
   async getBuckets(): Promise<IBucketInfo[]> {
@@ -77,80 +96,96 @@ export class FakeStorageHelper extends BaseStorageHelper {
     return [...this.buckets.values()];
   }
 
-  async getBucket(opts: { name: string }): Promise<IBucketInfo | null> {
-    this.calls.push({ method: 'getBucket', args: { ...opts } });
-    return this.buckets.get(opts.name) ?? null;
+  async getBucket(opts: { bucket: IBucketRef }): Promise<IBucketInfo | null> {
+    this.calls.push({ method: 'getBucket', args: { bucket: opts.bucket.name } });
+    return this.buckets.get(opts.bucket.name) ?? null;
   }
 
-  async createBucket(opts: { name: string }): Promise<IBucketInfo | null> {
-    this.calls.push({ method: 'createBucket', args: { ...opts } });
+  async createBucket(opts: { bucket: IBucketRef }): Promise<IBucketInfo | null> {
+    this.calls.push({ method: 'createBucket', args: { bucket: opts.bucket.name } });
     const created: IBucketInfo = {
-      name: opts.name,
+      name: opts.bucket.name,
       creationDate: new Date('2024-01-01T00:00:00Z'),
     };
-    this.buckets.set(opts.name, created);
+    this.buckets.set(opts.bucket.name, created);
     return created;
   }
 
-  async removeBucket(opts: { name: string }): Promise<boolean> {
-    this.calls.push({ method: 'removeBucket', args: { ...opts } });
-    return this.buckets.delete(opts.name);
+  async removeBucket(opts: { bucket: IBucketRef }): Promise<boolean> {
+    this.calls.push({ method: 'removeBucket', args: { bucket: opts.bucket.name } });
+    return this.buckets.delete(opts.bucket.name);
   }
 
-  async getFile(opts: { bucket: string; name: string }): Promise<Readable> {
-    this.calls.push({ method: 'getFile', args: { ...opts } });
-    const found = this.objects.get(`${opts.bucket}/${opts.name}`);
+  async getObject(opts: IObjectLocation): Promise<Readable> {
+    this.calls.push({ method: 'getObject', args: this.toCallArgs(opts) });
+    const found = this.objects.get(this.toStoreKey(opts));
 
     if (!found) {
-      throw getError({ message: `[getFile] Not found | ${opts.bucket}/${opts.name}` });
+      throw getError({
+        error: StorageErrors.OBJECT_NOT_FOUND,
+        message: `[getObject] Object not found | ${this.toStoreKey(opts)}`,
+      });
     }
 
     return Readable.from([found.buffer]);
   }
 
-  async getStat(opts: { bucket: string; name: string }): Promise<IFileStat> {
-    this.calls.push({ method: 'getStat', args: { ...opts } });
-    const found = this.objects.get(`${opts.bucket}/${opts.name}`);
+  async getStat(opts: IObjectLocation): Promise<IFileStat> {
+    this.calls.push({ method: 'getStat', args: this.toCallArgs(opts) });
+    const found = this.objects.get(this.toStoreKey(opts));
 
     if (!found) {
-      throw getError({ message: `[getStat] Not found | ${opts.bucket}/${opts.name}` });
+      throw getError({
+        error: StorageErrors.OBJECT_NOT_FOUND,
+        message: `[getStat] Object not found | ${this.toStoreKey(opts)}`,
+      });
     }
 
     return {
       size: found.buffer.length,
-      metadata: { mimetype: found.mimetype, 'content-type': found.mimetype },
+      metadata: this.statMetadataOverride ?? {
+        mimetype: found.mimetype,
+        'content-type': found.mimetype,
+      },
       etag: 'fake-etag',
       lastModified: new Date('2024-01-01T00:00:00Z'),
     };
   }
 
-  async removeObject(opts: { bucket: string; name: string }): Promise<void> {
-    this.calls.push({ method: 'removeObject', args: { ...opts } });
-    this.objects.delete(`${opts.bucket}/${opts.name}`);
-  }
+  /** Throws like `disk` does, so the controller's idempotent DELETE is exercised rather than assumed. */
+  async removeObject(opts: IObjectLocation): Promise<void> {
+    this.calls.push({ method: 'removeObject', args: this.toCallArgs(opts) });
 
-  async removeObjects(opts: { bucket: string; names: string[] }): Promise<void> {
-    this.calls.push({ method: 'removeObjects', args: { ...opts } });
-    for (const name of opts.names) {
-      this.objects.delete(`${opts.bucket}/${name}`);
+    if (!this.objects.delete(this.toStoreKey(opts))) {
+      throw getError({
+        error: StorageErrors.OBJECT_NOT_FOUND,
+        message: `[removeObject] Object not found | ${this.toStoreKey(opts)}`,
+      });
     }
   }
 
-  async listObjects(opts: {
-    bucket: string;
-    prefix?: string;
-    useRecursive?: boolean;
-    maxKeys?: number;
-  }): Promise<IObjectInfo[]> {
-    this.calls.push({ method: 'listObjects', args: { ...opts } });
+  async removeObjects(opts: { bucket: IBucketRef; objects: IObjectRef[] }): Promise<void> {
+    const { bucket, objects } = opts;
+    this.calls.push({
+      method: 'removeObjects',
+      args: { bucket: bucket.name, names: objects.map(object => object.key) },
+    });
+
+    for (const object of objects) {
+      this.objects.delete(this.toStoreKey({ bucket, object }));
+    }
+  }
+
+  async listObjects(opts: IListObjectsOptions): Promise<IObjectInfo[]> {
+    this.calls.push({ method: 'listObjects', args: { ...opts, bucket: opts.bucket.name } });
     const results: IObjectInfo[] = [];
 
     for (const [key, value] of this.objects.entries()) {
-      if (!key.startsWith(`${opts.bucket}/`)) {
+      if (!key.startsWith(`${opts.bucket.name}/`)) {
         continue;
       }
 
-      const name = key.slice(opts.bucket.length + 1);
+      const name = key.slice(opts.bucket.name.length + 1);
       if (opts.prefix && !name.startsWith(opts.prefix)) {
         continue;
       }

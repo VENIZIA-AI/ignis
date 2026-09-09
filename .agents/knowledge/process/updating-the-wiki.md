@@ -25,7 +25,7 @@ tags: [process, docs, wiki]
    it to the VitePress sidebar config at `docs/wiki/site/.vitepress/config.mts` - a page that
    exists but isn't in the sidebar config is unreachable from site navigation. This is enforced,
    not merely a convention: `bun run docs:build` (and so `make docs`) runs
-   `docs/wiki/scripts/check-sidebar.ts` right before the VitePress build, and it fails the build
+   `docs/wiki/scripts/check-sidebar.mts` right before the VitePress build, and it fails the build
    if any `content/**/*.md` page has no menu link, or if a menu link points at a page that no
    longer exists. The only exemptions are the template skeletons under
    `extensions/components/template/` and `extensions/helpers/template/`, and the content root

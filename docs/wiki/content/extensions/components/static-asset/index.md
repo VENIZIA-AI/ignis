@@ -1,12 +1,12 @@
 ---
 title: Static Asset Component
-description: Generates bucket/object CRUD REST endpoints for disk, MinIO, and Bun S3 storage backends, with optional database-backed file tracking via MetaLink
+description: Generates bucket/object CRUD REST endpoints for disk and S3-compatible storage backends, with optional database-backed file tracking via MetaLink
 difficulty: intermediate
 ---
 
 # Static Asset Component
 
-`StaticAssetComponent` reads a map of storage backend configurations and generates a full bucket/object REST controller for each one - disk, MinIO, or Bun S3 - all through the same [`IStorageHelper`](./api#istoragehelper-interface) contract.
+`StaticAssetComponent` reads a map of storage backend configurations and generates a full bucket/object REST controller for each one - disk or S3-compatible - both through the same [`IStorageHelper`](./api#istoragehelper-interface) contract.
 
 > [!IMPORTANT]
 > `StaticAssetComponent` and its related exports are **not** on the `@venizia/ignis` root barrel. Import from the `@venizia/ignis/static-asset` subpath.
@@ -51,10 +51,9 @@ This registers `GET`/`POST`/`DELETE` on `/assets/buckets/:bucketName`, `POST /as
   | `storage` | Required `helper` |
   |-----------|--------------------|
   | `'disk'` | `DiskHelper` |
-  | `'minio'` | `MinioHelper` |
   | `'bun-s3'` | `BunS3Helper` |
 
-- **Every backend implements the same `IStorageHelper` contract.** `DiskHelper`, `MinioHelper`, and `BunS3Helper` all extend `BaseStorageHelper`. Bucket/object operations, name validation (`isValidName`/`isValidPath`), and upload normalization behave identically regardless of backend.
+- **Every backend implements the same `IStorageHelper` contract.** `DiskHelper` and `BunS3Helper` both extend `BaseStorageHelper`. Bucket/object operations, name validation (`isValidName`/`isValidPath`), and upload normalization behave identically regardless of backend.
 - **Object names can embed folder paths, encoded as one segment.** `objects/{objectName}` percent-encodes the whole `folder/file.ext` string via `encodeURIComponent()`, which also escapes `/`. Hono decodes it before your handler runs - encode the name client-side, and never decode it again.
 - **MetaLink is opt-in.** Set `useMetaLink: true` and provide `metaLink.repository`. IGNIS then persists a database row (`bucket/object/mimetype/size/etag/principal/variant`) alongside every upload. That row lets you query "which files does user X own" without listing a whole bucket.
 - **The default binding is empty.** `StaticAssetComponentBindingKeys.STATIC_ASSET_COMPONENT_OPTIONS` defaults to `{}`. Bind it with at least one storage backend before `this.component(StaticAssetComponent)` - an empty binding produces zero routes.
@@ -63,20 +62,21 @@ This registers `GET`/`POST`/`DELETE` on `/assets/buckets/:bucketName`, `POST /as
 
 ### Add a second storage backend
 
-Each key in the options object is independent - mix disk and MinIO under different base paths in one binding.
+Each key in the options object is independent - mix disk and S3 under different base paths in one binding.
 
 ```typescript
-import { MinioHelper } from '@venizia/ignis-helpers/minio';
+import { BunS3Helper } from '@venizia/ignis-helpers/bun-s3';
 
 this.bind<TStaticAssetsComponentOptions>({
   key: StaticAssetComponentBindingKeys.STATIC_ASSET_COMPONENT_OPTIONS,
 }).toValue({
   uploads: {
     controller: { name: 'UploadsController', basePath: '/uploads' },
-    storage: StaticAssetStorageTypes.MINIO,
-    helper: new MinioHelper({
-      endPoint: 'localhost', port: 9000, useSSL: false,
-      accessKey: 'minioadmin', secretKey: 'minioadmin',
+    storage: StaticAssetStorageTypes.BUN_S3,
+    helper: new BunS3Helper({
+      endpoint: 'http://localhost:9000',
+      accessKey: process.env.S3_ACCESS_KEY,
+      secretKey: process.env.S3_SECRET_KEY,
     }),
   },
   tempFiles: {
@@ -147,7 +147,7 @@ extra: {
 - [Usage & Examples](./usage) - task-oriented walkthroughs for every endpoint and MetaLink setup
 - [Full Reference](./api) - controller factory, `IStorageHelper` interface, MetaLink schema, internals
 - [Error Reference](./errors) - name validation rules and troubleshooting
-- [Storage Helpers](/extensions/helpers/storage/) - `DiskHelper`, `MinioHelper`, `BaseStorageHelper` reference
+- [Storage Helpers](/extensions/helpers/storage/) - `DiskHelper`, `BunS3Helper`, `BaseStorageHelper` reference
 - [Components Overview](/guides/core-concepts/components) - component system basics
 
 **Files:**

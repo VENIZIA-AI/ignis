@@ -12,7 +12,7 @@ Optional pieces you add on top of IGNIS core: components you register once, help
 | [Mail](./components/mail/) | Sends email via Nodemailer, Mailgun, or a queue | The app sends transactional or templated email |
 | [Request Tracker](./components/request-tracker) | Tags every request with an ID, logs method/path/timing | Always on - registered automatically, nothing to configure |
 | [Socket.IO](./components/socket-io/) | Real-time messaging over Socket.IO, Redis adapter | Clients need rooms or Socket.IO-specific features |
-| [Static Asset](./components/static-asset/) | Upload/download files - MinIO, disk, or Bun S3 | The app stores or serves user-uploaded files |
+| [Static Asset](./components/static-asset/) | Upload/download files - S3-compatible or local disk | The app stores or serves user-uploaded files |
 | [API Reference](./components/api-reference) | Interactive OpenAPI docs, Scalar UI by default | You want a browsable UI for your REST routes |
 | [WebSocket](./components/websocket/) | Native Bun WebSocket, Redis pub/sub, heartbeat | Clients need a raw WebSocket without Socket.IO |
 
@@ -34,7 +34,7 @@ Every peer dependency below is optional. You install one only when you use the h
 | [Redis](./helpers/redis/) | Redis client | You need a Redis connection - cache, pub/sub, locks | None - `ioredis` ships with the package |
 | [Secrets](./helpers/secrets/) | Secret loading and rotation | You read secrets from Vault, dotenv, or the environment | `node-vault` or `@dotenvx/dotenvx` |
 | [Socket.IO](./helpers/socket-io/) | Socket.IO server | You build a custom real-time feature | `socket.io` |
-| [Storage](./helpers/storage/) | File storage | You read/write files to MinIO or disk directly | `minio`, for the MinIO backend only |
+| [Storage](./helpers/storage/) | File storage | You read/write files to S3 or disk directly | none - the S3 backend uses Bun's own client |
 | [Types](./helpers/types/) | Shared types | You need IGNIS's shared TypeScript utility types | None |
 | [UID](./helpers/uid/) | Snowflake IDs | You need unique, sortable IDs | None |
 | [WebSocket](./helpers/websocket/) | WebSocket server | You build a custom real-time feature | None |

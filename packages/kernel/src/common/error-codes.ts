@@ -8,10 +8,7 @@ const build = (parts: Array<string>): string => {
 
 /** Framework-level failures that are not specific to one connector or component. */
 export class CoreErrorCodes {
-  /** A capability the implementation deliberately does not provide (HTTP 501). */
   static readonly NOT_SUPPORTED = build(['core', 'not_supported']);
-
-  /** A transient database conflict (deadlock, serialization failure) - the caller may retry. Value kept verbatim: clients already map this string. */
   static readonly DATABASE_CONFLICT = build(['database', 'conflict']);
 }
 

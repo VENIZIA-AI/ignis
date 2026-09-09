@@ -9,6 +9,22 @@ tags: [conventions, style]
 These are hard rules, not suggestions. A change that violates one of these should be called out in
 review, not waved through.
 
+## Verb prefixes
+
+A function name opens with the verb that says what it does: `generate` `build` `to` `is` `has`
+`assert` `extract` `enrich` `get` `resolve`.
+
+`is*` and `assert*` answer the same question and differ in what happens next. `is*` returns a boolean
+and leaves the branch to the caller; `assert*` throws and returns `void`, so the code after it needs
+no branch. Reach for `assert*` when every caller would throw on `false` anyway - otherwise one
+condition ends up with a different error message at each call site.
+
+`has*` is the ownership question: `hasBucket`, never `hasBucket` - the second is not English.
+
+This list covers UTILITY functions. Service and controller methods in a consuming application lean on
+a wider set - `find`, `create`, `update`, `delete`, `validate`, `load`, `count` - measured across a
+downstream repository, where `assert` alone appears 141 times. Do not force those into this list.
+
 ## No silent catch
 
 Every `catch` block logs. `BullMQHelper.close`

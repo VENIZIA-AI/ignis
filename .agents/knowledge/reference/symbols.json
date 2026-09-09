@@ -169,7 +169,7 @@
       "specifier": "@venizia/ignis",
       "kind": "class",
       "file": "packages/helpers/src/modules/redis/base/abstract.helper.ts",
-      "line": 17,
+      "line": 18,
       "signature": "class AbstractRedisHelper<ClientType extends TRedisClient = TRedisClient> extends BaseHelper implements IRedisHelper"
     },
     {
@@ -829,7 +829,7 @@
       "specifier": "@venizia/ignis",
       "kind": "class",
       "file": "packages/helpers/src/modules/storage/base.ts",
-      "line": 9,
+      "line": 22,
       "signature": "class BaseStorageHelper extends BaseHelper implements IStorageHelper"
     },
     {
@@ -929,7 +929,7 @@
       "specifier": "@venizia/ignis",
       "kind": "class",
       "file": "packages/kernel/src/common/bindings.ts",
-      "line": 7,
+      "line": 8,
       "signature": "class BindingNamespaces"
     },
     {
@@ -991,6 +991,16 @@
       "file": "packages/helpers/src/modules/slug/common/constants.ts",
       "line": 5,
       "signature": "COMBINING_MARKS_PATTERN: RegExp"
+    },
+    {
+      "name": "CONTENT_TYPE_BY_EXTENSION",
+      "package": "@venizia/ignis",
+      "subpath": ".",
+      "specifier": "@venizia/ignis",
+      "kind": "const",
+      "file": "packages/helpers/src/common/constants/mime.ts",
+      "line": 157,
+      "signature": "CONTENT_TYPE_BY_EXTENSION: Readonly<Partial<Record<string, TContentType>>>"
     },
     {
       "name": "CasbinAuthorizationEnforcer",
@@ -1094,6 +1104,26 @@
       "signature": "class Container extends DIContainer"
     },
     {
+      "name": "ContentTypeTable",
+      "package": "@venizia/ignis",
+      "subpath": ".",
+      "specifier": "@venizia/ignis",
+      "kind": "class",
+      "file": "packages/helpers/src/common/constants/mime.ts",
+      "line": 118,
+      "signature": "class ContentTypeTable"
+    },
+    {
+      "name": "ContentTypes",
+      "package": "@venizia/ignis",
+      "subpath": ".",
+      "specifier": "@venizia/ignis",
+      "kind": "class",
+      "file": "packages/helpers/src/common/constants/mime.ts",
+      "line": 68,
+      "signature": "class ContentTypes"
+    },
+    {
       "name": "ControllerFactory",
       "package": "@venizia/ignis",
       "subpath": ".",
@@ -1120,7 +1150,7 @@
       "specifier": "@venizia/ignis",
       "kind": "class",
       "file": "packages/kernel/src/common/bindings.ts",
-      "line": 23,
+      "line": 43,
       "signature": "class CoreBindings extends BindingKeys"
     },
     {
@@ -1330,7 +1360,7 @@
       "specifier": "@venizia/ignis",
       "kind": "class",
       "file": "packages/helpers/src/modules/storage/disk/helper.ts",
-      "line": 14,
+      "line": 27,
       "signature": "class DiskHelper extends BaseStorageHelper"
     },
     {
@@ -1523,6 +1553,16 @@
       "file": "packages/kernel/src/base/repositories/query-schemas/index.ts",
       "line": 12,
       "signature": "FieldsSchema: z.ZodOptional<z.ZodUnion<[z.ZodRecord<z.ZodString, z.ZodBoolean>, z.ZodArray<z.ZodString>]>>"
+    },
+    {
+      "name": "FileExtensions",
+      "package": "@venizia/ignis",
+      "subpath": ".",
+      "specifier": "@venizia/ignis",
+      "kind": "class",
+      "file": "packages/helpers/src/common/constants/mime.ts",
+      "line": 18,
+      "signature": "class FileExtensions"
     },
     {
       "name": "FilterQuerySchema",
@@ -1811,7 +1851,7 @@
       "specifier": "@venizia/ignis",
       "kind": "interface",
       "file": "packages/kernel/src/base/controllers/common/types/route.ts",
-      "line": 35,
+      "line": 39,
       "signature": "interface IAuthRouteConfig extends HonoRouteConfig"
     },
     {
@@ -1941,7 +1981,7 @@
       "specifier": "@venizia/ignis",
       "kind": "interface",
       "file": "packages/kernel/src/base/controllers/common/types/route.ts",
-      "line": 22,
+      "line": 26,
       "signature": "interface IBindRouteOptions<RouteConfig extends HonoRouteConfig, RouteEnv extends Env = Env, RouteSchema extends Schema = {}, BasePath extends string = '/'>"
     },
     {
@@ -1981,8 +2021,18 @@
       "specifier": "@venizia/ignis",
       "kind": "interface",
       "file": "packages/helpers/src/modules/storage/common/types.ts",
-      "line": 29,
+      "line": 36,
       "signature": "interface IBucketInfo"
+    },
+    {
+      "name": "IBucketRef",
+      "package": "@venizia/ignis",
+      "subpath": ".",
+      "specifier": "@venizia/ignis",
+      "kind": "interface",
+      "file": "packages/helpers/src/modules/storage/common/types.ts",
+      "line": 50,
+      "signature": "interface IBucketRef"
     },
     {
       "name": "IBuildOptions",
@@ -2241,7 +2291,7 @@
       "specifier": "@venizia/ignis",
       "kind": "interface",
       "file": "packages/kernel/src/base/controllers/common/types/route.ts",
-      "line": 84,
+      "line": 88,
       "signature": "interface ICustomizableRoutes<RouteConfig extends TCustomizableRouteConfig = TCustomizableRouteConfig>"
     },
     {
@@ -2311,7 +2361,7 @@
       "specifier": "@venizia/ignis",
       "kind": "interface",
       "file": "packages/kernel/src/base/controllers/common/types/route.ts",
-      "line": 11,
+      "line": 15,
       "signature": "interface IDefineRouteOptions<RouteConfig extends HonoRouteConfig, RouteEnv extends Env = Env, RouteSchema extends Schema = {}, BasePath extends string = '/'>"
     },
     {
@@ -2331,7 +2381,7 @@
       "specifier": "@venizia/ignis",
       "kind": "interface",
       "file": "packages/helpers/src/modules/storage/disk/helper.ts",
-      "line": 10,
+      "line": 22,
       "signature": "interface IDiskHelperOptions extends IStorageHelperOptions"
     },
     {
@@ -2491,7 +2541,7 @@
       "specifier": "@venizia/ignis",
       "kind": "interface",
       "file": "packages/helpers/src/modules/storage/common/types.ts",
-      "line": 21,
+      "line": 28,
       "signature": "interface IFileStat"
     },
     {
@@ -2711,7 +2761,7 @@
       "specifier": "@venizia/ignis",
       "kind": "interface",
       "file": "packages/helpers/src/modules/storage/common/types.ts",
-      "line": 42,
+      "line": 68,
       "signature": "interface IListObjectsOptions"
     },
     {
@@ -2841,8 +2891,38 @@
       "specifier": "@venizia/ignis",
       "kind": "interface",
       "file": "packages/helpers/src/modules/storage/common/types.ts",
-      "line": 34,
+      "line": 41,
       "signature": "interface IObjectInfo"
+    },
+    {
+      "name": "IObjectLocation",
+      "package": "@venizia/ignis",
+      "subpath": ".",
+      "specifier": "@venizia/ignis",
+      "kind": "interface",
+      "file": "packages/helpers/src/modules/storage/common/types.ts",
+      "line": 63,
+      "signature": "interface IObjectLocation"
+    },
+    {
+      "name": "IObjectMetadata",
+      "package": "@venizia/ignis",
+      "subpath": ".",
+      "specifier": "@venizia/ignis",
+      "kind": "interface",
+      "file": "packages/helpers/src/modules/storage/common/types.ts",
+      "line": 23,
+      "signature": "interface IObjectMetadata"
+    },
+    {
+      "name": "IObjectRef",
+      "package": "@venizia/ignis",
+      "subpath": ".",
+      "specifier": "@venizia/ignis",
+      "kind": "interface",
+      "file": "packages/helpers/src/modules/storage/common/types.ts",
+      "line": 58,
+      "signature": "interface IObjectRef"
     },
     {
       "name": "IOpaqueUidOptions",
@@ -3621,7 +3701,7 @@
       "specifier": "@venizia/ignis",
       "kind": "interface",
       "file": "packages/helpers/src/modules/storage/common/types.ts",
-      "line": 54,
+      "line": 80,
       "signature": "interface IStorageHelper"
     },
     {
@@ -3631,7 +3711,7 @@
       "specifier": "@venizia/ignis",
       "kind": "interface",
       "file": "packages/helpers/src/modules/storage/common/types.ts",
-      "line": 49,
+      "line": 75,
       "signature": "interface IStorageHelperOptions"
     },
     {
@@ -3751,7 +3831,7 @@
       "specifier": "@venizia/ignis",
       "kind": "interface",
       "file": "packages/helpers/src/modules/storage/common/types.ts",
-      "line": 3,
+      "line": 4,
       "signature": "interface IUploadFile"
     },
     {
@@ -3761,8 +3841,18 @@
       "specifier": "@venizia/ignis",
       "kind": "interface",
       "file": "packages/helpers/src/modules/storage/common/types.ts",
-      "line": 13,
+      "line": 15,
       "signature": "interface IUploadResult"
+    },
+    {
+      "name": "IUrlSafetyPolicy",
+      "package": "@venizia/ignis",
+      "subpath": ".",
+      "specifier": "@venizia/ignis",
+      "kind": "interface",
+      "file": "packages/helpers/src/modules/network/url-safety/common/types.ts",
+      "line": 7,
+      "signature": "interface IUrlSafetyPolicy"
     },
     {
       "name": "IValidRequestProps",
@@ -4191,7 +4281,7 @@
       "specifier": "@venizia/ignis",
       "kind": "class",
       "file": "packages/helpers/src/modules/storage/in-memory/helper.ts",
-      "line": 4,
+      "line": 5,
       "signature": "class MemoryStorageHelper<T extends object = AnyObject> extends BaseHelper"
     },
     {
@@ -4522,7 +4612,7 @@
       "specifier": "@venizia/ignis",
       "kind": "const",
       "file": "packages/helpers/src/modules/redis/base/abstract.helper.ts",
-      "line": 10,
+      "line": 11,
       "signature": "REDIS_HELPER_BRAND: unique symbol"
     },
     {
@@ -4604,6 +4694,16 @@
       "file": "packages/helpers/src/modules/redis/cluster/cluster.helper.ts",
       "line": 6,
       "signature": "class RedisClusterHelper extends AbstractRedisHelper<Cluster>"
+    },
+    {
+      "name": "RedisConcurrency",
+      "package": "@venizia/ignis",
+      "subpath": ".",
+      "specifier": "@venizia/ignis",
+      "kind": "class",
+      "file": "packages/helpers/src/modules/redis/common/constants.ts",
+      "line": 31,
+      "signature": "class RedisConcurrency"
     },
     {
       "name": "RedisModes",
@@ -4922,7 +5022,7 @@
       "specifier": "@venizia/ignis",
       "kind": "class",
       "file": "packages/kernel/src/common/error-codes.ts",
-      "line": 21,
+      "line": 18,
       "signature": "class SearchErrorCodes"
     },
     {
@@ -5124,6 +5224,46 @@
       "file": "packages/kernel/src/common/statuses/common.ts",
       "line": 2,
       "signature": "class Statuses"
+    },
+    {
+      "name": "StorageConcurrency",
+      "package": "@venizia/ignis",
+      "subpath": ".",
+      "specifier": "@venizia/ignis",
+      "kind": "class",
+      "file": "packages/helpers/src/modules/storage/common/constants.ts",
+      "line": 15,
+      "signature": "class StorageConcurrency"
+    },
+    {
+      "name": "StorageErrors",
+      "package": "@venizia/ignis",
+      "subpath": ".",
+      "specifier": "@venizia/ignis",
+      "kind": "const",
+      "file": "packages/helpers/src/modules/storage/common/errors.ts",
+      "line": 6,
+      "signature": "StorageErrors: { readonly OBJECT_NOT_FOUND: { readonly message: { readonly text: \"Object not found\"; readonly code: \"core.storage.object_not_found\"; }; readonly statusCode: 404; readonly category: \"business\"; }; }"
+    },
+    {
+      "name": "StoragePresignDefaults",
+      "package": "@venizia/ignis",
+      "subpath": ".",
+      "specifier": "@venizia/ignis",
+      "kind": "class",
+      "file": "packages/helpers/src/modules/storage/common/constants.ts",
+      "line": 4,
+      "signature": "class StoragePresignDefaults"
+    },
+    {
+      "name": "StoragePresignLimits",
+      "package": "@venizia/ignis",
+      "subpath": ".",
+      "specifier": "@venizia/ignis",
+      "kind": "class",
+      "file": "packages/helpers/src/modules/storage/common/constants.ts",
+      "line": 10,
+      "signature": "class StoragePresignLimits"
     },
     {
       "name": "StringIdType",
@@ -5432,7 +5572,7 @@
       "specifier": "@venizia/ignis",
       "kind": "type",
       "file": "packages/kernel/src/common/bindings.ts",
-      "line": 4,
+      "line": 5,
       "signature": "type TBindingNamespace = TConstValue<typeof BindingNamespaces>"
     },
     {
@@ -5596,6 +5736,16 @@
       "signature": "type TConstructor<T> = new (...args: any[]) => T"
     },
     {
+      "name": "TContentType",
+      "package": "@venizia/ignis",
+      "subpath": ".",
+      "specifier": "@venizia/ignis",
+      "kind": "type",
+      "file": "packages/helpers/src/common/constants/mime.ts",
+      "line": 115,
+      "signature": "type TContentType = TConstValue<typeof ContentTypes>"
+    },
+    {
       "name": "TContext",
       "package": "@venizia/ignis",
       "subpath": ".",
@@ -5632,7 +5782,7 @@
       "specifier": "@venizia/ignis",
       "kind": "type",
       "file": "packages/kernel/src/common/error-codes.ts",
-      "line": 18,
+      "line": 15,
       "signature": "type TCoreErrorCode = TConstValue<typeof CoreErrorCodes>"
     },
     {
@@ -5692,8 +5842,8 @@
       "specifier": "@venizia/ignis",
       "kind": "type",
       "file": "packages/kernel/src/base/controllers/common/types/route.ts",
-      "line": 68,
-      "signature": "type TCustomizableRouteConfig = TRouteAuthConfig & { /** Whether this route is registered. Defaults to true. */ enabled?: boolean; request?: { params?: TAnyObjectSchema; query?: TAnyObjectSchema; body?: TAnyObjectSchema; headers?: TAnyObjectSchema; }; response?: { schema?: z.ZodTypeAny; headers?: TR"
+      "line": 72,
+      "signature": "type TCustomizableRouteConfig = TRouteAuthConfig & { /** Whether this route is registered. Defaults to true. */ enabled?: boolean; request?: { params?: TAnyObjectSchema; query?: TAnyObjectSchema; body?: TAnyObjectSchema; headers?: TAnyObjectSchema; }; response?: { schema?: z.ZodType; headers?: TResp"
     },
     {
       "name": "TDataRange",
@@ -6066,6 +6216,16 @@
       "signature": "type TFields<T = any> = Partial<{ [K in keyof T]: boolean; }> | Array<keyof T>"
     },
     {
+      "name": "TFileExtension",
+      "package": "@venizia/ignis",
+      "subpath": ".",
+      "specifier": "@venizia/ignis",
+      "kind": "type",
+      "file": "packages/helpers/src/common/constants/mime.ts",
+      "line": 65,
+      "signature": "type TFileExtension = TConstValue<typeof FileExtensions>"
+    },
+    {
       "name": "TFilter",
       "package": "@venizia/ignis",
       "subpath": ".",
@@ -6303,7 +6463,7 @@
       "kind": "type",
       "file": "packages/kernel/src/utilities/schema.utility.ts",
       "line": 27,
-      "signature": "type TInferSchema<T extends z.ZodTypeAny> = z.infer<T>"
+      "signature": "type TInferSchema<T extends z.ZodType> = z.infer<T>"
     },
     {
       "name": "TInjectionGetter",
@@ -6512,7 +6672,7 @@
       "specifier": "@venizia/ignis",
       "kind": "type",
       "file": "packages/helpers/src/common/constants/mime.ts",
-      "line": 9,
+      "line": 15,
       "signature": "type TMimeTypes = TConstValue<typeof MimeTypes>"
     },
     {
@@ -6992,7 +7152,7 @@
       "specifier": "@venizia/ignis",
       "kind": "type",
       "file": "packages/kernel/src/base/controllers/common/types/route.ts",
-      "line": 64,
+      "line": 68,
       "signature": "type TResponseBodyOf<R extends { responses: AnyType; }> = TInferDistributive<R['responses'][keyof R['responses']]['content']['application/json']['schema']>"
     },
     {
@@ -7012,7 +7172,7 @@
       "specifier": "@venizia/ignis",
       "kind": "type",
       "file": "packages/kernel/src/base/controllers/common/types/route.ts",
-      "line": 54,
+      "line": 58,
       "signature": "type TResponseHeaderObject = { description?: string; schema: { type: 'string'; examples?: string[]; }; }"
     },
     {
@@ -7022,7 +7182,7 @@
       "specifier": "@venizia/ignis",
       "kind": "type",
       "file": "packages/kernel/src/base/controllers/common/types/route.ts",
-      "line": 60,
+      "line": 64,
       "signature": "type TResponseHeaders = Record<string, TResponseHeaderObject>"
     },
     {
@@ -7062,7 +7222,7 @@
       "specifier": "@venizia/ignis",
       "kind": "type",
       "file": "packages/kernel/src/base/controllers/common/types/route.ts",
-      "line": 48,
+      "line": 52,
       "signature": "type TRouteAuthConfig = { authenticate?: TRouteAuthenticateConfig; authorize?: TRouteAuthorizeConfig; }"
     },
     {
@@ -7072,7 +7232,7 @@
       "specifier": "@venizia/ignis",
       "kind": "type",
       "file": "packages/kernel/src/base/controllers/common/types/route.ts",
-      "line": 41,
+      "line": 45,
       "signature": "type TRouteAuthenticateConfig = { skip: true; } | { skip?: false; strategies?: TAuthStrategy[]; mode?: TAuthMode; }"
     },
     {
@@ -7082,7 +7242,7 @@
       "specifier": "@venizia/ignis",
       "kind": "type",
       "file": "packages/kernel/src/base/controllers/common/types/route.ts",
-      "line": 45,
+      "line": 49,
       "signature": "type TRouteAuthorizeConfig = { skip: true; } | IAuthorizationSpec | IAuthorizationSpec[]"
     },
     {
@@ -7162,7 +7322,7 @@
       "specifier": "@venizia/ignis",
       "kind": "type",
       "file": "packages/kernel/src/common/error-codes.ts",
-      "line": 32,
+      "line": 29,
       "signature": "type TSearchErrorCode = TConstValue<typeof SearchErrorCodes>"
     },
     {
@@ -7374,6 +7534,26 @@
       "file": "packages/kernel/src/base/repositories/common/types/options.ts",
       "line": 9,
       "signature": "type TUpdateData<T = any> = Partial<T> & { [jsonPath: string]: any; }"
+    },
+    {
+      "name": "TUploadNaming",
+      "package": "@venizia/ignis",
+      "subpath": ".",
+      "specifier": "@venizia/ignis",
+      "kind": "type",
+      "file": "packages/helpers/src/modules/storage/common/types.ts",
+      "line": 55,
+      "signature": "type TUploadNaming = Pick<IUploadFile, 'originalName' | 'folderPath'>"
+    },
+    {
+      "name": "TUrlScheme",
+      "package": "@venizia/ignis",
+      "subpath": ".",
+      "specifier": "@venizia/ignis",
+      "kind": "type",
+      "file": "packages/helpers/src/modules/network/url-safety/common/constants.ts",
+      "line": 14,
+      "signature": "type TUrlScheme = TConstValue<typeof UrlSchemes>"
     },
     {
       "name": "TUserAuditColumnOpts",
@@ -7634,6 +7814,56 @@
       "file": "packages/connectors/src/relational/postgres/repositories/dialect/update.ts",
       "line": 9,
       "signature": "class UpdateBuilder extends RelationalUpdateBuilder"
+    },
+    {
+      "name": "UrlIngest",
+      "package": "@venizia/ignis",
+      "subpath": ".",
+      "specifier": "@venizia/ignis",
+      "kind": "class",
+      "file": "packages/helpers/src/modules/network/url-safety/ingest.ts",
+      "line": 13,
+      "signature": "class UrlIngest"
+    },
+    {
+      "name": "UrlPolicy",
+      "package": "@venizia/ignis",
+      "subpath": ".",
+      "specifier": "@venizia/ignis",
+      "kind": "class",
+      "file": "packages/helpers/src/modules/network/url-safety/policy.ts",
+      "line": 12,
+      "signature": "class UrlPolicy"
+    },
+    {
+      "name": "UrlSafetyDefaults",
+      "package": "@venizia/ignis",
+      "subpath": ".",
+      "specifier": "@venizia/ignis",
+      "kind": "class",
+      "file": "packages/helpers/src/modules/network/url-safety/common/constants.ts",
+      "line": 17,
+      "signature": "class UrlSafetyDefaults"
+    },
+    {
+      "name": "UrlSafetyErrors",
+      "package": "@venizia/ignis",
+      "subpath": ".",
+      "specifier": "@venizia/ignis",
+      "kind": "const",
+      "file": "packages/helpers/src/modules/network/url-safety/common/errors.ts",
+      "line": 10,
+      "signature": "UrlSafetyErrors: { readonly URL_REFUSED: { readonly message: { readonly text: \"Url refused by the safety policy\"; readonly code: \"core.url_safety.url_refused\"; }; readonly statusCode: 400; readonly category: \"business\"; }; }"
+    },
+    {
+      "name": "UrlSchemes",
+      "package": "@venizia/ignis",
+      "subpath": ".",
+      "specifier": "@venizia/ignis",
+      "kind": "class",
+      "file": "packages/helpers/src/modules/network/url-safety/common/constants.ts",
+      "line": 4,
+      "signature": "class UrlSchemes"
     },
     {
       "name": "UserPolicyLineCache",
@@ -8557,6 +8787,16 @@
       "signature": "isInt: (n: any) => boolean"
     },
     {
+      "name": "isNotFoundError",
+      "package": "@venizia/ignis",
+      "subpath": ".",
+      "specifier": "@venizia/ignis",
+      "kind": "const",
+      "file": "packages/helpers/src/modules/storage/common/errors.ts",
+      "line": 20,
+      "signature": "isNotFoundError: (opts: { error: unknown; }) => boolean"
+    },
+    {
       "name": "isPromiseLike",
       "package": "@venizia/ignis",
       "subpath": ".",
@@ -8573,8 +8813,18 @@
       "specifier": "@venizia/ignis",
       "kind": "const",
       "file": "packages/helpers/src/modules/redis/base/abstract.helper.ts",
-      "line": 13,
+      "line": 14,
       "signature": "isRedisHelper: (value: unknown) => value is AbstractRedisHelper"
+    },
+    {
+      "name": "isUrlRefusedError",
+      "package": "@venizia/ignis",
+      "subpath": ".",
+      "specifier": "@venizia/ignis",
+      "kind": "const",
+      "file": "packages/helpers/src/modules/network/url-safety/common/errors.ts",
+      "line": 29,
+      "signature": "isUrlRefusedError: (opts: { error: unknown; }) => boolean"
     },
     {
       "name": "isWeekday",
@@ -9035,6 +9285,16 @@
       "file": "packages/helpers/src/utilities/promise.utility.ts",
       "line": 44,
       "signature": "toError: (error: unknown) => Error"
+    },
+    {
+      "name": "toExpirySeconds",
+      "package": "@venizia/ignis",
+      "subpath": ".",
+      "specifier": "@venizia/ignis",
+      "kind": "const",
+      "file": "packages/helpers/src/modules/storage/common/utility.ts",
+      "line": 6,
+      "signature": "toExpirySeconds: (opts: { expiresIn: IDuration; operation: string; }) => number"
     },
     {
       "name": "toJsonSafe",
@@ -11953,7 +12213,7 @@
       "kind": "const",
       "file": "packages/connectors/src/search/core/controllers/definition.ts",
       "line": 8,
-      "signature": "defineSearchRouteConfigs: (opts: { selectSchema: z.ZodTypeAny; authenticate?: { strategies?: TAuthStrategy[]; mode?: TAuthMode; }; authorize?: IAuthorizationSpec | IAuthorizationSpec[]; }) => { readonly SEARCH: { readonly method: \"post\"; readonly path: \"/search\"; readonly description: \"Single-collec"
+      "signature": "defineSearchRouteConfigs: (opts: { selectSchema: z.ZodType; authenticate?: { strategies?: TAuthStrategy[]; mode?: TAuthMode; }; authorize?: IAuthorizationSpec | IAuthorizationSpec[]; }) => { readonly SEARCH: { readonly method: \"post\"; readonly path: \"/search\"; readonly description: \"Single-collectio"
     },
     {
       "name": "deriveSearchDocumentSchema",
@@ -11963,7 +12223,7 @@
       "kind": "const",
       "file": "packages/connectors/src/search/core/models/zod-derivation.ts",
       "line": 63,
-      "signature": "deriveSearchDocumentSchema: (opts: { definition: ISearchCollectionDefinition; type: TSchemaType; }) => z.ZodTypeAny"
+      "signature": "deriveSearchDocumentSchema: (opts: { definition: ISearchCollectionDefinition; type: TSchemaType; }) => z.ZodType"
     },
     {
       "name": "field",
@@ -12033,7 +12293,7 @@
       "kind": "const",
       "file": "packages/connectors/src/search/core/controllers/definition.ts",
       "line": 8,
-      "signature": "defineSearchRouteConfigs: (opts: { selectSchema: z.ZodTypeAny; authenticate?: { strategies?: TAuthStrategy[]; mode?: TAuthMode; }; authorize?: IAuthorizationSpec | IAuthorizationSpec[]; }) => { readonly SEARCH: { readonly method: \"post\"; readonly path: \"/search\"; readonly description: \"Single-collec"
+      "signature": "defineSearchRouteConfigs: (opts: { selectSchema: z.ZodType; authenticate?: { strategies?: TAuthStrategy[]; mode?: TAuthMode; }; authorize?: IAuthorizationSpec | IAuthorizationSpec[]; }) => { readonly SEARCH: { readonly method: \"post\"; readonly path: \"/search\"; readonly description: \"Single-collectio"
     },
     {
       "name": "SocketIOBindingKeys",
@@ -12692,8 +12952,18 @@
       "specifier": "@venizia/ignis/static-asset",
       "kind": "class",
       "file": "packages/core-server/src/components/static-asset/controller/factory.ts",
-      "line": 81,
+      "line": 176,
       "signature": "class AssetControllerFactory extends BaseHelper"
+    },
+    {
+      "name": "AssetIngest",
+      "package": "@venizia/ignis",
+      "subpath": "./static-asset",
+      "specifier": "@venizia/ignis/static-asset",
+      "kind": "class",
+      "file": "packages/core-server/src/components/static-asset/ingest.ts",
+      "line": 64,
+      "signature": "class AssetIngest"
     },
     {
       "name": "BaseMetaLinkModel",
@@ -12722,8 +12992,38 @@
       "specifier": "@venizia/ignis/static-asset",
       "kind": "interface",
       "file": "packages/core-server/src/components/static-asset/controller/factory.ts",
-      "line": 31,
+      "line": 37,
       "signature": "interface IAssetControllerOptions"
+    },
+    {
+      "name": "IIngestFromUrlOptions",
+      "package": "@venizia/ignis",
+      "subpath": "./static-asset",
+      "specifier": "@venizia/ignis/static-asset",
+      "kind": "interface",
+      "file": "packages/core-server/src/components/static-asset/ingest.ts",
+      "line": 27,
+      "signature": "interface IIngestFromUrlOptions"
+    },
+    {
+      "name": "IIngestFromUrlResult",
+      "package": "@venizia/ignis",
+      "subpath": "./static-asset",
+      "specifier": "@venizia/ignis/static-asset",
+      "kind": "interface",
+      "file": "packages/core-server/src/components/static-asset/ingest.ts",
+      "line": 21,
+      "signature": "interface IIngestFromUrlResult"
+    },
+    {
+      "name": "RENDERABLE_CONTENT_TYPES",
+      "package": "@venizia/ignis",
+      "subpath": "./static-asset",
+      "specifier": "@venizia/ignis/static-asset",
+      "kind": "const",
+      "file": "packages/core-server/src/components/static-asset/common/constants.ts",
+      "line": 17,
+      "signature": "RENDERABLE_CONTENT_TYPES: Set<string>"
     },
     {
       "name": "StaticAssetComponent",
@@ -12762,7 +13062,7 @@
       "specifier": "@venizia/ignis/static-asset",
       "kind": "class",
       "file": "packages/core-server/src/components/static-asset/common/constants.ts",
-      "line": 12,
+      "line": 35,
       "signature": "class StaticAssetStorageTypes"
     },
     {
@@ -12772,7 +13072,7 @@
       "specifier": "@venizia/ignis/static-asset",
       "kind": "type",
       "file": "packages/core-server/src/components/static-asset/common/types.ts",
-      "line": 42,
+      "line": 50,
       "signature": "type TBucketParams = { bucketName: string; }"
     },
     {
@@ -12782,7 +13082,7 @@
       "specifier": "@venizia/ignis/static-asset",
       "kind": "type",
       "file": "packages/core-server/src/components/static-asset/common/types.ts",
-      "line": 35,
+      "line": 43,
       "signature": "type TDefineExtraRoutes = (opts: { controller: BaseRestController; helper: IStorageHelper; basePath: string; }) => void"
     },
     {
@@ -12792,7 +13092,7 @@
       "specifier": "@venizia/ignis/static-asset",
       "kind": "type",
       "file": "packages/core-server/src/components/static-asset/common/types.ts",
-      "line": 50,
+      "line": 58,
       "signature": "type TListQuery = { prefix?: string; recursive?: string; maxKeys?: string; }"
     },
     {
@@ -12812,7 +13112,7 @@
       "specifier": "@venizia/ignis/static-asset",
       "kind": "type",
       "file": "packages/core-server/src/components/static-asset/common/types.ts",
-      "line": 52,
+      "line": 60,
       "signature": "type TMetaLinkConfig<Schema extends TMetaLinkSchema = TMetaLinkSchema> = { model: typeof BaseRelationalEntity<Schema>; repository: DefaultCRUDRepository<Schema>; createMetaLink?: (opts: { uploadResult: IUploadResult; fileStat: IFileStat; query: TUploadQuery; }) => ValueOrPromise<{ count: number; dat"
     },
     {
@@ -12832,7 +13132,7 @@
       "specifier": "@venizia/ignis/static-asset",
       "kind": "type",
       "file": "packages/core-server/src/components/static-asset/common/types.ts",
-      "line": 43,
+      "line": 51,
       "signature": "type TObjectParams = { bucketName: string; objectName: string; }"
     },
     {
@@ -12842,8 +13142,8 @@
       "specifier": "@venizia/ignis/static-asset",
       "kind": "type",
       "file": "packages/core-server/src/components/static-asset/common/types.ts",
-      "line": 28,
-      "signature": "type TResolveObjectName = (opts: { originalName: string; defaultName: string; bucket: string; }) => string"
+      "line": 35,
+      "signature": "type TResolveObjectName = (opts: { bucket: IBucketRef; file: TUploadNaming; defaultKey: string; }) => string"
     },
     {
       "name": "TStaticAssetExtraOptions",
@@ -12852,8 +13152,8 @@
       "specifier": "@venizia/ignis/static-asset",
       "kind": "type",
       "file": "packages/core-server/src/components/static-asset/common/types.ts",
-      "line": 12,
-      "signature": "type TStaticAssetExtraOptions = { parseMultipartBody?: { storage?: 'memory' | 'disk'; uploadDir?: string; }; /** `folderPath` carries the upload query's target folder - dropping it flattens nested uploads. */ normalizeNameFn?: (opts: { originalName: string; folderPath?: string; }) => string; normali"
+      "line": 19,
+      "signature": "type TStaticAssetExtraOptions = { parseMultipartBody?: { storage?: 'memory' | 'disk'; uploadDir?: string; }; /** `folderPath` carries the upload query's target folder - dropping it flattens nested uploads. */ normalizeNameFn?: (opts: { file: TUploadNaming; }) => string; normalizeLinkFn?: (opts: IObj"
     },
     {
       "name": "TStaticAssetStorageType",
@@ -12862,7 +13162,7 @@
       "specifier": "@venizia/ignis/static-asset",
       "kind": "type",
       "file": "packages/core-server/src/components/static-asset/common/constants.ts",
-      "line": 24,
+      "line": 48,
       "signature": "type TStaticAssetStorageType = TConstValue<typeof StaticAssetStorageTypes>"
     },
     {
@@ -12872,8 +13172,8 @@
       "specifier": "@venizia/ignis/static-asset",
       "kind": "type",
       "file": "packages/core-server/src/components/static-asset/common/types.ts",
-      "line": 62,
-      "signature": "type TStaticAssetsComponentOptions = { [key: string]: { controller: { name: string; basePath: string; isStrict?: boolean; routes?: { getBuckets?: Partial<Omit<IAuthRouteConfig, 'method' | 'request' | 'responses'>>; getBucketByName?: Partial<Omit<IAuthRouteConfig, 'method' | 'request' | 'responses'>>"
+      "line": 70,
+      "signature": "type TStaticAssetsComponentOptions = { [key: string]: { controller: { name: string; basePath: string; isStrict?: boolean; /** The single bucket every object route uses. It leaves the URL (`/objects/{objectName}`) and the four bucket-management routes are not registered. The function form is read per"
     },
     {
       "name": "TUploadQuery",
@@ -12882,7 +13182,7 @@
       "specifier": "@venizia/ignis/static-asset",
       "kind": "type",
       "file": "packages/core-server/src/components/static-asset/common/types.ts",
-      "line": 44,
+      "line": 52,
       "signature": "type TUploadQuery = { principalType?: string; principalId?: string; variant?: string; folderPath?: string; }"
     },
     {
@@ -12892,8 +13192,28 @@
       "specifier": "@venizia/ignis/static-asset",
       "kind": "const",
       "file": "packages/core-server/src/components/static-asset/common/constants.ts",
-      "line": 4,
-      "signature": "WHITELIST_HEADERS: readonly [\"content-type\", \"content-encoding\", \"cache-control\", \"etag\", \"last-modified\"]"
+      "line": 5,
+      "signature": "WHITELIST_HEADERS: readonly [\"content-encoding\", \"cache-control\", \"etag\", \"last-modified\"]"
+    },
+    {
+      "name": "buildObjectLink",
+      "package": "@venizia/ignis",
+      "subpath": "./static-asset",
+      "specifier": "@venizia/ignis/static-asset",
+      "kind": "const",
+      "file": "packages/core-server/src/components/static-asset/controller/factory.ts",
+      "line": 74,
+      "signature": "buildObjectLink: (opts: IObjectLocation & { basePath: string; hasConfiguredBucket?: boolean; rawObjectPath?: boolean; }) => string"
+    },
+    {
+      "name": "resolveServedContentType",
+      "package": "@venizia/ignis",
+      "subpath": "./static-asset",
+      "specifier": "@venizia/ignis/static-asset",
+      "kind": "const",
+      "file": "packages/core-server/src/components/static-asset/controller/factory.ts",
+      "line": 107,
+      "signature": "resolveServedContentType: (opts: { helper: IStorageHelper; object: IObjectRef; }) => { contentType: string; isRenderable: boolean; }"
     },
     {
       "name": "AbstractSearchController",
@@ -13673,7 +13993,7 @@
       "kind": "const",
       "file": "packages/connectors/src/search/core/controllers/definition.ts",
       "line": 8,
-      "signature": "defineSearchRouteConfigs: (opts: { selectSchema: z.ZodTypeAny; authenticate?: { strategies?: TAuthStrategy[]; mode?: TAuthMode; }; authorize?: IAuthorizationSpec | IAuthorizationSpec[]; }) => { readonly SEARCH: { readonly method: \"post\"; readonly path: \"/search\"; readonly description: \"Single-collec"
+      "signature": "defineSearchRouteConfigs: (opts: { selectSchema: z.ZodType; authenticate?: { strategies?: TAuthStrategy[]; mode?: TAuthMode; }; authorize?: IAuthorizationSpec | IAuthorizationSpec[]; }) => { readonly SEARCH: { readonly method: \"post\"; readonly path: \"/search\"; readonly description: \"Single-collectio"
     },
     {
       "name": "deriveSearchDocumentSchema",
@@ -13683,7 +14003,7 @@
       "kind": "const",
       "file": "packages/connectors/src/search/core/models/zod-derivation.ts",
       "line": 63,
-      "signature": "deriveSearchDocumentSchema: (opts: { definition: ISearchCollectionDefinition; type: TSchemaType; }) => z.ZodTypeAny"
+      "signature": "deriveSearchDocumentSchema: (opts: { definition: ISearchCollectionDefinition; type: TSchemaType; }) => z.ZodType"
     },
     {
       "name": "field",
@@ -13753,7 +14073,7 @@
       "kind": "const",
       "file": "packages/connectors/src/search/core/controllers/definition.ts",
       "line": 8,
-      "signature": "defineSearchRouteConfigs: (opts: { selectSchema: z.ZodTypeAny; authenticate?: { strategies?: TAuthStrategy[]; mode?: TAuthMode; }; authorize?: IAuthorizationSpec | IAuthorizationSpec[]; }) => { readonly SEARCH: { readonly method: \"post\"; readonly path: \"/search\"; readonly description: \"Single-collec"
+      "signature": "defineSearchRouteConfigs: (opts: { selectSchema: z.ZodType; authenticate?: { strategies?: TAuthStrategy[]; mode?: TAuthMode; }; authorize?: IAuthorizationSpec | IAuthorizationSpec[]; }) => { readonly SEARCH: { readonly method: \"post\"; readonly path: \"/search\"; readonly description: \"Single-collectio"
     },
     {
       "name": "WebSocketBindingKeys",
@@ -15153,7 +15473,7 @@
       "kind": "const",
       "file": "packages/connectors/src/search/core/controllers/definition.ts",
       "line": 8,
-      "signature": "defineSearchRouteConfigs: (opts: { selectSchema: z.ZodTypeAny; authenticate?: { strategies?: TAuthStrategy[]; mode?: TAuthMode; }; authorize?: IAuthorizationSpec | IAuthorizationSpec[]; }) => { readonly SEARCH: { readonly method: \"post\"; readonly path: \"/search\"; readonly description: \"Single-collec"
+      "signature": "defineSearchRouteConfigs: (opts: { selectSchema: z.ZodType; authenticate?: { strategies?: TAuthStrategy[]; mode?: TAuthMode; }; authorize?: IAuthorizationSpec | IAuthorizationSpec[]; }) => { readonly SEARCH: { readonly method: \"post\"; readonly path: \"/search\"; readonly description: \"Single-collectio"
     },
     {
       "name": "deriveSearchDocumentSchema",
@@ -15163,7 +15483,7 @@
       "kind": "const",
       "file": "packages/connectors/src/search/core/models/zod-derivation.ts",
       "line": 63,
-      "signature": "deriveSearchDocumentSchema: (opts: { definition: ISearchCollectionDefinition; type: TSchemaType; }) => z.ZodTypeAny"
+      "signature": "deriveSearchDocumentSchema: (opts: { definition: ISearchCollectionDefinition; type: TSchemaType; }) => z.ZodType"
     },
     {
       "name": "field",
@@ -17412,7 +17732,7 @@
       "kind": "const",
       "file": "packages/connectors/src/search/core/controllers/definition.ts",
       "line": 8,
-      "signature": "defineSearchRouteConfigs: (opts: { selectSchema: z.ZodTypeAny; authenticate?: { strategies?: TAuthStrategy[]; mode?: TAuthMode; }; authorize?: IAuthorizationSpec | IAuthorizationSpec[]; }) => { readonly SEARCH: { readonly method: \"post\"; readonly path: \"/search\"; readonly description: \"Single-collec"
+      "signature": "defineSearchRouteConfigs: (opts: { selectSchema: z.ZodType; authenticate?: { strategies?: TAuthStrategy[]; mode?: TAuthMode; }; authorize?: IAuthorizationSpec | IAuthorizationSpec[]; }) => { readonly SEARCH: { readonly method: \"post\"; readonly path: \"/search\"; readonly description: \"Single-collectio"
     },
     {
       "name": "deriveSearchDocumentSchema",
@@ -17422,7 +17742,7 @@
       "kind": "const",
       "file": "packages/connectors/src/search/core/models/zod-derivation.ts",
       "line": 63,
-      "signature": "deriveSearchDocumentSchema: (opts: { definition: ISearchCollectionDefinition; type: TSchemaType; }) => z.ZodTypeAny"
+      "signature": "deriveSearchDocumentSchema: (opts: { definition: ISearchCollectionDefinition; type: TSchemaType; }) => z.ZodType"
     },
     {
       "name": "field",
@@ -17492,7 +17812,7 @@
       "kind": "const",
       "file": "packages/connectors/src/search/core/controllers/definition.ts",
       "line": 8,
-      "signature": "defineSearchRouteConfigs: (opts: { selectSchema: z.ZodTypeAny; authenticate?: { strategies?: TAuthStrategy[]; mode?: TAuthMode; }; authorize?: IAuthorizationSpec | IAuthorizationSpec[]; }) => { readonly SEARCH: { readonly method: \"post\"; readonly path: \"/search\"; readonly description: \"Single-collec"
+      "signature": "defineSearchRouteConfigs: (opts: { selectSchema: z.ZodType; authenticate?: { strategies?: TAuthStrategy[]; mode?: TAuthMode; }; authorize?: IAuthorizationSpec | IAuthorizationSpec[]; }) => { readonly SEARCH: { readonly method: \"post\"; readonly path: \"/search\"; readonly description: \"Single-collectio"
     },
     {
       "name": "AbstractSqliteDataSource",
@@ -18902,7 +19222,7 @@
       "kind": "const",
       "file": "packages/connectors/src/search/core/controllers/definition.ts",
       "line": 8,
-      "signature": "defineSearchRouteConfigs: (opts: { selectSchema: z.ZodTypeAny; authenticate?: { strategies?: TAuthStrategy[]; mode?: TAuthMode; }; authorize?: IAuthorizationSpec | IAuthorizationSpec[]; }) => { readonly SEARCH: { readonly method: \"post\"; readonly path: \"/search\"; readonly description: \"Single-collec"
+      "signature": "defineSearchRouteConfigs: (opts: { selectSchema: z.ZodType; authenticate?: { strategies?: TAuthStrategy[]; mode?: TAuthMode; }; authorize?: IAuthorizationSpec | IAuthorizationSpec[]; }) => { readonly SEARCH: { readonly method: \"post\"; readonly path: \"/search\"; readonly description: \"Single-collectio"
     },
     {
       "name": "deriveSearchDocumentSchema",
@@ -18912,7 +19232,7 @@
       "kind": "const",
       "file": "packages/connectors/src/search/core/models/zod-derivation.ts",
       "line": 63,
-      "signature": "deriveSearchDocumentSchema: (opts: { definition: ISearchCollectionDefinition; type: TSchemaType; }) => z.ZodTypeAny"
+      "signature": "deriveSearchDocumentSchema: (opts: { definition: ISearchCollectionDefinition; type: TSchemaType; }) => z.ZodType"
     },
     {
       "name": "field",
@@ -18982,7 +19302,7 @@
       "kind": "const",
       "file": "packages/connectors/src/search/core/controllers/definition.ts",
       "line": 8,
-      "signature": "defineSearchRouteConfigs: (opts: { selectSchema: z.ZodTypeAny; authenticate?: { strategies?: TAuthStrategy[]; mode?: TAuthMode; }; authorize?: IAuthorizationSpec | IAuthorizationSpec[]; }) => { readonly SEARCH: { readonly method: \"post\"; readonly path: \"/search\"; readonly description: \"Single-collec"
+      "signature": "defineSearchRouteConfigs: (opts: { selectSchema: z.ZodType; authenticate?: { strategies?: TAuthStrategy[]; mode?: TAuthMode; }; authorize?: IAuthorizationSpec | IAuthorizationSpec[]; }) => { readonly SEARCH: { readonly method: \"post\"; readonly path: \"/search\"; readonly description: \"Single-collectio"
     },
     {
       "name": "QueryOperators",
@@ -19311,7 +19631,7 @@
       "specifier": "@venizia/ignis-helpers",
       "kind": "class",
       "file": "packages/helpers/src/modules/redis/base/abstract.helper.ts",
-      "line": 17,
+      "line": 18,
       "signature": "class AbstractRedisHelper<ClientType extends TRedisClient = TRedisClient> extends BaseHelper implements IRedisHelper"
     },
     {
@@ -19501,7 +19821,7 @@
       "specifier": "@venizia/ignis-helpers",
       "kind": "class",
       "file": "packages/helpers/src/modules/storage/base.ts",
-      "line": 9,
+      "line": 22,
       "signature": "class BaseStorageHelper extends BaseHelper implements IStorageHelper"
     },
     {
@@ -19555,6 +19875,16 @@
       "signature": "COMBINING_MARKS_PATTERN: RegExp"
     },
     {
+      "name": "CONTENT_TYPE_BY_EXTENSION",
+      "package": "@venizia/ignis-helpers",
+      "subpath": ".",
+      "specifier": "@venizia/ignis-helpers",
+      "kind": "const",
+      "file": "packages/helpers/src/common/constants/mime.ts",
+      "line": 157,
+      "signature": "CONTENT_TYPE_BY_EXTENSION: Readonly<Partial<Record<string, TContentType>>>"
+    },
+    {
       "name": "Child",
       "package": "@venizia/ignis-helpers",
       "subpath": ".",
@@ -19574,6 +19904,26 @@
       "file": "packages/helpers/src/modules/logger/base/console.ts",
       "line": 6,
       "signature": "class ConsoleLogger extends AbstractLogger"
+    },
+    {
+      "name": "ContentTypeTable",
+      "package": "@venizia/ignis-helpers",
+      "subpath": ".",
+      "specifier": "@venizia/ignis-helpers",
+      "kind": "class",
+      "file": "packages/helpers/src/common/constants/mime.ts",
+      "line": 118,
+      "signature": "class ContentTypeTable"
+    },
+    {
+      "name": "ContentTypes",
+      "package": "@venizia/ignis-helpers",
+      "subpath": ".",
+      "specifier": "@venizia/ignis-helpers",
+      "kind": "class",
+      "file": "packages/helpers/src/common/constants/mime.ts",
+      "line": 68,
+      "signature": "class ContentTypes"
     },
     {
       "name": "DEFAULT_CIPHER_BITS",
@@ -19702,7 +20052,7 @@
       "specifier": "@venizia/ignis-helpers",
       "kind": "class",
       "file": "packages/helpers/src/modules/storage/disk/helper.ts",
-      "line": 14,
+      "line": 27,
       "signature": "class DiskHelper extends BaseStorageHelper"
     },
     {
@@ -19825,6 +20175,16 @@
       "line": 7,
       "signature": "type FC<P = Props> = { (props: P): FunctionComponentResult; defaultProps?: Partial<P> | undefined; displayName?: string | undefined; }",
       "external": true
+    },
+    {
+      "name": "FileExtensions",
+      "package": "@venizia/ignis-helpers",
+      "subpath": ".",
+      "specifier": "@venizia/ignis-helpers",
+      "kind": "class",
+      "file": "packages/helpers/src/common/constants/mime.ts",
+      "line": 18,
+      "signature": "class FileExtensions"
     },
     {
       "name": "GRPC",
@@ -19953,8 +20313,18 @@
       "specifier": "@venizia/ignis-helpers",
       "kind": "interface",
       "file": "packages/helpers/src/modules/storage/common/types.ts",
-      "line": 29,
+      "line": 36,
       "signature": "interface IBucketInfo"
+    },
+    {
+      "name": "IBucketRef",
+      "package": "@venizia/ignis-helpers",
+      "subpath": ".",
+      "specifier": "@venizia/ignis-helpers",
+      "kind": "interface",
+      "file": "packages/helpers/src/modules/storage/common/types.ts",
+      "line": 50,
+      "signature": "interface IBucketRef"
     },
     {
       "name": "IBuildOptions",
@@ -20033,7 +20403,7 @@
       "specifier": "@venizia/ignis-helpers",
       "kind": "interface",
       "file": "packages/helpers/src/modules/storage/disk/helper.ts",
-      "line": 10,
+      "line": 22,
       "signature": "interface IDiskHelperOptions extends IStorageHelperOptions"
     },
     {
@@ -20113,7 +20483,7 @@
       "specifier": "@venizia/ignis-helpers",
       "kind": "interface",
       "file": "packages/helpers/src/modules/storage/common/types.ts",
-      "line": 21,
+      "line": 28,
       "signature": "interface IFileStat"
     },
     {
@@ -20183,7 +20553,7 @@
       "specifier": "@venizia/ignis-helpers",
       "kind": "interface",
       "file": "packages/helpers/src/modules/storage/common/types.ts",
-      "line": 42,
+      "line": 68,
       "signature": "interface IListObjectsOptions"
     },
     {
@@ -20263,8 +20633,38 @@
       "specifier": "@venizia/ignis-helpers",
       "kind": "interface",
       "file": "packages/helpers/src/modules/storage/common/types.ts",
-      "line": 34,
+      "line": 41,
       "signature": "interface IObjectInfo"
+    },
+    {
+      "name": "IObjectLocation",
+      "package": "@venizia/ignis-helpers",
+      "subpath": ".",
+      "specifier": "@venizia/ignis-helpers",
+      "kind": "interface",
+      "file": "packages/helpers/src/modules/storage/common/types.ts",
+      "line": 63,
+      "signature": "interface IObjectLocation"
+    },
+    {
+      "name": "IObjectMetadata",
+      "package": "@venizia/ignis-helpers",
+      "subpath": ".",
+      "specifier": "@venizia/ignis-helpers",
+      "kind": "interface",
+      "file": "packages/helpers/src/modules/storage/common/types.ts",
+      "line": 23,
+      "signature": "interface IObjectMetadata"
+    },
+    {
+      "name": "IObjectRef",
+      "package": "@venizia/ignis-helpers",
+      "subpath": ".",
+      "specifier": "@venizia/ignis-helpers",
+      "kind": "interface",
+      "file": "packages/helpers/src/modules/storage/common/types.ts",
+      "line": 58,
+      "signature": "interface IObjectRef"
     },
     {
       "name": "IOpaqueUidOptions",
@@ -20673,7 +21073,7 @@
       "specifier": "@venizia/ignis-helpers",
       "kind": "interface",
       "file": "packages/helpers/src/modules/storage/common/types.ts",
-      "line": 54,
+      "line": 80,
       "signature": "interface IStorageHelper"
     },
     {
@@ -20683,7 +21083,7 @@
       "specifier": "@venizia/ignis-helpers",
       "kind": "interface",
       "file": "packages/helpers/src/modules/storage/common/types.ts",
-      "line": 49,
+      "line": 75,
       "signature": "interface IStorageHelperOptions"
     },
     {
@@ -20743,7 +21143,7 @@
       "specifier": "@venizia/ignis-helpers",
       "kind": "interface",
       "file": "packages/helpers/src/modules/storage/common/types.ts",
-      "line": 3,
+      "line": 4,
       "signature": "interface IUploadFile"
     },
     {
@@ -20753,8 +21153,18 @@
       "specifier": "@venizia/ignis-helpers",
       "kind": "interface",
       "file": "packages/helpers/src/modules/storage/common/types.ts",
-      "line": 13,
+      "line": 15,
       "signature": "interface IUploadResult"
+    },
+    {
+      "name": "IUrlSafetyPolicy",
+      "package": "@venizia/ignis-helpers",
+      "subpath": ".",
+      "specifier": "@venizia/ignis-helpers",
+      "kind": "interface",
+      "file": "packages/helpers/src/modules/network/url-safety/common/types.ts",
+      "line": 7,
+      "signature": "interface IUrlSafetyPolicy"
     },
     {
       "name": "IWalkAsyncOptions",
@@ -20973,7 +21383,7 @@
       "specifier": "@venizia/ignis-helpers",
       "kind": "class",
       "file": "packages/helpers/src/modules/storage/in-memory/helper.ts",
-      "line": 4,
+      "line": 5,
       "signature": "class MemoryStorageHelper<T extends object = AnyObject> extends BaseHelper"
     },
     {
@@ -21134,7 +21544,7 @@
       "specifier": "@venizia/ignis-helpers",
       "kind": "const",
       "file": "packages/helpers/src/modules/redis/base/abstract.helper.ts",
-      "line": 10,
+      "line": 11,
       "signature": "REDIS_HELPER_BRAND: unique symbol"
     },
     {
@@ -21166,6 +21576,16 @@
       "file": "packages/helpers/src/modules/redis/cluster/cluster.helper.ts",
       "line": 6,
       "signature": "class RedisClusterHelper extends AbstractRedisHelper<Cluster>"
+    },
+    {
+      "name": "RedisConcurrency",
+      "package": "@venizia/ignis-helpers",
+      "subpath": ".",
+      "specifier": "@venizia/ignis-helpers",
+      "kind": "class",
+      "file": "packages/helpers/src/modules/redis/common/constants.ts",
+      "line": 31,
+      "signature": "class RedisConcurrency"
     },
     {
       "name": "RedisModes",
@@ -21318,6 +21738,46 @@
       "signature": "class SnowflakeUidHelper extends BaseHelper"
     },
     {
+      "name": "StorageConcurrency",
+      "package": "@venizia/ignis-helpers",
+      "subpath": ".",
+      "specifier": "@venizia/ignis-helpers",
+      "kind": "class",
+      "file": "packages/helpers/src/modules/storage/common/constants.ts",
+      "line": 15,
+      "signature": "class StorageConcurrency"
+    },
+    {
+      "name": "StorageErrors",
+      "package": "@venizia/ignis-helpers",
+      "subpath": ".",
+      "specifier": "@venizia/ignis-helpers",
+      "kind": "const",
+      "file": "packages/helpers/src/modules/storage/common/errors.ts",
+      "line": 6,
+      "signature": "StorageErrors: { readonly OBJECT_NOT_FOUND: { readonly message: { readonly text: \"Object not found\"; readonly code: \"core.storage.object_not_found\"; }; readonly statusCode: 404; readonly category: \"business\"; }; }"
+    },
+    {
+      "name": "StoragePresignDefaults",
+      "package": "@venizia/ignis-helpers",
+      "subpath": ".",
+      "specifier": "@venizia/ignis-helpers",
+      "kind": "class",
+      "file": "packages/helpers/src/modules/storage/common/constants.ts",
+      "line": 4,
+      "signature": "class StoragePresignDefaults"
+    },
+    {
+      "name": "StoragePresignLimits",
+      "package": "@venizia/ignis-helpers",
+      "subpath": ".",
+      "specifier": "@venizia/ignis-helpers",
+      "kind": "class",
+      "file": "packages/helpers/src/modules/storage/common/constants.ts",
+      "line": 10,
+      "signature": "class StoragePresignLimits"
+    },
+    {
       "name": "SystemEnvsHelper",
       "package": "@venizia/ignis-helpers",
       "subpath": ".",
@@ -21416,6 +21876,16 @@
       "file": "packages/helpers/src/common/types/class.ts",
       "line": 1,
       "signature": "type TConstructor<T> = new (...args: any[]) => T"
+    },
+    {
+      "name": "TContentType",
+      "package": "@venizia/ignis-helpers",
+      "subpath": ".",
+      "specifier": "@venizia/ignis-helpers",
+      "kind": "type",
+      "file": "packages/helpers/src/common/constants/mime.ts",
+      "line": 115,
+      "signature": "type TContentType = TConstValue<typeof ContentTypes>"
     },
     {
       "name": "TCreateRedisHelperOptions",
@@ -21598,6 +22068,16 @@
       "signature": "type TFieldMappingNames<T extends Array<IFieldMapping>> = Extract<T[number], { type: Exclude<T[number]['type'], undefined>; }>['name']"
     },
     {
+      "name": "TFileExtension",
+      "package": "@venizia/ignis-helpers",
+      "subpath": ".",
+      "specifier": "@venizia/ignis-helpers",
+      "kind": "type",
+      "file": "packages/helpers/src/common/constants/mime.ts",
+      "line": 65,
+      "signature": "type TFileExtension = TConstValue<typeof FileExtensions>"
+    },
+    {
       "name": "TGrpcMethod",
       "package": "@venizia/ignis-helpers",
       "subpath": ".",
@@ -21744,7 +22224,7 @@
       "specifier": "@venizia/ignis-helpers",
       "kind": "type",
       "file": "packages/helpers/src/common/constants/mime.ts",
-      "line": 9,
+      "line": 15,
       "signature": "type TMimeTypes = TConstValue<typeof MimeTypes>"
     },
     {
@@ -22008,6 +22488,26 @@
       "signature": "type TUidCaseForm = TConstValue<typeof UidCaseForms>"
     },
     {
+      "name": "TUploadNaming",
+      "package": "@venizia/ignis-helpers",
+      "subpath": ".",
+      "specifier": "@venizia/ignis-helpers",
+      "kind": "type",
+      "file": "packages/helpers/src/modules/storage/common/types.ts",
+      "line": 55,
+      "signature": "type TUploadNaming = Pick<IUploadFile, 'originalName' | 'folderPath'>"
+    },
+    {
+      "name": "TUrlScheme",
+      "package": "@venizia/ignis-helpers",
+      "subpath": ".",
+      "specifier": "@venizia/ignis-helpers",
+      "kind": "type",
+      "file": "packages/helpers/src/modules/network/url-safety/common/constants.ts",
+      "line": 14,
+      "signature": "type TUrlScheme = TConstValue<typeof UrlSchemes>"
+    },
+    {
       "name": "TValueOrAsyncResolver",
       "package": "@venizia/ignis-helpers",
       "subpath": ".",
@@ -22176,6 +22676,56 @@
       "file": "packages/helpers/src/modules/uid/common/constants.ts",
       "line": 30,
       "signature": "class UidCaseForms"
+    },
+    {
+      "name": "UrlIngest",
+      "package": "@venizia/ignis-helpers",
+      "subpath": ".",
+      "specifier": "@venizia/ignis-helpers",
+      "kind": "class",
+      "file": "packages/helpers/src/modules/network/url-safety/ingest.ts",
+      "line": 13,
+      "signature": "class UrlIngest"
+    },
+    {
+      "name": "UrlPolicy",
+      "package": "@venizia/ignis-helpers",
+      "subpath": ".",
+      "specifier": "@venizia/ignis-helpers",
+      "kind": "class",
+      "file": "packages/helpers/src/modules/network/url-safety/policy.ts",
+      "line": 12,
+      "signature": "class UrlPolicy"
+    },
+    {
+      "name": "UrlSafetyDefaults",
+      "package": "@venizia/ignis-helpers",
+      "subpath": ".",
+      "specifier": "@venizia/ignis-helpers",
+      "kind": "class",
+      "file": "packages/helpers/src/modules/network/url-safety/common/constants.ts",
+      "line": 17,
+      "signature": "class UrlSafetyDefaults"
+    },
+    {
+      "name": "UrlSafetyErrors",
+      "package": "@venizia/ignis-helpers",
+      "subpath": ".",
+      "specifier": "@venizia/ignis-helpers",
+      "kind": "const",
+      "file": "packages/helpers/src/modules/network/url-safety/common/errors.ts",
+      "line": 10,
+      "signature": "UrlSafetyErrors: { readonly URL_REFUSED: { readonly message: { readonly text: \"Url refused by the safety policy\"; readonly code: \"core.url_safety.url_refused\"; }; readonly statusCode: 400; readonly category: \"business\"; }; }"
+    },
+    {
+      "name": "UrlSchemes",
+      "package": "@venizia/ignis-helpers",
+      "subpath": ".",
+      "specifier": "@venizia/ignis-helpers",
+      "kind": "class",
+      "file": "packages/helpers/src/modules/network/url-safety/common/constants.ts",
+      "line": 4,
+      "signature": "class UrlSchemes"
     },
     {
       "name": "ValueOf",
@@ -22589,6 +23139,16 @@
       "signature": "isInt: (n: any) => boolean"
     },
     {
+      "name": "isNotFoundError",
+      "package": "@venizia/ignis-helpers",
+      "subpath": ".",
+      "specifier": "@venizia/ignis-helpers",
+      "kind": "const",
+      "file": "packages/helpers/src/modules/storage/common/errors.ts",
+      "line": 20,
+      "signature": "isNotFoundError: (opts: { error: unknown; }) => boolean"
+    },
+    {
       "name": "isPromiseLike",
       "package": "@venizia/ignis-helpers",
       "subpath": ".",
@@ -22605,8 +23165,18 @@
       "specifier": "@venizia/ignis-helpers",
       "kind": "const",
       "file": "packages/helpers/src/modules/redis/base/abstract.helper.ts",
-      "line": 13,
+      "line": 14,
       "signature": "isRedisHelper: (value: unknown) => value is AbstractRedisHelper"
+    },
+    {
+      "name": "isUrlRefusedError",
+      "package": "@venizia/ignis-helpers",
+      "subpath": ".",
+      "specifier": "@venizia/ignis-helpers",
+      "kind": "const",
+      "file": "packages/helpers/src/modules/network/url-safety/common/errors.ts",
+      "line": 29,
+      "signature": "isUrlRefusedError: (opts: { error: unknown; }) => boolean"
     },
     {
       "name": "isWeekday",
@@ -22779,6 +23349,16 @@
       "signature": "toError: (error: unknown) => Error"
     },
     {
+      "name": "toExpirySeconds",
+      "package": "@venizia/ignis-helpers",
+      "subpath": ".",
+      "specifier": "@venizia/ignis-helpers",
+      "kind": "const",
+      "file": "packages/helpers/src/modules/storage/common/utility.ts",
+      "line": 6,
+      "signature": "toExpirySeconds: (opts: { expiresIn: IDuration; operation: string; }) => number"
+    },
+    {
       "name": "toJsonSafe",
       "package": "@venizia/ignis-helpers",
       "subpath": ".",
@@ -22885,7 +23465,7 @@
       "specifier": "@venizia/ignis-helpers/bun-s3",
       "kind": "class",
       "file": "packages/helpers/src/modules/storage/bun-s3/helper.ts",
-      "line": 37,
+      "line": 44,
       "signature": "class BunS3Helper extends BaseStorageHelper"
     },
     {
@@ -22895,7 +23475,7 @@
       "specifier": "@venizia/ignis-helpers/bun-s3",
       "kind": "interface",
       "file": "packages/helpers/src/modules/storage/bun-s3/helper.ts",
-      "line": 15,
+      "line": 21,
       "signature": "interface IBunS3HelperOptions extends IStorageHelperOptions"
     },
     {
@@ -22917,6 +23497,36 @@
       "file": "packages/helpers/src/common/types/utility.ts",
       "line": 3,
       "signature": "type AnyType = any"
+    },
+    {
+      "name": "CONTENT_TYPE_BY_EXTENSION",
+      "package": "@venizia/ignis-helpers",
+      "subpath": "./common",
+      "specifier": "@venizia/ignis-helpers/common",
+      "kind": "const",
+      "file": "packages/helpers/src/common/constants/mime.ts",
+      "line": 157,
+      "signature": "CONTENT_TYPE_BY_EXTENSION: Readonly<Partial<Record<string, TContentType>>>"
+    },
+    {
+      "name": "ContentTypeTable",
+      "package": "@venizia/ignis-helpers",
+      "subpath": "./common",
+      "specifier": "@venizia/ignis-helpers/common",
+      "kind": "class",
+      "file": "packages/helpers/src/common/constants/mime.ts",
+      "line": 118,
+      "signature": "class ContentTypeTable"
+    },
+    {
+      "name": "ContentTypes",
+      "package": "@venizia/ignis-helpers",
+      "subpath": "./common",
+      "specifier": "@venizia/ignis-helpers/common",
+      "kind": "class",
+      "file": "packages/helpers/src/common/constants/mime.ts",
+      "line": 68,
+      "signature": "class ContentTypes"
     },
     {
       "name": "DataTypes",
@@ -22967,6 +23577,16 @@
       "file": "packages/helpers/src/common/constants/duration.ts",
       "line": 4,
       "signature": "class DurationUnits"
+    },
+    {
+      "name": "FileExtensions",
+      "package": "@venizia/ignis-helpers",
+      "subpath": "./common",
+      "specifier": "@venizia/ignis-helpers/common",
+      "kind": "class",
+      "file": "packages/helpers/src/common/constants/mime.ts",
+      "line": 18,
+      "signature": "class FileExtensions"
     },
     {
       "name": "GRPC",
@@ -23119,6 +23739,16 @@
       "signature": "type TConstructor<T> = new (...args: any[]) => T"
     },
     {
+      "name": "TContentType",
+      "package": "@venizia/ignis-helpers",
+      "subpath": "./common",
+      "specifier": "@venizia/ignis-helpers/common",
+      "kind": "type",
+      "file": "packages/helpers/src/common/constants/mime.ts",
+      "line": 115,
+      "signature": "type TContentType = TConstValue<typeof ContentTypes>"
+    },
+    {
       "name": "TDurationUnit",
       "package": "@venizia/ignis-helpers",
       "subpath": "./common",
@@ -23147,6 +23777,16 @@
       "file": "packages/helpers/src/common/types/field-mapping.ts",
       "line": 8,
       "signature": "type TFieldMappingNames<T extends Array<IFieldMapping>> = Extract<T[number], { type: Exclude<T[number]['type'], undefined>; }>['name']"
+    },
+    {
+      "name": "TFileExtension",
+      "package": "@venizia/ignis-helpers",
+      "subpath": "./common",
+      "specifier": "@venizia/ignis-helpers/common",
+      "kind": "type",
+      "file": "packages/helpers/src/common/constants/mime.ts",
+      "line": 65,
+      "signature": "type TFileExtension = TConstValue<typeof FileExtensions>"
     },
     {
       "name": "TGrpcMethod",
@@ -23215,7 +23855,7 @@
       "specifier": "@venizia/ignis-helpers/common",
       "kind": "type",
       "file": "packages/helpers/src/common/constants/mime.ts",
-      "line": 9,
+      "line": 15,
       "signature": "type TMimeTypes = TConstValue<typeof MimeTypes>"
     },
     {
@@ -23819,6 +24459,16 @@
       "signature": "interface IUidSegment"
     },
     {
+      "name": "IUrlSafetyPolicy",
+      "package": "@venizia/ignis-helpers",
+      "subpath": "./core",
+      "specifier": "@venizia/ignis-helpers/core",
+      "kind": "interface",
+      "file": "packages/helpers/src/modules/network/url-safety/common/types.ts",
+      "line": 7,
+      "signature": "interface IUrlSafetyPolicy"
+    },
+    {
       "name": "IWalkAsyncOptions",
       "package": "@venizia/ignis-helpers",
       "subpath": "./core",
@@ -24179,6 +24829,16 @@
       "signature": "type TUidCaseForm = TConstValue<typeof UidCaseForms>"
     },
     {
+      "name": "TUrlScheme",
+      "package": "@venizia/ignis-helpers",
+      "subpath": "./core",
+      "specifier": "@venizia/ignis-helpers/core",
+      "kind": "type",
+      "file": "packages/helpers/src/modules/network/url-safety/common/constants.ts",
+      "line": 14,
+      "signature": "type TUrlScheme = TConstValue<typeof UrlSchemes>"
+    },
+    {
       "name": "TreeBuilder",
       "package": "@venizia/ignis-helpers",
       "subpath": "./core",
@@ -24217,6 +24877,36 @@
       "file": "packages/helpers/src/modules/uid/common/constants.ts",
       "line": 30,
       "signature": "class UidCaseForms"
+    },
+    {
+      "name": "UrlPolicy",
+      "package": "@venizia/ignis-helpers",
+      "subpath": "./core",
+      "specifier": "@venizia/ignis-helpers/core",
+      "kind": "class",
+      "file": "packages/helpers/src/modules/network/url-safety/policy.ts",
+      "line": 12,
+      "signature": "class UrlPolicy"
+    },
+    {
+      "name": "UrlSafetyDefaults",
+      "package": "@venizia/ignis-helpers",
+      "subpath": "./core",
+      "specifier": "@venizia/ignis-helpers/core",
+      "kind": "class",
+      "file": "packages/helpers/src/modules/network/url-safety/common/constants.ts",
+      "line": 17,
+      "signature": "class UrlSafetyDefaults"
+    },
+    {
+      "name": "UrlSchemes",
+      "package": "@venizia/ignis-helpers",
+      "subpath": "./core",
+      "specifier": "@venizia/ignis-helpers/core",
+      "kind": "class",
+      "file": "packages/helpers/src/modules/network/url-safety/common/constants.ts",
+      "line": 4,
+      "signature": "class UrlSchemes"
     },
     {
       "name": "executeWithPerformanceMeasure",
@@ -24785,7 +25475,7 @@
       "specifier": "@venizia/ignis-helpers/minio",
       "kind": "interface",
       "file": "packages/helpers/src/modules/storage/minio/helper.ts",
-      "line": 7,
+      "line": 18,
       "signature": "interface IMinioHelperOptions extends IStorageHelperOptions, ClientOptions"
     },
     {
@@ -24795,7 +25485,7 @@
       "specifier": "@venizia/ignis-helpers/minio",
       "kind": "class",
       "file": "packages/helpers/src/modules/storage/minio/helper.ts",
-      "line": 9,
+      "line": 21,
       "signature": "class MinioHelper extends BaseStorageHelper"
     },
     {
@@ -26265,7 +26955,7 @@
       "specifier": "@venizia/ignis-kernel",
       "kind": "class",
       "file": "packages/kernel/src/common/bindings.ts",
-      "line": 7,
+      "line": 8,
       "signature": "class BindingNamespaces"
     },
     {
@@ -26405,7 +27095,7 @@
       "specifier": "@venizia/ignis-kernel",
       "kind": "class",
       "file": "packages/kernel/src/common/bindings.ts",
-      "line": 23,
+      "line": 43,
       "signature": "class CoreBindings extends BindingKeys"
     },
     {
@@ -26625,7 +27315,7 @@
       "specifier": "@venizia/ignis-kernel",
       "kind": "interface",
       "file": "packages/kernel/src/base/controllers/common/types/route.ts",
-      "line": 35,
+      "line": 39,
       "signature": "interface IAuthRouteConfig extends HonoRouteConfig"
     },
     {
@@ -26755,7 +27445,7 @@
       "specifier": "@venizia/ignis-kernel",
       "kind": "interface",
       "file": "packages/kernel/src/base/controllers/common/types/route.ts",
-      "line": 22,
+      "line": 26,
       "signature": "interface IBindRouteOptions<RouteConfig extends HonoRouteConfig, RouteEnv extends Env = Env, RouteSchema extends Schema = {}, BasePath extends string = '/'>"
     },
     {
@@ -26935,7 +27625,7 @@
       "specifier": "@venizia/ignis-kernel",
       "kind": "interface",
       "file": "packages/kernel/src/base/controllers/common/types/route.ts",
-      "line": 84,
+      "line": 88,
       "signature": "interface ICustomizableRoutes<RouteConfig extends TCustomizableRouteConfig = TCustomizableRouteConfig>"
     },
     {
@@ -26975,7 +27665,7 @@
       "specifier": "@venizia/ignis-kernel",
       "kind": "interface",
       "file": "packages/kernel/src/base/controllers/common/types/route.ts",
-      "line": 11,
+      "line": 15,
       "signature": "interface IDefineRouteOptions<RouteConfig extends HonoRouteConfig, RouteEnv extends Env = Env, RouteSchema extends Schema = {}, BasePath extends string = '/'>"
     },
     {
@@ -27905,7 +28595,7 @@
       "specifier": "@venizia/ignis-kernel",
       "kind": "class",
       "file": "packages/kernel/src/common/error-codes.ts",
-      "line": 21,
+      "line": 18,
       "signature": "class SearchErrorCodes"
     },
     {
@@ -28205,7 +28895,7 @@
       "specifier": "@venizia/ignis-kernel",
       "kind": "type",
       "file": "packages/kernel/src/common/bindings.ts",
-      "line": 4,
+      "line": 5,
       "signature": "type TBindingNamespace = TConstValue<typeof BindingNamespaces>"
     },
     {
@@ -28325,7 +29015,7 @@
       "specifier": "@venizia/ignis-kernel",
       "kind": "type",
       "file": "packages/kernel/src/common/error-codes.ts",
-      "line": 18,
+      "line": 15,
       "signature": "type TCoreErrorCode = TConstValue<typeof CoreErrorCodes>"
     },
     {
@@ -28365,8 +29055,8 @@
       "specifier": "@venizia/ignis-kernel",
       "kind": "type",
       "file": "packages/kernel/src/base/controllers/common/types/route.ts",
-      "line": 68,
-      "signature": "type TCustomizableRouteConfig = TRouteAuthConfig & { /** Whether this route is registered. Defaults to true. */ enabled?: boolean; request?: { params?: TAnyObjectSchema; query?: TAnyObjectSchema; body?: TAnyObjectSchema; headers?: TAnyObjectSchema; }; response?: { schema?: z.ZodTypeAny; headers?: TR"
+      "line": 72,
+      "signature": "type TCustomizableRouteConfig = TRouteAuthConfig & { /** Whether this route is registered. Defaults to true. */ enabled?: boolean; request?: { params?: TAnyObjectSchema; query?: TAnyObjectSchema; body?: TAnyObjectSchema; headers?: TAnyObjectSchema; }; response?: { schema?: z.ZodType; headers?: TResp"
     },
     {
       "name": "TDataRange",
@@ -28616,7 +29306,7 @@
       "kind": "type",
       "file": "packages/kernel/src/utilities/schema.utility.ts",
       "line": 27,
-      "signature": "type TInferSchema<T extends z.ZodTypeAny> = z.infer<T>"
+      "signature": "type TInferSchema<T extends z.ZodType> = z.infer<T>"
     },
     {
       "name": "TIsAllowedOriginHandler",
@@ -28945,7 +29635,7 @@
       "specifier": "@venizia/ignis-kernel",
       "kind": "type",
       "file": "packages/kernel/src/base/controllers/common/types/route.ts",
-      "line": 64,
+      "line": 68,
       "signature": "type TResponseBodyOf<R extends { responses: AnyType; }> = TInferDistributive<R['responses'][keyof R['responses']]['content']['application/json']['schema']>"
     },
     {
@@ -28965,7 +29655,7 @@
       "specifier": "@venizia/ignis-kernel",
       "kind": "type",
       "file": "packages/kernel/src/base/controllers/common/types/route.ts",
-      "line": 54,
+      "line": 58,
       "signature": "type TResponseHeaderObject = { description?: string; schema: { type: 'string'; examples?: string[]; }; }"
     },
     {
@@ -28975,7 +29665,7 @@
       "specifier": "@venizia/ignis-kernel",
       "kind": "type",
       "file": "packages/kernel/src/base/controllers/common/types/route.ts",
-      "line": 60,
+      "line": 64,
       "signature": "type TResponseHeaders = Record<string, TResponseHeaderObject>"
     },
     {
@@ -28985,7 +29675,7 @@
       "specifier": "@venizia/ignis-kernel",
       "kind": "type",
       "file": "packages/kernel/src/base/controllers/common/types/route.ts",
-      "line": 48,
+      "line": 52,
       "signature": "type TRouteAuthConfig = { authenticate?: TRouteAuthenticateConfig; authorize?: TRouteAuthorizeConfig; }"
     },
     {
@@ -28995,7 +29685,7 @@
       "specifier": "@venizia/ignis-kernel",
       "kind": "type",
       "file": "packages/kernel/src/base/controllers/common/types/route.ts",
-      "line": 41,
+      "line": 45,
       "signature": "type TRouteAuthenticateConfig = { skip: true; } | { skip?: false; strategies?: TAuthStrategy[]; mode?: TAuthMode; }"
     },
     {
@@ -29005,7 +29695,7 @@
       "specifier": "@venizia/ignis-kernel",
       "kind": "type",
       "file": "packages/kernel/src/base/controllers/common/types/route.ts",
-      "line": 45,
+      "line": 49,
       "signature": "type TRouteAuthorizeConfig = { skip: true; } | IAuthorizationSpec | IAuthorizationSpec[]"
     },
     {
@@ -29055,7 +29745,7 @@
       "specifier": "@venizia/ignis-kernel",
       "kind": "type",
       "file": "packages/kernel/src/common/error-codes.ts",
-      "line": 32,
+      "line": 29,
       "signature": "type TSearchErrorCode = TConstValue<typeof SearchErrorCodes>"
     },
     {

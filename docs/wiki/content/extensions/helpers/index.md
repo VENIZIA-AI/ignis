@@ -20,7 +20,7 @@ Every peer dependency below is optional. You install one only when you use the h
 | [Redis](./redis/) | Redis client | You need a Redis connection - cache, pub/sub, locks | None - `ioredis` ships with the package |
 | [Socket.IO](./socket-io/) | Socket.IO server | You build a custom real-time feature | `socket.io` |
 | [WebSocket](./websocket/) | WebSocket server | You build a custom real-time feature | None |
-| [Storage](./storage/) | File storage | You read/write files to MinIO or disk directly | `minio`, for the MinIO backend only |
+| [Storage](./storage/) | File storage | You read/write files to S3 or disk directly | none - the S3 backend uses Bun's own client |
 | [UID](./uid/) | Snowflake IDs | You need unique, sortable IDs | None |
 | [Worker Thread](./worker-thread/) | Worker pools | You move CPU-heavy work off the main thread | None |
 
@@ -36,7 +36,6 @@ A helper with an optional peer dependency ships from its own subpath, so a bundl
 | `@venizia/ignis-helpers/bullmq` | `bullmq` |
 | `@venizia/ignis-helpers/mqtt` | `mqtt` |
 | `@venizia/ignis-helpers/socket-io` | `socket.io`, `socket.io-client` |
-| `@venizia/ignis-helpers/minio` | `minio` |
 | `@venizia/ignis-helpers/bun-s3` | none - Bun native |
 | `@venizia/ignis-helpers/hashicorp-vault` | `node-vault` |
 | `@venizia/ignis-helpers/dotenv-vault` | `@dotenvx/dotenvx` |

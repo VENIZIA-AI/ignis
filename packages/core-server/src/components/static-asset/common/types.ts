@@ -3,7 +3,14 @@ import type { IStorageHelper } from '@venizia/ignis-helpers';
 import type { BaseRelationalEntity } from '@venizia/ignis-connectors/postgres';
 import type { DefaultCRUDRepository } from '@venizia/ignis-connectors/postgres';
 import type { AnyType, ValueOrPromise } from '@venizia/ignis-helpers/common';
-import type { DiskHelper, IFileStat, IUploadResult } from '@venizia/ignis-helpers';
+import type {
+  DiskHelper,
+  IBucketRef,
+  IFileStat,
+  IObjectLocation,
+  IUploadResult,
+  TUploadNaming,
+} from '@venizia/ignis-helpers';
 import type { BunS3Helper } from '@venizia/ignis-helpers/bun-s3';
 import type { MinioHelper } from '@venizia/ignis-helpers/minio';
 import type { TMetaLinkSchema } from '../models';
@@ -16,22 +23,23 @@ export type TStaticAssetExtraOptions = {
   };
 
   /** `folderPath` carries the upload query's target folder - dropping it flattens nested uploads. */
-  normalizeNameFn?: (opts: { originalName: string; folderPath?: string }) => string;
-  normalizeLinkFn?: (opts: { bucketName: string; normalizeName: string }) => string;
+  normalizeNameFn?: (opts: { file: TUploadNaming }) => string;
+  normalizeLinkFn?: (opts: IObjectLocation) => string;
 
   /** Maximum folder nesting depth allowed in object paths. Default: 2 */
   maxFolderDepth?: number;
   [key: string]: AnyType;
 };
 
-/** Decides the object name one uploaded file is stored under. `defaultName` is what IGNIS would have written; returning it changes nothing. */
+/** Decides the key one uploaded file is stored under. `defaultKey` is what IGNIS would have written. */
 export type TResolveObjectName = (opts: {
-  originalName: string;
-  defaultName: string;
-  bucket: string;
+  bucket: IBucketRef;
+  file: TUploadNaming;
+  defaultKey: string;
 }) => string;
 
 /** Adds routes of the application's own to a generated asset controller. Runs after every built-in route, so a built-in route always wins a path collision. `basePath` is the mount path with exactly one leading slash. */
+/** Adds routes of the application's own. Registration order decides a path collision, so the same shape serves both the before and the after hook. */
 export type TDefineExtraRoutes = (opts: {
   controller: BaseRestController;
   helper: IStorageHelper;
@@ -65,6 +73,13 @@ export type TStaticAssetsComponentOptions = {
       name: string;
       basePath: string;
       isStrict?: boolean;
+
+      /** The single bucket every object route uses. It leaves the URL (`/objects/{objectName}`) and the four bucket-management routes are not registered. The function form is read per request, so an environment variable can be read lazily. */
+      bucket?: string | (() => string);
+
+      /** `true` serves a raw nested object path (`/objects/photos/2024/f.jpg`) - a URL shape change; a percent-encoded path keeps working either way. Default: `false`. */
+      rawObjectPath?: boolean;
+
       routes?: {
         getBuckets?: Partial<Omit<IAuthRouteConfig, 'method' | 'request' | 'responses'>>;
         getBucketByName?: Partial<Omit<IAuthRouteConfig, 'method' | 'request' | 'responses'>>;
@@ -84,6 +99,9 @@ export type TStaticAssetsComponentOptions = {
 
     /** Decides the stored object name of each uploaded file; absent keeps the storage helper's own naming. */
     resolveObjectName?: TResolveObjectName;
+
+    /** Registers the application's own routes BEFORE every built-in one, so a literal path wins over the catch-all `rawObjectPath` produces. Hono matches in registration order. */
+    defineRoutesBefore?: TDefineExtraRoutes;
 
     /** Registers the application's own routes on the generated controller, after every built-in one. */
     defineExtraRoutes?: TDefineExtraRoutes;

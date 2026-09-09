@@ -6,6 +6,114 @@ not how.
 This file and `index.md` are reserved OKF filenames - they carry no `type:` frontmatter and are not
 counted as concepts.
 
+## 2026-09-08 (d) - MinioHelper comes back, deprecated
+
+The removal shipped in `2949e555` is reverted: `@venizia/ignis-helpers/minio`, `MinioHelper`, the
+optional `minio` peer and `StaticAssetStorageTypes.MINIO` all publish again, every one of them
+carrying `@deprecated`. They go away once the Bun S3 path is settled, not before - a consumer on
+MinIO should not have to move backend and absorb the storage reshape in the same upgrade.
+
+The restored class meets the NEW interface, not the old one: `hasBucket` (was `isBucketExists`),
+`getObject` (was `getFile`), a catalogued 404 through `asStorageError`, and `maxKeys: 0` meaning
+zero. Presign and tagging stay unimplemented, so they throw from `BaseStorageHelper`.
+
+`WHITELIST_HEADERS` dropping `content-type` only ever mattered on THIS backend: minio's
+`extractMetadata` keeps the hyphenated `content-type` key, while bun-s3 and disk return
+`contentType`, which `applyMetadataHeaders` lowercases to `contenttype` and never matched.
+
+## 2026-09-08 (c) - a namespace that would lose its tag is refused, and zod's deprecated alias is gone
+
+`BindingNamespaces.createNamespace` now throws on a name holding `.` or whitespace, and on an empty
+or missing one. `Binding` tags itself with the first dot-separated segment of its key, so a namespace
+carrying a second segment produced a binding no boot step could drain by tag - bound, never
+configured, no error anywhere. The pattern is declared above the constants because they are built by
+the same method while the class initializes.
+
+`z.ZodTypeAny` is gone from the source: zod 4 deprecates it in favour of `z.ZodType`, and the two are
+the same type (identical `unknown` defaults), so the 26 sites were a rename. A type-aware
+`@typescript-eslint/no-deprecated` pass over all nine packages now reports zero deprecated usages.
+
+## 2026-09-08 (b) - the storage surface takes its final shape before direct upload lands
+
+`IUploadResult` was `{ bucketName, objectName }` - two entities flattened into a field pair, which is
+the one thing a downstream consumer's C-16 actually forbids. Now `{ bucket: { name }, object: { key,
+size, contentType } }`, and it carries size and content type so a caller needs no second `getStat`.
+`metaLink` + `metaLinkError` became a discriminated union: two flat fields allowed four states of
+which one meant anything.
+
+Five renames, all caught by the compiler: `isBucketExists` -> `hasBucket` (the old name is not
+English), `getFile`/`getFileStream` -> `getObject`/`getObjectStream` (one interface, two words for one
+thing), `getFileType` -> `getMediaType`, and `setObjectTags` -> `replaceObjectTags` because `set` hid
+that it replaces the WHOLE tag set.
+
+Two route paths moved and these do NOT fail at compile time: `POST /upload` -> `POST /objects`,
+`GET /download/{key}` -> `GET /downloads/{key}`. The action stays BEFORE the key, and that is forced,
+not chosen - measured on Hono, a suffix route after a `{.+}` catch-all never matches, so
+`/objects/{key}/download` is unreachable whenever nested keys are enabled.
+
+Two lessons about reading someone else's rules, both from the same afternoon. A downstream C-11 says
+that repository copies IGNIS, not the reverse - citing it to justify changing IGNIS inverted it. And
+their C-16 targets entity relationships flattened into pairs, so it never reached `getStat`, whose
+four fields describe one thing; reshaping that would have been churn dressed as compliance. Read the
+scope of a rule, not just its title.
+
+`assert*` and `has*` joined the verb prefix table. Counted across the downstream repository,
+`assert` appears 141 times and was absent from ours, while four prefixes ours lists (`extract`,
+`enrich`, `generate`, `to`) appear 1, 4, 11 and 13 times. The table describes utility functions;
+service methods use a wider set, and that distinction is now written down.
+
+## 2026-09-08 - storage serves safely, answers 404, and runs on one S3 client
+
+A stored upload no longer renders on the API origin. The served content type is decided from the
+object NAME through an allow-list, never from what a backend reports - the three backends disagreed,
+and on minio the uploader's own claim was echoed back, which is stored XSS. `image/svg+xml` is
+excluded on purpose. Anything outside the list downloads. Bun derives a multipart part's type from
+the FILENAME and ignores the declared `Content-Type` header, so the attack arrives through the
+extension, not the header - measured, not assumed.
+
+A missing object throws a catalogued `core.storage.object_not_found` carrying 404. Before, `disk`
+answered 400 and `bun-s3` answered 500 for the same request. `DELETE` stays 200 on every backend,
+deliberately. `DiskHelper` read and deleted OUTSIDE its bucket for a name of `../secret.txt` -
+`upload` had always validated, the read and delete paths never did.
+
+`MinioHelper` is gone. MinIO speaks S3, so `BunS3Helper` with a MinIO endpoint replaces it. That
+leaves one S3 client instead of two, and it cost the POST-policy support minio-js had - which the
+next round has to write for bun-s3 anyway, since Bun has none.
+
+`listObjects` made ONE `list` call and returned, so any bucket past 1000 keys was silently
+truncated; it now follows the continuation token. `useRecursive` was ignored entirely on bun-s3.
+`maxKeys: 0` read as unlimited on both backends.
+
+Three validators moved to options objects. The old rule said "prefer options objects for methods with
+more than 2 arguments", which is exactly the loophole that let `isValidName(name)` survive - C-02 now
+says one parameter is not an exception, and the wiki page dropped both "prefer" and the threshold.
+
+`Promise.all` over a caller-supplied list is a caller-sized burst: `upload`, `removeObjects` and
+`RedisHelper.publish` now go through the repository's existing `executePromiseWithLimit` rather than
+a second limiter written beside it.
+
+## 2026-09-07 - the asset seam closes at both ends: one configured bucket, and presign plus tagging
+
+Two changes that together let an application drop its own S3 class.
+
+On the controller: `controller.bucket` takes a string or a function read per request, so an
+application whose bucket comes from one environment variable gets `/assets/{objectName}` with no
+`/buckets/{bucketName}` segment - and the bucket-management routes disappear, since they cannot mean
+anything when the bucket is fixed. `rawObjectPath` is the separate half: by default `{objectName}` is
+ONE segment, so a nested key travels percent-encoded and the raw form 404s. Both are needed to serve
+stored links of the shape `/assets/photos/2024/f.jpg`. `defineRoutesBefore` registers an
+application's own routes ahead of every built-in one, because Hono matches in registration order and
+a literal path must be able to beat the catch-all.
+
+On the helper: `IStorageHelper` gains `presignPut`, `presignGet`, `getObjectTags` and `replaceObjectTags`.
+`BaseStorageHelper` implements all four by throwing with its own class name - a backend with no
+transport for them says so, because returning undefined reads as a valid empty link or tag set. Bun's
+`S3Client` has `presign` natively but NO tagging method, so tagging goes over signed HTTP through
+`buildSignedRequest`, which grew a `query` option: SigV4 signs the query string as its own canonical
+component, and a `?tagging` folded into the path signs wrong. That signer now percent-encodes each
+path segment too - `fetch` encodes a key containing a space or non-ASCII text on the wire, so signing
+the raw key produced a request S3 answered 403 SignatureDoesNotMatch.
+
 ## 2026-09-07 - Atlas answers about code and releases; the last four copied-code seams open
 
 Atlas grew from two tools to five. `symbol { name, package? }` reads

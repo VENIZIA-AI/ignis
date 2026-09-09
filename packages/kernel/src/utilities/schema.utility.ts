@@ -24,4 +24,4 @@ export const AnyObjectSchema = z.object().catchall(z.any()).openapi({
 });
 
 export type TAnyObjectSchema = z.ZodObject<z.ZodRawShape>;
-export type TInferSchema<T extends z.ZodTypeAny> = z.infer<T>;
+export type TInferSchema<T extends z.ZodType> = z.infer<T>;

@@ -107,6 +107,12 @@ from their sub-path (`@venizia/ignis/grpc`, `/mail`, `/socket-io`, `/static-asse
 copied: `resolveObjectName({ originalName, defaultName, bucket })` decides the stored object name
 (`defaultName` is what the storage helper would have written), and `defineExtraRoutes({ controller,
 helper, basePath })` runs after every built-in route so a built-in wins a path collision.
+Its URL shape is two more options, both off by default and independent: `controller.bucket`
+(`string | (() => string)`, read per request) takes the bucket out of the path AND leaves the four
+bucket-management routes unregistered, and `controller.rawObjectPath` widens the object segment to
+the `{objectName}{.+}` catch-all so a raw nested path resolves - the percent-encoded form keeps
+working either way. `buildAssetDefinitions(opts)` builds the ten route configs from those two flags;
+`StaticAssetDefinitions` is `buildAssetDefinitions({})` and is unchanged.
 See [component model](/architecture/component-model.md) and the
 [components catalog](/reference/components.md).
 

@@ -10,6 +10,19 @@ IGNIS functions and constructors take one options object, never a positional arg
 Write `fn(opts: { key: string })`, not `fn(key: string)`. This applies everywhere: helpers,
 repositories, controllers, the container, and internal utilities alike.
 
+## A single parameter is not an exception
+
+The rule holds at one parameter. Write `isValidName({ name })`, never `isValidName(name)`.
+
+One positional parameter reads fine until the second one arrives. By then the method is published,
+and the cost lands on every caller instead of on the one person writing it. `IStorageHelper` kept
+`isValidName(name)`, `isValidPath(path, opts)` and `getMimeType(filename)` positional on exactly that
+reasoning; converting them later touched 72 call sites in this repository and broke five in the
+downstream consumer.
+
+Mixing the two shapes inside one interface is itself the defect. A reader cannot tell which shape a
+method takes without opening it, and neither can a tool.
+
 ## Why
 
 - **Additive evolution without breaking call sites.** A new optional field on the options type

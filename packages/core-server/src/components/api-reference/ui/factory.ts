@@ -18,15 +18,17 @@ export class UIProviderFactory extends MemoryStorageHelper<{
     return UIProviderFactory.instance;
   }
 
+  // One lookup, not a `isBound` probe followed by a second `get` of the same key.
   getProvider({ type }: IGetProviderParams): IUIProvider {
-    if (!this.isBound(type)) {
-      const availableProviders = this.keys();
+    const provider = this.get(type);
+
+    if (!provider) {
       throw getError({
-        message: `[UIProviderFactory][getProvider] Unknown UI Provider | type: ${type} | available: ${availableProviders.join(', ')}`,
+        message: `[UIProviderFactory][getProvider] Unknown UI Provider | type: ${type} | available: ${this.keys().join(', ')}`,
       });
     }
 
-    return this.get(type);
+    return provider;
   }
 
   register(opts: { type: string }): void {

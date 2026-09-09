@@ -25,7 +25,8 @@ export function createUser() { }   // arrow functions only, never `function`
 
 ## The Options Object Pattern
 
-Prefer using a single object parameter (`opts`) over multiple positional arguments, especially for constructors and public methods with more than 2 arguments.
+Every function and constructor takes a single object parameter named `opts`. This is not a
+preference and it has no argument-count threshold.
 
 **Why?**
 - **Extensibility:** You can add new properties without breaking existing calls
@@ -49,6 +50,25 @@ class UserService {
 // Usage: service.createUser('John', 'john@example.com');
 ```
 
+### One parameter is not an exception
+
+A single positional parameter is the tempting case. Take the object anyway.
+
+```typescript
+// ✅ GOOD
+isValidName(opts: { name: string }): boolean;
+
+// ❌ BAD
+isValidName(name: string): boolean;
+```
+
+One positional parameter reads fine until the second one arrives. By then the method is published,
+and the cost moves from the one person writing it to every caller. `IStorageHelper` kept three
+methods positional on that reasoning. Converting them later touched 72 call sites in this repository.
+
+Mixing both shapes inside one interface is its own defect. A reader cannot tell which shape a method
+takes without opening it.
+
 ## Function Naming Conventions
 
 Use consistent prefixes based on function purpose:
@@ -59,10 +79,21 @@ Use consistent prefixes based on function purpose:
 | `build*` | Construct complex objects | `buildValueCondition()`, `buildJsonOrderBy()` |
 | `to*` | Convert/transform data | `toCamel()`, `toBoolean()` |
 | `is*` | Boolean validation/check | `isWeekday()`, `isInt()`, `isFloat()`, `isPromiseLike()` |
+| `has*` | Boolean ownership check | `hasBucket()`, `hasPermission()` |
+| `assert*` | Throws when the condition fails, returns nothing | `assertBucketExists()`, `assertOwner()` |
 | `extract*` | Pull out specific parts | `extractTimestamp()`, `extractWorkerId()`, `extractSequence()` |
 | `enrich*` | Enhance with additional data | `enrichUserAudit()`, `enrichWithMetadata()` |
 | `get*` | Retrieve/fetch data | `getSchema()`, `getConnector()`, `getError()` |
 | `resolve*` | Determine/compute value | `resolveValue()`, `resolveClass()` |
+
+### `is*` versus `assert*`
+
+They answer the same question and differ in what happens next. `is*` returns a boolean and leaves the
+decision to the caller. `assert*` throws and returns `void`, so the code after it can rely on the
+condition without a branch.
+
+Reach for `assert*` when every caller would throw on `false` anyway - the branch is then noise, and
+each caller writing its own error message is how one condition ends up with four different codes.
 
 **Examples:**
 

@@ -20,7 +20,6 @@ Every binding, endpoint, type, and internal mechanism of `StaticAssetComponent`.
 - [`packages/core-server/src/components/static-asset/repositories/base.repository.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/components/static-asset/repositories/base.repository.ts)
 - [`packages/helpers/src/modules/storage/base.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/storage/base.ts)
 - [`packages/helpers/src/modules/storage/disk/helper.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/storage/disk/helper.ts)
-- [`packages/helpers/src/modules/storage/minio/helper.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/storage/minio/helper.ts)
 - [`packages/helpers/src/modules/storage/bun-s3/helper.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/storage/bun-s3/helper.ts)
 - [`packages/helpers/src/utilities/request.utility.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/utilities/request.utility.ts)
 
@@ -31,7 +30,7 @@ Every binding, endpoint, type, and internal mechanism of `StaticAssetComponent`.
 | Package | `@venizia/ignis` (core component) + `@venizia/ignis-helpers` (storage helpers) |
 | Component class | `StaticAssetComponent` |
 | Import subpath | `@venizia/ignis/static-asset` - not on the root barrel |
-| Storage helpers | `DiskHelper`, `MinioHelper` (`@venizia/ignis-helpers/minio`), `BunS3Helper` (`@venizia/ignis-helpers/bun-s3`) |
+| Storage helpers | `DiskHelper`, `BunS3Helper` (`@venizia/ignis-helpers/bun-s3`) |
 | Runtimes | Both - `BunS3Helper` specifically requires Bun (imports Bun's native `S3Client`) |
 | Optional feature | MetaLink - Postgres-backed upload tracking via `BaseMetaLinkModel`/`BaseMetaLinkRepository` |
 
@@ -58,7 +57,7 @@ import type {
 
 // Helpers - main entry + storage-backend subpaths
 import { DiskHelper } from '@venizia/ignis-helpers';
-import { MinioHelper } from '@venizia/ignis-helpers/minio';
+import { BunS3Helper } from '@venizia/ignis-helpers/bun-s3';
 import { BunS3Helper } from '@venizia/ignis-helpers/bun-s3';
 ```
 
@@ -80,6 +79,8 @@ type TStaticAssetsComponentOptions = {
       name: string;
       basePath: string;
       isStrict?: boolean;
+      bucket?: string | (() => string);
+      rawObjectPath?: boolean;
       routes?: {
         getBuckets?: Partial<Omit<IAuthRouteConfig, 'method' | 'request' | 'responses'>>;
         getBucketByName?: Partial<Omit<IAuthRouteConfig, 'method' | 'request' | 'responses'>>;
@@ -95,11 +96,11 @@ type TStaticAssetsComponentOptions = {
     };
     extra?: TStaticAssetExtraOptions;
     resolveObjectName?: TResolveObjectName;
+    defineRoutesBefore?: TDefineExtraRoutes;
     defineExtraRoutes?: TDefineExtraRoutes;
   } & (
     | { storage: typeof StaticAssetStorageTypes.BUN_S3; helper: BunS3Helper }
     | { storage: typeof StaticAssetStorageTypes.DISK; helper: DiskHelper }
-    | { storage: typeof StaticAssetStorageTypes.MINIO; helper: MinioHelper }
   ) &
     ({ useMetaLink?: false | undefined } | { useMetaLink: true; metaLink: TMetaLinkConfig });
 };
@@ -110,14 +111,17 @@ type TStaticAssetsComponentOptions = {
 | `controller.name` | `string` | - | Class name given to the generated controller (via `Object.defineProperty`) |
 | `controller.basePath` | `string` | - | Mount path, for example `'/assets'` |
 | `controller.isStrict` | `boolean` | `true` | Passed through to `BaseRestController`'s strict routing mode |
+| `controller.bucket` | `string \| (() => string)` | `undefined` | The one bucket every object route uses. It leaves the URL, and the four bucket-management routes are not registered. The function form runs on every request, so it can read an environment variable |
+| `controller.rawObjectPath` | `boolean` | `false` | `true` serves a raw nested path, <code v-pre>/objects/photos/2024/f.jpg</code>. A percent-encoded path keeps working either way |
 | `controller.routes` | object | `undefined` | Per-route overrides - see [Per-route overrides](#per-route-overrides) |
-| `storage` | `'disk' \| 'minio' \| 'bun-s3'` | - | Selects which `helper` type is required (discriminated union) |
-| `helper` | `DiskHelper \| MinioHelper \| BunS3Helper` | - | Storage backend instance matching `storage` |
+| `storage` | `'disk' \| 'bun-s3'` | - | Selects which `helper` type is required (discriminated union) |
+| `helper` | `DiskHelper \| BunS3Helper` | - | Storage backend instance matching `storage` |
 | `extra` | `TStaticAssetExtraOptions` | `undefined` | Multipart parsing mode, name/link normalization, max folder depth |
 | `useMetaLink` | `boolean` | `false` | Enables the `PUT .../meta-links/:objectName` route and DB tracking on upload/delete |
 | `metaLink` | `TMetaLinkConfig` | - | Required when `useMetaLink: true`; ignored otherwise |
 | `resolveObjectName` | `TResolveObjectName` | `undefined` | Decides the stored object name - see [`resolveObjectName`](#resolveobjectname) |
-| `defineExtraRoutes` | `TDefineExtraRoutes` | `undefined` | Adds your own routes to the generated controller - see [`defineExtraRoutes`](#defineextraroutes) |
+| `defineRoutesBefore` | `TDefineExtraRoutes` | `undefined` | Adds your own routes BEFORE every built-in one. A literal path then wins over the catch-all `rawObjectPath` registers |
+| `defineExtraRoutes` | `TDefineExtraRoutes` | `undefined` | Adds your own routes after every built-in one - see [`defineExtraRoutes`](#defineextraroutes) |
 
 ### Per-route overrides
 
@@ -135,6 +139,21 @@ Each key accepts a `Partial<Omit<IAuthRouteConfig, 'method' | 'request' | 'respo
 | `downloadObjectByName` | `GET` | <code v-pre>/buckets/{bucketName}/download/{objectName}</code> |
 | `deleteObject` | `DELETE` | <code v-pre>/buckets/{bucketName}/objects/{objectName}</code> |
 | `recreateMetaLink` | `PUT` | <code v-pre>/buckets/{bucketName}/meta-links/{objectName}</code> - only registered when `useMetaLink: true` |
+
+### URL shapes
+
+`bucket` and `rawObjectPath` are independent. Both default to off, which is the shape in the table above.
+
+| `bucket` | `rawObjectPath` | The object route |
+|---|---|---|
+| unset | `false` | <code v-pre>/assets/buckets/images/objects/photos%2F2024%2Ff.jpg</code> |
+| unset | `true` | <code v-pre>/assets/buckets/images/objects/photos/2024/f.jpg</code> |
+| `'images'` | `false` | <code v-pre>/assets/objects/photos%2F2024%2Ff.jpg</code> |
+| `'images'` | `true` | <code v-pre>/assets/objects/photos/2024/f.jpg</code> |
+
+A configured `bucket` shortens `upload`, `listObjects`, `getObjectByName`, `downloadObjectByName`, `deleteObject` and `recreateMetaLink` the same way. Those routes also lose the `bucketName` path param. `getBuckets`, `getBucketByName`, `createBucket` and `deleteBucket` are not registered at all - a single-bucket application exposes no bucket management.
+
+`rawObjectPath` turns the object segment into the <code v-pre>{objectName}{.+}</code> catch-all. Every validation still runs on the joined path, `maxFolderDepth` included.
 
 ## `TStaticAssetExtraOptions`
 
@@ -168,13 +187,17 @@ type TStaticAssetExtraOptions = {
 `StaticAssetComponent.binding()` always supplies a `normalizeLinkFn` to the factory - your own `extra.normalizeLinkFn` if set, otherwise this default:
 
 ```typescript
-(opts: { bucketName: string; normalizeName: string }) => {
-  const encodedPath = encodeURIComponent(opts.normalizeName);
-  return `${controller.basePath}/buckets/${opts.bucketName}/objects/${encodedPath}`;
-};
+(linkOptions: { bucketName: string; normalizeName: string }) =>
+  buildObjectLink({
+    basePath: controller.basePath,
+    bucketName: linkOptions.bucketName,
+    objectName: linkOptions.normalizeName,
+    hasConfiguredBucket: controller.bucket !== undefined,
+    rawObjectPath: controller.rawObjectPath,
+  });
 ```
 
-This is why every generated link points back at the `objects/{objectName}` stream route by default, regardless of storage backend.
+This is why every generated link points back at the `objects/{objectName}` stream route by default, regardless of storage backend. `buildObjectLink` follows the [URL shapes](#url-shapes) above, so a link always resolves against the routes that controller registered. The `PUT .../meta-links/{objectName}` route builds its fallback link with the same function.
 
 `BaseStorageHelper` has its own backend-specific `normalizeObjectLink()`. It only runs when you call a helper's `upload()` directly, outside the component. Through `StaticAssetComponent`, the component's default `normalizeLinkFn` always takes priority instead.
 
@@ -183,10 +206,9 @@ This is why every generated link points back at the `objects/{objectName}` strea
 ```typescript
 class StaticAssetStorageTypes {
   static readonly DISK = 'disk';
-  static readonly MINIO = 'minio';
   static readonly BUN_S3 = 'bun-s3';
 
-  static readonly SCHEME_SET = new Set([this.DISK, this.MINIO, this.BUN_S3]);
+  static readonly SCHEME_SET = new Set([this.DISK, this.BUN_S3]);
 
   static isValid(orgType: string): boolean {
     return this.SCHEME_SET.has(orgType);
@@ -194,27 +216,26 @@ class StaticAssetStorageTypes {
 }
 
 type TStaticAssetStorageType = TConstValue<typeof StaticAssetStorageTypes>;
-// 'disk' | 'minio' | 'bun-s3'
+// 'disk' | 'bun-s3'
 ```
 
 | Type | Constant | Helper | Requires |
 |------|----------|--------|----------|
 | `'disk'` | `StaticAssetStorageTypes.DISK` | `DiskHelper` | Local filesystem write access |
-| `'minio'` | `StaticAssetStorageTypes.MINIO` | `MinioHelper` | A MinIO or S3-compatible endpoint |
 | `'bun-s3'` | `StaticAssetStorageTypes.BUN_S3` | `BunS3Helper` | Bun runtime (imports Bun's native `S3Client`) |
 
 ## Storage helpers
 
 ### `IStorageHelper` interface
 
-Every backend implements this contract; `BaseStorageHelper` (abstract) implements the shared parts (`isValidName`, `isValidPath`, `upload`, `getMimeType`, `getFileType`) and leaves the rest abstract.
+Every backend implements this contract; `BaseStorageHelper` (abstract) implements the shared parts (`isValidName`, `isValidPath`, `upload`, `getMimeType`, `getMediaType`) and leaves the rest abstract.
 
 ```typescript
 interface IStorageHelper {
   isValidName(name: string): boolean;
   isValidPath(pathStr: string, opts?: { maxDepth?: number }): boolean;
 
-  isBucketExists(opts: { name: string }): Promise<boolean>;
+  hasBucket(opts: { name: string }): Promise<boolean>;
   getBuckets(): Promise<IBucketInfo[]>;
   getBucket(opts: { name: string }): Promise<IBucketInfo | null>;
   createBucket(opts: { name: string }): Promise<IBucketInfo | null>;
@@ -228,23 +249,22 @@ interface IStorageHelper {
     maxFolderDepth?: number;
   }): Promise<IUploadResult[]>;
 
-  getFile(opts: { bucket: string; name: string; options?: any }): Promise<Readable>;
+  getObject(opts: { bucket: string; name: string; options?: any }): Promise<Readable>;
   getStat(opts: { bucket: string; name: string }): Promise<IFileStat>;
   removeObject(opts: { bucket: string; name: string }): Promise<void>;
   removeObjects(opts: { bucket: string; names: string[] }): Promise<void>;
   listObjects(opts: IListObjectsOptions): Promise<IObjectInfo[]>;
 
-  getFileType(opts: { mimeType: string }): string;
+  getMediaType(opts: { mimeType: string }): string;
 }
 ```
 
 ```
 IStorageHelper (interface)
     |
-BaseStorageHelper (abstract - implements isValidName/isValidPath/upload/getMimeType/getFileType)
+BaseStorageHelper (abstract - implements isValidName/isValidPath/upload/getMimeType/getMediaType)
     |
     +-- DiskHelper    (local filesystem)
-    +-- MinioHelper   (S3-compatible)
     +-- BunS3Helper   (Bun-native S3, Bun only)
 ```
 
@@ -340,27 +360,6 @@ Creates `basePath` with `fs.mkdirSync({ recursive: true })` in the constructor i
 const diskHelper = new DiskHelper({ basePath: './app_data/storage' });
 ```
 
-### `MinioHelper`
-
-```typescript
-interface IMinioHelperOptions extends ClientOptions { // minio's own SDK options, plus:
-  scope?: string;
-  identifier?: string;
-}
-```
-
-`ClientOptions` comes straight from the `minio` package - `endPoint`, `port`, `useSSL`, `accessKey`, `secretKey`, and the rest of the MinIO client's own configuration surface.
-
-```typescript
-const minioHelper = new MinioHelper({
-  endPoint: 'minio.example.com',
-  port: 9000,
-  useSSL: true,
-  accessKey: process.env.MINIO_ACCESS_KEY,
-  secretKey: process.env.MINIO_SECRET_KEY,
-});
-```
-
 ### `BunS3Helper`
 
 ```typescript
@@ -407,7 +406,7 @@ interface IAssetControllerOptions {
 1. Creates a class extending `BaseRestController`, decorated `@controller({ path: basePath })`.
 2. Renames it via `Object.defineProperty(GeneratedStaticAssetController, 'name', { value: name, configurable: true })` so logs and DI bindings show your configured `controller.name`, not a generic factory name.
 3. Binds every route in `binding()` with `this.bindRoute({ configs }).to({ handler })`, spread-merging each base definition with its `routes?.<key>` override.
-4. Registers `recreateMetaLink` only when `useMetaLink && metaLink` are both set.
+4. Registers `recreateMetaLink` only when `useMetaLink && metaLink` are both set, and the four bucket-management routes only when `controller.bucket` is unset.
 5. Calls `defineExtraRoutes` last, after every built-in route.
 6. `StaticAssetComponent.binding()` registers the resulting class with `this.application.controller(...)`.
 
@@ -489,6 +488,8 @@ const MultipartBodySchema = z.object({
 
 ### Endpoint reference
 
+The default shape. A configured `controller.bucket` drops the first four rows and the <code v-pre>/buckets/{bucketName}</code> prefix - see [URL shapes](#url-shapes).
+
 | Method | Path | Notes |
 |--------|------|-------|
 | `GET` | `/buckets` | No params. Returns `IBucketInfo[]` |
@@ -524,7 +525,7 @@ These run inside `helper.upload()`, separate from the controller checks above. T
 
 | Check | Error message | Default status |
 |-------|----------------|-----------------|
-| Bucket does not exist (`isBucketExists()` false) | <code v-pre>[upload] Bucket does not exist \| name: {bucket}</code> | `400` |
+| Bucket does not exist (`hasBucket()` false) | <code v-pre>[upload] Bucket does not exist \| name: {bucket}</code> | `400` |
 | `originalName` fails `isValidName()` | `[upload] Invalid original file name` | `400` |
 | `folderPath` segment count exceeds `maxFolderDepth` | <code v-pre>[upload] Invalid folder path \| depth: {n} \| max: {m}</code> | `400` |
 | `folderPath` fails `isValidPath()` for any other reason | `[upload] Invalid folder path` | `400` |
@@ -604,7 +605,7 @@ Both canonical classes live in `packages/core-server/src/connectors/postgres/`. 
 | `size` | INTEGER | No | - | File size in bytes |
 | `etag` | TEXT | Yes | - | Entity tag for versioning |
 | `metadata` | JSONB | Yes | - | Additional file metadata |
-| `storage_type` | TEXT | No | - | `'disk'`, `'minio'`, or `'bun-s3'` |
+| `storage_type` | TEXT | No | - | `'disk'` or `'bun-s3'` |
 | `is_synced` | BOOLEAN | No | `false` | Set `true` on every upload and every meta-links sync |
 | `variant` | TEXT | Yes | - | Upload variant tag (for example `'thumbnail'`, `'original'`) |
 | `principal_type` | TEXT | Yes | - | Associated principal type |

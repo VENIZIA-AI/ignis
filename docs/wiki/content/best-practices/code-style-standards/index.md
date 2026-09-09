@@ -20,7 +20,7 @@ Maintain consistent code style using **Prettier** (formatting) and **ESLint** (c
 | Type safety | Avoid `any` / `unknown`; derive types, never duplicate them |
 | Abbreviations | None - `ProductRepository`, `TDocument` |
 | Scope naming | `ClassName.name` |
-| Arguments | Options object (`opts`) |
+| Arguments | Options object (`opts`), even for a single parameter |
 | Functions | Arrow functions, never `function` declarations |
 | Exports | Named exports only |
 | Return types | Explicitly defined |

@@ -106,7 +106,7 @@ tags: [reference, exports, api]
 
 ## helpers
 
-### `@venizia/ignis-helpers` (357)
+### `@venizia/ignis-helpers` (383)
 
 - `AbstractCryptoAlgorithm` class
 - `AbstractLogger` class
@@ -143,6 +143,9 @@ tags: [reference, exports, api]
 - `Child` type
 - `COMBINING_MARKS_PATTERN` const
 - `ConsoleLogger` class
+- `CONTENT_TYPE_BY_EXTENSION` const
+- `ContentTypes` class
+- `ContentTypeTable` class
 - `createContentDispositionHeader` const
 - `createRedisHelper` function
 - `createSecretsHelper` function
@@ -176,6 +179,7 @@ tags: [reference, exports, api]
 - `executePromiseWithLimit` const
 - `executeWithPerformanceMeasure` const
 - `FC` type
+- `FileExtensions` class
 - `float` const
 - `formatLogMessage` const
 - `fromError` const
@@ -201,6 +205,7 @@ tags: [reference, exports, api]
 - `IAESKeyringEntry` interface
 - `IApplicationEnvironment` interface
 - `IBucketInfo` interface
+- `IBucketRef` interface
 - `IBuildOptions` interface
 - `IBunServer` interface
 - `IBunWebSocketConfig` interface
@@ -234,6 +239,9 @@ tags: [reference, exports, api]
 - `int` const
 - `invokeHook` const
 - `IObjectInfo` interface
+- `IObjectLocation` interface
+- `IObjectMetadata` interface
+- `IObjectRef` interface
 - `IOpaqueUidOptions` interface
 - `IPayloadCipher` interface
 - `IPool` interface
@@ -277,11 +285,13 @@ tags: [reference, exports, api]
 - `ISecretsRegistration` interface
 - `isFloat` const
 - `isInt` const
+- `isNotFoundError` const
 - `ISnowflakeParsedId` interface
 - `isPromiseLike` const
 - `isRedisHelper` const
 - `IStorageHelper` interface
 - `IStorageHelperOptions` interface
+- `isUrlRefusedError` const
 - `isWeekday` const
 - `ITcpSocketClient` interface
 - `ITcpSocketServerOptions` interface
@@ -290,6 +300,7 @@ tags: [reference, exports, api]
 - `IUidSegment` interface
 - `IUploadFile` interface
 - `IUploadResult` interface
+- `IUrlSafetyPolicy` interface
 - `IWalkAsyncOptions` interface
 - `IWalkOptions` interface
 - `IWebSocket` interface
@@ -334,6 +345,7 @@ tags: [reference, exports, api]
 - `redactUrlCredentials` const
 - `REDIS_HELPER_BRAND` const
 - `RedisClusterHelper` class
+- `RedisConcurrency` class
 - `RedisModes` class
 - `RedisSentinelHelper` class
 - `RedisSentinelRoles` class
@@ -358,6 +370,10 @@ tags: [reference, exports, api]
 - `SlugHelper` class
 - `SnowflakeConfig` class
 - `SnowflakeUidHelper` class
+- `StorageConcurrency` class
+- `StorageErrors` const
+- `StoragePresignDefaults` class
+- `StoragePresignLimits` class
 - `SystemEnvsHelper` class
 - `TAbstractClass` type
 - `TAbstractConstructor` type
@@ -368,6 +384,7 @@ tags: [reference, exports, api]
 - `TClass` type
 - `TConstructor` type
 - `TConstValue` type
+- `TContentType` type
 - `TCreateRedisHelperOptions` type
 - `TDurationUnit` type
 - `TError` type
@@ -386,6 +403,7 @@ tags: [reference, exports, api]
 - `TErrorScope` type
 - `TFieldMappingDataType` type
 - `TFieldMappingNames` type
+- `TFileExtension` type
 - `TGrpcMethod` type
 - `TGrpcResultCode` type
 - `THashAlgorithm` type
@@ -410,6 +428,7 @@ tags: [reference, exports, api]
 - `toCamel` const
 - `toDelimitedArray` const
 - `toError` const
+- `toExpirySeconds` const
 - `toJsonSafe` const
 - `TOnVisit` type
 - `TOnVisitAsync` type
@@ -435,6 +454,8 @@ tags: [reference, exports, api]
 - `TTask` type
 - `TTimerHandle` type
 - `TUidCaseForm` type
+- `TUploadNaming` type
+- `TUrlScheme` type
 - `TValueOrAsyncResolver` type
 - `TValueOrResolver` type
 - `TVaultAuthMethod` type
@@ -450,6 +471,11 @@ tags: [reference, exports, api]
 - `TWebSocketValidateRoomFn` type
 - `UidAlphabets` class
 - `UidCaseForms` class
+- `UrlIngest` class
+- `UrlPolicy` class
+- `UrlSafetyDefaults` class
+- `UrlSafetyErrors` const
+- `UrlSchemes` class
 - `ValueOf` type
 - `ValueOptional` type
 - `ValueOptionalExcept` type
@@ -466,15 +492,19 @@ tags: [reference, exports, api]
 - `WebSocketServerHelper` class
 - `WorkerPoolHelper` class
 
-### `@venizia/ignis-helpers/common` (54)
+### `@venizia/ignis-helpers/common` (60)
 
 - `AnyObject` type
 - `AnyType` type
+- `CONTENT_TYPE_BY_EXTENSION` const
+- `ContentTypes` class
+- `ContentTypeTable` class
 - `DataTypes` class
 - `Defaults` class
 - `DurationAliases` class
 - `DurationMultipliers` class
 - `DurationUnits` class
+- `FileExtensions` class
 - `GRPC` class
 - `HTTP` class
 - `IConfigurable` interface
@@ -496,9 +526,11 @@ tags: [reference, exports, api]
 - `TClass` type
 - `TConstructor` type
 - `TConstValue` type
+- `TContentType` type
 - `TDurationUnit` type
 - `TFieldMappingDataType` type
 - `TFieldMappingNames` type
+- `TFileExtension` type
 - `TGrpcMethod` type
 - `TGrpcResultCode` type
 - `THttpMethod` type
@@ -523,7 +555,7 @@ tags: [reference, exports, api]
 - `ValueOptionalExcept` type
 - `ValueOrPromise` type
 
-### `@venizia/ignis-helpers/core` (86)
+### `@venizia/ignis-helpers/core` (91)
 
 - `AbstractNetworkFetchableHelper` class
 - `AbstractPoolHelper` class
@@ -568,6 +600,7 @@ tags: [reference, exports, api]
 - `ISnowflakeParsedId` interface
 - `ITreeNode` interface
 - `IUidSegment` interface
+- `IUrlSafetyPolicy` interface
 - `IWalkAsyncOptions` interface
 - `IWalkOptions` interface
 - `keysToCamel` const
@@ -609,8 +642,12 @@ tags: [reference, exports, api]
 - `TRetryBackoffStrategy` type
 - `TRetryJitterMode` type
 - `TUidCaseForm` type
+- `TUrlScheme` type
 - `UidAlphabets` class
 - `UidCaseForms` class
+- `UrlPolicy` class
+- `UrlSafetyDefaults` class
+- `UrlSchemes` class
 
 ### `@venizia/ignis-helpers/socket-io` (17)
 
@@ -1717,7 +1754,7 @@ tags: [reference, exports, api]
 
 ## core-server
 
-### `@venizia/ignis` (909)
+### `@venizia/ignis` (935)
 
 - `AbstractApplication` class
 - `AbstractAuthRegistry` class
@@ -1839,6 +1876,9 @@ tags: [reference, exports, api]
 - `conditionalCountResponse` const
 - `ConsoleLogger` class
 - `Container` class
+- `CONTENT_TYPE_BY_EXTENSION` const
+- `ContentTypes` class
+- `ContentTypeTable` class
 - `controller` const
 - `ControllerFactory` class
 - `ControllerTransports` class
@@ -1908,6 +1948,7 @@ tags: [reference, exports, api]
 - `extraUserColumns` const
 - `FC` type
 - `FieldsSchema` const
+- `FileExtensions` class
 - `FilterQuerySchema` const
 - `FilterSchema` const
 - `findResponseHeaders` const
@@ -1978,6 +2019,7 @@ tags: [reference, exports, api]
 - `IBodyLimitOptions` interface
 - `IBootSequenceStep` interface
 - `IBucketInfo` interface
+- `IBucketRef` interface
 - `IBuildOptions` interface
 - `IBunServer` interface
 - `IBunWebSocketConfig` interface
@@ -2071,6 +2113,9 @@ tags: [reference, exports, api]
 - `int` const
 - `invokeHook` const
 - `IObjectInfo` interface
+- `IObjectLocation` interface
+- `IObjectMetadata` interface
+- `IObjectRef` interface
 - `IOpaqueUidOptions` interface
 - `IPayloadCipher` interface
 - `IPayloadFieldCodec` interface
@@ -2152,6 +2197,7 @@ tags: [reference, exports, api]
 - `IServiceMixin` interface
 - `isFloat` const
 - `isInt` const
+- `isNotFoundError` const
 - `ISnowflakeParsedId` interface
 - `IsolationLevels` class
 - `isoTimestamp` const
@@ -2161,6 +2207,7 @@ tags: [reference, exports, api]
 - `IStaticServeMixin` interface
 - `IStorageHelper` interface
 - `IStorageHelperOptions` interface
+- `isUrlRefusedError` const
 - `isWeekday` const
 - `ITcpSocketClient` interface
 - `ITcpSocketServerOptions` interface
@@ -2175,6 +2222,7 @@ tags: [reference, exports, api]
 - `IUpdatableRepository` interface
 - `IUploadFile` interface
 - `IUploadResult` interface
+- `IUrlSafetyPolicy` interface
 - `IValidRequestProps` interface
 - `IWalkAsyncOptions` interface
 - `IWalkOptions` interface
@@ -2271,6 +2319,7 @@ tags: [reference, exports, api]
 - `redactUrlCredentials` const
 - `REDIS_HELPER_BRAND` const
 - `RedisClusterHelper` class
+- `RedisConcurrency` class
 - `RedisModes` class
 - `RedisSentinelHelper` class
 - `RedisSentinelRoles` class
@@ -2345,6 +2394,10 @@ tags: [reference, exports, api]
 - `SoftDeletableRepository` class
 - `Sorts` class
 - `Statuses` class
+- `StorageConcurrency` class
+- `StorageErrors` const
+- `StoragePresignDefaults` class
+- `StoragePresignLimits` class
 - `StringIdType` type
 - `SwaggerUIProvider` class
 - `SystemEnvsHelper` class
@@ -2393,6 +2446,7 @@ tags: [reference, exports, api]
 - `TColumnDefinitions` type
 - `TConstructor` type
 - `TConstValue` type
+- `TContentType` type
 - `TContext` type
 - `TControllerMetadata` type
 - `TControllerTransport` type
@@ -2440,6 +2494,7 @@ tags: [reference, exports, api]
 - `TFieldMappingDataType` type
 - `TFieldMappingNames` type
 - `TFields` type
+- `TFileExtension` type
 - `TFilter` type
 - `TFindOneOptions` type
 - `TFindOptions` type
@@ -2500,6 +2555,7 @@ tags: [reference, exports, api]
 - `toDelimitedArray` const
 - `toEntityId` const
 - `toError` const
+- `toExpirySeconds` const
 - `TOffset` type
 - `toJsonSafe` const
 - `TOnVisit` type
@@ -2583,6 +2639,8 @@ tags: [reference, exports, api]
 - `TTzEnricherResult` type
 - `TUidCaseForm` type
 - `TUpdateData` type
+- `TUploadNaming` type
+- `TUrlScheme` type
 - `TUserAuditColumnOpts` type
 - `TUserAuditEnricherOptions` type
 - `TUserAuditEnricherResult` type
@@ -2607,6 +2665,11 @@ tags: [reference, exports, api]
 - `UIProviderFactory` class
 - `unary` const
 - `UpdateBuilder` class
+- `UrlIngest` class
+- `UrlPolicy` class
+- `UrlSafetyDefaults` class
+- `UrlSafetyErrors` const
+- `UrlSchemes` class
 - `useRequestContext` const
 - `UserPolicyLineCache` class
 - `UserStatuses` class
@@ -3027,12 +3090,18 @@ tags: [reference, exports, api]
 - `IConnectRpcModule` interface
 - `IGrpcComponentConfig` interface
 
-### `@venizia/ignis/static-asset` (21)
+### `@venizia/ignis/static-asset` (27)
 
 - `AssetControllerFactory` class
+- `AssetIngest` class
 - `BaseMetaLinkModel` class
 - `BaseMetaLinkRepository` class
+- `buildObjectLink` const
 - `IAssetControllerOptions` interface
+- `IIngestFromUrlOptions` interface
+- `IIngestFromUrlResult` interface
+- `RENDERABLE_CONTENT_TYPES` const
+- `resolveServedContentType` const
 - `StaticAssetComponent` class
 - `StaticAssetComponentBindingKeys` class
 - `StaticAssetErrors` const

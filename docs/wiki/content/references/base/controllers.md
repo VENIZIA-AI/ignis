@@ -401,7 +401,7 @@ type TCustomizableRouteConfig = TRouteAuthConfig & {
     headers?: TAnyObjectSchema;
   };
   response?: {
-    schema?: z.ZodTypeAny;
+    schema?: z.ZodType;
     headers?: TResponseHeaders;
   };
 };
@@ -755,7 +755,7 @@ type TCustomizableRouteConfig = TRouteAuthConfig & {
     headers?: TAnyObjectSchema;
   };
   response?: {
-    schema?: z.ZodTypeAny;
+    schema?: z.ZodType;
     headers?: TResponseHeaders;
   };
 };

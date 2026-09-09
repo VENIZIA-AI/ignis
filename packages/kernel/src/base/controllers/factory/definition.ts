@@ -17,9 +17,9 @@ import {
 } from '../common';
 
 /** Picks user-overridden response schema if present (and non-undefined), else the default. */
-type TResolvedResponseSchema<C, D extends z.ZodTypeAny> = C extends {
+type TResolvedResponseSchema<C, D extends z.ZodType> = C extends {
   response: {
-    schema: infer S extends z.ZodTypeAny;
+    schema: infer S extends z.ZodType;
   };
 }
   ? S
@@ -56,7 +56,7 @@ export class RouteConfigResolver {
   }
 
   /** Creates conditional count response schema. */
-  static conditionalCountResponse<T extends z.ZodTypeAny>(dataSchema: T) {
+  static conditionalCountResponse<T extends z.ZodType>(dataSchema: T) {
     return z.union([
       CountSchema.extend({ data: dataSchema }).openapi({
         description: 'Response with count (when x-request-count header is "true" or omitted)',
@@ -69,8 +69,8 @@ export class RouteConfigResolver {
 
   /** Resolves a route's response schema - user override or default. Holds the one cast every `resolve*Config` needs: generic `C` is only known by its wider structural constraint, so it cannot be proven at the value level to collapse to `TResolvedResponseSchema`. */
   private static resolveResponseSchema<
-    C extends { response?: { schema?: z.ZodTypeAny } } | undefined,
-    D extends z.ZodTypeAny,
+    C extends { response?: { schema?: z.ZodType } } | undefined,
+    D extends z.ZodType,
   >(opts: { config: C; defaultSchema: D }): TResolvedResponseSchema<C, D> {
     const { config, defaultSchema } = opts;
     return (config?.response?.schema ?? defaultSchema) as TResolvedResponseSchema<C, D>;

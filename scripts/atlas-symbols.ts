@@ -8,7 +8,7 @@
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import { dirname, relative, resolve } from 'node:path';
-import type * as TypeScript from 'typescript';
+import type TypeScript from 'typescript';
 import { PublicSurface } from './public-surface';
 
 const REPO = resolve(import.meta.dir, '..');
