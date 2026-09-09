@@ -1,9 +1,8 @@
-import { CONTENT_TYPE_BY_EXTENSION, ContentTypes, IDuration, MimeTypes } from '@/common';
+import { ContentTypeTable, IDuration, MimeTypes } from '@/common';
 import { BaseHelper } from '@/modules/base';
 import { getError } from '@/modules/error';
 import { executePromiseWithLimit } from '@/utilities/promise.utility';
 import isEmpty from 'lodash/isEmpty';
-import path from 'node:path';
 import { Readable } from 'node:stream';
 import {
   IBucketInfo,
@@ -26,8 +25,7 @@ export abstract class BaseStorageHelper extends BaseHelper implements IStorageHe
   }
 
   getMimeType(opts: { filename: string }): string {
-    const extension = path.extname(opts.filename).toLowerCase();
-    return CONTENT_TYPE_BY_EXTENSION[extension] ?? ContentTypes.OCTET_STREAM;
+    return ContentTypeTable.resolve(opts);
   }
 
   /** One path segment or file name: no separator, no traversal, no control or shell character. */
@@ -364,6 +362,34 @@ export abstract class BaseStorageHelper extends BaseHelper implements IStorageHe
       // Without this a client that aborts leaves the backend stream draining to nowhere.
       cancel() {
         source.destroy();
+      },
+    });
+  }
+
+  /**
+   * Correct anywhere, and the wrong path to stay on: it buffers, so a backend whose transport takes
+   * a stream overrides it. `BunS3Helper` does.
+   */
+  async writeStream(
+    opts: IObjectLocation & {
+      source: ReadableStream<Uint8Array> | Blob | Response | Request;
+      contentType?: string;
+      maxFolderDepth?: number;
+    },
+  ): Promise<void> {
+    const { bucket, object, source, contentType } = opts;
+    const body =
+      source instanceof Response || source instanceof Request ? source : new Response(source);
+    const buffer = Buffer.from(await body.arrayBuffer());
+
+    await this.writeObject({
+      bucket,
+      object,
+      file: {
+        originalName: object.key,
+        mimetype: contentType ?? this.getMimeType({ filename: object.key }),
+        buffer,
+        size: buffer.length,
       },
     });
   }

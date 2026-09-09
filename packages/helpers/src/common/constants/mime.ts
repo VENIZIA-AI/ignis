@@ -114,25 +114,44 @@ export class ContentTypes {
 }
 export type TContentType = TConstValue<typeof ContentTypes>;
 
-/** `satisfies` makes the table total; the declared `string` key keeps a lookup cast-free. */
-export const CONTENT_TYPE_BY_EXTENSION: Readonly<Partial<Record<string, TContentType>>> = {
-  [FileExtensions.PNG]: ContentTypes.PNG,
-  [FileExtensions.JPG]: ContentTypes.JPEG,
-  [FileExtensions.JPEG]: ContentTypes.JPEG,
-  [FileExtensions.GIF]: ContentTypes.GIF,
-  [FileExtensions.WEBP]: ContentTypes.WEBP,
-  [FileExtensions.SVG]: ContentTypes.SVG,
-  [FileExtensions.PDF]: ContentTypes.PDF,
-  [FileExtensions.JSON]: ContentTypes.JSON,
-  [FileExtensions.TXT]: ContentTypes.PLAIN_TEXT,
-  [FileExtensions.HTML]: ContentTypes.HTML,
-  [FileExtensions.CSS]: ContentTypes.CSS,
-  [FileExtensions.JS]: ContentTypes.JAVASCRIPT,
-  [FileExtensions.MP4]: ContentTypes.MP4,
-  [FileExtensions.WEBM]: ContentTypes.WEBM,
-  [FileExtensions.MP3]: ContentTypes.MPEG_AUDIO,
-  [FileExtensions.WAV]: ContentTypes.WAV,
-  [FileExtensions.ZIP]: ContentTypes.ZIP,
-  [FileExtensions.CSV]: ContentTypes.CSV,
-  [FileExtensions.XML]: ContentTypes.XML,
-} satisfies Readonly<Record<TFileExtension, TContentType>>;
+/** The extension table and the lookup that reads it, together - the `DurationMultipliers` shape. */
+export class ContentTypeTable {
+  /** `satisfies` makes the table total; the declared `string` key keeps a lookup cast-free. */
+  static readonly BY_EXTENSION: Readonly<Partial<Record<string, TContentType>>> = {
+    [FileExtensions.PNG]: ContentTypes.PNG,
+    [FileExtensions.JPG]: ContentTypes.JPEG,
+    [FileExtensions.JPEG]: ContentTypes.JPEG,
+    [FileExtensions.GIF]: ContentTypes.GIF,
+    [FileExtensions.WEBP]: ContentTypes.WEBP,
+    [FileExtensions.SVG]: ContentTypes.SVG,
+    [FileExtensions.PDF]: ContentTypes.PDF,
+    [FileExtensions.JSON]: ContentTypes.JSON,
+    [FileExtensions.TXT]: ContentTypes.PLAIN_TEXT,
+    [FileExtensions.HTML]: ContentTypes.HTML,
+    [FileExtensions.CSS]: ContentTypes.CSS,
+    [FileExtensions.JS]: ContentTypes.JAVASCRIPT,
+    [FileExtensions.MP4]: ContentTypes.MP4,
+    [FileExtensions.WEBM]: ContentTypes.WEBM,
+    [FileExtensions.MP3]: ContentTypes.MPEG_AUDIO,
+    [FileExtensions.WAV]: ContentTypes.WAV,
+    [FileExtensions.ZIP]: ContentTypes.ZIP,
+    [FileExtensions.CSV]: ContentTypes.CSV,
+    [FileExtensions.XML]: ContentTypes.XML,
+  } satisfies Readonly<Record<TFileExtension, TContentType>>;
+
+  /**
+   * The content type an object name implies. `node:path` is deliberately not used: this file is
+   * reachable from the browser-pure `./common` subpath, and an extension is the tail after the last
+   * dot either way.
+   */
+  static resolve(opts: { filename: string }): TContentType {
+    const { filename } = opts;
+    const lastDot = filename.lastIndexOf('.');
+    const extension = lastDot === -1 ? '' : filename.slice(lastDot).toLowerCase();
+
+    return this.BY_EXTENSION[extension] ?? ContentTypes.OCTET_STREAM;
+  }
+}
+
+/** Published before the table moved onto the class; kept as the one-line delegate it now is. */
+export const CONTENT_TYPE_BY_EXTENSION = ContentTypeTable.BY_EXTENSION;

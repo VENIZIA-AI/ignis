@@ -362,15 +362,17 @@ export class BunS3Helper extends BaseStorageHelper {
   }
 
   /** Streams without holding the object in memory. `upload` carries a `Buffer`, so it cannot; this is the path for anything large. */
-  async writeStream(
+  override async writeStream(
     opts: IObjectLocation & {
       source: ReadableStream<Uint8Array> | Blob | Response | Request;
       contentType?: string;
+      maxFolderDepth?: number;
     },
   ): Promise<void> {
     const { bucket, object, source, contentType } = opts;
 
-    if (!this.isValidObjectKey({ object, maxDepth: Number.MAX_SAFE_INTEGER })) {
+    // The same depth rule `upload` applies: one object, two doors, one answer.
+    if (!this.isValidObjectKey({ object, maxDepth: opts.maxFolderDepth })) {
       throw getError({ message: `[writeStream] Invalid object name | key: ${object.key}` });
     }
 

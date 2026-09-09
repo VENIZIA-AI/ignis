@@ -105,6 +105,19 @@ export interface IStorageHelper {
     normalizeLinkFn?: (opts: IObjectLocation) => string;
   }): Promise<IUploadResult[]>;
 
+  /**
+   * Writes an object from a stream, so a large body never lands in this process. A backend whose
+   * transport takes a stream overrides it; the default buffers, which is the thing to avoid.
+   */
+  writeStream(
+    opts: IObjectLocation & {
+      source: ReadableStream<Uint8Array> | Blob | Response | Request;
+      contentType?: string;
+      /** Folder nesting the key may carry, as `upload` takes it. Omitted -> DEFAULT_MAX_FOLDER_DEPTH. */
+      maxFolderDepth?: number;
+    },
+  ): Promise<void>;
+
   removeObject(opts: IObjectLocation): Promise<void>;
   removeObjects(opts: { bucket: IBucketRef; objects: IObjectRef[] }): Promise<void>;
 
