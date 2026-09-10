@@ -3015,7 +3015,7 @@ tags: [reference, exports, api]
 - `SocketIOBindingKeys` class
 - `SocketIOComponent` class
 
-### `@venizia/ignis/mail` (65)
+### `@venizia/ignis/mail` (66)
 
 - `AmazonSesTransportHelper` class
 - `buildRawMimeMessage` function
@@ -3023,6 +3023,7 @@ tags: [reference, exports, api]
 - `BullMQMailExecutorHelper` class
 - `DefaultVerificationDataGenerator` class
 - `DirectMailExecutorHelper` class
+- `formatAddressHeader` function
 - `getExpiryTime` function
 - `getExpiryTimeInHours` function
 - `IAmazonSesMailOptions` interface
