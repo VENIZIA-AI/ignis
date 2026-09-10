@@ -14,6 +14,12 @@
   "releases": {
     "atlas": [
       {
+        "version": "0.1.0-7",
+        "date": "2026-09-10",
+        "sha": "e2ff2bd9",
+        "order": 1163
+      },
+      {
         "version": "0.1.0-6",
         "date": "2026-09-09",
         "sha": "29d5d94b",
@@ -455,6 +461,12 @@
       }
     ],
     "connectors": [
+      {
+        "version": "0.2.0-25",
+        "date": "2026-09-10",
+        "sha": "36bee3e7",
+        "order": 1169
+      },
       {
         "version": "0.2.0-24",
         "date": "2026-09-10",
@@ -1456,6 +1468,12 @@
     ],
     "core-server": [
       {
+        "version": "0.2.0-26",
+        "date": "2026-09-10",
+        "sha": "39243841",
+        "order": 1171
+      },
+      {
         "version": "0.2.0-25",
         "date": "2026-09-10",
         "sha": "260a045c",
@@ -1613,6 +1631,12 @@
       }
     ],
     "core-worker": [
+      {
+        "version": "0.2.0-25",
+        "date": "2026-09-10",
+        "sha": "c81477d2",
+        "order": 1170
+      },
       {
         "version": "0.2.0-24",
         "date": "2026-09-10",
@@ -2163,6 +2187,12 @@
       }
     ],
     "helpers": [
+      {
+        "version": "0.2.0-20",
+        "date": "2026-09-10",
+        "sha": "7d120465",
+        "order": 1167
+      },
       {
         "version": "0.2.0-19",
         "date": "2026-09-10",
@@ -2742,6 +2772,12 @@
     ],
     "inversion": [
       {
+        "version": "0.2.0-7",
+        "date": "2026-09-10",
+        "sha": "2148f861",
+        "order": 1166
+      },
+      {
         "version": "0.2.0-6",
         "date": "2026-09-10",
         "sha": "78dbe738",
@@ -2960,6 +2996,12 @@
     ],
     "kernel": [
       {
+        "version": "0.2.0-25",
+        "date": "2026-09-10",
+        "sha": "ab13fdf4",
+        "order": 1168
+      },
+      {
         "version": "0.2.0-24",
         "date": "2026-09-10",
         "sha": "4bee6714",
@@ -3112,6 +3154,17 @@
     ]
   },
   "changelogs": [
+    {
+      "id": "changelog:2026-09-10-configuration-and-component-options",
+      "file": "2026-09-10-configuration-and-component-options.md",
+      "date": "2026-09-10",
+      "title": "Application Configurations and Type-Safe Component Options",
+      "packages": [
+        "kernel"
+      ],
+      "kind": "Feature",
+      "order": 1165
+    },
     {
       "id": "changelog:2026-09-09-inject-by-class",
       "file": "2026-09-09-inject-by-class.md",
