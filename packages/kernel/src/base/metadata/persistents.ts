@@ -135,13 +135,20 @@ const registerDataSourceInjection = (opts: {
   const injectAtIndex0 = ownInjects?.find(entry => entry?.index === 0);
 
   if (injectAtIndex0) {
-    const injectKey = injectAtIndex0.key;
+    // `@inject({ target: SomeDataSource })` carries no key; the key it resolves to was recorded on
+    // the class when the datasource was decorated or registered.
+    const injectKey =
+      injectAtIndex0.key ??
+      (injectAtIndex0.target
+        ? registry.getBindingKey({ target: injectAtIndex0.target })
+        : undefined);
+
     const isDataSourceKey =
       typeof injectKey === 'string' && injectKey.startsWith(`${BindingNamespaces.DATASOURCE}.`);
 
     if (!isDataSourceKey) {
       throw getError({
-        message: `[@repository][${target.name}] Invalid constructor | First parameter must be a DataSource | Found @inject with key: '${injectKey.toString()}' | Expected key starting with '${BindingNamespaces.DATASOURCE}.'`,
+        message: `[@repository][${target.name}] Invalid constructor | First parameter must be a DataSource | Found @inject with key: '${String(injectKey)}' | Expected key starting with '${BindingNamespaces.DATASOURCE}.'`,
       });
     }
 

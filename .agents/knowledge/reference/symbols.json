@@ -353,6 +353,16 @@
       "signature": "class ArtifactIndexFields"
     },
     {
+      "name": "ArtifactNamespaces",
+      "package": "@venizia/ignis",
+      "subpath": ".",
+      "specifier": "@venizia/ignis",
+      "kind": "class",
+      "file": "packages/kernel/src/common/bindings.ts",
+      "line": 65,
+      "signature": "class ArtifactNamespaces"
+    },
+    {
       "name": "ArtifactTypes",
       "package": "@venizia/ignis",
       "subpath": ".",
@@ -1150,7 +1160,7 @@
       "specifier": "@venizia/ignis",
       "kind": "class",
       "file": "packages/kernel/src/common/bindings.ts",
-      "line": 43,
+      "line": 89,
       "signature": "class CoreBindings extends BindingKeys"
     },
     {
@@ -1480,7 +1490,7 @@
       "specifier": "@venizia/ignis",
       "kind": "class",
       "file": "packages/helpers/src/modules/logger/formatting/error-prettier.ts",
-      "line": 28,
+      "line": 30,
       "signature": "class ErrorPrettier"
     },
     {
@@ -4302,7 +4312,7 @@
       "kind": "const",
       "file": "packages/kernel/src/helpers/inversion/common/keys.ts",
       "line": 3,
-      "signature": "MetadataKeys: { PROPERTIES: symbol; INJECT: symbol; } & { CONTROLLER: symbol; CONTROLLER_REST_ROUTE: symbol; CONTROLLER_GRPC_ROUTE: symbol; MODEL: symbol; DATASOURCE: symbol; REPOSITORY: symbol; ARTIFACT: symbol; PROVIDES: symbol; }"
+      "signature": "MetadataKeys: { PROPERTIES: symbol; INJECT: symbol; BINDING_KEY: symbol; } & { CONTROLLER: symbol; CONTROLLER_REST_ROUTE: symbol; CONTROLLER_GRPC_ROUTE: symbol; MODEL: symbol; DATASOURCE: symbol; REPOSITORY: symbol; ARTIFACT: symbol; PROVIDES: symbol; }"
     },
     {
       "name": "MetadataRegistry",
@@ -6466,6 +6476,16 @@
       "signature": "type TInferSchema<T extends z.ZodType> = z.infer<T>"
     },
     {
+      "name": "TInjectOptions",
+      "package": "@venizia/ignis",
+      "subpath": ".",
+      "specifier": "@venizia/ignis",
+      "kind": "type",
+      "file": "packages/kernel/src/base/metadata/injectors.ts",
+      "line": 10,
+      "signature": "type TInjectOptions = { isOptional?: boolean; } & ({ key: TBindingKey; target?: never; } | { target: TClass<AnyType>; key?: never; })"
+    },
+    {
       "name": "TInjectionGetter",
       "package": "@venizia/ignis",
       "subpath": ".",
@@ -8152,7 +8172,7 @@
       "specifier": "@venizia/ignis",
       "kind": "const",
       "file": "packages/kernel/src/base/metadata/injectable.ts",
-      "line": 30,
+      "line": 55,
       "signature": "component: <ApplicationType = unknown>(opts?: IArtifactRegistrationOptions<ApplicationType>) => ClassDecorator"
     },
     {
@@ -8683,8 +8703,8 @@
       "specifier": "@venizia/ignis",
       "kind": "const",
       "file": "packages/kernel/src/base/metadata/injectors.ts",
-      "line": 6,
-      "signature": "inject: (opts: { key: TBindingKey; isOptional?: boolean; }) => (target: any, propertyName: string | symbol | undefined, parameterIndex?: number) => void"
+      "line": 14,
+      "signature": "inject: (opts: TInjectOptions) => (target: any, propertyName: string | symbol | undefined, parameterIndex?: number) => void"
     },
     {
       "name": "injectable",
@@ -8693,7 +8713,7 @@
       "specifier": "@venizia/ignis",
       "kind": "const",
       "file": "packages/kernel/src/base/metadata/injectable.ts",
-      "line": 10,
+      "line": 11,
       "signature": "injectable: <ApplicationType = unknown>(opts: IArtifactMetadata<ApplicationType>) => ClassDecorator"
     },
     {
@@ -8933,7 +8953,7 @@
       "specifier": "@venizia/ignis",
       "kind": "const",
       "file": "packages/kernel/src/base/metadata/injectable.ts",
-      "line": 51,
+      "line": 76,
       "signature": "pickRegistrationOptions: <ApplicationType = unknown>(opts: { metadata: IArtifactRegistrationOptions<ApplicationType>; }) => IArtifactRegistrationOptions<ApplicationType>"
     },
     {
@@ -8963,7 +8983,7 @@
       "specifier": "@venizia/ignis",
       "kind": "const",
       "file": "packages/kernel/src/base/metadata/injectable.ts",
-      "line": 37,
+      "line": 62,
       "signature": "provide: (opts: { key: string; scope?: TBindingScope; }) => MethodDecorator"
     },
     {
@@ -9033,7 +9053,7 @@
       "specifier": "@venizia/ignis",
       "kind": "const",
       "file": "packages/kernel/src/base/metadata/persistents.ts",
-      "line": 247,
+      "line": 254,
       "signature": "repository: <Model extends AbstractEntity = AbstractEntity, DataSource extends IDataSource = IDataSource>(metadata?: IRepositoryMetadata<Model, DataSource>) => ClassDecorator"
     },
     {
@@ -9193,7 +9213,7 @@
       "specifier": "@venizia/ignis",
       "kind": "const",
       "file": "packages/kernel/src/base/metadata/injectable.ts",
-      "line": 24,
+      "line": 49,
       "signature": "service: <ApplicationType = unknown>(opts?: IArtifactRegistrationOptions<ApplicationType>) => ClassDecorator"
     },
     {
@@ -20062,7 +20082,7 @@
       "specifier": "@venizia/ignis-helpers",
       "kind": "class",
       "file": "packages/helpers/src/modules/logger/formatting/error-prettier.ts",
-      "line": 28,
+      "line": 30,
       "signature": "class ErrorPrettier"
     },
     {
@@ -26009,6 +26029,16 @@
       "signature": "interface IBinding<T = any>"
     },
     {
+      "name": "IBindingKeyRecord",
+      "package": "@venizia/ignis-inversion",
+      "subpath": ".",
+      "specifier": "@venizia/ignis-inversion",
+      "kind": "interface",
+      "file": "packages/inversion/src/modules/registry/common/types.ts",
+      "line": 20,
+      "signature": "interface IBindingKeyRecord"
+    },
+    {
       "name": "IBindingTag",
       "package": "@venizia/ignis-inversion",
       "subpath": ".",
@@ -26045,7 +26075,7 @@
       "specifier": "@venizia/ignis-inversion",
       "kind": "interface",
       "file": "packages/inversion/src/modules/registry/common/types.ts",
-      "line": 9,
+      "line": 11,
       "signature": "interface IInjectMetadata"
     },
     {
@@ -26096,7 +26126,7 @@
       "kind": "const",
       "file": "packages/inversion/src/modules/metadata/common/constants.ts",
       "line": 1,
-      "signature": "MetadataKeys: { PROPERTIES: symbol; INJECT: symbol; }"
+      "signature": "MetadataKeys: { PROPERTIES: symbol; INJECT: symbol; BINDING_KEY: symbol; }"
     },
     {
       "name": "MetadataRegistry",
@@ -26339,6 +26369,16 @@
       "signature": "type TErrorScope = TConstValue<typeof ErrorScopes>"
     },
     {
+      "name": "TInjectOptions",
+      "package": "@venizia/ignis-inversion",
+      "subpath": ".",
+      "specifier": "@venizia/ignis-inversion",
+      "kind": "type",
+      "file": "packages/inversion/src/modules/metadata/injectors.ts",
+      "line": 10,
+      "signature": "type TInjectOptions = { isOptional?: boolean; registry?: MetadataRegistry; } & ({ key: TBindingKey; target?: never; } | { target: TClass<AnyType>; key?: never; })"
+    },
+    {
       "name": "TNullable",
       "package": "@venizia/ignis-inversion",
       "subpath": ".",
@@ -26415,8 +26455,8 @@
       "specifier": "@venizia/ignis-inversion",
       "kind": "const",
       "file": "packages/inversion/src/modules/metadata/injectors.ts",
-      "line": 6,
-      "signature": "inject: (opts: { key: TBindingKey; isOptional?: boolean; registry?: MetadataRegistry; }) => (target: any, propertyName: string | symbol | undefined, parameterIndex?: number) => void"
+      "line": 16,
+      "signature": "inject: (opts: TInjectOptions) => (target: any, propertyName: string | symbol | undefined, parameterIndex?: number) => void"
     },
     {
       "name": "isApplicationError",
@@ -26455,7 +26495,7 @@
       "specifier": "@venizia/ignis-inversion",
       "kind": "const",
       "file": "packages/inversion/src/modules/registry/registry.ts",
-      "line": 122,
+      "line": 165,
       "signature": "metadataRegistry: MetadataRegistry"
     },
     {
@@ -26547,6 +26587,16 @@
       "file": "packages/kernel/src/base/applications/common/constants.ts",
       "line": 4,
       "signature": "class ArtifactIndexFields"
+    },
+    {
+      "name": "ArtifactNamespaces",
+      "package": "@venizia/ignis-kernel",
+      "subpath": ".",
+      "specifier": "@venizia/ignis-kernel",
+      "kind": "class",
+      "file": "packages/kernel/src/common/bindings.ts",
+      "line": 65,
+      "signature": "class ArtifactNamespaces"
     },
     {
       "name": "ArtifactTypes",
@@ -27015,7 +27065,7 @@
       "specifier": "@venizia/ignis-kernel",
       "kind": "class",
       "file": "packages/kernel/src/common/bindings.ts",
-      "line": 43,
+      "line": 89,
       "signature": "class CoreBindings extends BindingKeys"
     },
     {
@@ -28226,7 +28276,7 @@
       "kind": "const",
       "file": "packages/kernel/src/helpers/inversion/common/keys.ts",
       "line": 3,
-      "signature": "MetadataKeys: { PROPERTIES: symbol; INJECT: symbol; } & { CONTROLLER: symbol; CONTROLLER_REST_ROUTE: symbol; CONTROLLER_GRPC_ROUTE: symbol; MODEL: symbol; DATASOURCE: symbol; REPOSITORY: symbol; ARTIFACT: symbol; PROVIDES: symbol; }"
+      "signature": "MetadataKeys: { PROPERTIES: symbol; INJECT: symbol; BINDING_KEY: symbol; } & { CONTROLLER: symbol; CONTROLLER_REST_ROUTE: symbol; CONTROLLER_GRPC_ROUTE: symbol; MODEL: symbol; DATASOURCE: symbol; REPOSITORY: symbol; ARTIFACT: symbol; PROVIDES: symbol; }"
     },
     {
       "name": "MetadataRegistry",
@@ -29229,6 +29279,16 @@
       "signature": "type TInferSchema<T extends z.ZodType> = z.infer<T>"
     },
     {
+      "name": "TInjectOptions",
+      "package": "@venizia/ignis-kernel",
+      "subpath": ".",
+      "specifier": "@venizia/ignis-kernel",
+      "kind": "type",
+      "file": "packages/kernel/src/base/metadata/injectors.ts",
+      "line": 10,
+      "signature": "type TInjectOptions = { isOptional?: boolean; } & ({ key: TBindingKey; target?: never; } | { target: TClass<AnyType>; key?: never; })"
+    },
+    {
       "name": "TIsAllowedOriginHandler",
       "package": "@venizia/ignis-kernel",
       "subpath": ".",
@@ -29895,7 +29955,7 @@
       "specifier": "@venizia/ignis-kernel",
       "kind": "const",
       "file": "packages/kernel/src/base/metadata/injectable.ts",
-      "line": 30,
+      "line": 55,
       "signature": "component: <ApplicationType = unknown>(opts?: IArtifactRegistrationOptions<ApplicationType>) => ClassDecorator"
     },
     {
@@ -30045,8 +30105,8 @@
       "specifier": "@venizia/ignis-kernel",
       "kind": "const",
       "file": "packages/kernel/src/base/metadata/injectors.ts",
-      "line": 6,
-      "signature": "inject: (opts: { key: TBindingKey; isOptional?: boolean; }) => (target: any, propertyName: string | symbol | undefined, parameterIndex?: number) => void"
+      "line": 14,
+      "signature": "inject: (opts: TInjectOptions) => (target: any, propertyName: string | symbol | undefined, parameterIndex?: number) => void"
     },
     {
       "name": "injectable",
@@ -30055,7 +30115,7 @@
       "specifier": "@venizia/ignis-kernel",
       "kind": "const",
       "file": "packages/kernel/src/base/metadata/injectable.ts",
-      "line": 10,
+      "line": 11,
       "signature": "injectable: <ApplicationType = unknown>(opts: IArtifactMetadata<ApplicationType>) => ClassDecorator"
     },
     {
@@ -30145,7 +30205,7 @@
       "specifier": "@venizia/ignis-kernel",
       "kind": "const",
       "file": "packages/kernel/src/base/metadata/injectable.ts",
-      "line": 51,
+      "line": 76,
       "signature": "pickRegistrationOptions: <ApplicationType = unknown>(opts: { metadata: IArtifactRegistrationOptions<ApplicationType>; }) => IArtifactRegistrationOptions<ApplicationType>"
     },
     {
@@ -30165,7 +30225,7 @@
       "specifier": "@venizia/ignis-kernel",
       "kind": "const",
       "file": "packages/kernel/src/base/metadata/injectable.ts",
-      "line": 37,
+      "line": 62,
       "signature": "provide: (opts: { key: string; scope?: TBindingScope; }) => MethodDecorator"
     },
     {
@@ -30195,7 +30255,7 @@
       "specifier": "@venizia/ignis-kernel",
       "kind": "const",
       "file": "packages/kernel/src/base/metadata/persistents.ts",
-      "line": 247,
+      "line": 254,
       "signature": "repository: <Model extends AbstractEntity = AbstractEntity, DataSource extends IDataSource = IDataSource>(metadata?: IRepositoryMetadata<Model, DataSource>) => ClassDecorator"
     },
     {
@@ -30295,7 +30355,7 @@
       "specifier": "@venizia/ignis-kernel",
       "kind": "const",
       "file": "packages/kernel/src/base/metadata/injectable.ts",
-      "line": 24,
+      "line": 49,
       "signature": "service: <ApplicationType = unknown>(opts?: IArtifactRegistrationOptions<ApplicationType>) => ClassDecorator"
     },
     {

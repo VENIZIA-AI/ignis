@@ -454,6 +454,14 @@ const config = defineConfig({
               collapsed: true,
               items: [
                 {
+                  text: 'Inject By Class',
+                  link: '/changelogs/2026-09-09-inject-by-class',
+                },
+                {
+                  text: 'Aggregate Error Logging',
+                  link: '/changelogs/2026-09-09-aggregate-error-logging',
+                },
+                {
                   text: 'Guarded Url Fetch',
                   link: '/changelogs/2026-09-09-guarded-url-fetch',
                 },

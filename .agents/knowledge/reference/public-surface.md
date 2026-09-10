@@ -10,7 +10,7 @@ tags: [reference, exports, api]
 
 ## inversion
 
-### `@venizia/ignis-inversion` (57)
+### `@venizia/ignis-inversion` (59)
 
 - `AbstractContainer` class
 - `AnyType` type
@@ -26,6 +26,7 @@ tags: [reference, exports, api]
 - `fromError` const
 - `getError` const
 - `IBinding` interface
+- `IBindingKeyRecord` interface
 - `IBindingTag` interface
 - `IContainer` interface
 - `IErrorKeyRegistry` interface
@@ -64,6 +65,7 @@ tags: [reference, exports, api]
 - `TErrorNormalized` type
 - `TErrorNormalizeTransformFn` type
 - `TErrorScope` type
+- `TInjectOptions` type
 - `TNullable` type
 - `TRegisterErrors` type
 - `TResponsedError` type
@@ -827,7 +829,7 @@ tags: [reference, exports, api]
 
 ## kernel
 
-### `@venizia/ignis-kernel` (390)
+### `@venizia/ignis-kernel` (392)
 
 - `AbstractApplication` class
 - `AbstractAuthRegistry` class
@@ -839,6 +841,7 @@ tags: [reference, exports, api]
 - `AnyObjectSchema` const
 - `api` const
 - `ArtifactIndexFields` class
+- `ArtifactNamespaces` class
 - `ArtifactTypes` class
 - `asTypedContext` const
 - `authenticate` const
@@ -1157,6 +1160,7 @@ tags: [reference, exports, api]
 - `TIdSchemaType` type
 - `TInclusion` type
 - `TInferSchema` type
+- `TInjectOptions` type
 - `TIsAllowedOriginHandler` type
 - `TIsAllowedSecFetchSiteHandler` type
 - `TIsoTimestamp` type
@@ -1754,7 +1758,7 @@ tags: [reference, exports, api]
 
 ## core-server
 
-### `@venizia/ignis` (935)
+### `@venizia/ignis` (937)
 
 - `AbstractApplication` class
 - `AbstractAuthRegistry` class
@@ -1792,6 +1796,7 @@ tags: [reference, exports, api]
 - `ApplicationError` class
 - `ApplicationLogger` const
 - `ArtifactIndexFields` class
+- `ArtifactNamespaces` class
 - `ArtifactTypes` class
 - `asTypedContext` const
 - `authenticate` const
@@ -2521,6 +2526,7 @@ tags: [reference, exports, api]
 - `TInclusion` type
 - `TInferSchema` type
 - `TInjectionGetter` type
+- `TInjectOptions` type
 - `TIsAllowedOriginHandler` type
 - `TIsAllowedSecFetchSiteHandler` type
 - `TIsolationLevel` type

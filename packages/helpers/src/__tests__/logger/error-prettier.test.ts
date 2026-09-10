@@ -258,7 +258,9 @@ describe('ErrorPrettier.format', () => {
 
     const block = ErrorPrettier.format({ error });
 
-    expect(block).toContain('cause: Received response with error while executing API Metadata(v12)');
+    expect(block).toContain(
+      'cause: Received response with error while executing API Metadata(v12)',
+    );
     expect(block).toContain(
       'errors[0]: Topic authorization failed for topic 0. (code PLT_KFK_PROTOCOL)',
     );

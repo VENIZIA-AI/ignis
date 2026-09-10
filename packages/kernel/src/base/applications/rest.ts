@@ -373,9 +373,20 @@ export abstract class RestApplication<
       });
     }
 
-    const key = BindingKeys.build(
-      opts.opts?.binding ?? declared?.binding ?? { namespace, key: ctor.name },
-    );
+    const binding = opts.opts?.binding ?? declared?.binding ?? { namespace, key: ctor.name };
+    BindingNamespaces.assertArtifactNamespace({
+      namespace: binding.namespace,
+      artifact: ctor.name,
+      caller,
+    });
+
+    const key = BindingKeys.build(binding);
+
+    // The key `@inject({ target: ctor })` reads back. Written here rather than at decoration time
+    // because only this line knows the call site's `binding`, and a class registered by hand
+    // (`application.service(X)`) carries no stereotype metadata to derive one from.
+    MetadataRegistry.getInstance().setBindingKey({ target: ctor, key });
+
     this.assertNoBindingCollision({
       key,
       allowOverride: opts.opts?.allowOverride ?? declared?.allowOverride,

@@ -72,9 +72,16 @@ tagging by hand, and why the binding-key namespaces are load-bearing rather than
 `@inject` metadata, resolve each entry into `args[meta.index]`, `new cls(...args)`; then read
 property metadata off the instance's constructor, resolve each and assign.
 
-`@inject({ key, isOptional })` serves both, branching on whether it was handed a `parameterIndex` or
-a `propertyName`, and throwing if neither. Optional dependencies resolve to `undefined` instead of
-throwing when the key is unbound.
+`@inject` serves both, branching on whether it was handed a `parameterIndex` or a `propertyName`, and
+throwing if neither. Optional dependencies resolve to `undefined` instead of throwing when the key is
+unbound.
+
+A dependency names **either** a binding key or the class bound under it - `@inject({ key })` or
+`@inject({ target })`, never both; the options type is a union that refuses the pair. The class form
+resolves through `Container.resolveBindingKey` (protected, so a container that invents keys of its
+own can extend it), which reads the key recorded on the class under
+`Symbol.for('ignis:binding-key')` - see [Binding key namespaces](/conventions/binding-key-namespaces.md)
+for the two writers. `getOwnMetadata`, so a subclass never borrows its parent's binding.
 
 ## Hard rules that are not derivable from the code shape
 

@@ -3,7 +3,8 @@ import type {
   IArtifactRegistrationOptions,
   TBindingScope,
 } from '@/helpers/inversion';
-import { ArtifactTypes, MetadataRegistry } from '@/helpers/inversion';
+import { ArtifactNamespaces, BindingNamespaces } from '@/common/bindings';
+import { ArtifactTypes, BindingKeys, MetadataRegistry } from '@/helpers/inversion';
 import { getError } from '@venizia/ignis-helpers/core';
 
 /** The root stereotype: marks a class as an artifact the application registers, with its registration defaults. Every other stereotype calls it. */
@@ -17,7 +18,31 @@ export const injectable = <ApplicationType = unknown>(
       });
     }
 
-    MetadataRegistry.getInstance().setArtifactMetadata({ target, metadata: opts });
+    // At IMPORT time, so a namespace-less binding is caught where it is written rather than at boot.
+    if (opts.binding) {
+      BindingNamespaces.assertArtifactNamespace({
+        namespace: opts.binding.namespace,
+        artifact: target.name,
+        caller: 'injectable',
+      });
+    }
+
+    const registry = MetadataRegistry.getInstance();
+    registry.setArtifactMetadata({ target, metadata: opts });
+
+    // The key this class WOULD get, recorded now so `@inject({ target })` resolves even before the
+    // application registers it. `registerArtifact` overwrites it with the key actually bound, which
+    // is the only one that accounts for a call-site `binding` override.
+    registry.setBindingKey({
+      target,
+      key: BindingKeys.build(
+        opts.binding ?? {
+          namespace: ArtifactNamespaces.resolve({ type: opts.type }),
+          key: target.name,
+        },
+      ),
+      isProvisional: true,
+    });
   };
 };
 

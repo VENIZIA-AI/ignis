@@ -2,7 +2,7 @@ import { BaseHelper } from '@/common/base-helper';
 import { Logger } from '@/common/logger';
 import { TBindingKey, TClass } from '@/common/types';
 import { MetadataKeys } from '../metadata/common/constants';
-import { IInjectMetadata, IPropertyMetadata } from './common/types';
+import { IBindingKeyRecord, IInjectMetadata, IPropertyMetadata } from './common/types';
 
 /** Central metadata registry for storing and retrieving decorator metadata. */
 export class MetadataRegistry extends BaseHelper {
@@ -116,6 +116,49 @@ export class MetadataRegistry extends BaseHelper {
   getInjectMetadata<T extends object = object>(opts: { target: T }): IInjectMetadata[] | undefined {
     const { target } = opts;
     return Reflect.getMetadata(MetadataKeys.INJECT, target);
+  }
+
+  /**
+   * The key a class is bound under, recorded on the class so `@inject({ target })` can read it back.
+   * `isProvisional` marks a key DERIVED before any registration ran - a later registration replaces
+   * it without complaint, because only the registration sees a call-site override.
+   */
+  setBindingKey<T extends object = object>(opts: {
+    target: T;
+    key: TBindingKey;
+    isProvisional?: boolean;
+  }): void {
+    const { target, key, isProvisional = false } = opts;
+    const current: IBindingKeyRecord | undefined = Reflect.getOwnMetadata(
+      MetadataKeys.BINDING_KEY,
+      target,
+    );
+
+    // Two applications in one process binding the same class differently would otherwise make the
+    // last registration decide every `@inject({ target })` in the process, silently.
+    if (current !== undefined && current.key !== key && !current.isProvisional && !isProvisional) {
+      Logger.warn(
+        '[setBindingKey] Rebound under a different key | target: %s | was: %s | now: %s',
+        (target as { name?: string }).name,
+        current.key.toString(),
+        key.toString(),
+      );
+    }
+
+    Reflect.defineMetadata(MetadataKeys.BINDING_KEY, { key, isProvisional }, target);
+  }
+
+  /**
+   * Own metadata only: a subclass of a registered class is not itself registered, and inheriting the
+   * parent's key would resolve the wrong binding without saying so.
+   */
+  getBindingKey<T extends object = object>(opts: { target: T }): TBindingKey | undefined {
+    const { target } = opts;
+    const record: IBindingKeyRecord | undefined = Reflect.getOwnMetadata(
+      MetadataKeys.BINDING_KEY,
+      target,
+    );
+    return record?.key;
   }
 }
 

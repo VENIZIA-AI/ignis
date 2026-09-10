@@ -6,6 +6,32 @@ not how.
 This file and `index.md` are reserved OKF filenames - they carry no `type:` frontmatter and are not
 counted as concepts.
 
+## 2026-09-09 - a dependency can name its class
+
+`@inject({ target: SomeService })` joins `@inject({ key })`; the options type is a union, so a call
+site states one or the other, never both. Both injection paths take it - constructor parameters and
+properties.
+
+The key is RECORDED ON THE CLASS under `Symbol.for('ignis:binding-key')`, not derived at resolve
+time. Deriving `<namespace>.<Class>` from artifact metadata is wrong in three shapes that exist in
+production: a class registered by hand carries no metadata (86 BANA sites, 47 classes); a declared
+`binding` renames the key away from the class name; and a `TMixinOpts.binding` at the call site is
+never written back to the class. Two writers: `@injectable` records a provisional derived key at
+import time, `registerArtifact` overwrites it with the key actually bound.
+
+Every registration now asserts its namespace (`BindingNamespaces.assertArtifactNamespace`, at import
+time for a declared `binding` and at registration for a call-site one). `Binding` tags only when the
+key has more than one dot-separated part, so a namespace-less key bound untagged: never drained, never
+verified. Measured: BANA declares no empty namespace, so nothing breaks - an EARLIER pass of this work
+reported one at `sms-otp-sender.ts:7` and that reading was WRONG.
+
+`getOwnMetadata`, so a subclass of a registered class resolves nothing rather than borrowing its
+parent's binding. `registerDataSourceInjection` reads the recorded key when parameter 0 uses the
+class form - four BANA repositories inject their datasource that way and would otherwise break.
+
+Inferring from `design:paramtypes` was rejected, not overlooked: it becomes `undefined` with NO error
+when an app's tsconfig `extends` a package path under bun.
+
 ## 2026-09-08 (d) - MinioHelper comes back, deprecated
 
 The removal shipped in `2949e555` is reverted: `@venizia/ignis-helpers/minio`, `MinioHelper`, the

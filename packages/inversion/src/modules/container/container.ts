@@ -1,11 +1,44 @@
 import { getError } from '../error';
-import { TClass } from '@/common/types';
+import { AnyType, TBindingKey, TClass } from '@/common/types';
 import { BaseContainer } from './base';
 
 /** Default container: constructor + property injection driven by the decorator metadata registry. */
 export class Container extends BaseContainer {
   constructor(opts?: { scope: string }) {
     super({ scope: opts?.scope ?? Container.name });
+  }
+
+  /**
+   * A dependency names either a key or the class bound under it. The class form reads the key the
+   * registration recorded, so a call-site override or an imperative `application.service(X)` - both
+   * of which produce a key no metadata declares - still resolve.
+   */
+  protected resolveBindingKey(opts: {
+    key?: TBindingKey;
+    target?: TClass<AnyType>;
+    cls: TClass<AnyType>;
+    at: string;
+  }): TBindingKey {
+    const { key, target, cls, at } = opts;
+
+    if (key !== undefined) {
+      return key;
+    }
+
+    if (target === undefined) {
+      throw getError({
+        message: `[${cls.name}] ${at} has neither an @inject key nor a class`,
+      });
+    }
+
+    const recorded = this.getMetadataRegistry().getBindingKey({ target });
+    if (recorded === undefined) {
+      throw getError({
+        message: `[${cls.name}] ${at} names '${target.name}', which is not registered as an artifact | Decorate it (@service, @repository, ...) or register it on the application before it is injected`,
+      });
+    }
+
+    return recorded;
   }
 
   override instantiate<T>(cls: TClass<T>): T {
@@ -26,7 +59,14 @@ export class Container extends BaseContainer {
         });
       }
 
-      args[meta.index] = this.get({ key: meta.key, isOptional: meta.isOptional ?? false });
+      const key = this.resolveBindingKey({
+        key: meta.key,
+        target: meta.target,
+        cls,
+        at: `Constructor parameter ${index}`,
+      });
+
+      args[meta.index] = this.get({ key, isOptional: meta.isOptional ?? false });
     }
 
     const instance = new cls(...args);
@@ -41,8 +81,15 @@ export class Container extends BaseContainer {
 
     const properties = propertyMetadata.entries();
     for (const [propertyKey, metadata] of properties) {
-      const dep = this.get({
+      const key = this.resolveBindingKey({
         key: metadata.bindingKey,
+        target: metadata.target,
+        cls,
+        at: `Property '${String(propertyKey)}'`,
+      });
+
+      const dep = this.get({
+        key,
         isOptional: metadata.isOptional ?? false,
       });
       (instance as any)[propertyKey] = dep;
