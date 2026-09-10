@@ -9427,6 +9427,16 @@
       "signature": "interface IGrpcComponentConfig"
     },
     {
+      "name": "AmazonSesTransportHelper",
+      "package": "@venizia/ignis",
+      "subpath": "./mail",
+      "specifier": "@venizia/ignis/mail",
+      "kind": "class",
+      "file": "packages/core-server/src/components/mail/helpers/transporters/amazon-ses-transporter.helper.ts",
+      "line": 14,
+      "signature": "class AmazonSesTransportHelper extends BaseHelper implements IMailTransport"
+    },
+    {
       "name": "BullMQExecutorModes",
       "package": "@venizia/ignis",
       "subpath": "./mail",
@@ -9467,6 +9477,16 @@
       "signature": "class DirectMailExecutorHelper extends BaseHelper implements IMailQueueExecutor"
     },
     {
+      "name": "IAmazonSesMailOptions",
+      "package": "@venizia/ignis",
+      "subpath": "./mail",
+      "specifier": "@venizia/ignis/mail",
+      "kind": "interface",
+      "file": "packages/core-server/src/components/mail/common/types/options.ts",
+      "line": 22,
+      "signature": "interface IAmazonSesMailOptions extends IBaseMailOptions"
+    },
+    {
       "name": "IBaseMailOptions",
       "package": "@venizia/ignis",
       "subpath": "./mail",
@@ -9493,7 +9513,7 @@
       "specifier": "@venizia/ignis/mail",
       "kind": "interface",
       "file": "packages/core-server/src/components/mail/common/types/options.ts",
-      "line": 22,
+      "line": 28,
       "signature": "interface ICustomMailOptions extends IBaseMailOptions"
     },
     {
@@ -9503,7 +9523,7 @@
       "specifier": "@venizia/ignis/mail",
       "kind": "interface",
       "file": "packages/core-server/src/components/mail/common/types/options.ts",
-      "line": 27,
+      "line": 33,
       "signature": "interface IGenericMailOptions extends IBaseMailOptions"
     },
     {
@@ -9533,7 +9553,7 @@
       "specifier": "@venizia/ignis/mail",
       "kind": "interface",
       "file": "packages/core-server/src/components/mail/common/types/message.ts",
-      "line": 12,
+      "line": 13,
       "signature": "interface IMailMessage"
     },
     {
@@ -9593,7 +9613,7 @@
       "specifier": "@venizia/ignis/mail",
       "kind": "interface",
       "file": "packages/core-server/src/components/mail/common/types/message.ts",
-      "line": 27,
+      "line": 28,
       "signature": "interface IMailSendResult"
     },
     {
@@ -9603,7 +9623,7 @@
       "specifier": "@venizia/ignis/mail",
       "kind": "interface",
       "file": "packages/core-server/src/components/mail/common/types/message.ts",
-      "line": 40,
+      "line": 41,
       "signature": "interface IMailService"
     },
     {
@@ -9623,7 +9643,7 @@
       "specifier": "@venizia/ignis/mail",
       "kind": "interface",
       "file": "packages/core-server/src/components/mail/common/types/message.ts",
-      "line": 34,
+      "line": 35,
       "signature": "interface IMailTransport"
     },
     {
@@ -9833,7 +9853,7 @@
       "specifier": "@venizia/ignis/mail",
       "kind": "class",
       "file": "packages/core-server/src/components/mail/providers/mail-transporter.provider.ts",
-      "line": 17,
+      "line": 22,
       "signature": "class MailTransportProvider extends BaseProvider<TGetMailTransportFn>"
     },
     {
@@ -9877,6 +9897,36 @@
       "signature": "class RandomTokenGenerator extends BaseHelper implements IVerificationTokenGenerator"
     },
     {
+      "name": "TAmazonSesClient",
+      "package": "@venizia/ignis",
+      "subpath": "./mail",
+      "specifier": "@venizia/ignis/mail",
+      "kind": "type",
+      "file": "packages/core-server/src/components/mail/common/types/options.ts",
+      "line": 79,
+      "signature": "type TAmazonSesClient = Pick<TAmazonSesModule, 'SendEmailCommand' | 'GetAccountCommand'> & { client: AnyType; }"
+    },
+    {
+      "name": "TAmazonSesConfig",
+      "package": "@venizia/ignis",
+      "subpath": "./mail",
+      "specifier": "@venizia/ignis/mail",
+      "kind": "type",
+      "file": "packages/core-server/src/components/mail/common/types/options.ts",
+      "line": 63,
+      "signature": "type TAmazonSesConfig = { region: string; credentials?: { accessKeyId: string; secretAccessKey: string; sessionToken?: string; }; endpoint?: string; }"
+    },
+    {
+      "name": "TAmazonSesModule",
+      "package": "@venizia/ignis",
+      "subpath": "./mail",
+      "specifier": "@venizia/ignis/mail",
+      "kind": "type",
+      "file": "packages/core-server/src/components/mail/common/types/options.ts",
+      "line": 70,
+      "signature": "type TAmazonSesModule<TConfig extends AnyType = AnyType, TClient extends AnyType = AnyType> = { SESv2Client: new (config: TConfig) => TClient; SendEmailCommand: new (input: AnyType) => AnyType; GetAccountCommand: new (input?: AnyType) => AnyType; }"
+    },
+    {
       "name": "TGetMailQueueExecutorFn",
       "package": "@venizia/ignis",
       "subpath": "./mail",
@@ -9893,7 +9943,7 @@
       "specifier": "@venizia/ignis/mail",
       "kind": "type",
       "file": "packages/core-server/src/components/mail/providers/mail-transporter.provider.ts",
-      "line": 15,
+      "line": 20,
       "signature": "type TGetMailTransportFn = (options: TMailOptions) => IMailTransport"
     },
     {
@@ -9903,8 +9953,8 @@
       "specifier": "@venizia/ignis/mail",
       "kind": "type",
       "file": "packages/core-server/src/components/mail/common/types/options.ts",
-      "line": 32,
-      "signature": "type TMailOptions = INodemailerMailOptions | IMailgunMailOptions | ICustomMailOptions | IGenericMailOptions"
+      "line": 38,
+      "signature": "type TMailOptions = INodemailerMailOptions | IAmazonSesMailOptions | IMailgunMailOptions | ICustomMailOptions | IGenericMailOptions"
     },
     {
       "name": "TMailProvider",
@@ -9913,7 +9963,7 @@
       "specifier": "@venizia/ignis/mail",
       "kind": "type",
       "file": "packages/core-server/src/components/mail/common/constants.ts",
-      "line": 61,
+      "line": 63,
       "signature": "type TMailProvider = TConstValue<typeof MailProviders>"
     },
     {
@@ -9923,7 +9973,7 @@
       "specifier": "@venizia/ignis/mail",
       "kind": "type",
       "file": "packages/core-server/src/components/mail/common/types/options.ts",
-      "line": 38,
+      "line": 48,
       "signature": "type TMailgunConfig = AnyType & { domain: string; }"
     },
     {
@@ -9933,7 +9983,7 @@
       "specifier": "@venizia/ignis/mail",
       "kind": "type",
       "file": "packages/core-server/src/components/mail/common/types/options.ts",
-      "line": 51,
+      "line": 61,
       "signature": "type TMailgunModule = new (formData: AnyType) => AnyType"
     },
     {
@@ -9943,7 +9993,7 @@
       "specifier": "@venizia/ignis/mail",
       "kind": "type",
       "file": "packages/core-server/src/components/mail/common/types/options.ts",
-      "line": 35,
+      "line": 45,
       "signature": "type TNodemailerConfig = SMTPTransport | SMTPTransport.Options | string"
     },
     {
@@ -9953,7 +10003,7 @@
       "specifier": "@venizia/ignis/mail",
       "kind": "type",
       "file": "packages/core-server/src/components/mail/common/types/options.ts",
-      "line": 47,
+      "line": 57,
       "signature": "type TNodemailerModule = { createTransport: (config: AnyType, defaults?: AnyType) => AnyType; }"
     },
     {
@@ -9965,6 +10015,26 @@
       "file": "packages/core-server/src/components/mail/services/template.service.ts",
       "line": 7,
       "signature": "class TemplateEngineService extends BaseService implements IMailTemplateEngine"
+    },
+    {
+      "name": "buildRawMimeMessage",
+      "package": "@venizia/ignis",
+      "subpath": "./mail",
+      "specifier": "@venizia/ignis/mail",
+      "kind": "function",
+      "file": "packages/core-server/src/components/mail/utilities/mime.utility.ts",
+      "line": 399,
+      "signature": "function buildRawMimeMessage(message: IMailMessage): Promise<Buffer>"
+    },
+    {
+      "name": "formatAddressHeader",
+      "package": "@venizia/ignis",
+      "subpath": "./mail",
+      "specifier": "@venizia/ignis/mail",
+      "kind": "function",
+      "file": "packages/core-server/src/components/mail/utilities/mime.utility.ts",
+      "line": 99,
+      "signature": "function formatAddressHeader(value: string | string[]): string"
     },
     {
       "name": "getExpiryTime",
@@ -10005,6 +10075,16 @@
       "file": "packages/core-server/src/components/mail/utilities/type.utility.ts",
       "line": 26,
       "signature": "function isValidMailOptions(options: AnyType): options is TMailOptions"
+    },
+    {
+      "name": "splitAddressList",
+      "package": "@venizia/ignis",
+      "subpath": "./mail",
+      "specifier": "@venizia/ignis/mail",
+      "kind": "function",
+      "file": "packages/core-server/src/components/mail/utilities/address.utility.ts",
+      "line": 8,
+      "signature": "function splitAddressList(value: string | string[]): string[]"
     },
     {
       "name": "IMeilisearchClientLike",

@@ -56,6 +56,8 @@ export class MailProviders {
   static readonly NODEMAILER = 'nodemailer';
   static readonly MAILGUN = 'mailgun';
   static readonly CUSTOM = 'custom';
+  // Amazon SES supports both SMTP and HTTPS - this provider is the HTTPS API path; SMTP goes through NODEMAILER instead.
+  static readonly AMAZON_SES = 'amazon-ses';
 }
 
 export type TMailProvider = TConstValue<typeof MailProviders>;

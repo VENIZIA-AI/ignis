@@ -344,7 +344,7 @@
     },
     "packages/atlas": {
       "name": "@venizia/ignis-atlas",
-      "version": "0.1.0-1",
+      "version": "0.1.0-4",
       "bin": {
         "ignis-atlas": "./dist/cjs/cli.js",
       },
@@ -364,7 +364,7 @@
     },
     "packages/boot": {
       "name": "@venizia/ignis-boot",
-      "version": "0.2.0-14",
+      "version": "0.2.0-15",
       "bin": {
         "ignis-artifacts": "./dist/cjs/cli.js",
       },
@@ -385,12 +385,12 @@
     },
     "packages/connectors": {
       "name": "@venizia/ignis-connectors",
-      "version": "0.2.0-20",
+      "version": "0.2.0-22",
       "dependencies": {
-        "@venizia/ignis-filter": "^0.2.0-6",
-        "@venizia/ignis-helpers": "^0.2.0-10",
-        "@venizia/ignis-inversion": "^0.2.0-4",
-        "@venizia/ignis-kernel": "^0.2.0-16",
+        "@venizia/ignis-filter": "^0.2.0-7",
+        "@venizia/ignis-helpers": "^0.2.0-16",
+        "@venizia/ignis-inversion": "^0.2.0-5",
+        "@venizia/ignis-kernel": "^0.2.0-22",
         "lodash": "catalog:",
         "reflect-metadata": "catalog:",
         "zod": "catalog:",
@@ -428,13 +428,13 @@
     },
     "packages/core-server": {
       "name": "@venizia/ignis",
-      "version": "0.2.0-20",
+      "version": "0.2.0-22",
       "dependencies": {
-        "@venizia/ignis-connectors": "^0.2.0-16",
-        "@venizia/ignis-filter": "^0.2.0-6",
-        "@venizia/ignis-helpers": "^0.2.0-10",
-        "@venizia/ignis-inversion": "^0.2.0-4",
-        "@venizia/ignis-kernel": "^0.2.0-16",
+        "@venizia/ignis-connectors": "^0.2.0-22",
+        "@venizia/ignis-filter": "^0.2.0-7",
+        "@venizia/ignis-helpers": "^0.2.0-16",
+        "@venizia/ignis-inversion": "^0.2.0-5",
+        "@venizia/ignis-kernel": "^0.2.0-22",
         "lodash": "catalog:",
         "reflect-metadata": "catalog:",
         "zod": "catalog:",
@@ -465,6 +465,7 @@
       },
       "peerDependencies": {
         "@asteasolutions/zod-to-openapi": "^9.0.0",
+        "@aws-sdk/client-sesv2": "^3.700.0",
         "@connectrpc/connect": "^2.1.1",
         "@electric-sql/pglite": "^0.5.4",
         "@hono/node-server": "^2.0.10",
@@ -491,6 +492,7 @@
         "typesense": "^3.0.3",
       },
       "optionalPeers": [
+        "@aws-sdk/client-sesv2",
         "@connectrpc/connect",
         "@electric-sql/pglite",
         "@hono/node-server",
@@ -514,7 +516,7 @@
     },
     "packages/core-worker": {
       "name": "@venizia/ignis-worker",
-      "version": "0.2.0-21",
+      "version": "0.2.0-23",
       "dependencies": {
         "@venizia/ignis-helpers": "^0.2.0-9",
         "@venizia/ignis-inversion": "^0.2.0-4",
@@ -562,7 +564,7 @@
       "name": "@venizia/ignis-filter",
       "version": "0.2.0-7",
       "dependencies": {
-        "@venizia/ignis-inversion": "^0.2.0-4",
+        "@venizia/ignis-inversion": "^0.2.0-5",
         "zod": "catalog:",
       },
       "devDependencies": {
@@ -576,7 +578,7 @@
     },
     "packages/helpers": {
       "name": "@venizia/ignis-helpers",
-      "version": "0.2.0-14",
+      "version": "0.2.0-16",
       "dependencies": {
         "@venizia/ignis-inversion": "^0.2.0-5",
         "dayjs": "catalog:",
@@ -678,11 +680,11 @@
     },
     "packages/kernel": {
       "name": "@venizia/ignis-kernel",
-      "version": "0.2.0-20",
+      "version": "0.2.0-22",
       "dependencies": {
-        "@venizia/ignis-filter": "^0.2.0-6",
-        "@venizia/ignis-helpers": "^0.2.0-10",
-        "@venizia/ignis-inversion": "^0.2.0-4",
+        "@venizia/ignis-filter": "^0.2.0-7",
+        "@venizia/ignis-helpers": "^0.2.0-16",
+        "@venizia/ignis-inversion": "^0.2.0-5",
         "lodash": "catalog:",
         "reflect-metadata": "catalog:",
         "zod": "catalog:",

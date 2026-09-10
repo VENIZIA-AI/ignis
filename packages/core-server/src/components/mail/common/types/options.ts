@@ -19,6 +19,12 @@ export interface IMailgunMailOptions extends IBaseMailOptions {
   module?: TMailgunModule;
 }
 
+export interface IAmazonSesMailOptions extends IBaseMailOptions {
+  provider: 'amazon-ses';
+  config: TAmazonSesConfig;
+  module?: TAmazonSesModule;
+}
+
 export interface ICustomMailOptions extends IBaseMailOptions {
   provider: 'custom';
   config: IMailTransport;
@@ -30,7 +36,11 @@ export interface IGenericMailOptions extends IBaseMailOptions {
 }
 
 export type TMailOptions =
-  INodemailerMailOptions | IMailgunMailOptions | ICustomMailOptions | IGenericMailOptions;
+  | INodemailerMailOptions
+  | IAmazonSesMailOptions
+  | IMailgunMailOptions
+  | ICustomMailOptions
+  | IGenericMailOptions;
 
 export type TNodemailerConfig = SMTPTransport | SMTPTransport.Options | string;
 
@@ -49,3 +59,23 @@ export type TNodemailerModule = {
 };
 
 export type TMailgunModule = new (formData: AnyType) => AnyType;
+
+export type TAmazonSesConfig = {
+  region: string;
+  credentials?: { accessKeyId: string; secretAccessKey: string; sessionToken?: string };
+  endpoint?: string;
+};
+
+/** Same story as {@link TNodemailerModule} - a compiled binary hands this over explicitly since there is no `node_modules` to resolve `@aws-sdk/client-sesv2` against. */
+export type TAmazonSesModule<
+  TConfig extends AnyType = AnyType,
+  TClient extends AnyType = AnyType,
+> = {
+  SESv2Client: new (config: TConfig) => TClient;
+  SendEmailCommand: new (input: AnyType) => AnyType;
+  GetAccountCommand: new (input?: AnyType) => AnyType;
+};
+
+export type TAmazonSesClient = Pick<TAmazonSesModule, 'SendEmailCommand' | 'GetAccountCommand'> & {
+  client: AnyType;
+};

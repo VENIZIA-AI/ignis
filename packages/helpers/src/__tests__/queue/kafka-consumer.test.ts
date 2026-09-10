@@ -222,15 +222,15 @@ describe('KafkaConsumerHelper — lifecycle, hooks, shutdown', () => {
     expect(unhandledRejections).toEqual([]);
   });
 
-  test('BUG: a SYNC-throwing onMessageError must not escape the stream error listener', async () => {
+  test('BUG: a SYNC-throwing onStreamError must not escape the stream error listener', async () => {
     const client = new FakeConsumerClient();
 
     const helper = buildHelper({
       client,
       hooks: {
         onMessage: () => {},
-        onMessageError: () => {
-          throw new Error('message-error-hook-boom');
+        onStreamError: () => {
+          throw new Error('stream-error-hook-boom');
         },
       },
     });
@@ -388,7 +388,7 @@ describe('KafkaConsumerHelper — lifecycle, hooks, shutdown', () => {
     const client = new FakeConsumerClient();
     const helper = buildHelper({
       client,
-      hooks: { onMessage: () => {}, onMessageError: () => {} },
+      hooks: { onMessage: () => {}, onReconnectError: () => {} },
     });
 
     await helper.start({ topics: ['orders'], reconnectDelayMs: 10, maxReconnectAttempts: 5 });

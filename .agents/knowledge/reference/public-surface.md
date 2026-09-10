@@ -3021,14 +3021,18 @@ tags: [reference, exports, api]
 - `SocketIOBindingKeys` class
 - `SocketIOComponent` class
 
-### `@venizia/ignis/mail` (58)
+### `@venizia/ignis/mail` (66)
 
+- `AmazonSesTransportHelper` class
+- `buildRawMimeMessage` function
 - `BullMQExecutorModes` class
 - `BullMQMailExecutorHelper` class
 - `DefaultVerificationDataGenerator` class
 - `DirectMailExecutorHelper` class
+- `formatAddressHeader` function
 - `getExpiryTime` function
 - `getExpiryTimeInHours` function
+- `IAmazonSesMailOptions` interface
 - `IBaseMailOptions` interface
 - `IBullMQMailExecutorOpts` interface
 - `ICustomMailOptions` interface
@@ -3072,6 +3076,10 @@ tags: [reference, exports, api]
 - `NodemailerTransportHelper` class
 - `NumericCodeGenerator` class
 - `RandomTokenGenerator` class
+- `splitAddressList` function
+- `TAmazonSesClient` type
+- `TAmazonSesConfig` type
+- `TAmazonSesModule` type
 - `TemplateEngineService` class
 - `TGetMailQueueExecutorFn` type
 - `TGetMailTransportFn` type

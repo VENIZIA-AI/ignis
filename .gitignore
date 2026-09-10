@@ -94,6 +94,9 @@ openspec
 CLAUDE.md
 CLAUDE.*.md
 **/*/CLAUDE.md
+.serena
+
+docs/temp
 
 # Miscellaneous
 # Other temporary files, archives, and caches.
@@ -116,3 +119,9 @@ node_modules.zip
 # AI Agent — tool-specific configs (local only, never committed)
 .agents/plans
 .agents/specs
+
+docs/generate
+docs/temp
+
+*.bun-build
+.*.bun-build

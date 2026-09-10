@@ -571,7 +571,7 @@ describe('KafkaConsumerHelper (live)', () => {
     async () => {
       const topic = freshTopicName();
       await createTopic(topic);
-      // No onMessage means no background consume loop, so the reconnect path can be driven manually in isolation; onMessageError attaches a per-stream 'error' listener that absorbs the synthetic destroy() error.
+      // No onMessage means no background consume loop, so the reconnect path can be driven manually in isolation; the stream-error listener is attached unconditionally (see attachStreamErrorListener) and absorbs the synthetic destroy() error regardless of whether onStreamError is set.
       const consumer = KafkaConsumerHelper.newInstance({
         ...baseConn(),
         identifier: 'it-leak',
@@ -579,7 +579,7 @@ describe('KafkaConsumerHelper (live)', () => {
         deserializers: { key: stringDeserializer, value: stringDeserializer },
         sessionTimeout: 10_000,
         heartbeatInterval: 3_000,
-        onMessageError: () => {
+        onStreamError: () => {
           /* absorb */
         },
       });
