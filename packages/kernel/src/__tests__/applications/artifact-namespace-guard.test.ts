@@ -22,11 +22,7 @@ const buildApplication = () =>
     config: { host: '127.0.0.1', port: 0, path: { base: '/', isStrict: false } },
   });
 
-/**
- * `Binding` tags itself with the FIRST dot-separated segment, and only when there is more than one.
- * A key with no namespace is therefore untagged: `registerDynamicBindings` never drains it and
- * `bootChecks.binding.doVerify` never resolves it. The registration is the last place to catch that.
- */
+/** `Binding` tags by the first segment, and only when there is more than one - so a namespace-less key is untagged. */
 describe('an artifact must register under a namespace', () => {
   test('a declared binding with an empty namespace is refused at DECORATION time', () => {
     expect(() => {

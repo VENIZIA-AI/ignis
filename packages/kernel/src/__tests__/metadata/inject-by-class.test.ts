@@ -122,10 +122,7 @@ describe('@inject({ target }) resolves through the application', () => {
     expect(application.instantiate(Consumer).dependency.tag).toBe('renamed');
   });
 
-  /**
-   * Positive control, decorated half: `@service()` records a key, so the failure is the ordinary
-   * unbound-key one - the same message a hand-written `@inject({ key })` gets today.
-   */
+  /** Positive control: `@service()` recorded a key, so this is the ordinary unbound-key failure. */
   test('a decorated but unregistered class fails as an unbound key', () => {
     const application = buildApplication();
 
@@ -144,10 +141,7 @@ describe('@inject({ target }) resolves through the application', () => {
     );
   });
 
-  /**
-   * Positive control, undecorated half: nothing ever recorded a key, so the container must say that
-   * rather than invent one.
-   */
+  /** Positive control: nothing recorded a key, so the container must say so rather than invent one. */
   test('an undecorated, unregistered class is refused by name', () => {
     const application = buildApplication();
 
@@ -163,11 +157,7 @@ describe('@inject({ target }) resolves through the application', () => {
   });
 });
 
-/**
- * `@repository` asserts its first constructor parameter is a datasource by reading the `@inject`
- * key as a string. With `{ target }` there is no key, so the assertion has to read the key recorded
- * on the datasource class instead - four BANA repositories inject their datasource this way.
- */
+/** `@repository` reads param 0 as a key string; with `{ target }` there is none, so it reads the recorded key. */
 @datasource()
 class NamedDataSource extends AbstractDataSource {
   constructor() {

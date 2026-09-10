@@ -121,7 +121,6 @@ node_modules.zip
 .agents/specs
 
 docs/generate
-docs/temp
 
 *.bun-build
 .*.bun-build

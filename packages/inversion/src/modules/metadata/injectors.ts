@@ -3,10 +3,7 @@ import { isClass } from '@/common/utilities';
 import { AnyType, TBindingKey, TClass } from '@/common/types';
 import { MetadataRegistry, metadataRegistry } from '@/modules/registry';
 
-/**
- * Either a binding key or the class bound under it - never both, so a call site cannot state two
- * answers and leave the container to pick one.
- */
+/** Either a key or the class bound under it - never both. */
 export type TInjectOptions = {
   isOptional?: boolean;
   registry?: MetadataRegistry;
@@ -16,8 +13,7 @@ export type TInjectOptions = {
 export const inject = (opts: TInjectOptions) => {
   const { key, target: injected } = opts;
 
-  // A circular import leaves `target` undefined; without this the metadata records a hole that only
-  // surfaces at resolve time, far from the import that caused it.
+  // A circular import leaves `target` undefined; fail here, not at resolve time.
   if (key === undefined && !isClass(injected)) {
     throw getError({
       message: `@inject was given no binding key and no class | target: ${String(injected)}`,

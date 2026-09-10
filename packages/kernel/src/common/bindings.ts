@@ -43,7 +43,7 @@ export class BindingNamespaces {
     return name;
   }
 
-  /** Every artifact registration runs through here, so a namespace-less binding cannot reach the container. */
+  /** A namespace-less key is untagged: no boot step drains it and `doVerify` never sees it. */
   static assertArtifactNamespace(opts: { namespace: string; artifact: string; caller: string }) {
     const { namespace, artifact, caller } = opts;
 
@@ -57,11 +57,7 @@ export class BindingNamespaces {
   }
 }
 
-/**
- * The namespace each artifact kind registers under. `registerArtifact` takes its namespace from the
- * call site, so this is the only place that answers the question from the class's own metadata -
- * what `@injectable` needs to record a binding key before any application exists.
- */
+/** Artifact kind -> namespace. `registerArtifact` gets its namespace from the call site; `@injectable` has only the class. */
 export class ArtifactNamespaces {
   private static readonly BY_TYPE: Record<string, TBindingNamespace> = {
     [ArtifactTypes.COMPONENT]: BindingNamespaces.COMPONENT,

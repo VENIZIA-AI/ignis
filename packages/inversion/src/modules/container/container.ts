@@ -8,11 +8,7 @@ export class Container extends BaseContainer {
     super({ scope: opts?.scope ?? Container.name });
   }
 
-  /**
-   * A dependency names either a key or the class bound under it. The class form reads the key the
-   * registration recorded, so a call-site override or an imperative `application.service(X)` - both
-   * of which produce a key no metadata declares - still resolve.
-   */
+  /** The class form reads the key the REGISTRATION recorded, so a call-site override and an imperative `application.service(X)` both resolve. */
   protected resolveBindingKey(opts: {
     key?: TBindingKey;
     target?: TClass<AnyType>;

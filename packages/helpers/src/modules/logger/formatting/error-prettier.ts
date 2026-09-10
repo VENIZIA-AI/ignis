@@ -269,7 +269,7 @@ export class ErrorPrettier {
     }
   }
 
-  /** Under whichever node collected them: a wrapped `AggregateError` is the common shape, and its members are the whole reason this runs. */
+  /** Under whichever node collected them - a wrapped `AggregateError` is the common shape. */
   private static pushAggregatedErrors(opts: { node: IErrorSummary; lines: Array<string> }): void {
     const { node, lines } = opts;
 

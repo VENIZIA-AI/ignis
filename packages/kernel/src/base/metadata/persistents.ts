@@ -135,8 +135,7 @@ const registerDataSourceInjection = (opts: {
   const injectAtIndex0 = ownInjects?.find(entry => entry?.index === 0);
 
   if (injectAtIndex0) {
-    // `@inject({ target: SomeDataSource })` carries no key; the key it resolves to was recorded on
-    // the class when the datasource was decorated or registered.
+    // `@inject({ target })` carries no key; read the one recorded on the class.
     const injectKey =
       injectAtIndex0.key ??
       (injectAtIndex0.target

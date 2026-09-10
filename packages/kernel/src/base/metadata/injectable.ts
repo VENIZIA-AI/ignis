@@ -18,7 +18,7 @@ export const injectable = <ApplicationType = unknown>(
       });
     }
 
-    // At IMPORT time, so a namespace-less binding is caught where it is written rather than at boot.
+    // At import time, so the failure lands where the binding is written, not at boot.
     if (opts.binding) {
       BindingNamespaces.assertArtifactNamespace({
         namespace: opts.binding.namespace,
@@ -30,9 +30,7 @@ export const injectable = <ApplicationType = unknown>(
     const registry = MetadataRegistry.getInstance();
     registry.setArtifactMetadata({ target, metadata: opts });
 
-    // The key this class WOULD get, recorded now so `@inject({ target })` resolves even before the
-    // application registers it. `registerArtifact` overwrites it with the key actually bound, which
-    // is the only one that accounts for a call-site `binding` override.
+    // The key this class WOULD get; `registerArtifact` overwrites it with the one actually bound.
     registry.setBindingKey({
       target,
       key: BindingKeys.build(

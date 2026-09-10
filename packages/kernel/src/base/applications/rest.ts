@@ -382,9 +382,8 @@ export abstract class RestApplication<
 
     const key = BindingKeys.build(binding);
 
-    // The key `@inject({ target: ctor })` reads back. Written here rather than at decoration time
-    // because only this line knows the call site's `binding`, and a class registered by hand
-    // (`application.service(X)`) carries no stereotype metadata to derive one from.
+    // What `@inject({ target: ctor })` reads back. Only here knows the call site's `binding`, and a
+    // class registered by hand has no stereotype metadata to derive one from.
     MetadataRegistry.getInstance().setBindingKey({ target: ctor, key });
 
     this.assertNoBindingCollision({

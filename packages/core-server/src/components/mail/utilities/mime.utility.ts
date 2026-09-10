@@ -278,6 +278,12 @@ function buildHeaders(message: IMailMessage): string[] {
     headers.push(foldHeaderLine(`Reply-To: ${formatAddressHeader(message.replyTo)}`));
   }
 
+  // Checked, never emitted: a `Bcc:` header would disclose the blind recipients, so they travel as
+  // `Destination.BccAddresses`. Without this, `bcc` is the one address field that fails at AWS.
+  if (message.bcc) {
+    assertNoAddressListInjection({ field: 'bcc', value: message.bcc });
+  }
+
   assertNoHeaderInjection({ field: 'subject', value: message.subject });
   headers.push(foldHeaderLine(`Subject: ${encodeHeaderValue(message.subject)}`));
   // RFC 5322 requires both on every message; SES's raw-message parser does not synthesize them,

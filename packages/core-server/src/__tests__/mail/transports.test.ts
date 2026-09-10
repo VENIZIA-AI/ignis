@@ -573,6 +573,39 @@ describe('AmazonSesTransportHelper - header injection defense', () => {
     expect(fakeClient.sentCommands).toHaveLength(0);
   });
 
+  /** `bcc` is not a header; it is checked anyway so a bad address fails here, named, not at AWS. */
+  test('a CRLF smuggled into bcc is rejected before the command is built', async () => {
+    const { helper, fakeClient } = buildSesTransport();
+
+    const result = await helper.send({
+      to: 'a@b.com',
+      subject: 'Hi',
+      text: 'body',
+      bcc: 'quiet@example.com\r\nTo: attacker@evil.com',
+    });
+
+    expect(result.success).toBe(false);
+    expect(result.error).toContain('bcc');
+    expect(fakeClient.sentCommands).toHaveLength(0);
+  });
+
+  /** Negative control: a well-formed bcc still sends, and still never appears as a header. */
+  test('a valid bcc reaches BccAddresses and no Bcc header is written', async () => {
+    const { helper, fakeClient } = buildSesTransport();
+
+    const result = await helper.send({
+      to: 'a@b.com',
+      subject: 'Hi',
+      text: 'body',
+      bcc: ['quiet@example.com', 'shadow@example.com'],
+    });
+
+    expect(result.success).toBe(true);
+    const [input] = fakeClient.sentCommands;
+    expect(input.Destination.BccAddresses).toEqual(['quiet@example.com', 'shadow@example.com']);
+    expect(input.Content.Raw.Data.toString()).not.toContain('Bcc:');
+  });
+
   test('a CRLF smuggled into a custom header value is rejected', async () => {
     const { helper } = buildSesTransport();
 
