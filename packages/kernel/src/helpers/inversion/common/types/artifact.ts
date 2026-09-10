@@ -20,6 +20,8 @@ export interface IArtifactRegistrationOptions<ApplicationType = unknown> {
   /** Lower registers first within its kind. Default 0; ties keep index order. */
   order?: number;
   when?: TArtifactCondition<ApplicationType>;
+  /** Topological ordering for configurations: must run after these configuration classes. */
+  after?: ReadonlyArray<TClass<unknown>>;
 }
 
 export interface IArtifactMetadata<

@@ -7,18 +7,19 @@ export class BootSteps {
   static readonly REGISTER_ARTIFACTS = 'registerArtifacts';
   static readonly PRE_CONFIGURE = 'preConfigure';
   static readonly REGISTER_DEFAULT_MIDDLEWARES = 'registerDefaultMiddlewares';
+  static readonly REGISTER_CONFIGURATIONS = 'registerConfigurations';
   static readonly REGISTER_DATA_SOURCES = 'registerDataSources';
   static readonly REGISTER_COMPONENTS = 'registerComponents';
   static readonly REGISTER_CONTRIBUTED_DATA_SOURCES = 'registerContributedDataSources';
   static readonly REGISTER_CONTROLLERS = 'registerControllers';
   static readonly POST_CONFIGURE = 'postConfigure';
   static readonly VERIFY_BINDINGS = 'verifyBindings';
-
   static readonly SCHEME_SET = new Set<string>([
     this.STATIC_CONFIGURE,
     this.REGISTER_ARTIFACTS,
     this.PRE_CONFIGURE,
     this.REGISTER_DEFAULT_MIDDLEWARES,
+    this.REGISTER_CONFIGURATIONS,
     this.REGISTER_DATA_SOURCES,
     this.REGISTER_COMPONENTS,
     this.REGISTER_CONTRIBUTED_DATA_SOURCES,

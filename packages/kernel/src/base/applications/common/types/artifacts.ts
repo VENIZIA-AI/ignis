@@ -1,12 +1,14 @@
 import type { TArtifactCondition } from '@/helpers/inversion/common/types';
 import type { TClass } from '@venizia/ignis-helpers/common';
 import type { BaseComponent } from '../../../components';
+import type { BaseConfiguration } from '../../../configurations';
 import type { IDataSource } from '../../../datasources';
 import type { IRepository } from '../../../repositories';
 import type { IService } from '../../../services';
 
 /** The shape `@venizia/ignis-boot`'s generator emits and `registerArtifacts()` consumes. Kinds are registered in this field order. */
 export interface IArtifactIndex {
+  configurations?: ReadonlyArray<TClass<BaseConfiguration>>;
   dataSources?: ReadonlyArray<TClass<IDataSource>>;
   components?: ReadonlyArray<TClass<BaseComponent>>;
   repositories?: ReadonlyArray<TClass<IRepository>>;

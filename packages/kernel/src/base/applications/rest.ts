@@ -1,5 +1,5 @@
 import type { TBindingNamespace } from '@/common/bindings';
-import { BindingNamespaces, CoreBindings } from '@/common/bindings';
+import { ArtifactNamespaces, BindingNamespaces, CoreBindings } from '@/common/bindings';
 import type { Binding, TBindingScope } from '@/helpers/inversion';
 import { BindingKeys, BindingScopes, MetadataRegistry } from '@/helpers/inversion';
 import { OpenAPIHono } from '@hono/zod-openapi';
@@ -14,6 +14,7 @@ import { showRoutes as showApplicationRoutes } from 'hono/dev';
 import { requestId } from 'hono/request-id';
 import type { BaseComponent } from '../components';
 import { RestComponent } from '../components/controller/rest/rest.component';
+import type { BaseConfiguration } from '../configurations';
 import { ControllerTransports } from '../controllers/common/constants';
 import type { IDataSource } from '../datasources';
 import { BaseAppErrorMiddleware } from '../middlewares/app-error/app-error.middleware';
@@ -41,6 +42,7 @@ export abstract class RestApplication<
   BasePath extends string = '/',
 > extends AbstractApplication {
   private registeredBindings: Record<string, Set<string>> = {};
+  private artifactOptions = new Map<string, object>();
 
   /** The router, and nothing else. What runtime is underneath and what socket is bound are `ServerApplication`'s to know - a browser Worker has neither, and carrying the union here made `RuntimeModules.detect()` answer `'node'` inside a Worker. */
   protected server: { hono: OpenAPIHono<AppEnv, AppSchema, BasePath> };
@@ -136,6 +138,10 @@ export abstract class RestApplication<
             name: BootSteps.PRE_CONFIGURE,
             hook: () => this.preConfigure(),
           }),
+      },
+      {
+        name: BootSteps.REGISTER_CONFIGURATIONS,
+        run: () => this.registerConfigurations(),
       },
       { name: BootSteps.REGISTER_DATA_SOURCES, run: () => this.registerDataSources() },
       { name: BootSteps.REGISTER_COMPONENTS, run: () => this.registerComponents() },
@@ -316,7 +322,10 @@ export abstract class RestApplication<
           return;
         }
 
-        await instance.configure();
+        if (typeof (instance as Partial<IConfigurable>)?.configure === 'function') {
+          const options = this.artifactOptions.get(binding.key);
+          await (instance as IConfigurable).configure(options);
+        }
 
         // Marked before the after-hook runs, so the hook sees its own binding as configured.
         configured.add(binding.key);
@@ -354,14 +363,14 @@ export abstract class RestApplication<
 
   /** Resolution order for every registration: explicit `opts` > the class's `@injectable` defaults > the derived key and the kind's default scope. `order` and `when` are `registerArtifacts`' concern, not this one. */
   private registerArtifact<Base>(opts: {
-    ctor: TClass<Base>;
+    target: TClass<Base>;
     namespace: TBindingNamespace;
     defaultScope: TBindingScope;
     caller: string;
     opts?: TMixinOpts;
   }): Binding<Base> {
-    const { ctor, namespace, defaultScope, caller } = opts;
-    const declared = MetadataRegistry.getInstance().getArtifactMetadata({ target: ctor });
+    const { target, namespace, defaultScope, caller } = opts;
+    const declared = MetadataRegistry.getInstance().getArtifactMetadata({ target });
 
     if (
       this.runningApplicationHook &&
@@ -369,22 +378,26 @@ export abstract class RestApplication<
       this.configs.bootChecks?.binding?.allowManual === false
     ) {
       throw getError({
-        message: `[${caller}] '${ctor.name}' is registered by hand inside ${this.runningApplicationHook}() while 'configs.artifacts' is set and 'bootChecks.binding.allowManual' is false | Move the class into the generated index (or an explicit entry of 'configs.artifacts'), or allow manual registration`,
+        message: `[${caller}] '${target.name}' is registered by hand inside ${this.runningApplicationHook}() while 'configs.artifacts' is set and 'bootChecks.binding.allowManual' is false | Move the class into the generated index (or an explicit entry of 'configs.artifacts'), or allow manual registration`,
       });
     }
 
-    const binding = opts.opts?.binding ?? declared?.binding ?? { namespace, key: ctor.name };
+    const binding = opts.opts?.binding ?? declared?.binding ?? { namespace, key: target.name };
     BindingNamespaces.assertArtifactNamespace({
       namespace: binding.namespace,
-      artifact: ctor.name,
+      artifact: target.name,
       caller,
     });
 
     const key = BindingKeys.build(binding);
 
-    // What `@inject({ target: ctor })` reads back. Only here knows the call site's `binding`, and a
+    // What `@inject({ target })` reads back. Only here knows the call site's `binding`, and a
     // class registered by hand has no stereotype metadata to derive one from.
-    MetadataRegistry.getInstance().setBindingKey({ target: ctor, key });
+    MetadataRegistry.getInstance().setBindingKey({ target, key });
+
+    if (opts.opts?.options !== undefined) {
+      this.artifactOptions.set(key, opts.opts.options);
+    }
 
     this.assertNoBindingCollision({
       key,
@@ -393,13 +406,40 @@ export abstract class RestApplication<
     });
 
     return this.bind<Base>({ key })
-      .toClass(ctor)
+      .toClass(target)
       .setScope(declared?.scope ?? defaultScope);
   }
 
-  component<Base extends BaseComponent>(ctor: TClass<Base>, opts?: TMixinOpts): Binding<Base> {
+  configuration<Base extends BaseConfiguration<Options>, Options extends object = {}>(
+    target: TClass<Base>,
+    opts?: TMixinOpts<Options>,
+  ): Binding<Base> {
     return this.registerArtifact({
-      ctor,
+      target,
+      namespace: BindingNamespaces.CONFIGURATION,
+      defaultScope: BindingScopes.SINGLETON,
+      caller: this.configuration.name,
+      opts,
+    });
+  }
+
+  async registerConfigurations(): Promise<void> {
+    await executeWithPerformanceMeasure({
+      logger: this.logger,
+      scope: this.registerConfigurations.name,
+      description: 'Register application configurations',
+      task: async () => {
+        await this.registerDynamicBindings({ namespace: BindingNamespaces.CONFIGURATION });
+      },
+    });
+  }
+
+  component<Base extends BaseComponent<Options>, Options extends object = {}>(
+    target: TClass<Base>,
+    opts?: TMixinOpts<Options>,
+  ): Binding<Base> {
+    return this.registerArtifact({
+      target,
       namespace: BindingNamespaces.COMPONENT,
       defaultScope: BindingScopes.SINGLETON,
       caller: this.component.name,
@@ -453,9 +493,9 @@ export abstract class RestApplication<
   }
 
   /** SINGLETON like `component()`: `RestComponent` mounts the one instance it resolves, so a second resolution must be that instance, not an unmounted twin. */
-  controller<Base>(ctor: TClass<Base>, opts?: TMixinOpts): Binding<Base> {
+  controller<Base>(target: TClass<Base>, opts?: TMixinOpts): Binding<Base> {
     return this.registerArtifact({
-      ctor,
+      target,
       namespace: BindingNamespaces.CONTROLLER,
       defaultScope: BindingScopes.SINGLETON,
       caller: this.controller.name,
@@ -463,9 +503,9 @@ export abstract class RestApplication<
     });
   }
 
-  service<Base extends IService>(ctor: TClass<Base>, opts?: TMixinOpts): Binding<Base> {
+  service<Base extends IService>(target: TClass<Base>, opts?: TMixinOpts): Binding<Base> {
     return this.registerArtifact({
-      ctor,
+      target,
       namespace: BindingNamespaces.SERVICE,
       defaultScope: BindingScopes.TRANSIENT,
       caller: this.service.name,
@@ -473,9 +513,9 @@ export abstract class RestApplication<
     });
   }
 
-  repository<Base extends IRepository>(ctor: TClass<Base>, opts?: TMixinOpts): Binding<Base> {
+  repository<Base extends IRepository>(target: TClass<Base>, opts?: TMixinOpts): Binding<Base> {
     return this.registerArtifact({
-      ctor,
+      target,
       namespace: BindingNamespaces.REPOSITORY,
       defaultScope: BindingScopes.TRANSIENT,
       caller: this.repository.name,
@@ -483,9 +523,12 @@ export abstract class RestApplication<
     });
   }
 
-  dataSource<Base extends IDataSource>(ctor: TClass<Base>, opts?: TMixinOpts): Binding<Base> {
+  dataSource<Base extends IDataSource<Options>, Options extends object = {}>(
+    target: TClass<Base>,
+    opts?: TMixinOpts<Options>,
+  ): Binding<Base> {
     return this.registerArtifact({
-      ctor,
+      target,
       namespace: BindingNamespaces.DATASOURCE,
       defaultScope: BindingScopes.SINGLETON,
       caller: this.dataSource.name,
@@ -499,26 +542,30 @@ export abstract class RestApplication<
       input: index,
       application: this,
     });
-
-    for (const ctor of resolved.dataSources) {
-      this.dataSource(ctor);
+    for (const target of resolved.configurations) {
+      this.configuration(target);
+      this.bindProvidedKeys({ target });
     }
 
-    for (const ctor of resolved.components) {
-      this.component(ctor);
-      this.bindProvidedKeys({ ctor });
+    for (const target of resolved.dataSources) {
+      this.dataSource(target);
     }
 
-    for (const ctor of resolved.repositories) {
-      this.repository(ctor);
+    for (const target of resolved.components) {
+      this.component(target);
+      this.bindProvidedKeys({ target });
     }
 
-    for (const ctor of resolved.services) {
-      this.service(ctor);
+    for (const target of resolved.repositories) {
+      this.repository(target);
     }
 
-    for (const ctor of resolved.controllers) {
-      this.controller(ctor);
+    for (const target of resolved.services) {
+      this.service(target);
+    }
+
+    for (const target of resolved.controllers) {
+      this.controller(target);
     }
   }
 
@@ -533,19 +580,21 @@ export abstract class RestApplication<
   }
 
   /** Each `@provide` method becomes a lazy provider: the component is resolved (SINGLETON) and the method called on first `get`, so a provided value may depend on datasources or secrets that do not exist yet at registration time. */
-  private bindProvidedKeys(opts: { ctor: TClass<BaseComponent> }): void {
-    const { ctor } = opts;
+  private bindProvidedKeys(opts: { target: TClass<any> }): void {
+    const { target } = opts;
     const registry = MetadataRegistry.getInstance();
-    const provides = registry.getProvideMetadata({ target: ctor });
+    const provides = registry.getProvideMetadata({ target });
     if (provides.length === 0) {
       return;
     }
 
-    const declared = registry.getArtifactMetadata({ target: ctor });
+    const declared = registry.getArtifactMetadata({ target });
+    const defaultNamespace = declared?.type
+      ? ArtifactNamespaces.resolve({ type: declared.type })
+      : BindingNamespaces.COMPONENT;
     const componentKey = BindingKeys.build(
-      declared?.binding ?? { namespace: BindingNamespaces.COMPONENT, key: ctor.name },
+      declared?.binding ?? { namespace: defaultNamespace, key: target.name },
     );
-
     for (const entry of provides) {
       this.bind({ key: entry.key })
         .toProvider(container => {

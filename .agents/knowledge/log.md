@@ -6,6 +6,22 @@ not how.
 This file and `index.md` are reserved OKF filenames - they carry no `type:` frontmatter and are not
 counted as concepts.
 
+## 2026-09-10 - @configuration and type-safe component options
+
+Introduced `@configuration` class artifact and type-safe options pass-through in
+`application.component(Ctor, { options })` and `application.dataSource(Ctor, { options })`.
+
+`@configuration({ after?: TClass[] })` is an artifact kind running at `REGISTER_CONFIGURATIONS`,
+before `REGISTER_DATA_SOURCES` and `REGISTER_COMPONENTS`. It participates in `@provide` and supports
+lazy dependency injection through `@inject({ target })`. Ordering is determined via topological
+sorting of declared `after` dependencies, with deterministic tie-breaking by class name
+(`localeCompare`). Dependency cycles throw immediately with a clear cycle path; referencing an
+unregistered configuration in `after` is refused at registration.
+
+`TMixinOpts` gains `options?: Options`. `application.component()` and `application.dataSource()`
+strongly type-check `options` against the class generic. `registerDynamicBindings` passes the
+stored options directly to `instance.configure(options)`.
+
 ## 2026-09-09 - a dependency can name its class
 
 `@inject({ target: SomeService })` joins `@inject({ key })`; the options type is a union, so a call

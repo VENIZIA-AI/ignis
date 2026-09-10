@@ -65,7 +65,8 @@ describe('BootSequence', () => {
   });
 
   test('BootSteps knows its own names and rejects a server-only one', () => {
-    expect(BootSteps.SCHEME_SET.size).toBe(10);
+    expect(BootSteps.SCHEME_SET.size).toBe(11);
+    expect(BootSteps.isValid(BootSteps.REGISTER_CONFIGURATIONS)).toBe(true);
     expect(BootSteps.isValid(BootSteps.REGISTER_CONTRIBUTED_DATA_SOURCES)).toBe(true);
     expect(BootSteps.isValid('hydrateSecrets')).toBe(false);
   });
@@ -101,6 +102,9 @@ describe('RestApplication boot sequence', () => {
       this.order.push('registerArtifacts');
       await super.registerConfiguredArtifacts();
     }
+    override async registerConfigurations(): Promise<void> {
+      this.order.push('registerConfigurations');
+    }
     override async registerDataSources(): Promise<void> {
       this.order.push('registerDataSources');
     }
@@ -124,6 +128,7 @@ describe('RestApplication boot sequence', () => {
       'staticConfigure',
       'registerArtifacts',
       'preConfigure',
+      'registerConfigurations',
       'registerDataSources',
       'registerComponents',
       'registerContributedDataSources',
@@ -164,23 +169,24 @@ describe('RestApplication boot sequence', () => {
       .filter(call => call.level === 'debug' && call.message.includes('DONE'))
       .map(call => call.args[1]);
     expect(completed).toEqual([
-      'Boot step 1/9 staticConfigure',
-      'Boot step 2/9 registerArtifacts',
-      'Boot step 3/9 preConfigure',
-      'Boot step 4/9 registerDataSources',
-      'Boot step 5/9 registerComponents',
-      'Boot step 6/9 registerContributedDataSources',
-      'Boot step 7/9 registerControllers',
-      'Boot step 8/9 postConfigure',
-      'Boot step 9/9 verifyBindings',
+      'Boot step 1/10 staticConfigure',
+      'Boot step 2/10 registerArtifacts',
+      'Boot step 3/10 preConfigure',
+      'Boot step 4/10 registerConfigurations',
+      'Boot step 5/10 registerDataSources',
+      'Boot step 6/10 registerComponents',
+      'Boot step 7/10 registerContributedDataSources',
+      'Boot step 8/10 registerControllers',
+      'Boot step 9/10 postConfigure',
+      'Boot step 10/10 verifyBindings',
     ]);
 
     const summary = logger.calls.find(
       call => call.level === 'info' && call.message.startsWith('Boot sequence complete'),
     );
-    expect(summary?.args[0]).toBe(9);
+    expect(summary?.args[0]).toBe(10);
     expect(summary?.args[2]).toBe(
-      'staticConfigure -> registerArtifacts -> preConfigure -> registerDataSources -> registerComponents -> registerContributedDataSources -> registerControllers -> postConfigure -> verifyBindings',
+      'staticConfigure -> registerArtifacts -> preConfigure -> registerConfigurations -> registerDataSources -> registerComponents -> registerContributedDataSources -> registerControllers -> postConfigure -> verifyBindings',
     );
   });
 
@@ -204,7 +210,7 @@ describe('RestApplication boot sequence', () => {
 
     const failed = logger.calls.find(call => call.level === 'error');
     expect(failed?.message).toStartWith('Boot step failed');
-    expect(failed?.args.slice(0, 3)).toEqual(['preConfigure', 3, 9]);
+    expect(failed?.args.slice(0, 3)).toEqual(['preConfigure', 3, 10]);
   });
 });
 

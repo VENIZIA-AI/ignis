@@ -829,7 +829,7 @@ tags: [reference, exports, api]
 
 ## kernel
 
-### `@venizia/ignis-kernel` (392)
+### `@venizia/ignis-kernel` (396)
 
 - `AbstractApplication` class
 - `AbstractAuthRegistry` class
@@ -871,6 +871,7 @@ tags: [reference, exports, api]
 - `AuthorizeBindingKeys` class
 - `BaseAppErrorMiddleware` class
 - `BaseComponent` class
+- `BaseConfiguration` class
 - `BaseProvider` class
 - `BaseRestController` class
 - `BaseService` class
@@ -894,6 +895,7 @@ tags: [reference, exports, api]
 - `CommonStatuses` class
 - `component` const
 - `conditionalCountResponse` const
+- `configuration` const
 - `Container` class
 - `controller` const
 - `ControllerFactory` class
@@ -954,6 +956,8 @@ tags: [reference, exports, api]
 - `IComponentMixin` interface
 - `ICompressOptions` interface
 - `IConditionalArtifactIndex` interface
+- `IConfiguration` interface
+- `IConfigurationMixin` interface
 - `IController` interface
 - `IControllerMixin` interface
 - `IControllerOptions` interface
@@ -1758,7 +1762,7 @@ tags: [reference, exports, api]
 
 ## core-server
 
-### `@venizia/ignis` (937)
+### `@venizia/ignis` (941)
 
 - `AbstractApplication` class
 - `AbstractAuthRegistry` class
@@ -1830,6 +1834,7 @@ tags: [reference, exports, api]
 - `BaseAppErrorMiddleware` class
 - `BaseApplication` class
 - `BaseComponent` class
+- `BaseConfiguration` class
 - `BaseCryptoAlgorithm` class
 - `BaseDataSource` class
 - `BaseEntity` class
@@ -1879,6 +1884,7 @@ tags: [reference, exports, api]
 - `CommonStatuses` class
 - `component` const
 - `conditionalCountResponse` const
+- `configuration` const
 - `ConsoleLogger` class
 - `Container` class
 - `CONTENT_TYPE_BY_EXTENSION` const
@@ -2039,6 +2045,8 @@ tags: [reference, exports, api]
 - `ICompressOptions` interface
 - `IConditionalArtifactIndex` interface
 - `IConfigurable` interface
+- `IConfiguration` interface
+- `IConfigurationMixin` interface
 - `IConnectAdapterResult` interface
 - `IConnectRpcModule` interface
 - `IController` interface

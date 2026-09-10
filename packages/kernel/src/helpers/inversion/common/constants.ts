@@ -1,5 +1,6 @@
 /** What a decorated class is to the application - the one fact the artifact generator and the registration methods both read. */
 export class ArtifactTypes {
+  static readonly CONFIGURATION = 'configuration';
   static readonly COMPONENT = 'component';
   static readonly CONTROLLER = 'controller';
   static readonly SERVICE = 'service';
@@ -8,6 +9,7 @@ export class ArtifactTypes {
   static readonly MODEL = 'model';
 
   static readonly SCHEME_SET = new Set<string>([
+    this.CONFIGURATION,
     this.COMPONENT,
     this.CONTROLLER,
     this.SERVICE,

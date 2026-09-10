@@ -60,6 +60,7 @@ export class BindingNamespaces {
 /** Artifact kind -> namespace. `registerArtifact` gets its namespace from the call site; `@injectable` has only the class. */
 export class ArtifactNamespaces {
   private static readonly BY_TYPE: Record<string, TBindingNamespace> = {
+    [ArtifactTypes.CONFIGURATION]: BindingNamespaces.CONFIGURATION,
     [ArtifactTypes.COMPONENT]: BindingNamespaces.COMPONENT,
     [ArtifactTypes.CONTROLLER]: BindingNamespaces.CONTROLLER,
     [ArtifactTypes.SERVICE]: BindingNamespaces.SERVICE,

@@ -1,7 +1,7 @@
 import { MetadataRegistry } from '@/helpers/inversion';
 import { SingletonRealm } from '@/helpers/singleton-realm';
 import type { TClass } from '@venizia/ignis-helpers/common';
-import { BaseHelper } from '@venizia/ignis-helpers/core';
+import { BaseHelper, getError } from '@venizia/ignis-helpers/core';
 import type { IArtifactIndex, IConditionalArtifactIndex, TArtifactIndexInput } from './common';
 import { ArtifactIndexFields } from './common';
 
@@ -27,6 +27,15 @@ export class ArtifactIndexHelper extends BaseHelper {
   }): Promise<Required<IArtifactIndex>> {
     const { input, application } = opts;
     const indexes = await this.flatten({ input, application });
+
+    const rawConfigurations = await this.select({
+      indexes,
+      field: ArtifactIndexFields.CONFIGURATIONS,
+      application,
+    });
+    const configurations = this.sortConfigurationsTopologically({
+      classes: rawConfigurations,
+    });
 
     const dataSources = await this.select({
       indexes,
@@ -54,7 +63,86 @@ export class ArtifactIndexHelper extends BaseHelper {
       application,
     });
 
-    return { dataSources, components, repositories, services, controllers };
+    return { configurations, dataSources, components, repositories, services, controllers };
+  }
+
+  /**
+   * Topologically sort configurations based on `after` dependencies.
+   * Siblings with no dependency relation are sorted deterministically by class name.
+   * Throws if an unknown `after` dependency is referenced or if a dependency cycle is detected.
+   */
+  sortConfigurationsTopologically(opts: { classes: ReadonlyArray<TClass<any>> }): TClass<any>[] {
+    const { classes } = opts;
+    if (classes.length === 0) {
+      return [];
+    }
+
+    const registry = MetadataRegistry.getInstance();
+    const classMap = new Map<string, TClass<any>>();
+    for (const target of classes) {
+      classMap.set(target.name, target);
+    }
+
+    // Build graph: edge A -> B means A must run before B (B declared after: [A])
+    const inDegree = new Map<string, number>();
+    const adjacency = new Map<string, string[]>();
+
+    for (const target of classes) {
+      inDegree.set(target.name, 0);
+      adjacency.set(target.name, []);
+    }
+
+    for (const target of classes) {
+      const metadata = registry.getArtifactMetadata({ target });
+      const afterList = metadata?.after ?? [];
+
+      for (const prereq of afterList) {
+        const prereqName = typeof prereq === 'function' ? prereq.name : String(prereq);
+        if (!classMap.has(prereqName)) {
+          throw getError({
+            message: `[sortConfigurationsTopologically][${target.name}] Declared 'after' dependency '${prereqName}' is not registered as a configuration`,
+          });
+        }
+
+        adjacency.get(prereqName)!.push(target.name);
+        inDegree.set(target.name, (inDegree.get(target.name) ?? 0) + 1);
+      }
+    }
+
+    // Kahn's algorithm with priority queue (sorted by class name for deterministic sibling ordering)
+    const available: string[] = [];
+    for (const [name, deg] of inDegree.entries()) {
+      if (deg === 0) {
+        available.push(name);
+      }
+    }
+    available.sort((a, b) => a.localeCompare(b));
+
+    const sortedNames: string[] = [];
+
+    while (available.length > 0) {
+      const current = available.shift()!;
+      sortedNames.push(current);
+
+      const dependents = adjacency.get(current) ?? [];
+      for (const dep of dependents) {
+        const newDeg = inDegree.get(dep)! - 1;
+        inDegree.set(dep, newDeg);
+        if (newDeg === 0) {
+          available.push(dep);
+          available.sort((a, b) => a.localeCompare(b));
+        }
+      }
+    }
+
+    if (sortedNames.length !== classes.length) {
+      const unvisited = classes.filter(c => !sortedNames.includes(c.name)).map(c => c.name);
+      throw getError({
+        message: `[sortConfigurationsTopologically] Dependency cycle detected in configurations: ${unvisited.join(', ')}`,
+      });
+    }
+
+    return sortedNames.map(name => classMap.get(name)!);
   }
 
   /** One index, or arrays nested to any depth, as a flat list in input order; a conditional entry contributes its subtree only when its `when` answers true. */
@@ -100,37 +188,38 @@ export class ArtifactIndexHelper extends BaseHelper {
     const registry = MetadataRegistry.getInstance();
 
     const listed = indexes.flatMap(index => [...(index[field] ?? [])]);
-    const decisions = await Promise.all(listed.map(ctor => this.isSelected({ ctor, application })));
+    const decisions = await Promise.all(
+      listed.map(target => this.isSelected({ target, application })),
+    );
 
-    const kept = listed.filter((ctor, position) => {
+    const kept = listed.filter((target, position) => {
       if (decisions[position]) {
         return true;
       }
 
-      this.logger.debug('Skipped by condition | kind: %s | class: %s', field, ctor.name);
+      this.logger.debug('Skipped by condition | kind: %s | class: %s', field, target.name);
       return false;
     });
 
     return kept
-      .map((ctor, position) => ({
-        ctor,
+      .map((target, position) => ({
+        target,
         position,
-        order: registry.getArtifactMetadata({ target: ctor })?.order ?? 0,
+        order: registry.getArtifactMetadata({ target })?.order ?? 0,
       }))
       .sort((a, b) => a.order - b.order || a.position - b.position)
-      .map(entry => entry.ctor);
+      .map(entry => entry.target);
   }
 
   private async isSelected(opts: {
-    ctor: TClass<unknown>;
+    target: TClass<unknown>;
     application: unknown;
   }): Promise<boolean> {
-    const { ctor, application } = opts;
-    const when = MetadataRegistry.getInstance().getArtifactMetadata({ target: ctor })?.when;
+    const { target, application } = opts;
+    const when = MetadataRegistry.getInstance().getArtifactMetadata({ target })?.when;
     if (!when) {
       return true;
     }
-
     return when({ application });
   }
 }

@@ -242,8 +242,8 @@ export abstract class AbstractRepository<
 
     // resolveValue() erases to the resolved value's structural type, not this class-or-resolver
     // union's member - the `@repository` decorator guarantees a class constructor here.
-    const ctor = resolveValue(binding.model) as TClass<AbstractEntity>;
-    return new ctor();
+    const ModelClass = resolveValue(binding.model) as TClass<AbstractEntity>;
+    return new ModelClass();
   }
 
   /** Rejects a verb the current operation scope does not permit. */

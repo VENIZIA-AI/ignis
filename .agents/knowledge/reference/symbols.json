@@ -359,7 +359,7 @@
       "specifier": "@venizia/ignis",
       "kind": "class",
       "file": "packages/kernel/src/common/bindings.ts",
-      "line": 65,
+      "line": 61,
       "signature": "class ArtifactNamespaces"
     },
     {
@@ -651,6 +651,16 @@
       "file": "packages/kernel/src/base/components/base.ts",
       "line": 7,
       "signature": "class BaseComponent<ConfigurableOptions extends object = {}> extends BaseHelper implements IConfigurable<ConfigurableOptions>"
+    },
+    {
+      "name": "BaseConfiguration",
+      "package": "@venizia/ignis",
+      "subpath": ".",
+      "specifier": "@venizia/ignis",
+      "kind": "class",
+      "file": "packages/kernel/src/base/configurations/base.ts",
+      "line": 5,
+      "signature": "class BaseConfiguration<ConfigurableOptions extends object = {}> extends BaseHelper implements IConfiguration, IConfigurable<ConfigurableOptions>"
     },
     {
       "name": "BaseCryptoAlgorithm",
@@ -969,7 +979,7 @@
       "specifier": "@venizia/ignis",
       "kind": "class",
       "file": "packages/kernel/src/base/applications/boot-sequence.ts",
-      "line": 43,
+      "line": 44,
       "signature": "class BootSequence"
     },
     {
@@ -1160,7 +1170,7 @@
       "specifier": "@venizia/ignis",
       "kind": "class",
       "file": "packages/kernel/src/common/bindings.ts",
-      "line": 89,
+      "line": 86,
       "signature": "class CoreBindings extends BindingKeys"
     },
     {
@@ -1821,7 +1831,7 @@
       "specifier": "@venizia/ignis",
       "kind": "interface",
       "file": "packages/kernel/src/base/applications/common/types/artifacts.ts",
-      "line": 9,
+      "line": 10,
       "signature": "interface IArtifactIndex"
     },
     {
@@ -1831,7 +1841,7 @@
       "specifier": "@venizia/ignis",
       "kind": "interface",
       "file": "packages/kernel/src/helpers/inversion/common/types/artifact.ts",
-      "line": 25,
+      "line": 27,
       "signature": "interface IArtifactMetadata<ApplicationType = unknown> extends IArtifactRegistrationOptions<ApplicationType>"
     },
     {
@@ -1841,7 +1851,7 @@
       "specifier": "@venizia/ignis",
       "kind": "interface",
       "file": "packages/kernel/src/base/mixins/common/types.ts",
-      "line": 42,
+      "line": 57,
       "signature": "interface IArtifactRegistrationMixin"
     },
     {
@@ -2021,7 +2031,7 @@
       "specifier": "@venizia/ignis",
       "kind": "interface",
       "file": "packages/kernel/src/base/applications/boot-sequence.ts",
-      "line": 37,
+      "line": 38,
       "signature": "interface IBootSequenceStep"
     },
     {
@@ -2171,7 +2181,7 @@
       "specifier": "@venizia/ignis",
       "kind": "interface",
       "file": "packages/kernel/src/base/mixins/common/types.ts",
-      "line": 16,
+      "line": 26,
       "signature": "interface IComponentMixin"
     },
     {
@@ -2191,7 +2201,7 @@
       "specifier": "@venizia/ignis",
       "kind": "interface",
       "file": "packages/kernel/src/base/applications/common/types/artifacts.ts",
-      "line": 18,
+      "line": 20,
       "signature": "interface IConditionalArtifactIndex extends Partial<Record<keyof IArtifactIndex, never>>"
     },
     {
@@ -2203,6 +2213,26 @@
       "file": "packages/helpers/src/common/types/injection.ts",
       "line": 5,
       "signature": "interface IConfigurable<Options extends object = any, Result = any>"
+    },
+    {
+      "name": "IConfiguration",
+      "package": "@venizia/ignis",
+      "subpath": ".",
+      "specifier": "@venizia/ignis",
+      "kind": "interface",
+      "file": "packages/kernel/src/base/configurations/common/types.ts",
+      "line": 1,
+      "signature": "interface IConfiguration"
+    },
+    {
+      "name": "IConfigurationMixin",
+      "package": "@venizia/ignis",
+      "subpath": ".",
+      "specifier": "@venizia/ignis",
+      "kind": "interface",
+      "file": "packages/kernel/src/base/mixins/common/types.ts",
+      "line": 18,
+      "signature": "interface IConfigurationMixin"
     },
     {
       "name": "IConnectAdapterResult",
@@ -2241,7 +2271,7 @@
       "specifier": "@venizia/ignis",
       "kind": "interface",
       "file": "packages/kernel/src/base/mixins/common/types.ts",
-      "line": 28,
+      "line": 41,
       "signature": "interface IControllerMixin"
     },
     {
@@ -3061,7 +3091,7 @@
       "specifier": "@venizia/ignis",
       "kind": "interface",
       "file": "packages/kernel/src/helpers/inversion/common/types/artifact.ts",
-      "line": 32,
+      "line": 34,
       "signature": "interface IProvideMetadata"
     },
     {
@@ -3351,7 +3381,7 @@
       "specifier": "@venizia/ignis",
       "kind": "interface",
       "file": "packages/kernel/src/base/mixins/common/types.ts",
-      "line": 33,
+      "line": 46,
       "signature": "interface IRepositoryMixin"
     },
     {
@@ -3621,7 +3651,7 @@
       "specifier": "@venizia/ignis",
       "kind": "interface",
       "file": "packages/kernel/src/base/mixins/common/types.ts",
-      "line": 21,
+      "line": 34,
       "signature": "interface IServerConfigMixin"
     },
     {
@@ -3671,7 +3701,7 @@
       "specifier": "@venizia/ignis",
       "kind": "interface",
       "file": "packages/kernel/src/base/mixins/common/types.ts",
-      "line": 38,
+      "line": 53,
       "signature": "interface IServiceMixin"
     },
     {
@@ -3701,7 +3731,7 @@
       "specifier": "@venizia/ignis",
       "kind": "interface",
       "file": "packages/kernel/src/base/mixins/common/types.ts",
-      "line": 46,
+      "line": 61,
       "signature": "interface IStaticServeMixin"
     },
     {
@@ -4872,7 +4902,7 @@
       "specifier": "@venizia/ignis",
       "kind": "class",
       "file": "packages/kernel/src/base/applications/rest.ts",
-      "line": 38,
+      "line": 39,
       "signature": "class RestApplication<AppEnv extends Env = Env, AppSchema extends Schema = {}, BasePath extends string = '/'> extends AbstractApplication"
     },
     {
@@ -5042,7 +5072,7 @@
       "specifier": "@venizia/ignis",
       "kind": "const",
       "file": "packages/kernel/src/base/applications/common/constants.ts",
-      "line": 26,
+      "line": 28,
       "signature": "SecFetchSiteValues: readonly [\"same-origin\", \"same-site\", \"none\", \"cross-site\"]"
     },
     {
@@ -5392,7 +5422,7 @@
       "specifier": "@venizia/ignis",
       "kind": "type",
       "file": "packages/kernel/src/base/applications/common/constants.ts",
-      "line": 24,
+      "line": 26,
       "signature": "type TArtifactIndexField = TConstValue<typeof ArtifactIndexFields>"
     },
     {
@@ -5402,7 +5432,7 @@
       "specifier": "@venizia/ignis",
       "kind": "type",
       "file": "packages/kernel/src/base/applications/common/types/artifacts.ts",
-      "line": 24,
+      "line": 26,
       "signature": "type TArtifactIndexInput = IArtifactIndex | IConditionalArtifactIndex | TArtifactIndexInput[]"
     },
     {
@@ -5612,7 +5642,7 @@
       "specifier": "@venizia/ignis",
       "kind": "type",
       "file": "packages/kernel/src/base/applications/boot-sequence.ts",
-      "line": 35,
+      "line": 36,
       "signature": "type TBootStep = TConstValue<typeof BootSteps>"
     },
     {
@@ -6482,7 +6512,7 @@
       "specifier": "@venizia/ignis",
       "kind": "type",
       "file": "packages/kernel/src/base/metadata/injectors.ts",
-      "line": 10,
+      "line": 7,
       "signature": "type TInjectOptions = { isOptional?: boolean; } & ({ key: TBindingKey; target?: never; } | { target: TClass<AnyType>; key?: never; })"
     },
     {
@@ -6703,7 +6733,7 @@
       "kind": "type",
       "file": "packages/kernel/src/base/mixins/common/types.ts",
       "line": 10,
-      "signature": "type TMixinOpts = { binding?: { namespace: string; key: string; }; /** Default true, matching `bind()`'s overwrite behavior; false makes a same-key re-registration throw. */ allowOverride?: boolean; }"
+      "signature": "type TMixinOpts<Options extends object = {}> = { binding?: { namespace: string; key: string; }; /** Default true, matching `bind()`'s overwrite behavior; false makes a same-key re-registration throw. */ allowOverride?: boolean; /** Options passed directly to `instance.configure(options)` during init"
     },
     {
       "name": "TMixinTarget",
@@ -8172,7 +8202,7 @@
       "specifier": "@venizia/ignis",
       "kind": "const",
       "file": "packages/kernel/src/base/metadata/injectable.ts",
-      "line": 55,
+      "line": 53,
       "signature": "component: <ApplicationType = unknown>(opts?: IArtifactRegistrationOptions<ApplicationType>) => ClassDecorator"
     },
     {
@@ -8184,6 +8214,16 @@
       "file": "packages/kernel/src/base/controllers/factory/definition.ts",
       "line": 513,
       "signature": "conditionalCountResponse: typeof RouteConfigResolver.conditionalCountResponse"
+    },
+    {
+      "name": "configuration",
+      "package": "@venizia/ignis",
+      "subpath": ".",
+      "specifier": "@venizia/ignis",
+      "kind": "const",
+      "file": "packages/kernel/src/base/metadata/injectable.ts",
+      "line": 59,
+      "signature": "configuration: <ApplicationType = unknown>(opts?: IArtifactRegistrationOptions<ApplicationType>) => ClassDecorator"
     },
     {
       "name": "controller",
@@ -8703,7 +8743,7 @@
       "specifier": "@venizia/ignis",
       "kind": "const",
       "file": "packages/kernel/src/base/metadata/injectors.ts",
-      "line": 14,
+      "line": 11,
       "signature": "inject: (opts: TInjectOptions) => (target: any, propertyName: string | symbol | undefined, parameterIndex?: number) => void"
     },
     {
@@ -8953,7 +8993,7 @@
       "specifier": "@venizia/ignis",
       "kind": "const",
       "file": "packages/kernel/src/base/metadata/injectable.ts",
-      "line": 76,
+      "line": 79,
       "signature": "pickRegistrationOptions: <ApplicationType = unknown>(opts: { metadata: IArtifactRegistrationOptions<ApplicationType>; }) => IArtifactRegistrationOptions<ApplicationType>"
     },
     {
@@ -8983,7 +9023,7 @@
       "specifier": "@venizia/ignis",
       "kind": "const",
       "file": "packages/kernel/src/base/metadata/injectable.ts",
-      "line": 62,
+      "line": 65,
       "signature": "provide: (opts: { key: string; scope?: TBindingScope; }) => MethodDecorator"
     },
     {
@@ -9053,7 +9093,7 @@
       "specifier": "@venizia/ignis",
       "kind": "const",
       "file": "packages/kernel/src/base/metadata/persistents.ts",
-      "line": 254,
+      "line": 253,
       "signature": "repository: <Model extends AbstractEntity = AbstractEntity, DataSource extends IDataSource = IDataSource>(metadata?: IRepositoryMetadata<Model, DataSource>) => ClassDecorator"
     },
     {
@@ -9213,7 +9253,7 @@
       "specifier": "@venizia/ignis",
       "kind": "const",
       "file": "packages/kernel/src/base/metadata/injectable.ts",
-      "line": 49,
+      "line": 47,
       "signature": "service: <ApplicationType = unknown>(opts?: IArtifactRegistrationOptions<ApplicationType>) => ClassDecorator"
     },
     {
@@ -10023,7 +10063,7 @@
       "specifier": "@venizia/ignis/mail",
       "kind": "function",
       "file": "packages/core-server/src/components/mail/utilities/mime.utility.ts",
-      "line": 399,
+      "line": 405,
       "signature": "function buildRawMimeMessage(message: IMailMessage): Promise<Buffer>"
     },
     {
@@ -26455,7 +26495,7 @@
       "specifier": "@venizia/ignis-inversion",
       "kind": "type",
       "file": "packages/inversion/src/modules/metadata/injectors.ts",
-      "line": 10,
+      "line": 7,
       "signature": "type TInjectOptions = { isOptional?: boolean; registry?: MetadataRegistry; } & ({ key: TBindingKey; target?: never; } | { target: TClass<AnyType>; key?: never; })"
     },
     {
@@ -26535,7 +26575,7 @@
       "specifier": "@venizia/ignis-inversion",
       "kind": "const",
       "file": "packages/inversion/src/modules/metadata/injectors.ts",
-      "line": 16,
+      "line": 13,
       "signature": "inject: (opts: TInjectOptions) => (target: any, propertyName: string | symbol | undefined, parameterIndex?: number) => void"
     },
     {
@@ -26575,7 +26615,7 @@
       "specifier": "@venizia/ignis-inversion",
       "kind": "const",
       "file": "packages/inversion/src/modules/registry/registry.ts",
-      "line": 165,
+      "line": 157,
       "signature": "metadataRegistry: MetadataRegistry"
     },
     {
@@ -26675,7 +26715,7 @@
       "specifier": "@venizia/ignis-kernel",
       "kind": "class",
       "file": "packages/kernel/src/common/bindings.ts",
-      "line": 65,
+      "line": 61,
       "signature": "class ArtifactNamespaces"
     },
     {
@@ -26939,6 +26979,16 @@
       "signature": "class BaseComponent<ConfigurableOptions extends object = {}> extends BaseHelper implements IConfigurable<ConfigurableOptions>"
     },
     {
+      "name": "BaseConfiguration",
+      "package": "@venizia/ignis-kernel",
+      "subpath": ".",
+      "specifier": "@venizia/ignis-kernel",
+      "kind": "class",
+      "file": "packages/kernel/src/base/configurations/base.ts",
+      "line": 5,
+      "signature": "class BaseConfiguration<ConfigurableOptions extends object = {}> extends BaseHelper implements IConfiguration, IConfigurable<ConfigurableOptions>"
+    },
+    {
       "name": "BaseProvider",
       "package": "@venizia/ignis-kernel",
       "subpath": ".",
@@ -27035,7 +27085,7 @@
       "specifier": "@venizia/ignis-kernel",
       "kind": "class",
       "file": "packages/kernel/src/base/applications/boot-sequence.ts",
-      "line": 43,
+      "line": 44,
       "signature": "class BootSequence"
     },
     {
@@ -27145,7 +27195,7 @@
       "specifier": "@venizia/ignis-kernel",
       "kind": "class",
       "file": "packages/kernel/src/common/bindings.ts",
-      "line": 89,
+      "line": 86,
       "signature": "class CoreBindings extends BindingKeys"
     },
     {
@@ -27325,7 +27375,7 @@
       "specifier": "@venizia/ignis-kernel",
       "kind": "interface",
       "file": "packages/kernel/src/base/applications/common/types/artifacts.ts",
-      "line": 9,
+      "line": 10,
       "signature": "interface IArtifactIndex"
     },
     {
@@ -27335,7 +27385,7 @@
       "specifier": "@venizia/ignis-kernel",
       "kind": "interface",
       "file": "packages/kernel/src/helpers/inversion/common/types/artifact.ts",
-      "line": 25,
+      "line": 27,
       "signature": "interface IArtifactMetadata<ApplicationType = unknown> extends IArtifactRegistrationOptions<ApplicationType>"
     },
     {
@@ -27345,7 +27395,7 @@
       "specifier": "@venizia/ignis-kernel",
       "kind": "interface",
       "file": "packages/kernel/src/base/mixins/common/types.ts",
-      "line": 42,
+      "line": 57,
       "signature": "interface IArtifactRegistrationMixin"
     },
     {
@@ -27525,7 +27575,7 @@
       "specifier": "@venizia/ignis-kernel",
       "kind": "interface",
       "file": "packages/kernel/src/base/applications/boot-sequence.ts",
-      "line": 37,
+      "line": 38,
       "signature": "interface IBootSequenceStep"
     },
     {
@@ -27585,7 +27635,7 @@
       "specifier": "@venizia/ignis-kernel",
       "kind": "interface",
       "file": "packages/kernel/src/base/mixins/common/types.ts",
-      "line": 16,
+      "line": 26,
       "signature": "interface IComponentMixin"
     },
     {
@@ -27605,8 +27655,28 @@
       "specifier": "@venizia/ignis-kernel",
       "kind": "interface",
       "file": "packages/kernel/src/base/applications/common/types/artifacts.ts",
-      "line": 18,
+      "line": 20,
       "signature": "interface IConditionalArtifactIndex extends Partial<Record<keyof IArtifactIndex, never>>"
+    },
+    {
+      "name": "IConfiguration",
+      "package": "@venizia/ignis-kernel",
+      "subpath": ".",
+      "specifier": "@venizia/ignis-kernel",
+      "kind": "interface",
+      "file": "packages/kernel/src/base/configurations/common/types.ts",
+      "line": 1,
+      "signature": "interface IConfiguration"
+    },
+    {
+      "name": "IConfigurationMixin",
+      "package": "@venizia/ignis-kernel",
+      "subpath": ".",
+      "specifier": "@venizia/ignis-kernel",
+      "kind": "interface",
+      "file": "packages/kernel/src/base/mixins/common/types.ts",
+      "line": 18,
+      "signature": "interface IConfigurationMixin"
     },
     {
       "name": "IController",
@@ -27625,7 +27695,7 @@
       "specifier": "@venizia/ignis-kernel",
       "kind": "interface",
       "file": "packages/kernel/src/base/mixins/common/types.ts",
-      "line": 28,
+      "line": 41,
       "signature": "interface IControllerMixin"
     },
     {
@@ -27975,7 +28045,7 @@
       "specifier": "@venizia/ignis-kernel",
       "kind": "interface",
       "file": "packages/kernel/src/helpers/inversion/common/types/artifact.ts",
-      "line": 32,
+      "line": 34,
       "signature": "interface IProvideMetadata"
     },
     {
@@ -28065,7 +28135,7 @@
       "specifier": "@venizia/ignis-kernel",
       "kind": "interface",
       "file": "packages/kernel/src/base/mixins/common/types.ts",
-      "line": 33,
+      "line": 46,
       "signature": "interface IRepositoryMixin"
     },
     {
@@ -28155,7 +28225,7 @@
       "specifier": "@venizia/ignis-kernel",
       "kind": "interface",
       "file": "packages/kernel/src/base/mixins/common/types.ts",
-      "line": 21,
+      "line": 34,
       "signature": "interface IServerConfigMixin"
     },
     {
@@ -28195,7 +28265,7 @@
       "specifier": "@venizia/ignis-kernel",
       "kind": "interface",
       "file": "packages/kernel/src/base/mixins/common/types.ts",
-      "line": 38,
+      "line": 53,
       "signature": "interface IServiceMixin"
     },
     {
@@ -28205,7 +28275,7 @@
       "specifier": "@venizia/ignis-kernel",
       "kind": "interface",
       "file": "packages/kernel/src/base/mixins/common/types.ts",
-      "line": 46,
+      "line": 61,
       "signature": "interface IStaticServeMixin"
     },
     {
@@ -28555,7 +28625,7 @@
       "specifier": "@venizia/ignis-kernel",
       "kind": "class",
       "file": "packages/kernel/src/base/applications/rest.ts",
-      "line": 38,
+      "line": 39,
       "signature": "class RestApplication<AppEnv extends Env = Env, AppSchema extends Schema = {}, BasePath extends string = '/'> extends AbstractApplication"
     },
     {
@@ -28655,7 +28725,7 @@
       "specifier": "@venizia/ignis-kernel",
       "kind": "const",
       "file": "packages/kernel/src/base/applications/common/constants.ts",
-      "line": 26,
+      "line": 28,
       "signature": "SecFetchSiteValues: readonly [\"same-origin\", \"same-site\", \"none\", \"cross-site\"]"
     },
     {
@@ -28765,7 +28835,7 @@
       "specifier": "@venizia/ignis-kernel",
       "kind": "type",
       "file": "packages/kernel/src/base/applications/common/constants.ts",
-      "line": 24,
+      "line": 26,
       "signature": "type TArtifactIndexField = TConstValue<typeof ArtifactIndexFields>"
     },
     {
@@ -28775,7 +28845,7 @@
       "specifier": "@venizia/ignis-kernel",
       "kind": "type",
       "file": "packages/kernel/src/base/applications/common/types/artifacts.ts",
-      "line": 24,
+      "line": 26,
       "signature": "type TArtifactIndexInput = IArtifactIndex | IConditionalArtifactIndex | TArtifactIndexInput[]"
     },
     {
@@ -28975,7 +29045,7 @@
       "specifier": "@venizia/ignis-kernel",
       "kind": "type",
       "file": "packages/kernel/src/base/applications/boot-sequence.ts",
-      "line": 35,
+      "line": 36,
       "signature": "type TBootStep = TConstValue<typeof BootSteps>"
     },
     {
@@ -29365,7 +29435,7 @@
       "specifier": "@venizia/ignis-kernel",
       "kind": "type",
       "file": "packages/kernel/src/base/metadata/injectors.ts",
-      "line": 10,
+      "line": 7,
       "signature": "type TInjectOptions = { isOptional?: boolean; } & ({ key: TBindingKey; target?: never; } | { target: TClass<AnyType>; key?: never; })"
     },
     {
@@ -29526,7 +29596,7 @@
       "kind": "type",
       "file": "packages/kernel/src/base/mixins/common/types.ts",
       "line": 10,
-      "signature": "type TMixinOpts = { binding?: { namespace: string; key: string; }; /** Default true, matching `bind()`'s overwrite behavior; false makes a same-key re-registration throw. */ allowOverride?: boolean; }"
+      "signature": "type TMixinOpts<Options extends object = {}> = { binding?: { namespace: string; key: string; }; /** Default true, matching `bind()`'s overwrite behavior; false makes a same-key re-registration throw. */ allowOverride?: boolean; /** Options passed directly to `instance.configure(options)` during init"
     },
     {
       "name": "TModelClass",
@@ -30035,7 +30105,7 @@
       "specifier": "@venizia/ignis-kernel",
       "kind": "const",
       "file": "packages/kernel/src/base/metadata/injectable.ts",
-      "line": 55,
+      "line": 53,
       "signature": "component: <ApplicationType = unknown>(opts?: IArtifactRegistrationOptions<ApplicationType>) => ClassDecorator"
     },
     {
@@ -30047,6 +30117,16 @@
       "file": "packages/kernel/src/base/controllers/factory/definition.ts",
       "line": 513,
       "signature": "conditionalCountResponse: typeof RouteConfigResolver.conditionalCountResponse"
+    },
+    {
+      "name": "configuration",
+      "package": "@venizia/ignis-kernel",
+      "subpath": ".",
+      "specifier": "@venizia/ignis-kernel",
+      "kind": "const",
+      "file": "packages/kernel/src/base/metadata/injectable.ts",
+      "line": 59,
+      "signature": "configuration: <ApplicationType = unknown>(opts?: IArtifactRegistrationOptions<ApplicationType>) => ClassDecorator"
     },
     {
       "name": "controller",
@@ -30185,7 +30265,7 @@
       "specifier": "@venizia/ignis-kernel",
       "kind": "const",
       "file": "packages/kernel/src/base/metadata/injectors.ts",
-      "line": 14,
+      "line": 11,
       "signature": "inject: (opts: TInjectOptions) => (target: any, propertyName: string | symbol | undefined, parameterIndex?: number) => void"
     },
     {
@@ -30285,7 +30365,7 @@
       "specifier": "@venizia/ignis-kernel",
       "kind": "const",
       "file": "packages/kernel/src/base/metadata/injectable.ts",
-      "line": 76,
+      "line": 79,
       "signature": "pickRegistrationOptions: <ApplicationType = unknown>(opts: { metadata: IArtifactRegistrationOptions<ApplicationType>; }) => IArtifactRegistrationOptions<ApplicationType>"
     },
     {
@@ -30305,7 +30385,7 @@
       "specifier": "@venizia/ignis-kernel",
       "kind": "const",
       "file": "packages/kernel/src/base/metadata/injectable.ts",
-      "line": 62,
+      "line": 65,
       "signature": "provide: (opts: { key: string; scope?: TBindingScope; }) => MethodDecorator"
     },
     {
@@ -30335,7 +30415,7 @@
       "specifier": "@venizia/ignis-kernel",
       "kind": "const",
       "file": "packages/kernel/src/base/metadata/persistents.ts",
-      "line": 254,
+      "line": 253,
       "signature": "repository: <Model extends AbstractEntity = AbstractEntity, DataSource extends IDataSource = IDataSource>(metadata?: IRepositoryMetadata<Model, DataSource>) => ClassDecorator"
     },
     {
@@ -30435,7 +30515,7 @@
       "specifier": "@venizia/ignis-kernel",
       "kind": "const",
       "file": "packages/kernel/src/base/metadata/injectable.ts",
-      "line": 49,
+      "line": 47,
       "signature": "service: <ApplicationType = unknown>(opts?: IArtifactRegistrationOptions<ApplicationType>) => ClassDecorator"
     },
     {

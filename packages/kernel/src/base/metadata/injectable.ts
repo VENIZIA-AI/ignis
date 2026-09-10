@@ -56,6 +56,11 @@ export const component = <ApplicationType = unknown>(
   return injectable<ApplicationType>({ type: ArtifactTypes.COMPONENT, ...opts });
 };
 
+export const configuration = <ApplicationType = unknown>(
+  opts?: IArtifactRegistrationOptions<ApplicationType>,
+): ClassDecorator => {
+  return injectable<ApplicationType>({ type: ArtifactTypes.CONFIGURATION, ...opts });
+};
 /** Marks a component method as the provider of `key`. `registerArtifacts` binds the key to a lazy provider that resolves the component and calls the method; SINGLETON unless `scope` says otherwise. */
 export const provide = (opts: { key: string; scope?: TBindingScope }): MethodDecorator => {
   return (target, propertyKey) => {
@@ -74,7 +79,7 @@ export const provide = (opts: { key: string; scope?: TBindingScope }): MethodDec
 export const pickRegistrationOptions = <ApplicationType = unknown>(opts: {
   metadata: IArtifactRegistrationOptions<ApplicationType>;
 }): IArtifactRegistrationOptions<ApplicationType> => {
-  const { binding, allowOverride, scope, order, when } = opts.metadata;
+  const { binding, allowOverride, scope, order, when, after } = opts.metadata;
   const registration: IArtifactRegistrationOptions<ApplicationType> = {};
 
   if (binding !== undefined) {
@@ -95,6 +100,10 @@ export const pickRegistrationOptions = <ApplicationType = unknown>(opts: {
 
   if (when !== undefined) {
     registration.when = when;
+  }
+
+  if (after !== undefined) {
+    registration.after = after;
   }
 
   return registration;

@@ -53,7 +53,8 @@ describe('MetadataRegistry - artifact metadata', () => {
   });
 
   test('ArtifactTypes validates its own vocabulary', () => {
-    expect(ArtifactTypes.SCHEME_SET.size).toBe(6);
+    expect(ArtifactTypes.SCHEME_SET.size).toBe(7);
+    expect(ArtifactTypes.isValid('configuration')).toBe(true);
     expect(ArtifactTypes.isValid('service')).toBe(true);
     expect(ArtifactTypes.isValid('widget')).toBe(false);
   });

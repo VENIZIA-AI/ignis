@@ -1,6 +1,7 @@
 export * from './applications';
 export * from './auth';
 export * from './components';
+export * from './configurations';
 export * from './controllers';
 export * from './datasources';
 export * from './events';

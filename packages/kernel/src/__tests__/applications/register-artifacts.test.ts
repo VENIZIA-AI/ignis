@@ -24,25 +24,25 @@ class RecordingApplication extends RestApplication {
   setupMiddlewares(): void {}
   override async initialize(): Promise<void> {}
 
-  override dataSource<Base extends IDataSource>(ctor: TClass<Base>) {
-    this.calls.push(`dataSource:${ctor.name}`);
-    return super.dataSource(ctor);
+  override dataSource<Base extends IDataSource>(target: TClass<Base>) {
+    this.calls.push(`dataSource:${target.name}`);
+    return super.dataSource(target);
   }
-  override component<Base extends BaseComponent>(ctor: TClass<Base>) {
-    this.calls.push(`component:${ctor.name}`);
-    return super.component(ctor);
+  override component<Base extends BaseComponent>(target: TClass<Base>) {
+    this.calls.push(`component:${target.name}`);
+    return super.component(target);
   }
-  override repository<Base extends IRepository>(ctor: TClass<Base>) {
-    this.calls.push(`repository:${ctor.name}`);
-    return super.repository(ctor);
+  override repository<Base extends IRepository>(target: TClass<Base>) {
+    this.calls.push(`repository:${target.name}`);
+    return super.repository(target);
   }
-  override service<Base extends IService>(ctor: TClass<Base>) {
-    this.calls.push(`service:${ctor.name}`);
-    return super.service(ctor);
+  override service<Base extends IService>(target: TClass<Base>) {
+    this.calls.push(`service:${target.name}`);
+    return super.service(target);
   }
-  override controller<Base>(ctor: TClass<Base>) {
-    this.calls.push(`controller:${ctor.name}`);
-    return super.controller(ctor);
+  override controller<Base>(target: TClass<Base>) {
+    this.calls.push(`controller:${target.name}`);
+    return super.controller(target);
   }
 }
 

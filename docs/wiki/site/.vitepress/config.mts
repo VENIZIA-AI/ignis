@@ -450,6 +450,16 @@ const config = defineConfig({
           collapsed: false,
           items: [
             {
+              text: '2026-09-10',
+              collapsed: true,
+              items: [
+                {
+                  text: 'Configuration And Component Options',
+                  link: '/changelogs/2026-09-10-configuration-and-component-options',
+                },
+              ],
+            },
+            {
               text: '2026-09-09',
               collapsed: true,
               items: [

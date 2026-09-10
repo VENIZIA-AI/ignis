@@ -17,6 +17,7 @@ This section tracks the history of significant changes, refactors, and updates t
 
 | Date | Title | Type |
 |------|-------|------|
+| 2026-09-10 | [Application Configurations and Type-Safe Component Options](./2026-09-10-configuration-and-component-options) | Feature |
 | 2026-09-09 | [A Dependency Can Now Name Its Class Instead Of Its Key](./2026-09-09-inject-by-class) | Feature |
 | 2026-09-09 | [The Log Names Every Reason An AggregateError Collected](./2026-09-09-aggregate-error-logging) | Fix |
 | 2026-09-09 | [A Url From User Input Can No Longer Reach Inside Your Network](./2026-09-09-guarded-url-fetch) | Security |
