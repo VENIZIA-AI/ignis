@@ -456,6 +456,12 @@
     ],
     "connectors": [
       {
+        "version": "0.2.0-24",
+        "date": "2026-09-10",
+        "sha": "8c40d914",
+        "order": 1159
+      },
+      {
         "version": "0.2.0-23",
         "date": "2026-09-08",
         "sha": "7442aa16",
@@ -1450,6 +1456,12 @@
     ],
     "core-server": [
       {
+        "version": "0.2.0-25",
+        "date": "2026-09-10",
+        "sha": "260a045c",
+        "order": 1161
+      },
+      {
         "version": "0.2.0-24",
         "date": "2026-09-09",
         "sha": "a68a16dd",
@@ -1601,6 +1613,12 @@
       }
     ],
     "core-worker": [
+      {
+        "version": "0.2.0-24",
+        "date": "2026-09-10",
+        "sha": "c07547c5",
+        "order": 1160
+      },
       {
         "version": "0.2.0-23",
         "date": "2026-09-06",
@@ -2145,6 +2163,12 @@
       }
     ],
     "helpers": [
+      {
+        "version": "0.2.0-19",
+        "date": "2026-09-10",
+        "sha": "31f8714f",
+        "order": 1157
+      },
       {
         "version": "0.2.0-18",
         "date": "2026-09-09",
@@ -2718,6 +2742,12 @@
     ],
     "inversion": [
       {
+        "version": "0.2.0-6",
+        "date": "2026-09-10",
+        "sha": "78dbe738",
+        "order": 1156
+      },
+      {
         "version": "0.2.0-5",
         "date": "2026-09-05",
         "sha": "035af315",
@@ -2930,6 +2960,12 @@
     ],
     "kernel": [
       {
+        "version": "0.2.0-24",
+        "date": "2026-09-10",
+        "sha": "4bee6714",
+        "order": 1158
+      },
+      {
         "version": "0.2.0-23",
         "date": "2026-09-08",
         "sha": "a46fdb1b",
@@ -3077,6 +3113,15 @@
   },
   "changelogs": [
     {
+      "id": "changelog:2026-09-09-inject-by-class",
+      "file": "2026-09-09-inject-by-class.md",
+      "date": "2026-09-09",
+      "title": "A Dependency Can Now Name Its Class Instead Of Its Key",
+      "packages": [],
+      "kind": "Behavior Change",
+      "order": 1154
+    },
+    {
       "id": "changelog:2026-09-09-guarded-url-fetch",
       "file": "2026-09-09-guarded-url-fetch.md",
       "date": "2026-09-09",
@@ -3087,6 +3132,15 @@
       ],
       "kind": "Security",
       "order": 1147
+    },
+    {
+      "id": "changelog:2026-09-09-aggregate-error-logging",
+      "file": "2026-09-09-aggregate-error-logging.md",
+      "date": "2026-09-09",
+      "title": "The Log Names Every Reason An AggregateError Collected",
+      "packages": [],
+      "kind": "Fix",
+      "order": 1154
     },
     {
       "id": "changelog:2026-09-08-storage-scoped-vocabulary",
