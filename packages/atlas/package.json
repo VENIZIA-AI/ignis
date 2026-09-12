@@ -1,6 +1,6 @@
 {
   "name": "@venizia/ignis-atlas",
-  "version": "0.1.0-10",
+  "version": "0.1.0-11",
   "description": "MCP server for IGNIS: search and read the wiki, changelogs and knowledge bundle by section, with citations. Bun-only, zero-dependency transport.",
   "homepage": "https://ignis.venizia.ai",
   "repository": {
@@ -60,7 +60,7 @@
   },
   "dependencies": {
     "@hono/zod-openapi": "catalog:",
-    "@venizia/ignis-helpers": "^0.2.0-22",
+    "@venizia/ignis-helpers": "^0.2.0-23",
     "zod": "catalog:"
   },
   "devDependencies": {
