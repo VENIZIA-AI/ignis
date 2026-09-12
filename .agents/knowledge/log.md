@@ -6,6 +6,39 @@ not how.
 This file and `index.md` are reserved OKF filenames - they carry no `type:` frontmatter and are not
 counted as concepts.
 
+## 2026-09-12 - an env read does what it promises
+
+`ApplicationEnvironment.get()` (`packages/helpers/src/modules/env/app-env.ts`) normalises a
+present-but-empty value - `KEY=`, or `KEY=   ` from a hand edit - to `undefined`, so `defaultValue`
+applies and `transform` receives `undefined` instead of `''`. Both branches are covered by ONE
+normalisation at the top of the method; fixing only the non-transform branch fixes half the bug.
+
+The scope is the load-bearing decision: normalisation runs **only when the caller supplied a
+`defaultValue`**. A `get()` with no default still returns `''` unchanged, so no existing read changes
+shape, and the blast radius is exactly the call sites that already declared what they want when the
+name carries nothing - 10 in IGNIS, 89 in BANA. The control is the "with NO defaultValue an empty
+value is still returned as-is" case in `packages/helpers/src/__tests__/env/app-env.test.ts`: dropping
+the `defaultValue !== undefined` guard turns it red, watched, then restored. `'0'` and `'false'` are
+values and are never normalised.
+
+`int()` is UNCHANGED by decision (Phat, 2026-09-12) - it stays total, always answering a number and
+`0` for anything unparseable. The defect BANA reported is in the CALLER idiom `int(x) ?? fallback`,
+which is dead code because the left side is never nullish. Measured with balanced-paren matching, not
+a regex: IGNIS has **0** such sites, BANA has 6. An earlier regex reported 3, one of them
+`examples/vert/src/application.ts` - a FALSE POSITIVE, because `[^)]*\)` stops at the first inner
+paren of `int(env.get(...) ?? 'x')`, where the `??` is correctly inside. When counting a call-shape
+across nested calls, match parens; a regex will invent hits and hide real ones.
+
+`EnvironmentKeys` drops `APP_ENV_OAUTH2_VIEW_FOLDER` and `APP_ENV_DATASOURCE_NAME` (0 readers in
+either repository), leaving 15 names: 5 framework-read, 10 convention. `APP_ENV_JWT_SECRET` is why
+the measurement had to span BOTH repositories - BANA has zero TypeScript readers, and
+`examples/supabase/src/application.ts:92` holds the only one. A count taken in one repository answers
+a different question than the one being asked.
+
+Standing rule deliberately overridden: no-usage-in-IGNIS-and-BANA does NOT normally justify deleting
+a public export, since external consumers exist. Phat saw the measurement and the rule and chose
+deletion. This is precedent for putting both in front of him, not for deleting on a zero count.
+
 ## 2026-09-12 - a cluster takes autoConnect
 
 `IRedisClusterHelperProps` gains `autoConnect`, the field single and sentinel already had and cluster

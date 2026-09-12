@@ -109,9 +109,7 @@ own code, and setting it changes nothing in IGNIS.
 | `APP_ENV_APPLICATION_ROLES` | Application role definitions | no |
 | `APP_ENV_JWT_SECRET` | JWT signing secret | no |
 | `APP_ENV_JWT_EXPIRES_IN` | JWT token expiration | no |
-| `APP_ENV_OAUTH2_VIEW_FOLDER` | OAuth2 view templates folder | no |
 | `APP_ENV_SERVER_BASE_PATH` | Base URL path prefix | no - `configs.path.base` is the real setting |
-| `APP_ENV_DATASOURCE_NAME` | Default datasource name | no |
 | `APP_ENV_POSTGRES_HOST` | PostgreSQL host | no |
 | `APP_ENV_POSTGRES_PORT` | PostgreSQL port | no |
 | `APP_ENV_POSTGRES_USERNAME` | PostgreSQL username | no |

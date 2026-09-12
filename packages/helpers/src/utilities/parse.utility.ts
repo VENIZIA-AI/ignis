@@ -55,6 +55,21 @@ export const isFloat = (input: any) => {
   return Number(input) === input || Number(input) % 1 !== 0;
 };
 
+/**
+ * Parses an integer, TOTAL by design: it always answers a number, and answers `0` for anything it
+ * cannot parse - `undefined`, `''`, `'abc'`.
+ *
+ * That makes `int(value) ?? fallback` dead code, because the left side is never nullish. The
+ * fallback belongs INSIDE the call, and for an environment read it belongs in the read itself:
+ *
+ * ```ts
+ * int(applicationEnvironment.get(KEY, { defaultValue: '6379' }))  // correct
+ * int(applicationEnvironment.get(KEY)) ?? 6379                    // always 0 when KEY is unset
+ * ```
+ *
+ * The second form is silent: a missing port reads `0` and a missing retry budget reads `0`, which
+ * through `AbstractRedisHelper.buildRetryStrategy` means "give up after the first failure".
+ */
 export const int = (input: any) => {
   if (!input) {
     return 0;

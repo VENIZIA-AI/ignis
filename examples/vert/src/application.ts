@@ -204,7 +204,9 @@ export class Application extends BaseApplication {
       host: applicationEnvironment.get<string>(EnvironmentKeys.APP_ENV_AUTHORZ_REDIS_HOST),
       port: applicationEnvironment.get<string>(EnvironmentKeys.APP_ENV_AUTHORZ_REDIS_PORT),
       password: applicationEnvironment.get<string>(EnvironmentKeys.APP_ENV_AUTHORZ_REDIS_PASSWORD),
-      database: int(applicationEnvironment.get(EnvironmentKeys.APP_ENV_AUTHORZ_REDIS_DB) ?? '8'),
+      database: int(
+        applicationEnvironment.get(EnvironmentKeys.APP_ENV_AUTHORZ_REDIS_DB, { defaultValue: '8' }),
+      ),
     });
 
     AuthorizationEnforcerRegistry.getInstance().register({

@@ -37,6 +37,17 @@ export class ApplicationEnvironment extends BaseHelper implements IApplicationEn
     }
   }
 
+  /**
+   * Reads one name. A line that is present but empty - `KEY=`, or padded to `KEY=   ` by a hand
+   * edit - is a pipeline that forgot to export the value, not a value: it is normalised to
+   * `undefined` so `defaultValue` applies, and `transform` is handed that `undefined` rather than
+   * the empty string.
+   *
+   * The normalisation runs ONLY when the caller supplied a `defaultValue`, because that call site
+   * has already declared what it wants when the name carries nothing. A caller without one still
+   * receives `''` unchanged, so no existing read changes shape. `'0'` and `'false'` are values and
+   * are never normalised.
+   */
   get<ReturnType, BeforeTransformType = unknown>(
     key: string,
     opts?: {
@@ -44,7 +55,10 @@ export class ApplicationEnvironment extends BaseHelper implements IApplicationEn
       transform?: (value: BeforeTransformType) => ReturnType;
     },
   ): ReturnType {
-    const rs = this.arguments[key];
+    const raw = this.arguments[key];
+
+    const isBlank = raw === undefined || raw === null || (typeof raw === 'string' && !raw.trim());
+    const rs = opts?.defaultValue !== undefined && isBlank ? undefined : raw;
 
     if (!opts?.transform) {
       return (rs ?? opts?.defaultValue) as ReturnType;

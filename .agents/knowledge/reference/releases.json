@@ -14,6 +14,12 @@
   "releases": {
     "atlas": [
       {
+        "version": "0.1.0-9",
+        "date": "2026-09-12",
+        "sha": "0fe27beb",
+        "order": 1184
+      },
+      {
         "version": "0.1.0-8",
         "date": "2026-09-10",
         "sha": "e0515d93",
@@ -3196,6 +3202,18 @@
     ]
   },
   "changelogs": [
+    {
+      "id": "changelog:2026-09-12-env-reads-what-it-promises",
+      "file": "2026-09-12-env-reads-what-it-promises.md",
+      "date": "2026-09-12",
+      "title": "An Env Read Now Does What It Promises",
+      "packages": [
+        "core-server",
+        "helpers"
+      ],
+      "kind": "Fix",
+      "order": 9007199254740991
+    },
     {
       "id": "changelog:2026-09-12-cluster-auto-connect",
       "file": "2026-09-12-cluster-auto-connect.md",

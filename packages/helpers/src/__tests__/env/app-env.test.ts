@@ -50,3 +50,40 @@ describe('env transforms', () => {
     expect(toTrimmed(undefined)).toBe('');
   });
 });
+
+describe('ApplicationEnvironment.get - a present-but-empty value', () => {
+  test('an empty value falls back to defaultValue', () => {
+    const environment = makeEnvironment({ APP_ENV_EMPTY: '' });
+    expect(environment.get<string>('APP_ENV_EMPTY', { defaultValue: 'fallback' })).toBe('fallback');
+  });
+
+  test('a whitespace-only value falls back too - a hand-edited env file pads', () => {
+    const environment = makeEnvironment({ APP_ENV_BLANK: '   ' });
+    expect(environment.get<string>('APP_ENV_BLANK', { defaultValue: 'fallback' })).toBe('fallback');
+  });
+
+  test('transform never sees the empty value, it sees undefined', () => {
+    const environment = makeEnvironment({ APP_ENV_EMPTY_2: '' });
+    const seen: Array<unknown> = [];
+    const value = environment.get<string>('APP_ENV_EMPTY_2', {
+      defaultValue: 'fallback',
+      transform: raw => {
+        seen.push(raw);
+        return raw as AnyType;
+      },
+    });
+    expect(seen).toEqual([undefined]);
+    expect(value).toBe('fallback');
+  });
+
+  test('with NO defaultValue an empty value is still returned as-is', () => {
+    const environment = makeEnvironment({ APP_ENV_EMPTY_3: '' });
+    expect(environment.get<string>('APP_ENV_EMPTY_3')).toBe('');
+  });
+
+  test('a meaningful falsy value is untouched', () => {
+    const environment = makeEnvironment({ APP_ENV_ZERO: '0', APP_ENV_FALSE: 'false' });
+    expect(environment.get<string>('APP_ENV_ZERO', { defaultValue: '9' })).toBe('0');
+    expect(environment.get<string>('APP_ENV_FALSE', { defaultValue: 'true' })).toBe('false');
+  });
+});

@@ -457,6 +457,10 @@ const config = defineConfig({
                   text: 'Cluster Auto Connect',
                   link: '/changelogs/2026-09-12-cluster-auto-connect',
                 },
+                {
+                  text: 'Env Reads What It Promises',
+                  link: '/changelogs/2026-09-12-env-reads-what-it-promises',
+                },
               ],
             },
             {

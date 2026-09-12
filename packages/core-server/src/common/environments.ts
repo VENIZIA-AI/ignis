@@ -6,6 +6,10 @@
  * name here was once presented as framework configuration, which is how a deployment came to set
  * `APP_ENV_APPLICATION_DS_MIGRATION` against a framework that read `APP_ENV_DS_MIGRATION` - and
  * neither name selected anything, so both are gone.
+ *
+ * A name earns its place by having a reader. `APP_ENV_OAUTH2_VIEW_FOLDER` and
+ * `APP_ENV_DATASOURCE_NAME` had none in either IGNIS or its consumers, only entries in `.env` files
+ * nobody consulted, so they went the same way. Before adding one here, know who reads it.
  */
 export class EnvironmentKeys {
   // --- Read by the framework -------------------------------------------------------------------
@@ -29,10 +33,8 @@ export class EnvironmentKeys {
   static readonly APP_ENV_JWT_SECRET = 'APP_ENV_JWT_SECRET';
   static readonly APP_ENV_JWT_EXPIRES_IN = 'APP_ENV_JWT_EXPIRES_IN';
 
-  static readonly APP_ENV_OAUTH2_VIEW_FOLDER = 'APP_ENV_OAUTH2_VIEW_FOLDER';
   static readonly APP_ENV_SERVER_BASE_PATH = 'APP_ENV_SERVER_BASE_PATH';
 
-  static readonly APP_ENV_DATASOURCE_NAME = 'APP_ENV_DATASOURCE_NAME';
   static readonly APP_ENV_POSTGRES_HOST = 'APP_ENV_POSTGRES_HOST';
   static readonly APP_ENV_POSTGRES_PORT = 'APP_ENV_POSTGRES_PORT';
   static readonly APP_ENV_POSTGRES_USERNAME = 'APP_ENV_POSTGRES_USERNAME';

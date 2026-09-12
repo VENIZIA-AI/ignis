@@ -309,7 +309,7 @@
       "specifier": "@venizia/ignis",
       "kind": "const",
       "file": "packages/helpers/src/modules/env/app-env.ts",
-      "line": 96,
+      "line": 110,
       "signature": "AppEnvs: ApplicationEnvironment"
     },
     {
@@ -1480,7 +1480,7 @@
       "specifier": "@venizia/ignis",
       "kind": "class",
       "file": "packages/core-server/src/common/environments.ts",
-      "line": 10,
+      "line": 14,
       "signature": "class EnvironmentKeys"
     },
     {
@@ -1500,7 +1500,7 @@
       "specifier": "@venizia/ignis",
       "kind": "const",
       "file": "packages/helpers/src/modules/env/app-env.ts",
-      "line": 97,
+      "line": 111,
       "signature": "Envs: ApplicationEnvironment"
     },
     {
@@ -8162,7 +8162,7 @@
       "specifier": "@venizia/ignis",
       "kind": "const",
       "file": "packages/helpers/src/modules/env/app-env.ts",
-      "line": 94,
+      "line": 108,
       "signature": "applicationEnvironment: ApplicationEnvironment"
     },
     {
@@ -8553,7 +8553,7 @@
       "specifier": "@venizia/ignis",
       "kind": "const",
       "file": "packages/helpers/src/utilities/parse.utility.ts",
-      "line": 72,
+      "line": 87,
       "signature": "float: (input: any, digit?: number) => number"
     },
     {
@@ -8813,7 +8813,7 @@
       "specifier": "@venizia/ignis",
       "kind": "const",
       "file": "packages/helpers/src/utilities/parse.utility.ts",
-      "line": 58,
+      "line": 73,
       "signature": "int: (input: any) => number"
     },
     {
@@ -9013,7 +9013,7 @@
       "specifier": "@venizia/ignis",
       "kind": "const",
       "file": "packages/helpers/src/utilities/parse.utility.ts",
-      "line": 99,
+      "line": 114,
       "signature": "parseArrayToMapWithKey: <T extends Record<K, PropertyKey>, K extends keyof T>(arr: T[], keyMap: K) => Map<T[K], T>"
     },
     {
@@ -9343,7 +9343,7 @@
       "specifier": "@venizia/ignis",
       "kind": "const",
       "file": "packages/helpers/src/utilities/parse.utility.ts",
-      "line": 86,
+      "line": 101,
       "signature": "toBoolean: (input: any) => boolean"
     },
     {
@@ -9373,7 +9373,7 @@
       "specifier": "@venizia/ignis",
       "kind": "const",
       "file": "packages/helpers/src/utilities/parse.utility.ts",
-      "line": 122,
+      "line": 137,
       "signature": "toDelimitedArray: (input: unknown, separator?: string) => string[]"
     },
     {
@@ -9423,7 +9423,7 @@
       "specifier": "@venizia/ignis",
       "kind": "const",
       "file": "packages/helpers/src/utilities/parse.utility.ts",
-      "line": 134,
+      "line": 149,
       "signature": "toTrimmed: (input: unknown) => string"
     },
     {
@@ -19981,7 +19981,7 @@
       "specifier": "@venizia/ignis-helpers",
       "kind": "const",
       "file": "packages/helpers/src/modules/env/app-env.ts",
-      "line": 96,
+      "line": 110,
       "signature": "AppEnvs: ApplicationEnvironment"
     },
     {
@@ -20412,7 +20412,7 @@
       "specifier": "@venizia/ignis-helpers",
       "kind": "const",
       "file": "packages/helpers/src/modules/env/app-env.ts",
-      "line": 97,
+      "line": 111,
       "signature": "Envs: ApplicationEnvironment"
     },
     {
@@ -23164,7 +23164,7 @@
       "specifier": "@venizia/ignis-helpers",
       "kind": "const",
       "file": "packages/helpers/src/modules/env/app-env.ts",
-      "line": 94,
+      "line": 108,
       "signature": "applicationEnvironment: ApplicationEnvironment"
     },
     {
@@ -23265,7 +23265,7 @@
       "specifier": "@venizia/ignis-helpers",
       "kind": "const",
       "file": "packages/helpers/src/utilities/parse.utility.ts",
-      "line": 72,
+      "line": 87,
       "signature": "float: (input: any, digit?: number) => number"
     },
     {
@@ -23385,7 +23385,7 @@
       "specifier": "@venizia/ignis-helpers",
       "kind": "const",
       "file": "packages/helpers/src/utilities/parse.utility.ts",
-      "line": 58,
+      "line": 73,
       "signature": "int: (input: any) => number"
     },
     {
@@ -23505,7 +23505,7 @@
       "specifier": "@venizia/ignis-helpers",
       "kind": "const",
       "file": "packages/helpers/src/utilities/parse.utility.ts",
-      "line": 99,
+      "line": 114,
       "signature": "parseArrayToMapWithKey: <T extends Record<K, PropertyKey>, K extends keyof T>(arr: T[], keyMap: K) => Map<T[K], T>"
     },
     {
@@ -23615,7 +23615,7 @@
       "specifier": "@venizia/ignis-helpers",
       "kind": "const",
       "file": "packages/helpers/src/utilities/parse.utility.ts",
-      "line": 86,
+      "line": 101,
       "signature": "toBoolean: (input: any) => boolean"
     },
     {
@@ -23635,7 +23635,7 @@
       "specifier": "@venizia/ignis-helpers",
       "kind": "const",
       "file": "packages/helpers/src/utilities/parse.utility.ts",
-      "line": 122,
+      "line": 137,
       "signature": "toDelimitedArray: (input: unknown, separator?: string) => string[]"
     },
     {
@@ -23675,7 +23675,7 @@
       "specifier": "@venizia/ignis-helpers",
       "kind": "const",
       "file": "packages/helpers/src/utilities/parse.utility.ts",
-      "line": 134,
+      "line": 149,
       "signature": "toTrimmed: (input: unknown) => string"
     },
     {
@@ -25275,7 +25275,7 @@
       "specifier": "@venizia/ignis-helpers/core",
       "kind": "const",
       "file": "packages/helpers/src/utilities/parse.utility.ts",
-      "line": 58,
+      "line": 73,
       "signature": "int: (input: any) => number"
     },
     {
@@ -25305,7 +25305,7 @@
       "specifier": "@venizia/ignis-helpers/core",
       "kind": "const",
       "file": "packages/helpers/src/utilities/parse.utility.ts",
-      "line": 86,
+      "line": 101,
       "signature": "toBoolean: (input: any) => boolean"
     },
     {

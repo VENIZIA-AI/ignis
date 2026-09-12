@@ -140,7 +140,6 @@ The server host/port resolution uses this priority (`packages/kernel/src/base/ap
 | `APP_ENV_POSTGRES_USERNAME` | Yes* | `postgres` | Database username |
 | `APP_ENV_POSTGRES_PASSWORD` | Yes* | - | Database password |
 | `APP_ENV_POSTGRES_DATABASE` | Yes* | - | Database name |
-| `APP_ENV_DATASOURCE_NAME` | No | - | DataSource identifier |
 
 *Required when using PostgreSQL DataSource.
 

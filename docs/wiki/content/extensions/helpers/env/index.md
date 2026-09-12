@@ -25,6 +25,10 @@ The singleton is created once at module load. It reads only keys that start with
 - **`get()` takes an options object, not a positional default.** The signature is `get<ReturnType, BeforeTransformType = unknown>(key, opts?: { defaultValue?, transform? })`.
 - **Without `transform`,** `get()` returns the raw value - still a `string` - or `defaultValue` when the key is missing.
 - **With `transform`,** `get()` calls `transform(rawValue)`. It falls back to `defaultValue` only if that call returns `undefined` or `null`.
+- **A present-but-empty line counts as missing, but only when you pass `defaultValue`.** `APP_ENV_HOST=` and `APP_ENV_HOST=   ` both read as `undefined`, so `defaultValue` applies and `transform` receives `undefined` rather than `''`. Call `get()` without a `defaultValue` and you still get `''` back unchanged. `'0'` and `'false'` are values and are never treated as missing.
+
+> [!WARNING] Put the fallback in `get()`, not after it
+> `int()` always answers a number - `0` for anything unparseable - so `int(get(KEY)) ?? 6379` never reaches its fallback. Write `int(get(KEY, { defaultValue: '6379' }))` instead. The broken form is silent: a missing port reads `0`, and a missing retry budget reads `0`, which means "give up after the first failure".
 - **`get<T>()` is a type cast, not a runtime conversion, unless you pass `transform`.** Every `process.env` value is a `string`. Asking for `get<number>('APP_ENV_PORT')` still returns a string at runtime, unless you also pass `transform: Number`.
 - **Stage detection is separate from the singleton.** `Environment.current` reads `process.env.NODE_ENV` directly. It falls back to `'development'` when `NODE_ENV` is unset.
 - **`Environment.is({ name })` compares a name against `Environment.current`.**
