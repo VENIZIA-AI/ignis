@@ -89,6 +89,21 @@ describe('MailComponent - wiring', () => {
     expect(error.message).toContain('Mail options not configured');
   });
 
+  /** `application.component(MailComponent, { options })` hands the entry to `configure()`; with no key bound, that must be enough. */
+  test('options given at registration stand in for the binding', async () => {
+    const { container, component, transport } = buildComponent({ mailOptions: null });
+
+    await component.configure({
+      provider: 'custom',
+      config: transport,
+      from: 'sender@example.com',
+    });
+
+    expect(container.get<IMailTransport>({ key: MailKeys.MAIL_TRANSPORT_INSTANCE })).toBe(
+      transport,
+    );
+  });
+
   test('an UNBOUND queue executor config falls back to the direct executor', async () => {
     const { container, component } = buildComponent({ queueConfig: null });
 
@@ -100,18 +115,22 @@ describe('MailComponent - wiring', () => {
   });
 
   test('configuring twice is idempotent - the transport instance is not rebuilt', async () => {
-    const { container, component } = buildComponent({});
+    const { container, component, transport } = buildComponent({});
 
     await component.configure();
     const firstTransport = container.get<AnyType>({ key: MailKeys.MAIL_TRANSPORT_INSTANCE });
     const firstExecutor = container.get<AnyType>({ key: MailKeys.MAIL_QUEUE_EXECUTOR_INSTANCE });
+    const firstOptions = container.get<TMailOptions>({ key: MailKeys.MAIL_OPTIONS });
 
     await component.configure();
+    // A second call CARRYING options must not swap them under the transport already built.
+    await component.configure({ provider: 'custom', config: transport, from: 'late@example.com' });
 
     expect(container.get<AnyType>({ key: MailKeys.MAIL_TRANSPORT_INSTANCE })).toBe(firstTransport);
     expect(container.get<AnyType>({ key: MailKeys.MAIL_QUEUE_EXECUTOR_INSTANCE })).toBe(
       firstExecutor,
     );
+    expect(container.get<TMailOptions>({ key: MailKeys.MAIL_OPTIONS })).toBe(firstOptions);
   });
 });
 

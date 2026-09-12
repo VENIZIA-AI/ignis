@@ -15,7 +15,7 @@ import {
   TemplateEngineService,
 } from './services';
 
-export class MailComponent extends BaseComponent {
+export class MailComponent extends BaseComponent<TMailOptions> {
   constructor(
     @inject({ key: CoreBindings.APPLICATION_INSTANCE }) private application: BaseApplication,
   ) {
@@ -24,6 +24,21 @@ export class MailComponent extends BaseComponent {
       initDefault: { enable: true, container: application },
       bindings: {},
     });
+  }
+
+  /** `application.component(MailComponent, { options })` lands here; the call site outranks a key bound earlier. */
+  override async configure(opts?: TMailOptions): Promise<void> {
+    // The base short-circuits a second call; binding before that check would swap the options
+    // under a transport that was already built from the first ones.
+    if (this.isConfigured) {
+      return;
+    }
+
+    if (opts !== undefined) {
+      this.application.bind<TMailOptions>({ key: MailKeys.MAIL_OPTIONS }).toValue(opts);
+    }
+
+    await super.configure(opts);
   }
 
   override binding(): void | Promise<void> {

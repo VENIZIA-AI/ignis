@@ -1,3 +1,4 @@
+export * from './build-info.utility';
 export * from './date.utility';
 export * from './module.utility';
 export * from './parse.utility';

@@ -314,6 +314,24 @@ unset; `Environment.current` defaults to `development`). Framework reads go thro
 middleware's leak boundary, the request spy, the logger debug gate. Third-party code still gets the
 literal, so compile with `--env=disable`. The positive control in the same test proves the folding.
 
+## A published env name nobody reads is worse than no name at all
+
+`EnvironmentKeys` (`packages/core-server/src/common/environments.ts`) declared
+`APP_ENV_APPLICATION_DS_MIGRATION` while its only reader - the startup banner in
+`base/applications/base.ts` - read `APP_ENV_DS_MIGRATION`. Every example `.env`, the configuration
+reference and BANA's k8s `shared-config.yaml` set the declared spelling, so the banner always
+printed the default `postgres` and nobody could tell why. The audit that followed found the real
+answer: NEITHER name selected a datasource, both fed one log line, so the constants, the banner
+line and the `.env` entries were all deleted (2026-09-11) rather than reconciled. A setting that
+cannot change behaviour is not a setting.
+
+Three rules follow. A framework read goes through `EnvironmentKeys`, never a bare string, so one
+grep answers "who reads this". A constant the framework does NOT read is marked as such in that
+file - eleven of the sixteen names there are conventions an application reads for itself. And the
+banner reads at CALL time, never at module load: an application loads its `.env` in its own
+entrypoint, after `base.ts` is imported, so a module-load destructure prints the default for a host
+that configured everything correctly.
+
 ## Compiled binaries: renamed classes, two module copies, no default logger
 
 - bun renames a decorated class expression that shadows its own variable - tsc emits

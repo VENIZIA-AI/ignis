@@ -1,9 +1,9 @@
 #!/usr/bin/env bun
-import './common/install-quiet-logger';
+import '../common/install-quiet-logger';
 import { relative } from 'node:path';
 import { parseArgs } from 'node:util';
-import { checkArtifactIndex, generateArtifactIndex } from './generator';
-import type { IScannedArtifact } from './generator';
+import { checkArtifactIndex, generateArtifactIndex } from '../generator';
+import type { IScannedArtifact } from '../generator';
 
 const USAGE =
   'ignis-artifacts <generate|check> [--root src] [--out src/generated/artifacts.ts] [--ignore a,b] [--export GeneratedArtifacts]';

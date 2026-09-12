@@ -17,6 +17,8 @@ This section tracks the history of significant changes, refactors, and updates t
 
 | Date | Title | Type |
 |------|-------|------|
+| 2026-09-11 | [Atlas Serves Any VENIZIA Family Checkout](./2026-09-11-atlas-family-checkouts) | Enhancement |
+| 2026-09-11 | [A Build Stamps Itself, And Health Answers Twice](./2026-09-11-build-info-and-health-stats) | Feature |
 | 2026-09-10 | [Application Configurations and Type-Safe Component Options](./2026-09-10-configuration-and-component-options) | Feature |
 | 2026-09-09 | [A Dependency Can Now Name Its Class Instead Of Its Key](./2026-09-09-inject-by-class) | Feature |
 | 2026-09-09 | [The Log Names Every Reason An AggregateError Collected](./2026-09-09-aggregate-error-logging) | Fix |

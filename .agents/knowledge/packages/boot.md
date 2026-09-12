@@ -17,13 +17,22 @@ Position in the chain: `helpers -> boot`, a leaf beside `kernel`. Nothing in the
 on it - `@venizia/ignis` dropped its `ignis-boot` dependency once the runtime boot API was gone -
 so an application that runs `ignis-artifacts` declares `@venizia/ignis-boot` as its own
 devDependency. Runtime dependency: `@venizia/ignis-helpers` only (the logger). `typescript` 5 or 6 (peer `^5.0.0 || ^6.0.0`; TypeScript 7 drops the JS API the scanner calls) is
-a peer dependency because the scanner is an AST walk. Dual CJS + ESM build, sub-path export
-`./generator`, bin `ignis-artifacts -> dist/cjs/cli.js` with a `bun` shebang (the scanner uses
-`Bun.Glob`).
+a peer dependency because the scanner is an AST walk. Dual CJS + ESM build, sub-path exports
+`./generator` and `./build-info`, and two bins with a `bun` shebang (the scanner uses `Bun.Glob`,
+the build-info generator uses `Bun.$`): `ignis-artifacts -> dist/cjs/clis/artifacts.js` and
+`ignis-build-info -> dist/cjs/clis/build-info.js`.
 
 ## Layout
 
-- `src/cli.ts` - `parseArgs`; `run()` returns the exit code and `process.exit(run())` is the only exit.
+- `src/clis/` - every CLI entrypoint lives here, one file per bin, each `parseArgs` + a `run()` that
+  returns the exit code so the process exits in exactly one place: `artifacts.ts` (`ignis-artifacts`)
+  and `build-info.ts` (`ignis-build-info`, whose `run()` is async because Bun Shell has no `.sync()`).
+- `src/build-info/` - mirrors `generator/`: `resolver.ts` (`BuildInfoResolver.getInstance().resolve({ root })`,
+  a `BaseHelper` singleton that logs every miss), `emitter.ts` (`BuildInfoEmitter.render`, `ts`/`json`),
+  `index.ts` (`generateBuildInfo` + barrel), `common/` (`BuildInfoFormats`, `BuildInfoEnvironmentKeys`).
+  Reads env first (`APP_ENV_*` > `APP_BUILD_*` > provider), then `git` through `Bun.$` with
+  `.cwd(root)`, then `package.json`; never throws. The record type and the `unspecified` sentinel come
+  from `@venizia/ignis-helpers/core` (`TBuildInfoRecord`, `BuildInfoRegistry.UNSPECIFIED`).
 - `src/generator/scanner.ts` - `ArtifactScanner.getInstance().scan({ root, ignore })` -> `IScannedArtifact[]` (a `BaseHelper` singleton; the logger is the instance's).
 - `src/generator/emitter.ts` - `ArtifactIndexEmitter.render({ artifacts, outFile, exportName })` -> text.
 - `src/generator/index.ts` - `generateArtifactIndex`, `checkArtifactIndex`, `IGenerateOptions`.
@@ -83,7 +92,7 @@ exit 2.
   IGNIS module.
 - **The index is a lint gate, not a build step.** `check` belongs where lint runs; in this repo
   `make artifacts-check` (a prerequisite of `make lint-examples`) runs vert's `check:artifacts`.
-- **Inside the monorepo the examples run the CLI from source** (`bun ../../packages/boot/src/cli.ts`)
+- **Inside the monorepo the examples run the CLI from source** (`bun ../../packages/boot/src/clis/artifacts.ts`)
   so a fresh checkout without a built `dist` still generates; external applications use the bin.
 - **Tests** in `src/__tests__/generator/` run against fixtures under
   `src/__tests__/fixtures/artifacts/**`. The fixtures import `@venizia/ignis`, so they are excluded

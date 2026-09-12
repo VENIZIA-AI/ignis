@@ -6,6 +6,85 @@ not how.
 This file and `index.md` are reserved OKF filenames - they carry no `type:` frontmatter and are not
 counted as concepts.
 
+## 2026-09-11 - build stamp, and a two-tier health check
+
+`ignis-build-info generate` (new bin in `@venizia/ignis-boot`, beside `ignis-artifacts`; both CLI entrypoints now live in `src/clis/` - `artifacts.ts` and `build-info.ts`) resolves a
+build stamp - service, version, commit, branch, builtAt - from CI variables first, then `git`, then
+`package.json`, and writes it as a static `ts` const or a `json` record. The `ts` form is what a
+backend bakes in; the `json` form is what a Vite app or a Tauri shell reads.
+
+Env precedence per field is `APP_ENV_*` > `APP_BUILD_*` > provider-specific:
+`APP_ENV_BUILD_VERSION` > `APP_BUILD_VERSION` > `CI_COMMIT_TAG` > `GITHUB_REF_NAME`;
+`APP_ENV_BUILD_COMMIT_TAG` > `APP_BUILD_COMMIT` > `CI_COMMIT_SHA` > `GITHUB_SHA` > `COMMIT_SHA`;
+`APP_ENV_BUILD_DATE` > `APP_BUILD_DATE`. The `APP_ENV_` spellings are what BANA's pipeline exports.
+
+`git` runs through Bun Shell (`Bun.$`), never `node:child_process` - so `BuildInfoResolver.resolve`
+and `generateBuildInfo` are `async` (Bun Shell has no `.sync()`). The folder mirrors `generator/`:
+`resolver.ts` (a `BaseHelper` singleton, every miss logged at debug - C-06 forbids a silent catch),
+`emitter.ts` (static `render`), `index.ts` (orchestration + barrel), `common/{constants,types}.ts`.
+`IBuildInfo`/`TBuildInfoRecord` and the `UNSPECIFIED` sentinel have ONE home,
+`@venizia/ignis-helpers/core` (`BuildInfoRegistry.UNSPECIFIED`); boot already depends on helpers at
+runtime, so a boot-local copy would have been a second implementation. Two details are load-bearing and each
+has a test that turns red without it: `.cwd(root)` means the stamp belongs to the package, not the
+workspace the CLI was invoked from; and `result.exitCode !== 0` must be read, because in a
+repository with no commit `git rev-parse --abbrev-ref HEAD` prints the literal `HEAD` on stdout
+while exiting 128. The `catch` also swallows `Bun` being undefined on plain Node, degrading the
+field to `unspecified` rather than killing a build.
+
+The stamp is PUSHED into `BuildInfoRegistry` (`@venizia/ignis-helpers/core`) at the application
+entrypoint, never read back at run time. That is the load-bearing decision: a `bun build --compile`
+binary ships no `node_modules`, no `.git` and no readable `package.json`, and a Distroless image has
+no `git` to spawn - a runtime resolver would report blanks in exactly the deployment that needs the
+stamp. Same `globalThis` + `Symbol.for` slot as `ProjectRootRegistry`/`ModuleUtility.register`, so
+two copies of the package in one process share one stamp. Browser-pure: zero node imports.
+
+`GET /health` answers `{ status, timestamp }` and nothing more - a probe needs no more, and the
+clock catches drift. `GET /health/stats` carries build + process + memory and is CLOSED by default
+on every host that is not a development environment: the runtime version it names is what picks
+an exploit. `stats.secretKey`
+gates it through `X-Health-Key`, and a bad key gets 404 rather than 401 so the route's existence
+stays unlearnable. `stats.enable: false` leaves it unmounted, not empty.
+
+The gate lives on the CONTAINER, not on the class: `HealthCheckController` takes
+`HEALTH_CHECK_OPTIONS` and `HealthCheckBindingKeys.APPLICATION_INFO` through `@inject` (the nearest
+precedent is `ServiceCertsController`). A first cut kept them in a `private static context` set by
+the component, which leaks across nested applications - the last app to boot decided for every one
+before it. `packages/core-server/src/__tests__/components/health-check/stats.test.ts` has the
+positive control ('two applications in one process keep their own gate'), red on the static
+version. `getAppInfo()` is async while the container builds controllers synchronously, so the
+component resolves it once and binds the value. A `secretKey` that is set but blank fails CLOSED.
+
+Resolution order for the stamp: `stats.buildInfo` > `BuildInfoRegistry.get()` > `getAppInfo()`,
+unknown fields reading `unspecified`. A host that ran no generator therefore still reports its real
+name and version, because `getAppInfo()` is on every IGNIS application already - the component can
+never go dead for want of tooling.
+
+The startup banner read `APP_ENV_DS_MIGRATION` while `EnvironmentKeys`, every example `.env`, the
+configuration reference and BANA's k8s `shared-config.yaml` set `APP_ENV_APPLICATION_DS_MIGRATION`
+- 2026-09-11 - atlas: repo mode accepts any `@venizia/<family>-workspace` checkout and names the server `<family>-atlas` (`workspaceFamilyOf`); ARDOR runs the same atlas over its own corpora.
+- nothing read what everyone wrote, so the banner always printed `postgres`. Auditing it showed
+neither spelling selected a datasource; both fed one log line. So the constants
+(`APP_ENV_APPLICATION_DS_{MIGRATION,AUTHORIZE,OAUTH2}`), the banner line and the `.env` entries are
+DELETED, not renamed. `printStartUpInfo` now reads what remains through `EnvironmentKeys` at CALL
+time, not through a module-load destructure that a `.env` loaded by the entrypoint would miss;
+`packages/core-server/src/__tests__/applications/startup-banner.test.ts` holds the controls.
+`EnvironmentKeys` is now split in two: five names the framework reads, twelve that are conventions
+an application reads for itself - the missing distinction is what cost this.
+
+The stats default is FAIL-CLOSED the same way `AppErrorMiddleware.isProduction` is: mounted only
+when `Environment.ambient` (never `current`, which masks an unset `NODE_ENV` as `development`) is a
+member of `DEVELOPMENT_ENVS`. A first cut used `!== 'production'`, which opened the route on
+`staging`, `uat` and every container that forgot `NODE_ENV`. `enable` is honoured only as a real
+boolean (a config-derived `"false"` is truthy) and the refusal is `context.notFound()`, so the body
+is byte-identical to an unmounted route - a thrown 404 serializes differently and confirms the
+route exists.
+
+`application.component(Ctor, { options })` (2026-09-10) reached no component until now: the base
+`configure(options)` only logs. `HealthCheckComponent` and `MailComponent` now declare
+`BaseComponent<Options>` and override `configure()` to bind the argument before `super.configure()`;
+the call site outranks a key bound earlier, and `initDefaultBindings` fills only an unbound key. A
+component that wants the knob must do the same two things - the base class will not do it for it.
+
 ## 2026-09-10 - @configuration and type-safe component options
 
 Introduced `@configuration` class artifact and type-safe options pass-through in

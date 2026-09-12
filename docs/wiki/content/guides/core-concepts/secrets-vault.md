@@ -47,8 +47,8 @@ export class Application extends BaseApplication {
       // Static KV v2 secrets -> merged into Envs once at boot.
       hydrate: [
         { path: 'secret/data/myapp/config' },                    // keys land as-is
-        { path: 'secret/data/myapp/db', prefix: 'APP_ENV_DS_' }, // optional prefix
-        // { path: 'secret/data/myapp/db', keys: { password: 'APP_ENV_DS_PASSWORD' } },
+        { path: 'secret/data/myapp/db', prefix: 'APP_ENV_DB_' }, // optional prefix - any name YOUR code reads
+        // { path: 'secret/data/myapp/db', keys: { password: 'APP_ENV_DB_PASSWORD' } },
       ],
 
       // Dynamic engine secrets -> renewed and rotated automatically.

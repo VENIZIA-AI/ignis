@@ -95,28 +95,31 @@ See the [Environment Variables Reference](./environment-variables.md) for the fu
 import { EnvironmentKeys } from '@venizia/ignis';
 ```
 
-| Constant | Description |
-|----------|-------------|
-| `APP_ENV_APPLICATION_NAME` | Application display name |
-| `APP_ENV_APPLICATION_TIMEZONE` | Application timezone (e.g., `'Asia/Ho_Chi_Minh'`) |
-| `APP_ENV_APPLICATION_SECRET` | Application-wide secret key |
-| `APP_ENV_JWT_SECRET` | JWT signing secret |
-| `APP_ENV_JWT_EXPIRES_IN` | JWT token expiration |
-| `APP_ENV_LOGGER_FOLDER_PATH` | Log file output directory |
-| `APP_ENV_APPLICATION_ROLES` | Application role definitions |
-| `APP_ENV_APPLICATION_DS_MIGRATION` | DataSource name for migrations |
-| `APP_ENV_APPLICATION_DS_AUTHORIZE` | DataSource name for authorization |
-| `APP_ENV_APPLICATION_DS_OAUTH2` | DataSource name for OAuth2 |
-| `APP_ENV_OAUTH2_VIEW_FOLDER` | OAuth2 view templates folder |
-| `APP_ENV_SERVER_HOST` | HTTP server host (e.g., `'0.0.0.0'`) |
-| `APP_ENV_SERVER_PORT` | HTTP server port (e.g., `3000`) |
-| `APP_ENV_SERVER_BASE_PATH` | Base URL path prefix |
-| `APP_ENV_DATASOURCE_NAME` | Default datasource name |
-| `APP_ENV_POSTGRES_HOST` | PostgreSQL host |
-| `APP_ENV_POSTGRES_PORT` | PostgreSQL port |
-| `APP_ENV_POSTGRES_USERNAME` | PostgreSQL username |
-| `APP_ENV_POSTGRES_PASSWORD` | PostgreSQL password |
-| `APP_ENV_POSTGRES_DATABASE` | PostgreSQL database name |
+The column that matters is the last one: a constant marked **no** is a naming convention for your
+own code, and setting it changes nothing in IGNIS.
+
+| Constant | Description | Read by IGNIS |
+|----------|-------------|---------------|
+| `APP_ENV_APPLICATION_NAME` | Application display name | yes - `AppConstants.APPLICATION_NAME`, startup banner |
+| `APP_ENV_APPLICATION_TIMEZONE` | Application timezone (e.g., `'Asia/Ho_Chi_Minh'`) | yes - `DateUtility` default zone, startup banner |
+| `APP_ENV_LOGGER_FOLDER_PATH` | Log file output directory | yes - enables rotating file logs |
+| `APP_ENV_SERVER_HOST` | HTTP server host (e.g., `'0.0.0.0'`) | yes - fallback when `configs.host` is absent |
+| `APP_ENV_SERVER_PORT` | HTTP server port (e.g., `3000`) | yes - fallback when `configs.port` is absent |
+| `APP_ENV_APPLICATION_SECRET` | Application-wide secret key | no |
+| `APP_ENV_APPLICATION_ROLES` | Application role definitions | no |
+| `APP_ENV_JWT_SECRET` | JWT signing secret | no |
+| `APP_ENV_JWT_EXPIRES_IN` | JWT token expiration | no |
+| `APP_ENV_OAUTH2_VIEW_FOLDER` | OAuth2 view templates folder | no |
+| `APP_ENV_SERVER_BASE_PATH` | Base URL path prefix | no - `configs.path.base` is the real setting |
+| `APP_ENV_DATASOURCE_NAME` | Default datasource name | no |
+| `APP_ENV_POSTGRES_HOST` | PostgreSQL host | no |
+| `APP_ENV_POSTGRES_PORT` | PostgreSQL port | no |
+| `APP_ENV_POSTGRES_USERNAME` | PostgreSQL username | no |
+| `APP_ENV_POSTGRES_PASSWORD` | PostgreSQL password | no |
+| `APP_ENV_POSTGRES_DATABASE` | PostgreSQL database name | no |
+
+The logger reads a further set of `APP_ENV_LOGGER_*` names that `EnvironmentKeys` does not declare -
+see [Environment variables](./environment-variables).
 
 ## See also
 

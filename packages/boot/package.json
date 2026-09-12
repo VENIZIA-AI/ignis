@@ -48,6 +48,12 @@
       "import": "./dist/esm/generator/index.js",
       "require": "./dist/cjs/generator/index.js",
       "default": "./dist/cjs/generator/index.js"
+    },
+    "./build-info": {
+      "types": "./dist/cjs/build-info/index.d.ts",
+      "import": "./dist/esm/build-info/index.js",
+      "require": "./dist/cjs/build-info/index.js",
+      "default": "./dist/cjs/build-info/index.js"
     }
   },
   "files": [
@@ -92,6 +98,7 @@
     "typescript": "^5.0.0 || ^6.0.0"
   },
   "bin": {
-    "ignis-artifacts": "./dist/cjs/cli.js"
+    "ignis-artifacts": "./dist/cjs/clis/artifacts.js",
+    "ignis-build-info": "./dist/cjs/clis/build-info.js"
   }
 }

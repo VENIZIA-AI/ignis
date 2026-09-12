@@ -1,6 +1,7 @@
 import { assertScopeFilterSupported } from '@venizia/ignis-connectors';
 import { ControllerTransports } from '@venizia/ignis-kernel';
 import { BindingNamespaces, CoreBindings } from '@venizia/ignis-kernel';
+import { EnvironmentKeys } from '@/common/environments';
 import { RequestTrackerComponent } from '@/components';
 import { GrpcComponent } from '@/components/controller/grpc';
 import {
@@ -35,19 +36,6 @@ import { ServerBootSteps } from './boot-steps';
 import { ServerApplication } from './server';
 import type { IRestApplication } from '@venizia/ignis-kernel';
 import type { IBootSequenceStep } from '@venizia/ignis-kernel';
-
-const {
-  NODE_ENV,
-  RUN_MODE,
-  ALLOW_EMPTY_ENV_VALUE = false,
-  APPLICATION_ENV_PREFIX = 'APP_ENV',
-
-  APP_ENV_APPLICATION_NAME = 'PNT',
-  APP_ENV_APPLICATION_TIMEZONE = 'Asia/Ho_Chi_Minh',
-  APP_ENV_DS_MIGRATION = 'postgres',
-  APP_ENV_DS_AUTHORIZE = 'postgres',
-  APP_ENV_LOGGER_FOLDER_PATH = './',
-} = process.env;
 
 /** Maps a secret bundle to env names: the explicit `keys` mapping when present, otherwise every bundle key under `prefix`. */
 const selectSecretEnvKeys = (opts: {
@@ -326,35 +314,40 @@ export abstract class BaseApplication extends ServerApplication implements IRest
     return this;
   }
 
+  /**
+   * Every value is read HERE, not destructured at module load: an application that loads its
+   * `.env` in its own entrypoint does so after this module is imported, and a module-load snapshot
+   * would print the defaults for a host that configured everything correctly.
+   */
   protected printStartUpInfo(opts: { scope: string }) {
     const { scope } = opts;
-    this.logger
-      .for(scope)
-      .info('------------------------------------------------------------------------');
+    const read = (key: string, fallback: string): string => process.env[key] ?? fallback;
+    const divider = '------------------------------------------------------------------------';
+
+    this.logger.for(scope).info(divider);
     this.logger
       .for(scope)
       .info(
         'Starting application... | Name: %s | Env: %s | Runtime: %s',
-        APP_ENV_APPLICATION_NAME,
-        NODE_ENV,
+        read(EnvironmentKeys.APP_ENV_APPLICATION_NAME, 'PNT'),
+        process.env.NODE_ENV,
         this.runtime,
       );
     this.logger
       .for(scope)
-      .info('AllowEmptyEnv: %s | Prefix: %s', ALLOW_EMPTY_ENV_VALUE, APPLICATION_ENV_PREFIX);
-    this.logger.for(scope).info('RunMode: %s', RUN_MODE);
-    this.logger.for(scope).info('Timezone: %s', APP_ENV_APPLICATION_TIMEZONE);
-    this.logger.for(scope).info('LogPath: %s', APP_ENV_LOGGER_FOLDER_PATH);
-    this.logger
-      .for(scope)
       .info(
-        'Datasource | Migration: %s | Authorize: %s',
-        APP_ENV_DS_MIGRATION,
-        APP_ENV_DS_AUTHORIZE,
+        'AllowEmptyEnv: %s | Prefix: %s',
+        read('ALLOW_EMPTY_ENV_VALUE', 'false'),
+        read('APPLICATION_ENV_PREFIX', 'APP_ENV'),
       );
+    this.logger.for(scope).info('RunMode: %s', process.env.RUN_MODE);
     this.logger
       .for(scope)
-      .info('------------------------------------------------------------------------');
+      .info('Timezone: %s', read(EnvironmentKeys.APP_ENV_APPLICATION_TIMEZONE, 'Asia/Ho_Chi_Minh'));
+    this.logger
+      .for(scope)
+      .info('LogPath: %s', read(EnvironmentKeys.APP_ENV_LOGGER_FOLDER_PATH, './'));
+    this.logger.for(scope).info(divider);
   }
 
   /** Swaps in the `ErrorPrettier`-backed formatter - `node:util`, so the kernel cannot build it. */

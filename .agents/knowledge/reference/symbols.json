@@ -639,7 +639,7 @@
       "specifier": "@venizia/ignis",
       "kind": "class",
       "file": "packages/core-server/src/base/applications/base.ts",
-      "line": 80,
+      "line": 68,
       "signature": "class BaseApplication extends ServerApplication implements IRestApplication"
     },
     {
@@ -991,6 +991,16 @@
       "file": "packages/kernel/src/base/applications/boot-sequence.ts",
       "line": 5,
       "signature": "class BootSteps"
+    },
+    {
+      "name": "BuildInfoRegistry",
+      "package": "@venizia/ignis",
+      "subpath": ".",
+      "specifier": "@venizia/ignis",
+      "kind": "class",
+      "file": "packages/helpers/src/utilities/build-info.utility.ts",
+      "line": 22,
+      "signature": "class BuildInfoRegistry"
     },
     {
       "name": "CASBIN_RBAC_DOMAIN_SCOPED_MODEL",
@@ -1470,7 +1480,7 @@
       "specifier": "@venizia/ignis",
       "kind": "class",
       "file": "packages/core-server/src/common/environments.ts",
-      "line": 2,
+      "line": 10,
       "signature": "class EnvironmentKeys"
     },
     {
@@ -1712,7 +1722,7 @@
       "kind": "class",
       "file": "packages/core-server/src/components/health-check/component.ts",
       "line": 15,
-      "signature": "class HealthCheckComponent extends BaseComponent"
+      "signature": "class HealthCheckComponent extends BaseComponent<IHealthCheckOptions>"
     },
     {
       "name": "HealthCheckController",
@@ -1721,8 +1731,28 @@
       "specifier": "@venizia/ignis",
       "kind": "class",
       "file": "packages/core-server/src/components/health-check/controller.ts",
-      "line": 48,
+      "line": 84,
       "signature": "class HealthCheckController extends BaseRestController"
+    },
+    {
+      "name": "HealthCheckHeaders",
+      "package": "@venizia/ignis",
+      "subpath": ".",
+      "specifier": "@venizia/ignis",
+      "kind": "class",
+      "file": "packages/core-server/src/components/health-check/common/constants.ts",
+      "line": 1,
+      "signature": "class HealthCheckHeaders"
+    },
+    {
+      "name": "HealthCheckReporter",
+      "package": "@venizia/ignis",
+      "subpath": ".",
+      "specifier": "@venizia/ignis",
+      "kind": "class",
+      "file": "packages/core-server/src/components/health-check/reporter.ts",
+      "line": 14,
+      "signature": "class HealthCheckReporter"
     },
     {
       "name": "HealthCheckRestPaths",
@@ -2053,6 +2083,16 @@
       "file": "packages/helpers/src/modules/storage/common/types.ts",
       "line": 50,
       "signature": "interface IBucketRef"
+    },
+    {
+      "name": "IBuildInfo",
+      "package": "@venizia/ignis",
+      "subpath": ".",
+      "specifier": "@venizia/ignis",
+      "kind": "interface",
+      "file": "packages/helpers/src/utilities/build-info.utility.ts",
+      "line": 5,
+      "signature": "interface IBuildInfo"
     },
     {
       "name": "IBuildOptions",
@@ -2661,7 +2701,7 @@
       "specifier": "@venizia/ignis",
       "kind": "interface",
       "file": "packages/core-server/src/components/health-check/common/types.ts",
-      "line": 1,
+      "line": 3,
       "signature": "interface IHealthCheckOptions"
     },
     {
@@ -5644,6 +5684,16 @@
       "file": "packages/kernel/src/base/applications/boot-sequence.ts",
       "line": 36,
       "signature": "type TBootStep = TConstValue<typeof BootSteps>"
+    },
+    {
+      "name": "TBuildInfoRecord",
+      "package": "@venizia/ignis",
+      "subpath": ".",
+      "specifier": "@venizia/ignis",
+      "kind": "type",
+      "file": "packages/helpers/src/utilities/build-info.utility.ts",
+      "line": 14,
+      "signature": "type TBuildInfoRecord = Required<IBuildInfo>"
     },
     {
       "name": "TBullQueueRole",
@@ -9794,7 +9844,7 @@
       "kind": "class",
       "file": "packages/core-server/src/components/mail/component.ts",
       "line": 18,
-      "signature": "class MailComponent extends BaseComponent"
+      "signature": "class MailComponent extends BaseComponent<TMailOptions>"
     },
     {
       "name": "MailDefaults",
@@ -14266,6 +14316,66 @@
       "signature": "class ArtifactTypes"
     },
     {
+      "name": "BuildInfoEmitter",
+      "package": "@venizia/ignis-boot",
+      "subpath": ".",
+      "specifier": "@venizia/ignis-boot",
+      "kind": "class",
+      "file": "packages/boot/src/build-info/emitter.ts",
+      "line": 5,
+      "signature": "class BuildInfoEmitter"
+    },
+    {
+      "name": "BuildInfoEnvironmentKeys",
+      "package": "@venizia/ignis-boot",
+      "subpath": ".",
+      "specifier": "@venizia/ignis-boot",
+      "kind": "class",
+      "file": "packages/boot/src/build-info/common/constants.ts",
+      "line": 21,
+      "signature": "class BuildInfoEnvironmentKeys"
+    },
+    {
+      "name": "BuildInfoFormats",
+      "package": "@venizia/ignis-boot",
+      "subpath": ".",
+      "specifier": "@venizia/ignis-boot",
+      "kind": "class",
+      "file": "packages/boot/src/build-info/common/constants.ts",
+      "line": 3,
+      "signature": "class BuildInfoFormats"
+    },
+    {
+      "name": "BuildInfoResolver",
+      "package": "@venizia/ignis-boot",
+      "subpath": ".",
+      "specifier": "@venizia/ignis-boot",
+      "kind": "class",
+      "file": "packages/boot/src/build-info/resolver.ts",
+      "line": 16,
+      "signature": "class BuildInfoResolver extends BaseHelper"
+    },
+    {
+      "name": "IBuildInfoOptions",
+      "package": "@venizia/ignis-boot",
+      "subpath": ".",
+      "specifier": "@venizia/ignis-boot",
+      "kind": "interface",
+      "file": "packages/boot/src/build-info/common/types.ts",
+      "line": 4,
+      "signature": "interface IBuildInfoOptions"
+    },
+    {
+      "name": "IBuildInfoResult",
+      "package": "@venizia/ignis-boot",
+      "subpath": ".",
+      "specifier": "@venizia/ignis-boot",
+      "kind": "interface",
+      "file": "packages/boot/src/build-info/common/types.ts",
+      "line": 13,
+      "signature": "interface IBuildInfoResult"
+    },
+    {
       "name": "IGenerateOptions",
       "package": "@venizia/ignis-boot",
       "subpath": ".",
@@ -14326,6 +14436,16 @@
       "signature": "type TArtifactType = TConstValue<typeof ArtifactTypes>"
     },
     {
+      "name": "TBuildInfoFormat",
+      "package": "@venizia/ignis-boot",
+      "subpath": ".",
+      "specifier": "@venizia/ignis-boot",
+      "kind": "type",
+      "file": "packages/boot/src/build-info/common/constants.ts",
+      "line": 14,
+      "signature": "type TBuildInfoFormat = TConstValue<typeof BuildInfoFormats>"
+    },
+    {
       "name": "checkArtifactIndex",
       "package": "@venizia/ignis-boot",
       "subpath": ".",
@@ -14344,6 +14464,96 @@
       "file": "packages/boot/src/generator/index.ts",
       "line": 31,
       "signature": "generateArtifactIndex: (opts: IGenerateOptions) => { content: string; written: boolean; } & IScanReport"
+    },
+    {
+      "name": "generateBuildInfo",
+      "package": "@venizia/ignis-boot",
+      "subpath": ".",
+      "specifier": "@venizia/ignis-boot",
+      "kind": "const",
+      "file": "packages/boot/src/build-info/index.ts",
+      "line": 11,
+      "signature": "generateBuildInfo: (opts: IBuildInfoOptions) => Promise<IBuildInfoResult>"
+    },
+    {
+      "name": "BuildInfoEmitter",
+      "package": "@venizia/ignis-boot",
+      "subpath": "./build-info",
+      "specifier": "@venizia/ignis-boot/build-info",
+      "kind": "class",
+      "file": "packages/boot/src/build-info/emitter.ts",
+      "line": 5,
+      "signature": "class BuildInfoEmitter"
+    },
+    {
+      "name": "BuildInfoEnvironmentKeys",
+      "package": "@venizia/ignis-boot",
+      "subpath": "./build-info",
+      "specifier": "@venizia/ignis-boot/build-info",
+      "kind": "class",
+      "file": "packages/boot/src/build-info/common/constants.ts",
+      "line": 21,
+      "signature": "class BuildInfoEnvironmentKeys"
+    },
+    {
+      "name": "BuildInfoFormats",
+      "package": "@venizia/ignis-boot",
+      "subpath": "./build-info",
+      "specifier": "@venizia/ignis-boot/build-info",
+      "kind": "class",
+      "file": "packages/boot/src/build-info/common/constants.ts",
+      "line": 3,
+      "signature": "class BuildInfoFormats"
+    },
+    {
+      "name": "BuildInfoResolver",
+      "package": "@venizia/ignis-boot",
+      "subpath": "./build-info",
+      "specifier": "@venizia/ignis-boot/build-info",
+      "kind": "class",
+      "file": "packages/boot/src/build-info/resolver.ts",
+      "line": 16,
+      "signature": "class BuildInfoResolver extends BaseHelper"
+    },
+    {
+      "name": "IBuildInfoOptions",
+      "package": "@venizia/ignis-boot",
+      "subpath": "./build-info",
+      "specifier": "@venizia/ignis-boot/build-info",
+      "kind": "interface",
+      "file": "packages/boot/src/build-info/common/types.ts",
+      "line": 4,
+      "signature": "interface IBuildInfoOptions"
+    },
+    {
+      "name": "IBuildInfoResult",
+      "package": "@venizia/ignis-boot",
+      "subpath": "./build-info",
+      "specifier": "@venizia/ignis-boot/build-info",
+      "kind": "interface",
+      "file": "packages/boot/src/build-info/common/types.ts",
+      "line": 13,
+      "signature": "interface IBuildInfoResult"
+    },
+    {
+      "name": "TBuildInfoFormat",
+      "package": "@venizia/ignis-boot",
+      "subpath": "./build-info",
+      "specifier": "@venizia/ignis-boot/build-info",
+      "kind": "type",
+      "file": "packages/boot/src/build-info/common/constants.ts",
+      "line": 14,
+      "signature": "type TBuildInfoFormat = TConstValue<typeof BuildInfoFormats>"
+    },
+    {
+      "name": "generateBuildInfo",
+      "package": "@venizia/ignis-boot",
+      "subpath": "./build-info",
+      "specifier": "@venizia/ignis-boot/build-info",
+      "kind": "const",
+      "file": "packages/boot/src/build-info/index.ts",
+      "line": 11,
+      "signature": "generateBuildInfo: (opts: IBuildInfoOptions) => Promise<IBuildInfoResult>"
     },
     {
       "name": "ArtifactIndexEmitter",
@@ -19925,6 +20135,16 @@
       "signature": "class BaseWorkerThreadHelper extends AbstractWorkerThreadHelper"
     },
     {
+      "name": "BuildInfoRegistry",
+      "package": "@venizia/ignis-helpers",
+      "subpath": ".",
+      "specifier": "@venizia/ignis-helpers",
+      "kind": "class",
+      "file": "packages/helpers/src/utilities/build-info.utility.ts",
+      "line": 22,
+      "signature": "class BuildInfoRegistry"
+    },
+    {
       "name": "COMBINING_MARKS_PATTERN",
       "package": "@venizia/ignis-helpers",
       "subpath": ".",
@@ -20385,6 +20605,16 @@
       "file": "packages/helpers/src/modules/storage/common/types.ts",
       "line": 50,
       "signature": "interface IBucketRef"
+    },
+    {
+      "name": "IBuildInfo",
+      "package": "@venizia/ignis-helpers",
+      "subpath": ".",
+      "specifier": "@venizia/ignis-helpers",
+      "kind": "interface",
+      "file": "packages/helpers/src/utilities/build-info.utility.ts",
+      "line": 5,
+      "signature": "interface IBuildInfo"
     },
     {
       "name": "IBuildOptions",
@@ -21896,6 +22126,16 @@
       "file": "packages/helpers/src/common/types/resolver.ts",
       "line": 2,
       "signature": "type TAsyncResolver<T> = (...args: any[]) => T | Promise<T>"
+    },
+    {
+      "name": "TBuildInfoRecord",
+      "package": "@venizia/ignis-helpers",
+      "subpath": ".",
+      "specifier": "@venizia/ignis-helpers",
+      "kind": "type",
+      "file": "packages/helpers/src/utilities/build-info.utility.ts",
+      "line": 14,
+      "signature": "type TBuildInfoRecord = Required<IBuildInfo>"
     },
     {
       "name": "TBullQueueRole",
@@ -24199,6 +24439,16 @@
       "signature": "class BasePoolHelper<T> extends AbstractPoolHelper<T>"
     },
     {
+      "name": "BuildInfoRegistry",
+      "package": "@venizia/ignis-helpers",
+      "subpath": "./core",
+      "specifier": "@venizia/ignis-helpers/core",
+      "kind": "class",
+      "file": "packages/helpers/src/utilities/build-info.utility.ts",
+      "line": 22,
+      "signature": "class BuildInfoRegistry"
+    },
+    {
       "name": "DEFAULT_UID_DELIMITER",
       "package": "@venizia/ignis-helpers",
       "subpath": "./core",
@@ -24257,6 +24507,16 @@
       "file": "packages/helpers/src/modules/queue/internal/hf/helper.ts",
       "line": 6,
       "signature": "class HfQueueHelper<T> extends BaseHelper"
+    },
+    {
+      "name": "IBuildInfo",
+      "package": "@venizia/ignis-helpers",
+      "subpath": "./core",
+      "specifier": "@venizia/ignis-helpers/core",
+      "kind": "interface",
+      "file": "packages/helpers/src/utilities/build-info.utility.ts",
+      "line": 5,
+      "signature": "interface IBuildInfo"
     },
     {
       "name": "IBuildOptions",
@@ -24667,6 +24927,16 @@
       "file": "packages/helpers/src/modules/uid/helper.ts",
       "line": 37,
       "signature": "class SnowflakeUidHelper extends BaseHelper"
+    },
+    {
+      "name": "TBuildInfoRecord",
+      "package": "@venizia/ignis-helpers",
+      "subpath": "./core",
+      "specifier": "@venizia/ignis-helpers/core",
+      "kind": "type",
+      "file": "packages/helpers/src/utilities/build-info.utility.ts",
+      "line": 14,
+      "signature": "type TBuildInfoRecord = Required<IBuildInfo>"
     },
     {
       "name": "TError",

@@ -108,7 +108,7 @@ tags: [reference, exports, api]
 
 ## helpers
 
-### `@venizia/ignis-helpers` (383)
+### `@venizia/ignis-helpers` (386)
 
 - `AbstractCryptoAlgorithm` class
 - `AbstractLogger` class
@@ -142,6 +142,7 @@ tags: [reference, exports, api]
 - `BaseWorkerHelper` class
 - `BaseWorkerMessageBusHandlerHelper` class
 - `BaseWorkerThreadHelper` class
+- `BuildInfoRegistry` class
 - `Child` type
 - `COMBINING_MARKS_PATTERN` const
 - `ConsoleLogger` class
@@ -208,6 +209,7 @@ tags: [reference, exports, api]
 - `IApplicationEnvironment` interface
 - `IBucketInfo` interface
 - `IBucketRef` interface
+- `IBuildInfo` interface
 - `IBuildOptions` interface
 - `IBunServer` interface
 - `IBunWebSocketConfig` interface
@@ -382,6 +384,7 @@ tags: [reference, exports, api]
 - `TAbstractMixinTarget` type
 - `TAESSecret` type
 - `TAsyncResolver` type
+- `TBuildInfoRecord` type
 - `TBullQueueRole` type
 - `TClass` type
 - `TConstructor` type
@@ -557,7 +560,7 @@ tags: [reference, exports, api]
 - `ValueOptionalExcept` type
 - `ValueOrPromise` type
 
-### `@venizia/ignis-helpers/core` (91)
+### `@venizia/ignis-helpers/core` (94)
 
 - `AbstractNetworkFetchableHelper` class
 - `AbstractPoolHelper` class
@@ -565,6 +568,7 @@ tags: [reference, exports, api]
 - `ApplicationError` class
 - `BaseHelper` class
 - `BasePoolHelper` class
+- `BuildInfoRegistry` class
 - `DEFAULT_UID_DELIMITER` const
 - `DEFAULT_UID_LENGTH` const
 - `DEFAULT_UID_MAX_ATTEMPTS` const
@@ -574,6 +578,7 @@ tags: [reference, exports, api]
 - `fromError` const
 - `getError` const
 - `HfQueueHelper` class
+- `IBuildInfo` interface
 - `IBuildOptions` interface
 - `IErrorKeyRegistry` interface
 - `IFetchable` interface
@@ -618,6 +623,7 @@ tags: [reference, exports, api]
 - `SlugHelper` class
 - `SnowflakeConfig` class
 - `SnowflakeUidHelper` class
+- `TBuildInfoRecord` type
 - `TError` type
 - `TErrorByDefinition` type
 - `TErrorByField` type
@@ -795,21 +801,29 @@ tags: [reference, exports, api]
 
 ## boot
 
-### `@venizia/ignis-boot` (13)
+### `@venizia/ignis-boot` (21)
 
 - `ArtifactIndexEmitter` class
 - `ArtifactIndexFields` class
 - `ArtifactScanner` class
 - `ArtifactStereotypes` class
 - `ArtifactTypes` class
+- `BuildInfoEmitter` class
+- `BuildInfoEnvironmentKeys` class
+- `BuildInfoFormats` class
+- `BuildInfoResolver` class
 - `checkArtifactIndex` const
 - `generateArtifactIndex` const
+- `generateBuildInfo` const
+- `IBuildInfoOptions` interface
+- `IBuildInfoResult` interface
 - `IGenerateOptions` interface
 - `IScannedArtifact` interface
 - `IScanOptions` interface
 - `IScanReport` interface
 - `TArtifactIndexField` type
 - `TArtifactType` type
+- `TBuildInfoFormat` type
 
 ### `@venizia/ignis-boot/generator` (13)
 
@@ -826,6 +840,17 @@ tags: [reference, exports, api]
 - `IScanReport` interface
 - `TArtifactIndexField` type
 - `TArtifactType` type
+
+### `@venizia/ignis-boot/build-info` (8)
+
+- `BuildInfoEmitter` class
+- `BuildInfoEnvironmentKeys` class
+- `BuildInfoFormats` class
+- `BuildInfoResolver` class
+- `generateBuildInfo` const
+- `IBuildInfoOptions` interface
+- `IBuildInfoResult` interface
+- `TBuildInfoFormat` type
 
 ## kernel
 
@@ -1762,7 +1787,7 @@ tags: [reference, exports, api]
 
 ## core-server
 
-### `@venizia/ignis` (941)
+### `@venizia/ignis` (946)
 
 - `AbstractApplication` class
 - `AbstractAuthRegistry` class
@@ -1870,6 +1895,7 @@ tags: [reference, exports, api]
 - `BootSequence` class
 - `BootSteps` class
 - `buildDataRange` const
+- `BuildInfoRegistry` class
 - `CASBIN_RBAC_DOMAIN_SCOPED_MODEL` const
 - `CasbinAuthorizationEnforcer` class
 - `CasbinDomainMatchingFunctions` class
@@ -1992,6 +2018,8 @@ tags: [reference, exports, api]
 - `HealthCheckBindingKeys` class
 - `HealthCheckComponent` class
 - `HealthCheckController` class
+- `HealthCheckHeaders` class
+- `HealthCheckReporter` class
 - `HealthCheckRestPaths` class
 - `HF_MESSAGE_MAX_BYTES` const
 - `HF_SCOPE_MAX_BYTES` const
@@ -2031,6 +2059,7 @@ tags: [reference, exports, api]
 - `IBootSequenceStep` interface
 - `IBucketInfo` interface
 - `IBucketRef` interface
+- `IBuildInfo` interface
 - `IBuildOptions` interface
 - `IBunServer` interface
 - `IBunWebSocketConfig` interface
@@ -2446,6 +2475,7 @@ tags: [reference, exports, api]
 - `TBindingScope` type
 - `TBindingValueType` type
 - `TBootStep` type
+- `TBuildInfoRecord` type
 - `TBullQueueRole` type
 - `TBunServerInstance` type
 - `TCasbinDomainMatchingFunction` type

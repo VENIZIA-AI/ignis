@@ -134,6 +134,53 @@ import { checkArtifactIndex } from '@venizia/ignis-boot/generator';
 const { isFresh } = checkArtifactIndex({ root: 'src', out: 'src/generated/artifacts.ts' });
 ```
 
+## `ignis-build-info` - stamp the build
+
+A second binary in the same package. It resolves what a running service should be able to say
+about itself - service, version, commit, branch, build time - at BUILD time, and writes it as a
+static file the bundle bakes in. Nothing is read back at run time: a `bun build --compile` binary
+ships no `node_modules`, no `.git` and no readable `package.json`, and a Distroless image has no
+`git` to spawn, so a runtime resolver would report blanks in exactly the deployment that matters.
+
+```
+ignis-build-info generate [--out src/_build_info.ts] [--root .] [--format ts|json] [--export BUILD_INFO]
+```
+
+| Flag | Default | Meaning |
+| :--- | :--- | :--- |
+| `--out` | `src/_build_info.ts` | Output path; always rewritten - `builtAt` changes every run |
+| `--root` | `.` | Where `package.json` is read and where `git` is asked |
+| `--format` | `ts` | `ts` - a static `export const`; `json` - the same record, for a Vite app or a Tauri shell |
+| `--export` | `BUILD_INFO` | Name of the exported constant in `ts` format |
+
+Each field is read from the environment first, then `git`, then `package.json`; anything left reads
+`unspecified`, so a pipeline that forgot a variable is visible rather than silent.
+
+| Field | Environment, first present wins | Fallback |
+| :--- | :--- | :--- |
+| `version` | `APP_ENV_BUILD_VERSION`, `APP_BUILD_VERSION`, `CI_COMMIT_TAG`, `GITHUB_REF_NAME` | `package.json#version` |
+| `commit` | `APP_ENV_BUILD_COMMIT_TAG`, `APP_BUILD_COMMIT`, `CI_COMMIT_SHA`, `GITHUB_SHA`, `COMMIT_SHA` | `git rev-parse --short=12 HEAD` |
+| `branch` | `APP_BUILD_BRANCH`, `CI_COMMIT_REF_NAME`, `GITHUB_REF_NAME`, `BRANCH_NAME` | `git rev-parse --abbrev-ref HEAD` |
+| `builtAt` | `APP_ENV_BUILD_DATE`, `APP_BUILD_DATE` | the moment the generator ran |
+| `service` | - | `package.json#name` |
+
+Register the stamp once at the entrypoint, and `GET /health/stats` reports it:
+
+```typescript
+import { BUILD_INFO } from './_build_info';
+import { BuildInfoRegistry } from '@venizia/ignis-helpers/core';
+
+BuildInfoRegistry.set({ buildInfo: BUILD_INFO });
+```
+
+`git` runs through Bun Shell, so the binary needs bun (it carries a `bun` shebang). Under plain
+Node the `git` fields degrade to `unspecified` and the build still succeeds; set the variables
+above if a Node invocation has to be exact.
+
+Programmatic: `@venizia/ignis-boot/build-info` exports `generateBuildInfo(opts)`,
+`BuildInfoResolver.getInstance().resolve({ root })`, `BuildInfoEmitter.render({ buildInfo, format, exportName })`,
+`BuildInfoFormats` and `BuildInfoEnvironmentKeys`.
+
 ## What you must know
 
 - **Output is deterministic.** Imports sorted by path, class names sorted within each field, one

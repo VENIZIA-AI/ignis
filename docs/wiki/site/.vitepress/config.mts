@@ -450,6 +450,20 @@ const config = defineConfig({
           collapsed: false,
           items: [
             {
+              text: '2026-09-11',
+              collapsed: true,
+              items: [
+                {
+                  text: 'Build Info And Health Stats',
+                  link: '/changelogs/2026-09-11-build-info-and-health-stats',
+                },
+                {
+                  text: 'Atlas Family Checkouts',
+                  link: '/changelogs/2026-09-11-atlas-family-checkouts',
+                },
+              ],
+            },
+            {
               text: '2026-09-10',
               collapsed: true,
               items: [

@@ -48,6 +48,14 @@ adapter's `@connectrpc/connect` resolution happen under `<projectRoot>/node_modu
 warning and ignores the group. Override `getServerRuntimeOptions()` for anything beyond those two
 keys instead of re-implementing `startBunModule`.
 
+`EnvironmentKeys` (`src/common/environments.ts`) is the env vocabulary, split into what the
+framework reads (`APP_ENV_APPLICATION_NAME`, `APP_ENV_APPLICATION_TIMEZONE`,
+`APP_ENV_LOGGER_FOLDER_PATH`, `APP_ENV_SERVER_HOST`, `APP_ENV_SERVER_PORT`) and what is a
+convention an application reads for itself (the rest - setting them changes nothing).
+`printStartUpInfo` reads every value through those constants at CALL time, not at module load, so
+a `.env` the entrypoint loads after importing `base.ts` is still seen. The `APP_ENV_*_DS_*` names
+were deleted on 2026-09-11: they fed one log line and selected no datasource.
+
 ## Controllers
 
 `BaseRestController` (`packages/kernel/src/base/controllers/rest/`) wraps an `OpenAPIHono` router.

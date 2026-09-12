@@ -2,7 +2,7 @@ import 'reflect-metadata';
 import { BaseApplication } from '@/base/applications';
 import type { IApplicationConfigs, IApplicationInfo } from '@venizia/ignis-kernel';
 import { ControllerTransports } from '@venizia/ignis-kernel';
-import { api } from '@/base/metadata';
+import { api, controller } from '@/base/metadata';
 import { AppErrorMiddleware } from '@/base/middlewares';
 import { HealthCheckComponent } from '@/components/health-check';
 import { HealthCheckBindingKeys, type IHealthCheckOptions } from '@/components/health-check/common';
@@ -42,10 +42,10 @@ class TestApplication extends BaseApplication {
 
 /** Re-applies `@api pingPong` with the legacy call shape: bun compiles the controller's decorator syntax with TC39 semantics, which the decorator rejects, so the PING route would otherwise be missing from the registry in this runtime only. */
 beforeAll(() => {
-  const definitions = new HealthCheckController({
-    scope: HealthCheckController.name,
-    path: '/health',
-  }).definitions;
+  // The component decorates the class at boot; doing it here too keeps this file independent of
+  // whether another test file in the same worker has already booted a health-check application.
+  Reflect.decorate([controller({ path: '/health' })], HealthCheckController);
+  const definitions = new HealthCheckController().definitions;
 
   applyMethodDecorator({
     decorator: api({ configs: definitions['PING'] }),
@@ -83,7 +83,7 @@ describe('HealthCheckComponent — routes', () => {
 
     const response = await router.request('/health');
     expect(response.status).toBe(200);
-    expect(await response.json()).toEqual({ status: 'ok' });
+    expect(await response.json()).toMatchObject({ status: 'ok' });
   });
 
   test('POST /health/ping echoes the message back as a PONG', async () => {
@@ -127,7 +127,7 @@ describe('HealthCheckComponent — options resilience', () => {
 
     const response = await router.request('/health');
     expect(response.status).toBe(200);
-    expect(await response.json()).toEqual({ status: 'ok' });
+    expect(await response.json()).toMatchObject({ status: 'ok' });
   });
 
   test('a partial restOptions binding falls back to the default path instead of crashing at boot', async () => {
