@@ -1,6 +1,6 @@
 import { AtlasConstants, AtlasModes, Corpora } from '@/common';
 import type { TAtlasMode } from '@/common';
-import { isRepositoryCheckout, SNAPSHOT_DIRECTORY } from '@/common/layout';
+import { isRepositoryCheckout, SNAPSHOT_DIRECTORY, workspaceFamilyOf } from '@/common/layout';
 import { resolveRepositoryRoots } from '@/corpus';
 import type { ICorpusRoot } from '@/corpus';
 import { Transport } from '@/protocol';
@@ -65,6 +65,12 @@ const buildGuardedTool = (opts: {
  * Builds the MCP transport for one session. Repo mode indexes the live tree and re-checks
  * freshness on every tool call; snapshot mode indexes the packaged corpus once, immutably.
  */
+/** `<family>-atlas` for a family checkout; the IGNIS name when the manifest is not one. */
+const serverNameOf = (opts: { root: string }): string => {
+  const family = workspaceFamilyOf({ root: opts.root });
+  return family === undefined ? AtlasConstants.SERVER_NAME : `${family}-atlas`;
+};
+
 export const buildServer = (opts: {
   mode: TAtlasMode;
   root: string;
@@ -94,7 +100,10 @@ export const buildServer = (opts: {
       buildVersionTool({ releases }),
       buildChangesTool({ releases }),
     ],
-    serverName: AtlasConstants.SERVER_NAME,
+    // A family checkout names its own server (`ardor-atlas` in the ARDOR repo); the packaged
+    // snapshot is always IGNIS's, so it keeps the package's name.
+    serverName:
+      mode === AtlasModes.REPOSITORY ? serverNameOf({ root }) : AtlasConstants.SERVER_NAME,
     serverVersion: version,
   });
 };

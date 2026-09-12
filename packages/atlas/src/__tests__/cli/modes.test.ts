@@ -9,6 +9,7 @@ import {
 import {
   CHANGELOG_DIRECTORY,
   isRepositoryCheckout,
+  workspaceFamilyOf,
   KNOWLEDGE_DIRECTORY,
   WIKI_DIRECTORY,
   WORKSPACE_PACKAGE_NAME,
@@ -179,7 +180,7 @@ describe('readPackageVersion (I6)', () => {
   });
 });
 
-describe('isRepositoryCheckout - only the IGNIS workspace', () => {
+describe('isRepositoryCheckout - only a VENIZIA family workspace', () => {
   const roots: string[] = [];
 
   const buildRoot = (opts: { name?: string; changelogs?: boolean }): string => {
@@ -211,6 +212,23 @@ describe('isRepositoryCheckout - only the IGNIS workspace', () => {
 
   test('the IGNIS workspace with every corpus directory is a checkout', () => {
     expect(isRepositoryCheckout({ root: buildRoot({ name: WORKSPACE_PACKAGE_NAME }) })).toBe(true);
+  });
+
+  test('a sibling family workspace with the same corpora is a checkout too', () => {
+    expect(isRepositoryCheckout({ root: buildRoot({ name: '@venizia/ardor-workspace' }) })).toBe(
+      true,
+    );
+    expect(workspaceFamilyOf({ root: buildRoot({ name: '@venizia/ardor-workspace' }) })).toBe(
+      'ardor',
+    );
+    expect(workspaceFamilyOf({ root: buildRoot({ name: WORKSPACE_PACKAGE_NAME }) })).toBe('ignis');
+  });
+
+  test('a scope-mate that is not a workspace is refused', () => {
+    expect(isRepositoryCheckout({ root: buildRoot({ name: '@venizia/ignis-atlas' }) })).toBe(false);
+    expect(
+      workspaceFamilyOf({ root: buildRoot({ name: '@venizia/ignis-atlas' }) }),
+    ).toBeUndefined();
   });
 
   test('the IGNIS name without the changelog directory is not a checkout', () => {

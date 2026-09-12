@@ -124,7 +124,7 @@ export const resolveMode = (opts: {
 
   if (explicitRoot) {
     throw new ModeUsageError(
-      `${root} is not an IGNIS checkout - a checkout needs ${WIKI_DIRECTORY}, ${CHANGELOG_DIRECTORY}, ${KNOWLEDGE_DIRECTORY} and a root package.json named ${WORKSPACE_PACKAGE_NAME}`,
+      `${root} is not a VENIZIA family checkout - a checkout needs ${WIKI_DIRECTORY}, ${CHANGELOG_DIRECTORY}, ${KNOWLEDGE_DIRECTORY} and a root package.json named like ${WORKSPACE_PACKAGE_NAME} (any @venizia/<family>-workspace)`,
     );
   }
 

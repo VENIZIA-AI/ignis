@@ -29,11 +29,17 @@ export const releasesFileOf = (opts: { mode: TAtlasMode; root: string }): string
     ? join(opts.root, KNOWLEDGE_DIRECTORY, 'reference', RELEASES_FILE)
     : join(opts.root, SNAPSHOT_DIRECTORY, RELEASES_FILE);
 
-/** The name of the IGNIS workspace manifest - the only marker no other repository shares. */
+/**
+ * The IGNIS workspace manifest name, and the family pattern every sibling framework follows:
+ * `@venizia/<family>-workspace`. Atlas serves any checkout that keeps the same three corpora under
+ * the same paths - ARDOR (`@venizia/ardor-workspace`) is the first sibling - while a consumer that
+ * merely copied the layout is still refused, because its root manifest is not a family workspace.
+ */
 export const WORKSPACE_PACKAGE_NAME = '@venizia/ignis-workspace';
+export const WORKSPACE_PACKAGE_PATTERN = /^@venizia\/([a-z][a-z0-9-]*)-workspace$/;
 
-/** The IGNIS workspace manifest, or `undefined` when `root` has none or it is unreadable. */
-const workspaceNameOf = (opts: { root: string }): string | undefined => {
+/** The root workspace manifest name, or `undefined` when `root` has none or it is unreadable. */
+export const workspaceNameOf = (opts: { root: string }): string | undefined => {
   const file = join(opts.root, 'package.json');
   if (!existsSync(file)) {
     return undefined;
@@ -47,14 +53,20 @@ const workspaceNameOf = (opts: { root: string }): string | undefined => {
   }
 };
 
+/** `ignis` for `@venizia/ignis-workspace`, `ardor` for `@venizia/ardor-workspace`; `undefined` outside the family. */
+export const workspaceFamilyOf = (opts: { root: string }): string | undefined => {
+  const name = workspaceNameOf({ root: opts.root });
+  return name === undefined ? undefined : WORKSPACE_PACKAGE_PATTERN.exec(name)?.[1];
+};
+
 /**
- * Whether `root` is the IGNIS checkout. Every corpus directory must exist AND the root manifest
- * must be the IGNIS workspace: a consumer that copies the `docs/wiki` and `.agents/knowledge`
- * layout would otherwise be read as a checkout, and the server would die on the first missing
- * directory instead of serving its own packaged snapshot.
+ * Whether `root` is a VENIZIA family checkout. Every corpus directory must exist AND the root
+ * manifest must be a family workspace: a consumer that copies the `docs/wiki` and
+ * `.agents/knowledge` layout would otherwise be read as a checkout, and the server would die on the
+ * first missing directory instead of serving its own packaged snapshot.
  */
 export const isRepositoryCheckout = (opts: { root: string }): boolean =>
   existsSync(join(opts.root, WIKI_DIRECTORY)) &&
   existsSync(join(opts.root, CHANGELOG_DIRECTORY)) &&
   existsSync(join(opts.root, KNOWLEDGE_DIRECTORY)) &&
-  workspaceNameOf({ root: opts.root }) === WORKSPACE_PACKAGE_NAME;
+  workspaceFamilyOf({ root: opts.root }) !== undefined;

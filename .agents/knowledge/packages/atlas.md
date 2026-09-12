@@ -153,3 +153,7 @@ fails the build, not a human eyeballing a table.
 - [boot](/packages/boot.md)
 - [helpers](/packages/helpers.md)
 - [Monorepo layout](/overview/monorepo-layout.md)
+
+## Family checkouts
+
+Repo mode is not IGNIS-only: `isRepositoryCheckout` accepts any root manifest named `@venizia/<family>-workspace` that keeps `docs/wiki`, its `changelogs` and `.agents/knowledge` at the IGNIS paths, and the server names itself `<family>-atlas`. ARDOR (`@venizia/ardor-workspace`) is the first sibling to run atlas this way. Snapshot mode always serves the IGNIS corpus under the package's own name.
