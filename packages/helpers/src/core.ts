@@ -41,7 +41,7 @@ export { TreeWalker } from './modules/tree/walk';
 // symbol below is verified free of node builtins/globals.
 export { BuildInfoRegistry } from './utilities/build-info.utility';
 export type { IBuildInfo, TBuildInfoRecord } from './utilities/build-info.utility';
-export { int, keysToCamel, toBoolean, toCamel } from './utilities/parse.utility';
+export { blankToUndefined, int, keysToCamel, toBoolean, toCamel } from './utilities/parse.utility';
 export { executeWithPerformanceMeasure } from './utilities/performance.utility';
 export { ProjectRootRegistry } from './utilities/project-root.utility';
 

@@ -145,6 +145,24 @@ export const toDelimitedArray = (input: unknown, separator = ','): string[] => {
     .filter(entry => entry.length > 0);
 };
 
+/**
+ * A trimmed value, or `undefined` when the input is absent or carries nothing but whitespace.
+ *
+ * Written for environment reads. `KEY=` in a deployment file is a pipeline that forgot to export the
+ * value, but `process.env.KEY` answers `''` for it, and `''` walks straight past `??`:
+ *
+ * ```ts
+ * process.env.APP_ENV_LOGGER_FORMAT ?? 'text'                    // '' when the line is blank
+ * blankToUndefined(process.env.APP_ENV_LOGGER_FORMAT) ?? 'text'  // 'text'
+ * ```
+ *
+ * Reach for this rather than `||`, which reads `'0'` as blank as well.
+ */
+export const blankToUndefined = (input: string | undefined): string | undefined => {
+  const trimmed = input?.trim();
+  return trimmed === undefined || trimmed.length === 0 ? undefined : trimmed;
+};
+
 /** Trims a possibly-undefined env value to a clean string ('' when absent). */
 export const toTrimmed = (input: unknown): string => {
   if (input == null) {

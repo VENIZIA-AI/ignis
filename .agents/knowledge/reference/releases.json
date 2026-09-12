@@ -14,6 +14,12 @@
   "releases": {
     "atlas": [
       {
+        "version": "0.1.0-10",
+        "date": "2026-09-12",
+        "sha": "41b5dedc",
+        "order": 1193
+      },
+      {
         "version": "0.1.0-9",
         "date": "2026-09-12",
         "sha": "0fe27beb",
@@ -3260,6 +3266,18 @@
       ],
       "kind": "Enhancement",
       "order": 1176
+    },
+    {
+      "id": "changelog:2026-09-12-blank-env-at-module-load",
+      "file": "2026-09-12-blank-env-at-module-load.md",
+      "date": "2026-09-12",
+      "title": "A Blank Env Line No Longer Beats Its Default At Module Load",
+      "packages": [
+        "core-server",
+        "helpers"
+      ],
+      "kind": "Fix",
+      "order": 9007199254740991
     },
     {
       "id": "changelog:2026-09-11-build-info-and-health-stats",

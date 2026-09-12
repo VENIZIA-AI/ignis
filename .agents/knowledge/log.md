@@ -6,6 +6,43 @@ not how.
 This file and `index.md` are reserved OKF filenames - they carry no `type:` frontmatter and are not
 counted as concepts.
 
+## 2026-09-12 - a blank env line at module load
+
+Ten framework constants read `process.env` DIRECTLY at module load with `??`, so they never benefited
+from the `get()` fix earlier the same day. Each now reads `process.env.X?.trim() || fallback`:
+`APPLICATION_ENV_PREFIX` (`modules/env/app-env.ts`), the default timezone (`utilities/date.utility.ts`),
+five winston settings plus one pino, `App.APPLICATION_NAME` (`core-server/src/common/constants.ts`),
+and the banner reader in `printStartUpInfo`.
+
+The prefix one is a SECURITY finding, not a formatting one. `APPLICATION_ENV_PREFIX=` empty makes the
+prefix `''`, and `key.startsWith('')` is true for every name, so `ApplicationEnvironment` stops
+filtering and copies the WHOLE of `process.env` into its map. Proven by running it, not reasoned:
+`keys()` then returned `PATH`, `HOME` and the host's own tokens. Two consequences - `validateEnvs`
+(`core-server/src/base/applications/base.ts:393`) iterates that list and throws on an unrelated empty
+system variable, and `keys()` publishes secret NAMES to anything that reads it.
+
+The shape is `blankToUndefined(process.env.X) ?? fallback`, NOT `process.env.X || fallback`. The `||`
+form was written first and the repo's own `@typescript-eslint/prefer-nullish-coalescing` rule
+rejected it - correctly, since `||` swallows `'0'` too. `blankToUndefined` is a new pure export in
+`utilities/parse.utility.ts`, carried on the root barrel AND on `/core`; it says "blank", not
+"falsy", so a numeric setting where zero is meaningful stays safe. When a lint rule blocks a fix,
+read it as a design review rather than an obstacle to silence.
+
+Controls, both watched red then restored from a `cp` backup (never `git checkout` - the files carried
+uncommitted work): `packages/helpers/src/__tests__/env/blank-prefix.test.ts` clears the
+`Symbol.for('ignis:application-environment')` slot AND the require cache, because re-requiring the
+module alone returns the cached singleton; the two blank cases in
+`packages/core-server/src/__tests__/applications/startup-banner.test.ts` go red on reverting the
+banner reader. The first draft of the prefix test passed VACUOUSLY - `every()` on an empty key list
+is true, so a prefix matching nothing looked like a pass. Every such assertion now checks the list is
+populated first.
+
+Scope note: `examples/` still holds ~40 of the same `process.env.X ?? default` shape. Left alone on
+purpose - examples ship to nobody. Worth a sweep only because consumers copy from them.
+
+`scripts/release.ts`: the publish-verification window goes 4 -> 10 minutes and `npm view` gains
+`--prefer-online`. See the release entry for the measurement that forced it.
+
 ## 2026-09-12 - an env read does what it promises
 
 `ApplicationEnvironment.get()` (`packages/helpers/src/modules/env/app-env.ts`) normalises a

@@ -299,7 +299,7 @@
       "specifier": "@venizia/ignis",
       "kind": "class",
       "file": "packages/core-server/src/common/constants.ts",
-      "line": 2,
+      "line": 4,
       "signature": "class App"
     },
     {
@@ -309,7 +309,7 @@
       "specifier": "@venizia/ignis",
       "kind": "const",
       "file": "packages/helpers/src/modules/env/app-env.ts",
-      "line": 110,
+      "line": 111,
       "signature": "AppEnvs: ApplicationEnvironment"
     },
     {
@@ -319,7 +319,7 @@
       "specifier": "@venizia/ignis",
       "kind": "class",
       "file": "packages/helpers/src/modules/env/app-env.ts",
-      "line": 22,
+      "line": 23,
       "signature": "class ApplicationEnvironment extends BaseHelper implements IApplicationEnvironment"
     },
     {
@@ -1470,7 +1470,7 @@
       "specifier": "@venizia/ignis",
       "kind": "class",
       "file": "packages/helpers/src/modules/env/app-env.ts",
-      "line": 6,
+      "line": 7,
       "signature": "class Environment extends EnvironmentNames"
     },
     {
@@ -1500,7 +1500,7 @@
       "specifier": "@venizia/ignis",
       "kind": "const",
       "file": "packages/helpers/src/modules/env/app-env.ts",
-      "line": 111,
+      "line": 112,
       "signature": "Envs: ApplicationEnvironment"
     },
     {
@@ -8162,7 +8162,7 @@
       "specifier": "@venizia/ignis",
       "kind": "const",
       "file": "packages/helpers/src/modules/env/app-env.ts",
-      "line": 108,
+      "line": 109,
       "signature": "applicationEnvironment: ApplicationEnvironment"
     },
     {
@@ -8214,6 +8214,16 @@
       "file": "packages/kernel/src/base/metadata/routes/rpc.ts",
       "line": 55,
       "signature": "bidiStream: <RpcRouteConfigType extends Omit<IRpcMetadata, \"method\">>(opts: { configs: RpcRouteConfigType; }) => (target: any, propertyKey: string | symbol, _descriptor: PropertyDescriptor) => void"
+    },
+    {
+      "name": "blankToUndefined",
+      "package": "@venizia/ignis",
+      "subpath": ".",
+      "specifier": "@venizia/ignis",
+      "kind": "const",
+      "file": "packages/helpers/src/utilities/parse.utility.ts",
+      "line": 161,
+      "signature": "blankToUndefined: (input: string | undefined) => string | undefined"
     },
     {
       "name": "buildDataRange",
@@ -9423,7 +9433,7 @@
       "specifier": "@venizia/ignis",
       "kind": "const",
       "file": "packages/helpers/src/utilities/parse.utility.ts",
-      "line": 149,
+      "line": 167,
       "signature": "toTrimmed: (input: unknown) => string"
     },
     {
@@ -19981,7 +19991,7 @@
       "specifier": "@venizia/ignis-helpers",
       "kind": "const",
       "file": "packages/helpers/src/modules/env/app-env.ts",
-      "line": 110,
+      "line": 111,
       "signature": "AppEnvs: ApplicationEnvironment"
     },
     {
@@ -19991,7 +20001,7 @@
       "specifier": "@venizia/ignis-helpers",
       "kind": "class",
       "file": "packages/helpers/src/modules/env/app-env.ts",
-      "line": 22,
+      "line": 23,
       "signature": "class ApplicationEnvironment extends BaseHelper implements IApplicationEnvironment"
     },
     {
@@ -20392,7 +20402,7 @@
       "specifier": "@venizia/ignis-helpers",
       "kind": "class",
       "file": "packages/helpers/src/modules/env/app-env.ts",
-      "line": 6,
+      "line": 7,
       "signature": "class Environment extends EnvironmentNames"
     },
     {
@@ -20412,7 +20422,7 @@
       "specifier": "@venizia/ignis-helpers",
       "kind": "const",
       "file": "packages/helpers/src/modules/env/app-env.ts",
-      "line": 111,
+      "line": 112,
       "signature": "Envs: ApplicationEnvironment"
     },
     {
@@ -23164,7 +23174,7 @@
       "specifier": "@venizia/ignis-helpers",
       "kind": "const",
       "file": "packages/helpers/src/modules/env/app-env.ts",
-      "line": 108,
+      "line": 109,
       "signature": "applicationEnvironment: ApplicationEnvironment"
     },
     {
@@ -23176,6 +23186,16 @@
       "file": "packages/helpers/src/modules/queue/common/hook.ts",
       "line": 21,
       "signature": "awaitHook: (opts: { logger: ILogger; scope: string; execution: () => ValueOrPromise<unknown>; }) => Promise<void>"
+    },
+    {
+      "name": "blankToUndefined",
+      "package": "@venizia/ignis-helpers",
+      "subpath": ".",
+      "specifier": "@venizia/ignis-helpers",
+      "kind": "const",
+      "file": "packages/helpers/src/utilities/parse.utility.ts",
+      "line": 161,
+      "signature": "blankToUndefined: (input: string | undefined) => string | undefined"
     },
     {
       "name": "createContentDispositionHeader",
@@ -23675,7 +23695,7 @@
       "specifier": "@venizia/ignis-helpers",
       "kind": "const",
       "file": "packages/helpers/src/utilities/parse.utility.ts",
-      "line": 149,
+      "line": 167,
       "signature": "toTrimmed: (input: unknown) => string"
     },
     {
@@ -25239,6 +25259,16 @@
       "signature": "class UrlSchemes"
     },
     {
+      "name": "blankToUndefined",
+      "package": "@venizia/ignis-helpers",
+      "subpath": "./core",
+      "specifier": "@venizia/ignis-helpers/core",
+      "kind": "const",
+      "file": "packages/helpers/src/utilities/parse.utility.ts",
+      "line": 161,
+      "signature": "blankToUndefined: (input: string | undefined) => string | undefined"
+    },
+    {
       "name": "executeWithPerformanceMeasure",
       "package": "@venizia/ignis-helpers",
       "subpath": "./core",
@@ -25875,7 +25905,7 @@
       "specifier": "@venizia/ignis-helpers/pino",
       "kind": "class",
       "file": "packages/helpers/src/modules/logger/pino/destination.ts",
-      "line": 25,
+      "line": 26,
       "signature": "class PinoDestination"
     },
     {
@@ -25895,7 +25925,7 @@
       "specifier": "@venizia/ignis-helpers/pino",
       "kind": "type",
       "file": "packages/helpers/src/modules/logger/pino/destination.ts",
-      "line": 10,
+      "line": 11,
       "signature": "type TDestinationPlan = { kind: 'stdout'; } | { kind: 'pretty'; } | { kind: 'roll'; options: { file: string; frequency: TFrequency; size: string; limit: { count: number; }; mkdir: true; }; }"
     },
     {
@@ -25935,7 +25965,7 @@
       "specifier": "@venizia/ignis-helpers/pino",
       "kind": "const",
       "file": "packages/helpers/src/modules/logger/pino/destination.ts",
-      "line": 163,
+      "line": 164,
       "signature": "buildDestination: (plan: TDestinationPlan) => pino.DestinationStream | undefined"
     },
     {
@@ -25965,7 +25995,7 @@
       "specifier": "@venizia/ignis-helpers/pino",
       "kind": "const",
       "file": "packages/helpers/src/modules/logger/pino/destination.ts",
-      "line": 156,
+      "line": 157,
       "signature": "mapFrequency: (value?: string) => TFrequency"
     },
     {
@@ -25975,7 +26005,7 @@
       "specifier": "@venizia/ignis-helpers/pino",
       "kind": "const",
       "file": "packages/helpers/src/modules/logger/pino/destination.ts",
-      "line": 158,
+      "line": 159,
       "signature": "mapMaxFilesToCount: (opts: { value?: string; frequency: TFrequency; }) => number"
     },
     {
@@ -25985,7 +26015,7 @@
       "specifier": "@venizia/ignis-helpers/pino",
       "kind": "const",
       "file": "packages/helpers/src/modules/logger/pino/destination.ts",
-      "line": 161,
+      "line": 162,
       "signature": "resolveDestinationPlan: () => TDestinationPlan"
     },
     {

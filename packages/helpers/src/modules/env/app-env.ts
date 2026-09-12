@@ -1,3 +1,4 @@
+import { blankToUndefined } from '@/utilities/parse.utility';
 import { BaseHelper } from '@/modules/base';
 import { EnvironmentNames } from './names';
 import { IApplicationEnvironment } from './common';
@@ -97,7 +98,7 @@ const resolveApplicationEnvironment = (): ApplicationEnvironment => {
   }
 
   const created = new ApplicationEnvironment({
-    prefix: process.env.APPLICATION_ENV_PREFIX ?? 'APP_ENV',
+    prefix: blankToUndefined(process.env.APPLICATION_ENV_PREFIX) ?? 'APP_ENV',
     envs: process.env,
   });
   Reflect.set(globalThis, INSTANCE_SLOT, created);

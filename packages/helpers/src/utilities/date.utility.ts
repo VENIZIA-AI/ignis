@@ -5,7 +5,7 @@ import IsoWeekPlugin from 'dayjs/plugin/isoWeek';
 import TimezonePlugin from 'dayjs/plugin/timezone';
 import UTCPlugin from 'dayjs/plugin/utc';
 import WeekdayPlugin from 'dayjs/plugin/weekday';
-import { float } from './parse.utility';
+import { blankToUndefined, float } from './parse.utility';
 import { sleep } from './sleep.utility';
 
 dayjs.extend(CustomParseFormatPlugin);
@@ -14,7 +14,7 @@ dayjs.extend(TimezonePlugin);
 dayjs.extend(WeekdayPlugin);
 dayjs.extend(IsoWeekPlugin);
 
-const tz = process.env.APP_ENV_APPLICATION_TIMEZONE ?? 'Asia/Ho_Chi_Minh';
+const tz = blankToUndefined(process.env.APP_ENV_APPLICATION_TIMEZONE) ?? 'Asia/Ho_Chi_Minh';
 dayjs.tz.setDefault(tz);
 
 export { sleep };

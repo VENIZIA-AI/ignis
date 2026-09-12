@@ -19,7 +19,7 @@ import type {
   ISecretsHelper,
   ISecretsRegistration,
 } from '@venizia/ignis-helpers';
-import { getError } from '@venizia/ignis-helpers/core';
+import { blankToUndefined, getError } from '@venizia/ignis-helpers/core';
 import { HTTP, RuntimeModules } from '@venizia/ignis-helpers/common';
 import {
   applicationEnvironment,
@@ -321,7 +321,8 @@ export abstract class BaseApplication extends ServerApplication implements IRest
    */
   protected printStartUpInfo(opts: { scope: string }) {
     const { scope } = opts;
-    const read = (key: string, fallback: string): string => process.env[key] ?? fallback;
+    const read = (key: string, fallback: string): string =>
+      blankToUndefined(process.env[key]) ?? fallback;
     const divider = '------------------------------------------------------------------------';
 
     this.logger.for(scope).info(divider);

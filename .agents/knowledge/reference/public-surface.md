@@ -108,7 +108,7 @@ tags: [reference, exports, api]
 
 ## helpers
 
-### `@venizia/ignis-helpers` (386)
+### `@venizia/ignis-helpers` (387)
 
 - `AbstractCryptoAlgorithm` class
 - `AbstractLogger` class
@@ -142,6 +142,7 @@ tags: [reference, exports, api]
 - `BaseWorkerHelper` class
 - `BaseWorkerMessageBusHandlerHelper` class
 - `BaseWorkerThreadHelper` class
+- `blankToUndefined` const
 - `BuildInfoRegistry` class
 - `Child` type
 - `COMBINING_MARKS_PATTERN` const
@@ -560,7 +561,7 @@ tags: [reference, exports, api]
 - `ValueOptionalExcept` type
 - `ValueOrPromise` type
 
-### `@venizia/ignis-helpers/core` (94)
+### `@venizia/ignis-helpers/core` (95)
 
 - `AbstractNetworkFetchableHelper` class
 - `AbstractPoolHelper` class
@@ -568,6 +569,7 @@ tags: [reference, exports, api]
 - `ApplicationError` class
 - `BaseHelper` class
 - `BasePoolHelper` class
+- `blankToUndefined` const
 - `BuildInfoRegistry` class
 - `DEFAULT_UID_DELIMITER` const
 - `DEFAULT_UID_LENGTH` const
@@ -1787,7 +1789,7 @@ tags: [reference, exports, api]
 
 ## core-server
 
-### `@venizia/ignis` (946)
+### `@venizia/ignis` (947)
 
 - `AbstractApplication` class
 - `AbstractAuthRegistry` class
@@ -1892,6 +1894,7 @@ tags: [reference, exports, api]
 - `BindingNamespaces` class
 - `BindingScopes` class
 - `BindingValueTypes` class
+- `blankToUndefined` const
 - `BootSequence` class
 - `BootSteps` class
 - `buildDataRange` const

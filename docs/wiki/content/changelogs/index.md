@@ -17,6 +17,7 @@ This section tracks the history of significant changes, refactors, and updates t
 
 | Date | Title | Type |
 |------|-------|------|
+| 2026-09-12 | [A Blank Env Line No Longer Beats Its Default At Module Load](./2026-09-12-blank-env-at-module-load) | Fix |
 | 2026-09-12 | [An Env Read Now Does What It Promises](./2026-09-12-env-reads-what-it-promises) | Breaking |
 | 2026-09-12 | [A Redis Cluster Takes autoConnect Like Every Other Topology](./2026-09-12-cluster-auto-connect) | Enhancement |
 | 2026-09-11 | [Atlas Serves Any VENIZIA Family Checkout](./2026-09-11-atlas-family-checkouts) | Enhancement |

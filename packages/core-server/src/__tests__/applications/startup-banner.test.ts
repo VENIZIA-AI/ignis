@@ -68,6 +68,22 @@ describe('the startup banner reads the env names the framework publishes', () =>
   });
 
   /**
+   * A deployment file that carries `APP_ENV_APPLICATION_TIMEZONE=` is a pipeline that forgot to
+   * export the value. Read with `??` it wins over the default and the banner prints `Timezone: `.
+   */
+  test('a present-but-empty variable reports the default, not a blank', () => {
+    process.env[EnvironmentKeys.APP_ENV_APPLICATION_TIMEZONE] = '';
+
+    expect(captureBanner()).toContain('Timezone: Asia/Ho_Chi_Minh');
+  });
+
+  test('a whitespace-only variable reports the default too', () => {
+    process.env[EnvironmentKeys.APP_ENV_APPLICATION_TIMEZONE] = '   ';
+
+    expect(captureBanner()).toContain('Timezone: Asia/Ho_Chi_Minh');
+  });
+
+  /**
    * `APP_ENV_APPLICATION_DS_MIGRATION` and `_DS_AUTHORIZE` named a datasource that nothing
    * resolved - the pair reached this log line and nowhere else, so both the line and the
    * constants are gone rather than renamed.

@@ -83,10 +83,16 @@ const readJson = async (path: string): Promise<Record<string, string>> => {
   return JSON.parse(await Bun.file(path).text());
 };
 
-/** The published `next` version, or null when the package has never been released. */
+/**
+ * The published `next` version, or null when the package has never been released.
+ *
+ * `--prefer-online` is not decoration: `npm view` serves a cached metadata document by default, so
+ * a poll that repeats every five seconds can re-read the same stale answer for its whole window and
+ * report a live publish as missing.
+ */
 const resolvePublishedVersion = async (opts: { packageName: string }): Promise<string | null> => {
   const { stdout, exitCode } = await run({
-    command: ['npm', 'view', `${opts.packageName}@next`, 'version'],
+    command: ['npm', 'view', '--prefer-online', `${opts.packageName}@next`, 'version'],
     allowFailure: true,
   });
 
@@ -271,12 +277,14 @@ const waitForCompletion = async (opts: { runId: string }): Promise<string> => {
  * reverse - a green run whose publish silently did nothing - is exactly what this catches.
  */
 const assertPublished = async (opts: { state: IPackageState }): Promise<string> => {
-  // Four minutes, not one. The `next` dist-tag can lag the publish by minutes - measured: a
-  // core-worker release reported "green but nothing published" while every workflow step had
-  // succeeded and the version was already in `npm view versions`. A verification window shorter than
-  // the registry's own propagation turns a healthy release into a false alarm, which is worse than
-  // not checking, because the next person stops believing the check.
-  for (let attempt = 0; attempt < 48; attempt += 1) {
+  // Ten minutes, not four, and not one. The `next` dist-tag lags the publish, and the lag is longer
+  // than it looks: measured 2026-09-12, `@venizia/ignis@0.2.0-28` published at 08:53:04 and did not
+  // appear on registry.npmjs.org until 09:00:41 - seven and a half minutes. The four-minute window
+  // in place then failed a release that had fully succeeded, which stopped the chain one package
+  // short of atlas and sent someone hunting a bug that did not exist. A verification window shorter
+  // than the registry's own propagation is worse than no check, because the next person stops
+  // believing the check.
+  for (let attempt = 0; attempt < 120; attempt += 1) {
     const published = await resolvePublishedVersion({ packageName: opts.state.packageName });
 
     if (published && published !== opts.state.publishedVersion) {
@@ -287,7 +295,7 @@ const assertPublished = async (opts: { state: IPackageState }): Promise<string> 
   }
 
   throw new Error(
-    `${opts.state.packageName} still reads ${opts.state.publishedVersion ?? 'nothing'} on the registry after four minutes. Check \`npm view ${opts.state.packageName} versions\` before assuming it failed - the dist-tag may simply be lagging.`,
+    `${opts.state.packageName} still reads ${opts.state.publishedVersion ?? 'nothing'} on the registry after ten minutes. Do NOT re-run the release before checking: read the workflow log for a "+ ${opts.state.packageName}@" line, then ask the registry itself with \`curl -s https://registry.npmjs.org/${opts.state.packageName.replace('/', '%2F')} | grep -o '"${opts.state.localVersion}"'\`. Publishing twice over a publish that already succeeded is how this turns into a real failure.`,
   );
 };
 

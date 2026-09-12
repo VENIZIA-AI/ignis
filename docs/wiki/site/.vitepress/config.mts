@@ -461,6 +461,10 @@ const config = defineConfig({
                   text: 'Env Reads What It Promises',
                   link: '/changelogs/2026-09-12-env-reads-what-it-promises',
                 },
+                {
+                  text: 'Blank Env At Module Load',
+                  link: '/changelogs/2026-09-12-blank-env-at-module-load',
+                },
               ],
             },
             {

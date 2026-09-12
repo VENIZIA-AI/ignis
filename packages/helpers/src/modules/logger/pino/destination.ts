@@ -1,4 +1,5 @@
 import { Defaults } from '@/common/constants';
+import { blankToUndefined } from '@/utilities/parse.utility';
 import { ModuleUtility } from '@/utilities/module.utility';
 import path from 'node:path';
 import pino from 'pino';
@@ -108,7 +109,7 @@ export class PinoDestination {
         options: {
           file: path.join(folderPath, Defaults.APPLICATION_NAME),
           frequency,
-          size: process.env.APP_ENV_LOGGER_FILE_MAX_SIZE ?? '100m',
+          size: blankToUndefined(process.env.APP_ENV_LOGGER_FILE_MAX_SIZE) ?? '100m',
           limit: { count },
           mkdir: true,
         },
