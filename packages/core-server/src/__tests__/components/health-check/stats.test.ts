@@ -315,3 +315,81 @@ describe('HealthCheckReporter.toHumanUptime', () => {
     expect(HealthCheckReporter.toHumanUptime({ seconds: 0.9 })).toBe('0h 0m 0s');
   });
 });
+
+/**
+ * A host that writes `enable: true` and forgets the key gets an open route on every environment,
+ * because the explicit boolean bypasses the NODE_ENV gate. That combination is legal and sometimes
+ * correct - a cluster-internal port - so it stays legal, and says so out loud at boot instead.
+ */
+describe('an enabled stats route with no key says so at boot', () => {
+  const enabledNoKey: IHealthCheckOptions = {
+    restOptions: { path: '/health' },
+    stats: { enable: true },
+  };
+
+  test.each(['production', 'staging', 'uat', 'alpha', 'beta'])('warns on %s', (name: string) => {
+    expect(
+      HealthCheckReporter.isStatsUnguarded({
+        options: enabledNoKey,
+        environment: () => name,
+      }),
+    ).toBe(true);
+  });
+
+  test('warns when NODE_ENV is unset, because that cannot be proved to be a dev host', () => {
+    expect(
+      HealthCheckReporter.isStatsUnguarded({
+        options: enabledNoKey,
+        environment: () => undefined,
+      }),
+    ).toBe(true);
+  });
+
+  test.each(['local', 'debug', 'development', 'dev', 'sit'])(
+    'stays quiet on %s - an open stats route is the point there',
+    (name: string) => {
+      expect(
+        HealthCheckReporter.isStatsUnguarded({
+          options: enabledNoKey,
+          environment: () => name,
+        }),
+      ).toBe(false);
+    },
+  );
+
+  test('stays quiet when a key is configured', () => {
+    expect(
+      HealthCheckReporter.isStatsUnguarded({
+        options: { restOptions: { path: '/health' }, stats: { enable: true, secretKey: 'shhh' } },
+        environment: () => 'production',
+      }),
+    ).toBe(false);
+  });
+
+  test('stays quiet for a blank key - that fails CLOSED, so the route is not open', () => {
+    expect(
+      HealthCheckReporter.isStatsUnguarded({
+        options: { restOptions: { path: '/health' }, stats: { enable: true, secretKey: '' } },
+        environment: () => 'production',
+      }),
+    ).toBe(false);
+  });
+
+  test('stays quiet when the route is not mounted at all', () => {
+    expect(
+      HealthCheckReporter.isStatsUnguarded({
+        options: { restOptions: { path: '/health' }, stats: { enable: false } },
+        environment: () => 'production',
+      }),
+    ).toBe(false);
+  });
+
+  test('stays quiet when nothing opted in and production keeps it shut', () => {
+    expect(
+      HealthCheckReporter.isStatsUnguarded({
+        options: { restOptions: { path: '/health' } },
+        environment: () => 'production',
+      }),
+    ).toBe(false);
+  });
+});

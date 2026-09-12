@@ -4,6 +4,8 @@ import { controller, inject } from '@/base/metadata';
 import { CoreBindings } from '@venizia/ignis-kernel';
 import { HealthCheckBindingKeys, type IHealthCheckOptions } from './common';
 import { HealthCheckController } from './controller';
+import { HealthCheckReporter } from './reporter';
+import { Environment } from '@venizia/ignis-helpers';
 import { Binding } from '@venizia/ignis-kernel';
 import type { IApplicationInfo } from '@venizia/ignis-kernel';
 
@@ -56,6 +58,19 @@ export class HealthCheckComponent extends BaseComponent<IHealthCheckOptions> {
 
     // A partially filled options binding (env/config driven) must not take the app down at boot.
     const path = healthOptions?.restOptions?.path ?? DEFAULT_REST_PATH;
+
+    // Legal, occasionally correct, and silent until now: `stats.enable: true` bypasses the
+    // environment gate, so the same code that opened the route for a local run opens it in
+    // production. Warn rather than refuse - only the operator knows whether the port is reachable.
+    if (healthOptions && HealthCheckReporter.isStatsUnguarded({ options: healthOptions })) {
+      this.logger
+        .for(this.binding.name)
+        .warn(
+          'GET %s/stats is ENABLED with no secretKey on env "%s" - build stamp, runtime version and memory are readable by anything that reaches this port. Set stats.secretKey, or drop stats.enable and let the environment decide.',
+          path,
+          Environment.ambient ?? 'unset',
+        );
+    }
 
     // `getAppInfo()` is async while the container builds the controller synchronously, so the
     // resolved value is bound here rather than resolved inside the controller.

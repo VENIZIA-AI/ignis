@@ -6,6 +6,29 @@ not how.
 This file and `index.md` are reserved OKF filenames - they carry no `type:` frontmatter and are not
 counted as concepts.
 
+## 2026-09-12 - an unguarded stats route warns at boot
+
+`HealthCheckReporter.isStatsUnguarded` is new: mounted AND no `secretKey` AND an ambient env outside
+`DEVELOPMENT_ENVS` (unset counts as outside). `HealthCheckComponent.binding()` turns a true into one
+`warn` naming the route and the environment. NOTHING changed about what the route serves or who it
+serves - the framework cannot know whether the port is reachable, so it reports and lets the operator
+decide.
+
+The sharp edge it covers: `stats.enable` as an explicit boolean answers FIRST in `isStatsEnabled` and
+`NODE_ENV` is never consulted. So a value added to open the route for a local run opens it in
+production too. Found in a live consumer deployment, not in review - `curl` returned 200 with
+service version, `runtime`, `NODE_ENV` and memory, unauthenticated.
+
+A BLANK `secretKey` deliberately does NOT warn: blank fails closed in `isStatsAuthorized`, so the
+route refuses everything. Only `undefined` means open. This asymmetry is the whole reason
+`blankToUndefined` is the WRONG tool for `secretKey` - wrapping the read converts a safe blank into
+an open route. That is a rule now, on both sides: [[feedback_ignis_owns_mechanism_not_consumer_conventions]]
+is about ownership, this one is about a single option whose blank means "locked".
+
+Consumer shape worth copying, invented by BANA to avoid shipping a shared secret to 44 env files:
+`stats: { enable: Boolean(secretKey), secretKey }` - no key means the route is never mounted, which
+is closed-by-default without touching `NODE_ENV`.
+
 ## 2026-09-12 - empty env values are allowed by default
 
 `validateEnvs()` (`core-server/src/base/applications/base.ts`) no longer throws on an empty prefixed

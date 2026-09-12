@@ -57,6 +57,36 @@ export class HealthCheckReporter {
    * The comparison is a plain `===`: a remote timing attack on a header compare is not practical
    * through an HTTP stack, and a constant-time digest compare would buy nothing here.
    */
+  /**
+   * Whether the stats route is mounted, unauthenticated, and on a host that cannot be shown to be a
+   * development one. That combination stays LEGAL - on a cluster-internal port it is often the right
+   * call - so this reports rather than refuses, and the component turns it into one warning at boot.
+   *
+   * It exists because `enable: true` bypasses the environment gate entirely: an operator who sets it
+   * for a local run and ships the same code publishes the runtime version, the release and the
+   * memory profile to whatever can reach the port. A blank `secretKey` is NOT unguarded - that fails
+   * closed in {@link isStatsAuthorized}.
+   */
+  static isStatsUnguarded(opts: {
+    options: IHealthCheckOptions;
+    environment?: () => string | undefined;
+  }): boolean {
+    if (!HealthCheckReporter.isStatsEnabled(opts)) {
+      return false;
+    }
+
+    if (opts.options.stats?.secretKey !== undefined) {
+      return false;
+    }
+
+    const ambient = opts.environment ? opts.environment() : Environment.ambient;
+    if (ambient === undefined) {
+      return true;
+    }
+
+    return !Environment.DEVELOPMENT_ENVS.has(ambient.toLowerCase());
+  }
+
   static isStatsAuthorized(opts: { options: IHealthCheckOptions; header?: string }): boolean {
     const secretKey = opts.options.stats?.secretKey;
     if (secretKey === undefined) {

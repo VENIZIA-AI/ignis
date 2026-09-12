@@ -469,6 +469,10 @@ const config = defineConfig({
                   text: 'Empty Envs Allowed By Default',
                   link: '/changelogs/2026-09-12-empty-envs-allowed-by-default',
                 },
+                {
+                  text: 'Unguarded Stats Warning',
+                  link: '/changelogs/2026-09-12-unguarded-stats-warning',
+                },
               ],
             },
             {
