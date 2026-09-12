@@ -14,6 +14,12 @@
   "releases": {
     "atlas": [
       {
+        "version": "0.1.0-8",
+        "date": "2026-09-10",
+        "sha": "e0515d93",
+        "order": 1173
+      },
+      {
         "version": "0.1.0-7",
         "date": "2026-09-10",
         "sha": "e2ff2bd9",
@@ -57,6 +63,12 @@
       }
     ],
     "boot": [
+      {
+        "version": "0.2.0-16",
+        "date": "2026-09-12",
+        "sha": "6b93cb65",
+        "order": 1178
+      },
       {
         "version": "0.2.0-15",
         "date": "2026-09-06",
@@ -461,6 +473,12 @@
       }
     ],
     "connectors": [
+      {
+        "version": "0.2.0-26",
+        "date": "2026-09-12",
+        "sha": "04fa8df6",
+        "order": 1180
+      },
       {
         "version": "0.2.0-25",
         "date": "2026-09-10",
@@ -1468,6 +1486,12 @@
     ],
     "core-server": [
       {
+        "version": "0.2.0-27",
+        "date": "2026-09-12",
+        "sha": "9889512f",
+        "order": 1182
+      },
+      {
         "version": "0.2.0-26",
         "date": "2026-09-10",
         "sha": "39243841",
@@ -1631,6 +1655,12 @@
       }
     ],
     "core-worker": [
+      {
+        "version": "0.2.0-26",
+        "date": "2026-09-12",
+        "sha": "7edf7d53",
+        "order": 1181
+      },
       {
         "version": "0.2.0-25",
         "date": "2026-09-10",
@@ -2187,6 +2217,12 @@
       }
     ],
     "helpers": [
+      {
+        "version": "0.2.0-21",
+        "date": "2026-09-12",
+        "sha": "1fa96bdf",
+        "order": 1177
+      },
       {
         "version": "0.2.0-20",
         "date": "2026-09-10",
@@ -2996,6 +3032,12 @@
     ],
     "kernel": [
       {
+        "version": "0.2.0-26",
+        "date": "2026-09-12",
+        "sha": "ec8e5b7c",
+        "order": 1179
+      },
+      {
         "version": "0.2.0-25",
         "date": "2026-09-10",
         "sha": "ab13fdf4",
@@ -3154,6 +3196,39 @@
     ]
   },
   "changelogs": [
+    {
+      "id": "changelog:2026-09-12-cluster-auto-connect",
+      "file": "2026-09-12-cluster-auto-connect.md",
+      "date": "2026-09-12",
+      "title": "A Redis Cluster Takes autoConnect Like Every Other Topology",
+      "packages": [
+        "helpers"
+      ],
+      "kind": "Enhancement",
+      "order": 1176
+    },
+    {
+      "id": "changelog:2026-09-11-build-info-and-health-stats",
+      "file": "2026-09-11-build-info-and-health-stats.md",
+      "date": "2026-09-11",
+      "title": "A Build Stamps Itself, And Health Answers Twice",
+      "packages": [
+        "helpers"
+      ],
+      "kind": "Feature",
+      "order": 1175
+    },
+    {
+      "id": "changelog:2026-09-11-atlas-family-checkouts",
+      "file": "2026-09-11-atlas-family-checkouts.md",
+      "date": "2026-09-11",
+      "title": "Atlas serves any VENIZIA family checkout",
+      "packages": [
+        "atlas"
+      ],
+      "kind": "Enhancement",
+      "order": 1174
+    },
     {
       "id": "changelog:2026-09-10-configuration-and-component-options",
       "file": "2026-09-10-configuration-and-component-options.md",
