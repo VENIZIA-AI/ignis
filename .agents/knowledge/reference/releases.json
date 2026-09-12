@@ -1534,6 +1534,12 @@
     ],
     "core-server": [
       {
+        "version": "0.2.0-31",
+        "date": "2026-09-12",
+        "sha": "c20f21e1",
+        "order": 1208
+      },
+      {
         "version": "0.2.0-30",
         "date": "2026-09-12",
         "sha": "9cf4899d",
@@ -3307,7 +3313,7 @@
         "core-server"
       ],
       "kind": "Enhancement",
-      "order": 9007199254740991
+      "order": 1207
     },
     {
       "id": "changelog:2026-09-12-env-reads-what-it-promises",
