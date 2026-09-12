@@ -465,6 +465,10 @@ const config = defineConfig({
                   text: 'Blank Env At Module Load',
                   link: '/changelogs/2026-09-12-blank-env-at-module-load',
                 },
+                {
+                  text: 'Empty Envs Allowed By Default',
+                  link: '/changelogs/2026-09-12-empty-envs-allowed-by-default',
+                },
               ],
             },
             {

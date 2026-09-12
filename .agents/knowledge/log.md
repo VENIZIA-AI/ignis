@@ -6,6 +6,31 @@ not how.
 This file and `index.md` are reserved OKF filenames - they carry no `type:` frontmatter and are not
 counted as concepts.
 
+## 2026-09-12 - empty env values are allowed by default
+
+`validateEnvs()` (`core-server/src/base/applications/base.ts`) no longer throws on an empty prefixed
+env value. The default FLIPPED: unset `ALLOW_EMPTY_ENV_VALUE` now means allowed, and a host opts INTO
+the check with `false` or `0`. Blank reads as unset, the same rule as every other env read. The flag
+is read ONCE outside the loop, and when permissive the loop is skipped entirely rather than run with
+a condition that always continues.
+
+Phat's call, and it is coherent with the same day's read-layer fix: `get(key, { defaultValue })`
+already resolves an empty line, so refusing to boot over one fought the reader. It also applied to
+EVERY prefixed name including the ten that are conventions, not requirements. Consequence to know: a
+truly required name left empty now fails at USE, not at boot. That is the trade that was accepted.
+
+Controls in `packages/core-server/src/__tests__/applications/validate-envs.test.ts` - six cases,
+watched red on the two default ones before the change. The banner reports which way it resolved, so
+the log names the host's choice instead of leaving it to be inferred.
+
+`EnvironmentKeys` gained a comment naming the two framework variables that are deliberately NOT in it
+and must never be added: `APPLICATION_ENV_PREFIX` and `ALLOW_EMPTY_ENV_VALUE`. Neither carries the
+`APP_ENV` prefix, so `applicationEnvironment` never holds them and `AppEnvs.get()` answers `undefined`
+forever - proven by running it, not reasoned. `APPLICATION_ENV_PREFIX` could not go through it at all:
+it is what builds the filter. Both are bootstrap variables read straight off `process.env`, the one
+legitimate exception to "never read process.env directly". The question came from Phat, which is the
+evidence their absence looked like an omission rather than a decision.
+
 ## 2026-09-12 - a blank env line at module load
 
 Ten framework constants read `process.env` DIRECTLY at module load with `??`, so they never benefited

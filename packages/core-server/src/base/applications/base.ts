@@ -338,7 +338,7 @@ export abstract class BaseApplication extends ServerApplication implements IRest
       .for(scope)
       .info(
         'AllowEmptyEnv: %s | Prefix: %s',
-        read('ALLOW_EMPTY_ENV_VALUE', 'false'),
+        read('ALLOW_EMPTY_ENV_VALUE', 'true'),
         read('APPLICATION_ENV_PREFIX', 'APP_ENV'),
       );
     this.logger.for(scope).info('RunMode: %s', process.env.RUN_MODE);
@@ -392,14 +392,37 @@ export abstract class BaseApplication extends ServerApplication implements IRest
   protected validateEnvs() {
     const t = performance.now();
     const envKeys = applicationEnvironment.keys();
+
+    // Permissive by DEFAULT: a name a host leaves empty is the host's business, and an empty value
+    // already falls back to `defaultValue` at read time, so refusing to boot over one fights the
+    // reader rather than helping it. Set ALLOW_EMPTY_ENV_VALUE to `false` or `0` to turn the check
+    // on. Read once rather than per key, and a blank value reads as unset - the same rule every
+    // other env read follows.
+    const configured = blankToUndefined(process.env.ALLOW_EMPTY_ENV_VALUE);
+    const allowsEmpty = configured === undefined || toBoolean(configured);
+
     this.logger
       .for(this.initialize.name)
-      .info('Envs: %s | START Validating application environments...', envKeys.length);
+      .info(
+        'Envs: %s | START Validating application environments | Empty values: %s',
+        envKeys.length,
+        allowsEmpty ? 'ALLOWED (default)' : 'REJECTED',
+      );
+
+    if (allowsEmpty) {
+      this.logger
+        .for(this.validateEnvs.name)
+        .info(
+          'Envs: %s | SKIPPED - set ALLOW_EMPTY_ENV_VALUE=false to reject empty values',
+          envKeys.length,
+        );
+      return;
+    }
 
     for (const argKey of envKeys) {
       const argValue = applicationEnvironment.get<string | number>(argKey);
 
-      if (toBoolean(process.env.ALLOW_EMPTY_ENV_VALUE) || !isEmpty(argValue)) {
+      if (!isEmpty(argValue)) {
         continue;
       }
 

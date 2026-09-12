@@ -59,9 +59,10 @@ match is never taken silently. The effective sequence for a
 server application is:
 
 1. `printStartUpInfo()` - name, env, runtime, run mode, timezone, log path.
-2. `validateEnvs()` - every registered application env key must be non-empty, unless
-   `ALLOW_EMPTY_ENV_VALUE` is set. Failing here is intentional: a half-configured app should never
-   reach the network.
+2. `validateEnvs()` - SKIPPED by default. Set `ALLOW_EMPTY_ENV_VALUE` to `false` or `0` and every
+   registered application env key must then be non-empty. The default is permissive because an empty
+   value already falls back to `defaultValue` at read time (2026-09-12), so refusing to boot over one
+   fights the reader; a host that wants boot to be the gate opts in.
 3. `registerDefaultMiddlewares()` - calls the kernel's, which installs `requestId()`, the Hono
    `onError` handler and the not-found handler, then adds the async context storage (when enabled),
    the `RequestTrackerComponent` and the favicon middleware.

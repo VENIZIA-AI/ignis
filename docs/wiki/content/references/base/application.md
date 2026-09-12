@@ -95,7 +95,7 @@ abstract class ServerApplication<
 | **Runtime Detection** | Auto-detects Bun or Node.js via `RuntimeModules.detect()` and uses the appropriate server implementation |
 | **Core Bindings** | Registers `CoreBindings.APPLICATION_INSTANCE`, `CoreBindings.APPLICATION_SERVER`, and `CoreBindings.APPLICATION_ROOT_ROUTER` |
 | **Lifecycle Management** | Defines abstract methods (`preConfigure`, `postConfigure`, `setupMiddlewares`, `staticConfigure`, `initialize`, `getAppInfo`) |
-| **Environment Validation** | Validates all registered `applicationEnvironment` keys are non-empty (unless `ALLOW_EMPTY_ENV_VALUE` is set) |
+| **Environment Validation** | Off by default. Set `ALLOW_EMPTY_ENV_VALUE=false` (or `0`) to require every registered `applicationEnvironment` key to be non-empty |
 | **Post-Start Hooks** | Supports registering hooks that execute after the server starts |
 
 ### Abstract Methods

@@ -10,6 +10,15 @@
  * A name earns its place by having a reader. `APP_ENV_OAUTH2_VIEW_FOLDER` and
  * `APP_ENV_DATASOURCE_NAME` had none in either IGNIS or its consumers, only entries in `.env` files
  * nobody consulted, so they went the same way. Before adding one here, know who reads it.
+ *
+ * Two framework variables are deliberately ABSENT from this class, and adding them would be a trap:
+ * `APPLICATION_ENV_PREFIX` and `ALLOW_EMPTY_ENV_VALUE`. Neither carries the `APP_ENV` prefix, so
+ * `applicationEnvironment` never holds them - a read through `AppEnvs.get()` would answer `undefined`
+ * forever. `APPLICATION_ENV_PREFIX` could not go through it in any case: it is what builds the
+ * filter. Both are bootstrap variables and are read straight off `process.env`, which is the one
+ * legitimate exception to "do not read process.env directly". Neither has to be declared or set:
+ * the prefix defaults to `APP_ENV`, and empty values are allowed unless you set
+ * `ALLOW_EMPTY_ENV_VALUE` to `false` or `0`.
  */
 export class EnvironmentKeys {
   // --- Read by the framework -------------------------------------------------------------------

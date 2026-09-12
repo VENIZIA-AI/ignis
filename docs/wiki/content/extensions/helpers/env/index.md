@@ -108,7 +108,7 @@ const allKeys = applicationEnvironment.keys();
 ```
 
 > [!TIP]
-> `BaseApplication` validates every prefixed key at startup and throws on an empty value, unless `ALLOW_EMPTY_ENV_VALUE` is truthy - see [Application](/guides/core-concepts/application/).
+> `BaseApplication` allows empty values by default. Set `ALLOW_EMPTY_ENV_VALUE` to `false` or `0` and it validates every prefixed key at startup, throwing on the first empty one - see [Application](/guides/core-concepts/application/).
 
 ## See also
 
