@@ -450,6 +450,16 @@ const config = defineConfig({
           collapsed: false,
           items: [
             {
+              text: '2026-09-12',
+              collapsed: true,
+              items: [
+                {
+                  text: 'Cluster Auto Connect',
+                  link: '/changelogs/2026-09-12-cluster-auto-connect',
+                },
+              ],
+            },
+            {
               text: '2026-09-11',
               collapsed: true,
               items: [

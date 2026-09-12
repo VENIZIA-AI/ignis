@@ -216,6 +216,15 @@ override.
 `maxRetriesPerRequest: null` would silently flip per-node command-failure semantics. Don't "DRY"
 this back in - it was tried once and reverted as a real regression.
 
+It DOES set two cluster options of its own, which is a separate matter: `lazyConnect: !autoConnect`
+and `enableOfflineQueue: true`. Both sit BELOW the caller's `clusterOptions` spread, so the raw hatch
+stays the last word - the inverse of sentinel, where first-class fields win over `redisOptions`.
+Cluster inverts it because `clusterOptions` was the only way to set this timing before 2026-09-12,
+and a caller already threading `lazyConnect` through it must keep the timing it has. The escape-hatch
+test in `packages/helpers/src/__tests__/redis/cluster.helper.test.ts` is the control: it goes red if
+the two defaults are moved above the spread. Adding `autoConnect` to cluster was legitimate; adding
+`buildDefaultOpts` alongside it would not be.
+
 ## Every constructor parameter needs @inject
 
 Mixing a decorated and an undecorated constructor parameter is refused, not tolerated.

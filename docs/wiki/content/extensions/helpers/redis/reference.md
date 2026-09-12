@@ -182,8 +182,33 @@ const cluster = new RedisClusterHelper({
 |-------|------|----------|---------|-------------|
 | `name` | `string` | Yes | - | Helper identifier |
 | `nodes` | `Array<{ host: string; port: string \| number; password?: string }>` | Yes | - | Startup nodes - ioredis discovers the rest |
-| `clusterOptions` | `ClusterOptions` | No | - | Passed verbatim to `new Cluster(nodes, clusterOptions)` |
+| `autoConnect` | `boolean` | No | `true` | Connect immediately; `false` sets `lazyConnect` so you call `connect()` later |
+| `clusterOptions` | `ClusterOptions` | No | - | Merged over the two defaults below, then passed to `new Cluster(nodes, clusterOptions)` |
 | `onInitialized` / `onConnected` / `onReady` / `onError` | callbacks | No | - | Same shape as single |
+
+### Bind early, connect later
+
+An application usually binds the connection during setup and lets a component connect it during boot. Connect the cluster eagerly and it is mid-handshake by then, so the second `connect()` is refused. Set `autoConnect: false` and the client waits:
+
+```typescript
+const cluster = new RedisClusterHelper({
+  name: 'cache-cluster',
+  nodes: [{ host: 'redis-node-1', port: 7000 }],
+  autoConnect: false,
+});
+
+// later, during boot
+await cluster.connect();
+```
+
+The helper sets two cluster options before your own:
+
+| Option | Value | Why it is stated, not inherited |
+|--------|-------|--------------------------------|
+| `lazyConnect` | `!autoConnect` | The same rule single and sentinel already follow |
+| `enableOfflineQueue` | `true` | Commands issued between bind and connect must queue, not throw |
+
+`clusterOptions` is merged **over** both, so it stays the last word. A caller already passing `clusterOptions: { lazyConnect: true }` keeps exactly the timing it has today.
 
 > [!WARNING] No framework defaults injected
 > Cluster does not apply the backoff retry strategy or `maxRetriesPerRequest: null` automatically. Pass those inside `clusterOptions.redisOptions` if your consumers (e.g. BullMQ) require them.

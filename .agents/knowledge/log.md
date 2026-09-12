@@ -6,6 +6,35 @@ not how.
 This file and `index.md` are reserved OKF filenames - they carry no `type:` frontmatter and are not
 counted as concepts.
 
+## 2026-09-12 - a cluster takes autoConnect
+
+`IRedisClusterHelperProps` gains `autoConnect`, the field single and sentinel already had and cluster
+did not. `RedisClusterHelper` now builds
+`{ enableOfflineQueue: true, lazyConnect: !autoConnect, ...opts.clusterOptions }` instead of
+forwarding `clusterOptions` verbatim. Default `autoConnect: true`, so a caller passing no
+`clusterOptions` sees byte-identical behaviour - ioredis already resolved to `lazyConnect: false`.
+
+The precedence is the load-bearing part and it is DELIBERATELY the inverse of sentinel: the two
+defaults sit BELOW the caller spread, so `clusterOptions` wins. Before this change `clusterOptions`
+was the ONLY way to set cluster timing, and both BANA call sites use it -
+`packages/core/src/helpers/redis/redis-connection.factory.ts:50` threads
+`lazyConnect: !(autoConnect ?? false)`, and `third-parties/mq-pay/src/component.ts:214` passes
+`enableOfflineQueue` with no lazyConnect. Putting the defaults above the spread flips the first one
+to eager. The control is the "explicit clusterOptions still win" case in
+`packages/helpers/src/__tests__/redis/cluster.helper.test.ts` - watched red on that exact mutation,
+not assumed.
+
+`enableOfflineQueue: true` was already the live behaviour through the ioredis 5.11.1 default
+(`built/cluster/ClusterOptions.js:8`); stating it means an ioredis upgrade cannot move it. Cluster
+still does NOT call `buildDefaultOpts` - see the gotcha; the two are separate decisions, and the
+2026-09-12 change is the legitimate one.
+
+Scope note, because it will be asked again: BANA asked IGNIS to also own an env-driven
+`createRedisHelperFromEnv`. Phat REFUSED, and the refusal is the durable fact. The env names
+(`APP_ENV_CACHE_REDIS_*`, `APP_ENV_WEBSOCKET_REDIS_*`, plus two renamed copies) are BANA conventions,
+so IGNIS would own a naming scheme it does not define. IGNIS supplies the mechanism that builds a
+helper; where the values come from belongs to the consuming application.
+
 ## 2026-09-11 - build stamp, and a two-tier health check
 
 `ignis-build-info generate` (new bin in `@venizia/ignis-boot`, beside `ignis-artifacts`; both CLI entrypoints now live in `src/clis/` - `artifacts.ts` and `build-info.ts`) resolves a

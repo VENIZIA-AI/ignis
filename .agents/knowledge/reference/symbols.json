@@ -3201,7 +3201,7 @@
       "specifier": "@venizia/ignis",
       "kind": "interface",
       "file": "packages/helpers/src/modules/redis/common/types.ts",
-      "line": 47,
+      "line": 49,
       "signature": "interface IRedisClusterHelperOptions extends IRedisClusterHelperProps, IRedisHelperCallbacks"
     },
     {
@@ -3261,7 +3261,7 @@
       "specifier": "@venizia/ignis",
       "kind": "interface",
       "file": "packages/helpers/src/modules/redis/common/types.ts",
-      "line": 38,
+      "line": 40,
       "signature": "interface IRedisHelperCallbacks"
     },
     {
@@ -3321,7 +3321,7 @@
       "specifier": "@venizia/ignis",
       "kind": "interface",
       "file": "packages/helpers/src/modules/redis/common/types.ts",
-      "line": 50,
+      "line": 52,
       "signature": "interface IRedisSentinelHelperOptions extends IRedisSentinelHelperProps, IRedisHelperCallbacks"
     },
     {
@@ -3331,7 +3331,7 @@
       "specifier": "@venizia/ignis",
       "kind": "interface",
       "file": "packages/helpers/src/modules/redis/common/types.ts",
-      "line": 24,
+      "line": 26,
       "signature": "interface IRedisSentinelHelperProps"
     },
     {
@@ -3351,7 +3351,7 @@
       "specifier": "@venizia/ignis",
       "kind": "interface",
       "file": "packages/helpers/src/modules/redis/common/types.ts",
-      "line": 45,
+      "line": 47,
       "signature": "interface IRedisSingleHelperOptions extends IRedisSingleHelperProps, IRedisHelperCallbacks"
     },
     {
@@ -21053,7 +21053,7 @@
       "specifier": "@venizia/ignis-helpers",
       "kind": "interface",
       "file": "packages/helpers/src/modules/redis/common/types.ts",
-      "line": 47,
+      "line": 49,
       "signature": "interface IRedisClusterHelperOptions extends IRedisClusterHelperProps, IRedisHelperCallbacks"
     },
     {
@@ -21113,7 +21113,7 @@
       "specifier": "@venizia/ignis-helpers",
       "kind": "interface",
       "file": "packages/helpers/src/modules/redis/common/types.ts",
-      "line": 38,
+      "line": 40,
       "signature": "interface IRedisHelperCallbacks"
     },
     {
@@ -21173,7 +21173,7 @@
       "specifier": "@venizia/ignis-helpers",
       "kind": "interface",
       "file": "packages/helpers/src/modules/redis/common/types.ts",
-      "line": 50,
+      "line": 52,
       "signature": "interface IRedisSentinelHelperOptions extends IRedisSentinelHelperProps, IRedisHelperCallbacks"
     },
     {
@@ -21183,7 +21183,7 @@
       "specifier": "@venizia/ignis-helpers",
       "kind": "interface",
       "file": "packages/helpers/src/modules/redis/common/types.ts",
-      "line": 24,
+      "line": 26,
       "signature": "interface IRedisSentinelHelperProps"
     },
     {
@@ -21203,7 +21203,7 @@
       "specifier": "@venizia/ignis-helpers",
       "kind": "interface",
       "file": "packages/helpers/src/modules/redis/common/types.ts",
-      "line": 45,
+      "line": 47,
       "signature": "interface IRedisSingleHelperOptions extends IRedisSingleHelperProps, IRedisHelperCallbacks"
     },
     {

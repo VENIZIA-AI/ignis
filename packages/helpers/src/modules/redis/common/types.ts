@@ -18,6 +18,8 @@ export interface IRedisSingleHelperProps {
 export interface IRedisClusterHelperProps {
   name: string;
   nodes: Array<{ host: string; port: string | number; password?: string }>;
+  /** Same meaning as on single and sentinel: `false` holds the client open for a later `connect()`. */
+  autoConnect?: boolean;
   clusterOptions?: ClusterOptions;
 }
 

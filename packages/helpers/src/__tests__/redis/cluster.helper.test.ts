@@ -41,3 +41,55 @@ describe('RedisClusterHelper', () => {
     dup.disconnect();
   });
 });
+
+describe('RedisClusterHelper connection timing', () => {
+  let helper: RedisClusterHelper | undefined;
+
+  afterEach(() => {
+    helper?.getClient().disconnect();
+    helper = undefined;
+  });
+
+  it('autoConnect:false holds the cluster open for a later connect()', () => {
+    helper = new RedisClusterHelper({
+      name: 'cluster-lazy',
+      nodes: [{ host: '127.0.0.1', port: 7000 }],
+      autoConnect: false,
+    });
+
+    expect(helper.getClient().options.lazyConnect).toBe(true);
+    expect(helper.getClient().status).toBe('wait');
+  });
+
+  it('stays eager by default, as it was before autoConnect existed', () => {
+    helper = new RedisClusterHelper({
+      name: 'cluster-eager',
+      nodes: [{ host: '127.0.0.1', port: 7000 }],
+    });
+
+    expect(helper.getClient().options.lazyConnect).toBe(false);
+  });
+
+  it('guarantees enableOfflineQueue instead of inheriting the ioredis default', () => {
+    helper = new RedisClusterHelper({
+      name: 'cluster-queue',
+      nodes: [{ host: '127.0.0.1', port: 7000 }],
+      autoConnect: false,
+      clusterOptions: { enableReadyCheck: false },
+    });
+
+    expect(helper.getClient().options.enableOfflineQueue).toBe(true);
+  });
+
+  it('lets an explicit clusterOptions still win, so a caller threading it today is untouched', () => {
+    helper = new RedisClusterHelper({
+      name: 'cluster-escape-hatch',
+      nodes: [{ host: '127.0.0.1', port: 7000 }],
+      autoConnect: true,
+      clusterOptions: { lazyConnect: true, enableOfflineQueue: false },
+    });
+
+    expect(helper.getClient().options.lazyConnect).toBe(true);
+    expect(helper.getClient().options.enableOfflineQueue).toBe(false);
+  });
+});
