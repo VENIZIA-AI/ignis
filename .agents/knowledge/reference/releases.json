@@ -1528,6 +1528,12 @@
     ],
     "core-server": [
       {
+        "version": "0.2.0-30",
+        "date": "2026-09-12",
+        "sha": "9cf4899d",
+        "order": 1204
+      },
+      {
         "version": "0.2.0-29",
         "date": "2026-09-12",
         "sha": "e1797a82",
@@ -3287,6 +3293,17 @@
   },
   "changelogs": [
     {
+      "id": "changelog:2026-09-12-unguarded-stats-warning",
+      "file": "2026-09-12-unguarded-stats-warning.md",
+      "date": "2026-09-12",
+      "title": "An Open Stats Route Now Says So At Boot",
+      "packages": [
+        "core-server"
+      ],
+      "kind": "Enhancement",
+      "order": 9007199254740991
+    },
+    {
       "id": "changelog:2026-09-12-env-reads-what-it-promises",
       "file": "2026-09-12-env-reads-what-it-promises.md",
       "date": "2026-09-12",
@@ -3307,7 +3324,7 @@
         "core-server"
       ],
       "kind": "Breaking",
-      "order": 9007199254740991
+      "order": 1203
     },
     {
       "id": "changelog:2026-09-12-cluster-auto-connect",

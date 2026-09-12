@@ -1721,7 +1721,7 @@
       "specifier": "@venizia/ignis",
       "kind": "class",
       "file": "packages/core-server/src/components/health-check/component.ts",
-      "line": 15,
+      "line": 17,
       "signature": "class HealthCheckComponent extends BaseComponent<IHealthCheckOptions>"
     },
     {
