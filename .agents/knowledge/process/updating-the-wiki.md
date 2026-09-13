@@ -30,22 +30,33 @@ tags: [process, docs, wiki]
    longer exists. The only exemptions are the template skeletons under
    `extensions/components/template/` and `extensions/helpers/template/`, and the content root
    `index.md` (the script's `UNLISTED` list). A second gate, `make wiki-links-check`, checks that
-   every path the wiki and the knowledge bundle name still exists on disk. It runs in `make
-   build-all`, separately from `docs:build`.
+   every path the wiki and the knowledge bundle name still exists on disk. A third, `make
+   wiki-anchors-check`, checks that every `#fragment` a link names resolves - the sidebar gate sees
+   a dead page but not a dead anchor, so a renamed heading used to leave every link into it
+   rendering fine and landing at the top of the page. It reads the ids out of the BUILT html rather
+   than recomputing a slug, because VitePress does not slugify the way GitHub does: a heading like
+   `Construction - Sentinel` becomes `construction-sentinel` here and `construction---sentinel`
+   there, so a reimplemented slugifier both invents failures and hides real ones. That is why it
+   needs a build first. Both run in `make build-all`, separately from `docs:build`.
 4. Preview locally: `cd docs/wiki && bun run docs:dev` (VitePress dev server). Build the static
    site with `bun run docs:build` (`make docs` also builds it, without the dependency chain the
    other Makefile targets carry - `docs` has no prerequisite target). Clean with `bun run
    docs:clean`.
-5. There is no compiled output in this package any more: `content/` is plain markdown VitePress
+5. The built site reaches production through GitHub Pages, not through you: the
+   `.github/workflows/deploy-docs.yml` workflow ("Deploy Wiki Site") runs `make docs` and deploys
+   `docs/wiki/site/.vitepress/dist`, on every push to `main` that touches `docs/wiki/**` and on
+   manual dispatch. Nothing else publishes the site - merging your page to `main` is the deploy.
+6. There is no compiled output in this package any more: `content/` is plain markdown VitePress
    reads directly, and every script under `scripts/` runs straight with `bun`, no build step. The
    `mcp-server/` directory this step used to describe is deleted; the MCP server that answers over
    this content is now `@venizia/ignis-atlas` (`packages/atlas`), built and released separately -
-   see its concept and the [changelog](/changelogs/2026-09-06-ignis-atlas).
-6. Style rules for anything you write in `docs/wiki/content/`: hyphen `-` only, never an em-dash or
+   see its concept and the `changelog:2026-09-06-ignis-atlas` entry (atlas citation ids address
+   changelogs; a bundle-style `/changelogs/...` link resolves to nothing here).
+7. Style rules for anything you write in `docs/wiki/content/`: hyphen `-` only, never an em-dash or
    en-dash; the brand is always written **IGNIS**, never the mixed-case form. These are content rules, not
    visual ones - do not introduce new UI components or theme CSS for a changelog or any other page;
    change what the page says, not how the site looks.
-7. This package has no entry in `package-release.yml`'s `package` input any more - the `docs-mcp`
+8. This package has no entry in `package-release.yml`'s `package` input any more - the `docs-mcp`
    choice retired with the MCP server it built, and nothing replaced it (see
    [release and publish](/process/release-publish.md)). It has no compiled `dist/` either:
    `docs/wiki/package.json`'s `files` ships `content/` (minus `changelogs/`) plus `README.md` and

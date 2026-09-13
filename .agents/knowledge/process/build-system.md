@@ -13,31 +13,32 @@ tags: [process, build]
    `@venizia/ignis-helpers` resolves to `packages/helpers/dist/...`. Skip this and you get a wall
    of module-resolution errors that have nothing to do with your change.
 2. To rebuild everything: `make build` (alias `make build-all`). This runs
-   `core core-worker boot atlas docs surface-check wiki-links-check` - the `core` target pulls in
-   the full dependency chain first, so this also rebuilds `dev-configs`, `inversion`, `helpers`,
-   `filter`, and `kernel`.
+   `core core-worker boot atlas docs surface-check symbols-check wiki-links-check
+   wiki-anchors-check` - the `core`
+   target pulls in the full dependency chain first, so this also rebuilds `dev-configs`,
+   `inversion`, `helpers`, `filter`, and `kernel`.
 3. To build one package plus its dependencies: `make <package>`, e.g. `make helpers` runs
    `dev-configs -> inversion -> helpers` in order (each Makefile target declares its dependencies
    as prerequisites). The chain is a DAG, not a line:
    `dev-configs -> inversion -> {filter, helpers} -> kernel -> connectors -> core`, with `boot` and
-   `atlas` hanging off `helpers` as leaves that only applications and agents consume (`make
-   build-all` names both explicitly because `core` no longer depends on either). `filter` branches
-   off `inversion` alone - it is isomorphic and deliberately does not sit after `helpers`. `kernel`
-   needs both `helpers` and `filter`. This concept is the canonical copy of the chain -
-   other concepts link here rather than restate it.
+   `atlas` hanging off `helpers` and `core-worker` off `kernel` beside `connectors`, as leaves that
+   `core` does not reach - only applications and agents consume them, which is why `make build-all`
+   names all three explicitly. `filter` branches off `inversion` alone - it is isomorphic and
+   deliberately does not sit after `helpers`. `kernel` needs both `helpers` and `filter`. This
+   concept is the canonical copy of the chain - other concepts link here rather than restate it.
 4. To build a single package without walking its dependency chain (they're already built):
    `cd packages/<name> && bun run rebuild`. `rebuild` is `sh ./scripts/rebuild.sh`:
    `tsc --noEmit -p tsconfig.json`, then `clean`, then `build`. The type-check comes first on
    purpose - see step 6.
-5. Each package's `build` script is `sh ./scripts/build.sh`. For `core`, `helpers`, `kernel` and
-   `inversion` it runs `tsc --noEmit -p tsconfig.json` first (type-checks `src` AND `src/__tests__`),
+5. Each package's `build` script is `sh ./scripts/build.sh`. Every package but `filter` and
+   `dev-configs` runs `tsc --noEmit -p tsconfig.json` first (type-checks `src` AND `src/__tests__`),
    then emits production output only via `tsc -p tsconfig.build.json` (which excludes `__tests__`,
-   `*.test.ts`, `*.spec.ts`), then `tsc-alias` to rewrite path aliases. `filter`, `boot`, and
-   `dev-configs` emit directly with `tsc -p tsconfig.json` (no separate pre-check pass);
-   `inversion`, `filter`, and `boot` build CJS and ESM outputs as two passes. `boot` compiles its
-   `__tests__` into `dist` on purpose - its test runner executes the compiled tests. A package that
-   emits tests into `dist` without such a runner makes a bare `bun test` execute every test once per
-   copy - `inversion` reported 111 for 37 tests until its `tsconfig.build.json` excluded them.
+   `*.test.ts`, `*.spec.ts`), then `tsc-alias` to rewrite path aliases. `filter` and `dev-configs`
+   emit directly with `tsc -p tsconfig.json` (no separate pre-check pass). Most packages build CJS
+   and ESM outputs as two passes; only `core`, `dev-configs`, and `atlas` emit a single pass. No
+   package ships its tests in `dist` - they stay sources under `src/__tests__/` that `bun test` runs
+   directly. A package that emits them into `dist` makes a bare `bun test` execute every test once
+   per copy - `inversion` reported 111 for 37 tests until its `tsconfig.build.json` excluded them.
 6. Every `build.sh` has `set -e` and every package's tsconfig inherits `noEmitOnError: true` from
    `packages/dev-configs/tsconfig/tsconfig.base.json`. A type error anywhere aborts the script
    immediately and the closing `echo "DONE | Build completed successfully!"` never prints.
@@ -46,9 +47,9 @@ tags: [process, build]
    a scrollback that got truncated; if a build's success is in doubt, rerun
    `tsc --noEmit -p tsconfig.json` directly in the package and check its exit code.
 7. Gotcha: the type-check pass covers `src/__tests__/` too, even though those tests never ship in
-   `dist` for most packages. A type error in a test file blocks the build of production code that
-   never touches it - via `rebuild.sh` for every package, and again inside `build.sh` for `core`,
-   `helpers`, and `kernel`.
+   `dist`. A type error in a test file blocks the build of production code that never touches it -
+   via `rebuild.sh` for every package, and again inside `build.sh` for every package but `filter`
+   and `dev-configs`.
 8. `make purity` bundles every entry in `scripts/purity/manifest.ts` with
    `bun build --target=browser` and fails on node builtins or node globals (`process.`,
    `__dirname`, `__filename`, `createRequire`). Six packages claim a browser-pure surface:

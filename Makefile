@@ -6,7 +6,7 @@
         test-all test-inversion test-helpers test-boot test-kernel test-connectors test-core-worker test-core-server test-atlas \
         purity-dev-configs purity-boot purity-core purity-core-server purity-connectors purity-core-worker purity-atlas \
         okf-check okf-gen okf-coverage okf-viz split-report surface-gen surface-check symbols-gen symbols-check \
-        releases-gen releases-check wiki-links-check \
+        releases-gen releases-check wiki-links-check wiki-anchors-check \
         catalog-check \
         update update-all update-core update-core-server update-dev-configs update-atlas update-filter update-helpers update-inversion update-boot
 
@@ -76,6 +76,10 @@ releases-check:
 wiki-links-check:
 	@bun scripts/wiki-source-links.ts
 
+# Dead `#fragment` links. Reads the emitted ids, so it needs a build - `docs` runs first in build-all.
+wiki-anchors-check:
+	@bun scripts/wiki-anchors.ts
+
 agent-setup:
 	@bun .agents/plugin/setup.ts
 
@@ -98,7 +102,7 @@ release:
 # ----------------------------------------------------------------------------
 build: build-all
 
-build-all: core core-worker boot atlas docs surface-check symbols-check wiki-links-check
+build-all: core core-worker boot atlas docs surface-check symbols-check wiki-links-check wiki-anchors-check
 	@echo "🚀 All packages rebuilt successfully."
 
 # Granular build targets for individual packages
@@ -422,6 +426,7 @@ help:
 	@echo "  releases-gen     - Regenerate .agents/knowledge/reference/releases.json for the Atlas version and changes tools."
 	@echo "  releases-check   - Gate: the release table matches the release commits and the changelogs."
 	@echo "  wiki-links-check - Gate: every source path the wiki and knowledge bundle name exists."
+	@echo "  wiki-anchors-check - Gate: every wiki '#fragment' link resolves. Needs a build (make docs)."
 	@echo "  agent-setup      - Link your agent's tool file + skills to the tracked AGENTS.md."
 	@echo ""
 	@echo "Tests:"

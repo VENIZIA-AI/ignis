@@ -34,11 +34,13 @@ Packages build in a fixed dependency order - see [build system](/process/build-s
 ```
 dev-configs -> inversion -> {filter, helpers} -> kernel -> connectors -> core
                                       helpers -> {boot, atlas}   (applications only)
+                                       kernel -> core-worker     (applications only)
 ```
 
 `filter` is isomorphic and depends on `inversion` only - it deliberately does not sit after
-`helpers`. `kernel` is the browser-pure tree; `boot` and `atlas` are leaves no framework package
-depends on.
+`helpers`. `kernel` is the browser-pure tree; `boot`, `atlas` and `core-worker` are leaves no
+framework package depends on - `core-worker` hangs off `kernel` beside `connectors`, never off
+`core`.
 
 ## Other top-level directories
 
@@ -48,7 +50,7 @@ depends on.
 | `docs/wiki/` | The human-facing VitePress site. Not part of this bundle. |
 | `.agents/knowledge/` | This bundle - the agent-facing source of truth |
 | `.agents/knowledge-tools/` | Generator, gate, and graph explorer for the bundle |
-| `scripts/` | Repo-wide gates run from the Makefile - `check-catalog.ts` behind `make catalog-check`, and `purity/` (the browser-purity bundler probe) behind `make purity` |
+| `scripts/` | Every repo-wide gate - `check-catalog.ts` (`make catalog-check`), `purity/` (the browser-purity bundler probe, `make purity`), `public-surface.ts` (`surface-gen` / `surface-check`), `atlas-symbols.ts` and `atlas-releases.ts` (the Atlas snapshots), `wiki-source-links.ts`, `wiki-anchors.ts` (`make wiki-anchors-check`, reads the built html so it needs `make docs` first), `module-cycles.ts`, `split-report.ts`, `atlas-pack-smoke.ts`, and `release.ts`. Nothing runs `scripts/__tests__` but `make test-scripts`, or `purity/__tests__` but `make purity-test`. |
 | `.githooks/` | Repo-managed git hooks, enabled via `make setup-hooks` |
 
 ## Dependency versions are pinned by the root catalog
