@@ -45,7 +45,7 @@ A class is emitted when every rule holds; every miss is logged with its reason.
 
 - Named export (`export class`), not `export default`, not module-private.
 - Not `abstract`.
-- Decorated with `component`, `controller`, `service`, `repository` or `datasource` **imported from
+- Decorated with `configuration`, `component`, `controller`, `service`, `repository` or `datasource` **imported from
   `@venizia/ignis` or `@venizia/ignis-kernel`** (aliases resolved), or with `injectable({ type })`
   where `type` is a string literal or `ArtifactTypes.<NAME>`.
 - Not under an ignored glob: `**/__tests__/**`, `**/*.test.ts`, `**/*.spec.ts`, `**/generated/**`,
@@ -59,7 +59,7 @@ A class is emitted when every rule holds; every miss is logged with its reason.
 
 Deterministic text: header naming the regenerate command, imports sorted by path (relative to the
 output file, POSIX separators, no extension), then one field per kind in `EMIT_ORDER`
-(`dataSources`, `components`, `repositories`, `services`, `controllers`), names sorted, empty arrays
+(`configurations`, `dataSources`, `components`, `repositories`, `services`, `controllers`), names sorted, empty arrays
 kept. A field wider than 100 columns wraps one name per line with trailing commas, so the file passes
 the repo's `prettier -l` untouched. No IGNIS import in the file - the object is type-checked where
 `registerArtifacts` receives it.
@@ -99,7 +99,7 @@ exit 2.
   from `tsconfig.json` and eslint - the boot build stays independent of core. Tests locate fixtures
   with `resolve(process.cwd(), ...)`; `import.meta` is unavailable in the CJS type-check.
 - **Build:** `scripts/build.sh` type-checks `tsconfig.json` (tests included) with `--noEmit`, then
-  emits from `tsconfig.build.json`; `dist` carries `cli`, `common` and `generator` only.
+  emits from `tsconfig.build.json`; `dist` carries `build-info`, `clis`, `common` and `generator`.
 
 ## Removed
 

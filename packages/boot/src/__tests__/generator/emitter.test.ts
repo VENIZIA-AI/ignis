@@ -32,6 +32,7 @@ describe('ArtifactIndexEmitter', () => {
         "import { ZetaService } from '../services/zeta.service';",
         '',
         'export const GeneratedArtifacts = {',
+        '  configurations: [],',
         '  dataSources: [],',
         '  components: [],',
         '  repositories: [],',
@@ -41,6 +42,23 @@ describe('ArtifactIndexEmitter', () => {
         '',
       ].join('\n'),
     );
+  });
+
+  // `registerConfigurations` runs before the datasource and component sweeps, so a configuration
+  // listed after them would be registered too late to shape what they read.
+  test('configurations are emitted, and emitted first', () => {
+    const content = ArtifactIndexEmitter.render({
+      outFile: join(ROOT, 'generated', 'artifacts.ts'),
+      exportName: 'GeneratedArtifacts',
+      command: { root: 'src', out: 'src/generated/artifacts.ts' },
+      artifacts: [
+        artifact('datasource', 'ProbeDataSource', 'datasources/probe.datasource.ts'),
+        artifact('configuration', 'ProbeConfiguration', 'configurations/probe.configuration.ts'),
+      ],
+    });
+
+    expect(content).toContain('  configurations: [ProbeConfiguration],');
+    expect(content.indexOf('configurations:')).toBeLessThan(content.indexOf('dataSources:'));
   });
 
   test('a field wider than the prettier print width wraps one name per line with trailing commas', () => {

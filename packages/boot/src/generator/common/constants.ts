@@ -2,6 +2,7 @@ import type { TConstValue } from '@venizia/ignis-helpers';
 
 /** Mirrors the kernel's `ArtifactTypes` values; boot must not depend on kernel (`{boot, kernel} -> core` in the build chain). */
 export class ArtifactTypes {
+  static readonly CONFIGURATION = 'configuration';
   static readonly COMPONENT = 'component';
   static readonly CONTROLLER = 'controller';
   static readonly SERVICE = 'service';
@@ -10,6 +11,7 @@ export class ArtifactTypes {
   static readonly MODEL = 'model';
 
   static readonly SCHEME_SET = new Set<string>([
+    this.CONFIGURATION,
     this.COMPONENT,
     this.CONTROLLER,
     this.SERVICE,
@@ -27,6 +29,7 @@ export type TArtifactType = TConstValue<typeof ArtifactTypes>;
 
 /** Mirrors the kernel's `ArtifactIndexFields` - the keys of the object the emitter writes and `registerArtifacts` reads. */
 export class ArtifactIndexFields {
+  static readonly CONFIGURATIONS = 'configurations';
   static readonly DATA_SOURCES = 'dataSources';
   static readonly COMPONENTS = 'components';
   static readonly REPOSITORIES = 'repositories';
@@ -34,6 +37,7 @@ export class ArtifactIndexFields {
   static readonly CONTROLLERS = 'controllers';
 
   static readonly SCHEME_SET = new Set<string>([
+    this.CONFIGURATIONS,
     this.DATA_SOURCES,
     this.COMPONENTS,
     this.REPOSITORIES,
@@ -51,6 +55,7 @@ export type TArtifactIndexField = TConstValue<typeof ArtifactIndexFields>;
 export class ArtifactStereotypes {
   /** Decorator name as imported from `@venizia/ignis` or `@venizia/ignis-kernel` -> artifact type. */
   static readonly BY_DECORATOR: Readonly<Record<string, TArtifactType>> = {
+    configuration: ArtifactTypes.CONFIGURATION,
     component: ArtifactTypes.COMPONENT,
     controller: ArtifactTypes.CONTROLLER,
     service: ArtifactTypes.SERVICE,
@@ -76,8 +81,14 @@ export class ArtifactStereotypes {
     '**/generated/**',
   ];
 
-  /** The kernel's `registerArtifacts` order; `model` is never emitted. */
+  /**
+   * The kernel's `registerArtifacts` order; `model` is never emitted. Configurations come first:
+   * `registerConfigurations` runs before the datasource and component sweeps, so a `@configuration`
+   * can shape what they read. The kernel sorts them among themselves by their `after` declarations
+   * at boot, so the order within the field does not matter here.
+   */
   static readonly EMIT_ORDER: ReadonlyArray<{ type: TArtifactType; field: TArtifactIndexField }> = [
+    { type: ArtifactTypes.CONFIGURATION, field: ArtifactIndexFields.CONFIGURATIONS },
     { type: ArtifactTypes.DATASOURCE, field: ArtifactIndexFields.DATA_SOURCES },
     { type: ArtifactTypes.COMPONENT, field: ArtifactIndexFields.COMPONENTS },
     { type: ArtifactTypes.REPOSITORY, field: ArtifactIndexFields.REPOSITORIES },

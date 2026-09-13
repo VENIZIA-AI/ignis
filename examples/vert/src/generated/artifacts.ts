@@ -18,6 +18,7 @@ import { AuthenticationService } from '../services/authentication.service';
 import { RowLockingTestService } from '../services/tests/row-locking/service';
 
 export const GeneratedArtifacts = {
+  configurations: [],
   dataSources: [PostgresDataSource],
   components: [PlatformComponent],
   repositories: [

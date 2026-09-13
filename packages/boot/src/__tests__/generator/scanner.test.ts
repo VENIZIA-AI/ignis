@@ -12,6 +12,8 @@ describe('ArtifactScanner', () => {
         .map(a => `${a.type}:${a.className}`),
     ).toEqual([
       'component:ProbeComponent',
+      'configuration:LateConfiguration',
+      'configuration:ProbeConfiguration',
       'controller:ProbeController',
       'datasource:ProbeDataSource',
       'model:ProbeModel',

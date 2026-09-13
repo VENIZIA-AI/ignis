@@ -14292,7 +14292,7 @@
       "specifier": "@venizia/ignis-boot",
       "kind": "class",
       "file": "packages/boot/src/generator/common/constants.ts",
-      "line": 29,
+      "line": 31,
       "signature": "class ArtifactIndexFields"
     },
     {
@@ -14312,7 +14312,7 @@
       "specifier": "@venizia/ignis-boot",
       "kind": "class",
       "file": "packages/boot/src/generator/common/constants.ts",
-      "line": 51,
+      "line": 55,
       "signature": "class ArtifactStereotypes"
     },
     {
@@ -14432,7 +14432,7 @@
       "specifier": "@venizia/ignis-boot",
       "kind": "type",
       "file": "packages/boot/src/generator/common/constants.ts",
-      "line": 49,
+      "line": 53,
       "signature": "type TArtifactIndexField = TConstValue<typeof ArtifactIndexFields>"
     },
     {
@@ -14442,7 +14442,7 @@
       "specifier": "@venizia/ignis-boot",
       "kind": "type",
       "file": "packages/boot/src/generator/common/constants.ts",
-      "line": 26,
+      "line": 28,
       "signature": "type TArtifactType = TConstValue<typeof ArtifactTypes>"
     },
     {
@@ -14582,7 +14582,7 @@
       "specifier": "@venizia/ignis-boot/generator",
       "kind": "class",
       "file": "packages/boot/src/generator/common/constants.ts",
-      "line": 29,
+      "line": 31,
       "signature": "class ArtifactIndexFields"
     },
     {
@@ -14602,7 +14602,7 @@
       "specifier": "@venizia/ignis-boot/generator",
       "kind": "class",
       "file": "packages/boot/src/generator/common/constants.ts",
-      "line": 51,
+      "line": 55,
       "signature": "class ArtifactStereotypes"
     },
     {
@@ -14662,7 +14662,7 @@
       "specifier": "@venizia/ignis-boot/generator",
       "kind": "type",
       "file": "packages/boot/src/generator/common/constants.ts",
-      "line": 49,
+      "line": 53,
       "signature": "type TArtifactIndexField = TConstValue<typeof ArtifactIndexFields>"
     },
     {
@@ -14672,7 +14672,7 @@
       "specifier": "@venizia/ignis-boot/generator",
       "kind": "type",
       "file": "packages/boot/src/generator/common/constants.ts",
-      "line": 26,
+      "line": 28,
       "signature": "type TArtifactType = TConstValue<typeof ArtifactTypes>"
     },
     {
