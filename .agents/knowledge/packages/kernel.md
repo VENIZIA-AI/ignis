@@ -14,8 +14,10 @@ package depends on the other, and only `kernel` feeds `core` (`make core` needs 
 beside `boot` rather than after it is what keeps boot's node-only glob discovery out of the kernel
 graph.
 
-It ships a **single-format build** (`dist/index.js`, one `exports` entry plus `package.json`), unlike
-`inversion`, `filter`, and `boot`, which build CJS and ESM. `packages/core-server/src/index.ts` re-exports
+It ships a **dual CJS + ESM build** (`dist/cjs/index.js` and `dist/esm/index.js`, both conditions in
+one `exports` entry), like `inversion`, `filter`, and `boot`. The browser-purity claim is what forces
+the `import` condition: a browser bundler that finds only CommonJS either fails on the bare
+`require()` or needs a per-consumer pre-bundling workaround. `packages/core-server/src/index.ts` re-exports
 the kernel barrel wholesale, so `@venizia/ignis` keeps its published name and its full public
 surface: no consumer import changed when this package was carved out of core.
 
@@ -28,10 +30,11 @@ Everything under `src/base/` was the engine-neutral half of `packages/core-serve
 | `applications/` | `AbstractApplication` (container, config, lifecycle hooks), `RestApplication` (adds the router, `registerArtifacts` - the index resolution behind it lives in `ArtifactIndexHelper`, `applications/artifact-index.ts`, internal - and the opt-in `configs.bootChecks.binding`: `doVerify` resolves every service and repository at the `verifyBindings` step and fails the boot with every broken key, `allowManual: false` rejects a hand registration inside `preConfigure`/`postConfigure` while `configs.artifacts` is set, `allowOverride: false` makes every artifact registration refuse an already-bound key) |
 | `auth/` | The authentication and authorization seams - registries, middlewares, providers, policy builders |
 | `components/` | `BaseComponent` and its `binding()` contract |
+| `configurations/` | `BaseConfiguration` and the `@configuration({ after? })` artifact kind, drained at the `registerConfigurations` boot step - between `registerDefaultMiddlewares` and `registerDataSources`, so it is where a datasource or a component's inputs get settled. `ArtifactIndexHelper.sortConfigurationsTopologically` orders them by their declared `after`, ties broken by class name so the sequence is deterministic; an `after` naming a class that is not itself a registered configuration, and a dependency cycle, each throw naming what they found. `@provide` binds off a configuration the same as off a component, and lazily, so a provided key can be read long before the configuration's own turn |
 | `controllers/` | `AbstractRestController`, `BaseRestController` (route helpers and the response helpers `respond({ context, format, payload, range? })` and `setListHeaders({ context, count } & ({ range } | { offset, total }))`, plus the exported `toContentRange` - the one home of the `Content-Range` / `X-Response-Count` / `X-Response-Format` contract; `format` is the `ResponseFormats` const class), `ControllerFactory`, and `ReadableCrudController.getBaseWhere({ context })` - the per-controller scope every read verb ANDs into the request filter as `{ and: [baseWhere, requestWhere] }`, public rather than protected because a generated controller's declaration cannot carry a protected member (TS4094) |
 | `datasources/` | `AbstractDataSource` - the engine-neutral root with no SQL members |
 | `events/` | `EventBus` - in-process, fire-and-forget domain event bus with per-registration retry |
-| `metadata/` | The decorator layer: `@controller`, `@model`, `@datasource`, `@repository`, `@inject`, the REST verbs, the RPC verbs |
+| `metadata/` | The decorator layer: `@controller`, `@model`, `@datasource`, `@repository`, `@configuration`, `@inject`, the REST verbs, the RPC verbs |
 | `middlewares/` | `emojiFavicon`, the not-found handler, and `RequestErrors` |
 | `mixins/` | The mixin contracts (`IComponentMixin`, `IControllerMixin`, `IRepositoryMixin`, ...) that compose onto an application |
 | `models/` | `AbstractEntity`, the model settings shape, and the `TEntityId` brand |

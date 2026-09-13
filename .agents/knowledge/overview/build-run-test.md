@@ -10,14 +10,17 @@ tags: [overview, build, test, bun]
 
 ```bash
 make build          # alias: make build-all - rebuilds every package in dependency order
-make core           # rebuilds dev-configs -> inversion -> {filter, helpers} -> kernel -> core
+make core           # rebuilds core-server and everything upstream of it
 make boot           # rebuilds dev-configs -> inversion -> helpers -> boot
 ```
 
 The dependency graph is a DAG, not a single line. `filter` hangs off `inversion` alone - it is
 isomorphic and deliberately does not sit after `helpers`. `kernel` sits beside `boot` rather than
 after it, on `helpers` plus `filter`, so it never picks up boot's node-only discovery. `core`
-depends on both `boot` and `kernel`, so `make core` builds every package above.
+reaches `kernel` through `connectors`, so `make core` runs dev-configs -> inversion ->
+{filter, helpers} -> kernel -> connectors -> core. `boot` and `atlas` are leaves off `helpers` that
+no framework package depends on (an application declares `boot` itself, for the artifact
+generator), so `make build-all` names both explicitly.
 
 Each target builds its dependencies first, running `bun run --filter "@venizia/<name>" rebuild` -
 type-check, then clean, then build. The type-check runs *before* `clean` on purpose: `build.sh`
@@ -38,18 +41,19 @@ bun run server:dev                 # start dev server
 ## Test
 
 ```bash
-cd packages/core-server && bun test       # or packages/helpers, packages/inversion
-cd packages/boot && bun test       # runs compiled output, see gotcha below
+make test-all                             # every suite
+make test-core-server                     # one suite - the targets own the shared test flags
+cd packages/core-server && bun test       # the same suite, without those flags
 ```
 
-`core` and `helpers` have no `test` script - `bun test` runs directly against the `.ts` sources in
-`src/__tests__/`. `boot` is the exception: its `test` script runs
-`bun test dist/cjs/__tests__/**/*.test.js` with `pretest: bun run rebuild`, because `boot`'s
-`build.sh` intentionally includes `__tests__` in its CJS/ESM output (`core`/`helpers` exclude
-tests from `dist` via `tsconfig.build.json` and run them straight from `src`). `NODE_ENV=test`
-loads each package's `.env.test` automatically.
+Every suite is TypeScript sources under the package's `src/__tests__/`, run directly - no compile
+step for the tests, and `tsconfig.build.json` keeps them out of `dist/`. `NODE_ENV=test` loads the
+package's `.env.test` automatically. Only `boot` and `atlas` define a `test` script of their own
+(`NODE_ENV=test bun test --env-file=.env.test`); `make test-boot` runs `bun run test` so that
+script stays the single owner of the package's environment.
 
-`filter` and `kernel` carry no tests of their own - they are covered indirectly through `core`.
+`filter` is the only package with no suite of its own - it is covered indirectly through `kernel`
+and `core`. See [testing](/process/testing.md) for the full list of targets.
 
 ## Lint and hooks
 
@@ -57,12 +61,12 @@ loads each package's `.env.test` automatically.
 make lint             # lint packages/ only
 make lint-all         # lint packages/ and examples/
 make purity           # bundle every entry claimed browser-pure, fail on node builtins or globals
-make purity-<package> # one package: inversion, filter, helpers, kernel
+make purity-<package> # one package: inversion, filter, helpers, kernel, connectors, core-worker
 make setup-hooks      # git config core.hooksPath .githooks
 ```
 
 `purity` probes the built `dist/`, so build the package first; the packages with no browser-pure
-entry claimed (`dev-configs`, `boot`, `core`, `atlas`) have a target that just skips.
+entry claimed (`dev-configs`, `boot`, `core`, `core-server`, `atlas`) have a target that just skips.
 
 `.githooks/pre-commit` runs **only** `make lint-all` - nothing else. Purity is a CI gate, run per
 package by the release workflow, so a green commit says nothing about it.
@@ -86,6 +90,7 @@ package by the release workflow, so a green commit says nothing about it.
 ## Related
 
 - [Build system](/process/build-system.md)
+- [Testing](/process/testing.md)
 - [Makefile targets](/reference/makefile-targets.md)
 - [Monorepo layout](/overview/monorepo-layout.md)
 - [Testing conventions](/conventions/testing-conventions.md)

@@ -1,12 +1,56 @@
 ---
 type: Convention
 title: Gotchas
-description: The traps that have already cost real debugging time in this codebase.
-resource: packages/core-server/src
+description: Traps that have already cost real debugging time here - build and dist, browser purity, the Bun runtime and bundler, DI and decorators, dependency pinning, correctness and security.
+resource: .
 tags: [conventions, gotchas, debugging]
 ---
 
-Traps worth knowing before you hit them yourself.
+Traps worth knowing before you hit them yourself. Look for yours here first.
+
+**Build and dist**
+
+- [`bun test` resolves paths from the package root, not the repo root](#run-bun-test-from-the-package-root-never-the-repo-root)
+- [An empty `dist` looks like a hundred unrelated import failures](#an-empty-dist-looks-like-a-hundred-unrelated-import-failures)
+- [Stale `.tsbuildinfo` replays phantom errors](#stale-tsbuildinfo-replays-phantom-errors)
+- [`bun install` reformats the committed `bun.lock`](#bun-install-reformats-the-committed-bunlock)
+
+**Browser purity**
+
+- [A node global in the kernel passes `tsc` and fails `make purity`](#a-node-global-in-the-kernel-passes-tsc-and-fails-make-purity)
+- [`types: []` does not make `process.env` a compile error](#types--does-not-make-processenv-a-compile-error)
+- [`make purity` derives its rows from `exports`, not a hand-written list](#make-purity-derives-its-rows-from-exports-never-from-a-hand-written-list)
+- [A purity verdict can change with the Bun version](#a-purity-verdict-can-change-with-the-bun-version-and-a-waiver-is-exact-both-ways)
+
+**Bun runtime and bundler**
+
+- [Bun silently drops `@inject` when `tsconfig` `extends` is not resolved](#bun-can-silently-drop-inject-when-tsconfig-extends-isnt-resolved)
+- [A type used on a decorated member must come from `import type`](#under-bun-runs-source-a-type-used-on-a-decorated-member-must-come-from-import-type)
+- [A dynamic `import('./own-module')` bundles the barrel with undefined exports](#a-dynamic-importown-module-in-library-code-makes-bun-bundle-the-barrel-with-undefined-exports)
+- [`bun build` folds `process.env.NODE_ENV` into the build machine's value](#bun-build-folds-processenvnodeenv-into-the-build-machines-value)
+- [Compiled binaries: renamed classes, two module copies, no default logger](#compiled-binaries-renamed-classes-two-module-copies-no-default-logger)
+- [bun-types never accepts a bare `ArrayBufferView`](#bun-types-14-types-binary-data-as-typed-arrays-and-dataview-never-a-bare-arraybufferview)
+
+**DI and decorators**
+
+- [Every constructor parameter needs `@inject`](#every-constructor-parameter-needs-inject)
+- [Kernel state is realm-anchored, so never reach for `instanceof` across packages](#kernel-state-is-realm-anchored-so-never-reach-for-instanceof-across-packages)
+- [The artifact generator never executes a module](#the-artifact-generator-never-executes-a-module)
+
+**Dependencies and pinning**
+
+- [`bun update` rewrites peerDependencies floors](#bun-update-rewrites-peerdependencies-floors-not-only-devdependencies)
+- [The PGlite pin lives in the root `package.json`](#the-pglite-pin-lives-in-the-root-packagejson)
+- [`RedisClusterHelper` deliberately skips `buildDefaultOpts`](#redisclusterhelper-deliberately-skips-builddefaultopts)
+- [Four transitive advisories stay by decision](#four-transitive-advisories-stay-by-decision---do-not-fix-them-with-an-override)
+
+**Correctness and security**
+
+- [An error catalog code must be a literal, not `MessageCode.build()`](#an-error-catalog-code-must-be-a-literal-not-messagecodebuild)
+- [A published env name nobody reads is worse than no name at all](#a-published-env-name-nobody-reads-is-worse-than-no-name-at-all)
+- [The health-check `stats` route is a security default](#the-health-check-stats-route-is-a-security-default-and-enable-overrides-it-silently)
+- [A self-refreshing cache must gate its retry on the last attempt](#a-self-refreshing-cache-must-gate-its-retry-on-the-last-attempt-not-the-last-success)
+- [An unannotated method return widens a `TConstValue`-derived literal](#an-unannotated-method-return-widens-a-tconstvalue-derived-literal-back-to-string)
 
 ## Run `bun test` from the package root, never the repo root
 
@@ -72,7 +116,7 @@ two first-party paths reach one:
 | Path | Reaches |
 |---|---|
 | `@venizia/ignis-helpers/core` -> `modules/redis/common/types.d.ts` | `ioredis` |
-| `@venizia/ignis-kernel` -> `base/auth/authorize/common/types.d.ts` | `casbin` |
+| `@venizia/ignis-kernel` -> `base/auth/authorize/common/types/enforcer.d.ts` | `casbin` |
 
 Both are `import type` only, so `make purity` stays green and nothing flags it. `typeRoots: []` does
 not close it either - the directive then resolves through node module resolution instead.
@@ -91,7 +135,7 @@ nothing. In a browser Worker they are a `ReferenceError`.
 What no static rule reaches: computed member access (`globalThis['process']`), a variable import
 specifier, and an inline `eslint-disable`. `make purity` backstops the first two.
 
-## make purity is red, and that is it telling the truth
+## make purity derives its rows from `exports`, never from a hand-written list
 
 `scripts/purity/manifest.ts` derives one row per published sub-path from each package's own
 `package.json` `exports` map. Nothing is authored per entry, so a new sub-path is probed the day it
@@ -99,17 +143,17 @@ ships. The hand-written list it replaced carried 11 rows and reported `11/11` wh
 `@venizia/ignis-connectors/postgres` - the entry [browser-bff](/examples/browser-bff.md) imports -
 killed a Worker at import.
 
-24 rows now, and four are red:
+21 published sub-paths today, each probed on both conditions, so 42 checks - and the gate is green.
 
 | Entry | Reaches | What it means |
 |---|---|---|
-| `connectors/postgres/node-postgres`, `/postgres-js`, `connectors/sqlite/libsql`, `connectors/typesense` | `pg`, `postgres`, `@libsql/client`, `typesense` | Engine clients that were never browser-capable. The gate has no data saying so, so it reports them red rather than quietly excusing them. |
+| `connectors/postgres/node-postgres`, `/postgres-js`, `connectors/sqlite/libsql`, `connectors/typesense` | `pg`, `postgres`, `@libsql/client`, `typesense` | Engine clients that were never browser-capable. Pre-declared in the manifest's `impure` map, so they print as waived rather than red - a waiver is a claim the gate re-measures, not a hole in it. |
 
-Six were red when the derivation landed. `connectors/postgres` and `connectors/sqlite` were the two
-real defects: the model barrel re-exports `user-audit.enricher`, which statically imported
-`hono/context-storage`, whose module body runs `new AsyncLocalStorage()`. Both enrichers now read
-`RequestContextRegistry` from the kernel instead, and core installs the resolver over it - see
-[connectors](/packages/connectors.md).
+Six sub-paths were red when the derivation landed. `connectors/postgres` and `connectors/sqlite`
+were the two real defects: the model barrel re-exports `user-audit.enricher`, which statically
+imported `hono/context-storage`, whose module body runs `new AsyncLocalStorage()`. Both enrichers
+now read `RequestContextRegistry` from the kernel instead, and core installs the resolver over it -
+see [connectors](/packages/connectors.md).
 
 `helpers` is the one package whose claim covers part of its surface: the root barrel reaches ioredis,
 winston and minio by design, which is why `./core` and `./common` exist. The manifest names those
@@ -178,8 +222,12 @@ Declare its key as a `static readonly SINGLETON_REAL_KEY` on the holder - a bare
 `resolve` call - the key is then readable off the class, which is what lets
 `singleton-realm-keys.test.ts` assert that no two holders share one. Two holders on one key is
 silent: the second receives the first one's object and the symptom surfaces somewhere unrelated.
-Anchored today: `MetadataRegistry`, `AuthenticationStrategyRegistry`,
-`AuthorizationEnforcerRegistry`, `GrantBuilder`, and the `RequestContextRegistry` resolver slot.
+Anchored today: `MetadataRegistry`, `RelationBuilderRegistry`, `AuthenticationStrategyRegistry`,
+`AuthorizationEnforcerRegistry`, `GrantBuilder`, the `RequestContextRegistry` resolver slot, and
+`ArtifactIndexHelper`. That last one is the exception to both halves of the rule: it spells its
+field `SINGLETON_REALM_KEY` rather than the `SINGLETON_REAL_KEY` every other holder uses, and it is
+the one holder missing from the test's `HOLDERS` list, so nothing checks its key against the other
+six.
 
 Anchoring cannot save class identity - two copies are two classes, and `instanceof` between them is
 `false`. `@repository`'s first-parameter check used to be exactly that, and rejected a valid
@@ -293,8 +341,8 @@ core-server's `tsconfig.core.json` declares `experimentalDecorators` alone.
 keeps that import alive for `design:*` metadata, and linking then fails with `Export named 'X' not
 found` against the CJS dist. `import type { ... }` fixes it. `tsc` output is unaffected (types are
 elided), so an application that builds first and runs `bun dist/index.js` never sees it - which is
-why `examples/vert` still has two value-imported `IControllerOptions` and only a source-run probe
-notices.
+why `examples/rpc-api-server` and `examples/supabase` still have a value-imported
+`IControllerOptions` each and only a source-run probe notices.
 
 ## The artifact generator never executes a module
 
@@ -336,10 +384,33 @@ cannot change behaviour is not a setting.
 
 Three rules follow. A framework read goes through `EnvironmentKeys`, never a bare string, so one
 grep answers "who reads this". A constant the framework does NOT read is marked as such in that
-file - eleven of the sixteen names there are conventions an application reads for itself. And the
+file - ten of the fifteen names there are conventions an application reads for itself. And the
 banner reads at CALL time, never at module load: an application loads its `.env` in its own
 entrypoint, after `base.ts` is imported, so a module-load destructure prints the default for a host
 that configured everything correctly.
+
+## The health-check `stats` route is a security default, and `enable` overrides it silently
+
+`GET <health path>/stats` serves the build stamp, the runtime version and the memory profile -
+exactly what an attacker reads to pick an exploit, which is why it is closed by default on every
+host that is not provably a development one. `HealthCheckReporter.isStatsEnabled`
+(`packages/core-server/src/components/health-check/reporter.ts`) answers from `stats.enable` FIRST
+whenever that is an explicit boolean, and never consults `NODE_ENV` in that case. So a `true` added
+to open the route for a local run opens it in production too. Found on a live consumer deployment,
+not in review.
+
+The two ways to get it wrong are opposites, which is the whole trap:
+
+- **No `secretKey`** leaves the route open to anything that reaches the port. The framework only
+  warns at boot - `isStatsUnguarded` turns mounted-plus-keyless-plus-non-development into one
+  `warn` naming the route and the environment - because it cannot know whether the port is
+  reachable, and on a cluster-internal one this is often the right call.
+- **A blank `secretKey`** fails CLOSED: `isStatsAuthorized` refuses every request. Routing that read
+  through `blankToUndefined` would therefore turn a locked route into an open one, the opposite of
+  what that helper buys everywhere else.
+
+The closed-by-default shape is `stats: { enable: Boolean(secretKey), secretKey }` - a host with no
+key never mounts the route, and nothing depends on `NODE_ENV`.
 
 ## Compiled binaries: renamed classes, two module copies, no default logger
 

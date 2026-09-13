@@ -6,7 +6,7 @@ resource: examples/grpc-test
 tags: [examples, grpc]
 ---
 
-`grpc-test` runs `ControllerTransports.REST` and `ControllerTransports.GRPC` side by side in one `IApplicationConfigs.transports` array, backed by `@connectrpc/connect` and `@bufbuild/protobuf`. Proto files live under each controller's own `proto/` folder (`src/controllers/{greeter,health,echo,time}/proto`), generated with `buf` via per-service `proto:gen:*` scripts driven by `buf.yaml`.
+`grpc-test` runs `ControllerTransports.REST` and `ControllerTransports.GRPC` side by side in one `IApplicationConfigs.transports` array, backed by `@connectrpc/connect` and `@bufbuild/protobuf`. Proto files live under each controller's own `proto/` folder (`src/controllers/{greeter,health,echo,time}/proto`), generated with `buf` via per-service `proto:gen:*` scripts, each driven by that controller's own `proto/buf.gen.yaml` (a `protoc-gen-es` plugin entry with its own `out` directory).
 
 ## What it demonstrates
 
@@ -29,6 +29,7 @@ gRPC endpoints are exposed at `/grpc/<package>.<Service>/*` using the Connect pr
 ## Notable / non-obvious
 
 - This is the only example demonstrating that a `@controller` can be registered either directly or transitively through a `component()` call that itself composes other components - the same DI resolution path core uses for `HealthCheckComponent`/`ApiReferenceComponent` extends naturally to app-defined component composition.
+- The top-level `buf.yaml` is a separate workspace-modules file that no `proto:gen:*` script reads, and it lists only the `greeter` and `health` proto directories - `echo` and `time` are missing, so any workspace-wide `buf` command silently skips them.
 - The client file's docstring is unusually explicit about the Connect-protocol-vs-true-gRPC streaming boundary - worth citing verbatim when explaining why bidi streaming isn't demoed here.
 
 ## Related

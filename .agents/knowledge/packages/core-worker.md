@@ -211,12 +211,12 @@ is for.
 - **`WorkerApplication` inherits `initialize()` from the kernel, and a browser gets the phase order
   for free.** `AbstractApplication` declares it abstract, but `RestApplication` implements it
   (`packages/kernel/src/base/applications/rest.ts`) as one line handing `getBootSequence()` to
-  `runBootSequence()`; `startServing()` calls it. The nine kernel steps run: `staticConfigure`,
-  `registerArtifacts`, `preConfigure`, `registerDataSources`, `registerComponents`,
-  `registerContributedDataSources`, `registerControllers`, `postConfigure`, `verifyBindings`. What a
-  worker does NOT get is what core-server's `BaseApplication` composes around them -
-  `printStartUpInfo`, `validateEnvs`, `hydrateSecrets`, `wireSecretRotatables` and the scope-filter
-  check; a browser application that needs one of those adds its own step.
+  `runBootSequence()`; `startServing()` calls it. The ten kernel steps run: `staticConfigure`,
+  `registerArtifacts`, `preConfigure`, `registerConfigurations`, `registerDataSources`,
+  `registerComponents`, `registerContributedDataSources`, `registerControllers`, `postConfigure`,
+  `verifyBindings`. What a worker does NOT get is what core-server's `BaseApplication` composes
+  around them - `printStartUpInfo`, `validateEnvs`, `hydrateSecrets`, `wireSecretRotatables` and the
+  scope-filter check; a browser application that needs one of those adds its own step.
 - **A browser has no `NODE_ENV`,** so the error middleware fails closed and sanitises. Set it on the
   Hono env binding from a middleware to see unsanitised errors while developing.
 - The Worker and the server stamp the SAME `requestId` format, a UUID v4, because both go through

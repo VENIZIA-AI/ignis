@@ -12,10 +12,10 @@ Follow this order. Each step depends on the one before it.
 
 Start with [What is IGNIS](/overview/what-is-ignis.md) - LoopBack 4's architecture on Hono's
 speed, and why that combination exists. Then skim
-[Monorepo layout](/overview/monorepo-layout.md) to know where the seven packages
-(`dev-configs`, `inversion`, `filter`, `helpers`, `kernel`, `boot`, `core`) live and that they build
-in a fixed dependency order: `dev-configs` -> `inversion` -> {`filter`, `helpers`} ->
-{`boot`, `kernel`} -> `core`.
+[Monorepo layout](/overview/monorepo-layout.md) to know where the ten packages live - note
+`connectors`, the datasource, driver and repository tier, which is where most data-access questions
+end up. They build in a fixed dependency order; read the chain in
+[build system](/process/build-system.md), which is its canonical copy.
 
 ## 2. Install and build
 
@@ -24,7 +24,7 @@ git clone https://github.com/venizia-ai/ignis.git
 cd ignis
 bun install
 make setup-hooks   # enables the repo's pre-commit hook (git config core.hooksPath .githooks)
-make build         # rebuilds every package in dependency order, ending at core
+make build         # rebuilds every package in dependency order, then runs the repo gates
 ```
 
 Do not skip `make build`. Every package's `dist/` is gitignored and every downstream package
@@ -50,17 +50,26 @@ hello world.
 ## 4. Run the tests
 
 ```bash
-cd packages/core-server && bun test
+make test-core-server   # or test-all, and one target per package
 ```
 
-`core` and `helpers` run tests straight from `src/`; `boot` is the exception - it runs compiled
-tests from `dist/cjs/__tests__` (see [Build, run, test](/overview/build-run-test.md) for why).
+Every package runs its tests from the TypeScript sources under `src/__tests__/`. Use the make
+targets, not a bare `bun test`: they are the one home of the test flags (`BUN_TEST_FLAGS`, default
+`--parallel`, which implies `--isolate`), and CI calls the same targets. Build first - a suite
+resolves its sibling packages through `dist`, not `src`.
 
 ## 5. Know where knowledge lives
 
-This bundle (`.agents/knowledge/`) is the agent-facing source of truth - prefer it over the
-VitePress wiki (`docs/wiki/`) when the two disagree, since this bundle is checked against source.
-Before proposing that something is missing or wrong, run:
+An agent reads two homes, and neither restates the other. `.agents/rules.md` holds the behaviour
+rules - W write boundaries, S security, P process, B build and quality, C code and writing -
+numbered so they are cited by ID in reviews and reports. The two that cost the most when skipped are
+P-09, every status message opens with the minimap, and B-05, a downstream test suite runs `dist`,
+not `src`. `make agent-setup` links the per-tool files (`CLAUDE.md`, `GEMINI.md`, ...) to the one
+`AGENTS.md` that routes to both homes.
+
+This bundle (`.agents/knowledge/`) holds the facts, and is the agent-facing source of truth - prefer
+it over the VitePress wiki (`docs/wiki/`) when the two disagree, since this bundle is checked
+against source. Before proposing that something is missing or wrong, run:
 
 ```bash
 make okf-check      # gate: frontmatter, links, structural coverage, freshness
@@ -76,4 +85,5 @@ periodically, since only re-reading the source can catch prose that quietly went
 - [What is IGNIS](/overview/what-is-ignis.md)
 - [Build, run, test](/overview/build-run-test.md)
 - [Monorepo layout](/overview/monorepo-layout.md)
+- [Build system](/process/build-system.md)
 - [Design decisions](/overview/design-decisions.md)

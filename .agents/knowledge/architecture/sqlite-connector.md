@@ -40,13 +40,16 @@ per file and the collision never surfaces.
 
 ## What the branch supplies
 
+Paths below are relative to `packages/connectors/src`. Each engine branch nests inside the relational
+tier rather than sitting beside it, and the neutral tier itself is `relational/core`.
+
 ```
-BaseRelationalDataSource            connectors/relational/datasources/base.ts   (BEGIN text abstract)
-└── AbstractSqliteDataSource        connectors/sqlite/datasources/abstract.ts   (SqliteQueryDialect + SqliteQueryExecutor, both memoized)
-    └── BaseSqliteDataSource        connectors/sqlite/datasources/base.ts       (supplies "BEGIN IMMEDIATE")
+BaseRelationalDataSource            relational/core/datasources/base.ts        (BEGIN text abstract)
+└── AbstractSqliteDataSource        relational/sqlite/datasources/abstract.ts  (SqliteQueryDialect + SqliteQueryExecutor, both memoized)
+    └── BaseSqliteDataSource        relational/sqlite/datasources/base.ts      (supplies "BEGIN IMMEDIATE")
 ```
 
-| File | Supplies |
+| File under `relational/sqlite` | Supplies |
 |---|---|
 | `datasources/abstract.ts` | The two ports, memoized on static fields the way `AbstractPostgresDataSource` does |
 | `datasources/base.ts` | `buildBeginStatement()`, the `beginMode` patch, and a `getConnectionString()` that returns the libsql url |

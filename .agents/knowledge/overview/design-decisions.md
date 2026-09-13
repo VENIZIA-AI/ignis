@@ -58,10 +58,12 @@ surface. `MetadataRegistry` (`packages/kernel/src/helpers/inversion/registry.ts`
 `DatasourceMetadataMixin`, `ModelMetadataMixin`, `RepositoryMetadataMixin`,
 `ControllerMetadataMixin`, `RestControllerMetadataMixin` and `GrpcControllerMetadataMixin`, so a
 protocol adds its metadata handling without widening one class. On the application side,
-`packages/kernel/src/base/mixins/common/types.ts` declares `IComponentMixin`, `IControllerMixin`,
-`IRepositoryMixin`, `IServiceMixin`, `IServerConfigMixin` and `IStaticServeMixin`; `IRestApplication`
-composes the registration surfaces it actually needs rather than inheriting one base class that
-accretes all of them - the trap LB4's own inheritance-heavy juggler eventually fell into.
+`packages/kernel/src/base/mixins/common/types.ts` declares one interface per registration surface -
+`IComponentMixin`, `IControllerMixin`, `IRepositoryMixin`, `IServiceMixin`, `IConfigurationMixin`
+and `IArtifactRegistrationMixin` among them; read the file for the current set, it grows as
+surfaces are added. `IRestApplication` extends only the ones it actually needs rather than
+inheriting one base class that accretes all of them - the trap LB4's own inheritance-heavy juggler
+eventually fell into.
 
 Repository cross-cutting behavior is deliberately *not* mixed in. Hidden-field exclusion and
 default-filter application are folded into the base classes: `RelationalBaseRepository`

@@ -14,7 +14,10 @@ tags: [process, helper, helpers]
    `bun-s3/`, `in-memory/`) or a shared `common/` for types/constants/interfaces (see `redis/common/`).
 2. The helper class extends `BaseHelper` (`packages/helpers/src/modules/base.ts`). Call `super({
    scope: options.scope ?? YourHelper.name, identifier: options.identifier ?? YourHelper.name })`
-   in the constructor - this is what sets up `this.logger` as a scoped `Logger`.
+   in the constructor - this is what sets up `this.logger` as a scoped `ILogger`, resolved through
+   `LoggerResolver`, never a provider class. A helper that names `Logger` (the concrete winston
+   class, reachable only from the `@venizia/ignis-helpers/winston` sub-path) drags a provider into
+   a surface that must stay provider-agnostic.
 3. Log through the scoped logger, not `console`: `this.logger.for('methodName').debug(...)` /
    `.info(...)` / `.warn(...)` / `.error(...)`. The scope-per-call pattern (`for(this.methodName.name)`
    or a literal method name) is what makes log lines traceable back to the call site; see
@@ -35,6 +38,14 @@ tags: [process, helper, helpers]
    of adding it to the barrel - see how `./cron`, `./bullmq`, `./mqtt`, `./kafka`, `./minio`,
    `./bun-s3`, `./socket-io`, `./axios` are each wired in `packages/helpers/package.json` `exports`,
    each pointing at that module's own `dist/modules/.../index.d.ts` + `.js`.
+   Once a module is on the root barrel, every bare package it imports statically must be declared
+   in `packages/helpers/package.json` as a `dependency` or a `peerDependency`:
+   `src/__tests__/manifest/root-barrel-dependencies.test.ts` walks the import graph from
+   `src/index.ts` and fails on anything undeclared. That gate is what catches a published tarball
+   dying on an import nobody declared. Only static `import`/`export ... from` count - a dynamic
+   `import()` inside a function is lazy and stays out on purpose. Declaring the package is a
+   separate decision from the sub-path question in step 7: a root-barrel module's peer is REQUIRED,
+   not optional.
 7. If you added a sub-path export, also add the peer package to `peerDependencies` AND to
    `peerDependenciesMeta.<pkg>.optional: true` in `packages/helpers/package.json`, plus to
    `devDependencies` so it's available for local builds/tests. This is what keeps consumers who

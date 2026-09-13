@@ -1,28 +1,33 @@
 ---
 type: Architecture
 title: Relational connector
-description: The engine-neutral SQL tier under connectors/relational, the two ports a datasource supplies, and what stays Postgres-only.
+description: The engine-neutral SQL tier under relational/core, the two ports a datasource supplies, and what stays Postgres-only.
 resource: packages/connectors/src/relational
 tags: [architecture, connectors, drizzle, postgres, sqlite, relational]
 ---
 
-`connectors/relational` is the engine-neutral SQL tier: datasource root, driver contract, entity
-base and the five-class repository chain, all free of `drizzle-orm/pg-core`. `connectors/postgres`
+`relational/core` is the engine-neutral SQL tier: datasource root, driver contract, entity
+base and the five-class repository chain, all free of `drizzle-orm/pg-core`. `relational/postgres`
 is the first branch built on it - it supplies the two ports the neutral tier declares abstract, plus
-everything that is genuinely Postgres SQL. `connectors/sqlite` is the second, and it touches no part
+everything that is genuinely Postgres SQL. `relational/sqlite` is the second, and it touches no part
 of the neutral tier - see [SQLite connector](/architecture/sqlite-connector.md).
+
+Every path below is relative to `packages/connectors/src/`. The engine branches sit **inside**
+`relational/`, beside the neutral `core/` - they are not siblings of `relational/`. A family is
+therefore one directory holding `core/` plus one subdirectory per adapter, and `search/` has the
+same shape.
 
 ## The split
 
 ```
-AbstractRelationalDataSource   connectors/relational/datasources/abstract.ts   (connector/pool/driver wiring; dialect + executor abstract)
-└── BaseRelationalDataSource   connectors/relational/datasources/base.ts       (schema discovery, transaction skeleton; BEGIN text abstract)
-    ├── AbstractPostgresDataSource   connectors/postgres/datasources/abstract.ts   (supplies PostgresQueryDialect + PostgresQueryExecutor)
-    │   └── BasePostgresDataSource   connectors/postgres/datasources/base.ts       (supplies "BEGIN TRANSACTION ISOLATION LEVEL ...")
-    └── AbstractSqliteDataSource     connectors/sqlite/datasources/abstract.ts     (supplies SqliteQueryDialect + SqliteQueryExecutor)
-        └── BaseSqliteDataSource     connectors/sqlite/datasources/base.ts         (supplies "BEGIN IMMEDIATE")
+AbstractRelationalDataSource   relational/core/datasources/abstract.ts   (connector/pool/driver wiring; dialect + executor abstract)
+└── BaseRelationalDataSource   relational/core/datasources/base.ts       (schema discovery, transaction skeleton; BEGIN text abstract)
+    ├── AbstractPostgresDataSource   relational/postgres/datasources/abstract.ts   (supplies PostgresQueryDialect + PostgresQueryExecutor)
+    │   └── BasePostgresDataSource   relational/postgres/datasources/base.ts       (supplies "BEGIN TRANSACTION ISOLATION LEVEL ...")
+    └── AbstractSqliteDataSource     relational/sqlite/datasources/abstract.ts     (supplies SqliteQueryDialect + SqliteQueryExecutor)
+        └── BaseSqliteDataSource     relational/sqlite/datasources/base.ts         (supplies "BEGIN IMMEDIATE")
 
-RelationalBaseRepository       connectors/relational/repositories/core/base.ts
+RelationalBaseRepository       relational/core/repositories/core/base.ts
 └── ReadableRelationalRepository
     └── PersistableRelationalRepository
         └── DefaultRelationalRepository
@@ -35,18 +40,19 @@ Every class is **declared** under a distinct name. The Postgres branch declares
 name across the two barrels.
 
 The `*RelationalDataSource` spellings are served **only** from `@venizia/ignis/relational`:
-`connectors/postgres/datasources/index.ts` deliberately declines to alias them, so no datasource
-name resolves to two different classes across sibling sub-paths. `connectors/index.ts` still
+`relational/postgres/datasources/index.ts` deliberately declines to alias them, so no datasource
+name resolves to two different classes across sibling sub-paths. The root of `@venizia/ignis` comes
+from an alias barrel of its own - `packages/core-server/src/connectors/index.ts` - and that barrel
 re-exports `./postgres` alone, so reach the neutral tier through the `@venizia/ignis/relational`
 sub-path, never through the root.
 
 The repository chain forks the same way: `RelationalBaseRepository` and its four subclasses are
-declared only in `connectors/relational`, and `connectors/postgres/repositories/core/*.ts` declares
+declared only in `relational/core`, and `relational/postgres/repositories/core/*.ts` declares
 five thin subclasses of them (`PostgresBaseRepository`, `ReadableRepository`, `PersistableRepository`,
 `DefaultCRUDRepository`, `SoftDeletableRepository`). Those subclasses add no behavior - their only
 job is to rebind `ExtraOptions` to `IDatabaseExtraOptions` and `TDataSource` to `IPostgresDataSource`
 so a single-argument subclass keeps a `PgDatabase` connector with no cast. The neutral tier names no
-Postgres type at all. `connectors/sqlite/repositories/core/*.ts` is the same five under SQLite names
+Postgres type at all. `relational/sqlite/repositories/core/*.ts` is the same five under SQLite names
 (`SqliteBaseRepository`, `ReadableSqliteRepository`, `PersistableSqliteRepository`,
 `DefaultSqliteRepository`, `SoftDeletableSqliteRepository`), rebinding `ISqliteExtraOptions` and
 `ISqliteDataSource`.
@@ -73,7 +79,7 @@ datasource it is bound to.
 ## The seven-verb executor
 
 `IRelationalQueryExecutor` is every Drizzle call the repository tier used to make, now behind one
-interface. `PostgresQueryExecutor` is the only place in `connectors/postgres` that calls a Drizzle
+interface. `PostgresQueryExecutor` is the only place in `relational/postgres` that calls a Drizzle
 query builder - `FilterBuilder` composes SQL fragments, `PostgresQueryExecutor` is what hands them to
 `.from()`/`.where()`/`.returning()`.
 
@@ -106,7 +112,7 @@ export type TTableSchemaWithId<TC extends TableConfig = TableConfig> = Table<TC>
 `$inferInsert` - `Table` is the real shared bound the repository tier needs, not a workaround.
 `TIdColumn` follows the same move: `AnyColumn<{ data: IdType }>` is drizzle's dialect-free twin of
 `AnyPgColumn<{ data: IdType }>`, a rename, not a widening. Pinned by
-`__tests__/connectors/relational/neutral-table-types.test.ts`: it asserts a `sqliteTable` satisfies
+`__tests__/relational/neutral-table-types.test.ts`: it asserts a `sqliteTable` satisfies
 the bound and fails if it is narrowed back to `PgTable`.
 
 ## `buildBeginStatement` is abstract
@@ -118,7 +124,7 @@ picks a locking mode (`BEGIN DEFERRED`/`IMMEDIATE`/`EXCLUSIVE`). The neutral
 dedicated connection, running whatever statement `buildBeginStatement()` returns, building the
 `commit`/`rollback` closures with their discard-on-failure semantics - but the BEGIN text itself is
 declared `protected abstract`, because neutral code has no portable way to say it. Falsified by
-`__tests__/connectors/relational/begin-statement.test.ts`'s `SqliteShapedFixture`: a second
+`__tests__/relational/begin-statement.test.ts`'s `SqliteShapedFixture`: a second
 `BaseRelationalDataSource` subclass, no SQLite driver involved, that returns `'BEGIN IMMEDIATE'` and
 proves the seam is real rather than Postgres-only in disguise.
 
@@ -141,16 +147,17 @@ kernel names no engine type. `resolveModelRelations()` calls `RelationBuilderReg
 and the mixin has zero `drizzle-orm` imports.
 
 The concrete builder is installed from the **module body** of
-`connectors/relational/datasources/base.ts` - its last line - not from `dialect/relation.ts`, which
-it deep-imports rather than reaching through a barrel. Both choices are about packaging: a
-`sideEffects: false` bundler drops a module reached only through an unused `export *` re-export, and
+`relational/core/datasources/base.ts` - its last line - not from
+`relational/core/repositories/dialect/relation.ts`, which it deep-imports rather than reaching
+through a barrel. Both choices are about packaging: a `sideEffects: false` bundler drops a module
+reached only through an unused `export *` re-export, and
 `discoverSchema()` in that same file is the sole production caller of `resolveModelRelations()`, so
 this is the one module guaranteed to load whenever relations are actually needed.
 
 A model that declares relations with no builder installed makes `resolveModelRelations()` throw a
 named `getError` rather than emit an empty `with` clause that would surface much later. Falsified by
-`__tests__/connectors/relational/relation-builder-wiring.test.ts` and
-`__tests__/mixins/repository-mixin-imports.test.ts`.
+`__tests__/relational/relation-builder-wiring.test.ts` and
+`packages/core-server/src/__tests__/mixins/repository-mixin-imports.test.ts`.
 
 ## Rotation drains by capability, not by class
 
@@ -161,29 +168,29 @@ successful swap. All three go through `drainClient()`, which **probes for `end()
 Testing for a client class instead would name an engine from the neutral tier, and a client that
 matches neither verb is logged rather than silently skipped - an undrained PGlite keeps a WASM
 instance alive and an undrained libsql keeps a file handle open, so repeated rotations accumulate
-live instances. Falsified by `__tests__/connectors/relational/rotation-drain.test.ts`, whose fake
+live instances. Falsified by `__tests__/relational/rotation-drain.test.ts`, whose fake
 client offers `close()` only.
 
 ## What stays Postgres-only
 
-| Stays in `connectors/postgres` | Why |
+| Stays in `relational/postgres` (paths below relative to it) | Why |
 |---|---|
 | The five model enrichers (`data-type`, `id`, `principal`, `tz`, `user-audit`) | Build columns with pg-core factories (`varchar`, `jsonb`, `timestamp` with timezone) |
 | `isoTimestamp`, `PgSequenceOptions` | pg-core column/sequence concepts with no SQLite equivalent |
 | `IsolationLevels` (`READ COMMITTED`/`REPEATABLE READ`/`SERIALIZABLE`) | SQLite has no isolation levels - its BEGIN axis is a locking mode, not a level |
-| `PostgresQueryOperators` (`dialect/query.ts`) | Drizzle root exports (`ilike`, `arrayContains`, `arrayContained`, `arrayOverlaps`) that compile to literal Postgres SQL and fail on SQLite at the database |
-| `UpdateBuilder.composeJsonSet()` (`dialect/update.ts`) | Chained `jsonb_set(...)` and `::jsonb` casts. Only that one method: the split, the validation and `toUpdateData` sit in the neutral `RelationalUpdateBuilder` |
-| `PostgresFilterBuilder` (`dialect/filter.ts`) | Binds the neutral `FilterBuilder`'s abstract `operators` to `PostgresQueryOperators.FNS`, and owns the `#>>`/`#>` JSON extractions and the `::numeric` guard cast |
+| `PostgresQueryOperators` (`repositories/dialect/query.ts`) | Drizzle root exports (`ilike`, `arrayContains`, `arrayContained`, `arrayOverlaps`) that compile to literal Postgres SQL and fail on SQLite at the database |
+| `UpdateBuilder.composeJsonSet()` (`repositories/dialect/update.ts`) | Chained `jsonb_set(...)` and `::jsonb` casts. Only that one method: the split, the validation and `toUpdateData` sit in the neutral `RelationalUpdateBuilder` |
+| `PostgresFilterBuilder` (`repositories/dialect/filter.ts`) | Binds the neutral `FilterBuilder`'s abstract `operators` to `PostgresQueryOperators.FNS`, and owns the `#>>`/`#>` JSON extractions and the `::numeric` guard cast |
 
 `FilterBuilder` lives in the neutral tier
-(`connectors/relational/repositories/dialect/filter.ts`), not in `connectors/postgres`. It has
+(`relational/core/repositories/dialect/filter.ts`), not in `relational/postgres`. It has
 **zero** `drizzle-orm/pg-core` imports, and filter merging, plain `where`/`orderBy`, column selection
 and relation `include` carry no engine-specific SQL. The class is `abstract`, and it emits no
 engine-specific SQL at all: `operators`, `buildJsonWhereCondition` and `buildJsonOrderBy` are all
 declared `protected abstract`, so a second engine that forgets one gets a compile error rather than
 Postgres SQL.
 
-`connectors/postgres` declares `PostgresFilterBuilder extends FilterBuilder`, which supplies those
+`relational/postgres` declares `PostgresFilterBuilder extends FilterBuilder`, which supplies those
 three: `PostgresQueryOperators.FNS`, the `#>>` extraction with its `::numeric` guard cast, and the
 `#>` order-by extraction. `PostgresQueryDialect extends PostgresFilterBuilder`.
 
@@ -208,16 +215,16 @@ the rest only when your JSON semantics differ. You inherit the other ~700 lines 
 The last three are call-only, and they are `protected` for that reason: without them a second engine
 has to copy the base's own bare-value logic into its JSON override.
 
-Falsified twice. `__tests__/connectors/postgres/repositories/dialect-seam.test.ts` builds a
+Falsified twice. `__tests__/postgres/repositories/dialect-seam.test.ts` builds a
 `SqliteShapedDialect extends FilterBuilder` that emits `json_extract(..., '$.tier')` and its own
 operator table, with no SQLite driver involved, and asserts `PostgresQueryDialect` still emits
-exactly what a bare `PostgresFilterBuilder` does. `__tests__/connectors/sqlite/dialect.test.ts` runs
+exactly what a bare `PostgresFilterBuilder` does. `__tests__/sqlite/dialect.test.ts` runs
 the shipped `SqliteQueryDialect` through Drizzle's `SQLiteSyncDialect`: `SqliteFilterBuilder`
 overrides only `operators`, `jsonNeedsNumericCast`, `buildJsonWhereCondition` and `buildJsonOrderBy`.
 
 ### The update builder has the same shape
 
-`RelationalUpdateBuilder` (`connectors/relational/repositories/dialect/update.ts`) is `abstract` with
+`RelationalUpdateBuilder` (`relational/core/repositories/dialect/update.ts`) is `abstract` with
 **one** abstract member, `composeJsonSet({ target, path, value })`. It owns the plain-versus-JSON
 split, the column-not-found throws, `toUpdateData`, and the two path validators - and that last part
 is why it is a base rather than a copied skeleton: an engine composing through `sql.raw` is
@@ -235,7 +242,7 @@ in the SQLite connector research spec, a local planning artifact under `docs/sup
 
 ## `UpdateBuilder` is reachable two ways - use the dialect
 
-`UpdateBuilder` is exported directly from `connectors/postgres/repositories/dialect` AND reachable as
+`UpdateBuilder` is exported directly from `relational/postgres/repositories/dialect` AND reachable as
 `PostgresQueryDialect.updateBuilder` (both existed before this lift and both stay - this project does
 not delete a public export on a hunch). **New code should go through the dialect**:
 `dataSource.getQueryDialect().updateBuilder`, or - inside a `RelationalBaseRepository` subclass -
@@ -253,11 +260,11 @@ against the built package:
 
 | Name (`@venizia/ignis/postgres`) | Extends | Declared in |
 |---|---|---|
-| `PostgresBaseRepository` (abstract) | `RelationalBaseRepository` | `connectors/postgres` |
-| `ReadableRepository` | `ReadableRelationalRepository` | `connectors/postgres` |
-| `PersistableRepository` | `PersistableRelationalRepository` | `connectors/postgres` |
-| `DefaultCRUDRepository` | `DefaultRelationalRepository` | `connectors/postgres` |
-| `SoftDeletableRepository` | `SoftDeletableRelationalRepository` | `connectors/postgres` |
+| `PostgresBaseRepository` (abstract) | `RelationalBaseRepository` | `relational/postgres` |
+| `ReadableRepository` | `ReadableRelationalRepository` | `relational/postgres` |
+| `PersistableRepository` | `PersistableRelationalRepository` | `relational/postgres` |
+| `DefaultCRUDRepository` | `DefaultRelationalRepository` | `relational/postgres` |
+| `SoftDeletableRepository` | `SoftDeletableRelationalRepository` | `relational/postgres` |
 
 `ReadableRepository === ReadableRelationalRepository` is therefore **false**, and so on down the
 chain. `instanceof` still holds - a `SoftDeletableRepository` instance is a
@@ -269,8 +276,8 @@ longer exported from `@venizia/ignis/postgres`; import them from `@venizia/ignis
 
 | Alias (`@venizia/ignis/postgres`) | Canonical name | Declared in |
 |---|---|---|
-| `BaseEntity`, `BasePostgresEntity` | `BaseRelationalEntity` | `connectors/relational` |
-| `BaseDataSource` | `BasePostgresDataSource` | `connectors/postgres` |
+| `BaseEntity`, `BasePostgresEntity` | `BaseRelationalEntity` | `relational/core` |
+| `BaseDataSource` | `BasePostgresDataSource` | `relational/postgres` |
 
 `BaseDataSource` is the only datasource alias on that sub-path. `AbstractRelationalDataSource` and
 `BaseRelationalDataSource` are deliberately NOT aliased there - they are served only from
@@ -278,7 +285,7 @@ longer exported from `@venizia/ignis/postgres`; import them from `@venizia/ignis
 the two sub-paths you import from.
 
 **Withdrawn - `FilterBuilder`.** A third collision existed and was removed rather than kept.
-`connectors/postgres` used to re-export its subclass as `FilterBuilder`, so `@venizia/ignis/postgres`
+`relational/postgres` used to re-export its subclass as `FilterBuilder`, so `@venizia/ignis/postgres`
 served the Postgres class while `@venizia/ignis/relational` served the abstract neutral base under
 the identical name. That alias is gone. Verified against the built `dist`:
 
@@ -287,8 +294,9 @@ the identical name. That alias is gone. Verified against the built `dist`:
 | `FilterBuilder` | absent | absent | the abstract neutral base |
 | `PostgresFilterBuilder` | present | present | absent |
 
-The name disappeared from the root entry as a side effect: `connectors/index.ts` re-exports only
-`./postgres`, so withdrawing the alias there withdrew it from the root too. BANA imports
+The name disappeared from the root entry as a side effect: the alias barrel behind the root of
+`@venizia/ignis` re-exports `./postgres` only, so withdrawing the alias there withdrew it from the
+root too. BANA imports
 `FilterBuilder` in zero files, but it was a documented public import - recorded in
 [the 2026-08-01 changelog](https://github.com/VENIZIA-AI/ignis/blob/main/docs/wiki/content/changelogs/2026-08-01-relational-connector-lift.md).
 
@@ -298,7 +306,7 @@ root `./postgres` barrel by the same rule every other optional-peer driver follo
 
 ## The tier is falsified by one suite, run twice
 
-`__tests__/connectors/relational/conformance/repository-conformance.ts` runs one repository-level
+`__tests__/relational/conformance/repository-conformance.ts` runs one repository-level
 suite against two real in-process databases - PGlite and libsql `:memory:`. Same tests, same
 assertions, two engines, no mocks.
 
@@ -315,10 +323,14 @@ differently, so each engine pins the answer it gives:
 Skipping a difference would prove nothing, so nothing is skipped. Add a third engine by adding one
 harness file.
 
-`__tests__/connectors/relational/no-engine-cycle.test.ts` walks the built `dist` and asserts the
-neutral tier reaches **no** engine adapter. The adapter set is discovered by listing the siblings of
-`dist/connectors/relational`, never named, so a third connector is guarded the day its directory
-appears.
+`__tests__/relational/no-engine-cycle.test.ts` walks the built `dist/cjs` - the two halves of the
+dual build emit the same tree - and asserts a family's `core/` reaches **no** engine adapter. A
+family is discovered, never named: any directory holding a `core/` subdirectory qualifies, and the
+adapters are that `core/`'s siblings. So `relational` and `search` are both walked today, a third
+paradigm is guarded the day its directory appears, and the forbidden set is every adapter in *any*
+family plus every other family's `core/` - one paradigm reaching another is the same defect as one
+engine reaching another. A discovery that found nothing would make every walk pass vacuously, so a
+single test pins the expected families and engines by name.
 
 ## Related
 

@@ -6,6 +6,173 @@ not how.
 This file and `index.md` are reserved OKF filenames - they carry no `type:` frontmatter and are not
 counted as concepts.
 
+## 2026-09-13 - the artifact generator learns `@configuration`, and three drifts it exposed
+
+`@venizia/ignis-boot` could not see the `@configuration` stereotype. Its
+`generator/common/constants.ts` said it mirrors the kernel's `ArtifactTypes`, but was missing that
+class's FIRST member, and `ArtifactIndexFields` had no `configurations`. So a class carrying
+`@configuration` was scanned, matched nothing, and vanished - no error, no entry, no warning. The
+developer had to hand-list it and nothing said so.
+
+Four values changed, all in that one file: `ArtifactTypes.CONFIGURATION`,
+`ArtifactIndexFields.CONFIGURATIONS`, a `configuration` key in `ArtifactStereotypes.BY_DECORATOR`,
+and an `EMIT_ORDER` entry placed FIRST, matching `registerArtifacts`. `asArtifactType` derives its
+accepted set from `EMIT_ORDER`, so the same change also fixed the
+`@injectable({ type: ArtifactTypes.CONFIGURATION })` path - both are covered by fixtures now.
+
+Consequence worth planning for: every generated index gains a `configurations: []` line, so
+`check:artifacts` reports a pre-upgrade index as stale until `generate:artifacts` reruns. The field
+is optional on `IArtifactIndex`, so nothing breaks at compile or run time - it is a one-command
+refresh. Measured in BANA (read-only): two packages, `commerce` and `search`, both carry a
+`check:artifacts` script and an index with no `configurations` field.
+
+Three prose claims were CORRECT when written this morning and became wrong the moment the code
+landed - recorded because the same trap returns every time a documented gap is closed:
+`guides/core-concepts/application/bootstrapping.md` warned the generator skips `@configuration`
+silently, `references/base/bootstrapping.md` listed five stereotypes and five emitted fields, and
+`packages/boot.md` plus `architecture/boot-lifecycle.md` said the same. All four now describe the
+current behaviour and tell the reader to regenerate after a boot upgrade.
+
+Also fixed, found while auditing prose:
+
+- `examples/vert/scripts/seed-user-policies.ts` inserted into a `domain` column that does not exist;
+  the table has `domain_type` and `domain_id`. `tsc` passed because the statement is a raw SQL
+  string, so a green type-check was never evidence here. A runtime probe of
+  `AuthorizationPolicyBuilder.grant` settled it: the result carries `domainType` and `domainId`, and
+  `domain` is `undefined` - the old code wrote `null` into a column that was not there.
+- `IDSConfigs` renamed to `IDataSourceConfigs` in `examples/vert` and `examples/rpc-api-server` and
+  in the five current wiki pages that copied it. Most of the wiki already used the full name; these
+  were the stragglers. The two changelogs that name it keep it - they record what the code was.
+- `best-practices/architectural-patterns.md` told readers to register every artifact by hand in
+  `preConfigure()`, which its own lifecycle section contradicts and which
+  `bootChecks.binding.allowManual: false` refuses outright. The sample is now `configs.artifacts`
+  plus a `preConfigure()` holding only what the index cannot express, copied from
+  `examples/vert/src/application.ts`.
+
+Gates: `make build` green end to end (`wiki-anchors` 369/0, `wiki-source-links` 1382/0,
+`surface-check` and `symbols-check` fresh after `symbols-gen` - the symbol table drifted on the new
+constants, which is the gate working), `make test-boot` 33 passing, `make lint-examples` clean
+including `artifacts-check`, `okf-check` OK, structural coverage 22/22.
+## 2026-09-13 - the wiki audited against source, and a gate for the class of rot nobody was catching
+
+A second pass the same day, this time over `docs/wiki/`, which the knowledge sync does not cover.
+Six verifiers read 187 non-changelog pages against `packages/*/src`; seven appliers fixed what they
+found. About 241 confirmed drifts across 114 pages, every one carrying a `file:line` witness.
+
+The defects worth knowing about, because each one cost a reader real time:
+
+- **Three tutorials taught a boot sequence that crashes.** They call `application.start()` alone,
+  and one added a TIP saying that is enough. `init()` is the ONLY caller of `registerCoreBindings()`
+  (`kernel/src/base/applications/abstract.ts:127,134`), which binds
+  `CoreBindings.APPLICATION_INSTANCE`; `start()` never calls it. Every built-in component those same
+  pages register injects that key, so the app throws `Binding key: @app/instance is not bounded in
+  context!` on the first resolution. `guides/get-started/5-minute-quickstart.md` was the one page
+  that got it right.
+- **`ALLOW_EMPTY_ENV_VALUE` was documented backwards.** The pages said empty values are rejected by
+  default and `=true` opts out. Empty values are PERMITTED by default; you set the variable to
+  `false` or `0` to turn the check ON (`core-server/src/base/applications/base.ts:396-420`). Readers
+  were setting a variable that does nothing and believing they had validation.
+- **Services were documented as singletons.** `service()` binds at `BindingScopes.TRANSIENT`
+  (`kernel/src/base/applications/rest.ts:506-514`), so state cached on a service field is lost
+  silently. Controllers really are singleton.
+- **A filter recipe dropped ~98% of its rows.** The "chunk large `in` arrays" sample looped 5000 ids
+  in chunks of 500 with no `limit`; `find()` always fills in `limit ?? defaultLimit ?? DEFAULT_LIMIT`
+  (`connectors/src/relational/core/repositories/core/readable.ts:159`), so each chunk returned 10.
+- **The storage pages were a whole API behind.** All six still described the flat
+  `{ bucket: string, name }` shape, and `static-asset/api.md` still taught that the served
+  content-type comes from client metadata - the stored-XSS path that was deliberately removed.
+- **The `PolicyDefinition` schema was documented with one `domain` column.** There are two,
+  `domain_type` and `domain_id`, and `domain_id` holds a bare id
+  (`core-server/.../policy-definition.model.ts:40,88,96`). A migration written from that page was
+  missing a column and wrong on the other.
+- **Amazon SES is a shipped mail provider** absent from all six mail lists, each presented as
+  complete, while `mail/api.md` told you to hand-roll a transport for it.
+
+New gate: `make wiki-anchors-check` (`scripts/wiki-anchors.ts`, covered by
+`scripts/__tests__/wiki-anchors.test.ts`, wired into `build-all` after `wiki-links-check`). The
+sidebar gate catches a dead page; nothing caught a dead `#fragment`, so a renamed heading left every
+link into it rendering as a working link that lands at the top of the page. It found 22 such links
+already shipped. It reads ids out of the BUILT html rather than recomputing a slug, because
+VitePress does not slugify the way GitHub does - `Construction - Sentinel` is `construction-sentinel`
+here and `construction---sentinel` there. A reimplemented slugifier both invented failures and hid
+real ones; that was measured, not assumed.
+
+`.agents/plugin/skills/update-wiki/SKILL.md` was rewritten. Every path in it pointed at
+`packages/docs/wiki/`, a directory that does not exist - wrong content root, wrong VitePress config,
+wrong changelog template. It now names `docs/wiki/content/`, `docs/wiki/site/.vitepress/config.mts`
+and `make docs`, and routes style to `conventions/docs-writing-style.md` rather than to a skill that
+lives only in one developer's gitignored `.claude/`.
+
+Two code defects found while auditing prose, both left for their own change: the `ignis-artifacts`
+generator cannot see the `@configuration` stereotype and skips those classes silently
+(`boot/src/generator/common/constants.ts:4-19` claims to mirror the kernel's `ArtifactTypes` but
+omits its first member), and `examples/vert/scripts/seed-user-policies.ts:246` inserts into the
+dropped `domain` column - invisible to `tsc` because the statement is a raw SQL string.
+
+Gates: `make build` green end to end - `docs:build` 326 pages / 317 links, `wiki-source-links` 1382
+paths / 0 missing, `wiki-anchors` 369 anchors / 0 broken, `okf-check` OK, structural coverage 22/22,
+`test-scripts` 45 passing.
+## 2026-09-13 - full sync: the boot sequence, the component model and the helpers surface all moved
+
+Full sync over `8cd8f96a..HEAD`. 51 agents - delta verifiers for `packages/` plus the six directory
+spot-auditors and the two critics. 101 findings applied across 41 files, 478 claims re-confirmed
+against source, nothing skipped. All three gates green: `okf-check` OK (72 files, 70 concepts),
+structural coverage 22/22.
+
+The corrections that change how someone works:
+
+- **The kernel boot sequence has eleven steps, not nine.** `registerConfigurations()` and
+  `verifyBindings()` are both new (`boot-sequence.ts:10,16`). Configurations register FIRST of the
+  three sweeps, after `hydrateSecrets()`, so a `@configuration` class can read a hydrated secret and
+  shape what the datasources and components read. `verifyBindings()` is skipped unless
+  `configs.bootChecks.binding.doVerify` says otherwise; when on, it resolves every service and
+  repository once and throws one error listing every failure, so a made-up `@inject` key fails the
+  boot instead of the first request (`rest.ts:185-211`).
+- **`RestComponent` moved to the kernel.** `RestApplication` owns REST controller registration by
+  inheritance now (`kernel/src/base/components/controller/rest/rest.component.ts`), and core's
+  `components/controller/index.ts` is an empty barrel of comments. Core re-exports the kernel barrel,
+  so `RestComponent` is still reachable from `@venizia/ignis`.
+- **Call-site options reach a component through `configure()`, not only through a pre-bound key.**
+  `application.component(Ctor, { options })` stores them in the application's private
+  `artifactOptions` map (`rest.ts:45,399`) and the registration sweep passes them to
+  `configure(options)`. Nothing in `BaseComponent` consumes that argument - a component opts in by
+  overriding, and repeats the `isConfigured` guard itself because the base's guard runs too late.
+  `HealthCheckComponent` is the worked example.
+- **Every package runs its tests from `src/__tests__/`.** The old claim that `boot` runs compiled
+  tests from `dist/cjs/__tests__` is dead - that directory does not exist. Only `boot` and `atlas`
+  define a `test` script of their own; `make test-boot` runs `bun run test` so that script stays the
+  single owner of the package's environment. The make targets own `BUN_TEST_FLAGS` (default
+  `--parallel`), so a bare `bun test` runs the same suite without them.
+- **`MinioHelper` ships again.** The concept said it was removed; it was restored the same day
+  (`8edba6ae`) carrying `@deprecated`, reachable only through `@venizia/ignis-helpers/minio`, with
+  `minio` still an optional peer. The deprecation names `BunS3Helper` as the replacement.
+- **`%o`, `%O` and no-placeholder log arguments ARE redacted.** The concept claimed the opposite.
+  They go through `redactSecrets` at `depth + 2` and stay objects (`deep-splat.ts:72-74`), so
+  `util.formatWithOptions` still renders them the way the placeholder means.
+- **Two new error catalogs are owned by helpers**: `StorageErrors` (`core.storage.*`) and
+  `UrlSafetyErrors` (`core.url_safety.*`). Both declare their `IErrorKeyRegistry` augmentation
+  against `@venizia/ignis-inversion`, not helpers - TypeScript only treats a `declare module` as an
+  augmentation when the file imports that module name, and a file inside helpers cannot import
+  helpers. `framework-catalog.test.ts` pins the seven catalogs owned by kernel, core-server and
+  connectors; these two sit outside it. `bana-probe.test.ts` is now `consumer-probe.test.ts`.
+- **A root-barrel module's imports are gated.** `src/__tests__/manifest/root-barrel-dependencies.test.ts`
+  walks the import graph from `src/index.ts` and fails on any bare package not declared in
+  `package.json`. Only static imports count - a dynamic `import()` inside a function stays out on
+  purpose. Folded into the adding-a-helper playbook.
+- **`examples/vert` registers through `beConfigs.artifacts`**, not the hand-written `preConfigure()`
+  wiring the concept described; `preConfigure()` only registers authentication strategies. Of the
+  fourteen repository test suites, only `RowLockingTestService` is in `GeneratedArtifacts.services`
+  and actually runs.
+- **`examples/typesense-search` provisioning is gated, not unconditional.** `provisionCollections()`
+  runs only when `APP_ENV_AUTO_PROVISION_COLLECTION` is `true` or `1`
+  (`connectors/src/search/core/datasources/base.ts:49`), off by default; the example's `.env.example`
+  turns it on for local dev.
+
+Dedup: `packages/helpers.md` and `overview/onboarding.md` both carried hand-written package lists
+that had already gone stale. Both now point at the generated table in `overview/monorepo-layout.md`,
+which is the single maintained copy.
+
+Open curation gap the coverage tool reports: 9 playbooks against a target of 10.
 ## 2026-09-12 - an unguarded stats route warns at boot
 
 `HealthCheckReporter.isStatsUnguarded` is new: mounted AND no `secretKey` AND an ambient env outside

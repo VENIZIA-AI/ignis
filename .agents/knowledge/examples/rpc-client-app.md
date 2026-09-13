@@ -26,7 +26,7 @@ npx openapi-typescript http://0.0.0.0:1190/v1/api/doc/openapi.json -o ./schema.d
 
 ## Notable / non-obvious
 
-- The README points to `examples/vert/` for the backend, but the committed `schema.d.ts` paths (`/test/1`, `/test/2`, `/`, `/about`, `/health-check`, plus `/auth/*`) line up with `rpc-api-server`'s controllers instead, though imperfectly: `/test/1` is a literal key where that server registers the parameterized `/test/:id`, and the `/auth/*` paths are registered by neither committed backend. The schema file is a stale snapshot from an earlier wiring, not a live artifact regenerated on every backend change.
+- The README points to `examples/vert/` for the backend, but the committed `schema.d.ts` is a mixed snapshot that no single backend would produce today. `/` and `/about`, the JSX-rendered view routes, come only from `rpc-api-server`'s `ViewController`. `/test/1` and all four `/auth/*` paths come from `vert` instead: its `TestController` declares a literal `/1` route where `rpc-api-server` registers the parameterized `/test/:id`, and its `PlatformComponent` mounts the authenticate controller at `restPath: '/auth'`. Only `/test/2` and `/health-check` fit either backend, since both register them identically. Treat the file as a stale snapshot of an earlier wiring, not a live artifact regenerated on every backend change.
 - The README also documents a `generate:rpc-types` script that does not exist in the committed `package.json` - the regeneration command actually available is the raw `npx openapi-typescript ...` invocation shown above.
 
 ## Related

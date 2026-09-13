@@ -50,7 +50,7 @@ tripwire only: a core-server paired with a kernel that predates `getBootSequence
 instead of silently running the short kernel sequence.
 
 Step names are published constants, not loose strings: `BootSteps` in kernel
-(`packages/kernel/src/base/applications/boot-sequence.ts`) for the nine steps the kernel defines
+(`packages/kernel/src/base/applications/boot-sequence.ts`) for the eleven steps the kernel defines
 methods for, `ServerBootSteps extends BootSteps` in core-server
 (`packages/core-server/src/base/applications/boot-steps.ts`) adding the five server-only ones. Both carry `SCHEME_SET` and `isValid()` like every const class
 here, and the server set contains the kernel set. They are what a subclass passes as `target` to
@@ -67,10 +67,11 @@ server application is:
    `onError` handler and the not-found handler, then adds the async context storage (when enabled),
    the `RequestTrackerComponent` and the favicon middleware.
 4. `staticConfigure()` - pre-DI static setup, e.g. static file roots.
-5. `registerArtifacts()` - registers every class in `configs.artifacts`: datasources, components (plus
-   their `@provide` keys), repositories, services, controllers, in that order, honouring each class's
-   `when` and `order`. Nothing is instantiated; this step only binds. See
-   [Artifact registration](/architecture/boot-lifecycle.md).
+5. `registerArtifacts()` - registers every class in `configs.artifacts`: configurations, datasources,
+   components, repositories, services, controllers, in that order, honouring each class's `when` and
+   `order`; configurations and components also bind their `@provide` keys, and configurations are
+   topologically sorted by their `after` declarations first. Nothing is instantiated; this step only
+   binds. See [Artifact registration](/architecture/boot-lifecycle.md).
 6. `preConfigure()` - your hook for what the index cannot express: registry calls
    (`AuthenticationStrategyRegistry`, `AuthorizationEnforcerRegistry`), hand-made bindings. Hand
    registration (`this.controller(...)`) still works here and reads the class's decorator defaults.
@@ -79,15 +80,22 @@ server application is:
    environment, binds the provider under `CoreBindings.APPLICATION_CONFIG`, and registers a post-stop
    shutdown hook. Outside a development env, a failed provider - or a hydrate entry that declared
    `keys` or a `prefix` yet resolved to nothing - throws instead of falling back.
-8. `registerDataSources()`
-9. `registerComponents()`
-10. `registerContributedDataSources()` - a second, flat `registerDataSources()` sweep that catches any
-   datasource a component contributed, at any nesting depth.
-11. `wireSecretRotatables()` - deliberately after the contributed sweep, not just after
+8. `registerConfigurations()` - the same `registerDynamicBindings` sweep the datasource and component
+   steps use, over the `configuration` namespace. It runs first of the three so a `@configuration`
+   class can shape what they read, and after `hydrateSecrets()` so it can read a hydrated secret.
+9. `registerDataSources()`
+10. `registerComponents()`
+11. `registerContributedDataSources()` - a second, flat `registerDataSources()` sweep that catches any
+    datasource a component contributed, at any nesting depth.
+12. `wireSecretRotatables()` - deliberately after the contributed sweep, not just after
     `registerComponents()`: a lease key may point at a datasource that a component contributed.
-12. `registerControllers()`
-13. `postConfigure()` - post-registration hook.
-14. `validateScopeFilterSupport()` - refuses to start when a model declares `settings.scopeFilter`
+13. `registerControllers()`
+14. `postConfigure()` - post-registration hook.
+15. `verifyBindings()` - SKIPPED unless `configs.bootChecks.binding.doVerify` says otherwise. It
+    resolves every service and repository binding once, collects every failure and throws one error
+    listing all of them, so a made-up `@inject` key - or a dependency some `when` excluded - fails the
+    boot rather than the first request that needs it.
+16. `validateScopeFilterSupport()` - refuses to start when a model declares `settings.scopeFilter`
     somewhere it cannot take effect. Runs last, so a model registered by a component is covered too.
 
 Note two things that a phase list written as `... -> setupMiddlewares -> start` gets wrong: the
@@ -102,8 +110,9 @@ everything they might wrap exists.
 `instance.configure()`, then **re-scans excluding what it already configured** - because configuring
 one artifact may bind more artifacts of the same kind.
 
-- DataSources come first because repositories auto-resolve their datasource, so it has to exist.
-- Components come next. A component may add a datasource of its own, at any nesting depth (a
+- Configurations come first, so a datasource or a component can read one already configured.
+- DataSources come next because repositories auto-resolve their datasource, so it has to exist.
+- Components follow. A component may add a datasource of its own, at any nesting depth (a
   component registering a component registering a component...), so kernel's `RestApplication`
   exposes `registerContributedDataSources()` - a second, flat `registerDataSources()` sweep run right
   after `registerComponents()` in `RestApplication.getBootSequence()`. `BaseApplication.getBootSequence()`
@@ -113,9 +122,9 @@ one artifact may bind more artifacts of the same kind.
   subclass override of `registerDataSources()` can never run twice.
 - Controllers come last, so a controller can inject anything a component bound.
 
-`postConfigure()` runs after all three, which means **new datasources, components or controllers
-registered in `postConfigure` are never auto-configured**. If you must add one there, call its
-`configure()` yourself.
+`postConfigure()` runs after all of them, which means **new configurations, datasources, components
+or controllers registered in `postConfigure` are never auto-configured**. If you must add one there,
+call its `configure()` yourself.
 
 ## Environment seams
 

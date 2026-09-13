@@ -51,9 +51,13 @@ protected omitHiddenFieldsAll<R>(documents: R[]): R[]
 
 `create()`, `createAll()`, and `updateById()` in `PersistableSearchRepository` pass their returned documents through it, and `ReadableSearchRepository.find()` / `search()` apply it to hits as a second line of defence. The result is that `hiddenProperties` holds on every path except the explicit `raw` escape hatch.
 
-## Read-after-write lag is real
+## Read-after-write is engine-specific
 
 Typesense indexing is not synchronous with the write acknowledgement. On a live cluster a document created and immediately searched can legitimately be missing from the result set. This is engine behaviour, not a framework bug - do not "fix" it with a retry inside the repository, and do not write tests that assume write-then-search consistency.
+
+Meilisearch is the opposite by construction: every write is enqueued as a task and `MeilisearchConnector` polls that task to completion before resolving, so `create()` returns only once the document is retrievable. The cost is a write that blocks for as long as the task takes - `taskTimeoutMs` caps the wait at five minutes by default, deliberately far above the SDK's own few-second `waitForTask`, which is too short for bulk imports, and the poll interval backs off to a one-second ceiling.
+
+The same repository code therefore has different write timing on each engine. Neither rule generalises: a test written against one of them will be wrong on the other.
 
 ## Transactions
 

@@ -13,8 +13,8 @@ IGNIS tests run exclusively on the **Bun test runner**. Never Jest, Vitest, or M
 
 Tests live under a package's `src/__tests__/`, mirroring the module structure they exercise.
 `packages/core-server/src/__tests__/` has one directory per subsystem: `applications/`, `datasources/`,
-`repositories/`, `controllers/`, `connectors/`, `middlewares/`, `authorize/`, `authenticate/`,
-`grpc/`, `websocket/`, `metadata/`, and more. `packages/helpers/src/__tests__/` does the same per
+`repositories/`, `controllers/`, `components/`, `middlewares/`, `authorize/`, `authenticate/`,
+`grpc/`, `websocket/`, `metadata/`, `secrets/`, and more. `packages/helpers/src/__tests__/` does the same per
 helper module: `redis/`, `queue/`, `crypto/`, `storage/`, `network/`, `error/`, `uid/`, `cron/`,
 `kafka/`, `socket/`, `websocket/`, `worker-thread/`, `pool/`, `env/`, `logger/`, `utilities/`.
 

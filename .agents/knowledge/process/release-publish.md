@@ -88,31 +88,36 @@ generated tables before releasing it. `--no-atlas` opts out for a single-package
    the publish step still says `bun publish`. The package is then packed ONCE with `bun pm pack`,
    and two checks read that one manifest: it must carry no unresolved `catalog:` or `workspace:`
    protocol, and every runtime dependency must resolve to a real published version on the registry.
-8. Version bump: `cd $PACKAGE_PATH && npm version $BUILD_MODE --no-git-tag-version
+8. For `atlas` only, `bun scripts/atlas-pack-smoke.ts` installs that same packed tarball into an
+   empty directory outside the workspace and drives its CLI over stdio. The gate above proves the
+   manifest names published packages; this proves the published artifact STARTS on its own. A
+   dependency the workspace hoists but the manifest never declared passes every other step and dies
+   on the consumer's first `bunx`.
+9. Version bump: `cd $PACKAGE_PATH && npm version $BUILD_MODE --no-git-tag-version
    --workspaces-update=false`. Then `git fetch origin && git checkout develop && git pull origin
    develop`, so the commit later lands on the latest `develop` rather than the checkout's stale ref.
-9. Publishes, BEFORE any git write: `bun publish --access public --tag <dist-tag> --ignore-scripts`
-   from the package directory. It must be `bun publish`, never `npm publish`: bun resolves the
-   `catalog:` / `workspace:` protocol while packing, whereas npm ships it verbatim into the tarball
-   and the published manifest is then uninstallable for every consumer. Auth is passed as
-   `NPM_CONFIG_TOKEN` rather than `NODE_AUTH_TOKEN`, because bun ignores the `.npmrc` that
-   `actions/setup-node` writes and reads neither `NODE_AUTH_TOKEN` nor `BUN_AUTH_TOKEN`.
-   `patch|minor|major` publish under the `latest` npm tag; any `pre*` mode publishes under `next`.
-   `--ignore-scripts` is used because the build already ran in step 5. `IS_PUBLISHED` is set BEFORE
-   the publish command, so a publish that succeeded and lost its response is still reported.
-10. Best-effort: tries to move the `highest` npm dist-tag to the version just published (publishes
+10. Publishes, BEFORE any git write: `bun publish --access public --tag <dist-tag> --ignore-scripts`
+    from the package directory. It must be `bun publish`, never `npm publish`: bun resolves the
+    `catalog:` / `workspace:` protocol while packing, whereas npm ships it verbatim into the tarball
+    and the published manifest is then uninstallable for every consumer. Auth is passed as
+    `NPM_CONFIG_TOKEN` rather than `NODE_AUTH_TOKEN`, because bun ignores the `.npmrc` that
+    `actions/setup-node` writes and reads neither `NODE_AUTH_TOKEN` nor `BUN_AUTH_TOKEN`.
+    `patch|minor|major` publish under the `latest` npm tag; any `pre*` mode publishes under `next`.
+    `--ignore-scripts` is used because the build already ran in step 5. `IS_PUBLISHED` is set BEFORE
+    the publish command, so a publish that succeeded and lost its response is still reported.
+11. Best-effort: tries to move the `highest` npm dist-tag to the version just published (publishes
     are monotonic, so the latest publish is always the highest version); failure here is logged but
     does not fail the job.
-11. Only now does git change: commit `package.json` as `chore(<package>): release v<version>
+12. Only now does git change: commit `package.json` as `chore(<package>): release v<version>
     [<build_mode>]`, push to `develop`, then tag `<package>-v<version>` and push the tag. The push
     rebases and retries once, because `develop` can move between the sync and the push.
-12. There is no rollback, by design. Publishing runs first, so a failed run either touched neither
+13. There is no rollback, by design. Publishing runs first, so a failed run either touched neither
     the registry nor the remote, or it published and only bookkeeping is left undone. Two report
     steps say which: one when the publish landed but `develop` was not updated (it prints the
     `npm version` command to fix `develop` by hand), one when only the tag is missing. npm cannot
     un-publish, and force-pushing `develop` to chase a live version does more damage than the
     mismatch it would fix.
-13. To check whether a release "actually happened": look at the run's `IS_PUBLISHED` and `IS_PUSHED`
+14. To check whether a release "actually happened": look at the run's `IS_PUBLISHED` and `IS_PUSHED`
     env flags, then check the registry, and check `develop` for the
     `chore(<package>): release v<version> [<build_mode>]` commit and the `<package>-v<version>` tag.
 

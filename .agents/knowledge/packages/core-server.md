@@ -34,7 +34,7 @@ kernel's `RestApplication` and `AbstractApplication`. It runs twelve ordered pha
 `staticConfigure`, `preConfigure`, `hydrateSecrets`, `registerDataSources`, `registerComponents`,
 `wireSecretRotatables`, `registerControllers`, `postConfigure`, `verifyBindings` (opt-in through
 `configs.bootChecks.binding.doVerify`), `setupMiddlewares`, `start`, `executePostStartHooks`.
-The full server boot sequence is 15 named steps, ending `postConfigure -> verifyBindings ->
+The full server boot sequence is 16 named steps, ending `postConfigure -> verifyBindings ->
 validateScopeFilterSupport`. See [Application lifecycle](/architecture/application-lifecycle.md) for the
 full contract.
 
@@ -105,16 +105,20 @@ references them; no manual schema wiring is needed.
 Built-in components live in `src/components/`: `HealthCheckComponent`, `ApiReferenceComponent`
 (interactive OpenAPI UI, Scalar or Swagger UI - the successor to `SwaggerComponent`, whose deprecated
 `Swagger*` aliases are all REMOVED), `AuthenticateComponent` (JWT + Basic strategies), `AuthorizeComponent` (Casbin
-RBAC), `RequestTrackerComponent`, `RestComponent`, `GrpcComponent`, `StaticAssetComponent`,
-`MailComponent`, `SocketIOComponent`, and `WebSocketComponent`. The root barrel carries
-`AuthenticateComponent`, `AuthorizeComponent`, `HealthCheckComponent`, `RequestTrackerComponent`,
-`ApiReferenceComponent`, and `RestComponent`; `GrpcComponent`, `MailComponent`, `SocketIOComponent`,
-`StaticAssetComponent`, and `WebSocketComponent` are excluded from the barrel and must be imported
-from their sub-path (`@venizia/ignis/grpc`, `/mail`, `/socket-io`, `/static-asset`, `/websocket`).
-`StaticAssetComponent`'s generated controller takes two optional extension hooks rather than being
+RBAC), `RequestTrackerComponent`, `GrpcComponent`, `StaticAssetComponent`, `MailComponent`,
+`SocketIOComponent`, and `WebSocketComponent`. The root barrel carries `AuthenticateComponent`,
+`AuthorizeComponent`, `HealthCheckComponent`, `RequestTrackerComponent`, `ApiReferenceComponent`,
+and - through the wholesale kernel re-export, not from `src/components/` - `RestComponent`;
+`GrpcComponent`, `MailComponent`, `SocketIOComponent`, `StaticAssetComponent`, and
+`WebSocketComponent` are excluded from the barrel and must be imported from their sub-path
+(`@venizia/ignis/grpc`, `/mail`, `/socket-io`, `/static-asset`, `/websocket`).
+`StaticAssetComponent`'s generated controller takes three optional extension hooks rather than being
 copied: `resolveObjectName({ originalName, defaultName, bucket })` decides the stored object name
-(`defaultName` is what the storage helper would have written), and `defineExtraRoutes({ controller,
-helper, basePath })` runs after every built-in route so a built-in wins a path collision.
+(`defaultName` is what the storage helper would have written), `defineExtraRoutes({ controller,
+helper, basePath })` runs after every built-in route so a built-in wins a path collision, and
+`defineRoutesBefore({ controller, helper, basePath })` is its mirror - it registers before every
+built-in route, so an application route wins that collision instead (Hono matches in registration
+order, which is how a literal path beats the catch-all `rawObjectPath` produces).
 Its URL shape is two more options, both off by default and independent: `controller.bucket`
 (`string | (() => string)`, read per request) takes the bucket out of the path AND leaves the four
 bucket-management routes unregistered, and `controller.rawObjectPath` widens the object segment to

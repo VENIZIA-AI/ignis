@@ -1,18 +1,18 @@
 ---
 type: Architecture
 title: Authentication
-description: How the AuthenticateComponent wires token services, how strategies are registered and resolved, and what a request actually goes through to become an authenticated user.
+description: How the AuthenticateComponent wires its jwt, basic and service branches, how strategies are registered and resolved, and what a request actually goes through to become an authenticated caller.
 resource: packages/kernel/src/base/auth/authenticate
-tags: [architecture, authentication, jwt, jwks, basic, components]
+tags: [architecture, authentication, jwt, jwks, basic, service-assertion, components]
 ---
 
 Authentication in IGNIS is a component plus a strategy registry plus a Hono middleware. The three are deliberately separate: the component configures **token services**, the app registers **strategies**, and the middleware runs them per route.
 
 ## Where the code lives
 
-The tree is split across two packages. The seam lives in `@venizia/ignis-kernel` at `packages/kernel/src/base/auth/authenticate`: all of `common` (`Authentication`, `AuthenticationModes`, `JOSEStandards`, `JWKSModes`, `AuthenticateBindingKeys`, `IAuthenticationStrategy`, `IAuthUser`, `AuthenticationErrors`, `AuthenticationFieldCodecs`), `AuthenticationProvider`, the `authenticate()` middleware, and `AuthenticationStrategyRegistry` over `AbstractAuthRegistry` (`packages/kernel/src/base/auth/base`). The Hono context variable declarations and the sign-in / sign-up / change-password request schemas moved with it.
+The tree is split across two packages. The seam lives in `@venizia/ignis-kernel` at `packages/kernel/src/base/auth/authenticate`: all of `common` (`Authentication`, `AuthenticationModes`, `JOSEStandards`, `JWKSModes`, `AuthenticateBindingKeys`, `IAuthenticationStrategy`, `IAuthUser`, `AuthenticationErrors`, `AuthenticationFieldCodecs`, `ServiceAssertion`), `AuthenticationProvider`, the `authenticate()` middleware, and `AuthenticationStrategyRegistry` over `AbstractAuthRegistry` (`packages/kernel/src/base/auth/base`). The Hono context variable declarations and the sign-in / sign-up / change-password request schemas moved with it.
 
-The concrete half stays in core at `packages/core-server/src/components/auth/authenticate`: `AuthenticateComponent`, the token services (`BasicTokenService`, `JWSTokenService`, `JWKSIssuerTokenService`, `JWKSVerifierTokenService`), the shipped strategies and the generated controllers. Core's barrels re-export the kernel barrel, so `@/components/auth` and the `@venizia/ignis` root entrypoint still resolve every moved symbol. Unqualified paths below are core-relative.
+The concrete half stays in core at `packages/core-server/src/components/auth/authenticate`: `AuthenticateComponent`, the token services (`BasicTokenService`, `JWSTokenService`, `JWKSIssuerTokenService`, `JWKSVerifierTokenService`), the service assertion pair under `services/service` (`ServiceAssertionSignerService`, `ServiceAssertionVerifierService`), the shipped strategies and the generated controllers. Core's barrels re-export the kernel barrel, so `@/components/auth` and the `@venizia/ignis` root entrypoint still resolve every moved symbol. Unqualified paths below are core-relative.
 
 ### Leaf imports, never barrels
 
@@ -20,7 +20,7 @@ Inside `base/auth`, the providers and registries reach each other by **leaf impo
 
 ## AuthenticateComponent
 
-`AuthenticateComponent` reads its configuration from bindings, not constructor arguments: `AuthenticateBindingKeys.JWT_OPTIONS`, `BASIC_OPTIONS`, `REST_OPTIONS`. At least one of jwt or basic must be present or `binding()` throws.
+`AuthenticateComponent` reads its configuration from bindings, not constructor arguments: `AuthenticateBindingKeys.JWT_OPTIONS`, `BASIC_OPTIONS`, `SERVICE_OPTIONS`, `REST_OPTIONS`. There are three independent branches - jwt, basic, service - and `binding()` throws only when all three are absent. Service options alone are a valid application: one that verifies incoming service calls and consumes no user token at all.
 
 The JWT branch is discriminated by `JOSEStandards`:
 
@@ -31,9 +31,20 @@ The JWT branch is discriminated by `JOSEStandards`:
 
 `defineBasicAuth()` requires a `verifyCredentials` function and registers `BasicTokenService`. `defineControllers()` optionally mounts a generated auth controller (sign-in / sign-up / change-password / refresh-token / get-user-information) when `restOptions.useAuthController` is true - it is `false` by default and requires `jwtOptions`. `defineOAuth2()` exists but is a TODO stub in source.
 
+### Service-to-service assertions
+
+The third branch authenticates the **calling service**, never a user. `defineServiceAuth()` requires two things:
+
+- `name` - the issuer this service stamps and the audience it demands.
+- `resolvePrincipal` - the framework proves *which service* called; the application decides who that caller acts as. A principal without `userId` is refused at the strategy rather than trusted, because `any` mode sets the current user unconditionally. The resolved user carries `callerService`, so which service called stays audit-relevant even when one principal is shared across callers.
+
+It always binds `ServiceAssertionVerifierService`. `ServiceAssertionSignerService` and the certs route (`ServiceCertsController`, default path `ServiceAssertion.DEFAULT_REST_PATH`) are bound **only when `keys` are configured** - most services are called and never call, and publishing a key set for a service that signs nothing advertises a capability it does not have.
+
+The wire contract is fixed in `ServiceAssertion`, not configurable, because both ends must agree: an Ed25519 JWS in its own `x-service-assertion` header (the end user's token keeps `Authorization` on the same request), `typ` `svc+jwt` so a user token cannot be replayed as an assertion, covering only the HTTP method and the percent-encoded pathname - not the query string, headers or body. The `callers` map is caller name to JWKS url **and** the allowlist: a name absent from it cannot call, and an empty map correctly allows nobody.
+
 ## Strategies are registered by the app, not the component
 
-The component registers *services*. It does **not** register strategies. The application does that explicitly:
+The component registers *services*. It does **not** register strategies - with one exception: `defineServiceAuth()` registers `ServiceAuthenticationStrategy` itself, because the caller identity it proves is the component's own branch and nothing about it is the application's to name. Everything else the application registers explicitly:
 
 ```typescript
 AuthenticationStrategyRegistry.getInstance().register({
@@ -56,7 +67,7 @@ interface IAuthenticationStrategy<E extends Env = Env> {
 }
 ```
 
-The shipped strategies are `BasicAuthenticationStrategy` (name `basic`), `JWSAuthenticationStrategy` (name `jwt`, standard JWS), and two JWKS strategies - `JWKSIssuerAuthenticationStrategy` and `JWKSVerifierAuthenticationStrategy` (both name `jwt`, standard JWKS). Each just extracts credentials via its service and verifies them.
+The shipped strategies are five: `BasicAuthenticationStrategy` (name `basic`), `JWSAuthenticationStrategy` (name `jwt`, standard JWS), two JWKS strategies - `JWKSIssuerAuthenticationStrategy` and `JWKSVerifierAuthenticationStrategy` (both name `jwt`, standard JWKS) - and `ServiceAuthenticationStrategy` (name `service`). Each just extracts credentials via its service and verifies them.
 
 ## What a request goes through
 

@@ -8,15 +8,14 @@ tags: [reference, external-links, npm, docs]
 
 ## npm packages
 
-Verified against each `packages/*/package.json` `name` field.
+Every package under `packages/` publishes to npm under the `@venizia` scope, and the npm name often
+does not match the directory - `packages/core-server` is `@venizia/ignis`, `packages/core-worker` is
+`@venizia/ignis-worker`.
 
-| Package | Path |
-|---|---|
-| `@venizia/ignis` | `packages/core-server` |
-| `@venizia/ignis-boot` | `packages/boot` |
-| `@venizia/ignis-helpers` | `packages/helpers` |
-| `@venizia/ignis-inversion` | `packages/inversion` |
-| `@venizia/dev-configs` | `packages/dev-configs` |
+The npm name, directory and description for each one are in the generated table in
+[monorepo layout](/overview/monorepo-layout.md). That table comes from the manifests, so it is the
+single maintained copy of the list - a hand-written duplicate here goes stale the next time a
+package is added, which is exactly what happened to the one this section used to carry.
 
 ## Docs wiki
 

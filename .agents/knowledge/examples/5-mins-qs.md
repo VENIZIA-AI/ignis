@@ -11,7 +11,7 @@ tags: [examples, quickstart]
 ## What it demonstrates
 
 - `@controller({ path: '/hello' })` with a decorator-based `@get` route, `jsonContent` for the OpenAPI response schema, and the mandatory `binding()` override (empty here, since there is nothing to bind).
-- The full seven-phase `BaseApplication` lifecycle stubbed out explicitly (`staticConfigure`, `preConfigure`, `postConfigure`, `setupMiddlewares`), even where a phase does nothing, so a newcomer sees the complete shape.
+- `BaseApplication`'s mandatory configuration hooks (`staticConfigure`, `preConfigure`, `postConfigure`, `setupMiddlewares`) stubbed out explicitly, even where a hook does nothing, so a newcomer sees the complete shape.
 - `ApiReferenceComponent` registered in `preConfigure()` for interactive docs at `/doc/explorer`.
 - Application config passed inline at construction (`host`, `port`, `path: { base: '/api', isStrict: false }`) rather than as an exported config constant imported from `./application`, which is what the larger examples do.
 
@@ -28,7 +28,7 @@ bun run server:prod    # NODE_ENV=production bun run dist/index.js
 
 ## Notable / non-obvious
 
-- `start` and `server:dev` run TypeScript directly via `bun run src/index.ts`, with no compilation step. This is one of three zero-build examples - `sqlite-quickstart` and `pglite-quickstart` use the same pattern. Every other example's dev script runs `bun .` instead, which needs a `rebuild` first. What is distinctive here is the narration: the numbered comments walk through the zero-build path step by step.
+- `start` and `server:dev` run TypeScript directly via `bun run src/index.ts`, with no compilation step. This is one of three zero-build examples - `sqlite-quickstart` and `pglite-quickstart` use the same pattern. Every other server example's dev script runs `bun .` instead, which resolves to `dist/` and so needs a `rebuild` first; the two browser-side examples, `browser-bff` and `rpc-client-app`, run `vite` and need no build step either. What is distinctive here is the narration: the numbered comments walk through the zero-build path step by step.
 
 ## Related
 - [What is IGNIS](/overview/what-is-ignis.md)

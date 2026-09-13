@@ -16,8 +16,10 @@ tags: [process, git, contributing]
    - `docs/description` for documentation-only changes
    - `chore/description` for maintenance (deps, config)
 3. Commit using Conventional Commits: `feat:`, `fix:`, `docs:`, `chore:`, `refactor:`, `test:`.
-4. Before committing, run `bun run lint:fix` and `make build` to catch style and type issues early
-   - the pre-commit hook (below) will block a commit that fails lint anyway.
+4. Before committing, run `bun run --filter "*" lint:fix` and `make build` to catch style and type
+   issues early - `lint:fix` is defined per package, so a bare `bun run lint:fix` at the repo root
+   finds no script. `make lint-all` is the check-only equivalent, and the pre-commit hook (below)
+   will block a commit that fails lint anyway.
 5. If git hooks aren't wired up yet, run `make setup-hooks` once - it runs `git config
    core.hooksPath .githooks`, pointing git at the repo's `.githooks/` directory instead of
    `.git/hooks/`.

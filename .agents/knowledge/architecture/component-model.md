@@ -10,11 +10,15 @@ A component is IGNIS's unit of pluggable capability: a class that owns a set of 
 one `binding()` method that wires itself into the application. Health checks, the API reference UI,
 authentication, mail, static assets and Socket.IO are all components.
 
-The base class and the components live in different packages. `BaseComponent` is browser-pure and
-ships from `@venizia/ignis-kernel` (`packages/kernel/src/base/components/base.ts`); every concrete
+The base class and most components live in different packages. `BaseComponent` is browser-pure and
+ships from `@venizia/ignis-kernel` (`packages/kernel/src/base/components/base.ts`), and so does
+`RestComponent` (`packages/kernel/src/base/components/controller/rest/rest.component.ts`) - REST
+controller registration belongs to `RestApplication` by inheritance now, and core re-exports the
+kernel barrel, so `RestComponent` is still reachable from `@venizia/ignis`. Every other concrete
 component - health check, api-reference, request-tracker, auth, mail, socket-io, static-asset,
-websocket, plus the REST and gRPC controller components - stays in `packages/core-server/src/components/`.
-So a component class is written in core and imports its base from the kernel.
+websocket, and the gRPC controller component under `controller/grpc/` - stays in
+`packages/core-server/src/components/`. So a component class is usually written in core and imports
+its base from the kernel.
 
 `BaseComponent extends BaseHelper implements IConfigurable` is small on purpose:
 
@@ -34,13 +38,18 @@ hand) is harmless. It installs the default bindings (when `initDefault.enable`),
 subclass's `binding()`, then marks itself configured.
 
 `initDefaultBindings` never overwrites: for each declared binding it checks `container.isBound({ key })`
-and skips it if so. This is the whole configuration story - an application overrides a component's
-options simply by binding that options key **before** the component configures.
+and skips it if so. So an application overrides a component's options simply by binding that options
+key **before** the component configures.
+
+That is one of two paths. `application.component(Ctor, { options })` stores `options` in the
+application's private `artifactOptions` map, keyed by binding key; the boot-time registration sweep
+reads it back and passes it to `configure(options)`. A component opts into that path by **overriding
+`configure()`** - nothing in the base class consumes the argument on its own.
 
 ## A real component
 
 ```typescript
-export class HealthCheckComponent extends BaseComponent {
+export class HealthCheckComponent extends BaseComponent<IHealthCheckOptions> {
   constructor(
     @inject({ key: CoreBindings.APPLICATION_INSTANCE }) private application: BaseApplication,
   ) {
@@ -55,7 +64,22 @@ export class HealthCheckComponent extends BaseComponent {
     });
   }
 
-  override binding(): ValueOrPromise<void> {
+  // `application.component(HealthCheckComponent, { options })` lands here.
+  override async configure(opts?: IHealthCheckOptions): Promise<void> {
+    if (this.isConfigured) {
+      return;
+    }
+
+    if (opts !== undefined) {
+      this.application
+        .bind<IHealthCheckOptions>({ key: HealthCheckBindingKeys.HEALTH_CHECK_OPTIONS })
+        .toValue(opts);
+    }
+
+    await super.configure(opts);
+  }
+
+  override async binding(): Promise<void> {
     const healthOptions = this.application.get<IHealthCheckOptions>({
       key: HealthCheckBindingKeys.HEALTH_CHECK_OPTIONS,
       isOptional: true,
@@ -69,10 +93,15 @@ export class HealthCheckComponent extends BaseComponent {
 }
 ```
 
-Two things generalize. The options are read back with `isOptional: true` and defaulted again - a
-partially filled options binding (env or config driven) must not take the app down at boot. And the
-component reaches the application through `@inject({ key: CoreBindings.APPLICATION_INSTANCE })`,
-using the application's own registration helpers rather than binding by hand.
+Three things generalize. The `configure()` override is how call-site options reach a component:
+they are the most explicit statement of intent, so it binds them over anything bound earlier, and
+`initDefaultBindings` then finds the key taken and leaves the default aside. It repeats the
+`isConfigured` guard itself because the base's guard runs too late - binding after it would swap the
+options under routes already mounted from the first call. The options are read back in `binding()`
+with `isOptional: true` and defaulted again - a partially filled options binding (env or config
+driven) must not take the app down at boot. And the component reaches the application through
+`@inject({ key: CoreBindings.APPLICATION_INSTANCE })`, using the application's own registration
+helpers rather than binding by hand.
 
 `RequestTrackerComponent` is the middleware variant: it declares its middleware under a
 `middlewares.*` key with `toProvider(...)` at singleton scope, then in `binding()` pulls it back out
@@ -99,11 +128,12 @@ component, not immediately after the component that contributed them.
 
 ## Barrel-exported versus sub-path only
 
-Core's `src/components/index.ts` exports only `auth`, `controller`, `health-check`,
-`request-tracker` and `api-reference`. The rest - `mail`, `socket-io`, `static-asset`, `websocket` -
-are commented out of the barrel on purpose and must be imported from their sub-path: they pull in
-optional peer
+Core's `src/components/index.ts` exports `auth`, `controller`, `health-check`, `request-tracker` and
+`api-reference`. The rest - `mail`, `socket-io`, `static-asset`, `websocket` - are commented out of
+the barrel on purpose and must be imported from their sub-path: they pull in optional peer
 dependencies, and barrelling them would drag those peers into every consumer whether used or not.
+The `controller` barrel itself is now empty: `RestComponent` comes from the kernel, and gRPC is
+sub-path only.
 
 ## Related
 

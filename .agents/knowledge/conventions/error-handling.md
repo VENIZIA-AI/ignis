@@ -93,7 +93,10 @@ MISSPELLING goes the same way. `getError({ message, statuscode: 503 })` compiles
 Spreading a definition is now safe: `getError({ ...Errors.X })` resolves identically to
 `getError({ error: Errors.X })`, because a definition's `message` object IS the free-form input
 shape. Under the old `key` shape it degraded to `core.system_error` while status and text still
-arrived, so it looked fine - that footgun is gone. Pinned in `bana-probe.test.ts`.
+arrived, so it looked fine - that footgun is gone. Pinned in `consumer-probe.test.ts`
+(`packages/helpers/src/__tests__/error/`, renamed from `bana-probe.test.ts`): every shape in it is
+copied from a real application call site, so the file stops compiling the moment the framework
+rejects one.
 
 `error` is the catalogued form's discriminant and is REFUSED on the free-form branch (`error?: never`).
 `getError({ message, error: caughtError })` reads like "wrap this" but `error` is a consumed key, so
@@ -113,14 +116,23 @@ instead of `core.system_error`:
 | `StaticAssetErrors` | `core.static_asset.*` | `packages/core-server/src/components/static-asset/common/errors.ts` |
 | `SearchErrors` | `core.search_engine.*` | `packages/connectors/src/search/core/common/errors.ts` |
 | `MailErrors` | `core.mail.*` | `packages/core-server/src/components/mail/common/errors.ts` |
+| `StorageErrors` | `core.storage.*` | `packages/helpers/src/modules/storage/common/errors.ts` |
+| `UrlSafetyErrors` | `core.url_safety.*` | `packages/helpers/src/modules/network/url-safety/common/errors.ts` |
 
 ```typescript
 throw getError({ error: AuthenticationErrors.TOKEN_INVALID, cause: joseError });
 ```
 
 Each registers with `IErrorKeyRegistry`, so a consumer typing `messageCode` gets these as
-autocomplete. `framework-catalog.test.ts` pins every code: they are a PUBLIC contract a client
-branches on, so a rename must fail the build, not a customer's frontend.
+autocomplete. The two helpers-owned catalogs declare that augmentation against
+`@venizia/ignis-inversion`, not helpers: TypeScript only treats a `declare module` as an
+augmentation when the file imports that module name, and a file inside helpers cannot import
+helpers.
+
+`framework-catalog.test.ts` pins the seven catalogs owned by kernel, core-server and connectors:
+those codes are a PUBLIC contract a client branches on, so a rename must fail the build, not a
+customer's frontend. `StorageErrors` and `UrlSafetyErrors` are NOT in that pin - renaming
+`core.storage.object_not_found` or `core.url_safety.url_refused` fails no test today.
 
 An INTERNAL failure - a boot misconfiguration, a DI invariant, a programming error - stays codeless
 on purpose. It surfaces as a 500 with a generic message, and a code there would be an identifier

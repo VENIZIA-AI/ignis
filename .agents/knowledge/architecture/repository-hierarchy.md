@@ -183,11 +183,11 @@ calls `resolve()`, and `BaseRelationalDataSource`'s module body calls
 `set({ builder: createRelations })` on load. One value import the other way drags `drizzle-orm` into
 every graph that uses `@repository`.
 
-The install runs from `connectors/relational/datasources/base.ts`, which reaches `createRelations`
-through a **deep import** of `repositories/dialect/relation` rather than a barrel - a
-`sideEffects: false` bundler drops an unused export's module body even when it is reachable through
-a barrel `export *` chain. A model that declares relations with no builder installed throws at
-resolve time instead of silently producing an empty `with` clause, and
+The install runs from `packages/connectors/src/relational/core/datasources/base.ts`, which reaches
+`createRelations` through a **deep import** of `relational/core/repositories/dialect/relation.ts`
+rather than a barrel - a `sideEffects: false` bundler drops an unused export's module body even when
+it is reachable through a barrel `export *` chain. A model that declares relations with no builder
+installed throws at resolve time instead of silently producing an empty `with` clause, and
 `__tests__/mixins/repository-mixin-imports.test.ts` pins the mixin to the registry call.
 
 ## Related

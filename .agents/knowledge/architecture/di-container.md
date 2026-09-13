@@ -41,18 +41,18 @@ function gets the container, an `IProvider` class is itself instantiated through
 then has `.value(container)` called.
 
 `bind()` itself overwrites silently - rebinding an already-bound key just replaces it, no warning. The
-artifact-registration methods (`component`/`controller`/`service`/`repository`/`dataSource`) sit on
-top of `bind()` and take `TMixinOpts.allowOverride`: default `true` preserves that silent-overwrite
-behavior, `false` makes a same-key re-registration throw instead, and
-`configs.bootChecks.binding.allowOverride: false` makes `false` the default for the whole application
-(an explicit `true` still wins). The check is `RestApplication.assertNoBindingCollision()`, a
-protected method - a subclass adding a registration method of its own calls it instead of re-wording
-the error, and inherits the app-wide default.
+six artifact-registration methods - `configuration`, `component`, `controller`, `service`,
+`repository`, `dataSource` - sit on top of `bind()` and take `TMixinOpts.allowOverride`: default
+`true` preserves that silent-overwrite behavior, `false` makes a same-key re-registration throw
+instead, and `configs.bootChecks.binding.allowOverride: false` makes `false` the default for the
+whole application (an explicit `true` still wins). The check is
+`RestApplication.assertNoBindingCollision()`, a protected method - a subclass adding a registration
+method of its own calls it instead of re-wording the error, and inherits the app-wide default.
 
 **A binding's key, scope and override rule have three inputs**, resolved in this order by the private
-`registerArtifact` behind all five methods: the explicit `TMixinOpts` at the call site, then the
+`registerArtifact` behind all six methods: the explicit `TMixinOpts` at the call site, then the
 class's stereotype metadata (`@controller({ scope })`, `@service({ binding })`, ...), then the
-derived default - `<namespace>.<Class>`, `SINGLETON` for datasource/component/controller,
+derived default - `<namespace>.<Class>`, `SINGLETON` for configuration/datasource/component/controller,
 `TRANSIENT` for repository/service, `allowOverride: true`. A `@provide({ key })` method on a
 component registered through `configs.artifacts` is a `toProvider` binding that resolves the
 component and calls the method on first `get`, `SINGLETON` unless `@provide({ scope })` says

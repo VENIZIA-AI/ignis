@@ -6,27 +6,29 @@ resource: packages/connectors/src
 tags: [architecture, datasource, connectors, drizzle, postgres, search]
 ---
 
-A DataSource owns the connection to one backing engine. IGNIS does not have a single DataSource base class per engine - it has a **paradigm-family** split under `packages/core-server/src/connectors`, rooted at an engine-neutral base in `packages/kernel/src/base/datasources`. That base sits in the browser-pure `@venizia/ignis-kernel` package while every concrete connector chain stays in `@venizia/ignis`, which re-exports the whole kernel - import paths for consumers are unchanged.
+A DataSource owns the connection to one backing engine. IGNIS does not have a single DataSource base class per engine - it has a **paradigm-family** split under `packages/connectors/src`, the `@venizia/ignis-connectors` package, rooted at an engine-neutral base in `packages/kernel/src/base/datasources`. That base sits in the browser-pure `@venizia/ignis-kernel` package, and `@venizia/ignis` re-exports both: the whole kernel, plus `packages/core-server/src/connectors`, which is now only a shim of alias barrels forwarding to `@venizia/ignis-connectors` - import paths for consumers are unchanged.
+
+Sub-path **names** stay flat (`@venizia/ignis/postgres`, `/sqlite`, `/typesense`, `/meilisearch`) even though the source folders nest each engine under its family, `relational/` or `search/`.
 
 ## The real layering
 
 ```
 AbstractDataSource                    kernel/base/datasources/abstract.ts        (engine-neutral, NO SQL members)
-├── AbstractRelationalDataSource      connectors/relational/datasources/abstract.ts   (SQL-neutral: connector/pool/driver wiring; dialect + executor abstract)
-│   └── BaseRelationalDataSource      connectors/relational/datasources/base.ts       (schema discovery, transaction skeleton; BEGIN text abstract)
-│       ├── AbstractPostgresDataSource   connectors/postgres/datasources/abstract.ts   (supplies PostgresQueryDialect + PostgresQueryExecutor)
-│       │   └── BasePostgresDataSource   connectors/postgres/datasources/base.ts       (supplies "BEGIN TRANSACTION ISOLATION LEVEL ...")
-│       └── AbstractSqliteDataSource     connectors/sqlite/datasources/abstract.ts     (supplies SqliteQueryDialect + SqliteQueryExecutor)
-│           └── BaseSqliteDataSource     connectors/sqlite/datasources/base.ts         (supplies "BEGIN IMMEDIATE")
-└── AbstractSearchDataSource          connectors/search/datasources/abstract.ts
-    └── BaseSearchDataSource          connectors/search/datasources/base.ts
-        ├── TypesenseDataSource       connectors/typesense/datasources/datasource.ts
-        └── MeilisearchDataSource     connectors/meilisearch/datasources/datasource.ts
+├── AbstractRelationalDataSource      connectors/relational/core/datasources/abstract.ts   (SQL-neutral: connector/pool/driver wiring; dialect + executor abstract)
+│   └── BaseRelationalDataSource      connectors/relational/core/datasources/base.ts       (schema discovery, transaction skeleton; BEGIN text abstract)
+│       ├── AbstractPostgresDataSource   connectors/relational/postgres/datasources/abstract.ts   (supplies PostgresQueryDialect + PostgresQueryExecutor)
+│       │   └── BasePostgresDataSource   connectors/relational/postgres/datasources/base.ts       (supplies "BEGIN TRANSACTION ISOLATION LEVEL ...")
+│       └── AbstractSqliteDataSource     connectors/relational/sqlite/datasources/abstract.ts     (supplies SqliteQueryDialect + SqliteQueryExecutor)
+│           └── BaseSqliteDataSource     connectors/relational/sqlite/datasources/base.ts         (supplies "BEGIN IMMEDIATE")
+└── AbstractSearchDataSource          connectors/search/core/datasources/abstract.ts
+    └── BaseSearchDataSource          connectors/search/core/datasources/base.ts
+        ├── TypesenseDataSource       connectors/search/typesense/datasources/datasource.ts
+        └── MeilisearchDataSource     connectors/search/meilisearch/datasources/datasource.ts
 ```
 
 `AbstractDataSource` extends `BaseHelper` and knows only `name`, `settings`, `schema`, `getCapabilities()`, and a `beginTransaction()` that throws NotSupported by default. Each family root adds its own paradigm contract: the relational root adds connector/pool/driver/transactions plus two ports (`getQueryDialect()`, `getQueryExecutor()`) declared abstract, the search root adds `getConnector()`, `getQueryDialect()`, `compileCollection()`, `ensureCollection()`, and `multiSearch()`.
 
-The relational family splits again, into an engine-neutral root and a Postgres branch: `connectors/relational` (reachable at the `@venizia/ignis/relational` sub-path) carries the SQL-neutral half - connector/pool/driver wiring, schema discovery, the transaction skeleton, the entity base, and the five-class repository chain - and `connectors/postgres` supplies the two ports plus everything genuinely Postgres SQL. Full account: [Relational connector](/architecture/relational-connector.md). Every class is declared under a distinct name - the Postgres branch declares `AbstractPostgresDataSource` and `BasePostgresDataSource`, and the neutral `AbstractRelationalDataSource` / `BaseRelationalDataSource` are reachable only through `@venizia/ignis/relational`. `@venizia/ignis/postgres` deliberately re-exports neither of those two neutral names; it aliases exactly one, `BaseDataSource` -> `BasePostgresDataSource`. So no name ever means two different classes across the two sub-paths. `connectors/index.ts` still re-exports `./postgres` only, keeping the neutral tier out of the root namespace.
+The relational family splits again, into an engine-neutral root and a Postgres branch: `connectors/relational/core` (reachable at the `@venizia/ignis/relational` sub-path) carries the SQL-neutral half - connector/pool/driver wiring, schema discovery, the transaction skeleton, the entity base, and the five-class repository chain - and `connectors/relational/postgres` supplies the two ports plus everything genuinely Postgres SQL. Full account: [Relational connector](/architecture/relational-connector.md). Every class is declared under a distinct name - the Postgres branch declares `AbstractPostgresDataSource` and `BasePostgresDataSource`, and the neutral `AbstractRelationalDataSource` / `BaseRelationalDataSource` are reachable only through `@venizia/ignis/relational`. `@venizia/ignis/postgres` deliberately re-exports neither of those two neutral names; it aliases exactly one, `BaseDataSource` -> `BasePostgresDataSource`. So no name ever means two different classes across the two sub-paths. The root barrel still re-exports the postgres sub-path only, keeping the neutral tier out of the root namespace.
 
 The engines that actually exist in source are **Postgres** (with `node-postgres`, `postgres-js` and `pglite` drivers, plus a `postgres/supabase` sub-path for RLS and pooler concerns), **SQLite** (the `libsql` driver, at the `@venizia/ignis/sqlite` sub-path - see [SQLite connector](/architecture/sqlite-connector.md)) and **search** (`typesense` and `meilisearch`). `DataSourceDrivers` in `packages/kernel/src/base/datasources/common/types.ts` names exactly those six - the neutral relational root adds no driver of its own, only the seam a third SQL engine (MySQL) would register against.
 

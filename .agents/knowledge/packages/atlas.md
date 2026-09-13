@@ -148,12 +148,19 @@ fails the build, not a human eyeballing a table.
   `console.log` anywhere in the import graph breaks every client's framing, not just the visible
   one.
 
+## Family checkouts
+
+Repo mode is not IGNIS-only - snapshot mode is.
+
+- **A family checkout is any `@venizia/<family>-workspace`.** `isRepositoryCheckout` accepts any
+  root manifest matching that name which keeps `docs/wiki`, its `changelogs` and
+  `.agents/knowledge` at the IGNIS paths, and the server then names itself `<family>-atlas`. ARDOR
+  (`@venizia/ardor-workspace`) is the first sibling to run atlas this way.
+- **Snapshot mode always serves the IGNIS corpus.** The packaged wiki and changelogs are built into
+  the tarball, so the server keeps the package's own name whatever family the caller sits in.
+
 ## Related
 
 - [boot](/packages/boot.md)
 - [helpers](/packages/helpers.md)
 - [Monorepo layout](/overview/monorepo-layout.md)
-
-## Family checkouts
-
-Repo mode is not IGNIS-only: `isRepositoryCheckout` accepts any root manifest named `@venizia/<family>-workspace` that keeps `docs/wiki`, its `changelogs` and `.agents/knowledge` at the IGNIS paths, and the server names itself `<family>-atlas`. ARDOR (`@venizia/ardor-workspace`) is the first sibling to run atlas this way. Snapshot mode always serves the IGNIS corpus under the package's own name.

@@ -24,7 +24,7 @@ several topics stacked:
 | File | Why it stays a hub |
 |---|---|
 | filter `common/types.ts` | one filter DSL |
-| inversion `common/types.ts` | a 27-line utility set |
+| inversion `common/types.ts` | an 18-line utility set |
 | inversion `error/common/types.ts` | one error DSL |
 | helpers `crypto/common/constants.ts` | cipher/hash defaults |
 | helpers `logger/hf/common/constants.ts` | one binary record layout |
@@ -58,7 +58,7 @@ Test case groups are the deliberate exception:
 including CRUD verbs. Each group is read alone, never edited as a pair.
 
 One narrow axis worth copying on its own: **lift raw SQL out of a repository** into
-`sqls/<topic>.sql.ts`, leaving the repository as pure orchestration.
+`sqls/<topic>.ts`, leaving the repository as pure orchestration.
 
 ## Naming
 
@@ -130,3 +130,10 @@ file actually costs them.
 
 The 2026-09 split brought every hub to one topic per file; `make split-report` is how the next one
 is caught early.
+
+## Related
+
+- [Splitting a hub file by topic](/process/splitting-a-hub-file.md)
+- [Public surface](/reference/public-surface.md)
+- [Build system](/process/build-system.md)
+- [Coding style](/conventions/coding-style.md)

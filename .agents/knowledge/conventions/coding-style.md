@@ -19,7 +19,7 @@ and leaves the branch to the caller; `assert*` throws and returns `void`, so the
 no branch. Reach for `assert*` when every caller would throw on `false` anyway - otherwise one
 condition ends up with a different error message at each call site.
 
-`has*` is the ownership question: `hasBucket`, never `hasBucket` - the second is not English.
+`has*` is the ownership question: `hasBucket`, never `isBucketExists` - the second is not English.
 
 This list covers UTILITY functions. Service and controller methods in a consuming application lean on
 a wider set - `find`, `create`, `update`, `delete`, `validate`, `load`, `count` - measured across a
@@ -59,11 +59,11 @@ if (!instance) {
 ## switch + default over if-else chains
 
 `ServerApplication.start`/`.stop` (`packages/core-server/src/base/applications/server.ts`) dispatch on
-`this.server.runtime` with a `switch`, whose `default` throws via
+`this.runtime` with a `switch`, whose `default` throws via
 [`getError`](/conventions/error-handling.md) rather than falling through silently:
 
 ```typescript
-switch (this.server.runtime) {
+switch (this.runtime) {
   case RuntimeModules.BUN: { await this.startBunModule(); break; }
   case RuntimeModules.NODE: { await this.startNodeModule(); break; }
   default: { throw getError({ message: '[start] Invalid runtimeModule to start server instance!' }); }
