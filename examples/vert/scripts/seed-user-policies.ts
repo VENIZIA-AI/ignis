@@ -55,10 +55,16 @@ interface PolicyRow {
   targetId: string;
   action: string | null;
   effect: string | null;
-  domain: string | null;
+  domainType: string | null;
+  domainId: string | null;
 }
 
-/** Normalize an AuthorizationPolicyBuilder result (action/effect/domain are absent on non-grant edges) into an insertable row. */
+/**
+ * Normalize an AuthorizationPolicyBuilder result into an insertable row. `action` and `effect` are
+ * absent on non-grant edges. The domain arrives already split - `splitDomain` returns `domainType`
+ * and `domainId`, and `domain_id` stores the bare id; the `<Type>_<id>` casbin token is assembled at
+ * read time by the adapter, never stored.
+ */
 function toRow(policy: {
   variant: string;
   subjectType: string;
@@ -67,7 +73,8 @@ function toRow(policy: {
   targetId: IdType;
   action?: string | null;
   effect?: string | null;
-  domain?: string | null;
+  domainType?: string | null;
+  domainId?: IdType | null;
 }): PolicyRow {
   return {
     variant: policy.variant,
@@ -77,7 +84,8 @@ function toRow(policy: {
     targetId: String(policy.targetId),
     action: policy.action ?? null,
     effect: policy.effect ?? null,
-    domain: policy.domain ?? null,
+    domainType: policy.domainType ?? null,
+    domainId: policy.domainId == null ? null : String(policy.domainId),
   };
 }
 
@@ -244,8 +252,8 @@ async function seedUserPolicies() {
     for (const p of policies) {
       await client.query(
         `INSERT INTO "PolicyDefinition"
-           (id, variant, subject_type, subject_id, target_type, target_id, action, effect, domain)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
+           (id, variant, subject_type, subject_id, target_type, target_id, action, effect, domain_type, domain_id)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`,
         [
           randomUUID(),
           p.variant,
@@ -255,7 +263,8 @@ async function seedUserPolicies() {
           p.targetId,
           p.action,
           p.effect,
-          p.domain,
+          p.domainType,
+          p.domainId,
         ],
       );
     }
