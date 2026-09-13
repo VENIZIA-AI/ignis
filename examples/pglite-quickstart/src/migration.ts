@@ -1,4 +1,5 @@
 import { defineConfig } from 'drizzle-kit';
+import { blankToUndefined } from '@venizia/ignis-helpers';
 
 /**
  * drizzle-kit reads the model file directly - it bundles with esbuild, so the `@model` decorator
@@ -12,5 +13,7 @@ export default defineConfig({
   driver: 'pglite',
   out: './migration',
   schema: './src/models/note.model.ts',
-  dbCredentials: { url: process.env.APP_ENV_PGLITE_DATA_DIR ?? './app_data/database/pgdata' },
+  dbCredentials: {
+    url: blankToUndefined(process.env.APP_ENV_PGLITE_DATA_DIR) ?? './app_data/database/pgdata',
+  },
 });

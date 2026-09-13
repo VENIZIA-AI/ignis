@@ -12,13 +12,14 @@ import { mkdirSync, writeFileSync } from 'fs';
 import Redis from 'ioredis';
 import path from 'path';
 import { Pool } from 'pg';
+import { blankToUndefined } from '@venizia/ignis-helpers';
 
 const pool = new Pool({
-  host: process.env.APP_ENV_POSTGRES_HOST ?? '0.0.0.0',
-  port: parseInt(process.env.APP_ENV_POSTGRES_PORT ?? '5432'),
-  database: process.env.APP_ENV_POSTGRES_DATABASE ?? 'db',
-  user: process.env.APP_ENV_POSTGRES_USERNAME ?? 'postgres',
-  password: process.env.APP_ENV_POSTGRES_PASSWORD ?? 'password',
+  host: blankToUndefined(process.env.APP_ENV_POSTGRES_HOST) ?? '0.0.0.0',
+  port: parseInt(blankToUndefined(process.env.APP_ENV_POSTGRES_PORT) ?? '5432'),
+  database: blankToUndefined(process.env.APP_ENV_POSTGRES_DATABASE) ?? 'db',
+  user: blankToUndefined(process.env.APP_ENV_POSTGRES_USERNAME) ?? 'postgres',
+  password: blankToUndefined(process.env.APP_ENV_POSTGRES_PASSWORD) ?? 'password',
 });
 
 async function seed() {
@@ -115,10 +116,10 @@ async function seed() {
 
   // Flush Redis authorization cache to clear stale policies from previous runs
   try {
-    const redisDb = parseInt(process.env.APP_ENV_AUTHORZ_REDIS_DB ?? '8');
+    const redisDb = parseInt(blankToUndefined(process.env.APP_ENV_AUTHORZ_REDIS_DB) ?? '8');
     const redis = new Redis({
-      host: process.env.APP_ENV_AUTHORZ_REDIS_HOST ?? '0.0.0.0',
-      port: parseInt(process.env.APP_ENV_AUTHORZ_REDIS_PORT ?? '6379'),
+      host: blankToUndefined(process.env.APP_ENV_AUTHORZ_REDIS_HOST) ?? '0.0.0.0',
+      port: parseInt(blankToUndefined(process.env.APP_ENV_AUTHORZ_REDIS_PORT) ?? '6379'),
       password: process.env.APP_ENV_AUTHORZ_REDIS_PASSWORD || undefined,
       db: redisDb,
       maxRetriesPerRequest: 1,

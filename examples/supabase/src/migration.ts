@@ -1,6 +1,7 @@
 import 'dotenv-flow/config';
 
 import { defineConfig } from 'drizzle-kit';
+import { blankToUndefined } from '@venizia/ignis-helpers';
 
 /**
  * `entities.roles.provider: 'supabase'` tells drizzle-kit that `anon`, `authenticated`,
@@ -16,6 +17,6 @@ export default defineConfig({
     roles: { provider: 'supabase' },
   },
   dbCredentials: {
-    url: process.env.APP_ENV_SUPABASE_DATABASE_URL ?? '',
+    url: blankToUndefined(process.env.APP_ENV_SUPABASE_DATABASE_URL) ?? '',
   },
 });

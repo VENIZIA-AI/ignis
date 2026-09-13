@@ -9,7 +9,7 @@ import {
   ApiReferenceComponent,
   ValueOrPromise,
 } from '@venizia/ignis';
-import { Environment } from '@venizia/ignis-helpers';
+import { blankToUndefined, Environment } from '@venizia/ignis-helpers';
 import { cors } from 'hono/cors';
 import packageJson from './../package.json';
 import { SearchDataSource } from './datasources';
@@ -19,9 +19,9 @@ import { ArticleController, ArticleSearchController } from './controllers';
 // -----------------------------------------------------------------------------------------------
 export const beConfigs: IApplicationConfigs = {
   host: process.env.APP_ENV_SERVER_HOST,
-  port: +(process.env.APP_ENV_SERVER_PORT ?? 3000),
+  port: +(blankToUndefined(process.env.APP_ENV_SERVER_PORT) ?? 3000),
   path: {
-    base: process.env.APP_ENV_SERVER_BASE_PATH ?? '/api',
+    base: blankToUndefined(process.env.APP_ENV_SERVER_BASE_PATH) ?? '/api',
     isStrict: true,
   },
   error: { rootKey: 'error' },

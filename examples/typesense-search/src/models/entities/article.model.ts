@@ -5,6 +5,7 @@ import {
   field,
   TSearchDocument,
 } from '@venizia/ignis/typesense';
+import { blankToUndefined } from '@venizia/ignis-helpers';
 
 /**
  * ArticleDocument - a pure search entity, no Drizzle `pgTable` anywhere.
@@ -51,7 +52,7 @@ export class ArticleDocument extends BaseSearchEntity<typeof ArticleDocument.sch
           model: {
             url: 'https://generativelanguage.googleapis.com/v1beta/openai',
             name: 'openai/gemini-embedding-001',
-            apiKey: process.env.APP_ENV_GOOGLE_API_KEY ?? '',
+            apiKey: blankToUndefined(process.env.APP_ENV_GOOGLE_API_KEY) ?? '',
           },
         },
       }),

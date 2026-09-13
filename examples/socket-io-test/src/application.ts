@@ -15,6 +15,7 @@ import {
 import { SocketIOBindingKeys, SocketIOComponent } from '@venizia/ignis/socket-io';
 import {
   applicationEnvironment,
+  blankToUndefined,
   Environment,
   HTTP,
   int,
@@ -35,7 +36,7 @@ import { SocketEventService } from './services';
 // -----------------------------------------------------------------------------------------------
 export const beConfigs: IApplicationConfigs = {
   host: process.env.APP_ENV_SERVER_HOST,
-  port: +(process.env.APP_ENV_SERVER_PORT ?? 3000),
+  port: +(blankToUndefined(process.env.APP_ENV_SERVER_PORT) ?? 3000),
   path: {
     base: process.env.APP_ENV_SERVER_BASE_PATH!,
     isStrict: true,

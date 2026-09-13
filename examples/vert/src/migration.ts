@@ -1,6 +1,11 @@
 import 'dotenv-flow/config';
 
-import { applicationEnvironment, int, LoggerFactory } from '@venizia/ignis-helpers';
+import {
+  applicationEnvironment,
+  blankToUndefined,
+  int,
+  LoggerFactory,
+} from '@venizia/ignis-helpers';
 import { defineConfig } from 'drizzle-kit';
 
 const migration = () => {
@@ -10,11 +15,11 @@ const migration = () => {
   logger.for('migration').info(' envKeys: %s', envKeys, process.env);
 
   const databaseConfigs = {
-    host: process.env.APP_ENV_POSTGRES_HOST ?? '0.0.0.0',
-    port: int(process.env.APP_ENV_POSTGRES_PORT ?? '5432'),
-    database: process.env.APP_ENV_POSTGRES_DATABASE ?? 'postgres',
-    user: process.env.APP_ENV_POSTGRES_USERNAME ?? 'postgres',
-    password: process.env.APP_ENV_POSTGRES_PASSWORD ?? 'password',
+    host: blankToUndefined(process.env.APP_ENV_POSTGRES_HOST) ?? '0.0.0.0',
+    port: int(blankToUndefined(process.env.APP_ENV_POSTGRES_PORT) ?? '5432'),
+    database: blankToUndefined(process.env.APP_ENV_POSTGRES_DATABASE) ?? 'postgres',
+    user: blankToUndefined(process.env.APP_ENV_POSTGRES_USERNAME) ?? 'postgres',
+    password: blankToUndefined(process.env.APP_ENV_POSTGRES_PASSWORD) ?? 'password',
     ssl: false,
   };
 

@@ -7,6 +7,7 @@ import { drizzle } from 'drizzle-orm/pglite';
 import { migrate } from 'drizzle-orm/pglite/migrator';
 import { mkdirSync } from 'node:fs';
 import { dirname } from 'node:path';
+import { blankToUndefined } from '@venizia/ignis-helpers';
 
 interface IDataSourceConfigs {
   /**
@@ -38,7 +39,9 @@ export class PGliteDataSource extends BasePostgresDataSource<
   constructor() {
     super({
       name: PGliteDataSource.name,
-      config: { dataDir: process.env.APP_ENV_PGLITE_DATA_DIR ?? DEFAULT_DATA_DIR },
+      config: {
+        dataDir: blankToUndefined(process.env.APP_ENV_PGLITE_DATA_DIR) ?? DEFAULT_DATA_DIR,
+      },
       schema: { [Note.TABLE_NAME]: notesTable },
     });
   }

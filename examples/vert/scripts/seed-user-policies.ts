@@ -17,13 +17,14 @@ import {
   AuthorizationDecisions,
   AuthorizationPolicyBuilder,
 } from '@venizia/ignis';
+import { blankToUndefined } from '@venizia/ignis-helpers';
 
 const pool = new Pool({
-  host: process.env.APP_ENV_POSTGRES_HOST ?? '0.0.0.0',
-  port: parseInt(process.env.APP_ENV_POSTGRES_PORT ?? '5432'),
-  database: process.env.APP_ENV_POSTGRES_DATABASE ?? 'db',
-  user: process.env.APP_ENV_POSTGRES_USERNAME ?? 'postgres',
-  password: process.env.APP_ENV_POSTGRES_PASSWORD ?? 'password',
+  host: blankToUndefined(process.env.APP_ENV_POSTGRES_HOST) ?? '0.0.0.0',
+  port: parseInt(blankToUndefined(process.env.APP_ENV_POSTGRES_PORT) ?? '5432'),
+  database: blankToUndefined(process.env.APP_ENV_POSTGRES_DATABASE) ?? 'db',
+  user: blankToUndefined(process.env.APP_ENV_POSTGRES_USERNAME) ?? 'postgres',
+  password: blankToUndefined(process.env.APP_ENV_POSTGRES_PASSWORD) ?? 'password',
 });
 
 const username = process.argv[2];

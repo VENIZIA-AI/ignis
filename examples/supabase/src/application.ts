@@ -17,7 +17,7 @@ import {
   TJWTTokenServiceOptions,
   ValueOrPromise,
 } from '@venizia/ignis';
-import { applicationEnvironment, Environment, int } from '@venizia/ignis-helpers';
+import { applicationEnvironment, blankToUndefined, Environment, int } from '@venizia/ignis-helpers';
 import { cors } from 'hono/cors';
 import packageJson from './../package.json';
 import { AuthController, NoteController } from './controllers';
@@ -28,9 +28,9 @@ import { NoteService } from './services';
 // -----------------------------------------------------------------------------------------------
 export const beConfigs: IApplicationConfigs = {
   host: process.env.APP_ENV_SERVER_HOST,
-  port: +(process.env.APP_ENV_SERVER_PORT ?? 3000),
+  port: +(blankToUndefined(process.env.APP_ENV_SERVER_PORT) ?? 3000),
   path: {
-    base: process.env.APP_ENV_SERVER_BASE_PATH ?? '/api',
+    base: blankToUndefined(process.env.APP_ENV_SERVER_BASE_PATH) ?? '/api',
     isStrict: true,
   },
   error: { rootKey: 'error' },

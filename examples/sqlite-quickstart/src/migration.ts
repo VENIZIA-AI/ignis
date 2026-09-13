@@ -1,4 +1,5 @@
 import { defineConfig } from 'drizzle-kit';
+import { blankToUndefined } from '@venizia/ignis-helpers';
 
 /**
  * drizzle-kit reads the model file directly - it bundles with esbuild, so the `@model` decorator
@@ -9,5 +10,7 @@ export default defineConfig({
   dialect: 'sqlite',
   out: './migration',
   schema: './src/models/note.model.ts',
-  dbCredentials: { url: process.env.APP_ENV_SQLITE_URL ?? 'file:./app_data/database/local.db' },
+  dbCredentials: {
+    url: blankToUndefined(process.env.APP_ENV_SQLITE_URL) ?? 'file:./app_data/database/local.db',
+  },
 });

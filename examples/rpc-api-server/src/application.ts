@@ -12,7 +12,14 @@ import {
   ApiReferenceComponent,
   ValueOrPromise,
 } from '@venizia/ignis';
-import { DataTypes, Environment, getUID, HTTP, int } from '@venizia/ignis-helpers';
+import {
+  blankToUndefined,
+  DataTypes,
+  Environment,
+  getUID,
+  HTTP,
+  int,
+} from '@venizia/ignis-helpers';
 import isEmpty from 'lodash/isEmpty';
 import path from 'node:path';
 import packageJson from './../package.json';
@@ -24,7 +31,7 @@ import { ConfigurationRepository } from './repositories';
 // -----------------------------------------------------------------------------------------------
 export const beConfigs: IApplicationConfigs = {
   host: process.env.APP_ENV_SERVER_HOST,
-  port: +(process.env.APP_ENV_SERVER_PORT ?? 3000),
+  port: +(blankToUndefined(process.env.APP_ENV_SERVER_PORT) ?? 3000),
   path: {
     base: process.env.APP_ENV_SERVER_BASE_PATH!,
     isStrict: true,

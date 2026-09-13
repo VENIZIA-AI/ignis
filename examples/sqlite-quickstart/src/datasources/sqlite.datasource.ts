@@ -7,6 +7,7 @@ import { drizzle } from 'drizzle-orm/libsql';
 import { migrate } from 'drizzle-orm/libsql/migrator';
 import { mkdirSync } from 'node:fs';
 import { dirname } from 'node:path';
+import { blankToUndefined } from '@venizia/ignis-helpers';
 
 interface IDataSourceConfigs {
   /**
@@ -36,7 +37,7 @@ export class SqliteDataSource extends BaseSqliteDataSource<
   constructor() {
     super({
       name: SqliteDataSource.name,
-      config: { url: process.env.APP_ENV_SQLITE_URL ?? DEFAULT_URL },
+      config: { url: blankToUndefined(process.env.APP_ENV_SQLITE_URL) ?? DEFAULT_URL },
       schema: { [Note.TABLE_NAME]: notesTable },
     });
   }

@@ -17,9 +17,10 @@
  */
 
 import { io, Socket } from 'socket.io-client';
+import { blankToUndefined } from '@venizia/ignis-helpers';
 
 // ---------------------------------------------------------------------------
-const SERVER_URL = process.env.SERVER_URL ?? 'http://localhost:3000';
+const SERVER_URL = blankToUndefined(process.env.SERVER_URL) ?? 'http://localhost:3000';
 const SOCKET_PATH = '/io';
 const REST_BASE = `${SERVER_URL}/api/socket`;
 
