@@ -9,7 +9,8 @@ difficulty: advanced
 Technical reference for the DI system in IGNIS - managing resource lifecycles and dependency resolution.
 
 **Files:**
-- `packages/inversion/src/modules/container/index.ts` - Base `Container` and `Binding` classes
+- `packages/inversion/src/modules/container/container.ts` - Base `Container` class
+- `packages/inversion/src/modules/binding/binding.ts` - Base `Binding` class
 - `packages/inversion/src/modules/registry/index.ts` - Base `MetadataRegistry`
 - `packages/inversion/src/modules/metadata/injectors.ts` - Base `@inject` decorator
 - `packages/inversion/src/common/types.ts` - `BindingScopes`, `BindingValueTypes`, `BindingKeys`, `IProvider`
@@ -26,7 +27,7 @@ Technical reference for the DI system in IGNIS - managing resource lifecycles an
 | **@inject** | Decorator marking injection points | Applied to constructor parameters and class properties |
 | **MetadataRegistry** | Stores decorator metadata | Singleton - base via `metadataRegistry` export, core via `MetadataRegistry.getInstance()` |
 | **BindingKeys** | Utility for building namespaced keys | `BindingKeys.build({ namespace, key })` |
-| **Boot System** | Automatic artifact discovery and binding | Integrates with Container via tags and bindings |
+| **registerArtifacts** | Binds every class in a generated index | Reads `configs.artifacts` at the `registerArtifacts` boot step |
 
 ## Prerequisites
 
@@ -41,7 +42,7 @@ Before reading this document, you should understand:
 
 Heart of the DI system - registry managing all application resources.
 
-**File:** `packages/inversion/src/modules/container/index.ts` (Base) & `packages/kernel/src/helpers/inversion/container.ts` (Extended)
+**File:** `packages/inversion/src/modules/container/container.ts` (Base) & `packages/kernel/src/helpers/inversion/container.ts` (Extended)
 
 The base `Container` extends `BaseHelper` (which provides `scope` and `identifier` properties). The core `Container` extends the base and adds a `Logger` instance.
 
@@ -106,7 +107,7 @@ class UserController {
 
 A `Binding` represents a single registered dependency in the container. It provides a fluent API to configure *how* a dependency should be created and managed.
 
-**File:** `packages/inversion/src/modules/container/index.ts`
+**File:** `packages/inversion/src/modules/binding/binding.ts`
 
 The `Binding` class extends `BaseHelper`.
 
@@ -211,13 +212,30 @@ The `@inject` decorator marks where dependencies should be injected - either on 
 ### Signature
 
 ```typescript
-@inject({ key: string | symbol; isOptional?: boolean })
+type TInjectOptions = { isOptional?: boolean } & (
+  | { key: TBindingKey; target?: never }
+  | { target: TClass<AnyType>; key?: never }
+);
 ```
+
+Name the binding key, or name the class bound under it. Never both - the union refuses it.
 
 | Parameter | Type | Default | Description |
 | :--- | :--- | :--- | :--- |
 | `key` | `string \| symbol` | - | The binding key to resolve from the container. |
+| `target` | `TClass` | - | The artifact class. The container looks up the key that class was registered under. |
 | `isOptional` | `boolean` | `false` | If `true`, returns `undefined` instead of throwing when the binding is not found. |
+
+```typescript
+class UserController {
+  constructor(
+    @inject({ target: UserService })
+    private userService: UserService,
+  ) {}
+}
+```
+
+`target` needs no string, so a renamed class cannot drift from its injection sites. It only works for a class the application registered: a stereotype decorator records the key it would get, and `registerArtifact()` overwrites that with the key actually bound. An undecorated, unregistered class throws `names '<Class>', which is not registered as an artifact`.
 
 ### Constructor Parameter Injection
 
@@ -247,9 +265,9 @@ class UserController {
 
 ### How It Works
 
-1. When `@inject` is applied to a **constructor parameter**, it stores `IInjectMetadata` (key, index, isOptional) on the class via the `MetadataRegistry`.
-2. When `@inject` is applied to a **property**, it stores `IPropertyMetadata` (bindingKey, isOptional) on the class prototype via the `MetadataRegistry`.
-3. When `container.instantiate(MyClass)` is called, it reads both metadata sets, resolves each dependency from the container, and injects them.
+1. When `@inject` is applied to a **constructor parameter**, it stores `IInjectMetadata` (key or target, index, isOptional) on the class via the `MetadataRegistry`.
+2. When `@inject` is applied to a **property**, it stores `IPropertyMetadata` (bindingKey or target, isOptional) on the class prototype via the `MetadataRegistry`.
+3. When `container.instantiate(MyClass)` is called, it reads both metadata sets, turns any `target` into the key that class is bound under, resolves each dependency from the container, and injects them.
 
 ### Base vs Core Decorators
 
@@ -262,7 +280,7 @@ import { inject } from '@venizia/ignis';
 
 ## Registering a Class
 
-No class decorator is needed to make a class injectable. A class becomes resolvable once a binding exists for it. That binding can come from boot auto-discovery, from a framework helper (`app.controller()`, `app.service()`, `@repository`), or explicitly from `container.bind()`. Scope is configured on the binding, never on the class:
+No class decorator is needed to make a class injectable. A class becomes resolvable once a binding exists for it. That binding can come from the `registerArtifacts` boot step reading `configs.artifacts`, from a framework helper (`app.controller()`, `app.service()`, `@repository`), or explicitly from `container.bind()`. Scope is configured on the binding, never on the class:
 
 ```typescript
 class UserService extends BaseService {
@@ -330,15 +348,16 @@ MetadataKeys.INJECT      = Symbol.for('ignis:inject')
 
 ```typescript
 interface IInjectMetadata {
-  key: string | symbol;
+  key?: TBindingKey;
+  target?: TClass;
   index: number;
   isOptional?: boolean;
 }
 
 interface IPropertyMetadata {
-  bindingKey: string | symbol;
+  bindingKey?: TBindingKey;
+  target?: TClass;
   isOptional?: boolean;
-  [key: string]: any;
 }
 ```
 
@@ -348,14 +367,15 @@ interface IPropertyMetadata {
 
 | Binding Key | Scope | Registered by |
 |-------------|-------|---------------|
+| `configurations.<Class>` | Singleton | `configuration()` / index `configurations` |
 | `datasources.<Class>` | Singleton | `dataSource()` / index `dataSources` |
 | `components.<Class>` | Singleton | `component()` / index `components` |
 | `repositories.<Class>` | Transient | `repository()` / index `repositories` |
 | `services.<Class>` | Transient | `service()` / index `services` |
 | `controllers.<Class>` | Singleton | `controller()` / index `controllers` |
-| any key named in a component's `@provide({ key })` | Singleton (or `@provide({ scope })`) | index `components` only |
+| any key named in a `@provide({ key })` | Singleton (or `@provide({ scope })`) | index `configurations` and `components` only |
 
-A `@provide` key is bound `toProvider`: the provider resolves the component and calls the method on the first `get`, so the value may depend on a datasource or a secret that did not exist at registration time.
+A `@provide` key is bound `toProvider`: the provider resolves the owning class and calls the method on the first `get`, so the value may depend on a datasource or a secret that did not exist at registration time.
 
 ```typescript
 // Registered from the index at the registerArtifacts step ...

@@ -12,10 +12,13 @@ Matches string fields against SQL `LIKE` patterns or POSIX regular expressions.
 |----------|-----|---------|
 | `like` | `LIKE` | Case-sensitive pattern match |
 | `nlike` | `NOT LIKE` | Negated case-sensitive pattern match |
-| `ilike` | `ILIKE` | Case-insensitive pattern match (PostgreSQL-only) |
-| `nilike` | `NOT ILIKE` | Negated case-insensitive pattern match (PostgreSQL-only) |
-| `regexp` | `~` | Case-sensitive POSIX regex match |
-| `iregexp` | `~*` | Case-insensitive POSIX regex match |
+| `ilike` | `ILIKE` | Case-insensitive pattern match |
+| `nilike` | `NOT ILIKE` | Negated case-insensitive pattern match |
+| `regexp` | `~` | Case-sensitive POSIX regex match (PostgreSQL only) |
+| `iregexp` | `~*` | Case-insensitive POSIX regex match (PostgreSQL only) |
+
+> [!NOTE] On SQLite
+> `ilike`/`nilike` map to `LIKE`/`NOT LIKE`, because SQLite's own `LIKE` is already ASCII case-insensitive. It is `like` that widens there, not `ilike` that is missing. `regexp`/`iregexp` are rejected with a clear error: SQLite defines no `regexp()` function and libsql registers none, so accepting them would fail at execution on a query that looked accepted.
 
 ## like
 
@@ -52,7 +55,7 @@ Matches string fields against SQL `LIKE` patterns or POSIX regular expressions.
 **Notice:** matches `'John'`, `'JOHN'`, and `'john'` alike.
 
 **Edge cases:**
-- `ILIKE` is a PostgreSQL extension, not standard SQL.
+- `ILIKE` is a PostgreSQL extension, not standard SQL. The SQLite dialect maps `ilike` to `LIKE`, which is ASCII case-insensitive there anyway. The residual gap is non-ASCII: `'ÉCOLE' LIKE 'é%'` is false without ICU.
 - Same pattern-character rules as `like`.
 
 ## nilike

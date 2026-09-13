@@ -83,8 +83,12 @@ The framework's `AppErrorMiddleware` catches `ApplicationError` instances and fo
 | `logLevel`      | `error \| emerg \| warn \| info \| debug` | The level the error handler logs this at. Defaults to `error`; lower it for an expected failure (`getError({ message, statusCode: 404, logLevel: 'warn' })`), or raise it to `emerg`. Steers the server log only - never the response |
 | _anything else_ | `unknown`                              | Rides into `extra` under its own name. `getError({ message, transaction })` lands at `error.extra.transaction`  |
 
-> [!TIP]
-> Spreading a definition now resolves identically to passing it as `error`: `getError({ ...CategoryErrors.CREATE_DUPLICATE_NAME })` and `getError({ error: CategoryErrors.CREATE_DUPLICATE_NAME })` build the same `ApplicationError`. A definition's `message` is `{ text, code, args? }` - the same shape the free-form input accepts - so the spread degrades to nothing. Prefer `{ error: DEF }` anyway. It reads as "raise this catalogued error", not "raise these loose fields."
+> [!WARNING]
+> Spreading a definition is not the same as passing it as `error`. `getError({ error: DEF })` consumes the whole definition under one known key. `getError({ ...DEF })` hands its fields over individually. `category` and `description` are not in the consumed set, so they ride into `error.extra` under their own names. From there they reach the client response.
+>
+> The `message`/`statusCode` half does resolve the same way, because a definition's `message` is `{ text, code, args? }`, exactly the shape the free-form input accepts. The metadata half is what leaks. Always use `{ error: DEF }`.
+
+The consumed keys are `error`, `message`, `messageCode`, `statusCode`, `messageArgs`, `cause`, `extra`, `transform`, `logLevel`, and `name`. Anything else you pass to `getError` lands in `error.extra`. That is the feature the last table row describes, and the reason the spread form is a trap.
 
 ## Every shape and its output
 
@@ -130,6 +134,8 @@ const DEF = {
 | `{ error: DEF, message: 'Custom' }` | `Custom` | `409` | `server.commerce.category.duplicate` | `{ name: '?' }` |
 | `{ error: DEF, statusCode: 410 }` | the definition's text | `410` | `server.commerce.category.duplicate` | `{ name: '?' }` |
 | `{ ...DEF }` (spread) | the definition's text | `409` | `server.commerce.category.duplicate` | `{ name: '?' }` |
+
+The spread row matches only because this `DEF` carries nothing but `message` and `statusCode`. Add `category` or `description` to it and the spread moves them into `extra`, where the `{ error: DEF }` form leaves them behind.
 
 **Context and cause:**
 

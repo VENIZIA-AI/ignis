@@ -19,7 +19,7 @@ Exhaustive reference for `Container`, `Binding`, `MetadataRegistry`, the `@injec
 - [`packages/inversion/src/modules/metadata/injectors.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/inversion/src/modules/metadata/injectors.ts) - `@inject`
 - [`packages/inversion/src/modules/metadata/common/constants.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/inversion/src/modules/metadata/common/constants.ts) - `MetadataKeys`
 - [`packages/inversion/src/modules/registry/registry.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/inversion/src/modules/registry/registry.ts) - `MetadataRegistry`, `metadataRegistry`
-- [`packages/inversion/src/modules/registry/common/types.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/inversion/src/modules/registry/common/types.ts) - `IInjectMetadata`, `IPropertyMetadata`
+- [`packages/inversion/src/modules/registry/common/types.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/inversion/src/modules/registry/common/types.ts) - `IInjectMetadata`, `IPropertyMetadata`, `IBindingKeyRecord`
 - [`packages/inversion/src/common/types.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/inversion/src/common/types.ts) - `TNullable`, `ValueOrPromise`, `TClass`, `TConstValue`
 - [`packages/inversion/src/common/utilities.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/inversion/src/common/utilities.ts) - `isClass`
 - [`packages/inversion/src/modules/error/app-error.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/inversion/src/modules/error/app-error.ts) - `ApplicationError`, `getError`, `isApplicationError`
@@ -64,6 +64,7 @@ import type {
   TNullable,
   ValueOrPromise,
   ValueOf,
+  AnyType,
   TClass,
   TConstructor,
   TAbstractConstructor,
@@ -76,7 +77,9 @@ import type {
   IContainer,
   IInjectMetadata,
   IPropertyMetadata,
+  IBindingKeyRecord,
   IBindingTag,
+  TInjectOptions,
 } from '@venizia/ignis-inversion';
 ```
 
@@ -113,7 +116,7 @@ const container = new Container({ scope: 'MyApp' });
 |--------|-----------|--------------|
 | `bind` | `bind<T>(opts: { key: TBindingKey }): Binding<T>` | Create a new `Binding`, register it under `String(key)`, and return it |
 | `get` | `get<T>(opts: { key: TBindingKey \| { namespace, key }, isOptional?: boolean }): T \| undefined` | Resolve a dependency by key. Throws if not found and `isOptional` is falsy |
-| `gets` | `gets<T>(opts: { bindings: Array<{ key, isOptional? }> }): T[]` | Resolve multiple dependencies; every entry is internally re-issued with `isOptional: true` regardless of what was passed |
+| `gets` | `gets<T extends unknown[]>(opts: { bindings: { [K in keyof T]: { key, isOptional? } } }): { [K in keyof T]: T[K] \| undefined }` | Resolve several dependencies as a tuple. Every entry is internally re-issued with `isOptional: true`, so every returned slot is `\| undefined` |
 | `getBinding` | `getBinding<T>(opts: { key: TBindingKey \| { namespace, key } }): Binding<T> \| undefined` | Retrieve the raw `Binding` without resolving it |
 | `set` | `set<T>(opts: { binding: Binding<T> }): void` | Register an externally created `Binding` under its own `.key` |
 | `isBound` | `isBound(opts: { key: TBindingKey }): boolean` | Check whether a key is registered |
@@ -133,16 +136,27 @@ All keys passed to `bind`, `isBound`, and `unbind` are normalized with `String(k
 override instantiate<T>(cls: TClass<T>): T
 ```
 
+Both phases run their metadata through `resolveBindingKey` first. `@inject` records either a key or a class, so that step reduces the two forms to one binding key.
+
+**`resolveBindingKey(opts: { key?, target?, cls, at })`.** It returns `key` unchanged when a key was recorded. With only a class, it reads back the key that class was registered under, via `registry.getBindingKey({ target })`. Two errors originate here:
+
+| Situation | Message |
+|---|---|
+| Neither a key nor a class was recorded | `[ClassName] Constructor parameter 0 has neither an @inject key nor a class` |
+| A class that was never registered as an artifact | `[ClassName] Constructor parameter 0 names 'UserRepository', which is not registered as an artifact \| Decorate it (@service, @repository, ...) or register it on the application before it is injected` |
+
+`at` supplies the phrase in those messages. Phase 1 passes `Constructor parameter N`, phase 2 passes `Property 'name'`.
+
 **Phase 1 - constructor injection.** Reads `registry.getInjectMetadata({ target: cls })`, which returns the index-keyed `IInjectMetadata[]` array built by `@inject`. For every index in that array:
 
 - If the slot is empty (an undecorated parameter left a hole), throws `[ClassName] Constructor parameter N has no @inject | Every parameter of a container-instantiated class must be decorated - the container cannot supply an undecorated one`.
-- Otherwise resolves `this.get({ key: meta.key, isOptional: meta.isOptional ?? false })` and places it at `args[meta.index]`.
+- Otherwise resolves the key with `resolveBindingKey({ key: meta.key, target: meta.target, cls, at })`, calls `this.get({ key, isOptional: meta.isOptional ?? false })`, and places the result at `args[meta.index]`.
 
 The array is already index-keyed (`setInjectMetadata` writes to `injects[index]`) - there is no sort step. Once all arguments are resolved, `new cls(...args)` builds the instance.
 
 **Phase 2 - property injection.** Reads `registry.getPropertiesMetadata({ target: instance })`. If there is none, returns the instance as-is.
 
-Otherwise, for each `[propertyKey, metadata]` entry, resolves `this.get({ key: metadata.bindingKey, isOptional: metadata.isOptional ?? false })` and assigns it to `instance[propertyKey]`.
+Otherwise, for each `[propertyKey, metadata]` entry, resolves the key with `resolveBindingKey({ key: metadata.bindingKey, target: metadata.target, cls, at })`, calls `this.get({ key, isOptional: metadata.isOptional ?? false })`, and assigns the result to `instance[propertyKey]`.
 
 `@inject({ key, isOptional: true })` on a **property** behaves exactly like on a constructor parameter: an unbound key resolves to `undefined` instead of throwing. A required property (`isOptional` omitted or `false`) still throws when its key is unbound.
 
@@ -170,6 +184,8 @@ const [svcA, svcB] = container.gets<[ServiceA, ServiceB]>({
 ```
 
 Internally maps each entry through `this.get({ ...opt, isOptional: true })`. Regardless of what `isOptional` was set on the entry, `gets()` always resolves with `isOptional: true` - anything unbound returns `undefined` instead of throwing.
+
+The generic is a tuple, and the return type widens every slot. `svcA` above is `ServiceA | undefined`, not `ServiceA`. Narrow each slot before you use it.
 
 ## Binding
 
@@ -214,10 +230,10 @@ If `bindScope` is `SINGLETON`, the resolved instance is cached on `this.cached`.
 ### Class-based provider
 
 ```typescript
-import { IProvider, Container } from '@venizia/ignis-inversion';
+import type { IContainer, IProvider } from '@venizia/ignis-inversion';
 
 class DatabaseConnectionProvider implements IProvider<DatabaseConnection> {
-  value(container: Container): DatabaseConnection {
+  value(container: IContainer): DatabaseConnection {
     const config = container.get<Config>({ key: 'config.database' });
     return new DatabaseConnection(config);
   }
@@ -259,12 +275,17 @@ Singleton (`metadataRegistry`) backing `@inject`, built entirely on `reflect-met
 | `setPropertyMetadata` | `setPropertyMetadata<T>(opts: { target, propertyName, metadata: IPropertyMetadata }): void` | Write property `@inject` metadata into a `Map` keyed by property name, stored on `target.constructor` |
 | `getPropertiesMetadata` | `getPropertiesMetadata<T>(opts: { target }): Map<string \| symbol, IPropertyMetadata> \| undefined` | Read the full property metadata map |
 | `getPropertyMetadata` | `getPropertyMetadata<T>(opts: { target, propertyName }): IPropertyMetadata \| undefined` | Read metadata for one property |
+| `setBindingKey` | `setBindingKey<T>(opts: { target, key: TBindingKey, isProvisional?: boolean }): void` | Record the key a class is registered under, into `MetadataKeys.BINDING_KEY`. This is what `@inject({ target })` reads back |
+| `getBindingKey` | `getBindingKey<T>(opts: { target }): TBindingKey \| undefined` | Read that key back. Own metadata only, so an unregistered subclass does not inherit its parent's key |
+
+`isProvisional` marks a derived key, one guessed from the class rather than declared. A real registration replaces a provisional key silently. Two non-provisional registrations under different keys log a `[setBindingKey] Rebound under a different key` warning instead, because the second would otherwise decide for both.
 
 ```typescript
 import { MetadataKeys, metadataRegistry } from '@venizia/ignis-inversion';
 
-MetadataKeys.PROPERTIES; // Symbol.for('ignis:properties')
-MetadataKeys.INJECT;     // Symbol.for('ignis:inject')
+MetadataKeys.PROPERTIES;  // Symbol.for('ignis:properties')
+MetadataKeys.INJECT;      // Symbol.for('ignis:inject')
+MetadataKeys.BINDING_KEY; // Symbol.for('ignis:binding-key')
 
 metadataRegistry.define({ target: myObj, key: 'custom:flag', value: true });
 metadataRegistry.get({ target: myObj, key: 'custom:flag' });    // true
@@ -276,16 +297,29 @@ metadataRegistry.delete({ target: myObj, key: 'custom:flag' }); // true
 
 ```typescript
 interface IInjectMetadata {
-  key: TBindingKey;
+  key?: TBindingKey;
+  /** Named by class; the key is read off the class at resolve time. */
+  target?: TClass<AnyType>;
   index: number;
   isOptional?: boolean;
 }
 
 interface IPropertyMetadata {
-  bindingKey: TBindingKey;
+  bindingKey?: TBindingKey;
+  /** Named by class; the key is read off the class at resolve time. */
+  target?: TClass<AnyType>;
   isOptional?: boolean;
 }
+
+interface IBindingKeyRecord {
+  key: TBindingKey;
+  isProvisional: boolean;
+}
 ```
+
+The key field is optional on both, and both carry a `target` sibling. `@inject` writes exactly one of the pair: the key when you passed `key`, `target` when you passed a class. Type against the key alone and your code will not compile.
+
+Neither interface carries an index signature. A misspelled read such as `metadata.optional` is a type error rather than an `any`.
 
 ## Decorators
 
@@ -294,16 +328,34 @@ interface IPropertyMetadata {
 ### `@inject`
 
 ```typescript
-inject(opts: { key: TBindingKey; isOptional?: boolean; registry?: MetadataRegistry }): PropertyDecorator | ParameterDecorator
+type TInjectOptions = {
+  isOptional?: boolean;
+  registry?: MetadataRegistry;
+} & ({ key: TBindingKey; target?: never } | { target: TClass<AnyType>; key?: never });
+
+inject(opts: TInjectOptions): PropertyDecorator | ParameterDecorator
 ```
+
+`TInjectOptions` is a discriminated union. You name the dependency **either** by binding key **or** by class, never both.
+
+| Form | Example | How the key is found |
+|---|---|---|
+| By key | `@inject({ key: 'repositories.UserRepository' })` | Used as written |
+| By class | `@inject({ target: UserRepository })` | Read off the class at resolve time, from the key its registration recorded |
+
+The class form is the shorter one when the class is already a decorated artifact. It also survives a key rename, because you never wrote the key down.
+
+`inject` throws `@inject was given no binding key and no class | target: undefined` when neither arm is satisfied. A circular import is the usual cause. The class reference evaluates to `undefined` at decoration time, so the check fires there rather than at resolve time.
 
 Dispatches on how the decorator was invoked:
 
 | Applied to | Detection | Stored via |
 |------------|-----------|------------|
-| Constructor parameter | `parameterIndex` is a `number` | `registry.setInjectMetadata({ target, index: parameterIndex, metadata: { key, index: parameterIndex, isOptional } })` |
-| Class property | `propertyName !== undefined` | `registry.setPropertyMetadata({ target, propertyName, metadata: { bindingKey: key, isOptional } })` |
+| Constructor parameter | `parameterIndex` is a `number` | `registry.setInjectMetadata({ target, index: parameterIndex, metadata: { ...(key === undefined ? { target } : { key }), index: parameterIndex, isOptional } })` |
+| Class property | `propertyName !== undefined` | `registry.setPropertyMetadata({ target, propertyName, metadata: { ...(key === undefined ? { target } : { bindingKey: key }), isOptional } })` |
 | Anything else | neither condition matches | Throws `@inject decorator can only be used on class properties or constructor parameters` |
+
+Note which field each branch writes. A constructor parameter stores the key under `key`, a property stores it under `bindingKey`. The class form writes `target` in both.
 
 `isOptional` defaults to `false` in both branches. Pass a custom `registry` to target a non-default `MetadataRegistry` instance (rare - almost always omitted, using the shared `metadataRegistry`).
 
@@ -311,6 +363,7 @@ Dispatches on how the decorator was invoked:
 class UserService {
   constructor(
     @inject({ key: 'repositories.UserRepository' }) private userRepository: UserRepository,
+    @inject({ target: AuditRepository }) private auditRepository: AuditRepository,
     @inject({ key: 'services.Logger', isOptional: true }) private logger?: Logger,
   ) {}
 
@@ -405,6 +458,7 @@ type TAbstractConstructor<T> = abstract new (...args: any[]) => T;
 type TClass<T> = TConstructor<T> & { [property: string]: any };
 type TConstValue<T extends TClass<any>> = Extract<ValueOf<T>, string | number>;
 type TBindingKey = string | symbol;
+type AnyType = any;
 
 interface IBindingTag {
   [name: string]: any;
@@ -417,11 +471,13 @@ function isClass<T>(target: any): target is TClass<T>;
 
 ```typescript
 interface IProvider<T> {
-  value(container: Container): T;
+  value(container: IContainer): T;
 }
 
 function isClassProvider<T>(target: any): target is TClass<IProvider<T>>;
 ```
+
+`value` takes `IContainer`, the interface, not the concrete `Container` class. `binding/` and `container/` talk only through that interface, which is what keeps the two folders free of an import cycle.
 
 ## Constants
 
@@ -434,6 +490,7 @@ function isClassProvider<T>(target: any): target is TClass<IProvider<T>>;
 | `BindingValueTypes.PROVIDER` | `'provider'` | Factory function or `IProvider` class |
 | `MetadataKeys.PROPERTIES` | `Symbol.for('ignis:properties')` | Property injection metadata key |
 | `MetadataKeys.INJECT` | `Symbol.for('ignis:inject')` | Constructor injection metadata key |
+| `MetadataKeys.BINDING_KEY` | `Symbol.for('ignis:binding-key')` | The key a class is registered under, holding an `IBindingKeyRecord`. Read back by `@inject({ target })` |
 
 ## Troubleshooting
 
@@ -490,6 +547,29 @@ function isClassProvider<T>(target: any): target is TClass<IProvider<T>>;
 **Cause:** `@inject` was applied to something other than a class property or constructor parameter.
 
 **Fix:** Only use `@inject` on constructor parameters or class properties.
+
+### "@inject was given no binding key and no class"
+
+**Cause:** The decorator ran with neither `key` nor a usable `target`. The message prints what `target` actually held. `undefined` there means a circular import: the module holding the class had not finished evaluating when the decorator was applied.
+
+**Fix:**
+1. Break the cycle, usually by moving the shared type into its own module.
+2. Or switch that one site to the key form, `@inject({ key: '...' })`, which needs no class reference at decoration time.
+
+### "[ClassName] Constructor parameter N has neither an @inject key nor a class"
+
+**Cause:** The stored metadata for that slot carries no `key` and no `target`. The same message appears with `Property 'name'` in place of `Constructor parameter N` when property injection hits it.
+
+**Fix:** Give the `@inject` call one of the two arms - a `key`, or a `target` class.
+
+### "[ClassName] ... names 'X', which is not registered as an artifact"
+
+**Cause:** `@inject({ target: X })` resolved, but `X` was never registered, so no binding key was recorded against it. Only the class form can produce this; the key form never consults the registry.
+
+**Fix:**
+1. Decorate `X` as an artifact (`@service`, `@repository`, and so on).
+2. Or register it on the application before anything injects it.
+3. Or inject it by key instead.
 
 ### Property injection never runs
 

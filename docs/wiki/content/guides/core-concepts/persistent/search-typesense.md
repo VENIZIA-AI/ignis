@@ -203,9 +203,9 @@ export class SearchDataSource extends TypesenseDataSource {
 
 No `driver` in the decorator, and that is not an omission. A relational datasource has to name one, because a single `BasePostgresDataSource` runs on either `pg` or `postgres` and something must pick. A search datasource has already picked: `extends TypesenseDataSource` **is** the engine reference, and it is what carries the `typesense` package into your bundle. Naming the engine twice would just be a second chance to disagree with yourself.
 
-`TypesenseDataSource` extends `BaseSearchDataSource` (adds auto-discovery/provisioning) which extends `AbstractSearchDataSource` (engine contract: `getDriver()`, `getQueryDialect()`, `compileCollection()`, `ensureCollection()`) which extends the engine-neutral `AbstractDataSource`. Since `TypesenseDataSource` never overrides `beginTransaction()`, it inherits the neutral `NotSupported` default - see [Connectors](/references/base/connectors).
+`TypesenseDataSource` extends `BaseSearchDataSource` (adds auto-discovery/provisioning) which extends `AbstractSearchDataSource` (engine contract: `getConnector()`, `getQueryDialect()`, `compileCollection()`, `ensureCollection()`, `multiSearch()`) which extends the engine-neutral `AbstractDataSource`. Since `TypesenseDataSource` never overrides `beginTransaction()`, it inherits the neutral `NotSupported` default - see [Connectors](/references/base/connectors).
 
-On `configure()`, the datasource auto-provisions every discovered collection (`ensureCollection()` per definition, plus any declared `synonyms`) unless constructed with `autoProvision: false`.
+Auto-provisioning is **off by default**. Turn it on by constructing the datasource with `autoProvision: true`, or by setting `APP_ENV_AUTO_PROVISION_COLLECTION=true`. With it on, `configure()` provisions every discovered collection (`ensureCollection()` per definition, plus any declared `synonyms`).
 
 `getCapabilities()` reports what the engine supports so callers can probe before relying on a feature across engines:
 
@@ -220,10 +220,12 @@ Mirrors the PostgreSQL connector's ladder, but for documents instead of rows:
 
 ```
 AbstractRepository (engine-neutral)
-  -> TypesenseBaseRepository (narrows dataSource/entity to TypesenseDataSource/BaseSearchEntity)
+  -> SearchBaseRepository (narrows dataSource/entity to AbstractSearchDataSource/BaseSearchEntity)
+       also exported as TypesenseBaseRepository
     -> ReadableSearchRepository (count, existsWith, find, findOne, findById, search<TResult>())
-      -> PersistableSearchRepository (create, createAll, updateById, updateAll, import)
-        -> DefaultSearchRepository (+ deleteById, deleteAll)
+      -> PersistableSearchRepository (create, createAll, updateById, updateAll,
+                                      deleteById, deleteAll, import)
+        -> DefaultSearchRepository (convenience alias, adds nothing)
 ```
 
 ```typescript
@@ -265,8 +267,9 @@ Same options, same rules as PostgreSQL - see [Read Retry](/references/base/repos
 
 ### Write error semantics (shared by both search engines)
 
-- **`create()` with a duplicate id throws `409`** (`normalized.code: 'core.search_engine.already_exists'`) on both Typesense and Meilisearch. A duplicate is a conflict, never a silent overwrite - call `upsert()` explicitly for last-write-wins.
-- On Meilisearch, the duplicate pre-check is not atomic, so two concurrent creates of the same id can both pass it. See the [Meilisearch guide](./search-meilisearch) and use `upsert()` when that's possible.
+- **`create()` with a duplicate id throws `409`** (`normalized.code: 'core.search_engine.already_exists'`) on both Typesense and Meilisearch. A duplicate is a conflict, never a silent overwrite.
+- For last-write-wins, drop to the connector. There is no repository `upsert()`: `this.connector.document.upsert({ collection: this.collectionName, document })` is the call.
+- On Meilisearch, the duplicate pre-check is not atomic, so two concurrent creates of the same id can both pass it. See the [Meilisearch guide](./search-meilisearch) and use the connector upsert when that's possible.
 - **`updateById()` against a missing id throws `404` (`normalized.code: 'core.search_engine.not_found'`)** on both engines. This is the deliberate divergence from the PostgreSQL connector, where a missing-id `updateById` is a silent `{ count: 0 }`.
 - **`deleteById()` against a missing id is silent** (`{ count: 0, data: null }`), matching the relational connectors.
 
@@ -359,11 +362,21 @@ await repository.search({
 ```typescript
 interface ISearchResult<TDocument extends object = object> {
   found: number;
-  hits?: Array<{ document: TDocument; highlight?: unknown; textMatch?: number }>;
+  isFoundExact: boolean;
+  outOf?: number;
+  searchTimeMs?: number;
+  hits?: Array<{
+    document: TDocument;
+    highlight?: unknown;
+    highlights?: unknown[];
+    score?: number;
+  }>;
   facetCounts?: unknown[];
   groupedHits?: unknown[];
 }
 ```
+
+`isFoundExact` is required, and it is the field to read before trusting `found`. There is no `textMatch` field; the per-hit relevance number is `score`.
 
 ## Cross-Collection Multi-Search
 

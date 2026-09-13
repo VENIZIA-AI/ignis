@@ -159,15 +159,18 @@ export class VaultAuthMethods {
 
 ## Lifecycle Integration
 
-The registration is consumed by a new async boot phase, `hydrateSecrets()`, inserted between `preConfigure()` and `registerDataSources()`.
+The registration is consumed by an async boot phase, `hydrateSecrets()`, spliced in directly after `preConfigure()` and so ahead of every datasource step.
 
 ```
 validateEnvs → staticConfigure → preConfigure
-   → hydrateSecrets()          ← resolve provider, hydrate Envs, bind @app/config, set up leases
-   → registerDataSources
-   → wireSecretRotatables()    ← connect each lease key to its datasource
-   → registerComponents → registerControllers → postConfigure
+   → hydrateSecrets()               ← resolve provider, hydrate Envs, bind @app/config, set up leases
+   → registerConfigurations → registerDataSources → registerComponents
+   → registerContributedDataSources
+   → wireSecretRotatables()         ← connect each lease key to its datasource
+   → registerControllers → postConfigure
 ```
+
+`wireSecretRotatables()` is spliced in after `registerContributedDataSources`, not after `registerDataSources`. Components can contribute datasources, so wiring earlier would leave a lease key pointing at a component-contributed datasource resolving to nothing.
 
 `hydrateSecrets()` does four things:
 
@@ -176,7 +179,7 @@ validateEnvs → staticConfigure → preConfigure
 3. Binds the live provider at `CoreBindings.APPLICATION_CONFIG` (`@app/config`) as a singleton.
 4. Registers a post-stop hook (`secrets.shutdown`) so `provider.shutdown()` runs on teardown, revoking outstanding leases.
 
-`wireSecretRotatables()` runs after datasources are registered. For each `lease` entry it resolves the datasource at `entry.key` and, if the instance implements `onSecretRotated`, calls `provider.registerRotatable({ key, target })`. A datasource that does not implement the hook is skipped.
+`wireSecretRotatables()` runs once every datasource is registered, contributed ones included. For each `lease` entry it resolves the datasource at `entry.key` and, if the instance implements `onSecretRotated`, calls `provider.registerRotatable({ key, target })`. A datasource that does not implement the hook is skipped.
 
 > [!TIP] Why a lifecycle phase and not a Component
 > Components register *after* datasources, but secrets must be resolved *before* datasources build their pools. Hydration is therefore a dedicated phase, not a component.

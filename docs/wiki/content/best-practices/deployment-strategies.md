@@ -310,7 +310,7 @@ bun run force-update next
 
 **What it does:**
 1. Queries NPM registry for the specified tag (`latest`, `next`, or `highest`)
-2. Updates the package's `@venizia/*` dependencies in `package.json` with exact versions
+2. Rewrites the package's `@venizia/*` dependencies in `package.json` to a caret range on the resolved version (`^1.2.3`), not an exact pin
 
 **When to use:**
 | Tag | Use Case |

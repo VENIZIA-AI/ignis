@@ -25,12 +25,12 @@ Every option, binding key, class, and method the Authorization component exposes
 | Write a route's `authorize` spec | [IAuthorizationSpec (route-level)](#iauthorizationspec-route-level) |
 | Resolve a request's domain scope | [IAuthorizationDomainSource / TAuthorizationDomainResolver](#iauthorizationdomainsource-tauthorizationdomainresolver) |
 | Look up an action, decision, or role constant | [Constants](#constants) |
-| Read the scoped RBAC `.conf` model | [CASBIN_RBAC_DOMAIN_SCOPED_MODEL](#casbin_rbac_domain_scoped_model) |
+| Read the scoped RBAC `.conf` model | [CASBIN_RBAC_DOMAIN_SCOPED_MODEL](#casbin-rbac-domain-scoped-model) |
 | Register or resolve enforcers | [AuthorizationEnforcerRegistry](#authorizationenforcerregistry) |
 | Understand how the Casbin enforcer builds and evaluates rules | [CasbinAuthorizationEnforcer](#casbinauthorizationenforcer) |
 | Use the ready-made Postgres adapter | [ScopedCasbinAdapter](#scopedcasbinadapter) |
 | Write a custom adapter | [BaseFilteredAdapter](#basefilteredadapter) |
-| Grant a subset of a subject's operations | [Subset grants (custom rows)](#subset-grants-custom-rows) and [GrantBuilder.planGrant](#grantbuilderplangrant) |
+| Grant a subset of a subject's operations | [Subset grants (custom rows)](#subset-grants-custom-rows) and [GrantBuilder.planGrant](#grantbuilder-plangrant) |
 | Seed `PolicyDefinition` / `Permission` rows | [Policy and permission builders](#policy-and-permission-builders) |
 | Wire `authorize` into a REST or gRPC controller | [Controller integration](#controller-integration) |
 | Read the context keys the middleware sets | [Context variables](#context-variables) |
@@ -214,29 +214,39 @@ classDiagram
 
 ### Module file layout
 
+The contract sits in the kernel; the server-side wiring sits in `core-server`. Each package re-exports the other's half, so `@venizia/ignis` still resolves every name below.
+
 ```
-components/auth/authorize/
-├── adapters/
-│   ├── base-filtered.ts          # BaseFilteredAdapter (thin abstract) + ICasbinPolicyFilter
-│   ├── scoped-casbin/            # ScopedCasbinAdapter (generic edge-table reader)
-│   └── types.ts                  # IScopedCasbinEntities, IScopedCasbinTable, ICasbinPolicySource
+packages/kernel/src/base/auth/authorize/
 ├── builders/
 │   ├── grant.builder.ts           # GrantBuilder
 │   ├── permission.builder.ts      # AuthorizationPermissionBuilder + static objectMatch
 │   └── policy.builder.ts          # AuthorizationPolicyBuilder
 ├── common/
-│   ├── constants.ts               # Authorization, Actions, Decisions, PolicyVariants, Roles, AuthorizeBindingKeys, ...
-│   └── types.ts                   # IAuthorizeOptions, IAuthorizationEnforcer, ICasbinEnforcerOptions, ...
-├── enforcers/
-│   ├── casbin.enforcer.ts        # CasbinAuthorizationEnforcer
-│   ├── enforcer-registry.ts      # AuthorizationEnforcerRegistry (singleton)
-│   └── models/rbac-domain.model.ts # CASBIN_RBAC_DOMAIN_SCOPED_MODEL
+│   ├── constants/                 # Authorization, Actions, Decisions, PolicyVariants, DomainScopes, Roles, AuthorizeBindingKeys, ...
+│   ├── errors.ts                  # AuthorizationErrors
+│   └── types/                     # IAuthorizeOptions, IAuthorizationEnforcer, ICasbinEnforcerOptions, ...
+├── enforcers/enforcer-registry.ts # AuthorizationEnforcerRegistry (singleton)
 ├── middlewares/authorize.middleware.ts # authorize() standalone function
 ├── models/authorization-role.model.ts  # AuthorizationRole
-├── providers/
-│   ├── authorization.provider.ts # AuthorizationProvider
-│   └── request-domain.ts         # resolveRequestDomain, readDeclarative
-└── component.ts                        # AuthorizeComponent
+└── providers/
+    ├── authorization.provider.ts  # AuthorizationProvider
+    └── request-domain.ts          # resolveRequestDomain, readDeclarative
+
+packages/core-server/src/components/auth/authorize/
+├── adapters/
+│   ├── base-filtered.ts           # BaseFilteredAdapter (thin abstract) + ICasbinPolicyFilter
+│   ├── common/types.ts            # IScopedCasbinEntities, IScopedCasbinTable, ICasbinPolicySource
+│   ├── connector.ts               # the datasource seam the adapter reads through
+│   ├── custom-grant-expander.ts   # CustomGrantExpander (rejectCustomRow, expandCustomGrants)
+│   └── scoped-casbin/             # ScopedCasbinAdapter (generic edge-table reader)
+├── enforcers/
+│   ├── casbin.enforcer.ts         # CasbinAuthorizationEnforcer
+│   ├── policy-line-codec.ts       # encode/decode of stored casbin lines
+│   ├── user-policy-line-cache.ts  # the per-user line cache
+│   └── models/rbac-domain.model.ts # CASBIN_RBAC_DOMAIN_SCOPED_MODEL
+├── role-managers/                 # domain-hierarchy, membership, resource role managers
+└── component.ts                   # AuthorizeComponent
 ```
 
 ### Design decisions
@@ -261,6 +271,9 @@ components/auth/authorize/
 |------|--------|---------|
 | 1 | Resolve `IAuthorizeOptions` from the container via `AuthorizeBindingKeys.OPTIONS` | Throws `[AuthorizeComponent] No authorize options found` |
 | 2 | `bindAlwaysAllowRoles()` - binds `alwaysAllowRoles` to `AuthorizeBindingKeys.ALWAYS_ALLOW_ROLES` if present | Skipped if no roles configured |
+| 3 | `AuthorizationEnforcerRegistry.getInstance().setOptions({ options })` | - |
+
+Step 3 matters in exactly one case. The registry otherwise finds options only through a registered enforcer's container, so `defaultDecision` would be unreadable when no enforcer is registered - which is the one situation where it decides the request.
 
 ```typescript
 class AuthorizeComponent extends BaseComponent {
@@ -640,11 +653,15 @@ Singleton, extends `AbstractAuthRegistry<IAuthorizationEnforcer>`.
 
 ```typescript
 class AuthorizationEnforcerRegistry extends AbstractAuthRegistry<IAuthorizationEnforcer> {
-  private static instance: AuthorizationEnforcerRegistry;
-  private configuredEnforcers: Set<string>;
+  static readonly SINGLETON_REAL_KEY = 'authorization-enforcer-registry';
 
-  static getInstance(): AuthorizationEnforcerRegistry;
-  override reset(): void; // clears descriptors + configuredEnforcers
+  private configuredEnforcers: Set<string>;
+  /** In-flight configure() calls, so concurrent first requests share one warmup. */
+  private pendingConfigurations: Map<string, Promise<void>>;
+  private applicationOptions: TNullable<IAuthorizeOptions>;
+
+  static getInstance(): AuthorizationEnforcerRegistry; // via SingletonRealm.resolve
+  override reset(): void; // clears descriptors, configuredEnforcers, pendingConfigurations, applicationOptions
 
   register(opts: {
     container: Container;
@@ -657,11 +674,14 @@ class AuthorizationEnforcerRegistry extends AbstractAuthRegistry<IAuthorizationE
   hasEnforcers(): boolean;
   getDefaultEnforcerName(): string;
   resolveEnforcer(opts: { name: string }): Promise<IAuthorizationEnforcer>;
+  setOptions(opts: { options: IAuthorizeOptions }): void;
   resolveOptions(): IAuthorizeOptions | undefined;
   invalidateUserCache(opts: { user: IAuthorizationUser; enforcerName?: string }): Promise<{ invalidatedKeys: number }>;
   rebuildUserCache(opts: { user; enforcerName? }): Promise<{ cacheKey: string; lineCount: number }>;
 }
 ```
+
+The singleton is held by `SingletonRealm` under `SINGLETON_REAL_KEY`, not in a private static field. That is what keeps one registry across the CJS and ESM copies of the package.
 
 | Method | Returns | Description |
 |--------|---------|-------------|
@@ -669,11 +689,12 @@ class AuthorizationEnforcerRegistry extends AbstractAuthRegistry<IAuthorizationE
 | `register(opts)` | `this` | Registers enforcers with type-safe options (chainable) |
 | `hasEnforcers()` | `boolean` | `descriptors.size > 0` - used by the middleware to decide whether to honor `defaultDecision` instead of resolving an enforcer |
 | `getDefaultEnforcerName()` | `string` | Delegates to `getDefaultName()` |
-| `resolveEnforcer({ name })` | `Promise<IAuthorizationEnforcer>` | Resolves + auto-configures once (`configuredEnforcers` Set) |
-| `resolveOptions()` | `IAuthorizeOptions \| undefined` | Iterates all registered containers looking for `AuthorizeBindingKeys.OPTIONS` |
+| `resolveEnforcer({ name })` | `Promise<IAuthorizationEnforcer>` | Resolves + auto-configures once (`configuredEnforcers` Set), single-flighted through `pendingConfigurations` |
+| `setOptions({ options })` | `void` | Stores the application-level `IAuthorizeOptions`. `AuthorizeComponent` calls it so `defaultDecision` is readable even with no enforcer registered |
+| `resolveOptions()` | `IAuthorizeOptions \| undefined` | Returns what `setOptions()` stored, else scans every registered container for `AuthorizeBindingKeys.OPTIONS` |
 | `invalidateUserCache(opts)` | `Promise<{ invalidatedKeys }>` | Drops a user's cached policies - throws if the resolved enforcer lacks the optional method |
 | `rebuildUserCache(opts)` | `Promise<{ cacheKey, lineCount }>` | Drops then immediately re-extracts + re-caches |
-| `reset()` | `void` | Clears descriptors AND `configuredEnforcers` |
+| `reset()` | `void` | Clears descriptors, `configuredEnforcers`, `pendingConfigurations` and the stored options |
 
 **`register()` behavior:**
 
@@ -682,18 +703,35 @@ class AuthorizationEnforcerRegistry extends AbstractAuthRegistry<IAuthorizationE
 - Binds each class as a singleton at `authorization.enforcer.{name}`.
 - If `options` is given, binds it to `AuthorizeBindingKeys.enforcerOptions(name)`.
 
-**Configure-once pattern:**
+**Configure-once pattern.** The PROMISE is memoised, not just the completed flag:
 
 ```typescript
 async resolveEnforcer(opts: { name: string }): Promise<IAuthorizationEnforcer> {
   const enforcer = this.resolveDescriptor(opts);
-  if (!this.configuredEnforcers.has(opts.name)) {
-    await enforcer.configure();
-    this.configuredEnforcers.add(opts.name);
+
+  if (this.configuredEnforcers.has(opts.name)) {
+    return enforcer;
   }
+
+  const inFlight = this.pendingConfigurations.get(opts.name);
+  if (inFlight) {
+    await inFlight;
+    return enforcer;
+  }
+
+  const pending = Promise.resolve(enforcer.configure())
+    .then(() => { this.configuredEnforcers.add(opts.name); })
+    .finally(() => { this.pendingConfigurations.delete(opts.name); });
+
+  this.pendingConfigurations.set(opts.name, pending);
+
+  await pending;
   return enforcer;
 }
 ```
+
+> [!NOTE]
+> `configure()` yields - it dynamic-imports casbin. Setting the flag only after the await meant a burst of first requests each saw an unconfigured enforcer and each built a full pool. Measured: 40 concurrent first requests produced 40 `configure()` calls and 640 enforcers. The entry is dropped on rejection, so a failed warmup does not poison every later request.
 
 Source -> [`enforcers/enforcer-registry.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/kernel/src/base/auth/authorize/enforcers/enforcer-registry.ts)
 
@@ -1080,7 +1118,9 @@ A grant row can express an arbitrary subset of a subject's operations instead of
 
 Reading is **opt-in**: without `entities.policyDefinition.metadata.columnName` mapped, the adapter never selects the `metadata` column, and a custom row is logged and skipped.
 
-**Rejection rules** (`rejectCustomRow`, checked in this order). Each produces one `error`-level log line naming the subject id and object code, so a skipped grant can be diagnosed from the log alone:
+Both halves of this belong to `CustomGrantExpander`, a helper the adapter holds - not to `ScopedCasbinAdapter` itself.
+
+**Rejection rules** (`CustomGrantExpander.rejectCustomRow`, checked in this order). Each produces one `error`-level log line naming the subject id and object code, so a skipped grant can be diagnosed from the log alone:
 
 | Condition | Logged reason |
 |---|---|
@@ -1089,11 +1129,11 @@ Reading is **opt-in**: without `entities.policyDefinition.metadata.columnName` m
 | `metadata.ops` is present but `action` is not `'custom'` | `metadata.ops is present but action is not "custom", so the intent is ambiguous` |
 | The target's `Permission.method` is not the `*` resource-node sentinel | `the target must be a subject-level resource node` |
 
-A row that passes all four checks can still drop an individual **unresolvable operation name** during expansion. `expandCustomGrants` logs it separately, naming the unknown operations. The row's other valid operations still expand and emit lines.
+A row that passes all four checks can still drop an individual **unresolvable operation name** during expansion. `CustomGrantExpander.expandCustomGrants` logs it separately, naming the unknown operations. The row's other valid operations still expand and emit lines.
 
 **Composing a grant:** use `planGrant` (below) rather than hand-building a custom row. It collapses an operation selection into tier grants wherever possible. What does not collapse falls back to a custom row, or a single per-operation row.
 
-Source -> [`adapters/scoped-casbin/`](https://github.com/VENIZIA-AI/ignis/tree/main/packages/core-server/src/components/auth/authorize/adapters/scoped-casbin)
+Source -> [`adapters/scoped-casbin/`](https://github.com/VENIZIA-AI/ignis/tree/main/packages/core-server/src/components/auth/authorize/adapters/scoped-casbin), [`adapters/custom-grant-expander.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/components/auth/authorize/adapters/custom-grant-expander.ts)
 
 ## AuthorizationPermissionBuilder.objectMatch
 
@@ -1165,28 +1205,41 @@ if (!registry.hasEnforcers()) {
   if (options?.defaultDecision === 'allow') return next(); // logs a warning
   throw 403 'no enforcer registered'; // AuthorizationErrors.ENFORCER_NOT_REGISTERED
 }
-const enforcer = await registry.resolveEnforcer({ name: enforcerName ?? registry.getDefaultEnforcerName() });
+const resolvedName = enforcerName ?? registry.getDefaultEnforcerName();
+const enforcer = await registry.resolveEnforcer({ name: resolvedName });
 
-// 5b. Resolve request domain - only when spec.domain or a global domainResolver is in play
-if (spec.domain || options?.domainResolver) {
-  context.set(Authorization.DOMAIN, await resolveRequestDomain({ spec, context, options }));
-}
+// 5b. Resolve request domain - only when spec.domain or a global domainResolver is in play.
+// Held in a LOCAL. The context is set for observability, and nothing reads it back.
+const domainScope = spec.domain || options?.domainResolver
+  ? await resolveRequestDomain({ spec, context, options })
+  : undefined;
+context.set(Authorization.DOMAIN, domainScope);
 
-// 6. Build/cache rules
-let rules = context.get(Authorization.RULES);
+// 6. Build/cache rules, keyed by enforcer name
+const existing = context.get(Authorization.RULES);
+const rulesByEnforcer = existing instanceof Map ? existing : new Map<string, unknown>();
+let rules = rulesByEnforcer.get(resolvedName);
 if (!rules) {
   if (!user.principalType) throw 400 'user.principalType is required for enforcer-based authorization';
   rules = await enforcer.buildRules({ user, context });
-  context.set(Authorization.RULES, rules);
+  rulesByEnforcer.set(resolvedName, rules);
+  context.set(Authorization.RULES, rulesByEnforcer);
 }
 
-// 7. Evaluate
-let decision = await enforcer.evaluate({ rules, request: { action, resource, conditions, domain: context.get(Authorization.DOMAIN) }, context });
+// 7. Evaluate - against the LOCAL domain, never the context slot
+let decision = await enforcer.evaluate({ rules, request: { action, resource, conditions, domain: domainScope }, context });
 if (decision === ABSTAIN) decision = options?.defaultDecision ?? DENY;
 if (decision !== ALLOW) throw 403 'Authorization denied';
 
 await next();
 ```
+
+> [!IMPORTANT]
+> Two details in step 5b and step 6 are deliberate, not incidental.
+>
+> `Authorization.RULES` holds a `Map` keyed by enforcer name, not a single rule set. One middleware runs per `authorize()` spec on the same Hono context. With one shared slot, a second `authorize()` naming a different enforcer evaluated against the FIRST enforcer's rules.
+>
+> The domain lives in a local and is never read back out of the context for the same reason. A domain-less spec would otherwise inherit the tenant domain a previous spec wrote, silently widening a check that should have run at `SYSTEM_WIDE`.
 
 **`extractUserRoles()`** - normalizes `user.roles` to `string[]`, priority `identifier` > `name` > `String(id)`:
 
@@ -1241,9 +1294,32 @@ Framework-owned row shapes for seeding a `PolicyDefinition`/`Permission` store t
 
 ### AuthorizationPolicyBuilder
 
-One static method per `PolicyDefinition` edge type (see [Authorization Policy Variants](#constants)). All accept a `TPolicyDomainInput` (a scope literal string or `{ type, id }`), serialized via `[type, id].join('_')`.
+One static method per `PolicyDefinition` edge type (see [Authorization Policy Variants](#constants)). `TPolicyDomainInput` is a scope literal string or `{ type, id }`, and the builder SPLITS it across two fields, `domainType` and `domainId`. Nothing is joined into a `<Type>_<id>` token here - `ScopedCasbinAdapter` assembles that token in SQL at read time.
+
+| What you pass as `domain` | `domainType` | `domainId` |
+|---|---|---|
+| Omitted, `null`, or `AuthorizationDomainScopes.ANY_MEMBER` | `null` | `null` |
+| A scope literal, for example `AuthorizationDomainScopes.SYSTEM_WIDE` | That literal | `null` |
+| `{ type: 'Organization', id }` | `'Organization'` | `id` |
+
+`PolicyDefinitionRow` below is a stand-in name for the returned shape. The real return type is inferred rather than exported - derive it with `ReturnType<typeof AuthorizationPolicyBuilder.grant>`.
 
 ```typescript
+// grant() returns exactly this. customGrant() adds `metadata: { ops: string[] }`.
+// assignRole() drops `action` and `effect`; every *Inherits method and joinDomain()
+// drop the domain pair as well, leaving variant + the two node references.
+type PolicyDefinitionRow = {
+  variant: string;
+  subjectType: string;
+  subjectId: IdType;
+  targetType: string;
+  targetId: IdType;
+  action: string;
+  effect: TAuthorizationDecision;
+  domainType: TNullable<string>;
+  domainId: TNullable<IdType>;
+};
+
 class AuthorizationPolicyBuilder {
   static readonly ACTION_PRINCIPAL = 'Action';
 
@@ -1269,7 +1345,7 @@ class AuthorizationPolicyBuilder {
 }
 ```
 
-`domain` defaults: `grant` -> `null` maps to `ANY_MEMBER` (the adapter's default); `assignRole` -> `null` maps to `*` (every domain).
+`domain` defaults, both written as the `null`/`null` pair: for `grant` that reads back as `ANY_MEMBER` (the adapter's default), for `assignRole` as `*` (every domain).
 
 ### AuthorizationPermissionBuilder
 
@@ -1466,18 +1542,20 @@ declare module 'hono' {
 
     [Authorization.RULES]: Map<string, unknown>;
     [Authorization.SKIP_AUTHORIZATION]: boolean;
-    [Authorization.DOMAIN]: string;
   }
 }
 ```
 
 | Key | Constant | Type | Description |
 |-----|----------|------|-------------|
-| `'authorization.rules'` | `Authorization.RULES` | `unknown` | Cached rules built by the enforcer - shape depends on the enforcer |
+| `'authorization.rules'` | `Authorization.RULES` | `Map<string, unknown>` | Rule sets built for this request, keyed by enforcer name. The value shape depends on the enforcer |
 | `'authorization.skip'` | `Authorization.SKIP_AUTHORIZATION` | `boolean` | Set `true` to dynamically skip authorization for this request |
-| `'authorization.domain'` | `Authorization.DOMAIN` | `string` | Resolved request domain scope (`"<Type>_<id>"` or `SYSTEM_WIDE`); read by the enforcer at step 7 |
-| `'authentication.currentUser'` | `Authentication.CURRENT_USER` | `IAuthUser` | Read at step 2 to get the authenticated user |
-| `'authentication.auditUserId'` | `Authentication.AUDIT_USER_ID` | `IdType` | Available for audit logging |
+| `'authorization.domain'` | `Authorization.DOMAIN` | Untyped | The resolved request domain scope (`"<Type>_<id>"` or `SYSTEM_WIDE`), written for observability only |
+| `'auth.current.user'` | `Authentication.CURRENT_USER` | `IAuthUser` | Read at step 2 to get the authenticated user |
+| `'audit.user.id'` | `Authentication.AUDIT_USER_ID` | `IdType` | Available for audit logging |
+
+> [!WARNING]
+> `Authorization.DOMAIN` is NOT in the augmentation, so `context.get(Authorization.DOMAIN)` is untyped. Nothing in the pipeline reads it back either - the evaluator uses a local. Treat it as a debugging aid, never as an input.
 
 ## IAuthUser / IJWTTokenPayload
 

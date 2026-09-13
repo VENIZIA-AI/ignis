@@ -50,7 +50,7 @@ Thrown during `binding()` while validating options and wiring services.
 
 | Message | Status | Cause | Fix |
 |---------|--------|-------|-----|
-| `[AuthenticateComponent] At least one of jwtOptions or basicOptions must be provided` | 400 | Neither `JWT_OPTIONS` nor `BASIC_OPTIONS` bound before `this.component(AuthenticateComponent)` | Bind at least one before registering the component - see [Setup](./#common-tasks) |
+| `[AuthenticateComponent] At least one of jwtOptions, basicOptions or serviceOptions must be provided` | 400 | None of `JWT_OPTIONS`, `BASIC_OPTIONS` or `SERVICE_OPTIONS` is bound | Bind any one of the three - see [Setup](./#common-tasks). A service that only verifies assertions binds `SERVICE_OPTIONS` alone |
 | `[AuthenticateComponent] Unknown JOSE standard: {standard}` | 400 | `jwtOptions.standard` is not `'JWS'` or `'JWKS'` | Use `JOSEStandards.JWS` or `JOSEStandards.JWKS` |
 | `[defineJWSAuth] Invalid jwtSecret \| Provided: {jwtSecret}` | 400 | `jwtSecret` falsy or equals placeholder `'unknown_secret'` | Set a real secret - `APP_ENV_JWT_SECRET`, for example |
 | `[defineJWSAuth] getTokenExpiresFn is required` | 400 | `getTokenExpiresFn` missing from JWS options | Provide `() => Number(process.env.APP_ENV_JWT_EXPIRES_IN \|\| 86400)` |
@@ -61,6 +61,8 @@ Thrown during `binding()` while validating options and wiring services.
 | `[defineJWKSAuth] jwksUrl is required for verifier mode` | 400 | Verifier mode missing `jwksUrl` | Provide the issuer's `/certs` URL |
 | `[defineJWKSAuth] Invalid JWKS mode: {mode}` | 400 | `mode` is not `'issuer'` or `'verifier'` | Use `JWKSModes.ISSUER` or `JWKSModes.VERIFIER` |
 | `[defineBasicAuth] verifyCredentials function is required` | 400 | `BASIC_OPTIONS` bound without a `verifyCredentials` callback | Provide the callback - see [Setup](./#common-tasks) |
+| `[defineServiceAuth] name is required \| it is the issuer this service stamps and the audience it demands` | 400 | `SERVICE_OPTIONS` bound without `name` | Set `name` to this service's own identifier |
+| `[defineServiceAuth] resolvePrincipal is required \| the framework proves WHICH SERVICE called, the application decides who that acts as` | 400 | `SERVICE_OPTIONS` bound without `resolvePrincipal` | Provide the callback that turns a caller name into one of your principals |
 | `[defineControllers] Auth controller requires jwtOptions to be configured` | 400 | `useAuthController: true` but no `jwtOptions` bound | Bind `JWT_OPTIONS` before enabling the auth controller |
 
 > [!NOTE]
@@ -99,6 +101,7 @@ Shared by `JWSTokenService`, `JWKSIssuerTokenService`, and `JWKSVerifierTokenSer
 | `[JWKSIssuerTokenService] Invalid raw.priv key!` | 500 | `parseKeyMaterial` | Resolved private key content is empty | Check the file path or inline string |
 | `[JWKSIssuerTokenService] Invalid raw.pub key!` | 500 | `parseKeyMaterial` | Resolved public key content is empty | Check the file path or inline string |
 | `[JWKSIssuerTokenService] Invalid JWK key material` | 500 | `parseKeyMaterial` | JWK JSON parse or `importJWK()` failed | Validate the JWK is well-formed JSON (see below) |
+| `[JWKSIssuerTokenService] The public key material carries PRIVATE members ({members}) \| this key would be published at the JWKS endpoint \| pass the public half in keys.public` | 500 | `assertPublicJWK` | `keys.public` is a private JWK. Any of `d`, `p`, `q`, `dp`, `dq`, `qi`, `k` is present | Pass the public half. Only `keys.format: 'jwk'` can reach this - `importSPKI` rejects a private PEM outright |
 | `[JWKSIssuerTokenService] Unknown key format: {format}` | 500 | `parseKeyMaterial` | `keys.format` not `'pem'` or `'jwk'` | Use `JWKSKeyFormats.PEM` or `.JWK` |
 | `[getSigningKey] Invalid privateKey!` | 400 | `getSigningKey` | Private key null - init incomplete or failed | Ensure `initialize()` succeeded; check logs |
 | `[JWKSIssuerTokenService] JWKS not initialized yet. Call getJWKSAsync() instead.` | 500 | `getJWKS` | Sync `getJWKS()` called before lazy init completed | Use `await getJWKSAsync()` instead |
@@ -156,7 +159,7 @@ The middleware that executes strategies in the configured mode.
 | Message | Status | Method | Cause |
 |---------|--------|--------|-------|
 | `Authentication failed. Tried strategies: {strategies}` | 401 | `executeAnyMode` | Every strategy failed in `'any'` mode |
-| `Failed to identify authenticated user!` | 401 | `executeAllMode` | All strategies passed in `'all'` mode, but the first strategy's `userId` is falsy |
+| `Failed to identify authenticated user` | 401 | `executeAllMode` | All strategies passed in `'all'` mode, but the first strategy's `userId` is falsy |
 | `Invalid authentication mode \| mode: {mode}` | 500 | `createAuthenticateMiddleware` | `mode` is not `'any'` or `'all'` |
 
 **Fix for "Authentication failed":** verify the client sends the right header - `Bearer <token>` or `Basic <base64>`. Common causes: an expired token, a token signed with a different key, or the wrong strategy name in the route config.

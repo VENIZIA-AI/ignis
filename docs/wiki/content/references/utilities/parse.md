@@ -35,6 +35,7 @@ const camelObject = keysToCamel({ 'first-name': 'John', 'last_name': 'Doe' });
 | `keysToCamel` | `keysToCamel(object: object): any` | Recursively camelizes every key in `object`. Arrays stay arrays (their object elements are still camelized); `Date` values pass through untouched. |
 | `parseArrayToMapWithKey` | `parseArrayToMapWithKey<T, K>(arr: T[], keyMap: K): Map<T[K], T>` | Turns an array of objects into a `Map` keyed by `keyMap`. Positional arguments, not an options object. Throws if `keyMap` is missing from an element; last element wins on duplicate keys. |
 | `toDelimitedArray` | `toDelimitedArray(input: unknown, separator = ','): string[]` | Splits `input` on `separator` into trimmed, non-empty entries. `null`/`undefined` input returns `[]`. |
+| `blankToUndefined` | `blankToUndefined(input: string \| undefined): string \| undefined` | Trims `input` and returns `undefined` when nothing is left, so a blank value reads as unset. Otherwise returns the trimmed string. |
 | `toTrimmed` | `toTrimmed(input: unknown): string` | Stringifies and trims `input`; `null`/`undefined` returns `''`. |
 | `getUID` | `getUID(): string` | Generates a short, uppercase, `Math.random()`-based ID - not cryptographically unique. |
 
@@ -43,6 +44,7 @@ const camelObject = keysToCamel({ 'first-name': 'John', 'last_name': 'Doe' });
 - **`int`/`float` are comma-tolerant.** Both strip `,` before parsing, so `'1,000'` and `1000` behave the same - useful for user-typed numeric input.
 - **`parseArrayToMapWithKey` breaks the options-object convention on purpose** - it takes `(arr, keyMap)` positionally, unlike every other function on this page.
 - **`toDelimitedArray` and `toTrimmed` are the transform functions for list-shaped and string env values** - typical use is `applicationEnvironment.get(KEY, { transform: toDelimitedArray })`.
+- **`blankToUndefined` is what makes `??` work on env values.** `KEY=` in a deployment file is a pipeline that forgot to export the value, but `process.env.KEY` answers `''`, and `''` walks straight past `??`. Write `blankToUndefined(process.env.KEY) ?? 'text'`, not `process.env.KEY ?? 'text'`. Reach for it rather than `||`, which reads `'0'` as blank too.
 - **`getUID` is for short, human-glanceable identifiers**, not for anything that needs global uniqueness guarantees - use the [UID helper](/extensions/helpers/) (Snowflake-based) for that.
 
 ## See also

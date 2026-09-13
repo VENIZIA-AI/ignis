@@ -11,7 +11,8 @@ Exhaustive reference for the `@model` decorator, the entity class hierarchy, and
 **Files:**
 
 - [`packages/kernel/src/base/models/base.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/kernel/src/base/models/base.ts) - neutral `AbstractEntity`
-- [`packages/connectors/src/relational/postgres/models/base.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/connectors/src/relational/postgres/models/base.ts) - PostgreSQL entity (`BaseRelationalEntity`, aliases `BaseEntity`/`BasePostgresEntity`)
+- [`packages/connectors/src/relational/core/models/base.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/connectors/src/relational/core/models/base.ts) - relational entity `BaseRelationalEntity`
+- [`packages/connectors/src/relational/postgres/models/index.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/connectors/src/relational/postgres/models/index.ts) - the `BaseEntity`/`BasePostgresEntity` aliases
 - [`packages/kernel/src/base/metadata/persistents.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/kernel/src/base/metadata/persistents.ts) - `@model` decorator
 - [`packages/connectors/src/relational/postgres/models/enrichers`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/connectors/src/relational/postgres/models/enrichers) - schema enrichers
 
@@ -51,7 +52,7 @@ export abstract class AbstractEntity<Schema = unknown> extends BaseHelper {
 ```
 
 > [!TIP] Naming
-> The canonical PostgreSQL class is `BaseRelationalEntity`. `BaseEntity` and `BasePostgresEntity` are compatibility aliases re-exporting the same class from `connectors/postgres/models/index.ts` - all three resolve to identical runtime behavior. Code samples use `BaseEntity`, the most common import today.
+> The canonical class is `BaseRelationalEntity`, and it is engine-neutral. `BaseEntity` and `BasePostgresEntity` are compatibility aliases re-exporting the same class from `connectors/postgres/models/index.ts` - all three resolve to identical runtime behavior. This is the one real alias in the persistence layer; the datasource and repository names beside it are distinct subclasses. Code samples use `BaseEntity`, the most common import today.
 
 ## The `@model` Decorator
 
@@ -67,7 +68,9 @@ Marks a class as a database entity and configures its behavior.
   settings?: {
     hiddenProperties?: string[],
     defaultFilter?: TFilter,
+    scopeFilter?: IScopeFilterSettings,
     defaultLimit?: number,
+    maxLimit?: number,
     authorize?: {
       principal: string,
       [extra: string | symbol]: any,
@@ -85,24 +88,29 @@ Marks a class as a database entity and configures its behavior.
 | `skipMigrate` | `boolean` | Skip this model during schema migrations |
 | `settings.hiddenProperties` | `string[]` | Property names excluded from all repository query results (at SQL level) |
 | `settings.defaultFilter` | `TFilter` | Filter automatically applied to all repository queries (see [Default Filter](/references/base/filter-system/default-filter)) |
-| `settings.defaultLimit` | `number` | Default row limit applied when a query omits `limit`. Must be a positive integer (validated at decoration time). Falls back to the global `DEFAULT_LIMIT` (10). See [Pagination](/references/base/filter-system/fields-order-pagination#default-limit) |
+| `settings.scopeFilter` | `IScopeFilterSettings` | Row scope resolved per query, ANDed into every read and write. `resolve()` returns the scope `where`, `ScopeFilters.UNRESTRICTED` for no scope this call, or null to fall to `onMissing` (default `deny`, matching zero rows). Relational repositories only |
+| `settings.defaultLimit` | `number` | Default row limit applied when a query omits `limit`. Must be a positive integer (validated at decoration time). Falls back to the global `DEFAULT_LIMIT` (10). See [Pagination](/references/base/filter-system/fields-order-pagination#default-limit-resolution) |
+| `settings.maxLimit` | `number` | Largest `limit` a caller may ask for. Must be a positive integer (validated at decoration time). Falls back to `DEFAULT_MAX_LIMIT` (1000). An explicit `limit` above it throws before the query runs. See [Limit ceiling](/references/base/filter-system/fields-order-pagination#limit-ceiling-maxlimit) |
 | `settings.authorize` | `IModelAuthorizeSettings` | Authorization settings - declares the model's authorization principal (see [Authorization](/extensions/components/authorization/usage#model-based-resource-references)) |
 | `settings.authorize.principal` | `string` | The authorization subject name for this model. Auto-populates the static `AUTHORIZATION_SUBJECT` property |
+
+> [!WARNING] `scopeFilter` is not a default filter
+> `shouldSkipDefaultFilter` clears `settings.defaultFilter`. It does **not** clear `settings.scopeFilter` - the row scope stays applied on every query. That is the point: a scope is a security boundary, and an options flag must not be able to lift it.
 
 ### Behavior
 
 When the `@model` decorator is applied:
 
-1. If `settings.defaultLimit` is provided, it is validated to be a positive integer - otherwise the decorator throws at decoration (boot) time.
+1. If `settings.defaultLimit` or `settings.maxLimit` is provided, each is validated to be a positive integer - otherwise the decorator throws at decoration (boot) time.
 2. If `settings.authorize.principal` is provided and `AUTHORIZATION_SUBJECT` is not already an own property of the class, it auto-populates `AUTHORIZATION_SUBJECT` with the principal value.
 3. The model is registered in the `MetadataRegistry` model registry, keyed by table name (resolved as `metadata.tableName` > static `TABLE_NAME` > class name).
 4. The static `relations` property is stored as a resolver (not immediately resolved) to avoid circular dependency issues between models.
 
 ## `BaseEntity` (`BaseRelationalEntity`)
 
-PostgreSQL connector entity class, wrapping a Drizzle ORM schema. Extends the neutral `AbstractEntity`.
+Relational entity class, wrapping a Drizzle ORM schema. Extends the neutral `AbstractEntity`.
 
-`Source ->` [`packages/connectors/src/relational/postgres/models/base.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/connectors/src/relational/postgres/models/base.ts)
+`Source ->` [`packages/connectors/src/relational/core/models/base.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/connectors/src/relational/core/models/base.ts) - `packages/connectors/src/relational/postgres/models/base.ts` only re-exports it
 
 ### Purpose
 
@@ -373,8 +381,10 @@ await postRepository.find({
   filter: {},
   options: { shouldSkipDefaultFilter: true },
 });
-// No default WHERE clause (includes deleted)
+// No default WHERE clause (includes deleted), and no default LIMIT 100 either
 ```
+
+`shouldSkipDefaultFilter` drops the whole `defaultFilter`, its `limit` included, so the query falls back to `settings.defaultLimit ?? 10`. It does **not** drop `settings.scopeFilter` - a row scope stays applied on every query.
 
 > [!TIP]
 > See [Default Filter](/references/base/filter-system/default-filter) for full documentation including merge strategies and common patterns.

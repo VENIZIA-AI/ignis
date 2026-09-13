@@ -360,7 +360,7 @@ import {
 import { NodePostgresDriver } from '@venizia/ignis/postgres/node-postgres';
 import { Pool } from 'pg';
 
-interface IDSConfigs {
+interface IDataSourceConfigs {
   host: string;
   port: number;
   database: string;
@@ -369,7 +369,7 @@ interface IDSConfigs {
 }
 
 @datasource({ driver: NodePostgresDriver })
-export class PostgresDataSource extends BaseDataSource<IDSConfigs> {
+export class PostgresDataSource extends BaseDataSource<IDataSourceConfigs> {
   constructor() {
     super({
       name: PostgresDataSource.name,
@@ -396,6 +396,12 @@ export class PostgresDataSource extends BaseDataSource<IDSConfigs> {
     // to resolve a driver from, and it would throw `No driver and no client`. NodePostgresDriver
     // named in @datasource above is what wires the driver and Drizzle connector from it.
     this.client = new Pool(this.settings);
+  }
+
+  // Abstract on the Postgres tier - every Postgres datasource implements it.
+  override getConnectionString(): ValueOrPromise<string> {
+    const { host, port, user, password, database } = this.settings;
+    return `postgresql://${user}:${password}@${host}:${port}/${database}`;
   }
 }
 ```
@@ -446,36 +452,36 @@ export class CartRepository extends DefaultCRUDRepository<typeof Cart.schema> {
 
     // From 2nd parameter, inject additional dependencies
     @inject({ key: 'repositories.CartItemRepository' })
-    private _cartItemRepo: CartItemRepository,
+    private _cartItemRepository: CartItemRepository,
   ) {
     super(dataSource);
   }
 
   async findCartItem(opts: { cartId: string; productId: string }) {
-    return this._cartItemRepo.findOne({
+    return this._cartItemRepository.findOne({
       filter: { where: { cartId: opts.cartId, productId: opts.productId } },
     });
   }
 
   async addCartItem(opts: { cartId: string; productId: string; quantity: number }) {
-    const rs = await this._cartItemRepo.create({ data: opts });
+    const rs = await this._cartItemRepository.create({ data: opts });
     return rs.data;
   }
 
   async updateCartItem(opts: { itemId: string; data: { quantity: number } }) {
-    return this._cartItemRepo.updateById({ id: opts.itemId, data: opts.data });
+    return this._cartItemRepository.updateById({ id: opts.itemId, data: opts.data });
   }
 
   async deleteCartItem(opts: { itemId: string }) {
-    return this._cartItemRepo.deleteById({ id: opts.itemId });
+    return this._cartItemRepository.deleteById({ id: opts.itemId });
   }
 
   async getCartItems(opts: { cartId: string }) {
-    return this._cartItemRepo.find({ filter: { where: { cartId: opts.cartId } } });
+    return this._cartItemRepository.find({ filter: { where: { cartId: opts.cartId } } });
   }
 
   async clearCart(opts: { cartId: string }) {
-    return this._cartItemRepo.deleteAll({ where: { cartId: opts.cartId } });
+    return this._cartItemRepository.deleteAll({ where: { cartId: opts.cartId } });
   }
 }
 ```
@@ -500,7 +506,7 @@ export class OrderRepository extends DefaultCRUDRepository<typeof Order.schema> 
 
     // From 2nd parameter, inject additional dependencies
     @inject({ key: 'repositories.OrderItemRepository' })
-    private _orderItemRepo: OrderItemRepository,
+    private _orderItemRepository: OrderItemRepository,
   ) {
     super(dataSource);
   }
@@ -512,12 +518,12 @@ export class OrderRepository extends DefaultCRUDRepository<typeof Order.schema> 
     price: string;
     quantity: number;
   }) {
-    const rs = await this._orderItemRepo.create({ data: opts });
+    const rs = await this._orderItemRepository.create({ data: opts });
     return rs.data;
   }
 
   async getOrderItems(opts: { orderId: string }) {
-    return this._orderItemRepo.find({ filter: { where: { orderId: opts.orderId } } });
+    return this._orderItemRepository.find({ filter: { where: { orderId: opts.orderId } } });
   }
 }
 ```
@@ -534,13 +540,13 @@ import { getError } from '@venizia/ignis-helpers';
 export class ProductService extends BaseService {
   constructor(
     @inject({ key: 'repositories.ProductRepository' })
-    private _productRepo: ProductRepository,
+    private _productRepository: ProductRepository,
   ) {
     super({ scope: ProductService.name });
   }
 
   async getActiveProducts(opts: { categoryId?: string; limit?: number; offset?: number }) {
-    return this._productRepo.find({
+    return this._productRepository.find({
       filter: {
         where: {
           isActive: true,
@@ -554,7 +560,7 @@ export class ProductService extends BaseService {
   }
 
   async getProductById(opts: { id: string }) {
-    const product = await this._productRepo.findById({ id: opts.id });
+    const product = await this._productRepository.findById({ id: opts.id });
     if (!product) {
       throw getError({ statusCode: 404, message: 'Product not found' });
     }
@@ -576,14 +582,14 @@ export class ProductService extends BaseService {
       });
     }
 
-    await this._productRepo.updateById({ id: opts.productId, data: {
+    await this._productRepository.updateById({ id: opts.productId, data: {
       stock: product.stock - opts.quantity,
     } });
   }
 
   async releaseStock(opts: { productId: string; quantity: number }) {
     const product = await this.getProductById({ id: opts.productId });
-    await this._productRepo.updateById({ id: opts.productId, data: {
+    await this._productRepository.updateById({ id: opts.productId, data: {
       stock: product.stock + opts.quantity,
     } });
   }
@@ -608,7 +614,7 @@ interface ICartItem {
 export class CartService extends BaseService {
   constructor(
     @inject({ key: 'repositories.CartRepository' })
-    private _cartRepo: CartRepository,
+    private _cartRepository: CartRepository,
     @inject({ key: 'services.ProductService' })
     private _productService: ProductService,
   ) {
@@ -617,14 +623,14 @@ export class CartService extends BaseService {
 
   async getOrCreateCart(opts: { userId?: string; sessionId?: string }) {
     // Try to find existing cart
-    let cart = await this._cartRepo.findOne({
+    let cart = await this._cartRepository.findOne({
       filter: { where: opts.userId
         ? { userId: opts.userId }
         : { sessionId: opts.sessionId } },
     });
 
     if (!cart) {
-      const rs = await this._cartRepo.create({ data: { userId: opts.userId, sessionId: opts.sessionId } });
+      const rs = await this._cartRepository.create({ data: { userId: opts.userId, sessionId: opts.sessionId } });
       cart = rs.data;
     }
 
@@ -645,7 +651,7 @@ export class CartService extends BaseService {
     }
 
     // Check if item already in cart
-    const existingItem = await this._cartRepo.findCartItem({ cartId: opts.cartId, productId: opts.productId });
+    const existingItem = await this._cartRepository.findCartItem({ cartId: opts.cartId, productId: opts.productId });
 
     if (existingItem) {
       // Update quantity
@@ -653,11 +659,11 @@ export class CartService extends BaseService {
       if (product.stock < newQuantity) {
         throw getError({ statusCode: 400, message: 'Insufficient stock for requested quantity' });
       }
-      return this._cartRepo.updateCartItem({ itemId: existingItem.id, data: { quantity: newQuantity } });
+      return this._cartRepository.updateCartItem({ itemId: existingItem.id, data: { quantity: newQuantity } });
     }
 
     // Add new item
-    return this._cartRepo.addCartItem({
+    return this._cartRepository.addCartItem({
       cartId: opts.cartId,
       productId: opts.productId,
       quantity,
@@ -674,28 +680,28 @@ export class CartService extends BaseService {
       throw getError({ statusCode: 400, message: 'Insufficient stock' });
     }
 
-    const item = await this._cartRepo.findCartItem({ cartId: opts.cartId, productId: opts.productId });
+    const item = await this._cartRepository.findCartItem({ cartId: opts.cartId, productId: opts.productId });
     if (!item) {
       throw getError({ statusCode: 404, message: 'Item not in cart' });
     }
 
-    return this._cartRepo.updateCartItem({ itemId: item.id, data: { quantity: opts.quantity } });
+    return this._cartRepository.updateCartItem({ itemId: item.id, data: { quantity: opts.quantity } });
   }
 
   async removeItem(opts: { cartId: string; productId: string }) {
-    const item = await this._cartRepo.findCartItem({ cartId: opts.cartId, productId: opts.productId });
+    const item = await this._cartRepository.findCartItem({ cartId: opts.cartId, productId: opts.productId });
     if (item) {
-      await this._cartRepo.deleteCartItem({ itemId: item.id });
+      await this._cartRepository.deleteCartItem({ itemId: item.id });
     }
   }
 
   async getCartWithItems(opts: { cartId: string }) {
-    const cart = await this._cartRepo.findById({ id: opts.cartId });
+    const cart = await this._cartRepository.findById({ id: opts.cartId });
     if (!cart) {
       throw getError({ statusCode: 404, message: 'Cart not found' });
     }
 
-    const items = await this._cartRepo.getCartItems({ cartId: opts.cartId });
+    const items = await this._cartRepository.getCartItems({ cartId: opts.cartId });
 
     // Calculate totals
     let subtotal = 0;
@@ -722,7 +728,7 @@ export class CartService extends BaseService {
   }
 
   async clearCart(opts: { cartId: string }) {
-    await this._cartRepo.clearCart({ cartId: opts.cartId });
+    await this._cartRepository.clearCart({ cartId: opts.cartId });
   }
 }
 ```
@@ -759,7 +765,7 @@ interface ICreateOrderInput {
 export class OrderService extends BaseService {
   constructor(
     @inject({ key: 'repositories.OrderRepository' })
-    private _orderRepo: OrderRepository,
+    private _orderRepository: OrderRepository,
     @inject({ key: 'services.CartService' })
     private _cartService: CartService,
     @inject({ key: 'services.ProductService' })
@@ -809,7 +815,7 @@ export class OrderService extends BaseService {
     });
 
     // Create order
-    const { data: order } = await this._orderRepo.create({ data: {
+    const { data: order } = await this._orderRepository.create({ data: {
       email: opts.input.email,
       status: 'pending_payment',
       subtotal: subtotal.toString(),
@@ -823,7 +829,7 @@ export class OrderService extends BaseService {
 
     // Create order items
     for (const item of cart.items) {
-      await this._orderRepo.createOrderItem({
+      await this._orderRepository.createOrderItem({
         orderId: order.id,
         productId: item.productId,
         name: item.product.name,
@@ -839,7 +845,7 @@ export class OrderService extends BaseService {
   }
 
   async confirmPayment(opts: { orderId: string; paymentIntentId: string }) {
-    const order = await this._orderRepo.findById({ id: opts.orderId });
+    const order = await this._orderRepository.findById({ id: opts.orderId });
 
     if (!order) {
       throw getError({ statusCode: 404, message: 'Order not found' });
@@ -857,19 +863,19 @@ export class OrderService extends BaseService {
     }
 
     // Update order status
-    await this._orderRepo.updateById({ id: opts.orderId, data: { status: 'paid' } });
+    await this._orderRepository.updateById({ id: opts.orderId, data: { status: 'paid' } });
 
     // Reserve stock for all items
-    const orderItems = await this._orderRepo.getOrderItems({ orderId: opts.orderId });
+    const orderItems = await this._orderRepository.getOrderItems({ orderId: opts.orderId });
     for (const item of orderItems) {
       await this._productService.reserveStock({ productId: item.productId, quantity: item.quantity });
     }
 
-    return this._orderRepo.findById({ id: opts.orderId });
+    return this._orderRepository.findById({ id: opts.orderId });
   }
 
   async getOrdersByUser(opts: { userId: string }) {
-    return this._orderRepo.find({
+    return this._orderRepository.find({
       filter: {
         where: { userId: opts.userId },
         order: ['createdAt DESC'],
@@ -878,12 +884,12 @@ export class OrderService extends BaseService {
   }
 
   async getOrderById(opts: { orderId: string }) {
-    const order = await this._orderRepo.findById({ id: opts.orderId });
+    const order = await this._orderRepository.findById({ id: opts.orderId });
     if (!order) {
       throw getError({ statusCode: 404, message: 'Order not found' });
     }
 
-    const items = await this._orderRepo.getOrderItems({ orderId: opts.orderId });
+    const items = await this._orderRepository.getOrderItems({ orderId: opts.orderId });
     return { ...order, items };
   }
 
@@ -894,7 +900,7 @@ export class OrderService extends BaseService {
       throw getError({ statusCode: 400, message: 'Invalid status' });
     }
 
-    return this._orderRepo.updateById({ id: opts.orderId, data: { status: opts.status } });
+    return this._orderRepository.updateById({ id: opts.orderId, data: { status: opts.status } });
   }
 }
 ```
@@ -1325,7 +1331,12 @@ import { PostgresDataSource } from './datasources/postgres.datasource';
 
 export class EcommerceApp extends BaseApplication {
   getAppInfo(): IApplicationInfo {
-    return { name: 'ecommerce-api', version: '1.0.0' };
+    // description is required - ApiReferenceComponent reads it for the OpenAPI document.
+    return {
+      name: 'ecommerce-api',
+      version: '1.0.0',
+      description: 'Products, carts and orders over IGNIS',
+    };
   }
 
   staticConfigure() {}

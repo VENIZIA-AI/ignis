@@ -29,13 +29,15 @@ await producer.getProducer().send({
 await producer.close();
 ```
 
-`getProducer()` returns the full `@platformatic/kafka` `Producer`. Every helper follows the same three-step pattern:
+`getProducer()` returns the full `@platformatic/kafka` `Producer`. The three helpers that hold a broker connection follow the same pattern:
 
 | Step | Call |
 |---|---|
 | Construct | `newInstance()` |
 | Reach the native client | `getProducer()` / `getConsumer()` / `getAdmin()` |
 | Close | through the helper, not the native client |
+
+`KafkaSchemaRegistryHelper` only does the first two steps. It has `newInstance()` and `getRegistry()`, but no `close()` - there is no connection to close.
 
 ## Which helper do I need
 
@@ -48,7 +50,7 @@ await producer.close();
 
 A few facts hold across all four:
 
-- **Producer, consumer, and admin share one health and close API.** `isHealthy()`, `isReady()`, `getHealthStatus()`, and `close({ isForce })` mean the same thing on every class. Each page documents the exact return values.
+- **Producer, consumer, and admin share one health and close API.** `isHealthy()`, `isReady()`, `getHealthStatus()`, and `close({ isForce })` are on every class, but two of them differ by class: the consumer's `isReady()` also requires an active client, and a closed admin keeps reporting `isHealthy()` as `true`. Each page documents its own exact return values.
 - **Schema registry opens no broker connection.** It extends `BaseHelper` directly, not the shared connected-helper base. It has no health tracking - it's a configuration wrapper you hand to a producer or consumer via `registry`.
 - **Everything lives under `/kafka`, never the root barrel.** Install the optional peer yourself: `bun add @platformatic/kafka` (`^2.6.1`). An app that never touches Kafka tree-shakes it away entirely.
 - **Compiling to a single binary needs one extra build step.** Skip it, and the compiled app crashes at startup with `ENOENT: native.wasm` or `Cannot find package 'ajv-draft-04'` - see [Compiling to a Single Binary](./compile-binary).

@@ -38,8 +38,8 @@ this.defineRoute({
 | `jsonContent` | `jsonContent(opts: { schema: ZodType; description: string; required?: boolean }): { description; content; required }` | Builds a standard OpenAPI content object for an `application/json` payload. |
 | `jsonResponse` | `jsonResponse(opts: { schema: ZodType; description?: string; required?: boolean; headers?: Record<string, THeaderObject> }): Record<number \| string, ...>` | Builds a full response map: `200` success (via `jsonContent`, description defaults to `'Success Response'`) plus a `'4xx \| 5xx'` error entry using `ErrorSchema`. |
 | `requiredString` | `requiredString(opts?: { min?: number; max?: number; fixed?: number }): ZodString` | A non-empty (`.nonempty()`) Zod string, optionally constrained by `min`, `max`, or an exact `fixed` length. |
-| `idParamsSchema` | `idParamsSchema(opts?: { idType?: 'number' \| 'string' }): ZodObject` | Builds a path-param schema for `{ id }`, typed and OpenAPI-documented as `number` (default) or `string`. Throws on any other `idType`. |
-| `snakeToCamel` | `snakeToCamel<T extends ZodRawShape>(shape: T): ZodEffects` | Wraps a Zod object `shape` so it accepts `snake_case` input keys and produces a `camelCase`-keyed output, via `.transform()` piped into a camelCase-shaped schema. |
+| `idParamsSchema` | `idParamsSchema(opts?: { idType: TIdSchemaType }): ZodObject` | Builds a path-param schema for `{ id }`, typed and OpenAPI-documented as `number` or `string`. `TIdSchemaType` is `'number' \| 'string'`. Throws on any other value. The whole `opts` object is optional and defaults to `number`, but once you pass it, `idType` is required. |
+| `snakeToCamel` | `snakeToCamel<T extends ZodRawShape>(shape: T): ZodPipe` | Wraps a Zod object `shape` so it accepts `snake_case` input keys and produces a `camelCase`-keyed output: `z.object(shape).transform(keysToCamel).pipe(z.object(camelShape))`. |
 
 ## Predefined schemas and types
 
@@ -53,6 +53,8 @@ this.defineRoute({
 
 - **Three source files, one page.** `requiredString`, `AnyObjectSchema`, `TAnyObjectSchema`, and `TInferSchema` live in `schema.utility.ts`; `jsonContent`, `jsonResponse`, and `idParamsSchema` live in `base/models/common/schemas.ts`; `snakeToCamel` lives in `base/models/common/utilities.ts`. All three are re-exported from the `@venizia/ignis` root barrel, so the import path is the same either way.
 - **`jsonResponse`'s error branch is fixed** - it always uses `ErrorSchema` under the `'4xx | 5xx'` key; only the success schema, description, and headers are customizable per call.
+- **The workspace is on Zod v4.** `snakeToCamel` returns a `ZodPipe`; there is no `ZodEffects` to hold, that class belonged to v3.
+- **`TInferSchema<T>` constrains `T` to `z.ZodType`.** The full declaration is `TInferSchema<T extends z.ZodType> = z.infer<T>`.
 - **HTML responses are a separate utility.** For `text/html` routes, use `htmlContent`/`htmlResponse` from the [JSX Utility](/references/utilities/jsx) instead of `jsonContent`/`jsonResponse`.
 
 ## See also

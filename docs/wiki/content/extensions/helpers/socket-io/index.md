@@ -69,13 +69,14 @@ const client = new SocketIOClientHelper({
 
 - **The client isn't locked to this server.** It can talk to any `socket.io` server, not only this one.
 - **Runtime-agnostic server.** Pass a Node.js `http.Server` for `runtime: 'node'`, or an `@socket.io/bun-engine` instance for `runtime: 'bun'`.
-- **Redis is mandatory server-side.** `configure()` duplicates the parent `redisConnection` into three dedicated clients:
+- **Redis is mandatory server-side.** The **constructor** duplicates the parent `redisConnection` into three dedicated clients:
 
 | Client | Powers |
 |--------|--------|
 | `redisPub` + `redisSub` | `@socket.io/redis-adapter` - cross-instance room broadcast |
 | `redisEmitter` | `@socket.io/redis-emitter` - used by `send()` |
 
+- **`configure()` is the connecting half, not the creating half.** It attaches an `error` listener to each of the three clients, calls `connect()` on any that is still lazy, and waits for all three to reach `ready`.
 - **Boot fails fast on a broken Redis connection.** `configure()` waits for all three clients to reach `ready`. It rejects after 30 seconds if any never do, so a broken Redis connection fails boot instead of hanging it.
 - **Authentication is a step separate from connecting.** A client connects at the transport level in state `UNAUTHORIZED`, then must emit `'authenticate'`. The server then calls `authenticateFn(handshake)`.
 - **Only `true` authenticates.** It moves the client to `AUTHENTICATED` and joins it to `defaultRooms`.

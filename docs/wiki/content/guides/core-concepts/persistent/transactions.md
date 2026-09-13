@@ -2,8 +2,8 @@
 
 IGNIS supports explicit transaction objects that can be passed across multiple services and repositories, allowing for complex, multi-step business logic to be atomic.
 
-> [!NOTE] PostgreSQL-only capability
-> Real transactions are a **PostgreSQL connector** capability - `BasePostgresDataSource.getCapabilities()` returns `{ transactions: true }` and its `beginTransaction()` opens a real database transaction, as documented below. The typesense connector inherits the engine-neutral `AbstractDataSource` default. Calling `beginTransaction()` on it throws a `501 Not Implemented` (`normalized.code: 'core.not_supported'`) via the shared `throwNotSupported` utility. See [Connectors](/references/base/connectors) for the capabilities model.
+> [!NOTE] A SQL capability, not a Postgres one
+> Real transactions belong to the **SQL branch**. `getCapabilities()` returns `{ transactions: true }` on the engine-neutral `BaseRelationalDataSource`, and `beginTransaction()` lives there too, so both Postgres and SQLite open real database transactions. Each engine supplies only its own BEGIN statement: Postgres attaches an isolation level, SQLite a begin mode. The search connectors inherit the engine-neutral `AbstractDataSource` default. Calling `beginTransaction()` on one throws a `501 Not Implemented` (`normalized.code: 'core.not_supported'`) via the shared `throwNotSupported` utility. See [Connectors](/references/base/connectors) for the capabilities model.
 
 ## Using Transactions
 
@@ -11,20 +11,20 @@ To use transactions, start one from a datasource (via the repository's `beginTra
 
 ```typescript
 // 1. Start a transaction from the datasource (accessed through a repository)
-const tx = await userRepo.beginTransaction({
+const tx = await userRepository.beginTransaction({
   isolationLevel: 'SERIALIZABLE' // Optional, defaults to 'READ COMMITTED'
 });
 
 try {
   // 2. Pass transaction to operations
   // Create user (write methods return a { count, data } envelope)
-  const { data: user } = await userRepo.create({
+  const { data: user } = await userRepository.create({
     data: userData,
     options: { transaction: tx }
   });
 
   // Create profile (using same transaction)
-  await profileRepo.create({
+  await profileRepository.create({
     data: { userId: user.id, ...profileData },
     options: { transaction: tx }
   });

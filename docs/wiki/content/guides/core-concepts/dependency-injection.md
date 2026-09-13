@@ -65,7 +65,7 @@ The `Application` class provides helper methods for common resource types. These
 | `app.service(UserService)` | `services.UserService` | Transient |
 | `app.repository(UserRepository)` | `repositories.UserRepository` | Transient |
 | `app.dataSource(PostgresDataSource)` | `datasources.PostgresDataSource` | **Singleton** |
-| `app.controller(UserController)` | `controllers.UserController` | Transient |
+| `app.controller(UserController)` | `controllers.UserController` | **Singleton** |
 | `app.component(MyComponent)` | `components.MyComponent` | **Singleton** |
 
 All these methods accept an optional second parameter to customize the binding key:

@@ -26,10 +26,10 @@ Backed by **ioredis** under the hood.
 | You want to | Go to |
 |---|---|
 | See the class hierarchy and the nine capability interfaces | [Class and Interface Model](#class-and-interface-model) |
-| Construct a single-node client | [Construction - Single](#construction---single) |
-| Construct a cluster client | [Construction - Cluster](#construction---cluster) |
-| Construct a Sentinel client, or understand Sentinel HA | [Construction - Sentinel](#construction---sentinel) |
-| Pick a topology from configuration instead of hardcoding a class | [Selecting a Topology - the Factory](#selecting-a-topology---the-factory) |
+| Construct a single-node client | [Construction - Single](#construction-single) |
+| Construct a cluster client | [Construction - Cluster](#construction-cluster) |
+| Construct a Sentinel client, or understand Sentinel HA | [Construction - Sentinel](#construction-sentinel) |
+| Pick a topology from configuration instead of hardcoding a class | [Selecting a Topology - the Factory](#selecting-a-topology-the-factory) |
 | Understand `autoConnect`, the four lifecycle callbacks, or `duplicateClient()` | [Lifecycle and Events](#lifecycle-and-events) |
 | Look up a method's signature and behavior | [Full Method Reference](#full-method-reference) |
 | Wire the helper into BullMQ, Socket.IO, WebSocket, or Casbin | [Using the Helper Across IGNIS](#using-the-helper-across-ignis) |
@@ -675,6 +675,7 @@ const redis = new RedisSingleHelper({ name: 'queue-redis', host, port, password 
 
 const queue = BullMQHelper.newInstance({
   queueName: 'email',
+  identifier: 'email-queue',
   role: 'queue',
   redisConnection: redis,
 });
@@ -691,7 +692,7 @@ import { AbstractRedisHelper, RedisSentinelHelper } from '@venizia/ignis-helpers
 
 // In your Application preConfigure:
 const redis = new RedisSentinelHelper({ name: 'socket-redis', masterName: 'mymaster', sentinels, password });
-this.bind<AbstractRedisHelper>({ key: '@app/socket-io/redis-connection' }).to(redis);
+this.bind<AbstractRedisHelper>({ key: '@app/socket-io/redis-connection' }).toValue(redis);
 ```
 
 See the Socket.IO component documentation for the full component registration and adapter setup.
@@ -706,7 +707,7 @@ See the Socket.IO component documentation for the full component registration an
 import { AbstractRedisHelper, RedisClusterHelper } from '@venizia/ignis-helpers';
 
 const redis = new RedisClusterHelper({ name: 'ws-redis', nodes });
-this.bind<AbstractRedisHelper>({ key: '@app/websocket/redis-connection' }).to(redis);
+this.bind<AbstractRedisHelper>({ key: '@app/websocket/redis-connection' }).toValue(redis);
 ```
 
 See the WebSocket component documentation for the full component registration.
@@ -748,7 +749,7 @@ class MyApp extends BaseApplication {
     });
 
     // Bind so components and services can resolve it
-    this.bind<RedisSingleHelper>({ key: 'helpers.RedisCache' }).to(redis);
+    this.bind<RedisSingleHelper>({ key: 'helpers.RedisCache' }).toValue(redis);
   }
 }
 ```

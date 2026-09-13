@@ -83,14 +83,14 @@ Full operator-by-operator tables, one line each, live on the [Quick Reference](.
 
 - **`fields`** selects columns - an array, or a `{ field: true }` object (inclusion-only; `false` is ignored).
 - **`order`** takes `'field ASC'` / `'field DESC'` strings, including JSON paths.
-- **`limit`**, when omitted, resolves through `query.limit ?? model settings.defaultLimit ?? 10`.
+- **`limit`**, when omitted, resolves through `query.limit ?? model settings.defaultLimit ?? 10`. An explicit value above the model's `settings.maxLimit` (default `1000`) throws before the query runs.
 - **`skip` / `offset`** both map to SQL `OFFSET`.
 
 ### Default filter
 
 - **Applies automatically.** A model's `settings.defaultFilter` merges into every read, update, and delete for that model.
 - **AND-composes on collision.** When the default and the caller's filter constrain the same field, IGNIS AND-composes the two conditions instead of one replacing the other.
-- **One override escape.** Setting that same field to a plain scalar (not an operator object) replaces the default outright - the one intentional opt-out, and it needs no `shouldSkipDefaultFilter`. The full collision table lives on the [Default Filter](./default-filter) page.
+- **One override escape.** When the default and the caller **both** give that field a plain scalar, the caller's value replaces the default outright - the one intentional opt-out, and it needs no `shouldSkipDefaultFilter`. If either side is an operator object, the two AND-compose instead. The full collision table lives on the [Default Filter](./default-filter) page.
 
 ```typescript
 import { model, BaseEntity } from '@venizia/ignis';

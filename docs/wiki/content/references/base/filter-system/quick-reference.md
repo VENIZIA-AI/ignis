@@ -119,9 +119,21 @@ A dot-notation key targets a JSON/JSONB column instead of a top-level one.
 | Array index | `{ 'metadata.tags[0]': 'urgent' }` | Access an array element |
 | Combined | `{ 'metadata.users[0].email': value }` | Nested arrays and objects |
 
-**Supported operators:** `eq`, `ne`, `neq`, `gt`, `gte`, `lt`, `lte`, `in`, `inq`, `nin`, `like`, `nlike`, `ilike`, `nilike`, `between`, `notBetween`, `regexp`, `iregexp`, `is`, `isn`, `exists`, `notExists`, `not`. That's the same set as top-level columns, minus the array operators (`contains`/`containedBy`/`overlaps`), which need a real array column.
+**Supported operators:** `eq`, `ne`, `neq`, `gt`, `gte`, `lt`, `lte`, `in`, `inq`, `nin`, `like`, `nlike`, `ilike`, `nilike`, `between`, `notBetween`, `regexp`, `iregexp`, `is`, `isn`, `exists`, `notExists`, `not` - the same set as top-level columns.
 
-Numeric operators cast the extracted text to `numeric` automatically: `gt`, `gte`, `lt`, `lte`, `between`, `notBetween`, and `eq`/`ne`/`neq`/`in`/`inq`/`nin` when the operand is a number. So `{ 'metadata.score': { gt: 80 } }` compares as a number, not a string.
+> [!WARNING]
+> The array operators (`contains`/`containedBy`/`overlaps`) are **not** rejected on a JSON path - they compile, then fail at the database, because a JSON extraction is text and they need a real array column. Use a `varchar[]`/`text[]` column for array algebra.
+
+The numeric cast to `numeric` is decided per operator, and only when the **operand** is numeric:
+
+| Operator | Casts when |
+|---|---|
+| `gt`, `gte`, `lt`, `lte` | The operand is a number. `{ gt: '80' }` stays text |
+| `between`, `notBetween` | Both bounds are numbers |
+| `eq`, `ne`, `neq` | The operand is a number |
+| `in`, `inq`, `nin` | The array is non-empty and every element is a number |
+
+So `{ 'metadata.score': { gt: 80 } }` compares as a number, and `{ 'metadata.code': { gt: 'A' } }` compares as text.
 
 **See:** [JSON Filtering Guide](./json-filtering.md)
 
@@ -133,7 +145,7 @@ Numeric operators cast the extracted text to `numeric` automatically: `gt`, `gte
 | `fields` (object) | `{ field: true }` | `fields: { id: true, name: true }` | Same - inclusion-only, `false` is ignored |
 | `order` | `'field ASC'` / `'field DESC'` | `order: ['createdAt DESC']` | `ORDER BY`; default direction is `ASC` (`order: ['name']` = `'name ASC'`) |
 | `order` (JSON path) | `'a.b DESC'` | `order: ['metadata.priority DESC']` | `ORDER BY` on a JSON path |
-| `limit` | number | `limit: 10` | `LIMIT`; omitted -> `query.limit ?? settings.defaultLimit ?? 10` |
+| `limit` | number | `limit: 10` | `LIMIT`; omitted -> `query.limit ?? settings.defaultLimit ?? 10`. Above `settings.maxLimit` (default `1000`) it throws |
 | `skip` | number | `skip: 20` | `OFFSET`; alias of `offset` - `skip` wins if both are given |
 | `offset` | number | `offset: 20` | `OFFSET`; alias of `skip` |
 

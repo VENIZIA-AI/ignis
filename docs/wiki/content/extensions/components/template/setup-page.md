@@ -37,20 +37,23 @@ Paired with [Usage](./usage-page), [API Reference](./api-page), and [Error Refer
 #### Import Paths
 
 ` ``typescript
-import { ComponentClass, BindingKeys } from '@venizia/ignis';
+// Root barrel. Mail, Socket.IO, WebSocket and Static Asset are NOT here -
+// import those from '@venizia/ignis/{subpath}' instead.
+import { ComponentClass, ComponentBindingKeys } from '@venizia/ignis';
 import type { IConfigOptions } from '@venizia/ignis';
 ` ``
 
 ## Setup
 
-### Step 1: Bind Configuration
+### Step 1: Register the Component with Options
 
 Show the minimum viable setup first, then variants.
 
 ` ``typescript
-// Minimal setup
-this.bind<IConfigType>({ key: Keys.CONFIG }).toValue({
-  // required fields only
+this.component(ComponentClass, {
+  options: {
+    // required fields only
+  },
 });
 ` ``
 
@@ -63,10 +66,15 @@ this.bind<IConfigType>({ key: Keys.CONFIG }).toValue({
 // Full variant setup
 ` ``
 
-### Step 2: Register Component
+### Step 2: Bind Anything the Options Cannot Carry
+
+Keys a component reads separately - a handler callback, a shared connection - go through `bind()`.
+Place them anywhere in `preConfigure()`; see the note under Binding Keys for why order is free.
 
 ` ``typescript
-this.component(ComponentClass);
+this.bind<IConfigType>({ key: ComponentBindingKeys.CONFIG }).toValue({
+  // ...
+});
 ` ``
 
 > [!NOTE]
@@ -100,10 +108,14 @@ interface IConfigGroupOptions {
 
 | Key | Constant | Type | Required | Default |
 |-----|----------|------|----------|---------|
-| `@app/ns/key` | `Keys.CONSTANT` | `Type` | Yes/No | value or `--` |
+| `@app/ns/key` | `ComponentBindingKeys.CONSTANT` | `Type` | Yes/No | value or `--` |
 
 > [!NOTE]
-> {Any important notes about binding order or conditional requirements}
+> Binding order inside `preConfigure()` never matters. A component's constructor only STORES its
+> default `Binding` objects; `initDefaultBindings()` applies them from inside `configure()`, which
+> the boot sweep runs at the `registerComponents` step - four steps after `preConfigure()` returns.
+> A `this.bind()` placed after `this.component(...)` still wins over the default. Options passed at
+> the call site win over both. State conditional requirements here; do not invent an ordering rule.
 
 ## See Also
 
@@ -122,6 +134,7 @@ interface IConfigGroupOptions {
 
 - **File name:** Always `index.md` inside a directory named after the component
 - **Focus:** Getting the developer from zero to configured. Setup, config, keys
+- **Check the import path against `packages/core-server/src/components/index.ts`.** Mail, Socket.IO, WebSocket and Static Asset are deliberately off the root barrel - each needs `@venizia/ignis/{subpath}`. Copying `from '@venizia/ignis'` for one of those gives the reader an import that does not resolve
 - **Only Steps 1-2** on this page -- Step 3 (usage) goes in `usage.md`
 - **No architecture diagrams** on this page -- those go in `api.md`
 - **No internal lifecycle details** on this page -- those go in `api.md`

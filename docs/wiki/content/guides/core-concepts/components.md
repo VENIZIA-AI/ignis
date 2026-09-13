@@ -11,7 +11,7 @@ A component is a class that extends `BaseComponent` and is responsible for:
 - **Binding Dependencies**: Registering services, controllers, repositories, providers, or other resources with the application's dependency injection container.
 - **Configuring Features**: Setting up middlewares, initializing services, or performing any other setup required for the feature to work.
 
-A single component can bundle everything needed for a specific domain--for example, an "AuthComponent" might include multiple services for token management, repositories for user data, and controllers for login/signup endpoints, essentially functioning as a plug-and-play mini-application.
+A single component can bundle everything needed for a specific domain. `AuthenticateComponent`, for example, carries services for token management, repositories for user data, and controllers for login and signup endpoints. It is a plug-and-play mini-application.
 
 ## Built-in Components
 
@@ -19,11 +19,11 @@ IGNIS includes ready-to-use components for common features. The following are ex
 
 | Component | Description |
 | :--- | :--- |
-| **Authentication** | JWT + Basic auth strategies, token services, strategy registry |
-| **Authorization** | Casbin-based RBAC, permission mapping, `authorize()` middleware |
-| **HealthCheckComponent** | `GET /health`, `POST /health/ping` |
-| **ApiReferenceComponent** | Swagger UI or Scalar UI for API documentation |
-| **RequestTrackerComponent** | `x-request-id` header, request body parsing |
+| **AuthenticateComponent** | JWT + Basic auth strategies, token services, strategy registry |
+| **AuthorizeComponent** | Casbin-based RBAC, permission mapping, `authorize()` middleware |
+| **HealthCheckComponent** | `GET /health`, `POST /health/ping`, and `GET /health/stats` when you opt in |
+| **ApiReferenceComponent** | Scalar (the default) or Swagger UI for API documentation |
+| **RequestTrackerComponent** | Request body parsing and the access log |
 
 The following components require direct subpath imports:
 
@@ -33,6 +33,8 @@ The following components require direct subpath imports:
 | **SocketIOComponent** | `@venizia/ignis/socket-io` | Socket.IO server with Redis adapter |
 | **StaticAssetComponent** | `@venizia/ignis/static-asset` | File upload/download CRUD, MinIO/Disk storage |
 | **WebSocketComponent** | `@venizia/ignis/websocket` | Native WebSocket support |
+
+The `x-request-id` header is not a component feature. `RestApplication.registerDefaultMiddlewares()` installs it on every application, before `initialize()` runs.
 
 See the [**Built-in Components Reference**](../../extensions/components/) for detailed documentation.
 

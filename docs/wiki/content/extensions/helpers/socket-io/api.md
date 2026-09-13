@@ -437,7 +437,7 @@ The server uses `@socket.io/redis-adapter` and `@socket.io/redis-emitter` for ho
 | `redisSub` | Subscribes to adapter messages |
 | `redisEmitter` | Powers `send()` for cross-instance message delivery |
 
-- **Initialized during `configure()`.** All three clients are created and awaited before the IO server starts.
+- **Created in the constructor, connected in `configure()`.** `initRedisClients` calls `duplicateClient()` three times while the helper is being built. `configure()` then attaches the error listeners and awaits all three, before the IO server starts.
 - **Lazy connect handled explicitly.** Duplicated clients inherit `lazyConnect` but never dial on their own. If the parent `redisConnection` uses `lazyConnect` (`autoConnect: false`), `configure()` kicks each duplicated client into `connect()` explicitly.
 
 ## Types Reference

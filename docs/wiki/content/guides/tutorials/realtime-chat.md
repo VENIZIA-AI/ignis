@@ -29,12 +29,12 @@ bun add hono @hono/zod-openapi @venizia/ignis @venizia/ignis-helpers
 bun add drizzle-orm drizzle-zod pg
 bun add -d typescript @types/bun @venizia/dev-configs drizzle-kit @types/pg
 
-# For Bun runtime - Socket.IO engine
-bun add @socket.io/bun-engine
+# Socket.IO, its Redis adapters, and the Bun engine
+bun add socket.io @socket.io/redis-adapter @socket.io/redis-emitter @socket.io/bun-engine
 ```
 
 > [!NOTE]
-> You do **not** need to install `socket.io` directly. It is included as a dependency of `@venizia/ignis-helpers`. For the client side, install `socket.io-client` separately.
+> `socket.io`, `@socket.io/redis-adapter` and `@socket.io/redis-emitter` are optional peer dependencies of `@venizia/ignis-helpers`, not dependencies. Install them yourself. For the client side, install `socket.io-client` separately.
 
 ## 2. Database Models
 
@@ -271,7 +271,7 @@ import {
 import { NodePostgresDriver } from '@venizia/ignis/postgres/node-postgres';
 import { Pool } from 'pg';
 
-interface IDSConfigs {
+interface IDataSourceConfigs {
   host: string;
   port: number;
   database: string;
@@ -280,7 +280,7 @@ interface IDSConfigs {
 }
 
 @datasource({ driver: NodePostgresDriver })
-export class PostgresDataSource extends BaseDataSource<IDSConfigs> {
+export class PostgresDataSource extends BaseDataSource<IDataSourceConfigs> {
   constructor() {
     super({
       name: PostgresDataSource.name,
@@ -307,6 +307,12 @@ export class PostgresDataSource extends BaseDataSource<IDSConfigs> {
     // to resolve a driver from, and it would throw `No driver and no client`. NodePostgresDriver
     // named in @datasource above is what wires the driver and Drizzle connector from it.
     this.client = new Pool(this.settings);
+  }
+
+  // Abstract on the Postgres tier - every Postgres datasource implements it.
+  override getConnectionString(): ValueOrPromise<string> {
+    const { host, port, user, password, database } = this.settings;
+    return `postgresql://${user}:${password}@${host}:${port}/${database}`;
   }
 }
 ```
@@ -345,27 +351,27 @@ export class RoomRepository extends DefaultCRUDRepository<typeof Room.schema> {
 
     // From 2nd parameter, inject additional dependencies
     @inject({ key: 'repositories.RoomMemberRepository' })
-    private _memberRepo: RoomMemberRepository,
+    private _memberRepository: RoomMemberRepository,
   ) {
     super(dataSource);
   }
 
   async findByUser(opts: { userId: string }) {
-    const memberships = await this._memberRepo.find({
+    const memberships = await this._memberRepository.find({
       filter: { where: { userId: opts.userId }, include: [{ relation: 'room' }] },
     });
     return memberships.map(m => m.room);
   }
 
   async isMember(opts: { roomId: string; userId: string }): Promise<boolean> {
-    const member = await this._memberRepo.findOne({
+    const member = await this._memberRepository.findOne({
       filter: { where: { roomId: opts.roomId, userId: opts.userId } },
     });
     return !!member;
   }
 
   async addMember(opts: { roomId: string; userId: string; role?: string }) {
-    const { data } = await this._memberRepo.create({
+    const { data } = await this._memberRepository.create({
       data: {
         roomId: opts.roomId,
         userId: opts.userId,
@@ -376,19 +382,19 @@ export class RoomRepository extends DefaultCRUDRepository<typeof Room.schema> {
   }
 
   async removeMember(opts: { roomId: string; userId: string }) {
-    return this._memberRepo.deleteAll({
+    return this._memberRepository.deleteAll({
       where: { roomId: opts.roomId, userId: opts.userId },
     });
   }
 
   async getMember(opts: { roomId: string; userId: string }) {
-    return this._memberRepo.findOne({
+    return this._memberRepository.findOne({
       filter: { where: { roomId: opts.roomId, userId: opts.userId } },
     });
   }
 
   async getMembers(opts: { roomId: string }) {
-    return this._memberRepo.find({
+    return this._memberRepository.find({
       filter: { where: { roomId: opts.roomId }, include: [{ relation: 'user' }] },
     });
   }
@@ -415,13 +421,13 @@ export class MessageRepository extends DefaultCRUDRepository<typeof Message.sche
 
     // From 2nd parameter, inject additional dependencies
     @inject({ key: 'repositories.DirectMessageRepository' })
-    private _dmRepo: DirectMessageRepository,
+    private _directMessageRepository: DirectMessageRepository,
   ) {
     super(dataSource);
   }
 
   async createDirectMessage(opts: { senderId: string; receiverId: string; content: string }) {
-    const { data } = await this._dmRepo.create({ data: opts });
+    const { data } = await this._directMessageRepository.create({ data: opts });
     return data;
   }
 
@@ -431,7 +437,7 @@ export class MessageRepository extends DefaultCRUDRepository<typeof Message.sche
     limit?: number;
     before?: string;
   }) {
-    return this._dmRepo.find({
+    return this._directMessageRepository.find({
       filter: {
         where: {
           or: [
@@ -447,10 +453,10 @@ export class MessageRepository extends DefaultCRUDRepository<typeof Message.sche
 
   async findConversations(opts: { userId: string }) {
     // Get unique conversation partners
-    const sent = await this._dmRepo.find({
+    const sent = await this._directMessageRepository.find({
       filter: { where: { senderId: opts.userId }, include: [{ relation: 'receiver' }] },
     });
-    const received = await this._dmRepo.find({
+    const received = await this._directMessageRepository.find({
       filter: { where: { receiverId: opts.userId }, include: [{ relation: 'sender' }] },
     });
 
@@ -500,7 +506,7 @@ export class ChatService extends BaseService {
         key: 'MessageRepository',
       }),
     })
-    private _messageRepo: MessageRepository,
+    private _messageRepository: MessageRepository,
 
     @inject({
       key: BindingKeys.build({
@@ -508,7 +514,7 @@ export class ChatService extends BaseService {
         key: 'RoomRepository',
       }),
     })
-    private _roomRepo: RoomRepository,
+    private _roomRepository: RoomRepository,
 
     @inject({
       key: BindingKeys.build({
@@ -516,7 +522,7 @@ export class ChatService extends BaseService {
         key: 'UserRepository',
       }),
     })
-    private _userRepo: UserRepository,
+    private _userRepository: UserRepository,
   ) {
     super({ scope: ChatService.name });
   }
@@ -729,50 +735,50 @@ export class ChatService extends BaseService {
   // Room operations
   // ---------------------------------------------------------------------------
   async createRoom(opts: { name: string; description?: string; isPrivate?: boolean; createdBy: string }) {
-    const { data: room } = await this._roomRepo.create({ data: opts });
+    const { data: room } = await this._roomRepository.create({ data: opts });
 
     // Add creator as admin
-    await this._roomRepo.addMember({ roomId: room.id, userId: opts.createdBy, role: 'admin' });
+    await this._roomRepository.addMember({ roomId: room.id, userId: opts.createdBy, role: 'admin' });
 
     return room;
   }
 
   async joinRoom(opts: { roomId: string; userId: string }) {
-    const room = await this._roomRepo.findById({ id: opts.roomId });
+    const room = await this._roomRepository.findById({ id: opts.roomId });
     if (!room) {
       throw getError({ statusCode: 404, message: 'Room not found' });
     }
 
     if (room.isPrivate) {
-      const isMember = await this._roomRepo.isMember({ roomId: opts.roomId, userId: opts.userId });
+      const isMember = await this._roomRepository.isMember({ roomId: opts.roomId, userId: opts.userId });
       if (!isMember) {
         throw getError({ statusCode: 403, message: 'Cannot join private room' });
       }
     } else {
-      await this._roomRepo.addMember({ roomId: opts.roomId, userId: opts.userId, role: 'member' });
+      await this._roomRepository.addMember({ roomId: opts.roomId, userId: opts.userId, role: 'member' });
     }
 
     return room;
   }
 
   async leaveRoom(opts: { roomId: string; userId: string }) {
-    await this._roomRepo.removeMember({ roomId: opts.roomId, userId: opts.userId });
+    await this._roomRepository.removeMember({ roomId: opts.roomId, userId: opts.userId });
   }
 
   async getUserRooms(opts: { userId: string }) {
-    return this._roomRepo.findByUser({ userId: opts.userId });
+    return this._roomRepository.findByUser({ userId: opts.userId });
   }
 
   // ---------------------------------------------------------------------------
   // Message operations
   // ---------------------------------------------------------------------------
   async sendMessage(opts: { roomId: string; senderId: string; content: string; type?: string }) {
-    const isMember = await this._roomRepo.isMember({ roomId: opts.roomId, userId: opts.senderId });
+    const isMember = await this._roomRepository.isMember({ roomId: opts.roomId, userId: opts.senderId });
     if (!isMember) {
       throw getError({ statusCode: 403, message: 'Not a member of this room' });
     }
 
-    const { data: message } = await this._messageRepo.create({
+    const { data: message } = await this._messageRepository.create({
       data: {
         roomId: opts.roomId,
         senderId: opts.senderId,
@@ -781,7 +787,7 @@ export class ChatService extends BaseService {
       },
     });
 
-    const sender = await this._userRepo.findById({ id: opts.senderId });
+    const sender = await this._userRepository.findById({ id: opts.senderId });
 
     return {
       ...message,
@@ -795,7 +801,7 @@ export class ChatService extends BaseService {
   }
 
   async editMessage(opts: { messageId: string; userId: string; content: string }) {
-    const message = await this._messageRepo.findById({ id: opts.messageId });
+    const message = await this._messageRepository.findById({ id: opts.messageId });
 
     if (!message) {
       throw getError({ statusCode: 404, message: 'Message not found' });
@@ -805,7 +811,7 @@ export class ChatService extends BaseService {
       throw getError({ statusCode: 403, message: 'Cannot edit others messages' });
     }
 
-    return this._messageRepo.updateById({
+    return this._messageRepository.updateById({
       id: opts.messageId,
       data: {
         content: opts.content,
@@ -815,20 +821,20 @@ export class ChatService extends BaseService {
   }
 
   async deleteMessage(opts: { messageId: string; userId: string }) {
-    const message = await this._messageRepo.findById({ id: opts.messageId });
+    const message = await this._messageRepository.findById({ id: opts.messageId });
 
     if (!message) {
       throw getError({ statusCode: 404, message: 'Message not found' });
     }
 
     if (message.senderId !== opts.userId) {
-      const member = await this._roomRepo.getMember({ roomId: message.roomId, userId: opts.userId });
+      const member = await this._roomRepository.getMember({ roomId: message.roomId, userId: opts.userId });
       if (!member || member.role !== 'admin') {
         throw getError({ statusCode: 403, message: 'Cannot delete this message' });
       }
     }
 
-    return this._messageRepo.updateById({
+    return this._messageRepository.updateById({
       id: opts.messageId,
       data: {
         deletedAt: new Date(),
@@ -843,13 +849,13 @@ export class ChatService extends BaseService {
     };
 
     if (opts.before) {
-      const beforeMessage = await this._messageRepo.findById({ id: opts.before });
+      const beforeMessage = await this._messageRepository.findById({ id: opts.before });
       if (beforeMessage) {
         where.createdAt = { lt: beforeMessage.createdAt };
       }
     }
 
-    return this._messageRepo.find({
+    return this._messageRepository.find({
       filter: {
         where,
         order: ['createdAt DESC'],
@@ -862,11 +868,11 @@ export class ChatService extends BaseService {
   // Direct message operations
   // ---------------------------------------------------------------------------
   async sendDirectMessage(opts: { senderId: string; receiverId: string; content: string }) {
-    return this._messageRepo.createDirectMessage(opts);
+    return this._messageRepository.createDirectMessage(opts);
   }
 
   async getDirectMessages(opts: { userId1: string; userId2: string; limit?: number; before?: string }) {
-    return this._messageRepo.findDirectMessages({
+    return this._messageRepository.findDirectMessages({
       userId1: opts.userId1,
       userId2: opts.userId2,
       limit: opts.limit,
@@ -875,14 +881,14 @@ export class ChatService extends BaseService {
   }
 
   async getConversations(opts: { userId: string }) {
-    return this._messageRepo.findConversations({ userId: opts.userId });
+    return this._messageRepository.findConversations({ userId: opts.userId });
   }
 
   // ---------------------------------------------------------------------------
   // Presence operations
   // ---------------------------------------------------------------------------
   async setOnline(opts: { userId: string }) {
-    await this._userRepo.updateById({
+    await this._userRepository.updateById({
       id: opts.userId,
       data: {
         isOnline: true,
@@ -892,7 +898,7 @@ export class ChatService extends BaseService {
   }
 
   async setOffline(opts: { userId: string }) {
-    await this._userRepo.updateById({
+    await this._userRepository.updateById({
       id: opts.userId,
       data: {
         isOnline: false,
@@ -902,7 +908,7 @@ export class ChatService extends BaseService {
   }
 
   async getOnlineUsers(opts: { roomId: string }) {
-    const members = await this._roomRepo.getMembers({ roomId: opts.roomId });
+    const members = await this._roomRepository.getMembers({ roomId: opts.roomId });
     return members.filter(m => m.user.isOnline);
   }
 
@@ -991,12 +997,12 @@ import {
   SocketIOComponent,
   ValueOrPromise,
 } from '@venizia/ignis';
+import { applicationEnvironment, RedisSingleHelper } from '@venizia/ignis-helpers';
+// Socket.IO symbols are sub-path only - the root barrel does not re-export them.
 import {
-  applicationEnvironment,
   type ISocketIOServerBaseOptions,
-  RedisSingleHelper,
   SocketIOServerHelper,
-} from '@venizia/ignis-helpers';
+} from '@venizia/ignis-helpers/socket-io';
 import { ChatService } from './services/chat.service';
 import { ChatController } from './controllers/chat';
 import { UserRepository } from './repositories/user.repository';
@@ -1007,7 +1013,12 @@ export class ChatApp extends BaseApplication {
   private redisHelper: RedisSingleHelper;
 
   getAppInfo(): IApplicationInfo {
-    return { name: 'chat-api', version: '1.0.0' };
+    // description is required - ApiReferenceComponent reads it for the OpenAPI document.
+    return {
+      name: 'chat-api',
+      version: '1.0.0',
+      description: 'Rooms, direct messages and presence over Socket.IO',
+    };
   }
 
   staticConfigure() {}
@@ -1042,7 +1053,7 @@ export class ChatApp extends BaseApplication {
       name: 'chat-redis',
       host: process.env.APP_ENV_REDIS_HOST ?? 'localhost',
       port: +(process.env.APP_ENV_REDIS_PORT ?? 6379),
-      password: process.env.APP_ENV_REDIS_PASSWORD,
+      password: process.env.APP_ENV_REDIS_PASSWORD ?? '',
       autoConnect: false,
     });
 
@@ -1534,7 +1545,7 @@ this.redisHelper = new RedisSingleHelper({
   name: 'chat-redis',
   host: process.env.APP_ENV_REDIS_HOST ?? 'localhost',
   port: +(process.env.APP_ENV_REDIS_PORT ?? 6379),
-  password: process.env.APP_ENV_REDIS_PASSWORD,
+  password: process.env.APP_ENV_REDIS_PASSWORD ?? '',
   autoConnect: false,
 });
 

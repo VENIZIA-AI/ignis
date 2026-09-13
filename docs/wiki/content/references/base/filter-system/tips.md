@@ -6,7 +6,7 @@ difficulty: intermediate
 
 # Pro Tips & Edge Cases
 
-A filter can return the wrong rows even when every operator name looks right. Each entry below is verified against `FilterBuilder`/`PostgresQueryOperators` in `packages/core-server`.
+A filter can return the wrong rows even when every operator name looks right. Each entry below is verified against `FilterBuilder`/`PostgresQueryOperators` in `packages/connectors`.
 
 ## `NOT IN` and `!=` silently exclude `NULL`
 
@@ -107,7 +107,9 @@ await productRepository.find({
 
 ## Chunk very large `in` arrays
 
-Postgres has no hard `IN`-list limit, but a multi-thousand-element array is worth chunking for query-plan and payload-size reasons:
+Postgres has no hard `IN`-list limit, but a multi-thousand-element array is worth chunking for query-plan and payload-size reasons.
+
+Every chunk needs its own `limit`. `find()` fills in `filter.limit ?? settings.defaultLimit ?? 10`, so a chunk without one returns at most 10 rows and the loop quietly drops the rest:
 
 ```typescript
 const allIds = getLargeIdList(); // e.g. 5000 IDs
@@ -116,9 +118,16 @@ const results = [];
 
 for (let i = 0; i < allIds.length; i += chunkSize) {
   const chunk = allIds.slice(i, i + chunkSize);
-  results.push(...(await repository.find({ filter: { where: { id: { in: chunk } } } })));
+  const rows = await repository.find({
+    // Without `limit`, this chunk returns 10 rows, not 500.
+    filter: { where: { id: { in: chunk } }, limit: chunkSize },
+  });
+  results.push(...rows);
 }
 ```
+
+> [!WARNING]
+> Keep `chunkSize` at or below the model's `maxLimit`. That ceiling defaults to `1000`, and an explicit `limit` above it throws before the query runs. Raise it with `@model({ settings: { maxLimit } })` when you genuinely need bigger chunks - see [Fields, Ordering & Pagination](./fields-order-pagination#limit-ceiling-maxlimit).
 
 ## Factor out reusable `where`/pagination fragments
 
@@ -144,7 +153,7 @@ const products = await productRepository.find({
 ## See also
 
 - [Filter System Overview](./) - the `filter` shape and every `where` operator family
-- [Application Usage -> Debugging a filter](./application-usage#debugging-a-filter) - `buildQuery`, and why `options.log` doesn't apply to `find`
+- [Application Usage -> Debugging a filter](./application-usage#debug-what-a-filter-compiles-to) - `buildQuery`, and why `options.log` doesn't apply to `find`
 - [Use Case Gallery](./use-cases) - full runnable filters, including date-range and multi-condition examples
 - [JSON Filtering](./json-filtering) - the full JSON path operator reference
 

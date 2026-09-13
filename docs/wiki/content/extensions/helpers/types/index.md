@@ -42,7 +42,10 @@ configure({ timeout: () => 5000 });
 
 - **Resolvers defer construction.** `TResolver`/`TAsyncResolver` and their `TValueOrResolver`/`TValueOrAsyncResolver` unions let a config option be given eagerly or lazily. `resolveValue`/`resolveValueAsync` collapse either shape to a value.
 - **Class constructors pass through untouched.** `isClass()` detects them, so the resolver never invokes a class as if it were a function. It's re-exported from `@venizia/ignis-inversion` into `helpers`.
-- **Const classes replace string unions.** A class of `static readonly` fields, for example `HTTP` or `RuntimeModules`, is a value namespace. `TConstValue<typeof X>` derives its own union type from those fields - one declaration, no duplicated string literals.
+- **Const classes replace string unions.** A class of `static readonly` fields, for example `RuntimeModules` or `DataTypes`, is a value namespace. `TConstValue<typeof X>` derives its own union type from those fields - one declaration, no duplicated string literals.
+
+> [!WARNING]
+> `TConstValue` only reads fields that are already a `string` or a `number`. `HTTP` groups its members under nested objects (`HTTP.Headers`, `HTTP.Methods`, `HTTP.ResultCodes`), so `TConstValue<typeof HTTP>` resolves to `never`. Reach one level in instead: `HTTP` ships `THttpMethod`, `THttpProtocol`, and `THttpResultCode`, each built with `ValueOf<typeof HTTP.Methods>` and friends.
 
 ## Common tasks
 

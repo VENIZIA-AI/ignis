@@ -32,39 +32,51 @@ feature/*, fix/*, docs/* (your work)
 git clone https://github.com/YOUR_USERNAME/ignis.git
 cd ignis
 
-# 3. Install dependencies (this also runs force-update to fetch latest from NPM)
+# 3. Install dependencies
 make install
 # Or: bun install
 
 # 4. Add upstream remote
 git remote add upstream https://github.com/VENIZIA-AI/ignis.git
+
+# 5. Point git at the repository's hooks
+make setup-hooks
 ```
+
+> [!NOTE]
+> `make install` is `bun install` and nothing more. No `package.json` in this repository declares a `postinstall` script, so installing never force-updates anything. To pull the latest published version of a package, run its `make update-<package>` target on purpose.
 
 ## Package Build Order
 
 IGNIS is a monorepo with interdependent packages. Understanding the dependency chain is critical for development:
 
+The main chain is:
+
 ```
-dev-configs → inversion → helpers → boot → core
-     ↓            ↓           ↓        ↓      ↓
-  @venizia/   @venizia/   @venizia/  @venizia/  @venizia/
-  dev-configs ignis-      ignis-     ignis-     ignis
-              inversion   helpers    boot       (core)
+dev-configs -> inversion -> {filter, helpers} -> kernel -> connectors -> core-server
 ```
 
-**Dependency meanings:**
-| Package | Depends On | Purpose |
-|---------|------------|---------|
-| `dev-configs` | - | Shared ESLint, TypeScript configs |
-| `inversion` | dev-configs | IoC container, DI primitives |
-| `helpers` | inversion | Utilities, loggers, crypto |
-| `boot` | helpers | Application bootstrapping |
-| `core` | boot | Full framework (controllers, repos, etc.) |
+`boot`, `atlas` and `core-worker` hang off that chain rather than sitting in it. `core-server` depends on none of them, so `make build-all` names them separately.
+
+**The ten packages.** The directory name and the npm name often differ:
+
+| Directory | npm name | Depends on | Purpose |
+|-----------|----------|------------|---------|
+| `dev-configs` | `@venizia/dev-configs` | - | Shared ESLint, Prettier, TypeScript configs |
+| `inversion` | `@venizia/ignis-inversion` | dev-configs | IoC container, DI primitives |
+| `filter` | `@venizia/ignis-filter` | inversion | Isomorphic filter language. Deliberately not after helpers |
+| `helpers` | `@venizia/ignis-helpers` | inversion | Utilities, loggers, crypto, Redis, sockets |
+| `kernel` | `@venizia/ignis-kernel` | helpers, filter | Browser-pure tree: DI, base classes, REST controllers, auth seam |
+| `connectors` | `@venizia/ignis-connectors` | kernel | Postgres, SQLite, Typesense, Meilisearch |
+| `core-server` | `@venizia/ignis` | connectors | The server framework. `make core` is an alias for `make core-server` |
+| `core-worker` | `@venizia/ignis-worker` | kernel | Browser Worker host. Sits beside connectors, never depends on core-server |
+| `boot` | `@venizia/ignis-boot` | helpers | The `ignis-artifacts` generator, consumed by applications |
+| `atlas` | `@venizia/ignis-atlas` | helpers | The MCP server over the wiki, changelogs and knowledge bundle |
 
 **Why this matters:**
-- If you modify `helpers`, you must rebuild `boot` and `core`
-- If you modify `inversion`, you must rebuild `helpers`, `boot`, and `core`
-- The Makefile handles this automatically with dependencies
+- If you modify `kernel`, you must rebuild `connectors` and `core-server`
+- If you modify `inversion`, you must rebuild everything downstream of it
+- The Makefile resolves these dependencies for you
 
 ## Makefile Commands
 
@@ -72,30 +84,40 @@ The project uses a Makefile for common development tasks:
 
 | Command | Description |
 |---------|-------------|
-| `make install` | Install dependencies and force-update from NPM |
-| `make update` | Force update all packages from NPM registry |
-| `make build` | Rebuild all packages in correct order |
+| `make install` | `bun install` |
+| `make update` | Alias for `make install` |
+| `make build` | Alias for `build-all` |
+| `make build-all` | Rebuild `core`, `core-worker`, `boot`, `atlas` and `docs`, then run `surface-check`, `symbols-check` and `wiki-links-check` |
 | `make clean` | Clean build artifacts from all packages |
 | `make lint` | Lint all packages |
-| `make lint-all` | Lint packages **and** examples - this is the bar a PR must clear |
+| `make lint-all` | Lint packages, examples, atlas and scripts - this is the bar a PR must clear |
+| `make test-all` | Run every package suite |
+| `make setup-hooks` | Point `core.hooksPath` at `.githooks` |
 | `make help` | Show all available commands |
 
 **Individual package builds** (dependencies are automatically resolved):
 ```bash
-make core          # Build @venizia/ignis (builds dev-configs → inversion → helpers → boot → core)
-make boot          # Build @venizia/ignis-boot (builds dev-configs → inversion → helpers → boot)
-make helpers       # Build @venizia/ignis-helpers (builds dev-configs → inversion → helpers)
-make inversion     # Build @venizia/ignis-inversion (builds dev-configs → inversion)
-make dev-configs   # Build @venizia/dev-configs only
+make core          # Alias for core-server: dev-configs -> inversion -> {filter, helpers}
+                   #   -> kernel -> connectors -> core-server. It does NOT build boot.
+make core-worker   # @venizia/ignis-worker, through kernel
+make connectors    # @venizia/ignis-connectors, through kernel
+make kernel        # @venizia/ignis-kernel, through helpers and filter
+make boot          # @venizia/ignis-boot, through helpers
+make helpers       # @venizia/ignis-helpers, through inversion
+make filter        # @venizia/ignis-filter, through inversion
+make inversion     # @venizia/ignis-inversion, through dev-configs
+make dev-configs   # @venizia/dev-configs only
 make docs          # Build VitePress documentation (independent)
-make atlas         # Build the Atlas MCP server (search and read the wiki, changelogs, and knowledge bundle)
+make atlas         # The Atlas MCP server over the wiki, changelogs and knowledge bundle
 ```
 
-**Force update individual packages:**
+**Force update individual packages** (each fetches the latest published version from npm):
 ```bash
-make update-core
+make update-core        # or update-core-server
+make update-kernel
 make update-boot
 make update-helpers
+make update-filter
 make update-inversion
 make update-dev-configs
 make update-atlas
@@ -158,15 +180,19 @@ git commit -m "chore: upgrade Hono to v4.0"
 make lint-all
 # Or run `bun run lint:fix` inside a package directory
 
-# Build all packages (from root)
+# Build all packages (from root) - tests run against dist/, so build first
 make build
 
-# Run tests (from a package directory, e.g. packages/core-server or packages/boot)
-cd packages/core-server && bun test
+# Run every package suite, or one of them
+make test-all
+make test-core-server
 ```
 
-> [!WARNING]
-> `make <package>` **cleans `dist/` before it builds**, and the build type-checks `__tests__` too. One broken test therefore aborts the build after `dist/` is already gone, leaving an **empty `dist/`** and a cascade of unrelated-looking import failures in `bun test`. If imports suddenly break everywhere, check `dist/` before chasing the imports.
+> [!IMPORTANT]
+> Run tests through the `make test-*` targets, not a bare `bun test` inside a package. The Makefile is the one home of the flags (`BUN_TEST_FLAGS ?= --parallel`, which implies `--isolate`). Two packages, `boot` and `atlas`, also own their own `test` script (`NODE_ENV=test bun test --env-file=.env.test`); a bare `bun test` there silently skips both the environment and the env file. The targets are `test-inversion`, `test-helpers`, `test-boot`, `test-kernel`, `test-connectors`, `test-core-worker`, `test-core-server` and `test-atlas`. `filter` has no suite.
+
+> [!NOTE]
+> Tests load `dist/`, not `src/`, so a stale build tests stale code. `make <package>` handles the ordering for you: `rebuild.sh` type-checks first and only then cleans `dist/`, so a broken test aborts the run before anything is deleted.
 
 ## 3. Submit Pull Request
 

@@ -36,22 +36,34 @@ A helper with an optional peer dependency ships from its own subpath, so a bundl
 | `@venizia/ignis-helpers/bullmq` | `bullmq` |
 | `@venizia/ignis-helpers/mqtt` | `mqtt` |
 | `@venizia/ignis-helpers/socket-io` | `socket.io`, `socket.io-client` |
+| `@venizia/ignis-helpers/minio` | `minio` |
 | `@venizia/ignis-helpers/bun-s3` | none - Bun native |
 | `@venizia/ignis-helpers/hashicorp-vault` | `node-vault` |
 | `@venizia/ignis-helpers/dotenv-vault` | `@dotenvx/dotenvx` |
 | `@venizia/ignis-helpers/winston` | `winston` |
 | `@venizia/ignis-helpers/pino` | `pino` |
 
-`@venizia/ignis-helpers/common` is a subpath of a different kind. It isolates nothing - it exposes the
-part of this package that is already browser-safe: `HTTP`, `TConstValue`, and the constant and
-redaction tables. Import it when your code has to bundle for a browser.
+Two more subpaths are of a different kind. They isolate no peer dependency - they expose the parts of
+this package that are already browser-safe.
+
+| Import from | Holds |
+|---|---|
+| `@venizia/ignis-helpers/common` | Constants and pure types: `HTTP`, `GRPC`, `TConstValue`, the duration and mime tables, the redaction helpers |
+| `@venizia/ignis-helpers/core` | Browser-safe runtime classes: `BaseHelper`, the error module, `RetryHelper`, `TreeBuilder`, `TreeWalker`, `SlugHelper`, `UrlPolicy`, `BuildInfoRegistry`, `ProjectRootRegistry`, and the parse utilities |
+
+Import either when your code has to bundle for a browser.
 
 The root barrel cannot: it re-exports every module, so reaching one constant through it pulls in 14
 node builtins and 27 packages, `winston` and `ioredis` among them. A guard test bundles both entry
 points for a browser target and fails if that ever changes.
 
+`/core` is hand-curated one symbol at a time, never `export *` from a module barrel. `./modules/env`
+carries `applicationEnvironment`, which reads `process.env`, so only `EnvironmentNames` crosses over.
+`UrlPolicy` crosses, its `UrlIngest` sibling does not, because `UrlIngest` reaches `node:dns`.
+
 ```typescript
 import { HTTP } from '@venizia/ignis-helpers/common';
+import { RetryHelper } from '@venizia/ignis-helpers/core';
 ```
 
 ## See also

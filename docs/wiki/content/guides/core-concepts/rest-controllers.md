@@ -387,7 +387,7 @@ const UserSchema = z.object({ name: z.string(), email: z.string().email() });
     request: {
       params: z.object({ id: z.string() }),
       query: z.object({ notify: z.string().optional() }),
-      body: jsonContent({ schema: UserSchema }),
+      body: jsonContent({ description: 'User fields to update', schema: UserSchema }),
     },
     // ... responses
   },
@@ -422,6 +422,7 @@ const UpdateUserConfig = {
     params: z.object({ id: z.string() }),
     query: z.object({ notify: z.string().optional() }),
     body: jsonContent({
+      description: 'User fields to update',
       schema: z.object({ name: z.string(), email: z.string().email() }),
     }),
   },

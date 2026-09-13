@@ -21,6 +21,7 @@ Every binding key, configuration variant, interface, and internal mechanism of `
 - [`packages/core-server/src/components/mail/providers/mail-queue-executor.provider.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/components/mail/providers/mail-queue-executor.provider.ts)
 - [`packages/core-server/src/components/mail/helpers/transporters/nodemail-transporter.helper.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/components/mail/helpers/transporters/nodemail-transporter.helper.ts)
 - [`packages/core-server/src/components/mail/helpers/transporters/mailgun-transporter.helper.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/components/mail/helpers/transporters/mailgun-transporter.helper.ts)
+- [`packages/core-server/src/components/mail/helpers/transporters/amazon-ses-transporter.helper.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/components/mail/helpers/transporters/amazon-ses-transporter.helper.ts)
 - [`packages/core-server/src/components/mail/helpers/executors/direct-executor.helper.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/components/mail/helpers/executors/direct-executor.helper.ts)
 - [`packages/core-server/src/components/mail/helpers/executors/internal-queue-executor.helper.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/components/mail/helpers/executors/internal-queue-executor.helper.ts)
 - [`packages/core-server/src/components/mail/helpers/executors/bull-mq-executor.helper.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/components/mail/helpers/executors/bull-mq-executor.helper.ts)
@@ -43,6 +44,7 @@ Every binding key, configuration variant, interface, and internal mechanism of `
 | `TemplateEngineService` | <code v-pre>{{variable}}</code> substitution engine, in-memory template registry |
 | `NodemailerTransportHelper` | SMTP transport via `nodemailer` |
 | `MailgunTransportHelper` | Mailgun HTTP API transport via `mailgun.js` |
+| `AmazonSesTransportHelper` | Amazon SES HTTPS API transport via `@aws-sdk/client-sesv2` |
 | `DirectMailExecutorHelper` | Runs the processor immediately, no queue |
 | `InternalQueueMailExecutorHelper` | In-memory queue (`SequentialQueueHelper`) |
 | `BullMQMailExecutorHelper` | Redis-backed queue, distributed workers |
@@ -78,6 +80,7 @@ import type {
   IBaseMailOptions,
   INodemailerMailOptions,
   IMailgunMailOptions,
+  IAmazonSesMailOptions,
   ICustomMailOptions,
   IGenericMailOptions,
   IMailService,
@@ -99,7 +102,11 @@ import type {
   IVerificationGenerationOptions,
   TMailProvider,
   TNodemailerConfig,
+  TNodemailerModule,
   TMailgunConfig,
+  TMailgunModule,
+  TAmazonSesConfig,
+  TAmazonSesModule,
 } from '@venizia/ignis/mail';
 ```
 
@@ -110,10 +117,17 @@ import type {
   │               Your Application                   │
   │                                                   │
   │  preConfigure()                                   │
-  │    ├── binds MailKeys.MAIL_OPTIONS  (required)   │
-  │    ├── binds MailKeys.MAIL_QUEUE_EXECUTOR_CONFIG │
-  │    │     (optional -- defaults to `direct`)       │
-  │    └── registers MailComponent                    │
+  │    ├── this.component(MailComponent, { options }) │
+  │    │     or binds MailKeys.MAIL_OPTIONS by hand   │
+  │    └── binds MailKeys.MAIL_QUEUE_EXECUTOR_CONFIG │
+  │          (optional -- defaults to `direct`)       │
+  └───────────────────────┬─────────────────────────┘
+                          │
+                          ▼
+  ┌─────────────────────────────────────────────────┐
+  │        MailComponent.configure(opts?)             │
+  │    binds MAIL_OPTIONS from the call site,         │
+  │    then calls binding() -- at registerComponents  │
   └───────────────────────┬─────────────────────────┘
                           │
                           ▼
@@ -162,7 +176,16 @@ import type {
 | `@app/components/mail/verification/data-generator` | `MailKeys.MAIL_VERIFICATION_DATA_GENERATOR` | `IVerificationDataGenerator` | No | `DefaultVerificationDataGenerator` (transient) |
 
 > [!IMPORTANT]
-> `MailKeys.MAIL_OPTIONS` is the only binding `MailComponent` requires. It throws `Mail options not configured` in `binding()` if the key is not bound. `MailKeys.MAIL_QUEUE_EXECUTOR_CONFIG` is read with `isOptional: true` -- when it is not bound, `createAndBindInstances()` falls back to `{ type: MailQueueExecutorTypes.DIRECT }` rather than failing startup.
+> `MailKeys.MAIL_OPTIONS` is the only value `MailComponent` requires. It throws `Mail options not configured` in `binding()` if the key is still unbound by then. `MailKeys.MAIL_QUEUE_EXECUTOR_CONFIG` is read with `isOptional: true` -- when it is not bound, `createAndBindInstances()` falls back to `{ type: MailQueueExecutorTypes.DIRECT }` rather than failing startup.
+
+There are two ways to supply `MAIL_OPTIONS`, and neither imposes an ordering rule:
+
+| How | What happens |
+|---|---|
+| `this.component(MailComponent, { options })` | The application stores the options against the component's binding key. `MailComponent.configure(opts)` binds `MAIL_OPTIONS` itself, then runs `binding()` |
+| `this.bind({ key: MailKeys.MAIL_OPTIONS }).toValue(...)` | The key is already bound when `binding()` reads it |
+
+`configure()` runs at the `registerComponents` boot step, four steps after `preConfigure()` returns. A `this.bind()` placed anywhere in `preConfigure()` therefore lands in time, before or after `this.component(...)`. Supply both and the call-site options win - `configure()` rebinds the key.
 
 **Source:** [`common/keys.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/components/mail/common/keys.ts)
 
@@ -190,6 +213,12 @@ interface IMailgunMailOptions extends IBaseMailOptions {
   module?: TMailgunModule; // the peer itself; see "Peer dependency loading"
 }
 
+interface IAmazonSesMailOptions extends IBaseMailOptions {
+  provider: 'amazon-ses';
+  config: TAmazonSesConfig; // { region, credentials?, endpoint? }
+  module?: TAmazonSesModule; // the peer itself; see "Peer dependency loading"
+}
+
 interface ICustomMailOptions extends IBaseMailOptions {
   provider: 'custom';
   config: IMailTransport; // Must implement send() and verify()
@@ -202,6 +231,7 @@ interface IGenericMailOptions extends IBaseMailOptions {
 
 type TMailOptions =
   | INodemailerMailOptions
+  | IAmazonSesMailOptions
   | IMailgunMailOptions
   | ICustomMailOptions
   | IGenericMailOptions;
@@ -278,6 +308,27 @@ APP_ENV_MAIL_REFRESH_TOKEN=your-oauth2-refresh-token
 
 > [!IMPORTANT]
 > `MailgunTransportHelper` validates `username`, `key`, and `domain` on construction. It throws `Invalid Mailgun configuration | Missing required keys: <keys>` if any is missing. This check runs even though `TMailgunConfig`'s only *typed* requirement is `domain` - `username` and `key` are checked at runtime, not by the type.
+
+**Amazon SES:**
+
+```typescript
+{
+  provider: MailProviders.AMAZON_SES,
+  from: 'noreply@example.com',
+  fromName: 'Example App',
+  config: {
+    region: 'ap-southeast-1',                 // required
+    credentials: {                            // optional -- omit to use the ambient AWS credential chain
+      accessKeyId: process.env.AWS_ACCESS_KEY_ID,
+      secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
+    },
+    endpoint: 'https://email.ap-southeast-1.amazonaws.com', // optional
+  },
+}
+```
+
+> [!NOTE]
+> This provider is the SES **HTTPS API** path, through the optional peer `@aws-sdk/client-sesv2`. SES over SMTP goes through `MailProviders.NODEMAILER` instead, with SES's SMTP host and credentials.
 
 **Custom transport:**
 
@@ -553,16 +604,20 @@ The `render` field supports a custom per-template render function, though the bu
 |----------|--------|
 | `'nodemailer'` | `NodemailerTransportHelper`, backed by `nodemailer` |
 | `'mailgun'` | `MailgunTransportHelper`, backed by the Mailgun HTTP API (`mailgun.js`) |
+| `'amazon-ses'` | `AmazonSesTransportHelper`, backed by the SES v2 HTTPS API (`@aws-sdk/client-sesv2`) |
 | `'custom'` | The `config` value itself, validated to implement `IMailTransport` |
 | Any other string | Throws `Unsupported mail provider: <provider>` (`INVALID_CONFIGURATION`, 500) |
 
-Type narrowing uses three private guards, each checking `provider === X && 'config' in options`:
+Type narrowing uses four private guards, each checking `provider === X && 'config' in options`:
 
 ```typescript
 private isNodemailerOptions(options: TMailOptions): options is INodemailerMailOptions
 private isMailgunOptions(options: TMailOptions): options is IMailgunMailOptions
+private isAmazonSesOptions(options: TMailOptions): options is IAmazonSesMailOptions
 private isCustomOptions(options: TMailOptions): options is ICustomMailOptions
 ```
+
+A guard that does not match throws `Invalid <Provider> configuration` (`INVALID_CONFIGURATION`, 500) - `Invalid Amazon SES configuration` for this one.
 
 For `custom`, an additional `isMailTransport()` utility check reports specifically which of `send`/`verify` is missing.
 
@@ -578,7 +633,7 @@ interface IMailTransport {
 
 Pass the peer yourself through `module`, or let the transport find it. With `module` set, the transport uses it as-is; without it, the transport falls back to `ModuleUtility.loadSync({ module })` from the client-factory seam `configure()` calls. A missing package then throws the framework's install hint - `[ModuleUtility.loadSync] nodemailer is required. Please install 'nodemailer'` - not Node's raw `Cannot find module`.
 
-That fallback keeps the specifier invisible to `Bun.build`. Importing `@venizia/ignis/mail` for the Nodemailer transport no longer drags `mailgun.js` into your bundle, and the reverse holds too.
+That fallback keeps the specifier invisible to `Bun.build`. Importing `@venizia/ignis/mail` for the Nodemailer transport drags neither `mailgun.js` nor `@aws-sdk/client-sesv2` into your bundle, and the same holds for every other pairing.
 
 **A compiled application must pass `module`.** A `bun build --compile` binary ships without `node_modules`, so the runtime lookup has nothing to resolve against and the component throws that install hint at boot - with the peer sitting in `package.json`, which is no help because nothing put it inside the binary. The static import is what embeds it:
 
@@ -592,7 +647,7 @@ this.bind({ key: MailKeys.MAIL_OPTIONS }).toValue({
 });
 ```
 
-`module` is typed as the shape the transport calls (`createTransport` for Nodemailer, a constructor for Mailgun), so handing over the wrong thing is a compile error rather than a boot crash. Prefer it over [`ModuleUtility.register`](/references/utilities/module#compiled-binaries): the dependency arrives where it is used and cannot be defeated by binding order. Every IGNIS component that reaches an optional peer now takes one of these options - the [table in the module reference](/references/utilities/module#compiled-binaries) lists them.
+`module` is typed as the shape the transport calls - `createTransport` for Nodemailer, a constructor for Mailgun, and `{ SESv2Client, SendEmailCommand, GetAccountCommand }` for Amazon SES. Handing over the wrong thing is a compile error rather than a boot crash. Prefer it over [`ModuleUtility.register`](/references/utilities/module#compiled-binaries): the dependency arrives where it is used and cannot be defeated by binding order. Every IGNIS component that reaches an optional peer now takes one of these options - the [table in the module reference](/references/utilities/module#compiled-binaries) lists them.
 
 **Nodemailer (`NodemailerTransportHelper`, extends `BaseHelper`):**
 
@@ -609,7 +664,15 @@ this.bind({ key: MailKeys.MAIL_OPTIONS }).toValue({
 - `verify()` sends a test message to `verify@<domain>` with `o:testmode: 'yes'`, since Mailgun has no dedicated verify endpoint. It catches errors and returns `false` - it never throws.
 - No `close()` - the HTTP API is stateless.
 
-**Custom transport:** set `provider: MailProviders.CUSTOM` and pass an object implementing `IMailTransport` as `config`. Useful for SendGrid, AWS SES, or a custom SMTP relay that the framework does not ship a helper for.
+**Amazon SES (`AmazonSesTransportHelper`, extends `BaseHelper`):**
+
+- `configure()` calls `validateConfig()` first. `region` must be present, or it throws `Invalid Amazon SES Configuration | Missing region` (`INVALID_CONFIGURATION`, 500). `credentials` is optional - omit it and the AWS SDK falls back to its own credential chain.
+- `buildClient()` constructs `SESv2Client` from `module`, or from `ModuleUtility.loadSync({ module: '@aws-sdk/client-sesv2' })`.
+- `send()` builds a raw MIME message and issues `SendEmailCommand` with `Content.Raw`. `FromEmailAddress` is RFC 2047-encoded separately, so a non-ASCII display name does not reach the API as raw UTF-8. It sets no `ReplyToAddresses` - the raw content already carries one encoded `Reply-To` header. It catches errors and returns `{ success: false, error }` - it never throws.
+- `verify()` issues `GetAccountCommand` and returns `result.SendingEnabled === true`. It catches errors and returns `false` - it never throws.
+- `close()` calls `client.destroy?.()`.
+
+**Custom transport:** set `provider: MailProviders.CUSTOM` and pass an object implementing `IMailTransport` as `config`. Reach for it when you need a provider IGNIS does not ship - SendGrid, Postmark, or a house SMTP relay with its own protocol. Amazon SES already has a first-class provider above; use that instead.
 
 **Source:** [`helpers/transporters/`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/components/mail/helpers/transporters)
 

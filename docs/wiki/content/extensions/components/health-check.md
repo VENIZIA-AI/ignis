@@ -68,9 +68,17 @@ curl localhost:3000/health
 - **Auto-registered controller.** `HealthCheckComponent.binding()` applies `@controller({ path })`
   via `Reflect.decorate` at runtime, then calls `this.application.controller(HealthCheckController)`.
   The path comes from the options binding, not a hardcoded class decorator.
-- **The default binding wins the race if you're late.** The constructor pre-binds
-  `HEALTH_CHECK_OPTIONS` via `initDefault`, filling only an unbound key. A custom binding must exist
-  BEFORE `this.component(HealthCheckComponent)` runs.
+- **Your options always win, whatever the order.** The constructor only STORES a default `Binding`
+  object. `initDefaultBindings()` applies it from inside `configure()`, which the boot sweep runs at
+  the `registerComponents` step - four steps after `preConfigure()` returns. So a `this.bind()`
+  anywhere in `preConfigure()` takes the key first, and the default finds it taken and steps aside.
+  Options passed as `this.component(HealthCheckComponent, { options })` win over both: `configure()`
+  binds them before `initDefaultBindings()` runs.
+- **A mounted, unguarded stats route warns at boot.** `stats.enable: true` bypasses the environment
+  gate, so the code that opened the route locally opens it in production too. When
+  `HealthCheckReporter.isStatsUnguarded()` says yes, `binding()` logs one warning naming the path and
+  the ambient environment. It warns rather than refuses - only the operator knows whether the port is
+  reachable.
 
 ## Common tasks
 
@@ -129,7 +137,13 @@ first, then the generic `APP_BUILD_*` and provider-specific variables, then `git
 `package.json`. See the [`@venizia/ignis-boot` reference](/references/base/bootstrapping).
 
 ### Customize the health check path
-Bind `IHealthCheckOptions` BEFORE registering the component - order matters (see above).
+Pass the options at the call site:
+
+```typescript
+this.component(HealthCheckComponent, { options: { restOptions: { path: '/health-check' } } });
+```
+
+Or bind them yourself, anywhere in `preConfigure()` - before or after `this.component()`:
 
 ```typescript
 import { HealthCheckBindingKeys, IHealthCheckOptions } from '@venizia/ignis';
@@ -138,7 +152,7 @@ this.bind<IHealthCheckOptions>({
   key: HealthCheckBindingKeys.HEALTH_CHECK_OPTIONS,
 }).toValue({ restOptions: { path: '/health-check' } });
 
-this.component(HealthCheckComponent); // AFTER the bind
+this.component(HealthCheckComponent);
 ```
 
 ### Call the ping endpoint
@@ -214,7 +228,11 @@ Paths are relative to the base path configured in `IHealthCheckOptions.restOptio
 | `buildStats({ options, appInfo })` | the full `/health/stats` body |
 | `resolveBuildInfo({ options, appInfo })` | the resolved `build` block, every field a string |
 | `isStatsEnabled({ options })` | the mount decision |
+| `isStatsUnguarded({ options })` | whether the route is mounted, keyless, and off a development host. The component turns a `true` into one boot warning |
 | `isStatsAuthorized({ options, header })` | the per-request decision |
+
+`isStatsEnabled` and `isStatsUnguarded` each take an optional `environment: () => string \| undefined`
+so a test can supply the ambient environment without writing `process.env`.
 
 ## Troubleshooting
 
@@ -224,7 +242,7 @@ Paths are relative to the base path configured in `IHealthCheckOptions.restOptio
 | `GET /health/stats` returns 404 on staging | The default is closed outside the development environments | Set `stats: { enable: true, secretKey }` explicitly |
 | `GET /health/stats` returns 404 with the right key | `secretKey` is blank, or arrived as a non-string from config | Export the variable; the gate fails closed on a blank or wrong-typed key |
 | `build.commit` reads `unspecified` | No stamp was registered and `getAppInfo()` carries no commit | Run `ignis-build-info generate` in the build and call `BuildInfoRegistry.set` at the entrypoint |
-| Custom path not applied | Custom `IHealthCheckOptions` bound AFTER `this.component()` ran | Bind options BEFORE calling `this.component(HealthCheckComponent)` |
+| Custom path not applied | The options were bound outside `preConfigure()`, so they landed after `configure()` had already read the key | Bind inside `preConfigure()`, or pass `this.component(HealthCheckComponent, { options })` |
 | `POST /health/ping` returns a validation error | `message` is missing, or exceeds 255 characters | Send a `message` string between 1 and 255 characters |
 
 ## See also

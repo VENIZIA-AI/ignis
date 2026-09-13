@@ -90,20 +90,31 @@ src/components/auth/
 
 ### Controller Transport Component
 
-Transport components live under `src/components/controller/` and are instantiated directly by the application during `registerControllers()` - they are **not** registered via `this.component()`.
+Transport components are instantiated directly by the application during `registerControllers()` - they are **not** registered via `this.component()`. They live in two packages, split along the same line the application layers are split on.
+
+`RestComponent` ships from `@venizia/ignis-kernel`, because REST touches no node builtin:
 
 ```
-src/components/controller/
-├── index.ts              # Barrel re-exports (REST only; gRPC excluded from barrel)
-├── rest/
-│   ├── rest.component.ts
-│   └── common/
-│       └── types.ts      # IRestComponentConfig, RestBindingKeys
+packages/kernel/src/base/components/controller/
+├── index.ts              # Barrel re-exports rest/
+└── rest/
+    ├── rest.component.ts
+    └── common/
+        └── types.ts      # IRestComponentConfig, RestBindingKeys
+```
+
+`GrpcComponent` stays in `@venizia/ignis`, because it needs `AbstractGrpcController`, which reaches `node:module`:
+
+```
+packages/core-server/src/components/controller/
+├── index.ts              # Empty - only comments; gRPC is not re-exported here
 └── grpc/
     ├── grpc.component.ts
     └── common/
         └── types.ts      # IGrpcComponentConfig, GrpcBindingKeys
 ```
+
+Import `GrpcComponent` from the `@venizia/ignis/grpc` subpath. `RestComponent` reaches you through `@venizia/ignis`, which re-exports the kernel barrel wholesale.
 
 
 ## The `common/` Directory
@@ -328,7 +339,7 @@ The `super()` constructor in your component can take the following options:
 
 ## Controller Transport Components
 
-Controller transport components are a special category. Unlike regular components registered via `this.component()`, transport components are instantiated and configured directly by `BaseApplication.registerControllers()`. They are responsible for discovering controller bindings and mounting them onto the application router.
+Controller transport components are a special category. Unlike regular components registered via `this.component()`, transport components are instantiated and configured directly by `registerControllers()` - `RestApplication`'s for REST, `BaseApplication`'s override for gRPC. They are responsible for discovering controller bindings and mounting them onto the application router.
 
 ### Transport Configuration
 
@@ -356,29 +367,44 @@ export class ControllerTransports {
 
 ### How `registerControllers()` Works
 
-During the application lifecycle, `registerControllers()` iterates the configured transports and creates the corresponding component:
+There is no single switch over transports. The method is split across the two packages that own the two components.
+
+`RestApplication.registerControllers()` handles REST and nothing else:
+
+```typescript
+// Simplified from RestApplication.registerControllers()
+const transports = this.configs.transports ?? [ControllerTransports.REST];
+if (!transports.includes(ControllerTransports.REST)) {
+  return;
+}
+
+const restComponent = new RestComponent(this);
+await restComponent.configure();
+```
+
+`BaseApplication` overrides it, calls `super()` first, then walks the transports REST did not take:
 
 ```typescript
 // Simplified from BaseApplication.registerControllers()
+await super.registerControllers();
+
 const transports = this.configs.transports ?? [ControllerTransports.REST];
 
 for (const transport of transports) {
-  switch (transport) {
-    case ControllerTransports.REST: {
-      const restComponent = new RestComponent(this);
-      await restComponent.configure();
-      break;
-    }
-    case ControllerTransports.GRPC: {
-      const grpcComponent = new GrpcComponent(this);
-      await grpcComponent.configure();
-      break;
-    }
+  if (transport === ControllerTransports.REST) {
+    continue;
   }
+
+  if (transport !== ControllerTransports.GRPC) {
+    throw getError({ message: `[registerControllers] Unsupported transport: '${transport}'` });
+  }
+
+  const grpcComponent = new GrpcComponent(this);
+  await grpcComponent.configure();
 }
 ```
 
-If gRPC controllers are discovered but the `'grpc'` transport is not in the `transports` config, the application logs an error warning for each one.
+An unsupported transport throws rather than being skipped. If gRPC controllers are discovered but the `'grpc'` transport is not in the `transports` config, the application logs an error for each one and leaves it unmounted.
 
 ### `RestComponent`
 
@@ -387,8 +413,12 @@ If gRPC controllers are discovered but the `'grpc'` transport is not in the `tra
 Discovers all controller bindings tagged with `BindingNamespaces.CONTROLLER`, skips any whose metadata has `transport === ControllerTransports.GRPC`, and configures the rest as REST controllers.
 
 ```typescript
-export class RestComponent extends BaseComponent {
-  constructor(private application: BaseApplication) {
+export class RestComponent<
+  AppEnv extends Env = Env,
+  AppSchema extends Schema = {},
+  BasePath extends string = '/',
+> extends BaseComponent {
+  constructor(private application: RestApplication<AppEnv, AppSchema, BasePath>) {
     super({
       scope: RestComponent.name,
       initDefault: { enable: true, container: application },
@@ -404,6 +434,8 @@ export class RestComponent extends BaseComponent {
 }
 ```
 
+It is generic over the same Hono `Env`, `Schema` and base path `RestApplication` is. A bare `RestApplication` parameter fails to typecheck when a differently-instantiated subclass passes `this`, because `defaultHook` is contravariant. It takes a `RestApplication`, never a `BaseApplication` - the kernel cannot name that class.
+
 **Binding loop:**
 
 1. Fetches all controller bindings not yet configured (tracked via a `Set<string>`).
@@ -411,7 +443,10 @@ export class RestComponent extends BaseComponent {
 3. Skips bindings with `transport === ControllerTransports.GRPC`.
 4. Validates that `metadata.path` is present (throws if missing).
 5. Resolves the controller instance from the DI container, calls `instance.configure()`, and mounts it: `router.route(metadata.path, instance.getRouter())`.
-6. Re-fetches bindings after each configure to pick up dynamically added controllers.
+6. Re-fetches bindings once the whole batch is drained, then repeats until a pass finds nothing new.
+
+> [!NOTE]
+> Step 6 re-scans per batch, not per controller, and that is deliberate. Asking after every single item makes boot one full scan of the binding map per controller: 3.5ms at 200 controllers, against 0.04ms for the batched shape.
 
 **Config types:**
 
@@ -469,7 +504,7 @@ export class GrpcBindingKeys {
 }
 ```
 
-> **Note:** `GrpcComponent` is excluded from the barrel export at `src/components/controller/index.ts`. You never import it in application code - `BaseApplication.registerControllers()` instantiates it automatically when `transports` includes `'grpc'`.
+> **Note:** `GrpcComponent` is excluded from the barrel at `packages/core-server/src/components/controller/index.ts`, which holds only comments. Import it from the `@venizia/ignis/grpc` subpath if you ever need the symbol. You never import it in application code - `BaseApplication.registerControllers()` instantiates it automatically when `transports` includes `'grpc'`.
 
 
 ## Component Implementation Patterns
@@ -683,7 +718,7 @@ The shipped `ApiReferenceComponent` does **not** use this pattern: it passes `in
 | **ApiReferenceComponent** | OpenAPI doc at `/doc/openapi.json`, UI at `/doc/explorer` (Scalar by default, Swagger UI also supported). Auto-populates app info and server URL. Registers JWT and Basic security schemes. |
 | **AuthenticateComponent** | JWT and/or Basic auth strategies. Optional auth controller (`signIn`/`signUp`). Token services (`JWSTokenService`, `BasicTokenService`). |
 | **AuthorizeComponent** | Casbin-based RBAC, permission mapping, `authorize()` middleware. |
-| **RequestTrackerComponent** | Registers Hono `requestId()` middleware and a `RequestSpyMiddleware` for `x-request-id` header tracking and request body parsing. |
+| **RequestTrackerComponent** | Registers one binding, `RequestSpyMiddleware`, for the access log and request body parsing. It installs no request id: `RestApplication.registerDefaultMiddlewares()` already did that, earlier, through `RequestIdGenerator`. |
 
 ### Excluded from Barrel (Import Directly)
 

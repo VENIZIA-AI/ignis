@@ -258,9 +258,9 @@ const conditionalAuthzMiddleware = createMiddleware(async (c, next) => {
 import { Authorization, Authentication } from '@venizia/ignis';
 
 const user = c.get(Authentication.CURRENT_USER);           // IAuthUser
-const rules = c.get(Authorization.RULES);                  // unknown - shape depends on the enforcer
+const rules = c.get(Authorization.RULES);                  // Map<string, unknown>, keyed by enforcer name
 const isSkipped = c.get(Authorization.SKIP_AUTHORIZATION);  // boolean
-const domain = c.get(Authorization.DOMAIN);                // "<Type>_<id>" | "SYSTEM_WIDE" - set only when domain scoping is in play
+const domain = c.get(Authorization.DOMAIN);                // untyped - see the warning below
 
 c.set(Authorization.SKIP_AUTHORIZATION, true);
 c.set(Authorization.RULES, null); // force a rebuild later in the SAME request
@@ -268,6 +268,9 @@ c.set(Authorization.RULES, null); // force a rebuild later in the SAME request
 
 > [!TIP]
 > Rules are cached per-request only - every new HTTP request starts with an empty cache. `c.set(Authorization.RULES, null)` only matters if you need to force a rebuild mid-request, for example after mutating the user's roles inline.
+
+> [!WARNING]
+> `Authorization.DOMAIN` is the one key that is NOT in the `ContextVariableMap` augmentation, so `c.get()` hands it back untyped. The pipeline writes it for observability and then ignores it - the evaluator reads a local instead, so that a domain-less spec cannot inherit the domain a previous spec wrote. Log it, do not decide on it.
 
 ## Custom enforcer
 

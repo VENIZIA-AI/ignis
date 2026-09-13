@@ -107,14 +107,21 @@ import {
   KafkaConsumerHelper,
 } from '@venizia/ignis-helpers/kafka';
 
-// 1. Create registry - points to Confluent Schema Registry server
-const registry = KafkaSchemaRegistryHelper.newInstance({
+interface IOrder {
+  id: number;
+  total: number;
+}
+
+// 1. Create registry - points to Confluent Schema Registry server.
+// Name the value type here. Every generic defaults to `string`, so without it
+// the producer and consumer both infer a string value and the lines below stop compiling.
+const registry = KafkaSchemaRegistryHelper.newInstance<string, IOrder>({
   url: 'http://localhost:8081',
   // auth: { username: 'user', password: 'pass' },  // optional
 });
 
 // 2. Producer - pass registry, it auto-serializes values using the registered schema
-const producer = KafkaProducerHelper.newInstance({
+const producer = KafkaProducerHelper.newInstance<string, IOrder>({
   bootstrapBrokers: ['127.0.0.1:29092'],
   clientId: 'order-producer',
   registry: registry.getRegistry(),
@@ -129,8 +136,8 @@ await producer.getProducer().send({
 });
 // If the value doesn't match the registered schema -> error BEFORE sending to Kafka
 
-// 3. Consumer - pass the same registry, it auto-deserializes
-const consumer = KafkaConsumerHelper.newInstance({
+// 3. Consumer - pass the same registry and the same generics, it auto-deserializes
+const consumer = KafkaConsumerHelper.newInstance<string, IOrder>({
   bootstrapBrokers: ['127.0.0.1:29092'],
   clientId: 'order-consumer',
   groupId: 'order-group',

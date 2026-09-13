@@ -542,19 +542,35 @@ The component registers a default (empty) config binding under the key `'@app/gr
 
 ### Dynamic Discovery
 
-The component uses a re-fetch loop with `Set` tracking. After configuring each controller, it re-queries the container for new controller bindings (excluding already-configured ones). This handles controllers registered dynamically during component composition (e.g., a component that registers another component that registers a gRPC controller).
+The component uses a re-fetch loop with `Set` tracking. Once the whole batch is configured, it re-queries the container for new controller bindings (excluding already-configured ones) and repeats until a pass finds nothing new. This handles controllers registered dynamically during component composition (e.g., a component that registers another component that registers a gRPC controller). The re-scan is per batch rather than per controller, because per controller makes boot one full scan of the binding map per item.
 
 ### Automatic Registration
 
-`GrpcComponent` is instantiated and configured automatically by `BaseApplication` when `appConfigs.transports` includes `ControllerTransports.GRPC`. You do not need to register it manually. The relevant code in `BaseApplication`:
+`GrpcComponent` is instantiated and configured automatically by `BaseApplication` when `appConfigs.transports` includes `ControllerTransports.GRPC`. You do not need to register it manually.
+
+`BaseApplication` does not switch over transports. It overrides `registerControllers()`, lets `RestApplication` handle REST first, then walks whatever is left:
 
 ```typescript
-case ControllerTransports.GRPC: {
+// Simplified from BaseApplication.registerControllers()
+await super.registerControllers();
+
+const transports = this.configs.transports ?? [ControllerTransports.REST];
+
+for (const transport of transports) {
+  if (transport === ControllerTransports.REST) {
+    continue;
+  }
+
+  if (transport !== ControllerTransports.GRPC) {
+    throw getError({ message: `[registerControllers] Unsupported transport: '${transport}'` });
+  }
+
   const grpcComponent = new GrpcComponent(this);
   await grpcComponent.configure();
-  break;
 }
 ```
+
+A transport that is neither `'rest'` nor `'grpc'` throws rather than being skipped.
 
 ## `GRPC` Constants
 

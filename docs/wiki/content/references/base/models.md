@@ -118,7 +118,7 @@ export class Event extends BaseEntity<typeof Event.schema> {
 }
 ```
 
-See [Pagination](/references/base/filter-system/fields-order-pagination#default-limit).
+See [Pagination](/references/base/filter-system/fields-order-pagination#default-limit-resolution).
 
 ### Declare an authorization principal
 

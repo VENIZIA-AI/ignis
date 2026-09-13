@@ -43,13 +43,13 @@ const worker = BullMQHelper.newInstance({
 
 ## How it works
 
-- **Three backends, one family.** `BullMQHelper`, `SequentialQueueHelper`, and `MQTTClientHelper` all live under `@venizia/ignis-helpers`. A fourth backend, Kafka, is documented separately - see [Kafka Helpers](/extensions/helpers/kafka/).
+- **Three backends, one family.** Only `SequentialQueueHelper` ships from the root package. `BullMQHelper` and `MQTTClientHelper` sit behind sub-paths, which keeps their peer dependencies off the base install. A fourth backend, Kafka, is documented separately - see [Kafka Helpers](/extensions/helpers/kafka/).
 
-| Backend | Class | Peer dependency | Reach for it when |
-|---------|-------|------------------|--------------------|
-| BullMQ | `BullMQHelper` | `bullmq` | Jobs must survive a process restart or run across multiple workers |
-| In-memory | `SequentialQueueHelper` | none | Sequential, single-process work that does not need persistence |
-| MQTT | `MQTTClientHelper` | `mqtt` | Pub/sub for IoT and lightweight real-time events, not job processing |
+| Backend | Class | Import from | Peer dependency | Reach for it when |
+|---------|-------|-------------|------------------|--------------------|
+| BullMQ | `BullMQHelper` | `@venizia/ignis-helpers/bullmq` | `bullmq` | Jobs must survive a process restart or run across multiple workers |
+| In-memory | `SequentialQueueHelper` | `@venizia/ignis-helpers` | none | Sequential, single-process work that does not need persistence |
+| MQTT | `MQTTClientHelper` | `@venizia/ignis-helpers/mqtt` | `mqtt` | Pub/sub for IoT and lightweight real-time events, not job processing |
 
 - **`BullMQHelper` takes one `role` per instance, fixed at construction.**
 

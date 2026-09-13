@@ -474,7 +474,7 @@ import {
   defineLogFormatter,
   defineJsonLoggerFormatter,
   definePrettyLoggerFormatter,
-} from '@venizia/ignis-helpers';
+} from '@venizia/ignis-helpers/winston';
 
 // Auto-detect from APP_ENV_LOGGER_FORMAT (or override with format option)
 const formatter = defineLogFormatter({ label: 'my-app' });

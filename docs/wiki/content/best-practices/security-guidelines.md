@@ -150,7 +150,7 @@ const [user] = await connector
   .where(eq(User.schema.email, email));
 ```
 
-> **Reference:** See [Hidden Properties](../references/base/models.md#hidden-properties) for complete documentation.
+> **Reference:** See [Hidden Properties](../references/base/models-reference.md#hidden-properties) for complete documentation.
 
 ## 5. File Upload Security
 
@@ -484,7 +484,7 @@ The global error handler decides what a client sees by environment, and it is **
 | Database constraint errors (400) | Base message only; the driver's `Detail:` (which echoes row values like emails), `Table:` and `Constraint:` are stripped |
 | `details.stack` / `details.cause` | Omitted |
 
-Deliberate `getError` messages are always returned verbatim, in every environment - so never put internal detail in one. Use `requestId` plus the server log to diagnose what the response no longer shows. See [Error Handling](./error-handling#_5-error-response-format).
+Deliberate `getError` messages are always returned verbatim, in every environment - so never put internal detail in one. Use `requestId` plus the server log to diagnose what the response no longer shows. See [Error Handling](./error-handling#the-error-response-shape).
 
 **Events to Log:**
 - Failed login attempts

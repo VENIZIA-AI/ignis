@@ -212,14 +212,14 @@ export class Application extends BaseApplication {
 
   // Hook 3: Register your resources (THIS IS THE MOST IMPORTANT ONE)
   preConfigure(): ValueOrPromise<void> {
-    // Register ApiReferenceComponent for API documentation at /doc/explorer
+    // Register ApiReferenceComponent for API documentation at /api/doc/explorer
     this.component(ApiReferenceComponent);
 
     // As your app grows, you'll add:
-    // this.dataSource(PostgresDataSource);    // Database connection
-    // this.repository(UserRepository);        // Data access layer
-    // this.service(UserService);              // Business logic
-    // this.component(AuthComponent);          // Auth setup
+    // this.dataSource(PostgresDataSource);      // Database connection
+    // this.repository(UserRepository);          // Data access layer
+    // this.service(UserService);                // Business logic
+    // this.component(AuthenticateComponent);    // Authentication setup
 
     // Register our controller
     this.controller(HelloController);
@@ -244,17 +244,28 @@ export class Application extends BaseApplication {
 
 **Key takeaway:** You'll mostly work in `preConfigure()` when building your app. The other hooks are there when you need them.
 
-**Application Lifecycle Hooks (execution order):**
-| Hook | Purpose | Usage |
-|------|---------|-------|
-| `getAppInfo()` | Application metadata | Required - used for API docs |
-| `staticConfigure()` | Static file serving | Optional - runs before DI registration |
-| `preConfigure()` | **Register resources** | **Main hook** - register controllers, services, components, etc. |
-| `registerDataSources()` | Configure datasources | Auto - discovers and configures bound datasources |
-| `registerComponents()` | Configure components | Auto - discovers and configures bound components |
-| `registerControllers()` | Configure controllers | Auto - mounts REST/gRPC routes |
-| `postConfigure()` | Post-initialization | Optional - seed data, background jobs |
-| `setupMiddlewares()` | Global middlewares | Optional - runs after `initialize()`, before server starts |
+**Boot sequence.** `initialize()` runs sixteen steps in this fixed order. You override a handful; the framework runs the rest.
+
+| # | Step | Purpose |
+|---|------|---------|
+| 1 | `printStartUpInfo` | Auto - logs the application name, version and environment |
+| 2 | `validateEnvs` | Skipped by default - set `ALLOW_EMPTY_ENV_VALUE=false` to reject empty `APP_ENV_*` values |
+| 3 | `registerDefaultMiddlewares` | Auto - request id, error handler, 404 handler |
+| 4 | `staticConfigure` | Optional - serve static folders |
+| 5 | `registerArtifacts` | Auto - registers the generated index named by `configs.artifacts` |
+| 6 | `preConfigure` | **Main hook** - whatever the artifact index cannot express: registry calls, hand-made bindings |
+| 7 | `hydrateSecrets` | Auto - pulls secrets from the bound provider into configuration |
+| 8 | `registerConfigurations` | Auto - configures bound configuration artifacts |
+| 9 | `registerDataSources` | Auto - configures bound datasources |
+| 10 | `registerComponents` | Auto - configures bound components |
+| 11 | `registerContributedDataSources` | Auto - configures datasources a component added |
+| 12 | `wireSecretRotatables` | Auto - subscribes rotatable datasources to secret rotation |
+| 13 | `registerControllers` | Auto - mounts controller routes on the root router |
+| 14 | `postConfigure` | Optional - seed data, background jobs |
+| 15 | `verifyBindings` | Auto - resolves every service and repository when `bootChecks.binding.doVerify` is on |
+| 16 | `validateScopeFilterSupport` | Auto - refuses to boot when a model's `scopeFilter` cannot take effect |
+
+`getAppInfo()` is not a boot step. Components call it when they need your application metadata. `setupMiddlewares()` is not one either: `start()` runs it after `initialize()`, just before the server binds its socket.
 
 > **Deep Dive:** See [Application Class Reference](../core-concepts/application/) for detailed lifecycle documentation.
 
@@ -355,9 +366,9 @@ const main = async () => {
   const applicationName = process.env.APP_ENV_APPLICATION_NAME?.toUpperCase() ?? 'My-App';
   logger.info('[main] Getting ready to start up %s Application...', applicationName);
 
-  // start() runs the full lifecycle automatically:
-  // staticConfigure → preConfigure → registerDataSources → registerComponents
-  // → registerControllers → postConfigure → setupMiddlewares → HTTP server
+  // init() registers the core bindings. start() then runs the boot sequence,
+  // sets up middlewares and binds the HTTP socket.
+  application.init();
   await application.start();
   return application;
 };
@@ -365,8 +376,8 @@ const main = async () => {
 export default main();
 ```
 
-> [!TIP]
-> `start()` runs the full lifecycle internally, so calling it alone - as shown here - is enough. There is no separate discovery step to run first.
+> [!WARNING]
+> Call `init()` before `start()`. `init()` is the only thing that binds `CoreBindings.APPLICATION_INSTANCE`, and every built-in component injects that key. Skip it and the first component resolution throws `Binding key: @app/instance is not bounded in context!`.
 
 ## 5. Run Your Application
 
@@ -423,7 +434,7 @@ Response:
 
 **View API Documentation:**
 
-Open `http://localhost:3000/doc/explorer` to see interactive Swagger UI with your endpoints.
+Open `http://localhost:3000/api/doc/explorer` to see an interactive Scalar API reference listing your endpoints. The explorer registers at `/doc/explorer` on the root router, and that router mounts under `path.base`, so the `/api` prefix applies here too.
 
 Congratulations! You have successfully created and configured your first application with the `IGNIS` framework.
 

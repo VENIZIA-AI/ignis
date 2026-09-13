@@ -143,7 +143,9 @@ class PortableRepository extends DefaultSearchRepository<TDocument> {
 
 **`create()` rejects duplicates, but the check is not atomic.** Meilisearch's `addDocuments` is add-or-replace; it has no conditional insert. The neutral contract says `create()` returns 409 on a duplicate id, matching Typesense.
 
-To honour it, IGNIS reads the id first and throws `409 core.search_engine.already_exists` if it exists. Two concurrent creates of the same id can both pass that check, and the second write wins. If you want last-write-wins, call `upsert()` and say so.
+To honour it, IGNIS reads the id first and throws `409 core.search_engine.already_exists` if it exists. Two concurrent creates of the same id can both pass that check, and the second write wins.
+
+If you want last-write-wins, say so through the connector. There is no repository `upsert()` - the call is `this.connector.document.upsert({ collection: this.collectionName, document })`.
 
 **`updateById` on a missing id throws `404`, it does not upsert.** Meilisearch's `updateDocuments` is add-or-update, so a missing id would silently fabricate a record. IGNIS checks existence before any write and throws `404 core.search_engine.not_found` instead - matching Typesense and the neutral contract. (This is the deliberate search-family divergence from the PostgreSQL connector, where a missing-id `updateById` is a silent `{ count: 0 }`.)
 
@@ -187,7 +189,7 @@ The neutral paradigm lives in `@venizia/ignis/search` and imports no engine. To 
 
 1. Implement `ISearchConnector`, declaring **only** the optional verb groups your engine actually has.
 2. Write a compiler from `ISearchCollectionDefinition` to the engine's schema or settings.
-3. Write an `ISearchQueryDialect` - `build`, `toWhere`, `applySearchInput`, `toWireParams`.
+3. Write an `ISearchQueryDialect`. All seven members are required: `build`, `toWhere`, `compileWhere`, `canExpress`, `conjoin`, `applySearchInput`, `toWireParams`.
 4. Subclass `BaseSearchDataSource`.
 5. Register a sub-path export and an optional peer dependency.
 6. Pass `runConnectorConformance`.

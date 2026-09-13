@@ -3,8 +3,12 @@
 IGNIS provides centralized development configurations via the `@venizia/dev-configs` package.
 
 > [!IMPORTANT]
-> **Bun is the only package manager** - never npm, yarn, or pnpm. **Compile with `tsc` directly** -
-> never `npx`, `bunx`, or `bun x`.
+> **Bun is the only package manager** - never npm, yarn, or pnpm. **Compile with `tsc` directly**,
+> through a package script; never reach for `npx` or `bun x`.
+>
+> `bunx` is fine for running a one-off CLI that is not a project dependency. The repository does
+> exactly that: `make lint-scripts` runs `bunx prettier` and `bunx tsc` against `scripts/`, which is
+> not a workspace member, and the `ignis-build-info` how-to runs `bunx ignis-build-info`.
 
 ## Installation
 

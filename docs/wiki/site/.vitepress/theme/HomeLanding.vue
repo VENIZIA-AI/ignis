@@ -44,13 +44,14 @@
             <span class="ig-code-win__tag">live</span>
           </div>
           <!-- v-pre: skip Vue template compilation inside the code sample -->
-          <pre v-pre><span class="ig-k">import</span> { controller, get, BaseRestController } <span class="ig-k">from</span> <span class="ig-s">'@venizia/ignis'</span>
+          <pre v-pre><span class="ig-k">import</span> { controller, get, jsonResponse, BaseRestController, TRouteContext } <span class="ig-k">from</span> <span class="ig-s">'@venizia/ignis'</span>
 
 <span class="ig-d">@controller</span>({ <span class="ig-p">path</span>: <span class="ig-s">'/users'</span> })
 <span class="ig-k">export class</span> <span class="ig-c">UserController</span> <span class="ig-k">extends</span> <span class="ig-c">BaseRestController</span> {
-  <span class="ig-d">@get</span>({ <span class="ig-p">path</span>: <span class="ig-s">'/:id'</span> })
-  <span class="ig-k">async</span> <span class="ig-d">findById</span>({ id }: { id: <span class="ig-c">string</span> }) {
-    <span class="ig-k">return this</span>.userRepo.<span class="ig-d">findById</span>({ id })
+  <span class="ig-d">@get</span>({ <span class="ig-p">configs</span>: { <span class="ig-p">path</span>: <span class="ig-s">'/{id}'</span>, <span class="ig-p">responses</span>: <span class="ig-d">jsonResponse</span>({ <span class="ig-p">schema</span>: <span class="ig-c">UserSchema</span> }) } })
+  <span class="ig-k">async</span> <span class="ig-d">findById</span>(context: <span class="ig-c">TRouteContext</span>) {
+    <span class="ig-k">const</span> { id } = context.req.<span class="ig-d">param</span>()
+    <span class="ig-k">return</span> context.<span class="ig-d">json</span>(<span class="ig-k">await this</span>.userRepository.<span class="ig-d">findById</span>({ id }))
   }
 }</pre>
         </div>

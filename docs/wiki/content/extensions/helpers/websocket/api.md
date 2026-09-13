@@ -240,7 +240,15 @@ const helper = new WebSocketServerHelper<AuthPayload, UserMetadata>({
 | `outboundTransformer` | `TWebSocketOutboundTransformer` | No | - | Intercepts outbound `{ event, data }` before `socket.send()`; enables per-client encryption |
 | `handshakeFn` | `TWebSocketHandshakeFn` | No | - | Required when `requireEncryption` is `true`. Returns `{ serverPublicKey, salt }` to accept, `null`/`false` to reject |
 
-- **All callbacks run through `invokeHook()`.** Applies to `authenticateFn`, `validateRoomFn`, `clientConnectedFn`, `clientDisconnectedFn`, `messageHandler`, and `handshakeFn`.
+- **Three callbacks run through `invokeHook()`:** `clientConnectedFn`, `clientDisconnectedFn`, and `messageHandler`. A throw or a rejection there is caught and logged, and nothing else changes.
+- **The other three fail differently.** They sit on the connection's own promise chain, so a failure has a visible consequence for the client.
+
+| Callback | On throw or rejection |
+|---|---|
+| `authenticateFn` | The socket is closed with `4003 Authentication failed`, after an `Authentication error` event is sent |
+| `handshakeFn` | Runs inside the same chain, so a throw lands in the same handler and closes with `4003`. Returning a falsy value instead closes with `4004 Encryption required` |
+| `validateRoomFn` | Logged as `Failed to join rooms`. The socket stays open and the join simply does not happen |
+
 - **Failures do not crash the process.** A synchronous throw inside a Bun socket handler is caught and logged. A rejected promise is logged the same way, via `voidExecution`.
 
 ### `configure()`
@@ -619,7 +627,12 @@ interface IWebSocket<T = unknown> {
   readonly remoteAddress: string;
   readonly readyState: number;
 
-  send(data: string | ArrayBufferView | ArrayBuffer | SharedArrayBuffer, compress?: boolean): number;
+  // Bun accepts TypedArray | DataView | ArrayBuffer | SharedArrayBuffer | string;
+  // a bare ArrayBufferView is wider than that.
+  send(
+    data: string | ArrayBuffer | SharedArrayBuffer | Uint8Array | DataView,
+    compress?: boolean,
+  ): number;
   subscribe(topic: string): void;
   unsubscribe(topic: string): void;
   isSubscribed(topic: string): boolean;
@@ -632,7 +645,7 @@ interface IBunServer {
   readonly pendingWebSockets: number;
   publish(
     topic: string,
-    data: string | ArrayBufferView | ArrayBuffer | SharedArrayBuffer,
+    data: string | ArrayBuffer | SharedArrayBuffer | Uint8Array | DataView,
     compress?: boolean,
   ): number;
 }

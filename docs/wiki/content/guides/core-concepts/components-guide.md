@@ -146,6 +146,7 @@ const NotificationRoutes = {
     path: '/send',
     request: {
       body: jsonContent({
+        description: 'Notification to send',
         schema: z.object({
           userId: z.string(),
           message: z.string(),

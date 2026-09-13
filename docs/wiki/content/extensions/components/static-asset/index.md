@@ -41,7 +41,7 @@ export class Application extends BaseApplication {
 }
 ```
 
-This registers `GET`/`POST`/`DELETE` on `/assets/buckets/:bucketName`, `POST /assets/buckets/:bucketName/upload`, `GET /assets/buckets/:bucketName/objects`, plus stream/download/delete-object routes - no controller class to write by hand.
+This registers `GET`/`POST`/`DELETE` on `/assets/buckets/:bucketName`, `POST /assets/buckets/:bucketName/objects`, `GET /assets/buckets/:bucketName/objects`, plus stream/download/delete-object routes - no controller class to write by hand.
 
 ## How it works
 
@@ -52,8 +52,11 @@ This registers `GET`/`POST`/`DELETE` on `/assets/buckets/:bucketName`, `POST /as
   |-----------|--------------------|
   | `'disk'` | `DiskHelper` |
   | `'bun-s3'` | `BunS3Helper` |
+  | `'minio'` (deprecated) | `MinioHelper` |
 
-- **Every backend implements the same `IStorageHelper` contract.** `DiskHelper` and `BunS3Helper` both extend `BaseStorageHelper`. Bucket/object operations, name validation (`isValidName`/`isValidPath`), and upload normalization behave identically regardless of backend.
+  `StaticAssetStorageTypes.MINIO` is still a live arm of the union, marked `@deprecated`. Use `StaticAssetStorageTypes.BUN_S3` with a `BunS3Helper` instead - it reaches MinIO over the same S3 API.
+
+- **Every backend implements the same `IStorageHelper` contract.** `DiskHelper`, `BunS3Helper` and `MinioHelper` all extend `BaseStorageHelper`. Bucket/object operations, name validation (`isValidBucketName`/`isValidObjectKey`), and upload normalization behave identically regardless of backend.
 - **Object names can embed folder paths, encoded as one segment.** `objects/{objectName}` percent-encodes the whole `folder/file.ext` string via `encodeURIComponent()`, which also escapes `/`. Hono decodes it before your handler runs - encode the name client-side, and never decode it again.
 - **MetaLink is opt-in.** Set `useMetaLink: true` and provide `metaLink.repository`. IGNIS then persists a database row (`bucket/object/mimetype/size/etag/principal/variant`) alongside every upload. That row lets you query "which files does user X own" without listing a whole bucket.
 - **The default binding is empty.** `StaticAssetComponentBindingKeys.STATIC_ASSET_COMPONENT_OPTIONS` defaults to `{}`. Bind it with at least one storage backend before `this.component(StaticAssetComponent)` - an empty binding produces zero routes.
@@ -133,12 +136,14 @@ See [Enable MetaLink tracking](./usage#enable-metalink-tracking) for the full re
 
 `normalizeNameFn` runs before the file is written to storage; `normalizeLinkFn` builds the `link` value returned to the client. Both are optional - omit either to keep the component's defaults.
 
+Both take one options object. `normalizeNameFn` receives `{ file }`, and `normalizeLinkFn` receives an `IObjectLocation` - `{ bucket: { name }, object: { key } }`.
+
 ```typescript
 extra: {
-  normalizeNameFn: ({ originalName, folderPath }) =>
-    `${Date.now()}_${originalName.toLowerCase().replace(/\s/g, '_')}`,
-  normalizeLinkFn: ({ bucketName, normalizeName }) =>
-    `/api/files/${bucketName}/${encodeURIComponent(normalizeName)}`,
+  normalizeNameFn: ({ file }) =>
+    `${Date.now()}_${file.originalName.toLowerCase().replace(/\s/g, '_')}`,
+  normalizeLinkFn: ({ bucket, object }) =>
+    `/api/files/${bucket.name}/${encodeURIComponent(object.key)}`,
 },
 ```
 

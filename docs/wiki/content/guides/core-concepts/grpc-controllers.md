@@ -44,17 +44,20 @@ import {
   unary,
   TRouteContext,
 } from '@venizia/ignis';
+// The generated service descriptor is a value, not a type. Alias it so it does not
+// collide with your own application service class of the same name.
 import {
-  GreeterService,
+  GreeterService as GreeterServiceDefinition,
   SayHelloResponseSchema,
   type SayHelloRequest,
   type SayHelloResponse,
 } from './generated/greeter_pb';
+import { GreeterService } from '../../services/greeter.service';
 
 @controller({
   path: '/grpc',
   transport: ControllerTransports.GRPC,
-  service: GreeterService,
+  service: GreeterServiceDefinition,
 })
 export class GreeterController extends BaseGrpcController {
   constructor(
@@ -76,9 +79,10 @@ export class GreeterController extends BaseGrpcController {
 
 ### Key Points
 
-- The `service` field in `@controller` must reference the generated ConnectRPC service definition (e.g., `GreeterService`)
+- The `service` field in `@controller` must reference the generated ConnectRPC service definition
+- That descriptor is a `const`, so it cannot be used as a type. Writing `private readonly greeterService: GreeterService` against it is a compile error. The injected dependency is your own service class, which is a different symbol
 - The `path` determines the URL prefix where the gRPC service is mounted
-- `binding()` must be implemented (even if empty) -- it is called during `configure()`
+- `binding()` must be implemented (even if empty) - it is called during `configure()`
 - Handler methods receive `{ request, context }` and return a Protobuf message object
 
 ## RPC Method Decorators

@@ -3,7 +3,7 @@
 Core classes that power every IGNIS application - from the Application entry point to Repositories for data access.
 
 > [!IMPORTANT] Base vs. Connectors
-> The persistence layer (`BaseDataSource`/`BaseEntity`/CRUD repositories) is split into an engine-neutral root (`src/base`) and per-engine connectors (`src/connectors/{postgres,typesense}`). `BaseDataSource` and `BaseEntity` below refer to the **PostgreSQL connector**'s canonical `BasePostgresDataSource`/`BasePostgresEntity` (re-exported under these compatibility names) - see [Connectors](./connectors) for the full picture, and [Search & Typesense](/guides/core-concepts/persistent/search-typesense) for the other engine.
+> The persistence layer (`BaseDataSource`/`BaseEntity`/CRUD repositories) is split three ways: an engine-neutral root in `packages/kernel/src/base`, two paradigm tiers in `packages/connectors/src/{relational,search}/core`, and one branch per engine (postgres, sqlite, typesense, meilisearch). `BaseDataSource` and `BaseEntity` below refer to the **PostgreSQL** `BasePostgresDataSource`/`BasePostgresEntity` - see [Connectors](./connectors) for the full picture, and [Search & Typesense](/guides/core-concepts/persistent/search-typesense) for a search engine.
 
 ## Quick Reference
 
@@ -12,13 +12,13 @@ Core classes that power every IGNIS application - from the Application entry poi
 | `BaseApplication` | Application entry point, DI container | `ServerApplication` -> `RestApplication` -> `AbstractApplication` |
 | `BaseRestController` | REST/HTTP route handlers | `AbstractRestController` |
 | `BaseGrpcController` | gRPC route handlers (ConnectRPC) | `AbstractGrpcController` |
-| `BaseService` | Business logic layer | - |
+| `BaseService` | Business logic layer | `BaseHelper` |
 | `BaseProvider` | Factory pattern for runtime instantiation | `BaseHelper` |
-| `BaseComponent` | Pluggable feature modules | - |
-| `BaseDataSource` (alias of `BasePostgresDataSource`) | PostgreSQL connections | `AbstractPostgresDataSource` -> `AbstractDataSource` |
-| `BaseEntity` (alias of `BasePostgresEntity`) | Drizzle model definitions | `AbstractEntity` |
-| `DefaultCRUDRepository` | Full CRUD operations (PostgreSQL connector) | `PersistableRepository` -> ... -> `AbstractRepository` |
-| `ReadableRepository` | Read-only operations (PostgreSQL connector) | `PostgresBaseRepository` -> `AbstractRepository` |
+| `BaseComponent` | Pluggable feature modules | `BaseHelper` |
+| `BaseDataSource` (alias of `BasePostgresDataSource`) | PostgreSQL connections | `AbstractPostgresDataSource` -> `BaseRelationalDataSource` -> `AbstractRelationalDataSource` -> `AbstractDataSource` |
+| `BaseEntity` (alias of `BaseRelationalEntity`) | Drizzle model definitions | `AbstractEntity` |
+| `DefaultCRUDRepository` | Full CRUD operations (PostgreSQL binding) | `DefaultRelationalRepository` -> ... -> `AbstractRepository` |
+| `ReadableRepository` | Read-only operations (PostgreSQL binding) | `ReadableRelationalRepository` -> `RelationalBaseRepository` -> `AbstractRepository` |
 
 ## Architecture
 
@@ -84,12 +84,13 @@ AbstractApplication (browser-pure, @venizia/ignis-kernel)
     └── ServerApplication (opens the socket)
         └── BaseApplication ──────► Your Application
 
-AbstractRepository (engine-neutral, src/base)
-├── PostgresBaseRepository (connectors/postgres)
-│   ├── ReadableRepository
-│   │   └── PersistableRepository
-│   │       └── DefaultCRUDRepository ──────► Your Repository
-└── TypesenseBaseRepository (connectors/typesense)
+AbstractRepository (engine-neutral, @venizia/ignis-kernel)
+├── RelationalBaseRepository (connectors/relational/core)
+│   └── ReadableRelationalRepository
+│       └── PersistableRelationalRepository
+│           └── DefaultRelationalRepository
+│               └── SoftDeletableRelationalRepository
+└── SearchBaseRepository (alias: TypesenseBaseRepository)
     └── ReadableSearchRepository -> ... -> DefaultSearchRepository
 
 AbstractRestController
@@ -101,12 +102,30 @@ BaseService ──────► Your Service
 BaseProvider ──────► Your Provider
 BaseComponent ──────► Your Component
 
-AbstractDataSource (engine-neutral, src/base)
-├── AbstractPostgresDataSource -> BasePostgresDataSource (alias: BaseDataSource) ──────► Your DataSource
-└── AbstractSearchDataSource -> BaseSearchDataSource -> TypesenseDataSource
+AbstractDataSource (engine-neutral, @venizia/ignis-kernel)
+├── AbstractRelationalDataSource -> BaseRelationalDataSource
+│   ├── AbstractPostgresDataSource -> BasePostgresDataSource (alias: BaseDataSource) ──────► Your DataSource
+│   └── AbstractSqliteDataSource -> BaseSqliteDataSource ──────► Your SQLite DataSource
+└── AbstractSearchDataSource -> BaseSearchDataSource -> TypesenseDataSource · MeilisearchDataSource
 
-AbstractEntity (engine-neutral, src/base)
-└── BasePostgresEntity (alias: BaseEntity) ──────► Your Model
+AbstractEntity (engine-neutral, @venizia/ignis-kernel)
+└── BaseRelationalEntity (aliases: BaseEntity, BasePostgresEntity) ──────► Your Model
+    └── BaseSqliteEntity ──────► Your SQLite Model
 ```
+
+### Engine bindings of the relational repository ladder
+
+Each SQL engine binds every rung with one thin subclass. The bindings are siblings of each other, not a ladder: `DefaultCRUDRepository` extends `DefaultRelationalRepository`, never `PersistableRepository`.
+
+| Neutral rung | Postgres | SQLite |
+|---|---|---|
+| `RelationalBaseRepository` | `PostgresBaseRepository` | `SqliteBaseRepository` |
+| `ReadableRelationalRepository` | `ReadableRepository` | `ReadableSqliteRepository` |
+| `PersistableRelationalRepository` | `PersistableRepository` | `PersistableSqliteRepository` |
+| `DefaultRelationalRepository` | `DefaultCRUDRepository` | `DefaultSqliteRepository` |
+| `SoftDeletableRelationalRepository` | `SoftDeletableRepository` | `SoftDeletableSqliteRepository` |
+
+> [!NOTE] Where each name resolves
+> The Postgres names come from `@venizia/ignis` or `@venizia/ignis/postgres`, the SQLite names from `@venizia/ignis/sqlite`, and the neutral `*Relational*` names from `@venizia/ignis/relational`. The neutral names are deliberately absent from the engine subpaths, so `RelationalBaseRepository` and `BaseRelationalDataSource` do **not** resolve from `@venizia/ignis` or `@venizia/ignis/postgres`.
 
 > **Related:** [Core Concepts Guide](../../guides/core-concepts/application/) | [Persistent Layer Guide](../../guides/core-concepts/persistent/)

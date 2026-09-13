@@ -52,7 +52,8 @@ The framework layer (`@venizia/ignis`) creates these bindings for you - for cont
 
 - **Every constructor parameter must carry `@inject`.** The metadata array is index-keyed - an undecorated parameter leaves a hole the container has no way to fill. `instantiate()` refuses the class by name and parameter index rather than passing `undefined`.
 - **Namespaces auto-tag bindings.** A key like `services.UserService` tags the binding `services` automatically. `setTags()` adds more. `findByTag()` queries by tag, with an `exclude` list.
-- **Keys** can be a `string`, a `symbol`, or `{ namespace, key }` (built into a dotted string via `BindingKeys.build`).
+- **Keys** can be a `string` or a `symbol`. The lookup methods - `get`, `gets`, `getBinding` - also accept `{ namespace, key }`, which `BindingKeys.build` joins into a dotted string. `bind`, `isBound`, and `unbind` take the plain key only.
+- **`@inject` names a dependency by key or by class.** `@inject({ key: 'repositories.UserRepository' })` and `@inject({ target: UserRepository })` both work. They are the two arms of a union, so you pass one or the other, never both.
 
 **Scopes**
 
@@ -80,6 +81,20 @@ class OrderService {
   ) {}
 }
 ```
+
+### Bind a class by naming the class
+
+Pass `target` instead of `key`. The container reads the key off the class at resolve time, from the key its registration recorded. A key rename then never reaches this file.
+
+```typescript
+class OrderService {
+  constructor(
+    @inject({ target: OrderRepository }) private orderRepository: OrderRepository,
+  ) {}
+}
+```
+
+The class has to be a registered artifact. If it is not, the container throws and names it. A circular import that leaves the class reference `undefined` is caught earlier still, at decoration time.
 
 ### Bind a value or a provider
 

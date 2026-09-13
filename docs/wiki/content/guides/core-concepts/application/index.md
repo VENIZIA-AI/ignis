@@ -60,14 +60,24 @@ export class Application extends BaseApplication {
 
 ## Application Lifecycle
 
-The `IGNIS` application has a well-defined lifecycle, managed primarily by the `start()` and `initialize()` methods.
+The `IGNIS` application has a well-defined lifecycle, managed primarily by the `init()`, `start()` and `initialize()` methods.
 
 | Method | Description |
 | :--- | :--- |
 | **`constructor(opts)`** | Initializes the application, sets up the Hono server (`OpenAPIHono`), and detects the runtime (Bun/Node). The `Application` extends `Container` (IoC container). |
+| **`init()`** | Registers the core bindings, including `CoreBindings.APPLICATION_INSTANCE`. Call it before `start()`. |
 | **`start()`** | The main entry point. It calls `initialize()`, sets up middlewares, mounts the root router, and starts the HTTP server. |
 | **`stop()`** | Stops the application server (calls `Bun.serve.stop()` or `node-server.close()`). |
 | **`initialize()`** | Orchestrates the entire setup process, calling the various configuration and registration methods in the correct order. |
+
+> [!WARNING]
+> `start()` does not call `init()` for you, and nothing else does either. `init()` is the only caller of `registerCoreBindings()`, which binds `CoreBindings.APPLICATION_INSTANCE`. Every built-in component injects that key, so an application started without `init()` throws `Binding key: @app/instance is not bounded in context!` on the first component resolution.
+>
+> ```typescript
+> const application = new Application({ scope: 'MyApp', config: appConfigs });
+> application.init();
+> await application.start();
+> ```
 
 The `BaseApplication` class provides several **overridable hook methods** that allow you to customize the startup process. These are the primary places you'll write your application-specific setup code.
 
@@ -81,26 +91,36 @@ The `BaseApplication` class provides several **overridable hook methods** that a
 
 ## Lifecycle Diagram
 
-This diagram shows the sequence of operations during application startup.
+This diagram shows the sequence of operations during application startup. `initialize()` runs a boot sequence of sixteen named steps, always in this order.
 
 ```
+init()                                   ← You call this. Binds CoreBindings.APPLICATION_INSTANCE
+  │
+  ▼
 start()
   │
   ▼
 initialize()
   │
-  ├─► printStartUpInfo
-  ├─► validateEnvs
-  ├─► registerDefaultMiddlewares   (error handler, contextStorage, RequestTracker, favicon)
-  ├─► staticConfigure()            ← Override hook
-  ├─► preConfigure()               ← Override hook
-  ├─► registerDataSources()        (configures all datasource bindings)
-  ├─► registerComponents()         (configures all component bindings)
-  ├─► registerControllers()        (REST + gRPC transport components)
-  └─► postConfigure()              ← Override hook
+  ├─►  1. printStartUpInfo               (application name, version, environment)
+  ├─►  2. validateEnvs
+  ├─►  3. registerDefaultMiddlewares     (request id, error handler, 404, contextStorage, favicon)
+  ├─►  4. staticConfigure                ← Override hook
+  ├─►  5. registerArtifacts              (registers the index named by configs.artifacts)
+  ├─►  6. preConfigure                   ← Override hook
+  ├─►  7. hydrateSecrets                 (pulls secrets from the bound provider)
+  ├─►  8. registerConfigurations
+  ├─►  9. registerDataSources
+  ├─► 10. registerComponents
+  ├─► 11. registerContributedDataSources (datasources a component added)
+  ├─► 12. wireSecretRotatables           (subscribes rotatable datasources to rotation)
+  ├─► 13. registerControllers            (REST + gRPC transport components)
+  ├─► 14. postConfigure                  ← Override hook
+  ├─► 15. verifyBindings                 (only when bootChecks.binding.doVerify is on)
+  └─► 16. validateScopeFilterSupport
   │
   ▼
-setupMiddlewares()                 ← Override hook
+setupMiddlewares()                       ← Override hook
   │
   ▼
 Mount Root Router (server.route(basePath, rootRouter))
@@ -111,6 +131,8 @@ Start HTTP Server (Bun.serve or @hono/node-server)
   ▼
 executePostStartHooks()
 ```
+
+The step names above are the vocabulary you target with `BootSequence.insertAfter`. They live on `ServerBootSteps`, which extends the kernel's `BootSteps`.
 
 ## Configuration
 
@@ -123,14 +145,14 @@ Application configuration is passed to the `BaseApplication` constructor via an 
 | `host` | `string` | `'localhost'` | The host address. Falls back to `HOST` or `APP_ENV_SERVER_HOST` env vars. |
 | `port` | `number` | `3000` | The port to listen on. Falls back to `PORT` or `APP_ENV_SERVER_PORT` env vars. |
 | `path.base`| `string` | `'/'` | The base path for all application routes (e.g., `/api`). |
-| `path.isStrict`| `boolean`| `true` | If `true`, the router is strict about trailing slashes. |
+| `path.isStrict`| `boolean`| - | Required by the type, but nothing reads it. Use `strictPath` for trailing-slash strictness. |
 | `debug.shouldShowRoutes`| `boolean`| `false`| If `true`, prints all registered routes to the console on startup. |
 | `favicon` | `string` | `'🔥'` | An emoji to be used as the application's favicon. |
 | `artifacts` | `TArtifactIndexInput` | `undefined` | The generated artifact index (or several) to register before `preConfigure()`. See [Registering artifacts](./bootstrapping). |
 | `asyncContext.enable` | `boolean` | `true` | Enable Hono's async context storage (powered by `contextStorage()`). |
 | `transports` | `TControllerTransport[]` | `['rest']` | Controller transports to enable. Add `'grpc'` for gRPC support. |
 | `error.rootKey` | `string` | `undefined` | Optional root key for error response wrapping. |
-| `strictPath` | `boolean` | `true` | Controls trailing slash strictness on the main Hono server. |
+| `strictPath` | `boolean` | `true` | Controls trailing-slash strictness on both the main Hono server and the root router. |
 
 ### Example Configuration
 
@@ -158,7 +180,7 @@ Register resources in `preConfigure()` to tell the DI container about your class
 | Method | Example | Binding Scope | When to Use |
 |--------|---------|---------------|-------------|
 | `this.dataSource(...)` | `this.dataSource(PostgresDataSource)` | **Singleton** | Register database connection |
-| `this.component(...)` | `this.component(AuthComponent)` | **Singleton** | Register reusable modules |
+| `this.component(...)` | `this.component(AuthenticateComponent)` | **Singleton** | Register reusable modules |
 | `this.repository(...)` | `this.repository(UserRepository)` | Transient | Register data access |
 | `this.service(...)` | `this.service(UserService)` | Transient | Register business logic |
 | `this.controller(...)` | `this.controller(UserController)` | **Singleton** | Register API endpoints |

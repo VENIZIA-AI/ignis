@@ -86,7 +86,7 @@ export class HelloController extends BaseRestController {
   - An explicit empty string is NOT repaired by this fallback: it fails `DocumentUITypes.isValid()` and the component throws `Invalid document UI Type` immediately.
 - **UI libraries load lazily.** `SwaggerUIProvider`/`ScalarUIProvider` each `await import()` their rendering library inside `render()`. That happens on the first request to the docs UI, not at application startup. Only the configured provider's library is ever loaded.
 - **`ScalarUIProvider` renames `title` to `pageTitle`.** Scalar's own render API takes `pageTitle`, not `title` - worth knowing if you inspect the rendered output or write a custom UI provider.
-- **Security schemes are always registered.** JWT (`bearer`) and Basic security schemes are added to the OpenAPI registry unconditionally. Routes using `authenticate: { strategies: ['jwt'] }` or `['basic']` render the correct auth UI as a result.
+- **Three security schemes are always registered.** `jwt` (HTTP bearer), `basic` (HTTP basic) and `service` (an API key in the `x-service-assertion` header) are added to the OpenAPI registry unconditionally. Routes using `authenticate: { strategies: ['jwt'] }`, `['basic']` or `['service']` render the correct auth UI as a result. Anything you put in `securitySchemes` is registered after those three.
 
 ## Common tasks
 
@@ -136,6 +136,7 @@ export interface IApiReferenceOptions {
     servers?: Array<{ url: string; description?: string }>;
   };
   uiConfig?: Record<string, any>;
+  securitySchemes?: Record<string, Record<string, any>>;
 }
 ```
 
@@ -149,6 +150,7 @@ export interface IApiReferenceOptions {
 | `explorer.info.title` / `.version` / `.description` / `.contact` | - | Always sourced from `package.json` | Overwritten at runtime - binding values are discarded |
 | `explorer.servers` | `Array<{ url, description? }>` | Auto-detected when empty | Server URLs |
 | `uiConfig` | `Record<string, any>` | `undefined` | Custom config passed through to the UI provider |
+| `securitySchemes` | `Record<string, Record<string, any>>` | `{}` | Extra OpenAPI security schemes, registered by name after the three built-in ones |
 
 ### Binding keys
 | Key | Constant | Type | Required | Default |
@@ -193,7 +195,7 @@ These paths are mounted under your application's own base path - `path.base` in 
 | `getInstance()` | `static () => UIProviderFactory` | Returns the singleton instance |
 | `register()` | `(opts: { type: string }) => void` | Instantiates and registers a built-in provider; idempotent - warns and returns if the type is already bound |
 | `getProvider()` | `(opts: IGetProviderParams) => IUIProvider` | Returns the registered provider or throws `Unknown UI Provider` |
-| `getRegisteredProviders()` | `() => string[]` | Lists all registered provider type keys |
+| `getRegisteredProviders()` | `() => Array<keyof T>` | Lists all registered provider type keys - it returns `this.keys()` straight from the storage helper |
 
 Extends `MemoryStorageHelper<{ [key: string | symbol]: IUIProvider }>`, using `isBound()` / `get()` / `set()` / `keys()` for lightweight, type-safe storage without the full DI container.
 
@@ -220,7 +222,7 @@ class DocumentUITypes {
 6. **Resolve `uiType`** - `restOptions.ui.type ?? DocumentUITypes.SWAGGER`
 7. **Validate and register the UI provider** - via `UIProviderFactory`, unless a provider with that type is already bound
 8. **Register the UI route** - `GET` handler at `uiPath` calling `uiProvider.render()`
-9. **Register JWT and Basic security schemes** on the OpenAPI registry
+9. **Register the `jwt`, `basic` and `service` security schemes** on the OpenAPI registry, then every entry in `securitySchemes`
 
 ### Tech stack
 | Library | Purpose |

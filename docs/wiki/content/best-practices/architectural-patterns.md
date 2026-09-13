@@ -192,72 +192,76 @@ IGNIS applications follow a predictable startup sequence with hooks for customiz
 │                     initialize()                            │
 ├─────────────────────────────────────────────────────────────┤
 │  1. printStartUpInfo()     - Log startup configuration      │
-│  2. validateEnvs()         - Validate APP_ENV_* variables   │
-│  3. registerDefaultMiddlewares() - Error handlers, favicon  │
+│  2. validateEnvs()         - Empty-env check, off by default│
+│  3. registerDefaultMiddlewares() - Request id, errors, 404  │
 │  4. staticConfigure()      - Configure static file serving  │
+│  5. registerArtifacts      - Bind every class listed in     │
+│                              configs.artifacts              │
 │                                                             │
 │  ┌─────────────────────────────────────────────────────┐    │
-│  │ 5. preConfigure()  ← YOUR CODE HERE                 │    │
-│  │    - Register DataSources                           │    │
-│  │    - Register Repositories                          │    │
-│  │    - Register Services                              │    │
-│  │    - Register Controllers                           │    │
-│  │    - Register Components                            │    │
+│  │ 6. preConfigure()  ← YOUR CODE HERE                 │    │
+│  │    - Registry calls and hand-made bindings          │    │
+│  │    - Anything the generated index cannot express    │    │
 │  └─────────────────────────────────────────────────────┘    │
 │                                                             │
-│  6. hydrateSecrets()       - Resolve secrets into env       │
-│  7. registerDataSources()  - Initialize DB connections      │
-│  8. registerComponents()   - Configure all components       │
-│  9. registerContributedDataSources()                        │
+│  7. hydrateSecrets()       - Resolve secrets into env       │
+│  8. registerConfigurations() - Configure configurations     │
+│  9. registerDataSources()  - Initialize DB connections      │
+│ 10. registerComponents()   - Configure all components       │
+│ 11. registerContributedDataSources()                        │
 │                            - Datasources components added   │
-│ 10. wireSecretRotatables() - Attach rotation listeners      │
-│ 11. registerControllers()  - Mount routes to router         │
+│ 12. wireSecretRotatables() - Attach rotation listeners      │
+│ 13. registerControllers()  - Mount routes to router         │
 │                                                             │
 │  ┌─────────────────────────────────────────────────────┐    │
-│  │ 12. postConfigure()  ← YOUR CODE HERE               │    │
+│  │ 14. postConfigure()  ← YOUR CODE HERE               │    │
 │  │    - Seed data                                      │    │
 │  │    - Start background jobs                          │    │
 │  │    - Custom initialization                          │    │
 │  └─────────────────────────────────────────────────────┘    │
 │                                                             │
-│ 13. validateScopeFilterSupport()                            │
+│ 15. verifyBindings()       - Resolve every service and      │
+│                              repository once (opt-in)       │
+│ 16. validateScopeFilterSupport()                            │
 │                            - Refuse a dead scopeFilter      │
 └─────────────────────────────────────────────────────────────┘
 ```
 
-`hydrateSecrets()` runs after `preConfigure()` so a secrets provider registered there is available, and before `registerDataSources()` so datasources read already-resolved values. `registerContributedDataSources()` runs once after every component, so a datasource a component adds is configured before any controller mounts. `wireSecretRotatables()` follows it, because a rotation lease may point at one of those contributed datasources. `validateScopeFilterSupport()` runs last, so a model a component registered is checked too.
+Sixteen steps. Each one logs `Boot step n/16 <name>`.
+
+`registerArtifacts` sits between `staticConfigure()` and `preConfigure()`, so every class in `configs.artifacts` is already bound by the time your hook runs. `hydrateSecrets()` runs after `preConfigure()` so a secrets provider registered there is available, and before `registerConfigurations()` and `registerDataSources()` so both read already-resolved values. Configurations are configured first, ahead of datasources, because they are what the rest of the application is set up from. `registerContributedDataSources()` runs once after every component, so a datasource a component adds is configured before any controller mounts. `wireSecretRotatables()` follows it, because a rotation lease may point at one of those contributed datasources. `verifyBindings()` resolves every service and repository once when `bootChecks.binding.doVerify` is on. `validateScopeFilterSupport()` runs last, so a model a component registered is checked too.
 
 **Lifecycle Methods:**
 
 | Method | When | Purpose |
 |--------|------|---------|
 | `staticConfigure()` | Before DI registration | Configure static file serving |
-| `preConfigure()` | Before auto-registration | Register all bindings (datasources, repos, services, controllers, components) |
+| `preConfigure()` | After `registerArtifacts`, before the sweeps | Whatever the artifact index cannot express: registry calls, hand-made bindings |
 | `postConfigure()` | After everything is registered | Seed data, start jobs, custom logic |
 
 **Example:**
 ```typescript
+// The registration surface is the artifact index, not a hook. `registerArtifacts` reads it at step
+// 5, before `preConfigure()` runs, so everything named here is already bound by then.
+export const beConfigs: IApplicationConfigs = {
+  path: { base: '/api', isStrict: true },
+  artifacts: [
+    // Every decorated class under src/, regenerated with `bun run generate:artifacts`.
+    GeneratedArtifacts,
+    // Then the framework components this application turns on.
+    { components: [AuthenticateComponent, ApiReferenceComponent] },
+  ],
+};
+
 export class Application extends BaseApplication {
-  // Called before automatic registration
-  async preConfigure(): Promise<void> {
-    // DataSources (order matters - first)
-    this.dataSource(PostgresDataSource);
-
-    // Repositories
-    this.repository(UserRepository);
-    this.repository(OrderRepository);
-
-    // Services
-    this.service(AuthService);
-    this.service(EmailService);
-
-    // Controllers
-    this.controller(UserController);
-    this.controller(OrderController);
-
-    // Components
-    this.component(AuthenticateComponent);
-    this.component(ApiReferenceComponent);
+  // Runs after `registerArtifacts`. Only what the index cannot express belongs here.
+  preConfigure(): ValueOrPromise<void> {
+    AuthenticationStrategyRegistry.getInstance().register({
+      container: this,
+      strategies: [
+        { name: Authentication.STRATEGY_JWT, strategy: JWKSIssuerAuthenticationStrategy },
+      ],
+    });
   }
 
   // Called after all registrations complete
@@ -287,32 +291,44 @@ export class Application extends BaseApplication {
 ```
 
 > [!WARNING]
-> Do not register new datasources, components, or controllers in `postConfigure()`. They will not be automatically initialized. Use `preConfigure()` for all registrations.
+> Do not register new configurations, datasources, components, or controllers in `postConfigure()`. The sweeps that configure them have already run, so they are bound but never initialized. Put the class in `configs.artifacts` instead; if you must add one late, call its `configure()` yourself.
+
+> [!NOTE]
+> Hand-registering in `preConfigure()` still works, but it is the old shape. A project that sets `bootChecks.binding.allowManual: false` refuses it outright while `configs.artifacts` is set, and throws naming the class and the hook.
 
 ## 6. Registration Surface & Capability Interfaces
 
-`BaseApplication` implements the full resource-registration surface directly - `service()`, `repository()`, `dataSource()`, `controller()`, `component()` and `registerArtifacts()`. Extend `BaseApplication`; most applications never call the first five, because `configs.artifacts` registers every decorated class - see [Registering artifacts](/guides/core-concepts/application/bootstrapping).
+`RestApplication` - the kernel layer, two classes above `BaseApplication` - implements the full resource-registration surface directly: `configuration()`, `service()`, `repository()`, `dataSource()`, `controller()`, `component()` and `registerArtifacts()`. Extend `BaseApplication` and you inherit all of it. Most applications never call the first six, because `configs.artifacts` registers every decorated class - see [Registering artifacts](/guides/core-concepts/application/bootstrapping).
 
 **How registration works:**
-```typescript
-// BaseApplication implements service() directly (no mixin composition):
-service<Base extends IService>(ctor: TClass<Base>, opts?: TMixinOpts): Binding<Base> {
-  const key = BindingKeys.build(
-    opts?.binding ?? { namespace: BindingNamespaces.SERVICE, key: ctor.name },
-  );
-  // Throws when `allowOverride: false` and `key` is already bound - every registration
-  // method (service, repository, dataSource, controller, component, booter) does the same check.
-  this.assertNoBindingCollision({ key, allowOverride: opts?.allowOverride, caller: this.service.name });
 
-  return this.bind<Base>({ key }).toClass(ctor);
+Each of the six single-class methods is a one-line call into one private `registerArtifact()`, which differs only in the namespace and the default scope:
+
+```typescript
+service<Base extends IService>(target: TClass<Base>, opts?: TMixinOpts): Binding<Base> {
+  return this.registerArtifact({
+    target,
+    namespace: BindingNamespaces.SERVICE,
+    defaultScope: BindingScopes.TRANSIENT,
+    caller: this.service.name,
+    opts,
+  });
 }
 ```
 
-Every registration method takes the same optional second argument. `opts.binding` overrides the derived `{ namespace, key }` when you need to register two classes under one contract.
+`registerArtifact()` then does the same five things for every kind:
+
+1. Resolves the binding in a fixed order - explicit `opts`, then the class's `@injectable` metadata, then the derived `{ namespace, key: target.name }`.
+2. Writes the resulting key back into `MetadataRegistry`, so `@inject({ target })` can read it.
+3. Stores `opts.options`, to be replayed into `instance.configure(options)` during the matching boot sweep.
+4. Runs `assertNoBindingCollision`, which throws when the key is bound and `allowOverride` is false.
+5. Binds `.toClass(target).setScope(declared?.scope ?? defaultScope)`.
+
+Step 5 is why a service is `TRANSIENT` and a component `SINGLETON` without either class saying so. Every registration method takes the same optional second argument. `opts.binding` overrides the derived `{ namespace, key }` when you need to register two classes under one contract.
 
 **Capability interfaces:**
 
-Each registration capability is declared as a TypeScript interface that `IRestApplication` (and therefore `BaseApplication`) implements. Reference these when you type your own application contracts:
+Each registration capability is declared as a TypeScript interface. `IRestApplication` extends `IApplication` plus these five, and `BaseApplication` implements it. Reference them when you type your own application contracts:
 
 | Interface | Methods | Purpose |
 |-----------|---------|---------|
@@ -320,8 +336,14 @@ Each registration capability is declared as a TypeScript interface that `IRestAp
 | `IRepositoryMixin` | `dataSource()`, `repository()` | Register data layer |
 | `IComponentMixin` | `component()`, `registerComponents()` | Register modular components |
 | `IControllerMixin` | `controller()`, `registerControllers()` | Register controllers and mount routes |
-| `IServerConfigMixin` | `staticConfigure()`, `preConfigure()`, `postConfigure()`, `getApplicationVersion()` | Lifecycle hooks |
 | `IStaticServeMixin` | `static()` | Serve static files |
+
+Two more interfaces live in the same file and are **not** part of `IRestApplication`, even though `RestApplication` implements both:
+
+| Interface | Methods | Purpose |
+|-----------|---------|---------|
+| `IConfigurationMixin` | `configuration()`, `registerConfigurations()` | Register configurations |
+| `IServerConfigMixin` | `staticConfigure()`, `preConfigure()`, `postConfigure()`, `getApplicationVersion()` | Lifecycle hooks |
 
 > [!NOTE]
 > Earlier releases also exported `ServiceMixin`, `RepositoryMixin`, and `ComponentMixin` as class-mixin **functions** you composed onto `AbstractApplication`. They duplicated `BaseApplication`'s own methods verbatim, drifted out of sync, and had no known consumers, so they were removed. The `IServiceMixin` / `IRepositoryMixin` / `IComponentMixin` **interfaces** remain - extend `BaseApplication` and call its registration methods directly.

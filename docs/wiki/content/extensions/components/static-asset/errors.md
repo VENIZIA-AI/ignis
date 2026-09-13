@@ -8,37 +8,54 @@ difficulty: intermediate
 
 Every error condition the static asset controller and storage helpers can raise, with cause and fix.
 
+## Catalogued errors
+
+These carry a machine code a client can branch on, alongside the human message. The code is the stable contract; the message text may be overridden at a throw site to name the offending value.
+
+| Code | Message text | HTTP Status | Category |
+|------|--------------|-------------|----------|
+| `core.static_asset.bucket_name_invalid` | `"Invalid bucket name"` | `400` | `VALIDATION` |
+| `core.static_asset.object_name_invalid` | `"Invalid object name or path"` | `400` | `VALIDATION` |
+| `core.static_asset.folder_path_invalid` | `"Invalid folder path"` | `400` | `VALIDATION` |
+| `core.static_asset.folder_segment_invalid` | `"Invalid folder path segment"` | `400` | `VALIDATION` |
+| `core.static_asset.folder_depth_exceeded` | `"Folder path exceeds the maximum depth"` | `400` | `VALIDATION` |
+| `core.static_asset.file_empty` | `"Empty file content"` | `400` | `VALIDATION` |
+| `core.static_asset.max_keys_invalid` | `"Invalid maxKeys - expected a positive integer"` | `400` | `VALIDATION` |
+| `core.storage.object_not_found` | `"Object not found"` | `404` | `BUSINESS` |
+
+The seven `core.static_asset.*` codes live on `StaticAssetErrors`; `core.storage.object_not_found` lives on `StorageErrors` in the helpers package. Both register with the shared key registry, so `messageCode` autocompletes.
+
 ## Error conditions
 
-| Message | Cause | HTTP Status |
-|---------|-------|-------------|
-| `"Invalid bucket name"` | `bucketName` fails `isValidName()` | `400` |
-| `"Invalid object name or path"` | `objectName` fails `isValidPath()` | `400` |
-| `"Invalid folder path"` | Upload's `folderPath` query param is empty after trimming leading/trailing slashes | `400` |
-| <code v-pre>"Folder path exceeds max depth of {n}"</code> | Upload's `folderPath` has more segments than `maxFolderDepth` (default `2`) | `400` |
-| <code v-pre>"Invalid folder path segment: {segment}"</code> | One `folderPath` segment fails `isValidName()` | `400` |
-| <code v-pre>"Empty file content \| name: {originalName}"</code> | The uploaded file's buffer is empty after multipart parsing (or after re-reading a disk-spooled file) | `400` |
-| <code v-pre>"Invalid maxKeys \| Expected a positive integer \| value: {value}"</code> | `listObjects`'s `maxKeys` query param does not parse to a positive integer | `400` |
-| <code v-pre>[upload] Bucket does not exist \| name: {bucket}</code> | `helper.upload()` found no matching bucket via `hasBucket()` | `400` (default) |
-| `[upload] Invalid original file name` | A file's `originalName` fails `isValidName()`, checked inside `helper.upload()` | `400` (default) |
-| <code v-pre>[upload] Invalid folder path \| depth: {n} \| max: {m}</code> | `helper.upload()`'s own check found more `folderPath` segments than `maxFolderDepth` allows | `400` (default) |
-| `[upload] Invalid folder path` | `helper.upload()`'s own `isValidPath()` check failed for any other reason | `400` (default) |
-| <code v-pre>[upload] Invalid file size \| size: {size}</code> | A file's `size` is `undefined`, `null`, or negative | `400` (default) |
-| <code v-pre>[upload] Invalid normalized object name \| name: {name}</code> | The name returned by `normalizeNameFn` fails `isValidPath()` | `400` (default) |
-| `[createBucket] Invalid name to create bucket!` | `createBucket()` called with a name failing `isValidName()` - only reachable calling a helper directly, the controller validates first | `400` (default) |
-| <code v-pre>[createBucket] Bucket already exists \| name: {name}</code> | `DiskHelper.createBucket()` called with a name that already exists on disk. `BunS3Helper` throws whatever the S3 endpoint returns for the same case instead | `400` (default) |
-| `[removeBucket] Invalid name to remove bucket!` | `removeBucket()` called with a name failing `isValidName()` - only reachable calling a helper directly | `400` (default) |
-| <code v-pre>[removeBucket] Bucket does not exist \| name: {name}</code> | `DiskHelper.removeBucket()` - no directory at that bucket name | `400` (default) |
-| <code v-pre>[removeBucket] Bucket is not empty \| name: {name}</code> | `DiskHelper.removeBucket()` - the bucket directory still has files in it | `400` (default) |
-| <code v-pre>[getObject] File not found \| bucket: {bucket} \| name: {name}</code> (also `[getStat]`, `[removeObject]`) | `DiskHelper` - no file at that bucket/object path | `400` (default) |
-| <code v-pre>[parseMultipartBody] storage: {storage} \| Invalid storage type \| Valids: ['memory', 'disk']</code> | `extra.parseMultipartBody.storage` set to something other than `'memory'`/`'disk'` - a configuration error, not user input | `400` (default) |
+| Message | Cause | Code | HTTP Status |
+|---------|-------|------|-------------|
+| `"Invalid bucket name"` | `bucketName` fails `isValidBucketName()` | `core.static_asset.bucket_name_invalid` | `400` |
+| `"Invalid object name or path"` | `objectName` fails `isValidObjectKey()` | `core.static_asset.object_name_invalid` | `400` |
+| `"Invalid folder path"` | Upload's `folderPath` query param is empty after trimming leading/trailing slashes | `core.static_asset.folder_path_invalid` | `400` |
+| <code v-pre>"Folder path exceeds max depth of {n}"</code> | Upload's `folderPath` has more segments than `maxFolderDepth` (default `2`) | `core.static_asset.folder_depth_exceeded` | `400` |
+| <code v-pre>"Invalid folder path segment: {segment}"</code> | One `folderPath` segment fails `isValidSegment()` | `core.static_asset.folder_segment_invalid` | `400` |
+| <code v-pre>"Empty file content \| name: {originalName}"</code> | The uploaded file's buffer is empty after multipart parsing (or after re-reading a disk-spooled file) | `core.static_asset.file_empty` | `400` |
+| <code v-pre>"Invalid maxKeys \| Expected a positive integer \| value: {value}"</code> | `listObjects`'s `maxKeys` query param does not parse to a positive integer | `core.static_asset.max_keys_invalid` | `400` |
+| <code v-pre>[getObject] Object not found \| bucket: {bucket} \| key: {key}</code> (also `[getObjectStream]`, `[getStat]`, `[removeObject]`) | No object at that bucket and key. `DiskHelper` throws it directly; `BunS3Helper` and `MinioHelper` map the backend's own failure onto it through `asStorageError` | `core.storage.object_not_found` | `404` |
+| <code v-pre>[upload] Bucket does not exist \| name: {bucket}</code> | `helper.upload()` found no matching bucket via `hasBucket()` | - | `400` (default) |
+| `[upload] Invalid original file name` | A file's `originalName` fails `isValidSegment()`, checked inside `helper.upload()` | - | `400` (default) |
+| <code v-pre>[upload] Invalid folder path \| depth: {n} \| max: {m}</code> | `helper.upload()`'s own check found more `folderPath` segments than `maxFolderDepth` allows | - | `400` (default) |
+| `[upload] Invalid folder path` | `helper.upload()`'s own path check failed for any other reason | - | `400` (default) |
+| <code v-pre>[upload] Invalid file size \| size: {size}</code> | A file's `size` is `undefined`, `null`, or negative | - | `400` (default) |
+| <code v-pre>[upload] Invalid normalized object name \| name: {name}</code> | The key returned by `normalizeNameFn` fails `isValidObjectKey()` | - | `400` (default) |
+| `[createBucket] Invalid name to create bucket!` | `createBucket()` called with a name failing `isValidBucketName()` - only reachable calling a helper directly, the controller validates first | - | `400` (default) |
+| <code v-pre>[createBucket] Bucket already exists \| name: {name}</code> | `DiskHelper.createBucket()` called with a name that already exists on disk. `BunS3Helper` throws whatever the S3 endpoint returns for the same case instead | - | `400` (default) |
+| `[removeBucket] Invalid name to remove bucket!` | `removeBucket()` called with a name failing `isValidBucketName()` - only reachable calling a helper directly | - | `400` (default) |
+| <code v-pre>[removeBucket] Bucket does not exist \| name: {name}</code> | `DiskHelper.removeBucket()` - no directory at that bucket name | - | `400` (default) |
+| <code v-pre>[removeBucket] Bucket is not empty \| name: {name}</code> | `DiskHelper.removeBucket()` - the bucket directory still has files in it | - | `400` (default) |
+| <code v-pre>[parseMultipartBody] storage: {storage} \| Invalid storage type \| Valids: ['memory', 'disk']</code> | `extra.parseMultipartBody.storage` set to something other than `'memory'`/`'disk'` - a configuration error, not user input | - | `400` (default) |
 
 > [!NOTE]
 > Entries marked "default" pass no explicit `statusCode` to `getError()`. `ApplicationError` defaults `statusCode` to `400` in that case.
 
 ## Name validation rules
 
-Bucket names are validated with `isValidName()` (single segment, no path separators). Object names, which may include folder segments (for example `2026/uploads/report.pdf`), are validated with `isValidPath()` - every segment still runs through `isValidName()`.
+Bucket names are validated with `isValidBucketName()`, which is `isValidSegment()` applied to `bucket.name` (single segment, no path separators). Object keys, which may include folder segments (for example `2026/uploads/report.pdf`), are validated with `isValidObjectKey()` - every segment still runs through `isValidSegment()`.
 
 | Pattern | Example | Reason |
 |---------|---------|--------|
@@ -48,9 +65,9 @@ Bucket names are validated with `isValidName()` (single segment, no path separat
 | Control characters | `file\ninjected` | Contains `\n`, `\r`, or `\0` |
 | Long names | 256+ characters | Exceeds the 255-character limit |
 | Empty names | `""`, `"  "` | Empty or whitespace-only |
-| Double slashes (path only) | `a//b.png` | `isValidPath()` rejects empty segments |
-| Excess folder depth (path only) | `a/b/c/d.png` with `maxFolderDepth: 2` | `folderDepth = segments.length - 1` exceeds the limit |
-| Long paths (path only) | 1025+ characters | Exceeds the 1024-character normalized-path limit |
+| Double slashes (key only) | `a//b.png` | `isValidObjectKey()` rejects empty segments |
+| Excess folder depth (key only) | `a/b/c/d.png` with `maxFolderDepth: 2` | `folderDepth = segments.length - 1` exceeds the limit |
+| Long keys (key only) | 1025+ characters | Exceeds the 1024-character normalized-key limit |
 
 ## Troubleshooting
 
@@ -60,7 +77,7 @@ Bucket names are validated with `isValidName()` (single segment, no path separat
 - **Fix:** strip path separators, leading dots, shell metacharacters, and control characters. Keep names under 255 characters (1024 for a full object path). Never send an empty or whitespace-only value.
 
 ```typescript
-// Wrong - contains a path separator, rejected by isValidName()
+// Wrong - contains a path separator, rejected by isValidBucketName()
 await fetch('/assets/buckets/user/uploads', { method: 'POST' });
 
 // Right - one segment
@@ -69,7 +86,7 @@ await fetch('/assets/buckets/user-uploads', { method: 'POST' });
 
 ### "Folder path exceeds max depth" / "Invalid folder path segment"
 
-- **Cause:** the upload's `folderPath` query parameter has more segments than `maxFolderDepth` allows (default `2`), or one segment fails `isValidName()`.
+- **Cause:** the upload's `folderPath` query parameter has more segments than `maxFolderDepth` allows (default `2`), or one segment fails `isValidSegment()`.
 - **Fix:** flatten the folder structure, or raise the limit via `extra.maxFolderDepth` when registering the backend.
 
 ```typescript

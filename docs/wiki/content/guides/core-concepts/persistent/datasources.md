@@ -3,7 +3,7 @@
 A DataSource manages database connections and supports **schema auto-discovery** from repositories.
 
 > [!NOTE] Connectors
-> This guide covers the **PostgreSQL connector** (`BasePostgresDataSource`, aliased as `BaseDataSource` for backward compatibility). It's the primary relational engine and the one used by most applications. IGNIS also ships a **SQLite connector** (`BaseSqliteDataSource`, see [SQLite](./sqlite)) and a **typesense connector** for full-text/vector search (see [Search & Typesense](./search-typesense)). All three implement the same engine-neutral `AbstractDataSource` contract - see [Connectors](/references/base/connectors) for the architecture.
+> This guide covers the **PostgreSQL connector** (`BasePostgresDataSource`, aliased as `BaseDataSource` for backward compatibility). It's the primary relational engine and the one used by most applications. IGNIS also ships a **SQLite connector** (`BaseSqliteDataSource`, see [SQLite](./sqlite)), an embedded **PGlite** driver (see [PGlite](./pglite)), and two search connectors, **Typesense** (see [Search and Typesense](./search-typesense)) and **Meilisearch** (see [Search and Meilisearch](./search-meilisearch)). They all implement the same engine-neutral `AbstractDataSource` contract - see [Connectors](/references/base/connectors) for the architecture.
 
 ## Creating a DataSource
 
@@ -17,7 +17,7 @@ import {
 import { NodePostgresDriver } from '@venizia/ignis/postgres/node-postgres';
 import { Pool } from 'pg';
 
-interface IDSConfigs {
+interface IDataSourceConfigs {
   host: string;
   port: number;
   database: string;
@@ -26,7 +26,7 @@ interface IDSConfigs {
 }
 
 @datasource({ driver: NodePostgresDriver })
-export class PostgresDataSource extends BasePostgresDataSource<IDSConfigs> {
+export class PostgresDataSource extends BasePostgresDataSource<IDataSourceConfigs> {
   constructor() {
     super({
       name: PostgresDataSource.name,
@@ -73,7 +73,7 @@ If you need explicit control, you can still provide schema manually:
 
 ```typescript
 @datasource({ driver: NodePostgresDriver })
-export class PostgresDataSource extends BasePostgresDataSource<IDSConfigs> {
+export class PostgresDataSource extends BasePostgresDataSource<IDataSourceConfigs> {
   constructor() {
     super({
       name: PostgresDataSource.name,
@@ -91,19 +91,28 @@ export class PostgresDataSource extends BasePostgresDataSource<IDSConfigs> {
 ## DataSource Hierarchy
 
 ```
-AbstractDataSource extends BaseHelper        # engine-neutral, src/base - no pool, no Drizzle
-  └── AbstractPostgresDataSource              # connectors/postgres - adds pool, connector
-        └── BasePostgresDataSource (alias: BaseDataSource)
-              ├── configure()               # Assign this.client (abstract) - base wires driver + connector
-              ├── getConnectionString()     # Build connection URL (abstract)
-              ├── getSchema()               # Auto-discover from @repository bindings
-              ├── discoverSchema()          # Internal: reads MetadataRegistry
-              ├── hasDiscoverableModels()   # Check if any repos reference this DS
-              ├── getCapabilities()         # Returns { transactions: true }
-              ├── beginTransaction(opts?)   # Start transaction with isolation level
-              ├── getConnector()            # Get Drizzle connector
-              └── getSettings()            # Get connection config
+AbstractDataSource extends BaseHelper             # engine-neutral - no client, no Drizzle
+  └── AbstractRelationalDataSource                # SQL branch root - client, driver, connector slots
+        │                                           wireDriverFromMetadata(), useDriver()
+        │                                           getConnectionString() is abstract here
+        └── BaseRelationalDataSource              # still engine-neutral
+              │                                     getSchema(), discoverSchema()
+              │                                     hasDiscoverableModels()
+              │                                     getCapabilities() -> { transactions: true }
+              │                                     beginTransaction(opts?)
+              ├── AbstractPostgresDataSource      # Postgres dialect + executor
+              │     └── BasePostgresDataSource (alias: BaseDataSource)
+              │           ├── configure()               # you assign this.client (abstract)
+              │           ├── getConnectionString()     # still abstract - you implement it
+              │           └── buildBeginStatement()     # BEGIN with isolation level
+              └── AbstractSqliteDataSource        # SQLite dialect + executor
+                    └── BaseSqliteDataSource
+                          ├── configure()               # you assign this.client (abstract)
+                          ├── getConnectionString()     # inherited - returns settings.url
+                          └── buildBeginStatement()     # BEGIN with begin mode
 ```
+
+`getCapabilities()` and `beginTransaction()` sit on the neutral `BaseRelationalDataSource`, so both SQL engines get transactions. `getConnectionString()` is abstract on the Postgres branch because no framework code can guess a `postgresql://` URL; SQLite inherits one because the libsql url is the connection string.
 
 ## Registering a DataSource
 
@@ -122,9 +131,12 @@ DataSources are bound as **singletons** to ensure connection pool sharing across
 
 | Engine | Driver/Package | Import | Status |
 |--------|---------|--------|--------|
-| PostgreSQL | `node-postgres` (`pg`) | `@venizia/ignis` or `@venizia/ignis/postgres` | Supported, transactions + 3 isolation levels |
-| Typesense (search) | `typesense` (optional peer) | `@venizia/ignis/typesense` (subpath-only) | Supported, no transactions/locks |
-| MySQL / SQLite | - | - | Not planned; would be a new connector under `src/connectors/` |
+| PostgreSQL | `node-postgres` (`pg`) or `postgres` | `@venizia/ignis` or `@venizia/ignis/postgres` | Supported, transactions + 3 isolation levels. See [Postgres Drivers](./postgres-drivers) |
+| PGlite (embedded Postgres) | `@electric-sql/pglite` (optional peer) | `@venizia/ignis/postgres/pglite` | Supported. See [PGlite](./pglite) |
+| SQLite | `@libsql/client` (optional peer) | `@venizia/ignis/sqlite` and `@venizia/ignis/sqlite/libsql` | Supported, transactions with begin modes. See [SQLite](./sqlite) |
+| Typesense (search) | `typesense` (optional peer) | `@venizia/ignis/typesense` (subpath-only) | Supported, no transactions/locks. See [Search and Typesense](./search-typesense) |
+| Meilisearch (search) | `meilisearch` (optional peer) | `@venizia/ignis/meilisearch` (subpath-only) | Supported, no transactions/locks. See [Search and Meilisearch](./search-meilisearch) |
+| MySQL | - | - | Not planned; would be a new connector under `packages/connectors/src/relational/` |
 
 ## DataSource Template
 
@@ -133,7 +145,7 @@ import { BasePostgresDataSource, datasource, ValueOrPromise } from '@venizia/ign
 import { NodePostgresDriver } from '@venizia/ignis/postgres/node-postgres';
 import { Pool } from 'pg';
 
-interface IDSConfigs {
+interface IDataSourceConfigs {
   host: string;
   port: number;
   database: string;
@@ -142,7 +154,7 @@ interface IDSConfigs {
 }
 
 @datasource({ driver: NodePostgresDriver })
-export class PostgresDataSource extends BasePostgresDataSource<IDSConfigs> {
+export class PostgresDataSource extends BasePostgresDataSource<IDataSourceConfigs> {
   constructor() {
     super({
       name: PostgresDataSource.name,

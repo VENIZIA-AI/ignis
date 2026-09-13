@@ -8,6 +8,9 @@ difficulty: intermediate
 
 Runnable `filter` objects, paired with the SQL `FilterBuilder` produces for them. Copy the shape closest to what you need. For the operators themselves, start at the [Filter System Overview](./).
 
+> [!NOTE]
+> Every `find()` emits a `LIMIT`. A filter that omits `limit` gets `settings.defaultLimit ?? 10`, so the examples below that set no `limit` still come back capped at 10 rows. See [Fields, Ordering & Pagination](./fields-order-pagination#default-limit-resolution).
+
 ## Soft delete
 
 Goal: return only non-deleted rows, or only deleted ones.
@@ -17,13 +20,13 @@ Goal: return only non-deleted rows, or only deleted ones.
 const activeRecords = await repository.find({
   filter: { where: { deletedAt: { is: null } } },
 });
-// SQL: SELECT * FROM "Record" WHERE "deleted_at" IS NULL
+// SQL: SELECT * FROM "Record" WHERE "deleted_at" IS NULL LIMIT 10
 
 // ONLY soft-deleted records
 const deletedRecords = await repository.find({
   filter: { where: { deletedAt: { isn: null } } },
 });
-// SQL: SELECT * FROM "Record" WHERE "deleted_at" IS NOT NULL
+// SQL: SELECT * FROM "Record" WHERE "deleted_at" IS NOT NULL LIMIT 10
 ```
 
 Notice: `is`/`isn` against a nullable timestamp is the whole pattern - no separate `deleted: boolean` column needed.
@@ -147,6 +150,7 @@ const priorityTasks = await taskRepository.find({
 //   AND "tags"::text[] && ARRAY['urgent', 'high-priority']::text[]
 //   AND "assignee_id" = 'user-123'
 // ORDER BY "due_date" ASC, "created_at" ASC
+// LIMIT 10
 //
 // -- Separate query for relation:
 // SELECT * FROM "Project" WHERE "id" IN (...)
@@ -168,7 +172,7 @@ const weekEvents = await eventRepository.find({
     order: ['eventDate ASC'],
   },
 });
-// SQL: SELECT * FROM "Event" WHERE "event_date" BETWEEN '2024-12-29' AND '2025-01-04' ORDER BY "event_date" ASC
+// SQL: SELECT * FROM "Event" WHERE "event_date" BETWEEN '2024-12-29' AND '2025-01-04' ORDER BY "event_date" ASC LIMIT 10
 ```
 
 ```typescript
@@ -226,6 +230,7 @@ const lowStockProducts = await productRepository.find({
 //     OR ("quantity" <= 10 AND "metadata" #>> '{fastMoving}' = 'true')
 //   )
 // ORDER BY "quantity" ASC
+// LIMIT 10
 ```
 
 Notice: `or` nests an `and` group one level deep - `FilterBuilder` recurses through logical groups, so nesting depth is not limited to one.

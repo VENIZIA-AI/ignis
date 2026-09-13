@@ -13,7 +13,7 @@ Guide for writing consistent, professional component reference docs for IGNIS.
 
 | Tier | Structure | When to Use | Examples |
 |------|-----------|-------------|----------|
-| **Tier 1** | [Single page](./single-page) | 5 or fewer config options, straightforward behavior | Health Check, Request Tracker, Swagger |
+| **Tier 1** | [Single page](./single-page) | 5 or fewer config options, straightforward behavior | Health Check, Request Tracker, API Reference |
 | **Tier 2** | 4 pages | 6+ config options, multiple strategies/providers, architectural depth | Authentication, Authorization, Mail, Socket.IO, WebSocket, Static Asset |
 
 ### Tier 1 -- Single Page
@@ -24,7 +24,7 @@ See [Single-Page Template](./single-page).
 
 ### Tier 2 -- Four Pages
 
-A directory with 4 files:
+A directory with these 4 files:
 
 | File | Page Title | Content | Template |
 |------|-----------|---------|----------|
@@ -32,6 +32,8 @@ A directory with 4 files:
 | `usage.md` | Usage & Examples | Step 3 usage, patterns, flows, API endpoints, integration examples | [Template](./usage-page) |
 | `api.md` | API Reference | Architecture diagrams, method signatures, internals, types | [Template](./api-page) |
 | `errors.md` | Error Reference | Error tables by source, troubleshooting entries | [Template](./errors-page) |
+
+A component may add a fifth page when the concept needs teaching before the options make sense. `authorization/` does: `getting-started.md` explains the graph model, then seeds one grant end to end. Add one only for that reason, and link it from the sidebar and the See Also footers like any other sibling.
 
 #### Sidebar Pattern
 
@@ -70,9 +72,16 @@ When documenting a component, find source material here:
 | What | Path |
 |------|------|
 | Binding keys | `packages/core-server/src/components/{name}/common/keys.ts` |
-| Config types | `packages/core-server/src/components/{name}/common/types.ts` |
+| Config types | `packages/core-server/src/components/{name}/common/types.ts`, or `common/types/` when the component splits them |
 | Error messages | `packages/core-server/src/components/{name}/component.ts` -- look for `throw getError()` |
-| Helper source | `packages/helpers/src/helpers/{name}/` |
+| Helper source | `packages/helpers/src/modules/{name}/` |
+
+Two component families do not follow that shape. Check them before you assume a missing file:
+
+| Component | Where its source really is |
+|---|---|
+| Authentication, Authorization | Split across two packages. The contract - constants, binding keys, option types, providers, the registries - is in `packages/kernel/src/base/auth/{authenticate,authorize}/`. The component, services, strategies, controllers, adapters and entity column helpers are in `packages/core-server/src/components/auth/`. Each package re-exports the other's half |
+| Controller (gRPC) | `packages/core-server/src/components/controller/grpc/` - there is no `common/keys.ts` at the `controller/` level |
 
 ## Callout Standard
 

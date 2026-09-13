@@ -36,6 +36,17 @@ const client = vault.default({ endpoint, apiVersion: 'v1' });
 | `loadSync` | `loadSync<T>(opts: { module: string }): T` | Same, without awaiting - for a constructor or any path that cannot be async |
 | `assertInstalled` | `assertInstalled(opts: { modules: Array<string>; scope?: string; allowRegistered?: boolean }): void` | Presence check only. Resolves each module in order and throws on the first miss, without executing any of them |
 | `register` | `register(opts: { modules: Record<string, AnyType> }): void` | Hands the framework peers the application already holds. `load` and `loadSync` serve a registered specifier from memory, with no filesystem lookup |
+| `setProjectRoot` | `setProjectRoot(opts: { projectRoot: string }): void` | Sets the root every peer lookup resolves against. A `ServerApplication` calls it during construction with `configs.projectRoot ?? process.cwd()` |
+| `getProjectRoot` | `getProjectRoot(): string` | The current root: `ProjectRootRegistry.getShared() ?? process.cwd()` |
+
+### The project root
+
+`setProjectRoot` and `getProjectRoot` delegate to `ProjectRootRegistry`, which keeps the value in a
+`globalThis` slot. A process, or a compiled bundle, can carry two copies of this package, and a root
+set through one copy must be found by the other.
+
+You rarely call either one. Every application sets the root for you: set `configs.projectRoot` and
+the framework forwards it. `process.cwd()` is only the fallback for when nothing has set one.
 
 ### `allowRegistered`
 
@@ -47,8 +58,11 @@ Set it only where `load` or `loadSync` is what finally loads the module. A calle
 
 | `scope` | Message |
 |---------|---------|
-| provided | `[ModuleUtility.<method>] <module> is required for <scope>. Please install '<module>'` |
-| omitted | `[ModuleUtility.<method>] <module> is required. Please install '<module>'` |
+| provided | `[ModuleUtility.<method>] <module> is required for <scope>. Please install '<module>' \| Error: <reason>` |
+| omitted | `[ModuleUtility.<method>] <module> is required. Please install '<module>' \| Error: <reason>` |
+
+`<reason>` is the underlying failure: `error.message` when the throw was an `Error`, otherwise
+`String(error)`. The same line is logged at error level before the error is thrown.
 
 ## Why not a plain import
 
@@ -93,7 +107,8 @@ Registration is only worth it for the compiled-binary case. An application runni
 
 ## Notes
 
-- **Resolution is rooted at `process.cwd()/node_modules`** via Node's `createRequire`, so peers installed in the consuming application resolve even though this utility ships inside `packages/helpers/dist/`.
+- **Resolution is rooted at `getProjectRoot()/node_modules`** via Node's `createRequire`, so peers installed in the consuming application resolve even though this utility ships inside `packages/helpers/dist/`. `process.cwd()` is only the fallback for when no application has called `setProjectRoot` - an application that sets `configs.projectRoot`, which every compiled binary does, resolves its peers somewhere else.
+- **Only `loadSync` and `assertInstalled` use that root.** `load` is a bare dynamic `import(module)` with no `createRequire`, so it resolves the way the runtime would resolve any import from inside this package, not against the application's `node_modules`. Where that difference matters, register the peer or take it through the component's own options.
 - **`assertInstalled` stops at the first miss.** Later entries are never checked.
 - **`assertInstalled` never executes the module** - it only locates the file. Reach for it when you want to fail at startup rather than on first use.
 - **Call it once, at startup, not per request.** Place it in an initialisation hook (`configure`, `binding`, `boot`).
@@ -108,3 +123,4 @@ Registration is only worth it for the compiled-binary case. An application runni
 **Files:**
 
 - [`packages/helpers/src/utilities/module.utility.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/utilities/module.utility.ts)
+- [`packages/helpers/src/utilities/project-root.utility.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/utilities/project-root.utility.ts)

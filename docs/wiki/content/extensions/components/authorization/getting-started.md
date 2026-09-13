@@ -68,12 +68,23 @@ Authorization reads three tables directly: `Role`, `Permission`, and `PolicyDefi
 | `targetType`, `targetId` | text | The edge's destination node |
 | `action` | text, nullable | Set only on `grant` rows |
 | `effect` | text, nullable | `allow` or `deny`, set only on `grant` rows |
-| `domain` | text, nullable | The casbin domain token - see the note below |
+| `domainType` | text, nullable | The domain node's type, or the `SYSTEM_WIDE` scope literal - see the note below |
+| `domainId` | text, nullable | The domain node's bare id. Follows `idType`, so `integer` when you leave it at the default |
 | `metadata` | jsonb, nullable | Only subset ("custom") grants use it |
 
 `variant` must be one of exactly seven values by default, owned by `AuthorizationPolicyVariants`: `grant`, `assign_role`, `role_inherits`, `join_domain`, `domain_inherits`, `resource_inherits`, `action_inherits`. Nothing validates this column on read. A typo or a wrong value does not error - the row just never matches any query, and the grant it was meant to carry silently does not exist. An application storing its own edge type in the same table declares it via `extraPolicyDefinitionColumns({ extraVariants: [...] })` - see the [API reference](/extensions/components/authorization/api#constants).
 
-`domain` has the same trap. It stores a full casbin token, `<Type>_<id>` - for example `Organization_3fa85f64-5717-4562-b3fc-2c963f66afa6` - never a bare id. Get `variant` right and `domain` wrong, and every domain-scoped check for that row still fails. The next section shows the one way to avoid both mistakes at once.
+The domain is two columns, and that is where most hand-written rows go wrong. `domain_type` holds the node type, for example `Organization`. `domain_id` holds the bare id, for example `3fa85f64-5717-4562-b3fc-2c963f66afa6`. The casbin token `<Type>_<id>` is never stored: `ScopedCasbinAdapter` assembles it in SQL every time it reads the row. Write a token into `domain_type` and every domain-scoped check for that row fails.
+
+Only three pairs are legal, and `policyDefinitionDomainShapeCheck()` returns them as CHECK predicate text for your migration:
+
+| `domain_type` | `domain_id` | Means |
+|---|---|---|
+| `null` | `null` | `ANY_MEMBER` - every domain the subject belongs to |
+| `SYSTEM_WIDE` | `null` | System-wide, bypassing membership |
+| A domain type, for example `Organization` | The domain row's id | That one domain |
+
+The next section shows the one way to avoid all of these mistakes at once.
 
 ## Register the component
 
@@ -131,7 +142,7 @@ export class Application extends BaseApplication {
 
 ## Seed exactly one grant
 
-Build every `PolicyDefinition` row through `AuthorizationPolicyBuilder`. Never write `variant` or `domain` by hand - the builder cannot produce a wrong `variant`, and its `serializeDomain` step is what turns a typed `{ type, id }` domain into the `<Type>_<id>` token from the section above.
+Build every `PolicyDefinition` row through `AuthorizationPolicyBuilder`. Never write `variant`, `domainType` or `domainId` by hand. The builder cannot produce a wrong `variant`, and it splits a typed `{ type, id }` domain into the two columns for you, so the row always lands on one of the three legal pairs above.
 
 A grant needs three things to already exist: the user (from sign-up), one `Organization` row (the tenant), and one `Permission` row - say `code: 'configuration'`, `action: 'read'`. Seed those however you already seed reference data. Then seed the grant itself:
 
@@ -152,13 +163,13 @@ const grant = AuthorizationPolicyBuilder.grant({
 
 await pool.query(
   `INSERT INTO "PolicyDefinition"
-     (id, variant, subject_type, subject_id, target_type, target_id, action, effect, domain)
-   VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
-  [randomUUID(), grant.variant, grant.subjectType, grant.subjectId, grant.targetType, grant.targetId, grant.action, grant.effect, grant.domain],
+     (id, variant, subject_type, subject_id, target_type, target_id, action, effect, domain_type, domain_id)
+   VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`,
+  [randomUUID(), grant.variant, grant.subjectType, grant.subjectId, grant.targetType, grant.targetId, grant.action, grant.effect, grant.domainType, grant.domainId],
 );
 ```
 
-That one row is enough - no role, no role assignment. The scoped model's role, domain, resource, and action axes all fall back to a self-link when a request matches a stored value exactly, so a grant made directly to the user's own `subject` clears every axis on its own. `grant.domain` now reads `Organization_<organizationId>`, never the bare id.
+That one row is enough - no role, no role assignment. The scoped model's role, domain, resource, and action axes all fall back to a self-link when a request matches a stored value exactly, so a grant made directly to the user's own `subject` clears every axis on its own. `grant.domainType` now reads `Organization` and `grant.domainId` the organization's bare id; the adapter pairs them into `Organization_<organizationId>` when it reads the row back.
 
 `examples/vert/scripts/seed-user-policies.ts` runs this same builder call for seven personas at once, some with a role assignment added and some without - read it once you need more than one grant.
 

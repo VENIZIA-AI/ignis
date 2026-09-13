@@ -13,23 +13,41 @@ A single-page reference for the most commonly used classes, methods, decorators,
 ### BaseApplication
 
 ```typescript
-import { BaseApplication } from '@venizia/ignis';
+import { BaseApplication, IApplicationConfigs, IApplicationInfo } from '@venizia/ignis';
+import { ValueOrPromise } from '@venizia/ignis-helpers';
 
-class MyApp extends BaseApplication {
-  constructor() {
-    super({ projectRoot: __dirname });
+export const appConfigs: IApplicationConfigs = {
+  host: '0.0.0.0',
+  port: 3000,
+  // Required. An empty string mounts the application at the root.
+  path: { base: '/', isStrict: false },
+};
+
+class MyApplication extends BaseApplication {
+  getAppInfo(): ValueOrPromise<IApplicationInfo> {
+    return { name: 'my-app', version: '0.0.0', description: 'My IGNIS application' };
   }
+
+  staticConfigure() {}
+  preConfigure() {}
+  postConfigure() {}
+  setupMiddlewares() {}
 }
 
-const app = new MyApp();
-await app.initialize();
-await app.start();
+const application = new MyApplication({ scope: 'MyApplication', config: appConfigs });
+application.init();
+await application.start();
 ```
 
+The constructor takes `{ scope, config }`. `config.path.base` must be a string - the constructor
+throws by design when it is anything else, so a config assembled from the environment fails loudly
+instead of breaking later inside the router.
+
 **Key Methods:**
-- `initialize()` - Bootstrap the application
-- `start()` - Start HTTP server
-- `stop()` - Stop server gracefully
+- `init()` - Register the core bindings; call it once before `start()`
+- `initialize()` - Run the boot sequence; `start()` already calls it for you
+- `start()` - Initialize, set up middlewares, then bind the socket
+- `stop()` - Stop the server gracefully
 
 ### BaseRestController
 
@@ -115,7 +133,7 @@ class UserRepository extends DefaultCRUDRepository<typeof User.schema> {
 - `find({ filter })` - Find many with filter, returns `T[]`
 - `findById({ id })` - Find by ID
 - `findOne({ filter })` - Find single entity
-- `count({ where? })` - Count entities
+- `count({ where })` - Count entities; `where` is required
 - `create({ data })` - Create single entity, returns `{ count, data }`
 - `createAll({ data: [] })` - Create multiple entities, returns `{ count, data[] }`
 - `updateById({ id, data })` - Update by ID
@@ -379,14 +397,31 @@ import {
   SequentialQueueHelper,
 
   // Crypto
-  hash,
+  Hash,
 
   // HTTP
   HTTP,
 } from '@venizia/ignis-helpers';
 import { BullMQHelper } from '@venizia/ignis-helpers/bullmq';
 import { CronHelper } from '@venizia/ignis-helpers/cron';
-import { MinioHelper } from '@venizia/ignis-helpers/minio';
+import { BunS3Helper } from '@venizia/ignis-helpers/bun-s3';
+```
+
+> [!NOTE]
+> `MinioHelper` from `@venizia/ignis-helpers/minio` is `@deprecated`. Use `BunS3Helper` from
+> `@venizia/ignis-helpers/bun-s3` instead - it reaches MinIO over the same S3 API, and adds
+> presigned URLs, tagging and byte ranges.
+
+`Hash` is the crypto surface for digests and HMACs. Both methods are synchronous.
+
+```typescript
+import { Hash, HashAlgorithms } from '@venizia/ignis-helpers';
+
+const digest = Hash.withAlgorithm(HashAlgorithms.SHA256).digest({ message: 'payload' });
+const signature = Hash.withAlgorithm(HashAlgorithms.SHA256).hmac({
+  message: 'payload',
+  secret: 'my-secret',
+});
 ```
 
 ### Dependency Injection
@@ -498,28 +533,36 @@ if (Statuses.isCompleted(order.status)) {
 
 ### Built-in Middlewares
 
+All four ship installed. `BaseApplication` registers the request id, the error handler, the 404
+handler, `RequestSpyMiddleware` and the emoji favicon during `initialize()`. You do not wire them.
+
+| Middleware | Exported from `@venizia/ignis` | Purpose |
+|------------|-------------------------------|---------|
+| `AppErrorMiddleware` | no | Global error handler, installed via `onError` |
+| `notFoundHandler` | yes | JSON 404 response for unknown routes |
+| `RequestSpyMiddleware` | no | Request and response logging with timing |
+| `emojiFavicon` | yes | Serves an emoji as an SVG favicon |
+
+Change the favicon through `configs.favicon` and the error wrapper through `configs.error.rootKey`
+rather than re-registering anything.
+
+### Your Own Middlewares
+
+The application has no `use`, `onError` or `notFound` members. Register on the Hono server you get
+from `this.getServer()`, inside `setupMiddlewares()`:
+
 ```typescript
-import {
-  AppErrorMiddleware,
-  notFoundHandler,
-  RequestSpyMiddleware,
-  emojiFavicon,
-} from '@venizia/ignis';
+import { BaseApplication } from '@venizia/ignis';
+import { cors } from 'hono/cors';
 
-const app = new MyApp();
+class MyApplication extends BaseApplication {
+  // ...other lifecycle hooks
 
-// Request logging and body parsing
-const requestSpy = new RequestSpyMiddleware();
-app.use(requestSpy.value());
-
-// Emoji favicon
-app.use(emojiFavicon({ icon: '🚀' }));
-
-// Error handling (register last)
-app.onError(new AppErrorMiddleware({ logger: app.logger }).value());
-
-// 404 handler
-app.notFound(notFoundHandler({ logger: app.logger }));
+  setupMiddlewares() {
+    const server = this.getServer();
+    server.use(cors({ origin: '*' }));
+  }
+}
 ```
 
 
@@ -528,6 +571,8 @@ app.notFound(notFoundHandler({ logger: app.logger }));
 ### Controller → Service → Repository
 
 ```typescript
+import { genSalt, hash } from 'bcrypt';
+
 // Controller
 @controller({ path: '/users' })
 class UserController extends BaseRestController {
@@ -557,8 +602,9 @@ class UserService extends BaseService {
   }
 
   async create(data: CreateUserDto) {
-    // Business logic
-    const hashedPassword = await hash({ value: data.password });
+    // Business logic. Passwords want a slow, salted KDF, so this is `bcrypt`, not the
+    // digest helper - `Hash` is for message digests and HMACs, never for credentials.
+    const hashedPassword = await hash(data.password, await genSalt(10));
 
     return this.userRepository.create({
       data: {

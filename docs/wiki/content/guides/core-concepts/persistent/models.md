@@ -156,7 +156,7 @@ The `generateUserAuditColumnDefs` enricher defaults both columns to `dataType: '
 :::
 
 :::tip
-For a complete list of enrichers and options, see the [Schema Enrichers Reference](../../../references/base/models.md#schema-enrichers).
+For a complete list of enrichers and options, see the [Schema Enrichers Reference](../../../references/base/models-reference.md#schema-enrichers).
 :::
 
 ## Hidden Properties
@@ -209,7 +209,7 @@ const [fullUser] = await connector
 ```
 
 :::tip
-For complete hidden properties documentation, see the [Models Reference](../../../references/base/models.md#hidden-properties).
+For complete hidden properties documentation, see the [Models Reference](../../../references/base/models-reference.md#hidden-properties).
 :::
 
 ## Default Filter
@@ -305,7 +305,7 @@ export class MyModel extends BasePostgresEntity<typeof MyModel.schema> {
 }
 ```
 
-> **Deep Dive:** See [BaseEntity Reference](../../../references/base/models.md#baseentity-class) for advanced patterns.
+> **Deep Dive:** See [BaseEntity Reference](../../../references/base/models-reference.md#baseentity-baserelationalentity) for advanced patterns.
 
 ## See Also
 

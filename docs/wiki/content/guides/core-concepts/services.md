@@ -57,7 +57,9 @@ export class UserService extends BaseService {
 
 ## Registering a Service
 
-Registration is always imperative - call `this.service(ClassName)` inside an application lifecycle method, which handles the binding. There is no class-level decorator for this.
+You have two ways to register a service. Call `this.service(ClassName)` inside an application lifecycle method, or decorate the class with `@service()` and let the generated artifact index register it. The decorator marks the class; `registerArtifacts` binds it at boot step 5, before `preConfigure()`. See [Registering artifacts](./application/bootstrapping).
+
+The imperative form is shown below.
 
 ```typescript
 import { BaseApplication } from '@venizia/ignis';

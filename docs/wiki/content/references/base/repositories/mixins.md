@@ -1,6 +1,6 @@
 ---
 title: Repository Mixins (Removed)
-description: FieldsVisibilityMixin and DefaultFilterMixin were removed - the behavior now lives on AbstractRepository and PostgresBaseRepository
+description: FieldsVisibilityMixin and DefaultFilterMixin were removed - the behavior now lives on AbstractRepository and RelationalBaseRepository
 difficulty: intermediate
 lastUpdated: 2026-07-06
 ---
@@ -12,7 +12,7 @@ lastUpdated: 2026-07-06
 **Files:**
 
 - [`packages/kernel/src/base/repositories/core/abstract.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/kernel/src/base/repositories/core/abstract.ts) - `AbstractRepository` - `hiddenFields`/`defaultWhere`/`defaultLimit` getters
-- [`packages/connectors/src/relational/postgres/repositories/core/base.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/connectors/src/relational/postgres/repositories/core/base.ts) - `RelationalBaseRepository` (alias `PostgresBaseRepository`) - `getHiddenProperties`, `getVisibleProperties`, `getDefaultFilter`, `applyDefaultFilter`
+- [`packages/connectors/src/relational/core/repositories/core/base.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/connectors/src/relational/core/repositories/core/base.ts) - `RelationalBaseRepository` - `getHiddenProperties`, `getVisibleProperties`, `getDefaultFilter`, `applyDefaultFilter`
 
 > [!WARNING] Removed
 > `FieldsVisibilityMixin` and `DefaultFilterMixin` are no longer exported and must not be imported or composed in new code.
@@ -41,9 +41,9 @@ protected get defaultWhere(): TWhere | undefined;           // settings.defaultF
 protected get defaultLimit(): number | undefined;           // settings.defaultLimit
 ```
 
-### PostgreSQL: `RelationalBaseRepository`
+### Relational tier: `RelationalBaseRepository`
 
-Builds on those getters to implement SQL-level column exclusion and full-filter merging for Drizzle:
+Builds on those getters to implement SQL-level column exclusion and full-filter merging for Drizzle. It is engine-neutral: `PostgresBaseRepository` and `SqliteBaseRepository` are thin subclasses that inherit all of it.
 
 ```typescript
 getHiddenProperties(): Set<string>;                       // memoized Set of hiddenFields
@@ -72,7 +72,7 @@ The query builder excludes hidden columns from `select()` and `returning()` call
 | `DefaultFilterMixin` -> `hasDefaultFilter()` | `RelationalBaseRepository.hasDefaultFilter()` |
 | `DefaultFilterMixin` -> `applyDefaultFilter()` | `RelationalBaseRepository.applyDefaultFilter()` |
 
-If you extended `DefaultCRUDRepository` (or any class in the PostgreSQL hierarchy), you don't need to change anything - these methods have always been available on your repository instances. Only the internal composition changed.
+If you extended `DefaultCRUDRepository` (or any class in the relational chain), you don't need to change anything - these methods have always been available on your repository instances. Only the internal composition changed.
 
 ## Custom Mixins Still Work
 

@@ -14,15 +14,15 @@ Exhaustive reference for `AES`, `RSA`, `ECDH`, the shared `AbstractCryptoAlgorit
 - [`packages/helpers/src/modules/crypto/algorithms/aes.algorithm.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/crypto/algorithms/aes.algorithm.ts) - `AES`, `AESAlgorithmType`
 - [`packages/helpers/src/modules/crypto/algorithms/rsa.algorithm.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/crypto/algorithms/rsa.algorithm.ts) - `RSA`, `RSAAlgorithmType`
 - [`packages/helpers/src/modules/crypto/algorithms/ecdh.algorithm.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/crypto/algorithms/ecdh.algorithm.ts) - `ECDH`, `ECDHAlgorithmType`, `IECDHEncryptedPayload`, `IECDHExtraOptions`
-- [`packages/helpers/src/modules/crypto/common/types.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/crypto/common/types.ts) - `ICryptoAlgorithm`
-- [`packages/helpers/src/modules/crypto/common/constants.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/crypto/common/constants.ts) - `DEFAULT_CIPHER_BITS`, `DEFAULT_PAD_END`, `HashAlgorithms`, `HashOutputEncodings`
+- [`packages/helpers/src/modules/crypto/common/types.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/crypto/common/types.ts) - `ICryptoAlgorithm`, `IPayloadCipher`
+- [`packages/helpers/src/modules/crypto/common/constants.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/crypto/common/constants.ts) - `DEFAULT_CIPHER_BITS`, `DEFAULT_PAD_END`, `DEFAULT_KDF_SALT`, `DEFAULT_KDF_ITERATIONS`, `DEFAULT_KDF_DIGEST`, `MINIMUM_KDF_SALT_BYTES`, `MINIMUM_RSA_MODULUS_BITS`, `HashAlgorithms`, `HashOutputEncodings`
 - [`packages/helpers/src/modules/crypto/algorithms/hash.algorithm.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/crypto/algorithms/hash.algorithm.ts) - `Hash`
 
 ## Quick Reference
 
 | Class | Extends | Secret type | Async | Runtime API |
 |-------|---------|--------------|-------|-------------|
-| `AES` | `BaseCryptoAlgorithm` | `string` | No | Node `node:crypto` |
+| `AES` | `BaseCryptoAlgorithm` | `TAESSecret` - `string \| IAESKeyringEntry[]` | No | Node `node:crypto` |
 | `RSA` | `BaseCryptoAlgorithm` | `string` (base64 DER key) | No | Node `node:crypto` |
 | `ECDH` | `AbstractCryptoAlgorithm` | `CryptoKey` | Yes | Web Crypto (`crypto.subtle`) |
 | `Hash` | `BaseHelper` | `string` (HMAC only - `digest` takes none) | No | Node `node:crypto` |
@@ -31,23 +31,41 @@ Exhaustive reference for `AES`, `RSA`, `ECDH`, the shared `AbstractCryptoAlgorit
 
 ```typescript
 // Algorithm classes
-import { AES, RSA, ECDH, Hash } from '@venizia/ignis-helpers';
+import { AES, LegacyAES, RSA, ECDH, Hash } from '@venizia/ignis-helpers';
 
 // Hash const-classes
 import { HashAlgorithms, HashOutputEncodings } from '@venizia/ignis-helpers';
 
+// KDF and RSA constants
+import {
+  DEFAULT_KDF_SALT,
+  DEFAULT_KDF_ITERATIONS,
+  DEFAULT_KDF_DIGEST,
+  MINIMUM_KDF_SALT_BYTES,
+  MINIMUM_RSA_MODULUS_BITS,
+} from '@venizia/ignis-helpers';
+
 // Types
 import type {
   AESAlgorithmType,
+  TAESSecret,
+  IAESKeyringEntry,
   RSAAlgorithmType,
   ECDHAlgorithmType,
   IECDHEncryptedPayload,
   IECDHExtraOptions,
   ICryptoAlgorithm,
+  IPayloadCipher,
 } from '@venizia/ignis-helpers';
 ```
 
 All of the above resolve through the root `@venizia/ignis-helpers` barrel, which re-exports `./modules` (and therefore `./modules/crypto`) and `./utilities` in full.
+
+`IAESExtraOptions` and `IAESDecryptOptions` are named in the signatures below, but neither is exported. Write the option object inline, or derive the shape when you need a name for it:
+
+```typescript
+type TAesEncryptOptions = NonNullable<Parameters<AES['encrypt']>[0]['opts']>;
+```
 
 ## Type Hierarchy
 
@@ -86,8 +104,22 @@ interface ICryptoAlgorithm<
 |--------|-----------|--------------|
 | constructor | `(opts: { scope: string; algorithm: AlgorithmType })` | Sets `this.algorithm`, calls `validateAlgorithmName` |
 | `validateAlgorithmName` | `(opts: { algorithm: AlgorithmType }) => void` | Throws if `algorithm` is empty/falsy |
-| `normalizeSecretKey` | `(opts: { secret: string; length: number }) => Buffer` | Derives a `length`-byte key with PBKDF2-SHA256, 100,000 iterations. Results are memoised per secret |
-| `getAlgorithmKeySize` | `() => number` | Parses the bit size out of `this.algorithm` (e.g. `256` from `'aes-256-gcm'`), divides by 8 for byte length |
+| `normalizeSecretKey` | `(opts: { secret: string; length: number; kdfSalt?: string; kdfIterations?: number }) => Buffer` | Derives a `length`-byte key with PBKDF2-SHA256, 100,000 iterations. Results are memoised per secret, salt, iteration count and length |
+| `getAlgorithmKeySize` | `() => number` | Parses the bit size out of `this.algorithm` (`256` from `'aes-256-gcm'`), divides by 8, and returns the **byte** count - `32`, not `256` |
+
+`normalizeSecretKey` never pads and never truncates. It always runs the KDF.
+
+| Option | Type | Default | Meaning |
+|---|---|---|---|
+| `kdfSalt` | `string` | `DEFAULT_KDF_SALT`, `'ignis-kdf-salt-v1'` | Per-deployment PBKDF2 salt |
+| `kdfIterations` | `number` | `DEFAULT_KDF_ITERATIONS`, `100000` | PBKDF2 iteration count |
+
+A `kdfSalt` shorter than `MINIMUM_KDF_SALT_BYTES` (16 bytes, the NIST SP 800-132 floor) throws `[BaseCryptoAlgorithm][validateKdfSalt] kdfSalt must be at least 16 bytes, got N`. A short salt looks configured while giving up most of what a salt is for, so it is refused rather than accepted quietly.
+
+> [!WARNING]
+> Both values are part of the derived key. Pass the same `kdfSalt` and `kdfIterations` on decrypt that you passed on encrypt, or the key differs and the ciphertext will not open. Omit both to get the shipped defaults on both sides.
+
+`DEFAULT_KDF_SALT` is public and identical in every deployment. It stops a bare dictionary attack, not a table precomputed against that exact value. Never change the constant itself: every ciphertext already written under it becomes undecryptable.
 
 `ECDH` extends `AbstractCryptoAlgorithm` directly. It does not inherit `normalizeSecretKey` or `getAlgorithmKeySize` - its secrets are `CryptoKey` objects, not strings.
 
@@ -109,7 +141,7 @@ const aes = AES.withAlgorithm('aes-256-gcm'); // or 'aes-256-cbc'
 ### `encrypt`
 
 ```typescript
-encrypt(opts: { message: string; secret: string; opts?: IAESExtraOptions }): string
+encrypt(opts: { message: string; secret: TAESSecret; opts?: IAESExtraOptions }): string
 ```
 
 | Option (`opts.opts`) | Type | Default | Description |
@@ -118,8 +150,10 @@ encrypt(opts: { message: string; secret: string; opts?: IAESExtraOptions }): str
 | `inputEncoding` | `crypto.Encoding` | `'utf-8'` | Encoding of `message` |
 | `outputEncoding` | `crypto.Encoding` | `'base64'` | Encoding of the returned ciphertext |
 | `doThrow` | `boolean` | `true` | If `false`, returns the original `message` instead of throwing on error |
+| `kdfSalt` | `string` | `'ignis-kdf-salt-v1'` | PBKDF2 salt. At least 16 bytes, or the call throws. Pass the same value on decrypt |
+| `kdfIterations` | `number` | `100000` | PBKDF2 iteration count. Pass the same value on decrypt |
 
-The secret is normalized via `normalizeSecretKey` to the algorithm's key size (32 bytes for both modes) before being used as the cipher key. The output is a self-describing envelope, concatenated and encoded with `outputEncoding`:
+The secret is run through `normalizeSecretKey` to the algorithm's key size (32 bytes for both modes) before being used as the cipher key. The envelope records the key id but not the salt or the iteration count, so those two are yours to keep. The output is a self-describing envelope, concatenated and encoded with `outputEncoding`:
 
 ```
 [version(1)][idLen(1)][id(idLen)][iv(16)][authTag(16, gcm only)][ciphertext]
@@ -158,6 +192,11 @@ decrypt(opts: { message: string; secret: TAESSecret; opts?: IAESDecryptOptions }
 | `inputEncoding` | `crypto.Encoding` | `'base64'` | Encoding of `message` |
 | `outputEncoding` | `crypto.Encoding` | `'utf-8'` | Encoding of the returned plaintext |
 | `doThrow` | `boolean` | `true` | If `false`, returns the original `message` instead of throwing on error |
+| `kdfSalt` | `string` | `'ignis-kdf-salt-v1'` | PBKDF2 salt. Must match the value used on encrypt, and be at least 16 bytes |
+| `kdfIterations` | `number` | `100000` | PBKDF2 iteration count. Must match the value used on encrypt |
+
+> [!WARNING]
+> A `kdfSalt` or `kdfIterations` mismatch derives a different key. Under `aes-256-gcm` the auth tag fails and decryption throws. Under `aes-256-cbc` you get a padding error or, worse, silent garbage. Store both alongside the ciphertext if they are not constants in your deployment.
 
 For `aes-256-gcm`, the next 16 bytes after the IV are read as the auth tag. That tag is passed to `setAuthTag` before the remaining bytes are treated as ciphertext.
 
@@ -167,11 +206,13 @@ For `aes-256-gcm`, the next 16 bytes after the IV are read as the auth tag. That
 ### `encryptFile` / `decryptFile`
 
 ```typescript
-encryptFile(opts: { absolutePath: string; secret: string }): string
-decryptFile(opts: { absolutePath: string; secret: string }): string
+encryptFile(opts: { absolutePath: string; secret: TAESSecret }): string
+decryptFile(opts: { absolutePath: string; secret: TAESSecret }): string
 ```
 
 Both read the file synchronously via `fs.readFileSync`, decode it as UTF-8, then call `encrypt`/`decrypt` on the string content using default extra-options. If `absolutePath` is empty or falsy, both return `''` without touching the filesystem.
+
+Neither takes an options object, so neither can carry a custom `kdfSalt` or `kdfIterations`. Read the file yourself and call `encrypt`/`decrypt` directly when you need those.
 
 ```typescript
 const encrypted = aes.encryptFile({ absolutePath: '/path/to/config.json', secret: 'my-secret' });
@@ -256,7 +297,9 @@ generateDERKeyPair(opts?: { modulus: number }): { publicKey: Buffer; privateKey:
 
 | Option | Type | Default | Description |
 |--------|------|---------|-------------|
-| `modulus` | `number` | `2048` | RSA modulus length in bits, passed to `crypto.generateKeyPairSync` |
+| `modulus` | `number` | `MINIMUM_RSA_MODULUS_BITS`, `2048` | RSA modulus length in bits, passed to `crypto.generateKeyPairSync` |
+
+A `modulus` below `MINIMUM_RSA_MODULUS_BITS` throws `[RSA][generateDERKeyPair] Modulus N is below the 2048-bit minimum`. The key is refused rather than generated. A weak key that exists is a weak key someone will end up using. 2048 bits is the NIST SP 800-57 Part 1 floor past 2030.
 
 `publicKey` is exported as `{ type: 'spki', format: 'der' }`, `privateKey` as `{ type: 'pkcs8', format: 'der' }`. Both are raw `Buffer`s. Base64-encode them (`.toString('base64')`) to pass as the `secret` string to `encrypt`/`decrypt`.
 

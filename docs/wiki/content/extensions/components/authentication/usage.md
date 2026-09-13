@@ -448,12 +448,15 @@ export const policyDefinitions = pgTable('policy_definitions', { ...generateIdCo
 | `targetType` | `target_type` | `text` | No | For example, `'Permission'`, `'Role'` |
 | `action` | `action` | `text` | Yes | Policy action |
 | `effect` | `effect` | `text` | Yes | `'allow'` / `'deny'` |
-| `domain` | `domain` | `text` | Yes | Multi-tenancy domain |
+| `domainType` | `domain_type` | `text` | Yes | The tenant node's type, for example `'Organization'`, or the `'SYSTEM_WIDE'` scope literal |
 | `subjectId` | `subject_id` | `text` or `integer` | No | Depends on `idType` |
 | `targetId` | `target_id` | `text` or `integer` | No | Depends on `idType` |
+| `domainId` | `domain_id` | `text` or `integer` | Yes | The tenant row's bare id. Depends on `idType` |
 | `metadata` | `metadata` | `jsonb` | Yes | Free-form metadata. Only some grants populate it |
 
 All `idType` options default to `'number'` (`integer` columns). Pass `'string'` for `text` columns - UUID primary keys, for example.
+
+The domain is two columns, never one. Only three pairs are legal: both `null` (every domain the subject belongs to), `'SYSTEM_WIDE'` with a `null` id, or a real type paired with a real id. `policyDefinitionDomainShapeCheck()` returns exactly that as CHECK predicate text for your migration. The casbin `<Type>_<id>` token is not stored - `ScopedCasbinAdapter` assembles it in SQL at read time.
 
 `'p'` and `'g'` are Casbin rule prefixes, not `variant` values - each `variant` maps to one of them internally. See the [Authorization component](../authorization/) to build these tables end to end. Its [Usage guide](../authorization/usage) covers policy definitions, domain scoping, and the adapter that reads this table.
 

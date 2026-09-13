@@ -1,6 +1,6 @@
 # Single-Page Component Template (Tier 1)
 
-For simple components with few configuration options and straightforward behavior (e.g., Health Check, Request Tracker, Swagger). Everything fits on one page.
+For simple components with few configuration options and straightforward behavior (e.g., Health Check, Request Tracker, API Reference). Everything fits on one page.
 
 ## When to Use
 
@@ -30,24 +30,32 @@ For simple components with few configuration options and straightforward behavio
 #### Import Paths
 
 ` ``typescript
-import { ComponentClass, BindingKeys } from '@venizia/ignis';
+// Root barrel. Mail, Socket.IO, WebSocket and Static Asset are NOT here -
+// import those from '@venizia/ignis/{subpath}' instead.
+import { ComponentClass, ComponentBindingKeys } from '@venizia/ignis';
 import type { IConfigOptions } from '@venizia/ignis';
 ` ``
 
 ## Setup
 
-### Step 1: Bind Configuration
+### Step 1: Register the Component with Options
 
 ` ``typescript
-this.bind<IConfigType>({ key: Keys.CONFIG }).toValue({
-  // minimal config here
+this.component(ComponentClass, {
+  options: {
+    // minimal config here
+  },
 });
 ` ``
 
-### Step 2: Register Component
+### Step 2: Bind Anything the Options Cannot Carry
+
+Only if the component reads separate keys. Order inside `preConfigure()` is free - see Binding Keys.
 
 ` ``typescript
-this.component(ComponentClass);
+this.bind<IConfigType>({ key: ComponentBindingKeys.CONFIG }).toValue({
+  // ...
+});
 ` ``
 
 ### Step 3: Use
@@ -74,7 +82,14 @@ interface IConfigType {
 
 | Key | Constant | Type | Required | Default |
 |-----|----------|------|----------|---------|
-| `@app/ns/key` | `Keys.CONSTANT` | `Type` | Yes/No | value or `--` |
+| `@app/ns/key` | `ComponentBindingKeys.CONSTANT` | `Type` | Yes/No | value or `--` |
+
+> [!NOTE]
+> Binding order inside `preConfigure()` never matters. A component's constructor only STORES its
+> default `Binding` objects; `initDefaultBindings()` applies them from inside `configure()`, which
+> the boot sweep runs at the `registerComponents` step - four steps after `preConfigure()` returns.
+> A `this.bind()` placed after `this.component(...)` still wins over the default. Options passed at
+> the call site win over both.
 
 ## API Endpoints
 
@@ -123,7 +138,8 @@ Response `200`:
 ## Rules
 
 - **One page, one component.** No sub-pages, no sub-directories.
-- **File name:** `{component-slug}.md` (e.g., `health-check.md`, `swagger.md`)
+- **File name:** `{component-slug}.md` (e.g., `health-check.md`, `api-reference.md`)
+- **Check the import path against `packages/core-server/src/components/index.ts`.** Mail, Socket.IO, WebSocket and Static Asset are deliberately off the root barrel - each needs `@venizia/ignis/{subpath}`. Copying `from '@venizia/ignis'` for one of those gives the reader an import that does not resolve.
 - **Quick Reference helper row:** Only include if the component wraps a helper class.
 - **API Endpoints section:** Only include if the component registers REST routes. Remove entirely otherwise.
 - **Troubleshooting:** Minimum 2 entries, maximum 5.

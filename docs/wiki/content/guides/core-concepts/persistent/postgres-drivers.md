@@ -21,7 +21,8 @@ Supabase is unmodified PostgreSQL, so it is not a separate connector: it varies 
 
 | Import | Contents | Loads |
 | :--- | :--- | :--- |
-| `@venizia/ignis/postgres` | `BasePostgresDataSource`, `IRelationalDriver`, repository hierarchy | no client library |
+| `@venizia/ignis/relational` | `IRelationalDriver`, `IRelationalConnection`, `IStatementResult` - the engine-neutral seam | no client library |
+| `@venizia/ignis/postgres` | `BasePostgresDataSource`, `TRelationalDriver`, `TRelationalConnection`, repository hierarchy | no client library |
 | `@venizia/ignis/postgres/node-postgres` | `NodePostgresDriver` | `pg` |
 | `@venizia/ignis/postgres/postgres-js` | `PostgresJsDriver` | `postgres` |
 | `@venizia/ignis/postgres/pglite` | `PGliteDriver` | `@electric-sql/pglite` |
@@ -115,20 +116,25 @@ export class PostgresDataSource extends BasePostgresDataSource<IDataSourceConfig
 
 Every driver satisfies the same neutral interface, proven by a shared conformance suite - a seam only one driver can satisfy is not a seam:
 
+Both interfaces are parameterized by the **connector** type, not by `Schema`. The schema travels as a per-call argument instead.
+
 ```typescript
-interface IRelationalDriver<Schema, Client> {
-  createConnector(opts: { schema: Schema }): TRelationalConnector<Schema>; // pooled Drizzle
-  acquire(opts: { schema: Schema }): Promise<IRelationalConnection<Schema>>; // one dedicated connection
+interface IRelationalDriver<TConnector, Client = unknown> {
+  createConnector(opts: { schema: TAnyDataSourceSchema }): TConnector; // pooled Drizzle
+  acquire(opts: { schema: TAnyDataSourceSchema }): Promise<IRelationalConnection<TConnector>>;
   getClient(): Client; // raw client escape: pg.Pool or Sql
   end(): Promise<void>;
 }
 
-interface IRelationalConnection<Schema> {
-  connector: TRelationalConnector<Schema>; // Drizzle bound to THIS connection, not the pool
+interface IRelationalConnection<TConnector> {
+  connector: TConnector; // Drizzle bound to THIS connection, not the pool
   execute(opts: { statement: string }): Promise<IStatementResult>; // { count } - control statements
+  query<R>(opts: { statement: string }): Promise<Array<R>>; // rows, for callers with no schema
   release(opts?: { destroy?: boolean }): void;
 }
 ```
+
+The Postgres tier narrows both: `TRelationalDriver<Schema, Client>` and `TRelationalConnection<Schema>` fill `TConnector` with `TRelationalConnector<Schema>`, so Postgres code keeps writing `Schema`.
 
 `acquire()` matters for transactions: `BEGIN` and `COMMIT` must land on the same backend. Each explicit transaction therefore gets a dedicated connection (`pool.connect()` for pg, `sql.reserve()` for postgres-js) - that's the reason for the `>= 3.4.0` floor.
 
@@ -204,4 +210,4 @@ The submodule also re-exports Drizzle's Supabase helpers (`anonRole`, `authentic
 
 ## Adding a Driver
 
-One file under `src/connectors/postgres/drivers/`, implementing the four verbs above. Add a fake client and a test that runs the shared conformance suite (`run({ driver, buildDriverProbe })` in `src/__tests__/connectors/postgres/drivers/conformance/`). Register a sub-path export and an optional peer dependency. Never re-export the driver from the drivers barrel - that is what would make its package load eagerly for everyone.
+One file under `packages/connectors/src/relational/postgres/drivers/`, implementing the four verbs above. Add a fake client and a test that runs the shared conformance suite (`run({ driver, buildDriverProbe })` in `packages/connectors/src/__tests__/postgres/drivers/conformance/`). Register a sub-path export and an optional peer dependency. Never re-export the driver from the drivers barrel - that is what would make its package load eagerly for everyone.

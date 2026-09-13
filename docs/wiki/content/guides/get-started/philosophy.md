@@ -42,8 +42,10 @@ means:
   DataSource -> PostgreSQL.
 - Request validation and OpenAPI docs generated from the same Zod schema, so they can't drift
   apart.
-- A convention-based boot system that auto-discovers controllers, services, repositories, and
-  data sources by file suffix.
+- A decorator-driven artifact system. `@controller`, `@service`, `@repository` and `@datasource`
+  mark your classes, and the `ignis-artifacts` generator in `@venizia/ignis-boot` writes an index
+  at build time. The application registers that index at boot, before `preConfigure()`. Nothing is
+  discovered at run time, and no file-naming convention is enforced.
 
 ## How it performs
 

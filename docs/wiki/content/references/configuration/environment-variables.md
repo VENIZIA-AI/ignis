@@ -6,8 +6,8 @@ Complete reference of all environment variables used by the IGNIS framework, gro
 
 - [`packages/core-server/src/common/environments.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/common/environments.ts) - `EnvironmentKeys`
 - [`packages/helpers/src/modules/env/app-env.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/env/app-env.ts) - `applicationEnvironment`, `Environment`
-- [`packages/kernel/src/base/applications/abstract.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/kernel/src/base/applications/abstract.ts) - `validateEnvs()`, host/port resolution priority
-- [`packages/core-server/src/base/applications/base.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/base/applications/base.ts) - `registerSecrets()`, `hydrateSecrets()`
+- [`packages/core-server/src/base/applications/base.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/base/applications/base.ts) - `validateEnvs()`, `registerSecrets()`, `hydrateSecrets()`
+- [`packages/core-server/src/base/applications/server.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/base/applications/server.ts) - host/port resolution priority
 - [`packages/helpers/src/modules/secrets/common/constants.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/secrets/common/constants.ts) - `SecretProviders`, `VaultAuthMethods`
 - [`packages/helpers/src/modules/secrets/hashicorp/hashicorp.helper.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/secrets/hashicorp/hashicorp.helper.ts) - HashiCorp Vault helper
 
@@ -124,7 +124,7 @@ APP_ENV_SERVER_BASE_PATH=/v1/api
 
 ### Priority Order
 
-The server host/port resolution uses this priority (`packages/kernel/src/base/applications/abstract.ts`):
+The server host/port resolution uses this priority (`packages/core-server/src/base/applications/server.ts`):
 1. Explicit config passed to the application constructor
 2. `HOST`/`PORT` variables (for cloud platforms)
 3. `APP_ENV_SERVER_HOST`/`APP_ENV_SERVER_PORT` variables
@@ -164,10 +164,21 @@ APP_ENV_POSTGRES_DATABASE=my_app_prod
 ### DataSource Configuration
 
 ```typescript
+import { datasource, ValueOrPromise } from '@venizia/ignis';
+import { BaseDataSource } from '@venizia/ignis/postgres';
 import { NodePostgresDriver } from '@venizia/ignis/postgres/node-postgres';
+import { Pool } from 'pg';
+
+interface IDataSourceConfigs {
+  host: string;
+  port: number;
+  database: string;
+  user: string;
+  password: string;
+}
 
 @datasource({ driver: NodePostgresDriver })
-export class PostgresDataSource extends BaseDataSource {
+export class PostgresDataSource extends BaseDataSource<IDataSourceConfigs> {
   constructor() {
     super({
       name: PostgresDataSource.name,
@@ -180,8 +191,23 @@ export class PostgresDataSource extends BaseDataSource {
       },
     });
   }
+
+  // Both members are abstract on the base. `configure()` only has to build `this.client`;
+  // naming the driver in `@datasource` is what wires the connector.
+  override configure(): ValueOrPromise<void> {
+    this.client = new Pool(this.settings);
+  }
+
+  override getConnectionString(): ValueOrPromise<string> {
+    const { host, port, user, password, database } = this.settings;
+    return `postgresql://${user}:${password}@${host}:${port}/${database}`;
+  }
 }
 ```
+
+> [!NOTE]
+> `BaseDataSource` from `@venizia/ignis/postgres` is the alias for `BasePostgresDataSource`. Both
+> names resolve to the same class on that subpath.
 
 
 ## Authentication Variables
@@ -345,7 +371,7 @@ APP_ENV_MAIL_REFRESH_TOKEN=your-oauth2-refresh-token
 |----------|----------|---------|-------------|
 | `DEBUG` | No | - | Enable debug mode |
 | `NODE_ENV` | No | `development` | Environment mode. One of `local`, `debug`, `development`, `dev`, `sit`, `uat`, `alpha`, `beta`, `staging`, `production` |
-| `ALLOW_EMPTY_ENV_VALUE` | No | `false` | Allow empty env values |
+| `ALLOW_EMPTY_ENV_VALUE` | No | _(unset, which allows empty values)_ | Whether an empty `APP_ENV_*` value is accepted. Unset means allowed. Set it to `false` or `0` to turn the rejection ON |
 | `RUN_MODE` | No | - | Printed in the startup banner. The framework never branches on it - read it yourself to split a migrate run from a serve run |
 
 - **Fail-closed by default.** An environment IGNIS does not recognize is treated as production, so error responses are sanitized.
@@ -422,14 +448,31 @@ MY_APP_POSTGRES_HOST=localhost
 
 ## Validation
 
-On startup, IGNIS iterates every `APP_ENV_*` (prefixed) variable that is set and throws if any has an empty value (`validateEnvs` in `packages/kernel/src/base/applications/abstract.ts`). It does not check for variables that are absent entirely - component-level validation (e.g., the authentication component's `jwtSecret` check) covers required values.
+Empty values are **permitted by default**. On startup `validateEnvs`
+(`packages/core-server/src/base/applications/base.ts`) reads `ALLOW_EMPTY_ENV_VALUE` once. Unless
+you set it to `false` or `0`, the whole check is skipped and the startup banner prints
+`Empty values: ALLOWED (default)`.
 
-### Disable Validation
+The default is permissive on purpose. A name a host leaves empty is the host's business, and an
+empty value already falls back to its `defaultValue` at read time.
+
+### Turn the check on
 
 ```bash
-# Allow empty env values (not recommended for production)
-ALLOW_EMPTY_ENV_VALUE=true
+# Reject any APP_ENV_* variable that is set to an empty value
+ALLOW_EMPTY_ENV_VALUE=false
 ```
+
+With the check on, IGNIS iterates every `APP_ENV_*` (prefixed) variable that is set and throws on
+the first empty value. It never checks for a variable that is absent entirely - component-level
+validation covers required values, for example the authentication component's `jwtSecret` check.
+
+> [!WARNING]
+> Setting `ALLOW_EMPTY_ENV_VALUE=true` does nothing beyond restating the default. If you wanted
+> emptiness rejected, the value you need is `false` or `0`.
+
+`ALLOW_EMPTY_ENV_VALUE` carries no `APP_ENV` prefix, so it is read straight off `process.env` and
+never appears on `applicationEnvironment`. It is not a member of `EnvironmentKeys`.
 
 
 ## Security Best Practices

@@ -43,11 +43,11 @@ A `@repository` binds a model to `PostgresDataSource`, and the schema is auto-di
 
 ## How it works
 
-- **Driver is a class, not a string.** `@datasource({ driver })` names `NodePostgresDriver` or `PostgresJsDriver` as a class reference, never a driver-name string. Only a class reference carries `pg`/`postgres` into the bundle, keeping both packages optional.
+- **Driver is a class, not a string.** `@datasource({ driver })` names a driver class - `NodePostgresDriver`, `PostgresJsDriver`, `PGliteDriver`, `LibSqlDriver` - never a driver-name string. Only a class reference carries `pg`/`postgres`/`@electric-sql/pglite`/`@libsql/client` into the bundle, keeping all four packages optional.
 - **`configure()` has exactly one job.** Build the raw client and assign it to `this.client` (a `pg.Pool` for node-postgres, or a postgres-js `Sql`). It never touches `this.connector` directly.
 - **The driver wires lazily.** The first time `getConnector()` or `beginTransaction()` is called, the base class reads the class named in `@datasource({ driver })`. It instantiates that class over `this.client` and builds `this.connector` from it.
-- **Base vs. connector split.** IGNIS splits datasources into an engine-neutral root (`AbstractDataSource` - no SQL, no Drizzle, no pool) and per-engine connectors. `BasePostgresDataSource` is the PostgreSQL connector; typesense has a parallel class. See [Connectors](/references/base/connectors) for the full architecture.
-- **Naming.** The PostgreSQL connector's canonical class is `BaseRelationalDataSource`; `BasePostgresDataSource` and `BaseDataSource` are compatibility aliases re-exporting the same class.
+- **Three layers, not two.** IGNIS splits datasources into an engine-neutral root (`AbstractDataSource` - no SQL, no Drizzle, no pool), an engine-neutral relational tier (`AbstractRelationalDataSource` -> `BaseRelationalDataSource`, which owns the driver seam, schema auto-discovery and transactions), and one branch per engine. See [Connectors](/references/base/connectors) for the full architecture.
+- **Naming.** `BasePostgresDataSource` is a **subclass** of the neutral `BaseRelationalDataSource`, not an alias for it. It adds the Postgres dialect, executor and `BEGIN TRANSACTION ISOLATION LEVEL` statement. `BaseDataSource` is the one true alias here - the same class under its historical name. The neutral `BaseRelationalDataSource` lives at `@venizia/ignis/relational` and is not re-exported from `@venizia/ignis/postgres`.
 
 ## Common tasks
 
@@ -81,10 +81,14 @@ export class PostgresDataSource extends BasePostgresDataSource<IDataSourceConfig
 
 ### Choose a driver
 
-| Driver | Package | When to use |
-|---|---|---|
-| `NodePostgresDriver` | `pg` | Long-standing default |
-| `PostgresJsDriver` | `postgres` | Required for Supabase's transaction pooler; faster elsewhere |
+| Driver | Import from | Package | When to use |
+|---|---|---|---|
+| `NodePostgresDriver` | `@venizia/ignis/postgres/node-postgres` | `pg` | Long-standing default |
+| `PostgresJsDriver` | `@venizia/ignis/postgres/postgres-js` | `postgres` | Required for Supabase's transaction pooler; faster elsewhere |
+| `PGliteDriver` | `@venizia/ignis/postgres/pglite` | `@electric-sql/pglite` | Postgres compiled to WASM, in-process. Tests and local runs with no server |
+| `LibSqlDriver` | `@venizia/ignis/sqlite/libsql` | `@libsql/client` | SQLite: `:memory:`, a local file, remote Turso, or an embedded replica |
+
+`PGliteDriver` and `LibSqlDriver` each hold one session, so `acquire()` hands out a one-slot pool. Write through `acquire()` when a transaction may be open.
 
 Swapping drivers only changes which class `@datasource` names and how `configure()` builds the client:
 
@@ -162,4 +166,6 @@ export class ConfigurationRepository extends DefaultCRUDRepository<typeof Config
 **Files:**
 
 - [`packages/kernel/src/base/datasources/abstract.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/kernel/src/base/datasources/abstract.ts) - neutral `AbstractDataSource`
+- [`packages/connectors/src/relational/core/datasources/base.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/connectors/src/relational/core/datasources/base.ts) - neutral `BaseRelationalDataSource` - schema auto-discovery, transactions, `getCapabilities()`
 - [`packages/connectors/src/relational/postgres/datasources/base.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/connectors/src/relational/postgres/datasources/base.ts) - PostgreSQL `BasePostgresDataSource`
+- [`packages/connectors/src/relational/sqlite/datasources/base.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/connectors/src/relational/sqlite/datasources/base.ts) - SQLite `BaseSqliteDataSource`

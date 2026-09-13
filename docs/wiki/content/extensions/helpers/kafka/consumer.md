@@ -40,7 +40,7 @@ interface IKafkaConsumerOptions<KeyType, ValueType, HeaderKeyType, HeaderValueTy
   extends IKafkaConnectionOptions
 ```
 
-Plus the shared [Connection & Authentication](./producer#connection--authentication) options (`bootstrapBrokers`, `clientId`, `retries`, `sasl`, `tls`, ...), documented once on the Producer page.
+Plus the shared [Connection & Authentication](./producer#connection-authentication) options (`bootstrapBrokers`, `clientId`, `retries`, `sasl`, `tls`, ...), documented once on the Producer page.
 
 ### Consumer Configuration
 
@@ -77,6 +77,12 @@ Plus the shared [Connection & Authentication](./producer#connection--authenticat
 | `onMessage` | `TKafkaMessageCallback<K,V,HK,HV>` | Called for each message. Receives `{ message }` |
 | `onMessageDone` | `TKafkaMessageDoneCallback<K,V,HK,HV>` | Called after `onMessage` succeeds. Receives `{ message }` |
 | `onMessageError` | `TKafkaMessageErrorCallback<K,V,HK,HV>` | Called on processing error. Receives `{ error, message? }` |
+| `onStreamError` | `TKafkaStreamErrorCallback` | Called on a stream `'error'` event. Receives `{ error }` |
+| `onReconnectError` | `TKafkaReconnectErrorCallback` | Called when a reconnect attempt fails. Receives `{ error, attempt, maxAttempts }` |
+
+`onStreamError` and `onReconnectError` take priority over `onMessageError`. Set either one and the matching failures stop reaching `onMessageError` entirely. Leave them unset and both fall back to it, which is why a reconnect failure looks like a message error until you split them apart.
+
+Only `onReconnectError` carries `attempt` and `maxAttempts`. The fallback into `onMessageError` drops both, so a consumer that wants to alert on the last attempt has to set `onReconnectError`.
 
 ### Consumer Group Callbacks
 
@@ -166,12 +172,18 @@ Stream 'data' event
     +-- error   -> onMessageError({ error, message })
 
 Stream 'error' event
-  -> onMessageError({ error })  (no message available)
+  -> onStreamError({ error })            if set
+  -> onMessageError({ error })           otherwise (no message available)
+
+Reconnect attempt failed
+  -> onReconnectError({ error, attempt, maxAttempts })   if set
+  -> onMessageError({ error })                            otherwise (attempt count lost)
 ```
 
 - **`onMessage` is the main processing callback.** Put your business logic here.
 - **`onMessageDone` fires only after `onMessage` resolves successfully.** Use it for logging, metrics, and similar side effects. An error thrown from `onMessageDone` also triggers `onMessageError`.
-- **`onMessageError` fires if `onMessage` throws.** It also fires for the stream's own `'error'` event. That case carries no `message` - it's a stream-level error, not a per-message one.
+- **`onMessageError` fires if `onMessage` throws.** It is also the fallback for stream and reconnect errors when the dedicated callbacks are unset. Those cases carry no `message`.
+- **`onStreamError` and `onReconnectError` win when set.** The consumer checks each one first and only falls back to `onMessageError`. Setting them separates transport failures from business-logic failures in your alerting.
 - **The stream `'error'` listener is always attached**, whether or not you pass `onMessageError`. An `EventEmitter` `'error'` event with zero listeners becomes an uncaught exception.
 - **Pull-style consumers benefit too.** Without this listener, a consumer using `start()` + `getStream()` with no `onMessage` would take down the whole process on the first broker drop.
 
@@ -235,6 +247,7 @@ When `onMessage` is provided, `start()` drives a background consume loop on top 
 - **A fresh client forces a clean group rejoin**, instead of reusing session state Kafka has likely already expired. Lag monitoring re-arms automatically on the new client.
 - **Attempts are capped.** After `maxReconnectAttempts` consecutive failures, the consume loop exits and logs an error. Message processing stops until you call `start()` again with a new set of options.
 - **Every retry is logged**: the attempt number, the delay, and the current connected-broker count. A stuck reconnect loop stays visible in application logs without extra instrumentation.
+- **Every failed attempt also calls back.** `onReconnectError` receives `{ error, attempt, maxAttempts }`, for both the client rebuild and the reconnect itself. Without it the error falls through to `onMessageError`, which sees only `{ error }` and cannot tell you how close the loop is to giving up. Set `onReconnectError` to alert when `attempt` reaches `maxAttempts`.
 
 ## Lag Monitoring
 
@@ -259,7 +272,7 @@ const lag = await helper.getConsumer().getLag({ topics: ['orders'] });
 `close()` implements an ordered shutdown:
 
 1. Stop lag monitoring
-2. Close the stream (calls `stream.close()` callback-style)
+2. Close the stream (`await stream?.close()` - the promise is awaited, no callback)
 3. Close the consumer client (calls `client.close(true)` with graceful timeout, or force)
 4. Set health status to `'disconnected'`
 

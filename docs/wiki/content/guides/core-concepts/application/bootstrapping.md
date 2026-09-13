@@ -6,7 +6,7 @@ difficulty: beginner
 
 # Registering artifacts
 
-An IGNIS application registers its datasources, components, repositories, services and controllers from one generated file. You decorate the class, `ignis-artifacts generate` writes the index, and `configs.artifacts` hands it to the boot sequence. `application.ts` no longer names a single class.
+An IGNIS application registers its configurations, datasources, components, repositories, services and controllers from one generated file. You decorate the class, `ignis-artifacts generate` writes the index, and `configs.artifacts` hands it to the boot sequence. `application.ts` no longer names a single class.
 
 ```typescript
 // src/services/product.service.ts
@@ -33,6 +33,7 @@ This page is the how-to. The [reference](/references/base/bootstrapping) has eve
 
 | Decorator | Marks | Binding key | Scope |
 |---|---|---|---|
+| `@configuration()` | a configuration | `configurations.<Class>` | `SINGLETON` |
 | `@datasource({ ... })` | a datasource | `datasources.<Class>` | `SINGLETON` |
 | `@component()` | a component | `components.<Class>` | `SINGLETON` |
 | `@repository({ model, dataSource })` | a repository | `repositories.<Class>` | `TRANSIENT` |
@@ -41,14 +42,19 @@ This page is the how-to. The [reference](/references/base/bootstrapping) has eve
 
 `@datasource`, `@repository`, `@controller` and `@model` already exist in your code. The new work is `@service()` on services and `@component()` on components. A `@model` class is referenced by its repository and is never registered on its own.
 
+A `@configuration()` class extends `BaseConfiguration` and registers before everything else, so it is where setup that every other artifact depends on belongs. Order configurations against each other with `after`, never with `order`.
+
 ```typescript
-import { component, service } from '@venizia/ignis';
+import { component, configuration, service } from '@venizia/ignis';
 
 @service()
 export class PricingService extends BaseService {}
 
 @component()
 export class MetricsComponent extends BaseComponent {}
+
+@configuration({ after: [TenantConfiguration] })
+export class BillingConfiguration extends BaseConfiguration {}
 ```
 
 The class must be a **named export** (`export class`, not `export default`) and must not be `abstract`. Anything else is skipped with a warning at generate time.
@@ -93,6 +99,9 @@ export const GeneratedArtifacts = {
 
 Commit the file. Never edit it by hand - the next `generate` overwrites it.
 
+> [!NOTE]
+> `@configuration` classes are picked up like any other stereotype and land in a `configurations` field, emitted first. Regenerate after upgrading `@venizia/ignis-boot`: an index written by an older generator has no such field, and `check:artifacts` reports it stale.
+
 ## 3. Pass the index in the config
 
 ```typescript
@@ -103,14 +112,15 @@ export const configs: IApplicationConfigs = {
   path: { base: '/api', isStrict: true },
   artifacts: [
     GeneratedArtifacts,
+    { configurations: [BillingConfiguration] },
     { components: [HealthCheckComponent, ApiReferenceComponent] },
   ],
 };
 ```
 
-The framework components you turn on are listed once, by hand, next to the generated index. Order inside the array does not matter for dependencies: the kernel registers datasources first, then components, repositories, services, controllers, across every index it was given.
+The framework components you turn on are listed once, by hand, next to the generated index. So is every `@configuration` class, until the generator learns to emit them. Order inside the array does not matter for dependencies: the kernel registers configurations first, then datasources, components, repositories, services, controllers, across every index it was given.
 
-Registering means binding a class to its key; nothing is constructed at this step. Datasources are constructed at `registerDataSources` and components at `registerComponents`, both after `preConfigure()`, so an option you bind in `preConfigure()` (or provide through `@provide`) is in place when the component starts. What the index cannot do is share a connection a hook already opened: a helper that `preConfigure()` connects and a component that connects again on construction collide, whichever way the component was registered.
+Registering means binding a class to its key; nothing is constructed at this step. Configurations are constructed at `registerConfigurations`, datasources at `registerDataSources` and components at `registerComponents`, all after `preConfigure()`, so an option you bind in `preConfigure()` (or provide through `@provide`) is in place when the component starts. What the index cannot do is share a connection a hook already opened: a helper that `preConfigure()` connects and a component that connects again on construction collide, whichever way the component was registered.
 
 Delete the registration calls from `preConfigure()`. Keep what is not a binding - a registry call such as `AuthenticationStrategyRegistry.getInstance().register(...)` stays where it was.
 
@@ -145,15 +155,18 @@ Each `@provide` key is bound to a lazy provider when the component is registered
 
 ## Conditional and ordered registration
 
-Every stereotype accepts the same five options. Use them on the class, never at a call site.
+Every stereotype accepts the same six options. Use them on the class, never at a call site.
 
 | Option | Use it when | Example |
 |---|---|---|
 | `when` | the class registers only in some deployments | `@component({ when: () => process.env.KAFKA_BROKERS !== undefined })` |
 | `order` | two classes of one kind must register in a fixed order | `@component({ order: -10 })` registers before the default `0` |
+| `after` | one configuration must run after another | `@configuration({ after: [TenantConfiguration] })` |
 | `scope` | the default scope is wrong for this class | `@service({ scope: BindingScopes.SINGLETON })` |
 | `binding` | the key must differ from `<namespace>.<Class>` | `@controller({ path: '/v2/users', binding: { namespace: 'controllers', key: 'UsersV2' } })` |
 | `allowOverride` | a same-key re-registration must throw instead of silently winning - or, under `bootChecks.binding.allowOverride: false`, this one class must be allowed to win | `@repository({ model, dataSource, allowOverride: false })` |
+
+`after` applies to configurations only, and it replaces the `order` sort for that kind. Name an unregistered class and the boot throws; make a cycle and it throws too, naming every class in it.
 
 `when` runs at the `registerArtifacts` boot step, before `preConfigure`, so it may read config and environment and nothing from the container. It may be `async`. A skipped class is logged at debug: `Skipped by condition | kind: components | class: KafkaComponent`.
 
@@ -197,7 +210,7 @@ artifacts-check:
 Start with debug logging and read the boot log:
 
 ```
-Boot step 5/15 registerArtifacts
+Boot step 5/16 registerArtifacts
 Skipped by condition | kind: controllers | class: TestController
 ```
 
@@ -268,7 +281,7 @@ One production application went from 286 lines and 99 `this.controller(...)`-sty
 ## See also
 
 - [Artifact registration reference](/references/base/bootstrapping) - every option, the CLI, detection rules
-- [Application reference](/references/base/application) - the 15-step boot sequence
+- [Application reference](/references/base/application) - the 16-step boot sequence
 - [Components](/references/base/components) - writing a component
 - [Changelog 2026-09-02](/changelogs/2026-09-02-decorator-artifact-registration) - what changed and who is affected
 - [Changelog 2026-09-03](/changelogs/2026-09-03-deprecated-boot-api-removed) - the deprecated boot API removed

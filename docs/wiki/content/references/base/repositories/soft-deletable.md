@@ -10,8 +10,8 @@ Reference for `SoftDeletableRepository` - delete methods set a `deletedAt` times
 
 **Files:**
 
-- [`packages/connectors/src/relational/postgres/repositories/core/soft-deletable.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/connectors/src/relational/postgres/repositories/core/soft-deletable.ts) - `SoftDeletableRelationalRepository` - delete/restore overrides, `isStrict` findById
-- [`packages/connectors/src/relational/postgres/repositories/core/index.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/connectors/src/relational/postgres/repositories/core/index.ts) - compatibility alias `SoftDeletableRepository`
+- [`packages/connectors/src/relational/core/repositories/core/soft-deletable.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/connectors/src/relational/core/repositories/core/soft-deletable.ts) - `SoftDeletableRelationalRepository` - delete/restore overrides, `isStrict` findById, `TDeletedAtColumn`
+- [`packages/connectors/src/relational/postgres/repositories/core/soft-deletable.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/connectors/src/relational/postgres/repositories/core/soft-deletable.ts) - `SoftDeletableRepository`, the Postgres binding
 - [`packages/connectors/src/relational/postgres/models/enrichers/tz.enricher.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/connectors/src/relational/postgres/models/enrichers/tz.enricher.ts) - `generateTzColumnDefs` - adds the `deletedAt` column
 
 ## Setup
@@ -48,7 +48,7 @@ export class Category extends BaseEntity<typeof Category.schema> {
 ```
 
 > [!IMPORTANT]
-> - The model **must** have a `deletedAt` column. `SoftDeletableRepository` requires `TSoftDeletableTableSchema`, which enforces `{ deletedAt: AnyPgColumn<{ data: Date | string | null }> }`.
+> - The model **must** have a `deletedAt` column. `SoftDeletableRepository` requires `TSoftDeletableTableSchema`, which enforces `{ deletedAt: AnyColumn<{ data: Date | string | null }> }`. The bound is Drizzle's dialect-free `AnyColumn`, the exact twin of `AnyPgColumn`, so the same column satisfies it on SQLite too.
 > - Set `defaultFilter: { where: { deletedAt: null } }` in `@model` settings so soft-deleted records are excluded by default.
 > - Optionally add `deletedAt` to `hiddenProperties` to hide it from API responses.
 > - Use `generateTzColumnDefs` with `deleted: { enable: true, ... }` to add the column, or define it manually with `timestamp('deleted_at', { mode: 'date', withTimezone: true })`.
@@ -235,7 +235,7 @@ const category = await repository.findById({
 | `deleteById({ shouldHardDelete: true })` | `DELETE FROM ... WHERE id = ?` (delegates to the parent repository) |
 
 > [!TIP]
-> `shouldHardDelete` bypasses soft delete entirely and delegates to the parent `DefaultCRUDRepository`'s delete implementation, which performs a real SQL `DELETE`.
+> `shouldHardDelete` bypasses soft delete entirely and calls `super`, which is `DefaultRelationalRepository`'s delete implementation - a real SQL `DELETE`.
 
 ## With Transactions
 
@@ -259,7 +259,7 @@ try {
 `SoftDeletableRepository` enforces that the schema includes a `deletedAt` column at the type level:
 
 ```typescript
-export type TDeletedAtColumn = AnyPgColumn<{ data: Date | string | null }>;
+export type TDeletedAtColumn = AnyColumn<{ data: Date | string | null }>;
 
 export type TSoftDeletableTableSchema = TTableSchemaWithId & {
   deletedAt: TDeletedAtColumn;
@@ -275,16 +275,26 @@ If your schema does not have a `deletedAt` column, you get a TypeScript compilat
 
 ## Class Hierarchy
 
-`SoftDeletableRepository` is the friendly alias for `SoftDeletableRelationalRepository`, the last tier of the PostgreSQL repository chain:
+The behavior lives on the engine-neutral `SoftDeletableRelationalRepository`, the last rung of the relational chain:
 
 ```
-AbstractRepository (engine-neutral, src/base)
-  -> RelationalBaseRepository (PostgresBaseRepository)
-    -> ReadableRelationalRepository (ReadableRepository)
-      -> PersistableRelationalRepository (PersistableRepository)
-        -> DefaultRelationalRepository (DefaultCRUDRepository)
-          -> SoftDeletableRelationalRepository (SoftDeletableRepository)   <-- you are here
+AbstractRepository (engine-neutral, @venizia/ignis-kernel)
+  -> RelationalBaseRepository
+    -> ReadableRelationalRepository
+      -> PersistableRelationalRepository
+        -> DefaultRelationalRepository
+          -> SoftDeletableRelationalRepository
 ```
+
+`SoftDeletableRepository` is the Postgres binding of that last rung - a subclass, not an alias:
+
+```
+SoftDeletableRelationalRepository
+  -> SoftDeletableRepository (Postgres)        <-- you are here
+  -> SoftDeletableSqliteRepository (SQLite)
+```
+
+It rebinds `ExtraOptions` to `IDatabaseExtraOptions` and `TDataSource` to `IPostgresDataSource`, and adds nothing else. It does **not** extend `DefaultCRUDRepository`, even though the neutral class it extends does extend `DefaultRelationalRepository`.
 
 ## Quick Reference
 

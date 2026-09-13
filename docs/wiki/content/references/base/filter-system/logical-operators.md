@@ -73,7 +73,7 @@ Use an `or` array to match any of several conditions.
 ```
 
 > [!NOTE]
-> `not` is supported on the PostgreSQL connector. The dedicated negation operators below are often clearer for a single condition.
+> `not` is engine-neutral - `FilterBuilder.buildNotCondition` lives in the shared relational tier, so every SQL engine gets it. The dedicated negation operators below are often clearer for a single condition.
 
 
 ## Dedicated Negation Operators

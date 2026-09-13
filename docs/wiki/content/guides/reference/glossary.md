@@ -140,7 +140,7 @@ export const userRelations = createRelations({
 });
 
 // Query with relations
-await userRepo.find({ filter: { include: [{ relation: 'posts' }] } });
+await userRepository.find({ filter: { include: [{ relation: 'posts' }] } });
 ```
 
 ```bash
@@ -197,7 +197,7 @@ await repository.find({
 const TodoRoutes = {
   GET_ALL: { method: HTTP.Methods.GET, path: '/', responses: jsonResponse({ schema: z.array(z.any()) }) },
   GET_BY_ID: { method: HTTP.Methods.GET, path: '/{id}', request: { params: z.object({ id: z.string() }) }, responses: jsonResponse({ schema: z.any() }) },
-  CREATE: { method: HTTP.Methods.POST, path: '/', request: { body: jsonContent({ schema: z.any() }) }, responses: jsonResponse({ schema: z.any() }) },
+  CREATE: { method: HTTP.Methods.POST, path: '/', request: { body: jsonContent({ description: 'Todo to create', schema: z.any() }) }, responses: jsonResponse({ schema: z.any() }) },
 } as const;
 
 @controller({ path: '/todos' })
@@ -224,7 +224,7 @@ class TodoController extends BaseRestController {
 | **Endpoint** | URL path that API responds to (e.g., `GET /todos`) |
 | **Route Parameter** | Variable in URL wrapped in braces (e.g., `{id}` in OpenAPI route configs) |
 | **Request Body** | JSON data sent with POST/PATCH requests |
-| **OpenAPI/Swagger** | Auto-generated API docs at `/doc/explorer` (default path via ApiReferenceComponent) |
+| **OpenAPI/Swagger** | Auto-generated API docs. `ApiReferenceComponent` registers the explorer at `/doc/explorer` on the root router, so the browser URL is `<path.base>/doc/explorer`. The default UI is Scalar |
 
 
 ## Environment & Configuration

@@ -15,7 +15,9 @@ Exhaustive reference for every utility type, resolver function, and constant cla
 - [`packages/helpers/src/common/constants/app.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/common/constants/app.ts) - `Defaults`, `RuntimeModules`, `DataTypes`
 - [`packages/helpers/src/common/constants/http.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/common/constants/http.ts) - `HTTP`
 - [`packages/helpers/src/common/constants/grpc.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/common/constants/grpc.ts) - `GRPC`
-- [`packages/helpers/src/common/constants/mime.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/common/constants/mime.ts) - `MimeTypes`
+- [`packages/helpers/src/common/constants/mime.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/common/constants/mime.ts) - `MimeTypes`, `FileExtensions`, `ContentTypes`, `ContentTypeTable`
+- [`packages/helpers/src/common/constants/duration.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/common/constants/duration.ts) - `DurationUnits`, `DurationAliases`, `DurationMultipliers`, `IDuration`
+- [`packages/helpers/src/common/redact.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/common/redact.ts) - `redactSecrets`, `toJsonSafe`, `redactUrlCredentials`, `REDACTED`
 - [`packages/helpers/src/common/constants/index.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/common/constants/index.ts) - constants barrel
 
 ## Find what you need
@@ -38,6 +40,9 @@ Exhaustive reference for every utility type, resolver function, and constant cla
 | HTTP headers, methods, status codes | [HTTP](#http) |
 | gRPC methods, headers, status codes | [GRPC](#grpc) |
 | Content-type classification (image, video, text) | [MimeTypes](#mimetypes) |
+| A file extension, a MIME content type, or the lookup between them | [Content types and file extensions](#content-types-and-file-extensions) |
+| Reading `'30d'` into milliseconds, or converting between time units | [Duration](#duration) |
+| Keeping a secret out of a log line | [Redaction](#redaction) |
 
 ## Import paths
 
@@ -81,12 +86,33 @@ import { isClass } from '@venizia/ignis-helpers';
 import { resolveValue, resolveValueAsync, resolveClass } from '@venizia/ignis-helpers';
 
 // Constants
-import { Defaults, RuntimeModules, DataTypes, HTTP, GRPC, MimeTypes } from '@venizia/ignis-helpers';
+import {
+  Defaults,
+  RuntimeModules,
+  DataTypes,
+  HTTP,
+  GRPC,
+  MimeTypes,
+  FileExtensions,
+  ContentTypes,
+  ContentTypeTable,
+  CONTENT_TYPE_BY_EXTENSION,
+  DurationUnits,
+  DurationAliases,
+  DurationMultipliers,
+} from '@venizia/ignis-helpers';
+
+// Redaction
+import { redactSecrets, toJsonSafe, redactUrlCredentials, REDACTED } from '@venizia/ignis-helpers';
 
 // Derived constant types
 import type {
   TRuntimeModule,
   TMimeTypes,
+  TFileExtension,
+  TContentType,
+  TDurationUnit,
+  IDuration,
   THttpMethod,
   THttpProtocol,
   THttpResultCode,
@@ -698,7 +724,133 @@ class MimeTypes {
 type TMimeTypes = TConstValue<typeof MimeTypes>; // 'unknown' | 'image' | 'video' | 'text'
 ```
 
-Content type classification constants.
+Content type classification constants. `MimeTypes.isValid(value)` returns `true` for one of the four.
+
+### Content types and file extensions
+
+`Source ->` [`constants/mime.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/common/constants/mime.ts)
+
+The same file carries three more const classes, for the concrete extension and MIME strings.
+
+| Const class | Derived type | Holds |
+|---|---|---|
+| `FileExtensions` | `TFileExtension` | 19 lowercase extensions, leading dot included - `'.png'`, `'.mp4'`, `'.xml'`. The dot is part of the value, because `path.extname` returns one |
+| `ContentTypes` | `TContentType` | 19 MIME strings - `'image/png'`, `'application/json'`, plus `OCTET_STREAM` as the fallback |
+| `ContentTypeTable` | - | `BY_EXTENSION`, the extension-to-content-type map, and `resolve()` over it |
+
+```typescript
+import { ContentTypeTable, ContentTypes, FileExtensions } from '@venizia/ignis-helpers';
+
+ContentTypeTable.resolve({ filename: 'report.PDF' }); // 'application/pdf' - the match is case-insensitive
+ContentTypeTable.resolve({ filename: 'archive.bin' }); // 'application/octet-stream' - the fallback
+ContentTypeTable.resolve({ filename: 'LICENSE' });     // 'application/octet-stream' - no extension
+
+FileExtensions.isValid('.webp');   // true
+ContentTypes.isValid('image/png'); // true
+```
+
+`resolve()` never throws and never returns `undefined`. An unknown or absent extension yields `ContentTypes.OCTET_STREAM`.
+
+`CONTENT_TYPE_BY_EXTENSION` is exported as a one-line delegate to `ContentTypeTable.BY_EXTENSION`, kept for callers that predate the table moving onto the class.
+
+`ContentTypeTable` does not use `node:path`. The file is reachable from the browser-pure `./common` subpath, and an extension is the tail after the last dot either way.
+
+### Duration
+
+`Source ->` [`constants/duration.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/common/constants/duration.ts)
+
+```typescript
+class DurationUnits {
+  static readonly MILLISECOND = 'millisecond';
+  static readonly SECOND = 'second';
+  static readonly MINUTE = 'minute';
+  static readonly HOUR = 'hour';
+  static readonly DAY = 'day';
+  static readonly WEEK = 'week';
+  static readonly MONTH = 'month';
+  static readonly YEAR = 'year';
+}
+
+type TDurationUnit = TConstValue<typeof DurationUnits>;
+
+interface IDuration {
+  unit: TDurationUnit;
+  value: number;
+}
+```
+
+`DurationAliases` maps written spellings onto those units. `DurationAliases.resolve(input)` returns the canonical unit, or `null`.
+
+| Unit | Spellings |
+|---|---|
+| `millisecond` | `ms`, `msec`, `millisecond`, `milliseconds` |
+| `second` | `s`, `sec`, `second`, `seconds` |
+| `minute` | `m`, `min`, `minute`, `minutes` |
+| `hour` | `h`, `hr`, `hour`, `hours` |
+| `day` | `d`, `day`, `days` |
+| `week` | `w`, `wk`, `week`, `weeks` |
+| `month` | `mo`, `mon`, `month`, `months` |
+| `year` | `y`, `yr`, `year`, `years` |
+
+> [!WARNING]
+> `m` is minute and `mo` is month. There is no single-letter month. This is the one ambiguity readers trip on, and it matches what every duration library does.
+
+`DurationMultipliers` does the arithmetic. Every method answers `null` rather than throwing, so a caller raises its own error with its own context.
+
+| Method | Signature | Returns |
+|---|---|---|
+| `parse` | `(input: string): IDuration \| null` | `'30d'`, `'1500 ms'`, `'-2 Hours'` read into `{ unit, value }` |
+| `parseToMilliseconds` | `(input: string): number \| null` | `parse` straight to milliseconds |
+| `toMilliseconds` | `(opts: IDuration \| null): number \| null` | Rounded to a whole millisecond |
+| `fromMilliseconds` | `(opts: { milliseconds: number; unit: TDurationUnit }): number \| null` | Fractional on purpose |
+| `convert` | `(opts: { value: number; from: TDurationUnit; to: TDurationUnit }): number \| null` | Unit to unit, through milliseconds |
+
+```typescript
+import { DurationMultipliers } from '@venizia/ignis-helpers';
+
+DurationMultipliers.parseToMilliseconds('30d');   // 2592000000
+DurationMultipliers.parse('2 hours');             // { unit: 'hour', value: 2 }
+DurationMultipliers.parseToMilliseconds('30 xy'); // null
+DurationMultipliers.convert({ value: 36, from: 'hour', to: 'day' }); // 1.5
+```
+
+> [!WARNING]
+> A month is 30 days and a year is 365, nominal. These size a window - a grace period, a cache TTL, a near-expiry horizon. Never use them to compute a calendar date. Adding one `month` to 31 January lands on 2 March in a leap year and 3 March otherwise. Use a date library for calendar arithmetic.
+
+## Redaction
+
+`Source ->` [`common/redact.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/common/redact.ts)
+
+Keeps secrets out of log lines. Key names are matched case-insensitively, at any depth.
+
+| Export | Signature | Does |
+|---|---|---|
+| `redactSecrets` | `(value: unknown, seen?: WeakSet<object>, depth?: number): unknown` | Replaces the value of any secret-looking key with `REDACTED`. `depth` defaults to `Infinity` |
+| `toJsonSafe` | `(opts: { value: unknown; depth?: number }): unknown` | Projects a value into something `JSON.stringify` can render, breaking cycles per branch |
+| `redactUrlCredentials` | `(url: string): string` | Strips the password out of a connection URL's authority section |
+| `REDACTED` | `'[REDACTED]'` | The replacement string |
+
+The key pattern covers the options spellings (`password`, `secret`, `apiKey`, `privateKey`, `connectionString`), the snake_case wire spellings (`client_token`, `secret_id`, `role_id`), any `*_token`/`*Token` and `*_secret`/`*Secret` key, and the HTTP header spellings (`x-api-key`, `authorization`, `cookie`, `set-cookie`).
+
+`redactUrlCredentials` exists because `redactSecrets` matches on key names and cannot see a password sitting inside a URL string. A value that does not parse as a URL comes back unchanged.
+
+```typescript
+import { redactSecrets, redactUrlCredentials, toJsonSafe } from '@venizia/ignis-helpers';
+
+redactSecrets({ user: 'ada', password: 'hunter2' });
+// => { user: 'ada', password: '[REDACTED]' }
+
+redactUrlCredentials('postgres://ada:hunter2@db:5432/app');
+// => 'postgres://ada:[REDACTED]@db:5432/app'
+
+const node: Record<string, unknown> = { name: 'a' };
+node.self = node;
+toJsonSafe({ value: node });
+// => { name: 'a', self: '[Circular]' } - one branch, not the whole payload
+```
+
+> [!WARNING]
+> `APP_ENV_LOGGER_DO_REDACT=false` turns key masking off, for local debugging only. It is fail-closed: only the literal string `false` disables it, and it is read per call. The structural pass in `toJsonSafe` always runs regardless.
 
 ## See also
 

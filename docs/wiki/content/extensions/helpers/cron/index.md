@@ -28,7 +28,7 @@ const job = new CronHelper({
 ## How it works
 
 - **The constructor builds the job right away.** `buildInstance()` runs inside the constructor and creates a `CronJob` via `CronJob.from(...)`. An empty `cronTime`, or a malformed cron expression, throws immediately - `getError` never lets you hold a half-built job.
-- **`start()` checks for a built job first.** If a prior `configure()` call failed, `buildInstance()` never produced a `CronJob`. `start()` then logs a warning and returns - it does not throw.
+- **`start()` checks for a built job first.** If a prior `configure()` call failed, `buildInstance()` never produced a `CronJob`. `start()` then logs `Invalid cron instance to start cronjob!` at **error** level and returns - it does not throw. `stop()` does the same. Neither logs at warning, so an alert rule on `error` catches a job that silently never ran.
 - **`stop()` is `async` on purpose.** The underlying `CronJob.stop()` resolves only once an in-flight tick finishes. Awaiting it stops a replacement job from starting while the old handler still runs.
 - **`modifyCronTime()` reschedules in place.** It builds a new `CronTime`, calls `instance.setTime(...)`, and updates the stored `cronTime`. The same `CronJob` keeps running - it just fires on the new schedule.
 - **`duplicate()` clones configuration, not state.** The new instance shares `onTick`, `onCompleted`, `autoStart`, `tz`, and `errorHandler`, with a different `cronTime`. Stopping or modifying one instance never touches the other.

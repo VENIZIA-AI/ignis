@@ -13,12 +13,13 @@ Everything beyond basic CRUD - transactions, row-level locking, hidden-property 
 - [`packages/kernel/src/base/repositories/core/abstract.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/kernel/src/base/repositories/core/abstract.ts) - engine-neutral `AbstractRepository`
 - [`packages/kernel/src/base/repositories/common/types/index.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/kernel/src/base/repositories/common/types/index.ts) - `IExtraOptions`, `TLockOptions`, `TCount`, `TDataRange`, `IReadRetryOptions`, `IWithReadRetry`, `TFindOptions`, `TFindOneOptions`, `TFindRangeOptions`, `TDataWithRange`
 - [`packages/helpers/src/modules/retry/helper.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/retry/helper.ts) - `RetryHelper.executeWithRetryUntil`, the engine behind `options.retry`
-- [`packages/connectors/src/relational/postgres/repositories/core/base.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/connectors/src/relational/postgres/repositories/core/base.ts) - `RelationalBaseRepository` - hidden-column exclusion, `buildQuery`, `resolveConnector`, lock validation
-- [`packages/connectors/src/relational/postgres/repositories/core/readable.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/connectors/src/relational/postgres/repositories/core/readable.ts) - `ReadableRelationalRepository` - Core API vs. Query API selection, `shouldQueryRange`
-- [`packages/connectors/src/relational/postgres/repositories/core/persistable.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/connectors/src/relational/postgres/repositories/core/persistable.ts) - `PersistableRelationalRepository` - create/update/delete, empty-where guard
-- [`packages/connectors/src/relational/postgres/repositories/core/soft-deletable.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/connectors/src/relational/postgres/repositories/core/soft-deletable.ts) - `SoftDeletableRelationalRepository`
+- [`packages/connectors/src/relational/core/repositories/core/base.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/connectors/src/relational/core/repositories/core/base.ts) - `RelationalBaseRepository` - hidden-column exclusion, `buildQuery`, `resolveConnector`, lock validation
+- [`packages/connectors/src/relational/core/repositories/core/readable.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/connectors/src/relational/core/repositories/core/readable.ts) - `ReadableRelationalRepository` - Core API vs. Query API selection, `shouldQueryRange`
+- [`packages/connectors/src/relational/core/repositories/core/persistable.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/connectors/src/relational/core/repositories/core/persistable.ts) - `PersistableRelationalRepository` - create/update/delete, empty-where guard
+- [`packages/connectors/src/relational/core/repositories/core/soft-deletable.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/connectors/src/relational/core/repositories/core/soft-deletable.ts) - `SoftDeletableRelationalRepository`
+- [`packages/connectors/src/relational/postgres/repositories/core/`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/connectors/src/relational/postgres/repositories/core) - the Postgres bindings (`PostgresBaseRepository`, `ReadableRepository`, `DefaultCRUDRepository`, ...), one subclass per neutral class
 - [`packages/connectors/src/relational/postgres/repositories/dialect/update.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/connectors/src/relational/postgres/repositories/dialect/update.ts) - `UpdateBuilder` - nested JSON path updates
-- [`packages/connectors/src/relational/postgres/datasources/abstract.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/connectors/src/relational/postgres/datasources/abstract.ts) - `beginTransaction()`, isolation levels
+- [`packages/connectors/src/relational/core/datasources/base.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/connectors/src/relational/core/datasources/base.ts) - `beginTransaction()`; Postgres adds the isolation level in `relational/postgres/datasources/base.ts`
 
 ## Transactions
 
@@ -308,18 +309,27 @@ const usersWithPosts = await repository.find({
 
 ### Always set a limit
 
-An unbounded `find` can return millions of rows:
+A `find` without a `limit` is not unbounded, but it is silent: you get `10` rows and no sign that more matched.
 
 ```typescript
-// Bounded result set
+// Bounded result set - you chose the page size
 await repository.find({ filter: { where: { status: 'active' }, limit: 100 } });
 
-// Dangerous - no limit in the filter
+// Returns 10 rows, whatever the caller expected
 await repository.find({ filter: { where: { status: 'active' } } });
 ```
 
 > [!NOTE]
 > `find()` always applies a default limit when the filter has none. It uses the model's `@model({ settings: { defaultLimit } })` if declared, otherwise the global default of `10`. Pass an explicit `limit` to override either default. `findOne`/`findById` are unaffected - they force `limit: 1` on the Core API path regardless.
+
+An explicit `limit` is bounded from above as well. The repository checks it against the model's `@model({ settings: { maxLimit } })`, defaulting to `DEFAULT_MAX_LIMIT` (`1000`), and throws before the query runs when the request is over the ceiling, negative, or not an integer.
+
+```typescript
+await repository.find({ filter: { limit: 5000 } });
+// Error: Requested page exceeds this model's limit | requested: 5000 | maximum: 1000
+```
+
+Raise it on the model when a bigger page is genuinely needed. See [Limit ceiling](/references/base/filter-system/fields-order-pagination#limit-ceiling-maxlimit) for the full rules.
 
 ### Pagination with data range
 
@@ -467,18 +477,30 @@ const results = await connector
 
 ## Repository Class Hierarchy
 
-The PostgreSQL connector's canonical names carry the engine in the class name. The historical `*Repository` names remain as compatibility aliases re-exporting the exact same classes.
+All the behavior lives on the engine-neutral `*RelationalRepository` ladder. Each engine adds one thin subclass per rung, rebinding two generic defaults so a single-argument subclass resolves the right datasource and options type.
 
-| Canonical class | Alias | Scope | Description |
-|---|---|---|---|
-| `AbstractRepository` | - | N/A | Engine-neutral abstract base (`src/base`), defines every method signature, lazy `dataSource`/`entity` resolution. Plain `BaseHelper` subclass, no mixin composition. |
-| `RelationalBaseRepository` | `PostgresBaseRepository` | N/A | PostgreSQL connector base. Adds `FilterBuilder`/`UpdateBuilder`, hidden-column exclusion (`getHiddenProperties`/`getVisibleProperties`), default-filter application (`getDefaultFilter`/`applyDefaultFilter`) - the behavior formerly provided by the now-removed `FieldsVisibilityMixin`/`DefaultFilterMixin` (see [Repository Mixins](./mixins)). |
-| `ReadableRelationalRepository` | `ReadableRepository` | `READ_ONLY` | Read-only operations (`find`, `findOne`, `findById`, `count`, `existsWith`). Write operations throw. |
-| `PersistableRelationalRepository` | `PersistableRepository` | `READ_WRITE` | Adds write operations (`create`, `update`, `delete`) with `UpdateBuilder`. |
-| `DefaultRelationalRepository` | `DefaultCRUDRepository` | `READ_WRITE` | Extends `PersistableRelationalRepository` with no additional logic - **recommended default**. |
-| `SoftDeletableRelationalRepository` | `SoftDeletableRepository` | `READ_WRITE` | Extends `DefaultRelationalRepository` with soft delete and restore - see [SoftDeletableRepository](./soft-deletable). |
+| Neutral class | Scope | Description |
+|---|---|---|
+| `AbstractRepository` | N/A | Engine-neutral abstract base (`@venizia/ignis-kernel`), defines every method signature, lazy `dataSource`/`entity` resolution, the `limit` shape and ceiling checks. Plain `BaseHelper` subclass, no mixin composition. |
+| `RelationalBaseRepository` | N/A | Relational base. Adds `FilterBuilder`/`UpdateBuilder`, hidden-column exclusion (`getHiddenProperties`/`getVisibleProperties`), default-filter application (`getDefaultFilter`/`applyDefaultFilter`) - the behavior formerly provided by the now-removed `FieldsVisibilityMixin`/`DefaultFilterMixin` (see [Repository Mixins](./mixins)). |
+| `ReadableRelationalRepository` | `READ_ONLY` | Read-only operations (`find`, `findOne`, `findById`, `count`, `existsWith`). Write operations throw. |
+| `PersistableRelationalRepository` | `READ_WRITE` | Adds write operations (`create`, `update`, `delete`) with `UpdateBuilder`. |
+| `DefaultRelationalRepository` | `READ_WRITE` | Extends `PersistableRelationalRepository` with no additional logic - **recommended default**. |
+| `SoftDeletableRelationalRepository` | `READ_WRITE` | Extends `DefaultRelationalRepository` with soft delete and restore - see [SoftDeletableRepository](./soft-deletable). |
 
-Code samples throughout the docs use the alias names (`DefaultCRUDRepository`, `ReadableRepository`), since that is what `@venizia/ignis/postgres` code most commonly imports today.
+Each engine binding extends its own neutral rung, never the engine's previous rung. `DefaultCRUDRepository extends DefaultRelationalRepository`, not `PersistableRepository`. The five Postgres classes are siblings, not a ladder:
+
+| Neutral class | Postgres binding | SQLite binding |
+|---|---|---|
+| `RelationalBaseRepository` | `PostgresBaseRepository` | `SqliteBaseRepository` |
+| `ReadableRelationalRepository` | `ReadableRepository` | `ReadableSqliteRepository` |
+| `PersistableRelationalRepository` | `PersistableRepository` | `PersistableSqliteRepository` |
+| `DefaultRelationalRepository` | `DefaultCRUDRepository` | `DefaultSqliteRepository` |
+| `SoftDeletableRelationalRepository` | `SoftDeletableRepository` | `SoftDeletableSqliteRepository` |
+
+A binding rebinds `ExtraOptions` (to `IDatabaseExtraOptions` for Postgres, `ISqliteExtraOptions` for SQLite) and `TDataSource` (to `IPostgresDataSource` / `ISqliteDataSource`). Nothing else changes, so `options.transaction.connector` needs no cast.
+
+Code samples throughout the docs use the Postgres names (`DefaultCRUDRepository`, `ReadableRepository`), since that is what `@venizia/ignis/postgres` code most commonly imports today. The neutral classes are importable from `@venizia/ignis/relational`; they are **not** re-exported from `@venizia/ignis` or `@venizia/ignis/postgres`.
 
 ```typescript
 @repository({ model: AuditLog, dataSource: PostgresDataSource })
@@ -586,14 +608,14 @@ Read operations (`find`, `findOne`, `findById`) additionally support:
 | Option | Type | Default | Description |
 |--------|------|---------|-------------|
 | `retry` | `IReadRetryOptions` | - | Re-read with backoff until a predicate passes - see [Read Retry](#read-retry-replica-lag). Skipped inside a transaction. Not accepted by write operations. |
+| `shouldQueryRange` | `boolean` | `false` | Return `{ data, range }` with the total count. `find` only |
 
 Write operations additionally support:
 
 | Option | Type | Default | Description |
 |--------|------|---------|-------------|
-| `shouldReturn` | `boolean` | `true` | Return the created/updated/deleted data |
+| `shouldReturn` | `boolean` | `true` | Return the created/updated/deleted data. Write verbs only - a read verb's options type has no `shouldReturn` |
 | `force` | `boolean` | `false` | Allow an empty `where` condition on bulk operations |
-| `shouldQueryRange` | `boolean` | `false` | Return `{ data, range }` with total count (find only) |
 
 ## Quick Reference
 

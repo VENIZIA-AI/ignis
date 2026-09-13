@@ -76,12 +76,16 @@ interface IInterfaceName {
 
 ### Component Lifecycle
 
-How the component initializes during application startup:
+`BaseComponent` gives every component exactly two hooks. Do not document a third.
 
-1. **`constructor()`** -- What happens at instantiation
-2. **`binding()`** -- What gets registered with the DI container
-3. **`resolveBindings()`** -- How bindings are resolved
-4. **Post-start hook** -- What runs after the server starts (if applicable)
+1. **`constructor()`** -- Receives the application via `@inject`. STORES the default `Binding` objects; it applies none of them yet
+2. **`configure(opts?)`** -- Runs at the `registerComponents` boot step. Applies the stored defaults through `initDefaultBindings()`, filling only keys nothing else took, then calls `binding()`. This is the only hook that sees the options from `this.component(Class, { options })`. Override it when the component must bind those options itself; call `super.configure(opts)` last
+3. **`binding()`** -- Abstract, so every component implements it. Registers services, providers, controllers and routes with the DI container
+4. **Post-start hook** -- Registered from `binding()` via `application.registerPostStartHook()`, for work that needs a running server (if applicable)
+
+> [!NOTE]
+> `resolveBindings()` is not a base-class hook. It is a private helper two components happen to
+> define for themselves. Name it only on those pages, as an internal, never as part of the contract.
 
 ### {Internal Mechanism} (e.g., "Token Encryption", "Redis Channel Architecture")
 

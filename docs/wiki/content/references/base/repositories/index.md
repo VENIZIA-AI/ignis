@@ -25,19 +25,23 @@ That's it - `UserRepository` already has `find`, `findOne`, `findById`, `create`
 
 ## How it works
 
-- **Engine-neutral contract, PostgreSQL implementation.** `AbstractRepository` (engine-neutral, `src/base`) declares the CRUD contract - no SQL, no Drizzle. The PostgreSQL connector implements it as a chain of classes, each layer adding one capability (see table below).
+- **Engine-neutral contract, relational implementation.** `AbstractRepository` (engine-neutral, `@venizia/ignis-kernel`) declares the CRUD contract - no SQL, no Drizzle. The relational tier implements it as a chain of classes, each layer adding one capability (see table below).
 - **Datasource is auto-injected.** `@repository({ model, dataSource })` auto-injects the datasource at constructor param[0] and lazily resolves the entity class from its own metadata. A plain `extends DefaultCRUDRepository<...> {}` needs no constructor at all.
-- **One options object per verb.** Reads and updates carry a `filter` (`where`, `fields`, `include`, `order`, `limit`, `offset`). Writes carry `data`. Every verb also accepts an `options` bag for `transaction`, `shouldReturn`, and `shouldSkipDefaultFilter`.
+- **One options object per verb.** Reads and updates carry a `filter` (`where`, `fields`, `include`, `order`, `limit`, `offset`). Writes carry `data`. Every verb also accepts an `options` bag for `transaction` and `shouldSkipDefaultFilter`; `shouldReturn` is a write-only option, and `retry`/`shouldQueryRange` are read-only ones.
 
-**PostgreSQL class chain**
+**The relational class chain, and the Postgres binding of each rung**
 
-| Class | Alias | Adds |
+| Neutral class | Postgres binding | Adds |
 |---|---|---|
 | `RelationalBaseRepository` | `PostgresBaseRepository` | `FilterBuilder`/`UpdateBuilder`, hidden-column exclusion |
 | `ReadableRelationalRepository` | `ReadableRepository` | The read verbs |
 | `PersistableRelationalRepository` | `PersistableRepository` | create/update/delete |
 | `DefaultRelationalRepository` | `DefaultCRUDRepository` | Empty - the recommended entry point |
 | `SoftDeletableRelationalRepository` | `SoftDeletableRepository` | Overrides delete to set `deletedAt` instead of removing the row |
+
+A Postgres class is **not** an alias for the neutral one beside it, and it does not extend the Postgres class above it. Each one extends its own neutral counterpart and rebinds two generic defaults - `ExtraOptions` to `IDatabaseExtraOptions` and `TDataSource` to `IPostgresDataSource`. SQLite binds the same five rungs as `SqliteBaseRepository`, `ReadableSqliteRepository`, `PersistableSqliteRepository`, `DefaultSqliteRepository`, and `SoftDeletableSqliteRepository`.
+
+Import the Postgres names from `@venizia/ignis` or `@venizia/ignis/postgres`, the SQLite names from `@venizia/ignis/sqlite`, and the neutral names from `@venizia/ignis/relational`. The neutral names are deliberately absent from the engine subpaths, so one class never ships under two names.
 
 ## Common tasks
 
@@ -149,4 +153,5 @@ Full options and rules: [Advanced Features - Read Retry](./advanced#read-retry-r
 **Files:**
 
 - [`packages/kernel/src/base/repositories/core/abstract.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/kernel/src/base/repositories/core/abstract.ts) - neutral `AbstractRepository`
-- [`packages/connectors/src/relational/postgres/repositories/core/index.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/connectors/src/relational/postgres/repositories/core/index.ts) - PostgreSQL hierarchy + compatibility aliases
+- [`packages/connectors/src/relational/core/repositories/core/`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/connectors/src/relational/core/repositories/core) - the engine-neutral relational ladder, where every verb is implemented
+- [`packages/connectors/src/relational/postgres/repositories/core/`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/connectors/src/relational/postgres/repositories/core) - the Postgres bindings, one subclass per neutral class

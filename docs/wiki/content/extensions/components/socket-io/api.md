@@ -199,7 +199,8 @@ Socket.IO needs a running server, but components initialize before the server st
 ```
 preConfigure()          <- register SocketIOComponent here
       |
-initialize()             <- component.binding() runs: resolve bindings, register post-start hook
+registerComponents()     <- component.configure(opts?) -> binding():
+      |                      resolve bindings, register post-start hook
       |
 setupMiddlewares()
       |

@@ -54,8 +54,9 @@ const host = applicationEnvironment.get<string>(EnvironmentKeys.APP_ENV_POSTGRES
 - **One prefix, layered files.** Everything IGNIS reads is prefixed `APP_ENV_` (configurable - see the [Environment Variables Reference](./environment-variables.md#custom-environment-prefix)). Layer `.env`, `.env.local`, and `.env.{NODE_ENV}` the same way any dotenv-based tool does.
 - **`applicationEnvironment` snapshots `process.env` once at import.** It's built from whatever is in `process.env` when `@venizia/ignis-helpers` loads.
 - **Late values need an explicit merge.** A value set programmatically at runtime, after that snapshot, won't appear in `.keys()` unless merged in - secret hydration does this, see below.
-- **Startup validation is fail-closed on emptiness, not absence.** IGNIS iterates every `APP_ENV_*` key that IS set and throws if its value is empty. It does not require a variable to exist at all.
-- **Bypass and per-component checks.** Bypass emptiness validation with `ALLOW_EMPTY_ENV_VALUE=true`. Component-level checks (e.g., the authentication component's `jwtSecret` check) still cover values that must be present.
+- **Empty values are allowed by default.** The emptiness check is skipped entirely unless you set `ALLOW_EMPTY_ENV_VALUE` to `false` or `0`. The startup banner prints `Empty values: ALLOWED (default)`.
+- **Turn it on and it checks emptiness, not absence.** With the check on, IGNIS iterates every `APP_ENV_*` key that IS set and throws if its value is empty. It never requires a variable to exist at all.
+- **Per-component checks are separate.** Component-level checks still cover values that must be present, for example the authentication component's `jwtSecret` check.
 - **Secrets don't have to live in a file.** IGNIS can hydrate `APP_ENV_*` keys from a vault at boot, before datasources are configured - see [Secrets & Vault](./environment-variables.md#secrets-vault).
 
 ## Common tasks
@@ -79,11 +80,12 @@ project/
 └── .env.example         # Template (committed)
 ```
 
-### Bypass startup validation during local prototyping
+### Reject empty values at startup
 ```bash
-ALLOW_EMPTY_ENV_VALUE=true
+ALLOW_EMPTY_ENV_VALUE=false
 ```
-Not recommended once real secrets are wired in - see [Validation](./environment-variables.md#validation).
+`false` and `0` turn the check ON. Leaving the variable unset, or setting it to `true`, keeps the
+default: empty values pass. See [Validation](./environment-variables.md#validation).
 
 ### Look up every variable's default and requirement
 See the [Environment Variables Reference](./environment-variables.md) for the full table, grouped by Application, Server, Database, Authentication, Logging, Storage, Mail, and Secrets & Vault.
@@ -119,6 +121,10 @@ own code, and setting it changes nothing in IGNIS.
 The logger reads a further set of `APP_ENV_LOGGER_*` names that `EnvironmentKeys` does not declare -
 see [Environment variables](./environment-variables).
 
+`APPLICATION_ENV_PREFIX` and `ALLOW_EMPTY_ENV_VALUE` are deliberately absent from the class. Neither
+carries the `APP_ENV` prefix, so `applicationEnvironment` never holds them - both are bootstrap
+variables read straight off `process.env`.
+
 ## See also
 
 - [Environment Variables Reference](./environment-variables.md) - complete variable list, defaults, and the Secrets & Vault section
@@ -130,4 +136,5 @@ see [Environment variables](./environment-variables).
 
 - [`packages/core-server/src/common/environments.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/common/environments.ts) - `EnvironmentKeys`
 - [`packages/helpers/src/modules/env/app-env.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/env/app-env.ts) - `applicationEnvironment`, `Environment`, `ApplicationEnvironment`
-- [`packages/kernel/src/base/applications/abstract.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/kernel/src/base/applications/abstract.ts) - `validateEnvs()`, host/port resolution
+- [`packages/core-server/src/base/applications/base.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/base/applications/base.ts) - `validateEnvs()`
+- [`packages/core-server/src/base/applications/server.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/base/applications/server.ts) - host/port resolution

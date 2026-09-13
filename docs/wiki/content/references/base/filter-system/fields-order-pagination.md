@@ -22,7 +22,7 @@ await userRepository.find({
 |---|---|---|---|
 | `fields` | `string[] \| Record<string, boolean>` | every column | Inclusion-only column selection. |
 | `order` | `string[]` (`'column ASC\|DESC'`) | insertion order | Sort columns; `ASC` if no direction is given. |
-| `limit` | `number` | `settings.defaultLimit ?? 10` | Row cap. An explicit value always wins. |
+| `limit` | `number` | `settings.defaultLimit ?? 10` | Row cap. An explicit value always wins, up to `settings.maxLimit` (default `1000`). |
 | `skip` / `offset` | `number` | `0` | Rows to skip. Aliases for the same `OFFSET` clause; `skip` wins if both are set. |
 | `options.shouldQueryRange` | `boolean` | `false` | Adds a `range` envelope (`start`/`end`/`total`) to the result. |
 
@@ -100,7 +100,7 @@ await userRepository.find({
 ```
 
 > [!TIP]
-> Set `limit` on every public-facing endpoint. An unbounded query can exhaust memory - the repository always falls back to a default of `10`, never to "no limit".
+> Set `limit` on every public-facing endpoint. A query that omits it is not unbounded - the repository falls back to `10`, never to "no limit" - but an explicit value keeps the page size under your control instead of a framework default.
 
 ### Default limit resolution
 
@@ -134,7 +134,36 @@ await countryRepository.find({ filter: { limit: 10 } }); // LIMIT 10 (explicit w
 ```
 
 > [!NOTE]
-> `defaultLimit` is independent of `defaultFilter`. Passing `shouldSkipDefaultFilter` bypasses the default `where` clause but never drops the default limit. There is no "unbounded" sentinel - to fetch more rows, pass an explicit `limit`.
+> `defaultLimit` is independent of `defaultFilter`. Passing `shouldSkipDefaultFilter` bypasses the default `where` clause but never drops the default limit. There is no "unbounded" sentinel - to fetch more rows, pass an explicit `limit`, up to the ceiling below.
+
+### Limit ceiling (`maxLimit`)
+
+An explicit `limit` is checked before the query runs. The repository reads the ceiling from the model's `@model({ settings: { maxLimit } })`, falling back to the global `DEFAULT_MAX_LIMIT` of `1000`.
+
+| Caller's `limit` | Result |
+|---|---|
+| Omitted | Filled in from `settings.defaultLimit ?? 10`. No ceiling check runs. |
+| Within the ceiling | Used as given. |
+| Above the ceiling | Throws before the query runs, naming the requested value and the maximum. |
+| Negative or non-integer | Throws. A negative value would drop the `LIMIT` clause and return the whole table. |
+
+```typescript
+@model({
+  type: 'entity',
+  // Reports run bigger pages than a list screen, so this model says so explicitly.
+  settings: { maxLimit: 5000 },
+})
+export class Report extends BaseEntity<typeof Report.schema> {
+  static override schema = reportTable;
+}
+
+await reportRepository.find({ filter: { limit: 4000 } }); // LIMIT 4000
+await userRepository.find({ filter: { limit: 4000 } }); // throws - default ceiling is 1000
+```
+
+`maxLimit` is a policy, not a capacity - the engine's own ceiling sits far above it. `@model` validates it as a positive integer at decoration time, so a bad ceiling fails at boot rather than on the first big page.
+
+A relation's `scope.limit` gets the shape check only, never the ceiling. The ceiling belongs to the related model, which the parent repository cannot resolve.
 
 A small helper keeps page-to-filter math in one place:
 
@@ -194,7 +223,7 @@ res.setHeader('Content-Range', contentRange);
 | Last page (items 90-99) | `records 90-99/100` |
 
 > [!NOTE]
-> With `shouldQueryRange: true`, the repository runs the data query and the count query in parallel via `Promise.all`.
+> With `shouldQueryRange: true`, the repository runs the data query and the count query in parallel via `Promise.all` - unless `options.transaction` is set. A transaction connector wraps a single client, so inside one the two queries run in sequence instead.
 
 ## Combined example
 
@@ -238,7 +267,8 @@ console.log(`Showing ${range.start}-${range.end} of ${range.total}`);
 **Files:**
 
 - [`packages/connectors/src/relational/core/repositories/dialect/filter.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/connectors/src/relational/core/repositories/dialect/filter.ts) - `FilterBuilder`, `toColumns`/`toOrderBy`
-- [`packages/connectors/src/relational/postgres/repositories/core/readable.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/connectors/src/relational/postgres/repositories/core/readable.ts) - `find()`'s `query.limit ?? getDefaultLimit() ?? DEFAULT_LIMIT` resolution
+- [`packages/connectors/src/relational/core/repositories/core/readable.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/connectors/src/relational/core/repositories/core/readable.ts) - `find()`'s `filter.limit ?? getDefaultLimit() ?? DEFAULT_LIMIT` resolution
+- [`packages/kernel/src/base/repositories/core/abstract.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/kernel/src/base/repositories/core/abstract.ts) - `assertLimitWithinCeiling`/`assertFilterLimits`, the `maxLimit` check
 - [`packages/filter/src/common/operators.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/filter/src/common/operators.ts) - `Sorts` constants
-- [`packages/kernel/src/base/repositories/common/constants.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/kernel/src/base/repositories/common/constants.ts) - `DEFAULT_LIMIT`
+- [`packages/kernel/src/base/repositories/common/constants.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/kernel/src/base/repositories/common/constants.ts) - `DEFAULT_LIMIT`, `DEFAULT_MAX_LIMIT`
 - [`packages/kernel/src/base/repositories/common/types/results.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/kernel/src/base/repositories/common/types/results.ts) - `TDataRange`, `buildDataRange`

@@ -57,7 +57,7 @@ import { stringSerializers, stringDeserializers } from '@platformatic/kafka';
 import { inject } from '@venizia/ignis-inversion';
 
 // Register helpers in the IoC container
-app.bind('kafka.producer').to(
+app.bind({ key: 'kafka.producer' }).toValue(
   KafkaProducerHelper.newInstance({
     bootstrapBrokers: ['localhost:9092'],
     clientId: 'order-service-producer',
@@ -66,7 +66,7 @@ app.bind('kafka.producer').to(
   }),
 );
 
-app.bind('kafka.consumer').to(
+app.bind({ key: 'kafka.consumer' }).toValue(
   KafkaConsumerHelper.newInstance({
     bootstrapBrokers: ['localhost:9092'],
     clientId: 'order-service-consumer',

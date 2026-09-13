@@ -40,7 +40,7 @@ export class UserService extends BaseService {
 ```
 
 - **Default `from`.** If `message.from` is omitted, `send()` fills it from `MailKeys.MAIL_OPTIONS`. With `fromName` set, the default renders as `"fromName" <from>`; with neither `from` nor `fromName`, it falls back to `MailDefaults.FALLBACK_FROM` (`noreply@example.com`).
-- **Transport errors never throw here.** The built-in Nodemailer and Mailgun transports catch their own errors and return `{ success: false, error }`. `send()` only throws `SEND_FAILED` for a custom transport that throws instead of returning a failed result.
+- **Transport errors never throw here.** The built-in Nodemailer, Mailgun and Amazon SES transports catch their own errors and return `{ success: false, error }`. `send()` only throws `SEND_FAILED` for a custom transport that throws instead of returning a failed result.
 
 **Send a batch of emails:**
 

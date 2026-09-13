@@ -19,7 +19,7 @@ const aes = AES.withAlgorithm('aes-256-gcm');
 const secret = 'my-application-secret-key';
 
 const encrypted = aes.encrypt({ message: 'This is a secret message.', secret });
-// => base64 encoded string containing IV + auth tag + ciphertext
+// => base64 envelope: [version][idLen][id][iv][authTag][ciphertext]
 
 const decrypted = aes.decrypt({ message: encrypted, secret });
 // => 'This is a secret message.'
@@ -29,7 +29,7 @@ const decrypted = aes.decrypt({ message: encrypted, secret });
 
 ## How it works
 
-- **One factory pattern.** Every algorithm class exposes a static `withAlgorithm()` that returns an instance. There is no public constructor to call directly.
+- **One factory pattern.** Every algorithm class exposes a static `withAlgorithm()` that returns an instance. The constructors are public too, so `new AES({ algorithm: 'aes-256-gcm' })` works. Prefer the factory; it is what the rest of the framework calls.
 - **`ECDH` extends the neutral `AbstractCryptoAlgorithm` directly.** It uses `CryptoKey` objects from the Web Crypto API (`crypto.subtle`), not string secrets. It skips the string-normalization helpers entirely.
 - **Options objects, throw-by-default.** Every `encrypt`/`decrypt` takes `{ message, secret, opts? }`. On internal error, each throws by default. Pass `opts.doThrow: false` to get the original input back unchanged instead.
 
@@ -37,14 +37,28 @@ const decrypted = aes.decrypt({ message: encrypted, secret });
 
 | Method | Does |
 |---|---|
-| `normalizeSecretKey()` | Pads or truncates a string secret to the algorithm's key size |
-| `getAlgorithmKeySize()` | Parses the bit size out of the algorithm name - `256` from `aes-256-gcm` |
+| `normalizeSecretKey()` | Derives a key from your secret with PBKDF2-SHA256, 100,000 iterations. It never pads and never truncates |
+| `getAlgorithmKeySize()` | Parses the bit size out of the algorithm name and returns it in **bytes** - `32` from `aes-256-gcm`, not `256` |
+
+`normalizeSecretKey()` takes `{ secret, length, kdfSalt?, kdfIterations? }` and returns a `Buffer` of `length` bytes.
+
+| Option | Type | Default | Meaning |
+|---|---|---|---|
+| `kdfSalt` | `string` | `'ignis-kdf-salt-v1'` | Per-deployment PBKDF2 salt. Must be at least 16 bytes, or the call throws |
+| `kdfIterations` | `number` | `100000` | PBKDF2 iteration count |
+
+> [!WARNING]
+> `kdfSalt` and `kdfIterations` are part of the key. Whatever you pass on encrypt you must pass again on decrypt, or the derived key differs and the ciphertext will not open. Omit both for the shipped defaults.
+
+The shipped salt is public and identical in every deployment, so it defeats a bare dictionary attack but not a table precomputed against that value. Pass your own `kdfSalt` for per-deployment isolation. Derived keys are memoised per secret, salt, iteration count and length, so repeated calls do not repeat the 100,000 rounds.
+
+The pad-or-truncate behaviour that predates this lives on `LegacyAES.normalizeSecretKeyLegacy` and nowhere else. It exists so data already written in the old envelope stays readable.
 
 **Class comparison**
 
 | Class | Base class | Secret type | Async | Best for |
 |-------|-----------|--------------|-------|----------|
-| `AES` | `BaseCryptoAlgorithm` | `string` | No | Encrypting data at rest, fast bulk encryption |
+| `AES` | `BaseCryptoAlgorithm` | `TAESSecret` - a `string` or an `IAESKeyringEntry[]` | No | Encrypting data at rest, fast bulk encryption |
 | `RSA` | `BaseCryptoAlgorithm` | `string` (base64 DER key) | No | Public-key encryption, small payloads |
 | `ECDH` | `AbstractCryptoAlgorithm` | `CryptoKey` | Yes | Session key exchange with forward secrecy |
 | `Hash` | `BaseHelper` | `string` (HMAC only, no secret for a plain digest) | No | Digests and HMACs - no `decrypt`, a digest cannot be reversed |
@@ -66,7 +80,7 @@ const aesCbc = AES.withAlgorithm('aes-256-cbc'); // no tamper detection
 
 ### Encrypt a file
 
-`encryptFile`/`decryptFile` read the file synchronously, treat its contents as UTF-8, then run the same `encrypt`/`decrypt` as strings.
+`encryptFile`/`decryptFile` read the file synchronously, treat its contents as UTF-8, then run the same `encrypt`/`decrypt` as strings. They take `{ absolutePath, secret }` and nothing else, so they always use the default salt and iteration count. Read the file yourself and call `encrypt` if you need a custom `kdfSalt`.
 
 ```typescript
 const encrypted = aes.encryptFile({ absolutePath: '/path/to/config.json', secret });

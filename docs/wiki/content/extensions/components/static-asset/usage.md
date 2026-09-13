@@ -25,48 +25,55 @@ await fetch('/assets/buckets/user-uploads', { method: 'POST' });
 const { isDeleted } = await fetch('/assets/buckets/user-uploads', { method: 'DELETE' }).then(r => r.json());
 ```
 
-Every `bucketName` is validated with `isValidName()` - single segment, no `..`/`/`/`\`, no shell metacharacters, 255 characters or fewer. See [Error Reference](./errors) for the full rule set.
+Every `bucketName` is validated with `isValidBucketName()` - single segment, no `..`/`/`/`\`, no shell metacharacters, 255 characters or fewer. See [Error Reference](./errors) for the full rule set.
 
 ## Upload files
 
-`POST /assets/buckets/:bucketName/upload` accepts `multipart/form-data`, plus optional `principalType`, `principalId`, `variant`, and `folderPath` query parameters.
+`POST /assets/buckets/:bucketName/objects` accepts `multipart/form-data`, plus optional `principalType`, `principalId`, `variant`, and `folderPath` query parameters. The same path answers `GET` with a listing.
 
 ```typescript
 const formData = new FormData();
 formData.append('file', fileBlob, 'document.pdf');
 
 const response = await fetch(
-  '/assets/buckets/user-uploads/upload?principalType=user&principalId=42&variant=original&folderPath=invoices/2026',
+  '/assets/buckets/user-uploads/objects?principalType=user&principalId=42&variant=original&folderPath=invoices/2026',
   { method: 'POST', body: formData },
 );
 
 const [result] = await response.json();
-// { bucketName: 'user-uploads', objectName: 'invoices/2026/document.pdf', link: '/assets/buckets/user-uploads/objects/invoices%2F2026%2Fdocument.pdf' }
+// {
+//   bucket: { name: 'user-uploads' },
+//   object: { key: 'invoices/2026/document.pdf', size: 20481, contentType: 'application/pdf' },
+//   link: '/assets/buckets/user-uploads/objects/invoices%2F2026%2Fdocument.pdf',
+// }
 ```
 
-- **`folderPath` is validated separately from the filename.** Each segment must pass `isValidName()`. The segment count must stay within `maxFolderDepth` (default `2`). Both checks return `400` before the file is even parsed.
+- **`folderPath` is validated separately from the filename.** Each segment must pass `isValidSegment()`. The segment count must stay within `maxFolderDepth` (default `2`). Both checks return `400` before the file is even parsed.
 - **`principalId` is always stored as a string**, coerced with `String()` regardless of whether you send a number or a string.
-- **With MetaLink enabled, the upload always succeeds - even if the tracking write fails.** The response carries one of two shapes:
+- **With MetaLink enabled, the upload always succeeds - even if the tracking write fails.** `metaLink` is a union, so it carries one arm or the other, never both:
 
-  | Outcome | Response field |
+  | Outcome | `metaLink` |
   |---------|-----------------|
-  | MetaLink write succeeded | `metaLink`: the created database record |
-  | MetaLink write failed | `metaLink: null` plus a `metaLinkError` string |
+  | MetaLink write succeeded | <code v-pre>{ data: &lt;the created database record&gt; }</code> |
+  | MetaLink write failed | <code v-pre>{ error: 'META_LINK_CREATE_FAILED' }</code> - a fixed code, never the driver's text |
 
 ## Stream or download an object
 
 ```typescript
 const objectName = 'invoices/2026/document.pdf';
 
-// Inline stream - Content-Type comes from storage metadata, falls back to application/octet-stream
+// Streams inline only when the KEY's type is renderable; anything else downloads
 const streamUrl = `/assets/buckets/user-uploads/objects/${encodeURIComponent(objectName)}`;
 
-// Forces a browser download dialog via Content-Disposition: attachment
-const downloadUrl = `/assets/buckets/user-uploads/download/${encodeURIComponent(objectName)}`;
+// Forces a browser download dialog via Content-Disposition: attachment, always
+const downloadUrl = `/assets/buckets/user-uploads/downloads/${encodeURIComponent(objectName)}`;
 window.open(downloadUrl, '_blank');
 ```
 
-Both routes validate `bucketName` with `isValidName()` and `objectName` with `isValidPath()`. Both then forward a fixed whitelist of metadata headers - `content-type`, `content-encoding`, `cache-control`, `etag`, `last-modified` - plus `X-Content-Type-Options: nosniff`. See [Header Sanitization](./api#header-sanitization) for the full list and why it exists.
+Both routes validate `bucketName` with `isValidBucketName()` and `objectName` with `isValidObjectKey()`. Both then forward a fixed whitelist of metadata headers - `content-encoding`, `cache-control`, `etag`, `last-modified` - plus `X-Content-Type-Options: nosniff` and `Content-Security-Policy: sandbox`.
+
+> [!WARNING]
+> `content-type` is not forwarded from storage metadata, and it is not taken from what the uploader declared either. The served type is derived from the object KEY, and anything outside the renderable allow-list is forced to `application/octet-stream` with `Content-Disposition: attachment`. A renderable type a client could choose is stored cross-site scripting on the API origin. See [Header sanitization](./api#header-sanitization) for the allow-list.
 
 > [!TIP]
 > `objectName` may embed folder segments, for example `invoices/2026/document.pdf`. Always pass the whole thing through `encodeURIComponent()`. Hono decodes it exactly once before the handler reads it - a second `decodeURIComponent()` on your end is wrong. It can corrupt names that contain a literal `%`.
@@ -198,8 +205,8 @@ metaLink: {
   createMetaLink: async ({ uploadResult, fileStat, query }) =>
     metaLinkRepository.create({
       data: {
-        bucketName: uploadResult.bucketName,
-        objectName: uploadResult.objectName,
+        bucketName: uploadResult.bucket.name,
+        objectName: uploadResult.object.key,
         link: uploadResult.link,
         mimetype: fileStat.metadata?.['mimetype'],
         size: fileStat.size,
@@ -234,7 +241,7 @@ async function uploadFile(
   const formData = new FormData();
   formData.append('file', file);
 
-  const url = new URL('/assets/buckets/user-uploads/upload', location.origin);
+  const url = new URL('/assets/buckets/user-uploads/objects', location.origin);
   Object.entries(opts).forEach(([key, value]) => value && url.searchParams.set(key, value));
 
   const [result] = await fetch(url, { method: 'POST', body: formData }).then(r => r.json());
@@ -242,7 +249,7 @@ async function uploadFile(
 }
 
 function downloadFile(bucketName: string, objectName: string) {
-  window.open(`/assets/buckets/${bucketName}/download/${encodeURIComponent(objectName)}`, '_blank');
+  window.open(`/assets/buckets/${bucketName}/downloads/${encodeURIComponent(objectName)}`, '_blank');
 }
 ```
 

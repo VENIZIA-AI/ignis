@@ -99,6 +99,9 @@ await repository.find({
 // WHERE "role" = 'admin' (includes soft-deleted rows)
 ```
 
+> [!WARNING] It does not lift a row scope
+> `shouldSkipDefaultFilter` clears `settings.defaultFilter` only. A model's `settings.scopeFilter` is AND-composed on top and stays applied - a tenant or ownership boundary must not be liftable by an options flag. See [`@model` options](/references/base/models-reference#options).
+
 `updateById` and `deleteById` merge the default filter into their `{ id }` condition the same way `updateAll`/`deleteAll` merge it into their `where`. The bypass applies to all four identically:
 
 ```typescript
@@ -221,7 +224,7 @@ await repository.find({
                               +------------------+
 ```
 
-`RelationalBaseRepository` (compatibility alias `PostgresBaseRepository`, `packages/connectors/src/relational/postgres/repositories/core/base.ts`) implements the default-filter behavior directly - no mixin is composed onto it:
+`RelationalBaseRepository` (`packages/connectors/src/relational/core/repositories/core/base.ts`) implements the default-filter behavior directly - no mixin is composed onto it. `PostgresBaseRepository` is a subclass of it, not an alias, and inherits every method below:
 
 ```typescript
 hasDefaultFilter(): boolean
@@ -230,7 +233,7 @@ getDefaultLimit(): number | undefined
 applyDefaultFilter(opts: { userFilter?: TFilter; shouldSkipDefaultFilter?: boolean }): TFilter
 ```
 
-`getDefaultFilter()` reads `this.modelSettings?.defaultFilter`. `modelSettings` is a protected getter on `AbstractRepository` (`src/base/repositories/core/abstract.ts`), resolved from `MetadataRegistry` by the entity's constructor - not by name string - on first access, then memoized.
+`getDefaultFilter()` reads `this.modelSettings?.defaultFilter`. `modelSettings` is a protected getter on `AbstractRepository` (`packages/kernel/src/base/repositories/core/abstract.ts`), resolved from `MetadataRegistry` by the entity's constructor - not by name string - on first access, then memoized.
 
 Read verbs (`find`/`findOne`/`findById`/`count`) call `applyDefaultFilter()` directly. Write verbs (`updateById`/`updateAll`/`deleteById`/`deleteAll`) route through the shared `_update`/`_delete` helpers instead. Those helpers call it against `{ where: opts.where }` (or `{ id }` for the `ById` forms) before building the SQL condition.
 
@@ -260,8 +263,8 @@ queryDialect.mergeFilter({
 **Files:**
 
 - [`packages/connectors/src/relational/core/repositories/dialect/filter.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/connectors/src/relational/core/repositories/dialect/filter.ts) - `FilterBuilder.mergeFilter()`/`mergeWhere()`, the narrowing merge
-- [`packages/connectors/src/relational/postgres/repositories/core/base.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/connectors/src/relational/postgres/repositories/core/base.ts) - `RelationalBaseRepository`, `applyDefaultFilter`/`getDefaultFilter`/`getDefaultLimit`
-- [`packages/connectors/src/relational/postgres/repositories/core/readable.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/connectors/src/relational/postgres/repositories/core/readable.ts) - `find`/`findOne`/`count` calling `applyDefaultFilter`
-- [`packages/connectors/src/relational/postgres/repositories/core/persistable.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/connectors/src/relational/postgres/repositories/core/persistable.ts) - `_update`/`_delete` calling `applyDefaultFilter` for `updateById`/`updateAll`/`deleteById`/`deleteAll`
-- [`packages/kernel/src/base/metadata/persistents.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/kernel/src/base/metadata/persistents.ts) - `@model` decorator, `defaultLimit` validation
+- [`packages/connectors/src/relational/core/repositories/core/base.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/connectors/src/relational/core/repositories/core/base.ts) - `RelationalBaseRepository`, `applyDefaultFilter`/`applyScopeFilter`/`getDefaultFilter`/`getDefaultLimit`
+- [`packages/connectors/src/relational/core/repositories/core/readable.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/connectors/src/relational/core/repositories/core/readable.ts) - `find`/`findOne`/`count` calling `applyDefaultFilter`
+- [`packages/connectors/src/relational/core/repositories/core/persistable.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/connectors/src/relational/core/repositories/core/persistable.ts) - `_update`/`_delete` calling `applyDefaultFilter` for `updateById`/`updateAll`/`deleteById`/`deleteAll`
+- [`packages/kernel/src/base/metadata/persistents.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/kernel/src/base/metadata/persistents.ts) - `@model` decorator, `defaultLimit`/`maxLimit` validation
 - [`packages/kernel/src/base/repositories/common/types/options.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/kernel/src/base/repositories/common/types/options.ts) - `IExtraOptions`, `IWithTransaction`

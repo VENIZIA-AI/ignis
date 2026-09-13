@@ -115,7 +115,13 @@ class RequestSpyMiddleware extends BaseHelper implements IProvider<MiddlewareHan
 ```
 
 - Extends `BaseHelper` with scope `'SpyMW'`
-- Constructor sets `isDebugMode = process.env.NODE_ENV?.toLowerCase() !== Environment.PRODUCTION`
+- Constructor sets `isDebugMode` by MEMBERSHIP, never by inequality against `production`:
+
+```typescript
+const env = Environment.ambient?.toLowerCase();
+this.isDebugMode = !!env && EnvironmentNames.DEVELOPMENT_ENVS.has(env);
+```
+
 - `value()` returns a Hono middleware built via `createMiddleware()` from `hono/factory`
 
 ### Component lifecycle

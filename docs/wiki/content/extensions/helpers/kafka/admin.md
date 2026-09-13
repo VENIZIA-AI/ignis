@@ -21,8 +21,8 @@ class KafkaAdminHelper extends BaseKafkaHelper<Admin>
 |--------|-----------|-------------|
 | `newInstance(opts)` | `static newInstance(opts): KafkaAdminHelper` | Factory method |
 | `getAdmin()` | `(): Admin` | Access the underlying `Admin` |
-| `isHealthy()` | `(): boolean` | `true` when broker connected |
-| `isReady()` | `(): boolean` | Same as `isHealthy()` |
+| `isHealthy()` | `(): boolean` | `true` while any broker is in the connected set |
+| `isReady()` | `(): boolean` | `true` while the health status is `'connected'` |
 | `getHealthStatus()` | `(): TKafkaHealthStatus` | `'connected'` \| `'disconnected'` \| `'unknown'` |
 | `getConnectedBrokerCount()` | `(): number` | Number of currently connected brokers |
 | `close(opts?)` | `(opts?: { isForce?: boolean }): Promise<void>` | Close the admin connection (default: graceful) |
@@ -38,7 +38,7 @@ interface IKafkaAdminOptions extends IKafkaConnectionOptions {
 }
 ```
 
-Plus the shared [Connection & Authentication](./producer#connection--authentication) options (`bootstrapBrokers`, `clientId`, `retries`, `sasl`, `tls`, ...), documented once on the Producer page.
+Plus the shared [Connection & Authentication](./producer#connection-authentication) options (`bootstrapBrokers`, `clientId`, `retries`, `sasl`, `tls`, ...), documented once on the Producer page.
 
 ## Basic Example
 
@@ -73,6 +73,9 @@ await helper.close({ isForce: true });
 ## Graceful Shutdown
 
 `close()` uses the base `closeClient()`, wrapped in a graceful timeout. `closeClient()` calls `this.client.close()` directly. If the graceful close exceeds `shutdownTimeout` (default 30s), it automatically force-closes. After `close()`, `healthStatus` becomes `'disconnected'`.
+
+> [!WARNING]
+> The admin sets that status directly instead of calling the base `resetHealthState()`, so the connected-broker set is never cleared. `isReady()` reads the status and correctly answers `false` after a close, but `isHealthy()` reads the set and keeps answering `true`. Check `isReady()`, not `isHealthy()`, when you need to know whether a closed admin is usable.
 
 ```typescript
 // Graceful (recommended)

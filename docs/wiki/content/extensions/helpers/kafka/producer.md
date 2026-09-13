@@ -24,8 +24,8 @@ class KafkaProducerHelper<
 | `newInstance(opts)` | `static newInstance<K,V,HK,HV>(opts): KafkaProducerHelper<K,V,HK,HV>` | Factory method |
 | `getProducer()` | `(): Producer<K,V,HK,HV>` | Access the underlying `Producer` |
 | `runInTransaction(cb)` | `<R>(cb: TKafkaTransactionCallback<R,K,V,HK,HV>): Promise<R>` | Execute callback within a Kafka transaction |
-| `isHealthy()` | `(): boolean` | `true` when at least one broker connected |
-| `isReady()` | `(): boolean` | Same as `isHealthy()` |
+| `isHealthy()` | `(): boolean` | `true` when at least one broker is connected - it counts `connectedBrokers` |
+| `isReady()` | `(): boolean` | `true` when `getHealthStatus()` is `'connected'` - it reads the status field, not the broker set |
 | `getHealthStatus()` | `(): TKafkaHealthStatus` | `'connected'` \| `'disconnected'` \| `'unknown'` |
 | `getConnectedBrokerCount()` | `(): number` | Number of currently connected brokers |
 | `close(opts?)` | `(opts?: { isForce?: boolean }): Promise<void>` | Close the producer (default: graceful) |
@@ -52,7 +52,7 @@ interface IKafkaProducerOptions<KeyType, ValueType, HeaderKeyType, HeaderValueTy
 | `onBrokerConnect` | `TKafkaBrokerEventCallback` | - | Called when broker connects |
 | `onBrokerDisconnect` | `TKafkaBrokerEventCallback` | - | Called when broker disconnects |
 
-Plus the shared [Connection & Authentication](#connection--authentication) options below, all inherited from `IKafkaConnectionOptions`.
+Plus the shared [Connection & Authentication](#connection-authentication) options below, all inherited from `IKafkaConnectionOptions`.
 
 ## Connection & Authentication
 
@@ -343,18 +343,28 @@ await producer.send({
 
 Create a `Writable` stream for high-throughput producing with automatic batching.
 
+Delivery reports arrive on the `'delivery-report'` event, not `'data'`. A `Writable` never emits `'data'`, so that listener would never fire. Reports are also off by default: `reportMode` defaults to `'none'`.
+
+| `reportMode` | Emits | Report shape |
+|---|---|---|
+| `'none'` (default) | nothing | - |
+| `'batch'` | one event per flushed batch | `{ batchId, count, result }` |
+| `'message'` | one event per message | `{ batchId, index, message }` |
+
 ```typescript
-const stream = producer.asStream({ batchSize: 100, batchTime: 1000 });
+const stream = producer.asStream({ batchSize: 100, batchTime: 1000, reportMode: 'batch' });
+
+stream.on('delivery-report', report => {
+  console.log(`Batch ${report.batchId}: ${report.count} messages sent`);
+});
 
 stream.write({ topic: 'events', key: 'e1', value: '{"type":"click"}' });
 stream.write({ topic: 'events', key: 'e2', value: '{"type":"scroll"}' });
 
-stream.on('data', (report) => {
-  console.log(`Batch ${report.batchId}: ${report.count} messages sent`);
-});
-
 await stream.close();
 ```
+
+Attach the listener before the first `write()`. A batch that flushes on `batchTime` before you subscribe emits into nothing.
 
 ### `producer.close(force?)`
 
@@ -370,7 +380,7 @@ Close the producer connection.
 | `producerId` | `bigint \| undefined` | Assigned producer ID (after idempotent init) |
 | `producerEpoch` | `number \| undefined` | Producer epoch (fencing) |
 | `transaction` | `Transaction \| undefined` | Active transaction (if any) |
-| `coordinatorId` | `number` | Transaction coordinator broker ID |
+| `coordinatorId` | `number \| undefined` | Transaction coordinator broker ID. `undefined` until a transaction has been started |
 | `streamsCount` | `number` | Number of active producer streams |
 
 ## Key Partitioning

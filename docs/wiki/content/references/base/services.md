@@ -19,7 +19,8 @@ Technical reference for `BaseService` - the foundation for the business logic la
 | **Logging** | `this.logger` (scoped to constructor `scope`) |
 | **Registration** | `this.service(MyService)` in application lifecycle |
 | **Binding key** | `services.{ClassName}` (e.g., `services.AuthenticationService`) |
-| **DI decorator** | None on the class itself - only `@inject` on constructor parameters or properties |
+| **Binding scope** | **Transient.** Every resolution builds a fresh instance |
+| **DI decorator** | `@inject` on constructor parameters or properties. `@service({ ... })` on the class is optional, and only supplies registration defaults |
 | **CRUD service** | Removed - use `DefaultCRUDRepository` for data access |
 
 ---
@@ -30,15 +31,18 @@ Abstract class that all application services must extend.
 
 ```typescript
 // packages/kernel/src/base/services/base.ts
-import { BaseHelper } from '@venizia/ignis-helpers';
-import { IService } from './types';
+import { BaseHelper } from '@venizia/ignis-helpers/core';
+import type { IService } from './common';
 
 export abstract class BaseService extends BaseHelper implements IService {
-  constructor(opts: { scope: string }) {
-    super({ scope: opts.scope });
+  constructor(opts: { scope: string; identifier?: string }) {
+    super(opts);
   }
 }
 ```
+
+`identifier` is optional. Pass it when several instances share one scope and you want the log lines
+to tell them apart.
 
 `BaseHelper` wires a scoped logger at `this.logger`. Pass `scope: ClassName.name` so log lines are tagged with the service name.
 
@@ -54,7 +58,7 @@ export interface IService {}
 
 ## Registering a Service
 
-Services are registered imperatively in an application lifecycle method. No class decorator is involved - `this.service()` creates the binding and handles everything.
+Services are registered imperatively in an application lifecycle method. `this.service()` creates the binding and handles everything; a class decorator is optional, and only supplies registration defaults.
 
 ```typescript
 // In your Application class (e.g., in preConfigure())
@@ -66,17 +70,45 @@ this.service(GreeterService);         // binds as 'services.GreeterService'
 
 ```typescript
 // packages/kernel/src/base/applications/rest.ts
-service<Base extends IService>(ctor: TClass<Base>, opts?: TMixinOpts): Binding<Base> {
-  const key = BindingKeys.build(
-    opts?.binding ?? { namespace: BindingNamespaces.SERVICE, key: ctor.name }, // 'services.<ClassName>'
-  );
-  this.assertNoBindingCollision({ key, allowOverride: opts?.allowOverride, caller: this.service.name });
-
-  return this.bind<Base>({ key }).toClass(ctor);
+service<Base extends IService>(target: TClass<Base>, opts?: TMixinOpts): Binding<Base> {
+  return this.registerArtifact({
+    target,
+    namespace: BindingNamespaces.SERVICE,
+    defaultScope: BindingScopes.TRANSIENT,
+    caller: this.service.name,
+    opts,
+  });
 }
 ```
 
 The resulting binding key defaults to `services.{ClassName}` (overridable via `opts.binding`).
+
+`registerArtifact` resolves each registration in one order: explicit `opts` beat the class's own
+decorator defaults, which beat the derived key and the kind's default scope. `TMixinOpts` carries
+`binding`, `allowOverride` and `options` only - the scope is not among them, so declare it on the
+class.
+
+> [!WARNING]
+> **Services are TRANSIENT.** The default scope is `BindingScopes.TRANSIENT`, so every resolution
+> constructs a fresh instance. State you cache on a service field is gone on the next `get()` or
+> the next injection, silently. Put shared state in a repository, a helper singleton, or a binding
+> you declare `singleton` yourself. Controllers are the opposite - `this.controller()` defaults to
+> `BindingScopes.SINGLETON`.
+
+To make one service a singleton, declare the scope on the class:
+
+```typescript
+import { BaseService, BindingScopes, service } from '@venizia/ignis';
+
+@service({ scope: BindingScopes.SINGLETON })
+export class CounterService extends BaseService {
+  constructor() {
+    super({ scope: CounterService.name });
+  }
+}
+```
+
+`registerArtifact` reads that declared scope and uses it instead of the transient default.
 
 ### Lifecycle Placement
 
@@ -393,7 +425,7 @@ IGNIS intentionally does not provide a `BaseCrudService`. CRUD operations belong
 | **Purpose** | Business logic and orchestration | Factory - produces values or instances |
 | **Base class** | `BaseService` | `BaseProvider<T>` |
 | **Key method** | Business methods | `value(container): T` |
-| **Pattern** | Singleton in DI scope | Factory pattern |
+| **Default binding scope** | Transient - a fresh instance per resolution | Transient - `value()` runs per resolution |
 | **Registration** | `this.service(Ctor)` | `this.bind(...).toProvider(Ctor)` |
 
 See [Providers Reference](./providers.md) for the factory pattern details.

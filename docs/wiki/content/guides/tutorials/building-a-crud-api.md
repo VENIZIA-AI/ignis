@@ -126,7 +126,7 @@ export class Todo extends BaseEntity<typeof Todo.schema> {
 - `generateIdColumnDefs()` - Adds `id` column (text with UUID default, or auto-incrementing number)
 - `generateTzColumnDefs()` - Adds `createdAt` and `modifiedAt` timestamps
 
-> **Deep Dive:** See [Models & Enrichers Reference](/references/base/models#schema-enrichers) for all available enrichers and options.
+> **Deep Dive:** See [Models & Enrichers Reference](/references/base/models-reference#schema-enrichers) for all available enrichers and options.
 
 ## Step 3: Configure Database Connection
 
@@ -161,7 +161,7 @@ APP_ENV_POSTGRES_DATABASE=todo_db
 
 **Replace these values:**
 - `your_password_here` - Your PostgreSQL password (or leave blank if no password)
-- `todo_db` - The database you created in [Prerequisites](../get-started/setup.md#database-setup)
+- `todo_db` - The database you created in [Prerequisites](../get-started/setup.md#step-2-install-postgresql)
 
 **Important:** Add `.env` to your `.gitignore`:
 ```bash
@@ -182,7 +182,7 @@ import {
 import { NodePostgresDriver } from '@venizia/ignis/postgres/node-postgres';
 import { Pool } from 'pg';
 
-interface IDSConfigs {
+interface IDataSourceConfigs {
   host: string;
   port: number;
   database: string;
@@ -199,7 +199,7 @@ interface IDSConfigs {
  * 3. Naming NodePostgresDriver in @datasource is what wires the driver and Drizzle connector
  */
 @datasource({ driver: NodePostgresDriver })
-export class PostgresDataSource extends BaseDataSource<IDSConfigs> {
+export class PostgresDataSource extends BaseDataSource<IDataSourceConfigs> {
   constructor() {
     super({
       name: PostgresDataSource.name,
@@ -228,6 +228,13 @@ export class PostgresDataSource extends BaseDataSource<IDSConfigs> {
     // named in @datasource above is what wires the driver and Drizzle connector from it.
     this.client = new Pool(this.settings);
   }
+
+  // Abstract on the Postgres tier - no framework code can guess a postgresql:// URL,
+  // so every Postgres datasource implements it.
+  override getConnectionString(): ValueOrPromise<string> {
+    const { host, port, user, password, database } = this.settings;
+    return `postgresql://${user}:${password}@${host}:${port}/${database}`;
+  }
 }
 ```
 
@@ -235,7 +242,8 @@ export class PostgresDataSource extends BaseDataSource<IDSConfigs> {
 - Schema is auto-discovered from `@repository` decorators - no manual registration needed
 - Uses `getSchema()` for lazy schema resolution (resolves when all models are loaded)
 - Uses environment variables for connection config
-- `configure()` only assigns `this.client` - the base class wires the driver and connector from `@datasource({ driver })`; implements `getConnectionString()` for URL generation
+- `configure()` only assigns `this.client` - the base class wires the driver and connector from `@datasource({ driver })`
+- `getConnectionString()` is abstract on the Postgres tier, so you must implement it
 
 > **Deep Dive:** See [DataSources Reference](/references/base/datasources) for advanced configuration and multiple database support.
 
@@ -414,8 +422,8 @@ export class Application extends BaseApplication {
 }
 ```
 
-> [!IMPORTANT] Registration Order
-> Register in this order: **DataSources → Repositories → Services → Controllers**. DataSources must exist before Repositories that reference them. The framework resolves dependencies during initialization, so registering out of order will cause "Binding not found" errors.
+> [!NOTE] Registration Order
+> The order of these calls inside `preConfigure()` does not matter. Each one only creates a binding; nothing is resolved yet. The boot sequence then configures datasources, then components, then controllers, so a repository always finds its datasource however you ordered the registrations. Grouping them datasources first, then repositories, services and controllers, is a readability convention.
 
 ## Step 7: Run Database Migration
 
@@ -527,7 +535,7 @@ curl -X DELETE http://localhost:3000/api/todos/{id}
 ```
 
 **View API Documentation:**
-Open `http://localhost:3000/doc/explorer` to see interactive Swagger UI.
+Open `http://localhost:3000/api/doc/explorer` to see an interactive Scalar API reference. The explorer registers at `/doc/explorer` on the root router, which mounts under `path.base`.
 
 **Congratulations!** You've built a complete CRUD API with:
 - Type-safe database operations

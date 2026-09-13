@@ -57,9 +57,9 @@ ws.onopen = () => ws.send(JSON.stringify({ event: 'authenticate', data: { token:
 | Local-only | `sendToClient`, `sendToUser`, `sendToRoom`, `broadcast` | Clients connected to this process | Bun's native `server.publish()` - O(1) fan-out when possible |
 | Cross-instance | `send()`, `WebSocketEmitter` | Clients on any server instance | Redis Pub/Sub, via the server's duplicated `redisPub`/`redisSub` connections |
 
-- **Liveness is passive.** The server never pings clients - they must periodically send `{ event: 'heartbeat' }`. A sweep every `heartbeatInterval` (30s) closes anyone silent for longer than `heartbeatTimeout` (90s) with code `4002`.
-- **Encryption is opt-in per client.** An `outboundTransformer` callback intercepts every outbound message before `socket.send()`.
-- **Once encrypted, delivery changes.** Bun native pub/sub is bypassed for that client. `sendToRoom`/`broadcast` then fall back to iterating encrypted clients individually.
+- **Application liveness is passive.** Clients must periodically send `{ event: 'heartbeat' }`. A sweep every `heartbeatInterval` (30s) closes anyone silent for longer than `heartbeatTimeout` (90s) with code `4002`. Bun still sends transport-level pings underneath, because the helper defaults `sendPings` to `true`. Those pings keep the socket open; they do not satisfy the application heartbeat.
+- **Encryption is opt-in per client.** An `outboundTransformer` callback intercepts every outbound message before `socket.send()`, for clients that completed the handshake.
+- **Configuring a transformer changes delivery for everyone.** `sendToRoom` and `broadcast` check whether an `outboundTransformer` is set at all, not whether any client is encrypted. With one set, both stop using Bun's O(1) native `publish()` and iterate every member of the room, or every authenticated client, with concurrency capped by `encryptedBatchLimit`. Each send then applies the transformer only to the clients that are actually encrypted.
 
 ## Common tasks
 

@@ -24,12 +24,12 @@ Before reading this document, you should understand:
 
 ## Quick Reference
 
-| Middleware | Type | Purpose |
-|-----------|------|---------|
-| `AppErrorMiddleware` | `IProvider<ErrorHandler>` | Global error handler (Zod, DB constraints, generic) |
-| `notFoundHandler` | `NotFoundHandler` | JSON 404 response for unknown routes |
-| `RequestSpyMiddleware` | `IProvider<MiddlewareHandler>` | Request/response logging with timing |
-| `emojiFavicon` | `MiddlewareHandler` | Serves an emoji as SVG favicon |
+| Middleware | Type | Exported from `@venizia/ignis` | Purpose |
+|-----------|------|-------------------------------|---------|
+| `AppErrorMiddleware` | `IProvider<ErrorHandler>` | no (its parent `BaseAppErrorMiddleware` is) | Global error handler (Zod, DB constraints, generic) |
+| `notFoundHandler` | `NotFoundHandler` | yes | JSON 404 response for unknown routes |
+| `RequestSpyMiddleware` | `IProvider<MiddlewareHandler>` | no | Request/response logging with timing |
+| `emojiFavicon` | `MiddlewareHandler` | yes | Serves an emoji as SVG favicon |
 
 ## Default Registration Order
 
@@ -39,24 +39,33 @@ Before reading this document, you should understand:
 protected async registerDefaultMiddlewares() {
   const server = this.getServer();
 
-  // 1. Global error handler
-  server.onError(new AppErrorMiddleware({ logger, rootKey }).value());
+  // The kernel's three, from RestApplication.registerDefaultMiddlewares():
+  // 1. Request id
+  server.use(requestId({ generator: () => this.generateRequestId() }));
 
-  // 2. Async context storage (if enabled)
-  if (this.configs.asyncContext?.enable) {
-    server.use(contextStorage());
-  }
+  // 2. Global error handler
+  server.onError(new AppErrorMiddleware({ logger, rootKey }).value());
 
   // 3. Not-found handler
   server.notFound(notFoundHandler({ logger }));
 
-  // 4. RequestTrackerComponent (requestId + RequestSpyMiddleware)
+  // Then what only a listening server adds:
+  // 4. Async context storage (if enabled)
+  if (this.configs.asyncContext?.enable) {
+    server.use(contextStorage());
+  }
+
+  // 5. RequestTrackerComponent (RequestSpyMiddleware; the requestId it reads is already installed)
   this.component(RequestTrackerComponent);
 
-  // 5. Emoji favicon
+  // 6. Emoji favicon
   server.use(emojiFavicon({ icon: this.configs.favicon ?? '🔥' }));
 }
 ```
+
+Steps 1 to 3 live on the kernel's `RestApplication`, so a browser Worker answers with the same
+envelope. `BaseApplication` calls `super.registerDefaultMiddlewares()` first, then adds steps 4 to
+6.
 
 After `registerDefaultMiddlewares()`, the application calls user-defined `staticConfigure()`, `preConfigure()`, and so on. The user's `setupMiddlewares()` hook runs after `initialize()` but before the server starts.
 
@@ -64,21 +73,39 @@ After `registerDefaultMiddlewares()`, the application calls user-defined `static
 
 Global error handler registered via `server.onError()`. Handles ZodError validation errors, PostgreSQL constraint violations, and generic errors. Like `RequestSpyMiddleware`, it is an `IProvider` - build it, then call `value()` for the handler.
 
-Registered automatically by `BaseApplication`.
+**Not exported from `@venizia/ignis`** - registered automatically by `BaseApplication`. The
+browser-pure parent `BaseAppErrorMiddleware` is exported, and takes the same options.
 
 ### Signature
 
+`AppErrorMiddleware` extends `BaseAppErrorMiddleware` and overrides nothing. It exists to supply
+the two host reads as defaults: the ambient environment name through `Environment.ambient`, and
+`ErrorPrettier` as the log formatter. Neither can live in the kernel.
+
 ```typescript
-class AppErrorMiddleware extends BaseHelper implements IProvider<ErrorHandler> {
-  constructor(opts?: { logger?: ILogger; rootKey?: string });
-  value(): ErrorHandler;
+class AppErrorMiddleware extends BaseAppErrorMiddleware {
+  constructor(opts?: {
+    logger?: ILogger;
+    rootKey?: string;
+    intentionalStackFrames?: number;
+    unexpectedStackFrames?: number;
+    environment?: () => string | undefined;
+    formatError?: TErrorLogFormatter;
+  });
 }
 ```
 
-| Parameter | Type | Description |
-|-----------|------|-------------|
-| `logger` | `ILogger \| undefined` | Overrides the middleware's own scoped logger - `BaseApplication` passes its own so error lines stay in its scope |
-| `rootKey` | `string \| undefined` | Optional root key to wrap the error response object |
+| Option | Type | Default | Meaning |
+|--------|------|---------|---------|
+| `logger` | `ILogger` | own scoped logger | Overrides the middleware's own logger - `BaseApplication` passes its own so error lines stay in its scope |
+| `rootKey` | `string` | none | Wraps the error response object under this key |
+| `intentionalStackFrames` | `number` | `5` | Stack frames kept for a deliberate `getError()` throw |
+| `unexpectedStackFrames` | `number` | `10` | Stack frames kept for an unexpected throw |
+| `environment` | `() => string \| undefined` | `() => Environment.ambient` | How this host reads its environment name. A function, because `NODE_ENV` has to be read per request |
+| `formatError` | `TErrorLogFormatter` | `ErrorPrettier.format` | How a thrown error is rendered into the log line |
+
+`value(): ErrorHandler` comes from `BaseAppErrorMiddleware`, which extends `BaseHelper` and
+implements `IProvider<ErrorHandler>`.
 
 ### Error Handling Logic
 
@@ -86,7 +113,7 @@ class AppErrorMiddleware extends BaseHelper implements IProvider<ErrorHandler> {
 
 When `error.name === 'ZodError'`, returns HTTP `422 Unprocessable Entity`.
 
-`message` and `normalized.code` come from the first failing issue. `message` is that issue's message; `normalized.code` is its `params.code` if the schema set one, otherwise its raw Zod code. The full per-field list stays under `details.cause`. `normalized.args` is always `{}` - a Zod issue carries no interpolation values.
+`message` and `normalized.code` come from one **primary issue**. The handler picks the first issue that carries a non-empty `params.code`, and falls back to `issues[0]` when no issue has one. So a domain code you attached anywhere in the schema wins over the position of the failure. `message` is that issue's message; `normalized.code` is its `params.code` if present, otherwise its raw Zod code. The full per-field list stays under `details.cause`. `normalized.args` is always `{}` - a Zod issue carries no interpolation values.
 
 ```json
 {
@@ -135,7 +162,7 @@ Database errors in SQLSTATE class `22` (data exception), `23` (integrity constra
 | Class | Codes with a specific message |
 |-------|-------------------------------|
 | `23` Integrity | `23505` unique, `23503` foreign key, `23502` not null, `23514` check, `23P01` exclusion, `23000` integrity, `23001` restrict |
-| `22` Data exception | `22001` string too long, `22003` numeric range, `22004` null not allowed, `22007` datetime format, `22008` datetime overflow, `22009` tz displacement, `22011` substring, `22012` division by zero, `22023` invalid parameter, `22025` invalid escape, `22026` length mismatch, `22030` duplicate JSON key, `22032` invalid JSON, `22P01` floating-point, `22P02` invalid text, `22P03` invalid binary, `22P05` untranslatable char |
+| `22` Data exception | `22000` data exception, `22001` string too long, `22003` numeric range, `22004` null not allowed, `22007` datetime format, `22008` datetime overflow, `22009` tz displacement, `22011` substring, `22012` division by zero, `22023` invalid parameter, `22025` invalid escape, `22026` length mismatch, `22030` duplicate JSON key, `22032` invalid JSON, `22P01` floating-point, `22P02` invalid text, `22P03` invalid binary, `22P05` untranslatable char |
 | `44` View check | `44000` WITH CHECK OPTION violation |
 
 :::tip Transient conflicts return 409, not 400/500
@@ -191,7 +218,11 @@ When `rootKey` is provided (e.g., `rootKey: 'error'`), the response is wrapped:
 }
 ```
 
-**Production behavior:** `stack` and `cause` fields are omitted when `NODE_ENV` is `'production'`.
+**Production behavior:** `stack` and `cause` are omitted unless the ambient environment is a
+development one. The test is fail-closed and identical to the one `RequestSpyMiddleware` uses: only
+`local`, `debug`, `development`, `dev` and `sit` count as non-production. `uat`, `alpha`, `beta`,
+`staging`, an unrecognized name and an unset `NODE_ENV` are all sanitized as production. Read
+"production" that way everywhere on this page.
 
 ### Custom Errors
 
@@ -223,7 +254,8 @@ async getUser(c: TRouteContext) {
 
 Returns a JSON 404 response when no route matches. Registered via `server.notFound()`.
 
-**Not exported from `@venizia/ignis`** - registered automatically by `BaseApplication`.
+**Exported from `@venizia/ignis`**, though you rarely need it - `BaseApplication` registers it for
+you.
 
 ### Signature
 
@@ -263,10 +295,14 @@ A provider-based middleware class that logs incoming request details and outgoin
 
 ```typescript
 export class RequestSpyMiddleware extends BaseHelper implements IProvider<MiddlewareHandler> {
-  static readonly REQUEST_ID_KEY = 'requestId';
+  static readonly REQUEST_ID_KEY = REQUEST_ID_KEY; // 'requestId'
+
+  private isDebugMode: boolean;
 
   constructor() {
     super({ scope: 'SpyMW' });
+    const env = Environment.ambient?.toLowerCase();
+    this.isDebugMode = !!env && EnvironmentNames.DEVELOPMENT_ENVS.has(env);
   }
 
   async parseBody(opts: { req: TContext['req'] }): Promise<unknown>;
@@ -278,23 +314,43 @@ export class RequestSpyMiddleware extends BaseHelper implements IProvider<Middle
 
 `RequestSpyMiddleware` is not registered directly. Instead, `BaseApplication.registerDefaultMiddlewares()` registers a `RequestTrackerComponent`, which:
 
-1. Adds the `requestId()` middleware from `hono/request-id` to assign a unique ID to every request
-2. Binds `RequestSpyMiddleware` as a singleton provider in the DI container
-3. Resolves the middleware via `IProvider.value()` and registers it with `server.use()`
+1. Binds `RequestSpyMiddleware` as a singleton provider under `middlewares.RequestSpyMiddleware`
+2. Resolves the middleware via `IProvider.value()` and registers it with `server.use()`
+
+The component does **not** install `requestId()`. The kernel's `RestApplication` already did, one
+step earlier, using `RequestIdGenerator` rather than `crypto.randomUUID`.
 
 ### Request Logging
 
-In **non-production** mode, logs the full request including query and body:
+Every request logs the request id, client IP, method, path and query. **The body is extra, and the
+gate on it is fail-closed.** It is logged only when the ambient environment is one IGNIS recognises
+as a development environment.
+
+| Ambient `NODE_ENV` | Body logged |
+|--------------------|-------------|
+| `local`, `debug`, `development`, `dev`, `sit` | yes |
+| `uat`, `alpha`, `beta`, `staging`, `production` | no |
+| any other name, or unset | no |
+
+The set is `EnvironmentNames.DEVELOPMENT_ENVS`. The environment is read once, in the constructor.
+
+In a development environment, the line carries query and body:
 
 ```
 [requestId][clientIp][=>] METHOD   /path | query: {...} | body: {...}
 ```
 
-In **production** mode, body is excluded:
+Everywhere else the body is dropped:
 
 ```
 [requestId][clientIp][=>] METHOD   /path | query: {...}
 ```
+
+> [!WARNING]
+> The older rule was `env !== 'production'`, and it is gone on purpose. That test enabled body
+> logging for an unset `NODE_ENV` and for every pre-production name carrying real user data.
+> Redaction is no defence: it masks secret-shaped keys, so `nationalId`, `cardNumber` and `ssn`
+> were written verbatim. Do not reintroduce the negated test.
 
 ### Response Logging
 
@@ -308,22 +364,31 @@ After the handler completes:
 
 The `parseBody` method parses the request body based on `Content-Type`:
 
-| Content-Type | Parse Method |
-|-------------|-------------|
-| `application/json` | `req.json()` |
-| `multipart/form-data` | `req.parseBody()` |
-| `application/x-www-form-urlencoded` | `req.parseBody()` |
-| Other | `req.text()` |
+| Content-Type | Match | Parse Method |
+|-------------|-------|-------------|
+| `application/json` | substring | `req.json()` |
+| `multipart/form-data` | substring | `req.parseBody()` |
+| `application/x-www-form-urlencoded` | substring | `req.parseBody()` |
+| `application/octet-stream` | exact | `req.raw.body`, returned as the raw stream |
+| Other | - | `req.text()` |
 
-Returns `null` if no `Content-Type` header or `Content-Length` is `0`/missing. Throws HTTP 400 `'Malformed Body Payload'` on parse failure.
+Returns `null` when there is no `Content-Type` header, when `Content-Length` is exactly `'0'`, or
+when `req.raw.body` is absent. Only an explicit `'0'` short-circuits: a chunked request carries no
+`Content-Length`, and gating on the header's presence would skip every streamed body.
+
+A parse failure throws HTTP 400 with code `core.request.body_malformed`.
 
 ### IP Detection
 
-The middleware resolves the client IP from the connection info or falls back to `x-real-ip` / `x-forwarded-for` headers. If neither is available, it throws HTTP 400 `'Malformed Connection Info'`.
+The middleware resolves the client IP from the connection info, then falls back to the `x-real-ip`
+and `x-forwarded-for` headers, and finally to the literal string `'unknown'`. It is best-effort and
+never fatal. A unix socket, some proxies and any in-process call yield no connection info, and
+refusing to serve over that would turn a logging gap into an outage.
 
 ### Accessing the Request ID
 
-`RequestSpyMiddleware.REQUEST_ID_KEY` is `'requestId'` - since the middleware class itself is not exported from `@venizia/ignis`, read the context variable by that key:
+The middleware class is not exported from `@venizia/ignis`, but the key is: import `REQUEST_ID_KEY`,
+or read the context variable by its literal value `'requestId'`.
 
 ```typescript
 import { get, jsonResponse, TRouteContext } from '@venizia/ignis';
@@ -350,7 +415,8 @@ async example(c: TRouteContext) {
 
 A simple middleware that serves an emoji as an SVG favicon on `/favicon.ico`.
 
-**Not exported from `@venizia/ignis`** - registered automatically by `BaseApplication`.
+**Exported from `@venizia/ignis`**, though you rarely need it - `BaseApplication` registers it for
+you. To change the icon, set `configs.favicon`.
 
 ### Signature
 
@@ -519,7 +585,7 @@ export class MyApplication extends BaseApplication {
 
 ### Request Spy in Production
 
-`RequestSpyMiddleware` logs every request. IGNIS automatically skips body logging in production (`NODE_ENV === 'production'`), but the middleware still runs. For ultra-high-traffic workloads consider sampling strategies or externalizing log aggregation.
+`RequestSpyMiddleware` logs every request. Body logging is off outside a development environment, but the middleware still runs and still parses the body. For ultra-high-traffic workloads consider sampling strategies or externalizing log aggregation.
 
 ### Error Logging Volume
 

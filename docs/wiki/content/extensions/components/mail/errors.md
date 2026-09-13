@@ -21,13 +21,13 @@ The 4xx rows below come from the `MailErrors` catalog, which holds the status an
 | Transport throws during `verify()` | 500 | `core.mail.verification_failed` | `Mail transport verification failed: <error>` |
 
 > [!NOTE]
-> "Transport throws during `send()`/`verify()`" only fires for a **custom** transport. The built-in `NodemailerTransportHelper` and `MailgunTransportHelper` never throw from `send()` or `verify()`. They catch internally and return `{ success: false, error }` (or `false` for `verify()`). A 400 validation error raised by `validateMessage()` is re-thrown unchanged, not wrapped as `SEND_FAILED`.
+> "Transport throws during `send()`/`verify()`" only fires for a **custom** transport. The built-in `NodemailerTransportHelper`, `MailgunTransportHelper` and `AmazonSesTransportHelper` never throw from `send()` or `verify()`. They catch internally and return `{ success: false, error }` (or `false` for `verify()`). A 400 validation error raised by `validateMessage()` is re-thrown unchanged, not wrapped as `SEND_FAILED`.
 
 ### `MailComponent` errors
 
 | Condition | Status | Error code | Message |
 |-----------|--------|-----------|---------|
-| `MAIL_OPTIONS` not bound before `component(MailComponent)` | -- | -- | `Mail options not configured` |
+| `MAIL_OPTIONS` still unbound when `binding()` runs | -- | -- | `Mail options not configured` |
 
 ### `MailTransportProvider` errors
 
@@ -36,6 +36,7 @@ The 4xx rows below come from the `MailErrors` catalog, which holds the status an
 | Unsupported provider string | 500 | `core.mail.invalid_configuration` | `Unsupported mail provider: <provider>` |
 | Nodemailer options fail the type guard | 500 | `core.mail.invalid_configuration` | `Invalid Nodemailer configuration` |
 | Mailgun options fail the type guard | 500 | `core.mail.invalid_configuration` | `Invalid Mailgun configuration` |
+| Amazon SES options fail the type guard | 500 | `core.mail.invalid_configuration` | `Invalid Amazon SES configuration` |
 | Custom options fail the type guard | 500 | `core.mail.invalid_configuration` | `Invalid custom mail provider configuration` |
 | Custom config missing `send`/`verify` | 500 | `core.mail.invalid_configuration` | `Custom mail provider must implement IMailTransport interface. Missing methods: <methods>` |
 
@@ -45,7 +46,13 @@ The 4xx rows below come from the `MailErrors` catalog, which holds the status an
 |-----------|--------|-----------|---------|
 | `config` is missing `username`, `key`, or `domain` | 500 | `core.mail.invalid_configuration` | `Invalid Mailgun configuration \| Missing required keys: <keys>` |
 
-This check runs on `configure()`, one layer deeper than `MailTransportProvider`'s type guard. A `config` object that passes the provider's guard - it merely has *a* `config` property - can still fail this one if it is missing the specific keys Mailgun's client needs.
+### `AmazonSesTransportHelper` errors
+
+| Condition | Status | Error code | Message |
+|-----------|--------|-----------|---------|
+| `config.region` is missing | 500 | `core.mail.invalid_configuration` | `Invalid Amazon SES Configuration \| Missing region` |
+
+Both helper checks run on `configure()`, one layer deeper than `MailTransportProvider`'s type guard. A `config` object that passes the provider's guard - it merely has *a* `config` property - can still fail these if it is missing the specific keys the client needs.
 
 ### `MailQueueExecutorProvider` errors
 
@@ -77,8 +84,20 @@ This check runs on `configure()`, one layer deeper than `MailTransportProvider`'
 
 ### "Mail options not configured"
 
-- **Cause.** `MailKeys.MAIL_OPTIONS` was not bound before `MailComponent` was registered. `binding()` checks `isBound()` and throws immediately.
-- **Fix.** Bind the options before calling `this.component(MailComponent)`:
+- **Cause.** Nothing supplied `MailKeys.MAIL_OPTIONS`. `binding()` checks `isBound()` and throws immediately. This is not an ordering problem - `binding()` runs at the `registerComponents` boot step, long after `preConfigure()` returns, so any `this.bind()` in `preConfigure()` would have landed in time.
+- **Fix.** Pass the options at the call site:
+
+```typescript
+this.component(MailComponent, {
+  options: {
+    provider: MailProviders.NODEMAILER,
+    from: 'noreply@example.com',
+    config: { host: 'smtp.example.com', port: 587, secure: false, auth: { user: '...', pass: '...' } },
+  },
+});
+```
+
+Or bind the key yourself, anywhere in `preConfigure()`:
 
 ```typescript
 this.bind({ key: MailKeys.MAIL_OPTIONS }).toValue({
@@ -178,7 +197,7 @@ executor.setProcessor(async (email: string) => {
 
 ### Startup logs and credentials
 
-`MailComponent.createAndBindInstances()` logs only `mailOptions.provider` and `queueExecutorConfig.type`, at `info` level. It never logs the full config object, by design. That keeps SMTP passwords, OAuth2 secrets, Mailgun API keys, and Redis passwords out of the log - at least through the component itself.
+`MailComponent.createAndBindInstances()` logs only `mailOptions.provider` and `queueExecutorConfig.type`, at `info` level. It never logs the full config object, by design. That keeps SMTP passwords, OAuth2 secrets, Mailgun API keys, AWS secret access keys, and Redis passwords out of the log - at least through the component itself.
 
 > [!WARNING]
 > That guarantee is scoped to `MailComponent`'s own logging. If your wrapper component or any other code logs the `TMailOptions`/`IMailQueueExecutorConfig` object directly - for example, `logger.info('%j', mailOptions)` while debugging - you reintroduce the leak yourself. Log individual safe fields instead of the whole object.

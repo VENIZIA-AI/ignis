@@ -133,9 +133,14 @@ versions:
 Every `id` is a citation `get` reads in full. Leave `package` out and the answer spans every
 package; `from` and `to` are then `YYYY-MM-DD` dates.
 
-The window is dates, not commits. Its lower bound is open and its upper bound closed, so an entry
-dated on `from` is out and one dated on `to` is in. Two releases on one day therefore leave an
-empty window.
+The window's lower bound is open and its upper bound closed, so an entry on `from` is out and one on
+`to` is in.
+
+What the bound is measured in depends on the release table. When it records a commit position for
+BOTH bounds, the window is commit order; otherwise it falls back to dates. That is exactly why two
+releases on one day still answer: they share a date, so a date window between them would be empty,
+and commit order is the only thing that separates them. An entry the table gives no position falls
+back to its date against the bounds' dates.
 
 ## Citations
 

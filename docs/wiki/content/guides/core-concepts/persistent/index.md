@@ -30,7 +30,7 @@ The persistent layer manages data using [Drizzle ORM](https://orm.drizzle.team/)
 | **Models** | Define data structure with Drizzle schemas and relations | [Models Guide](./models.md) |
 | **DataSources** | Manage database connections with auto-discovery | [DataSources Guide](./datasources.md) |
 | **Repositories** | Provide type-safe CRUD operations | [Repositories Guide](./repositories.md) |
-| **Transactions** | Handle atomic multi-step operations (PostgreSQL connector only) | [Transactions Guide](./transactions.md) |
+| **Transactions** | Handle atomic multi-step operations (both SQL engines) | [Transactions Guide](./transactions.md) |
 | **Search & Typesense** | Full-text/faceted search over documents | [Search & Typesense Guide](./search-typesense.md) |
 | **PGlite** | Postgres compiled to WebAssembly, running in-process | [PGlite Guide](./pglite.md) |
 | **SQLite** | The second SQL engine, via libsql | [SQLite Guide](./sqlite.md) |
@@ -52,7 +52,7 @@ export class User extends BasePostgresEntity<typeof User.schema> {
 
 // 2. Create a DataSource
 @datasource({ driver: NodePostgresDriver })
-export class PostgresDataSource extends BasePostgresDataSource<IDSConfigs> {
+export class PostgresDataSource extends BasePostgresDataSource<IDataSourceConfigs> {
   constructor() {
     super({
       name: PostgresDataSource.name,

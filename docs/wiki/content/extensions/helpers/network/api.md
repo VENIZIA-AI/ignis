@@ -6,7 +6,7 @@ difficulty: intermediate
 
 # Network - Full Reference
 
-Exhaustive reference for `BaseNetworkRequest` and its fetchers, the TCP/TLS client-server hierarchy, `NetworkUdpClient`, and every option type. For a readable introduction and the most common tasks, start with the [Network overview](/extensions/helpers/network/).
+Exhaustive reference for `BaseNetworkRequest` and its fetchers, the TCP/TLS client-server hierarchy, `NetworkUdpClient`, the `UrlPolicy`/`UrlIngest` safety guard, and every option type. For a readable introduction and the most common tasks, start with the [Network overview](/extensions/helpers/network/).
 
 ## Find what you need
 
@@ -20,6 +20,7 @@ Exhaustive reference for `BaseNetworkRequest` and its fetchers, the TCP/TLS clie
 | Plain TCP or TLS server, client tracking, authentication | [BaseNetworkTcpServer](#basenetworktcpserver) |
 | Plain TCP or TLS client, auto-reconnect behavior | [BaseNetworkTcpClient](#basenetworktcpclient) |
 | UDP client and multicast | [NetworkUdpClient](#networkudpclient) |
+| Fetching a url a user supplied, without opening an SSRF hole | [URL Safety](#url-safety) |
 | Every option and type in one place | [Types Reference](#types-reference) |
 
 **Files:**
@@ -36,6 +37,9 @@ Exhaustive reference for `BaseNetworkRequest` and its fetchers, the TCP/TLS clie
 - [`packages/helpers/src/modules/network/tcp-socket/network-tls-tcp-server.helper.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/network/tcp-socket/network-tls-tcp-server.helper.ts) - `NetworkTlsTcpServer`
 - [`packages/helpers/src/modules/network/tcp-socket/network-tls-tcp-client.helper.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/network/tcp-socket/network-tls-tcp-client.helper.ts) - `NetworkTlsTcpClient`
 - [`packages/helpers/src/modules/network/udp-socket/network-udp-client.helper.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/network/udp-socket/network-udp-client.helper.ts) - `NetworkUdpClient`, `INetworkUdpClientProps`
+- [`packages/helpers/src/modules/network/url-safety/policy.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/network/url-safety/policy.ts) - `UrlPolicy`
+- [`packages/helpers/src/modules/network/url-safety/ingest.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/network/url-safety/ingest.ts) - `UrlIngest`
+- [`packages/helpers/src/modules/network/url-safety/common/`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/network/url-safety/common) - `IUrlSafetyPolicy`, `UrlSafetyDefaults`, `UrlSchemes`, `UrlSafetyErrors`, `isUrlRefusedError`
 - [`packages/helpers/src/common/redact.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/common/redact.ts) - `redactSecrets`, `redactUrlCredentials`
 - [`packages/helpers/src/common/constants/http.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/common/constants/http.ts) - `HTTP.Methods`, `THttpMethod`
 
@@ -1060,6 +1064,103 @@ interface INetworkUdpClientProps {
     multicastAddress?: { groups?: Array<string>; interface?: string };
   }) => ValueOrPromise<void>;
 }
+```
+
+---
+
+## URL Safety
+
+The guard for a url your application did not choose - a webhook target, an avatar link, an import source. Without it a request can be steered at `169.254.169.254` and the cloud credentials behind it.
+
+It ships as part of the network module, so the root barrel carries it:
+
+```typescript
+import { UrlPolicy, UrlIngest, UrlSchemes, UrlSafetyDefaults, isUrlRefusedError } from '@venizia/ignis-helpers';
+import type { IUrlSafetyPolicy } from '@venizia/ignis-helpers';
+```
+
+### Two halves, split on purpose
+
+| Class | Needs | Decides |
+|---|---|---|
+| `UrlPolicy` | nothing but string and number work | The shape of a url: scheme, host allow-list, and a literal IP address |
+| `UrlIngest` | `node:dns`, and `fetch` | What a hostname resolves to, and the request itself |
+
+`UrlPolicy` is re-exported from the browser-pure `@venizia/ignis-helpers/core` subpath. It never imports `ingest.ts`, and `make purity` fails the build if that changes. `UrlIngest` stays out of `/core`.
+
+The split has a consequence you must know: a hostname that **resolves** to a private address passes `UrlPolicy` on purpose. Only `UrlIngest` catches that. Call `UrlPolicy` alone only where DNS does not exist.
+
+### IUrlSafetyPolicy
+
+Every field is per call. An application that must reach plain `http` on one route says so at that call site, rather than weakening a constant for everyone.
+
+| Option | Type | Default | Meaning |
+|---|---|---|---|
+| `allowedSchemes` | `string[]` | `['https:']` | The schemes a guarded fetch will speak. `file:` and `gopher:` are the classic pivots, and neither is reachable |
+| `allowPrivateAddress` | `boolean` | `false` | Turning it on in a path that takes user input re-opens the hole this guard exists to close |
+| `allowedHosts` | `string[]` | - | When set, nothing outside the list passes, whatever it resolves to |
+| `maxRedirects` | `number` | `3` | Hops allowed. Each one is re-checked |
+| `timeout` | `IDuration` | 10 seconds | A slow host holds a worker slot for exactly this long |
+| `maxBytes` | `number` | `10485760` (10 MB) | The read stops and cancels the moment the body crosses it |
+
+`timeout` takes an `IDuration`, not a number of milliseconds. `UrlSafetyDefaults` holds the raw values: `ALLOWED_SCHEMES`, `ALLOW_PRIVATE_ADDRESS`, `MAX_REDIRECTS`, `TIMEOUT_MILLISECONDS`, `MAX_BYTES`. `UrlSchemes` holds `HTTP` (`'http:'`) and `HTTPS` (`'https:'`), with the trailing colon that `URL.protocol` returns.
+
+### UrlPolicy
+
+| Method | Signature | Does |
+|---|---|---|
+| `assertSafeUrl` | `(opts: { url: string; policy?: IUrlSafetyPolicy }): URL` | Parses and checks the url. Returns the parsed `URL`, or throws |
+| `isNonPublicAddress` | `(opts: { address: string }): boolean` | `true` for any address an untrusted url must never reach |
+| `readHostAddress` | `(opts: { hostname: string }): string` | Strips the brackets off an IPv6 literal - `[::1]` becomes `::1` |
+
+`assertSafeUrl` refuses, in this order: a malformed url, a scheme outside `allowedSchemes`, a host outside `allowedHosts`, and a literal address that is not public.
+
+`isNonPublicAddress` fails closed. An address it cannot parse counts as non-public, because a guard that fails open on a string it does not understand is not a guard. It covers loopback, the private v4 ranges, carrier-grade NAT, link-local (`169.254.0.0/16`, the metadata address), benchmarking, multicast, and the v6 equivalents. It also unwraps both spellings of an IPv4-mapped v6 address, because `new URL` rewrites `::ffff:169.254.169.254` into the hex form and a dotted-quad check alone would read green.
+
+### UrlIngest
+
+| Method | Signature | Does |
+|---|---|---|
+| `assertPublicHost` | `(opts: { hostname: string; policy? }): Promise<void>` | Resolves the host and rejects if **any** address is non-public |
+| `assertReachableUrl` | `(opts: { url: string; policy? }): Promise<URL>` | Both halves, in the order they must run: shape, then network |
+| `fetchGuarded` | `(opts: { url: string; policy?; headers? }): Promise<Response>` | A GET an untrusted url cannot steer inside your network |
+| `readCappedBody` | `(opts: { response: Response; policy? }): Promise<Buffer>` | Reads a body, cancelling the moment it crosses `maxBytes` |
+| `capStream` | `(opts: { source: ReadableStream<Uint8Array>; policy? }): ReadableStream<Uint8Array>` | Enforces `maxBytes` on a stream you pipe onward instead of buffering |
+
+`assertPublicHost` checks every resolved address, not the first. A host can publish one public A record beside an internal one.
+
+`fetchGuarded` follows redirects by hand, with `redirect: 'manual'`, so every hop goes back through `assertReachableUrl`. Letting `fetch` follow them would land on an internal host with no second look. It returns the body unread, so you choose between `readCappedBody` and `capStream`. Nothing is buffered for you.
+
+`readCappedBody` checks `content-length` first because it is free, then counts anyway, because the header may be absent or may lie.
+
+```typescript
+const response = await UrlIngest.fetchGuarded({
+  url: userSuppliedUrl,
+  policy: { maxBytes: 2 * 1024 * 1024, timeout: { value: 5, unit: 'second' } },
+});
+
+const body = await UrlIngest.readCappedBody({ response, policy: { maxBytes: 2 * 1024 * 1024 } });
+```
+
+> [!WARNING]
+> One window stays open. The address can change between the DNS check and the connect - DNS rebinding. Closing it means connecting to the resolved address and setting `Host` by hand, which no `fetch` API exposes. Treat `fetchGuarded` as a strong barrier, not a proof.
+
+### Telling a refusal from a retryable failure
+
+Every refusal carries the same code, `core.url_safety.url_refused`, from the `UrlSafetyErrors.URL_REFUSED` definition. `isUrlRefusedError({ error })` tests it.
+
+A refused url is refused forever. A bad scheme, a non-public address, a host outside the allow-list, a malformed url, too many hops, an oversized body - retrying any of those repeats the same rejection and turns your retry loop into a repeat scanner. Drop the work instead.
+
+A timeout, a DNS failure, or a 5xx answers `false`. Those are worth another attempt, and `fetchGuarded` raises them as a plain error with no refusal code.
+
+```typescript
+import { isUrlRefusedError, RetryHelper, UrlIngest } from '@venizia/ignis-helpers';
+
+await RetryHelper.executeWithRetry({
+  operation: 'fetchAvatar',
+  execution: () => UrlIngest.fetchGuarded({ url: userSuppliedUrl }),
+  shouldRetry: context => !isUrlRefusedError({ error: context.error }),
+});
 ```
 
 ## See also

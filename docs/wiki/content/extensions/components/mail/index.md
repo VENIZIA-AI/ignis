@@ -1,39 +1,40 @@
 ---
 title: Mail Component
-description: Send email through pluggable transports (Nodemailer, Mailgun, custom) with templates, batch sending, and a pluggable queue executor
+description: Send email through pluggable transports (Nodemailer, Mailgun, Amazon SES, custom) with templates, batch sending, and a pluggable queue executor
 difficulty: intermediate
 ---
 
 # Mail Component
 
-`MailComponent` wires a pluggable email transport (Nodemailer, Mailgun, or your own) into `MailService`. It adds template rendering, batch sending, and an independent queue executor for verification-code/token flows.
+`MailComponent` wires a pluggable email transport (Nodemailer, Mailgun, Amazon SES, or your own) into `MailService`. It adds template rendering, batch sending, and an independent queue executor for verification-code/token flows.
 
 ## In one example
 
-Bind `MailKeys.MAIL_OPTIONS`, register `MailComponent`, then inject `IMailService` anywhere to send:
+Pass the options at the call site, then inject `IMailService` anywhere to send:
 
 ```typescript
 import { BaseApplication, ValueOrPromise } from '@venizia/ignis';
-import { MailComponent, MailKeys, MailProviders } from '@venizia/ignis/mail';
+import { MailComponent, MailProviders } from '@venizia/ignis/mail';
 
 export class Application extends BaseApplication {
   preConfigure(): ValueOrPromise<void> {
-    // MAIL_OPTIONS is the only binding MailComponent requires
-    this.bind({ key: MailKeys.MAIL_OPTIONS }).toValue({
-      provider: MailProviders.NODEMAILER,
-      from: 'noreply@example.com',
-      config: {
-        host: 'smtp.gmail.com',
-        port: 465,
-        secure: true,
-        auth: { user: process.env.APP_ENV_MAIL_USER, pass: process.env.APP_ENV_MAIL_PASS },
+    this.component(MailComponent, {
+      options: {
+        provider: MailProviders.NODEMAILER,
+        from: 'noreply@example.com',
+        config: {
+          host: 'smtp.gmail.com',
+          port: 465,
+          secure: true,
+          auth: { user: process.env.APP_ENV_MAIL_USER, pass: process.env.APP_ENV_MAIL_PASS },
+        },
       },
     });
-
-    this.component(MailComponent);
   }
 }
 ```
+
+Binding `MailKeys.MAIL_OPTIONS` yourself works too, and the order does not matter. [How it works](#how-it-works) says why.
 
 ```typescript
 import { BaseService, inject } from '@venizia/ignis';
@@ -54,7 +55,9 @@ export class UserService extends BaseService {
 
 ## How it works
 
-- **One required binding.** `MailComponent.binding()` throws `Mail options not configured` if `MailKeys.MAIL_OPTIONS` is not bound before registration. Every other binding is optional, with a working default: queue executor config, verification generators, and more.
+- **One required setting.** `MailComponent.binding()` throws `Mail options not configured` if nothing supplied `MailKeys.MAIL_OPTIONS`. Every other binding is optional, with a working default: queue executor config, verification generators, and more.
+
+- **Two ways to supply it, and order never matters.** `this.component(MailComponent, { options })` reaches `MailComponent.configure(opts)`, which binds `MailKeys.MAIL_OPTIONS` for you. Or bind the key yourself anywhere in `preConfigure()`. `configure()` does not run until the `registerComponents` boot step, several steps after `preConfigure()` finishes, so a hand-written binding placed after `this.component(...)` still lands in time. Supply both and the call-site options win.
 
 - **Transport is a discriminated union.** `TMailOptions.provider` picks the transport class:
 
@@ -62,6 +65,7 @@ export class UserService extends BaseService {
   |---|---|
   | `nodemailer` | `NodemailerTransportHelper` |
   | `mailgun` | `MailgunTransportHelper` |
+  | `amazon-ses` | `AmazonSesTransportHelper` |
   | `custom` | Your own object, implementing `IMailTransport` (`send()` + `verify()`) |
 
   `MailTransportProvider` is the factory that switches on the provider. It throws for an unsupported provider string.

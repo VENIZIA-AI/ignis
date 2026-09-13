@@ -11,7 +11,9 @@ Every option, binding key, class, and method the Authentication component expose
 **Files:**
 
 - [`packages/core-server/src/components/auth/authenticate/`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/components/auth/authenticate) - component, services, strategies, controllers
-- [`packages/core-server/src/components/auth/models/`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/components/auth/models) - entity column helpers + request schemas
+- [`packages/core-server/src/components/auth/models/entities/`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/components/auth/models/entities) - entity column helpers
+- [`packages/kernel/src/base/auth/authenticate/`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/kernel/src/base/auth/authenticate) - constants, binding keys, option types, the provider and the strategy registry
+- [`packages/kernel/src/base/auth/models/requests/`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/kernel/src/base/auth/models/requests) - request schemas
 - [`packages/kernel/src/base/auth/base/abstract-auth-registry.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/kernel/src/base/auth/base/abstract-auth-registry.ts) - `AbstractAuthRegistry`
 
 ## Find what you need
@@ -113,7 +115,7 @@ import type {
 ```
 Application.preConfigure()
   ├── bind JWT_OPTIONS (TJWTTokenServiceOptions, discriminated on `standard`)
-  ├── bind BASIC_OPTIONS / REST_OPTIONS
+  ├── bind BASIC_OPTIONS / SERVICE_OPTIONS / REST_OPTIONS
   ├── this.component(AuthenticateComponent)
   └── AuthenticationStrategyRegistry.register() -- manual, after the component
 
@@ -124,6 +126,8 @@ AuthenticateComponent.binding()
   │                   ├── issuer   -> JWKSIssuerTokenService + JWKSController (/certs)
   │                   └── verifier -> JWKSVerifierTokenService
   ├── defineBasicAuth() -> registers BasicTokenService (if basicOptions bound)
+  ├── defineServiceAuth() -> ServiceAssertionVerifierService + the `service` strategy
+  │                          (if serviceOptions bound; with `keys` also the signer + /certs)
   ├── defineControllers() -> registers AuthController (if useAuthController: true)
   └── defineOAuth2() -> stub, not implemented
 
@@ -146,7 +150,7 @@ Bearer token service hierarchy:
 
 ## Component methods
 
-`AuthenticateComponent.binding()` runs four private configuration methods and one public stub:
+`AuthenticateComponent.binding()` runs five private configuration methods and one public stub:
 
 | Method | Purpose |
 |--------|---------|
@@ -364,6 +368,7 @@ Set on the Hono `Context` during authentication, readable via `context.get()`:
 |----------|-------|-------------|
 | `Authentication.STRATEGY_JWT` | `'jwt'` | JWT strategy name |
 | `Authentication.STRATEGY_BASIC` | `'basic'` | Basic strategy name |
+| `Authentication.STRATEGY_SERVICE` | `'service'` | Service-assertion strategy name |
 | `Authentication.TYPE_BEARER` | `'Bearer'` | Bearer token type prefix |
 | `Authentication.TYPE_BASIC` | `'Basic'` | Basic token type prefix |
 | `Authentication.AUTHENTICATION_STRATEGY` | `'authentication.strategy'` | Binding key prefix for registered strategies |
@@ -384,7 +389,7 @@ Set on the Hono `Context` during authentication, readable via `context.get()`:
 | `JWKSModes` | `ISSUER` (`'issuer'`), `VERIFIER` (`'verifier'`) |
 | `JWKSKeyDrivers` | `TEXT` (`'text'`), `FILE` (`'file'`) |
 | `JWKSKeyFormats` | `PEM` (`'pem'`), `JWK` (`'jwk'`) |
-| `AuthenticateStrategy` | `BASIC` (`'basic'`), `JWT` (`'jwt'`) - same values as `Authentication.STRATEGY_*` |
+| `AuthenticateStrategy` | `BASIC` (`'basic'`), `JWT` (`'jwt'`), `SERVICE` (`'service'`) - same values as `Authentication.STRATEGY_*` |
 | `AuthenticationModes` | `ANY` (`'any'`), `ALL` (`'all'`) |
 
 ## Strategy registry
@@ -516,12 +521,12 @@ Constructor throws `500` if `verifyCredentials` is missing from the injected opt
 
 ## Strategy classes
 
-All four strategies extend `BaseHelper` and implement `IAuthenticationStrategy<E>`. Each one carries:
+All five strategies extend `BaseHelper` and implement `IAuthenticationStrategy<E>`. Each one carries:
 
 - A `name` field.
 - A `standard` field (Bearer strategies only).
 - One injected token service.
-- An `authenticate(context)` method that calls `extractCredentials()`, then `verify()`.
+- An `authenticate(context)` method that pulls the credential off the request, then verifies it.
 
 | Strategy | `name` | Injects | File |
 |----------|--------|---------|------|
@@ -529,9 +534,12 @@ All four strategies extend `BaseHelper` and implement `IAuthenticationStrategy<E
 | `JWKSIssuerAuthenticationStrategy` | `Authentication.STRATEGY_JWT` | `JWKSIssuerTokenService` | [`strategies/jwks/issuer.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/components/auth/authenticate/strategies/jwks/issuer.ts) |
 | `JWKSVerifierAuthenticationStrategy` | `Authentication.STRATEGY_JWT` | `JWKSVerifierTokenService` | [`strategies/jwks/verifier.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/components/auth/authenticate/strategies/jwks/verifier.ts) |
 | `BasicAuthenticationStrategy` | `Authentication.STRATEGY_BASIC` | `BasicTokenService` | [`strategies/basic.strategy.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/components/auth/authenticate/strategies/basic.strategy.ts) |
+| `ServiceAuthenticationStrategy` | `Authentication.STRATEGY_SERVICE` | `ServiceAssertionVerifierService` | [`strategies/service.strategy.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/components/auth/authenticate/strategies/service.strategy.ts) |
 
 > [!NOTE]
 > Choose the strategy class that matches your JOSE standard. `JWKSIssuerAuthenticationStrategy` and `JWKSVerifierAuthenticationStrategy` both register under the same `'jwt'` name - use only one of the two per service.
+
+`ServiceAuthenticationStrategy` is the odd one out. It reads the `ServiceAssertion.HEADER` assertion rather than an `Authorization` header, verifies it against the calling service's own JWKS, then hands the issuer to your `resolvePrincipal` callback. It proves which SERVICE called, never which user, and it stamps the caller name onto the returned user as `callerService`. `defineServiceAuth()` registers it for you - you do not add it to `AuthenticationStrategyRegistry` by hand.
 
 ## JWKSController
 
@@ -591,49 +599,71 @@ type TPermissionCommonColumns = {
   description: PgTextBuilderInitial<...>;
 };
 
-type TPolicyDefinitionOptions = { idType?: 'string' | 'number' };
-type TPolicyDefinitionCommonColumns = {
-  variant: ReturnType<typeof text>;
-  subjectType: ReturnType<typeof text>;
-  targetType: ReturnType<typeof text>;
+type TPolicyDefinitionOptions<ExtraVariant extends string = never> = {
+  idType?: 'string' | 'number';
+  extraVariants?: ReadonlyArray<ExtraVariant>;
+};
+
+type TPolicyDefinitionCommonColumns<
+  ExtraVariant extends string = never,
+  Metadata extends object = TSubsetGrantMetadata,
+> = {
+  metadata: ReturnType<typeof jsonb>;         // $type<Metadata>()
+  variant: ReturnType<typeof text>;           // $type<TAuthorizationPolicyVariant | ExtraVariant>(), notNull
+  subjectType: ReturnType<typeof text>;       // notNull
+  targetType: ReturnType<typeof text>;        // notNull
+  domainType: ReturnType<typeof text>;        // nullable
   action: ReturnType<typeof text>;
-  effect: ReturnType<typeof text>;
-  domain: ReturnType<typeof text>;
-  metadata: ReturnType<typeof jsonb>;
+  effect: ReturnType<typeof text>;            // $type<TAuthorizationDecision>()
 };
 ```
 
+Both are generic. `extraVariants` declares app-owned edge kinds that live in the same table, and `Metadata` types the `metadata` column - it defaults to `TSubsetGrantMetadata` (`{ ops: string[] }`), what subset grants write.
+
+`subjectId`, `targetId` and `domainId` are not in the common shape. `extraPolicyDefinitionColumns` adds all three per `idType`, as `text` or `integer`. The domain lives in two columns, `domainType` and `domainId`, never one - see [Usage & Examples](./usage#entity-column-helpers).
+
 ## File structure
 
+The contract lives in the kernel; the server-side wiring lives in `core-server`. Each package re-exports the other's half, so `@venizia/ignis` still resolves every name below.
+
 ```
-packages/core-server/src/components/auth/
+packages/kernel/src/base/auth/
 ├── authenticate/
 │   ├── common/
 │   │   ├── codecs.ts             # AuthenticationFieldCodecs (ROLES_CODEC, build() factory)
-│   │   ├── constants.ts          # AuthenticateStrategy, JOSEStandards, JWKSModes, JWKSKeyDrivers, JWKSKeyFormats, Authentication, AuthenticationTokenTypes, AuthenticationModes
+│   │   ├── constants/            # Authentication, AuthenticateStrategy, AuthenticationModes, AuthenticationTokenTypes, JOSEStandards, JWKSModes, JWKSKeyDrivers, JWKSKeyFormats, ServiceAssertion
+│   │   ├── errors.ts             # AuthenticationErrors
 │   │   ├── keys.ts               # AuthenticateBindingKeys
-│   │   ├── types.ts              # Option interfaces, discriminated unions, IAuthUser, IJWTTokenPayload, IAuthService
-│   │   └── index.ts
-│   ├── controllers/
-│   │   ├── factory.ts            # defineAuthController() + JWTTokenPayloadSchema
-│   │   └── jwks/                 # JWKSController + route config
+│   │   └── types/                # Option interfaces, discriminated unions, IAuthUser, IJWTTokenPayload, IAuthService
 │   ├── middlewares/
 │   │   └── authenticate.middleware.ts   # Standalone authenticate() function
 │   ├── providers/
 │   │   └── authentication.provider.ts   # AuthenticationProvider
-│   ├── services/
-│   │   ├── basic/service.ts             # BasicTokenService
-│   │   └── bearer/
-│   │       ├── abstract.service.ts      # AbstractBearerTokenService
-│   │       ├── jws.service.ts           # JWSTokenService
-│   │       └── jwks/                    # AbstractJWKSTokenService, JWKSIssuerTokenService, JWKSVerifierTokenService
-│   ├── strategies/                      # JWSAuthenticationStrategy, JWKS*, BasicAuthenticationStrategy, AuthenticationStrategyRegistry
-│   └── component.ts                     # AuthenticateComponent
+│   └── strategies/
+│       └── strategy-registry.ts         # AuthenticationStrategyRegistry
 ├── base/
 │   └── abstract-auth-registry.ts        # AbstractAuthRegistry (shared by authenticate + authorize)
+├── context-variables.ts                 # Hono ContextVariableMap augmentation
 └── models/
-    ├── entities/                        # extraUserColumns, extraRoleColumns, extraPermissionColumns, extraPolicyDefinitionColumns
     └── requests/                        # SignInRequestSchema, SignUpRequestSchema, ChangePasswordRequestSchema
+
+packages/core-server/src/components/auth/
+├── authenticate/
+│   ├── controllers/
+│   │   ├── factory.ts            # defineAuthController() + JWTTokenPayloadSchema
+│   │   ├── jwks/                 # JWKSController + route config
+│   │   └── service-certs/        # ServiceCertsController + route config
+│   ├── services/
+│   │   ├── basic/service.ts             # BasicTokenService
+│   │   ├── bearer/
+│   │   │   ├── abstract.service.ts      # AbstractBearerTokenService
+│   │   │   ├── jws.service.ts           # JWSTokenService
+│   │   │   └── jwks/                    # AbstractJWKSTokenService, JWKSIssuerTokenService, JWKSVerifierTokenService
+│   │   └── service/                     # ServiceAssertionSignerService, ServiceAssertionVerifierService
+│   ├── strategies/                      # JWSAuthenticationStrategy, JWKS*, BasicAuthenticationStrategy, ServiceAuthenticationStrategy
+│   └── component.ts                     # AuthenticateComponent
+└── models/
+    └── entities/                        # extraUserColumns, extraRoleColumns, extraPermissionColumns, extraPolicyDefinitionColumns
 ```
 
 ## See also

@@ -21,7 +21,7 @@ Decorators mark a class as an artifact and carry its registration defaults. A ge
 
 | Symbol | Package | What it is |
 |---|---|---|
-| `@injectable`, `@service`, `@component`, `@provide` | `@venizia/ignis-kernel` (re-exported by `@venizia/ignis`) | Stereotype decorators and the provider method decorator |
+| `@injectable`, `@service`, `@component`, `@configuration`, `@provide` | `@venizia/ignis-kernel` (re-exported by `@venizia/ignis`) | Stereotype decorators and the provider method decorator |
 | `IArtifactRegistrationOptions`, `IArtifactMetadata`, `IProvideMetadata`, `ArtifactTypes` | `@venizia/ignis-kernel` | Metadata shapes and the artifact type vocabulary |
 | `IArtifactIndex`, `TArtifactIndexInput`, `IApplicationConfigs.artifacts` | `@venizia/ignis-kernel` | The index shape and where the application receives it |
 | `registerArtifacts()`, `registerConfiguredArtifacts()` | `RestApplication` | Registration from an index; the boot step |
@@ -35,6 +35,7 @@ The artifact kinds a stereotype may declare.
 
 ```typescript
 class ArtifactTypes {
+  static readonly CONFIGURATION = 'configuration';
   static readonly COMPONENT = 'component';
   static readonly CONTROLLER = 'controller';
   static readonly SERVICE = 'service';
@@ -50,7 +51,7 @@ type TArtifactType = TConstValue<typeof ArtifactTypes>;
 
 ## `IArtifactRegistrationOptions`
 
-The five options every stereotype accepts. A stereotype stores them on the class; an explicit `TMixinOpts` passed to `controller()`/`service()`/... at a call site still wins.
+The six options every stereotype accepts. A stereotype stores them on the class; an explicit `TMixinOpts` passed to `controller()`/`service()`/... at a call site still wins.
 
 ```typescript
 interface IArtifactRegistrationOptions<ApplicationType = unknown> {
@@ -59,6 +60,7 @@ interface IArtifactRegistrationOptions<ApplicationType = unknown> {
   scope?: TBindingScope;
   order?: number;
   when?: TArtifactCondition<ApplicationType>;
+  after?: ReadonlyArray<TClass<unknown>>;
 }
 
 type TArtifactCondition<ApplicationType = unknown> = (opts: {
@@ -70,9 +72,12 @@ type TArtifactCondition<ApplicationType = unknown> = (opts: {
 |---|---|---|---|
 | `binding` | `{ namespace: string; key: string }` | `<namespace>.<Class>` | The binding key |
 | `allowOverride` | `boolean` | `true`; `bootChecks.binding.allowOverride` when that group is set | `false` makes a same-key re-registration throw instead of overwriting; `true` opts one registration out of the app-wide check |
-| `scope` | `TBindingScope` | `SINGLETON` for datasource, component, controller; `TRANSIENT` for repository, service | Binding scope |
+| `scope` | `TBindingScope` | `SINGLETON` for configuration, datasource, component, controller; `TRANSIENT` for repository, service | Binding scope |
 | `order` | `number` | `0` | Lower registers first within its kind; ties keep index order |
 | `when` | `TArtifactCondition` | always register | Sync or async. Runs at the `registerArtifacts` step, before `preConfigure`; may read config and env, not another artifact's binding |
+| `after` | `ReadonlyArray<TClass<unknown>>` | none | Configurations only. This class registers after the ones listed |
+
+`after` is the topological ordering for configurations. `sortConfigurationsTopologically` runs Kahn's algorithm over the `after` edges and breaks ties by class name, so the result is deterministic. It throws when an `after` entry is not itself a registered configuration, and throws again when the edges form a cycle. It runs after the `order` sort and replaces it, so `after` is what decides configuration order.
 
 ## `@injectable`
 
@@ -93,18 +98,19 @@ interface IArtifactMetadata<ApplicationType = unknown> extends IArtifactRegistra
 | `type` | `TArtifactType` | required | The artifact kind |
 | ...`IArtifactRegistrationOptions` | | | See above |
 
-Throws at decoration time when `type` is not in `ArtifactTypes.SCHEME_SET`: `[injectable][<Class>] Invalid artifact type: '<type>' | Expected one of: component, controller, service, repository, datasource, model`.
+Throws at decoration time when `type` is not in `ArtifactTypes.SCHEME_SET`: `[injectable][<Class>] Invalid artifact type: '<type>' | Expected one of: configuration, component, controller, service, repository, datasource, model`.
 
 ```typescript
 @injectable({ type: ArtifactTypes.SERVICE, scope: BindingScopes.SINGLETON })
 export class ClockService extends BaseService {}
 ```
 
-## `@service`, `@component`
+## `@service`, `@component`, `@configuration`
 
 ```typescript
 const service: <ApplicationType = unknown>(opts?: IArtifactRegistrationOptions<ApplicationType>) => ClassDecorator;
 const component: <ApplicationType = unknown>(opts?: IArtifactRegistrationOptions<ApplicationType>) => ClassDecorator;
+const configuration: <ApplicationType = unknown>(opts?: IArtifactRegistrationOptions<ApplicationType>) => ClassDecorator;
 ```
 
 Options: `IArtifactRegistrationOptions`, all optional.
@@ -115,7 +121,12 @@ export class PricingService extends BaseService {}
 
 @component({ when: () => process.env.KAFKA_BROKERS !== undefined, order: -10 })
 export class KafkaComponent extends BaseComponent {}
+
+@configuration({ after: [TenantConfiguration] })
+export class BillingConfiguration extends BaseConfiguration {}
 ```
+
+A `@configuration` class binds into the `configurations` namespace at `SINGLETON` and is registered first, before any datasource. It is the place for setup that everything else depends on. `after` is the only ordering that applies to it.
 
 ## `@controller`, `@repository`, `@datasource`, `@model`
 
@@ -152,7 +163,7 @@ interface IProvideMetadata {
 | `key` | `string` | required | The key to bind |
 | `scope` | `TBindingScope` | `SINGLETON` | Scope of the provided value |
 
-When `registerArtifacts` registers the component, each `@provide` key is bound `toProvider`: the provider resolves the component from the container and calls the method. Nothing runs until the first `get` of the key.
+When `registerArtifacts` registers the component, each `@provide` key is bound `toProvider`: the provider resolves the component from the container and calls the method. Nothing runs until the first `get` of the key. A `@configuration` class gets the same treatment.
 
 ```typescript
 @component()
@@ -165,13 +176,14 @@ export class PlatformComponent extends BaseComponent {
 ```
 
 Notes:
-- Only a component registered through `registerArtifacts` (an index) gets its `@provide` keys bound. `this.component(Ctor)` by hand does not read them.
+- Only a configuration or component registered through `registerArtifacts` (an index) gets its `@provide` keys bound. `this.component(Ctor)` by hand does not read them.
 - Under bun-runs-source, a return type that is an interface must come from an `import type` - see the [guide](/guides/core-concepts/application/bootstrapping#if-bun-runs-your-source-directly).
 
 ## `IArtifactIndex`, `TArtifactIndexInput`
 
 ```typescript
 interface IArtifactIndex {
+  configurations?: ReadonlyArray<TClass<BaseConfiguration>>;
   dataSources?: ReadonlyArray<TClass<IDataSource>>;
   components?: ReadonlyArray<TClass<BaseComponent>>;
   repositories?: ReadonlyArray<TClass<IRepository>>;
@@ -187,7 +199,7 @@ interface IConditionalArtifactIndex {
 type TArtifactIndexInput = IArtifactIndex | IConditionalArtifactIndex | TArtifactIndexInput[];
 ```
 
-`IApplicationConfigs.artifacts?: TArtifactIndexInput` - one index, a conditional entry, or arrays of them nested to any depth. A conditional entry registers its `index` only when `when` answers true; a false answer drops the whole subtree. Use it for the run-mode gate: `{ when: () => runMode === 'server', index: { controllers: GeneratedArtifacts.controllers } }` keeps a worker's routes out of the container. The field names are the const class `ArtifactIndexFields` (`DATA_SOURCES`, `COMPONENTS`, `REPOSITORIES`, `SERVICES`, `CONTROLLERS`, with `SCHEME_SET` and `isValid`); `registerArtifacts` reads the index through it, never through a string literal.
+`IApplicationConfigs.artifacts?: TArtifactIndexInput` - one index, a conditional entry, or arrays of them nested to any depth. A conditional entry registers its `index` only when `when` answers true; a false answer drops the whole subtree. Use it for the run-mode gate: `{ when: () => runMode === 'server', index: { controllers: GeneratedArtifacts.controllers } }` keeps a worker's routes out of the container. The field names are the const class `ArtifactIndexFields` (`CONFIGURATIONS`, `DATA_SOURCES`, `COMPONENTS`, `REPOSITORIES`, `SERVICES`, `CONTROLLERS`, with `SCHEME_SET` and `isValid`); `registerArtifacts` reads the index through it, never through a string literal. Field order is registration order.
 
 ```typescript
 artifacts: [InventoryArtifacts, GeneratedArtifacts, { components: [HealthCheckComponent] }],
@@ -202,15 +214,17 @@ async registerArtifacts(index: TArtifactIndexInput): Promise<void>;
 Behavior, in order:
 
 1. Flattens nested arrays into a list of `IArtifactIndex`.
-2. For each kind in dependency order - `dataSources`, `components`, `repositories`, `services`, `controllers` - collects the classes across every index.
+2. For each kind in dependency order - `configurations`, `dataSources`, `components`, `repositories`, `services`, `controllers` - collects the classes across every index.
 3. Evaluates every class's `when` concurrently; a `false` skips the class and logs at debug `Skipped by condition | kind: <field> | class: <Class>`.
-4. Stable-sorts the survivors by `order` (default `0`).
-5. Registers each through `dataSource()` / `component()` / `repository()` / `service()` / `controller()`, which read the class's decorator defaults (`binding`, `scope`, `allowOverride`).
-6. For a component, binds every `@provide` key to a lazy provider.
+4. Stable-sorts the survivors by `order` (default `0`), then re-sorts configurations topologically by `after`.
+5. Registers each through `configuration()` / `dataSource()` / `component()` / `repository()` / `service()` / `controller()`, which read the class's decorator defaults (`binding`, `scope`, `allowOverride`).
+6. For a configuration and for a component, binds every `@provide` key to a lazy provider.
+
+All six registration methods share one private `registerArtifact()`. It resolves the binding in a fixed order - explicit `opts`, then the class's `@injectable` metadata, then the derived `{ namespace, key: Class.name }` - writes that key back into `MetadataRegistry` so `@inject({ target })` can read it, stores `opts.options` for the configure sweep, runs `assertNoBindingCollision`, then binds `.toClass(target).setScope(declared?.scope ?? defaultScope)`.
 
 A class registered by hand before this call keeps its earlier position in the binding map; the later registration overwrites the binding unless `allowOverride: false`, or [`bootChecks.binding.allowOverride: false`](#bootchecks), makes it throw.
 
-The step binds and constructs nothing. Datasources are constructed at `registerDataSources` and components at `registerComponents`, both after `preConfigure()`; repositories and services are constructed on their first `get` (or at `verifyBindings` when `doVerify` is on). A subclass without its own decorator inherits the repository metadata (`model`, `dataSource`, read through the prototype chain) but not the artifact metadata (`binding`, `scope`, `order`, `when`, `allowOverride`, read as own metadata), so the generator does not list it. Decorate the subclass with a bare `@repository()` - it inherits `model`, `dataSource` and `operationScope` from the nearest decorated parent and registers under its own name - or name it in the index by hand.
+The step binds and constructs nothing. Configurations are constructed at `registerConfigurations`, datasources at `registerDataSources` and components at `registerComponents`, all after `preConfigure()`; repositories and services are constructed on their first `get` (or at `verifyBindings` when `doVerify` is on). A subclass without its own decorator inherits the repository metadata (`model`, `dataSource`, read through the prototype chain) but not the artifact metadata (`binding`, `scope`, `order`, `when`, `allowOverride`, read as own metadata), so the generator does not list it. Decorate the subclass with a bare `@repository()` - it inherits `model`, `dataSource` and `operationScope` from the nearest decorated parent and registers under its own name - or name it in the index by hand.
 
 ## `registerConfiguredArtifacts`
 
@@ -226,16 +240,18 @@ The boot step. Calls `registerArtifacts(this.configs.artifacts)` when the config
 
 | # | Step | # | Step |
 |---|---|---|---|
-| 1 | `printStartUpInfo` | 8 | `registerDataSources` |
-| 2 | `validateEnvs` | 9 | `registerComponents` |
-| 3 | `registerDefaultMiddlewares` | 10 | `registerContributedDataSources` |
-| 4 | `staticConfigure` | 11 | `wireSecretRotatables` |
-| 5 | **`registerArtifacts`** | 12 | `registerControllers` |
-| 6 | `preConfigure` | 13 | `postConfigure` |
-| 7 | `hydrateSecrets` | 14 | `verifyBindings` |
-| | | 15 | `validateScopeFilterSupport` |
+| 1 | `printStartUpInfo` | 9 | `registerDataSources` |
+| 2 | `validateEnvs` | 10 | `registerComponents` |
+| 3 | `registerDefaultMiddlewares` | 11 | `registerContributedDataSources` |
+| 4 | `staticConfigure` | 12 | `wireSecretRotatables` |
+| 5 | **`registerArtifacts`** | 13 | `registerControllers` |
+| 6 | `preConfigure` | 14 | `postConfigure` |
+| 7 | `hydrateSecrets` | 15 | `verifyBindings` |
+| 8 | `registerConfigurations` | 16 | `validateScopeFilterSupport` |
 
-Every step logs `Boot step n/15 <name>` at debug. An application that inserts its own step targets these names through `BootSequence.insertAfter`.
+Every step logs `Boot step n/16 <name>` at debug. An application that inserts its own step targets these names through `BootSequence.insertAfter`.
+
+The kernel owns eleven of the names in `BootSteps`; `ServerBootSteps` adds `printStartUpInfo`, `validateEnvs`, `hydrateSecrets`, `wireSecretRotatables` and `validateScopeFilterSupport` on top.
 
 ## `bootChecks`
 
@@ -250,10 +266,10 @@ One group of three binding decisions on `IApplicationConfigs`. Without `binding`
 | Setting | What it does | When it fails |
 |---|---|---|
 | `doVerify: true` | The `verifyBindings` step (`BootSteps.VERIFY_BINDINGS`, after `postConfigure`) resolves every binding in the `services` and `repositories` namespaces once | Throws once with every failing key: `[verifyBindings] 2 binding(s) cannot be resolved \| services.ReportService: Binding key: repositories.Missing is not bounded in context! \| ...` |
-| `allowManual: false` | While `configs.artifacts` is set, a `service` / `repository` / `controller` / `component` / `dataSource` call inside `preConfigure()` or `postConfigure()` is refused | Throws at that call: `[service] 'PricingService' is registered by hand inside preConfigure() while 'configs.artifacts' is set and 'bootChecks.binding.allowManual' is false ...` |
+| `allowManual: false` | While `configs.artifacts` is set, a `configuration` / `service` / `repository` / `controller` / `component` / `dataSource` call inside `preConfigure()` or `postConfigure()` is refused | Throws at that call: `[service] 'PricingService' is registered by hand inside preConfigure() while 'configs.artifacts' is set and 'bootChecks.binding.allowManual' is false ...` |
 | `allowOverride: false` | Every artifact registration behaves as if it said `allowOverride: false`: a key that is already bound is refused. A registration that says `allowOverride: true`, on the decorator or at the call site, still overrides | Throws at that registration: `[service] Binding key already registered: 'services.RunModeService' \| 'bootChecks.binding.allowOverride' is false ...` |
 
-Resolving at boot builds the singletons then, so a constructor with a side effect runs during `verifyBindings`; turn `doVerify` on in development and UAT. Registrations made by the index step and by the framework's own steps are never counted as manual. The override setting covers the five registration methods only: `bind()`, `set()` and a `@provide` key never pass through it, so a key can still be rebound at runtime.
+Resolving at boot builds the singletons then, so a constructor with a side effect runs during `verifyBindings`; turn `doVerify` on in development and UAT. Registrations made by the index step and by the framework's own steps are never counted as manual. The override setting covers the six registration methods only: `bind()`, `set()` and a `@provide` key never pass through it, so a key can still be rebound at runtime.
 
 ## `ignis-artifacts` (CLI)
 
@@ -284,14 +300,14 @@ A class is emitted when all of the following hold:
 
 - It is a **named export** of a `.ts` file under `--root` (not `export default`, not module-private).
 - It is **not `abstract`**.
-- It carries a stereotype decorator - `component`, `controller`, `service`, `repository`, `datasource` - **imported from `@venizia/ignis` or `@venizia/ignis-kernel`**. Import aliases (`import { service as svc }`) are resolved. A same-named decorator from another module is ignored.
+- It carries a stereotype decorator - `configuration`, `component`, `controller`, `service`, `repository`, `datasource` - **imported from `@venizia/ignis` or `@venizia/ignis-kernel`**. Import aliases (`import { service as svc }`) are resolved. A same-named decorator from another module is ignored.
 - Or it carries `@injectable({ type })` where `type` is a string literal or `ArtifactTypes.<NAME>`.
 
 `@model` classes are recognised and never emitted. Every skip is logged with its reason.
 
 ### Output
 
-Deterministic: imports sorted by path, class names sorted within each field, one field per kind in the order `dataSources`, `components`, `repositories`, `services`, `controllers`, empty arrays kept. A field wider than 100 columns wraps one name per line, so the file passes `prettier -l` unchanged. The header names the regenerate command.
+Deterministic: imports sorted by path, class names sorted within each field, one field per kind in the order `configurations`, `dataSources`, `components`, `repositories`, `services`, `controllers`, empty arrays kept. The order mirrors `registerArtifacts`; the kernel re-sorts configurations among themselves by their `after` declarations at boot, so their order inside the field does not matter. A field wider than 100 columns wraps one name per line, so the file passes `prettier -l` unchanged. The header names the regenerate command.
 
 ## Programmatic API
 
@@ -401,7 +417,7 @@ The deprecated runtime boot API is fully removed - see the
 |---|---|
 | `BaseApplication.booter()`, `registerBooters()` | Removed |
 | `Bootstrapper`, `BaseArtifactBooter`, `ControllerBooter`, `ServiceBooter`, `RepositoryBooter`, `DatasourceBooter`, `BootMixin`, `discoverFiles()`, `loadClasses()`, `isClass()` | Removed from `@venizia/ignis-boot` |
-| `TMixinOpts.args` | Removed; `TMixinOpts` is `{ binding?, allowOverride? }` |
+| `TMixinOpts.args` | Removed; `TMixinOpts` is `{ binding?, allowOverride?, options? }` |
 
 ## See Also
 

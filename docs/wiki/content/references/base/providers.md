@@ -57,9 +57,9 @@ Abstract base class for all providers in IGNIS.
 ### Class Definition
 
 ```typescript
-import { Container } from '@/helpers/inversion';
-import { BaseHelper } from '@venizia/ignis-helpers';
-import { IProvider } from '@venizia/ignis-inversion';
+import type { Container } from '@/helpers/inversion';
+import { BaseHelper } from '@venizia/ignis-helpers/core';
+import type { IProvider } from '@venizia/ignis-inversion';
 
 export abstract class BaseProvider<T> extends BaseHelper implements IProvider<T> {
   abstract value(container: Container): T;
@@ -110,7 +110,7 @@ Understanding when to use Providers vs Services is crucial for proper architectu
 | **Purpose** | Create/configure instances | Contain business logic |
 | **Pattern** | Factory pattern | Business logic layer |
 | **Method** | `value(container)` returns factory | Business methods (CRUD, etc.) |
-| **Lifecycle** | Creates instances on-demand | Single instance per DI scope |
+| **Lifecycle** | Creates instances on-demand | Transient by default - a fresh instance per resolution |
 | **Dependencies** | Produces configured instances | Uses repositories/other services |
 | **Example** | `MailTransportProvider` | `UserService` |
 | **Returns** | Values, instances, or functions | Business data/results |
@@ -157,7 +157,7 @@ class CacheProvider extends BaseProvider<(key: string) => Cache> {
 Use services when you need:
 
 ```typescript
-// ✅ Business logic
+// ✅ Business logic. Note the transient scope: a service field is not shared state.
 class UserService extends BaseService {
   async createUser(data: CreateUserDto) {
     // Validation, transformation, business rules
@@ -375,6 +375,10 @@ export class MailTransportProvider extends BaseProvider<TGetMailTransportFn> {
           return this.createMailgunTransport(options);
         }
 
+        case MailProviders.AMAZON_SES: {
+          return this.createAmazonSesTransport(options);
+        }
+
         case MailProviders.CUSTOM: {
           return this.createCustomTransport(options);
         }
@@ -394,6 +398,7 @@ export class MailTransportProvider extends BaseProvider<TGetMailTransportFn> {
   // the transport helper, throwing MailErrorCodes.INVALID_CONFIGURATION on mismatch.
   private createNodemailerTransport(options: TMailOptions): NodemailerTransportHelper { /* ... */ }
   private createMailgunTransport(options: TMailOptions): MailgunTransportHelper { /* ... */ }
+  private createAmazonSesTransport(options: TMailOptions): AmazonSesTransportHelper { /* ... */ }
   private createCustomTransport(options: TMailOptions): IMailTransport { /* ... */ }
 }
 ```
@@ -474,13 +479,16 @@ Providers can also produce middleware. `RequestSpyMiddleware` is a real-world ex
 ```typescript
 // From packages/core-server/src/base/middlewares/request-spy/request-spy.middleware.ts
 export class RequestSpyMiddleware extends BaseHelper implements IProvider<MiddlewareHandler> {
-  static readonly REQUEST_ID_KEY = 'requestId';
+  static readonly REQUEST_ID_KEY = REQUEST_ID_KEY; // 'requestId'
 
   private isDebugMode: boolean;
 
   constructor() {
     super({ scope: 'SpyMW' });
-    this.isDebugMode = process.env.NODE_ENV?.toLowerCase() !== Environment.PRODUCTION;
+    // Fail-CLOSED: body logging is on only for an environment IGNIS recognises as a
+    // development one - local, debug, development, dev, sit.
+    const env = Environment.ambient?.toLowerCase();
+    this.isDebugMode = !!env && EnvironmentNames.DEVELOPMENT_ENVS.has(env);
   }
 
   /** Parses request body based on Content-Type header. */
@@ -491,12 +499,17 @@ export class RequestSpyMiddleware extends BaseHelper implements IProvider<Middle
     return createMiddleware(async (context, next) => {
       const t = performance.now();
       const requestId = context.get(RequestSpyMiddleware.REQUEST_ID_KEY);
-      const clientIp = /* resolved from connection info or x-real-ip/x-forwarded-for */ '';
+      // Best-effort: connection info, then x-real-ip / x-forwarded-for, then 'unknown'.
+      const clientIp = /* ... */ 'unknown';
       const method = context.req.method;
       const path = context.req.path ?? '/';
       const body = await this.parseBody(context);
 
-      this.logger.info('[%s][%s][=>] %s %s | query: %j | body: %j', requestId, clientIp, method, path, context.req.query(), body);
+      if (this.isDebugMode) {
+        this.logger.info('[%s][%s][=>] %s %s | query: %j | body: %j', requestId, clientIp, method, path, context.req.query(), body);
+      } else {
+        this.logger.info('[%s][%s][=>] %s %s | query: %j', requestId, clientIp, method, path, context.req.query());
+      }
 
       await next();
 
@@ -507,7 +520,13 @@ export class RequestSpyMiddleware extends BaseHelper implements IProvider<Middle
 }
 ```
 
-See [Middlewares](./middlewares.md) for the full implementation (IP resolution, body-parsing rules, and production log redaction).
+> [!WARNING]
+> The gate is `DEVELOPMENT_ENVS`, not a negated production check. `staging`, `uat`, `alpha`, `beta`
+> and an unset `NODE_ENV` all suppress the body. The earlier `env !== 'production'` test was removed
+> because redaction only masks secret-shaped keys, so `nationalId`, `cardNumber` and `ssn` reached
+> the logs verbatim.
+
+See [Middlewares](./middlewares.md) for the full implementation - IP resolution, body-parsing rules, and the environment gate.
 
 Note that `RequestSpyMiddleware.value()` does not accept a `container` parameter. The `IProvider<T>` interface defines `value(container: Container): T`, but implementations may ignore the parameter when they don't need container access. In practice, `RequestSpyMiddleware` is registered via `RequestTrackerComponent`, which binds it as a provider in the DI container and resolves it automatically.
 

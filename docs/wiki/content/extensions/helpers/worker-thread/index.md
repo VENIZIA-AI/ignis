@@ -108,13 +108,21 @@ thread.bindWorkerBus({ key: 'tasks', bus });
 
 ### Send a message with a transferable object
 
-`postMessage()` accepts an optional `transferList` for zero-copy transfer of `ArrayBuffer` and similar objects.
+`postMessage()` takes a `transferList` for zero-copy transfer of `ArrayBuffer` and similar objects.
+
+The value may be `undefined`, but the property itself is not optional. You always pass the key.
 
 ```typescript
 const buffer = new ArrayBuffer(1024);
 bus.postMessage({
   message: { result: 'binary-data' },
   transferList: [buffer],
+});
+
+// Nothing to transfer - still pass the key
+bus.postMessage({
+  message: { result: 'processed' },
+  transferList: undefined,
 });
 ```
 

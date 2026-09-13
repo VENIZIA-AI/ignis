@@ -30,7 +30,7 @@ Maintain consistent code style using **Prettier** (formatting) and **ESLint** (c
 | Errors | `getError` / `ApplicationError`, never `new Error` |
 | Logger | Type as `ILogger`; `this.logger` or `ApplicationLogger.get(...)` |
 | Imports | Node → Third-party → Internal → Relative |
-| Function naming | `generate*`, `build*`, `to*`, `is*`, `extract*` |
+| Function naming | `generate*`, `build*`, `to*`, `is*`, `has*`, `assert*`, `extract*`, `enrich*`, `get*`, `resolve*` |
 
 ## Sections
 

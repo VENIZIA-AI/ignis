@@ -46,6 +46,9 @@ export const testApp = new Application({ scope: 'TestApp', config: appConfigs })
 export const testServer = () => testApp.getRootRouter();
 ```
 
+> [!IMPORTANT]
+> Request paths on `getRootRouter()` carry no `path.base` prefix. Controllers mount at their own `@controller` path, and the `/api` base is applied only when `start()` routes the root router onto the outer server. In a test you ask for `/todos`, not `/api/todos`.
+
 ### Using Vitest
 
 ```typescript
@@ -55,8 +58,10 @@ import { testApp, testServer } from './helpers/test-app';
 
 describe('Todo API', () => {
   beforeAll(async () => {
-    // start() runs the full lifecycle (preConfigure -> registerDataSources ->
-    // registerComponents -> registerControllers) and opens the HTTP server.
+    // init() binds CoreBindings.APPLICATION_INSTANCE. Without it the first
+    // component resolution throws, because every built-in component injects that key.
+    testApp.init();
+    // start() then runs the boot sequence, sets up middlewares and opens the HTTP server.
     await testApp.start();
   });
 
@@ -65,18 +70,18 @@ describe('Todo API', () => {
   });
 
   it('should return list of todos', async () => {
-    const response = await testServer().request('/api/todos', { method: 'GET' });
+    const response = await testServer().request('/todos', { method: 'GET' });
 
     expect(response.status).toBe(200);
     // ControllerFactory's generated GET / wraps reads in { count, data } by default too
-    // (unless the caller sends `x-request-count-data: false`) - unlike the repository API,
+    // (unless the caller sends `x-request-count: false`) - unlike the repository API,
     // where find()/findOne()/findById() return rows directly.
     const body = await response.json();
     expect(Array.isArray(body.data)).toBe(true);
   });
 
   it('should create a new todo', async () => {
-    const response = await testServer().request('/api/todos', {
+    const response = await testServer().request('/todos', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ title: 'Test Todo' }),
@@ -97,6 +102,7 @@ import { testApp, testServer } from './helpers/test-app';
 
 describe('Todo API', () => {
   beforeAll(async () => {
+    testApp.init();
     await testApp.start();
   });
 
@@ -105,7 +111,7 @@ describe('Todo API', () => {
   });
 
   it('should return list of todos', async () => {
-    const response = await testServer().request('/api/todos', { method: 'GET' });
+    const response = await testServer().request('/todos', { method: 'GET' });
 
     expect(response.status).toBe(200);
     const body = await response.json();
@@ -123,6 +129,7 @@ import { testApp, testServer } from './helpers/test-app';
 
 describe('Todo API', () => {
   beforeAll(async () => {
+    testApp.init();
     await testApp.start();
   });
 
@@ -131,7 +138,7 @@ describe('Todo API', () => {
   });
 
   it('should return list of todos', async () => {
-    const response = await testServer().request('/api/todos', { method: 'GET' });
+    const response = await testServer().request('/todos', { method: 'GET' });
 
     expect(response.status).toBe(200);
     const body = await response.json();
@@ -141,6 +148,8 @@ describe('Todo API', () => {
 ```
 
 ### Using Playwright (E2E)
+
+An end-to-end test talks to the running server over the network, so here the `/api` base path does apply.
 
 ```typescript
 // e2e/todo.spec.ts
@@ -253,7 +262,7 @@ Cover the boundaries alongside the happy path: empty input, duplicate ids, missi
 
 | What to Test | How |
 |--------------|-----|
-| **Controllers** | Use `getRootRouter().request()` to make in-process HTTP calls |
+| **Controllers** | Use `getRootRouter().request()` to make in-process HTTP calls, with no `path.base` prefix |
 | **Services** | Instantiate and call methods directly |
 | **Repositories** | Use DI container, test with real/mock DB |
 | **Integration** | Chain multiple operations with shared context |
@@ -262,3 +271,4 @@ Cover the boundaries alongside the happy path: empty input, duplicate ids, missi
 **Key Takeaways:**
 - Use any test framework you prefer (Jest, Vitest, Bun Test, Playwright, etc.)
 - All frameworks work seamlessly with IGNIS applications
+- Call `init()` before `start()` in every test setup, exactly as you do in production
