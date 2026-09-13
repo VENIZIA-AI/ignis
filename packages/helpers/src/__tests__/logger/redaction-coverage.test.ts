@@ -135,10 +135,14 @@ describe('redactSecrets - the depth bound', () => {
 
   /** A very deep chain used to blow the stack; the logger's own bound is what keeps it off that path. */
   test('a very deep chain does not throw', () => {
-    // 20k, not 5k: measured, an unbounded walk RangeErrors at 20k and survives 5k, so a shallower
-    // chain would pass with or without the bound and prove nothing.
-    expect(() => redactSecrets(buildChain(20_000))).toThrow(RangeError);
-    expect(() => redactSecrets(buildChain(20_000), undefined, 4)).not.toThrow();
+    // 100k, not 20k. The first line asserts a stack overflow HAPPENS, and how much stack is left
+    // depends on what else the machine is doing - so the depth has to clear the threshold, not sit
+    // on it. Measured on an idle machine: 20k overflowed 19 times in 20, and this test duly failed
+    // twice in eight full `make test-all` runs; 100k overflowed 20 in 20, and 50k was already the
+    // floor. The whole loop costs ~8ms. A shallower chain proves nothing anyway - it would pass
+    // with or without the bound.
+    expect(() => redactSecrets(buildChain(100_000))).toThrow(RangeError);
+    expect(() => redactSecrets(buildChain(100_000), undefined, 4)).not.toThrow();
   });
 
   /**
