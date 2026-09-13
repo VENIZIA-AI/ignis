@@ -1,104 +1,106 @@
 ---
 name: update-wiki
-description: Update IGNIS framework wiki documentation (changelogs, references, guides) based on recent code changes
+description: Update the IGNIS wiki (guides, references, extensions, best practices, changelogs) after a code change
 user-invocable: true
 allowed-tools: Read, Write, Edit, Grep, Glob, Bash, Agent
 ---
 
-# Update Wiki Documentation
+# Update the IGNIS wiki
 
-You are updating the Ignis framework wiki at `packages/docs/wiki/`.
+The wiki is the human-facing VitePress site. It is one of the two homes for project information -
+`.agents/` is what agents read, `docs/wiki/` is what people read. Never conflate them, and never
+copy a page from one into the other.
+
+**Source code is the ground truth.** When prose and code disagree, the code wins and the prose is a
+bug (P-03).
 
 ## Arguments
 
-`$ARGUMENTS` tells you what to document. Examples:
-- `/update-wiki add changelog for model authorize settings` — create a changelog
-- `/update-wiki update authorization reference docs` — update existing reference
-- `/update-wiki add guide for model authorization setup` — create a guide
+`$ARGUMENTS` says what to document:
 
-If no arguments, ask what to document.
+- `/update-wiki add changelog for model authorize settings`
+- `/update-wiki update the storage helper reference`
+- `/update-wiki add a guide for direct S3 upload`
 
-## Wiki Structure
+With no arguments, ask what to document.
+
+## Where things live
+
+The wiki package is `@venizia/ignis-docs`, manifest at `docs/wiki/package.json`.
 
 ```
-packages/docs/wiki/
-├── changelogs/          # Date-prefixed: YYYY-MM-DD-slug.md
-├── guides/
-│   ├── get-started/
-│   ├── core-concepts/
-│   └── tutorials/
-├── references/          # API docs organized by package/module
-│   ├── base/
-│   ├── components/
-│   ├── helpers/
-│   └── utilities/
-└── best-practices/
+docs/wiki/
+├── content/              # every page
+│   ├── best-practices/   # + code-style-standards/
+│   ├── changelogs/       # date-prefixed YYYY-MM-DD-slug.md, plus template.md
+│   ├── extensions/       # components/, helpers/, atlas/
+│   ├── guides/           # get-started/, core-concepts/, tutorials/, migrations/, reference/
+│   ├── public/           # static assets
+│   └── references/       # base/, utilities/, configuration/, quick-reference.md
+├── scripts/              # docs-build.sh, check-sidebar.mts, docs-clean.sh
+└── site/.vitepress/      # config.mts - the sidebar is hand-maintained here
 ```
 
 ## Process
 
-### 1. Understand the changes
+### 1. Read the code first
 
-- Read the relevant source files that were changed
-- Use `git diff develop` or `git log --oneline -20` to understand recent changes
-- Identify: what changed, why, breaking changes, new APIs, migration steps
+Read the source files that changed. `git log --oneline -20` and `git diff` orient you, but the
+current `packages/*/src` is what you document - never a diff, never `dist/`, never another doc.
 
-### 2. Determine doc type
+Identify: what changed, why, what breaks, what the new API surface is, what a reader must do to
+migrate.
 
-| Type | When | Naming |
-|------|------|--------|
-| **Changelog** | New feature, breaking change, significant refactor | `changelogs/YYYY-MM-DD-slug.md` |
-| **Reference** | New/updated API surface | `references/<category>/file.md` |
-| **Guide** | How-to, tutorial, concept explanation | `guides/<category>/file.md` |
+### 2. Pick the page type
 
-### 3. Write the documentation
+| Type | When | Where |
+|---|---|---|
+| **Changelog** | a release-worthy change - new feature, breaking change, significant refactor | `content/changelogs/YYYY-MM-DD-slug.md` |
+| **Reference** | the API surface changed | `content/references/<area>/` |
+| **Extension** | a component or helper changed | `content/extensions/components/<name>/` or `extensions/helpers/<name>/` |
+| **Guide** | how-to, tutorial, concept | `content/guides/<area>/` |
+| **Best practice** | a rule or pattern people should follow | `content/best-practices/` |
 
-#### For changelogs
+Prefer editing the page that already owns the topic. A second page on the same subject is how the
+wiki drifts.
 
-Follow the template at `packages/docs/wiki/changelogs/template.md`. Key sections:
-- Frontmatter with title and description
-- Overview bullet points
-- Breaking Changes (with before/after code)
-- New Features (with problem/solution/example/benefits)
-- Files Changed table
-- Migration Guide (if breaking)
-- "No Breaking Changes" section (if none)
+### 3. Write it
 
-Only include sections that apply. Remove empty template sections.
+**Style is not defined here.** The house rules live in
+[`.agents/knowledge/conventions/docs-writing-style.md`](../../../knowledge/conventions/docs-writing-style.md),
+and `make okf-check` machine-checks two of them. The ones that fail a review fastest:
 
-#### For references
+- The brand is **IGNIS**, always. Hyphen `-`, never an em-dash.
+- Never abbreviate identifiers (`Repository`, not `Repo`).
+- Every code sample must compile against the real source. Verify names and signatures in
+  `packages/` before you write them.
+- Native VitePress only - no custom components, no custom CSS.
+- `**Files:**` links use GitHub file-level URLs, no line anchors. The `wiki-links-check` gate
+  (`scripts/wiki-source-links.ts`) fails the build on a path that does not exist.
 
-- Start with a brief description of what the module does
-- Document every public interface, class, method, decorator
-- Include TypeScript signatures
-- Add usage examples
-- Document options objects with all fields
+For a changelog, start from `content/changelogs/template.md` and delete every section that does not
+apply. A changelog is user-facing: what changed, who is affected, how to migrate - not a commit log.
 
-#### For guides
+### 4. Wire a new page in
 
-- Start with what the reader will learn
-- Step-by-step instructions
-- Complete, runnable code examples
-- Link to relevant reference docs
+A new file needs two edits, or the build fails:
 
-### 4. Update sidebar (if new file)
+1. The sidebar in `docs/wiki/site/.vitepress/config.mts`.
+2. The `index.md` of its section, if it has one.
 
-If you created a new doc file, update the VitePress sidebar config:
+`check-sidebar.mts` refuses both an orphan page (on disk, not in the sidebar) and a dead link (in
+the sidebar, not on disk).
 
-**File:** `packages/docs/site/.vitepress/config.mts`
+### 5. Gate it
 
-Add the new page to the appropriate sidebar section.
+```bash
+make docs
+```
 
-### 5. Update index pages
+That runs `docs-build.sh`, which runs `check-sidebar.mts` and then the VitePress build. Dead links
+fail it. A green run prints the page and link counts.
 
-If the doc belongs to a category with an `index.md`, add a link to the new doc there.
+If the change also touched facts an agent reads, update the knowledge bundle in the same change
+(P-03) - that is the `knowledge-sync` skill's territory, not this one.
 
-## Style Rules
-
-- Use TypeScript for all code examples
-- Use Ignis import paths (`@venizia/ignis`, `@venizia/ignis-helpers`)
-- Match the technical depth of existing docs — direct, no hand-holding
-- Use GitHub-flavored markdown alerts: `> [!NOTE]`, `> [!WARNING]`, `> [!TIP]`
-- Tables for structured comparisons (files changed, API surfaces, config options)
-- Before/after code blocks for breaking changes
-- Keep frontmatter `title` under 80 chars, `description` under 160 chars
+**Do not commit.** Leave the diff for the user (W-01).
