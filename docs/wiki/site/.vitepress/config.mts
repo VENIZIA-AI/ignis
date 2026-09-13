@@ -1445,6 +1445,7 @@ const config = defineConfig({
               items: [
                 { text: 'Overview', link: '/guides/core-concepts/application/' },
                 { text: 'Registering Artifacts', link: '/guides/core-concepts/application/bootstrapping' },
+                { text: 'Stamping A Build', link: '/guides/core-concepts/application/build-info' },
               ],
             },
             {

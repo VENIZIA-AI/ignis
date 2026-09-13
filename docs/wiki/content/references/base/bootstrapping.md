@@ -406,6 +406,7 @@ The deprecated runtime boot API is fully removed - see the
 ## See Also
 
 - [Registering artifacts](/guides/core-concepts/application/bootstrapping) - the how-to
+- [Stamping a build](/guides/core-concepts/application/build-info) - the `ignis-build-info` how-to, with the CI and Dockerfile wiring
 - [Application reference](/references/base/application) - registration methods and the boot sequence
 - [Changelog 2026-09-02](/changelogs/2026-09-02-decorator-artifact-registration)
 - [Changelog 2026-09-03](/changelogs/2026-09-03-deprecated-boot-api-removed) - the deprecated boot API removed

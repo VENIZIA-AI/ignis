@@ -22,7 +22,7 @@ export const configs: IApplicationConfigs = {
 };
 ```
 
-This page is the how-to. The [reference](/references/base/bootstrapping) has every option, and the [changelog](/changelogs/2026-09-02-decorator-artifact-registration) has the migration from `boot()`.
+This page is the how-to. The [reference](/references/base/bootstrapping) has every option, and the [changelog](/changelogs/2026-09-02-decorator-artifact-registration) has the migration from `boot()`. For the other binary `@venizia/ignis-boot` ships, see [Stamping a build](/guides/core-concepts/application/build-info).
 
 ## Before you start
 
