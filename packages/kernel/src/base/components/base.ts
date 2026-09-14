@@ -13,6 +13,9 @@ export abstract class BaseComponent<ConfigurableOptions extends object = {}>
   protected initDefault: TInitDefault;
   protected isConfigured = false;
 
+  /** What `application.component(Ctor, { options })` handed this instance. Set before `binding()` runs, so a component reads its options there instead of reimplementing `configure`. */
+  protected configuredOptions?: ConfigurableOptions;
+
   constructor(opts: {
     scope: string;
     initDefault?: TInitDefault;
@@ -50,6 +53,8 @@ export abstract class BaseComponent<ConfigurableOptions extends object = {}>
     }
 
     const t = performance.now();
+
+    this.configuredOptions = opts;
 
     const configureOptions = opts ?? {};
     this.logger

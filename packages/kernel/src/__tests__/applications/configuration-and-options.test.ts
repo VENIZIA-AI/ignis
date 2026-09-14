@@ -159,6 +159,31 @@ describe('configuration @provide and options pass-through to components', () => 
     });
   });
 
+  test('binding() reads the options without the component overriding configure()', async () => {
+    const app = buildApp();
+    interface IMailOptions {
+      provider: string;
+    }
+
+    let seenInBinding: IMailOptions | undefined;
+
+    /** No `configure` override: a component should not have to reimplement option capture. */
+    class MailComponent extends BaseComponent<IMailOptions> {
+      constructor() {
+        super({ scope: MailComponent.name });
+      }
+
+      override binding() {
+        seenInBinding = this.configuredOptions;
+      }
+    }
+
+    app.component(MailComponent, { options: { provider: 'amazon-ses' } });
+    await app.initialize();
+
+    expect(seenInBinding).toEqual({ provider: 'amazon-ses' });
+  });
+
   test('component registered with no options receives undefined without error', async () => {
     const app = buildApp();
     let configured = false;
