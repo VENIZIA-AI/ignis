@@ -94,6 +94,12 @@
     ],
     "boot": [
       {
+        "version": "0.2.0-19",
+        "date": "2026-09-14",
+        "sha": "f638170c",
+        "order": 1231
+      },
+      {
         "version": "0.2.0-18",
         "date": "2026-09-12",
         "sha": "aa988020",
@@ -515,6 +521,12 @@
       }
     ],
     "connectors": [
+      {
+        "version": "0.2.0-29",
+        "date": "2026-09-14",
+        "sha": "1f6caae7",
+        "order": 1233
+      },
       {
         "version": "0.2.0-28",
         "date": "2026-09-12",
@@ -1540,6 +1552,12 @@
     ],
     "core-server": [
       {
+        "version": "0.2.0-32",
+        "date": "2026-09-14",
+        "sha": "4e26b38f",
+        "order": 1235
+      },
+      {
         "version": "0.2.0-31",
         "date": "2026-09-12",
         "sha": "c20f21e1",
@@ -1733,6 +1751,12 @@
       }
     ],
     "core-worker": [
+      {
+        "version": "0.2.0-29",
+        "date": "2026-09-14",
+        "sha": "d57e68b1",
+        "order": 1234
+      },
       {
         "version": "0.2.0-28",
         "date": "2026-09-12",
@@ -2234,6 +2258,12 @@
     ],
     "filter": [
       {
+        "version": "0.2.0-8",
+        "date": "2026-09-14",
+        "sha": "b85cb055",
+        "order": 1229
+      },
+      {
         "version": "0.2.0-7",
         "date": "2026-09-05",
         "sha": "17f63f9b",
@@ -2307,6 +2337,12 @@
       }
     ],
     "helpers": [
+      {
+        "version": "0.2.0-24",
+        "date": "2026-09-14",
+        "sha": "315221b6",
+        "order": 1230
+      },
       {
         "version": "0.2.0-23",
         "date": "2026-09-12",
@@ -2910,6 +2946,12 @@
     ],
     "inversion": [
       {
+        "version": "0.2.0-8",
+        "date": "2026-09-14",
+        "sha": "ff87629e",
+        "order": 1228
+      },
+      {
         "version": "0.2.0-7",
         "date": "2026-09-10",
         "sha": "2148f861",
@@ -3134,6 +3176,12 @@
     ],
     "kernel": [
       {
+        "version": "0.2.0-29",
+        "date": "2026-09-14",
+        "sha": "f2becdfe",
+        "order": 1232
+      },
+      {
         "version": "0.2.0-28",
         "date": "2026-09-12",
         "sha": "a0ed3584",
@@ -3310,6 +3358,97 @@
     ]
   },
   "changelogs": [
+    {
+      "id": "changelog:2026-09-14-unresolved-binding-report",
+      "file": "2026-09-14-unresolved-binding-report.md",
+      "date": "2026-09-14",
+      "title": "The Container Can Name A Binding Nobody Resolves",
+      "packages": [
+        "inversion",
+        "kernel"
+      ],
+      "kind": "Feature",
+      "order": 1225
+    },
+    {
+      "id": "changelog:2026-09-14-stats-key-header-in-api-reference",
+      "file": "2026-09-14-stats-key-header-in-api-reference.md",
+      "date": "2026-09-14",
+      "title": "The Stats Key Header Shows Up In The API Reference",
+      "packages": [
+        "core-server"
+      ],
+      "kind": "Enhancement",
+      "order": 1224
+    },
+    {
+      "id": "changelog:2026-09-14-metalink-table-is-yours",
+      "file": "2026-09-14-metalink-table-is-yours.md",
+      "date": "2026-09-14",
+      "title": "The MetaLink Table Can Live In Your Own Postgres Schema",
+      "packages": [
+        "core-server"
+      ],
+      "kind": "Fix",
+      "order": 1223
+    },
+    {
+      "id": "changelog:2026-09-14-inject-target-through-an-import-cycle",
+      "file": "2026-09-14-inject-target-through-an-import-cycle.md",
+      "date": "2026-09-14",
+      "title": "A Dependency Reached Through An Import Cycle Can Still Name Its Class",
+      "packages": [
+        "helpers",
+        "inversion"
+      ],
+      "kind": "Feature",
+      "order": 1221
+    },
+    {
+      "id": "changelog:2026-09-14-download-route-singular",
+      "file": "2026-09-14-download-route-singular.md",
+      "date": "2026-09-14",
+      "title": "The Download Route Drops Its Plural",
+      "packages": [
+        "core-server"
+      ],
+      "kind": "Breaking",
+      "order": 1223
+    },
+    {
+      "id": "changelog:2026-09-14-component-options-reach-binding",
+      "file": "2026-09-14-component-options-reach-binding.md",
+      "date": "2026-09-14",
+      "title": "A Component Reads Its Options In binding(), Without Overriding configure()",
+      "packages": [
+        "core-server",
+        "kernel"
+      ],
+      "kind": "Enhancement",
+      "order": 1222
+    },
+    {
+      "id": "changelog:2026-09-14-asset-options-take-resolvers",
+      "file": "2026-09-14-asset-options-take-resolvers.md",
+      "date": "2026-09-14",
+      "title": "Asset Options Take A Resolver Anywhere They Took A Value",
+      "packages": [
+        "core-server"
+      ],
+      "kind": "Breaking",
+      "order": 1223
+    },
+    {
+      "id": "changelog:2026-09-14-an-application-declares-no-artifacts",
+      "file": "2026-09-14-an-application-declares-no-artifacts.md",
+      "date": "2026-09-14",
+      "title": "An Application Lists None Of Its Own Artifacts",
+      "packages": [
+        "kernel"
+      ],
+      "kind": "Feature",
+      "order": 1226
+    },
     {
       "id": "changelog:2026-09-12-unguarded-stats-warning",
       "file": "2026-09-12-unguarded-stats-warning.md",
