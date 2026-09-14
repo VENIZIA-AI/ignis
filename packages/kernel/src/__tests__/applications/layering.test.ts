@@ -34,6 +34,7 @@ const REST_APPLICATION_MEMBERS = [
   'getBootSequence',
   'getRootRouter',
   'getServer',
+  'getUnresolvedBindings',
   'initialize',
   'inspectRoutes',
   'registerArtifact',

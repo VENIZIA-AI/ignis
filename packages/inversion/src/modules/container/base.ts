@@ -9,6 +9,15 @@ import { AbstractContainer } from './abstract';
 export abstract class BaseContainer extends AbstractContainer {
   protected bindings = new Map<string, Binding>();
 
+  /** How often each bound key has been handed out since counting started. */
+  protected resolutionCounts = new Map<string, number>();
+
+  /** Off by default: the counter sits on the hottest path in the container, and an application that never reads the report should not pay for it. */
+  protected isCountingResolutions = false;
+
+  /** Whether `startResolutionCounting` has ever run. A report read without it would name every binding, which is a wrong answer rather than an empty one. */
+  protected hasStartedResolutionCounting = false;
+
   constructor(opts?: { scope: string }) {
     super({ scope: opts?.scope ?? BaseContainer.name });
   }
@@ -86,6 +95,11 @@ export abstract class BaseContainer extends AbstractContainer {
 
     const binding = this.getBinding<T>({ key });
     if (binding) {
+      // Counted here and nowhere else: constructor injection, property injection, `application.get`
+      // and `verifyBindings` all arrive through this one method. A miss below is not a resolution.
+      if (this.isCountingResolutions) {
+        this.resolutionCounts.set(binding.key, (this.resolutionCounts.get(binding.key) ?? 0) + 1);
+      }
       return binding.getValue(this);
     }
 
@@ -109,6 +123,23 @@ export abstract class BaseContainer extends AbstractContainer {
     return opts.bindings.map(opt => this.get({ ...opt, isOptional: true })) as {
       [K in keyof T]: T[K] | undefined;
     };
+  }
+
+  /** Clears the counts and starts counting. Call it AFTER `initialize()`: boot resolves plenty no request ever asks for, and `bootChecks.binding.doVerify` reads every service and repository. */
+  override startResolutionCounting(): void {
+    this.resolutionCounts.clear();
+    this.isCountingResolutions = true;
+    this.hasStartedResolutionCounting = true;
+  }
+
+  /** Stops counting and keeps what was counted, so `get` returns to its uncounted cost. */
+  override stopResolutionCounting(): void {
+    this.isCountingResolutions = false;
+  }
+
+  /** How many times each bound key has been read since counting started. A key that was bound and never read is absent. The map is a copy. */
+  override getResolutionCounts(): ReadonlyMap<string, number> {
+    return new Map(this.resolutionCounts);
   }
 
   override resolve<T>(cls: TClass<T>): T {

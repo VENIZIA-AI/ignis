@@ -181,6 +181,39 @@ export abstract class RestApplication<
     }
   }
 
+  /**
+   * Bound keys carrying one of `tags` that nothing has resolved since the counts were last reset.
+   * The counter answers "who was read", never "who is dead" - an unread binding may be an
+   * allow-list entry or a technical floor, and only the application can tell those apart.
+   *
+   * Counting is off by default. Call `startResolutionCounting()` after `initialize()` and run the
+   * traffic that exercises the application, then read this.
+   */
+  getUnresolvedBindings(opts?: { tags?: string[] }): string[] {
+    if (!this.hasStartedResolutionCounting) {
+      throw getError({
+        message: `[${this.getUnresolvedBindings.name}] Resolution counting never started | Call startResolutionCounting() after initialize(), run the traffic that exercises the application, then read this - without it every binding would be reported unresolved`,
+      });
+    }
+
+    const tags = opts?.tags ?? [BindingNamespaces.SERVICE, BindingNamespaces.REPOSITORY];
+    const counts = this.getResolutionCounts();
+    const unresolved: string[] = [];
+
+    for (const tag of tags) {
+      const bindings = this.findByTag({ tag });
+      for (const binding of bindings) {
+        if (counts.has(binding.key)) {
+          continue;
+        }
+
+        unresolved.push(binding.key);
+      }
+    }
+
+    return unresolved;
+  }
+
   /** `bootChecks.binding.doVerify`: resolve every service and repository once, collect every failure, throw once with the whole list - a made-up `@inject` key or a dependency a `when` excluded then fails the boot, not the first request. */
   protected verifyBindings(): void {
     if (!this.configs.bootChecks?.binding?.doVerify) {

@@ -44,6 +44,10 @@ export abstract class AbstractContainer extends BaseHelper implements IContainer
     tag: string;
     exclude?: Array<string> | Set<string>;
   }): IBinding<T>[];
+  abstract startResolutionCounting(): void;
+  abstract stopResolutionCounting(): void;
+  abstract getResolutionCounts(): ReadonlyMap<string, number>;
+
   abstract clear(): void;
   abstract reset(): void;
 }
