@@ -3095,6 +3095,16 @@
       "signature": "interface IPoolWaiter<T>"
     },
     {
+      "name": "IPostPolicy",
+      "package": "@venizia/ignis",
+      "subpath": ".",
+      "specifier": "@venizia/ignis",
+      "kind": "interface",
+      "file": "packages/helpers/src/modules/storage/common/types.ts",
+      "line": 76,
+      "signature": "interface IPostPolicy"
+    },
+    {
       "name": "IPostgresDataSource",
       "package": "@venizia/ignis",
       "subpath": ".",
@@ -3781,7 +3791,7 @@
       "specifier": "@venizia/ignis",
       "kind": "interface",
       "file": "packages/helpers/src/modules/storage/common/types.ts",
-      "line": 80,
+      "line": 82,
       "signature": "interface IStorageHelper"
     },
     {
@@ -3791,7 +3801,7 @@
       "specifier": "@venizia/ignis",
       "kind": "interface",
       "file": "packages/helpers/src/modules/storage/common/types.ts",
-      "line": 75,
+      "line": 81,
       "signature": "interface IStorageHelperOptions"
     },
     {
@@ -5312,7 +5322,7 @@
       "specifier": "@venizia/ignis",
       "kind": "class",
       "file": "packages/helpers/src/modules/storage/common/constants.ts",
-      "line": 15,
+      "line": 17,
       "signature": "class StorageConcurrency"
     },
     {
@@ -5342,7 +5352,7 @@
       "specifier": "@venizia/ignis",
       "kind": "class",
       "file": "packages/helpers/src/modules/storage/common/constants.ts",
-      "line": 10,
+      "line": 12,
       "signature": "class StoragePresignLimits"
     },
     {
