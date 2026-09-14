@@ -1,6 +1,7 @@
 import { MetadataRegistry } from '@/helpers/inversion';
 import { SingletonRealm } from '@/helpers/singleton-realm';
-import type { TClass } from '@venizia/ignis-helpers/common';
+import type { AnyType, TClass } from '@venizia/ignis-helpers/common';
+import { ArtifactTypes, isClass } from '@/helpers/inversion';
 import { BaseHelper, getError } from '@venizia/ignis-helpers/core';
 import type { IArtifactIndex, IConditionalArtifactIndex, TArtifactIndexInput } from './common';
 import { ArtifactIndexFields } from './common';
@@ -18,6 +19,38 @@ export class ArtifactIndexHelper extends BaseHelper {
       key: ArtifactIndexHelper.SINGLETON_REALM_KEY,
       create: () => new ArtifactIndexHelper(),
     });
+  }
+
+  /** Maps an artifact type to the index field that carries it. `ArtifactTypes.MODEL` is deliberately absent: a model has a binding namespace but no index field, because its repository registers it. */
+  private static readonly INDEX_FIELD_BY_TYPE: Record<string, string> = {
+    [ArtifactTypes.CONFIGURATION]: ArtifactIndexFields.CONFIGURATIONS,
+    [ArtifactTypes.DATASOURCE]: ArtifactIndexFields.DATA_SOURCES,
+    [ArtifactTypes.COMPONENT]: ArtifactIndexFields.COMPONENTS,
+    [ArtifactTypes.REPOSITORY]: ArtifactIndexFields.REPOSITORIES,
+    [ArtifactTypes.SERVICE]: ArtifactIndexFields.SERVICES,
+    [ArtifactTypes.CONTROLLER]: ArtifactIndexFields.CONTROLLERS,
+  };
+
+  /** The index a decorator-only application has: every class a stereotype saw at import time, bucketed by its type. `when` and `order` still apply - `resolve` does that, exactly as it does for a declared index. */
+  buildDiscoveredIndex(): IArtifactIndex {
+    const registry = MetadataRegistry.getInstance();
+    const index: Record<string, TClass<AnyType>[]> = {};
+
+    for (const target of registry.getDiscoveredArtifacts()) {
+      if (!isClass<AnyType>(target)) {
+        continue;
+      }
+
+      const type = registry.getArtifactMetadata({ target })?.type;
+      const field = type ? ArtifactIndexHelper.INDEX_FIELD_BY_TYPE[type] : undefined;
+      if (!field) {
+        continue;
+      }
+
+      index[field] = [...(index[field] ?? []), target];
+    }
+
+    return index;
   }
 
   /** Every kind of the input, each already filtered by `when` and sorted by `order`, keyed the way `IArtifactIndex` is. */
@@ -187,7 +220,9 @@ export class ArtifactIndexHelper extends BaseHelper {
     const { indexes, field, application } = opts;
     const registry = MetadataRegistry.getInstance();
 
-    const listed = indexes.flatMap(index => [...(index[field] ?? [])]);
+    // De-duplicated: discovery and a declared index can name the same class, and registering it
+    // twice trips `bootChecks.binding.allowOverride: false`. First mention wins its position.
+    const listed = [...new Set(indexes.flatMap(index => [...(index[field] ?? [])]))];
     const decisions = await Promise.all(
       listed.map(target => this.isSelected({ target, application })),
     );

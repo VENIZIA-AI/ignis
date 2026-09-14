@@ -602,14 +602,35 @@ export abstract class RestApplication<
     }
   }
 
-  /** The boot step behind `configs.artifacts`; an application with none configured registers nothing here. */
+  /** Registers every class a stereotype decorated, with no `configs.artifacts` entry anywhere. `when` and `order` apply exactly as they do to a declared index - which is how one process running several applications keeps them apart. */
+  async registerDiscoveredArtifacts(): Promise<void> {
+    await this.registerArtifacts(ArtifactIndexHelper.getInstance().buildDiscoveredIndex());
+  }
+
+  /**
+   * The artifact boot step. `configs.discoverArtifacts` adds every decorated class in the import
+   * graph; `configs.artifacts` adds exactly what it lists. Both together register the union.
+   *
+   * An absent `artifacts` still registers nothing. Reading it as "register everything" would change
+   * what an existing application boots with, silently, and the failure would surface as ten times
+   * the bindings rather than as an error.
+   */
   protected async registerConfiguredArtifacts(): Promise<void> {
-    const artifacts = this.configs.artifacts;
-    if (!artifacts) {
+    const inputs: TArtifactIndexInput[] = [];
+
+    if (this.configs.discoverArtifacts) {
+      inputs.push(ArtifactIndexHelper.getInstance().buildDiscoveredIndex());
+    }
+
+    if (this.configs.artifacts) {
+      inputs.push(this.configs.artifacts);
+    }
+
+    if (inputs.length === 0) {
       return;
     }
 
-    await this.registerArtifacts(artifacts);
+    await this.registerArtifacts(inputs);
   }
 
   /** Each `@provide` method becomes a lazy provider: the component is resolved (SINGLETON) and the method called on first `get`, so a provided value may depend on datasources or secrets that do not exist yet at registration time. */

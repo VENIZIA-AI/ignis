@@ -22,6 +22,7 @@ import {
   ScopedCasbinAdapter,
   ValueOrPromise,
 } from '@venizia/ignis';
+import { StaticAssetComponent } from '@venizia/ignis/static-asset';
 import {
   applicationEnvironment,
   blankToUndefined,
@@ -35,7 +36,8 @@ import path from 'node:path';
 import packageJson from './../package.json';
 import { EnvironmentKeys } from './common';
 import { PostgresDataSource } from './datasources/postgres.datasource';
-import { GeneratedArtifacts } from './generated/artifacts';
+// Side effects only: importing every decorated class is what discovery needs. No list.
+import './generated/artifacts';
 import { Organization, Permission, PolicyDefinition, Role } from './models/entities';
 import { RowLockingTestService } from './services/tests/row-locking';
 
@@ -51,19 +53,11 @@ export const beConfigs: IApplicationConfigs = {
   debug: {
     shouldShowRoutes: !Environment.is({ name: Environment.PRODUCTION }),
   },
-  // Every decorated class under src/ (regenerate with `bun run generate:artifacts`), then the
-  // framework components this application turns on. Their options come from PlatformComponent.
-  artifacts: [
-    GeneratedArtifacts,
-    {
-      components: [
-        HealthCheckComponent,
-        ApiReferenceComponent,
-        AuthenticateComponent,
-        AuthorizeComponent,
-      ],
-    },
-  ],
+
+  // Every decorated class under src/ registers itself. The application lists none of its own - the
+  // stereotype is the whole declaration, and `src/generated/artifacts` is imported for its side
+  // effects so the classes exist at run time.
+  discoverArtifacts: true,
 };
 
 // -----------------------------------------------------------------------------------------------
@@ -140,6 +134,14 @@ export class Application extends BaseApplication {
 
   // --------------------------------------------------------------------------------
   preConfigure(): ValueOrPromise<void> {
+    // The framework features this application turns on. Its OWN classes declare nothing - a
+    // stereotype is the whole declaration. Component options come from PlatformComponent.
+    this.component(HealthCheckComponent);
+    this.component(ApiReferenceComponent);
+    this.component(AuthenticateComponent);
+    this.component(AuthorizeComponent);
+    this.component(StaticAssetComponent);
+
     AuthenticationStrategyRegistry.getInstance().register({
       container: this,
       strategies: [
@@ -147,36 +149,6 @@ export class Application extends BaseApplication {
         { name: Authentication.STRATEGY_BASIC, strategy: BasicAuthenticationStrategy },
       ],
     });
-
-    // TODO: Fix MetaLinkRepository ordering — temporarily disabled for JWKS testing
-    // this.bind<TStaticAssetsComponentOptions>({
-    //   key: StaticAssetComponentBindingKeys.STATIC_ASSET_COMPONENT_OPTIONS,
-    // }).toValue({
-    //   staticAsset: {
-    //     controller: { name: 'AssetController', basePath: '/assets', isStrict: true },
-    //     storage: StaticAssetStorageTypes.MINIO,
-    //     helper: new MinioHelper({
-    //       endPoint: applicationEnvironment.get(EnvironmentKeys.APP_ENV_MINIO_HOST),
-    //       port: int(applicationEnvironment.get(EnvironmentKeys.APP_ENV_MINIO_API_PORT)),
-    //       accessKey: applicationEnvironment.get(EnvironmentKeys.APP_ENV_MINIO_ACCESS_KEY),
-    //       secretKey: applicationEnvironment.get(EnvironmentKeys.APP_ENV_MINIO_SECRET_KEY),
-    //       useSSL: false,
-    //     }),
-    //     useMetaLink: true,
-    //     metaLink: {
-    //       model: BaseMetaLinkModel,
-    //       repository: this.get<MetaLinkRepository>({ key: 'repositories.MetaLinkRepository' }),
-    //     },
-    //     extra: { parseMultipartBody: { storage: 'memory' } },
-    //   },
-    //   staticResource: {
-    //     controller: { name: 'ResourceController', basePath: '/resources', isStrict: true },
-    //     storage: StaticAssetStorageTypes.DISK,
-    //     helper: new DiskHelper({ basePath: './app_data/resources' }),
-    //     extra: { parseMultipartBody: { storage: 'memory' } },
-    //   },
-    // });
-    // this.component(StaticAssetComponent);
   }
 
   // --------------------------------------------------------------------------------

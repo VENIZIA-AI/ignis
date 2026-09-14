@@ -7,6 +7,26 @@ export const ArtifactMetadataMixin = <BaseClass extends TMixinTarget<_MetadataRe
   baseClass: BaseClass,
 ) => {
   return class extends baseClass {
+    /** Every class a stereotype decorated, in decoration order - which is import order, and is identical in a bundle. Discovery reads this; registration order still comes from `order` and the configuration sort. */
+    discoveredArtifacts: object[] = [];
+
+    addDiscoveredArtifact<Target extends object = object>(opts: { target: Target }): void {
+      if (this.discoveredArtifacts.includes(opts.target)) {
+        return;
+      }
+
+      this.discoveredArtifacts.push(opts.target);
+    }
+
+    getDiscoveredArtifacts(): ReadonlyArray<object> {
+      return [...this.discoveredArtifacts];
+    }
+
+    /** Tests only: the list is process-wide and a suite that decorates classes would leak into the next one. */
+    clearDiscoveredArtifacts(): void {
+      this.discoveredArtifacts = [];
+    }
+
     setArtifactMetadata<Target extends object = object, ApplicationType = unknown>(opts: {
       target: Target;
       metadata: IArtifactMetadata<ApplicationType>;

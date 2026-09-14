@@ -30,6 +30,10 @@ export const injectable = <ApplicationType = unknown>(
     const registry = MetadataRegistry.getInstance();
     registry.setArtifactMetadata({ target, metadata: opts });
 
+    // Discovery happens HERE, at import time. A boot-time filesystem scan cannot see a compiled
+    // single-file binary, and a class exists at run time only because something imported it.
+    registry.addDiscoveredArtifact({ target });
+
     // The key this class WOULD get; `registerArtifact` overwrites it with the one actually bound.
     registry.setBindingKey({
       target,

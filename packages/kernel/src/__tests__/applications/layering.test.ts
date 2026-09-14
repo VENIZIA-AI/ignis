@@ -47,6 +47,7 @@ const REST_APPLICATION_MEMBERS = [
   'registerCoreBindings',
   'registerDataSources',
   'registerDefaultMiddlewares',
+  'registerDiscoveredArtifacts',
   'registerDynamicBindings',
   'repository',
   'runApplicationHook',

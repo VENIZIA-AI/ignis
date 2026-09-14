@@ -16,18 +16,26 @@ export interface IApplicationConfigs {
   path: { base: string; isStrict: boolean };
   requestId?: { isStrict: boolean };
   favicon?: string;
+
   /** `environment` is the host's ambient environment name. Set it where there is none to read - a browser Worker - so the error middleware can tell "no ambient environment" from "misconfigured". Absent on a server, which reads `process.env.NODE_ENV`. */
   error?: { rootKey?: string; environment?: string };
-  asyncContext?: { enable: boolean };
+
   /** Generated indexes to register before `preConfigure` - one, or an array composed from several packages. */
   artifacts?: TArtifactIndexInput;
+
+  /** Registers every class a stereotype decorated, so an application lists none of its own. Off by default: an absent `artifacts` keeps meaning "register nothing", never "register everything". Both together register the union, de-duplicated - which is how an application discovers its own classes and still composes a library index. */
+  discoverArtifacts?: boolean;
+
   /** Boot-time checks. Without `binding`, nothing is verified, and hand registration and same-key override stay allowed. */
   bootChecks?: {
     binding?: { doVerify: boolean; allowManual: boolean; allowOverride: boolean };
   };
-  debug?: { shouldShowRoutes?: boolean };
+
   /** Controller transports to enable. Defaults to ['rest']. */
   transports?: TControllerTransport[];
+
+  asyncContext?: { enable: boolean };
+  debug?: { shouldShowRoutes?: boolean };
   [key: string]: any;
 }
 
