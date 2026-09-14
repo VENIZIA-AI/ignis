@@ -3,6 +3,7 @@ import { controller as controllerDecorator } from '@/base/metadata';
 import {
   BaseStorageHelper,
   createContentDispositionHeader,
+  IFileStat,
   IObjectLocation,
   IObjectMetadata,
   IObjectRef,
@@ -13,7 +14,8 @@ import {
   parseMultipartBody,
   TUploadNaming,
 } from '@venizia/ignis-helpers';
-import { HTTP, ValueOrPromise } from '@venizia/ignis-helpers/common';
+import { HTTP, resolveValueAsync, ValueOrPromise } from '@venizia/ignis-helpers/common';
+import type { TValueOrAsyncResolver } from '@venizia/ignis-helpers/common';
 import { BaseHelper, getError } from '@venizia/ignis-helpers/core';
 import { Env } from 'hono';
 import { readFileSync, rmSync } from 'node:fs';
@@ -25,7 +27,7 @@ import {
   TListQuery,
   TMetaLinkConfig,
   TObjectParams,
-  TResolveObjectName,
+  TObjectNameResolver,
   TStaticAssetExtraOptions,
   TStaticAssetsComponentOptions,
   TStaticAssetStorageType,
@@ -43,7 +45,7 @@ export interface IAssetControllerOptions {
   options?: TStaticAssetExtraOptions;
 
   /** Decides the stored object name of each uploaded file. Absent leaves the storage helper's own naming untouched. */
-  resolveObjectName?: TResolveObjectName;
+  resolveObjectName?: TObjectNameResolver;
 
   /** Registers the application's own routes on the generated controller, after every built-in one. */
   /** Registers the application's own routes BEFORE every built-in one, so a literal path wins over the catch-all `rawObjectPath` produces. */
@@ -60,14 +62,17 @@ const encodeObjectPath: (objectPath: string) => string = objectPath => {
 };
 
 /** The bucket one request works on: a configured value wins - called on every request, so an application may read an environment variable lazily - else the path param, which is only registered when there is no configured bucket. */
-const resolveBucket = (opts: { configured?: string | (() => string); param?: string }): string => {
+const resolveBucket = async (opts: {
+  configured?: TValueOrAsyncResolver<string>;
+  param?: string;
+}): Promise<string> => {
   const { configured, param } = opts;
 
-  if (typeof configured === 'function') {
-    return configured();
+  if (configured === undefined) {
+    return param ?? '';
   }
 
-  return configured ?? param ?? '';
+  return resolveValueAsync(configured);
 };
 
 /** The URL of one object, in the shape its controller serves: no `/buckets/<name>` with a configured bucket, and a raw path with `rawObjectPath`. */
@@ -248,7 +253,10 @@ export class AssetControllerFactory extends BaseHelper {
           }).to({
             handler: async ctx => {
               const params = ctx.req.valid<TBucketParams>('param');
-              const bucketName = resolveBucket({ configured: bucket, param: params.bucketName });
+              const bucketName = await resolveBucket({
+                configured: bucket,
+                param: params.bucketName,
+              });
 
               if (!helper.isValidBucketName({ bucket: { name: bucketName } })) {
                 throw getError({ error: StaticAssetErrors.BUCKET_NAME_INVALID });
@@ -264,7 +272,10 @@ export class AssetControllerFactory extends BaseHelper {
           }).to({
             handler: async ctx => {
               const params = ctx.req.valid<TBucketParams>('param');
-              const bucketName = resolveBucket({ configured: bucket, param: params.bucketName });
+              const bucketName = await resolveBucket({
+                configured: bucket,
+                param: params.bucketName,
+              });
 
               if (!helper.isValidBucketName({ bucket: { name: bucketName } })) {
                 throw getError({ error: StaticAssetErrors.BUCKET_NAME_INVALID });
@@ -280,7 +291,10 @@ export class AssetControllerFactory extends BaseHelper {
           }).to({
             handler: async ctx => {
               const params = ctx.req.valid<TBucketParams>('param');
-              const bucketName = resolveBucket({ configured: bucket, param: params.bucketName });
+              const bucketName = await resolveBucket({
+                configured: bucket,
+                param: params.bucketName,
+              });
 
               if (!helper.isValidBucketName({ bucket: { name: bucketName } })) {
                 throw getError({ error: StaticAssetErrors.BUCKET_NAME_INVALID });
@@ -299,7 +313,10 @@ export class AssetControllerFactory extends BaseHelper {
         }).to({
           handler: async ctx => {
             const params = ctx.req.valid<TObjectParams>('param');
-            const bucketName = resolveBucket({ configured: bucket, param: params.bucketName });
+            const bucketName = await resolveBucket({
+              configured: bucket,
+              param: params.bucketName,
+            });
             const objectName = readObjectName(params.objectName);
 
             if (!helper.isValidBucketName({ bucket: { name: bucketName } })) {
@@ -367,7 +384,10 @@ export class AssetControllerFactory extends BaseHelper {
         }).to({
           handler: async ctx => {
             const params = ctx.req.valid<TObjectParams>('param');
-            const bucketName = resolveBucket({ configured: bucket, param: params.bucketName });
+            const bucketName = await resolveBucket({
+              configured: bucket,
+              param: params.bucketName,
+            });
             const objectName = readObjectName(params.objectName);
 
             if (!helper.isValidBucketName({ bucket: { name: bucketName } })) {
@@ -419,7 +439,7 @@ export class AssetControllerFactory extends BaseHelper {
             const bucketParam = hasConfiguredBucket
               ? undefined
               : ctx.req.valid<TBucketParams>('param').bucketName;
-            const bucketName = resolveBucket({ configured: bucket, param: bucketParam });
+            const bucketName = await resolveBucket({ configured: bucket, param: bucketParam });
             const query = ctx.req.valid<TUploadQuery>('query');
 
             if (!helper.isValidBucketName({ bucket: { name: bucketName } })) {
@@ -516,6 +536,35 @@ export class AssetControllerFactory extends BaseHelper {
               return ctx.json(uploaded, HTTP.ResultCodes.RS_2.Ok);
             }
 
+            /** The default row, written only when the application gives no `createMetaLink` - so the repository resolver stays untouched when it does. */
+            const createDefaultMetaLink = async (row: {
+              uploadResult: IUploadResult;
+              fileStat: IFileStat;
+            }) => {
+              const { uploadResult, fileStat } = row;
+              const uploadRepository = await resolveValueAsync(metaLink.repository);
+
+              return uploadRepository.create({
+                data: {
+                  bucketName: uploadResult.bucket.name,
+                  objectName: uploadResult.object.key,
+                  link: uploadResult.link,
+                  // The column is NOT NULL and a backend may report nothing.
+                  mimetype:
+                    fileStat.metadata?.mimetype ??
+                    helper.getMimeType({ filename: uploadResult.object.key }),
+                  size: fileStat.size,
+                  etag: fileStat.etag,
+                  metadata: fileStat.metadata,
+                  storageType: storage,
+                  isSynced: true,
+                  principalId: query.principalId ? String(query.principalId) : undefined,
+                  principalType: query.principalType ? String(query.principalType) : undefined,
+                  variant: query.variant ? String(query.variant) : undefined,
+                },
+              });
+            };
+
             const results: IUploadResult[] = [];
             for (const uploadResult of uploaded) {
               try {
@@ -525,32 +574,8 @@ export class AssetControllerFactory extends BaseHelper {
                 });
 
                 const { data: createdMetaLink } = metaLink.createMetaLink
-                  ? await metaLink.createMetaLink({
-                      uploadResult,
-                      fileStat,
-                      query,
-                    })
-                  : await metaLink.repository.create({
-                      data: {
-                        bucketName: uploadResult.bucket.name,
-                        objectName: uploadResult.object.key,
-                        link: uploadResult.link,
-                        // The column is NOT NULL and a backend may report nothing.
-                        mimetype:
-                          fileStat.metadata?.mimetype ??
-                          helper.getMimeType({ filename: uploadResult.object.key }),
-                        size: fileStat.size,
-                        etag: fileStat.etag,
-                        metadata: fileStat.metadata,
-                        storageType: storage,
-                        isSynced: true,
-                        principalId: query.principalId ? String(query.principalId) : undefined,
-                        principalType: query.principalType
-                          ? String(query.principalType)
-                          : undefined,
-                        variant: query.variant ? String(query.variant) : undefined,
-                      },
-                    });
+                  ? await metaLink.createMetaLink({ uploadResult, fileStat, query })
+                  : await createDefaultMetaLink({ uploadResult, fileStat });
 
                 results.push({ ...uploadResult, metaLink: { data: createdMetaLink } });
               } catch (error) {
@@ -580,7 +605,10 @@ export class AssetControllerFactory extends BaseHelper {
         }).to({
           handler: async ctx => {
             const params = ctx.req.valid<TObjectParams>('param');
-            const bucketName = resolveBucket({ configured: bucket, param: params.bucketName });
+            const bucketName = await resolveBucket({
+              configured: bucket,
+              param: params.bucketName,
+            });
             const objectName = readObjectName(params.objectName);
 
             if (!helper.isValidBucketName({ bucket: { name: bucketName } })) {
@@ -610,7 +638,8 @@ export class AssetControllerFactory extends BaseHelper {
               return ctx.json({ success: true }, HTTP.ResultCodes.RS_2.Ok);
             }
 
-            metaLink.repository
+            const deleteRepository = await resolveValueAsync(metaLink.repository);
+            deleteRepository
               .deleteAll({
                 where: {
                   bucketName,
@@ -645,7 +674,7 @@ export class AssetControllerFactory extends BaseHelper {
             const bucketParam = hasConfiguredBucket
               ? undefined
               : ctx.req.valid<TBucketParams>('param').bucketName;
-            const bucketName = resolveBucket({ configured: bucket, param: bucketParam });
+            const bucketName = await resolveBucket({ configured: bucket, param: bucketParam });
             const { prefix, recursive, maxKeys } = ctx.req.valid<TListQuery>('query');
 
             if (!helper.isValidBucketName({ bucket: { name: bucketName } })) {
@@ -682,7 +711,10 @@ export class AssetControllerFactory extends BaseHelper {
           }).to({
             handler: async ctx => {
               const params = ctx.req.valid<TObjectParams>('param');
-              const bucketName = resolveBucket({ configured: bucket, param: params.bucketName });
+              const bucketName = await resolveBucket({
+                configured: bucket,
+                param: params.bucketName,
+              });
               const objectName = readObjectName(params.objectName);
 
               if (!helper.isValidBucketName({ bucket: { name: bucketName } })) {
@@ -713,7 +745,10 @@ export class AssetControllerFactory extends BaseHelper {
                     rawObjectPath,
                   });
 
-              const existing = await metaLink.repository.findOne({
+              // Read per call, never once per handler: an application may rebind the repository
+              // between two of these, and a copy held across them would answer from the old binding.
+              const findRepository = await resolveValueAsync(metaLink.repository);
+              const existing = await findRepository.findOne({
                 filter: {
                   where: {
                     bucketName,
@@ -723,7 +758,8 @@ export class AssetControllerFactory extends BaseHelper {
               });
 
               if (existing) {
-                await metaLink.repository.updateById({
+                const updateRepository = await resolveValueAsync(metaLink.repository);
+                await updateRepository.updateById({
                   id: existing.id,
                   data: {
                     link,
@@ -735,14 +771,16 @@ export class AssetControllerFactory extends BaseHelper {
                     isSynced: true,
                   },
                 });
-                const updatedMetaLink = await metaLink.repository.findById({ id: existing.id });
+                const readRepository = await resolveValueAsync(metaLink.repository);
+                const updatedMetaLink = await readRepository.findById({ id: existing.id });
                 return ctx.json(
                   { success: true, metaLink: updatedMetaLink },
                   HTTP.ResultCodes.RS_2.Ok,
                 );
               }
 
-              const createdMetaLink = await metaLink.repository.create({
+              const createRepository = await resolveValueAsync(metaLink.repository);
+              const createdMetaLink = await createRepository.create({
                 data: {
                   bucketName,
                   objectName,

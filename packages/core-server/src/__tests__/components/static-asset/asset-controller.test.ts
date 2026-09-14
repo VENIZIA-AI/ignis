@@ -6,7 +6,7 @@ import { AssetControllerFactory } from '@/components/static-asset/controller';
 import type {
   TDefineExtraRoutes,
   TMetaLinkConfig,
-  TResolveObjectName,
+  TObjectNameResolver,
   TStaticAssetExtraOptions,
 } from '@/components/static-asset/common';
 import { StaticAssetStorageTypes } from '@/components/static-asset/common';
@@ -98,7 +98,7 @@ const mountAssetController = async (opts: {
   options?: TStaticAssetExtraOptions;
   isStrict?: boolean;
   metaLink?: TMetaLinkConfig;
-  resolveObjectName?: TResolveObjectName;
+  resolveObjectName?: TObjectNameResolver;
   defineRoutesBefore?: TDefineExtraRoutes;
   defineExtraRoutes?: TDefineExtraRoutes;
   bucket?: string | (() => string);
@@ -219,7 +219,7 @@ describe('StaticAsset controller — path traversal hardening', () => {
     });
 
     test(`DOWNLOAD object rejects ${label} without reaching storage`, async () => {
-      const response = await router.request(`/assets/buckets/images/downloads/${objectName}`);
+      const response = await router.request(`/assets/buckets/images/download/${objectName}`);
       expect(response.status).toBeGreaterThanOrEqual(400);
       expect(response.status).toBeLessThan(500);
       expect(helper.calls.filter(call => ['getObject', 'getStat'].includes(call.method))).toEqual(
@@ -280,7 +280,7 @@ describe('StaticAsset controller — download headers', () => {
       files: [new File(['payload'], 'report.pdf', { type: 'application/pdf' })],
     });
 
-    const response = await router.request('/assets/buckets/images/downloads/report.pdf');
+    const response = await router.request('/assets/buckets/images/download/report.pdf');
     expect(response.status).toBe(200);
 
     const disposition = response.headers.get('content-disposition') ?? '';
@@ -295,7 +295,7 @@ describe('StaticAsset controller — download headers', () => {
 describe('StaticAsset controller - a missing object is a 404, and only a missing object', () => {
   const readRoutes = [
     ['GET', '/assets/buckets/images/objects/absent.jpg'],
-    ['DOWNLOAD', '/assets/buckets/images/downloads/absent.jpg'],
+    ['DOWNLOAD', '/assets/buckets/images/download/absent.jpg'],
   ] as const;
 
   test.each(readRoutes)('%s answers 404 with the catalogued code', async (_label, path) => {
@@ -633,7 +633,7 @@ describe('StaticAsset controller — resolveObjectName hook', () => {
   });
 
   test('the hook is offered the file, the default key and the bucket', async () => {
-    const seen: Array<Parameters<TResolveObjectName>[0]> = [];
+    const seen: Array<Parameters<TObjectNameResolver>[0]> = [];
     const helper = new FakeStorageHelper();
     const router = await mountAssetController({
       helper,

@@ -66,7 +66,7 @@ const objectName = 'invoices/2026/document.pdf';
 const streamUrl = `/assets/buckets/user-uploads/objects/${encodeURIComponent(objectName)}`;
 
 // Forces a browser download dialog via Content-Disposition: attachment, always
-const downloadUrl = `/assets/buckets/user-uploads/downloads/${encodeURIComponent(objectName)}`;
+const downloadUrl = `/assets/buckets/user-uploads/download/${encodeURIComponent(objectName)}`;
 window.open(downloadUrl, '_blank');
 ```
 
@@ -194,6 +194,29 @@ export class Application extends BaseApplication {
 > [!TIP]
 > Call `this.repository(MetaLinkRepository)` before `this.get({ key: 'repositories.MetaLinkRepository' })` - the binding has to exist in the container first.
 
+### Your own MetaLink table
+
+The MetaLink table belongs to your application, so it does not have to be the one IGNIS ships. Put it
+under a Postgres schema of your own, or give it another name, and pass the table as the type
+argument:
+
+```typescript
+const commerceSchema = pgSchema('commerce');
+
+@model({ type: 'entity' })
+export class MetaLinkModel extends BaseRelationalEntity<typeof MetaLinkModel.schema> {
+  static override schema = commerceSchema.table('MetaLink', { /* the MetaLink columns */ });
+}
+
+this.bind<TStaticAssetsComponentOptions<typeof MetaLinkModel.schema>>({
+  key: StaticAssetComponentBindingKeys.STATIC_ASSET_COMPONENT_OPTIONS,
+}).toValue({ /* ... */ });
+```
+
+What the type checks is the ROW, never the table. A table whose row carries the MetaLink fields is
+accepted whatever its name or Postgres schema, and a table missing one of those fields is still
+refused before the code runs.
+
 ### Custom MetaLink creation
 
 Provide `createMetaLink` on `TMetaLinkConfig` to fully replace the default insert - for example to add extra fields or run validation before persisting.
@@ -249,7 +272,7 @@ async function uploadFile(
 }
 
 function downloadFile(bucketName: string, objectName: string) {
-  window.open(`/assets/buckets/${bucketName}/downloads/${encodeURIComponent(objectName)}`, '_blank');
+  window.open(`/assets/buckets/${bucketName}/download/${encodeURIComponent(objectName)}`, '_blank');
 }
 ```
 

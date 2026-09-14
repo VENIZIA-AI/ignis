@@ -70,6 +70,39 @@ const bootStaticAssetApplication = async (opts: {
   return server;
 };
 
+describe('StaticAssetComponent takes its options directly', () => {
+  /** `application.component(Ctor, { options })` replaces the binding-key detour; no key is bound here. */
+  test('configure() options mount the controller with no binding in the container', async () => {
+    MetadataRegistry.getInstance().clearAll();
+    const application = new TestApplication({ scope: 'DirectOptionsApp', config: TEST_CONFIGS });
+    application.init();
+
+    const helper = new FakeStorageHelper();
+    const component = new StaticAssetComponent(application);
+    await component.configure({
+      default: {
+        storage: 'disk',
+        helper: helper as never,
+        controller: { name: 'DirectAssetController', basePath: '/direct', isStrict: false },
+      },
+    });
+    await application['registerControllers']();
+
+    const server = application.getServer() as OpenAPIHono;
+    server.onError(new AppErrorMiddleware({ logger: application.logger }).value());
+    server.route(TEST_CONFIGS.path.base, application.getRootRouter());
+
+    const formData = new FormData();
+    formData.append('files', new File(['direct'], 'photo.jpg', { type: 'image/jpeg' }));
+    const response = await server.request('/direct/buckets/images/objects', {
+      method: 'POST',
+      body: formData,
+    });
+
+    expect(response.status).toBe(200);
+  });
+});
+
 describe('StaticAssetComponent', () => {
   test('the link returned by an upload resolves back to the object route (flat object)', async () => {
     const helper = new FakeStorageHelper();

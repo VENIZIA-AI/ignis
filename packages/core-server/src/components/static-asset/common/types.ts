@@ -1,19 +1,22 @@
 import type { BaseRestController, IAuthRouteConfig } from '@/base';
-import type { IStorageHelper } from '@venizia/ignis-helpers';
-import type { BaseRelationalEntity } from '@venizia/ignis-connectors/postgres';
-import type { DefaultCRUDRepository } from '@venizia/ignis-connectors/postgres';
-import type { AnyType, ValueOrPromise } from '@venizia/ignis-helpers/common';
+import type {
+  BaseRelationalEntity,
+  DefaultCRUDRepository,
+  TTableObject,
+} from '@venizia/ignis-connectors/postgres';
 import type {
   DiskHelper,
   IBucketRef,
   IFileStat,
   IObjectLocation,
+  IStorageHelper,
   IUploadResult,
   TUploadNaming,
 } from '@venizia/ignis-helpers';
 import type { BunS3Helper } from '@venizia/ignis-helpers/bun-s3';
+import type { AnyType, TValueOrAsyncResolver, ValueOrPromise } from '@venizia/ignis-helpers/common';
 import type { MinioHelper } from '@venizia/ignis-helpers/minio';
-import type { TMetaLinkSchema } from '../models';
+import type { TMetaLinkCompatibleSchema, TMetaLinkSchema } from '../models';
 import type { StaticAssetStorageTypes } from './constants';
 
 export type TStaticAssetExtraOptions = {
@@ -32,7 +35,7 @@ export type TStaticAssetExtraOptions = {
 };
 
 /** Decides the key one uploaded file is stored under. `defaultKey` is what IGNIS would have written. */
-export type TResolveObjectName = (opts: {
+export type TObjectNameResolver = (opts: {
   bucket: IBucketRef;
   file: TUploadNaming;
   defaultKey: string;
@@ -57,48 +60,53 @@ export type TUploadQuery = {
 };
 export type TListQuery = { prefix?: string; recursive?: string; maxKeys?: string };
 
-export type TMetaLinkConfig<Schema extends TMetaLinkSchema = TMetaLinkSchema> = {
-  model: typeof BaseRelationalEntity<Schema>;
-  repository: DefaultCRUDRepository<Schema>;
+/** The MetaLink table belongs to the application. `Schema` defaults to the table IGNIS ships, and widens to any table whose row carries the same fields. */
+export type TMetaLinkConfig<Schema extends TMetaLinkCompatibleSchema = TMetaLinkSchema> = {
+  model: TValueOrAsyncResolver<typeof BaseRelationalEntity<Schema>>;
+  repository: TValueOrAsyncResolver<DefaultCRUDRepository<Schema>>;
   createMetaLink?: (opts: {
     uploadResult: IUploadResult;
     fileStat: IFileStat;
     query: TUploadQuery;
-  }) => ValueOrPromise<{ count: number; data: Schema }>;
+  }) => ValueOrPromise<{ count: number; data: TTableObject<Schema> }>;
 };
 
-export type TStaticAssetsComponentOptions = {
+export type TStaticAssetRoutes = {
+  getBuckets?: Partial<Omit<IAuthRouteConfig, 'method' | 'request' | 'responses'>>;
+  getBucketByName?: Partial<Omit<IAuthRouteConfig, 'method' | 'request' | 'responses'>>;
+  createBucket?: Partial<Omit<IAuthRouteConfig, 'method' | 'request' | 'responses'>>;
+  deleteBucket?: Partial<Omit<IAuthRouteConfig, 'method' | 'request' | 'responses'>>;
+
+  upload?: Partial<Omit<IAuthRouteConfig, 'method' | 'request' | 'responses'>>;
+  listObjects?: Partial<Omit<IAuthRouteConfig, 'method' | 'request' | 'responses'>>;
+  deleteObject?: Partial<Omit<IAuthRouteConfig, 'method' | 'request' | 'responses'>>;
+  getObjectByName?: Partial<Omit<IAuthRouteConfig, 'method' | 'request' | 'responses'>>;
+  downloadObjectByName?: Partial<Omit<IAuthRouteConfig, 'method' | 'request' | 'responses'>>;
+
+  recreateMetaLink?: Partial<Omit<IAuthRouteConfig, 'method' | 'request' | 'responses'>>;
+};
+
+export type TStaticAssetsComponentOptions<
+  Schema extends TMetaLinkCompatibleSchema = TMetaLinkSchema,
+> = {
   [key: string]: {
     controller: {
       name: string;
       basePath: string;
       isStrict?: boolean;
 
-      /** The single bucket every object route uses. It leaves the URL (`/objects/{objectName}`) and the four bucket-management routes are not registered. The function form is read per request, so an environment variable can be read lazily. */
-      bucket?: string | (() => string);
-
       /** `true` serves a raw nested object path (`/objects/photos/2024/f.jpg`) - a URL shape change; a percent-encoded path keeps working either way. Default: `false`. */
       rawObjectPath?: boolean;
 
-      routes?: {
-        getBuckets?: Partial<Omit<IAuthRouteConfig, 'method' | 'request' | 'responses'>>;
-        getBucketByName?: Partial<Omit<IAuthRouteConfig, 'method' | 'request' | 'responses'>>;
-        createBucket?: Partial<Omit<IAuthRouteConfig, 'method' | 'request' | 'responses'>>;
-        deleteBucket?: Partial<Omit<IAuthRouteConfig, 'method' | 'request' | 'responses'>>;
+      /** The single bucket every object route uses. It leaves the URL (`/objects/{objectName}`) and the four bucket-management routes are not registered. The function form is read per request, so an environment variable can be read lazily. */
+      bucket?: TValueOrAsyncResolver<string>;
 
-        upload?: Partial<Omit<IAuthRouteConfig, 'method' | 'request' | 'responses'>>;
-        listObjects?: Partial<Omit<IAuthRouteConfig, 'method' | 'request' | 'responses'>>;
-        deleteObject?: Partial<Omit<IAuthRouteConfig, 'method' | 'request' | 'responses'>>;
-        getObjectByName?: Partial<Omit<IAuthRouteConfig, 'method' | 'request' | 'responses'>>;
-        downloadObjectByName?: Partial<Omit<IAuthRouteConfig, 'method' | 'request' | 'responses'>>;
-
-        recreateMetaLink?: Partial<Omit<IAuthRouteConfig, 'method' | 'request' | 'responses'>>;
-      };
+      routes?: TStaticAssetRoutes;
     };
     extra?: TStaticAssetExtraOptions;
 
     /** Decides the stored object name of each uploaded file; absent keeps the storage helper's own naming. */
-    resolveObjectName?: TResolveObjectName;
+    resolveObjectName?: TObjectNameResolver;
 
     /** Registers the application's own routes BEFORE every built-in one, so a literal path wins over the catch-all `rawObjectPath` produces. Hono matches in registration order. */
     defineRoutesBefore?: TDefineExtraRoutes;
@@ -110,5 +118,7 @@ export type TStaticAssetsComponentOptions = {
     | { storage: typeof StaticAssetStorageTypes.DISK; helper: DiskHelper }
     | { storage: typeof StaticAssetStorageTypes.MINIO; helper: MinioHelper }
   ) &
-    ({ useMetaLink?: false | undefined } | { useMetaLink: true; metaLink: TMetaLinkConfig });
+    (
+      { useMetaLink?: false | undefined } | { useMetaLink: true; metaLink: TMetaLinkConfig<Schema> }
+    );
 };

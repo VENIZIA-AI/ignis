@@ -25,6 +25,11 @@ import {
   JWKSModes,
   provide,
 } from '@venizia/ignis';
+import {
+  BaseMetaLinkModel,
+  StaticAssetComponentBindingKeys,
+  StaticAssetStorageTypes,
+} from '@venizia/ignis/static-asset';
 // Type-only: a decorated method's return type lands in `design:returntype`, and bun keeps a value
 // import it cannot prove is a type - which then fails to link against the CJS dist.
 import type {
@@ -37,7 +42,9 @@ import type {
   TJWKSKeyFormat,
   TJWTTokenServiceOptions,
 } from '@venizia/ignis';
-import { applicationEnvironment, getError } from '@venizia/ignis-helpers';
+import type { TStaticAssetsComponentOptions } from '@venizia/ignis/static-asset';
+import { applicationEnvironment, DiskHelper, getError } from '@venizia/ignis-helpers';
+import { MetaLinkRepository } from '@/repositories/meta-link.repository';
 
 /**
  * Options the framework components read while they configure. Each `@provide` binds a lazy
@@ -53,6 +60,39 @@ export class PlatformComponent extends BaseComponent {
 
   override binding(): void {
     // Nothing eager: every option below is a provider resolved on first read.
+  }
+
+  /**
+   * Two asset stores on one component. `staticAsset` turns on `useMetaLink`, so every upload also
+   * writes a row through the application's own repository - the repository resolves here rather than
+   * in the constructor because a provider runs on first read, after every repository is bound.
+   */
+  @provide({ key: StaticAssetComponentBindingKeys.STATIC_ASSET_COMPONENT_OPTIONS })
+  staticAssetOptions(): TStaticAssetsComponentOptions {
+    return {
+      staticAsset: {
+        controller: { name: 'AssetController', basePath: '/assets', isStrict: true },
+        storage: StaticAssetStorageTypes.DISK,
+        helper: new DiskHelper({ basePath: './app_data/assets' }),
+        useMetaLink: true,
+        metaLink: {
+          model: BaseMetaLinkModel,
+          repository: this.application.get<MetaLinkRepository>({
+            key: BindingKeys.build({
+              namespace: BindingNamespaces.REPOSITORY,
+              key: MetaLinkRepository.name,
+            }),
+          }),
+        },
+        extra: { parseMultipartBody: { storage: 'memory' } },
+      },
+      staticResource: {
+        controller: { name: 'ResourceController', basePath: '/resources', isStrict: true },
+        storage: StaticAssetStorageTypes.DISK,
+        helper: new DiskHelper({ basePath: './app_data/resources' }),
+        extra: { parseMultipartBody: { storage: 'memory' } },
+      },
+    };
   }
 
   @provide({ key: HealthCheckBindingKeys.HEALTH_CHECK_OPTIONS })

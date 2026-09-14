@@ -154,7 +154,7 @@ export const buildAssetDefinitions = (opts: {
     },
     DOWNLOAD_OBJECT_BY_NAME: {
       method: 'get',
-      path: `${bucketPrefix}/downloads/${objectSegment}`,
+      path: `${bucketPrefix}/download/${objectSegment}`,
       request: objectRequest(),
       responses: fileStreamResponses(),
     },

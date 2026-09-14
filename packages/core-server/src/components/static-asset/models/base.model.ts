@@ -4,6 +4,7 @@ import {
   generateIdColumnDefs,
   generateTzColumnDefs,
   TTableObject,
+  TTableSchemaWithId,
 } from '@venizia/ignis-connectors/postgres';
 import { boolean, index, integer, jsonb, pgTable, text } from 'drizzle-orm/pg-core';
 
@@ -43,3 +44,6 @@ export class BaseMetaLinkModel extends BaseRelationalEntity<typeof BaseMetaLinkM
 
 export type TMetaLinkSchema = typeof BaseMetaLinkModel.schema;
 export type TMetaLink = TTableObject<TMetaLinkSchema>;
+
+/** Any table whose row carries the MetaLink fields. The component reads and writes the ROW, so the table is free to carry another name or to live in another Postgres schema. */
+export type TMetaLinkCompatibleSchema = TTableSchemaWithId & { $inferSelect: TMetaLink };

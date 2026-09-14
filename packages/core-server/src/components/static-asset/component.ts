@@ -7,7 +7,7 @@ import { ValueOrPromise } from '@venizia/ignis-helpers/common';
 import { StaticAssetComponentBindingKeys, TStaticAssetsComponentOptions } from './common';
 import { AssetControllerFactory, buildObjectLink } from './controller';
 
-export class StaticAssetComponent extends BaseComponent {
+export class StaticAssetComponent extends BaseComponent<TStaticAssetsComponentOptions> {
   constructor(
     @inject({ key: CoreBindings.APPLICATION_INSTANCE }) private application: BaseApplication,
   ) {
@@ -24,9 +24,13 @@ export class StaticAssetComponent extends BaseComponent {
   }
 
   override binding(): ValueOrPromise<void> {
-    const componentOptions = this.application.get<TStaticAssetsComponentOptions>({
-      key: StaticAssetComponentBindingKeys.STATIC_ASSET_COMPONENT_OPTIONS,
-    });
+    // Direct options win. The key is the path for an application that registers this component
+    // through `configs.artifacts`, where an index carries classes and no options.
+    const componentOptions =
+      this.configuredOptions ??
+      this.application.get<TStaticAssetsComponentOptions>({
+        key: StaticAssetComponentBindingKeys.STATIC_ASSET_COMPONENT_OPTIONS,
+      });
 
     for (const [key, opt] of Object.entries(componentOptions)) {
       const {

@@ -59,7 +59,7 @@ import type {
   TStaticAssetsComponentOptions,
   TStaticAssetExtraOptions,
   TMetaLinkConfig,
-  TResolveObjectName,
+  TObjectNameResolver,
   TDefineExtraRoutes,
   TStaticAssetStorageType,
   IAssetControllerOptions,
@@ -85,13 +85,13 @@ import { MinioHelper } from '@venizia/ignis-helpers/minio';
 ## `TStaticAssetsComponentOptions`
 
 ```typescript
-type TStaticAssetsComponentOptions = {
+type TStaticAssetsComponentOptions<Schema extends TMetaLinkCompatibleSchema = TMetaLinkSchema> = {
   [key: string]: {
     controller: {
       name: string;
       basePath: string;
       isStrict?: boolean;
-      bucket?: string | (() => string);
+      bucket?: TValueOrAsyncResolver<string>;
       rawObjectPath?: boolean;
       routes?: {
         getBuckets?: Partial<Omit<IAuthRouteConfig, 'method' | 'request' | 'responses'>>;
@@ -107,7 +107,7 @@ type TStaticAssetsComponentOptions = {
       };
     };
     extra?: TStaticAssetExtraOptions;
-    resolveObjectName?: TResolveObjectName;
+    resolveObjectName?: TObjectNameResolver;
     defineRoutesBefore?: TDefineExtraRoutes;
     defineExtraRoutes?: TDefineExtraRoutes;
   } & (
@@ -115,9 +115,17 @@ type TStaticAssetsComponentOptions = {
     | { storage: typeof StaticAssetStorageTypes.DISK; helper: DiskHelper }
     | { storage: typeof StaticAssetStorageTypes.MINIO; helper: MinioHelper }
   ) &
-    ({ useMetaLink?: false | undefined } | { useMetaLink: true; metaLink: TMetaLinkConfig });
+    ({ useMetaLink?: false | undefined } | { useMetaLink: true; metaLink: TMetaLinkConfig<Schema> });
 };
 ```
+
+`Schema` defaults to the table IGNIS ships. Pass your own to put the MetaLink table under a Postgres schema of your own, or to give it another name:
+
+```typescript
+this.bind<TStaticAssetsComponentOptions<typeof MetaLinkModel.schema>>({ key: ... });
+```
+
+The constraint is the ROW, not the table: any table whose row carries the MetaLink fields is accepted, and a table missing one of them is still refused at compile time.
 
 | Field | Type | Default | Description |
 |-------|------|---------|--------------|
@@ -131,8 +139,8 @@ type TStaticAssetsComponentOptions = {
 | `helper` | `DiskHelper \| BunS3Helper \| MinioHelper` | - | Storage backend instance matching `storage` |
 | `extra` | `TStaticAssetExtraOptions` | `undefined` | Multipart parsing mode, name/link normalization, max folder depth |
 | `useMetaLink` | `boolean` | `false` | Enables the `PUT .../meta-links/:objectName` route and DB tracking on upload/delete |
-| `metaLink` | `TMetaLinkConfig` | - | Required when `useMetaLink: true`; ignored otherwise |
-| `resolveObjectName` | `TResolveObjectName` | `undefined` | Decides the stored object name - see [`resolveObjectName`](#resolveobjectname) |
+| `metaLink` | `TMetaLinkConfig<Schema>` | - | Required when `useMetaLink: true`; ignored otherwise |
+| `resolveObjectName` | `TObjectNameResolver` | `undefined` | Decides the stored object name - see [`resolveObjectName`](#resolveobjectname) |
 | `defineRoutesBefore` | `TDefineExtraRoutes` | `undefined` | Adds your own routes BEFORE every built-in one. A literal path then wins over the catch-all `rawObjectPath` registers |
 | `defineExtraRoutes` | `TDefineExtraRoutes` | `undefined` | Adds your own routes after every built-in one - see [`defineExtraRoutes`](#defineextraroutes) |
 
@@ -149,7 +157,7 @@ Each key accepts a `Partial<Omit<IAuthRouteConfig, 'method' | 'request' | 'respo
 | `upload` | `POST` | <code v-pre>/buckets/{bucketName}/objects</code> |
 | `listObjects` | `GET` | <code v-pre>/buckets/{bucketName}/objects</code> |
 | `getObjectByName` | `GET` | <code v-pre>/buckets/{bucketName}/objects/{objectName}</code> |
-| `downloadObjectByName` | `GET` | <code v-pre>/buckets/{bucketName}/downloads/{objectName}</code> |
+| `downloadObjectByName` | `GET` | <code v-pre>/buckets/{bucketName}/download/{objectName}</code> |
 | `deleteObject` | `DELETE` | <code v-pre>/buckets/{bucketName}/objects/{objectName}</code> |
 | `recreateMetaLink` | `PUT` | <code v-pre>/buckets/{bucketName}/meta-links/{objectName}</code> - only registered when `useMetaLink: true` |
 
@@ -502,7 +510,7 @@ interface IAssetControllerOptions {
   useMetaLink?: boolean;
   metaLink?: TMetaLinkConfig;
   options?: TStaticAssetExtraOptions;
-  resolveObjectName?: TResolveObjectName;
+  resolveObjectName?: TObjectNameResolver;
   defineRoutesBefore?: TDefineExtraRoutes;
   defineExtraRoutes?: TDefineExtraRoutes;
 }
@@ -534,7 +542,7 @@ this.application.controller(GeneratedStaticAssetController)
 Decides the key one uploaded file is stored under. Set it instead of copying the factory to rename a single upload.
 
 ```typescript
-type TResolveObjectName = (opts: {
+type TObjectNameResolver = (opts: {
   bucket: IBucketRef;
   file: TUploadNaming;
   defaultKey: string;
@@ -607,7 +615,7 @@ The default shape. A configured `controller.bucket` drops the first four rows an
 | `POST` | <code v-pre>/buckets/{bucketName}/objects</code> | `multipart/form-data` body; query: `principalType?`, `principalId?`, `variant?`, `folderPath?`. Returns `IUploadResult[]` |
 | `GET` | <code v-pre>/buckets/{bucketName}/objects</code> | Query: `prefix?`, `recursive?` (`'true'` string only), `maxKeys?` (positive integer string). Returns `IObjectInfo[]` |
 | `GET` | <code v-pre>/buckets/{bucketName}/objects/{objectName}</code> | Streams the file inline when the type is renderable, otherwise as an attachment. `objectName` is a single percent-encoded segment. Honours one `Range` header |
-| `GET` | <code v-pre>/buckets/{bucketName}/downloads/{objectName}</code> | Streams the file with `Content-Disposition: attachment`, always |
+| `GET` | <code v-pre>/buckets/{bucketName}/download/{objectName}</code> | Streams the file with `Content-Disposition: attachment`, always |
 | `DELETE` | <code v-pre>/buckets/{bucketName}/objects/{objectName}</code> | Returns <code v-pre>{ success: boolean }</code>. Idempotent: a key that was never there still answers `200` |
 | `PUT` | <code v-pre>/buckets/{bucketName}/meta-links/{objectName}</code> | Only registered when `useMetaLink: true`. Returns <code v-pre>{ success: boolean, metaLink }</code> |
 
@@ -657,7 +665,7 @@ const WHITELIST_HEADERS = [
 
 These correspond to `'content-encoding'`, `'cache-control'`, `'etag'` and `'last-modified'`.
 
-When streaming a file - both <code v-pre>objects/{objectName}</code> and <code v-pre>downloads/{objectName}</code> - the controller copies only these keys from the storage metadata onto the response. Every other metadata header is dropped. Each forwarded value is sanitized with `String(value).replace(/[\r\n]/g, '')` before being set, to prevent HTTP header injection.
+When streaming a file - both <code v-pre>objects/{objectName}</code> and <code v-pre>download/{objectName}</code> - the controller copies only these keys from the storage metadata onto the response. Every other metadata header is dropped. Each forwarded value is sanitized with `String(value).replace(/[\r\n]/g, '')` before being set, to prevent HTTP header injection.
 
 > [!WARNING]
 > `content-type` is **not** on the list, and the served type is never taken from storage metadata or from what the uploader declared. It is derived from the object KEY by `resolveServedContentType`, because a renderable type that a client chose is stored cross-site scripting on the API origin, and `nosniff` cannot stop a type the server itself declared.
@@ -689,7 +697,7 @@ X-Content-Type-Options: nosniff
 Content-Security-Policy: sandbox
 Content-Type: <resolveServedContentType, from the object key>
 Content-Length: <bytes in the response body>
-Content-Disposition: attachment; filename="..."   (always on downloads; on objects when the type is not renderable)
+Content-Disposition: attachment; filename="..."   (always on download; on objects when the type is not renderable)
 Accept-Ranges: bytes                              (objects route, advertised unconditionally)
 Content-Range: bytes {start}-{end}/{size}         (objects route, on a 206 Partial Content)
 ```
@@ -753,8 +761,8 @@ const { upload, stat } = await AssetIngest.fromUrl({
 
 ```typescript
 type TMetaLinkConfig<Schema extends TMetaLinkSchema = TMetaLinkSchema> = {
-  model: typeof BaseRelationalEntity<Schema>;
-  repository: DefaultCRUDRepository<Schema>;
+  model: TValueOrAsyncResolver<typeof BaseRelationalEntity<Schema>>;
+  repository: TValueOrAsyncResolver<DefaultCRUDRepository<Schema>>;
   createMetaLink?: (opts: {
     uploadResult: IUploadResult;
     fileStat: IFileStat;
