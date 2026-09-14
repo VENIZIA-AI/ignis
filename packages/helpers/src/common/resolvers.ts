@@ -1,43 +1,11 @@
-import { isClass } from '@venizia/ignis-inversion';
+import { resolveValue } from '@venizia/ignis-inversion';
 
-import type {
-  TAsyncResolver,
-  TClass,
-  TResolver,
-  TValueOrAsyncResolver,
-  TValueOrResolver,
-} from './types';
+import type { TClass, TResolver } from './types';
 
-// Declared in inversion (the container branches on it), re-exported here so the rest of the stack reaches it through the one package it already depends on, instead of each layer redeclaring it.
-export { isClass };
-
-/** Resolves a value-or-resolver, returning class constructors as-is. */
-export const resolveValue = <T>(valueOrResolver: TValueOrResolver<T>): T => {
-  if (typeof valueOrResolver !== 'function') {
-    return valueOrResolver;
-  }
-
-  if (isClass(valueOrResolver)) {
-    return valueOrResolver as T;
-  }
-
-  return (valueOrResolver as TResolver<T>)();
-};
-
-/** Async version of resolveValue. */
-export const resolveValueAsync = async <T>(
-  valueOrResolver: TValueOrAsyncResolver<T>,
-): Promise<T> => {
-  if (typeof valueOrResolver !== 'function') {
-    return valueOrResolver;
-  }
-
-  if (isClass(valueOrResolver)) {
-    return valueOrResolver as T;
-  }
-
-  return (valueOrResolver as TAsyncResolver<T>)();
-};
+// The resolver vocabulary and its two readers live in inversion, the lowest layer, because the
+// container branches on them. Re-exported here so the rest of the stack reaches them through the
+// package it already depends on, instead of each layer redeclaring them.
+export { isClass, resolveValue, resolveValueAsync } from '@venizia/ignis-inversion';
 
 /** Resolves a class reference, passing through string binding keys as-is. */
 export const resolveClass = <T>(

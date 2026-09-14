@@ -1,4 +1,9 @@
-export type TResolver<T> = (...args: any[]) => T;
-export type TAsyncResolver<T> = (...args: any[]) => T | Promise<T>;
-export type TValueOrResolver<T> = T | TResolver<T>;
-export type TValueOrAsyncResolver<T> = T | TAsyncResolver<T>;
+// The resolver vocabulary lives in inversion, the lowest layer, because `@inject({ target })` needs
+// it there. One declaration, re-exported here so every `@venizia/ignis-helpers/common` import keeps
+// working.
+export type {
+  TAsyncResolver,
+  TResolver,
+  TValueOrAsyncResolver,
+  TValueOrResolver,
+} from '@venizia/ignis-inversion';

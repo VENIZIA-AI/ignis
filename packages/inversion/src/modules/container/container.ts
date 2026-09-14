@@ -1,5 +1,6 @@
 import { getError } from '../error';
-import { AnyType, TBindingKey, TClass } from '@/common/types';
+import { AnyType, TBindingKey, TClass, TInjectTarget } from '@/common/types';
+import { resolveInjectTarget } from '@/common/utilities';
 import { BaseContainer } from './base';
 
 /** Default container: constructor + property injection driven by the decorator metadata registry. */
@@ -11,19 +12,26 @@ export class Container extends BaseContainer {
   /** The class form reads the key the REGISTRATION recorded, so a call-site override and an imperative `application.service(X)` both resolve. */
   protected resolveBindingKey(opts: {
     key?: TBindingKey;
-    target?: TClass<AnyType>;
+    target?: TInjectTarget;
     cls: TClass<AnyType>;
     at: string;
   }): TBindingKey {
-    const { key, target, cls, at } = opts;
+    const { key, target: declared, cls, at } = opts;
 
     if (key !== undefined) {
       return key;
     }
 
-    if (target === undefined) {
+    if (declared === undefined) {
       throw getError({
         message: `[${cls.name}] ${at} has neither an @inject key nor a class`,
+      });
+    }
+
+    const target = resolveInjectTarget(declared);
+    if (target === undefined) {
+      throw getError({
+        message: `[${cls.name}] ${at} names a function that did not return a class`,
       });
     }
 

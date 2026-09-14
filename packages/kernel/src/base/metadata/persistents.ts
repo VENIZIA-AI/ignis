@@ -7,7 +7,13 @@ import type {
   IRepositoryMetadata,
   IResolvedRepositoryMetadata,
 } from '@/helpers/inversion';
-import { ArtifactTypes, BindingKeys, MetadataKeys, MetadataRegistry } from '@/helpers/inversion';
+import {
+  ArtifactTypes,
+  BindingKeys,
+  MetadataKeys,
+  MetadataRegistry,
+  resolveInjectTarget,
+} from '@/helpers/inversion';
 import { resolveClass, resolveValue } from '@venizia/ignis-helpers/common';
 import { getError } from '@venizia/ignis-helpers/core';
 import type { IDataSource } from '../datasources';
@@ -135,12 +141,14 @@ const registerDataSourceInjection = (opts: {
   const injectAtIndex0 = ownInjects?.find(entry => entry?.index === 0);
 
   if (injectAtIndex0) {
-    // `@inject({ target })` carries no key; read the one recorded on the class.
+    // `@inject({ target })` carries no key; read the one recorded on the class. The function form
+    // resolves through the same helper the container uses, so both paths read one class.
+    const injectedTarget = injectAtIndex0.target
+      ? resolveInjectTarget(injectAtIndex0.target)
+      : undefined;
     const injectKey =
       injectAtIndex0.key ??
-      (injectAtIndex0.target
-        ? registry.getBindingKey({ target: injectAtIndex0.target })
-        : undefined);
+      (injectedTarget ? registry.getBindingKey({ target: injectedTarget }) : undefined);
 
     const isDataSourceKey =
       typeof injectKey === 'string' && injectKey.startsWith(`${BindingNamespaces.DATASOURCE}.`);

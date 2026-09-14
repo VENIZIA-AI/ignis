@@ -6,11 +6,13 @@ export {
   BindingValueTypes,
   isClass,
   isClassProvider,
+  resolveInjectTarget,
   type IProvider,
   type TBindingKey,
   type TBindingScope,
   type TBindingValueType,
   type IBindingTag,
+  type TInjectTarget,
 } from '@venizia/ignis-inversion';
 
 export * from './common';

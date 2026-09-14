@@ -100,6 +100,20 @@ describe('@inject({ target }) resolves through the application', () => {
     expect(application.instantiate(Consumer).dependency.tag).toBe('decorated');
   });
 
+  /** The thunk form has to type-check and resolve through THIS `inject`, the one applications import - inversion's own wrapper is not the one they reach. */
+  test('resolves a class named through a function, the import-cycle form', () => {
+    const application = buildApplication();
+    application.service(DecoratedService);
+
+    class ThunkConsumer {
+      constructor(
+        @inject({ target: () => DecoratedService }) readonly dependency: DecoratedService,
+      ) {}
+    }
+
+    expect(application.instantiate(ThunkConsumer).dependency.tag).toBe('decorated');
+  });
+
   test('resolves a service registered by hand, which carries no artifact metadata', () => {
     const application = buildApplication();
     application.service(ImperativeService);

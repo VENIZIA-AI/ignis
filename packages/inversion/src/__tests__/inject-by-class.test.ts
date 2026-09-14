@@ -4,6 +4,10 @@ import { beforeEach, describe, expect, test } from 'bun:test';
 import { Container } from '../modules/container/container';
 import { inject } from '../modules/metadata/injectors';
 import { metadataRegistry } from '../modules/registry/registry';
+import {
+  AuthorService as CycleAuthorService,
+  NoteService as CycleNoteService,
+} from './cycle-barrel/index';
 
 /** `@inject({ target })` names the class; the key it resolves to is the one registration recorded on that class. */
 class NoteService {
@@ -113,5 +117,71 @@ describe('@inject({ target })', () => {
     }
 
     expect(container.instantiate(OptionalController).maybe).toBeUndefined();
+  });
+});
+
+describe('@inject({ target: () => Class })', () => {
+  let container: Container;
+
+  beforeEach(() => {
+    container = new Container({ scope: 'inject-by-thunk-test' });
+    metadataRegistry.setBindingKey({ target: NoteService, key: 'services.NoteService' });
+    container.bind({ key: 'services.NoteService' }).toClass(NoteService);
+  });
+
+  test('a thunk resolves to the same binding as the class itself', () => {
+    class NoteController {
+      constructor(@inject({ target: () => NoteService }) readonly noteService: NoteService) {}
+    }
+
+    expect(container.instantiate(NoteController).noteService.find()).toBe('note');
+  });
+
+  test('the thunk runs at resolve time, not at decoration time', () => {
+    let calls = 0;
+
+    class LateController {
+      constructor(
+        @inject({
+          target: () => {
+            calls += 1;
+            return NoteService;
+          },
+        })
+        readonly noteService: NoteService,
+      ) {}
+    }
+
+    expect(calls).toBe(0);
+    container.instantiate(LateController);
+    expect(calls).toBe(1);
+  });
+
+  test('a thunk that does not return a class is refused, naming the class and the position', () => {
+    class BadController {
+      constructor(
+        @inject({ target: () => 'services.NoteService' as never })
+        readonly noteService: NoteService,
+      ) {}
+    }
+
+    let thrown: Error | undefined;
+    try {
+      container.instantiate(BadController);
+    } catch (error) {
+      thrown = error as Error;
+    }
+
+    expect(thrown?.message).toContain('BadController');
+    expect(thrown?.message).toContain('Constructor parameter 0');
+  });
+
+  /** The shape the thunk exists for: a barrel re-exports two modules and one imports the other back. Importing this fixture at all is half the assertion - a bare class reference there throws at module load. */
+  test('a barrel import cycle resolves, and the injected dependency is the real class', () => {
+    metadataRegistry.setBindingKey({ target: CycleNoteService, key: 'services.CycleNoteService' });
+    container.bind({ key: 'services.CycleNoteService' }).toClass(CycleNoteService);
+
+    const author = container.instantiate(CycleAuthorService);
+    expect(author.noteService.find()).toBe('note');
   });
 });
