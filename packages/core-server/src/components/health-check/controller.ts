@@ -27,6 +27,13 @@ const RouteConfigs = {
   STATS: {
     method: HTTP.Methods.GET,
     path: HealthCheckRestPaths.STATS,
+    request: {
+      headers: z.object({
+        [HealthCheckHeaders.SECRET_KEY]: z.string().optional().openapi({
+          description: 'The stats key',
+        }),
+      }),
+    },
     responses: jsonResponse({
       schema: z
         .object({

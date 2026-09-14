@@ -203,6 +203,8 @@ interface IHealthCheckOptions {
 |----------|-------|---------|
 | `HealthCheckHeaders.SECRET_KEY` | `x-health-key` | `GET /health/stats` when `stats.secretKey` is set |
 
+The stats route declares this header in its OpenAPI definition, so the API reference renders an input for it. It stays optional there: a host with no `stats.secretKey` needs no key.
+
 ### REST paths
 | Constant | Value | Full path (default) |
 |----------|-------|---------------------|

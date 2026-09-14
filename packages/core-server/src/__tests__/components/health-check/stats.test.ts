@@ -1,7 +1,11 @@
 import 'reflect-metadata';
 import { BaseApplication } from '@/base/applications';
 import { HealthCheckComponent } from '@/components/health-check';
-import { HealthCheckBindingKeys, type IHealthCheckOptions } from '@/components/health-check/common';
+import {
+  HealthCheckBindingKeys,
+  HealthCheckHeaders,
+  type IHealthCheckOptions,
+} from '@/components/health-check/common';
 import { HealthCheckReporter } from '@/components/health-check/reporter';
 import { AppErrorMiddleware } from '@/base/middlewares';
 import { notFoundHandler } from '@venizia/ignis-kernel';
@@ -391,5 +395,22 @@ describe('an enabled stats route with no key says so at boot', () => {
         environment: () => 'production',
       }),
     ).toBe(false);
+  });
+});
+
+describe('the stats route declares its key header', () => {
+  /** Without the declaration the API reference renders no box for the key, so a reader cannot call the route from it. */
+  test('the OpenAPI document lists the key as a header parameter', async () => {
+    const router = await boot({ options: { stats: { enable: true, secretKey: 'shhh' } } });
+
+    const document = router.getOpenAPIDocument({
+      openapi: '3.0.0',
+      info: { title: 'stats', version: '1.0.0' },
+    });
+    const parameters = document.paths['/health/stats']?.get?.parameters ?? [];
+
+    expect(parameters).toContainEqual(
+      expect.objectContaining({ in: 'header', name: HealthCheckHeaders.SECRET_KEY }),
+    );
   });
 });
