@@ -1,4 +1,5 @@
-import type { BaseRestController, IAuthRouteConfig } from '@/base';
+import type { BaseRestController, IAuthRouteConfig, TRouteContext } from '@/base';
+import type { IDuration } from '@venizia/ignis-helpers/common';
 import type {
   BaseRelationalEntity,
   DefaultCRUDRepository,
@@ -9,6 +10,7 @@ import type {
   IBucketRef,
   IFileStat,
   IObjectLocation,
+  IObjectRef,
   IStorageHelper,
   IUploadResult,
   TUploadNaming,
@@ -60,6 +62,34 @@ export type TUploadQuery = {
 };
 export type TListQuery = { prefix?: string; recursive?: string; maxKeys?: string };
 
+export type TDirectUploadOptions = {
+  /** Who may ask for a policy. REQUIRED, not defaulted: this route hands out a write credential, and there is no safe default for that. */
+  authorize: (opts: { context: TRouteContext }) => ValueOrPromise<boolean>;
+
+  /** Signs the commit token. Keep it out of the repository and out of the client. */
+  secretKey: string;
+
+  /** The ceiling the policy carries as `content-length-range`. A signed PUT cannot express this at all, which is why this is a POST policy. */
+  maxBytes: number;
+
+  /** Where a policy may write. The final key is NEVER in a policy, so content cannot be replaced after the commit. Default: `pending/`. */
+  pendingPrefix?: string;
+
+  /** How long a policy and its commit token stay good. Default: the helper's POST default. */
+  expiresIn?: IDuration;
+
+  /** Runs BEFORE the copy to the final key, so a hook that throws leaves the object under the pending prefix for a lifecycle rule to collect, rather than stranding it at the final key. */
+  onCommit?: (opts: {
+    bucket: IBucketRef;
+    pendingObject: IObjectRef;
+    object: IObjectRef;
+  }) => ValueOrPromise<void>;
+};
+
+export type TUploadPolicyRequest = {
+  files: Array<{ fileName: string; contentType?: string; size?: number }>;
+};
+
 /** The MetaLink table belongs to the application. `Schema` defaults to the table IGNIS ships, and widens to any table whose row carries the same fields. */
 export type TMetaLinkConfig<Schema extends TMetaLinkCompatibleSchema = TMetaLinkSchema> = {
   model: TValueOrAsyncResolver<typeof BaseRelationalEntity<Schema>>;
@@ -83,6 +113,9 @@ export type TStaticAssetRoutes = {
   getObjectByName?: Partial<Omit<IAuthRouteConfig, 'method' | 'request' | 'responses'>>;
   downloadObjectByName?: Partial<Omit<IAuthRouteConfig, 'method' | 'request' | 'responses'>>;
 
+  uploadPolicy?: Partial<Omit<IAuthRouteConfig, 'method' | 'request' | 'responses'>>;
+  uploadCommit?: Partial<Omit<IAuthRouteConfig, 'method' | 'request' | 'responses'>>;
+
   recreateMetaLink?: Partial<Omit<IAuthRouteConfig, 'method' | 'request' | 'responses'>>;
 };
 
@@ -102,6 +135,9 @@ export type TStaticAssetsComponentOptions<
       bucket?: TValueOrAsyncResolver<string>;
 
       routes?: TStaticAssetRoutes;
+
+      /** Direct upload: the browser posts the bytes to the storage and IGNIS only signs the permission. Absent leaves both routes unregistered. Requires `bucket` - a policy names one bucket, and a bucket in the URL is a bucket the caller chooses. */
+      directUpload?: TDirectUploadOptions;
     };
     extra?: TStaticAssetExtraOptions;
 

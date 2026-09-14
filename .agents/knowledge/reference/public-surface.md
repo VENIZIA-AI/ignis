@@ -116,7 +116,7 @@ tags: [reference, exports, api]
 
 ## helpers
 
-### `@venizia/ignis-helpers` (387)
+### `@venizia/ignis-helpers` (388)
 
 - `AbstractCryptoAlgorithm` class
 - `AbstractLogger` class
@@ -262,6 +262,7 @@ tags: [reference, exports, api]
 - `IPoolOptions` interface
 - `IPoolStats` interface
 - `IPoolWaiter` interface
+- `IPostPolicy` interface
 - `IPrintOptions` interface
 - `IQueueCallback` interface
 - `IRedisClusterHelperOptions` interface
@@ -1799,7 +1800,7 @@ tags: [reference, exports, api]
 
 ## core-server
 
-### `@venizia/ignis` (949)
+### `@venizia/ignis` (950)
 
 - `AbstractApplication` class
 - `AbstractAuthRegistry` class
@@ -2181,6 +2182,7 @@ tags: [reference, exports, api]
 - `IPoolStats` interface
 - `IPoolWaiter` interface
 - `IPostgresDataSource` interface
+- `IPostPolicy` interface
 - `IPrintOptions` interface
 - `IPropertyMetadata` interface
 - `IProvideMetadata` interface
@@ -3150,16 +3152,20 @@ tags: [reference, exports, api]
 - `IConnectRpcModule` interface
 - `IGrpcComponentConfig` interface
 
-### `@venizia/ignis/static-asset` (29)
+### `@venizia/ignis/static-asset` (35)
 
 - `AssetControllerFactory` class
 - `AssetIngest` class
 - `BaseMetaLinkModel` class
 - `BaseMetaLinkRepository` class
+- `buildCommitToken` const
 - `buildObjectLink` const
+- `DEFAULT_PENDING_PREFIX` const
 - `IAssetControllerOptions` interface
+- `ICommitTokenPayload` interface
 - `IIngestFromUrlOptions` interface
 - `IIngestFromUrlResult` interface
+- `readCommitToken` const
 - `RENDERABLE_CONTENT_TYPES` const
 - `resolveServedContentType` const
 - `StaticAssetComponent` class
@@ -3168,6 +3174,7 @@ tags: [reference, exports, api]
 - `StaticAssetStorageTypes` class
 - `TBucketParams` type
 - `TDefineExtraRoutes` type
+- `TDirectUploadOptions` type
 - `TListQuery` type
 - `TMetaLink` type
 - `TMetaLinkCompatibleSchema` type
@@ -3179,6 +3186,7 @@ tags: [reference, exports, api]
 - `TStaticAssetRoutes` type
 - `TStaticAssetsComponentOptions` type
 - `TStaticAssetStorageType` type
+- `TUploadPolicyRequest` type
 - `TUploadQuery` type
 - `WHITELIST_HEADERS` const
 

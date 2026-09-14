@@ -86,6 +86,47 @@ export class FakeStorageHelper extends BaseStorageHelper {
     });
   }
 
+  /** Stands in for the bytes a browser posted straight to the storage - nothing in this process wrote them. */
+  seedObject(opts: { bucket: string; key: string; mimetype?: string }): void {
+    this.objects.set(`${opts.bucket}/${opts.key}`, {
+      buffer: Buffer.from('seeded'),
+      mimetype: opts.mimetype ?? 'application/octet-stream',
+    });
+  }
+
+  override async presignPost(opts: {
+    bucket: IBucketRef;
+    keyPrefix: string;
+    maxBytes: number;
+    contentType?: string;
+  }) {
+    this.calls.push({
+      method: 'presignPost',
+      args: { bucket: opts.bucket.name, keyPrefix: opts.keyPrefix, maxBytes: opts.maxBytes },
+    });
+
+    return {
+      postURL: `https://fake-storage/${opts.bucket.name}`,
+      formData: { policy: 'fake-policy' },
+      expiresAt: new Date(Date.now() + 900_000).toISOString(),
+    };
+  }
+
+  override async copyObject(opts: {
+    bucket: IBucketRef;
+    source: { key: string };
+    destination: { key: string };
+  }): Promise<void> {
+    this.calls.push({
+      method: 'copyObject',
+      args: {
+        bucket: opts.bucket.name,
+        source: opts.source.key,
+        destination: opts.destination.key,
+      },
+    });
+  }
+
   async hasBucket(opts: { bucket: IBucketRef }): Promise<boolean> {
     this.calls.push({ method: 'hasBucket', args: { bucket: opts.bucket.name } });
     return this.buckets.has(opts.bucket.name);

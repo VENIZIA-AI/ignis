@@ -17,6 +17,7 @@ This section tracks the history of significant changes, refactors, and updates t
 
 | Date | Title | Type |
 |------|-------|------|
+| 2026-09-14 | [A Browser Can Upload Straight To Storage](./2026-09-14-direct-upload-post-policy) | Feature |
 | 2026-09-14 | [An Application Declares No Artifacts](./2026-09-14-an-application-declares-no-artifacts) | Feature |
 | 2026-09-14 | [The Container Can Name A Binding Nobody Resolves](./2026-09-14-unresolved-binding-report) | Feature |
 | 2026-09-14 | [Asset Options Take A Resolver Anywhere They Took A Value](./2026-09-14-asset-options-take-resolvers) | Breaking |

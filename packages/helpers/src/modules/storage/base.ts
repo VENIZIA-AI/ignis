@@ -11,6 +11,7 @@ import {
   IListObjectsOptions,
   IObjectInfo,
   IObjectLocation,
+  IPostPolicy,
   IObjectRef,
   IStorageHelper,
   IUploadFile,
@@ -427,6 +428,28 @@ export abstract class BaseStorageHelper extends BaseHelper implements IStorageHe
   }
 
   // No transport for these: throwing beats returning undefined, which reads as a valid empty result.
+  async copyObject(_opts: {
+    bucket: IBucketRef;
+    source: IObjectRef;
+    destination: IObjectRef;
+  }): Promise<void> {
+    throw getError({
+      message: `[${this.constructor.name}.copyObject] Server-side copy is not supported by this helper`,
+    });
+  }
+
+  async presignPost(_opts: {
+    bucket: IBucketRef;
+    keyPrefix: string;
+    maxBytes: number;
+    contentType?: string;
+    expiresIn?: IDuration;
+  }): Promise<IPostPolicy> {
+    throw getError({
+      message: `[${this.constructor.name}.presignPost] Signed POST policies are not supported by this helper`,
+    });
+  }
+
   async presignPut(_opts: IObjectLocation & { expiresIn?: IDuration }): Promise<string> {
     throw getError({
       message: `[${this.constructor.name}.presignPut] Presigned PUT URLs are not supported by this helper`,

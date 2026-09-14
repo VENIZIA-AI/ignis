@@ -454,6 +454,10 @@ const config = defineConfig({
               collapsed: true,
               items: [
                 {
+                  text: 'Browser Uploads Straight To Storage',
+                  link: '/changelogs/2026-09-14-direct-upload-post-policy',
+                },
+                {
                   text: 'An Application Declares No Artifacts',
                   link: '/changelogs/2026-09-14-an-application-declares-no-artifacts',
                 },

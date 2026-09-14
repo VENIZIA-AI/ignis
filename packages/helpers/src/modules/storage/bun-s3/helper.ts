@@ -12,11 +12,12 @@ import type {
   IObjectInfo,
   IObjectLocation,
   IObjectRef,
+  IPostPolicy,
   IStorageHelperOptions,
   IUploadFile,
 } from '../common';
 import { isNotFoundError, StoragePresignDefaults, toExpirySeconds } from '../common';
-import { buildSignedRequest, buildTaggingXml, parseTaggingXml } from './utility';
+import { buildPostPolicy, buildSignedRequest, buildTaggingXml, parseTaggingXml } from './utility';
 
 export interface IBunS3HelperOptions extends IStorageHelperOptions {
   accessKey: string;
@@ -241,6 +242,70 @@ export class BunS3Helper extends BaseStorageHelper {
     }
 
     return true;
+  }
+
+  override async copyObject(opts: {
+    bucket: IBucketRef;
+    source: IObjectRef;
+    destination: IObjectRef;
+  }): Promise<void> {
+    const { bucket, source, destination } = opts;
+    const { accessKey, secretKey, region, sessionToken } = this.credentials;
+    const { endpoint, pathPrefix } = this.objectEndpoint({ bucket: bucket.name });
+
+    // `x-amz-copy-source` is what makes this server side: S3 reads the source itself, so a 500 MB
+    // object never travels through this process.
+    const request = await buildSignedRequest({
+      method: 'PUT',
+      endpoint,
+      path: `${pathPrefix}/${destination.key}`,
+      accessKey,
+      secretKey,
+      region,
+      sessionToken,
+      headers: { 'x-amz-copy-source': `/${bucket.name}/${source.key}` },
+    });
+
+    const response = await fetch(request.url, { method: 'PUT', headers: request.headers });
+    if (!response.ok) {
+      throw getError({
+        message: `[copyObject] Copy failed | bucket: ${bucket.name} | source: ${source.key} | status: ${response.status}`,
+      });
+    }
+  }
+
+  override async presignPost(opts: {
+    bucket: IBucketRef;
+    keyPrefix: string;
+    maxBytes: number;
+    contentType?: string;
+    expiresIn?: IDuration;
+  }): Promise<IPostPolicy> {
+    const {
+      bucket,
+      keyPrefix,
+      maxBytes,
+      contentType,
+      expiresIn = StoragePresignDefaults.POST_EXPIRES_IN,
+    } = opts;
+    const { accessKey, secretKey, region, sessionToken } = this.credentials;
+
+    // The browser posts to the BUCKET, not to an object - the key travels as a form field, because
+    // the policy only constrains its prefix.
+    const { endpoint } = this.objectEndpoint({ bucket: bucket.name });
+    const { formData, expiresAt } = await buildPostPolicy({
+      bucket: bucket.name,
+      keyPrefix,
+      maxBytes,
+      expiresInSeconds: toExpirySeconds({ expiresIn, operation: 'presignPost' }),
+      accessKey,
+      secretKey,
+      region,
+      sessionToken,
+      contentType,
+    });
+
+    return { postURL: `${endpoint.replace(/\/$/, '')}/${bucket.name}`, formData, expiresAt };
   }
 
   override async presignPut(opts: IObjectLocation & { expiresIn?: IDuration }): Promise<string> {

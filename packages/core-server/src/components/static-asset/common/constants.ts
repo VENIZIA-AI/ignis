@@ -46,3 +46,6 @@ export class StaticAssetStorageTypes {
 }
 
 export type TStaticAssetStorageType = TConstValue<typeof StaticAssetStorageTypes>;
+
+/** Where a signed policy may write. The final key is never inside it, so content cannot be replaced after the commit. */
+export const DEFAULT_PENDING_PREFIX = 'pending/';

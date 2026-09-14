@@ -10,6 +10,7 @@ import {
   isNotFoundError,
   IStorageHelper,
   IUploadFile,
+  IPostPolicy,
   IUploadResult,
   parseMultipartBody,
   TUploadNaming,
@@ -26,7 +27,9 @@ import {
   TDefineExtraRoutes,
   TListQuery,
   TMetaLinkConfig,
+  DEFAULT_PENDING_PREFIX,
   TObjectParams,
+  TUploadPolicyRequest,
   TObjectNameResolver,
   TStaticAssetExtraOptions,
   TStaticAssetsComponentOptions,
@@ -34,6 +37,8 @@ import {
   TUploadQuery,
   WHITELIST_HEADERS,
 } from '../common';
+import { buildCommitToken, readCommitToken } from '../common';
+import { randomUUID } from 'node:crypto';
 import { buildAssetDefinitions } from './base.definition';
 
 export interface IAssetControllerOptions {
@@ -187,6 +192,7 @@ export class AssetControllerFactory extends BaseHelper {
   static defineAssetController(opts: IAssetControllerOptions) {
     const { controller, helper, options, useMetaLink, metaLink, storage } = opts;
     const { resolveObjectName, defineRoutesBefore, defineExtraRoutes } = opts;
+    const { directUpload } = controller;
     const { name, basePath, routes, isStrict = true, bucket, rawObjectPath = false } = controller;
     const maxFolderDepth = options?.maxFolderDepth ?? BaseStorageHelper.DEFAULT_MAX_FOLDER_DEPTH;
 
@@ -705,6 +711,123 @@ export class AssetControllerFactory extends BaseHelper {
             return ctx.json(objects, HTTP.ResultCodes.RS_2.Ok);
           },
         });
+
+        if (directUpload) {
+          if (!hasConfiguredBucket) {
+            throw getError({
+              message: `[${name}] directUpload needs controller.bucket | a policy names one bucket, and a bucket in the URL is a bucket the caller chooses`,
+            });
+          }
+
+          const pendingPrefix = directUpload.pendingPrefix ?? DEFAULT_PENDING_PREFIX;
+
+          this.bindRoute({
+            configs: { ...definitions.UPLOAD_POLICY, ...routes?.uploadPolicy },
+          }).to({
+            handler: async ctx => {
+              if (!(await directUpload.authorize({ context: ctx }))) {
+                throw getError({ error: StaticAssetErrors.UPLOAD_NOT_AUTHORIZED });
+              }
+
+              const { files } = ctx.req.valid<TUploadPolicyRequest>('json');
+              const bucketName = await resolveBucket({ configured: bucket });
+
+              const policies: Array<IPostPolicy & { objectName: string; commitToken: string }> = [];
+              for (const file of files) {
+                if (file.size !== undefined && file.size > directUpload.maxBytes) {
+                  throw getError({
+                    error: StaticAssetErrors.UPLOAD_TOO_LARGE,
+                    message: `File '${file.fileName}' is ${file.size} bytes, over the ${directUpload.maxBytes} the policy allows`,
+                  });
+                }
+
+                // Generated, never taken from the caller: a key the caller picks is a key the caller
+                // can collide with, and the pending object is the one thing a policy authorizes.
+                const objectName = `${pendingPrefix}${randomUUID()}/${file.fileName}`;
+                const policy = await helper.presignPost({
+                  bucket: { name: bucketName },
+                  keyPrefix: pendingPrefix,
+                  maxBytes: directUpload.maxBytes,
+                  contentType: file.contentType,
+                  expiresIn: directUpload.expiresIn,
+                });
+
+                policies.push({
+                  ...policy,
+                  objectName,
+                  commitToken: buildCommitToken({
+                    payload: {
+                      bucket: bucketName,
+                      key: objectName,
+                      expiresAt: new Date(policy.expiresAt).getTime(),
+                    },
+                    secretKey: directUpload.secretKey,
+                  }),
+                });
+              }
+
+              return ctx.json(policies, HTTP.ResultCodes.RS_2.Ok);
+            },
+          });
+
+          this.bindRoute({
+            configs: { ...definitions.UPLOAD_COMMIT, ...routes?.uploadCommit },
+          }).to({
+            handler: async ctx => {
+              const { commitToken } = ctx.req.valid<{ commitToken: string }>('json');
+
+              // Verified BEFORE any storage call. That is what keeps this route from being a name
+              // prober: a forged token fails without a round trip, so timing says nothing.
+              const payload = readCommitToken({
+                token: commitToken,
+                secretKey: directUpload.secretKey,
+              });
+
+              const bucketRef = { name: payload.bucket };
+              const pendingObject = { key: payload.key };
+              const object = { key: payload.key.slice(pendingPrefix.length) };
+
+              // Before the copy, so a hook that throws leaves the object under the pending prefix
+              // for a lifecycle rule, rather than stranding it at the final key.
+              await directUpload.onCommit?.({ bucket: bucketRef, pendingObject, object });
+
+              await helper.copyObject({
+                bucket: bucketRef,
+                source: pendingObject,
+                destination: object,
+              });
+              // The copy IS the commit; removing the temporary object is cleanup. A failure here
+              // leaves one object for the lifecycle rule, and failing the request would tell the
+              // caller their upload did not work when it did.
+              await helper
+                .removeObject({ bucket: bucketRef, object: pendingObject })
+                .catch(error => {
+                  this.logger
+                    .for('UPLOAD_COMMIT')
+                    .warn(
+                      'Committed, but the pending object remains | key: %s | error: %s',
+                      pendingObject.key,
+                      error,
+                    );
+                });
+
+              return ctx.json(
+                {
+                  bucket: bucketRef,
+                  object,
+                  link: buildObjectLink({
+                    basePath: normalizedBasePath,
+                    bucket: bucketRef,
+                    object,
+                    hasConfiguredBucket,
+                    rawObjectPath,
+                  }),
+                },
+                HTTP.ResultCodes.RS_2.Ok,
+              );
+            },
+          });
+        }
 
         if (useMetaLink && metaLink) {
           this.bindRoute({

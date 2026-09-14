@@ -58,6 +58,8 @@ export interface IAssetDefinitions {
   DELETE_BUCKET: IAuthRouteConfig;
   GET_OBJECT_BY_NAME: IAuthRouteConfig;
   DOWNLOAD_OBJECT_BY_NAME: IAuthRouteConfig;
+  UPLOAD_POLICY: IAuthRouteConfig;
+  UPLOAD_COMMIT: IAuthRouteConfig;
   UPLOAD: IAuthRouteConfig;
   DELETE_OBJECT: IAuthRouteConfig;
   LIST_OBJECTS: IAuthRouteConfig;
@@ -157,6 +159,58 @@ export const buildAssetDefinitions = (opts: {
       path: `${bucketPrefix}/download/${objectSegment}`,
       request: objectRequest(),
       responses: fileStreamResponses(),
+    },
+    UPLOAD_POLICY: {
+      method: 'post',
+      path: `${bucketPrefix}/upload-policy`,
+      request: {
+        body: {
+          content: {
+            'application/json': {
+              schema: z.object({
+                files: z.array(
+                  z.object({
+                    fileName: z.string().min(1),
+                    contentType: z.string().optional(),
+                    size: z.number().int().nonnegative().optional(),
+                  }),
+                ),
+              }),
+            },
+          },
+        },
+      },
+      responses: jsonResponse({
+        schema: z.array(
+          z.object({
+            postURL: z.string(),
+            formData: z.record(z.string(), z.string()),
+            objectName: z.string(),
+            commitToken: z.string(),
+            expiresAt: z.string(),
+          }),
+        ),
+        description: 'One signed POST policy per file, plus the token its commit is claimed with',
+      }),
+    },
+    UPLOAD_COMMIT: {
+      method: 'post',
+      path: `${bucketPrefix}/upload-commit`,
+      request: {
+        body: {
+          content: {
+            'application/json': { schema: z.object({ commitToken: z.string().min(1) }) },
+          },
+        },
+      },
+      responses: jsonResponse({
+        schema: z.object({
+          bucket: z.object({ name: z.string() }),
+          object: z.object({ key: z.string() }),
+          link: z.string(),
+        }),
+        description: 'The object at its final key, copied out of the pending prefix',
+      }),
     },
     UPLOAD: {
       method: 'post',

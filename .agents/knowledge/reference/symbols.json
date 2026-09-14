@@ -849,7 +849,7 @@
       "specifier": "@venizia/ignis",
       "kind": "class",
       "file": "packages/helpers/src/modules/storage/base.ts",
-      "line": 22,
+      "line": 23,
       "signature": "class BaseStorageHelper extends BaseHelper implements IStorageHelper"
     },
     {
@@ -3791,7 +3791,7 @@
       "specifier": "@venizia/ignis",
       "kind": "interface",
       "file": "packages/helpers/src/modules/storage/common/types.ts",
-      "line": 82,
+      "line": 87,
       "signature": "interface IStorageHelper"
     },
     {
@@ -3801,7 +3801,7 @@
       "specifier": "@venizia/ignis",
       "kind": "interface",
       "file": "packages/helpers/src/modules/storage/common/types.ts",
-      "line": 81,
+      "line": 82,
       "signature": "interface IStorageHelperOptions"
     },
     {
@@ -5322,7 +5322,7 @@
       "specifier": "@venizia/ignis",
       "kind": "class",
       "file": "packages/helpers/src/modules/storage/common/constants.ts",
-      "line": 17,
+      "line": 18,
       "signature": "class StorageConcurrency"
     },
     {
@@ -5352,7 +5352,7 @@
       "specifier": "@venizia/ignis",
       "kind": "class",
       "file": "packages/helpers/src/modules/storage/common/constants.ts",
-      "line": 12,
+      "line": 13,
       "signature": "class StoragePresignLimits"
     },
     {
@@ -13102,7 +13102,7 @@
       "specifier": "@venizia/ignis/static-asset",
       "kind": "class",
       "file": "packages/core-server/src/components/static-asset/controller/factory.ts",
-      "line": 182,
+      "line": 187,
       "signature": "class AssetControllerFactory extends BaseHelper"
     },
     {
@@ -13136,14 +13136,34 @@
       "signature": "class BaseMetaLinkRepository extends DefaultCRUDRepository<typeof BaseMetaLinkModel.schema>"
     },
     {
+      "name": "DEFAULT_PENDING_PREFIX",
+      "package": "@venizia/ignis",
+      "subpath": "./static-asset",
+      "specifier": "@venizia/ignis/static-asset",
+      "kind": "const",
+      "file": "packages/core-server/src/components/static-asset/common/constants.ts",
+      "line": 51,
+      "signature": "DEFAULT_PENDING_PREFIX = \"pending/\""
+    },
+    {
       "name": "IAssetControllerOptions",
       "package": "@venizia/ignis",
       "subpath": "./static-asset",
       "specifier": "@venizia/ignis/static-asset",
       "kind": "interface",
       "file": "packages/core-server/src/components/static-asset/controller/factory.ts",
-      "line": 39,
+      "line": 44,
       "signature": "interface IAssetControllerOptions"
+    },
+    {
+      "name": "ICommitTokenPayload",
+      "package": "@venizia/ignis",
+      "subpath": "./static-asset",
+      "specifier": "@venizia/ignis/static-asset",
+      "kind": "interface",
+      "file": "packages/core-server/src/components/static-asset/common/commit-token.ts",
+      "line": 6,
+      "signature": "interface ICommitTokenPayload"
     },
     {
       "name": "IIngestFromUrlOptions",
@@ -13203,7 +13223,7 @@
       "kind": "const",
       "file": "packages/core-server/src/components/static-asset/common/errors.ts",
       "line": 6,
-      "signature": "StaticAssetErrors: { readonly BUCKET_NAME_INVALID: { readonly message: { readonly text: \"Invalid bucket name\"; readonly code: \"core.static_asset.bucket_name_invalid\"; }; readonly statusCode: 400; readonly category: \"validation\"; }; readonly OBJECT_NAME_INVALID: { readonly message: { readonly text: \""
+      "signature": "StaticAssetErrors: { readonly UPLOAD_NOT_AUTHORIZED: { readonly message: { readonly text: \"Not allowed to request an upload policy\"; readonly code: \"core.static_asset.upload_not_authorized\"; }; readonly statusCode: 403; readonly category: \"validation\"; }; readonly UPLOAD_TOO_LARGE: { readonly messag"
     },
     {
       "name": "StaticAssetStorageTypes",
@@ -13222,7 +13242,7 @@
       "specifier": "@venizia/ignis/static-asset",
       "kind": "type",
       "file": "packages/core-server/src/components/static-asset/common/types.ts",
-      "line": 53,
+      "line": 55,
       "signature": "type TBucketParams = { bucketName: string; }"
     },
     {
@@ -13232,8 +13252,18 @@
       "specifier": "@venizia/ignis/static-asset",
       "kind": "type",
       "file": "packages/core-server/src/components/static-asset/common/types.ts",
-      "line": 46,
+      "line": 48,
       "signature": "type TDefineExtraRoutes = (opts: { controller: BaseRestController; helper: IStorageHelper; basePath: string; }) => void"
+    },
+    {
+      "name": "TDirectUploadOptions",
+      "package": "@venizia/ignis",
+      "subpath": "./static-asset",
+      "specifier": "@venizia/ignis/static-asset",
+      "kind": "type",
+      "file": "packages/core-server/src/components/static-asset/common/types.ts",
+      "line": 65,
+      "signature": "type TDirectUploadOptions = { /** Who may ask for a policy. REQUIRED, not defaulted: this route hands out a write credential, and there is no safe default for that. */ authorize: (opts: { context: TRouteContext; }) => ValueOrPromise<boolean>; /** Signs the commit token. Keep it out of the repository"
     },
     {
       "name": "TListQuery",
@@ -13242,7 +13272,7 @@
       "specifier": "@venizia/ignis/static-asset",
       "kind": "type",
       "file": "packages/core-server/src/components/static-asset/common/types.ts",
-      "line": 61,
+      "line": 63,
       "signature": "type TListQuery = { prefix?: string; recursive?: string; maxKeys?: string; }"
     },
     {
@@ -13272,7 +13302,7 @@
       "specifier": "@venizia/ignis/static-asset",
       "kind": "type",
       "file": "packages/core-server/src/components/static-asset/common/types.ts",
-      "line": 64,
+      "line": 94,
       "signature": "type TMetaLinkConfig<Schema extends TMetaLinkCompatibleSchema = TMetaLinkSchema> = { model: TValueOrAsyncResolver<typeof BaseRelationalEntity<Schema>>; repository: TValueOrAsyncResolver<DefaultCRUDRepository<Schema>>; createMetaLink?: (opts: { uploadResult: IUploadResult; fileStat: IFileStat; query:"
     },
     {
@@ -13292,7 +13322,7 @@
       "specifier": "@venizia/ignis/static-asset",
       "kind": "type",
       "file": "packages/core-server/src/components/static-asset/common/types.ts",
-      "line": 38,
+      "line": 40,
       "signature": "type TObjectNameResolver = (opts: { bucket: IBucketRef; file: TUploadNaming; defaultKey: string; }) => string"
     },
     {
@@ -13302,7 +13332,7 @@
       "specifier": "@venizia/ignis/static-asset",
       "kind": "type",
       "file": "packages/core-server/src/components/static-asset/common/types.ts",
-      "line": 54,
+      "line": 56,
       "signature": "type TObjectParams = { bucketName: string; objectName: string; }"
     },
     {
@@ -13312,7 +13342,7 @@
       "specifier": "@venizia/ignis/static-asset",
       "kind": "type",
       "file": "packages/core-server/src/components/static-asset/common/types.ts",
-      "line": 22,
+      "line": 24,
       "signature": "type TStaticAssetExtraOptions = { parseMultipartBody?: { storage?: 'memory' | 'disk'; uploadDir?: string; }; /** `folderPath` carries the upload query's target folder - dropping it flattens nested uploads. */ normalizeNameFn?: (opts: { file: TUploadNaming; }) => string; normalizeLinkFn?: (opts: IObj"
     },
     {
@@ -13322,7 +13352,7 @@
       "specifier": "@venizia/ignis/static-asset",
       "kind": "type",
       "file": "packages/core-server/src/components/static-asset/common/types.ts",
-      "line": 74,
+      "line": 104,
       "signature": "type TStaticAssetRoutes = { getBuckets?: Partial<Omit<IAuthRouteConfig, 'method' | 'request' | 'responses'>>; getBucketByName?: Partial<Omit<IAuthRouteConfig, 'method' | 'request' | 'responses'>>; createBucket?: Partial<Omit<IAuthRouteConfig, 'method' | 'request' | 'responses'>>; deleteBucket?: Part"
     },
     {
@@ -13342,8 +13372,18 @@
       "specifier": "@venizia/ignis/static-asset",
       "kind": "type",
       "file": "packages/core-server/src/components/static-asset/common/types.ts",
-      "line": 89,
+      "line": 122,
       "signature": "type TStaticAssetsComponentOptions<Schema extends TMetaLinkCompatibleSchema = TMetaLinkSchema> = { [key: string]: { controller: { name: string; basePath: string; isStrict?: boolean; /** `true` serves a raw nested object path (`/objects/photos/2024/f.jpg`) - a URL shape change; a percent-encoded path"
+    },
+    {
+      "name": "TUploadPolicyRequest",
+      "package": "@venizia/ignis",
+      "subpath": "./static-asset",
+      "specifier": "@venizia/ignis/static-asset",
+      "kind": "type",
+      "file": "packages/core-server/src/components/static-asset/common/types.ts",
+      "line": 89,
+      "signature": "type TUploadPolicyRequest = { files: Array<{ fileName: string; contentType?: string; size?: number; }>; }"
     },
     {
       "name": "TUploadQuery",
@@ -13352,7 +13392,7 @@
       "specifier": "@venizia/ignis/static-asset",
       "kind": "type",
       "file": "packages/core-server/src/components/static-asset/common/types.ts",
-      "line": 55,
+      "line": 57,
       "signature": "type TUploadQuery = { principalType?: string; principalId?: string; variant?: string; folderPath?: string; }"
     },
     {
@@ -13366,14 +13406,34 @@
       "signature": "WHITELIST_HEADERS: readonly [\"content-encoding\", \"cache-control\", \"etag\", \"last-modified\"]"
     },
     {
+      "name": "buildCommitToken",
+      "package": "@venizia/ignis",
+      "subpath": "./static-asset",
+      "specifier": "@venizia/ignis/static-asset",
+      "kind": "const",
+      "file": "packages/core-server/src/components/static-asset/common/commit-token.ts",
+      "line": 19,
+      "signature": "buildCommitToken: (opts: { payload: ICommitTokenPayload; secretKey: string; }) => string"
+    },
+    {
       "name": "buildObjectLink",
       "package": "@venizia/ignis",
       "subpath": "./static-asset",
       "specifier": "@venizia/ignis/static-asset",
       "kind": "const",
       "file": "packages/core-server/src/components/static-asset/controller/factory.ts",
-      "line": 80,
+      "line": 85,
       "signature": "buildObjectLink: (opts: IObjectLocation & { basePath: string; hasConfiguredBucket?: boolean; rawObjectPath?: boolean; }) => string"
+    },
+    {
+      "name": "readCommitToken",
+      "package": "@venizia/ignis",
+      "subpath": "./static-asset",
+      "specifier": "@venizia/ignis/static-asset",
+      "kind": "const",
+      "file": "packages/core-server/src/components/static-asset/common/commit-token.ts",
+      "line": 33,
+      "signature": "readCommitToken: (opts: { token: string; secretKey: string; now?: number; }) => ICommitTokenPayload"
     },
     {
       "name": "resolveServedContentType",
@@ -13382,7 +13442,7 @@
       "specifier": "@venizia/ignis/static-asset",
       "kind": "const",
       "file": "packages/core-server/src/components/static-asset/controller/factory.ts",
-      "line": 113,
+      "line": 118,
       "signature": "resolveServedContentType: (opts: { helper: IStorageHelper; object: IObjectRef; }) => { contentType: string; isRenderable: boolean; }"
     },
     {
@@ -20151,7 +20211,7 @@
       "specifier": "@venizia/ignis-helpers",
       "kind": "class",
       "file": "packages/helpers/src/modules/storage/base.ts",
-      "line": 22,
+      "line": 23,
       "signature": "class BaseStorageHelper extends BaseHelper implements IStorageHelper"
     },
     {
@@ -21087,6 +21147,16 @@
       "signature": "interface IPoolWaiter<T>"
     },
     {
+      "name": "IPostPolicy",
+      "package": "@venizia/ignis-helpers",
+      "subpath": ".",
+      "specifier": "@venizia/ignis-helpers",
+      "kind": "interface",
+      "file": "packages/helpers/src/modules/storage/common/types.ts",
+      "line": 76,
+      "signature": "interface IPostPolicy"
+    },
+    {
       "name": "IPrintOptions",
       "package": "@venizia/ignis-helpers",
       "subpath": ".",
@@ -21423,7 +21493,7 @@
       "specifier": "@venizia/ignis-helpers",
       "kind": "interface",
       "file": "packages/helpers/src/modules/storage/common/types.ts",
-      "line": 80,
+      "line": 87,
       "signature": "interface IStorageHelper"
     },
     {
@@ -21433,7 +21503,7 @@
       "specifier": "@venizia/ignis-helpers",
       "kind": "interface",
       "file": "packages/helpers/src/modules/storage/common/types.ts",
-      "line": 75,
+      "line": 82,
       "signature": "interface IStorageHelperOptions"
     },
     {
@@ -22094,7 +22164,7 @@
       "specifier": "@venizia/ignis-helpers",
       "kind": "class",
       "file": "packages/helpers/src/modules/storage/common/constants.ts",
-      "line": 15,
+      "line": 18,
       "signature": "class StorageConcurrency"
     },
     {
@@ -22124,7 +22194,7 @@
       "specifier": "@venizia/ignis-helpers",
       "kind": "class",
       "file": "packages/helpers/src/modules/storage/common/constants.ts",
-      "line": 10,
+      "line": 13,
       "signature": "class StoragePresignLimits"
     },
     {
@@ -23835,7 +23905,7 @@
       "specifier": "@venizia/ignis-helpers/bun-s3",
       "kind": "class",
       "file": "packages/helpers/src/modules/storage/bun-s3/helper.ts",
-      "line": 44,
+      "line": 45,
       "signature": "class BunS3Helper extends BaseStorageHelper"
     },
     {
@@ -23845,7 +23915,7 @@
       "specifier": "@venizia/ignis-helpers/bun-s3",
       "kind": "interface",
       "file": "packages/helpers/src/modules/storage/bun-s3/helper.ts",
-      "line": 21,
+      "line": 22,
       "signature": "interface IBunS3HelperOptions extends IStorageHelperOptions"
     },
     {

@@ -8,6 +8,29 @@ counted as concepts.
 
 ## 2026-09-14 - six changes: the asset surface, a component's options, and an inject target behind an import cycle
 
+**Direct upload lands, as a signed POST policy.** `controller.directUpload` registers
+`POST {base}/upload-policy` and `POST {base}/upload-commit`; absent, neither exists. NOT a presigned
+PUT, and the research killed that shape before it was built: a signed PUT binds `content-length` to an
+EXACT value, so "at most 2 MB" is inexpressible and every retry is an opaque 403. A policy carries
+`content-length-range`.
+
+The commit is claimed with an HMAC over `{bucket, key, expiresAt}`, verified BEFORE any storage call -
+so a caller cannot name an object it was never granted, and the route is not a name prober. The token
+carries no business fields on purpose: whose upload it is belongs to the application, not to a token
+IGNIS signs.
+
+A policy only authorizes `pending/<generated>`; commit copies server-side to the final key, which
+therefore appears in NO policy and cannot be replaced afterwards. Removing the temporary object is
+cleanup, not the commit: it is best-effort and logs, because failing the request would tell the caller
+their upload did not work when it did. `onCommit` runs BEFORE the copy so a throwing hook leaves the
+object under the prefix for a lifecycle rule. `authorize` is a REQUIRED property - a route handing out
+a write credential has no safe default.
+
+Two storage methods came with it: `presignPost` and `copyObject` (`x-amz-copy-source`, so 500 MB never
+travels through this process). `buildSignedRequest` now takes extra headers to SIGN - anything outside
+`SignedHeaders` is refused by S3. A trap worth keeping: every field the browser posts must ALSO be a
+policy condition, or S3 rejects the form it just signed.
+
 **The asset download route drops its plural.** `GET {base}/downloads/{objectName}` is now
 `GET {base}/download/{objectName}`, reversing half of the 09-08 route move. `download` is one action
 on one object; `/buckets` and `/objects` stay plural because each names a listable collection.
@@ -535,6 +558,8 @@ Gate: helpers 1461/16/0, kernel 197/0, core-server 1309/1/0 (the true, unchanged
 
 ## 2026-09-03 - file split epic, waves 0-5: tooling, then kernel, core-server, helpers, connectors group, and vert examples
 
+Wave 5 alone is 15 commits on 2026-09-03, every one a `refactor(examples)` splitting one vert test service into case groups - the range is what to read, not the individual hashes.
+
 Six waves split every hub file the repository had. Wave 0 built the tools; waves 1-4 split one package group each; wave 5 split the example application's test services.
 
 Wave 0 - tools. `make split-report` lists hub candidates, stray `types.ts`/`constants.ts`, scope folders without a barrel, files over 500 lines and import cycles per package - informational, never a gate. `bun scripts/module-cycles.ts <dist/esm> --max 0` fails on an import cycle in a built ESM tree. `make surface-gen`/`make surface-check` read the TypeScript compiler API over every package's built `.d.ts` and freeze every exported symbol into `reference/public-surface.md`; a split that changes the surface fails the gate, an intended API change reruns `surface-gen`. Positive control: appending a symbol to `packages/filter/dist/cjs/index.d.ts` turned the check `stale ... exit=1`, `make filter` restored `fresh ... exit=0`. Baseline import-cycle count per package's `dist/esm`: inversion 1 (`app-error.js <-> message-code.js`), every other package 0.
@@ -565,7 +590,7 @@ Gate (epic close): vert `build`/`lint`/`check:artifacts`/`compile:linux` exit 0;
 
 `IArtifactOptions`, `IBootOptions`, `IBootReport`, `IBootPhaseReport`, `TBootPhase`, `BootPhases`, `IBootableApplication` and `boot/src/common/` are gone from `@venizia/ignis-boot`. `BaseApplication.boot()` and `hasWarnedBootDeprecated` are gone from `core-server`; `IApplicationConfigs.bootOptions` and its kernel mirror (`IApplicationArtifactOptions`, `IApplicationBootOptions`) are gone from `kernel`. `BindingNamespaces.BOOTERS` is gone, and so is the dead `base/services/base-crud.ts` placeholder.
 
-User-ordered full removal, not a deprecation cycle: measured zero IGNIS usage outside the deleted sites before deleting. BANA carries 3 `.boot()` call sites, 2 `bootOptions` config literals and 16 `override async boot()` sites that now fail to compile. See the [changelog](/changelogs/2026-09-03-deprecated-boot-api-removed).
+User-ordered full removal (`a6d5e5e9`), not a deprecation cycle: measured zero IGNIS usage outside the deleted sites before deleting. BANA carries 3 `.boot()` call sites, 2 `bootOptions` config literals and 16 `override async boot()` sites that now fail to compile. See the [changelog](/changelogs/2026-09-03-deprecated-boot-api-removed).
 
 Fix round 1 (Opus review): `ArtifactScanner.scan()`'s `ignore` option was replacing `DEFAULT_IGNORE` instead of merging with it, contradicting every doc that already described it as additive - fixed the code, not the docs. Added `removed-members.test.ts` pinning `boot`, `booter` and `registerBooters` absent from `BaseApplication.prototype`.
 

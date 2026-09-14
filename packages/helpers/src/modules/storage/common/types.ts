@@ -72,6 +72,13 @@ export interface IListObjectsOptions {
   maxKeys?: number;
 }
 
+/** What `presignPost` hands a browser: where to post, the fields to post with it, and when the grant dies. */
+export interface IPostPolicy {
+  postURL: string;
+  formData: Record<string, string>;
+  expiresAt: string;
+}
+
 export interface IStorageHelperOptions {
   scope?: string;
   identifier?: string;
@@ -118,8 +125,24 @@ export interface IStorageHelper {
     },
   ): Promise<void>;
 
+  /** Copies within one bucket, server side - the bytes never travel through this process. */
+  copyObject(opts: {
+    bucket: IBucketRef;
+    source: IObjectRef;
+    destination: IObjectRef;
+  }): Promise<void>;
+
   removeObject(opts: IObjectLocation): Promise<void>;
   removeObjects(opts: { bucket: IBucketRef; objects: IObjectRef[] }): Promise<void>;
+
+  /** The form a browser posts straight to the storage. Unlike a presigned PUT, a policy carries `content-length-range`, so "at most N bytes" is expressible - a signed PUT binds the length to one exact value. */
+  presignPost(opts: {
+    bucket: IBucketRef;
+    keyPrefix: string;
+    maxBytes: number;
+    contentType?: string;
+    expiresIn?: IDuration;
+  }): Promise<IPostPolicy>;
 
   presignPut(opts: IObjectLocation & { expiresIn?: IDuration }): Promise<string>;
   presignGet(

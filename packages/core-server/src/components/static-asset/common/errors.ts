@@ -4,6 +4,33 @@ import { HTTP } from '@venizia/ignis-helpers/common';
 
 /** Codes a client branches on for a rejected static-asset request. A throw site may override `message` to name the offending value. */
 export const StaticAssetErrors = {
+  UPLOAD_NOT_AUTHORIZED: {
+    message: {
+      text: 'Not allowed to request an upload policy',
+      code: 'core.static_asset.upload_not_authorized',
+    },
+    statusCode: HTTP.ResultCodes.RS_4.Forbidden,
+    category: ErrorScopes.VALIDATION,
+  },
+  UPLOAD_TOO_LARGE: {
+    message: {
+      text: 'File is larger than the policy allows',
+      code: 'core.static_asset.upload_too_large',
+    },
+    statusCode: HTTP.ResultCodes.RS_4.BadRequest,
+    category: ErrorScopes.VALIDATION,
+  },
+  /** Deliberately not 404 and deliberately not "expired": a caller learns only that the token is no good, never whether the key it names exists. */
+  INVALID_COMMIT_TOKEN: {
+    message: { text: 'Invalid commit token', code: 'core.static_asset.invalid_commit_token' },
+    statusCode: HTTP.ResultCodes.RS_4.BadRequest,
+    category: ErrorScopes.VALIDATION,
+  },
+  EXPIRED_COMMIT_TOKEN: {
+    message: { text: 'Commit token has expired', code: 'core.static_asset.expired_commit_token' },
+    statusCode: HTTP.ResultCodes.RS_4.BadRequest,
+    category: ErrorScopes.VALIDATION,
+  },
   BUCKET_NAME_INVALID: {
     message: { text: 'Invalid bucket name', code: 'core.static_asset.bucket_name_invalid' },
     statusCode: HTTP.ResultCodes.RS_4.BadRequest,
