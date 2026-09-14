@@ -271,6 +271,89 @@ One group of three binding decisions on `IApplicationConfigs`. Without `binding`
 
 Resolving at boot builds the singletons then, so a constructor with a side effect runs during `verifyBindings`; turn `doVerify` on in development and UAT. Registrations made by the index step and by the framework's own steps are never counted as manual. The override setting covers the six registration methods only: `bind()`, `set()` and a `@provide` key never pass through it, so a key can still be rebound at runtime.
 
+### Listing none of your own
+
+Set `discoverArtifacts: true` and every decorated class registers itself:
+
+```ts
+// index.ts - side effects only; importing the file is what makes the classes exist
+import './generated/artifacts';
+
+export const beConfigs: IApplicationConfigs = {
+  path: { base: '/', isStrict: true },
+  discoverArtifacts: true,
+};
+```
+
+| `discoverArtifacts` | `artifacts` | What registers |
+|---|---|---|
+| unset | unset | nothing |
+| unset | set | exactly what it lists |
+| `true` | unset | every decorated class in the import graph |
+| `true` | set | the union, de-duplicated |
+
+**An absent `artifacts` registers nothing, and always will.** Reading it as "register everything"
+would change what an existing application boots with, silently - a config builder that omits the key
+on purpose would swallow the whole import graph.
+
+Discovery happens at **import** time, not at boot. `injectable` - the function every stereotype calls
+- records the class as it decorates it. A boot-time filesystem scan cannot work: a compiled
+single-file binary has no source tree, and a class exists at run time only because something imported
+it. The generated index already imports every decorated class, so importing it for its side effects
+is the whole wiring.
+
+A `@model` is recorded and then skipped: it has a binding namespace but no index field, because its
+repository registers it.
+
+> [!WARNING]
+> The discovered list is process-wide. **A class with no `when` registers in every application of the
+> process.** Several applications in one process tell themselves apart with `when`, which already
+> receives the application:
+>
+> ```ts
+> @controller({ when: ({ application }) => application instanceof SearchApplication })
+> ```
+
+No class inside IGNIS carries a stereotype, so discovery never turns on a framework component by
+itself. Choosing which features an application runs stays explicit:
+
+```ts
+preConfigure() {
+  this.component(HealthCheckComponent);
+  this.component(StaticAssetComponent);
+}
+```
+
+### Finding a binding nobody resolves
+
+`doVerify` catches one direction: a dependency injected but never registered. The other direction -
+a class registered that nothing injects - is silent, so a hand-written artifact list can only grow.
+
+The container counts every key it hands out, and the application filters those counts by namespace:
+
+```ts
+await application.initialize();
+application.startResolutionCounting();   // counting is off until you ask
+
+// ... run the traffic that exercises the application ...
+
+application.getUnresolvedBindings();   // ['repositories.OrphanRepository', ...]
+```
+
+| Member | Answers |
+|---|---|
+| `getResolutionCounts()` | a copy of key to read count; a key bound and never read is absent |
+| `startResolutionCounting()` | clears the counts and starts counting - OFF by default |
+| `stopResolutionCounting()` | stops counting, keeps what was counted |
+| `getUnresolvedBindings({ tags })` | bound keys with no count, defaulting to the `services` and `repositories` namespaces |
+
+**The reset is not a formality.** With `doVerify: true` the boot reads every service and repository,
+so a report taken without a reset is empty for the wrong reason.
+
+A count of zero is evidence, not a verdict. An unread binding may be an allow-list entry or a
+technical floor that only one deployment exercises, and the framework cannot tell those from dead
+code - read the list, do not automate a deletion from it.
+
 ## `ignis-artifacts` (CLI)
 
 Shipped by `@venizia/ignis-boot` as a binary. Requires `typescript` 5 or 6 (peer `^5.0.0 || ^6.0.0`; TypeScript 7 no longer exports the JS API the scanner calls) and runs under bun.

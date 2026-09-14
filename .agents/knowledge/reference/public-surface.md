@@ -10,7 +10,7 @@ tags: [reference, exports, api]
 
 ## inversion
 
-### `@venizia/ignis-inversion` (59)
+### `@venizia/ignis-inversion` (67)
 
 - `AbstractContainer` class
 - `AnyType` type
@@ -42,8 +42,12 @@ tags: [reference, exports, api]
 - `MetadataKeys` const
 - `metadataRegistry` const
 - `MetadataRegistry` class
+- `resolveInjectTarget` const
+- `resolveValue` const
+- `resolveValueAsync` const
 - `TAbstractConstructor` type
 - `TApplicationError` type
+- `TAsyncResolver` type
 - `TBindingKey` type
 - `TBindingProvider` type
 - `TBindingResolverValue` type
@@ -66,9 +70,13 @@ tags: [reference, exports, api]
 - `TErrorNormalizeTransformFn` type
 - `TErrorScope` type
 - `TInjectOptions` type
+- `TInjectTarget` type
 - `TNullable` type
 - `TRegisterErrors` type
+- `TResolver` type
 - `TResponsedError` type
+- `TValueOrAsyncResolver` type
+- `TValueOrResolver` type
 - `ValueOf` type
 - `ValueOrPromise` type
 
@@ -856,7 +864,7 @@ tags: [reference, exports, api]
 
 ## kernel
 
-### `@venizia/ignis-kernel` (396)
+### `@venizia/ignis-kernel` (398)
 
 - `AbstractApplication` class
 - `AbstractAuthRegistry` class
@@ -1103,6 +1111,7 @@ tags: [reference, exports, api]
 - `resolveFindByIdConfig` const
 - `resolveFindConfig` const
 - `resolveFindOneConfig` const
+- `resolveInjectTarget` const
 - `resolveRequestDomain` const
 - `ResponseFormats` class
 - `RestApplication` class
@@ -1192,6 +1201,7 @@ tags: [reference, exports, api]
 - `TInclusion` type
 - `TInferSchema` type
 - `TInjectOptions` type
+- `TInjectTarget` type
 - `TIsAllowedOriginHandler` type
 - `TIsAllowedSecFetchSiteHandler` type
 - `TIsoTimestamp` type
@@ -1789,7 +1799,7 @@ tags: [reference, exports, api]
 
 ## core-server
 
-### `@venizia/ignis` (947)
+### `@venizia/ignis` (949)
 
 - `AbstractApplication` class
 - `AbstractAuthRegistry` class
@@ -2387,6 +2397,7 @@ tags: [reference, exports, api]
 - `resolveFindByIdConfig` const
 - `resolveFindConfig` const
 - `resolveFindOneConfig` const
+- `resolveInjectTarget` const
 - `resolveLoggerColorize` const
 - `resolveLoggerLevel` const
 - `resolveRequestDomain` const
@@ -2568,6 +2579,7 @@ tags: [reference, exports, api]
 - `TInferSchema` type
 - `TInjectionGetter` type
 - `TInjectOptions` type
+- `TInjectTarget` type
 - `TIsAllowedOriginHandler` type
 - `TIsAllowedSecFetchSiteHandler` type
 - `TIsolationLevel` type
@@ -3138,7 +3150,7 @@ tags: [reference, exports, api]
 - `IConnectRpcModule` interface
 - `IGrpcComponentConfig` interface
 
-### `@venizia/ignis/static-asset` (27)
+### `@venizia/ignis/static-asset` (29)
 
 - `AssetControllerFactory` class
 - `AssetIngest` class
@@ -3158,11 +3170,13 @@ tags: [reference, exports, api]
 - `TDefineExtraRoutes` type
 - `TListQuery` type
 - `TMetaLink` type
+- `TMetaLinkCompatibleSchema` type
 - `TMetaLinkConfig` type
 - `TMetaLinkSchema` type
+- `TObjectNameResolver` type
 - `TObjectParams` type
-- `TResolveObjectName` type
 - `TStaticAssetExtraOptions` type
+- `TStaticAssetRoutes` type
 - `TStaticAssetsComponentOptions` type
 - `TStaticAssetStorageType` type
 - `TUploadQuery` type

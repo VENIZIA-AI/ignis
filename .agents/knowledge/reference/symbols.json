@@ -1731,7 +1731,7 @@
       "specifier": "@venizia/ignis",
       "kind": "class",
       "file": "packages/core-server/src/components/health-check/controller.ts",
-      "line": 84,
+      "line": 91,
       "signature": "class HealthCheckController extends BaseRestController"
     },
     {
@@ -1821,7 +1821,7 @@
       "specifier": "@venizia/ignis",
       "kind": "interface",
       "file": "packages/kernel/src/base/applications/common/types/application.ts",
-      "line": 43,
+      "line": 51,
       "signature": "interface IApplication<AppEnv extends Env = Env, AppSchema extends Schema = Schema, BasePath extends string = '/'>"
     },
     {
@@ -1851,7 +1851,7 @@
       "specifier": "@venizia/ignis",
       "kind": "interface",
       "file": "packages/kernel/src/base/applications/common/types/application.ts",
-      "line": 34,
+      "line": 42,
       "signature": "interface IApplicationInfo"
     },
     {
@@ -2041,7 +2041,7 @@
       "specifier": "@venizia/ignis",
       "kind": "interface",
       "file": "packages/inversion/src/common/types.ts",
-      "line": 16,
+      "line": 24,
       "signature": "interface IBindingTag"
     },
     {
@@ -3471,7 +3471,7 @@
       "specifier": "@venizia/ignis",
       "kind": "interface",
       "file": "packages/kernel/src/base/applications/common/types/application.ts",
-      "line": 58,
+      "line": 66,
       "signature": "interface IRestApplication extends IApplication, IComponentMixin, IControllerMixin, IRepositoryMixin, IServiceMixin, IStaticServeMixin"
     },
     {
@@ -5491,8 +5491,8 @@
       "subpath": ".",
       "specifier": "@venizia/ignis",
       "kind": "type",
-      "file": "packages/helpers/src/common/types/resolver.ts",
-      "line": 2,
+      "file": "packages/inversion/src/common/types.ts",
+      "line": 13,
       "signature": "type TAsyncResolver<T> = (...args: any[]) => T | Promise<T>"
     },
     {
@@ -5642,7 +5642,7 @@
       "specifier": "@venizia/ignis",
       "kind": "type",
       "file": "packages/inversion/src/common/types.ts",
-      "line": 14,
+      "line": 22,
       "signature": "type TBindingKey = string | symbol"
     },
     {
@@ -6562,8 +6562,18 @@
       "specifier": "@venizia/ignis",
       "kind": "type",
       "file": "packages/kernel/src/base/metadata/injectors.ts",
-      "line": 7,
-      "signature": "type TInjectOptions = { isOptional?: boolean; } & ({ key: TBindingKey; target?: never; } | { target: TClass<AnyType>; key?: never; })"
+      "line": 12,
+      "signature": "type TInjectOptions = TWithoutRegistry<TCoreInjectOptions>"
+    },
+    {
+      "name": "TInjectTarget",
+      "package": "@venizia/ignis",
+      "subpath": ".",
+      "specifier": "@venizia/ignis",
+      "kind": "type",
+      "file": "packages/inversion/src/common/types.ts",
+      "line": 18,
+      "signature": "type TInjectTarget = TValueOrResolver<TClass<AnyType>>"
     },
     {
       "name": "TInjectionGetter",
@@ -7241,8 +7251,8 @@
       "subpath": ".",
       "specifier": "@venizia/ignis",
       "kind": "type",
-      "file": "packages/helpers/src/common/types/resolver.ts",
-      "line": 1,
+      "file": "packages/inversion/src/common/types.ts",
+      "line": 12,
       "signature": "type TResolver<T> = (...args: any[]) => T"
     },
     {
@@ -7691,8 +7701,8 @@
       "subpath": ".",
       "specifier": "@venizia/ignis",
       "kind": "type",
-      "file": "packages/helpers/src/common/types/resolver.ts",
-      "line": 4,
+      "file": "packages/inversion/src/common/types.ts",
+      "line": 15,
       "signature": "type TValueOrAsyncResolver<T> = T | TAsyncResolver<T>"
     },
     {
@@ -7701,8 +7711,8 @@
       "subpath": ".",
       "specifier": "@venizia/ignis",
       "kind": "type",
-      "file": "packages/helpers/src/common/types/resolver.ts",
-      "line": 3,
+      "file": "packages/inversion/src/common/types.ts",
+      "line": 14,
       "signature": "type TValueOrResolver<T> = T | TResolver<T>"
     },
     {
@@ -8262,7 +8272,7 @@
       "specifier": "@venizia/ignis",
       "kind": "const",
       "file": "packages/kernel/src/base/metadata/injectable.ts",
-      "line": 53,
+      "line": 57,
       "signature": "component: <ApplicationType = unknown>(opts?: IArtifactRegistrationOptions<ApplicationType>) => ClassDecorator"
     },
     {
@@ -8282,7 +8292,7 @@
       "specifier": "@venizia/ignis",
       "kind": "const",
       "file": "packages/kernel/src/base/metadata/injectable.ts",
-      "line": 59,
+      "line": 63,
       "signature": "configuration: <ApplicationType = unknown>(opts?: IArtifactRegistrationOptions<ApplicationType>) => ClassDecorator"
     },
     {
@@ -8352,7 +8362,7 @@
       "specifier": "@venizia/ignis",
       "kind": "const",
       "file": "packages/kernel/src/base/metadata/persistents.ts",
-      "line": 50,
+      "line": 56,
       "signature": "datasource: (metadata?: IDataSourceMetadata) => ClassDecorator"
     },
     {
@@ -8803,7 +8813,7 @@
       "specifier": "@venizia/ignis",
       "kind": "const",
       "file": "packages/kernel/src/base/metadata/injectors.ts",
-      "line": 11,
+      "line": 19,
       "signature": "inject: (opts: TInjectOptions) => (target: any, propertyName: string | symbol | undefined, parameterIndex?: number) => void"
     },
     {
@@ -8853,7 +8863,7 @@
       "specifier": "@venizia/ignis",
       "kind": "const",
       "file": "packages/inversion/src/common/utilities.ts",
-      "line": 4,
+      "line": 12,
       "signature": "isClass: <T>(target: any) => target is TClass<T>"
     },
     {
@@ -9003,7 +9013,7 @@
       "specifier": "@venizia/ignis",
       "kind": "const",
       "file": "packages/kernel/src/base/metadata/persistents.ts",
-      "line": 19,
+      "line": 25,
       "signature": "model: (metadata: IModelMetadata) => ClassDecorator"
     },
     {
@@ -9053,7 +9063,7 @@
       "specifier": "@venizia/ignis",
       "kind": "const",
       "file": "packages/kernel/src/base/metadata/injectable.ts",
-      "line": 79,
+      "line": 83,
       "signature": "pickRegistrationOptions: <ApplicationType = unknown>(opts: { metadata: IArtifactRegistrationOptions<ApplicationType>; }) => IArtifactRegistrationOptions<ApplicationType>"
     },
     {
@@ -9083,7 +9093,7 @@
       "specifier": "@venizia/ignis",
       "kind": "const",
       "file": "packages/kernel/src/base/metadata/injectable.ts",
-      "line": 65,
+      "line": 69,
       "signature": "provide: (opts: { key: string; scope?: TBindingScope; }) => MethodDecorator"
     },
     {
@@ -9153,7 +9163,7 @@
       "specifier": "@venizia/ignis",
       "kind": "const",
       "file": "packages/kernel/src/base/metadata/persistents.ts",
-      "line": 253,
+      "line": 261,
       "signature": "repository: <Model extends AbstractEntity = AbstractEntity, DataSource extends IDataSource = IDataSource>(metadata?: IRepositoryMetadata<Model, DataSource>) => ClassDecorator"
     },
     {
@@ -9173,7 +9183,7 @@
       "specifier": "@venizia/ignis",
       "kind": "const",
       "file": "packages/helpers/src/common/resolvers.ts",
-      "line": 43,
+      "line": 11,
       "signature": "resolveClass: <T>(ref: TClass<T> | TResolver<TClass<T>> | string) => TClass<T> | string"
     },
     {
@@ -9227,6 +9237,16 @@
       "signature": "resolveFindOneConfig: typeof RouteConfigResolver.resolveFindOneConfig"
     },
     {
+      "name": "resolveInjectTarget",
+      "package": "@venizia/ignis",
+      "subpath": ".",
+      "specifier": "@venizia/ignis",
+      "kind": "const",
+      "file": "packages/inversion/src/common/utilities.ts",
+      "line": 39,
+      "signature": "resolveInjectTarget: (target: TInjectTarget) => TClass<AnyType> | undefined"
+    },
+    {
       "name": "resolveLoggerColorize",
       "package": "@venizia/ignis",
       "subpath": ".",
@@ -9262,8 +9282,8 @@
       "subpath": ".",
       "specifier": "@venizia/ignis",
       "kind": "const",
-      "file": "packages/helpers/src/common/resolvers.ts",
-      "line": 15,
+      "file": "packages/inversion/src/common/utilities.ts",
+      "line": 25,
       "signature": "resolveValue: <T>(valueOrResolver: TValueOrResolver<T>) => T"
     },
     {
@@ -9272,8 +9292,8 @@
       "subpath": ".",
       "specifier": "@venizia/ignis",
       "kind": "const",
-      "file": "packages/helpers/src/common/resolvers.ts",
-      "line": 28,
+      "file": "packages/inversion/src/common/utilities.ts",
+      "line": 34,
       "signature": "resolveValueAsync: <T>(valueOrResolver: TValueOrAsyncResolver<T>) => Promise<T>"
     },
     {
@@ -9313,7 +9333,7 @@
       "specifier": "@venizia/ignis",
       "kind": "const",
       "file": "packages/kernel/src/base/metadata/injectable.ts",
-      "line": 47,
+      "line": 51,
       "signature": "service: <ApplicationType = unknown>(opts?: IArtifactRegistrationOptions<ApplicationType>) => ClassDecorator"
     },
     {
@@ -13072,7 +13092,7 @@
       "specifier": "@venizia/ignis/static-asset",
       "kind": "class",
       "file": "packages/core-server/src/components/static-asset/controller/factory.ts",
-      "line": 176,
+      "line": 181,
       "signature": "class AssetControllerFactory extends BaseHelper"
     },
     {
@@ -13092,7 +13112,7 @@
       "specifier": "@venizia/ignis/static-asset",
       "kind": "class",
       "file": "packages/core-server/src/components/static-asset/models/base.model.ts",
-      "line": 12,
+      "line": 13,
       "signature": "class BaseMetaLinkModel extends BaseRelationalEntity<typeof BaseMetaLinkModel.schema>"
     },
     {
@@ -13112,7 +13132,7 @@
       "specifier": "@venizia/ignis/static-asset",
       "kind": "interface",
       "file": "packages/core-server/src/components/static-asset/controller/factory.ts",
-      "line": 37,
+      "line": 39,
       "signature": "interface IAssetControllerOptions"
     },
     {
@@ -13153,7 +13173,7 @@
       "kind": "class",
       "file": "packages/core-server/src/components/static-asset/component.ts",
       "line": 10,
-      "signature": "class StaticAssetComponent extends BaseComponent"
+      "signature": "class StaticAssetComponent extends BaseComponent<TStaticAssetsComponentOptions>"
     },
     {
       "name": "StaticAssetComponentBindingKeys",
@@ -13192,7 +13212,7 @@
       "specifier": "@venizia/ignis/static-asset",
       "kind": "type",
       "file": "packages/core-server/src/components/static-asset/common/types.ts",
-      "line": 50,
+      "line": 53,
       "signature": "type TBucketParams = { bucketName: string; }"
     },
     {
@@ -13202,7 +13222,7 @@
       "specifier": "@venizia/ignis/static-asset",
       "kind": "type",
       "file": "packages/core-server/src/components/static-asset/common/types.ts",
-      "line": 43,
+      "line": 46,
       "signature": "type TDefineExtraRoutes = (opts: { controller: BaseRestController; helper: IStorageHelper; basePath: string; }) => void"
     },
     {
@@ -13212,7 +13232,7 @@
       "specifier": "@venizia/ignis/static-asset",
       "kind": "type",
       "file": "packages/core-server/src/components/static-asset/common/types.ts",
-      "line": 58,
+      "line": 61,
       "signature": "type TListQuery = { prefix?: string; recursive?: string; maxKeys?: string; }"
     },
     {
@@ -13222,8 +13242,18 @@
       "specifier": "@venizia/ignis/static-asset",
       "kind": "type",
       "file": "packages/core-server/src/components/static-asset/models/base.model.ts",
-      "line": 45,
+      "line": 46,
       "signature": "type TMetaLink = TTableObject<TMetaLinkSchema>"
+    },
+    {
+      "name": "TMetaLinkCompatibleSchema",
+      "package": "@venizia/ignis",
+      "subpath": "./static-asset",
+      "specifier": "@venizia/ignis/static-asset",
+      "kind": "type",
+      "file": "packages/core-server/src/components/static-asset/models/base.model.ts",
+      "line": 49,
+      "signature": "type TMetaLinkCompatibleSchema = TTableSchemaWithId & { $inferSelect: TMetaLink; }"
     },
     {
       "name": "TMetaLinkConfig",
@@ -13232,8 +13262,8 @@
       "specifier": "@venizia/ignis/static-asset",
       "kind": "type",
       "file": "packages/core-server/src/components/static-asset/common/types.ts",
-      "line": 60,
-      "signature": "type TMetaLinkConfig<Schema extends TMetaLinkSchema = TMetaLinkSchema> = { model: typeof BaseRelationalEntity<Schema>; repository: DefaultCRUDRepository<Schema>; createMetaLink?: (opts: { uploadResult: IUploadResult; fileStat: IFileStat; query: TUploadQuery; }) => ValueOrPromise<{ count: number; dat"
+      "line": 64,
+      "signature": "type TMetaLinkConfig<Schema extends TMetaLinkCompatibleSchema = TMetaLinkSchema> = { model: TValueOrAsyncResolver<typeof BaseRelationalEntity<Schema>>; repository: TValueOrAsyncResolver<DefaultCRUDRepository<Schema>>; createMetaLink?: (opts: { uploadResult: IUploadResult; fileStat: IFileStat; query:"
     },
     {
       "name": "TMetaLinkSchema",
@@ -13242,8 +13272,18 @@
       "specifier": "@venizia/ignis/static-asset",
       "kind": "type",
       "file": "packages/core-server/src/components/static-asset/models/base.model.ts",
-      "line": 44,
+      "line": 45,
       "signature": "type TMetaLinkSchema = typeof BaseMetaLinkModel.schema"
+    },
+    {
+      "name": "TObjectNameResolver",
+      "package": "@venizia/ignis",
+      "subpath": "./static-asset",
+      "specifier": "@venizia/ignis/static-asset",
+      "kind": "type",
+      "file": "packages/core-server/src/components/static-asset/common/types.ts",
+      "line": 38,
+      "signature": "type TObjectNameResolver = (opts: { bucket: IBucketRef; file: TUploadNaming; defaultKey: string; }) => string"
     },
     {
       "name": "TObjectParams",
@@ -13252,18 +13292,8 @@
       "specifier": "@venizia/ignis/static-asset",
       "kind": "type",
       "file": "packages/core-server/src/components/static-asset/common/types.ts",
-      "line": 51,
+      "line": 54,
       "signature": "type TObjectParams = { bucketName: string; objectName: string; }"
-    },
-    {
-      "name": "TResolveObjectName",
-      "package": "@venizia/ignis",
-      "subpath": "./static-asset",
-      "specifier": "@venizia/ignis/static-asset",
-      "kind": "type",
-      "file": "packages/core-server/src/components/static-asset/common/types.ts",
-      "line": 35,
-      "signature": "type TResolveObjectName = (opts: { bucket: IBucketRef; file: TUploadNaming; defaultKey: string; }) => string"
     },
     {
       "name": "TStaticAssetExtraOptions",
@@ -13272,8 +13302,18 @@
       "specifier": "@venizia/ignis/static-asset",
       "kind": "type",
       "file": "packages/core-server/src/components/static-asset/common/types.ts",
-      "line": 19,
+      "line": 22,
       "signature": "type TStaticAssetExtraOptions = { parseMultipartBody?: { storage?: 'memory' | 'disk'; uploadDir?: string; }; /** `folderPath` carries the upload query's target folder - dropping it flattens nested uploads. */ normalizeNameFn?: (opts: { file: TUploadNaming; }) => string; normalizeLinkFn?: (opts: IObj"
+    },
+    {
+      "name": "TStaticAssetRoutes",
+      "package": "@venizia/ignis",
+      "subpath": "./static-asset",
+      "specifier": "@venizia/ignis/static-asset",
+      "kind": "type",
+      "file": "packages/core-server/src/components/static-asset/common/types.ts",
+      "line": 74,
+      "signature": "type TStaticAssetRoutes = { getBuckets?: Partial<Omit<IAuthRouteConfig, 'method' | 'request' | 'responses'>>; getBucketByName?: Partial<Omit<IAuthRouteConfig, 'method' | 'request' | 'responses'>>; createBucket?: Partial<Omit<IAuthRouteConfig, 'method' | 'request' | 'responses'>>; deleteBucket?: Part"
     },
     {
       "name": "TStaticAssetStorageType",
@@ -13292,8 +13332,8 @@
       "specifier": "@venizia/ignis/static-asset",
       "kind": "type",
       "file": "packages/core-server/src/components/static-asset/common/types.ts",
-      "line": 70,
-      "signature": "type TStaticAssetsComponentOptions = { [key: string]: { controller: { name: string; basePath: string; isStrict?: boolean; /** The single bucket every object route uses. It leaves the URL (`/objects/{objectName}`) and the four bucket-management routes are not registered. The function form is read per"
+      "line": 89,
+      "signature": "type TStaticAssetsComponentOptions<Schema extends TMetaLinkCompatibleSchema = TMetaLinkSchema> = { [key: string]: { controller: { name: string; basePath: string; isStrict?: boolean; /** `true` serves a raw nested object path (`/objects/photos/2024/f.jpg`) - a URL shape change; a percent-encoded path"
     },
     {
       "name": "TUploadQuery",
@@ -13302,7 +13342,7 @@
       "specifier": "@venizia/ignis/static-asset",
       "kind": "type",
       "file": "packages/core-server/src/components/static-asset/common/types.ts",
-      "line": 52,
+      "line": 55,
       "signature": "type TUploadQuery = { principalType?: string; principalId?: string; variant?: string; folderPath?: string; }"
     },
     {
@@ -13322,7 +13362,7 @@
       "specifier": "@venizia/ignis/static-asset",
       "kind": "const",
       "file": "packages/core-server/src/components/static-asset/controller/factory.ts",
-      "line": 74,
+      "line": 79,
       "signature": "buildObjectLink: (opts: IObjectLocation & { basePath: string; hasConfiguredBucket?: boolean; rawObjectPath?: boolean; }) => string"
     },
     {
@@ -13332,7 +13372,7 @@
       "specifier": "@venizia/ignis/static-asset",
       "kind": "const",
       "file": "packages/core-server/src/components/static-asset/controller/factory.ts",
-      "line": 107,
+      "line": 112,
       "signature": "resolveServedContentType: (opts: { helper: IStorageHelper; object: IObjectRef; }) => { contentType: string; isRenderable: boolean; }"
     },
     {
@@ -22133,8 +22173,8 @@
       "subpath": ".",
       "specifier": "@venizia/ignis-helpers",
       "kind": "type",
-      "file": "packages/helpers/src/common/types/resolver.ts",
-      "line": 2,
+      "file": "packages/inversion/src/common/types.ts",
+      "line": 13,
       "signature": "type TAsyncResolver<T> = (...args: any[]) => T | Promise<T>"
     },
     {
@@ -22693,8 +22733,8 @@
       "subpath": ".",
       "specifier": "@venizia/ignis-helpers",
       "kind": "type",
-      "file": "packages/helpers/src/common/types/resolver.ts",
-      "line": 1,
+      "file": "packages/inversion/src/common/types.ts",
+      "line": 12,
       "signature": "type TResolver<T> = (...args: any[]) => T"
     },
     {
@@ -22823,8 +22863,8 @@
       "subpath": ".",
       "specifier": "@venizia/ignis-helpers",
       "kind": "type",
-      "file": "packages/helpers/src/common/types/resolver.ts",
-      "line": 4,
+      "file": "packages/inversion/src/common/types.ts",
+      "line": 15,
       "signature": "type TValueOrAsyncResolver<T> = T | TAsyncResolver<T>"
     },
     {
@@ -22833,8 +22873,8 @@
       "subpath": ".",
       "specifier": "@venizia/ignis-helpers",
       "kind": "type",
-      "file": "packages/helpers/src/common/types/resolver.ts",
-      "line": 3,
+      "file": "packages/inversion/src/common/types.ts",
+      "line": 14,
       "signature": "type TValueOrResolver<T> = T | TResolver<T>"
     },
     {
@@ -23435,7 +23475,7 @@
       "specifier": "@venizia/ignis-helpers",
       "kind": "const",
       "file": "packages/inversion/src/common/utilities.ts",
-      "line": 4,
+      "line": 12,
       "signature": "isClass: <T>(target: any) => target is TClass<T>"
     },
     {
@@ -23565,7 +23605,7 @@
       "specifier": "@venizia/ignis-helpers",
       "kind": "const",
       "file": "packages/helpers/src/common/resolvers.ts",
-      "line": 43,
+      "line": 11,
       "signature": "resolveClass: <T>(ref: TClass<T> | TResolver<TClass<T>> | string) => TClass<T> | string"
     },
     {
@@ -23594,8 +23634,8 @@
       "subpath": ".",
       "specifier": "@venizia/ignis-helpers",
       "kind": "const",
-      "file": "packages/helpers/src/common/resolvers.ts",
-      "line": 15,
+      "file": "packages/inversion/src/common/utilities.ts",
+      "line": 25,
       "signature": "resolveValue: <T>(valueOrResolver: TValueOrResolver<T>) => T"
     },
     {
@@ -23604,8 +23644,8 @@
       "subpath": ".",
       "specifier": "@venizia/ignis-helpers",
       "kind": "const",
-      "file": "packages/helpers/src/common/resolvers.ts",
-      "line": 28,
+      "file": "packages/inversion/src/common/utilities.ts",
+      "line": 34,
       "signature": "resolveValueAsync: <T>(valueOrResolver: TValueOrAsyncResolver<T>) => Promise<T>"
     },
     {
@@ -24024,8 +24064,8 @@
       "subpath": "./common",
       "specifier": "@venizia/ignis-helpers/common",
       "kind": "type",
-      "file": "packages/helpers/src/common/types/resolver.ts",
-      "line": 2,
+      "file": "packages/inversion/src/common/types.ts",
+      "line": 13,
       "signature": "type TAsyncResolver<T> = (...args: any[]) => T | Promise<T>"
     },
     {
@@ -24244,8 +24284,8 @@
       "subpath": "./common",
       "specifier": "@venizia/ignis-helpers/common",
       "kind": "type",
-      "file": "packages/helpers/src/common/types/resolver.ts",
-      "line": 1,
+      "file": "packages/inversion/src/common/types.ts",
+      "line": 12,
       "signature": "type TResolver<T> = (...args: any[]) => T"
     },
     {
@@ -24274,8 +24314,8 @@
       "subpath": "./common",
       "specifier": "@venizia/ignis-helpers/common",
       "kind": "type",
-      "file": "packages/helpers/src/common/types/resolver.ts",
-      "line": 4,
+      "file": "packages/inversion/src/common/types.ts",
+      "line": 15,
       "signature": "type TValueOrAsyncResolver<T> = T | TAsyncResolver<T>"
     },
     {
@@ -24284,8 +24324,8 @@
       "subpath": "./common",
       "specifier": "@venizia/ignis-helpers/common",
       "kind": "type",
-      "file": "packages/helpers/src/common/types/resolver.ts",
-      "line": 3,
+      "file": "packages/inversion/src/common/types.ts",
+      "line": 14,
       "signature": "type TValueOrResolver<T> = T | TResolver<T>"
     },
     {
@@ -24335,7 +24375,7 @@
       "specifier": "@venizia/ignis-helpers/common",
       "kind": "const",
       "file": "packages/inversion/src/common/utilities.ts",
-      "line": 4,
+      "line": 12,
       "signature": "isClass: <T>(target: any) => target is TClass<T>"
     },
     {
@@ -24365,7 +24405,7 @@
       "specifier": "@venizia/ignis-helpers/common",
       "kind": "const",
       "file": "packages/helpers/src/common/resolvers.ts",
-      "line": 43,
+      "line": 11,
       "signature": "resolveClass: <T>(ref: TClass<T> | TResolver<TClass<T>> | string) => TClass<T> | string"
     },
     {
@@ -24374,8 +24414,8 @@
       "subpath": "./common",
       "specifier": "@venizia/ignis-helpers/common",
       "kind": "const",
-      "file": "packages/helpers/src/common/resolvers.ts",
-      "line": 15,
+      "file": "packages/inversion/src/common/utilities.ts",
+      "line": 25,
       "signature": "resolveValue: <T>(valueOrResolver: TValueOrResolver<T>) => T"
     },
     {
@@ -24384,8 +24424,8 @@
       "subpath": "./common",
       "specifier": "@venizia/ignis-helpers/common",
       "kind": "const",
-      "file": "packages/helpers/src/common/resolvers.ts",
-      "line": 28,
+      "file": "packages/inversion/src/common/utilities.ts",
+      "line": 34,
       "signature": "resolveValueAsync: <T>(valueOrResolver: TValueOrAsyncResolver<T>) => Promise<T>"
     },
     {
@@ -26425,7 +26465,7 @@
       "specifier": "@venizia/ignis-inversion",
       "kind": "class",
       "file": "packages/inversion/src/modules/container/container.ts",
-      "line": 6,
+      "line": 7,
       "signature": "class Container extends BaseContainer"
     },
     {
@@ -26465,7 +26505,7 @@
       "specifier": "@venizia/ignis-inversion",
       "kind": "interface",
       "file": "packages/inversion/src/common/types.ts",
-      "line": 16,
+      "line": 24,
       "signature": "interface IBindingTag"
     },
     {
@@ -26579,13 +26619,23 @@
       "signature": "type TApplicationError = ApplicationError"
     },
     {
+      "name": "TAsyncResolver",
+      "package": "@venizia/ignis-inversion",
+      "subpath": ".",
+      "specifier": "@venizia/ignis-inversion",
+      "kind": "type",
+      "file": "packages/inversion/src/common/types.ts",
+      "line": 13,
+      "signature": "type TAsyncResolver<T> = (...args: any[]) => T | Promise<T>"
+    },
+    {
       "name": "TBindingKey",
       "package": "@venizia/ignis-inversion",
       "subpath": ".",
       "specifier": "@venizia/ignis-inversion",
       "kind": "type",
       "file": "packages/inversion/src/common/types.ts",
-      "line": 14,
+      "line": 22,
       "signature": "type TBindingKey = string | symbol"
     },
     {
@@ -26645,7 +26695,7 @@
       "specifier": "@venizia/ignis-inversion",
       "kind": "type",
       "file": "packages/inversion/src/common/types.ts",
-      "line": 12,
+      "line": 20,
       "signature": "type TConstValue<T extends TClass<any>> = Extract<ValueOf<T>, string | number>"
     },
     {
@@ -26795,8 +26845,18 @@
       "specifier": "@venizia/ignis-inversion",
       "kind": "type",
       "file": "packages/inversion/src/modules/metadata/injectors.ts",
-      "line": 7,
-      "signature": "type TInjectOptions = { isOptional?: boolean; registry?: MetadataRegistry; } & ({ key: TBindingKey; target?: never; } | { target: TClass<AnyType>; key?: never; })"
+      "line": 6,
+      "signature": "type TInjectOptions = { isOptional?: boolean; registry?: MetadataRegistry; } & ({ key: TBindingKey; target?: never; } | { target: TInjectTarget; key?: never; })"
+    },
+    {
+      "name": "TInjectTarget",
+      "package": "@venizia/ignis-inversion",
+      "subpath": ".",
+      "specifier": "@venizia/ignis-inversion",
+      "kind": "type",
+      "file": "packages/inversion/src/common/types.ts",
+      "line": 18,
+      "signature": "type TInjectTarget = TValueOrResolver<TClass<AnyType>>"
     },
     {
       "name": "TNullable",
@@ -26819,6 +26879,16 @@
       "signature": "type TRegisterErrors<T extends Record<string, TErrorDefinition>> = Record<T[keyof T]['message']['code'], true>"
     },
     {
+      "name": "TResolver",
+      "package": "@venizia/ignis-inversion",
+      "subpath": ".",
+      "specifier": "@venizia/ignis-inversion",
+      "kind": "type",
+      "file": "packages/inversion/src/common/types.ts",
+      "line": 12,
+      "signature": "type TResolver<T> = (...args: any[]) => T"
+    },
+    {
       "name": "TResponsedError",
       "package": "@venizia/ignis-inversion",
       "subpath": ".",
@@ -26827,6 +26897,26 @@
       "file": "packages/inversion/src/modules/error/common/types.ts",
       "line": 14,
       "signature": "type TResponsedError = { message?: string; statusCode?: number; normalized?: Partial<TErrorNormalized>; extra?: Record<string, unknown>; requestId?: string; details?: Record<string, unknown>; }"
+    },
+    {
+      "name": "TValueOrAsyncResolver",
+      "package": "@venizia/ignis-inversion",
+      "subpath": ".",
+      "specifier": "@venizia/ignis-inversion",
+      "kind": "type",
+      "file": "packages/inversion/src/common/types.ts",
+      "line": 15,
+      "signature": "type TValueOrAsyncResolver<T> = T | TAsyncResolver<T>"
+    },
+    {
+      "name": "TValueOrResolver",
+      "package": "@venizia/ignis-inversion",
+      "subpath": ".",
+      "specifier": "@venizia/ignis-inversion",
+      "kind": "type",
+      "file": "packages/inversion/src/common/types.ts",
+      "line": 14,
+      "signature": "type TValueOrResolver<T> = T | TResolver<T>"
     },
     {
       "name": "ValueOf",
@@ -26875,7 +26965,7 @@
       "specifier": "@venizia/ignis-inversion",
       "kind": "const",
       "file": "packages/inversion/src/modules/metadata/injectors.ts",
-      "line": 13,
+      "line": 12,
       "signature": "inject: (opts: TInjectOptions) => (target: any, propertyName: string | symbol | undefined, parameterIndex?: number) => void"
     },
     {
@@ -26895,7 +26985,7 @@
       "specifier": "@venizia/ignis-inversion",
       "kind": "const",
       "file": "packages/inversion/src/common/utilities.ts",
-      "line": 4,
+      "line": 12,
       "signature": "isClass: <T>(target: any) => target is TClass<T>"
     },
     {
@@ -26917,6 +27007,36 @@
       "file": "packages/inversion/src/modules/registry/registry.ts",
       "line": 157,
       "signature": "metadataRegistry: MetadataRegistry"
+    },
+    {
+      "name": "resolveInjectTarget",
+      "package": "@venizia/ignis-inversion",
+      "subpath": ".",
+      "specifier": "@venizia/ignis-inversion",
+      "kind": "const",
+      "file": "packages/inversion/src/common/utilities.ts",
+      "line": 39,
+      "signature": "resolveInjectTarget: (target: TInjectTarget) => TClass<AnyType> | undefined"
+    },
+    {
+      "name": "resolveValue",
+      "package": "@venizia/ignis-inversion",
+      "subpath": ".",
+      "specifier": "@venizia/ignis-inversion",
+      "kind": "const",
+      "file": "packages/inversion/src/common/utilities.ts",
+      "line": 25,
+      "signature": "resolveValue: <T>(valueOrResolver: TValueOrResolver<T>) => T"
+    },
+    {
+      "name": "resolveValueAsync",
+      "package": "@venizia/ignis-inversion",
+      "subpath": ".",
+      "specifier": "@venizia/ignis-inversion",
+      "kind": "const",
+      "file": "packages/inversion/src/common/utilities.ts",
+      "line": 34,
+      "signature": "resolveValueAsync: <T>(valueOrResolver: TValueOrAsyncResolver<T>) => Promise<T>"
     },
     {
       "name": "AbstractApplication",
@@ -27645,7 +27765,7 @@
       "specifier": "@venizia/ignis-kernel",
       "kind": "interface",
       "file": "packages/kernel/src/base/applications/common/types/application.ts",
-      "line": 43,
+      "line": 51,
       "signature": "interface IApplication<AppEnv extends Env = Env, AppSchema extends Schema = Schema, BasePath extends string = '/'>"
     },
     {
@@ -27665,7 +27785,7 @@
       "specifier": "@venizia/ignis-kernel",
       "kind": "interface",
       "file": "packages/kernel/src/base/applications/common/types/application.ts",
-      "line": 34,
+      "line": 42,
       "signature": "interface IApplicationInfo"
     },
     {
@@ -27855,7 +27975,7 @@
       "specifier": "@venizia/ignis-kernel",
       "kind": "interface",
       "file": "packages/inversion/src/common/types.ts",
-      "line": 16,
+      "line": 24,
       "signature": "interface IBindingTag"
     },
     {
@@ -28465,7 +28585,7 @@
       "specifier": "@venizia/ignis-kernel",
       "kind": "interface",
       "file": "packages/kernel/src/base/applications/common/types/application.ts",
-      "line": 58,
+      "line": 66,
       "signature": "interface IRestApplication extends IApplication, IComponentMixin, IControllerMixin, IRepositoryMixin, IServiceMixin, IStaticServeMixin"
     },
     {
@@ -29305,7 +29425,7 @@
       "specifier": "@venizia/ignis-kernel",
       "kind": "type",
       "file": "packages/inversion/src/common/types.ts",
-      "line": 14,
+      "line": 22,
       "signature": "type TBindingKey = string | symbol"
     },
     {
@@ -29735,8 +29855,18 @@
       "specifier": "@venizia/ignis-kernel",
       "kind": "type",
       "file": "packages/kernel/src/base/metadata/injectors.ts",
-      "line": 7,
-      "signature": "type TInjectOptions = { isOptional?: boolean; } & ({ key: TBindingKey; target?: never; } | { target: TClass<AnyType>; key?: never; })"
+      "line": 12,
+      "signature": "type TInjectOptions = TWithoutRegistry<TCoreInjectOptions>"
+    },
+    {
+      "name": "TInjectTarget",
+      "package": "@venizia/ignis-kernel",
+      "subpath": ".",
+      "specifier": "@venizia/ignis-kernel",
+      "kind": "type",
+      "file": "packages/inversion/src/common/types.ts",
+      "line": 18,
+      "signature": "type TInjectTarget = TValueOrResolver<TClass<AnyType>>"
     },
     {
       "name": "TIsAllowedOriginHandler",
@@ -30405,7 +30535,7 @@
       "specifier": "@venizia/ignis-kernel",
       "kind": "const",
       "file": "packages/kernel/src/base/metadata/injectable.ts",
-      "line": 53,
+      "line": 57,
       "signature": "component: <ApplicationType = unknown>(opts?: IArtifactRegistrationOptions<ApplicationType>) => ClassDecorator"
     },
     {
@@ -30425,7 +30555,7 @@
       "specifier": "@venizia/ignis-kernel",
       "kind": "const",
       "file": "packages/kernel/src/base/metadata/injectable.ts",
-      "line": 59,
+      "line": 63,
       "signature": "configuration: <ApplicationType = unknown>(opts?: IArtifactRegistrationOptions<ApplicationType>) => ClassDecorator"
     },
     {
@@ -30455,7 +30585,7 @@
       "specifier": "@venizia/ignis-kernel",
       "kind": "const",
       "file": "packages/kernel/src/base/metadata/persistents.ts",
-      "line": 50,
+      "line": 56,
       "signature": "datasource: (metadata?: IDataSourceMetadata) => ClassDecorator"
     },
     {
@@ -30565,7 +30695,7 @@
       "specifier": "@venizia/ignis-kernel",
       "kind": "const",
       "file": "packages/kernel/src/base/metadata/injectors.ts",
-      "line": 11,
+      "line": 19,
       "signature": "inject: (opts: TInjectOptions) => (target: any, propertyName: string | symbol | undefined, parameterIndex?: number) => void"
     },
     {
@@ -30585,7 +30715,7 @@
       "specifier": "@venizia/ignis-kernel",
       "kind": "const",
       "file": "packages/inversion/src/common/utilities.ts",
-      "line": 4,
+      "line": 12,
       "signature": "isClass: <T>(target: any) => target is TClass<T>"
     },
     {
@@ -30635,7 +30765,7 @@
       "specifier": "@venizia/ignis-kernel",
       "kind": "const",
       "file": "packages/kernel/src/base/metadata/persistents.ts",
-      "line": 19,
+      "line": 25,
       "signature": "model: (metadata: IModelMetadata) => ClassDecorator"
     },
     {
@@ -30665,7 +30795,7 @@
       "specifier": "@venizia/ignis-kernel",
       "kind": "const",
       "file": "packages/kernel/src/base/metadata/injectable.ts",
-      "line": 79,
+      "line": 83,
       "signature": "pickRegistrationOptions: <ApplicationType = unknown>(opts: { metadata: IArtifactRegistrationOptions<ApplicationType>; }) => IArtifactRegistrationOptions<ApplicationType>"
     },
     {
@@ -30685,7 +30815,7 @@
       "specifier": "@venizia/ignis-kernel",
       "kind": "const",
       "file": "packages/kernel/src/base/metadata/injectable.ts",
-      "line": 65,
+      "line": 69,
       "signature": "provide: (opts: { key: string; scope?: TBindingScope; }) => MethodDecorator"
     },
     {
@@ -30715,7 +30845,7 @@
       "specifier": "@venizia/ignis-kernel",
       "kind": "const",
       "file": "packages/kernel/src/base/metadata/persistents.ts",
-      "line": 253,
+      "line": 261,
       "signature": "repository: <Model extends AbstractEntity = AbstractEntity, DataSource extends IDataSource = IDataSource>(metadata?: IRepositoryMetadata<Model, DataSource>) => ClassDecorator"
     },
     {
@@ -30779,6 +30909,16 @@
       "signature": "resolveFindOneConfig: typeof RouteConfigResolver.resolveFindOneConfig"
     },
     {
+      "name": "resolveInjectTarget",
+      "package": "@venizia/ignis-kernel",
+      "subpath": ".",
+      "specifier": "@venizia/ignis-kernel",
+      "kind": "const",
+      "file": "packages/inversion/src/common/utilities.ts",
+      "line": 39,
+      "signature": "resolveInjectTarget: (target: TInjectTarget) => TClass<AnyType> | undefined"
+    },
+    {
       "name": "resolveRequestDomain",
       "package": "@venizia/ignis-kernel",
       "subpath": ".",
@@ -30815,7 +30955,7 @@
       "specifier": "@venizia/ignis-kernel",
       "kind": "const",
       "file": "packages/kernel/src/base/metadata/injectable.ts",
-      "line": 47,
+      "line": 51,
       "signature": "service: <ApplicationType = unknown>(opts?: IArtifactRegistrationOptions<ApplicationType>) => ClassDecorator"
     },
     {

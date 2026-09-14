@@ -17,6 +17,14 @@ This section tracks the history of significant changes, refactors, and updates t
 
 | Date | Title | Type |
 |------|-------|------|
+| 2026-09-14 | [An Application Declares No Artifacts](./2026-09-14-an-application-declares-no-artifacts) | Feature |
+| 2026-09-14 | [The Container Can Name A Binding Nobody Resolves](./2026-09-14-unresolved-binding-report) | Feature |
+| 2026-09-14 | [Asset Options Take A Resolver Anywhere They Took A Value](./2026-09-14-asset-options-take-resolvers) | Breaking |
+| 2026-09-14 | [A Component Reads Its Options In binding()](./2026-09-14-component-options-reach-binding) | Enhancement |
+| 2026-09-14 | [A Dependency Reached Through An Import Cycle Can Still Name Its Class](./2026-09-14-inject-target-through-an-import-cycle) | Feature |
+| 2026-09-14 | [The MetaLink Table Can Live In Your Own Postgres Schema](./2026-09-14-metalink-table-is-yours) | Fix |
+| 2026-09-14 | [The Stats Key Header Shows Up In The API Reference](./2026-09-14-stats-key-header-in-api-reference) | Enhancement |
+| 2026-09-14 | [The Download Route Drops Its Plural](./2026-09-14-download-route-singular) | Breaking |
 | 2026-09-12 | [An Open Stats Route Now Says So At Boot](./2026-09-12-unguarded-stats-warning) | Enhancement |
 | 2026-09-12 | [Empty Env Values Are Allowed By Default](./2026-09-12-empty-envs-allowed-by-default) | Breaking |
 | 2026-09-12 | [A Blank Env Line No Longer Beats Its Default At Module Load](./2026-09-12-blank-env-at-module-load) | Fix |

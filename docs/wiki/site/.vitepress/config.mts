@@ -450,6 +450,44 @@ const config = defineConfig({
           collapsed: false,
           items: [
             {
+              text: '2026-09-14',
+              collapsed: true,
+              items: [
+                {
+                  text: 'An Application Declares No Artifacts',
+                  link: '/changelogs/2026-09-14-an-application-declares-no-artifacts',
+                },
+                {
+                  text: 'Container Names A Binding Nobody Resolves',
+                  link: '/changelogs/2026-09-14-unresolved-binding-report',
+                },
+                {
+                  text: 'Asset Options Take A Resolver',
+                  link: '/changelogs/2026-09-14-asset-options-take-resolvers',
+                },
+                {
+                  text: 'Component Options Reach binding()',
+                  link: '/changelogs/2026-09-14-component-options-reach-binding',
+                },
+                {
+                  text: 'Inject Target Through An Import Cycle',
+                  link: '/changelogs/2026-09-14-inject-target-through-an-import-cycle',
+                },
+                {
+                  text: 'MetaLink Table Can Live In Your Own Postgres Schema',
+                  link: '/changelogs/2026-09-14-metalink-table-is-yours',
+                },
+                {
+                  text: 'Stats Key Header In The API Reference',
+                  link: '/changelogs/2026-09-14-stats-key-header-in-api-reference',
+                },
+                {
+                  text: 'Download Route Drops Its Plural',
+                  link: '/changelogs/2026-09-14-download-route-singular',
+                },
+              ],
+            },
+            {
               text: '2026-09-12',
               collapsed: true,
               items: [
