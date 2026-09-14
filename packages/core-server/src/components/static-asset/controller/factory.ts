@@ -15,7 +15,7 @@ import {
   TUploadNaming,
 } from '@venizia/ignis-helpers';
 import { HTTP, resolveValueAsync, ValueOrPromise } from '@venizia/ignis-helpers/common';
-import type { TValueOrAsyncResolver } from '@venizia/ignis-helpers/common';
+import type { AnyType, TValueOrAsyncResolver } from '@venizia/ignis-helpers/common';
 import { BaseHelper, getError } from '@venizia/ignis-helpers/core';
 import { Env } from 'hono';
 import { readFileSync, rmSync } from 'node:fs';
@@ -41,7 +41,8 @@ export interface IAssetControllerOptions {
   storage: TStaticAssetStorageType;
   helper: IStorageHelper;
   useMetaLink?: boolean;
-  metaLink?: TMetaLinkConfig;
+  /** The table is erased at this seam on purpose. The public option types carry the real `Schema` and check it; inside the controller every read and write is on MetaLink COLUMNS, and threading a table type nobody here constrains through 700 lines of handler buys nothing. */
+  metaLink?: TMetaLinkConfig<AnyType>;
   options?: TStaticAssetExtraOptions;
 
   /** Decides the stored object name of each uploaded file. Absent leaves the storage helper's own naming untouched. */

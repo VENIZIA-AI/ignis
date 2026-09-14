@@ -13092,7 +13092,7 @@
       "specifier": "@venizia/ignis/static-asset",
       "kind": "class",
       "file": "packages/core-server/src/components/static-asset/controller/factory.ts",
-      "line": 181,
+      "line": 182,
       "signature": "class AssetControllerFactory extends BaseHelper"
     },
     {
@@ -13172,8 +13172,8 @@
       "specifier": "@venizia/ignis/static-asset",
       "kind": "class",
       "file": "packages/core-server/src/components/static-asset/component.ts",
-      "line": 10,
-      "signature": "class StaticAssetComponent extends BaseComponent<TStaticAssetsComponentOptions>"
+      "line": 12,
+      "signature": "class StaticAssetComponent<Schema extends TMetaLinkCompatibleSchema = TMetaLinkSchema> extends BaseComponent<TStaticAssetsComponentOptions<Schema>>"
     },
     {
       "name": "StaticAssetComponentBindingKeys",
@@ -13362,7 +13362,7 @@
       "specifier": "@venizia/ignis/static-asset",
       "kind": "const",
       "file": "packages/core-server/src/components/static-asset/controller/factory.ts",
-      "line": 79,
+      "line": 80,
       "signature": "buildObjectLink: (opts: IObjectLocation & { basePath: string; hasConfiguredBucket?: boolean; rawObjectPath?: boolean; }) => string"
     },
     {
@@ -13372,7 +13372,7 @@
       "specifier": "@venizia/ignis/static-asset",
       "kind": "const",
       "file": "packages/core-server/src/components/static-asset/controller/factory.ts",
-      "line": 112,
+      "line": 113,
       "signature": "resolveServedContentType: (opts: { helper: IStorageHelper; object: IObjectRef; }) => { contentType: string; isRenderable: boolean; }"
     },
     {

@@ -5,9 +5,13 @@ import { CoreBindings } from '@venizia/ignis-kernel';
 import { Binding } from '@venizia/ignis-kernel';
 import { ValueOrPromise } from '@venizia/ignis-helpers/common';
 import { StaticAssetComponentBindingKeys, TStaticAssetsComponentOptions } from './common';
+import type { TMetaLinkCompatibleSchema, TMetaLinkSchema } from './models';
 import { AssetControllerFactory, buildObjectLink } from './controller';
 
-export class StaticAssetComponent extends BaseComponent<TStaticAssetsComponentOptions> {
+/** `Schema` is the MetaLink table the application binds. It has to live on the CLASS, not only on the options: `component(Ctor, { options })` infers the options from the class, so a class pinned to the shipped table can only carry options for that table. */
+export class StaticAssetComponent<
+  Schema extends TMetaLinkCompatibleSchema = TMetaLinkSchema,
+> extends BaseComponent<TStaticAssetsComponentOptions<Schema>> {
   constructor(
     @inject({ key: CoreBindings.APPLICATION_INSTANCE }) private application: BaseApplication,
   ) {
@@ -28,7 +32,7 @@ export class StaticAssetComponent extends BaseComponent<TStaticAssetsComponentOp
     // through `configs.artifacts`, where an index carries classes and no options.
     const componentOptions =
       this.configuredOptions ??
-      this.application.get<TStaticAssetsComponentOptions>({
+      this.application.get<TStaticAssetsComponentOptions<Schema>>({
         key: StaticAssetComponentBindingKeys.STATIC_ASSET_COMPONENT_OPTIONS,
       });
 

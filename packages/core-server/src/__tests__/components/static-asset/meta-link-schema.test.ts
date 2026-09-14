@@ -1,6 +1,8 @@
 import 'reflect-metadata';
 
 import { model } from '@/base/metadata';
+import type { BaseApplication } from '@/base/applications';
+import { StaticAssetComponent } from '@/components/static-asset';
 import { StaticAssetStorageTypes } from '@/components/static-asset/common';
 import type { DiskHelper } from '@venizia/ignis-helpers';
 import type {
@@ -68,6 +70,7 @@ declare const defaultRepository: DefaultCRUDRepository<typeof BaseMetaLinkModel.
 declare const namespacedRepository: DefaultCRUDRepository<typeof NamespacedMetaLinkModel.schema>;
 declare const incompleteRepository: DefaultCRUDRepository<typeof IncompleteMetaLinkModel.schema>;
 declare const diskHelper: DiskHelper;
+declare const application: BaseApplication;
 
 /**
  * Never called. `tsc` checks the body during the build, which is where these assertions run - the
@@ -97,13 +100,27 @@ export const metaLinkTypeAssertions = () => {
     },
   };
 
+  /**
+   * The shape a consumer reaches for after `component(Ctor, { options })` landed: options carrying
+   * a namespaced table, handed straight to the component. The class has to be generic for this -
+   * a bare `BaseComponent<TStaticAssetsComponentOptions>` pins the options to the shipped table.
+   */
+  const componentRegistration = () =>
+    application.component(StaticAssetComponent, { options: namespacedOptions });
+
   const incompleteTable = {
     model: IncompleteMetaLinkModel,
     repository: incompleteRepository,
     // @ts-expect-error a table missing a MetaLink column stays refused, whatever its Postgres schema
   } satisfies TMetaLinkConfig<typeof IncompleteMetaLinkModel.schema>;
 
-  return { defaultTable, namespacedTable, namespacedOptions, incompleteTable };
+  return {
+    defaultTable,
+    namespacedTable,
+    namespacedOptions,
+    incompleteTable,
+    componentRegistration,
+  };
 };
 
 test('the MetaLink option types accept an application table in its own Postgres schema', () => {

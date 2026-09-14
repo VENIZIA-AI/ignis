@@ -37,6 +37,16 @@ what the component always read.
 shipped no working example of it. It is back, through a `@provide` on `PlatformComponent`, on disk
 storage so the example runs with no extra infrastructure.
 
+**A generic option type is not enough; the CLASS has to be generic.** Making `TMetaLinkConfig` and
+`TStaticAssetsComponentOptions` generic fixed `bind<TStaticAssetsComponentOptions<S>>()` and left
+`component(Ctor, { options })` failing with TS2345 - that path infers the options from the class, so
+`StaticAssetComponent extends BaseComponent<TStaticAssetsComponentOptions>` could only carry options
+for the shipped table. Found by the downstream consumer after the release, not by this repository:
+the two instructions we shipped were mutually exclusive. `StaticAssetComponent<Schema>` now carries
+it. Inside `AssetControllerFactory` the table is erased to `AnyType` on purpose - every read and write
+there is on MetaLink columns, and a generic threaded through 700 lines of handler buys nothing the
+option types do not already check.
+
 **A component reads its options in `binding()`.** `BaseComponent` stores what
 `application.component(Ctor, { options })` handed it on `this.configuredOptions`, set before
 `binding()` runs. Every component that wanted its options used to override `configure()` to keep a

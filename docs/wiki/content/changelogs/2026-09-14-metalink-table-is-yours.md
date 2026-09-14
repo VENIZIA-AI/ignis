@@ -54,6 +54,27 @@ wrong thing. It is `{ count: number; data: TTableObject<Schema> }`.
 
 If you wrote `createMetaLink` and fought the type, the fight is over. Nothing about the value changed.
 
+## The class is generic too, not only the options
+
+`component(Ctor, { options })` infers the options from the CLASS, so a class pinned to the shipped
+table can only ever carry options for that table. Making the option types generic fixed the
+`bind<>()` path and left the `component()` path failing:
+
+```
+error TS2345: Argument of type 'typeof StaticAssetComponent' is not assignable to parameter of type
+  'TClass<BaseComponent<{ asset: { controller: ... }}>>'
+```
+
+`StaticAssetComponent<Schema>` carries the table now, so both paths take a namespaced table:
+
+```ts
+application.component(StaticAssetComponent, { options: { assets: { /* ... */ } } });
+```
+
+Inside the controller factory the table type is erased on purpose: every read and write there is on
+MetaLink COLUMNS, and threading a table type through 700 lines of handler buys nothing the public
+option types do not already check.
+
 ## Who is affected
 
 **You do not use `useMetaLink`.** Nothing.
