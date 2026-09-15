@@ -256,7 +256,10 @@ export class BunS3Helper extends BaseStorageHelper {
   }): Promise<void> {
     const { bucket, source, destination } = opts;
     const { accessKey, secretKey, region, sessionToken } = this.credentials;
-    const { endpoint, pathPrefix } = this.objectEndpoint({ bucket: bucket.name, audience: 'server' });
+    const { endpoint, pathPrefix } = this.objectEndpoint({
+      bucket: bucket.name,
+      audience: 'server',
+    });
 
     // `x-amz-copy-source` is what makes this server side: S3 reads the source itself, so a 500 MB
     // object never travels through this process.
@@ -351,7 +354,10 @@ export class BunS3Helper extends BaseStorageHelper {
     const bucketName = opts.bucket.name;
     const key = opts.object.key;
     const { accessKey, secretKey, region, sessionToken } = this.credentials;
-    const { endpoint, pathPrefix } = this.objectEndpoint({ bucket: bucketName, audience: 'server' });
+    const { endpoint, pathPrefix } = this.objectEndpoint({
+      bucket: bucketName,
+      audience: 'server',
+    });
 
     const { url, headers } = await buildSignedRequest({
       method: 'GET',
@@ -388,7 +394,10 @@ export class BunS3Helper extends BaseStorageHelper {
     const key = opts.object.key;
     const { tags } = opts;
     const { accessKey, secretKey, region, sessionToken } = this.credentials;
-    const { endpoint, pathPrefix } = this.objectEndpoint({ bucket: bucketName, audience: 'server' });
+    const { endpoint, pathPrefix } = this.objectEndpoint({
+      bucket: bucketName,
+      audience: 'server',
+    });
     const requestBody = buildTaggingXml({ tags });
 
     const { url, headers } = await buildSignedRequest({
