@@ -14,6 +14,12 @@
   "releases": {
     "atlas": [
       {
+        "version": "0.1.0-15",
+        "date": "2026-09-14",
+        "sha": "0c180851",
+        "order": 1241
+      },
+      {
         "version": "0.1.0-14",
         "date": "2026-09-14",
         "sha": "35588a86",
@@ -99,6 +105,12 @@
       }
     ],
     "boot": [
+      {
+        "version": "0.2.0-20",
+        "date": "2026-09-14",
+        "sha": "55327d91",
+        "order": 1246
+      },
       {
         "version": "0.2.0-19",
         "date": "2026-09-14",
@@ -527,6 +539,12 @@
       }
     ],
     "connectors": [
+      {
+        "version": "0.2.0-30",
+        "date": "2026-09-15",
+        "sha": "9f57757c",
+        "order": 1248
+      },
       {
         "version": "0.2.0-29",
         "date": "2026-09-14",
@@ -1558,6 +1576,12 @@
     ],
     "core-server": [
       {
+        "version": "0.2.0-34",
+        "date": "2026-09-15",
+        "sha": "7693da4a",
+        "order": 1250
+      },
+      {
         "version": "0.2.0-33",
         "date": "2026-09-14",
         "sha": "24cce7cf",
@@ -1763,6 +1787,12 @@
       }
     ],
     "core-worker": [
+      {
+        "version": "0.2.0-30",
+        "date": "2026-09-15",
+        "sha": "81c9f5c1",
+        "order": 1249
+      },
       {
         "version": "0.2.0-29",
         "date": "2026-09-14",
@@ -2270,6 +2300,12 @@
     ],
     "filter": [
       {
+        "version": "0.2.0-9",
+        "date": "2026-09-14",
+        "sha": "c275e7cc",
+        "order": 1244
+      },
+      {
         "version": "0.2.0-8",
         "date": "2026-09-14",
         "sha": "b85cb055",
@@ -2349,6 +2385,12 @@
       }
     ],
     "helpers": [
+      {
+        "version": "0.2.0-25",
+        "date": "2026-09-14",
+        "sha": "463ac7e4",
+        "order": 1245
+      },
       {
         "version": "0.2.0-24",
         "date": "2026-09-14",
@@ -2958,6 +3000,12 @@
     ],
     "inversion": [
       {
+        "version": "0.2.0-9",
+        "date": "2026-09-14",
+        "sha": "c1dfa2e7",
+        "order": 1243
+      },
+      {
         "version": "0.2.0-8",
         "date": "2026-09-14",
         "sha": "ff87629e",
@@ -3187,6 +3235,12 @@
       }
     ],
     "kernel": [
+      {
+        "version": "0.2.0-30",
+        "date": "2026-09-15",
+        "sha": "0cd8c0be",
+        "order": 1247
+      },
       {
         "version": "0.2.0-29",
         "date": "2026-09-14",
@@ -3426,6 +3480,18 @@
       ],
       "kind": "Breaking",
       "order": 1223
+    },
+    {
+      "id": "changelog:2026-09-14-direct-upload-post-policy",
+      "file": "2026-09-14-direct-upload-post-policy.md",
+      "date": "2026-09-14",
+      "title": "A Browser Can Upload Straight To Storage",
+      "packages": [
+        "core-server",
+        "helpers"
+      ],
+      "kind": "Feature",
+      "order": 1242
     },
     {
       "id": "changelog:2026-09-14-component-options-reach-binding",
