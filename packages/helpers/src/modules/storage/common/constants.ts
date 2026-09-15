@@ -20,7 +20,7 @@ export class StorageConcurrency {
 }
 
 /** Which host a signed artifact names. `host` is inside every SigV4 signature, so this is decided at signing time and cannot be patched afterwards. */
-export class EndpointAudiences {
+export class S3Audiences {
   /** The host THIS process talks to: every bucket operation, copy and tagging call. */
   static readonly SERVER = 'server';
 
@@ -34,4 +34,4 @@ export class EndpointAudiences {
   }
 }
 
-export type TEndpointAudience = TConstValue<typeof EndpointAudiences>;
+export type TS3Audience = TConstValue<typeof S3Audiences>;

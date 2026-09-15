@@ -16,13 +16,8 @@ import type {
   IStorageHelperOptions,
   IUploadFile,
 } from '../common';
-import {
-  EndpointAudiences,
-  isNotFoundError,
-  StoragePresignDefaults,
-  toExpirySeconds,
-} from '../common';
-import type { TEndpointAudience } from '../common';
+import { S3Audiences, isNotFoundError, StoragePresignDefaults, toExpirySeconds } from '../common';
+import type { TS3Audience } from '../common';
 import { buildPostPolicy, buildSignedRequest, buildTaggingXml, parseTaggingXml } from './utility';
 
 export interface IBunS3HelperOptions extends IStorageHelperOptions {
@@ -92,12 +87,12 @@ export class BunS3Helper extends BaseStorageHelper {
   }
 
   /** One bucket's objects, in either addressing style. `audience` picks the host: `server` for a call this process makes, `browser` for a URL it hands out. Virtual-hosted derives the per-bucket host, because the bucket arrives per call. */
-  private objectEndpoint(opts: { bucket: string; audience: TEndpointAudience }): {
+  private objectEndpoint(opts: { bucket: string; audience: TS3Audience }): {
     endpoint: string;
     pathPrefix: string;
   } {
     const { endpoint, virtualHostedStyle } = this.credentials;
-    const host = opts.audience === EndpointAudiences.BROWSER ? endpoint.public : endpoint.default;
+    const host = opts.audience === S3Audiences.BROWSER ? endpoint.public : endpoint.default;
 
     if (!virtualHostedStyle) {
       return { endpoint: host, pathPrefix: `/${opts.bucket}` };
@@ -117,7 +112,7 @@ export class BunS3Helper extends BaseStorageHelper {
     const { virtualHostedStyle } = this.credentials;
     const { endpoint } = this.objectEndpoint({
       bucket: opts.bucket,
-      audience: EndpointAudiences.BROWSER,
+      audience: S3Audiences.BROWSER,
     });
 
     return {
@@ -267,7 +262,7 @@ export class BunS3Helper extends BaseStorageHelper {
     const { accessKey, secretKey, region, sessionToken } = this.credentials;
     const { endpoint, pathPrefix } = this.objectEndpoint({
       bucket: bucket.name,
-      audience: EndpointAudiences.SERVER,
+      audience: S3Audiences.SERVER,
     });
 
     // `x-amz-copy-source` is what makes this server side: S3 reads the source itself, so a 500 MB
@@ -311,7 +306,7 @@ export class BunS3Helper extends BaseStorageHelper {
     // the policy only constrains its prefix.
     const { endpoint } = this.objectEndpoint({
       bucket: bucket.name,
-      audience: EndpointAudiences.BROWSER,
+      audience: S3Audiences.BROWSER,
     });
     const { formData, expiresAt } = await buildPostPolicy({
       bucket: bucket.name,
@@ -368,7 +363,7 @@ export class BunS3Helper extends BaseStorageHelper {
     const { accessKey, secretKey, region, sessionToken } = this.credentials;
     const { endpoint, pathPrefix } = this.objectEndpoint({
       bucket: bucketName,
-      audience: EndpointAudiences.SERVER,
+      audience: S3Audiences.SERVER,
     });
 
     const { url, headers } = await buildSignedRequest({
@@ -408,7 +403,7 @@ export class BunS3Helper extends BaseStorageHelper {
     const { accessKey, secretKey, region, sessionToken } = this.credentials;
     const { endpoint, pathPrefix } = this.objectEndpoint({
       bucket: bucketName,
-      audience: EndpointAudiences.SERVER,
+      audience: S3Audiences.SERVER,
     });
     const requestBody = buildTaggingXml({ tags });
 

@@ -181,7 +181,6 @@ tags: [reference, exports, api]
 - `ECDH` class
 - `ECDHAlgorithmType` type
 - `encodeRFC5987` const
-- `EndpointAudiences` class
 - `ensureRedisClientsConnecting` const
 - `Environment` class
 - `EnvironmentNames` class
@@ -377,6 +376,7 @@ tags: [reference, exports, api]
 - `RSA` class
 - `RSAAlgorithmType` type
 - `RuntimeModules` class
+- `S3Audiences` class
 - `sanitizeFilename` const
 - `SecretProviders` class
 - `SequentialQueueHelper` class
@@ -403,7 +403,6 @@ tags: [reference, exports, api]
 - `TContentType` type
 - `TCreateRedisHelperOptions` type
 - `TDurationUnit` type
-- `TEndpointAudience` type
 - `TError` type
 - `TErrorByDefinition` type
 - `TErrorByField` type
@@ -465,6 +464,7 @@ tags: [reference, exports, api]
 - `TRetryBackoffStrategy` type
 - `TRetryJitterMode` type
 - `TRuntimeModule` type
+- `TS3Audience` type
 - `TSecretProvider` type
 - `TSecretRotationHandler` type
 - `TStringConstValue` type
@@ -1977,7 +1977,6 @@ tags: [reference, exports, api]
 - `ECDHAlgorithmType` type
 - `emojiFavicon` const
 - `encodeRFC5987` const
-- `EndpointAudiences` class
 - `enrichDataTypes` const
 - `enrichId` const
 - `enrichPrincipal` const
@@ -2423,6 +2422,7 @@ tags: [reference, exports, api]
 - `RSA` class
 - `RSAAlgorithmType` type
 - `RuntimeModules` class
+- `S3Audiences` class
 - `sanitizeFilename` const
 - `ScalarUIProvider` class
 - `SchemaTypes` class
@@ -2532,7 +2532,6 @@ tags: [reference, exports, api]
 - `TDomainHierarchyEdge` type
 - `TDrizzleQueryOptions` type
 - `TDurationUnit` type
-- `TEndpointAudience` type
 - `TEntityDataObject` type
 - `TEntityId` type
 - `TEntityPersistObject` type
@@ -2680,6 +2679,7 @@ tags: [reference, exports, api]
 - `TRpcHandler` type
 - `TRpcMiddleware` type
 - `TRuntimeModule` type
+- `TS3Audience` type
 - `TSchemaType` type
 - `TScopeFilterMissingBehavior` type
 - `TSearchErrorCode` type

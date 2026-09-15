@@ -1464,16 +1464,6 @@
       "signature": "type ECDHAlgorithmType = 'ecdh-p256'"
     },
     {
-      "name": "EndpointAudiences",
-      "package": "@venizia/ignis",
-      "subpath": ".",
-      "specifier": "@venizia/ignis",
-      "kind": "class",
-      "file": "packages/helpers/src/modules/storage/common/constants.ts",
-      "line": 23,
-      "signature": "class EndpointAudiences"
-    },
-    {
       "name": "Environment",
       "package": "@venizia/ignis",
       "subpath": ".",
@@ -5056,6 +5046,16 @@
       "signature": "class RuntimeModules"
     },
     {
+      "name": "S3Audiences",
+      "package": "@venizia/ignis",
+      "subpath": ".",
+      "specifier": "@venizia/ignis",
+      "kind": "class",
+      "file": "packages/helpers/src/modules/storage/common/constants.ts",
+      "line": 23,
+      "signature": "class S3Audiences"
+    },
+    {
       "name": "SHOULD_LOG_DEBUG",
       "package": "@venizia/ignis",
       "subpath": ".",
@@ -6084,16 +6084,6 @@
       "file": "packages/helpers/src/common/constants/duration.ts",
       "line": 30,
       "signature": "type TDurationUnit = TConstValue<typeof DurationUnits>"
-    },
-    {
-      "name": "TEndpointAudience",
-      "package": "@venizia/ignis",
-      "subpath": ".",
-      "specifier": "@venizia/ignis",
-      "kind": "type",
-      "file": "packages/helpers/src/modules/storage/common/constants.ts",
-      "line": 37,
-      "signature": "type TEndpointAudience = TConstValue<typeof EndpointAudiences>"
     },
     {
       "name": "TEntityDataObject",
@@ -7434,6 +7424,16 @@
       "file": "packages/helpers/src/common/constants/app.ts",
       "line": 29,
       "signature": "type TRuntimeModule = TConstValue<typeof RuntimeModules>"
+    },
+    {
+      "name": "TS3Audience",
+      "package": "@venizia/ignis",
+      "subpath": ".",
+      "specifier": "@venizia/ignis",
+      "kind": "type",
+      "file": "packages/helpers/src/modules/storage/common/constants.ts",
+      "line": 37,
+      "signature": "type TS3Audience = TConstValue<typeof S3Audiences>"
     },
     {
       "name": "TSchemaType",
@@ -20526,16 +20526,6 @@
       "signature": "type ECDHAlgorithmType = 'ecdh-p256'"
     },
     {
-      "name": "EndpointAudiences",
-      "package": "@venizia/ignis-helpers",
-      "subpath": ".",
-      "specifier": "@venizia/ignis-helpers",
-      "kind": "class",
-      "file": "packages/helpers/src/modules/storage/common/constants.ts",
-      "line": 23,
-      "signature": "class EndpointAudiences"
-    },
-    {
       "name": "Environment",
       "package": "@venizia/ignis-helpers",
       "subpath": ".",
@@ -22128,6 +22118,16 @@
       "signature": "class RuntimeModules"
     },
     {
+      "name": "S3Audiences",
+      "package": "@venizia/ignis-helpers",
+      "subpath": ".",
+      "specifier": "@venizia/ignis-helpers",
+      "kind": "class",
+      "file": "packages/helpers/src/modules/storage/common/constants.ts",
+      "line": 23,
+      "signature": "class S3Audiences"
+    },
+    {
       "name": "SHOULD_LOG_DEBUG",
       "package": "@venizia/ignis-helpers",
       "subpath": ".",
@@ -22366,16 +22366,6 @@
       "file": "packages/helpers/src/common/constants/duration.ts",
       "line": 30,
       "signature": "type TDurationUnit = TConstValue<typeof DurationUnits>"
-    },
-    {
-      "name": "TEndpointAudience",
-      "package": "@venizia/ignis-helpers",
-      "subpath": ".",
-      "specifier": "@venizia/ignis-helpers",
-      "kind": "type",
-      "file": "packages/helpers/src/modules/storage/common/constants.ts",
-      "line": 37,
-      "signature": "type TEndpointAudience = TConstValue<typeof EndpointAudiences>"
     },
     {
       "name": "TError",
@@ -22896,6 +22886,16 @@
       "file": "packages/helpers/src/common/constants/app.ts",
       "line": 29,
       "signature": "type TRuntimeModule = TConstValue<typeof RuntimeModules>"
+    },
+    {
+      "name": "TS3Audience",
+      "package": "@venizia/ignis-helpers",
+      "subpath": ".",
+      "specifier": "@venizia/ignis-helpers",
+      "kind": "type",
+      "file": "packages/helpers/src/modules/storage/common/constants.ts",
+      "line": 37,
+      "signature": "type TS3Audience = TConstValue<typeof S3Audiences>"
     },
     {
       "name": "TSecretProvider",
@@ -23945,7 +23945,7 @@
       "specifier": "@venizia/ignis-helpers/bun-s3",
       "kind": "class",
       "file": "packages/helpers/src/modules/storage/bun-s3/helper.ts",
-      "line": 45,
+      "line": 40,
       "signature": "class BunS3Helper extends BaseStorageHelper"
     },
     {
@@ -23955,7 +23955,7 @@
       "specifier": "@venizia/ignis-helpers/bun-s3",
       "kind": "interface",
       "file": "packages/helpers/src/modules/storage/bun-s3/helper.ts",
-      "line": 28,
+      "line": 23,
       "signature": "interface IBunS3HelperOptions extends IStorageHelperOptions"
     },
     {
