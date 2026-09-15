@@ -13122,7 +13122,7 @@
       "specifier": "@venizia/ignis/static-asset",
       "kind": "class",
       "file": "packages/core-server/src/components/static-asset/controller/factory.ts",
-      "line": 187,
+      "line": 232,
       "signature": "class AssetControllerFactory extends BaseHelper"
     },
     {
@@ -13142,7 +13142,7 @@
       "specifier": "@venizia/ignis/static-asset",
       "kind": "class",
       "file": "packages/core-server/src/components/static-asset/models/base.model.ts",
-      "line": 13,
+      "line": 17,
       "signature": "class BaseMetaLinkModel extends BaseRelationalEntity<typeof BaseMetaLinkModel.schema>"
     },
     {
@@ -13172,7 +13172,7 @@
       "specifier": "@venizia/ignis/static-asset",
       "kind": "interface",
       "file": "packages/core-server/src/components/static-asset/controller/factory.ts",
-      "line": 44,
+      "line": 45,
       "signature": "interface IAssetControllerOptions"
     },
     {
@@ -13204,6 +13204,16 @@
       "file": "packages/core-server/src/components/static-asset/ingest.ts",
       "line": 21,
       "signature": "interface IIngestFromUrlResult"
+    },
+    {
+      "name": "META_LINK_CREATE_FAILED",
+      "package": "@venizia/ignis",
+      "subpath": "./static-asset",
+      "specifier": "@venizia/ignis/static-asset",
+      "kind": "const",
+      "file": "packages/core-server/src/components/static-asset/common/constants.ts",
+      "line": 58,
+      "signature": "META_LINK_CREATE_FAILED = \"META_LINK_CREATE_FAILED\""
     },
     {
       "name": "RENDERABLE_CONTENT_TYPES",
@@ -13302,7 +13312,7 @@
       "specifier": "@venizia/ignis/static-asset",
       "kind": "type",
       "file": "packages/core-server/src/components/static-asset/models/base.model.ts",
-      "line": 46,
+      "line": 52,
       "signature": "type TMetaLink = TTableObject<TMetaLinkSchema>"
     },
     {
@@ -13312,7 +13322,7 @@
       "specifier": "@venizia/ignis/static-asset",
       "kind": "type",
       "file": "packages/core-server/src/components/static-asset/models/base.model.ts",
-      "line": 49,
+      "line": 55,
       "signature": "type TMetaLinkCompatibleSchema = TTableSchemaWithId & { $inferSelect: TMetaLink; }"
     },
     {
@@ -13332,7 +13342,7 @@
       "specifier": "@venizia/ignis/static-asset",
       "kind": "type",
       "file": "packages/core-server/src/components/static-asset/models/base.model.ts",
-      "line": 45,
+      "line": 51,
       "signature": "type TMetaLinkSchema = typeof BaseMetaLinkModel.schema"
     },
     {
@@ -13442,7 +13452,7 @@
       "specifier": "@venizia/ignis/static-asset",
       "kind": "const",
       "file": "packages/core-server/src/components/static-asset/controller/factory.ts",
-      "line": 85,
+      "line": 86,
       "signature": "buildObjectLink: (opts: IObjectLocation & { basePath: string; hasConfiguredBucket?: boolean; rawObjectPath?: boolean; }) => string"
     },
     {
@@ -13462,7 +13472,7 @@
       "specifier": "@venizia/ignis/static-asset",
       "kind": "const",
       "file": "packages/core-server/src/components/static-asset/controller/factory.ts",
-      "line": 118,
+      "line": 119,
       "signature": "resolveServedContentType: (opts: { helper: IStorageHelper; object: IObjectRef; }) => { contentType: string; isRenderable: boolean; }"
     },
     {
@@ -23945,7 +23955,7 @@
       "specifier": "@venizia/ignis-helpers/bun-s3",
       "kind": "class",
       "file": "packages/helpers/src/modules/storage/bun-s3/helper.ts",
-      "line": 40,
+      "line": 47,
       "signature": "class BunS3Helper extends BaseStorageHelper"
     },
     {
@@ -23955,7 +23965,7 @@
       "specifier": "@venizia/ignis-helpers/bun-s3",
       "kind": "interface",
       "file": "packages/helpers/src/modules/storage/bun-s3/helper.ts",
-      "line": 23,
+      "line": 30,
       "signature": "interface IBunS3HelperOptions extends IStorageHelperOptions"
     },
     {

@@ -125,6 +125,18 @@ export class FakeStorageHelper extends BaseStorageHelper {
         destination: opts.destination.key,
       },
     });
+
+    // A real copy makes the destination readable. Recording the call alone left every
+    // post-copy getStat in a test answering 404.
+    const source = this.objects.get(`${opts.bucket.name}/${opts.source.key}`);
+    if (!source) {
+      throw getError({
+        statusCode: 404,
+        message: `[copyObject] Object not found | ${opts.bucket.name}/${opts.source.key}`,
+      });
+    }
+
+    this.objects.set(`${opts.bucket.name}/${opts.destination.key}`, { ...source });
   }
 
   async hasBucket(opts: { bucket: IBucketRef }): Promise<boolean> {

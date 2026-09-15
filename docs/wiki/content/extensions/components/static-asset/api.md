@@ -311,7 +311,13 @@ interface IStorageHelper {
   removeObject(opts: IObjectLocation): Promise<void>;
   removeObjects(opts: { bucket: IBucketRef; objects: IObjectRef[] }): Promise<void>;
 
-  presignPut(opts: IObjectLocation & { expiresIn?: IDuration }): Promise<string>;
+  presignPut(
+    opts: IObjectLocation & {
+      expiresIn?: IDuration;
+      tagging?: Record<string, string>;
+      contentLength?: number;
+    },
+  ): Promise<string>;
   presignGet(
     opts: IObjectLocation & {
       expiresIn?: IDuration;

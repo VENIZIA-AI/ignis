@@ -3156,7 +3156,7 @@ tags: [reference, exports, api]
 - `IConnectRpcModule` interface
 - `IGrpcComponentConfig` interface
 
-### `@venizia/ignis/static-asset` (35)
+### `@venizia/ignis/static-asset` (36)
 
 - `AssetControllerFactory` class
 - `AssetIngest` class
@@ -3169,6 +3169,7 @@ tags: [reference, exports, api]
 - `ICommitTokenPayload` interface
 - `IIngestFromUrlOptions` interface
 - `IIngestFromUrlResult` interface
+- `META_LINK_CREATE_FAILED` const
 - `readCommitToken` const
 - `RENDERABLE_CONTENT_TYPES` const
 - `resolveServedContentType` const

@@ -28,6 +28,7 @@ import {
   TListQuery,
   TMetaLinkConfig,
   DEFAULT_PENDING_PREFIX,
+  META_LINK_CREATE_FAILED,
   TObjectParams,
   TUploadPolicyRequest,
   TObjectNameResolver,
@@ -182,6 +183,50 @@ const applyMetadataHeaders: (opts: {
     }
     ctx.header(key.toLowerCase(), String(value).replace(/[\r\n]/g, ''));
   });
+};
+
+/**
+ * The MetaLink row for one uploaded object. Both upload paths go through here, so a direct upload
+ * lands exactly the row an ordinary one does - the application's `createMetaLink` when it gives
+ * one, the component's default otherwise.
+ */
+const createMetaLinkRow = async (opts: {
+  metaLink: TMetaLinkConfig<AnyType>;
+  helper: IStorageHelper;
+  storage: TStaticAssetStorageType;
+  uploadResult: IUploadResult;
+  fileStat: IFileStat;
+  query: TUploadQuery;
+}): Promise<AnyType> => {
+  const { metaLink, helper, storage, uploadResult, fileStat, query } = opts;
+
+  if (metaLink.createMetaLink) {
+    const created = await metaLink.createMetaLink({ uploadResult, fileStat, query });
+    return created.data;
+  }
+
+  // Resolved per call so an application that swaps the repository is not pinned to the first one.
+  const repository = await resolveValueAsync(metaLink.repository);
+  const created = await repository.create({
+    data: {
+      bucketName: uploadResult.bucket.name,
+      objectName: uploadResult.object.key,
+      link: uploadResult.link,
+      // The column is NOT NULL and a backend may report nothing.
+      mimetype:
+        fileStat.metadata?.mimetype ?? helper.getMimeType({ filename: uploadResult.object.key }),
+      size: fileStat.size,
+      etag: fileStat.etag,
+      metadata: fileStat.metadata,
+      storageType: storage,
+      isSynced: true,
+      principalId: query.principalId ? String(query.principalId) : undefined,
+      principalType: query.principalType ? String(query.principalType) : undefined,
+      variant: query.variant ? String(query.variant) : undefined,
+    },
+  });
+
+  return created.data;
 };
 
 export class AssetControllerFactory extends BaseHelper {
@@ -543,35 +588,6 @@ export class AssetControllerFactory extends BaseHelper {
               return ctx.json(uploaded, HTTP.ResultCodes.RS_2.Ok);
             }
 
-            /** The default row, written only when the application gives no `createMetaLink` - so the repository resolver stays untouched when it does. */
-            const createDefaultMetaLink = async (row: {
-              uploadResult: IUploadResult;
-              fileStat: IFileStat;
-            }) => {
-              const { uploadResult, fileStat } = row;
-              const uploadRepository = await resolveValueAsync(metaLink.repository);
-
-              return uploadRepository.create({
-                data: {
-                  bucketName: uploadResult.bucket.name,
-                  objectName: uploadResult.object.key,
-                  link: uploadResult.link,
-                  // The column is NOT NULL and a backend may report nothing.
-                  mimetype:
-                    fileStat.metadata?.mimetype ??
-                    helper.getMimeType({ filename: uploadResult.object.key }),
-                  size: fileStat.size,
-                  etag: fileStat.etag,
-                  metadata: fileStat.metadata,
-                  storageType: storage,
-                  isSynced: true,
-                  principalId: query.principalId ? String(query.principalId) : undefined,
-                  principalType: query.principalType ? String(query.principalType) : undefined,
-                  variant: query.variant ? String(query.variant) : undefined,
-                },
-              });
-            };
-
             const results: IUploadResult[] = [];
             for (const uploadResult of uploaded) {
               try {
@@ -580,9 +596,14 @@ export class AssetControllerFactory extends BaseHelper {
                   object: uploadResult.object,
                 });
 
-                const { data: createdMetaLink } = metaLink.createMetaLink
-                  ? await metaLink.createMetaLink({ uploadResult, fileStat, query })
-                  : await createDefaultMetaLink({ uploadResult, fileStat });
+                const createdMetaLink = await createMetaLinkRow({
+                  metaLink,
+                  helper,
+                  storage,
+                  uploadResult,
+                  fileStat,
+                  query,
+                });
 
                 results.push({ ...uploadResult, metaLink: { data: createdMetaLink } });
               } catch (error) {
@@ -599,7 +620,7 @@ export class AssetControllerFactory extends BaseHelper {
                   // error middleware and `database.handler` - the two places that strip
                   // `detail`/`table`/`constraint` - and shipped raw constraint names to the client.
                   // The real error is already logged in full immediately above.
-                  metaLink: { error: 'META_LINK_CREATE_FAILED' },
+                  metaLink: { error: META_LINK_CREATE_FAILED },
                 });
               }
             }
@@ -783,6 +804,10 @@ export class AssetControllerFactory extends BaseHelper {
                 secretKey: directUpload.secretKey,
               });
 
+              // Labels, not authorization - the token deliberately carries no business fields, and
+              // these are the same client-supplied values the ordinary upload takes.
+              const query = ctx.req.valid<TUploadQuery>('query');
+
               const bucketRef = { name: payload.bucket };
               const pendingObject = { key: payload.key };
               const object = { key: payload.key.slice(pendingPrefix.length) };
@@ -811,17 +836,63 @@ export class AssetControllerFactory extends BaseHelper {
                     );
                 });
 
+              const link = buildObjectLink({
+                basePath: normalizedBasePath,
+                bucket: bucketRef,
+                object,
+                hasConfiguredBucket,
+                rawObjectPath,
+              });
+
+              // The two upload paths have to agree. Without this the ordinary upload writes a row
+              // and the direct one does not, so a client reading `metaLink` off the response renders
+              // an empty state with no error - the failure nobody reports.
+              let metaLinkResult: IUploadResult['metaLink'];
+              if (useMetaLink && metaLink) {
+                try {
+                  const fileStat = await helper.getStat({ bucket: bucketRef, object });
+                  const data = await createMetaLinkRow({
+                    metaLink,
+                    helper,
+                    storage,
+                    uploadResult: {
+                      bucket: bucketRef,
+                      object: {
+                        key: object.key,
+                        size: fileStat.size,
+                        contentType:
+                          fileStat.metadata?.mimetype ??
+                          helper.getMimeType({ filename: object.key }),
+                      },
+                      link,
+                    },
+                    fileStat,
+                    query,
+                  });
+
+                  metaLinkResult = { data };
+                } catch (error) {
+                  // The copy already happened and the pending object is gone, so the object IS
+                  // committed. Answering 500 would send the caller back with a token whose source
+                  // no longer exists - which is why the ordinary upload reports this in the body
+                  // too, as a code rather than the driver's text.
+                  this.logger
+                    .for('UPLOAD_COMMIT')
+                    .error(
+                      'Failed to create MetaLink | objectName: %s | Error: %s',
+                      object.key,
+                      error,
+                    );
+                  metaLinkResult = { error: META_LINK_CREATE_FAILED };
+                }
+              }
+
               return ctx.json(
                 {
                   bucket: bucketRef,
                   object,
-                  link: buildObjectLink({
-                    basePath: normalizedBasePath,
-                    bucket: bucketRef,
-                    object,
-                    hasConfiguredBucket,
-                    rawObjectPath,
-                  }),
+                  link,
+                  ...(metaLinkResult === undefined ? {} : { metaLink: metaLinkResult }),
                 },
                 HTTP.ResultCodes.RS_2.Ok,
               );

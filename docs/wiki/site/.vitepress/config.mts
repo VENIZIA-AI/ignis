@@ -458,6 +458,14 @@ const config = defineConfig({
                   text: 'One Endpoint Option, Two Audiences',
                   link: '/changelogs/2026-09-15-endpoint-default-and-public',
                 },
+                {
+                  text: 'A Direct Upload Lands a MetaLink Row Too',
+                  link: '/changelogs/2026-09-15-commit-writes-a-metalink-row',
+                },
+                {
+                  text: 'A Presigned PUT Can Carry a Tag Set and a Size',
+                  link: '/changelogs/2026-09-15-presign-put-signs-tags-and-size',
+                },
               ],
             },
             {

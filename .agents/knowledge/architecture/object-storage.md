@@ -59,6 +59,12 @@ Three consequences, all bad for a browser form:
 A write credential that is reusable, unrevokable and overwriting, for one key. IGNIS ships
 `presignPut`, and the static-asset component deliberately does not use it for uploads.
 
+It does take `tagging` and `contentLength`, both SIGNED and sent back unchanged by the client. A tag
+merely sent is a tag S3 ignores, so a step gated on reading it back fails silently; signed, it exists
+the moment the object does. `contentLength` stays an exact number, not a ceiling - the equality limit
+above, not an oversight. Built as a query-signed SigV4 URL, because `S3Client.presign` takes a method
+and an expiry and nothing else.
+
 ### POST policy - what `directUpload` uses
 
 The signature covers a POLICY DOCUMENT rather than a request, and conditions are a small language:
@@ -90,10 +96,27 @@ Absent, neither route exists.
    token.
 2. The browser posts the form straight to storage. No byte passes through IGNIS.
 3. The browser presents the commit token. IGNIS verifies it, runs `onCommit`, copies server-side to
-   the final key, and removes the temporary object.
+   the final key, removes the temporary object, and writes the MetaLink row.
 
 The third trip exists because S3 tells the backend nothing. Without it there is no MetaLink row and
 no way to attach the object to anything.
+
+Both paths write that row through ONE builder, `createMetaLinkRow`. They diverged once and the
+symptom was a client rendering an empty state with no error. The labels
+`principalType`/`principalId`/`variant` reach the commit as QUERY, because the token carries no
+business fields. A failed row is `metaLink: { error: 'META_LINK_CREATE_FAILED' }` inside a 200 - the
+object IS committed by then, and a 500 would send the caller back with a token whose source is gone.
+
+### A MetaLink row is one (object, owner) pairing
+
+Not one object, so `(bucketName, objectName)` is indexed and deliberately NOT unique. Counted on a
+production-shaped table: of 1038 objects with more than one row, 1027 were one image attached to a
+product and to each of its variants.
+
+`recreate-metalink` therefore does `findOne` then `create` non-atomically, and stays that way.
+Without a unique index two concurrent transactions both read "no row" and both insert - `FOR UPDATE`
+locks nothing that does not exist, `ON CONFLICT` needs the index the data forbids. Closing it takes
+`pg_advisory_xact_lock`: Postgres-only, and the application's.
 
 ### Four security properties, each with its reason
 

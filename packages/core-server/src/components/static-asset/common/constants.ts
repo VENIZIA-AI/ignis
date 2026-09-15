@@ -49,3 +49,10 @@ export type TStaticAssetStorageType = TConstValue<typeof StaticAssetStorageTypes
 
 /** Where a signed policy may write. The final key is never inside it, so content cannot be replaced after the commit. */
 export const DEFAULT_PENDING_PREFIX = 'pending/';
+
+/**
+ * Reported in the response body, never thrown: the bytes are already stored when this happens, so
+ * the request succeeded and only the row did not. A CODE, because a 200 bypasses the error
+ * middleware that would otherwise strip the driver's `detail`/`table`/`constraint` text.
+ */
+export const META_LINK_CREATE_FAILED = 'META_LINK_CREATE_FAILED';

@@ -197,6 +197,13 @@ export const buildAssetDefinitions = (opts: {
       method: 'post',
       path: `${bucketPrefix}/upload-commit`,
       request: {
+        // The same labels an ordinary upload takes. They are not authorization - the commit token
+        // deliberately carries no business fields - so they ride the query, not the token.
+        query: z.object({
+          principalType: z.string().optional(),
+          principalId: z.string().or(z.number()).optional(),
+          variant: z.string().optional(),
+        }),
         body: {
           content: {
             'application/json': { schema: z.object({ commitToken: z.string().min(1) }) },
@@ -208,6 +215,9 @@ export const buildAssetDefinitions = (opts: {
           bucket: z.object({ name: z.string() }),
           object: z.object({ key: z.string() }),
           link: z.string(),
+          metaLink: z
+            .union([z.object({ data: z.any() }), z.object({ error: z.string() })])
+            .optional(),
         }),
         description: 'The object at its final key, copied out of the pending prefix',
       }),

@@ -42,11 +42,34 @@ Two routes appear. Leave `directUpload` out and neither exists.
 2. browser -> STORAGE  multipart POST to postURL        (IGNIS sees no byte)
 
 3. browser -> IGNIS   POST {base}/upload-commit   { commitToken }
-                   <- the object at its final key
+                   <- the object at its final key, and its MetaLink row
 ```
 
 The third trip is not ceremony. Storage tells your backend nothing, so without it there is no
 MetaLink row and no way to attach the object to an order, a ticket or a user.
+
+## The commit writes the row
+
+The response carries `metaLink` exactly as an ordinary upload does, so a client reading an `id` and
+a `link` off it needs no branch for which path the bytes took.
+
+```
+POST {base}/upload-commit?principalType=Product&principalId=42&variant=thumbnail
+```
+
+The three labels are the ones the ordinary upload takes. They ride the query and not the token: the
+token is an HMAC over `{ bucket, key, expiresAt }` and deliberately carries no business fields.
+Omit them and the row is still written, without the labels.
+
+If the row fails the response is still **200**, with the reason as a code:
+
+```json
+{ "bucket": { "name": "uploads" }, "object": { "key": "..." }, "link": "...",
+  "metaLink": { "error": "META_LINK_CREATE_FAILED" } }
+```
+
+By then the copy has happened and the pending object is gone - the object is committed. A 500 would
+send the caller back with a token whose source no longer exists.
 
 ## What the browser does
 
