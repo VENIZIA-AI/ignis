@@ -14,6 +14,12 @@
   "releases": {
     "atlas": [
       {
+        "version": "0.1.0-17",
+        "date": "2026-09-15",
+        "sha": "d7b889ef",
+        "order": 1264
+      },
+      {
         "version": "0.1.0-16",
         "date": "2026-09-15",
         "sha": "422c2cc2",
@@ -111,6 +117,12 @@
       }
     ],
     "boot": [
+      {
+        "version": "0.2.0-22",
+        "date": "2026-09-15",
+        "sha": "2b00680c",
+        "order": 1274
+      },
       {
         "version": "0.2.0-21",
         "date": "2026-09-15",
@@ -551,6 +563,12 @@
       }
     ],
     "connectors": [
+      {
+        "version": "0.2.0-32",
+        "date": "2026-09-15",
+        "sha": "b8944ce6",
+        "order": 1276
+      },
       {
         "version": "0.2.0-31",
         "date": "2026-09-15",
@@ -1594,6 +1612,12 @@
     ],
     "core-server": [
       {
+        "version": "0.2.0-36",
+        "date": "2026-09-15",
+        "sha": "15264e28",
+        "order": 1278
+      },
+      {
         "version": "0.2.0-35",
         "date": "2026-09-15",
         "sha": "aa325b20",
@@ -1812,6 +1836,12 @@
     ],
     "core-worker": [
       {
+        "version": "0.2.0-32",
+        "date": "2026-09-15",
+        "sha": "a38d76f9",
+        "order": 1277
+      },
+      {
         "version": "0.2.0-31",
         "date": "2026-09-15",
         "sha": "ee83ef82",
@@ -2005,6 +2035,12 @@
       }
     ],
     "dev-configs": [
+      {
+        "version": "0.2.0-4",
+        "date": "2026-09-15",
+        "sha": "3debbd22",
+        "order": 1270
+      },
       {
         "version": "0.2.0-3",
         "date": "2026-08-30",
@@ -2330,6 +2366,12 @@
     ],
     "filter": [
       {
+        "version": "0.2.0-11",
+        "date": "2026-09-15",
+        "sha": "e30bd169",
+        "order": 1272
+      },
+      {
         "version": "0.2.0-10",
         "date": "2026-09-15",
         "sha": "78591c15",
@@ -2421,6 +2463,12 @@
       }
     ],
     "helpers": [
+      {
+        "version": "0.2.0-27",
+        "date": "2026-09-15",
+        "sha": "95fa7074",
+        "order": 1273
+      },
       {
         "version": "0.2.0-26",
         "date": "2026-09-15",
@@ -3042,6 +3090,12 @@
     ],
     "inversion": [
       {
+        "version": "0.2.0-11",
+        "date": "2026-09-15",
+        "sha": "2328c4e9",
+        "order": 1271
+      },
+      {
         "version": "0.2.0-10",
         "date": "2026-09-15",
         "sha": "1dd9ed44",
@@ -3284,6 +3338,12 @@
     ],
     "kernel": [
       {
+        "version": "0.2.0-32",
+        "date": "2026-09-15",
+        "sha": "aad7aa37",
+        "order": 1275
+      },
+      {
         "version": "0.2.0-31",
         "date": "2026-09-15",
         "sha": "63da72af",
@@ -3479,6 +3539,17 @@
   },
   "changelogs": [
     {
+      "id": "changelog:2026-09-15-presign-put-signs-tags-and-size",
+      "file": "2026-09-15-presign-put-signs-tags-and-size.md",
+      "date": "2026-09-15",
+      "title": "A Presigned PUT Can Carry a Tag Set and a Size",
+      "packages": [
+        "helpers"
+      ],
+      "kind": "Feature",
+      "order": 1268
+    },
+    {
       "id": "changelog:2026-09-15-endpoint-default-and-public",
       "file": "2026-09-15-endpoint-default-and-public.md",
       "date": "2026-09-15",
@@ -3488,6 +3559,17 @@
       ],
       "kind": "Breaking",
       "order": 1253
+    },
+    {
+      "id": "changelog:2026-09-15-commit-writes-a-metalink-row",
+      "file": "2026-09-15-commit-writes-a-metalink-row.md",
+      "date": "2026-09-15",
+      "title": "A Direct Upload Lands a MetaLink Row Too",
+      "packages": [
+        "core-server"
+      ],
+      "kind": "Fix",
+      "order": 1269
     },
     {
       "id": "changelog:2026-09-14-unresolved-binding-report",
