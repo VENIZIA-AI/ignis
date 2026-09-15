@@ -17,7 +17,7 @@ const buildHelper = (): BunS3Helper =>
     accessKey: 'test-access-key',
     secretKey: 'test-secret-key',
     // Unreachable on purpose - fact 1 says presign signs locally with no network call.
-    endpoint: 'http://127.0.0.1:1',
+    endpoint: { default: 'http://127.0.0.1:1' },
   });
 
 describe('BunS3Helper.presignPut / presignGet - real S3Client, unreachable endpoint', () => {

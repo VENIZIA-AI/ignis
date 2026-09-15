@@ -186,7 +186,7 @@ describe('Storage - upload', () => {
       helper = new BunS3Helper({
         accessKey: 'accessKey',
         secretKey: 'secretKey',
-        endpoint: 'http://localhost:9000',
+        endpoint: { default: 'http://localhost:9000' },
       });
 
       helper['client'] = {

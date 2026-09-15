@@ -17,7 +17,7 @@ const buildHelper = (opts: {
   const helper = new BunS3Helper({
     accessKey: 'AK',
     secretKey: 'SK',
-    endpoint: 'https://s3.us-east-1.amazonaws.com',
+    endpoint: { default: 'https://s3.us-east-1.amazonaws.com' },
     region: 'us-east-1',
   });
 
@@ -104,7 +104,7 @@ describe('BunS3Helper.getObject - the object is streamed, not buffered', () => {
     const helper = new BunS3Helper({
       accessKey: 'AK',
       secretKey: 'SK',
-      endpoint: 'http://127.0.0.1:59999',
+      endpoint: { default: 'http://127.0.0.1:59999' },
       region: 'us-east-1',
     });
 

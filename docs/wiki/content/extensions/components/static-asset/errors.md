@@ -151,7 +151,7 @@ this.component(StaticAssetComponent);
 - **Fix:**
   - Confirm the endpoint is reachable from this process.
   - Verify `accessKey`/`secretKey` and that `region` matches the bucket.
-  - Behind a private endpoint, set `publicEndpoint` so signed URLs carry a host a browser can reach.
+  - Behind a private endpoint, set `endpoint.public` so signed URLs carry a host a browser can reach.
 
 ### Large file uploads failing or timing out
 

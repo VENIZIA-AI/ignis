@@ -1,9 +1,9 @@
+import type { IDuration } from '@/common';
 import { getError } from '@/modules/error';
 import { ErrorPrettier } from '@/modules/logger';
 import { S3Client } from 'bun';
 import { Readable } from 'node:stream';
 import { BaseStorageHelper } from '../base';
-import type { IDuration } from '@/common';
 import type {
   IBucketInfo,
   IBucketRef,
@@ -22,20 +22,14 @@ import { buildPostPolicy, buildSignedRequest, buildTaggingXml, parseTaggingXml }
 export interface IBunS3HelperOptions extends IStorageHelperOptions {
   accessKey: string;
   secretKey: string;
-  endpoint: string;
   region?: string;
   sessionToken?: string;
-
-  /** The endpoint a browser can reach. `host` is inside the signature, so it cannot be rewritten after signing. */
-  publicEndpoint?: string;
+  /** `default` is the host THIS process talks to; `public` is the host a browser is handed. `host` is inside every SigV4 signature, so a URL signed against an internal name cannot be rewritten later - which is why the two are separate rather than one value patched afterwards. */
+  endpoint: { default: string; public?: string };
 
   /** `https://<bucket>.<endpoint>/<key>` instead of `<endpoint>/<bucket>/<key>`. AWS requires it; MinIO and R2 do not. */
   virtualHostedStyle?: boolean;
-
-  /** Multipart part size in bytes. Bun's own default applies when omitted. */
   partSize?: number;
-
-  /** Parts uploaded at once. Costs roughly `partSize * queueSize` of memory per transfer. */
   queueSize?: number;
 
   /** Retries Bun performs on a failed part before the write fails. */
@@ -47,7 +41,7 @@ export class BunS3Helper extends BaseStorageHelper {
   private credentials: {
     accessKey: string;
     secretKey: string;
-    endpoint: string;
+    endpoint: { default: string; public: string };
     region: string;
     sessionToken?: string;
     virtualHostedStyle: boolean;
@@ -62,13 +56,14 @@ export class BunS3Helper extends BaseStorageHelper {
       identifier: options.identifier ?? BunS3Helper.name,
     });
 
-    // `host` is inside every signature, so the public endpoint signs when one is set.
-    const signingEndpoint = options.publicEndpoint ?? options.endpoint;
-
     this.credentials = {
       accessKey: options.accessKey,
       secretKey: options.secretKey,
-      endpoint: signingEndpoint,
+      endpoint: {
+        default: options.endpoint.default,
+        // Falls back to the default, so one reachable host still serves both audiences.
+        public: options.endpoint.public ?? options.endpoint.default,
+      },
       region: options.region ?? 'us-east-1',
       sessionToken: options.sessionToken,
       virtualHostedStyle: options.virtualHostedStyle ?? false,
@@ -83,22 +78,26 @@ export class BunS3Helper extends BaseStorageHelper {
     this.client = new S3Client({
       accessKeyId: options.accessKey,
       secretAccessKey: options.secretKey,
-      endpoint: signingEndpoint,
+      endpoint: options.endpoint.default,
       region: options.region,
       sessionToken: options.sessionToken,
       virtualHostedStyle: options.virtualHostedStyle,
     });
   }
 
-  /** One bucket's objects, in either addressing style. Virtual-hosted derives the per-bucket host, because the bucket arrives per call. */
-  private objectEndpoint(opts: { bucket: string }): { endpoint: string; pathPrefix: string } {
+  /** One bucket's objects, in either addressing style. `audience` picks the host: `server` for a call this process makes, `browser` for a URL it hands out. Virtual-hosted derives the per-bucket host, because the bucket arrives per call. */
+  private objectEndpoint(opts: { bucket: string; audience: 'server' | 'browser' }): {
+    endpoint: string;
+    pathPrefix: string;
+  } {
     const { endpoint, virtualHostedStyle } = this.credentials;
+    const host = opts.audience === 'browser' ? endpoint.public : endpoint.default;
 
     if (!virtualHostedStyle) {
-      return { endpoint, pathPrefix: `/${opts.bucket}` };
+      return { endpoint: host, pathPrefix: `/${opts.bucket}` };
     }
 
-    const parsed = new URL(endpoint);
+    const parsed = new URL(host);
     parsed.hostname = `${opts.bucket}.${parsed.hostname}`;
     return { endpoint: parsed.origin, pathPrefix: '' };
   }
@@ -110,7 +109,7 @@ export class BunS3Helper extends BaseStorageHelper {
     virtualHostedStyle?: boolean;
   } {
     const { virtualHostedStyle } = this.credentials;
-    const { endpoint } = this.objectEndpoint({ bucket: opts.bucket });
+    const { endpoint } = this.objectEndpoint({ bucket: opts.bucket, audience: 'browser' });
 
     return {
       bucket: opts.bucket,
@@ -143,7 +142,9 @@ export class BunS3Helper extends BaseStorageHelper {
   }
 
   async getBuckets(): Promise<IBucketInfo[]> {
-    const { accessKey, secretKey, endpoint, region, sessionToken } = this.credentials;
+    // A bucket operation is a call this process makes, so it goes to the default host.
+    const { accessKey, secretKey, region, sessionToken } = this.credentials;
+    const endpoint = this.credentials.endpoint.default;
 
     const { url, headers } = await buildSignedRequest({
       method: 'GET',
@@ -194,7 +195,9 @@ export class BunS3Helper extends BaseStorageHelper {
       throw getError({ message: '[createBucket] Invalid name to create bucket!' });
     }
 
-    const { accessKey, secretKey, endpoint, region, sessionToken } = this.credentials;
+    // A bucket operation is a call this process makes, so it goes to the default host.
+    const { accessKey, secretKey, region, sessionToken } = this.credentials;
+    const endpoint = this.credentials.endpoint.default;
 
     const { url, headers } = await buildSignedRequest({
       method: 'PUT',
@@ -222,7 +225,9 @@ export class BunS3Helper extends BaseStorageHelper {
       throw getError({ message: '[removeBucket] Invalid name to remove bucket!' });
     }
 
-    const { accessKey, secretKey, endpoint, region, sessionToken } = this.credentials;
+    // A bucket operation is a call this process makes, so it goes to the default host.
+    const { accessKey, secretKey, region, sessionToken } = this.credentials;
+    const endpoint = this.credentials.endpoint.default;
 
     const { url, headers } = await buildSignedRequest({
       method: 'DELETE',
@@ -251,7 +256,7 @@ export class BunS3Helper extends BaseStorageHelper {
   }): Promise<void> {
     const { bucket, source, destination } = opts;
     const { accessKey, secretKey, region, sessionToken } = this.credentials;
-    const { endpoint, pathPrefix } = this.objectEndpoint({ bucket: bucket.name });
+    const { endpoint, pathPrefix } = this.objectEndpoint({ bucket: bucket.name, audience: 'server' });
 
     // `x-amz-copy-source` is what makes this server side: S3 reads the source itself, so a 500 MB
     // object never travels through this process.
@@ -292,7 +297,7 @@ export class BunS3Helper extends BaseStorageHelper {
 
     // The browser posts to the BUCKET, not to an object - the key travels as a form field, because
     // the policy only constrains its prefix.
-    const { endpoint } = this.objectEndpoint({ bucket: bucket.name });
+    const { endpoint } = this.objectEndpoint({ bucket: bucket.name, audience: 'browser' });
     const { formData, expiresAt } = await buildPostPolicy({
       bucket: bucket.name,
       keyPrefix,
@@ -346,7 +351,7 @@ export class BunS3Helper extends BaseStorageHelper {
     const bucketName = opts.bucket.name;
     const key = opts.object.key;
     const { accessKey, secretKey, region, sessionToken } = this.credentials;
-    const { endpoint, pathPrefix } = this.objectEndpoint({ bucket: bucketName });
+    const { endpoint, pathPrefix } = this.objectEndpoint({ bucket: bucketName, audience: 'server' });
 
     const { url, headers } = await buildSignedRequest({
       method: 'GET',
@@ -383,7 +388,7 @@ export class BunS3Helper extends BaseStorageHelper {
     const key = opts.object.key;
     const { tags } = opts;
     const { accessKey, secretKey, region, sessionToken } = this.credentials;
-    const { endpoint, pathPrefix } = this.objectEndpoint({ bucket: bucketName });
+    const { endpoint, pathPrefix } = this.objectEndpoint({ bucket: bucketName, audience: 'server' });
     const requestBody = buildTaggingXml({ tags });
 
     const { url, headers } = await buildSignedRequest({

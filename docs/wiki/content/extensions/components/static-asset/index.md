@@ -77,7 +77,7 @@ this.bind<TStaticAssetsComponentOptions>({
     controller: { name: 'UploadsController', basePath: '/uploads' },
     storage: StaticAssetStorageTypes.BUN_S3,
     helper: new BunS3Helper({
-      endpoint: 'http://localhost:9000',
+      endpoint: { default: 'http://localhost:9000' },
       accessKey: process.env.S3_ACCESS_KEY,
       secretKey: process.env.S3_SECRET_KEY,
     }),

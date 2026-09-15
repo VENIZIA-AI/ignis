@@ -12,8 +12,7 @@ const buildHelper = (opts: {
   new BunS3Helper({
     accessKey: 'AK',
     secretKey: 'SK',
-    endpoint: opts.endpoint,
-    publicEndpoint: opts.publicEndpoint,
+    endpoint: { default: opts.endpoint, public: opts.publicEndpoint },
     virtualHostedStyle: opts.virtualHostedStyle,
     region: opts.region ?? 'us-east-1',
   });
@@ -68,7 +67,7 @@ describe('BunS3Helper - bucket addressing per provider', () => {
   });
 });
 
-describe('BunS3Helper - publicEndpoint', () => {
+describe('BunS3Helper - endpoint.public', () => {
   /** `host` is inside the signature, so a URL signed against an internal name cannot be rewritten later. */
   test('a signed URL carries the public host, not the internal one', async () => {
     const helper = buildHelper({
@@ -121,5 +120,55 @@ describe('BunS3Helper - the signed GET carries its own disposition', () => {
     });
 
     expect(new URL(url).searchParams.get('response-content-disposition')).toBeNull();
+  });
+});
+
+/**
+ * `endpoint.default` is what THIS process talks to; `endpoint.public` is what a browser is handed.
+ * They are different hosts for a reason - behind minio the server reaches `minio:9000`, which no
+ * browser can route to, and `host` is inside the SigV4 signature so a URL cannot be rewritten after
+ * signing. Sending server traffic to the public host works by accident and hairpins every byte back
+ * out through the edge.
+ */
+describe('BunS3Helper - default is for this process, public is for a browser', () => {
+  test('a signed URL a browser receives carries the public host', async () => {
+    const helper = buildHelper({
+      endpoint: 'http://minio:9000',
+      publicEndpoint: 'https://cdn.example.com',
+    });
+
+    const put = await helper.presignPut({ bucket: { name: 'assets' }, object: { key: 'a.png' } });
+    const post = await helper.presignPost({
+      bucket: { name: 'assets' },
+      keyPrefix: 'pending/',
+      maxBytes: 1024,
+    });
+
+    expect(new URL(put).host).toBe('cdn.example.com');
+    expect(new URL(post.postURL).host).toBe('cdn.example.com');
+  });
+
+  test('a server-side call goes to the default host, never the public one', async () => {
+    const helper = buildHelper({
+      endpoint: 'http://minio:9000',
+      publicEndpoint: 'https://cdn.example.com',
+    });
+
+    // `getBuckets` signs and fetches; the fetch fails with no server, and the URL it tried is the
+    // assertion. A public host here would mean every list, copy and tag leaves the network.
+    let attempted = '';
+    const originalFetch = globalThis.fetch;
+    globalThis.fetch = (async (input: Request | URL | string) => {
+      attempted = input instanceof Request ? input.url : String(input);
+      throw new Error('no server');
+    }) as unknown as typeof fetch;
+
+    try {
+      await helper.getBuckets().catch(() => undefined);
+    } finally {
+      globalThis.fetch = originalFetch;
+    }
+
+    expect(new URL(attempted).host).toBe('minio:9000');
   });
 });

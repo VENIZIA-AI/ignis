@@ -457,10 +457,9 @@ const diskHelper = new DiskHelper({ basePath: './app_data/storage' });
 interface IBunS3HelperOptions {
   accessKey: string;
   secretKey: string;
-  endpoint: string;
+  endpoint: { default: string; public?: string };
   region?: string;               // Default: 'us-east-1'
   sessionToken?: string;
-  publicEndpoint?: string;       // The endpoint a browser can reach; signed instead of `endpoint`
   virtualHostedStyle?: boolean;  // Default: false
   partSize?: number;             // Multipart part size in bytes; Bun's default when omitted
   queueSize?: number;            // Parts in flight; Bun's default when omitted
@@ -478,12 +477,12 @@ import { BunS3Helper } from '@venizia/ignis-helpers/bun-s3';
 const bunS3Helper = new BunS3Helper({
   accessKey: process.env.S3_ACCESS_KEY,
   secretKey: process.env.S3_SECRET_KEY,
-  endpoint: 'https://s3.us-east-1.amazonaws.com',
+  endpoint: { default: 'https://s3.us-east-1.amazonaws.com' },
 });
 ```
 
 > [!IMPORTANT]
-> Set `publicEndpoint` when the application reaches S3 over an internal address. `host` is inside every SigV4 signature, so a URL signed against the internal endpoint cannot be rewritten to a public one afterwards - the signature breaks.
+> Set `endpoint.public` when the application reaches S3 over an internal address. `host` is inside every SigV4 signature, so a URL signed against the internal endpoint cannot be rewritten to a public one afterwards - the signature breaks. `endpoint.default` stays the host this process talks to.
 
 ### `MinioHelper`
 

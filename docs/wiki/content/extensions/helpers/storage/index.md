@@ -78,7 +78,7 @@ const disk = new DiskHelper({ basePath: './app_data/storage' });
 
 // Any S3-compatible endpoint: AWS, Cloudflare R2, DigitalOcean Spaces, MinIO.
 const s3 = new BunS3Helper({
-  endpoint: 'http://localhost:9000',
+  endpoint: { default: 'http://localhost:9000' },
   accessKey: process.env.S3_ACCESS_KEY,
   secretKey: process.env.S3_SECRET_KEY,
   region: 'us-east-1',

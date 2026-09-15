@@ -421,10 +421,9 @@ constructor(options: IBunS3HelperOptions)
 interface IBunS3HelperOptions extends IStorageHelperOptions {
   accessKey: string;
   secretKey: string;
-  endpoint: string;
   region?: string;
   sessionToken?: string;
-  publicEndpoint?: string;
+  endpoint: { default: string; public?: string };
   virtualHostedStyle?: boolean;
   partSize?: number;
   queueSize?: number;
@@ -438,10 +437,10 @@ Creates a Bun `S3Client` for object operations and keeps the credentials separat
 |-----------|------|---------|-------------|
 | `options.accessKey` | `string` | - | S3 access key credential. |
 | `options.secretKey` | `string` | - | S3 secret key credential. |
-| `options.endpoint` | `string` | - | S3-compatible endpoint URL (e.g. `'http://localhost:9000'`). |
+| `options.endpoint.default` | `string` | - | The host THIS process talks to (e.g. `'http://localhost:9000'`). Every bucket operation, copy and tagging call goes here. |
 | `options.region` | `string` | `'us-east-1'` | Region used for SigV4 signing of bucket-management requests. |
 | `options.sessionToken` | `string` | - | Optional session token for temporary credentials. |
-| `options.publicEndpoint` | `string` | `options.endpoint` | The endpoint a browser can reach. Set it and every signature uses it instead. |
+| `options.endpoint.public` | `string` | `endpoint.default` | The host a BROWSER is handed. Only presigned URLs and POST policies use it. |
 | `options.virtualHostedStyle` | `boolean` | `false` | Addresses objects as `https://{bucket}.{endpoint}/{key}` rather than `{endpoint}/{bucket}/{key}`. AWS requires it; MinIO and R2 do not. |
 | `options.partSize` | `number` | Bun's own default | Multipart part size in bytes. |
 | `options.queueSize` | `number` | Bun's own default | Parts uploaded at once. Costs roughly `partSize * queueSize` of memory per transfer. |
@@ -450,7 +449,9 @@ Creates a Bun `S3Client` for object operations and keeps the credentials separat
 | `options.identifier` | `string` | `'BunS3Helper'` | Helper identifier. |
 
 > [!IMPORTANT]
-> Set `publicEndpoint` whenever the application reaches S3 over an internal address. `host` is inside every SigV4 signature, so a URL signed against the internal endpoint cannot be rewritten to a public one afterwards - the signature breaks. Signing against `publicEndpoint` from the start is the only way a presigned URL reaches a browser.
+> Set `endpoint.public` whenever the application reaches S3 over an internal address. `host` is inside every SigV4 signature, so a URL signed against the internal endpoint cannot be rewritten to a public one afterwards - the signature breaks. Signing against the public host from the start is the only way a presigned URL reaches a browser.
+>
+> The two are separate because they answer different questions. `default` is where this process sends a request; `public` is what it writes into a URL it hands out. Routing server traffic through the public host works, and hairpins every byte back out through the edge.
 
 ### defaultLinkPrefix and writeObject
 
@@ -1023,7 +1024,7 @@ interface IBunS3HelperOptions extends IStorageHelperOptions {
   endpoint: string;
   region?: string;               // Default: 'us-east-1'
   sessionToken?: string;
-  publicEndpoint?: string;       // The endpoint a browser can reach; signed instead of `endpoint`
+  endpoint: { default: string; public?: string };  // default = this process; public = a browser
   virtualHostedStyle?: boolean;  // Default: false
   partSize?: number;             // Multipart part size in bytes; Bun's default when omitted
   queueSize?: number;            // Parts in flight; Bun's default when omitted
@@ -1226,7 +1227,7 @@ try {
 - The server is running and reachable at the configured `endpoint`.
 - `accessKey`/`secretKey` are correct.
 - `region` matches what the server expects for SigV4 signing.
-- A signed URL that a browser cannot reach means `publicEndpoint` is unset - `host` is inside the signature, so it cannot be rewritten afterwards.
+- A signed URL that a browser cannot reach means `endpoint.public` is unset - `host` is inside the signature, so it cannot be rewritten afterwards.
 - Network and firewall rules allow the connection.
 
 ## See also

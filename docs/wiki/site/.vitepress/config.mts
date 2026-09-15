@@ -450,6 +450,16 @@ const config = defineConfig({
           collapsed: false,
           items: [
             {
+              text: '2026-09-15',
+              collapsed: true,
+              items: [
+                {
+                  text: 'One Endpoint Option, Two Audiences',
+                  link: '/changelogs/2026-09-15-endpoint-default-and-public',
+                },
+              ],
+            },
+            {
               text: '2026-09-14',
               collapsed: true,
               items: [

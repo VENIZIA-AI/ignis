@@ -6,6 +6,25 @@ not how.
 This file and `index.md` are reserved OKF filenames - they carry no `type:` frontmatter and are not
 counted as concepts.
 
+## 2026-09-15 - one endpoint option, two audiences
+
+`IBunS3HelperOptions.endpoint` is `{ default, public? }`; `publicEndpoint` is gone. The shape change
+is the small half. The behaviour was wrong: `publicEndpoint ?? endpoint` won for EVERYTHING, so an
+application that set it sent its own list, copy and tagging calls out through the public host -
+working by accident, hairpinning every byte through the edge, and impossible against a read-only CDN.
+
+Each call site now states its audience through `objectEndpoint({ bucket, audience })`. `default` takes
+the `S3Client`, every bucket operation, `copyObject` and tagging; `public` takes `presignGet`,
+`presignPut` and `presignPost`, and falls back to `default` when unset.
+
+Two hosts exist because `host` is inside every SigV4 signature: a URL signed against an internal name
+cannot be rewritten later, so the public host is chosen AT SIGNING TIME rather than patched after.
+
+Measured with a `fetch` double recording the URL actually attempted, not by reading the code - a
+mutation forcing the bucket branch onto `public` turns that test red. Blast radius in the downstream
+repository: 5 `new BunS3Helper` sites break at COMPILE (asset 2, helpdesk, ledger, taxation), and
+none of them set `publicEndpoint`, so the behaviour change reaches nobody there.
+
 ## 2026-09-14 - six changes: the asset surface, a component's options, and an inject target behind an import cycle
 
 **Direct upload lands, as a signed POST policy.** `controller.directUpload` registers
