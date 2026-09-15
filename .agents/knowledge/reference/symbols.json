@@ -1464,6 +1464,16 @@
       "signature": "type ECDHAlgorithmType = 'ecdh-p256'"
     },
     {
+      "name": "EndpointAudiences",
+      "package": "@venizia/ignis",
+      "subpath": ".",
+      "specifier": "@venizia/ignis",
+      "kind": "class",
+      "file": "packages/helpers/src/modules/storage/common/constants.ts",
+      "line": 23,
+      "signature": "class EndpointAudiences"
+    },
+    {
       "name": "Environment",
       "package": "@venizia/ignis",
       "subpath": ".",
@@ -6074,6 +6084,16 @@
       "file": "packages/helpers/src/common/constants/duration.ts",
       "line": 30,
       "signature": "type TDurationUnit = TConstValue<typeof DurationUnits>"
+    },
+    {
+      "name": "TEndpointAudience",
+      "package": "@venizia/ignis",
+      "subpath": ".",
+      "specifier": "@venizia/ignis",
+      "kind": "type",
+      "file": "packages/helpers/src/modules/storage/common/constants.ts",
+      "line": 37,
+      "signature": "type TEndpointAudience = TConstValue<typeof EndpointAudiences>"
     },
     {
       "name": "TEntityDataObject",
@@ -20506,6 +20526,16 @@
       "signature": "type ECDHAlgorithmType = 'ecdh-p256'"
     },
     {
+      "name": "EndpointAudiences",
+      "package": "@venizia/ignis-helpers",
+      "subpath": ".",
+      "specifier": "@venizia/ignis-helpers",
+      "kind": "class",
+      "file": "packages/helpers/src/modules/storage/common/constants.ts",
+      "line": 23,
+      "signature": "class EndpointAudiences"
+    },
+    {
       "name": "Environment",
       "package": "@venizia/ignis-helpers",
       "subpath": ".",
@@ -22338,6 +22368,16 @@
       "signature": "type TDurationUnit = TConstValue<typeof DurationUnits>"
     },
     {
+      "name": "TEndpointAudience",
+      "package": "@venizia/ignis-helpers",
+      "subpath": ".",
+      "specifier": "@venizia/ignis-helpers",
+      "kind": "type",
+      "file": "packages/helpers/src/modules/storage/common/constants.ts",
+      "line": 37,
+      "signature": "type TEndpointAudience = TConstValue<typeof EndpointAudiences>"
+    },
+    {
       "name": "TError",
       "package": "@venizia/ignis-helpers",
       "subpath": ".",
@@ -23905,7 +23945,7 @@
       "specifier": "@venizia/ignis-helpers/bun-s3",
       "kind": "class",
       "file": "packages/helpers/src/modules/storage/bun-s3/helper.ts",
-      "line": 39,
+      "line": 45,
       "signature": "class BunS3Helper extends BaseStorageHelper"
     },
     {
@@ -23915,7 +23955,7 @@
       "specifier": "@venizia/ignis-helpers/bun-s3",
       "kind": "interface",
       "file": "packages/helpers/src/modules/storage/bun-s3/helper.ts",
-      "line": 22,
+      "line": 28,
       "signature": "interface IBunS3HelperOptions extends IStorageHelperOptions"
     },
     {

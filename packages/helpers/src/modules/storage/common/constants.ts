@@ -1,4 +1,4 @@
-import { DurationUnits, IDuration } from '@/common';
+import { DurationUnits, IDuration, TConstValue } from '@/common';
 
 /** Presign expiry defaults - a PUT or a POST form carries a file and needs more time; a GET is a redirect. */
 export class StoragePresignDefaults {
@@ -18,3 +18,20 @@ export class StoragePresignLimits {
 export class StorageConcurrency {
   static readonly DEFAULT_LIMIT = 16;
 }
+
+/** Which host a signed artifact names. `host` is inside every SigV4 signature, so this is decided at signing time and cannot be patched afterwards. */
+export class EndpointAudiences {
+  /** The host THIS process talks to: every bucket operation, copy and tagging call. */
+  static readonly SERVER = 'server';
+
+  /** The host a BROWSER is handed: presigned URLs and POST policies. */
+  static readonly BROWSER = 'browser';
+
+  static readonly SCHEME_SET = new Set<string>([this.SERVER, this.BROWSER]);
+
+  static isValid(audience: string): boolean {
+    return this.SCHEME_SET.has(audience);
+  }
+}
+
+export type TEndpointAudience = TConstValue<typeof EndpointAudiences>;

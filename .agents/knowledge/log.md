@@ -13,7 +13,7 @@ is the small half. The behaviour was wrong: `publicEndpoint ?? endpoint` won for
 application that set it sent its own list, copy and tagging calls out through the public host -
 working by accident, hairpinning every byte through the edge, and impossible against a read-only CDN.
 
-Each call site now states its audience through `objectEndpoint({ bucket, audience })`. `default` takes
+Each call site now states its audience through `objectEndpoint({ bucket, audience })`, and `audience` is `EndpointAudiences` - a const class with `SCHEME_SET` and `isValid`, not a raw string-literal union (C rule: an enumerable string is a const class plus `TConstValue`). `default` takes
 the `S3Client`, every bucket operation, `copyObject` and tagging; `public` takes `presignGet`,
 `presignPut` and `presignPost`, and falls back to `default` when unset.
 

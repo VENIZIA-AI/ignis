@@ -116,7 +116,7 @@ tags: [reference, exports, api]
 
 ## helpers
 
-### `@venizia/ignis-helpers` (388)
+### `@venizia/ignis-helpers` (390)
 
 - `AbstractCryptoAlgorithm` class
 - `AbstractLogger` class
@@ -181,6 +181,7 @@ tags: [reference, exports, api]
 - `ECDH` class
 - `ECDHAlgorithmType` type
 - `encodeRFC5987` const
+- `EndpointAudiences` class
 - `ensureRedisClientsConnecting` const
 - `Environment` class
 - `EnvironmentNames` class
@@ -402,6 +403,7 @@ tags: [reference, exports, api]
 - `TContentType` type
 - `TCreateRedisHelperOptions` type
 - `TDurationUnit` type
+- `TEndpointAudience` type
 - `TError` type
 - `TErrorByDefinition` type
 - `TErrorByField` type
@@ -1800,7 +1802,7 @@ tags: [reference, exports, api]
 
 ## core-server
 
-### `@venizia/ignis` (950)
+### `@venizia/ignis` (952)
 
 - `AbstractApplication` class
 - `AbstractAuthRegistry` class
@@ -1975,6 +1977,7 @@ tags: [reference, exports, api]
 - `ECDHAlgorithmType` type
 - `emojiFavicon` const
 - `encodeRFC5987` const
+- `EndpointAudiences` class
 - `enrichDataTypes` const
 - `enrichId` const
 - `enrichPrincipal` const
@@ -2529,6 +2532,7 @@ tags: [reference, exports, api]
 - `TDomainHierarchyEdge` type
 - `TDrizzleQueryOptions` type
 - `TDurationUnit` type
+- `TEndpointAudience` type
 - `TEntityDataObject` type
 - `TEntityId` type
 - `TEntityPersistObject` type
