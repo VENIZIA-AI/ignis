@@ -188,6 +188,7 @@ const extensionsSidebar: DefaultTheme.SidebarItem[] = [
         items: [
           { text: 'Setup & Configuration', link: '/extensions/components/static-asset/' },
           { text: 'Usage & Examples', link: '/extensions/components/static-asset/usage' },
+          { text: 'Direct Upload', link: '/extensions/components/static-asset/direct-upload' },
           { text: 'API Reference', link: '/extensions/components/static-asset/api' },
           { text: 'Error Reference', link: '/extensions/components/static-asset/errors' },
         ],

@@ -6,6 +6,26 @@ not how.
 This file and `index.md` are reserved OKF filenames - they carry no `type:` frontmatter and are not
 counted as concepts.
 
+## 2026-09-15 (b) - the storage signing model gets a concept, and direct upload gets a page
+
+New concept [[object-storage]]: what a SigV4 signature actually covers, the three upload paths, and
+why a POST policy is not a presigned PUT. The load-bearing line is one rule - what is inside the
+signed description is locked, what is outside is free, and there is no middle, because HMAC answers
+identical or different and never within range. A size ceiling therefore cannot come from signing a
+request; it has to come from signing a document that carries a grammar (`content-length-range`,
+`starts-with`).
+
+That rule also explains `endpoint: { default, public }`: `host` is inside the description, so a URL
+signed against an internal name cannot be rewritten later.
+
+Wiki gains `extensions/components/static-asset/direct-upload` - configuration, the browser side, and
+each safeguard with its reason - plus a runnable page at `content/public/direct-upload-demo.html`
+that performs all three round trips and prints them. The demo exists because step 2 leaving without
+touching the backend is the one claim a reader cannot check by reading.
+
+A 403 at step 2 is most often the bucket's CORS rules, not the policy. That is recorded in the page
+because it is the failure that costs an afternoon.
+
 ## 2026-09-15 - one endpoint option, two audiences
 
 `IBunS3HelperOptions.endpoint` is `{ default, public? }`; `publicEndpoint` is gone. The shape change

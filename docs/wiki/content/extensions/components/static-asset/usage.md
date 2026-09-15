@@ -194,6 +194,10 @@ export class Application extends BaseApplication {
 > [!TIP]
 > Call `this.repository(MetaLinkRepository)` before `this.get({ key: 'repositories.MetaLinkRepository' })` - the binding has to exist in the container first.
 
+### Upload straight from the browser
+
+For video and other large files, `directUpload` lets the browser post the bytes to storage while IGNIS only signs the permission - see [Direct upload](./direct-upload).
+
 ### Your own MetaLink table
 
 The MetaLink table belongs to your application, so it does not have to be the one IGNIS ships. Put it

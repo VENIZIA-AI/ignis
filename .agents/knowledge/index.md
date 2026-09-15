@@ -61,6 +61,7 @@ How the pieces fit.
 - [Typesense search connector](/architecture/search-typesense.md) - the search branch
 - [Authentication](/architecture/authentication.md) - strategies and the token seam
 - [Casbin authorization](/architecture/authorization-casbin.md) - scoped RBAC
+- [Object storage](/architecture/object-storage.md) - what a signature covers, the three upload paths, and why a POST policy is not a presigned PUT
 - [Error handling flow](/architecture/error-handling-flow.md) - throw to HTTP response
 
 ## Conventions
