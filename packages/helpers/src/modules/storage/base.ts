@@ -450,7 +450,13 @@ export abstract class BaseStorageHelper extends BaseHelper implements IStorageHe
     });
   }
 
-  async presignPut(_opts: IObjectLocation & { expiresIn?: IDuration }): Promise<string> {
+  async presignPut(
+    _opts: IObjectLocation & {
+      expiresIn?: IDuration;
+      tagging?: Record<string, string>;
+      contentLength?: number;
+    },
+  ): Promise<string> {
     throw getError({
       message: `[${this.constructor.name}.presignPut] Presigned PUT URLs are not supported by this helper`,
     });

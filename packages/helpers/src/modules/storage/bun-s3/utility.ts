@@ -63,6 +63,29 @@ const buildCanonicalQueryString = (query?: Record<string, string>): string => {
     .join('&');
 };
 
+/** The SigV4 four-step chain. Each step keys the next, so the final key is bound to date, region and service. */
+const deriveSigningKey = async (opts: {
+  secretKey: string;
+  dateStamp: string;
+  region: string;
+}): Promise<Uint8Array<ArrayBuffer>> => {
+  const { secretKey, dateStamp, region } = opts;
+  const dateKey = await hmacSHA256({ key: `AWS4${secretKey}`, data: dateStamp });
+  const regionKey = await hmacSHA256({ key: dateKey, data: region });
+  const serviceKey = await hmacSHA256({ key: regionKey, data: 's3' });
+  return hmacSHA256({ key: serviceKey, data: 'aws4_request' });
+};
+
+/** `20130524T000000Z` and its `20130524` prefix - the two forms every signature needs. */
+const toAmzDate = (opts: { now: Date }): { amzDate: string; dateStamp: string } => {
+  const amzDate = opts.now
+    .toISOString()
+    .replace(/[-:]/g, '')
+    .replace(/\.\d{3}Z$/, 'Z');
+
+  return { amzDate, dateStamp: amzDate.slice(0, 8) };
+};
+
 export async function buildSignedRequest(opts: {
   method: string;
   endpoint: string;
@@ -89,12 +112,7 @@ export async function buildSignedRequest(opts: {
     headers: extraHeaders,
   } = opts;
 
-  const now = new Date();
-  const amzDate = now
-    .toISOString()
-    .replace(/[-:]/g, '')
-    .replace(/\.\d{3}Z$/, 'Z');
-  const dateStamp = amzDate.slice(0, 8);
+  const { amzDate, dateStamp } = toAmzDate({ now: new Date() });
 
   const canonicalQueryString = buildCanonicalQueryString(query);
   const canonicalPath = encodeSigV4Path({ path });
@@ -137,10 +155,7 @@ export async function buildSignedRequest(opts: {
     await sha256Hex({ data: canonicalRequest }),
   ].join('\n');
 
-  const dateKey = await hmacSHA256({ key: `AWS4${secretKey}`, data: dateStamp });
-  const regionKey = await hmacSHA256({ key: dateKey, data: region });
-  const serviceKey = await hmacSHA256({ key: regionKey, data: 's3' });
-  const signingKey = await hmacSHA256({ key: serviceKey, data: 'aws4_request' });
+  const signingKey = await deriveSigningKey({ secretKey, dateStamp, region });
   const signature = toHex({ bytes: await hmacSHA256({ key: signingKey, data: stringToSign }) });
 
   const authHeader = `AWS4-HMAC-SHA256 Credential=${accessKey}/${credentialScope}, SignedHeaders=${signedHeaders}, Signature=${signature}`;
@@ -186,6 +201,15 @@ export const buildTaggingXml = (opts: { tags: Record<string, string> }): string 
 };
 
 /** S3's GET tagging response - hand-parsed rather than a full XML parser; throws rather than returning a half-parsed object. */
+/** The `x-amz-tagging` header: a URL-encoded query string, unlike the XML the tagging API takes. */
+export const buildTaggingHeader = (opts: { tags: Record<string, string> }): string =>
+  Object.entries(opts.tags)
+    .map(
+      ([key, value]) =>
+        `${encodeSigV4Component({ value: key })}=${encodeSigV4Component({ value })}`,
+    )
+    .join('&');
+
 export const parseTaggingXml = (opts: { xml: string }): Record<string, string> => {
   const { xml } = opts;
   const trimmed = xml.trim();
@@ -250,11 +274,7 @@ export async function buildPostPolicy(opts: {
   } = opts;
 
   const now = new Date();
-  const amzDate = now
-    .toISOString()
-    .replace(/[-:]/g, '')
-    .replace(/\.\d{3}Z$/, 'Z');
-  const dateStamp = amzDate.slice(0, 8);
+  const { amzDate, dateStamp } = toAmzDate({ now });
   const credentialScope = `${dateStamp}/${region}/s3/aws4_request`;
   const credential = `${accessKey}/${credentialScope}`;
   const expiresAt = new Date(now.getTime() + expiresInSeconds * 1000).toISOString();
@@ -279,10 +299,7 @@ export async function buildPostPolicy(opts: {
     'base64',
   );
 
-  const dateKey = await hmacSHA256({ key: `AWS4${secretKey}`, data: dateStamp });
-  const regionKey = await hmacSHA256({ key: dateKey, data: region });
-  const serviceKey = await hmacSHA256({ key: regionKey, data: 's3' });
-  const signingKey = await hmacSHA256({ key: serviceKey, data: 'aws4_request' });
+  const signingKey = await deriveSigningKey({ secretKey, dateStamp, region });
 
   return {
     formData: {
@@ -293,4 +310,90 @@ export async function buildPostPolicy(opts: {
     },
     expiresAt,
   };
+}
+
+/**
+ * A presigned URL: the credential travels in the QUERY, so a browser needs no `Authorization`
+ * header to use it.
+ *
+ * `headers` is what makes this more than `S3Client.presign`. Anything named there is inside the
+ * signature and `X-Amz-SignedHeaders` lists it, so the client MUST send each one back byte for
+ * byte - `x-amz-tagging` to label the object at the moment it is written, `content-length` to pin
+ * its size. Both are the sharp edge of a signed PUT, not a bug in it: an equality is all a
+ * signature can express, so a pinned length rejects every retry at a different size. When a ceiling
+ * is what you want rather than an exact value, the shape is {@link buildPostPolicy}.
+ */
+export async function buildPresignedUrl(opts: {
+  method: string;
+  endpoint: string;
+  path: string;
+  accessKey: string;
+  secretKey: string;
+  region: string;
+  sessionToken?: string;
+  expiresInSeconds: number;
+  /** Headers to SIGN. The client must send each one unchanged, or S3 answers 403. */
+  headers?: Record<string, string>;
+  /** A fixed clock, so a signature can be checked against a published test vector. */
+  now?: Date;
+}): Promise<string> {
+  const {
+    method,
+    endpoint,
+    path,
+    accessKey,
+    secretKey,
+    region,
+    sessionToken,
+    expiresInSeconds,
+    headers,
+    now = new Date(),
+  } = opts;
+
+  const { amzDate, dateStamp } = toAmzDate({ now });
+  const credentialScope = `${dateStamp}/${region}/s3/aws4_request`;
+  const canonicalPath = encodeSigV4Path({ path });
+  const origin = endpoint.replace(/\/$/, '');
+
+  // SigV4 compares header values after trimming, so signing an untrimmed one answers 403.
+  const canonicalHeadersMap: Record<string, string> = { host: new URL(origin).host };
+  for (const [key, value] of Object.entries(headers ?? {})) {
+    canonicalHeadersMap[key.toLowerCase()] = String(value).trim();
+  }
+
+  const sortedKeys = Object.keys(canonicalHeadersMap).sort();
+  const signedHeaders = sortedKeys.join(';');
+
+  // `X-Amz-SignedHeaders` is itself signed, so the header list has to be settled before the query.
+  const queryParameters: Record<string, string> = {
+    'X-Amz-Algorithm': 'AWS4-HMAC-SHA256',
+    'X-Amz-Credential': `${accessKey}/${credentialScope}`,
+    'X-Amz-Date': amzDate,
+    'X-Amz-Expires': String(expiresInSeconds),
+    'X-Amz-SignedHeaders': signedHeaders,
+    ...(sessionToken ? { 'X-Amz-Security-Token': sessionToken } : {}),
+  };
+  const canonicalQueryString = buildCanonicalQueryString(queryParameters);
+
+  // A presigned URL is signed before its body exists, so the payload is excluded by name.
+  const canonicalRequest = [
+    method,
+    canonicalPath,
+    canonicalQueryString,
+    sortedKeys.map(key => `${key}:${canonicalHeadersMap[key]}\n`).join(''),
+    signedHeaders,
+    'UNSIGNED-PAYLOAD',
+  ].join('\n');
+
+  const stringToSign = [
+    'AWS4-HMAC-SHA256',
+    amzDate,
+    credentialScope,
+    await sha256Hex({ data: canonicalRequest }),
+  ].join('\n');
+
+  const signingKey = await deriveSigningKey({ secretKey, dateStamp, region });
+  const signature = toHex({ bytes: await hmacSHA256({ key: signingKey, data: stringToSign }) });
+
+  return `${origin}${canonicalPath}?${canonicalQueryString}&X-Amz-Signature=${signature}`;
 }

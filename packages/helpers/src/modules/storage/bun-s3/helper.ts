@@ -18,7 +18,14 @@ import type {
 } from '../common';
 import { S3Audiences, isNotFoundError, StoragePresignDefaults, toExpirySeconds } from '../common';
 import type { TS3Audience } from '../common';
-import { buildPostPolicy, buildSignedRequest, buildTaggingXml, parseTaggingXml } from './utility';
+import {
+  buildPostPolicy,
+  buildPresignedUrl,
+  buildSignedRequest,
+  buildTaggingHeader,
+  buildTaggingXml,
+  parseTaggingXml,
+} from './utility';
 
 export interface IBunS3HelperOptions extends IStorageHelperOptions {
   accessKey: string;
@@ -323,13 +330,42 @@ export class BunS3Helper extends BaseStorageHelper {
     return { postURL: `${endpoint.replace(/\/$/, '')}/${bucket.name}`, formData, expiresAt };
   }
 
-  override async presignPut(opts: IObjectLocation & { expiresIn?: IDuration }): Promise<string> {
-    const { bucket, object, expiresIn = StoragePresignDefaults.PUT_EXPIRES_IN } = opts;
+  override async presignPut(
+    opts: IObjectLocation & {
+      expiresIn?: IDuration;
+      tagging?: Record<string, string>;
+      contentLength?: number;
+    },
+  ): Promise<string> {
+    const {
+      bucket,
+      object,
+      tagging,
+      contentLength,
+      expiresIn = StoragePresignDefaults.PUT_EXPIRES_IN,
+    } = opts;
+    const { accessKey, secretKey, region, sessionToken } = this.credentials;
 
-    return this.client.presign(object.key, {
-      ...this.presignOptions({ bucket: bucket.name }),
+    // Not `client.presign`: its options are method and expiry only, and a tag that is merely SENT
+    // is a tag S3 ignores. These two have to be inside the signature to exist at all.
+    const { endpoint, pathPrefix } = this.objectEndpoint({
+      bucket: bucket.name,
+      audience: S3Audiences.BROWSER,
+    });
+
+    return buildPresignedUrl({
       method: 'PUT',
-      expiresIn: toExpirySeconds({ expiresIn, operation: 'presignPut' }),
+      endpoint,
+      path: `${pathPrefix}/${object.key}`,
+      accessKey,
+      secretKey,
+      region,
+      sessionToken,
+      expiresInSeconds: toExpirySeconds({ expiresIn, operation: 'presignPut' }),
+      headers: {
+        ...(tagging ? { 'x-amz-tagging': buildTaggingHeader({ tags: tagging }) } : {}),
+        ...(contentLength === undefined ? {} : { 'content-length': String(contentLength) }),
+      },
     });
   }
 

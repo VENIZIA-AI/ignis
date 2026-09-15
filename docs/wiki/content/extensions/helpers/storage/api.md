@@ -356,7 +356,13 @@ See each backend's section below for behavior.
 ### Presign and object tagging
 
 ```typescript
-presignPut(opts: IObjectLocation & { expiresIn?: IDuration }): Promise<string>;
+presignPut(
+  opts: IObjectLocation & {
+    expiresIn?: IDuration;
+    tagging?: Record<string, string>;
+    contentLength?: number;
+  },
+): Promise<string>;
 presignGet(
   opts: IObjectLocation & {
     expiresIn?: IDuration;
@@ -382,8 +388,38 @@ The thrown message names the calling class and the method, so the error tells yo
 
 | Method | `expiresIn` default | Notes |
 |---|---|---|
-| `presignPut` | `StoragePresignDefaults.PUT_EXPIRES_IN` (`{ unit: 'minute', value: 10 }`) | No content type option - a presigned PUT signs only the `host` header, so S3 ignores one anyway. |
+| `presignPut` | `StoragePresignDefaults.PUT_EXPIRES_IN` (`{ unit: 'minute', value: 10 }`) | `tagging` and `contentLength` are SIGNED - see [below](#signing-a-tag-set-and-a-size). No content type option: S3 ignores a `Content-Type` that is not signed. |
 | `presignGet` | `StoragePresignDefaults.GET_EXPIRES_IN` (`{ unit: 'minute', value: 1 }`) | `responseContentType` and `responseContentDisposition` override the `Content-Type` and `Content-Disposition` the download responds with. |
+
+#### Signing a tag set and a size {#signing-a-tag-set-and-a-size}
+
+```typescript
+const url = await storage.presignPut({
+  bucket: { name: 'imports' },
+  object: { key: 'pending/q1-workbook.csv' },
+  tagging: { temp: 'true' },
+  contentLength: file.size,
+});
+```
+
+Both go **inside** the signature, so the client must send them back unchanged:
+
+```typescript
+await fetch(url, {
+  method: 'PUT',
+  headers: { 'x-amz-tagging': 'temp=true', 'content-length': String(file.size) },
+  body: file,
+});
+```
+
+A tag merely *sent* is a tag S3 ignores - a step gated on reading it back would fail with no upload
+error to explain it. Signed, the tag exists the moment the object does.
+
+`contentLength` carries the cost: a signature expresses equality and nothing else, so it is an exact
+byte count, never a ceiling, and a retry at another size is a bare 403. For a ceiling, use
+`presignPost` and its `content-length-range`.
+
+Omit both and the URL signs `host` alone, as it always did.
 
 ```typescript
 import { StoragePresignDefaults, StoragePresignLimits } from '@venizia/ignis-helpers';
@@ -470,7 +506,7 @@ Creates a Bun `S3Client` for object operations and keeps the credentials separat
 | `removeObject` | `client.delete(object.key, { bucket })`. A "not there" failure becomes the catalogued 404 via `asStorageError`. |
 | `removeObjects` | Fans out over `removeObject` through `mapWithConcurrency`, bounded at `StorageConcurrency.DEFAULT_LIMIT` (`16`). |
 | `writeStream` | `client.write(object.key, body, { bucket, type, partSize, queueSize, retry })`, wrapping a bare `ReadableStream` in a `Response`. The key is re-validated with `isValidObjectKey` first. |
-| `presignPut` | `client.presign(object.key, { bucket, method: 'PUT', expiresIn })`. Signs locally - no network call. |
+| `presignPut` | A hand-built query-signed SigV4 URL, so `tagging` and `contentLength` can be signed - `client.presign` takes only a method and an expiry. Signs locally, no network call. |
 | `presignGet` | `client.presign(object.key, { bucket, method: 'GET', expiresIn, type, contentDisposition })`; `type` and `contentDisposition` are set only when the caller passes them. |
 | `getObjectTags` | Signed `GET /{bucket}/{key}?tagging=`; `404` returns `{}`, any other non-2xx throws with the status and body. |
 | `replaceObjectTags` | Signed `PUT /{bucket}/{key}?tagging=` with a hand-built `<Tagging>` XML body. |
@@ -833,7 +869,13 @@ interface IStorageHelper {
   removeObject(opts: IObjectLocation): Promise<void>;
   removeObjects(opts: { bucket: IBucketRef; objects: IObjectRef[] }): Promise<void>;
 
-  presignPut(opts: IObjectLocation & { expiresIn?: IDuration }): Promise<string>;
+  presignPut(
+    opts: IObjectLocation & {
+      expiresIn?: IDuration;
+      tagging?: Record<string, string>;
+      contentLength?: number;
+    },
+  ): Promise<string>;
   presignGet(
     opts: IObjectLocation & {
       expiresIn?: IDuration;
@@ -1056,7 +1098,7 @@ interface IMinioHelperOptions extends IStorageHelperOptions, ClientOptions {}
 | `writeStream` | Native streaming write to S3 | Inherits the buffering default | Inherits the buffering default |
 | `getObjectStream` range | Native, via `file.slice` | Native, via `createReadStream({ start, end })` | Native, via `getPartialObject` |
 | Bucket-management transport | Hand-built AWS SigV4 signed requests | Node `fs`/`fs/promises` | The `minio` driver |
-| `presignPut` / `presignGet` / `getObjectTags` / `replaceObjectTags` | Implemented (`client.presign` natively; tagging via hand-built signed HTTP) | Inherits `BaseStorageHelper`'s throw | Inherits `BaseStorageHelper`'s throw |
+| `presignPut` / `presignGet` / `getObjectTags` / `replaceObjectTags` | Implemented (`presignPut` hand-signed so extra headers can be signed, `presignGet` via `client.presign`; tagging via hand-built signed HTTP) | Inherits `BaseStorageHelper`'s throw | Inherits `BaseStorageHelper`'s throw |
 
 ## Troubleshooting
 

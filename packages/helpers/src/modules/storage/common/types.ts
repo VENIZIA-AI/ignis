@@ -144,7 +144,16 @@ export interface IStorageHelper {
     expiresIn?: IDuration;
   }): Promise<IPostPolicy>;
 
-  presignPut(opts: IObjectLocation & { expiresIn?: IDuration }): Promise<string>;
+  /** A URL a browser may PUT one object to. `tagging` and `contentLength` are SIGNED: the client must send them back unchanged, so a label cannot be dropped and a size cannot be exceeded. A pinned size is an exact number, never a ceiling - when a ceiling is what you want, use {@link IStorageHelper.presignPost}. */
+  presignPut(
+    opts: IObjectLocation & {
+      expiresIn?: IDuration;
+      /** The object's tag set, written at the moment it is stored. */
+      tagging?: Record<string, string>;
+      /** Pins the body to EXACTLY this many bytes. A retry at a different size is refused. */
+      contentLength?: number;
+    },
+  ): Promise<string>;
   presignGet(
     opts: IObjectLocation & {
       expiresIn?: IDuration;
