@@ -6,6 +6,25 @@ not how.
 This file and `index.md` are reserved OKF filenames - they carry no `type:` frontmatter and are not
 counted as concepts.
 
+## 2026-09-15 (c) - presignPut signs extra headers, and the commit writes its MetaLink row
+
+`presignPut` takes `tagging` and `contentLength`, both SIGNED. A tag merely sent is a tag S3
+ignores, so a step gated on reading it back fails silently. Bun's `S3FilePresignOptions` has a method
+and an expiry and nothing else, so the URL is now built by `buildPresignedUrl` - query-signed SigV4,
+checked against the signature AWS publishes for its documented example. `contentLength` stays an
+exact number, not a ceiling: the equality limit in [[object-storage]], not an oversight.
+
+`upload-commit` writes the MetaLink row the ordinary upload writes, through one shared builder. The
+two paths had diverged since `directUpload` shipped and the symptom was a client rendering an empty
+state with no error. Labels ride the query, because the token carries no business fields; a failed
+row is a code in a 200 body, because the object is already committed by then.
+
+No unique constraint on `(bucketName, objectName)`: counted on a real table, 1027 of 1038 objects
+with more than one row were one image attached to a product and to its variants. A row is one
+(object, owner) pairing. That leaves `recreate-metalink` non-atomic on purpose - without a unique
+index, two transactions both read "no row" and both insert, and `FOR UPDATE` locks nothing that does
+not exist.
+
 ## 2026-09-15 (b) - the storage signing model gets a concept, and direct upload gets a page
 
 New concept [[object-storage]]: what a SigV4 signature actually covers, the three upload paths, and
