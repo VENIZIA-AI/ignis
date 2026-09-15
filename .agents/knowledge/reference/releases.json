@@ -14,6 +14,12 @@
   "releases": {
     "atlas": [
       {
+        "version": "0.1.0-16",
+        "date": "2026-09-15",
+        "sha": "422c2cc2",
+        "order": 1252
+      },
+      {
         "version": "0.1.0-15",
         "date": "2026-09-14",
         "sha": "0c180851",
@@ -105,6 +111,12 @@
       }
     ],
     "boot": [
+      {
+        "version": "0.2.0-21",
+        "date": "2026-09-15",
+        "sha": "81022352",
+        "order": 1258
+      },
       {
         "version": "0.2.0-20",
         "date": "2026-09-14",
@@ -539,6 +551,12 @@
       }
     ],
     "connectors": [
+      {
+        "version": "0.2.0-31",
+        "date": "2026-09-15",
+        "sha": "7c6218cb",
+        "order": 1260
+      },
       {
         "version": "0.2.0-30",
         "date": "2026-09-15",
@@ -1576,6 +1594,12 @@
     ],
     "core-server": [
       {
+        "version": "0.2.0-35",
+        "date": "2026-09-15",
+        "sha": "aa325b20",
+        "order": 1262
+      },
+      {
         "version": "0.2.0-34",
         "date": "2026-09-15",
         "sha": "7693da4a",
@@ -1787,6 +1811,12 @@
       }
     ],
     "core-worker": [
+      {
+        "version": "0.2.0-31",
+        "date": "2026-09-15",
+        "sha": "ee83ef82",
+        "order": 1261
+      },
       {
         "version": "0.2.0-30",
         "date": "2026-09-15",
@@ -2300,6 +2330,12 @@
     ],
     "filter": [
       {
+        "version": "0.2.0-10",
+        "date": "2026-09-15",
+        "sha": "78591c15",
+        "order": 1255
+      },
+      {
         "version": "0.2.0-9",
         "date": "2026-09-14",
         "sha": "c275e7cc",
@@ -2385,6 +2421,12 @@
       }
     ],
     "helpers": [
+      {
+        "version": "0.2.0-26",
+        "date": "2026-09-15",
+        "sha": "727cf16c",
+        "order": 1257
+      },
       {
         "version": "0.2.0-25",
         "date": "2026-09-14",
@@ -3000,6 +3042,12 @@
     ],
     "inversion": [
       {
+        "version": "0.2.0-10",
+        "date": "2026-09-15",
+        "sha": "1dd9ed44",
+        "order": 1254
+      },
+      {
         "version": "0.2.0-9",
         "date": "2026-09-14",
         "sha": "c1dfa2e7",
@@ -3236,6 +3284,12 @@
     ],
     "kernel": [
       {
+        "version": "0.2.0-31",
+        "date": "2026-09-15",
+        "sha": "63da72af",
+        "order": 1259
+      },
+      {
         "version": "0.2.0-30",
         "date": "2026-09-15",
         "sha": "0cd8c0be",
@@ -3424,6 +3478,17 @@
     ]
   },
   "changelogs": [
+    {
+      "id": "changelog:2026-09-15-endpoint-default-and-public",
+      "file": "2026-09-15-endpoint-default-and-public.md",
+      "date": "2026-09-15",
+      "title": "One Endpoint Option, Two Audiences",
+      "packages": [
+        "helpers"
+      ],
+      "kind": "Breaking",
+      "order": 1253
+    },
     {
       "id": "changelog:2026-09-14-unresolved-binding-report",
       "file": "2026-09-14-unresolved-binding-report.md",
