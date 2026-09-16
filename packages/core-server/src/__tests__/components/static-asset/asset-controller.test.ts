@@ -1277,3 +1277,54 @@ describe('findLabelsInQuery names a caller that never migrated', () => {
     expect(findLabelsInQuery({ query: { folderPath: '' } })).toEqual(['folderPath']);
   });
 });
+
+describe('the query is a way back, not a dead end', () => {
+  const captureRepository = (created: Array<Record<string, unknown>>) =>
+    ({
+      create: async (opts: { data: Record<string, unknown> }) => {
+        created.push(opts.data);
+        return { count: 1, data: { id: 'meta-1', ...opts.data } };
+      },
+    }) as never;
+
+  /**
+   * A client whose form library only emits `append(key, value, filename)` cannot put a text field in
+   * a multipart body at all - it throws. Refusing to read the query would break that upload outright,
+   * which is worse than the unlabelled row it was meant to prevent.
+   */
+  test('a label left in the query is still read', async () => {
+    const helper = new FakeStorageHelper();
+    const created: Array<Record<string, unknown>> = [];
+    const router = await mountAssetController({
+      helper,
+      metaLink: { model: BaseMetaLinkModel, repository: captureRepository(created) },
+    });
+
+    await uploadFiles({
+      router,
+      files: [new File(['x'], 'a.png', { type: 'image/png' })],
+      uploadPath: '/assets/buckets/images/objects?principalType=Product&principalId=42&sequence=3',
+    });
+
+    expect(created[0]).toMatchObject({ principalType: 'Product', principalId: '42', sequence: 3 });
+  });
+
+  /** Otherwise a stale parameter in a URL would override the caller that already migrated. */
+  test('the body wins over the query', async () => {
+    const helper = new FakeStorageHelper();
+    const created: Array<Record<string, unknown>> = [];
+    const router = await mountAssetController({
+      helper,
+      metaLink: { model: BaseMetaLinkModel, repository: captureRepository(created) },
+    });
+
+    await uploadFiles({
+      router,
+      files: [new File(['x'], 'a.png', { type: 'image/png' })],
+      labels: { principalId: 'from-body' },
+      uploadPath: '/assets/buckets/images/objects?principalId=from-query',
+    });
+
+    expect(created[0].principalId).toBe('from-body');
+  });
+});

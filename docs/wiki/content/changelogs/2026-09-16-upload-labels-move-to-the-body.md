@@ -5,9 +5,9 @@ description: "principalType, principalId, variant, sequence and folderPath leave
 
 # Changelog - 2026-09-16
 
-## The labels leave the URL
+## The labels move to the body
 
-<Badge type="danger" text="Breaking" />
+<Badge type="warning" text="Deprecation" />
 
 **Before**
 
@@ -56,23 +56,30 @@ const files = await parseMultipartBody({ context });
 const { files } = await parseMultipartBody({ context });
 ```
 
-## A stale caller is told, not ignored
+## The query still works, and says so
 
-The server ignores a label left in the query, so this change would otherwise break nothing loudly -
-the row just lands unlabelled. The upload route now names every stale label in a warning:
+A label left in the query is **still read**. The body wins when both carry one, so a caller that has
+migrated is never affected by a stale parameter in a URL.
 
 ```
-Ignoring label(s) in the query string - they travel in the form body now | names: principalId, variant
+Label(s) read from the query string - they belong in the form body, and this fallback will go |
+names: principalId, variant
 ```
+
+Refusing to read it would have been clean on paper and a broken upload in practice. A client whose
+form library only emits `append(key, value, filename)` - the three-argument form, which requires a
+Blob - **cannot put a text field in a multipart body at all**. It throws. That is worse than the
+unlabelled row the move was meant to prevent, so the fallback stays until consumers have moved.
 
 `createMetaLink` still receives them as `query`. The name is historical; the values arrive in the
 body.
 
 ## Who is affected
 
-**You upload through `{base}/objects`.** Move the labels from the query string into the form.
+**You upload through `{base}/objects`.** Nothing breaks today. Move the labels into the form when
+you can - the warning names the ones still coming from the query.
 
-**You call `upload-commit` with labels.** Move them into the JSON body.
+**You call `upload-commit` with labels.** Same: move them into the JSON body, at your pace.
 
 **You call `parseMultipartBody` directly.** Destructure `files`.
 

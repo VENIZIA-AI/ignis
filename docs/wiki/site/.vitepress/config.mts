@@ -466,6 +466,10 @@ const config = defineConfig({
                   text: 'Upload Labels Move to the Body',
                   link: '/changelogs/2026-09-16-upload-labels-move-to-the-body',
                 },
+                {
+                  text: 'The Container Stops Pulling zod',
+                  link: '/changelogs/2026-09-16-the-container-stops-pulling-zod',
+                },
               ],
             },
             {

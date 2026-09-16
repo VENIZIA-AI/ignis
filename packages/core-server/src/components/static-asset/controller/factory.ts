@@ -72,22 +72,38 @@ const UPLOAD_LABEL_NAMES = [
 ] as const;
 
 /**
- * Names any label still arriving in the query string. They used to travel there, and moving them to
- * the body broke nothing loudly - the server simply ignores them and the row lands unlabelled. A
- * caller that never migrated would otherwise find out from a support ticket.
+ * Names any label still arriving in the query string. The value is still READ - see
+ * {@link readUploadLabels} - so this is a deprecation notice, not a report of something dropped.
  */
 export const findLabelsInQuery = (opts: { query: Record<string, string> }): string[] =>
   UPLOAD_LABEL_NAMES.filter(name => opts.query[name] !== undefined);
 
-const readUploadLabels = (opts: { fields: Record<string, string> }): TUploadQuery => {
-  const { fields } = opts;
+/**
+ * The labels, body first and query as the way back.
+ *
+ * The query is where they used to travel. Refusing to read it would have been a clean break on
+ * paper and a broken upload in practice: a client whose form library only emits `append(key, value,
+ * filename)` - the three-argument form, which requires a Blob - cannot put a text field in a
+ * multipart body at all, so it THROWS rather than quietly losing a label. A read-with-warning lets
+ * each consumer move on its own schedule; the body always wins, so a migrated caller is never
+ * affected by a stale parameter left in a URL.
+ */
+const readUploadLabels = (opts: {
+  fields: Record<string, string>;
+  fallback?: Record<string, string>;
+}): TUploadQuery => {
+  const { fields, fallback = {} } = opts;
+  const read = (name: (typeof UPLOAD_LABEL_NAMES)[number]) =>
+    fields[name] || fallback[name] || undefined;
+
+  const sequence = read('sequence');
 
   return {
-    principalType: fields.principalType || undefined,
-    principalId: fields.principalId || undefined,
-    variant: fields.variant || undefined,
-    sequence: fields.sequence ? Number(fields.sequence) : undefined,
-    folderPath: fields.folderPath || undefined,
+    principalType: read('principalType'),
+    principalId: read('principalId'),
+    variant: read('variant'),
+    sequence: sequence === undefined ? undefined : Number(sequence),
+    folderPath: read('folderPath'),
   };
 };
 
@@ -577,14 +593,15 @@ export class AssetControllerFactory extends BaseHelper {
             // The labels travel WITH the payload rather than in the URL, so an identifier does not
             // land in every access log along the way. The cost is that they are unreadable until
             // the body is parsed, which is why the folder check runs here and not above.
-            const query = readUploadLabels({ fields });
+            const queryLabels = ctx.req.query();
+            const query = readUploadLabels({ fields, fallback: queryLabels });
 
-            const stale = findLabelsInQuery({ query: ctx.req.query() });
+            const stale = findLabelsInQuery({ query: queryLabels });
             if (stale.length > 0) {
               this.logger
                 .for('UPLOAD')
                 .warn(
-                  'Ignoring label(s) in the query string - they travel in the form body now | names: %s',
+                  'Label(s) read from the query string - they belong in the form body, and this fallback will go | names: %s',
                   stale.join(', '),
                 );
             }
@@ -882,14 +899,18 @@ export class AssetControllerFactory extends BaseHelper {
 
               // Labels, not authorization - the token deliberately carries no business fields, so
               // they travel beside it rather than inside it.
-              const query: TUploadQuery = labels;
+              const queryLabels = ctx.req.query();
+              const query = readUploadLabels({
+                fields: labels as Record<string, string>,
+                fallback: queryLabels,
+              });
 
-              const staleLabels = findLabelsInQuery({ query: ctx.req.query() });
+              const staleLabels = findLabelsInQuery({ query: queryLabels });
               if (staleLabels.length > 0) {
                 this.logger
                   .for('UPLOAD_COMMIT')
                   .warn(
-                    'Ignoring label(s) in the query string - they travel in the JSON body now | names: %s',
+                    'Label(s) read from the query string - they belong in the JSON body, and this fallback will go | names: %s',
                     staleLabels.join(', '),
                   );
               }

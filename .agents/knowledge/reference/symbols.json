@@ -13132,7 +13132,7 @@
       "specifier": "@venizia/ignis/static-asset",
       "kind": "class",
       "file": "packages/core-server/src/components/static-asset/controller/factory.ts",
-      "line": 265,
+      "line": 281,
       "signature": "class AssetControllerFactory extends BaseHelper"
     },
     {
@@ -13462,7 +13462,7 @@
       "specifier": "@venizia/ignis/static-asset",
       "kind": "const",
       "file": "packages/core-server/src/components/static-asset/controller/factory.ts",
-      "line": 116,
+      "line": 132,
       "signature": "buildObjectLink: (opts: IObjectLocation & { basePath: string; hasConfiguredBucket?: boolean; rawObjectPath?: boolean; }) => string"
     },
     {
@@ -13472,7 +13472,7 @@
       "specifier": "@venizia/ignis/static-asset",
       "kind": "const",
       "file": "packages/core-server/src/components/static-asset/controller/factory.ts",
-      "line": 79,
+      "line": 78,
       "signature": "findLabelsInQuery: (opts: { query: Record<string, string>; }) => string[]"
     },
     {
@@ -13492,7 +13492,7 @@
       "specifier": "@venizia/ignis/static-asset",
       "kind": "const",
       "file": "packages/core-server/src/components/static-asset/controller/factory.ts",
-      "line": 149,
+      "line": 165,
       "signature": "resolveServedContentType: (opts: { helper: IStorageHelper; object: IObjectRef; }) => { contentType: string; isRenderable: boolean; }"
     },
     {
@@ -31177,6 +31177,206 @@
       "file": "packages/kernel/src/base/metadata/routes/rpc.ts",
       "line": 28,
       "signature": "unary: <RpcRouteConfigType extends Omit<IRpcMetadata, \"method\">>(opts: { configs: RpcRouteConfigType; }) => (target: any, propertyKey: string | symbol, _descriptor: PropertyDescriptor) => void"
+    },
+    {
+      "name": "ArtifactNamespaces",
+      "package": "@venizia/ignis-kernel",
+      "subpath": "./metadata",
+      "specifier": "@venizia/ignis-kernel/metadata",
+      "kind": "class",
+      "file": "packages/kernel/src/common/bindings.ts",
+      "line": 61,
+      "signature": "class ArtifactNamespaces"
+    },
+    {
+      "name": "ArtifactTypes",
+      "package": "@venizia/ignis-kernel",
+      "subpath": "./metadata",
+      "specifier": "@venizia/ignis-kernel/metadata",
+      "kind": "class",
+      "file": "packages/kernel/src/helpers/inversion/common/constants.ts",
+      "line": 2,
+      "signature": "class ArtifactTypes"
+    },
+    {
+      "name": "BindingKeys",
+      "package": "@venizia/ignis-kernel",
+      "subpath": "./metadata",
+      "specifier": "@venizia/ignis-kernel/metadata",
+      "kind": "class",
+      "file": "packages/inversion/src/modules/binding/common/constants.ts",
+      "line": 18,
+      "signature": "class BindingKeys"
+    },
+    {
+      "name": "BindingNamespaces",
+      "package": "@venizia/ignis-kernel",
+      "subpath": "./metadata",
+      "specifier": "@venizia/ignis-kernel/metadata",
+      "kind": "class",
+      "file": "packages/kernel/src/common/bindings.ts",
+      "line": 8,
+      "signature": "class BindingNamespaces"
+    },
+    {
+      "name": "CoreBindings",
+      "package": "@venizia/ignis-kernel",
+      "subpath": "./metadata",
+      "specifier": "@venizia/ignis-kernel/metadata",
+      "kind": "class",
+      "file": "packages/kernel/src/common/bindings.ts",
+      "line": 86,
+      "signature": "class CoreBindings extends BindingKeys"
+    },
+    {
+      "name": "IArtifactMetadata",
+      "package": "@venizia/ignis-kernel",
+      "subpath": "./metadata",
+      "specifier": "@venizia/ignis-kernel/metadata",
+      "kind": "interface",
+      "file": "packages/kernel/src/helpers/inversion/common/types/artifact.ts",
+      "line": 27,
+      "signature": "interface IArtifactMetadata<ApplicationType = unknown> extends IArtifactRegistrationOptions<ApplicationType>"
+    },
+    {
+      "name": "IArtifactRegistrationOptions",
+      "package": "@venizia/ignis-kernel",
+      "subpath": "./metadata",
+      "specifier": "@venizia/ignis-kernel/metadata",
+      "kind": "interface",
+      "file": "packages/kernel/src/helpers/inversion/common/types/artifact.ts",
+      "line": 16,
+      "signature": "interface IArtifactRegistrationOptions<ApplicationType = unknown>"
+    },
+    {
+      "name": "MetadataRegistry",
+      "package": "@venizia/ignis-kernel",
+      "subpath": "./metadata",
+      "specifier": "@venizia/ignis-kernel/metadata",
+      "kind": "class",
+      "file": "packages/kernel/src/helpers/inversion/registry.ts",
+      "line": 26,
+      "signature": "class MetadataRegistry extends BaseRegistry"
+    },
+    {
+      "name": "TBindingNamespace",
+      "package": "@venizia/ignis-kernel",
+      "subpath": "./metadata",
+      "specifier": "@venizia/ignis-kernel/metadata",
+      "kind": "type",
+      "file": "packages/kernel/src/common/bindings.ts",
+      "line": 5,
+      "signature": "type TBindingNamespace = TConstValue<typeof BindingNamespaces>"
+    },
+    {
+      "name": "TBindingScope",
+      "package": "@venizia/ignis-kernel",
+      "subpath": "./metadata",
+      "specifier": "@venizia/ignis-kernel/metadata",
+      "kind": "type",
+      "file": "packages/inversion/src/modules/binding/common/constants.ts",
+      "line": 9,
+      "signature": "type TBindingScope = TConstValue<typeof BindingScopes>"
+    },
+    {
+      "name": "component",
+      "package": "@venizia/ignis-kernel",
+      "subpath": "./metadata",
+      "specifier": "@venizia/ignis-kernel/metadata",
+      "kind": "const",
+      "file": "packages/kernel/src/base/metadata/injectable.ts",
+      "line": 57,
+      "signature": "component: <ApplicationType = unknown>(opts?: IArtifactRegistrationOptions<ApplicationType>) => ClassDecorator"
+    },
+    {
+      "name": "configuration",
+      "package": "@venizia/ignis-kernel",
+      "subpath": "./metadata",
+      "specifier": "@venizia/ignis-kernel/metadata",
+      "kind": "const",
+      "file": "packages/kernel/src/base/metadata/injectable.ts",
+      "line": 63,
+      "signature": "configuration: <ApplicationType = unknown>(opts?: IArtifactRegistrationOptions<ApplicationType>) => ClassDecorator"
+    },
+    {
+      "name": "datasource",
+      "package": "@venizia/ignis-kernel",
+      "subpath": "./metadata",
+      "specifier": "@venizia/ignis-kernel/metadata",
+      "kind": "const",
+      "file": "packages/kernel/src/base/metadata/persistents.ts",
+      "line": 56,
+      "signature": "datasource: (metadata?: IDataSourceMetadata) => ClassDecorator"
+    },
+    {
+      "name": "inject",
+      "package": "@venizia/ignis-kernel",
+      "subpath": "./metadata",
+      "specifier": "@venizia/ignis-kernel/metadata",
+      "kind": "const",
+      "file": "packages/kernel/src/base/metadata/injectors.ts",
+      "line": 19,
+      "signature": "inject: (opts: TInjectOptions) => (target: any, propertyName: string | symbol | undefined, parameterIndex?: number) => void"
+    },
+    {
+      "name": "injectable",
+      "package": "@venizia/ignis-kernel",
+      "subpath": "./metadata",
+      "specifier": "@venizia/ignis-kernel/metadata",
+      "kind": "const",
+      "file": "packages/kernel/src/base/metadata/injectable.ts",
+      "line": 11,
+      "signature": "injectable: <ApplicationType = unknown>(opts: IArtifactMetadata<ApplicationType>) => ClassDecorator"
+    },
+    {
+      "name": "model",
+      "package": "@venizia/ignis-kernel",
+      "subpath": "./metadata",
+      "specifier": "@venizia/ignis-kernel/metadata",
+      "kind": "const",
+      "file": "packages/kernel/src/base/metadata/persistents.ts",
+      "line": 25,
+      "signature": "model: (metadata: IModelMetadata) => ClassDecorator"
+    },
+    {
+      "name": "pickRegistrationOptions",
+      "package": "@venizia/ignis-kernel",
+      "subpath": "./metadata",
+      "specifier": "@venizia/ignis-kernel/metadata",
+      "kind": "const",
+      "file": "packages/kernel/src/base/metadata/injectable.ts",
+      "line": 83,
+      "signature": "pickRegistrationOptions: <ApplicationType = unknown>(opts: { metadata: IArtifactRegistrationOptions<ApplicationType>; }) => IArtifactRegistrationOptions<ApplicationType>"
+    },
+    {
+      "name": "provide",
+      "package": "@venizia/ignis-kernel",
+      "subpath": "./metadata",
+      "specifier": "@venizia/ignis-kernel/metadata",
+      "kind": "const",
+      "file": "packages/kernel/src/base/metadata/injectable.ts",
+      "line": 69,
+      "signature": "provide: (opts: { key: string; scope?: TBindingScope; }) => MethodDecorator"
+    },
+    {
+      "name": "repository",
+      "package": "@venizia/ignis-kernel",
+      "subpath": "./metadata",
+      "specifier": "@venizia/ignis-kernel/metadata",
+      "kind": "const",
+      "file": "packages/kernel/src/base/metadata/persistents.ts",
+      "line": 261,
+      "signature": "repository: <Model extends AbstractEntity = AbstractEntity, DataSource extends IDataSource = IDataSource>(metadata?: IRepositoryMetadata<Model, DataSource>) => ClassDecorator"
+    },
+    {
+      "name": "service",
+      "package": "@venizia/ignis-kernel",
+      "subpath": "./metadata",
+      "specifier": "@venizia/ignis-kernel/metadata",
+      "kind": "const",
+      "file": "packages/kernel/src/base/metadata/injectable.ts",
+      "line": 51,
+      "signature": "service: <ApplicationType = unknown>(opts?: IArtifactRegistrationOptions<ApplicationType>) => ClassDecorator"
     },
     {
       "name": "BFF_SYNTHETIC_ORIGIN",

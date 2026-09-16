@@ -6,6 +6,32 @@ not how.
 This file and `index.md` are reserved OKF filenames - they carry no `type:` frontmatter and are not
 counted as concepts.
 
+## 2026-09-16 (d) - the container stops pulling zod
+
+Importing `Container` alone cost 437 KB in a browser bundle, 423 KB of it zod. The chain was
+`Container` -> `registry` -> the `mixins` barrel -> the controller mixin ->
+`base/controllers/common/constants.ts`, which called `z.object()` at module load for two request
+schemas. The mixin wanted `ControllerTransports` from that file, a four-line const class, and an ESM
+module runs whole. Schemas moved to `schemas.ts`; both re-export from the same barrel, so no import
+path changed. 437 KB -> 64 KB, 107 KB -> 21 KB gzip.
+
+`@venizia/ignis-kernel/metadata` is the second half, and the more important one: the ROOT barrel is
+still 161 KB gzip and correctly so - `base/controllers` needs zod. Splitting one file only ever
+helped a deep import. A browser consumer needed a BOUNDARY. The sub-path carries the stereotypes, the
+namespaces and `ArtifactTypes`/`BindingKeys`/`MetadataRegistry` at 23 KB gzip, listed export by
+export rather than re-exporting `base/metadata` - that directory is clean today but promises nothing,
+and a sub-path is a surface someone decided on. Measured: it buys ~2 KB over the barrel; the boundary
+is the product, not the bytes.
+
+The lesson generalises: a purity gate answers "does this reach a node builtin", never "what does this
+weigh". zod is browser-PURE, so `make purity-kernel` had nothing to say. Weight needs its own gate,
+and it is now a test that bundles the container entry, fails over 120 KB, and names the file to
+check.
+
+What remains on that path: lodash 24 KB (only `omit` in `inversion/modules/error/app-error.ts` and
+`isEmpty` in `inversion/modules/binding/common/constants.ts`), reflect-metadata 13 KB, and 25 KB of
+IGNIS code.
+
 ## 2026-09-16 (c) - upload labels move to the body
 
 `principalType`/`principalId`/`variant`/`sequence`/`folderPath` leave the query string: a query is
@@ -15,9 +41,11 @@ logged everywhere it passes, and an identifier describing the payload belongs wi
 The cost is real and stated: form fields are unreadable until the body is parsed, so `folderPath` is
 validated after parsing rather than before. Nothing routes or authorizes on them today.
 
-Both upload routes WARN when a label still arrives in the query string, naming it. Without that the
-move breaks nothing loudly - the server ignores the stale value and the row lands unlabelled, which
-is the worst kind of breaking change. `createMetaLink` still receives the labels as `query`; the name
+The query is still READ as a fallback, body first, with a warning naming what came from where. The
+first cut refused it outright; a consumer then measured that their form library only emits
+`append(key, value, filename)` - the three-argument form, which requires a Blob - so it cannot put a
+text field in a multipart body at all and THROWS. A clean break on paper was a broken upload in
+practice, and the deprecation window is the honest shape. `createMetaLink` still receives the labels as `query`; the name
 is historical and renaming it would have been a fifth breaking change for a word.
 
 This needed `parseMultipartBody` to stop dropping non-file entries - it returned `IParsedFile[]` and

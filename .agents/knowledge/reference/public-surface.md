@@ -1269,6 +1269,29 @@ tags: [reference, exports, api]
 - `WhereQuerySchema` const
 - `WhereSchema` const
 
+### `@venizia/ignis-kernel/metadata` (20)
+
+- `ArtifactNamespaces` class
+- `ArtifactTypes` class
+- `BindingKeys` class
+- `BindingNamespaces` class
+- `component` const
+- `configuration` const
+- `CoreBindings` class
+- `datasource` const
+- `IArtifactMetadata` interface
+- `IArtifactRegistrationOptions` interface
+- `inject` const
+- `injectable` const
+- `MetadataRegistry` class
+- `model` const
+- `pickRegistrationOptions` const
+- `provide` const
+- `repository` const
+- `service` const
+- `TBindingNamespace` type
+- `TBindingScope` type
+
 ## connectors
 
 ### `@venizia/ignis-connectors` (117)
