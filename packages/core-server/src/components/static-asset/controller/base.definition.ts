@@ -6,6 +6,14 @@ import { ErrorSchema } from '@venizia/ignis-helpers';
 
 type TRouteRequest = NonNullable<IAuthRouteConfig['request']>;
 
+/** The labels both upload paths take. They ride the BODY, not the URL - an identifier in a query string lands in every access log between the client and here. */
+const uploadLabels = () => ({
+  principalType: z.string().optional(),
+  principalId: z.string().or(z.number()).optional(),
+  variant: z.string().optional(),
+  sequence: z.coerce.number().int().optional(),
+});
+
 const MultipartBodySchema = z.object({
   files: z.union([z.instanceof(File), z.array(z.instanceof(File))]).openapi({
     type: 'array',
@@ -13,6 +21,11 @@ const MultipartBodySchema = z.object({
       type: 'string',
       format: 'binary',
     },
+  }),
+  ...uploadLabels(),
+  folderPath: z.string().optional().openapi({
+    description: 'Target folder path for uploaded files (e.g., "photos/2024")',
+    example: 'photos/2024',
   }),
 });
 
@@ -108,7 +121,7 @@ export const buildAssetDefinitions = (opts: {
     },
     GET_BUCKET_BY_NAME: {
       method: 'get',
-      path: '/buckets/{bucketName}',
+      path: bucketPrefix,
       request: {
         params: z.object({ bucketName: bucketNameParam() }),
       },
@@ -123,7 +136,7 @@ export const buildAssetDefinitions = (opts: {
     },
     CREATE_BUCKET: {
       method: 'post',
-      path: '/buckets/{bucketName}',
+      path: bucketPrefix,
       request: {
         params: z.object({ bucketName: bucketNameParam() }),
       },
@@ -138,7 +151,7 @@ export const buildAssetDefinitions = (opts: {
     },
     DELETE_BUCKET: {
       method: 'delete',
-      path: '/buckets/{bucketName}',
+      path: bucketPrefix,
       request: {
         params: z.object({ bucketName: bucketNameParam() }),
       },
@@ -197,16 +210,13 @@ export const buildAssetDefinitions = (opts: {
       method: 'post',
       path: `${bucketPrefix}/upload-commit`,
       request: {
-        // The same labels an ordinary upload takes. They are not authorization - the commit token
-        // deliberately carries no business fields - so they ride the query, not the token.
-        query: z.object({
-          principalType: z.string().optional(),
-          principalId: z.string().or(z.number()).optional(),
-          variant: z.string().optional(),
-        }),
         body: {
           content: {
-            'application/json': { schema: z.object({ commitToken: z.string().min(1) }) },
+            'application/json': {
+              // The labels sit beside the token, not inside it: the token is an HMAC over
+              // { bucket, key, expiresAt } and deliberately carries no business fields.
+              schema: z.object({ commitToken: z.string().min(1), ...uploadLabels() }),
+            },
           },
         },
       },
@@ -227,22 +237,6 @@ export const buildAssetDefinitions = (opts: {
       path: `${bucketPrefix}/objects`,
       request: {
         ...bucketRequest(),
-        query: z.object({
-          principalType: z.string().optional(),
-          principalId: z.string().or(z.number()).optional(),
-          variant: z.string().optional(),
-          folderPath: z
-            .string()
-            .optional()
-            .openapi({
-              param: {
-                name: 'folderPath',
-                in: 'query',
-                description: 'Target folder path for uploaded files (e.g., "photos/2024")',
-              },
-              example: 'photos/2024',
-            }),
-        }),
         body: {
           content: {
             'multipart/form-data': {

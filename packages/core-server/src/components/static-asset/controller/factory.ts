@@ -61,6 +61,19 @@ export interface IAssetControllerOptions {
 }
 
 /** Hono ALREADY percent-decodes path params - a second decodeURIComponent throws on `report_100%.pdf` and turns `a%2Fb.png` into a DIFFERENT object; `isValidName`/`isValidPath` still run on this value, so traversal is still rejected. */
+/** The upload labels, read off the multipart form. Every value arrives as text, so `sequence` is the one that needs converting. */
+const readUploadLabels = (opts: { fields: Record<string, string> }): TUploadQuery => {
+  const { fields } = opts;
+
+  return {
+    principalType: fields.principalType || undefined,
+    principalId: fields.principalId || undefined,
+    variant: fields.variant || undefined,
+    sequence: fields.sequence ? Number(fields.sequence) : undefined,
+    folderPath: fields.folderPath || undefined,
+  };
+};
+
 const readObjectName: (rawObjectName: string) => string = rawObjectName => rawObjectName;
 
 /** Encodes an object path into a SINGLE url segment: `{objectName}` matches one segment only, so `/` must be percent-encoded too (Hono decodes it back before the handler reads the param). */
@@ -223,6 +236,9 @@ const createMetaLinkRow = async (opts: {
       principalId: query.principalId ? String(query.principalId) : undefined,
       principalType: query.principalType ? String(query.principalType) : undefined,
       variant: query.variant ? String(query.variant) : undefined,
+      // Absent leaves the column default rather than writing 0, so a row the caller never
+      // ordered is indistinguishable from a legacy one.
+      sequence: query.sequence === undefined ? undefined : Number(query.sequence),
     },
   });
 
@@ -240,6 +256,7 @@ export class AssetControllerFactory extends BaseHelper {
     const { directUpload } = controller;
     const { name, basePath, routes, isStrict = true, bucket, rawObjectPath = false } = controller;
     const maxFolderDepth = options?.maxFolderDepth ?? BaseStorageHelper.DEFAULT_MAX_FOLDER_DEPTH;
+    const maxBytes = options?.maxBytes;
 
     const hasConfiguredBucket = bucket !== undefined;
     const definitions = buildAssetDefinitions({ hasConfiguredBucket, rawObjectPath });
@@ -492,14 +509,12 @@ export class AssetControllerFactory extends BaseHelper {
               ? undefined
               : ctx.req.valid<TBucketParams>('param').bucketName;
             const bucketName = await resolveBucket({ configured: bucket, param: bucketParam });
-            const query = ctx.req.valid<TUploadQuery>('query');
 
             if (!helper.isValidBucketName({ bucket: { name: bucketName } })) {
               throw getError({ error: StaticAssetErrors.BUCKET_NAME_INVALID });
             }
 
-            const folderPath = query.folderPath;
-            if (folderPath) {
+            const validateFolderPath = (folderPath: string) => {
               const normalizedFolder = folderPath.replace(/^\/+|\/+$/g, '');
               if (!normalizedFolder) {
                 throw getError({ error: StaticAssetErrors.FOLDER_PATH_INVALID });
@@ -521,13 +536,35 @@ export class AssetControllerFactory extends BaseHelper {
                   message: `Invalid folder path segment: ${folderSegments[invalidSegmentIndex]}`,
                 });
               }
+            };
+
+            // Before the body is spooled. A multipart envelope is larger than the files inside it,
+            // so a request under the ceiling can still carry a file over it - hence the second check
+            // below. This one only buys the early exit, and a missing header buys nothing.
+            if (maxBytes !== undefined) {
+              const declaredLength = Number(ctx.req.header(HTTP.Headers.CONTENT_LENGTH));
+              if (Number.isFinite(declaredLength) && declaredLength > maxBytes) {
+                throw getError({
+                  error: StaticAssetErrors.UPLOAD_TOO_LARGE,
+                  message: `Request body of ${declaredLength} bytes exceeds the maximum of ${maxBytes}`,
+                });
+              }
             }
 
-            const filesArray = await parseMultipartBody({
+            const { files: filesArray, fields } = await parseMultipartBody({
               context: ctx,
               storage: options?.parseMultipartBody?.storage,
               uploadDir: options?.parseMultipartBody?.uploadDir,
             });
+
+            // The labels travel WITH the payload rather than in the URL, so an identifier does not
+            // land in every access log along the way. The cost is that they are unreadable until
+            // the body is parsed, which is why the folder check runs here and not above.
+            const query = readUploadLabels({ fields });
+            const folderPath = query.folderPath;
+            if (folderPath) {
+              validateFolderPath(folderPath);
+            }
 
             const spoolPaths = filesArray
               .map(file => file.path)
@@ -543,6 +580,15 @@ export class AssetControllerFactory extends BaseHelper {
                   throw getError({
                     error: StaticAssetErrors.FILE_EMPTY,
                     message: `Empty file content | name: ${file.originalname}`,
+                  });
+                }
+
+                // The authoritative check: `buffer.length`, not the reported `size`, because the
+                // reported one is whatever the client declared.
+                if (maxBytes !== undefined && buffer.length > maxBytes) {
+                  throw getError({
+                    error: StaticAssetErrors.UPLOAD_TOO_LARGE,
+                    message: `File ${file.originalname} of ${buffer.length} bytes exceeds the maximum of ${maxBytes}`,
                   });
                 }
 
@@ -795,7 +841,9 @@ export class AssetControllerFactory extends BaseHelper {
             configs: { ...definitions.UPLOAD_COMMIT, ...routes?.uploadCommit },
           }).to({
             handler: async ctx => {
-              const { commitToken } = ctx.req.valid<{ commitToken: string }>('json');
+              const { commitToken, ...labels } = ctx.req.valid<
+                { commitToken: string } & TUploadQuery
+              >('json');
 
               // Verified BEFORE any storage call. That is what keeps this route from being a name
               // prober: a forged token fails without a round trip, so timing says nothing.
@@ -804,9 +852,9 @@ export class AssetControllerFactory extends BaseHelper {
                 secretKey: directUpload.secretKey,
               });
 
-              // Labels, not authorization - the token deliberately carries no business fields, and
-              // these are the same client-supplied values the ordinary upload takes.
-              const query = ctx.req.valid<TUploadQuery>('query');
+              // Labels, not authorization - the token deliberately carries no business fields, so
+              // they travel beside it rather than inside it.
+              const query: TUploadQuery = labels;
 
               const bucketRef = { name: payload.bucket };
               const pendingObject = { key: payload.key };

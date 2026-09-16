@@ -129,11 +129,12 @@ describe('StaticAssetComponent', () => {
 
     const formData = new FormData();
     formData.append('files', new File(['nested'], 'photo.jpg', { type: 'image/jpeg' }));
+    formData.append('folderPath', 'photos/2024');
 
-    const uploadResponse = await router.request(
-      '/assets/buckets/images/objects?folderPath=photos/2024',
-      { method: 'POST', body: formData },
-    );
+    const uploadResponse = await router.request('/assets/buckets/images/objects', {
+      method: 'POST',
+      body: formData,
+    });
     expect(uploadResponse.status).toBe(200);
 
     const uploaded = (await uploadResponse.json()) as Array<{

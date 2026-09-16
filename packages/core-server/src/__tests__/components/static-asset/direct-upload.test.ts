@@ -84,11 +84,12 @@ const askPolicy = (router: OpenAPIHono, files: unknown[]) =>
     body: JSON.stringify({ files }),
   });
 
-const commit = (router: OpenAPIHono, commitToken: string, query = '') =>
-  router.request(`/assets/upload-commit${query}`, {
+const commit = (router: OpenAPIHono, commitToken: string, labels: Record<string, unknown> = {}) =>
+  router.request('/assets/upload-commit', {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
-    body: JSON.stringify({ commitToken }),
+    // The labels sit beside the token in the body, not in the URL.
+    body: JSON.stringify({ commitToken, ...labels }),
   });
 
 describe('the upload-policy route', () => {
@@ -136,7 +137,8 @@ describe('the upload-policy route', () => {
 
     const response = await askPolicy(router, [{ fileName: 'big.bin', size: 1025 }]);
 
-    expect(response.status).toBe(400);
+    // 413, the same code and status the ordinary upload answers - one condition, one branch.
+    expect(response.status).toBe(413);
     expect(helper.calls).toHaveLength(0);
   });
 });
@@ -271,11 +273,11 @@ describe('a direct upload lands a MetaLink row, like every other upload', () => 
     }>;
     helper.seedObject({ bucket: 'uploads', key: policies[0].objectName });
 
-    const response = await commit(
-      router,
-      policies[0].commitToken,
-      '?principalType=User&principalId=42&variant=thumbnail',
-    );
+    const response = await commit(router, policies[0].commitToken, {
+      principalType: 'User',
+      principalId: '42',
+      variant: 'thumbnail',
+    });
 
     expect(response.status).toBe(200);
     expect(created[0]).toMatchObject({

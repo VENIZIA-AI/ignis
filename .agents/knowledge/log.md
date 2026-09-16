@@ -6,6 +6,49 @@ not how.
 This file and `index.md` are reserved OKF filenames - they carry no `type:` frontmatter and are not
 counted as concepts.
 
+## 2026-09-16 (c) - upload labels move to the body
+
+`principalType`/`principalId`/`variant`/`sequence`/`folderPath` leave the query string: a query is
+logged everywhere it passes, and an identifier describing the payload belongs with the payload. On
+`UPLOAD` they are form fields; on `upload-commit` they sit beside the token in the JSON body.
+
+The cost is real and stated: form fields are unreadable until the body is parsed, so `folderPath` is
+validated after parsing rather than before. Nothing routes or authorizes on them today.
+
+This needed `parseMultipartBody` to stop dropping non-file entries - it returned `IParsedFile[]` and
+`continue`d past every string value, so a field posted with an upload simply vanished. It now returns
+`{ files, fields }`.
+
+## 2026-09-16 (b) - MetaLink carries a display order
+
+`sequence`, integer, NOT NULL default 0, ordering the rows of ONE principal. Before it, `created_at`
+was the only order, so reordering meant re-uploading. The caller supplies the value through the
+upload query; the component derives nothing, because `max(sequence)` then `max + 1` is the same
+non-atomic read-then-write as `recreate-metalink`.
+
+Breaking for a consumer with its own table: `TMetaLinkCompatibleSchema` is derived from the shipped
+model, so a table missing the column stops typechecking. The fixture in `meta-link-schema.test.ts`
+is what caught it - that test exists to model a consumer table, and it earned its keep here.
+
+Index is `(principal_type, principal_id, sequence)`: ordering always runs inside a principal filter,
+so filter columns lead and the sort column trails.
+
+## 2026-09-16 - an upload ceiling, and a signed content type
+
+The UPLOAD route takes `maxBytes`; `directUpload` had a ceiling all along and the ordinary route had
+none. Two checks: `content-length` before the body is spooled (the early exit), then `buffer.length`
+per parsed file (the authoritative one - a multipart envelope is bigger than its files, and a
+declared length is whatever the client declared).
+
+Both paths report `core.static_asset.upload_too_large`, which moved from 400 to **413**. It was the
+policy path's code; a second code for the ordinary route would have been one condition wearing two
+names.
+
+`presignPut` also signs `content-type`. Unsigned, whoever holds the URL picks the type stored on the
+object, and the stored type is what a browser renders - the same axis [[object-storage]] handles on
+the serving side through `resolveServedContentType`. `presignPost` already took it; both presign
+paths now agree.
+
 ## 2026-09-15 (c) - presignPut signs extra headers, and the commit writes its MetaLink row
 
 `presignPut` takes `tagging` and `contentLength`, both SIGNED. A tag merely sent is a tag S3

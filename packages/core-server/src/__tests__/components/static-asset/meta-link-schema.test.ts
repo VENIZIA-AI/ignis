@@ -40,6 +40,7 @@ const metaLinkColumns = () => ({
   storageType: text('storage_type').notNull(),
   isSynced: boolean('is_synced').notNull().default(false),
   variant: text(),
+  sequence: integer().notNull().default(0),
   principalType: text('principal_type'),
   principalId: text('principal_id'),
 });

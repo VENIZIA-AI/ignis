@@ -53,11 +53,11 @@ MetaLink row and no way to attach the object to an order, a ticket or a user.
 The response carries `metaLink` exactly as an ordinary upload does, so a client reading an `id` and
 a `link` off it needs no branch for which path the bytes took.
 
-```
-POST {base}/upload-commit?principalType=Product&principalId=42&variant=thumbnail
+```json
+{ "commitToken": "...", "principalType": "Product", "principalId": "42", "variant": "thumbnail" }
 ```
 
-The three labels are the ones the ordinary upload takes. They ride the query and not the token: the
+The labels are the ones the ordinary upload takes. They sit beside the token and not inside it: the
 token is an HMAC over `{ bucket, key, expiresAt }` and deliberately carries no business fields.
 Omit them and the row is still written, without the labels.
 
@@ -92,7 +92,12 @@ await fetch(policy.postURL, { method: 'POST', body: form });
 await fetch('/assets/upload-commit', {
   method: 'POST',
   headers: { 'content-type': 'application/json' },
-  body: JSON.stringify({ commitToken: policy.commitToken }),
+  body: JSON.stringify({
+    commitToken: policy.commitToken,
+    principalType: 'Product',          // optional labels, beside the token
+    principalId: productId,
+    sequence: 0,
+  }),
 });
 ```
 
@@ -109,7 +114,7 @@ runs and watch step 2 leave without touching the backend.
 |---|---|---|---|
 | `authorize` | `({ context }) => ValueOrPromise<boolean>` | - | **Required.** Who may ask for a policy. |
 | `secretKey` | `string` | - | Signs the commit token. Keep it out of the repository and out of the client. |
-| `maxBytes` | `number` | - | The ceiling the policy carries as `content-length-range`. |
+| `maxBytes` | `number` | - | The ceiling the policy carries as `content-length-range`. Over it answers `413` with `core.static_asset.upload_too_large`, the same code the ordinary upload uses. |
 | `pendingPrefix` | `string` | `'pending/'` | Where a policy may write. The final key is never inside it. |
 | `expiresIn` | `IDuration` | 15 minutes | How long a policy and its commit token stay good. |
 | `onCommit` | `({ bucket, pendingObject, object }) => ValueOrPromise<void>` | - | Runs **before** the copy. |

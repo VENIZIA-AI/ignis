@@ -116,7 +116,7 @@ tags: [reference, exports, api]
 
 ## helpers
 
-### `@venizia/ignis-helpers` (390)
+### `@venizia/ignis-helpers` (391)
 
 - `AbstractCryptoAlgorithm` class
 - `AbstractLogger` class
@@ -256,6 +256,7 @@ tags: [reference, exports, api]
 - `IObjectMetadata` interface
 - `IObjectRef` interface
 - `IOpaqueUidOptions` interface
+- `IParsedMultipartBody` interface
 - `IPayloadCipher` interface
 - `IPool` interface
 - `IPoolControlOptions` interface
@@ -1802,7 +1803,7 @@ tags: [reference, exports, api]
 
 ## core-server
 
-### `@venizia/ignis` (952)
+### `@venizia/ignis` (953)
 
 - `AbstractApplication` class
 - `AbstractAuthRegistry` class
@@ -2175,6 +2176,7 @@ tags: [reference, exports, api]
 - `IObjectMetadata` interface
 - `IObjectRef` interface
 - `IOpaqueUidOptions` interface
+- `IParsedMultipartBody` interface
 - `IPayloadCipher` interface
 - `IPayloadFieldCodec` interface
 - `IPersistableRepository` interface

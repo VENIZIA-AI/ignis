@@ -29,16 +29,20 @@ Every `bucketName` is validated with `isValidBucketName()` - single segment, no 
 
 ## Upload files
 
-`POST /assets/buckets/:bucketName/objects` accepts `multipart/form-data`, plus optional `principalType`, `principalId`, `variant`, and `folderPath` query parameters. The same path answers `GET` with a listing.
+`POST /assets/buckets/:bucketName/objects` accepts `multipart/form-data`. `principalType`, `principalId`, `variant`, `sequence` and `folderPath` are optional **form fields**, not query parameters - an identifier in a URL lands in every access log on the way. The same path answers `GET` with a listing.
 
 ```typescript
 const formData = new FormData();
 formData.append('file', fileBlob, 'document.pdf');
+formData.append('principalType', 'user');
+formData.append('principalId', '42');
+formData.append('variant', 'original');
+formData.append('folderPath', 'invoices/2026');
 
-const response = await fetch(
-  '/assets/buckets/user-uploads/objects?principalType=user&principalId=42&variant=original&folderPath=invoices/2026',
-  { method: 'POST', body: formData },
-);
+const response = await fetch('/assets/buckets/user-uploads/objects', {
+  method: 'POST',
+  body: formData,
+});
 
 const [result] = await response.json();
 // {

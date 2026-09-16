@@ -3015,6 +3015,16 @@
       "signature": "interface IOpaqueUidOptions"
     },
     {
+      "name": "IParsedMultipartBody",
+      "package": "@venizia/ignis",
+      "subpath": ".",
+      "specifier": "@venizia/ignis",
+      "kind": "interface",
+      "file": "packages/helpers/src/utilities/request.utility.ts",
+      "line": 30,
+      "signature": "interface IParsedMultipartBody"
+    },
+    {
       "name": "IPayloadCipher",
       "package": "@venizia/ignis",
       "subpath": ".",
@@ -8352,7 +8362,7 @@
       "specifier": "@venizia/ignis",
       "kind": "const",
       "file": "packages/helpers/src/utilities/request.utility.ts",
-      "line": 109,
+      "line": 118,
       "signature": "createContentDispositionHeader: (opts: { filename: string; type: \"attachment\" | \"inline\"; }) => string"
     },
     {
@@ -8463,7 +8473,7 @@
       "specifier": "@venizia/ignis",
       "kind": "const",
       "file": "packages/helpers/src/utilities/request.utility.ts",
-      "line": 103,
+      "line": 112,
       "signature": "encodeRFC5987: (filename: string) => string"
     },
     {
@@ -9073,8 +9083,8 @@
       "specifier": "@venizia/ignis",
       "kind": "const",
       "file": "packages/helpers/src/utilities/request.utility.ts",
-      "line": 29,
-      "signature": "parseMultipartBody: <C extends { req: any; } = { req: any; }>(opts: IParseMultipartOptions<C>) => Promise<IParsedFile[]>"
+      "line": 35,
+      "signature": "parseMultipartBody: <C extends { req: any; } = { req: any; }>(opts: IParseMultipartOptions<C>) => Promise<IParsedMultipartBody>"
     },
     {
       "name": "patch",
@@ -9343,7 +9353,7 @@
       "specifier": "@venizia/ignis",
       "kind": "const",
       "file": "packages/helpers/src/utilities/request.utility.ts",
-      "line": 91,
+      "line": 100,
       "signature": "sanitizeFilename: (filename: string) => string"
     },
     {
@@ -13122,7 +13132,7 @@
       "specifier": "@venizia/ignis/static-asset",
       "kind": "class",
       "file": "packages/core-server/src/components/static-asset/controller/factory.ts",
-      "line": 232,
+      "line": 248,
       "signature": "class AssetControllerFactory extends BaseHelper"
     },
     {
@@ -13253,7 +13263,7 @@
       "kind": "const",
       "file": "packages/core-server/src/components/static-asset/common/errors.ts",
       "line": 6,
-      "signature": "StaticAssetErrors: { readonly UPLOAD_NOT_AUTHORIZED: { readonly message: { readonly text: \"Not allowed to request an upload policy\"; readonly code: \"core.static_asset.upload_not_authorized\"; }; readonly statusCode: 403; readonly category: \"validation\"; }; readonly UPLOAD_TOO_LARGE: { readonly messag"
+      "signature": "StaticAssetErrors: { readonly UPLOAD_NOT_AUTHORIZED: { readonly message: { readonly text: \"Not allowed to request an upload policy\"; readonly code: \"core.static_asset.upload_not_authorized\"; }; readonly statusCode: 403; readonly category: \"validation\"; }; /** Both upload paths: over `options.maxByte"
     },
     {
       "name": "StaticAssetStorageTypes",
@@ -13272,7 +13282,7 @@
       "specifier": "@venizia/ignis/static-asset",
       "kind": "type",
       "file": "packages/core-server/src/components/static-asset/common/types.ts",
-      "line": 55,
+      "line": 58,
       "signature": "type TBucketParams = { bucketName: string; }"
     },
     {
@@ -13282,7 +13292,7 @@
       "specifier": "@venizia/ignis/static-asset",
       "kind": "type",
       "file": "packages/core-server/src/components/static-asset/common/types.ts",
-      "line": 48,
+      "line": 51,
       "signature": "type TDefineExtraRoutes = (opts: { controller: BaseRestController; helper: IStorageHelper; basePath: string; }) => void"
     },
     {
@@ -13292,7 +13302,7 @@
       "specifier": "@venizia/ignis/static-asset",
       "kind": "type",
       "file": "packages/core-server/src/components/static-asset/common/types.ts",
-      "line": 65,
+      "line": 70,
       "signature": "type TDirectUploadOptions = { /** Who may ask for a policy. REQUIRED, not defaulted: this route hands out a write credential, and there is no safe default for that. */ authorize: (opts: { context: TRouteContext; }) => ValueOrPromise<boolean>; /** Signs the commit token. Keep it out of the repository"
     },
     {
@@ -13302,7 +13312,7 @@
       "specifier": "@venizia/ignis/static-asset",
       "kind": "type",
       "file": "packages/core-server/src/components/static-asset/common/types.ts",
-      "line": 63,
+      "line": 68,
       "signature": "type TListQuery = { prefix?: string; recursive?: string; maxKeys?: string; }"
     },
     {
@@ -13312,7 +13322,7 @@
       "specifier": "@venizia/ignis/static-asset",
       "kind": "type",
       "file": "packages/core-server/src/components/static-asset/models/base.model.ts",
-      "line": 52,
+      "line": 58,
       "signature": "type TMetaLink = TTableObject<TMetaLinkSchema>"
     },
     {
@@ -13322,7 +13332,7 @@
       "specifier": "@venizia/ignis/static-asset",
       "kind": "type",
       "file": "packages/core-server/src/components/static-asset/models/base.model.ts",
-      "line": 55,
+      "line": 61,
       "signature": "type TMetaLinkCompatibleSchema = TTableSchemaWithId & { $inferSelect: TMetaLink; }"
     },
     {
@@ -13332,7 +13342,7 @@
       "specifier": "@venizia/ignis/static-asset",
       "kind": "type",
       "file": "packages/core-server/src/components/static-asset/common/types.ts",
-      "line": 94,
+      "line": 99,
       "signature": "type TMetaLinkConfig<Schema extends TMetaLinkCompatibleSchema = TMetaLinkSchema> = { model: TValueOrAsyncResolver<typeof BaseRelationalEntity<Schema>>; repository: TValueOrAsyncResolver<DefaultCRUDRepository<Schema>>; createMetaLink?: (opts: { uploadResult: IUploadResult; fileStat: IFileStat; query:"
     },
     {
@@ -13342,7 +13352,7 @@
       "specifier": "@venizia/ignis/static-asset",
       "kind": "type",
       "file": "packages/core-server/src/components/static-asset/models/base.model.ts",
-      "line": 51,
+      "line": 57,
       "signature": "type TMetaLinkSchema = typeof BaseMetaLinkModel.schema"
     },
     {
@@ -13352,7 +13362,7 @@
       "specifier": "@venizia/ignis/static-asset",
       "kind": "type",
       "file": "packages/core-server/src/components/static-asset/common/types.ts",
-      "line": 40,
+      "line": 43,
       "signature": "type TObjectNameResolver = (opts: { bucket: IBucketRef; file: TUploadNaming; defaultKey: string; }) => string"
     },
     {
@@ -13362,7 +13372,7 @@
       "specifier": "@venizia/ignis/static-asset",
       "kind": "type",
       "file": "packages/core-server/src/components/static-asset/common/types.ts",
-      "line": 56,
+      "line": 59,
       "signature": "type TObjectParams = { bucketName: string; objectName: string; }"
     },
     {
@@ -13382,7 +13392,7 @@
       "specifier": "@venizia/ignis/static-asset",
       "kind": "type",
       "file": "packages/core-server/src/components/static-asset/common/types.ts",
-      "line": 104,
+      "line": 109,
       "signature": "type TStaticAssetRoutes = { getBuckets?: Partial<Omit<IAuthRouteConfig, 'method' | 'request' | 'responses'>>; getBucketByName?: Partial<Omit<IAuthRouteConfig, 'method' | 'request' | 'responses'>>; createBucket?: Partial<Omit<IAuthRouteConfig, 'method' | 'request' | 'responses'>>; deleteBucket?: Part"
     },
     {
@@ -13402,7 +13412,7 @@
       "specifier": "@venizia/ignis/static-asset",
       "kind": "type",
       "file": "packages/core-server/src/components/static-asset/common/types.ts",
-      "line": 122,
+      "line": 127,
       "signature": "type TStaticAssetsComponentOptions<Schema extends TMetaLinkCompatibleSchema = TMetaLinkSchema> = { [key: string]: { controller: { name: string; basePath: string; isStrict?: boolean; /** `true` serves a raw nested object path (`/objects/photos/2024/f.jpg`) - a URL shape change; a percent-encoded path"
     },
     {
@@ -13412,7 +13422,7 @@
       "specifier": "@venizia/ignis/static-asset",
       "kind": "type",
       "file": "packages/core-server/src/components/static-asset/common/types.ts",
-      "line": 89,
+      "line": 94,
       "signature": "type TUploadPolicyRequest = { files: Array<{ fileName: string; contentType?: string; size?: number; }>; }"
     },
     {
@@ -13422,8 +13432,8 @@
       "specifier": "@venizia/ignis/static-asset",
       "kind": "type",
       "file": "packages/core-server/src/components/static-asset/common/types.ts",
-      "line": 57,
-      "signature": "type TUploadQuery = { principalType?: string; principalId?: string; variant?: string; folderPath?: string; }"
+      "line": 60,
+      "signature": "type TUploadQuery = { principalType?: string; principalId?: string; variant?: string; /** Display order within the principal. The caller supplies it; the component never derives one, because reading a maximum and writing max+1 is not atomic. */ sequence?: number; folderPath?: string; }"
     },
     {
       "name": "WHITELIST_HEADERS",
@@ -13452,7 +13462,7 @@
       "specifier": "@venizia/ignis/static-asset",
       "kind": "const",
       "file": "packages/core-server/src/components/static-asset/controller/factory.ts",
-      "line": 86,
+      "line": 99,
       "signature": "buildObjectLink: (opts: IObjectLocation & { basePath: string; hasConfiguredBucket?: boolean; rawObjectPath?: boolean; }) => string"
     },
     {
@@ -13472,7 +13482,7 @@
       "specifier": "@venizia/ignis/static-asset",
       "kind": "const",
       "file": "packages/core-server/src/components/static-asset/controller/factory.ts",
-      "line": 119,
+      "line": 132,
       "signature": "resolveServedContentType: (opts: { helper: IStorageHelper; object: IObjectRef; }) => { contentType: string; isRenderable: boolean; }"
     },
     {
@@ -21117,6 +21127,16 @@
       "signature": "interface IOpaqueUidOptions"
     },
     {
+      "name": "IParsedMultipartBody",
+      "package": "@venizia/ignis-helpers",
+      "subpath": ".",
+      "specifier": "@venizia/ignis-helpers",
+      "kind": "interface",
+      "file": "packages/helpers/src/utilities/request.utility.ts",
+      "line": 30,
+      "signature": "interface IParsedMultipartBody"
+    },
+    {
       "name": "IPayloadCipher",
       "package": "@venizia/ignis-helpers",
       "subpath": ".",
@@ -23374,7 +23394,7 @@
       "specifier": "@venizia/ignis-helpers",
       "kind": "const",
       "file": "packages/helpers/src/utilities/request.utility.ts",
-      "line": 109,
+      "line": 118,
       "signature": "createContentDispositionHeader: (opts: { filename: string; type: \"attachment\" | \"inline\"; }) => string"
     },
     {
@@ -23415,7 +23435,7 @@
       "specifier": "@venizia/ignis-helpers",
       "kind": "const",
       "file": "packages/helpers/src/utilities/request.utility.ts",
-      "line": 103,
+      "line": 112,
       "signature": "encodeRFC5987: (filename: string) => string"
     },
     {
@@ -23705,8 +23725,8 @@
       "specifier": "@venizia/ignis-helpers",
       "kind": "const",
       "file": "packages/helpers/src/utilities/request.utility.ts",
-      "line": 29,
-      "signature": "parseMultipartBody: <C extends { req: any; } = { req: any; }>(opts: IParseMultipartOptions<C>) => Promise<IParsedFile[]>"
+      "line": 35,
+      "signature": "parseMultipartBody: <C extends { req: any; } = { req: any; }>(opts: IParseMultipartOptions<C>) => Promise<IParsedMultipartBody>"
     },
     {
       "name": "redactSecrets",
@@ -23785,7 +23805,7 @@
       "specifier": "@venizia/ignis-helpers",
       "kind": "const",
       "file": "packages/helpers/src/utilities/request.utility.ts",
-      "line": 91,
+      "line": 100,
       "signature": "sanitizeFilename: (filename: string) => string"
     },
     {

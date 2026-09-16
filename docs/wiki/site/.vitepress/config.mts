@@ -451,6 +451,24 @@ const config = defineConfig({
           collapsed: false,
           items: [
             {
+              text: '2026-09-16',
+              collapsed: true,
+              items: [
+                {
+                  text: 'An Upload Ceiling, and a Signed Content Type',
+                  link: '/changelogs/2026-09-16-upload-ceiling-and-signed-content-type',
+                },
+                {
+                  text: 'MetaLink Carries a Display Order',
+                  link: '/changelogs/2026-09-16-metalink-carries-a-display-order',
+                },
+                {
+                  text: 'Upload Labels Move to the Body',
+                  link: '/changelogs/2026-09-16-upload-labels-move-to-the-body',
+                },
+              ],
+            },
+            {
               text: '2026-09-15',
               collapsed: true,
               items: [

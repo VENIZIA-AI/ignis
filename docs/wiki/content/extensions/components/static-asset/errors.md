@@ -21,6 +21,10 @@ These carry a machine code a client can branch on, alongside the human message. 
 | `core.static_asset.folder_depth_exceeded` | `"Folder path exceeds the maximum depth"` | `400` | `VALIDATION` |
 | `core.static_asset.file_empty` | `"Empty file content"` | `400` | `VALIDATION` |
 | `core.static_asset.max_keys_invalid` | `"Invalid maxKeys - expected a positive integer"` | `400` | `VALIDATION` |
+| `core.static_asset.upload_too_large` | `"File is larger than the maximum allowed"` | `413` | `VALIDATION` |
+| `core.static_asset.upload_not_authorized` | `"Not allowed to request an upload policy"` | `403` | `VALIDATION` |
+| `core.static_asset.invalid_commit_token` | `"Invalid commit token"` | `400` | `VALIDATION` |
+| `core.static_asset.expired_commit_token` | `"Commit token has expired"` | `400` | `VALIDATION` |
 | `core.storage.object_not_found` | `"Object not found"` | `404` | `BUSINESS` |
 
 The seven `core.static_asset.*` codes live on `StaticAssetErrors`; `core.storage.object_not_found` lives on `StorageErrors` in the helpers package. Both register with the shared key registry, so `messageCode` autocompletes.
@@ -31,7 +35,7 @@ The seven `core.static_asset.*` codes live on `StaticAssetErrors`; `core.storage
 |---------|-------|------|-------------|
 | `"Invalid bucket name"` | `bucketName` fails `isValidBucketName()` | `core.static_asset.bucket_name_invalid` | `400` |
 | `"Invalid object name or path"` | `objectName` fails `isValidObjectKey()` | `core.static_asset.object_name_invalid` | `400` |
-| `"Invalid folder path"` | Upload's `folderPath` query param is empty after trimming leading/trailing slashes | `core.static_asset.folder_path_invalid` | `400` |
+| `"Invalid folder path"` | Upload's `folderPath` form field is empty after trimming leading/trailing slashes | `core.static_asset.folder_path_invalid` | `400` |
 | <code v-pre>"Folder path exceeds max depth of {n}"</code> | Upload's `folderPath` has more segments than `maxFolderDepth` (default `2`) | `core.static_asset.folder_depth_exceeded` | `400` |
 | <code v-pre>"Invalid folder path segment: {segment}"</code> | One `folderPath` segment fails `isValidSegment()` | `core.static_asset.folder_segment_invalid` | `400` |
 | <code v-pre>"Empty file content \| name: {originalName}"</code> | The uploaded file's buffer is empty after multipart parsing (or after re-reading a disk-spooled file) | `core.static_asset.file_empty` | `400` |
@@ -86,7 +90,7 @@ await fetch('/assets/buckets/user-uploads', { method: 'POST' });
 
 ### "Folder path exceeds max depth" / "Invalid folder path segment"
 
-- **Cause:** the upload's `folderPath` query parameter has more segments than `maxFolderDepth` allows (default `2`), or one segment fails `isValidSegment()`.
+- **Cause:** the upload's `folderPath` form field has more segments than `maxFolderDepth` allows (default `2`), or one segment fails `isValidSegment()`.
 - **Fix:** flatten the folder structure, or raise the limit via `extra.maxFolderDepth` when registering the backend.
 
 ```typescript
@@ -174,3 +178,18 @@ extra: {
 - [Overview](./) - quick start, imports, and common configuration tasks
 - [Usage & Examples](./usage) - task-oriented walkthroughs for every endpoint and MetaLink setup
 - [Full Reference](./api) - controller factory, `IStorageHelper` interface, MetaLink schema, internals
+
+## The size ceiling, and the two token errors
+
+`upload_too_large` is **one** code for both upload paths: over `extra.maxBytes` on
+`POST {base}/objects`, and over `directUpload.maxBytes` when a policy is requested. A second code
+would have been the same condition wearing two names.
+
+The ordinary route checks twice. The request's `content-length` is read before the body is spooled,
+so an oversized upload is refused without first landing on disk; then each parsed file is checked
+against its actual byte length, which is the authoritative one - a multipart envelope is larger than
+the files inside it, and a declared length is whatever the client declared.
+
+`invalid_commit_token` and `expired_commit_token` are both `400` and neither is a `404`. A caller
+learns only that the token is no good, never whether the key it names exists - the route is not a
+name prober, and a forged token fails before any storage call, so timing leaks nothing either.

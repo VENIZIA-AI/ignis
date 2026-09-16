@@ -12,12 +12,13 @@ export const StaticAssetErrors = {
     statusCode: HTTP.ResultCodes.RS_4.Forbidden,
     category: ErrorScopes.VALIDATION,
   },
+  /** Both upload paths: over `options.maxBytes` on the ordinary route, over `directUpload.maxBytes` in a policy. One condition, one code for a client to branch on. */
   UPLOAD_TOO_LARGE: {
     message: {
-      text: 'File is larger than the policy allows',
+      text: 'File is larger than the maximum allowed',
       code: 'core.static_asset.upload_too_large',
     },
-    statusCode: HTTP.ResultCodes.RS_4.BadRequest,
+    statusCode: HTTP.ResultCodes.RS_4.ContentTooLarge,
     category: ErrorScopes.VALIDATION,
   },
   /** Deliberately not 404 and deliberately not "expired": a caller learns only that the token is no good, never whether the key it names exists. */

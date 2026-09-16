@@ -24,13 +24,13 @@ response for an `id` and a `link` got `undefined`, and rendered an empty state w
 }
 ```
 
-## The labels ride the query
+## The labels ride the body
 
-```
-POST {base}/upload-commit?principalType=Product&principalId=42&variant=thumbnail
+```json
+{ "commitToken": "...", "principalType": "Product", "principalId": "42", "variant": "thumbnail" }
 ```
 
-The same three the ordinary upload takes. Not on the commit token: it is an HMAC over
+The same ones the ordinary upload takes. Beside the token, not inside it: the token is an HMAC over
 `{ bucket, key, expiresAt }` and carries no business fields by design. Omit them and the row is
 still written, unlabelled.
 

@@ -59,10 +59,11 @@ Three consequences, all bad for a browser form:
 A write credential that is reusable, unrevokable and overwriting, for one key. IGNIS ships
 `presignPut`, and the static-asset component deliberately does not use it for uploads.
 
-It does take `tagging` and `contentLength`, both SIGNED and sent back unchanged by the client. A tag
+It does take `tagging`, `contentLength` and `contentType`, all SIGNED and sent back unchanged by the client. A tag
 merely sent is a tag S3 ignores, so a step gated on reading it back fails silently; signed, it exists
 the moment the object does. `contentLength` stays an exact number, not a ceiling - the equality limit
-above, not an oversight. Built as a query-signed SigV4 URL, because `S3Client.presign` takes a method
+above, not an oversight. `contentType` closes the same hole on the RECEIVING side that
+`resolveServedContentType` closes on the serving side: unsigned, the uploader picks the stored type. Built as a query-signed SigV4 URL, because `S3Client.presign` takes a method
 and an expiry and nothing else.
 
 ### POST policy - what `directUpload` uses
@@ -112,6 +113,11 @@ object IS committed by then, and a 500 would send the caller back with a token w
 Not one object, so `(bucketName, objectName)` is indexed and deliberately NOT unique. Counted on a
 production-shaped table: of 1038 objects with more than one row, 1027 were one image attached to a
 product and to each of its variants.
+
+`sequence` orders the rows WITHIN one principal, and the caller supplies it - the component never
+derives one, because reading `max(sequence)` and writing `max + 1` is the same non-atomic shape as
+`recreate-metalink` below. It defaults to 0, so `ORDER BY sequence, createdAt` reproduces the order
+legacy rows already had; drop the tiebreak and they come back arbitrary.
 
 `recreate-metalink` therefore does `findOne` then `create` non-atomically, and stays that way.
 Without a unique index two concurrent transactions both read "no row" and both insert - `FOR UPDATE`

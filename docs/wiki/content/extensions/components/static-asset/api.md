@@ -137,7 +137,7 @@ The constraint is the ROW, not the table: any table whose row carries the MetaLi
 | `controller.routes` | object | `undefined` | Per-route overrides - see [Per-route overrides](#per-route-overrides) |
 | `storage` | `'disk' \| 'bun-s3' \| 'minio'` | - | Selects which `helper` type is required (discriminated union) |
 | `helper` | `DiskHelper \| BunS3Helper \| MinioHelper` | - | Storage backend instance matching `storage` |
-| `extra` | `TStaticAssetExtraOptions` | `undefined` | Multipart parsing mode, name/link normalization, max folder depth |
+| `extra` | `TStaticAssetExtraOptions` | `undefined` | Multipart parsing mode, name/link normalization, max folder depth, upload size ceiling |
 | `useMetaLink` | `boolean` | `false` | Enables the `PUT .../meta-links/:objectName` route and DB tracking on upload/delete |
 | `metaLink` | `TMetaLinkConfig<Schema>` | - | Required when `useMetaLink: true`; ignored otherwise |
 | `resolveObjectName` | `TObjectNameResolver` | `undefined` | Decides the stored object name - see [`resolveObjectName`](#resolveobjectname) |
@@ -190,6 +190,8 @@ type TStaticAssetExtraOptions = {
   normalizeLinkFn?: (opts: IObjectLocation) => string;
   /** Maximum folder nesting depth allowed in object paths. Default: 2 */
   maxFolderDepth?: number;
+  /** Largest file the upload route accepts, in bytes. Absent means no ceiling. */
+  maxBytes?: number;
   [key: string]: AnyType;
 };
 ```
@@ -204,6 +206,7 @@ type TStaticAssetExtraOptions = {
 | `normalizeNameFn` | `(opts: { file: TUploadNaming }) => string` | `BaseStorageHelper`'s lowercase + `_`-for-space normalizer | Runs before the file is written; its output is re-validated with `isValidObjectKey()` |
 | `normalizeLinkFn` | `(opts: IObjectLocation) => string` | Component-generated - see below | Runs after the write to build the returned `link` |
 | `maxFolderDepth` | `number` | `BaseStorageHelper.DEFAULT_MAX_FOLDER_DEPTH` (`2`) | Folder segments only - the filename itself does not count against this limit |
+| `maxBytes` | `number` | none | Refuses a file over the ceiling with `413`. Checked against `content-length` before the body is spooled, then against each parsed file's actual length |
 
 ### Default `normalizeLinkFn`
 
@@ -316,6 +319,7 @@ interface IStorageHelper {
       expiresIn?: IDuration;
       tagging?: Record<string, string>;
       contentLength?: number;
+      contentType?: string;
     },
   ): Promise<string>;
   presignGet(
@@ -617,7 +621,7 @@ The default shape. A configured `controller.bucket` drops the first four rows an
 | `GET` | <code v-pre>/buckets/{bucketName}</code> | Returns `IBucketInfo \| null` |
 | `POST` | <code v-pre>/buckets/{bucketName}</code> | Returns the created `IBucketInfo`. Throws if the bucket already exists or the name is invalid - see [Error Reference](./errors) |
 | `DELETE` | <code v-pre>/buckets/{bucketName}</code> | Returns <code v-pre>{ isDeleted: boolean }</code> |
-| `POST` | <code v-pre>/buckets/{bucketName}/objects</code> | `multipart/form-data` body; query: `principalType?`, `principalId?`, `variant?`, `folderPath?`. Returns `IUploadResult[]` |
+| `POST` | <code v-pre>/buckets/{bucketName}/objects</code> | `multipart/form-data` body. Optional **form fields** beside the file: `principalType`, `principalId`, `variant`, `sequence`, `folderPath`. Returns `IUploadResult[]` |
 | `GET` | <code v-pre>/buckets/{bucketName}/objects</code> | Query: `prefix?`, `recursive?` (`'true'` string only), `maxKeys?` (positive integer string). Returns `IObjectInfo[]` |
 | `GET` | <code v-pre>/buckets/{bucketName}/objects/{objectName}</code> | Streams the file inline when the type is renderable, otherwise as an attachment. `objectName` is a single percent-encoded segment. Honours one `Range` header |
 | `GET` | <code v-pre>/buckets/{bucketName}/download/{objectName}</code> | Streams the file with `Content-Disposition: attachment`, always |
@@ -815,7 +819,7 @@ Both classes come from the separate `@venizia/ignis-connectors` package, importe
 - **On upload:**
   - Creates one MetaLink row per uploaded file, after fetching fresh stats via `helper.getStat()`.
   - Uses `metaLink.createMetaLink()` when provided, otherwise a default insert that covers every standard field.
-  - `principalType`, `principalId`, and `variant` come from the upload's query parameters.
+  - `principalType`, `principalId`, `variant` and `sequence` come from the upload's **form fields** - not the query string, because an identifier in a URL lands in every access log on the way. `upload-commit` takes the same four in its JSON body.
   - If the insert throws, the upload still succeeds. The file's response entry gets <code v-pre>metaLink: { error: 'META_LINK_CREATE_FAILED' }</code> - a fixed code, never the driver's text - and the real error is logged in full. This handler returns `200`, so it bypasses the error middleware that strips `detail`/`table`/`constraint`; returning a code is what keeps raw constraint names off the wire.
 - **On delete:**
   - The storage delete happens first and is awaited.

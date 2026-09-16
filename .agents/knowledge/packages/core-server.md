@@ -125,6 +125,13 @@ bucket-management routes unregistered, and `controller.rawObjectPath` widens the
 the `{objectName}{.+}` catch-all so a raw nested path resolves - the percent-encoded form keeps
 working either way. `buildAssetDefinitions(opts)` builds the ten route configs from those two flags;
 `StaticAssetDefinitions` is `buildAssetDefinitions({})` and is unchanged.
+The upload labels - `principalType`, `principalId`, `variant`, `sequence`, `folderPath` - travel in
+the BODY, not the query: form fields on `POST {base}/objects`, and beside the commit token in the
+JSON body on `upload-commit`. A query string is logged everywhere it passes, and an identifier
+describing the payload belongs with the payload; the cost is that they are unreadable until the body
+is parsed, so `folderPath` is validated after parsing. `extra.maxBytes` is the upload ceiling and
+answers `413` with `core.static_asset.upload_too_large` - one code for both upload paths.
+See [object storage](/architecture/object-storage.md) for the signing model behind the second path.
 See [component model](/architecture/component-model.md) and the
 [components catalog](/reference/components.md).
 
