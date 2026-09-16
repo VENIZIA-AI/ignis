@@ -100,6 +100,29 @@ describe('presignPut can sign a tag set and a size', () => {
     expect(signedHeaders(url)).toEqual(['content-length', 'host', 'x-amz-tagging']);
   });
 
+  /** Unsigned, the uploader chooses the stored type - and the stored type is what a browser renders. */
+  test('contentType is signed, so the uploader cannot choose the stored type', async () => {
+    const url = await buildHelper().presignPut({
+      bucket: { name: 'uploads' },
+      object: { key: 'a.png' },
+      contentType: 'application/octet-stream',
+    });
+
+    expect(signedHeaders(url)).toEqual(['content-type', 'host']);
+  });
+
+  test('all three together are listed sorted, alongside host', async () => {
+    const url = await buildHelper().presignPut({
+      bucket: { name: 'uploads' },
+      object: { key: 'a.png' },
+      tagging: { temp: 'true' },
+      contentLength: 2048,
+      contentType: 'application/octet-stream',
+    });
+
+    expect(signedHeaders(url)).toEqual(['content-length', 'content-type', 'host', 'x-amz-tagging']);
+  });
+
   test('a different tag value produces a different signature', async () => {
     const helper = buildHelper();
     const sign = (temp: string) =>

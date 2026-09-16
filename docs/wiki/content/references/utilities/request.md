@@ -20,9 +20,9 @@ export class FileController extends BaseRestController {
   override binding() {
     this.bindRoute({ configs: { path: '/upload', method: 'post' } }).to({
       handler: async (ctx) => {
-        const files = await parseMultipartBody({ context: ctx, storage: 'disk', uploadDir: './uploads' });
+        const { files, fields } = await parseMultipartBody({ context: ctx, storage: 'disk', uploadDir: './uploads' });
         return ctx.json(
-          { message: 'Uploaded', files: files.map(f => ({ name: f.originalname, size: f.size })) },
+          { message: 'Uploaded', folder: fields.folderPath, files: files.map(f => ({ name: f.originalname, size: f.size })) },
           HTTP.ResultCodes.RS_2.Ok,
         );
       },
@@ -46,14 +46,14 @@ export class FileController extends BaseRestController {
 
 | Function | Signature | What it does |
 |----------|-----------|---------------|
-| `parseMultipartBody` | `parseMultipartBody(opts: { context: { req: any }; storage?: 'memory' \| 'disk'; uploadDir?: string }): Promise<IParsedFile[]>` | Parses a `multipart/form-data` body via `context.req.formData()`. String fields are skipped - only `File` entries are returned. |
+| `parseMultipartBody` | `parseMultipartBody(opts: { context: { req: any }; storage?: 'memory' \| 'disk'; uploadDir?: string }): Promise<IParsedMultipartBody>` | Parses a `multipart/form-data` body via `context.req.formData()`. Returns `{ files, fields }` - a form carries both, and text fields posted beside a file are part of the upload. A repeated field name keeps the last value. |
 | `sanitizeFilename` | `sanitizeFilename(filename: string): string` | Strips path components and dangerous characters from `filename`. Returns `'download'` for empty or suspicious input. |
 | `encodeRFC5987` | `encodeRFC5987(filename: string): string` | RFC 5987 encodes `filename` for the `filename*` header parameter (`encodeURIComponent` plus escaped `'`, `(`, `)`, `*`). |
 | `createContentDispositionHeader` | `createContentDispositionHeader(opts: { filename: string; type: 'attachment' \| 'inline' }): string` | Builds a full `Content-Disposition` value: sanitizes the filename, then emits both the ASCII `filename=` and UTF-8 `filename*=` forms. |
 
 ## Parsed file shape
 
-`parseMultipartBody` resolves to an array of objects (the `IParsedFile` shape, internal to the module - not separately exported):
+`parseMultipartBody` resolves to `{ files, fields }`. `fields` is a `Record<string, string>` of the text entries; `files` is an array of the `IParsedFile` shape (internal to the module - not separately exported):
 
 | Field | Type | Present when |
 |-------|------|---------------|

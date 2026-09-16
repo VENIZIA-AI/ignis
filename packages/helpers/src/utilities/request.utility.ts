@@ -26,9 +26,15 @@ interface IParsedFile {
   path?: string;
 }
 
+/** Files and the plain text fields posted beside them. A form carries both, and dropping the second silently loses whatever the client sent with the upload. */
+export interface IParsedMultipartBody {
+  files: IParsedFile[];
+  fields: Record<string, string>;
+}
+
 export const parseMultipartBody = async <C extends { req: any } = { req: any }>(
   opts: IParseMultipartOptions<C>,
-): Promise<IParsedFile[]> => {
+): Promise<IParsedMultipartBody> => {
   const { storage = 'memory', uploadDir = './uploads', context } = opts;
 
   if (storage === 'disk' && !fs.existsSync(uploadDir)) {
@@ -37,9 +43,12 @@ export const parseMultipartBody = async <C extends { req: any } = { req: any }>(
 
   const formData = await context.req.formData();
   const files: IParsedFile[] = [];
+  const fields: Record<string, string> = {};
 
   for (const [fieldname, value] of formData.entries()) {
     if (typeof value === 'string') {
+      // Last one wins, like a repeated query parameter.
+      fields[fieldname] = value;
       continue;
     }
 
@@ -84,7 +93,7 @@ export const parseMultipartBody = async <C extends { req: any } = { req: any }>(
     files.push(parsedFile);
   }
 
-  return files;
+  return { files, fields };
 };
 
 /** Sanitizes a filename by removing path components and dangerous characters. */

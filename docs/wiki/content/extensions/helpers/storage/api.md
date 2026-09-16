@@ -361,6 +361,7 @@ presignPut(
     expiresIn?: IDuration;
     tagging?: Record<string, string>;
     contentLength?: number;
+    contentType?: string;
   },
 ): Promise<string>;
 presignGet(
@@ -391,7 +392,7 @@ The thrown message names the calling class and the method, so the error tells yo
 | `presignPut` | `StoragePresignDefaults.PUT_EXPIRES_IN` (`{ unit: 'minute', value: 10 }`) | `tagging` and `contentLength` are SIGNED - see [below](#signing-a-tag-set-and-a-size). No content type option: S3 ignores a `Content-Type` that is not signed. |
 | `presignGet` | `StoragePresignDefaults.GET_EXPIRES_IN` (`{ unit: 'minute', value: 1 }`) | `responseContentType` and `responseContentDisposition` override the `Content-Type` and `Content-Disposition` the download responds with. |
 
-#### Signing a tag set and a size {#signing-a-tag-set-and-a-size}
+#### Signing a tag set, a size and a type {#signing-a-tag-set-and-a-size}
 
 ```typescript
 const url = await storage.presignPut({
@@ -399,6 +400,7 @@ const url = await storage.presignPut({
   object: { key: 'pending/q1-workbook.csv' },
   tagging: { temp: 'true' },
   contentLength: file.size,
+  contentType: 'application/octet-stream',
 });
 ```
 
@@ -415,11 +417,14 @@ await fetch(url, {
 A tag merely *sent* is a tag S3 ignores - a step gated on reading it back would fail with no upload
 error to explain it. Signed, the tag exists the moment the object does.
 
+`contentType` matters for the same reason and one more: unsigned, whoever holds the URL chooses the
+type stored on the object, and the stored type is what a browser later renders.
+
 `contentLength` carries the cost: a signature expresses equality and nothing else, so it is an exact
 byte count, never a ceiling, and a retry at another size is a bare 403. For a ceiling, use
 `presignPost` and its `content-length-range`.
 
-Omit both and the URL signs `host` alone, as it always did.
+Omit all three and the URL signs `host` alone, as it always did.
 
 ```typescript
 import { StoragePresignDefaults, StoragePresignLimits } from '@venizia/ignis-helpers';
@@ -874,6 +879,7 @@ interface IStorageHelper {
       expiresIn?: IDuration;
       tagging?: Record<string, string>;
       contentLength?: number;
+      contentType?: string;
     },
   ): Promise<string>;
   presignGet(

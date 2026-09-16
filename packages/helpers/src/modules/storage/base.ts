@@ -455,6 +455,7 @@ export abstract class BaseStorageHelper extends BaseHelper implements IStorageHe
       expiresIn?: IDuration;
       tagging?: Record<string, string>;
       contentLength?: number;
+      contentType?: string;
     },
   ): Promise<string> {
     throw getError({

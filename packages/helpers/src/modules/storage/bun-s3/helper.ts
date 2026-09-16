@@ -335,6 +335,7 @@ export class BunS3Helper extends BaseStorageHelper {
       expiresIn?: IDuration;
       tagging?: Record<string, string>;
       contentLength?: number;
+      contentType?: string;
     },
   ): Promise<string> {
     const {
@@ -342,6 +343,7 @@ export class BunS3Helper extends BaseStorageHelper {
       object,
       tagging,
       contentLength,
+      contentType,
       expiresIn = StoragePresignDefaults.PUT_EXPIRES_IN,
     } = opts;
     const { accessKey, secretKey, region, sessionToken } = this.credentials;
@@ -365,6 +367,7 @@ export class BunS3Helper extends BaseStorageHelper {
       headers: {
         ...(tagging ? { 'x-amz-tagging': buildTaggingHeader({ tags: tagging }) } : {}),
         ...(contentLength === undefined ? {} : { 'content-length': String(contentLength) }),
+        ...(contentType ? { 'content-type': contentType } : {}),
       },
     });
   }

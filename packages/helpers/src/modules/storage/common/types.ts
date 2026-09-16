@@ -152,6 +152,8 @@ export interface IStorageHelper {
       tagging?: Record<string, string>;
       /** Pins the body to EXACTLY this many bytes. A retry at a different size is refused. */
       contentLength?: number;
+      /** Pins the stored content type. Unsigned, the uploader picks what is stored - and the stored type is what a browser later renders. */
+      contentType?: string;
     },
   ): Promise<string>;
   presignGet(
