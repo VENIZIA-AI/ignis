@@ -14,6 +14,12 @@
   "releases": {
     "atlas": [
       {
+        "version": "0.1.0-19",
+        "date": "2026-09-16",
+        "sha": "12dc8fac",
+        "order": 1294
+      },
+      {
         "version": "0.1.0-18",
         "date": "2026-09-15",
         "sha": "0982a569",
@@ -123,6 +129,12 @@
       }
     ],
     "boot": [
+      {
+        "version": "0.2.0-24",
+        "date": "2026-09-16",
+        "sha": "7b86b1e0",
+        "order": 1300
+      },
       {
         "version": "0.2.0-23",
         "date": "2026-09-16",
@@ -575,6 +587,12 @@
       }
     ],
     "connectors": [
+      {
+        "version": "0.2.0-34",
+        "date": "2026-09-16",
+        "sha": "fd418667",
+        "order": 1302
+      },
       {
         "version": "0.2.0-33",
         "date": "2026-09-16",
@@ -1630,6 +1648,12 @@
     ],
     "core-server": [
       {
+        "version": "0.2.0-38",
+        "date": "2026-09-16",
+        "sha": "5438b516",
+        "order": 1304
+      },
+      {
         "version": "0.2.0-37",
         "date": "2026-09-16",
         "sha": "16c34661",
@@ -1860,6 +1884,12 @@
     ],
     "core-worker": [
       {
+        "version": "0.2.0-34",
+        "date": "2026-09-16",
+        "sha": "f1ddb603",
+        "order": 1303
+      },
+      {
         "version": "0.2.0-33",
         "date": "2026-09-16",
         "sha": "2b325f36",
@@ -2065,6 +2095,12 @@
       }
     ],
     "dev-configs": [
+      {
+        "version": "0.2.0-6",
+        "date": "2026-09-16",
+        "sha": "fd3aafc8",
+        "order": 1296
+      },
       {
         "version": "0.2.0-5",
         "date": "2026-09-16",
@@ -2402,6 +2438,12 @@
     ],
     "filter": [
       {
+        "version": "0.2.0-13",
+        "date": "2026-09-16",
+        "sha": "534c736c",
+        "order": 1298
+      },
+      {
         "version": "0.2.0-12",
         "date": "2026-09-16",
         "sha": "981ecdf4",
@@ -2505,6 +2547,12 @@
       }
     ],
     "helpers": [
+      {
+        "version": "0.2.0-29",
+        "date": "2026-09-16",
+        "sha": "1abfd0d8",
+        "order": 1299
+      },
       {
         "version": "0.2.0-28",
         "date": "2026-09-16",
@@ -3138,6 +3186,12 @@
     ],
     "inversion": [
       {
+        "version": "0.2.0-13",
+        "date": "2026-09-16",
+        "sha": "469424b0",
+        "order": 1297
+      },
+      {
         "version": "0.2.0-12",
         "date": "2026-09-16",
         "sha": "2d9f6fa7",
@@ -3392,6 +3446,12 @@
     ],
     "kernel": [
       {
+        "version": "0.2.0-34",
+        "date": "2026-09-16",
+        "sha": "2c927d15",
+        "order": 1301
+      },
+      {
         "version": "0.2.0-33",
         "date": "2026-09-16",
         "sha": "0894a79e",
@@ -3621,6 +3681,17 @@
       ],
       "kind": "Feature",
       "order": 1283
+    },
+    {
+      "id": "changelog:2026-09-16-the-container-stops-pulling-zod",
+      "file": "2026-09-16-the-container-stops-pulling-zod.md",
+      "date": "2026-09-16",
+      "title": "The Container Stops Pulling zod",
+      "packages": [
+        "kernel"
+      ],
+      "kind": "Fix",
+      "order": 9007199254740991
     },
     {
       "id": "changelog:2026-09-16-metalink-carries-a-display-order",

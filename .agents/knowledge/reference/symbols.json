@@ -1170,7 +1170,7 @@
       "specifier": "@venizia/ignis",
       "kind": "class",
       "file": "packages/kernel/src/base/controllers/common/constants.ts",
-      "line": 7,
+      "line": 12,
       "signature": "class ControllerTransports"
     },
     {
@@ -4952,7 +4952,7 @@
       "specifier": "@venizia/ignis",
       "kind": "class",
       "file": "packages/kernel/src/base/controllers/common/constants.ts",
-      "line": 15,
+      "line": 20,
       "signature": "class ResponseFormats"
     },
     {
@@ -4992,7 +4992,7 @@
       "specifier": "@venizia/ignis",
       "kind": "class",
       "file": "packages/kernel/src/base/controllers/common/constants.ts",
-      "line": 29,
+      "line": 34,
       "signature": "class RestPaths"
     },
     {
@@ -5892,7 +5892,7 @@
       "specifier": "@venizia/ignis",
       "kind": "type",
       "file": "packages/kernel/src/base/controllers/common/constants.ts",
-      "line": 12,
+      "line": 17,
       "signature": "type TControllerTransport = TConstValue<typeof ControllerTransports>"
     },
     {
@@ -7302,7 +7302,7 @@
       "specifier": "@venizia/ignis",
       "kind": "type",
       "file": "packages/kernel/src/base/controllers/common/constants.ts",
-      "line": 26,
+      "line": 31,
       "signature": "type TResponseFormat = TConstValue<typeof ResponseFormats>"
     },
     {
@@ -8302,7 +8302,7 @@
       "specifier": "@venizia/ignis",
       "kind": "const",
       "file": "packages/kernel/src/base/controllers/common/constants.ts",
-      "line": 68,
+      "line": 40,
       "signature": "commonResponseHeaders: TResponseHeaders"
     },
     {
@@ -8351,8 +8351,8 @@
       "subpath": ".",
       "specifier": "@venizia/ignis",
       "kind": "const",
-      "file": "packages/kernel/src/base/controllers/common/constants.ts",
-      "line": 55,
+      "file": "packages/kernel/src/base/controllers/common/schemas.ts",
+      "line": 33,
       "signature": "countableHeaders: z.ZodObject<{ \"x-request-count\": z.ZodOptional<z.ZodString>; }, z.core.$strip>"
     },
     {
@@ -8422,8 +8422,8 @@
       "subpath": ".",
       "specifier": "@venizia/ignis",
       "kind": "const",
-      "file": "packages/kernel/src/base/controllers/common/constants.ts",
-      "line": 66,
+      "file": "packages/kernel/src/base/controllers/common/schemas.ts",
+      "line": 44,
       "signature": "defaultRequestHeaders: z.ZodObject<{ \"x-request-id\": z.ZodOptional<z.ZodString>; \"x-request-channel\": z.ZodOptional<z.ZodString>; \"x-device-info\": z.ZodOptional<z.ZodString>; \"x-request-count\": z.ZodOptional<z.ZodString>; }, z.core.$strip>"
     },
     {
@@ -8603,7 +8603,7 @@
       "specifier": "@venizia/ignis",
       "kind": "const",
       "file": "packages/kernel/src/base/controllers/common/constants.ts",
-      "line": 83,
+      "line": 55,
       "signature": "findResponseHeaders: TResponseHeaders"
     },
     {
@@ -9502,8 +9502,8 @@
       "subpath": ".",
       "specifier": "@venizia/ignis",
       "kind": "const",
-      "file": "packages/kernel/src/base/controllers/common/constants.ts",
-      "line": 35,
+      "file": "packages/kernel/src/base/controllers/common/schemas.ts",
+      "line": 13,
       "signature": "trackableHeaders: z.ZodObject<{ \"x-request-id\": z.ZodOptional<z.ZodString>; \"x-request-channel\": z.ZodOptional<z.ZodString>; \"x-device-info\": z.ZodOptional<z.ZodString>; }, z.core.$strip>"
     },
     {
@@ -27765,7 +27765,7 @@
       "specifier": "@venizia/ignis-kernel",
       "kind": "class",
       "file": "packages/kernel/src/base/controllers/common/constants.ts",
-      "line": 7,
+      "line": 12,
       "signature": "class ControllerTransports"
     },
     {
@@ -29195,7 +29195,7 @@
       "specifier": "@venizia/ignis-kernel",
       "kind": "class",
       "file": "packages/kernel/src/base/controllers/common/constants.ts",
-      "line": 15,
+      "line": 20,
       "signature": "class ResponseFormats"
     },
     {
@@ -29235,7 +29235,7 @@
       "specifier": "@venizia/ignis-kernel",
       "kind": "class",
       "file": "packages/kernel/src/base/controllers/common/constants.ts",
-      "line": 29,
+      "line": 34,
       "signature": "class RestPaths"
     },
     {
@@ -29705,7 +29705,7 @@
       "specifier": "@venizia/ignis-kernel",
       "kind": "type",
       "file": "packages/kernel/src/base/controllers/common/constants.ts",
-      "line": 12,
+      "line": 17,
       "signature": "type TControllerTransport = TConstValue<typeof ControllerTransports>"
     },
     {
@@ -30365,7 +30365,7 @@
       "specifier": "@venizia/ignis-kernel",
       "kind": "type",
       "file": "packages/kernel/src/base/controllers/common/constants.ts",
-      "line": 26,
+      "line": 31,
       "signature": "type TResponseFormat = TConstValue<typeof ResponseFormats>"
     },
     {
@@ -30685,7 +30685,7 @@
       "specifier": "@venizia/ignis-kernel",
       "kind": "const",
       "file": "packages/kernel/src/base/controllers/common/constants.ts",
-      "line": 68,
+      "line": 40,
       "signature": "commonResponseHeaders: TResponseHeaders"
     },
     {
@@ -30734,8 +30734,8 @@
       "subpath": ".",
       "specifier": "@venizia/ignis-kernel",
       "kind": "const",
-      "file": "packages/kernel/src/base/controllers/common/constants.ts",
-      "line": 55,
+      "file": "packages/kernel/src/base/controllers/common/schemas.ts",
+      "line": 33,
       "signature": "countableHeaders: z.ZodObject<{ \"x-request-count\": z.ZodOptional<z.ZodString>; }, z.core.$strip>"
     },
     {
@@ -30754,8 +30754,8 @@
       "subpath": ".",
       "specifier": "@venizia/ignis-kernel",
       "kind": "const",
-      "file": "packages/kernel/src/base/controllers/common/constants.ts",
-      "line": 66,
+      "file": "packages/kernel/src/base/controllers/common/schemas.ts",
+      "line": 44,
       "signature": "defaultRequestHeaders: z.ZodObject<{ \"x-request-id\": z.ZodOptional<z.ZodString>; \"x-request-channel\": z.ZodOptional<z.ZodString>; \"x-device-info\": z.ZodOptional<z.ZodString>; \"x-request-count\": z.ZodOptional<z.ZodString>; }, z.core.$strip>"
     },
     {
@@ -30795,7 +30795,7 @@
       "specifier": "@venizia/ignis-kernel",
       "kind": "const",
       "file": "packages/kernel/src/base/controllers/common/constants.ts",
-      "line": 83,
+      "line": 55,
       "signature": "findResponseHeaders: TResponseHeaders"
     },
     {
@@ -31164,8 +31164,8 @@
       "subpath": ".",
       "specifier": "@venizia/ignis-kernel",
       "kind": "const",
-      "file": "packages/kernel/src/base/controllers/common/constants.ts",
-      "line": 35,
+      "file": "packages/kernel/src/base/controllers/common/schemas.ts",
+      "line": 13,
       "signature": "trackableHeaders: z.ZodObject<{ \"x-request-id\": z.ZodOptional<z.ZodString>; \"x-request-channel\": z.ZodOptional<z.ZodString>; \"x-device-info\": z.ZodOptional<z.ZodString>; }, z.core.$strip>"
     },
     {
