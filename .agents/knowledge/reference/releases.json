@@ -14,6 +14,12 @@
   "releases": {
     "atlas": [
       {
+        "version": "0.1.0-23",
+        "date": "2026-09-16",
+        "sha": "889709f7",
+        "order": 1343
+      },
+      {
         "version": "0.1.0-22",
         "date": "2026-09-16",
         "sha": "0970effc",
@@ -147,6 +153,18 @@
       }
     ],
     "boot": [
+      {
+        "version": "0.2.0-29",
+        "date": "2026-09-16",
+        "sha": "d800d512",
+        "order": 1356
+      },
+      {
+        "version": "0.2.0-28",
+        "date": "2026-09-16",
+        "sha": "886120a9",
+        "order": 1349
+      },
       {
         "version": "0.2.0-27",
         "date": "2026-09-16",
@@ -623,6 +641,12 @@
       }
     ],
     "connectors": [
+      {
+        "version": "0.2.0-38",
+        "date": "2026-09-16",
+        "sha": "bfa3c33e",
+        "order": 1358
+      },
       {
         "version": "0.2.0-37",
         "date": "2026-09-16",
@@ -1702,6 +1726,12 @@
     ],
     "core-server": [
       {
+        "version": "0.2.0-42",
+        "date": "2026-09-16",
+        "sha": "9e36fd34",
+        "order": 1360
+      },
+      {
         "version": "0.2.0-41",
         "date": "2026-09-16",
         "sha": "389160a7",
@@ -1956,6 +1986,12 @@
     ],
     "core-worker": [
       {
+        "version": "0.2.0-38",
+        "date": "2026-09-16",
+        "sha": "369aca04",
+        "order": 1359
+      },
+      {
         "version": "0.2.0-37",
         "date": "2026-09-16",
         "sha": "f4f73688",
@@ -2185,6 +2221,18 @@
       }
     ],
     "dev-configs": [
+      {
+        "version": "0.2.0-11",
+        "date": "2026-09-16",
+        "sha": "01693b7c",
+        "order": 1352
+      },
+      {
+        "version": "0.2.0-10",
+        "date": "2026-09-16",
+        "sha": "715d5169",
+        "order": 1345
+      },
       {
         "version": "0.2.0-9",
         "date": "2026-09-16",
@@ -2546,6 +2594,18 @@
     ],
     "filter": [
       {
+        "version": "0.2.0-18",
+        "date": "2026-09-16",
+        "sha": "34c4f6cf",
+        "order": 1354
+      },
+      {
+        "version": "0.2.0-17",
+        "date": "2026-09-16",
+        "sha": "e84d6185",
+        "order": 1347
+      },
+      {
         "version": "0.2.0-16",
         "date": "2026-09-16",
         "sha": "fe913066",
@@ -2673,6 +2733,18 @@
       }
     ],
     "helpers": [
+      {
+        "version": "0.2.0-34",
+        "date": "2026-09-16",
+        "sha": "2f7055b6",
+        "order": 1355
+      },
+      {
+        "version": "0.2.0-33",
+        "date": "2026-09-16",
+        "sha": "035b5fab",
+        "order": 1348
+      },
       {
         "version": "0.2.0-32",
         "date": "2026-09-16",
@@ -3330,6 +3402,18 @@
     ],
     "inversion": [
       {
+        "version": "0.2.0-18",
+        "date": "2026-09-16",
+        "sha": "5deb8ec4",
+        "order": 1353
+      },
+      {
+        "version": "0.2.0-17",
+        "date": "2026-09-16",
+        "sha": "07079b8e",
+        "order": 1346
+      },
+      {
         "version": "0.2.0-16",
         "date": "2026-09-16",
         "sha": "6a83c0de",
@@ -3608,6 +3692,18 @@
     ],
     "kernel": [
       {
+        "version": "0.2.0-39",
+        "date": "2026-09-16",
+        "sha": "3a5787dc",
+        "order": 1357
+      },
+      {
+        "version": "0.2.0-38",
+        "date": "2026-09-16",
+        "sha": "61467c16",
+        "order": 1350
+      },
+      {
         "version": "0.2.0-37",
         "date": "2026-09-16",
         "sha": "a68f1da4",
@@ -3872,6 +3968,18 @@
       ],
       "kind": "Fix",
       "order": 1307
+    },
+    {
+      "id": "changelog:2026-09-16-the-browser-path-loses-lodash-and-zod",
+      "file": "2026-09-16-the-browser-path-loses-lodash-and-zod.md",
+      "date": "2026-09-16",
+      "title": "The Browser Path Loses lodash, and utilities Loses zod",
+      "packages": [
+        "core-server",
+        "kernel"
+      ],
+      "kind": "Fix",
+      "order": 1344
     },
     {
       "id": "changelog:2026-09-16-metalink-carries-a-display-order",
