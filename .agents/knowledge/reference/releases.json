@@ -14,6 +14,12 @@
   "releases": {
     "atlas": [
       {
+        "version": "0.1.0-18",
+        "date": "2026-09-15",
+        "sha": "0982a569",
+        "order": 1280
+      },
+      {
         "version": "0.1.0-17",
         "date": "2026-09-15",
         "sha": "d7b889ef",
@@ -117,6 +123,12 @@
       }
     ],
     "boot": [
+      {
+        "version": "0.2.0-23",
+        "date": "2026-09-16",
+        "sha": "7b3d351c",
+        "order": 1288
+      },
       {
         "version": "0.2.0-22",
         "date": "2026-09-15",
@@ -563,6 +575,12 @@
       }
     ],
     "connectors": [
+      {
+        "version": "0.2.0-33",
+        "date": "2026-09-16",
+        "sha": "ccf3a1ce",
+        "order": 1290
+      },
       {
         "version": "0.2.0-32",
         "date": "2026-09-15",
@@ -1612,6 +1630,12 @@
     ],
     "core-server": [
       {
+        "version": "0.2.0-37",
+        "date": "2026-09-16",
+        "sha": "16c34661",
+        "order": 1292
+      },
+      {
         "version": "0.2.0-36",
         "date": "2026-09-15",
         "sha": "15264e28",
@@ -1836,6 +1860,12 @@
     ],
     "core-worker": [
       {
+        "version": "0.2.0-33",
+        "date": "2026-09-16",
+        "sha": "2b325f36",
+        "order": 1291
+      },
+      {
         "version": "0.2.0-32",
         "date": "2026-09-15",
         "sha": "a38d76f9",
@@ -2035,6 +2065,12 @@
       }
     ],
     "dev-configs": [
+      {
+        "version": "0.2.0-5",
+        "date": "2026-09-16",
+        "sha": "9cff595d",
+        "order": 1284
+      },
       {
         "version": "0.2.0-4",
         "date": "2026-09-15",
@@ -2366,6 +2402,12 @@
     ],
     "filter": [
       {
+        "version": "0.2.0-12",
+        "date": "2026-09-16",
+        "sha": "981ecdf4",
+        "order": 1286
+      },
+      {
         "version": "0.2.0-11",
         "date": "2026-09-15",
         "sha": "e30bd169",
@@ -2463,6 +2505,12 @@
       }
     ],
     "helpers": [
+      {
+        "version": "0.2.0-28",
+        "date": "2026-09-16",
+        "sha": "092ab1d1",
+        "order": 1287
+      },
       {
         "version": "0.2.0-27",
         "date": "2026-09-15",
@@ -3090,6 +3138,12 @@
     ],
     "inversion": [
       {
+        "version": "0.2.0-12",
+        "date": "2026-09-16",
+        "sha": "2d9f6fa7",
+        "order": 1285
+      },
+      {
         "version": "0.2.0-11",
         "date": "2026-09-15",
         "sha": "2328c4e9",
@@ -3338,6 +3392,12 @@
     ],
     "kernel": [
       {
+        "version": "0.2.0-33",
+        "date": "2026-09-16",
+        "sha": "0894a79e",
+        "order": 1289
+      },
+      {
         "version": "0.2.0-32",
         "date": "2026-09-15",
         "sha": "aad7aa37",
@@ -3538,6 +3598,41 @@
     ]
   },
   "changelogs": [
+    {
+      "id": "changelog:2026-09-16-upload-labels-move-to-the-body",
+      "file": "2026-09-16-upload-labels-move-to-the-body.md",
+      "date": "2026-09-16",
+      "title": "Upload Labels Move to the Body",
+      "packages": [
+        "core-server",
+        "helpers"
+      ],
+      "kind": "Breaking",
+      "order": 1283
+    },
+    {
+      "id": "changelog:2026-09-16-upload-ceiling-and-signed-content-type",
+      "file": "2026-09-16-upload-ceiling-and-signed-content-type.md",
+      "date": "2026-09-16",
+      "title": "An Upload Ceiling, and a Signed Content Type",
+      "packages": [
+        "core-server",
+        "helpers"
+      ],
+      "kind": "Feature",
+      "order": 1283
+    },
+    {
+      "id": "changelog:2026-09-16-metalink-carries-a-display-order",
+      "file": "2026-09-16-metalink-carries-a-display-order.md",
+      "date": "2026-09-16",
+      "title": "MetaLink Carries a Display Order",
+      "packages": [
+        "core-server"
+      ],
+      "kind": "Breaking",
+      "order": 1283
+    },
     {
       "id": "changelog:2026-09-15-presign-put-signs-tags-and-size",
       "file": "2026-09-15-presign-put-signs-tags-and-size.md",
