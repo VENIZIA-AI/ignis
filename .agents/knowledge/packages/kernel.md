@@ -22,7 +22,7 @@ the kernel barrel wholesale, so `@venizia/ignis` keeps its published name and it
 surface: no consumer import changed when this package was carved out of core.
 
 Two entries, not one. The root barrel is 161 KB gzipped in a browser bundle and correctly so - it
-carries the REST surface, and `base/controllers` needs zod. `./metadata` is 23 KB: the stereotypes,
+carries the REST surface, and `base/controllers` needs zod. `./metadata` is 13.9 KB for the whole surface, 11.0 KB when a consumer names two symbols: the stereotypes,
 the binding namespaces, `ArtifactTypes`/`BindingKeys`/`MetadataRegistry`, for a consumer that
 registers and resolves classes and never serves HTTP. `CoreBindings` is deliberately absent - the
 namespaces are the GRAMMAR of a key, `CoreBindings` is one application's DICTIONARY, and a sibling
@@ -58,7 +58,7 @@ Everything under `src/base/` was the engine-neutral half of `packages/core-serve
 
 Alongside it: `src/common/` carries `BindingNamespaces`, `CoreBindings`, the framework error codes,
 and `Statuses`; `src/helpers/inversion/` carries the kernel `Container` and `MetadataRegistry`;
-`src/utilities/` carries the error, JSX, and schema helpers.
+`src/utilities/` carries the error helpers only - the JSX and schema builders moved to `base/controllers/common/` because they call `z.object()` at module load, which made a barrel named `utilities/` pull zod into any bundle that touched it.
 
 ## Browser purity is the design constraint, and it is measured
 
@@ -68,10 +68,12 @@ whatever is added next. `make purity-kernel`
 bundles it for `target: 'browser'` and fails on any node builtin or node global. Purity is a property
 of the resolved graph, so the rule is about how peers are reached, not which peers are declared:
 `drizzle-orm`, `casbin`, and `jose` are reached through `import type` only and never survive into the
-bundle, and all three are declared optional in `peerDependenciesMeta` - a non-optional peer that the
-package never requires would force a browser consumer under npm 7+ or pnpm strict peers to install a
-SQL ORM and a JOSE crypto stack for a handful of type aliases. `hono` and `@hono/zod-openapi` are
-real value imports and are browser-safe. The gate reads `dist/`, so build before running it.
+bundle. `hono` and `@hono/zod-openapi` are real value imports and browser-safe, but only the ROOT
+barrel reaches them - so every peer is declared optional in `peerDependenciesMeta`, including those
+two. A non-optional peer the package never requires would force a `./metadata` consumer under npm 7+
+or pnpm strict peers to install a server HTTP framework for decorators. Nothing is lost at install
+time: `@venizia/ignis` declares `hono` and `@hono/zod-openapi` as REQUIRED peers, so a REST
+application is still warned by the package it actually depends on. The gate reads `dist/`, so build before running it.
 
 The probe grades a node-global read by whether it can throw, not by whether it uses optional
 chaining. `globalThis.process?.env?.X` is a property read on an object that always exists, so it is

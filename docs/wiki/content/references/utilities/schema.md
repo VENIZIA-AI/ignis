@@ -51,7 +51,7 @@ this.defineRoute({
 
 ## Notes
 
-- **Three source files, one page.** `requiredString`, `AnyObjectSchema`, `TAnyObjectSchema`, and `TInferSchema` live in `schema.utility.ts`; `jsonContent`, `jsonResponse`, and `idParamsSchema` live in `base/models/common/schemas.ts`; `snakeToCamel` lives in `base/models/common/utilities.ts`. All three are re-exported from the `@venizia/ignis` root barrel, so the import path is the same either way.
+- **Three source files, one page.** `requiredString`, `AnyObjectSchema`, `TAnyObjectSchema`, and `TInferSchema` live in `base/controllers/common/schema-builders.ts` (they call `z.object()` at module load, so they sit with the REST surface rather than in the zod-free `utilities/` barrel); `jsonContent`, `jsonResponse`, and `idParamsSchema` live in `base/models/common/schemas.ts`; `snakeToCamel` lives in `base/models/common/utilities.ts`. All three are re-exported from the `@venizia/ignis` root barrel, so the import path is the same either way.
 - **`jsonResponse`'s error branch is fixed** - it always uses `ErrorSchema` under the `'4xx | 5xx'` key; only the success schema, description, and headers are customizable per call.
 - **The workspace is on Zod v4.** `snakeToCamel` returns a `ZodPipe`; there is no `ZodEffects` to hold, that class belonged to v3.
 - **`TInferSchema<T>` constrains `T` to `z.ZodType`.** The full declaration is `TInferSchema<T extends z.ZodType> = z.infer<T>`.

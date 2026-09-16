@@ -6,7 +6,7 @@ resource: packages/inversion
 tags: [packages, inversion, di, ioc]
 ---
 
-`@venizia/ignis-inversion` is the foundation layer of the framework - the start of the dependency chain (`dev-configs -> inversion -> {filter, helpers} -> kernel -> core`). It is a small, standalone dependency injection and IoC container (on the order of a few hundred lines of core logic) with no dependency on the rest of IGNIS: only `lodash`, `reflect-metadata`, and `zod`. See [DI container](/architecture/di-container.md).
+`@venizia/ignis-inversion` is the foundation layer of the framework - the start of the dependency chain (`dev-configs -> inversion -> {filter, helpers} -> kernel -> core`). It is a small, standalone dependency injection and IoC container (on the order of a few hundred lines of core logic) with no dependency on the rest of IGNIS: only `reflect-metadata` and `zod`. `lodash` was dropped once it was measured - two functions (`omit`, `isEmpty`) for 24 KB in a browser bundle; both now live in `common/utilities.ts`, checked against lodash on the shapes actually passed before the swap. See [DI container](/architecture/di-container.md).
 
 ## Container tiering
 

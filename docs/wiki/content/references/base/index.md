@@ -76,6 +76,35 @@ Core classes that power every IGNIS application - from the Application entry poi
 - [Repositories](./repositories/) - CRUD operations, filtering, relations
 - [Filter System](./filter-system/) - Query filter types and operators
 
+## Two entry points
+
+Most applications import from `@venizia/ignis` and never think about this. A consumer that
+registers and resolves classes but never serves HTTP - a browser-side framework, a tool - imports
+from the kernel's sub-path instead.
+
+| Import from | Holds | Browser bundle |
+|---|---|---|
+| `@venizia/ignis-kernel` | Everything: applications, controllers, repositories, the REST surface | 161 KB gzipped |
+| `@venizia/ignis-kernel/metadata` | The stereotypes (`service`, `component`, `configuration`, `injectable`, `provide`, `model`, `datasource`, `repository`, `inject`), `BindingNamespaces`, `ArtifactNamespaces`, `ArtifactTypes`, `BindingKeys`, `MetadataRegistry` | **13.9 KB gzipped** |
+
+Both figures are the whole surface (`export *`). Naming what you import tree-shakes further - two
+symbols come to 11.0 KB.
+
+```typescript
+import { service, BindingNamespaces } from '@venizia/ignis-kernel/metadata';
+```
+
+The root barrel is heavy **correctly** - it carries the REST surface, and `base/controllers` needs
+zod. Every peer is optional, so the sub-path installs without a server HTTP framework.
+
+`CoreBindings` is deliberately **not** on `./metadata`. The namespaces are the grammar of a binding
+key; `CoreBindings` is one application's dictionary (`APPLICATION_SERVER`, `APPLICATION_ROOT_ROUTER`),
+and a consumer with its own class of that name would otherwise have two one import apart - binding
+under one key and resolving under another, failing only at run time.
+
+Both entries are bundled by a guard test that fails over 120 KB or on zod reaching either one. zod is
+browser-**pure**, so the purity gate has no opinion about it; weight needs its own measurement.
+
 ## Class Hierarchy
 
 ```
