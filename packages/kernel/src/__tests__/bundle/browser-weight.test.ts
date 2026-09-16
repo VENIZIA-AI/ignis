@@ -84,3 +84,12 @@ describe('the metadata entry carries mechanism, not one application vocabulary',
     expect(Object.keys(entry)).toContain('ArtifactNamespaces');
   });
 });
+
+/** `utilities/` sounds harmless, which is how two OpenAPI schema builders sat in it pulling zod into every bundle that touched the barrel. They live under `base/controllers/common/` now. */
+describe('the utilities barrel stays zod-free', () => {
+  test('no zod reaches it', async () => {
+    const { text } = await bundle(join(process.cwd(), 'src/utilities/index.ts'));
+
+    expect(text.includes('ZodObject'), 'zod reached the utilities barrel').toBe(false);
+  });
+});

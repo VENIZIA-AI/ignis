@@ -1,7 +1,7 @@
 import type { IdType } from '@/base/models';
 import type { AbstractEntity } from '@/base/models/base';
 import type { TWhere } from '@venizia/ignis-filter';
-import type { TAnyObjectSchema } from '@/utilities/schema.utility';
+import type { TAnyObjectSchema } from '@/base/controllers/common/schema-builders';
 import { HTTP } from '@venizia/ignis-helpers/common';
 import type { Env, Schema } from 'hono';
 import type { TEntityDataObject, TEntityPersistObject, TRouteContext } from '../../common';

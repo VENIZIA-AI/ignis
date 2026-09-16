@@ -1,4 +1,3 @@
-import isEmpty from 'lodash/isEmpty';
 import { getError } from '../../error';
 import { TConstValue } from '@/common/types';
 
@@ -19,11 +18,11 @@ export class BindingKeys {
   static build(opts: { namespace: string; key: string }) {
     const { namespace, key } = opts;
     const keyParts: Array<string> = [];
-    if (!isEmpty(namespace)) {
+    if (namespace) {
       keyParts.push(namespace);
     }
 
-    if (isEmpty(key)) {
+    if (!key) {
       throw getError({
         message: `[BindingKeys][build] Invalid key to build | key: ${key}`,
       });

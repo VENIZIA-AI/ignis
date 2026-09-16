@@ -1,4 +1,4 @@
-import { requiredString } from '@/utilities/schema.utility';
+import { requiredString } from '@/base/controllers/common/schema-builders';
 import { z } from '@hono/zod-openapi';
 
 export const ChangePasswordRequestSchema = z

@@ -105,13 +105,11 @@
     "prepublishOnly": "bun run rebuild"
   },
   "dependencies": {
-    "lodash": "catalog:",
     "reflect-metadata": "catalog:",
     "zod": "catalog:"
   },
   "devDependencies": {
     "@types/bun": "catalog:",
-    "@types/lodash": "catalog:",
     "@venizia/dev-configs": "^0.2.0-9",
     "eslint": "catalog:",
     "prettier": "catalog:",

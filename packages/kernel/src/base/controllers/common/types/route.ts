@@ -1,6 +1,6 @@
 import type { TAuthMode, TAuthStrategy } from '@/base/auth/authenticate/common/constants';
 import type { IAuthorizationSpec } from '@/base/auth/authorize/common/types';
-import type { TAnyObjectSchema } from '@/utilities/schema.utility';
+import type { TAnyObjectSchema } from '@/base/controllers/common/schema-builders';
 import type {
   createRoute,
   RouteConfig as HonoRouteConfig,

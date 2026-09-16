@@ -470,6 +470,10 @@ const config = defineConfig({
                   text: 'The Container Stops Pulling zod',
                   link: '/changelogs/2026-09-16-the-container-stops-pulling-zod',
                 },
+                {
+                  text: 'The Browser Path Loses lodash, and utilities Loses zod',
+                  link: '/changelogs/2026-09-16-the-browser-path-loses-lodash-and-zod',
+                },
               ],
             },
             {

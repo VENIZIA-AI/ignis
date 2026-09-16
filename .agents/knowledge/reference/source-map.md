@@ -90,7 +90,7 @@ _Flat `src/` - no subsystem directories._
 
 | Subsystem | Files |
 |---|---|
-| `base/` | 166 |
+| `base/` | 168 |
 | `helpers/` | 24 |
 | `common/` | 8 |
-| `utilities/` | 4 |
+| `utilities/` | 2 |

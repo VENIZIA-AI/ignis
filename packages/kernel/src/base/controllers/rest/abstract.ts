@@ -5,7 +5,7 @@ import { authorize as authorizeFn } from '@/base/auth/authorize/middlewares/auth
 import { AuthenticationStrategyRegistry } from '@/base/auth/authenticate/strategies/strategy-registry';
 import { DroppedRouteDecorators } from '@/base/metadata/routes/common';
 import { MetadataRegistry } from '@/helpers/inversion/registry';
-import { htmlResponse } from '@/utilities/jsx.utility';
+import { htmlResponse } from '@/base/controllers/common/html-response';
 import type { Hook } from '@hono/zod-openapi';
 import { createRoute, OpenAPIHono } from '@hono/zod-openapi';
 import type { ValueOrPromise } from '@venizia/ignis-helpers/common';

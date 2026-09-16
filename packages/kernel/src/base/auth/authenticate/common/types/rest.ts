@@ -1,4 +1,4 @@
-import type { TAnyObjectSchema } from '@/utilities/schema.utility';
+import type { TAnyObjectSchema } from '@/base/controllers/common/schema-builders';
 
 export type TDefineAuthControllerOpts = {
   restPath?: string;

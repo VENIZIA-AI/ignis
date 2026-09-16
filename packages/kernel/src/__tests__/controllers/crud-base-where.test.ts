@@ -5,7 +5,7 @@ import type { AbstractEntity } from '@/base/models';
 import type { AbstractRepository } from '@/base/repositories';
 import type { TRouteContext } from '@/base/controllers/common';
 import { ReadableCrudController } from '@/base/controllers/factory/crud';
-import type { TAnyObjectSchema } from '@/utilities/schema.utility';
+import type { TAnyObjectSchema } from '@/base/controllers/common/schema-builders';
 
 type TRow = { id: string; tenantId: string; status?: string };
 

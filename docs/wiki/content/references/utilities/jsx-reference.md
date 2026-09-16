@@ -10,7 +10,7 @@ Exhaustive reference for `htmlContent()`, `htmlResponse()`, and `BaseRestControl
 
 **Files:**
 
-- [`packages/kernel/src/utilities/jsx.utility.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/kernel/src/utilities/jsx.utility.ts) - `htmlContent`, `htmlResponse`
+- [`packages/kernel/src/base/controllers/common/html-response.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/kernel/src/base/controllers/common/html-response.ts) - `htmlContent`, `htmlResponse`
 - [`packages/kernel/src/base/controllers/rest/base.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/kernel/src/base/controllers/rest/base.ts) - `BaseRestController.defineJSXRoute`
 - [`packages/kernel/src/base/controllers/rest/abstract.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/kernel/src/base/controllers/rest/abstract.ts) - `AbstractRestController.getJSXRouteConfigs`
 - [`packages/helpers/src/common/jsx.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/common/jsx.ts) - `FC`, `PropsWithChildren`, `Child` (re-exported from `hono/jsx`)
@@ -19,7 +19,7 @@ Exhaustive reference for `htmlContent()`, `htmlResponse()`, and `BaseRestControl
 
 Creates a standard OpenAPI content object for `text/html` responses.
 
-`Source ->` [`packages/kernel/src/utilities/jsx.utility.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/kernel/src/utilities/jsx.utility.ts)
+`Source ->` [`packages/kernel/src/base/controllers/common/html-response.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/kernel/src/base/controllers/common/html-response.ts)
 
 ```typescript
 const htmlContent = (opts: { description: string; required?: boolean }) => ({
@@ -51,7 +51,7 @@ An OpenAPI content configuration object: `description`, `content['text/html'].sc
 
 Creates a standard OpenAPI response object for HTML endpoints. It pairs a success (`200`) HTML response with a JSON error response for `4xx | 5xx` status codes using `ErrorSchema`.
 
-`Source ->` [`packages/kernel/src/utilities/jsx.utility.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/kernel/src/utilities/jsx.utility.ts)
+`Source ->` [`packages/kernel/src/base/controllers/common/html-response.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/kernel/src/base/controllers/common/html-response.ts)
 
 ```typescript
 const htmlResponse = (opts: { description: string; required?: boolean }) => ({

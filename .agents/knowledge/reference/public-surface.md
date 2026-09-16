@@ -10,7 +10,7 @@ tags: [reference, exports, api]
 
 ## inversion
 
-### `@venizia/ignis-inversion` (67)
+### `@venizia/ignis-inversion` (68)
 
 - `AbstractContainer` class
 - `AnyType` type
@@ -42,6 +42,7 @@ tags: [reference, exports, api]
 - `MetadataKeys` const
 - `metadataRegistry` const
 - `MetadataRegistry` class
+- `omit` const
 - `resolveInjectTarget` const
 - `resolveValue` const
 - `resolveValueAsync` const

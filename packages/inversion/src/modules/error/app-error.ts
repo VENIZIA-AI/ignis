@@ -1,5 +1,5 @@
 import { AnyType, TNullable } from '@/common/types';
-import omit from 'lodash/omit';
+import { omit } from '@/common/utilities';
 import { MessageCode } from './message-code';
 import type { TError, TErrorLogLevel, TErrorNormalized, TResponsedError } from './common';
 

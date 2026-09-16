@@ -8,6 +8,31 @@ import type {
   TValueOrResolver,
 } from './types';
 
+/**
+ * A shallow copy without `keys`.
+ *
+ * Hand-written rather than `lodash/omit`: this package is bundled for browsers, where importing
+ * lodash for one function costs 24 KB. Matches lodash on the shapes we pass it - a flat key list,
+ * never a nested path.
+ */
+export const omit = <T extends Record<string, unknown>>(
+  source: T,
+  keys: readonly string[],
+): Record<string, unknown> => {
+  const dropped = new Set(keys);
+  const kept: Record<string, unknown> = {};
+
+  for (const [key, value] of Object.entries(source)) {
+    if (dropped.has(key)) {
+      continue;
+    }
+
+    kept[key] = value;
+  }
+
+  return kept;
+};
+
 /** Tells a CONSTRUCTOR from a RESOLVER via source text - `prototype !== undefined` is true of every non-arrow function. Sound only on ES2020+ output (classes emit as `class`); ES5 bundling breaks it. */
 export const isClass = <T>(target: any): target is TClass<T> => {
   if (typeof target !== 'function' || target.prototype === undefined) {

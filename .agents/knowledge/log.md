@@ -6,6 +6,23 @@ not how.
 This file and `index.md` are reserved OKF filenames - they carry no `type:` frontmatter and are not
 counted as concepts.
 
+## 2026-09-16 (e) - the browser path loses lodash, and utilities loses zod
+
+`inversion` dropped lodash: two functions (`omit`, `isEmpty`) for 24 KB. Both now live in
+`common/utilities.ts` and `lodash` is out of the manifest so it cannot drift back. The replacements
+were CHECKED against lodash on the shapes actually passed, not assumed equivalent - `isEmpty` is only
+ever called on a string, `omit` only with a flat key list.
+
+`utilities/` lost zod the same way `constants.ts` did: `jsx.utility.ts` and `schema.utility.ts` were
+OpenAPI builders calling `z.object()` at module load, in a barrel whose name promised nothing of the
+sort. They are `base/controllers/common/html-response.ts` and `schema-builders.ts` now.
+
+Together: `kernel/metadata` 20 KB -> 13.9 KB gzip. `browser-weight.test.ts` covers three entries now.
+
+The pattern is worth naming: a file is heavy because of what it CALLS at module load, and a barrel
+spreads that to everything that touches it. Neither shows in a type, a purity gate, or a review
+diff - only in a bundle.
+
 ## 2026-09-16 (d) - the container stops pulling zod
 
 Importing `Container` alone cost 437 KB in a browser bundle, 423 KB of it zod. The chain was

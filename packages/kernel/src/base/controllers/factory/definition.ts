@@ -4,7 +4,7 @@ import type { TIdSchemaType } from '@/base/models/common';
 import { idParamsSchema, jsonContent, jsonResponse } from '@/base/models/common';
 import { CountSchema } from '@/base/repositories/common';
 import { FilterQuerySchema, WhereSchema } from '@/base/repositories/query-schemas';
-import type { TAnyObjectSchema } from '@/utilities/schema.utility';
+import type { TAnyObjectSchema } from '@/base/controllers/common/schema-builders';
 import { z } from '@hono/zod-openapi';
 import { HTTP } from '@venizia/ignis-helpers/common';
 import type { ICustomizableRoutes } from '../common';
