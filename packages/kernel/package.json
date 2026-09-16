@@ -100,10 +100,16 @@
     "jose": "^6.2.3"
   },
   "peerDependenciesMeta": {
+    "@hono/zod-openapi": {
+      "optional": true
+    },
     "casbin": {
       "optional": true
     },
     "drizzle-orm": {
+      "optional": true
+    },
+    "hono": {
       "optional": true
     },
     "jose": {

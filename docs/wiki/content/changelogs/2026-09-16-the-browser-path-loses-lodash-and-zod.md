@@ -30,6 +30,16 @@ touched `utilities/` carried the whole of zod.
 They are `base/controllers/common/html-response.ts` and `.../schema-builders.ts` now, beside the
 REST surface they belong to. Both are re-exported from the same barrels, so no import path changes.
 
+## Every kernel peer is optional now
+
+`hono` and `@hono/zod-openapi` were required peers, so a consumer importing only `./metadata` was
+still told to install a server HTTP framework. They join `casbin`, `drizzle-orm` and `jose` as
+optional.
+
+Nothing is lost at install time: `@venizia/ignis` (core-server) declares both as **required** peers
+already, so a REST application that forgets one is still warned by the package it actually depends
+on. The kernel is the layer that genuinely does not need them.
+
 ## Guarded
 
 `browser-weight.test.ts` now covers three entries - `Container`, `./metadata`, and `utilities/` -
@@ -46,3 +56,4 @@ opinion; weight and reachability need their own measurement.
 
 - [`packages/inversion/src/common/utilities.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/inversion/src/common/utilities.ts) - `omit`
 - [`packages/kernel/src/utilities/index.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/kernel/src/utilities/index.ts)
+- [`packages/kernel/package.json`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/kernel/package.json) - `peerDependenciesMeta`

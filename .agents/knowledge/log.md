@@ -19,6 +19,12 @@ sort. They are `base/controllers/common/html-response.ts` and `schema-builders.t
 
 Together: `kernel/metadata` 20 KB -> 13.9 KB gzip. `browser-weight.test.ts` covers three entries now.
 
+Every kernel peer is optional as well - `hono` and `@hono/zod-openapi` were required, so a consumer
+importing only `./metadata` was told to install a server HTTP framework. Nothing is lost: core-server
+declares both as REQUIRED peers, so a REST application that forgets one is still warned by the
+package it actually depends on. The apparent trade-off (install-time warning vs browser consumers)
+turned out not to exist once the downstream manifest was read.
+
 The pattern is worth naming: a file is heavy because of what it CALLS at module load, and a barrel
 spreads that to everything that touches it. Neither shows in a type, a purity gate, or a review
 diff - only in a bundle.
