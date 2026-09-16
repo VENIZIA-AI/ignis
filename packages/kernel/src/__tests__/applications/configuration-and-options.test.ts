@@ -174,7 +174,7 @@ describe('configuration @provide and options pass-through to components', () => 
       }
 
       override binding() {
-        seenInBinding = this.configuredOptions;
+        seenInBinding = this.options;
       }
     }
 

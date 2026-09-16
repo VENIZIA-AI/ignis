@@ -313,15 +313,12 @@ export async function buildPostPolicy(opts: {
 }
 
 /**
- * A presigned URL: the credential travels in the QUERY, so a browser needs no `Authorization`
- * header to use it.
+ * A presigned URL: the credential travels in the QUERY, so a browser needs no `Authorization` header.
  *
- * `headers` is what makes this more than `S3Client.presign`. Anything named there is inside the
- * signature and `X-Amz-SignedHeaders` lists it, so the client MUST send each one back byte for
- * byte - `x-amz-tagging` to label the object at the moment it is written, `content-length` to pin
- * its size. Both are the sharp edge of a signed PUT, not a bug in it: an equality is all a
- * signature can express, so a pinned length rejects every retry at a different size. When a ceiling
- * is what you want rather than an exact value, the shape is {@link buildPostPolicy}.
+ * `headers` is what `S3Client.presign` cannot do. Anything named there is inside the signature and
+ * listed in `X-Amz-SignedHeaders`, so the client must send it back byte for byte. A signature
+ * expresses equality and nothing else, so a pinned `content-length` rejects every retry at another
+ * size; for a ceiling, use {@link buildPostPolicy}.
  */
 export async function buildPresignedUrl(opts: {
   method: string;

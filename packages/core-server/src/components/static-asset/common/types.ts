@@ -34,7 +34,7 @@ export type TStaticAssetExtraOptions = {
   /** Maximum folder nesting depth allowed in object paths. Default: 2 */
   maxFolderDepth?: number;
 
-  /** Largest file the UPLOAD route accepts, in bytes. Absent means no ceiling. Checked against `content-length` before the body is spooled, and per file after parsing - a multipart body can lie about its total. */
+  /** Largest file the UPLOAD route accepts. Absent means no ceiling. Checked against `content-length` before spooling, then per file after parsing. */
   maxBytes?: number;
   [key: string]: AnyType;
 };
@@ -61,7 +61,7 @@ export type TUploadQuery = {
   principalType?: string;
   principalId?: string;
   variant?: string;
-  /** Display order within the principal. The caller supplies it; the component never derives one, because reading a maximum and writing max+1 is not atomic. */
+  /** Display order within the principal. Caller-supplied: deriving it would be a non-atomic read of `max(sequence)` then a write of `max + 1`. */
   sequence?: number;
   folderPath?: string;
 };

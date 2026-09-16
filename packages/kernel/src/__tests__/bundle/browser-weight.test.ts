@@ -2,17 +2,12 @@ import { describe, expect, test } from 'bun:test';
 import { join } from 'node:path';
 
 /**
- * A weight gate, not a purity gate. zod IS browser-pure, so `make purity-kernel` says nothing about
- * it - it is simply 423 KB, and it reached every consumer of `Container` through one import.
- *
- * The chain was: `Container` -> `registry` -> the `mixins` barrel -> the controller mixin ->
- * `base/controllers/common/constants.ts`, which called `z.object()` at module load for two request
- * schemas. The mixin wanted `ControllerTransports` from that file, a four-line const class.
- *
- * Nothing in a type system stops someone re-adding that import, so the measurement is the guard.
+ * A weight gate, not a purity gate: zod is browser-PURE, so `make purity-kernel` had nothing to say
+ * while `Container` -> `registry` -> the `mixins` barrel -> the controller mixin ->
+ * `base/controllers/common/constants.ts` cost every consumer 423 KB, for a four-line const class.
+ * Nothing in a type system stops that import coming back, so the measurement is the guard.
  */
-// Relative to the package root, not to this file: `import.meta` is unavailable in the CJS half of
-// the dual build, and this suite is compiled with the rest of the package.
+// Relative to the package root: `import.meta` is unavailable in the CJS half of the dual build.
 const CONTAINER_ENTRY = join(process.cwd(), 'src/helpers/inversion/container.ts');
 const METADATA_ENTRY = join(process.cwd(), 'src/metadata.ts');
 
@@ -46,17 +41,12 @@ describe('importing Container alone stays cheap in a browser bundle', () => {
   test('no zod reaches it', async () => {
     const { text } = await bundle(CONTAINER_ENTRY);
 
-    // A boolean, not the text: asserting on the string prints the whole minified bundle into the
-    // failure output, which buries the one line that says what went wrong.
+    // A boolean, not the text: asserting on the string prints the whole minified bundle on failure.
     expect(text.includes('ZodObject'), 'zod reached the container bundle').toBe(false);
   });
 });
 
-/**
- * The whole point of the sub-path. The ROOT barrel is 161 KB gzipped and correctly so - it carries
- * the REST surface. `./metadata` exists for a consumer that only registers and resolves classes, and
- * the boundary is worth nothing unless it is measured.
- */
+/** The root barrel is 161 KB gzipped and right to be - it carries REST. `./metadata` is the boundary for consumers that never serve HTTP, and a boundary nobody measures is not one. */
 describe('the metadata entry stays free of the transport surface', () => {
   test(`it bundles under ${CEILING_BYTES / 1024} KB minified`, async () => {
     const { bytes } = await bundle(METADATA_ENTRY);
@@ -75,12 +65,9 @@ describe('the metadata entry stays free of the transport surface', () => {
 });
 
 /**
- * A surface test, not a weight one, kept here because it guards the same boundary.
- *
- * `CoreBindings` is one application's dictionary, not the grammar of a binding key. Another
- * framework in this house ships a class of the same name whose `APPLICATION_INSTANCE` is a different
- * string, so shipping ours beside the stereotypes puts the two one import away from each other -
- * bind under one, resolve under the other, and nothing fails until run time.
+ * A surface test, kept here because it guards the same boundary. `CoreBindings` is one application's
+ * dictionary, not the grammar of a key, and a sibling framework ships a class of the same name whose
+ * `APPLICATION_INSTANCE` differs - bind under one, resolve under the other, fails only at run time.
  */
 describe('the metadata entry carries mechanism, not one application vocabulary', () => {
   test('CoreBindings is not exported from it', async () => {

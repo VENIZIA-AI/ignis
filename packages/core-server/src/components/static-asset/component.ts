@@ -31,7 +31,7 @@ export class StaticAssetComponent<
     // Direct options win. The key is the path for an application that registers this component
     // through `configs.artifacts`, where an index carries classes and no options.
     const componentOptions =
-      this.configuredOptions ??
+      this.options ??
       this.application.get<TStaticAssetsComponentOptions<Schema>>({
         key: StaticAssetComponentBindingKeys.STATIC_ASSET_COMPONENT_OPTIONS,
       });

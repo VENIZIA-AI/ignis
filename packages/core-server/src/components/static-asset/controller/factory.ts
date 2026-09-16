@@ -62,7 +62,7 @@ export interface IAssetControllerOptions {
 
 /** Hono ALREADY percent-decodes path params - a second decodeURIComponent throws on `report_100%.pdf` and turns `a%2Fb.png` into a DIFFERENT object; `isValidName`/`isValidPath` still run on this value, so traversal is still rejected. */
 /** The upload labels, read off the multipart form. Every value arrives as text, so `sequence` is the one that needs converting. */
-/** The label names, in one place: the reader below and the stale-caller warning have to agree. */
+/** One list: the reader below and the stale-caller warning must agree. */
 const UPLOAD_LABEL_NAMES = [
   'principalType',
   'principalId',
@@ -71,22 +71,15 @@ const UPLOAD_LABEL_NAMES = [
   'folderPath',
 ] as const;
 
-/**
- * Names any label still arriving in the query string. The value is still READ - see
- * {@link readUploadLabels} - so this is a deprecation notice, not a report of something dropped.
- */
+/** Names any label still arriving in the query. Still READ (see {@link readUploadLabels}) - a deprecation notice, not a report of something dropped. */
 export const findLabelsInQuery = (opts: { query: Record<string, string> }): string[] =>
   UPLOAD_LABEL_NAMES.filter(name => opts.query[name] !== undefined);
 
 /**
- * The labels, body first and query as the way back.
- *
- * The query is where they used to travel. Refusing to read it would have been a clean break on
- * paper and a broken upload in practice: a client whose form library only emits `append(key, value,
- * filename)` - the three-argument form, which requires a Blob - cannot put a text field in a
- * multipart body at all, so it THROWS rather than quietly losing a label. A read-with-warning lets
- * each consumer move on its own schedule; the body always wins, so a migrated caller is never
- * affected by a stale parameter left in a URL.
+ * The labels, body first and query as the way back. Refusing the query would break uploads outright:
+ * a client whose form library only emits `append(key, value, filename)` - the three-argument form,
+ * which needs a Blob - cannot put a text field in a multipart body at all, so it THROWS. Body wins,
+ * so a migrated caller is never affected by a stale parameter in a URL.
  */
 const readUploadLabels = (opts: {
   fields: Record<string, string>;
@@ -231,11 +224,7 @@ const applyMetadataHeaders: (opts: {
   });
 };
 
-/**
- * The MetaLink row for one uploaded object. Both upload paths go through here, so a direct upload
- * lands exactly the row an ordinary one does - the application's `createMetaLink` when it gives
- * one, the component's default otherwise.
- */
+/** The MetaLink row for one uploaded object. Both upload paths go through here, so a direct upload lands exactly the row an ordinary one does. */
 const createMetaLinkRow = async (opts: {
   metaLink: TMetaLinkConfig<AnyType>;
   helper: IStorageHelper;
@@ -571,9 +560,8 @@ export class AssetControllerFactory extends BaseHelper {
               }
             };
 
-            // Before the body is spooled. A multipart envelope is larger than the files inside it,
-            // so a request under the ceiling can still carry a file over it - hence the second check
-            // below. This one only buys the early exit, and a missing header buys nothing.
+            // The early exit, before the body is spooled. Not authoritative: a multipart envelope is
+            // larger than its files, so the per-file check below is the one that decides.
             if (maxBytes !== undefined) {
               const declaredLength = Number(ctx.req.header(HTTP.Headers.CONTENT_LENGTH));
               if (Number.isFinite(declaredLength) && declaredLength > maxBytes) {
@@ -590,9 +578,8 @@ export class AssetControllerFactory extends BaseHelper {
               uploadDir: options?.parseMultipartBody?.uploadDir,
             });
 
-            // The labels travel WITH the payload rather than in the URL, so an identifier does not
-            // land in every access log along the way. The cost is that they are unreadable until
-            // the body is parsed, which is why the folder check runs here and not above.
+            // Labels travel with the payload, not the URL. The cost: unreadable until the body is
+            // parsed, which is why the folder check runs here rather than above.
             const queryLabels = ctx.req.query();
             const query = readUploadLabels({ fields, fallback: queryLabels });
 
@@ -628,8 +615,7 @@ export class AssetControllerFactory extends BaseHelper {
                   });
                 }
 
-                // The authoritative check: `buffer.length`, not the reported `size`, because the
-                // reported one is whatever the client declared.
+                // Authoritative: `buffer.length`, not the client-declared `size`.
                 if (maxBytes !== undefined && buffer.length > maxBytes) {
                   throw getError({
                     error: StaticAssetErrors.UPLOAD_TOO_LARGE,
@@ -951,9 +937,8 @@ export class AssetControllerFactory extends BaseHelper {
                 rawObjectPath,
               });
 
-              // The two upload paths have to agree. Without this the ordinary upload writes a row
-              // and the direct one does not, so a client reading `metaLink` off the response renders
-              // an empty state with no error - the failure nobody reports.
+              // The two paths have to agree: without this a client reading `metaLink` off the
+              // response renders an empty state with no error - the failure nobody reports.
               let metaLinkResult: IUploadResult['metaLink'];
               if (useMetaLink && metaLink) {
                 try {
@@ -979,10 +964,8 @@ export class AssetControllerFactory extends BaseHelper {
 
                   metaLinkResult = { data };
                 } catch (error) {
-                  // The copy already happened and the pending object is gone, so the object IS
-                  // committed. Answering 500 would send the caller back with a token whose source
-                  // no longer exists - which is why the ordinary upload reports this in the body
-                  // too, as a code rather than the driver's text.
+                  // The object IS committed by now. A 500 would send the caller back with a token
+                  // whose source no longer exists, so this rides the body as a code, like UPLOAD.
                   this.logger
                     .for('UPLOAD_COMMIT')
                     .error(

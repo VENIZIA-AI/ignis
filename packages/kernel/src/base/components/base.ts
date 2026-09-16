@@ -13,8 +13,8 @@ export abstract class BaseComponent<ConfigurableOptions extends object = {}>
   protected initDefault: TInitDefault;
   protected isConfigured = false;
 
-  /** What `application.component(Ctor, { options })` handed this instance. Set before `binding()` runs, so a component reads its options there instead of reimplementing `configure`. */
-  protected configuredOptions?: ConfigurableOptions;
+  /** What `application.component(Ctor, { options })` handed this instance, set before `binding()` runs. Optional, not defaulted to `{}`: a component registered through `configs.artifacts` gets no options and uses `??` to fall back to its binding, which an empty object would silently defeat. */
+  options?: ConfigurableOptions;
 
   constructor(opts: {
     scope: string;
@@ -28,6 +28,11 @@ export abstract class BaseComponent<ConfigurableOptions extends object = {}>
   }
 
   abstract binding(): ValueOrPromise<void>;
+
+  /** Override this, not the field, to resolve options lazily. */
+  getOptions(): ConfigurableOptions | undefined {
+    return this.options;
+  }
 
   protected initDefaultBindings(opts: { container: Container }) {
     const { container } = opts;
@@ -54,12 +59,9 @@ export abstract class BaseComponent<ConfigurableOptions extends object = {}>
 
     const t = performance.now();
 
-    this.configuredOptions = opts;
+    this.options = opts;
 
-    const configureOptions = opts ?? {};
-    this.logger
-      .for(this.binding.name)
-      .info('START | Binding component | Options: %j', configureOptions);
+    this.logger.for(this.binding.name).info('START | Binding component | Options: %j', opts ?? {});
 
     if (this.initDefault?.enable) {
       this.initDefaultBindings({ container: this.initDefault.container });

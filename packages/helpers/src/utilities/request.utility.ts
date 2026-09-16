@@ -26,7 +26,7 @@ interface IParsedFile {
   path?: string;
 }
 
-/** Files and the plain text fields posted beside them. A form carries both, and dropping the second silently loses whatever the client sent with the upload. */
+/** Files and the text fields posted beside them - dropping the second silently loses what the client sent. */
 export interface IParsedMultipartBody {
   files: IParsedFile[];
   fields: Record<string, string>;

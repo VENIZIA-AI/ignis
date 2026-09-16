@@ -144,7 +144,7 @@ export interface IStorageHelper {
     expiresIn?: IDuration;
   }): Promise<IPostPolicy>;
 
-  /** A URL a browser may PUT one object to. `tagging` and `contentLength` are SIGNED: the client must send them back unchanged, so a label cannot be dropped and a size cannot be exceeded. A pinned size is an exact number, never a ceiling - when a ceiling is what you want, use {@link IStorageHelper.presignPost}. */
+  /** A URL a browser may PUT one object to. Every extra option below is SIGNED - the client must send it back unchanged. A pinned size is exact, never a ceiling; for a ceiling use {@link IStorageHelper.presignPost}. */
   presignPut(
     opts: IObjectLocation & {
       expiresIn?: IDuration;

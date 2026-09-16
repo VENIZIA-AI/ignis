@@ -8352,7 +8352,7 @@
       "specifier": "@venizia/ignis",
       "kind": "const",
       "file": "packages/kernel/src/base/controllers/common/schemas.ts",
-      "line": 33,
+      "line": 30,
       "signature": "countableHeaders: z.ZodObject<{ \"x-request-count\": z.ZodOptional<z.ZodString>; }, z.core.$strip>"
     },
     {
@@ -8423,7 +8423,7 @@
       "specifier": "@venizia/ignis",
       "kind": "const",
       "file": "packages/kernel/src/base/controllers/common/schemas.ts",
-      "line": 44,
+      "line": 41,
       "signature": "defaultRequestHeaders: z.ZodObject<{ \"x-request-id\": z.ZodOptional<z.ZodString>; \"x-request-channel\": z.ZodOptional<z.ZodString>; \"x-device-info\": z.ZodOptional<z.ZodString>; \"x-request-count\": z.ZodOptional<z.ZodString>; }, z.core.$strip>"
     },
     {
@@ -9503,7 +9503,7 @@
       "specifier": "@venizia/ignis",
       "kind": "const",
       "file": "packages/kernel/src/base/controllers/common/schemas.ts",
-      "line": 13,
+      "line": 10,
       "signature": "trackableHeaders: z.ZodObject<{ \"x-request-id\": z.ZodOptional<z.ZodString>; \"x-request-channel\": z.ZodOptional<z.ZodString>; \"x-device-info\": z.ZodOptional<z.ZodString>; }, z.core.$strip>"
     },
     {
@@ -13132,7 +13132,7 @@
       "specifier": "@venizia/ignis/static-asset",
       "kind": "class",
       "file": "packages/core-server/src/components/static-asset/controller/factory.ts",
-      "line": 281,
+      "line": 270,
       "signature": "class AssetControllerFactory extends BaseHelper"
     },
     {
@@ -13152,7 +13152,7 @@
       "specifier": "@venizia/ignis/static-asset",
       "kind": "class",
       "file": "packages/core-server/src/components/static-asset/models/base.model.ts",
-      "line": 17,
+      "line": 13,
       "signature": "class BaseMetaLinkModel extends BaseRelationalEntity<typeof BaseMetaLinkModel.schema>"
     },
     {
@@ -13222,7 +13222,7 @@
       "specifier": "@venizia/ignis/static-asset",
       "kind": "const",
       "file": "packages/core-server/src/components/static-asset/common/constants.ts",
-      "line": 58,
+      "line": 54,
       "signature": "META_LINK_CREATE_FAILED = \"META_LINK_CREATE_FAILED\""
     },
     {
@@ -13263,7 +13263,7 @@
       "kind": "const",
       "file": "packages/core-server/src/components/static-asset/common/errors.ts",
       "line": 6,
-      "signature": "StaticAssetErrors: { readonly UPLOAD_NOT_AUTHORIZED: { readonly message: { readonly text: \"Not allowed to request an upload policy\"; readonly code: \"core.static_asset.upload_not_authorized\"; }; readonly statusCode: 403; readonly category: \"validation\"; }; /** Both upload paths: over `options.maxByte"
+      "signature": "StaticAssetErrors: { readonly UPLOAD_NOT_AUTHORIZED: { readonly message: { readonly text: \"Not allowed to request an upload policy\"; readonly code: \"core.static_asset.upload_not_authorized\"; }; readonly statusCode: 403; readonly category: \"validation\"; }; /** Both upload paths - one condition, one c"
     },
     {
       "name": "StaticAssetStorageTypes",
@@ -13322,7 +13322,7 @@
       "specifier": "@venizia/ignis/static-asset",
       "kind": "type",
       "file": "packages/core-server/src/components/static-asset/models/base.model.ts",
-      "line": 58,
+      "line": 53,
       "signature": "type TMetaLink = TTableObject<TMetaLinkSchema>"
     },
     {
@@ -13332,7 +13332,7 @@
       "specifier": "@venizia/ignis/static-asset",
       "kind": "type",
       "file": "packages/core-server/src/components/static-asset/models/base.model.ts",
-      "line": 61,
+      "line": 56,
       "signature": "type TMetaLinkCompatibleSchema = TTableSchemaWithId & { $inferSelect: TMetaLink; }"
     },
     {
@@ -13352,7 +13352,7 @@
       "specifier": "@venizia/ignis/static-asset",
       "kind": "type",
       "file": "packages/core-server/src/components/static-asset/models/base.model.ts",
-      "line": 57,
+      "line": 52,
       "signature": "type TMetaLinkSchema = typeof BaseMetaLinkModel.schema"
     },
     {
@@ -13433,7 +13433,7 @@
       "kind": "type",
       "file": "packages/core-server/src/components/static-asset/common/types.ts",
       "line": 60,
-      "signature": "type TUploadQuery = { principalType?: string; principalId?: string; variant?: string; /** Display order within the principal. The caller supplies it; the component never derives one, because reading a maximum and writing max+1 is not atomic. */ sequence?: number; folderPath?: string; }"
+      "signature": "type TUploadQuery = { principalType?: string; principalId?: string; variant?: string; /** Display order within the principal. Caller-supplied: deriving it would be a non-atomic read of `max(sequence)` then a write of `max + 1`. */ sequence?: number; folderPath?: string; }"
     },
     {
       "name": "WHITELIST_HEADERS",
@@ -13462,7 +13462,7 @@
       "specifier": "@venizia/ignis/static-asset",
       "kind": "const",
       "file": "packages/core-server/src/components/static-asset/controller/factory.ts",
-      "line": 132,
+      "line": 125,
       "signature": "buildObjectLink: (opts: IObjectLocation & { basePath: string; hasConfiguredBucket?: boolean; rawObjectPath?: boolean; }) => string"
     },
     {
@@ -13472,7 +13472,7 @@
       "specifier": "@venizia/ignis/static-asset",
       "kind": "const",
       "file": "packages/core-server/src/components/static-asset/controller/factory.ts",
-      "line": 78,
+      "line": 75,
       "signature": "findLabelsInQuery: (opts: { query: Record<string, string>; }) => string[]"
     },
     {
@@ -13492,7 +13492,7 @@
       "specifier": "@venizia/ignis/static-asset",
       "kind": "const",
       "file": "packages/core-server/src/components/static-asset/controller/factory.ts",
-      "line": 165,
+      "line": 158,
       "signature": "resolveServedContentType: (opts: { helper: IStorageHelper; object: IObjectRef; }) => { contentType: string; isRenderable: boolean; }"
     },
     {
@@ -30735,7 +30735,7 @@
       "specifier": "@venizia/ignis-kernel",
       "kind": "const",
       "file": "packages/kernel/src/base/controllers/common/schemas.ts",
-      "line": 33,
+      "line": 30,
       "signature": "countableHeaders: z.ZodObject<{ \"x-request-count\": z.ZodOptional<z.ZodString>; }, z.core.$strip>"
     },
     {
@@ -30755,7 +30755,7 @@
       "specifier": "@venizia/ignis-kernel",
       "kind": "const",
       "file": "packages/kernel/src/base/controllers/common/schemas.ts",
-      "line": 44,
+      "line": 41,
       "signature": "defaultRequestHeaders: z.ZodObject<{ \"x-request-id\": z.ZodOptional<z.ZodString>; \"x-request-channel\": z.ZodOptional<z.ZodString>; \"x-device-info\": z.ZodOptional<z.ZodString>; \"x-request-count\": z.ZodOptional<z.ZodString>; }, z.core.$strip>"
     },
     {
@@ -31165,7 +31165,7 @@
       "specifier": "@venizia/ignis-kernel",
       "kind": "const",
       "file": "packages/kernel/src/base/controllers/common/schemas.ts",
-      "line": 13,
+      "line": 10,
       "signature": "trackableHeaders: z.ZodObject<{ \"x-request-id\": z.ZodOptional<z.ZodString>; \"x-request-channel\": z.ZodOptional<z.ZodString>; \"x-device-info\": z.ZodOptional<z.ZodString>; }, z.core.$strip>"
     },
     {

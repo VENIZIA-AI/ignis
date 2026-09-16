@@ -8,11 +8,7 @@ import {
 } from '@venizia/ignis-connectors/postgres';
 import { boolean, index, integer, jsonb, pgTable, text } from 'drizzle-orm/pg-core';
 
-/**
- * One row per (object, owner) pairing, NOT one row per object. The same object legitimately carries
- * several rows - a product image attached to the product and to each of its variants is the common
- * case - so `(bucketName, objectName)` is deliberately indexed and NOT unique.
- */
+/** One row per (object, owner) pairing, NOT per object: one product image attached to the product and to each variant is the common case, so `(bucketName, objectName)` is indexed and deliberately NOT unique. */
 @model({ type: 'entity', skipMigrate: true })
 export class BaseMetaLinkModel extends BaseRelationalEntity<typeof BaseMetaLinkModel.schema> {
   static override schema = pgTable(
@@ -33,7 +29,7 @@ export class BaseMetaLinkModel extends BaseRelationalEntity<typeof BaseMetaLinkM
       /** An opaque label the caller chooses - a size, a role, a rendition name. The component stores and returns it and reads no meaning into it. */
       variant: text(),
 
-      /** Display order WITHIN one principal - the images of one product, not of the whole table. Defaults to 0 so every legacy row ties and `ORDER BY sequence, createdAt` reproduces the order those rows already had. */
+      /** Display order within ONE principal. Defaults to 0 so legacy rows tie and `ORDER BY sequence, createdAt` reproduces the order they already had. */
       sequence: integer().notNull().default(0),
 
       /** A polymorphic owner: the type names the table, the id the row. Both nullable - an object may belong to nothing yet, which is how `recreate-metalink` writes one. */
@@ -45,8 +41,7 @@ export class BaseMetaLinkModel extends BaseRelationalEntity<typeof BaseMetaLinkM
       index(`IDX_MetaLink_objectName`).on(def.objectName),
       index(`IDX_MetaLink_storageType`).on(def.storageType),
       index(`IDX_MetaLink_isSynced`).on(def.isSynced),
-      // Ordering always runs inside a principal filter, so the filter columns lead and the sort
-      // column trails - an index on `sequence` alone would not serve that query.
+      // Ordering runs inside a principal filter, so filter columns lead and the sort column trails.
       index(`IDX_MetaLink_principal_sequence`).on(def.principalType, def.principalId, def.sequence),
     ],
   );

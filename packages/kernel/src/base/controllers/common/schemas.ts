@@ -2,13 +2,10 @@ import { z } from '@hono/zod-openapi';
 import { HTTP } from '@venizia/ignis-helpers/common';
 
 /**
- * The zod-backed request schemas, kept apart from `constants.ts` ON PURPOSE.
- *
- * `z.object()` runs at module load, so a file that calls it pulls the whole of zod into any bundle
- * that touches it. `constants.ts` carries `ControllerTransports`, which the container's controller
- * mixin imports - so while these lived beside it, importing `Container` alone cost 437 KB in a
- * browser bundle, 423 KB of it zod, for a four-line const class. Keep this file out of any path a
- * non-REST consumer can reach.
+ * The zod-backed request schemas, kept apart from `constants.ts` ON PURPOSE. `z.object()` runs at
+ * module load, so any bundle reaching this file carries the whole of zod. While these lived beside
+ * `ControllerTransports`, which the container's controller mixin imports, importing `Container`
+ * alone cost 437 KB - 423 KB of it zod - for a four-line const class.
  */
 export const trackableHeaders = z.object({
   [HTTP.Headers.REQUEST_TRACING_ID]: z.string().optional().openapi({

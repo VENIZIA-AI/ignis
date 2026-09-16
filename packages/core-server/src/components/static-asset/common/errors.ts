@@ -12,7 +12,7 @@ export const StaticAssetErrors = {
     statusCode: HTTP.ResultCodes.RS_4.Forbidden,
     category: ErrorScopes.VALIDATION,
   },
-  /** Both upload paths: over `options.maxBytes` on the ordinary route, over `directUpload.maxBytes` in a policy. One condition, one code for a client to branch on. */
+  /** Both upload paths - one condition, one code to branch on. */
   UPLOAD_TOO_LARGE: {
     message: {
       text: 'File is larger than the maximum allowed',
