@@ -3,6 +3,7 @@ import { BaseApplication } from '@/base/applications';
 import type { IApplicationConfigs, IApplicationInfo } from '@venizia/ignis-kernel';
 import { ControllerTransports } from '@venizia/ignis-kernel';
 import { BaseMetaLinkModel } from '@/components/static-asset/models';
+import { findLabelsInQuery } from '@/components/static-asset/controller/factory';
 import { AssetControllerFactory } from '@/components/static-asset/controller';
 import type {
   TDefineExtraRoutes,
@@ -1245,5 +1246,34 @@ describe('the upload query carries a display order', () => {
     });
 
     expect(created[0].sequence).toBeUndefined();
+  });
+});
+
+describe('findLabelsInQuery names a caller that never migrated', () => {
+  /**
+   * The labels moved from the query to the body, and a stale one is simply ignored - no compile
+   * error, no runtime error, just an unlabelled row. This predicate drives the only signal there is.
+   */
+  test('it names every label still arriving in the query', () => {
+    expect(findLabelsInQuery({ query: { principalId: '42', variant: 'original' } })).toEqual([
+      'principalId',
+      'variant',
+    ]);
+  });
+
+  test('it returns them in a stable order, not the order they were sent', () => {
+    expect(findLabelsInQuery({ query: { variant: 'a', principalType: 'Product' } })).toEqual([
+      'principalType',
+      'variant',
+    ]);
+  });
+
+  test('an unrelated query parameter is not a label', () => {
+    expect(findLabelsInQuery({ query: { prefix: 'photos/', maxKeys: '10' } })).toEqual([]);
+  });
+
+  /** An empty value still means the caller put it there, so it is still the wrong place. */
+  test('an empty value still counts', () => {
+    expect(findLabelsInQuery({ query: { folderPath: '' } })).toEqual(['folderPath']);
   });
 });

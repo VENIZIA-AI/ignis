@@ -3158,7 +3158,7 @@ tags: [reference, exports, api]
 - `IConnectRpcModule` interface
 - `IGrpcComponentConfig` interface
 
-### `@venizia/ignis/static-asset` (36)
+### `@venizia/ignis/static-asset` (37)
 
 - `AssetControllerFactory` class
 - `AssetIngest` class
@@ -3167,6 +3167,7 @@ tags: [reference, exports, api]
 - `buildCommitToken` const
 - `buildObjectLink` const
 - `DEFAULT_PENDING_PREFIX` const
+- `findLabelsInQuery` const
 - `IAssetControllerOptions` interface
 - `ICommitTokenPayload` interface
 - `IIngestFromUrlOptions` interface

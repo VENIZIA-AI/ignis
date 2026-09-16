@@ -13132,7 +13132,7 @@
       "specifier": "@venizia/ignis/static-asset",
       "kind": "class",
       "file": "packages/core-server/src/components/static-asset/controller/factory.ts",
-      "line": 248,
+      "line": 265,
       "signature": "class AssetControllerFactory extends BaseHelper"
     },
     {
@@ -13343,7 +13343,7 @@
       "kind": "type",
       "file": "packages/core-server/src/components/static-asset/common/types.ts",
       "line": 99,
-      "signature": "type TMetaLinkConfig<Schema extends TMetaLinkCompatibleSchema = TMetaLinkSchema> = { model: TValueOrAsyncResolver<typeof BaseRelationalEntity<Schema>>; repository: TValueOrAsyncResolver<DefaultCRUDRepository<Schema>>; createMetaLink?: (opts: { uploadResult: IUploadResult; fileStat: IFileStat; query:"
+      "signature": "type TMetaLinkConfig<Schema extends TMetaLinkCompatibleSchema = TMetaLinkSchema> = { model: TValueOrAsyncResolver<typeof BaseRelationalEntity<Schema>>; repository: TValueOrAsyncResolver<DefaultCRUDRepository<Schema>>; createMetaLink?: (opts: { uploadResult: IUploadResult; fileStat: IFileStat; /** Th"
     },
     {
       "name": "TMetaLinkSchema",
@@ -13392,7 +13392,7 @@
       "specifier": "@venizia/ignis/static-asset",
       "kind": "type",
       "file": "packages/core-server/src/components/static-asset/common/types.ts",
-      "line": 109,
+      "line": 110,
       "signature": "type TStaticAssetRoutes = { getBuckets?: Partial<Omit<IAuthRouteConfig, 'method' | 'request' | 'responses'>>; getBucketByName?: Partial<Omit<IAuthRouteConfig, 'method' | 'request' | 'responses'>>; createBucket?: Partial<Omit<IAuthRouteConfig, 'method' | 'request' | 'responses'>>; deleteBucket?: Part"
     },
     {
@@ -13412,7 +13412,7 @@
       "specifier": "@venizia/ignis/static-asset",
       "kind": "type",
       "file": "packages/core-server/src/components/static-asset/common/types.ts",
-      "line": 127,
+      "line": 128,
       "signature": "type TStaticAssetsComponentOptions<Schema extends TMetaLinkCompatibleSchema = TMetaLinkSchema> = { [key: string]: { controller: { name: string; basePath: string; isStrict?: boolean; /** `true` serves a raw nested object path (`/objects/photos/2024/f.jpg`) - a URL shape change; a percent-encoded path"
     },
     {
@@ -13462,8 +13462,18 @@
       "specifier": "@venizia/ignis/static-asset",
       "kind": "const",
       "file": "packages/core-server/src/components/static-asset/controller/factory.ts",
-      "line": 99,
+      "line": 116,
       "signature": "buildObjectLink: (opts: IObjectLocation & { basePath: string; hasConfiguredBucket?: boolean; rawObjectPath?: boolean; }) => string"
+    },
+    {
+      "name": "findLabelsInQuery",
+      "package": "@venizia/ignis",
+      "subpath": "./static-asset",
+      "specifier": "@venizia/ignis/static-asset",
+      "kind": "const",
+      "file": "packages/core-server/src/components/static-asset/controller/factory.ts",
+      "line": 79,
+      "signature": "findLabelsInQuery: (opts: { query: Record<string, string>; }) => string[]"
     },
     {
       "name": "readCommitToken",
@@ -13482,7 +13492,7 @@
       "specifier": "@venizia/ignis/static-asset",
       "kind": "const",
       "file": "packages/core-server/src/components/static-asset/controller/factory.ts",
-      "line": 132,
+      "line": 149,
       "signature": "resolveServedContentType: (opts: { helper: IStorageHelper; object: IObjectRef; }) => { contentType: string; isRenderable: boolean; }"
     },
     {

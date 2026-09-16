@@ -15,6 +15,11 @@ logged everywhere it passes, and an identifier describing the payload belongs wi
 The cost is real and stated: form fields are unreadable until the body is parsed, so `folderPath` is
 validated after parsing rather than before. Nothing routes or authorizes on them today.
 
+Both upload routes WARN when a label still arrives in the query string, naming it. Without that the
+move breaks nothing loudly - the server ignores the stale value and the row lands unlabelled, which
+is the worst kind of breaking change. `createMetaLink` still receives the labels as `query`; the name
+is historical and renaming it would have been a fifth breaking change for a word.
+
 This needed `parseMultipartBody` to stop dropping non-file entries - it returned `IParsedFile[]` and
 `continue`d past every string value, so a field posted with an upload simply vanished. It now returns
 `{ files, fields }`.

@@ -62,6 +62,23 @@ export interface IAssetControllerOptions {
 
 /** Hono ALREADY percent-decodes path params - a second decodeURIComponent throws on `report_100%.pdf` and turns `a%2Fb.png` into a DIFFERENT object; `isValidName`/`isValidPath` still run on this value, so traversal is still rejected. */
 /** The upload labels, read off the multipart form. Every value arrives as text, so `sequence` is the one that needs converting. */
+/** The label names, in one place: the reader below and the stale-caller warning have to agree. */
+const UPLOAD_LABEL_NAMES = [
+  'principalType',
+  'principalId',
+  'variant',
+  'sequence',
+  'folderPath',
+] as const;
+
+/**
+ * Names any label still arriving in the query string. They used to travel there, and moving them to
+ * the body broke nothing loudly - the server simply ignores them and the row lands unlabelled. A
+ * caller that never migrated would otherwise find out from a support ticket.
+ */
+export const findLabelsInQuery = (opts: { query: Record<string, string> }): string[] =>
+  UPLOAD_LABEL_NAMES.filter(name => opts.query[name] !== undefined);
+
 const readUploadLabels = (opts: { fields: Record<string, string> }): TUploadQuery => {
   const { fields } = opts;
 
@@ -561,6 +578,17 @@ export class AssetControllerFactory extends BaseHelper {
             // land in every access log along the way. The cost is that they are unreadable until
             // the body is parsed, which is why the folder check runs here and not above.
             const query = readUploadLabels({ fields });
+
+            const stale = findLabelsInQuery({ query: ctx.req.query() });
+            if (stale.length > 0) {
+              this.logger
+                .for('UPLOAD')
+                .warn(
+                  'Ignoring label(s) in the query string - they travel in the form body now | names: %s',
+                  stale.join(', '),
+                );
+            }
+
             const folderPath = query.folderPath;
             if (folderPath) {
               validateFolderPath(folderPath);
@@ -855,6 +883,16 @@ export class AssetControllerFactory extends BaseHelper {
               // Labels, not authorization - the token deliberately carries no business fields, so
               // they travel beside it rather than inside it.
               const query: TUploadQuery = labels;
+
+              const staleLabels = findLabelsInQuery({ query: ctx.req.query() });
+              if (staleLabels.length > 0) {
+                this.logger
+                  .for('UPLOAD_COMMIT')
+                  .warn(
+                    'Ignoring label(s) in the query string - they travel in the JSON body now | names: %s',
+                    staleLabels.join(', '),
+                  );
+              }
 
               const bucketRef = { name: payload.bucket };
               const pendingObject = { key: payload.key };

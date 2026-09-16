@@ -56,6 +56,18 @@ const files = await parseMultipartBody({ context });
 const { files } = await parseMultipartBody({ context });
 ```
 
+## A stale caller is told, not ignored
+
+The server ignores a label left in the query, so this change would otherwise break nothing loudly -
+the row just lands unlabelled. The upload route now names every stale label in a warning:
+
+```
+Ignoring label(s) in the query string - they travel in the form body now | names: principalId, variant
+```
+
+`createMetaLink` still receives them as `query`. The name is historical; the values arrive in the
+body.
+
 ## Who is affected
 
 **You upload through `{base}/objects`.** Move the labels from the query string into the form.

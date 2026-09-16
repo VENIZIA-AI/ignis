@@ -247,6 +247,7 @@ metaLink: {
         principalId: query.principalId ? String(query.principalId) : undefined,
         principalType: query.principalType,
         variant: query.variant,
+        sequence: query.sequence,
       },
     }),
 },

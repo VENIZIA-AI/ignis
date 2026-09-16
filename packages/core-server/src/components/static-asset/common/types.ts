@@ -102,6 +102,7 @@ export type TMetaLinkConfig<Schema extends TMetaLinkCompatibleSchema = TMetaLink
   createMetaLink?: (opts: {
     uploadResult: IUploadResult;
     fileStat: IFileStat;
+    /** The caller's labels. Named for where they used to travel - they arrive in the request BODY now, as form fields on an upload and beside the commit token on a direct one. */
     query: TUploadQuery;
   }) => ValueOrPromise<{ count: number; data: TTableObject<Schema> }>;
 };
