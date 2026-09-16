@@ -21,6 +21,17 @@ the `import` condition: a browser bundler that finds only CommonJS either fails 
 the kernel barrel wholesale, so `@venizia/ignis` keeps its published name and its full public
 surface: no consumer import changed when this package was carved out of core.
 
+Two entries, not one. The root barrel is 161 KB gzipped in a browser bundle and correctly so - it
+carries the REST surface, and `base/controllers` needs zod. `./metadata` is 23 KB: the stereotypes,
+the binding namespaces, `ArtifactTypes`/`BindingKeys`/`MetadataRegistry`, for a consumer that
+registers and resolves classes and never serves HTTP. It is listed export by export rather than
+re-exporting `base/metadata`, because a sub-path is a surface someone decided on, not whatever a
+directory grows into.
+
+Weight is not purity: zod is browser-PURE, so the purity gate had nothing to say while one
+`z.object()` at module load cost every consumer of `Container` 423 KB.
+`src/__tests__/bundle/browser-weight.test.ts` bundles both entries and fails over 120 KB.
+
 ## What it owns
 
 Everything under `src/base/` was the engine-neutral half of `packages/core-server/src/base`:

@@ -1,7 +1,12 @@
-import { z } from '@hono/zod-openapi';
 import type { TConstValue } from '@venizia/ignis-helpers/common';
 import { HTTP } from '@venizia/ignis-helpers/common';
 import type { TResponseHeaders } from './types';
+
+/**
+ * Constants with NO zod import, deliberately. The container's controller mixin imports
+ * `ControllerTransports` from here, so anything this file pulls in reaches every consumer of
+ * `Container` - the request schemas live in `schemas.ts` for exactly that reason.
+ */
 
 /** Transport protocol constants for controllers. */
 export class ControllerTransports {
@@ -31,39 +36,6 @@ export class RestPaths {
   static readonly COUNT = '/count';
   static readonly FIND_ONE = '/find-one';
 }
-
-export const trackableHeaders = z.object({
-  [HTTP.Headers.REQUEST_TRACING_ID]: z.string().optional().openapi({
-    description: 'Optional request ID',
-  }),
-  [HTTP.Headers.REQUEST_CHANNEL]: z
-    .string()
-    .optional()
-    .openapi({
-      description: 'Optional request channel',
-      examples: ['channel-1', 'web', 'spos'],
-    }),
-  [HTTP.Headers.REQUEST_DEVICE_INFO]: z
-    .string()
-    .optional()
-    .openapi({
-      description: 'Optional request device info',
-      examples: ['dev-1', 'device-abc', 'd-unique-id'],
-    }),
-});
-
-export const countableHeaders = z.object({
-  [HTTP.Headers.REQUEST_COUNT_DATA]: z
-    .string()
-    .optional()
-    .openapi({
-      description:
-        'Controls response format. When "true" (default): returns {count, data}. When "false": returns data only.',
-      examples: ['true', '1', 'false', '0'],
-    }),
-});
-
-export const defaultRequestHeaders = trackableHeaders.extend(countableHeaders.shape);
 
 export const commonResponseHeaders: TResponseHeaders = {
   [HTTP.Headers.REQUEST_TRACING_ID]: {

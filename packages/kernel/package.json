@@ -49,6 +49,12 @@
       "require": "./dist/cjs/index.js",
       "default": "./dist/cjs/index.js"
     },
+    "./metadata": {
+      "types": "./dist/cjs/metadata.d.ts",
+      "import": "./dist/esm/metadata.js",
+      "require": "./dist/cjs/metadata.js",
+      "default": "./dist/cjs/metadata.js"
+    },
     "./package.json": "./package.json"
   },
   "files": [
