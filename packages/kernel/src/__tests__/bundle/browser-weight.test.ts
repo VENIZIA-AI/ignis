@@ -73,3 +73,27 @@ describe('the metadata entry stays free of the transport surface', () => {
     expect(text.includes('ZodObject'), 'zod reached the metadata entry').toBe(false);
   });
 });
+
+/**
+ * A surface test, not a weight one, kept here because it guards the same boundary.
+ *
+ * `CoreBindings` is one application's dictionary, not the grammar of a binding key. Another
+ * framework in this house ships a class of the same name whose `APPLICATION_INSTANCE` is a different
+ * string, so shipping ours beside the stereotypes puts the two one import away from each other -
+ * bind under one, resolve under the other, and nothing fails until run time.
+ */
+describe('the metadata entry carries mechanism, not one application vocabulary', () => {
+  test('CoreBindings is not exported from it', async () => {
+    const entry = await import('../../metadata.js');
+
+    expect(Object.keys(entry)).not.toContain('CoreBindings');
+  });
+
+  /** The namespaces ARE the grammar, and they must stay. */
+  test('the binding namespaces are', async () => {
+    const entry = await import('../../metadata.js');
+
+    expect(Object.keys(entry)).toContain('BindingNamespaces');
+    expect(Object.keys(entry)).toContain('ArtifactNamespaces');
+  });
+});

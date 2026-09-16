@@ -23,8 +23,21 @@ export {
 export { datasource, model, repository } from '@/base/metadata/persistents';
 export { inject } from '@/base/metadata/injectors';
 
-export { ArtifactNamespaces, BindingNamespaces, CoreBindings } from '@/common/bindings';
+export { ArtifactNamespaces, BindingNamespaces } from '@/common/bindings';
 export type { TBindingNamespace } from '@/common/bindings';
+
+/**
+ * `CoreBindings` is deliberately NOT here, and adding it back would be a mistake worth naming.
+ *
+ * The namespaces above are the GRAMMAR of a binding key - how one is spelled, whoever is doing the
+ * binding. `CoreBindings` is one application's DICTIONARY: `APPLICATION_SERVER`,
+ * `APPLICATION_ROOT_ROUTER`, keys a server binds and a browser never will. A second framework in
+ * this house already ships its own `CoreBindings` whose `APPLICATION_INSTANCE` is a different
+ * string, so exporting ours beside the stereotypes puts two same-named classes one import away from
+ * each other - bind under one, resolve under the other, and nothing fails until run time.
+ *
+ * It stays on the root barrel, where a consumer asking for the server surface finds it.
+ */
 
 export { ArtifactTypes, BindingKeys, MetadataRegistry } from '@/helpers/inversion';
 export type {

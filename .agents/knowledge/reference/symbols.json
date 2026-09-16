@@ -31219,16 +31219,6 @@
       "signature": "class BindingNamespaces"
     },
     {
-      "name": "CoreBindings",
-      "package": "@venizia/ignis-kernel",
-      "subpath": "./metadata",
-      "specifier": "@venizia/ignis-kernel/metadata",
-      "kind": "class",
-      "file": "packages/kernel/src/common/bindings.ts",
-      "line": 86,
-      "signature": "class CoreBindings extends BindingKeys"
-    },
-    {
       "name": "IArtifactMetadata",
       "package": "@venizia/ignis-kernel",
       "subpath": "./metadata",

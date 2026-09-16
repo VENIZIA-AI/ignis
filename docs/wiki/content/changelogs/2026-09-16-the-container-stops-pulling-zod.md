@@ -63,10 +63,15 @@ browser-side consumer needed was a boundary, not another file move.
 
 `./metadata` carries the stereotypes (`service`, `component`, `configuration`, `injectable`,
 `provide`, `model`, `datasource`, `repository`, `inject`), the namespaces
-(`BindingNamespaces`, `ArtifactNamespaces`, `CoreBindings`) and `ArtifactTypes`, `BindingKeys`,
-`MetadataRegistry`. It is listed export by export rather than re-exporting `base/metadata` - that
-directory is clean today but promises nothing, and the point of a sub-path is a surface someone
-decided on.
+(`BindingNamespaces`, `ArtifactNamespaces`) and `ArtifactTypes`, `BindingKeys`, `MetadataRegistry`.
+It is listed export by export rather than re-exporting `base/metadata` - that directory is clean
+today but promises nothing, and the point of a sub-path is a surface someone decided on.
+
+`CoreBindings` is deliberately **not** on it. The namespaces are the grammar of a binding key;
+`CoreBindings` is one application's dictionary - `APPLICATION_SERVER`, `APPLICATION_ROOT_ROUTER`,
+keys a server binds and a browser never will. Ship it beside the stereotypes and a consumer with its
+own `CoreBindings` has two same-named classes one import apart, binding under one key and resolving
+under another, with nothing failing until run time. It stays on the root barrel.
 
 Its weight is a contract, checked by the same test.
 

@@ -1269,7 +1269,7 @@ tags: [reference, exports, api]
 - `WhereQuerySchema` const
 - `WhereSchema` const
 
-### `@venizia/ignis-kernel/metadata` (20)
+### `@venizia/ignis-kernel/metadata` (19)
 
 - `ArtifactNamespaces` class
 - `ArtifactTypes` class
@@ -1277,7 +1277,6 @@ tags: [reference, exports, api]
 - `BindingNamespaces` class
 - `component` const
 - `configuration` const
-- `CoreBindings` class
 - `datasource` const
 - `IArtifactMetadata` interface
 - `IArtifactRegistrationOptions` interface

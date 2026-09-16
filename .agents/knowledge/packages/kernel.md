@@ -24,7 +24,9 @@ surface: no consumer import changed when this package was carved out of core.
 Two entries, not one. The root barrel is 161 KB gzipped in a browser bundle and correctly so - it
 carries the REST surface, and `base/controllers` needs zod. `./metadata` is 23 KB: the stereotypes,
 the binding namespaces, `ArtifactTypes`/`BindingKeys`/`MetadataRegistry`, for a consumer that
-registers and resolves classes and never serves HTTP. It is listed export by export rather than
+registers and resolves classes and never serves HTTP. `CoreBindings` is deliberately absent - the
+namespaces are the GRAMMAR of a key, `CoreBindings` is one application's DICTIONARY, and a sibling
+framework ships a class of the same name whose `APPLICATION_INSTANCE` is a different string. It is listed export by export rather than
 re-exporting `base/metadata`, because a sub-path is a surface someone decided on, not whatever a
 directory grows into.
 

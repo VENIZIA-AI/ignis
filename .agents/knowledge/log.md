@@ -23,6 +23,14 @@ export rather than re-exporting `base/metadata` - that directory is clean today 
 and a sub-path is a surface someone decided on. Measured: it buys ~2 KB over the barrel; the boundary
 is the product, not the bytes.
 
+`CoreBindings` was on it for one release and came off. The namespaces are the GRAMMAR of a binding
+key; `CoreBindings` is one application's DICTIONARY - `APPLICATION_SERVER`, `APPLICATION_ROOT_ROUTER`,
+keys a server binds and a browser never will. A sibling framework ships a class of the same name
+whose `APPLICATION_INSTANCE` is a DIFFERENT string, so both one import apart means binding under one
+key and resolving under another: no type error, no build error, and it fails at run time in someone
+else's application. Same principle as
+[[feedback-ignis-owns-mechanism-not-consumer-conventions]] - sell the mechanism, not the vocabulary.
+
 The lesson generalises: a purity gate answers "does this reach a node builtin", never "what does this
 weigh". zod is browser-PURE, so `make purity-kernel` had nothing to say. Weight needs its own gate,
 and it is now a test that bundles the container entry, fails over 120 KB, and names the file to
