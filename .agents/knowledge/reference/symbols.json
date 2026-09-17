@@ -309,7 +309,7 @@
       "specifier": "@venizia/ignis",
       "kind": "const",
       "file": "packages/helpers/src/modules/env/app-env.ts",
-      "line": 111,
+      "line": 112,
       "signature": "AppEnvs: ApplicationEnvironment"
     },
     {
@@ -339,7 +339,7 @@
       "specifier": "@venizia/ignis",
       "kind": "const",
       "file": "packages/helpers/src/modules/logger/factory.ts",
-      "line": 120,
+      "line": 121,
       "signature": "ApplicationLogger: { get: (scope: string) => ILogger; }"
     },
     {
@@ -639,7 +639,7 @@
       "specifier": "@venizia/ignis",
       "kind": "class",
       "file": "packages/core-server/src/base/applications/base.ts",
-      "line": 67,
+      "line": 69,
       "signature": "class BaseApplication extends ServerApplication implements IRestApplication"
     },
     {
@@ -1500,7 +1500,7 @@
       "specifier": "@venizia/ignis",
       "kind": "const",
       "file": "packages/helpers/src/modules/env/app-env.ts",
-      "line": 112,
+      "line": 113,
       "signature": "Envs: ApplicationEnvironment"
     },
     {
@@ -1520,7 +1520,7 @@
       "specifier": "@venizia/ignis",
       "kind": "const",
       "file": "packages/kernel/src/base/models/common/schemas.ts",
-      "line": 12,
+      "line": 7,
       "signature": "ErrorSchema: z.ZodObject<{ statusCode: z.ZodOptional<z.ZodNumber>; message: z.ZodString; normalized: z.ZodOptional<z.ZodObject<{ text: z.ZodString; code: z.ZodString; args: z.ZodRecord<z.ZodString, z.ZodAny>; }, z.core.$strip>>; extra: z.ZodOptional<z.ZodRecord<z.ZodString, z.ZodAny>>; requestId: z."
     },
     {
@@ -4802,7 +4802,7 @@
       "specifier": "@venizia/ignis",
       "kind": "class",
       "file": "packages/helpers/src/modules/redis/cluster/cluster.helper.ts",
-      "line": 6,
+      "line": 7,
       "signature": "class RedisClusterHelper extends AbstractRedisHelper<Cluster>"
     },
     {
@@ -4832,7 +4832,7 @@
       "specifier": "@venizia/ignis",
       "kind": "class",
       "file": "packages/helpers/src/modules/redis/sentinel/sentinel.helper.ts",
-      "line": 6,
+      "line": 7,
       "signature": "class RedisSentinelHelper extends AbstractRedisHelper<Redis>"
     },
     {
@@ -4852,7 +4852,7 @@
       "specifier": "@venizia/ignis",
       "kind": "class",
       "file": "packages/helpers/src/modules/redis/single/single.helper.ts",
-      "line": 6,
+      "line": 7,
       "signature": "class RedisSingleHelper extends AbstractRedisHelper<Redis>"
     },
     {
@@ -6271,8 +6271,8 @@
       "subpath": ".",
       "specifier": "@venizia/ignis",
       "kind": "type",
-      "file": "packages/helpers/src/modules/error/schemas.ts",
-      "line": 35,
+      "file": "packages/kernel/src/base/models/common/schemas.ts",
+      "line": 38,
       "signature": "type TErrorResponse = z.infer<typeof ErrorSchema>"
     },
     {
@@ -8232,7 +8232,7 @@
       "specifier": "@venizia/ignis",
       "kind": "const",
       "file": "packages/helpers/src/modules/env/app-env.ts",
-      "line": 109,
+      "line": 110,
       "signature": "applicationEnvironment: ApplicationEnvironment"
     },
     {
@@ -8292,7 +8292,7 @@
       "specifier": "@venizia/ignis",
       "kind": "const",
       "file": "packages/helpers/src/utilities/parse.utility.ts",
-      "line": 182,
+      "line": 183,
       "signature": "blankToUndefined: (input: string | undefined) => string | undefined"
     },
     {
@@ -8633,7 +8633,7 @@
       "specifier": "@venizia/ignis",
       "kind": "const",
       "file": "packages/helpers/src/utilities/parse.utility.ts",
-      "line": 108,
+      "line": 109,
       "signature": "float: (input: any, digit?: number) => number"
     },
     {
@@ -8863,7 +8863,7 @@
       "specifier": "@venizia/ignis",
       "kind": "const",
       "file": "packages/kernel/src/base/models/common/schemas.ts",
-      "line": 43,
+      "line": 40,
       "signature": "idParamsSchema: (opts?: { idType: TIdSchemaType; }) => z.ZodObject<{ id: z.ZodNumber; }, z.core.$strip> | z.ZodObject<{ id: z.ZodString; }, z.core.$strip>"
     },
     {
@@ -8893,7 +8893,7 @@
       "specifier": "@venizia/ignis",
       "kind": "const",
       "file": "packages/helpers/src/utilities/parse.utility.ts",
-      "line": 94,
+      "line": 95,
       "signature": "int: (input: any) => number"
     },
     {
@@ -8973,7 +8973,7 @@
       "specifier": "@venizia/ignis",
       "kind": "const",
       "file": "packages/helpers/src/utilities/parse.utility.ts",
-      "line": 71,
+      "line": 72,
       "signature": "isFloat: (input: any) => boolean"
     },
     {
@@ -8983,7 +8983,7 @@
       "specifier": "@venizia/ignis",
       "kind": "const",
       "file": "packages/helpers/src/utilities/parse.utility.ts",
-      "line": 63,
+      "line": 64,
       "signature": "isInt: (n: any) => boolean"
     },
     {
@@ -9053,7 +9053,7 @@
       "specifier": "@venizia/ignis",
       "kind": "const",
       "file": "packages/kernel/src/base/models/common/schemas.ts",
-      "line": 79,
+      "line": 76,
       "signature": "jsonContent: <T extends z.ZodType>(opts: { schema: T; description: string; required?: boolean; }) => { description: string; content: { 'application/json': { schema: T; }; }; required: boolean | undefined; }"
     },
     {
@@ -9063,7 +9063,7 @@
       "specifier": "@venizia/ignis",
       "kind": "const",
       "file": "packages/kernel/src/base/models/common/schemas.ts",
-      "line": 107,
+      "line": 104,
       "signature": "jsonResponse: <ContentSchema extends z.ZodType, HeaderSchema extends TResponseHeaders | undefined = undefined>(opts: TJsonResponseOpts<ContentSchema, HeaderSchema>) => { 200: { description: string; content: { 'application/json': { schema: ContentSchema; }; }; required: boolean | undefined; } | { hea"
     },
     {
@@ -9073,7 +9073,7 @@
       "specifier": "@venizia/ignis",
       "kind": "const",
       "file": "packages/helpers/src/utilities/parse.utility.ts",
-      "line": 52,
+      "line": 53,
       "signature": "keysToCamel: (object: object) => any"
     },
     {
@@ -9113,7 +9113,7 @@
       "specifier": "@venizia/ignis",
       "kind": "const",
       "file": "packages/helpers/src/utilities/parse.utility.ts",
-      "line": 135,
+      "line": 136,
       "signature": "parseArrayToMapWithKey: <T extends Record<K, PropertyKey>, K extends keyof T>(arr: T[], keyMap: K) => Map<T[K], T>"
     },
     {
@@ -9233,7 +9233,7 @@
       "specifier": "@venizia/ignis",
       "kind": "const",
       "file": "packages/helpers/src/common/redact.ts",
-      "line": 164,
+      "line": 166,
       "signature": "redactSecrets: (value: unknown, seen?: WeakSet<object>, depth?: number) => unknown"
     },
     {
@@ -9243,7 +9243,7 @@
       "specifier": "@venizia/ignis",
       "kind": "const",
       "file": "packages/helpers/src/common/redact.ts",
-      "line": 194,
+      "line": 196,
       "signature": "redactUrlCredentials: (url: string) => string"
     },
     {
@@ -9274,7 +9274,7 @@
       "kind": "const",
       "file": "packages/helpers/src/common/resolvers.ts",
       "line": 11,
-      "signature": "resolveClass: <T>(ref: TClass<T> | TResolver<TClass<T>> | string) => TClass<T> | string"
+      "signature": "resolveClass: <T>(opts: { ref: TClass<T> | TResolver<TClass<T>> | string; }) => TClass<T> | string"
     },
     {
       "name": "resolveCountConfig",
@@ -9333,8 +9333,8 @@
       "specifier": "@venizia/ignis",
       "kind": "const",
       "file": "packages/inversion/src/common/utilities.ts",
-      "line": 100,
-      "signature": "resolveInjectTarget: (target: TInjectTarget) => TClass<AnyType> | undefined"
+      "line": 105,
+      "signature": "resolveInjectTarget: (opts: { target: TInjectTarget; }) => TClass<AnyType> | undefined"
     },
     {
       "name": "resolveLoggerColorize",
@@ -9374,7 +9374,7 @@
       "kind": "const",
       "file": "packages/inversion/src/common/utilities.ts",
       "line": 86,
-      "signature": "resolveValue: <T>(valueOrResolver: TValueOrResolver<T>) => T"
+      "signature": "resolveValue: <T>(opts: { value: TValueOrResolver<T>; }) => T"
     },
     {
       "name": "resolveValueAsync",
@@ -9383,8 +9383,8 @@
       "specifier": "@venizia/ignis",
       "kind": "const",
       "file": "packages/inversion/src/common/utilities.ts",
-      "line": 95,
-      "signature": "resolveValueAsync: <T>(valueOrResolver: TValueOrAsyncResolver<T>) => Promise<T>"
+      "line": 97,
+      "signature": "resolveValueAsync: <T>(opts: { value: TValueOrAsyncResolver<T>; }) => Promise<T>"
     },
     {
       "name": "rpc",
@@ -9463,7 +9463,7 @@
       "specifier": "@venizia/ignis",
       "kind": "const",
       "file": "packages/helpers/src/utilities/parse.utility.ts",
-      "line": 122,
+      "line": 123,
       "signature": "toBoolean: (input: any) => boolean"
     },
     {
@@ -9493,7 +9493,7 @@
       "specifier": "@venizia/ignis",
       "kind": "const",
       "file": "packages/helpers/src/utilities/parse.utility.ts",
-      "line": 158,
+      "line": 159,
       "signature": "toDelimitedArray: (input: unknown, separator?: string) => string[]"
     },
     {
@@ -9533,7 +9533,7 @@
       "specifier": "@venizia/ignis",
       "kind": "const",
       "file": "packages/helpers/src/common/redact.ts",
-      "line": 182,
+      "line": 184,
       "signature": "toJsonSafe: (opts: { value: unknown; depth?: number; }) => unknown"
     },
     {
@@ -9553,7 +9553,7 @@
       "specifier": "@venizia/ignis",
       "kind": "const",
       "file": "packages/helpers/src/utilities/parse.utility.ts",
-      "line": 188,
+      "line": 189,
       "signature": "toTrimmed: (input: unknown) => string"
     },
     {
@@ -10243,7 +10243,7 @@
       "specifier": "@venizia/ignis/mail",
       "kind": "function",
       "file": "packages/core-server/src/components/mail/utilities/mime.utility.ts",
-      "line": 405,
+      "line": 406,
       "signature": "function buildRawMimeMessage(message: IMailMessage): Promise<Buffer>"
     },
     {
@@ -12202,7 +12202,7 @@
       "specifier": "@venizia/ignis/search",
       "kind": "const",
       "file": "packages/connectors/src/search/core/repositories/common/constants.ts",
-      "line": 169,
+      "line": 170,
       "signature": "MultiSearchInputSchema: z.ZodObject<{ searches: z.ZodArray<z.ZodObject<{ facetBy: z.ZodOptional<z.ZodArray<z.ZodString>>; facetQuery: z.ZodOptional<z.ZodString>; maxFacetValues: z.ZodOptional<z.ZodNumber>; highlightFields: z.ZodOptional<z.ZodArray<z.ZodString>>; highlightFullFields: z.ZodOptional<z."
     },
     {
@@ -12332,7 +12332,7 @@
       "specifier": "@venizia/ignis/search",
       "kind": "type",
       "file": "packages/connectors/src/search/core/repositories/common/constants.ts",
-      "line": 177,
+      "line": 178,
       "signature": "type TMultiSearchInput = z.infer<typeof MultiSearchInputSchema>"
     },
     {
@@ -13192,7 +13192,7 @@
       "specifier": "@venizia/ignis/static-asset",
       "kind": "class",
       "file": "packages/core-server/src/components/static-asset/controller/factory.ts",
-      "line": 270,
+      "line": 277,
       "signature": "class AssetControllerFactory extends BaseHelper"
     },
     {
@@ -13522,7 +13522,7 @@
       "specifier": "@venizia/ignis/static-asset",
       "kind": "const",
       "file": "packages/core-server/src/components/static-asset/controller/factory.ts",
-      "line": 125,
+      "line": 132,
       "signature": "buildObjectLink: (opts: IObjectLocation & { basePath: string; hasConfiguredBucket?: boolean; rawObjectPath?: boolean; }) => string"
     },
     {
@@ -13552,7 +13552,7 @@
       "specifier": "@venizia/ignis/static-asset",
       "kind": "const",
       "file": "packages/core-server/src/components/static-asset/controller/factory.ts",
-      "line": 158,
+      "line": 165,
       "signature": "resolveServedContentType: (opts: { helper: IStorageHelper; object: IObjectRef; }) => { contentType: string; isRenderable: boolean; }"
     },
     {
@@ -13922,7 +13922,7 @@
       "specifier": "@venizia/ignis/typesense",
       "kind": "const",
       "file": "packages/connectors/src/search/core/repositories/common/constants.ts",
-      "line": 169,
+      "line": 170,
       "signature": "MultiSearchInputSchema: z.ZodObject<{ searches: z.ZodArray<z.ZodObject<{ facetBy: z.ZodOptional<z.ZodArray<z.ZodString>>; facetQuery: z.ZodOptional<z.ZodString>; maxFacetValues: z.ZodOptional<z.ZodNumber>; highlightFields: z.ZodOptional<z.ZodArray<z.ZodString>>; highlightFullFields: z.ZodOptional<z."
     },
     {
@@ -14102,7 +14102,7 @@
       "specifier": "@venizia/ignis/typesense",
       "kind": "type",
       "file": "packages/connectors/src/search/core/repositories/common/constants.ts",
-      "line": 177,
+      "line": 178,
       "signature": "type TMultiSearchInput = z.infer<typeof MultiSearchInputSchema>"
     },
     {
@@ -14312,7 +14312,7 @@
       "specifier": "@venizia/ignis/typesense",
       "kind": "const",
       "file": "packages/connectors/src/search/typesense/compiler.ts",
-      "line": 224,
+      "line": 225,
       "signature": "compileTypesenseCollection: (opts: { definition: ISearchCollectionDefinition; }) => CollectionCreateSchema"
     },
     {
@@ -15452,7 +15452,7 @@
       "specifier": "@venizia/ignis-connectors",
       "kind": "const",
       "file": "packages/connectors/src/search/core/repositories/common/constants.ts",
-      "line": 169,
+      "line": 170,
       "signature": "MultiSearchInputSchema: z.ZodObject<{ searches: z.ZodArray<z.ZodObject<{ facetBy: z.ZodOptional<z.ZodArray<z.ZodString>>; facetQuery: z.ZodOptional<z.ZodString>; maxFacetValues: z.ZodOptional<z.ZodNumber>; highlightFields: z.ZodOptional<z.ZodArray<z.ZodString>>; highlightFullFields: z.ZodOptional<z."
     },
     {
@@ -15712,7 +15712,7 @@
       "specifier": "@venizia/ignis-connectors",
       "kind": "type",
       "file": "packages/connectors/src/search/core/repositories/common/constants.ts",
-      "line": 177,
+      "line": 178,
       "signature": "type TMultiSearchInput = z.infer<typeof MultiSearchInputSchema>"
     },
     {
@@ -18071,7 +18071,7 @@
       "specifier": "@venizia/ignis-connectors/search",
       "kind": "const",
       "file": "packages/connectors/src/search/core/repositories/common/constants.ts",
-      "line": 169,
+      "line": 170,
       "signature": "MultiSearchInputSchema: z.ZodObject<{ searches: z.ZodArray<z.ZodObject<{ facetBy: z.ZodOptional<z.ZodArray<z.ZodString>>; facetQuery: z.ZodOptional<z.ZodString>; maxFacetValues: z.ZodOptional<z.ZodNumber>; highlightFields: z.ZodOptional<z.ZodArray<z.ZodString>>; highlightFullFields: z.ZodOptional<z."
     },
     {
@@ -18201,7 +18201,7 @@
       "specifier": "@venizia/ignis-connectors/search",
       "kind": "type",
       "file": "packages/connectors/src/search/core/repositories/common/constants.ts",
-      "line": 177,
+      "line": 178,
       "signature": "type TMultiSearchInput = z.infer<typeof MultiSearchInputSchema>"
     },
     {
@@ -19401,7 +19401,7 @@
       "specifier": "@venizia/ignis-connectors/typesense",
       "kind": "const",
       "file": "packages/connectors/src/search/core/repositories/common/constants.ts",
-      "line": 169,
+      "line": 170,
       "signature": "MultiSearchInputSchema: z.ZodObject<{ searches: z.ZodArray<z.ZodObject<{ facetBy: z.ZodOptional<z.ZodArray<z.ZodString>>; facetQuery: z.ZodOptional<z.ZodString>; maxFacetValues: z.ZodOptional<z.ZodNumber>; highlightFields: z.ZodOptional<z.ZodArray<z.ZodString>>; highlightFullFields: z.ZodOptional<z."
     },
     {
@@ -19581,7 +19581,7 @@
       "specifier": "@venizia/ignis-connectors/typesense",
       "kind": "type",
       "file": "packages/connectors/src/search/core/repositories/common/constants.ts",
-      "line": 177,
+      "line": 178,
       "signature": "type TMultiSearchInput = z.infer<typeof MultiSearchInputSchema>"
     },
     {
@@ -19791,7 +19791,7 @@
       "specifier": "@venizia/ignis-connectors/typesense",
       "kind": "const",
       "file": "packages/connectors/src/search/typesense/compiler.ts",
-      "line": 224,
+      "line": 225,
       "signature": "compileTypesenseCollection: (opts: { definition: ISearchCollectionDefinition; }) => CollectionCreateSchema"
     },
     {
@@ -20301,7 +20301,7 @@
       "specifier": "@venizia/ignis-helpers",
       "kind": "const",
       "file": "packages/helpers/src/modules/env/app-env.ts",
-      "line": 111,
+      "line": 112,
       "signature": "AppEnvs: ApplicationEnvironment"
     },
     {
@@ -20331,7 +20331,7 @@
       "specifier": "@venizia/ignis-helpers",
       "kind": "const",
       "file": "packages/helpers/src/modules/logger/factory.ts",
-      "line": 120,
+      "line": 121,
       "signature": "ApplicationLogger: { get: (scope: string) => ILogger; }"
     },
     {
@@ -20732,7 +20732,7 @@
       "specifier": "@venizia/ignis-helpers",
       "kind": "const",
       "file": "packages/helpers/src/modules/env/app-env.ts",
-      "line": 112,
+      "line": 113,
       "signature": "Envs: ApplicationEnvironment"
     },
     {
@@ -20744,16 +20744,6 @@
       "file": "packages/helpers/src/modules/logger/formatting/error-prettier.ts",
       "line": 30,
       "signature": "class ErrorPrettier"
-    },
-    {
-      "name": "ErrorSchema",
-      "package": "@venizia/ignis-helpers",
-      "subpath": ".",
-      "specifier": "@venizia/ignis-helpers",
-      "kind": "const",
-      "file": "packages/helpers/src/modules/error/schemas.ts",
-      "line": 4,
-      "signature": "ErrorSchema: z.ZodObject<{ statusCode: z.ZodOptional<z.ZodNumber>; message: z.ZodString; normalized: z.ZodOptional<z.ZodObject<{ text: z.ZodString; code: z.ZodString; args: z.ZodRecord<z.ZodString, z.ZodAny>; }, z.core.$strip>>; extra: z.ZodOptional<z.ZodRecord<z.ZodString, z.ZodAny>>; requestId: z."
     },
     {
       "name": "ErrorScopes",
@@ -22214,7 +22204,7 @@
       "specifier": "@venizia/ignis-helpers",
       "kind": "class",
       "file": "packages/helpers/src/modules/redis/cluster/cluster.helper.ts",
-      "line": 6,
+      "line": 7,
       "signature": "class RedisClusterHelper extends AbstractRedisHelper<Cluster>"
     },
     {
@@ -22244,7 +22234,7 @@
       "specifier": "@venizia/ignis-helpers",
       "kind": "class",
       "file": "packages/helpers/src/modules/redis/sentinel/sentinel.helper.ts",
-      "line": 6,
+      "line": 7,
       "signature": "class RedisSentinelHelper extends AbstractRedisHelper<Redis>"
     },
     {
@@ -22264,7 +22254,7 @@
       "specifier": "@venizia/ignis-helpers",
       "kind": "class",
       "file": "packages/helpers/src/modules/redis/single/single.helper.ts",
-      "line": 6,
+      "line": 7,
       "signature": "class RedisSingleHelper extends AbstractRedisHelper<Redis>"
     },
     {
@@ -22686,16 +22676,6 @@
       "file": "packages/inversion/src/modules/error/common/types.ts",
       "line": 7,
       "signature": "type TErrorNormalized = { text: string; code: string; args: Record<string, unknown>; }"
-    },
-    {
-      "name": "TErrorResponse",
-      "package": "@venizia/ignis-helpers",
-      "subpath": ".",
-      "specifier": "@venizia/ignis-helpers",
-      "kind": "type",
-      "file": "packages/helpers/src/modules/error/schemas.ts",
-      "line": 35,
-      "signature": "type TErrorResponse = z.infer<typeof ErrorSchema>"
     },
     {
       "name": "TErrorScope",
@@ -23544,7 +23524,7 @@
       "specifier": "@venizia/ignis-helpers",
       "kind": "const",
       "file": "packages/helpers/src/modules/env/app-env.ts",
-      "line": 109,
+      "line": 110,
       "signature": "applicationEnvironment: ApplicationEnvironment"
     },
     {
@@ -23564,7 +23544,7 @@
       "specifier": "@venizia/ignis-helpers",
       "kind": "const",
       "file": "packages/helpers/src/utilities/parse.utility.ts",
-      "line": 182,
+      "line": 183,
       "signature": "blankToUndefined: (input: string | undefined) => string | undefined"
     },
     {
@@ -23655,7 +23635,7 @@
       "specifier": "@venizia/ignis-helpers",
       "kind": "const",
       "file": "packages/helpers/src/utilities/parse.utility.ts",
-      "line": 108,
+      "line": 109,
       "signature": "float: (input: any, digit?: number) => number"
     },
     {
@@ -23775,7 +23755,7 @@
       "specifier": "@venizia/ignis-helpers",
       "kind": "const",
       "file": "packages/helpers/src/utilities/parse.utility.ts",
-      "line": 94,
+      "line": 95,
       "signature": "int: (input: any) => number"
     },
     {
@@ -23825,7 +23805,7 @@
       "specifier": "@venizia/ignis-helpers",
       "kind": "const",
       "file": "packages/helpers/src/utilities/parse.utility.ts",
-      "line": 71,
+      "line": 72,
       "signature": "isFloat: (input: any) => boolean"
     },
     {
@@ -23835,7 +23815,7 @@
       "specifier": "@venizia/ignis-helpers",
       "kind": "const",
       "file": "packages/helpers/src/utilities/parse.utility.ts",
-      "line": 63,
+      "line": 64,
       "signature": "isInt: (n: any) => boolean"
     },
     {
@@ -23895,7 +23875,7 @@
       "specifier": "@venizia/ignis-helpers",
       "kind": "const",
       "file": "packages/helpers/src/utilities/parse.utility.ts",
-      "line": 52,
+      "line": 53,
       "signature": "keysToCamel: (object: object) => any"
     },
     {
@@ -23915,7 +23895,7 @@
       "specifier": "@venizia/ignis-helpers",
       "kind": "const",
       "file": "packages/helpers/src/utilities/parse.utility.ts",
-      "line": 135,
+      "line": 136,
       "signature": "parseArrayToMapWithKey: <T extends Record<K, PropertyKey>, K extends keyof T>(arr: T[], keyMap: K) => Map<T[K], T>"
     },
     {
@@ -23945,7 +23925,7 @@
       "specifier": "@venizia/ignis-helpers",
       "kind": "const",
       "file": "packages/helpers/src/common/redact.ts",
-      "line": 164,
+      "line": 166,
       "signature": "redactSecrets: (value: unknown, seen?: WeakSet<object>, depth?: number) => unknown"
     },
     {
@@ -23955,7 +23935,7 @@
       "specifier": "@venizia/ignis-helpers",
       "kind": "const",
       "file": "packages/helpers/src/common/redact.ts",
-      "line": 194,
+      "line": 196,
       "signature": "redactUrlCredentials: (url: string) => string"
     },
     {
@@ -23966,7 +23946,7 @@
       "kind": "const",
       "file": "packages/helpers/src/common/resolvers.ts",
       "line": 11,
-      "signature": "resolveClass: <T>(ref: TClass<T> | TResolver<TClass<T>> | string) => TClass<T> | string"
+      "signature": "resolveClass: <T>(opts: { ref: TClass<T> | TResolver<TClass<T>> | string; }) => TClass<T> | string"
     },
     {
       "name": "resolveLoggerColorize",
@@ -23996,7 +23976,7 @@
       "kind": "const",
       "file": "packages/inversion/src/common/utilities.ts",
       "line": 86,
-      "signature": "resolveValue: <T>(valueOrResolver: TValueOrResolver<T>) => T"
+      "signature": "resolveValue: <T>(opts: { value: TValueOrResolver<T>; }) => T"
     },
     {
       "name": "resolveValueAsync",
@@ -24005,8 +23985,8 @@
       "specifier": "@venizia/ignis-helpers",
       "kind": "const",
       "file": "packages/inversion/src/common/utilities.ts",
-      "line": 95,
-      "signature": "resolveValueAsync: <T>(valueOrResolver: TValueOrAsyncResolver<T>) => Promise<T>"
+      "line": 97,
+      "signature": "resolveValueAsync: <T>(opts: { value: TValueOrAsyncResolver<T>; }) => Promise<T>"
     },
     {
       "name": "sanitizeFilename",
@@ -24035,7 +24015,7 @@
       "specifier": "@venizia/ignis-helpers",
       "kind": "const",
       "file": "packages/helpers/src/utilities/parse.utility.ts",
-      "line": 122,
+      "line": 123,
       "signature": "toBoolean: (input: any) => boolean"
     },
     {
@@ -24055,7 +24035,7 @@
       "specifier": "@venizia/ignis-helpers",
       "kind": "const",
       "file": "packages/helpers/src/utilities/parse.utility.ts",
-      "line": 158,
+      "line": 159,
       "signature": "toDelimitedArray: (input: unknown, separator?: string) => string[]"
     },
     {
@@ -24085,7 +24065,7 @@
       "specifier": "@venizia/ignis-helpers",
       "kind": "const",
       "file": "packages/helpers/src/common/redact.ts",
-      "line": 182,
+      "line": 184,
       "signature": "toJsonSafe: (opts: { value: unknown; depth?: number; }) => unknown"
     },
     {
@@ -24105,7 +24085,7 @@
       "specifier": "@venizia/ignis-helpers",
       "kind": "const",
       "file": "packages/helpers/src/utilities/parse.utility.ts",
-      "line": 188,
+      "line": 189,
       "signature": "toTrimmed: (input: unknown) => string"
     },
     {
@@ -24175,7 +24155,7 @@
       "specifier": "@venizia/ignis-helpers/bullmq",
       "kind": "class",
       "file": "packages/helpers/src/modules/queue/bullmq/helper.ts",
-      "line": 31,
+      "line": 30,
       "signature": "class BullMQHelper<TQueueElement = any, TQueueResult = any> extends BaseHelper"
     },
     {
@@ -24185,7 +24165,7 @@
       "specifier": "@venizia/ignis-helpers/bullmq",
       "kind": "interface",
       "file": "packages/helpers/src/modules/queue/bullmq/helper.ts",
-      "line": 9,
+      "line": 8,
       "signature": "interface IBullMQOptions<TQueueElement = any, TQueueResult = any>"
     },
     {
@@ -24775,7 +24755,7 @@
       "specifier": "@venizia/ignis-helpers/common",
       "kind": "const",
       "file": "packages/helpers/src/common/redact.ts",
-      "line": 164,
+      "line": 166,
       "signature": "redactSecrets: (value: unknown, seen?: WeakSet<object>, depth?: number) => unknown"
     },
     {
@@ -24785,7 +24765,7 @@
       "specifier": "@venizia/ignis-helpers/common",
       "kind": "const",
       "file": "packages/helpers/src/common/redact.ts",
-      "line": 194,
+      "line": 196,
       "signature": "redactUrlCredentials: (url: string) => string"
     },
     {
@@ -24796,7 +24776,7 @@
       "kind": "const",
       "file": "packages/helpers/src/common/resolvers.ts",
       "line": 11,
-      "signature": "resolveClass: <T>(ref: TClass<T> | TResolver<TClass<T>> | string) => TClass<T> | string"
+      "signature": "resolveClass: <T>(opts: { ref: TClass<T> | TResolver<TClass<T>> | string; }) => TClass<T> | string"
     },
     {
       "name": "resolveValue",
@@ -24806,7 +24786,7 @@
       "kind": "const",
       "file": "packages/inversion/src/common/utilities.ts",
       "line": 86,
-      "signature": "resolveValue: <T>(valueOrResolver: TValueOrResolver<T>) => T"
+      "signature": "resolveValue: <T>(opts: { value: TValueOrResolver<T>; }) => T"
     },
     {
       "name": "resolveValueAsync",
@@ -24815,8 +24795,8 @@
       "specifier": "@venizia/ignis-helpers/common",
       "kind": "const",
       "file": "packages/inversion/src/common/utilities.ts",
-      "line": 95,
-      "signature": "resolveValueAsync: <T>(valueOrResolver: TValueOrAsyncResolver<T>) => Promise<T>"
+      "line": 97,
+      "signature": "resolveValueAsync: <T>(opts: { value: TValueOrAsyncResolver<T>; }) => Promise<T>"
     },
     {
       "name": "toJsonSafe",
@@ -24825,7 +24805,7 @@
       "specifier": "@venizia/ignis-helpers/common",
       "kind": "const",
       "file": "packages/helpers/src/common/redact.ts",
-      "line": 182,
+      "line": 184,
       "signature": "toJsonSafe: (opts: { value: unknown; depth?: number; }) => unknown"
     },
     {
@@ -25765,7 +25745,7 @@
       "specifier": "@venizia/ignis-helpers/core",
       "kind": "const",
       "file": "packages/helpers/src/utilities/parse.utility.ts",
-      "line": 182,
+      "line": 183,
       "signature": "blankToUndefined: (input: string | undefined) => string | undefined"
     },
     {
@@ -25805,7 +25785,7 @@
       "specifier": "@venizia/ignis-helpers/core",
       "kind": "const",
       "file": "packages/helpers/src/utilities/parse.utility.ts",
-      "line": 94,
+      "line": 95,
       "signature": "int: (input: any) => number"
     },
     {
@@ -25825,7 +25805,7 @@
       "specifier": "@venizia/ignis-helpers/core",
       "kind": "const",
       "file": "packages/helpers/src/utilities/parse.utility.ts",
-      "line": 52,
+      "line": 53,
       "signature": "keysToCamel: (object: object) => any"
     },
     {
@@ -25835,7 +25815,7 @@
       "specifier": "@venizia/ignis-helpers/core",
       "kind": "const",
       "file": "packages/helpers/src/utilities/parse.utility.ts",
-      "line": 122,
+      "line": 123,
       "signature": "toBoolean: (input: any) => boolean"
     },
     {
@@ -27505,8 +27485,8 @@
       "specifier": "@venizia/ignis-inversion",
       "kind": "const",
       "file": "packages/inversion/src/common/utilities.ts",
-      "line": 100,
-      "signature": "resolveInjectTarget: (target: TInjectTarget) => TClass<AnyType> | undefined"
+      "line": 105,
+      "signature": "resolveInjectTarget: (opts: { target: TInjectTarget; }) => TClass<AnyType> | undefined"
     },
     {
       "name": "resolveValue",
@@ -27516,7 +27496,7 @@
       "kind": "const",
       "file": "packages/inversion/src/common/utilities.ts",
       "line": 86,
-      "signature": "resolveValue: <T>(valueOrResolver: TValueOrResolver<T>) => T"
+      "signature": "resolveValue: <T>(opts: { value: TValueOrResolver<T>; }) => T"
     },
     {
       "name": "resolveValueAsync",
@@ -27525,8 +27505,8 @@
       "specifier": "@venizia/ignis-inversion",
       "kind": "const",
       "file": "packages/inversion/src/common/utilities.ts",
-      "line": 95,
-      "signature": "resolveValueAsync: <T>(valueOrResolver: TValueOrAsyncResolver<T>) => Promise<T>"
+      "line": 97,
+      "signature": "resolveValueAsync: <T>(opts: { value: TValueOrAsyncResolver<T>; }) => Promise<T>"
     },
     {
       "name": "AbstractApplication",
@@ -28175,7 +28155,7 @@
       "specifier": "@venizia/ignis-kernel",
       "kind": "const",
       "file": "packages/kernel/src/base/models/common/schemas.ts",
-      "line": 12,
+      "line": 7,
       "signature": "ErrorSchema: z.ZodObject<{ statusCode: z.ZodOptional<z.ZodNumber>; message: z.ZodString; normalized: z.ZodOptional<z.ZodObject<{ text: z.ZodString; code: z.ZodString; args: z.ZodRecord<z.ZodString, z.ZodAny>; }, z.core.$strip>>; extra: z.ZodOptional<z.ZodRecord<z.ZodString, z.ZodAny>>; requestId: z."
     },
     {
@@ -30209,6 +30189,16 @@
       "signature": "type TErrorLogFormatter = (opts: { error: unknown; messageCode?: string; extra?: Record<string, unknown>; includeStack?: boolean; maxStackFrames?: number; }) => string"
     },
     {
+      "name": "TErrorResponse",
+      "package": "@venizia/ignis-kernel",
+      "subpath": ".",
+      "specifier": "@venizia/ignis-kernel",
+      "kind": "type",
+      "file": "packages/kernel/src/base/models/common/schemas.ts",
+      "line": 38,
+      "signature": "type TErrorResponse = z.infer<typeof ErrorSchema>"
+    },
+    {
       "name": "TEventHandlerFunction",
       "package": "@venizia/ignis-kernel",
       "subpath": ".",
@@ -31175,7 +31165,7 @@
       "specifier": "@venizia/ignis-kernel",
       "kind": "const",
       "file": "packages/kernel/src/base/models/common/schemas.ts",
-      "line": 43,
+      "line": 40,
       "signature": "idParamsSchema: (opts?: { idType: TIdSchemaType; }) => z.ZodObject<{ id: z.ZodNumber; }, z.core.$strip> | z.ZodObject<{ id: z.ZodString; }, z.core.$strip>"
     },
     {
@@ -31235,7 +31225,7 @@
       "specifier": "@venizia/ignis-kernel",
       "kind": "const",
       "file": "packages/kernel/src/base/models/common/schemas.ts",
-      "line": 79,
+      "line": 76,
       "signature": "jsonContent: <T extends z.ZodType>(opts: { schema: T; description: string; required?: boolean; }) => { description: string; content: { 'application/json': { schema: T; }; }; required: boolean | undefined; }"
     },
     {
@@ -31245,7 +31235,7 @@
       "specifier": "@venizia/ignis-kernel",
       "kind": "const",
       "file": "packages/kernel/src/base/models/common/schemas.ts",
-      "line": 107,
+      "line": 104,
       "signature": "jsonResponse: <ContentSchema extends z.ZodType, HeaderSchema extends TResponseHeaders | undefined = undefined>(opts: TJsonResponseOpts<ContentSchema, HeaderSchema>) => { 200: { description: string; content: { 'application/json': { schema: ContentSchema; }; }; required: boolean | undefined; } | { hea"
     },
     {
@@ -31405,8 +31395,8 @@
       "specifier": "@venizia/ignis-kernel",
       "kind": "const",
       "file": "packages/inversion/src/common/utilities.ts",
-      "line": 100,
-      "signature": "resolveInjectTarget: (target: TInjectTarget) => TClass<AnyType> | undefined"
+      "line": 105,
+      "signature": "resolveInjectTarget: (opts: { target: TInjectTarget; }) => TClass<AnyType> | undefined"
     },
     {
       "name": "resolveRequestDomain",

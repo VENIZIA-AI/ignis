@@ -64,14 +64,15 @@ describe('a second copy of the kernel is harmless, not forbidden', () => {
   test('the two copies really are two module graphs - every class identity differs', () => {
     expect(copyA).not.toBe(copyB);
 
-    for (const name of [
+    const names = [
       'MetadataRegistry',
       'AuthenticationStrategyRegistry',
       'AuthorizationEnforcerRegistry',
       'GrantBuilder',
       'RequestContextRegistry',
       'AbstractDataSource',
-    ]) {
+    ];
+    for (const name of names) {
       expect(typeof copyA[name]).toBe('function');
       expect(copyA[name]).not.toBe(copyB[name]);
     }

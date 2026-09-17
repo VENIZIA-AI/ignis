@@ -14,7 +14,7 @@ const createFakeConnector = () => {
   const trail: string[] = [];
   const captured: { countWhere?: unknown } = {};
   const chain: Record<string, unknown> = {};
-  for (const method of [
+  const methods = [
     'from',
     '$dynamic',
     'where',
@@ -25,7 +25,8 @@ const createFakeConnector = () => {
     'values',
     'set',
     'returning',
-  ]) {
+  ];
+  for (const method of methods) {
     chain[method] = (...args: unknown[]) => {
       trail.push(`${method}(${args.length})`);
       return chain;
@@ -76,7 +77,8 @@ const createFakeQueryConnector = (opts: {
   const calls: { findMany?: unknown; findFirst?: unknown } = {};
   const query: Record<string, unknown> = {};
 
-  for (const entityName of Object.keys(opts.entries)) {
+  const entriesKeys = Object.keys(opts.entries);
+  for (const entityName of entriesKeys) {
     query[entityName] = {
       findMany: (config: unknown) => {
         calls.findMany = config;

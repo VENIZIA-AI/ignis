@@ -301,7 +301,8 @@ export class BaseNetworkTcpServer<
 
   /** Clears timers and destroys all client sockets before closing the listener - `server.close()` alone never settles while a socket stays attached. Idempotent; safe if never listened. */
   async shutdown(): Promise<void> {
-    for (const client of Object.values(this.clients)) {
+    const clientsValues = Object.values(this.clients);
+    for (const client of clientsValues) {
       const { authenticateTimeout } = client.storage;
       if (authenticateTimeout) {
         clearTimeout(authenticateTimeout);

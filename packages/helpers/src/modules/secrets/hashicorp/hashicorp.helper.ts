@@ -209,7 +209,8 @@ export class HashiCorpVaultHelper extends AbstractSecretsHelper {
     const nested = res?.['data']?.['data'];
     const inner = nested && typeof nested === 'object' ? nested : res?.['data'];
     const value: Record<string, string> = {};
-    for (const [key, raw] of Object.entries(inner ?? {})) {
+    const innerEntries = Object.entries(inner ?? {});
+    for (const [key, raw] of innerEntries) {
       value[key] = typeof raw === 'string' ? raw : JSON.stringify(raw);
     }
     const leaseId = res?.['lease_id'];

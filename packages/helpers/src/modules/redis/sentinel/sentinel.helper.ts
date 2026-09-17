@@ -1,5 +1,6 @@
+import { ModuleUtility } from '@/utilities/module.utility';
 import { int } from '@/utilities/parse.utility';
-import { Redis } from 'ioredis';
+import type { Redis } from 'ioredis';
 import { AbstractRedisHelper } from './../base';
 import { IRedisSentinelHelperOptions, RedisSentinelRoles } from './../common';
 
@@ -24,12 +25,14 @@ export class RedisSentinelHelper extends AbstractRedisHelper<Redis> {
       port: int(sentinel.port ?? 26379),
     }));
 
+    const ioredis = ModuleUtility.loadSync<typeof import('ioredis')>({ module: 'ioredis' });
+
     super({
       ...opts,
       scope: RedisSentinelHelper.name,
       identifier: name,
       // Precedence (low -> high): framework defaults, the redisOptions escape hatch, then first-class fields. Optional auth fields are spread ONLY when provided, so a value set via redisOptions is not clobbered by an undefined first-class field.
-      client: new Redis({
+      client: new ioredis.Redis({
         ...AbstractRedisHelper.buildDefaultOpts({ maxRetry }),
         ...redisOptions,
         sentinels: normalizedSentinels,

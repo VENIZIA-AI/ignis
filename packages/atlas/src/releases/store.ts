@@ -48,7 +48,8 @@ export class ReleaseStore extends BaseHelper {
   constructor(opts: { table: IReleaseTable }) {
     super({ scope: ReleaseStore.name });
 
-    for (const [name, records] of Object.entries(opts.table.releases ?? {})) {
+    const tableReleasesEntries = Object.entries(opts.table.releases ?? {});
+    for (const [name, records] of tableReleasesEntries) {
       this.releases.set(toPackageDirectory(name), records);
     }
 

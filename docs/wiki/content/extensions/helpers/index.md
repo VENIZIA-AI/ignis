@@ -17,7 +17,7 @@ Every peer dependency below is optional. You install one only when you use the h
 | [Network](./network/) | HTTP/TCP/UDP clients | You call another service over HTTP, TCP, or UDP | `axios`, for the Axios client only |
 | [Kafka](./kafka/) | Kafka messaging | You publish or consume Kafka topics | `@platformatic/kafka` |
 | [Queue](./queue/) | Job queues | You need background or delayed work | `bullmq` or `mqtt` |
-| [Redis](./redis/) | Redis client | You need a Redis connection - cache, pub/sub, locks | None - `ioredis` ships with the package |
+| [Redis](./redis/) | Redis client | You need a Redis connection - cache, pub/sub, locks | `ioredis` |
 | [Socket.IO](./socket-io/) | Socket.IO server | You build a custom real-time feature | `socket.io` |
 | [WebSocket](./websocket/) | WebSocket server | You build a custom real-time feature | None |
 | [Storage](./storage/) | File storage | You read/write files to S3 or disk directly | none - the S3 backend uses Bun's own client |

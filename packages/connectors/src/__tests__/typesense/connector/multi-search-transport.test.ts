@@ -99,7 +99,8 @@ describe('search() - window splitting', () => {
 
     await helper.search({ collection: 'products', params: { q: '*', ['per_page']: 300, page: 2 } });
 
-    for (const entry of entriesOf(fake)) {
+    const fakeEntries = entriesOf(fake);
+    for (const entry of fakeEntries) {
       expect(entry['per_page']).toBeUndefined();
       expect(entry['page']).toBeUndefined();
       expect(typeof entry['offset']).toBe('number');

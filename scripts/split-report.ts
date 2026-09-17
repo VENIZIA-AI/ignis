@@ -104,7 +104,8 @@ export class SplitReport {
 
   private static walk(opts: { dir: string }): string[] {
     const out: string[] = [];
-    for (const name of readdirSync(opts.dir)) {
+    const dirEntries = readdirSync(opts.dir);
+    for (const name of dirEntries) {
       if (SKIP.has(name)) {
         continue;
       }
@@ -120,7 +121,8 @@ export class SplitReport {
 
   private static foldersWithoutIndex(opts: { dir: string }): string[] {
     const out: string[] = [];
-    for (const name of readdirSync(opts.dir)) {
+    const dirEntries = readdirSync(opts.dir);
+    for (const name of dirEntries) {
       if (SKIP.has(name)) {
         continue;
       }

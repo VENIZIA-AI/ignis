@@ -28,7 +28,7 @@ export class Container extends BaseContainer {
       });
     }
 
-    const target = resolveInjectTarget(declared);
+    const target = resolveInjectTarget({ target: declared });
     if (target === undefined) {
       throw getError({
         message: `[${cls.name}] ${at} names a function that did not return a class`,

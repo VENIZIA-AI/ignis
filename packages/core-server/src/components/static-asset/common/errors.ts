@@ -32,6 +32,15 @@ export const StaticAssetErrors = {
     statusCode: HTTP.ResultCodes.RS_4.BadRequest,
     category: ErrorScopes.VALIDATION,
   },
+  /** Labels ride the body; one in the URL would otherwise leave the row unlabelled without a word. */
+  LABELS_IN_QUERY: {
+    message: {
+      text: 'Upload labels belong in the request body, not the query',
+      code: 'core.static_asset.labels_in_query',
+    },
+    statusCode: HTTP.ResultCodes.RS_4.BadRequest,
+    category: ErrorScopes.VALIDATION,
+  },
   BUCKET_NAME_INVALID: {
     message: { text: 'Invalid bucket name', code: 'core.static_asset.bucket_name_invalid' },
     statusCode: HTTP.ResultCodes.RS_4.BadRequest,

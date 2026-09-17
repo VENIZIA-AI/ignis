@@ -318,7 +318,8 @@ export class FakeMeilisearchClient implements IMeilisearchClientLike {
         const { filter } = (params ?? {}) as { filter?: string };
         let deletedDocuments = 0;
 
-        for (const [id, document] of [...index.documents.entries()]) {
+        const indexDocumentsEntries = [...index.documents.entries()];
+        for (const [id, document] of indexDocumentsEntries) {
           if (!filter || matchesFilter({ document, filter })) {
             index.documents.delete(id);
             deletedDocuments++;

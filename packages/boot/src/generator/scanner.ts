@@ -66,7 +66,8 @@ export class ArtifactScanner extends BaseHelper {
     const kept: string[] = [];
     const hidden: string[] = [];
 
-    for (const relative of new Bun.Glob('**/*.ts').scanSync({ cwd: opts.root })) {
+    const sync = new Bun.Glob('**/*.ts').scanSync({ cwd: opts.root });
+    for (const relative of sync) {
       if (relative.endsWith('.d.ts') || opts.defaultGlobs.some(glob => glob.match(relative))) {
         continue;
       }
@@ -200,7 +201,8 @@ export class ArtifactScanner extends BaseHelper {
     const { node, stereotypeByLocalName, filePath, className } = opts;
     const types: TArtifactType[] = [];
 
-    for (const decorator of ts.getDecorators(node) ?? []) {
+    const decorators = ts.getDecorators(node) ?? [];
+    for (const decorator of decorators) {
       const expression = decorator.expression;
       if (!ts.isCallExpression(expression) || !ts.isIdentifier(expression.expression)) {
         continue;

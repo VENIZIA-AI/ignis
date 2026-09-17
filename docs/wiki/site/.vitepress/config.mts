@@ -451,6 +451,16 @@ const config = defineConfig({
           collapsed: false,
           items: [
             {
+              text: '2026-09-18',
+              collapsed: true,
+              items: [
+                {
+                  text: 'The Last Breaking Round Before 0.2.0',
+                  link: '/changelogs/2026-09-18-the-last-breaking-round-before-0-2-0',
+                },
+              ],
+            },
+            {
               text: '2026-09-17',
               collapsed: true,
               items: [

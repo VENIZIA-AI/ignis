@@ -102,10 +102,11 @@ describe('ScopedCasbinAdapter domain token, built in SQL from the stored pair', 
         action text
       )
     `);
-    for (const permission of [
+    const permissions = [
       ['perm-1', 'Order.find', 'Order', 'find', 'read'],
       ['perm-2', 'Order.node', 'Order', '*', 'manage'],
-    ]) {
+    ];
+    for (const permission of permissions) {
       await db.query(
         `INSERT INTO identity."Permission" (id, code, subject, method, action) VALUES ($1, $2, $3, $4, $5)`,
         permission,

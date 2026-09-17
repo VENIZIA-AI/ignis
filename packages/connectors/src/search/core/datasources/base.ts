@@ -155,7 +155,8 @@ export abstract class BaseSearchDataSource<
     const registry = MetadataRegistry.getInstance();
     const result: Record<string, string[]> = {};
 
-    for (const modelClass of this.getBoundModelClasses()) {
+    const boundModelClasses = this.getBoundModelClasses();
+    for (const modelClass of boundModelClasses) {
       const definition = this.readCollectionDefinition(modelClass);
       if (!definition) {
         continue;

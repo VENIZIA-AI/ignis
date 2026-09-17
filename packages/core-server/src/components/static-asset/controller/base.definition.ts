@@ -2,7 +2,7 @@ import type { IAuthRouteConfig } from '@/base';
 import { jsonContent, jsonResponse } from '@venizia/ignis-kernel';
 import { z } from '@hono/zod-openapi';
 import { HTTP } from '@venizia/ignis-helpers/common';
-import { ErrorSchema } from '@venizia/ignis-helpers';
+import { ErrorSchema } from '@venizia/ignis-kernel';
 
 type TRouteRequest = NonNullable<IAuthRouteConfig['request']>;
 

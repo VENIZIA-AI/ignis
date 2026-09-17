@@ -175,7 +175,7 @@ const opts1: IOptions = { entity: User };           // Direct class
 const opts2: IOptions = { entity: () => User };     // Resolver function (for lazy loading)
 
 // In consumer code
-const EntityClass = resolveValue(opts.entity);
+const EntityClass = resolveValue({ value: opts.entity });
 const instance = new EntityClass();
 ```
 

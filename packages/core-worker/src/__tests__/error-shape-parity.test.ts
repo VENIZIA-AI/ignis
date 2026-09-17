@@ -250,7 +250,8 @@ const expectSameEnvelope = (opts: { server: IProbedResponse; worker: IProbedResp
   expect(keyPathsOf(worker.body)).toEqual(keyPathsOf(server.body));
   expect(withNeutralRequestId(worker.body)).toEqual(withNeutralRequestId(server.body));
 
-  for (const body of [server.body, worker.body]) {
+  const bodies = [server.body, worker.body];
+  for (const body of bodies) {
     expect(typeof body.requestId).toBe('string');
     expect(body.requestId.length).toBeGreaterThan(0);
   }

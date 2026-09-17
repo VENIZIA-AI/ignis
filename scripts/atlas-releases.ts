@@ -320,7 +320,8 @@ export class AtlasReleases {
     }
 
     const sorted: Record<string, IReleaseRecord[]> = {};
-    for (const name of [...byPackage.keys()].sort(byText)) {
+    const names = [...byPackage.keys()].sort(byText);
+    for (const name of names) {
       sorted[name] = byPackage.get(name) ?? [];
     }
     return sorted;
@@ -365,7 +366,8 @@ export class AtlasReleases {
 
     const byFile = new Map<string, number>();
     let current = UNCOMMITTED_ORDER;
-    for (const line of (log.stdout ?? '').split('\n')) {
+    const lines = (log.stdout ?? '').split('\n');
+    for (const line of lines) {
       if (line.startsWith('commit ')) {
         current = order.get(line.slice('commit '.length).trim()) ?? UNCOMMITTED_ORDER;
         continue;

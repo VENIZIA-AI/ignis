@@ -369,7 +369,8 @@ export class SharedBffTransport extends BaseHelper implements IBffTransport {
   }
 
   private rejectAllPending(opts: { reason: string }): void {
-    for (const id of [...this.pendingRequests.keys()]) {
+    const pendingRequestsKeys = [...this.pendingRequests.keys()];
+    for (const id of pendingRequestsKeys) {
       this.takePending({ id })?.reject(
         getError({
           message: `[SharedBffTransport] Request abandoned | id: ${id} | reason: ${opts.reason}`,

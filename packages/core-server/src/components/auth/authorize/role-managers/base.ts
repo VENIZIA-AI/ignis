@@ -47,7 +47,8 @@ export abstract class BaseRoleManager extends BaseHelper {
     }
 
     let edgeCount = 0;
-    for (const parents of overlay.values()) {
+    const overlayValues = overlay.values();
+    for (const parents of overlayValues) {
       edgeCount += parents.size;
     }
 

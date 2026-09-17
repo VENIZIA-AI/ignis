@@ -40,7 +40,8 @@ describe('FilterQuerySchema', () => {
   test('it accepts exactly what the hand-written .optional().partial() form accepted', () => {
     const handWritten = z.object({ filter: FilterSchema.optional() }).partial();
 
-    for (const input of [{}, { filter: {} }, { filter: { limit: 5 } }, { filter: '{"limit":5}' }]) {
+    const inputs = [{}, { filter: {} }, { filter: { limit: 5 } }, { filter: '{"limit":5}' }];
+    for (const input of inputs) {
       expect(FilterQuerySchema.safeParse(input).success).toBe(handWritten.safeParse(input).success);
     }
   });
@@ -66,7 +67,8 @@ describe('WhereQuerySchema', () => {
   test('it accepts exactly what the hand-written .optional().partial() form accepted', () => {
     const handWritten = z.object({ where: WhereSchema.optional() }).partial();
 
-    for (const input of [{}, { where: {} }, { where: { status: 'active' } }]) {
+    const inputs = [{}, { where: {} }, { where: { status: 'active' } }];
+    for (const input of inputs) {
       expect(WhereQuerySchema.safeParse(input).success).toBe(handWritten.safeParse(input).success);
     }
   });

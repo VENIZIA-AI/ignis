@@ -56,7 +56,8 @@ describe('formatLogMessage - the placeholders redaction used to miss', () => {
   });
 
   test('a non-secret argument is untouched on every path', () => {
-    for (const message of ['plain %o', 'plain %O', 'plain']) {
+    const messages = ['plain %o', 'plain %O', 'plain'];
+    for (const message of messages) {
       expect(formatLogMessage({ message, args: [{ requestId: 'req-9' }] })).toContain('req-9');
     }
   });
@@ -153,7 +154,8 @@ describe('redactSecrets - the depth bound', () => {
   test('every logger path bounds the walk, not just %s', () => {
     const deep = buildChain(20_000);
 
-    for (const message of ['deep %s', 'deep %o', 'deep %O', 'deep']) {
+    const messages = ['deep %s', 'deep %o', 'deep %O', 'deep'];
+    for (const message of messages) {
       expect(() => formatLogMessage({ message, args: [deep] })).not.toThrow();
     }
   });

@@ -141,7 +141,8 @@ export abstract class AbstractSecretsHelper extends BaseHelper implements ISecre
     const logger = this.logger.for(this.shutdown.name);
     this.closed = true;
 
-    for (const handle of this.timerHandles.values()) {
+    const timerHandlesValues = this.timerHandles.values();
+    for (const handle of timerHandlesValues) {
       this.timers.clear(handle);
     }
     this.timerHandles.clear();

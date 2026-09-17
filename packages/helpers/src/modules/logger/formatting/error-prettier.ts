@@ -72,7 +72,8 @@ export class ErrorPrettier {
     let omitted = 0;
 
     // Hand-rolled over split+filter+slice: it stops at maxFrames instead of walking the whole stack.
-    for (const line of stack.split('\n')) {
+    const lines = stack.split('\n');
+    for (const line of lines) {
       if (!this.FRAME_PATTERN.test(line)) {
         continue;
       }

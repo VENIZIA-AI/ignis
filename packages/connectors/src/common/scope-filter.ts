@@ -20,7 +20,7 @@ export const assertScopeFilterSupported = (opts: { asyncContextEnabled: boolean 
       continue;
     }
 
-    const modelClass = resolveValue(entry.target);
+    const modelClass = resolveValue({ value: entry.target });
 
     if (modelClass === BaseSearchEntity || modelClass.prototype instanceof BaseSearchEntity) {
       searchBacked.push(name);

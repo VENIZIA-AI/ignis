@@ -120,7 +120,8 @@ describe('search tool: response budget and paging (I1)', () => {
         expect(result.returned).toBeLessThan(limit);
       }
 
-      for (const hit of result.hits as { id: string }[]) {
+      const hitsList = result.hits as { id: string }[];
+      for (const hit of hitsList) {
         expect(seen.has(hit.id)).toBe(false);
         seen.add(hit.id);
       }

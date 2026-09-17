@@ -67,7 +67,8 @@ describe('RequestSpyMiddleware body logging', () => {
     process.env.NODE_ENV = ORIGINAL_NODE_ENV;
   });
 
-  for (const environment of ['staging', 'uat', 'alpha', 'beta', 'prod', 'production']) {
+  const quietEnvironments = ['staging', 'uat', 'alpha', 'beta', 'prod', 'production'];
+  for (const environment of quietEnvironments) {
     test(`does NOT log the body in '${environment}'`, async () => {
       const logged = await captureLoggedLines({ environment });
       expect(logged).not.toContain(SENSITIVE_BODY.nationalId);
@@ -80,7 +81,8 @@ describe('RequestSpyMiddleware body logging', () => {
     expect(logged).not.toContain(SENSITIVE_BODY.nationalId);
   });
 
-  for (const environment of ['local', 'development', 'dev', 'debug', 'sit']) {
+  const loggingEnvironments = ['local', 'development', 'dev', 'debug', 'sit'];
+  for (const environment of loggingEnvironments) {
     test(`logs the body in '${environment}', which is what the flag is for`, async () => {
       const logged = await captureLoggedLines({ environment });
       expect(logged).toContain(SENSITIVE_BODY.nationalId);

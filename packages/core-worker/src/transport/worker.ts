@@ -287,7 +287,8 @@ export class WorkerBffTransport extends BaseHelper implements IBffTransport {
     this.worker.removeEventListener('error', this.handleWorkerError);
     this.worker.removeEventListener('messageerror', this.handleMessageError);
 
-    for (const id of [...this.pendingRequests.keys()]) {
+    const pendingRequestsKeys = [...this.pendingRequests.keys()];
+    for (const id of pendingRequestsKeys) {
       this.takePending({ id })?.reject(
         getError({
           message: `[WorkerBffTransport] The transport was closed while awaiting a response | id: ${id}`,

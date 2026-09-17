@@ -153,7 +153,8 @@ const MULTI_SEARCH_LIST_FIELDS = new Set([
 export const toSearchQueryParams = (input: Record<string, unknown>): Partial<ISearchQuery> => {
   const params: Record<string, unknown> = {};
 
-  for (const [key, value] of Object.entries(input)) {
+  const inputEntries = Object.entries(input);
+  for (const [key, value] of inputEntries) {
     if (value === undefined || key === 'collection') {
       continue;
     }

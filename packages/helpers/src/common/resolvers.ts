@@ -8,12 +8,13 @@ import type { TClass, TResolver } from './types';
 export { isClass, isEmpty, omit, resolveValue, resolveValueAsync } from '@venizia/ignis-inversion';
 
 /** Resolves a class reference, passing through string binding keys as-is. */
-export const resolveClass = <T>(
-  ref: TClass<T> | TResolver<TClass<T>> | string,
-): TClass<T> | string => {
+export const resolveClass = <T>(opts: {
+  ref: TClass<T> | TResolver<TClass<T>> | string;
+}): TClass<T> | string => {
+  const { ref } = opts;
   if (typeof ref === 'string') {
     return ref;
   }
 
-  return resolveValue(ref);
+  return resolveValue({ value: ref });
 };

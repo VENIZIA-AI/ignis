@@ -45,14 +45,16 @@ const selectSecretEnvKeys = (opts: {
   const merged: Record<string, string> = {};
 
   if (!entry.keys) {
-    for (const [rawKey, value] of Object.entries(bundle)) {
+    const bundleEntries = Object.entries(bundle);
+    for (const [rawKey, value] of bundleEntries) {
       merged[`${entry.prefix ?? ''}${rawKey}`] = value;
     }
 
     return merged;
   }
 
-  for (const [rawKey, envKey] of Object.entries(entry.keys)) {
+  const entryKeysEntries = Object.entries(entry.keys);
+  for (const [rawKey, envKey] of entryKeysEntries) {
     const value = bundle[rawKey];
     if (value === undefined) {
       continue;
@@ -145,7 +147,8 @@ export abstract class BaseApplication extends ServerApplication implements IRest
 
       await this.hydrateSecretEntries({ provider, registration, emptyHydrations, logger });
 
-      for (const entry of registration.lease ?? []) {
+      const registrationLease = registration.lease ?? [];
+      for (const entry of registrationLease) {
         await provider.lease({ path: entry.path, key: entry.key });
       }
     } catch (error) {
@@ -213,7 +216,8 @@ export abstract class BaseApplication extends ServerApplication implements IRest
   }): Promise<void> {
     const { provider, registration, emptyHydrations, logger } = opts;
 
-    for (const entry of registration.hydrate ?? []) {
+    const registrationHydrate = registration.hydrate ?? [];
+    for (const entry of registrationHydrate) {
       const bundle = await provider.getBundle({ path: entry.path });
       const merged = this.mergeSecretsIntoEnv({ bundle, entry });
       if (Object.keys(merged).length > 0) {
@@ -239,7 +243,8 @@ export abstract class BaseApplication extends ServerApplication implements IRest
     const { bundle, entry } = opts;
     const merged = selectSecretEnvKeys({ bundle, entry });
 
-    for (const [key, value] of Object.entries(merged)) {
+    const mergedEntries = Object.entries(merged);
+    for (const [key, value] of mergedEntries) {
       process.env[key] = value;
     }
     applicationEnvironment.merge({ envs: merged });

@@ -24,7 +24,8 @@ describe('ModuleUtility - project root', () => {
 
   afterEach(() => {
     ModuleUtility.setProjectRoot({ projectRoot: process.cwd() });
-    for (const root of roots.splice(0)) {
+    const rootsList = roots.splice(0);
+    for (const root of rootsList) {
       rmSync(root, { recursive: true, force: true });
     }
   });

@@ -134,7 +134,8 @@ const isBuiltinSpecifier = (specifier: string): boolean => {
 const findBuiltinSpecifiers = (metafile: IMetafile): string[] => {
   const builtins = new Set<string>();
 
-  for (const [inputPath, input] of Object.entries(metafile.inputs)) {
+  const metafileInputsEntries = Object.entries(metafile.inputs);
+  for (const [inputPath, input] of metafileInputsEntries) {
     if (isBuiltinSpecifier(inputPath)) {
       builtins.add(inputPath);
     }
@@ -189,7 +190,8 @@ const findUnresolvedExternalSpecifiers = (opts: {
     return false;
   };
 
-  for (const input of Object.values(metafile.inputs)) {
+  const metafileInputsValues = Object.values(metafile.inputs);
+  for (const input of metafileInputsValues) {
     for (const dependency of input.imports) {
       if (!dependency.external) {
         continue;

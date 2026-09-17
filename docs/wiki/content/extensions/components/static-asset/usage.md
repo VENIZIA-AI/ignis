@@ -29,7 +29,7 @@ Every `bucketName` is validated with `isValidBucketName()` - single segment, no 
 
 ## Upload files
 
-`POST /assets/buckets/:bucketName/objects` accepts `multipart/form-data`. `principalType`, `principalId`, `variant`, `sequence` and `folderPath` are optional **form fields** - an identifier in a URL lands in every access log on the way. They are still read from the query string as a deprecated fallback, with a warning; the form wins when both carry one. The same path answers `GET` with a listing.
+`POST /assets/buckets/:bucketName/objects` accepts `multipart/form-data`. `principalType`, `principalId`, `variant`, `sequence` and `folderPath` are optional **form fields** - an identifier in a URL lands in every access log on the way. A label in the query string is refused with `400 core.static_asset.labels_in_query`. The same path answers `GET` with a listing.
 
 ```typescript
 const formData = new FormData();

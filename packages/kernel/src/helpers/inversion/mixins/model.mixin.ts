@@ -139,7 +139,10 @@ export const ModelMetadataMixin = <BaseClass extends TMixinTarget<_MetadataRegis
         case 'record': {
           const record: Record<string, string> = {};
 
-          for (const item of collectAuthorizePrincipals({ modelRegistry: this.modelRegistry })) {
+          const authorizePrincipals = collectAuthorizePrincipals({
+            modelRegistry: this.modelRegistry,
+          });
+          for (const item of authorizePrincipals) {
             record[item.name] = item.principal;
           }
 
@@ -172,7 +175,8 @@ export const ModelMetadataMixin = <BaseClass extends TMixinTarget<_MetadataRegis
             { authorize: IModelAuthorizeSettings; entry: IModelRegistryEntry }
           > = {};
 
-          for (const item of collectAuthorizeEntries({ modelRegistry: this.modelRegistry })) {
+          const authorizeEntries = collectAuthorizeEntries({ modelRegistry: this.modelRegistry });
+          for (const item of authorizeEntries) {
             record[item.name] = { authorize: item.authorize, entry: item.entry };
           }
 

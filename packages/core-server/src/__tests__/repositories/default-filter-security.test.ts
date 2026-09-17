@@ -65,7 +65,8 @@ describe('FilterBuilder.mergeFilter - adversarial input handling', () => {
   test('SQL injection payloads pass through as opaque values while the default where survives', () => {
     const defaultFilter: AnyFilter = { where: { isDeleted: false } };
 
-    for (const [name, payload] of Object.entries(SQL_INJECTION_PAYLOADS)) {
+    const sqlInjectionPayloadEntries = Object.entries(SQL_INJECTION_PAYLOADS);
+    for (const [name, payload] of sqlInjectionPayloadEntries) {
       const userFilter: AnyFilter = { where: { [name]: payload } };
       const result = filterBuilder.mergeFilter({ defaultFilter, userFilter });
 
@@ -96,7 +97,8 @@ describe('FilterBuilder.mergeFilter - adversarial input handling', () => {
   test('XSS payloads pass through as opaque values while the default where survives', () => {
     const defaultFilter: AnyFilter = { where: { isDeleted: false } };
 
-    for (const [name, payload] of Object.entries(XSS_PAYLOADS)) {
+    const xssPayloadEntries = Object.entries(XSS_PAYLOADS);
+    for (const [name, payload] of xssPayloadEntries) {
       const userFilter: AnyFilter = { where: { [name]: payload } };
       const result = filterBuilder.mergeFilter({ defaultFilter, userFilter });
 
@@ -108,7 +110,8 @@ describe('FilterBuilder.mergeFilter - adversarial input handling', () => {
   test('command injection payloads pass through as opaque values while the default where survives', () => {
     const defaultFilter: AnyFilter = { where: { isDeleted: false } };
 
-    for (const [name, payload] of Object.entries(COMMAND_INJECTION_PAYLOADS)) {
+    const commandInjectionPayloadEntries = Object.entries(COMMAND_INJECTION_PAYLOADS);
+    for (const [name, payload] of commandInjectionPayloadEntries) {
       const userFilter: AnyFilter = { where: { [name]: payload } };
       const result = filterBuilder.mergeFilter({ defaultFilter, userFilter });
 
@@ -120,7 +123,8 @@ describe('FilterBuilder.mergeFilter - adversarial input handling', () => {
   test('path traversal payloads pass through as opaque values while the default where survives', () => {
     const defaultFilter: AnyFilter = { where: { isDeleted: false } };
 
-    for (const [name, payload] of Object.entries(PATH_TRAVERSAL_PAYLOADS)) {
+    const pathTraversalPayloadEntries = Object.entries(PATH_TRAVERSAL_PAYLOADS);
+    for (const [name, payload] of pathTraversalPayloadEntries) {
       const userFilter: AnyFilter = { where: { [name]: payload } };
       const result = filterBuilder.mergeFilter({ defaultFilter, userFilter });
 
@@ -183,7 +187,8 @@ describe('FilterBuilder.mergeFilter - adversarial input handling', () => {
   test('NoSQL-style operator objects ($ne/$where) are merged as opaque data, not interpreted', () => {
     const defaultFilter: AnyFilter = { where: { isDeleted: false } };
 
-    for (const [name, payload] of Object.entries(NOSQL_INJECTION_PAYLOADS)) {
+    const nosqlInjectionPayloadEntries = Object.entries(NOSQL_INJECTION_PAYLOADS);
+    for (const [name, payload] of nosqlInjectionPayloadEntries) {
       const userFilter: AnyFilter = { where: { [name]: payload } };
       const result = filterBuilder.mergeFilter({ defaultFilter, userFilter });
 
@@ -195,7 +200,8 @@ describe('FilterBuilder.mergeFilter - adversarial input handling', () => {
   test('Unicode edge cases (null char, BOM, zero-width, RTL override) pass through untouched', () => {
     const defaultFilter: AnyFilter = { where: { isDeleted: false } };
 
-    for (const [name, value] of Object.entries(UNICODE_EDGE_CASES)) {
+    const unicodeEdgeCaseEntries = Object.entries(UNICODE_EDGE_CASES);
+    for (const [name, value] of unicodeEdgeCaseEntries) {
       const userFilter: AnyFilter = { where: { [name]: value } };
       const result = filterBuilder.mergeFilter({ defaultFilter, userFilter });
 
@@ -207,7 +213,8 @@ describe('FilterBuilder.mergeFilter - adversarial input handling', () => {
   test('ReDoS-shaped string payloads merge in well under a second (no regex evaluation on values)', () => {
     const defaultFilter: AnyFilter = { where: { isDeleted: false } };
 
-    for (const payload of Object.values(REDOS_PAYLOADS)) {
+    const redosPayloadValues = Object.values(REDOS_PAYLOADS);
+    for (const payload of redosPayloadValues) {
       const userFilter: AnyFilter = { where: { pattern: payload } };
 
       const startedAt = Date.now();

@@ -459,7 +459,8 @@ describe('Chunker - splitOversized never breaks inside a fence (I2)', () => {
     expect(chunks[0].body.length).toBeGreaterThan(6000);
     expect(chunks[0].body.startsWith('```text')).toBe(true);
     expect(chunks[0].body.trim().endsWith('```')).toBe(true);
-    for (const index of [0, 100, 218]) {
+    const indexes = [0, 100, 218];
+    for (const index of indexes) {
       expect(chunks[0].body).toContain(`marker_${index}`);
     }
   });

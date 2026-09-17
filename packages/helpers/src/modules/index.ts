@@ -3,7 +3,6 @@ export * from './base';
 export * from './crypto';
 export * from './env';
 export * from './error';
-export * from './error/schemas';
 export * from './logger';
 export * from './network';
 export * from './pool';

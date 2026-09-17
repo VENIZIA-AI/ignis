@@ -99,7 +99,8 @@ export class InternalQueueMailExecutorHelper extends BaseHelper implements IMail
   async close(): Promise<void> {
     const pendingCount = this.delayedJobs.size;
 
-    for (const timeout of this.delayedJobs.values()) {
+    const delayedJobsValues = this.delayedJobs.values();
+    for (const timeout of delayedJobsValues) {
       clearTimeout(timeout);
     }
 

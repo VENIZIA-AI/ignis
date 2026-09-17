@@ -21,7 +21,8 @@ describe('UidAlphabets', () => {
   });
 
   test('BASE58 drops exactly the four look-alikes', () => {
-    for (const character of ['0', 'O', 'I', 'l']) {
+    const characters = ['0', 'O', 'I', 'l'];
+    for (const character of characters) {
       expect(UidAlphabets.BASE58).not.toContain(character);
     }
   });
@@ -29,7 +30,8 @@ describe('UidAlphabets', () => {
   test('CROCKFORD is uppercase only, without I, L, O and U', () => {
     expect(UidAlphabets.CROCKFORD).toBe(UidAlphabets.CROCKFORD.toUpperCase());
 
-    for (const character of ['I', 'L', 'O', 'U']) {
+    const characters = ['I', 'L', 'O', 'U'];
+    for (const character of characters) {
       expect(UidAlphabets.CROCKFORD).not.toContain(character);
     }
   });
@@ -353,7 +355,8 @@ describe('OpaqueUidHelper - sampling is unbiased', () => {
 
     const draws = 2_000;
     for (let index = 0; index < draws; index++) {
-      for (const character of helper.nextId()) {
+      const characters = helper.nextId();
+      for (const character of characters) {
         counts.set(character, (counts.get(character) ?? 0) + 1);
       }
     }

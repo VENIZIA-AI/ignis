@@ -82,7 +82,8 @@ export const extractDocument = <TDocument extends object>(
 ): TDocument => {
   const document: Record<string, unknown> = {};
 
-  for (const [key, value] of Object.entries(hit)) {
+  const hitEntries = Object.entries(hit);
+  for (const [key, value] of hitEntries) {
     if (RESERVED_HIT_KEYS.has(key)) {
       continue;
     }

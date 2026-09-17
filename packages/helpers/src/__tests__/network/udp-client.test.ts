@@ -64,11 +64,13 @@ const openClients: Array<NetworkUdpClient> = [];
 const openSockets: Array<dgram.Socket> = [];
 
 afterEach(() => {
-  for (const client of openClients.splice(0)) {
+  const clients = openClients.splice(0);
+  for (const client of clients) {
     client.disconnect();
   }
 
-  for (const socket of openSockets.splice(0)) {
+  const sockets = openSockets.splice(0);
+  for (const socket of sockets) {
     try {
       socket.close();
     } catch (error) {

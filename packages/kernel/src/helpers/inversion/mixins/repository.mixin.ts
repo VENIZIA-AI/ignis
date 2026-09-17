@@ -57,13 +57,13 @@ export const RepositoryMetadataMixin = <
       // Every member of the binding may be a resolver, the escape hatch for circular imports.
       // Reading `.name` off the resolver keys the registry by the arrow's inferred name, and the
       // datasource then silently discovers no schema.
-      const repositoryClass = resolveValue(opts.repository);
+      const repositoryClass = resolveValue({ value: opts.repository });
       this.repositoryBindings.set(repositoryClass.name, opts);
 
-      const dataSourceRef = resolveValue(opts.dataSource);
+      const dataSourceRef = resolveValue({ value: opts.dataSource });
       const dsKey = typeof dataSourceRef === 'string' ? dataSourceRef : dataSourceRef.name;
 
-      const modelClass = resolveValue(opts.model);
+      const modelClass = resolveValue({ value: opts.model });
 
       if (!this.datasourceModels.has(dsKey)) {
         this.datasourceModels.set(dsKey, new Set());
@@ -90,7 +90,7 @@ export const RepositoryMetadataMixin = <
         return undefined;
       }
 
-      const relations = resolveValue(modelMeta.relationsResolver);
+      const relations = resolveValue({ value: modelMeta.relationsResolver });
 
       if (!relations || !modelMeta.schema) {
         return undefined;

@@ -396,7 +396,8 @@ export class FilteredCases extends BaseTestCases {
       }
 
       // Cleanup
-      for (const p of products.data!) {
+      const productsData = products.data!;
+      for (const p of productsData) {
         await junctionRepo.deleteAll({ where: { productId: p.id }, options: { force: true } });
         await productRepo.deleteAll({
           where: { id: p.id },

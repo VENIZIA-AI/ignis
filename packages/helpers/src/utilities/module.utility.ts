@@ -63,7 +63,8 @@ export class ModuleUtility {
    * module after the first.
    */
   static register(opts: { modules: Record<string, AnyType> }): void {
-    for (const [module, value] of Object.entries(opts.modules)) {
+    const modulesEntries = Object.entries(opts.modules);
+    for (const [module, value] of modulesEntries) {
       this.registered.set(module, value);
     }
   }

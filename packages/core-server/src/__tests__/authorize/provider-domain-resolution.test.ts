@@ -32,7 +32,8 @@ const createFullContext = (overrides?: {
 }) => {
   const store = new Map<string, unknown>();
 
-  for (const [k, v] of Object.entries(overrides?.contextValues ?? {})) {
+  const overridesContextValuesEntries = Object.entries(overrides?.contextValues ?? {});
+  for (const [k, v] of overridesContextValuesEntries) {
     store.set(k, v);
   }
   if (overrides?.user !== undefined) {

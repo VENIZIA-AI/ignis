@@ -60,7 +60,8 @@ const listBundledBuiltins = async (opts: { entry: string }): Promise<string[]> =
     const metafile = JSON.parse(await Bun.file(metafilePath).text()) as IMetafile;
     const builtins = new Set<string>();
 
-    for (const [inputPath, input] of Object.entries(metafile.inputs)) {
+    const metafileInputsEntries = Object.entries(metafile.inputs);
+    for (const [inputPath, input] of metafileInputsEntries) {
       if (isBuiltinSpecifier({ specifier: inputPath })) {
         builtins.add(inputPath);
       }

@@ -96,7 +96,8 @@ export class SourceLinkCheck {
         }
       }
       lines.forEach((text, index) => {
-        for (const path of SourceLinkCheck.extractPaths(text, skipProse)) {
+        const paths = SourceLinkCheck.extractPaths(text, skipProse);
+        for (const path of paths) {
           checked += 1;
           if (!SourceLinkCheck.exists(tracked, path)) {
             missing.push({ file: relPath, line: index + 1, path });

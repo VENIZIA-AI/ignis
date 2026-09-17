@@ -14,7 +14,8 @@ export class SystemEnvsHelper extends AbstractSecretsHelper {
 
   protected async fetchRaw() {
     const value: Record<string, string> = {};
-    for (const [key, raw] of Object.entries(process.env)) {
+    const processEnvEntries = Object.entries(process.env);
+    for (const [key, raw] of processEnvEntries) {
       if (raw !== undefined) {
         value[key] = raw;
       }

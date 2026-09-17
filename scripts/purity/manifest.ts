@@ -121,7 +121,8 @@ const PURITY_CLAIMS: IPurityClaim[] = [
  */
 export const assertNoWorkspaceExternal = (manifest: IPurityEntry[]): IPurityEntry[] => {
   for (const row of manifest) {
-    for (const specifier of row.external ?? []) {
+    const specifiers = row.external ?? [];
+    for (const specifier of specifiers) {
       if (!specifier.startsWith(WORKSPACE_SCOPE)) {
         continue;
       }
@@ -173,7 +174,8 @@ const listConditionTargets = (
   const seen = new Set<string>();
   const targets: Array<{ condition: string; file: string }> = [];
 
-  for (const [condition, file] of Object.entries(target)) {
+  const targetEntries = Object.entries(target);
+  for (const [condition, file] of targetEntries) {
     if (condition === NON_RUNTIME_CONDITION || seen.has(file)) {
       continue;
     }
@@ -208,7 +210,8 @@ export const deriveEntries = (claim: IPurityClaim): IPurityEntry[] => {
   const exportsMap = readExportsMap({ package: claim.package });
   const published = Object.keys(exportsMap).filter(subpath => subpath !== NON_CODE_SUBPATH);
 
-  for (const subpath of claim.subpaths ?? []) {
+  const subpathsList = claim.subpaths ?? [];
+  for (const subpath of subpathsList) {
     if (published.includes(subpath)) {
       continue;
     }
@@ -219,7 +222,8 @@ export const deriveEntries = (claim: IPurityClaim): IPurityEntry[] => {
     );
   }
 
-  for (const subpath of Object.keys(claim.external ?? {})) {
+  const claimExternalKeys = Object.keys(claim.external ?? {});
+  for (const subpath of claimExternalKeys) {
     if (published.includes(subpath)) {
       continue;
     }
@@ -233,7 +237,8 @@ export const deriveEntries = (claim: IPurityClaim): IPurityEntry[] => {
 
   const claimed = claim.subpaths ?? published;
 
-  for (const subpath of Object.keys(claim.impure ?? {})) {
+  const claimImpureKeys = Object.keys(claim.impure ?? {});
+  for (const subpath of claimImpureKeys) {
     if (claimed.includes(subpath)) {
       continue;
     }
@@ -249,7 +254,8 @@ export const deriveEntries = (claim: IPurityClaim): IPurityEntry[] => {
   for (const subpath of claimed) {
     const targets = listConditionTargets(exportsMap[subpath]!);
 
-    for (const condition of claim.impure?.[subpath] ?? []) {
+    const conditions = claim.impure?.[subpath] ?? [];
+    for (const condition of conditions) {
       if (targets.some(target => target.condition === condition)) {
         continue;
       }

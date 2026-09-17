@@ -432,7 +432,8 @@ describe('AmazonSesTransportHelper - send', () => {
     expect(result.success).toBe(true);
     const [sent] = fakeClient.sentCommands;
     const raw = (sent.Content.Raw.Data as Buffer).toString('utf-8');
-    for (const line of raw.split('\r\n')) {
+    const lines = raw.split('\r\n');
+    for (const line of lines) {
       expect(line.length).toBeLessThan(999);
     }
     // Folding must not drop or duplicate recipients - re-joining every continuation line of the

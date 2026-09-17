@@ -6,6 +6,16 @@ not how.
 This file and `index.md` are reserved OKF filenames - they carry no `type:` frontmatter and are not
 counted as concepts.
 
+## 2026-09-18 - the last breaking round before 0.2.0 stable
+
+`ioredis` became an optional peer of helpers (lazy `ModuleUtility.loadSync` in the Redis helpers) and
+helpers' duplicate `ErrorSchema` - its only `@hono/zod-openapi` import - was removed; the kernel copy
+remains. `resolveValue`/`resolveValueAsync`/`resolveClass`/`resolveInjectTarget` take opts. Type
+guards were deliberately left positional: a codemod over 101 guards showed an opts predicate narrows
+only the true branch. Upload labels in the query now answer 400. 200 loop heads hoisted to named
+consts. BANA: 9 workspaces must add `ioredis`, 4 `ErrorSchema` imports and 3 `resolveValueAsync`
+calls move.
+
 ## 2026-09-17 (f) - the default string id is UUID v7
 
 `UuidV7Generator` in helpers/uid: native `Bun.randomUUIDv7`, else `getRandomValues` with a monotonic

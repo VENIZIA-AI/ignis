@@ -1,11 +1,13 @@
 import { int } from '@/utilities';
-import { Cluster, type ClusterOptions } from 'ioredis';
+import { ModuleUtility } from '@/utilities/module.utility';
+import type { Cluster, ClusterOptions } from 'ioredis';
 import { AbstractRedisHelper } from './../base';
 import { IRedisClusterHelperOptions } from './../common';
 
 export class RedisClusterHelper extends AbstractRedisHelper<Cluster> {
   private startupNodes: Array<{ host: string; port: number; password?: string }>;
   private clusterOpts: ClusterOptions;
+  private ioredis: typeof import('ioredis');
 
   constructor(opts: IRedisClusterHelperOptions) {
     const { autoConnect = true } = opts;
@@ -28,15 +30,18 @@ export class RedisClusterHelper extends AbstractRedisHelper<Cluster> {
       ...opts.clusterOptions,
     };
 
+    const ioredis = ModuleUtility.loadSync<typeof import('ioredis')>({ module: 'ioredis' });
+
     super({
       ...opts,
       scope: RedisClusterHelper.name,
       identifier: opts.name,
-      client: new Cluster(startupNodes, clusterOpts),
+      client: new ioredis.Cluster(startupNodes, clusterOpts),
     });
 
     this.startupNodes = startupNodes;
     this.clusterOpts = clusterOpts;
+    this.ioredis = ioredis;
   }
 
   override getClient() {
@@ -44,6 +49,6 @@ export class RedisClusterHelper extends AbstractRedisHelper<Cluster> {
   }
 
   override duplicateClient(): Cluster {
-    return new Cluster(this.startupNodes, this.clusterOpts);
+    return new this.ioredis.Cluster(this.startupNodes, this.clusterOpts);
   }
 }

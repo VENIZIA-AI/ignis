@@ -130,7 +130,8 @@ export async function buildSignedRequest(opts: {
     canonicalHeadersMap['x-amz-security-token'] = sessionToken;
   }
 
-  for (const [key, value] of Object.entries(extraHeaders ?? {})) {
+  const extraHeadersEntries = Object.entries(extraHeaders ?? {});
+  for (const [key, value] of extraHeadersEntries) {
     canonicalHeadersMap[key.toLowerCase()] = value;
   }
 

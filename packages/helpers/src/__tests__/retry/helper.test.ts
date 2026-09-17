@@ -7,7 +7,8 @@ const NO_JITTER = { jitter: RetryJitterModes.NONE } as const;
 
 describe('computeBackoffDelayMs', () => {
   test('FIXED returns initialDelayMs for every attempt', () => {
-    for (const attempt of [1, 2, 5]) {
+    const attempts = [1, 2, 5];
+    for (const attempt of attempts) {
       expect(
         RetryHelper.computeBackoffDelayMs({
           attempt,

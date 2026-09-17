@@ -136,12 +136,14 @@ const countChangedSinceRelease = async (opts: { name: string }): Promise<number>
   });
 
   const files = new Set<string>();
-  for (const line of committed.split('\n')) {
+  const committedLines = committed.split('\n');
+  for (const line of committedLines) {
     if (line) {
       files.add(line);
     }
   }
-  for (const line of pending.split('\n')) {
+  const pendingLines = pending.split('\n');
+  for (const line of pendingLines) {
     const path = line.slice(3).trim();
     if (path) {
       files.add(path);

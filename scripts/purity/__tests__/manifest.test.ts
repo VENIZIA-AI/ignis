@@ -16,7 +16,8 @@ const readPublishedTargets = (opts: { package: string }): string[] => {
 
   const targets: string[] = [];
 
-  for (const [subpath, target] of Object.entries(exportsMap)) {
+  const exportsMapEntries = Object.entries(exportsMap);
+  for (const [subpath, target] of exportsMapEntries) {
     if (subpath === './package.json') {
       continue;
     }
@@ -104,7 +105,8 @@ describe('PURITY_MANIFEST derivation', () => {
         PURITY_MANIFEST.filter(row => row.package === packageName).map(row => row.entry),
       );
 
-      for (const target of readPublishedTargets({ package: packageName })) {
+      const publishedTargets = readPublishedTargets({ package: packageName });
+      for (const target of publishedTargets) {
         expect(probed).toContain(target);
       }
     },

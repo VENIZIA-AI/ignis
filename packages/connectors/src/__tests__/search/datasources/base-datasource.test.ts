@@ -463,7 +463,8 @@ describe('BaseSearchDataSource - connector lifecycle (shared by every engine dat
 const listTsFiles = (dir: string): string[] => {
   const files: string[] = [];
 
-  for (const entry of readdirSync(dir)) {
+  const dirEntries = readdirSync(dir);
+  for (const entry of dirEntries) {
     const fullPath = join(dir, entry);
 
     if (statSync(fullPath).isDirectory()) {
@@ -481,7 +482,8 @@ const listTsFiles = (dir: string): string[] => {
 
 describe('BaseSearchDataSource - paradigm seam (search/core imports no engine)', () => {
   test('no file under src/search/core imports typesense or meilisearch', async () => {
-    for (const file of listTsFiles('src/search/core')) {
+    const tsFiles = listTsFiles('src/search/core');
+    for (const file of tsFiles) {
       const content = await Bun.file(file).text();
 
       expect(content).not.toContain('search/typesense');

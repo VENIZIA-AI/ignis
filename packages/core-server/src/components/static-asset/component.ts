@@ -36,7 +36,8 @@ export class StaticAssetComponent<
         key: StaticAssetComponentBindingKeys.STATIC_ASSET_COMPONENT_OPTIONS,
       });
 
-    for (const [key, opt] of Object.entries(componentOptions)) {
+    const componentOptionsEntries = Object.entries(componentOptions);
+    for (const [key, opt] of componentOptionsEntries) {
       const {
         storage,
         controller,

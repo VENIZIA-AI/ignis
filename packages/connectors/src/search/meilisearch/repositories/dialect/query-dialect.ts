@@ -219,7 +219,8 @@ export class MeilisearchQueryDialect extends BaseHelper implements ISearchQueryD
 
     const wire: Record<string, unknown> = {};
 
-    for (const [key, value] of Object.entries(rest)) {
+    const restEntries = Object.entries(rest);
+    for (const [key, value] of restEntries) {
       if (value === undefined) {
         continue;
       }

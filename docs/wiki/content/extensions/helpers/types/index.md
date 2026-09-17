@@ -16,7 +16,7 @@ difficulty: beginner
 import { TValueOrResolver, resolveValue } from '@venizia/ignis-helpers';
 
 function configure(opts: { timeout: TValueOrResolver<number> }) {
-  const timeout = resolveValue(opts.timeout);
+  const timeout = resolveValue({ value: opts.timeout });
   // works whether opts.timeout is 5000 or () => 5000
 }
 
@@ -91,7 +91,7 @@ import { TValueOrAsyncResolver, resolveValueAsync } from '@venizia/ignis-helpers
 type ConfigOption = TValueOrAsyncResolver<{ host: string }>;
 
 const fromEnv: ConfigOption = async () => ({ host: process.env.DB_HOST! });
-const resolved = await resolveValueAsync(fromEnv);
+const resolved = await resolveValueAsync({ value: fromEnv });
 ```
 
 ### Look up an HTTP header, content type, or status constant

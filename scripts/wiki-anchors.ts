@@ -50,7 +50,8 @@ export class AnchorCheck {
   /** Reads every emitted `id` once, so each markdown link is a map lookup. */
   static fromDist(opts: { dist: string }): AnchorCheck {
     const anchorsByRoute = new Map<string, Set<string>>();
-    for (const file of walk({ dir: opts.dist, extension: '.html' })) {
+    const files = walk({ dir: opts.dist, extension: '.html' });
+    for (const file of files) {
       const route = routeOf({ file, root: opts.dist, extension: '.html' });
       const ids = new Set(
         [...readFileSync(file, 'utf8').matchAll(/\sid="([^"]+)"/g)].map(match => match[1]),
@@ -85,7 +86,8 @@ export class AnchorCheck {
     const broken: IBrokenAnchor[] = [];
     let checked = 0;
 
-    for (const file of walk({ dir: opts.content, extension: '.md' })) {
+    const files = walk({ dir: opts.content, extension: '.md' });
+    for (const file of files) {
       // Fenced code carries example links that are not ours to resolve.
       const body = readFileSync(file, 'utf8').replace(/```[\s\S]*?```/g, match =>
         match.replace(/[^\n]/g, ' '),
@@ -93,7 +95,8 @@ export class AnchorCheck {
       const lines = body.split('\n');
 
       lines.forEach((text, index) => {
-        for (const match of text.matchAll(/\]\(([^)\s]*?)#([\w.-]+)\)/g)) {
+        const matches = text.matchAll(/\]\(([^)\s]*?)#([\w.-]+)\)/g);
+        for (const match of matches) {
           const [, page, anchor] = match;
           if (page.startsWith('http')) {
             continue;

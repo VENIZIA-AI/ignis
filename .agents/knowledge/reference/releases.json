@@ -14,6 +14,12 @@
   "releases": {
     "atlas": [
       {
+        "version": "0.1.0-26",
+        "date": "2026-09-17",
+        "sha": "2d069d82",
+        "order": 1391
+      },
+      {
         "version": "0.1.0-25",
         "date": "2026-09-17",
         "sha": "026262ab",
@@ -2282,6 +2288,12 @@
     ],
     "dev-configs": [
       {
+        "version": "0.2.0-14",
+        "date": "2026-09-17",
+        "sha": "0c041089",
+        "order": 1396
+      },
+      {
         "version": "0.2.0-13",
         "date": "2026-09-17",
         "sha": "3b74d7fa",
@@ -3498,6 +3510,12 @@
     ],
     "inversion": [
       {
+        "version": "0.2.0-21",
+        "date": "2026-09-17",
+        "sha": "cc089a8f",
+        "order": 1397
+      },
+      {
         "version": "0.2.0-20",
         "date": "2026-09-17",
         "sha": "b0989b6e",
@@ -4054,6 +4072,39 @@
     ]
   },
   "changelogs": [
+    {
+      "id": "changelog:2026-09-18-the-last-breaking-round-before-0-2-0",
+      "file": "2026-09-18-the-last-breaking-round-before-0-2-0.md",
+      "date": "2026-09-18",
+      "title": "The Last Breaking Round Before 0.2.0",
+      "packages": [
+        "core-server",
+        "helpers",
+        "kernel"
+      ],
+      "kind": "Breaking",
+      "order": 9007199254740991
+    },
+    {
+      "id": "changelog:2026-09-17-string-ids-are-uuid-v7",
+      "file": "2026-09-17-string-ids-are-uuid-v7.md",
+      "date": "2026-09-17",
+      "title": "String Ids Are UUID v7",
+      "packages": [
+        "helpers"
+      ],
+      "kind": "Behavior",
+      "order": 1395
+    },
+    {
+      "id": "changelog:2026-09-17-paging-bulk-writes-and-relation-settings",
+      "file": "2026-09-17-paging-bulk-writes-and-relation-settings.md",
+      "date": "2026-09-17",
+      "title": "Paging, Bulk Writes and Relation Settings",
+      "packages": [],
+      "kind": "Fix",
+      "order": 1394
+    },
     {
       "id": "changelog:2026-09-17-lodash-is-gone",
       "file": "2026-09-17-lodash-is-gone.md",

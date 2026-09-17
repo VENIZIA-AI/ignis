@@ -97,7 +97,8 @@ const splitIntoSections = (opts: { document: IDocument }): IRawSection[] => {
     sections.push({ level, title, headingPath, body });
   };
 
-  for (const line of document.body.split('\n')) {
+  const lines = document.body.split('\n');
+  for (const line of lines) {
     const inFence = fence.consume(line);
     const heading = inFence ? null : line.match(HEADING_PATTERN);
 
@@ -168,7 +169,8 @@ const splitOversized = (opts: { body: string }): ISplitResult => {
       current = candidate;
     }
 
-    for (const line of paragraph.split('\n')) {
+    const lines = paragraph.split('\n');
+    for (const line of lines) {
       fence.consume(line);
     }
   }
@@ -214,7 +216,8 @@ const identifiersOf = (text: string): string[] => {
     if (!isIdentifierShaped(match)) {
       continue;
     }
-    for (const segment of match.split('.')) {
+    const segments = match.split('.');
+    for (const segment of segments) {
       if (segment) {
         tokens.push(segment);
       }
@@ -232,7 +235,8 @@ const symbolsOf = (opts: { body: string }): string => {
   const rawTokens: string[] = [];
   let wasFenced = false;
 
-  for (const line of opts.body.split('\n')) {
+  const lines = opts.body.split('\n');
+  for (const line of lines) {
     const inFence = fence.consume(line);
     const isFenceOpenLine = inFence && !wasFenced;
     wasFenced = inFence;

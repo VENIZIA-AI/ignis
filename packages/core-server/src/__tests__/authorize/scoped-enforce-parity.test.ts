@@ -21,12 +21,8 @@ const buildEnforcer = async (opts: { lines: string[] }) => {
 
   const model = enforcer.getModel();
   model.clearPolicy();
-  for (const line of [
-    'g, User_1, Role_1, *',
-    'g2, User_1, Merchant_9',
-    ...LATTICE,
-    ...opts.lines,
-  ]) {
+  const linesList = ['g, User_1, Role_1, *', 'g2, User_1, Merchant_9', ...LATTICE, ...opts.lines];
+  for (const line of linesList) {
     Helper.loadPolicyLine(line, model);
   }
   await enforcer.buildRoleLinks();

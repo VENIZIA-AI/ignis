@@ -266,7 +266,7 @@ type TValueOrAsyncResolver<T> = T | TAsyncResolver<T>;
 `Source ->` [`resolvers.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/common/resolvers.ts) (also `resolveValueAsync`, `resolveClass`)
 
 ```typescript
-const resolveValue: <T>(valueOrResolver: TValueOrResolver<T>) => T;
+const resolveValue: <T>(opts: { value: TValueOrResolver<T> }) => T;
 ```
 
 Synchronously resolves a lazy value.
@@ -280,7 +280,7 @@ Synchronously resolves a lazy value.
 ### resolveValueAsync
 
 ```typescript
-const resolveValueAsync: <T>(valueOrResolver: TValueOrAsyncResolver<T>) => Promise<T>;
+const resolveValueAsync: <T>(opts: { value: TValueOrAsyncResolver<T> }) => Promise<T>;
 ```
 
 Async version of `resolveValue`. Same three cases, but the resolver's return value is `await`-ed before being returned.
@@ -288,9 +288,9 @@ Async version of `resolveValue`. Same three cases, but the resolver's return val
 ### resolveClass
 
 ```typescript
-const resolveClass: <T>(
-  ref: TClass<T> | TResolver<TClass<T>> | string,
-) => TClass<T> | string;
+const resolveClass: <T>(opts: {
+  ref: TClass<T> | TResolver<TClass<T>> | string;
+}) => TClass<T> | string;
 ```
 
 Resolves lazy class references.
@@ -326,7 +326,7 @@ const config3: ConfigOption = async () => {
 };
 
 // Resolve any of the above uniformly
-const resolved = await resolveValueAsync(config3);
+const resolved = await resolveValueAsync({ value: config3 });
 ```
 
 ## Field Mapping Types

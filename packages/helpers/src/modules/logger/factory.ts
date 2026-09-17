@@ -65,7 +65,8 @@ export class LoggerFactory {
   static use(opts: { provider: ILoggerProvider }): void {
     this.provider = opts.provider;
     Reflect.set(globalThis, PROVIDER_SLOT, opts.provider);
-    for (const wrapper of this.cache.values()) {
+    const cacheValues = this.cache.values();
+    for (const wrapper of cacheValues) {
       wrapper.repoint(opts.provider);
     }
   }

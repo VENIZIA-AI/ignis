@@ -52,7 +52,8 @@ const applyOperator = (operator: string, value: unknown) => {
 describe('array operators - the operand must never reach the statement text', () => {
   const injection = '1); DROP TABLE users; --';
 
-  for (const operator of ['contains', 'containedBy', 'overlaps']) {
+  const operators = ['contains', 'containedBy', 'overlaps'];
+  for (const operator of operators) {
     test(`${operator}: a NUMERIC-looking array carrying a SQL payload is parameterized, not concatenated`, () => {
       // The array type is sniffed from element[0], so a leading number used to select the "safe to interpolate" branch and every later element was join()-ed in raw.
       const { sql: statement, params } = render(applyOperator(operator, [1, injection]));

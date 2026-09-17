@@ -95,7 +95,8 @@ const installedVersionOf = (opts: { cwd: string; name: string; spec: string }): 
 const snapshotOf = (opts: { releases: ReleaseStore; live: string[] }): Record<string, string> => {
   const snapshot: Record<string, string> = {};
 
-  for (const name of opts.releases.packages().filter(candidate => opts.live.includes(candidate))) {
+  const names = opts.releases.packages().filter(candidate => opts.live.includes(candidate));
+  for (const name of names) {
     const newest = opts.releases.newestOf({ package: name });
     if (newest) {
       snapshot[name] = newest.version;
@@ -115,7 +116,8 @@ const behindOf = (opts: {
 }): IBehindRow[] => {
   const rows: IBehindRow[] = [];
 
-  for (const [name, version] of Object.entries(opts.installed)) {
+  const installedEntries = Object.entries(opts.installed);
+  for (const [name, version] of installedEntries) {
     const directory = toPackageDirectory(name);
     const newest = opts.snapshot[directory];
     if (version === null || newest === undefined) {

@@ -74,7 +74,8 @@ describe('AuthorizationDecisions.isAbstain', () => {
   });
 
   test('the three numeric predicates partition the number line', () => {
-    for (const n of [-5, -1, 0, 1, 5]) {
+    const items = [-5, -1, 0, 1, 5];
+    for (const n of items) {
       const flags = [
         AuthorizationDecisions.isAllow(n),
         AuthorizationDecisions.isDeny(n),
@@ -87,7 +88,8 @@ describe('AuthorizationDecisions.isAbstain', () => {
 
 describe('AuthorizationActions.isValid + SCHEME_SET', () => {
   test('valid actions', () => {
-    for (const a of ['create', 'read', 'update', 'delete', 'execute']) {
+    const items = ['create', 'read', 'update', 'delete', 'execute'];
+    for (const a of items) {
       expect(AuthorizationActions.isValid(a)).toBe(true);
       expect(AuthorizationActions.SCHEME_SET.has(a)).toBe(true);
     }
@@ -155,7 +157,8 @@ describe('CasbinRuleVariants — casbin line prefixes', () => {
 
 describe('CasbinDomainMatchingFunctions.isValid + SCHEME_SET', () => {
   test('valid + invalid', () => {
-    for (const fn of ['keyMatch', 'keyMatch2', 'keyMatch3', 'keyMatch4', 'regexMatch']) {
+    const items = ['keyMatch', 'keyMatch2', 'keyMatch3', 'keyMatch4', 'regexMatch'];
+    for (const fn of items) {
       expect(CasbinDomainMatchingFunctions.isValid(fn)).toBe(true);
     }
     expect(CasbinDomainMatchingFunctions.isValid('globMatch')).toBe(false);
@@ -174,7 +177,7 @@ describe('AuthorizationDomainScopes.isValid + SCHEME_SET', () => {
 
 describe('AuthorizationPolicyVariants.isValid + SCHEME_SET', () => {
   test('valid + invalid', () => {
-    for (const v of [
+    const items = [
       'grant',
       'assign_role',
       'join_domain',
@@ -182,7 +185,8 @@ describe('AuthorizationPolicyVariants.isValid + SCHEME_SET', () => {
       'resource_inherits',
       'action_inherits',
       'domain_inherits',
-    ]) {
+    ];
+    for (const v of items) {
       expect(AuthorizationPolicyVariants.isValidAction(v)).toBe(true);
     }
     expect(AuthorizationPolicyVariants.isValidAction('revoke')).toBe(false);

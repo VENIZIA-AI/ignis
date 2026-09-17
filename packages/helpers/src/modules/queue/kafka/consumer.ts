@@ -292,11 +292,12 @@ export class KafkaConsumerHelper<
     const { messageHandler, doneHandler, errorHandler, reconnectDelayMs, maxReconnectAttempts } =
       opts;
 
-    for await (const message of this.consumeMessages({
+    const messages = this.consumeMessages({
       reconnectDelayMs,
       maxReconnectAttempts,
       errorHandler,
-    })) {
+    });
+    for await (const message of messages) {
       try {
         await messageHandler({ message });
         await doneHandler?.({ message });

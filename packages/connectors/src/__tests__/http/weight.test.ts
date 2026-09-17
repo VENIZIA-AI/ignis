@@ -29,7 +29,8 @@ describe('the http connector stays free of the SQL stack', () => {
     ).toBeLessThan(CEILING_BYTES);
   });
 
-  for (const forbidden of ['drizzle', 'ZodObject'] as const) {
+  const forbiddens = ['drizzle', 'ZodObject'] as const;
+  for (const forbidden of forbiddens) {
     test(`no ${forbidden} reaches it`, async () => {
       const text = await bundle();
 

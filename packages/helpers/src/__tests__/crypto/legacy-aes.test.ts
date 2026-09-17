@@ -28,7 +28,8 @@ describe('LegacyAES (backward-compat)', () => {
   });
 
   describe('roundtrip in the OLD iv‖[authTag]‖ciphertext format', () => {
-    for (const algorithm of ['aes-256-cbc', 'aes-256-gcm'] as const) {
+    const algorithms = ['aes-256-cbc', 'aes-256-gcm'] as const;
+    for (const algorithm of algorithms) {
       test(`LTC-004/${algorithm}: encrypt/decrypt roundtrip`, () => {
         const aes = LegacyAES.withAlgorithm(algorithm);
         const plaintext = 'legacy payload 🔐 với unicode';
@@ -40,7 +41,8 @@ describe('LegacyAES (backward-compat)', () => {
 
     test('LTC-005: short + long secrets still roundtrip (padEnd / truncate)', () => {
       const aes = LegacyAES.withAlgorithm('aes-256-gcm');
-      for (const secret of [SECRET_SHORT, SECRET_LONG]) {
+      const secrets = [SECRET_SHORT, SECRET_LONG];
+      for (const secret of secrets) {
         const encrypted = aes.encrypt({ message: 'x', secret });
         expect(aes.decrypt({ message: encrypted, secret })).toBe('x');
       }

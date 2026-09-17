@@ -41,7 +41,8 @@ afterEach(async () => {
       continue;
     }
 
-    for (const key of [...pool['registry'].keys()]) {
+    const keysList = [...pool['registry'].keys()];
+    for (const key of keysList) {
       await pool.unregister({ key: key as string });
     }
   }

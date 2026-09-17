@@ -179,7 +179,8 @@ async function decide(e: CasbinAuthorizationEnforcer, userId: string, obj: strin
 // --- High-concurrency cross-user isolation (white-box, highest priority) ---
 
 describe('enforcer-pool-stress — cross-user isolation under high concurrency', () => {
-  for (const poolSize of [1, 2, 16]) {
+  const poolSizes = [1, 2, 16];
+  for (const poolSize of poolSizes) {
     test(`poolSize ${poolSize}: every decision is correct for its own user (no contamination)`, async () => {
       const e = poolEnforcer(new CountingPerUserAdapter(5), poolSize);
       await e.configure();

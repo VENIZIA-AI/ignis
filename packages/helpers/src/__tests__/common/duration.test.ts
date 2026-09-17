@@ -70,7 +70,8 @@ describe('DurationMultipliers - converting a window to milliseconds', () => {
 
 describe('DurationAliases.resolve - written units', () => {
   test('accepts short, long and plural spellings, and ignores case and surrounding space', () => {
-    for (const written of ['d', 'day', 'days', 'DAY', '  Days  ']) {
+    const writtenForms = ['d', 'day', 'days', 'DAY', '  Days  '];
+    for (const written of writtenForms) {
       expect(DurationAliases.resolve(written)).toBe(DurationUnits.DAY);
     }
   });
@@ -138,7 +139,8 @@ describe('DurationMultipliers.parse - written durations', () => {
   });
 
   test('refuses anything it cannot read whole - no partial credit', () => {
-    for (const input of ['30', 'd', '30 dd', '30d extra', '', 'thirty days', '1e3d']) {
+    const inputs = ['30', 'd', '30 dd', '30d extra', '', 'thirty days', '1e3d'];
+    for (const input of inputs) {
       expect(DurationMultipliers.parse(input)).toBeNull();
     }
   });

@@ -121,7 +121,8 @@ const decodeMappings = (mappings: string): IMappingSegment[][] => {
     const segments: IMappingSegment[] = [];
     let generatedColumn = 0;
 
-    for (const field of line.split(',')) {
+    const fields = line.split(',');
+    for (const field of fields) {
       if (field.length === 0) {
         continue;
       }

@@ -419,7 +419,7 @@ getError(opts: TError): ApplicationError; // factory function
 
 The catalogued form (`{ error: TErrorDefinition }`) takes `message` as a **partial** override. `{ message: { args } }` amends just the args and keeps the definition's `text`/`code`. `error` is refused on the free-form branch (`error?: never`) - wrap a caught failure with `cause` instead.
 
-`ApplicationError`'s constructor defaults `statusCode` to `400` when omitted, and moves any property it does not model into `this.extra`. The error RESPONSE schema (`ErrorSchema`, for OpenAPI) lives in `@venizia/ignis-helpers`, not here. It needs `@hono/zod-openapi`, which inversion must not depend on - inversion ships to browsers.
+`ApplicationError`'s constructor defaults `statusCode` to `400` when omitted, and moves any property it does not model into `this.extra`. The error RESPONSE schema (`ErrorSchema`, for OpenAPI) lives in `@venizia/ignis-kernel` (re-exported by `@venizia/ignis`), not here. It needs `@hono/zod-openapi`, which inversion must not depend on - inversion ships to browsers.
 
 ```typescript
 throw getError({ message: 'Something failed', statusCode: 500, messageCode: 'ERR_INTERNAL' });

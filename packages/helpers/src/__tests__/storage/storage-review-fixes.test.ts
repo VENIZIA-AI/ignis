@@ -27,7 +27,8 @@ const buildFile = (name: string): IUploadFile => ({
 });
 
 afterEach(() => {
-  for (const root of roots.splice(0)) {
+  const rootsList = roots.splice(0);
+  for (const root of rootsList) {
     rmSync(root, { recursive: true, force: true });
   }
 });
@@ -82,7 +83,8 @@ describe('listObjects treats maxKeys as a number, not a truthiness', () => {
 
   test('maxKeys caps the result', async () => {
     const { root, helper } = buildDisk();
-    for (const name of ['a.png', 'b.png', 'c.png']) {
+    const names = ['a.png', 'b.png', 'c.png'];
+    for (const name of names) {
       writeFileSync(join(root, 'images', name), 'x');
     }
 
@@ -93,7 +95,8 @@ describe('listObjects treats maxKeys as a number, not a truthiness', () => {
 
   test('an omitted maxKeys still returns everything', async () => {
     const { root, helper } = buildDisk();
-    for (const name of ['a.png', 'b.png', 'c.png']) {
+    const names = ['a.png', 'b.png', 'c.png'];
+    for (const name of names) {
       writeFileSync(join(root, 'images', name), 'x');
     }
 

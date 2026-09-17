@@ -9,7 +9,8 @@ const tmpDirs: string[] = [];
 const makeFixture = (opts: { files: Record<string, string> }): string => {
   const root = mkdtempSync(join(tmpdir(), 'ignis-split-report-'));
   tmpDirs.push(root);
-  for (const [relPath, content] of Object.entries(opts.files)) {
+  const filesEntries = Object.entries(opts.files);
+  for (const [relPath, content] of filesEntries) {
     const full = join(root, relPath);
     mkdirSync(dirname(full), { recursive: true });
     writeFileSync(full, content);

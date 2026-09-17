@@ -90,7 +90,8 @@ describe('declarative sources — every `from`', () => {
   });
 
   test('each `from` ABSENT → SYSTEM_WIDE', async () => {
-    for (const from of ['param', 'header', 'query', 'context'] as const) {
+    const froms = ['param', 'header', 'query', 'context'] as const;
+    for (const from of froms) {
       const dom = await resolveRequestDomain({
         spec: { action: 'read', resource: 'Order', domain: { from, key: 'k', type: 'Merchant' } },
         context: ctxStub({}),

@@ -62,14 +62,15 @@ describe('withAuthContext', () => {
     expect(compile(executed[0]).sql).toContain('true');
   });
 
-  for (const role of [
+  const rolesList = [
     'authenticated; drop table users; --',
     'authenticated"',
     'auth enticated',
     '1role',
     'Authenticated',
     '',
-  ]) {
+  ];
+  for (const role of rolesList) {
     test(`rejects the role ${JSON.stringify(role)} before any statement runs`, async () => {
       const { transaction, executed } = buildTransaction();
 
@@ -109,7 +110,8 @@ describe('withAuthContext', () => {
   });
 
   test('no role argument and no usable role claim throws before any statement runs', async () => {
-    for (const claims of [{}, { role: 42 }, { role: null }] as const) {
+    const claimses = [{}, { role: 42 }, { role: null }] as const;
+    for (const claims of claimses) {
       const { transaction, executed } = buildTransaction();
 
       let caught: unknown;
@@ -153,7 +155,8 @@ describe('withAuthContext', () => {
   });
 
   test('accepts the Supabase roles it exists to serve', async () => {
-    for (const role of ['anon', 'authenticated', 'service_role', 'supabase_auth_admin']) {
+    const roles = ['anon', 'authenticated', 'service_role', 'supabase_auth_admin'];
+    for (const role of roles) {
       const { transaction } = buildTransaction();
 
       await withAuthContext({ transaction, claims: {}, role });

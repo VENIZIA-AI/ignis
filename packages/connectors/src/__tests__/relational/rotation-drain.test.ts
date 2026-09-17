@@ -144,7 +144,8 @@ describe('Relational onSecretRotated - draining a client that has no end()', () 
     dataSource.configure();
     dataSource.getConnector();
 
-    for (const round of [1, 2, 3]) {
+    const rounds = [1, 2, 3];
+    for (const round of rounds) {
       await dataSource.onSecretRotated({
         key: 'datasources.sqlite',
         secret: { username: `v-${round}`, password: `pass-${round}` },

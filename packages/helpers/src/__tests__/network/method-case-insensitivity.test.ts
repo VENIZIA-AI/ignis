@@ -37,7 +37,8 @@ describe('HTTP method case - every method, both spellings, both clients', () => 
           networkOptions: { baseUrl },
         });
 
-        for (const spelling of [lower, upper] as THttpMethod[]) {
+        const spellings = [lower, upper] as THttpMethod[];
+        for (const spelling of spellings) {
           const response = await client
             .getNetworkService()
             .send({ url: `${baseUrl}/probe`, method: spelling });
@@ -54,7 +55,8 @@ describe('HTTP method case - every method, both spellings, both clients', () => 
           networkOptions: { baseUrl },
         });
 
-        for (const spelling of [lower, upper] as THttpMethod[]) {
+        const spellings = [lower, upper] as THttpMethod[];
+        for (const spelling of spellings) {
           const response = await client
             .getNetworkService()
             .send({ url: `${baseUrl}/probe`, method: spelling });

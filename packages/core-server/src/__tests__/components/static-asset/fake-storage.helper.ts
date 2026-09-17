@@ -233,7 +233,8 @@ export class FakeStorageHelper extends BaseStorageHelper {
     this.calls.push({ method: 'listObjects', args: { ...opts, bucket: opts.bucket.name } });
     const results: IObjectInfo[] = [];
 
-    for (const [key, value] of this.objects.entries()) {
+    const objectsEntries = this.objects.entries();
+    for (const [key, value] of objectsEntries) {
       if (!key.startsWith(`${opts.bucket.name}/`)) {
         continue;
       }

@@ -118,7 +118,7 @@ tags: [reference, exports, api]
 
 ## helpers
 
-### `@venizia/ignis-helpers` (397)
+### `@venizia/ignis-helpers` (395)
 
 - `AbstractCryptoAlgorithm` class
 - `AbstractLogger` class
@@ -188,7 +188,6 @@ tags: [reference, exports, api]
 - `EnvironmentNames` class
 - `Envs` const
 - `ErrorPrettier` class
-- `ErrorSchema` const
 - `ErrorScopes` class
 - `executePromiseWithLimit` const
 - `executeWithPerformanceMeasure` const
@@ -422,7 +421,6 @@ tags: [reference, exports, api]
 - `TErrorMessageOverride` type
 - `TErrorNormalized` type
 - `TErrorNormalizeTransformFn` type
-- `TErrorResponse` type
 - `TErrorScope` type
 - `TFieldMappingDataType` type
 - `TFieldMappingNames` type
@@ -886,7 +884,7 @@ tags: [reference, exports, api]
 
 ## kernel
 
-### `@venizia/ignis-kernel` (398)
+### `@venizia/ignis-kernel` (399)
 
 - `AbstractApplication` class
 - `AbstractAuthRegistry` class
@@ -1208,6 +1206,7 @@ tags: [reference, exports, api]
 - `TEntityId` type
 - `TEntityPersistObject` type
 - `TErrorLogFormatter` type
+- `TErrorResponse` type
 - `TEventHandlerFunction` type
 - `TEventHandlerReference` type
 - `TEventHandlerType` type

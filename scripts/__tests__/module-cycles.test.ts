@@ -9,7 +9,8 @@ const tmpDirs: string[] = [];
 const makeFixture = (opts: { files: Record<string, string> }): string => {
   const dir = mkdtempSync(join(tmpdir(), 'ignis-module-cycles-'));
   tmpDirs.push(dir);
-  for (const [name, content] of Object.entries(opts.files)) {
+  const filesEntries = Object.entries(opts.files);
+  for (const [name, content] of filesEntries) {
     writeFileSync(join(dir, name), content);
   }
   return dir;

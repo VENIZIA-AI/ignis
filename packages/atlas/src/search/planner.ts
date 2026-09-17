@@ -33,7 +33,8 @@ const termsOf = (opts: { query: string }): { terms: string[]; corpus?: TCorpus }
   const bareWords: IBareWord[] = [];
   let corpus: TCorpus | undefined;
 
-  for (const match of opts.query.matchAll(TOKEN_PATTERN)) {
+  const matches = opts.query.matchAll(TOKEN_PATTERN);
+  for (const match of matches) {
     const [, phrase, word] = match;
 
     if (phrase !== undefined) {

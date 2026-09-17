@@ -200,7 +200,8 @@ describe('isRepositoryCheckout - only a VENIZIA family workspace', () => {
   };
 
   afterEach(() => {
-    for (const root of roots.splice(0)) {
+    const rootsList = roots.splice(0);
+    for (const root of rootsList) {
       rmSync(root, { recursive: true, force: true });
     }
   });

@@ -7,7 +7,8 @@ describe('DI registration helpers live on the kernel layer', () => {
     const restSurface = Object.getOwnPropertyNames(RestApplication.prototype);
     const baseSurface = Object.getOwnPropertyNames(BaseApplication.prototype);
 
-    for (const method of ['component', 'controller', 'service', 'repository', 'dataSource']) {
+    const methods = ['component', 'controller', 'service', 'repository', 'dataSource'];
+    for (const method of methods) {
       expect(restSurface).toContain(method);
       // Guards against a future regression that copies these back onto BaseApplication - that
       // would defeat the lift (WorkerApplication would then diverge from what BaseApplication runs)
@@ -19,7 +20,8 @@ describe('DI registration helpers live on the kernel layer', () => {
   test('BaseApplication still exposes every registration method it did before', () => {
     const app = BaseApplication.prototype as unknown as Record<string, unknown>;
 
-    for (const method of ['component', 'controller', 'service', 'repository', 'dataSource']) {
+    const methods = ['component', 'controller', 'service', 'repository', 'dataSource'];
+    for (const method of methods) {
       expect(typeof app[method]).toBe('function');
     }
   });

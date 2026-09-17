@@ -65,7 +65,8 @@ export class AuthorizationProvider extends BaseHelper implements IProvider<TAuth
         }
       }
 
-      for (const voter of spec.voters ?? []) {
+      const votersList = spec.voters ?? [];
+      for (const voter of votersList) {
         const decision = await voter({
           user,
           action: spec.action,

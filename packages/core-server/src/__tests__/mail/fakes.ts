@@ -70,7 +70,8 @@ export class ProcessorCallTracker {
   record(email: string): void {
     this.calls.push(email);
 
-    for (const waiter of [...this.waiters]) {
+    const waitersList = [...this.waiters];
+    for (const waiter of waitersList) {
       if (this.calls.length < waiter.expected) {
         continue;
       }

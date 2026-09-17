@@ -45,6 +45,7 @@ const PINNED = [
   'core.static_asset.upload_too_large',
   'core.static_asset.invalid_commit_token',
   'core.static_asset.expired_commit_token',
+  'core.static_asset.labels_in_query',
   'core.static_asset.bucket_name_invalid',
   'core.static_asset.object_name_invalid',
   'core.static_asset.folder_path_invalid',

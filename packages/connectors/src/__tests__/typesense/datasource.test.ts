@@ -303,7 +303,8 @@ describe('TypesenseDataSource', () => {
 const listTsFiles = (dir: string): string[] => {
   const files: string[] = [];
 
-  for (const entry of readdirSync(dir)) {
+  const dirEntries = readdirSync(dir);
+  for (const entry of dirEntries) {
     const fullPath = join(dir, entry);
 
     if (statSync(fullPath).isDirectory()) {
@@ -338,7 +339,8 @@ describe('barrel purity', () => {
     const rootIndex = await Bun.file('src/index.ts').text();
     expect(rootIndex).not.toContain('search/typesense');
 
-    for (const file of listTsFiles('../kernel/src/base')) {
+    const tsFiles = listTsFiles('../kernel/src/base');
+    for (const file of tsFiles) {
       const content = await Bun.file(file).text();
       expect(content).not.toContain('search/typesense');
     }
@@ -349,7 +351,8 @@ describe('barrel purity', () => {
     // invariant now guards the sibling kernel package: its base tree must never regrow a
     // `search`-named folder, which is the exact naming collision this migration exists to avoid.
     const hasSearchFolder = (dir: string): boolean => {
-      for (const entry of readdirSync(dir)) {
+      const dirEntries = readdirSync(dir);
+      for (const entry of dirEntries) {
         const fullPath = join(dir, entry);
 
         if (!statSync(fullPath).isDirectory()) {

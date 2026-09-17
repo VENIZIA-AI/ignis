@@ -87,7 +87,8 @@ class FakeWorker {
 
   listenerCount(): number {
     let total = 0;
-    for (const listeners of this.listeners.values()) {
+    const listenersValues = this.listeners.values();
+    for (const listeners of listenersValues) {
       total += listeners.size;
     }
     return total;
@@ -96,7 +97,8 @@ class FakeWorker {
   /** Simulates the worker answering back - `WorkerApplication.listen()`'s side of this exchange. */
   respond(data: IBffResponseEnvelope | IBffErrorEnvelope): void {
     const event = { data } as MessageEvent;
-    for (const listener of this.listeners.get('message') ?? []) {
+    const listenersList = this.listeners.get('message') ?? [];
+    for (const listener of listenersList) {
       listener(event);
     }
   }
@@ -104,7 +106,8 @@ class FakeWorker {
   /** Simulates the worker thread itself dying - the `error` event, not a message. */
   crash(): void {
     const event = new Event('error');
-    for (const listener of this.listeners.get('error') ?? []) {
+    const listenersList = this.listeners.get('error') ?? [];
+    for (const listener of listenersList) {
       listener(event as any);
     }
   }
@@ -115,7 +118,8 @@ class FakeWorker {
    */
   failOneMessageDeserialisation(): void {
     const event = new Event('messageerror');
-    for (const listener of this.listeners.get('messageerror') ?? []) {
+    const listenersList = this.listeners.get('messageerror') ?? [];
+    for (const listener of listenersList) {
       listener(event as any);
     }
   }

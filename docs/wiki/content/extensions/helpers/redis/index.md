@@ -10,6 +10,8 @@ The Redis helper gives you one data API for Redis. Talk to a single node, a shar
 
 ## In one example
 
+`ioredis` is an optional peer - install it in the app that builds a Redis client (`bun add ioredis`). Without it the helper constructor throws `Please install 'ioredis'`.
+
 Construct a single-node helper and round-trip a value through it.
 
 ```typescript

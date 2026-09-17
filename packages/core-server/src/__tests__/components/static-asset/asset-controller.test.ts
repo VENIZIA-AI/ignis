@@ -170,7 +170,8 @@ const uploadFiles = async (opts: {
   for (const file of files) {
     formData.append(fieldName, file);
   }
-  for (const [key, value] of Object.entries(labels ?? {})) {
+  const labelsEntries = Object.entries(labels ?? {});
+  for (const [key, value] of labelsEntries) {
     formData.append(key, value);
   }
 
@@ -1251,8 +1252,8 @@ describe('the upload query carries a display order', () => {
 
 describe('findLabelsInQuery names a caller that never migrated', () => {
   /**
-   * The labels moved from the query to the body, and a stale one is simply ignored - no compile
-   * error, no runtime error, just an unlabelled row. This predicate drives the only signal there is.
+   * Labels belong in the body. This predicate names the ones a caller still puts in the URL, which
+   * the upload routes refuse.
    */
   test('it names every label still arriving in the query', () => {
     expect(findLabelsInQuery({ query: { principalId: '42', variant: 'original' } })).toEqual([
@@ -1278,7 +1279,7 @@ describe('findLabelsInQuery names a caller that never migrated', () => {
   });
 });
 
-describe('the query is a way back, not a dead end', () => {
+describe('labels in the query are refused, before the body is read', () => {
   const captureRepository = (created: Array<Record<string, unknown>>) =>
     ({
       create: async (opts: { data: Record<string, unknown> }) => {
@@ -1287,12 +1288,7 @@ describe('the query is a way back, not a dead end', () => {
       },
     }) as never;
 
-  /**
-   * A client whose form library only emits `append(key, value, filename)` cannot put a text field in
-   * a multipart body at all - it throws. Refusing to read the query would break that upload outright,
-   * which is worse than the unlabelled row it was meant to prevent.
-   */
-  test('a label left in the query is still read', async () => {
+  test('a label in the query is a 400, and nothing is stored or recorded', async () => {
     const helper = new FakeStorageHelper();
     const created: Array<Record<string, unknown>> = [];
     const router = await mountAssetController({
@@ -1300,17 +1296,18 @@ describe('the query is a way back, not a dead end', () => {
       metaLink: { model: BaseMetaLinkModel, repository: captureRepository(created) },
     });
 
-    await uploadFiles({
+    const response = await uploadFiles({
       router,
       files: [new File(['x'], 'a.png', { type: 'image/png' })],
-      uploadPath: '/assets/buckets/images/objects?principalType=Product&principalId=42&sequence=3',
+      uploadPath: '/assets/buckets/images/objects?principalType=Product&principalId=42',
     });
 
-    expect(created[0]).toMatchObject({ principalType: 'Product', principalId: '42', sequence: 3 });
+    expect(response.status).toBe(400);
+    expect(JSON.stringify(await response.json())).toContain('principalType, principalId');
+    expect(created).toEqual([]);
   });
 
-  /** Otherwise a stale parameter in a URL would override the caller that already migrated. */
-  test('the body wins over the query', async () => {
+  test('the same labels in the body are recorded', async () => {
     const helper = new FakeStorageHelper();
     const created: Array<Record<string, unknown>> = [];
     const router = await mountAssetController({
@@ -1318,13 +1315,13 @@ describe('the query is a way back, not a dead end', () => {
       metaLink: { model: BaseMetaLinkModel, repository: captureRepository(created) },
     });
 
-    await uploadFiles({
+    const response = await uploadFiles({
       router,
       files: [new File(['x'], 'a.png', { type: 'image/png' })],
-      labels: { principalId: 'from-body' },
-      uploadPath: '/assets/buckets/images/objects?principalId=from-query',
+      labels: { principalType: 'Product', principalId: '42', sequence: '3' },
     });
 
-    expect(created[0].principalId).toBe('from-body');
+    expect(response.status).toBe(200);
+    expect(created[0]).toMatchObject({ principalType: 'Product', principalId: '42', sequence: 3 });
   });
 });

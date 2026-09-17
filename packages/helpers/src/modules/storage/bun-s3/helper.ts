@@ -619,7 +619,8 @@ export class BunS3Helper extends BaseStorageHelper {
         { bucket: bucketName },
       );
 
-      for (const entry of response.contents ?? []) {
+      const responseContents = response.contents ?? [];
+      for (const entry of responseContents) {
         objects.push({
           name: entry.key,
           size: entry.size,

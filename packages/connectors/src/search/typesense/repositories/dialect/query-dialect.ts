@@ -237,7 +237,8 @@ export class TypesenseQueryDialect extends BaseHelper implements ISearchQueryDia
 
     const wire: Record<string, unknown> = {};
 
-    for (const [key, value] of Object.entries(rest)) {
+    const restEntries = Object.entries(rest);
+    for (const [key, value] of restEntries) {
       if (value === undefined) {
         continue;
       }

@@ -71,7 +71,8 @@ const buildEmbedModelConfig = (opts: {
   const { model } = opts;
   const modelConfig: Record<string, unknown> = {};
 
-  for (const [key, value] of Object.entries(model)) {
+  const modelEntries = Object.entries(model);
+  for (const [key, value] of modelEntries) {
     if (value === undefined) {
       continue;
     }

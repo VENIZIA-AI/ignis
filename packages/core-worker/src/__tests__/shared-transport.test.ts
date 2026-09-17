@@ -40,7 +40,8 @@ class AnsweringWorker {
     const envelope = message as IBffRequestEnvelope;
 
     const dispatch = (data: unknown): void => {
-      for (const listener of this.listeners.get('message') ?? []) {
+      const listenersList = this.listeners.get('message') ?? [];
+      for (const listener of listenersList) {
         listener({ data } as MessageEvent);
       }
     };

@@ -70,7 +70,8 @@ describe('MeilisearchInternal - the task-failure shape (flat MeilisearchErrorRes
 
 describe('MeilisearchInternal - non-errors', () => {
   test('null, undefined and a bare string classify as neither', () => {
-    for (const error of [null, undefined, 'boom', 42]) {
+    const errors = [null, undefined, 'boom', 42];
+    for (const error of errors) {
       expect(MeilisearchInternal.isNotFoundError({ error })).toBe(false);
       expect(MeilisearchInternal.isAlreadyExistsError({ error })).toBe(false);
     }

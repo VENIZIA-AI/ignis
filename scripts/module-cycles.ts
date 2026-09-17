@@ -26,7 +26,8 @@ export class ModuleGraph {
     for (const file of files) {
       const text = readFileSync(file, 'utf8');
       const targets = new Set<string>();
-      for (const match of text.matchAll(IMPORT_PATTERN)) {
+      const matches = text.matchAll(IMPORT_PATTERN);
+      for (const match of matches) {
         const target = ModuleGraph.resolveRelative({
           from: file,
           specifier: match[1] ?? match[2],
@@ -57,7 +58,8 @@ export class ModuleGraph {
       stack.push(node);
       onStack.add(node);
 
-      for (const next of this.edges.get(node) ?? []) {
+      const nexts = this.edges.get(node) ?? [];
+      for (const next of nexts) {
         if (!indices.has(next)) {
           visit(next);
           lowLinks.set(node, Math.min(lowLinks.get(node)!, lowLinks.get(next)!));
@@ -81,7 +83,8 @@ export class ModuleGraph {
       }
     };
 
-    for (const node of this.edges.keys()) {
+    const edgesKeys = this.edges.keys();
+    for (const node of edgesKeys) {
       if (!indices.has(node)) {
         visit(node);
       }
@@ -92,7 +95,8 @@ export class ModuleGraph {
 
   private static walk(opts: { dir: string }): string[] {
     const out: string[] = [];
-    for (const name of readdirSync(opts.dir)) {
+    const dirEntries = readdirSync(opts.dir);
+    for (const name of dirEntries) {
       const full = join(opts.dir, name);
       if (statSync(full).isDirectory()) {
         out.push(...ModuleGraph.walk({ dir: full }));
@@ -108,7 +112,8 @@ export class ModuleGraph {
       return undefined;
     }
     const base = resolve(dirname(opts.from), opts.specifier);
-    for (const candidate of [base, `${base}.js`, join(base, 'index.js')]) {
+    const candidates = [base, `${base}.js`, join(base, 'index.js')];
+    for (const candidate of candidates) {
       if (existsSync(candidate) && statSync(candidate).isFile()) {
         return candidate;
       }

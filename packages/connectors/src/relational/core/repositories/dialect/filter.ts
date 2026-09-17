@@ -342,7 +342,9 @@ export abstract class FilterBuilder extends BaseHelper {
     }
 
     try {
-      const relationsArray = resolveValue(modelEntry.relationsResolver) as Array<TRelationConfig>;
+      const relationsArray = resolveValue({
+        value: modelEntry.relationsResolver,
+      }) as Array<TRelationConfig>;
       const relationsRecord: Record<string, TRelationConfig> = {};
 
       for (const relation of relationsArray) {

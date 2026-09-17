@@ -254,7 +254,8 @@ export abstract class RestApplication<
     const logger = this.logger.for(this.initialize.name);
     const t = performance.now();
 
-    for (const [index, step] of steps.entries()) {
+    const stepsEntries = steps.entries();
+    for (const [index, step] of stepsEntries) {
       try {
         await executeWithPerformanceMeasure({
           logger: this.logger,

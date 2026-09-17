@@ -6,8 +6,8 @@ import { describe, expect, test } from 'bun:test';
 const PACKAGE_DIRECTORY = resolve(__dirname, '..', '..', '..');
 const ROOT_BARREL = resolve(PACKAGE_DIRECTORY, 'src', 'index.ts');
 
-/** Top-level static `import`/`export ... from` specifiers; a dynamic `import()` or `require()` inside a function is lazy and stays out on purpose. `@/` is the package's own `src` alias. */
-const STATIC_SPECIFIER = /^(?:import|export)\s[^;]*?\sfrom\s+['"]([^'"]+)['"]/gm;
+/** Top-level static `import`/`export ... from` specifiers. `import type` is erased at build and a dynamic `import()` or `require()` inside a function is lazy - both stay out on purpose. `@/` is the package's own `src` alias. */
+const STATIC_SPECIFIER = /^(?:import|export)\s(?!type\s)[^;]*?\sfrom\s+['"]([^'"]+)['"]/gm;
 const BARE_IMPORT = /^import\s+['"]([^'"]+)['"]/gm;
 
 const packageNameOf = (specifier: string): string => {
@@ -78,7 +78,15 @@ describe('helpers manifest - the root barrel declares everything it loads', () =
   test('the walker sees through a relative re-export chain (positive control)', () => {
     const loaded = collectLoadTimePackages({ entry: ROOT_BARREL });
 
-    expect(loaded.has('@hono/zod-openapi')).toBe(true);
+    expect(loaded.has('dayjs')).toBe(true);
     expect(loaded.has('zod')).toBe(true);
+  });
+
+  // Optional peers: an app that never builds a Redis client or an OpenAPI route installs neither.
+  test('the root barrel loads neither ioredis nor @hono/zod-openapi at import time', () => {
+    const loaded = collectLoadTimePackages({ entry: ROOT_BARREL });
+
+    expect(loaded.has('ioredis')).toBe(false);
+    expect(loaded.has('@hono/zod-openapi')).toBe(false);
   });
 });

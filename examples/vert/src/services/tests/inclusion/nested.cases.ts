@@ -136,10 +136,12 @@ export class NestedCases extends BaseTestCases {
       }
 
       // Cleanup
-      for (const p of products.data!) {
+      const productsData = products.data!;
+      for (const p of productsData) {
         await junctionRepo.deleteAll({ where: { productId: p.id }, options: { force: true } });
       }
-      for (const p of products.data!) {
+      const productsData = products.data!;
+      for (const p of productsData) {
         await productRepo.deleteAll({
           where: { id: p.id },
           options: { force: true, shouldSkipDefaultFilter: true },

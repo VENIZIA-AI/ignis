@@ -30,13 +30,14 @@ describe('ArtifactScanner', () => {
       .scan({ root: ROOT })
       .map(a => a.className);
 
-    for (const excluded of [
+    const excludeds = [
       'PlainService',
       'AbstractService',
       'HiddenService',
       'ForeignService',
       'IgnoredService',
-    ]) {
+    ];
+    for (const excluded of excludeds) {
       expect(names).not.toContain(excluded);
     }
   });

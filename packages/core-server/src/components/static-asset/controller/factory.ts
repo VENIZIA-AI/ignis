@@ -71,23 +71,30 @@ const UPLOAD_LABEL_NAMES = [
   'folderPath',
 ] as const;
 
-/** Names any label still arriving in the query. Still READ (see {@link readUploadLabels}) - a deprecation notice, not a report of something dropped. */
+/** Names any label a caller put in the query - where the upload routes refuse it. */
 export const findLabelsInQuery = (opts: { query: Record<string, string> }): string[] =>
   UPLOAD_LABEL_NAMES.filter(name => opts.query[name] !== undefined);
 
-/**
- * The labels, body first and query as the way back. Refusing the query would break uploads outright:
- * a client whose form library only emits `append(key, value, filename)` - the three-argument form,
- * which needs a Blob - cannot put a text field in a multipart body at all, so it THROWS. Body wins,
- * so a migrated caller is never affected by a stale parameter in a URL.
- */
+/** Refused before the body is read: an upload that ignored them would store an unlabelled row. */
+const refuseLabelsInQuery = (opts: { query: Record<string, string> }): void => {
+  const names = findLabelsInQuery(opts);
+  if (names.length > 0) {
+    throw getError({
+      error: StaticAssetErrors.LABELS_IN_QUERY,
+      message: `Upload labels belong in the request body, not the query | names: ${names.join(', ')}`,
+    });
+  }
+};
+
+// A multipart form hands strings; a JSON commit body may hand `sequence` as a number.
 const readUploadLabels = (opts: {
-  fields: Record<string, string>;
-  fallback?: Record<string, string>;
+  fields: Partial<Record<(typeof UPLOAD_LABEL_NAMES)[number], string | number>>;
 }): TUploadQuery => {
-  const { fields, fallback = {} } = opts;
-  const read = (name: (typeof UPLOAD_LABEL_NAMES)[number]) =>
-    fields[name] || fallback[name] || undefined;
+  const { fields } = opts;
+  const read = (name: (typeof UPLOAD_LABEL_NAMES)[number]) => {
+    const value = fields[name];
+    return value === undefined || value === '' ? undefined : String(value);
+  };
 
   const sequence = read('sequence');
 
@@ -118,7 +125,7 @@ const resolveBucket = async (opts: {
     return param ?? '';
   }
 
-  return resolveValueAsync(configured);
+  return resolveValueAsync({ value: configured });
 };
 
 /** The URL of one object, in the shape its controller serves: no `/buckets/<name>` with a configured bucket, and a raw path with `rawObjectPath`. */
@@ -241,7 +248,7 @@ const createMetaLinkRow = async (opts: {
   }
 
   // Resolved per call so an application that swaps the repository is not pinned to the first one.
-  const repository = await resolveValueAsync(metaLink.repository);
+  const repository = await resolveValueAsync({ value: metaLink.repository });
   const created = await repository.create({
     data: {
       bucketName: uploadResult.bucket.name,
@@ -560,6 +567,8 @@ export class AssetControllerFactory extends BaseHelper {
               }
             };
 
+            refuseLabelsInQuery({ query: ctx.req.query() });
+
             // The early exit, before the body is spooled. Not authoritative: a multipart envelope is
             // larger than its files, so the per-file check below is the one that decides.
             if (maxBytes !== undefined) {
@@ -578,20 +587,8 @@ export class AssetControllerFactory extends BaseHelper {
               uploadDir: options?.parseMultipartBody?.uploadDir,
             });
 
-            // Labels travel with the payload, not the URL. The cost: unreadable until the body is
-            // parsed, which is why the folder check runs here rather than above.
-            const queryLabels = ctx.req.query();
-            const query = readUploadLabels({ fields, fallback: queryLabels });
-
-            const stale = findLabelsInQuery({ query: queryLabels });
-            if (stale.length > 0) {
-              this.logger
-                .for('UPLOAD')
-                .warn(
-                  'Label(s) read from the query string - they belong in the form body, and this fallback will go | names: %s',
-                  stale.join(', '),
-                );
-            }
+            // Labels travel with the payload, not the URL, so the folder check waits for the parse.
+            const query = readUploadLabels({ fields });
 
             const folderPath = query.folderPath;
             if (folderPath) {
@@ -743,7 +740,7 @@ export class AssetControllerFactory extends BaseHelper {
               return ctx.json({ success: true }, HTTP.ResultCodes.RS_2.Ok);
             }
 
-            const deleteRepository = await resolveValueAsync(metaLink.repository);
+            const deleteRepository = await resolveValueAsync({ value: metaLink.repository });
             deleteRepository
               .deleteAll({
                 where: {
@@ -872,6 +869,8 @@ export class AssetControllerFactory extends BaseHelper {
             configs: { ...definitions.UPLOAD_COMMIT, ...routes?.uploadCommit },
           }).to({
             handler: async ctx => {
+              refuseLabelsInQuery({ query: ctx.req.query() });
+
               const { commitToken, ...labels } = ctx.req.valid<
                 { commitToken: string } & TUploadQuery
               >('json');
@@ -885,21 +884,7 @@ export class AssetControllerFactory extends BaseHelper {
 
               // Labels, not authorization - the token deliberately carries no business fields, so
               // they travel beside it rather than inside it.
-              const queryLabels = ctx.req.query();
-              const query = readUploadLabels({
-                fields: labels as Record<string, string>,
-                fallback: queryLabels,
-              });
-
-              const staleLabels = findLabelsInQuery({ query: queryLabels });
-              if (staleLabels.length > 0) {
-                this.logger
-                  .for('UPLOAD_COMMIT')
-                  .warn(
-                    'Label(s) read from the query string - they belong in the JSON body, and this fallback will go | names: %s',
-                    staleLabels.join(', '),
-                  );
-              }
+              const query = readUploadLabels({ fields: labels });
 
               const bucketRef = { name: payload.bucket };
               const pendingObject = { key: payload.key };
@@ -1032,7 +1017,7 @@ export class AssetControllerFactory extends BaseHelper {
 
               // Read per call, never once per handler: an application may rebind the repository
               // between two of these, and a copy held across them would answer from the old binding.
-              const findRepository = await resolveValueAsync(metaLink.repository);
+              const findRepository = await resolveValueAsync({ value: metaLink.repository });
               const existing = await findRepository.findOne({
                 filter: {
                   where: {
@@ -1043,7 +1028,7 @@ export class AssetControllerFactory extends BaseHelper {
               });
 
               if (existing) {
-                const updateRepository = await resolveValueAsync(metaLink.repository);
+                const updateRepository = await resolveValueAsync({ value: metaLink.repository });
                 await updateRepository.updateById({
                   id: existing.id,
                   data: {
@@ -1056,7 +1041,7 @@ export class AssetControllerFactory extends BaseHelper {
                     isSynced: true,
                   },
                 });
-                const readRepository = await resolveValueAsync(metaLink.repository);
+                const readRepository = await resolveValueAsync({ value: metaLink.repository });
                 const updatedMetaLink = await readRepository.findById({ id: existing.id });
                 return ctx.json(
                   { success: true, metaLink: updatedMetaLink },
@@ -1064,7 +1049,7 @@ export class AssetControllerFactory extends BaseHelper {
                 );
               }
 
-              const createRepository = await resolveValueAsync(metaLink.repository);
+              const createRepository = await resolveValueAsync({ value: metaLink.repository });
               const createdMetaLink = await createRepository.create({
                 data: {
                   bucketName,

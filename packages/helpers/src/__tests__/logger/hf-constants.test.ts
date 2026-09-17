@@ -23,7 +23,8 @@ describe('hf constants', () => {
   });
 
   test('codes and names are mutual inverses', () => {
-    for (const [name, code] of Object.entries(HF_LEVEL_CODES)) {
+    const hfLevelCodeEntries = Object.entries(HF_LEVEL_CODES);
+    for (const [name, code] of hfLevelCodeEntries) {
       expect(HF_LEVEL_NAMES[code as number]).toBe(name as (typeof HF_LEVEL_NAMES)[number]);
     }
   });

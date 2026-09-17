@@ -68,7 +68,8 @@ class FakeWorkerScope implements IWorkerMessageScope {
   }
 
   dispatch(envelope: unknown): void {
-    for (const listener of [...this.listeners]) {
+    const listenersList = [...this.listeners];
+    for (const listener of listenersList) {
       listener({ data: envelope } as MessageEvent);
     }
   }

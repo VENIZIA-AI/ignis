@@ -36,7 +36,8 @@ export class ArtifactIndexHelper extends BaseHelper {
     const registry = MetadataRegistry.getInstance();
     const index: Record<string, TClass<AnyType>[]> = {};
 
-    for (const target of registry.getDiscoveredArtifacts()) {
+    const discoveredArtifacts = registry.getDiscoveredArtifacts();
+    for (const target of discoveredArtifacts) {
       if (!isClass<AnyType>(target)) {
         continue;
       }
@@ -144,7 +145,8 @@ export class ArtifactIndexHelper extends BaseHelper {
 
     // Kahn's algorithm with priority queue (sorted by class name for deterministic sibling ordering)
     const available: string[] = [];
-    for (const [name, deg] of inDegree.entries()) {
+    const inDegreeEntries = inDegree.entries();
+    for (const [name, deg] of inDegreeEntries) {
       if (deg === 0) {
         available.push(name);
       }

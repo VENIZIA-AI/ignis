@@ -449,7 +449,8 @@ describe('AppErrorMiddleware — the NODE_ENV leak boundary', () => {
   }
 
   test('the env name is matched case-insensitively (DEV, Development)', async () => {
-    for (const nodeEnv of ['DEV', 'Development', 'LOCAL']) {
+    const nodeEnvs = ['DEV', 'Development', 'LOCAL'];
+    for (const nodeEnv of nodeEnvs) {
       const body = await requestUnder(nodeEnv);
       expect(body.message).toContain('a@b.com');
     }

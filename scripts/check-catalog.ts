@@ -34,7 +34,8 @@ const problems: Array<IProblem> = [];
 const referenced = new Set<string>();
 
 for (const pattern of WORKSPACE_GLOBS) {
-  for await (const file of new Glob(pattern).scan('.')) {
+  const files = new Glob(pattern).scan('.');
+  for await (const file of files) {
     let json: Record<string, Record<string, string> | undefined>;
 
     try {
@@ -48,7 +49,8 @@ for (const pattern of WORKSPACE_GLOBS) {
     }
 
     for (const block of CATALOGUED_BLOCKS) {
-      for (const [dep, range] of Object.entries(json[block] ?? {})) {
+      const entriesList = Object.entries(json[block] ?? {});
+      for (const [dep, range] of entriesList) {
         if (!(dep in catalog)) {
           continue;
         }
@@ -67,7 +69,8 @@ for (const pattern of WORKSPACE_GLOBS) {
     }
 
     // A peer resolved from the catalog would collapse to the exact install range, losing the looseness that makes it a peer.
-    for (const [dep, range] of Object.entries(json.peerDependencies ?? {})) {
+    const jsonPeerDependenciesEntries = Object.entries(json.peerDependencies ?? {});
+    for (const [dep, range] of jsonPeerDependenciesEntries) {
       if (range !== 'catalog:') {
         continue;
       }
@@ -81,7 +84,8 @@ for (const pattern of WORKSPACE_GLOBS) {
 }
 
 // A catalog entry nobody references is dead weight that will drift out of date unnoticed.
-for (const dep of Object.keys(catalog)) {
+const catalogKeys = Object.keys(catalog);
+for (const dep of catalogKeys) {
   if (referenced.has(dep)) {
     continue;
   }

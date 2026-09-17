@@ -3,7 +3,6 @@ import { getError } from '@/modules/error';
 import { IRedisHelper } from '@/modules/redis';
 import { toError } from '@/utilities/promise.utility';
 import { Job, Processor, Queue, QueueOptions, Worker, WorkerOptions } from 'bullmq';
-import { Cluster } from 'ioredis';
 import { invokeHook, TBullQueueRole } from '../common';
 
 export interface IBullMQOptions<TQueueElement = any, TQueueResult = any> {
@@ -88,13 +87,9 @@ export class BullMQHelper<TQueueElement = any, TQueueResult = any> extends BaseH
     return new BullMQHelper<T, R>(opts);
   }
 
-  /** Structural cluster check: catches a real `Cluster` instance, a duplicated cluster client, and one built from a second ioredis copy (fails `instanceof` across module copies). */
+  /** Structural, never `instanceof`: ioredis is an optional peer, and a second copy fails `instanceof` anyway. */
   protected isClusterClient(): boolean {
     const client = Object(this.redisConnection.getClient());
-
-    if (client instanceof Cluster) {
-      return true;
-    }
 
     if (Reflect.get(client, 'isCluster') === true) {
       return true;

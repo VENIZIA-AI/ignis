@@ -204,7 +204,8 @@ export abstract class AbstractRepository<
     this.assertLimitWithinCeiling({ limit: filter.limit, scope });
 
     const walk = (inclusions: TInclusion[] | undefined, path: string): void => {
-      for (const inclusion of inclusions ?? []) {
+      const inclusionsList = inclusions ?? [];
+      for (const inclusion of inclusionsList) {
         const relationScope = inclusion.scope;
         if (!relationScope) {
           continue;
@@ -242,7 +243,7 @@ export abstract class AbstractRepository<
 
     // resolveValue() erases to the resolved value's structural type, not this class-or-resolver
     // union's member - the `@repository` decorator guarantees a class constructor here.
-    const ModelClass = resolveValue(binding.model) as TClass<AbstractEntity>;
+    const ModelClass = resolveValue({ value: binding.model }) as TClass<AbstractEntity>;
     return new ModelClass();
   }
 

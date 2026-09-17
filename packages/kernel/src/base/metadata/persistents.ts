@@ -144,7 +144,7 @@ const registerDataSourceInjection = (opts: {
     // `@inject({ target })` carries no key; read the one recorded on the class. The function form
     // resolves through the same helper the container uses, so both paths read one class.
     const injectedTarget = injectAtIndex0.target
-      ? resolveInjectTarget(injectAtIndex0.target)
+      ? resolveInjectTarget({ target: injectAtIndex0.target })
       : undefined;
     const injectKey =
       injectAtIndex0.key ??
@@ -196,8 +196,8 @@ const resolveRepositoryMetadata = <
     return undefined;
   }
 
-  const resolvedModel = resolveValue(metadata.model);
-  const resolvedDataSource = resolveClass(metadata.dataSource);
+  const resolvedModel = resolveValue({ value: metadata.model });
+  const resolvedDataSource = resolveClass({ ref: metadata.dataSource });
 
   registry.registerRepositoryBinding({
     repository: target,

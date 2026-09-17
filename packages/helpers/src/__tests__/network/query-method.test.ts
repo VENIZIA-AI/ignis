@@ -28,7 +28,8 @@ describe('HTTP.Methods const-class', () => {
   });
 
   test('every method token is lowercase - route definitions (@hono/zod-openapi) accept no other case', () => {
-    for (const [name, token] of Object.entries(HTTP.Methods)) {
+    const HTTPMethodsEntries = Object.entries(HTTP.Methods);
+    for (const [name, token] of HTTPMethodsEntries) {
       expect(`${name}=${token}`).toBe(`${name}=${token.toLowerCase()}`);
     }
   });

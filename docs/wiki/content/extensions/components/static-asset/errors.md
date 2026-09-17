@@ -25,6 +25,7 @@ These carry a machine code a client can branch on, alongside the human message. 
 | `core.static_asset.upload_not_authorized` | `"Not allowed to request an upload policy"` | `403` | `VALIDATION` |
 | `core.static_asset.invalid_commit_token` | `"Invalid commit token"` | `400` | `VALIDATION` |
 | `core.static_asset.expired_commit_token` | `"Commit token has expired"` | `400` | `VALIDATION` |
+| `core.static_asset.labels_in_query` | `"Upload labels belong in the request body, not the query"` | `400` | `VALIDATION` |
 | `core.storage.object_not_found` | `"Object not found"` | `404` | `BUSINESS` |
 
 The seven `core.static_asset.*` codes live on `StaticAssetErrors`; `core.storage.object_not_found` lives on `StorageErrors` in the helpers package. Both register with the shared key registry, so `messageCode` autocompletes.

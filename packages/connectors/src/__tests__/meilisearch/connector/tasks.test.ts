@@ -110,7 +110,8 @@ describe('MeilisearchConnector - count and updateBy', () => {
   });
 
   test('count() reads the exact total from the document route, never the search route', async () => {
-    for (const id of ['1', '2', '3']) {
+    const items = ['1', '2', '3'];
+    for (const id of items) {
       await connector.document.create({
         collection: 'articles',
         document: { id, score: Number(id) },
@@ -124,7 +125,8 @@ describe('MeilisearchConnector - count and updateBy', () => {
   });
 
   test('updateBy() patches every matching document and preserves untouched fields', async () => {
-    for (const id of ['1', '2', '3']) {
+    const items = ['1', '2', '3'];
+    for (const id of items) {
       await connector.document.create({
         collection: 'articles',
         document: { id, score: Number(id), title: 'old' },

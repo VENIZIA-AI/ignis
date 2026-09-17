@@ -42,7 +42,8 @@ const camelizeValue = (value: unknown): unknown => {
   }
 
   const camelized: any = {};
-  for (const key of Object.keys(value)) {
+  const valueKeys = Object.keys(value);
+  for (const key of valueKeys) {
     camelized[toCamel(key)] = camelizeValue((value as Record<string, unknown>)[key]);
   }
 

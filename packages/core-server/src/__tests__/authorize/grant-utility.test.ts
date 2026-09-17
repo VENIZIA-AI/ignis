@@ -167,7 +167,7 @@ describe('extraPolicyDefinitionColumns', () => {
   it('declares every column, and no longer the concatenated domain token', () => {
     const columns = extraPolicyDefinitionColumns({ idType: 'string' });
 
-    for (const name of [
+    const names = [
       'variant',
       'subjectType',
       'targetType',
@@ -177,7 +177,8 @@ describe('extraPolicyDefinitionColumns', () => {
       'domainId',
       'subjectId',
       'targetId',
-    ]) {
+    ];
+    for (const name of names) {
       expect(columns).toHaveProperty(name);
     }
 

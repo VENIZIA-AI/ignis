@@ -7,11 +7,13 @@ const openServers: NetworkTcpServer[] = [];
 const openSockets: Socket[] = [];
 
 afterEach(async () => {
-  for (const socket of openSockets.splice(0)) {
+  const sockets = openSockets.splice(0);
+  for (const socket of sockets) {
     socket.destroy();
   }
 
-  for (const server of openServers.splice(0)) {
+  const servers = openServers.splice(0);
+  for (const server of servers) {
     await server.shutdown();
   }
 });

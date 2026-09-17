@@ -54,7 +54,7 @@ describe('MailComponent - wiring', () => {
     );
 
     // Class bindings are asserted by presence: `bun test` does not resolve the decorator flags two `extends` hops away, so container.instantiate() of an @inject'ed class is not exercisable in this runtime.
-    for (const key of [
+    const keys = [
       MailKeys.MAIL_SERVICE,
       MailKeys.MAIL_TEMPLATE_ENGINE,
       MailKeys.MAIL_VERIFICATION_CODE_GENERATOR,
@@ -62,7 +62,8 @@ describe('MailComponent - wiring', () => {
       MailKeys.MAIL_VERIFICATION_DATA_GENERATOR,
       MailKeys.MAIL_TRANSPORT_PROVIDER,
       MailKeys.MAIL_QUEUE_EXECUTOR_PROVIDER,
-    ]) {
+    ];
+    for (const key of keys) {
       expect(container.isBound({ key })).toBe(true);
     }
   });

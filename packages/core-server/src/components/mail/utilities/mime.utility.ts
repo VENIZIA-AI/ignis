@@ -294,7 +294,8 @@ function buildHeaders(message: IMailMessage): string[] {
   headers.push('MIME-Version: 1.0');
 
   if (message.headers) {
-    for (const [key, value] of Object.entries(message.headers)) {
+    const messageHeadersEntries = Object.entries(message.headers);
+    for (const [key, value] of messageHeadersEntries) {
       assertNoHeaderInjection({ field: `headers.${key}`, value: key });
       assertNoHeaderInjection({ field: `headers.${key}`, value });
       headers.push(foldHeaderLine(`${key}: ${encodeHeaderValue(value)}`));

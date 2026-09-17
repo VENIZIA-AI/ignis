@@ -113,7 +113,8 @@ describe('GET /health/stats is off unless a host opts in', () => {
    * every test file in the worker shares.
    */
   test('with no explicit enable the default is closed outside the development environments', () => {
-    for (const name of ['staging', 'uat', 'production', 'preprod', 'PRODUCTION']) {
+    const closedEnvironments = ['staging', 'uat', 'production', 'preprod', 'PRODUCTION'];
+    for (const name of closedEnvironments) {
       const enabled = HealthCheckReporter.isStatsEnabled({
         options: {},
         environment: () => name,
@@ -121,7 +122,8 @@ describe('GET /health/stats is off unless a host opts in', () => {
       expect(enabled).toBe(false);
     }
 
-    for (const name of ['development', 'local', 'debug', 'dev', 'sit', 'DEVELOPMENT']) {
+    const openEnvironments = ['development', 'local', 'debug', 'dev', 'sit', 'DEVELOPMENT'];
+    for (const name of openEnvironments) {
       const enabled = HealthCheckReporter.isStatsEnabled({
         options: {},
         environment: () => name,
@@ -228,7 +230,8 @@ describe('the stats gate', () => {
     const nulled: IHealthCheckOptions = JSON.parse('{"stats":{"enable":true,"secretKey":null}}');
     const numeric: IHealthCheckOptions = JSON.parse('{"stats":{"enable":true,"secretKey":42}}');
 
-    for (const options of [blank, empty, nulled, numeric]) {
+    const optionses = [blank, empty, nulled, numeric];
+    for (const options of optionses) {
       expect(HealthCheckReporter.isStatsAuthorized({ options, header: '   ' })).toBe(false);
       expect(HealthCheckReporter.isStatsAuthorized({ options, header: undefined })).toBe(false);
     }

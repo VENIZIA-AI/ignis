@@ -3,12 +3,7 @@ import { HTTP } from '@venizia/ignis-helpers/common';
 import { getError } from '@venizia/ignis-helpers/core';
 import type { TIdSchemaType } from './types';
 
-/**
- * Local copy of `@venizia/ignis-helpers`'s error response schema - kept out of that package's
- * `/core` subpath on purpose (it would force `@hono/zod-openapi` on every non-REST consumer of the
- * pure error barrel). The kernel already depends on `@hono/zod-openapi` for its REST controller
- * layer, so the shape is reproduced here rather than reached through the root barrel.
- */
+/** The error RESPONSE for OpenAPI docs - here, beside the REST layer that already needs `@hono/zod-openapi`. */
 export const ErrorSchema = z
   .object({
     statusCode: z.number().optional(),
@@ -39,6 +34,8 @@ export const ErrorSchema = z
       details: { url: 'http://localhost:3000/categories', path: '/categories' },
     },
   });
+
+export type TErrorResponse = z.infer<typeof ErrorSchema>;
 
 export const idParamsSchema = (opts?: { idType: TIdSchemaType }) => {
   const { idType = 'number' } = opts ?? {};

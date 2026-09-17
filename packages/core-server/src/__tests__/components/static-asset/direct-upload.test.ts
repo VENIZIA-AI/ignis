@@ -250,7 +250,40 @@ describe('a direct upload lands a MetaLink row, like every other upload', () => 
     expect(await response.json()).toHaveProperty('metaLink');
   });
 
-  test('the label query reaches the row, so a direct upload can be attributed too', async () => {
+  test('a label in the commit query is a 400, and nothing is recorded', async () => {
+    const helper = new FakeStorageHelper();
+    const created: Array<Record<string, unknown>> = [];
+    const router = await mount({
+      helper,
+      directUpload: ALLOW,
+      metaLink: {
+        model: BaseMetaLinkModel,
+        repository: {
+          create: async (opts: { data: Record<string, unknown> }) => {
+            created.push(opts.data);
+            return { count: 1, data: { id: 'meta-1', ...opts.data } };
+          },
+        } as never,
+      },
+    });
+
+    const policies = (await (await askPolicy(router, [{ fileName: 'a.png' }])).json()) as Array<{
+      objectName: string;
+      commitToken: string;
+    }>;
+    helper.seedObject({ bucket: 'uploads', key: policies[0].objectName });
+
+    const response = await router.request('/assets/upload-commit?principalId=42', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ commitToken: policies[0].commitToken }),
+    });
+
+    expect(response.status).toBe(400);
+    expect(created).toEqual([]);
+  });
+
+  test('labels in the commit body reach the row, so a direct upload can be attributed too', async () => {
     const helper = new FakeStorageHelper();
     const created: Array<Record<string, unknown>> = [];
     const router = await mount({

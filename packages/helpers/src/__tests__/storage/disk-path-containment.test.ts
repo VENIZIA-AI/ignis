@@ -31,7 +31,8 @@ const captureError = async (opts: { task: Promise<unknown> }): Promise<string> =
 };
 
 afterEach(() => {
-  for (const root of roots.splice(0)) {
+  const rootsList = roots.splice(0);
+  for (const root of rootsList) {
     rmSync(root, { recursive: true, force: true });
   }
 });

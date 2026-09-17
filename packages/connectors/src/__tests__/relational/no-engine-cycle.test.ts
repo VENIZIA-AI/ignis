@@ -42,8 +42,10 @@ const listFamilyDirectories = (): string[] =>
 const listForbiddenDirectories = (opts: { walkingFrom: string }): string[] => {
   const forbidden: string[] = [];
 
-  for (const family of listFamilyDirectories()) {
-    for (const entry of readdirSync(family, { withFileTypes: true })) {
+  const familyDirectories = listFamilyDirectories();
+  for (const family of familyDirectories) {
+    const familyEntries = readdirSync(family, { withFileTypes: true });
+    for (const entry of familyEntries) {
       if (!entry.isDirectory()) {
         continue;
       }
@@ -63,7 +65,8 @@ const listForbiddenDirectories = (opts: { walkingFrom: string }): string[] => {
 const listJsFiles = (dir: string): string[] => {
   const files: string[] = [];
 
-  for (const entry of readdirSync(dir, { withFileTypes: true })) {
+  const dirEntries = readdirSync(dir, { withFileTypes: true });
+  for (const entry of dirEntries) {
     const fullPath = join(dir, entry.name);
 
     if (entry.isDirectory()) {
@@ -89,7 +92,8 @@ const resolveSpecifier = (opts: { fromFile: string; specifier: string }): string
 
   const base = resolve(dirname(fromFile), specifier);
 
-  for (const candidate of [base, `${base}.js`, join(base, 'index.js')]) {
+  const candidates = [base, `${base}.js`, join(base, 'index.js')];
+  for (const candidate of candidates) {
     try {
       if (statSync(candidate).isFile()) {
         return candidate;
@@ -113,8 +117,10 @@ const outgoingEdges = (file: string): string[] => {
   const source = readFileSync(file, 'utf8');
   const targets = new Set<string>();
 
-  for (const pattern of [REQUIRE_PATTERN, FROM_PATTERN]) {
-    for (const match of source.matchAll(pattern)) {
+  const patterns = [REQUIRE_PATTERN, FROM_PATTERN];
+  for (const pattern of patterns) {
+    const matches = source.matchAll(pattern);
+    for (const match of matches) {
       const resolved = resolveSpecifier({ fromFile: file, specifier: match[1] ?? '' });
 
       if (resolved) {
@@ -155,7 +161,8 @@ const walkFromNeutralTier = (opts: { family: string }): IWalkResult => {
       continue;
     }
 
-    for (const next of outgoingEdges(file)) {
+    const nexts = outgoingEdges(file);
+    for (const next of nexts) {
       if (cameFrom.has(next)) {
         continue;
       }
@@ -197,10 +204,11 @@ describe('no neutral tier reaches an engine adapter at runtime', () => {
     // that fails the day a tier stops being guarded - the search tier fell out once already.
     expect(families.sort()).toEqual(['relational', 'search']);
 
-    for (const [family, engines] of Object.entries({
+    const entriesList = Object.entries({
       relational: ['core', 'postgres', 'sqlite'],
       search: ['core', 'meilisearch', 'typesense'],
-    })) {
+    });
+    for (const [family, engines] of entriesList) {
       for (const engine of engines) {
         const engineDist = join(DIST, family, engine);
 

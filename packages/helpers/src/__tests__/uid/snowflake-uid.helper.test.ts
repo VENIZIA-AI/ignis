@@ -150,7 +150,8 @@ describe('SnowflakeUidHelper', () => {
         const key = helper.extractTimestamp(id).getTime();
         perTimestamp.set(key, (perTimestamp.get(key) ?? 0) + 1);
       }
-      for (const count of perTimestamp.values()) {
+      const perTimestampValues = perTimestamp.values();
+      for (const count of perTimestampValues) {
         expect(count).toBeLessThanOrEqual(4096);
       }
     });

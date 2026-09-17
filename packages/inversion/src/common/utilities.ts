@@ -83,8 +83,10 @@ const isResolver = <T>(valueOrResolver: TValueOrResolver<T>): valueOrResolver is
   typeof valueOrResolver === 'function' && !isClass(valueOrResolver);
 
 /** Reads a value-or-resolver. A class constructor is returned as-is; only a plain function is called. */
-export const resolveValue = <T>(valueOrResolver: TValueOrResolver<T>): T =>
-  isResolver(valueOrResolver) ? valueOrResolver() : valueOrResolver;
+export const resolveValue = <T>(opts: { value: TValueOrResolver<T> }): T => {
+  const { value } = opts;
+  return isResolver(value) ? value() : value;
+};
 
 const isAsyncResolver = <T>(
   valueOrResolver: TValueOrAsyncResolver<T>,
@@ -92,12 +94,17 @@ const isAsyncResolver = <T>(
   typeof valueOrResolver === 'function' && !isClass(valueOrResolver);
 
 /** `resolveValue` for a resolver that may answer a promise. */
-export const resolveValueAsync = async <T>(
-  valueOrResolver: TValueOrAsyncResolver<T>,
-): Promise<T> => (isAsyncResolver(valueOrResolver) ? valueOrResolver() : valueOrResolver);
+export const resolveValueAsync = async <T>(opts: {
+  value: TValueOrAsyncResolver<T>;
+}): Promise<T> => {
+  const { value } = opts;
+  return isAsyncResolver(value) ? value() : value;
+};
 
 /** Reads what `@inject({ target })` named. The function form is called HERE, never at decoration: that is what lets a class reached through an import cycle be named at all. Answers `undefined` when the function hands back something that is not a class. The container resolves synchronously, so there is no async form. */
-export const resolveInjectTarget = (target: TInjectTarget): TClass<AnyType> | undefined => {
-  const resolved = resolveValue(target);
+export const resolveInjectTarget = (opts: {
+  target: TInjectTarget;
+}): TClass<AnyType> | undefined => {
+  const resolved = resolveValue({ value: opts.target });
   return isClass(resolved) ? resolved : undefined;
 };

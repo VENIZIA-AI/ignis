@@ -138,7 +138,8 @@ describe('buildServer', () => {
 
     const transport = buildServer({ mode: AtlasModes.SNAPSHOT, root, version: TEST_VERSION });
 
-    for (const name of ['version', 'changes']) {
+    const names = ['version', 'changes'];
+    for (const name of names) {
       const reply = parseReply(
         await transport.handleLine({
           line: JSON.stringify({
