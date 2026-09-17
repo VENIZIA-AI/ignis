@@ -456,6 +456,14 @@ const config = defineConfig({
               items: [
                 { text: 'lodash Is Gone', link: '/changelogs/2026-09-17-lodash-is-gone' },
                 {
+                  text: 'A Log Line Stops Carrying a Base64 Payload',
+                  link: '/changelogs/2026-09-17-a-log-line-stops-carrying-a-base64-payload',
+                },
+                {
+                  text: 'An HTTP Connector',
+                  link: '/changelogs/2026-09-17-an-http-connector',
+                },
+                {
                   text: 'A Repository Entry for Other Transports',
                   link: '/changelogs/2026-09-17-a-repository-entry-for-other-transports',
                 },

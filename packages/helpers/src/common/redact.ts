@@ -36,15 +36,54 @@ export const REDACTED = '[REDACTED]';
 const isRedactionEnabled = (): boolean =>
   globalThis.process?.env?.APP_ENV_LOGGER_DO_REDACT !== 'false';
 
+/** Longest string a log line carries whole. `APP_ENV_LOGGER_MAX_STRING_LENGTH=0` turns capping off. */
+const DEFAULT_MAX_STRING_LENGTH = 2048;
+
+const resolveMaxStringLength = (): number => {
+  const configured = Number(globalThis.process?.env?.APP_ENV_LOGGER_MAX_STRING_LENGTH);
+  return Number.isFinite(configured) && configured >= 0 ? configured : DEFAULT_MAX_STRING_LENGTH;
+};
+
+/**
+ * Keys whose value is long BY NATURE and useless truncated. A stack trace is the whole reason you
+ * are reading the line.
+ */
+const UNCAPPED_KEYS = new Set(['stack', 'stacktrace', 'stack_trace']);
+
+/**
+ * Caps a long string, keeping the ORIGINAL LENGTH in the marker - that number is what tells you the
+ * payload was a 300 KB image rather than a truncated sentence.
+ *
+ * A base64 body is the case this exists for: one `data:image/png;base64,...` field turns a request
+ * log into hundreds of kilobytes, and nothing about it is readable.
+ */
+const capString = (opts: { value: string; key?: string; limit: number }): string => {
+  const { value, key, limit } = opts;
+
+  if (limit === 0 || value.length <= limit || (key && UNCAPPED_KEYS.has(key.toLowerCase()))) {
+    return value;
+  }
+
+  return `${value.slice(0, limit)}... [truncated, ${value.length} chars total]`;
+};
+
 type TSanitizeContext = {
   seen: WeakSet<object>;
   doRedact: boolean;
   /** Levels still allowed BELOW the current one; `Infinity` walks the whole graph. */
   depth: number;
+  /** Longest string kept whole; 0 keeps every string. */
+  maxStringLength: number;
+  /** The key this value was found under, so a stack trace can be exempted from capping. */
+  key?: string;
 };
 
 const deepSanitize = (value: unknown, context: TSanitizeContext): unknown => {
   const { seen, doRedact, depth } = context;
+
+  if (typeof value === 'string') {
+    return capString({ value, key: context.key, limit: context.maxStringLength });
+  }
 
   if (value === null || typeof value !== 'object') {
     return value;
@@ -68,7 +107,12 @@ const deepSanitize = (value: unknown, context: TSanitizeContext): unknown => {
   }
 
   seen.add(value);
-  const nested: TSanitizeContext = { seen, doRedact, depth: depth - 1 };
+  const nested: TSanitizeContext = {
+    seen,
+    doRedact,
+    depth: depth - 1,
+    maxStringLength: context.maxStringLength,
+  };
 
   // Error keeps name/message/stack NON-enumerable, so Object.keys() skips them and naive redaction would drop the message - reproject into a plain object carrying those fields plus its redacted enumerable own-props.
   if (value instanceof Error) {
@@ -81,7 +125,9 @@ const deepSanitize = (value: unknown, context: TSanitizeContext): unknown => {
 
     for (const key of Object.keys(source)) {
       result[key] =
-        doRedact && SECRET_KEY_PATTERN.test(key) ? REDACTED : deepSanitize(source[key], nested);
+        doRedact && SECRET_KEY_PATTERN.test(key)
+          ? REDACTED
+          : deepSanitize(source[key], { ...nested, key });
     }
 
     return result;
@@ -100,7 +146,7 @@ const deepSanitize = (value: unknown, context: TSanitizeContext): unknown => {
       continue;
     }
 
-    result[key] = deepSanitize(source[key], nested);
+    result[key] = deepSanitize(source[key], { ...nested, key });
   }
 
   return result;
@@ -128,6 +174,7 @@ export const redactSecrets = (
     seen: seen ?? new WeakSet<object>(),
     doRedact: true,
     depth,
+    maxStringLength: resolveMaxStringLength(),
   });
 };
 
@@ -137,6 +184,9 @@ export const toJsonSafe = (opts: { value: unknown; depth?: number }): unknown =>
     seen: new WeakSet<object>(),
     doRedact: isRedactionEnabled(),
     depth: opts.depth ?? Infinity,
+    // Capping is STRUCTURAL, like the projection itself: turning redaction off is about key masking,
+    // never about letting a 300 KB base64 field through.
+    maxStringLength: resolveMaxStringLength(),
   });
 };
 

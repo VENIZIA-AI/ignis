@@ -6,6 +6,54 @@ not how.
 This file and `index.md` are reserved OKF filenames - they carry no `type:` frontmatter and are not
 counted as concepts.
 
+## 2026-09-17 (c) - an HTTP connector, and the network layer becomes browser-reachable
+
+`@venizia/ignis-connectors/http`: `HttpDataSource` + `HttpRepository` at 14.4 KB gzip against the
+root barrel's 144.2 KB, zod and drizzle free. It targets the IGNIS REST contract and promises nothing
+about an arbitrary REST API - how a filter serialises and which header carries the total are one
+API's CONVENTIONS, and IGNIS-to-IGNIS is both ends speaking its own.
+
+The first cut used a bare `fetch`, justified by bundle size. That justification was WRONG and
+unmeasured: the fetcher barrel already excludes `axios-fetcher` on purpose. The real blocker was one
+line - `node-fetcher.ts` imported `node:querystring` for a single `stringify` call, which kept the
+whole network layer out of the browser-safe `/core` and pushed every browser-facing connector into
+writing its own HTTP. Written out (22 cases diffed against node, 0 mismatches - `URLSearchParams`
+disagrees on four, including turning `undefined` into the STRING "undefined"), the fetcher is now on
+`/core` and the framework has ONE HTTP path again.
+
+Three response shapes, ASKED FOR and never sniffed: `read({ shape: 'list' })` accepts both a bare
+array and the `{ count, data }` envelope - `x-request-count` decides and its DEFAULT is on, so an
+IGNIS list answers the envelope unless asked otherwise; `read({ shape: 'one' })` is never unwrapped,
+because structure cannot tell an envelope from a record carrying a `data` column and a `count`
+column; `request()` answers the raw `Response` so an export endpoint is expressible without a blob
+shape on a contract about rows.
+
+No `Content-Range` means NO total, and `count()` says so rather than reporting the page size.
+
+`onUnauthorized` is a hook returning a boolean, not a flag: refresh, logout, or both in an order only
+the host knows is the HOST's policy. A boolean could only have meant "ask the resolver again", which
+reads like recovery and is not.
+
+Headers merge through `Headers`, never a plain object: names are case-INSENSITIVE, so an object keeps
+both spellings and `Headers` then APPENDS them - a caller overriding `x-request-count` gets
+`"false, true"`, which parses as neither.
+
+Also: `parseContentDisposition` in helpers, the reading half of `createContentDispositionHeader`,
+handling the RFC 5987 `filename*` form that hand-rolled parsers return percent-encoded.
+
+`modules/network/` grew a `utilities/` folder: `url-safety` moved into it, and the querystring
+serialiser lives beside it as `query-string.ts` rather than inside the fetcher that happened to need
+it first. `QueryStringSeparators` names `?`, `&` and `=` - a reader sees the ROLE rather than the
+character, and `url.includes('?')` stops being a literal whose meaning you have to reconstruct.
+
+And a STRING CAP in `deepSanitize`, so one base64 field no longer turns a request log into hundreds
+of kilobytes. It sits in the shared sanitiser rather than in `RequestSpyMiddleware`, because every
+log call has the same exposure and the spy is only where it was noticed. 2048 characters by default,
+`APP_ENV_LOGGER_MAX_STRING_LENGTH=0` turns it off, and the marker keeps the ORIGINAL LENGTH - that
+number is what says "a 300 KB image" rather than "a truncated sentence". `stack` is exempt: a trace is
+long by nature and useless cut. Capping is structural, so it survives
+`APP_ENV_LOGGER_DO_REDACT=false` - that switch is about key masking, never about payload size.
+
 ## 2026-09-17 (b) - a repository entry for other transports
 
 `@venizia/ignis-kernel/repository`: `AbstractRepository`, `AbstractDataSource`, the CRUD contract,

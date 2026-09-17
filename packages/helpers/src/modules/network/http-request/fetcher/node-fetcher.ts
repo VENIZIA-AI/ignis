@@ -1,7 +1,8 @@
 import { redactSecrets } from '@/common/redact';
 import { HTTP, THttpMethod } from '@/common/constants/http';
 import { AnyObject } from '@/common/types';
-import { stringify } from 'node:querystring';
+import { QueryStringSeparators, toQueryString } from '../../utilities/query-string';
+
 import { BaseNetworkRequest } from '../base-network-request.helper';
 import type { ILogger } from '@/modules/logger/common/types';
 import { AbstractNetworkFetchableHelper, IRequestOptions } from './base-fetcher';
@@ -67,9 +68,9 @@ export class NodeFetcher extends AbstractNetworkFetchableHelper<
     };
 
     // `?` only when the url carries no query string of its own - a second `?` is not a separator, so the server would read the previous parameter's value as `1?extra=2`.
-    const serializedParams = params ? stringify(params) : '';
+    const serializedParams = params ? toQueryString({ params }) : '';
     const requestUrl = serializedParams
-      ? `${url}${url.includes('?') ? '&' : '?'}${serializedParams}`
+      ? `${url}${url.includes(QueryStringSeparators.START) ? QueryStringSeparators.PAIR : QueryStringSeparators.START}${serializedParams}`
       : url;
 
     // The body is NEVER logged, only its size. `fetch` bodies are strings, and `redactSecrets` walks

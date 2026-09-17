@@ -117,7 +117,7 @@ instead of `core.system_error`:
 | `SearchErrors` | `core.search_engine.*` | `packages/connectors/src/search/core/common/errors.ts` |
 | `MailErrors` | `core.mail.*` | `packages/core-server/src/components/mail/common/errors.ts` |
 | `StorageErrors` | `core.storage.*` | `packages/helpers/src/modules/storage/common/errors.ts` |
-| `UrlSafetyErrors` | `core.url_safety.*` | `packages/helpers/src/modules/network/url-safety/common/errors.ts` |
+| `UrlSafetyErrors` | `core.url_safety.*` | `packages/helpers/src/modules/network/utilities/url-safety/common/errors.ts` |
 
 ```typescript
 throw getError({ error: AuthenticationErrors.TOKEN_INVALID, cause: joseError });

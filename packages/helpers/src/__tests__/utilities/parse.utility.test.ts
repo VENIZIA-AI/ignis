@@ -157,6 +157,17 @@ describe('keysToCamel', () => {
   });
 });
 
+/**
+ * The accepted vocabulary is a CONTRACT, not an implementation detail.
+ *
+ * `x-request-count` decides whether an IGNIS list answers rows or a `{ count, data }` envelope, and
+ * two packages in this house spell it differently: IGNIS sends `'true'`/`'false'`, a browser-side
+ * consumer sends `'1'`/`'0'`. Only this parser makes them compatible.
+ *
+ * Tightening it to `=== 'false'` would make every `'0'` read as TRUE, so a list that asked for rows
+ * would receive the envelope and render it as ONE row - no error, no failed request, just a page
+ * showing one record where there were fifty.
+ */
 describe('toBoolean', () => {
   test('treats the falsy wire values as false', () => {
     expect(toBoolean('')).toBe(false);

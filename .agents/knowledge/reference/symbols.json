@@ -2941,7 +2941,7 @@
       "specifier": "@venizia/ignis",
       "kind": "interface",
       "file": "packages/helpers/src/modules/network/http-request/fetcher/node-fetcher.ts",
-      "line": 100,
+      "line": 101,
       "signature": "interface INodeFetchNetworkRequestOptions"
     },
     {
@@ -2951,7 +2951,7 @@
       "specifier": "@venizia/ignis",
       "kind": "interface",
       "file": "packages/helpers/src/modules/network/http-request/fetcher/node-fetcher.ts",
-      "line": 9,
+      "line": 10,
       "signature": "interface INodeFetchRequestOptions extends RequestInit, IRequestOptions"
     },
     {
@@ -3950,7 +3950,7 @@
       "subpath": ".",
       "specifier": "@venizia/ignis",
       "kind": "interface",
-      "file": "packages/helpers/src/modules/network/url-safety/common/types.ts",
+      "file": "packages/helpers/src/modules/network/utilities/url-safety/common/types.ts",
       "line": 7,
       "signature": "interface IUrlSafetyPolicy"
     },
@@ -4511,7 +4511,7 @@
       "specifier": "@venizia/ignis",
       "kind": "class",
       "file": "packages/helpers/src/modules/network/http-request/fetcher/node-fetcher.ts",
-      "line": 107,
+      "line": 108,
       "signature": "class NodeFetchNetworkRequest extends BaseNetworkRequest<'node-fetch'>"
     },
     {
@@ -4521,7 +4521,7 @@
       "specifier": "@venizia/ignis",
       "kind": "class",
       "file": "packages/helpers/src/modules/network/http-request/fetcher/node-fetcher.ts",
-      "line": 15,
+      "line": 16,
       "signature": "class NodeFetcher extends AbstractNetworkFetchableHelper<'node-fetch', INodeFetchRequestOptions, Awaited<ReturnType<typeof fetch>>, typeof fetch>"
     },
     {
@@ -4684,6 +4684,16 @@
       "file": "packages/filter/src/common/operators.ts",
       "line": 30,
       "signature": "class QueryOperators"
+    },
+    {
+      "name": "QueryStringSeparators",
+      "package": "@venizia/ignis",
+      "subpath": ".",
+      "specifier": "@venizia/ignis",
+      "kind": "class",
+      "file": "packages/helpers/src/modules/network/utilities/query-string.ts",
+      "line": 4,
+      "signature": "class QueryStringSeparators"
     },
     {
       "name": "QueueStatuses",
@@ -7701,7 +7711,7 @@
       "subpath": ".",
       "specifier": "@venizia/ignis",
       "kind": "type",
-      "file": "packages/helpers/src/modules/network/url-safety/common/constants.ts",
+      "file": "packages/helpers/src/modules/network/utilities/url-safety/common/constants.ts",
       "line": 14,
       "signature": "type TUrlScheme = TConstValue<typeof UrlSchemes>"
     },
@@ -7971,7 +7981,7 @@
       "subpath": ".",
       "specifier": "@venizia/ignis",
       "kind": "class",
-      "file": "packages/helpers/src/modules/network/url-safety/ingest.ts",
+      "file": "packages/helpers/src/modules/network/utilities/url-safety/ingest.ts",
       "line": 13,
       "signature": "class UrlIngest"
     },
@@ -7981,7 +7991,7 @@
       "subpath": ".",
       "specifier": "@venizia/ignis",
       "kind": "class",
-      "file": "packages/helpers/src/modules/network/url-safety/policy.ts",
+      "file": "packages/helpers/src/modules/network/utilities/url-safety/policy.ts",
       "line": 12,
       "signature": "class UrlPolicy"
     },
@@ -7991,7 +8001,7 @@
       "subpath": ".",
       "specifier": "@venizia/ignis",
       "kind": "class",
-      "file": "packages/helpers/src/modules/network/url-safety/common/constants.ts",
+      "file": "packages/helpers/src/modules/network/utilities/url-safety/common/constants.ts",
       "line": 17,
       "signature": "class UrlSafetyDefaults"
     },
@@ -8001,7 +8011,7 @@
       "subpath": ".",
       "specifier": "@venizia/ignis",
       "kind": "const",
-      "file": "packages/helpers/src/modules/network/url-safety/common/errors.ts",
+      "file": "packages/helpers/src/modules/network/utilities/url-safety/common/errors.ts",
       "line": 10,
       "signature": "UrlSafetyErrors: { readonly URL_REFUSED: { readonly message: { readonly text: \"Url refused by the safety policy\"; readonly code: \"core.url_safety.url_refused\"; }; readonly statusCode: 400; readonly category: \"business\"; }; }"
     },
@@ -8011,7 +8021,7 @@
       "subpath": ".",
       "specifier": "@venizia/ignis",
       "kind": "class",
-      "file": "packages/helpers/src/modules/network/url-safety/common/constants.ts",
+      "file": "packages/helpers/src/modules/network/utilities/url-safety/common/constants.ts",
       "line": 4,
       "signature": "class UrlSchemes"
     },
@@ -8362,7 +8372,7 @@
       "specifier": "@venizia/ignis",
       "kind": "const",
       "file": "packages/helpers/src/utilities/request.utility.ts",
-      "line": 118,
+      "line": 119,
       "signature": "createContentDispositionHeader: (opts: { filename: string; type: \"attachment\" | \"inline\"; }) => string"
     },
     {
@@ -8473,7 +8483,7 @@
       "specifier": "@venizia/ignis",
       "kind": "const",
       "file": "packages/helpers/src/utilities/request.utility.ts",
-      "line": 112,
+      "line": 113,
       "signature": "encodeRFC5987: (filename: string) => string"
     },
     {
@@ -8903,7 +8913,7 @@
       "specifier": "@venizia/ignis",
       "kind": "const",
       "file": "packages/inversion/src/common/utilities.ts",
-      "line": 72,
+      "line": 73,
       "signature": "isClass: <T>(target: any) => target is TClass<T>"
     },
     {
@@ -9002,7 +9012,7 @@
       "subpath": ".",
       "specifier": "@venizia/ignis",
       "kind": "const",
-      "file": "packages/helpers/src/modules/network/url-safety/common/errors.ts",
+      "file": "packages/helpers/src/modules/network/utilities/url-safety/common/errors.ts",
       "line": 29,
       "signature": "isUrlRefusedError: (opts: { error: unknown; }) => boolean"
     },
@@ -9095,6 +9105,16 @@
       "file": "packages/helpers/src/utilities/parse.utility.ts",
       "line": 135,
       "signature": "parseArrayToMapWithKey: <T extends Record<K, PropertyKey>, K extends keyof T>(arr: T[], keyMap: K) => Map<T[K], T>"
+    },
+    {
+      "name": "parseContentDisposition",
+      "package": "@venizia/ignis",
+      "subpath": ".",
+      "specifier": "@venizia/ignis",
+      "kind": "const",
+      "file": "packages/helpers/src/utilities/request.utility.ts",
+      "line": 141,
+      "signature": "parseContentDisposition: (opts: { header: string | null | undefined; }) => { type?: string; filename?: string; }"
     },
     {
       "name": "parseMultipartBody",
@@ -9203,7 +9223,7 @@
       "specifier": "@venizia/ignis",
       "kind": "const",
       "file": "packages/helpers/src/common/redact.ts",
-      "line": 118,
+      "line": 164,
       "signature": "redactSecrets: (value: unknown, seen?: WeakSet<object>, depth?: number) => unknown"
     },
     {
@@ -9213,7 +9233,7 @@
       "specifier": "@venizia/ignis",
       "kind": "const",
       "file": "packages/helpers/src/common/redact.ts",
-      "line": 144,
+      "line": 194,
       "signature": "redactUrlCredentials: (url: string) => string"
     },
     {
@@ -9303,7 +9323,7 @@
       "specifier": "@venizia/ignis",
       "kind": "const",
       "file": "packages/inversion/src/common/utilities.ts",
-      "line": 99,
+      "line": 100,
       "signature": "resolveInjectTarget: (target: TInjectTarget) => TClass<AnyType> | undefined"
     },
     {
@@ -9343,7 +9363,7 @@
       "specifier": "@venizia/ignis",
       "kind": "const",
       "file": "packages/inversion/src/common/utilities.ts",
-      "line": 85,
+      "line": 86,
       "signature": "resolveValue: <T>(valueOrResolver: TValueOrResolver<T>) => T"
     },
     {
@@ -9353,7 +9373,7 @@
       "specifier": "@venizia/ignis",
       "kind": "const",
       "file": "packages/inversion/src/common/utilities.ts",
-      "line": 94,
+      "line": 95,
       "signature": "resolveValueAsync: <T>(valueOrResolver: TValueOrAsyncResolver<T>) => Promise<T>"
     },
     {
@@ -9373,7 +9393,7 @@
       "specifier": "@venizia/ignis",
       "kind": "const",
       "file": "packages/helpers/src/utilities/request.utility.ts",
-      "line": 100,
+      "line": 101,
       "signature": "sanitizeFilename: (filename: string) => string"
     },
     {
@@ -9503,8 +9523,18 @@
       "specifier": "@venizia/ignis",
       "kind": "const",
       "file": "packages/helpers/src/common/redact.ts",
-      "line": 135,
+      "line": 182,
       "signature": "toJsonSafe: (opts: { value: unknown; depth?: number; }) => unknown"
+    },
+    {
+      "name": "toQueryString",
+      "package": "@venizia/ignis",
+      "subpath": ".",
+      "specifier": "@venizia/ignis",
+      "kind": "const",
+      "file": "packages/helpers/src/modules/network/utilities/query-string.ts",
+      "line": 25,
+      "signature": "toQueryString: (opts: { params: AnyObject; }) => string"
     },
     {
       "name": "toTrimmed",
@@ -16046,6 +16076,96 @@
       "signature": "validateJsonPathComponents: (opts: { path: string[]; tableName: string; methodName: string; }) => void"
     },
     {
+      "name": "HttpDataSource",
+      "package": "@venizia/ignis-connectors",
+      "subpath": "./http",
+      "specifier": "@venizia/ignis-connectors/http",
+      "kind": "class",
+      "file": "packages/connectors/src/http/datasource.ts",
+      "line": 66,
+      "signature": "class HttpDataSource extends AbstractDataSource<IHttpDataSourceSettings>"
+    },
+    {
+      "name": "HttpRepository",
+      "package": "@venizia/ignis-connectors",
+      "subpath": "./http",
+      "specifier": "@venizia/ignis-connectors/http",
+      "kind": "class",
+      "file": "packages/connectors/src/http/repository.ts",
+      "line": 31,
+      "signature": "class HttpRepository<E extends object = AnyType> implements IReadableRepository<E, {}>"
+    },
+    {
+      "name": "HttpResourceEntity",
+      "package": "@venizia/ignis-connectors",
+      "subpath": "./http",
+      "specifier": "@venizia/ignis-connectors/http",
+      "kind": "class",
+      "file": "packages/connectors/src/http/repository.ts",
+      "line": 15,
+      "signature": "class HttpResourceEntity extends AbstractEntity"
+    },
+    {
+      "name": "IAuthToken",
+      "package": "@venizia/ignis-connectors",
+      "subpath": "./http",
+      "specifier": "@venizia/ignis-connectors/http",
+      "kind": "interface",
+      "file": "packages/connectors/src/http/common/types.ts",
+      "line": 4,
+      "signature": "interface IAuthToken"
+    },
+    {
+      "name": "IHttpDataSourceSettings",
+      "package": "@venizia/ignis-connectors",
+      "subpath": "./http",
+      "specifier": "@venizia/ignis-connectors/http",
+      "kind": "interface",
+      "file": "packages/connectors/src/http/common/types.ts",
+      "line": 26,
+      "signature": "interface IHttpDataSourceSettings"
+    },
+    {
+      "name": "IHttpReadResult",
+      "package": "@venizia/ignis-connectors",
+      "subpath": "./http",
+      "specifier": "@venizia/ignis-connectors/http",
+      "kind": "interface",
+      "file": "packages/connectors/src/http/common/types.ts",
+      "line": 60,
+      "signature": "interface IHttpReadResult<R>"
+    },
+    {
+      "name": "TAuthTokenResolver",
+      "package": "@venizia/ignis-connectors",
+      "subpath": "./http",
+      "specifier": "@venizia/ignis-connectors/http",
+      "kind": "type",
+      "file": "packages/connectors/src/http/common/types.ts",
+      "line": 17,
+      "signature": "type TAuthTokenResolver = () => IAuthToken | undefined"
+    },
+    {
+      "name": "THttpHeaders",
+      "package": "@venizia/ignis-connectors",
+      "subpath": "./http",
+      "specifier": "@venizia/ignis-connectors/http",
+      "kind": "type",
+      "file": "packages/connectors/src/http/common/types.ts",
+      "line": 25,
+      "signature": "type THttpHeaders = Headers | Array<[string, string]> | Record<string, string>"
+    },
+    {
+      "name": "THttpQuery",
+      "package": "@venizia/ignis-connectors",
+      "subpath": "./http",
+      "specifier": "@venizia/ignis-connectors/http",
+      "kind": "type",
+      "file": "packages/connectors/src/http/common/types.ts",
+      "line": 68,
+      "signature": "type THttpQuery<E extends object> = { filter?: TFilter<E>; }"
+    },
+    {
       "name": "IMeilisearchClientLike",
       "package": "@venizia/ignis-connectors",
       "subpath": "./meilisearch",
@@ -21083,7 +21203,7 @@
       "specifier": "@venizia/ignis-helpers",
       "kind": "interface",
       "file": "packages/helpers/src/modules/network/http-request/fetcher/node-fetcher.ts",
-      "line": 100,
+      "line": 101,
       "signature": "interface INodeFetchNetworkRequestOptions"
     },
     {
@@ -21093,7 +21213,7 @@
       "specifier": "@venizia/ignis-helpers",
       "kind": "interface",
       "file": "packages/helpers/src/modules/network/http-request/fetcher/node-fetcher.ts",
-      "line": 9,
+      "line": 10,
       "signature": "interface INodeFetchRequestOptions extends RequestInit, IRequestOptions"
     },
     {
@@ -21662,7 +21782,7 @@
       "subpath": ".",
       "specifier": "@venizia/ignis-helpers",
       "kind": "interface",
-      "file": "packages/helpers/src/modules/network/url-safety/common/types.ts",
+      "file": "packages/helpers/src/modules/network/utilities/url-safety/common/types.ts",
       "line": 7,
       "signature": "interface IUrlSafetyPolicy"
     },
@@ -21983,7 +22103,7 @@
       "specifier": "@venizia/ignis-helpers",
       "kind": "class",
       "file": "packages/helpers/src/modules/network/http-request/fetcher/node-fetcher.ts",
-      "line": 107,
+      "line": 108,
       "signature": "class NodeFetchNetworkRequest extends BaseNetworkRequest<'node-fetch'>"
     },
     {
@@ -21993,7 +22113,7 @@
       "specifier": "@venizia/ignis-helpers",
       "kind": "class",
       "file": "packages/helpers/src/modules/network/http-request/fetcher/node-fetcher.ts",
-      "line": 15,
+      "line": 16,
       "signature": "class NodeFetcher extends AbstractNetworkFetchableHelper<'node-fetch', INodeFetchRequestOptions, Awaited<ReturnType<typeof fetch>>, typeof fetch>"
     },
     {
@@ -22016,6 +22136,16 @@
       "line": 9,
       "signature": "type PropsWithChildren<P = unknown> = P & { children?: Child | undefined; }",
       "external": true
+    },
+    {
+      "name": "QueryStringSeparators",
+      "package": "@venizia/ignis-helpers",
+      "subpath": ".",
+      "specifier": "@venizia/ignis-helpers",
+      "kind": "class",
+      "file": "packages/helpers/src/modules/network/utilities/query-string.ts",
+      "line": 4,
+      "signature": "class QueryStringSeparators"
     },
     {
       "name": "QueueStatuses",
@@ -23033,7 +23163,7 @@
       "subpath": ".",
       "specifier": "@venizia/ignis-helpers",
       "kind": "type",
-      "file": "packages/helpers/src/modules/network/url-safety/common/constants.ts",
+      "file": "packages/helpers/src/modules/network/utilities/url-safety/common/constants.ts",
       "line": 14,
       "signature": "type TUrlScheme = TConstValue<typeof UrlSchemes>"
     },
@@ -23213,7 +23343,7 @@
       "subpath": ".",
       "specifier": "@venizia/ignis-helpers",
       "kind": "class",
-      "file": "packages/helpers/src/modules/network/url-safety/ingest.ts",
+      "file": "packages/helpers/src/modules/network/utilities/url-safety/ingest.ts",
       "line": 13,
       "signature": "class UrlIngest"
     },
@@ -23223,7 +23353,7 @@
       "subpath": ".",
       "specifier": "@venizia/ignis-helpers",
       "kind": "class",
-      "file": "packages/helpers/src/modules/network/url-safety/policy.ts",
+      "file": "packages/helpers/src/modules/network/utilities/url-safety/policy.ts",
       "line": 12,
       "signature": "class UrlPolicy"
     },
@@ -23233,7 +23363,7 @@
       "subpath": ".",
       "specifier": "@venizia/ignis-helpers",
       "kind": "class",
-      "file": "packages/helpers/src/modules/network/url-safety/common/constants.ts",
+      "file": "packages/helpers/src/modules/network/utilities/url-safety/common/constants.ts",
       "line": 17,
       "signature": "class UrlSafetyDefaults"
     },
@@ -23243,7 +23373,7 @@
       "subpath": ".",
       "specifier": "@venizia/ignis-helpers",
       "kind": "const",
-      "file": "packages/helpers/src/modules/network/url-safety/common/errors.ts",
+      "file": "packages/helpers/src/modules/network/utilities/url-safety/common/errors.ts",
       "line": 10,
       "signature": "UrlSafetyErrors: { readonly URL_REFUSED: { readonly message: { readonly text: \"Url refused by the safety policy\"; readonly code: \"core.url_safety.url_refused\"; }; readonly statusCode: 400; readonly category: \"business\"; }; }"
     },
@@ -23253,7 +23383,7 @@
       "subpath": ".",
       "specifier": "@venizia/ignis-helpers",
       "kind": "class",
-      "file": "packages/helpers/src/modules/network/url-safety/common/constants.ts",
+      "file": "packages/helpers/src/modules/network/utilities/url-safety/common/constants.ts",
       "line": 4,
       "signature": "class UrlSchemes"
     },
@@ -23424,7 +23554,7 @@
       "specifier": "@venizia/ignis-helpers",
       "kind": "const",
       "file": "packages/helpers/src/utilities/request.utility.ts",
-      "line": 118,
+      "line": 119,
       "signature": "createContentDispositionHeader: (opts: { filename: string; type: \"attachment\" | \"inline\"; }) => string"
     },
     {
@@ -23465,7 +23595,7 @@
       "specifier": "@venizia/ignis-helpers",
       "kind": "const",
       "file": "packages/helpers/src/utilities/request.utility.ts",
-      "line": 112,
+      "line": 113,
       "signature": "encodeRFC5987: (filename: string) => string"
     },
     {
@@ -23655,7 +23785,7 @@
       "specifier": "@venizia/ignis-helpers",
       "kind": "const",
       "file": "packages/inversion/src/common/utilities.ts",
-      "line": 72,
+      "line": 73,
       "signature": "isClass: <T>(target: any) => target is TClass<T>"
     },
     {
@@ -23724,7 +23854,7 @@
       "subpath": ".",
       "specifier": "@venizia/ignis-helpers",
       "kind": "const",
-      "file": "packages/helpers/src/modules/network/url-safety/common/errors.ts",
+      "file": "packages/helpers/src/modules/network/utilities/url-safety/common/errors.ts",
       "line": 29,
       "signature": "isUrlRefusedError: (opts: { error: unknown; }) => boolean"
     },
@@ -23769,6 +23899,16 @@
       "signature": "parseArrayToMapWithKey: <T extends Record<K, PropertyKey>, K extends keyof T>(arr: T[], keyMap: K) => Map<T[K], T>"
     },
     {
+      "name": "parseContentDisposition",
+      "package": "@venizia/ignis-helpers",
+      "subpath": ".",
+      "specifier": "@venizia/ignis-helpers",
+      "kind": "const",
+      "file": "packages/helpers/src/utilities/request.utility.ts",
+      "line": 141,
+      "signature": "parseContentDisposition: (opts: { header: string | null | undefined; }) => { type?: string; filename?: string; }"
+    },
+    {
       "name": "parseMultipartBody",
       "package": "@venizia/ignis-helpers",
       "subpath": ".",
@@ -23785,7 +23925,7 @@
       "specifier": "@venizia/ignis-helpers",
       "kind": "const",
       "file": "packages/helpers/src/common/redact.ts",
-      "line": 118,
+      "line": 164,
       "signature": "redactSecrets: (value: unknown, seen?: WeakSet<object>, depth?: number) => unknown"
     },
     {
@@ -23795,7 +23935,7 @@
       "specifier": "@venizia/ignis-helpers",
       "kind": "const",
       "file": "packages/helpers/src/common/redact.ts",
-      "line": 144,
+      "line": 194,
       "signature": "redactUrlCredentials: (url: string) => string"
     },
     {
@@ -23835,7 +23975,7 @@
       "specifier": "@venizia/ignis-helpers",
       "kind": "const",
       "file": "packages/inversion/src/common/utilities.ts",
-      "line": 85,
+      "line": 86,
       "signature": "resolveValue: <T>(valueOrResolver: TValueOrResolver<T>) => T"
     },
     {
@@ -23845,7 +23985,7 @@
       "specifier": "@venizia/ignis-helpers",
       "kind": "const",
       "file": "packages/inversion/src/common/utilities.ts",
-      "line": 94,
+      "line": 95,
       "signature": "resolveValueAsync: <T>(valueOrResolver: TValueOrAsyncResolver<T>) => Promise<T>"
     },
     {
@@ -23855,7 +23995,7 @@
       "specifier": "@venizia/ignis-helpers",
       "kind": "const",
       "file": "packages/helpers/src/utilities/request.utility.ts",
-      "line": 100,
+      "line": 101,
       "signature": "sanitizeFilename: (filename: string) => string"
     },
     {
@@ -23925,8 +24065,18 @@
       "specifier": "@venizia/ignis-helpers",
       "kind": "const",
       "file": "packages/helpers/src/common/redact.ts",
-      "line": 135,
+      "line": 182,
       "signature": "toJsonSafe: (opts: { value: unknown; depth?: number; }) => unknown"
+    },
+    {
+      "name": "toQueryString",
+      "package": "@venizia/ignis-helpers",
+      "subpath": ".",
+      "specifier": "@venizia/ignis-helpers",
+      "kind": "const",
+      "file": "packages/helpers/src/modules/network/utilities/query-string.ts",
+      "line": 25,
+      "signature": "toQueryString: (opts: { params: AnyObject; }) => string"
     },
     {
       "name": "toTrimmed",
@@ -24575,7 +24725,7 @@
       "specifier": "@venizia/ignis-helpers/common",
       "kind": "const",
       "file": "packages/inversion/src/common/utilities.ts",
-      "line": 72,
+      "line": 73,
       "signature": "isClass: <T>(target: any) => target is TClass<T>"
     },
     {
@@ -24605,7 +24755,7 @@
       "specifier": "@venizia/ignis-helpers/common",
       "kind": "const",
       "file": "packages/helpers/src/common/redact.ts",
-      "line": 118,
+      "line": 164,
       "signature": "redactSecrets: (value: unknown, seen?: WeakSet<object>, depth?: number) => unknown"
     },
     {
@@ -24615,7 +24765,7 @@
       "specifier": "@venizia/ignis-helpers/common",
       "kind": "const",
       "file": "packages/helpers/src/common/redact.ts",
-      "line": 144,
+      "line": 194,
       "signature": "redactUrlCredentials: (url: string) => string"
     },
     {
@@ -24635,7 +24785,7 @@
       "specifier": "@venizia/ignis-helpers/common",
       "kind": "const",
       "file": "packages/inversion/src/common/utilities.ts",
-      "line": 85,
+      "line": 86,
       "signature": "resolveValue: <T>(valueOrResolver: TValueOrResolver<T>) => T"
     },
     {
@@ -24645,7 +24795,7 @@
       "specifier": "@venizia/ignis-helpers/common",
       "kind": "const",
       "file": "packages/inversion/src/common/utilities.ts",
-      "line": 94,
+      "line": 95,
       "signature": "resolveValueAsync: <T>(valueOrResolver: TValueOrAsyncResolver<T>) => Promise<T>"
     },
     {
@@ -24655,7 +24805,7 @@
       "specifier": "@venizia/ignis-helpers/common",
       "kind": "const",
       "file": "packages/helpers/src/common/redact.ts",
-      "line": 135,
+      "line": 182,
       "signature": "toJsonSafe: (opts: { value: unknown; depth?: number; }) => unknown"
     },
     {
@@ -24707,6 +24857,16 @@
       "file": "packages/helpers/src/modules/base.ts",
       "line": 4,
       "signature": "class BaseHelper"
+    },
+    {
+      "name": "BaseNetworkRequest",
+      "package": "@venizia/ignis-helpers",
+      "subpath": "./core",
+      "specifier": "@venizia/ignis-helpers/core",
+      "kind": "class",
+      "file": "packages/helpers/src/modules/network/http-request/base-network-request.helper.ts",
+      "line": 8,
+      "signature": "class BaseNetworkRequest<T extends TFetcherVariant> extends BaseHelper"
     },
     {
       "name": "BasePoolHelper",
@@ -24899,6 +25059,26 @@
       "signature": "interface INextOpaqueUidOptions<TVerdict extends ValueOrPromise<boolean> = ValueOrPromise<boolean>>"
     },
     {
+      "name": "INodeFetchNetworkRequestOptions",
+      "package": "@venizia/ignis-helpers",
+      "subpath": "./core",
+      "specifier": "@venizia/ignis-helpers/core",
+      "kind": "interface",
+      "file": "packages/helpers/src/modules/network/http-request/fetcher/node-fetcher.ts",
+      "line": 101,
+      "signature": "interface INodeFetchNetworkRequestOptions"
+    },
+    {
+      "name": "INodeFetchRequestOptions",
+      "package": "@venizia/ignis-helpers",
+      "subpath": "./core",
+      "specifier": "@venizia/ignis-helpers/core",
+      "kind": "interface",
+      "file": "packages/helpers/src/modules/network/http-request/fetcher/node-fetcher.ts",
+      "line": 10,
+      "signature": "interface INodeFetchRequestOptions extends RequestInit, IRequestOptions"
+    },
+    {
       "name": "INodeWithPath",
       "package": "@venizia/ignis-helpers",
       "subpath": "./core",
@@ -25064,7 +25244,7 @@
       "subpath": "./core",
       "specifier": "@venizia/ignis-helpers/core",
       "kind": "interface",
-      "file": "packages/helpers/src/modules/network/url-safety/common/types.ts",
+      "file": "packages/helpers/src/modules/network/utilities/url-safety/common/types.ts",
       "line": 7,
       "signature": "interface IUrlSafetyPolicy"
     },
@@ -25119,6 +25299,26 @@
       "signature": "class MessageCode"
     },
     {
+      "name": "NodeFetchNetworkRequest",
+      "package": "@venizia/ignis-helpers",
+      "subpath": "./core",
+      "specifier": "@venizia/ignis-helpers/core",
+      "kind": "class",
+      "file": "packages/helpers/src/modules/network/http-request/fetcher/node-fetcher.ts",
+      "line": 108,
+      "signature": "class NodeFetchNetworkRequest extends BaseNetworkRequest<'node-fetch'>"
+    },
+    {
+      "name": "NodeFetcher",
+      "package": "@venizia/ignis-helpers",
+      "subpath": "./core",
+      "specifier": "@venizia/ignis-helpers/core",
+      "kind": "class",
+      "file": "packages/helpers/src/modules/network/http-request/fetcher/node-fetcher.ts",
+      "line": 16,
+      "signature": "class NodeFetcher extends AbstractNetworkFetchableHelper<'node-fetch', INodeFetchRequestOptions, Awaited<ReturnType<typeof fetch>>, typeof fetch>"
+    },
+    {
       "name": "OpaqueUidHelper",
       "package": "@venizia/ignis-helpers",
       "subpath": "./core",
@@ -25137,6 +25337,16 @@
       "file": "packages/helpers/src/utilities/project-root.utility.ts",
       "line": 8,
       "signature": "class ProjectRootRegistry"
+    },
+    {
+      "name": "QueryStringSeparators",
+      "package": "@venizia/ignis-helpers",
+      "subpath": "./core",
+      "specifier": "@venizia/ignis-helpers/core",
+      "kind": "class",
+      "file": "packages/helpers/src/modules/network/utilities/query-string.ts",
+      "line": 4,
+      "signature": "class QueryStringSeparators"
     },
     {
       "name": "RequestIdGenerator",
@@ -25444,7 +25654,7 @@
       "subpath": "./core",
       "specifier": "@venizia/ignis-helpers/core",
       "kind": "type",
-      "file": "packages/helpers/src/modules/network/url-safety/common/constants.ts",
+      "file": "packages/helpers/src/modules/network/utilities/url-safety/common/constants.ts",
       "line": 14,
       "signature": "type TUrlScheme = TConstValue<typeof UrlSchemes>"
     },
@@ -25494,7 +25704,7 @@
       "subpath": "./core",
       "specifier": "@venizia/ignis-helpers/core",
       "kind": "class",
-      "file": "packages/helpers/src/modules/network/url-safety/policy.ts",
+      "file": "packages/helpers/src/modules/network/utilities/url-safety/policy.ts",
       "line": 12,
       "signature": "class UrlPolicy"
     },
@@ -25504,7 +25714,7 @@
       "subpath": "./core",
       "specifier": "@venizia/ignis-helpers/core",
       "kind": "class",
-      "file": "packages/helpers/src/modules/network/url-safety/common/constants.ts",
+      "file": "packages/helpers/src/modules/network/utilities/url-safety/common/constants.ts",
       "line": 17,
       "signature": "class UrlSafetyDefaults"
     },
@@ -25514,7 +25724,7 @@
       "subpath": "./core",
       "specifier": "@venizia/ignis-helpers/core",
       "kind": "class",
-      "file": "packages/helpers/src/modules/network/url-safety/common/constants.ts",
+      "file": "packages/helpers/src/modules/network/utilities/url-safety/common/constants.ts",
       "line": 4,
       "signature": "class UrlSchemes"
     },
@@ -25607,6 +25817,16 @@
       "file": "packages/helpers/src/utilities/parse.utility.ts",
       "line": 28,
       "signature": "toCamel: (s: string) => string"
+    },
+    {
+      "name": "toQueryString",
+      "package": "@venizia/ignis-helpers",
+      "subpath": "./core",
+      "specifier": "@venizia/ignis-helpers/core",
+      "kind": "const",
+      "file": "packages/helpers/src/modules/network/utilities/query-string.ts",
+      "line": 25,
+      "signature": "toQueryString: (opts: { params: AnyObject; }) => string"
     },
     {
       "name": "CronHelper",
@@ -27205,7 +27425,7 @@
       "specifier": "@venizia/ignis-inversion",
       "kind": "const",
       "file": "packages/inversion/src/common/utilities.ts",
-      "line": 72,
+      "line": 73,
       "signature": "isClass: <T>(target: any) => target is TClass<T>"
     },
     {
@@ -27255,7 +27475,7 @@
       "specifier": "@venizia/ignis-inversion",
       "kind": "const",
       "file": "packages/inversion/src/common/utilities.ts",
-      "line": 99,
+      "line": 100,
       "signature": "resolveInjectTarget: (target: TInjectTarget) => TClass<AnyType> | undefined"
     },
     {
@@ -27265,7 +27485,7 @@
       "specifier": "@venizia/ignis-inversion",
       "kind": "const",
       "file": "packages/inversion/src/common/utilities.ts",
-      "line": 85,
+      "line": 86,
       "signature": "resolveValue: <T>(valueOrResolver: TValueOrResolver<T>) => T"
     },
     {
@@ -27275,7 +27495,7 @@
       "specifier": "@venizia/ignis-inversion",
       "kind": "const",
       "file": "packages/inversion/src/common/utilities.ts",
-      "line": 94,
+      "line": 95,
       "signature": "resolveValueAsync: <T>(valueOrResolver: TValueOrAsyncResolver<T>) => Promise<T>"
     },
     {
@@ -30955,7 +31175,7 @@
       "specifier": "@venizia/ignis-kernel",
       "kind": "const",
       "file": "packages/inversion/src/common/utilities.ts",
-      "line": 72,
+      "line": 73,
       "signature": "isClass: <T>(target: any) => target is TClass<T>"
     },
     {
@@ -31155,7 +31375,7 @@
       "specifier": "@venizia/ignis-kernel",
       "kind": "const",
       "file": "packages/inversion/src/common/utilities.ts",
-      "line": 99,
+      "line": 100,
       "signature": "resolveInjectTarget: (target: TInjectTarget) => TClass<AnyType> | undefined"
     },
     {

@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'bun:test';
 import { formatLogMessage } from '@/modules/logger';
-import { REDACTED, redactSecrets } from '@/common';
+import { REDACTED, redactSecrets, toJsonSafe } from '@/common';
 
 /**
  * The `%s` path was already covered. These are the paths that were NOT, and each one leaked a live
@@ -155,6 +155,60 @@ describe('redactSecrets - the depth bound', () => {
 
     for (const message of ['deep %s', 'deep %o', 'deep %O', 'deep']) {
       expect(() => formatLogMessage({ message, args: [deep] })).not.toThrow();
+    }
+  });
+});
+
+/**
+ * A base64 field turns one request log into hundreds of kilobytes, none of it readable. The cap is
+ * STRUCTURAL: `APP_ENV_LOGGER_DO_REDACT=false` is about key masking, never about letting a 300 KB
+ * payload through.
+ */
+describe('a long string is capped, and says how long it was', () => {
+  const base64 = 'A'.repeat(5000);
+
+  test('the marker carries the original length', () => {
+    const rs = toJsonSafe({ value: { image: `data:image/png;base64,${base64}` } }) as {
+      image: string;
+    };
+
+    expect(rs.image).toContain('[truncated, 5022 chars total]');
+    expect(rs.image.length).toBeLessThan(2200);
+  });
+
+  test('a short string is untouched', () => {
+    expect(toJsonSafe({ value: { name: 'ordinary' } })).toEqual({ name: 'ordinary' });
+  });
+
+  /** A stack trace is the whole reason the line is being read. */
+  test('a stack is never capped', () => {
+    const stack = `Error: boom\n${'    at somewhere (file.ts:1:1)\n'.repeat(200)}`;
+    const rs = toJsonSafe({ value: { stack } }) as { stack: string };
+
+    expect(rs.stack).toBe(stack);
+  });
+
+  test('capping survives redaction being turned off', () => {
+    const previous = process.env.APP_ENV_LOGGER_DO_REDACT;
+    process.env.APP_ENV_LOGGER_DO_REDACT = 'false';
+
+    try {
+      expect((toJsonSafe({ value: { blob: base64 } }) as { blob: string }).blob).toContain(
+        '[truncated',
+      );
+    } finally {
+      process.env.APP_ENV_LOGGER_DO_REDACT = previous;
+    }
+  });
+
+  test('the limit is configurable, and 0 keeps everything', () => {
+    const previous = process.env.APP_ENV_LOGGER_MAX_STRING_LENGTH;
+    process.env.APP_ENV_LOGGER_MAX_STRING_LENGTH = '0';
+
+    try {
+      expect((toJsonSafe({ value: { blob: base64 } }) as { blob: string }).blob).toBe(base64);
+    } finally {
+      process.env.APP_ENV_LOGGER_MAX_STRING_LENGTH = previous;
     }
   });
 });

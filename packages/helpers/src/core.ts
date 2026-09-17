@@ -6,14 +6,20 @@ export * from './modules/error';
 export { LogLevels } from './modules/logger/common/types';
 export type { ILogger, ILoggerProvider, TLogLevel } from './modules/logger/common/types';
 export * from './modules/network/http-request/fetcher/base-fetcher';
+// The node fetcher carries no node builtin - its one `querystring.stringify` is written out - so the
+// framework HTTP layer is reachable from a browser bundle, and a connector on HTTP need not
+// re-implement one.
+export * from './modules/network/http-request/fetcher/node-fetcher';
+export * from './modules/network/http-request/base-network-request.helper';
 export * from './modules/pool';
 export * from './modules/queue/internal/hf';
 export * from './modules/uid';
 // The url guard, pure half only: `UrlPolicy` decides a url and a literal address with string and
 // number work. Its sibling `UrlIngest` reaches `node:dns` and stays out of this subpath.
-export * from './modules/network/url-safety/common/constants';
-export type { IUrlSafetyPolicy } from './modules/network/url-safety/common/types';
-export * from './modules/network/url-safety/policy';
+export * from './modules/network/utilities/url-safety/common/constants';
+export type { IUrlSafetyPolicy } from './modules/network/utilities/url-safety/common/types';
+export * from './modules/network/utilities/url-safety/policy';
+export * from './modules/network/utilities/query-string';
 export { RetryBackoffStrategies, RetryJitterModes } from './modules/retry/common/constants';
 export type { TRetryBackoffStrategy, TRetryJitterMode } from './modules/retry/common/constants';
 export type { IRetryBackoffOptions, IRetryContext } from './modules/retry/common/types';

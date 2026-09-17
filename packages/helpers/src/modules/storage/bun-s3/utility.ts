@@ -354,7 +354,8 @@ export async function buildPresignedUrl(opts: {
 
   // SigV4 compares header values after trimming, so signing an untrimmed one answers 403.
   const canonicalHeadersMap: Record<string, string> = { host: new URL(origin).host };
-  for (const [key, value] of Object.entries(headers ?? {})) {
+  const signedEntries = Object.entries(headers ?? {});
+  for (const [key, value] of signedEntries) {
     canonicalHeadersMap[key.toLowerCase()] = String(value).trim();
   }
 

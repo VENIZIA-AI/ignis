@@ -118,7 +118,7 @@ tags: [reference, exports, api]
 
 ## helpers
 
-### `@venizia/ignis-helpers` (393)
+### `@venizia/ignis-helpers` (396)
 
 - `AbstractCryptoAlgorithm` class
 - `AbstractLogger` class
@@ -356,8 +356,10 @@ tags: [reference, exports, api]
 - `omit` const
 - `OpaqueUidHelper` class
 - `parseArrayToMapWithKey` const
+- `parseContentDisposition` const
 - `parseMultipartBody` const
 - `PropsWithChildren` type
+- `QueryStringSeparators` class
 - `QueueStatuses` class
 - `REDACTED` const
 - `redactSecrets` const
@@ -454,6 +456,7 @@ tags: [reference, exports, api]
 - `TOnVisit` type
 - `TOnVisitAsync` type
 - `TOptions` type
+- `toQueryString` const
 - `toTrimmed` const
 - `TPrettify` type
 - `TQueueElement` type
@@ -579,13 +582,14 @@ tags: [reference, exports, api]
 - `ValueOptionalExcept` type
 - `ValueOrPromise` type
 
-### `@venizia/ignis-helpers/core` (95)
+### `@venizia/ignis-helpers/core` (102)
 
 - `AbstractNetworkFetchableHelper` class
 - `AbstractPoolHelper` class
 - `AESAlgorithmType` type
 - `ApplicationError` class
 - `BaseHelper` class
+- `BaseNetworkRequest` class
 - `BasePoolHelper` class
 - `blankToUndefined` const
 - `BuildInfoRegistry` class
@@ -609,6 +613,8 @@ tags: [reference, exports, api]
 - `ILogger` interface
 - `ILoggerProvider` interface
 - `INextOpaqueUidOptions` interface
+- `INodeFetchNetworkRequestOptions` interface
+- `INodeFetchRequestOptions` interface
 - `INodeWithPath` interface
 - `int` const
 - `IOpaqueUidOptions` interface
@@ -634,8 +640,11 @@ tags: [reference, exports, api]
 - `LogLevels` class
 - `MessageCode` class
 - `MIN_UID_ALPHABET_SIZE` const
+- `NodeFetcher` class
+- `NodeFetchNetworkRequest` class
 - `OpaqueUidHelper` class
 - `ProjectRootRegistry` class
+- `QueryStringSeparators` class
 - `RequestIdGenerator` class
 - `RetryBackoffStrategies` class
 - `RetryHelper` class
@@ -663,6 +672,7 @@ tags: [reference, exports, api]
 - `toCamel` const
 - `TOnVisit` type
 - `TOnVisitAsync` type
+- `toQueryString` const
 - `TreeBuilder` class
 - `TreeWalker` class
 - `TRegisterErrors` type
@@ -1442,6 +1452,18 @@ tags: [reference, exports, api]
 - `validateJsonPathComponents` const
 - `VectorDistances` class
 
+### `@venizia/ignis-connectors/http` (9)
+
+- `HttpDataSource` class
+- `HttpRepository` class
+- `HttpResourceEntity` class
+- `IAuthToken` interface
+- `IHttpDataSourceSettings` interface
+- `IHttpReadResult` interface
+- `TAuthTokenResolver` type
+- `THttpHeaders` type
+- `THttpQuery` type
+
 ### `@venizia/ignis-connectors/relational` (58)
 
 - `AbstractRelationalDataSource` class
@@ -1854,7 +1876,7 @@ tags: [reference, exports, api]
 
 ## core-server
 
-### `@venizia/ignis` (955)
+### `@venizia/ignis` (958)
 
 - `AbstractApplication` class
 - `AbstractAuthRegistry` class
@@ -2401,6 +2423,7 @@ tags: [reference, exports, api]
 - `OpaqueUidHelper` class
 - `OrderBySchema` const
 - `parseArrayToMapWithKey` const
+- `parseContentDisposition` const
 - `parseMultipartBody` const
 - `patch` const
 - `PersistableCrudController` class
@@ -2420,6 +2443,7 @@ tags: [reference, exports, api]
 - `provide` const
 - `put` const
 - `QueryOperators` class
+- `QueryStringSeparators` class
 - `QueueStatuses` class
 - `ReadableCrudController` class
 - `ReadableRepository` class
@@ -2680,6 +2704,7 @@ tags: [reference, exports, api]
 - `TOnVisit` type
 - `TOnVisitAsync` type
 - `TOptions` type
+- `toQueryString` const
 - `TOrderBy` type
 - `TOrigin` type
 - `toTrimmed` const

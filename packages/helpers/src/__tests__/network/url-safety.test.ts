@@ -4,7 +4,7 @@
  */
 
 import { describe, expect, test } from 'bun:test';
-import { UrlPolicy, UrlSchemes } from '@/modules/network/url-safety/policy';
+import { UrlPolicy, UrlSchemes } from '@/modules/network/utilities/url-safety/policy';
 
 const NON_PUBLIC = [
   '169.254.169.254',

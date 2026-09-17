@@ -37,9 +37,9 @@ Exhaustive reference for `BaseNetworkRequest` and its fetchers, the TCP/TLS clie
 - [`packages/helpers/src/modules/network/tcp-socket/network-tls-tcp-server.helper.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/network/tcp-socket/network-tls-tcp-server.helper.ts) - `NetworkTlsTcpServer`
 - [`packages/helpers/src/modules/network/tcp-socket/network-tls-tcp-client.helper.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/network/tcp-socket/network-tls-tcp-client.helper.ts) - `NetworkTlsTcpClient`
 - [`packages/helpers/src/modules/network/udp-socket/network-udp-client.helper.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/network/udp-socket/network-udp-client.helper.ts) - `NetworkUdpClient`, `INetworkUdpClientProps`
-- [`packages/helpers/src/modules/network/url-safety/policy.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/network/url-safety/policy.ts) - `UrlPolicy`
-- [`packages/helpers/src/modules/network/url-safety/ingest.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/network/url-safety/ingest.ts) - `UrlIngest`
-- [`packages/helpers/src/modules/network/url-safety/common/`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/network/url-safety/common) - `IUrlSafetyPolicy`, `UrlSafetyDefaults`, `UrlSchemes`, `UrlSafetyErrors`, `isUrlRefusedError`
+- [`packages/helpers/src/modules/network/utilities/url-safety/policy.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/network/utilities/url-safety/policy.ts) - `UrlPolicy`
+- [`packages/helpers/src/modules/network/utilities/url-safety/ingest.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/network/utilities/url-safety/ingest.ts) - `UrlIngest`
+- [`packages/helpers/src/modules/network/utilities/url-safety/common/`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/network/utilities/url-safety/common) - `IUrlSafetyPolicy`, `UrlSafetyDefaults`, `UrlSchemes`, `UrlSafetyErrors`, `isUrlRefusedError`
 - [`packages/helpers/src/common/redact.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/common/redact.ts) - `redactSecrets`, `redactUrlCredentials`
 - [`packages/helpers/src/common/constants/http.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/common/constants/http.ts) - `HTTP.Methods`, `THttpMethod`
 

@@ -38,7 +38,40 @@ the root barrel and asserts neither `pg` nor `postgres` reaches the output. A dy
 not have achieved this - `dynamic-import.entry.ts` proves that `await import()` defers execution, not
 packaging. A driver reaches a bundle only when the application names its class.
 
-## The 14 published sub-paths
+## `./http` - a datasource whose transport is not a database
+
+`AbstractDataSource` is engine-neutral (only `configure()` is required), so a request to another
+IGNIS server is a datasource in the same sense Drizzle-over-Postgres is one: same role, different
+transport, same `@venizia/ignis-filter` vocabulary going in. `HttpRepository` implements
+`IReadableRepository` rather than extending `AbstractRepository`, whose twelve abstract members
+would force a read-only resource to stub three writes with throws.
+
+It targets the IGNIS REST contract and promises nothing about an arbitrary REST API: how a filter
+serialises and which header carries the total are one API's CONVENTIONS, and IGNIS-to-IGNIS is both
+ends speaking its own.
+
+The load-bearing decision is that a list with no `Content-Range` has NO total, reported as such
+rather than folded into the page length - a count of 1 for a table of 7000 reads healthy everywhere
+it is consumed. Generated CRUD routes always send the header; a hand-written `respond()` need not,
+which is when it fires. `countPath` is opt-in for an API that publishes a count route, because one
+publishes `/count`, another `/search/count`, and another deleted it.
+
+`x-request-count` decides whether a list answers an array or a count envelope, and its DEFAULT is
+on - so both are accepted. Handing an envelope back as one row is fifty records reported as one. The
+shape is ASKED FOR, not sniffed: structure cannot tell an envelope from a record carrying a `data`
+column and a `count` column.
+
+`onUnauthorized` is a hook, not a flag: it answers whether a retry can work, because recovery
+(refresh, logout, both) is the host policy, and a boolean could only have meant "ask the resolver
+again". `authTokenResolver` is a seam rather than a guard, and an explicit `authToken` wins over it.
+The 401 retry rebuilds headers through the SAME builder: a second header-building path is where
+`x-auth-provider` would be set unguarded, and `fetch` turns an `undefined` value into the literal
+string "undefined".
+
+12.8 KB gzipped against the root barrel's 144.2 KB, with no drizzle and no zod - guarded by
+`__tests__/http/weight.test.ts`.
+
+## The 15 published sub-paths
 
 The peers `drizzle-orm`, `drizzle-zod`, `hono`, and `@hono/zod-openapi` are required, because the
 neutral tiers value-import them. The six engine peers below are declared optional in

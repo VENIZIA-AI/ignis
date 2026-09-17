@@ -57,7 +57,8 @@ export const omit = <T extends object, K extends PropertyKey>(opts: {
   const dropped = new Set<PropertyKey>(keys);
   const kept: Record<string, unknown> = {};
 
-  for (const [key, value] of Object.entries(source)) {
+  const entries = Object.entries(source);
+  for (const [key, value] of entries) {
     if (dropped.has(key)) {
       continue;
     }

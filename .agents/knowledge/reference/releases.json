@@ -14,6 +14,12 @@
   "releases": {
     "atlas": [
       {
+        "version": "0.1.0-25",
+        "date": "2026-09-17",
+        "sha": "026262ab",
+        "order": 1378
+      },
+      {
         "version": "0.1.0-24",
         "date": "2026-09-16",
         "sha": "e4d088b1",
@@ -4008,6 +4014,18 @@
       "order": 1364
     },
     {
+      "id": "changelog:2026-09-17-an-http-connector",
+      "file": "2026-09-17-an-http-connector.md",
+      "date": "2026-09-17",
+      "title": "An HTTP Connector",
+      "packages": [
+        "connectors",
+        "filter"
+      ],
+      "kind": "Feature",
+      "order": 9007199254740991
+    },
+    {
       "id": "changelog:2026-09-17-a-repository-entry-for-other-transports",
       "file": "2026-09-17-a-repository-entry-for-other-transports.md",
       "date": "2026-09-17",
@@ -4018,6 +4036,17 @@
       ],
       "kind": "Feature",
       "order": 1366
+    },
+    {
+      "id": "changelog:2026-09-17-a-log-line-stops-carrying-a-base64-payload",
+      "file": "2026-09-17-a-log-line-stops-carrying-a-base64-payload.md",
+      "date": "2026-09-17",
+      "title": "A Log Line Stops Carrying a Base64 Payload",
+      "packages": [
+        "helpers"
+      ],
+      "kind": "Fix",
+      "order": 9007199254740991
     },
     {
       "id": "changelog:2026-09-16-upload-labels-move-to-the-body",

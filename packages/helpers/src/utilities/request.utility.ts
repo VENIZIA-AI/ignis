@@ -45,7 +45,8 @@ export const parseMultipartBody = async <C extends { req: any } = { req: any }>(
   const files: IParsedFile[] = [];
   const fields: Record<string, string> = {};
 
-  for (const [fieldname, value] of formData.entries()) {
+  const entries = formData.entries();
+  for (const [fieldname, value] of entries) {
     if (typeof value === 'string') {
       // Last one wins, like a repeated query parameter.
       fields[fieldname] = value;
@@ -125,4 +126,48 @@ export const createContentDispositionHeader = (opts: {
 
   // filename= is the ASCII fallback for old browsers, filename*= the UTF-8 form for modern ones.
   return `${type}; filename="${sanitized}"; filename*=UTF-8''${encoded}`;
+};
+
+/**
+ * Reads a filename out of a `Content-Disposition` value.
+ *
+ * Three forms, in the order the RFC gives them precedence: `filename*=UTF-8''...` (percent-encoded,
+ * and the one hand-rolled parsers miss), a quoted `filename="..."`, and a bare `filename=...`.
+ * Splitting on `filename=` alone returns the percent-encoded bytes for any non-ASCII name, which in
+ * a product with non-English filenames is most of them.
+ *
+ * The pair of {@link createContentDispositionHeader}: one writes the header, this one reads it.
+ */
+export const parseContentDisposition = (opts: {
+  header: string | null | undefined;
+}): { type?: string; filename?: string } => {
+  const { header } = opts;
+
+  if (!header) {
+    return {};
+  }
+
+  const type = header.split(';')[0]?.trim() || undefined;
+
+  // `filename*` wins when both are present - it is the one that can carry a non-ASCII name.
+  const extended = header.match(/filename\*\s*=\s*([^;]+)/i);
+  if (extended) {
+    const value = extended[1].trim();
+    // `UTF-8''name` or `UTF-8'lang'name`; anything before the last quote is charset and language.
+    const encoded = value.slice(value.lastIndexOf("'") + 1);
+
+    try {
+      return { type, filename: decodeURIComponent(encoded) };
+    } catch {
+      // A malformed sequence is not worth failing a download over - fall through to `filename`.
+    }
+  }
+
+  const quoted = header.match(/filename\s*=\s*"([^"]*)"/i);
+  if (quoted) {
+    return { type, filename: quoted[1] };
+  }
+
+  const bare = header.match(/filename\s*=\s*([^;]+)/i);
+  return { type, filename: bare ? bare[1].trim() : undefined };
 };

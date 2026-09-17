@@ -1,9 +1,9 @@
 /** The half `url-safety.test.ts` cannot reach: redirects, the timeout, and the body cap. */
 
 import { afterEach, describe, expect, test } from 'bun:test';
-import { UrlIngest } from '@/modules/network/url-safety/ingest';
-import { UrlSchemes } from '@/modules/network/url-safety/common/constants';
-import { isUrlRefusedError } from '@/modules/network/url-safety/common/errors';
+import { UrlIngest } from '@/modules/network/utilities/url-safety/ingest';
+import { UrlSchemes } from '@/modules/network/utilities/url-safety/common/constants';
+import { isUrlRefusedError } from '@/modules/network/utilities/url-safety/common/errors';
 
 const originalFetch = globalThis.fetch;
 
