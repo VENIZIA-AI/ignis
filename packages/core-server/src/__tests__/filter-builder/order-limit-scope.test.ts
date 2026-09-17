@@ -37,12 +37,18 @@ describe('order/limit at top level (FilterBuilder.build)', () => {
   });
 
   test('order only -> orderBy set', () => {
-    expect(buildTop({ order: ['createdAt DESC'] }).orderBy).toHaveLength(1);
+    expect(buildTop({ order: ['createdAt DESC'] }).orderBy).toHaveLength(2);
+  });
+
+  // The primary key is appended as a tiebreaker, once.
+  test('an order naming id gets no second id', () => {
+    expect(buildTop({ order: ['id DESC'] }).orderBy).toHaveLength(1);
+    expect(buildTop({ order: ['name ASC', 'id ASC'] }).orderBy).toHaveLength(2);
   });
 
   test('order + limit -> both set', () => {
     const q = buildTop({ order: ['createdAt DESC'], limit: 5 });
-    expect(q.orderBy).toHaveLength(1);
+    expect(q.orderBy).toHaveLength(2);
     expect(q.limit).toBe(5);
   });
 });
@@ -50,7 +56,7 @@ describe('order/limit at top level (FilterBuilder.build)', () => {
 describe('to-many relation scope is capped at DEFAULT_LIMIT', () => {
   test('order only -> ordered AND capped at DEFAULT_LIMIT', () => {
     const q = buildScope('categories', { order: ['createdAt DESC'] }) as TDrizzleQueryOptions;
-    expect(q.orderBy).toHaveLength(1);
+    expect(q.orderBy).toHaveLength(2);
     expect(q.limit).toBe(DEFAULT_LIMIT);
   });
 
@@ -71,7 +77,7 @@ describe('to-many relation scope is capped at DEFAULT_LIMIT', () => {
       order: ['createdAt DESC'],
       limit: 3,
     }) as TDrizzleQueryOptions;
-    expect(q.orderBy).toHaveLength(1);
+    expect(q.orderBy).toHaveLength(2);
     expect(q.limit).toBe(3);
   });
 });
@@ -81,6 +87,7 @@ describe("to-many relation scope honors the relation model's defaultLimit", () =
     // MetadataRegistry has a private constructor and a large mixin-composed surface; only
     // getModelEntry is exercised, so this is a fixture-boundary cast.
     const mockGetInstance = spyOn(MetadataRegistry, 'getInstance').mockReturnValue({
+      getModelEntryBySchema: () => undefined,
       getModelEntry: () => ({ metadata: { type: 'entity', settings: { defaultLimit: 7 } } }),
     } as any);
 
@@ -94,6 +101,7 @@ describe("to-many relation scope honors the relation model's defaultLimit", () =
   test('explicit scope limit still overrides the model defaultLimit', () => {
     // Fixture-boundary cast - see comment on the first mock in this describe block.
     const mockGetInstance = spyOn(MetadataRegistry, 'getInstance').mockReturnValue({
+      getModelEntryBySchema: () => undefined,
       getModelEntry: () => ({ metadata: { type: 'entity', settings: { defaultLimit: 7 } } }),
     } as any);
 
@@ -106,6 +114,7 @@ describe("to-many relation scope honors the relation model's defaultLimit", () =
   test('falls back to DEFAULT_LIMIT when relation model has no defaultLimit', () => {
     // Fixture-boundary cast - see comment on the first mock in this describe block.
     const mockGetInstance = spyOn(MetadataRegistry, 'getInstance').mockReturnValue({
+      getModelEntryBySchema: () => undefined,
       getModelEntry: () => ({ metadata: { type: 'entity', settings: {} } }),
     } as any);
 
@@ -125,7 +134,7 @@ describe('to-one relation scope is never auto-limited', () => {
 
   test('order only -> ordered, NO default limit', () => {
     const q = buildScope('owner', { order: ['createdAt DESC'] }) as TDrizzleQueryOptions;
-    expect(q.orderBy).toHaveLength(1);
+    expect(q.orderBy).toHaveLength(2);
     expect('limit' in q).toBe(false);
   });
 

@@ -92,15 +92,20 @@ describe('the CRUD factory routes keep the contract they had', () => {
     },
   );
 
-  // Deliberate, and NOT the same decision as `count`. A missing `where` on a mass update or a mass
-  // delete touches every row in the table, so these two require it unconditionally - which is why
-  // they do not use `WhereQuerySchema`.
-  test.each(['UPDATE_BY', 'DELETE_BY'] as const)('%s still REQUIRES where', routeName => {
-    const query = queryOf(routes[routeName].request);
+  // `where` may ride in the query or the JSON body (long id lists outgrow a URL), so neither schema
+  // requires it; the handler refuses neither-or-both with a 400 - pinned in crud-factory.test.ts.
+  test.each(['UPDATE_BY', 'DELETE_BY'] as const)(
+    '%s takes where from the query or the body',
+    routeName => {
+      const { request } = routes[routeName];
+      const query = queryOf(request);
+      const body = request.body.content['application/json'].schema;
 
-    expect(query.safeParse({}).success).toBe(false);
-    expect(query.safeParse({ where: { id: '1' } }).success).toBe(true);
-  });
+      expect(query.safeParse({}).success).toBe(true);
+      expect(query.safeParse({ where: { id: '1' } }).success).toBe(true);
+      expect(body.safeParse({ id: '1', where: { id: '1' } }).data?.where).toEqual({ id: '1' });
+    },
+  );
 
   // Unchanged on purpose. Under the default `isStrict.requestSchema`, `GET /x/count` with no query
   // string is refused and the caller must send `?where={}`. Reviewed and left as it is; this test

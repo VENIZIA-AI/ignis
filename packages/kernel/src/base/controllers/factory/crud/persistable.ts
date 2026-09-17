@@ -68,14 +68,18 @@ export abstract class PersistableCrudController<
   /** PATCH / */
   async updateBy(opts: { context: TRouteContext<RouteEnv> }) {
     const { context } = opts;
-    const { where } = context.req.valid<{ where: TWhere<TDataObject> }>('query');
+    const { where: queryWhere } = context.req.valid<{ where?: TWhere<TDataObject> }>('query');
+    const { where: bodyWhere } = context.req.valid<{ where?: TWhere<TDataObject> }>('json');
+    const data = context.req.valid<Partial<TPersistObject>>('json');
+    // Reserved: `where` selects rows, it is never written.
+    Reflect.deleteProperty(data, 'where');
 
-    const guard = this.bulkWhereError({ context, where });
-    if (guard) {
-      return guard;
+    const resolved = this.resolveBulkWhere({ context, queryWhere, bodyWhere });
+    if (resolved.error !== undefined) {
+      return resolved.error;
     }
 
-    const data = context.req.valid<Partial<TPersistObject>>('json');
+    const { where } = resolved;
 
     const rs = await this.measure({
       scope: 'updateBy',
@@ -113,12 +117,15 @@ export abstract class PersistableCrudController<
   /** DELETE / */
   async deleteBy(opts: { context: TRouteContext<RouteEnv> }) {
     const { context } = opts;
-    const { where } = context.req.valid<{ where: TWhere<TDataObject> }>('query');
+    const { where: queryWhere } = context.req.valid<{ where?: TWhere<TDataObject> }>('query');
+    const body = context.req.valid<{ where?: TWhere<TDataObject> } | undefined>('json');
 
-    const guard = this.bulkWhereError({ context, where });
-    if (guard) {
-      return guard;
+    const resolved = this.resolveBulkWhere({ context, queryWhere, bodyWhere: body?.where });
+    if (resolved.error !== undefined) {
+      return resolved.error;
     }
+
+    const { where } = resolved;
 
     const rs = await this.measure({
       scope: 'deleteBy',

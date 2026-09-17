@@ -223,14 +223,16 @@ export class RouteConfigResolver {
     UpdateSchema extends TAnyObjectSchema,
   >(opts: { config: C; selectSchema: SelectSchema; updateSchema: UpdateSchema }) {
     const { config, selectSchema, updateSchema } = opts;
-    const defaultQuery = z.object({ where: WhereSchema }).openapi({
-      description: 'Required where condition to select records for update',
+    const defaultQuery = z.object({ where: WhereSchema.optional() }).openapi({
+      description:
+        'Where condition selecting the records to update - here or in the body, not both',
     });
+    const defaultBody = updateSchema.extend({ where: WhereSchema.optional() });
     const defaultSchema = RouteConfigResolver.conditionalCountResponse(z.array(selectSchema));
     return {
       request: {
         query: config?.request?.query ?? defaultQuery,
-        body: config?.request?.body ?? updateSchema,
+        body: config?.request?.body ?? defaultBody,
         headers: config?.request?.headers ?? defaultRequestHeaders,
       },
       response: {
@@ -265,13 +267,16 @@ export class RouteConfigResolver {
     SelectSchema extends TAnyObjectSchema,
   >(opts: { config: C; selectSchema: SelectSchema }) {
     const { config, selectSchema } = opts;
-    const defaultQuery = z.object({ where: WhereSchema }).openapi({
-      description: 'Required where condition to select records for deletion',
+    const defaultQuery = z.object({ where: WhereSchema.optional() }).openapi({
+      description:
+        'Where condition selecting the records to delete - here or in the body, not both',
     });
+    const defaultBody = z.object({ where: WhereSchema.optional() });
     const defaultSchema = RouteConfigResolver.conditionalCountResponse(z.array(selectSchema));
     return {
       request: {
         query: config?.request?.query ?? defaultQuery,
+        body: defaultBody,
         headers: config?.request?.headers ?? defaultRequestHeaders,
       },
       response: {
@@ -501,7 +506,15 @@ export class RouteConfigResolver {
         description: 'Bulk delete records matching where condition (irreversible)',
         authenticate: resolveRouteAuth('deleteBy'),
         authorize: resolveRouteAuthorize('deleteBy'),
-        request: deleteBy.request,
+        request: {
+          query: deleteBy.request.query,
+          body: jsonContent({
+            description: 'Where condition, when it does not fit in the query',
+            schema: deleteBy.request.body,
+            required: false,
+          }),
+          headers: deleteBy.request.headers,
+        },
         responses: jsonResponse(deleteBy.response),
       },
     } as const;

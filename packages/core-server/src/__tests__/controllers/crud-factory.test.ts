@@ -282,3 +282,123 @@ describe('ControllerFactory.defineCrudController - request schemas', () => {
     expect(Object.keys(selectSchema.shape)).toContain('secret');
   });
 });
+
+describe('ControllerFactory.defineCrudController - bulk where in the query or the body', () => {
+  const buildBulkController = async (opts: { name: string }) => {
+    const calls: Array<{ verb: string; where: unknown; data?: unknown }> = [];
+    const recordingRepository = {
+      ...fakeCrudRepository({ records: [] }),
+      updateBy: async (updateOpts: { where: unknown; data: unknown }) => {
+        calls.push({ verb: 'updateBy', where: updateOpts.where, data: updateOpts.data });
+        return { count: 1, data: [] };
+      },
+      deleteBy: async (deleteOpts: { where: unknown }) => {
+        calls.push({ verb: 'deleteBy', where: deleteOpts.where });
+        return { count: 1, data: [] };
+      },
+    };
+
+    const BulkController = ControllerFactory.defineCrudController({
+      entity: CrudFactoryAccount,
+      repository: { name: CrudFactoryAccountRepository.name },
+      controller: {
+        name: opts.name,
+        basePath: '/accounts',
+        enabledRoutes: ['updateBy', 'deleteBy'],
+      },
+    });
+
+    const restController = new BulkController(recordingRepository);
+    await restController.configure();
+
+    return { router: restController.getRouter(), calls };
+  };
+
+  const ids = Array.from({ length: 2000 }, (_, index) => index + 1);
+  const where = { id: { inq: ids } };
+  const json = { 'content-type': 'application/json' };
+  const whereQuery = `?where=${encodeURIComponent(JSON.stringify({ id: 1 }))}`;
+
+  test('PATCH / takes where from the body, and it never reaches the data', async () => {
+    const { router, calls } = await buildBulkController({ name: 'BulkPatchBodyController' });
+
+    const response = await router.request('/', {
+      method: 'PATCH',
+      headers: json,
+      body: JSON.stringify({ where, email: 'x@y.z' }),
+    });
+
+    expect(response.status).toBe(HTTP.ResultCodes.RS_2.Ok);
+    expect(calls).toEqual([{ verb: 'updateBy', where, data: { email: 'x@y.z' } }]);
+  });
+
+  test('PATCH / still takes where from the query', async () => {
+    const { router, calls } = await buildBulkController({ name: 'BulkPatchQueryController' });
+
+    const response = await router.request(`/${whereQuery}`, {
+      method: 'PATCH',
+      headers: json,
+      body: JSON.stringify({ email: 'x@y.z' }),
+    });
+
+    expect(response.status).toBe(HTTP.ResultCodes.RS_2.Ok);
+    expect(calls).toEqual([{ verb: 'updateBy', where: { id: 1 }, data: { email: 'x@y.z' } }]);
+  });
+
+  test('DELETE / takes where from the body', async () => {
+    const { router, calls } = await buildBulkController({ name: 'BulkDeleteBodyController' });
+
+    const response = await router.request('/', {
+      method: 'DELETE',
+      headers: json,
+      body: JSON.stringify({ where }),
+    });
+
+    expect(response.status).toBe(HTTP.ResultCodes.RS_2.Ok);
+    expect(calls).toEqual([{ verb: 'deleteBy', where }]);
+  });
+
+  test('DELETE / still takes where from the query, with no body', async () => {
+    const { router, calls } = await buildBulkController({ name: 'BulkDeleteQueryController' });
+
+    const response = await router.request(`/${whereQuery}`, { method: 'DELETE' });
+
+    expect(response.status).toBe(HTTP.ResultCodes.RS_2.Ok);
+    expect(calls).toEqual([{ verb: 'deleteBy', where: { id: 1 } }]);
+  });
+
+  test('where in both places is refused, and nothing is written', async () => {
+    const { router, calls } = await buildBulkController({ name: 'BulkBothController' });
+
+    const patched = await router.request(`/${whereQuery}`, {
+      method: 'PATCH',
+      headers: json,
+      body: JSON.stringify({ where, email: 'x@y.z' }),
+    });
+    const deleted = await router.request(`/${whereQuery}`, {
+      method: 'DELETE',
+      headers: json,
+      body: JSON.stringify({ where }),
+    });
+
+    expect(patched.status).toBe(HTTP.ResultCodes.RS_4.BadRequest);
+    expect(deleted.status).toBe(HTTP.ResultCodes.RS_4.BadRequest);
+    expect(await deleted.json()).toMatchObject({ message: expect.stringMatching(/both/) });
+    expect(calls).toEqual([]);
+  });
+
+  test('where in neither place is refused, and nothing is written', async () => {
+    const { router, calls } = await buildBulkController({ name: 'BulkNeitherController' });
+
+    const patched = await router.request('/', {
+      method: 'PATCH',
+      headers: json,
+      body: JSON.stringify({ email: 'x@y.z' }),
+    });
+    const deleted = await router.request('/', { method: 'DELETE' });
+
+    expect(patched.status).toBe(HTTP.ResultCodes.RS_4.BadRequest);
+    expect(deleted.status).toBe(HTTP.ResultCodes.RS_4.BadRequest);
+    expect(calls).toEqual([]);
+  });
+});

@@ -49,6 +49,7 @@ describe('FilterBuilder - resolveRelations guard + memoization', () => {
     };
 
     const mockGetInstance = spyOn(MetadataRegistry, 'getInstance').mockReturnValue({
+      getModelEntryBySchema: () => undefined,
       getModelEntry: () => ({ relationsResolver, metadata: { type: 'entity', settings: {} } }),
     } as any);
     installedSpies.push(mockGetInstance);

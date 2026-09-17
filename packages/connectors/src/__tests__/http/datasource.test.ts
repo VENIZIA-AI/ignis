@@ -8,16 +8,7 @@ afterEach(() => {
   globalThis.fetch = originalFetch;
 });
 
-/**
- * Records every attempt so a test can assert on the SECOND one, which is where the retry path hides.
- *
- * Headers go through `new Headers()` rather than being copied as an object, because that is what
- * `fetch` does - and it is the step that turns an `undefined` value into the STRING "undefined".
- *
- * DO NOT simplify this back to a spread. Copying the object preserves `undefined`, so the provider
- * test below goes green while the bug ships - it was written that way first and the positive control
- * caught it.
- */
+// Headers pass through `new Headers()` as fetch does - a spread would keep `undefined` and hide the bug.
 const stubFetch = (responses: Array<{ status: number; body?: unknown; contentRange?: string }>) => {
   const attempts: Array<{ url: string; headers: Record<string, string> }> = [];
   let index = 0;
@@ -41,10 +32,6 @@ const stubFetch = (responses: Array<{ status: number; body?: unknown; contentRan
 };
 
 describe('the 401 retry re-resolves the token and rebuilds every header', () => {
-  /**
-   * Written FIRST, before the repository, because a retry path is a SECOND place headers are built -
-   * and a second place is where a guard gets forgotten. The assertion is on attempt two.
-   */
   test('the second attempt carries the newly resolved token', async () => {
     const attempts = stubFetch([{ status: 401 }, { status: 200, contentRange: 'items 0-0/1' }]);
     const tokens = ['stale', 'fresh'];
@@ -62,7 +49,6 @@ describe('the 401 retry re-resolves the token and rebuilds every header', () => 
     expect(attempts[1].headers.authorization).toBe('Bearer fresh');
   });
 
-  /** The bug the retry path hides: a token without a provider must not send the string "undefined". */
   test('a token with no provider sends no provider header, on BOTH attempts', async () => {
     const attempts = stubFetch([{ status: 401 }, { status: 200, contentRange: 'items 0-0/1' }]);
 
@@ -96,7 +82,6 @@ describe('the 401 retry re-resolves the token and rebuilds every header', () => 
     ]);
   });
 
-  /** Without the flag a 401 is the answer, not the start of a loop. */
   test('no retry without the hook - one attempt, and it throws', async () => {
     const attempts = stubFetch([{ status: 401 }]);
     const dataSource = new HttpDataSource({ baseUrl: 'https://api.example.com' });
@@ -126,7 +111,6 @@ describe('an explicit token is never overridden by a lookup', () => {
     expect(resolverCalls).toBe(0);
   });
 
-  /** No token at all is a valid state - a public endpoint needs no header invented for it. */
   test('no token sends no authorization header', async () => {
     const attempts = stubFetch([{ status: 200, contentRange: 'items 0-0/1' }]);
     const dataSource = new HttpDataSource({ baseUrl: 'https://api.example.com' });
@@ -138,7 +122,6 @@ describe('an explicit token is never overridden by a lookup', () => {
 });
 
 describe('the recovery hook decides, not the transport', () => {
-  /** Refreshing a token, logging out, or giving up is the HOST's policy. The transport only asks. */
   test('a hook answering false leaves the 401 standing, with one attempt', async () => {
     const attempts = stubFetch([{ status: 401 }]);
     let asked = 0;
@@ -157,7 +140,6 @@ describe('the recovery hook decides, not the transport', () => {
     expect(attempts).toHaveLength(1);
   });
 
-  /** At most once. A hook that refreshes and still fails must not start a loop. */
   test('a second 401 is the answer, not a third attempt', async () => {
     const attempts = stubFetch([{ status: 401 }]);
 
@@ -171,7 +153,6 @@ describe('the recovery hook decides, not the transport', () => {
     expect(attempts).toHaveLength(2);
   });
 
-  /** The hook runs BEFORE the retry, so whatever it refreshed is what the retry picks up. */
   test('the hook runs before the retry re-resolves the token', async () => {
     const attempts = stubFetch([{ status: 401 }, { status: 200, contentRange: 'items 0-0/1' }]);
     let stored = 'stale';
@@ -194,13 +175,7 @@ describe('the recovery hook decides, not the transport', () => {
   });
 });
 
-/**
- * `x-request-count: true` makes an IGNIS server wrap a RECORD read in `{ count, data }` too, and
- * `shape: 'one'` never unwraps - so the connector owns this header. Measured against a real server:
- * with the caller's value winning, `findById` answered the envelope as the record.
- */
 describe('x-request-count belongs to the connector', () => {
-  /** Refused at construction, in any case and any headers shape - a dropped value would be a silent one. */
   const refusedHeaders: Array<THttpHeaders> = [
     { 'X-Request-Count': 'true' },
     [['x-request-count', 'false']],
@@ -226,7 +201,6 @@ describe('x-request-count belongs to the connector', () => {
     expect(attempts[0].headers['x-request-count']).toBe('false');
   });
 
-  /** A `Headers` instance is accepted as-is, which a `Record` type would have refused. */
   test('a Headers instance is accepted', async () => {
     const attempts = stubFetch([{ status: 200, contentRange: 'items 0-0/1' }]);
 
@@ -241,10 +215,6 @@ describe('x-request-count belongs to the connector', () => {
   });
 });
 
-/**
- * An export endpoint answers bytes, not rows. `read` cannot express that, and inventing a blob shape
- * on a repository whose contract is rows would be worse - so the transport stays reachable.
- */
 describe('request() answers raw, with auth and retry intact', () => {
   test('a non-JSON response comes back whole', async () => {
     globalThis.fetch = (async () =>
@@ -263,7 +233,6 @@ describe('request() answers raw, with auth and retry intact', () => {
     expect(await response.text()).toContain('col-a');
   });
 
-  /** The same auth path, not a second one - that is the point of routing `read` through it. */
   test('it carries the token, and retries once on 401', async () => {
     const attempts = stubFetch([{ status: 401 }, { status: 200 }]);
 
@@ -279,7 +248,6 @@ describe('request() answers raw, with auth and retry intact', () => {
     expect(attempts[1].headers.authorization).toBe('Bearer export-token');
   });
 
-  /** Raw means raw: a failing status is the caller's to read, not an exception. */
   test('it does not throw on a non-2xx', async () => {
     stubFetch([{ status: 404 }]);
     const dataSource = new HttpDataSource({ baseUrl: 'https://api.example.com' });
@@ -288,7 +256,6 @@ describe('request() answers raw, with auth and retry intact', () => {
   });
 });
 
-// An IGNIS server answers `records 0-24/137` for a page and `records */N` for an empty one.
 describe('Content-Range is read in every shape a server sends', () => {
   const cases: Array<{
     header: string;
@@ -301,7 +268,6 @@ describe('Content-Range is read in every shape a server sends', () => {
     { header: 'records */0', expected: { hasRange: true, skip: undefined, total: 0 } },
     { header: 'records */137', expected: { hasRange: true, skip: undefined, total: 137 } },
     { header: 'records * / 5', expected: { hasRange: true, skip: undefined, total: 5 } },
-    // An unknown total is no total: counting from it would be a guess.
     { header: 'records 0-24/*', expected: { hasRange: false } },
     { header: 'records */abc', expected: { hasRange: false } },
     { header: 'records', expected: { hasRange: false } },
@@ -325,7 +291,6 @@ describe('Content-Range is read in every shape a server sends', () => {
 });
 
 describe('a failed read names the URL without carrying all of it', () => {
-  /** Measured: an IGNIS server answers 431 past ~16 KB of URL, which 400 UUIDs in an `inq` reach. */
   test('431 says the URL is too long, and the message stays short', async () => {
     stubFetch([{ status: 431 }]);
     const dataSource = new HttpDataSource({ baseUrl: 'https://api.example.com' });

@@ -11,29 +11,20 @@ import { getError } from '@venizia/ignis-helpers/core';
 import type { AnyType } from '@venizia/ignis-helpers/common';
 import type { HttpDataSource } from './datasource';
 
-/** The entity a remote resource stands for. `AbstractEntity` wants a name and a schema accessor; a resource over HTTP has the first and cannot honestly claim the second. */
+/** A remote resource has a name but no local schema. */
 export class HttpResourceEntity extends AbstractEntity {
   getSchema<T = unknown>(_opts: { type: TSchemaType }): T {
     return {} as T;
   }
 }
 
-/**
- * Read access to one remote resource, through {@link HttpDataSource}.
- *
- * `IReadableRepository` rather than `AbstractRepository`: the abstract class demands twelve members,
- * so a resource that cannot be written would have to stub `create`, `updateById` and `deleteById`
- * with throws. Five real methods say more than twelve where seven are lies.
- *
- * Every query leaves as the `@venizia/ignis-filter` vocabulary - the same language an IGNIS
- * repository speaks to Drizzle. One query language, two transports.
- */
+/** Read access to one remote resource, in the `@venizia/ignis-filter` vocabulary. */
 export class HttpRepository<E extends object = AnyType> implements IReadableRepository<E, {}> {
   dataSource: HttpDataSource;
   entity: AbstractEntity;
 
   protected resource: string;
-  /** An API that publishes a count route names it here. Absent, the total comes from `Content-Range`. */
+  /** A count route, if the API has one. Absent, the total comes from `Content-Range`. */
   protected countPath?: string;
 
   constructor(opts: { dataSource: HttpDataSource; resource: string; countPath?: string }) {
@@ -47,7 +38,7 @@ export class HttpRepository<E extends object = AnyType> implements IReadableRepo
     return this.entity;
   }
 
-  /** An absent header is a route that sends none; a present one with no readable total (`/*`) is a server whose count failed. Different fixes, different messages. */
+  /** No header and an unreadable one (`/*`) have different fixes, so different messages. */
   protected getMissingTotalError(opts: {
     method: string;
     contentRange?: string;
@@ -61,17 +52,7 @@ export class HttpRepository<E extends object = AnyType> implements IReadableRepo
     return getError({ statusCode: 500, message: `[${this.resource}][${method}] ${message}` });
   }
 
-  /**
-   * How many rows match, asked of the list route rather than of one that may not exist.
-   *
-   * The default reads the total out of `Content-Range` - MECHANISM, because a route that pages at
-   * all reports what it is paging over. A dedicated count route is CONVENTION: one API publishes
-   * `/count`, another `/search/count`, another deleted it and told callers to read the header. So it
-   * is opt-in through `countPath`.
-   *
-   * With no header there is NO total, and this says so rather than answering with the page size - a
-   * count of 1 for a table of 7000 reads as healthy in every screen that consumes it.
-   */
+  /** From `Content-Range`, or `countPath`. No total throws rather than reporting the page size. */
   async count(opts: { where: TWhere<E>; options?: {} }): Promise<TCount> {
     if (this.countPath) {
       const rs = await this.dataSource.read<{ count: number }>({
@@ -105,11 +86,9 @@ export class HttpRepository<E extends object = AnyType> implements IReadableRepo
       query: { filter: { where: opts.where, limit: 1 } },
     });
 
-    // Asked of the rows, not of the total: one row proves existence with no header needed.
     return rs.dataLength > 0;
   }
 
-  // Two signatures, because the contract declares `find` as an overload with a range variant.
   async find<R = E>(opts: {
     filter: TFilter<E>;
     options: { shouldQueryRange: true };
@@ -138,12 +117,9 @@ export class HttpRepository<E extends object = AnyType> implements IReadableRepo
       });
     }
 
-    // `TDataRange` follows the Content-Range standard, and `content-range` is the header this
-    // transport receives - the envelope IGNIS paginates with and the protocol are the same thing,
-    // so nothing is translated here.
     return {
       data,
-      // An empty page names no start, so it comes from the filter - the same rule the server used.
+      // An empty page names no start: take it from the filter, as the server did.
       range: buildDataRange({
         skip: rs.skip ?? opts.filter?.skip,
         offset: opts.filter?.offset,

@@ -782,7 +782,7 @@ type TCustomizableRouteConfig = TRouteAuthConfig & {
 | `updateById` | headers, params, body, response | Config for updateById endpoint |
 | `updateBy` | query, headers, body, response | Config for updateBy endpoint |
 | `deleteById` | headers, params, response | Config for deleteById endpoint |
-| `deleteBy` | query, headers, response | Config for deleteBy endpoint |
+| `deleteBy` | query, headers, response | Config for deleteBy endpoint (body: optional `{ where }`) |
 
 ### Auth Resolution Priority
 
@@ -1043,7 +1043,7 @@ The factory-generated controller includes a `normalizeCountData` method that che
 - When `x-request-count` is `"true"` or omitted: returns `{ count, data }`
 - When `x-request-count` is `"false"`: returns data only
 
-Bulk operations (`updateBy`, `deleteBy`) require a non-empty `where` filter and return `400 Bad Request` if omitted.
+Bulk operations (`updateBy`, `deleteBy`) require a non-empty `where`, in the query or the JSON body - `400 Bad Request` if it is in neither or both. In a `PATCH /` body, `where` is reserved and never written. An override reads both with `resolveBulkWhere({ context, queryWhere, bodyWhere })`.
 
 ## See Also
 

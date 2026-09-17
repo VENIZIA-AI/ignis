@@ -30,10 +30,6 @@ const build = (opts?: { countPath?: string }) =>
   });
 
 describe('the total comes from the header, not from the page', () => {
-  /**
-   * The assertion that cannot pass by accident: ONE row comes back, and the answer is seven. A
-   * count that fell through to `data.length` would read 1.
-   */
   test('count reads Content-Range while the payload holds one row', async () => {
     stubFetch({ body: [{ id: 'a' }], contentRange: 'items 0-0/7' });
 
@@ -50,7 +46,6 @@ describe('the total comes from the header, not from the page', () => {
   });
 });
 
-// An empty page on an IGNIS server is `records */N`: the total is there, only the range is not.
 describe('an empty page still carries its total', () => {
   test('count answers 0 when nothing matches', async () => {
     stubFetch({ body: [], contentRange: 'records */0' });
@@ -58,7 +53,6 @@ describe('an empty page still carries its total', () => {
     expect(await build().count({ where: {} })).toEqual({ count: 0 });
   });
 
-  /** A page past the end must keep the 137, and the start comes from the filter, as the server derives it. */
   test('find past the end keeps the total and the requested start', async () => {
     stubFetch({ body: [], contentRange: 'records */137' });
 
@@ -69,7 +63,6 @@ describe('an empty page still carries its total', () => {
   });
 });
 
-// A header that IS there but names no total sends a developer to the server's count, not to a missing header.
 describe('an unknown total is not a total, and the message says which', () => {
   const UNKNOWN = 'records 0-24/*';
 
@@ -100,7 +93,6 @@ describe('an unknown total is not a total, and the message says which', () => {
 });
 
 describe('no header means no total, and it says so', () => {
-  /** Answering with the page size is the silent-wrong class: 1 for a table of 7000, healthy-looking in every screen. */
   test('count refuses rather than reporting the page size', async () => {
     stubFetch({ body: [{ id: 'a' }] });
 
@@ -116,14 +108,12 @@ describe('no header means no total, and it says so', () => {
     });
   });
 
-  /** A plain list never needed the header, so it keeps working. */
   test('find without a range is unaffected', async () => {
     stubFetch({ body: [{ id: 'a' }, { id: 'b' }] });
 
     expect(await build().find({})).toHaveLength(2);
   });
 
-  /** Existence is a question about rows, not about totals. */
   test('existsWith answers from the rows, with no header', async () => {
     stubFetch({ body: [{ id: 'a' }] });
 
@@ -139,7 +129,6 @@ describe('countPath is opt-in convention', () => {
     expect(urls[0]).toContain('/tickets/count');
   });
 
-  /** Absent, nothing about a count route is assumed - the list route answers. */
   test('when absent, the list route answers', async () => {
     const urls = stubFetch({ body: [], contentRange: 'items 0-0/3' });
 
@@ -150,11 +139,6 @@ describe('countPath is opt-in convention', () => {
 });
 
 describe('both IGNIS list shapes are read, not one assumed', () => {
-  /**
-   * IGNIS answers `{ count, data }` by DEFAULT - `x-request-count` defaults to on. A transport that
-   * assumed a bare array would hand the whole envelope back as one row: fifty records reported as
-   * one, with no error anywhere.
-   */
   test('a count envelope yields its rows, not itself as one row', async () => {
     stubFetch({
       body: { count: 2, data: [{ id: 'a' }, { id: 'b' }] },
@@ -170,7 +154,6 @@ describe('both IGNIS list shapes are read, not one assumed', () => {
     expect(await build().find({})).toHaveLength(2);
   });
 
-  /** The envelope `count` is the rows of THAT response. The total is only ever in Content-Range. */
   test('the total comes from the header even when an envelope carries a count', async () => {
     stubFetch({
       body: { count: 2, data: [{ id: 'a' }, { id: 'b' }] },
@@ -180,7 +163,6 @@ describe('both IGNIS list shapes are read, not one assumed', () => {
     expect(await build().count({ where: {} })).toEqual({ count: 50 });
   });
 
-  /** An object that is not an envelope stays whole - `findById` answers one record. */
   test('a plain object is not mistaken for an envelope', async () => {
     stubFetch({ body: { id: 'a', count: 3 } });
 
@@ -188,7 +170,6 @@ describe('both IGNIS list shapes are read, not one assumed', () => {
   });
 });
 
-/** Structure alone cannot tell an envelope from a row with a `data` column and a `count` column. */
 describe('a record is never unwrapped, whatever fields it carries', () => {
   test('findById returns a row that happens to carry data and count', async () => {
     stubFetch({ body: { id: 'a', data: { nested: true }, count: 3 } });

@@ -56,6 +56,8 @@ export const ModelMetadataMixin = <BaseClass extends TMixinTarget<_MetadataRegis
 ) => {
   return class extends baseClass {
     modelRegistry: Map<string, IModelRegistryEntry>;
+    /** A relation holds a schema, not a class - so entries are findable by schema too. */
+    modelsBySchema: WeakMap<object, IModelRegistryEntry>;
 
     setModelMetadata<Target extends object = object>(opts: {
       target: Target;
@@ -90,12 +92,18 @@ export const ModelMetadataMixin = <BaseClass extends TMixinTarget<_MetadataRegis
       // Resolver, not resolved value - executed lazily in buildSchema() once all models are loaded
       const relationsResolver = modelClass.relations;
 
-      this.modelRegistry.set(tableName, {
+      const entry: IModelRegistryEntry = {
         target: modelClass,
         metadata,
         schema: modelClass.schema,
         relationsResolver,
-      });
+      };
+      this.modelRegistry.set(tableName, entry);
+
+      const { schema } = modelClass;
+      if (schema && typeof schema === 'object') {
+        this.modelsBySchema.set(schema, entry);
+      }
 
       // Also mirrored via Reflect so plain metadata lookups (getModelMetadata) still see it
       this.setModelMetadata({ target, metadata });
@@ -103,6 +111,10 @@ export const ModelMetadataMixin = <BaseClass extends TMixinTarget<_MetadataRegis
 
     getModelEntry(opts: { name: string }): IModelRegistryEntry | undefined {
       return this.modelRegistry.get(opts.name);
+    }
+
+    getModelEntryBySchema(opts: { schema: object }): IModelRegistryEntry | undefined {
+      return this.modelsBySchema.get(opts.schema);
     }
 
     getAllModels(): Map<string, IModelRegistryEntry> {

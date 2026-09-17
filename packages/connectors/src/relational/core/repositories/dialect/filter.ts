@@ -46,6 +46,23 @@ import {
 /** What one registry lookup yields - named so the three setting readers can accept an already-resolved entry instead of each repeating the lookup. */
 type TResolvedModelEntry = ReturnType<MetadataRegistry['getModelEntry']>;
 
+// The spellings callers write, compared without allocating; anything else is lowercased.
+const normalizeSortDirection = (opts: { direction: string }): string => {
+  switch (opts.direction) {
+    case 'ASC':
+    case 'asc': {
+      return Sorts.ASC;
+    }
+    case 'DESC':
+    case 'desc': {
+      return Sorts.DESC;
+    }
+    default: {
+      return opts.direction.toLowerCase();
+    }
+  }
+};
+
 const SCALAR_EQUALITY_OPERATORS = new Set<string>([
   QueryOperators.EQ,
   QueryOperators.NE,
@@ -74,6 +91,12 @@ export abstract class FilterBuilder extends BaseHelper {
   private readonly _relationsCache = new WeakMap<
     TTableSchemaWithId,
     Record<string, TRelationConfig>
+  >();
+
+  /** `asc`/`desc` allocate an SQL node (~75 ns) that drizzle never mutates - built once per column. */
+  private readonly _columnOrderCache = new WeakMap<
+    TTableColumns[string],
+    { asc: SQL; desc: SQL }
   >();
 
   constructor() {
@@ -188,8 +211,12 @@ export abstract class FilterBuilder extends BaseHelper {
     const { schema, methodName } = opts;
 
     try {
-      const tableName = getTableName(schema);
-      return MetadataRegistry.getInstance().getModelEntry({ name: tableName });
+      // By schema first: `@model` registers the class name unless TABLE_NAME matches the table.
+      const registry = MetadataRegistry.getInstance();
+      return (
+        registry.getModelEntryBySchema({ schema }) ??
+        registry.getModelEntry({ name: getTableName(schema) })
+      );
     } catch (error) {
       this.logger.warn(
         '[%s] Model metadata lookup failed - continuing without model settings | %s',
@@ -471,22 +498,23 @@ export abstract class FilterBuilder extends BaseHelper {
 
     const columns = this.getColumns(schema);
 
-    return order.map(orderStr => {
-      const [key, direction = Sorts.ASC] = orderStr.trim().split(/\s+/);
+    const idColumn = columns.id;
+    const orderBy: SQL[] = [];
+    let namesId = false;
 
-      if (!Sorts.isValid(direction)) {
+    for (const orderStr of order) {
+      const [key, direction = Sorts.ASC] = orderStr.trim().split(/\s+/);
+      const sortDirection = normalizeSortDirection({ direction });
+
+      if (sortDirection !== Sorts.ASC && sortDirection !== Sorts.DESC) {
         throw getError({
           message: `[FilterBuilder][toOrderBy] Table: ${tableName} | Invalid direction: '${direction}' | Expected: 'ASC' or 'DESC'`,
         });
       }
 
       if (isJsonPath({ key })) {
-        return this.buildJsonOrderBy({
-          key,
-          direction: direction as TConstValue<typeof Sorts>,
-          columns,
-          tableName,
-        });
+        orderBy.push(this.buildJsonOrderBy({ key, direction: sortDirection, columns, tableName }));
+        continue;
       }
 
       const column = columns[key];
@@ -496,8 +524,31 @@ export abstract class FilterBuilder extends BaseHelper {
         });
       }
 
-      return direction.toLowerCase() === Sorts.DESC ? desc(column) : asc(column);
-    });
+      namesId ||= column === idColumn;
+      orderBy.push(this.getColumnOrder({ column, direction: sortDirection }));
+    }
+
+    // A tie left to the engine is broken per page, so paging repeats and skips rows.
+    if (idColumn && !namesId) {
+      orderBy.push(this.getColumnOrder({ column: idColumn, direction: Sorts.ASC }));
+    }
+
+    return orderBy;
+  }
+
+  private getColumnOrder(opts: {
+    column: TTableColumns[string];
+    direction: TConstValue<typeof Sorts>;
+  }): SQL {
+    const { column, direction } = opts;
+    let pair = this._columnOrderCache.get(column);
+
+    if (!pair) {
+      pair = { asc: asc(column), desc: desc(column) };
+      this._columnOrderCache.set(column, pair);
+    }
+
+    return direction === Sorts.DESC ? pair.desc : pair.asc;
   }
 
   /**

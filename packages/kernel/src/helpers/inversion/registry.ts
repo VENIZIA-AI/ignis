@@ -29,6 +29,7 @@ export class MetadataRegistry extends BaseRegistry {
   private constructor() {
     super();
     this.modelRegistry = new Map<string, IModelRegistryEntry>();
+    this.modelsBySchema = new WeakMap<object, IModelRegistryEntry>();
     this.repositoryBindings = new Map<string, IRepositoryBinding>();
     this.datasourceModels = new Map<string, Set<TClass<AnyType>>>();
   }
@@ -42,6 +43,7 @@ export class MetadataRegistry extends BaseRegistry {
 
   clearAll(): void {
     this.modelRegistry.clear();
+    this.modelsBySchema = new WeakMap<object, IModelRegistryEntry>();
     this.repositoryBindings.clear();
     this.datasourceModels.clear();
   }

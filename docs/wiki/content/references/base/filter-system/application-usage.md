@@ -146,7 +146,7 @@ request: { query: WhereQuerySchema.extend({ q: z.string().max(255).optional() })
 Neither needs an extra `.optional()`. `FilterSchema` already carries one, so `FilterSchema.optional()` is the same schema written longer, and a trailing `.partial()` on a single optional key does nothing.
 
 > [!NOTE]
-> The generated `updateBy` and `deleteBy` routes deliberately do not use `WhereQuerySchema`. They require `where`, because a missing one rewrites or deletes every row in the table.
+> The generated `updateBy` and `deleteBy` routes take `where` from the query or the JSON body - a long id list does not fit in a URL. Both, or neither, is a `400`: a missing `where` would rewrite or delete every row.
 
 ## Rewrite a filter before it reaches the repository
 

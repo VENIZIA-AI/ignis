@@ -232,7 +232,7 @@ a search index carries no row scope in its search queries; the application must 
 `FilterBuilder.toInclude` in `relational/core/repositories/dialect/filter.ts` resolves each relation's
 `scopeFilter` from that relation's OWN `@model` settings - not the parent's - the same
 `resolveModelEntry` lookup `resolveDefaultFilter`/`resolveHiddenProperties` already use, keyed by the
-relation's own SQL table name. A parent's scope never cascades to a child, and a child with no
+relation's schema object first and its SQL table name second. A parent's scope never cascades to a child, and a child with no
 `scopeFilter` compiles to exactly the same query it always did. The same three-state order applies
 per relation: an `UNRESTRICTED` parent never widens a still-scoped child, and a scoped parent never
 narrows an `UNRESTRICTED` child, because each relation's `applyRelationScopeFilter` reads only that
@@ -244,6 +244,11 @@ only that relation's `defaultFilter`; it is deliberately excluded from the wire 
 predicate (`{ id: { inq: [] } }`) is a static method on `ScopeFilterDenial` in
 `relational/core/repositories/common/scope-filter.ts`, shared by `applyScopeFilter` and `toInclude` so
 the two tiers can never drift onto two different definitions of "deny".
+
+**`toOrderBy` appends `id ASC` unless the order names `id`.** Postgres breaks ties per page, so paging
+over a non-unique column repeated and skipped rows (PGlite: 60 read, 50 distinct). Each column's
+`asc`/`desc` SQL node is built once and reused - drizzle 0.45 wraps order nodes, never mutates them -
+which took `build()` with one include from 870 to 446 ns.
 
 ## Every published sub-path is probed, and eight rows are waived
 

@@ -7,6 +7,9 @@ import type { Env, Schema } from 'hono';
 import type { TEntityDataObject, TEntityPersistObject, TRouteContext } from '../../common';
 import { BaseRestController } from '../../rest/base';
 
+type TBulkWhereResolution<WhereType> =
+  { where: WhereType; error?: undefined } | { where?: undefined; error: Response };
+
 /** Base tier of a generated CRUD controller - the repository handle; the response helpers (`respond`, `setListHeaders`) live on BaseRestController so hand-written controllers share them. Read and write verbs are layered on by ReadableCrudController / PersistableCrudController. */
 export abstract class AbstractCrudController<
   TEntity extends AbstractEntity<TAnyObjectSchema> = AbstractEntity<TAnyObjectSchema>,
@@ -41,5 +44,35 @@ export abstract class AbstractCrudController<
       );
     }
     return undefined;
+  }
+
+  /** Bulk `where` from the query or the JSON body (long id lists outgrow a URL). Both, or none, is a 400. */
+  resolveBulkWhere<WhereType extends object>(opts: {
+    context: TRouteContext<RouteEnv>;
+    queryWhere?: WhereType;
+    bodyWhere?: WhereType;
+  }): TBulkWhereResolution<WhereType> {
+    const { context, queryWhere, bodyWhere } = opts;
+
+    if (queryWhere !== undefined && bodyWhere !== undefined) {
+      return {
+        error: context.json(
+          { message: 'where given in both the query and the body - send it in one' },
+          HTTP.ResultCodes.RS_4.BadRequest,
+        ),
+      };
+    }
+
+    const where = queryWhere ?? bodyWhere;
+    if (!where || Object.keys(where).length === 0) {
+      return {
+        error: context.json(
+          { message: 'where filter is required for bulk operations' },
+          HTTP.ResultCodes.RS_4.BadRequest,
+        ),
+      };
+    }
+
+    return { where };
   }
 }

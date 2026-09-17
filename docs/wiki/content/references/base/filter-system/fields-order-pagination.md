@@ -56,6 +56,8 @@ await userRepository.find({ filter: { order: ['status ASC', 'createdAt DESC'] } 
 await userRepository.find({ filter: { order: ['name'] } }); // same as 'name ASC'
 ```
 
+When the order does not name `id`, the relational repository appends `id ASC`, so pages over a tied column never repeat or skip a row.
+
 An invalid direction throws before the query runs:
 
 ```

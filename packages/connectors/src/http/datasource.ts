@@ -6,10 +6,7 @@ import type { IAuthToken, IHttpDataSourceSettings, IHttpReadResult } from './com
 
 const MAX_URL_IN_MESSAGE = 256;
 
-/**
- * The URL for an error message. A long `inq` makes it 200 KB, so the message carries its head and
- * size. A server refuses a URL past ~16 KB (431, or 414) - that names the URL, not the filter.
- */
+/** A long `inq` makes a URL 200 KB: the message keeps its head and length. 414/431 name the URL. */
 const describeUrl = (opts: { url: string; status: number }): string => {
   const { url, status } = opts;
   const shown =
@@ -27,20 +24,8 @@ const describeUrl = (opts: { url: string; status: number }): string => {
 };
 
 /**
- * Both list shapes IGNIS itself answers with, told apart by structure.
- *
- * `x-request-count` decides it, and its DEFAULT is on (`rest/base.ts`: `?? 'true'`), so an IGNIS
- * list route answers the count envelope unless asked otherwise. This datasource asks for the bare
- * array, but a hand-written route that never reaches `normalizeCountData` can still answer the
- * envelope - so both are accepted rather than one assumed. Treating an envelope as a row is the
- * failure that reports one record where there were fifty, with no error anywhere.
- *
- * The envelope `count` is the rows of THAT response, never the total - the total is only ever in
- * `Content-Range`.
- *
- * `shape` is asked for rather than sniffed. Structure alone cannot tell an envelope from a record
- * that happens to carry a `data` column and a `count` column, and guessing wrong there unwraps a
- * row into whatever its `data` field held.
+ * A list is a bare array or the `{ count, data }` envelope; `one` is never unwrapped, since a record
+ * may carry `data` and `count` columns. The envelope `count` is the page size, never the total.
  */
 const unwrapBody = <R>(opts: { body: unknown; shape: 'list' | 'one' }): R => {
   const { body, shape } = opts;
@@ -56,8 +41,7 @@ const unwrapBody = <R>(opts: { body: unknown; shape: 'list' | 'one' }): R => {
   return body as R;
 };
 
-// `records 0-24/137` -> `{ skip: 0, total: 137 }`; an empty page, `records */137` -> `{ total: 137 }`.
-// Absent or unparseable answers `undefined`, never a guess.
+// `records 0-24/137` -> skip 0, total 137; an empty page `records */137` -> total 137; else undefined.
 const readContentRange = (opts: {
   header: string | null;
 }): { skip?: number; total: number } | undefined => {
@@ -80,33 +64,21 @@ const readContentRange = (opts: {
   return undefined;
 };
 
-/**
- * A datasource whose transport is HTTP.
- *
- * A repository talks to a datasource, and `AbstractDataSource` is engine-neutral - its only required
- * member is `configure()`. So "a request to another IGNIS server" is a datasource in the same sense
- * Drizzle-over-Postgres is one: same role, different transport, and the same
- * `@venizia/ignis-filter` vocabulary on the way in.
- *
- * It targets the IGNIS REST contract - a list route that answers `Content-Range` - and promises
- * nothing about an arbitrary REST API. How a filter serialises and which header carries the total
- * are one API's CONVENTIONS; IGNIS talking to IGNIS is both ends speaking its own.
- */
+/** Reads an IGNIS REST server through the repository contract. Targets IGNIS, not any REST API. */
 export class HttpDataSource extends AbstractDataSource<IHttpDataSourceSettings> {
   override name: string;
   override settings: IHttpDataSourceSettings;
-  /** A remote API publishes no schema to this process. An empty object where a caller expects table metadata is worse than nothing. */
   override schema = {} as never;
 
-  /** The framework's own HTTP layer, not a bare `fetch`: timeout, abort, secret redaction and scoped logging come with it, and one HTTP path in the framework beats two. */
   protected network: NodeFetchNetworkRequest;
+  /** Normalised once: every request copies these, never re-parses `settings.headers`. */
+  protected configuredHeaders: Array<[string, string]>;
 
   constructor(opts: IHttpDataSourceSettings & { name?: string }) {
     super({ scope: opts.name ?? HttpDataSource.name });
 
     const { name = 'http', ...settings } = opts;
 
-    // Refused, not dropped: the caller wrote a value and would silently get another.
     const configured = new Headers(settings.headers);
     if (configured.has(HTTP.Headers.REQUEST_COUNT_DATA)) {
       throw getError({
@@ -115,6 +87,7 @@ export class HttpDataSource extends AbstractDataSource<IHttpDataSourceSettings> 
       });
     }
 
+    this.configuredHeaders = [...configured.entries()];
     this.name = name;
     this.settings = settings;
     this.network = new NodeFetchNetworkRequest({
@@ -123,34 +96,21 @@ export class HttpDataSource extends AbstractDataSource<IHttpDataSourceSettings> 
     });
   }
 
-  /** Nothing to open. Holding no connection is what makes this one safe to construct anywhere. */
   async configure(): Promise<void> {}
 
-  /** No transactions over REST. The root probes capabilities rather than assuming them. */
   override getCapabilities() {
     return { transactions: false };
   }
 
-  /** Explicit token first, resolver only when there is none - a caller that supplied one is never overridden by a lookup. */
   protected resolveAuthToken(): IAuthToken | undefined {
     return this.settings.authToken ?? this.settings.authTokenResolver?.();
   }
 
-  /**
-   * Built through `Headers` rather than a plain object: `set` replaces a name in any case, where an
-   * object merge keeps both spellings and `Headers` then APPENDS them - `"false, true"`.
-   */
   protected buildHeaders(opts: { token?: IAuthToken }): Headers {
     const { token } = opts;
-    const headers = new Headers();
+    const headers = new Headers(this.configuredHeaders);
 
-    const configured = [...new Headers(this.settings.headers).entries()];
-    for (const [name, value] of configured) {
-      headers.set(name, value);
-    }
-
-    // Owned, and set last: under the count envelope a record read answers `{ count, data }`, and
-    // `shape: 'one'` would hand that back as the record.
+    // Set last: under the envelope a record read answers `{ count, data }`.
     headers.set(HTTP.Headers.REQUEST_COUNT_DATA, 'false');
 
     if (!token) {
@@ -159,8 +119,7 @@ export class HttpDataSource extends AbstractDataSource<IHttpDataSourceSettings> 
 
     headers.set(HTTP.Headers.AUTHORIZATION, `${token.type ?? 'Bearer'} ${token.value}`);
 
-    // Only when there IS one. Setting it unconditionally sends the string "undefined", which a
-    // server reads as a provider by that name.
+    // Unconditionally it would send the string "undefined".
     if (token.provider) {
       headers.set('x-auth-provider', token.provider);
     }
@@ -170,8 +129,6 @@ export class HttpDataSource extends AbstractDataSource<IHttpDataSourceSettings> 
 
   buildUrl(opts: { paths: Array<string>; query?: Record<string, unknown> }): string {
     const { paths, query } = opts;
-    // Path joining belongs to the network helper - it already normalises leading slashes and
-    // refuses an unset base url with a catalogued error.
     const url = new URL(this.network.getRequestUrl({ paths }));
 
     const parameters = Object.entries(query ?? {});
@@ -186,16 +143,7 @@ export class HttpDataSource extends AbstractDataSource<IHttpDataSourceSettings> 
     return url.toString();
   }
 
-  /**
-   * One request, answered RAW.
-   *
-   * `read` is about rows and cannot express a response that is not JSON - an export endpoint returns
-   * bytes and a filename. Rather than invent a blob shape on the repository, whose contract is rows,
-   * the transport stays reachable: a caller gets the `Response` and reads `.blob()` and
-   * `content-disposition` itself.
-   *
-   * Auth, the 401 hook and the single retry apply here exactly as they do to `read`.
-   */
+  /** The raw `Response` - for what is not rows, like an export. Auth and the 401 retry apply. */
   async request(opts: {
     paths: Array<string>;
     query?: Record<string, unknown>;
@@ -223,17 +171,10 @@ export class HttpDataSource extends AbstractDataSource<IHttpDataSourceSettings> 
     return response;
   }
 
-  /**
-   * One request, with the total read from `Content-Range` and REPORTED as absent when the header is
-   * not there.
-   *
-   * Goes through {@link HttpDataSource.request}, so auth, the 401 hook and the single retry live in
-   * ONE place - a second header-building path is where a guard gets forgotten.
-   */
+  /** Rows plus the total from `Content-Range`, reported absent when the header is. */
   async read<R>(opts: {
     paths: Array<string>;
     query?: Record<string, unknown>;
-    /** What the caller asked for. `one` is never unwrapped - see {@link unwrapBody}. */
     shape?: 'list' | 'one';
   }): Promise<IHttpReadResult<R>> {
     const response = await this.request(opts);

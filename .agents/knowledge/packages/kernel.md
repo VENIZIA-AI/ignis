@@ -140,6 +140,19 @@ return the kernel `MetadataRegistry` singleton, which is `inversion`'s registry 
 model, repository, controller, REST-controller, and gRPC-controller metadata mixins composed on. That
 is where the model registry, the repository bindings, and datasource auto-discovery live.
 
+The model registry is keyed by registered name (`@model({ tableName })` > `TABLE_NAME` > class name)
+AND by schema object (`getModelEntryBySchema`, a WeakMap). A relation carries only its schema, and
+a lookup by SQL table name missed every model whose table name differed from its registered name -
+`include` then dropped its `hiddenProperties` and `scopeFilter`.
+
+## Generated bulk routes take `where` in the query or the body
+
+`PATCH /` (`updateBy`) and `DELETE /` (`deleteBy`) read `where` from the query or the JSON body -
+a few hundred ids outgrow a URL (431 past ~16 KB). `resolveBulkWhere` answers 400 for both or
+neither; in a `PATCH /` body `where` is reserved and stripped from the data. Query schemas allow
+`where` absent, so an override that reads only `valid('query')` gets `undefined` for a body-only
+request - the repository refuses an empty `where` without `force` (400).
+
 The `Container` constructor takes its logger through `BaseHelper` / `LoggerResolver`, never
 `LoggerFactory` directly. The resolver's console fallback is what keeps the constructor - and
 everything extending it, which is every application - browser-pure. A server host still gets the real
