@@ -21,12 +21,16 @@ the `import` condition: a browser bundler that finds only CommonJS either fails 
 the kernel barrel wholesale, so `@venizia/ignis` keeps its published name and its full public
 surface: no consumer import changed when this package was carved out of core.
 
-Two entries, not one. The root barrel is 161 KB gzipped in a browser bundle and correctly so - it
+Three entries, not one. The root barrel is 161 KB gzipped in a browser bundle and correctly so - it
 carries the REST surface, and `base/controllers` needs zod. `./metadata` is 13.9 KB for the whole surface, 11.0 KB when a consumer names two symbols: the stereotypes,
 the binding namespaces, `ArtifactTypes`/`BindingKeys`/`MetadataRegistry`, for a consumer that
 registers and resolves classes and never serves HTTP. `CoreBindings` is deliberately absent - the
 namespaces are the GRAMMAR of a key, `CoreBindings` is one application's DICTIONARY, and a sibling
-framework ships a class of the same name whose `APPLICATION_INSTANCE` is a different string. It is listed export by export rather than
+framework ships a class of the same name whose `APPLICATION_INSTANCE` is a different string.
+`./repository` is 14.7 KB against `base/repositories`' 105.3 KB: `AbstractRepository`,
+`AbstractDataSource`, the CRUD contract and the filter vocabulary, without the OpenAPI layer. It
+exists because `AbstractDataSource` is engine-neutral - only `configure()` is required - so an HTTP
+request to another server is a datasource in the same sense Drizzle-over-Postgres is one. It is listed export by export rather than
 re-exporting `base/metadata`, because a sub-path is a surface someone decided on, not whatever a
 directory grows into.
 

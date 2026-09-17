@@ -55,6 +55,12 @@
       "require": "./dist/cjs/metadata.js",
       "default": "./dist/cjs/metadata.js"
     },
+    "./repository": {
+      "types": "./dist/cjs/repository.d.ts",
+      "import": "./dist/esm/repository.js",
+      "require": "./dist/cjs/repository.js",
+      "default": "./dist/cjs/repository.js"
+    },
     "./package.json": "./package.json"
   },
   "files": [

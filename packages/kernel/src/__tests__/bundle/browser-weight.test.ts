@@ -114,3 +114,27 @@ describe('lodash stays out of the browser paths', () => {
     });
   }
 });
+
+/**
+ * A repository talks to a datasource, and `AbstractDataSource` is engine-neutral - so a consumer on
+ * another transport can implement one. `base/repositories` is 105 KB because of the OpenAPI layer it
+ * reaches; this entry is the contract without it.
+ */
+describe('the repository entry stays free of the schema layer', () => {
+  const REPOSITORY_ENTRY = join(process.cwd(), 'src/repository.ts');
+
+  test(`it bundles under ${CEILING_BYTES / 1024} KB minified`, async () => {
+    const { bytes } = await bundle(REPOSITORY_ENTRY);
+
+    expect(
+      bytes,
+      `kernel/repository bundles to ${Math.round(bytes / 1024)} KB. Something it exports now reaches the schema layer - check src/repository.ts, and note that base/repositories reaches query-schemas and result-schemas.`,
+    ).toBeLessThan(CEILING_BYTES);
+  });
+
+  test('no zod reaches it', async () => {
+    const { text } = await bundle(REPOSITORY_ENTRY);
+
+    expect(text.includes('ZodObject'), 'zod reached the repository entry').toBe(false);
+  });
+});

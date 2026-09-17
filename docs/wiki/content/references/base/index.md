@@ -76,16 +76,17 @@ Core classes that power every IGNIS application - from the Application entry poi
 - [Repositories](./repositories/) - CRUD operations, filtering, relations
 - [Filter System](./filter-system/) - Query filter types and operators
 
-## Two entry points
+## Three entry points
 
 Most applications import from `@venizia/ignis` and never think about this. A consumer that
 registers and resolves classes but never serves HTTP - a browser-side framework, a tool - imports
-from the kernel's sub-path instead.
+from a kernel sub-path instead.
 
 | Import from | Holds | Browser bundle |
 |---|---|---|
 | `@venizia/ignis-kernel` | Everything: applications, controllers, repositories, the REST surface | 161 KB gzipped |
 | `@venizia/ignis-kernel/metadata` | The stereotypes (`service`, `component`, `configuration`, `injectable`, `provide`, `model`, `datasource`, `repository`, `inject`), `BindingNamespaces`, `ArtifactNamespaces`, `ArtifactTypes`, `BindingKeys`, `MetadataRegistry` | **13.9 KB gzipped** |
+| `@venizia/ignis-kernel/repository` | `AbstractRepository`, `AbstractDataSource`, the CRUD contract interfaces, `buildDataRange`, and the filter vocabulary - without the OpenAPI layer | **14.7 KB gzipped** |
 
 Both figures are the whole surface (`export *`). Naming what you import tree-shakes further - two
 symbols come to 11.0 KB.
@@ -95,7 +96,13 @@ import { service, BindingNamespaces } from '@venizia/ignis-kernel/metadata';
 ```
 
 The root barrel is heavy **correctly** - it carries the REST surface, and `base/controllers` needs
-zod. Every peer is optional, so the sub-path installs without a server HTTP framework.
+zod. Every peer is optional, so a sub-path installs without a server HTTP framework.
+
+`./repository` exists because a repository talks to a **datasource**, and `AbstractDataSource` is
+engine-neutral: its only required member is `configure()`. An HTTP request to another server is a
+datasource in the same sense Drizzle-over-Postgres is one - same role, different transport. Both
+halves already speak `@venizia/ignis-filter`, so a consumer on another transport shares the query
+vocabulary rather than translating into its own.
 
 `CoreBindings` is deliberately **not** on `./metadata`. The namespaces are the grammar of a binding
 key; `CoreBindings` is one application's dictionary (`APPLICATION_SERVER`, `APPLICATION_ROOT_ROUTER`),

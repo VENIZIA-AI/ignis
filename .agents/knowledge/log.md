@@ -6,6 +6,22 @@ not how.
 This file and `index.md` are reserved OKF filenames - they carry no `type:` frontmatter and are not
 counted as concepts.
 
+## 2026-09-17 (b) - a repository entry for other transports
+
+`@venizia/ignis-kernel/repository`: `AbstractRepository`, `AbstractDataSource`, the CRUD contract,
+`buildDataRange` and the filter vocabulary at 14.7 KB gzip, against 105.3 KB for the
+`base/repositories` barrel.
+
+The design was already right and only the PACKAGING was in the way. `AbstractDataSource` is
+engine-neutral (only `configure()` required), `AbstractRepository` is generic over plain objects with
+no Drizzle binding, and both already speak `@venizia/ignis-filter` - so an HTTP-speaking datasource is
+the same role over a different transport, not a new concept. What blocked it was
+`base/repositories` reaching `query-schemas` and a `CountSchema`.
+
+Same split as `constants.ts` and `jsx.utility.ts`, with one twist worth naming: `TCount` was
+`z.infer<typeof CountSchema>`, so inferring the TYPE put zod on every path that needed the type. It is
+written out as `{ count: number }` now and the schema lives in `result-schemas.ts`.
+
 ## 2026-09-17 - lodash is gone from every package
 
 31 call sites for five functions: `isEmpty` x20, `omit` x8, `get`/`set`/`round` x1 each. `isEmpty`

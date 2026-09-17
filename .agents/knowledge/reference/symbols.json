@@ -1199,8 +1199,8 @@
       "subpath": ".",
       "specifier": "@venizia/ignis",
       "kind": "const",
-      "file": "packages/kernel/src/base/repositories/common/types/results.ts",
-      "line": 4,
+      "file": "packages/kernel/src/base/repositories/common/types/result-schemas.ts",
+      "line": 8,
       "signature": "CountSchema: z.ZodObject<{ count: z.ZodDefault<z.ZodNumber>; }, z.core.$strip>"
     },
     {
@@ -5912,8 +5912,8 @@
       "specifier": "@venizia/ignis",
       "kind": "type",
       "file": "packages/kernel/src/base/repositories/common/types/results.ts",
-      "line": 9,
-      "signature": "type TCount = z.infer<typeof CountSchema>"
+      "line": 2,
+      "signature": "type TCount = { count: number; }"
     },
     {
       "name": "TCountResponse",
@@ -5972,7 +5972,7 @@
       "specifier": "@venizia/ignis",
       "kind": "type",
       "file": "packages/kernel/src/base/repositories/common/types/results.ts",
-      "line": 12,
+      "line": 5,
       "signature": "type TDataRange = { start: number; end: number; total: number; }"
     },
     {
@@ -6012,7 +6012,7 @@
       "specifier": "@venizia/ignis",
       "kind": "type",
       "file": "packages/kernel/src/base/repositories/common/types/results.ts",
-      "line": 32,
+      "line": 25,
       "signature": "type TDataWithRange<R> = { data: Array<R>; range: TDataRange; }"
     },
     {
@@ -8282,7 +8282,7 @@
       "specifier": "@venizia/ignis",
       "kind": "const",
       "file": "packages/kernel/src/base/repositories/common/types/results.ts",
-      "line": 19,
+      "line": 12,
       "signature": "buildDataRange: (opts: { skip?: number; offset?: number; dataLength: number; total: number; }) => TDataRange"
     },
     {
@@ -27874,8 +27874,8 @@
       "subpath": ".",
       "specifier": "@venizia/ignis-kernel",
       "kind": "const",
-      "file": "packages/kernel/src/base/repositories/common/types/results.ts",
-      "line": 4,
+      "file": "packages/kernel/src/base/repositories/common/types/result-schemas.ts",
+      "line": 8,
       "signature": "CountSchema: z.ZodObject<{ count: z.ZodDefault<z.ZodNumber>; }, z.core.$strip>"
     },
     {
@@ -29805,8 +29805,8 @@
       "specifier": "@venizia/ignis-kernel",
       "kind": "type",
       "file": "packages/kernel/src/base/repositories/common/types/results.ts",
-      "line": 9,
-      "signature": "type TCount = z.infer<typeof CountSchema>"
+      "line": 2,
+      "signature": "type TCount = { count: number; }"
     },
     {
       "name": "TCountResponse",
@@ -29845,7 +29845,7 @@
       "specifier": "@venizia/ignis-kernel",
       "kind": "type",
       "file": "packages/kernel/src/base/repositories/common/types/results.ts",
-      "line": 12,
+      "line": 5,
       "signature": "type TDataRange = { start: number; end: number; total: number; }"
     },
     {
@@ -29875,7 +29875,7 @@
       "specifier": "@venizia/ignis-kernel",
       "kind": "type",
       "file": "packages/kernel/src/base/repositories/common/types/results.ts",
-      "line": 32,
+      "line": 25,
       "signature": "type TDataWithRange<R> = { data: Array<R>; range: TDataRange; }"
     },
     {
@@ -30745,7 +30745,7 @@
       "specifier": "@venizia/ignis-kernel",
       "kind": "const",
       "file": "packages/kernel/src/base/repositories/common/types/results.ts",
-      "line": 19,
+      "line": 12,
       "signature": "buildDataRange: (opts: { skip?: number; offset?: number; dataLength: number; total: number; }) => TDataRange"
     },
     {
@@ -31447,6 +31447,176 @@
       "file": "packages/kernel/src/base/metadata/injectable.ts",
       "line": 51,
       "signature": "service: <ApplicationType = unknown>(opts?: IArtifactRegistrationOptions<ApplicationType>) => ClassDecorator"
+    },
+    {
+      "name": "AbstractDataSource",
+      "package": "@venizia/ignis-kernel",
+      "subpath": "./repository",
+      "specifier": "@venizia/ignis-kernel/repository",
+      "kind": "class",
+      "file": "packages/kernel/src/base/datasources/abstract.ts",
+      "line": 29,
+      "signature": "class AbstractDataSource<Settings extends object = {}, Schema extends TAnyDataSourceSchema = TAnyDataSourceSchema, ConfigurableOptions extends object = {}> extends BaseHelper implements IDataSource<Settings, Schema, ConfigurableOptions>"
+    },
+    {
+      "name": "AbstractRepository",
+      "package": "@venizia/ignis-kernel",
+      "subpath": "./repository",
+      "specifier": "@venizia/ignis-kernel/repository",
+      "kind": "class",
+      "file": "packages/kernel/src/base/repositories/core/abstract.ts",
+      "line": 28,
+      "signature": "class AbstractRepository<TDataObject extends object, TPersistObject extends object = TDataObject, TOptions extends IExtraOptions = IExtraOptions> extends BaseHelper implements IPersistableRepository<TDataObject, TPersistObject, TOptions>"
+    },
+    {
+      "name": "ICreatableRepository",
+      "package": "@venizia/ignis-kernel",
+      "subpath": "./repository",
+      "specifier": "@venizia/ignis-kernel/repository",
+      "kind": "interface",
+      "file": "packages/kernel/src/base/repositories/common/types/contracts.ts",
+      "line": 49,
+      "signature": "interface ICreatableRepository<TDataObject extends object = object, TPersistObject extends object = TDataObject, ExtraOptions extends IExtraOptions = IExtraOptions> extends IRepository"
+    },
+    {
+      "name": "ICrudRepository",
+      "package": "@venizia/ignis-kernel",
+      "subpath": "./repository",
+      "specifier": "@venizia/ignis-kernel/repository",
+      "kind": "interface",
+      "file": "packages/kernel/src/base/repositories/common/types/contracts.ts",
+      "line": 174,
+      "signature": "interface ICrudRepository<TDataObject extends object = object, TPersistObject extends object = TDataObject, ExtraOptions extends IExtraOptions = IExtraOptions> extends IPersistableRepository<TDataObject, TPersistObject, ExtraOptions>"
+    },
+    {
+      "name": "IDataSource",
+      "package": "@venizia/ignis-kernel",
+      "subpath": "./repository",
+      "specifier": "@venizia/ignis-kernel/repository",
+      "kind": "interface",
+      "file": "packages/kernel/src/base/datasources/common/types.ts",
+      "line": 53,
+      "signature": "interface IDataSource<Settings extends object = {}, Schema extends TAnyDataSourceSchema = TAnyDataSourceSchema, ConfigurableOptions extends object = {}> extends IConfigurable<ConfigurableOptions>"
+    },
+    {
+      "name": "IDeletableRepository",
+      "package": "@venizia/ignis-kernel",
+      "subpath": "./repository",
+      "specifier": "@venizia/ignis-kernel/repository",
+      "kind": "interface",
+      "file": "packages/kernel/src/base/repositories/common/types/contracts.ts",
+      "line": 121,
+      "signature": "interface IDeletableRepository<TDataObject extends object = object, ExtraOptions extends IExtraOptions = IExtraOptions> extends IRepository"
+    },
+    {
+      "name": "IPersistableRepository",
+      "package": "@venizia/ignis-kernel",
+      "subpath": "./repository",
+      "specifier": "@venizia/ignis-kernel/repository",
+      "kind": "interface",
+      "file": "packages/kernel/src/base/repositories/common/types/contracts.ts",
+      "line": 159,
+      "signature": "interface IPersistableRepository<TDataObject extends object = object, TPersistObject extends object = TDataObject, ExtraOptions extends IExtraOptions = IExtraOptions> extends IReadableRepository<TDataObject, ExtraOptions>, ICreatableRepository<TDataObject, TPersistObject, ExtraOptions>, IUpdatableRe"
+    },
+    {
+      "name": "IReadableRepository",
+      "package": "@venizia/ignis-kernel",
+      "subpath": "./repository",
+      "specifier": "@venizia/ignis-kernel/repository",
+      "kind": "interface",
+      "file": "packages/kernel/src/base/repositories/common/types/contracts.ts",
+      "line": 19,
+      "signature": "interface IReadableRepository<TDataObject extends object = object, ExtraOptions extends IExtraOptions = IExtraOptions> extends IRepository"
+    },
+    {
+      "name": "IRepository",
+      "package": "@venizia/ignis-kernel",
+      "subpath": "./repository",
+      "specifier": "@venizia/ignis-kernel/repository",
+      "kind": "interface",
+      "file": "packages/kernel/src/base/repositories/common/types/contracts.ts",
+      "line": 12,
+      "signature": "interface IRepository"
+    },
+    {
+      "name": "IUpdatableRepository",
+      "package": "@venizia/ignis-kernel",
+      "subpath": "./repository",
+      "specifier": "@venizia/ignis-kernel/repository",
+      "kind": "interface",
+      "file": "packages/kernel/src/base/repositories/common/types/contracts.ts",
+      "line": 76,
+      "signature": "interface IUpdatableRepository<TDataObject extends object = object, TPersistObject extends object = TDataObject, ExtraOptions extends IExtraOptions = IExtraOptions> extends IRepository"
+    },
+    {
+      "name": "TCount",
+      "package": "@venizia/ignis-kernel",
+      "subpath": "./repository",
+      "specifier": "@venizia/ignis-kernel/repository",
+      "kind": "type",
+      "file": "packages/kernel/src/base/repositories/common/types/results.ts",
+      "line": 2,
+      "signature": "type TCount = { count: number; }"
+    },
+    {
+      "name": "TDataRange",
+      "package": "@venizia/ignis-kernel",
+      "subpath": "./repository",
+      "specifier": "@venizia/ignis-kernel/repository",
+      "kind": "type",
+      "file": "packages/kernel/src/base/repositories/common/types/results.ts",
+      "line": 5,
+      "signature": "type TDataRange = { start: number; end: number; total: number; }"
+    },
+    {
+      "name": "TDataWithRange",
+      "package": "@venizia/ignis-kernel",
+      "subpath": "./repository",
+      "specifier": "@venizia/ignis-kernel/repository",
+      "kind": "type",
+      "file": "packages/kernel/src/base/repositories/common/types/results.ts",
+      "line": 25,
+      "signature": "type TDataWithRange<R> = { data: Array<R>; range: TDataRange; }"
+    },
+    {
+      "name": "TFilter",
+      "package": "@venizia/ignis-kernel",
+      "subpath": "./repository",
+      "specifier": "@venizia/ignis-kernel/repository",
+      "kind": "type",
+      "file": "packages/filter/src/common/types.ts",
+      "line": 80,
+      "signature": "type TFilter<T = any> = { where?: TWhere<T>; fields?: TFields; include?: TInclusion[]; order?: string[]; limit?: number; offset?: number; skip?: number; }"
+    },
+    {
+      "name": "TInclusion",
+      "package": "@venizia/ignis-kernel",
+      "subpath": "./repository",
+      "specifier": "@venizia/ignis-kernel/repository",
+      "kind": "type",
+      "file": "packages/filter/src/common/types.ts",
+      "line": 61,
+      "signature": "type TInclusion = { relation: string; scope?: TFilter; shouldSkipDefaultFilter?: boolean; }"
+    },
+    {
+      "name": "TWhere",
+      "package": "@venizia/ignis-kernel",
+      "subpath": "./repository",
+      "specifier": "@venizia/ignis-kernel/repository",
+      "kind": "type",
+      "file": "packages/filter/src/common/types.ts",
+      "line": 55,
+      "signature": "type TWhere<T = any> = { [key in keyof T]?: TWhereValue<T[key]>; } & { and?: TWhere<T>[]; or?: TWhere<T>[]; }"
+    },
+    {
+      "name": "buildDataRange",
+      "package": "@venizia/ignis-kernel",
+      "subpath": "./repository",
+      "specifier": "@venizia/ignis-kernel/repository",
+      "kind": "const",
+      "file": "packages/kernel/src/base/repositories/common/types/results.ts",
+      "line": 12,
+      "signature": "buildDataRange: (opts: { skip?: number; offset?: number; dataLength: number; total: number; }) => TDataRange"
     },
     {
       "name": "BFF_SYNTHETIC_ORIGIN",

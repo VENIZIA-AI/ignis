@@ -1,12 +1,5 @@
-import { z } from '@hono/zod-openapi';
-
-/** Zod schema for count operation results. */
-export const CountSchema = z.object({ count: z.number().default(0) }).openapi({
-  description: 'Total count of items matching the criteria.',
-  examples: [{ count: 0 }, { count: 10 }],
-});
-
-export type TCount = z.infer<typeof CountSchema>;
+/** The count envelope. Spelled out rather than inferred from `CountSchema`, which lives in `result-schemas.ts` - inferring it here would put zod on every path that needs the TYPE. */
+export type TCount = { count: number };
 
 /** Data range information for paginated queries. Follows HTTP Content-Range standard. */
 export type TDataRange = {

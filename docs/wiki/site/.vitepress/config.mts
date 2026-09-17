@@ -455,6 +455,10 @@ const config = defineConfig({
               collapsed: true,
               items: [
                 { text: 'lodash Is Gone', link: '/changelogs/2026-09-17-lodash-is-gone' },
+                {
+                  text: 'A Repository Entry for Other Transports',
+                  link: '/changelogs/2026-09-17-a-repository-entry-for-other-transports',
+                },
               ],
             },
             {
