@@ -1297,9 +1297,10 @@ tags: [reference, exports, api]
 - `TBindingNamespace` type
 - `TBindingScope` type
 
-### `@venizia/ignis-kernel/repository` (17)
+### `@venizia/ignis-kernel/repository` (20)
 
 - `AbstractDataSource` class
+- `AbstractEntity` class
 - `AbstractRepository` class
 - `buildDataRange` const
 - `ICreatableRepository` interface
@@ -1314,7 +1315,9 @@ tags: [reference, exports, api]
 - `TDataRange` type
 - `TDataWithRange` type
 - `TFilter` type
+- `TIdSchemaType` type
 - `TInclusion` type
+- `TSchemaType` type
 - `TWhere` type
 
 ## connectors

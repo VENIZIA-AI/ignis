@@ -31459,6 +31459,16 @@
       "signature": "class AbstractDataSource<Settings extends object = {}, Schema extends TAnyDataSourceSchema = TAnyDataSourceSchema, ConfigurableOptions extends object = {}> extends BaseHelper implements IDataSource<Settings, Schema, ConfigurableOptions>"
     },
     {
+      "name": "AbstractEntity",
+      "package": "@venizia/ignis-kernel",
+      "subpath": "./repository",
+      "specifier": "@venizia/ignis-kernel/repository",
+      "kind": "class",
+      "file": "packages/kernel/src/base/models/base.ts",
+      "line": 5,
+      "signature": "class AbstractEntity<Schema = unknown> extends BaseHelper"
+    },
+    {
       "name": "AbstractRepository",
       "package": "@venizia/ignis-kernel",
       "subpath": "./repository",
@@ -31589,6 +31599,16 @@
       "signature": "type TFilter<T = any> = { where?: TWhere<T>; fields?: TFields; include?: TInclusion[]; order?: string[]; limit?: number; offset?: number; skip?: number; }"
     },
     {
+      "name": "TIdSchemaType",
+      "package": "@venizia/ignis-kernel",
+      "subpath": "./repository",
+      "specifier": "@venizia/ignis-kernel/repository",
+      "kind": "type",
+      "file": "packages/kernel/src/base/models/common/types/id.ts",
+      "line": 23,
+      "signature": "type TIdSchemaType = 'number' | 'string'"
+    },
+    {
       "name": "TInclusion",
       "package": "@venizia/ignis-kernel",
       "subpath": "./repository",
@@ -31597,6 +31617,16 @@
       "file": "packages/filter/src/common/types.ts",
       "line": 61,
       "signature": "type TInclusion = { relation: string; scope?: TFilter; shouldSkipDefaultFilter?: boolean; }"
+    },
+    {
+      "name": "TSchemaType",
+      "package": "@venizia/ignis-kernel",
+      "subpath": "./repository",
+      "specifier": "@venizia/ignis-kernel/repository",
+      "kind": "type",
+      "file": "packages/kernel/src/base/models/common/constants.ts",
+      "line": 16,
+      "signature": "type TSchemaType = TConstValue<typeof SchemaTypes>"
     },
     {
       "name": "TWhere",

@@ -50,6 +50,36 @@ Both files are re-exported from the same barrel. No import path changes.
 Listed export by export, like `./metadata`: a sub-path is a surface someone decided on, not whatever
 a directory grows into. A guard test fails over 120 KB or on zod reaching it.
 
+## What a consumer has to write
+
+Four things are easy to guess wrong, so the shape is kept as a compile-checked fixture
+(`src/__tests__/repository-contract-shape.ts`) rather than described in prose:
+
+- **`AbstractRepository` demands twelve abstract members.** A read-only resource would have to stub
+  `create`, `updateById` and `deleteById`. Implement **`IReadableRepository`** instead - five
+  members, and it is what a read-only transport actually is.
+- **`find` is an overload** with a range variant. One signature does not satisfy it; both have to be
+  declared.
+- **`IRepository` names `dataSource`, `entity` and `getEntity`.** `AbstractEntity` is exported from
+  this entry for that reason - it is engine-neutral too: a name, `getSchema({ type })`, an id type.
+- **`AbstractDataSource` declares `name`/`settings`/`schema` as fields with no constructor** that
+  sets them. A subclass assigns them itself.
+
+```ts
+class HttpDataSource extends AbstractDataSource<{ baseUrl: string }> {
+  override name = 'http';
+  override settings: { baseUrl: string };
+  override schema = {} as never;
+
+  constructor(opts: { baseUrl: string }) {
+    super({ scope: HttpDataSource.name });
+    this.settings = { baseUrl: opts.baseUrl };
+  }
+
+  async configure(): Promise<void> {}
+}
+```
+
 ## Who is affected
 
 **Nobody, at the API.** A new entry point; the root barrel is unchanged.

@@ -22,6 +22,13 @@ Same split as `constants.ts` and `jsx.utility.ts`, with one twist worth naming: 
 `z.infer<typeof CountSchema>`, so inferring the TYPE put zod on every path that needed the type. It is
 written out as `{ count: number }` now and the schema lives in `result-schemas.ts`.
 
+The surface was then tested by WRITING what a consumer writes - an HTTP datasource plus a repository -
+and every line was a compile error first. `AbstractRepository` demands twelve abstract members, so a
+read-only resource wants `IReadableRepository` (five); `find` is an OVERLOAD with a range variant;
+`IRepository` names an entity, so `AbstractEntity` had to be exported too - the first cut of
+`repository.ts` shipped without it. That shape is kept as `__tests__/repository-contract-shape.ts`,
+never run, checked by `tsc` during the build.
+
 ## 2026-09-17 - lodash is gone from every package
 
 31 call sites for five functions: `isEmpty` x20, `omit` x8, `get`/`set`/`round` x1 each. `isEmpty`
