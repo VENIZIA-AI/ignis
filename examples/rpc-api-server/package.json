@@ -37,14 +37,12 @@
     "dotenv-flow": "catalog:",
     "drizzle-orm": "catalog:",
     "hono": "catalog:",
-    "lodash": "catalog:",
     "pg": "catalog:",
     "rxjs": "catalog:"
   },
   "devDependencies": {
     "@minimaltech/eslint-node": "catalog:",
     "@types/bun": "catalog:",
-    "@types/lodash": "catalog:",
     "@types/pg": "catalog:",
     "@venizia/dev-configs": "workspace:*",
     "drizzle-kit": "catalog:",

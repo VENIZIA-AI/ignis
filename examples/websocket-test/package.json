@@ -35,12 +35,10 @@
     "@venizia/ignis-inversion": "workspace:*",
     "dotenv-flow": "catalog:",
     "hono": "catalog:",
-    "ioredis": "catalog:",
-    "lodash": "catalog:"
+    "ioredis": "catalog:"
   },
   "devDependencies": {
     "@types/bun": "catalog:",
-    "@types/lodash": "catalog:",
     "@venizia/dev-configs": "workspace:*",
     "eslint": "catalog:",
     "prettier": "catalog:",

@@ -37,13 +37,11 @@
     "dotenv-flow": "catalog:",
     "hono": "catalog:",
     "ioredis": "catalog:",
-    "lodash": "catalog:",
     "socket.io": "catalog:",
     "socket.io-client": "catalog:"
   },
   "devDependencies": {
     "@types/bun": "catalog:",
-    "@types/lodash": "catalog:",
     "@venizia/dev-configs": "workspace:*",
     "eslint": "catalog:",
     "prettier": "catalog:",

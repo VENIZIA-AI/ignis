@@ -18,6 +18,7 @@ import {
   Environment,
   HTTP,
   int,
+  isEmpty,
   RedisSingleHelper,
   TWebSocketAuthenticateFn,
   TWebSocketClientConnectedFn,
@@ -26,7 +27,6 @@ import {
   TWebSocketValidateRoomFn,
   WebSocketServerHelper,
 } from '@venizia/ignis-helpers';
-import isEmpty from 'lodash/isEmpty';
 import packageJson from './../package.json';
 import { EnvironmentKeys } from './common/environments';
 import { WebSocketTestController } from './controllers';
@@ -107,7 +107,7 @@ export class Application extends BaseApplication {
         .for(this.setupMiddlewares.name)
         .debug('Setting up middleware | name: %s | enable: %s', name, enable);
 
-      if (!isEmpty(mwPath)) {
+      if (!isEmpty({ value: mwPath })) {
         server.use(mwPath, module?.[name]?.(mwOptions));
         continue;
       }

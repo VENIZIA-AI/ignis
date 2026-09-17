@@ -29,7 +29,7 @@ const camelObject = keysToCamel({ 'first-name': 'John', 'last_name': 'Doe' });
 | `isInt` | `isInt(n: any): boolean` | `true` when `n` is (or coerces to) an integer. |
 | `isFloat` | `isFloat(input: any): boolean` | `true` when `input` is (or coerces to) a non-integer number. |
 | `int` | `int(input: any): number` | Parses `input` to an integer. Strips commas first; returns `0` for empty/invalid input. |
-| `float` | `float(input: any, digit = 2): number` | Parses `input` to a float, rounded to `digit` places (via lodash `round`). Strips commas first; returns `0` for empty/invalid input. |
+| `float` | `float(input: any, digit = 2): number` | Parses `input` to a float, rounded to `digit` places. Strips commas first; returns `0` for empty/invalid input. |
 | `toBoolean` | `toBoolean(input: any): boolean` | `false` for `''`, `'false'`, `'0'`, `false`, `0`, `null`, `undefined`; `true` for everything else. |
 | `toCamel` | `toCamel(s: string): string` | Converts a `snake_case` or `kebab-case` string to `camelCase`. |
 | `keysToCamel` | `keysToCamel(object: object): any` | Recursively camelizes every key in `object`. Arrays stay arrays (their object elements are still camelized); `Date` values pass through untouched. |

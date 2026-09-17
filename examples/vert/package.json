@@ -48,14 +48,12 @@
     "drizzle-zod": "catalog:",
     "hono": "catalog:",
     "ioredis": "catalog:",
-    "lodash": "catalog:",
     "pg": "catalog:",
     "rxjs": "catalog:"
   },
   "devDependencies": {
     "@types/bcrypt": "^6.0.0",
     "@types/bun": "catalog:",
-    "@types/lodash": "catalog:",
     "@types/pg": "catalog:",
     "@venizia/dev-configs": "workspace:*",
     "drizzle-kit": "catalog:",

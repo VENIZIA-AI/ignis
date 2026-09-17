@@ -4,10 +4,9 @@ The engine-neutral query filter vocabulary shared across IGNIS: the filter shape
 and the sort direction constants.
 
 It is **isomorphic by construction**. The package resolves to no node builtin and no server-only
-peer, so the same filter language describes a query against a Postgres repository on the server and
-against a WASM database in a browser worker. A guard test bundles the barrel for `target: 'browser'`
-and fails if anything outside `@venizia/ignis-inversion`, `lodash` and `reflect-metadata` enters the
-graph.
+peer - its built barrel imports `@venizia/ignis-inversion` and nothing else - so the same filter
+language describes a query against a Postgres repository on the server and against a WASM database in
+a browser worker.
 
 ## Install
 

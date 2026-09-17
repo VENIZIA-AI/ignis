@@ -305,7 +305,7 @@ The handler is fail-closed on environment. It exposes `stack` and `cause` in `de
 ### Consume the error response from a browser client
 
 The error layer lives in `@venizia/ignis-inversion`, not in helpers, precisely so a browser app can
-share it. It depends only on `lodash`, ships dual CJS+ESM, and pulls in no server module. A frontend
+share it. Its only dependencies are `reflect-metadata` and `zod`; it ships dual CJS+ESM, and pulls in no server module. A frontend
 throws its own failures with the same `getError` the server uses, and reads the server's with the
 same field names.
 

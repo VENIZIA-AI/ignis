@@ -29,9 +29,9 @@ import {
   Environment,
   HTTP,
   int,
+  isEmpty,
   RedisSingleHelper,
 } from '@venizia/ignis-helpers';
-import isEmpty from 'lodash/isEmpty';
 import path from 'node:path';
 import packageJson from './../package.json';
 import { EnvironmentKeys } from './common';
@@ -123,7 +123,7 @@ export class Application extends BaseApplication {
           enable,
           mwOptions,
         );
-      if (!isEmpty(mwPath)) {
+      if (!isEmpty({ value: mwPath })) {
         server.use(mwPath, module?.[name]?.(mwOptions));
         continue;
       }

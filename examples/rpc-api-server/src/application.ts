@@ -19,8 +19,8 @@ import {
   getUID,
   HTTP,
   int,
+  isEmpty,
 } from '@venizia/ignis-helpers';
-import isEmpty from 'lodash/isEmpty';
 import path from 'node:path';
 import packageJson from './../package.json';
 import { TestController } from './controllers/test.controller';
@@ -94,7 +94,7 @@ export class Application extends BaseApplication {
         enable,
         mwOptions,
       );
-      if (!isEmpty(middlewarePath)) {
+      if (!isEmpty({ value: middlewarePath })) {
         server.use(middlewarePath, module?.[name]?.(mwOptions));
         continue;
       }

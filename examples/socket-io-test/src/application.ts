@@ -19,6 +19,7 @@ import {
   Environment,
   HTTP,
   int,
+  isEmpty,
   RedisSingleHelper,
 } from '@venizia/ignis-helpers';
 import {
@@ -27,7 +28,6 @@ import {
   TSocketIOClientConnectedFn,
   TSocketIOValidateRoomFn,
 } from '@venizia/ignis-helpers/socket-io';
-import isEmpty from 'lodash/isEmpty';
 import packageJson from './../package.json';
 import { EnvironmentKeys } from './common/environments';
 import { SocketTestController } from './controllers';
@@ -108,7 +108,7 @@ export class Application extends BaseApplication {
         .for(this.setupMiddlewares.name)
         .debug('Setting up middleware | name: %s | enable: %s', name, enable);
 
-      if (!isEmpty(mwPath)) {
+      if (!isEmpty({ value: mwPath })) {
         server.use(mwPath, module?.[name]?.(mwOptions));
         continue;
       }

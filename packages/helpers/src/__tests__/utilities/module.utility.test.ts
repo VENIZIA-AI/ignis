@@ -28,11 +28,9 @@ describe('ModuleUtility.load', () => {
 
 describe('ModuleUtility.loadSync', () => {
   test('returns the module without awaiting - the constructor path', () => {
-    const lodash = ModuleUtility.loadSync<{ isEmpty: (value: unknown) => boolean }>({
-      module: 'lodash',
-    });
+    const dayjs = ModuleUtility.loadSync<() => unknown>({ module: 'dayjs' });
 
-    expect(typeof lodash.isEmpty).toBe('function');
+    expect(typeof dayjs).toBe('function');
   });
 
   test('throws the same actionable ApplicationError for a missing module', () => {
@@ -48,7 +46,7 @@ describe('ModuleUtility.loadSync', () => {
 
 describe('ModuleUtility.assertInstalled', () => {
   test('passes when every module is installed', () => {
-    ModuleUtility.assertInstalled({ modules: ['lodash', 'dayjs'] });
+    ModuleUtility.assertInstalled({ modules: ['zod', 'dayjs'] });
     expect(true).toBe(true);
   });
 
@@ -86,7 +84,7 @@ describe('ModuleUtility.assertInstalled', () => {
 
   test('fails on the first missing module even when later ones exist', () => {
     try {
-      ModuleUtility.assertInstalled({ modules: ['@definitely/not-installed', 'lodash'] });
+      ModuleUtility.assertInstalled({ modules: ['@definitely/not-installed', 'dayjs'] });
       expect.unreachable();
     } catch (error) {
       expect((error as Error).message).toContain('@definitely/not-installed');
@@ -154,11 +152,9 @@ describe('ModuleUtility.register', () => {
   test('leaves an unregistered module on the normal resolution path', () => {
     ModuleUtility.register({ modules: { [module]: fake } });
 
-    const lodash = ModuleUtility.loadSync<{ isEmpty: (value: unknown) => boolean }>({
-      module: 'lodash',
-    });
+    const dayjs = ModuleUtility.loadSync<() => unknown>({ module: 'dayjs' });
 
-    expect(typeof lodash.isEmpty).toBe('function');
+    expect(typeof dayjs).toBe('function');
   });
 
   // register() runs at the entrypoint of a compiled binary, which is exactly where no logger
