@@ -108,8 +108,12 @@ describe('a sqliteTable round-trips through the SQLite model types', () => {
     expect(schema.parse({ id: 'abc', title: 'IGNIS' })).toEqual({ id: 'abc', title: 'IGNIS' });
   });
 
-  test('the string id generator supplies a value without a round trip to the engine', () => {
-    expect(typeof stringIdTable.id.defaultFn?.()).toBe('string');
+  test('the string id generator supplies a time-ordered UUID v7 without a round trip', () => {
+    const first = stringIdTable.id.defaultFn?.();
+    const second = stringIdTable.id.defaultFn?.();
+
+    expect(first).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/);
+    expect(String(second) > String(first)).toBe(true);
   });
 
   test('the integer id is an AUTOINCREMENT rowid, not an application-side default', () => {

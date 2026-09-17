@@ -6,6 +6,22 @@ not how.
 This file and `index.md` are reserved OKF filenames - they carry no `type:` frontmatter and are not
 counted as concepts.
 
+## 2026-09-17 (f) - the default string id is UUID v7
+
+`UuidV7Generator` in helpers/uid: native `Bun.randomUUIDv7`, else `getRandomValues` with a monotonic
+12-bit counter. Generation cannot beat native v4 (the clock read alone is ~26 ns), so the speed is
+claimed where it is real: PGlite 200k text-PK inserts 11-36% faster, index 15 -> 11 MB, `ORDER BY id`
+paging ~2.5x. Old v4 ids remain; new ids start `01` and sort before most of them.
+
+## 2026-09-17 (e) - paging ties, bulk where in the body, include settings by schema
+
+Three server fixes found by the connectors/http real-server pass, before release. `toOrderBy` appends
+`id ASC` (60 rows paged 7 at a time came back 50 distinct) and caches per-column order nodes (870 ->
+446 ns). `PATCH /`/`DELETE /` take `where` in the query or the body; both or neither is 400. The
+model registry is also keyed by schema object: `include` looked settings up by SQL table name, so a
+model whose table name differed from its registered name leaked `hiddenProperties` and skipped
+`scopeFilter` - BANA scanned, 193/193 models match, not exposed.
+
 ## 2026-09-17 (d) - an empty page carries its total
 
 `HttpRepository.count()` threw on every filter that matched nothing: the connector parsed only

@@ -69,7 +69,7 @@
       "specifier": "@venizia/ignis",
       "kind": "class",
       "file": "packages/kernel/src/base/controllers/factory/crud/abstract.ts",
-      "line": 11,
+      "line": 14,
       "signature": "class AbstractCrudController<TEntity extends AbstractEntity<TAnyObjectSchema> = AbstractEntity<TAnyObjectSchema>, RouteEnv extends Env = Env, RouteSchema extends Schema = {}, BasePath extends string = '/', ConfigurableOptions extends object = {}, TDataObject extends object = TEntityDataObject<TEntit"
     },
     {
@@ -8056,6 +8056,16 @@
       "signature": "class UserTypes"
     },
     {
+      "name": "UuidV7Generator",
+      "package": "@venizia/ignis",
+      "subpath": ".",
+      "specifier": "@venizia/ignis",
+      "kind": "class",
+      "file": "packages/helpers/src/modules/uid/uuid-v7.ts",
+      "line": 11,
+      "signature": "class UuidV7Generator extends BaseHelper"
+    },
+    {
       "name": "ValueOf",
       "package": "@venizia/ignis",
       "subpath": ".",
@@ -8332,7 +8342,7 @@
       "specifier": "@venizia/ignis",
       "kind": "const",
       "file": "packages/kernel/src/base/controllers/factory/definition.ts",
-      "line": 513,
+      "line": 526,
       "signature": "conditionalCountResponse: typeof RouteConfigResolver.conditionalCountResponse"
     },
     {
@@ -8453,7 +8463,7 @@
       "specifier": "@venizia/ignis",
       "kind": "const",
       "file": "packages/kernel/src/base/controllers/factory/definition.ts",
-      "line": 519,
+      "line": 532,
       "signature": "defineControllerRouteConfigs: typeof RouteConfigResolver.defineControllerRouteConfigs"
     },
     {
@@ -8503,7 +8513,7 @@
       "specifier": "@venizia/ignis",
       "kind": "const",
       "file": "packages/connectors/src/relational/postgres/models/enrichers/id.enricher.ts",
-      "line": 72,
+      "line": 75,
       "signature": "enrichId: (baseColumns: TColumnDefinitions, opts?: TIdEnricherOptions) => { id: TNumberIdCol; }"
     },
     {
@@ -8663,7 +8673,7 @@
       "specifier": "@venizia/ignis",
       "kind": "const",
       "file": "packages/connectors/src/relational/postgres/models/enrichers/id.enricher.ts",
-      "line": 39,
+      "line": 42,
       "signature": "generateIdColumnDefs: <Opts extends TIdEnricherOptions | undefined>(opts?: Opts) => TIdColumnDef<Opts>"
     },
     {
@@ -9273,7 +9283,7 @@
       "specifier": "@venizia/ignis",
       "kind": "const",
       "file": "packages/kernel/src/base/controllers/factory/definition.ts",
-      "line": 514,
+      "line": 527,
       "signature": "resolveCountConfig: typeof RouteConfigResolver.resolveCountConfig"
     },
     {
@@ -9283,7 +9293,7 @@
       "specifier": "@venizia/ignis",
       "kind": "const",
       "file": "packages/kernel/src/base/controllers/factory/definition.ts",
-      "line": 518,
+      "line": 531,
       "signature": "resolveCreateConfig: typeof RouteConfigResolver.resolveCreateConfig"
     },
     {
@@ -9293,7 +9303,7 @@
       "specifier": "@venizia/ignis",
       "kind": "const",
       "file": "packages/kernel/src/base/controllers/factory/definition.ts",
-      "line": 516,
+      "line": 529,
       "signature": "resolveFindByIdConfig: typeof RouteConfigResolver.resolveFindByIdConfig"
     },
     {
@@ -9303,7 +9313,7 @@
       "specifier": "@venizia/ignis",
       "kind": "const",
       "file": "packages/kernel/src/base/controllers/factory/definition.ts",
-      "line": 515,
+      "line": 528,
       "signature": "resolveFindConfig: typeof RouteConfigResolver.resolveFindConfig"
     },
     {
@@ -9313,7 +9323,7 @@
       "specifier": "@venizia/ignis",
       "kind": "const",
       "file": "packages/kernel/src/base/controllers/factory/definition.ts",
-      "line": 517,
+      "line": 530,
       "signature": "resolveFindOneConfig: typeof RouteConfigResolver.resolveFindOneConfig"
     },
     {
@@ -11003,7 +11013,7 @@
       "specifier": "@venizia/ignis/postgres",
       "kind": "const",
       "file": "packages/connectors/src/relational/postgres/models/enrichers/id.enricher.ts",
-      "line": 72,
+      "line": 75,
       "signature": "enrichId: (baseColumns: TColumnDefinitions, opts?: TIdEnricherOptions) => { id: TNumberIdCol; }"
     },
     {
@@ -11053,7 +11063,7 @@
       "specifier": "@venizia/ignis/postgres",
       "kind": "const",
       "file": "packages/connectors/src/relational/postgres/models/enrichers/id.enricher.ts",
-      "line": 39,
+      "line": 42,
       "signature": "generateIdColumnDefs: <Opts extends TIdEnricherOptions | undefined>(opts?: Opts) => TIdColumnDef<Opts>"
     },
     {
@@ -11362,7 +11372,7 @@
       "specifier": "@venizia/ignis/relational",
       "kind": "class",
       "file": "packages/connectors/src/relational/core/repositories/dialect/filter.ts",
-      "line": 69,
+      "line": 86,
       "signature": "class FilterBuilder extends BaseHelper"
     },
     {
@@ -13042,7 +13052,7 @@
       "specifier": "@venizia/ignis/sqlite",
       "kind": "const",
       "file": "packages/connectors/src/relational/sqlite/models/enrichers/id.enricher.ts",
-      "line": 62,
+      "line": 65,
       "signature": "enrichId: (baseColumns: TColumnDefinitions, opts?: TIdEnricherOptions) => { id: TNumberIdCol; }"
     },
     {
@@ -13092,7 +13102,7 @@
       "specifier": "@venizia/ignis/sqlite",
       "kind": "const",
       "file": "packages/connectors/src/relational/sqlite/models/enrichers/id.enricher.ts",
-      "line": 34,
+      "line": 37,
       "signature": "generateIdColumnDefs: <Opts extends TIdEnricherOptions | undefined>(opts?: Opts) => TIdColumnDef<Opts>"
     },
     {
@@ -15012,7 +15022,7 @@
       "specifier": "@venizia/ignis-connectors",
       "kind": "class",
       "file": "packages/connectors/src/relational/core/repositories/dialect/filter.ts",
-      "line": 69,
+      "line": 86,
       "signature": "class FilterBuilder extends BaseHelper"
     },
     {
@@ -16082,7 +16092,7 @@
       "specifier": "@venizia/ignis-connectors/http",
       "kind": "class",
       "file": "packages/connectors/src/http/datasource.ts",
-      "line": 66,
+      "line": 68,
       "signature": "class HttpDataSource extends AbstractDataSource<IHttpDataSourceSettings>"
     },
     {
@@ -16092,7 +16102,7 @@
       "specifier": "@venizia/ignis-connectors/http",
       "kind": "class",
       "file": "packages/connectors/src/http/repository.ts",
-      "line": 31,
+      "line": 22,
       "signature": "class HttpRepository<E extends object = AnyType> implements IReadableRepository<E, {}>"
     },
     {
@@ -16112,7 +16122,7 @@
       "specifier": "@venizia/ignis-connectors/http",
       "kind": "interface",
       "file": "packages/connectors/src/http/common/types.ts",
-      "line": 4,
+      "line": 3,
       "signature": "interface IAuthToken"
     },
     {
@@ -16122,7 +16132,7 @@
       "specifier": "@venizia/ignis-connectors/http",
       "kind": "interface",
       "file": "packages/connectors/src/http/common/types.ts",
-      "line": 26,
+      "line": 14,
       "signature": "interface IHttpDataSourceSettings"
     },
     {
@@ -16132,7 +16142,7 @@
       "specifier": "@venizia/ignis-connectors/http",
       "kind": "interface",
       "file": "packages/connectors/src/http/common/types.ts",
-      "line": 60,
+      "line": 30,
       "signature": "interface IHttpReadResult<R>"
     },
     {
@@ -16142,7 +16152,7 @@
       "specifier": "@venizia/ignis-connectors/http",
       "kind": "type",
       "file": "packages/connectors/src/http/common/types.ts",
-      "line": 17,
+      "line": 10,
       "signature": "type TAuthTokenResolver = () => IAuthToken | undefined"
     },
     {
@@ -16152,7 +16162,7 @@
       "specifier": "@venizia/ignis-connectors/http",
       "kind": "type",
       "file": "packages/connectors/src/http/common/types.ts",
-      "line": 25,
+      "line": 13,
       "signature": "type THttpHeaders = Headers | Array<[string, string]> | Record<string, string>"
     },
     {
@@ -16162,7 +16172,7 @@
       "specifier": "@venizia/ignis-connectors/http",
       "kind": "type",
       "file": "packages/connectors/src/http/common/types.ts",
-      "line": 68,
+      "line": 40,
       "signature": "type THttpQuery<E extends object> = { filter?: TFilter<E>; }"
     },
     {
@@ -16872,7 +16882,7 @@
       "specifier": "@venizia/ignis-connectors/postgres",
       "kind": "const",
       "file": "packages/connectors/src/relational/postgres/models/enrichers/id.enricher.ts",
-      "line": 72,
+      "line": 75,
       "signature": "enrichId: (baseColumns: TColumnDefinitions, opts?: TIdEnricherOptions) => { id: TNumberIdCol; }"
     },
     {
@@ -16922,7 +16932,7 @@
       "specifier": "@venizia/ignis-connectors/postgres",
       "kind": "const",
       "file": "packages/connectors/src/relational/postgres/models/enrichers/id.enricher.ts",
-      "line": 39,
+      "line": 42,
       "signature": "generateIdColumnDefs: <Opts extends TIdEnricherOptions | undefined>(opts?: Opts) => TIdColumnDef<Opts>"
     },
     {
@@ -17231,7 +17241,7 @@
       "specifier": "@venizia/ignis-connectors/relational",
       "kind": "class",
       "file": "packages/connectors/src/relational/core/repositories/dialect/filter.ts",
-      "line": 69,
+      "line": 86,
       "signature": "class FilterBuilder extends BaseHelper"
     },
     {
@@ -18891,7 +18901,7 @@
       "specifier": "@venizia/ignis-connectors/sqlite",
       "kind": "const",
       "file": "packages/connectors/src/relational/sqlite/models/enrichers/id.enricher.ts",
-      "line": 62,
+      "line": 65,
       "signature": "enrichId: (baseColumns: TColumnDefinitions, opts?: TIdEnricherOptions) => { id: TNumberIdCol; }"
     },
     {
@@ -18941,7 +18951,7 @@
       "specifier": "@venizia/ignis-connectors/sqlite",
       "kind": "const",
       "file": "packages/connectors/src/relational/sqlite/models/enrichers/id.enricher.ts",
-      "line": 34,
+      "line": 37,
       "signature": "generateIdColumnDefs: <Opts extends TIdEnricherOptions | undefined>(opts?: Opts) => TIdColumnDef<Opts>"
     },
     {
@@ -23388,6 +23398,16 @@
       "signature": "class UrlSchemes"
     },
     {
+      "name": "UuidV7Generator",
+      "package": "@venizia/ignis-helpers",
+      "subpath": ".",
+      "specifier": "@venizia/ignis-helpers",
+      "kind": "class",
+      "file": "packages/helpers/src/modules/uid/uuid-v7.ts",
+      "line": 11,
+      "signature": "class UuidV7Generator extends BaseHelper"
+    },
+    {
       "name": "ValueOf",
       "package": "@venizia/ignis-helpers",
       "subpath": ".",
@@ -25729,6 +25749,16 @@
       "signature": "class UrlSchemes"
     },
     {
+      "name": "UuidV7Generator",
+      "package": "@venizia/ignis-helpers",
+      "subpath": "./core",
+      "specifier": "@venizia/ignis-helpers/core",
+      "kind": "class",
+      "file": "packages/helpers/src/modules/uid/uuid-v7.ts",
+      "line": 11,
+      "signature": "class UuidV7Generator extends BaseHelper"
+    },
+    {
       "name": "blankToUndefined",
       "package": "@venizia/ignis-helpers",
       "subpath": "./core",
@@ -27525,7 +27555,7 @@
       "specifier": "@venizia/ignis-kernel",
       "kind": "class",
       "file": "packages/kernel/src/base/controllers/factory/crud/abstract.ts",
-      "line": 11,
+      "line": 14,
       "signature": "class AbstractCrudController<TEntity extends AbstractEntity<TAnyObjectSchema> = AbstractEntity<TAnyObjectSchema>, RouteEnv extends Env = Env, RouteSchema extends Schema = {}, BasePath extends string = '/', ConfigurableOptions extends object = {}, TDataObject extends object = TEntityDataObject<TEntit"
     },
     {
@@ -31005,7 +31035,7 @@
       "specifier": "@venizia/ignis-kernel",
       "kind": "const",
       "file": "packages/kernel/src/base/controllers/factory/definition.ts",
-      "line": 513,
+      "line": 526,
       "signature": "conditionalCountResponse: typeof RouteConfigResolver.conditionalCountResponse"
     },
     {
@@ -31065,7 +31095,7 @@
       "specifier": "@venizia/ignis-kernel",
       "kind": "const",
       "file": "packages/kernel/src/base/controllers/factory/definition.ts",
-      "line": 519,
+      "line": 532,
       "signature": "defineControllerRouteConfigs: typeof RouteConfigResolver.defineControllerRouteConfigs"
     },
     {
@@ -31325,7 +31355,7 @@
       "specifier": "@venizia/ignis-kernel",
       "kind": "const",
       "file": "packages/kernel/src/base/controllers/factory/definition.ts",
-      "line": 514,
+      "line": 527,
       "signature": "resolveCountConfig: typeof RouteConfigResolver.resolveCountConfig"
     },
     {
@@ -31335,7 +31365,7 @@
       "specifier": "@venizia/ignis-kernel",
       "kind": "const",
       "file": "packages/kernel/src/base/controllers/factory/definition.ts",
-      "line": 518,
+      "line": 531,
       "signature": "resolveCreateConfig: typeof RouteConfigResolver.resolveCreateConfig"
     },
     {
@@ -31345,7 +31375,7 @@
       "specifier": "@venizia/ignis-kernel",
       "kind": "const",
       "file": "packages/kernel/src/base/controllers/factory/definition.ts",
-      "line": 516,
+      "line": 529,
       "signature": "resolveFindByIdConfig: typeof RouteConfigResolver.resolveFindByIdConfig"
     },
     {
@@ -31355,7 +31385,7 @@
       "specifier": "@venizia/ignis-kernel",
       "kind": "const",
       "file": "packages/kernel/src/base/controllers/factory/definition.ts",
-      "line": 515,
+      "line": 528,
       "signature": "resolveFindConfig: typeof RouteConfigResolver.resolveFindConfig"
     },
     {
@@ -31365,7 +31395,7 @@
       "specifier": "@venizia/ignis-kernel",
       "kind": "const",
       "file": "packages/kernel/src/base/controllers/factory/definition.ts",
-      "line": 517,
+      "line": 530,
       "signature": "resolveFindOneConfig: typeof RouteConfigResolver.resolveFindOneConfig"
     },
     {

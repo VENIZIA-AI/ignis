@@ -118,7 +118,7 @@ tags: [reference, exports, api]
 
 ## helpers
 
-### `@venizia/ignis-helpers` (396)
+### `@venizia/ignis-helpers` (397)
 
 - `AbstractCryptoAlgorithm` class
 - `AbstractLogger` class
@@ -501,6 +501,7 @@ tags: [reference, exports, api]
 - `UrlSafetyDefaults` class
 - `UrlSafetyErrors` const
 - `UrlSchemes` class
+- `UuidV7Generator` class
 - `ValueOf` type
 - `ValueOptional` type
 - `ValueOptionalExcept` type
@@ -582,7 +583,7 @@ tags: [reference, exports, api]
 - `ValueOptionalExcept` type
 - `ValueOrPromise` type
 
-### `@venizia/ignis-helpers/core` (102)
+### `@venizia/ignis-helpers/core` (103)
 
 - `AbstractNetworkFetchableHelper` class
 - `AbstractPoolHelper` class
@@ -686,6 +687,7 @@ tags: [reference, exports, api]
 - `UrlPolicy` class
 - `UrlSafetyDefaults` class
 - `UrlSchemes` class
+- `UuidV7Generator` class
 
 ### `@venizia/ignis-helpers/socket-io` (17)
 
@@ -1876,7 +1878,7 @@ tags: [reference, exports, api]
 
 ## core-server
 
-### `@venizia/ignis` (958)
+### `@venizia/ignis` (959)
 
 - `AbstractApplication` class
 - `AbstractAuthRegistry` class
@@ -2819,6 +2821,7 @@ tags: [reference, exports, api]
 - `UserPolicyLineCache` class
 - `UserStatuses` class
 - `UserTypes` class
+- `UuidV7Generator` class
 - `ValueOf` type
 - `ValueOptional` type
 - `ValueOptionalExcept` type

@@ -454,6 +454,11 @@ const config = defineConfig({
               text: '2026-09-17',
               collapsed: true,
               items: [
+                { text: 'String Ids Are UUID v7', link: '/changelogs/2026-09-17-string-ids-are-uuid-v7' },
+                {
+                  text: 'Paging, Bulk Writes and Relation Settings',
+                  link: '/changelogs/2026-09-17-paging-bulk-writes-and-relation-settings',
+                },
                 { text: 'lodash Is Gone', link: '/changelogs/2026-09-17-lodash-is-gone' },
                 {
                   text: 'A Log Line Stops Carrying a Base64 Payload',

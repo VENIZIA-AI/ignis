@@ -8,7 +8,7 @@ import type {
 } from 'drizzle-orm/pg-core';
 import { bigint, integer, text } from 'drizzle-orm/pg-core';
 import type { TColumnDefinitions, TIdEnricherOptions, TPrimaryKey } from '../common/types';
-import { getError } from '@venizia/ignis-helpers/core';
+import { getError, UuidV7Generator } from '@venizia/ignis-helpers/core';
 
 type TStringIdCol = HasRuntimeDefault<
   HasDefault<IsPrimaryKey<NotNull<PgTextBuilderInitial<'id', [string, ...string[]]>>>>
@@ -36,6 +36,9 @@ type TIdColumnDef<Opts extends TIdEnricherOptions | undefined = undefined> = Opt
         : { id: TNumberIdCol }
   : { id: TNumberIdCol };
 
+// Time-ordered, so a text primary key appends to its B-tree instead of splitting pages.
+const defaultStringId = (): string => UuidV7Generator.getInstance().nextId();
+
 export const generateIdColumnDefs = <Opts extends TIdEnricherOptions | undefined>(
   opts?: Opts,
 ): TIdColumnDef<Opts> => {
@@ -46,7 +49,7 @@ export const generateIdColumnDefs = <Opts extends TIdEnricherOptions | undefined
       return {
         id: text('id')
           .primaryKey()
-          .$defaultFn(id.generator ?? (() => crypto.randomUUID())),
+          .$defaultFn(id.generator ?? defaultStringId),
       } as TIdColumnDef<Opts>;
     }
     case 'number': {
