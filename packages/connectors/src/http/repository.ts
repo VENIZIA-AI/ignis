@@ -47,6 +47,20 @@ export class HttpRepository<E extends object = AnyType> implements IReadableRepo
     return this.entity;
   }
 
+  /** An absent header is a route that sends none; a present one with no readable total (`/*`) is a server whose count failed. Different fixes, different messages. */
+  protected getMissingTotalError(opts: {
+    method: string;
+    contentRange?: string;
+    noHeader: string;
+  }) {
+    const { method, contentRange, noHeader } = opts;
+    const message = contentRange
+      ? `Content-Range "${contentRange}" carries no readable total - an unknown "/*" or an unparseable value. Check the server's count query.`
+      : noHeader;
+
+    return getError({ statusCode: 500, message: `[${this.resource}][${method}] ${message}` });
+  }
+
   /**
    * How many rows match, asked of the list route rather than of one that may not exist.
    *
@@ -75,9 +89,10 @@ export class HttpRepository<E extends object = AnyType> implements IReadableRepo
     });
 
     if (!rs.hasRange) {
-      throw getError({
-        statusCode: 500,
-        message: `[${this.resource}][count] The response carried no Content-Range, so there is no total to report - answering with the page size would claim ${rs.dataLength}. Give this repository a countPath if the API publishes a count route.`,
+      throw this.getMissingTotalError({
+        method: 'count',
+        contentRange: rs.contentRange,
+        noHeader: `The response carried no Content-Range, so there is no total to report - answering with the page size would claim ${rs.dataLength}. Give this repository a countPath if the API publishes a count route.`,
       });
     }
 
@@ -116,9 +131,10 @@ export class HttpRepository<E extends object = AnyType> implements IReadableRepo
     }
 
     if (!rs.hasRange) {
-      throw getError({
-        statusCode: 500,
-        message: `[${this.resource}][find] A range was asked for and the response carried no Content-Range. Deriving it from the page would report ${data.length} as the total.`,
+      throw this.getMissingTotalError({
+        method: 'find',
+        contentRange: rs.contentRange,
+        noHeader: `A range was asked for and the response carried no Content-Range. Deriving it from the page would report ${data.length} as the total.`,
       });
     }
 
@@ -127,7 +143,13 @@ export class HttpRepository<E extends object = AnyType> implements IReadableRepo
     // so nothing is translated here.
     return {
       data,
-      range: buildDataRange({ skip: rs.skip, dataLength: data.length, total: rs.total ?? 0 }),
+      // An empty page names no start, so it comes from the filter - the same rule the server used.
+      range: buildDataRange({
+        skip: rs.skip ?? opts.filter?.skip,
+        offset: opts.filter?.offset,
+        dataLength: data.length,
+        total: rs.total ?? 0,
+      }),
     };
   }
 

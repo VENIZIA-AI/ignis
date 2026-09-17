@@ -4,6 +4,28 @@ import { NodeFetchNetworkRequest } from '@venizia/ignis-helpers/core';
 import { getError } from '@venizia/ignis-helpers/core';
 import type { IAuthToken, IHttpDataSourceSettings, IHttpReadResult } from './common/types';
 
+const MAX_URL_IN_MESSAGE = 256;
+
+/**
+ * The URL for an error message. A long `inq` makes it 200 KB, so the message carries its head and
+ * size. A server refuses a URL past ~16 KB (431, or 414) - that names the URL, not the filter.
+ */
+const describeUrl = (opts: { url: string; status: number }): string => {
+  const { url, status } = opts;
+  const shown =
+    url.length > MAX_URL_IN_MESSAGE
+      ? `${url.slice(0, MAX_URL_IN_MESSAGE)}... (${url.length} chars)`
+      : url;
+
+  const isTooLong =
+    status === HTTP.ResultCodes.RS_4.URITooLong ||
+    status === HTTP.ResultCodes.RS_4.RequestHeaderFieldsTooLarge;
+
+  return isTooLong
+    ? `${shown} | The URL is too long for a GET - split the filter (a long inq) into smaller requests.`
+    : shown;
+};
+
 /**
  * Both list shapes IGNIS itself answers with, told apart by structure.
  *
@@ -33,22 +55,29 @@ const unwrapBody = <R>(opts: { body: unknown; shape: 'list' | 'one' }): R => {
 
   return body as R;
 };
-/** `items 0-24/137` -> `{ skip: 0, total: 137 }`. Absent or unparseable answers `undefined`, never a guess. */
+
+// `records 0-24/137` -> `{ skip: 0, total: 137 }`; an empty page, `records */137` -> `{ total: 137 }`.
+// Absent or unparseable answers `undefined`, never a guess.
 const readContentRange = (opts: {
   header: string | null;
-}): { skip: number; total: number } | undefined => {
+}): { skip?: number; total: number } | undefined => {
   const { header } = opts;
 
   if (!header) {
     return undefined;
   }
 
-  const match = header.match(/(\d+)\s*-\s*(\d+)\s*\/\s*(\d+)/);
-  if (!match) {
-    return undefined;
+  const range = header.match(/(\d+)\s*-\s*(\d+)\s*\/\s*(\d+)/);
+  if (range) {
+    return { skip: Number(range[1]), total: Number(range[3]) };
   }
 
-  return { skip: Number(match[1]), total: Number(match[3]) };
+  const unsatisfied = header.match(/\*\s*\/\s*(\d+)/);
+  if (unsatisfied) {
+    return { total: Number(unsatisfied[1]) };
+  }
+
+  return undefined;
 };
 
 /**
@@ -76,6 +105,16 @@ export class HttpDataSource extends AbstractDataSource<IHttpDataSourceSettings> 
     super({ scope: opts.name ?? HttpDataSource.name });
 
     const { name = 'http', ...settings } = opts;
+
+    // Refused, not dropped: the caller wrote a value and would silently get another.
+    const configured = new Headers(settings.headers);
+    if (configured.has(HTTP.Headers.REQUEST_COUNT_DATA)) {
+      throw getError({
+        statusCode: 500,
+        message: `[${name}] ${HTTP.Headers.REQUEST_COUNT_DATA} is owned by HttpDataSource and always sent as false: rows come back bare, the total in Content-Range.`,
+      });
+    }
+
     this.name = name;
     this.settings = settings;
     this.network = new NodeFetchNetworkRequest({
@@ -98,22 +137,21 @@ export class HttpDataSource extends AbstractDataSource<IHttpDataSourceSettings> 
   }
 
   /**
-   * Built through `Headers` rather than a plain object, so a caller's value genuinely OVERRIDES a
-   * default. Two spellings of one name in an object both survive the merge and `Headers` then
-   * APPENDS them - `x-request-count: "false, true"` - which parses as neither.
+   * Built through `Headers` rather than a plain object: `set` replaces a name in any case, where an
+   * object merge keeps both spellings and `Headers` then APPENDS them - `"false, true"`.
    */
   protected buildHeaders(opts: { token?: IAuthToken }): Headers {
     const { token } = opts;
     const headers = new Headers();
 
-    // Asked explicitly: the server default is the count envelope, and a list that answers rows is
-    // one less shape to tell apart. Set FIRST so a caller can override it.
-    headers.set(HTTP.Headers.REQUEST_COUNT_DATA, 'false');
-
     const configured = [...new Headers(this.settings.headers).entries()];
     for (const [name, value] of configured) {
       headers.set(name, value);
     }
+
+    // Owned, and set last: under the count envelope a record read answers `{ count, data }`, and
+    // `shape: 'one'` would hand that back as the record.
+    headers.set(HTTP.Headers.REQUEST_COUNT_DATA, 'false');
 
     if (!token) {
       return headers;
@@ -148,13 +186,6 @@ export class HttpDataSource extends AbstractDataSource<IHttpDataSourceSettings> 
     return url.toString();
   }
 
-  /**
-   * One request, with the total read from `Content-Range` and REPORTED as absent when the header is
-   * not there.
-   *
-   * Goes through {@link HttpDataSource.request}, so auth, the 401 hook and the single retry live in
-   * ONE place - a second header-building path is where a guard gets forgotten.
-   */
   /**
    * One request, answered RAW.
    *
@@ -192,6 +223,13 @@ export class HttpDataSource extends AbstractDataSource<IHttpDataSourceSettings> 
     return response;
   }
 
+  /**
+   * One request, with the total read from `Content-Range` and REPORTED as absent when the header is
+   * not there.
+   *
+   * Goes through {@link HttpDataSource.request}, so auth, the 401 hook and the single retry live in
+   * ONE place - a second header-building path is where a guard gets forgotten.
+   */
   async read<R>(opts: {
     paths: Array<string>;
     query?: Record<string, unknown>;
@@ -203,17 +241,19 @@ export class HttpDataSource extends AbstractDataSource<IHttpDataSourceSettings> 
     if (!response.ok) {
       throw getError({
         statusCode: response.status,
-        message: `[${this.name}][read] ${response.status} | ${this.buildUrl(opts)}`,
+        message: `[${this.name}][read] ${response.status} | ${describeUrl({ url: this.buildUrl(opts), status: response.status })}`,
       });
     }
 
     const body = await response.json();
-    const range = readContentRange({ header: response.headers.get(HTTP.Headers.CONTENT_RANGE) });
+    const contentRange = response.headers.get(HTTP.Headers.CONTENT_RANGE) ?? undefined;
+    const range = readContentRange({ header: contentRange ?? null });
     const data = unwrapBody<R>({ body, shape: opts.shape ?? 'list' });
 
     return {
       data,
       hasRange: range !== undefined,
+      contentRange,
       total: range?.total,
       skip: range?.skip,
       dataLength: Array.isArray(data) ? data.length : 1,

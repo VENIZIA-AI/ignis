@@ -6,6 +6,22 @@ not how.
 This file and `index.md` are reserved OKF filenames - they carry no `type:` frontmatter and are not
 counted as concepts.
 
+## 2026-09-17 (d) - an empty page carries its total
+
+`HttpRepository.count()` threw on every filter that matched nothing: the connector parsed only
+`records 0-24/137`, and an IGNIS server answers an empty page `records */N`. Now read as the total,
+with the start taken from the filter. Reported by ARDOR against the published package.
+
+A real-server roundtrip (PGlite, 16 filters, 162 comparisons against the repository) found a second:
+a caller `x-request-count: true` made `findById` return `{ count, data }` as the record. The
+connector now owns that header. `drizzle-orm`, `drizzle-zod`, `hono` and `@hono/zod-openapi` became
+optional peers - `./http` imports none of them.
+
+ARDOR review, then a second real-server pass (inq, like with Vietnamese and reserved characters,
+include, fields, tied order, BANA-style hand routes; 121 comparisons): a configured
+`x-request-count` now throws instead of being dropped; an unreadable total gets its own message; a
+URL past ~16 KB (431) says so and no longer pastes 200 KB into the message.
+
 ## 2026-09-17 (c) - an HTTP connector, and the network layer becomes browser-reachable
 
 `@venizia/ignis-connectors/http`: `HttpDataSource` + `HttpRepository` at 14.4 KB gzip against the

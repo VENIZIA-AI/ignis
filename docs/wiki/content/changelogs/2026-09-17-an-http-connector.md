@@ -59,6 +59,10 @@ hand-written route need not, which is exactly when this fires.
 `/search/count`, another deleted it and told callers to read the header. That is convention, so it is
 named rather than assumed.
 
+An empty page is not a missing header. IGNIS answers `records */0` when nothing matches and
+`records */137` for a page past the end: the total is there, only the range is not. `count()` reads
+it as that total, and `find` takes the start from the filter's `skip`/`offset`.
+
 ## Auth is configuration, not an assumption
 
 `authTokenResolver` is a seam: a server resolver reads a secret, a browser resolver reads storage,
@@ -80,6 +84,17 @@ records reported as one, with no error anywhere.
 
 The shape is **asked for, not sniffed**: `read({ shape: 'one' })` is never unwrapped, because
 structure alone cannot tell an envelope from a record carrying a `data` column and a `count` column.
+
+That is why `x-request-count` is the connector's own: it always goes out `false`, and a `headers`
+setting that carries it throws at construction rather than being silently dropped. Under the envelope
+a record read answers `{ count, data }` too, and `findById` would return it as the record.
+
+## Limits worth knowing
+
+- **A long `inq` does not fit in a URL.** The filter travels in the GET query string. Past ~16 KB the
+  server answers 431 - about 400 UUIDs. The error says the URL is too long; split the ids.
+- **An unknown total is not a total.** `records 0-24/*` makes `count()` and a ranged `find` throw with
+  a message naming the header. Plain `find` and `existsWith` need no total and keep working.
 
 ## Auth
 

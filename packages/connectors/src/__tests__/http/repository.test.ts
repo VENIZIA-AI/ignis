@@ -50,6 +50,55 @@ describe('the total comes from the header, not from the page', () => {
   });
 });
 
+// An empty page on an IGNIS server is `records */N`: the total is there, only the range is not.
+describe('an empty page still carries its total', () => {
+  test('count answers 0 when nothing matches', async () => {
+    stubFetch({ body: [], contentRange: 'records */0' });
+
+    expect(await build().count({ where: {} })).toEqual({ count: 0 });
+  });
+
+  /** A page past the end must keep the 137, and the start comes from the filter, as the server derives it. */
+  test('find past the end keeps the total and the requested start', async () => {
+    stubFetch({ body: [], contentRange: 'records */137' });
+
+    const rs = await build().find({ filter: { skip: 137 }, options: { shouldQueryRange: true } });
+
+    expect(rs.range).toEqual({ start: 137, end: 137, total: 137 });
+    expect(rs.data).toEqual([]);
+  });
+});
+
+// A header that IS there but names no total sends a developer to the server's count, not to a missing header.
+describe('an unknown total is not a total, and the message says which', () => {
+  const UNKNOWN = 'records 0-24/*';
+
+  test('count refuses, naming the header it got', async () => {
+    stubFetch({ body: [{ id: 'a' }], contentRange: UNKNOWN });
+
+    await expectRejection({
+      task: build().count({ where: {} }),
+      message: /Content-Range "records 0-24\/\*" carries no readable total/,
+    });
+  });
+
+  test('find with a range refuses the same way', async () => {
+    stubFetch({ body: [{ id: 'a' }], contentRange: UNKNOWN });
+
+    await expectRejection({
+      task: build().find({ filter: {}, options: { shouldQueryRange: true } }),
+      message: /carries no readable total/,
+    });
+  });
+
+  test('plain find and existsWith need no total', async () => {
+    stubFetch({ body: [{ id: 'a' }], contentRange: UNKNOWN });
+
+    expect(await build().find({})).toHaveLength(1);
+    expect(await build().existsWith({ where: {} })).toBe(true);
+  });
+});
+
 describe('no header means no total, and it says so', () => {
   /** Answering with the page size is the silent-wrong class: 1 for a table of 7000, healthy-looking in every screen. */
   test('count refuses rather than reporting the page size', async () => {

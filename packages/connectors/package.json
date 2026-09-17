@@ -149,7 +149,19 @@
     "@electric-sql/pglite": {
       "optional": true
     },
+    "@hono/zod-openapi": {
+      "optional": true
+    },
     "@libsql/client": {
+      "optional": true
+    },
+    "drizzle-orm": {
+      "optional": true
+    },
+    "drizzle-zod": {
+      "optional": true
+    },
+    "hono": {
       "optional": true
     },
     "meilisearch": {

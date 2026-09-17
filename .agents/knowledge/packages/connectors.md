@@ -56,10 +56,21 @@ it is consumed. Generated CRUD routes always send the header; a hand-written `re
 which is when it fires. `countPath` is opt-in for an API that publishes a count route, because one
 publishes `/count`, another `/search/count`, and another deleted it.
 
+An empty page is `records */N` - the total present, the range absent - and reads as that total; the
+start comes from the filter's `skip`/`offset`, the rule the server used. Missing it made `count()`
+throw on every filter that matched nothing.
+
 `x-request-count` decides whether a list answers an array or a count envelope, and its DEFAULT is
 on - so both are accepted. Handing an envelope back as one row is fifty records reported as one. The
 shape is ASKED FOR, not sniffed: structure cannot tell an envelope from a record carrying a `data`
-column and a `count` column.
+column and a `count` column. The connector OWNS `x-request-count`: a `headers` setting carrying it throws at
+construction, and it always goes out `false`. Under the envelope a record read answers
+`{ count, data }`, which `shape: 'one'` would return as the record (measured on a real server).
+
+A header with no readable total (`records 0-24/*`) throws a message naming that header - distinct
+from the no-header one, because the fix is the server's count, not a missing header. A filter travels
+in the GET query string, and a server refuses a URL past ~16 KB with 431 (measured: 350 UUIDs in an
+`inq` pass, 400 do not); the error says so and carries the URL's head and length, not all of it.
 
 `onUnauthorized` is a hook, not a flag: it answers whether a retry can work, because recovery
 (refresh, logout, both) is the host policy, and a boolean could only have meant "ask the resolver
@@ -73,9 +84,10 @@ string "undefined".
 
 ## The 15 published sub-paths
 
-The peers `drizzle-orm`, `drizzle-zod`, `hono`, and `@hono/zod-openapi` are required, because the
-neutral tiers value-import them. The six engine peers below are declared optional in
-`peerDependenciesMeta`.
+Every peer is optional in `peerDependenciesMeta`; a sub-path needs what it imports. Measured on
+`dist`: the root barrel imports `drizzle-orm`, `drizzle-zod` and `@hono/zod-openapi`; the relational
+sub-paths `drizzle-orm` (plus `drizzle-zod` at `/relational`, `/postgres`, `/sqlite`); the search
+sub-paths `@hono/zod-openapi`; `./http` none. Nothing imports `hono` directly.
 
 | Sub-path | Source | Engine peer | Bundles for a browser |
 |---|---|---|---|
@@ -298,7 +310,7 @@ gone. What that costs is in [logging](#a-connectors-only-process-logs-to-the-con
 `package.json` `browser` field to remap `fs`, `path`, `util` and the rest to `false`. Vite honours
 that remap; `bun build` does not. Probed without it, the driver entry drags in 18 node builtins and
 three fatal global reads. That measures PGlite's packaging, not IGNIS's code. `drizzle-orm` is a
-required peer and stays in the graph - measured, the entry is pure with it bundled.
+peer the sub-path imports and stays in the graph - measured, the entry is pure with it bundled.
 
 ## A connectors-only process logs to the console
 
@@ -323,8 +335,9 @@ catch rather than prove it absent.
 - `@venizia/ignis/postgres` and `@venizia/ignis-connectors/postgres` resolve to the same module.
   Application code should keep importing from `@venizia/ignis`; install this package directly only
   for the browser case.
-- `drizzle-orm` and `drizzle-zod` are REQUIRED peers here, not optional as in `kernel`. The neutral
-  relational tier value-imports `getTableColumns`, `sql`, `relations` and `createSchemaFactory`.
+- `drizzle-orm` and `drizzle-zod` are optional peers, yet the relational tier value-imports
+  `getTableColumns`, `sql`, `relations` and `createSchemaFactory` - a relational sub-path needs them
+  installed. Optional spares `./http`, which imports neither. `@venizia/ignis` still requires them.
 - `build.sh` type-checks `src` and `src/__tests__` before emitting, so a type error in a test blocks
   the production build. See [build system](/process/build-system.md).
 - `isoTimestamp` (`relational/{postgres,sqlite}/models/common/columns.ts`) declares its column's

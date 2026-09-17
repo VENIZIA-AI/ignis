@@ -26,7 +26,7 @@ export type THttpHeaders = Headers | Array<[string, string]> | Record<string, st
 export interface IHttpDataSourceSettings {
   baseUrl: string;
 
-  /** Sent on every request, merged through `Headers` so a caller value overrides a default. */
+  /** Sent on every request. `x-request-count` is the connector's own and always goes out `false`. */
   headers?: THttpHeaders;
 
   /** A fixed token. Consulted BEFORE `authTokenResolver` - an explicit value is never overridden by a lookup. */
@@ -60,6 +60,8 @@ export interface IHttpDataSourceSettings {
 export interface IHttpReadResult<R> {
   data: R;
   hasRange: boolean;
+  /** The raw header, so a present-but-unreadable one is told apart from an absent one. */
+  contentRange?: string;
   total?: number;
   skip?: number;
   dataLength: number;
