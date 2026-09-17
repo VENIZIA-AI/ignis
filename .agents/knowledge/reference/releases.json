@@ -14,6 +14,12 @@
   "releases": {
     "atlas": [
       {
+        "version": "0.1.0-24",
+        "date": "2026-09-16",
+        "sha": "e4d088b1",
+        "order": 1362
+      },
+      {
         "version": "0.1.0-23",
         "date": "2026-09-16",
         "sha": "889709f7",
@@ -153,6 +159,12 @@
       }
     ],
     "boot": [
+      {
+        "version": "0.2.0-30",
+        "date": "2026-09-17",
+        "sha": "037c3411",
+        "order": 1372
+      },
       {
         "version": "0.2.0-29",
         "date": "2026-09-16",
@@ -641,6 +653,12 @@
       }
     ],
     "connectors": [
+      {
+        "version": "0.2.0-39",
+        "date": "2026-09-17",
+        "sha": "daec51f6",
+        "order": 1374
+      },
       {
         "version": "0.2.0-38",
         "date": "2026-09-16",
@@ -1726,6 +1744,12 @@
     ],
     "core-server": [
       {
+        "version": "0.2.0-43",
+        "date": "2026-09-17",
+        "sha": "78985444",
+        "order": 1376
+      },
+      {
         "version": "0.2.0-42",
         "date": "2026-09-16",
         "sha": "9e36fd34",
@@ -1986,6 +2010,12 @@
     ],
     "core-worker": [
       {
+        "version": "0.2.0-39",
+        "date": "2026-09-17",
+        "sha": "d9763f94",
+        "order": 1375
+      },
+      {
         "version": "0.2.0-38",
         "date": "2026-09-16",
         "sha": "369aca04",
@@ -2221,6 +2251,12 @@
       }
     ],
     "dev-configs": [
+      {
+        "version": "0.2.0-12",
+        "date": "2026-09-17",
+        "sha": "510b4d4e",
+        "order": 1367
+      },
       {
         "version": "0.2.0-11",
         "date": "2026-09-16",
@@ -2594,6 +2630,12 @@
     ],
     "filter": [
       {
+        "version": "0.2.0-19",
+        "date": "2026-09-17",
+        "sha": "66f6dd6f",
+        "order": 1369
+      },
+      {
         "version": "0.2.0-18",
         "date": "2026-09-16",
         "sha": "34c4f6cf",
@@ -2733,6 +2775,12 @@
       }
     ],
     "helpers": [
+      {
+        "version": "0.2.0-35",
+        "date": "2026-09-17",
+        "sha": "38fed058",
+        "order": 1371
+      },
       {
         "version": "0.2.0-34",
         "date": "2026-09-16",
@@ -3402,6 +3450,12 @@
     ],
     "inversion": [
       {
+        "version": "0.2.0-19",
+        "date": "2026-09-17",
+        "sha": "1800efbf",
+        "order": 1368
+      },
+      {
         "version": "0.2.0-18",
         "date": "2026-09-16",
         "sha": "5deb8ec4",
@@ -3692,6 +3746,12 @@
     ],
     "kernel": [
       {
+        "version": "0.2.0-40",
+        "date": "2026-09-17",
+        "sha": "835b3799",
+        "order": 1373
+      },
+      {
         "version": "0.2.0-39",
         "date": "2026-09-16",
         "sha": "3a5787dc",
@@ -3934,6 +3994,31 @@
     ]
   },
   "changelogs": [
+    {
+      "id": "changelog:2026-09-17-lodash-is-gone",
+      "file": "2026-09-17-lodash-is-gone.md",
+      "date": "2026-09-17",
+      "title": "lodash Is Gone",
+      "packages": [
+        "helpers",
+        "inversion",
+        "kernel"
+      ],
+      "kind": "Fix",
+      "order": 1364
+    },
+    {
+      "id": "changelog:2026-09-17-a-repository-entry-for-other-transports",
+      "file": "2026-09-17-a-repository-entry-for-other-transports.md",
+      "date": "2026-09-17",
+      "title": "A Repository Entry for Other Transports",
+      "packages": [
+        "filter",
+        "kernel"
+      ],
+      "kind": "Feature",
+      "order": 1366
+    },
     {
       "id": "changelog:2026-09-16-upload-labels-move-to-the-body",
       "file": "2026-09-16-upload-labels-move-to-the-body.md",
