@@ -501,7 +501,7 @@ export class AbstractRedisHelper<ClientType extends TRedisClient = TRedisClient>
     const logger = this.logger.for(this.publish.name);
     const { topics, payload, useCompress = false } = opts;
 
-    const validTopics = topics?.filter(topic => !isEmpty(topic));
+    const validTopics = topics?.filter(topic => !isEmpty({ value: topic }));
     if (!validTopics?.length) {
       logger.error('No topic(s) to publish!');
       return;
@@ -526,7 +526,7 @@ export class AbstractRedisHelper<ClientType extends TRedisClient = TRedisClient>
     const logger = this.logger.for(this.subscribe.name);
     const { topic } = opts;
 
-    if (!topic || isEmpty(topic)) {
+    if (!topic || isEmpty({ value: topic })) {
       logger.error('No topic to subscribe!');
       return;
     }
@@ -549,7 +549,7 @@ export class AbstractRedisHelper<ClientType extends TRedisClient = TRedisClient>
     const logger = this.logger.for(this.unsubscribe.name);
     const { topic } = opts;
 
-    if (!topic || isEmpty(topic)) {
+    if (!topic || isEmpty({ value: topic })) {
       logger.error('No topic to unsubscribe!');
       return;
     }

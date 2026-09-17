@@ -303,9 +303,10 @@ describe('search-collection DSL', () => {
 
     test('SELECT treats optional fields as optional', () => {
       const schema = deriveSearchDocumentSchema({ definition, type: 'select' });
-      const docWithoutRating = omit(validDocument as typeof validDocument & { rating?: number }, [
-        'rating',
-      ]);
+      const docWithoutRating = omit({
+        source: validDocument as typeof validDocument & { rating?: number },
+        keys: ['rating'],
+      });
       const result = schema.safeParse(docWithoutRating);
 
       expect(result.success).toBe(true);
@@ -313,7 +314,7 @@ describe('search-collection DSL', () => {
 
     test('CREATE requires id even if not marked optional elsewhere', () => {
       const schema = deriveSearchDocumentSchema({ definition, type: 'create' });
-      const docWithoutId = omit(validDocument, ['id']);
+      const docWithoutId = omit({ source: validDocument, keys: ['id'] });
       const result = schema.safeParse(docWithoutId);
 
       expect(result.success).toBe(false);

@@ -241,7 +241,10 @@ export class ReadableRelationalRepository<
       shouldSkipDefaultFilter: opts?.options?.shouldSkipDefaultFilter,
     });
 
-    const queryOptions = omit(this.buildQuery({ filter: mergedFilter }), ['limit']);
+    const queryOptions = omit({
+      source: this.buildQuery({ filter: mergedFilter }),
+      keys: ['limit'],
+    });
 
     return this.queryExecutor.findFirst<R>({
       connector: this.resolveConnector({ transaction: opts?.options?.transaction }),

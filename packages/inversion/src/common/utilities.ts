@@ -16,7 +16,9 @@ import type {
  * Hand-written rather than `lodash/isEmpty`, and NOT a plain `!value`: `!{}` is `false` while an
  * empty object IS empty, so the two disagree on exactly the case a swap would silently flip.
  */
-export const isEmpty = (value: unknown): boolean => {
+export const isEmpty = (opts: { value: unknown }): boolean => {
+  const { value } = opts;
+
   if (value === null || value === undefined) {
     return true;
   }
@@ -47,10 +49,11 @@ export const isEmpty = (value: unknown): boolean => {
  * lodash for one function costs 24 KB. Matches lodash on the shapes we pass it - a flat key list,
  * never a nested path.
  */
-export const omit = <T extends object, K extends PropertyKey>(
-  source: T,
-  keys: readonly K[],
-): Omit<T, Extract<K, keyof T>> => {
+export const omit = <T extends object, K extends PropertyKey>(opts: {
+  source: T;
+  keys: readonly K[];
+}): Omit<T, Extract<K, keyof T>> => {
+  const { source, keys } = opts;
   const dropped = new Set<PropertyKey>(keys);
   const kept: Record<string, unknown> = {};
 

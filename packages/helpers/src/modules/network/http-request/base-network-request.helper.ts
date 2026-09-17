@@ -39,7 +39,7 @@ export class BaseNetworkRequest<T extends TFetcherVariant> extends BaseHelper {
     let baseUrl = opts?.baseUrl ?? this.baseUrl ?? '';
     const paths = opts?.paths ?? [];
 
-    if (!baseUrl || isEmpty(baseUrl)) {
+    if (!baseUrl || isEmpty({ value: baseUrl })) {
       throw getError({
         statusCode: 500,
         message: '[getRequestUrl] Invalid configuration for third party request base url!',

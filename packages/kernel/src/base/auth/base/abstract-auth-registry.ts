@@ -20,7 +20,7 @@ export abstract class AbstractAuthRegistry<TItem> extends BaseHelper {
   protected abstract getBindingPrefix(): string;
 
   getKey(opts: { name: string }): string {
-    if (!opts?.name || isEmpty(opts.name)) {
+    if (!opts?.name || isEmpty({ value: opts.name })) {
       throw getError({ message: `[getKey] Invalid name | name: ${opts.name}` });
     }
 

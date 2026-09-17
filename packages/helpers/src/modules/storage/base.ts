@@ -38,7 +38,7 @@ export abstract class BaseStorageHelper extends BaseHelper implements IStorageHe
       return false;
     }
 
-    if (!name || isEmpty(name)) {
+    if (!name || isEmpty({ value: name })) {
       this.logger.for(this.isValidSegment.name).error('Empty name provided');
       return false;
     }
@@ -104,7 +104,7 @@ export abstract class BaseStorageHelper extends BaseHelper implements IStorageHe
     const { path: pathStr } = opts;
     const maxDepth = opts.maxDepth ?? BaseStorageHelper.DEFAULT_MAX_FOLDER_DEPTH;
 
-    if (typeof pathStr !== 'string' || !pathStr || isEmpty(pathStr)) {
+    if (typeof pathStr !== 'string' || !pathStr || isEmpty({ value: pathStr })) {
       this.logger.for(this.isValidKeyPath.name).error('Empty or invalid path provided');
       return false;
     }

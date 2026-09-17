@@ -46,7 +46,7 @@ export class ApplicationError extends Error {
 
     // Explicit `extra` wins over swept keys.
     const merged = {
-      ...omit(opts, KNOWN_KEYS),
+      ...omit({ source: opts, keys: KNOWN_KEYS }),
       ...extra,
     };
     this.extra = Object.keys(merged).length > 0 ? merged : undefined;

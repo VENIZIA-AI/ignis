@@ -75,7 +75,7 @@ export const deriveSearchDocumentSchema = (opts: {
       return z.object({ ...shape, id: z.string() });
     }
     case SchemaTypes.UPDATE: {
-      return z.object(omit(shape, ['id'])).partial();
+      return z.object(omit({ source: shape, keys: ['id'] })).partial();
     }
     default: {
       throw getError({

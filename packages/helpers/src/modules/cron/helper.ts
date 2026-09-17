@@ -43,7 +43,7 @@ export class CronHelper extends BaseHelper {
 
   /** Builds the job. Synchronous, so the constructor still THROWS on a bad cronTime. */
   protected buildInstance(): void {
-    if (!this.cronTime || isEmpty(this.cronTime)) {
+    if (!this.cronTime || isEmpty({ value: this.cronTime })) {
       throw ApplicationError.getError({
         message: '[CronHelper][configure] Invalid cronTime to configure application cron!',
       });

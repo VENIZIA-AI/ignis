@@ -200,7 +200,7 @@ export class SequentialQueueHelper<TElementPayload> extends BaseHelper {
   dequeue() {
     const value = this.storage.shift();
 
-    if (value && !isEmpty(value)) {
+    if (value && !isEmpty({ value: value })) {
       invokeHook({
         logger: this.logger,
         scope: this.dequeue.name,

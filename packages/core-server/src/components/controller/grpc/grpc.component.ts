@@ -61,7 +61,7 @@ export class GrpcComponent extends BaseComponent {
           continue;
         }
 
-        if (!metadata?.path || isEmpty(metadata.path)) {
+        if (!metadata?.path || isEmpty({ value: metadata.path })) {
           throw getError({
             statusCode: HTTP.ResultCodes.RS_5.InternalServerError,
             message: `[registerControllers] key: '${binding.key}' | Invalid controller metadata, 'path' is required for gRPC controller metadata`,

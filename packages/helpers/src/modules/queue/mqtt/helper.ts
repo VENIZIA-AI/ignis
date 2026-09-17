@@ -55,7 +55,7 @@ export class MQTTClientHelper extends BaseHelper {
       return;
     }
 
-    if (isEmpty(this.url)) {
+    if (isEmpty({ value: this.url })) {
       throw getError({
         statusCode: 500,
         message: '[configure] Invalid url to configure mqtt client!',

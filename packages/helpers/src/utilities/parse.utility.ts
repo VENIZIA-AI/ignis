@@ -9,7 +9,9 @@ import { getError } from '@/modules/error';
  * serialise the same, so nothing downstream can tell - checked across 114 value/precision pairs, and
  * the sign of zero was the only disagreement.
  */
-const round = (value: number, precision = 0): number => {
+const round = (opts: { value: number; precision?: number }): number => {
+  const { value, precision = 0 } = opts;
+
   if (!Number.isFinite(value) || precision === 0) {
     return Math.round(value) + 0;
   }
@@ -113,7 +115,7 @@ export const float = (input: any, digit = 2) => {
     return 0;
   }
 
-  const parsed = round(Number.parseFloat(normalized), digit);
+  const parsed = round({ value: Number.parseFloat(normalized), precision: digit });
   return Number.isNaN(parsed) ? 0 : parsed;
 };
 

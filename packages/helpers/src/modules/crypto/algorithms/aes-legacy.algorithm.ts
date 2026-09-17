@@ -82,7 +82,7 @@ export class LegacyAES extends BaseCryptoAlgorithm<
   encryptFile(opts: { absolutePath: string; secret: string }): string {
     const { absolutePath, secret } = opts;
 
-    if (!absolutePath || isEmpty(absolutePath)) {
+    if (!absolutePath || isEmpty({ value: absolutePath })) {
       return '';
     }
 
@@ -140,7 +140,7 @@ export class LegacyAES extends BaseCryptoAlgorithm<
   decryptFile(opts: { absolutePath: string; secret: string }) {
     const { absolutePath, secret } = opts;
 
-    if (!absolutePath || isEmpty(absolutePath)) {
+    if (!absolutePath || isEmpty({ value: absolutePath })) {
       return '';
     }
 

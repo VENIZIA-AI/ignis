@@ -163,7 +163,7 @@ export class BaseNetworkTcpClient<
       return;
     }
 
-    if (isEmpty(this.options)) {
+    if (isEmpty({ value: this.options })) {
       this.logger
         .for(this.connect.name)
         .info('[%s] Cannot init TCP Client with null options', this.identifier);

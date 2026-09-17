@@ -614,7 +614,7 @@ export class SocketIOServerHelper extends BaseHelper {
 
     const sender = this.emitter.compress(true);
 
-    if (destination && !isEmpty(destination)) {
+    if (destination && !isEmpty({ value: destination })) {
       sender.to(destination).emit(topic, data);
     } else {
       sender.emit(topic, data);

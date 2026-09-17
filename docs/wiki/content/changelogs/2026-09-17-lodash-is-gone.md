@@ -23,8 +23,8 @@ inversion imports them by a new path.
 ## `isEmpty` is not `!value`, and that is the whole point
 
 ```ts
-isEmpty({});   // true
-!{};           // false
+isEmpty({ value: {} });   // true
+!{};                      // false
 ```
 
 Three cases were actual mismatches while writing it, each kept as a test:

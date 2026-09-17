@@ -57,7 +57,7 @@ export class AES extends BaseCryptoAlgorithm<
     const { secret, kdfSalt, kdfIterations } = opts;
     const entry = Array.isArray(secret) ? secret[0] : { id: DEFAULT_KEY_ID, secret };
 
-    if (!entry || isEmpty(entry.secret)) {
+    if (!entry || isEmpty({ value: entry.secret })) {
       throw getError({ message: '[AES][resolveEncryptKey] Missing secret or empty keyring' });
     }
 
@@ -91,7 +91,7 @@ export class AES extends BaseCryptoAlgorithm<
     }
 
     // Without this the empty secret derives a key from '' and fails as an opaque OpenSSL error, hiding a plain configuration mistake.
-    if (isEmpty(entry.secret)) {
+    if (isEmpty({ value: entry.secret })) {
       throw getError({
         message: `[AES][resolveDecryptKey] Keyring entry for key id "${id}" has an empty secret`,
       });
@@ -152,7 +152,7 @@ export class AES extends BaseCryptoAlgorithm<
   encryptFile(opts: { absolutePath: string; secret: TAESSecret }): string {
     const { absolutePath, secret } = opts;
 
-    if (!absolutePath || isEmpty(absolutePath)) {
+    if (!absolutePath || isEmpty({ value: absolutePath })) {
       return '';
     }
 
@@ -220,7 +220,7 @@ export class AES extends BaseCryptoAlgorithm<
   decryptFile(opts: { absolutePath: string; secret: TAESSecret }) {
     const { absolutePath, secret } = opts;
 
-    if (!absolutePath || isEmpty(absolutePath)) {
+    if (!absolutePath || isEmpty({ value: absolutePath })) {
       return '';
     }
 

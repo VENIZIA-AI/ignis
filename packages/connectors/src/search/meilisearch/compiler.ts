@@ -42,7 +42,7 @@ const buildEmbedder = (opts: {
     });
   }
 
-  const providerConfig = omit(embed.model, ['name']);
+  const providerConfig = omit({ source: embed.model, keys: ['name'] });
   const documentTemplate = embed.from.map(item => `{{doc.${item}}}`).join(' ');
 
   return { source, model: modelParts.join('/'), ...providerConfig, documentTemplate };

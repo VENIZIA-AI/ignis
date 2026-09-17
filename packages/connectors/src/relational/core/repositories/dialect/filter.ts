@@ -396,7 +396,7 @@ export abstract class FilterBuilder extends BaseHelper {
     const { tableName, schema, where } = opts;
     const columns = this.getColumns(schema);
 
-    if (!columns || isEmpty(columns)) {
+    if (!columns || isEmpty({ value: columns })) {
       throw getError({
         message: `[FilterBuilder][toWhere] Table: ${tableName} | Failed to get table columns`,
       });
@@ -569,7 +569,8 @@ export abstract class FilterBuilder extends BaseHelper {
             }
           : mergedScope;
 
-      const hasNoEffectiveFilter = isEmpty(scopedFilter) || Object.keys(scopedFilter).length === 0;
+      const hasNoEffectiveFilter =
+        isEmpty({ value: scopedFilter }) || Object.keys(scopedFilter).length === 0;
       if (hasNoEffectiveFilter && hiddenProps.size === 0) {
         result[relationName] = true;
         continue;
