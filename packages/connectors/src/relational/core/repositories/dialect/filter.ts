@@ -19,7 +19,7 @@ import type { TTableObject, TTableSchemaWithId } from '@/relational/core/models/
 import { MetadataRegistry } from '@venizia/ignis-kernel';
 import type { TConstValue } from '@venizia/ignis-helpers/common';
 import { BaseHelper, getError } from '@venizia/ignis-helpers/core';
-import { resolveValue } from '@venizia/ignis-helpers/common';
+import { isEmpty, resolveValue } from '@venizia/ignis-helpers/common';
 import {
   and,
   asc,
@@ -33,8 +33,6 @@ import {
   sql,
   type SQL,
 } from 'drizzle-orm';
-import isEmpty from 'lodash/isEmpty';
-import set from 'lodash/set';
 import type { TRelationConfig, TTableColumns } from '../common';
 import { ScopeFilterDenial, TableColumnCache } from '../common';
 import {
@@ -368,7 +366,11 @@ export abstract class FilterBuilder extends BaseHelper {
 
     if (Array.isArray(fields)) {
       for (const field of fields) {
-        set(result, field, true);
+        // Plain assignment, not `lodash/set`: drizzle's `columns` is a FLAT map of column name to
+        // boolean, so a dotted field would have nested into a shape it cannot read anyway.
+        // `String`, because `keyof any` admits a symbol and drizzle keys by name - which is what
+        // `lodash/set` did internally with every path part anyway.
+        result[String(field)] = true;
       }
 
       return result;

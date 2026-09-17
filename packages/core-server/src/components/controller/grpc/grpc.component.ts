@@ -5,8 +5,7 @@ import type { AbstractGrpcController } from '@/base/controllers/grpc';
 import { BindingNamespaces } from '@venizia/ignis-kernel';
 import { Binding, BindingValueTypes, MetadataRegistry } from '@venizia/ignis-kernel';
 import { getError } from '@venizia/ignis-helpers/core';
-import { HTTP } from '@venizia/ignis-helpers/common';
-import isEmpty from 'lodash/isEmpty';
+import { HTTP, isEmpty } from '@venizia/ignis-helpers/common';
 import type { IGrpcComponentConfig } from './common/types';
 import { GrpcBindingKeys } from './common/types';
 

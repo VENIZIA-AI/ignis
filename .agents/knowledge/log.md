@@ -6,6 +6,26 @@ not how.
 This file and `index.md` are reserved OKF filenames - they carry no `type:` frontmatter and are not
 counted as concepts.
 
+## 2026-09-17 - lodash is gone from every package
+
+31 call sites for five functions: `isEmpty` x20, `omit` x8, `get`/`set`/`round` x1 each. `isEmpty`
+and `omit` live in `inversion/common/utilities.ts` and are re-exported from
+`@venizia/ignis-helpers/common`; the other three were replaced where they were used, because none of
+them needed the feature that made lodash's version bigger - `get(value, key)` took a key from
+`Object.keys` and never a path, `set` wrote into drizzle's FLAT `columns` map.
+
+`isEmpty` is NOT `!value` and that is the whole reason it needed writing rather than inlining:
+`!{}` is `false` while an empty object IS empty, and two of the twenty call sites pass an object.
+Diffed against lodash across 40 values before any call site moved - zero disagreements. Two earlier
+attempts failed the diff and both are now tests: `for...in` walks the prototype chain, and
+duck-typing on `.length` calls `{ length: 0 }` empty when it has an own key.
+
+`round` normalises negative zero to `0`, the only disagreement across 114 value/precision pairs.
+
+Measured: `helpers/core` 20.8 -> 17.2 KB gzip, `kernel/metadata` 14.9 -> 14.0 KB. A guard fails if
+lodash reaches the container, the metadata entry or the utilities barrel - one import brings the whole
+library back and nothing else in the build would notice.
+
 ## 2026-09-16 (e) - the browser path loses lodash, and utilities loses zod
 
 `inversion` dropped lodash: two functions (`omit`, `isEmpty`) for 24 KB. Both now live in

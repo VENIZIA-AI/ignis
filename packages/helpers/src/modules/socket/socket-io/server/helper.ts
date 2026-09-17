@@ -1,3 +1,4 @@
+import { isEmpty } from '@venizia/ignis-inversion';
 import { HTTP } from '@/common';
 import { RuntimeModules, TRuntimeModule } from '@/common/constants';
 import { ValueOrPromise } from '@/common/types';
@@ -7,7 +8,6 @@ import { ensureRedisClientsConnecting, TRedisClient, waitForRedisReady } from '@
 import { voidExecution } from '@/utilities/promise.utility';
 import { createAdapter } from '@socket.io/redis-adapter';
 import { Emitter } from '@socket.io/redis-emitter';
-import isEmpty from 'lodash/isEmpty';
 import { EventEmitter } from 'node:events';
 import { Server as HTTPServer } from 'node:http';
 import { Server as IOServer, Socket as IOSocket, ServerOptions } from 'socket.io';

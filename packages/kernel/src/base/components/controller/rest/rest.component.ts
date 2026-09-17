@@ -6,8 +6,7 @@ import { Binding, BindingValueTypes, MetadataRegistry } from '@/helpers/inversio
 import { BaseComponent } from '../../base';
 import type { Env, Schema } from 'hono';
 import { getError } from '@venizia/ignis-helpers/core';
-import { HTTP } from '@venizia/ignis-helpers/common';
-import isEmpty from 'lodash/isEmpty';
+import { HTTP, isEmpty } from '@venizia/ignis-helpers/common';
 import type { IRestComponentConfig } from './common/types';
 import { RestBindingKeys } from './common/types';
 

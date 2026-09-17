@@ -1,7 +1,7 @@
+import { isEmpty } from '@venizia/ignis-inversion';
 import { redactSecrets, redactUrlCredentials } from '@/common/redact';
 import { BaseHelper } from '@/modules/base';
 import { getError } from '@/modules/error';
-import isEmpty from 'lodash/isEmpty';
 import mqtt from 'mqtt';
 import { invokeHook } from '../common';
 

@@ -1,7 +1,7 @@
+import { isEmpty } from '@venizia/ignis-inversion';
 import type { AnyType } from '@/common/types';
 import { executePromiseWithLimit, voidExecution } from '@/utilities/promise.utility';
 import { BaseHelper } from '@/modules/base';
-import isEmpty from 'lodash/isEmpty';
 import { EventEmitter } from 'node:events';
 import zlib from 'node:zlib';
 import { RedisConcurrency } from './../common/constants';

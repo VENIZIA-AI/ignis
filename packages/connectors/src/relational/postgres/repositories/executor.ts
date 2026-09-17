@@ -1,3 +1,4 @@
+import { omit } from '@venizia/ignis-helpers/common';
 import type {
   ICountOptions,
   IInsertOptions,
@@ -12,7 +13,6 @@ import type { TRelationalConnector } from '@/relational/postgres/datasources';
 import type { AnyType, TNullable } from '@venizia/ignis-helpers/common';
 import { getError } from '@venizia/ignis-helpers/core';
 import type { PgTable } from 'drizzle-orm/pg-core';
-import omit from 'lodash/omit';
 
 /**
  * Translates already-built SQL fragments (`where`, `orderBy`, projections) to Drizzle Core calls.

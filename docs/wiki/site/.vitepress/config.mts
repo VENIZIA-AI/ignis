@@ -451,6 +451,13 @@ const config = defineConfig({
           collapsed: false,
           items: [
             {
+              text: '2026-09-17',
+              collapsed: true,
+              items: [
+                { text: 'lodash Is Gone', link: '/changelogs/2026-09-17-lodash-is-gone' },
+              ],
+            },
+            {
               text: '2026-09-16',
               collapsed: true,
               items: [

@@ -10,7 +10,7 @@ tags: [reference, exports, api]
 
 ## inversion
 
-### `@venizia/ignis-inversion` (68)
+### `@venizia/ignis-inversion` (69)
 
 - `AbstractContainer` class
 - `AnyType` type
@@ -37,6 +37,7 @@ tags: [reference, exports, api]
 - `isApplicationError` const
 - `isClass` const
 - `isClassProvider` const
+- `isEmpty` const
 - `Logger` class
 - `MessageCode` class
 - `MetadataKeys` const
@@ -117,7 +118,7 @@ tags: [reference, exports, api]
 
 ## helpers
 
-### `@venizia/ignis-helpers` (391)
+### `@venizia/ignis-helpers` (393)
 
 - `AbstractCryptoAlgorithm` class
 - `AbstractLogger` class
@@ -299,6 +300,7 @@ tags: [reference, exports, api]
 - `ISecretsHelper` interface
 - `ISecretsHelperOptions` interface
 - `ISecretsRegistration` interface
+- `isEmpty` const
 - `isFloat` const
 - `isInt` const
 - `isNotFoundError` const
@@ -351,6 +353,7 @@ tags: [reference, exports, api]
 - `NodeFetcher` class
 - `NodeFetchNetworkRequest` class
 - `NON_SLUG_CHARACTERS_PATTERN` const
+- `omit` const
 - `OpaqueUidHelper` class
 - `parseArrayToMapWithKey` const
 - `parseMultipartBody` const
@@ -511,7 +514,7 @@ tags: [reference, exports, api]
 - `WebSocketServerHelper` class
 - `WorkerPoolHelper` class
 
-### `@venizia/ignis-helpers/common` (60)
+### `@venizia/ignis-helpers/common` (62)
 
 - `AnyObject` type
 - `AnyType` type
@@ -530,7 +533,9 @@ tags: [reference, exports, api]
 - `IDuration` interface
 - `IFieldMapping` interface
 - `isClass` const
+- `isEmpty` const
 - `MimeTypes` class
+- `omit` const
 - `REDACTED` const
 - `redactSecrets` const
 - `redactUrlCredentials` const
@@ -1826,7 +1831,7 @@ tags: [reference, exports, api]
 
 ## core-server
 
-### `@venizia/ignis` (953)
+### `@venizia/ignis` (955)
 
 - `AbstractApplication` class
 - `AbstractAuthRegistry` class
@@ -2271,6 +2276,7 @@ tags: [reference, exports, api]
 - `ISecretsHelper` interface
 - `ISecretsHelperOptions` interface
 - `ISecretsRegistration` interface
+- `isEmpty` const
 - `IServerApplication` interface
 - `IServerApplicationConfigs` interface
 - `IServerConfigMixin` interface
@@ -2368,6 +2374,7 @@ tags: [reference, exports, api]
 - `notFoundHandler` const
 - `NumberIdType` type
 - `OffsetSchema` const
+- `omit` const
 - `OpaqueUidHelper` class
 - `OrderBySchema` const
 - `parseArrayToMapWithKey` const

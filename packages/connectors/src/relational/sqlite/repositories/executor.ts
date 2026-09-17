@@ -1,3 +1,4 @@
+import { omit } from '@venizia/ignis-helpers/common';
 import type { TTableSchemaWithId } from '@/relational/core/models/common';
 import type {
   ICountOptions,
@@ -15,7 +16,6 @@ import type { ILogger } from '@venizia/ignis-helpers/core';
 import type { AnyType, TNullable } from '@venizia/ignis-helpers/common';
 import { BaseHelper, getError } from '@venizia/ignis-helpers/core';
 import type { SQLiteTable } from 'drizzle-orm/sqlite-core';
-import omit from 'lodash/omit';
 
 /**
  * Translates already-built SQL fragments (`where`, `orderBy`, projections) to Drizzle Core calls.

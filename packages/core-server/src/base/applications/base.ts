@@ -20,7 +20,7 @@ import type {
   ISecretsRegistration,
 } from '@venizia/ignis-helpers';
 import { blankToUndefined, getError } from '@venizia/ignis-helpers/core';
-import { HTTP, RuntimeModules } from '@venizia/ignis-helpers/common';
+import { HTTP, RuntimeModules, isEmpty } from '@venizia/ignis-helpers/common';
 import {
   applicationEnvironment,
   createSecretsHelper,
@@ -30,7 +30,6 @@ import {
   toBoolean,
 } from '@venizia/ignis-helpers';
 import { contextStorage, tryGetContext } from 'hono/context-storage';
-import isEmpty from 'lodash/isEmpty';
 import { AppErrorMiddleware, emojiFavicon } from '../middlewares';
 import { ServerBootSteps } from './boot-steps';
 import { ServerApplication } from './server';

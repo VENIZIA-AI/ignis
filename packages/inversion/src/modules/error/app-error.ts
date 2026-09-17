@@ -15,7 +15,7 @@ const KNOWN_KEYS = [
   'transform',
   'logLevel',
   'name',
-];
+] as const;
 
 export class ApplicationError extends Error {
   statusCode: number;

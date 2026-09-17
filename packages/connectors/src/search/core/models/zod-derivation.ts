@@ -1,6 +1,6 @@
+import { omit } from '@venizia/ignis-helpers/common';
 import { z } from '@hono/zod-openapi';
 import { getError } from '@venizia/ignis-helpers/core';
-import omit from 'lodash/omit';
 
 import type { TSchemaType } from '@venizia/ignis-kernel';
 import { SchemaTypes } from '@venizia/ignis-kernel';

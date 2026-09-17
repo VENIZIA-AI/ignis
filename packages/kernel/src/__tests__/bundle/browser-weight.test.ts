@@ -93,3 +93,24 @@ describe('the utilities barrel stays zod-free', () => {
     expect(text.includes('ZodObject'), 'zod reached the utilities barrel').toBe(false);
   });
 });
+
+/**
+ * lodash is gone from every IGNIS package - 31 call sites for five functions, 24 KB in a bundle.
+ * A single `import isEmpty from 'lodash/isEmpty'` anywhere on these paths brings all of it back, and
+ * nothing else in the build would notice.
+ */
+describe('lodash stays out of the browser paths', () => {
+  const entries = [
+    ['the container', 'src/helpers/inversion/container.ts'],
+    ['the metadata entry', 'src/metadata.ts'],
+    ['the utilities barrel', 'src/utilities/index.ts'],
+  ] as const;
+
+  for (const [label, relative] of entries) {
+    test(`${label} carries no lodash`, async () => {
+      const { text } = await bundle(join(process.cwd(), relative));
+
+      expect(text.includes('lodash'), `lodash reached ${relative}`).toBe(false);
+    });
+  }
+});

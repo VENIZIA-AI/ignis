@@ -1,3 +1,4 @@
+import { isEmpty } from '@venizia/ignis-helpers/common';
 import type { Container } from '@/helpers/inversion/container';
 import type { AnyType, ValueOrPromise } from '@venizia/ignis-helpers/common';
 import {
@@ -7,7 +8,6 @@ import {
   RetryHelper,
   RetryJitterModes,
 } from '@venizia/ignis-helpers/core';
-import isEmpty from 'lodash/isEmpty';
 import { EventDispatchRetry, EventHandlerTypes } from './common/constants';
 import type {
   IDomainEvent,

@@ -1,7 +1,7 @@
+import { isEmpty } from '@venizia/ignis-inversion';
 import { BaseHelper } from '@/modules/base';
 import { voidExecution } from '@/utilities/promise.utility';
 import { CronJob, CronOnCompleteCommand, CronTime } from 'cron';
-import isEmpty from 'lodash/isEmpty';
 import { ApplicationError } from '../error';
 
 export interface ICronHelperOptions {

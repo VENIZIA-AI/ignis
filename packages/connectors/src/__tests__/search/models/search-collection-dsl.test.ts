@@ -1,5 +1,5 @@
+import { omit } from '@venizia/ignis-helpers/common';
 import { describe, test, expect } from 'bun:test';
-import omit from 'lodash/omit';
 import type { ISearchFieldDefinition } from '@/search/core/models';
 import {
   defineSearchCollection,

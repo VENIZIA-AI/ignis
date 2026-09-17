@@ -1,4 +1,4 @@
-import isEmpty from 'lodash/isEmpty';
+import { isEmpty } from '@venizia/ignis-inversion';
 import C from 'node:crypto';
 import fs from 'node:fs';
 import { getError } from '@/modules/error';

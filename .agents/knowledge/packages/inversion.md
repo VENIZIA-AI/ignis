@@ -6,7 +6,7 @@ resource: packages/inversion
 tags: [packages, inversion, di, ioc]
 ---
 
-`@venizia/ignis-inversion` is the foundation layer of the framework - the start of the dependency chain (`dev-configs -> inversion -> {filter, helpers} -> kernel -> core`). It is a small, standalone dependency injection and IoC container (on the order of a few hundred lines of core logic) with no dependency on the rest of IGNIS: only `reflect-metadata` and `zod`. `lodash` was dropped once it was measured - two functions (`omit`, `isEmpty`) for 24 KB in a browser bundle; both now live in `common/utilities.ts`, checked against lodash on the shapes actually passed before the swap. See [DI container](/architecture/di-container.md).
+`@venizia/ignis-inversion` is the foundation layer of the framework - the start of the dependency chain (`dev-configs -> inversion -> {filter, helpers} -> kernel -> core`). It is a small, standalone dependency injection and IoC container (on the order of a few hundred lines of core logic) with no dependency on the rest of IGNIS: only `reflect-metadata` and `zod`. `lodash` is gone from every IGNIS package - 31 call sites for five functions, 24 KB in a browser bundle. `isEmpty` and `omit` live here in `common/utilities.ts` and are re-exported from `@venizia/ignis-helpers/common`; both were diffed against lodash across 40 values before any call site moved. `isEmpty` is NOT `!value`: `!{}` is `false` while an empty object IS empty, and two of the twenty call sites pass an object. See [DI container](/architecture/di-container.md).
 
 ## Container tiering
 

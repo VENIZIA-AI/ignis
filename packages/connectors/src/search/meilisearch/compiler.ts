@@ -1,3 +1,4 @@
+import { omit } from '@venizia/ignis-helpers/common';
 import type {
   ISearchCollectionDefinition,
   ISearchEmbedConfig,
@@ -6,7 +7,6 @@ import type {
 } from '@/search/core/models';
 import { SearchFieldTypes, VectorDistances } from '@/search/core/models';
 import { getError } from '@venizia/ignis-helpers/core';
-import omit from 'lodash/omit';
 
 /** Meilisearch's single reserved geo field. It is an object `{ lat, lng }`, not a named tuple. */
 const RESERVED_GEO_FIELD_NAME = '_geo';

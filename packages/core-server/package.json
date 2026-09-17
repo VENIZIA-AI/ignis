@@ -204,7 +204,6 @@
     "@venizia/ignis-helpers": "^0.2.0-34",
     "@venizia/ignis-inversion": "^0.2.0-18",
     "@venizia/ignis-kernel": "^0.2.0-39",
-    "lodash": "catalog:",
     "reflect-metadata": "catalog:",
     "zod": "catalog:"
   },
@@ -307,7 +306,6 @@
     "@libsql/client": "^0.17.4",
     "@socket.io/bun-engine": "catalog:",
     "@types/bun": "catalog:",
-    "@types/lodash": "catalog:",
     "@types/nodemailer": "^8.0.1",
     "@types/pg": "catalog:",
     "@venizia/dev-configs": "^0.2.0-11",

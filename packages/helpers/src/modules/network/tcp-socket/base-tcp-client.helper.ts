@@ -1,7 +1,7 @@
+import { isEmpty } from '@venizia/ignis-inversion';
 import { redactSecrets } from '@/common/redact';
 import { BaseHelper } from '@/modules/base';
 import { ValueOrPromise } from '@/common';
-import isEmpty from 'lodash/isEmpty';
 import {
   TcpSocketConnectOpts as PlainConnectionOptions,
   Socket as PlainSocketClient,

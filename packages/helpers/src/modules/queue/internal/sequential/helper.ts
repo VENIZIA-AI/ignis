@@ -1,6 +1,6 @@
+import { isEmpty } from '@venizia/ignis-inversion';
 import { ValueOrPromise } from '@/common/types';
 import { BaseHelper } from '@/modules/base';
-import isEmpty from 'lodash/isEmpty';
 import { awaitHook, invokeHook } from '../../common';
 import { IQueueCallback, QueueStatuses, TQueueElement, TQueueStatus } from './common';
 
