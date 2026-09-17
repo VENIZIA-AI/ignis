@@ -16,6 +16,12 @@
       "require": "./dist/cjs/index.js",
       "default": "./dist/cjs/index.js"
     },
+    "./http": {
+      "types": "./dist/cjs/http/index.d.ts",
+      "import": "./dist/esm/http/index.js",
+      "require": "./dist/cjs/http/index.js",
+      "default": "./dist/cjs/http/index.js"
+    },
     "./relational": {
       "types": "./dist/cjs/relational/core/index.d.ts",
       "import": "./dist/esm/relational/core/index.js",
