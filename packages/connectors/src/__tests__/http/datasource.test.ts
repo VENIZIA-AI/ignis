@@ -322,3 +322,45 @@ describe('a failed read names the URL without carrying all of it', () => {
     });
   });
 });
+
+// Two spellings of one name inside the CALLER's own headers: `new Headers(input)` appends them into
+// a value neither spelling wrote. Reported by ARDOR, measured against the published build.
+describe('a caller that names one header twice gets the last value, not a joined one', () => {
+  const twice: Array<[string, THttpHeaders]> = [
+    [
+      'an array of pairs',
+      [
+        ['X-Tenant', 'north'],
+        ['x-tenant', 'south'],
+      ],
+    ],
+    ['a record with two spellings', { 'X-Tenant': 'north', 'x-tenant': 'south' }],
+  ];
+
+  for (const [label, headers] of twice) {
+    test(`${label} sends the last one`, async () => {
+      const attempts = stubFetch([{ status: 200, contentRange: 'items 0-0/1' }]);
+      const dataSource = new HttpDataSource({ baseUrl: 'https://api.example.com', headers });
+
+      await dataSource.read({ paths: ['tickets'] });
+
+      expect(attempts[0].headers['x-tenant']).toBe('south');
+    });
+  }
+
+  // A `Headers` instance joined them before this package saw it - there is nothing left to undo.
+  test('a Headers instance arrives already joined, and is passed through', async () => {
+    const attempts = stubFetch([{ status: 200, contentRange: 'items 0-0/1' }]);
+    const dataSource = new HttpDataSource({
+      baseUrl: 'https://api.example.com',
+      headers: new Headers([
+        ['X-Tenant', 'north'],
+        ['x-tenant', 'south'],
+      ]),
+    });
+
+    await dataSource.read({ paths: ['tickets'] });
+
+    expect(attempts[0].headers['x-tenant']).toBe('north, south');
+  });
+});

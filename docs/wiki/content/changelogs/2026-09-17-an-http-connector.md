@@ -85,6 +85,10 @@ records reported as one, with no error anywhere.
 The shape is **asked for, not sniffed**: `read({ shape: 'one' })` is never unwrapped, because
 structure alone cannot tell an envelope from a record carrying a `data` column and a `count` column.
 
+Caller headers are read as unique lowercase pairs, last spelling winning - `new Headers(input)`
+appends, so a record carrying `X-Tenant` and `x-tenant` used to send `"north, south"`, a value
+neither spelling wrote.
+
 That is why `x-request-count` is the connector's own: it always goes out `false`, and a `headers`
 setting that carries it throws at construction rather than being silently dropped. Under the envelope
 a record read answers `{ count, data }` too, and `findById` would return it as the record.

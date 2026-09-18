@@ -2,7 +2,12 @@ import { AbstractDataSource } from '@venizia/ignis-kernel/repository';
 import { HTTP } from '@venizia/ignis-helpers/common';
 import { NodeFetchNetworkRequest } from '@venizia/ignis-helpers/core';
 import { getError } from '@venizia/ignis-helpers/core';
-import type { IAuthToken, IHttpDataSourceSettings, IHttpReadResult } from './common/types';
+import type {
+  IAuthToken,
+  IHttpDataSourceSettings,
+  IHttpReadResult,
+  THttpHeaders,
+} from './common/types';
 
 const MAX_URL_IN_MESSAGE = 256;
 
@@ -70,6 +75,36 @@ const readContentRange = (opts: {
   return undefined;
 };
 
+/**
+ * Caller headers as unique lowercase pairs, last spelling winning.
+ *
+ * Never `new Headers(input)`: that constructor APPENDS, so `{ 'X-Tenant': 'north', 'x-tenant':
+ * 'south' }` - which a merge of two config objects produces - reaches the wire as `"north, south"`,
+ * a value neither caller wrote. A `Headers` instance arrives already joined; that one is the
+ * caller's own, and is passed through as it stands.
+ */
+const toHeaderEntries = (opts: { headers?: THttpHeaders }): Array<[string, string]> => {
+  const { headers } = opts;
+
+  if (!headers) {
+    return [];
+  }
+
+  const source =
+    headers instanceof Headers
+      ? [...headers.entries()]
+      : Array.isArray(headers)
+        ? headers
+        : Object.entries(headers);
+
+  const merged = new Map<string, string>();
+  for (const [name, value] of source) {
+    merged.set(name.toLowerCase(), value);
+  }
+
+  return [...merged.entries()];
+};
+
 /** Reads an IGNIS REST server through the repository contract. Targets IGNIS, not any REST API. */
 export class HttpDataSource extends AbstractDataSource<IHttpDataSourceSettings> {
   override name: string;
@@ -85,15 +120,15 @@ export class HttpDataSource extends AbstractDataSource<IHttpDataSourceSettings> 
 
     const { name = 'http', ...settings } = opts;
 
-    const configured = new Headers(settings.headers);
-    if (configured.has(HTTP.Headers.REQUEST_COUNT_DATA)) {
+    const configured = toHeaderEntries({ headers: settings.headers });
+    if (configured.some(([headerName]) => headerName === HTTP.Headers.REQUEST_COUNT_DATA)) {
       throw getError({
         statusCode: HTTP.ResultCodes.RS_5.InternalServerError,
         message: `[${name}] ${HTTP.Headers.REQUEST_COUNT_DATA} is owned by HttpDataSource and always sent as false: rows come back bare, the total in Content-Range.`,
       });
     }
 
-    this.configuredHeaders = [...configured.entries()];
+    this.configuredHeaders = configured;
     this.name = name;
     this.settings = settings;
     this.network = new NodeFetchNetworkRequest({

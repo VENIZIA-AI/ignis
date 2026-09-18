@@ -63,7 +63,10 @@ throw on every filter that matched nothing.
 `x-request-count` decides whether a list answers an array or a count envelope, and its DEFAULT is
 on - so both are accepted. Handing an envelope back as one row is fifty records reported as one. The
 shape is ASKED FOR, not sniffed: structure cannot tell an envelope from a record carrying a `data`
-column and a `count` column. The connector OWNS `x-request-count`: a `headers` setting carrying it throws at
+column and a `count` column. Caller headers are normalised to unique lowercase pairs, last spelling winning: `new Headers(input)`
+APPENDS, so `{ 'X-Tenant': 'north', 'x-tenant': 'south' }` - what merging two config objects
+produces - used to reach the wire as `"north, south"`. A `Headers` instance joined them before this
+package saw it and is passed through as it stands. The connector OWNS `x-request-count`: a `headers` setting carrying it throws at
 construction, and it always goes out `false`. Under the envelope a record read answers
 `{ count, data }`, which `shape: 'one'` would return as the record (measured on a real server).
 
