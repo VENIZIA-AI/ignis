@@ -228,9 +228,9 @@ export abstract class FilterBuilder extends BaseHelper {
   }
 
   /**
-   * Resolves hidden properties by SQL table name, not class - `toInclude` has a relation's
-   * `schema` and no class reference. Diverges from the class-keyed lookup elsewhere when
-   * `@model({ tableName })` differs from the table name.
+   * Resolves hidden properties from the relation's SCHEMA object, falling back to its SQL table name -
+   * `toInclude` has the schema and no class reference. A table claimed by two models answers by name
+   * only, since the schema no longer names one of them.
    */
   resolveHiddenProperties(opts: {
     schema: TTableSchemaWithId;

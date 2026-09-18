@@ -155,8 +155,9 @@ imported `hono/context-storage`, whose module body runs `new AsyncLocalStorage()
 now read `RequestContextRegistry` from the kernel instead, and core installs the resolver over it -
 see [connectors](/packages/connectors.md).
 
-`helpers` is the one package whose claim covers part of its surface: the root barrel reaches ioredis,
-winston and minio by design, which is why `./core` and `./common` exist. The manifest names those
+`helpers` is the one package whose claim covers part of its surface: the root barrel reaches 14 node
+builtins by design (measured 2026-09-18; the optional peers themselves are lazy), which is why
+`./core` and `./common` exist. The manifest names those
 two, and the derivation fails if either stops being published.
 
 `external` narrows what a row measures, so it is printed next to every verdict. It may only exempt a

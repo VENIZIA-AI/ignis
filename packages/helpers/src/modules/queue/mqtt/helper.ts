@@ -1,3 +1,4 @@
+import { HTTP } from '@/common/constants/http';
 import { isEmpty } from '@venizia/ignis-inversion';
 import { redactSecrets, redactUrlCredentials } from '@/common/redact';
 import { BaseHelper } from '@/modules/base';
@@ -57,7 +58,7 @@ export class MQTTClientHelper extends BaseHelper {
 
     if (isEmpty({ value: this.url })) {
       throw getError({
-        statusCode: 500,
+        statusCode: HTTP.ResultCodes.RS_5.InternalServerError,
         message: '[configure] Invalid url to configure mqtt client!',
       });
     }
@@ -148,7 +149,7 @@ export class MQTTClientHelper extends BaseHelper {
       if (!client?.connected) {
         return reject(
           getError({
-            statusCode: 400,
+            statusCode: HTTP.ResultCodes.RS_4.BadRequest,
             message: `[subscribe][${this.identifier}] MQTT Client is not available to subscribe topic!`,
           }),
         );
@@ -172,7 +173,7 @@ export class MQTTClientHelper extends BaseHelper {
       if (!client?.connected) {
         return reject(
           getError({
-            statusCode: 400,
+            statusCode: HTTP.ResultCodes.RS_4.BadRequest,
             message: `[publish][${this.identifier}] MQTT Client is not available to publish message!`,
           }),
         );

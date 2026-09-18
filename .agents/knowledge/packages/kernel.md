@@ -141,7 +141,9 @@ model, repository, controller, REST-controller, and gRPC-controller metadata mix
 is where the model registry, the repository bindings, and datasource auto-discovery live.
 
 The model registry is keyed by registered name (`@model({ tableName })` > `TABLE_NAME` > class name)
-AND by schema object (`getModelEntryBySchema`, a WeakMap). A relation carries only its schema, and
+AND by schema object (`getModelEntryBySchema`, a WeakMap). A schema claimed by a SECOND model drops
+out of that map rather than answering with whichever registered last - two models over one drizzle
+table would otherwise apply the wrong `hiddenProperties`/`scopeFilter`. A relation carries only its schema, and
 a lookup by SQL table name missed every model whose table name differed from its registered name -
 `include` then dropped its `hiddenProperties` and `scopeFilter`.
 
@@ -149,7 +151,12 @@ a lookup by SQL table name missed every model whose table name differed from its
 
 `PATCH /` (`updateBy`) and `DELETE /` (`deleteBy`) read `where` from the query or the JSON body -
 a few hundred ids outgrow a URL (431 past ~16 KB). `resolveBulkWhere` answers 400 for both or
-neither; in a `PATCH /` body `where` is reserved and stripped from the data. Query schemas allow
+neither; in a `PATCH /` body `where` is reserved and stripped from a COPY of the validated data (hono
+hands an override the same object). A model with a real `where` column keeps it - the body reserves
+the name only when it is free. `DELETE /` declares NO body schema: declaring one makes
+`@hono/zod-openapi` gate the media type, so a client sending `content-type: application/json` with no
+body got 400 where it used to get 200 (measured). The handler reads the body itself; an application
+that wants the Swagger editor names its own `routes.deleteBy.request.body`. Query schemas allow
 `where` absent, so an override that reads only `valid('query')` gets `undefined` for a body-only
 request - the repository refuses an empty `where` without `force` (400).
 

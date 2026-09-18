@@ -37,8 +37,9 @@ export const FilterQuerySchema = z.object({ filter: FilterSchema }).openapi({
  * The query shape of a route that accepts conditions and nothing else - `count` and anything shaped
  * like it. `where` is OPTIONAL here.
  *
- * `updateBy` and `deleteBy` deliberately do not use this. They require `where`, because a missing
- * one there rewrites or deletes every row in the table.
+ * `updateBy` and `deleteBy` deliberately do not use this. Their `where` is optional in the query
+ * because it may ride in the body instead; the handler refuses a request that carries it in neither
+ * place - a missing one there rewrites or deletes every row in the table.
  */
 export const WhereQuerySchema = z.object({ where: WhereSchema.optional() }).openapi({
   description: 'Filter conditions',

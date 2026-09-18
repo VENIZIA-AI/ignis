@@ -18,7 +18,8 @@
     "prettier:fix": "bun run prettier:cli --write",
     "rebuild": "bun run clean && bun run build",
     "server:dev": "NODE_ENV=development APP_ENV_LOGGER_FOLDER_PATH=./app_data/logs bun run src/index.ts",
-    "start": "APP_ENV_LOGGER_FOLDER_PATH=./app_data/logs bun run src/index.ts"
+    "start": "APP_ENV_LOGGER_FOLDER_PATH=./app_data/logs bun run src/index.ts",
+    "typecheck": "tsc --noEmit -p tsconfig.json"
   },
   "dependencies": {
     "@electric-sql/pglite": "^0.5.8",

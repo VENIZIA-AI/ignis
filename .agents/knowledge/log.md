@@ -6,6 +6,25 @@ not how.
 This file and `index.md` are reserved OKF filenames - they carry no `type:` frontmatter and are not
 counted as concepts.
 
+## 2026-09-18 (b) - review round: eight defects found in this batch, fixed
+
+A five-way review of the whole batch (four agents plus a BANA crosscheck) found, all measured:
+`DELETE /` answered 400 to a client sending `content-type: application/json` with no body (a declared
+body schema gates the media type) - the schema is gone and the handler reads the body; two models over
+one drizzle table made the schema-keyed registry answer with the wrong one (a `hiddenProperties`
+leak) - an ambiguous claim is dropped now; `count` with a `countPath` answered 0 for any body without
+a numeric count; a list body that is neither array nor envelope counted as one row (`existsWith`
+answered true for an empty result); `UuidV7Generator` kept its counter in a plain static, so the CJS
+and ESM copies interleaved (1999/3999 pairs out of order) - now a `Symbol.for` slot; the codemod left
+two `const productsData` in one block, which broke `examples/vert` compilation (examples are in
+neither `make build-all` nor any tsc gate); `PUT .../meta-links/{objectName}` and `folderPath` at
+commit accepted labels they could not honour; `ModuleUtility` said "is required" without naming the
+root it resolved from. Also 25 hard-coded `statusCode` literals across five packages became
+`HTTP.ResultCodes` constants, on Phat's rule.
+
+BANA, re-measured: 16 of 17 service packages must add `ioredis` (isolated install, services start
+`bun .` from their own package, peers resolve from there) - the earlier note said 9, from a grep that
+matched helper names BANA never calls directly.
 ## 2026-09-18 - the last breaking round before 0.2.0 stable
 
 `ioredis` became an optional peer of helpers (lazy `ModuleUtility.loadSync` in the Redis helpers) and
@@ -13,8 +32,10 @@ helpers' duplicate `ErrorSchema` - its only `@hono/zod-openapi` import - was rem
 remains. `resolveValue`/`resolveValueAsync`/`resolveClass`/`resolveInjectTarget` take opts. Type
 guards were deliberately left positional: a codemod over 101 guards showed an opts predicate narrows
 only the true branch. Upload labels in the query now answer 400. 200 loop heads hoisted to named
-consts. BANA: 9 workspaces must add `ioredis`, 4 `ErrorSchema` imports and 3 `resolveValueAsync`
-calls move.
+consts. BANA (measured, isolated install, services run `bun .` from their own package, so peers resolve
+from that package): 16 of 17 service packages must add `ioredis` or they throw at the first client
+construction; 4 `ErrorSchema` imports and 3 `resolveValueAsync` calls move. `resolveClass`,
+`resolveInjectTarget`, upload labels and the type guards: 0 BANA sites.
 
 ## 2026-09-17 (f) - the default string id is UUID v7
 

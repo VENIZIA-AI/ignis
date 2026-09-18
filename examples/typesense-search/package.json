@@ -19,7 +19,8 @@
     "rebuild": "bun run clean && bun run build",
     "seed": "NODE_ENV=development bun run src/seed.ts",
     "server:dev": "NODE_ENV=development bun .",
-    "server:prod": "NODE_ENV=production bun ."
+    "server:prod": "NODE_ENV=production bun .",
+    "typecheck": "tsc --noEmit -p tsconfig.json"
   },
   "author": {
     "name": "VENIZIA AI Developer",

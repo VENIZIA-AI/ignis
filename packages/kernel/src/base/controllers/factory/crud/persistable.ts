@@ -70,8 +70,9 @@ export abstract class PersistableCrudController<
     const { context } = opts;
     const { where: queryWhere } = context.req.valid<{ where?: TWhere<TDataObject> }>('query');
     const { where: bodyWhere } = context.req.valid<{ where?: TWhere<TDataObject> }>('json');
-    const data = context.req.valid<Partial<TPersistObject>>('json');
-    // Reserved: `where` selects rows, it is never written.
+    // A COPY: `where` selects rows and is never written, and hono hands the same validated object to
+    // an override that calls this through `super`.
+    const data: Partial<TPersistObject> = { ...context.req.valid<Partial<TPersistObject>>('json') };
     Reflect.deleteProperty(data, 'where');
 
     const resolved = this.resolveBulkWhere({ context, queryWhere, bodyWhere });
@@ -118,7 +119,9 @@ export abstract class PersistableCrudController<
   async deleteBy(opts: { context: TRouteContext<RouteEnv> }) {
     const { context } = opts;
     const { where: queryWhere } = context.req.valid<{ where?: TWhere<TDataObject> }>('query');
-    const body = context.req.valid<{ where?: TWhere<TDataObject> } | undefined>('json');
+    // Read, never validated: a declared body schema would gate the media type and answer 400 to a
+    // client that sends a content-type and no body. A body that is not JSON is simply not a `where`.
+    const body = await context.req.json<{ where?: TWhere<TDataObject> }>().catch(() => undefined);
 
     const resolved = this.resolveBulkWhere({ context, queryWhere, bodyWhere: body?.where });
     if (resolved.error !== undefined) {

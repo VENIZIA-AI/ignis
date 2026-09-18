@@ -26,9 +26,12 @@ const describeUrl = (opts: { url: string; status: number }): string => {
 /**
  * A list is a bare array or the `{ count, data }` envelope; `one` is never unwrapped, since a record
  * may carry `data` and `count` columns. The envelope `count` is the page size, never the total.
+ *
+ * Anything else asked for as a list throws: counting it as one row is how `existsWith` answers true
+ * for an empty result and a page reports a length it does not have.
  */
-const unwrapBody = <R>(opts: { body: unknown; shape: 'list' | 'one' }): R => {
-  const { body, shape } = opts;
+const unwrapBody = <R>(opts: { body: unknown; shape: 'list' | 'one'; url: string }): R => {
+  const { body, shape, url } = opts;
 
   if (shape === 'one' || Array.isArray(body)) {
     return body as R;
@@ -38,7 +41,10 @@ const unwrapBody = <R>(opts: { body: unknown; shape: 'list' | 'one' }): R => {
     return (body as { data: R }).data;
   }
 
-  return body as R;
+  throw getError({
+    statusCode: HTTP.ResultCodes.RS_5.InternalServerError,
+    message: `[read] A list was asked for and the response is neither an array nor a { count, data } envelope | ${url}`,
+  });
 };
 
 // `records 0-24/137` -> skip 0, total 137; an empty page `records */137` -> total 137; else undefined.
@@ -82,7 +88,7 @@ export class HttpDataSource extends AbstractDataSource<IHttpDataSourceSettings> 
     const configured = new Headers(settings.headers);
     if (configured.has(HTTP.Headers.REQUEST_COUNT_DATA)) {
       throw getError({
-        statusCode: 500,
+        statusCode: HTTP.ResultCodes.RS_5.InternalServerError,
         message: `[${name}] ${HTTP.Headers.REQUEST_COUNT_DATA} is owned by HttpDataSource and always sent as false: rows come back bare, the total in Content-Range.`,
       });
     }
@@ -189,7 +195,7 @@ export class HttpDataSource extends AbstractDataSource<IHttpDataSourceSettings> 
     const body = await response.json();
     const contentRange = response.headers.get(HTTP.Headers.CONTENT_RANGE) ?? undefined;
     const range = readContentRange({ header: contentRange ?? null });
-    const data = unwrapBody<R>({ body, shape: opts.shape ?? 'list' });
+    const data = unwrapBody<R>({ body, shape: opts.shape ?? 'list', url: this.buildUrl(opts) });
 
     return {
       data,

@@ -72,19 +72,28 @@ const UPLOAD_LABEL_NAMES = [
 ] as const;
 
 /** Names any label a caller put in the query - where the upload routes refuse it. */
-export const findLabelsInQuery = (opts: { query: Record<string, string> }): string[] =>
-  UPLOAD_LABEL_NAMES.filter(name => opts.query[name] !== undefined);
+export const findLabelsInQuery = (opts: {
+  query: Record<string, string>;
+  names?: ReadonlyArray<(typeof UPLOAD_LABEL_NAMES)[number]>;
+}): string[] => (opts.names ?? UPLOAD_LABEL_NAMES).filter(name => opts.query[name] !== undefined);
 
-/** Refused before the body is read: an upload that ignored them would store an unlabelled row. */
-const refuseLabelsInQuery = (opts: { query: Record<string, string> }): void => {
+/** Refused before the body is read: a route that ignored them would store an unlabelled row. */
+const refuseLabelsInQuery = (opts: {
+  query: Record<string, string>;
+  names?: ReadonlyArray<(typeof UPLOAD_LABEL_NAMES)[number]>;
+  reason?: string;
+}): void => {
   const names = findLabelsInQuery(opts);
   if (names.length > 0) {
     throw getError({
       error: StaticAssetErrors.LABELS_IN_QUERY,
-      message: `Upload labels belong in the request body, not the query | names: ${names.join(', ')}`,
+      message: `${opts.reason ?? 'Upload labels belong in the request body, not the query'} | names: ${names.join(', ')}`,
     });
   }
 };
+
+/** The commit body carries four of the five: the object key - and so `folderPath` - was fixed when the policy was issued. */
+const COMMIT_LABEL_NAMES = UPLOAD_LABEL_NAMES.filter(name => name !== 'folderPath');
 
 // A multipart form hands strings; a JSON commit body may hand `sequence` as a number.
 const readUploadLabels = (opts: {
@@ -869,7 +878,14 @@ export class AssetControllerFactory extends BaseHelper {
             configs: { ...definitions.UPLOAD_COMMIT, ...routes?.uploadCommit },
           }).to({
             handler: async ctx => {
-              refuseLabelsInQuery({ query: ctx.req.query() });
+              const commitQuery = ctx.req.query();
+              refuseLabelsInQuery({ query: commitQuery, names: COMMIT_LABEL_NAMES });
+              refuseLabelsInQuery({
+                query: commitQuery,
+                names: ['folderPath'],
+                reason:
+                  'folderPath was decided when the upload policy was issued; the commit route cannot move the object',
+              });
 
               const { commitToken, ...labels } = ctx.req.valid<
                 { commitToken: string } & TUploadQuery
@@ -980,6 +996,13 @@ export class AssetControllerFactory extends BaseHelper {
             configs: { ...definitions.RECREATE_METALINK, ...routes?.recreateMetaLink },
           }).to({
             handler: async ctx => {
+              // This route takes no labels anywhere: one in the query would land an unlabelled row.
+              refuseLabelsInQuery({
+                query: ctx.req.query(),
+                reason:
+                  'This route recreates a MetaLink for an existing object and takes no labels',
+              });
+
               const params = ctx.req.valid<TObjectParams>('param');
               const bucketName = await resolveBucket({
                 configured: bucket,

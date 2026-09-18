@@ -1,3 +1,4 @@
+import { HTTP } from '@venizia/ignis-helpers/common';
 import { BaseProvider } from '@venizia/ignis-kernel';
 import type { Container } from '@/helpers';
 import { getError } from '@venizia/ignis-helpers/core';
@@ -49,7 +50,7 @@ export class MailTransportProvider extends BaseProvider<TGetMailTransportFn> {
 
         default: {
           throw getError({
-            statusCode: 500,
+            statusCode: HTTP.ResultCodes.RS_5.InternalServerError,
             messageCode: MailErrorCodes.INVALID_CONFIGURATION,
             message: `Unsupported mail provider: ${options.provider}`,
           });
@@ -67,7 +68,7 @@ export class MailTransportProvider extends BaseProvider<TGetMailTransportFn> {
     }
 
     throw getError({
-      statusCode: 500,
+      statusCode: HTTP.ResultCodes.RS_5.InternalServerError,
       messageCode: MailErrorCodes.INVALID_CONFIGURATION,
       message: 'Invalid Nodemailer configuration',
     });
@@ -80,7 +81,7 @@ export class MailTransportProvider extends BaseProvider<TGetMailTransportFn> {
     }
 
     throw getError({
-      statusCode: 500,
+      statusCode: HTTP.ResultCodes.RS_5.InternalServerError,
       messageCode: MailErrorCodes.INVALID_CONFIGURATION,
       message: 'Invalid Mailgun configuration',
     });
@@ -93,7 +94,7 @@ export class MailTransportProvider extends BaseProvider<TGetMailTransportFn> {
     }
 
     throw getError({
-      statusCode: 500,
+      statusCode: HTTP.ResultCodes.RS_5.InternalServerError,
       messageCode: MailErrorCodes.INVALID_CONFIGURATION,
       message: 'Invalid Amazon SES configuration',
     });
@@ -102,7 +103,7 @@ export class MailTransportProvider extends BaseProvider<TGetMailTransportFn> {
   private createCustomTransport(options: TMailOptions): IMailTransport {
     if (!this.isCustomOptions(options)) {
       throw getError({
-        statusCode: 500,
+        statusCode: HTTP.ResultCodes.RS_5.InternalServerError,
         messageCode: MailErrorCodes.INVALID_CONFIGURATION,
         message: 'Invalid custom mail provider configuration',
       });
@@ -121,7 +122,7 @@ export class MailTransportProvider extends BaseProvider<TGetMailTransportFn> {
       }
 
       throw getError({
-        statusCode: 500,
+        statusCode: HTTP.ResultCodes.RS_5.InternalServerError,
         messageCode: MailErrorCodes.INVALID_CONFIGURATION,
         message: `Custom mail provider must implement IMailTransport interface. Missing methods: ${missingMethods.join(', ')}`,
       });

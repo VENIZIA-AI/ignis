@@ -22,7 +22,7 @@ export const ErrorSchema = z
   .openapi({
     description: 'Error Schema',
     example: {
-      statusCode: 409,
+      statusCode: HTTP.ResultCodes.RS_4.Conflict,
       message: 'A category named %{name} already exists.',
       normalized: {
         text: 'A category named %{name} already exists.',

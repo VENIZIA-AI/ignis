@@ -17,7 +17,8 @@
     "rebuild": "bun run clean && bun run build",
     "start": "bun run src/index.ts",
     "server:dev": "NODE_ENV=development bun run src/index.ts",
-    "server:prod": "NODE_ENV=production bun run dist/index.js"
+    "server:prod": "NODE_ENV=production bun run dist/index.js",
+    "typecheck": "tsc --noEmit -p tsconfig.json"
   },
   "dependencies": {
     "@hono/zod-openapi": "catalog:",

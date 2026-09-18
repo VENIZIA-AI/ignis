@@ -46,7 +46,7 @@ export class ModuleUtility {
     logger.for(method).error("Failed to load '%s' | Error: %s", module, reason);
 
     return getError({
-      message: `[ModuleUtility.${method}] ${module} is required${
+      message: `[ModuleUtility.${method}] ${module} is required, resolved from ${this.getProjectRoot()}${
         scope ? ` for ${scope}` : ''
       }. Please install '${module}' | Error: ${reason}`,
     });

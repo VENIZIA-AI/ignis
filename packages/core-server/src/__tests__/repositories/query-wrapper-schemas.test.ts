@@ -94,20 +94,27 @@ describe('the CRUD factory routes keep the contract they had', () => {
     },
   );
 
-  // `where` may ride in the query or the JSON body (long id lists outgrow a URL), so neither schema
-  // requires it; the handler refuses neither-or-both with a 400 - pinned in crud-factory.test.ts.
-  test.each(['UPDATE_BY', 'DELETE_BY'] as const)(
-    '%s takes where from the query or the body',
-    routeName => {
-      const { request } = routes[routeName];
-      const query = queryOf(request);
-      const body = request.body.content['application/json'].schema;
+  // `where` may ride in the query or the JSON body (long id lists outgrow a URL), so neither query
+  // schema requires it; the handler refuses neither-or-both with a 400 - pinned in crud-factory.test.ts.
+  test.each(['UPDATE_BY', 'DELETE_BY'] as const)('%s takes where from the query', routeName => {
+    const query = queryOf(routes[routeName].request);
 
-      expect(query.safeParse({}).success).toBe(true);
-      expect(query.safeParse({ where: { id: '1' } }).success).toBe(true);
-      expect(body.safeParse({ id: '1', where: { id: '1' } }).data?.where).toEqual({ id: '1' });
-    },
-  );
+    expect(query.safeParse({}).success).toBe(true);
+    expect(query.safeParse({ where: { id: '1' } }).success).toBe(true);
+  });
+
+  test('PATCH / reserves where in its body, beside the data', () => {
+    const body = routes.UPDATE_BY.request.body?.content['application/json'].schema;
+
+    expect(body?.safeParse({ id: '1', where: { id: '1' } }).data?.where).toEqual({ id: '1' });
+  });
+
+  // DELETE / declares NO body: declaring one makes `@hono/zod-openapi` gate the media type, and a
+  // client sending `content-type: application/json` with no body then gets 400 instead of 200. The
+  // handler reads the body itself; an application that wants the Swagger editor names its own schema.
+  test('DELETE / declares no request body by default', () => {
+    expect(routes.DELETE_BY.request.body).toBeUndefined();
+  });
 
   // Unchanged on purpose. Under the default `isStrict.requestSchema`, `GET /x/count` with no query
   // string is refused and the caller must send `?where={}`. Reviewed and left as it is; this test

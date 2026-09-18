@@ -426,3 +426,25 @@ export const routeAuthorizeAssertions = () => {
 
   return options;
 };
+
+describe('routes that take no labels say so', () => {
+  test('folderPath at commit names the reason it cannot be honoured', async () => {
+    const helper = new FakeStorageHelper();
+    const router = await mount({ helper, directUpload: ALLOW });
+
+    const policies = (await (await askPolicy(router, [{ fileName: 'a.png' }])).json()) as Array<{
+      objectName: string;
+      commitToken: string;
+    }>;
+    helper.seedObject({ bucket: 'uploads', key: policies[0].objectName });
+
+    const response = await router.request('/assets/upload-commit?folderPath=photos', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ commitToken: policies[0].commitToken }),
+    });
+
+    expect(response.status).toBe(400);
+    expect(JSON.stringify(await response.json())).toContain('upload policy was issued');
+  });
+});

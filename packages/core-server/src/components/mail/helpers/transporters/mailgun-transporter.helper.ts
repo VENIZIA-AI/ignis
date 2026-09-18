@@ -1,3 +1,4 @@
+import { HTTP } from '@venizia/ignis-helpers/common';
 import type { AnyType } from '@venizia/ignis-helpers/common';
 import { BaseHelper, getError } from '@venizia/ignis-helpers/core';
 import { ModuleUtility } from '@venizia/ignis-helpers';
@@ -46,7 +47,7 @@ export class MailgunTransportHelper extends BaseHelper implements IMailTransport
       .error('Invalid Mailgun configuration | Missing keys: %s', missingKeys.join(', '));
 
     throw getError({
-      statusCode: 500,
+      statusCode: HTTP.ResultCodes.RS_5.InternalServerError,
       messageCode: MailErrorCodes.INVALID_CONFIGURATION,
       message: `Invalid Mailgun configuration | Missing required keys: ${missingKeys.join(', ')}`,
     });

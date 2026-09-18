@@ -78,7 +78,11 @@ describe('ModuleUtility.assertInstalled', () => {
       ModuleUtility.assertInstalled({ modules: ['@definitely/not-installed'] });
       expect.unreachable();
     } catch (error) {
-      expect((error as Error).message).toContain('is required.');
+      const { message } = error as Error;
+      // The root is named because `loadSync` resolves from it, not from this package - a wrong cwd
+      // used to read as a missing install.
+      expect(message).toContain(`is required, resolved from ${ModuleUtility.getProjectRoot()}.`);
+      expect(message).not.toContain(' for ');
     }
   });
 

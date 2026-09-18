@@ -227,7 +227,12 @@ export class RouteConfigResolver {
       description:
         'Where condition selecting the records to update - here or in the body, not both',
     });
-    const defaultBody = updateSchema.extend({ where: WhereSchema.optional() });
+    // A model with a real `where` column keeps it: the body reserves the name only when it is free,
+    // and the handler then simply finds no `where` there.
+    const defaultBody =
+      'where' in updateSchema.shape
+        ? updateSchema
+        : updateSchema.extend({ where: WhereSchema.optional() });
     const defaultSchema = RouteConfigResolver.conditionalCountResponse(z.array(selectSchema));
     return {
       request: {
@@ -271,12 +276,14 @@ export class RouteConfigResolver {
       description:
         'Where condition selecting the records to delete - here or in the body, not both',
     });
-    const defaultBody = z.object({ where: WhereSchema.optional() });
     const defaultSchema = RouteConfigResolver.conditionalCountResponse(z.array(selectSchema));
     return {
       request: {
         query: config?.request?.query ?? defaultQuery,
-        body: defaultBody,
+        // No DEFAULT body schema. Declaring one makes `@hono/zod-openapi` gate the media type, and a
+        // client that sends `content-type: application/json` with no body then gets 400 where it used
+        // to get 200. The handler reads the body itself; name one here to get the Swagger editor.
+        body: config?.request?.body,
         headers: config?.request?.headers ?? defaultRequestHeaders,
       },
       response: {
@@ -508,11 +515,15 @@ export class RouteConfigResolver {
         authorize: resolveRouteAuthorize('deleteBy'),
         request: {
           query: deleteBy.request.query,
-          body: jsonContent({
-            description: 'Where condition, when it does not fit in the query',
-            schema: deleteBy.request.body,
-            required: false,
-          }),
+          ...(deleteBy.request.body
+            ? {
+                body: jsonContent({
+                  description: 'Where condition, when it does not fit in the query',
+                  schema: deleteBy.request.body,
+                  required: false,
+                }),
+              }
+            : {}),
           headers: deleteBy.request.headers,
         },
         responses: jsonResponse(deleteBy.response),

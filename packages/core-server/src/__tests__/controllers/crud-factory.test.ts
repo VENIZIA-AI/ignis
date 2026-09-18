@@ -367,6 +367,26 @@ describe('ControllerFactory.defineCrudController - bulk where in the query or th
     expect(calls).toEqual([{ verb: 'deleteBy', where: { id: 1 } }]);
   });
 
+  // A declared body schema gates the media type: a client that sends a content-type and no body then
+  // gets 400 where it used to get 200. Measured before the fix: 400 for json, 415 for text/plain.
+  test.each([
+    [{}, 'no headers'],
+    [{ 'content-type': 'application/json' }, 'a json content-type and no body'],
+    [{ 'content-type': 'text/plain' }, 'a text content-type and no body'],
+  ])('DELETE / with a query where works with %#: %s', async headers => {
+    const { router, calls } = await buildBulkController({
+      name: `BulkDeleteHabit${JSON.stringify(headers).length}Controller`,
+    });
+
+    const response = await router.request(`/${whereQuery}`, {
+      method: 'DELETE',
+      headers: headers as Record<string, string>,
+    });
+
+    expect(response.status).toBe(HTTP.ResultCodes.RS_2.Ok);
+    expect(calls).toEqual([{ verb: 'deleteBy', where: { id: 1 } }]);
+  });
+
   test('where in both places is refused, and nothing is written', async () => {
     const { router, calls } = await buildBulkController({ name: 'BulkBothController' });
 

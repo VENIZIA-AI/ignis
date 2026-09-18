@@ -44,6 +44,11 @@ DELETE /products
 | `where` in both | `400` - which one was meant is a guess |
 | `where` in neither | `400` |
 
+`DELETE /` declares no body schema: one would make `@hono/zod-openapi` gate the media type, and a
+client sending `content-type: application/json` with no body would get `400` where it used to get
+`200`. The handler reads the body itself. Name `routes.deleteBy.request.body` to get the Swagger
+editor back - and to accept that gate.
+
 In a `PATCH /` body, `where` is reserved: it selects rows and is never written. A controller that
 overrides `updateBy`/`deleteBy` and reads `valid('query')` itself still sees only the query - use
 `resolveBulkWhere({ context, queryWhere, bodyWhere })` to accept both. Without it, a body-only request

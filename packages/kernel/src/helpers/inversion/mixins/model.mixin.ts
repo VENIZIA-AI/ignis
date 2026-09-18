@@ -56,7 +56,6 @@ export const ModelMetadataMixin = <BaseClass extends TMixinTarget<_MetadataRegis
 ) => {
   return class extends baseClass {
     modelRegistry: Map<string, IModelRegistryEntry>;
-    /** A relation holds a schema, not a class - so entries are findable by schema too. */
     modelsBySchema: WeakMap<object, IModelRegistryEntry>;
 
     setModelMetadata<Target extends object = object>(opts: {
@@ -102,7 +101,12 @@ export const ModelMetadataMixin = <BaseClass extends TMixinTarget<_MetadataRegis
 
       const { schema } = modelClass;
       if (schema && typeof schema === 'object') {
-        this.modelsBySchema.set(schema, entry);
+        const claimed = this.modelsBySchema.get(schema);
+        if (claimed && claimed.target !== modelClass) {
+          this.modelsBySchema.delete(schema);
+        } else {
+          this.modelsBySchema.set(schema, entry);
+        }
       }
 
       // Also mirrored via Reflect so plain metadata lookups (getModelMetadata) still see it

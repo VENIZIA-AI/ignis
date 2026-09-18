@@ -22,7 +22,8 @@
     "generate-migration:dev": "NODE_ENV=development drizzle-kit generate --config=src/migration.ts",
     "preserver:dev": "bun run rebuild",
     "server:dev": "NODE_ENV=development bun .",
-    "server:prod": "NODE_ENV=production bun ."
+    "server:prod": "NODE_ENV=production bun .",
+    "typecheck": "tsc --noEmit -p tsconfig.json"
   },
   "author": {
     "name": "VENIZIA AI Developer",

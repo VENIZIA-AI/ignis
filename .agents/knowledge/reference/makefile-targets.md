@@ -8,7 +8,7 @@ tags: [reference, make, build]
 
 > Generated from source - do not edit; run `make okf-gen`. Playbook: [build system](/process/build-system.md).
 
-**82 targets.**
+**83 targets.**
 
 | Target | Depends on | Description |
 |---|---|---|
@@ -59,9 +59,10 @@ tags: [reference, make, build]
 | `make update-boot` | - | Force updating @venizia/ignis-boot |
 | `make update-kernel` | - | Force updating @venizia/ignis-kernel |
 | `make lint` | `lint-packages` | Linting completed. |
-| `make lint-all` | `lint-packages lint-examples lint-atlas lint-scripts` | All linting completed. |
+| `make lint-all` | `lint-packages lint-examples typecheck-examples lint-atlas lint-scripts` | All linting completed. |
 | `make lint-packages` | - | Linting all packages |
 | `make lint-examples` | `artifacts-check` | Linting all examples |
+| `make typecheck-examples` | - | Typechecking all examples |
 | `make artifacts-check` | - | Checking generated artifact indexes |
 | `make lint-dev-configs` | - | Linting @venizia/dev-configs |
 | `make lint-inversion` | - | Linting @venizia/ignis-inversion |

@@ -1,3 +1,4 @@
+import { HTTP } from '@venizia/ignis-helpers/common';
 import { randomBytes } from 'node:crypto';
 import { readFile } from 'node:fs/promises';
 import type { Readable } from 'node:stream';
@@ -221,7 +222,7 @@ function assertNoHeaderInjection(opts: { field: string; value: unknown }): void 
 
   if (typeof value !== 'string') {
     throw getError({
-      statusCode: 500,
+      statusCode: HTTP.ResultCodes.RS_5.InternalServerError,
       messageCode: MailErrorCodes.INVALID_CONFIGURATION,
       message: `Invalid Amazon SES message | ${field} must be a string`,
     });
@@ -232,7 +233,7 @@ function assertNoHeaderInjection(opts: { field: string; value: unknown }): void 
   }
 
   throw getError({
-    statusCode: 500,
+    statusCode: HTTP.ResultCodes.RS_5.InternalServerError,
     messageCode: MailErrorCodes.INVALID_CONFIGURATION,
     message: `Invalid Amazon SES message | ${field} contains illegal control characters`,
   });

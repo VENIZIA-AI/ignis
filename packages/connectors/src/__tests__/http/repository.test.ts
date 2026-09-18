@@ -181,3 +181,43 @@ describe('a record is never unwrapped, whatever fields it carries', () => {
     } as never);
   });
 });
+
+describe('a body that is not a list, and a count route that answers no count', () => {
+  test('an envelope missing count is refused, not read as one row', async () => {
+    stubFetch({ body: { data: [], page: 1 }, contentRange: 'records */0' });
+
+    await expectRejection({
+      task: build().find({}),
+      message: /neither an array nor a \{ count, data \} envelope/,
+    });
+  });
+
+  test('existsWith does not answer true for that body', async () => {
+    stubFetch({ body: { data: [], page: 1 } });
+
+    await expectRejection({ task: build().existsWith({ where: {} }), message: /neither an array/ });
+  });
+
+  test('a count route answering a different shape is refused, not read as 0', async () => {
+    stubFetch({ body: { total: 42 } });
+
+    await expectRejection({
+      task: build({ countPath: 'count' }).count({ where: {} }),
+      message: /no numeric count/,
+    });
+  });
+
+  test('findOne answers null for an empty page, and the row for a full one', async () => {
+    stubFetch({ body: [] });
+    expect(await build().findOne({ filter: {} })).toBeNull();
+
+    stubFetch({ body: [{ id: 'a' }, { id: 'b' }] });
+    expect(await build().findOne({ filter: {} })).toEqual({ id: 'a' } as never);
+  });
+
+  test('existsWith answers false when no row comes back', async () => {
+    stubFetch({ body: [], contentRange: 'records */0' });
+
+    expect(await build().existsWith({ where: {} })).toBe(false);
+  });
+});

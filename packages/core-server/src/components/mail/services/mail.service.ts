@@ -1,3 +1,4 @@
+import { HTTP } from '@venizia/ignis-helpers/common';
 import { BaseService } from '@venizia/ignis-kernel';
 import type {
   IMailMessage,
@@ -58,7 +59,7 @@ export class MailService extends BaseService implements IMailService {
       }
 
       throw getError({
-        statusCode: 500,
+        statusCode: HTTP.ResultCodes.RS_5.InternalServerError,
         messageCode: MailErrorCodes.SEND_FAILED,
         message: `Failed to send email: ${error instanceof Error ? error.message : 'Unknown error'}`,
       });
@@ -104,7 +105,7 @@ export class MailService extends BaseService implements IMailService {
     } catch (error) {
       this.logger.for(this.sendBatch.name).error('Error sending batch emails: %s', error);
       throw getError({
-        statusCode: 500,
+        statusCode: HTTP.ResultCodes.RS_5.InternalServerError,
         messageCode: MailErrorCodes.BATCH_SEND_FAILED,
         message: `Failed to send batch emails: ${error instanceof Error ? error.message : 'Unknown error'}`,
       });
@@ -122,7 +123,7 @@ export class MailService extends BaseService implements IMailService {
     try {
       if (!this.templateEngine) {
         throw getError({
-          statusCode: 500,
+          statusCode: HTTP.ResultCodes.RS_5.InternalServerError,
           messageCode: MailErrorCodes.INVALID_CONFIGURATION,
           message: 'Template engine not configured',
         });
@@ -168,7 +169,7 @@ export class MailService extends BaseService implements IMailService {
     } catch (error) {
       this.logger.for(this.verify.name).error('Verification failed: %s', error);
       throw getError({
-        statusCode: 500,
+        statusCode: HTTP.ResultCodes.RS_5.InternalServerError,
         messageCode: MailErrorCodes.VERIFICATION_FAILED,
         message: `Mail transport verification failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
       });

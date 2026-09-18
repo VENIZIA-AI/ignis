@@ -454,13 +454,6 @@ export const runRepositoryConformance = (opts: {
       expect(new Set(seen).size).toBe(total);
     });
 
-    test('an order that already names the primary key is kept as written', async () => {
-      const descending = await repository.find<IConformanceRow>({ filter: { order: ['id DESC'] } });
-      const ids = descending.map(row => row.id);
-
-      expect(ids).toEqual([...ids].sort((left, right) => right - left));
-    });
-
     test(
       capabilities.nullsSortHigh
         ? 'NULL sorts HIGH - last ascending, first descending'

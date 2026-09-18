@@ -9,7 +9,8 @@ import { BaseHelper } from '../base';
  * shape from `getRandomValues`, with a 12-bit counter keeping ids ordered inside one millisecond.
  */
 export class UuidV7Generator extends BaseHelper {
-  private static instance?: UuidV7Generator;
+  /** Realm-keyed: a dual CJS+ESM build puts two copies of this class in one process, and two counters would interleave out of order. */
+  private static readonly SHARED_SLOT = Symbol.for('@venizia/ignis-helpers:uuid-v7-generator');
 
   private static readonly HEX_OCTETS = Array.from({ length: 256 }, (_, value) =>
     (value + 0x100).toString(16).slice(1),
@@ -36,9 +37,19 @@ export class UuidV7Generator extends BaseHelper {
     this.generate = typeof native === 'function' ? native : () => this.fromEntropy();
   }
 
-  /** One sequence per realm: ids from every caller stay ordered against each other. */
+  /** One sequence per realm: ids from every caller stay ordered against each other, across both module copies. */
   static getInstance(): UuidV7Generator {
-    return (UuidV7Generator.instance ??= new UuidV7Generator());
+    const shared: UuidV7Generator | undefined = Reflect.get(
+      globalThis,
+      UuidV7Generator.SHARED_SLOT,
+    );
+    if (shared) {
+      return shared;
+    }
+
+    const created = new UuidV7Generator();
+    Reflect.set(globalThis, UuidV7Generator.SHARED_SLOT, created);
+    return created;
   }
 
   nextId(): string {

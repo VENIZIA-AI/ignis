@@ -67,7 +67,9 @@ column and a `count` column. The connector OWNS `x-request-count`: a `headers` s
 construction, and it always goes out `false`. Under the envelope a record read answers
 `{ count, data }`, which `shape: 'one'` would return as the record (measured on a real server).
 
-A header with no readable total (`records 0-24/*`) throws a message naming that header - distinct
+`count` with a `countPath` throws when that route answers no numeric count, and a list body that is
+neither an array nor the `{ count, data }` envelope throws rather than counting as one row (which is
+how `existsWith` answered true for an empty result). A header with no readable total (`records 0-24/*`) throws a message naming that header - distinct
 from the no-header one, because the fix is the server's count, not a missing header. A filter travels
 in the GET query string, and a server refuses a URL past ~16 KB with 431 (measured: 350 UUIDs in an
 `inq` pass, 400 do not); the error says so and carries the URL's head and length, not all of it.
@@ -245,7 +247,11 @@ predicate (`{ id: { inq: [] } }`) is a static method on `ScopeFilterDenial` in
 `relational/core/repositories/common/scope-filter.ts`, shared by `applyScopeFilter` and `toInclude` so
 the two tiers can never drift onto two different definitions of "deny".
 
-**`toOrderBy` appends `id ASC` unless the order names `id`.** Postgres breaks ties per page, so paging
+**`toOrderBy` appends `id ASC` unless the order names `id`.** The cost is an index one: `ORDER BY
+created_at DESC, id ASC` is no longer satisfied by a single-column `created_at` index alone -
+Postgres 13+ finishes it with an incremental sort, and a composite `(created_at, id)` index removes
+even that.
+ Postgres breaks ties per page, so paging
 over a non-unique column repeated and skipped rows (PGlite: 60 read, 50 distinct). Each column's
 `asc`/`desc` SQL node is built once and reused - drizzle 0.45 wraps order nodes, never mutates them -
 which took `build()` with one include from 870 to 446 ns.

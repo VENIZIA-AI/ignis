@@ -92,7 +92,7 @@ backends you imported by name.
 bun add pino bullmq
 ```
 
-Everything else - Redis (`ioredis` is a real dependency), disk and in-memory storage, crypto,
+Everything else - Redis (`ioredis` is an optional peer), disk and in-memory storage, crypto,
 network, UID, env, pool, worker threads - comes straight off the root barrel.
 
 ## Modules

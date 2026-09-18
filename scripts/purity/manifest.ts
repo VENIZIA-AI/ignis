@@ -38,7 +38,7 @@ export interface IPurityClaim {
    * Omit it and the whole surface is claimed.
    *
    * Only `helpers` needs this, and not as an exemption from a failure: that package is the server
-   * toolbox - its root barrel reaches ioredis, winston and minio by design, and `./core` +
+   * toolbox - its root barrel reaches 14 node builtins by design, and `./core` +
    * `./common` exist precisely because it does. Every sub-path named here must still exist in
    * `exports`; a rename fails the derivation loudly rather than quietly dropping a row.
    */

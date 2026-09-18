@@ -54,8 +54,8 @@ this package that are already browser-safe.
 Import either when your code has to bundle for a browser.
 
 The root barrel cannot: it re-exports every module, so reaching one constant through it pulls in 14
-node builtins and 27 packages, `winston` and `ioredis` among them. A guard test bundles both entry
-points for a browser target and fails if that ever changes.
+node builtins - `node:fs`, `node:net`, `node:tls`, `node:worker_threads` among them. A guard test
+bundles both entry points for a browser target and fails if that ever changes.
 
 `/core` is hand-curated one symbol at a time, never `export *` from a module barrel. `./modules/env`
 carries `applicationEnvironment`, which reads `process.env`, so only `EnvironmentNames` crosses over.

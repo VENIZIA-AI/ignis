@@ -543,6 +543,27 @@ describe('StaticAsset controller — nested folder objects', () => {
     expect(rawResponse.status).toBe(404);
   });
 
+  test('RECREATE_METALINK refuses a label in the query, which it could not honour', async () => {
+    const helper = new FakeStorageHelper();
+    const metaLinkRepository = new FakeMetaLinkRepository();
+    const router = await mountAssetController({
+      helper,
+      metaLink: { model: {} as AnyType, repository: metaLinkRepository as AnyType },
+    });
+
+    await uploadFiles({ router, files: [new File(['x'], 'a.png', { type: 'image/png' })] });
+
+    const response = await router.request(
+      '/assets/buckets/images/meta-links/a.png?principalId=42',
+      {
+        method: 'PUT',
+      },
+    );
+
+    expect(response.status).toBe(400);
+    expect(JSON.stringify(await readJson(response))).toContain('takes no labels');
+  });
+
   test('the RECREATE_METALINK fallback link resolves back to the object route', async () => {
     const helper = new FakeStorageHelper();
     const metaLinkRepository = new FakeMetaLinkRepository();

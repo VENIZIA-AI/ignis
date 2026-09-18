@@ -739,7 +739,7 @@
       "specifier": "@venizia/ignis",
       "kind": "class",
       "file": "packages/helpers/src/modules/network/http-request/base-network-request.helper.ts",
-      "line": 8,
+      "line": 9,
       "signature": "class BaseNetworkRequest<T extends TFetcherVariant> extends BaseHelper"
     },
     {
@@ -8192,7 +8192,7 @@
       "specifier": "@venizia/ignis",
       "kind": "const",
       "file": "packages/kernel/src/base/repositories/query-schemas/index.ts",
-      "line": 43,
+      "line": 44,
       "signature": "WhereQuerySchema: z.ZodObject<{ where: z.ZodOptional<z.ZodUnion<readonly [z.ZodType<any, unknown, z.core.$ZodTypeInternals<any, unknown>>, z.ZodPipe<z.ZodPipe<z.ZodString, z.ZodTransform<any, string>>, z.ZodType<any, unknown, z.core.$ZodTypeInternals<any, unknown>>>]>>; }, z.core.$strip>"
     },
     {
@@ -8342,7 +8342,7 @@
       "specifier": "@venizia/ignis",
       "kind": "const",
       "file": "packages/kernel/src/base/controllers/factory/definition.ts",
-      "line": 526,
+      "line": 537,
       "signature": "conditionalCountResponse: typeof RouteConfigResolver.conditionalCountResponse"
     },
     {
@@ -8463,7 +8463,7 @@
       "specifier": "@venizia/ignis",
       "kind": "const",
       "file": "packages/kernel/src/base/controllers/factory/definition.ts",
-      "line": 532,
+      "line": 543,
       "signature": "defineControllerRouteConfigs: typeof RouteConfigResolver.defineControllerRouteConfigs"
     },
     {
@@ -9283,7 +9283,7 @@
       "specifier": "@venizia/ignis",
       "kind": "const",
       "file": "packages/kernel/src/base/controllers/factory/definition.ts",
-      "line": 527,
+      "line": 538,
       "signature": "resolveCountConfig: typeof RouteConfigResolver.resolveCountConfig"
     },
     {
@@ -9293,7 +9293,7 @@
       "specifier": "@venizia/ignis",
       "kind": "const",
       "file": "packages/kernel/src/base/controllers/factory/definition.ts",
-      "line": 531,
+      "line": 542,
       "signature": "resolveCreateConfig: typeof RouteConfigResolver.resolveCreateConfig"
     },
     {
@@ -9303,7 +9303,7 @@
       "specifier": "@venizia/ignis",
       "kind": "const",
       "file": "packages/kernel/src/base/controllers/factory/definition.ts",
-      "line": 529,
+      "line": 540,
       "signature": "resolveFindByIdConfig: typeof RouteConfigResolver.resolveFindByIdConfig"
     },
     {
@@ -9313,7 +9313,7 @@
       "specifier": "@venizia/ignis",
       "kind": "const",
       "file": "packages/kernel/src/base/controllers/factory/definition.ts",
-      "line": 528,
+      "line": 539,
       "signature": "resolveFindConfig: typeof RouteConfigResolver.resolveFindConfig"
     },
     {
@@ -9323,7 +9323,7 @@
       "specifier": "@venizia/ignis",
       "kind": "const",
       "file": "packages/kernel/src/base/controllers/factory/definition.ts",
-      "line": 530,
+      "line": 541,
       "signature": "resolveFindOneConfig: typeof RouteConfigResolver.resolveFindOneConfig"
     },
     {
@@ -9653,7 +9653,7 @@
       "specifier": "@venizia/ignis/mail",
       "kind": "class",
       "file": "packages/core-server/src/components/mail/helpers/transporters/amazon-ses-transporter.helper.ts",
-      "line": 14,
+      "line": 15,
       "signature": "class AmazonSesTransportHelper extends BaseHelper implements IMailTransport"
     },
     {
@@ -10063,7 +10063,7 @@
       "specifier": "@venizia/ignis/mail",
       "kind": "class",
       "file": "packages/core-server/src/components/mail/services/mail.service.ts",
-      "line": 16,
+      "line": 17,
       "signature": "class MailService extends BaseService implements IMailService"
     },
     {
@@ -10073,7 +10073,7 @@
       "specifier": "@venizia/ignis/mail",
       "kind": "class",
       "file": "packages/core-server/src/components/mail/providers/mail-transporter.provider.ts",
-      "line": 22,
+      "line": 23,
       "signature": "class MailTransportProvider extends BaseProvider<TGetMailTransportFn>"
     },
     {
@@ -10083,7 +10083,7 @@
       "specifier": "@venizia/ignis/mail",
       "kind": "class",
       "file": "packages/core-server/src/components/mail/helpers/transporters/mailgun-transporter.helper.ts",
-      "line": 15,
+      "line": 16,
       "signature": "class MailgunTransportHelper extends BaseHelper implements IMailTransport"
     },
     {
@@ -10163,7 +10163,7 @@
       "specifier": "@venizia/ignis/mail",
       "kind": "type",
       "file": "packages/core-server/src/components/mail/providers/mail-transporter.provider.ts",
-      "line": 20,
+      "line": 21,
       "signature": "type TGetMailTransportFn = (options: TMailOptions) => IMailTransport"
     },
     {
@@ -10243,7 +10243,7 @@
       "specifier": "@venizia/ignis/mail",
       "kind": "function",
       "file": "packages/core-server/src/components/mail/utilities/mime.utility.ts",
-      "line": 406,
+      "line": 407,
       "signature": "function buildRawMimeMessage(message: IMailMessage): Promise<Buffer>"
     },
     {
@@ -10253,7 +10253,7 @@
       "specifier": "@venizia/ignis/mail",
       "kind": "function",
       "file": "packages/core-server/src/components/mail/utilities/mime.utility.ts",
-      "line": 99,
+      "line": 100,
       "signature": "function formatAddressHeader(value: string | string[]): string"
     },
     {
@@ -13192,7 +13192,7 @@
       "specifier": "@venizia/ignis/static-asset",
       "kind": "class",
       "file": "packages/core-server/src/components/static-asset/controller/factory.ts",
-      "line": 277,
+      "line": 286,
       "signature": "class AssetControllerFactory extends BaseHelper"
     },
     {
@@ -13522,7 +13522,7 @@
       "specifier": "@venizia/ignis/static-asset",
       "kind": "const",
       "file": "packages/core-server/src/components/static-asset/controller/factory.ts",
-      "line": 132,
+      "line": 141,
       "signature": "buildObjectLink: (opts: IObjectLocation & { basePath: string; hasConfiguredBucket?: boolean; rawObjectPath?: boolean; }) => string"
     },
     {
@@ -13533,7 +13533,7 @@
       "kind": "const",
       "file": "packages/core-server/src/components/static-asset/controller/factory.ts",
       "line": 75,
-      "signature": "findLabelsInQuery: (opts: { query: Record<string, string>; }) => string[]"
+      "signature": "findLabelsInQuery: (opts: { query: Record<string, string>; names?: ReadonlyArray<(typeof UPLOAD_LABEL_NAMES)[number]>; }) => string[]"
     },
     {
       "name": "readCommitToken",
@@ -13552,7 +13552,7 @@
       "specifier": "@venizia/ignis/static-asset",
       "kind": "const",
       "file": "packages/core-server/src/components/static-asset/controller/factory.ts",
-      "line": 165,
+      "line": 174,
       "signature": "resolveServedContentType: (opts: { helper: IStorageHelper; object: IObjectRef; }) => { contentType: string; isRenderable: boolean; }"
     },
     {
@@ -16092,7 +16092,7 @@
       "specifier": "@venizia/ignis-connectors/http",
       "kind": "class",
       "file": "packages/connectors/src/http/datasource.ts",
-      "line": 68,
+      "line": 74,
       "signature": "class HttpDataSource extends AbstractDataSource<IHttpDataSourceSettings>"
     },
     {
@@ -16102,7 +16102,7 @@
       "specifier": "@venizia/ignis-connectors/http",
       "kind": "class",
       "file": "packages/connectors/src/http/repository.ts",
-      "line": 22,
+      "line": 23,
       "signature": "class HttpRepository<E extends object = AnyType> implements IReadableRepository<E, {}>"
     },
     {
@@ -16112,7 +16112,7 @@
       "specifier": "@venizia/ignis-connectors/http",
       "kind": "class",
       "file": "packages/connectors/src/http/repository.ts",
-      "line": 15,
+      "line": 16,
       "signature": "class HttpResourceEntity extends AbstractEntity"
     },
     {
@@ -20371,7 +20371,7 @@
       "specifier": "@venizia/ignis-helpers",
       "kind": "class",
       "file": "packages/helpers/src/modules/network/http-request/base-network-request.helper.ts",
-      "line": 8,
+      "line": 9,
       "signature": "class BaseNetworkRequest<T extends TFetcherVariant> extends BaseHelper"
     },
     {
@@ -24865,7 +24865,7 @@
       "specifier": "@venizia/ignis-helpers/core",
       "kind": "class",
       "file": "packages/helpers/src/modules/network/http-request/base-network-request.helper.ts",
-      "line": 8,
+      "line": 9,
       "signature": "class BaseNetworkRequest<T extends TFetcherVariant> extends BaseHelper"
     },
     {
@@ -26345,7 +26345,7 @@
       "specifier": "@venizia/ignis-helpers/mqtt",
       "kind": "interface",
       "file": "packages/helpers/src/modules/queue/mqtt/helper.ts",
-      "line": 8,
+      "line": 9,
       "signature": "interface IMQTTClientOptions"
     },
     {
@@ -26355,7 +26355,7 @@
       "specifier": "@venizia/ignis-helpers/mqtt",
       "kind": "class",
       "file": "packages/helpers/src/modules/queue/mqtt/helper.ts",
-      "line": 19,
+      "line": 20,
       "signature": "class MQTTClientHelper extends BaseHelper"
     },
     {
@@ -26595,7 +26595,7 @@
       "specifier": "@venizia/ignis-helpers/socket-io",
       "kind": "class",
       "file": "packages/helpers/src/modules/socket/socket-io/client/helper.ts",
-      "line": 14,
+      "line": 15,
       "signature": "class SocketIOClientHelper extends BaseHelper"
     },
     {
@@ -30915,7 +30915,7 @@
       "specifier": "@venizia/ignis-kernel",
       "kind": "const",
       "file": "packages/kernel/src/base/repositories/query-schemas/index.ts",
-      "line": 43,
+      "line": 44,
       "signature": "WhereQuerySchema: z.ZodObject<{ where: z.ZodOptional<z.ZodUnion<readonly [z.ZodType<any, unknown, z.core.$ZodTypeInternals<any, unknown>>, z.ZodPipe<z.ZodPipe<z.ZodString, z.ZodTransform<any, string>>, z.ZodType<any, unknown, z.core.$ZodTypeInternals<any, unknown>>>]>>; }, z.core.$strip>"
     },
     {
@@ -31025,7 +31025,7 @@
       "specifier": "@venizia/ignis-kernel",
       "kind": "const",
       "file": "packages/kernel/src/base/controllers/factory/definition.ts",
-      "line": 526,
+      "line": 537,
       "signature": "conditionalCountResponse: typeof RouteConfigResolver.conditionalCountResponse"
     },
     {
@@ -31085,7 +31085,7 @@
       "specifier": "@venizia/ignis-kernel",
       "kind": "const",
       "file": "packages/kernel/src/base/controllers/factory/definition.ts",
-      "line": 532,
+      "line": 543,
       "signature": "defineControllerRouteConfigs: typeof RouteConfigResolver.defineControllerRouteConfigs"
     },
     {
@@ -31345,7 +31345,7 @@
       "specifier": "@venizia/ignis-kernel",
       "kind": "const",
       "file": "packages/kernel/src/base/controllers/factory/definition.ts",
-      "line": 527,
+      "line": 538,
       "signature": "resolveCountConfig: typeof RouteConfigResolver.resolveCountConfig"
     },
     {
@@ -31355,7 +31355,7 @@
       "specifier": "@venizia/ignis-kernel",
       "kind": "const",
       "file": "packages/kernel/src/base/controllers/factory/definition.ts",
-      "line": 531,
+      "line": 542,
       "signature": "resolveCreateConfig: typeof RouteConfigResolver.resolveCreateConfig"
     },
     {
@@ -31365,7 +31365,7 @@
       "specifier": "@venizia/ignis-kernel",
       "kind": "const",
       "file": "packages/kernel/src/base/controllers/factory/definition.ts",
-      "line": 529,
+      "line": 540,
       "signature": "resolveFindByIdConfig: typeof RouteConfigResolver.resolveFindByIdConfig"
     },
     {
@@ -31375,7 +31375,7 @@
       "specifier": "@venizia/ignis-kernel",
       "kind": "const",
       "file": "packages/kernel/src/base/controllers/factory/definition.ts",
-      "line": 528,
+      "line": 539,
       "signature": "resolveFindConfig: typeof RouteConfigResolver.resolveFindConfig"
     },
     {
@@ -31385,7 +31385,7 @@
       "specifier": "@venizia/ignis-kernel",
       "kind": "const",
       "file": "packages/kernel/src/base/controllers/factory/definition.ts",
-      "line": 530,
+      "line": 541,
       "signature": "resolveFindOneConfig: typeof RouteConfigResolver.resolveFindOneConfig"
     },
     {

@@ -1,3 +1,4 @@
+import { HTTP } from '@venizia/ignis-helpers/common';
 import { AbstractEntity, buildDataRange } from '@venizia/ignis-kernel/repository';
 import type {
   IReadableRepository,
@@ -49,7 +50,10 @@ export class HttpRepository<E extends object = AnyType> implements IReadableRepo
       ? `Content-Range "${contentRange}" carries no readable total - an unknown "/*" or an unparseable value. Check the server's count query.`
       : noHeader;
 
-    return getError({ statusCode: 500, message: `[${this.resource}][${method}] ${message}` });
+    return getError({
+      statusCode: HTTP.ResultCodes.RS_5.InternalServerError,
+      message: `[${this.resource}][${method}] ${message}`,
+    });
   }
 
   /** From `Content-Range`, or `countPath`. No total throws rather than reporting the page size. */
@@ -61,7 +65,15 @@ export class HttpRepository<E extends object = AnyType> implements IReadableRepo
         shape: 'one',
       });
 
-      return { count: rs.data?.count ?? 0 };
+      const counted = rs.data?.count;
+      if (typeof counted !== 'number' || !Number.isFinite(counted)) {
+        throw getError({
+          statusCode: HTTP.ResultCodes.RS_5.InternalServerError,
+          message: `[${this.resource}][count] The count route answered no numeric count - answering 0 would read as an empty table. Body: ${JSON.stringify(rs.data)?.slice(0, 120)}`,
+        });
+      }
+
+      return { count: counted };
     }
 
     const rs = await this.dataSource.read<Array<E>>({

@@ -1,6 +1,6 @@
 .PHONY: all build build-all release release-plan core core-server connectors core-worker dev-configs docs filter helpers inversion boot atlas kernel \
         help install clean setup-hooks agent-setup \
-        lint lint-all lint-packages lint-examples artifacts-check \
+        lint lint-all lint-packages lint-examples typecheck-examples artifacts-check \
         lint-dev-configs lint-inversion lint-filter lint-helpers lint-boot lint-core lint-core-server lint-kernel lint-connectors lint-core-worker lint-atlas lint-scripts \
         purity purity-test test-scripts purity-inversion purity-filter purity-helpers purity-kernel \
         test-all test-inversion test-helpers test-boot test-kernel test-connectors test-core-worker test-core-server test-atlas \
@@ -216,7 +216,7 @@ lint: lint-packages
 
 # Includes lint-atlas: the release workflow lints it, so leaving it out of `all` hides a failure
 # until release time.
-lint-all: lint-packages lint-examples lint-atlas lint-scripts
+lint-all: lint-packages lint-examples typecheck-examples lint-atlas lint-scripts
 	@echo "✅ All linting completed."
 
 lint-packages:
@@ -226,6 +226,12 @@ lint-packages:
 lint-examples: artifacts-check
 	@echo "🔍 Linting all examples..."
 	@bun run --filter "./examples/*" lint
+
+# eslint and prettier do not typecheck, and no example is in `build-all` - a codemod once left an
+# example that could not compile and every gate stayed green.
+typecheck-examples:
+	@echo "🔍 Typechecking all examples..."
+	@bun run --filter "./examples/*" typecheck
 
 # The generated artifact index must match the decorated classes on disk; a stale index registers
 # yesterday's classes and passes every other gate.

@@ -11,7 +11,7 @@ The last breaking changes before `0.2.0` stable, in one batch so an application 
 
 | If your code... | Do this |
 |---|---|
-| builds a `RedisSingleHelper`, `RedisClusterHelper`, `RedisSentinelHelper` or `BullMQHelper` | `bun add ioredis` in that application |
+| reaches Redis at runtime (`createRedisHelper`, a Redis helper, `BullMQHelper`, the socket-io/websocket components) | `bun add ioredis` in the package the service STARTS from - peers resolve from the project root, which is that package under an isolated install |
 | imports `ErrorSchema` or `TErrorResponse` from `@venizia/ignis-helpers` | import them from `@venizia/ignis` (or `@venizia/ignis-kernel`) |
 | calls `resolveValue(x)`, `resolveValueAsync(x)` | `resolveValue({ value: x })`, `resolveValueAsync({ value: x })` |
 | calls `resolveClass(ref)`, `resolveInjectTarget(target)` | `resolveClass({ ref })`, `resolveInjectTarget({ target })` |
@@ -28,6 +28,10 @@ is constructed. Without it the constructor throws:
 ```text
 [ModuleUtility.loadSync] ioredis is required. Please install 'ioredis'
 ```
+
+This is a RUNTIME failure at the first client construction, not a compile error - add the dependency
+before deploying. Measured on one consumer monorepo (isolated install, services started with `bun .`
+from their own package): 16 of 17 service packages needed the line.
 
 `@hono/zod-openapi` is no longer a peer of helpers at all: its only use was a duplicate `ErrorSchema`.
 

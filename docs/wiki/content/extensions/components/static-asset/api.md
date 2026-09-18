@@ -819,7 +819,7 @@ Both classes come from the separate `@venizia/ignis-connectors` package, importe
 - **On upload:**
   - Creates one MetaLink row per uploaded file, after fetching fresh stats via `helper.getStat()`.
   - Uses `metaLink.createMetaLink()` when provided, otherwise a default insert that covers every standard field.
-  - `principalType`, `principalId`, `variant` and `sequence` come from the upload's **form fields** - an identifier in a URL lands in every access log on the way. A label in the query string is refused with `400 core.static_asset.labels_in_query`, before the body is read. `upload-commit` takes the same four in its JSON body, with the same refusal.
+  - `principalType`, `principalId`, `variant` and `sequence` come from the upload's **form fields** - an identifier in a URL lands in every access log on the way. A label in the query string is refused with `400 core.static_asset.labels_in_query`, before the body is read. `upload-commit` takes four of them in its JSON body, with the same refusal; `folderPath` is refused there with its own reason - the object key was fixed when the policy was issued. `PUT .../meta-links/{objectName}` takes no labels at all and refuses any.
   - If the insert throws, the upload still succeeds. The file's response entry gets <code v-pre>metaLink: { error: 'META_LINK_CREATE_FAILED' }</code> - a fixed code, never the driver's text - and the real error is logged in full. This handler returns `200`, so it bypasses the error middleware that strips `detail`/`table`/`constraint`; returning a code is what keeps raw constraint names off the wire.
 - **On delete:**
   - The storage delete happens first and is awaited.

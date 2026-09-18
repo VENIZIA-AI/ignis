@@ -1,3 +1,4 @@
+import { HTTP } from '@/common/constants/http';
 import { ValueOrPromise } from '@/common/types';
 import { BaseHelper } from '@/modules/base';
 import { getError } from '@/modules/error';
@@ -247,14 +248,14 @@ export class SocketIOClientHelper extends BaseHelper {
 
     if (!this.client?.connected) {
       throw getError({
-        statusCode: 400,
+        statusCode: HTTP.ResultCodes.RS_4.BadRequest,
         message: 'Invalid socket client state to emit',
       });
     }
 
     if (!topic) {
       throw getError({
-        statusCode: 400,
+        statusCode: HTTP.ResultCodes.RS_4.BadRequest,
         message: 'Topic is required to emit',
       });
     }

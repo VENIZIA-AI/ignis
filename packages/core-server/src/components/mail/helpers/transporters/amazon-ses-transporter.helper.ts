@@ -1,3 +1,4 @@
+import { HTTP } from '@venizia/ignis-helpers/common';
 import { ModuleUtility, type AnyType } from '@venizia/ignis-helpers';
 import { BaseHelper, getError } from '@venizia/ignis-helpers/core';
 import {
@@ -139,7 +140,7 @@ export class AmazonSesTransportHelper extends BaseHelper implements IMailTranspo
     }
 
     throw getError({
-      statusCode: 500,
+      statusCode: HTTP.ResultCodes.RS_5.InternalServerError,
       messageCode: MailErrorCodes.INVALID_CONFIGURATION,
       message: 'Invalid Amazon SES Configuration | Missing region',
     });
