@@ -14,6 +14,12 @@
   "releases": {
     "atlas": [
       {
+        "version": "0.1.0-27",
+        "date": "2026-09-18",
+        "sha": "78c07205",
+        "order": 1413
+      },
+      {
         "version": "0.1.0-26",
         "date": "2026-09-17",
         "sha": "2d069d82",
@@ -171,6 +177,12 @@
       }
     ],
     "boot": [
+      {
+        "version": "0.2.0-33",
+        "date": "2026-09-18",
+        "sha": "86a04775",
+        "order": 1416
+      },
       {
         "version": "0.2.0-32",
         "date": "2026-09-18",
@@ -677,6 +689,12 @@
       }
     ],
     "connectors": [
+      {
+        "version": "0.2.0-42",
+        "date": "2026-09-18",
+        "sha": "389fb0a6",
+        "order": 1418
+      },
       {
         "version": "0.2.0-41",
         "date": "2026-09-18",
@@ -1780,6 +1798,12 @@
     ],
     "core-server": [
       {
+        "version": "0.2.0-46",
+        "date": "2026-09-18",
+        "sha": "cdd34cab",
+        "order": 1420
+      },
+      {
         "version": "0.2.0-45",
         "date": "2026-09-18",
         "sha": "0b38b9c3",
@@ -2057,6 +2081,12 @@
       }
     ],
     "core-worker": [
+      {
+        "version": "0.2.0-42",
+        "date": "2026-09-18",
+        "sha": "a9ff00fe",
+        "order": 1419
+      },
       {
         "version": "0.2.0-41",
         "date": "2026-09-18",
@@ -2865,6 +2895,12 @@
       }
     ],
     "helpers": [
+      {
+        "version": "0.2.0-38",
+        "date": "2026-09-18",
+        "sha": "dbaa9d54",
+        "order": 1415
+      },
       {
         "version": "0.2.0-37",
         "date": "2026-09-18",
@@ -3866,6 +3902,12 @@
     ],
     "kernel": [
       {
+        "version": "0.2.0-43",
+        "date": "2026-09-18",
+        "sha": "d3f1bb50",
+        "order": 1417
+      },
+      {
         "version": "0.2.0-42",
         "date": "2026-09-18",
         "sha": "c8f4beef",
@@ -4126,6 +4168,17 @@
     ]
   },
   "changelogs": [
+    {
+      "id": "changelog:2026-09-18-uuid-helper",
+      "file": "2026-09-18-uuid-helper.md",
+      "date": "2026-09-18",
+      "title": "One UUID Helper, Three Versions",
+      "packages": [
+        "helpers"
+      ],
+      "kind": "New Feature",
+      "order": 1414
+    },
     {
       "id": "changelog:2026-09-18-the-last-breaking-round-before-0-2-0",
       "file": "2026-09-18-the-last-breaking-round-before-0-2-0.md",
