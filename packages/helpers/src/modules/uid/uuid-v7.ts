@@ -33,7 +33,10 @@ export class UuidV7Generator extends BaseHelper {
   constructor(opts?: { scope?: string }) {
     super({ scope: opts?.scope ?? UuidV7Generator.name });
 
-    const native = typeof Bun === 'undefined' ? undefined : Bun.randomUUIDv7;
+    // Through `globalThis`: a member access on the bare global survives into a browser bundle and
+    // the purity gate rejects the whole entry for it.
+    const runtime: { randomUUIDv7?: () => string } | undefined = Reflect.get(globalThis, 'Bun');
+    const native = runtime?.randomUUIDv7;
     this.generate = typeof native === 'function' ? native : () => this.fromEntropy();
   }
 
