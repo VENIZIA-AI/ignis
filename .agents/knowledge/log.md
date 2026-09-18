@@ -6,6 +6,29 @@ not how.
 This file and `index.md` are reserved OKF filenames - they carry no `type:` frontmatter and are not
 counted as concepts.
 
+## 2026-09-18 (c) - `UuidHelper`: one door for v4, v5 and v7
+
+`uid/uuid/` holds the whole UUID story now: `UuidHelper` (`v4`/`v5`/`v7`/`inspect`/`isValid`),
+`UuidV7Generator` moved in beside it, `UuidNamespaces`, and an unexported `Sha1Digest`. Version 5 is
+new - the deterministic id an idempotency key wants - and it is carried, not borrowed: `node:crypto`
+fails `make purity` and `crypto.subtle.digest` is asynchronous AND secure-context-gated, so a
+synchronous browser-pure v5 needs its own SHA-1. Three call sites that reached for
+`crypto.randomUUID()` directly (two WebSocket ids, one pending upload name) go through the helper, and
+`RequestIdGenerator` is now a delegate over `v4()`.
+
+Measured against `uuid@14.0.2` rather than asserted (median of 7 alternating passes, 200k ops): v7
+4.2x faster, v5 3.7x, v4 1.1x - and v5 answers ids identical to that package's. Two measurements
+changed the code: a forwarding method cost a fifth of a native `crypto.randomUUID` call, so `v4`/`v7`
+are bound properties and `UuidV7Generator.nextId` is the resolved function itself; a `subarray` view
+per id cost 19 ns, so the v4 fallback reads its pool in place. Dispatch variants all land inside a
+±6 ns measurement spread - order bias in a naive benchmark read as a 17% regression that did not
+exist, which is why the numbers above alternate passes.
+
+Also found: a v7 timestamp legitimately LEADS the wall clock after a burst (4096 ids per millisecond,
+then it borrows the next one), so `inspect().createdAt` can sit a few milliseconds in the future - a
+test asserting `<= Date.now()` flaked 3 times in 10 until it idled first. The stale symbol table
+caught the file move on its own: `make symbols-gen` is required after any source file is renamed.
+
 ## 2026-09-18 (b) - review round: eight defects found in this batch, fixed
 
 A five-way review of the whole batch (four agents plus a BANA crosscheck) found, all measured:

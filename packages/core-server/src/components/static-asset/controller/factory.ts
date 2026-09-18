@@ -17,7 +17,7 @@ import {
 } from '@venizia/ignis-helpers';
 import { HTTP, resolveValueAsync, ValueOrPromise } from '@venizia/ignis-helpers/common';
 import type { AnyType, TValueOrAsyncResolver } from '@venizia/ignis-helpers/common';
-import { BaseHelper, getError } from '@venizia/ignis-helpers/core';
+import { BaseHelper, getError, UuidHelper } from '@venizia/ignis-helpers/core';
 import { Env } from 'hono';
 import { readFileSync, rmSync } from 'node:fs';
 import {
@@ -39,7 +39,6 @@ import {
   WHITELIST_HEADERS,
 } from '../common';
 import { buildCommitToken, readCommitToken } from '../common';
-import { randomUUID } from 'node:crypto';
 import { buildAssetDefinitions } from './base.definition';
 
 export interface IAssetControllerOptions {
@@ -847,7 +846,7 @@ export class AssetControllerFactory extends BaseHelper {
 
                 // Generated, never taken from the caller: a key the caller picks is a key the caller
                 // can collide with, and the pending object is the one thing a policy authorizes.
-                const objectName = `${pendingPrefix}${randomUUID()}/${file.fileName}`;
+                const objectName = `${pendingPrefix}${UuidHelper.getInstance().v4()}/${file.fileName}`;
                 const policy = await helper.presignPost({
                   bucket: { name: bucketName },
                   keyPrefix: pendingPrefix,

@@ -3,6 +3,7 @@ import { ValueOrPromise } from '@/common/types';
 import { BaseHelper } from '@/modules/base';
 import { getError } from '@/modules/error';
 import { ensureRedisClientsConnecting, TRedisClient, waitForRedisReady } from '@/modules/redis';
+import { UuidHelper } from '@/modules/uid';
 import { voidExecution } from '@/utilities/promise.utility';
 import { EventEmitter } from 'node:events';
 import {
@@ -80,7 +81,7 @@ export class WebSocketServerHelper<
 
     this.identifier = opts.identifier;
     this.path = opts.path ?? WebSocketDefaults.PATH;
-    this.serverId = crypto.randomUUID();
+    this.serverId = UuidHelper.getInstance().v4();
 
     this.authenticateFn = opts.authenticateFn;
     this.validateRoomFn = opts.validateRoomFn;

@@ -1,5 +1,5 @@
 import { CoreErrorCodes } from '@venizia/ignis-kernel';
-import { getError, UuidV7Generator } from '@venizia/ignis-helpers/core';
+import { getError, UuidHelper } from '@venizia/ignis-helpers/core';
 import { HTTP } from '@venizia/ignis-helpers/common';
 import type { HasDefault, HasRuntimeDefault, IsPrimaryKey, NotNull } from 'drizzle-orm';
 import type {
@@ -32,7 +32,7 @@ type TIdColumnDef<Opts extends TIdEnricherOptions | undefined = undefined> = Opt
   : { id: TNumberIdCol };
 
 // Time-ordered, so a text primary key appends to its B-tree instead of splitting pages.
-const defaultStringId = (): string => UuidV7Generator.getInstance().nextId();
+const defaultStringId = (): string => UuidHelper.getInstance().v7();
 
 export const generateIdColumnDefs = <Opts extends TIdEnricherOptions | undefined>(
   opts?: Opts,

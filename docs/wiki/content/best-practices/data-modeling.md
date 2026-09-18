@@ -98,7 +98,7 @@ The `generateIdColumnDefs` enricher supports multiple ID strategies:
 ```typescript
 // String ID with the default UUID v7 generator (time-ordered)
 ...generateIdColumnDefs({ id: { dataType: 'string' } })
-// Result: id TEXT PRIMARY KEY, filled by UuidV7Generator.getInstance().nextId()
+// Result: id TEXT PRIMARY KEY, filled by UuidHelper.getInstance().v7()
 
 // String ID with custom generator (e.g., nanoid, ulid)
 import { nanoid } from 'nanoid';

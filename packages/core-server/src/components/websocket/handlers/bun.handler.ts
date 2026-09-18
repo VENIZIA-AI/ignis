@@ -1,4 +1,5 @@
 import type { TBunServerInstance } from '@/base/applications';
+import { UuidHelper } from '@venizia/ignis-helpers/core';
 import type { OpenAPIHono } from '@hono/zod-openapi';
 
 export function createBunFetchHandler(opts: {
@@ -19,7 +20,7 @@ export function createBunFetchHandler(opts: {
     // Accept connection — authentication happens post-connect via 'authenticate' event
     const isUpgraded = server.upgrade(req, {
       data: {
-        clientId: crypto.randomUUID(),
+        clientId: UuidHelper.getInstance().v4(),
       },
     });
 

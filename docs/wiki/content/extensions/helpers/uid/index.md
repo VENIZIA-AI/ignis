@@ -1,21 +1,89 @@
 ---
 title: UID
-description: Two ID generators - time-sortable Snowflake IDs, and short random IDs a human can read back
+description: Three ID generators - UUIDs behind one helper, time-sortable Snowflake IDs, and short random IDs a human can read back
 difficulty: beginner
 ---
 
 # UID
 
-Two generators, and they answer different questions.
+Three generators, and they answer different questions.
 
 | Helper | Reads back as | Pick it when |
 |---|---|---|
+| `UuidHelper` | The version, and for a v7 the creation time | You want a UUID - a database key, an idempotency key, or a public token |
 | `SnowflakeUidHelper` | Timestamp, worker ID, sequence | The ID is a primary key and you want insert order for free |
 | `OpaqueUidHelper` | Nothing | The ID leaves your system - a human reads it, or a stranger sees it |
 
 A Snowflake ID is transparent by design. `parseId()` gives back the exact millisecond it was minted and the worker that minted it. That is what you want in a log, and what you do not want printed on an invoice a customer keeps.
 
 An opaque ID gives nothing back. You trade the ordering for that, and for a short ID a human can read out loud.
+
+A UUID is what the rest of the world expects in a column, and `UuidHelper` is the only place IGNIS mints one.
+
+## UuidHelper
+
+One helper, three versions, chosen by what the ID is for.
+
+```typescript
+import { UuidHelper, UuidNamespaces } from '@venizia/ignis-helpers/core';
+
+const uuid = UuidHelper.getInstance();
+
+uuid.v7(); // '01a0b2ab-26d1-750c-98fb-10b72633ac2c' - database primary key
+uuid.v4(); // 'e6911088-8524-4b57-9fe6-2acaec5e0be4' - public identifier, token
+uuid.v5({ namespace: UuidNamespaces.URL, name: 'orders/4711/refund' }); // always the same ID
+```
+
+| Use | Version | Why |
+|---|---|---|
+| Database primary key | `v7()` | Time-ordered, so a B-tree appends instead of splitting pages. This is what `generateIdColumnDefs({ id: { dataType: 'string' } })` fills a string ID with |
+| Idempotency key, deterministic ID | `v5({ namespace, name })` | The same inputs answer the same ID on every host, forever - there is no state to store |
+| Public identifier, random token | `v4()` | No clock, nothing to correlate a caller by, 122 random bits |
+
+`getInstance()` answers one instance per realm, which is what keeps v7 IDs from every caller in one climbing sequence. A `new UuidHelper()` is for a test that wants its own.
+
+### v5 is reproducible, which is the point and the limit
+
+A version 5 ID is `SHA-1(namespace + name)` rendered as a UUID. Derive it from the business data and you never store a lookup table:
+
+```typescript
+const idempotencyKey = uuid.v5({
+  namespace: UuidNamespaces.URL,
+  name: `refund:${orderId}:${chargeId}`,
+});
+```
+
+Two things to hold onto:
+
+- **It is not a secret.** Anyone with the namespace and the name computes the same ID. Never use one as a share link, a reset token or an API key - that is what `v4()` is for.
+- **It gives a stable key, not exclusivity.** What enforces idempotency is the unique index on the column plus handling the conflict on insert. The ID only makes the second attempt recognisable.
+
+The four namespaces RFC 9562 defines ship as `UuidNamespaces.DNS`, `.URL`, `.OID` and `.X500`. A namespace partitions the space, so the same name under two namespaces answers two IDs. If none of them fit, mint one with `v4()` **once** and pin it as a constant:
+
+```typescript
+const TENANT_NAMESPACE = '6f5a6a4e-70dd-4a4f-8e4e-2b2f2b2f2b2f'; // minted once, never generated
+
+uuid.v5({ namespace: TENANT_NAMESPACE, name: tenantSlug });
+```
+
+### Reading an ID back
+
+```typescript
+UuidHelper.isValid('2ed6657d-e927-568b-95e1-2665a8aea6a2'); // true - lowercase, version 1-8, RFC variant
+UuidHelper.isValid('00000000-0000-0000-0000-000000000000'); // false - the nil ID is a placeholder
+
+uuid.inspect({ value: uuid.v7() }); // { version: 7, createdAt: Date }
+uuid.inspect({ value: uuid.v4() }); // { version: 4 } - nothing to read out of random bits
+uuid.inspect({ value: 'not-a-uuid' }); // undefined
+```
+
+A v7 timestamp can sit a few milliseconds **ahead** of the clock. 4096 IDs fit in one millisecond, and past that the generator borrows the next one to keep the sequence climbing - so a `createdAt` read during a burst leads the wall clock by roughly one millisecond per 4096 IDs.
+
+### Why IGNIS mints these itself
+
+Every version here runs on a plain-http origin and inside a browser Worker, which is the constraint that rules out the obvious implementations: `crypto.randomUUID` is secure-context-only (on `http://<lan-ip>` it is `undefined` and the first call throws), `crypto.subtle.digest` is gated the same way and is asynchronous on top of it, and `node:crypto` is a Node builtin the browser-purity gate refuses. `v4()` falls back to `crypto.getRandomValues` and produces an identical shape; `v5()` carries its SHA-1 inline so it stays synchronous like the other two.
+
+Measured against `uuid@14.0.2`, median of seven alternating passes, 200,000 operations each: v4 32.6 ns against 36.1, v5 409.8 ns against 1508.8, v7 60.5 ns against 255.1. The v5 output is verified identical to that package's, to the published RFC test vector, and to the platform SHA-1 across padding boundaries.
 
 ## In one example
 
@@ -249,10 +317,16 @@ Unlike `crypto.randomUUID`, `getRandomValues` works outside a secure context. Th
 - [Services](/guides/core-concepts/services) - generating unique IDs in services
 - [Helpers Overview](/extensions/helpers/) - all available helpers
 - [Crypto Helper](/extensions/helpers/crypto/) - cryptographic random values
+- [RFC 9562](https://www.rfc-editor.org/rfc/rfc9562.html) - the UUID specification, versions 1 through 8
 - [Snowflake ID](https://en.wikipedia.org/wiki/Snowflake_ID) - the algorithm this helper implements
 
 **Files:**
 
+- [`packages/helpers/src/modules/uid/uuid/helper.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/uid/uuid/helper.ts) - `UuidHelper`
+- [`packages/helpers/src/modules/uid/uuid/v7.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/uid/uuid/v7.ts) - `UuidV7Generator`, the v7 engine
+- [`packages/helpers/src/modules/uid/uuid/sha1.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/uid/uuid/sha1.ts) - the inline SHA-1 behind v5
+- [`packages/helpers/src/modules/uid/uuid/common/constants.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/uid/uuid/common/constants.ts) - `UuidNamespaces`
+- [`packages/helpers/src/modules/uid/request-id.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/uid/request-id.ts) - `RequestIdGenerator`, a delegate over `v4()`
 - [`packages/helpers/src/modules/uid/helper.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/uid/helper.ts) - `SnowflakeUidHelper`, `SnowflakeConfig`
 - [`packages/helpers/src/modules/uid/opaque.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/uid/opaque.ts) - `OpaqueUidHelper`
 - [`packages/helpers/src/modules/uid/common/constants.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/uid/common/constants.ts) - `UidAlphabets`, `UidCaseForms`

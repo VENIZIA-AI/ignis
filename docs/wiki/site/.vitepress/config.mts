@@ -455,6 +455,10 @@ const config = defineConfig({
               collapsed: true,
               items: [
                 {
+                  text: 'One UUID Helper, Three Versions',
+                  link: '/changelogs/2026-09-18-uuid-helper',
+                },
+                {
                   text: 'The Last Breaking Round Before 0.2.0',
                   link: '/changelogs/2026-09-18-the-last-breaking-round-before-0-2-0',
                 },

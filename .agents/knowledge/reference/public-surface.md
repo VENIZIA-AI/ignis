@@ -118,7 +118,7 @@ tags: [reference, exports, api]
 
 ## helpers
 
-### `@venizia/ignis-helpers` (395)
+### `@venizia/ignis-helpers` (399)
 
 - `AbstractCryptoAlgorithm` class
 - `AbstractLogger` class
@@ -318,6 +318,7 @@ tags: [reference, exports, api]
 - `IUploadFile` interface
 - `IUploadResult` interface
 - `IUrlSafetyPolicy` interface
+- `IUuidInspection` interface
 - `IWalkAsyncOptions` interface
 - `IWalkOptions` interface
 - `IWebSocket` interface
@@ -499,6 +500,9 @@ tags: [reference, exports, api]
 - `UrlSafetyDefaults` class
 - `UrlSafetyErrors` const
 - `UrlSchemes` class
+- `UUID_PATTERN` const
+- `UuidHelper` class
+- `UuidNamespaces` class
 - `UuidV7Generator` class
 - `ValueOf` type
 - `ValueOptional` type
@@ -581,7 +585,7 @@ tags: [reference, exports, api]
 - `ValueOptionalExcept` type
 - `ValueOrPromise` type
 
-### `@venizia/ignis-helpers/core` (103)
+### `@venizia/ignis-helpers/core` (107)
 
 - `AbstractNetworkFetchableHelper` class
 - `AbstractPoolHelper` class
@@ -633,6 +637,7 @@ tags: [reference, exports, api]
 - `ITreeNode` interface
 - `IUidSegment` interface
 - `IUrlSafetyPolicy` interface
+- `IUuidInspection` interface
 - `IWalkAsyncOptions` interface
 - `IWalkOptions` interface
 - `keysToCamel` const
@@ -685,6 +690,9 @@ tags: [reference, exports, api]
 - `UrlPolicy` class
 - `UrlSafetyDefaults` class
 - `UrlSchemes` class
+- `UUID_PATTERN` const
+- `UuidHelper` class
+- `UuidNamespaces` class
 - `UuidV7Generator` class
 
 ### `@venizia/ignis-helpers/socket-io` (17)
@@ -1877,7 +1885,7 @@ tags: [reference, exports, api]
 
 ## core-server
 
-### `@venizia/ignis` (959)
+### `@venizia/ignis` (963)
 
 - `AbstractApplication` class
 - `AbstractAuthRegistry` class
@@ -2359,6 +2367,7 @@ tags: [reference, exports, api]
 - `IUploadFile` interface
 - `IUploadResult` interface
 - `IUrlSafetyPolicy` interface
+- `IUuidInspection` interface
 - `IValidRequestProps` interface
 - `IWalkAsyncOptions` interface
 - `IWalkOptions` interface
@@ -2820,6 +2829,9 @@ tags: [reference, exports, api]
 - `UserPolicyLineCache` class
 - `UserStatuses` class
 - `UserTypes` class
+- `UUID_PATTERN` const
+- `UuidHelper` class
+- `UuidNamespaces` class
 - `UuidV7Generator` class
 - `ValueOf` type
 - `ValueOptional` type
