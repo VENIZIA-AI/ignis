@@ -49,12 +49,15 @@ export abstract class AbstractCrudController<
   /** Bulk `where` from the query or the JSON body (long id lists outgrow a URL). Both, or none, is a 400. */
   resolveBulkWhere<WhereType extends object>(opts: {
     context: TRouteContext<RouteEnv>;
-    queryWhere?: WhereType;
-    bodyWhere?: WhereType;
+    where?: {
+      fromQuery?: WhereType;
+      fromBody?: WhereType;
+    };
   }): TBulkWhereResolution<WhereType> {
-    const { context, queryWhere, bodyWhere } = opts;
+    const { context, where: whereSources } = opts;
+    const { fromQuery, fromBody } = whereSources ?? {};
 
-    if (queryWhere !== undefined && bodyWhere !== undefined) {
+    if (fromQuery !== undefined && fromBody !== undefined) {
       return {
         error: context.json(
           { message: 'where given in both the query and the body - send it in one' },
@@ -63,7 +66,7 @@ export abstract class AbstractCrudController<
       };
     }
 
-    const where = queryWhere ?? bodyWhere;
+    const where = fromQuery ?? fromBody;
     if (!where || Object.keys(where).length === 0) {
       return {
         error: context.json(

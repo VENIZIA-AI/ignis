@@ -75,7 +75,10 @@ export abstract class PersistableCrudController<
     const data: Partial<TPersistObject> = { ...context.req.valid<Partial<TPersistObject>>('json') };
     Reflect.deleteProperty(data, 'where');
 
-    const resolved = this.resolveBulkWhere({ context, queryWhere, bodyWhere });
+    const resolved = this.resolveBulkWhere({
+      context,
+      where: { fromQuery: queryWhere, fromBody: bodyWhere },
+    });
     if (resolved.error !== undefined) {
       return resolved.error;
     }
@@ -123,7 +126,10 @@ export abstract class PersistableCrudController<
     // client that sends a content-type and no body. A body that is not JSON is simply not a `where`.
     const body = await context.req.json<{ where?: TWhere<TDataObject> }>().catch(() => undefined);
 
-    const resolved = this.resolveBulkWhere({ context, queryWhere, bodyWhere: body?.where });
+    const resolved = this.resolveBulkWhere({
+      context,
+      where: { fromQuery: queryWhere, fromBody: body?.where },
+    });
     if (resolved.error !== undefined) {
       return resolved.error;
     }

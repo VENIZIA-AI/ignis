@@ -51,7 +51,7 @@ editor back - and to accept that gate.
 
 In a `PATCH /` body, `where` is reserved: it selects rows and is never written. A controller that
 overrides `updateBy`/`deleteBy` and reads `valid('query')` itself still sees only the query - use
-`resolveBulkWhere({ context, queryWhere, bodyWhere })` to accept both. Without it, a body-only request
+`resolveBulkWhere({ context, where: { fromQuery, fromBody } })` to accept both. Without it, a body-only request
 reaches the repository with no `where`, and the repository refuses it (`400`).
 
 ## An included relation keeps its model settings
