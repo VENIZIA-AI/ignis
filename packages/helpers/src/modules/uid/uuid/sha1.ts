@@ -1,24 +1,20 @@
 /**
- * SHA-1 over bytes, synchronous, no host API.
+ * SHA-1 over bytes, synchronous, no host API - `node:crypto` fails the purity gate and
+ * `crypto.subtle` is async and secure-context only.
  *
- * Carried here rather than borrowed: `node:crypto` is a builtin the browser-purity gate refuses,
- * and `crypto.subtle.digest` is both asynchronous and gated on a SECURE CONTEXT - measured absent
- * on `http://<lan-ip>`, exactly where a phone on the LAN tests a dev server. Version 5 needs the
- * digest inline to keep `v5()` the same shape as `v4()` and `v7()`.
- *
- * Only UUID version 5 uses it. SHA-1 is broken against a chosen-prefix collision and must never be
- * used to sign, to authenticate, or to store a password.
+ * Only UUID v5 uses it. SHA-1 is broken against a chosen-prefix collision: never sign, authenticate
+ * or store a password with it.
  */
 export class Sha1Digest {
-  /** 80-word message schedule, reused: `of()` never yields, so no second call can observe it mid-flight. */
+  /** Reused: `of()` never yields, so no second call can observe it mid-flight. */
   private static readonly SCHEDULE = new Uint32Array(80);
 
-  /** Padding buffer for the inputs this package actually hashes - a namespace plus a name. A longer one allocates. */
+  /** Padding buffer sized for a namespace plus a name; a longer input allocates. */
   private static readonly SCRATCH = new Uint8Array(512);
 
   private static readonly K = [0x5a827999, 0x6ed9eba1, 0x8f1bbcdc, 0xca62c1d6];
 
-  /** 20 bytes, big-endian, as the standard defines them. */
+  /** Digests `bytes` into 20 big-endian bytes. */
   static of(opts: { bytes: Uint8Array }): Uint8Array {
     const { bytes } = opts;
     const length = bytes.length;

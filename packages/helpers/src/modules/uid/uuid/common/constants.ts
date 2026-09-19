@@ -1,8 +1,9 @@
 /**
- * The four namespaces RFC 9562 names. A namespace PARTITIONS the deterministic space: the same
- * `name` under two namespaces answers two ids, so `www.example.com` as a host and as a URL never
- * collide. A caller with no fitting namespace mints their own with `v4()` once and pins it as a
- * constant - never generated per call, which would defeat determinism.
+ * The four namespaces RFC 9562 names. A namespace partitions the deterministic space, so one
+ * `name` under two namespaces answers two ids.
+ *
+ * Need your own? Mint it ONCE (`bun -e "console.log(crypto.randomUUID())"`) and pin it as a
+ * constant. Generating one at runtime makes `uuidV5` answer a different id every call, silently.
  */
 export class UuidNamespaces {
   /** Fully-qualified domain names. */

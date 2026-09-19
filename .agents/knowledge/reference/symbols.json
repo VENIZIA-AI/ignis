@@ -4341,7 +4341,7 @@
       "specifier": "@venizia/ignis",
       "kind": "class",
       "file": "packages/helpers/src/modules/logger/resolver.ts",
-      "line": 59,
+      "line": 60,
       "signature": "class LoggerResolver"
     },
     {
@@ -6822,7 +6822,7 @@
       "specifier": "@venizia/ignis",
       "kind": "type",
       "file": "packages/helpers/src/modules/logger/resolver.ts",
-      "line": 6,
+      "line": 7,
       "signature": "type TLoggerResolver = (opts: { scopes: Array<string>; }) => ILogger"
     },
     {
@@ -7962,7 +7962,7 @@
       "specifier": "@venizia/ignis",
       "kind": "const",
       "file": "packages/helpers/src/modules/uid/uuid/common/constants.ts",
-      "line": 30,
+      "line": 31,
       "signature": "UUID_PATTERN: RegExp"
     },
     {
@@ -8082,7 +8082,7 @@
       "specifier": "@venizia/ignis",
       "kind": "class",
       "file": "packages/helpers/src/modules/uid/uuid/helper.ts",
-      "line": 29,
+      "line": 15,
       "signature": "class UuidHelper extends BaseHelper"
     },
     {
@@ -8092,18 +8092,8 @@
       "specifier": "@venizia/ignis",
       "kind": "class",
       "file": "packages/helpers/src/modules/uid/uuid/common/constants.ts",
-      "line": 7,
+      "line": 8,
       "signature": "class UuidNamespaces"
-    },
-    {
-      "name": "UuidV7Generator",
-      "package": "@venizia/ignis",
-      "subpath": ".",
-      "specifier": "@venizia/ignis",
-      "kind": "class",
-      "file": "packages/helpers/src/modules/uid/uuid/v7.ts",
-      "line": 12,
-      "signature": "class UuidV7Generator extends BaseHelper"
     },
     {
       "name": "ValueOf",
@@ -8454,6 +8444,36 @@
       "file": "packages/helpers/src/modules/secrets/factory.ts",
       "line": 11,
       "signature": "function createSecretsHelper(opts: ISecretsRegistration & { identifier?: string; }): Promise<ISecretsHelper>"
+    },
+    {
+      "name": "createUuidV4",
+      "package": "@venizia/ignis",
+      "subpath": ".",
+      "specifier": "@venizia/ignis",
+      "kind": "const",
+      "file": "packages/helpers/src/modules/uid/uuid/v4.ts",
+      "line": 6,
+      "signature": "createUuidV4: () => (() => string)"
+    },
+    {
+      "name": "createUuidV5",
+      "package": "@venizia/ignis",
+      "subpath": ".",
+      "specifier": "@venizia/ignis",
+      "kind": "const",
+      "file": "packages/helpers/src/modules/uid/uuid/v5.ts",
+      "line": 11,
+      "signature": "createUuidV5: () => ((opts: { namespace: string; name: string; }) => string)"
+    },
+    {
+      "name": "createUuidV7",
+      "package": "@venizia/ignis",
+      "subpath": ".",
+      "specifier": "@venizia/ignis",
+      "kind": "const",
+      "file": "packages/helpers/src/modules/uid/uuid/v7.ts",
+      "line": 10,
+      "signature": "createUuidV7: () => (() => string)"
     },
     {
       "name": "datasource",
@@ -9625,6 +9645,36 @@
       "file": "packages/core-server/src/base/metadata/request-context.ts",
       "line": 4,
       "signature": "useRequestContext: <AppEnv extends Env = Env>() => import(\"hono\").Context<AppEnv, any, {}> | undefined"
+    },
+    {
+      "name": "uuidV4",
+      "package": "@venizia/ignis",
+      "subpath": ".",
+      "specifier": "@venizia/ignis",
+      "kind": "const",
+      "file": "packages/helpers/src/modules/uid/uuid/v4.ts",
+      "line": 54,
+      "signature": "uuidV4: () => string"
+    },
+    {
+      "name": "uuidV5",
+      "package": "@venizia/ignis",
+      "subpath": ".",
+      "specifier": "@venizia/ignis",
+      "kind": "const",
+      "file": "packages/helpers/src/modules/uid/uuid/v5.ts",
+      "line": 99,
+      "signature": "uuidV5: (opts: { namespace: string; name: string; }) => string"
+    },
+    {
+      "name": "uuidV7",
+      "package": "@venizia/ignis",
+      "subpath": ".",
+      "specifier": "@venizia/ignis",
+      "kind": "const",
+      "file": "packages/helpers/src/modules/uid/uuid/v7.ts",
+      "line": 105,
+      "signature": "uuidV7: () => string"
     },
     {
       "name": "voidExecution",
@@ -22013,7 +22063,7 @@
       "specifier": "@venizia/ignis-helpers",
       "kind": "class",
       "file": "packages/helpers/src/modules/logger/resolver.ts",
-      "line": 59,
+      "line": 60,
       "signature": "class LoggerResolver"
     },
     {
@@ -22904,7 +22954,7 @@
       "specifier": "@venizia/ignis-helpers",
       "kind": "type",
       "file": "packages/helpers/src/modules/logger/resolver.ts",
-      "line": 6,
+      "line": 7,
       "signature": "type TLoggerResolver = (opts: { scopes: Array<string>; }) => ILogger"
     },
     {
@@ -23364,7 +23414,7 @@
       "specifier": "@venizia/ignis-helpers",
       "kind": "const",
       "file": "packages/helpers/src/modules/uid/uuid/common/constants.ts",
-      "line": 30,
+      "line": 31,
       "signature": "UUID_PATTERN: RegExp"
     },
     {
@@ -23444,7 +23494,7 @@
       "specifier": "@venizia/ignis-helpers",
       "kind": "class",
       "file": "packages/helpers/src/modules/uid/uuid/helper.ts",
-      "line": 29,
+      "line": 15,
       "signature": "class UuidHelper extends BaseHelper"
     },
     {
@@ -23454,18 +23504,8 @@
       "specifier": "@venizia/ignis-helpers",
       "kind": "class",
       "file": "packages/helpers/src/modules/uid/uuid/common/constants.ts",
-      "line": 7,
+      "line": 8,
       "signature": "class UuidNamespaces"
-    },
-    {
-      "name": "UuidV7Generator",
-      "package": "@venizia/ignis-helpers",
-      "subpath": ".",
-      "specifier": "@venizia/ignis-helpers",
-      "kind": "class",
-      "file": "packages/helpers/src/modules/uid/uuid/v7.ts",
-      "line": 12,
-      "signature": "class UuidV7Generator extends BaseHelper"
     },
     {
       "name": "ValueOf",
@@ -23656,6 +23696,36 @@
       "file": "packages/helpers/src/modules/secrets/factory.ts",
       "line": 11,
       "signature": "function createSecretsHelper(opts: ISecretsRegistration & { identifier?: string; }): Promise<ISecretsHelper>"
+    },
+    {
+      "name": "createUuidV4",
+      "package": "@venizia/ignis-helpers",
+      "subpath": ".",
+      "specifier": "@venizia/ignis-helpers",
+      "kind": "const",
+      "file": "packages/helpers/src/modules/uid/uuid/v4.ts",
+      "line": 6,
+      "signature": "createUuidV4: () => (() => string)"
+    },
+    {
+      "name": "createUuidV5",
+      "package": "@venizia/ignis-helpers",
+      "subpath": ".",
+      "specifier": "@venizia/ignis-helpers",
+      "kind": "const",
+      "file": "packages/helpers/src/modules/uid/uuid/v5.ts",
+      "line": 11,
+      "signature": "createUuidV5: () => ((opts: { namespace: string; name: string; }) => string)"
+    },
+    {
+      "name": "createUuidV7",
+      "package": "@venizia/ignis-helpers",
+      "subpath": ".",
+      "specifier": "@venizia/ignis-helpers",
+      "kind": "const",
+      "file": "packages/helpers/src/modules/uid/uuid/v7.ts",
+      "line": 10,
+      "signature": "createUuidV7: () => (() => string)"
     },
     {
       "name": "dayjs",
@@ -24167,6 +24237,36 @@
       "file": "packages/helpers/src/utilities/parse.utility.ts",
       "line": 189,
       "signature": "toTrimmed: (input: unknown) => string"
+    },
+    {
+      "name": "uuidV4",
+      "package": "@venizia/ignis-helpers",
+      "subpath": ".",
+      "specifier": "@venizia/ignis-helpers",
+      "kind": "const",
+      "file": "packages/helpers/src/modules/uid/uuid/v4.ts",
+      "line": 54,
+      "signature": "uuidV4: () => string"
+    },
+    {
+      "name": "uuidV5",
+      "package": "@venizia/ignis-helpers",
+      "subpath": ".",
+      "specifier": "@venizia/ignis-helpers",
+      "kind": "const",
+      "file": "packages/helpers/src/modules/uid/uuid/v5.ts",
+      "line": 99,
+      "signature": "uuidV5: (opts: { namespace: string; name: string; }) => string"
+    },
+    {
+      "name": "uuidV7",
+      "package": "@venizia/ignis-helpers",
+      "subpath": ".",
+      "specifier": "@venizia/ignis-helpers",
+      "kind": "const",
+      "file": "packages/helpers/src/modules/uid/uuid/v7.ts",
+      "line": 105,
+      "signature": "uuidV7: () => string"
     },
     {
       "name": "voidExecution",
@@ -25775,7 +25875,7 @@
       "specifier": "@venizia/ignis-helpers/core",
       "kind": "const",
       "file": "packages/helpers/src/modules/uid/uuid/common/constants.ts",
-      "line": 30,
+      "line": 31,
       "signature": "UUID_PATTERN: RegExp"
     },
     {
@@ -25835,7 +25935,7 @@
       "specifier": "@venizia/ignis-helpers/core",
       "kind": "class",
       "file": "packages/helpers/src/modules/uid/uuid/helper.ts",
-      "line": 29,
+      "line": 15,
       "signature": "class UuidHelper extends BaseHelper"
     },
     {
@@ -25845,18 +25945,8 @@
       "specifier": "@venizia/ignis-helpers/core",
       "kind": "class",
       "file": "packages/helpers/src/modules/uid/uuid/common/constants.ts",
-      "line": 7,
+      "line": 8,
       "signature": "class UuidNamespaces"
-    },
-    {
-      "name": "UuidV7Generator",
-      "package": "@venizia/ignis-helpers",
-      "subpath": "./core",
-      "specifier": "@venizia/ignis-helpers/core",
-      "kind": "class",
-      "file": "packages/helpers/src/modules/uid/uuid/v7.ts",
-      "line": 12,
-      "signature": "class UuidV7Generator extends BaseHelper"
     },
     {
       "name": "blankToUndefined",
@@ -25867,6 +25957,36 @@
       "file": "packages/helpers/src/utilities/parse.utility.ts",
       "line": 183,
       "signature": "blankToUndefined: (input: string | undefined) => string | undefined"
+    },
+    {
+      "name": "createUuidV4",
+      "package": "@venizia/ignis-helpers",
+      "subpath": "./core",
+      "specifier": "@venizia/ignis-helpers/core",
+      "kind": "const",
+      "file": "packages/helpers/src/modules/uid/uuid/v4.ts",
+      "line": 6,
+      "signature": "createUuidV4: () => (() => string)"
+    },
+    {
+      "name": "createUuidV5",
+      "package": "@venizia/ignis-helpers",
+      "subpath": "./core",
+      "specifier": "@venizia/ignis-helpers/core",
+      "kind": "const",
+      "file": "packages/helpers/src/modules/uid/uuid/v5.ts",
+      "line": 11,
+      "signature": "createUuidV5: () => ((opts: { namespace: string; name: string; }) => string)"
+    },
+    {
+      "name": "createUuidV7",
+      "package": "@venizia/ignis-helpers",
+      "subpath": "./core",
+      "specifier": "@venizia/ignis-helpers/core",
+      "kind": "const",
+      "file": "packages/helpers/src/modules/uid/uuid/v7.ts",
+      "line": 10,
+      "signature": "createUuidV7: () => (() => string)"
     },
     {
       "name": "executeWithPerformanceMeasure",
@@ -25957,6 +26077,36 @@
       "file": "packages/helpers/src/modules/network/utilities/query-string.ts",
       "line": 25,
       "signature": "toQueryString: (opts: { params: AnyObject; }) => string"
+    },
+    {
+      "name": "uuidV4",
+      "package": "@venizia/ignis-helpers",
+      "subpath": "./core",
+      "specifier": "@venizia/ignis-helpers/core",
+      "kind": "const",
+      "file": "packages/helpers/src/modules/uid/uuid/v4.ts",
+      "line": 54,
+      "signature": "uuidV4: () => string"
+    },
+    {
+      "name": "uuidV5",
+      "package": "@venizia/ignis-helpers",
+      "subpath": "./core",
+      "specifier": "@venizia/ignis-helpers/core",
+      "kind": "const",
+      "file": "packages/helpers/src/modules/uid/uuid/v5.ts",
+      "line": 99,
+      "signature": "uuidV5: (opts: { namespace: string; name: string; }) => string"
+    },
+    {
+      "name": "uuidV7",
+      "package": "@venizia/ignis-helpers",
+      "subpath": "./core",
+      "specifier": "@venizia/ignis-helpers/core",
+      "kind": "const",
+      "file": "packages/helpers/src/modules/uid/uuid/v7.ts",
+      "line": 105,
+      "signature": "uuidV7: () => string"
     },
     {
       "name": "CronHelper",
@@ -26807,6 +26957,106 @@
       "file": "packages/helpers/src/modules/socket/socket-io/common/types/hooks.ts",
       "line": 7,
       "signature": "type TSocketIOValidateRoomFn = (opts: { socket: IOSocket; rooms: string[]; }) => ValueOrPromise<string[]>"
+    },
+    {
+      "name": "IUuidInspection",
+      "package": "@venizia/ignis-helpers",
+      "subpath": "./uuid",
+      "specifier": "@venizia/ignis-helpers/uuid",
+      "kind": "interface",
+      "file": "packages/helpers/src/modules/uid/uuid/common/types.ts",
+      "line": 2,
+      "signature": "interface IUuidInspection"
+    },
+    {
+      "name": "UUID_PATTERN",
+      "package": "@venizia/ignis-helpers",
+      "subpath": "./uuid",
+      "specifier": "@venizia/ignis-helpers/uuid",
+      "kind": "const",
+      "file": "packages/helpers/src/modules/uid/uuid/common/constants.ts",
+      "line": 31,
+      "signature": "UUID_PATTERN: RegExp"
+    },
+    {
+      "name": "UuidHelper",
+      "package": "@venizia/ignis-helpers",
+      "subpath": "./uuid",
+      "specifier": "@venizia/ignis-helpers/uuid",
+      "kind": "class",
+      "file": "packages/helpers/src/modules/uid/uuid/helper.ts",
+      "line": 15,
+      "signature": "class UuidHelper extends BaseHelper"
+    },
+    {
+      "name": "UuidNamespaces",
+      "package": "@venizia/ignis-helpers",
+      "subpath": "./uuid",
+      "specifier": "@venizia/ignis-helpers/uuid",
+      "kind": "class",
+      "file": "packages/helpers/src/modules/uid/uuid/common/constants.ts",
+      "line": 8,
+      "signature": "class UuidNamespaces"
+    },
+    {
+      "name": "createUuidV4",
+      "package": "@venizia/ignis-helpers",
+      "subpath": "./uuid",
+      "specifier": "@venizia/ignis-helpers/uuid",
+      "kind": "const",
+      "file": "packages/helpers/src/modules/uid/uuid/v4.ts",
+      "line": 6,
+      "signature": "createUuidV4: () => (() => string)"
+    },
+    {
+      "name": "createUuidV5",
+      "package": "@venizia/ignis-helpers",
+      "subpath": "./uuid",
+      "specifier": "@venizia/ignis-helpers/uuid",
+      "kind": "const",
+      "file": "packages/helpers/src/modules/uid/uuid/v5.ts",
+      "line": 11,
+      "signature": "createUuidV5: () => ((opts: { namespace: string; name: string; }) => string)"
+    },
+    {
+      "name": "createUuidV7",
+      "package": "@venizia/ignis-helpers",
+      "subpath": "./uuid",
+      "specifier": "@venizia/ignis-helpers/uuid",
+      "kind": "const",
+      "file": "packages/helpers/src/modules/uid/uuid/v7.ts",
+      "line": 10,
+      "signature": "createUuidV7: () => (() => string)"
+    },
+    {
+      "name": "uuidV4",
+      "package": "@venizia/ignis-helpers",
+      "subpath": "./uuid",
+      "specifier": "@venizia/ignis-helpers/uuid",
+      "kind": "const",
+      "file": "packages/helpers/src/modules/uid/uuid/v4.ts",
+      "line": 54,
+      "signature": "uuidV4: () => string"
+    },
+    {
+      "name": "uuidV5",
+      "package": "@venizia/ignis-helpers",
+      "subpath": "./uuid",
+      "specifier": "@venizia/ignis-helpers/uuid",
+      "kind": "const",
+      "file": "packages/helpers/src/modules/uid/uuid/v5.ts",
+      "line": 99,
+      "signature": "uuidV5: (opts: { namespace: string; name: string; }) => string"
+    },
+    {
+      "name": "uuidV7",
+      "package": "@venizia/ignis-helpers",
+      "subpath": "./uuid",
+      "specifier": "@venizia/ignis-helpers/uuid",
+      "kind": "const",
+      "file": "packages/helpers/src/modules/uid/uuid/v7.ts",
+      "line": 105,
+      "signature": "uuidV7: () => string"
     },
     {
       "name": "DgramTransport",

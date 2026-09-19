@@ -118,7 +118,7 @@ tags: [reference, exports, api]
 
 ## helpers
 
-### `@venizia/ignis-helpers` (399)
+### `@venizia/ignis-helpers` (404)
 
 - `AbstractCryptoAlgorithm` class
 - `AbstractLogger` class
@@ -163,6 +163,9 @@ tags: [reference, exports, api]
 - `createContentDispositionHeader` const
 - `createRedisHelper` function
 - `createSecretsHelper` function
+- `createUuidV4` const
+- `createUuidV5` const
+- `createUuidV7` const
 - `D_STROKE_REPLACEMENTS` const
 - `DataTypes` class
 - `dayjs` function
@@ -503,7 +506,9 @@ tags: [reference, exports, api]
 - `UUID_PATTERN` const
 - `UuidHelper` class
 - `UuidNamespaces` class
-- `UuidV7Generator` class
+- `uuidV4` const
+- `uuidV5` const
+- `uuidV7` const
 - `ValueOf` type
 - `ValueOptional` type
 - `ValueOptionalExcept` type
@@ -585,7 +590,7 @@ tags: [reference, exports, api]
 - `ValueOptionalExcept` type
 - `ValueOrPromise` type
 
-### `@venizia/ignis-helpers/core` (107)
+### `@venizia/ignis-helpers/core` (112)
 
 - `AbstractNetworkFetchableHelper` class
 - `AbstractPoolHelper` class
@@ -596,6 +601,9 @@ tags: [reference, exports, api]
 - `BasePoolHelper` class
 - `blankToUndefined` const
 - `BuildInfoRegistry` class
+- `createUuidV4` const
+- `createUuidV5` const
+- `createUuidV7` const
 - `DEFAULT_UID_DELIMITER` const
 - `DEFAULT_UID_LENGTH` const
 - `DEFAULT_UID_MAX_ATTEMPTS` const
@@ -693,7 +701,22 @@ tags: [reference, exports, api]
 - `UUID_PATTERN` const
 - `UuidHelper` class
 - `UuidNamespaces` class
-- `UuidV7Generator` class
+- `uuidV4` const
+- `uuidV5` const
+- `uuidV7` const
+
+### `@venizia/ignis-helpers/uuid` (10)
+
+- `createUuidV4` const
+- `createUuidV5` const
+- `createUuidV7` const
+- `IUuidInspection` interface
+- `UUID_PATTERN` const
+- `UuidHelper` class
+- `UuidNamespaces` class
+- `uuidV4` const
+- `uuidV5` const
+- `uuidV7` const
 
 ### `@venizia/ignis-helpers/socket-io` (17)
 
@@ -1885,7 +1908,7 @@ tags: [reference, exports, api]
 
 ## core-server
 
-### `@venizia/ignis` (963)
+### `@venizia/ignis` (968)
 
 - `AbstractApplication` class
 - `AbstractAuthRegistry` class
@@ -2026,6 +2049,9 @@ tags: [reference, exports, api]
 - `createRedisHelper` function
 - `createRelations` const
 - `createSecretsHelper` function
+- `createUuidV4` const
+- `createUuidV5` const
+- `createUuidV7` const
 - `CustomGrantExpander` class
 - `D_STROKE_REPLACEMENTS` const
 - `DATA_SOURCE_BRAND` const
@@ -2832,7 +2858,9 @@ tags: [reference, exports, api]
 - `UUID_PATTERN` const
 - `UuidHelper` class
 - `UuidNamespaces` class
-- `UuidV7Generator` class
+- `uuidV4` const
+- `uuidV5` const
+- `uuidV7` const
 - `ValueOf` type
 - `ValueOptional` type
 - `ValueOptionalExcept` type

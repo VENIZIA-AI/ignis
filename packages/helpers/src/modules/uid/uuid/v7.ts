@@ -1,117 +1,40 @@
-import { BaseHelper } from '../../base';
 import { UUID_HEX_OCTETS } from './common/constants';
 
-/**
- * RFC 9562 UUID version 7: 48-bit unix milliseconds, then randomness. Ids sort as text in creation
- * order, so a primary-key B-tree appends instead of splitting pages - measured on PGlite, 200k
- * inserts ran 11-36% faster with a 27% smaller index than version 4.
- *
- * Bun's native `randomUUIDv7` when present (monotonic, fastest); elsewhere - a browser - the same
- * shape from `getRandomValues`, with a 12-bit counter keeping ids ordered inside one millisecond.
- */
-export class UuidV7Generator extends BaseHelper {
-  /** Realm-keyed: a dual CJS+ESM build puts two copies of this class in one process, and two counters would interleave out of order. */
-  private static readonly SHARED_SLOT = Symbol.for('@venizia/ignis-helpers:uuid-v7-generator');
+/** One sequence per realm: the CJS and ESM copies must not interleave two counters. */
+const SHARED_SLOT = Symbol.for('@venizia/ignis-helpers:uuid-v7');
 
-  /** 256 ids of entropy per `getRandomValues` call. */
-  private static readonly POOL_SIZE = 8 * 256;
+const POOL_SIZE = 8 * 256;
+const MAX_COUNTER = 0xfff;
 
-  private static readonly MAX_COUNTER = 0xfff;
-
-  /**
-   * The resolved generator ITSELF, not a method wrapping it: `nextId()` then lands directly on
-   * `Bun.randomUUIDv7` with no frame in between - measured 7 ns per id on this machine.
-   */
-  readonly nextId: () => string;
-
-  private readonly pool = new Uint8Array(UuidV7Generator.POOL_SIZE);
-  private offset = UuidV7Generator.POOL_SIZE;
-  private lastMs = -1;
-  private counter = 0;
-  /** `xxxxxxxx-xxxx-` for `lastMs`, rebuilt only when the millisecond changes. */
-  private prefix = '';
-
-  constructor(opts?: { scope?: string }) {
-    super({ scope: opts?.scope ?? UuidV7Generator.name });
-
-    // Through `globalThis`: a member access on the bare global survives into a browser bundle and
-    // the purity gate rejects the whole entry for it.
-    const runtime: { randomUUIDv7?: () => string } | undefined = Reflect.get(globalThis, 'Bun');
-    const native = runtime?.randomUUIDv7;
-    this.nextId = typeof native === 'function' ? native : () => this.fromEntropy();
+/** Builds a v7 generator with its own clock state and counter. */
+export const createUuidV7 = (): (() => string) => {
+  // Through `globalThis`: a member access on the bare global fails the browser-purity gate.
+  const runtime: { randomUUIDv7?: () => string } | undefined = Reflect.get(globalThis, 'Bun');
+  const native = runtime?.randomUUIDv7;
+  if (typeof native === 'function') {
+    return native;
   }
 
-  /** One sequence per realm: ids from every caller stay ordered against each other, across both module copies. */
-  static getInstance(): UuidV7Generator {
-    const shared: UuidV7Generator | undefined = Reflect.get(
-      globalThis,
-      UuidV7Generator.SHARED_SLOT,
-    );
-    if (shared) {
-      return shared;
+  const pool = new Uint8Array(POOL_SIZE);
+  let offset = POOL_SIZE;
+  let lastMs = -1;
+  let counter = 0;
+  let prefix = '';
+
+  /** Draws a counter seed below 0x800, leaving room to climb inside the millisecond. */
+  const drawCounterSeed = (): number => {
+    if (offset > POOL_SIZE - 2) {
+      globalThis.crypto.getRandomValues(pool);
+      offset = 0;
     }
 
-    const created = new UuidV7Generator();
-    Reflect.set(globalThis, UuidV7Generator.SHARED_SLOT, created);
-    return created;
-  }
-
-  private fromEntropy(): string {
-    const now = Date.now();
-
-    if (now > this.lastMs) {
-      this.lastMs = now;
-      this.counter = this.drawCounterSeed();
-      this.prefix = this.renderPrefix({ ms: now });
-    } else if (++this.counter > UuidV7Generator.MAX_COUNTER) {
-      // Counter spent, or the clock stepped back: borrow the next millisecond rather than repeat.
-      this.lastMs += 1;
-      this.counter = this.drawCounterSeed();
-      this.prefix = this.renderPrefix({ ms: this.lastMs });
-    }
-
-    if (this.offset > UuidV7Generator.POOL_SIZE - 8) {
-      globalThis.crypto.getRandomValues(this.pool);
-      this.offset = 0;
-    }
-
-    const pool = this.pool;
-    const at = this.offset;
-    this.offset = at + 8;
-
-    const hex = UUID_HEX_OCTETS;
-    const counter = this.counter;
-
-    return (
-      this.prefix +
-      hex[0x70 | (counter >>> 8)] +
-      hex[counter & 0xff] +
-      '-' +
-      hex[(pool[at] & 0x3f) | 0x80] +
-      hex[pool[at + 1]] +
-      '-' +
-      hex[pool[at + 2]] +
-      hex[pool[at + 3]] +
-      hex[pool[at + 4]] +
-      hex[pool[at + 5]] +
-      hex[pool[at + 6]] +
-      hex[pool[at + 7]]
-    );
-  }
-
-  /** Seeds below 0x800, leaving at least 2048 increments inside the millisecond. */
-  private drawCounterSeed(): number {
-    if (this.offset > UuidV7Generator.POOL_SIZE - 2) {
-      globalThis.crypto.getRandomValues(this.pool);
-      this.offset = 0;
-    }
-
-    const seed = ((this.pool[this.offset] << 8) | this.pool[this.offset + 1]) & 0x7ff;
-    this.offset += 2;
+    const seed = ((pool[offset] << 8) | pool[offset + 1]) & 0x7ff;
+    offset += 2;
     return seed;
-  }
+  };
 
-  private renderPrefix(opts: { ms: number }): string {
+  /** Renders the 48-bit timestamp half of the id. */
+  const renderPrefix = (opts: { ms: number }): string => {
     const { ms } = opts;
     const hex = UUID_HEX_OCTETS;
     // 48 bits exceed the 32-bit bitwise range: split at 24 bits with arithmetic first.
@@ -128,5 +51,55 @@ export class UuidV7Generator extends BaseHelper {
       hex[low & 0xff] +
       '-'
     );
-  }
+  };
+
+  return () => {
+    const now = Date.now();
+
+    if (now > lastMs) {
+      lastMs = now;
+      counter = drawCounterSeed();
+      prefix = renderPrefix({ ms: now });
+    } else if (++counter > MAX_COUNTER) {
+      // Counter spent, or the clock stepped back: borrow the next millisecond rather than repeat.
+      lastMs += 1;
+      counter = drawCounterSeed();
+      prefix = renderPrefix({ ms: lastMs });
+    }
+
+    if (offset > POOL_SIZE - 8) {
+      globalThis.crypto.getRandomValues(pool);
+      offset = 0;
+    }
+
+    const at = offset;
+    offset = at + 8;
+
+    const hex = UUID_HEX_OCTETS;
+
+    return (
+      prefix +
+      hex[0x70 | (counter >>> 8)] +
+      hex[counter & 0xff] +
+      '-' +
+      hex[(pool[at] & 0x3f) | 0x80] +
+      hex[pool[at + 1]] +
+      '-' +
+      hex[pool[at + 2]] +
+      hex[pool[at + 3]] +
+      hex[pool[at + 4]] +
+      hex[pool[at + 5]] +
+      hex[pool[at + 6]] +
+      hex[pool[at + 7]]
+    );
+  };
+};
+
+const sharedV7: (() => string) | undefined = Reflect.get(globalThis, SHARED_SLOT);
+const resolvedV7 = sharedV7 ?? createUuidV7();
+if (!sharedV7) {
+  Reflect.set(globalThis, SHARED_SLOT, resolvedV7);
 }
+
+/** Mints a time-ordered UUID v7 - the default for a string primary key. */
+export const uuidV7: () => string = resolvedV7;

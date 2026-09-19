@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, spyOn, test } from 'bun:test';
-import { UuidV7Generator } from '@/modules/uid';
+import { createUuidV7, uuidV7 } from '@/modules/uid';
 
 const UUID_V7 = /^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/;
 
@@ -17,35 +17,38 @@ const firstUnordered = (opts: { ids: string[] }): number => {
 };
 
 /** Built with `Bun.randomUUIDv7` hidden, so the `getRandomValues` path a browser takes is the one tested. */
-const buildFallback = (): UuidV7Generator => {
+const buildFallback = (): (() => string) => {
   const native = Bun.randomUUIDv7;
   Bun.randomUUIDv7 = undefined as never;
 
   try {
-    return new UuidV7Generator();
+    return createUuidV7();
   } finally {
     Bun.randomUUIDv7 = native;
   }
 };
 
-const generateMany = (opts: { generator: UuidV7Generator; count: number }): string[] =>
-  Array.from({ length: opts.count }, () => opts.generator.nextId());
+const generateMany = (opts: { generator: () => string; count: number }): string[] =>
+  Array.from({ length: opts.count }, () => opts.generator());
 
 afterEach(() => {
   spyOn(Date, 'now').mockRestore();
 });
 
-test('one shared instance, so every caller draws from one ordered sequence', () => {
-  expect(UuidV7Generator.getInstance()).toBe(UuidV7Generator.getInstance());
+test('one shared sequence per realm, so every caller draws from the same counter', () => {
+  const ids = Array.from({ length: 2_000 }, () => uuidV7());
+
+  expect(ids).toEqual([...ids].sort());
+  expect(new Set(ids).size).toBe(ids.length);
 });
 
 const paths = [
-  { name: 'native Bun.randomUUIDv7', build: () => UuidV7Generator.getInstance() },
+  { name: 'native Bun.randomUUIDv7', build: () => uuidV7 },
   { name: 'getRandomValues fallback', build: buildFallback },
 ];
 
 for (const path of paths) {
-  describe(`UuidV7Generator - ${path.name}`, () => {
+  describe(`uuidV7 - ${path.name}`, () => {
     test('RFC 9562 version 7 shape: version nibble 7, variant 10xx, lowercase hex', () => {
       const ids = generateMany({ generator: path.build(), count: 1000 });
 
@@ -55,9 +58,9 @@ for (const path of paths) {
     // A burst borrows the next millisecond when the 4096-step counter runs out, so an id minted
     // after 100k of them reads slightly ahead of the wall clock - measured 29 ms on the native path.
     test('the first 48 bits are the unix time in milliseconds', () => {
-      const generator = path.build();
+      const generate = path.build();
       const before = Date.now();
-      const id = generator.nextId();
+      const id = generate();
       const after = Date.now();
 
       expect(timestampOf({ id })).toBeGreaterThanOrEqual(before);
@@ -73,24 +76,24 @@ for (const path of paths) {
   });
 }
 
-describe('UuidV7Generator - fallback clock handling', () => {
+describe('uuidV7 - fallback clock handling', () => {
   test('10k ids inside one frozen millisecond stay ordered past the 4096-step counter', () => {
-    const generator = buildFallback();
+    const generate = buildFallback();
     spyOn(Date, 'now').mockReturnValue(1_800_000_000_000);
 
-    const ids = generateMany({ generator, count: 10_000 });
+    const ids = generateMany({ generator: generate, count: 10_000 });
 
     expect(firstUnordered({ ids })).toBe(-1);
     expect(new Set(ids).size).toBe(ids.length);
   });
 
   test('a clock that steps backwards never makes a later id sort earlier', () => {
-    const generator = buildFallback();
+    const generate = buildFallback();
     const clock = spyOn(Date, 'now').mockReturnValue(1_900_000_000_000);
-    const first = generateMany({ generator, count: 10 });
+    const first = generateMany({ generator: generate, count: 10 });
 
     clock.mockReturnValue(1_899_999_990_000);
-    const second = generateMany({ generator, count: 10 });
+    const second = generateMany({ generator: generate, count: 10 });
 
     expect(firstUnordered({ ids: [...first, ...second] })).toBe(-1);
   });

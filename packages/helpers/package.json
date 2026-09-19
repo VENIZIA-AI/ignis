@@ -111,6 +111,12 @@
       "require": "./dist/cjs/core.js",
       "default": "./dist/cjs/core.js"
     },
+    "./uuid": {
+      "types": "./dist/cjs/uuid.d.ts",
+      "import": "./dist/esm/uuid.js",
+      "require": "./dist/cjs/uuid.js",
+      "default": "./dist/cjs/uuid.js"
+    },
     "./socket-io": {
       "types": "./dist/cjs/modules/socket/socket-io/index.d.ts",
       "import": "./dist/esm/modules/socket/socket-io/index.js",

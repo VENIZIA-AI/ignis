@@ -6,6 +6,35 @@ not how.
 This file and `index.md` are reserved OKF filenames - they carry no `type:` frontmatter and are not
 counted as concepts.
 
+## 2026-09-18 (d) - a `./uuid` subpath, because one class could not be tree-shaken
+
+ARDOR asked for it with numbers: `./core` cost 10.2 KB gzip for one `v4()` call against their
+7.7 KB brotli budget, on a kernel already at 6.42. Two independent measurements agreed on the cause
+and BOTH of my first guesses were wrong - it is not SHA-1 (0.83 KB) and not a barrel (`HTTP` is
+1.85 KB deep or through the barrel, identically). It is `getError` pulling inversion's
+`ApplicationError` and `reflect-metadata`, plus a status-code table, behind ONE guard inside `v5`.
+
+So all three became closures from factories (`createUuidV4/5/7`, with `uuidV4/5/7` as the shared
+instances), `UuidHelper` a thin facade over
+them, and all of it is published on `@venizia/ignis-helpers/uuid` beside `./core`. Measured after:
+`uuidV4` **398 B** gzip (from 10.2 KB), `uuidV7` 609 B, facade 9.7 KB. Phat drove two corrections on the way: style had to be consistent across the three versions (v4/v5 functional beside a v7 class was the worst of both), and when the choice was consistency-as-classes (1129 B) against consistency-as-functions (398 B), the lightest one wins - `UuidV7Generator` was published but unused, so it is simply gone rather than deprecated. The factory (`createUuidV7()`) keeps the one thing the class gave: a private sequence for the test that hides `Bun.randomUUIDv7` and exercises the browser path. The marginal cost
+of the facade for a consumer that already bundles inversion is 3.8 KB - still too much for ARDOR,
+which is why the split had to go all the way to a free function rather than stop at a subpath.
+
+Two things worth keeping. The budget is now a TEST (`uuid-bundle-budget.test.ts`, ceilings 600 B and
+800 B, positive control - importing `getError` inside `v4.ts` turns two of three red), because a
+size contract with no test is a comment. And `BaseHelper` itself got lighter, which was Phat asking
+the better question - not "drop the base class" but "why is the logger mandatory": it resolved a
+logger EAGERLY in its constructor, so every browser bundle carrying any helper paid 1033 B. Now it
+reads through `logger/slot.ts` (a mutable slot the logger module fills on import) and resolves on
+first read, with a console fallback - 389 B, or 584 B once the fallback uses `LogLevels` and a
+proper switch. The per-instance cache lives in a `WeakMap` beside the slot, not a field: a mixin
+returning an anonymous class cannot carry `private` OR `#private` through declaration emit (TS4094),
+which kernel found immediately.
+
+Phat refused a lint rule banning `crypto.randomUUID` repo-wide, which ARDOR had asked for. The trap
+is documented at the call site instead.
+
 ## 2026-09-18 (c) - `UuidHelper`: one door for v4, v5 and v7
 
 `uid/uuid/` holds the whole UUID story now: `UuidHelper` (`v4`/`v5`/`v7`/`inspect`/`isValid`),

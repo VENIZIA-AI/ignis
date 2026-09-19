@@ -71,7 +71,7 @@ const PURITY_CLAIMS: IPurityClaim[] = [
   { package: 'filter' },
   {
     package: 'helpers',
-    subpaths: ['./core', './common'],
+    subpaths: ['./core', './common', './uuid'],
   },
   { package: 'kernel' },
   { package: 'core-worker' },
