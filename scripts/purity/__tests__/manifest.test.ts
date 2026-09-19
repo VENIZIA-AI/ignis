@@ -127,14 +127,16 @@ describe('PURITY_MANIFEST derivation', () => {
     expect(probed).toContain('packages/connectors/dist/esm/relational/sqlite/index.js');
   });
 
-  test('helpers claims two sub-paths and NOT its root barrel, in both builds', () => {
+  test('helpers claims its three sub-paths and NOT its root barrel, in both builds', () => {
     const entries = PURITY_MANIFEST.filter(row => row.package === 'helpers').map(row => row.entry);
 
     expect(entries.toSorted()).toEqual([
       'packages/helpers/dist/cjs/common/index.js',
       'packages/helpers/dist/cjs/core.js',
+      'packages/helpers/dist/cjs/uuid.js',
       'packages/helpers/dist/esm/common/index.js',
       'packages/helpers/dist/esm/core.js',
+      'packages/helpers/dist/esm/uuid.js',
     ]);
   });
 
