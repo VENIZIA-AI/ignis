@@ -4,8 +4,14 @@ import type { TRelationConfig } from '@/relational/core/repositories/common';
 import type { TValueOrResolver } from '@venizia/ignis-helpers/common';
 import { getError } from '@venizia/ignis-helpers/core';
 import { createSchemaFactory } from 'drizzle-zod';
+import type { Table } from 'drizzle-orm';
 import type { IEntity, TTableInsert, TTableObject, TTableSchemaWithId } from './common';
 import { getIdType as _getIdType } from './common';
+
+/** Lazy singleton, shared by every entity. */
+let schemaFactory: ReturnType<typeof createSchemaFactory> | undefined;
+const getSchemaFactory = (): ReturnType<typeof createSchemaFactory> =>
+  (schemaFactory ??= createSchemaFactory());
 
 /** Base entity with Drizzle ORM support. Supports static schema or constructor-based schema. */
 export class BaseRelationalEntity<Schema extends TTableSchemaWithId = TTableSchemaWithId>
@@ -21,14 +27,9 @@ export class BaseRelationalEntity<Schema extends TTableSchemaWithId = TTableSche
   static TABLE_NAME?: string;
   static AUTHORIZATION_SUBJECT?: string;
 
-  static schema: TTableSchemaWithId;
+  /** A carrier, deliberately widened to `Table`: a factory-built entity knows its table precisely, and a narrower static would reject that precise type. The CONTRACT stays on the instance, typed `Schema`. */
+  static schema: Table;
   static relations?: TValueOrResolver<Array<TRelationConfig>>;
-
-  /** Lazy singleton - shared across all BaseRelationalEntity instances. */
-  private static _schemaFactory?: ReturnType<typeof createSchemaFactory>;
-  protected static get schemaFactory(): ReturnType<typeof createSchemaFactory> {
-    return (BaseRelationalEntity._schemaFactory ??= createSchemaFactory());
-  }
 
   constructor(opts?: { name?: string; schema?: Schema }) {
     const ctor = new.target as typeof BaseRelationalEntity;
@@ -45,7 +46,7 @@ export class BaseRelationalEntity<Schema extends TTableSchemaWithId = TTableSche
   }
 
   getSchema<T = unknown>(opts: { type: TSchemaType }): T {
-    const factory = BaseRelationalEntity.schemaFactory;
+    const factory = getSchemaFactory();
 
     switch (opts.type) {
       case SchemaTypes.CREATE: {

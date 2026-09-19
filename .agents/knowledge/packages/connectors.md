@@ -143,6 +143,32 @@ So the two package roots deliberately differ. Measured against `dist/`: the conn
 `BaseRelationalEntity`, `getIdType`, `getCachedColumns`, `createRelations`. `@venizia/ignis` gets the
 Postgres 32 at its root; `@venizia/ignis-connectors` gets the neutral 43.
 
+## Two ways to declare a model, both supported
+
+`BaseRelationalEntity` with a hand-written `pgTable` is the original, and 192 BANA models use it -
+it is not going anywhere. `ModelFactory.defineEntity({ name, columns, relations })`
+(`relational/postgres/models/factory.ts`) is the second: it builds the table and the class
+together, takes the table name once, defaults the id to a UUID v7 text key, and exposes
+`schema` / `TABLE_NAME` / `relationDefinitions` / `relations` as statics.
+
+Relations come keyed by name - `many(schema)` / `one(schema)` - and `toRelationConfigs` flattens
+them into the array the query dialect already reads, taking each name from its key.
+`TEntityObject<typeof Entity>` then infers the row WITH its relations, which removes the
+hand-written intersection 182 BANA models maintain beside their runtime declaration.
+
+Three constraints, each learned the hard way and each now enforced by the compiler:
+
+- **A relation points at a SCHEMA, never at an entity.** Two entities importing each other hit
+  TS7022 and both row types collapse to `any` while the app keeps running. The builders only accept
+  a table, so the mistake does not compile.
+- **Never intersect the built table with `TTableSchemaWithId`.** The generic carries a wide
+  `$inferSelect`, and the intersection gives the row an index signature - every unknown column then
+  type-checks.
+- **The factory's return type is a named interface** (`IDefinedEntityClass`), because a consumer's
+  declaration output cannot name an inferred anonymous class (TS2883). For the same family of
+  reasons the static `schema` widened to `Table` and `createSchemaFactory` moved to module scope
+  (TS4094: an anonymous class inheriting a protected static has no emittable declaration).
+
 ## What it owns
 
 | Tier | What lives there |

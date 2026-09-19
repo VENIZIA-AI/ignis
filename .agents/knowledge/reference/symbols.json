@@ -689,7 +689,7 @@
       "specifier": "@venizia/ignis",
       "kind": "class",
       "file": "packages/connectors/src/relational/core/models/base.ts",
-      "line": 11,
+      "line": 17,
       "signature": "class BaseRelationalEntity<Schema extends TTableSchemaWithId = TTableSchemaWithId> extends AbstractEntity implements IEntity<Schema>"
     },
     {
@@ -789,7 +789,7 @@
       "specifier": "@venizia/ignis",
       "kind": "class",
       "file": "packages/connectors/src/relational/core/models/base.ts",
-      "line": 11,
+      "line": 17,
       "signature": "class BaseRelationalEntity<Schema extends TTableSchemaWithId = TTableSchemaWithId> extends AbstractEntity implements IEntity<Schema>"
     },
     {
@@ -809,7 +809,7 @@
       "specifier": "@venizia/ignis",
       "kind": "class",
       "file": "packages/connectors/src/relational/core/models/base.ts",
-      "line": 11,
+      "line": 17,
       "signature": "class BaseRelationalEntity<Schema extends TTableSchemaWithId = TTableSchemaWithId> extends AbstractEntity implements IEntity<Schema>"
     },
     {
@@ -2445,6 +2445,26 @@
       "signature": "interface IDefineRouteOptions<RouteConfig extends HonoRouteConfig, RouteEnv extends Env = Env, RouteSchema extends Schema = {}, BasePath extends string = '/'>"
     },
     {
+      "name": "IDefinedEntity",
+      "package": "@venizia/ignis",
+      "subpath": ".",
+      "specifier": "@venizia/ignis",
+      "kind": "interface",
+      "file": "packages/connectors/src/relational/core/models/common/types.ts",
+      "line": 70,
+      "signature": "interface IDefinedEntity<Schema extends TTableSchemaWithId = TTableSchemaWithId, Relations extends TRelationDefinitions = TRelationDefinitions>"
+    },
+    {
+      "name": "IDefinedEntityClass",
+      "package": "@venizia/ignis",
+      "subpath": ".",
+      "specifier": "@venizia/ignis",
+      "kind": "interface",
+      "file": "packages/connectors/src/relational/postgres/models/factory.ts",
+      "line": 30,
+      "signature": "interface IDefinedEntityClass<Name extends string, Columns extends TEntityColumns, Relations extends TRelationDefinitions>"
+    },
+    {
       "name": "IDeletableRepository",
       "package": "@venizia/ignis",
       "subpath": ".",
@@ -2865,6 +2885,16 @@
       "signature": "interface ILoggerProvider"
     },
     {
+      "name": "IManyRelation",
+      "package": "@venizia/ignis",
+      "subpath": ".",
+      "specifier": "@venizia/ignis",
+      "kind": "interface",
+      "file": "packages/connectors/src/relational/core/models/common/types.ts",
+      "line": 49,
+      "signature": "interface IManyRelation<Schema extends TTableSchemaWithId = TTableSchemaWithId>"
+    },
+    {
       "name": "IMiddlewareConfigs",
       "package": "@venizia/ignis",
       "subpath": ".",
@@ -3003,6 +3033,16 @@
       "file": "packages/helpers/src/modules/storage/common/types.ts",
       "line": 58,
       "signature": "interface IObjectRef"
+    },
+    {
+      "name": "IOneRelation",
+      "package": "@venizia/ignis",
+      "subpath": ".",
+      "specifier": "@venizia/ignis",
+      "kind": "interface",
+      "file": "packages/connectors/src/relational/core/models/common/types.ts",
+      "line": 55,
+      "signature": "interface IOneRelation<Schema extends TTableSchemaWithId = TTableSchemaWithId>"
     },
     {
       "name": "IOpaqueUidOptions",
@@ -4443,6 +4483,16 @@
       "file": "packages/helpers/src/common/constants/mime.ts",
       "line": 3,
       "signature": "class MimeTypes"
+    },
+    {
+      "name": "ModelFactory",
+      "package": "@venizia/ignis",
+      "subpath": ".",
+      "specifier": "@venizia/ignis",
+      "kind": "class",
+      "file": "packages/connectors/src/relational/postgres/models/factory.ts",
+      "line": 43,
+      "signature": "class ModelFactory"
     },
     {
       "name": "ModuleUtility",
@@ -6116,6 +6166,16 @@
       "signature": "type TDurationUnit = TConstValue<typeof DurationUnits>"
     },
     {
+      "name": "TEntityColumns",
+      "package": "@venizia/ignis",
+      "subpath": ".",
+      "specifier": "@venizia/ignis",
+      "kind": "type",
+      "file": "packages/connectors/src/relational/postgres/models/factory.ts",
+      "line": 19,
+      "signature": "type TEntityColumns = Record<string, PgColumnBuilderBase>"
+    },
+    {
       "name": "TEntityDataObject",
       "package": "@venizia/ignis",
       "subpath": ".",
@@ -6136,6 +6196,16 @@
       "signature": "type TEntityId = string & { readonly [entityIdBrand]: never; }"
     },
     {
+      "name": "TEntityObject",
+      "package": "@venizia/ignis",
+      "subpath": ".",
+      "specifier": "@venizia/ignis",
+      "kind": "type",
+      "file": "packages/connectors/src/relational/core/models/common/types.ts",
+      "line": 79,
+      "signature": "type TEntityObject<Entity extends IDefinedEntity> = TTableObject<Entity['schema']> & { [Name in keyof Entity['relationDefinitions']]?: Entity['relationDefinitions'][Name] extends { type: typeof RelationTypes.MANY; } ? Array<TTableObject<Entity['relationDefinitions'][Name]['schema']>> : TTableObject<"
+    },
+    {
       "name": "TEntityPersistObject",
       "package": "@venizia/ignis",
       "subpath": ".",
@@ -6144,6 +6214,16 @@
       "file": "packages/kernel/src/base/controllers/common/types/controller.ts",
       "line": 58,
       "signature": "type TEntityPersistObject<TEntity> = TEntity extends { $inferPersist?: infer TPersist; } ? TPersist extends object ? TPersist : object : object"
+    },
+    {
+      "name": "TEntityTable",
+      "package": "@venizia/ignis",
+      "subpath": ".",
+      "specifier": "@venizia/ignis",
+      "kind": "type",
+      "file": "packages/connectors/src/relational/postgres/models/factory.ts",
+      "line": 22,
+      "signature": "type TEntityTable<Name extends string, Columns extends TEntityColumns> = PgTableWithColumns<{ name: Name; schema: undefined; columns: BuildColumns<Name, Columns, 'pg'>; dialect: 'pg'; }>"
     },
     {
       "name": "TError",
@@ -7204,6 +7284,36 @@
       "file": "packages/connectors/src/relational/postgres/repositories/common/types.ts",
       "line": 24,
       "signature": "type TRelationConfig = { name: string; } & ({ type: typeof RelationTypes.ONE; schema: TTableSchemaWithId; metadata: Parameters<ReturnType<typeof createTableRelationsHelpers>[typeof RelationTypes.ONE]>[1]; } | { type: typeof RelationTypes.MANY; schema: TTableSchemaWithId; metadata: Parameters<ReturnT"
+    },
+    {
+      "name": "TRelationDefinition",
+      "package": "@venizia/ignis",
+      "subpath": ".",
+      "specifier": "@venizia/ignis",
+      "kind": "type",
+      "file": "packages/connectors/src/relational/core/models/common/types.ts",
+      "line": 61,
+      "signature": "type TRelationDefinition = IManyRelation | IOneRelation"
+    },
+    {
+      "name": "TRelationDefinitions",
+      "package": "@venizia/ignis",
+      "subpath": ".",
+      "specifier": "@venizia/ignis",
+      "kind": "type",
+      "file": "packages/connectors/src/relational/core/models/common/types.ts",
+      "line": 67,
+      "signature": "type TRelationDefinitions = Record<string, TRelationDefinition>"
+    },
+    {
+      "name": "TRelationMetadata",
+      "package": "@venizia/ignis",
+      "subpath": ".",
+      "specifier": "@venizia/ignis",
+      "kind": "type",
+      "file": "packages/connectors/src/relational/core/models/common/types.ts",
+      "line": 44,
+      "signature": "type TRelationMetadata<Type extends TRelationConfig['type']> = Extract<TRelationConfig, { type: Type; }>['metadata']"
     },
     {
       "name": "TRelationType",
@@ -8843,7 +8953,7 @@
       "specifier": "@venizia/ignis",
       "kind": "const",
       "file": "packages/connectors/src/relational/core/models/common/types.ts",
-      "line": 31,
+      "line": 32,
       "signature": "getIdType: <T extends TTableSchemaWithId>(opts: { entity: T; }) => import(\"drizzle-orm\").ColumnDataType"
     },
     {
@@ -9137,6 +9247,16 @@
       "signature": "keysToCamel: (object: object) => any"
     },
     {
+      "name": "many",
+      "package": "@venizia/ignis",
+      "subpath": ".",
+      "specifier": "@venizia/ignis",
+      "kind": "const",
+      "file": "packages/connectors/src/relational/core/models/relations.ts",
+      "line": 12,
+      "signature": "many: <Schema extends TTableSchemaWithId>(schema: Schema, metadata?: TRelationMetadata<typeof RelationTypes.MANY>) => IManyRelation<Schema>"
+    },
+    {
       "name": "model",
       "package": "@venizia/ignis",
       "subpath": ".",
@@ -9165,6 +9285,16 @@
       "file": "packages/inversion/src/common/utilities.ts",
       "line": 52,
       "signature": "omit: <T extends object, K extends PropertyKey>(opts: { source: T; keys: readonly K[]; }) => Omit<T, Extract<K, keyof T>>"
+    },
+    {
+      "name": "one",
+      "package": "@venizia/ignis",
+      "subpath": ".",
+      "specifier": "@venizia/ignis",
+      "kind": "const",
+      "file": "packages/connectors/src/relational/core/models/relations.ts",
+      "line": 18,
+      "signature": "one: <Schema extends TTableSchemaWithId>(schema: Schema, metadata?: TRelationMetadata<typeof RelationTypes.ONE>) => IOneRelation<Schema>"
     },
     {
       "name": "parseArrayToMapWithKey",
@@ -9605,6 +9735,16 @@
       "file": "packages/helpers/src/modules/network/utilities/query-string.ts",
       "line": 25,
       "signature": "toQueryString: (opts: { params: AnyObject; }) => string"
+    },
+    {
+      "name": "toRelationConfigs",
+      "package": "@venizia/ignis",
+      "subpath": ".",
+      "specifier": "@venizia/ignis",
+      "kind": "const",
+      "file": "packages/connectors/src/relational/core/models/relations.ts",
+      "line": 24,
+      "signature": "toRelationConfigs: (opts: { relations: TRelationDefinitions; }) => Array<TRelationConfig>"
     },
     {
       "name": "toTrimmed",
@@ -10583,7 +10723,7 @@
       "specifier": "@venizia/ignis/postgres",
       "kind": "class",
       "file": "packages/connectors/src/relational/core/models/base.ts",
-      "line": 11,
+      "line": 17,
       "signature": "class BaseRelationalEntity<Schema extends TTableSchemaWithId = TTableSchemaWithId> extends AbstractEntity implements IEntity<Schema>"
     },
     {
@@ -10603,7 +10743,7 @@
       "specifier": "@venizia/ignis/postgres",
       "kind": "class",
       "file": "packages/connectors/src/relational/core/models/base.ts",
-      "line": 11,
+      "line": 17,
       "signature": "class BaseRelationalEntity<Schema extends TTableSchemaWithId = TTableSchemaWithId> extends AbstractEntity implements IEntity<Schema>"
     },
     {
@@ -10613,7 +10753,7 @@
       "specifier": "@venizia/ignis/postgres",
       "kind": "class",
       "file": "packages/connectors/src/relational/core/models/base.ts",
-      "line": 11,
+      "line": 17,
       "signature": "class BaseRelationalEntity<Schema extends TTableSchemaWithId = TTableSchemaWithId> extends AbstractEntity implements IEntity<Schema>"
     },
     {
@@ -10657,6 +10797,26 @@
       "signature": "interface IDatabaseTransactionOptions extends TRelationalTransactionOptions"
     },
     {
+      "name": "IDefinedEntity",
+      "package": "@venizia/ignis",
+      "subpath": "./postgres",
+      "specifier": "@venizia/ignis/postgres",
+      "kind": "interface",
+      "file": "packages/connectors/src/relational/core/models/common/types.ts",
+      "line": 70,
+      "signature": "interface IDefinedEntity<Schema extends TTableSchemaWithId = TTableSchemaWithId, Relations extends TRelationDefinitions = TRelationDefinitions>"
+    },
+    {
+      "name": "IDefinedEntityClass",
+      "package": "@venizia/ignis",
+      "subpath": "./postgres",
+      "specifier": "@venizia/ignis/postgres",
+      "kind": "interface",
+      "file": "packages/connectors/src/relational/postgres/models/factory.ts",
+      "line": 30,
+      "signature": "interface IDefinedEntityClass<Name extends string, Columns extends TEntityColumns, Relations extends TRelationDefinitions>"
+    },
+    {
       "name": "IEntity",
       "package": "@venizia/ignis",
       "subpath": "./postgres",
@@ -10665,6 +10825,26 @@
       "file": "packages/connectors/src/relational/postgres/models/common/types/table.ts",
       "line": 29,
       "signature": "interface IEntity<Schema extends TTableSchemaWithId = TTableSchemaWithId>"
+    },
+    {
+      "name": "IManyRelation",
+      "package": "@venizia/ignis",
+      "subpath": "./postgres",
+      "specifier": "@venizia/ignis/postgres",
+      "kind": "interface",
+      "file": "packages/connectors/src/relational/core/models/common/types.ts",
+      "line": 49,
+      "signature": "interface IManyRelation<Schema extends TTableSchemaWithId = TTableSchemaWithId>"
+    },
+    {
+      "name": "IOneRelation",
+      "package": "@venizia/ignis",
+      "subpath": "./postgres",
+      "specifier": "@venizia/ignis/postgres",
+      "kind": "interface",
+      "file": "packages/connectors/src/relational/core/models/common/types.ts",
+      "line": 55,
+      "signature": "interface IOneRelation<Schema extends TTableSchemaWithId = TTableSchemaWithId>"
     },
     {
       "name": "IPostgresDataSource",
@@ -10715,6 +10895,16 @@
       "file": "packages/connectors/src/relational/postgres/datasources/common/types.ts",
       "line": 23,
       "signature": "class IsolationLevels"
+    },
+    {
+      "name": "ModelFactory",
+      "package": "@venizia/ignis",
+      "subpath": "./postgres",
+      "specifier": "@venizia/ignis/postgres",
+      "kind": "class",
+      "file": "packages/connectors/src/relational/postgres/models/factory.ts",
+      "line": 43,
+      "signature": "class ModelFactory"
     },
     {
       "name": "PersistableRepository",
@@ -10847,6 +11037,36 @@
       "signature": "type TDeletedAtColumn = AnyColumn<{ data: Date | string | null; }>"
     },
     {
+      "name": "TEntityColumns",
+      "package": "@venizia/ignis",
+      "subpath": "./postgres",
+      "specifier": "@venizia/ignis/postgres",
+      "kind": "type",
+      "file": "packages/connectors/src/relational/postgres/models/factory.ts",
+      "line": 19,
+      "signature": "type TEntityColumns = Record<string, PgColumnBuilderBase>"
+    },
+    {
+      "name": "TEntityObject",
+      "package": "@venizia/ignis",
+      "subpath": "./postgres",
+      "specifier": "@venizia/ignis/postgres",
+      "kind": "type",
+      "file": "packages/connectors/src/relational/core/models/common/types.ts",
+      "line": 79,
+      "signature": "type TEntityObject<Entity extends IDefinedEntity> = TTableObject<Entity['schema']> & { [Name in keyof Entity['relationDefinitions']]?: Entity['relationDefinitions'][Name] extends { type: typeof RelationTypes.MANY; } ? Array<TTableObject<Entity['relationDefinitions'][Name]['schema']>> : TTableObject<"
+    },
+    {
+      "name": "TEntityTable",
+      "package": "@venizia/ignis",
+      "subpath": "./postgres",
+      "specifier": "@venizia/ignis/postgres",
+      "kind": "type",
+      "file": "packages/connectors/src/relational/postgres/models/factory.ts",
+      "line": 22,
+      "signature": "type TEntityTable<Name extends string, Columns extends TEntityColumns> = PgTableWithColumns<{ name: Name; schema: undefined; columns: BuildColumns<Name, Columns, 'pg'>; dialect: 'pg'; }>"
+    },
+    {
       "name": "TGetIdType",
       "package": "@venizia/ignis",
       "subpath": "./postgres",
@@ -10925,6 +11145,36 @@
       "file": "packages/connectors/src/relational/postgres/repositories/common/types.ts",
       "line": 24,
       "signature": "type TRelationConfig = { name: string; } & ({ type: typeof RelationTypes.ONE; schema: TTableSchemaWithId; metadata: Parameters<ReturnType<typeof createTableRelationsHelpers>[typeof RelationTypes.ONE]>[1]; } | { type: typeof RelationTypes.MANY; schema: TTableSchemaWithId; metadata: Parameters<ReturnT"
+    },
+    {
+      "name": "TRelationDefinition",
+      "package": "@venizia/ignis",
+      "subpath": "./postgres",
+      "specifier": "@venizia/ignis/postgres",
+      "kind": "type",
+      "file": "packages/connectors/src/relational/core/models/common/types.ts",
+      "line": 61,
+      "signature": "type TRelationDefinition = IManyRelation | IOneRelation"
+    },
+    {
+      "name": "TRelationDefinitions",
+      "package": "@venizia/ignis",
+      "subpath": "./postgres",
+      "specifier": "@venizia/ignis/postgres",
+      "kind": "type",
+      "file": "packages/connectors/src/relational/core/models/common/types.ts",
+      "line": 67,
+      "signature": "type TRelationDefinitions = Record<string, TRelationDefinition>"
+    },
+    {
+      "name": "TRelationMetadata",
+      "package": "@venizia/ignis",
+      "subpath": "./postgres",
+      "specifier": "@venizia/ignis/postgres",
+      "kind": "type",
+      "file": "packages/connectors/src/relational/core/models/common/types.ts",
+      "line": 44,
+      "signature": "type TRelationMetadata<Type extends TRelationConfig['type']> = Extract<TRelationConfig, { type: Type; }>['metadata']"
     },
     {
       "name": "TRelationalConnection",
@@ -11203,7 +11453,7 @@
       "specifier": "@venizia/ignis/postgres",
       "kind": "const",
       "file": "packages/connectors/src/relational/core/models/common/types.ts",
-      "line": 31,
+      "line": 32,
       "signature": "getIdType: <T extends TTableSchemaWithId>(opts: { entity: T; }) => import(\"drizzle-orm\").ColumnDataType"
     },
     {
@@ -11225,6 +11475,36 @@
       "file": "packages/connectors/src/relational/postgres/models/common/columns.ts",
       "line": 12,
       "signature": "isoTimestamp: (name: string, config?: { withTimezone?: boolean; }) => import(\"drizzle-orm/pg-core\").PgCustomColumnBuilder<{ name: string; dataType: \"custom\"; columnType: \"PgCustomColumn\"; data: string | TIsoTimestamp; driverParam: string; enumValues: undefined; }>"
+    },
+    {
+      "name": "many",
+      "package": "@venizia/ignis",
+      "subpath": "./postgres",
+      "specifier": "@venizia/ignis/postgres",
+      "kind": "const",
+      "file": "packages/connectors/src/relational/core/models/relations.ts",
+      "line": 12,
+      "signature": "many: <Schema extends TTableSchemaWithId>(schema: Schema, metadata?: TRelationMetadata<typeof RelationTypes.MANY>) => IManyRelation<Schema>"
+    },
+    {
+      "name": "one",
+      "package": "@venizia/ignis",
+      "subpath": "./postgres",
+      "specifier": "@venizia/ignis/postgres",
+      "kind": "const",
+      "file": "packages/connectors/src/relational/core/models/relations.ts",
+      "line": 18,
+      "signature": "one: <Schema extends TTableSchemaWithId>(schema: Schema, metadata?: TRelationMetadata<typeof RelationTypes.ONE>) => IOneRelation<Schema>"
+    },
+    {
+      "name": "toRelationConfigs",
+      "package": "@venizia/ignis",
+      "subpath": "./postgres",
+      "specifier": "@venizia/ignis/postgres",
+      "kind": "const",
+      "file": "packages/connectors/src/relational/core/models/relations.ts",
+      "line": 24,
+      "signature": "toRelationConfigs: (opts: { relations: TRelationDefinitions; }) => Array<TRelationConfig>"
     },
     {
       "name": "NodePostgresDriver",
@@ -11442,7 +11722,7 @@
       "specifier": "@venizia/ignis/relational",
       "kind": "class",
       "file": "packages/connectors/src/relational/core/models/base.ts",
-      "line": 11,
+      "line": 17,
       "signature": "class BaseRelationalEntity<Schema extends TTableSchemaWithId = TTableSchemaWithId> extends AbstractEntity implements IEntity<Schema>"
     },
     {
@@ -11476,13 +11756,23 @@
       "signature": "interface ICountOptions<TConnector>"
     },
     {
+      "name": "IDefinedEntity",
+      "package": "@venizia/ignis",
+      "subpath": "./relational",
+      "specifier": "@venizia/ignis/relational",
+      "kind": "interface",
+      "file": "packages/connectors/src/relational/core/models/common/types.ts",
+      "line": 70,
+      "signature": "interface IDefinedEntity<Schema extends TTableSchemaWithId = TTableSchemaWithId, Relations extends TRelationDefinitions = TRelationDefinitions>"
+    },
+    {
       "name": "IEntity",
       "package": "@venizia/ignis",
       "subpath": "./relational",
       "specifier": "@venizia/ignis/relational",
       "kind": "interface",
       "file": "packages/connectors/src/relational/core/models/common/types.ts",
-      "line": 36,
+      "line": 37,
       "signature": "interface IEntity<Schema extends TTableSchemaWithId = TTableSchemaWithId>"
     },
     {
@@ -11496,6 +11786,16 @@
       "signature": "interface IInsertOptions<TConnector>"
     },
     {
+      "name": "IManyRelation",
+      "package": "@venizia/ignis",
+      "subpath": "./relational",
+      "specifier": "@venizia/ignis/relational",
+      "kind": "interface",
+      "file": "packages/connectors/src/relational/core/models/common/types.ts",
+      "line": 49,
+      "signature": "interface IManyRelation<Schema extends TTableSchemaWithId = TTableSchemaWithId>"
+    },
+    {
       "name": "IMigration",
       "package": "@venizia/ignis",
       "subpath": "./relational",
@@ -11504,6 +11804,16 @@
       "file": "packages/connectors/src/relational/core/migrations/runner.ts",
       "line": 4,
       "signature": "interface IMigration"
+    },
+    {
+      "name": "IOneRelation",
+      "package": "@venizia/ignis",
+      "subpath": "./relational",
+      "specifier": "@venizia/ignis/relational",
+      "kind": "interface",
+      "file": "packages/connectors/src/relational/core/models/common/types.ts",
+      "line": 55,
+      "signature": "interface IOneRelation<Schema extends TTableSchemaWithId = TTableSchemaWithId>"
     },
     {
       "name": "IRelationalConnection",
@@ -11732,7 +12042,7 @@
       "specifier": "@venizia/ignis/relational",
       "kind": "type",
       "file": "packages/connectors/src/relational/core/models/common/types.ts",
-      "line": 13,
+      "line": 14,
       "signature": "type TColumnDefinition = ColumnBuilderBase"
     },
     {
@@ -11742,7 +12052,7 @@
       "specifier": "@venizia/ignis/relational",
       "kind": "type",
       "file": "packages/connectors/src/relational/core/models/common/types.ts",
-      "line": 14,
+      "line": 15,
       "signature": "type TColumnDefinitions = { [field: string | symbol]: TColumnDefinition; }"
     },
     {
@@ -11766,13 +12076,23 @@
       "signature": "type TDeletedAtColumn = AnyColumn<{ data: Date | string | null; }>"
     },
     {
+      "name": "TEntityObject",
+      "package": "@venizia/ignis",
+      "subpath": "./relational",
+      "specifier": "@venizia/ignis/relational",
+      "kind": "type",
+      "file": "packages/connectors/src/relational/core/models/common/types.ts",
+      "line": 79,
+      "signature": "type TEntityObject<Entity extends IDefinedEntity> = TTableObject<Entity['schema']> & { [Name in keyof Entity['relationDefinitions']]?: Entity['relationDefinitions'][Name] extends { type: typeof RelationTypes.MANY; } ? Array<TTableObject<Entity['relationDefinitions'][Name]['schema']>> : TTableObject<"
+    },
+    {
       "name": "TGetIdType",
       "package": "@venizia/ignis",
       "subpath": "./relational",
       "specifier": "@venizia/ignis/relational",
       "kind": "type",
       "file": "packages/connectors/src/relational/core/models/common/types.ts",
-      "line": 29,
+      "line": 30,
       "signature": "type TGetIdType<T extends TTableSchemaWithId> = TTableObject<T>['id']"
     },
     {
@@ -11782,7 +12102,7 @@
       "specifier": "@venizia/ignis/relational",
       "kind": "type",
       "file": "packages/connectors/src/relational/core/models/common/types.ts",
-      "line": 20,
+      "line": 21,
       "signature": "type TIdColumn = AnyColumn<{ data: IdType; }>"
     },
     {
@@ -11792,7 +12112,7 @@
       "specifier": "@venizia/ignis/relational",
       "kind": "type",
       "file": "packages/connectors/src/relational/core/models/common/types.ts",
-      "line": 17,
+      "line": 18,
       "signature": "type TPrimaryKey<T extends TColumnDefinition> = IsPrimaryKey<NotNull<T>>"
     },
     {
@@ -11804,6 +12124,36 @@
       "file": "packages/connectors/src/relational/core/repositories/common/types.ts",
       "line": 16,
       "signature": "type TRelationConfig = { name: string; } & ({ type: typeof RelationTypes.ONE; schema: TTableSchemaWithId; metadata: Parameters<ReturnType<typeof createTableRelationsHelpers>[typeof RelationTypes.ONE]>[1]; } | { type: typeof RelationTypes.MANY; schema: TTableSchemaWithId; metadata: Parameters<ReturnT"
+    },
+    {
+      "name": "TRelationDefinition",
+      "package": "@venizia/ignis",
+      "subpath": "./relational",
+      "specifier": "@venizia/ignis/relational",
+      "kind": "type",
+      "file": "packages/connectors/src/relational/core/models/common/types.ts",
+      "line": 61,
+      "signature": "type TRelationDefinition = IManyRelation | IOneRelation"
+    },
+    {
+      "name": "TRelationDefinitions",
+      "package": "@venizia/ignis",
+      "subpath": "./relational",
+      "specifier": "@venizia/ignis/relational",
+      "kind": "type",
+      "file": "packages/connectors/src/relational/core/models/common/types.ts",
+      "line": 67,
+      "signature": "type TRelationDefinitions = Record<string, TRelationDefinition>"
+    },
+    {
+      "name": "TRelationMetadata",
+      "package": "@venizia/ignis",
+      "subpath": "./relational",
+      "specifier": "@venizia/ignis/relational",
+      "kind": "type",
+      "file": "packages/connectors/src/relational/core/models/common/types.ts",
+      "line": 44,
+      "signature": "type TRelationMetadata<Type extends TRelationConfig['type']> = Extract<TRelationConfig, { type: Type; }>['metadata']"
     },
     {
       "name": "TRelationalConnectorOf",
@@ -11872,7 +12222,7 @@
       "specifier": "@venizia/ignis/relational",
       "kind": "type",
       "file": "packages/connectors/src/relational/core/models/common/types.ts",
-      "line": 28,
+      "line": 29,
       "signature": "type TTableInsert<T extends TTableSchemaWithId> = T['$inferInsert']"
     },
     {
@@ -11882,7 +12232,7 @@
       "specifier": "@venizia/ignis/relational",
       "kind": "type",
       "file": "packages/connectors/src/relational/core/models/common/types.ts",
-      "line": 27,
+      "line": 28,
       "signature": "type TTableObject<T extends TTableSchemaWithId> = T['$inferSelect']"
     },
     {
@@ -11892,7 +12242,7 @@
       "specifier": "@venizia/ignis/relational",
       "kind": "type",
       "file": "packages/connectors/src/relational/core/models/common/types.ts",
-      "line": 23,
+      "line": 24,
       "signature": "type TTableSchemaWithId<TC extends TableConfig = TableConfig> = Table<TC> & { id: TIdColumn; }"
     },
     {
@@ -11932,7 +12282,7 @@
       "specifier": "@venizia/ignis/relational",
       "kind": "const",
       "file": "packages/connectors/src/relational/core/models/common/types.ts",
-      "line": 31,
+      "line": 32,
       "signature": "getIdType: <T extends TTableSchemaWithId>(opts: { entity: T; }) => import(\"drizzle-orm\").ColumnDataType"
     },
     {
@@ -11956,6 +12306,26 @@
       "signature": "isRelationalTransaction: (transaction: ITransaction | undefined) => transaction is IRelationalTransaction<unknown>"
     },
     {
+      "name": "many",
+      "package": "@venizia/ignis",
+      "subpath": "./relational",
+      "specifier": "@venizia/ignis/relational",
+      "kind": "const",
+      "file": "packages/connectors/src/relational/core/models/relations.ts",
+      "line": 12,
+      "signature": "many: <Schema extends TTableSchemaWithId>(schema: Schema, metadata?: TRelationMetadata<typeof RelationTypes.MANY>) => IManyRelation<Schema>"
+    },
+    {
+      "name": "one",
+      "package": "@venizia/ignis",
+      "subpath": "./relational",
+      "specifier": "@venizia/ignis/relational",
+      "kind": "const",
+      "file": "packages/connectors/src/relational/core/models/relations.ts",
+      "line": 18,
+      "signature": "one: <Schema extends TTableSchemaWithId>(schema: Schema, metadata?: TRelationMetadata<typeof RelationTypes.ONE>) => IOneRelation<Schema>"
+    },
+    {
       "name": "parseJsonPath",
       "package": "@venizia/ignis",
       "subpath": "./relational",
@@ -11974,6 +12344,16 @@
       "file": "packages/connectors/src/relational/core/models/enrichers/audit-user.ts",
       "line": 15,
       "signature": "resolveAuditUserId: <T>(opts: { allowAnonymous: boolean; columnField: string; }) => T | null"
+    },
+    {
+      "name": "toRelationConfigs",
+      "package": "@venizia/ignis",
+      "subpath": "./relational",
+      "specifier": "@venizia/ignis/relational",
+      "kind": "const",
+      "file": "packages/connectors/src/relational/core/models/relations.ts",
+      "line": 24,
+      "signature": "toRelationConfigs: (opts: { relations: TRelationDefinitions; }) => Array<TRelationConfig>"
     },
     {
       "name": "validateJsonColumnType",
@@ -12686,6 +13066,16 @@
       "signature": "class DefaultSqliteRepository<EntitySchema extends TTableSchemaWithId = TTableSchemaWithId, DataObject extends TTableObject<EntitySchema> = TTableObject<EntitySchema>, PersistObject extends TTableInsert<EntitySchema> = TTableInsert<EntitySchema>, ExtraOptions extends IExtraOptions = ISqliteExtraOpti"
     },
     {
+      "name": "IDefinedEntity",
+      "package": "@venizia/ignis",
+      "subpath": "./sqlite",
+      "specifier": "@venizia/ignis/sqlite",
+      "kind": "interface",
+      "file": "packages/connectors/src/relational/core/models/common/types.ts",
+      "line": 70,
+      "signature": "interface IDefinedEntity<Schema extends TTableSchemaWithId = TTableSchemaWithId, Relations extends TRelationDefinitions = TRelationDefinitions>"
+    },
+    {
       "name": "IEntity",
       "package": "@venizia/ignis",
       "subpath": "./sqlite",
@@ -12694,6 +13084,26 @@
       "file": "packages/connectors/src/relational/sqlite/models/common/types/table.ts",
       "line": 37,
       "signature": "interface IEntity<Schema extends TTableSchemaWithId = TTableSchemaWithId>"
+    },
+    {
+      "name": "IManyRelation",
+      "package": "@venizia/ignis",
+      "subpath": "./sqlite",
+      "specifier": "@venizia/ignis/sqlite",
+      "kind": "interface",
+      "file": "packages/connectors/src/relational/core/models/common/types.ts",
+      "line": 49,
+      "signature": "interface IManyRelation<Schema extends TTableSchemaWithId = TTableSchemaWithId>"
+    },
+    {
+      "name": "IOneRelation",
+      "package": "@venizia/ignis",
+      "subpath": "./sqlite",
+      "specifier": "@venizia/ignis/sqlite",
+      "kind": "interface",
+      "file": "packages/connectors/src/relational/core/models/common/types.ts",
+      "line": 55,
+      "signature": "interface IOneRelation<Schema extends TTableSchemaWithId = TTableSchemaWithId>"
     },
     {
       "name": "IRelationalQueryDialect",
@@ -12926,6 +13336,16 @@
       "signature": "type TDeletedAtColumn = AnyColumn<{ data: Date | string | null; }>"
     },
     {
+      "name": "TEntityObject",
+      "package": "@venizia/ignis",
+      "subpath": "./sqlite",
+      "specifier": "@venizia/ignis/sqlite",
+      "kind": "type",
+      "file": "packages/connectors/src/relational/core/models/common/types.ts",
+      "line": 79,
+      "signature": "type TEntityObject<Entity extends IDefinedEntity> = TTableObject<Entity['schema']> & { [Name in keyof Entity['relationDefinitions']]?: Entity['relationDefinitions'][Name] extends { type: typeof RelationTypes.MANY; } ? Array<TTableObject<Entity['relationDefinitions'][Name]['schema']>> : TTableObject<"
+    },
+    {
       "name": "TGetIdType",
       "package": "@venizia/ignis",
       "subpath": "./sqlite",
@@ -12984,6 +13404,36 @@
       "file": "packages/connectors/src/relational/sqlite/models/common/types/enrichers.ts",
       "line": 23,
       "signature": "type TPrincipalEnricherOptions<Discriminator extends string = string, PolymorphicIdType extends 'number' | 'string' = 'number' | 'string', Nullable extends boolean = false> = { discriminator?: Discriminator; defaultPolymorphic?: string; polymorphicIdType: PolymorphicIdType; isNullableId?: Nullable; "
+    },
+    {
+      "name": "TRelationDefinition",
+      "package": "@venizia/ignis",
+      "subpath": "./sqlite",
+      "specifier": "@venizia/ignis/sqlite",
+      "kind": "type",
+      "file": "packages/connectors/src/relational/core/models/common/types.ts",
+      "line": 61,
+      "signature": "type TRelationDefinition = IManyRelation | IOneRelation"
+    },
+    {
+      "name": "TRelationDefinitions",
+      "package": "@venizia/ignis",
+      "subpath": "./sqlite",
+      "specifier": "@venizia/ignis/sqlite",
+      "kind": "type",
+      "file": "packages/connectors/src/relational/core/models/common/types.ts",
+      "line": 67,
+      "signature": "type TRelationDefinitions = Record<string, TRelationDefinition>"
+    },
+    {
+      "name": "TRelationMetadata",
+      "package": "@venizia/ignis",
+      "subpath": "./sqlite",
+      "specifier": "@venizia/ignis/sqlite",
+      "kind": "type",
+      "file": "packages/connectors/src/relational/core/models/common/types.ts",
+      "line": 44,
+      "signature": "type TRelationMetadata<Type extends TRelationConfig['type']> = Extract<TRelationConfig, { type: Type; }>['metadata']"
     },
     {
       "name": "TSoftDeletableTableSchema",
@@ -13232,7 +13682,7 @@
       "specifier": "@venizia/ignis/sqlite",
       "kind": "const",
       "file": "packages/connectors/src/relational/core/models/common/types.ts",
-      "line": 31,
+      "line": 32,
       "signature": "getIdType: <T extends TTableSchemaWithId>(opts: { entity: T; }) => import(\"drizzle-orm\").ColumnDataType"
     },
     {
@@ -13254,6 +13704,36 @@
       "file": "packages/connectors/src/relational/sqlite/models/common/columns.ts",
       "line": 19,
       "signature": "isoTimestamp: (name: string) => import(\"drizzle-orm/sqlite-core\").SQLiteCustomColumnBuilder<{ name: string; dataType: \"custom\"; columnType: \"SQLiteCustomColumn\"; data: string | TIsoTimestamp; driverParam: string; enumValues: undefined; }>"
+    },
+    {
+      "name": "many",
+      "package": "@venizia/ignis",
+      "subpath": "./sqlite",
+      "specifier": "@venizia/ignis/sqlite",
+      "kind": "const",
+      "file": "packages/connectors/src/relational/core/models/relations.ts",
+      "line": 12,
+      "signature": "many: <Schema extends TTableSchemaWithId>(schema: Schema, metadata?: TRelationMetadata<typeof RelationTypes.MANY>) => IManyRelation<Schema>"
+    },
+    {
+      "name": "one",
+      "package": "@venizia/ignis",
+      "subpath": "./sqlite",
+      "specifier": "@venizia/ignis/sqlite",
+      "kind": "const",
+      "file": "packages/connectors/src/relational/core/models/relations.ts",
+      "line": 18,
+      "signature": "one: <Schema extends TTableSchemaWithId>(schema: Schema, metadata?: TRelationMetadata<typeof RelationTypes.ONE>) => IOneRelation<Schema>"
+    },
+    {
+      "name": "toRelationConfigs",
+      "package": "@venizia/ignis",
+      "subpath": "./sqlite",
+      "specifier": "@venizia/ignis/sqlite",
+      "kind": "const",
+      "file": "packages/connectors/src/relational/core/models/relations.ts",
+      "line": 24,
+      "signature": "toRelationConfigs: (opts: { relations: TRelationDefinitions; }) => Array<TRelationConfig>"
     },
     {
       "name": "LibSqlDriver",
@@ -15052,7 +15532,7 @@
       "specifier": "@venizia/ignis-connectors",
       "kind": "class",
       "file": "packages/connectors/src/relational/core/models/base.ts",
-      "line": 11,
+      "line": 17,
       "signature": "class BaseRelationalEntity<Schema extends TTableSchemaWithId = TTableSchemaWithId> extends AbstractEntity implements IEntity<Schema>"
     },
     {
@@ -15136,13 +15616,23 @@
       "signature": "interface ICountOptions<TConnector>"
     },
     {
+      "name": "IDefinedEntity",
+      "package": "@venizia/ignis-connectors",
+      "subpath": ".",
+      "specifier": "@venizia/ignis-connectors",
+      "kind": "interface",
+      "file": "packages/connectors/src/relational/core/models/common/types.ts",
+      "line": 70,
+      "signature": "interface IDefinedEntity<Schema extends TTableSchemaWithId = TTableSchemaWithId, Relations extends TRelationDefinitions = TRelationDefinitions>"
+    },
+    {
       "name": "IEntity",
       "package": "@venizia/ignis-connectors",
       "subpath": ".",
       "specifier": "@venizia/ignis-connectors",
       "kind": "interface",
       "file": "packages/connectors/src/relational/core/models/common/types.ts",
-      "line": 36,
+      "line": 37,
       "signature": "interface IEntity<Schema extends TTableSchemaWithId = TTableSchemaWithId>"
     },
     {
@@ -15166,6 +15656,16 @@
       "signature": "interface IInsertOptions<TConnector>"
     },
     {
+      "name": "IManyRelation",
+      "package": "@venizia/ignis-connectors",
+      "subpath": ".",
+      "specifier": "@venizia/ignis-connectors",
+      "kind": "interface",
+      "file": "packages/connectors/src/relational/core/models/common/types.ts",
+      "line": 49,
+      "signature": "interface IManyRelation<Schema extends TTableSchemaWithId = TTableSchemaWithId>"
+    },
+    {
       "name": "IMigration",
       "package": "@venizia/ignis-connectors",
       "subpath": ".",
@@ -15174,6 +15674,16 @@
       "file": "packages/connectors/src/relational/core/migrations/runner.ts",
       "line": 4,
       "signature": "interface IMigration"
+    },
+    {
+      "name": "IOneRelation",
+      "package": "@venizia/ignis-connectors",
+      "subpath": ".",
+      "specifier": "@venizia/ignis-connectors",
+      "kind": "interface",
+      "file": "packages/connectors/src/relational/core/models/common/types.ts",
+      "line": 55,
+      "signature": "interface IOneRelation<Schema extends TTableSchemaWithId = TTableSchemaWithId>"
     },
     {
       "name": "IRelationalConnection",
@@ -15712,7 +16222,7 @@
       "specifier": "@venizia/ignis-connectors",
       "kind": "type",
       "file": "packages/connectors/src/relational/core/models/common/types.ts",
-      "line": 13,
+      "line": 14,
       "signature": "type TColumnDefinition = ColumnBuilderBase"
     },
     {
@@ -15722,7 +16232,7 @@
       "specifier": "@venizia/ignis-connectors",
       "kind": "type",
       "file": "packages/connectors/src/relational/core/models/common/types.ts",
-      "line": 14,
+      "line": 15,
       "signature": "type TColumnDefinitions = { [field: string | symbol]: TColumnDefinition; }"
     },
     {
@@ -15756,6 +16266,16 @@
       "signature": "type TDeletedAtColumn = AnyColumn<{ data: Date | string | null; }>"
     },
     {
+      "name": "TEntityObject",
+      "package": "@venizia/ignis-connectors",
+      "subpath": ".",
+      "specifier": "@venizia/ignis-connectors",
+      "kind": "type",
+      "file": "packages/connectors/src/relational/core/models/common/types.ts",
+      "line": 79,
+      "signature": "type TEntityObject<Entity extends IDefinedEntity> = TTableObject<Entity['schema']> & { [Name in keyof Entity['relationDefinitions']]?: Entity['relationDefinitions'][Name] extends { type: typeof RelationTypes.MANY; } ? Array<TTableObject<Entity['relationDefinitions'][Name]['schema']>> : TTableObject<"
+    },
+    {
       "name": "TFieldFlags",
       "package": "@venizia/ignis-connectors",
       "subpath": ".",
@@ -15772,7 +16292,7 @@
       "specifier": "@venizia/ignis-connectors",
       "kind": "type",
       "file": "packages/connectors/src/relational/core/models/common/types.ts",
-      "line": 29,
+      "line": 30,
       "signature": "type TGetIdType<T extends TTableSchemaWithId> = TTableObject<T>['id']"
     },
     {
@@ -15782,7 +16302,7 @@
       "specifier": "@venizia/ignis-connectors",
       "kind": "type",
       "file": "packages/connectors/src/relational/core/models/common/types.ts",
-      "line": 20,
+      "line": 21,
       "signature": "type TIdColumn = AnyColumn<{ data: IdType; }>"
     },
     {
@@ -15812,7 +16332,7 @@
       "specifier": "@venizia/ignis-connectors",
       "kind": "type",
       "file": "packages/connectors/src/relational/core/models/common/types.ts",
-      "line": 17,
+      "line": 18,
       "signature": "type TPrimaryKey<T extends TColumnDefinition> = IsPrimaryKey<NotNull<T>>"
     },
     {
@@ -15824,6 +16344,36 @@
       "file": "packages/connectors/src/relational/core/repositories/common/types.ts",
       "line": 16,
       "signature": "type TRelationConfig = { name: string; } & ({ type: typeof RelationTypes.ONE; schema: TTableSchemaWithId; metadata: Parameters<ReturnType<typeof createTableRelationsHelpers>[typeof RelationTypes.ONE]>[1]; } | { type: typeof RelationTypes.MANY; schema: TTableSchemaWithId; metadata: Parameters<ReturnT"
+    },
+    {
+      "name": "TRelationDefinition",
+      "package": "@venizia/ignis-connectors",
+      "subpath": ".",
+      "specifier": "@venizia/ignis-connectors",
+      "kind": "type",
+      "file": "packages/connectors/src/relational/core/models/common/types.ts",
+      "line": 61,
+      "signature": "type TRelationDefinition = IManyRelation | IOneRelation"
+    },
+    {
+      "name": "TRelationDefinitions",
+      "package": "@venizia/ignis-connectors",
+      "subpath": ".",
+      "specifier": "@venizia/ignis-connectors",
+      "kind": "type",
+      "file": "packages/connectors/src/relational/core/models/common/types.ts",
+      "line": 67,
+      "signature": "type TRelationDefinitions = Record<string, TRelationDefinition>"
+    },
+    {
+      "name": "TRelationMetadata",
+      "package": "@venizia/ignis-connectors",
+      "subpath": ".",
+      "specifier": "@venizia/ignis-connectors",
+      "kind": "type",
+      "file": "packages/connectors/src/relational/core/models/common/types.ts",
+      "line": 44,
+      "signature": "type TRelationMetadata<Type extends TRelationConfig['type']> = Extract<TRelationConfig, { type: Type; }>['metadata']"
     },
     {
       "name": "TRelationalConnectorOf",
@@ -15962,7 +16512,7 @@
       "specifier": "@venizia/ignis-connectors",
       "kind": "type",
       "file": "packages/connectors/src/relational/core/models/common/types.ts",
-      "line": 28,
+      "line": 29,
       "signature": "type TTableInsert<T extends TTableSchemaWithId> = T['$inferInsert']"
     },
     {
@@ -15972,7 +16522,7 @@
       "specifier": "@venizia/ignis-connectors",
       "kind": "type",
       "file": "packages/connectors/src/relational/core/models/common/types.ts",
-      "line": 27,
+      "line": 28,
       "signature": "type TTableObject<T extends TTableSchemaWithId> = T['$inferSelect']"
     },
     {
@@ -15982,7 +16532,7 @@
       "specifier": "@venizia/ignis-connectors",
       "kind": "type",
       "file": "packages/connectors/src/relational/core/models/common/types.ts",
-      "line": 23,
+      "line": 24,
       "signature": "type TTableSchemaWithId<TC extends TableConfig = TableConfig> = Table<TC> & { id: TIdColumn; }"
     },
     {
@@ -16102,7 +16652,7 @@
       "specifier": "@venizia/ignis-connectors",
       "kind": "const",
       "file": "packages/connectors/src/relational/core/models/common/types.ts",
-      "line": 31,
+      "line": 32,
       "signature": "getIdType: <T extends TTableSchemaWithId>(opts: { entity: T; }) => import(\"drizzle-orm\").ColumnDataType"
     },
     {
@@ -16126,6 +16676,26 @@
       "signature": "isRelationalTransaction: (transaction: ITransaction | undefined) => transaction is IRelationalTransaction<unknown>"
     },
     {
+      "name": "many",
+      "package": "@venizia/ignis-connectors",
+      "subpath": ".",
+      "specifier": "@venizia/ignis-connectors",
+      "kind": "const",
+      "file": "packages/connectors/src/relational/core/models/relations.ts",
+      "line": 12,
+      "signature": "many: <Schema extends TTableSchemaWithId>(schema: Schema, metadata?: TRelationMetadata<typeof RelationTypes.MANY>) => IManyRelation<Schema>"
+    },
+    {
+      "name": "one",
+      "package": "@venizia/ignis-connectors",
+      "subpath": ".",
+      "specifier": "@venizia/ignis-connectors",
+      "kind": "const",
+      "file": "packages/connectors/src/relational/core/models/relations.ts",
+      "line": 18,
+      "signature": "one: <Schema extends TTableSchemaWithId>(schema: Schema, metadata?: TRelationMetadata<typeof RelationTypes.ONE>) => IOneRelation<Schema>"
+    },
+    {
       "name": "parseJsonPath",
       "package": "@venizia/ignis-connectors",
       "subpath": ".",
@@ -16144,6 +16714,16 @@
       "file": "packages/connectors/src/relational/core/models/enrichers/audit-user.ts",
       "line": 15,
       "signature": "resolveAuditUserId: <T>(opts: { allowAnonymous: boolean; columnField: string; }) => T | null"
+    },
+    {
+      "name": "toRelationConfigs",
+      "package": "@venizia/ignis-connectors",
+      "subpath": ".",
+      "specifier": "@venizia/ignis-connectors",
+      "kind": "const",
+      "file": "packages/connectors/src/relational/core/models/relations.ts",
+      "line": 24,
+      "signature": "toRelationConfigs: (opts: { relations: TRelationDefinitions; }) => Array<TRelationConfig>"
     },
     {
       "name": "toSearchQueryParams",
@@ -16452,7 +17032,7 @@
       "specifier": "@venizia/ignis-connectors/postgres",
       "kind": "class",
       "file": "packages/connectors/src/relational/core/models/base.ts",
-      "line": 11,
+      "line": 17,
       "signature": "class BaseRelationalEntity<Schema extends TTableSchemaWithId = TTableSchemaWithId> extends AbstractEntity implements IEntity<Schema>"
     },
     {
@@ -16472,7 +17052,7 @@
       "specifier": "@venizia/ignis-connectors/postgres",
       "kind": "class",
       "file": "packages/connectors/src/relational/core/models/base.ts",
-      "line": 11,
+      "line": 17,
       "signature": "class BaseRelationalEntity<Schema extends TTableSchemaWithId = TTableSchemaWithId> extends AbstractEntity implements IEntity<Schema>"
     },
     {
@@ -16482,7 +17062,7 @@
       "specifier": "@venizia/ignis-connectors/postgres",
       "kind": "class",
       "file": "packages/connectors/src/relational/core/models/base.ts",
-      "line": 11,
+      "line": 17,
       "signature": "class BaseRelationalEntity<Schema extends TTableSchemaWithId = TTableSchemaWithId> extends AbstractEntity implements IEntity<Schema>"
     },
     {
@@ -16526,6 +17106,26 @@
       "signature": "interface IDatabaseTransactionOptions extends TRelationalTransactionOptions"
     },
     {
+      "name": "IDefinedEntity",
+      "package": "@venizia/ignis-connectors",
+      "subpath": "./postgres",
+      "specifier": "@venizia/ignis-connectors/postgres",
+      "kind": "interface",
+      "file": "packages/connectors/src/relational/core/models/common/types.ts",
+      "line": 70,
+      "signature": "interface IDefinedEntity<Schema extends TTableSchemaWithId = TTableSchemaWithId, Relations extends TRelationDefinitions = TRelationDefinitions>"
+    },
+    {
+      "name": "IDefinedEntityClass",
+      "package": "@venizia/ignis-connectors",
+      "subpath": "./postgres",
+      "specifier": "@venizia/ignis-connectors/postgres",
+      "kind": "interface",
+      "file": "packages/connectors/src/relational/postgres/models/factory.ts",
+      "line": 30,
+      "signature": "interface IDefinedEntityClass<Name extends string, Columns extends TEntityColumns, Relations extends TRelationDefinitions>"
+    },
+    {
       "name": "IEntity",
       "package": "@venizia/ignis-connectors",
       "subpath": "./postgres",
@@ -16534,6 +17134,26 @@
       "file": "packages/connectors/src/relational/postgres/models/common/types/table.ts",
       "line": 29,
       "signature": "interface IEntity<Schema extends TTableSchemaWithId = TTableSchemaWithId>"
+    },
+    {
+      "name": "IManyRelation",
+      "package": "@venizia/ignis-connectors",
+      "subpath": "./postgres",
+      "specifier": "@venizia/ignis-connectors/postgres",
+      "kind": "interface",
+      "file": "packages/connectors/src/relational/core/models/common/types.ts",
+      "line": 49,
+      "signature": "interface IManyRelation<Schema extends TTableSchemaWithId = TTableSchemaWithId>"
+    },
+    {
+      "name": "IOneRelation",
+      "package": "@venizia/ignis-connectors",
+      "subpath": "./postgres",
+      "specifier": "@venizia/ignis-connectors/postgres",
+      "kind": "interface",
+      "file": "packages/connectors/src/relational/core/models/common/types.ts",
+      "line": 55,
+      "signature": "interface IOneRelation<Schema extends TTableSchemaWithId = TTableSchemaWithId>"
     },
     {
       "name": "IPostgresDataSource",
@@ -16584,6 +17204,16 @@
       "file": "packages/connectors/src/relational/postgres/datasources/common/types.ts",
       "line": 23,
       "signature": "class IsolationLevels"
+    },
+    {
+      "name": "ModelFactory",
+      "package": "@venizia/ignis-connectors",
+      "subpath": "./postgres",
+      "specifier": "@venizia/ignis-connectors/postgres",
+      "kind": "class",
+      "file": "packages/connectors/src/relational/postgres/models/factory.ts",
+      "line": 43,
+      "signature": "class ModelFactory"
     },
     {
       "name": "PersistableRepository",
@@ -16716,6 +17346,36 @@
       "signature": "type TDeletedAtColumn = AnyColumn<{ data: Date | string | null; }>"
     },
     {
+      "name": "TEntityColumns",
+      "package": "@venizia/ignis-connectors",
+      "subpath": "./postgres",
+      "specifier": "@venizia/ignis-connectors/postgres",
+      "kind": "type",
+      "file": "packages/connectors/src/relational/postgres/models/factory.ts",
+      "line": 19,
+      "signature": "type TEntityColumns = Record<string, PgColumnBuilderBase>"
+    },
+    {
+      "name": "TEntityObject",
+      "package": "@venizia/ignis-connectors",
+      "subpath": "./postgres",
+      "specifier": "@venizia/ignis-connectors/postgres",
+      "kind": "type",
+      "file": "packages/connectors/src/relational/core/models/common/types.ts",
+      "line": 79,
+      "signature": "type TEntityObject<Entity extends IDefinedEntity> = TTableObject<Entity['schema']> & { [Name in keyof Entity['relationDefinitions']]?: Entity['relationDefinitions'][Name] extends { type: typeof RelationTypes.MANY; } ? Array<TTableObject<Entity['relationDefinitions'][Name]['schema']>> : TTableObject<"
+    },
+    {
+      "name": "TEntityTable",
+      "package": "@venizia/ignis-connectors",
+      "subpath": "./postgres",
+      "specifier": "@venizia/ignis-connectors/postgres",
+      "kind": "type",
+      "file": "packages/connectors/src/relational/postgres/models/factory.ts",
+      "line": 22,
+      "signature": "type TEntityTable<Name extends string, Columns extends TEntityColumns> = PgTableWithColumns<{ name: Name; schema: undefined; columns: BuildColumns<Name, Columns, 'pg'>; dialect: 'pg'; }>"
+    },
+    {
       "name": "TGetIdType",
       "package": "@venizia/ignis-connectors",
       "subpath": "./postgres",
@@ -16794,6 +17454,36 @@
       "file": "packages/connectors/src/relational/postgres/repositories/common/types.ts",
       "line": 24,
       "signature": "type TRelationConfig = { name: string; } & ({ type: typeof RelationTypes.ONE; schema: TTableSchemaWithId; metadata: Parameters<ReturnType<typeof createTableRelationsHelpers>[typeof RelationTypes.ONE]>[1]; } | { type: typeof RelationTypes.MANY; schema: TTableSchemaWithId; metadata: Parameters<ReturnT"
+    },
+    {
+      "name": "TRelationDefinition",
+      "package": "@venizia/ignis-connectors",
+      "subpath": "./postgres",
+      "specifier": "@venizia/ignis-connectors/postgres",
+      "kind": "type",
+      "file": "packages/connectors/src/relational/core/models/common/types.ts",
+      "line": 61,
+      "signature": "type TRelationDefinition = IManyRelation | IOneRelation"
+    },
+    {
+      "name": "TRelationDefinitions",
+      "package": "@venizia/ignis-connectors",
+      "subpath": "./postgres",
+      "specifier": "@venizia/ignis-connectors/postgres",
+      "kind": "type",
+      "file": "packages/connectors/src/relational/core/models/common/types.ts",
+      "line": 67,
+      "signature": "type TRelationDefinitions = Record<string, TRelationDefinition>"
+    },
+    {
+      "name": "TRelationMetadata",
+      "package": "@venizia/ignis-connectors",
+      "subpath": "./postgres",
+      "specifier": "@venizia/ignis-connectors/postgres",
+      "kind": "type",
+      "file": "packages/connectors/src/relational/core/models/common/types.ts",
+      "line": 44,
+      "signature": "type TRelationMetadata<Type extends TRelationConfig['type']> = Extract<TRelationConfig, { type: Type; }>['metadata']"
     },
     {
       "name": "TRelationalConnection",
@@ -17072,7 +17762,7 @@
       "specifier": "@venizia/ignis-connectors/postgres",
       "kind": "const",
       "file": "packages/connectors/src/relational/core/models/common/types.ts",
-      "line": 31,
+      "line": 32,
       "signature": "getIdType: <T extends TTableSchemaWithId>(opts: { entity: T; }) => import(\"drizzle-orm\").ColumnDataType"
     },
     {
@@ -17094,6 +17784,36 @@
       "file": "packages/connectors/src/relational/postgres/models/common/columns.ts",
       "line": 12,
       "signature": "isoTimestamp: (name: string, config?: { withTimezone?: boolean; }) => import(\"drizzle-orm/pg-core\").PgCustomColumnBuilder<{ name: string; dataType: \"custom\"; columnType: \"PgCustomColumn\"; data: string | TIsoTimestamp; driverParam: string; enumValues: undefined; }>"
+    },
+    {
+      "name": "many",
+      "package": "@venizia/ignis-connectors",
+      "subpath": "./postgres",
+      "specifier": "@venizia/ignis-connectors/postgres",
+      "kind": "const",
+      "file": "packages/connectors/src/relational/core/models/relations.ts",
+      "line": 12,
+      "signature": "many: <Schema extends TTableSchemaWithId>(schema: Schema, metadata?: TRelationMetadata<typeof RelationTypes.MANY>) => IManyRelation<Schema>"
+    },
+    {
+      "name": "one",
+      "package": "@venizia/ignis-connectors",
+      "subpath": "./postgres",
+      "specifier": "@venizia/ignis-connectors/postgres",
+      "kind": "const",
+      "file": "packages/connectors/src/relational/core/models/relations.ts",
+      "line": 18,
+      "signature": "one: <Schema extends TTableSchemaWithId>(schema: Schema, metadata?: TRelationMetadata<typeof RelationTypes.ONE>) => IOneRelation<Schema>"
+    },
+    {
+      "name": "toRelationConfigs",
+      "package": "@venizia/ignis-connectors",
+      "subpath": "./postgres",
+      "specifier": "@venizia/ignis-connectors/postgres",
+      "kind": "const",
+      "file": "packages/connectors/src/relational/core/models/relations.ts",
+      "line": 24,
+      "signature": "toRelationConfigs: (opts: { relations: TRelationDefinitions; }) => Array<TRelationConfig>"
     },
     {
       "name": "NodePostgresDriver",
@@ -17311,7 +18031,7 @@
       "specifier": "@venizia/ignis-connectors/relational",
       "kind": "class",
       "file": "packages/connectors/src/relational/core/models/base.ts",
-      "line": 11,
+      "line": 17,
       "signature": "class BaseRelationalEntity<Schema extends TTableSchemaWithId = TTableSchemaWithId> extends AbstractEntity implements IEntity<Schema>"
     },
     {
@@ -17345,13 +18065,23 @@
       "signature": "interface ICountOptions<TConnector>"
     },
     {
+      "name": "IDefinedEntity",
+      "package": "@venizia/ignis-connectors",
+      "subpath": "./relational",
+      "specifier": "@venizia/ignis-connectors/relational",
+      "kind": "interface",
+      "file": "packages/connectors/src/relational/core/models/common/types.ts",
+      "line": 70,
+      "signature": "interface IDefinedEntity<Schema extends TTableSchemaWithId = TTableSchemaWithId, Relations extends TRelationDefinitions = TRelationDefinitions>"
+    },
+    {
       "name": "IEntity",
       "package": "@venizia/ignis-connectors",
       "subpath": "./relational",
       "specifier": "@venizia/ignis-connectors/relational",
       "kind": "interface",
       "file": "packages/connectors/src/relational/core/models/common/types.ts",
-      "line": 36,
+      "line": 37,
       "signature": "interface IEntity<Schema extends TTableSchemaWithId = TTableSchemaWithId>"
     },
     {
@@ -17365,6 +18095,16 @@
       "signature": "interface IInsertOptions<TConnector>"
     },
     {
+      "name": "IManyRelation",
+      "package": "@venizia/ignis-connectors",
+      "subpath": "./relational",
+      "specifier": "@venizia/ignis-connectors/relational",
+      "kind": "interface",
+      "file": "packages/connectors/src/relational/core/models/common/types.ts",
+      "line": 49,
+      "signature": "interface IManyRelation<Schema extends TTableSchemaWithId = TTableSchemaWithId>"
+    },
+    {
       "name": "IMigration",
       "package": "@venizia/ignis-connectors",
       "subpath": "./relational",
@@ -17373,6 +18113,16 @@
       "file": "packages/connectors/src/relational/core/migrations/runner.ts",
       "line": 4,
       "signature": "interface IMigration"
+    },
+    {
+      "name": "IOneRelation",
+      "package": "@venizia/ignis-connectors",
+      "subpath": "./relational",
+      "specifier": "@venizia/ignis-connectors/relational",
+      "kind": "interface",
+      "file": "packages/connectors/src/relational/core/models/common/types.ts",
+      "line": 55,
+      "signature": "interface IOneRelation<Schema extends TTableSchemaWithId = TTableSchemaWithId>"
     },
     {
       "name": "IRelationalConnection",
@@ -17601,7 +18351,7 @@
       "specifier": "@venizia/ignis-connectors/relational",
       "kind": "type",
       "file": "packages/connectors/src/relational/core/models/common/types.ts",
-      "line": 13,
+      "line": 14,
       "signature": "type TColumnDefinition = ColumnBuilderBase"
     },
     {
@@ -17611,7 +18361,7 @@
       "specifier": "@venizia/ignis-connectors/relational",
       "kind": "type",
       "file": "packages/connectors/src/relational/core/models/common/types.ts",
-      "line": 14,
+      "line": 15,
       "signature": "type TColumnDefinitions = { [field: string | symbol]: TColumnDefinition; }"
     },
     {
@@ -17635,13 +18385,23 @@
       "signature": "type TDeletedAtColumn = AnyColumn<{ data: Date | string | null; }>"
     },
     {
+      "name": "TEntityObject",
+      "package": "@venizia/ignis-connectors",
+      "subpath": "./relational",
+      "specifier": "@venizia/ignis-connectors/relational",
+      "kind": "type",
+      "file": "packages/connectors/src/relational/core/models/common/types.ts",
+      "line": 79,
+      "signature": "type TEntityObject<Entity extends IDefinedEntity> = TTableObject<Entity['schema']> & { [Name in keyof Entity['relationDefinitions']]?: Entity['relationDefinitions'][Name] extends { type: typeof RelationTypes.MANY; } ? Array<TTableObject<Entity['relationDefinitions'][Name]['schema']>> : TTableObject<"
+    },
+    {
       "name": "TGetIdType",
       "package": "@venizia/ignis-connectors",
       "subpath": "./relational",
       "specifier": "@venizia/ignis-connectors/relational",
       "kind": "type",
       "file": "packages/connectors/src/relational/core/models/common/types.ts",
-      "line": 29,
+      "line": 30,
       "signature": "type TGetIdType<T extends TTableSchemaWithId> = TTableObject<T>['id']"
     },
     {
@@ -17651,7 +18411,7 @@
       "specifier": "@venizia/ignis-connectors/relational",
       "kind": "type",
       "file": "packages/connectors/src/relational/core/models/common/types.ts",
-      "line": 20,
+      "line": 21,
       "signature": "type TIdColumn = AnyColumn<{ data: IdType; }>"
     },
     {
@@ -17661,7 +18421,7 @@
       "specifier": "@venizia/ignis-connectors/relational",
       "kind": "type",
       "file": "packages/connectors/src/relational/core/models/common/types.ts",
-      "line": 17,
+      "line": 18,
       "signature": "type TPrimaryKey<T extends TColumnDefinition> = IsPrimaryKey<NotNull<T>>"
     },
     {
@@ -17673,6 +18433,36 @@
       "file": "packages/connectors/src/relational/core/repositories/common/types.ts",
       "line": 16,
       "signature": "type TRelationConfig = { name: string; } & ({ type: typeof RelationTypes.ONE; schema: TTableSchemaWithId; metadata: Parameters<ReturnType<typeof createTableRelationsHelpers>[typeof RelationTypes.ONE]>[1]; } | { type: typeof RelationTypes.MANY; schema: TTableSchemaWithId; metadata: Parameters<ReturnT"
+    },
+    {
+      "name": "TRelationDefinition",
+      "package": "@venizia/ignis-connectors",
+      "subpath": "./relational",
+      "specifier": "@venizia/ignis-connectors/relational",
+      "kind": "type",
+      "file": "packages/connectors/src/relational/core/models/common/types.ts",
+      "line": 61,
+      "signature": "type TRelationDefinition = IManyRelation | IOneRelation"
+    },
+    {
+      "name": "TRelationDefinitions",
+      "package": "@venizia/ignis-connectors",
+      "subpath": "./relational",
+      "specifier": "@venizia/ignis-connectors/relational",
+      "kind": "type",
+      "file": "packages/connectors/src/relational/core/models/common/types.ts",
+      "line": 67,
+      "signature": "type TRelationDefinitions = Record<string, TRelationDefinition>"
+    },
+    {
+      "name": "TRelationMetadata",
+      "package": "@venizia/ignis-connectors",
+      "subpath": "./relational",
+      "specifier": "@venizia/ignis-connectors/relational",
+      "kind": "type",
+      "file": "packages/connectors/src/relational/core/models/common/types.ts",
+      "line": 44,
+      "signature": "type TRelationMetadata<Type extends TRelationConfig['type']> = Extract<TRelationConfig, { type: Type; }>['metadata']"
     },
     {
       "name": "TRelationalConnectorOf",
@@ -17741,7 +18531,7 @@
       "specifier": "@venizia/ignis-connectors/relational",
       "kind": "type",
       "file": "packages/connectors/src/relational/core/models/common/types.ts",
-      "line": 28,
+      "line": 29,
       "signature": "type TTableInsert<T extends TTableSchemaWithId> = T['$inferInsert']"
     },
     {
@@ -17751,7 +18541,7 @@
       "specifier": "@venizia/ignis-connectors/relational",
       "kind": "type",
       "file": "packages/connectors/src/relational/core/models/common/types.ts",
-      "line": 27,
+      "line": 28,
       "signature": "type TTableObject<T extends TTableSchemaWithId> = T['$inferSelect']"
     },
     {
@@ -17761,7 +18551,7 @@
       "specifier": "@venizia/ignis-connectors/relational",
       "kind": "type",
       "file": "packages/connectors/src/relational/core/models/common/types.ts",
-      "line": 23,
+      "line": 24,
       "signature": "type TTableSchemaWithId<TC extends TableConfig = TableConfig> = Table<TC> & { id: TIdColumn; }"
     },
     {
@@ -17801,7 +18591,7 @@
       "specifier": "@venizia/ignis-connectors/relational",
       "kind": "const",
       "file": "packages/connectors/src/relational/core/models/common/types.ts",
-      "line": 31,
+      "line": 32,
       "signature": "getIdType: <T extends TTableSchemaWithId>(opts: { entity: T; }) => import(\"drizzle-orm\").ColumnDataType"
     },
     {
@@ -17825,6 +18615,26 @@
       "signature": "isRelationalTransaction: (transaction: ITransaction | undefined) => transaction is IRelationalTransaction<unknown>"
     },
     {
+      "name": "many",
+      "package": "@venizia/ignis-connectors",
+      "subpath": "./relational",
+      "specifier": "@venizia/ignis-connectors/relational",
+      "kind": "const",
+      "file": "packages/connectors/src/relational/core/models/relations.ts",
+      "line": 12,
+      "signature": "many: <Schema extends TTableSchemaWithId>(schema: Schema, metadata?: TRelationMetadata<typeof RelationTypes.MANY>) => IManyRelation<Schema>"
+    },
+    {
+      "name": "one",
+      "package": "@venizia/ignis-connectors",
+      "subpath": "./relational",
+      "specifier": "@venizia/ignis-connectors/relational",
+      "kind": "const",
+      "file": "packages/connectors/src/relational/core/models/relations.ts",
+      "line": 18,
+      "signature": "one: <Schema extends TTableSchemaWithId>(schema: Schema, metadata?: TRelationMetadata<typeof RelationTypes.ONE>) => IOneRelation<Schema>"
+    },
+    {
       "name": "parseJsonPath",
       "package": "@venizia/ignis-connectors",
       "subpath": "./relational",
@@ -17843,6 +18653,16 @@
       "file": "packages/connectors/src/relational/core/models/enrichers/audit-user.ts",
       "line": 15,
       "signature": "resolveAuditUserId: <T>(opts: { allowAnonymous: boolean; columnField: string; }) => T | null"
+    },
+    {
+      "name": "toRelationConfigs",
+      "package": "@venizia/ignis-connectors",
+      "subpath": "./relational",
+      "specifier": "@venizia/ignis-connectors/relational",
+      "kind": "const",
+      "file": "packages/connectors/src/relational/core/models/relations.ts",
+      "line": 24,
+      "signature": "toRelationConfigs: (opts: { relations: TRelationDefinitions; }) => Array<TRelationConfig>"
     },
     {
       "name": "validateJsonColumnType",
@@ -18535,6 +19355,16 @@
       "signature": "class DefaultSqliteRepository<EntitySchema extends TTableSchemaWithId = TTableSchemaWithId, DataObject extends TTableObject<EntitySchema> = TTableObject<EntitySchema>, PersistObject extends TTableInsert<EntitySchema> = TTableInsert<EntitySchema>, ExtraOptions extends IExtraOptions = ISqliteExtraOpti"
     },
     {
+      "name": "IDefinedEntity",
+      "package": "@venizia/ignis-connectors",
+      "subpath": "./sqlite",
+      "specifier": "@venizia/ignis-connectors/sqlite",
+      "kind": "interface",
+      "file": "packages/connectors/src/relational/core/models/common/types.ts",
+      "line": 70,
+      "signature": "interface IDefinedEntity<Schema extends TTableSchemaWithId = TTableSchemaWithId, Relations extends TRelationDefinitions = TRelationDefinitions>"
+    },
+    {
       "name": "IEntity",
       "package": "@venizia/ignis-connectors",
       "subpath": "./sqlite",
@@ -18543,6 +19373,26 @@
       "file": "packages/connectors/src/relational/sqlite/models/common/types/table.ts",
       "line": 37,
       "signature": "interface IEntity<Schema extends TTableSchemaWithId = TTableSchemaWithId>"
+    },
+    {
+      "name": "IManyRelation",
+      "package": "@venizia/ignis-connectors",
+      "subpath": "./sqlite",
+      "specifier": "@venizia/ignis-connectors/sqlite",
+      "kind": "interface",
+      "file": "packages/connectors/src/relational/core/models/common/types.ts",
+      "line": 49,
+      "signature": "interface IManyRelation<Schema extends TTableSchemaWithId = TTableSchemaWithId>"
+    },
+    {
+      "name": "IOneRelation",
+      "package": "@venizia/ignis-connectors",
+      "subpath": "./sqlite",
+      "specifier": "@venizia/ignis-connectors/sqlite",
+      "kind": "interface",
+      "file": "packages/connectors/src/relational/core/models/common/types.ts",
+      "line": 55,
+      "signature": "interface IOneRelation<Schema extends TTableSchemaWithId = TTableSchemaWithId>"
     },
     {
       "name": "IRelationalQueryDialect",
@@ -18775,6 +19625,16 @@
       "signature": "type TDeletedAtColumn = AnyColumn<{ data: Date | string | null; }>"
     },
     {
+      "name": "TEntityObject",
+      "package": "@venizia/ignis-connectors",
+      "subpath": "./sqlite",
+      "specifier": "@venizia/ignis-connectors/sqlite",
+      "kind": "type",
+      "file": "packages/connectors/src/relational/core/models/common/types.ts",
+      "line": 79,
+      "signature": "type TEntityObject<Entity extends IDefinedEntity> = TTableObject<Entity['schema']> & { [Name in keyof Entity['relationDefinitions']]?: Entity['relationDefinitions'][Name] extends { type: typeof RelationTypes.MANY; } ? Array<TTableObject<Entity['relationDefinitions'][Name]['schema']>> : TTableObject<"
+    },
+    {
       "name": "TGetIdType",
       "package": "@venizia/ignis-connectors",
       "subpath": "./sqlite",
@@ -18833,6 +19693,36 @@
       "file": "packages/connectors/src/relational/sqlite/models/common/types/enrichers.ts",
       "line": 23,
       "signature": "type TPrincipalEnricherOptions<Discriminator extends string = string, PolymorphicIdType extends 'number' | 'string' = 'number' | 'string', Nullable extends boolean = false> = { discriminator?: Discriminator; defaultPolymorphic?: string; polymorphicIdType: PolymorphicIdType; isNullableId?: Nullable; "
+    },
+    {
+      "name": "TRelationDefinition",
+      "package": "@venizia/ignis-connectors",
+      "subpath": "./sqlite",
+      "specifier": "@venizia/ignis-connectors/sqlite",
+      "kind": "type",
+      "file": "packages/connectors/src/relational/core/models/common/types.ts",
+      "line": 61,
+      "signature": "type TRelationDefinition = IManyRelation | IOneRelation"
+    },
+    {
+      "name": "TRelationDefinitions",
+      "package": "@venizia/ignis-connectors",
+      "subpath": "./sqlite",
+      "specifier": "@venizia/ignis-connectors/sqlite",
+      "kind": "type",
+      "file": "packages/connectors/src/relational/core/models/common/types.ts",
+      "line": 67,
+      "signature": "type TRelationDefinitions = Record<string, TRelationDefinition>"
+    },
+    {
+      "name": "TRelationMetadata",
+      "package": "@venizia/ignis-connectors",
+      "subpath": "./sqlite",
+      "specifier": "@venizia/ignis-connectors/sqlite",
+      "kind": "type",
+      "file": "packages/connectors/src/relational/core/models/common/types.ts",
+      "line": 44,
+      "signature": "type TRelationMetadata<Type extends TRelationConfig['type']> = Extract<TRelationConfig, { type: Type; }>['metadata']"
     },
     {
       "name": "TSoftDeletableTableSchema",
@@ -19081,7 +19971,7 @@
       "specifier": "@venizia/ignis-connectors/sqlite",
       "kind": "const",
       "file": "packages/connectors/src/relational/core/models/common/types.ts",
-      "line": 31,
+      "line": 32,
       "signature": "getIdType: <T extends TTableSchemaWithId>(opts: { entity: T; }) => import(\"drizzle-orm\").ColumnDataType"
     },
     {
@@ -19103,6 +19993,36 @@
       "file": "packages/connectors/src/relational/sqlite/models/common/columns.ts",
       "line": 19,
       "signature": "isoTimestamp: (name: string) => import(\"drizzle-orm/sqlite-core\").SQLiteCustomColumnBuilder<{ name: string; dataType: \"custom\"; columnType: \"SQLiteCustomColumn\"; data: string | TIsoTimestamp; driverParam: string; enumValues: undefined; }>"
+    },
+    {
+      "name": "many",
+      "package": "@venizia/ignis-connectors",
+      "subpath": "./sqlite",
+      "specifier": "@venizia/ignis-connectors/sqlite",
+      "kind": "const",
+      "file": "packages/connectors/src/relational/core/models/relations.ts",
+      "line": 12,
+      "signature": "many: <Schema extends TTableSchemaWithId>(schema: Schema, metadata?: TRelationMetadata<typeof RelationTypes.MANY>) => IManyRelation<Schema>"
+    },
+    {
+      "name": "one",
+      "package": "@venizia/ignis-connectors",
+      "subpath": "./sqlite",
+      "specifier": "@venizia/ignis-connectors/sqlite",
+      "kind": "const",
+      "file": "packages/connectors/src/relational/core/models/relations.ts",
+      "line": 18,
+      "signature": "one: <Schema extends TTableSchemaWithId>(schema: Schema, metadata?: TRelationMetadata<typeof RelationTypes.ONE>) => IOneRelation<Schema>"
+    },
+    {
+      "name": "toRelationConfigs",
+      "package": "@venizia/ignis-connectors",
+      "subpath": "./sqlite",
+      "specifier": "@venizia/ignis-connectors/sqlite",
+      "kind": "const",
+      "file": "packages/connectors/src/relational/core/models/relations.ts",
+      "line": 24,
+      "signature": "toRelationConfigs: (opts: { relations: TRelationDefinitions; }) => Array<TRelationConfig>"
     },
     {
       "name": "LibSqlDriver",

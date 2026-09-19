@@ -6,6 +6,37 @@ not how.
 This file and `index.md` are reserved OKF filenames - they carry no `type:` frontmatter and are not
 counted as concepts.
 
+## 2026-09-19 - `defineEntity`: a model states each fact once
+
+Measured first, because the example in this repo understates it: BANA has 192 models, 191 of which
+re-create their own zod schemas and rewrite `TABLE_NAME`, and 182 declare every relation TWICE -
+once as runtime config, once as a hand-written type intersection that nothing keeps in sync.
+`packages/core`'s model files alone are 13,591 lines.
+
+So: `ModelFactory.defineEntity({ name, columns, relations })` builds the `pgTable` and the class
+together (no more class-table cycle and its `no-use-before-define` suppression), relations are
+keyed by name and compile down to the array the query dialect already reads, and
+`TEntityObject<typeof Entity>` infers the row WITH its relations. Additive - BANA's 192 models keep
+working untouched.
+
+Three things this cost, all of them silent failures found by probing rather than by tests going red:
+
+- `type Schema = typeof schema & TTableSchemaWithId` looked harmless and was not: intersecting with
+  the generic gives `$inferSelect` an index signature, so EVERY unknown column type-checked. Found
+  by asserting `title: 123` and watching it pass.
+- A relation may point at a SCHEMA, never at another entity: two entities importing each other hit
+  TS7022 and both collapse to `any`, with `@ts-expect-error` turning unused - the app still runs.
+  The builders only accept a table, so the compiler enforces the rule.
+- `BaseRelationalEntity.schema` (the STATIC) had to widen from `TTableSchemaWithId` to `Table`, and
+  the factory's return type had to be a named interface: an inferred anonymous class cannot be named
+  by a consumer's declaration output (TS2883), and one inheriting a protected static cannot be
+  emitted at all (TS4094) - which is why `createSchemaFactory` moved to module scope.
+
+The type contract is a test: probe files compiled by a real `tsc`, one run for all eight cases,
+asserting a correct row compiles clean and seven wrong shapes do not. Control verified - dropping
+relations from `TEntityObject` turns it red. Phat caught the first name, `InferEntity`, breaking the
+`T` prefix 405 of 417 exported types follow; it is `TEntityObject` now.
+
 ## 2026-09-18 (d) - a `./uuid` subpath, because one class could not be tree-shaken
 
 ARDOR asked for it with numbers: `./core` cost 10.2 KB gzip for one `v4()` call against their

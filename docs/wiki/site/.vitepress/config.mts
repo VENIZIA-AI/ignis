@@ -451,6 +451,16 @@ const config = defineConfig({
           collapsed: false,
           items: [
             {
+              text: '2026-09-19',
+              collapsed: true,
+              items: [
+                {
+                  text: 'A Model Declares Each Fact Once',
+                  link: '/changelogs/2026-09-19-define-entity',
+                },
+              ],
+            },
+            {
               text: '2026-09-18',
               collapsed: true,
               items: [

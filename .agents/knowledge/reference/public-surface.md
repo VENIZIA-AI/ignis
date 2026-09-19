@@ -1364,7 +1364,7 @@ tags: [reference, exports, api]
 
 ## connectors
 
-### `@venizia/ignis-connectors` (117)
+### `@venizia/ignis-connectors` (127)
 
 - `AbstractRelationalDataSource` class
 - `AbstractSearchController` class
@@ -1387,10 +1387,13 @@ tags: [reference, exports, api]
 - `getIdType` const
 - `IAliasInfo` interface
 - `ICountOptions` interface
+- `IDefinedEntity` interface
 - `IEntity` interface
 - `IImportResult` interface
 - `IInsertOptions` interface
+- `IManyRelation` interface
 - `IMigration` interface
+- `IOneRelation` interface
 - `IRelationalConnection` interface
 - `IRelationalDataSource` interface
 - `IRelationalDriver` interface
@@ -1428,8 +1431,10 @@ tags: [reference, exports, api]
 - `IUpdateOptions` interface
 - `IWriteResult` interface
 - `JSON_PATH_PATTERN` const
+- `many` const
 - `MultiSearchEntrySchema` const
 - `MultiSearchInputSchema` const
+- `one` const
 - `parseJsonPath` const
 - `PersistableRelationalRepository` class
 - `PersistableSearchRepository` class
@@ -1454,11 +1459,13 @@ tags: [reference, exports, api]
 - `TColumnSelection` type
 - `TCompiledWhere` type
 - `TDeletedAtColumn` type
+- `TEntityObject` type
 - `TFieldFlags` type
 - `TGetIdType` type
 - `TIdColumn` type
 - `TMultiSearchEntry` type
 - `TMultiSearchInput` type
+- `toRelationConfigs` const
 - `toSearchQueryParams` const
 - `TPrimaryKey` type
 - `TRelationalConnectorOf` type
@@ -1466,6 +1473,9 @@ tags: [reference, exports, api]
 - `TRelationalTransactionOptions` type
 - `TRelationalTransactionOptionsOf` type
 - `TRelationConfig` type
+- `TRelationDefinition` type
+- `TRelationDefinitions` type
+- `TRelationMetadata` type
 - `TSearchDocument` type
 - `TSearchFieldTsType` type
 - `TSearchFieldType` type
@@ -1496,7 +1506,7 @@ tags: [reference, exports, api]
 - `THttpHeaders` type
 - `THttpQuery` type
 
-### `@venizia/ignis-connectors/relational` (58)
+### `@venizia/ignis-connectors/relational` (68)
 
 - `AbstractRelationalDataSource` class
 - `BaseRelationalDataSource` class
@@ -1507,9 +1517,12 @@ tags: [reference, exports, api]
 - `getCachedColumns` const
 - `getIdType` const
 - `ICountOptions` interface
+- `IDefinedEntity` interface
 - `IEntity` interface
 - `IInsertOptions` interface
+- `IManyRelation` interface
 - `IMigration` interface
+- `IOneRelation` interface
 - `IRelationalConnection` interface
 - `IRelationalDataSource` interface
 - `IRelationalDriver` interface
@@ -1527,6 +1540,8 @@ tags: [reference, exports, api]
 - `IUpdateOptions` interface
 - `IWriteResult` interface
 - `JSON_PATH_PATTERN` const
+- `many` const
+- `one` const
 - `parseJsonPath` const
 - `PersistableRelationalRepository` class
 - `ReadableRelationalRepository` class
@@ -1541,14 +1556,19 @@ tags: [reference, exports, api]
 - `TColumnDefinitions` type
 - `TColumnSelection` type
 - `TDeletedAtColumn` type
+- `TEntityObject` type
 - `TGetIdType` type
 - `TIdColumn` type
+- `toRelationConfigs` const
 - `TPrimaryKey` type
 - `TRelationalConnectorOf` type
 - `TRelationalTransactionOf` type
 - `TRelationalTransactionOptions` type
 - `TRelationalTransactionOptionsOf` type
 - `TRelationConfig` type
+- `TRelationDefinition` type
+- `TRelationDefinitions` type
+- `TRelationMetadata` type
 - `TSoftDeletableTableSchema` type
 - `TTableColumns` type
 - `TTableInsert` type
@@ -1557,7 +1577,7 @@ tags: [reference, exports, api]
 - `validateJsonColumnType` const
 - `validateJsonPathComponents` const
 
-### `@venizia/ignis-connectors/postgres` (67)
+### `@venizia/ignis-connectors/postgres` (81)
 
 - `AbstractPostgresDataSource` class
 - `BaseDataSource` class
@@ -1582,7 +1602,11 @@ tags: [reference, exports, api]
 - `IDatabaseExtraOptions` interface
 - `IDatabaseTransaction` interface
 - `IDatabaseTransactionOptions` interface
+- `IDefinedEntity` interface
+- `IDefinedEntityClass` interface
 - `IEntity` interface
+- `IManyRelation` interface
+- `IOneRelation` interface
 - `IPostgresDataSource` interface
 - `IRelationalQueryDialect` interface
 - `isDatabaseTransaction` const
@@ -1590,6 +1614,9 @@ tags: [reference, exports, api]
 - `isoTimestamp` const
 - `IStatementResult` interface
 - `ITransformedUpdateData` interface
+- `many` const
+- `ModelFactory` class
+- `one` const
 - `PersistableRepository` class
 - `PostgresBaseRepository` class
 - `PostgresFilterBuilder` class
@@ -1604,17 +1631,24 @@ tags: [reference, exports, api]
 - `TColumnDefinitions` type
 - `TDataTypeEnricherOptions` type
 - `TDeletedAtColumn` type
+- `TEntityColumns` type
+- `TEntityObject` type
+- `TEntityTable` type
 - `TGetIdType` type
 - `TIdColumn` type
 - `TIdEnricherOptions` type
 - `TIdEnricherResult` type
 - `TIsolationLevel` type
+- `toRelationConfigs` const
 - `TPrimaryKey` type
 - `TPrincipalEnricherOptions` type
 - `TRelationalConnection` type
 - `TRelationalConnector` type
 - `TRelationalDriver` type
 - `TRelationConfig` type
+- `TRelationDefinition` type
+- `TRelationDefinitions` type
+- `TRelationMetadata` type
 - `TSoftDeletableTableSchema` type
 - `TTableColumns` type
 - `TTableInsert` type
@@ -1657,7 +1691,7 @@ tags: [reference, exports, api]
 - `TPoolerMode` type
 - `withAuthContext` const
 
-### `@venizia/ignis-connectors/sqlite` (61)
+### `@venizia/ignis-connectors/sqlite` (71)
 
 - `AbstractSqliteDataSource` class
 - `BaseSqliteDataSource` class
@@ -1674,7 +1708,10 @@ tags: [reference, exports, api]
 - `generateTzColumnDefs` const
 - `generateUserAuditColumnDefs` const
 - `getIdType` const
+- `IDefinedEntity` interface
 - `IEntity` interface
+- `IManyRelation` interface
+- `IOneRelation` interface
 - `IRelationalQueryDialect` interface
 - `ISO_TIMESTAMP_NOW` const
 - `isoTimestamp` const
@@ -1686,6 +1723,8 @@ tags: [reference, exports, api]
 - `isSqliteTransaction` const
 - `IStatementResult` interface
 - `ITransformedUpdateData` interface
+- `many` const
+- `one` const
 - `PersistableSqliteRepository` class
 - `ReadableSqliteRepository` class
 - `SoftDeletableSqliteRepository` class
@@ -1700,12 +1739,17 @@ tags: [reference, exports, api]
 - `TColumnDefinitions` type
 - `TDataTypeEnricherOptions` type
 - `TDeletedAtColumn` type
+- `TEntityObject` type
 - `TGetIdType` type
 - `TIdColumn` type
 - `TIdEnricherOptions` type
 - `TIdEnricherResult` type
+- `toRelationConfigs` const
 - `TPrimaryKey` type
 - `TPrincipalEnricherOptions` type
+- `TRelationDefinition` type
+- `TRelationDefinitions` type
+- `TRelationMetadata` type
 - `TSoftDeletableTableSchema` type
 - `TSqliteBeginMode` type
 - `TSqliteConnection` type
@@ -1908,7 +1952,7 @@ tags: [reference, exports, api]
 
 ## core-server
 
-### `@venizia/ignis` (968)
+### `@venizia/ignis` (982)
 
 - `AbstractApplication` class
 - `AbstractAuthRegistry` class
@@ -2219,6 +2263,8 @@ tags: [reference, exports, api]
 - `IDataSource` interface
 - `IDataSourceCapabilities` interface
 - `IDataSourceMetadata` interface
+- `IDefinedEntity` interface
+- `IDefinedEntityClass` interface
 - `IDefineRouteOptions` interface
 - `IDeletableRepository` interface
 - `IDiskHelperOptions` interface
@@ -2264,6 +2310,7 @@ tags: [reference, exports, api]
 - `IListObjectsOptions` interface
 - `ILogger` interface
 - `ILoggerProvider` interface
+- `IManyRelation` interface
 - `IMiddlewareConfigs` interface
 - `IModelAuthorizeSettings` interface
 - `IModelMetadata` interface
@@ -2283,6 +2330,7 @@ tags: [reference, exports, api]
 - `IObjectLocation` interface
 - `IObjectMetadata` interface
 - `IObjectRef` interface
+- `IOneRelation` interface
 - `IOpaqueUidOptions` interface
 - `IParsedMultipartBody` interface
 - `IPayloadCipher` interface
@@ -2432,6 +2480,7 @@ tags: [reference, exports, api]
 - `LoggerFormats` class
 - `LoggerResolver` class
 - `LogLevels` class
+- `many` const
 - `MembershipRoleManager` class
 - `MemoryStorageHelper` class
 - `MessageCode` class
@@ -2443,6 +2492,7 @@ tags: [reference, exports, api]
 - `MINIMUM_KDF_SALT_BYTES` const
 - `MINIMUM_RSA_MODULUS_BITS` const
 - `model` const
+- `ModelFactory` class
 - `ModuleUtility` class
 - `NetworkTcpClient` class
 - `NetworkTcpServer` class
@@ -2456,6 +2506,7 @@ tags: [reference, exports, api]
 - `NumberIdType` type
 - `OffsetSchema` const
 - `omit` const
+- `one` const
 - `OpaqueUidHelper` class
 - `OrderBySchema` const
 - `parseArrayToMapWithKey` const
@@ -2647,9 +2698,12 @@ tags: [reference, exports, api]
 - `TDomainHierarchyEdge` type
 - `TDrizzleQueryOptions` type
 - `TDurationUnit` type
+- `TEntityColumns` type
 - `TEntityDataObject` type
 - `TEntityId` type
+- `TEntityObject` type
 - `TEntityPersistObject` type
+- `TEntityTable` type
 - `TError` type
 - `TErrorByDefinition` type
 - `TErrorByField` type
@@ -2742,6 +2796,7 @@ tags: [reference, exports, api]
 - `TOptions` type
 - `toQueryString` const
 - `TOrderBy` type
+- `toRelationConfigs` const
 - `TOrigin` type
 - `toTrimmed` const
 - `TPermissionCommonColumns` type
@@ -2773,6 +2828,9 @@ tags: [reference, exports, api]
 - `TRelationalDriver` type
 - `TRelationBuilder` type
 - `TRelationConfig` type
+- `TRelationDefinition` type
+- `TRelationDefinitions` type
+- `TRelationMetadata` type
 - `TRelationType` type
 - `TRepositoryErrorCode` type
 - `TRepositoryLogOptions` type
@@ -2879,7 +2937,7 @@ tags: [reference, exports, api]
 - `WhereSchema` const
 - `WorkerPoolHelper` class
 
-### `@venizia/ignis/postgres` (67)
+### `@venizia/ignis/postgres` (81)
 
 - `AbstractPostgresDataSource` class
 - `BaseDataSource` class
@@ -2904,7 +2962,11 @@ tags: [reference, exports, api]
 - `IDatabaseExtraOptions` interface
 - `IDatabaseTransaction` interface
 - `IDatabaseTransactionOptions` interface
+- `IDefinedEntity` interface
+- `IDefinedEntityClass` interface
 - `IEntity` interface
+- `IManyRelation` interface
+- `IOneRelation` interface
 - `IPostgresDataSource` interface
 - `IRelationalQueryDialect` interface
 - `isDatabaseTransaction` const
@@ -2912,6 +2974,9 @@ tags: [reference, exports, api]
 - `isoTimestamp` const
 - `IStatementResult` interface
 - `ITransformedUpdateData` interface
+- `many` const
+- `ModelFactory` class
+- `one` const
 - `PersistableRepository` class
 - `PostgresBaseRepository` class
 - `PostgresFilterBuilder` class
@@ -2926,17 +2991,24 @@ tags: [reference, exports, api]
 - `TColumnDefinitions` type
 - `TDataTypeEnricherOptions` type
 - `TDeletedAtColumn` type
+- `TEntityColumns` type
+- `TEntityObject` type
+- `TEntityTable` type
 - `TGetIdType` type
 - `TIdColumn` type
 - `TIdEnricherOptions` type
 - `TIdEnricherResult` type
 - `TIsolationLevel` type
+- `toRelationConfigs` const
 - `TPrimaryKey` type
 - `TPrincipalEnricherOptions` type
 - `TRelationalConnection` type
 - `TRelationalConnector` type
 - `TRelationalDriver` type
 - `TRelationConfig` type
+- `TRelationDefinition` type
+- `TRelationDefinitions` type
+- `TRelationMetadata` type
 - `TSoftDeletableTableSchema` type
 - `TTableColumns` type
 - `TTableInsert` type
@@ -2949,7 +3021,7 @@ tags: [reference, exports, api]
 - `TUserAuditEnricherResult` type
 - `UpdateBuilder` class
 
-### `@venizia/ignis/relational` (58)
+### `@venizia/ignis/relational` (68)
 
 - `AbstractRelationalDataSource` class
 - `BaseRelationalDataSource` class
@@ -2960,9 +3032,12 @@ tags: [reference, exports, api]
 - `getCachedColumns` const
 - `getIdType` const
 - `ICountOptions` interface
+- `IDefinedEntity` interface
 - `IEntity` interface
 - `IInsertOptions` interface
+- `IManyRelation` interface
 - `IMigration` interface
+- `IOneRelation` interface
 - `IRelationalConnection` interface
 - `IRelationalDataSource` interface
 - `IRelationalDriver` interface
@@ -2980,6 +3055,8 @@ tags: [reference, exports, api]
 - `IUpdateOptions` interface
 - `IWriteResult` interface
 - `JSON_PATH_PATTERN` const
+- `many` const
+- `one` const
 - `parseJsonPath` const
 - `PersistableRelationalRepository` class
 - `ReadableRelationalRepository` class
@@ -2994,14 +3071,19 @@ tags: [reference, exports, api]
 - `TColumnDefinitions` type
 - `TColumnSelection` type
 - `TDeletedAtColumn` type
+- `TEntityObject` type
 - `TGetIdType` type
 - `TIdColumn` type
+- `toRelationConfigs` const
 - `TPrimaryKey` type
 - `TRelationalConnectorOf` type
 - `TRelationalTransactionOf` type
 - `TRelationalTransactionOptions` type
 - `TRelationalTransactionOptionsOf` type
 - `TRelationConfig` type
+- `TRelationDefinition` type
+- `TRelationDefinitions` type
+- `TRelationMetadata` type
 - `TSoftDeletableTableSchema` type
 - `TTableColumns` type
 - `TTableInsert` type
@@ -3040,7 +3122,7 @@ tags: [reference, exports, api]
 - `TPoolerMode` type
 - `withAuthContext` const
 
-### `@venizia/ignis/sqlite` (61)
+### `@venizia/ignis/sqlite` (71)
 
 - `AbstractSqliteDataSource` class
 - `BaseSqliteDataSource` class
@@ -3057,7 +3139,10 @@ tags: [reference, exports, api]
 - `generateTzColumnDefs` const
 - `generateUserAuditColumnDefs` const
 - `getIdType` const
+- `IDefinedEntity` interface
 - `IEntity` interface
+- `IManyRelation` interface
+- `IOneRelation` interface
 - `IRelationalQueryDialect` interface
 - `ISO_TIMESTAMP_NOW` const
 - `isoTimestamp` const
@@ -3069,6 +3154,8 @@ tags: [reference, exports, api]
 - `isSqliteTransaction` const
 - `IStatementResult` interface
 - `ITransformedUpdateData` interface
+- `many` const
+- `one` const
 - `PersistableSqliteRepository` class
 - `ReadableSqliteRepository` class
 - `SoftDeletableSqliteRepository` class
@@ -3083,12 +3170,17 @@ tags: [reference, exports, api]
 - `TColumnDefinitions` type
 - `TDataTypeEnricherOptions` type
 - `TDeletedAtColumn` type
+- `TEntityObject` type
 - `TGetIdType` type
 - `TIdColumn` type
 - `TIdEnricherOptions` type
 - `TIdEnricherResult` type
+- `toRelationConfigs` const
 - `TPrimaryKey` type
 - `TPrincipalEnricherOptions` type
+- `TRelationDefinition` type
+- `TRelationDefinitions` type
+- `TRelationMetadata` type
 - `TSoftDeletableTableSchema` type
 - `TSqliteBeginMode` type
 - `TSqliteConnection` type
