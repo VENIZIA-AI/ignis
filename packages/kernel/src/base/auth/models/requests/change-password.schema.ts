@@ -9,12 +9,12 @@ export const ChangePasswordRequestSchema = z
     userId: z.string().or(z.number()),
   })
   .openapi({
-    required: ['oldCredential', 'newCredential'],
     examples: [
       {
         scheme: 'basic',
         oldCredential: 'old_password',
         newCredential: 'new_password',
+        userId: 'user-id',
       },
     ],
   });
