@@ -1,12 +1,15 @@
 import { model } from '@venizia/ignis';
-import { generateIdColumnDefs, ModelFactory, TEntityObject } from '@venizia/ignis/postgres';
-import { jsonb, pgTable, timestamp, varchar } from 'drizzle-orm/pg-core';
+import {
+  generateIdColumnDefs,
+  many,
+  ModelFactory,
+  one,
+  TEntityObject,
+} from '@venizia/ignis/postgres';
+import { AnyPgColumn, jsonb, pgTable, text, timestamp, varchar } from 'drizzle-orm/pg-core';
 
-/**
- * `jsonb` and `timestamptz` have no SQLite equivalent. PGlite is real Postgres, so they work
- * unchanged. The id is a UUID v7 text key.
- */
-export const notesTable = pgTable('notes', {
+// PGlite is real Postgres, so `jsonb` and `timestamptz` work unchanged.
+export const noteTable = pgTable('notes', {
   ...generateIdColumnDefs({ id: { dataType: 'string' } }),
   title: varchar('title', { length: 200 }).notNull(),
   body: varchar('body', { length: 2000 }),
@@ -14,9 +17,26 @@ export const notesTable = pgTable('notes', {
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
 });
 
-/** The entity takes its name, id and row type from the table - each stated once. */
-@model({ type: 'entity' })
-export class Note extends ModelFactory.defineEntity({ table: notesTable }) {}
+export const commentTable = pgTable('comments', {
+  ...generateIdColumnDefs({ id: { dataType: 'string' } }),
+  noteId: text('note_id')
+    .notNull()
+    .references((): AnyPgColumn => noteTable.id, { onDelete: 'cascade' }),
+  text: varchar('text', { length: 2000 }).notNull(),
+});
 
-export type TNoteSchema = typeof notesTable;
+@model({ type: 'entity' })
+export class Note extends ModelFactory.defineEntity({
+  table: noteTable,
+  relations: () => ({ comments: many(commentTable, { relationName: 'note' }) }),
+}) {}
+
+/** `one(noteTable)` reads its columns off the single foreign key `note_id`. */
+@model({ type: 'entity' })
+export class Comment extends ModelFactory.defineEntity({
+  table: commentTable,
+  relations: () => ({ note: one(noteTable) }),
+}) {}
+
 export type TNote = TEntityObject<typeof Note>;
+export type TComment = TEntityObject<typeof Comment>;

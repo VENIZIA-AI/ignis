@@ -8,6 +8,13 @@
       "when": 1785672791592,
       "tag": "0000_mushy_chimera",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1790147497815,
+      "tag": "0001_silly_lightspeed",
+      "breakpoints": true
     }
   ]
 }

@@ -1,12 +1,8 @@
-import { defineConfig } from 'drizzle-kit';
 import { blankToUndefined } from '@venizia/ignis-helpers';
+import { defineConfig } from 'drizzle-kit';
 
-/**
- * drizzle-kit reads the model file directly and picks up the exported table - it bundles with
- * esbuild, so the `@model` decorator and the framework import are erased first.
- *
- * `url` is a DIRECTORY here, not a connection string - PGlite owns the whole data directory.
- */
+// drizzle-kit bundles the model file with esbuild and reads the exported tables. `url` is PGlite's
+// data directory, not a connection string.
 export default defineConfig({
   dialect: 'postgresql',
   driver: 'pglite',

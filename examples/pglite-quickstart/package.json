@@ -17,8 +17,9 @@
     "prettier:cli": "prettier \"**/*.{js,ts}\" -l",
     "prettier:fix": "bun run prettier:cli --write",
     "rebuild": "bun run clean && bun run build",
-    "server:dev": "NODE_ENV=development APP_ENV_LOGGER_FOLDER_PATH=./app_data/logs bun run src/index.ts",
-    "start": "APP_ENV_LOGGER_FOLDER_PATH=./app_data/logs bun run src/index.ts",
+    "server:dev": "NODE_ENV=development APP_ENV_PGLITE_DATA_DIR=./app_data/database/pgdata APP_ENV_LOGGER_FOLDER_PATH=./app_data/logs bun run src/index.ts",
+    "start": "APP_ENV_PGLITE_DATA_DIR=./app_data/database/pgdata APP_ENV_LOGGER_FOLDER_PATH=./app_data/logs bun run src/index.ts",
+    "test": "bun test",
     "typecheck": "tsc --noEmit -p tsconfig.json"
   },
   "dependencies": {

@@ -85,6 +85,11 @@ jobs:
         id: build
         run: make build-all
 
+      # Boots each example that needs no external service and calls its endpoints against the build.
+      - name: Examples smoke
+        if: ${{ !cancelled() && steps.build.outcome == 'success' }}
+        run: make examples-smoke
+
       # The make targets own the test flags (BUN_TEST_FLAGS, default --parallel, implies --isolate),
       # so CI and a developer's `make test-<pkg>` run the very same command.
       - name: Test - inversion

@@ -7,6 +7,7 @@
         clean-install-kernel clean-install-connectors clean-install-core-worker clean-install-core-server \
         clean-install-atlas clean-install-dev-configs clean-install-core \
         test-all test-inversion test-helpers test-boot test-kernel test-connectors test-core-worker test-core-server test-atlas \
+        examples-smoke \
         purity-dev-configs purity-boot purity-core purity-core-server purity-connectors purity-core-worker purity-atlas \
         okf-check okf-gen okf-coverage okf-viz split-report surface-gen surface-check symbols-gen symbols-check \
         releases-gen releases-check wiki-links-check wiki-anchors-check \
@@ -349,6 +350,16 @@ test-core-server:
 test-atlas:
 	@cd packages/atlas && bun run test $(BUN_TEST_FLAGS)
 
+# Examples whose smoke test needs no external service - each boots the real app and calls its
+# endpoints. Examples that need Postgres, Typesense or Redis run theirs locally with docker.
+EXAMPLES_SMOKE := pglite-quickstart
+
+examples-smoke:
+	@echo "🔍 Smoke-testing examples: $(EXAMPLES_SMOKE)"
+	@failed=0; for example in $(EXAMPLES_SMOKE); do \
+		(cd examples/$$example && bun run test) || failed=1; \
+	done; exit $$failed
+
 purity-inversion:
 	@echo "🔍 Checking browser purity for @venizia/ignis-inversion..."
 	@bun scripts/purity/cli.ts inversion
@@ -456,6 +467,7 @@ help:
 	@echo "Tests:"
 	@echo "  test-all      - Every package suite with BUN_TEST_FLAGS (default --parallel, implies --isolate)."
 	@echo "  test-<pkg>    - One suite: inversion, helpers, boot, kernel, connectors, core-worker, core-server, atlas."
+	@echo "  examples-smoke - Smoke-test the examples listed in EXAMPLES_SMOKE. Needs a build first."
 	@echo ""
 	@echo "Browser purity:"
 	@echo "  purity        - Gate: every entry claimed browser-pure has no node builtin or global."

@@ -1,94 +1,114 @@
 # PGlite quickstart
 
-IGNIS on [PGlite](https://pglite.dev) - PostgreSQL compiled to WASM, running inside your process.
-No server to install, no connection string, no `createdb`.
+An IGNIS CRUD API for notes and their comments on [PGlite](https://pglite.dev) - PostgreSQL compiled to
+WASM, running inside your process. No database server, no connection string.
 
 ```bash
 bun install
 bun run start
-# http://localhost:3000/api/notes
-# http://localhost:3000/doc/explorer
 ```
 
-## Where runtime state goes
+The app listens on `http://localhost:3000` (set `PORT` to change it). Browse the API at
+`http://localhost:3000/api/doc/explorer`.
 
-Same layout as [`vert`](../vert): everything the running app writes lives under `app_data/`, which
-is gitignored repository-wide and survives `bun run clean`.
+## What it shows
 
-```
-app_data/
-├── database/pgdata/   the PGlite data directory, created on first boot
-└── logs/              rotating log files
-```
-
-Both paths are overridable, and `.env.example` documents them:
-
-| Variable | Default |
+| File | What it does |
 |---|---|
-| `APP_ENV_PGLITE_DATA_DIR` | `./app_data/database/pgdata` - unset it entirely for an in-memory database |
-| `APP_ENV_LOGGER_FOLDER_PATH` | `./app_data/logs`, set by the `start` script - file logging is opt-in |
+| `src/models/note.model.ts` | Two tables and their entities. `one(noteTable)` finds its columns from the `note_id` foreign key |
+| `src/repositories/*.repository.ts` | An empty class under `@repository({ model, dataSource })` |
+| `src/controllers/*.controller.ts` | The CRUD routes from `ControllerFactory.defineCrudController` |
+| `src/datasources/pglite.datasource.ts` | The only PGlite-specific file: opens the database and applies migrations |
+| `src/application.ts` | Imports each decorated class; `discoverArtifacts: true` registers them |
+| `src/index.ts` | Starts the server |
 
-## What this example shows
+Swap the datasource for a `node-postgres` one and the models, repositories and controllers stay as
+they are.
 
-PGlite is a **driver**, not a connector. `PgliteDatabase` extends Drizzle's `PgDatabase`, so it
-satisfies the Postgres connector type unchanged - the whole Postgres tier works on top of it:
+## Endpoints
 
-| File | What is PGlite-specific |
-|---|---|
-| `src/datasources/pglite.datasource.ts` | `new PGlite(dataDir)` and `@datasource({ driver: PGliteDriver })` |
-| `src/models/note.model.ts` | nothing - a normal `pgTable` with `uuid`, `jsonb`, `timestamptz` |
-| `src/repositories/note.repository.ts` | nothing - `DefaultCRUDRepository<TNoteSchema>` |
-| `src/controllers/note.controller.ts` | nothing - the standard CRUD factory |
+Every route sits under `/api`.
 
-Only the datasource changes. Swap it for a `node-postgres` one and nothing else moves.
+| Method | Path | Does |
+|---|---|---|
+| `GET` | `/health` | Liveness check |
+| `GET` | `/notes`, `/comments` | List rows; takes a `filter` query |
+| `GET` | `/notes/count?where={...}` | Count rows matching `where` (required; `{}` counts all) |
+| `GET` | `/notes/find-one` | First row matching `filter` |
+| `GET` | `/notes/{id}` | One row |
+| `POST` | `/notes`, `/comments` | Create a row |
+| `PATCH` | `/notes/{id}` | Update one row |
+| `DELETE` | `/notes/{id}` | Delete one row |
+| `PATCH` | `/notes?where={...}` | Update every row matching `where` |
+| `DELETE` | `/notes?where={...}` | Delete every row matching `where` |
+| `GET` | `/doc/openapi.json` | The OpenAPI document |
 
-## Two constraints worth knowing
+`/comments` has the same routes as `/notes`. CRUD routes answer `{ count, data }`; `/count` answers
+`{ count }`.
 
-**One connection.** PGlite has a single session, so transactions serialise: a second
-`beginTransaction()` waits for the first to finish. `PGliteDriver` enforces that with a one-slot
-pool, because a raw second `BEGIN` silently joins the open transaction instead of failing - and then
-one caller's `COMMIT` commits the other's work.
+## Read a note with its comments
 
-The wait is bounded by `acquireTimeoutMs`, 30 seconds by default. Pass your own by building the
-driver yourself in `configure()` and calling `useDriver({ driver: new PGliteDriver({ client, acquireTimeoutMs }) })`.
-
-**Writes outside a transaction can be swallowed by one.** A write through the repository while
-another transaction is open runs *inside* that transaction, and its rollback discards the write.
-That is PGlite's single session, not the driver. Under concurrency, route writes through a
-transaction.
-
-## Schema
-
-Real drizzle-kit migrations, committed under `migration/`, applied **in-process at boot** by
-`migrate()` from `drizzle-orm/pglite/migrator`. Nothing hand-writes DDL.
+Create a note, then a comment on it:
 
 ```bash
-bun run migrate:generate   # after changing the model - writes migration/NNNN_*.sql
-bun run start              # applies whatever is pending, then serves
+curl -s -X POST localhost:3000/api/notes \
+  -H 'content-type: application/json' -d '{"title":"First note"}'
+# {"count":1,"data":{"id":"01a0cd2c-...","title":"First note",...}}
+
+curl -s -X POST localhost:3000/api/comments \
+  -H 'content-type: application/json' -d '{"noteId":"<the note id>","text":"A comment"}'
 ```
 
-Here the app *must* apply them itself: PGlite holds an **exclusive lock** on its data directory, so
-`drizzle-kit migrate` cannot run against a database the app already opened. Use `bun run
-migrate:dev` only while the app is stopped.
+Name the relation in `include` to get the comments inside each note:
 
-`migrate()` records each applied file in `drizzle.__drizzle_migrations`, so every boot after the
-first is a no-op.
-
-The config lives in `src/migration.ts`. Two things about it are PGlite-specific:
-
-```ts
-dialect: 'postgresql',
-driver: 'pglite',
-dbCredentials: { url: './app_data/database/pgdata' },   // a FOLDER, not a connection string
+```bash
+curl -s -G localhost:3000/api/notes \
+  --data-urlencode 'filter={"include":[{"relation":"comments"}]}'
+# {"count":1,"data":[{"id":"01a0cd2c-...","title":"First note",...,"comments":[{"id":"...","noteId":"01a0cd2c-...","text":"A comment"}]}]}
 ```
 
-It points drizzle-kit straight at `src/models/note.model.ts` - esbuild erases the `@model`
-decorator and the framework import before the table export is read. An entity whose table sits on a
-`.schema` static needs the compiled re-export step [`vert`](../vert/src/migration-schema.ts) uses;
-this one does not.
+## Test it
 
-## When to reach for it
+```bash
+bun test
+```
 
-A test database with real Postgres semantics and no Docker, or a single-file embedded deployment.
-For a Postgres-compatible database that a SQLite user would recognise, see the
-[SQLite quickstart](../sqlite-quickstart) instead - it uses libsql and a genuinely different dialect.
+The smoke test boots the same `Application` on a free port with an in-memory database, then calls
+each endpoint over HTTP.
+
+## Where the data goes
+
+`bun run start` keeps the database in `app_data/database/pgdata` and logs in `app_data/logs`.
+`app_data/` is gitignored.
+
+| Variable | Default | Meaning |
+|---|---|---|
+| `APP_ENV_PGLITE_DATA_DIR` | set to `./app_data/database/pgdata` by `bun run start` | Unset: an in-memory database that dies with the process |
+| `APP_ENV_LOGGER_FOLDER_PATH` | set to `./app_data/logs` by `bun run start` | Unset: console logging only |
+| `PORT` | `3000` | The port the server listens on |
+
+## Change the schema
+
+Edit `src/models/note.model.ts`, then generate a migration:
+
+```bash
+bun run migrate:generate   # writes migration/NNNN_*.sql
+bun run start              # applies what is pending, then serves
+```
+
+The app applies migrations itself at boot. PGlite locks its data directory, so `drizzle-kit
+migrate` cannot run while the app is open.
+
+## Two PGlite limits
+
+**One connection.** Transactions wait for each other. `PGliteDriver` hands out its single session
+one transaction at a time, and gives up after 30 seconds (`acquireTimeoutMs`).
+
+**A write outside a transaction can land inside one.** While a transaction is open, a repository
+write joins it, and a rollback discards the write. Under concurrency, send writes through a
+transaction.
+
+## Next
+
+- [SQLite quickstart](../sqlite-quickstart) - the same API on libsql
+- [`vert`](../vert) - the production reference: authentication, authorization, transactions
