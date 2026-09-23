@@ -1,245 +1,79 @@
+// The application class. `src/index.ts` starts it; the smoke test boots the same class.
 import {
-  BaseApplication,
-  BindingKeys,
-  BindingNamespaces,
-  CoreBindings,
-  HealthCheckBindingKeys,
-  HealthCheckComponent,
-  IApplicationConfigs,
-  IApplicationInfo,
-  IHealthCheckOptions,
-  IMiddlewareConfigs,
   ApiReferenceComponent,
+  BaseApplication,
+  HealthCheckComponent,
+  IApplicationInfo,
   ValueOrPromise,
 } from '@venizia/ignis';
 import { SocketIOBindingKeys, SocketIOComponent } from '@venizia/ignis/socket-io';
-import {
-  applicationEnvironment,
-  blankToUndefined,
-  Environment,
-  HTTP,
-  int,
-  isEmpty,
-  RedisSingleHelper,
-} from '@venizia/ignis-helpers';
-import {
+import { RedisSingleHelper } from '@venizia/ignis-helpers';
+import type {
   SocketIOServerHelper,
   TSocketIOAuthenticateFn,
-  TSocketIOClientConnectedFn,
-  TSocketIOValidateRoomFn,
 } from '@venizia/ignis-helpers/socket-io';
-import packageJson from './../package.json';
-import { EnvironmentKeys } from './common/environments';
-import { SocketTestController } from './controllers';
-import { SocketEventService } from './services';
+import appInfo from '../package.json';
 
-// -----------------------------------------------------------------------------------------------
-export const beConfigs: IApplicationConfigs = {
-  host: process.env.APP_ENV_SERVER_HOST,
-  port: +(blankToUndefined(process.env.APP_ENV_SERVER_PORT) ?? 3000),
-  path: {
-    base: process.env.APP_ENV_SERVER_BASE_PATH!,
-    isStrict: true,
-  },
-  error: { rootKey: 'error' },
-  debug: {
-    shouldShowRoutes: !Environment.is({ name: Environment.PRODUCTION }),
-  },
-};
+// Importing a decorated class is what registers it: `discoverArtifacts: true` binds every one.
+import './controllers/chat.controller';
 
-// -----------------------------------------------------------------------------------------------
 export class Application extends BaseApplication {
-  private redisHelper: RedisSingleHelper;
+  private redisHelper?: RedisSingleHelper;
 
-  // --------------------------------------------------------------------------------
-  override getProjectRoot(): string {
-    const projectRoot = __dirname;
-    this.bind<string>({ key: CoreBindings.APPLICATION_PROJECT_ROOT }).toValue(projectRoot);
-    return projectRoot;
+  override getAppInfo(): IApplicationInfo {
+    return appInfo;
   }
 
-  // --------------------------------------------------------------------------------
-  override getAppInfo(): ValueOrPromise<IApplicationInfo> {
-    return packageJson;
+  override staticConfigure(): void {}
+
+  override preConfigure(): ValueOrPromise<void> {
+    this.component(ApiReferenceComponent);
+    this.component(HealthCheckComponent);
+    this.setupSocketIO();
   }
 
-  // --------------------------------------------------------------------------------
-  staticConfigure(): void {
-    // No static files for this test project
-  }
+  override postConfigure(): void {}
 
-  // --------------------------------------------------------------------------------
-  override async setupMiddlewares() {
-    const server = this.getServer();
+  override setupMiddlewares(): void {}
 
-    const middlewares: IMiddlewareConfigs = {
-      cors: {
-        enable: true,
-        path: '*',
-        module: await import('hono/cors'),
-        origin: '*',
-        allowMethods: ['GET', 'HEAD', 'PUT', 'PATCH', 'POST', 'DELETE', 'OPTIONS'],
-        maxAge: 86_400,
-        credentials: true,
-      },
-      bodyLimit: {
-        enable: true,
-        path: '*',
-        module: await import('hono/body-limit'),
-        maxSize: 10 * 1024 * 1024, // 10MB
-        onError: c => {
-          return c.json({}, HTTP.ResultCodes.RS_4.ContentTooLarge);
-        },
-      },
-    };
-
-    for (const name in middlewares) {
-      const mwDef = middlewares[name];
-      const { enable = false, path: mwPath, module, ...mwOptions } = mwDef;
-
-      if (!enable) {
-        this.logger
-          .for(this.setupMiddlewares.name)
-          .debug('Skip setup middleware | name: %s | enable: %s', name, enable);
-        continue;
-      }
-
-      this.logger
-        .for(this.setupMiddlewares.name)
-        .debug('Setting up middleware | name: %s | enable: %s', name, enable);
-
-      if (!isEmpty({ value: mwPath })) {
-        server.use(mwPath, module?.[name]?.(mwOptions));
-        continue;
-      }
-
-      server.use(module?.[name]?.(mwOptions));
-    }
-  }
-
-  // --------------------------------------------------------------------------------
-  setupSocketIO() {
-    // Redis connection
-    const redisHost = applicationEnvironment.get<string>(
-      EnvironmentKeys.APP_ENV_REDIS_SOCKETIO_HOST,
-    );
-    const redisPort = int(
-      applicationEnvironment.get<string>(EnvironmentKeys.APP_ENV_REDIS_SOCKETIO_PORT),
-    );
-    const redisPassword = applicationEnvironment.get<string>(
-      EnvironmentKeys.APP_ENV_REDIS_SOCKETIO_PASSWORD,
-    );
-
+  private setupSocketIO(): void {
+    // `autoConnect: false` - the component duplicates this connection into 3 Redis clients (pub,
+    // sub, emitter) and connects them itself during `configure()`. Connecting here first would
+    // race the duplicates.
     this.redisHelper = new RedisSingleHelper({
       name: 'socket-io-redis',
-      host: redisHost,
-      port: redisPort,
-      password: redisPassword,
+      host: process.env.APP_ENV_REDIS_HOST ?? 'localhost',
+      port: Number(process.env.APP_ENV_REDIS_PORT ?? 16380),
+      password: process.env.APP_ENV_REDIS_PASSWORD ?? '',
       autoConnect: false,
     });
-
-    this.bind<RedisSingleHelper>({
-      key: SocketIOBindingKeys.REDIS_CONNECTION,
-    }).toValue(this.redisHelper);
-
-    // Authenticate handler
-    const authenticateFn: TSocketIOAuthenticateFn = handshake => {
-      const logger = this.logger.for('authenticateFn');
-      logger.info('Authenticating client | headers: %j', handshake.headers);
-
-      const authHeader = handshake.headers.authorization;
-      if (!authHeader) {
-        logger.warn('No authorization header provided');
-        // For testing, allow connections without auth
-        return true;
-      }
-
-      // Validate token here (JWT, etc.)
-      logger.info('Client authenticated successfully');
-      return true;
-    };
-
-    this.bind<TSocketIOAuthenticateFn>({
-      key: SocketIOBindingKeys.AUTHENTICATE_HANDLER,
-    }).toValue(authenticateFn);
-
-    // Validate room handler — allow all rooms for testing
-    const validateRoomFn: TSocketIOValidateRoomFn = ({ rooms }) => {
-      return rooms;
-    };
-
-    this.bind<TSocketIOValidateRoomFn>({
-      key: SocketIOBindingKeys.VALIDATE_ROOM_HANDLER,
-    }).toValue(validateRoomFn);
-
-    // Client connected handler
-    const clientConnectedFn: TSocketIOClientConnectedFn = ({ socket }) => {
-      this.logger.for('clientConnectedFn').info('Client connected | id: %s', socket.id);
-
-      const socketEventService = this.get<SocketEventService>({
-        key: BindingKeys.build({
-          namespace: BindingNamespaces.SERVICE,
-          key: SocketEventService.name,
-        }),
-      });
-
-      socketEventService.registerClientHandlers({ socket });
-    };
-
-    this.bind<TSocketIOClientConnectedFn>({
-      key: SocketIOBindingKeys.CLIENT_CONNECTED_HANDLER,
-    }).toValue(clientConnectedFn);
-
-    // Register SocketIO Component
-    this.component(SocketIOComponent);
-  }
-
-  // --------------------------------------------------------------------------------
-  preConfigure(): ValueOrPromise<void> {
-    // Health Check
-    this.bind<IHealthCheckOptions>({
-      key: HealthCheckBindingKeys.HEALTH_CHECK_OPTIONS,
-    }).toValue({
-      restOptions: { path: '/health-check' },
-    });
-    this.component(HealthCheckComponent);
-
-    // Swagger
-    this.component(ApiReferenceComponent);
-
-    // Socket.IO
-    this.setupSocketIO();
-
-    // Services & Controllers
-    this.service(SocketEventService);
-    this.controller(SocketTestController);
-  }
-
-  // --------------------------------------------------------------------------------
-  async postConfigure(): Promise<void> {
-    this.logger.info(
-      '[postConfigure] Application binding keys: %s',
-      Array.from(this.bindings.keys()),
+    this.bind<RedisSingleHelper>({ key: SocketIOBindingKeys.REDIS_CONNECTION }).toValue(
+      this.redisHelper,
     );
-  }
 
-  // --------------------------------------------------------------------------------
-  override async stop(): Promise<void> {
-    this.logger.info('[stop] Shutting down application...');
+    // Every client must send this token as `Bearer <token>` before it can join a room or exchange
+    // messages - the handshake IGNIS requires regardless of transport.
+    const expectedToken = process.env.APP_ENV_AUTH_TOKEN ?? 'demo-token';
+    const authenticateFn: TSocketIOAuthenticateFn = handshake =>
+      handshake.headers.authorization === `Bearer ${expectedToken}`;
+    this.bind<TSocketIOAuthenticateFn>({ key: SocketIOBindingKeys.AUTHENTICATE_HANDLER }).toValue(
+      authenticateFn,
+    );
 
-    const socketIOHelper = this.get<SocketIOServerHelper>({
-      key: SocketIOBindingKeys.SOCKET_IO_INSTANCE,
-      isOptional: true,
+    this.component(SocketIOComponent);
+
+    // SOCKET_IO_INSTANCE is only bound after the server starts, so it is resolved here rather than
+    // captured at registration time.
+    this.registerPostStopHook({
+      identifier: 'socket-io.shutdown',
+      hook: async () => {
+        const socketIOHelper = this.get<SocketIOServerHelper>({
+          key: SocketIOBindingKeys.SOCKET_IO_INSTANCE,
+          isOptional: true,
+        });
+        await socketIOHelper?.shutdown();
+        await this.redisHelper?.disconnect();
+      },
     });
-
-    if (socketIOHelper) {
-      await socketIOHelper.shutdown();
-    }
-
-    if (this.redisHelper) {
-      await this.redisHelper.disconnect();
-    }
-
-    await super.stop();
   }
 }
