@@ -1,56 +1,30 @@
+// The application class. `src/index.ts` starts it; the smoke test boots the same class.
 import {
+  ApiReferenceComponent,
   BaseApplication,
-  ControllerTransports,
-  IApplicationConfigs,
+  HealthCheckComponent,
   IApplicationInfo,
-} from "@venizia/ignis";
-import { ValueOrPromise } from "@venizia/ignis-helpers";
-import { OrdersComponent, TimeComponent } from "@/components";
-import {
-  GreeterController,
-  HealthController,
-  StatusController,
-} from "@/controllers";
-import { GreeterService, HealthService } from "@/services";
+} from '@venizia/ignis';
+import appInfo from '../package.json';
 
-export const appConfigs: IApplicationConfigs = {
-  host: "0.0.0.0",
-  port: 3000,
-  path: { base: "/", isStrict: false },
-  transports: [ControllerTransports.REST, ControllerTransports.GRPC],
-};
+// Importing a decorated class is what registers it: `discoverArtifacts: true` binds every one.
+import './services/greeter.service';
+import './controllers/greeter/controller';
+import './controllers/status/controller';
 
 export class Application extends BaseApplication {
-  getAppInfo(): ValueOrPromise<IApplicationInfo> {
-    return {
-      name: "grpc-test",
-      version: "0.0.0",
-      description: "gRPC + REST example with Ignis",
-    };
+  override getAppInfo(): IApplicationInfo {
+    return appInfo;
   }
 
-  staticConfigure() {}
+  override staticConfigure(): void {}
 
-  preConfigure() {
-    // Services
-    this.service(GreeterService);
-    this.service(HealthService);
-
-    // Direct controller registration — gRPC
-    this.controller(GreeterController);
-    this.controller(HealthController);
-
-    // Direct controller registration — REST
-    this.controller(StatusController);
-
-    // Component-bound controllers (resolved via DI in registerComponents phase)
-    // OrdersComponent composes UsersComponent → registers UsersController + OrdersController
-    this.component(OrdersComponent);
-    // TimeComponent composes EchoComponent → registers EchoController + TimeController
-    this.component(TimeComponent);
+  override preConfigure(): void {
+    this.component(ApiReferenceComponent);
+    this.component(HealthCheckComponent);
   }
 
-  postConfigure() {}
+  override postConfigure(): void {}
 
-  setupMiddlewares() {}
+  override setupMiddlewares(): void {}
 }

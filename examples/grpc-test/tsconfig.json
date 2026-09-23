@@ -13,12 +13,11 @@
     "emitDecoratorMetadata": true
   },
   "include": [
-    "src",
-    "./*.config.*",
-    ".prettierrc.*"
+    "src"
   ],
   "exclude": [
     "node_modules",
-    "dist"
+    "dist",
+    "app_data"
   ]
 }

@@ -1,34 +1,20 @@
-/**
- * gRPC Server — starts an Ignis application with ConnectRPC support.
- *
- * Usage:
- *   bun run server:dev
- *
- * The server exposes:
- *   - ConnectRPC endpoints at /grpc/greeter.v1.GreeterService/*
- *   - Connect protocol (HTTP/1.1 JSON + Protobuf)
- *   - gRPC-Web protocol (HTTP/1.1)
- */
+import { ControllerTransports } from '@venizia/ignis';
+import { Application } from './application';
 
-import { LoggerFactory } from "@venizia/ignis-helpers";
-import { Application, appConfigs } from "./application";
+const application = new Application({
+  scope: 'Application',
+  config: {
+    host: '0.0.0.0',
+    port: Number(process.env.PORT ?? 3000),
+    path: { base: '/api', isStrict: false },
+    discoverArtifacts: true,
+    transports: [ControllerTransports.REST, ControllerTransports.GRPC],
+  },
+});
 
-const logger = LoggerFactory.getLogger(["main"]);
+application.init();
 
-const main = async () => {
-  const application = new Application({
-    scope: "Application",
-    config: appConfigs,
-  });
-
-  application.init();
-
-  logger.for("main").info("Starting gRPC example server...");
-
-  await application.start();
-};
-
-main().catch((err) => {
-  logger.error("[main] Failed to start | Error: %s", err);
+application.start().catch((error: unknown) => {
+  console.error('[main] Application start failed | Error:', error);
   process.exit(1);
 });
