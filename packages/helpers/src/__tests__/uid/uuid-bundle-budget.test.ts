@@ -2,6 +2,7 @@ import { afterAll, beforeAll, describe, expect, test } from 'bun:test';
 import { mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
+import { PACKAGE_ROOT } from '../package-root';
 
 /**
  * The `./uuid` subpath exists so a browser bundle can mint an id without the error surface, the
@@ -10,7 +11,6 @@ import path from 'node:path';
  * Re-exporting a version through anything that reaches `getError` puts it back over budget while
  * every other test stays green. Sizes are gzipped, bundled from the built `dist`.
  */
-const PACKAGE_ROOT = process.cwd();
 const UUID_ENTRY = path.resolve(PACKAGE_ROOT, 'dist/esm/uuid.js');
 
 /**

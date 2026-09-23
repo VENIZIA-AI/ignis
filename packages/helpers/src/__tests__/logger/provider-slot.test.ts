@@ -2,13 +2,14 @@ import { describe, expect, test } from 'bun:test';
 import { mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
+import { PACKAGE_ROOT } from '../package-root';
 
 /** Each case runs in a fresh process: the factory is module state, and the slot is process-global. */
 const runInFreshProcess = async (opts: { name: string; body: string }): Promise<string> => {
   const directory = await mkdtemp(path.join(tmpdir(), 'ignis-logger-slot-'));
   try {
     const script = path.join(directory, `${opts.name}.ts`);
-    const factoryPath = path.resolve(process.cwd(), 'src/modules/logger/factory.ts');
+    const factoryPath = path.resolve(PACKAGE_ROOT, 'src/modules/logger/factory.ts');
     await writeFile(
       script,
       `const SLOT = Symbol.for('ignis:logger-provider');\n` +
@@ -18,7 +19,7 @@ const runInFreshProcess = async (opts: { name: string; body: string }): Promise<
     );
     const result = Bun.spawnSync({
       cmd: ['bun', script],
-      cwd: process.cwd(),
+      cwd: PACKAGE_ROOT,
       stdout: 'pipe',
       stderr: 'pipe',
     });

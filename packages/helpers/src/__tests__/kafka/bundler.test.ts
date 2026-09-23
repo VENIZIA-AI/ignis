@@ -1,4 +1,5 @@
 import { describe, expect, test } from 'bun:test';
+import { PACKAGE_ROOT } from '../package-root';
 
 /** Bun.build() can't run in-process here (plugin registration dies on unrelated node_modules reads once other suites are loaded); the probe runs in a child process, matching how a real binary compiles. */
 interface TProbeResult {
@@ -21,7 +22,7 @@ const runProbe = (opts: { fixture: string; args: string[] }): TProbeResult => {
 
   const executed = Bun.spawnSync({
     cmd: ['bun', script, ...opts.args],
-    cwd: process.cwd(),
+    cwd: PACKAGE_ROOT,
     stdout: 'pipe',
     stderr: 'pipe',
   });

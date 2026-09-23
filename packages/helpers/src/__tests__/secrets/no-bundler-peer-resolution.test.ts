@@ -2,6 +2,7 @@ import { afterAll, beforeAll, describe, expect, test } from 'bun:test';
 import { mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
+import { PACKAGE_ROOT } from '../package-root';
 
 /** Bun.build resolves literal dynamic-import specifiers at bundle time - and `minify.syntax` folds const-held specifiers back to literals - so optional peers must stay invisible or consumers are forced to install/externalize them. */
 /** Probes bundle in subprocesses: in-process Bun.build under `bun test` reports spurious errors for modules other test files already loaded. */
@@ -76,7 +77,7 @@ afterAll(async () => {
 
 describe('secrets peers stay invisible to Bun.build', () => {
   test('ModuleUtility.load keeps an unresolvable specifier bundleable under minify.syntax', async () => {
-    const utilityPath = path.resolve(process.cwd(), 'src/utilities/module.utility.ts');
+    const utilityPath = path.resolve(PACKAGE_ROOT, 'src/utilities/module.utility.ts');
     const entryPath = path.join(probeDirectory, 'import-optional-entry.ts');
     await writeFile(
       entryPath,
@@ -94,7 +95,7 @@ describe('secrets peers stay invisible to Bun.build', () => {
   });
 
   test('bundling the root barrel never attempts to resolve node-vault or @dotenvx/dotenvx', async () => {
-    const barrelPath = path.resolve(process.cwd(), 'src/index.ts');
+    const barrelPath = path.resolve(PACKAGE_ROOT, 'src/index.ts');
     const entryPath = path.join(probeDirectory, 'root-barrel-entry.ts');
     await writeFile(entryPath, `export * from ${JSON.stringify(barrelPath)};\n`);
 
