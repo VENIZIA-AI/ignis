@@ -8,8 +8,8 @@
 import { afterAll, beforeAll, describe, expect, test } from 'bun:test';
 import { PGlite } from '@electric-sql/pglite';
 import { PgDialect, pgTable, text } from 'drizzle-orm/pg-core';
-import { RecursiveTreeDirections, RecursiveTreeSql } from '@venizia/ignis-kernel';
-import type { IRecursiveTreeOptions } from '@venizia/ignis-kernel';
+import { RecursiveTreeDirections, RecursiveTreeSql } from '@venizia/ignis-connectors/postgres';
+import type { IRecursiveTreeOptions } from '@venizia/ignis-connectors/postgres';
 
 // String-literal keys, not identifiers: these are database column names crossing the wire boundary,
 // and `RecursiveTreeSql` emits them verbatim - renaming either to camelCase would test a schema the

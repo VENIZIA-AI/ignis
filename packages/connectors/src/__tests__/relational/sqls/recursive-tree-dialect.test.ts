@@ -1,6 +1,9 @@
 import { describe, expect, test } from 'bun:test';
 import { mysqlTable, text as mysqlText } from 'drizzle-orm/mysql-core';
-import { RecursiveTreeDirections, RecursiveTreeSql } from '@/base/repositories/sqls/recursive-tree';
+import {
+  RecursiveTreeDirections,
+  RecursiveTreeSql,
+} from '@/relational/core/repositories/sqls/recursive-tree';
 
 /**
  * The engine is read off `table` itself (`is(table, PgTable)` / `is(table, SQLiteTable)`), never

@@ -1,11 +1,14 @@
 import { describe, expect, test } from 'bun:test';
-import { integer, sqliteTable, SQLiteSyncDialect, text } from 'drizzle-orm/sqlite-core';
+import { integer, PgDialect, pgTable, text } from 'drizzle-orm/pg-core';
 import { sql } from 'drizzle-orm';
-import { RecursiveTreeDirections, RecursiveTreeSql } from '@/base/repositories/sqls/recursive-tree';
+import {
+  RecursiveTreeDirections,
+  RecursiveTreeSql,
+} from '@/relational/core/repositories/sqls/recursive-tree';
 
-const dialect = new SQLiteSyncDialect();
+const dialect = new PgDialect();
 
-const nodesTable = sqliteTable('tree_nodes', {
+const nodesTable = pgTable('tree_nodes', {
   id: text('id').primaryKey(),
   parentId: text('parent_id'),
   label: text('label'),
@@ -14,26 +17,7 @@ const nodesTable = sqliteTable('tree_nodes', {
 
 const compile = (query: ReturnType<typeof RecursiveTreeSql.walk>) => dialect.sqlToQuery(query);
 
-describe('RecursiveTreeSql.walk - SQLite dialect is selected from the table, not an option', () => {
-  test('a sqliteTable produces SQLite text: no ARRAY, no ::int, no = ANY', () => {
-    const { sql: sqlText } = compile(
-      RecursiveTreeSql.walk({
-        name: 'walked',
-        table: nodesTable,
-        rootId: 'root-1',
-        direction: RecursiveTreeDirections.DOWN,
-        maxDepth: 10,
-      }),
-    );
-
-    expect(sqlText).not.toContain('ARRAY');
-    expect(sqlText).not.toContain('::int');
-    expect(sqlText).not.toContain('= ANY');
-    expect(sqlText).toContain('CAST(');
-  });
-});
-
-describe('RecursiveTreeSql.walk - shape (SQLite)', () => {
+describe('RecursiveTreeSql.walk - shape', () => {
   test('DOWN walks parent -> children: t.parent_id joins r.id', () => {
     const { sql: sqlText } = compile(
       RecursiveTreeSql.walk({
@@ -145,7 +129,7 @@ describe('RecursiveTreeSql.walk - shape (SQLite)', () => {
   });
 });
 
-describe('RecursiveTreeSql.walk - trackPath (SQLite delimited-text cycle guard)', () => {
+describe('RecursiveTreeSql.walk - trackPath', () => {
   test('trackPath: false (default) emits no path or is_cycle columns', () => {
     const { sql: sqlText } = compile(
       RecursiveTreeSql.walk({
@@ -161,7 +145,7 @@ describe('RecursiveTreeSql.walk - trackPath (SQLite delimited-text cycle guard)'
     expect(sqlText).not.toContain('path');
   });
 
-  test('trackPath: true emits a char(31)-delimited text path and an instr-based is_cycle, stopping recursion past a flagged row', () => {
+  test('trackPath: true emits path[]/is_cycle and stops recursing past a flagged row', () => {
     const { sql: sqlText } = compile(
       RecursiveTreeSql.walk({
         name: 'walked',
@@ -173,13 +157,10 @@ describe('RecursiveTreeSql.walk - trackPath (SQLite delimited-text cycle guard)'
       }),
     );
 
-    // Base term: the root id wrapped in the delimiter on both sides, is_cycle starts false (0).
-    expect(sqlText).toContain('char(31) || "id" || char(31) AS path');
-    expect(sqlText).toContain('0 AS is_cycle');
-    // Recursive term: append the new id plus a trailing delimiter, and test containment of the
-    // fully-delimited candidate against the path built so far - never a bare substring search.
-    expect(sqlText).toContain('r.path || t."id" || char(31) AS path');
-    expect(sqlText).toContain('instr(r.path, char(31) || t."id" || char(31)) > 0 AS is_cycle');
+    expect(sqlText).toContain('ARRAY["id"] AS path');
+    expect(sqlText).toContain('false AS is_cycle');
+    expect(sqlText).toContain('r.path || t."id" AS path');
+    expect(sqlText).toContain('t."id" = ANY(r.path) AS is_cycle');
     // The guard that makes a real A -> B -> A cycle terminate instead of hang: once a row is
     // flagged is_cycle, it is never expanded again, so the recursion has nothing left to grow.
     expect(sqlText).toContain('AND NOT r.is_cycle');
@@ -201,7 +182,7 @@ describe('RecursiveTreeSql.walk - trackPath (SQLite delimited-text cycle guard)'
   });
 });
 
-describe('RecursiveTreeSql.walk - maxDepth is mandatory and validated (SQLite)', () => {
+describe('RecursiveTreeSql.walk - maxDepth is mandatory and validated', () => {
   test('maxDepth: 0 throws - a walk that never runs must not silently return empty', () => {
     expect(() =>
       RecursiveTreeSql.walk({
@@ -239,7 +220,7 @@ describe('RecursiveTreeSql.walk - maxDepth is mandatory and validated (SQLite)',
   });
 });
 
-describe('RecursiveTreeSql.walk - identifier injection is rejected (SQLite)', () => {
+describe('RecursiveTreeSql.walk - identifier injection is rejected', () => {
   test('a malicious idColumn is rejected, not escaped-and-allowed', () => {
     expect(() =>
       RecursiveTreeSql.walk({
@@ -318,7 +299,7 @@ describe('RecursiveTreeSql.walk - identifier injection is rejected (SQLite)', ()
   });
 });
 
-describe('RecursiveTreeSql.walk - other guard rails (SQLite)', () => {
+describe('RecursiveTreeSql.walk - other guard rails', () => {
   test('an invalid direction throws', () => {
     expect(() =>
       RecursiveTreeSql.walk({
@@ -354,5 +335,40 @@ describe('RecursiveTreeSql.walk - other guard rails (SQLite)', () => {
         maxDepth: 10,
       }),
     ).toThrow(/table/);
+  });
+});
+
+describe('RecursiveTreeSql.walk - Postgres SQL is unchanged after adding SQLite support', () => {
+  test('a full-featured call (trackPath, extra columns, recursiveFilter, custom startDepth) compiles to the exact pre-existing Postgres text', () => {
+    const compiled = compile(
+      RecursiveTreeSql.walk({
+        name: 'walked',
+        table: nodesTable,
+        rootId: 'root-1',
+        direction: RecursiveTreeDirections.DOWN,
+        maxDepth: 10,
+        columns: ['label', 'weight'],
+        recursiveFilter: sql`t.label is not null`,
+        trackPath: true,
+        startDepth: 2,
+      }),
+    );
+
+    expect(compiled.sql).toBe(
+      'WITH RECURSIVE "walked" AS (SELECT "id", "parent_id", "label", "weight", $1::int AS depth, ' +
+        'ARRAY["id"] AS path, false AS is_cycle FROM "tree_nodes" WHERE "id" = $2 UNION ALL SELECT ' +
+        't."id", t."parent_id", t."label", t."weight", r.depth + 1, r.path || t."id" AS path, ' +
+        't."id" = ANY(r.path) AS is_cycle FROM "tree_nodes" t JOIN "walked" r ON t."parent_id" = r."id" ' +
+        'WHERE r.depth + 1 <= $3 AND NOT r.is_cycle AND (t.label is not null))',
+    );
+    expect(compiled.params).toEqual([2, 'root-1', 10]);
+  });
+});
+
+describe('RecursiveTreeDirections', () => {
+  test('isValid recognizes UP and DOWN only', () => {
+    expect(RecursiveTreeDirections.isValid('UP')).toBe(true);
+    expect(RecursiveTreeDirections.isValid('DOWN')).toBe(true);
+    expect(RecursiveTreeDirections.isValid('SIDEWAYS')).toBe(false);
   });
 });
