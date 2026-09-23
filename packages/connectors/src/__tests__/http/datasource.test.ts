@@ -364,3 +364,56 @@ describe('a caller that names one header twice gets the last value, not a joined
     expect(attempts[0].headers['x-tenant']).toBe('north, south');
   });
 });
+
+describe('a relative baseUrl resolves against the page or worker that runs it', () => {
+  // Bun has no `location`; the stub stands in for a page, and the descriptor goes back after each test.
+  const originalLocation = Object.getOwnPropertyDescriptor(globalThis, 'location');
+
+  const stubLocation = (opts: { href: string }) => {
+    Object.defineProperty(globalThis, 'location', {
+      value: { href: opts.href },
+      configurable: true,
+      writable: true,
+    });
+  };
+
+  afterEach(() => {
+    if (originalLocation) {
+      Object.defineProperty(globalThis, 'location', originalLocation);
+      return;
+    }
+
+    Reflect.deleteProperty(globalThis, 'location');
+  });
+
+  test('an absolute baseUrl is unchanged, with or without a location', () => {
+    const dataSource = new HttpDataSource({ baseUrl: 'https://api.example.com/v1' });
+    expect(dataSource.buildUrl({ paths: ['products'], query: { limit: 5 } })).toBe(
+      'https://api.example.com/v1/products?limit=5',
+    );
+
+    stubLocation({ href: 'http://localhost:5173/app/' });
+    expect(dataSource.buildUrl({ paths: ['products'] })).toBe(
+      'https://api.example.com/v1/products',
+    );
+  });
+
+  test("'/api' resolves against the page's origin", () => {
+    stubLocation({ href: 'http://localhost:5173/app/notes?tab=1' });
+    const dataSource = new HttpDataSource({ baseUrl: '/api' });
+
+    expect(dataSource.buildUrl({ paths: ['products'], query: { limit: 5 } })).toBe(
+      'http://localhost:5173/api/products?limit=5',
+    );
+  });
+
+  test('with no location (a server), a relative baseUrl fails naming the baseUrl and the fix', () => {
+    // A server has no location; remove any the runtime defines so the case does not depend on it.
+    Reflect.deleteProperty(globalThis, 'location');
+    const dataSource = new HttpDataSource({ baseUrl: '/api' });
+
+    expect(() => dataSource.buildUrl({ paths: ['products'] })).toThrow(
+      "[http] Relative baseUrl '/api' needs a page or worker location to resolve against, and there is none here | Pass an absolute baseUrl such as 'https://api.example.com'",
+    );
+  });
+});

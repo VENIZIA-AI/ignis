@@ -114,6 +114,8 @@ export class HttpDataSource extends AbstractDataSource<IHttpDataSourceSettings> 
   protected network: NodeFetchNetworkRequest;
   /** Normalised once: every request copies these, never re-parses `settings.headers`. */
   protected configuredHeaders: Array<[string, string]>;
+  /** Decided once: a relative baseUrl (`/api`) needs a location to resolve against on every request. */
+  protected isRelativeBaseUrl: boolean;
 
   constructor(opts: IHttpDataSourceSettings & { name?: string }) {
     super({ scope: opts.name ?? HttpDataSource.name });
@@ -131,6 +133,7 @@ export class HttpDataSource extends AbstractDataSource<IHttpDataSourceSettings> 
     this.configuredHeaders = configured;
     this.name = name;
     this.settings = settings;
+    this.isRelativeBaseUrl = !URL.canParse(settings.baseUrl);
     this.network = new NodeFetchNetworkRequest({
       name,
       networkOptions: { baseUrl: settings.baseUrl },
@@ -170,7 +173,18 @@ export class HttpDataSource extends AbstractDataSource<IHttpDataSourceSettings> 
 
   buildUrl(opts: { paths: Array<string>; query?: Record<string, unknown> }): string {
     const { paths, query } = opts;
-    const url = new URL(this.network.getRequestUrl({ paths }));
+    const requestUrl = this.network.getRequestUrl({ paths });
+
+    // A page or a Web Worker has a location to resolve '/api' against; a server has none.
+    const locationHref = this.isRelativeBaseUrl ? globalThis.location?.href : undefined;
+    if (this.isRelativeBaseUrl && !locationHref) {
+      throw getError({
+        statusCode: HTTP.ResultCodes.RS_5.InternalServerError,
+        message: `[${this.name}] Relative baseUrl '${this.settings.baseUrl}' needs a page or worker location to resolve against, and there is none here | Pass an absolute baseUrl such as 'https://api.example.com'`,
+      });
+    }
+
+    const url = new URL(requestUrl, locationHref);
 
     const parameters = Object.entries(query ?? {});
     for (const [key, value] of parameters) {
