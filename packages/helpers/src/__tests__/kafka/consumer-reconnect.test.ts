@@ -1,7 +1,7 @@
 import type { AnyType } from '@/common/types';
 /** Kafka Consumer lifecycle & reconnect regression tests (no broker required) */
 
-import { sleep } from '@/utilities/date.utility';
+import { sleep } from '@/utilities/sleep.utility';
 import { KafkaConsumerHelper } from '@/modules/queue/kafka';
 import { KafkaClientEvents, KafkaHealthStatuses } from '@/modules/queue/kafka/common/constants';
 import type { MessagesStream } from '@platformatic/kafka';

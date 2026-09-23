@@ -2,7 +2,6 @@ import { afterEach, describe, expect, test } from 'bun:test';
 import { AnyType } from '@/common';
 import { getError } from '@/modules/error';
 import { ITcpSocketServerOptions, NetworkTcpServer } from '@/modules/network';
-import { dayjs } from '@/utilities/date.utility';
 import { AddressInfo, connect, Socket } from 'node:net';
 
 interface IDeferred<T> {
@@ -140,7 +139,7 @@ describe('NetworkTcpServer - lifecycle and client registry', () => {
     expect(readyServer.listening).toBe(true);
   });
 
-  test('a connected client is tracked with an id, a dayjs connectedAt and an authenticated state', async () => {
+  test('a connected client is tracked with an id, a Date connectedAt and an authenticated state', async () => {
     const connected = createDeferred<{ id: string }>();
     const { server, port } = await startServer({
       onClientConnected: options => {
@@ -156,8 +155,8 @@ describe('NetworkTcpServer - lifecycle and client registry', () => {
     expect(client.id).toBe(id);
     expect(client.state).toBe('authenticated');
     expect(client.subscriptions.size).toBe(0);
-    expect(dayjs.isDayjs(client.storage.connectedAt)).toBe(true);
-    expect(dayjs.isDayjs(client.storage.authenticatedAt)).toBe(true);
+    expect(client.storage.connectedAt).toBeInstanceOf(Date);
+    expect(client.storage.authenticatedAt).toBeInstanceOf(Date);
     expect(Object.keys(server.getClients())).toEqual([id]);
   });
 
@@ -257,7 +256,7 @@ describe('NetworkTcpServer - authentication flow', () => {
 
     server.doAuthenticate({ id, state: 'authenticated' });
     expect(server.getClient({ id }).state).toBe('authenticated');
-    expect(dayjs.isDayjs(server.getClient({ id }).storage.authenticatedAt)).toBe(true);
+    expect(server.getClient({ id }).storage.authenticatedAt).toBeInstanceOf(Date);
   });
 
   test('an unauthenticated client is warned and kicked once the duration elapses', async () => {

@@ -1,5 +1,5 @@
 import { getError } from '@/modules/error';
-import { sleep } from '@/utilities/date.utility';
+import { sleep } from '@/utilities/sleep.utility';
 import { toError } from '@/utilities/promise.utility';
 import type {
   ConsumerGroupJoinPayload,

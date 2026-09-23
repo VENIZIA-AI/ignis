@@ -13,6 +13,7 @@ export * from './modules/network/http-request/fetcher/node-fetcher';
 export * from './modules/network/http-request/base-network-request.helper';
 export * from './modules/pool';
 export * from './modules/queue/internal/hf';
+export * from './modules/temporal';
 export * from './modules/uid';
 // The url guard, pure half only: `UrlPolicy` decides a url and a literal address with string and
 // number work. Its sibling `UrlIngest` reaches `node:dns` and stays out of this subpath.

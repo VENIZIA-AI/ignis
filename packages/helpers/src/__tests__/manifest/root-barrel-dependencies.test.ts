@@ -71,28 +71,23 @@ describe('helpers manifest - the root barrel declares everything it loads', () =
     const loaded = collectLoadTimePackages({ entry: ROOT_BARREL });
     const undeclared = [...loaded].filter(name => !declared.has(name)).sort();
 
-    expect(loaded.size).toBeGreaterThan(3);
+    expect(loaded.size).toBeGreaterThan(2);
     expect(undeclared).toEqual([]);
   });
 
   test('the walker sees through a relative re-export chain (positive control)', () => {
     const loaded = collectLoadTimePackages({ entry: ROOT_BARREL });
 
-    expect(loaded.has('dayjs')).toBe(true);
+    expect(loaded.has('@venizia/ignis-inversion')).toBe(true);
     expect(loaded.has('zod')).toBe(true);
   });
 
   // Optional peers: an app that never builds a Redis client or an OpenAPI route installs neither.
   // The set is pinned whole - naming only the two absences would miss a third peer creeping back in
   // through a re-exported sub-path.
-  test('the root barrel loads exactly four packages at import time', () => {
+  test('the root barrel loads exactly three packages at import time', () => {
     const loaded = collectLoadTimePackages({ entry: ROOT_BARREL });
 
-    expect([...loaded].sort()).toEqual([
-      '@venizia/ignis-inversion',
-      'dayjs',
-      'reflect-metadata',
-      'zod',
-    ]);
+    expect([...loaded].sort()).toEqual(['@venizia/ignis-inversion', 'reflect-metadata', 'zod']);
   });
 });

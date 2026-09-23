@@ -336,7 +336,7 @@
     },
     "packages/atlas": {
       "name": "@venizia/ignis-atlas",
-      "version": "0.1.0-26",
+      "version": "0.1.0-29",
       "bin": {
         "ignis-atlas": "./dist/cjs/cli.js",
       },
@@ -356,7 +356,7 @@
     },
     "packages/boot": {
       "name": "@venizia/ignis-boot",
-      "version": "0.2.0-31",
+      "version": "0.2.0-34",
       "bin": {
         "ignis-artifacts": "./dist/cjs/clis/artifacts.js",
         "ignis-build-info": "./dist/cjs/clis/build-info.js",
@@ -378,7 +378,7 @@
     },
     "packages/connectors": {
       "name": "@venizia/ignis-connectors",
-      "version": "0.2.0-40",
+      "version": "0.2.0-43",
       "dependencies": {
         "@venizia/ignis-filter": "^0.2.0-20",
         "@venizia/ignis-helpers": "^0.2.0-36",
@@ -423,7 +423,7 @@
     },
     "packages/core-server": {
       "name": "@venizia/ignis",
-      "version": "0.2.0-44",
+      "version": "0.2.0-47",
       "dependencies": {
         "@venizia/ignis-connectors": "^0.2.0-40",
         "@venizia/ignis-filter": "^0.2.0-20",
@@ -509,7 +509,7 @@
     },
     "packages/core-worker": {
       "name": "@venizia/ignis-worker",
-      "version": "0.2.0-40",
+      "version": "0.2.0-43",
       "dependencies": {
         "@venizia/ignis-helpers": "^0.2.0-9",
         "@venizia/ignis-inversion": "^0.2.0-4",
@@ -531,7 +531,7 @@
     },
     "packages/dev-configs": {
       "name": "@venizia/dev-configs",
-      "version": "0.2.0-13",
+      "version": "0.2.0-15",
       "dependencies": {
         "@minimaltech/eslint-node": "catalog:",
         "eslint-plugin-unicorn": "^74.0.0",
@@ -555,7 +555,7 @@
     },
     "packages/filter": {
       "name": "@venizia/ignis-filter",
-      "version": "0.2.0-20",
+      "version": "0.2.0-21",
       "dependencies": {
         "@venizia/ignis-inversion": "^0.2.0-20",
         "zod": "catalog:",
@@ -571,11 +571,9 @@
     },
     "packages/helpers": {
       "name": "@venizia/ignis-helpers",
-      "version": "0.2.0-36",
+      "version": "0.2.0-39",
       "dependencies": {
-        "@venizia/ignis-inversion": "^0.2.0-20",
-        "dayjs": "catalog:",
-        "ioredis": "catalog:",
+        "@venizia/ignis-inversion": "^0.2.0-22",
         "reflect-metadata": "catalog:",
         "zod": "catalog:",
       },
@@ -586,12 +584,16 @@
         "@socket.io/redis-adapter": "catalog:",
         "@socket.io/redis-emitter": "catalog:",
         "@types/bun": "catalog:",
-        "@venizia/dev-configs": "^0.2.0-13",
+        "@types/luxon": "^3.7.5",
+        "@venizia/dev-configs": "^0.2.0-15",
         "axios": "^1.20.0",
         "bullmq": "catalog:",
         "cron": "^4.4.0",
+        "dayjs": "catalog:",
         "eslint": "catalog:",
         "hono": "catalog:",
+        "ioredis": "catalog:",
+        "luxon": "^3.7.2",
         "minio": "^8.0.7",
         "mqtt": "^5.15.2",
         "node-vault": "^0.12.0",
@@ -609,7 +611,6 @@
       },
       "peerDependencies": {
         "@dotenvx/dotenvx": "^2.14.0",
-        "@hono/zod-openapi": "^1.5.1",
         "@platformatic/kafka": "^2.6.1",
         "@socket.io/redis-adapter": "^8.3.0",
         "@socket.io/redis-emitter": "^5.1.0",
@@ -617,6 +618,7 @@
         "bullmq": "^5.80.8",
         "cron": "^4.3.3",
         "hono": "^4.12.30",
+        "ioredis": "^5.11.1",
         "minio": "^8.0.6",
         "mqtt": "^5.15.2",
         "node-vault": "^0.12.0",
@@ -638,6 +640,7 @@
         "bullmq",
         "cron",
         "hono",
+        "ioredis",
         "minio",
         "mqtt",
         "node-vault",
@@ -653,14 +656,14 @@
     },
     "packages/inversion": {
       "name": "@venizia/ignis-inversion",
-      "version": "0.2.0-20",
+      "version": "0.2.0-22",
       "dependencies": {
         "reflect-metadata": "catalog:",
         "zod": "catalog:",
       },
       "devDependencies": {
         "@types/bun": "catalog:",
-        "@venizia/dev-configs": "^0.2.0-13",
+        "@venizia/dev-configs": "^0.2.0-15",
         "eslint": "catalog:",
         "prettier": "catalog:",
         "tsc-alias": "catalog:",
@@ -669,7 +672,7 @@
     },
     "packages/kernel": {
       "name": "@venizia/ignis-kernel",
-      "version": "0.2.0-41",
+      "version": "0.2.0-44",
       "dependencies": {
         "@venizia/ignis-filter": "^0.2.0-20",
         "@venizia/ignis-helpers": "^0.2.0-36",

@@ -1,7 +1,6 @@
 import { ValueOrPromise } from '@/common/types';
 import { BaseHelper } from '@/modules/base';
 import { getError } from '@/modules/error';
-import { dayjs } from '@/utilities/date.utility';
 import { getUID } from '@/utilities/parse.utility';
 import { voidExecution } from '@/utilities/promise.utility';
 import {
@@ -17,8 +16,8 @@ export interface ITcpSocketClient<SocketClientType> {
   state: 'unauthorized' | 'authenticating' | 'authenticated';
   subscriptions: Set<string>;
   storage: {
-    connectedAt: dayjs.Dayjs;
-    authenticatedAt: dayjs.Dayjs | null;
+    connectedAt: Date;
+    authenticatedAt: Date | null;
     authenticateTimeout?: ReturnType<typeof setTimeout> | null;
     [additionField: symbol | string]: any;
   };
@@ -235,8 +234,8 @@ export class BaseNetworkTcpServer<
       state: this.authenticateOptions.required ? 'unauthorized' : 'authenticated',
       subscriptions: new Set([]),
       storage: {
-        connectedAt: dayjs(),
-        authenticatedAt: this.authenticateOptions.required ? null : dayjs(),
+        connectedAt: new Date(),
+        authenticatedAt: this.authenticateOptions.required ? null : new Date(),
       },
     };
 
@@ -352,7 +351,7 @@ export class BaseNetworkTcpServer<
         break;
       }
       case 'authenticated': {
-        client.storage.authenticatedAt = dayjs();
+        client.storage.authenticatedAt = new Date();
 
         if (client.storage.authenticateTimeout) {
           clearTimeout(client.storage.authenticateTimeout);
