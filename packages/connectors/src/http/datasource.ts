@@ -11,6 +11,9 @@ import type {
 
 const MAX_URL_IN_MESSAGE = 256;
 
+/** A leading RFC 3986 scheme makes a URL absolute. Read by pattern: `URL.canParse` needs Safari 17 or Chrome 120, and this runs in pages. */
+const URL_SCHEME_PATTERN = /^[a-z][a-z\d+.-]*:/i;
+
 /** A long `inq` makes a URL 200 KB: the message keeps its head and length. 414/431 name the URL. */
 const describeUrl = (opts: { url: string; status: number }): string => {
   const { url, status } = opts;
@@ -133,7 +136,7 @@ export class HttpDataSource extends AbstractDataSource<IHttpDataSourceSettings> 
     this.configuredHeaders = configured;
     this.name = name;
     this.settings = settings;
-    this.isRelativeBaseUrl = !URL.canParse(settings.baseUrl);
+    this.isRelativeBaseUrl = !URL_SCHEME_PATTERN.test(settings.baseUrl);
     this.network = new NodeFetchNetworkRequest({
       name,
       networkOptions: { baseUrl: settings.baseUrl },

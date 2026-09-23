@@ -398,6 +398,37 @@ describe('a relative baseUrl resolves against the page or worker that runs it', 
     );
   });
 
+  test('telling absolute from relative needs no URL.canParse, which Safari before 17 lacks', () => {
+    const canParse = Object.getOwnPropertyDescriptor(URL, 'canParse');
+    Reflect.deleteProperty(URL, 'canParse');
+
+    try {
+      expect('canParse' in URL).toBe(false);
+
+      const absolute = new HttpDataSource({ baseUrl: 'https://api.example.com/v1' });
+      expect(absolute.buildUrl({ paths: ['products'] })).toBe(
+        'https://api.example.com/v1/products',
+      );
+
+      stubLocation({ href: 'http://localhost:5173/app/' });
+      const relative = new HttpDataSource({ baseUrl: '/api' });
+      expect(relative.buildUrl({ paths: ['products'] })).toBe('http://localhost:5173/api/products');
+    } finally {
+      if (canParse) {
+        Object.defineProperty(URL, 'canParse', canParse);
+      }
+    }
+  });
+
+  test("a scheme-less '//host' baseUrl takes the page's scheme", () => {
+    stubLocation({ href: 'https://shop.example.com/app/' });
+    const dataSource = new HttpDataSource({ baseUrl: '//api.example.com/v1' });
+
+    expect(dataSource.buildUrl({ paths: ['products'] })).toBe(
+      'https://api.example.com/v1/products',
+    );
+  });
+
   test("'/api' resolves against the page's origin", () => {
     stubLocation({ href: 'http://localhost:5173/app/notes?tab=1' });
     const dataSource = new HttpDataSource({ baseUrl: '/api' });
