@@ -32,7 +32,7 @@ result set is decided by the database rather than by a `where` clause.
 
 ## Prerequisites
 
-- Bun >= 1.3
+- Bun >= 1.4
 - A Supabase project (hosted or self-hosted) you can reach on Postgres, and its `JWT_SECRET`
 
 ## Configure

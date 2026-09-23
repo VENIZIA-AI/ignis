@@ -61,7 +61,7 @@ Ready features:
 
 ### Prerequisites
 
-- Node.js 18+ or Bun 1.3+
+- Node.js 20+ or Bun 1.4+
 - Running Ignis backend server (see `examples/vert/` for backend setup)
 
 ### Installation

@@ -4,7 +4,7 @@ Build a working IGNIS API: one controller, one route, dependency injection, and 
 
 **Time to complete:** ~5 minutes
 
-> **Prerequisite:** [Install Bun](./setup) 1.3 or later before you start.
+> **Prerequisite:** [Install Bun](./setup) 1.4 or later before you start.
 
 ## 1. Create the project
 

@@ -33,7 +33,7 @@ IGNIS example depends on implicitly.
 
 ## Prerequisites
 
-- Bun >= 1.3
+- Bun >= 1.4
 - Docker (for the Typesense container) - or any reachable Typesense >= 27 instance
 
 ## Run it

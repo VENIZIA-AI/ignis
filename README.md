@@ -9,7 +9,7 @@
 [![Docs](https://img.shields.io/badge/Docs-ignis.venizia.ai-2563EB.svg?style=flat-square)](https://ignis.venizia.ai)
 [![npm](https://img.shields.io/npm/v/@venizia/ignis/next.svg?style=flat-square&color=cb3837&label=@venizia/ignis@next)](https://www.npmjs.com/package/@venizia/ignis)
 [![License: MIT](https://img.shields.io/badge/License-MIT-3DA639.svg?style=flat-square)](LICENSE.md)
-[![Bun](https://img.shields.io/badge/Bun-%E2%89%A51.3-f472b6.svg?style=flat-square&logo=bun&logoColor=white)](https://bun.sh)
+[![Bun](https://img.shields.io/badge/Bun-%E2%89%A51.4-f472b6.svg?style=flat-square&logo=bun&logoColor=white)](https://bun.sh)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5%20%7C%206-3178C6.svg?style=flat-square&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
 
 [Documentation](https://ignis.venizia.ai) &#8226;
@@ -262,7 +262,7 @@ make test-all
 make lint-all
 ```
 
-Contributing needs Bun 1.4 or later: `make test-all` runs `bun test --parallel`. Applications need Bun 1.3 or later.
+IGNIS needs Bun 1.4 or later, for applications and contributors alike.
 
 Conventional Commits (`feat:`, `fix:`, `docs:`, ...), branches `feature/*` / `fix/*`, and **pull
 requests target `develop`**. Bun only - never npm, yarn, or pnpm. See

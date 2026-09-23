@@ -7,7 +7,7 @@ covers macOS, Linux, and Windows through WSL2.
 
 | Tool | Version | Required | Why |
 |------|---------|----------|-----|
-| **Bun** | >= 1.3 | Yes | Installs packages and runs every build; IGNIS never uses npm, yarn, or pnpm |
+| **Bun** | >= 1.4 | Yes | Installs packages and runs every build; IGNIS never uses npm, yarn, or pnpm |
 | **PostgreSQL** | >= 14 | Yes | Primary database; the repository system assumes Drizzle + `pg` |
 | **VS Code** | Latest | Optional | Best editor support, through ESLint and Prettier extensions |
 
@@ -31,7 +31,7 @@ On Windows, run this command inside WSL2.
 Reload your shell, then confirm the version:
 
 ```bash
-bun --version   # >= 1.3
+bun --version   # >= 1.4
 ```
 
 ## Step 2: Install PostgreSQL
@@ -93,7 +93,7 @@ Create `.vscode/settings.json` in your project:
 ## Verify Your Setup
 
 ```bash
-bun --version                   # >= 1.3
+bun --version                   # >= 1.4
 psql my_app_db -c "SELECT 1;"   # returns 1
 ```
 

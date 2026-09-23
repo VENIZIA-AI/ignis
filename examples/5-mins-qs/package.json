@@ -4,7 +4,7 @@
   "private": true,
   "description": "5-minute quickstart example",
   "engines": {
-    "bun": ">=1.3"
+    "bun": ">=1.4"
   },
   "scripts": {
     "build": "tsc -p tsconfig.json && tsc-alias -p tsconfig.json",

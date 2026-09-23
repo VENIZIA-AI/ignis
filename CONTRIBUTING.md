@@ -28,7 +28,7 @@ Please read and follow our [Code of Conduct](CODE_OF_CONDUCT.md). We are committ
 
 | Tool | Version | Installation |
 |------|---------|--------------|
-| **Bun** | >= 1.3.0 | `curl -fsSL https://bun.sh/install \| bash` |
+| **Bun** | >= 1.4.0 | `curl -fsSL https://bun.sh/install \| bash` |
 | **Git** | Latest | [git-scm.com](https://git-scm.com/) |
 
 ### Setup
