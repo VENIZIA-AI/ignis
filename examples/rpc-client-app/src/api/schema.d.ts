@@ -50,29 +50,21 @@ export interface paths {
                     };
                 };
                 /** @description Error Response */
-                "4xx | 5xx": {
+                "4XX": {
                     headers: {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": {
-                            statusCode?: number;
-                            message: string;
-                            normalized?: {
-                                text: string;
-                                code: string;
-                                args: {
-                                    [key: string]: unknown;
-                                };
-                            };
-                            extra?: {
-                                [key: string]: unknown;
-                            };
-                            requestId?: string;
-                            details?: {
-                                [key: string]: unknown;
-                            };
-                        };
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+                /** @description Error Response */
+                "5XX": {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
                     };
                 };
             };
@@ -150,29 +142,21 @@ export interface paths {
                     };
                 };
                 /** @description Error Response */
-                "4xx | 5xx": {
+                "4XX": {
                     headers: {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": {
-                            statusCode?: number;
-                            message: string;
-                            normalized?: {
-                                text: string;
-                                code: string;
-                                args: {
-                                    [key: string]: unknown;
-                                };
-                            };
-                            extra?: {
-                                [key: string]: unknown;
-                            };
-                            requestId?: string;
-                            details?: {
-                                [key: string]: unknown;
-                            };
-                        };
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+                /** @description Error Response */
+                "5XX": {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
                     };
                 };
             };
@@ -200,8 +184,6 @@ export interface paths {
                 content: {
                     "application/json": {
                         id?: string;
-                        createdBy?: string | null;
-                        modifiedBy?: string | null;
                         code: string;
                         group: string;
                         description?: string | null;
@@ -243,29 +225,21 @@ export interface paths {
                     };
                 };
                 /** @description Error Response */
-                "4xx | 5xx": {
+                "4XX": {
                     headers: {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": {
-                            statusCode?: number;
-                            message: string;
-                            normalized?: {
-                                text: string;
-                                code: string;
-                                args: {
-                                    [key: string]: unknown;
-                                };
-                            };
-                            extra?: {
-                                [key: string]: unknown;
-                            };
-                            requestId?: string;
-                            details?: {
-                                [key: string]: unknown;
-                            };
-                        };
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+                /** @description Error Response */
+                "5XX": {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
                     };
                 };
             };
@@ -326,29 +300,21 @@ export interface paths {
                     };
                 };
                 /** @description Error Response */
-                "4xx | 5xx": {
+                "4XX": {
                     headers: {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": {
-                            statusCode?: number;
-                            message: string;
-                            normalized?: {
-                                text: string;
-                                code: string;
-                                args: {
-                                    [key: string]: unknown;
-                                };
-                            };
-                            extra?: {
-                                [key: string]: unknown;
-                            };
-                            requestId?: string;
-                            details?: {
-                                [key: string]: unknown;
-                            };
-                        };
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+                /** @description Error Response */
+                "5XX": {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
                     };
                 };
             };
@@ -379,9 +345,6 @@ export interface paths {
             requestBody?: {
                 content: {
                     "application/json": {
-                        id?: string;
-                        createdBy?: string | null;
-                        modifiedBy?: string | null;
                         code?: string;
                         group?: string;
                         description?: string | null;
@@ -425,29 +388,21 @@ export interface paths {
                     };
                 };
                 /** @description Error Response */
-                "4xx | 5xx": {
+                "4XX": {
                     headers: {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": {
-                            statusCode?: number;
-                            message: string;
-                            normalized?: {
-                                text: string;
-                                code: string;
-                                args: {
-                                    [key: string]: unknown;
-                                };
-                            };
-                            extra?: {
-                                [key: string]: unknown;
-                            };
-                            requestId?: string;
-                            details?: {
-                                [key: string]: unknown;
-                            };
-                        };
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+                /** @description Error Response */
+                "5XX": {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
                     };
                 };
             };
@@ -517,29 +472,21 @@ export interface paths {
                     };
                 };
                 /** @description Error Response */
-                "4xx | 5xx": {
+                "4XX": {
                     headers: {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": {
-                            statusCode?: number;
-                            message: string;
-                            normalized?: {
-                                text: string;
-                                code: string;
-                                args: {
-                                    [key: string]: unknown;
-                                };
-                            };
-                            extra?: {
-                                [key: string]: unknown;
-                            };
-                            requestId?: string;
-                            details?: {
-                                [key: string]: unknown;
-                            };
-                        };
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+                /** @description Error Response */
+                "5XX": {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
                     };
                 };
             };
@@ -618,29 +565,21 @@ export interface paths {
                     };
                 };
                 /** @description Error Response */
-                "4xx | 5xx": {
+                "4XX": {
                     headers: {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": {
-                            statusCode?: number;
-                            message: string;
-                            normalized?: {
-                                text: string;
-                                code: string;
-                                args: {
-                                    [key: string]: unknown;
-                                };
-                            };
-                            extra?: {
-                                [key: string]: unknown;
-                            };
-                            requestId?: string;
-                            details?: {
-                                [key: string]: unknown;
-                            };
-                        };
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+                /** @description Error Response */
+                "5XX": {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
                     };
                 };
             };
@@ -703,29 +642,21 @@ export interface paths {
                     };
                 };
                 /** @description Error Response */
-                "4xx | 5xx": {
+                "4XX": {
                     headers: {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": {
-                            statusCode?: number;
-                            message: string;
-                            normalized?: {
-                                text: string;
-                                code: string;
-                                args: {
-                                    [key: string]: unknown;
-                                };
-                            };
-                            extra?: {
-                                [key: string]: unknown;
-                            };
-                            requestId?: string;
-                            details?: {
-                                [key: string]: unknown;
-                            };
-                        };
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+                /** @description Error Response */
+                "5XX": {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
                     };
                 };
             };
@@ -756,9 +687,6 @@ export interface paths {
             requestBody?: {
                 content: {
                     "application/json": {
-                        id?: string;
-                        createdBy?: string | null;
-                        modifiedBy?: string | null;
                         code?: string;
                         group?: string;
                         description?: string | null;
@@ -800,29 +728,21 @@ export interface paths {
                     };
                 };
                 /** @description Error Response */
-                "4xx | 5xx": {
+                "4XX": {
                     headers: {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": {
-                            statusCode?: number;
-                            message: string;
-                            normalized?: {
-                                text: string;
-                                code: string;
-                                args: {
-                                    [key: string]: unknown;
-                                };
-                            };
-                            extra?: {
-                                [key: string]: unknown;
-                            };
-                            requestId?: string;
-                            details?: {
-                                [key: string]: unknown;
-                            };
-                        };
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+                /** @description Error Response */
+                "5XX": {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
                     };
                 };
             };
@@ -855,29 +775,21 @@ export interface paths {
                     };
                 };
                 /** @description Error Response */
-                "4xx | 5xx": {
+                "4XX": {
                     headers: {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": {
-                            statusCode?: number;
-                            message: string;
-                            normalized?: {
-                                text: string;
-                                code: string;
-                                args: {
-                                    [key: string]: unknown;
-                                };
-                            };
-                            extra?: {
-                                [key: string]: unknown;
-                            };
-                            requestId?: string;
-                            details?: {
-                                [key: string]: unknown;
-                            };
-                        };
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+                /** @description Error Response */
+                "5XX": {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
                     };
                 };
             };
@@ -916,29 +828,21 @@ export interface paths {
                     };
                 };
                 /** @description Error Response */
-                "4xx | 5xx": {
+                "4XX": {
                     headers: {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": {
-                            statusCode?: number;
-                            message: string;
-                            normalized?: {
-                                text: string;
-                                code: string;
-                                args: {
-                                    [key: string]: unknown;
-                                };
-                            };
-                            extra?: {
-                                [key: string]: unknown;
-                            };
-                            requestId?: string;
-                            details?: {
-                                [key: string]: unknown;
-                            };
-                        };
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+                /** @description Error Response */
+                "5XX": {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
                     };
                 };
             };
@@ -998,29 +902,21 @@ export interface paths {
                     };
                 };
                 /** @description Error Response */
-                "4xx | 5xx": {
+                "4XX": {
                     headers: {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": {
-                            statusCode?: number;
-                            message: string;
-                            normalized?: {
-                                text: string;
-                                code: string;
-                                args: {
-                                    [key: string]: unknown;
-                                };
-                            };
-                            extra?: {
-                                [key: string]: unknown;
-                            };
-                            requestId?: string;
-                            details?: {
-                                [key: string]: unknown;
-                            };
-                        };
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+                /** @description Error Response */
+                "5XX": {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
                     };
                 };
             };
@@ -1068,29 +964,21 @@ export interface paths {
                     };
                 };
                 /** @description Error Response */
-                "4xx | 5xx": {
+                "4XX": {
                     headers: {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": {
-                            statusCode?: number;
-                            message: string;
-                            normalized?: {
-                                text: string;
-                                code: string;
-                                args: {
-                                    [key: string]: unknown;
-                                };
-                            };
-                            extra?: {
-                                [key: string]: unknown;
-                            };
-                            requestId?: string;
-                            details?: {
-                                [key: string]: unknown;
-                            };
-                        };
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+                /** @description Error Response */
+                "5XX": {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
                     };
                 };
             };
@@ -1122,10 +1010,10 @@ export interface paths {
             requestBody: {
                 content: {
                     "application/json": {
-                        scheme?: string;
+                        scheme: string;
                         oldCredential: string;
                         newCredential: string;
-                        userId?: string | number;
+                        userId: string | number;
                     };
                 };
             };
@@ -1140,29 +1028,21 @@ export interface paths {
                     };
                 };
                 /** @description Error Response */
-                "4xx | 5xx": {
+                "4XX": {
                     headers: {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": {
-                            statusCode?: number;
-                            message: string;
-                            normalized?: {
-                                text: string;
-                                code: string;
-                                args: {
-                                    [key: string]: unknown;
-                                };
-                            };
-                            extra?: {
-                                [key: string]: unknown;
-                            };
-                            requestId?: string;
-                            details?: {
-                                [key: string]: unknown;
-                            };
-                        };
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+                /** @description Error Response */
+                "5XX": {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
                     };
                 };
             };
@@ -1204,29 +1084,21 @@ export interface paths {
                     };
                 };
                 /** @description Error Response */
-                "4xx | 5xx": {
+                "4XX": {
                     headers: {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": {
-                            statusCode?: number;
-                            message: string;
-                            normalized?: {
-                                text: string;
-                                code: string;
-                                args: {
-                                    [key: string]: unknown;
-                                };
-                            };
-                            extra?: {
-                                [key: string]: unknown;
-                            };
-                            requestId?: string;
-                            details?: {
-                                [key: string]: unknown;
-                            };
-                        };
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+                /** @description Error Response */
+                "5XX": {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
                     };
                 };
             };
@@ -1319,29 +1191,21 @@ export interface paths {
                     };
                 };
                 /** @description Error Response */
-                "4xx | 5xx": {
+                "4XX": {
                     headers: {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": {
-                            statusCode?: number;
-                            message: string;
-                            normalized?: {
-                                text: string;
-                                code: string;
-                                args: {
-                                    [key: string]: unknown;
-                                };
-                            };
-                            extra?: {
-                                [key: string]: unknown;
-                            };
-                            requestId?: string;
-                            details?: {
-                                [key: string]: unknown;
-                            };
-                        };
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+                /** @description Error Response */
+                "5XX": {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
                     };
                 };
             };
@@ -1397,29 +1261,21 @@ export interface paths {
                     };
                 };
                 /** @description Error Response */
-                "4xx | 5xx": {
+                "4XX": {
                     headers: {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": {
-                            statusCode?: number;
-                            message: string;
-                            normalized?: {
-                                text: string;
-                                code: string;
-                                args: {
-                                    [key: string]: unknown;
-                                };
-                            };
-                            extra?: {
-                                [key: string]: unknown;
-                            };
-                            requestId?: string;
-                            details?: {
-                                [key: string]: unknown;
-                            };
-                        };
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+                /** @description Error Response */
+                "5XX": {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
                     };
                 };
             };
@@ -1460,29 +1316,21 @@ export interface paths {
                     };
                 };
                 /** @description Error Response */
-                "4xx | 5xx": {
+                "4XX": {
                     headers: {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": {
-                            statusCode?: number;
-                            message: string;
-                            normalized?: {
-                                text: string;
-                                code: string;
-                                args: {
-                                    [key: string]: unknown;
-                                };
-                            };
-                            extra?: {
-                                [key: string]: unknown;
-                            };
-                            requestId?: string;
-                            details?: {
-                                [key: string]: unknown;
-                            };
-                        };
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+                /** @description Error Response */
+                "5XX": {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
                     };
                 };
             };
@@ -1499,6 +1347,46 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        /**
+         * @description Error Schema
+         * @example {
+         *       "statusCode": 409,
+         *       "message": "A category named %{name} already exists.",
+         *       "normalized": {
+         *         "text": "A category named %{name} already exists.",
+         *         "code": "server.commerce.category.create.duplicate_name",
+         *         "args": {
+         *           "name": "Ticket"
+         *         }
+         *       },
+         *       "extra": {
+         *         "categoryId": 42
+         *       },
+         *       "requestId": "abc-123-def",
+         *       "details": {
+         *         "url": "http://localhost:3000/categories",
+         *         "path": "/categories"
+         *       }
+         *     }
+         */
+        ErrorResponse: {
+            statusCode?: number;
+            message: string;
+            normalized?: {
+                text: string;
+                code: string;
+                args: {
+                    [key: string]: unknown;
+                };
+            };
+            extra?: {
+                [key: string]: unknown;
+            };
+            requestId?: string;
+            details?: {
+                [key: string]: unknown;
+            };
+        };
         SignInResponse: {
             /** @description Send as `Authorization: Bearer <token>` */
             token: string;

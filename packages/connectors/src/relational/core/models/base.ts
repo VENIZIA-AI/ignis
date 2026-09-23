@@ -4,9 +4,11 @@ import type { TRelationConfig } from '@/relational/core/repositories/common';
 import type { TValueOrResolver } from '@venizia/ignis-helpers/common';
 import { getError } from '@venizia/ignis-helpers/core';
 import { createSchemaFactory } from 'drizzle-zod';
-import type { Table } from 'drizzle-orm';
+import type { Column, Table } from 'drizzle-orm';
+import { getTableColumns } from 'drizzle-orm';
 import type { IEntity, TTableInsert, TTableObject, TTableSchemaWithId } from './common';
 import { getIdType as _getIdType } from './common';
+import { AuditFields } from './common/constants';
 
 /** Lazy singleton, shared by every entity. */
 let schemaFactory: ReturnType<typeof createSchemaFactory> | undefined;
@@ -43,6 +45,16 @@ export class BaseRelationalEntity<Schema extends TTableSchemaWithId = TTableSche
   /** Maps the schema's id column's Drizzle `dataType` to 'number' (serial/integer) or 'string' (everything else, including bigint/unknown). */
   override getIdType(): TIdSchemaType {
     return _getIdType({ entity: this.schema }) === 'number' ? 'number' : 'string';
+  }
+
+  /** The audit keys whose column carries a default or `$onUpdate`; an audit column with neither is left to the client. */
+  override getServerStampedKeys(): string[] {
+    const columns: Record<string, Column | undefined> = getTableColumns(this.schema);
+
+    return [...AuditFields.SCHEME_SET].filter(key => {
+      const column = columns[key];
+      return column !== undefined && (column.hasDefault || column.onUpdateFn !== undefined);
+    });
   }
 
   getSchema<T = unknown>(opts: { type: TSchemaType }): T {

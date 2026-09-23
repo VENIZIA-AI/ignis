@@ -25,12 +25,6 @@ The app listens on `http://localhost:3000` (set `PORT` to change it). Browse the
 | `src/application.ts` | Imports each decorated class; `discoverArtifacts: true` registers them |
 | `src/index.ts` | Starts the server |
 
-> [!NOTE]
-> `SearchControllerFactory.defineSearchController`, unlike `ControllerFactory.defineCrudController`,
-> registers no injection metadata for its generated constructor. A subclass needs its own
-> `@inject`-decorated constructor - see `search.controller.ts` - or the repository resolves as
-> `undefined` at request time.
-
 ## Endpoints
 
 Every route sits under `/api`.

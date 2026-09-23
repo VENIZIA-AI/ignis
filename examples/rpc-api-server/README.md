@@ -39,7 +39,7 @@ Every route sits under `/api`. A lock marks a route that needs `Authorization: B
 | `GET` | `/auth/who-am-i` (lock) | The token's payload |
 | `POST` | `/auth/change-password` (lock) | Change the signed-in user's password |
 | `GET` | `/configurations` (lock) | List rows; takes a `filter` query |
-| `POST` | `/configurations` (lock) | Create a row; `createdBy` defaults to the signed-in user when the body leaves it out |
+| `POST` | `/configurations` (lock) | Create a row; `createdBy` is always the signed-in user, and the body cannot set it |
 | `GET` | `/configurations/{id}` (lock) | One row |
 | `PATCH` | `/configurations/{id}` (lock) | Update one row |
 | `DELETE` | `/configurations/{id}` (lock) | Delete one row |

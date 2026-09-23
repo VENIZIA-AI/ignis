@@ -14,7 +14,7 @@ import type {
 } from '../common';
 import { PersistableCrudController } from './crud';
 import { defineControllerRouteConfigs } from './definition';
-import { registerCrudRepositoryInjection } from './repository-injection';
+import { registerFactoryRepositoryInjection } from './repository-injection';
 
 /** Factory for generating typed CRUD controllers from entity definitions. */
 export class ControllerFactory extends BaseHelper {
@@ -59,6 +59,7 @@ export class ControllerFactory extends BaseHelper {
         create: entityInstance.getSchema({ type: SchemaTypes.CREATE }),
         update: entityInstance.getSchema({ type: SchemaTypes.UPDATE }),
       },
+      serverStampedKeys: entityInstance.getServerStampedKeys(),
     });
 
     const controllerClass = class extends PersistableCrudController<
@@ -161,8 +162,9 @@ export class ControllerFactory extends BaseHelper {
     };
 
     Object.defineProperty(controllerClass, 'name', { value: name, configurable: true });
-    registerCrudRepositoryInjection({
+    registerFactoryRepositoryInjection({
       target: controllerClass,
+      factoryName: 'defineCrudController',
       controllerName: name,
       repositoryName: defOpts.repository.name,
     });

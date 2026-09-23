@@ -55,6 +55,7 @@ const PINNED = [
   'core.static_asset.max_keys_invalid',
   'core.repository.entity_not_found',
   'core.request.body_malformed',
+  'core.request.nothing_to_update',
   'core.search_engine.not_found',
   'core.search_engine.already_exists',
   'core.search_engine.unknown_field',

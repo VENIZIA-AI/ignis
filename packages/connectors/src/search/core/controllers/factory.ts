@@ -1,6 +1,6 @@
 import type { TEntityDataObject } from '@venizia/ignis-kernel';
 import type { AbstractEntity } from '@venizia/ignis-kernel';
-import { SchemaTypes } from '@venizia/ignis-kernel';
+import { registerFactoryRepositoryInjection, SchemaTypes } from '@venizia/ignis-kernel';
 import type { TAuthMode, TAuthStrategy } from '@venizia/ignis-kernel';
 import type { IAuthorizationSpec } from '@venizia/ignis-kernel';
 import type { TAnyObjectSchema } from '@venizia/ignis-kernel';
@@ -116,6 +116,12 @@ export class SearchControllerFactory extends BaseHelper {
     };
 
     Object.defineProperty(controllerClass, 'name', { value: name, configurable: true });
+    registerFactoryRepositoryInjection({
+      target: controllerClass,
+      factoryName: 'defineSearchController',
+      controllerName: name,
+      repositoryName: defOpts.repository.name,
+    });
     return controllerClass;
   }
 }

@@ -1,8 +1,10 @@
 import type { IdType } from '@/base/models';
 import type { AbstractEntity } from '@/base/models/base';
+import { RequestErrors } from '@/base/middlewares/common/errors';
 import type { TWhere } from '@venizia/ignis-filter';
 import type { TAnyObjectSchema } from '@/base/controllers/common/schema-builders';
 import { HTTP } from '@venizia/ignis-helpers/common';
+import { getError } from '@venizia/ignis-helpers/core';
 import type { Env, Schema } from 'hono';
 import type { TEntityDataObject, TEntityPersistObject, TRouteContext } from '../../common';
 import { ReadableCrudController } from './readable';
@@ -45,11 +47,28 @@ export abstract class PersistableCrudController<
     return context.json(rs, HTTP.ResultCodes.RS_2.Created);
   }
 
+  /**
+   * 400 when the validated body leaves no field to write - `{}`, or only keys the body schema drops.
+   * The repository would otherwise fail with a 500.
+   */
+  assertNonEmptyUpdate(opts: { scope: string; data: object }): void {
+    const { scope, data } = opts;
+
+    if (Object.keys(data).length === 0) {
+      throw getError({
+        error: RequestErrors.NOTHING_TO_UPDATE,
+        message: `[${scope}] Nothing to update | The body has no field this route writes`,
+        logLevel: 'warn',
+      });
+    }
+  }
+
   /** PATCH /:id */
   async updateById(opts: { context: TRouteContext<RouteEnv> }) {
     const { context } = opts;
     const { id } = context.req.valid<{ id: IdType }>('param');
     const data = context.req.valid<Partial<TPersistObject>>('json');
+    this.assertNonEmptyUpdate({ scope: 'updateById', data });
 
     const rs = await this.measure({
       scope: 'updateById',
@@ -74,6 +93,7 @@ export abstract class PersistableCrudController<
     // an override that calls this through `super`.
     const data: Partial<TPersistObject> = { ...context.req.valid<Partial<TPersistObject>>('json') };
     Reflect.deleteProperty(data, 'where');
+    this.assertNonEmptyUpdate({ scope: 'updateBy', data });
 
     const resolved = this.resolveBulkWhere({
       context,

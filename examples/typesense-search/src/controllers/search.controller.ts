@@ -1,6 +1,6 @@
 import { ArticleDocument } from '@/models/article.model';
 import { ArticleRepository } from '@/repositories/article.repository';
-import { BindingKeys, BindingNamespaces, controller, inject } from '@venizia/ignis';
+import { controller } from '@venizia/ignis';
 import { SearchControllerFactory } from '@venizia/ignis/typesense/controllers';
 
 const BASE_PATH = '/articles';
@@ -12,20 +12,6 @@ const BaseSearchController = SearchControllerFactory.defineSearchController({
   controller: { name: 'ArticleSearchController', basePath: BASE_PATH },
 });
 
+/** The factory injects the repository named in `repository.name`, so no constructor is needed. */
 @controller({ path: BASE_PATH })
-export class ArticleSearchController extends BaseSearchController {
-  // Unlike ControllerFactory.defineCrudController, the search factory does not register injection
-  // metadata for its generated constructor's repository parameter, so a subclass must supply its
-  // own `@inject` - a bare `extends BaseSearchController {}` resolves the repository as `undefined`.
-  constructor(
-    @inject({
-      key: BindingKeys.build({
-        namespace: BindingNamespaces.REPOSITORY,
-        key: ArticleRepository.name,
-      }),
-    })
-    repository: ArticleRepository,
-  ) {
-    super(repository);
-  }
-}
+export class ArticleSearchController extends BaseSearchController {}

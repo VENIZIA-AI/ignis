@@ -17,6 +17,11 @@ export abstract class AbstractEntity<Schema = unknown> extends BaseHelper {
     return 'string';
   }
 
+  /** Keys the server fills on every write, which a generated create or update body leaves out. None here. */
+  getServerStampedKeys(): string[] {
+    return [];
+  }
+
   toObject() {
     return { ...this };
   }

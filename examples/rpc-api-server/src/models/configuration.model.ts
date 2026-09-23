@@ -9,7 +9,7 @@ import { pgTable, text } from 'drizzle-orm/pg-core';
 
 export const configurationTable = pgTable('configurations', {
   ...generateIdColumnDefs({ id: { dataType: 'string' } }),
-  // Filled from the JWT of the request that writes the row, when the body leaves them out.
+  // Filled from the JWT of the request that writes the row; the CRUD routes ignore them in the body.
   ...generateUserAuditColumnDefs({
     created: { dataType: 'string', columnName: 'created_by' },
     modified: { dataType: 'string', columnName: 'modified_by' },

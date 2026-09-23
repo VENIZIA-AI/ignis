@@ -1,8 +1,9 @@
 import { ControllerFactory } from '@/base/controllers/factory/controller';
+import { registerFactoryRepositoryInjection } from '@/base/controllers/factory/repository-injection';
 import { controller, inject } from '@/base/metadata';
 import { AbstractEntity } from '@/base/models';
 import { BindingNamespaces } from '@/common/bindings';
-import { BindingKeys, Container } from '@/helpers/inversion';
+import { BindingKeys, Container, MetadataRegistry } from '@/helpers/inversion';
 import { z } from '@hono/zod-openapi';
 import type { AnyType } from '@venizia/ignis-helpers/common';
 import { describe, expect, test } from 'bun:test';
@@ -104,5 +105,68 @@ describe('defineCrudController injects the repository named in repository.name',
       status: 200,
       body: { count: 'named'.length },
     });
+  });
+
+  test('an empty repository name is refused when the controller is defined', () => {
+    expect(() =>
+      ControllerFactory.defineCrudController({
+        entity: InjectionProbeItem,
+        repository: { name: '' },
+        controller: { name: 'NamelessItemController', basePath: '/nameless' },
+      }),
+    ).toThrow(
+      '[defineCrudController] Invalid repository name | controller: NamelessItemController',
+    );
+  });
+});
+
+describe('registerFactoryRepositoryInjection - the one injection every generated controller uses', () => {
+  test('records repositories.<name> at parameter 0, required', () => {
+    class GeneratedProbeController {}
+
+    registerFactoryRepositoryInjection({
+      target: GeneratedProbeController,
+      factoryName: 'defineProbeController',
+      controllerName: 'GeneratedProbeController',
+      repositoryName: 'ProbeRepository',
+    });
+
+    expect(
+      MetadataRegistry.getInstance().getInjectMetadata({ target: GeneratedProbeController }),
+    ).toEqual([{ key: repositoryKey({ name: 'ProbeRepository' }), index: 0, isOptional: false }]);
+  });
+
+  test('the target is a class - a plain function is a compile error', () => {
+    const plainFunction = () => undefined;
+
+    registerFactoryRepositoryInjection({
+      // @ts-expect-error - a factory registers the injection on the class it generated, never on a plain function
+      target: plainFunction,
+      factoryName: 'defineProbeController',
+      controllerName: 'PlainFunction',
+      repositoryName: 'ProbeRepository',
+    });
+
+    expect(MetadataRegistry.getInstance().getInjectMetadata({ target: plainFunction })).toEqual([
+      { key: repositoryKey({ name: 'ProbeRepository' }), index: 0, isOptional: false },
+    ]);
+  });
+
+  test('an empty name throws before anything is recorded, naming the calling factory', () => {
+    class NamelessProbeController {}
+
+    expect(() =>
+      registerFactoryRepositoryInjection({
+        target: NamelessProbeController,
+        factoryName: 'defineProbeController',
+        controllerName: 'NamelessProbeController',
+        repositoryName: '',
+      }),
+    ).toThrow(
+      '[defineProbeController] Invalid repository name | controller: NamelessProbeController',
+    );
+    expect(
+      MetadataRegistry.getInstance().getInjectMetadata({ target: NamelessProbeController }),
+    ).toBeUndefined();
   });
 });

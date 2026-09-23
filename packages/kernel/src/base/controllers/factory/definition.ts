@@ -7,6 +7,7 @@ import { FilterQuerySchema, WhereSchema } from '@/base/repositories/query-schema
 import type { TAnyObjectSchema } from '@/base/controllers/common/schema-builders';
 import { z } from '@hono/zod-openapi';
 import { HTTP } from '@venizia/ignis-helpers/common';
+import { getError } from '@venizia/ignis-helpers/core';
 import type { ICustomizableRoutes } from '../common';
 import {
   commonResponseHeaders,
@@ -45,6 +46,42 @@ export class RouteConfigResolver {
         examples: [1, 2, 3],
       }),
     });
+  }
+
+  /**
+   * The default body of a write route: the entity schema without the keys the entity stamps, and on
+   * an update without `id` - the path or `where` names the rows. Zod strips a left-out key a client
+   * sends. With nothing to leave out the schema itself is the body, refinements and OpenAPI name kept.
+   */
+  private static toWriteBodySchema(opts: {
+    schema: TAnyObjectSchema;
+    route: keyof ICustomizableRoutes;
+    serverStampedKeys: string[];
+  }): TAnyObjectSchema {
+    const { schema, route, serverStampedKeys } = opts;
+    const droppedKeys = route === 'create' ? serverStampedKeys : [...serverStampedKeys, 'id'];
+    // A `.transform()` pipe has no shape to read, so every key it might hold counts.
+    const isObjectSchema = schema instanceof z.ZodObject;
+    const omittedKeys = isObjectSchema
+      ? droppedKeys.filter(key => Object.hasOwn(schema.shape, key))
+      : droppedKeys;
+
+    if (omittedKeys.length === 0) {
+      return schema;
+    }
+
+    if (!isObjectSchema || schema.def.checks?.length) {
+      throw getError({
+        message: `[defineControllerRouteConfigs] Cannot build the default ${route} body | keys to leave out: ${omittedKeys.join(', ')} | The schema is refined or transformed, so zod cannot remove them | Pass routes.${route}.request.body`,
+      });
+    }
+
+    const mask: Record<string, true> = {};
+    for (const key of omittedKeys) {
+      mask[key] = true;
+    }
+
+    return schema.omit(mask);
   }
 
   /** Picks the caller's per-route `request.params` override, else the entity's id path-param schema. */
@@ -170,17 +207,29 @@ export class RouteConfigResolver {
     };
   }
 
+  /** `serverStampedKeys` - what the entity reports from `getServerStampedKeys()`; the default body leaves them out. */
   static resolveCreateConfig<
     C extends ICustomizableRoutes['create'],
     SelectSchema extends TAnyObjectSchema,
     CreateSchema extends TAnyObjectSchema,
-  >(opts: { config: C; selectSchema: SelectSchema; createSchema: CreateSchema }) {
-    const { config, selectSchema, createSchema } = opts;
+  >(opts: {
+    config: C;
+    selectSchema: SelectSchema;
+    createSchema: CreateSchema;
+    serverStampedKeys?: string[];
+  }) {
+    const { config, selectSchema, createSchema, serverStampedKeys = [] } = opts;
     const defaultSchema = RouteConfigResolver.conditionalCountResponse(selectSchema);
 
     return {
       request: {
-        body: config?.request?.body ?? createSchema,
+        body:
+          config?.request?.body ??
+          RouteConfigResolver.toWriteBodySchema({
+            schema: createSchema,
+            route: 'create',
+            serverStampedKeys,
+          }),
         headers: config?.request?.headers ?? defaultRequestHeaders,
       },
       response: {
@@ -200,13 +249,20 @@ export class RouteConfigResolver {
     config: C;
     selectSchema: SelectSchema;
     updateSchema: UpdateSchema;
+    serverStampedKeys: string[];
   }) {
-    const { config, selectSchema, updateSchema, idType } = opts;
+    const { config, selectSchema, updateSchema, idType, serverStampedKeys } = opts;
     const defaultSchema = RouteConfigResolver.conditionalCountResponse(selectSchema);
     return {
       request: {
         params: RouteConfigResolver.resolveIdParams({ config, idType }),
-        body: config?.request?.body ?? updateSchema,
+        body:
+          config?.request?.body ??
+          RouteConfigResolver.toWriteBodySchema({
+            schema: updateSchema,
+            route: 'updateById',
+            serverStampedKeys,
+          }),
         headers: config?.request?.headers ?? defaultRequestHeaders,
       },
       response: {
@@ -221,23 +277,35 @@ export class RouteConfigResolver {
     C extends ICustomizableRoutes['updateBy'],
     SelectSchema extends TAnyObjectSchema,
     UpdateSchema extends TAnyObjectSchema,
-  >(opts: { config: C; selectSchema: SelectSchema; updateSchema: UpdateSchema }) {
-    const { config, selectSchema, updateSchema } = opts;
+  >(opts: {
+    config: C;
+    selectSchema: SelectSchema;
+    updateSchema: UpdateSchema;
+    serverStampedKeys: string[];
+  }) {
+    const { config, selectSchema, updateSchema, serverStampedKeys } = opts;
     const defaultQuery = z.object({ where: WhereSchema.optional() }).openapi({
       description:
         'Where condition selecting the records to update - here or in the body, not both',
     });
-    // A model with a real `where` column keeps it: the body reserves the name only when it is free,
-    // and the handler then simply finds no `where` there.
-    const defaultBody =
-      'where' in updateSchema.shape
-        ? updateSchema
-        : updateSchema.extend({ where: WhereSchema.optional() });
+    // Built only without a custom body: a custom body must not trip the entity schema's checks.
+    const buildDefaultBody = () => {
+      const writableSchema = RouteConfigResolver.toWriteBodySchema({
+        schema: updateSchema,
+        route: 'updateBy',
+        serverStampedKeys,
+      });
+      // A model with a real `where` column keeps it: the body reserves the name only when it is
+      // free, and the handler then simply finds no `where` there.
+      return 'where' in writableSchema.shape
+        ? writableSchema
+        : writableSchema.extend({ where: WhereSchema.optional() });
+    };
     const defaultSchema = RouteConfigResolver.conditionalCountResponse(z.array(selectSchema));
     return {
       request: {
         query: config?.request?.query ?? defaultQuery,
-        body: config?.request?.body ?? defaultBody,
+        body: config?.request?.body ?? buildDefaultBody(),
         headers: config?.request?.headers ?? defaultRequestHeaders,
       },
       response: {
@@ -294,7 +362,10 @@ export class RouteConfigResolver {
     };
   }
 
-  /** Generates complete route configurations for a CRUD controller. */
+  /**
+   * Generates complete route configurations for a CRUD controller. `serverStampedKeys` - what the
+   * entity reports from `getServerStampedKeys()`; the default write bodies leave them out.
+   */
   static defineControllerRouteConfigs<
     Routes extends ICustomizableRoutes,
     SelectSchema extends TAnyObjectSchema,
@@ -306,6 +377,7 @@ export class RouteConfigResolver {
     authenticate?: { strategies?: TAuthStrategy[]; mode?: TAuthMode };
     authorize?: IAuthorizationSpec | IAuthorizationSpec[];
     schema: { select: SelectSchema; create: CreateSchema; update: UpdateSchema };
+    serverStampedKeys?: string[];
     routes?: Routes;
   }) {
     const {
@@ -314,6 +386,7 @@ export class RouteConfigResolver {
       authenticate: controllerAuth = {},
       authorize: controllerAuthorize,
       schema: { select: selectSchema, create: createSchema, update: updateSchema },
+      serverStampedKeys = [],
       routes,
     } = opts;
     const { strategies: defaultStrategies = [], mode: defaultMode } = controllerAuth;
@@ -384,17 +457,20 @@ export class RouteConfigResolver {
       config: routesConfig.create,
       selectSchema,
       createSchema,
+      serverStampedKeys,
     });
     const updateById = RouteConfigResolver.resolveUpdateByIdConfig({
       config: routesConfig.updateById,
       selectSchema,
       updateSchema,
       idType,
+      serverStampedKeys,
     });
     const updateBy = RouteConfigResolver.resolveUpdateByConfig({
       config: routesConfig.updateBy,
       selectSchema,
       updateSchema,
+      serverStampedKeys,
     });
     const deleteById = RouteConfigResolver.resolveDeleteByIdConfig({
       config: routesConfig.deleteById,
