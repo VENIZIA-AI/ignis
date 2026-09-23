@@ -8,6 +8,13 @@
       "when": 1785672693869,
       "tag": "0000_jittery_scarlet_spider",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "6",
+      "when": 1790152331272,
+      "tag": "0001_brainy_terror",
+      "breakpoints": true
     }
   ]
 }

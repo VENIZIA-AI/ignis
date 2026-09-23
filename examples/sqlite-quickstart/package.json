@@ -12,11 +12,14 @@
     "eslint": "eslint --report-unused-disable-directives .",
     "lint": "bun run eslint && bun run prettier:cli",
     "lint:fix": "bun run eslint --fix && bun run prettier:fix",
+    "migrate:dev": "NODE_ENV=development drizzle-kit migrate --config=src/migration.ts",
+    "migrate:generate": "drizzle-kit generate --config=src/migration.ts",
     "prettier:cli": "prettier \"**/*.{js,ts}\" -l",
     "prettier:fix": "bun run prettier:cli --write",
     "rebuild": "bun run clean && bun run build",
     "start": "APP_ENV_LOGGER_FOLDER_PATH=./app_data/logs bun run src/index.ts",
     "server:dev": "NODE_ENV=development APP_ENV_LOGGER_FOLDER_PATH=./app_data/logs bun run src/index.ts",
+    "test": "bun test",
     "typecheck": "tsc --noEmit -p tsconfig.json"
   },
   "dependencies": {
