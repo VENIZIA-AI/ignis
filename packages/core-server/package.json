@@ -112,6 +112,7 @@
     },
     "./postgres/postgres-js": {
       "types": "./dist/connectors/postgres/drivers/postgres-js.d.ts",
+      "import": "./dist/connectors/postgres/drivers/postgres-js.mjs",
       "default": "./dist/connectors/postgres/drivers/postgres-js.js"
     },
     "./postgres/pglite": {
@@ -193,7 +194,7 @@
     "eslint": "eslint --report-unused-disable-directives .",
     "lint": "bun run eslint && bun run prettier:cli",
     "lint:fix": "bun run eslint --fix && bun run prettier:fix",
-    "prettier:cli": "prettier \"**/*.{js,ts}\" -l",
+    "prettier:cli": "prettier \"**/*.{js,ts,mts}\" -l",
     "prettier:fix": "bun run prettier:cli --write",
     "rebuild": "sh ./scripts/rebuild.sh no-version",
     "prepublishOnly": "bun run rebuild"
