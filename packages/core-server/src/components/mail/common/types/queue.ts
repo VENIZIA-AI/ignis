@@ -45,9 +45,12 @@ export interface IInternalQueueMailExecutorOpts {
 }
 
 export interface IBullMQMailExecutorOpts {
+  /** `redis.module` passes `ioredis` itself - see `module` below for why. */
   redis: IRedisSingleHelperOptions;
   queue: { identifier: string; name: string };
   mode: TConstValue<typeof BullMQExecutorModes>;
+  /** `bullmq` itself, for a `bun build --compile` binary that has no `node_modules` to load it from. */
+  module?: typeof import('bullmq');
 }
 
 export interface IMailQueueExecutorConfig {

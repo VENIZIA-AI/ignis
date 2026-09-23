@@ -30,7 +30,8 @@ export class RedisClusterHelper extends AbstractRedisHelper<Cluster> {
       ...opts.clusterOptions,
     };
 
-    const ioredis = ModuleUtility.loadSync<typeof import('ioredis')>({ module: 'ioredis' });
+    const ioredis =
+      opts.module ?? ModuleUtility.loadSync<typeof import('ioredis')>({ module: 'ioredis' });
 
     super({
       ...opts,

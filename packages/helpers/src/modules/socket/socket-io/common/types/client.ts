@@ -39,6 +39,9 @@ export interface ISocketIOClientOptions {
   host: string;
   options: IOptions;
 
+  /** `socket.io-client` itself, for a `bun build --compile` binary that has no `node_modules` to load it from. Omitted, it is loaded on `configure()`. */
+  module?: typeof import('socket.io-client');
+
   onConnected?: () => ValueOrPromise<void>;
   onDisconnected?: (reason: string) => ValueOrPromise<void>;
   onError?: (error: Error) => ValueOrPromise<void>;

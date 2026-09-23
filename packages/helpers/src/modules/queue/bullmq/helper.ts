@@ -2,7 +2,8 @@ import { BaseHelper } from '@/modules/base';
 import { getError } from '@/modules/error';
 import { IRedisHelper } from '@/modules/redis';
 import { toError } from '@/utilities/promise.utility';
-import { Job, Processor, Queue, QueueOptions, Worker, WorkerOptions } from 'bullmq';
+import { ModuleUtility } from '@/utilities/module.utility';
+import type { Job, Processor, Queue, QueueOptions, Worker, WorkerOptions } from 'bullmq';
 import { invokeHook, TBullQueueRole } from '../common';
 
 export interface IBullMQOptions<TQueueElement = any, TQueueResult = any> {
@@ -10,6 +11,9 @@ export interface IBullMQOptions<TQueueElement = any, TQueueResult = any> {
   identifier: string;
   role: TBullQueueRole;
   redisConnection: IRedisHelper;
+
+  /** `bullmq` itself, for a `bun build --compile` binary that has no `node_modules` to load it from. Omitted, it is loaded when a queue or worker is built. */
+  module?: typeof import('bullmq');
 
   numberOfWorker?: number;
   lockDuration?: number;
@@ -51,6 +55,8 @@ export class BullMQHelper<TQueueElement = any, TQueueResult = any> extends BaseH
     error: Error,
   ) => Promise<void>;
 
+  private readonly bullmqModule?: typeof import('bullmq');
+
   constructor(options: IBullMQOptions<TQueueElement, TQueueResult>) {
     super({ scope: BullMQHelper.name, identifier: options.identifier });
     const {
@@ -64,7 +70,10 @@ export class BullMQHelper<TQueueElement = any, TQueueResult = any> extends BaseH
       onWorkerData,
       onWorkerDataCompleted,
       onWorkerDataFail,
+      module,
     } = options;
+
+    this.bullmqModule = module;
 
     this.queueName = queueName;
     this.role = role;
@@ -163,9 +172,20 @@ export class BullMQHelper<TQueueElement = any, TQueueResult = any> extends BaseH
     };
   }
 
+  /** `bullmq` is an optional peer: loaded when a queue or worker is built, not when this module is. */
+  private loadBullMQ(): typeof import('bullmq') {
+    return (
+      this.bullmqModule ?? ModuleUtility.loadSync<typeof import('bullmq')>({ module: 'bullmq' })
+    );
+  }
+
   /** Client factory seam - overridden in tests to run the helper without Redis. */
   protected buildQueue(opts: { queueName: string }): Queue<TQueueElement, TQueueResult> {
-    return new Queue<TQueueElement, TQueueResult>(opts.queueName, this.queueOptionsFor(opts));
+    const bullmq = this.loadBullMQ();
+    return new bullmq.Queue<TQueueElement, TQueueResult>(
+      opts.queueName,
+      this.queueOptionsFor(opts),
+    );
   }
 
   /** Client factory seam - overridden in tests to run the helper without Redis. */
@@ -173,7 +193,8 @@ export class BullMQHelper<TQueueElement = any, TQueueResult = any> extends BaseH
     queueName: string;
     processor: Processor<TQueueElement, TQueueResult>;
   }): Worker<TQueueElement, TQueueResult> {
-    return new Worker<TQueueElement, TQueueResult>(
+    const bullmq = this.loadBullMQ();
+    return new bullmq.Worker<TQueueElement, TQueueResult>(
       opts.queueName,
       opts.processor,
       this.workerOptionsFor(opts),

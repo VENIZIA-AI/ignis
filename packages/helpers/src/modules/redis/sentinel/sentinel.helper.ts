@@ -25,7 +25,8 @@ export class RedisSentinelHelper extends AbstractRedisHelper<Redis> {
       port: int(sentinel.port ?? 26379),
     }));
 
-    const ioredis = ModuleUtility.loadSync<typeof import('ioredis')>({ module: 'ioredis' });
+    const ioredis =
+      opts.module ?? ModuleUtility.loadSync<typeof import('ioredis')>({ module: 'ioredis' });
 
     super({
       ...opts,

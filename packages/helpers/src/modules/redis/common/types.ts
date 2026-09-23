@@ -44,10 +44,20 @@ export interface IRedisHelperCallbacks {
   onError?: (opts: { name: string; helper: IRedisHelper; error: unknown }) => void;
 }
 
-export interface IRedisSingleHelperOptions extends IRedisSingleHelperProps, IRedisHelperCallbacks {}
+/**
+ * `ioredis` is an optional peer, loaded when a client is built. A `bun build --compile` binary
+ * carries no `node_modules` to load it from: pass the module here, or register it once with
+ * `ModuleUtility.register({ modules: { ioredis } })` at the entry.
+ */
+export interface IRedisModuleOption {
+  module?: typeof import('ioredis');
+}
+
+export interface IRedisSingleHelperOptions
+  extends IRedisSingleHelperProps, IRedisHelperCallbacks, IRedisModuleOption {}
 
 export interface IRedisClusterHelperOptions
-  extends IRedisClusterHelperProps, IRedisHelperCallbacks {}
+  extends IRedisClusterHelperProps, IRedisHelperCallbacks, IRedisModuleOption {}
 
 export interface IRedisSentinelHelperOptions
-  extends IRedisSentinelHelperProps, IRedisHelperCallbacks {}
+  extends IRedisSentinelHelperProps, IRedisHelperCallbacks, IRedisModuleOption {}

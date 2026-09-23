@@ -21,6 +21,7 @@ export class BullMQMailExecutorHelper extends BaseHelper implements IMailQueueEx
   private queueHelper?: BullMQHelper<IQueueJobPayload, IMailQueueResult>;
   private workerHelpers: BullMQHelper<IQueueJobPayload, IMailProcessorResult>[] = [];
   private redisConnection: RedisSingleHelper;
+  private readonly bullmqModule?: typeof import('bullmq');
   private jobIdCounter = 0;
 
   private processor?: (email: string) => Promise<IMailProcessorResult>;
@@ -35,6 +36,7 @@ export class BullMQMailExecutorHelper extends BaseHelper implements IMailQueueEx
       maxRetry: undefined,
     });
 
+    this.bullmqModule = opts.module;
     this.queueIdentifier = opts.queue.identifier;
     this.queueName = opts.queue.name;
 
@@ -50,6 +52,7 @@ export class BullMQMailExecutorHelper extends BaseHelper implements IMailQueueEx
           queueName: queue.name,
           redisConnection: this.redisConnection,
           role: 'queue',
+          module: this.bullmqModule,
         });
 
         this.logger
@@ -130,6 +133,7 @@ export class BullMQMailExecutorHelper extends BaseHelper implements IMailQueueEx
       queueName: this.queueName,
       redisConnection: this.redisConnection,
       role: 'worker',
+      module: this.bullmqModule,
       numberOfWorker: concurrency,
       lockDuration,
       onWorkerData: async (job: Job<IQueueJobPayload, IMailProcessorResult>) => {

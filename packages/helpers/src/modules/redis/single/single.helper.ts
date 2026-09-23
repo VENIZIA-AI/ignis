@@ -9,7 +9,8 @@ export class RedisSingleHelper extends AbstractRedisHelper<Redis> {
     const { name, host, port, password, database = 0, autoConnect = true, maxRetry = 0 } = opts;
 
     // Optional peer, loaded when a client is built: an app with no Redis installs no ioredis.
-    const ioredis = ModuleUtility.loadSync<typeof import('ioredis')>({ module: 'ioredis' });
+    const ioredis =
+      opts.module ?? ModuleUtility.loadSync<typeof import('ioredis')>({ module: 'ioredis' });
 
     super({
       ...opts,

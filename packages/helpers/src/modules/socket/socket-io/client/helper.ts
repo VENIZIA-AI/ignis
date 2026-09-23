@@ -2,7 +2,8 @@ import { HTTP } from '@/common/constants/http';
 import { ValueOrPromise } from '@/common/types';
 import { BaseHelper } from '@/modules/base';
 import { getError } from '@/modules/error';
-import { io, type Socket } from 'socket.io-client';
+import { ModuleUtility } from '@/utilities/module.utility';
+import type { Socket } from 'socket.io-client';
 import {
   IOptions,
   ISocketIOClientOptions,
@@ -28,12 +29,15 @@ export class SocketIOClientHelper extends BaseHelper {
   private onAuthenticated?: () => ValueOrPromise<void>;
   private onUnauthenticated?: (message: string) => ValueOrPromise<void>;
 
+  private readonly clientModule?: typeof import('socket.io-client');
+
   constructor(opts: ISocketIOClientOptions) {
     super({ scope: opts.identifier });
 
     this.identifier = opts.identifier;
     this.host = opts.host;
     this.options = opts.options;
+    this.clientModule = opts.module;
 
     this.onConnected = opts.onConnected;
     this.onDisconnected = opts.onDisconnected;
@@ -56,6 +60,11 @@ export class SocketIOClientHelper extends BaseHelper {
       return;
     }
 
+    // `socket.io-client` is an optional peer: loaded on connect, so a server that only imports the
+    // server helper from this entry never needs it installed.
+    const { io } =
+      this.clientModule ??
+      ModuleUtility.loadSync<typeof import('socket.io-client')>({ module: 'socket.io-client' });
     this.client = io(this.host, this.options);
 
     // Socket.IO client fires 'connect', NOT 'connection' (server-side only)
