@@ -108,7 +108,9 @@ export class MetadataRegistry extends BaseHelper {
     metadata: IInjectMetadata;
   }): void {
     const { target, index, metadata } = opts;
-    const injects = Reflect.getMetadata(MetadataKeys.INJECT, target) ?? [];
+    // Copy-on-write: the inherited list belongs to the parent class and every sibling subclass reads it.
+    const own: IInjectMetadata[] | undefined = Reflect.getOwnMetadata(MetadataKeys.INJECT, target);
+    const injects = own ?? [...(Reflect.getMetadata(MetadataKeys.INJECT, target) ?? [])];
     injects[index] = metadata;
     Reflect.defineMetadata(MetadataKeys.INJECT, injects, target);
   }
