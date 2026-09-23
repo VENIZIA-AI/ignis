@@ -41,6 +41,9 @@ export abstract class BaseLogger extends AbstractLogger {
   }
 
   log(level: TLogLevel, message: string, ...args: AnyType[]) {
+    if (level === LogLevels.DEBUG && !SHOULD_LOG_DEBUG) {
+      return;
+    }
     this.write({ level, message, args });
   }
 

@@ -1,6 +1,6 @@
 import { AnyType } from '@/common/types';
 import { AbstractLogger } from '../base';
-import { ILogger, SHOULD_LOG_DEBUG, TLogLevel } from '../common';
+import { ILogger, LogLevels, SHOULD_LOG_DEBUG, TLogLevel } from '../common';
 import { formatLogMessage } from '../formatting';
 import {
   BUFFER_SIZE,
@@ -135,6 +135,9 @@ export class HfLogger extends AbstractLogger {
   log(level: TLogLevel, message: string, ...args: AnyType[]): void;
   log(level: TLogLevel, messageBytes: Uint8Array): void;
   log(level: TLogLevel, message: string | Uint8Array, ...args: AnyType[]): void {
+    if (level === LogLevels.DEBUG && !SHOULD_LOG_DEBUG) {
+      return;
+    }
     const levelCode = HF_LEVEL_CODES[level] ?? HF_LEVEL_CODES.info;
     if (typeof message === 'string') {
       this.writeString(levelCode, message, args);

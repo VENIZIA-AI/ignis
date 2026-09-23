@@ -42,45 +42,110 @@ const writeToConsole = (opts: {
   }
 };
 
-/** What a helper logs through when nothing installed a resolver: the console, tagged with its scope. */
-export const consoleFallbackLogger = (opts: { scopes: Array<string> }): ILogger => {
+/** Hands a line to the level's own method, so the logger's gates apply - `debug` checks `DEBUG`. */
+const writeToLogger = (opts: {
+  logger: ILogger;
+  level: TLogLevel;
+  message: string;
+  args: Array<AnyType>;
+}): void => {
+  const { logger, level, message, args } = opts;
+
+  switch (level) {
+    case LogLevels.DEBUG: {
+      logger.debug(message, ...args);
+      break;
+    }
+    case LogLevels.INFO: {
+      logger.info(message, ...args);
+      break;
+    }
+    case LogLevels.WARN: {
+      logger.warn(message, ...args);
+      break;
+    }
+    case LogLevels.ERROR: {
+      logger.error(message, ...args);
+      break;
+    }
+    case LogLevels.EMERG: {
+      logger.emerg(message, ...args);
+      break;
+    }
+    default: {
+      logger.log(level, message, ...args);
+      break;
+    }
+  }
+};
+
+const NO_RESOLVER_WARNING =
+  '[BaseHelper] Logging to the console - no logger provider is installed. Import `LoggerFactory` from `@venizia/ignis-helpers` at startup.';
+
+/** Global, so a process holding both the CJS and the ESM copy of this module still warns once. */
+const NO_RESOLVER_WARNED = Symbol.for('@venizia/ignis-helpers:no-logger-provider-warned');
+
+/** Node only: a browser has no `LoggerFactory` to import, so the advice would be noise there. */
+const warnNoResolverOnce = (): void => {
+  if (Reflect.get(globalThis, NO_RESOLVER_WARNED) || !globalThis.process?.versions?.node) {
+    return;
+  }
+
+  Reflect.set(globalThis, NO_RESOLVER_WARNED, true);
+  globalThis.console.warn(NO_RESOLVER_WARNING);
+};
+
+/**
+ * Writes to the console until a resolver is installed, then hands every call to the real logger - a
+ * helper that logs before the resolver module loads would otherwise stay on the console for good.
+ */
+const createDeferredLogger = (opts: { scopes: Array<string> }): ILogger => {
   const { scopes } = opts;
-  const prefix = `[${scopes.filter(scope => scope && scope.length > 0).join('-')}]`;
+  const prefix = `[${scopes.join('-')}]`;
+  let resolved: ILogger | undefined;
+
+  const write = (level: TLogLevel, message: string, args: Array<AnyType>): void => {
+    const resolve = loggerSlot.resolve;
+    if (!resolved && resolve) {
+      resolved = resolve({ scopes });
+    }
+
+    if (resolved) {
+      writeToLogger({ logger: resolved, level, message, args });
+      return;
+    }
+
+    warnNoResolverOnce();
+    writeToConsole({ prefix, level, message, args });
+  };
 
   return {
-    debug: (message: string, ...args: Array<AnyType>) =>
-      writeToConsole({ prefix, level: LogLevels.DEBUG, message, args }),
-    info: (message: string, ...args: Array<AnyType>) =>
-      writeToConsole({ prefix, level: LogLevels.INFO, message, args }),
-    warn: (message: string, ...args: Array<AnyType>) =>
-      writeToConsole({ prefix, level: LogLevels.WARN, message, args }),
-    error: (message: string, ...args: Array<AnyType>) =>
-      writeToConsole({ prefix, level: LogLevels.ERROR, message, args }),
-    emerg: (message: string, ...args: Array<AnyType>) =>
-      writeToConsole({ prefix, level: LogLevels.EMERG, message, args }),
+    debug: (message: string, ...args: Array<AnyType>) => write(LogLevels.DEBUG, message, args),
+    info: (message: string, ...args: Array<AnyType>) => write(LogLevels.INFO, message, args),
+    warn: (message: string, ...args: Array<AnyType>) => write(LogLevels.WARN, message, args),
+    error: (message: string, ...args: Array<AnyType>) => write(LogLevels.ERROR, message, args),
+    emerg: (message: string, ...args: Array<AnyType>) => write(LogLevels.EMERG, message, args),
     log: (level: TLogLevel, message: string, ...args: Array<AnyType>) =>
-      writeToConsole({ prefix, level, message, args }),
-    for: (methodName: string) => consoleFallbackLogger({ scopes: [...scopes, methodName] }),
+      write(level, message, args),
+    for: (methodName: string) =>
+      resolved
+        ? resolved.for(methodName)
+        : createDeferredLogger({ scopes: [...scopes, methodName] }),
   };
 };
 
-/** One logger per helper. A `WeakMap`, not a field: a mixin's anonymous class cannot emit a private member (TS4094). */
-const loggerByHelper = new WeakMap<object, ILogger>();
-
-/** Resolves a helper's logger on first read and caches it. */
-export const resolveHelperLogger = (opts: { helper: object; scopes: Array<string> }): ILogger => {
-  const { helper, scopes } = opts;
-
-  const cached = loggerByHelper.get(helper);
-  if (cached) {
-    return cached;
-  }
-
-  const resolved = (loggerSlot.resolve ?? consoleFallbackLogger)({ scopes });
-  loggerByHelper.set(helper, resolved);
-  return resolved;
+/** The real logger when a resolver is installed, else one that upgrades itself the moment one is. */
+export const resolveHelperLogger = (opts: { scopes: Array<string> }): ILogger => {
+  const resolve = loggerSlot.resolve;
+  return resolve ? resolve({ scopes: opts.scopes }) : createDeferredLogger({ scopes: opts.scopes });
 };
 
-export const setHelperLogger = (opts: { helper: object; logger: ILogger }): void => {
-  loggerByHelper.set(opts.helper, opts.logger);
+/** Pins a logger on a helper instance: later reads are a plain property read, not its getter. */
+export const pinHelperLogger = (opts: { helper: object; logger: ILogger }): void => {
+  Object.defineProperty(opts.helper, 'logger', {
+    value: opts.logger,
+    writable: true,
+    configurable: true,
+    enumerable: false,
+  });
 };
