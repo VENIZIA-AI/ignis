@@ -1,12 +1,12 @@
 import type { ITransaction } from '@venizia/ignis-kernel';
 import type { TFilter, TLockOptions, TWhere } from '@venizia/ignis-kernel';
-import { AbstractRepository } from '@venizia/ignis-kernel';
-import { DEFAULT_MAX_LIMIT } from '@venizia/ignis-kernel';
+import { AbstractRepository } from '@venizia/ignis-kernel/repository';
+import { DEFAULT_MAX_LIMIT } from '@venizia/ignis-kernel/repository';
 import { SearchErrors } from '@/search/core/common';
 import { getError } from '@venizia/ignis-helpers/core';
 import type { AbstractSearchDataSource } from '@/search/core/datasources';
 import type { BaseSearchEntity } from '@/search/core/models';
-import { throwNotSupported } from '@venizia/ignis-kernel';
+import { throwNotSupported } from '@venizia/ignis-kernel/repository';
 import type { TClass } from '@venizia/ignis-helpers/common';
 import type {
   ISearchQuery,

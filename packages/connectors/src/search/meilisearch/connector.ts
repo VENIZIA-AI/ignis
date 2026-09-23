@@ -1,4 +1,4 @@
-import { CoreErrorCodes, SearchErrorCodes } from '@venizia/ignis-kernel';
+import { CoreErrorCodes, SearchErrorCodes } from '@venizia/ignis-kernel/repository';
 import { SearchErrors } from '@/search/core/common';
 import type {
   IImportResult,

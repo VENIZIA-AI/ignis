@@ -1,4 +1,4 @@
-import { AbstractDataSource } from '@venizia/ignis-kernel';
+import { AbstractDataSource } from '@venizia/ignis-kernel/repository';
 import type { ISearchConnector } from '@/search/core/connector';
 import type { ISearchCollectionDefinition, TSearchSchema } from '@/search/core/models';
 import type { ISearchQueryDialect, TMultiSearchEntry } from '@/search/core/repositories/common';

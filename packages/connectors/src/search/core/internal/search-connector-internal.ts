@@ -1,4 +1,4 @@
-import { SearchErrorCodes } from '@venizia/ignis-kernel';
+import { SearchErrorCodes } from '@venizia/ignis-kernel/repository';
 import { SearchErrors } from '@/search/core/common';
 import type { ILogger } from '@venizia/ignis-helpers/core';
 import { getError } from '@venizia/ignis-helpers/core';

@@ -1,14 +1,12 @@
-import {
-  FieldsSchema,
-  LimitSchema,
-  OffsetSchema,
-  OrderBySchema,
-  SkipSchema,
-  WhereSchema,
-} from '@venizia/ignis-kernel';
-import { z } from '@hono/zod-openapi';
+import { buildQuerySchemas } from '@venizia/ignis-filter/schemas';
+import { z } from 'zod';
 import type { TConstValue } from '@venizia/ignis-helpers/common';
-import type { ISearchQuery } from './types';
+
+const { FieldsSchema, LimitSchema, OffsetSchema, OrderBySchema, SkipSchema, WhereSchema } =
+  buildQuerySchemas({
+    // zod's own `.meta()`, which the OpenAPI generator reads: this layer must load without hono.
+    decorate: (schema, metadata) => (schema instanceof z.ZodType ? schema.meta(metadata) : schema),
+  });
 
 /** Discriminant values for `TSearchInput.mode` - which search strategy `ReadableSearchRepository.search()` runs. */
 export class SearchModes {
@@ -36,10 +34,9 @@ const SearchFilterSchema = z
     skip: SkipSchema,
   })
   .optional()
-  .openapi({
-    description:
-      'Search-scoped filter - same shape as the repository TFilter minus include (search has no relations)',
-  });
+  .describe(
+    'Search-scoped filter - same shape as the repository TFilter minus include (search has no relations)',
+  );
 
 /** Shape object (NOT a z.object) so it spreads into each mode's z.object; `raw` mode skips it. Only cross-engine params live here - engine-specific tuning goes through `engineParams`. */
 const commonSearchParamsShape = {
@@ -71,7 +68,7 @@ const KeywordSearchSchema = z
     filter: SearchFilterSchema,
     ...commonSearchParamsShape,
   })
-  .openapi({ description: 'Keyword full-text search' });
+  .describe('Keyword full-text search');
 
 const SemanticSearchSchema = z
   .object({
@@ -85,7 +82,7 @@ const SemanticSearchSchema = z
     distanceThreshold: z.number().optional(),
     ef: z.number().optional(),
   })
-  .openapi({ description: 'Vector / semantic search' });
+  .describe('Vector / semantic search');
 
 const HybridSearchSchema = z
   .object({
@@ -101,14 +98,14 @@ const HybridSearchSchema = z
     distanceThreshold: z.number().optional(),
     ef: z.number().optional(),
   })
-  .openapi({ description: 'Hybrid keyword + vector search' });
+  .describe('Hybrid keyword + vector search');
 
 const RawSearchSchema = z
   .object({
     mode: z.literal(SearchModes.RAW),
     params: z.record(z.string(), z.any()),
   })
-  .openapi({ description: 'Raw engine passthrough' });
+  .describe('Raw engine passthrough');
 
 export const SearchInputSchema = z.discriminatedUnion('mode', [
   KeywordSearchSchema,
@@ -134,37 +131,8 @@ export const MultiSearchEntrySchema = z
     vectorQuery: z.string().optional(),
     ...commonSearchParamsShape,
   })
-  .openapi({ description: 'A single collection query within a multi-search' });
+  .describe('A single collection query within a multi-search');
 export type TMultiSearchEntry = z.infer<typeof MultiSearchEntrySchema>;
-
-/** List-shaped friendly fields that are comma-joined into their single `ISearchQuery` wire form. */
-const MULTI_SEARCH_LIST_FIELDS = new Set([
-  'queryBy',
-  'includeFields',
-  'excludeFields',
-  'facetBy',
-  'highlightFields',
-  'highlightFullFields',
-  'groupBy',
-  'queryByWeights',
-]);
-
-/** Friendly multi-search params -> `ISearchQuery`: list fields comma-joined, the rest pass through; keeps `search()`, `multiSearch()` and `commonParams` on one friendly-to-wire path. */
-export const toSearchQueryParams = (input: Record<string, unknown>): Partial<ISearchQuery> => {
-  const params: Record<string, unknown> = {};
-
-  const inputEntries = Object.entries(input);
-  for (const [key, value] of inputEntries) {
-    if (value === undefined || key === 'collection') {
-      continue;
-    }
-
-    params[key] =
-      MULTI_SEARCH_LIST_FIELDS.has(key) && Array.isArray(value) ? value.join(',') : value;
-  }
-
-  return params as Partial<ISearchQuery>;
-};
 
 /** Cross-collection multi-search input: friendly `searches` entries plus the union flag. */
 export const MultiSearchInputSchema = z
@@ -172,7 +140,5 @@ export const MultiSearchInputSchema = z
     searches: z.array(MultiSearchEntrySchema).min(1),
     union: z.boolean().optional(),
   })
-  .openapi({
-    description: 'Cross-collection multi-search (federated by default; union merges results)',
-  });
+  .describe('Cross-collection multi-search (federated by default; union merges results)');
 export type TMultiSearchInput = z.infer<typeof MultiSearchInputSchema>;

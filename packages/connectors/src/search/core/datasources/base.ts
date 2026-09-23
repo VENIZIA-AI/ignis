@@ -4,25 +4,16 @@ import type { ISearchCollectionDefinition, TSearchSchema } from '@/search/core/m
 import { toSearchQueryParams } from '@/search/core/repositories/common';
 import type { ISearchDataSourceOptions } from '@/search/core/datasources/common';
 import type { TMultiSearchEntry } from '@/search/core/repositories/common';
-import { MetadataRegistry } from '@venizia/ignis-kernel';
+import { MetadataRegistry } from '@venizia/ignis-kernel/metadata';
 import { getError } from '@venizia/ignis-helpers/core';
 import { type TClass } from '@venizia/ignis-helpers/common';
 import { AbstractSearchDataSource } from './abstract';
+import { isSearchCollectionDefinition } from './guards';
 
 /** `searchCollection` is the dual-schema escape hatch: a postgres entity with a search index declares it beside its pgTable `schema`; a search-only entity puts the DSL straight in `schema`. */
 type TDiscoverableModelClass = TClass<unknown> & {
   searchCollection?: ISearchCollectionDefinition;
   schema?: unknown;
-};
-
-/** A pg entity's `schema` is a pgTable, not an `ISearchCollectionDefinition` - narrows by shape so a pgTable is never mistaken for and provisioned as a search collection. */
-const isSearchCollectionDefinition = (value: unknown): value is ISearchCollectionDefinition => {
-  return (
-    typeof value === 'object' &&
-    value !== null &&
-    typeof (value as { name?: unknown }).name === 'string' &&
-    Array.isArray((value as { fields?: unknown }).fields)
-  );
 };
 
 /** Collection discovery/provisioning + connector lifecycle, mirroring BasePostgresDataSource. Paradigm seam: the connector is held via the `ISearchConnector`-bounded generic, never an engine type - engines supply only `createConnector()`. */

@@ -1,18 +1,14 @@
 import { SearchErrors } from '@/search/core/common';
 import type { IdType } from '@venizia/ignis-kernel';
 import type { IExtraOptions, TCount, TWhere } from '@venizia/ignis-kernel';
-import { RepositoryOperationScopes } from '@venizia/ignis-kernel';
+import { RepositoryOperationScopes } from '@venizia/ignis-kernel/repository';
 import type { AbstractSearchDataSource } from '@/search/core/datasources';
 import type { BaseSearchEntity } from '@/search/core/models';
 import type { TClass, TNullable } from '@venizia/ignis-helpers/common';
 import { getError } from '@venizia/ignis-helpers/core';
 import type { IImportResult } from '@/search/core';
+import { isImportRowLike } from './guards';
 import { ReadableSearchRepository } from './readable';
-
-/** Narrows one `unknown` `IImportResult.responses` row enough to read the per-row `success` flag `createAll` filters on. */
-const isImportRowLike = (value: unknown): value is { success?: boolean } => {
-  return typeof value === 'object' && value !== null;
-};
 
 /** Write-tier search-repository - creates/updates through the connector, dialect-translating `where` clauses. */
 export class PersistableSearchRepository<

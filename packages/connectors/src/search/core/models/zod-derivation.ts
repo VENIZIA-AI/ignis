@@ -1,9 +1,9 @@
 import { omit } from '@venizia/ignis-helpers/common';
-import { z } from '@hono/zod-openapi';
+import { z } from 'zod';
 import { getError } from '@venizia/ignis-helpers/core';
 
 import type { TSchemaType } from '@venizia/ignis-kernel';
-import { SchemaTypes } from '@venizia/ignis-kernel';
+import { SchemaTypes } from '@venizia/ignis-kernel/repository';
 import type { ISearchCollectionDefinition, ISearchFieldDefinition } from './common';
 import { SearchFieldTypes } from './common';
 
