@@ -2,7 +2,10 @@
 import { RelationTypes } from '@venizia/ignis-kernel';
 import type { TTableSchemaWithId } from '@/relational/core/models/common';
 import { relations as defineRelations } from 'drizzle-orm';
-import type { TRelationConfig } from '../common';
+import type { Relation } from 'drizzle-orm';
+import type { TRelationConfig } from '../../common';
+import { ManyRelations } from './many';
+import { OneRelations } from './one';
 
 /** Creates Drizzle ORM relations from a declarative configuration array. */
 export const createRelations = <Schema extends TTableSchemaWithId = TTableSchemaWithId>(opts: {
@@ -10,6 +13,8 @@ export const createRelations = <Schema extends TTableSchemaWithId = TTableSchema
   relations: Array<TRelationConfig>;
 }) => {
   const { source, relations } = opts;
+  const ones = new OneRelations({ source, relations });
+
   return {
     definitions: relations.reduce((curr, def) => {
       if (!def) {
@@ -20,20 +25,26 @@ export const createRelations = <Schema extends TTableSchemaWithId = TTableSchema
       return curr;
     }, {}),
     relations: defineRelations(source, ({ one, many }) => {
-      return relations.reduce((curr, def) => {
+      return relations.reduce<Record<string, Relation>>((curr, def) => {
         if (!def) {
           return curr;
         }
 
-        const { name, type, schema, metadata } = def;
-
-        switch (type) {
+        switch (def.type) {
           case RelationTypes.ONE: {
-            curr[name] = one(schema, Object.assign({}, { relationName: name }, metadata));
+            const config = ones.configFor({
+              name: def.name,
+              target: def.schema,
+              metadata: def.metadata,
+            });
+            curr[def.name] = config ? one(def.schema, config) : one(def.schema);
             break;
           }
           case RelationTypes.MANY: {
-            curr[name] = many(schema, Object.assign({}, { relationName: name }, metadata));
+            curr[def.name] = many(
+              def.schema,
+              ManyRelations.configFor({ name: def.name, metadata: def.metadata }),
+            );
             break;
           }
           default: {

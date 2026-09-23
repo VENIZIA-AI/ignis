@@ -1,5 +1,5 @@
 import { datasource, model, RelationTypes } from '@venizia/ignis-kernel';
-import { createRelations } from '@/relational/core/repositories/dialect/relation';
+import { createRelations } from '@/relational/core/repositories/dialect/relations/create';
 import type { TRelationConfig } from '@/relational/core/repositories/common';
 import { BasePostgresDataSource } from '@/relational/postgres/datasources';
 import { PGliteDriver } from '@/relational/postgres/drivers/pglite';

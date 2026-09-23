@@ -4,13 +4,14 @@ import type { TClass } from '@venizia/ignis-helpers/common';
 import { getError } from '@venizia/ignis-helpers/core';
 import type { IDataSource, TAnyDataSourceSchema } from '@venizia/ignis-kernel';
 // Deep import, not a barrel: `discoverSchema()` below is the only production call site that needs
-// `createRelations`, so the install runs from here rather than `dialect/relation.ts` - nothing else
+// `createRelations`, so the install runs from here rather than `dialect/relations/create.ts` - nothing else
 // value-imports that file's `createRelations` export, and a `sideEffects: false` bundler drops an
 // unused export's module body even when it is reachable through a barrel `export *` chain (verified
 // with `bun build --target=browser`, the tool `make purity` uses).
-import { createRelations } from '@/relational/core/repositories/dialect/relation';
+import { createRelations } from '@/relational/core/repositories/dialect/relations/create';
 import { AbstractRelationalDataSource } from './abstract';
 import type { IRelationalTransaction, TRelationalTransactionOptions } from './common';
+import { RelationPairing } from './relation-pairing';
 
 /** Base DataSource with schema auto-discovery from registered repositories. */
 export abstract class BaseRelationalDataSource<
@@ -60,8 +61,29 @@ export abstract class BaseRelationalDataSource<
         models,
       );
 
+    const discovered = { ...schema, ...relations };
+
+    // An inverse one() nothing pairs fails here; any other relation drizzle cannot pair is only
+    // reported, so a model set that boots today keeps booting, and its first query still throws.
+    const { unpaired, outside } = RelationPairing.inspect({
+      dataSource: this.constructor.name,
+      schema: discovered,
+    });
+    const fatal = unpaired.find(item => RelationPairing.isInverseOne({ relation: item.relation }));
+    if (fatal) {
+      throw getError({ message: fatal.message });
+    }
+
+    const logger = this.logger.for(this.discoverSchema.name);
+    for (const item of unpaired) {
+      logger.warn(item.message);
+    }
+    if (outside.length > 0) {
+      logger.debug(RelationPairing.describeOutside({ outside }));
+    }
+
     // buildSchema() is shared by every connector so it returns Record<string, unknown>; the cast narrows back to the Drizzle schema shape.
-    return { ...schema, ...relations } as Schema;
+    return discovered as Schema;
   }
 
   hasDiscoverableModels(): boolean {

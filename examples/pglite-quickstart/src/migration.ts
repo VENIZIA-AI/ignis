@@ -2,9 +2,8 @@ import { defineConfig } from 'drizzle-kit';
 import { blankToUndefined } from '@venizia/ignis-helpers';
 
 /**
- * drizzle-kit reads the model file directly - it bundles with esbuild, so the `@model` decorator
- * and the framework import are erased before the table export is evaluated. No compiled
- * re-export step is needed, unlike an entity whose table lives on a `.schema` static.
+ * drizzle-kit reads the model file directly and picks up the exported table - it bundles with
+ * esbuild, so the `@model` decorator and the framework import are erased first.
  *
  * `url` is a DIRECTORY here, not a connection string - PGlite owns the whole data directory.
  */

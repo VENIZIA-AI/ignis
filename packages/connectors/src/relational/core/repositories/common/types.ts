@@ -19,9 +19,12 @@ export type TRelationConfig = {
   | {
       type: typeof RelationTypes.ONE;
       schema: TTableSchemaWithId;
-      metadata: Parameters<
-        ReturnType<typeof createTableRelationsHelpers>[typeof RelationTypes.ONE]
-      >[1];
+      /** `fields` and `references` may be left out: they are read off the table's foreign key. */
+      metadata?: Partial<
+        NonNullable<
+          Parameters<ReturnType<typeof createTableRelationsHelpers>[typeof RelationTypes.ONE]>[1]
+        >
+      >;
     }
   | {
       type: typeof RelationTypes.MANY;

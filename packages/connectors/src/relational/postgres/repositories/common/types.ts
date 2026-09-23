@@ -1,13 +1,11 @@
-import type { RelationTypes } from '@venizia/ignis-kernel';
 import type { IDatabaseTransaction, TRelationalConnector } from '@/relational/postgres/datasources';
-import type { TTableSchemaWithId } from '@/relational/postgres/models';
 import type { IRelationalExtraOptions } from '@/relational/core/repositories/common';
-import type { createTableRelationsHelpers } from 'drizzle-orm';
 
 /** These surfaces are engine-neutral; re-exported so the postgres import paths keep resolving. */
 export type {
   IRelationalQueryDialect,
   ITransformedUpdateData,
+  TRelationConfig,
   TTableColumns,
 } from '@/relational/core/repositories/common';
 
@@ -19,23 +17,3 @@ export type {
 export interface IDatabaseExtraOptions extends IRelationalExtraOptions<TRelationalConnector> {
   transaction?: IDatabaseTransaction;
 }
-
-/** Entity relationship config (one-to-one/many-to-one, one-to-many); Drizzle-specific. */
-export type TRelationConfig = {
-  name: string;
-} & (
-  | {
-      type: typeof RelationTypes.ONE;
-      schema: TTableSchemaWithId;
-      metadata: Parameters<
-        ReturnType<typeof createTableRelationsHelpers>[typeof RelationTypes.ONE]
-      >[1];
-    }
-  | {
-      type: typeof RelationTypes.MANY;
-      schema: TTableSchemaWithId;
-      metadata: Parameters<
-        ReturnType<typeof createTableRelationsHelpers>[typeof RelationTypes.MANY]
-      >[1];
-    }
-);
