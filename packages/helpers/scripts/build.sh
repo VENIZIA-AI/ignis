@@ -17,5 +17,6 @@ tsc-alias -p tsconfig.build.json
 echo ">>> Building ESM..."
 tsc -p tsconfig.esm.json --extendedDiagnostics
 tsc-alias -p tsconfig.esm.json
+bun ../../scripts/esm-marker.ts
 
 echo "DONE | Build completed successfully!"
