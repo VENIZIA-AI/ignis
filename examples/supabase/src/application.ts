@@ -1,90 +1,43 @@
+// The application class. `src/index.ts` starts it; the smoke test boots the same class.
 import { EnvironmentKeys } from '@/common/environments';
 import {
   ApiReferenceComponent,
-  Authentication,
   AuthenticateBindingKeys,
   AuthenticateComponent,
+  Authentication,
   AuthenticationStrategyRegistry,
   BaseApplication,
-  CoreBindings,
-  HealthCheckBindingKeys,
   HealthCheckComponent,
-  IApplicationConfigs,
-  IApplicationInfo,
-  IHealthCheckOptions,
+  type IApplicationInfo,
   JOSEStandards,
   JWSAuthenticationStrategy,
-  TJWTTokenServiceOptions,
-  ValueOrPromise,
+  type TJWTTokenServiceOptions,
 } from '@venizia/ignis';
-import { applicationEnvironment, blankToUndefined, Environment, int } from '@venizia/ignis-helpers';
-import { cors } from 'hono/cors';
-import packageJson from './../package.json';
-import { AuthController, NoteController } from './controllers';
-import { SupabaseDataSource } from './datasources';
-import { NoteRepository } from './repositories';
-import { NoteService } from './services';
+import { applicationEnvironment, int } from '@venizia/ignis-helpers';
+import appInfo from '../package.json';
 
-// -----------------------------------------------------------------------------------------------
-export const beConfigs: IApplicationConfigs = {
-  host: process.env.APP_ENV_SERVER_HOST,
-  port: +(blankToUndefined(process.env.APP_ENV_SERVER_PORT) ?? 3000),
-  path: {
-    base: blankToUndefined(process.env.APP_ENV_SERVER_BASE_PATH) ?? '/api',
-    isStrict: true,
-  },
-  error: { rootKey: 'error' },
-  debug: {
-    shouldShowRoutes: !Environment.is({ name: Environment.PRODUCTION }),
-  },
-};
+// Importing a decorated class is what registers it: `discoverArtifacts: true` binds every one.
+import './datasources/supabase.datasource';
+import './repositories/note.repository';
+import './services/note.service';
+import './controllers/note.controller';
 
-// -----------------------------------------------------------------------------------------------
 export class Application extends BaseApplication {
-  // --------------------------------------------------------------------------------
-  override getProjectRoot(): string {
-    const projectRoot = __dirname;
-    this.bind<string>({ key: CoreBindings.APPLICATION_PROJECT_ROOT }).toValue(projectRoot);
-    return projectRoot;
+  override getAppInfo(): IApplicationInfo {
+    return appInfo;
   }
 
-  // --------------------------------------------------------------------------------
-  override getAppInfo(): ValueOrPromise<IApplicationInfo> {
-    return packageJson;
-  }
+  override staticConfigure(): void {}
 
-  // --------------------------------------------------------------------------------
-  staticConfigure(): void {
-    // Nothing to serve statically.
-  }
-
-  // --------------------------------------------------------------------------------
-  override setupMiddlewares(): ValueOrPromise<void> {
-    this.getServer().use(
-      '*',
-      cors({
-        origin: '*',
-        allowMethods: ['GET', 'HEAD', 'PUT', 'PATCH', 'POST', 'DELETE', 'OPTIONS'],
-        maxAge: 86_400,
-        credentials: true,
-      }),
-    );
-  }
-
-  // --------------------------------------------------------------------------------
-  /** Manual registration - the booter cannot discover .ts files when running from source. */
-  preConfigure(): ValueOrPromise<void> {
-    this.dataSource(SupabaseDataSource);
-    this.repository(NoteRepository);
-    this.service(NoteService);
+  override preConfigure(): void {
+    this.component(ApiReferenceComponent);
+    this.component(HealthCheckComponent);
 
     /**
-     * Supabase's GoTrue issues HS256 tokens signed with the project's JWT secret. That is exactly
-     * what JWSTokenService verifies, so IGNIS needs no Supabase-specific strategy - it needs the
-     * secret.
-     *
-     * `getTokenExpiresFn` is only consulted when SIGNING. This app never signs: it verifies tokens
-     * minted by Supabase.
+     * Supabase Auth (GoTrue) issues HS256 tokens signed with the project's JWT secret - exactly what
+     * JWSTokenService verifies. This app never signs a token for a real deployment; it only verifies
+     * one minted elsewhere with the same secret. `getTokenExpiresFn` is only consulted when signing,
+     * which `src/token.ts` does for this example's own test tokens.
      */
     this.bind<TJWTTokenServiceOptions>({ key: AuthenticateBindingKeys.JWT_OPTIONS }).toValue({
       standard: JOSEStandards.JWS,
@@ -101,22 +54,9 @@ export class Application extends BaseApplication {
       container: this,
       strategies: [{ name: Authentication.STRATEGY_JWT, strategy: JWSAuthenticationStrategy }],
     });
-
-    this.controller(AuthController);
-    this.controller(NoteController);
-
-    this.bind<IHealthCheckOptions>({
-      key: HealthCheckBindingKeys.HEALTH_CHECK_OPTIONS,
-    }).toValue({
-      restOptions: { path: '/health-check' },
-    });
-    this.component(HealthCheckComponent);
-
-    this.component(ApiReferenceComponent);
   }
 
-  // --------------------------------------------------------------------------------
-  postConfigure(): ValueOrPromise<void> {
-    // Nothing to do after registration.
-  }
+  override postConfigure(): void {}
+
+  override setupMiddlewares(): void {}
 }

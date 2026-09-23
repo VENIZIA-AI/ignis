@@ -1,10 +1,10 @@
--- Hand-added: drizzle-kit emits the table and its policies, but never the schema that holds them
--- nor the grants the policies depend on. A policy is checked only AFTER the role clears table
--- privileges - without the GRANTs below, `authenticated` is refused before any policy is consulted,
--- and RLS would look like it "works" for the wrong reason.
-CREATE SCHEMA IF NOT EXISTS "ignis_example";--> statement-breakpoint
+-- Hand-added: drizzle-kit emits the table and its policies, but never the grants they depend on. A
+-- policy is checked only AFTER the role clears table privileges - without these, `authenticated` is
+-- refused before any policy is consulted, and RLS would look like it "works" for the wrong reason.
+CREATE SCHEMA "ignis_example";
+--> statement-breakpoint
 CREATE TABLE "ignis_example"."note" (
-	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
+	"id" text PRIMARY KEY NOT NULL,
 	"created_at" timestamp with time zone DEFAULT NOW() NOT NULL,
 	"modified_at" timestamp with time zone DEFAULT NOW() NOT NULL,
 	"owner_id" uuid DEFAULT auth.uid() NOT NULL,

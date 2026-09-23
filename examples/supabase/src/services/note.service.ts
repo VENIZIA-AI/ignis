@@ -1,48 +1,34 @@
-import { SupabaseDataSource } from '@/datasources';
-import { Note } from '@/models';
-import { NoteRepository } from '@/repositories';
-import { BaseService, BindingNamespaces, inject } from '@venizia/ignis';
-import type { IDatabaseTransaction, TTableObject } from '@venizia/ignis/postgres';
+import { SupabaseDataSource } from '@/datasources/supabase.datasource';
+import type { TNote } from '@/models/note.model';
+import { NoteRepository } from '@/repositories/note.repository';
+import { BaseService, inject, service } from '@venizia/ignis';
+import type { IDatabaseTransaction } from '@venizia/ignis/postgres';
 import { withAuthContext } from '@venizia/ignis/postgres/supabase';
-import { BindingKeys } from '@venizia/ignis-inversion';
-
-export type TNote = TTableObject<typeof Note.schema>;
 
 /**
  * Every write and every scoped read goes through `runAsUser`: open a transaction, establish the
  * caller's identity inside it, run the repository call, commit.
  *
  * The transaction is not decoration. `withAuthContext` uses `SET LOCAL` / `set_config(..., true)`,
- * which is transaction-scoped - and that is precisely what makes it safe behind a pooler. A plain
- * `SET` would leak the caller's identity to whoever borrows the connection next.
+ * which is transaction-scoped - and that is what makes it safe behind a pooler. A plain `SET` would
+ * leak the caller's identity to whoever borrows the connection next.
  */
+@service()
 export class NoteService extends BaseService {
   constructor(
-    @inject({
-      key: BindingKeys.build({
-        namespace: BindingNamespaces.DATASOURCE,
-        key: SupabaseDataSource.name,
-      }),
-    })
+    @inject({ key: 'datasources.SupabaseDataSource' })
     private dataSource: SupabaseDataSource,
 
-    @inject({
-      key: BindingKeys.build({
-        namespace: BindingNamespaces.REPOSITORY,
-        key: NoteRepository.name,
-      }),
-    })
+    @inject({ key: 'repositories.NoteRepository' })
     private noteRepository: NoteRepository,
   ) {
     super({ scope: NoteService.name });
   }
 
   /**
-   * Runs `handler` inside a transaction that carries the caller's Supabase claims, so `auth.uid()`
-   * resolves and the table's RLS policies can decide what the statement is allowed to touch.
-   *
-   * `role` is left to default to the JWT's own `role` claim - PostgREST semantics, and the only
-   * default that cannot contradict `request.jwt.claims`.
+   * Runs `handler` inside a transaction carrying the caller's claims, so `auth.uid()` resolves and the
+   * table's RLS policies decide what the statement may touch. `role` defaults to the JWT's own `role`
+   * claim - PostgREST semantics, and the only default that cannot contradict `request.jwt.claims`.
    */
   private async runAsUser<T>(opts: {
     claims: Record<string, unknown>;
@@ -58,8 +44,8 @@ export class NoteService extends BaseService {
       await transaction.commit();
       return result;
     } catch (error) {
-      // rollback() rethrows on failure, so it must not be the last thing standing between the
-      // caller and the error that actually caused this.
+      // rollback() rethrows on failure, so it must not be the last thing standing between the caller
+      // and the error that actually caused this.
       try {
         await transaction.rollback();
       } catch (rollbackError) {
@@ -70,10 +56,7 @@ export class NoteService extends BaseService {
     }
   }
 
-  /**
-   * Returns the caller's notes. There is no `where` clause on `ownerId` anywhere in this method -
-   * the scoping is the database's doing.
-   */
+  /** The caller's own notes. There is no `where owner_id = ...` anywhere in this method. */
   find(opts: { claims: Record<string, unknown> }): Promise<Array<TNote>> {
     return this.runAsUser({
       claims: opts.claims,
@@ -83,9 +66,8 @@ export class NoteService extends BaseService {
   }
 
   /**
-   * `ownerId` is never passed. It defaults to `auth.uid()` in the table definition, so the database
-   * stamps ownership from the very context the transaction carries - an owner cannot be forged by a
-   * client that lies in its request body.
+   * `ownerId` is never passed. It defaults to `auth.uid()` in the table, so the database stamps
+   * ownership from the transaction's own context - a client that lies in its body changes nothing.
    */
   create(opts: {
     claims: Record<string, unknown>;
@@ -103,11 +85,10 @@ export class NoteService extends BaseService {
     });
   }
 
-  /** Deleting someone else's note is not forbidden by a check here - it simply matches no row. */
-  async deleteById(opts: {
-    claims: Record<string, unknown>;
-    id: string;
-  }): Promise<{ count: number }> {
+  /** Deleting someone else's note is not rejected here - it simply matches no row. */
+  async deleteById(opts: { claims: Record<string, unknown>; id: string }): Promise<{
+    count: number;
+  }> {
     return this.runAsUser({
       claims: opts.claims,
       handler: async transaction => {
@@ -121,12 +102,9 @@ export class NoteService extends BaseService {
   }
 
   /**
-   * The contrast. Same repository, same table - but this call goes through the POOLED connector as
-   * the connection's own role (`postgres`, the table owner), with no auth context established. RLS
-   * does not apply, and every row comes back.
-   *
-   * This is what makes `find()` above a demonstration rather than a claim: the only difference
-   * between them is `withAuthContext`.
+   * The control group. Same repository, same table - but through the pooled connector as the
+   * connection's own role, with no auth context established. RLS does not apply: every row comes
+   * back. The only difference between this and `find()` above is `withAuthContext`.
    */
   findUnscoped(): Promise<Array<TNote>> {
     return this.noteRepository.find<TNote>({ filter: {} });

@@ -2,9 +2,7 @@
   "name": "supabase-example",
   "version": "0.0.0",
   "private": true,
-  "description": "IGNIS reference example for Supabase - postgres-js driver seam, pooler-mode presets, and Row Level Security gated by auth.uid() through withAuthContext",
-  "main": "dist/index.js",
-  "types": "dist/index.d.ts",
+  "description": "IGNIS on postgres-js with Supabase-style Row Level Security, driven by the request's user",
   "engines": {
     "bun": ">=1.4"
   },
@@ -14,32 +12,21 @@
     "eslint": "eslint --report-unused-disable-directives .",
     "lint": "bun run eslint && bun run prettier:cli",
     "lint:fix": "bun run eslint --fix && bun run prettier:fix",
+    "migrate:generate": "drizzle-kit generate --config=src/migration.ts",
     "prettier:cli": "prettier \"**/*.{js,ts}\" -l",
     "prettier:fix": "bun run prettier:cli --write",
     "rebuild": "bun run clean && bun run build",
-    "migrate:generate": "NODE_ENV=development drizzle-kit generate --config=src/migration.ts",
-    "migrate:dev": "NODE_ENV=development drizzle-kit migrate --config=src/migration.ts",
-    "seed": "NODE_ENV=development bun run src/seed.ts",
-    "server:dev": "NODE_ENV=development bun .",
-    "server:prod": "NODE_ENV=production bun .",
+    "start": "APP_ENV_LOGGER_FOLDER_PATH=./app_data/logs bun run src/index.ts",
+    "test": "bun test",
+    "token": "bun run src/token-cli.ts",
     "typecheck": "tsc --noEmit -p tsconfig.json"
   },
-  "author": {
-    "name": "VENIZIA AI Developer",
-    "email": "developer@venizia.ai",
-    "url": "https://venizia.ai"
-  },
-  "license": "MIT",
   "dependencies": {
     "@hono/zod-openapi": "catalog:",
     "@scalar/hono-api-reference": "catalog:",
     "@venizia/ignis": "workspace:*",
-    "@venizia/ignis-boot": "workspace:*",
     "@venizia/ignis-helpers": "workspace:*",
-    "@venizia/ignis-inversion": "workspace:*",
-    "dotenv-flow": "catalog:",
     "drizzle-orm": "catalog:",
-    "drizzle-zod": "catalog:",
     "hono": "catalog:",
     "postgres": "catalog:"
   },

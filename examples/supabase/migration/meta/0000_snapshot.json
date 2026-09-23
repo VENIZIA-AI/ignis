@@ -1,5 +1,5 @@
 {
-  "id": "ec8f138f-2e9e-46bf-be88-c45ffa06db33",
+  "id": "ef585b31-929d-4b3b-a4c7-0c31ec5660d8",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "version": "7",
   "dialect": "postgresql",
@@ -10,10 +10,9 @@
       "columns": {
         "id": {
           "name": "id",
-          "type": "uuid",
+          "type": "text",
           "primaryKey": true,
-          "notNull": true,
-          "default": "gen_random_uuid()"
+          "notNull": true
         },
         "created_at": {
           "name": "created_at",
@@ -120,7 +119,9 @@
     }
   },
   "enums": {},
-  "schemas": {},
+  "schemas": {
+    "ignis_example": "ignis_example"
+  },
   "sequences": {},
   "roles": {},
   "policies": {},

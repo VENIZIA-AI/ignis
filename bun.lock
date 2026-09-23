@@ -238,7 +238,6 @@
         "@venizia/ignis-helpers": "workspace:*",
         "drizzle-orm": "catalog:",
         "hono": "catalog:",
-        "jose": "^6.2.3",
         "postgres": "catalog:",
       },
       "devDependencies": {

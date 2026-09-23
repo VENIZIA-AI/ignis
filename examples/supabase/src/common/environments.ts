@@ -1,7 +1,7 @@
 import { EnvironmentKeys as BaseEnv } from '@venizia/ignis';
 
 export class EnvironmentKeys extends BaseEnv {
-  /** Full Postgres URL. Supabase hands you one - it is not assembled from host/port/user parts. */
+  /** A plain Postgres connection string. Local docker: postgres://postgres:postgres@localhost:15433/postgres */
   static readonly APP_ENV_SUPABASE_DATABASE_URL = 'APP_ENV_SUPABASE_DATABASE_URL';
 
   /** `direct` | `session` | `transaction` - see PoolerModes. Decides whether prepared statements survive. */
@@ -10,9 +10,8 @@ export class EnvironmentKeys extends BaseEnv {
   /** Forwarded to postgres-js only when set, so its own default survives when it is not. */
   static readonly APP_ENV_SUPABASE_POOL_MAX = 'APP_ENV_SUPABASE_POOL_MAX';
 
-  /** Project URL, e.g. https://supabase.example.com - GoTrue lives at `${url}/auth/v1`. */
-  static readonly APP_ENV_SUPABASE_URL = 'APP_ENV_SUPABASE_URL';
-
-  /** The anon key, required by Kong on every GoTrue call. Not a secret in the RLS sense. */
-  static readonly APP_ENV_SUPABASE_ANON_KEY = 'APP_ENV_SUPABASE_ANON_KEY';
+  // `APP_ENV_JWT_SECRET` and `APP_ENV_JWT_EXPIRES_IN` are inherited from the base class. On a real
+  // Supabase project the secret is the project's JWT secret, and Supabase Auth (GoTrue) signs with
+  // it. This example mints its own test tokens with the same secret (`src/token.ts`), so it needs no
+  // GoTrue of its own.
 }
