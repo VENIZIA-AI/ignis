@@ -30,7 +30,6 @@ import {
 } from '@venizia/ignis-helpers';
 import { bodyLimit } from 'hono/body-limit';
 import { cors } from 'hono/cors';
-import path from 'node:path';
 import packageJson from './../package.json';
 import { EnvironmentKeys } from './common';
 import { PostgresDataSource } from './datasources/postgres.datasource';
@@ -54,9 +53,9 @@ export class Application extends BaseApplication {
     return packageJson;
   }
 
-  override staticConfigure(): void {
-    this.static({ folderPath: path.join(__dirname, '../public') });
-  }
+  // Static assets in this example are the DB-backed StaticAssetComponent (`/assets`, `/resources`,
+  // see PlatformComponent) - there is no local folder to serve here.
+  override staticConfigure(): void {}
 
   override setupMiddlewares(): void {
     const server = this.getServer();

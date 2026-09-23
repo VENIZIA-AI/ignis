@@ -48,6 +48,8 @@ export class AuthenticationService
       });
     }
 
+    // This check has a race; the unique constraint on `username` is the real guard against two
+    // concurrent sign-ups.
     const { data: user } = await this.userRepository.create({
       data: { username: opts.username, password: await Bun.password.hash(opts.credential) },
     });

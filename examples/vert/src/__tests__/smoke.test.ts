@@ -14,6 +14,7 @@ import { afterAll, beforeAll, describe, expect, test } from 'bun:test';
 import { drizzle } from 'drizzle-orm/node-postgres';
 import { migrate } from 'drizzle-orm/node-postgres/migrator';
 import { generateKeyPairSync } from 'node:crypto';
+import path from 'node:path';
 import { Pool } from 'pg';
 import { Application, beConfigs } from '../application';
 import { Organization, Permission, Role } from '../models/entities';
@@ -83,7 +84,6 @@ describe('vert', async () => {
 
     let application: Application;
     let baseUrl = '';
-    const tokens = new Map<string, string>();
 
     const repository = <T>(opts: { name: string }) =>
       application.get<T>({ key: { namespace: BindingNamespaces.REPOSITORY, key: opts.name } });
@@ -95,8 +95,21 @@ describe('vert', async () => {
         body: JSON.stringify(opts.body),
       });
 
-    const bearer = (opts: { username: string }) => ({
-      authorization: `Bearer ${tokens.get(opts.username)}`,
+    /** Each test signs in for itself, so `bun test -t` can run any single test on its own. */
+    const signIn = async (opts: { username: string }) => {
+      const response = await post({
+        path: '/auth/sign-in',
+        body: {
+          identifier: { scheme: 'username', value: opts.username },
+          credential: { scheme: 'basic', value: password },
+        },
+      });
+      expect(response.status).toBe(200);
+      return SignInResponse.parse(await response.json()).token.value;
+    };
+
+    const bearer = async (opts: { username: string }) => ({
+      authorization: `Bearer ${await signIn(opts)}`,
     });
 
     /** One organization, one role granted read:configuration in it, and the reader assigned to it. */
@@ -168,7 +181,9 @@ describe('vert', async () => {
         password: TEST_ENV.APP_ENV_POSTGRES_PASSWORD,
         database: TEST_ENV.APP_ENV_POSTGRES_DATABASE,
       });
-      await migrate(drizzle({ client: pool }), { migrationsFolder: './migration' });
+      await migrate(drizzle({ client: pool }), {
+        migrationsFolder: path.join(__dirname, '../../migration'),
+      });
       await pool.end();
 
       application = new Application({
@@ -223,15 +238,8 @@ describe('vert', async () => {
 
     test('POST /auth/sign-in returns a signed token', async () => {
       for (const username of [reader, outsider]) {
-        const response = await post({
-          path: '/auth/sign-in',
-          body: {
-            identifier: { scheme: 'username', value: username },
-            credential: { scheme: 'basic', value: password },
-          },
-        });
-        expect(response.status).toBe(200);
-        tokens.set(username, SignInResponse.parse(await response.json()).token.value);
+        const token = await signIn({ username });
+        expect(token.length).toBeGreaterThan(0);
       }
     });
 
@@ -245,7 +253,7 @@ describe('vert', async () => {
       const { data } = ConfigurationResponse.parse(await created.json());
 
       const read = await fetch(`${baseUrl}/configurations/${data.id}`, {
-        headers: bearer({ username: reader }),
+        headers: await bearer({ username: reader }),
       });
       expect(read.status).toBe(200);
       expect(ConfigurationResponse.parse(await read.json()).data.code).toBe(configurationCode);
@@ -255,13 +263,34 @@ describe('vert', async () => {
     });
 
     test('Casbin allows the reader and forbids the outsider', async () => {
-      const path = `${baseUrl}/authz-example/configurations`;
+      const routeUrl = `${baseUrl}/authz-example/configurations`;
 
-      const allowed = await fetch(path, { headers: bearer({ username: reader }) });
+      const allowed = await fetch(routeUrl, { headers: await bearer({ username: reader }) });
       expect(allowed.status).toBe(200);
 
-      const forbidden = await fetch(path, { headers: bearer({ username: outsider }) });
+      const forbidden = await fetch(routeUrl, { headers: await bearer({ username: outsider }) });
       expect(forbidden.status).toBe(403);
+    });
+
+    test("POST /auth/change-password refuses to change another user's password", async () => {
+      const target = await repository<UserRepository>({ name: UserRepository.name }).findByUsername(
+        { username: outsider },
+      );
+      if (!target) {
+        throw getError({ message: '[smoke] The outsider was not created by sign-up' });
+      }
+
+      const response = await post({
+        path: '/auth/change-password',
+        headers: await bearer({ username: reader }),
+        body: {
+          scheme: 'basic',
+          oldCredential: password,
+          newCredential: 'smoke-password-2',
+          userId: target.id,
+        },
+      });
+      expect(response.status).toBe(403);
     });
   });
 });

@@ -14,6 +14,7 @@ import {
 import { Organization } from '@/models';
 import { UserRepository } from '@/repositories';
 import {
+  Authentication,
   BaseService,
   IAuthService,
   inject,
@@ -30,6 +31,9 @@ import { Env } from 'hono';
 
 /** The principal type a user's policy rows carry; the Casbin adapter in application.ts maps it. */
 const USER_PRINCIPAL = 'user';
+
+/** Bypasses the change-password ownership check; matches the alwaysAllowRoles bypass in platform.component.ts. */
+const ALWAYS_ALLOWED_ROLE = '999_super-admin';
 
 /**
  * Sign-up, sign-in and change-password for the framework's `/auth` routes. The signed token carries
@@ -130,9 +134,21 @@ export class AuthenticationService
   }
 
   async changePassword(
-    _context: TContext<Env>,
+    context: TContext<Env>,
     opts: TChangePasswordRequestSchema,
   ): Promise<TChangePasswordResponseSchema> {
+    const currentUser = context.get(Authentication.CURRENT_USER);
+    const isAlwaysAllowed = currentUser?.roles?.some(
+      (role: { identifier: string }) => role.identifier === ALWAYS_ALLOWED_ROLE,
+    );
+
+    if (!isAlwaysAllowed && currentUser?.userId !== opts.userId) {
+      throw getError({
+        statusCode: HTTP.ResultCodes.RS_4.Forbidden,
+        message: 'You are not authorized to change this password',
+      });
+    }
+
     const [user] = await this.userRepository.connector
       .select({ password: userTable.password })
       .from(userTable)
