@@ -1,10 +1,10 @@
 // Past the barrels: this module ships on the `./uuid` subpath and must not pull their surface.
 import { getError } from '@venizia/ignis-inversion';
 import { HTTP } from '@/common/constants/http';
-import { MAX_CACHED_NAMESPACES, UUID_HEX_OCTETS, UUID_PATTERN } from './common/constants';
+import { MAX_CACHED_NAMESPACES, UUID_HEX_OCTETS, UUID_NAMESPACE_PATTERN } from './common/constants';
 import { Sha1Digest } from './sha1';
 
-/** Fits a namespace plus a ~160-character name; a longer name reallocates once. */
+/** Fits a namespace plus a ~160-character name; a longer one allocates for its own call. */
 const INPUT_SIZE = 512;
 
 /** Builds a v5 generator with its own namespace cache and buffer. */
@@ -14,8 +14,8 @@ export const createUuidV5 = (): ((opts: { namespace: string; name: string }) => 
   /** Parsed namespaces, capped so a caller-fed one cannot grow the map without bound. */
   const namespaces = new Map<string, Uint8Array>();
 
-  let input = new Uint8Array(INPUT_SIZE);
-  let nameView = input.subarray(16);
+  const input = new Uint8Array(INPUT_SIZE);
+  const nameView = input.subarray(16);
 
   const resolveNamespace = (opts: { namespace: string }): Uint8Array => {
     const { namespace } = opts;
@@ -25,7 +25,7 @@ export const createUuidV5 = (): ((opts: { namespace: string; name: string }) => 
       return cached;
     }
 
-    if (!UUID_PATTERN.test(namespace)) {
+    if (!UUID_NAMESPACE_PATTERN.test(namespace)) {
       throw getError({
         statusCode: HTTP.ResultCodes.RS_5.InternalServerError,
         message: `[uuidV5] namespace must be a UUID - received: ${namespace}`,
@@ -50,17 +50,25 @@ export const createUuidV5 = (): ((opts: { namespace: string; name: string }) => 
 
     const namespaceBytes = resolveNamespace({ namespace });
 
-    // UTF-8 never exceeds 3 bytes per UTF-16 code unit.
-    const required = 16 + name.length * 3;
-    if (required > input.length) {
-      input = new Uint8Array(required);
-      nameView = input.subarray(16);
+    // Encoding turns a lone surrogate into U+FFFD, so two different malformed names would share an id.
+    if (typeof name.isWellFormed === 'function' && !name.isWellFormed()) {
+      throw getError({
+        statusCode: HTTP.ResultCodes.RS_4.BadRequest,
+        message:
+          '[uuidV5] name carries a lone surrogate - it is not well-formed UTF-16 and would collide with another name',
+      });
     }
 
-    input.set(namespaceBytes);
-    const { written } = encoder.encodeInto(name, nameView);
+    // UTF-8 never exceeds 3 bytes per UTF-16 code unit. An oversized name gets a buffer of its own
+    // for this call only, so one huge name does not pin its size for the life of the process.
+    const required = 16 + name.length * 3;
+    const target = required > input.length ? new Uint8Array(required) : input;
+    const targetName = target === input ? nameView : target.subarray(16);
 
-    const digest = Sha1Digest.of({ bytes: input.subarray(0, 16 + written) });
+    target.set(namespaceBytes);
+    const { written } = encoder.encodeInto(name, targetName);
+
+    const digest = Sha1Digest.of({ bytes: target.subarray(0, 16 + written) });
     digest[6] = (digest[6] & 0x0f) | 0x50;
     digest[8] = (digest[8] & 0x3f) | 0x80;
 

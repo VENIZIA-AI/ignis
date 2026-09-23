@@ -13,8 +13,12 @@ import { uuidV7 } from './v7';
  * `@venizia/ignis-helpers/uuid` leaves the other two out of a browser bundle.
  */
 export class UuidHelper extends BaseHelper {
-  /** Realm-keyed: a dual CJS+ESM build puts two copies of this class in one process. */
-  private static readonly SHARED_SLOT = Symbol.for('@venizia/ignis-helpers:uuid-helper');
+  /**
+   * Per module copy, not realm-wide: the facade holds no state - ordering lives in the shared v7
+   * sequence - and a realm-wide slot would hand an older version's instance, and its generators,
+   * to every newer caller.
+   */
+  private static instance?: UuidHelper;
 
   /** Random - a public identifier or a token. */
   readonly v4: () => string = uuidV4;
@@ -22,7 +26,7 @@ export class UuidHelper extends BaseHelper {
   /** Deterministic - same inputs, same id. Reproducible therefore not secret. */
   readonly v5: (opts: { namespace: string; name: string }) => string = uuidV5;
 
-  /** Time-ordered - a database key. A burst past 4096 ids per millisecond leads the wall clock. */
+  /** Time-ordered - a database key. A burst past about 2048 ids per millisecond leads the wall clock. */
   readonly v7: () => string = uuidV7;
 
   constructor(opts?: { scope?: string }) {
@@ -30,14 +34,8 @@ export class UuidHelper extends BaseHelper {
   }
 
   static getInstance(): UuidHelper {
-    const shared: UuidHelper | undefined = Reflect.get(globalThis, UuidHelper.SHARED_SLOT);
-    if (shared) {
-      return shared;
-    }
-
-    const created = new UuidHelper();
-    Reflect.set(globalThis, UuidHelper.SHARED_SLOT, created);
-    return created;
+    UuidHelper.instance ??= new UuidHelper();
+    return UuidHelper.instance;
   }
 
   /** Lowercase, version 1-8, RFC variant - the nil and max placeholders are refused. */

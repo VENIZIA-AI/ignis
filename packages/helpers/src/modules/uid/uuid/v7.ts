@@ -1,20 +1,19 @@
 import { UUID_HEX_OCTETS } from './common/constants';
 
-/** One sequence per realm: the CJS and ESM copies must not interleave two counters. */
+/**
+ * One sequence per realm, so the CJS and ESM copies - and two helpers versions - never interleave two
+ * counters. The slot holds a `() => string`; that key and shape are a contract across versions.
+ */
 const SHARED_SLOT = Symbol.for('@venizia/ignis-helpers:uuid-v7');
 
 const POOL_SIZE = 8 * 256;
 const MAX_COUNTER = 0xfff;
 
-/** Builds a v7 generator with its own clock state and counter. */
+/**
+ * Builds a v7 generator with its own clock state and counter. Never `Bun.randomUUIDv7`: it is
+ * slower, and it reads `(encoding, timestamp)` from whatever it is called with.
+ */
 export const createUuidV7 = (): (() => string) => {
-  // Through `globalThis`: a member access on the bare global fails the browser-purity gate.
-  const runtime: { randomUUIDv7?: () => string } | undefined = Reflect.get(globalThis, 'Bun');
-  const native = runtime?.randomUUIDv7;
-  if (typeof native === 'function') {
-    return native;
-  }
-
   const pool = new Uint8Array(POOL_SIZE);
   let offset = POOL_SIZE;
   let lastMs = -1;
@@ -101,5 +100,8 @@ if (!sharedV7) {
   Reflect.set(globalThis, SHARED_SLOT, resolvedV7);
 }
 
-/** Mints a time-ordered UUID v7 - the default for a string primary key. */
-export const uuidV7: () => string = resolvedV7;
+/**
+ * Mints a time-ordered UUID v7 - the default for a string primary key. Forwards no argument: the
+ * shared slot may hold another helpers version's generator.
+ */
+export const uuidV7 = (): string => resolvedV7();

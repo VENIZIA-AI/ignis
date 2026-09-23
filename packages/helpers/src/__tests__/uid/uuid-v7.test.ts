@@ -16,18 +16,6 @@ const firstUnordered = (opts: { ids: string[] }): number => {
   return -1;
 };
 
-/** Built with `Bun.randomUUIDv7` hidden, so the `getRandomValues` path a browser takes is the one tested. */
-const buildFallback = (): (() => string) => {
-  const native = Bun.randomUUIDv7;
-  Bun.randomUUIDv7 = undefined as never;
-
-  try {
-    return createUuidV7();
-  } finally {
-    Bun.randomUUIDv7 = native;
-  }
-};
-
 const generateMany = (opts: { generator: () => string; count: number }): string[] =>
   Array.from({ length: opts.count }, () => opts.generator());
 
@@ -43,8 +31,8 @@ test('one shared sequence per realm, so every caller draws from the same counter
 });
 
 const paths = [
-  { name: 'native Bun.randomUUIDv7', build: () => uuidV7 },
-  { name: 'getRandomValues fallback', build: buildFallback },
+  { name: 'shared uuidV7', build: () => uuidV7 },
+  { name: 'createUuidV7()', build: createUuidV7 },
 ];
 
 for (const path of paths) {
@@ -56,7 +44,7 @@ for (const path of paths) {
     });
 
     // A burst borrows the next millisecond when the 4096-step counter runs out, so an id minted
-    // after 100k of them reads slightly ahead of the wall clock - measured 29 ms on the native path.
+    // after 100k of them reads slightly ahead of the wall clock.
     test('the first 48 bits are the unix time in milliseconds', () => {
       const generate = path.build();
       const before = Date.now();
@@ -76,9 +64,9 @@ for (const path of paths) {
   });
 }
 
-describe('uuidV7 - fallback clock handling', () => {
+describe('uuidV7 - clock handling', () => {
   test('10k ids inside one frozen millisecond stay ordered past the 4096-step counter', () => {
-    const generate = buildFallback();
+    const generate = createUuidV7();
     spyOn(Date, 'now').mockReturnValue(1_800_000_000_000);
 
     const ids = generateMany({ generator: generate, count: 10_000 });
@@ -88,7 +76,7 @@ describe('uuidV7 - fallback clock handling', () => {
   });
 
   test('a clock that steps backwards never makes a later id sort earlier', () => {
-    const generate = buildFallback();
+    const generate = createUuidV7();
     const clock = spyOn(Date, 'now').mockReturnValue(1_900_000_000_000);
     const first = generateMany({ generator: generate, count: 10 });
 

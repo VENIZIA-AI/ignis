@@ -1,6 +1,7 @@
 import { describe, expect, test } from 'bun:test';
-import { UuidHelper, UuidNamespaces } from '@/modules/uid';
+import { createUuidV7, UuidHelper, UuidNamespaces } from '@/modules/uid';
 import { Sha1Digest } from '@/modules/uid/uuid/sha1';
+import { createUuidV5 } from '@/modules/uid/uuid/v5';
 
 const UUID_SHAPE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 
@@ -102,6 +103,71 @@ describe('UuidHelper.v5', () => {
     expect(uuid.v5({ namespace: UuidNamespaces.DNS, name: '' })).toMatch(UUID_SHAPE);
   });
 
+  // RFC 9562: hex is case-insensitive on input, so an uppercase namespace is the same namespace.
+  test('reads a namespace case-insensitively', () => {
+    const name = 'www.example.com';
+    expect(uuid.v5({ namespace: UuidNamespaces.DNS.toUpperCase(), name })).toBe(
+      '2ed6657d-e927-568b-95e1-2665a8aea6a2',
+    );
+  });
+
+  test('accepts the nil UUID as a namespace', () => {
+    const namespace = '00000000-0000-0000-0000-000000000000';
+    expect(uuid.v5({ namespace, name: 'x' })).toBe(uuid.v5({ namespace, name: 'x' }));
+  });
+
+  // Encoding replaces a lone surrogate with U+FFFD, so two different malformed names would
+  // silently share one id - a collision on an idempotency key.
+  test('refuses a name carrying a lone surrogate', () => {
+    expect(() => uuid.v5({ namespace: UuidNamespaces.DNS, name: 'order-\uD800' })).toThrow(
+      /lone surrogate/,
+    );
+  });
+
+  /** RFC 9562 v5 from the platform SHA-1: an oracle that shares no code with the generator. */
+  const referenceV5 = (opts: { namespace: string; name: string }): string => {
+    const namespaceBytes = Uint8Array.from(
+      opts.namespace
+        .replaceAll('-', '')
+        .match(/../g)
+        ?.map(pair => Number.parseInt(pair, 16)) ?? [],
+    );
+    const hash = new Bun.CryptoHasher('sha1')
+      .update(namespaceBytes)
+      .update(new TextEncoder().encode(opts.name))
+      .digest();
+    hash[6] = (hash[6] & 0x0f) | 0x50;
+    hash[8] = (hash[8] & 0x3f) | 0x80;
+    const hex = toHex({ bytes: hash.subarray(0, 16) });
+    return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`;
+  };
+
+  test.each([
+    ['empty', ''],
+    ['one past the shared buffer', 'x'.repeat(166)],
+    ['multi-byte', 'đơn hàng 🧾 #42'],
+    ['very long', 'y'.repeat(5_000_000)],
+  ])('a %s name matches the reference SHA-1 digest', (_label, name) => {
+    expect(uuid.v5({ namespace: UuidNamespaces.DNS, name })).toBe(
+      referenceV5({ namespace: UuidNamespaces.DNS, name }),
+    );
+  });
+
+  test('a very long name does not keep its buffer afterwards', () => {
+    // Bun reports ArrayBuffer memory under `external`; `arrayBuffers` stays 0 there.
+    const generate = createUuidV5();
+    const name = 'x'.repeat(5_000_000);
+    generate({ namespace: UuidNamespaces.DNS, name: 'warm' });
+    Bun.gc(true);
+    const before = process.memoryUsage().external;
+
+    generate({ namespace: UuidNamespaces.DNS, name });
+    generate({ namespace: UuidNamespaces.DNS, name: 'short' });
+    Bun.gc(true);
+
+    expect(process.memoryUsage().external - before).toBeLessThan(5_000_000);
+  });
+
   test('a namespace that is not a UUID is refused', () => {
     expect(() => uuid.v5({ namespace: 'not-a-uuid', name: 'x' })).toThrow(/namespace/i);
   });
@@ -151,13 +217,11 @@ describe('UuidHelper.inspect', () => {
     ).toBe(5);
   });
 
-  // Idle first: a burst spends the 12-bit counter and borrows the next millisecond, so an id minted
-  // straight after one leads the wall clock - measured, and the reason this test used to flake.
-  test('reads the creation time out of a v7 id', async () => {
-    await Bun.sleep(5);
-
+  // A private sequence: the shared one carries whatever an earlier burst in this process borrowed.
+  test('reads the creation time out of a v7 id', () => {
+    const generate = createUuidV7();
     const before = Date.now();
-    const inspected = uuid.inspect({ value: uuid.v7() });
+    const inspected = uuid.inspect({ value: generate() });
     const after = Date.now();
 
     expect(inspected?.createdAt).toBeInstanceOf(Date);
@@ -166,12 +230,13 @@ describe('UuidHelper.inspect', () => {
   });
 
   test('a burst leads the clock by the milliseconds it borrowed, and no more', () => {
+    const generate = createUuidV7();
     const count = 20_000;
-    const ids = Array.from({ length: count }, () => uuid.v7());
+    const ids = Array.from({ length: count }, () => generate());
     const last = uuid.inspect({ value: ids[count - 1] })?.createdAt?.getTime() ?? 0;
 
-    // 4096 ids fit in one millisecond, so a burst of `count` can lead by at most that many.
-    expect(last - Date.now()).toBeLessThanOrEqual(Math.ceil(count / 4096) + 1);
+    // The counter seeds below 0x800, so a millisecond holds at least 2048 ids before it borrows.
+    expect(last - Date.now()).toBeLessThanOrEqual(Math.ceil(count / 2048) + 1);
   });
 
   test('a v4 id carries no creation time - the bits are random', () => {

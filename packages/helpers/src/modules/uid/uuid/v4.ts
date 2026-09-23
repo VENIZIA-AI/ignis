@@ -2,11 +2,16 @@ import { UUID_HEX_OCTETS } from './common/constants';
 
 const POOL_SIZE = 16 * 256;
 
-/** Builds a v4 generator with its own entropy pool. */
+/**
+ * Builds a v4 generator. `crypto.randomUUID` is captured once - whether a realm is a secure context
+ * never changes - and called with no argument, since Node validates it and `['a'].map(uuidV4)` would
+ * throw.
+ */
 export const createUuidV4 = (): (() => string) => {
-  const native = globalThis.crypto?.randomUUID;
-  if (typeof native === 'function') {
-    return native.bind(globalThis.crypto);
+  const randomUuid = globalThis.crypto?.randomUUID;
+  if (typeof randomUuid === 'function') {
+    const native = randomUuid.bind(globalThis.crypto);
+    return () => native();
   }
 
   const pool = new Uint8Array(POOL_SIZE);
