@@ -1,6 +1,6 @@
 ---
 title: A Model Declares Each Fact Once
-description: "ModelFactory.defineEntity builds the table and the class together, relations are declared as data, and TEntityObject infers the row type - relations included."
+description: "ModelFactory.defineEntity builds the entity class from a plain drizzle table, relations point at tables, and TEntityObject infers the row type - relations included."
 ---
 
 # Changelog - 2026-09-19
@@ -9,9 +9,7 @@ description: "ModelFactory.defineEntity builds the table and the class together,
 
 <Badge type="tip" text="New Feature" />
 
-**In one line.** A model used to state its table name three times, wire its class and its table to
-each other, and declare every relation twice - once for the runtime and once for the type. Now it
-states each fact once.
+**In one line.** The table comes first and the entity class is built from it, so the table name, the id and every relation are stated once.
 
 **Before:**
 
@@ -38,85 +36,147 @@ export type TNote = TTableObject<TNoteSchema>;
 **After:**
 
 ```typescript
+import { model } from '@venizia/ignis';
+import { generateIdColumnDefs, ModelFactory } from '@venizia/ignis/postgres';
+import type { TEntityObject } from '@venizia/ignis/postgres';
+import { pgTable, varchar } from 'drizzle-orm/pg-core';
+
+export const notesTable = pgTable('notes', {
+  ...generateIdColumnDefs({ id: { dataType: 'string' } }),
+  title: varchar('title', { length: 200 }).notNull(),
+});
+
 @model({ type: 'entity' })
-export class Note extends ModelFactory.defineEntity({
-  name: 'notes',
-  columns: { title: varchar('title', { length: 200 }).notNull() },
-}) {}
+export class Note extends ModelFactory.defineEntity({ table: notesTable }) {}
 
 export type TNote = TEntityObject<typeof Note>;
 ```
 
-The table name is given once, the id column is added for you - a UUID v7 text key - and the class
-and the table no longer reference each other, so the `no-use-before-define` suppression goes too.
+The table is a plain drizzle table: `pgTable`, `pgSchema(...).table` or `sqliteTable`. `TABLE_NAME` is read off it, and the class and the table no longer reference each other, so the `no-use-before-define` suppression goes too. drizzle-kit keeps seeing the table, because it is still an exported constant.
 
-## Relations are declared once
+## Relations point at tables
 
-Keyed by name, each pointing at a schema. The runtime configuration and the row type both come from
-that one declaration, so a renamed relation cannot leave a stale hand-written type behind:
+Relations are keyed by name, and each one points at a **table**, never at another entity class:
 
 ```typescript
+export const policyTable = pgTable('Policy', {
+  ...generateIdColumnDefs({ id: { dataType: 'string' } }),
+  title: text('title').notNull(),
+});
+
+export const featureTable = pgTable('Feature', {
+  ...generateIdColumnDefs({ id: { dataType: 'string' } }),
+  policyId: text('policy_id').notNull().references((): AnyPgColumn => policyTable.id),
+  parentId: text('parent_id').references((): AnyPgColumn => featureTable.id),
+  code: text('code').notNull(),
+});
+
 @model({ type: 'entity' })
 export class Policy extends ModelFactory.defineEntity({
-  name: 'Policy',
-  columns: { title: text('title').notNull() },
+  table: policyTable,
+  relations: () => ({ features: many(featureTable, { relationName: 'policy' }) }),
+}) {}
+
+@model({ type: 'entity' })
+export class Feature extends ModelFactory.defineEntity({
+  table: featureTable,
   relations: () => ({
-    features: many(PolicyFeatureSchema),
-    owner: one(MerchantSchema, { relationName: 'policies' }),
+    policy: one(policyTable),
+    parent: one(featureTable),
+    children: many(featureTable, { relationName: 'parent' }),
   }),
 }) {}
 
 export type TPolicy = TEntityObject<typeof Policy>;
-// { id, title, features?: TPolicyFeature[], owner?: TMerchant }
+// { id, title, features?: Array<{ id, policyId, parentId, code }> }
 ```
 
-`many` produces an array on the row, `one` a single object. Both are optional, because a row only
-carries a relation the query asked to include.
+What to notice:
 
-> [!WARNING]
-> A relation points at a **schema**, never at another entity. Two entities that import each other
-> make TypeScript give up on both (TS7022) and infer `any` - silently, with the app still running.
-> Passing an entity does not compile, so the rule enforces itself.
+- **`one(table)` needs no `fields`.** The source table has exactly one foreign key to the target, so the columns are read off it.
+- **`many(table, { relationName })` pairs with the `one` whose key is that name.** `features` pairs with `policy`; `children` pairs with `parent`.
+- **Two entities that relate both ways compile, across files.** Neither imports the other's class, so neither row type collapses to `any` (TS7022). A self relation works the same way.
+- **The thunk runs lazily, once.** It is read on first use, so it may name a table declared later in the file.
+
+`many` produces an array on the row, `one` a single object. Both are optional, because a row only carries a relation the query asked to include.
+
+## How `one` finds its columns
+
+| The source table has | `one(target)` resolves to |
+|---|---|
+| `fields` and `references` written out | Those, as written |
+| Only one of `fields` and `references` | An error at relation build |
+| Exactly one foreign key to the target | That key's columns |
+| Two or more foreign keys to the target, one not claimed by a `one` written out on the same entity | That key's columns |
+| Two or more foreign keys to the target, otherwise | An error at relation build, naming the columns left - write `fields` and `references` |
+| No key, but the target has one back | The inverse side of a one-to-one - the target's entity must declare a `one()` back |
+| No key, but the target has two or more back | An error at relation build, naming the columns - write `fields` and `references` on this side, reversed |
+| No key either way | An error at relation build |
+
+A `one` to its own table follows the same rules, plus one: only one such `one` per entity may leave out `fields`. One self key cannot back both `previous` and `next`, so the second writes its columns.
+
+The same rules apply to a hand-written `relations` array. They change behaviour only where a relation could not be queried, or returned the wrong row.
+
+## The inverse side needs a `one()` back
+
+The inverse side carries no columns. drizzle reads them off the `one()` on the table that owns the key, so that entity must declare one:
+
+```typescript
+// profileTable.userId references userTable.id
+@model({ type: 'entity' })
+export class User extends ModelFactory.defineEntity({
+  table: userTable,
+  relations: () => ({ profile: one(profileTable) }),
+}) {}
+
+@model({ type: 'entity' })
+export class Profile extends ModelFactory.defineEntity({
+  table: profileTable,
+  relations: () => ({ user: one(userTable) }), // owns the key - `profile` pairs with it
+}) {}
+```
+
+The inverse side takes no `relationName`. When the key's table has more than one key or relation back, or you cannot declare the `one()` back, write the columns on this side, reversed:
+
+```typescript
+profile: one(profileTable, { fields: [userTable.id], references: [profileTable.userId] }),
+```
+
+The datasource now pairs every relation once, when it builds its schema - at boot when `configure()` reads `getSchema()`, otherwise on its first query. An inverse `one` with nothing back fails there, with the entity and the relation named. Any other relation drizzle cannot pair logs a warning there instead, and still fails the queries that include it, as before. A relation to a table that no model on this datasource uses is not a defect - a datasource may carry a subset of models on purpose - so those collapse into one debug line per datasource.
 
 ## What else comes with the class
 
-| | |
+| Member | What it is |
 |---|---|
-| `Note.schema` | the drizzle table, precisely typed |
-| `Note.TABLE_NAME` | the name, taken from the one you passed |
-| `Note.relationDefinitions` | the keyed relations, for `TEntityObject` |
-| `Note.relations` | the array form the query dialect reads |
-| `new Note().getSchema({ type: 'create' })` | the zod schema - insert, update or select |
+| `Policy.schema` | The drizzle table, precisely typed |
+| `Policy.TABLE_NAME` | `getTableName(table)` |
+| `Policy.relationDefinitions` | The keyed relations, for `TEntityObject` - `undefined` when there are none |
+| `Policy.relations` | The array form the query dialect reads |
+| `Policy.AUTHORIZATION_SUBJECT` | As on any entity - the returned class is a `BaseRelationalEntity` subclass |
+| `new Policy().getSchema({ type: 'create' })` | The zod schema - `'create'`, `'update'` or `'select'` |
 
-The zod schemas were always there; a model that builds its own `createInsertSchema` can drop it.
+The returned class type is `TDefinedEntityClass<Schema, Relations>`, a named type, so a consumer's declaration build can reference it.
 
 ## Who is affected
 
-- **Existing models.** No action needed, nothing was renamed or removed. `BaseEntity`,
-  `BasePostgresEntity`, `generateIdColumnDefs` and the array form of `relations` all behave exactly
-  as before. The new factory is a second way to write a model, not a replacement.
-- **New models.** Use `defineEntity`.
-- **Anyone hand-writing a row type with its relations.** `TEntityObject` replaces the hand-written
-  intersection, and unlike it, cannot drift from the runtime declaration.
+- **Existing models.** No action needed, unless a relation cannot pair (next bullet). `BaseEntity`, `BasePostgresEntity`, hand-written `static schema` and `relations`, and `generateIdColumnDefs` behave as before.
+- **Anyone with a relation drizzle cannot pair.** Schema discovery now logs a warning that names the entity, the relation and the fix. Nothing that boots today stops booting. Relations that point outside a narrow datasource log one debug line, not a warning each.
+- **New models.** Use `defineEntity`. It ships from `@venizia/ignis/postgres`, and from `@venizia/ignis-connectors/relational`, `/postgres` and `/sqlite`.
+- **Anyone hand-writing a row type with its relations.** `TEntityObject` replaces the hand-written intersection, and it cannot drift from the runtime declaration.
+- **Anyone who tried the `{ name, columns, relations, id, extra }` shape** from an unreleased commit. It never shipped, so there is nothing to migrate.
 
 ## Details
 
-A custom id stays one call away, and indexes go where they always did:
+- **`TRelationConfig`'s `one` metadata is now optional and partial,** from every entry: `/postgres` re-exports the core type instead of keeping its own copy. Every existing configuration still type-checks.
+- **`BaseRelationalEntity`'s static `schema` is typed `Table`,** widened so a factory-built class can carry its precise table. A subclass that assigns `static override schema = someTable` keeps its precise type. Code that read `.schema.id` off the base class type (`typeof BaseEntity`) reads it off the concrete class or the instance instead.
+- **The protected static `schemaFactory` getter is gone.** The zod generator is a private module-level singleton now. A subclass that called it calls `this.getSchema({ type })` instead.
 
-```typescript
-ModelFactory.defineEntity({
-  name: 'Ledger',
-  columns: { amount: numeric('amount').notNull() },
-  id: generateIdColumnDefs({ id: { dataType: 'big-number' } }),
-  extra: columns => [index('IDX_Ledger_amount').on(columns.amount)],
-});
-```
+The type contract is tested by compiling real probe files with declarations emitted. A correct row compiles clean, and every wrong shape fails: a wrong column type, an unknown key, a to-many given one object, a relation pointing at an entity class. Two files that import each other keep both row types.
 
-The type contract is tested by compiling real probe files: a correct row must compile clean, and
-seven wrong shapes - an undeclared relation, a wrong column, a to-many given a single object, a
-relation pointing at an entity - must each fail. That suite is what catches inference quietly
-degrading to `any`, which no runtime test can see.
-
-**Files:** [`packages/connectors/src/relational/postgres/models/factory.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/connectors/src/relational/postgres/models/factory.ts) ·
+**Files:** [`packages/connectors/src/relational/core/models/factory.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/connectors/src/relational/core/models/factory.ts) ·
 [`packages/connectors/src/relational/core/models/relations.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/connectors/src/relational/core/models/relations.ts) ·
-[`packages/connectors/src/relational/core/models/common/types.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/connectors/src/relational/core/models/common/types.ts)
+[`packages/connectors/src/relational/core/models/common/types.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/connectors/src/relational/core/models/common/types.ts) ·
+[`packages/connectors/src/relational/core/repositories/dialect/relations/one.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/connectors/src/relational/core/repositories/dialect/relations/one.ts) ·
+[`packages/connectors/src/relational/core/datasources/base.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/connectors/src/relational/core/datasources/base.ts)
+
+See the [Models reference](/references/base/models-reference#modelfactory-defineentity) for every option.

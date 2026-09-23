@@ -54,7 +54,7 @@ Everything here is browser-pure, so it works unchanged in a Worker. Import from 
 
 These size a **window** - a grace period, a cache TTL, a near-expiry horizon. They are not calendar arithmetic.
 
-Adding `MONTH` to 31 January lands on 2 March in a leap year and 3 March otherwise. If you need a real calendar date, use [the date utility](./date.md) and let `dayjs` handle months.
+Adding `MONTH` to 31 January lands on 1 March in a leap year and 2 March otherwise. For a real calendar date, use [`TemporalHelper`](/extensions/helpers/temporal/): its `add()` moves a month on the calendar of a time zone.
 
 ## Every function answers `null`, never throws
 

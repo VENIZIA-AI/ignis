@@ -1,109 +1,102 @@
 # Models
 
-Models define your data structure using Drizzle ORM schemas. A model is a single class with static properties for schema and relations.
+Models define your data structure with Drizzle ORM tables. You declare the table, then build the model class from it with `ModelFactory.defineEntity`.
 
 ## Creating a Basic Model
 
 ```typescript
 // src/models/entities/user.model.ts
-import { BasePostgresEntity, generateIdColumnDefs, generateTzColumnDefs, model } from '@venizia/ignis';
+import { model } from '@venizia/ignis';
+import {
+  generateIdColumnDefs,
+  generateTzColumnDefs,
+  ModelFactory,
+} from '@venizia/ignis/postgres';
+import type { TEntityObject } from '@venizia/ignis/postgres';
 import { pgTable, text } from 'drizzle-orm/pg-core';
 
-@model({ type: 'entity' })
-export class User extends BasePostgresEntity<typeof User.schema> {
-  // Define schema as static property
-  static override schema = pgTable('User', {
-    ...generateIdColumnDefs({ id: { dataType: 'string' } }),
-    ...generateTzColumnDefs(),
-    name: text('name').notNull(),
-    email: text('email').notNull(),
-  });
+export const userTable = pgTable('User', {
+  ...generateIdColumnDefs({ id: { dataType: 'string' } }),
+  ...generateTzColumnDefs(),
+  name: text('name').notNull(),
+  email: text('email').notNull(),
+});
 
-  // Relations (empty array if none)
-  static override relations = () => [];
-}
+@model({ type: 'entity' })
+export class User extends ModelFactory.defineEntity({ table: userTable }) {}
+
+export type TUser = TEntityObject<typeof User>;
 ```
 
 **Key points:**
 
-- Schema is defined inline as `static override schema`
-- Relations are defined as `static override relations`
-- No constructor needed - BasePostgresEntity auto-discovers from static properties
-- Type parameter uses `typeof User.schema` (self-referencing)
+- The table is a plain, exported drizzle table - drizzle-kit reads it for migrations
+- `TABLE_NAME` is read off the table, so the name `'User'` is written once
+- The id is a UUID v7 text key, from `generateIdColumnDefs({ id: { dataType: 'string' } })`
+- `TEntityObject<typeof User>` is the row type
 
 ## Creating a Model with Relations
 
 ```typescript
 // src/models/entities/configuration.model.ts
+import { model } from '@venizia/ignis';
 import {
-  BasePostgresEntity,
   generateDataTypeColumnDefs,
   generateIdColumnDefs,
   generateTzColumnDefs,
   generateUserAuditColumnDefs,
-  model,
-  RelationTypes,
-  TRelationConfig,
-} from '@venizia/ignis';
+  ModelFactory,
+  one,
+} from '@venizia/ignis/postgres';
 import { foreignKey, index, pgTable, text, unique } from 'drizzle-orm/pg-core';
-import { User } from './user.model';
+import { userTable } from './user.model';
+
+export const configurationTable = pgTable(
+  'Configuration',
+  {
+    ...generateIdColumnDefs({ id: { dataType: 'string' } }),
+    ...generateTzColumnDefs(),
+    ...generateDataTypeColumnDefs(),
+    ...generateUserAuditColumnDefs({
+      created: { dataType: 'string', columnName: 'created_by' },
+      modified: { dataType: 'string', columnName: 'modified_by' },
+    }),
+    code: text('code').notNull(),
+    description: text('description'),
+    group: text('group').notNull(),
+  },
+  def => [
+    unique('UQ_Configuration_code').on(def.code),
+    index('IDX_Configuration_group').on(def.group),
+    foreignKey({
+      columns: [def.createdBy],
+      foreignColumns: [userTable.id],
+      name: 'FK_Configuration_createdBy_User_id',
+    }),
+  ],
+);
 
 @model({ type: 'entity' })
-export class Configuration extends BasePostgresEntity<typeof Configuration.schema> {
-  static override schema = pgTable(
-    'Configuration',
-    {
-      ...generateIdColumnDefs({ id: { dataType: 'string' } }),
-      ...generateTzColumnDefs(),
-      ...generateDataTypeColumnDefs(),
-      ...generateUserAuditColumnDefs({
-        created: { dataType: 'string', columnName: 'created_by' },
-        modified: { dataType: 'string', columnName: 'modified_by' },
-      }),
-      code: text('code').notNull(),
-      description: text('description'),
-      group: text('group').notNull(),
-    },
-    def => [
-      unique('UQ_Configuration_code').on(def.code),
-      index('IDX_Configuration_group').on(def.group),
-      foreignKey({
-        columns: [def.createdBy],
-        foreignColumns: [User.schema.id], // Reference User.schema, not a separate variable
-        name: 'FK_Configuration_createdBy_User_id',
-      }),
-    ],
-  );
-
-  // Define relations using TRelationConfig array
-  static override relations = (): TRelationConfig[] => [
-    {
-      name: 'creator',
-      type: RelationTypes.ONE,
-      schema: User.schema,
-      metadata: {
-        fields: [Configuration.schema.createdBy],
-        references: [User.schema.id],
-      },
-    },
-    {
-      name: 'modifier',
-      type: RelationTypes.ONE,
-      schema: User.schema,
-      metadata: {
-        fields: [Configuration.schema.modifiedBy],
-        references: [User.schema.id],
-      },
-    },
-  ];
-}
+export class Configuration extends ModelFactory.defineEntity({
+  table: configurationTable,
+  relations: () => ({
+    creator: one(userTable, {
+      fields: [configurationTable.createdBy],
+      references: [userTable.id],
+    }),
+    modifier: one(userTable, {
+      fields: [configurationTable.modifiedBy],
+      references: [userTable.id],
+    }),
+  }),
+}) {}
 ```
 
 **Key points:**
 
-- Relations use `TRelationConfig[]` format directly
-- Reference other models via `Model.schema` (e.g., `User.schema.id`)
-- Relation names (`creator`, `modifier`) are used in queries with `include`
+- Relations are keyed by name - `creator` and `modifier` are the names you pass to `include`
+- Each relation points at a **table** (`userTable`), never at another model class, so two models that relate both ways never import each other
+- Both relations point at `userTable` through two different columns, so each names its `fields` and `references`. A `one` with exactly one foreign key to its target needs neither - see [How `one` finds its columns](/references/base/models-reference#how-one-finds-its-columns)
 
 ## Understanding Enrichers
 
@@ -164,23 +157,24 @@ For a complete list of enrichers and options, see the [Schema Enrichers Referenc
 Protect sensitive data by configuring properties that are **never returned** through repository queries. Hidden properties are excluded at the SQL level for maximum security and performance.
 
 ```typescript
-import { BasePostgresEntity, generateIdColumnDefs, model } from '@venizia/ignis';
+import { model } from '@venizia/ignis';
+import { generateIdColumnDefs, ModelFactory } from '@venizia/ignis/postgres';
 import { pgTable, text } from 'drizzle-orm/pg-core';
+
+export const userTable = pgTable('User', {
+  ...generateIdColumnDefs({ id: { dataType: 'string' } }),
+  email: text('email').notNull(),
+  password: text('password'), // Hidden from queries
+  secret: text('secret'), // Hidden from queries
+});
 
 @model({
   type: 'entity',
   settings: {
-    hiddenProperties: ['password', 'secret'],  // Never returned via repository
+    hiddenProperties: ['password', 'secret'], // Never returned via repository
   },
 })
-export class User extends BasePostgresEntity<typeof User.schema> {
-  static override schema = pgTable('User', {
-    ...generateIdColumnDefs({ id: { dataType: 'string' } }),
-    email: text('email').notNull(),
-    password: text('password'),  // Hidden from queries
-    secret: text('secret'),      // Hidden from queries
-  });
-}
+export class User extends ModelFactory.defineEntity({ table: userTable }) {}
 ```
 
 **Behavior:**
@@ -203,8 +197,8 @@ const user = await userRepo.findById({ id: '123' });
 const connector = userRepo.connector;
 const [fullUser] = await connector
   .select()
-  .from(User.schema)
-  .where(eq(User.schema.id, '123'));
+  .from(userTable)
+  .where(eq(userTable.id, '123'));
 // { id: '123', email: 'john@example.com', password: '...', secret: '...' }
 ```
 
@@ -224,9 +218,7 @@ Apply automatic filters to all repository queries. This is commonly used for sof
     hiddenProperties: ['deletedAt'],
   },
 })
-export class Article extends BasePostgresEntity<typeof Article.schema> {
-  // ...
-}
+export class Article extends ModelFactory.defineEntity({ table: articleTable }) {}
 ```
 
 The default filter is applied automatically to all read operations. Bypass it with `shouldSkipDefaultFilter: true` in the options:
@@ -247,8 +239,14 @@ const allArticles = await articleRepo.find({
 Declare your model's authorization principal directly in `@model` settings. The decorator auto-populates `AUTHORIZATION_SUBJECT` for type-safe references in route configs:
 
 ```typescript
-import { BasePostgresEntity, generateIdColumnDefs, model, AuthorizationActions } from '@venizia/ignis';
+import { AuthorizationActions, model } from '@venizia/ignis';
+import { generateIdColumnDefs, ModelFactory } from '@venizia/ignis/postgres';
 import { pgTable, text } from 'drizzle-orm/pg-core';
+
+export const articleTable = pgTable('Article', {
+  ...generateIdColumnDefs({ id: { dataType: 'string' } }),
+  title: text('title').notNull(),
+});
 
 @model({
   type: 'entity',
@@ -256,12 +254,7 @@ import { pgTable, text } from 'drizzle-orm/pg-core';
     authorize: { principal: 'article' },
   },
 })
-export class Article extends BasePostgresEntity<typeof Article.schema> {
-  static override schema = pgTable('Article', {
-    ...generateIdColumnDefs({ id: { dataType: 'string' } }),
-    title: text('title').notNull(),
-  });
-}
+export class Article extends ModelFactory.defineEntity({ table: articleTable }) {}
 
 // Use in route configs - no hardcoded strings
 authorize: {
@@ -291,41 +284,20 @@ The `@model` decorator accepts the following metadata:
 ## Model Template
 
 ```typescript
-import { BasePostgresEntity, generateIdColumnDefs, model, TRelationConfig } from '@venizia/ignis';
+import { model } from '@venizia/ignis';
+import { generateIdColumnDefs, ModelFactory } from '@venizia/ignis/postgres';
+import type { TEntityObject } from '@venizia/ignis/postgres';
 import { pgTable, text } from 'drizzle-orm/pg-core';
 
-@model({ type: 'entity' })
-export class MyModel extends BasePostgresEntity<typeof MyModel.schema> {
-  static override schema = pgTable('MyModel', {
-    ...generateIdColumnDefs({ id: { dataType: 'string' } }),
-    name: text('name').notNull(),
-  });
+export const myModelTable = pgTable('MyModel', {
+  ...generateIdColumnDefs({ id: { dataType: 'string' } }),
+  name: text('name').notNull(),
+});
 
-  static override relations = (): TRelationConfig[] => [];
-}
+@model({ type: 'entity' })
+export class MyModel extends ModelFactory.defineEntity({ table: myModelTable }) {}
+
+export type TMyModel = TEntityObject<typeof MyModel>;
 ```
 
-> **Deep Dive:** See [BaseEntity Reference](../../../references/base/models-reference.md#baseentity-baserelationalentity) for advanced patterns.
-
-## See Also
-
-- **Related Concepts:**
-  - [Repositories](/guides/core-concepts/persistent/repositories) - Data access layer using models
-  - [DataSources](/guides/core-concepts/persistent/datasources) - Database connections
-  - [Persistent Layer Overview](/guides/core-concepts/persistent/) - Architecture overview
-
-- **References:**
-  - [Models & Enrichers API](/references/base/models) - Complete API reference
-  - [Relations](/references/base/repositories/relations) - Defining model relationships
-  - [Filter System](/references/base/filter-system/) - Querying models
-
-- **External Resources:**
-  - [Drizzle ORM Documentation](https://orm.drizzle.team/) - Schema definition guide
-  - [PostgreSQL Data Types](https://www.postgresql.org/docs/current/datatype.html) - Column types reference
-
-- **Best Practices:**
-  - [Data Modeling](/best-practices/data-modeling) - Schema design patterns
-
-- **Tutorials:**
-  - [Building a CRUD API](/guides/tutorials/building-a-crud-api) - Model examples
-  - [E-commerce API](/guides/tutorials/ecommerce-api) - Models with relations
+The class form - `BaseEntity` with a static `schema` - still works. See [Definition patterns](../../../references/base/models-reference.md#definition-patterns) and the [`defineEntity` reference](../../../references/base/models-reference.md#modelfactory-defineentity).

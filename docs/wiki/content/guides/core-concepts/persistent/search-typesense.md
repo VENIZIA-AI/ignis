@@ -428,6 +428,8 @@ const _SearchController = SearchControllerFactory.defineSearchController({
 export const ArticleSearchController = _SearchController;
 ```
 
+Import the factory from `@venizia/ignis/typesense/controllers` (or `@venizia/ignis/search/controllers`), never from `@venizia/ignis/typesense`. That entry loads without `hono`, so it carries no controller.
+
 It registers `POST /search` (request body is the mode-discriminated schema, so validation and OpenAPI come for free, and the handler dispatches to `repository.search`). It also registers `POST /multi-search`, which dispatches to `dataSource.multiSearch`. For anything the factory does not cover, write a custom `BaseRestController` calling `repository.search()` or `getClient()` directly.
 
 ## Transactions and Locking

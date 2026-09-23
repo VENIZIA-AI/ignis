@@ -14,8 +14,9 @@ tags: [process, helper, helpers]
    `bun-s3/`, `in-memory/`) or a shared `common/` for types/constants/interfaces (see `redis/common/`).
 2. The helper class extends `BaseHelper` (`packages/helpers/src/modules/base.ts`). Call `super({
    scope: options.scope ?? YourHelper.name, identifier: options.identifier ?? YourHelper.name })`
-   in the constructor - this is what sets up `this.logger` as a scoped `ILogger`, resolved through
-   `LoggerResolver`, never a provider class. A helper that names `Logger` (the concrete winston
+   in the constructor - this is what scopes `this.logger`, an `ILogger` resolved on first read
+   through the logger slot, never a provider class. Do not redeclare `logger` as a field in the
+   subclass: it is an accessor on `BaseHelper`, and TypeScript refuses the field (TS2610). A helper that names `Logger` (the concrete winston
    class, reachable only from the `@venizia/ignis-helpers/winston` sub-path) drags a provider into
    a surface that must stay provider-agnostic.
 3. Log through the scoped logger, not `console`: `this.logger.for('methodName').debug(...)` /

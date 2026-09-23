@@ -10,7 +10,7 @@ The Redis helper gives you one data API for Redis. Talk to a single node, a shar
 
 ## In one example
 
-`ioredis` is an optional peer - install it in the app that builds a Redis client (`bun add ioredis`). Without it the helper constructor throws `Please install 'ioredis'`.
+`ioredis` is an optional peer - install it in the app that builds a Redis client (`bun add ioredis`). Without it the helper constructor throws `Please install 'ioredis'`. A compiled binary passes the module in instead - see [Run in a compiled binary](#run-in-a-compiled-binary).
 
 Construct a single-node helper and round-trip a value through it.
 
@@ -143,6 +143,25 @@ const [cursor, matched] = await redis.execute<[string, string[]]>('SCAN', [
   100,
 ]);
 ```
+
+### Run in a compiled binary
+
+A `bun build --compile` binary ships without `node_modules`, so the helper cannot load `ioredis` by name. The constructor then throws `[ModuleUtility.loadSync] ioredis is required`. Import `ioredis` statically and pass it as `module`:
+
+```typescript
+import * as ioredis from 'ioredis';
+import { RedisSingleHelper } from '@venizia/ignis-helpers';
+
+const redis = new RedisSingleHelper({
+  name: 'cache',
+  host: 'localhost',
+  port: 6379,
+  password: 'secret',
+  module: ioredis,
+});
+```
+
+The static import is what puts `ioredis` inside the binary; `module` is how the helper finds it. The cluster and Sentinel helpers, and `createRedisHelper`, take the same option. To cover every helper at once, register it at the entrypoint instead: `ModuleUtility.register({ modules: { ioredis } })`.
 
 ## See also
 

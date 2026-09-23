@@ -264,6 +264,8 @@ Stores the callbacks and calls `configure()` internally. The client starts conne
 
 Creates the `socket.io-client` connection (`io(host, options)`) and registers the internal lifecycle handlers below. Called automatically by the constructor. A second call is a no-op if a client instance already exists.
 
+`socket.io-client` is loaded here, through `ModuleUtility.loadSync`, not when the subpath is imported. A server that only uses `SocketIOServerHelper` never needs the client package installed. A `bun build --compile` binary has no `node_modules` for that lookup: pass the module as the `module` option.
+
 | Event | Behavior |
 |-------|----------|
 | `'connect'` | Invokes `onConnected` |
@@ -518,6 +520,7 @@ interface IOptions extends SocketOptions {
 | `identifier` | `string` | - | Unique identifier for this client (used as logger scope) |
 | `host` | `string` | - | Server URL to connect to (e.g. `'http://localhost:3000'`) |
 | `options` | `IOptions` | - | Socket.IO client options |
+| `module` | `typeof import('socket.io-client')` | loaded by name | `socket.io-client` itself, for a compiled binary. Omitted, it is loaded on `configure()` |
 | `onConnected` | `() => ValueOrPromise<void>` | `undefined` | Called when the transport connection is established |
 | `onDisconnected` | `(reason: string) => ValueOrPromise<void>` | `undefined` | Called on disconnect; state resets to `'unauthorized'` first |
 | `onError` | `(error: Error) => ValueOrPromise<void>` | `undefined` | Called on `'connect_error'` |

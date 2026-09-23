@@ -148,7 +148,7 @@ and the mixin has zero `drizzle-orm` imports.
 
 The concrete builder is installed from the **module body** of
 `relational/core/datasources/base.ts` - its last line - not from
-`relational/core/repositories/dialect/relation.ts`, which it deep-imports rather than reaching
+`relational/core/repositories/dialect/relations/create.ts`, which it deep-imports rather than reaching
 through a barrel. Both choices are about packaging: a `sideEffects: false` bundler drops a module
 reached only through an unused `export *` re-export, and
 `discoverSchema()` in that same file is the sole production caller of `resolveModelRelations()`, so

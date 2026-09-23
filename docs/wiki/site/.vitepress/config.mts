@@ -96,7 +96,6 @@ const coreApiSidebar: DefaultTheme.SidebarItem[] = [
     collapsed: false,
     items: [
       { text: 'Overview', link: '/references/utilities/' },
-      { text: 'Date', link: '/references/utilities/date' },
       { text: 'Duration', link: '/references/utilities/duration' },
       {
         text: 'JSX',
@@ -294,6 +293,7 @@ const extensionsSidebar: DefaultTheme.SidebarItem[] = [
           { text: 'Full Reference', link: '/extensions/helpers/storage/api' },
         ],
       },
+      { text: 'Temporal', link: '/extensions/helpers/temporal/' },
       {
         text: 'Types',
         collapsed: true,
@@ -454,6 +454,10 @@ const config = defineConfig({
               text: '2026-09-19',
               collapsed: true,
               items: [
+                {
+                  text: 'Dates Move Out, and Every Entry Loads On Its Own',
+                  link: '/changelogs/2026-09-19-prerelease-hardening',
+                },
                 {
                   text: 'A Model Declares Each Fact Once',
                   link: '/changelogs/2026-09-19-define-entity',

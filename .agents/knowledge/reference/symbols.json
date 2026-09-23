@@ -179,7 +179,7 @@
       "specifier": "@venizia/ignis",
       "kind": "class",
       "file": "packages/kernel/src/base/repositories/core/abstract.ts",
-      "line": 28,
+      "line": 34,
       "signature": "class AbstractRepository<TDataObject extends object, TPersistObject extends object = TDataObject, TOptions extends IExtraOptions = IExtraOptions> extends BaseHelper implements IPersistableRepository<TDataObject, TPersistObject, TOptions>"
     },
     {
@@ -759,7 +759,7 @@
       "specifier": "@venizia/ignis",
       "kind": "class",
       "file": "packages/helpers/src/modules/network/tcp-socket/base-tcp-server.helper.ts",
-      "line": 57,
+      "line": 56,
       "signature": "class BaseNetworkTcpServer<SocketServerOptions extends ServerOpts = ServerOpts, SocketServerType extends SocketServer = SocketServer, SocketClientType extends SocketClient = SocketClient> extends BaseHelper"
     },
     {
@@ -1304,6 +1304,26 @@
       "signature": "DEFAULT_PAD_END: string"
     },
     {
+      "name": "DEFAULT_TEMPORAL_PATTERN",
+      "package": "@venizia/ignis",
+      "subpath": ".",
+      "specifier": "@venizia/ignis",
+      "kind": "const",
+      "file": "packages/helpers/src/modules/temporal/common/constants.ts",
+      "line": 36,
+      "signature": "DEFAULT_TEMPORAL_PATTERN = \"YYYY-MM-DDTHH:mm:ss.SSSZ\""
+    },
+    {
+      "name": "DEFAULT_TEMPORAL_TIME_ZONE",
+      "package": "@venizia/ignis",
+      "subpath": ".",
+      "specifier": "@venizia/ignis",
+      "kind": "const",
+      "file": "packages/helpers/src/modules/temporal/common/constants.ts",
+      "line": 33,
+      "signature": "DEFAULT_TEMPORAL_TIME_ZONE = \"UTC\""
+    },
+    {
       "name": "DEFAULT_UID_DELIMITER",
       "package": "@venizia/ignis",
       "subpath": ".",
@@ -1362,6 +1382,16 @@
       "file": "packages/helpers/src/common/constants/app.ts",
       "line": 31,
       "signature": "class DataTypes"
+    },
+    {
+      "name": "DayjsTemporalAdapter",
+      "package": "@venizia/ignis",
+      "subpath": ".",
+      "specifier": "@venizia/ignis",
+      "kind": "class",
+      "file": "packages/helpers/src/modules/temporal/adapters/dayjs.ts",
+      "line": 22,
+      "signature": "class DayjsTemporalAdapter implements ITemporalAdapter"
     },
     {
       "name": "DefaultCRUDRepository",
@@ -2411,7 +2441,7 @@
       "specifier": "@venizia/ignis",
       "kind": "interface",
       "file": "packages/connectors/src/relational/postgres/repositories/common/types.ts",
-      "line": 19,
+      "line": 17,
       "signature": "interface IDatabaseExtraOptions extends IRelationalExtraOptions<TRelationalConnector>"
     },
     {
@@ -2435,6 +2465,26 @@
       "signature": "interface IDatabaseTransactionOptions extends TRelationalTransactionOptions"
     },
     {
+      "name": "IDayjsFactory",
+      "package": "@venizia/ignis",
+      "subpath": ".",
+      "specifier": "@venizia/ignis",
+      "kind": "interface",
+      "file": "packages/helpers/src/modules/temporal/common/types.ts",
+      "line": 59,
+      "signature": "interface IDayjsFactory"
+    },
+    {
+      "name": "IDayjsInstance",
+      "package": "@venizia/ignis",
+      "subpath": ".",
+      "specifier": "@venizia/ignis",
+      "kind": "interface",
+      "file": "packages/helpers/src/modules/temporal/common/types.ts",
+      "line": 53,
+      "signature": "interface IDayjsInstance"
+    },
+    {
       "name": "IDefineRouteOptions",
       "package": "@venizia/ignis",
       "subpath": ".",
@@ -2451,18 +2501,8 @@
       "specifier": "@venizia/ignis",
       "kind": "interface",
       "file": "packages/connectors/src/relational/core/models/common/types.ts",
-      "line": 70,
-      "signature": "interface IDefinedEntity<Schema extends TTableSchemaWithId = TTableSchemaWithId, Relations extends TRelationDefinitions = TRelationDefinitions>"
-    },
-    {
-      "name": "IDefinedEntityClass",
-      "package": "@venizia/ignis",
-      "subpath": ".",
-      "specifier": "@venizia/ignis",
-      "kind": "interface",
-      "file": "packages/connectors/src/relational/postgres/models/factory.ts",
-      "line": 30,
-      "signature": "interface IDefinedEntityClass<Name extends string, Columns extends TEntityColumns, Relations extends TRelationDefinitions>"
+      "line": 75,
+      "signature": "interface IDefinedEntity<Relations extends TRelationDefinitions = TRelationDefinitions>"
     },
     {
       "name": "IDeletableRepository",
@@ -2885,6 +2925,26 @@
       "signature": "interface ILoggerProvider"
     },
     {
+      "name": "ILuxonDateTime",
+      "package": "@venizia/ignis",
+      "subpath": ".",
+      "specifier": "@venizia/ignis",
+      "kind": "interface",
+      "file": "packages/helpers/src/modules/temporal/common/types.ts",
+      "line": 65,
+      "signature": "interface ILuxonDateTime"
+    },
+    {
+      "name": "ILuxonDateTimeFactory",
+      "package": "@venizia/ignis",
+      "subpath": ".",
+      "specifier": "@venizia/ignis",
+      "kind": "interface",
+      "file": "packages/helpers/src/modules/temporal/common/types.ts",
+      "line": 72,
+      "signature": "interface ILuxonDateTimeFactory"
+    },
+    {
       "name": "IManyRelation",
       "package": "@venizia/ignis",
       "subpath": ".",
@@ -3250,7 +3310,7 @@
       "subpath": ".",
       "specifier": "@venizia/ignis",
       "kind": "interface",
-      "file": "packages/kernel/src/base/repositories/sqls/recursive-tree.ts",
+      "file": "packages/connectors/src/relational/core/repositories/sqls/recursive-tree.ts",
       "line": 39,
       "signature": "interface IRecursiveTreeOptions"
     },
@@ -3261,8 +3321,8 @@
       "specifier": "@venizia/ignis",
       "kind": "interface",
       "file": "packages/helpers/src/modules/redis/common/types.ts",
-      "line": 49,
-      "signature": "interface IRedisClusterHelperOptions extends IRedisClusterHelperProps, IRedisHelperCallbacks"
+      "line": 59,
+      "signature": "interface IRedisClusterHelperOptions extends IRedisClusterHelperProps, IRedisHelperCallbacks, IRedisModuleOption"
     },
     {
       "name": "IRedisClusterHelperProps",
@@ -3365,6 +3425,16 @@
       "signature": "interface IRedisList"
     },
     {
+      "name": "IRedisModuleOption",
+      "package": "@venizia/ignis",
+      "subpath": ".",
+      "specifier": "@venizia/ignis",
+      "kind": "interface",
+      "file": "packages/helpers/src/modules/redis/common/types.ts",
+      "line": 52,
+      "signature": "interface IRedisModuleOption"
+    },
+    {
       "name": "IRedisPubSub",
       "package": "@venizia/ignis",
       "subpath": ".",
@@ -3381,8 +3451,8 @@
       "specifier": "@venizia/ignis",
       "kind": "interface",
       "file": "packages/helpers/src/modules/redis/common/types.ts",
-      "line": 52,
-      "signature": "interface IRedisSentinelHelperOptions extends IRedisSentinelHelperProps, IRedisHelperCallbacks"
+      "line": 62,
+      "signature": "interface IRedisSentinelHelperOptions extends IRedisSentinelHelperProps, IRedisHelperCallbacks, IRedisModuleOption"
     },
     {
       "name": "IRedisSentinelHelperProps",
@@ -3411,8 +3481,8 @@
       "specifier": "@venizia/ignis",
       "kind": "interface",
       "file": "packages/helpers/src/modules/redis/common/types.ts",
-      "line": 47,
-      "signature": "interface IRedisSingleHelperOptions extends IRedisSingleHelperProps, IRedisHelperCallbacks"
+      "line": 56,
+      "signature": "interface IRedisSingleHelperOptions extends IRedisSingleHelperProps, IRedisHelperCallbacks, IRedisModuleOption"
     },
     {
       "name": "IRedisSingleHelperProps",
@@ -3441,7 +3511,7 @@
       "specifier": "@venizia/ignis",
       "kind": "interface",
       "file": "packages/connectors/src/relational/core/repositories/common/types.ts",
-      "line": 38,
+      "line": 41,
       "signature": "interface IRelationalQueryDialect"
     },
     {
@@ -3861,7 +3931,7 @@
       "specifier": "@venizia/ignis",
       "kind": "interface",
       "file": "packages/helpers/src/modules/network/tcp-socket/base-tcp-server.helper.ts",
-      "line": 14,
+      "line": 13,
       "signature": "interface ITcpSocketClient<SocketClientType>"
     },
     {
@@ -3871,8 +3941,48 @@
       "specifier": "@venizia/ignis",
       "kind": "interface",
       "file": "packages/helpers/src/modules/network/tcp-socket/base-tcp-server.helper.ts",
-      "line": 27,
+      "line": 26,
       "signature": "interface ITcpSocketServerOptions<SocketServerOptions extends ServerOpts = ServerOpts, SocketServerType extends SocketServer = SocketServer, SocketClientType extends SocketClient = SocketClient>"
+    },
+    {
+      "name": "ITemporalAdapter",
+      "package": "@venizia/ignis",
+      "subpath": ".",
+      "specifier": "@venizia/ignis",
+      "kind": "interface",
+      "file": "packages/helpers/src/modules/temporal/common/types.ts",
+      "line": 28,
+      "signature": "interface ITemporalAdapter"
+    },
+    {
+      "name": "ITemporalNamespace",
+      "package": "@venizia/ignis",
+      "subpath": ".",
+      "specifier": "@venizia/ignis",
+      "kind": "interface",
+      "file": "packages/helpers/src/modules/temporal/common/types.ts",
+      "line": 44,
+      "signature": "interface ITemporalNamespace"
+    },
+    {
+      "name": "ITemporalParts",
+      "package": "@venizia/ignis",
+      "subpath": ".",
+      "specifier": "@venizia/ignis",
+      "kind": "interface",
+      "file": "packages/helpers/src/modules/temporal/common/types.ts",
+      "line": 5,
+      "signature": "interface ITemporalParts"
+    },
+    {
+      "name": "ITemporalZonedDateTime",
+      "package": "@venizia/ignis",
+      "subpath": ".",
+      "specifier": "@venizia/ignis",
+      "kind": "interface",
+      "file": "packages/helpers/src/modules/temporal/common/types.ts",
+      "line": 36,
+      "signature": "interface ITemporalZonedDateTime"
     },
     {
       "name": "ITimerAdapter",
@@ -3911,7 +4021,7 @@
       "specifier": "@venizia/ignis",
       "kind": "interface",
       "file": "packages/connectors/src/relational/core/repositories/common/types.ts",
-      "line": 87,
+      "line": 90,
       "signature": "interface ITransformedUpdateData"
     },
     {
@@ -4155,6 +4265,16 @@
       "signature": "interface IWorkerThread"
     },
     {
+      "name": "IZonedTemporalParts",
+      "package": "@venizia/ignis",
+      "subpath": ".",
+      "specifier": "@venizia/ignis",
+      "kind": "interface",
+      "file": "packages/helpers/src/modules/temporal/common/types.ts",
+      "line": 16,
+      "signature": "interface IZonedTemporalParts extends ITemporalParts"
+    },
+    {
       "name": "IdType",
       "package": "@venizia/ignis",
       "subpath": ".",
@@ -4385,6 +4505,16 @@
       "signature": "class LoggerResolver"
     },
     {
+      "name": "LuxonTemporalAdapter",
+      "package": "@venizia/ignis",
+      "subpath": ".",
+      "specifier": "@venizia/ignis",
+      "kind": "class",
+      "file": "packages/helpers/src/modules/temporal/adapters/luxon.ts",
+      "line": 8,
+      "signature": "class LuxonTemporalAdapter implements ITemporalAdapter"
+    },
+    {
       "name": "MINIMUM_KDF_SALT_BYTES",
       "package": "@venizia/ignis",
       "subpath": ".",
@@ -4490,8 +4620,8 @@
       "subpath": ".",
       "specifier": "@venizia/ignis",
       "kind": "class",
-      "file": "packages/connectors/src/relational/postgres/models/factory.ts",
-      "line": 43,
+      "file": "packages/connectors/src/relational/core/models/factory.ts",
+      "line": 25,
       "signature": "class ModelFactory"
     },
     {
@@ -4513,6 +4643,16 @@
       "file": "packages/helpers/src/modules/slug/common/constants.ts",
       "line": 8,
       "signature": "NON_SLUG_CHARACTERS_PATTERN: RegExp"
+    },
+    {
+      "name": "NativeTemporalAdapter",
+      "package": "@venizia/ignis",
+      "subpath": ".",
+      "specifier": "@venizia/ignis",
+      "kind": "class",
+      "file": "packages/helpers/src/modules/temporal/adapters/native.ts",
+      "line": 12,
+      "signature": "class NativeTemporalAdapter implements ITemporalAdapter"
     },
     {
       "name": "NetworkTcpClient",
@@ -4841,7 +4981,7 @@
       "subpath": ".",
       "specifier": "@venizia/ignis",
       "kind": "class",
-      "file": "packages/kernel/src/base/repositories/sqls/recursive-tree.ts",
+      "file": "packages/connectors/src/relational/core/repositories/sqls/recursive-tree.ts",
       "line": 9,
       "signature": "class RecursiveTreeDirections"
     },
@@ -4851,7 +4991,7 @@
       "subpath": ".",
       "specifier": "@venizia/ignis",
       "kind": "class",
-      "file": "packages/kernel/src/base/repositories/sqls/recursive-tree.ts",
+      "file": "packages/connectors/src/relational/core/repositories/sqls/recursive-tree.ts",
       "line": 80,
       "signature": "class RecursiveTreeSql"
     },
@@ -6116,6 +6256,16 @@
       "signature": "type TDefineAuthControllerOpts = { restPath?: string; serviceKey: string; requireAuthenticatedSignUp?: boolean; payload?: { signIn?: { request: { schema: TAnyObjectSchema; }; response: { schema: TAnyObjectSchema; }; }; signUp?: { request: { schema: TAnyObjectSchema; }; response: { schema: TAnyObject"
     },
     {
+      "name": "TDefinedEntityClass",
+      "package": "@venizia/ignis",
+      "subpath": ".",
+      "specifier": "@venizia/ignis",
+      "kind": "type",
+      "file": "packages/connectors/src/relational/core/models/factory.ts",
+      "line": 13,
+      "signature": "type TDefinedEntityClass<Schema extends TTableSchemaWithId, Relations extends TRelationDefinitions> = typeof BaseRelationalEntity<Schema> & { readonly TABLE_NAME: string; readonly schema: Schema; /** Undefined when the entity declares no relations. */ readonly relationDefinitions: Relations | undefi"
+    },
+    {
       "name": "TDeletedAtColumn",
       "package": "@venizia/ignis",
       "subpath": ".",
@@ -6166,16 +6316,6 @@
       "signature": "type TDurationUnit = TConstValue<typeof DurationUnits>"
     },
     {
-      "name": "TEntityColumns",
-      "package": "@venizia/ignis",
-      "subpath": ".",
-      "specifier": "@venizia/ignis",
-      "kind": "type",
-      "file": "packages/connectors/src/relational/postgres/models/factory.ts",
-      "line": 19,
-      "signature": "type TEntityColumns = Record<string, PgColumnBuilderBase>"
-    },
-    {
       "name": "TEntityDataObject",
       "package": "@venizia/ignis",
       "subpath": ".",
@@ -6202,8 +6342,8 @@
       "specifier": "@venizia/ignis",
       "kind": "type",
       "file": "packages/connectors/src/relational/core/models/common/types.ts",
-      "line": 79,
-      "signature": "type TEntityObject<Entity extends IDefinedEntity> = TTableObject<Entity['schema']> & { [Name in keyof Entity['relationDefinitions']]?: Entity['relationDefinitions'][Name] extends { type: typeof RelationTypes.MANY; } ? Array<TTableObject<Entity['relationDefinitions'][Name]['schema']>> : TTableObject<"
+      "line": 88,
+      "signature": "type TEntityObject<Entity extends IDefinedEntity> = TRowOf<Entity> & { [Name in keyof TDefinitionsOf<Entity>]?: TDefinitionsOf<Entity>[Name] extends { type: typeof RelationTypes.MANY; } ? Array<TTableObject<TDefinitionsOf<Entity>[Name]['schema']>> : TTableObject<TDefinitionsOf<Entity>[Name]['schema'"
     },
     {
       "name": "TEntityPersistObject",
@@ -6214,16 +6354,6 @@
       "file": "packages/kernel/src/base/controllers/common/types/controller.ts",
       "line": 58,
       "signature": "type TEntityPersistObject<TEntity> = TEntity extends { $inferPersist?: infer TPersist; } ? TPersist extends object ? TPersist : object : object"
-    },
-    {
-      "name": "TEntityTable",
-      "package": "@venizia/ignis",
-      "subpath": ".",
-      "specifier": "@venizia/ignis",
-      "kind": "type",
-      "file": "packages/connectors/src/relational/postgres/models/factory.ts",
-      "line": 22,
-      "signature": "type TEntityTable<Name extends string, Columns extends TEntityColumns> = PgTableWithColumns<{ name: Name; schema: undefined; columns: BuildColumns<Name, Columns, 'pg'>; dialect: 'pg'; }>"
     },
     {
       "name": "TError",
@@ -7211,7 +7341,7 @@
       "subpath": ".",
       "specifier": "@venizia/ignis",
       "kind": "type",
-      "file": "packages/kernel/src/base/repositories/sqls/recursive-tree.ts",
+      "file": "packages/connectors/src/relational/core/repositories/sqls/recursive-tree.ts",
       "line": 19,
       "signature": "type TRecursiveTreeDirection = TConstValue<typeof RecursiveTreeDirections>"
     },
@@ -7281,9 +7411,9 @@
       "subpath": ".",
       "specifier": "@venizia/ignis",
       "kind": "type",
-      "file": "packages/connectors/src/relational/postgres/repositories/common/types.ts",
-      "line": 24,
-      "signature": "type TRelationConfig = { name: string; } & ({ type: typeof RelationTypes.ONE; schema: TTableSchemaWithId; metadata: Parameters<ReturnType<typeof createTableRelationsHelpers>[typeof RelationTypes.ONE]>[1]; } | { type: typeof RelationTypes.MANY; schema: TTableSchemaWithId; metadata: Parameters<ReturnT"
+      "file": "packages/connectors/src/relational/core/repositories/common/types.ts",
+      "line": 16,
+      "signature": "type TRelationConfig = { name: string; } & ({ type: typeof RelationTypes.ONE; schema: TTableSchemaWithId; /** `fields` and `references` may be left out: they are read off the table's foreign key. */ metadata?: Partial<NonNullable<Parameters<ReturnType<typeof createTableRelationsHelpers>[typeof Relat"
     },
     {
       "name": "TRelationDefinition",
@@ -7722,7 +7852,7 @@
       "specifier": "@venizia/ignis",
       "kind": "type",
       "file": "packages/connectors/src/relational/core/repositories/common/types.ts",
-      "line": 35,
+      "line": 38,
       "signature": "type TTableColumns = ReturnType<typeof getTableColumns>"
     },
     {
@@ -7764,6 +7894,26 @@
       "file": "packages/helpers/src/utilities/promise.utility.ts",
       "line": 5,
       "signature": "type TTask<T> = (...args: any[]) => Promise<T>"
+    },
+    {
+      "name": "TTemporalInput",
+      "package": "@venizia/ignis",
+      "subpath": ".",
+      "specifier": "@venizia/ignis",
+      "kind": "type",
+      "file": "packages/helpers/src/modules/temporal/common/types.ts",
+      "line": 2,
+      "signature": "type TTemporalInput = Date | number | string"
+    },
+    {
+      "name": "TTemporalUnit",
+      "package": "@venizia/ignis",
+      "subpath": ".",
+      "specifier": "@venizia/ignis",
+      "kind": "type",
+      "file": "packages/helpers/src/modules/temporal/common/constants.ts",
+      "line": 30,
+      "signature": "type TTemporalUnit = TConstValue<typeof TemporalUnits>"
     },
     {
       "name": "TTimerHandle",
@@ -8034,6 +8184,26 @@
       "file": "packages/connectors/src/relational/core/repositories/common/shared.ts",
       "line": 6,
       "signature": "class TableColumnCache"
+    },
+    {
+      "name": "TemporalHelper",
+      "package": "@venizia/ignis",
+      "subpath": ".",
+      "specifier": "@venizia/ignis",
+      "kind": "class",
+      "file": "packages/helpers/src/modules/temporal/helper.ts",
+      "line": 58,
+      "signature": "class TemporalHelper extends BaseHelper"
+    },
+    {
+      "name": "TemporalUnits",
+      "package": "@venizia/ignis",
+      "subpath": ".",
+      "specifier": "@venizia/ignis",
+      "kind": "class",
+      "file": "packages/helpers/src/modules/temporal/common/constants.ts",
+      "line": 4,
+      "signature": "class TemporalUnits"
     },
     {
       "name": "TreeBuilder",
@@ -8541,9 +8711,9 @@
       "subpath": ".",
       "specifier": "@venizia/ignis",
       "kind": "const",
-      "file": "packages/connectors/src/relational/core/repositories/dialect/relation.ts",
-      "line": 8,
-      "signature": "createRelations: <Schema extends TTableSchemaWithId = TTableSchemaWithId>(opts: { source: Schema; relations: Array<TRelationConfig>; }) => { definitions: {}; relations: import(\"drizzle-orm\").Relations<string, {}>; }"
+      "file": "packages/connectors/src/relational/core/repositories/dialect/relations/create.ts",
+      "line": 11,
+      "signature": "createRelations: <Schema extends TTableSchemaWithId = TTableSchemaWithId>(opts: { source: Schema; relations: Array<TRelationConfig>; }) => { definitions: {}; relations: import(\"drizzle-orm\").Relations<string, Record<string, Relation<string>>>; }"
     },
     {
       "name": "createSecretsHelper",
@@ -8562,7 +8732,7 @@
       "specifier": "@venizia/ignis",
       "kind": "const",
       "file": "packages/helpers/src/modules/uid/uuid/v4.ts",
-      "line": 6,
+      "line": 10,
       "signature": "createUuidV4: () => (() => string)"
     },
     {
@@ -8582,7 +8752,7 @@
       "specifier": "@venizia/ignis",
       "kind": "const",
       "file": "packages/helpers/src/modules/uid/uuid/v7.ts",
-      "line": 10,
+      "line": 16,
       "signature": "createUuidV7: () => (() => string)"
     },
     {
@@ -8594,17 +8764,6 @@
       "file": "packages/kernel/src/base/metadata/persistents.ts",
       "line": 56,
       "signature": "datasource: (metadata?: IDataSourceMetadata) => ClassDecorator"
-    },
-    {
-      "name": "dayjs",
-      "package": "@venizia/ignis",
-      "subpath": ".",
-      "specifier": "@venizia/ignis",
-      "kind": "function",
-      "file": "node_modules/.bun/dayjs@1.11.23/node_modules/dayjs/index.d.ts",
-      "line": 5,
-      "signature": "function dayjs (date?: dayjs.ConfigType): dayjs.Dayjs",
-      "external": true
     },
     {
       "name": "defaultRequestHeaders",
@@ -8897,16 +9056,6 @@
       "signature": "getCachedColumns: <Schema extends TTableSchemaWithId>(schema: Schema) => TTableColumns"
     },
     {
-      "name": "getDateTz",
-      "package": "@venizia/ignis",
-      "subpath": ".",
-      "specifier": "@venizia/ignis",
-      "kind": "const",
-      "file": "packages/helpers/src/utilities/date.utility.ts",
-      "line": 49,
-      "signature": "getDateTz: (opts: { date: string; timezone: string; useClientTz?: boolean; timeOffset?: number; }) => dayjs.Dayjs"
-    },
-    {
       "name": "getDeepProperty",
       "package": "@venizia/ignis",
       "subpath": ".",
@@ -8957,16 +9106,6 @@
       "signature": "getIdType: <T extends TTableSchemaWithId>(opts: { entity: T; }) => import(\"drizzle-orm\").ColumnDataType"
     },
     {
-      "name": "getNextWeekday",
-      "package": "@venizia/ignis",
-      "subpath": ".",
-      "specifier": "@venizia/ignis",
-      "kind": "const",
-      "file": "packages/helpers/src/utilities/date.utility.ts",
-      "line": 38,
-      "signature": "getNextWeekday: (opts?: { date?: string | dayjs.Dayjs; }) => dayjs.Dayjs"
-    },
-    {
       "name": "getPerformanceCheckpoint",
       "package": "@venizia/ignis",
       "subpath": ".",
@@ -8975,16 +9114,6 @@
       "file": "packages/helpers/src/utilities/performance.utility.ts",
       "line": 6,
       "signature": "getPerformanceCheckpoint: () => number"
-    },
-    {
-      "name": "getPreviousWeekday",
-      "package": "@venizia/ignis",
-      "subpath": ".",
-      "specifier": "@venizia/ignis",
-      "kind": "const",
-      "file": "packages/helpers/src/utilities/date.utility.ts",
-      "line": 27,
-      "signature": "getPreviousWeekday: (opts?: { date?: string | dayjs.Dayjs; }) => dayjs.Dayjs"
     },
     {
       "name": "getUID",
@@ -9002,8 +9131,8 @@
       "subpath": ".",
       "specifier": "@venizia/ignis",
       "kind": "const",
-      "file": "packages/helpers/src/utilities/date.utility.ts",
-      "line": 59,
+      "file": "packages/helpers/src/utilities/hr-time.utility.ts",
+      "line": 7,
       "signature": "hrTime: () => number"
     },
     {
@@ -9195,16 +9324,6 @@
       "file": "packages/helpers/src/modules/network/utilities/url-safety/common/errors.ts",
       "line": 29,
       "signature": "isUrlRefusedError: (opts: { error: unknown; }) => boolean"
-    },
-    {
-      "name": "isWeekday",
-      "package": "@venizia/ignis",
-      "subpath": ".",
-      "specifier": "@venizia/ignis",
-      "kind": "const",
-      "file": "packages/helpers/src/utilities/date.utility.ts",
-      "line": 22,
-      "signature": "isWeekday: (date: string | dayjs.Dayjs) => boolean"
     },
     {
       "name": "isoTimestamp",
@@ -9623,7 +9742,7 @@
       "specifier": "@venizia/ignis",
       "kind": "const",
       "file": "packages/helpers/src/utilities/sleep.utility.ts",
-      "line": 2,
+      "line": 1,
       "signature": "sleep: (ms: number) => Promise<unknown>"
     },
     {
@@ -9793,7 +9912,7 @@
       "specifier": "@venizia/ignis",
       "kind": "const",
       "file": "packages/helpers/src/modules/uid/uuid/v4.ts",
-      "line": 54,
+      "line": 59,
       "signature": "uuidV4: () => string"
     },
     {
@@ -9803,7 +9922,7 @@
       "specifier": "@venizia/ignis",
       "kind": "const",
       "file": "packages/helpers/src/modules/uid/uuid/v5.ts",
-      "line": 99,
+      "line": 107,
       "signature": "uuidV5: (opts: { namespace: string; name: string; }) => string"
     },
     {
@@ -9813,7 +9932,7 @@
       "specifier": "@venizia/ignis",
       "kind": "const",
       "file": "packages/helpers/src/modules/uid/uuid/v7.ts",
-      "line": 105,
+      "line": 107,
       "signature": "uuidV7: () => string"
     },
     {
@@ -10033,7 +10152,7 @@
       "specifier": "@venizia/ignis/mail",
       "kind": "interface",
       "file": "packages/core-server/src/components/mail/common/types/queue.ts",
-      "line": 53,
+      "line": 56,
       "signature": "interface IMailQueueExecutorConfig"
     },
     {
@@ -10773,7 +10892,7 @@
       "specifier": "@venizia/ignis/postgres",
       "kind": "interface",
       "file": "packages/connectors/src/relational/postgres/repositories/common/types.ts",
-      "line": 19,
+      "line": 17,
       "signature": "interface IDatabaseExtraOptions extends IRelationalExtraOptions<TRelationalConnector>"
     },
     {
@@ -10803,18 +10922,8 @@
       "specifier": "@venizia/ignis/postgres",
       "kind": "interface",
       "file": "packages/connectors/src/relational/core/models/common/types.ts",
-      "line": 70,
-      "signature": "interface IDefinedEntity<Schema extends TTableSchemaWithId = TTableSchemaWithId, Relations extends TRelationDefinitions = TRelationDefinitions>"
-    },
-    {
-      "name": "IDefinedEntityClass",
-      "package": "@venizia/ignis",
-      "subpath": "./postgres",
-      "specifier": "@venizia/ignis/postgres",
-      "kind": "interface",
-      "file": "packages/connectors/src/relational/postgres/models/factory.ts",
-      "line": 30,
-      "signature": "interface IDefinedEntityClass<Name extends string, Columns extends TEntityColumns, Relations extends TRelationDefinitions>"
+      "line": 75,
+      "signature": "interface IDefinedEntity<Relations extends TRelationDefinitions = TRelationDefinitions>"
     },
     {
       "name": "IEntity",
@@ -10857,13 +10966,23 @@
       "signature": "interface IPostgresDataSource<Settings extends object = {}, Schema extends TAnyDataSourceSchema = TAnyDataSourceSchema, ConfigurableOptions extends object = {}, Client = Pool> extends IRelationalDataSource<Settings, Schema, ConfigurableOptions, Client, TRelationalConnector<Schema>>"
     },
     {
+      "name": "IRecursiveTreeOptions",
+      "package": "@venizia/ignis",
+      "subpath": "./postgres",
+      "specifier": "@venizia/ignis/postgres",
+      "kind": "interface",
+      "file": "packages/connectors/src/relational/core/repositories/sqls/recursive-tree.ts",
+      "line": 39,
+      "signature": "interface IRecursiveTreeOptions"
+    },
+    {
       "name": "IRelationalQueryDialect",
       "package": "@venizia/ignis",
       "subpath": "./postgres",
       "specifier": "@venizia/ignis/postgres",
       "kind": "interface",
       "file": "packages/connectors/src/relational/core/repositories/common/types.ts",
-      "line": 38,
+      "line": 41,
       "signature": "interface IRelationalQueryDialect"
     },
     {
@@ -10883,7 +11002,7 @@
       "specifier": "@venizia/ignis/postgres",
       "kind": "interface",
       "file": "packages/connectors/src/relational/core/repositories/common/types.ts",
-      "line": 87,
+      "line": 90,
       "signature": "interface ITransformedUpdateData"
     },
     {
@@ -10902,8 +11021,8 @@
       "subpath": "./postgres",
       "specifier": "@venizia/ignis/postgres",
       "kind": "class",
-      "file": "packages/connectors/src/relational/postgres/models/factory.ts",
-      "line": 43,
+      "file": "packages/connectors/src/relational/core/models/factory.ts",
+      "line": 25,
       "signature": "class ModelFactory"
     },
     {
@@ -10977,6 +11096,26 @@
       "signature": "class ReadableRepository<EntitySchema extends TTableSchemaWithId = TTableSchemaWithId, DataObject extends TTableObject<EntitySchema> = TTableObject<EntitySchema>, PersistObject extends TTableInsert<EntitySchema> = TTableInsert<EntitySchema>, ExtraOptions extends IExtraOptions = IDatabaseExtraOptions"
     },
     {
+      "name": "RecursiveTreeDirections",
+      "package": "@venizia/ignis",
+      "subpath": "./postgres",
+      "specifier": "@venizia/ignis/postgres",
+      "kind": "class",
+      "file": "packages/connectors/src/relational/core/repositories/sqls/recursive-tree.ts",
+      "line": 9,
+      "signature": "class RecursiveTreeDirections"
+    },
+    {
+      "name": "RecursiveTreeSql",
+      "package": "@venizia/ignis",
+      "subpath": "./postgres",
+      "specifier": "@venizia/ignis/postgres",
+      "kind": "class",
+      "file": "packages/connectors/src/relational/core/repositories/sqls/recursive-tree.ts",
+      "line": 80,
+      "signature": "class RecursiveTreeSql"
+    },
+    {
       "name": "SoftDeletableRepository",
       "package": "@venizia/ignis",
       "subpath": "./postgres",
@@ -11027,6 +11166,16 @@
       "signature": "type TDataTypeEnricherOptions = { defaultValue: Partial<{ dataType: string; nValue: number; tValue: string; bValue: Buffer; jValue: object; boValue: boolean; }>; }"
     },
     {
+      "name": "TDefinedEntityClass",
+      "package": "@venizia/ignis",
+      "subpath": "./postgres",
+      "specifier": "@venizia/ignis/postgres",
+      "kind": "type",
+      "file": "packages/connectors/src/relational/core/models/factory.ts",
+      "line": 13,
+      "signature": "type TDefinedEntityClass<Schema extends TTableSchemaWithId, Relations extends TRelationDefinitions> = typeof BaseRelationalEntity<Schema> & { readonly TABLE_NAME: string; readonly schema: Schema; /** Undefined when the entity declares no relations. */ readonly relationDefinitions: Relations | undefi"
+    },
+    {
       "name": "TDeletedAtColumn",
       "package": "@venizia/ignis",
       "subpath": "./postgres",
@@ -11037,34 +11186,14 @@
       "signature": "type TDeletedAtColumn = AnyColumn<{ data: Date | string | null; }>"
     },
     {
-      "name": "TEntityColumns",
-      "package": "@venizia/ignis",
-      "subpath": "./postgres",
-      "specifier": "@venizia/ignis/postgres",
-      "kind": "type",
-      "file": "packages/connectors/src/relational/postgres/models/factory.ts",
-      "line": 19,
-      "signature": "type TEntityColumns = Record<string, PgColumnBuilderBase>"
-    },
-    {
       "name": "TEntityObject",
       "package": "@venizia/ignis",
       "subpath": "./postgres",
       "specifier": "@venizia/ignis/postgres",
       "kind": "type",
       "file": "packages/connectors/src/relational/core/models/common/types.ts",
-      "line": 79,
-      "signature": "type TEntityObject<Entity extends IDefinedEntity> = TTableObject<Entity['schema']> & { [Name in keyof Entity['relationDefinitions']]?: Entity['relationDefinitions'][Name] extends { type: typeof RelationTypes.MANY; } ? Array<TTableObject<Entity['relationDefinitions'][Name]['schema']>> : TTableObject<"
-    },
-    {
-      "name": "TEntityTable",
-      "package": "@venizia/ignis",
-      "subpath": "./postgres",
-      "specifier": "@venizia/ignis/postgres",
-      "kind": "type",
-      "file": "packages/connectors/src/relational/postgres/models/factory.ts",
-      "line": 22,
-      "signature": "type TEntityTable<Name extends string, Columns extends TEntityColumns> = PgTableWithColumns<{ name: Name; schema: undefined; columns: BuildColumns<Name, Columns, 'pg'>; dialect: 'pg'; }>"
+      "line": 88,
+      "signature": "type TEntityObject<Entity extends IDefinedEntity> = TRowOf<Entity> & { [Name in keyof TDefinitionsOf<Entity>]?: TDefinitionsOf<Entity>[Name] extends { type: typeof RelationTypes.MANY; } ? Array<TTableObject<TDefinitionsOf<Entity>[Name]['schema']>> : TTableObject<TDefinitionsOf<Entity>[Name]['schema'"
     },
     {
       "name": "TGetIdType",
@@ -11137,14 +11266,24 @@
       "signature": "type TPrincipalEnricherOptions<Discriminator extends string = string, PolymorphicIdType extends 'number' | 'string' = 'number' | 'string', Nullable extends boolean = false> = { discriminator?: Discriminator; defaultPolymorphic?: string; polymorphicIdType: PolymorphicIdType; isNullableId?: Nullable; "
     },
     {
+      "name": "TRecursiveTreeDirection",
+      "package": "@venizia/ignis",
+      "subpath": "./postgres",
+      "specifier": "@venizia/ignis/postgres",
+      "kind": "type",
+      "file": "packages/connectors/src/relational/core/repositories/sqls/recursive-tree.ts",
+      "line": 19,
+      "signature": "type TRecursiveTreeDirection = TConstValue<typeof RecursiveTreeDirections>"
+    },
+    {
       "name": "TRelationConfig",
       "package": "@venizia/ignis",
       "subpath": "./postgres",
       "specifier": "@venizia/ignis/postgres",
       "kind": "type",
-      "file": "packages/connectors/src/relational/postgres/repositories/common/types.ts",
-      "line": 24,
-      "signature": "type TRelationConfig = { name: string; } & ({ type: typeof RelationTypes.ONE; schema: TTableSchemaWithId; metadata: Parameters<ReturnType<typeof createTableRelationsHelpers>[typeof RelationTypes.ONE]>[1]; } | { type: typeof RelationTypes.MANY; schema: TTableSchemaWithId; metadata: Parameters<ReturnT"
+      "file": "packages/connectors/src/relational/core/repositories/common/types.ts",
+      "line": 16,
+      "signature": "type TRelationConfig = { name: string; } & ({ type: typeof RelationTypes.ONE; schema: TTableSchemaWithId; /** `fields` and `references` may be left out: they are read off the table's foreign key. */ metadata?: Partial<NonNullable<Parameters<ReturnType<typeof createTableRelationsHelpers>[typeof Relat"
     },
     {
       "name": "TRelationDefinition",
@@ -11223,7 +11362,7 @@
       "specifier": "@venizia/ignis/postgres",
       "kind": "type",
       "file": "packages/connectors/src/relational/core/repositories/common/types.ts",
-      "line": 35,
+      "line": 38,
       "signature": "type TTableColumns = ReturnType<typeof getTableColumns>"
     },
     {
@@ -11332,9 +11471,9 @@
       "subpath": "./postgres",
       "specifier": "@venizia/ignis/postgres",
       "kind": "const",
-      "file": "packages/connectors/src/relational/core/repositories/dialect/relation.ts",
-      "line": 8,
-      "signature": "createRelations: <Schema extends TTableSchemaWithId = TTableSchemaWithId>(opts: { source: Schema; relations: Array<TRelationConfig>; }) => { definitions: {}; relations: import(\"drizzle-orm\").Relations<string, {}>; }"
+      "file": "packages/connectors/src/relational/core/repositories/dialect/relations/create.ts",
+      "line": 11,
+      "signature": "createRelations: <Schema extends TTableSchemaWithId = TTableSchemaWithId>(opts: { source: Schema; relations: Array<TRelationConfig>; }) => { definitions: {}; relations: import(\"drizzle-orm\").Relations<string, Record<string, Relation<string>>>; }"
     },
     {
       "name": "enrichDataTypes",
@@ -11712,7 +11851,7 @@
       "specifier": "@venizia/ignis/relational",
       "kind": "class",
       "file": "packages/connectors/src/relational/core/datasources/base.ts",
-      "line": 16,
+      "line": 17,
       "signature": "class BaseRelationalDataSource<Settings extends object = {}, Schema extends TAnyDataSourceSchema = TAnyDataSourceSchema, ConfigurableOptions extends object = {}, Client = unknown, TConnector = unknown> extends AbstractRelationalDataSource<Settings, Schema, ConfigurableOptions, Client, TConnector>"
     },
     {
@@ -11762,8 +11901,8 @@
       "specifier": "@venizia/ignis/relational",
       "kind": "interface",
       "file": "packages/connectors/src/relational/core/models/common/types.ts",
-      "line": 70,
-      "signature": "interface IDefinedEntity<Schema extends TTableSchemaWithId = TTableSchemaWithId, Relations extends TRelationDefinitions = TRelationDefinitions>"
+      "line": 75,
+      "signature": "interface IDefinedEntity<Relations extends TRelationDefinitions = TRelationDefinitions>"
     },
     {
       "name": "IEntity",
@@ -11816,6 +11955,16 @@
       "signature": "interface IOneRelation<Schema extends TTableSchemaWithId = TTableSchemaWithId>"
     },
     {
+      "name": "IRecursiveTreeOptions",
+      "package": "@venizia/ignis",
+      "subpath": "./relational",
+      "specifier": "@venizia/ignis/relational",
+      "kind": "interface",
+      "file": "packages/connectors/src/relational/core/repositories/sqls/recursive-tree.ts",
+      "line": 39,
+      "signature": "interface IRecursiveTreeOptions"
+    },
+    {
       "name": "IRelationalConnection",
       "package": "@venizia/ignis",
       "subpath": "./relational",
@@ -11852,7 +12001,7 @@
       "specifier": "@venizia/ignis/relational",
       "kind": "interface",
       "file": "packages/connectors/src/relational/core/repositories/common/types.ts",
-      "line": 68,
+      "line": 71,
       "signature": "interface IRelationalExtraOptions<TConnector = unknown> extends IExtraOptions"
     },
     {
@@ -11862,7 +12011,7 @@
       "specifier": "@venizia/ignis/relational",
       "kind": "interface",
       "file": "packages/connectors/src/relational/core/repositories/common/types.ts",
-      "line": 38,
+      "line": 41,
       "signature": "interface IRelationalQueryDialect"
     },
     {
@@ -11932,7 +12081,7 @@
       "specifier": "@venizia/ignis/relational",
       "kind": "interface",
       "file": "packages/connectors/src/relational/core/repositories/common/types.ts",
-      "line": 87,
+      "line": 90,
       "signature": "interface ITransformedUpdateData"
     },
     {
@@ -11966,6 +12115,16 @@
       "signature": "JSON_PATH_PATTERN: RegExp"
     },
     {
+      "name": "ModelFactory",
+      "package": "@venizia/ignis",
+      "subpath": "./relational",
+      "specifier": "@venizia/ignis/relational",
+      "kind": "class",
+      "file": "packages/connectors/src/relational/core/models/factory.ts",
+      "line": 25,
+      "signature": "class ModelFactory"
+    },
+    {
       "name": "PersistableRelationalRepository",
       "package": "@venizia/ignis",
       "subpath": "./relational",
@@ -11984,6 +12143,26 @@
       "file": "packages/connectors/src/relational/core/repositories/core/readable.ts",
       "line": 25,
       "signature": "class ReadableRelationalRepository<EntitySchema extends TTableSchemaWithId = TTableSchemaWithId, DataObject extends TTableObject<EntitySchema> = TTableObject<EntitySchema>, PersistObject extends TTableInsert<EntitySchema> = TTableInsert<EntitySchema>, ExtraOptions extends IExtraOptions = IRelational"
+    },
+    {
+      "name": "RecursiveTreeDirections",
+      "package": "@venizia/ignis",
+      "subpath": "./relational",
+      "specifier": "@venizia/ignis/relational",
+      "kind": "class",
+      "file": "packages/connectors/src/relational/core/repositories/sqls/recursive-tree.ts",
+      "line": 9,
+      "signature": "class RecursiveTreeDirections"
+    },
+    {
+      "name": "RecursiveTreeSql",
+      "package": "@venizia/ignis",
+      "subpath": "./relational",
+      "specifier": "@venizia/ignis/relational",
+      "kind": "class",
+      "file": "packages/connectors/src/relational/core/repositories/sqls/recursive-tree.ts",
+      "line": 80,
+      "signature": "class RecursiveTreeSql"
     },
     {
       "name": "RelationalBaseRepository",
@@ -12066,6 +12245,16 @@
       "signature": "type TColumnSelection = Record<string, unknown> | undefined"
     },
     {
+      "name": "TDefinedEntityClass",
+      "package": "@venizia/ignis",
+      "subpath": "./relational",
+      "specifier": "@venizia/ignis/relational",
+      "kind": "type",
+      "file": "packages/connectors/src/relational/core/models/factory.ts",
+      "line": 13,
+      "signature": "type TDefinedEntityClass<Schema extends TTableSchemaWithId, Relations extends TRelationDefinitions> = typeof BaseRelationalEntity<Schema> & { readonly TABLE_NAME: string; readonly schema: Schema; /** Undefined when the entity declares no relations. */ readonly relationDefinitions: Relations | undefi"
+    },
+    {
       "name": "TDeletedAtColumn",
       "package": "@venizia/ignis",
       "subpath": "./relational",
@@ -12082,8 +12271,8 @@
       "specifier": "@venizia/ignis/relational",
       "kind": "type",
       "file": "packages/connectors/src/relational/core/models/common/types.ts",
-      "line": 79,
-      "signature": "type TEntityObject<Entity extends IDefinedEntity> = TTableObject<Entity['schema']> & { [Name in keyof Entity['relationDefinitions']]?: Entity['relationDefinitions'][Name] extends { type: typeof RelationTypes.MANY; } ? Array<TTableObject<Entity['relationDefinitions'][Name]['schema']>> : TTableObject<"
+      "line": 88,
+      "signature": "type TEntityObject<Entity extends IDefinedEntity> = TRowOf<Entity> & { [Name in keyof TDefinitionsOf<Entity>]?: TDefinitionsOf<Entity>[Name] extends { type: typeof RelationTypes.MANY; } ? Array<TTableObject<TDefinitionsOf<Entity>[Name]['schema']>> : TTableObject<TDefinitionsOf<Entity>[Name]['schema'"
     },
     {
       "name": "TGetIdType",
@@ -12116,6 +12305,16 @@
       "signature": "type TPrimaryKey<T extends TColumnDefinition> = IsPrimaryKey<NotNull<T>>"
     },
     {
+      "name": "TRecursiveTreeDirection",
+      "package": "@venizia/ignis",
+      "subpath": "./relational",
+      "specifier": "@venizia/ignis/relational",
+      "kind": "type",
+      "file": "packages/connectors/src/relational/core/repositories/sqls/recursive-tree.ts",
+      "line": 19,
+      "signature": "type TRecursiveTreeDirection = TConstValue<typeof RecursiveTreeDirections>"
+    },
+    {
       "name": "TRelationConfig",
       "package": "@venizia/ignis",
       "subpath": "./relational",
@@ -12123,7 +12322,7 @@
       "kind": "type",
       "file": "packages/connectors/src/relational/core/repositories/common/types.ts",
       "line": 16,
-      "signature": "type TRelationConfig = { name: string; } & ({ type: typeof RelationTypes.ONE; schema: TTableSchemaWithId; metadata: Parameters<ReturnType<typeof createTableRelationsHelpers>[typeof RelationTypes.ONE]>[1]; } | { type: typeof RelationTypes.MANY; schema: TTableSchemaWithId; metadata: Parameters<ReturnT"
+      "signature": "type TRelationConfig = { name: string; } & ({ type: typeof RelationTypes.ONE; schema: TTableSchemaWithId; /** `fields` and `references` may be left out: they are read off the table's foreign key. */ metadata?: Partial<NonNullable<Parameters<ReturnType<typeof createTableRelationsHelpers>[typeof Relat"
     },
     {
       "name": "TRelationDefinition",
@@ -12162,7 +12361,7 @@
       "specifier": "@venizia/ignis/relational",
       "kind": "type",
       "file": "packages/connectors/src/relational/core/repositories/common/types.ts",
-      "line": 73,
+      "line": 76,
       "signature": "type TRelationalConnectorOf<TDataSource extends IRelationalDataSource> = ReturnType<TDataSource['getConnector']>"
     },
     {
@@ -12172,7 +12371,7 @@
       "specifier": "@venizia/ignis/relational",
       "kind": "type",
       "file": "packages/connectors/src/relational/core/repositories/common/types.ts",
-      "line": 83,
+      "line": 86,
       "signature": "type TRelationalTransactionOf<TDataSource extends IRelationalDataSource> = Awaited<ReturnType<TDataSource['beginTransaction']>>"
     },
     {
@@ -12192,7 +12391,7 @@
       "specifier": "@venizia/ignis/relational",
       "kind": "type",
       "file": "packages/connectors/src/relational/core/repositories/common/types.ts",
-      "line": 78,
+      "line": 81,
       "signature": "type TRelationalTransactionOptionsOf<TDataSource extends IRelationalDataSource> = Parameters<TDataSource['beginTransaction']>[0]"
     },
     {
@@ -12212,7 +12411,7 @@
       "specifier": "@venizia/ignis/relational",
       "kind": "type",
       "file": "packages/connectors/src/relational/core/repositories/common/types.ts",
-      "line": 35,
+      "line": 38,
       "signature": "type TTableColumns = ReturnType<typeof getTableColumns>"
     },
     {
@@ -12261,9 +12460,9 @@
       "subpath": "./relational",
       "specifier": "@venizia/ignis/relational",
       "kind": "const",
-      "file": "packages/connectors/src/relational/core/repositories/dialect/relation.ts",
-      "line": 8,
-      "signature": "createRelations: <Schema extends TTableSchemaWithId = TTableSchemaWithId>(opts: { source: Schema; relations: Array<TRelationConfig>; }) => { definitions: {}; relations: import(\"drizzle-orm\").Relations<string, {}>; }"
+      "file": "packages/connectors/src/relational/core/repositories/dialect/relations/create.ts",
+      "line": 11,
+      "signature": "createRelations: <Schema extends TTableSchemaWithId = TTableSchemaWithId>(opts: { source: Schema; relations: Array<TRelationConfig>; }) => { definitions: {}; relations: import(\"drizzle-orm\").Relations<string, Record<string, Relation<string>>>; }"
     },
     {
       "name": "getCachedColumns",
@@ -12376,16 +12575,6 @@
       "signature": "validateJsonPathComponents: (opts: { path: string[]; tableName: string; methodName: string; }) => void"
     },
     {
-      "name": "AbstractSearchController",
-      "package": "@venizia/ignis",
-      "subpath": "./search",
-      "specifier": "@venizia/ignis/search",
-      "kind": "class",
-      "file": "packages/connectors/src/search/core/controllers/abstract.ts",
-      "line": 38,
-      "signature": "class AbstractSearchController<TEntity extends AbstractEntity<TAnyObjectSchema> = AbstractEntity<TAnyObjectSchema>, RouteEnv extends Env = Env, RouteSchema extends Schema = {}, BasePath extends string = '/', ConfigurableOptions extends object = {}, TDataObject extends object = TEntityDataObject<TEnt"
-    },
-    {
       "name": "AbstractSearchDataSource",
       "package": "@venizia/ignis",
       "subpath": "./search",
@@ -12412,7 +12601,7 @@
       "specifier": "@venizia/ignis/search",
       "kind": "class",
       "file": "packages/connectors/src/search/core/datasources/base.ts",
-      "line": 29,
+      "line": 20,
       "signature": "class BaseSearchDataSource<Settings extends object = {}, TConnector extends ISearchConnector = ISearchConnector> extends AbstractSearchDataSource<Settings>"
     },
     {
@@ -12514,26 +12703,6 @@
       "file": "packages/connectors/src/search/core/connector.ts",
       "line": 16,
       "signature": "interface ISearchConnectorCallbacks"
-    },
-    {
-      "name": "ISearchControllerOptions",
-      "package": "@venizia/ignis",
-      "subpath": "./search",
-      "specifier": "@venizia/ignis/search",
-      "kind": "interface",
-      "file": "packages/connectors/src/search/core/controllers/factory.ts",
-      "line": 22,
-      "signature": "interface ISearchControllerOptions<TEntity extends AbstractEntity<TAnyObjectSchema> = AbstractEntity<TAnyObjectSchema>>"
-    },
-    {
-      "name": "ISearchCustomizableRoutes",
-      "package": "@venizia/ignis",
-      "subpath": "./search",
-      "specifier": "@venizia/ignis/search",
-      "kind": "interface",
-      "file": "packages/connectors/src/search/core/controllers/factory.ts",
-      "line": 16,
-      "signature": "interface ISearchCustomizableRoutes"
     },
     {
       "name": "ISearchDataSourceOptions",
@@ -12662,7 +12831,7 @@
       "specifier": "@venizia/ignis/search",
       "kind": "const",
       "file": "packages/connectors/src/search/core/repositories/common/constants.ts",
-      "line": 122,
+      "line": 119,
       "signature": "MultiSearchEntrySchema: z.ZodObject<{ facetBy: z.ZodOptional<z.ZodArray<z.ZodString>>; facetQuery: z.ZodOptional<z.ZodString>; maxFacetValues: z.ZodOptional<z.ZodNumber>; highlightFields: z.ZodOptional<z.ZodArray<z.ZodString>>; highlightFullFields: z.ZodOptional<z.ZodArray<z.ZodString>>; highlightSt"
     },
     {
@@ -12672,7 +12841,7 @@
       "specifier": "@venizia/ignis/search",
       "kind": "const",
       "file": "packages/connectors/src/search/core/repositories/common/constants.ts",
-      "line": 170,
+      "line": 138,
       "signature": "MultiSearchInputSchema: z.ZodObject<{ searches: z.ZodArray<z.ZodObject<{ facetBy: z.ZodOptional<z.ZodArray<z.ZodString>>; facetQuery: z.ZodOptional<z.ZodString>; maxFacetValues: z.ZodOptional<z.ZodNumber>; highlightFields: z.ZodOptional<z.ZodArray<z.ZodString>>; highlightFullFields: z.ZodOptional<z."
     },
     {
@@ -12682,7 +12851,7 @@
       "specifier": "@venizia/ignis/search",
       "kind": "class",
       "file": "packages/connectors/src/search/core/repositories/core/persistable.ts",
-      "line": 18,
+      "line": 14,
       "signature": "class PersistableSearchRepository<TDocument extends object = object, TDataSource extends AbstractSearchDataSource = AbstractSearchDataSource> extends ReadableSearchRepository<TDocument, TDataSource>"
     },
     {
@@ -12704,16 +12873,6 @@
       "file": "packages/connectors/src/search/core/repositories/core/base.ts",
       "line": 19,
       "signature": "class SearchBaseRepository<TDocument extends object = object, TDataSource extends AbstractSearchDataSource = AbstractSearchDataSource> extends AbstractRepository<TDocument, TDocument>"
-    },
-    {
-      "name": "SearchControllerFactory",
-      "package": "@venizia/ignis",
-      "subpath": "./search",
-      "specifier": "@venizia/ignis/search",
-      "kind": "class",
-      "file": "packages/connectors/src/search/core/controllers/factory.ts",
-      "line": 49,
-      "signature": "class SearchControllerFactory extends BaseHelper"
     },
     {
       "name": "SearchErrors",
@@ -12752,7 +12911,7 @@
       "specifier": "@venizia/ignis/search",
       "kind": "const",
       "file": "packages/connectors/src/search/core/repositories/common/constants.ts",
-      "line": 113,
+      "line": 110,
       "signature": "SearchInputSchema: z.ZodDiscriminatedUnion<[z.ZodObject<{ facetBy: z.ZodOptional<z.ZodArray<z.ZodString>>; facetQuery: z.ZodOptional<z.ZodString>; maxFacetValues: z.ZodOptional<z.ZodNumber>; highlightFields: z.ZodOptional<z.ZodArray<z.ZodString>>; highlightFullFields: z.ZodOptional<z.ZodArray<z.ZodS"
     },
     {
@@ -12762,7 +12921,7 @@
       "specifier": "@venizia/ignis/search",
       "kind": "class",
       "file": "packages/connectors/src/search/core/repositories/common/constants.ts",
-      "line": 14,
+      "line": 12,
       "signature": "class SearchModes"
     },
     {
@@ -12792,7 +12951,7 @@
       "specifier": "@venizia/ignis/search",
       "kind": "type",
       "file": "packages/connectors/src/search/core/repositories/common/constants.ts",
-      "line": 138,
+      "line": 135,
       "signature": "type TMultiSearchEntry = z.infer<typeof MultiSearchEntrySchema>"
     },
     {
@@ -12802,7 +12961,7 @@
       "specifier": "@venizia/ignis/search",
       "kind": "type",
       "file": "packages/connectors/src/search/core/repositories/common/constants.ts",
-      "line": 178,
+      "line": 144,
       "signature": "type TMultiSearchInput = z.infer<typeof MultiSearchInputSchema>"
     },
     {
@@ -12852,7 +13011,7 @@
       "specifier": "@venizia/ignis/search",
       "kind": "type",
       "file": "packages/connectors/src/search/core/repositories/common/constants.ts",
-      "line": 119,
+      "line": 116,
       "signature": "type TSearchInput = z.infer<typeof SearchInputSchema>"
     },
     {
@@ -12862,7 +13021,7 @@
       "specifier": "@venizia/ignis/search",
       "kind": "type",
       "file": "packages/connectors/src/search/core/repositories/common/constants.ts",
-      "line": 26,
+      "line": 24,
       "signature": "type TSearchMode = TConstValue<typeof SearchModes>"
     },
     {
@@ -12916,16 +13075,6 @@
       "signature": "defineSearchCollection: <const T extends ISearchCollectionDefinition>(opts: T) => T"
     },
     {
-      "name": "defineSearchRouteConfigs",
-      "package": "@venizia/ignis",
-      "subpath": "./search",
-      "specifier": "@venizia/ignis/search",
-      "kind": "const",
-      "file": "packages/connectors/src/search/core/controllers/definition.ts",
-      "line": 8,
-      "signature": "defineSearchRouteConfigs: (opts: { selectSchema: z.ZodType; authenticate?: { strategies?: TAuthStrategy[]; mode?: TAuthMode; }; authorize?: IAuthorizationSpec | IAuthorizationSpec[]; }) => { readonly SEARCH: { readonly method: \"post\"; readonly path: \"/search\"; readonly description: \"Single-collectio"
-    },
-    {
       "name": "deriveSearchDocumentSchema",
       "package": "@venizia/ignis",
       "subpath": "./search",
@@ -12951,8 +13100,8 @@
       "subpath": "./search",
       "specifier": "@venizia/ignis/search",
       "kind": "const",
-      "file": "packages/connectors/src/search/core/repositories/common/constants.ts",
-      "line": 153,
+      "file": "packages/connectors/src/search/core/repositories/common/query-params.ts",
+      "line": 16,
       "signature": "toSearchQueryParams: (input: Record<string, unknown>) => Partial<ISearchQuery>"
     },
     {
@@ -13072,8 +13221,8 @@
       "specifier": "@venizia/ignis/sqlite",
       "kind": "interface",
       "file": "packages/connectors/src/relational/core/models/common/types.ts",
-      "line": 70,
-      "signature": "interface IDefinedEntity<Schema extends TTableSchemaWithId = TTableSchemaWithId, Relations extends TRelationDefinitions = TRelationDefinitions>"
+      "line": 75,
+      "signature": "interface IDefinedEntity<Relations extends TRelationDefinitions = TRelationDefinitions>"
     },
     {
       "name": "IEntity",
@@ -13106,13 +13255,23 @@
       "signature": "interface IOneRelation<Schema extends TTableSchemaWithId = TTableSchemaWithId>"
     },
     {
+      "name": "IRecursiveTreeOptions",
+      "package": "@venizia/ignis",
+      "subpath": "./sqlite",
+      "specifier": "@venizia/ignis/sqlite",
+      "kind": "interface",
+      "file": "packages/connectors/src/relational/core/repositories/sqls/recursive-tree.ts",
+      "line": 39,
+      "signature": "interface IRecursiveTreeOptions"
+    },
+    {
       "name": "IRelationalQueryDialect",
       "package": "@venizia/ignis",
       "subpath": "./sqlite",
       "specifier": "@venizia/ignis/sqlite",
       "kind": "interface",
       "file": "packages/connectors/src/relational/core/repositories/common/types.ts",
-      "line": 38,
+      "line": 41,
       "signature": "interface IRelationalQueryDialect"
     },
     {
@@ -13192,8 +13351,18 @@
       "specifier": "@venizia/ignis/sqlite",
       "kind": "interface",
       "file": "packages/connectors/src/relational/core/repositories/common/types.ts",
-      "line": 87,
+      "line": 90,
       "signature": "interface ITransformedUpdateData"
+    },
+    {
+      "name": "ModelFactory",
+      "package": "@venizia/ignis",
+      "subpath": "./sqlite",
+      "specifier": "@venizia/ignis/sqlite",
+      "kind": "class",
+      "file": "packages/connectors/src/relational/core/models/factory.ts",
+      "line": 25,
+      "signature": "class ModelFactory"
     },
     {
       "name": "PersistableSqliteRepository",
@@ -13214,6 +13383,26 @@
       "file": "packages/connectors/src/relational/sqlite/repositories/core/readable.ts",
       "line": 9,
       "signature": "class ReadableSqliteRepository<EntitySchema extends TTableSchemaWithId = TTableSchemaWithId, DataObject extends TTableObject<EntitySchema> = TTableObject<EntitySchema>, PersistObject extends TTableInsert<EntitySchema> = TTableInsert<EntitySchema>, ExtraOptions extends IExtraOptions = ISqliteExtraOpt"
+    },
+    {
+      "name": "RecursiveTreeDirections",
+      "package": "@venizia/ignis",
+      "subpath": "./sqlite",
+      "specifier": "@venizia/ignis/sqlite",
+      "kind": "class",
+      "file": "packages/connectors/src/relational/core/repositories/sqls/recursive-tree.ts",
+      "line": 9,
+      "signature": "class RecursiveTreeDirections"
+    },
+    {
+      "name": "RecursiveTreeSql",
+      "package": "@venizia/ignis",
+      "subpath": "./sqlite",
+      "specifier": "@venizia/ignis/sqlite",
+      "kind": "class",
+      "file": "packages/connectors/src/relational/core/repositories/sqls/recursive-tree.ts",
+      "line": 80,
+      "signature": "class RecursiveTreeSql"
     },
     {
       "name": "SoftDeletableSqliteRepository",
@@ -13326,6 +13515,16 @@
       "signature": "type TDataTypeEnricherOptions = { defaultValue: Partial<{ dataType: string; nValue: number; tValue: string; bValue: Buffer; jValue: object; boValue: boolean; }>; }"
     },
     {
+      "name": "TDefinedEntityClass",
+      "package": "@venizia/ignis",
+      "subpath": "./sqlite",
+      "specifier": "@venizia/ignis/sqlite",
+      "kind": "type",
+      "file": "packages/connectors/src/relational/core/models/factory.ts",
+      "line": 13,
+      "signature": "type TDefinedEntityClass<Schema extends TTableSchemaWithId, Relations extends TRelationDefinitions> = typeof BaseRelationalEntity<Schema> & { readonly TABLE_NAME: string; readonly schema: Schema; /** Undefined when the entity declares no relations. */ readonly relationDefinitions: Relations | undefi"
+    },
+    {
       "name": "TDeletedAtColumn",
       "package": "@venizia/ignis",
       "subpath": "./sqlite",
@@ -13342,8 +13541,8 @@
       "specifier": "@venizia/ignis/sqlite",
       "kind": "type",
       "file": "packages/connectors/src/relational/core/models/common/types.ts",
-      "line": 79,
-      "signature": "type TEntityObject<Entity extends IDefinedEntity> = TTableObject<Entity['schema']> & { [Name in keyof Entity['relationDefinitions']]?: Entity['relationDefinitions'][Name] extends { type: typeof RelationTypes.MANY; } ? Array<TTableObject<Entity['relationDefinitions'][Name]['schema']>> : TTableObject<"
+      "line": 88,
+      "signature": "type TEntityObject<Entity extends IDefinedEntity> = TRowOf<Entity> & { [Name in keyof TDefinitionsOf<Entity>]?: TDefinitionsOf<Entity>[Name] extends { type: typeof RelationTypes.MANY; } ? Array<TTableObject<TDefinitionsOf<Entity>[Name]['schema']>> : TTableObject<TDefinitionsOf<Entity>[Name]['schema'"
     },
     {
       "name": "TGetIdType",
@@ -13404,6 +13603,16 @@
       "file": "packages/connectors/src/relational/sqlite/models/common/types/enrichers.ts",
       "line": 23,
       "signature": "type TPrincipalEnricherOptions<Discriminator extends string = string, PolymorphicIdType extends 'number' | 'string' = 'number' | 'string', Nullable extends boolean = false> = { discriminator?: Discriminator; defaultPolymorphic?: string; polymorphicIdType: PolymorphicIdType; isNullableId?: Nullable; "
+    },
+    {
+      "name": "TRecursiveTreeDirection",
+      "package": "@venizia/ignis",
+      "subpath": "./sqlite",
+      "specifier": "@venizia/ignis/sqlite",
+      "kind": "type",
+      "file": "packages/connectors/src/relational/core/repositories/sqls/recursive-tree.ts",
+      "line": 19,
+      "signature": "type TRecursiveTreeDirection = TConstValue<typeof RecursiveTreeDirections>"
     },
     {
       "name": "TRelationDefinition",
@@ -13492,7 +13701,7 @@
       "specifier": "@venizia/ignis/sqlite",
       "kind": "type",
       "file": "packages/connectors/src/relational/core/repositories/common/types.ts",
-      "line": 35,
+      "line": 38,
       "signature": "type TTableColumns = ReturnType<typeof getTableColumns>"
     },
     {
@@ -14126,16 +14335,6 @@
       "signature": "resolveServedContentType: (opts: { helper: IStorageHelper; object: IObjectRef; }) => { contentType: string; isRenderable: boolean; }"
     },
     {
-      "name": "AbstractSearchController",
-      "package": "@venizia/ignis",
-      "subpath": "./typesense",
-      "specifier": "@venizia/ignis/typesense",
-      "kind": "class",
-      "file": "packages/connectors/src/search/core/controllers/abstract.ts",
-      "line": 38,
-      "signature": "class AbstractSearchController<TEntity extends AbstractEntity<TAnyObjectSchema> = AbstractEntity<TAnyObjectSchema>, RouteEnv extends Env = Env, RouteSchema extends Schema = {}, BasePath extends string = '/', ConfigurableOptions extends object = {}, TDataObject extends object = TEntityDataObject<TEnt"
-    },
-    {
       "name": "AbstractSearchDataSource",
       "package": "@venizia/ignis",
       "subpath": "./typesense",
@@ -14162,7 +14361,7 @@
       "specifier": "@venizia/ignis/typesense",
       "kind": "class",
       "file": "packages/connectors/src/search/core/datasources/base.ts",
-      "line": 29,
+      "line": 20,
       "signature": "class BaseSearchDataSource<Settings extends object = {}, TConnector extends ISearchConnector = ISearchConnector> extends AbstractSearchDataSource<Settings>"
     },
     {
@@ -14274,26 +14473,6 @@
       "file": "packages/connectors/src/search/core/connector.ts",
       "line": 16,
       "signature": "interface ISearchConnectorCallbacks"
-    },
-    {
-      "name": "ISearchControllerOptions",
-      "package": "@venizia/ignis",
-      "subpath": "./typesense",
-      "specifier": "@venizia/ignis/typesense",
-      "kind": "interface",
-      "file": "packages/connectors/src/search/core/controllers/factory.ts",
-      "line": 22,
-      "signature": "interface ISearchControllerOptions<TEntity extends AbstractEntity<TAnyObjectSchema> = AbstractEntity<TAnyObjectSchema>>"
-    },
-    {
-      "name": "ISearchCustomizableRoutes",
-      "package": "@venizia/ignis",
-      "subpath": "./typesense",
-      "specifier": "@venizia/ignis/typesense",
-      "kind": "interface",
-      "file": "packages/connectors/src/search/core/controllers/factory.ts",
-      "line": 16,
-      "signature": "interface ISearchCustomizableRoutes"
     },
     {
       "name": "ISearchDataSourceOptions",
@@ -14482,7 +14661,7 @@
       "specifier": "@venizia/ignis/typesense",
       "kind": "const",
       "file": "packages/connectors/src/search/core/repositories/common/constants.ts",
-      "line": 122,
+      "line": 119,
       "signature": "MultiSearchEntrySchema: z.ZodObject<{ facetBy: z.ZodOptional<z.ZodArray<z.ZodString>>; facetQuery: z.ZodOptional<z.ZodString>; maxFacetValues: z.ZodOptional<z.ZodNumber>; highlightFields: z.ZodOptional<z.ZodArray<z.ZodString>>; highlightFullFields: z.ZodOptional<z.ZodArray<z.ZodString>>; highlightSt"
     },
     {
@@ -14492,7 +14671,7 @@
       "specifier": "@venizia/ignis/typesense",
       "kind": "const",
       "file": "packages/connectors/src/search/core/repositories/common/constants.ts",
-      "line": 170,
+      "line": 138,
       "signature": "MultiSearchInputSchema: z.ZodObject<{ searches: z.ZodArray<z.ZodObject<{ facetBy: z.ZodOptional<z.ZodArray<z.ZodString>>; facetQuery: z.ZodOptional<z.ZodString>; maxFacetValues: z.ZodOptional<z.ZodNumber>; highlightFields: z.ZodOptional<z.ZodArray<z.ZodString>>; highlightFullFields: z.ZodOptional<z."
     },
     {
@@ -14502,7 +14681,7 @@
       "specifier": "@venizia/ignis/typesense",
       "kind": "class",
       "file": "packages/connectors/src/search/core/repositories/core/persistable.ts",
-      "line": 18,
+      "line": 14,
       "signature": "class PersistableSearchRepository<TDocument extends object = object, TDataSource extends AbstractSearchDataSource = AbstractSearchDataSource> extends ReadableSearchRepository<TDocument, TDataSource>"
     },
     {
@@ -14524,16 +14703,6 @@
       "file": "packages/connectors/src/search/core/repositories/core/base.ts",
       "line": 19,
       "signature": "class SearchBaseRepository<TDocument extends object = object, TDataSource extends AbstractSearchDataSource = AbstractSearchDataSource> extends AbstractRepository<TDocument, TDocument>"
-    },
-    {
-      "name": "SearchControllerFactory",
-      "package": "@venizia/ignis",
-      "subpath": "./typesense",
-      "specifier": "@venizia/ignis/typesense",
-      "kind": "class",
-      "file": "packages/connectors/src/search/core/controllers/factory.ts",
-      "line": 49,
-      "signature": "class SearchControllerFactory extends BaseHelper"
     },
     {
       "name": "SearchErrors",
@@ -14572,7 +14741,7 @@
       "specifier": "@venizia/ignis/typesense",
       "kind": "const",
       "file": "packages/connectors/src/search/core/repositories/common/constants.ts",
-      "line": 113,
+      "line": 110,
       "signature": "SearchInputSchema: z.ZodDiscriminatedUnion<[z.ZodObject<{ facetBy: z.ZodOptional<z.ZodArray<z.ZodString>>; facetQuery: z.ZodOptional<z.ZodString>; maxFacetValues: z.ZodOptional<z.ZodNumber>; highlightFields: z.ZodOptional<z.ZodArray<z.ZodString>>; highlightFullFields: z.ZodOptional<z.ZodArray<z.ZodS"
     },
     {
@@ -14582,7 +14751,7 @@
       "specifier": "@venizia/ignis/typesense",
       "kind": "class",
       "file": "packages/connectors/src/search/core/repositories/common/constants.ts",
-      "line": 14,
+      "line": 12,
       "signature": "class SearchModes"
     },
     {
@@ -14662,7 +14831,7 @@
       "specifier": "@venizia/ignis/typesense",
       "kind": "type",
       "file": "packages/connectors/src/search/core/repositories/common/constants.ts",
-      "line": 138,
+      "line": 135,
       "signature": "type TMultiSearchEntry = z.infer<typeof MultiSearchEntrySchema>"
     },
     {
@@ -14672,7 +14841,7 @@
       "specifier": "@venizia/ignis/typesense",
       "kind": "type",
       "file": "packages/connectors/src/search/core/repositories/common/constants.ts",
-      "line": 178,
+      "line": 144,
       "signature": "type TMultiSearchInput = z.infer<typeof MultiSearchInputSchema>"
     },
     {
@@ -14722,7 +14891,7 @@
       "specifier": "@venizia/ignis/typesense",
       "kind": "type",
       "file": "packages/connectors/src/search/core/repositories/common/constants.ts",
-      "line": 119,
+      "line": 116,
       "signature": "type TSearchInput = z.infer<typeof SearchInputSchema>"
     },
     {
@@ -14732,7 +14901,7 @@
       "specifier": "@venizia/ignis/typesense",
       "kind": "type",
       "file": "packages/connectors/src/search/core/repositories/common/constants.ts",
-      "line": 26,
+      "line": 24,
       "signature": "type TSearchMode = TConstValue<typeof SearchModes>"
     },
     {
@@ -14896,16 +15065,6 @@
       "signature": "defineSearchCollection: <const T extends ISearchCollectionDefinition>(opts: T) => T"
     },
     {
-      "name": "defineSearchRouteConfigs",
-      "package": "@venizia/ignis",
-      "subpath": "./typesense",
-      "specifier": "@venizia/ignis/typesense",
-      "kind": "const",
-      "file": "packages/connectors/src/search/core/controllers/definition.ts",
-      "line": 8,
-      "signature": "defineSearchRouteConfigs: (opts: { selectSchema: z.ZodType; authenticate?: { strategies?: TAuthStrategy[]; mode?: TAuthMode; }; authorize?: IAuthorizationSpec | IAuthorizationSpec[]; }) => { readonly SEARCH: { readonly method: \"post\"; readonly path: \"/search\"; readonly description: \"Single-collectio"
-    },
-    {
       "name": "deriveSearchDocumentSchema",
       "package": "@venizia/ignis",
       "subpath": "./typesense",
@@ -14931,8 +15090,8 @@
       "subpath": "./typesense",
       "specifier": "@venizia/ignis/typesense",
       "kind": "const",
-      "file": "packages/connectors/src/search/core/repositories/common/constants.ts",
-      "line": 153,
+      "file": "packages/connectors/src/search/core/repositories/common/query-params.ts",
+      "line": 16,
       "signature": "toSearchQueryParams: (input: Record<string, unknown>) => Partial<ISearchQuery>"
     },
     {
@@ -15496,16 +15655,6 @@
       "signature": "class AbstractRelationalDataSource<Settings extends object = {}, Schema extends TAnyDataSourceSchema = TAnyDataSourceSchema, ConfigurableOptions extends object = {}, Client = unknown, TConnector = unknown> extends AbstractDataSource<Settings, Schema, ConfigurableOptions> implements IRelationalDataSo"
     },
     {
-      "name": "AbstractSearchController",
-      "package": "@venizia/ignis-connectors",
-      "subpath": ".",
-      "specifier": "@venizia/ignis-connectors",
-      "kind": "class",
-      "file": "packages/connectors/src/search/core/controllers/abstract.ts",
-      "line": 38,
-      "signature": "class AbstractSearchController<TEntity extends AbstractEntity<TAnyObjectSchema> = AbstractEntity<TAnyObjectSchema>, RouteEnv extends Env = Env, RouteSchema extends Schema = {}, BasePath extends string = '/', ConfigurableOptions extends object = {}, TDataObject extends object = TEntityDataObject<TEnt"
-    },
-    {
       "name": "AbstractSearchDataSource",
       "package": "@venizia/ignis-connectors",
       "subpath": ".",
@@ -15522,7 +15671,7 @@
       "specifier": "@venizia/ignis-connectors",
       "kind": "class",
       "file": "packages/connectors/src/relational/core/datasources/base.ts",
-      "line": 16,
+      "line": 17,
       "signature": "class BaseRelationalDataSource<Settings extends object = {}, Schema extends TAnyDataSourceSchema = TAnyDataSourceSchema, ConfigurableOptions extends object = {}, Client = unknown, TConnector = unknown> extends AbstractRelationalDataSource<Settings, Schema, ConfigurableOptions, Client, TConnector>"
     },
     {
@@ -15552,7 +15701,7 @@
       "specifier": "@venizia/ignis-connectors",
       "kind": "class",
       "file": "packages/connectors/src/search/core/datasources/base.ts",
-      "line": 29,
+      "line": 20,
       "signature": "class BaseSearchDataSource<Settings extends object = {}, TConnector extends ISearchConnector = ISearchConnector> extends AbstractSearchDataSource<Settings>"
     },
     {
@@ -15622,8 +15771,8 @@
       "specifier": "@venizia/ignis-connectors",
       "kind": "interface",
       "file": "packages/connectors/src/relational/core/models/common/types.ts",
-      "line": 70,
-      "signature": "interface IDefinedEntity<Schema extends TTableSchemaWithId = TTableSchemaWithId, Relations extends TRelationDefinitions = TRelationDefinitions>"
+      "line": 75,
+      "signature": "interface IDefinedEntity<Relations extends TRelationDefinitions = TRelationDefinitions>"
     },
     {
       "name": "IEntity",
@@ -15686,6 +15835,16 @@
       "signature": "interface IOneRelation<Schema extends TTableSchemaWithId = TTableSchemaWithId>"
     },
     {
+      "name": "IRecursiveTreeOptions",
+      "package": "@venizia/ignis-connectors",
+      "subpath": ".",
+      "specifier": "@venizia/ignis-connectors",
+      "kind": "interface",
+      "file": "packages/connectors/src/relational/core/repositories/sqls/recursive-tree.ts",
+      "line": 39,
+      "signature": "interface IRecursiveTreeOptions"
+    },
+    {
       "name": "IRelationalConnection",
       "package": "@venizia/ignis-connectors",
       "subpath": ".",
@@ -15722,7 +15881,7 @@
       "specifier": "@venizia/ignis-connectors",
       "kind": "interface",
       "file": "packages/connectors/src/relational/core/repositories/common/types.ts",
-      "line": 68,
+      "line": 71,
       "signature": "interface IRelationalExtraOptions<TConnector = unknown> extends IExtraOptions"
     },
     {
@@ -15732,7 +15891,7 @@
       "specifier": "@venizia/ignis-connectors",
       "kind": "interface",
       "file": "packages/connectors/src/relational/core/repositories/common/types.ts",
-      "line": 38,
+      "line": 41,
       "signature": "interface IRelationalQueryDialect"
     },
     {
@@ -15834,26 +15993,6 @@
       "file": "packages/connectors/src/search/core/connector.ts",
       "line": 16,
       "signature": "interface ISearchConnectorCallbacks"
-    },
-    {
-      "name": "ISearchControllerOptions",
-      "package": "@venizia/ignis-connectors",
-      "subpath": ".",
-      "specifier": "@venizia/ignis-connectors",
-      "kind": "interface",
-      "file": "packages/connectors/src/search/core/controllers/factory.ts",
-      "line": 22,
-      "signature": "interface ISearchControllerOptions<TEntity extends AbstractEntity<TAnyObjectSchema> = AbstractEntity<TAnyObjectSchema>>"
-    },
-    {
-      "name": "ISearchCustomizableRoutes",
-      "package": "@venizia/ignis-connectors",
-      "subpath": ".",
-      "specifier": "@venizia/ignis-connectors",
-      "kind": "interface",
-      "file": "packages/connectors/src/search/core/controllers/factory.ts",
-      "line": 16,
-      "signature": "interface ISearchCustomizableRoutes"
     },
     {
       "name": "ISearchDataSourceOptions",
@@ -16002,7 +16141,7 @@
       "specifier": "@venizia/ignis-connectors",
       "kind": "interface",
       "file": "packages/connectors/src/relational/core/repositories/common/types.ts",
-      "line": 87,
+      "line": 90,
       "signature": "interface ITransformedUpdateData"
     },
     {
@@ -16036,13 +16175,23 @@
       "signature": "JSON_PATH_PATTERN: RegExp"
     },
     {
+      "name": "ModelFactory",
+      "package": "@venizia/ignis-connectors",
+      "subpath": ".",
+      "specifier": "@venizia/ignis-connectors",
+      "kind": "class",
+      "file": "packages/connectors/src/relational/core/models/factory.ts",
+      "line": 25,
+      "signature": "class ModelFactory"
+    },
+    {
       "name": "MultiSearchEntrySchema",
       "package": "@venizia/ignis-connectors",
       "subpath": ".",
       "specifier": "@venizia/ignis-connectors",
       "kind": "const",
       "file": "packages/connectors/src/search/core/repositories/common/constants.ts",
-      "line": 122,
+      "line": 119,
       "signature": "MultiSearchEntrySchema: z.ZodObject<{ facetBy: z.ZodOptional<z.ZodArray<z.ZodString>>; facetQuery: z.ZodOptional<z.ZodString>; maxFacetValues: z.ZodOptional<z.ZodNumber>; highlightFields: z.ZodOptional<z.ZodArray<z.ZodString>>; highlightFullFields: z.ZodOptional<z.ZodArray<z.ZodString>>; highlightSt"
     },
     {
@@ -16052,7 +16201,7 @@
       "specifier": "@venizia/ignis-connectors",
       "kind": "const",
       "file": "packages/connectors/src/search/core/repositories/common/constants.ts",
-      "line": 170,
+      "line": 138,
       "signature": "MultiSearchInputSchema: z.ZodObject<{ searches: z.ZodArray<z.ZodObject<{ facetBy: z.ZodOptional<z.ZodArray<z.ZodString>>; facetQuery: z.ZodOptional<z.ZodString>; maxFacetValues: z.ZodOptional<z.ZodNumber>; highlightFields: z.ZodOptional<z.ZodArray<z.ZodString>>; highlightFullFields: z.ZodOptional<z."
     },
     {
@@ -16072,7 +16221,7 @@
       "specifier": "@venizia/ignis-connectors",
       "kind": "class",
       "file": "packages/connectors/src/search/core/repositories/core/persistable.ts",
-      "line": 18,
+      "line": 14,
       "signature": "class PersistableSearchRepository<TDocument extends object = object, TDataSource extends AbstractSearchDataSource = AbstractSearchDataSource> extends ReadableSearchRepository<TDocument, TDataSource>"
     },
     {
@@ -16094,6 +16243,26 @@
       "file": "packages/connectors/src/search/core/repositories/core/readable.ts",
       "line": 27,
       "signature": "class ReadableSearchRepository<TDocument extends object = object, TDataSource extends AbstractSearchDataSource = AbstractSearchDataSource> extends SearchBaseRepository<TDocument, TDataSource>"
+    },
+    {
+      "name": "RecursiveTreeDirections",
+      "package": "@venizia/ignis-connectors",
+      "subpath": ".",
+      "specifier": "@venizia/ignis-connectors",
+      "kind": "class",
+      "file": "packages/connectors/src/relational/core/repositories/sqls/recursive-tree.ts",
+      "line": 9,
+      "signature": "class RecursiveTreeDirections"
+    },
+    {
+      "name": "RecursiveTreeSql",
+      "package": "@venizia/ignis-connectors",
+      "subpath": ".",
+      "specifier": "@venizia/ignis-connectors",
+      "kind": "class",
+      "file": "packages/connectors/src/relational/core/repositories/sqls/recursive-tree.ts",
+      "line": 80,
+      "signature": "class RecursiveTreeSql"
     },
     {
       "name": "RelationalBaseRepository",
@@ -16146,16 +16315,6 @@
       "signature": "class SearchBaseRepository<TDocument extends object = object, TDataSource extends AbstractSearchDataSource = AbstractSearchDataSource> extends AbstractRepository<TDocument, TDocument>"
     },
     {
-      "name": "SearchControllerFactory",
-      "package": "@venizia/ignis-connectors",
-      "subpath": ".",
-      "specifier": "@venizia/ignis-connectors",
-      "kind": "class",
-      "file": "packages/connectors/src/search/core/controllers/factory.ts",
-      "line": 49,
-      "signature": "class SearchControllerFactory extends BaseHelper"
-    },
-    {
       "name": "SearchErrors",
       "package": "@venizia/ignis-connectors",
       "subpath": ".",
@@ -16192,7 +16351,7 @@
       "specifier": "@venizia/ignis-connectors",
       "kind": "const",
       "file": "packages/connectors/src/search/core/repositories/common/constants.ts",
-      "line": 113,
+      "line": 110,
       "signature": "SearchInputSchema: z.ZodDiscriminatedUnion<[z.ZodObject<{ facetBy: z.ZodOptional<z.ZodArray<z.ZodString>>; facetQuery: z.ZodOptional<z.ZodString>; maxFacetValues: z.ZodOptional<z.ZodNumber>; highlightFields: z.ZodOptional<z.ZodArray<z.ZodString>>; highlightFullFields: z.ZodOptional<z.ZodArray<z.ZodS"
     },
     {
@@ -16202,7 +16361,7 @@
       "specifier": "@venizia/ignis-connectors",
       "kind": "class",
       "file": "packages/connectors/src/search/core/repositories/common/constants.ts",
-      "line": 14,
+      "line": 12,
       "signature": "class SearchModes"
     },
     {
@@ -16256,6 +16415,16 @@
       "signature": "type TCompiledWhere = { outcome: typeof SearchFilterOutcomes.FILTER; filterBy: string; } | { outcome: typeof SearchFilterOutcomes.MATCH_ALL; } | { outcome: typeof SearchFilterOutcomes.MATCH_NONE; }"
     },
     {
+      "name": "TDefinedEntityClass",
+      "package": "@venizia/ignis-connectors",
+      "subpath": ".",
+      "specifier": "@venizia/ignis-connectors",
+      "kind": "type",
+      "file": "packages/connectors/src/relational/core/models/factory.ts",
+      "line": 13,
+      "signature": "type TDefinedEntityClass<Schema extends TTableSchemaWithId, Relations extends TRelationDefinitions> = typeof BaseRelationalEntity<Schema> & { readonly TABLE_NAME: string; readonly schema: Schema; /** Undefined when the entity declares no relations. */ readonly relationDefinitions: Relations | undefi"
+    },
+    {
       "name": "TDeletedAtColumn",
       "package": "@venizia/ignis-connectors",
       "subpath": ".",
@@ -16272,8 +16441,8 @@
       "specifier": "@venizia/ignis-connectors",
       "kind": "type",
       "file": "packages/connectors/src/relational/core/models/common/types.ts",
-      "line": 79,
-      "signature": "type TEntityObject<Entity extends IDefinedEntity> = TTableObject<Entity['schema']> & { [Name in keyof Entity['relationDefinitions']]?: Entity['relationDefinitions'][Name] extends { type: typeof RelationTypes.MANY; } ? Array<TTableObject<Entity['relationDefinitions'][Name]['schema']>> : TTableObject<"
+      "line": 88,
+      "signature": "type TEntityObject<Entity extends IDefinedEntity> = TRowOf<Entity> & { [Name in keyof TDefinitionsOf<Entity>]?: TDefinitionsOf<Entity>[Name] extends { type: typeof RelationTypes.MANY; } ? Array<TTableObject<TDefinitionsOf<Entity>[Name]['schema']>> : TTableObject<TDefinitionsOf<Entity>[Name]['schema'"
     },
     {
       "name": "TFieldFlags",
@@ -16312,7 +16481,7 @@
       "specifier": "@venizia/ignis-connectors",
       "kind": "type",
       "file": "packages/connectors/src/search/core/repositories/common/constants.ts",
-      "line": 138,
+      "line": 135,
       "signature": "type TMultiSearchEntry = z.infer<typeof MultiSearchEntrySchema>"
     },
     {
@@ -16322,7 +16491,7 @@
       "specifier": "@venizia/ignis-connectors",
       "kind": "type",
       "file": "packages/connectors/src/search/core/repositories/common/constants.ts",
-      "line": 178,
+      "line": 144,
       "signature": "type TMultiSearchInput = z.infer<typeof MultiSearchInputSchema>"
     },
     {
@@ -16336,6 +16505,16 @@
       "signature": "type TPrimaryKey<T extends TColumnDefinition> = IsPrimaryKey<NotNull<T>>"
     },
     {
+      "name": "TRecursiveTreeDirection",
+      "package": "@venizia/ignis-connectors",
+      "subpath": ".",
+      "specifier": "@venizia/ignis-connectors",
+      "kind": "type",
+      "file": "packages/connectors/src/relational/core/repositories/sqls/recursive-tree.ts",
+      "line": 19,
+      "signature": "type TRecursiveTreeDirection = TConstValue<typeof RecursiveTreeDirections>"
+    },
+    {
       "name": "TRelationConfig",
       "package": "@venizia/ignis-connectors",
       "subpath": ".",
@@ -16343,7 +16522,7 @@
       "kind": "type",
       "file": "packages/connectors/src/relational/core/repositories/common/types.ts",
       "line": 16,
-      "signature": "type TRelationConfig = { name: string; } & ({ type: typeof RelationTypes.ONE; schema: TTableSchemaWithId; metadata: Parameters<ReturnType<typeof createTableRelationsHelpers>[typeof RelationTypes.ONE]>[1]; } | { type: typeof RelationTypes.MANY; schema: TTableSchemaWithId; metadata: Parameters<ReturnT"
+      "signature": "type TRelationConfig = { name: string; } & ({ type: typeof RelationTypes.ONE; schema: TTableSchemaWithId; /** `fields` and `references` may be left out: they are read off the table's foreign key. */ metadata?: Partial<NonNullable<Parameters<ReturnType<typeof createTableRelationsHelpers>[typeof Relat"
     },
     {
       "name": "TRelationDefinition",
@@ -16382,7 +16561,7 @@
       "specifier": "@venizia/ignis-connectors",
       "kind": "type",
       "file": "packages/connectors/src/relational/core/repositories/common/types.ts",
-      "line": 73,
+      "line": 76,
       "signature": "type TRelationalConnectorOf<TDataSource extends IRelationalDataSource> = ReturnType<TDataSource['getConnector']>"
     },
     {
@@ -16392,7 +16571,7 @@
       "specifier": "@venizia/ignis-connectors",
       "kind": "type",
       "file": "packages/connectors/src/relational/core/repositories/common/types.ts",
-      "line": 83,
+      "line": 86,
       "signature": "type TRelationalTransactionOf<TDataSource extends IRelationalDataSource> = Awaited<ReturnType<TDataSource['beginTransaction']>>"
     },
     {
@@ -16412,7 +16591,7 @@
       "specifier": "@venizia/ignis-connectors",
       "kind": "type",
       "file": "packages/connectors/src/relational/core/repositories/common/types.ts",
-      "line": 78,
+      "line": 81,
       "signature": "type TRelationalTransactionOptionsOf<TDataSource extends IRelationalDataSource> = Parameters<TDataSource['beginTransaction']>[0]"
     },
     {
@@ -16462,7 +16641,7 @@
       "specifier": "@venizia/ignis-connectors",
       "kind": "type",
       "file": "packages/connectors/src/search/core/repositories/common/constants.ts",
-      "line": 119,
+      "line": 116,
       "signature": "type TSearchInput = z.infer<typeof SearchInputSchema>"
     },
     {
@@ -16472,7 +16651,7 @@
       "specifier": "@venizia/ignis-connectors",
       "kind": "type",
       "file": "packages/connectors/src/search/core/repositories/common/constants.ts",
-      "line": 26,
+      "line": 24,
       "signature": "type TSearchMode = TConstValue<typeof SearchModes>"
     },
     {
@@ -16502,7 +16681,7 @@
       "specifier": "@venizia/ignis-connectors",
       "kind": "type",
       "file": "packages/connectors/src/relational/core/repositories/common/types.ts",
-      "line": 35,
+      "line": 38,
       "signature": "type TTableColumns = ReturnType<typeof getTableColumns>"
     },
     {
@@ -16591,9 +16770,9 @@
       "subpath": ".",
       "specifier": "@venizia/ignis-connectors",
       "kind": "const",
-      "file": "packages/connectors/src/relational/core/repositories/dialect/relation.ts",
-      "line": 8,
-      "signature": "createRelations: <Schema extends TTableSchemaWithId = TTableSchemaWithId>(opts: { source: Schema; relations: Array<TRelationConfig>; }) => { definitions: {}; relations: import(\"drizzle-orm\").Relations<string, {}>; }"
+      "file": "packages/connectors/src/relational/core/repositories/dialect/relations/create.ts",
+      "line": 11,
+      "signature": "createRelations: <Schema extends TTableSchemaWithId = TTableSchemaWithId>(opts: { source: Schema; relations: Array<TRelationConfig>; }) => { definitions: {}; relations: import(\"drizzle-orm\").Relations<string, Record<string, Relation<string>>>; }"
     },
     {
       "name": "defineSearchCollection",
@@ -16604,16 +16783,6 @@
       "file": "packages/connectors/src/search/core/models/define-search-collection.ts",
       "line": 96,
       "signature": "defineSearchCollection: <const T extends ISearchCollectionDefinition>(opts: T) => T"
-    },
-    {
-      "name": "defineSearchRouteConfigs",
-      "package": "@venizia/ignis-connectors",
-      "subpath": ".",
-      "specifier": "@venizia/ignis-connectors",
-      "kind": "const",
-      "file": "packages/connectors/src/search/core/controllers/definition.ts",
-      "line": 8,
-      "signature": "defineSearchRouteConfigs: (opts: { selectSchema: z.ZodType; authenticate?: { strategies?: TAuthStrategy[]; mode?: TAuthMode; }; authorize?: IAuthorizationSpec | IAuthorizationSpec[]; }) => { readonly SEARCH: { readonly method: \"post\"; readonly path: \"/search\"; readonly description: \"Single-collectio"
     },
     {
       "name": "deriveSearchDocumentSchema",
@@ -16731,8 +16900,8 @@
       "subpath": ".",
       "specifier": "@venizia/ignis-connectors",
       "kind": "const",
-      "file": "packages/connectors/src/search/core/repositories/common/constants.ts",
-      "line": 153,
+      "file": "packages/connectors/src/search/core/repositories/common/query-params.ts",
+      "line": 16,
       "signature": "toSearchQueryParams: (input: Record<string, unknown>) => Partial<ISearchQuery>"
     },
     {
@@ -17082,7 +17251,7 @@
       "specifier": "@venizia/ignis-connectors/postgres",
       "kind": "interface",
       "file": "packages/connectors/src/relational/postgres/repositories/common/types.ts",
-      "line": 19,
+      "line": 17,
       "signature": "interface IDatabaseExtraOptions extends IRelationalExtraOptions<TRelationalConnector>"
     },
     {
@@ -17112,18 +17281,8 @@
       "specifier": "@venizia/ignis-connectors/postgres",
       "kind": "interface",
       "file": "packages/connectors/src/relational/core/models/common/types.ts",
-      "line": 70,
-      "signature": "interface IDefinedEntity<Schema extends TTableSchemaWithId = TTableSchemaWithId, Relations extends TRelationDefinitions = TRelationDefinitions>"
-    },
-    {
-      "name": "IDefinedEntityClass",
-      "package": "@venizia/ignis-connectors",
-      "subpath": "./postgres",
-      "specifier": "@venizia/ignis-connectors/postgres",
-      "kind": "interface",
-      "file": "packages/connectors/src/relational/postgres/models/factory.ts",
-      "line": 30,
-      "signature": "interface IDefinedEntityClass<Name extends string, Columns extends TEntityColumns, Relations extends TRelationDefinitions>"
+      "line": 75,
+      "signature": "interface IDefinedEntity<Relations extends TRelationDefinitions = TRelationDefinitions>"
     },
     {
       "name": "IEntity",
@@ -17166,13 +17325,23 @@
       "signature": "interface IPostgresDataSource<Settings extends object = {}, Schema extends TAnyDataSourceSchema = TAnyDataSourceSchema, ConfigurableOptions extends object = {}, Client = Pool> extends IRelationalDataSource<Settings, Schema, ConfigurableOptions, Client, TRelationalConnector<Schema>>"
     },
     {
+      "name": "IRecursiveTreeOptions",
+      "package": "@venizia/ignis-connectors",
+      "subpath": "./postgres",
+      "specifier": "@venizia/ignis-connectors/postgres",
+      "kind": "interface",
+      "file": "packages/connectors/src/relational/core/repositories/sqls/recursive-tree.ts",
+      "line": 39,
+      "signature": "interface IRecursiveTreeOptions"
+    },
+    {
       "name": "IRelationalQueryDialect",
       "package": "@venizia/ignis-connectors",
       "subpath": "./postgres",
       "specifier": "@venizia/ignis-connectors/postgres",
       "kind": "interface",
       "file": "packages/connectors/src/relational/core/repositories/common/types.ts",
-      "line": 38,
+      "line": 41,
       "signature": "interface IRelationalQueryDialect"
     },
     {
@@ -17192,7 +17361,7 @@
       "specifier": "@venizia/ignis-connectors/postgres",
       "kind": "interface",
       "file": "packages/connectors/src/relational/core/repositories/common/types.ts",
-      "line": 87,
+      "line": 90,
       "signature": "interface ITransformedUpdateData"
     },
     {
@@ -17211,8 +17380,8 @@
       "subpath": "./postgres",
       "specifier": "@venizia/ignis-connectors/postgres",
       "kind": "class",
-      "file": "packages/connectors/src/relational/postgres/models/factory.ts",
-      "line": 43,
+      "file": "packages/connectors/src/relational/core/models/factory.ts",
+      "line": 25,
       "signature": "class ModelFactory"
     },
     {
@@ -17286,6 +17455,26 @@
       "signature": "class ReadableRepository<EntitySchema extends TTableSchemaWithId = TTableSchemaWithId, DataObject extends TTableObject<EntitySchema> = TTableObject<EntitySchema>, PersistObject extends TTableInsert<EntitySchema> = TTableInsert<EntitySchema>, ExtraOptions extends IExtraOptions = IDatabaseExtraOptions"
     },
     {
+      "name": "RecursiveTreeDirections",
+      "package": "@venizia/ignis-connectors",
+      "subpath": "./postgres",
+      "specifier": "@venizia/ignis-connectors/postgres",
+      "kind": "class",
+      "file": "packages/connectors/src/relational/core/repositories/sqls/recursive-tree.ts",
+      "line": 9,
+      "signature": "class RecursiveTreeDirections"
+    },
+    {
+      "name": "RecursiveTreeSql",
+      "package": "@venizia/ignis-connectors",
+      "subpath": "./postgres",
+      "specifier": "@venizia/ignis-connectors/postgres",
+      "kind": "class",
+      "file": "packages/connectors/src/relational/core/repositories/sqls/recursive-tree.ts",
+      "line": 80,
+      "signature": "class RecursiveTreeSql"
+    },
+    {
       "name": "SoftDeletableRepository",
       "package": "@venizia/ignis-connectors",
       "subpath": "./postgres",
@@ -17336,6 +17525,16 @@
       "signature": "type TDataTypeEnricherOptions = { defaultValue: Partial<{ dataType: string; nValue: number; tValue: string; bValue: Buffer; jValue: object; boValue: boolean; }>; }"
     },
     {
+      "name": "TDefinedEntityClass",
+      "package": "@venizia/ignis-connectors",
+      "subpath": "./postgres",
+      "specifier": "@venizia/ignis-connectors/postgres",
+      "kind": "type",
+      "file": "packages/connectors/src/relational/core/models/factory.ts",
+      "line": 13,
+      "signature": "type TDefinedEntityClass<Schema extends TTableSchemaWithId, Relations extends TRelationDefinitions> = typeof BaseRelationalEntity<Schema> & { readonly TABLE_NAME: string; readonly schema: Schema; /** Undefined when the entity declares no relations. */ readonly relationDefinitions: Relations | undefi"
+    },
+    {
       "name": "TDeletedAtColumn",
       "package": "@venizia/ignis-connectors",
       "subpath": "./postgres",
@@ -17346,34 +17545,14 @@
       "signature": "type TDeletedAtColumn = AnyColumn<{ data: Date | string | null; }>"
     },
     {
-      "name": "TEntityColumns",
-      "package": "@venizia/ignis-connectors",
-      "subpath": "./postgres",
-      "specifier": "@venizia/ignis-connectors/postgres",
-      "kind": "type",
-      "file": "packages/connectors/src/relational/postgres/models/factory.ts",
-      "line": 19,
-      "signature": "type TEntityColumns = Record<string, PgColumnBuilderBase>"
-    },
-    {
       "name": "TEntityObject",
       "package": "@venizia/ignis-connectors",
       "subpath": "./postgres",
       "specifier": "@venizia/ignis-connectors/postgres",
       "kind": "type",
       "file": "packages/connectors/src/relational/core/models/common/types.ts",
-      "line": 79,
-      "signature": "type TEntityObject<Entity extends IDefinedEntity> = TTableObject<Entity['schema']> & { [Name in keyof Entity['relationDefinitions']]?: Entity['relationDefinitions'][Name] extends { type: typeof RelationTypes.MANY; } ? Array<TTableObject<Entity['relationDefinitions'][Name]['schema']>> : TTableObject<"
-    },
-    {
-      "name": "TEntityTable",
-      "package": "@venizia/ignis-connectors",
-      "subpath": "./postgres",
-      "specifier": "@venizia/ignis-connectors/postgres",
-      "kind": "type",
-      "file": "packages/connectors/src/relational/postgres/models/factory.ts",
-      "line": 22,
-      "signature": "type TEntityTable<Name extends string, Columns extends TEntityColumns> = PgTableWithColumns<{ name: Name; schema: undefined; columns: BuildColumns<Name, Columns, 'pg'>; dialect: 'pg'; }>"
+      "line": 88,
+      "signature": "type TEntityObject<Entity extends IDefinedEntity> = TRowOf<Entity> & { [Name in keyof TDefinitionsOf<Entity>]?: TDefinitionsOf<Entity>[Name] extends { type: typeof RelationTypes.MANY; } ? Array<TTableObject<TDefinitionsOf<Entity>[Name]['schema']>> : TTableObject<TDefinitionsOf<Entity>[Name]['schema'"
     },
     {
       "name": "TGetIdType",
@@ -17446,14 +17625,24 @@
       "signature": "type TPrincipalEnricherOptions<Discriminator extends string = string, PolymorphicIdType extends 'number' | 'string' = 'number' | 'string', Nullable extends boolean = false> = { discriminator?: Discriminator; defaultPolymorphic?: string; polymorphicIdType: PolymorphicIdType; isNullableId?: Nullable; "
     },
     {
+      "name": "TRecursiveTreeDirection",
+      "package": "@venizia/ignis-connectors",
+      "subpath": "./postgres",
+      "specifier": "@venizia/ignis-connectors/postgres",
+      "kind": "type",
+      "file": "packages/connectors/src/relational/core/repositories/sqls/recursive-tree.ts",
+      "line": 19,
+      "signature": "type TRecursiveTreeDirection = TConstValue<typeof RecursiveTreeDirections>"
+    },
+    {
       "name": "TRelationConfig",
       "package": "@venizia/ignis-connectors",
       "subpath": "./postgres",
       "specifier": "@venizia/ignis-connectors/postgres",
       "kind": "type",
-      "file": "packages/connectors/src/relational/postgres/repositories/common/types.ts",
-      "line": 24,
-      "signature": "type TRelationConfig = { name: string; } & ({ type: typeof RelationTypes.ONE; schema: TTableSchemaWithId; metadata: Parameters<ReturnType<typeof createTableRelationsHelpers>[typeof RelationTypes.ONE]>[1]; } | { type: typeof RelationTypes.MANY; schema: TTableSchemaWithId; metadata: Parameters<ReturnT"
+      "file": "packages/connectors/src/relational/core/repositories/common/types.ts",
+      "line": 16,
+      "signature": "type TRelationConfig = { name: string; } & ({ type: typeof RelationTypes.ONE; schema: TTableSchemaWithId; /** `fields` and `references` may be left out: they are read off the table's foreign key. */ metadata?: Partial<NonNullable<Parameters<ReturnType<typeof createTableRelationsHelpers>[typeof Relat"
     },
     {
       "name": "TRelationDefinition",
@@ -17532,7 +17721,7 @@
       "specifier": "@venizia/ignis-connectors/postgres",
       "kind": "type",
       "file": "packages/connectors/src/relational/core/repositories/common/types.ts",
-      "line": 35,
+      "line": 38,
       "signature": "type TTableColumns = ReturnType<typeof getTableColumns>"
     },
     {
@@ -17641,9 +17830,9 @@
       "subpath": "./postgres",
       "specifier": "@venizia/ignis-connectors/postgres",
       "kind": "const",
-      "file": "packages/connectors/src/relational/core/repositories/dialect/relation.ts",
-      "line": 8,
-      "signature": "createRelations: <Schema extends TTableSchemaWithId = TTableSchemaWithId>(opts: { source: Schema; relations: Array<TRelationConfig>; }) => { definitions: {}; relations: import(\"drizzle-orm\").Relations<string, {}>; }"
+      "file": "packages/connectors/src/relational/core/repositories/dialect/relations/create.ts",
+      "line": 11,
+      "signature": "createRelations: <Schema extends TTableSchemaWithId = TTableSchemaWithId>(opts: { source: Schema; relations: Array<TRelationConfig>; }) => { definitions: {}; relations: import(\"drizzle-orm\").Relations<string, Record<string, Relation<string>>>; }"
     },
     {
       "name": "enrichDataTypes",
@@ -18021,7 +18210,7 @@
       "specifier": "@venizia/ignis-connectors/relational",
       "kind": "class",
       "file": "packages/connectors/src/relational/core/datasources/base.ts",
-      "line": 16,
+      "line": 17,
       "signature": "class BaseRelationalDataSource<Settings extends object = {}, Schema extends TAnyDataSourceSchema = TAnyDataSourceSchema, ConfigurableOptions extends object = {}, Client = unknown, TConnector = unknown> extends AbstractRelationalDataSource<Settings, Schema, ConfigurableOptions, Client, TConnector>"
     },
     {
@@ -18071,8 +18260,8 @@
       "specifier": "@venizia/ignis-connectors/relational",
       "kind": "interface",
       "file": "packages/connectors/src/relational/core/models/common/types.ts",
-      "line": 70,
-      "signature": "interface IDefinedEntity<Schema extends TTableSchemaWithId = TTableSchemaWithId, Relations extends TRelationDefinitions = TRelationDefinitions>"
+      "line": 75,
+      "signature": "interface IDefinedEntity<Relations extends TRelationDefinitions = TRelationDefinitions>"
     },
     {
       "name": "IEntity",
@@ -18125,6 +18314,16 @@
       "signature": "interface IOneRelation<Schema extends TTableSchemaWithId = TTableSchemaWithId>"
     },
     {
+      "name": "IRecursiveTreeOptions",
+      "package": "@venizia/ignis-connectors",
+      "subpath": "./relational",
+      "specifier": "@venizia/ignis-connectors/relational",
+      "kind": "interface",
+      "file": "packages/connectors/src/relational/core/repositories/sqls/recursive-tree.ts",
+      "line": 39,
+      "signature": "interface IRecursiveTreeOptions"
+    },
+    {
       "name": "IRelationalConnection",
       "package": "@venizia/ignis-connectors",
       "subpath": "./relational",
@@ -18161,7 +18360,7 @@
       "specifier": "@venizia/ignis-connectors/relational",
       "kind": "interface",
       "file": "packages/connectors/src/relational/core/repositories/common/types.ts",
-      "line": 68,
+      "line": 71,
       "signature": "interface IRelationalExtraOptions<TConnector = unknown> extends IExtraOptions"
     },
     {
@@ -18171,7 +18370,7 @@
       "specifier": "@venizia/ignis-connectors/relational",
       "kind": "interface",
       "file": "packages/connectors/src/relational/core/repositories/common/types.ts",
-      "line": 38,
+      "line": 41,
       "signature": "interface IRelationalQueryDialect"
     },
     {
@@ -18241,7 +18440,7 @@
       "specifier": "@venizia/ignis-connectors/relational",
       "kind": "interface",
       "file": "packages/connectors/src/relational/core/repositories/common/types.ts",
-      "line": 87,
+      "line": 90,
       "signature": "interface ITransformedUpdateData"
     },
     {
@@ -18275,6 +18474,16 @@
       "signature": "JSON_PATH_PATTERN: RegExp"
     },
     {
+      "name": "ModelFactory",
+      "package": "@venizia/ignis-connectors",
+      "subpath": "./relational",
+      "specifier": "@venizia/ignis-connectors/relational",
+      "kind": "class",
+      "file": "packages/connectors/src/relational/core/models/factory.ts",
+      "line": 25,
+      "signature": "class ModelFactory"
+    },
+    {
       "name": "PersistableRelationalRepository",
       "package": "@venizia/ignis-connectors",
       "subpath": "./relational",
@@ -18293,6 +18502,26 @@
       "file": "packages/connectors/src/relational/core/repositories/core/readable.ts",
       "line": 25,
       "signature": "class ReadableRelationalRepository<EntitySchema extends TTableSchemaWithId = TTableSchemaWithId, DataObject extends TTableObject<EntitySchema> = TTableObject<EntitySchema>, PersistObject extends TTableInsert<EntitySchema> = TTableInsert<EntitySchema>, ExtraOptions extends IExtraOptions = IRelational"
+    },
+    {
+      "name": "RecursiveTreeDirections",
+      "package": "@venizia/ignis-connectors",
+      "subpath": "./relational",
+      "specifier": "@venizia/ignis-connectors/relational",
+      "kind": "class",
+      "file": "packages/connectors/src/relational/core/repositories/sqls/recursive-tree.ts",
+      "line": 9,
+      "signature": "class RecursiveTreeDirections"
+    },
+    {
+      "name": "RecursiveTreeSql",
+      "package": "@venizia/ignis-connectors",
+      "subpath": "./relational",
+      "specifier": "@venizia/ignis-connectors/relational",
+      "kind": "class",
+      "file": "packages/connectors/src/relational/core/repositories/sqls/recursive-tree.ts",
+      "line": 80,
+      "signature": "class RecursiveTreeSql"
     },
     {
       "name": "RelationalBaseRepository",
@@ -18375,6 +18604,16 @@
       "signature": "type TColumnSelection = Record<string, unknown> | undefined"
     },
     {
+      "name": "TDefinedEntityClass",
+      "package": "@venizia/ignis-connectors",
+      "subpath": "./relational",
+      "specifier": "@venizia/ignis-connectors/relational",
+      "kind": "type",
+      "file": "packages/connectors/src/relational/core/models/factory.ts",
+      "line": 13,
+      "signature": "type TDefinedEntityClass<Schema extends TTableSchemaWithId, Relations extends TRelationDefinitions> = typeof BaseRelationalEntity<Schema> & { readonly TABLE_NAME: string; readonly schema: Schema; /** Undefined when the entity declares no relations. */ readonly relationDefinitions: Relations | undefi"
+    },
+    {
       "name": "TDeletedAtColumn",
       "package": "@venizia/ignis-connectors",
       "subpath": "./relational",
@@ -18391,8 +18630,8 @@
       "specifier": "@venizia/ignis-connectors/relational",
       "kind": "type",
       "file": "packages/connectors/src/relational/core/models/common/types.ts",
-      "line": 79,
-      "signature": "type TEntityObject<Entity extends IDefinedEntity> = TTableObject<Entity['schema']> & { [Name in keyof Entity['relationDefinitions']]?: Entity['relationDefinitions'][Name] extends { type: typeof RelationTypes.MANY; } ? Array<TTableObject<Entity['relationDefinitions'][Name]['schema']>> : TTableObject<"
+      "line": 88,
+      "signature": "type TEntityObject<Entity extends IDefinedEntity> = TRowOf<Entity> & { [Name in keyof TDefinitionsOf<Entity>]?: TDefinitionsOf<Entity>[Name] extends { type: typeof RelationTypes.MANY; } ? Array<TTableObject<TDefinitionsOf<Entity>[Name]['schema']>> : TTableObject<TDefinitionsOf<Entity>[Name]['schema'"
     },
     {
       "name": "TGetIdType",
@@ -18425,6 +18664,16 @@
       "signature": "type TPrimaryKey<T extends TColumnDefinition> = IsPrimaryKey<NotNull<T>>"
     },
     {
+      "name": "TRecursiveTreeDirection",
+      "package": "@venizia/ignis-connectors",
+      "subpath": "./relational",
+      "specifier": "@venizia/ignis-connectors/relational",
+      "kind": "type",
+      "file": "packages/connectors/src/relational/core/repositories/sqls/recursive-tree.ts",
+      "line": 19,
+      "signature": "type TRecursiveTreeDirection = TConstValue<typeof RecursiveTreeDirections>"
+    },
+    {
       "name": "TRelationConfig",
       "package": "@venizia/ignis-connectors",
       "subpath": "./relational",
@@ -18432,7 +18681,7 @@
       "kind": "type",
       "file": "packages/connectors/src/relational/core/repositories/common/types.ts",
       "line": 16,
-      "signature": "type TRelationConfig = { name: string; } & ({ type: typeof RelationTypes.ONE; schema: TTableSchemaWithId; metadata: Parameters<ReturnType<typeof createTableRelationsHelpers>[typeof RelationTypes.ONE]>[1]; } | { type: typeof RelationTypes.MANY; schema: TTableSchemaWithId; metadata: Parameters<ReturnT"
+      "signature": "type TRelationConfig = { name: string; } & ({ type: typeof RelationTypes.ONE; schema: TTableSchemaWithId; /** `fields` and `references` may be left out: they are read off the table's foreign key. */ metadata?: Partial<NonNullable<Parameters<ReturnType<typeof createTableRelationsHelpers>[typeof Relat"
     },
     {
       "name": "TRelationDefinition",
@@ -18471,7 +18720,7 @@
       "specifier": "@venizia/ignis-connectors/relational",
       "kind": "type",
       "file": "packages/connectors/src/relational/core/repositories/common/types.ts",
-      "line": 73,
+      "line": 76,
       "signature": "type TRelationalConnectorOf<TDataSource extends IRelationalDataSource> = ReturnType<TDataSource['getConnector']>"
     },
     {
@@ -18481,7 +18730,7 @@
       "specifier": "@venizia/ignis-connectors/relational",
       "kind": "type",
       "file": "packages/connectors/src/relational/core/repositories/common/types.ts",
-      "line": 83,
+      "line": 86,
       "signature": "type TRelationalTransactionOf<TDataSource extends IRelationalDataSource> = Awaited<ReturnType<TDataSource['beginTransaction']>>"
     },
     {
@@ -18501,7 +18750,7 @@
       "specifier": "@venizia/ignis-connectors/relational",
       "kind": "type",
       "file": "packages/connectors/src/relational/core/repositories/common/types.ts",
-      "line": 78,
+      "line": 81,
       "signature": "type TRelationalTransactionOptionsOf<TDataSource extends IRelationalDataSource> = Parameters<TDataSource['beginTransaction']>[0]"
     },
     {
@@ -18521,7 +18770,7 @@
       "specifier": "@venizia/ignis-connectors/relational",
       "kind": "type",
       "file": "packages/connectors/src/relational/core/repositories/common/types.ts",
-      "line": 35,
+      "line": 38,
       "signature": "type TTableColumns = ReturnType<typeof getTableColumns>"
     },
     {
@@ -18570,9 +18819,9 @@
       "subpath": "./relational",
       "specifier": "@venizia/ignis-connectors/relational",
       "kind": "const",
-      "file": "packages/connectors/src/relational/core/repositories/dialect/relation.ts",
-      "line": 8,
-      "signature": "createRelations: <Schema extends TTableSchemaWithId = TTableSchemaWithId>(opts: { source: Schema; relations: Array<TRelationConfig>; }) => { definitions: {}; relations: import(\"drizzle-orm\").Relations<string, {}>; }"
+      "file": "packages/connectors/src/relational/core/repositories/dialect/relations/create.ts",
+      "line": 11,
+      "signature": "createRelations: <Schema extends TTableSchemaWithId = TTableSchemaWithId>(opts: { source: Schema; relations: Array<TRelationConfig>; }) => { definitions: {}; relations: import(\"drizzle-orm\").Relations<string, Record<string, Relation<string>>>; }"
     },
     {
       "name": "getCachedColumns",
@@ -18685,16 +18934,6 @@
       "signature": "validateJsonPathComponents: (opts: { path: string[]; tableName: string; methodName: string; }) => void"
     },
     {
-      "name": "AbstractSearchController",
-      "package": "@venizia/ignis-connectors",
-      "subpath": "./search",
-      "specifier": "@venizia/ignis-connectors/search",
-      "kind": "class",
-      "file": "packages/connectors/src/search/core/controllers/abstract.ts",
-      "line": 38,
-      "signature": "class AbstractSearchController<TEntity extends AbstractEntity<TAnyObjectSchema> = AbstractEntity<TAnyObjectSchema>, RouteEnv extends Env = Env, RouteSchema extends Schema = {}, BasePath extends string = '/', ConfigurableOptions extends object = {}, TDataObject extends object = TEntityDataObject<TEnt"
-    },
-    {
       "name": "AbstractSearchDataSource",
       "package": "@venizia/ignis-connectors",
       "subpath": "./search",
@@ -18721,7 +18960,7 @@
       "specifier": "@venizia/ignis-connectors/search",
       "kind": "class",
       "file": "packages/connectors/src/search/core/datasources/base.ts",
-      "line": 29,
+      "line": 20,
       "signature": "class BaseSearchDataSource<Settings extends object = {}, TConnector extends ISearchConnector = ISearchConnector> extends AbstractSearchDataSource<Settings>"
     },
     {
@@ -18823,26 +19062,6 @@
       "file": "packages/connectors/src/search/core/connector.ts",
       "line": 16,
       "signature": "interface ISearchConnectorCallbacks"
-    },
-    {
-      "name": "ISearchControllerOptions",
-      "package": "@venizia/ignis-connectors",
-      "subpath": "./search",
-      "specifier": "@venizia/ignis-connectors/search",
-      "kind": "interface",
-      "file": "packages/connectors/src/search/core/controllers/factory.ts",
-      "line": 22,
-      "signature": "interface ISearchControllerOptions<TEntity extends AbstractEntity<TAnyObjectSchema> = AbstractEntity<TAnyObjectSchema>>"
-    },
-    {
-      "name": "ISearchCustomizableRoutes",
-      "package": "@venizia/ignis-connectors",
-      "subpath": "./search",
-      "specifier": "@venizia/ignis-connectors/search",
-      "kind": "interface",
-      "file": "packages/connectors/src/search/core/controllers/factory.ts",
-      "line": 16,
-      "signature": "interface ISearchCustomizableRoutes"
     },
     {
       "name": "ISearchDataSourceOptions",
@@ -18971,7 +19190,7 @@
       "specifier": "@venizia/ignis-connectors/search",
       "kind": "const",
       "file": "packages/connectors/src/search/core/repositories/common/constants.ts",
-      "line": 122,
+      "line": 119,
       "signature": "MultiSearchEntrySchema: z.ZodObject<{ facetBy: z.ZodOptional<z.ZodArray<z.ZodString>>; facetQuery: z.ZodOptional<z.ZodString>; maxFacetValues: z.ZodOptional<z.ZodNumber>; highlightFields: z.ZodOptional<z.ZodArray<z.ZodString>>; highlightFullFields: z.ZodOptional<z.ZodArray<z.ZodString>>; highlightSt"
     },
     {
@@ -18981,7 +19200,7 @@
       "specifier": "@venizia/ignis-connectors/search",
       "kind": "const",
       "file": "packages/connectors/src/search/core/repositories/common/constants.ts",
-      "line": 170,
+      "line": 138,
       "signature": "MultiSearchInputSchema: z.ZodObject<{ searches: z.ZodArray<z.ZodObject<{ facetBy: z.ZodOptional<z.ZodArray<z.ZodString>>; facetQuery: z.ZodOptional<z.ZodString>; maxFacetValues: z.ZodOptional<z.ZodNumber>; highlightFields: z.ZodOptional<z.ZodArray<z.ZodString>>; highlightFullFields: z.ZodOptional<z."
     },
     {
@@ -18991,7 +19210,7 @@
       "specifier": "@venizia/ignis-connectors/search",
       "kind": "class",
       "file": "packages/connectors/src/search/core/repositories/core/persistable.ts",
-      "line": 18,
+      "line": 14,
       "signature": "class PersistableSearchRepository<TDocument extends object = object, TDataSource extends AbstractSearchDataSource = AbstractSearchDataSource> extends ReadableSearchRepository<TDocument, TDataSource>"
     },
     {
@@ -19013,16 +19232,6 @@
       "file": "packages/connectors/src/search/core/repositories/core/base.ts",
       "line": 19,
       "signature": "class SearchBaseRepository<TDocument extends object = object, TDataSource extends AbstractSearchDataSource = AbstractSearchDataSource> extends AbstractRepository<TDocument, TDocument>"
-    },
-    {
-      "name": "SearchControllerFactory",
-      "package": "@venizia/ignis-connectors",
-      "subpath": "./search",
-      "specifier": "@venizia/ignis-connectors/search",
-      "kind": "class",
-      "file": "packages/connectors/src/search/core/controllers/factory.ts",
-      "line": 49,
-      "signature": "class SearchControllerFactory extends BaseHelper"
     },
     {
       "name": "SearchErrors",
@@ -19061,7 +19270,7 @@
       "specifier": "@venizia/ignis-connectors/search",
       "kind": "const",
       "file": "packages/connectors/src/search/core/repositories/common/constants.ts",
-      "line": 113,
+      "line": 110,
       "signature": "SearchInputSchema: z.ZodDiscriminatedUnion<[z.ZodObject<{ facetBy: z.ZodOptional<z.ZodArray<z.ZodString>>; facetQuery: z.ZodOptional<z.ZodString>; maxFacetValues: z.ZodOptional<z.ZodNumber>; highlightFields: z.ZodOptional<z.ZodArray<z.ZodString>>; highlightFullFields: z.ZodOptional<z.ZodArray<z.ZodS"
     },
     {
@@ -19071,7 +19280,7 @@
       "specifier": "@venizia/ignis-connectors/search",
       "kind": "class",
       "file": "packages/connectors/src/search/core/repositories/common/constants.ts",
-      "line": 14,
+      "line": 12,
       "signature": "class SearchModes"
     },
     {
@@ -19101,7 +19310,7 @@
       "specifier": "@venizia/ignis-connectors/search",
       "kind": "type",
       "file": "packages/connectors/src/search/core/repositories/common/constants.ts",
-      "line": 138,
+      "line": 135,
       "signature": "type TMultiSearchEntry = z.infer<typeof MultiSearchEntrySchema>"
     },
     {
@@ -19111,7 +19320,7 @@
       "specifier": "@venizia/ignis-connectors/search",
       "kind": "type",
       "file": "packages/connectors/src/search/core/repositories/common/constants.ts",
-      "line": 178,
+      "line": 144,
       "signature": "type TMultiSearchInput = z.infer<typeof MultiSearchInputSchema>"
     },
     {
@@ -19161,7 +19370,7 @@
       "specifier": "@venizia/ignis-connectors/search",
       "kind": "type",
       "file": "packages/connectors/src/search/core/repositories/common/constants.ts",
-      "line": 119,
+      "line": 116,
       "signature": "type TSearchInput = z.infer<typeof SearchInputSchema>"
     },
     {
@@ -19171,7 +19380,7 @@
       "specifier": "@venizia/ignis-connectors/search",
       "kind": "type",
       "file": "packages/connectors/src/search/core/repositories/common/constants.ts",
-      "line": 26,
+      "line": 24,
       "signature": "type TSearchMode = TConstValue<typeof SearchModes>"
     },
     {
@@ -19225,16 +19434,6 @@
       "signature": "defineSearchCollection: <const T extends ISearchCollectionDefinition>(opts: T) => T"
     },
     {
-      "name": "defineSearchRouteConfigs",
-      "package": "@venizia/ignis-connectors",
-      "subpath": "./search",
-      "specifier": "@venizia/ignis-connectors/search",
-      "kind": "const",
-      "file": "packages/connectors/src/search/core/controllers/definition.ts",
-      "line": 8,
-      "signature": "defineSearchRouteConfigs: (opts: { selectSchema: z.ZodType; authenticate?: { strategies?: TAuthStrategy[]; mode?: TAuthMode; }; authorize?: IAuthorizationSpec | IAuthorizationSpec[]; }) => { readonly SEARCH: { readonly method: \"post\"; readonly path: \"/search\"; readonly description: \"Single-collectio"
-    },
-    {
       "name": "deriveSearchDocumentSchema",
       "package": "@venizia/ignis-connectors",
       "subpath": "./search",
@@ -19260,8 +19459,8 @@
       "subpath": "./search",
       "specifier": "@venizia/ignis-connectors/search",
       "kind": "const",
-      "file": "packages/connectors/src/search/core/repositories/common/constants.ts",
-      "line": 153,
+      "file": "packages/connectors/src/search/core/repositories/common/query-params.ts",
+      "line": 16,
       "signature": "toSearchQueryParams: (input: Record<string, unknown>) => Partial<ISearchQuery>"
     },
     {
@@ -19361,8 +19560,8 @@
       "specifier": "@venizia/ignis-connectors/sqlite",
       "kind": "interface",
       "file": "packages/connectors/src/relational/core/models/common/types.ts",
-      "line": 70,
-      "signature": "interface IDefinedEntity<Schema extends TTableSchemaWithId = TTableSchemaWithId, Relations extends TRelationDefinitions = TRelationDefinitions>"
+      "line": 75,
+      "signature": "interface IDefinedEntity<Relations extends TRelationDefinitions = TRelationDefinitions>"
     },
     {
       "name": "IEntity",
@@ -19395,13 +19594,23 @@
       "signature": "interface IOneRelation<Schema extends TTableSchemaWithId = TTableSchemaWithId>"
     },
     {
+      "name": "IRecursiveTreeOptions",
+      "package": "@venizia/ignis-connectors",
+      "subpath": "./sqlite",
+      "specifier": "@venizia/ignis-connectors/sqlite",
+      "kind": "interface",
+      "file": "packages/connectors/src/relational/core/repositories/sqls/recursive-tree.ts",
+      "line": 39,
+      "signature": "interface IRecursiveTreeOptions"
+    },
+    {
       "name": "IRelationalQueryDialect",
       "package": "@venizia/ignis-connectors",
       "subpath": "./sqlite",
       "specifier": "@venizia/ignis-connectors/sqlite",
       "kind": "interface",
       "file": "packages/connectors/src/relational/core/repositories/common/types.ts",
-      "line": 38,
+      "line": 41,
       "signature": "interface IRelationalQueryDialect"
     },
     {
@@ -19481,8 +19690,18 @@
       "specifier": "@venizia/ignis-connectors/sqlite",
       "kind": "interface",
       "file": "packages/connectors/src/relational/core/repositories/common/types.ts",
-      "line": 87,
+      "line": 90,
       "signature": "interface ITransformedUpdateData"
+    },
+    {
+      "name": "ModelFactory",
+      "package": "@venizia/ignis-connectors",
+      "subpath": "./sqlite",
+      "specifier": "@venizia/ignis-connectors/sqlite",
+      "kind": "class",
+      "file": "packages/connectors/src/relational/core/models/factory.ts",
+      "line": 25,
+      "signature": "class ModelFactory"
     },
     {
       "name": "PersistableSqliteRepository",
@@ -19503,6 +19722,26 @@
       "file": "packages/connectors/src/relational/sqlite/repositories/core/readable.ts",
       "line": 9,
       "signature": "class ReadableSqliteRepository<EntitySchema extends TTableSchemaWithId = TTableSchemaWithId, DataObject extends TTableObject<EntitySchema> = TTableObject<EntitySchema>, PersistObject extends TTableInsert<EntitySchema> = TTableInsert<EntitySchema>, ExtraOptions extends IExtraOptions = ISqliteExtraOpt"
+    },
+    {
+      "name": "RecursiveTreeDirections",
+      "package": "@venizia/ignis-connectors",
+      "subpath": "./sqlite",
+      "specifier": "@venizia/ignis-connectors/sqlite",
+      "kind": "class",
+      "file": "packages/connectors/src/relational/core/repositories/sqls/recursive-tree.ts",
+      "line": 9,
+      "signature": "class RecursiveTreeDirections"
+    },
+    {
+      "name": "RecursiveTreeSql",
+      "package": "@venizia/ignis-connectors",
+      "subpath": "./sqlite",
+      "specifier": "@venizia/ignis-connectors/sqlite",
+      "kind": "class",
+      "file": "packages/connectors/src/relational/core/repositories/sqls/recursive-tree.ts",
+      "line": 80,
+      "signature": "class RecursiveTreeSql"
     },
     {
       "name": "SoftDeletableSqliteRepository",
@@ -19615,6 +19854,16 @@
       "signature": "type TDataTypeEnricherOptions = { defaultValue: Partial<{ dataType: string; nValue: number; tValue: string; bValue: Buffer; jValue: object; boValue: boolean; }>; }"
     },
     {
+      "name": "TDefinedEntityClass",
+      "package": "@venizia/ignis-connectors",
+      "subpath": "./sqlite",
+      "specifier": "@venizia/ignis-connectors/sqlite",
+      "kind": "type",
+      "file": "packages/connectors/src/relational/core/models/factory.ts",
+      "line": 13,
+      "signature": "type TDefinedEntityClass<Schema extends TTableSchemaWithId, Relations extends TRelationDefinitions> = typeof BaseRelationalEntity<Schema> & { readonly TABLE_NAME: string; readonly schema: Schema; /** Undefined when the entity declares no relations. */ readonly relationDefinitions: Relations | undefi"
+    },
+    {
       "name": "TDeletedAtColumn",
       "package": "@venizia/ignis-connectors",
       "subpath": "./sqlite",
@@ -19631,8 +19880,8 @@
       "specifier": "@venizia/ignis-connectors/sqlite",
       "kind": "type",
       "file": "packages/connectors/src/relational/core/models/common/types.ts",
-      "line": 79,
-      "signature": "type TEntityObject<Entity extends IDefinedEntity> = TTableObject<Entity['schema']> & { [Name in keyof Entity['relationDefinitions']]?: Entity['relationDefinitions'][Name] extends { type: typeof RelationTypes.MANY; } ? Array<TTableObject<Entity['relationDefinitions'][Name]['schema']>> : TTableObject<"
+      "line": 88,
+      "signature": "type TEntityObject<Entity extends IDefinedEntity> = TRowOf<Entity> & { [Name in keyof TDefinitionsOf<Entity>]?: TDefinitionsOf<Entity>[Name] extends { type: typeof RelationTypes.MANY; } ? Array<TTableObject<TDefinitionsOf<Entity>[Name]['schema']>> : TTableObject<TDefinitionsOf<Entity>[Name]['schema'"
     },
     {
       "name": "TGetIdType",
@@ -19693,6 +19942,16 @@
       "file": "packages/connectors/src/relational/sqlite/models/common/types/enrichers.ts",
       "line": 23,
       "signature": "type TPrincipalEnricherOptions<Discriminator extends string = string, PolymorphicIdType extends 'number' | 'string' = 'number' | 'string', Nullable extends boolean = false> = { discriminator?: Discriminator; defaultPolymorphic?: string; polymorphicIdType: PolymorphicIdType; isNullableId?: Nullable; "
+    },
+    {
+      "name": "TRecursiveTreeDirection",
+      "package": "@venizia/ignis-connectors",
+      "subpath": "./sqlite",
+      "specifier": "@venizia/ignis-connectors/sqlite",
+      "kind": "type",
+      "file": "packages/connectors/src/relational/core/repositories/sqls/recursive-tree.ts",
+      "line": 19,
+      "signature": "type TRecursiveTreeDirection = TConstValue<typeof RecursiveTreeDirections>"
     },
     {
       "name": "TRelationDefinition",
@@ -19781,7 +20040,7 @@
       "specifier": "@venizia/ignis-connectors/sqlite",
       "kind": "type",
       "file": "packages/connectors/src/relational/core/repositories/common/types.ts",
-      "line": 35,
+      "line": 38,
       "signature": "type TTableColumns = ReturnType<typeof getTableColumns>"
     },
     {
@@ -20045,16 +20304,6 @@
       "signature": "type TLibSqlDriverOptions = Omit<IPoolControlOptions, 'size'> & { client: Client; }"
     },
     {
-      "name": "AbstractSearchController",
-      "package": "@venizia/ignis-connectors",
-      "subpath": "./typesense",
-      "specifier": "@venizia/ignis-connectors/typesense",
-      "kind": "class",
-      "file": "packages/connectors/src/search/core/controllers/abstract.ts",
-      "line": 38,
-      "signature": "class AbstractSearchController<TEntity extends AbstractEntity<TAnyObjectSchema> = AbstractEntity<TAnyObjectSchema>, RouteEnv extends Env = Env, RouteSchema extends Schema = {}, BasePath extends string = '/', ConfigurableOptions extends object = {}, TDataObject extends object = TEntityDataObject<TEnt"
-    },
-    {
       "name": "AbstractSearchDataSource",
       "package": "@venizia/ignis-connectors",
       "subpath": "./typesense",
@@ -20081,7 +20330,7 @@
       "specifier": "@venizia/ignis-connectors/typesense",
       "kind": "class",
       "file": "packages/connectors/src/search/core/datasources/base.ts",
-      "line": 29,
+      "line": 20,
       "signature": "class BaseSearchDataSource<Settings extends object = {}, TConnector extends ISearchConnector = ISearchConnector> extends AbstractSearchDataSource<Settings>"
     },
     {
@@ -20193,26 +20442,6 @@
       "file": "packages/connectors/src/search/core/connector.ts",
       "line": 16,
       "signature": "interface ISearchConnectorCallbacks"
-    },
-    {
-      "name": "ISearchControllerOptions",
-      "package": "@venizia/ignis-connectors",
-      "subpath": "./typesense",
-      "specifier": "@venizia/ignis-connectors/typesense",
-      "kind": "interface",
-      "file": "packages/connectors/src/search/core/controllers/factory.ts",
-      "line": 22,
-      "signature": "interface ISearchControllerOptions<TEntity extends AbstractEntity<TAnyObjectSchema> = AbstractEntity<TAnyObjectSchema>>"
-    },
-    {
-      "name": "ISearchCustomizableRoutes",
-      "package": "@venizia/ignis-connectors",
-      "subpath": "./typesense",
-      "specifier": "@venizia/ignis-connectors/typesense",
-      "kind": "interface",
-      "file": "packages/connectors/src/search/core/controllers/factory.ts",
-      "line": 16,
-      "signature": "interface ISearchCustomizableRoutes"
     },
     {
       "name": "ISearchDataSourceOptions",
@@ -20401,7 +20630,7 @@
       "specifier": "@venizia/ignis-connectors/typesense",
       "kind": "const",
       "file": "packages/connectors/src/search/core/repositories/common/constants.ts",
-      "line": 122,
+      "line": 119,
       "signature": "MultiSearchEntrySchema: z.ZodObject<{ facetBy: z.ZodOptional<z.ZodArray<z.ZodString>>; facetQuery: z.ZodOptional<z.ZodString>; maxFacetValues: z.ZodOptional<z.ZodNumber>; highlightFields: z.ZodOptional<z.ZodArray<z.ZodString>>; highlightFullFields: z.ZodOptional<z.ZodArray<z.ZodString>>; highlightSt"
     },
     {
@@ -20411,7 +20640,7 @@
       "specifier": "@venizia/ignis-connectors/typesense",
       "kind": "const",
       "file": "packages/connectors/src/search/core/repositories/common/constants.ts",
-      "line": 170,
+      "line": 138,
       "signature": "MultiSearchInputSchema: z.ZodObject<{ searches: z.ZodArray<z.ZodObject<{ facetBy: z.ZodOptional<z.ZodArray<z.ZodString>>; facetQuery: z.ZodOptional<z.ZodString>; maxFacetValues: z.ZodOptional<z.ZodNumber>; highlightFields: z.ZodOptional<z.ZodArray<z.ZodString>>; highlightFullFields: z.ZodOptional<z."
     },
     {
@@ -20421,7 +20650,7 @@
       "specifier": "@venizia/ignis-connectors/typesense",
       "kind": "class",
       "file": "packages/connectors/src/search/core/repositories/core/persistable.ts",
-      "line": 18,
+      "line": 14,
       "signature": "class PersistableSearchRepository<TDocument extends object = object, TDataSource extends AbstractSearchDataSource = AbstractSearchDataSource> extends ReadableSearchRepository<TDocument, TDataSource>"
     },
     {
@@ -20443,16 +20672,6 @@
       "file": "packages/connectors/src/search/core/repositories/core/base.ts",
       "line": 19,
       "signature": "class SearchBaseRepository<TDocument extends object = object, TDataSource extends AbstractSearchDataSource = AbstractSearchDataSource> extends AbstractRepository<TDocument, TDocument>"
-    },
-    {
-      "name": "SearchControllerFactory",
-      "package": "@venizia/ignis-connectors",
-      "subpath": "./typesense",
-      "specifier": "@venizia/ignis-connectors/typesense",
-      "kind": "class",
-      "file": "packages/connectors/src/search/core/controllers/factory.ts",
-      "line": 49,
-      "signature": "class SearchControllerFactory extends BaseHelper"
     },
     {
       "name": "SearchErrors",
@@ -20491,7 +20710,7 @@
       "specifier": "@venizia/ignis-connectors/typesense",
       "kind": "const",
       "file": "packages/connectors/src/search/core/repositories/common/constants.ts",
-      "line": 113,
+      "line": 110,
       "signature": "SearchInputSchema: z.ZodDiscriminatedUnion<[z.ZodObject<{ facetBy: z.ZodOptional<z.ZodArray<z.ZodString>>; facetQuery: z.ZodOptional<z.ZodString>; maxFacetValues: z.ZodOptional<z.ZodNumber>; highlightFields: z.ZodOptional<z.ZodArray<z.ZodString>>; highlightFullFields: z.ZodOptional<z.ZodArray<z.ZodS"
     },
     {
@@ -20501,7 +20720,7 @@
       "specifier": "@venizia/ignis-connectors/typesense",
       "kind": "class",
       "file": "packages/connectors/src/search/core/repositories/common/constants.ts",
-      "line": 14,
+      "line": 12,
       "signature": "class SearchModes"
     },
     {
@@ -20581,7 +20800,7 @@
       "specifier": "@venizia/ignis-connectors/typesense",
       "kind": "type",
       "file": "packages/connectors/src/search/core/repositories/common/constants.ts",
-      "line": 138,
+      "line": 135,
       "signature": "type TMultiSearchEntry = z.infer<typeof MultiSearchEntrySchema>"
     },
     {
@@ -20591,7 +20810,7 @@
       "specifier": "@venizia/ignis-connectors/typesense",
       "kind": "type",
       "file": "packages/connectors/src/search/core/repositories/common/constants.ts",
-      "line": 178,
+      "line": 144,
       "signature": "type TMultiSearchInput = z.infer<typeof MultiSearchInputSchema>"
     },
     {
@@ -20641,7 +20860,7 @@
       "specifier": "@venizia/ignis-connectors/typesense",
       "kind": "type",
       "file": "packages/connectors/src/search/core/repositories/common/constants.ts",
-      "line": 119,
+      "line": 116,
       "signature": "type TSearchInput = z.infer<typeof SearchInputSchema>"
     },
     {
@@ -20651,7 +20870,7 @@
       "specifier": "@venizia/ignis-connectors/typesense",
       "kind": "type",
       "file": "packages/connectors/src/search/core/repositories/common/constants.ts",
-      "line": 26,
+      "line": 24,
       "signature": "type TSearchMode = TConstValue<typeof SearchModes>"
     },
     {
@@ -20815,16 +21034,6 @@
       "signature": "defineSearchCollection: <const T extends ISearchCollectionDefinition>(opts: T) => T"
     },
     {
-      "name": "defineSearchRouteConfigs",
-      "package": "@venizia/ignis-connectors",
-      "subpath": "./typesense",
-      "specifier": "@venizia/ignis-connectors/typesense",
-      "kind": "const",
-      "file": "packages/connectors/src/search/core/controllers/definition.ts",
-      "line": 8,
-      "signature": "defineSearchRouteConfigs: (opts: { selectSchema: z.ZodType; authenticate?: { strategies?: TAuthStrategy[]; mode?: TAuthMode; }; authorize?: IAuthorizationSpec | IAuthorizationSpec[]; }) => { readonly SEARCH: { readonly method: \"post\"; readonly path: \"/search\"; readonly description: \"Single-collectio"
-    },
-    {
       "name": "deriveSearchDocumentSchema",
       "package": "@venizia/ignis-connectors",
       "subpath": "./typesense",
@@ -20850,8 +21059,8 @@
       "subpath": "./typesense",
       "specifier": "@venizia/ignis-connectors/typesense",
       "kind": "const",
-      "file": "packages/connectors/src/search/core/repositories/common/constants.ts",
-      "line": 153,
+      "file": "packages/connectors/src/search/core/repositories/common/query-params.ts",
+      "line": 16,
       "signature": "toSearchQueryParams: (input: Record<string, unknown>) => Partial<ISearchQuery>"
     },
     {
@@ -21401,7 +21610,7 @@
       "specifier": "@venizia/ignis-helpers",
       "kind": "class",
       "file": "packages/helpers/src/modules/network/tcp-socket/base-tcp-server.helper.ts",
-      "line": 57,
+      "line": 56,
       "signature": "class BaseNetworkTcpServer<SocketServerOptions extends ServerOpts = ServerOpts, SocketServerType extends SocketServer = SocketServer, SocketClientType extends SocketClient = SocketClient> extends BaseHelper"
     },
     {
@@ -21596,6 +21805,26 @@
       "signature": "DEFAULT_PAD_END: string"
     },
     {
+      "name": "DEFAULT_TEMPORAL_PATTERN",
+      "package": "@venizia/ignis-helpers",
+      "subpath": ".",
+      "specifier": "@venizia/ignis-helpers",
+      "kind": "const",
+      "file": "packages/helpers/src/modules/temporal/common/constants.ts",
+      "line": 36,
+      "signature": "DEFAULT_TEMPORAL_PATTERN = \"YYYY-MM-DDTHH:mm:ss.SSSZ\""
+    },
+    {
+      "name": "DEFAULT_TEMPORAL_TIME_ZONE",
+      "package": "@venizia/ignis-helpers",
+      "subpath": ".",
+      "specifier": "@venizia/ignis-helpers",
+      "kind": "const",
+      "file": "packages/helpers/src/modules/temporal/common/constants.ts",
+      "line": 33,
+      "signature": "DEFAULT_TEMPORAL_TIME_ZONE = \"UTC\""
+    },
+    {
       "name": "DEFAULT_UID_DELIMITER",
       "package": "@venizia/ignis-helpers",
       "subpath": ".",
@@ -21644,6 +21873,16 @@
       "file": "packages/helpers/src/common/constants/app.ts",
       "line": 31,
       "signature": "class DataTypes"
+    },
+    {
+      "name": "DayjsTemporalAdapter",
+      "package": "@venizia/ignis-helpers",
+      "subpath": ".",
+      "specifier": "@venizia/ignis-helpers",
+      "kind": "class",
+      "file": "packages/helpers/src/modules/temporal/adapters/dayjs.ts",
+      "line": 22,
+      "signature": "class DayjsTemporalAdapter implements ITemporalAdapter"
     },
     {
       "name": "Defaults",
@@ -22007,6 +22246,26 @@
       "signature": "interface ICryptoAlgorithm<AlgorithmNameType extends string, EncryptInputType = unknown, DecryptInputType = unknown, SecretKeyType = unknown, EncryptReturnType = unknown, DecryptReturnType = unknown, ExtraOptions = unknown>"
     },
     {
+      "name": "IDayjsFactory",
+      "package": "@venizia/ignis-helpers",
+      "subpath": ".",
+      "specifier": "@venizia/ignis-helpers",
+      "kind": "interface",
+      "file": "packages/helpers/src/modules/temporal/common/types.ts",
+      "line": 59,
+      "signature": "interface IDayjsFactory"
+    },
+    {
+      "name": "IDayjsInstance",
+      "package": "@venizia/ignis-helpers",
+      "subpath": ".",
+      "specifier": "@venizia/ignis-helpers",
+      "kind": "interface",
+      "file": "packages/helpers/src/modules/temporal/common/types.ts",
+      "line": 53,
+      "signature": "interface IDayjsInstance"
+    },
+    {
       "name": "IDiskHelperOptions",
       "package": "@venizia/ignis-helpers",
       "subpath": ".",
@@ -22185,6 +22444,26 @@
       "file": "packages/helpers/src/modules/logger/common/types.ts",
       "line": 31,
       "signature": "interface ILoggerProvider"
+    },
+    {
+      "name": "ILuxonDateTime",
+      "package": "@venizia/ignis-helpers",
+      "subpath": ".",
+      "specifier": "@venizia/ignis-helpers",
+      "kind": "interface",
+      "file": "packages/helpers/src/modules/temporal/common/types.ts",
+      "line": 65,
+      "signature": "interface ILuxonDateTime"
+    },
+    {
+      "name": "ILuxonDateTimeFactory",
+      "package": "@venizia/ignis-helpers",
+      "subpath": ".",
+      "specifier": "@venizia/ignis-helpers",
+      "kind": "interface",
+      "file": "packages/helpers/src/modules/temporal/common/types.ts",
+      "line": 72,
+      "signature": "interface ILuxonDateTimeFactory"
     },
     {
       "name": "INetworkTcpClientProps",
@@ -22393,8 +22672,8 @@
       "specifier": "@venizia/ignis-helpers",
       "kind": "interface",
       "file": "packages/helpers/src/modules/redis/common/types.ts",
-      "line": 49,
-      "signature": "interface IRedisClusterHelperOptions extends IRedisClusterHelperProps, IRedisHelperCallbacks"
+      "line": 59,
+      "signature": "interface IRedisClusterHelperOptions extends IRedisClusterHelperProps, IRedisHelperCallbacks, IRedisModuleOption"
     },
     {
       "name": "IRedisClusterHelperProps",
@@ -22497,6 +22776,16 @@
       "signature": "interface IRedisList"
     },
     {
+      "name": "IRedisModuleOption",
+      "package": "@venizia/ignis-helpers",
+      "subpath": ".",
+      "specifier": "@venizia/ignis-helpers",
+      "kind": "interface",
+      "file": "packages/helpers/src/modules/redis/common/types.ts",
+      "line": 52,
+      "signature": "interface IRedisModuleOption"
+    },
+    {
       "name": "IRedisPubSub",
       "package": "@venizia/ignis-helpers",
       "subpath": ".",
@@ -22513,8 +22802,8 @@
       "specifier": "@venizia/ignis-helpers",
       "kind": "interface",
       "file": "packages/helpers/src/modules/redis/common/types.ts",
-      "line": 52,
-      "signature": "interface IRedisSentinelHelperOptions extends IRedisSentinelHelperProps, IRedisHelperCallbacks"
+      "line": 62,
+      "signature": "interface IRedisSentinelHelperOptions extends IRedisSentinelHelperProps, IRedisHelperCallbacks, IRedisModuleOption"
     },
     {
       "name": "IRedisSentinelHelperProps",
@@ -22543,8 +22832,8 @@
       "specifier": "@venizia/ignis-helpers",
       "kind": "interface",
       "file": "packages/helpers/src/modules/redis/common/types.ts",
-      "line": 47,
-      "signature": "interface IRedisSingleHelperOptions extends IRedisSingleHelperProps, IRedisHelperCallbacks"
+      "line": 56,
+      "signature": "interface IRedisSingleHelperOptions extends IRedisSingleHelperProps, IRedisHelperCallbacks, IRedisModuleOption"
     },
     {
       "name": "IRedisSingleHelperProps",
@@ -22723,7 +23012,7 @@
       "specifier": "@venizia/ignis-helpers",
       "kind": "interface",
       "file": "packages/helpers/src/modules/network/tcp-socket/base-tcp-server.helper.ts",
-      "line": 14,
+      "line": 13,
       "signature": "interface ITcpSocketClient<SocketClientType>"
     },
     {
@@ -22733,8 +23022,48 @@
       "specifier": "@venizia/ignis-helpers",
       "kind": "interface",
       "file": "packages/helpers/src/modules/network/tcp-socket/base-tcp-server.helper.ts",
-      "line": 27,
+      "line": 26,
       "signature": "interface ITcpSocketServerOptions<SocketServerOptions extends ServerOpts = ServerOpts, SocketServerType extends SocketServer = SocketServer, SocketClientType extends SocketClient = SocketClient>"
+    },
+    {
+      "name": "ITemporalAdapter",
+      "package": "@venizia/ignis-helpers",
+      "subpath": ".",
+      "specifier": "@venizia/ignis-helpers",
+      "kind": "interface",
+      "file": "packages/helpers/src/modules/temporal/common/types.ts",
+      "line": 28,
+      "signature": "interface ITemporalAdapter"
+    },
+    {
+      "name": "ITemporalNamespace",
+      "package": "@venizia/ignis-helpers",
+      "subpath": ".",
+      "specifier": "@venizia/ignis-helpers",
+      "kind": "interface",
+      "file": "packages/helpers/src/modules/temporal/common/types.ts",
+      "line": 44,
+      "signature": "interface ITemporalNamespace"
+    },
+    {
+      "name": "ITemporalParts",
+      "package": "@venizia/ignis-helpers",
+      "subpath": ".",
+      "specifier": "@venizia/ignis-helpers",
+      "kind": "interface",
+      "file": "packages/helpers/src/modules/temporal/common/types.ts",
+      "line": 5,
+      "signature": "interface ITemporalParts"
+    },
+    {
+      "name": "ITemporalZonedDateTime",
+      "package": "@venizia/ignis-helpers",
+      "subpath": ".",
+      "specifier": "@venizia/ignis-helpers",
+      "kind": "interface",
+      "file": "packages/helpers/src/modules/temporal/common/types.ts",
+      "line": 36,
+      "signature": "interface ITemporalZonedDateTime"
     },
     {
       "name": "ITimerAdapter",
@@ -22927,6 +23256,16 @@
       "signature": "interface IWorkerThread"
     },
     {
+      "name": "IZonedTemporalParts",
+      "package": "@venizia/ignis-helpers",
+      "subpath": ".",
+      "specifier": "@venizia/ignis-helpers",
+      "kind": "interface",
+      "file": "packages/helpers/src/modules/temporal/common/types.ts",
+      "line": 16,
+      "signature": "interface IZonedTemporalParts extends ITemporalParts"
+    },
+    {
       "name": "LEADING_OR_TRAILING_HYPHENS_PATTERN",
       "package": "@venizia/ignis-helpers",
       "subpath": ".",
@@ -22985,6 +23324,16 @@
       "file": "packages/helpers/src/modules/logger/resolver.ts",
       "line": 60,
       "signature": "class LoggerResolver"
+    },
+    {
+      "name": "LuxonTemporalAdapter",
+      "package": "@venizia/ignis-helpers",
+      "subpath": ".",
+      "specifier": "@venizia/ignis-helpers",
+      "kind": "class",
+      "file": "packages/helpers/src/modules/temporal/adapters/luxon.ts",
+      "line": 8,
+      "signature": "class LuxonTemporalAdapter implements ITemporalAdapter"
     },
     {
       "name": "MINIMUM_KDF_SALT_BYTES",
@@ -23065,6 +23414,16 @@
       "file": "packages/helpers/src/modules/slug/common/constants.ts",
       "line": 8,
       "signature": "NON_SLUG_CHARACTERS_PATTERN: RegExp"
+    },
+    {
+      "name": "NativeTemporalAdapter",
+      "package": "@venizia/ignis-helpers",
+      "subpath": ".",
+      "specifier": "@venizia/ignis-helpers",
+      "kind": "class",
+      "file": "packages/helpers/src/modules/temporal/adapters/native.ts",
+      "line": 12,
+      "signature": "class NativeTemporalAdapter implements ITemporalAdapter"
     },
     {
       "name": "NetworkTcpClient",
@@ -24138,6 +24497,26 @@
       "signature": "type TTask<T> = (...args: any[]) => Promise<T>"
     },
     {
+      "name": "TTemporalInput",
+      "package": "@venizia/ignis-helpers",
+      "subpath": ".",
+      "specifier": "@venizia/ignis-helpers",
+      "kind": "type",
+      "file": "packages/helpers/src/modules/temporal/common/types.ts",
+      "line": 2,
+      "signature": "type TTemporalInput = Date | number | string"
+    },
+    {
+      "name": "TTemporalUnit",
+      "package": "@venizia/ignis-helpers",
+      "subpath": ".",
+      "specifier": "@venizia/ignis-helpers",
+      "kind": "type",
+      "file": "packages/helpers/src/modules/temporal/common/constants.ts",
+      "line": 30,
+      "signature": "type TTemporalUnit = TConstValue<typeof TemporalUnits>"
+    },
+    {
       "name": "TTimerHandle",
       "package": "@venizia/ignis-helpers",
       "subpath": ".",
@@ -24306,6 +24685,26 @@
       "file": "packages/helpers/src/modules/socket/websocket/common/types/hooks.ts",
       "line": 21,
       "signature": "type TWebSocketValidateRoomFn = (opts: { clientId: string; userId?: string; rooms: string[]; }) => ValueOrPromise<string[]>"
+    },
+    {
+      "name": "TemporalHelper",
+      "package": "@venizia/ignis-helpers",
+      "subpath": ".",
+      "specifier": "@venizia/ignis-helpers",
+      "kind": "class",
+      "file": "packages/helpers/src/modules/temporal/helper.ts",
+      "line": 58,
+      "signature": "class TemporalHelper extends BaseHelper"
+    },
+    {
+      "name": "TemporalUnits",
+      "package": "@venizia/ignis-helpers",
+      "subpath": ".",
+      "specifier": "@venizia/ignis-helpers",
+      "kind": "class",
+      "file": "packages/helpers/src/modules/temporal/common/constants.ts",
+      "line": 4,
+      "signature": "class TemporalUnits"
     },
     {
       "name": "TreeBuilder",
@@ -24624,7 +25023,7 @@
       "specifier": "@venizia/ignis-helpers",
       "kind": "const",
       "file": "packages/helpers/src/modules/uid/uuid/v4.ts",
-      "line": 6,
+      "line": 10,
       "signature": "createUuidV4: () => (() => string)"
     },
     {
@@ -24644,19 +25043,8 @@
       "specifier": "@venizia/ignis-helpers",
       "kind": "const",
       "file": "packages/helpers/src/modules/uid/uuid/v7.ts",
-      "line": 10,
+      "line": 16,
       "signature": "createUuidV7: () => (() => string)"
-    },
-    {
-      "name": "dayjs",
-      "package": "@venizia/ignis-helpers",
-      "subpath": ".",
-      "specifier": "@venizia/ignis-helpers",
-      "kind": "function",
-      "file": "node_modules/.bun/dayjs@1.11.23/node_modules/dayjs/index.d.ts",
-      "line": 5,
-      "signature": "function dayjs (date?: dayjs.ConfigType): dayjs.Dayjs",
-      "external": true
     },
     {
       "name": "encodeRFC5987",
@@ -24729,16 +25117,6 @@
       "signature": "fromError: (opts: { error: TResponsedError; }) => ApplicationError"
     },
     {
-      "name": "getDateTz",
-      "package": "@venizia/ignis-helpers",
-      "subpath": ".",
-      "specifier": "@venizia/ignis-helpers",
-      "kind": "const",
-      "file": "packages/helpers/src/utilities/date.utility.ts",
-      "line": 49,
-      "signature": "getDateTz: (opts: { date: string; timezone: string; useClientTz?: boolean; timeOffset?: number; }) => dayjs.Dayjs"
-    },
-    {
       "name": "getDeepProperty",
       "package": "@venizia/ignis-helpers",
       "subpath": ".",
@@ -24769,16 +25147,6 @@
       "signature": "getExecutedPerformance: (opts: { from: number; digit?: number; }) => number"
     },
     {
-      "name": "getNextWeekday",
-      "package": "@venizia/ignis-helpers",
-      "subpath": ".",
-      "specifier": "@venizia/ignis-helpers",
-      "kind": "const",
-      "file": "packages/helpers/src/utilities/date.utility.ts",
-      "line": 38,
-      "signature": "getNextWeekday: (opts?: { date?: string | dayjs.Dayjs; }) => dayjs.Dayjs"
-    },
-    {
       "name": "getPerformanceCheckpoint",
       "package": "@venizia/ignis-helpers",
       "subpath": ".",
@@ -24787,16 +25155,6 @@
       "file": "packages/helpers/src/utilities/performance.utility.ts",
       "line": 6,
       "signature": "getPerformanceCheckpoint: () => number"
-    },
-    {
-      "name": "getPreviousWeekday",
-      "package": "@venizia/ignis-helpers",
-      "subpath": ".",
-      "specifier": "@venizia/ignis-helpers",
-      "kind": "const",
-      "file": "packages/helpers/src/utilities/date.utility.ts",
-      "line": 27,
-      "signature": "getPreviousWeekday: (opts?: { date?: string | dayjs.Dayjs; }) => dayjs.Dayjs"
     },
     {
       "name": "getUID",
@@ -24814,8 +25172,8 @@
       "subpath": ".",
       "specifier": "@venizia/ignis-helpers",
       "kind": "const",
-      "file": "packages/helpers/src/utilities/date.utility.ts",
-      "line": 59,
+      "file": "packages/helpers/src/utilities/hr-time.utility.ts",
+      "line": 7,
       "signature": "hrTime: () => number"
     },
     {
@@ -24927,16 +25285,6 @@
       "file": "packages/helpers/src/modules/network/utilities/url-safety/common/errors.ts",
       "line": 29,
       "signature": "isUrlRefusedError: (opts: { error: unknown; }) => boolean"
-    },
-    {
-      "name": "isWeekday",
-      "package": "@venizia/ignis-helpers",
-      "subpath": ".",
-      "specifier": "@venizia/ignis-helpers",
-      "kind": "const",
-      "file": "packages/helpers/src/utilities/date.utility.ts",
-      "line": 22,
-      "signature": "isWeekday: (date: string | dayjs.Dayjs) => boolean"
     },
     {
       "name": "keysToCamel",
@@ -25075,7 +25423,7 @@
       "specifier": "@venizia/ignis-helpers",
       "kind": "const",
       "file": "packages/helpers/src/utilities/sleep.utility.ts",
-      "line": 2,
+      "line": 1,
       "signature": "sleep: (ms: number) => Promise<unknown>"
     },
     {
@@ -25165,7 +25513,7 @@
       "specifier": "@venizia/ignis-helpers",
       "kind": "const",
       "file": "packages/helpers/src/modules/uid/uuid/v4.ts",
-      "line": 54,
+      "line": 59,
       "signature": "uuidV4: () => string"
     },
     {
@@ -25175,7 +25523,7 @@
       "specifier": "@venizia/ignis-helpers",
       "kind": "const",
       "file": "packages/helpers/src/modules/uid/uuid/v5.ts",
-      "line": 99,
+      "line": 107,
       "signature": "uuidV5: (opts: { namespace: string; name: string; }) => string"
     },
     {
@@ -25185,7 +25533,7 @@
       "specifier": "@venizia/ignis-helpers",
       "kind": "const",
       "file": "packages/helpers/src/modules/uid/uuid/v7.ts",
-      "line": 105,
+      "line": 107,
       "signature": "uuidV7: () => string"
     },
     {
@@ -25255,7 +25603,7 @@
       "specifier": "@venizia/ignis-helpers/bullmq",
       "kind": "class",
       "file": "packages/helpers/src/modules/queue/bullmq/helper.ts",
-      "line": 30,
+      "line": 34,
       "signature": "class BullMQHelper<TQueueElement = any, TQueueResult = any> extends BaseHelper"
     },
     {
@@ -25265,7 +25613,7 @@
       "specifier": "@venizia/ignis-helpers/bullmq",
       "kind": "interface",
       "file": "packages/helpers/src/modules/queue/bullmq/helper.ts",
-      "line": 8,
+      "line": 9,
       "signature": "interface IBullMQOptions<TQueueElement = any, TQueueResult = any>"
     },
     {
@@ -25989,6 +26337,26 @@
       "signature": "class BuildInfoRegistry"
     },
     {
+      "name": "DEFAULT_TEMPORAL_PATTERN",
+      "package": "@venizia/ignis-helpers",
+      "subpath": "./core",
+      "specifier": "@venizia/ignis-helpers/core",
+      "kind": "const",
+      "file": "packages/helpers/src/modules/temporal/common/constants.ts",
+      "line": 36,
+      "signature": "DEFAULT_TEMPORAL_PATTERN = \"YYYY-MM-DDTHH:mm:ss.SSSZ\""
+    },
+    {
+      "name": "DEFAULT_TEMPORAL_TIME_ZONE",
+      "package": "@venizia/ignis-helpers",
+      "subpath": "./core",
+      "specifier": "@venizia/ignis-helpers/core",
+      "kind": "const",
+      "file": "packages/helpers/src/modules/temporal/common/constants.ts",
+      "line": 33,
+      "signature": "DEFAULT_TEMPORAL_TIME_ZONE = \"UTC\""
+    },
+    {
       "name": "DEFAULT_UID_DELIMITER",
       "package": "@venizia/ignis-helpers",
       "subpath": "./core",
@@ -26017,6 +26385,16 @@
       "file": "packages/helpers/src/modules/uid/common/constants.ts",
       "line": 68,
       "signature": "DEFAULT_UID_MAX_ATTEMPTS = 10"
+    },
+    {
+      "name": "DayjsTemporalAdapter",
+      "package": "@venizia/ignis-helpers",
+      "subpath": "./core",
+      "specifier": "@venizia/ignis-helpers/core",
+      "kind": "class",
+      "file": "packages/helpers/src/modules/temporal/adapters/dayjs.ts",
+      "line": 22,
+      "signature": "class DayjsTemporalAdapter implements ITemporalAdapter"
     },
     {
       "name": "EnvironmentNames",
@@ -26067,6 +26445,26 @@
       "file": "packages/helpers/src/modules/tree/common/types.ts",
       "line": 42,
       "signature": "interface IBuildOptions<T>"
+    },
+    {
+      "name": "IDayjsFactory",
+      "package": "@venizia/ignis-helpers",
+      "subpath": "./core",
+      "specifier": "@venizia/ignis-helpers/core",
+      "kind": "interface",
+      "file": "packages/helpers/src/modules/temporal/common/types.ts",
+      "line": 59,
+      "signature": "interface IDayjsFactory"
+    },
+    {
+      "name": "IDayjsInstance",
+      "package": "@venizia/ignis-helpers",
+      "subpath": "./core",
+      "specifier": "@venizia/ignis-helpers/core",
+      "kind": "interface",
+      "file": "packages/helpers/src/modules/temporal/common/types.ts",
+      "line": 53,
+      "signature": "interface IDayjsInstance"
     },
     {
       "name": "IErrorKeyRegistry",
@@ -26147,6 +26545,26 @@
       "file": "packages/helpers/src/modules/logger/common/types.ts",
       "line": 31,
       "signature": "interface ILoggerProvider"
+    },
+    {
+      "name": "ILuxonDateTime",
+      "package": "@venizia/ignis-helpers",
+      "subpath": "./core",
+      "specifier": "@venizia/ignis-helpers/core",
+      "kind": "interface",
+      "file": "packages/helpers/src/modules/temporal/common/types.ts",
+      "line": 65,
+      "signature": "interface ILuxonDateTime"
+    },
+    {
+      "name": "ILuxonDateTimeFactory",
+      "package": "@venizia/ignis-helpers",
+      "subpath": "./core",
+      "specifier": "@venizia/ignis-helpers/core",
+      "kind": "interface",
+      "file": "packages/helpers/src/modules/temporal/common/types.ts",
+      "line": 72,
+      "signature": "interface ILuxonDateTimeFactory"
     },
     {
       "name": "INextOpaqueUidOptions",
@@ -26319,6 +26737,46 @@
       "signature": "interface ISnowflakeParsedId"
     },
     {
+      "name": "ITemporalAdapter",
+      "package": "@venizia/ignis-helpers",
+      "subpath": "./core",
+      "specifier": "@venizia/ignis-helpers/core",
+      "kind": "interface",
+      "file": "packages/helpers/src/modules/temporal/common/types.ts",
+      "line": 28,
+      "signature": "interface ITemporalAdapter"
+    },
+    {
+      "name": "ITemporalNamespace",
+      "package": "@venizia/ignis-helpers",
+      "subpath": "./core",
+      "specifier": "@venizia/ignis-helpers/core",
+      "kind": "interface",
+      "file": "packages/helpers/src/modules/temporal/common/types.ts",
+      "line": 44,
+      "signature": "interface ITemporalNamespace"
+    },
+    {
+      "name": "ITemporalParts",
+      "package": "@venizia/ignis-helpers",
+      "subpath": "./core",
+      "specifier": "@venizia/ignis-helpers/core",
+      "kind": "interface",
+      "file": "packages/helpers/src/modules/temporal/common/types.ts",
+      "line": 5,
+      "signature": "interface ITemporalParts"
+    },
+    {
+      "name": "ITemporalZonedDateTime",
+      "package": "@venizia/ignis-helpers",
+      "subpath": "./core",
+      "specifier": "@venizia/ignis-helpers/core",
+      "kind": "interface",
+      "file": "packages/helpers/src/modules/temporal/common/types.ts",
+      "line": 36,
+      "signature": "interface ITemporalZonedDateTime"
+    },
+    {
       "name": "ITreeNode",
       "package": "@venizia/ignis-helpers",
       "subpath": "./core",
@@ -26379,6 +26837,16 @@
       "signature": "interface IWalkOptions<T>"
     },
     {
+      "name": "IZonedTemporalParts",
+      "package": "@venizia/ignis-helpers",
+      "subpath": "./core",
+      "specifier": "@venizia/ignis-helpers/core",
+      "kind": "interface",
+      "file": "packages/helpers/src/modules/temporal/common/types.ts",
+      "line": 16,
+      "signature": "interface IZonedTemporalParts extends ITemporalParts"
+    },
+    {
       "name": "LogLevels",
       "package": "@venizia/ignis-helpers",
       "subpath": "./core",
@@ -26387,6 +26855,16 @@
       "file": "packages/helpers/src/modules/logger/common/types.ts",
       "line": 3,
       "signature": "class LogLevels"
+    },
+    {
+      "name": "LuxonTemporalAdapter",
+      "package": "@venizia/ignis-helpers",
+      "subpath": "./core",
+      "specifier": "@venizia/ignis-helpers/core",
+      "kind": "class",
+      "file": "packages/helpers/src/modules/temporal/adapters/luxon.ts",
+      "line": 8,
+      "signature": "class LuxonTemporalAdapter implements ITemporalAdapter"
     },
     {
       "name": "MIN_UID_ALPHABET_SIZE",
@@ -26407,6 +26885,16 @@
       "file": "packages/inversion/src/modules/error/message-code.ts",
       "line": 6,
       "signature": "class MessageCode"
+    },
+    {
+      "name": "NativeTemporalAdapter",
+      "package": "@venizia/ignis-helpers",
+      "subpath": "./core",
+      "specifier": "@venizia/ignis-helpers/core",
+      "kind": "class",
+      "file": "packages/helpers/src/modules/temporal/adapters/native.ts",
+      "line": 12,
+      "signature": "class NativeTemporalAdapter implements ITemporalAdapter"
     },
     {
       "name": "NodeFetchNetworkRequest",
@@ -26749,6 +27237,26 @@
       "signature": "type TRetryJitterMode = TConstValue<typeof RetryJitterModes>"
     },
     {
+      "name": "TTemporalInput",
+      "package": "@venizia/ignis-helpers",
+      "subpath": "./core",
+      "specifier": "@venizia/ignis-helpers/core",
+      "kind": "type",
+      "file": "packages/helpers/src/modules/temporal/common/types.ts",
+      "line": 2,
+      "signature": "type TTemporalInput = Date | number | string"
+    },
+    {
+      "name": "TTemporalUnit",
+      "package": "@venizia/ignis-helpers",
+      "subpath": "./core",
+      "specifier": "@venizia/ignis-helpers/core",
+      "kind": "type",
+      "file": "packages/helpers/src/modules/temporal/common/constants.ts",
+      "line": 30,
+      "signature": "type TTemporalUnit = TConstValue<typeof TemporalUnits>"
+    },
+    {
       "name": "TUidCaseForm",
       "package": "@venizia/ignis-helpers",
       "subpath": "./core",
@@ -26767,6 +27275,26 @@
       "file": "packages/helpers/src/modules/network/utilities/url-safety/common/constants.ts",
       "line": 14,
       "signature": "type TUrlScheme = TConstValue<typeof UrlSchemes>"
+    },
+    {
+      "name": "TemporalHelper",
+      "package": "@venizia/ignis-helpers",
+      "subpath": "./core",
+      "specifier": "@venizia/ignis-helpers/core",
+      "kind": "class",
+      "file": "packages/helpers/src/modules/temporal/helper.ts",
+      "line": 58,
+      "signature": "class TemporalHelper extends BaseHelper"
+    },
+    {
+      "name": "TemporalUnits",
+      "package": "@venizia/ignis-helpers",
+      "subpath": "./core",
+      "specifier": "@venizia/ignis-helpers/core",
+      "kind": "class",
+      "file": "packages/helpers/src/modules/temporal/common/constants.ts",
+      "line": 4,
+      "signature": "class TemporalUnits"
     },
     {
       "name": "TreeBuilder",
@@ -26885,7 +27413,7 @@
       "specifier": "@venizia/ignis-helpers/core",
       "kind": "const",
       "file": "packages/helpers/src/modules/uid/uuid/v4.ts",
-      "line": 6,
+      "line": 10,
       "signature": "createUuidV4: () => (() => string)"
     },
     {
@@ -26905,7 +27433,7 @@
       "specifier": "@venizia/ignis-helpers/core",
       "kind": "const",
       "file": "packages/helpers/src/modules/uid/uuid/v7.ts",
-      "line": 10,
+      "line": 16,
       "signature": "createUuidV7: () => (() => string)"
     },
     {
@@ -27005,7 +27533,7 @@
       "specifier": "@venizia/ignis-helpers/core",
       "kind": "const",
       "file": "packages/helpers/src/modules/uid/uuid/v4.ts",
-      "line": 54,
+      "line": 59,
       "signature": "uuidV4: () => string"
     },
     {
@@ -27015,7 +27543,7 @@
       "specifier": "@venizia/ignis-helpers/core",
       "kind": "const",
       "file": "packages/helpers/src/modules/uid/uuid/v5.ts",
-      "line": 99,
+      "line": 107,
       "signature": "uuidV5: (opts: { namespace: string; name: string; }) => string"
     },
     {
@@ -27025,7 +27553,7 @@
       "specifier": "@venizia/ignis-helpers/core",
       "kind": "const",
       "file": "packages/helpers/src/modules/uid/uuid/v7.ts",
-      "line": 105,
+      "line": 107,
       "signature": "uuidV7: () => string"
     },
     {
@@ -27785,7 +28313,7 @@
       "specifier": "@venizia/ignis-helpers/socket-io",
       "kind": "class",
       "file": "packages/helpers/src/modules/socket/socket-io/client/helper.ts",
-      "line": 15,
+      "line": 16,
       "signature": "class SocketIOClientHelper extends BaseHelper"
     },
     {
@@ -27879,6 +28407,186 @@
       "signature": "type TSocketIOValidateRoomFn = (opts: { socket: IOSocket; rooms: string[]; }) => ValueOrPromise<string[]>"
     },
     {
+      "name": "DEFAULT_TEMPORAL_PATTERN",
+      "package": "@venizia/ignis-helpers",
+      "subpath": "./temporal",
+      "specifier": "@venizia/ignis-helpers/temporal",
+      "kind": "const",
+      "file": "packages/helpers/src/modules/temporal/common/constants.ts",
+      "line": 36,
+      "signature": "DEFAULT_TEMPORAL_PATTERN = \"YYYY-MM-DDTHH:mm:ss.SSSZ\""
+    },
+    {
+      "name": "DEFAULT_TEMPORAL_TIME_ZONE",
+      "package": "@venizia/ignis-helpers",
+      "subpath": "./temporal",
+      "specifier": "@venizia/ignis-helpers/temporal",
+      "kind": "const",
+      "file": "packages/helpers/src/modules/temporal/common/constants.ts",
+      "line": 33,
+      "signature": "DEFAULT_TEMPORAL_TIME_ZONE = \"UTC\""
+    },
+    {
+      "name": "DayjsTemporalAdapter",
+      "package": "@venizia/ignis-helpers",
+      "subpath": "./temporal",
+      "specifier": "@venizia/ignis-helpers/temporal",
+      "kind": "class",
+      "file": "packages/helpers/src/modules/temporal/adapters/dayjs.ts",
+      "line": 22,
+      "signature": "class DayjsTemporalAdapter implements ITemporalAdapter"
+    },
+    {
+      "name": "IDayjsFactory",
+      "package": "@venizia/ignis-helpers",
+      "subpath": "./temporal",
+      "specifier": "@venizia/ignis-helpers/temporal",
+      "kind": "interface",
+      "file": "packages/helpers/src/modules/temporal/common/types.ts",
+      "line": 59,
+      "signature": "interface IDayjsFactory"
+    },
+    {
+      "name": "IDayjsInstance",
+      "package": "@venizia/ignis-helpers",
+      "subpath": "./temporal",
+      "specifier": "@venizia/ignis-helpers/temporal",
+      "kind": "interface",
+      "file": "packages/helpers/src/modules/temporal/common/types.ts",
+      "line": 53,
+      "signature": "interface IDayjsInstance"
+    },
+    {
+      "name": "ILuxonDateTime",
+      "package": "@venizia/ignis-helpers",
+      "subpath": "./temporal",
+      "specifier": "@venizia/ignis-helpers/temporal",
+      "kind": "interface",
+      "file": "packages/helpers/src/modules/temporal/common/types.ts",
+      "line": 65,
+      "signature": "interface ILuxonDateTime"
+    },
+    {
+      "name": "ILuxonDateTimeFactory",
+      "package": "@venizia/ignis-helpers",
+      "subpath": "./temporal",
+      "specifier": "@venizia/ignis-helpers/temporal",
+      "kind": "interface",
+      "file": "packages/helpers/src/modules/temporal/common/types.ts",
+      "line": 72,
+      "signature": "interface ILuxonDateTimeFactory"
+    },
+    {
+      "name": "ITemporalAdapter",
+      "package": "@venizia/ignis-helpers",
+      "subpath": "./temporal",
+      "specifier": "@venizia/ignis-helpers/temporal",
+      "kind": "interface",
+      "file": "packages/helpers/src/modules/temporal/common/types.ts",
+      "line": 28,
+      "signature": "interface ITemporalAdapter"
+    },
+    {
+      "name": "ITemporalNamespace",
+      "package": "@venizia/ignis-helpers",
+      "subpath": "./temporal",
+      "specifier": "@venizia/ignis-helpers/temporal",
+      "kind": "interface",
+      "file": "packages/helpers/src/modules/temporal/common/types.ts",
+      "line": 44,
+      "signature": "interface ITemporalNamespace"
+    },
+    {
+      "name": "ITemporalParts",
+      "package": "@venizia/ignis-helpers",
+      "subpath": "./temporal",
+      "specifier": "@venizia/ignis-helpers/temporal",
+      "kind": "interface",
+      "file": "packages/helpers/src/modules/temporal/common/types.ts",
+      "line": 5,
+      "signature": "interface ITemporalParts"
+    },
+    {
+      "name": "ITemporalZonedDateTime",
+      "package": "@venizia/ignis-helpers",
+      "subpath": "./temporal",
+      "specifier": "@venizia/ignis-helpers/temporal",
+      "kind": "interface",
+      "file": "packages/helpers/src/modules/temporal/common/types.ts",
+      "line": 36,
+      "signature": "interface ITemporalZonedDateTime"
+    },
+    {
+      "name": "IZonedTemporalParts",
+      "package": "@venizia/ignis-helpers",
+      "subpath": "./temporal",
+      "specifier": "@venizia/ignis-helpers/temporal",
+      "kind": "interface",
+      "file": "packages/helpers/src/modules/temporal/common/types.ts",
+      "line": 16,
+      "signature": "interface IZonedTemporalParts extends ITemporalParts"
+    },
+    {
+      "name": "LuxonTemporalAdapter",
+      "package": "@venizia/ignis-helpers",
+      "subpath": "./temporal",
+      "specifier": "@venizia/ignis-helpers/temporal",
+      "kind": "class",
+      "file": "packages/helpers/src/modules/temporal/adapters/luxon.ts",
+      "line": 8,
+      "signature": "class LuxonTemporalAdapter implements ITemporalAdapter"
+    },
+    {
+      "name": "NativeTemporalAdapter",
+      "package": "@venizia/ignis-helpers",
+      "subpath": "./temporal",
+      "specifier": "@venizia/ignis-helpers/temporal",
+      "kind": "class",
+      "file": "packages/helpers/src/modules/temporal/adapters/native.ts",
+      "line": 12,
+      "signature": "class NativeTemporalAdapter implements ITemporalAdapter"
+    },
+    {
+      "name": "TTemporalInput",
+      "package": "@venizia/ignis-helpers",
+      "subpath": "./temporal",
+      "specifier": "@venizia/ignis-helpers/temporal",
+      "kind": "type",
+      "file": "packages/helpers/src/modules/temporal/common/types.ts",
+      "line": 2,
+      "signature": "type TTemporalInput = Date | number | string"
+    },
+    {
+      "name": "TTemporalUnit",
+      "package": "@venizia/ignis-helpers",
+      "subpath": "./temporal",
+      "specifier": "@venizia/ignis-helpers/temporal",
+      "kind": "type",
+      "file": "packages/helpers/src/modules/temporal/common/constants.ts",
+      "line": 30,
+      "signature": "type TTemporalUnit = TConstValue<typeof TemporalUnits>"
+    },
+    {
+      "name": "TemporalHelper",
+      "package": "@venizia/ignis-helpers",
+      "subpath": "./temporal",
+      "specifier": "@venizia/ignis-helpers/temporal",
+      "kind": "class",
+      "file": "packages/helpers/src/modules/temporal/helper.ts",
+      "line": 58,
+      "signature": "class TemporalHelper extends BaseHelper"
+    },
+    {
+      "name": "TemporalUnits",
+      "package": "@venizia/ignis-helpers",
+      "subpath": "./temporal",
+      "specifier": "@venizia/ignis-helpers/temporal",
+      "kind": "class",
+      "file": "packages/helpers/src/modules/temporal/common/constants.ts",
+      "line": 4,
+      "signature": "class TemporalUnits"
+    },
+    {
       "name": "IUuidInspection",
       "package": "@venizia/ignis-helpers",
       "subpath": "./uuid",
@@ -27925,7 +28633,7 @@
       "specifier": "@venizia/ignis-helpers/uuid",
       "kind": "const",
       "file": "packages/helpers/src/modules/uid/uuid/v4.ts",
-      "line": 6,
+      "line": 10,
       "signature": "createUuidV4: () => (() => string)"
     },
     {
@@ -27945,7 +28653,7 @@
       "specifier": "@venizia/ignis-helpers/uuid",
       "kind": "const",
       "file": "packages/helpers/src/modules/uid/uuid/v7.ts",
-      "line": 10,
+      "line": 16,
       "signature": "createUuidV7: () => (() => string)"
     },
     {
@@ -27955,7 +28663,7 @@
       "specifier": "@venizia/ignis-helpers/uuid",
       "kind": "const",
       "file": "packages/helpers/src/modules/uid/uuid/v4.ts",
-      "line": 54,
+      "line": 59,
       "signature": "uuidV4: () => string"
     },
     {
@@ -27965,7 +28673,7 @@
       "specifier": "@venizia/ignis-helpers/uuid",
       "kind": "const",
       "file": "packages/helpers/src/modules/uid/uuid/v5.ts",
-      "line": 99,
+      "line": 107,
       "signature": "uuidV5: (opts: { namespace: string; name: string; }) => string"
     },
     {
@@ -27975,7 +28683,7 @@
       "specifier": "@venizia/ignis-helpers/uuid",
       "kind": "const",
       "file": "packages/helpers/src/modules/uid/uuid/v7.ts",
-      "line": 105,
+      "line": 107,
       "signature": "uuidV7: () => string"
     },
     {
@@ -28855,7 +29563,7 @@
       "specifier": "@venizia/ignis-kernel",
       "kind": "class",
       "file": "packages/kernel/src/base/repositories/core/abstract.ts",
-      "line": 28,
+      "line": 34,
       "signature": "class AbstractRepository<TDataObject extends object, TPersistObject extends object = TDataObject, TOptions extends IExtraOptions = IExtraOptions> extends BaseHelper implements IPersistableRepository<TDataObject, TPersistObject, TOptions>"
     },
     {
@@ -30269,16 +30977,6 @@
       "signature": "interface IReadableRepository<TDataObject extends object = object, ExtraOptions extends IExtraOptions = IExtraOptions> extends IRepository"
     },
     {
-      "name": "IRecursiveTreeOptions",
-      "package": "@venizia/ignis-kernel",
-      "subpath": ".",
-      "specifier": "@venizia/ignis-kernel",
-      "kind": "interface",
-      "file": "packages/kernel/src/base/repositories/sqls/recursive-tree.ts",
-      "line": 39,
-      "signature": "interface IRecursiveTreeOptions"
-    },
-    {
       "name": "IRepository",
       "package": "@venizia/ignis-kernel",
       "subpath": ".",
@@ -30697,26 +31395,6 @@
       "file": "packages/kernel/src/base/controllers/factory/crud/readable.ts",
       "line": 33,
       "signature": "class ReadableCrudController<TEntity extends AbstractEntity<TAnyObjectSchema> = AbstractEntity<TAnyObjectSchema>, RouteEnv extends Env = Env, RouteSchema extends Schema = {}, BasePath extends string = '/', ConfigurableOptions extends object = {}, TDataObject extends object = TEntityDataObject<TEntit"
-    },
-    {
-      "name": "RecursiveTreeDirections",
-      "package": "@venizia/ignis-kernel",
-      "subpath": ".",
-      "specifier": "@venizia/ignis-kernel",
-      "kind": "class",
-      "file": "packages/kernel/src/base/repositories/sqls/recursive-tree.ts",
-      "line": 9,
-      "signature": "class RecursiveTreeDirections"
-    },
-    {
-      "name": "RecursiveTreeSql",
-      "package": "@venizia/ignis-kernel",
-      "subpath": ".",
-      "specifier": "@venizia/ignis-kernel",
-      "kind": "class",
-      "file": "packages/kernel/src/base/repositories/sqls/recursive-tree.ts",
-      "line": 80,
-      "signature": "class RecursiveTreeSql"
     },
     {
       "name": "RelationBuilderRegistry",
@@ -31879,16 +32557,6 @@
       "signature": "type TQueryOperatorHandlers = Record<string, (opts: { column: AnyType; value: AnyType; }) => SQL | undefined>"
     },
     {
-      "name": "TRecursiveTreeDirection",
-      "package": "@venizia/ignis-kernel",
-      "subpath": ".",
-      "specifier": "@venizia/ignis-kernel",
-      "kind": "type",
-      "file": "packages/kernel/src/base/repositories/sqls/recursive-tree.ts",
-      "line": 19,
-      "signature": "type TRecursiveTreeDirection = TConstValue<typeof RecursiveTreeDirections>"
-    },
-    {
       "name": "TRegistryDescriptor",
       "package": "@venizia/ignis-kernel",
       "subpath": ".",
@@ -33005,8 +33673,38 @@
       "specifier": "@venizia/ignis-kernel/repository",
       "kind": "class",
       "file": "packages/kernel/src/base/repositories/core/abstract.ts",
-      "line": 28,
+      "line": 34,
       "signature": "class AbstractRepository<TDataObject extends object, TPersistObject extends object = TDataObject, TOptions extends IExtraOptions = IExtraOptions> extends BaseHelper implements IPersistableRepository<TDataObject, TPersistObject, TOptions>"
+    },
+    {
+      "name": "CoreErrorCodes",
+      "package": "@venizia/ignis-kernel",
+      "subpath": "./repository",
+      "specifier": "@venizia/ignis-kernel/repository",
+      "kind": "class",
+      "file": "packages/kernel/src/common/error-codes.ts",
+      "line": 10,
+      "signature": "class CoreErrorCodes"
+    },
+    {
+      "name": "DEFAULT_LIMIT",
+      "package": "@venizia/ignis-kernel",
+      "subpath": "./repository",
+      "specifier": "@venizia/ignis-kernel/repository",
+      "kind": "const",
+      "file": "packages/kernel/src/base/repositories/common/constants.ts",
+      "line": 5,
+      "signature": "DEFAULT_LIMIT = 10"
+    },
+    {
+      "name": "DEFAULT_MAX_LIMIT",
+      "package": "@venizia/ignis-kernel",
+      "subpath": "./repository",
+      "specifier": "@venizia/ignis-kernel/repository",
+      "kind": "const",
+      "file": "packages/kernel/src/base/repositories/common/constants.ts",
+      "line": 18,
+      "signature": "DEFAULT_MAX_LIMIT = 1000"
     },
     {
       "name": "ICreatableRepository",
@@ -33087,6 +33785,36 @@
       "file": "packages/kernel/src/base/repositories/common/types/contracts.ts",
       "line": 76,
       "signature": "interface IUpdatableRepository<TDataObject extends object = object, TPersistObject extends object = TDataObject, ExtraOptions extends IExtraOptions = IExtraOptions> extends IRepository"
+    },
+    {
+      "name": "RepositoryOperationScopes",
+      "package": "@venizia/ignis-kernel",
+      "subpath": "./repository",
+      "specifier": "@venizia/ignis-kernel/repository",
+      "kind": "class",
+      "file": "packages/kernel/src/base/repositories/common/constants.ts",
+      "line": 21,
+      "signature": "class RepositoryOperationScopes"
+    },
+    {
+      "name": "SchemaTypes",
+      "package": "@venizia/ignis-kernel",
+      "subpath": "./repository",
+      "specifier": "@venizia/ignis-kernel/repository",
+      "kind": "class",
+      "file": "packages/kernel/src/base/models/common/constants.ts",
+      "line": 3,
+      "signature": "class SchemaTypes"
+    },
+    {
+      "name": "SearchErrorCodes",
+      "package": "@venizia/ignis-kernel",
+      "subpath": "./repository",
+      "specifier": "@venizia/ignis-kernel/repository",
+      "kind": "class",
+      "file": "packages/kernel/src/common/error-codes.ts",
+      "line": 18,
+      "signature": "class SearchErrorCodes"
     },
     {
       "name": "TCount",
@@ -33177,6 +33905,16 @@
       "file": "packages/kernel/src/base/repositories/common/types/results.ts",
       "line": 12,
       "signature": "buildDataRange: (opts: { skip?: number; offset?: number; dataLength: number; total: number; }) => TDataRange"
+    },
+    {
+      "name": "throwNotSupported",
+      "package": "@venizia/ignis-kernel",
+      "subpath": "./repository",
+      "specifier": "@venizia/ignis-kernel/repository",
+      "kind": "const",
+      "file": "packages/kernel/src/utilities/error.utility.ts",
+      "line": 7,
+      "signature": "throwNotSupported: (opts: { scope: string; feature: string; logger: ILogger; }) => never"
     },
     {
       "name": "BFF_SYNTHETIC_ORIGIN",

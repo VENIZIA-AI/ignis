@@ -12,6 +12,9 @@ Exhaustive reference for the `@model` decorator, the entity class hierarchy, and
 
 - [`packages/kernel/src/base/models/base.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/kernel/src/base/models/base.ts) - neutral `AbstractEntity`
 - [`packages/connectors/src/relational/core/models/base.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/connectors/src/relational/core/models/base.ts) - relational entity `BaseRelationalEntity`
+- [`packages/connectors/src/relational/core/models/factory.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/connectors/src/relational/core/models/factory.ts) - `ModelFactory.defineEntity`, `TDefinedEntityClass`
+- [`packages/connectors/src/relational/core/models/relations.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/connectors/src/relational/core/models/relations.ts) - `one`, `many`, `toRelationConfigs`
+- [`packages/connectors/src/relational/core/repositories/dialect/relations/one.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/connectors/src/relational/core/repositories/dialect/relations/one.ts) - how a `one` relation finds its columns
 - [`packages/connectors/src/relational/postgres/models/index.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/connectors/src/relational/postgres/models/index.ts) - the `BaseEntity`/`BasePostgresEntity` aliases
 - [`packages/kernel/src/base/metadata/persistents.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/kernel/src/base/metadata/persistents.ts) - `@model` decorator
 - [`packages/connectors/src/relational/postgres/models/enrichers`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/connectors/src/relational/postgres/models/enrichers) - schema enrichers
@@ -126,7 +129,7 @@ Relational entity class, wrapping a Drizzle ORM schema. Extends the neutral `Abs
 
 | Property | Type | Description |
 |----------|------|-------------|
-| `schema` | `TTableSchemaWithId` | Drizzle table schema defined with `pgTable()` |
+| `schema` | `Table` | The Drizzle table. Typed `Table` on the base so a factory-built class can carry its precise table; a subclass that assigns its own keeps the precise type. The instance `schema` is the typed contract |
 | `relations` | `TValueOrResolver<Array<TRelationConfig>>` | Relation definitions (can be a function for lazy loading to avoid circular deps) |
 | `TABLE_NAME` | `string \| undefined` | Optional table name (defaults to class name if not set) |
 | `AUTHORIZATION_SUBJECT` | `string \| undefined` | Authorization principal name. Auto-populated from `@model` `settings.authorize.principal` |
@@ -176,26 +179,30 @@ const selectSchema = user.getSchema({ type: 'select' });
 const updateSchema = user.getSchema({ type: 'update' });
 ```
 
-An invalid `type` throws. The `schemaFactory` is a static lazy singleton created via `drizzle-zod`'s `createSchemaFactory()`, shared across all entity instances to avoid per-entity overhead.
+An invalid `type` throws. The Zod generator is a lazy singleton, created once through `drizzle-zod`'s `createSchemaFactory()` and shared by every entity. It is private to the module - there is no `schemaFactory` member to call.
 
 ### Class definition
 
 ```typescript
+/** Lazy singleton, shared by every entity. */
+let schemaFactory: ReturnType<typeof createSchemaFactory> | undefined;
+const getSchemaFactory = (): ReturnType<typeof createSchemaFactory> =>
+  (schemaFactory ??= createSchemaFactory());
+
 export class BaseRelationalEntity<Schema extends TTableSchemaWithId = TTableSchemaWithId>
   extends AbstractEntity
   implements IEntity<Schema>
 {
   schema: Schema;
 
-  static schema: TTableSchemaWithId;
-  static relations?: TValueOrResolver<Array<TRelationConfig>>;
+  // Phantom type carriers (no runtime value)
+  declare readonly $inferData?: TTableObject<Schema>;
+  declare readonly $inferPersist?: TTableInsert<Schema>;
+
   static TABLE_NAME?: string;
   static AUTHORIZATION_SUBJECT?: string;
-
-  private static _schemaFactory?: ReturnType<typeof createSchemaFactory>;
-  protected static get schemaFactory(): ReturnType<typeof createSchemaFactory> {
-    return (BaseRelationalEntity._schemaFactory ??= createSchemaFactory());
-  }
+  static schema: Table;
+  static relations?: TValueOrResolver<Array<TRelationConfig>>;
 
   constructor(opts?: { name?: string; schema?: Schema }) {
     const ctor = new.target as typeof BaseRelationalEntity;
@@ -209,7 +216,7 @@ export class BaseRelationalEntity<Schema extends TTableSchemaWithId = TTableSche
   }
 
   getSchema<T = unknown>(opts: { type: TSchemaType }): T {
-    const factory = BaseRelationalEntity.schemaFactory;
+    const factory = getSchemaFactory();
     switch (opts.type) {
       case SchemaTypes.CREATE:
         return factory.createInsertSchema(this.schema) as T;
@@ -226,9 +233,27 @@ export class BaseRelationalEntity<Schema extends TTableSchemaWithId = TTableSche
 
 ## Definition patterns
 
-`BaseEntity` supports two patterns for defining models.
+A model can be written three ways. New models use the first; the other two keep working.
 
-### Static properties (recommended)
+### `ModelFactory.defineEntity` (recommended)
+
+Declare the table, then build the class from it. The full contract is in [`ModelFactory.defineEntity`](#modelfactory-defineentity).
+
+```typescript
+import { model } from '@venizia/ignis';
+import { generateIdColumnDefs, ModelFactory } from '@venizia/ignis/postgres';
+import { pgTable, text } from 'drizzle-orm/pg-core';
+
+export const userTable = pgTable('User', {
+  ...generateIdColumnDefs({ id: { dataType: 'string' } }),
+  name: text('name').notNull(),
+});
+
+@model({ type: 'entity' })
+export class User extends ModelFactory.defineEntity({ table: userTable }) {}
+```
+
+### Static properties
 
 Define schema and relations as static properties. Repositories auto-resolve them.
 
@@ -277,6 +302,131 @@ export class User extends BaseEntity<typeof userTable> {
   }
 }
 ```
+
+## `ModelFactory.defineEntity`
+
+Builds an entity class from a drizzle table, so the table name, the id and the relations are each stated once.
+
+`Source ->` [`packages/connectors/src/relational/core/models/factory.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/connectors/src/relational/core/models/factory.ts)
+
+```typescript
+import { many, ModelFactory, one } from '@venizia/ignis/postgres';
+import type { TDefinedEntityClass, TEntityObject } from '@venizia/ignis/postgres';
+```
+
+```typescript
+class ModelFactory {
+  static defineEntity<
+    Schema extends TTableSchemaWithId,
+    Relations extends TRelationDefinitions = {},
+  >(opts: { table: Schema; relations?: () => Relations }): TDefinedEntityClass<Schema, Relations>;
+}
+```
+
+It ships from `@venizia/ignis/postgres` and from `@venizia/ignis-connectors/relational`, `/postgres` and `/sqlite`.
+
+### Options
+
+| Option | Type | Default | Meaning |
+|---|---|---|---|
+| `table` | `TTableSchemaWithId` | - | A plain drizzle table: `pgTable`, `pgSchema(...).table` or `sqliteTable`, with an `id` column - usually `...generateIdColumnDefs({ id: { dataType: 'string' } })` for a UUID v7 id |
+| `relations` | `() => TRelationDefinitions` | none | Relations keyed by name, built with `one()` and `many()`. Read on first use and once, so it may name a table declared later in the file |
+
+### The returned class
+
+`TDefinedEntityClass<Schema, Relations>` is `typeof BaseRelationalEntity<Schema>` plus these statics, typed precisely:
+
+| Static | Type | Value |
+|---|---|---|
+| `TABLE_NAME` | `string` | `getTableName(table)` |
+| `schema` | `Schema` | The table you passed |
+| `relationDefinitions` | `Relations \| undefined` | The keyed relations - `undefined` when there are none |
+| `relations` | `TValueOrResolver<Array<TRelationConfig>>` | The array form the query dialect reads, built once |
+
+Every other member is inherited: the instance `schema`, `getSchema({ type })`, `getIdType()`, and `AUTHORIZATION_SUBJECT`. Extend the class and decorate it with `@model` as usual.
+
+### Relation helpers
+
+| Helper | Signature | Builds |
+|---|---|---|
+| `one` | `one(table, metadata?)` | A to-one relation. `metadata` is drizzle's `one()` options, every field optional |
+| `many` | `many(table, metadata?)` | A to-many relation. `metadata.relationName` names the `one` on the other table it pairs with |
+| `toRelationConfigs` | `toRelationConfigs({ relations })` | Flattens the keyed form into `Array<TRelationConfig>`, each named by its key |
+
+A relation points at a **table**, never at an entity class - passing a class does not compile. That is why two entities that relate both ways, a self relation (parent and children), and relations across files all keep their row types.
+
+A `one` relation's name is also its drizzle `relationName`, unless its metadata sets one. So `many(featureTable, { relationName: 'policy' })` pairs with the `policy: one(policyTable)` declared on the feature entity.
+
+### How `one` finds its columns
+
+The same rules apply to a hand-written `relations` array.
+
+| The source table has | `one(target)` resolves to |
+|---|---|
+| `fields` and `references` both written | Those, as written |
+| Only one of `fields` and `references` | An error |
+| Exactly one foreign key to the target (`.references(() => target.id)`) | That key's columns |
+| Two or more foreign keys to the target, one not claimed by a `one` written out on the same entity | That key's columns |
+| Two or more foreign keys to the target, otherwise | An error naming the columns left - write `fields` and `references` |
+| No key, but the target has one back | The inverse side of a one-to-one - see [Pairing the inverse side](#pairing-the-inverse-side) |
+| No key, but the target has two or more back | An error naming the columns - write `fields` and `references` on this side, reversed |
+| No key either way | An error - add `.references()` to the column, or write `fields` and `references` |
+
+A key is claimed when a `one` on the same entity writes exactly its columns as `fields`. With `author_id` and `editor_id` both keying users, write `author` out and `editor: one(usersTable)` reads `editor_id`. Add a third key and `editor` is refused again.
+
+A `one` to its own table follows the same rules, plus one: only one such `one` per entity may leave out `fields`. One self key cannot back both `previous` and `next`, so the second writes its columns, reversed.
+
+Each error is thrown when the datasource builds its schema, with the relation's name and the tables in the message.
+
+### Pairing the inverse side
+
+The inverse side carries no columns. drizzle reads them off the `one()` on the table that owns the key, so that entity must declare one:
+
+```typescript
+export const userTable = pgTable('User', {
+  ...generateIdColumnDefs({ id: { dataType: 'string' } }),
+});
+
+export const profileTable = pgTable('Profile', {
+  ...generateIdColumnDefs({ id: { dataType: 'string' } }),
+  userId: text('user_id').notNull().references((): AnyPgColumn => userTable.id),
+});
+
+@model({ type: 'entity' })
+export class User extends ModelFactory.defineEntity({
+  table: userTable,
+  relations: () => ({ profile: one(profileTable) }), // the inverse side
+}) {}
+
+@model({ type: 'entity' })
+export class Profile extends ModelFactory.defineEntity({
+  table: profileTable,
+  relations: () => ({ user: one(userTable) }), // owns the key - `profile` pairs with it
+}) {}
+```
+
+Leave out `user` and schema discovery fails. The datasource pairs every relation once, when it builds its schema, the way drizzle does on a query. That is at boot when `configure()` reads `getSchema()`, otherwise on the datasource's first query. An inverse `one` with nothing back fails there, with the entity and the relation named. Any other relation it cannot pair - a `many` whose `relationName` matches no `one` - logs a warning there, and still fails the queries that include it. A relation to a table that no model on this datasource uses logs nothing at warn level: a datasource that carries a subset of models is a normal shape, so they collapse into one debug line per datasource.
+
+The inverse side takes no `relationName`. When the key's table has more than one key or relation back, or you cannot declare the `one()` back, write the columns on this side, reversed:
+
+```typescript
+// On User: walks profileTable.userId back
+profile: one(profileTable, { fields: [userTable.id], references: [profileTable.userId] }),
+
+// On a linked-list node, beside previous: one(nodeTable): walks the self key back
+next: one(nodeTable, { fields: [nodeTable.id], references: [nodeTable.previousId] }),
+```
+
+### `TEntityObject`
+
+`TEntityObject<typeof Entity>` is a row of the entity plus its relations. A `many` relation is an optional array of the related table's rows, and a `one` relation an optional row. An entity without relations gives a plain row.
+
+```typescript
+export type TPolicy = TEntityObject<typeof Policy>;
+// { id: string; title: string; features?: Array<TTableObject<typeof featureTable>> }
+```
+
+The row is read off the instance's `$inferData`, not off the static `schema`, so an unknown key is still refused.
 
 ## Hidden properties
 
@@ -741,14 +891,14 @@ enrichDataTypes(baseSchema: TColumnDefinitions, opts?: TDataTypeEnricherOptions)
 
 ## Key types
 
-`Source ->` [`packages/connectors/src/relational/postgres/models/common`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/connectors/src/relational/postgres/models/common)
+`Source ->` [`packages/connectors/src/relational/core/models/common/types.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/connectors/src/relational/core/models/common/types.ts)
 
 ### `TTableSchemaWithId`
 
-Ensures a Drizzle `PgTable` has an `id` column:
+Any Drizzle table with an `id` column. `PgTable` and `SQLiteTable` both extend `Table`, so both fit:
 
 ```typescript
-type TTableSchemaWithId<TC extends TableConfig = TableConfig> = PgTable<TC> & {
+type TTableSchemaWithId<TC extends TableConfig = TableConfig> = Table<TC> & {
   id: TIdColumn;
 };
 ```
@@ -766,16 +916,18 @@ type TTableInsert<T extends TTableSchemaWithId> = T['$inferInsert'];
 
 Configuration for entity relationships.
 
-`Source ->` [`packages/connectors/src/relational/postgres/repositories/common/types.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/connectors/src/relational/postgres/repositories/common/types.ts)
+`Source ->` [`packages/connectors/src/relational/core/repositories/common/types.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/connectors/src/relational/core/repositories/common/types.ts)
 
 ```typescript
 type TRelationConfig = {
   name: string;
 } & (
-  | { type: 'one'; schema: TTableSchemaWithId; metadata: /* Drizzle one() params */ }
+  | { type: 'one'; schema: TTableSchemaWithId; metadata?: /* Partial<Drizzle one() params> */ }
   | { type: 'many'; schema: TTableSchemaWithId; metadata: /* Drizzle many() params */ }
 );
 ```
+
+A `one` relation may leave out `fields` and `references`: they are read off the table's foreign key, by the rules in [How `one` finds its columns](#how-one-finds-its-columns).
 
 Relation types are defined in the `RelationTypes` class: `RelationTypes.ONE` (`'one'`, one-to-one or many-to-one) and `RelationTypes.MANY` (`'many'`, one-to-many). See [Relations](/references/base/repositories/relations).
 

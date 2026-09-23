@@ -86,7 +86,7 @@ APP_ENV_LOGGER_FOLDER_PATH=./logs
 | Variable | Required | Default | Description |
 |----------|----------|---------|-------------|
 | `APP_ENV_APPLICATION_NAME` | No | `APP` | Application name, used in logs and identification |
-| `APP_ENV_APPLICATION_TIMEZONE` | No | `Asia/Ho_Chi_Minh` | Default timezone for date operations |
+| `APP_ENV_APPLICATION_TIMEZONE` | No | `Asia/Ho_Chi_Minh` | The zone the startup banner prints. No date operation reads it - pass `timeZone` to [`TemporalHelper`](/extensions/helpers/temporal/) |
 | `APP_ENV_APPLICATION_ROLES` | No | - | Comma-separated list of application roles |
 
 ### Example

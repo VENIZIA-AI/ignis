@@ -17,6 +17,8 @@ This section tracks the history of significant changes, refactors, and updates t
 
 | Date | Title | Type |
 |------|-------|------|
+| 2026-09-19 | [Dates Move Out, and Every Entry Loads On Its Own](./2026-09-19-prerelease-hardening) | Breaking |
+| 2026-09-19 | [A Model Declares Each Fact Once](./2026-09-19-define-entity) | Feature |
 | 2026-09-15 | [One Endpoint Option, Two Audiences](./2026-09-15-endpoint-default-and-public) | Breaking |
 | 2026-09-14 | [A Browser Can Upload Straight To Storage](./2026-09-14-direct-upload-post-policy) | Feature |
 | 2026-09-14 | [An Application Declares No Artifacts](./2026-09-14-an-application-declares-no-artifacts) | Feature |

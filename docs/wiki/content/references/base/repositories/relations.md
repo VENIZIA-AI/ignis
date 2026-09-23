@@ -47,7 +47,48 @@ Each element of the `include` array accepts:
 
 ## Declaring relations on a model
 
-Relations are declared as a static `relations` resolver on the model, returning an array of `TRelationConfig`. `MetadataRegistry` resolves the array during schema discovery and passes it to `createRelations`. `createRelations` builds the actual Drizzle `relations()` definition - application code never calls it directly.
+A model built with `ModelFactory.defineEntity` declares its relations keyed by name, each pointing at a **table**:
+
+```typescript
+// src/models/user.model.ts
+import { model } from '@venizia/ignis';
+import { generateIdColumnDefs, many, ModelFactory, one } from '@venizia/ignis/postgres';
+import { pgTable, text } from 'drizzle-orm/pg-core';
+import type { AnyPgColumn } from 'drizzle-orm/pg-core';
+
+export const userTable = pgTable('User', {
+  ...generateIdColumnDefs({ id: { dataType: 'string' } }),
+  name: text('name').notNull(),
+});
+
+export const postTable = pgTable('Post', {
+  ...generateIdColumnDefs({ id: { dataType: 'string' } }),
+  authorId: text('author_id').notNull().references((): AnyPgColumn => userTable.id),
+  title: text('title').notNull(),
+});
+
+@model({ type: 'entity' })
+export class User extends ModelFactory.defineEntity({
+  table: userTable,
+  relations: () => ({ posts: many(postTable, { relationName: 'author' }) }),
+}) {}
+
+@model({ type: 'entity' })
+export class Post extends ModelFactory.defineEntity({
+  table: postTable,
+  relations: () => ({ author: one(userTable) }),
+}) {}
+```
+
+- **`one(userTable)` needs no `fields`.** `postTable` has exactly one foreign key to `userTable`, so the columns are read off it. The full rules, including two keys to one table, are in [How `one` finds its columns](/references/base/models-reference#how-one-finds-its-columns).
+- **A `many` pairs with the `one` its `relationName` names.** A `one` relation's key is also its drizzle `relationName`, so `posts` pairs with `author`.
+- **An inverse `one` pairs with the `one` back.** `profile: one(profileTable)` on User, where the key is on `profileTable`, needs Profile to declare `user: one(userTable)` - see [Pairing the inverse side](/references/base/models-reference#pairing-the-inverse-side).
+- **Every relation is paired once, when the datasource builds its schema.** A relation that cannot pair fails there, naming the entity and the relation - not on the first query that includes it.
+- **The thunk runs on first use, once.** That is what lets the two models live in two files without importing each other.
+
+### The class form
+
+A class-based model declares a static `relations` resolver instead, returning an array of `TRelationConfig`. `MetadataRegistry` resolves the array during schema discovery and passes it to `createRelations`. `createRelations` builds the actual Drizzle `relations()` definition - application code never calls it directly.
 
 ```typescript
 // src/models/user.model.ts
@@ -69,7 +110,7 @@ export class User extends BaseEntity<typeof User.schema> {
       name: 'posts',
       type: RelationTypes.MANY,
       schema: Post.schema,
-      metadata: { relationName: 'posts' },
+      metadata: { relationName: 'author' }, // pairs with the `author` one on Post
     },
   ];
 }
@@ -84,7 +125,7 @@ Write the resolver as an arrow function (`() => [...]`), not a plain array. IGNI
 | `name` | `string` | Relation name used in `include` |
 | `type` | `RelationTypes.ONE` \| `RelationTypes.MANY` | Which Drizzle relation helper to build |
 | `schema` | `TTableSchemaWithId` | The related model's Drizzle table schema |
-| `metadata` | inferred from Drizzle's `one()`/`many()` params | `{ fields, references, relationName? }` for `ONE`; `{ relationName? }` for `MANY` |
+| `metadata` | inferred from Drizzle's `one()`/`many()` params | Optional for `ONE`: `{ fields?, references?, relationName? }` - `fields` and `references` are read off the foreign key when left out. `{ relationName? }` for `MANY` |
 
 `metadata`'s shape comes straight from Drizzle's own `one()`/`many()` parameter types, not a hand-duplicated one.
 
@@ -96,7 +137,7 @@ Write the resolver as an arrow function (`() => [...]`), not a plain array. IGNI
 | `RelationTypes.MANY` (`'many'`) | `many()` | One-to-many | User has many Posts |
 
 > [!NOTE]
-> LoopBack 4 names these `hasMany`/`hasOne`/`belongsTo`. IGNIS uses Drizzle ORM's relation model instead, which has only `one` and `many`. A "belongsTo" relationship is `type: RelationTypes.ONE` with `fields` (the local foreign key) and `references` (the remote primary key) in `metadata`.
+> LoopBack 4 names these `hasMany`/`hasOne`/`belongsTo`. IGNIS uses Drizzle ORM's relation model instead, which has only `one` and `many`. A "belongsTo" relationship is `type: RelationTypes.ONE` - its `fields` (the local foreign key) and `references` (the remote primary key) are read off the table, or written in `metadata`.
 
 ### A model with both types
 
@@ -121,7 +162,7 @@ export class Post extends BaseEntity<typeof Post.schema> {
       name: 'comments',
       type: RelationTypes.MANY,
       schema: Comment.schema,
-      metadata: { relationName: 'comments' },
+      metadata: { relationName: 'post' }, // pairs with the `post` one on Comment
     },
   ];
 }
@@ -265,7 +306,19 @@ async function getUser(id: string, includePosts: boolean) {
 
 ### Type included results with a generic
 
-`findOne`/`find` accept a type argument for the shape `include` produces, so the result is fully typed instead of falling back to the base entity:
+For a model built with `defineEntity`, `TEntityObject<typeof User>` is the row plus every declared relation, each optional:
+
+```typescript
+import type { TEntityObject } from '@venizia/ignis/postgres';
+
+const user = await userRepository.findOne<TEntityObject<typeof User>>({
+  filter: { where: { id: '123' }, include: [{ relation: 'posts' }] },
+});
+
+user?.posts?.[0].title; // string
+```
+
+For a class-based model, write the shape `include` produces as the type argument, so the result is fully typed instead of falling back to the base entity:
 
 ```typescript
 type UserWithPosts = User & {

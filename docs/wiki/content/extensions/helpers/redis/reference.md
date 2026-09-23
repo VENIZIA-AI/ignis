@@ -109,7 +109,7 @@ const redis = new RedisSingleHelper({
 
 ### IRedisSingleHelperOptions
 
-Combines `IRedisSingleHelperProps` and `IRedisHelperCallbacks`.
+Combines `IRedisSingleHelperProps`, `IRedisHelperCallbacks` and `IRedisModuleOption`.
 
 | Field | Type | Required | Default | Description |
 |-------|------|----------|---------|-------------|
@@ -121,6 +121,7 @@ Combines `IRedisSingleHelperProps` and `IRedisHelperCallbacks`.
 | `database` | `number` | No | `0` | Redis database index (0-15) |
 | `autoConnect` | `boolean` | No | `true` | Connect immediately; `false` uses ioredis `lazyConnect` |
 | `maxRetry` | `number` | No | `0` | Reconnect attempts before giving up. `0` (default) = no reconnect; `-1` = reconnect forever |
+| `module` | `typeof import('ioredis')` | No | loaded by name | `ioredis` itself, for a `bun build --compile` binary with no `node_modules` - see [Run in a compiled binary](/extensions/helpers/redis/#run-in-a-compiled-binary) |
 | `onInitialized` | `(opts: { name: string; helper: IRedisHelper }) => void` | No | - | Fired synchronously after construction |
 | `onConnected` | `(opts: { name: string; helper: IRedisHelper }) => void` | No | - | Fired on TCP connection established |
 | `onReady` | `(opts: { name: string; helper: IRedisHelper }) => void` | No | - | Fired when client is ready for commands |
@@ -184,6 +185,7 @@ const cluster = new RedisClusterHelper({
 | `nodes` | `Array<{ host: string; port: string \| number; password?: string }>` | Yes | - | Startup nodes - ioredis discovers the rest |
 | `autoConnect` | `boolean` | No | `true` | Connect immediately; `false` sets `lazyConnect` so you call `connect()` later |
 | `clusterOptions` | `ClusterOptions` | No | - | Merged over the two defaults below, then passed to `new Cluster(nodes, clusterOptions)` |
+| `module` | `typeof import('ioredis')` | No | loaded by name | Same as single |
 | `onInitialized` / `onConnected` / `onReady` / `onError` | callbacks | No | - | Same shape as single |
 
 ### Bind early, connect later
@@ -283,6 +285,7 @@ const redis = new RedisSentinelHelper({
 | `autoConnect` | `boolean` | No | `true` | Connect immediately |
 | `maxRetry` | `number` | No | `0` | Reconnect attempts before giving up. `0` (default) = no reconnect; `-1` = reconnect forever. See [Retry strategy](#retry-strategy) |
 | `redisOptions` | `Partial<RedisOptions>` | No | - | Extra ioredis options; first-class fields above always override matching keys here |
+| `module` | `typeof import('ioredis')` | No | loaded by name | Same as single |
 | `onInitialized` / `onConnected` / `onReady` / `onError` | callbacks | No | - | Same shape as single |
 
 ### Field clarity - name vs masterName
@@ -790,6 +793,7 @@ import type {
   IRedisSentinelHelperOptions,
   IRedisSentinelHelperProps,
   IRedisHelperCallbacks,
+  IRedisModuleOption,
   // Client + enum types
   TRedisClient,
   TRedisMode,

@@ -86,7 +86,7 @@ from a kernel sub-path instead.
 |---|---|---|
 | `@venizia/ignis-kernel` | Everything: applications, controllers, repositories, the REST surface | 161 KB gzipped |
 | `@venizia/ignis-kernel/metadata` | The stereotypes (`service`, `component`, `configuration`, `injectable`, `provide`, `model`, `datasource`, `repository`, `inject`), `BindingNamespaces`, `ArtifactNamespaces`, `ArtifactTypes`, `BindingKeys`, `MetadataRegistry` | **13.9 KB gzipped** |
-| `@venizia/ignis-kernel/repository` | `AbstractRepository`, `AbstractDataSource`, the CRUD contract interfaces, `buildDataRange`, and the filter vocabulary - without the OpenAPI layer | **14.7 KB gzipped** |
+| `@venizia/ignis-kernel/repository` | `AbstractRepository`, `AbstractDataSource`, `AbstractEntity`, the CRUD contract interfaces, `buildDataRange`, `DEFAULT_LIMIT`, `DEFAULT_MAX_LIMIT`, `RepositoryOperationScopes`, `CoreErrorCodes`, `SearchErrorCodes`, `throwNotSupported`, `SchemaTypes`, and the filter vocabulary - without the OpenAPI layer | **14.7 KB gzipped** |
 
 Both figures are the whole surface (`export *`). Naming what you import tree-shakes further - two
 symbols come to 11.0 KB.
@@ -96,7 +96,8 @@ import { service, BindingNamespaces } from '@venizia/ignis-kernel/metadata';
 ```
 
 The root barrel is heavy **correctly** - it carries the REST surface, and `base/controllers` needs
-zod. Every peer is optional, so a sub-path installs without a server HTTP framework.
+zod. Every peer is optional, so a sub-path installs without a server HTTP framework: `./metadata` and
+`./repository` load with neither `hono` nor `@hono/zod-openapi` installed.
 
 `./repository` exists because a repository talks to a **datasource**, and `AbstractDataSource` is
 engine-neutral: its only required member is `configure()`. An HTTP request to another server is a

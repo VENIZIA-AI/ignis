@@ -6,6 +6,80 @@ not how.
 This file and `index.md` are reserved OKF filenames - they carry no `type:` frontmatter and are not
 counted as concepts.
 
+## 2026-09-19 (d) - self-review fixes: Temporal adapters answer only an offset; debug gate; relation pairing
+
+Updated [helpers](/packages/helpers.md) and [connectors](/packages/connectors.md).
+
+- **`ITemporalAdapter` is one method, `getOffsetMilliseconds`.** The helper now builds the wall clock
+  and resolves DST gaps and repeats itself. dayjs and Luxon guessed a repeat from TODAY's offset, so
+  the same parse changed with the season. `startOf`/`endOf` of an hour or less keep each pass of
+  a repeated hour. Also fixed:
+  - pattern letter runs are whole tokens, so `MMM` is refused
+  - offsets carry seconds (historic LMT)
+  - offset fields are range-checked
+  - years are held to 1-9999 (an overflowing `add` is a 400)
+  - dayjs no longer maps years below 100 to 19xx
+
+  A dayjs host-zone caveat was documented here, then withdrawn on 2026-09-23 after measuring: the adapter reads only `utcOffset()`, which is host-independent.
+- **`debug` obeys `DEBUG` on every path.** The deferred helper logger calls level methods, not
+  `log()`. `BaseLogger.log` and `HfLogger.log` gate `debug`. A prototype read of `logger` no
+  longer pins it. The no-provider warning is Node-only, and once per process across CJS+ESM copies.
+- **Relation pairing.** An unpaired inverse `one` fails schema discovery. Any other unpaired relation
+  only warns there, so existing models keep booting. Other changes:
+  - a target keyed twice back, or two fields-less self `one`s, are refused with the reversed-fields
+    escape
+  - the postgres `TRelationConfig` is the core type
+  - foreign-key lookups are memoized per `createRelations` call
+- **Corrections from BANA's review (2026-09-23).** Lazy `ioredis` dates from helpers 0.2.0-37, not `@venizia/ignis` 0.2.0-45: every ignis 0.2.0 prerelease admits it on a fresh install. The dayjs advice no longer says "run with `TZ=UTC`" - that would move every other host-local dayjs call. The temporal `getDateTz` mapping now says there is no day-name token (`dddd` throws; use `parts().dayOfWeek`).
+- **Corrections from ARDOR's review (2026-09-23).** dayjs misreads sub-hour local mean time offsets before 1914 (documented). ISO parse takes an hour-only offset, only after a time. A fields-less `one()` skips foreign keys a written `one()` on the same entity already claims (only when two or more keys exist); one key left is inferred, zero or several are still refused - the self-reference guard uses the same exclusion.
+- **Structure (Phat, 2026-09-23): a file holds a class or loose functions, never both.** `dialect/relation.ts` became `dialect/relations/{one.ts (class OneRelations), many.ts (class ManyRelations), create.ts (createRelations), common/}`; discovery pairing moved out of `datasources/base.ts` into `RelationPairing`; `BaseHelper.pinLogger` and `NativeTemporalAdapter.isTemporalNamespace` moved to functions-only siblings (`logger/slot.ts` `pinHelperLogger`, `temporal/adapters/guards.ts`) - NOT private statics: a private member on an exported, extendable class breaks exported anonymous subclasses at declaration emit (TS4094); temporal token readers/writers moved to `temporal/tokens.ts` and wall-clock helpers to `calendar.ts`; the three pre-existing search files split too (`search/core/datasources/guards.ts`, `repositories/core/guards.ts`, `repositories/common/query-params.ts`). Public surface unchanged.
+- **Discovery noise cut (BANA boot, 2026-09-23).** Relations whose target table has no model on the datasource are one `debug` line per datasource, never a warning or a boot failure; the hint builder is `buildUnpairedRelationHint`, with plainer hints.
+- **Clean-install gate hardened (ARDOR G1-G6).** It refuses an ancestor `node_modules`, `NODE_PATH` or a home module root; asserts every `@venizia/*` lock entry resolves to the packed tarball; refuses an unclaimed published package (dev-configs has an explicit `configOnly` claim); reports a browser-claimed ESM entry no row loads; and refuses a `dist/` older than its `src/`. 532 checks (464 + one lock-pin per sandbox).
+- **Gates.** CI now runs `make test-scripts`. A uuid memory test that could not fail now measures
+  `external` against a fresh generator.
+
+## 2026-09-19 (c) - `defineEntity` goes table first; a typed `module` seam for compiled binaries
+
+Updated [connectors](/packages/connectors.md), [helpers](/packages/helpers.md) and
+[core](/packages/core-server.md).
+
+- **`defineEntity` redesigned before it shipped.** `ModelFactory.defineEntity({ table, relations? })`
+  now takes a plain drizzle table and lives in connectors core (exported by `./relational`,
+  `./postgres`, `./sqlite`). Relations point at tables; the thunk runs once, on first read.
+  `TEntityObject` reads the row off the instance. `one(table)` reads its columns off the foreign
+  key, for hand-written arrays too, and `TRelationConfig`'s ONE `metadata` became optional. The
+  `{ name, columns, ... }` shape of commit `28978cb0` never shipped.
+- **Compiled binaries.** The Redis helpers, `BullMQHelper`, `SocketIOClientHelper` and the mail
+  BullMQ executor take their optional peer as a typed `module` option; `ModuleUtility.register` still
+  works. Without either, a binary throws `ioredis is required` - since `@venizia/ignis` 0.2.0-45,
+  when `ioredis` became lazy. Proven by `compiled-binary.test.ts`.
+
+## 2026-09-19 (b) - dates leave helpers for `TemporalHelper`; uuid, logger and peer-loading fixes
+
+Updated [helpers](/packages/helpers.md), [kernel](/packages/kernel.md),
+[connectors](/packages/connectors.md), [core](/packages/core-server.md),
+[adding a helper](/process/adding-a-helper.md), [release and publish](/process/release-publish.md)
+and [build system](/process/build-system.md).
+
+- **Dates.** `utilities/date.utility.ts` is deleted: `isWeekday`, `getPreviousWeekday`,
+  `getNextWeekday`, `getDateTz`, the re-exported `dayjs` and its import-time default zone are gone,
+  and `dayjs` is no longer a dependency. `sleep` stays; `hrTime` moved to `hr-time.utility.ts`.
+  The replacement is `TemporalHelper` on `@venizia/ignis-helpers/temporal` (also root and `/core`):
+  the helper does the calendar math, an `ITemporalAdapter` only converts zones, and the three
+  built-in adapters take the library as an argument. The zone is explicit (default `UTC`), never env.
+- **UUIDs.** Every generator ignores its arguments, so point-free use is safe. v7 never uses
+  `Bun.randomUUIDv7` (43 vs 58 ns, and it read call arguments as encoding and timestamp); v4 captures
+  `crypto.randomUUID` once. `uuidV5` takes the namespace in either case and accepts the nil UUID,
+  and refuses a lone surrogate. `UuidHelper.getInstance()` is per module copy. v4 is at parity with
+  `uuid@14`, not faster.
+- **Logger.** `BaseHelper.logger` resolves on first read and pins itself as a non-enumerable own
+  property; an early logger upgrades once `LoggerFactory` loads; no provider at all means the console
+  plus one `[BaseHelper]` warning per process. A subclass cannot redeclare `logger` (TS2610).
+- **Peers and entries.** `kernel/repository` and `connectors/http` load without `hono`; the search
+  entries lost their controllers to `./search/controllers`; `RecursiveTreeSql` moved from kernel to
+  connectors. `BullMQHelper` and `SocketIOClientHelper` load their peer lazily. Every `dist/esm`
+  carries `"type": "module"` and `.js` imports. New gate: `make clean-install`.
+
 ## 2026-09-19 - `defineEntity`: a model states each fact once
 
 Measured first, because the example in this repo understates it: BANA has 192 models, 191 of which

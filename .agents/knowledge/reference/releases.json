@@ -4217,6 +4217,32 @@
   },
   "changelogs": [
     {
+      "id": "changelog:2026-09-19-prerelease-hardening",
+      "file": "2026-09-19-prerelease-hardening.md",
+      "date": "2026-09-19",
+      "title": "Dates Move Out, and Every Entry Loads On Its Own",
+      "packages": [
+        "connectors",
+        "core-server",
+        "helpers",
+        "kernel"
+      ],
+      "kind": "Breaking",
+      "order": 9007199254740991
+    },
+    {
+      "id": "changelog:2026-09-19-define-entity",
+      "file": "2026-09-19-define-entity.md",
+      "date": "2026-09-19",
+      "title": "A Model Declares Each Fact Once",
+      "packages": [
+        "connectors",
+        "core-server"
+      ],
+      "kind": "New Feature",
+      "order": 1433
+    },
+    {
       "id": "changelog:2026-09-18-uuid-helper",
       "file": "2026-09-18-uuid-helper.md",
       "date": "2026-09-18",

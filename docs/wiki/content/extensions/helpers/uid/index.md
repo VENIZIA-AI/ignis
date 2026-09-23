@@ -40,16 +40,29 @@ uuid.v5({ namespace: UuidNamespaces.URL, name: 'orders/4711/refund' }); // alway
 | Idempotency key, deterministic ID | `v5({ namespace, name })` | The same inputs answer the same ID on every host, forever - there is no state to store |
 | Public identifier, random token | `v4()` | No clock, nothing to correlate a caller by, 122 random bits |
 
-`getInstance()` answers one instance per realm, which is what keeps v7 IDs from every caller in one climbing sequence. A `new UuidHelper()` is for a test that wants its own.
+`getInstance()` answers one instance per copy of the module. The instance holds no state of its own: every caller draws v7 IDs from one sequence shared by the whole realm, so the CommonJS and the ESM copy of this package still climb together.
+
+### Pass a generator point-free
+
+Every generator ignores the arguments it is called with, so you can hand one straight to a function that passes some:
+
+```typescript
+import { uuidV4, uuidV7 } from '@venizia/ignis-helpers/uuid';
+
+const orderIds = Array.from({ length: 3 }, uuidV7); // Array.from passes (undefined, index)
+const tokens = ['alice', 'bob'].map(uuidV4); // map passes (value, index, array)
+```
+
+The same holds for `createUuidV4()`, `createUuidV7()` and `UuidHelper.getInstance().v4` / `.v7`, and for Hono's `requestId({ generator: uuidV7 })`, which passes the request context.
 
 ### In a browser bundle, import the version you need
 
 `UuidHelper` is a thin facade over three functions, and every version is exported on its own from the `./uuid` subpath. A bundle that needs one random ID should import that one function - the facade references all three, and a bundler cannot drop what a class references, so importing it also carries v5's SHA-1 digest, a status-code table and the error surface its namespace guard needs.
 
-`uuidV4`, `uuidV5` and `uuidV7` each come from a factory - `createUuidV4()`, `createUuidV5()`, `createUuidV7()` - and the exported constant is the shared one every caller should use. Build your own only when a private sequence is the point, which in practice means a test: `createUuidV7()` gives a generator with its own counter, so a test can exercise the `getRandomValues` path with `Bun.randomUUIDv7` hidden without disturbing the shared sequence.
+`uuidV4`, `uuidV5` and `uuidV7` each come from a factory - `createUuidV4()`, `createUuidV5()`, `createUuidV7()` - and the exported constant is the shared one every caller should use. Build your own only when a private sequence is the point, which in practice means a test: `createUuidV7()` gives a generator with its own clock state and counter, so a test can drive it without disturbing the shared sequence.
 
 ```typescript
-// A browser framework that needs one tracing ID - 388 B gzipped
+// A browser framework that needs one tracing ID - 409 B gzipped
 import { uuidV4 } from '@venizia/ignis-helpers/uuid';
 
 const requestId = uuidV4();
@@ -59,10 +72,10 @@ Measured with `bun build --target=browser --minify`, gzipped, against the publis
 
 | Import | gzip |
 |---|---|
-| `uuidV4` from `./uuid` | **398 B** |
-| `uuidV7` from `./uuid` | **609 B** |
-| `uuidV5` from `./uuid` | 8.6 KB |
-| `UuidHelper` from `./uuid` or `./core` | 9.7 KB |
+| `uuidV4` from `./uuid` | **409 B** |
+| `uuidV7` from `./uuid` | **572 B** |
+| `uuidV5` from `./uuid` | 8.7 KB |
+| `UuidHelper` from `./uuid` or `./core` | 9.9 KB |
 
 The two small numbers are asserted by a test, not just measured once: `uuid-bundle-budget.test.ts` bundles each entry and fails if `uuidV4` passes 600 B or `uuidV7` passes 800 B. Re-exporting either through anything that reaches `getError` puts it back over budget, and that test is what catches it. v5 is allowed to be large - it needs the digest and a framework error for a bad namespace - and the budgets prove importing v4 does not drag it in.
 
@@ -84,6 +97,8 @@ Two things to hold onto:
 - **It is not a secret.** Anyone with the namespace and the name computes the same ID. Never use one as a share link, a reset token or an API key - that is what `v4()` is for.
 - **It gives a stable key, not exclusivity.** What enforces idempotency is the unique index on the column plus handling the conflict on insert. The ID only makes the second attempt recognisable.
 
+The namespace is read case-insensitively, and the nil UUID is accepted as one. A name holding a lone surrogate (malformed UTF-16) is refused with a 400: encoding would turn it into U+FFFD, and two different names would share an ID.
+
 The four namespaces RFC 9562 defines ship as `UuidNamespaces.DNS`, `.URL`, `.OID` and `.X500`. A namespace partitions the space, so the same name under two namespaces answers two IDs. If none of them fit, mint one with `v4()` **once** and pin it as a constant:
 
 ```typescript
@@ -103,13 +118,22 @@ uuid.inspect({ value: uuid.v4() }); // { version: 4 } - nothing to read out of r
 uuid.inspect({ value: 'not-a-uuid' }); // undefined
 ```
 
-A v7 timestamp can sit a few milliseconds **ahead** of the clock. 4096 IDs fit in one millisecond, and past that the generator borrows the next one to keep the sequence climbing - so a `createdAt` read during a burst leads the wall clock by roughly one millisecond per 4096 IDs.
+A v7 timestamp can sit a few milliseconds **ahead** of the clock. At least 2048 IDs fit in one millisecond (the counter starts at a random value below 2048 and climbs to 4095). Past that the generator borrows the next millisecond to keep the sequence climbing, so a `createdAt` read during a burst leads the wall clock by roughly one millisecond per 2048 to 4096 IDs.
 
 ### Why IGNIS mints these itself
 
-Every version here runs on a plain-http origin and inside a browser Worker, which is the constraint that rules out the obvious implementations: `crypto.randomUUID` is secure-context-only (on `http://<lan-ip>` it is `undefined` and the first call throws), `crypto.subtle.digest` is gated the same way and is asynchronous on top of it, and `node:crypto` is a Node builtin the browser-purity gate refuses. `v4()` falls back to `crypto.getRandomValues` and produces an identical shape; `v5()` carries its SHA-1 inline so it stays synchronous like the other two.
+Every version here runs on a plain-http origin and inside a browser Worker, which is the constraint that rules out the obvious implementations: `crypto.randomUUID` is secure-context-only (on `http://<lan-ip>` it is `undefined` and the first call throws), `crypto.subtle.digest` is gated the same way and is asynchronous on top of it, and `node:crypto` is a Node builtin the browser-purity gate refuses. `v4()` calls `crypto.randomUUID` with no argument where the realm allows it, and falls back to `crypto.getRandomValues` with an identical shape where it does not. `v5()` carries its SHA-1 inline, so it stays synchronous like the other two.
 
-Measured against `uuid@14.0.2`, median of seven alternating passes, 200,000 operations each: v4 32.6 ns against 36.1, v5 409.8 ns against 1508.8, v7 60.5 ns against 255.1. The v5 output is verified identical to that package's, to the published RFC test vector, and to the platform SHA-1 across padding boundaries.
+`v7()` never uses `Bun.randomUUIDv7`, on any runtime. Its own `getRandomValues` generator measured 43 ns against 58 ns for the native one, and the native one reads its arguments as an encoding and a timestamp. `Array.from({ length: 3 }, Bun.randomUUIDv7)` mints IDs stamped at the 1970 epoch.
+
+Measured against `uuid@14` on Bun 1.4.2, median. v4 runs at parity, because both call `crypto.randomUUID`. The other two do not:
+
+| Version | IGNIS | `uuid@14` |
+|---|---|---|
+| v5 | 395 ns | 1163 ns |
+| v7 | 43 ns | about 210 ns |
+
+The v5 output is verified identical to that package's, to the published RFC test vector, and to the platform SHA-1 across padding boundaries.
 
 ## In one example
 

@@ -52,6 +52,9 @@ keys instead of re-implementing `startBunModule`.
 framework reads (`APP_ENV_APPLICATION_NAME`, `APP_ENV_APPLICATION_TIMEZONE`,
 `APP_ENV_LOGGER_FOLDER_PATH`, `APP_ENV_SERVER_HOST`, `APP_ENV_SERVER_PORT`) and what is a
 convention an application reads for itself (the rest - setting them changes nothing).
+`APP_ENV_APPLICATION_TIMEZONE` feeds the startup banner line and nothing else: no date operation
+reads it, since `@venizia/ignis-helpers` stopped setting a dayjs default zone from it (dates take
+their zone from `TemporalHelper`'s `timeZone` - see [helpers](/packages/helpers.md)).
 `printStartUpInfo` reads every value through those constants at CALL time, not at module load, so
 a `.env` the entrypoint loads after importing `base.ts` is still seen. The `APP_ENV_*_DS_*` names
 were deleted on 2026-09-11: they fed one log line and selected no datasource.
@@ -97,7 +100,10 @@ barrel re-exports only the `postgres` connector, because it never value-imports 
 (`@venizia/ignis/relational`, `/sqlite`, `/search`, `/typesense`, `/meilisearch`), which is what keeps
 their client packages optional peers. A datasource's driver is named by passing the driver CLASS to
 `@datasource({ driver })`, not a string - a class reference is what actually pulls an optional peer
-into a consumer's bundle. DataSources auto-discover their schema from every `@repository` binding that
+into a consumer's bundle. `/search` and `/typesense` no longer carry the search controllers - they
+come from `@venizia/ignis/search/controllers` or `/typesense/controllers` - and `RecursiveTreeSql`
+moved from `kernel` to `connectors`; the root still exports it through the postgres alias (see
+[connectors](/packages/connectors.md)). DataSources auto-discover their schema from every `@repository` binding that
 references them; no manual schema wiring is needed.
 
 ## Components
@@ -112,6 +118,10 @@ and - through the wholesale kernel re-export, not from `src/components/` - `Rest
 `GrpcComponent`, `MailComponent`, `SocketIOComponent`, `StaticAssetComponent`, and
 `WebSocketComponent` are excluded from the barrel and must be imported from their sub-path
 (`@venizia/ignis/grpc`, `/mail`, `/socket-io`, `/static-asset`, `/websocket`).
+`/mail` needs `bullmq` only when its BullMQ queue executor is used: `BullMQHelper` loads the peer
+when it builds a queue or worker, not at import. A compiled binary using that executor passes both
+peers in `IBullMQMailExecutorOpts` - `module` (bullmq) and `redis.module` (ioredis) - or registers
+them with `ModuleUtility.register({ modules: { ioredis, bullmq } })`.
 `StaticAssetComponent`'s generated controller takes three optional extension hooks rather than being
 copied: `resolveObjectName({ originalName, defaultName, bucket })` decides the stored object name
 (`defaultName` is what the storage helper would have written), `defineExtraRoutes({ controller,

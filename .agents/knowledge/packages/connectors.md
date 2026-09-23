@@ -90,9 +90,17 @@ string "undefined".
 ## The 15 published sub-paths
 
 Every peer is optional in `peerDependenciesMeta`; a sub-path needs what it imports. Measured on
-`dist`: the root barrel imports `drizzle-orm`, `drizzle-zod` and `@hono/zod-openapi`; the relational
-sub-paths `drizzle-orm` (plus `drizzle-zod` at `/relational`, `/postgres`, `/sqlite`); the search
-sub-paths `@hono/zod-openapi`; `./http` none. Nothing imports `hono` directly.
+`dist` (static import graph, 2026-09-19): the root barrel imports `drizzle-orm` (with `/pg-core` and
+`/sqlite-core`, for `RecursiveTreeSql`), `drizzle-zod`, and the kernel ROOT - which brings `hono` and
+`@hono/zod-openapi`; the relational sub-paths `drizzle-orm` (plus `drizzle-zod` at `/relational`,
+`/postgres`, `/sqlite`). `./search`, `./typesense` and `./meilisearch` import neither `hono` nor
+`drizzle-orm` - they reach only `kernel/metadata` and `kernel/repository` - so the search
+controllers (`AbstractSearchController`, `SearchControllerFactory`, `defineSearchRouteConfigs`,
+`ISearchControllerOptions`, `ISearchCustomizableRoutes`) are NOT exported from them any more, nor
+from the package root: only `./search/controllers` and `./typesense/controllers` carry them, and only
+those two import `@hono/zod-openapi`. `./http` loads with no hono and no `@hono/zod-openapi` either.
+What each sub-path may need is pinned per sub-path in `scripts/clean-install/manifest.ts` and proved
+by `make clean-install-connectors` - see [release and publish](/process/release-publish.md).
 
 | Sub-path | Source | Engine peer | Bundles for a browser |
 |---|---|---|---|
@@ -145,48 +153,163 @@ Postgres 32 at its root; `@venizia/ignis-connectors` gets the neutral 43.
 
 ## Two ways to declare a model, both supported
 
-`BaseRelationalEntity` with a hand-written `pgTable` is the original, and 192 BANA models use it -
-it is not going anywhere. `ModelFactory.defineEntity({ name, columns, relations })`
-(`relational/postgres/models/factory.ts`) is the second: it builds the table and the class
-together, takes the table name once, defaults the id to a UUID v7 text key, and exposes
-`schema` / `TABLE_NAME` / `relationDefinitions` / `relations` as statics.
+`BaseRelationalEntity` with a hand-written table on a static `schema` is the original, and 192 BANA
+models use it - it is not going anywhere. `ModelFactory.defineEntity({ table, relations? })`
+(`relational/core/models/factory.ts`, exported by `./relational`, `./postgres`, `./sqlite` and
+`@venizia/ignis/postgres`) is the second, TABLE FIRST: the table is a plain drizzle table
+(`pgTable`, `pgSchema(...).table`, `sqliteTable`), usually with
+`...generateIdColumnDefs({ id: { dataType: 'string' } })` for a UUID v7 id, exported so drizzle-kit
+sees it (measured: "No schema changes" on `examples/pglite-quickstart`). `TABLE_NAME` is
+`getTableName(table)`. The returned class type is `TDefinedEntityClass<Schema, Relations>` =
+`typeof BaseRelationalEntity<Schema>` plus the precise `schema`, `relationDefinitions` (`undefined`
+when none) and `relations` - so the instance is typed and `AUTHORIZATION_SUBJECT` is there.
 
-Relations come keyed by name - `many(schema)` / `one(schema)` - and `toRelationConfigs` flattens
-them into the array the query dialect already reads, taking each name from its key.
-`TEntityObject<typeof Entity>` then infers the row WITH its relations, which removes the
-hand-written intersection 182 BANA models maintain beside their runtime declaration.
+Relations come keyed by name - `many(table)` / `one(table)` - and `toRelationConfigs` flattens them
+into the array the query dialect already reads, taking each name from its key. The thunk runs lazily
+on first read, once (a thunk run at definition throws for a table declared later in the file).
+`TEntityObject<typeof Entity>` is the row - read off the INSTANCE's `$inferData`, because the static
+`schema` is widened to `Table` on the base and a row read through it would take `Table`'s index
+signature - plus the relation rows; a model without relations gets a plain row.
 
-Three constraints, each learned the hard way and each now enforced by the compiler:
+`one` resolves its columns in `createRelations` (`repositories/dialect/relations/`: `one.ts` resolves a `one`, `many.ts` configures a `many`, `create.ts` builds both), for the keyed form
+and hand-written arrays alike:
 
-- **A relation points at a SCHEMA, never at an entity.** Two entities importing each other hit
+- Written `fields` + `references` are used as written. Only one of them throws.
+- Exactly one foreign key from the source to the target is read off the table. With two or more,
+  keys whose columns are exactly the `fields` of a written `one` on the same entity are set aside;
+  ONE left is read, none or several throw at relation build, naming the columns left. So a written
+  `author` (`author_id`) lets a fieldless `editor` read `editor_id`; a third key refuses it again.
+  The self-reference guard below uses the same set-aside.
+- No key on this side but ONE on the target's is the INVERSE side of a one-to-one: `one(target)` with
+  no config. drizzle pairs it from the target's `one()` back, so the owning entity MUST declare that
+  `one()`. A `relationName` there throws (drizzle pairs an inverse by table, never by name). Two
+  or more keys back throw. The escape for both is `fields` / `references` written reversed on this
+  side: `fields [users.id] references [profiles.user_id]`.
+- A fieldless `one` to its own table reads the self key only when it is the entity's ONLY fieldless
+  self `one`. Otherwise it throws: `previous` and `next` over one `previous_id` would both read it,
+  and `next` would silently return the wrong row.
+- No key either way throws.
+
+Each resolution is memoized per `createRelations` call: drizzle re-runs the relations callback on
+every `drizzle({ schema })`, and the drivers make one per `beginTransaction`.
+
+`BaseRelationalDataSource.discoverSchema()` then asks `RelationPairing` (`core/datasources/relation-pairing.ts`,
+internal - not in the barrel; the class file holds no loose functions) to run drizzle's own `extractTablesRelationalConfig` +
+`normalizeRelation` over every relation, once. An unpaired INVERSE `one` (a drizzle `One` with no
+config - only the new inference path produces one) THROWS through `getError` naming the entity, the
+relation and the fix - at boot when `configure()` reads `getSchema()`, else on the first
+`getConnector()` / `beginTransaction()`. A relation whose TARGET TABLE has no model on the datasource
+is never fatal and never a warning: one `debug` line per datasource lists them ("N relations point to a
+table outside this datasource: A.b -> T, ...") - BANA 2026-09-23 boot showed narrow datasources on
+purpose (commerce direct: 2 models, report) printing 27 warn lines that taught readers to skim past
+real ones. Any OTHER relation drizzle cannot pair (a `many` whose `relationName` matches no `one` on a
+target that IS here) is WARNED about, one line each (BANA had 4, e.g. `Category.products`),
+deliberately: BANA's 192 hand-written models boot today, and a latent broken relation must not
+become a boot failure in a prerelease - its first query still throws, as before.
+
+A `one` relation's key is its drizzle `relationName` (unless its metadata sets one), so
+`many(table, { relationName })` pairs with the `one` whose key is that name. `TRelationConfig`'s ONE
+`metadata` is optional and partial; `/postgres` re-exports the core type rather than keeping a copy.
+
+Three constraints, each learned the hard way and each now enforced by the compiler
+(`entity-factory-types.test.ts` compiles probe files with declarations emitted):
+
+- **A relation points at a TABLE, never at an entity class.** Two entities importing each other hit
   TS7022 and both row types collapse to `any` while the app keeps running. The builders only accept
-  a table, so the mistake does not compile.
-- **Never intersect the built table with `TTableSchemaWithId`.** The generic carries a wide
-  `$inferSelect`, and the intersection gives the row an index signature - every unknown column then
-  type-checks.
-- **The factory's return type is a named interface** (`IDefinedEntityClass`), because a consumer's
+  a table, so the mistake does not compile - and two entities that relate both ways, self relations,
+  and foreign-key relations across files all keep their row types.
+- **Never intersect the table with `TTableSchemaWithId`.** The generic carries a wide `$inferSelect`,
+  and the intersection gives the row an index signature - every unknown column then type-checks.
+- **The factory's return type is a named type** (`TDefinedEntityClass`), because a consumer's
   declaration output cannot name an inferred anonymous class (TS2883). For the same family of
-  reasons the static `schema` widened to `Table` and `createSchemaFactory` moved to module scope
-  (TS4094: an anonymous class inheriting a protected static has no emittable declaration).
+  reasons the base's static `schema` widened to `Table` and the zod `createSchemaFactory` singleton moved
+  to module scope - the protected static `schemaFactory` getter is gone (TS4094: an anonymous class
+  inheriting a protected static has no emittable declaration).
+
+The unreleased first shape (`{ name, columns, relations, id, extra }`, commit `28978cb0`) never
+shipped, so nothing migrates from it.
 
 ## What it owns
 
 | Tier | What lives there |
 |---|---|
-| `relational/core` | `AbstractRelationalDataSource`, `BaseRelationalDataSource`, the `IRelationalDriver` contract, `BaseRelationalEntity`, the five-class repository chain, `FilterBuilder`, `RelationalUpdateBuilder`, `RelationalMigrationRunner`, `resolveAuditUserId` |
+| `relational/core` | `AbstractRelationalDataSource`, `BaseRelationalDataSource`, the `IRelationalDriver` contract, `BaseRelationalEntity`, `ModelFactory` with `one`/`many`/`TEntityObject`, `RecursiveTreeSql`, the five-class repository chain, `FilterBuilder`, `RelationalUpdateBuilder`, `RelationalMigrationRunner`, `resolveAuditUserId` |
 | `relational/postgres` | `BasePostgresDataSource`, three drivers, the column enrichers, `DefaultCRUDRepository` and its chain, `PostgresQueryDialect`, `IsolationLevels` |
 | `relational/postgres/supabase` | `PoolerModes` and the RLS statement helpers |
 | `relational/sqlite` | `BaseSqliteDataSource`, `LibSqlDriver`, `DefaultSqliteRepository` and its chain, `SqliteQueryDialect`, `SqliteBeginModes` |
-| `search/core` | `ISearchConnector` and `BaseSearchConnector`, `BaseSearchDataSource`, `defineSearchCollection`, the search repository chain, `AbstractSearchController` and `SearchControllerFactory` |
+| `search/core` | `ISearchConnector` and `BaseSearchConnector`, `BaseSearchDataSource`, `defineSearchCollection`, the search repository chain |
+| `search/core/controllers` | `AbstractSearchController`, `SearchControllerFactory`, `defineSearchRouteConfigs` - published only as `./search/controllers` and `./typesense/controllers` |
 | `search/typesense` | `TypesenseConnector`, `TypesenseDataSource`, `TypesenseQueryDialect`, the collection compiler |
 | `search/meilisearch` | `MeilisearchConnector`, `MeilisearchDataSource`, `MeilisearchQueryDialect`, the collection compiler |
 
 The relational tier is genuinely engine-neutral. Its bound is `TTableSchemaWithId`, built on drizzle's
 root `Table` rather than `PgTable`, so `pgTable` and `sqliteTable` both satisfy it. The tier imports
-no `drizzle-orm/pg-core` and no `drizzle-orm/sqlite-core` at all. For the depth, read
+`drizzle-orm/pg-core` and `drizzle-orm/sqlite-core` in one place only - `RecursiveTreeSql`, which reads
+the dialect off the table it is handed. For the depth, read
 [relational connector](/architecture/relational-connector.md),
 [SQLite connector](/architecture/sqlite-connector.md), and
 [Typesense search connector](/architecture/search-typesense.md).
+
+## Recursive tree SQL
+
+`relational/core/repositories/sqls/recursive-tree.ts` exports `RecursiveTreeSql.walk(opts)`, which
+builds a `WITH RECURSIVE` fragment (a Drizzle `SQL` value) walking an adjacency-list table up
+(ancestors) or down (descendants) from `rootId`, for Postgres or SQLite. It value-imports
+`drizzle-orm` (`is`, `sql`, `Table`, `PgTable`, `SQLiteTable`), so it lives here - not in `kernel`,
+which reaches `drizzle-orm` through `import type` only, and not in `helpers`, which carries no
+`drizzle-orm` at all. It is the one place in the relational tier that imports `drizzle-orm/pg-core`
+and `drizzle-orm/sqlite-core`. Exported by the root, `./relational`, `./postgres` and `./sqlite`;
+`@venizia/ignis` still exports it from its root through the postgres alias.
+Ported from 14 hand-written BANA queries that each had to remember their own depth guard; one of
+the 14 forgot and hung a production process walking an unbounded parent chain.
+
+- **`maxDepth` is mandatory, no default, and validated at runtime (`<= 0` throws via `getError`).**
+  `0` type-checks but produces a recursive term that never runs and a result set that is silently
+  empty - the exact "zero looks plausible" failure this parameter exists to prevent. **It counts
+  EDGES, not rows**: the root sits at `depth 0`, so `maxDepth: N` returns up to `N+1` rows (measured
+  against a real Postgres - `1` gives 2 rows, `4` gives 5). "Depth" and "how many levels I want back"
+  are the same word to most callers and differ by one.
+- **`table` stays `unknown`**, checked at runtime with `is(table, Table)` from `drizzle-orm` rather
+  than tightened to a Drizzle generic - this package cannot see an application's schema, and a type
+  that pretends to know is worse than `unknown` because it looks safe. A non-table throws `getError`
+  naming what actually arrived.
+- **`table` also selects the SQL dialect.** `walk` checks `is(table, PgTable)` (from
+  `drizzle-orm/pg-core`) and `is(table, SQLiteTable)` (from `drizzle-orm/sqlite-core`) and compiles
+  the matching form internally, tagged with a private `RecursiveTreeEngines` const-class - there is
+  no `engine` option in `IRecursiveTreeOptions`, so the public API gained no new parameter and there
+  is no seam where an option could disagree with the schema it was called with. A table belonging to
+  neither (for example `drizzle-orm/mysql-core`'s `MySqlTable`) throws the same `getError` naming what
+  arrived, rather than silently compiling with the wrong dialect's syntax.
+- **SQL injection is the primary risk, not the usual value-parameterization one.** `name`,
+  `idColumn`, `parentColumn`, and every entry of `columns` become identifiers, and identifiers
+  cannot be parameterized the way values can. Each is checked against a strict allowlist
+  (`^[A-Za-z_][A-Za-z0-9_]*$`) before it reaches a template, on top of `sql.identifier`'s own
+  quoting. `rootId`, `maxDepth`, and `startDepth` are ordinary bound parameters.
+- **`trackPath: true`** emits a `path` value and an `is_cycle` flag, and adds `AND NOT r.is_cycle` to
+  the recursive term so a row already flagged cyclic is never expanded again. Without `trackPath`,
+  `maxDepth` alone still guarantees termination - it is the unconditional bound, `trackPath` only
+  adds early detection and a visible flag. **Both emitted columns reach the caller in a different
+  shape per engine, and nothing in the signature shows it** - `walk()` returns a `SQL`, so the row
+  shape is whatever the driver hands back. Postgres gives `path: string[]` and `is_cycle: boolean`;
+  SQLite gives `path: string` (ids wrapped in `char(31)`) and `is_cycle: 1 | 0`, because SQLite has
+  no boolean literal. `row.path.length` therefore throws on SQLite, and `row.is_cycle === true` is
+  quietly always false there - read it truthily and split `path` on `String.fromCharCode(31)`. The
+  cycle guard's shape differs by engine because SQLite has no array type:
+  - **Postgres**: `path` is a native array (`ARRAY[...]`), membership is `= ANY(path)` - unchanged
+    from the original Postgres-only version, verified byte-identical by a dedicated test.
+  - **SQLite**: `path` is text, with every id wrapped on both sides by `char(31)` (the ASCII Unit
+    Separator, via a `sql.raw('char(31)')` constant) so a delimiter-bounded `instr(path, char(31) ||
+    id || char(31)) > 0` cannot partial-match (an id of `1` inside a path containing `12`). This is
+    exact as long as no id value itself contains a `char(31)` byte - a control character that does
+    not occur in ordinary UUIDs, serials, slugs, or emails, but `RecursiveTreeSql` does not validate
+    or escape id values against it. An id that did contain that byte could produce a false-negative
+    cycle match. `depth`'s cast also differs (`::int` for Postgres, `CAST(... AS INTEGER)` for
+    SQLite) since SQLite has no `::` cast operator.
+- `RecursiveTreeDirections` (`UP`/`DOWN`) follows the repo's const-class + `TConstValue` idiom, not
+  a bare `as const` object - see `RepositoryOperationScopes` for the same shape.
+- The counterpart in-memory tree utilities (`ITreeNode<T>`, `TreeWalker`, `TreeBuilder`) live in
+  `@venizia/ignis-helpers`' `modules/tree` - see [helpers](/packages/helpers.md). They are pure and
+  carry no Drizzle dependency, which is why they are not here too.
 
 ## `scopeFilter` - a row scope, relational only
 
@@ -354,11 +477,12 @@ peer the sub-path imports and stays in the graph - measured, the entry is pure w
 
 ## A connectors-only process logs to the console
 
-`LoggerResolver` falls back to `ConsoleLogger` until something imports `LoggerFactory` as a value,
-and only the `@venizia/ignis-helpers` ROOT barrel exports it. Every driver now reaches its logger
-through `BaseHelper` from `@venizia/ignis-helpers/core`, which is what makes them browser-pure - and
-which means an import graph containing connectors but not `@venizia/ignis` never loads the real
-provider.
+Every driver reaches its logger through `BaseHelper` from `@venizia/ignis-helpers/core`, which is what
+makes them browser-pure - and which means an import graph containing connectors but not
+`@venizia/ignis` never loads the real provider. `BaseHelper.logger` then writes to the console and
+prints one `[BaseHelper] Logging to the console - no logger provider is installed...` warning per
+process. It upgrades itself on its next call once something imports `LoggerFactory` as a value,
+which only the `@venizia/ignis-helpers` ROOT barrel exports - see [helpers](/packages/helpers.md).
 
 Measured: a script importing `@venizia/ignis-connectors/postgres` plus a driver logs
 `[SeamProbe] hello` to stdout and writes **zero** files, with `APP_ENV_LOGGER_FOLDER_PATH` set. The
@@ -377,7 +501,7 @@ catch rather than prove it absent.
   for the browser case.
 - `drizzle-orm` and `drizzle-zod` are optional peers, yet the relational tier value-imports
   `getTableColumns`, `sql`, `relations` and `createSchemaFactory` - a relational sub-path needs them
-  installed. Optional spares `./http`, which imports neither. `@venizia/ignis` still requires them.
+  installed. Optional spares `./http` and the three search entries, which import neither. `@venizia/ignis` still requires them.
 - `build.sh` type-checks `src` and `src/__tests__` before emitting, so a type error in a test blocks
   the production build. See [build system](/process/build-system.md).
 - `isoTimestamp` (`relational/{postgres,sqlite}/models/common/columns.ts`) declares its column's

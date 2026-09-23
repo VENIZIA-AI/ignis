@@ -362,9 +362,10 @@ interface IMailQueueExecutorConfig {
     identifier: string;
   };
   bullmq?: {
-    redis: IRedisSingleHelperOptions;
+    redis: IRedisSingleHelperOptions; // redis.module takes ioredis itself
     queue: { identifier: string; name: string };
     mode: TConstValue<typeof BullMQExecutorModes>; // REQUIRED -- no default
+    module?: typeof import('bullmq'); // bullmq itself, for a compiled binary
   };
 }
 ```
@@ -380,7 +381,7 @@ interface IMailQueueExecutorConfig {
 {
   type: 'bullmq',
   bullmq: {
-    redis: { host: 'localhost', port: 6379, password: 'your-redis-password' },
+    redis: { name: 'mail-redis', host: 'localhost', port: 6379, password: 'your-redis-password' },
     queue: { identifier: 'mail-queue', name: 'mail-queue' },
     mode: 'both', // 'queue-only' | 'worker-only' | 'both' -- required, no default
   },
@@ -635,6 +636,25 @@ Pass the peer yourself through `module`, or let the transport find it. With `mod
 
 That fallback keeps the specifier invisible to `Bun.build`. Importing `@venizia/ignis/mail` for the Nodemailer transport drags neither `mailgun.js` nor `@aws-sdk/client-sesv2` into your bundle, and the same holds for every other pairing.
 
+The BullMQ queue executor reaches `bullmq` and `ioredis` the same lazy way, when it builds its Redis connection, its queue and its workers. `@venizia/ignis/mail` therefore needs `bullmq` installed only when `MAIL_QUEUE_EXECUTOR_CONFIG` selects `MailQueueExecutorTypes.BULLMQ`. A compiled application passes both peers in the executor config:
+
+```typescript
+import * as bullmq from 'bullmq';
+import * as ioredis from 'ioredis';
+
+this.bind({ key: MailKeys.MAIL_QUEUE_EXECUTOR_CONFIG }).toValue({
+  type: MailQueueExecutorTypes.BULLMQ,
+  bullmq: {
+    redis: { name: 'mail-redis', host, port, password, module: ioredis },
+    queue: { identifier: 'mail-queue', name: 'mail-queue' },
+    mode: BullMQExecutorModes.BOTH,
+    module: bullmq,
+  },
+});
+```
+
+Or register both once at the entrypoint: `ModuleUtility.register({ modules: { ioredis, bullmq } })` - see [Compiled binaries](/references/utilities/module#compiled-binaries).
+
 **A compiled application must pass `module`.** A `bun build --compile` binary ships without `node_modules`, so the runtime lookup has nothing to resolve against and the component throws that install hint at boot - with the peer sitting in `package.json`, which is no help because nothing put it inside the binary. The static import is what embeds it:
 
 ```typescript
@@ -738,9 +758,10 @@ Its enqueue options: `attempts: options?.attempts ?? 3`, `backoff: { type: optio
 
 ```typescript
 interface IBullMQMailExecutorOpts {
-  redis: IRedisSingleHelperOptions; // from @venizia/ignis-helpers
+  redis: IRedisSingleHelperOptions; // from @venizia/ignis-helpers; redis.module takes ioredis itself
   queue: { identifier: string; name: string };
   mode: TConstValue<typeof BullMQExecutorModes>; // REQUIRED, no default
+  module?: typeof import('bullmq'); // bullmq itself, for a compiled binary
 }
 ```
 

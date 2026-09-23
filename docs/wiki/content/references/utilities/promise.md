@@ -47,7 +47,7 @@ const results = await executePromiseWithLimit({
 ## See also
 
 - [Utilities Overview](/references/utilities/) - all utility functions
-- [Date Utility](/references/utilities/date) - `sleep()`, used to build the tasks in the example above
+- [Timing](/references/utilities/#timing) - `sleep()`, used to build the tasks in the example above
 
 **Files:**
 

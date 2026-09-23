@@ -663,6 +663,9 @@ interface ISocketIOClientOptions {
   host: string;
   options: IOptions;
 
+  // socket.io-client itself, for a bun build --compile binary; loaded by name on configure() when omitted
+  module?: typeof import('socket.io-client');
+
   // Lifecycle callbacks (all optional)
   onConnected?: () => ValueOrPromise<void>;
   onDisconnected?: (reason: string) => ValueOrPromise<void>;

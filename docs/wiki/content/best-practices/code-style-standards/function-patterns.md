@@ -78,7 +78,7 @@ Use consistent prefixes based on function purpose:
 | `generate*` | Create column definitions / schemas | `generateIdColumnDefs()`, `generateTzColumnDefs()` |
 | `build*` | Construct complex objects | `buildValueCondition()`, `buildJsonOrderBy()` |
 | `to*` | Convert/transform data | `toCamel()`, `toBoolean()` |
-| `is*` | Boolean validation/check | `isWeekday()`, `isInt()`, `isFloat()`, `isPromiseLike()` |
+| `is*` | Boolean validation/check | `isApplicationError()`, `isInt()`, `isFloat()`, `isPromiseLike()` |
 | `has*` | Boolean ownership check | `hasBucket()`, `hasPermission()` |
 | `assert*` | Throws when the condition fails, returns nothing | `assertBucketExists()`, `assertOwner()` |
 | `extract*` | Pull out specific parts | `extractTimestamp()`, `extractWorkerId()`, `extractSequence()` |
@@ -111,7 +111,7 @@ const camelCase = toCamel('snake_case');
 const bool = toBoolean('true');
 
 // Validators - boolean checks
-if (isWeekday(date)) { /* ... */ }
+if (isApplicationError(error)) { /* ... */ }
 if (isInt(value)) { /* ... */ }
 if (isPromiseLike(result)) { /* ... */ }
 

@@ -28,7 +28,12 @@ registers and resolves classes and never serves HTTP. `CoreBindings` is delibera
 namespaces are the GRAMMAR of a key, `CoreBindings` is one application's DICTIONARY, and a sibling
 framework ships a class of the same name whose `APPLICATION_INSTANCE` is a different string.
 `./repository` is 14.7 KB against `base/repositories`' 105.3 KB: `AbstractRepository`,
-`AbstractDataSource`, the CRUD contract and the filter vocabulary, without the OpenAPI layer. It
+`AbstractDataSource`, `AbstractEntity`, the CRUD contract and the filter vocabulary, plus what a
+repository on any transport raises and bounds itself by - `DEFAULT_LIMIT`, `DEFAULT_MAX_LIMIT`,
+`RepositoryOperationScopes`, `CoreErrorCodes`, `SearchErrorCodes`, `throwNotSupported`,
+`SchemaTypes` - without the OpenAPI layer. It loads with neither `hono` nor `@hono/zod-openapi`
+installed (it used to reach `@hono/zod-openapi` through a barrel; the clean-install gate,
+`make clean-install-kernel`, is what proves it now). It
 exists because `AbstractDataSource` is engine-neutral - only `configure()` is required - so an HTTP
 request to another server is a datasource in the same sense Drizzle-over-Postgres is one. It is listed export by export rather than
 re-exporting `base/metadata`, because a sub-path is a surface someone decided on, not whatever a
@@ -56,7 +61,7 @@ Everything under `src/base/` was the engine-neutral half of `packages/core-serve
 | `mixins/` | The mixin contracts (`IComponentMixin`, `IControllerMixin`, `IRepositoryMixin`, ...) that compose onto an application |
 | `models/` | `AbstractEntity`, the model settings shape, and the `TEntityId` brand |
 | `providers/` | `BaseProvider` |
-| `repositories/` | `AbstractRepository`, the repository error codes, the decorated query schemas, and `sqls/` (`RecursiveTreeSql`) |
+| `repositories/` | `AbstractRepository`, the repository error codes, and the decorated query schemas |
 | `request-context/` | `RequestContextRegistry` - the seam a server layer installs `hono/context-storage` into |
 | `services/` | `BaseService` and the CRUD service base |
 
@@ -160,11 +165,11 @@ that wants the Swagger editor names its own `routes.deleteBy.request.body`. Quer
 `where` absent, so an override that reads only `valid('query')` gets `undefined` for a body-only
 request - the repository refuses an empty `where` without `force` (400).
 
-The `Container` constructor takes its logger through `BaseHelper` / `LoggerResolver`, never
-`LoggerFactory` directly. The resolver's console fallback is what keeps the constructor - and
+The `Container` constructor takes its logger through `BaseHelper` (the helpers logger slot), never
+`LoggerFactory` directly. The slot's console fallback is what keeps the constructor - and
 everything extending it, which is every application - browser-pure. A server host still gets the real
-provider, because importing `LoggerFactory` as a value anywhere in the process installs it as the
-active resolver.
+provider: importing `LoggerFactory` as a value anywhere in the process fills the slot, and a logger
+taken before that upgrades itself on its next call.
 
 ## TEntityId (`base/models/`)
 
@@ -213,62 +218,13 @@ in `connectors` is what enforces it - see [connectors](/packages/connectors.md) 
 the `restore()` interaction with `shouldSkipDefaultFilter`, the write-path boundary (filter-shaped
 scope only, not per-row or polymorphic ownership), and the search-repository gap.
 
-## Recursive tree SQL
+## Recursive tree SQL moved to connectors
 
-`base/repositories/sqls/recursive-tree.ts` exports `RecursiveTreeSql.walk(opts)`, which builds a
-`WITH RECURSIVE` fragment (a Drizzle `SQL` value) walking an adjacency-list table up (ancestors) or
-down (descendants) from `rootId`, for Postgres or SQLite. It lives here rather than in `helpers`
-because it returns Drizzle `SQL` - `helpers` carries no `drizzle-orm` dependency, deliberately.
-Ported from 14 hand-written BANA queries that each had to remember their own depth guard; one of
-the 14 forgot and hung a production process walking an unbounded parent chain.
-
-- **`maxDepth` is mandatory, no default, and validated at runtime (`<= 0` throws via `getError`).**
-  `0` type-checks but produces a recursive term that never runs and a result set that is silently
-  empty - the exact "zero looks plausible" failure this parameter exists to prevent. **It counts
-  EDGES, not rows**: the root sits at `depth 0`, so `maxDepth: N` returns up to `N+1` rows (measured
-  against a real Postgres - `1` gives 2 rows, `4` gives 5). "Depth" and "how many levels I want back"
-  are the same word to most callers and differ by one.
-- **`table` stays `unknown`**, checked at runtime with `is(table, Table)` from `drizzle-orm` rather
-  than tightened to a Drizzle generic - this package cannot see an application's schema, and a type
-  that pretends to know is worse than `unknown` because it looks safe. A non-table throws `getError`
-  naming what actually arrived.
-- **`table` also selects the SQL dialect.** `walk` checks `is(table, PgTable)` (from
-  `drizzle-orm/pg-core`) and `is(table, SQLiteTable)` (from `drizzle-orm/sqlite-core`) and compiles
-  the matching form internally, tagged with a private `RecursiveTreeEngines` const-class - there is
-  no `engine` option in `IRecursiveTreeOptions`, so the public API gained no new parameter and there
-  is no seam where an option could disagree with the schema it was called with. A table belonging to
-  neither (e.g. `drizzle-orm/mysql-core`'s `MySqlTable`) throws the same `getError` naming what
-  arrived, rather than silently compiling with the wrong dialect's syntax.
-- **SQL injection is the primary risk, not the usual value-parameterization one.** `name`,
-  `idColumn`, `parentColumn`, and every entry of `columns` become identifiers, and identifiers
-  cannot be parameterized the way values can. Each is checked against a strict allowlist
-  (`^[A-Za-z_][A-Za-z0-9_]*$`) before it reaches a template, on top of `sql.identifier`'s own
-  quoting. `rootId`, `maxDepth`, and `startDepth` are ordinary bound parameters.
-- **`trackPath: true`** emits a `path` value and an `is_cycle` flag, and adds `AND NOT r.is_cycle` to
-  the recursive term so a row already flagged cyclic is never expanded again. Without `trackPath`,
-  `maxDepth` alone still guarantees termination - it is the unconditional bound, `trackPath` only
-  adds early detection and a visible flag. **Both emitted columns reach the caller in a different
-  shape per engine, and nothing in the signature shows it** - `walk()` returns a `SQL`, so the row
-  shape is whatever the driver hands back. Postgres gives `path: string[]` and `is_cycle: boolean`;
-  SQLite gives `path: string` (ids wrapped in `char(31)`) and `is_cycle: 1 | 0`, because SQLite has
-  no boolean literal. `row.path.length` therefore throws on SQLite, and `row.is_cycle === true` is
-  quietly always false there - read it truthily and split `path` on `String.fromCharCode(31)`. The
-  cycle guard's shape differs by engine because SQLite has no array type:
-  - **Postgres**: `path` is a native array (`ARRAY[...]`), membership is `= ANY(path)` - unchanged
-    from the original Postgres-only version, verified byte-identical by a dedicated test.
-  - **SQLite**: `path` is text, with every id wrapped on both sides by `char(31)` (the ASCII Unit
-    Separator, via a `sql.raw('char(31)')` constant) so a delimiter-bounded `instr(path, char(31) ||
-    id || char(31)) > 0` cannot partial-match (an id of `1` inside a path containing `12`). This is
-    exact as long as no id value itself contains a `char(31)` byte - a control character that does
-    not occur in ordinary UUIDs, serials, slugs, or emails, but `RecursiveTreeSql` does not validate
-    or escape id values against it. An id that did contain that byte could produce a false-negative
-    cycle match. `depth`'s cast also differs (`::int` for Postgres, `CAST(... AS INTEGER)` for
-    SQLite) since SQLite has no `::` cast operator.
-- `RecursiveTreeDirections` (`UP`/`DOWN`) follows the repo's const-class + `TConstValue` idiom, not
-  a bare `as const` object - see `RepositoryOperationScopes` for the same shape.
-- The counterpart in-memory tree utilities (`ITreeNode<T>`, `TreeWalker`, `TreeBuilder`) live in
-  `@venizia/ignis-helpers`' `modules/tree` - see [helpers](/packages/helpers.md). They are pure and
-  carry no Drizzle dependency, which is why they are not here too.
+`RecursiveTreeSql`, `RecursiveTreeDirections`, `IRecursiveTreeOptions` and `TRecursiveTreeDirection`
+are no longer in this package. They value-import `drizzle-orm` (`is`, `sql`, `PgTable`,
+`SQLiteTable`), which the kernel reaches through `import type` only, so they live in
+`@venizia/ignis-connectors` beside the relational tier - see [connectors](/packages/connectors.md).
+`@venizia/ignis` still exports them from its root.
 
 ## EventBus (`base/events/`)
 

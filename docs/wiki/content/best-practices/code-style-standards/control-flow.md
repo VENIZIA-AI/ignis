@@ -255,7 +255,7 @@ import path from 'node:path';
 
 // 2. Third-party packages (alphabetical)
 import { z } from '@hono/zod-openapi';
-import dayjs from 'dayjs';
+import { Hono } from 'hono';
 
 // 3. Internal absolute imports (by domain/package)
 import { getError } from '@venizia/ignis-helpers';

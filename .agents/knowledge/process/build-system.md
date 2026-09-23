@@ -33,7 +33,11 @@ tags: [process, build]
 5. Each package's `build` script is `sh ./scripts/build.sh`. Every package but `filter` and
    `dev-configs` runs `tsc --noEmit -p tsconfig.json` first (type-checks `src` AND `src/__tests__`),
    then emits production output only via `tsc -p tsconfig.build.json` (which excludes `__tests__`,
-   `*.test.ts`, `*.spec.ts`), then `tsc-alias` to rewrite path aliases. `filter` and `dev-configs`
+   `*.test.ts`, `*.spec.ts`), then `tsc-alias` to rewrite path aliases. Every ESM pass runs `tsc-alias` with
+   `resolveFullPaths` (so `dist/esm` imports carry `.js` and load under Node's ESM loader) and then
+   `bun ../../scripts/esm-marker.ts`, which writes `dist/esm/package.json` with `"type": "module"`
+   and the package's `sideEffects` re-rooted - without it Node parses every file as CommonJS first
+   (measured on `connectors/http`: 38.0 -> 30.7 ms). `filter` and `dev-configs`
    emit directly with `tsc -p tsconfig.json` (no separate pre-check pass). Most packages build CJS
    and ESM outputs as two passes; only `core`, `dev-configs`, and `atlas` emit a single pass. No
    package ships its tests in `dist` - they stay sources under `src/__tests__/` that `bun test` runs
@@ -71,6 +75,23 @@ tags: [process, build]
     (bun types, bundler resolution, `noEmit`) is what the editor and `make lint-scripts` check - that
     target runs prettier and `tsc -p scripts/tsconfig.json` and is part of `make lint-all`.
     `make test-scripts` runs their unit tests (`scripts/__tests__`, positive and negative case per gate).
+12. `make clean-install` packs every package and installs each one alone into an empty project
+    under `tmpdir()`, with its required peers plus the peers `scripts/clean-install/manifest.ts`
+    grants a sub-path. It does not build, and it refuses to start when its result could be wrong:
+    - a package's newest `src/` file (outside `__tests__`) is newer than its newest `dist/` file -
+      run `make build` first. The stamp is the whole `dist/`, not `index.js`, because the build is
+      incremental and re-emits only the files a change reaches;
+    - a `node_modules` sits in any ancestor of the gate root, or `NODE_PATH`, `~/.node_modules` or
+      `~/.node_libraries` exists - any of them would satisfy a missing peer;
+    - a non-private package has no claim - a config-only package such as `dev-configs` carries an
+      explicit `configOnly` claim and gets no row;
+    - a browser-claimed ESM entry (from `scripts/purity/manifest.ts`) matches no row, which would
+      skip its browser build. The CJS entries never match by design.
+
+    After each install it also checks every `@venizia/*` entry in the sandbox `bun.lock` resolves to
+    the packed tarball, not the registry. One blind spot remains: a granted peer brings its own
+    required peers (granting `@hono/zod-openapi` also installs `hono`), so the gate cannot see a
+    leak of such a transitive peer into the entry it was granted to.
 
 ## Related
 

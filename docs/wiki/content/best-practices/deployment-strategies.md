@@ -192,6 +192,8 @@ bun build --compile --minify --sourcemap --target=bun-linux-x64 \
 > ```
 >
 > The same rule applies to any optional peer: only a value import of the class carries it into the bundle. Naming a driver class in `@datasource({ driver: NodePostgresDriver })` is what pulls `pg` in.
+>
+> A peer a helper loads by name - `ioredis` for the Redis helpers, `bullmq`, `socket.io-client`, a mail transport's library - is not in the binary either, and the first client throws `[ModuleUtility.loadSync] ioredis is required`. Import it statically and pass it as the helper's `module` option, or register it once at the entrypoint. See [Compiled binaries](/references/utilities/module#compiled-binaries).
 
 **Deploy:**
 ```bash

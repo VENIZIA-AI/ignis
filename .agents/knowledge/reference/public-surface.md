@@ -118,7 +118,7 @@ tags: [reference, exports, api]
 
 ## helpers
 
-### `@venizia/ignis-helpers` (404)
+### `@venizia/ignis-helpers` (418)
 
 - `AbstractCryptoAlgorithm` class
 - `AbstractLogger` class
@@ -168,13 +168,15 @@ tags: [reference, exports, api]
 - `createUuidV7` const
 - `D_STROKE_REPLACEMENTS` const
 - `DataTypes` class
-- `dayjs` function
+- `DayjsTemporalAdapter` class
 - `DEFAULT_CIPHER_BITS` const
 - `DEFAULT_HASH_OUTPUT_ENCODING` const
 - `DEFAULT_KDF_DIGEST` const
 - `DEFAULT_KDF_ITERATIONS` const
 - `DEFAULT_KDF_SALT` const
 - `DEFAULT_PAD_END` const
+- `DEFAULT_TEMPORAL_PATTERN` const
+- `DEFAULT_TEMPORAL_TIME_ZONE` const
 - `DEFAULT_UID_DELIMITER` const
 - `DEFAULT_UID_LENGTH` const
 - `DEFAULT_UID_MAX_ATTEMPTS` const
@@ -199,13 +201,10 @@ tags: [reference, exports, api]
 - `float` const
 - `formatLogMessage` const
 - `fromError` const
-- `getDateTz` const
 - `getDeepProperty` const
 - `getError` const
 - `getExecutedPerformance` const
-- `getNextWeekday` const
 - `getPerformanceCheckpoint` const
-- `getPreviousWeekday` const
 - `getUID` const
 - `GRPC` class
 - `Hash` class
@@ -230,6 +229,8 @@ tags: [reference, exports, api]
 - `IClock` interface
 - `IConfigurable` interface
 - `ICryptoAlgorithm` interface
+- `IDayjsFactory` interface
+- `IDayjsInstance` interface
 - `IDiskHelperOptions` interface
 - `IDuration` interface
 - `IECDHEncryptedPayload` interface
@@ -248,6 +249,8 @@ tags: [reference, exports, api]
 - `IListObjectsOptions` interface
 - `ILogger` interface
 - `ILoggerProvider` interface
+- `ILuxonDateTime` interface
+- `ILuxonDateTimeFactory` interface
 - `INetworkTcpClientProps` interface
 - `INextOpaqueUidOptions` interface
 - `INodeFetchNetworkRequestOptions` interface
@@ -281,6 +284,7 @@ tags: [reference, exports, api]
 - `IRedisKey` interface
 - `IRedisKeyValue` interface
 - `IRedisList` interface
+- `IRedisModuleOption` interface
 - `IRedisPubSub` interface
 - `IRedisSentinelHelperOptions` interface
 - `IRedisSentinelHelperProps` interface
@@ -312,9 +316,12 @@ tags: [reference, exports, api]
 - `IStorageHelper` interface
 - `IStorageHelperOptions` interface
 - `isUrlRefusedError` const
-- `isWeekday` const
 - `ITcpSocketClient` interface
 - `ITcpSocketServerOptions` interface
+- `ITemporalAdapter` interface
+- `ITemporalNamespace` interface
+- `ITemporalParts` interface
+- `ITemporalZonedDateTime` interface
 - `ITimerAdapter` interface
 - `ITreeNode` interface
 - `IUidSegment` interface
@@ -334,6 +341,7 @@ tags: [reference, exports, api]
 - `IWorkerBus` interface
 - `IWorkerMessageBusHandler` interface
 - `IWorkerThread` interface
+- `IZonedTemporalParts` interface
 - `keysToCamel` const
 - `LEADING_OR_TRAILING_HYPHENS_PATTERN` const
 - `LegacyAES` class
@@ -341,6 +349,7 @@ tags: [reference, exports, api]
 - `LoggerFormats` class
 - `LoggerResolver` class
 - `LogLevels` class
+- `LuxonTemporalAdapter` class
 - `MemoryStorageHelper` class
 - `MessageCode` class
 - `MimeTypes` class
@@ -348,6 +357,7 @@ tags: [reference, exports, api]
 - `MINIMUM_KDF_SALT_BYTES` const
 - `MINIMUM_RSA_MODULUS_BITS` const
 - `ModuleUtility` class
+- `NativeTemporalAdapter` class
 - `NetworkTcpClient` class
 - `NetworkTcpServer` class
 - `NetworkTlsTcpClient` class
@@ -413,6 +423,8 @@ tags: [reference, exports, api]
 - `TContentType` type
 - `TCreateRedisHelperOptions` type
 - `TDurationUnit` type
+- `TemporalHelper` class
+- `TemporalUnits` class
 - `TError` type
 - `TErrorByDefinition` type
 - `TErrorByField` type
@@ -479,6 +491,8 @@ tags: [reference, exports, api]
 - `TSecretRotationHandler` type
 - `TStringConstValue` type
 - `TTask` type
+- `TTemporalInput` type
+- `TTemporalUnit` type
 - `TTimerHandle` type
 - `TUidCaseForm` type
 - `TUploadNaming` type
@@ -590,7 +604,7 @@ tags: [reference, exports, api]
 - `ValueOptionalExcept` type
 - `ValueOrPromise` type
 
-### `@venizia/ignis-helpers/core` (112)
+### `@venizia/ignis-helpers/core` (130)
 
 - `AbstractNetworkFetchableHelper` class
 - `AbstractPoolHelper` class
@@ -604,6 +618,9 @@ tags: [reference, exports, api]
 - `createUuidV4` const
 - `createUuidV5` const
 - `createUuidV7` const
+- `DayjsTemporalAdapter` class
+- `DEFAULT_TEMPORAL_PATTERN` const
+- `DEFAULT_TEMPORAL_TIME_ZONE` const
 - `DEFAULT_UID_DELIMITER` const
 - `DEFAULT_UID_LENGTH` const
 - `DEFAULT_UID_MAX_ATTEMPTS` const
@@ -615,6 +632,8 @@ tags: [reference, exports, api]
 - `HfQueueHelper` class
 - `IBuildInfo` interface
 - `IBuildOptions` interface
+- `IDayjsFactory` interface
+- `IDayjsInstance` interface
 - `IErrorKeyRegistry` interface
 - `IFetchable` interface
 - `IHeightWhereOptions` interface
@@ -623,6 +642,8 @@ tags: [reference, exports, api]
 - `ILeavesOptions` interface
 - `ILogger` interface
 - `ILoggerProvider` interface
+- `ILuxonDateTime` interface
+- `ILuxonDateTimeFactory` interface
 - `INextOpaqueUidOptions` interface
 - `INodeFetchNetworkRequestOptions` interface
 - `INodeFetchRequestOptions` interface
@@ -642,16 +663,23 @@ tags: [reference, exports, api]
 - `IRetryContext` interface
 - `isApplicationError` const
 - `ISnowflakeParsedId` interface
+- `ITemporalAdapter` interface
+- `ITemporalNamespace` interface
+- `ITemporalParts` interface
+- `ITemporalZonedDateTime` interface
 - `ITreeNode` interface
 - `IUidSegment` interface
 - `IUrlSafetyPolicy` interface
 - `IUuidInspection` interface
 - `IWalkAsyncOptions` interface
 - `IWalkOptions` interface
+- `IZonedTemporalParts` interface
 - `keysToCamel` const
 - `LogLevels` class
+- `LuxonTemporalAdapter` class
 - `MessageCode` class
 - `MIN_UID_ALPHABET_SIZE` const
+- `NativeTemporalAdapter` class
 - `NodeFetcher` class
 - `NodeFetchNetworkRequest` class
 - `OpaqueUidHelper` class
@@ -665,6 +693,8 @@ tags: [reference, exports, api]
 - `SnowflakeConfig` class
 - `SnowflakeUidHelper` class
 - `TBuildInfoRecord` type
+- `TemporalHelper` class
+- `TemporalUnits` class
 - `TError` type
 - `TErrorByDefinition` type
 - `TErrorByField` type
@@ -691,6 +721,8 @@ tags: [reference, exports, api]
 - `TResponsedError` type
 - `TRetryBackoffStrategy` type
 - `TRetryJitterMode` type
+- `TTemporalInput` type
+- `TTemporalUnit` type
 - `TUidCaseForm` type
 - `TUrlScheme` type
 - `UidAlphabets` class
@@ -717,6 +749,27 @@ tags: [reference, exports, api]
 - `uuidV4` const
 - `uuidV5` const
 - `uuidV7` const
+
+### `@venizia/ignis-helpers/temporal` (18)
+
+- `DayjsTemporalAdapter` class
+- `DEFAULT_TEMPORAL_PATTERN` const
+- `DEFAULT_TEMPORAL_TIME_ZONE` const
+- `IDayjsFactory` interface
+- `IDayjsInstance` interface
+- `ILuxonDateTime` interface
+- `ILuxonDateTimeFactory` interface
+- `ITemporalAdapter` interface
+- `ITemporalNamespace` interface
+- `ITemporalParts` interface
+- `ITemporalZonedDateTime` interface
+- `IZonedTemporalParts` interface
+- `LuxonTemporalAdapter` class
+- `NativeTemporalAdapter` class
+- `TemporalHelper` class
+- `TemporalUnits` class
+- `TTemporalInput` type
+- `TTemporalUnit` type
 
 ### `@venizia/ignis-helpers/socket-io` (17)
 
@@ -915,7 +968,7 @@ tags: [reference, exports, api]
 
 ## kernel
 
-### `@venizia/ignis-kernel` (399)
+### `@venizia/ignis-kernel` (395)
 
 - `AbstractApplication` class
 - `AbstractAuthRegistry` class
@@ -1092,7 +1145,6 @@ tags: [reference, exports, api]
 - `IQueryHandlerOptions` interface
 - `IReadableRepository` interface
 - `IReadRetryOptions` interface
-- `IRecursiveTreeOptions` interface
 - `IRepository` interface
 - `IRepositoryBinding` interface
 - `IRepositoryMetadata` interface
@@ -1145,8 +1197,6 @@ tags: [reference, exports, api]
 - `QueryOperators` class
 - `ReadableCrudController` class
 - `readDeclarative` const
-- `RecursiveTreeDirections` class
-- `RecursiveTreeSql` class
 - `RelationBuilderRegistry` class
 - `RelationTypes` class
 - `repository` const
@@ -1281,7 +1331,6 @@ tags: [reference, exports, api]
 - `TQueryOperator` type
 - `TQueryOperatorHandlers` type
 - `trackableHeaders` const
-- `TRecursiveTreeDirection` type
 - `TRegistryDescriptor` type
 - `TRelationBuilder` type
 - `TRelationType` type
@@ -1339,12 +1388,15 @@ tags: [reference, exports, api]
 - `TBindingNamespace` type
 - `TBindingScope` type
 
-### `@venizia/ignis-kernel/repository` (20)
+### `@venizia/ignis-kernel/repository` (27)
 
 - `AbstractDataSource` class
 - `AbstractEntity` class
 - `AbstractRepository` class
 - `buildDataRange` const
+- `CoreErrorCodes` class
+- `DEFAULT_LIMIT` const
+- `DEFAULT_MAX_LIMIT` const
 - `ICreatableRepository` interface
 - `ICrudRepository` interface
 - `IDataSource` interface
@@ -1353,10 +1405,14 @@ tags: [reference, exports, api]
 - `IReadableRepository` interface
 - `IRepository` interface
 - `IUpdatableRepository` interface
+- `RepositoryOperationScopes` class
+- `SchemaTypes` class
+- `SearchErrorCodes` class
 - `TCount` type
 - `TDataRange` type
 - `TDataWithRange` type
 - `TFilter` type
+- `throwNotSupported` const
 - `TIdSchemaType` type
 - `TInclusion` type
 - `TSchemaType` type
@@ -1364,10 +1420,9 @@ tags: [reference, exports, api]
 
 ## connectors
 
-### `@venizia/ignis-connectors` (127)
+### `@venizia/ignis-connectors` (128)
 
 - `AbstractRelationalDataSource` class
-- `AbstractSearchController` class
 - `AbstractSearchDataSource` class
 - `assertScopeFilterSupported` const
 - `BaseRelationalDataSource` class
@@ -1379,7 +1434,6 @@ tags: [reference, exports, api]
 - `DefaultRelationalRepository` class
 - `DefaultSearchRepository` class
 - `defineSearchCollection` const
-- `defineSearchRouteConfigs` const
 - `deriveSearchDocumentSchema` const
 - `field` const
 - `FilterBuilder` class
@@ -1394,6 +1448,7 @@ tags: [reference, exports, api]
 - `IManyRelation` interface
 - `IMigration` interface
 - `IOneRelation` interface
+- `IRecursiveTreeOptions` interface
 - `IRelationalConnection` interface
 - `IRelationalDataSource` interface
 - `IRelationalDriver` interface
@@ -1409,8 +1464,6 @@ tags: [reference, exports, api]
 - `ISearchCompileCapabilities` interface
 - `ISearchConnector` interface
 - `ISearchConnectorCallbacks` interface
-- `ISearchControllerOptions` interface
-- `ISearchCustomizableRoutes` interface
 - `ISearchDataSourceOptions` interface
 - `ISearchDocumentScoped` interface
 - `ISearchEmbedConfig` interface
@@ -1432,6 +1485,7 @@ tags: [reference, exports, api]
 - `IWriteResult` interface
 - `JSON_PATH_PATTERN` const
 - `many` const
+- `ModelFactory` class
 - `MultiSearchEntrySchema` const
 - `MultiSearchInputSchema` const
 - `one` const
@@ -1440,13 +1494,14 @@ tags: [reference, exports, api]
 - `PersistableSearchRepository` class
 - `ReadableRelationalRepository` class
 - `ReadableSearchRepository` class
+- `RecursiveTreeDirections` class
+- `RecursiveTreeSql` class
 - `RelationalBaseRepository` class
 - `RelationalMigrationRunner` class
 - `RelationalUpdateBuilder` class
 - `resolveAuditUserId` const
 - `ScopeFilterDenial` class
 - `SearchBaseRepository` class
-- `SearchControllerFactory` class
 - `SearchErrors` const
 - `SearchFieldTypes` class
 - `SearchFilterOutcomes` class
@@ -1458,6 +1513,7 @@ tags: [reference, exports, api]
 - `TColumnDefinitions` type
 - `TColumnSelection` type
 - `TCompiledWhere` type
+- `TDefinedEntityClass` type
 - `TDeletedAtColumn` type
 - `TEntityObject` type
 - `TFieldFlags` type
@@ -1468,6 +1524,7 @@ tags: [reference, exports, api]
 - `toRelationConfigs` const
 - `toSearchQueryParams` const
 - `TPrimaryKey` type
+- `TRecursiveTreeDirection` type
 - `TRelationalConnectorOf` type
 - `TRelationalTransactionOf` type
 - `TRelationalTransactionOptions` type
@@ -1506,7 +1563,7 @@ tags: [reference, exports, api]
 - `THttpHeaders` type
 - `THttpQuery` type
 
-### `@venizia/ignis-connectors/relational` (68)
+### `@venizia/ignis-connectors/relational` (74)
 
 - `AbstractRelationalDataSource` class
 - `BaseRelationalDataSource` class
@@ -1523,6 +1580,7 @@ tags: [reference, exports, api]
 - `IManyRelation` interface
 - `IMigration` interface
 - `IOneRelation` interface
+- `IRecursiveTreeOptions` interface
 - `IRelationalConnection` interface
 - `IRelationalDataSource` interface
 - `IRelationalDriver` interface
@@ -1541,10 +1599,13 @@ tags: [reference, exports, api]
 - `IWriteResult` interface
 - `JSON_PATH_PATTERN` const
 - `many` const
+- `ModelFactory` class
 - `one` const
 - `parseJsonPath` const
 - `PersistableRelationalRepository` class
 - `ReadableRelationalRepository` class
+- `RecursiveTreeDirections` class
+- `RecursiveTreeSql` class
 - `RelationalBaseRepository` class
 - `RelationalMigrationRunner` class
 - `RelationalUpdateBuilder` class
@@ -1555,12 +1616,14 @@ tags: [reference, exports, api]
 - `TColumnDefinition` type
 - `TColumnDefinitions` type
 - `TColumnSelection` type
+- `TDefinedEntityClass` type
 - `TDeletedAtColumn` type
 - `TEntityObject` type
 - `TGetIdType` type
 - `TIdColumn` type
 - `toRelationConfigs` const
 - `TPrimaryKey` type
+- `TRecursiveTreeDirection` type
 - `TRelationalConnectorOf` type
 - `TRelationalTransactionOf` type
 - `TRelationalTransactionOptions` type
@@ -1577,7 +1640,7 @@ tags: [reference, exports, api]
 - `validateJsonColumnType` const
 - `validateJsonPathComponents` const
 
-### `@venizia/ignis-connectors/postgres` (81)
+### `@venizia/ignis-connectors/postgres` (83)
 
 - `AbstractPostgresDataSource` class
 - `BaseDataSource` class
@@ -1603,11 +1666,11 @@ tags: [reference, exports, api]
 - `IDatabaseTransaction` interface
 - `IDatabaseTransactionOptions` interface
 - `IDefinedEntity` interface
-- `IDefinedEntityClass` interface
 - `IEntity` interface
 - `IManyRelation` interface
 - `IOneRelation` interface
 - `IPostgresDataSource` interface
+- `IRecursiveTreeOptions` interface
 - `IRelationalQueryDialect` interface
 - `isDatabaseTransaction` const
 - `IsolationLevels` class
@@ -1624,16 +1687,17 @@ tags: [reference, exports, api]
 - `PostgresQueryExecutor` class
 - `PostgresQueryOperators` class
 - `ReadableRepository` class
+- `RecursiveTreeDirections` class
+- `RecursiveTreeSql` class
 - `SoftDeletableRepository` class
 - `TableColumnCache` class
 - `TAnyConnector` type
 - `TColumnDefinition` type
 - `TColumnDefinitions` type
 - `TDataTypeEnricherOptions` type
+- `TDefinedEntityClass` type
 - `TDeletedAtColumn` type
-- `TEntityColumns` type
 - `TEntityObject` type
-- `TEntityTable` type
 - `TGetIdType` type
 - `TIdColumn` type
 - `TIdEnricherOptions` type
@@ -1642,6 +1706,7 @@ tags: [reference, exports, api]
 - `toRelationConfigs` const
 - `TPrimaryKey` type
 - `TPrincipalEnricherOptions` type
+- `TRecursiveTreeDirection` type
 - `TRelationalConnection` type
 - `TRelationalConnector` type
 - `TRelationalDriver` type
@@ -1691,7 +1756,7 @@ tags: [reference, exports, api]
 - `TPoolerMode` type
 - `withAuthContext` const
 
-### `@venizia/ignis-connectors/sqlite` (71)
+### `@venizia/ignis-connectors/sqlite` (77)
 
 - `AbstractSqliteDataSource` class
 - `BaseSqliteDataSource` class
@@ -1712,6 +1777,7 @@ tags: [reference, exports, api]
 - `IEntity` interface
 - `IManyRelation` interface
 - `IOneRelation` interface
+- `IRecursiveTreeOptions` interface
 - `IRelationalQueryDialect` interface
 - `ISO_TIMESTAMP_NOW` const
 - `isoTimestamp` const
@@ -1724,9 +1790,12 @@ tags: [reference, exports, api]
 - `IStatementResult` interface
 - `ITransformedUpdateData` interface
 - `many` const
+- `ModelFactory` class
 - `one` const
 - `PersistableSqliteRepository` class
 - `ReadableSqliteRepository` class
+- `RecursiveTreeDirections` class
+- `RecursiveTreeSql` class
 - `SoftDeletableSqliteRepository` class
 - `SqliteBaseRepository` class
 - `SqliteBeginModes` class
@@ -1738,6 +1807,7 @@ tags: [reference, exports, api]
 - `TColumnDefinition` type
 - `TColumnDefinitions` type
 - `TDataTypeEnricherOptions` type
+- `TDefinedEntityClass` type
 - `TDeletedAtColumn` type
 - `TEntityObject` type
 - `TGetIdType` type
@@ -1747,6 +1817,7 @@ tags: [reference, exports, api]
 - `toRelationConfigs` const
 - `TPrimaryKey` type
 - `TPrincipalEnricherOptions` type
+- `TRecursiveTreeDirection` type
 - `TRelationDefinition` type
 - `TRelationDefinitions` type
 - `TRelationMetadata` type
@@ -1770,16 +1841,14 @@ tags: [reference, exports, api]
 - `LibSqlDriver` class
 - `TLibSqlDriverOptions` type
 
-### `@venizia/ignis-connectors/search` (58)
+### `@venizia/ignis-connectors/search` (53)
 
-- `AbstractSearchController` class
 - `AbstractSearchDataSource` class
 - `BaseSearchConnector` class
 - `BaseSearchDataSource` class
 - `BaseSearchEntity` class
 - `DefaultSearchRepository` class
 - `defineSearchCollection` const
-- `defineSearchRouteConfigs` const
 - `deriveSearchDocumentSchema` const
 - `field` const
 - `IAliasInfo` interface
@@ -1790,8 +1859,6 @@ tags: [reference, exports, api]
 - `ISearchCompileCapabilities` interface
 - `ISearchConnector` interface
 - `ISearchConnectorCallbacks` interface
-- `ISearchControllerOptions` interface
-- `ISearchCustomizableRoutes` interface
 - `ISearchDataSourceOptions` interface
 - `ISearchDocumentScoped` interface
 - `ISearchEmbedConfig` interface
@@ -1809,7 +1876,6 @@ tags: [reference, exports, api]
 - `PersistableSearchRepository` class
 - `ReadableSearchRepository` class
 - `SearchBaseRepository` class
-- `SearchControllerFactory` class
 - `SearchErrors` const
 - `SearchFieldTypes` class
 - `SearchFilterOutcomes` class
@@ -1839,9 +1905,8 @@ tags: [reference, exports, api]
 - `ISearchCustomizableRoutes` interface
 - `SearchControllerFactory` class
 
-### `@venizia/ignis-connectors/typesense` (81)
+### `@venizia/ignis-connectors/typesense` (76)
 
-- `AbstractSearchController` class
 - `AbstractSearchDataSource` class
 - `BaseSearchConnector` class
 - `BaseSearchDataSource` class
@@ -1849,7 +1914,6 @@ tags: [reference, exports, api]
 - `compileTypesenseCollection` const
 - `DefaultSearchRepository` class
 - `defineSearchCollection` const
-- `defineSearchRouteConfigs` const
 - `deriveSearchDocumentSchema` const
 - `field` const
 - `IAliasInfo` interface
@@ -1861,8 +1925,6 @@ tags: [reference, exports, api]
 - `ISearchCompileCapabilities` interface
 - `ISearchConnector` interface
 - `ISearchConnectorCallbacks` interface
-- `ISearchControllerOptions` interface
-- `ISearchCustomizableRoutes` interface
 - `ISearchDataSourceOptions` interface
 - `ISearchDocumentScoped` interface
 - `ISearchEmbedConfig` interface
@@ -1886,7 +1948,6 @@ tags: [reference, exports, api]
 - `PersistableSearchRepository` class
 - `ReadableSearchRepository` class
 - `SearchBaseRepository` class
-- `SearchControllerFactory` class
 - `SearchErrors` const
 - `SearchFieldTypes` class
 - `SearchFilterOutcomes` class
@@ -1952,7 +2013,7 @@ tags: [reference, exports, api]
 
 ## core-server
 
-### `@venizia/ignis` (982)
+### `@venizia/ignis` (994)
 
 - `AbstractApplication` class
 - `AbstractAuthRegistry` class
@@ -2102,7 +2163,7 @@ tags: [reference, exports, api]
 - `datasource` const
 - `DataSourceDrivers` class
 - `DataTypes` class
-- `dayjs` function
+- `DayjsTemporalAdapter` class
 - `DEFAULT_CIPHER_BITS` const
 - `DEFAULT_HASH_OUTPUT_ENCODING` const
 - `DEFAULT_KDF_DIGEST` const
@@ -2111,6 +2172,8 @@ tags: [reference, exports, api]
 - `DEFAULT_LIMIT` const
 - `DEFAULT_MAX_LIMIT` const
 - `DEFAULT_PAD_END` const
+- `DEFAULT_TEMPORAL_PATTERN` const
+- `DEFAULT_TEMPORAL_TIME_ZONE` const
 - `DEFAULT_UID_DELIMITER` const
 - `DEFAULT_UID_LENGTH` const
 - `DEFAULT_UID_MAX_ATTEMPTS` const
@@ -2168,15 +2231,12 @@ tags: [reference, exports, api]
 - `generateUserAuditColumnDefs` const
 - `get` const
 - `getCachedColumns` const
-- `getDateTz` const
 - `getDeepProperty` const
 - `getDroppedRouteDecorators` const
 - `getError` const
 - `getExecutedPerformance` const
 - `getIdType` const
-- `getNextWeekday` const
 - `getPerformanceCheckpoint` const
-- `getPreviousWeekday` const
 - `getUID` const
 - `GrantBuilder` class
 - `GRPC` class
@@ -2263,8 +2323,9 @@ tags: [reference, exports, api]
 - `IDataSource` interface
 - `IDataSourceCapabilities` interface
 - `IDataSourceMetadata` interface
+- `IDayjsFactory` interface
+- `IDayjsInstance` interface
 - `IDefinedEntity` interface
-- `IDefinedEntityClass` interface
 - `IDefineRouteOptions` interface
 - `IDeletableRepository` interface
 - `IDiskHelperOptions` interface
@@ -2310,6 +2371,8 @@ tags: [reference, exports, api]
 - `IListObjectsOptions` interface
 - `ILogger` interface
 - `ILoggerProvider` interface
+- `ILuxonDateTime` interface
+- `ILuxonDateTimeFactory` interface
 - `IManyRelation` interface
 - `IMiddlewareConfigs` interface
 - `IModelAuthorizeSettings` interface
@@ -2363,6 +2426,7 @@ tags: [reference, exports, api]
 - `IRedisKey` interface
 - `IRedisKeyValue` interface
 - `IRedisList` interface
+- `IRedisModuleOption` interface
 - `IRedisPubSub` interface
 - `IRedisSentinelHelperOptions` interface
 - `IRedisSentinelHelperProps` interface
@@ -2426,9 +2490,12 @@ tags: [reference, exports, api]
 - `IStorageHelper` interface
 - `IStorageHelperOptions` interface
 - `isUrlRefusedError` const
-- `isWeekday` const
 - `ITcpSocketClient` interface
 - `ITcpSocketServerOptions` interface
+- `ITemporalAdapter` interface
+- `ITemporalNamespace` interface
+- `ITemporalParts` interface
+- `ITemporalZonedDateTime` interface
 - `ITimerAdapter` interface
 - `ITransaction` interface
 - `ITransactionOptions` interface
@@ -2457,6 +2524,7 @@ tags: [reference, exports, api]
 - `IWorkerBus` interface
 - `IWorkerMessageBusHandler` interface
 - `IWorkerThread` interface
+- `IZonedTemporalParts` interface
 - `JOSEStandards` class
 - `jsonContent` const
 - `jsonResponse` const
@@ -2480,6 +2548,7 @@ tags: [reference, exports, api]
 - `LoggerFormats` class
 - `LoggerResolver` class
 - `LogLevels` class
+- `LuxonTemporalAdapter` class
 - `many` const
 - `MembershipRoleManager` class
 - `MemoryStorageHelper` class
@@ -2494,6 +2563,7 @@ tags: [reference, exports, api]
 - `model` const
 - `ModelFactory` class
 - `ModuleUtility` class
+- `NativeTemporalAdapter` class
 - `NetworkTcpClient` class
 - `NetworkTcpServer` class
 - `NetworkTlsTcpClient` class
@@ -2693,17 +2763,18 @@ tags: [reference, exports, api]
 - `TDecoratorModelTarget` type
 - `TDecoratorTarget` type
 - `TDefineAuthControllerOpts` type
+- `TDefinedEntityClass` type
 - `TDeletedAtColumn` type
 - `TDocumentUIType` type
 - `TDomainHierarchyEdge` type
 - `TDrizzleQueryOptions` type
 - `TDurationUnit` type
-- `TEntityColumns` type
+- `TemporalHelper` class
+- `TemporalUnits` class
 - `TEntityDataObject` type
 - `TEntityId` type
 - `TEntityObject` type
 - `TEntityPersistObject` type
-- `TEntityTable` type
 - `TError` type
 - `TErrorByDefinition` type
 - `TErrorByField` type
@@ -2873,6 +2944,8 @@ tags: [reference, exports, api]
 - `TTableObject` type
 - `TTableSchemaWithId` type
 - `TTask` type
+- `TTemporalInput` type
+- `TTemporalUnit` type
 - `TTimerHandle` type
 - `TTzEnricherOptions` type
 - `TTzEnricherResult` type
@@ -2937,7 +3010,7 @@ tags: [reference, exports, api]
 - `WhereSchema` const
 - `WorkerPoolHelper` class
 
-### `@venizia/ignis/postgres` (81)
+### `@venizia/ignis/postgres` (83)
 
 - `AbstractPostgresDataSource` class
 - `BaseDataSource` class
@@ -2963,11 +3036,11 @@ tags: [reference, exports, api]
 - `IDatabaseTransaction` interface
 - `IDatabaseTransactionOptions` interface
 - `IDefinedEntity` interface
-- `IDefinedEntityClass` interface
 - `IEntity` interface
 - `IManyRelation` interface
 - `IOneRelation` interface
 - `IPostgresDataSource` interface
+- `IRecursiveTreeOptions` interface
 - `IRelationalQueryDialect` interface
 - `isDatabaseTransaction` const
 - `IsolationLevels` class
@@ -2984,16 +3057,17 @@ tags: [reference, exports, api]
 - `PostgresQueryExecutor` class
 - `PostgresQueryOperators` class
 - `ReadableRepository` class
+- `RecursiveTreeDirections` class
+- `RecursiveTreeSql` class
 - `SoftDeletableRepository` class
 - `TableColumnCache` class
 - `TAnyConnector` type
 - `TColumnDefinition` type
 - `TColumnDefinitions` type
 - `TDataTypeEnricherOptions` type
+- `TDefinedEntityClass` type
 - `TDeletedAtColumn` type
-- `TEntityColumns` type
 - `TEntityObject` type
-- `TEntityTable` type
 - `TGetIdType` type
 - `TIdColumn` type
 - `TIdEnricherOptions` type
@@ -3002,6 +3076,7 @@ tags: [reference, exports, api]
 - `toRelationConfigs` const
 - `TPrimaryKey` type
 - `TPrincipalEnricherOptions` type
+- `TRecursiveTreeDirection` type
 - `TRelationalConnection` type
 - `TRelationalConnector` type
 - `TRelationalDriver` type
@@ -3021,7 +3096,7 @@ tags: [reference, exports, api]
 - `TUserAuditEnricherResult` type
 - `UpdateBuilder` class
 
-### `@venizia/ignis/relational` (68)
+### `@venizia/ignis/relational` (74)
 
 - `AbstractRelationalDataSource` class
 - `BaseRelationalDataSource` class
@@ -3038,6 +3113,7 @@ tags: [reference, exports, api]
 - `IManyRelation` interface
 - `IMigration` interface
 - `IOneRelation` interface
+- `IRecursiveTreeOptions` interface
 - `IRelationalConnection` interface
 - `IRelationalDataSource` interface
 - `IRelationalDriver` interface
@@ -3056,10 +3132,13 @@ tags: [reference, exports, api]
 - `IWriteResult` interface
 - `JSON_PATH_PATTERN` const
 - `many` const
+- `ModelFactory` class
 - `one` const
 - `parseJsonPath` const
 - `PersistableRelationalRepository` class
 - `ReadableRelationalRepository` class
+- `RecursiveTreeDirections` class
+- `RecursiveTreeSql` class
 - `RelationalBaseRepository` class
 - `RelationalMigrationRunner` class
 - `RelationalUpdateBuilder` class
@@ -3070,12 +3149,14 @@ tags: [reference, exports, api]
 - `TColumnDefinition` type
 - `TColumnDefinitions` type
 - `TColumnSelection` type
+- `TDefinedEntityClass` type
 - `TDeletedAtColumn` type
 - `TEntityObject` type
 - `TGetIdType` type
 - `TIdColumn` type
 - `toRelationConfigs` const
 - `TPrimaryKey` type
+- `TRecursiveTreeDirection` type
 - `TRelationalConnectorOf` type
 - `TRelationalTransactionOf` type
 - `TRelationalTransactionOptions` type
@@ -3122,7 +3203,7 @@ tags: [reference, exports, api]
 - `TPoolerMode` type
 - `withAuthContext` const
 
-### `@venizia/ignis/sqlite` (71)
+### `@venizia/ignis/sqlite` (77)
 
 - `AbstractSqliteDataSource` class
 - `BaseSqliteDataSource` class
@@ -3143,6 +3224,7 @@ tags: [reference, exports, api]
 - `IEntity` interface
 - `IManyRelation` interface
 - `IOneRelation` interface
+- `IRecursiveTreeOptions` interface
 - `IRelationalQueryDialect` interface
 - `ISO_TIMESTAMP_NOW` const
 - `isoTimestamp` const
@@ -3155,9 +3237,12 @@ tags: [reference, exports, api]
 - `IStatementResult` interface
 - `ITransformedUpdateData` interface
 - `many` const
+- `ModelFactory` class
 - `one` const
 - `PersistableSqliteRepository` class
 - `ReadableSqliteRepository` class
+- `RecursiveTreeDirections` class
+- `RecursiveTreeSql` class
 - `SoftDeletableSqliteRepository` class
 - `SqliteBaseRepository` class
 - `SqliteBeginModes` class
@@ -3169,6 +3254,7 @@ tags: [reference, exports, api]
 - `TColumnDefinition` type
 - `TColumnDefinitions` type
 - `TDataTypeEnricherOptions` type
+- `TDefinedEntityClass` type
 - `TDeletedAtColumn` type
 - `TEntityObject` type
 - `TGetIdType` type
@@ -3178,6 +3264,7 @@ tags: [reference, exports, api]
 - `toRelationConfigs` const
 - `TPrimaryKey` type
 - `TPrincipalEnricherOptions` type
+- `TRecursiveTreeDirection` type
 - `TRelationDefinition` type
 - `TRelationDefinitions` type
 - `TRelationMetadata` type
@@ -3201,16 +3288,14 @@ tags: [reference, exports, api]
 - `LibSqlDriver` class
 - `TLibSqlDriverOptions` type
 
-### `@venizia/ignis/search` (58)
+### `@venizia/ignis/search` (53)
 
-- `AbstractSearchController` class
 - `AbstractSearchDataSource` class
 - `BaseSearchConnector` class
 - `BaseSearchDataSource` class
 - `BaseSearchEntity` class
 - `DefaultSearchRepository` class
 - `defineSearchCollection` const
-- `defineSearchRouteConfigs` const
 - `deriveSearchDocumentSchema` const
 - `field` const
 - `IAliasInfo` interface
@@ -3221,8 +3306,6 @@ tags: [reference, exports, api]
 - `ISearchCompileCapabilities` interface
 - `ISearchConnector` interface
 - `ISearchConnectorCallbacks` interface
-- `ISearchControllerOptions` interface
-- `ISearchCustomizableRoutes` interface
 - `ISearchDataSourceOptions` interface
 - `ISearchDocumentScoped` interface
 - `ISearchEmbedConfig` interface
@@ -3240,7 +3323,6 @@ tags: [reference, exports, api]
 - `PersistableSearchRepository` class
 - `ReadableSearchRepository` class
 - `SearchBaseRepository` class
-- `SearchControllerFactory` class
 - `SearchErrors` const
 - `SearchFieldTypes` class
 - `SearchFilterOutcomes` class
@@ -3415,9 +3497,8 @@ tags: [reference, exports, api]
 - `WebSocketBindingKeys` class
 - `WebSocketComponent` class
 
-### `@venizia/ignis/typesense` (81)
+### `@venizia/ignis/typesense` (76)
 
-- `AbstractSearchController` class
 - `AbstractSearchDataSource` class
 - `BaseSearchConnector` class
 - `BaseSearchDataSource` class
@@ -3425,7 +3506,6 @@ tags: [reference, exports, api]
 - `compileTypesenseCollection` const
 - `DefaultSearchRepository` class
 - `defineSearchCollection` const
-- `defineSearchRouteConfigs` const
 - `deriveSearchDocumentSchema` const
 - `field` const
 - `IAliasInfo` interface
@@ -3437,8 +3517,6 @@ tags: [reference, exports, api]
 - `ISearchCompileCapabilities` interface
 - `ISearchConnector` interface
 - `ISearchConnectorCallbacks` interface
-- `ISearchControllerOptions` interface
-- `ISearchCustomizableRoutes` interface
 - `ISearchDataSourceOptions` interface
 - `ISearchDocumentScoped` interface
 - `ISearchEmbedConfig` interface
@@ -3462,7 +3540,6 @@ tags: [reference, exports, api]
 - `PersistableSearchRepository` class
 - `ReadableSearchRepository` class
 - `SearchBaseRepository` class
-- `SearchControllerFactory` class
 - `SearchErrors` const
 - `SearchFieldTypes` class
 - `SearchFilterOutcomes` class

@@ -20,13 +20,13 @@ logger.info('User created');
 // Output: [UserService] User created
 ```
 
-`LoggerFactory` is how `BaseHelper` creates its internal logger, so every helper in the framework gets a scoped logger the same way, for free.
+Every helper in the framework gets its `this.logger` from the same factory, scoped to the helper, for free.
 
 ## How it works
 
 - **Typed against `ILogger`.** Every consumer - including `BaseHelper.logger` - gets the `ILogger` interface, never a concrete class. Winston is the default provider behind it, selected in `factory.ts`.
 - **Provider-based.** `LoggerFactory.use({ provider })` selects the app's logger engine once, at the entrypoint. Winston is the default; [pino](/extensions/helpers/logger/pino) is the throughput option. Every factory-issued logger follows the registration, even one captured at import time.
-- **Scoped and cached.** `LoggerFactory.getLogger(scopes)` joins the scopes with `-` and caches the result per scope. The same scope always returns the same instance. `BaseHelper` calls this in its constructor, so every helper's `this.logger` comes pre-scoped.
+- **Scoped and cached.** `LoggerFactory.getLogger(scopes)` joins the scopes with `-` and caches the result per scope. The same scope always returns the same instance. A helper's `this.logger` goes through it on first read, pre-scoped to the helper - see [Swap the logger on a helper](#swap-the-logger-on-a-helper).
 - **Custom-backed loggers are the exception.** `Logger.get(scope, customWinstonLogger)` (from the `/winston` sub-path) is NOT cached. Each call returns a fresh wrapper over the instance you passed in.
 - **Method scoping.** `.for(methodName)` returns a child logger scoped to `<scope>-<methodName>` (also cached), so each line shows where it came from.
 - **Level floor.** `APP_ENV_LOGGER_LEVEL` (default `debug`) sets the logger-level floor. Transports without their own level inherit it.
@@ -127,6 +127,39 @@ APP_ENV_LOGGER_FILE_MAX_FILES=30d
 | Retention | `5d` |
 
 Full programmatic configuration - custom prefixes, custom retention - is in the [Full reference](/extensions/helpers/logger/reference).
+
+### Swap the logger on a helper
+
+To put your own logger on a helper - a test spy, say - assign it. Assignment works before or after the first read:
+
+```typescript
+helper.logger = spyLogger;
+```
+
+Until you assign one, `this.logger` resolves on its first read and then stays on the instance as a plain property. Every later read is a property read. The property is non-enumerable, so it never shows up in `Object.keys`, in JSON, or in a spread.
+
+A subclass cannot redeclare `logger` as a field. It is an accessor on `BaseHelper`, and TypeScript refuses the field with TS2610.
+
+### Log from a script that never builds an application
+
+A process that imports only connectors or `@venizia/ignis-helpers/core` never loads a logger provider. A helper there still logs: it writes to the console, and under Node or Bun prints one warning per process (a browser gets none - it has no provider to import):
+
+```
+[BaseHelper] Logging to the console - no logger provider is installed. Import `LoggerFactory` from `@venizia/ignis-helpers` at startup.
+```
+
+To log through the real provider, use `LoggerFactory` once at startup. `@venizia/ignis` does this for you.
+
+```typescript
+// scripts/seed.ts
+import { LoggerFactory } from '@venizia/ignis-helpers';
+
+LoggerFactory.getLogger(['Seed']).info('Seeding');
+```
+
+Import it as a value, as here. A side-effect-only `import '@venizia/ignis-helpers'` can be dropped by a bundler.
+
+A logger read before that import upgrades itself on its next call, children taken with `.for()` included. Nothing has to be rebuilt.
 
 ### Forward logs over UDP
 

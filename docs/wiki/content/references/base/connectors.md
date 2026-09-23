@@ -71,6 +71,7 @@ A Typesense datasource follows the same shape but extends the search connector's
 
 - **`@datasource({ driver })` picks the concrete client, within an engine.** A relational datasource takes a driver **class** (`NodePostgresDriver`, `PostgresJsDriver`, `PGliteDriver`, `LibSqlDriver`), never a driver-name string. A bundler packages values, not text, so a string would leave the peer dependency uninstalled.
 - **All engine clients stay optional peer dependencies.** Importing `@venizia/ignis/postgres` alone loads zero client libraries.
+- **Search controllers ship on their own subpath.** `@venizia/ignis/search`, `/typesense` and `/meilisearch` carry no controller, so they load without `hono` or `drizzle-orm`. Import `AbstractSearchController`, `SearchControllerFactory` and `defineSearchRouteConfigs` from `@venizia/ignis/search/controllers` or `@venizia/ignis/typesense/controllers`.
 - **Only postgres is reachable from the root barrel.** `@venizia/ignis` re-exports `@venizia/ignis/postgres` for backward compatibility. Every other engine, and both neutral tiers, are subpath-only. An app that never touches search never pulls a search client into its bundle.
 
 **Neutral names and engine names**

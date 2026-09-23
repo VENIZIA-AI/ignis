@@ -81,13 +81,17 @@ Runtime resolution needs a `node_modules` to resolve against. A `bun build --com
 | Component | Option | You pass |
 |---|---|---|
 | Mail transports | `module` | the `nodemailer` or `mailgun.js` module |
+| `RedisSingleHelper`, `RedisClusterHelper`, `RedisSentinelHelper` | `module` | the `ioredis` module |
+| `BullMQHelper` | `module` | the `bullmq` module |
+| `SocketIOClientHelper` | `module` | the `socket.io-client` module |
+| Mail BullMQ queue executor | `module`, and `redis.module` | the `bullmq` module, and the `ioredis` module |
 | gRPC component | `module` | `{ connect, protocol }` from `@connectrpc/connect` |
 | `HashiCorpVaultHelper` | `client` | an already-built vault client |
 | `DotenvVaultHelper` | `decode` | your own decode function |
 
 Prefer the option. It is typed, it lands where it is used, and no ordering can defeat it.
 
-`register` is the fallback for a peer the framework reaches with no options seam in between. The static import is what pulls the library into the binary; `register` is what lets the framework find it there:
+`register` is the fallback: one line at the entrypoint that covers every helper reaching that peer, and the way in for a peer the framework reaches with no options seam in between. The static import is what pulls the library into the binary; `register` is what lets the framework find it there:
 
 ```typescript
 import { ModuleUtility } from '@venizia/ignis-helpers';

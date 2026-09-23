@@ -568,8 +568,8 @@ doAuthenticate(opts: {
 
 | New state | Effect |
 |---|---|
-| `'authenticated'` | Sets `storage.authenticatedAt`; clears the pending kick-timer |
-| `'unauthorized'` / `'authenticating'` | Clears `storage.authenticatedAt` |
+| `'authenticated'` | Sets `storage.authenticatedAt` to the current `Date`; clears the pending kick-timer |
+| `'unauthorized'` / `'authenticating'` | Sets `storage.authenticatedAt` to `null` |
 
 ##### `emit(opts)`
 
@@ -616,8 +616,8 @@ interface ITcpSocketClient<SocketClientType> {
   state: 'unauthorized' | 'authenticating' | 'authenticated';
   subscriptions: Set<string>;
   storage: {
-    connectedAt: dayjs.Dayjs;
-    authenticatedAt: dayjs.Dayjs | null;
+    connectedAt: Date;
+    authenticatedAt: Date | null;
     authenticateTimeout?: ReturnType<typeof setTimeout> | null;
     [additionField: symbol | string]: any;
   };

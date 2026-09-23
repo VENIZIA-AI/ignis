@@ -21,6 +21,7 @@ Every peer dependency below is optional. You install one only when you use the h
 | [Socket.IO](./socket-io/) | Socket.IO server | You build a custom real-time feature | `socket.io` |
 | [WebSocket](./websocket/) | WebSocket server | You build a custom real-time feature | None |
 | [Storage](./storage/) | File storage | You read/write files to S3 or disk directly | none - the S3 backend uses Bun's own client |
+| [Temporal](./temporal/) | Dates in a time zone | You parse, format, or add a month to a date in a named zone | None - you pass in your own date library |
 | [UID](./uid/) | Snowflake IDs | You need unique, sortable IDs | None |
 | [Worker Thread](./worker-thread/) | Worker pools | You move CPU-heavy work off the main thread | None |
 
@@ -35,7 +36,7 @@ A helper with an optional peer dependency ships from its own subpath, so a bundl
 | `@venizia/ignis-helpers/kafka` | `@platformatic/kafka` |
 | `@venizia/ignis-helpers/bullmq` | `bullmq` |
 | `@venizia/ignis-helpers/mqtt` | `mqtt` |
-| `@venizia/ignis-helpers/socket-io` | `socket.io`, `socket.io-client` |
+| `@venizia/ignis-helpers/socket-io` | `socket.io`; `socket.io-client` only for `SocketIOClientHelper`, loaded when it configures |
 | `@venizia/ignis-helpers/minio` | `minio` |
 | `@venizia/ignis-helpers/bun-s3` | none - Bun native |
 | `@venizia/ignis-helpers/hashicorp-vault` | `node-vault` |
@@ -43,15 +44,17 @@ A helper with an optional peer dependency ships from its own subpath, so a bundl
 | `@venizia/ignis-helpers/winston` | `winston` |
 | `@venizia/ignis-helpers/pino` | `pino` |
 
-Two more subpaths are of a different kind. They isolate no peer dependency - they expose the parts of
+Four more subpaths are of a different kind. They isolate no peer dependency - they expose the parts of
 this package that are already browser-safe.
 
 | Import from | Holds |
 |---|---|
 | `@venizia/ignis-helpers/common` | Constants and pure types: `HTTP`, `GRPC`, `TConstValue`, the duration and mime tables, the redaction helpers |
-| `@venizia/ignis-helpers/core` | Browser-safe runtime classes: `BaseHelper`, the error module, `RetryHelper`, `TreeBuilder`, `TreeWalker`, `SlugHelper`, `UrlPolicy`, `BuildInfoRegistry`, `ProjectRootRegistry`, and the parse utilities |
+| `@venizia/ignis-helpers/core` | Browser-safe runtime classes: `BaseHelper`, the error module, `RetryHelper`, `TemporalHelper`, `TreeBuilder`, `TreeWalker`, `SlugHelper`, `UrlPolicy`, `BuildInfoRegistry`, `ProjectRootRegistry`, and the parse utilities |
+| `@venizia/ignis-helpers/temporal` | `TemporalHelper` and its adapters alone |
+| `@venizia/ignis-helpers/uuid` | `uuidV4`, `uuidV5`, `uuidV7` and `UuidHelper` alone - see [UID](./uid/) |
 
-Import either when your code has to bundle for a browser.
+Import one of them when your code has to bundle for a browser.
 
 The root barrel cannot: it re-exports every module, so reaching one constant through it pulls in 14
 node builtins - `node:fs`, `node:net`, `node:tls`, `node:worker_threads` among them. A guard test

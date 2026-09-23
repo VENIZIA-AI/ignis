@@ -59,6 +59,10 @@ import { BullMQHelper } from '@venizia/ignis-helpers/bullmq';
 import { MQTTClientHelper, type IMQTTClientOptions } from '@venizia/ignis-helpers/mqtt';
 ```
 
+Importing `@venizia/ignis-helpers/bullmq` does not load `bullmq`. The helper loads it through `ModuleUtility.loadSync` when it builds its queue or worker, in the constructor. A module that imports the helper but never constructs one runs without `bullmq` installed.
+
+A `bun build --compile` binary has no `node_modules` for that lookup, and without help its first queue throws `[ModuleUtility.loadSync] bullmq is required`. Pass the module through `module`, as in [Run it in a compiled binary](#run-it-in-a-compiled-binary).
+
 ## BullMQHelper
 
 `Source ->` [`packages/helpers/src/modules/queue/bullmq/helper.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/queue/bullmq/helper.ts)
@@ -101,6 +105,7 @@ const worker = new BullMQHelper({
 | `identifier` | `string` | - | Scoped-logging identifier. |
 | `role` | `TBullQueueRole` (`'queue' \| 'worker'`) | - | `'queue'` initializes a producer; `'worker'` initializes a consumer. |
 | `redisConnection` | `IRedisHelper` | - | Connection backend. The helper calls `duplicateClient()` on it - never a raw ioredis client. |
+| `module` | `typeof import('bullmq')` | loaded by name | `bullmq` itself, for a compiled binary. Omitted, it is loaded when the queue or worker is built. |
 | `numberOfWorker` | `number` | `1` | Worker concurrency (BullMQ `Worker` `concurrency` option). Ignored for `role: 'queue'`. |
 | `lockDuration` | `number` | `5400000` (90 minutes) | Job lock duration in milliseconds. Ignored for `role: 'queue'`. |
 | `onWorkerData` | `(job: Job<TQueueElement, TQueueResult>) => Promise<any>` | - | Job processor. If omitted, the worker logs `id`, `name`, `data` at info level and resolves `undefined`. |
@@ -109,6 +114,35 @@ const worker = new BullMQHelper({
 
 > [!IMPORTANT]
 > Pass an `IRedisHelper` instance to `redisConnection`, **not** the raw ioredis client. `BullMQHelper` calls `redisConnection.duplicateClient()` internally to get a dedicated connection per role. One shared Redis helper can back any number of queues and workers.
+
+### Run it in a compiled binary
+
+A `bun build --compile` binary ships without `node_modules`, so neither `ioredis` nor `bullmq` can be found by name. Import both statically and hand each to the helper that loads it:
+
+```typescript
+import * as bullmq from 'bullmq';
+import * as ioredis from 'ioredis';
+import { RedisSingleHelper } from '@venizia/ignis-helpers';
+import { BullMQHelper } from '@venizia/ignis-helpers/bullmq';
+
+const redisConnection = new RedisSingleHelper({
+  name: 'queue-redis',
+  host: 'localhost',
+  port: 6379,
+  password: 'secret',
+  module: ioredis,
+});
+
+const producer = new BullMQHelper({
+  identifier: 'email-producer',
+  queueName: 'emails',
+  role: 'queue',
+  redisConnection,
+  module: bullmq,
+});
+```
+
+The static import is what puts each library inside the binary; `module` is how the helper finds it. To cover every helper at once instead, register both at the entrypoint: `ModuleUtility.register({ modules: { ioredis, bullmq } })`.
 
 ### Configuration lifecycle
 

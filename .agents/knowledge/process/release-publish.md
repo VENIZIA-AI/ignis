@@ -79,7 +79,13 @@ generated tables before releasing it. `--no-atlas` opts out for a single-package
    regression tests run first, so a probe that silently stopped detecting anything cannot leave the
    gate green for the wrong reason. This is the dependency-chain-aware build (see
    [build system](/process/build-system.md)) - releasing `core-server` also rebuilds everything
-   upstream of it.
+   upstream of it. Then `make clean-install-$PACKAGE` (`scripts/clean-install/{cli,manifest}.ts`)
+   packs the package, installs it ALONE into an empty project with only its required peers plus the
+   peers the manifest grants each sub-path, and loads every published sub-path under Bun `import`,
+   Node ESM `import` and Node `require` - plus a browser build for every entry the purity gate
+   claims - with both the hoisted and the isolated linker. The workspace hoists every optional peer,
+   so a sub-path that leaks one looks fine everywhere else. CI runs `make clean-install` for every
+   package, with Node 24 installed for the Node checks.
 6. Build artifacts are validated against the package's own `exports` map: every file any condition
    names must exist. The list is never hand-written. The hand-written one it replaced named three
    dual-build packages and went stale the day four more were dual-built.

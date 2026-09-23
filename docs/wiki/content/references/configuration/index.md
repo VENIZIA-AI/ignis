@@ -103,7 +103,7 @@ own code, and setting it changes nothing in IGNIS.
 | Constant | Description | Read by IGNIS |
 |----------|-------------|---------------|
 | `APP_ENV_APPLICATION_NAME` | Application display name | yes - `AppConstants.APPLICATION_NAME`, startup banner |
-| `APP_ENV_APPLICATION_TIMEZONE` | Application timezone (e.g., `'Asia/Ho_Chi_Minh'`) | yes - `DateUtility` default zone, startup banner |
+| `APP_ENV_APPLICATION_TIMEZONE` | Application timezone (for example `'Asia/Ho_Chi_Minh'`) | yes - startup banner only; date work takes its zone from [`TemporalHelper`](/extensions/helpers/temporal/) |
 | `APP_ENV_LOGGER_FOLDER_PATH` | Log file output directory | yes - enables rotating file logs |
 | `APP_ENV_SERVER_HOST` | HTTP server host (e.g., `'0.0.0.0'`) | yes - fallback when `configs.host` is absent |
 | `APP_ENV_SERVER_PORT` | HTTP server port (e.g., `3000`) | yes - fallback when `configs.port` is absent |
