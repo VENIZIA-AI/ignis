@@ -10,6 +10,8 @@ tsc --noEmit -p tsconfig.json
 echo ">>> Building CJS..."
 tsc -p tsconfig.build.json --extendedDiagnostics
 tsc-alias -p tsconfig.build.json
+# tsc writes 0644, so a rebuilt `bin` target is not executable until the next `bun install`.
+chmod +x dist/cjs/clis/*.js
 
 echo ""
 
