@@ -7,6 +7,8 @@ import { createMiddleware } from 'hono/factory';
 import type { MiddlewareHandler } from 'hono/types';
 import { REQUEST_ID_KEY, RequestErrors, type TContext } from '@venizia/ignis-kernel';
 
+const TEXT_CONTENT_TYPE_PREFIX = 'text/';
+
 /** Logs incoming/outgoing request details. The BODY is logged only in a recognised development environment - see the constructor for why that test is fail-closed. */
 export class RequestSpyMiddleware extends BaseHelper implements IProvider<MiddlewareHandler> {
   static readonly REQUEST_ID_KEY = REQUEST_ID_KEY;
@@ -29,7 +31,7 @@ export class RequestSpyMiddleware extends BaseHelper implements IProvider<Middle
     this.isDebugMode = !!env && EnvironmentNames.DEVELOPMENT_ENVS.has(env);
   }
 
-  /** Parses request body based on Content-Type header. */
+  /** Parses the body by Content-Type without draining it for the handler: JSON and form bodies go through the request cache, `text/*` is read from a clone (from the cache once something read it), and any other type is described by its size, never read. */
   async parseBody(opts: { req: TContext['req'] }): Promise<unknown> {
     const contentType = opts.req.header(HTTP.Headers.CONTENT_TYPE);
 
@@ -61,8 +63,16 @@ export class RequestSpyMiddleware extends BaseHelper implements IProvider<Middle
         return opts.req.raw.body;
       }
 
-      const rs = await opts.req.text();
-      return rs;
+      // Anything else is read, if at all, from a clone: a handler may stream `req.raw.body` on (an upload proxy), and reading the request itself would drain it and mangle binary bytes.
+      // A body an earlier middleware read cannot be cloned; Hono's cache serves it instead.
+      if (contentType.startsWith(TEXT_CONTENT_TYPE_PREFIX)) {
+        const rs = opts.req.raw.bodyUsed
+          ? await opts.req.text()
+          : await opts.req.raw.clone().text();
+        return rs;
+      }
+
+      return `<${contentLength ?? 'unknown'} bytes, ${contentType}>`;
     } catch {
       throw getError({
         error: RequestErrors.BODY_MALFORMED,
