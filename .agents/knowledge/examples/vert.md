@@ -1,41 +1,76 @@
 ---
 type: Example
 title: vert
-description: The production-ready reference application exercising the full IGNIS stack - Postgres, authentication, scoped Casbin authorization, and repository correctness suites.
+description: The production-ready reference application - JWKS-signed JWT, scoped Casbin RBAC cached in Redis, CRUD from ControllerFactory, transactions, row locks, relations and file uploads, on a generated artifact index.
 resource: examples/vert
 tags: [examples, reference-app]
 ---
 
-`vert` (`@nx/vert`) is the largest and most complete example in the repository - not a toy, a reference implementation exercising nearly every framework capability at once. Its entities (`Organization`, `User`, `Role`, `Permission`, `PolicyDefinition`, `Product`, `SaleChannel`, `SaleChannelProduct`, `Configuration`) model a multi-tenant commerce domain with scoped RBAC.
+`vert` is the largest and most complete example in the repository - not a toy, a reference
+implementation exercising nearly every framework capability at once, on real Postgres and Redis.
+Its models (`src/models/entities/*.model.ts`) are `ModelFactory.defineEntity({ table, relations })`
+over a `pgTable` defined first, the same shape every other example uses; `vert` is where relations,
+hidden columns, a default filter and per-route authentication all show up together.
 
 ## What it demonstrates
 
-- **Authentication** - JWKS-issuer JWT strategy plus Basic auth, both registered through `AuthenticationStrategyRegistry`, backed by a custom `AuthenticationService` and the built-in `AuthenticateComponent` (sign-in/sign-up/change-password wired via `TAuthenticationRestOptions`).
-- **Scoped multi-tenant authorization** - `ScopedCasbinAdapter` over `PostgresDataSource`, the domain-scoped RBAC model (`CASBIN_RBAC_DOMAIN_SCOPED_MODEL`), a `domainResolver` that derives the request's organization from the authenticated user, an `alwaysAllowRoles` bypass, and a Redis-backed policy cache with a 5-minute TTL.
-- **Repository correctness** - `src/services/tests/` is a battery of repository test suites (CRUD, transactions, row locking, JSON filters, JSON order-by, JSON update, array operators, comprehensive operators, default filters, field selection, hidden properties, inclusion, user audit, advanced filter queries), orchestrated by `RepositoryTestService`. Twelve of the fourteen suites live in their own folder. A thin runner `service.ts` owns the run order. One `<group>.cases.ts` file per case group holds a class extending `BaseTestCases`, built from the shared `ITestCaseContext`. An optional `support.ts` holds shared fixtures. The other two suites stay one file each - `field-selection-test.service.ts` and `json-orderby-test.service.ts` - small enough that splitting would not help. Only the row-locking suite runs today: `RowLockingTestService` is the one suite in `GeneratedArtifacts.services`, and `postConfigure()` resolves it from the container and calls `run()`, while `RepositoryTestService` - the class that injects and wires up every other suite - is referenced nowhere in `application.ts`, so the rest of the battery sits unexercised by the running app.
-- **Health checks and API reference** - `HealthCheckComponent` at `/health-check` and `ApiReferenceComponent` for interactive docs, both turned on through the `artifacts` config in `beConfigs`, with their options coming from `PlatformComponent`'s `@provide()` methods - not the `preConfigure()` `this.component()` / `this.bind()` calls every other example uses.
+- **JWT signed by your own key pair** - `JWKSIssuerAuthenticationStrategy` plus
+  `BasicAuthenticationStrategy`, both registered through `AuthenticationStrategyRegistry` in
+  `preConfigure()`; `src/services/authentication.service.ts` handles sign-up, sign-in and
+  change-password behind the framework's `/auth` routes.
+- **Scoped multi-tenant Casbin RBAC** - `registerAuthorizationEnforcer()` builds a
+  `ScopedCasbinAdapter` over `PostgresDataSource` (`PolicyDefinition`, `Permission`, `Role`,
+  `Organization` as the domain type) and registers a `CasbinAuthorizationEnforcer` with a
+  Redis-backed policy cache (5-minute TTL, keyed per user). `src/controllers/authorization-example/`
+  is the controller these routes are drawn from.
+- **CRUD from one factory call, with overrides** - `src/controllers/configuration.controller.ts`
+  calls `ControllerFactory.defineCrudController` with per-route `authenticate`, a custom create
+  body, then overrides `create` and `deleteById` to add logging around the generated handler.
+- **Relations two ways** - `sale-channel-product.model.ts`: `one(productTable)` reads its columns
+  off the foreign key. `configuration.model.ts`: `modifier` names its columns by hand, because
+  `modified_by` has no foreign key.
+- **Transactions and row locks** - `src/services/tests/transaction/` and
+  `src/services/tests/row-locking/` are repository correctness suites, run only on request: set
+  `APP_ENV_RUN_REPOSITORY_TESTS=true` and start the server (refused outright in production), and
+  `postConfigure()` resolves `RepositoryTestService` and calls `runAllTests()`.
+- **Registration is a generated static index, not `discoverArtifacts`** - `src/generated/artifacts.ts`
+  (from `bun run generate:artifacts`, the `ignis-artifacts` CLI) is passed as `artifacts` in
+  `beConfigs`. `bun run lint` runs `check:artifacts` first and fails while the file is stale relative
+  to the decorated classes on disk.
+- **File uploads** - `/assets` (writes a MetaLink row per upload) and `/resources`, both on disk
+  under `app_data/`.
 
 ## How to run it
 
 ```bash
-bun install                      # from repo root - workspace package
-bun run migrate:dev               # drizzle-kit migrate
-bun run seed:authz                # scripts/seed-authz-test-data.ts
-bun run server:dev                # NODE_ENV=development bun .
-bash scripts/test-authorization.sh   # 25-case authorization test suite (needs jq, a running server)
+docker compose up -d        # Postgres on 15434, Redis on 16382
+cp .env.example .env
+mkdir -p keys && openssl ecparam -name prime256v1 -genkey -noout | openssl pkcs8 -topk8 -nocrypt -out keys/private.pem
+openssl ec -in keys/private.pem -pubout -out keys/public.pem
+bun run migrate:dev
+bun run server:dev            # http://localhost:1190/v1/api, explorer at /v1/api/doc/explorer
+bun test                       # smoke test: applies migrations and signs its own key pair, needs docker
 ```
 
-`build` also runs `cp -r src/security dist/`, because the Casbin model file (`rbac_with_domains_deny.conf`) is a plain-text resource, not compiled TypeScript, and must be copied into `dist/` by hand.
+`examples/vert/scripts/seed-authz-test-data.ts` (`bun run seed:authz`) and
+`examples/vert/scripts/test-authorization.sh` (`bun run test:authz`, needs `jq` and a running
+server) exercise 25 authorization cases against `/authz-example/*`. The seed script first deletes
+every row in `PolicyDefinition`, `Permission`, `Role` and `Organization`, and runs with
+`NODE_ENV=development` - check which database `.env.development` points at before running it.
 
 ## Notable / non-obvious
 
-- Registration runs entirely through `beConfigs.artifacts` - `[GeneratedArtifacts, { components: [HealthCheckComponent, ApiReferenceComponent, AuthenticateComponent, AuthorizeComponent] }]`. No datasource, repository, or controller is wired by hand; `preConfigure()` only registers the authentication strategies.
-- `src/generated/artifacts.ts` comes from `bun run generate:artifacts`, the `@venizia/ignis-boot` CLI that scans every `@datasource` / `@repository` / `@service` / `@controller` class under `src/`. `TestController` and `AuthorizationExampleController` are both live in it - `scripts/test-authorization.sh` drives the `/authz-example/*` routes that exist only because the latter is registered.
-- `PlatformComponent`, listed in `GeneratedArtifacts.components`, supplies every framework option lazily through `@provide()` methods, so it needs no particular position in the boot order.
-- Only the MinIO/static-asset block is commented out in `application.ts` - left in place as reference material rather than deleted.
-- The Casbin policy cache's `keyFn` and `expiresIn` show the concrete shape of the cached-enforcer options that `CasbinAuthorizationEnforcer` expects.
+- A fresh Alice has no role: `GET /authz-example/configurations` answers `403` until a
+  `PolicyDefinition` row grants one.
+- `GET /auth/me` answers "not supported" - this service implements no `getUserInformation`; use
+  `GET /auth/who-am-i` for the token's payload instead.
+- `src/migration-schema.ts` lists every table drizzle-kit reads, including the static-asset
+  component's `MetaLink` table - a table missing there is a table `migrate:generate` never sees.
+- This example needs `docker compose up -d` first; it is not in the root Makefile's
+  `EXAMPLES_SMOKE` list, so its `bun test` runs locally, not in CI.
 
 ## Related
+- [pglite-quickstart](/examples/pglite-quickstart.md)
 - [Application lifecycle](/architecture/application-lifecycle.md)
 - [Repository hierarchy](/architecture/repository-hierarchy.md)
 - [core package](/packages/core-server.md)

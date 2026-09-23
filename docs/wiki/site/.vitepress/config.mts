@@ -455,6 +455,10 @@ const config = defineConfig({
               collapsed: true,
               items: [
                 {
+                  text: 'Fixes Found While Rebuilding the Examples',
+                  link: '/changelogs/2026-09-23-fixes-from-the-examples',
+                },
+                {
                   text: 'Two Repository Types, and CRUD Controllers Without a Constructor',
                   link: '/changelogs/2026-09-23-repository-types',
                 },

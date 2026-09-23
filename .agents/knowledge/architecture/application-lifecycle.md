@@ -157,9 +157,20 @@ silently do not exist.
 `start()`, `stop()`, `startBunModule()` and `startNodeModule()` all live on `ServerApplication`.
 `RuntimeModules.detect()` picks Bun or Node. The Node path imports `@hono/node-server` dynamically
 and resolves from the listening callback rather than from `serve()`'s synchronous return - only then
-is the socket actually bound and an OS-assigned port (config port `0`) known. `stop()` bridges Node's
-callback-based `close()` into a promise for the same reason: otherwise it resolves while the socket
-is still bound and an immediate restart races the old listener.
+is the socket actually bound and an OS-assigned port (config port `0`) known. `stop()` runs the
+post-stop hooks, then `stopServer()`, then `closeDataSources()` in a `finally`: datasources close even
+when the server fails to, and that error still rejects `stop()`. `stopServer()` bridges Node's
+callback-based `close()` into a promise, or `stop()` would resolve while the socket is still bound.
+
+`closeDataSources()` lives on the kernel's `RestApplication`, so `WorkerApplication.stop()` calls the
+same one. It closes the datasources the boot configured (`registeredBindings['datasources']`), logs
+each result and never lets one failure stop the rest. A datasource configured by hand in
+`postConfigure()` is not in that set. Each `close()` races `configs.dataSourceCloseTimeoutMs`
+(default 10 000 ms, `0` waits without limit) through `RetryHelper.runWithTimeout`, then logs
+`Close timed out` and moves on - pg-pool's `end()` never settles while a client stays checked out.
+
+`RestApplication`'s constructor refuses a config carrying `strictPath`: the index signature on
+`IApplicationConfigs` would otherwise accept it and silently ignore it. Use `path.isStrict` instead.
 
 `executePostStartHooks()` and `executePostStopHooks()` stay on `AbstractApplication`. Post-start hooks
 run **in isolation**: the server is already listening, so a hook that throws must not cancel the hooks

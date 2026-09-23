@@ -370,13 +370,16 @@ The `parseBody` method parses the request body based on `Content-Type`:
 | `multipart/form-data` | substring | `req.parseBody()` |
 | `application/x-www-form-urlencoded` | substring | `req.parseBody()` |
 | `application/octet-stream` | exact | `req.raw.body`, returned as the raw stream |
-| Other | - | `req.text()` |
+| `text/*` | prefix | `req.raw.clone().text()` - the handler still reads the original. A body a middleware already read comes from Hono's cache, `req.text()` |
+| Other | - | not read; returns `<N bytes, content-type>` |
 
 Returns `null` when there is no `Content-Type` header, when `Content-Length` is exactly `'0'`, or
 when `req.raw.body` is absent. Only an explicit `'0'` short-circuits: a chunked request carries no
 `Content-Length`, and gating on the header's presence would skip every streamed body.
 
 A parse failure throws HTTP 400 with code `core.request.body_malformed`.
+
+The spy never drains a body the handler may stream on. A handler that forwards `req.raw.body` - an upload proxy - receives it untouched.
 
 ### IP Detection
 

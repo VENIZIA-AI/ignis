@@ -1,33 +1,48 @@
 ---
 type: Example
 title: socket-io-test
-description: An example wiring the Socket.IO component with Redis-backed adapter, authentication, and room validation hooks, plus a scripted client covering every event.
+description: The Socket.IO component with Redis-backed rooms behind a mandatory authentication handshake, running on Bun via @socket.io/bun-engine.
 resource: examples/socket-io-test
 tags: [examples, realtime]
 ---
 
-`socket-io-test` (`@nx/socket-io-test`) demonstrates the `SocketIOComponent` from `@venizia/ignis/socket-io`, run over Bun's native engine (`@socket.io/bun-engine`) with a Redis connection for cross-instance scaling.
+`socket-io-test` demonstrates `SocketIOComponent` from `@venizia/ignis/socket-io`, run over Bun's
+native engine (`@socket.io/bun-engine`) with a Redis connection so state fans out across instances.
+`src/application.ts` binds `REDIS_CONNECTION` and `AUTHENTICATE_HANDLER` before registering the
+component; `src/controllers/chat.controller.ts` is the one REST route, `POST /chat/messages`, that
+pushes into the room every authenticated client joins.
 
 ## What it demonstrates
 
-- `setupSocketIO()` binds a `RedisSingleHelper` to `SocketIOBindingKeys.REDIS_CONNECTION`, plus function hooks: `TSocketIOAuthenticateFn` (reads the handshake's `authorization` header, allows anonymous connections for testing), `TSocketIOValidateRoomFn` (allows all rooms), and `TSocketIOClientConnectedFn` (resolves `SocketEventService` from the container and calls `registerClientHandlers`).
-- `override async stop()` fetches the `SocketIOServerHelper` instance (`isOptional: true`) and calls `shutdown()`, then disconnects the Redis helper - a graceful-shutdown pattern not shown in the REST-only examples.
-- `HealthCheckComponent` and `ApiReferenceComponent` alongside the realtime wiring.
+- **`autoConnect: false` on the Redis helper** - the component duplicates that connection into three
+  Redis clients (pub, sub, emitter) and connects them itself during `configure()`; connecting first
+  in `application.ts` would race the duplicates.
+- **The handshake, not a header alone, authenticates a client** - a Socket.IO client sends its token
+  as `Authorization: Bearer <token>` at connect time, then emits `authenticate`. A match joins it to
+  `io-default` and `io-notification`; a mismatch emits `unauthenticated` and disconnects the socket.
+- **`SocketIOServerHelper` is resolved lazily** - `SOCKET_IO_INSTANCE` binds only after the server
+  starts, so `ChatController` reads it through a getter the first time a request needs it, never in
+  the constructor.
+- **A graceful shutdown hook** - `registerPostStopHook` fetches `SocketIOServerHelper` (`isOptional:
+  true`), calls `shutdown()`, then disconnects the Redis helper.
 
 ## How to run it
 
 ```bash
 bun install
-bun run server:dev        # NODE_ENV=development bun ., via application.init() -> start()
-bun client.ts              # scripted socket.io-client simulation, SERVER_URL env override
+docker compose up -d   # Redis
+bun run start            # http://localhost:3000/api, explorer at /api/doc/explorer
+bun test                  # smoke test: connects real Socket.IO clients; skipped, not failed, if Redis is down
+docker compose down -v
 ```
-
-The client (`client.ts`) simulates ten cases end-to-end: connect/authenticate, echo, join/leave room (both via socket event and REST), direct message, room broadcast, global broadcast, list connected clients (socket event and REST), list a client's rooms (REST), and health check.
 
 ## Notable / non-obvious
 
-- `index.ts` calls `application.init()` and then `await application.start()` inside one try/catch - the same lifecycle entry point as every other example; the retired `boot()` step is no longer chained anywhere.
-- REST and Socket.IO surfaces overlap deliberately: joining/leaving a room and listing clients/rooms are each reachable through both a socket event and a REST endpoint under `/api/socket`, so the client script can cross-check one transport against the other.
+- A rejected client receives `unauthenticated` on its own socket, then the disconnect
+  (`reason: 'io server disconnect'`). Until 2026-09-23 the notice went through the Redis emitter
+  and always lost the race to the disconnect; the smoke test now asserts the notice arrives.
+- This example needs `docker compose up -d` first; it is not in the root Makefile's
+  `EXAMPLES_SMOKE` list, so it runs locally, not in CI.
 
 ## Related
 - [websocket-test](/examples/websocket-test.md)

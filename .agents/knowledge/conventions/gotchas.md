@@ -30,6 +30,7 @@ Traps worth knowing before you hit them yourself. Look for yours here first.
 - [`bun build` folds `process.env.NODE_ENV` into the build machine's value](#bun-build-folds-processenvnodeenv-into-the-build-machines-value)
 - [Compiled binaries: renamed classes, two module copies, no default logger](#compiled-binaries-renamed-classes-two-module-copies-no-default-logger)
 - [bun-types never accepts a bare `ArrayBufferView`](#bun-types-14-types-binary-data-as-typed-arrays-and-dataview-never-a-bare-arraybufferview)
+- [A CommonJS package must not `require` an ESM-only peer at load](#a-commonjs-package-must-not-require-an-esm-only-peer-at-load)
 
 **DI and decorators**
 
@@ -51,6 +52,11 @@ Traps worth knowing before you hit them yourself. Look for yours here first.
 - [The health-check `stats` route is a security default](#the-health-check-stats-route-is-a-security-default-and-enable-overrides-it-silently)
 - [A self-refreshing cache must gate its retry on the last attempt](#a-self-refreshing-cache-must-gate-its-retry-on-the-last-attempt-not-the-last-success)
 - [An unannotated method return widens a `TConstValue`-derived literal](#an-unannotated-method-return-widens-a-tconstvalue-derived-literal-back-to-string)
+- [A middleware never reads a request body it does not own](#a-middleware-never-reads-a-request-body-it-does-not-own)
+- [Under `path.isStrict: false`, a route declared with a trailing slash is unreachable](#under-pathisstrict-false-a-route-declared-with-a-trailing-slash-is-unreachable)
+- [drizzle refuses an empty UPDATE with `No values to set`](#drizzle-refuses-an-empty-update-with-no-values-to-set)
+- [Do not name a schema `ErrorResponse`](#do-not-name-a-schema-errorresponse)
+- [Only the entity knows what the server stamps](#only-the-entity-knows-what-the-server-stamps)
 
 ## Run `bun test` from the package root, never the repo root
 
@@ -341,9 +347,10 @@ core-server's `tsconfig.core.json` declares `experimentalDecorators` alone.
 `@provide` returning `IHealthCheckOptions`, a class-decorated constructor taking `IControllerOptions` -
 keeps that import alive for `design:*` metadata, and linking then fails with `Export named 'X' not
 found` against the CJS dist. `import type { ... }` fixes it. `tsc` output is unaffected (types are
-elided), so an application that builds first and runs `bun dist/index.js` never sees it - which is
-why `examples/rpc-api-server` and `examples/supabase` still have a value-imported
-`IControllerOptions` each and only a source-run probe notices.
+elided), so an application that builds first and runs `bun dist/index.js` never sees it - only a
+source-run probe does. The 2026-09-23 examples refresh removed the last value-imported
+`IControllerOptions` in `examples/rpc-api-server`; check a new example's constructors before
+assuming the pattern is gone everywhere.
 
 ## The artifact generator never executes a module
 
@@ -471,6 +478,56 @@ Uint8Array | DataView`. Narrowing a parameter keeps older bun-types assignable (
 `esbuild` override forces `vite` 5 onto an esbuild it does not support, and `vitepress` 1.6.4 is the
 latest and pins `vite` 5. All four are dev-server or self-built-input exposures; the changelog
 `2026-09-04-dependency-floors-raised` carries the reasoning. A new advisory beyond these six is a real finding.
+
+## A middleware never reads a request body it does not own
+
+Hono caches `req.json()`, `req.text()` and `req.parseBody()`, so a later handler reading through `c.req` still
+works - but the RAW stream is drained. A handler that streams `c.req.raw.body` on (an upload proxy) then fails with
+`Body object should not be disturbed or locked`, and a text read mangles binary bytes for everyone after it.
+`RequestSpyMiddleware` did exactly this for every non-JSON, non-form type until 2026-09-23 (BANA asset proxy).
+Read a `req.raw.clone()`, or describe the body (`<N bytes, content-type>`) without reading it. A body an
+earlier middleware already read cannot be cloned (`req.raw.bodyUsed`): read it through Hono's cache
+(`req.text()`) instead, or `clone()` throws and a valid request becomes a 400.
+
+## Under `path.isStrict: false`, a route declared with a trailing slash is unreachable
+
+Hono's non-strict mode strips the trailing slash from the REQUEST path only. A route declared as
+`/users/` then answers neither `/users` nor `/users/` - both 404. Every example server except
+`vert` sets `isStrict: false`, so declare routes without a trailing slash. No framework route has one.
+
+## drizzle refuses an empty UPDATE with `No values to set`
+
+Even when `$onUpdate` columns exist, a direct repository call with `{}` gets a plain 500 straight from
+drizzle. The generated CRUD routes catch it earlier: `PersistableCrudController.assertNonEmptyUpdate`
+answers 400 `core.request.nothing_to_update` before the repository runs, for `{}`, a `where` alone on
+`PATCH /`, or a body holding only keys the CRUD factory strips. A hand-written route that calls the
+repository directly still gets the 500.
+
+## Do not name a schema `ErrorResponse`
+
+The kernel's `ErrorSchema` owns that OpenAPI component; a second schema with the same refId is
+silently replaced by a `$ref` to the first.
+
+## Only the entity knows what the server stamps
+
+The CRUD factory reads `getServerStampedKeys()`; never match audit keys by name in the kernel. A
+search document is stamped by nothing, so its `createdAt` must stay writable.
+
+## A CommonJS package must not `require` an ESM-only peer at load
+
+core-server is CommonJS. A top-level `require('jose')` (or `require('postgres')` through drizzle)
+runs while the application is still loading, and when the application imports the same ESM package
+Bun refuses it: `require() async module ... is unsupported`. Intermittent with the peer first, 30/30
+with the IGNIS entry first. Load such a peer with a string-literal `import()` at first use
+(`JoseLoader`), or give the sub-path an `import` condition that re-exports an ESM build
+(`postgres-js.mts`). Never `ModuleUtility.load` for a required peer - a computed name drops it from a
+compiled binary. Guards: `packages/core-server/src/__tests__/authenticate/jose-lazy-load.test.ts`, and
+the clean-install gate's `importedAfter` rows (`@venizia/ignis` then `jose`, the postgres-js alias
+then `postgres`).
+
+The race lives only while modules load. Load the peer at boot (fail fast), never at import. The
+clean-install `bun-order` check runs its entry `ORDER_RUNS` (5) times, because the race crashes only
+some runs: at 19 in 30, a single run missed it about one gate run in 7.
 
 ## Related
 

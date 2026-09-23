@@ -261,7 +261,7 @@ client.authenticate();
 
 #### Authentication failure messages
 
-The server sends a different message depending on how `authenticateFn` failed. Both paths reset the client to `unauthorized`, emit `unauthenticated` with the message, and disconnect the socket after delivery (via `setImmediate`).
+The server sends a different message depending on how `authenticateFn` failed. Both paths reset the client to `unauthorized`, emit `unauthenticated` with the message on the client's own socket, then disconnect it - the client receives the notice before the disconnect.
 
 | Failure mode | Message |
 |---|---|
@@ -374,53 +374,37 @@ A full working example lives at `examples/socket-io-test/`.
 
 | Feature | Implementation |
 |---|---|
-| Application setup | `src/application.ts` - bindings, component registration, graceful shutdown |
-| REST endpoints | `src/controllers/socket-test.controller.ts` - 9 endpoints for Socket.IO management |
-| Event handling | `src/services/socket-event.service.ts` - chat, echo, room management |
-| Automated test client | `client.ts` - 15+ test cases covering all features |
+| Application setup | `src/application.ts` - binds `REDIS_CONNECTION` and `AUTHENTICATE_HANDLER`, registers `SocketIOComponent`, shuts the socket server and Redis down on stop |
+| REST endpoint | `src/controllers/chat.controller.ts` - `POST /chat/messages` pushes a message into the room every authenticated client joins |
+| Smoke test | `src/__tests__/smoke.test.ts` - boots the app, connects real Socket.IO clients over the wire, and checks the authenticated and unauthenticated paths |
 
 ### REST API endpoints
 
 | Method | Path | Description |
 |---|---|---|
-| `GET` | `/socket/info` | Server status + connected client count |
-| `GET` | `/socket/clients` | List all connected client IDs |
-| `GET` | `/socket/health` | Health check (is SocketIO ready?) |
-| `POST` | `/socket/broadcast` | Broadcast <code v-pre>{{ topic, data }}</code> to all clients |
-| `POST` | `/socket/room/{roomId}/send` | Send <code v-pre>{{ topic, data }}</code> to a room |
-| `POST` | `/socket/client/{clientId}/send` | Send <code v-pre>{{ topic, data }}</code> to a specific client |
-| `POST` | `/socket/client/{clientId}/join` | Join client to <code v-pre>{{ rooms: string[] }}</code> |
-| `POST` | `/socket/client/{clientId}/leave` | Remove client from <code v-pre>{{ rooms: string[] }}</code> |
-| `GET` | `/socket/client/{clientId}/rooms` | List rooms a client belongs to |
+| `GET` | `/api/health` | Liveness check |
+| `POST` | `/api/chat/messages` | Pushes <code v-pre>{{ message }}</code> to `io-default`, the room every authenticated client joins |
+| `GET` | `/api/doc/explorer` | The interactive API reference |
 
 ### Running the example
 
 ```bash
-# Start the server
 cd examples/socket-io-test
-bun run server:dev
-
-# In another terminal - run automated tests
-bun client.ts
+bun install
+docker compose up -d   # Redis
+bun run start
 ```
 
-The automated client exercises:
-
-- Authentication with valid and invalid tokens
-- Ping/pong keepalive
-- Room join/leave with validation
-- Client-to-client messaging
-- Room and global broadcasting
-- The REST API
-- Graceful disconnection
+A Socket.IO client sends its token as an `Authorization: Bearer <token>` header at connect time,
+then emits `authenticate`; the server checks it against `APP_ENV_AUTH_TOKEN` (`demo-token` by
+default) and joins it to `io-default` and `io-notification`, or rejects it. See the example's
+README for the full event table.
 
 Read the example for these production-ready patterns:
 
-- Binding multiple handlers in one `setupSocketIO()` method
-- The lazy getter pattern for `SocketIOServerHelper`
-- Custom event registration via `CLIENT_CONNECTED_HANDLER`
-- Room validation that blocks unauthorized rooms
-- A graceful shutdown sequence in `application.stop()`
+- Binding the Redis connection and the authenticate handler before registering `SocketIOComponent`
+- The lazy getter pattern for `SocketIOServerHelper`, resolved only after the server starts
+- A graceful shutdown sequence registered with `registerPostStopHook`
 
 ## See also
 

@@ -49,18 +49,17 @@ An OpenAPI content configuration object: `description`, `content['text/html'].sc
 
 ## `htmlResponse()`
 
-Creates a standard OpenAPI response object for HTML endpoints. It pairs a success (`200`) HTML response with a JSON error response for `4xx | 5xx` status codes using `ErrorSchema`.
+Creates a standard OpenAPI response object for HTML endpoints. It pairs a success (`200`) HTML response with the JSON error responses of `errorResponses()`: `4XX` and `5XX`, both referencing the `ErrorResponse` component.
 
 `Source ->` [`packages/kernel/src/base/controllers/common/html-response.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/kernel/src/base/controllers/common/html-response.ts)
 
 ```typescript
-const htmlResponse = (opts: { description: string; required?: boolean }) => ({
-  [HTTP.ResultCodes.RS_2.Ok]: htmlContent({ description: opts.description, required: opts.required }),
-  ['4xx | 5xx']: {
-    description: 'Error Response',
-    content: { 'application/json': { schema: ErrorSchema } },
-  },
-});
+const htmlResponse = (opts: { description: string; required?: boolean }) => {
+  return {
+    [HTTP.ResultCodes.RS_2.Ok]: htmlContent({ description: opts.description, required: opts.required }),
+    ...errorResponses(),
+  };
+};
 ```
 
 ### Parameters
@@ -72,7 +71,7 @@ const htmlResponse = (opts: { description: string; required?: boolean }) => ({
 
 ### Returns
 
-A responses object: `200` (via `htmlContent()`) plus `4xx | 5xx` (JSON `ErrorSchema`).
+A responses object: `200` (via `htmlContent()`) plus `4XX` and `5XX` (JSON `ErrorSchema`, from `errorResponses()`).
 
 ```typescript
 import { htmlResponse } from '@venizia/ignis';
@@ -273,7 +272,7 @@ async previewTemplate(c: TRouteContext) {
 | Aspect | `htmlResponse()` | `jsonResponse()` |
 |--------|---------------------|----------------------|
 | Success type | `text/html` (`200`) | `application/json` (`200`) |
-| Error type | `application/json` (`4xx \| 5xx`) | `application/json` (`4xx \| 5xx`) |
+| Error type | `application/json` (`4XX`, `5XX`) | `application/json` (`4XX`, `5XX`) |
 | Use case | Server-rendered web pages | REST APIs |
 
 See [Schema Utility](./schema.md) for `jsonContent`/`jsonResponse`.

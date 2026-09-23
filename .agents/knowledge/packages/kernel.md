@@ -209,15 +209,51 @@ metadata type is a union discriminated on it (`TRepositoryMetadata`):
 - Keep the two values only in `RepositoryTypes`. Tests and messages reference the constant, never
   the literal.
 
-`ControllerFactory.defineCrudController` injects `repositories.<repository.name>` at constructor
-parameter 0 of the generated class (`base/controllers/factory/repository-injection.ts`), so a
-subclass needs no constructor. The injection is recorded through `MetadataRegistry.setInjectMetadata`,
-not a parameter decorator, because Bun drops parameter decorators in some configurations. An own
-`@inject` at parameter 0 in the subclass wins.
+`registerFactoryRepositoryInjection({ target, factoryName, controllerName, repositoryName })`
+(`base/controllers/factory/repository-injection.ts`, kernel root and `@venizia/ignis`) is the one home
+of the factory injection: `repositories.<repositoryName>` at constructor parameter 0, `isOptional:
+false`, recorded through `MetadataRegistry.setInjectMetadata` because Bun drops parameter decorators
+in some configurations. An empty name throws `[<factoryName>] Invalid repository name`.
+`defineCrudController` and connectors' `defineSearchController` both call it. An own `@inject` at
+parameter 0 in a subclass wins.
+
+The CRUD factory's DEFAULT write bodies leave out what the entity reports from
+`AbstractEntity.getServerStampedKeys()` (`[]` at the root and on search entities), and the two
+update bodies also leave out `id` - `RouteConfigResolver.toWriteBodySchema` in
+`base/controllers/factory/definition.ts`. The kernel names no audit key; connectors'
+`BaseRelationalEntity` reports `createdBy`/`modifiedBy`/`createdAt`/`modifiedAt` whose drizzle
+column has `hasDefault` or `onUpdateFn` (names in the internal
+`relational/core/models/common/constants.ts`).
+
+- Nothing to leave out returns the entity schema by identity, so a refinement or an OpenAPI name
+  survives. A refined or transformed schema that needs an omission throws, naming
+  `routes.<route>.request.body`.
+- Zod strips a left-out key, so a client gets no 422 - except on a `z.strictObject` schema, which
+  `.omit()` keeps strict.
+- The three write bodies are built for every controller, `readonly` ones included; the `updateBy`
+  default is built only without a custom body.
+- `deletedAt` stays writable on purpose: it is soft-delete state, not a stamp.
+
+`PersistableCrudController.assertNonEmptyUpdate({ scope, data })` refuses an update whose validated
+body is empty - `{}`, a `where` alone, or only keys the body schema strips - with
+`RequestErrors.NOTHING_TO_UPDATE` (400, `core.request.nothing_to_update`), before the repository runs.
+`updateById` and `updateBy` call it; it applies to custom bodies too.
+
+`errorResponses()` (`base/models/common/schemas.ts`) is the one home of the `4XX`/`5XX` pair;
+`jsonResponse`, `htmlResponse` and core-server's static-asset definitions spread it. `ErrorSchema`
+carries the refId `ErrorResponse`: two copies of it (CJS and ESM) merge into one component, an
+`.extend()` documents as `allOf`, and a consumer schema with the same refId silently resolves to the
+framework's.
 
 Inversion's `MetadataRegistry.setInjectMetadata` is copy-on-write: the first write to a class copies
 the list it inherits. It used to write into the parent's list found through the prototype chain, so
 a subclass's `@inject` rewrote its parent's list and every sibling subclass inherited the change.
+
+`@repository` does not rely on that. `registerDataSourceInjection` (`base/metadata/persistents.ts`)
+copies the inherited list itself before writing parameter 0, because the kernel's inversion range
+still admits 0.2.0-23. Without the copy, a subclass naming its own `dataSource` moves its parent
+repository onto that datasource. The CRUD and search factories do rely on inversion's copy, so
+inversion releases with the kernel.
 
 `base/repositories/query-schemas/` is where the filter schemas become server schemas. `filter` builds
 them with plain `zod` so a browser can use them; this module imports `@hono/zod-openapi` for its

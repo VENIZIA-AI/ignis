@@ -29,8 +29,8 @@ Exhaustive reference for `IDataSource`, `AbstractDataSource`, the engine-neutral
 
 | Class / interface | Purpose | Key members |
 |---|---|---|
-| `IDataSource` | Engine-neutral contract for all datasources | `name`, `settings`, `schema`, `getSchema()`, `getSettings()`, `configure()` |
-| `AbstractDataSource` | Engine-neutral base implementation with logging | Extends `BaseHelper`; `getCapabilities()` defaults to `{ transactions: false }`; `beginTransaction()` defaults to `throwNotSupported(...)` |
+| `IDataSource` | Engine-neutral contract for all datasources | `name`, `settings`, `schema`, `getSchema()`, `getSettings()`, `configure()`, optional `close()` |
+| `AbstractDataSource` | Engine-neutral base implementation with logging | Extends `BaseHelper`; `getCapabilities()` defaults to `{ transactions: false }`; `beginTransaction()` defaults to `throwNotSupported(...)`; `close()` releases nothing |
 | `AbstractRelationalDataSource` | Engine-neutral SQL root | Adds `connector`, `client`, `driver`, the whole driver seam; abstract `getConnectionString()` and dialect/executor |
 | `BaseRelationalDataSource` | Engine-neutral SQL base | Constructor, schema auto-discovery, `beginTransaction()`, `getCapabilities() -> { transactions: true }` |
 | `AbstractPostgresDataSource` | Postgres binding of the tier | Supplies `PostgresQueryDialect` and `PostgresQueryExecutor`; narrows `Client` to `Pool` |
@@ -59,6 +59,8 @@ interface IDataSource<
 
   getSettings(): Settings;
   getSchema(): Schema;
+
+  close?(): Promise<void>;
 }
 ```
 
@@ -80,6 +82,7 @@ interface IDataSource<
 | `getSchema()` | `Schema` | Returns the combined schema |
 | `getSettings()` | `Settings` | Returns connection settings |
 | `configure(opts?)` | `ValueOrPromise<void>` | Initializes the underlying connection - inherited from `IConfigurable` |
+| `close()` | `Promise<void>` | Optional. Releases what `configure()` opened. `stop()` calls it on every datasource the boot configured; a datasource without it is skipped |
 
 > [!NOTE]
 > `getCapabilities()` and `beginTransaction()` are not part of `IDataSource` - they are declared on `AbstractDataSource` (below), which every connector extends.
@@ -120,6 +123,7 @@ abstract class AbstractDataSource<
 | `getSchema()` | `Schema` | Returns `this.schema`; throws if not initialized |
 | `getCapabilities()` | `IDataSourceCapabilities` | Returns `{ transactions: false }` |
 | `beginTransaction(opts?)` | `Promise<ITransaction>` | Calls `throwNotSupported({ scope: this.constructor.name, feature: 'Transactions', logger: this.logger })` - throws HTTP 501 whose `normalized.code` resolves to `'core.not_supported'` |
+| `close()` | `Promise<void>` | Resolves at once - the root holds no connection. The search datasources keep this default |
 
 **Protected helpers:**
 
@@ -198,6 +202,7 @@ The fourth generic, `Client`, is what lets a postgres-js datasource declare `Cli
 | `getConnector()` | `TConnector` | Wires the driver on first use (via `wireDriverFromMetadata()`), then returns `this.connector` |
 | `getClient()` | `Client` | Raw driver client escape hatch - `pg.Pool` for node-postgres, `Sql` for postgres-js. Reads `this.driver.getClient()` if a driver is resolved, else `this.client` directly. Throws if neither is set |
 | `onSecretRotated(opts)` | `Promise<void>` | Applies rotated credentials to `this.settings` and rebuilds the driver/connector/client against a fresh pool. Calls `this.configure()` and `this.resolveDriver()`, then drains the old pool once the new one is in place. See [Secrets & Vault](/guides/core-concepts/secrets-vault) |
+| `close()` | `Promise<void>` | Ends the connection through the driver's `end()`, wiring the driver first when nothing has queried yet - PGlite's `end()` also clears the exit status it plants on the host. A client no driver can wrap is drained with `drainClient()`. Runs once: every later call returns the first call's promise. No client means nothing to close |
 
 **Protected methods:**
 

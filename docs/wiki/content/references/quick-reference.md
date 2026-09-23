@@ -47,7 +47,7 @@ instead of breaking later inside the router.
 - `init()` - Register the core bindings; call it once before `start()`
 - `initialize()` - Run the boot sequence; `start()` already calls it for you
 - `start()` - Initialize, set up middlewares, then bind the socket
-- `stop()` - Stop the server gracefully
+- `stop()` - Stop the server, then close every datasource the boot configured
 
 ### BaseRestController
 

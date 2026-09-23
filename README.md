@@ -230,25 +230,28 @@ a point of comparison, not as a source.
 
 Every example lives in [`examples/`](examples/).
 
-| Example | What it shows |
-| :--- | :--- |
-| [5-mins-qs](examples/5-mins-qs/) | The single-file hello world |
-| [vert](examples/vert/) | The production reference: PostgreSQL CRUD, authentication, scoped Casbin authorization, transactions, relations, a generated artifact index |
-| [pglite-quickstart](examples/pglite-quickstart/) | CRUD on PGlite - PostgreSQL in-process, no database server |
-| [sqlite-quickstart](examples/sqlite-quickstart/) | CRUD on SQLite through libsql |
-| [supabase](examples/supabase/) | The postgres-js driver with Row Level Security driven by the request's user |
-| [typesense-search](examples/typesense-search/) | A search API on Typesense alone, no PostgreSQL |
-| [browser-bff](examples/browser-bff/) | The same controllers answering from PGlite inside a browser Worker, with no server |
-| [grpc-test](examples/grpc-test/) | gRPC (ConnectRPC) and REST controllers on one application |
-| [rpc-api-server](examples/rpc-api-server/) + [rpc-client-app](examples/rpc-client-app/) | A REST API with JWT and JSX pages, and a React client using hooks generated from its OpenAPI document |
-| [socket-io-test](examples/socket-io-test/) / [websocket-test](examples/websocket-test/) | Socket.IO and raw WebSocket components with Redis and authentication |
+| Example | What it shows | Smoke test |
+| :--- | :--- | :--- |
+| [5-mins-qs](examples/5-mins-qs/) | The single-file hello world | CI (`make examples-smoke`) |
+| [pglite-quickstart](examples/pglite-quickstart/) | CRUD and a relation on PGlite - PostgreSQL in-process, no database server | CI |
+| [sqlite-quickstart](examples/sqlite-quickstart/) | The same CRUD and relation on SQLite through libsql | CI |
+| [browser-bff](examples/browser-bff/) | The same controllers answering from PGlite inside a browser Worker, with no server | CI (Bun Worker) |
+| [grpc-test](examples/grpc-test/) | gRPC (ConnectRPC) and REST controllers on one application | CI |
+| [rpc-api-server](examples/rpc-api-server/) | A REST API with JWT sign-up/sign-in, CRUD behind the token, and server-rendered JSX pages, on PGlite | CI |
+| [rpc-client-app](examples/rpc-client-app/) | The React client for `rpc-api-server`, with hooks generated from its OpenAPI document | none - client only |
+| [typesense-search](examples/typesense-search/) | A search API on Typesense alone, no PostgreSQL | Local (`docker compose up -d`) |
+| [socket-io-test](examples/socket-io-test/) | Socket.IO with Redis-backed rooms behind a mandatory authentication handshake | Local (docker) |
+| [websocket-test](examples/websocket-test/) | The same over Bun's native WebSocket, no Socket.IO protocol | Local (docker) |
+| [vert](examples/vert/) | The production reference: PostgreSQL CRUD, JWT/JWKS authentication, scoped Casbin authorization, transactions, relations, a generated artifact index | Local (docker) |
+| [supabase](examples/supabase/) | The postgres-js driver with Row Level Security driven by the request's user | Not done - blocked on a framework defect |
 
 The examples run against the local packages, so build those first:
 
 ```bash
 bun install && make core boot
 cd examples/vert
-cp .env.example .env.development   # add your PostgreSQL credentials
+docker compose up -d               # Postgres and Redis
+cp .env.example .env
 bun run migrate:dev && bun run server:dev
 ```
 

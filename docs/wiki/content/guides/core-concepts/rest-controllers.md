@@ -221,7 +221,7 @@ this.bindRoute({
 For standard CRUD (Create, Read, Update, Delete) operations, `IGNIS` provides a `ControllerFactory` that can generate a full-featured controller for any given entity. This significantly reduces boilerplate code.
 
 ```typescript
-// src/controllers/configuration/configuration.controller.ts (Example from @examples/vert)
+// src/controllers/configuration.controller.ts (Example from @examples/vert)
 import { Configuration } from '@/models';
 import { ConfigurationRepository } from '@/repositories';
 import { controller, ControllerFactory } from '@venizia/ignis';

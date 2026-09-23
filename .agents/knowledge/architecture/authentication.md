@@ -14,6 +14,16 @@ The tree is split across two packages. The seam lives in `@venizia/ignis-kernel`
 
 The concrete half stays in core at `packages/core-server/src/components/auth/authenticate`: `AuthenticateComponent`, the token services (`BasicTokenService`, `JWSTokenService`, `JWKSIssuerTokenService`, `JWKSVerifierTokenService`), the service assertion pair under `services/service` (`ServiceAssertionSignerService`, `ServiceAssertionVerifierService`), the shipped strategies and the generated controllers. Core's barrels re-export the kernel barrel, so `@/components/auth` and the `@venizia/ignis` root entrypoint still resolve every moved symbol. Unqualified paths below are core-relative.
 
+A token service you construct yourself loads `jose` at its first token operation, never at import,
+and retries on the next call after a failed load - see [core-server](/packages/core-server.md).
+`AuthenticateComponent.binding()` preloads `jose` at boot instead, when `jwtOptions` or
+`serviceOptions` is configured, so a missing `jose` fails the boot rather than turning every token
+check into a 401. `import type` from `jose` stays static.
+
+The generated `/sign-in`, `/sign-up` and `/change-password` routes validate the body, then pass the
+raw JSON to the service: undeclared fields arrive, and a schema's transforms do not apply. They move
+to the validated body together, reviewed with BANA, whose password schema trims.
+
 ### Leaf imports, never barrels
 
 Inside `base/auth`, the providers and registries reach each other by **leaf import**: `AuthenticationProvider` imports `../strategies/strategy-registry`, `AuthorizationProvider` imports `../enforcers/enforcer-registry`, and `IAuthUser` comes from `authenticate/common/types` rather than the `authenticate` barrel. `BaseRestController` value-imports the authenticate and authorize middleware leaves, and the `authenticate` barrel pulls those middlewares in (and, through core's re-export, the auth controllers whose factory extends `BaseRestController`) - so a barrel import from inside auth closes a `base/controllers` <-> `auth` module initialization cycle. `packages/core-server/src/__tests__/auth/registry-leaf-imports.test.ts` reads across the package boundary to enforce this; do not tidy the imports back onto the barrels.

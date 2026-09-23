@@ -135,9 +135,10 @@ the caller could not tell that from a slow answer. Envelopes that arrive early w
 serving promise; a failed boot answers with an error envelope rather than silence. Applications do
 not need a ready handshake.
 
-`listen()` is idempotent, and `stop()` detaches. Both matter under Vite HMR, which re-evaluates the
-worker module without tearing down the Worker: without the guard one envelope would run the route
-handler twice, and without `stop()` the PGlite OPFS lock would never be released.
+`listen()` is idempotent, and `stop()` detaches, runs the post-stop hooks, then closes every
+datasource the boot configured. Both matter under Vite HMR, which re-evaluates the worker module
+without tearing down the Worker: without the guard one envelope would run the route handler twice,
+and without `stop()` the PGlite OPFS lock would never be released.
 
 `registerDefaultMiddlewares()` is **inherited from the kernel's `RestApplication`**, not written
 here - the server calls the same method, so the two hosts cannot drift. It installs three things, in

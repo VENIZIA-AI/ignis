@@ -43,7 +43,7 @@ No separate JSX renderer is registered - the handler builds a JSX tree and hands
 
 - **Hono JSX renders to HTML.** A handler returns `c.html(<Component />)`; Hono's built-in JSX runtime turns the tree into an HTML string. IGNIS adds nothing on top of that renderer.
 - **`defineJSXRoute` is `defineRoute` with an HTML default.** It builds route configs through `getJSXRouteConfigs` instead of `getRouteConfigs`, which merges a default `htmlResponse({ description: 'HTML page' })` under whatever `responses` you declare - your own `200` entry overrides the default description.
-- **`htmlContent()` / `htmlResponse()` document `text/html`.** They mirror `jsonContent()` / `jsonResponse()` (see [Schema Utility](./schema.md)) but for HTML: `htmlContent()` builds one OpenAPI content object, `htmlResponse()` wraps it into a full `200` success response plus a JSON `4xx | 5xx` error response.
+- **`htmlContent()` / `htmlResponse()` document `text/html`.** They mirror `jsonContent()` / `jsonResponse()` (see [Schema Utility](./schema.md)) but for HTML: `htmlContent()` builds one OpenAPI content object, `htmlResponse()` wraps it into a full `200` success response plus a JSON error response under `4XX` and `5XX`.
 - **The tsconfig switch is required.** Compiling `.tsx` files with Hono's JSX needs `"jsx": "react-jsx"` and `"jsxImportSource": "hono/jsx"` in `tsconfig.json`.
 
 ## Common tasks

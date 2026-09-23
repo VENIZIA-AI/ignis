@@ -6,6 +6,109 @@ not how.
 This file and `index.md` are reserved OKF filenames - they carry no `type:` frontmatter and are not
 counted as concepts.
 
+## 2026-09-24 - the entity reports what it stamps; stop() is bounded; jose retries and preloads at boot
+
+Updated [kernel](/packages/kernel.md), [core-server](/packages/core-server.md),
+[authentication](/architecture/authentication.md),
+[controller system](/architecture/controller-system.md),
+[application lifecycle](/architecture/application-lifecycle.md),
+[datasource hierarchy](/architecture/datasource-hierarchy.md),
+[relational connector](/architecture/relational-connector.md), [gotchas](/conventions/gotchas.md).
+
+- `AbstractEntity.getServerStampedKeys()` replaces the kernel's `AuditFields` name list: relational
+  entities report the audit columns with a default or `$onUpdate`, search entities nothing, so a
+  search collection's required `createdAt` stays in the generated `POST`. `toWriteBodySchema` returns
+  the schema itself when nothing is left out, and names `routes.<route>.request.body` for a refined or
+  transformed schema that needs an omission.
+- `closeDataSources` gives each `close()` `dataSourceCloseTimeoutMs` (default 10 s, `0` waits without
+  limit) before logging `Close timed out` and moving on. Relational `close()` drains the client when
+  the driver has no `end()`.
+- `registerFactoryRepositoryInjection` takes `target: TClass<unknown>`, refusing a bare function or an
+  abstract class. `strictPath` is removed and refused at construction.
+- `JoseLoader` drops a failed load, so the next call retries. `AuthenticateComponent.binding()`
+  preloads `jose` when JWT or service options are set: a missing `jose` fails the boot with a
+  `getError` naming it.
+- The clean-install `bun-order` check runs 5 times per sandbox (`ORDER_RUNS`); the required-peer rule
+  lives once, in `getRequiredPeers` (`manifest.ts`).
+
+## 2026-09-23 - one repository-injection helper, one error component, audit keys out of CRUD bodies, jose loads lazily, stop() closes datasources
+
+Updated [kernel](/packages/kernel.md), [controller system](/architecture/controller-system.md),
+[core-server](/packages/core-server.md), [authentication](/architecture/authentication.md),
+[application lifecycle](/architecture/application-lifecycle.md),
+[datasource hierarchy](/architecture/datasource-hierarchy.md),
+[relational connector](/architecture/relational-connector.md), [core-worker](/packages/core-worker.md),
+[gotchas](/conventions/gotchas.md) and the rpc-api-server example chunk.
+
+- `registerFactoryRepositoryInjection` replaces the CRUD factory's private helper and the search
+  factory's inline copy. `errorResponses()` is the one `4XX`/`5XX` builder and `ErrorSchema` is the
+  named component `ErrorResponse`.
+- The CRUD factory's default create/update bodies drop the four server-stamped audit keys and, on
+  update, `id` (strip mode, so no 422) - the kernel-internal `AuditFields` in
+  `base/controllers/factory/common/constants.ts`, not exported. An update left empty after validation
+  (`{}`, a `where` alone, or only stripped keys) now answers 400 `core.request.nothing_to_update`
+  through `PersistableCrudController.assertNonEmptyUpdate`, before the repository runs; it used to
+  reach drizzle's `No values to set` 500.
+- Conformance pins the scalar-root JSON-path divergence (`jsonPathRaisesOnScalarRoot`): PostgreSQL
+  raises `cannot set path in scalar`, SQLite leaves the value unchanged.
+- The auth token services load `jose` through `JoseLoader` (string-literal `import()`, once per
+  process); a top-level `require('jose')` in the CJS dist crashed apps that import `jose` themselves
+  under Bun (30/30 with ignis first). The clean-install gate now loads `@venizia/ignis` then `jose`.
+- `ChangePasswordRequestSchema` lost its manual `required`, so the document requires all four fields.
+  Moving `/sign-in`, `/sign-up` and `/change-password` to the validated body was held: it trims
+  BANA's passwords, so the three move together with a BANA review.
+- `stop()` (server and worker) closes every datasource the boot configured through the new `close()`;
+  the relational `close()` ends the driver once, wiring it first.
+
+## 2026-09-23 - final review fixes for the examples batch
+
+Updated [kernel](/packages/kernel.md), [gotchas](/conventions/gotchas.md),
+[relational connector](/architecture/relational-connector.md) and
+[release and publish](/process/release-publish.md).
+
+- `@repository` copies the inherited injection list again before writing parameter 0, so a subclass
+  naming its own `dataSource` leaves its parent alone on inversion 0.2.0-23 too.
+- The request spy reads a `text/*` body an earlier middleware consumed through Hono's cache.
+- JSON-path conformance pins a `NULL` column, a JSON `null` parent, and the past-the-end array
+  divergence (`jsonPathAppendsPastArrayEnd`).
+- The clean-install gate loads `@venizia/ignis/postgres/postgres-js` followed by `postgres` under Bun.
+- New gotcha: under `path.isStrict: false`, a route declared with a trailing slash is unreachable.
+
+## 2026-09-23 - six framework fixes the examples exposed
+
+Error responses are declared under `4XX`/`5XX` (the old `'4xx | 5xx'` key is invalid OpenAPI and
+typed every generated-client error as `never`). `path.isStrict` now drives Hono's `strict`
+(`strictPath` removed; a config that still carries it refuses to start); controller-level `isStrict`
+has no effect once mounted.
+`defineSearchController` injects its repository like `defineCrudController`. PostgreSQL JSON-path
+updates create missing intermediate objects. `SocketIOServerHelper` sends `unauthenticated` on the
+client's own socket before disconnecting. `@venizia/ignis/postgres/postgres-js` gained an `import`
+condition (ESM re-export of connectors) so it loads under Bun next to a direct `postgres` import.
+Updated [relational connector](/architecture/relational-connector.md) and the socket-io and
+typesense example chunks.
+
+## 2026-09-23 - examples refresh: docs and knowledge synced to the rebuilt examples
+
+Every `examples/*.md` chunk re-synced to the rebuilt examples (`pglite-quickstart`,
+`sqlite-quickstart`, `5-mins-qs`, `browser-bff`, `grpc-test`, `rpc-api-server`, `rpc-client-app`,
+`typesense-search`, `socket-io-test`, `websocket-test`, `vert`) - each now uses
+`ModelFactory.defineEntity`, `ControllerFactory.defineCrudController` (no constructor needed since
+`defineCrudController` injects the named repository), and either `discoverArtifacts: true` or, for
+`vert`, a generated artifact index. `examples/supabase` stays out of sync deliberately - it is
+blocked on a framework defect and its tree is uncommitted; `supabase.md` now says so.
+
+Updated the root README's examples table (one row per example, plus which smoke test runs in CI vs
+locally with docker) and fixed stale wiki passages that quoted removed example files: a seed script
+in the wiki's search-typesense guide, a deleted `client.ts` in the wiki's Socket.IO usage page, and a
+wrong controller file path in the wiki's REST controllers guide. Re-synced the
+[gotchas](/conventions/gotchas.md) line that cited a now-fixed value-imported `IControllerOptions` in
+`rpc-api-server`, and `5-mins-qs.md`'s claim that other examples' dev scripts run `bun .` - every
+example's dev script now runs its source file directly.
+
+## 2026-09-23 - request spy stops draining bodies
+
+Added a gotcha to [gotchas](/conventions/gotchas.md): a middleware never reads a raw body it does not own.
+
 ## 2026-09-23 - repository types, CRUD controller repository injection, relative HttpDataSource baseUrl
 
 Updated [kernel](/packages/kernel.md).

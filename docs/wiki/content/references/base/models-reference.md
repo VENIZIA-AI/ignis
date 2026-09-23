@@ -667,6 +667,8 @@ Emitted columns:
 - **`modifiedAt`.** Present unless `modified: { enable: false }`.
 - **`deletedAt`.** Absent unless `deleted: { enable: true, ... }`.
 
+A generated CRUD route never takes `createdAt` or `modifiedAt` from the request body, so over HTTP the clock always sets them. `deletedAt` stays in the body. See [`ControllerFactory`](/references/base/controllers#controllerfactory).
+
 Convenience wrapper:
 
 ```typescript
@@ -734,6 +736,7 @@ Defaults:
 - **Retrieval.** The enricher reads the request context from `RequestContextRegistry` at insert/update time, then takes the user ID off the `Authentication.AUDIT_USER_ID` key. An application installs the resolver over that registry when it registers its default middlewares, backed by Hono's `contextStorage`. A host that installs none - a browser Worker - has no request context at all, which is the `allowAnonymous` case below.
 - **`createdBy`.** Set via `$default()` - creation only.
 - **`modifiedBy`.** Set via both `$default()` and `$onUpdate()` - creation and every modification.
+- **A value in the data wins.** `$default()` and `$onUpdate()` fill only a key the data leaves out, so server code can still set these columns. A generated CRUD route never takes them from the request body, so over HTTP the request context always decides them. See [`ControllerFactory`](/references/base/controllers#controllerfactory).
 
 Emitted columns:
 
@@ -984,9 +987,22 @@ jsonResponse<ContentSchema, HeaderSchema>(opts: {
   headers?: HeaderSchema;
 }): {
   200: { description, content, headers? },
-  '4xx | 5xx': { description: 'Error Response', content: ErrorSchema }
+  ...errorResponses()
 }
 ```
+
+### `errorResponses`
+
+The JSON error body of a route, under the two range keys OpenAPI accepts. `jsonResponse()`, `htmlResponse()` and the static-asset routes spread it, and so can a route of your own:
+
+```typescript
+errorResponses(): {
+  '4XX': { description: 'Error Response', content: { 'application/json': { schema: ErrorSchema } } },
+  '5XX': { description: 'Error Response', content: { 'application/json': { schema: ErrorSchema } } }
+}
+```
+
+`ErrorSchema` is the named component `ErrorResponse`, so both keys reference one schema in the generated document.
 
 ### `snakeToCamel`
 

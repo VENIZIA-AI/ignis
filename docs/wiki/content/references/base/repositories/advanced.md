@@ -577,10 +577,10 @@ await repository.updateById({
 ### The rules
 
 - **Deep nesting:** target a property at any depth (`settings.display.font.size`).
-- **Array access:** update an array element by index (`tags[0]`).
-- **Auto-creation:** missing intermediate keys are created automatically (`jsonb_set` with `create_missing = true`).
+- **Array access:** update an array element by index (`tags[0]`). An index equal to the array length appends on both engines. An index further past the end appends on PostgreSQL and leaves the value unchanged on SQLite.
+- **Auto-creation:** missing intermediate keys are created. `metadata.a.b.c` on `{}` gives `{ a: { b: { c: ... } } }`, and keys already beside them stay. A scalar parent (a string, a number, JSON `null`) or a SQL `NULL` column leaves the column unchanged. A scalar root raises `cannot set path in scalar` on PostgreSQL and is left unchanged on SQLite.
 - **Type safety:** the target column must be `json`/`jsonb`. Any other column type throws.
-- **Multiple paths on one column:** chained as nested `jsonb_set` calls in a single statement.
+- **Multiple paths on one column:** chained in a single statement (`jsonb_set` on PostgreSQL, `json_set` on SQLite).
 - **Mixed updates:** regular columns and JSON paths combine in the same `data` object, as in the basic usage example.
 
 ### Security and validation

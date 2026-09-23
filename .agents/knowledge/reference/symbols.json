@@ -389,7 +389,7 @@
       "specifier": "@venizia/ignis",
       "kind": "class",
       "file": "packages/core-server/src/components/auth/authenticate/component.ts",
-      "line": 41,
+      "line": 42,
       "signature": "class AuthenticateComponent extends BaseComponent"
     },
     {
@@ -689,7 +689,7 @@
       "specifier": "@venizia/ignis",
       "kind": "class",
       "file": "packages/connectors/src/relational/core/models/base.ts",
-      "line": 17,
+      "line": 19,
       "signature": "class BaseRelationalEntity<Schema extends TTableSchemaWithId = TTableSchemaWithId> extends AbstractEntity implements IEntity<Schema>"
     },
     {
@@ -789,7 +789,7 @@
       "specifier": "@venizia/ignis",
       "kind": "class",
       "file": "packages/connectors/src/relational/core/models/base.ts",
-      "line": 17,
+      "line": 19,
       "signature": "class BaseRelationalEntity<Schema extends TTableSchemaWithId = TTableSchemaWithId> extends AbstractEntity implements IEntity<Schema>"
     },
     {
@@ -809,7 +809,7 @@
       "specifier": "@venizia/ignis",
       "kind": "class",
       "file": "packages/connectors/src/relational/core/models/base.ts",
-      "line": 17,
+      "line": 19,
       "signature": "class BaseRelationalEntity<Schema extends TTableSchemaWithId = TTableSchemaWithId> extends AbstractEntity implements IEntity<Schema>"
     },
     {
@@ -1160,7 +1160,7 @@
       "specifier": "@venizia/ignis",
       "kind": "class",
       "file": "packages/kernel/src/base/controllers/factory/controller.ts",
-      "line": 19,
+      "line": 20,
       "signature": "class ControllerFactory extends BaseHelper"
     },
     {
@@ -1550,7 +1550,7 @@
       "specifier": "@venizia/ignis",
       "kind": "const",
       "file": "packages/kernel/src/base/models/common/schemas.ts",
-      "line": 7,
+      "line": 10,
       "signature": "ErrorSchema: z.ZodObject<{ statusCode: z.ZodOptional<z.ZodNumber>; message: z.ZodString; normalized: z.ZodOptional<z.ZodObject<{ text: z.ZodString; code: z.ZodString; args: z.ZodRecord<z.ZodString, z.ZodAny>; }, z.core.$strip>>; extra: z.ZodOptional<z.ZodRecord<z.ZodString, z.ZodAny>>; requestId: z."
     },
     {
@@ -1851,7 +1851,7 @@
       "specifier": "@venizia/ignis",
       "kind": "interface",
       "file": "packages/kernel/src/base/applications/common/types/application.ts",
-      "line": 51,
+      "line": 59,
       "signature": "interface IApplication<AppEnv extends Env = Env, AppSchema extends Schema = Schema, BasePath extends string = '/'>"
     },
     {
@@ -1881,7 +1881,7 @@
       "specifier": "@venizia/ignis",
       "kind": "interface",
       "file": "packages/kernel/src/base/applications/common/types/application.ts",
-      "line": 42,
+      "line": 50,
       "signature": "interface IApplicationInfo"
     },
     {
@@ -2421,7 +2421,7 @@
       "specifier": "@venizia/ignis",
       "kind": "interface",
       "file": "packages/kernel/src/base/datasources/common/types.ts",
-      "line": 81,
+      "line": 84,
       "signature": "interface IDataSourceCapabilities"
     },
     {
@@ -2431,7 +2431,7 @@
       "specifier": "@venizia/ignis",
       "kind": "interface",
       "file": "packages/kernel/src/helpers/inversion/common/types/persistence.ts",
-      "line": 7,
+      "line": 12,
       "signature": "interface IDataSourceMetadata extends IArtifactRegistrationOptions"
     },
     {
@@ -3515,6 +3515,16 @@
       "signature": "interface IRelationalQueryDialect"
     },
     {
+      "name": "IRemoteRepositoryMetadata",
+      "package": "@venizia/ignis",
+      "subpath": ".",
+      "specifier": "@venizia/ignis",
+      "kind": "interface",
+      "file": "packages/kernel/src/helpers/inversion/common/types/persistence.ts",
+      "line": 35,
+      "signature": "interface IRemoteRepositoryMetadata<DataSource extends IDataSource = IDataSource> extends IRepositoryMetadataBase<DataSource>"
+    },
+    {
       "name": "IRepository",
       "package": "@venizia/ignis",
       "subpath": ".",
@@ -3531,7 +3541,7 @@
       "specifier": "@venizia/ignis",
       "kind": "interface",
       "file": "packages/kernel/src/helpers/inversion/common/types/persistence.ts",
-      "line": 31,
+      "line": 59,
       "signature": "interface IRepositoryBinding<Model extends AbstractEntity = AbstractEntity, DataSource extends IDataSource = IDataSource>"
     },
     {
@@ -3541,8 +3551,18 @@
       "specifier": "@venizia/ignis",
       "kind": "interface",
       "file": "packages/kernel/src/helpers/inversion/common/types/persistence.ts",
-      "line": 12,
-      "signature": "interface IRepositoryMetadata<Model extends AbstractEntity = AbstractEntity, DataSource extends IDataSource = IDataSource> extends IArtifactRegistrationOptions"
+      "line": 26,
+      "signature": "interface IRepositoryMetadata<Model extends AbstractEntity = AbstractEntity, DataSource extends IDataSource = IDataSource> extends IRepositoryMetadataBase<DataSource>"
+    },
+    {
+      "name": "IRepositoryMetadataBase",
+      "package": "@venizia/ignis",
+      "subpath": ".",
+      "specifier": "@venizia/ignis",
+      "kind": "interface",
+      "file": "packages/kernel/src/helpers/inversion/common/types/persistence.ts",
+      "line": 18,
+      "signature": "interface IRepositoryMetadataBase<DataSource extends IDataSource = IDataSource> extends IArtifactRegistrationOptions"
     },
     {
       "name": "IRepositoryMixin",
@@ -3591,7 +3611,7 @@
       "specifier": "@venizia/ignis",
       "kind": "interface",
       "file": "packages/kernel/src/helpers/inversion/common/types/persistence.ts",
-      "line": 22,
+      "line": 49,
       "signature": "interface IResolvedRepositoryMetadata<Model extends AbstractEntity = AbstractEntity, DataSource extends IDataSource = IDataSource>"
     },
     {
@@ -3601,7 +3621,7 @@
       "specifier": "@venizia/ignis",
       "kind": "interface",
       "file": "packages/kernel/src/base/applications/common/types/application.ts",
-      "line": 66,
+      "line": 74,
       "signature": "interface IRestApplication extends IApplication, IComponentMixin, IControllerMixin, IRepositoryMixin, IServiceMixin, IStaticServeMixin"
     },
     {
@@ -3711,7 +3731,7 @@
       "specifier": "@venizia/ignis",
       "kind": "interface",
       "file": "packages/kernel/src/base/datasources/common/types.ts",
-      "line": 85,
+      "line": 88,
       "signature": "interface ISearchableDataSourceCapabilities extends IDataSourceCapabilities"
     },
     {
@@ -4001,7 +4021,7 @@
       "specifier": "@venizia/ignis",
       "kind": "interface",
       "file": "packages/kernel/src/base/datasources/common/types.ts",
-      "line": 75,
+      "line": 78,
       "signature": "interface ITransaction"
     },
     {
@@ -4011,7 +4031,7 @@
       "specifier": "@venizia/ignis",
       "kind": "interface",
       "file": "packages/kernel/src/base/datasources/common/types.ts",
-      "line": 70,
+      "line": 73,
       "signature": "interface ITransactionOptions"
     },
     {
@@ -4341,7 +4361,7 @@
       "specifier": "@venizia/ignis",
       "kind": "class",
       "file": "packages/core-server/src/components/auth/authenticate/services/bearer/jwks/issuer.service.ts",
-      "line": 27,
+      "line": 19,
       "signature": "class JWKSIssuerTokenService<E extends Env = Env> extends AbstractJWKSTokenService<E>"
     },
     {
@@ -4391,7 +4411,7 @@
       "specifier": "@venizia/ignis",
       "kind": "class",
       "file": "packages/core-server/src/components/auth/authenticate/services/bearer/jwks/verifier.service.ts",
-      "line": 14,
+      "line": 15,
       "signature": "class JWKSVerifierTokenService<E extends Env = Env> extends AbstractJWKSTokenService<E>"
     },
     {
@@ -4461,7 +4481,7 @@
       "specifier": "@venizia/ignis",
       "kind": "class",
       "file": "packages/kernel/src/base/repositories/common/constants.ts",
-      "line": 93,
+      "line": 107,
       "signature": "class LockStrengths"
     },
     {
@@ -4771,7 +4791,7 @@
       "specifier": "@venizia/ignis",
       "kind": "class",
       "file": "packages/kernel/src/base/controllers/factory/crud/persistable.ts",
-      "line": 12,
+      "line": 14,
       "signature": "class PersistableCrudController<TEntity extends AbstractEntity<TAnyObjectSchema> = AbstractEntity<TAnyObjectSchema>, RouteEnv extends Env = Env, RouteSchema extends Schema = {}, BasePath extends string = '/', ConfigurableOptions extends object = {}, TDataObject extends object = TEntityDataObject<TEn"
     },
     {
@@ -5072,7 +5092,7 @@
       "specifier": "@venizia/ignis",
       "kind": "class",
       "file": "packages/kernel/src/base/repositories/common/constants.ts",
-      "line": 79,
+      "line": 93,
       "signature": "class RelationTypes"
     },
     {
@@ -5082,7 +5102,7 @@
       "specifier": "@venizia/ignis",
       "kind": "class",
       "file": "packages/kernel/src/base/repositories/common/constants.ts",
-      "line": 68,
+      "line": 82,
       "signature": "class RepositoryErrorCodes"
     },
     {
@@ -5106,6 +5126,16 @@
       "signature": "class RepositoryOperationScopes"
     },
     {
+      "name": "RepositoryTypes",
+      "package": "@venizia/ignis",
+      "subpath": ".",
+      "specifier": "@venizia/ignis",
+      "kind": "class",
+      "file": "packages/kernel/src/base/repositories/common/constants.ts",
+      "line": 36,
+      "signature": "class RepositoryTypes"
+    },
+    {
       "name": "RequestContextRegistry",
       "package": "@venizia/ignis",
       "subpath": ".",
@@ -5123,7 +5153,7 @@
       "kind": "const",
       "file": "packages/kernel/src/base/middlewares/common/errors.ts",
       "line": 6,
-      "signature": "RequestErrors: { readonly BODY_MALFORMED: { readonly message: { readonly text: \"Malformed body payload\"; readonly code: \"core.request.body_malformed\"; }; readonly statusCode: 400; readonly category: \"validation\"; }; }"
+      "signature": "RequestErrors: { readonly BODY_MALFORMED: { readonly message: { readonly text: \"Malformed body payload\"; readonly code: \"core.request.body_malformed\"; }; readonly statusCode: 400; readonly category: \"validation\"; }; readonly NOTHING_TO_UPDATE: { readonly message: { readonly text: \"Nothing to update\""
     },
     {
       "name": "RequestIdGenerator",
@@ -5172,7 +5202,7 @@
       "specifier": "@venizia/ignis",
       "kind": "class",
       "file": "packages/kernel/src/base/applications/rest.ts",
-      "line": 39,
+      "line": 40,
       "signature": "class RestApplication<AppEnv extends Env = Env, AppSchema extends Schema = {}, BasePath extends string = '/'> extends AbstractApplication"
     },
     {
@@ -5252,7 +5282,7 @@
       "specifier": "@venizia/ignis",
       "kind": "class",
       "file": "packages/kernel/src/base/controllers/factory/definition.ts",
-      "line": 33,
+      "line": 34,
       "signature": "class RouteConfigResolver"
     },
     {
@@ -5312,7 +5342,7 @@
       "specifier": "@venizia/ignis",
       "kind": "class",
       "file": "packages/kernel/src/base/repositories/common/constants.ts",
-      "line": 36,
+      "line": 50,
       "signature": "class ScopeFilterMissingBehaviors"
     },
     {
@@ -5322,7 +5352,7 @@
       "specifier": "@venizia/ignis",
       "kind": "class",
       "file": "packages/kernel/src/base/repositories/common/constants.ts",
-      "line": 57,
+      "line": 71,
       "signature": "class ScopeFilters"
     },
     {
@@ -5422,7 +5452,7 @@
       "specifier": "@venizia/ignis",
       "kind": "class",
       "file": "packages/core-server/src/components/auth/authenticate/services/service/verifier.service.ts",
-      "line": 23,
+      "line": 24,
       "signature": "class ServiceAssertionVerifierService extends BaseService"
     },
     {
@@ -5453,7 +5483,7 @@
       "kind": "const",
       "file": "packages/core-server/src/components/auth/authenticate/controllers/service-certs/definitions.ts",
       "line": 11,
-      "signature": "ServiceCertsRouteConfigs: { readonly GET_SERVICE_CERTS: { readonly path: \"/\"; readonly method: \"get\"; readonly responses: { 200: { description: string; content: { 'application/json': { schema: z.ZodObject<{ keys: z.ZodArray<z.ZodObject<{ kty: z.ZodString; kid: z.ZodOptional<z.ZodString>; use: z.ZodO"
+      "signature": "ServiceCertsRouteConfigs: { readonly GET_SERVICE_CERTS: { readonly path: \"/\"; readonly method: \"get\"; readonly responses: { '4XX': { description: string; content: { \"application/json\": { schema: z.ZodObject<{ statusCode: z.ZodOptional<z.ZodNumber>; message: z.ZodString; normalized: z.ZodOptional<z.Z"
     },
     {
       "name": "SignInRequestSchema",
@@ -6492,7 +6522,7 @@
       "specifier": "@venizia/ignis",
       "kind": "type",
       "file": "packages/kernel/src/base/models/common/schemas.ts",
-      "line": 38,
+      "line": 41,
       "signature": "type TErrorResponse = z.infer<typeof ErrorSchema>"
     },
     {
@@ -7002,7 +7032,7 @@
       "specifier": "@venizia/ignis",
       "kind": "type",
       "file": "packages/kernel/src/base/repositories/common/constants.ts",
-      "line": 111,
+      "line": 125,
       "signature": "type TLockStrength = TConstValue<typeof LockStrengths>"
     },
     {
@@ -7452,7 +7482,7 @@
       "specifier": "@venizia/ignis",
       "kind": "type",
       "file": "packages/kernel/src/base/repositories/common/constants.ts",
-      "line": 90,
+      "line": 104,
       "signature": "type TRelationType = TConstValue<typeof RelationTypes>"
     },
     {
@@ -7492,7 +7522,7 @@
       "specifier": "@venizia/ignis",
       "kind": "type",
       "file": "packages/kernel/src/base/repositories/common/constants.ts",
-      "line": 76,
+      "line": 90,
       "signature": "type TRepositoryErrorCode = TConstValue<typeof RepositoryErrorCodes>"
     },
     {
@@ -7506,6 +7536,16 @@
       "signature": "type TRepositoryLogOptions = { use: boolean; level?: TLogLevel; }"
     },
     {
+      "name": "TRepositoryMetadata",
+      "package": "@venizia/ignis",
+      "subpath": ".",
+      "specifier": "@venizia/ignis",
+      "kind": "type",
+      "file": "packages/kernel/src/helpers/inversion/common/types/persistence.ts",
+      "line": 43,
+      "signature": "type TRepositoryMetadata<Model extends AbstractEntity = AbstractEntity, DataSource extends IDataSource = IDataSource> = IRepositoryMetadata<Model, DataSource> | IRemoteRepositoryMetadata<DataSource>"
+    },
+    {
       "name": "TRepositoryOperationScope",
       "package": "@venizia/ignis",
       "subpath": ".",
@@ -7514,6 +7554,16 @@
       "file": "packages/kernel/src/base/repositories/common/constants.ts",
       "line": 33,
       "signature": "type TRepositoryOperationScope = TConstValue<typeof RepositoryOperationScopes>"
+    },
+    {
+      "name": "TRepositoryType",
+      "package": "@venizia/ignis",
+      "subpath": ".",
+      "specifier": "@venizia/ignis",
+      "kind": "type",
+      "file": "packages/kernel/src/base/repositories/common/constants.ts",
+      "line": 47,
+      "signature": "type TRepositoryType = TConstValue<typeof RepositoryTypes>"
     },
     {
       "name": "TRequestContextResolver",
@@ -7722,7 +7772,7 @@
       "specifier": "@venizia/ignis",
       "kind": "type",
       "file": "packages/kernel/src/base/repositories/common/constants.ts",
-      "line": 49,
+      "line": 63,
       "signature": "type TScopeFilterMissingBehavior = TConstValue<typeof ScopeFilterMissingBehaviors>"
     },
     {
@@ -8652,7 +8702,7 @@
       "specifier": "@venizia/ignis",
       "kind": "const",
       "file": "packages/kernel/src/base/controllers/factory/definition.ts",
-      "line": 537,
+      "line": 613,
       "signature": "conditionalCountResponse: typeof RouteConfigResolver.conditionalCountResponse"
     },
     {
@@ -8762,7 +8812,7 @@
       "specifier": "@venizia/ignis",
       "kind": "const",
       "file": "packages/kernel/src/base/metadata/persistents.ts",
-      "line": 56,
+      "line": 57,
       "signature": "datasource: (metadata?: IDataSourceMetadata) => ClassDecorator"
     },
     {
@@ -8792,7 +8842,7 @@
       "specifier": "@venizia/ignis",
       "kind": "const",
       "file": "packages/kernel/src/base/controllers/factory/definition.ts",
-      "line": 543,
+      "line": 619,
       "signature": "defineControllerRouteConfigs: typeof RouteConfigResolver.defineControllerRouteConfigs"
     },
     {
@@ -8884,6 +8934,16 @@
       "file": "packages/helpers/src/modules/redis/utility.ts",
       "line": 65,
       "signature": "ensureRedisClientsConnecting: (opts: { clients: TRedisClient[]; logger?: ILogger; scope: string; }) => void"
+    },
+    {
+      "name": "errorResponses",
+      "package": "@venizia/ignis",
+      "subpath": ".",
+      "specifier": "@venizia/ignis",
+      "kind": "const",
+      "file": "packages/kernel/src/base/models/common/schemas.ts",
+      "line": 92,
+      "signature": "errorResponses: () => { '4XX': { description: string; content: { 'application/json': { schema: z.ZodObject<{ statusCode: z.ZodOptional<z.ZodNumber>; message: z.ZodString; normalized: z.ZodOptional<z.ZodObject<{ text: z.ZodString; code: z.ZodString; args: z.ZodRecord<z.ZodString, z.ZodAny>; }, z.core"
     },
     {
       "name": "executePromiseWithLimit",
@@ -9153,7 +9213,7 @@
       "kind": "const",
       "file": "packages/kernel/src/base/controllers/common/html-response.ts",
       "line": 24,
-      "signature": "htmlResponse: (opts: { description: string; required?: boolean; }) => { 200: { description: string; content: { 'text/html': { schema: z.ZodString; }; }; required: boolean; }; \"4xx | 5xx\": { description: string; content: { 'application/json': { schema: z.ZodObject<{ statusCode: z.ZodOptional<z.ZodNum"
+      "signature": "htmlResponse: (opts: { description: string; required?: boolean; }) => { '4XX': { description: string; content: { 'application/json': { schema: z.ZodObject<{ statusCode: z.ZodOptional<z.ZodNumber>; message: z.ZodString; normalized: z.ZodOptional<z.ZodObject<{ text: z.ZodString; code: z.ZodString; arg"
     },
     {
       "name": "idParamsSchema",
@@ -9162,7 +9222,7 @@
       "specifier": "@venizia/ignis",
       "kind": "const",
       "file": "packages/kernel/src/base/models/common/schemas.ts",
-      "line": 40,
+      "line": 43,
       "signature": "idParamsSchema: (opts?: { idType: TIdSchemaType; }) => z.ZodObject<{ id: z.ZodNumber; }, z.core.$strip> | z.ZodObject<{ id: z.ZodString; }, z.core.$strip>"
     },
     {
@@ -9342,7 +9402,7 @@
       "specifier": "@venizia/ignis",
       "kind": "const",
       "file": "packages/kernel/src/base/models/common/schemas.ts",
-      "line": 76,
+      "line": 79,
       "signature": "jsonContent: <T extends z.ZodType>(opts: { schema: T; description: string; required?: boolean; }) => { description: string; content: { 'application/json': { schema: T; }; }; required: boolean | undefined; }"
     },
     {
@@ -9352,8 +9412,8 @@
       "specifier": "@venizia/ignis",
       "kind": "const",
       "file": "packages/kernel/src/base/models/common/schemas.ts",
-      "line": 104,
-      "signature": "jsonResponse: <ContentSchema extends z.ZodType, HeaderSchema extends TResponseHeaders | undefined = undefined>(opts: TJsonResponseOpts<ContentSchema, HeaderSchema>) => { 200: { description: string; content: { 'application/json': { schema: ContentSchema; }; }; required: boolean | undefined; } | { hea"
+      "line": 114,
+      "signature": "jsonResponse: <ContentSchema extends z.ZodType, HeaderSchema extends TResponseHeaders | undefined = undefined>(opts: TJsonResponseOpts<ContentSchema, HeaderSchema>) => { '4XX': { description: string; content: { 'application/json': { schema: z.ZodObject<{ statusCode: z.ZodOptional<z.ZodNumber>; messa"
     },
     {
       "name": "keysToCamel",
@@ -9382,7 +9442,7 @@
       "specifier": "@venizia/ignis",
       "kind": "const",
       "file": "packages/kernel/src/base/metadata/persistents.ts",
-      "line": 25,
+      "line": 26,
       "signature": "model: (metadata: IModelMetadata) => ClassDecorator"
     },
     {
@@ -9556,14 +9616,24 @@
       "signature": "redactUrlCredentials: (url: string) => string"
     },
     {
+      "name": "registerFactoryRepositoryInjection",
+      "package": "@venizia/ignis",
+      "subpath": ".",
+      "specifier": "@venizia/ignis",
+      "kind": "const",
+      "file": "packages/kernel/src/base/controllers/factory/repository-injection.ts",
+      "line": 12,
+      "signature": "registerFactoryRepositoryInjection: (opts: { target: TClass<unknown>; factoryName: string; controllerName: string; repositoryName: string; }) => void"
+    },
+    {
       "name": "repository",
       "package": "@venizia/ignis",
       "subpath": ".",
       "specifier": "@venizia/ignis",
       "kind": "const",
       "file": "packages/kernel/src/base/metadata/persistents.ts",
-      "line": 261,
-      "signature": "repository: <Model extends AbstractEntity = AbstractEntity, DataSource extends IDataSource = IDataSource>(metadata?: IRepositoryMetadata<Model, DataSource>) => ClassDecorator"
+      "line": 284,
+      "signature": "repository: <Model extends AbstractEntity = AbstractEntity, DataSource extends IDataSource = IDataSource>(metadata?: TRepositoryMetadata<Model, DataSource>) => ClassDecorator"
     },
     {
       "name": "requiredString",
@@ -9592,7 +9662,7 @@
       "specifier": "@venizia/ignis",
       "kind": "const",
       "file": "packages/kernel/src/base/controllers/factory/definition.ts",
-      "line": 538,
+      "line": 614,
       "signature": "resolveCountConfig: typeof RouteConfigResolver.resolveCountConfig"
     },
     {
@@ -9602,7 +9672,7 @@
       "specifier": "@venizia/ignis",
       "kind": "const",
       "file": "packages/kernel/src/base/controllers/factory/definition.ts",
-      "line": 542,
+      "line": 618,
       "signature": "resolveCreateConfig: typeof RouteConfigResolver.resolveCreateConfig"
     },
     {
@@ -9612,7 +9682,7 @@
       "specifier": "@venizia/ignis",
       "kind": "const",
       "file": "packages/kernel/src/base/controllers/factory/definition.ts",
-      "line": 540,
+      "line": 616,
       "signature": "resolveFindByIdConfig: typeof RouteConfigResolver.resolveFindByIdConfig"
     },
     {
@@ -9622,7 +9692,7 @@
       "specifier": "@venizia/ignis",
       "kind": "const",
       "file": "packages/kernel/src/base/controllers/factory/definition.ts",
-      "line": 539,
+      "line": 615,
       "signature": "resolveFindConfig: typeof RouteConfigResolver.resolveFindConfig"
     },
     {
@@ -9632,7 +9702,7 @@
       "specifier": "@venizia/ignis",
       "kind": "const",
       "file": "packages/kernel/src/base/controllers/factory/definition.ts",
-      "line": 541,
+      "line": 617,
       "signature": "resolveFindOneConfig: typeof RouteConfigResolver.resolveFindOneConfig"
     },
     {
@@ -10842,7 +10912,7 @@
       "specifier": "@venizia/ignis/postgres",
       "kind": "class",
       "file": "packages/connectors/src/relational/core/models/base.ts",
-      "line": 17,
+      "line": 19,
       "signature": "class BaseRelationalEntity<Schema extends TTableSchemaWithId = TTableSchemaWithId> extends AbstractEntity implements IEntity<Schema>"
     },
     {
@@ -10862,7 +10932,7 @@
       "specifier": "@venizia/ignis/postgres",
       "kind": "class",
       "file": "packages/connectors/src/relational/core/models/base.ts",
-      "line": 17,
+      "line": 19,
       "signature": "class BaseRelationalEntity<Schema extends TTableSchemaWithId = TTableSchemaWithId> extends AbstractEntity implements IEntity<Schema>"
     },
     {
@@ -10872,7 +10942,7 @@
       "specifier": "@venizia/ignis/postgres",
       "kind": "class",
       "file": "packages/connectors/src/relational/core/models/base.ts",
-      "line": 17,
+      "line": 19,
       "signature": "class BaseRelationalEntity<Schema extends TTableSchemaWithId = TTableSchemaWithId> extends AbstractEntity implements IEntity<Schema>"
     },
     {
@@ -11861,7 +11931,7 @@
       "specifier": "@venizia/ignis/relational",
       "kind": "class",
       "file": "packages/connectors/src/relational/core/models/base.ts",
-      "line": 17,
+      "line": 19,
       "signature": "class BaseRelationalEntity<Schema extends TTableSchemaWithId = TTableSchemaWithId> extends AbstractEntity implements IEntity<Schema>"
     },
     {
@@ -15681,7 +15751,7 @@
       "specifier": "@venizia/ignis-connectors",
       "kind": "class",
       "file": "packages/connectors/src/relational/core/models/base.ts",
-      "line": 17,
+      "line": 19,
       "signature": "class BaseRelationalEntity<Schema extends TTableSchemaWithId = TTableSchemaWithId> extends AbstractEntity implements IEntity<Schema>"
     },
     {
@@ -16931,7 +17001,7 @@
       "specifier": "@venizia/ignis-connectors/http",
       "kind": "class",
       "file": "packages/connectors/src/http/datasource.ts",
-      "line": 109,
+      "line": 112,
       "signature": "class HttpDataSource extends AbstractDataSource<IHttpDataSourceSettings>"
     },
     {
@@ -17201,7 +17271,7 @@
       "specifier": "@venizia/ignis-connectors/postgres",
       "kind": "class",
       "file": "packages/connectors/src/relational/core/models/base.ts",
-      "line": 17,
+      "line": 19,
       "signature": "class BaseRelationalEntity<Schema extends TTableSchemaWithId = TTableSchemaWithId> extends AbstractEntity implements IEntity<Schema>"
     },
     {
@@ -17221,7 +17291,7 @@
       "specifier": "@venizia/ignis-connectors/postgres",
       "kind": "class",
       "file": "packages/connectors/src/relational/core/models/base.ts",
-      "line": 17,
+      "line": 19,
       "signature": "class BaseRelationalEntity<Schema extends TTableSchemaWithId = TTableSchemaWithId> extends AbstractEntity implements IEntity<Schema>"
     },
     {
@@ -17231,7 +17301,7 @@
       "specifier": "@venizia/ignis-connectors/postgres",
       "kind": "class",
       "file": "packages/connectors/src/relational/core/models/base.ts",
-      "line": 17,
+      "line": 19,
       "signature": "class BaseRelationalEntity<Schema extends TTableSchemaWithId = TTableSchemaWithId> extends AbstractEntity implements IEntity<Schema>"
     },
     {
@@ -18220,7 +18290,7 @@
       "specifier": "@venizia/ignis-connectors/relational",
       "kind": "class",
       "file": "packages/connectors/src/relational/core/models/base.ts",
-      "line": 17,
+      "line": 19,
       "signature": "class BaseRelationalEntity<Schema extends TTableSchemaWithId = TTableSchemaWithId> extends AbstractEntity implements IEntity<Schema>"
     },
     {
@@ -29463,7 +29533,7 @@
       "specifier": "@venizia/ignis-inversion",
       "kind": "const",
       "file": "packages/inversion/src/modules/registry/registry.ts",
-      "line": 157,
+      "line": 159,
       "signature": "metadataRegistry: MetadataRegistry"
     },
     {
@@ -30063,7 +30133,7 @@
       "specifier": "@venizia/ignis-kernel",
       "kind": "class",
       "file": "packages/kernel/src/base/controllers/factory/controller.ts",
-      "line": 19,
+      "line": 20,
       "signature": "class ControllerFactory extends BaseHelper"
     },
     {
@@ -30153,7 +30223,7 @@
       "specifier": "@venizia/ignis-kernel",
       "kind": "const",
       "file": "packages/kernel/src/base/models/common/schemas.ts",
-      "line": 7,
+      "line": 10,
       "signature": "ErrorSchema: z.ZodObject<{ statusCode: z.ZodOptional<z.ZodNumber>; message: z.ZodString; normalized: z.ZodOptional<z.ZodObject<{ text: z.ZodString; code: z.ZodString; args: z.ZodRecord<z.ZodString, z.ZodAny>; }, z.core.$strip>>; extra: z.ZodOptional<z.ZodRecord<z.ZodString, z.ZodAny>>; requestId: z."
     },
     {
@@ -30233,7 +30303,7 @@
       "specifier": "@venizia/ignis-kernel",
       "kind": "interface",
       "file": "packages/kernel/src/base/applications/common/types/application.ts",
-      "line": 51,
+      "line": 59,
       "signature": "interface IApplication<AppEnv extends Env = Env, AppSchema extends Schema = Schema, BasePath extends string = '/'>"
     },
     {
@@ -30253,7 +30323,7 @@
       "specifier": "@venizia/ignis-kernel",
       "kind": "interface",
       "file": "packages/kernel/src/base/applications/common/types/application.ts",
-      "line": 42,
+      "line": 50,
       "signature": "interface IApplicationInfo"
     },
     {
@@ -30653,7 +30723,7 @@
       "specifier": "@venizia/ignis-kernel",
       "kind": "interface",
       "file": "packages/kernel/src/base/datasources/common/types.ts",
-      "line": 81,
+      "line": 84,
       "signature": "interface IDataSourceCapabilities"
     },
     {
@@ -30663,7 +30733,7 @@
       "specifier": "@venizia/ignis-kernel",
       "kind": "interface",
       "file": "packages/kernel/src/helpers/inversion/common/types/persistence.ts",
-      "line": 7,
+      "line": 12,
       "signature": "interface IDataSourceMetadata extends IArtifactRegistrationOptions"
     },
     {
@@ -30977,6 +31047,16 @@
       "signature": "interface IReadableRepository<TDataObject extends object = object, ExtraOptions extends IExtraOptions = IExtraOptions> extends IRepository"
     },
     {
+      "name": "IRemoteRepositoryMetadata",
+      "package": "@venizia/ignis-kernel",
+      "subpath": ".",
+      "specifier": "@venizia/ignis-kernel",
+      "kind": "interface",
+      "file": "packages/kernel/src/helpers/inversion/common/types/persistence.ts",
+      "line": 35,
+      "signature": "interface IRemoteRepositoryMetadata<DataSource extends IDataSource = IDataSource> extends IRepositoryMetadataBase<DataSource>"
+    },
+    {
       "name": "IRepository",
       "package": "@venizia/ignis-kernel",
       "subpath": ".",
@@ -30993,7 +31073,7 @@
       "specifier": "@venizia/ignis-kernel",
       "kind": "interface",
       "file": "packages/kernel/src/helpers/inversion/common/types/persistence.ts",
-      "line": 31,
+      "line": 59,
       "signature": "interface IRepositoryBinding<Model extends AbstractEntity = AbstractEntity, DataSource extends IDataSource = IDataSource>"
     },
     {
@@ -31003,8 +31083,18 @@
       "specifier": "@venizia/ignis-kernel",
       "kind": "interface",
       "file": "packages/kernel/src/helpers/inversion/common/types/persistence.ts",
-      "line": 12,
-      "signature": "interface IRepositoryMetadata<Model extends AbstractEntity = AbstractEntity, DataSource extends IDataSource = IDataSource> extends IArtifactRegistrationOptions"
+      "line": 26,
+      "signature": "interface IRepositoryMetadata<Model extends AbstractEntity = AbstractEntity, DataSource extends IDataSource = IDataSource> extends IRepositoryMetadataBase<DataSource>"
+    },
+    {
+      "name": "IRepositoryMetadataBase",
+      "package": "@venizia/ignis-kernel",
+      "subpath": ".",
+      "specifier": "@venizia/ignis-kernel",
+      "kind": "interface",
+      "file": "packages/kernel/src/helpers/inversion/common/types/persistence.ts",
+      "line": 18,
+      "signature": "interface IRepositoryMetadataBase<DataSource extends IDataSource = IDataSource> extends IArtifactRegistrationOptions"
     },
     {
       "name": "IRepositoryMixin",
@@ -31033,7 +31123,7 @@
       "specifier": "@venizia/ignis-kernel",
       "kind": "interface",
       "file": "packages/kernel/src/helpers/inversion/common/types/persistence.ts",
-      "line": 22,
+      "line": 49,
       "signature": "interface IResolvedRepositoryMetadata<Model extends AbstractEntity = AbstractEntity, DataSource extends IDataSource = IDataSource>"
     },
     {
@@ -31043,7 +31133,7 @@
       "specifier": "@venizia/ignis-kernel",
       "kind": "interface",
       "file": "packages/kernel/src/base/applications/common/types/application.ts",
-      "line": 66,
+      "line": 74,
       "signature": "interface IRestApplication extends IApplication, IComponentMixin, IControllerMixin, IRepositoryMixin, IServiceMixin, IStaticServeMixin"
     },
     {
@@ -31093,7 +31183,7 @@
       "specifier": "@venizia/ignis-kernel",
       "kind": "interface",
       "file": "packages/kernel/src/base/datasources/common/types.ts",
-      "line": 85,
+      "line": 88,
       "signature": "interface ISearchableDataSourceCapabilities extends IDataSourceCapabilities"
     },
     {
@@ -31163,7 +31253,7 @@
       "specifier": "@venizia/ignis-kernel",
       "kind": "interface",
       "file": "packages/kernel/src/base/datasources/common/types.ts",
-      "line": 75,
+      "line": 78,
       "signature": "interface ITransaction"
     },
     {
@@ -31173,7 +31263,7 @@
       "specifier": "@venizia/ignis-kernel",
       "kind": "interface",
       "file": "packages/kernel/src/base/datasources/common/types.ts",
-      "line": 70,
+      "line": 73,
       "signature": "interface ITransactionOptions"
     },
     {
@@ -31293,7 +31383,7 @@
       "specifier": "@venizia/ignis-kernel",
       "kind": "class",
       "file": "packages/kernel/src/base/repositories/common/constants.ts",
-      "line": 93,
+      "line": 107,
       "signature": "class LockStrengths"
     },
     {
@@ -31363,7 +31453,7 @@
       "specifier": "@venizia/ignis-kernel",
       "kind": "class",
       "file": "packages/kernel/src/base/controllers/factory/crud/persistable.ts",
-      "line": 12,
+      "line": 14,
       "signature": "class PersistableCrudController<TEntity extends AbstractEntity<TAnyObjectSchema> = AbstractEntity<TAnyObjectSchema>, RouteEnv extends Env = Env, RouteSchema extends Schema = {}, BasePath extends string = '/', ConfigurableOptions extends object = {}, TDataObject extends object = TEntityDataObject<TEn"
     },
     {
@@ -31413,7 +31503,7 @@
       "specifier": "@venizia/ignis-kernel",
       "kind": "class",
       "file": "packages/kernel/src/base/repositories/common/constants.ts",
-      "line": 79,
+      "line": 93,
       "signature": "class RelationTypes"
     },
     {
@@ -31423,7 +31513,7 @@
       "specifier": "@venizia/ignis-kernel",
       "kind": "class",
       "file": "packages/kernel/src/base/repositories/common/constants.ts",
-      "line": 68,
+      "line": 82,
       "signature": "class RepositoryErrorCodes"
     },
     {
@@ -31447,6 +31537,16 @@
       "signature": "class RepositoryOperationScopes"
     },
     {
+      "name": "RepositoryTypes",
+      "package": "@venizia/ignis-kernel",
+      "subpath": ".",
+      "specifier": "@venizia/ignis-kernel",
+      "kind": "class",
+      "file": "packages/kernel/src/base/repositories/common/constants.ts",
+      "line": 36,
+      "signature": "class RepositoryTypes"
+    },
+    {
       "name": "RequestContextRegistry",
       "package": "@venizia/ignis-kernel",
       "subpath": ".",
@@ -31464,7 +31564,7 @@
       "kind": "const",
       "file": "packages/kernel/src/base/middlewares/common/errors.ts",
       "line": 6,
-      "signature": "RequestErrors: { readonly BODY_MALFORMED: { readonly message: { readonly text: \"Malformed body payload\"; readonly code: \"core.request.body_malformed\"; }; readonly statusCode: 400; readonly category: \"validation\"; }; }"
+      "signature": "RequestErrors: { readonly BODY_MALFORMED: { readonly message: { readonly text: \"Malformed body payload\"; readonly code: \"core.request.body_malformed\"; }; readonly statusCode: 400; readonly category: \"validation\"; }; readonly NOTHING_TO_UPDATE: { readonly message: { readonly text: \"Nothing to update\""
     },
     {
       "name": "ResponseFormats",
@@ -31483,7 +31583,7 @@
       "specifier": "@venizia/ignis-kernel",
       "kind": "class",
       "file": "packages/kernel/src/base/applications/rest.ts",
-      "line": 39,
+      "line": 40,
       "signature": "class RestApplication<AppEnv extends Env = Env, AppSchema extends Schema = {}, BasePath extends string = '/'> extends AbstractApplication"
     },
     {
@@ -31533,7 +31633,7 @@
       "specifier": "@venizia/ignis-kernel",
       "kind": "class",
       "file": "packages/kernel/src/base/controllers/factory/definition.ts",
-      "line": 33,
+      "line": 34,
       "signature": "class RouteConfigResolver"
     },
     {
@@ -31553,7 +31653,7 @@
       "specifier": "@venizia/ignis-kernel",
       "kind": "class",
       "file": "packages/kernel/src/base/repositories/common/constants.ts",
-      "line": 36,
+      "line": 50,
       "signature": "class ScopeFilterMissingBehaviors"
     },
     {
@@ -31563,7 +31663,7 @@
       "specifier": "@venizia/ignis-kernel",
       "kind": "class",
       "file": "packages/kernel/src/base/repositories/common/constants.ts",
-      "line": 57,
+      "line": 71,
       "signature": "class ScopeFilters"
     },
     {
@@ -32163,7 +32263,7 @@
       "specifier": "@venizia/ignis-kernel",
       "kind": "type",
       "file": "packages/kernel/src/base/models/common/schemas.ts",
-      "line": 38,
+      "line": 41,
       "signature": "type TErrorResponse = z.infer<typeof ErrorSchema>"
     },
     {
@@ -32463,7 +32563,7 @@
       "specifier": "@venizia/ignis-kernel",
       "kind": "type",
       "file": "packages/kernel/src/base/repositories/common/constants.ts",
-      "line": 111,
+      "line": 125,
       "signature": "type TLockStrength = TConstValue<typeof LockStrengths>"
     },
     {
@@ -32583,7 +32683,7 @@
       "specifier": "@venizia/ignis-kernel",
       "kind": "type",
       "file": "packages/kernel/src/base/repositories/common/constants.ts",
-      "line": 90,
+      "line": 104,
       "signature": "type TRelationType = TConstValue<typeof RelationTypes>"
     },
     {
@@ -32593,7 +32693,7 @@
       "specifier": "@venizia/ignis-kernel",
       "kind": "type",
       "file": "packages/kernel/src/base/repositories/common/constants.ts",
-      "line": 76,
+      "line": 90,
       "signature": "type TRepositoryErrorCode = TConstValue<typeof RepositoryErrorCodes>"
     },
     {
@@ -32607,6 +32707,16 @@
       "signature": "type TRepositoryLogOptions = { use: boolean; level?: TLogLevel; }"
     },
     {
+      "name": "TRepositoryMetadata",
+      "package": "@venizia/ignis-kernel",
+      "subpath": ".",
+      "specifier": "@venizia/ignis-kernel",
+      "kind": "type",
+      "file": "packages/kernel/src/helpers/inversion/common/types/persistence.ts",
+      "line": 43,
+      "signature": "type TRepositoryMetadata<Model extends AbstractEntity = AbstractEntity, DataSource extends IDataSource = IDataSource> = IRepositoryMetadata<Model, DataSource> | IRemoteRepositoryMetadata<DataSource>"
+    },
+    {
       "name": "TRepositoryOperationScope",
       "package": "@venizia/ignis-kernel",
       "subpath": ".",
@@ -32615,6 +32725,16 @@
       "file": "packages/kernel/src/base/repositories/common/constants.ts",
       "line": 33,
       "signature": "type TRepositoryOperationScope = TConstValue<typeof RepositoryOperationScopes>"
+    },
+    {
+      "name": "TRepositoryType",
+      "package": "@venizia/ignis-kernel",
+      "subpath": ".",
+      "specifier": "@venizia/ignis-kernel",
+      "kind": "type",
+      "file": "packages/kernel/src/base/repositories/common/constants.ts",
+      "line": 47,
+      "signature": "type TRepositoryType = TConstValue<typeof RepositoryTypes>"
     },
     {
       "name": "TRequestContextResolver",
@@ -32733,7 +32853,7 @@
       "specifier": "@venizia/ignis-kernel",
       "kind": "type",
       "file": "packages/kernel/src/base/repositories/common/constants.ts",
-      "line": 49,
+      "line": 63,
       "signature": "type TScopeFilterMissingBehavior = TConstValue<typeof ScopeFilterMissingBehaviors>"
     },
     {
@@ -32983,7 +33103,7 @@
       "specifier": "@venizia/ignis-kernel",
       "kind": "const",
       "file": "packages/kernel/src/base/controllers/factory/definition.ts",
-      "line": 537,
+      "line": 613,
       "signature": "conditionalCountResponse: typeof RouteConfigResolver.conditionalCountResponse"
     },
     {
@@ -33023,7 +33143,7 @@
       "specifier": "@venizia/ignis-kernel",
       "kind": "const",
       "file": "packages/kernel/src/base/metadata/persistents.ts",
-      "line": 56,
+      "line": 57,
       "signature": "datasource: (metadata?: IDataSourceMetadata) => ClassDecorator"
     },
     {
@@ -33043,7 +33163,7 @@
       "specifier": "@venizia/ignis-kernel",
       "kind": "const",
       "file": "packages/kernel/src/base/controllers/factory/definition.ts",
-      "line": 543,
+      "line": 619,
       "signature": "defineControllerRouteConfigs: typeof RouteConfigResolver.defineControllerRouteConfigs"
     },
     {
@@ -33065,6 +33185,16 @@
       "file": "packages/kernel/src/base/middlewares/emoji-favicon/emoji-favicon.middleware.ts",
       "line": 5,
       "signature": "emojiFavicon: (opts: { icon: string; }) => MiddlewareHandler"
+    },
+    {
+      "name": "errorResponses",
+      "package": "@venizia/ignis-kernel",
+      "subpath": ".",
+      "specifier": "@venizia/ignis-kernel",
+      "kind": "const",
+      "file": "packages/kernel/src/base/models/common/schemas.ts",
+      "line": 92,
+      "signature": "errorResponses: () => { '4XX': { description: string; content: { 'application/json': { schema: z.ZodObject<{ statusCode: z.ZodOptional<z.ZodNumber>; message: z.ZodString; normalized: z.ZodOptional<z.ZodObject<{ text: z.ZodString; code: z.ZodString; args: z.ZodRecord<z.ZodString, z.ZodAny>; }, z.core"
     },
     {
       "name": "findResponseHeaders",
@@ -33114,7 +33244,7 @@
       "kind": "const",
       "file": "packages/kernel/src/base/controllers/common/html-response.ts",
       "line": 24,
-      "signature": "htmlResponse: (opts: { description: string; required?: boolean; }) => { 200: { description: string; content: { 'text/html': { schema: z.ZodString; }; }; required: boolean; }; \"4xx | 5xx\": { description: string; content: { 'application/json': { schema: z.ZodObject<{ statusCode: z.ZodOptional<z.ZodNum"
+      "signature": "htmlResponse: (opts: { description: string; required?: boolean; }) => { '4XX': { description: string; content: { 'application/json': { schema: z.ZodObject<{ statusCode: z.ZodOptional<z.ZodNumber>; message: z.ZodString; normalized: z.ZodOptional<z.ZodObject<{ text: z.ZodString; code: z.ZodString; arg"
     },
     {
       "name": "idParamsSchema",
@@ -33123,7 +33253,7 @@
       "specifier": "@venizia/ignis-kernel",
       "kind": "const",
       "file": "packages/kernel/src/base/models/common/schemas.ts",
-      "line": 40,
+      "line": 43,
       "signature": "idParamsSchema: (opts?: { idType: TIdSchemaType; }) => z.ZodObject<{ id: z.ZodNumber; }, z.core.$strip> | z.ZodObject<{ id: z.ZodString; }, z.core.$strip>"
     },
     {
@@ -33183,7 +33313,7 @@
       "specifier": "@venizia/ignis-kernel",
       "kind": "const",
       "file": "packages/kernel/src/base/models/common/schemas.ts",
-      "line": 76,
+      "line": 79,
       "signature": "jsonContent: <T extends z.ZodType>(opts: { schema: T; description: string; required?: boolean; }) => { description: string; content: { 'application/json': { schema: T; }; }; required: boolean | undefined; }"
     },
     {
@@ -33193,8 +33323,8 @@
       "specifier": "@venizia/ignis-kernel",
       "kind": "const",
       "file": "packages/kernel/src/base/models/common/schemas.ts",
-      "line": 104,
-      "signature": "jsonResponse: <ContentSchema extends z.ZodType, HeaderSchema extends TResponseHeaders | undefined = undefined>(opts: TJsonResponseOpts<ContentSchema, HeaderSchema>) => { 200: { description: string; content: { 'application/json': { schema: ContentSchema; }; }; required: boolean | undefined; } | { hea"
+      "line": 114,
+      "signature": "jsonResponse: <ContentSchema extends z.ZodType, HeaderSchema extends TResponseHeaders | undefined = undefined>(opts: TJsonResponseOpts<ContentSchema, HeaderSchema>) => { '4XX': { description: string; content: { 'application/json': { schema: z.ZodObject<{ statusCode: z.ZodOptional<z.ZodNumber>; messa"
     },
     {
       "name": "model",
@@ -33203,7 +33333,7 @@
       "specifier": "@venizia/ignis-kernel",
       "kind": "const",
       "file": "packages/kernel/src/base/metadata/persistents.ts",
-      "line": 25,
+      "line": 26,
       "signature": "model: (metadata: IModelMetadata) => ClassDecorator"
     },
     {
@@ -33277,14 +33407,24 @@
       "signature": "readDeclarative: (opts: { source: IAuthorizationDomainSource; context: TContext<Env, string>; }) => TNullable<string>"
     },
     {
+      "name": "registerFactoryRepositoryInjection",
+      "package": "@venizia/ignis-kernel",
+      "subpath": ".",
+      "specifier": "@venizia/ignis-kernel",
+      "kind": "const",
+      "file": "packages/kernel/src/base/controllers/factory/repository-injection.ts",
+      "line": 12,
+      "signature": "registerFactoryRepositoryInjection: (opts: { target: TClass<unknown>; factoryName: string; controllerName: string; repositoryName: string; }) => void"
+    },
+    {
       "name": "repository",
       "package": "@venizia/ignis-kernel",
       "subpath": ".",
       "specifier": "@venizia/ignis-kernel",
       "kind": "const",
       "file": "packages/kernel/src/base/metadata/persistents.ts",
-      "line": 261,
-      "signature": "repository: <Model extends AbstractEntity = AbstractEntity, DataSource extends IDataSource = IDataSource>(metadata?: IRepositoryMetadata<Model, DataSource>) => ClassDecorator"
+      "line": 284,
+      "signature": "repository: <Model extends AbstractEntity = AbstractEntity, DataSource extends IDataSource = IDataSource>(metadata?: TRepositoryMetadata<Model, DataSource>) => ClassDecorator"
     },
     {
       "name": "requiredString",
@@ -33303,7 +33443,7 @@
       "specifier": "@venizia/ignis-kernel",
       "kind": "const",
       "file": "packages/kernel/src/base/controllers/factory/definition.ts",
-      "line": 538,
+      "line": 614,
       "signature": "resolveCountConfig: typeof RouteConfigResolver.resolveCountConfig"
     },
     {
@@ -33313,7 +33453,7 @@
       "specifier": "@venizia/ignis-kernel",
       "kind": "const",
       "file": "packages/kernel/src/base/controllers/factory/definition.ts",
-      "line": 542,
+      "line": 618,
       "signature": "resolveCreateConfig: typeof RouteConfigResolver.resolveCreateConfig"
     },
     {
@@ -33323,7 +33463,7 @@
       "specifier": "@venizia/ignis-kernel",
       "kind": "const",
       "file": "packages/kernel/src/base/controllers/factory/definition.ts",
-      "line": 540,
+      "line": 616,
       "signature": "resolveFindByIdConfig: typeof RouteConfigResolver.resolveFindByIdConfig"
     },
     {
@@ -33333,7 +33473,7 @@
       "specifier": "@venizia/ignis-kernel",
       "kind": "const",
       "file": "packages/kernel/src/base/controllers/factory/definition.ts",
-      "line": 539,
+      "line": 615,
       "signature": "resolveFindConfig: typeof RouteConfigResolver.resolveFindConfig"
     },
     {
@@ -33343,7 +33483,7 @@
       "specifier": "@venizia/ignis-kernel",
       "kind": "const",
       "file": "packages/kernel/src/base/controllers/factory/definition.ts",
-      "line": 541,
+      "line": 617,
       "signature": "resolveFindOneConfig: typeof RouteConfigResolver.resolveFindOneConfig"
     },
     {
@@ -33573,7 +33713,7 @@
       "specifier": "@venizia/ignis-kernel/metadata",
       "kind": "const",
       "file": "packages/kernel/src/base/metadata/persistents.ts",
-      "line": 56,
+      "line": 57,
       "signature": "datasource: (metadata?: IDataSourceMetadata) => ClassDecorator"
     },
     {
@@ -33603,7 +33743,7 @@
       "specifier": "@venizia/ignis-kernel/metadata",
       "kind": "const",
       "file": "packages/kernel/src/base/metadata/persistents.ts",
-      "line": 25,
+      "line": 26,
       "signature": "model: (metadata: IModelMetadata) => ClassDecorator"
     },
     {
@@ -33633,8 +33773,8 @@
       "specifier": "@venizia/ignis-kernel/metadata",
       "kind": "const",
       "file": "packages/kernel/src/base/metadata/persistents.ts",
-      "line": 261,
-      "signature": "repository: <Model extends AbstractEntity = AbstractEntity, DataSource extends IDataSource = IDataSource>(metadata?: IRepositoryMetadata<Model, DataSource>) => ClassDecorator"
+      "line": 284,
+      "signature": "repository: <Model extends AbstractEntity = AbstractEntity, DataSource extends IDataSource = IDataSource>(metadata?: TRepositoryMetadata<Model, DataSource>) => ClassDecorator"
     },
     {
       "name": "service",
@@ -33797,6 +33937,16 @@
       "signature": "class RepositoryOperationScopes"
     },
     {
+      "name": "RepositoryTypes",
+      "package": "@venizia/ignis-kernel",
+      "subpath": "./repository",
+      "specifier": "@venizia/ignis-kernel/repository",
+      "kind": "class",
+      "file": "packages/kernel/src/base/repositories/common/constants.ts",
+      "line": 36,
+      "signature": "class RepositoryTypes"
+    },
+    {
       "name": "SchemaTypes",
       "package": "@venizia/ignis-kernel",
       "subpath": "./repository",
@@ -33875,6 +34025,16 @@
       "file": "packages/filter/src/common/types.ts",
       "line": 61,
       "signature": "type TInclusion = { relation: string; scope?: TFilter; shouldSkipDefaultFilter?: boolean; }"
+    },
+    {
+      "name": "TRepositoryType",
+      "package": "@venizia/ignis-kernel",
+      "subpath": "./repository",
+      "specifier": "@venizia/ignis-kernel/repository",
+      "kind": "type",
+      "file": "packages/kernel/src/base/repositories/common/constants.ts",
+      "line": 47,
+      "signature": "type TRepositoryType = TConstValue<typeof RepositoryTypes>"
     },
     {
       "name": "TSchemaType",

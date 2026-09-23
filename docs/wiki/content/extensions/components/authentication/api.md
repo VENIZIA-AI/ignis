@@ -143,7 +143,7 @@ Bearer token service hierarchy:
 
 | Technology | Purpose |
 |------------|---------|
-| `jose` | JWT signing (`SignJWT`), verification (`jwtVerify`), JWKS (`createRemoteJWKSet`, `exportJWK`, `importPKCS8`, `importSPKI`, `importJWK`) |
+| `jose` | JWT signing (`SignJWT`), verification (`jwtVerify`), JWKS (`createRemoteJWKSet`, `exportJWK`, `importPKCS8`, `importSPKI`, `importJWK`). Loaded once per process, never at import. With JWT or service authentication configured, the component loads it at boot, so a missing `jose` fails the boot |
 | `@venizia/ignis-helpers` | `AES` payload encryption, `BaseHelper`/`BaseService`, `getError`, `HTTP` result codes |
 | Hono middleware | Route-level integration via `createMiddleware` from `hono/factory` |
 | `node:fs/promises` | Async key file reads for JWKS |

@@ -8,6 +8,8 @@ tags: [examples, postgres, supabase]
 
 `supabase-example` runs on `postgres-js` (`SupabaseDataSource`) with no `pg` anywhere in the directory, deliberately proving the connector-versus-driver distinction: Supabase is unmodified PostgreSQL, so it varies the driver, not the SQL dialect. The repository, filter syntax, transactions, and controllers are otherwise identical to `examples/vert`.
 
+> This example is currently being refreshed alongside the other examples (2026-09-23) - it is blocked on a framework defect and its working tree is uncommitted, so the description below may not match what lands.
+
 ## What it demonstrates
 
 - **The driver seam is real** - `src/datasources/supabase.datasource.ts` declares `@datasource({ driver: PostgresJsDriver })` and its `configure()` builds only the client, `this.client = postgres(url, buildPostgresJsOptions({ mode, max }))`. The framework constructs the `PostgresJsDriver` over that client and its pooled connector lazily on first use, through its own internal `useDriver()` call - no such call appears in the example. `getClient()` is typed as postgres-js's `Sql`, not `pg.Pool`.

@@ -166,7 +166,7 @@ constructor(opts: IControllerOptions)
 | :--- | :--- | :--- | :--- |
 | `scope` | `string` | Required | Logger scope name |
 | `path` | `string` | - | Route base path. Falls back to `@controller` decorator path if not provided |
-| `isStrict` | `boolean` | `true` | When `true`, `/users` and `/users/` are different routes |
+| `isStrict` | `boolean` | `true` | No effect once the controller is mounted: trailing-slash matching follows the application's `path.isStrict` |
 
 Path resolution priority: `@controller` decorator metadata > constructor `path` option. Throws if neither provides a path.
 
@@ -310,7 +310,7 @@ interface IAuthRouteConfig extends HonoRouteConfig {
 interface IControllerOptions {
   scope: string;
   path?: string;     // Falls back to @controller decorator path
-  isStrict?: boolean; // Default: true
+  isStrict?: boolean; // No effect once mounted - see the application's path.isStrict
 }
 ```
 
@@ -700,6 +700,24 @@ Returns a `BaseRestController` subclass with standard CRUD endpoints pre-configu
 | `deleteById` | `DELETE` | `/{id}` | Delete a record by its ID |
 | `deleteBy` | `DELETE` | `/` | Bulk delete records matching a `where` filter |
 
+### Default request bodies
+
+The write routes leave out the keys the entity says the server fills, from `AbstractEntity.getServerStampedKeys()`:
+
+| Route | Default body |
+| :--- | :--- |
+| `create` | The entity's insert schema without the keys `getServerStampedKeys()` reports |
+| `updateById` | The entity's update schema without those keys and without `id` |
+| `updateBy` | The same as `updateById`, plus an optional `where` |
+
+A relational entity (`BaseEntity`, `defineEntity`) reports `createdBy`, `modifiedBy`, `createdAt` and `modifiedAt` - each one whose column has a default or `$onUpdate`. A search entity (`BaseSearchEntity`) reports none: nothing stamps a document, so a required `createdAt` stays in its `POST` body. An update never rewrites `id`: the path or the `where` names the rows. `deletedAt` stays in the body.
+
+A refined entity schema that holds none of the keys to leave out is used as it is - the refinement and an OpenAPI name survive. A refined schema that holds one, and any transformed schema, cannot be trimmed: defining the controller throws and names `routes.<route>.request.body` - pass your own body there. A transformed update schema always hits this, because the update routes always leave out `id`, even on a read-only controller.
+
+A client that still sends one of these keys is not refused: validation strips it, and the request goes on without it. On a `z.strictObject` entity schema, that key is refused instead - the client gets `422`. To accept one from a client, pass your own `routes.<route>.request.body`, which replaces the default and is not filtered by this rule - built from an insert or update schema, it still carries the keys, so `.omit()` them yourself. Server code keeps every column: `repository.create()` and `repository.updateById()` still take them.
+
+An update left with nothing to write answers `400` with code `core.request.nothing_to_update`, before the repository runs. That covers `{}`, a `where` alone on `PATCH /`, and a body holding only keys the schema strips. `updateById` and `updateBy` call `assertNonEmptyUpdate({ scope, data })` for this, so an override can call it too.
+
 ### `getBaseWhere(opts: { context }): Promise<TWhere<TDataObject> | undefined>`
 
 Narrows every read of one controller. Override it to scope rows to a tenant, an owner or a status. The default returns `undefined`, and then every read verb passes the request filter through untouched.
@@ -736,15 +754,30 @@ The method is public, not protected: a generated controller's declaration file c
 | Option | Type | Description |
 | :--- | :--- | :--- |
 | `entity` | `TClass<AbstractEntity> \| TResolver<TClass<AbstractEntity>>` | Entity class or resolver function returning it. Used to derive request/response schemas |
-| `repository.name` | `string` | The repository's binding name (e.g., `ConfigurationRepository.name`). The container injects `repositories.<name>` into constructor parameter 0, so a subclass needs no constructor. A subclass that declares its own `@inject` at parameter 0 overrides it. Takes the name string, not the class |
+| `repository.name` | `string` | The repository's binding name (e.g., `ConfigurationRepository.name`). The container injects `repositories.<name>` into constructor parameter 0, so a subclass needs no constructor. A subclass that declares its own `@inject` at parameter 0 overrides it. Takes the name string, not the class. An empty name throws when the controller is defined |
 | `controller.name` | `string` | Unique name for the generated controller (e.g., `'ConfigurationController'`) |
 | `controller.basePath` | `string` | Base path for all routes (e.g., `'/configurations'`). Required |
 | `controller.readonly` | `boolean` | If `true`, only read operations (count, find, findOne, findById) are generated. Defaults to `false` |
 | `controller.enabledRoutes` | `Array<keyof ICustomizableRoutes>` | Whitelist of routes to register; overrides per-route `enabled` flags in `routes` when set |
-| `controller.isStrict` | `{ path?: boolean; requestSchema?: boolean }` | `path` (default `true`): strict path matching. `requestSchema` (default `true`): strict query parameter validation |
+| `controller.isStrict` | `{ path?: boolean; requestSchema?: boolean }` | `path`: no effect once mounted - the application's `path.isStrict` decides trailing-slash matching. `requestSchema` (default `true`): strict query parameter validation |
 | `authenticate` | `{ strategies?: TAuthStrategy[]; mode?: TAuthMode }` | Authentication config applied to all routes (unless overridden per-route) |
 | `authorize` | `IAuthorizationSpec \| IAuthorizationSpec[]` | Authorization config applied to all routes (unless overridden per-route) |
 | `routes` | `ICustomizableRoutes` | Per-route configuration combining schema and auth overrides |
+
+To write a controller factory of your own, record the same injection on the class it generates:
+
+```typescript
+import { registerFactoryRepositoryInjection } from '@venizia/ignis';
+
+registerFactoryRepositoryInjection({
+  target: GeneratedController,
+  factoryName: 'defineReportController',
+  controllerName: 'ReportController',
+  repositoryName: ReportRepository.name,
+});
+```
+
+`target` is the generated class itself, typed `TClass<unknown>` - a bare function or an abstract class is refused. `defineCrudController` and `SearchControllerFactory.defineSearchController` call it too. An empty `repositoryName` throws a message that names `factoryName`.
 
 ### Routes Configuration
 

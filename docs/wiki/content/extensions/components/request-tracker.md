@@ -90,7 +90,8 @@ async parseBody(opts: { req: TContext['req'] }): Promise<unknown>
 | `Content-Type` includes `application/json` | `req.json()` |
 | `Content-Type` includes `multipart/form-data` or `application/x-www-form-urlencoded` | `req.parseBody()` |
 | `Content-Type` is `application/octet-stream` | Raw body stream |
-| Any other `Content-Type` (text, html, xml, etc.) | `req.text()` |
+| `Content-Type` starts with `text/` | Text of a clone - the handler still reads the original stream |
+| Any other `Content-Type` (images, spreadsheets, PDF, etc.) | `<N bytes, content-type>` - never read |
 | Parsing throws for any content type | `'Malformed Body Payload'` (HTTP 400) |
 
 ## Reference

@@ -17,6 +17,7 @@ This section tracks the history of significant changes, refactors, and updates t
 
 | Date | Title | Type |
 |------|-------|------|
+| 2026-09-23 | [Fixes Found While Rebuilding the Examples](./2026-09-23-fixes-from-the-examples) | Breaking, Bug Fix, Security, Behavior Change |
 | 2026-09-23 | [Two Repository Types, and CRUD Controllers Without a Constructor](./2026-09-23-repository-types) | Feature |
 | 2026-09-19 | [Dates Move Out, and Every Entry Loads On Its Own](./2026-09-19-prerelease-hardening) | Breaking |
 | 2026-09-19 | [A Model Declares Each Fact Once](./2026-09-19-define-entity) | Feature |

@@ -8,7 +8,7 @@ tags: [reference, make, build]
 
 > Generated from source - do not edit; run `make okf-gen`. Playbook: [build system](/process/build-system.md).
 
-**84 targets.**
+**85 targets.**
 
 | Target | Depends on | Description |
 |---|---|---|
@@ -88,6 +88,7 @@ tags: [reference, make, build]
 | `make test-core-worker` | - | - |
 | `make test-core-server` | - | - |
 | `make test-atlas` | - | - |
+| `make examples-smoke` | - | Smoke-testing examples: $(EXAMPLES_SMOKE) |
 | `make purity-inversion` | - | Checking browser purity for @venizia/ignis-inversion |
 | `make purity-filter` | - | Checking browser purity for @venizia/ignis-filter |
 | `make purity-helpers` | - | Checking browser purity for @venizia/ignis-helpers |

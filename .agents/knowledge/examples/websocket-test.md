@@ -1,31 +1,46 @@
 ---
 type: Example
 title: websocket-test
-description: An example wiring the raw WebSocket component with Redis, upgrade-time authentication, and room/message handler hooks over Bun's native WebSocket support.
+description: IGNIS's Bun-native WebSocket component with Redis-backed rooms behind a mandatory authentication handshake, no Socket.IO protocol involved.
 resource: examples/websocket-test
 tags: [examples, realtime]
 ---
 
-`websocket-test` (`@nx/websocket-test`) mirrors `socket-io-test` but exercises `WebSocketComponent` from `@venizia/ignis/websocket` - plain WebSocket, not Socket.IO's protocol - with Bun's native ping support enabled via `serverOptions: { sendPings: true }`.
+`websocket-test` mirrors [`socket-io-test`](/examples/socket-io-test.md) but exercises
+`WebSocketComponent` from `@venizia/ignis/websocket` - Bun's native WebSocket, not the Socket.IO
+protocol. `src/application.ts` binds `REDIS_CONNECTION` and `AUTHENTICATE_HANDLER` before
+registering the component; `src/controllers/chat.controller.ts` is the one REST route, `POST
+/chat/messages`, that pushes into the room every authenticated client joins.
 
 ## What it demonstrates
 
-- `setupWebSocket()` binds a `RedisSingleHelper` for scaling, plus five function hooks: `TWebSocketAuthenticateFn` (runs at upgrade time, before the connection is accepted; falls back to an anonymous `userId` if no `authorization` header is present), `TWebSocketValidateRoomFn`, `TWebSocketClientConnectedFn`, `TWebSocketClientDisconnectedFn`, and `TWebSocketMessageHandler` (routes each inbound message to `WebSocketEventService.handleMessage`).
-- `override async stop()` fetches `WebSocketServerHelper` (`isOptional: true`), calls `shutdown()`, then disconnects Redis - the same graceful-shutdown shape as `socket-io-test`.
-- A plain `client.html` file for manual browser-based testing, instead of a scripted Node/Bun client.
+- **Every message is a JSON envelope** - `{ "event": "...", "data": {...} }`. A client opens the
+  connection, then sends an `authenticate` message carrying `{ token }`. A match joins it to
+  `ws-default` and answers `connected`; a mismatch answers `error` and closes the connection with
+  code `4003`.
+- **`autoConnect: false` on the Redis helper** - the component duplicates that connection into two
+  Redis clients (pub, sub) and connects them itself during `configure()`.
+- **`WebSocketServerHelper` is resolved lazily** - `WEBSOCKET_INSTANCE` binds only after the server
+  starts, the same lazy-getter pattern `socket-io-test` uses for `SocketIOServerHelper`.
+- **A graceful shutdown hook** - `registerPostStopHook` fetches `WebSocketServerHelper` (`isOptional:
+  true`), calls `shutdown()`, then disconnects the Redis helper.
 
 ## How to run it
 
 ```bash
 bun install
-bun run server:dev      # NODE_ENV=development bun .
-# open client.html in a browser to connect manually
+docker compose up -d   # Redis
+bun run start            # http://localhost:3000/api, explorer at /api/doc/explorer
+bun test                  # smoke test: connects raw WebSocket clients; skipped, not failed, if Redis is down
+docker compose down -v
 ```
 
 ## Notable / non-obvious
 
-- Authentication happens strictly at the upgrade request (`TWebSocketAuthenticateFn` receives the raw `request`, not a socket), which is why it can reject a connection before any WebSocket frame is ever exchanged - a stronger guarantee than Socket.IO's handshake-based authenticate hook in the sibling example.
-- The `SERVER_OPTIONS` binding (`sendPings: true`) is the one place in the examples that reaches into Bun-specific native WebSocket server tuning rather than a cross-runtime abstraction.
+- Authentication is a message after connect, not an upgrade-time header check - a raw `WebSocket`
+  client needs no custom headers to reach the handshake step.
+- This example needs `docker compose up -d` first; it is not in the root Makefile's
+  `EXAMPLES_SMOKE` list, so it runs locally, not in CI.
 
 ## Related
 - [socket-io-test](/examples/socket-io-test.md)

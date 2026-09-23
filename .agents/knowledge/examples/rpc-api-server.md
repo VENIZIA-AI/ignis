@@ -1,35 +1,52 @@
 ---
 type: Example
 title: rpc-api-server
-description: A REST API server example exercising repository CRUD operations, JSX server-side rendering, and JWT-guarded routes, despite the RPC name.
+description: A REST API on PGlite with JWT sign-up/sign-in, CRUD routes behind the token, and JSX server-rendered pages. rpc-client-app is its React client.
 resource: examples/rpc-api-server
 tags: [examples, reference-app]
 ---
 
-`rpc-api-server` (`@nx/rpc-api-server`) is named for the frontend it feeds (`rpc-client-app`), but its source has no gRPC or ConnectRPC code at all - it is a plain REST application. `postConfigure()` runs eight numbered CASE blocks straight against `ConfigurationRepository` (`findOne`, `find` with field selection and `include`, `create`, `createAll`, `updateById`, `updateAll` with `shouldReturn: false`, `deleteById`, `deleteAll` with `shouldReturn: true`) - a working, runnable tour of the CRUD API surface.
+`rpc-api-server` is named for the frontend it feeds ([`rpc-client-app`](/examples/rpc-client-app.md)),
+but it is a plain REST application - no gRPC or ConnectRPC anywhere. It runs on PGlite so it needs no
+database server, which is what moved this pair into CI: the server's smoke test is in
+`EXAMPLES_SMOKE`.
 
 ## What it demonstrates
 
-- `TestController` mounts `/test/:id` (path-param route) and `/test/2` (JWT-guarded via `authenticate: { strategies: [Authentication.STRATEGY_JWT] }`).
-- `ViewController` renders JSX server-side with `defineJSXRoute` and `htmlContent` responses at `/` (home) and `/about` - the only example doing SSR.
-- `HealthCheckComponent` and `ApiReferenceComponent` are registered the same way as in every other example.
-- An `AuthenticationService` exists under `src/services/` but is not wired to `AuthenticateComponent` in `application.ts` - it is unused by the currently registered routes.
+- **JWT auth wired through the framework's own routes** - `preConfigure()` binds `JWT_OPTIONS`
+  (JWS, HMAC-signed) and `REST_OPTIONS` (`useAuthController: true`, pointing at
+  `AuthenticationService`), then registers `AuthenticateComponent` and the JWT strategy. Sign-up,
+  sign-in and change-password live in `src/services/authentication.service.ts`, hashing with
+  `Bun.password` and signing with `JWSTokenService`.
+- **CRUD behind the token** - `src/controllers/configuration.controller.ts` is an unmodified
+  `ControllerFactory.defineCrudController` output, every route requiring `authenticate: {
+  strategies: [Authentication.STRATEGY_JWT] }`. `createdBy` is always the signed-in user: the CRUD
+  factory drops the audit keys from its default request bodies.
+- **Server-side JSX** - `src/controllers/view.controller.tsx` renders `/` and `/about` with
+  `defineJSXRoute` and `htmlContent`; the pages live in `src/views`. This is the only example doing
+  SSR.
+- **`src/models/auth.schema.ts`** types the auth routes' responses - the same schema
+  `rpc-client-app`'s generated `schema.d.ts` is typed from.
 
 ## How to run it
 
 ```bash
 bun install
-bun run migrate:dev             # drizzle-kit push --config=src/migration.ts
-bun run server:dev              # NODE_ENV=development bun .
-bun run compile:linux           # bun build --compile, standalone linux-x64 binary
+APP_ENV_JWT_SECRET=$(openssl rand -hex 32) bun run start   # http://localhost:3000/api
+bun test                                                       # smoke test: signs up, signs in, CRUD with the token, loads a JSX page
 ```
+
+A new secret on each start signs every user out; put a fixed one in `.env` to keep tokens valid
+across restarts.
 
 ## Notable / non-obvious
 
-- The committed `main` field points at `dist/index.js`, and the same `compile:linux` script (`bun build --compile --minify-whitespace --minify-syntax --sourcemap --env=disable --target=bun-linux-x64 ... --outfile ./dist/vert`) also appears verbatim in `vert`'s package.json, output filename `vert` included - a copy-paste artifact.
-- `rpc-client-app`'s committed `schema.d.ts` is stale relative to this backend in two ways. Its test paths are the literal keys `/test/1` and `/test/2`, with byte-identical bodies and no parameterized path anywhere in the file, while `TestController` actually serves `/:id` and `/2` - the types were captured against an earlier route shape. It also declares `/auth/sign-in`, `/auth/sign-up`, `/auth/change-password`, and `/auth/who-am-i`, none of which this server's `application.ts` currently registers. Only `/`, `/about`, and `/health-check` still match.
+- This example is one of `EXAMPLES_SMOKE` in the root `Makefile` - `make examples-smoke` runs its
+  `bun test` in CI, no docker needed, because the smoke test boots with an in-memory PGlite database.
+- [`rpc-client-app`](/examples/rpc-client-app.md)'s hooks are generated from this server's
+  `/api/doc/openapi.json`; regenerate them after any route or schema change here.
 
 ## Related
 - [rpc-client-app](/examples/rpc-client-app.md)
 - [Controller system](/architecture/controller-system.md)
-- [Repository hierarchy](/architecture/repository-hierarchy.md)
+- [pglite-quickstart](/examples/pglite-quickstart.md)

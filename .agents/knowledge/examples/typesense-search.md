@@ -1,40 +1,57 @@
 ---
 type: Example
 title: typesense-search
-description: A pure Typesense search API with zero Postgres, proving the search connector is fully optional and demonstrating its factory CRUD, filter translation, and NotSupported boundaries.
+description: A pure Typesense search API with zero Postgres, proving the search connector is fully optional and demonstrating factory CRUD plus factory search endpoints.
 resource: examples/typesense-search
 tags: [examples, search, typesense]
 ---
 
-`typesense-search-example` has no Postgres, no Drizzle, and no `pg` anywhere in the directory - unlike every other IGNIS example, which depends on the Postgres connector implicitly. It runs entirely on `SearchDataSource` (a `TypesenseDataSource` subclass) and `ArticleRepository` (`DefaultSearchRepository<TArticleDocument>`).
+`typesense-search` has no Postgres, no Drizzle, and no `pg` anywhere in the directory - unlike every
+Postgres/SQLite example. It runs on one datasource, `SearchDataSource` (a `TypesenseDataSource`
+subclass), one model, `ArticleDocument`, and one repository, `ArticleRepository` (an empty class
+under `@repository({ model, dataSource })`).
 
 ## What it demonstrates
 
-- **The entity DSL** - `ArticleDocument extends BaseSearchEntity`, defined with `defineSearchCollection` + the `field` builder instead of a Drizzle `pgTable`; `TArticleDocument` is derived straight from `ArticleDocument.schema`, no hand-written duplicate interface.
-- **`@model` settings on a search entity** - `hiddenProperties: ['internalNote']` strips that field via Typesense's `exclude_fields` at the query level; `defaultFilter: { where: { status: 'published' } }` is AND-merged into every `find`/`count`/`updateById`/`deleteById` unless `shouldSkipDefaultFilter: true` is passed.
-- **Factory CRUD over a search repository** - `ControllerFactory.defineCrudController<TArticleDocument>(...)` produces the same six routes over `DefaultSearchRepository` as it does over a Postgres `DefaultCRUDRepository`, with `TFilter`/`where` translated to Typesense `filter_by` via `TypesenseQueryDialect` instead of SQL.
-- **Factory search endpoints** - `SearchControllerFactory.defineSearchController(...)` generates `POST /articles/search` (dispatched to `ArticleRepository.search()`) and `POST /articles/multi-search` (cross-collection, forwarded verbatim through `dataSource.multiSearch()`), mirroring how `ControllerFactory.defineCrudController` generates the CRUD controller. Both take a JSON body, not a query string. Search input is discriminated by `mode`: `keyword`/`semantic`/`hybrid` go through the same dialect and `@model` `defaultFilter` path as `find()`, so they cannot see `draft`/`archived` articles; only `mode: 'raw'` is a full passthrough to the Typesense driver - no dialect, no `defaultFilter`, no hidden-field stripping.
-- **The NotSupported convention** - passing `{ transaction }` or `{ lock }` in any `ArticleRepository` call throws the standardized `NotSupported` error (HTTP 501, `core.not_supported`), because Typesense has neither transactions nor row-level locking.
-- **Gated, fail-loud boot** - `SearchDataSource.configure()` provisions the `articles` collection, but only when `APP_ENV_AUTO_PROVISION_COLLECTION` is `true` or `1`. The flag gates `provisionCollections()` on every search datasource and is off by default, because creating collections on a shared cluster during a rolling restart is dangerous; this example's `.env.example` turns it on for local dev, so an unreachable Typesense fails boot rather than starting half-configured. With the flag off, `configure()` logs a skip and provisions nothing.
+- **The entity DSL** - `src/models/article.model.ts` defines `ArticleDocument extends
+  BaseSearchEntity` with `defineSearchCollection` + the `field.*` builder instead of a Drizzle
+  `pgTable`; `id` is auto-prepended, never listed. `TArticleDocument` derives from
+  `ArticleDocument.schema`.
+- **Factory CRUD over a search repository** - `src/controllers/article.controller.ts` calls
+  `ControllerFactory.defineCrudController` exactly as the Postgres examples do; `TFilter`/`where`
+  translates to Typesense `filter_by` instead of SQL.
+- **Factory search endpoints** -
+  `SearchControllerFactory.defineSearchController` in `src/controllers/search.controller.ts`
+  generates `POST /articles/search` (keyword/semantic/hybrid/raw, dispatched to
+  `repository.search()`) and `POST /articles/multi-search` (forwarded to `dataSource.multiSearch()`).
+  Like `ControllerFactory.defineCrudController`, it injects the repository named in
+  `repository.name`, so the subclass is empty.
+- **The NotSupported convention** - passing `{ transaction }` or `{ lock }` in any repository call
+  throws the standardized `NotSupported` error (HTTP 501, `core.not_supported`), because Typesense
+  has neither transactions nor row-level locking.
+- **`autoProvision: true`** - `SearchDataSource` provisions (create-if-absent) the `articles`
+  collection at boot from every `@repository` binding that targets it. A production datasource would
+  leave this off and provision out of band.
 
 ## How to run it
 
 ```bash
-docker compose up -d       # single Typesense >= 27 service
+docker compose up -d       # Typesense, host port 18108 -> container 8108
 bun install
-cp .env.example .env.development
-bun run server:dev          # boots on 0.0.0.0:3000, base path /api
-bun run seed                 # seeds ~8 sample articles through ArticleRepository, in another terminal
+bun run start                # http://localhost:3000/api/articles, explorer at /api/doc/explorer
+bun test                      # smoke test: skips itself (test.skipIf) when Typesense is unreachable
 ```
-
-Health check at `/api/health-check`; interactive docs mounted by `ApiReferenceComponent`.
 
 ## Notable / non-obvious
 
-- `TypesenseQueryDialect` throws rather than silently degrading when the filter uses `like`/`ilike`, a JSON-path field, or `include` (relations) - none of these have a `filter_by` equivalent.
-- `TArticleDocument.id` is always a required string on create, unlike Postgres entities where an id is typically generated.
+- `POST /articles` requires `id` in the body - Typesense has no server-side default, unlike a
+  Postgres entity where an id is generated.
+- `/articles/multi-search` always exists, even with one collection - it is the cross-collection
+  route the factory always registers.
+- This example's `bun test` needs `docker compose up -d` first; it is not in the root Makefile's
+  `EXAMPLES_SMOKE` list, so it runs locally, not in CI.
 
 ## Related
-- [Search Typesense architecture](/architecture/search-typesense.md)
+- [Typesense search connector](/architecture/search-typesense.md)
 - [Repository hierarchy](/architecture/repository-hierarchy.md)
 - [DataSource hierarchy](/architecture/datasource-hierarchy.md)

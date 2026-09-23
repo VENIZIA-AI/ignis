@@ -360,7 +360,7 @@ The built-in auth controller exists only when `REST_OPTIONS.useAuthController: t
 
 **`POST /auth/sign-up`** - public unless `requireAuthenticatedSignUp: true`. Body defaults to a flat `SignUpRequestSchema` (`username`, `credential`) - unlike sign-in, the shape isn't nested.
 
-**`POST /auth/change-password`** - always requires JWT. Body defaults to `ChangePasswordRequestSchema` (`scheme`, `oldCredential`, `newCredential`, `userId`).
+**`POST /auth/change-password`** - always requires JWT. Body defaults to `ChangePasswordRequestSchema`: `scheme`, `oldCredential`, `newCredential` and `userId`, all four required.
 
 **`POST /auth/token/refresh`** - always requires JWT, no request body. Returns `501` if `IAuthService.refreshToken` isn't implemented.
 

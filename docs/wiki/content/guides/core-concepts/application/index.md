@@ -67,7 +67,7 @@ The `IGNIS` application has a well-defined lifecycle, managed primarily by the `
 | **`constructor(opts)`** | Initializes the application, sets up the Hono server (`OpenAPIHono`), and detects the runtime (Bun/Node). The `Application` extends `Container` (IoC container). |
 | **`init()`** | Registers the core bindings, including `CoreBindings.APPLICATION_INSTANCE`. Call it before `start()`. |
 | **`start()`** | The main entry point. It calls `initialize()`, sets up middlewares, mounts the root router, and starts the HTTP server. |
-| **`stop()`** | Stops the application server (calls `Bun.serve.stop()` or `node-server.close()`). |
+| **`stop()`** | Stops the application server (calls `Bun.serve.stop()` or `node-server.close()`), then closes every datasource the boot configured, so no pool, socket or PGlite instance outlives the application. |
 | **`initialize()`** | Orchestrates the entire setup process, calling the various configuration and registration methods in the correct order. |
 
 > [!WARNING]
@@ -145,14 +145,13 @@ Application configuration is passed to the `BaseApplication` constructor via an 
 | `host` | `string` | `'localhost'` | The host address. Falls back to `HOST` or `APP_ENV_SERVER_HOST` env vars. |
 | `port` | `number` | `3000` | The port to listen on. Falls back to `PORT` or `APP_ENV_SERVER_PORT` env vars. |
 | `path.base`| `string` | `'/'` | The base path for all application routes (e.g., `/api`). |
-| `path.isStrict`| `boolean`| - | Required by the type, but nothing reads it. Use `strictPath` for trailing-slash strictness. |
+| `path.isStrict`| `boolean`| `true` | When `true`, `/users` and `/users/` are different routes. Set `false` to answer both, and declare routes without a trailing slash: under `false`, a route declared as `/users/` is unreachable. |
 | `debug.shouldShowRoutes`| `boolean`| `false`| If `true`, prints all registered routes to the console on startup. |
 | `favicon` | `string` | `'🔥'` | An emoji to be used as the application's favicon. |
 | `artifacts` | `TArtifactIndexInput` | `undefined` | The generated artifact index (or several) to register before `preConfigure()`. See [Registering artifacts](./bootstrapping). |
 | `asyncContext.enable` | `boolean` | `true` | Enable Hono's async context storage (powered by `contextStorage()`). |
 | `transports` | `TControllerTransport[]` | `['rest']` | Controller transports to enable. Add `'grpc'` for gRPC support. |
 | `error.rootKey` | `string` | `undefined` | Optional root key for error response wrapping. |
-| `strictPath` | `boolean` | `true` | Controls trailing-slash strictness on both the main Hono server and the root router. |
 
 ### Example Configuration
 

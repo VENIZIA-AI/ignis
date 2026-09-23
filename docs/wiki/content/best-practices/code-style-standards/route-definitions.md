@@ -15,7 +15,7 @@ export class UserRestPaths {
 }
 
 // common/route-configs.ts
-// jsonResponse({ schema }) expands to a 200 response plus a '4xx | 5xx' error fallback
+// jsonResponse({ schema }) expands to a 200 response plus '4XX' and '5XX' error responses
 export const RouteConfigs = {
   GET_USERS: {
     method: HTTP.Methods.GET,
@@ -189,10 +189,8 @@ export const RouteConfigs = {
         description: 'Created user',
         schema: UserSchema,
       }),
-      ['4xx | 5xx']: jsonContent({
-        description: 'Error Response',
-        schema: ErrorSchema,
-      }),
+      // `4XX` and `5XX`, both the named `ErrorResponse` component
+      ...errorResponses(),
     },
   },
 } as const;

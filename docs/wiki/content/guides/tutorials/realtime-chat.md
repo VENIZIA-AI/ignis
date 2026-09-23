@@ -1579,4 +1579,4 @@ this.bind<RedisSingleHelper>({
 
 - [Socket.IO Component](/extensions/components/socket-io/) - Component reference
 - [Socket.IO Helper](/extensions/helpers/socket-io/) - Server + Client helper API
-- [Socket.IO Test Example](https://github.com/VENIZIA-AI/ignis/tree/main/examples/socket-io-test) - Working example with automated test client
+- [Socket.IO Test Example](https://github.com/VENIZIA-AI/ignis/tree/main/examples/socket-io-test) - Working example with a boot-and-call smoke test

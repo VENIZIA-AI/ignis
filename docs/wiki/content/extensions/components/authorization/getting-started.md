@@ -184,7 +184,6 @@ const READ_CONFIGURATIONS_CONFIG = {
   authorize: {
     action: AuthorizationActions.READ,
     resource: 'configuration',
-    domain: { from: 'header', key: 'x-organization-id', type: 'Organization' },
   },
   responses: jsonResponse({ description: 'Configurations', schema: ConfigurationsSchema }),
 } as const;
@@ -195,7 +194,23 @@ this.defineRoute({
 });
 ```
 
-`domain: { from: 'header', ... }` reads the tenant id straight off a request header and turns it into the same `Organization_<id>` token the grant stores - no `domainResolver` needed yet. Now sign in as usual (see [Authentication Usage](../authentication/usage)) and call the route with three different tokens:
+This `authorize` has no `domain`, so the enforcer falls back to the `domainResolver` in [`IAuthorizeOptions`](#register-the-component). Add one that reads the organization straight off the signed-in user:
+
+```typescript
+this.bind<IAuthorizeOptions>({ key: AuthorizeBindingKeys.OPTIONS }).toValue({
+  defaultDecision: AuthorizationDecisions.DENY,
+  alwaysAllowRoles: ['999_super-admin'],
+  // Scoped RBAC: the request domain is the authenticated user's organization.
+  domainResolver: ({ context }) => {
+    const organizationId = context.get(Authentication.CURRENT_USER)?.organizationId;
+    return typeof organizationId === 'string'
+      ? { type: Organization.name, id: organizationId }
+      : null;
+  },
+});
+```
+
+`organizationId` is not a built-in `IAuthUser` field. It is a plain property your sign-in puts on the token payload, the same way `principalType` and `userId` are (see [Before you touch authorization](#before-you-touch-authorization)). Now sign in as usual (see [Authentication Usage](../authentication/usage)) and call the route with three different tokens:
 
 ```bash
 # No token at all
@@ -207,10 +222,9 @@ curl -i http://localhost:3000/api/authz-example/configurations \
   -H "Authorization: Bearer $TOKEN_WITHOUT_GRANT"
 # -> 403: authenticated, but nothing to reach an allow edge
 
-# The user from the previous section, with their organization's id
+# The user from the previous section - their token already carries their organization's id
 curl -i http://localhost:3000/api/authz-example/configurations \
-  -H "Authorization: Bearer $TOKEN_WITH_GRANT" \
-  -H "x-organization-id: $ORGANIZATION_ID"
+  -H "Authorization: Bearer $TOKEN_WITH_GRANT"
 # -> 200
 ```
 
@@ -225,7 +239,7 @@ The 200 request walked the [seven-step pipeline](./#how-it-works) like this:
 3. No `alwaysAllowRoles` or `allowedRoles` matched - continue.
 4. No voters were registered - continue.
 5. The `casbin` enforcer resolved, the only one registered.
-6. The `x-organization-id` header resolved to `Organization_<id>`. `ScopedCasbinAdapter` read the user's own rows from `PolicyDefinition` and built one `p` line from the grant you seeded.
+6. `domainResolver` read `organizationId` off the signed-in user's token and resolved it to `Organization_<id>`. `ScopedCasbinAdapter` read the user's own rows from `PolicyDefinition` and built one `p` line from the grant you seeded.
 7. `enforcer.evaluate()` matched that line on every axis - `g` and `g3` by self-link, since the grant names the user and the domain directly; `objectMatch` and `g5` by exact string equality on `configuration` and `read` - and returned `allow`.
 
 The 403 request stopped at the same step 7, on the same enforcer, with no line to match: that user's `PolicyDefinition` rows were empty, so the rules built in step 6 had nothing in them. The 401 request never got past step 2 - there was no user to check anything against.

@@ -83,8 +83,11 @@ generated tables before releasing it. `--no-atlas` opts out for a single-package
    packs the package, installs it ALONE into an empty project with only its required peers plus the
    peers the manifest grants each sub-path, and loads every published sub-path under Bun `import`,
    Node ESM `import` and Node `require` - plus a browser build for every entry the purity gate
-   claims - with both the hoisted and the isolated linker. The workspace hoists every optional peer,
-   so a sub-path that leaks one looks fine everywhere else. CI runs `make clean-install` for every
+   claims - with both the hoisted and the isolated linker. A sub-path the manifest lists under
+   `importedAfter` also loads under Bun from one ESM entry followed by those peers: the
+   `@venizia/ignis/postgres/postgres-js` alias, whose CommonJS build crashed when an app imported
+   `postgres` after it. Only the hoisted linker reproduces that crash. The workspace hoists every
+   optional peer, so a sub-path that leaks one looks fine everywhere else. CI runs `make clean-install` for every
    package, with Node 24 installed for the Node checks.
 6. Build artifacts are validated against the package's own `exports` map: every file any condition
    names must exist. The list is never hand-written. The hand-written one it replaced named three

@@ -28,7 +28,7 @@ bun run server:prod    # NODE_ENV=production bun run dist/index.js
 
 ## Notable / non-obvious
 
-- `start` and `server:dev` run TypeScript directly via `bun run src/index.ts`, with no compilation step. This is one of three zero-build examples - `sqlite-quickstart` and `pglite-quickstart` use the same pattern. Every other server example's dev script runs `bun .` instead, which resolves to `dist/` and so needs a `rebuild` first; the two browser-side examples, `browser-bff` and `rpc-client-app`, run `vite` and need no build step either. What is distinctive here is the narration: the numbered comments walk through the zero-build path step by step.
+- `start` and `server:dev` run TypeScript directly via `bun run src/index.ts`, with no compilation step. Every server example's dev script now runs its source file directly the same way - `bun .` (which resolves to `dist/`) shows up only in a `server:prod` or `compile:linux` script, never in dev; the two browser-side examples, `browser-bff` and `rpc-client-app`, run `vite` and need no build step either. What is distinctive here is the narration: the numbered comments walk through the zero-build path step by step.
 
 ## Related
 - [What is IGNIS](/overview/what-is-ignis.md)

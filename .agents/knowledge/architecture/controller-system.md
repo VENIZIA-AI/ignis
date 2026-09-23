@@ -75,6 +75,11 @@ generates a fully typed CRUD controller from an entity definition, with per-rout
 a class or a thunk returning one (`isClass(entity) ? entity : entity()`), which is how circular model
 imports are broken.
 
+The default create and update bodies leave out the keys the entity reports from
+`getServerStampedKeys()` - a relational entity's audit columns, none on a search entity - and an
+update body never carries `id`; see [kernel](/packages/kernel.md). A factory of your own injects its
+repository through `registerFactoryRepositoryInjection`.
+
 ## Mounting
 
 `RestComponent.binding()` scans `controllers.*` bindings, skips anything whose metadata says the

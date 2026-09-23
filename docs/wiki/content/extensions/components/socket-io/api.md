@@ -557,8 +557,8 @@ Timeout (10s) -> disconnect if not yet AUTHENTICATED
 
 | Path | Trigger | Actions |
 |---|---|---|
-| Rejected | `authenticateFn` resolves `false` | Reset state to `UNAUTHORIZED`. Send `unauthenticated` with `"Invalid token to authenticate! Please login again!"`. Disconnect after send (`setImmediate`). No error logged - this is an expected outcome. |
-| Threw | `authenticateFn` throws | Reset state to `UNAUTHORIZED`. Log the error. Send `unauthenticated` with `"Failed to authenticate connection! Please login again!"`. Disconnect after send (`setImmediate`). |
+| Rejected | `authenticateFn` resolves `false` | Reset state to `UNAUTHORIZED`. Emit `unauthenticated` with `"Invalid token to authenticate! Please login again!"` on the client's own socket, then disconnect. No error logged - this is an expected outcome. |
+| Threw | `authenticateFn` throws | Reset state to `UNAUTHORIZED`. Log the error. Emit `unauthenticated` with `"Failed to authenticate connection! Please login again!"` on the client's own socket, then disconnect. |
 
 ```typescript
 interface ISocketIOClient {

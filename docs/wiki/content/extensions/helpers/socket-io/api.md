@@ -415,12 +415,12 @@ Server calls authenticateFn(handshake)
   +-- Resolves false:
   |     |-- State -> UNAUTHORIZED
   |     |-- Emit 'unauthenticated' { message: 'Invalid token to authenticate! Please login again!', time }
-  |     +-- Disconnect (via the emit callback)
+  |     +-- Disconnect (right after the emit on the client's own socket)
   |
   +-- Throws / rejects:
   |     |-- State -> UNAUTHORIZED
   |     |-- Emit 'unauthenticated' { message: 'Failed to authenticate connection! Please login again!', time }
-  |     +-- Disconnect (via the emit callback), logged with doLog: true
+  |     +-- Disconnect (right after the emit on the client's own socket), error logged
   |
   +-- authenticateTimeout elapses first:
         +-- Disconnect - including a client whose authenticateFn is still pending;

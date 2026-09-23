@@ -72,6 +72,18 @@ export class PostgresDataSource extends BasePostgresDataSource {
 
 `configure()` stays app-written - connection config varies per deployment, and the framework never builds the driver for you. Assigning `this.client` is enough; the driver named in the decorator is constructed over it lazily. A custom driver skips metadata entirely via `useDriver({ driver })`, which assigns driver *and* connector in one step so the "driver set, connector forgotten" state is unrepresentable.
 
+## Closing
+
+`close()` is the shutdown verb. `IDataSource` declares it optional; `AbstractDataSource` resolves at
+once, and the search and HTTP datasources keep that. `AbstractRelationalDataSource.close()` runs once
+(later calls return the first promise) and ends the connection through `resolveDriver()` then
+`driver.end()`. The driver is wired even if nothing queried yet, because `end()` is the engine's full
+teardown: PGlite also destroys its slot and clears the exit status 99 it plants on the host. A client
+no driver can wrap is drained with `drainClient()`. A driver without `end()` (a hand-made one cast
+past `IRelationalDriver`, BANA's `ReportDataSource` shape) is drained the same way instead of
+rejecting. `application.stop()` calls `close()` on every configured datasource, bounded by
+`dataSourceCloseTimeoutMs` - see [Application lifecycle](/architecture/application-lifecycle.md).
+
 ## Related
 
 - [Relational connector](/architecture/relational-connector.md)

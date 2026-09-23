@@ -1,36 +1,47 @@
 ---
 type: Example
 title: grpc-test
-description: A ConnectRPC (gRPC) plus REST example on one application, showing direct and component-composed controllers over both transports.
+description: An application answering the same kind of request over gRPC (ConnectRPC) and REST, registered side by side, with one unary proto service.
 resource: examples/grpc-test
 tags: [examples, grpc]
 ---
 
-`grpc-test` runs `ControllerTransports.REST` and `ControllerTransports.GRPC` side by side in one `IApplicationConfigs.transports` array, backed by `@connectrpc/connect` and `@bufbuild/protobuf`. Proto files live under each controller's own `proto/` folder (`src/controllers/{greeter,health,echo,time}/proto`), generated with `buf` via per-service `proto:gen:*` scripts, each driven by that controller's own `proto/buf.gen.yaml` (a `protoc-gen-es` plugin entry with its own `out` directory).
+`grpc-test` runs `ControllerTransports.REST` and `ControllerTransports.GRPC` side by side in one
+`config.transports` array. `GreeterController` (`@controller({ transport: ControllerTransports.GRPC,
+service })`, one `@unary` RPC, `SayHello`) is the gRPC side; `StatusController` (`GET /status`) is a
+plain REST controller. Both register through `discoverArtifacts: true` - `src/application.ts` only
+imports the decorated modules.
 
 ## What it demonstrates
 
-- **Direct controller registration** - `GreeterController`, `HealthController` (gRPC) and `StatusController` (REST) are registered straight in `preConfigure()`.
-- **Component-composed controllers** - `OrdersComponent` composes `UsersComponent` (registering `UsersController` + `OrdersController`); `TimeComponent` composes `EchoComponent` (registering `EchoController` + `TimeController`) - both resolved through DI during the `registerComponents` phase, not `preConfigure`.
-- **Transport-level limits documented in the client** - Connect protocol over HTTP/1.1 fully supports unary and server-streaming calls; client-streaming and bidi-streaming need HTTP/2 (true gRPC), which this example's client (`src/client.ts`) states explicitly rather than attempting.
-- `src/client.ts` is a full pass/fail smoke test hitting every REST and gRPC endpoint (`/status`, `/users`, `/orders`, `GreeterService.SayHello`, `GreeterService.ListUsers`, `HealthService.Ping`, `EchoService.Echo`, `TimeService.GetTime`), printing `PASS`/`FAIL` per case and exiting non-zero on any failure.
+- **Two transports, one `Application`** - `config.transports: [ControllerTransports.REST,
+  ControllerTransports.GRPC]` in `src/index.ts` is what makes the gRPC branch exist at all; drop
+  `GRPC` from that array and `GreeterController` boots with a warning instead of a route.
+- **The Connect protocol needs no gRPC client** - a unary RPC is one `curl -X POST` away, plain JSON
+  over HTTP/1.1, at `/api/grpc/greeter.v1.GreeterService/SayHello`.
+- **Only unary RPCs** - `BaseGrpcController` throws at boot, when it registers the route, for any
+  RPC method that is not unary. Server-streaming, client-streaming and bidirectional RPCs need
+  HTTP/2 (true gRPC), which this example does not set up.
+- **Generated code is committed, never imported directly** - `buf generate` (via `bun run
+  proto:gen`) writes `src/controllers/greeter/generated/greeter_pb.ts` from
+  `src/controllers/greeter/proto/greeter.proto`; `definition.ts` re-exports the generated names, and
+  controller code imports from there.
 
 ## How to run it
 
 ```bash
 bun install
-bun run proto:gen          # regenerates all four proto services via buf
-bun run server:dev          # rebuilds then NODE_ENV=development bun .
-bun run client:dev           # rebuilds then runs dist/client.js against the running server
+bun run start        # http://localhost:3000/api/status, explorer at /api/doc/explorer
+bun test              # smoke test: GET /status over fetch, SayHello over a ConnectRPC client
 ```
-
-gRPC endpoints are exposed at `/grpc/<package>.<Service>/*` using the Connect protocol (HTTP/1.1 JSON + Protobuf) and gRPC-Web.
 
 ## Notable / non-obvious
 
-- This is the only example demonstrating that a `@controller` can be registered either directly or transitively through a `component()` call that itself composes other components - the same DI resolution path core uses for `HealthCheckComponent`/`ApiReferenceComponent` extends naturally to app-defined component composition.
-- The top-level `buf.yaml` is a separate workspace-modules file that no `proto:gen:*` script reads, and it lists only the `greeter` and `health` proto directories - `echo` and `time` are missing, so any workspace-wide `buf` command silently skips them.
-- The client file's docstring is unusually explicit about the Connect-protocol-vs-true-gRPC streaming boundary - worth citing verbatim when explaining why bidi streaming isn't demoed here.
+- `GreeterService` is injected into `GreeterController` from `GreeterService` in
+  `src/services/greeter.service.ts` - the business logic sits in a service like any REST controller,
+  not inline in the gRPC handler.
+- This example is one of `EXAMPLES_SMOKE` in the root `Makefile` - `make examples-smoke` runs its
+  `bun test` in CI, no docker needed.
 
 ## Related
 - [Controller system](/architecture/controller-system.md)

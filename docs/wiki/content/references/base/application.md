@@ -133,7 +133,7 @@ These must be implemented by subclasses:
 | `registerPostStartHook(opts)` | `void` | Register a hook to run after server start |
 | `init()` | `void` | Calls `registerCoreBindings()` |
 | `start()` | `Promise<void>` | Runs `initialize()`, `setupMiddlewares()`, mounts root router, starts the server, then runs post-start hooks |
-| `stop()` | `void` | Stops the server (calls `.stop()` for Bun, `.close()` for Node.js) |
+| `stop()` | `Promise<void>` | Runs the post-stop hooks, stops the server (`.stop()` on Bun, `.close()` on Node.js), then calls `close()` on every datasource the boot configured - even when the server fails to close. Each `close()` gets at most `dataSourceCloseTimeoutMs` (default `10_000`, `0` waits without limit); past it, the datasource is logged as timed out and skipped - a client that was never released used to hold it forever. A failed `close()` is logged and does not stop the others. Safe to call twice |
 
 ### `start()` Method Flow
 
@@ -395,7 +395,7 @@ A component may register more components while it is configured, at any nesting 
 
 ```typescript
 interface IApplicationConfigs {
-  path: { base: string; isStrict: boolean }; // Base path config (required)
+  path: { base: string; isStrict: boolean }; // Base path; isStrict: trailing-slash strictness (default true)
   requestId?: { isStrict: boolean };      // Request ID validation
   favicon?: string;                       // Favicon emoji (default: '🔥')
   error?: { rootKey?: string; environment?: string }; // Error envelope root key, ambient environment name
@@ -406,7 +406,8 @@ interface IApplicationConfigs {
   };
   debug?: { shouldShowRoutes?: boolean }; // Show registered routes on startup
   transports?: TControllerTransport[];    // Controller transports: 'rest' | 'grpc' (default: ['rest'])
-  [key: string]: any;                     // Extensible (e.g. strictPath?: boolean - Hono strict path matching, default: true)
+  dataSourceCloseTimeoutMs?: number;      // How long stop() waits per datasource close() (default 10_000; 0 waits without limit)
+  [key: string]: any;                     // Extensible
 }
 ```
 

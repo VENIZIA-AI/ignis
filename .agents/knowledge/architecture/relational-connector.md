@@ -171,6 +171,11 @@ instance alive and an undrained libsql keeps a file handle open, so repeated rot
 live instances. Falsified by `__tests__/relational/rotation-drain.test.ts`, whose fake
 client offers `close()` only.
 
+`close()` does not use `drainClient()` first: it ends the driver, which also frees the PGlite and
+libsql slot and clears PGlite's host exit status. `drainClient()` is its fallback for a client no
+driver can wrap, and for a driver that has no `end()` - a hand-made one cast past `IRelationalDriver`,
+BANA's `ReportDataSource` shape. Falsified by `__tests__/relational/datasource-close.test.ts`.
+
 ## What stays Postgres-only
 
 | Stays in `relational/postgres` (paths below relative to it) | Why |
@@ -231,8 +236,13 @@ is why it is a base rather than a copied skeleton: an engine composing through `
 injectable the moment it forgets `validateJsonPathComponents`.
 
 Each call receives the expression built so far, so two paths on one column nest rather than discard
-each other. `UpdateBuilder` returns `jsonb_set(target, '{a,b}', '"v"'::jsonb, true)` with the path
-and value RAW - `jsonb_set` takes `text[]` and `jsonb`, and a bound parameter arrives untyped.
+each other. For a one-level path `UpdateBuilder` returns `jsonb_set(target, '{a}', '"v"'::jsonb, true)`.
+`create_missing` creates only the LAST key, so a deeper path sets each level from the inside out
+onto its parent - a missing parent read as `{}`, a scalar parent leaving the document unchanged -
+still in one expression. A scalar root still raises `cannot set path in scalar` on PostgreSQL; SQLite
+leaves it unchanged - pinned by the conformance flag `jsonPathRaisesOnScalarRoot`, and the engine
+message arrives on the error's `cause`. An array index past the end appends; SQLite appends only at the next free slot and ignores a farther index, pinned by the
+conformance flag `jsonPathAppendsPastArrayEnd`. The path and value are RAW - `jsonb_set` takes `text[]` and `jsonb`, and a bound parameter arrives untyped.
 `SqliteUpdateBuilder` returns `json_set(target, ?, json(?))` with both BOUND.
 
 Error messages interpolate `this.scope`, the concrete subclass name, so `[UpdateBuilder][transform]`

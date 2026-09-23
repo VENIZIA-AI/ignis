@@ -968,7 +968,7 @@ tags: [reference, exports, api]
 
 ## kernel
 
-### `@venizia/ignis-kernel` (395)
+### `@venizia/ignis-kernel` (402)
 
 - `AbstractApplication` class
 - `AbstractAuthRegistry` class
@@ -1052,6 +1052,7 @@ tags: [reference, exports, api]
 - `defineControllerRouteConfigs` const
 - `del` const
 - `emojiFavicon` const
+- `errorResponses` const
 - `ErrorSchema` const
 - `EventBus` class
 - `EventDispatchRetry` class
@@ -1145,9 +1146,11 @@ tags: [reference, exports, api]
 - `IQueryHandlerOptions` interface
 - `IReadableRepository` interface
 - `IReadRetryOptions` interface
+- `IRemoteRepositoryMetadata` interface
 - `IRepository` interface
 - `IRepositoryBinding` interface
 - `IRepositoryMetadata` interface
+- `IRepositoryMetadataBase` interface
 - `IRepositoryMixin` interface
 - `IRequestIdOptions` interface
 - `IResolvedRepositoryMetadata` interface
@@ -1197,12 +1200,14 @@ tags: [reference, exports, api]
 - `QueryOperators` class
 - `ReadableCrudController` class
 - `readDeclarative` const
+- `registerFactoryRepositoryInjection` const
 - `RelationBuilderRegistry` class
 - `RelationTypes` class
 - `repository` const
 - `RepositoryErrorCodes` class
 - `RepositoryErrors` const
 - `RepositoryOperationScopes` class
+- `RepositoryTypes` class
 - `REQUEST_ID_KEY` const
 - `RequestContextRegistry` class
 - `RequestErrors` const
@@ -1336,7 +1341,9 @@ tags: [reference, exports, api]
 - `TRelationType` type
 - `TRepositoryErrorCode` type
 - `TRepositoryLogOptions` type
+- `TRepositoryMetadata` type
 - `TRepositoryOperationScope` type
+- `TRepositoryType` type
 - `TRequestContextResolver` type
 - `TResponseBodyOf` type
 - `TResponseFormat` type
@@ -1388,7 +1395,7 @@ tags: [reference, exports, api]
 - `TBindingNamespace` type
 - `TBindingScope` type
 
-### `@venizia/ignis-kernel/repository` (27)
+### `@venizia/ignis-kernel/repository` (29)
 
 - `AbstractDataSource` class
 - `AbstractEntity` class
@@ -1406,6 +1413,7 @@ tags: [reference, exports, api]
 - `IRepository` interface
 - `IUpdatableRepository` interface
 - `RepositoryOperationScopes` class
+- `RepositoryTypes` class
 - `SchemaTypes` class
 - `SearchErrorCodes` class
 - `TCount` type
@@ -1415,6 +1423,7 @@ tags: [reference, exports, api]
 - `throwNotSupported` const
 - `TIdSchemaType` type
 - `TInclusion` type
+- `TRepositoryType` type
 - `TSchemaType` type
 - `TWhere` type
 
@@ -2013,7 +2022,7 @@ tags: [reference, exports, api]
 
 ## core-server
 
-### `@venizia/ignis` (994)
+### `@venizia/ignis` (1001)
 
 - `AbstractApplication` class
 - `AbstractAuthRegistry` class
@@ -2204,6 +2213,7 @@ tags: [reference, exports, api]
 - `EnvironmentNames` class
 - `Envs` const
 - `ErrorPrettier` class
+- `errorResponses` const
 - `ErrorSchema` const
 - `ErrorScopes` class
 - `EventBus` class
@@ -2435,9 +2445,11 @@ tags: [reference, exports, api]
 - `IRedisSingleHelperProps` interface
 - `IRedisSocketMessage` interface
 - `IRelationalQueryDialect` interface
+- `IRemoteRepositoryMetadata` interface
 - `IRepository` interface
 - `IRepositoryBinding` interface
 - `IRepositoryMetadata` interface
+- `IRepositoryMetadataBase` interface
 - `IRepositoryMixin` interface
 - `IRequestedRemark` interface
 - `IRequestIdOptions` interface
@@ -2619,12 +2631,14 @@ tags: [reference, exports, api]
 - `RedisSentinelHelper` class
 - `RedisSentinelRoles` class
 - `RedisSingleHelper` class
+- `registerFactoryRepositoryInjection` const
 - `RelationBuilderRegistry` class
 - `RelationTypes` class
 - `repository` const
 - `RepositoryErrorCodes` class
 - `RepositoryErrors` const
 - `RepositoryOperationScopes` class
+- `RepositoryTypes` class
 - `REQUEST_ID_KEY` const
 - `RequestContextRegistry` class
 - `RequestErrors` const
@@ -2905,7 +2919,9 @@ tags: [reference, exports, api]
 - `TRelationType` type
 - `TRepositoryErrorCode` type
 - `TRepositoryLogOptions` type
+- `TRepositoryMetadata` type
 - `TRepositoryOperationScope` type
+- `TRepositoryType` type
 - `TRequestContextResolver` type
 - `TResolveDomainEdgesFn` type
 - `TResolver` type

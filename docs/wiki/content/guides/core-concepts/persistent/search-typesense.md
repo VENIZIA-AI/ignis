@@ -416,17 +416,21 @@ Both `searches` entries and `commonParams` are camelCase (`filterBy`, `queryBy`,
 // src/controllers/search.controller.ts
 import { ArticleDocument } from '@/models/entities';
 import { ArticleRepository } from '@/repositories';
+import { controller } from '@venizia/ignis';
 import { SearchControllerFactory } from '@venizia/ignis/typesense/controllers';
 
-const _SearchController = SearchControllerFactory.defineSearchController({
+const BaseSearchController = SearchControllerFactory.defineSearchController({
   entity: ArticleDocument,
   repository: { name: ArticleRepository.name },
   controller: { name: 'ArticleSearchController', basePath: '/articles' },
   // routes: { multiSearch: { enabled: false } },  // each route is customizable / disable-able
 });
 
-export const ArticleSearchController = _SearchController;
+@controller({ path: '/articles' })
+export class ArticleSearchController extends BaseSearchController {}
 ```
+
+The subclass needs no constructor. The factory injects the repository bound under `repository.name`, the same way `defineCrudController` does. To inject a different repository, declare your own constructor with `@inject` on its first parameter - that wins.
 
 Import the factory from `@venizia/ignis/typesense/controllers` (or `@venizia/ignis/search/controllers`), never from `@venizia/ignis/typesense`. That entry loads without `hono`, so it carries no controller.
 
@@ -455,4 +459,4 @@ This is the same `throwNotSupported` convention used everywhere in the framework
   - [Models](./models) - `@model` settings shared across connectors
 
 - **Example App:**
-  - `examples/typesense-search/` - Full end-to-end app (model, datasource, repository, CRUD + search controllers, seed script)
+  - `examples/typesense-search/` - Full end-to-end app (model, datasource, repository, CRUD + search controllers)
