@@ -17,7 +17,13 @@ import type {
   TFindRangeOptions,
   TRepositoryOperationScope,
 } from '../common';
-import { DEFAULT_MAX_LIMIT, RepositoryErrorCodes, RepositoryOperationScopes } from '../common';
+// The file, not the `../common` barrel: the barrel re-exports the OpenAPI schemas, and this module is
+// on the `./repository` entry, which must load without `@hono/zod-openapi` installed.
+import {
+  DEFAULT_MAX_LIMIT,
+  RepositoryErrorCodes,
+  RepositoryOperationScopes,
+} from '../common/constants';
 import type { TFilter, TInclusion, TWhere } from '@venizia/ignis-filter';
 
 /**

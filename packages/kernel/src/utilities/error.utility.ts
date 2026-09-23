@@ -1,4 +1,4 @@
-import { CoreErrorCodes } from '@/common';
+import { CoreErrorCodes } from '@/common/error-codes';
 import { HTTP } from '@venizia/ignis-helpers/common';
 import type { ILogger } from '@venizia/ignis-helpers/core';
 import { getError } from '@venizia/ignis-helpers/core';

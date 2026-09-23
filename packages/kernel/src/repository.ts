@@ -27,6 +27,16 @@ export type {
 } from '@/base/repositories/common/types/contracts';
 
 export { buildDataRange } from '@/base/repositories/common/types/results';
+
+// What a repository on any transport raises and bounds itself by - the constants, the error codes,
+// and the helper an engine that lacks an operation throws through.
+export {
+  DEFAULT_LIMIT,
+  DEFAULT_MAX_LIMIT,
+  RepositoryOperationScopes,
+} from '@/base/repositories/common/constants';
+export { CoreErrorCodes, SearchErrorCodes } from '@/common/error-codes';
+export { throwNotSupported } from '@/utilities/error.utility';
 export type { TCount, TDataRange, TDataWithRange } from '@/base/repositories/common/types/results';
 
 export type { IDataSource } from '@/base/datasources/common/types';
@@ -34,6 +44,7 @@ export type { IDataSource } from '@/base/datasources/common/types';
 // `IRepository` names an entity, so a consumer implementing the contract needs the base to extend.
 // Engine-neutral like the datasource: a name, `getSchema({ type })`, and an id type.
 export { AbstractEntity } from '@/base/models/base';
+export { SchemaTypes } from '@/base/models/common/constants';
 export type { TIdSchemaType, TSchemaType } from '@/base/models/common';
 
 // The query vocabulary both transports share.
