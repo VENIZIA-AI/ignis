@@ -3,6 +3,9 @@
         lint lint-all lint-packages lint-examples typecheck-examples artifacts-check \
         lint-dev-configs lint-inversion lint-filter lint-helpers lint-boot lint-core lint-core-server lint-kernel lint-connectors lint-core-worker lint-atlas lint-scripts \
         purity purity-test test-scripts purity-inversion purity-filter purity-helpers purity-kernel \
+        clean-install clean-install-inversion clean-install-filter clean-install-helpers clean-install-boot \
+        clean-install-kernel clean-install-connectors clean-install-core-worker clean-install-core-server \
+        clean-install-atlas clean-install-dev-configs clean-install-core \
         test-all test-inversion test-helpers test-boot test-kernel test-connectors test-core-worker test-core-server test-atlas \
         purity-dev-configs purity-boot purity-core purity-core-server purity-connectors purity-core-worker purity-atlas \
         okf-check okf-gen okf-coverage okf-viz split-report surface-gen surface-check symbols-gen symbols-check \
@@ -373,6 +376,21 @@ purity-core-worker:
 purity-dev-configs purity-boot purity-core purity-core-server purity-atlas:
 	@echo "ℹ️  No browser-pure entry claimed for this package - skipping."
 
+# Packs each package, installs it ALONE into an empty project with only its required peers plus the
+# ones scripts/clean-install/manifest.ts grants a sub-path, and loads every published sub-path under
+# Bun, Node ESM, Node CJS and a browser build - hoisted and isolated. The workspace hoists every
+# optional peer, so a leak is invisible anywhere else. Needs a build first, and `node` on PATH.
+clean-install:
+	@echo "🔍 Loading every published sub-path from a clean install..."
+	@bun scripts/clean-install/cli.ts
+
+clean-install-inversion clean-install-filter clean-install-helpers clean-install-boot clean-install-kernel clean-install-connectors clean-install-core-worker clean-install-core-server clean-install-atlas:
+	@echo "🔍 Loading every published sub-path of $(patsubst clean-install-%,%,$@) from a clean install..."
+	@bun scripts/clean-install/cli.ts $(patsubst clean-install-%,%,$@)
+
+clean-install-dev-configs clean-install-core:
+	@echo "ℹ️  No runtime sub-path to load for this package - skipping."
+
 # ----------------------------------------------------------------------------
 # HELP
 # ----------------------------------------------------------------------------
@@ -442,6 +460,7 @@ help:
 	@echo "Browser purity:"
 	@echo "  purity        - Gate: every entry claimed browser-pure has no node builtin or global."
 	@echo "  purity-test   - Run the purity probe's own regression tests."
+	@echo "  clean-install - Load every published sub-path from packed tarballs in an empty project."
 	@echo "  test-scripts  - Run the repository gate scripts' own regression tests."
 	@echo ""
 	@echo "Dependencies:"

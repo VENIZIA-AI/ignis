@@ -187,6 +187,11 @@ jobs:
       - name: Purity gate
         run: make purity-$PACKAGE
 
+      # The packed tarball in an empty project, with only the peers each sub-path is granted - an
+      # optional peer the workspace hoists but a consumer never installs fails here, not on their machine.
+      - name: Clean-install gate
+        run: make clean-install-$PACKAGE
+
       # Derived from the package's own `exports` map, never a hand-written list. The list this
       # replaced named three dual-build packages by hand and went stale the day four more were dual
       # built: `helpers` then looked for `dist/index.js`, which its build stopped emitting, and the
