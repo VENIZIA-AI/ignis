@@ -13,8 +13,9 @@ import {
 } from '@/modules/socket/socket-io';
 import { afterEach, describe, expect, mock, test } from 'bun:test';
 import { EventEmitter } from 'node:events';
-import type { Server as HTTPServer } from 'node:http';
-import type { Socket as IOSocket } from 'socket.io';
+import { createServer, Server as HTTPServer } from 'node:http';
+import { Server as IOServer, Socket as IOSocket } from 'socket.io';
+import { io as connectClient } from 'socket.io-client';
 
 const wait = (ms: number) => new Promise<void>(resolve => setTimeout(resolve, ms));
 const flush = () => new Promise<void>(resolve => setImmediate(resolve));
@@ -76,8 +77,11 @@ const createMockSocket = (id: string) => {
 };
 
 /** Stand-in for the Redis-backed @socket.io/redis-emitter used by send(). */
+type TEmitterEntry = { destination?: string; topic: string; data: unknown };
+
 const createMockEmitter = () => {
-  const sent: Array<{ destination?: string; topic: string; data: unknown }> = [];
+  const sent: TEmitterEntry[] = [];
+  const relays: Array<(entry: TEmitterEntry) => void> = [];
   let destination: string | undefined;
 
   const target = {
@@ -86,14 +90,19 @@ const createMockEmitter = () => {
       return target;
     },
     emit: (topic: string, data: unknown) => {
-      sent.push({ destination, topic, data });
+      const entry = { destination, topic, data };
+      sent.push(entry);
       destination = undefined;
+      for (const relay of relays) {
+        relay(entry);
+      }
       return true;
     },
   };
 
   return {
     sent,
+    relays,
     emitter: { compress: () => target },
   };
 };
@@ -118,7 +127,7 @@ const helpers: SocketIOServerHelper[] = [];
 
 const createHelper = (opts?: Partial<TSocketIOServerOptions>) => {
   const { helper: redisConnection, clients } = createMockRedisHelper();
-  const { emitter, sent } = createMockEmitter();
+  const { emitter, sent, relays } = createMockEmitter();
   const { io } = createMockIOServer();
 
   const helper = new SocketIOServerHelper({
@@ -135,7 +144,7 @@ const createHelper = (opts?: Partial<TSocketIOServerOptions>) => {
   helper['emitter'] = emitter as AnyType;
 
   helpers.push(helper);
-  return { helper, io, sent, redisClients: clients };
+  return { helper, io, sent, relays, redisClients: clients };
 };
 
 const authenticate = async (opts: { socket: IOSocket }) => {
@@ -375,20 +384,22 @@ describe('SocketIOServerHelper | authentication', () => {
   });
 
   test('rejects the client when authenticateFn resolves false', async () => {
-    const { helper, sent } = createHelper({ authenticateFn: () => false });
+    const { helper } = createHelper({ authenticateFn: () => false });
     const socket = createMockSocket('client-a');
 
     helper.onClientConnect({ socket });
     await authenticate({ socket });
     await flush();
 
-    expect(sent.map(entry => entry.topic)).toContain(SocketIOConstants.EVENT_UNAUTHENTICATE);
+    expect(socket.emitted.map(entry => entry.topic)).toContain(
+      SocketIOConstants.EVENT_UNAUTHENTICATE,
+    );
     expect(socket.disconnect).toHaveBeenCalledTimes(1);
     expect(helper.getClients({ id: 'client-a' })).toBeUndefined();
   });
 
   test('rejects the client when authenticateFn rejects', async () => {
-    const { helper, sent } = createHelper({
+    const { helper } = createHelper({
       authenticateFn: () => Promise.reject(getError({ message: 'async auth boom' })),
     });
     const socket = createMockSocket('client-a');
@@ -397,12 +408,14 @@ describe('SocketIOServerHelper | authentication', () => {
     await authenticate({ socket });
     await flush();
 
-    expect(sent.map(entry => entry.topic)).toContain(SocketIOConstants.EVENT_UNAUTHENTICATE);
+    expect(socket.emitted.map(entry => entry.topic)).toContain(
+      SocketIOConstants.EVENT_UNAUTHENTICATE,
+    );
     expect(socket.disconnect).toHaveBeenCalledTimes(1);
   });
 
   test('a synchronously throwing authenticateFn does not escape the socket listener', async () => {
-    const { helper, sent } = createHelper({
+    const { helper } = createHelper({
       authenticateFn: () => {
         throw getError({ message: 'sync auth boom' });
       },
@@ -415,7 +428,9 @@ describe('SocketIOServerHelper | authentication', () => {
 
     await flush();
     await flush();
-    expect(sent.map(entry => entry.topic)).toContain(SocketIOConstants.EVENT_UNAUTHENTICATE);
+    expect(socket.emitted.map(entry => entry.topic)).toContain(
+      SocketIOConstants.EVENT_UNAUTHENTICATE,
+    );
     expect(helper.getClients({ id: 'client-a' })).toBeUndefined();
   });
 
@@ -458,6 +473,9 @@ describe('SocketIOServerHelper | authentication', () => {
     expect(client?.state).toBe(SocketIOClientStates.AUTHENTICATED);
     expect(socket.disconnect).not.toHaveBeenCalled();
     expect(sent.map(entry => entry.topic)).not.toContain(SocketIOConstants.EVENT_UNAUTHENTICATE);
+    expect(socket.emitted.map(entry => entry.topic)).not.toContain(
+      SocketIOConstants.EVENT_UNAUTHENTICATE,
+    );
   });
 
   test('a rejecting clientConnectedFn does not drop the authenticated client', async () => {
@@ -474,6 +492,72 @@ describe('SocketIOServerHelper | authentication', () => {
     const client = helper.getClients({ id: 'client-a' }) as ISocketIOClient;
     expect(client?.state).toBe(SocketIOClientStates.AUTHENTICATED);
     expect(socket.disconnect).not.toHaveBeenCalled();
+  });
+});
+
+/** The Redis emitter reaches a socket only after a pub/sub round trip; the relay reproduces that delay. */
+const REDIS_ROUND_TRIP_MS = 5;
+
+const startHttpServer = async () => {
+  const httpServer = createServer();
+  await new Promise<void>(resolve => {
+    httpServer.listen(0, '127.0.0.1', () => {
+      resolve();
+    });
+  });
+
+  const address = httpServer.address();
+  if (!address || typeof address === 'string') {
+    throw getError({ message: 'HTTP server has no TCP address' });
+  }
+
+  return { httpServer, host: `http://127.0.0.1:${address.port}` };
+};
+
+describe('SocketIOServerHelper | rejection over a real transport', () => {
+  test('the rejected client receives the unauthenticated notice before the disconnect', async () => {
+    const { helper, relays } = createHelper({ authenticateFn: () => false });
+    const { httpServer, host } = await startHttpServer();
+    const ioServer = new IOServer(httpServer);
+
+    helper['io'] = ioServer;
+    relays.push(entry => {
+      setTimeout(() => {
+        if (entry.destination) {
+          ioServer.to(entry.destination).emit(entry.topic, entry.data);
+          return;
+        }
+
+        ioServer.emit(entry.topic, entry.data);
+      }, REDIS_ROUND_TRIP_MS);
+    });
+    ioServer.on(SocketIOConstants.EVENT_CONNECT, (socket: IOSocket) => {
+      helper.onClientConnect({ socket });
+    });
+
+    const events: string[] = [];
+    const client = connectClient(host, { transports: ['polling'], reconnection: false });
+
+    client.on('connect', () => {
+      client.emit(SocketIOConstants.EVENT_AUTHENTICATE);
+    });
+    client.on(SocketIOConstants.EVENT_UNAUTHENTICATE, () => {
+      events.push(SocketIOConstants.EVENT_UNAUTHENTICATE);
+    });
+
+    const reason = await new Promise<string>(resolve => {
+      client.on(SocketIOConstants.EVENT_DISCONNECT, (disconnectReason: string) => {
+        events.push(SocketIOConstants.EVENT_DISCONNECT);
+        resolve(disconnectReason);
+      });
+    });
+    client.close();
+
+    expect(reason).toBe('io server disconnect');
+    expect(events).toEqual([
+      SocketIOConstants.EVENT_UNAUTHENTICATE,
+      SocketIOConstants.EVENT_DISCONNECT,
+    ]);
   });
 });
 

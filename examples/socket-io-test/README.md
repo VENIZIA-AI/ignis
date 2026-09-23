@@ -34,7 +34,7 @@ default) and either authenticates the client - joining it to the default rooms `
 |---|---|---|---|
 | `authenticate` | client -> server | - | Starts the handshake, using the headers sent at connect time |
 | `authenticated` | server -> client | `{ id, time }` | Sent once authentication succeeds |
-| `unauthenticated` | server -> client | `{ message, time }` | Sent on failure, before the socket disconnects (see the note below) |
+| `unauthenticated` | server -> client | `{ message, time }` | Sent on failure, right before the server disconnects the socket |
 | `chat:message` | server -> client | `{ message, time }` | Pushed to `io-default` by `POST /chat/messages` |
 
 ## Endpoints
@@ -68,18 +68,9 @@ docker compose down -v
 
 The smoke test boots the same `Application` on a free port, connects real Socket.IO clients over
 the wire, and checks: an authenticated client joins the default room and receives a message pushed
-through `POST /chat/messages`; an unauthenticated client gets disconnected. It is skipped, not
-failed, when Redis is unreachable.
-
-## A race in the framework's `unauthenticated` delivery
-
-The server's rejection path (`registerAuthHandler` in `SocketIOServerHelper`) publishes
-`unauthenticated` through the Redis emitter, then disconnects the socket right after via
-`setImmediate` - without waiting for that publish to round-trip back through the adapter. The
-disconnect wins every time measured, so the client never actually receives the `unauthenticated`
-event; only the disconnect (`reason: 'io server disconnect'`) is reliable. This example's smoke test
-asserts on the disconnect for that reason. Not fixed here - it is a framework behavior, out of scope
-for an example.
+through `POST /chat/messages`; an unauthenticated client receives `unauthenticated` and is then
+disconnected (`reason: 'io server disconnect'`). It is skipped, not failed, when Redis is
+unreachable.
 
 ## Configuration
 

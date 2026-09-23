@@ -328,18 +328,9 @@ export class SocketIOServerHelper extends BaseHelper {
             failedClient.state = SocketIOClientStates.UNAUTHORIZED;
           }
 
-          this.send({
-            destination: socket.id,
-            payload: {
-              topic: SocketIOConstants.EVENT_UNAUTHENTICATE,
-              data: {
-                message: 'Invalid token to authenticate! Please login again!',
-                time: new Date().toISOString(),
-              },
-            },
-            callback: () => {
-              this.disconnect({ socket });
-            },
+          this.rejectClient({
+            socket,
+            message: 'Invalid token to authenticate! Please login again!',
           });
         })
         .catch((error: Error) => {
@@ -350,22 +341,23 @@ export class SocketIOServerHelper extends BaseHelper {
 
           authLogger.error('Failed to authenticate | id: %s | error: %s', id, error);
 
-          this.send({
-            destination: socket.id,
-            payload: {
-              topic: SocketIOConstants.EVENT_UNAUTHENTICATE,
-              data: {
-                message: 'Failed to authenticate connection! Please login again!',
-                time: new Date().toISOString(),
-              },
-            },
-            doLog: true,
-            callback: () => {
-              this.disconnect({ socket });
-            },
+          this.rejectClient({
+            socket,
+            message: 'Failed to authenticate connection! Please login again!',
           });
         });
     });
+  }
+
+  // The socket is connected to this process, so the notice goes out on it directly: routed through the Redis emitter it arrives after the disconnect and is dropped.
+  private rejectClient(opts: { socket: IOSocket; message: string }) {
+    const { socket, message } = opts;
+
+    socket.emit(SocketIOConstants.EVENT_UNAUTHENTICATE, {
+      message,
+      time: new Date().toISOString(),
+    });
+    this.disconnect({ socket });
   }
 
   onClientAuthenticated(opts: { socket: IOSocket }) {

@@ -58,27 +58,25 @@ const connectAuthenticated = (opts: { baseUrl: string; token?: string }) =>
     });
   });
 
-/**
- * Connects with no valid token and resolves with the disconnect reason.
- *
- * The server's rejection path publishes `unauthenticated` through the Redis emitter, then
- * disconnects via `setImmediate` without waiting for that publish to round-trip back through the
- * adapter - the disconnect always wins the race, so the client never actually receives the
- * `unauthenticated` event (reproduced directly against this component, not just under `bun test`).
- * The disconnect itself is the reliable signal, so this asserts on that instead.
- */
+/** Connects with no valid token and resolves with the client, every notice received before the disconnect, and its reason. */
 const connectRejected = (opts: { baseUrl: string }) =>
-  new Promise<string>((resolve, reject) => {
-    const client: SocketIOClientHelper = new SocketIOClientHelper({
-      identifier: 'smoke-rejected',
-      host: opts.baseUrl,
-      options: { path: '/io', extraHeaders: {} },
-      onConnected: () => client.authenticate(),
-      onAuthenticated: () => reject(new Error('expected authentication to fail')),
-      onDisconnected: reason => resolve(reason),
-      onError: error => reject(error),
-    });
-  });
+  new Promise<{ client: SocketIOClientHelper; notices: string[]; reason: string }>(
+    (resolve, reject) => {
+      const notices: string[] = [];
+      const client: SocketIOClientHelper = new SocketIOClientHelper({
+        identifier: 'smoke-rejected',
+        host: opts.baseUrl,
+        options: { path: '/io', extraHeaders: {} },
+        onConnected: () => client.authenticate(),
+        onAuthenticated: () => reject(new Error('expected authentication to fail')),
+        onUnauthenticated: message => {
+          notices.push(message);
+        },
+        onDisconnected: reason => resolve({ client, notices, reason }),
+        onError: error => reject(error),
+      });
+    },
+  );
 
 describe('socket-io-test', () => {
   let application: Application;
@@ -147,8 +145,16 @@ describe('socket-io-test', () => {
     },
   );
 
-  test.skipIf(!redisReachable)('an unauthenticated client is refused', async () => {
-    const reason = await connectRejected({ baseUrl });
-    expect(reason).toBe('io server disconnect');
-  });
+  test.skipIf(!redisReachable)(
+    'an unauthenticated client receives the unauthenticated notice, then is disconnected',
+    async () => {
+      const { client, notices, reason } = await connectRejected({ baseUrl });
+      try {
+        expect(notices).toEqual(['Invalid token to authenticate! Please login again!']);
+        expect(reason).toBe('io server disconnect');
+      } finally {
+        client.shutdown();
+      }
+    },
+  );
 });
