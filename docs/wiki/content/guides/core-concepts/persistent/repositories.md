@@ -1,6 +1,6 @@
 # Repositories
 
-Repositories provide type-safe CRUD operations. Use `@repository` decorator with both `model` and `dataSource` for auto-discovery.
+Repositories provide type-safe CRUD operations. Use `@repository` decorator with both `model` and `dataSource` for auto-discovery. A repository over another service's API has no model - declare it `type: RepositoryTypes.REMOTE` ([Read another service's API](/references/base/repositories/#read-another-service-s-api)).
 
 ## Pattern 1: Zero Boilerplate (Recommended)
 

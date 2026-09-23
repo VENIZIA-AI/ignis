@@ -224,13 +224,7 @@ For standard CRUD (Create, Read, Update, Delete) operations, `IGNIS` provides a 
 // src/controllers/configuration/configuration.controller.ts (Example from @examples/vert)
 import { Configuration } from '@/models';
 import { ConfigurationRepository } from '@/repositories';
-import {
-  BindingKeys,
-  BindingNamespaces,
-  controller,
-  ControllerFactory,
-  inject,
-} from '@venizia/ignis';
+import { controller, ControllerFactory } from '@venizia/ignis';
 
 const BASE_PATH = '/configurations';
 
@@ -244,20 +238,9 @@ const _Controller = ControllerFactory.defineCrudController({
   entity: () => Configuration, // Provide a resolver for your entity class
 });
 
+// No constructor: the container injects the repository named in `repository.name`.
 @controller({ path: BASE_PATH })
-export class ConfigurationController extends _Controller {
-  constructor(
-    @inject({
-      key: BindingKeys.build({
-        namespace: BindingNamespaces.REPOSITORY,
-        key: ConfigurationRepository.name,
-      }),
-    })
-    repository: ConfigurationRepository,
-  ) {
-    super(repository); // The generated controller expects the repository in its constructor
-  }
-}
+export class ConfigurationController extends _Controller {}
 ```
 The `ControllerFactory.defineCrudController` method automatically sets up the following routes based on your entity schema:
 

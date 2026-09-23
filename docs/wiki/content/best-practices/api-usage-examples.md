@@ -132,13 +132,7 @@ For standard database entities, you can use `ControllerFactory.defineCrudControl
 ```typescript
 import { Configuration } from '@/models';
 import { ConfigurationRepository } from '@/repositories';
-import {
-  BindingKeys,
-  BindingNamespaces,
-  controller,
-  ControllerFactory,
-  inject,
-} from '@venizia/ignis';
+import { controller, ControllerFactory } from '@venizia/ignis';
 
 const BASE_PATH = '/configurations';
 
@@ -152,21 +146,9 @@ const _Controller = ControllerFactory.defineCrudController({
   entity: () => Configuration, // The entity is used to generate OpenAPI schemas
 });
 
-// 2. Extend the generated controller to inject the repository
+// 2. Extend it - the container injects the repository named in repository.name
 @controller({ path: BASE_PATH })
-export class ConfigurationController extends _Controller {
-  constructor(
-    @inject({
-      key: BindingKeys.build({
-        namespace: BindingNamespaces.REPOSITORY,
-        key: ConfigurationRepository.name,
-      }),
-    })
-    repository: ConfigurationRepository,
-  ) {
-    super(repository);
-  }
-}
+export class ConfigurationController extends _Controller {}
 ```
 This automatically creates endpoints like `GET /configurations`, `POST /configurations`, `GET /configurations/:id`, etc.
 

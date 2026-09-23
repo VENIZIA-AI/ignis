@@ -451,6 +451,16 @@ const config = defineConfig({
           collapsed: false,
           items: [
             {
+              text: '2026-09-23',
+              collapsed: true,
+              items: [
+                {
+                  text: 'Two Repository Types, and CRUD Controllers Without a Constructor',
+                  link: '/changelogs/2026-09-23-repository-types',
+                },
+              ],
+            },
+            {
               text: '2026-09-19',
               collapsed: true,
               items: [

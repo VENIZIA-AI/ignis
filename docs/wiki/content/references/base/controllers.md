@@ -736,7 +736,7 @@ The method is public, not protected: a generated controller's declaration file c
 | Option | Type | Description |
 | :--- | :--- | :--- |
 | `entity` | `TClass<AbstractEntity> \| TResolver<TClass<AbstractEntity>>` | Entity class or resolver function returning it. Used to derive request/response schemas |
-| `repository.name` | `string` | Repository binding key name in the IoC container (e.g., `'ConfigurationRepository'`) |
+| `repository.name` | `string` | The repository's binding name (e.g., `ConfigurationRepository.name`). The container injects `repositories.<name>` into constructor parameter 0, so a subclass needs no constructor. A subclass that declares its own `@inject` at parameter 0 overrides it. Takes the name string, not the class |
 | `controller.name` | `string` | Unique name for the generated controller (e.g., `'ConfigurationController'`) |
 | `controller.basePath` | `string` | Base path for all routes (e.g., `'/configurations'`). Required |
 | `controller.readonly` | `boolean` | If `true`, only read operations (count, find, findOne, findById) are generated. Defaults to `false` |
@@ -908,13 +908,7 @@ const UserController = ControllerFactory.defineCrudController({
 // src/controllers/configuration.controller.ts
 import { Configuration } from '@/models';
 import { ConfigurationRepository } from '@/repositories';
-import {
-  controller,
-  ControllerFactory,
-  inject,
-  BindingKeys,
-  BindingNamespaces,
-} from '@venizia/ignis';
+import { controller, ControllerFactory } from '@venizia/ignis';
 
 const BASE_PATH = '/configurations';
 
@@ -929,19 +923,7 @@ const _ConfigurationController = ControllerFactory.defineCrudController({
 });
 
 @controller({ path: BASE_PATH })
-export class ConfigurationController extends _ConfigurationController {
-  constructor(
-    @inject({
-      key: BindingKeys.build({
-        namespace: BindingNamespaces.REPOSITORY,
-        key: ConfigurationRepository.name,
-      }),
-    })
-    repository: ConfigurationRepository,
-  ) {
-    super(repository);
-  }
-}
+export class ConfigurationController extends _ConfigurationController {}
 ```
 
 ### Overriding CRUD Methods with Strong Typing
@@ -951,15 +933,7 @@ When extending a generated CRUD controller, you can override methods using `TRou
 ```typescript
 import { Configuration } from '@/models';
 import { ConfigurationRepository } from '@/repositories';
-import {
-  Authentication,
-  BindingKeys,
-  BindingNamespaces,
-  controller,
-  ControllerFactory,
-  inject,
-  TRouteContext,
-} from '@venizia/ignis';
+import { Authentication, controller, ControllerFactory, TRouteContext } from '@venizia/ignis';
 import { z } from '@hono/zod-openapi';
 
 const BASE_PATH = '/configurations';
@@ -994,18 +968,6 @@ const _Controller = ControllerFactory.defineCrudController({
 
 @controller({ path: BASE_PATH })
 export class ConfigurationController extends _Controller {
-  constructor(
-    @inject({
-      key: BindingKeys.build({
-        namespace: BindingNamespaces.REPOSITORY,
-        key: ConfigurationRepository.name,
-      }),
-    })
-    repository: ConfigurationRepository,
-  ) {
-    super(repository);
-  }
-
   override async create(opts: { context: TRouteContext }) {
     const { context } = opts;
     const data = context.req.valid<TCreateConfiguration>('json');

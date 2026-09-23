@@ -30,13 +30,7 @@ For a standard `GET`/`POST`/`PATCH`/`DELETE` resource, generate the controller i
 // src/controllers/product.controller.ts
 import { Product } from '@/models';
 import { ProductRepository } from '@/repositories';
-import {
-  controller,
-  ControllerFactory,
-  inject,
-  BindingKeys,
-  BindingNamespaces,
-} from '@venizia/ignis';
+import { controller, ControllerFactory } from '@venizia/ignis';
 
 const BASE_PATH = '/products';
 
@@ -51,16 +45,7 @@ const _Controller = ControllerFactory.defineCrudController({
 });
 
 @controller({ path: BASE_PATH })
-export class ProductController extends _Controller {
-  constructor(
-    @inject({
-      key: BindingKeys.build({ namespace: BindingNamespaces.REPOSITORY, key: ProductRepository.name }),
-    })
-    repository: ProductRepository,
-  ) {
-    super(repository);
-  }
-}
+export class ProductController extends _Controller {}
 ```
 
 This generates every filter-bearing endpoint the resource needs:

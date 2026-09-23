@@ -6,6 +6,19 @@ not how.
 This file and `index.md` are reserved OKF filenames - they carry no `type:` frontmatter and are not
 counted as concepts.
 
+## 2026-09-23 - repository types, CRUD controller repository injection, relative HttpDataSource baseUrl
+
+Updated [kernel](/packages/kernel.md).
+
+- **`@repository({ type })`.** `RepositoryTypes.MODEL` (default, `model` required) or
+  `RepositoryTypes.REMOTE` (no model, datasource injection only). The metadata is a discriminated
+  union, mirrored at runtime for JavaScript callers.
+- **`defineCrudController` injects `repository.name`** at parameter 0, so a subclass needs no
+  constructor. Inversion's `setInjectMetadata` became copy-on-write so a subclass's
+  `@inject` no longer rewrites its parent's list.
+- **`HttpDataSource`** resolves a relative `baseUrl` against `location.href`; with no location it
+  throws naming the fix (pass an absolute URL).
+
 ## 2026-09-19 (d) - self-review fixes: Temporal adapters answer only an offset; debug gate; relation pairing
 
 Updated [helpers](/packages/helpers.md) and [connectors](/packages/connectors.md).

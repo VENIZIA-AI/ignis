@@ -27,6 +27,7 @@ That's it - `UserRepository` already has `find`, `findOne`, `findById`, `create`
 
 - **Engine-neutral contract, relational implementation.** `AbstractRepository` (engine-neutral, `@venizia/ignis-kernel`) declares the CRUD contract - no SQL, no Drizzle. The relational tier implements it as a chain of classes, each layer adding one capability (see table below).
 - **Datasource is auto-injected.** `@repository({ model, dataSource })` auto-injects the datasource at constructor param[0] and lazily resolves the entity class from its own metadata. A plain `extends DefaultCRUDRepository<...> {}` needs no constructor at all.
+- **Two repository types.** `type` defaults to `RepositoryTypes.MODEL`, which requires `model`. `RepositoryTypes.REMOTE` takes no `model` - see [Read another service's API](#read-another-service-s-api).
 - **One options object per verb.** Reads and updates carry a `filter` (`where`, `fields`, `include`, `order`, `limit`, `offset`). Writes carry `data`. Every verb also accepts an `options` bag for `transaction` and `shouldSkipDefaultFilter`; `shouldReturn` is a write-only option, and `retry`/`shouldQueryRange` are read-only ones.
 
 **The relational class chain, and the Postgres binding of each rung**
@@ -140,6 +141,40 @@ const user = await userRepository.findById({
 ```
 
 Full options and rules: [Advanced Features - Read Retry](./advanced#read-retry-replica-lag).
+
+### Read another service's API
+
+Data behind another service has no local model, so `@repository` would have nothing to put in `model`. Declare the repository `RepositoryTypes.REMOTE` and give it the datasource only:
+
+```typescript
+import { HttpDataSource, HttpRepository } from '@venizia/ignis-connectors/http';
+import { datasource, repository, RepositoryTypes } from '@venizia/ignis';
+
+type TProduct = { id: string; name: string };
+
+@datasource()
+export class CatalogDataSource extends HttpDataSource {
+  constructor() {
+    super({ name: 'catalog', baseUrl: 'https://catalog.internal/api' });
+  }
+}
+
+@repository({ type: RepositoryTypes.REMOTE, dataSource: CatalogDataSource })
+export class ProductRepository extends HttpRepository<TProduct> {
+  constructor(dataSource: CatalogDataSource) {
+    super({ dataSource, resource: 'products' });
+  }
+}
+```
+
+The datasource is still injected at constructor param[0]. No model binding is registered, so the datasource discovers no schema through this repository.
+
+| `type` | Value | `model` | Registers |
+|---|---|---|---|
+| `RepositoryTypes.MODEL` (default) | `'model'` | Required | Model binding + datasource injection |
+| `RepositoryTypes.REMOTE` | `'remote'` | Refused | Datasource injection only |
+
+TypeScript rejects a `MODEL` repository without `model` and a `REMOTE` one with it. A JavaScript caller gets the same answer at decoration time, as does an unknown `type`.
 
 ## See also
 

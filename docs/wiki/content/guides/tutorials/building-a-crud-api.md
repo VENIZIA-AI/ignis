@@ -331,25 +331,12 @@ Create `src/controllers/todo/todo.controller.ts`:
 
 ```typescript
 // src/controllers/todo/todo.controller.ts
-import { TodoRepository } from '@/repositories/todo.repository';
-import { BindingKeys, BindingNamespaces, controller, inject } from '@venizia/ignis';
+import { controller } from '@venizia/ignis';
 import { BASE_PATH, _Controller } from './definitions';
 
-// Extend the generated controller to inject the repository
+// No constructor: the container injects the repository named in repository.name
 @controller({ path: BASE_PATH })
-export class TodoController extends _Controller {
-  constructor(
-    @inject({
-      key: BindingKeys.build({
-        namespace: BindingNamespaces.REPOSITORY,
-        key: TodoRepository.name,
-      }),
-    })
-    repository: TodoRepository,
-  ) {
-    super(repository);
-  }
-}
+export class TodoController extends _Controller {}
 ```
 
 Create `src/controllers/todo/index.ts`:

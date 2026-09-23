@@ -370,15 +370,9 @@ const _Controller = ControllerFactory.defineCrudController({
   },
 });
 
+// No constructor: the container injects the repository named in repository.name.
 @controller({ path: '/users' })
-export class UserController extends _Controller {
-  constructor(
-    @inject({ key: BindingKeys.build({ namespace: BindingNamespaces.REPOSITORY, key: UserRepository.name }) })
-    repository: UserRepository,
-  ) {
-    super(repository);
-  }
-}
+export class UserController extends _Controller {}
 ```
 
 **Per-Route Authentication:**

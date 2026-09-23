@@ -197,6 +197,28 @@ and entity lazily: the datasource comes from the constructor or a setter, the en
 not-yet-resolved marker because `undefined` is itself a valid resolved value. Every connector chain
 in core descends from it - see [repository hierarchy](/architecture/repository-hierarchy.md).
 
+`@repository` takes a `type` from `RepositoryTypes` (`base/repositories/common/constants.ts`), and the
+metadata type is a union discriminated on it (`TRepositoryMetadata`):
+
+- `MODEL` is the default when `type` is omitted. `model` is required at decoration, and both the model
+  binding and the datasource injection are registered.
+- `REMOTE` refuses `model`. Only the datasource injection is registered, so no model binding
+  exists and the datasource discovers no schema through it. `HttpRepository` subclasses use it.
+- `validateRepositoryMetadata` (`base/metadata/persistents.ts`) mirrors the union for JavaScript
+  callers, unknown `type` included. A bare `@repository()` on a subclass inherits the parent's `type`.
+- Keep the two values only in `RepositoryTypes`. Tests and messages reference the constant, never
+  the literal.
+
+`ControllerFactory.defineCrudController` injects `repositories.<repository.name>` at constructor
+parameter 0 of the generated class (`base/controllers/factory/repository-injection.ts`), so a
+subclass needs no constructor. The injection is recorded through `MetadataRegistry.setInjectMetadata`,
+not a parameter decorator, because Bun drops parameter decorators in some configurations. An own
+`@inject` at parameter 0 in the subclass wins.
+
+Inversion's `MetadataRegistry.setInjectMetadata` is copy-on-write: the first write to a class copies
+the list it inherits. It used to write into the parent's list found through the prototype chain, so
+a subclass's `@inject` rewrote its parent's list and every sibling subclass inherited the change.
+
 `base/repositories/query-schemas/` is where the filter schemas become server schemas. `filter` builds
 them with plain `zod` so a browser can use them; this module imports `@hono/zod-openapi` for its
 side effect (patching `.openapi()` onto the shared prototype) and calls
