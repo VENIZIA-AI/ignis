@@ -1,10 +1,3 @@
-const config = {
-  bracketSpacing: true,
-  singleQuote: true,
-  printWidth: 90,
-  trailingComma: 'all',
-  arrowParens: 'avoid',
-  semi: true,
-};
+import { prettierConfigs } from "@venizia/dev-configs";
 
-export default config;
+export default prettierConfigs;

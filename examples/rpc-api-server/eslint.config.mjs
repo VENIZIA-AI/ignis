@@ -1,12 +1,3 @@
-import minimaltechLinter from '@minimaltech/eslint-node';
+import {eslintConfigs} from "@venizia/dev-configs";
 
-const configs = [
-  ...minimaltechLinter,
-  {
-    rules: {
-      '@typescript-eslint/no-explicit-any': 'off',
-    },
-  },
-];
-
-export default configs;
+export default eslintConfigs;

@@ -1,60 +1,32 @@
-import {
-  BaseRestController,
-  controller,
-  htmlContent,
-  type IControllerOptions,
-  type ValueOrPromise,
-} from '@venizia/ignis';
-import { HTTP } from '@venizia/ignis-helpers';
 import { AboutPage } from '@/views/pages/about.page';
 import { HomePage } from '@/views/pages/home.page';
+import { BaseRestController, controller, htmlResponse } from '@venizia/ignis';
+import { HTTP, ValueOrPromise } from '@venizia/ignis-helpers';
 
+/** Server-rendered pages: each handler returns `context.html(<Page />)`. */
 @controller({ path: '/' })
 export class ViewController extends BaseRestController {
-  constructor(opts: IControllerOptions) {
-    super({
-      ...opts,
-      scope: ViewController.name,
-      path: '/',
-    });
+  constructor() {
+    super({ scope: ViewController.name });
   }
 
   override binding(): ValueOrPromise<void> {
-    // Home page with JSX
     this.defineJSXRoute({
       configs: {
         path: '/',
-        method: 'get',
-        description: 'Home page rendered with JSX',
-        tags: ['Views'],
-        responses: {
-          [HTTP.ResultCodes.RS_2.Ok]: htmlContent({
-            description: 'Home page HTML',
-          }),
-        },
+        method: HTTP.Methods.GET,
+        responses: htmlResponse({ description: 'Home page' }),
       },
-      handler: c => {
-        const timestamp = new Date().toISOString();
-        return c.html(<HomePage timestamp={timestamp} />);
-      },
+      handler: context => context.html(<HomePage />),
     });
 
-    // About page with JSX
     this.defineJSXRoute({
       configs: {
         path: '/about',
-        method: 'get',
-        description: 'About page rendered with JSX',
-        tags: ['Views'],
-        responses: {
-          [HTTP.ResultCodes.RS_2.Ok]: htmlContent({
-            description: 'About page HTML',
-          }),
-        },
+        method: HTTP.Methods.GET,
+        responses: htmlResponse({ description: 'About page' }),
       },
-      handler: c => {
-        return c.html(<AboutPage />);
-      },
+      handler: context => context.html(<AboutPage />),
     });
   }
 }

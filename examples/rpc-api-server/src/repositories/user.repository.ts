@@ -1,7 +1,7 @@
-import { PostgresDataSource } from '@/datasources/postgres.datasource';
-import { User, TUserSchema } from '@/models/entities';
+import { PGliteDataSource } from '@/datasources/pglite.datasource';
+import { User, userTable } from '@/models/user.model';
 import { repository } from '@venizia/ignis';
-import { ReadableRepository } from '@venizia/ignis/postgres';
+import { DefaultCRUDRepository } from '@venizia/ignis/postgres';
 
-@repository({ model: User, dataSource: PostgresDataSource })
-export class UserRepository extends ReadableRepository<TUserSchema> {}
+@repository({ model: User, dataSource: PGliteDataSource })
+export class UserRepository extends DefaultCRUDRepository<typeof userTable> {}

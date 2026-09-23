@@ -1,50 +1,36 @@
 {
-  "name": "@nx/rpc-api-server",
+  "name": "rpc-api-server",
   "version": "0.0.0",
   "private": true,
-  "description": "RPC api server",
-  "main": "dist/index.js",
-  "types": "dist/index.d.ts",
+  "description": "IGNIS REST API with JWT sign-up and sign-in, protected CRUD and JSX pages, on PGlite",
   "engines": {
     "bun": ">=1.4"
   },
   "scripts": {
     "build": "tsc -p tsconfig.json && tsc-alias -p tsconfig.json",
     "clean": "sh ./scripts/clean.sh",
-    "compile:linux": "bun build --compile --minify-whitespace --minify-syntax --sourcemap --env=disable --target=bun-linux-x64 ./src/index.ts --outfile ./dist/vert",
     "eslint": "eslint --report-unused-disable-directives .",
     "lint": "bun run eslint && bun run prettier:cli",
     "lint:fix": "bun run eslint --fix && bun run prettier:fix",
-    "prettier:cli": "prettier \"**/*.{js,ts}\" -l",
+    "migrate:generate": "drizzle-kit generate --config=src/migration.ts",
+    "prettier:cli": "prettier \"**/*.{js,ts,tsx}\" -l",
     "prettier:fix": "bun run prettier:cli --write",
     "rebuild": "bun run clean && bun run build",
-    "migrate:dev": "NODE_ENV=development drizzle-kit push --config=src/migration.ts",
-    "generate-migration:dev": "NODE_ENV=development drizzle-kit generate --config=src/migration.ts",
-    "preserver:dev": "bun run rebuild",
-    "server:dev": "NODE_ENV=development bun .",
-    "server:prod": "NODE_ENV=production bun .",
+    "start": "APP_ENV_PGLITE_DATA_DIR=./app_data/database/pgdata APP_ENV_LOGGER_FOLDER_PATH=./app_data/logs bun run src/index.ts",
+    "test": "bun test",
     "typecheck": "tsc --noEmit -p tsconfig.json"
   },
-  "author": {
-    "name": "VENIZIA AI Developer",
-    "email": "developer@venizia.ai",
-    "url": "https://venizia.ai"
-  },
-  "license": "MIT",
   "dependencies": {
+    "@electric-sql/pglite": "^0.5.8",
     "@hono/zod-openapi": "catalog:",
+    "@scalar/hono-api-reference": "catalog:",
     "@venizia/ignis": "workspace:*",
     "@venizia/ignis-helpers": "workspace:*",
-    "dotenv-flow": "catalog:",
     "drizzle-orm": "catalog:",
-    "hono": "catalog:",
-    "pg": "catalog:",
-    "rxjs": "catalog:"
+    "hono": "catalog:"
   },
   "devDependencies": {
-    "@minimaltech/eslint-node": "catalog:",
     "@types/bun": "catalog:",
-    "@types/pg": "catalog:",
     "@venizia/dev-configs": "workspace:*",
     "drizzle-kit": "catalog:",
     "eslint": "catalog:",

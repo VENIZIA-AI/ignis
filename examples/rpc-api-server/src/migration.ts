@@ -1,36 +1,14 @@
-import 'dotenv-flow/config';
-
-import {
-  applicationEnvironment,
-  blankToUndefined,
-  int,
-  LoggerFactory,
-} from '@venizia/ignis-helpers';
+import { blankToUndefined } from '@venizia/ignis-helpers';
 import { defineConfig } from 'drizzle-kit';
 
-const migration = () => {
-  const logger = LoggerFactory.getLogger([migration.name]);
-
-  const envKeys = applicationEnvironment.keys();
-  logger.for('migration').info(' envKeys: %s', envKeys, process.env);
-
-  const databaseConfigs = {
-    host: blankToUndefined(process.env.APP_ENV_POSTGRES_HOST) ?? '0.0.0.0',
-    port: int(blankToUndefined(process.env.APP_ENV_POSTGRES_PORT) ?? '5432'),
-    database: blankToUndefined(process.env.APP_ENV_POSTGRES_DATABASE) ?? 'postgres',
-    user: blankToUndefined(process.env.APP_ENV_POSTGRES_USERNAME) ?? 'postgres',
-    password: blankToUndefined(process.env.APP_ENV_POSTGRES_PASSWORD) ?? 'password',
-    ssl: false,
-  };
-
-  logger.for('migration').info(' databaseConfigs: %j', databaseConfigs);
-
-  return defineConfig({
-    dialect: 'postgresql',
-    out: './migration',
-    schema: './src/models/entities',
-    dbCredentials: databaseConfigs,
-  });
-};
-
-export default migration();
+// drizzle-kit bundles the model files with esbuild and reads the exported tables. `url` is PGlite's
+// data directory, not a connection string.
+export default defineConfig({
+  dialect: 'postgresql',
+  driver: 'pglite',
+  out: './migration',
+  schema: './src/models',
+  dbCredentials: {
+    url: blankToUndefined(process.env.APP_ENV_PGLITE_DATA_DIR) ?? './app_data/database/pgdata',
+  },
+});
