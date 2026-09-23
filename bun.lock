@@ -76,6 +76,7 @@
       },
       "devDependencies": {
         "@tailwindcss/vite": "^4.3.3",
+        "@types/bun": "catalog:",
         "@types/node": "^26.4.1",
         "@types/react": "^19.2.18",
         "@types/react-dom": "^19.2.7",
@@ -514,14 +515,14 @@
       "name": "@venizia/ignis-worker",
       "version": "0.2.0-44",
       "dependencies": {
-        "@venizia/ignis-helpers": "^0.2.0-9",
-        "@venizia/ignis-inversion": "^0.2.0-4",
-        "@venizia/ignis-kernel": "^0.2.0-14",
+        "@venizia/ignis-helpers": "^0.2.0-40",
+        "@venizia/ignis-inversion": "^0.2.0-23",
+        "@venizia/ignis-kernel": "^0.2.0-45",
         "reflect-metadata": "catalog:",
       },
       "devDependencies": {
         "@types/bun": "catalog:",
-        "@venizia/dev-configs": "^0.2.0-3",
+        "@venizia/dev-configs": "^0.2.0-15",
         "eslint": "catalog:",
         "prettier": "catalog:",
         "tsc-alias": "catalog:",

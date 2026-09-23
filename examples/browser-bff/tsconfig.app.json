@@ -38,10 +38,10 @@
       "vite/client"
     ],
 
-    /* `@` addresses `src/domain`, mirrored by `resolve.alias` in `vite.config.ts`. */
+    /* `@` addresses `src/worker`, mirrored by `resolve.alias` in `vite.config.ts`. */
     "paths": {
       "@/*": [
-        "./src/domain/*"
+        "./src/worker/*"
       ],
       "~/*": [
         "./src/*"

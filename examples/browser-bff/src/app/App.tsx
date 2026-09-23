@@ -3,11 +3,8 @@ import { configureStore } from '@reduxjs/toolkit';
 import { NoteList, NoteScreen } from './notes';
 import type { BrowserBffRaApplication } from './application';
 
-/**
- * `CoreRaApplication` expects a redux store because `ra-core-infra` keeps its own slices there. This
- * example registers none, so an empty reducer map is the honest configuration, not a placeholder.
- */
-const reduxStore = configureStore({ reducer: {} });
+/** `CoreRaApplication` requires a redux store; this example keeps no state in it. An empty reducer map makes redux log an error, so the root reducer returns its state unchanged. */
+const reduxStore = configureStore({ reducer: (state: object = {}) => state });
 
 /** The data, auth and i18n providers are read from the container - see `application.ts`. */
 export const App = (opts: { application: BrowserBffRaApplication }) => {

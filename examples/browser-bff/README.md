@@ -1,110 +1,107 @@
 # Browser BFF
 
-A react-admin application whose backend runs inside a browser Worker. IGNIS serves its own REST
-routes from PGlite in OPFS, with no server anywhere - the page talks to it over `postMessage`.
+An IGNIS application running inside a browser Worker. The notes and comments controllers from
+[`pglite-quickstart`](../pglite-quickstart) answer from PGlite stored in the browser, and no server
+runs anywhere - the page reaches them over `postMessage`.
 
 ```bash
 bun install
 bun run dev
-# http://localhost:5173 - create a note, then reload the page
+# open http://localhost:5173, create a note, then reload the page
 ```
 
-The rows are still there after the reload. They live in the origin private file system, under
-`ignis-browser-bff/`.
+The note is still there after the reload. The database lives in the origin private file system
+(OPFS), under `ignis-browser-bff/`.
 
-Open a second tab and it works too. Only one tab runs the Worker; the rest are forwarded to it.
+## What it shows
 
-## The front end is a normal react-admin app
-
-`@minimaltech/ra-core-infra` is wired exactly as it would be against a real server: an inversion
-container, `DefaultRestDataProvider` pointed at `/api`, and `CoreRaApplication` rendering a
-`notes` resource. Nothing in it knows a Worker exists.
-
-The whole integration is one call to `installBffFetch`, which gives the page a `fetch` that answers
-`/api/*` from the Worker and passes everything else to the network. The data provider reaches the
-network through `NodeFetchNetworkRequest`, which calls the global `fetch` and accepts no custom
-fetcher - so intercepting `fetch` is what makes an in-browser backend a drop-in swap rather than a
-fork of the provider.
-
-It started here as twelve lines of example code. It now ships in `@venizia/ignis-worker`, because
-every consumer of a browser BFF needs the same seam and the example's version had a bug the package
-does not: it built a `Request` to read the URL, which in Chromium marks the original body disturbed,
-so a passed-through POST reached the network unreadable.
-
-The UI is shadcn/ui on Base UI (`@base-ui-components/react`, shadcn's default base since July
-2026) with Tailwind v4. `components.json` points shadcn at `~/components`, not `@/components`:
-this example already uses `@` for `src/domain`, which the copied controller depends on.
-
-## What is shared with the server example
-
-The model, the repository and the controller are copied from
-[`pglite-quickstart`](../pglite-quickstart) with their bodies untouched. Only import specifiers
-change, because `@venizia/ignis` reaches `ioredis` and cannot bundle for a browser:
-
-| Server example imports | Browser example imports |
+| File | What it does |
 |---|---|
-| `@venizia/ignis` | `@venizia/ignis-kernel` |
-| `@venizia/ignis/postgres` | `@venizia/ignis-connectors/postgres` |
-| `ValueOrPromise` from `@venizia/ignis` | `@venizia/ignis-helpers/common` |
+| `src/worker/models`, `repositories`, `controllers` | The `pglite-quickstart` files, with `@venizia/ignis-kernel` and `@venizia/ignis-connectors` in place of `@venizia/ignis` |
+| `src/worker/datasources/pglite.datasource.ts` | Opens PGlite on OPFS and applies the migrations, inlined by `?raw` |
+| `src/worker/application.ts` | `WorkerApplication` in place of `BaseApplication`; `discoverArtifacts: true` registers the imported classes |
+| `src/worker/index.ts` | The Worker entry: `listen()` in place of `start()` |
+| `src/bff.ts` | The page side: a `SharedBffTransport` that starts the Worker |
+| `src/main.tsx` | `installBffFetch` routes `fetch('/api/...')` to the Worker, then renders the react-admin page |
 
-The datasource is the one file with real changes: `dataDir` becomes `opfs-ahp://ignis-browser-bff`,
-the `mkdirSync` goes, and the migration is inlined rather than read from disk.
+The react-admin page uses the stock `DefaultRestDataProvider` pointed at `/api`. Nothing in it knows
+a Worker answers. The page shows notes only; comments are reachable through the API below.
 
-## The parts that are browser-only
+## Endpoints
 
-| File | Job |
-|---|---|
-| `src/worker.ts` | the BFF - extends `WorkerApplication`, registers the artifacts, calls `listen()` |
-| `src/bff.ts` | the UI half - a `SharedBffTransport` plus the base path both halves agree on |
-| `src/main.tsx` | installs the `fetch` bridge, then renders the react-admin application |
-| `src/domain/datasources/pglite.datasource.ts` | opens PGlite on OPFS and applies the migration |
+The Worker answers these under `/api`. Health and the OpenAPI document are server components, so the
+Worker has neither.
 
-## Workarounds this example carries
+| Method | Path | Does |
+|---|---|---|
+| `GET` | `/notes`, `/comments` | List rows; takes a `filter` query |
+| `GET` | `/notes/count?where={...}` | Count rows matching `where` (required; `{}` counts all) |
+| `GET` | `/notes/find-one` | First row matching `filter` |
+| `GET` | `/notes/{id}` | One row |
+| `POST` | `/notes`, `/comments` | Create a row |
+| `PATCH` | `/notes/{id}` | Update one row |
+| `DELETE` | `/notes/{id}` | Delete one row |
+| `PATCH` | `/notes?where={...}` | Update every row matching `where` |
+| `DELETE` | `/notes?where={...}` | Delete every row matching `where` |
 
-One, and it is a third party's packaging:
+`/comments` has the same routes as `/notes`. CRUD routes answer `{ count, data }`; `/count` answers
+`{ count }`.
 
-| Where | Why |
-|---|---|
-| `optimizeDeps.exclude: ['@electric-sql/pglite']` in `vite.config.ts` | Vite's dependency pre-bundling mangles PGlite's WASM asset resolution |
+## Read a note with its comments
 
-Two more used to live here, and both were one gap: every IGNIS package shipped CommonJS only, so
-Vite served a linked workspace dependency as-is and the browser met a bare `require()`
-(`optimizeDeps.include`, one line per sub-path), and Rolldown's CommonJS interop shim read
-`__filename` on the branch it takes inside a Worker (`define: { __filename }`). Every package that
-claims browser purity now publishes an `import` condition, the purity manifest enforces that claim,
-and both lines are gone. The page chunk went from 682 KB to 54 KB with them.
+There is no port to `curl`. Call the API from the page's devtools console instead - `fetch` there
+already goes to the Worker:
 
-This example used to alias `hono/context-storage` onto a local stub, because
-`@venizia/ignis-connectors/postgres` imported it and that module constructs an `AsyncLocalStorage` at
-module scope. It no longer does: the user-audit enricher reads `RequestContextRegistry` instead, the
-server layer installs the resolver over it, and a Worker that installs none simply has no request
-context. `make purity` measures the sub-path directly, so the alias cannot come back unnoticed.
+```js
+const post = (path, body) =>
+  fetch(`/api${path}`, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify(body),
+  }).then(response => response.json());
+
+const { data: note } = await post('/notes', { title: 'First note' });
+await post('/comments', { noteId: note.id, text: 'A comment' });
+
+const filter = encodeURIComponent(JSON.stringify({ include: [{ relation: 'comments' }] }));
+await fetch(`/api/notes?filter=${filter}`).then(response => response.json());
+// { count: 1, data: [{ id: '01a0cd7e-...', title: 'First note', ..., comments: [{ noteId: '01a0cd7e-...', text: 'A comment', ... }] }] }
+```
+
+## Test it
+
+```bash
+bun test
+```
+
+The smoke test starts `src/worker/index.ts` in a Bun Worker with an in-memory database, then calls
+the controllers through `WorkerBffTransport` - the same envelope the page sends.
+
+## Where the data goes
+
+| Variable | Set by | Meaning |
+|---|---|---|
+| `APP_ENV_PGLITE_DATA_DIR` | `bun run dev` and `bun run build`, to `opfs-ahp://ignis-browser-bff` | Unset: an in-memory database that dies with the Worker |
+
+Vite exposes the variable to the Worker as `import.meta.env.APP_ENV_PGLITE_DATA_DIR`; `bun test`
+leaves it unset.
+
+To clear the database, open devtools > Application > Storage and clear the site data.
+
+## Change the schema
+
+The models are the `pglite-quickstart` models. Generate the migration there, copy the new
+`migration/NNNN_*.sql` file here, and add it to `MIGRATIONS` in
+`src/worker/datasources/pglite.datasource.ts`.
 
 ## Many tabs, one database
 
-`src/bff.ts` uses `SharedBffTransport`, so opening a second tab is not a problem the reader has to
-work around.
+PGlite on OPFS holds an access handle that is exclusive per origin. A second tab starting its own
+Worker could not open the database.
 
-Without it, the second tab is dead. PGlite in `opfs-ahp://` mode holds an exclusive OPFS access
-handle, and those handles are exclusive per **origin** - so a second tab starting its own Worker
-cannot open the database at all. Measured in Chromium: the first tab keeps working, and the second
-renders its UI while every call fails with `Access Handles cannot be created if there is another
-open Access Handle or Writable stream associated with the same file`.
-
-The transport elects one tab with the Web Locks API, gives that tab the Worker, and forwards every
-other tab's request to it over a `BroadcastChannel` - in the same envelope the Worker already
-speaks. Close the leading tab and a follower is promoted in place, with no reload: the browser
-releases the lock when the tab goes away, a crash included.
-
-Measured with two real tabs: tab 2 reads and writes through tab 1, and closing tab 1 promotes tab 2
-mid-session, keeping every row tab 1 committed.
-
-## Limits
-
-**Chrome, measured. Firefox untested.** Desktop Safari caps sync access handles below what a
-Postgres data directory needs, so `opfs-ahp://` does not work there.
-
-**No sync.** The database starts empty and stays local. Nothing here talks to a backend.
+`SharedBffTransport` fixes that. It elects one tab with the Web Locks API to run the Worker, and the
+other tabs forward their requests to it over a `BroadcastChannel`. Close the leading tab and another
+tab takes over, with no reload.
 
 ## Production build
 
@@ -113,5 +110,18 @@ bun run build
 bun run preview
 ```
 
-The build is served from a different port, so it gets a different origin - and OPFS is per-origin.
-The preview starts with an empty database rather than the one the dev server wrote.
+The preview runs on a different port, so it is a different origin: it does not see the database
+the dev server wrote.
+
+## Limits
+
+- **Chrome is measured. Firefox is untested.** Desktop Safari caps OPFS access handles below what
+  PGlite needs, so `opfs-ahp://` does not work there.
+- **No sync.** The database starts empty and stays in the browser.
+- `vite.config.ts` excludes `@electric-sql/pglite` from `optimizeDeps`: pre-bundling breaks how
+  PGlite finds its WASM files.
+
+## Next
+
+- [`@venizia/ignis-worker`](../../packages/core-worker) - the Worker host and transports
+- [PGlite quickstart](../pglite-quickstart) - the same controllers behind an HTTP server
