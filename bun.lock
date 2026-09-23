@@ -716,7 +716,6 @@
     "postgres": "^3.4.9",
     "prettier": "^3.9.6",
     "reflect-metadata": "^0.2.2",
-    "rxjs": "^7.8.2",
     "socket.io": "^4.8.3",
     "socket.io-client": "^4.8.3",
     "tsc-alias": "^1.9.4",
