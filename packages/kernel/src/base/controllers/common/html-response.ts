@@ -1,4 +1,4 @@
-import { ErrorSchema } from '@/base/models/common';
+import { errorResponses } from '@/base/models/common';
 import { z } from '@hono/zod-openapi';
 import { HTTP } from '@venizia/ignis-helpers/common';
 
@@ -27,13 +27,6 @@ export const htmlResponse = (opts: { description: string; required?: boolean }) 
       description: opts.description,
       required: opts.required,
     }),
-    ['4xx | 5xx']: {
-      description: 'Error Response',
-      content: {
-        'application/json': {
-          schema: ErrorSchema,
-        },
-      },
-    },
+    ...errorResponses(),
   };
 };

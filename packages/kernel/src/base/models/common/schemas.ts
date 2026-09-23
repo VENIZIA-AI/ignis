@@ -3,7 +3,10 @@ import { HTTP } from '@venizia/ignis-helpers/common';
 import { getError } from '@venizia/ignis-helpers/core';
 import type { TIdSchemaType } from './types';
 
-/** The error RESPONSE for OpenAPI docs - here, beside the REST layer that already needs `@hono/zod-openapi`. */
+/**
+ * The error RESPONSE for OpenAPI docs - here, beside the REST layer that already needs `@hono/zod-openapi`.
+ * Named, so every route's `4XX` and `5XX` reference one `ErrorResponse` component.
+ */
 export const ErrorSchema = z
   .object({
     statusCode: z.number().optional(),
@@ -19,7 +22,7 @@ export const ErrorSchema = z
     requestId: z.string().optional(),
     details: z.record(z.string(), z.any()).optional(),
   })
-  .openapi({
+  .openapi('ErrorResponse', {
     description: 'Error Schema',
     example: {
       statusCode: HTTP.ResultCodes.RS_4.Conflict,
@@ -85,6 +88,13 @@ export const jsonContent = <T extends z.ZodType>(opts: {
   };
 };
 
+/** The JSON error body of a route, under `4XX` and `5XX` - the range keys OpenAPI accepts. */
+export const errorResponses = () => {
+  const errorResponse = jsonContent({ description: 'Error Response', schema: ErrorSchema });
+
+  return { '4XX': errorResponse, '5XX': errorResponse };
+};
+
 /** OpenAPI Header Object format */
 type THeaderObject = {
   description?: string;
@@ -117,6 +127,6 @@ export const jsonResponse = <
 
   return {
     [HTTP.ResultCodes.RS_2.Ok]: successResponse,
-    ['4xx | 5xx']: jsonContent({ description: 'Error Response', schema: ErrorSchema }),
+    ...errorResponses(),
   };
 };

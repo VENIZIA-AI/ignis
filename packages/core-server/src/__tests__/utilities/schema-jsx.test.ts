@@ -58,6 +58,8 @@ describe('htmlContent / htmlResponse', () => {
     expect(okResponse.description).toBe('A page');
     expect(okResponse.content['text/html']).toBeDefined();
 
-    expect(response['4xx | 5xx'].content['application/json'].schema).toBeDefined();
+    expect(response['4XX'].content['application/json'].schema).toBeDefined();
+    expect(response['5XX'].content['application/json'].schema).toBeDefined();
+    expect(response['4xx | 5xx']).toBeUndefined();
   });
 });
