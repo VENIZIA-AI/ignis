@@ -1,6 +1,6 @@
 {
   "name": "@venizia/ignis-connectors",
-  "version": "0.2.0-44",
+  "version": "0.2.0-45",
   "description": "Datasource and repository connectors for the IGNIS framework: the engine-neutral relational and search tiers, plus Postgres, SQLite, PGlite, Typesense and Meilisearch behind sub-paths.",
   "license": "MIT",
   "engines": {
@@ -126,10 +126,10 @@
     "prepublishOnly": "bun run rebuild"
   },
   "dependencies": {
-    "@venizia/ignis-filter": "^0.2.0-22",
-    "@venizia/ignis-helpers": "^0.2.0-40",
-    "@venizia/ignis-inversion": "^0.2.0-23",
-    "@venizia/ignis-kernel": "^0.2.0-45",
+    "@venizia/ignis-filter": "^0.2.0-23",
+    "@venizia/ignis-helpers": "^0.2.0-41",
+    "@venizia/ignis-inversion": "^0.2.0-24",
+    "@venizia/ignis-kernel": "^0.2.0-46",
     "reflect-metadata": "catalog:",
     "zod": "catalog:"
   },
