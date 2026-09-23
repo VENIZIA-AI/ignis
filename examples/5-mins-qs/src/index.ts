@@ -10,20 +10,15 @@ import {
 } from '@venizia/ignis';
 import { HTTP } from '@venizia/ignis-helpers';
 import { Context } from 'hono';
-import appInfo from './../package.json';
 
-// 1. Define a controller
 @controller({ path: '/hello' })
 class HelloController extends BaseRestController {
   constructor() {
     super({ scope: 'HelloController', path: '/hello' });
   }
 
-  // NOTE: This is a function that must be overridden.
-  override binding() {
-    // Bind dependencies here (if needed)
-    // Extra binding routes with functional way, use `bindRoute` or `defineRoute`
-  }
+  // binding() is abstract - leave it empty when every route uses @get/@post decorators.
+  override binding() {}
 
   @get({
     configs: {
@@ -37,45 +32,35 @@ class HelloController extends BaseRestController {
     },
   })
   sayHello(c: Context) {
-    return c.json({ message: 'Hello from Ignis!' }, HTTP.ResultCodes.RS_2.Ok);
+    return c.json({ message: 'Hello from IGNIS!' }, HTTP.ResultCodes.RS_2.Ok);
   }
 }
 
-// 2. Create the application
 class App extends BaseApplication {
   getAppInfo(): IApplicationInfo {
-    return appInfo;
+    return { name: 'my-app', version: '1.0.0', description: 'My first IGNIS app' };
   }
 
-  staticConfigure() {
-    // Static configuration before dependency injection
-  }
+  staticConfigure() {}
 
   preConfigure() {
-    this.component(ApiReferenceComponent); // Interactive API docs at /doc/explorer
+    this.component(ApiReferenceComponent);
     this.controller(HelloController);
   }
 
-  postConfigure() {
-    // Configuration after all bindings are complete
-  }
+  postConfigure() {}
 
-  setupMiddlewares() {
-    // Custom middleware setup (optional)
-  }
+  setupMiddlewares() {}
 }
 
-// 3. Start the server
 const app = new App({
   scope: 'App',
   config: {
     host: '0.0.0.0',
-    port: 3000,
+    port: Number(process.env.PORT ?? 3000),
     path: { base: '/api', isStrict: false },
   },
 });
 
-app.start().catch((error: unknown) => {
-  console.error('[main] Application start failed | Error:', error);
-  process.exit(1);
-});
+app.init();
+await app.start();

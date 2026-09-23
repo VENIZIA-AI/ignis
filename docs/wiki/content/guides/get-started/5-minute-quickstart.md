@@ -13,11 +13,15 @@ Scaffold a project and install IGNIS:
 ```bash
 mkdir my-app && cd my-app
 bun init -y
-bun add hono @hono/zod-openapi @scalar/hono-api-reference @venizia/ignis @venizia/ignis-helpers
-bun add -d typescript @types/bun @venizia/dev-configs
+bun add hono @hono/zod-openapi @scalar/hono-api-reference @venizia/ignis@next @venizia/ignis-helpers@next \
+  winston winston-transport winston-daily-rotate-file
+bun add -d typescript @types/bun @venizia/dev-configs@next
 ```
 
 Both commands finish in a few seconds. You now have a `package.json` with IGNIS in `dependencies`.
+
+- `@next` installs the current release line, the one these guides describe. The `latest` tag still points at the older 0.1 line.
+- `winston` and its two companions are the default logger. The application refuses to start without a logger provider - [use pino instead](/extensions/helpers/logger/) if you prefer.
 
 ## 2. Configure TypeScript for decorators
 
@@ -60,7 +64,6 @@ import {
 } from '@venizia/ignis';
 import { HTTP } from '@venizia/ignis-helpers';
 import { Context } from 'hono';
-import appInfo from './../package.json';
 
 @controller({ path: '/hello' })
 class HelloController extends BaseRestController {
@@ -89,7 +92,7 @@ class HelloController extends BaseRestController {
 
 class App extends BaseApplication {
   getAppInfo(): IApplicationInfo {
-    return appInfo;
+    return { name: 'my-app', version: '1.0.0', description: 'My first IGNIS app' };
   }
 
   staticConfigure() {}
@@ -108,7 +111,7 @@ const app = new App({
   scope: 'App',
   config: {
     host: '0.0.0.0',
-    port: 3000,
+    port: Number(process.env.PORT ?? 3000),
     path: { base: '/api', isStrict: false },
   },
 });

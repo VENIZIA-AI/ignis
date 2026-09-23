@@ -2,6 +2,7 @@
   "name": "5-mins-qs",
   "version": "0.0.0",
   "private": true,
+  "type": "module",
   "description": "5-minute quickstart example",
   "engines": {
     "bun": ">=1.4"
@@ -18,14 +19,18 @@
     "start": "bun run src/index.ts",
     "server:dev": "NODE_ENV=development bun run src/index.ts",
     "server:prod": "NODE_ENV=production bun run dist/index.js",
-    "typecheck": "tsc --noEmit -p tsconfig.json"
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "test": "bun test"
   },
   "dependencies": {
     "@hono/zod-openapi": "catalog:",
     "@scalar/hono-api-reference": "catalog:",
     "@venizia/ignis": "workspace:*",
     "@venizia/ignis-helpers": "workspace:*",
-    "hono": "catalog:"
+    "hono": "catalog:",
+    "winston": "^3.19.0",
+    "winston-daily-rotate-file": "^5.0.0",
+    "winston-transport": "^4.9.0"
   },
   "devDependencies": {
     "@types/bun": "catalog:",

@@ -352,7 +352,7 @@ test-atlas:
 
 # Examples whose smoke test needs no external service - each boots the real app and calls its
 # endpoints. Examples that need Postgres, Typesense or Redis run theirs locally with docker.
-EXAMPLES_SMOKE := pglite-quickstart sqlite-quickstart
+EXAMPLES_SMOKE := pglite-quickstart sqlite-quickstart 5-mins-qs
 
 examples-smoke:
 	@echo "🔍 Smoke-testing examples: $(EXAMPLES_SMOKE)"
