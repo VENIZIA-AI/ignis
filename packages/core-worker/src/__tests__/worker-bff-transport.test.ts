@@ -1,4 +1,5 @@
-import { afterEach, beforeEach, describe, expect, spyOn, test } from 'bun:test';
+import { describe, expect, spyOn, test } from 'bun:test';
+import path from 'node:path';
 import { isApplicationError } from '@venizia/ignis-helpers/core';
 import type { AnyType } from '@venizia/ignis-helpers/common';
 import { WorkerBffTransport } from '@/transport/worker';
@@ -37,28 +38,6 @@ const settleWithin = async (opts: {
     ),
     new Promise<'pending'>(resolve => setTimeout(() => resolve('pending'), timeoutMs)),
   ]);
-};
-
-/**
- * Removes `crypto.randomUUID` - what a browser gives a page on a plain-http LAN origin, and several
- * WebViews everywhere. The real method lives on the prototype, so there is no own descriptor to
- * save: shadowing it with `undefined` and deleting the shadow is what puts the prototype method
- * back.
- *
- * Restored from `afterEach`, never from an async `finally`: bun ends a test at the failed
- * assertion and starts the next one before the rejection has propagated far enough for a `finally`
- * to run, so a leaked shadow would corrupt every test behind it.
- */
-const hideSecureContextCrypto = (): void => {
-  Object.defineProperty(globalThis.crypto, 'randomUUID', {
-    value: undefined,
-    configurable: true,
-    writable: true,
-  });
-};
-
-const restoreSecureContextCrypto = (): void => {
-  delete (globalThis.crypto as AnyType).randomUUID;
 };
 
 /**
@@ -443,45 +422,46 @@ describe('WorkerBffTransport', () => {
  * refuses the API for its request ids; the page half of the same channel must hold the same rule,
  * or a plain-http LAN origin throws on the transport's first line and the BFF looks dead.
  */
+// From this file, not `process.cwd()`: `bun test` may start anywhere.
+const TRANSPORT_SOURCE = path.resolve(__dirname, '..', 'transport', 'worker.ts');
+
+/** The last JSON line a child printed - the logger writes its own lines around it. */
+const lastJsonLine = (opts: { output: string }): string =>
+  opts.output
+    .split('\n')
+    .filter(line => line.startsWith('{'))
+    .at(-1) ?? '{}';
+
 describe('WorkerBffTransport outside a secure context', () => {
-  beforeEach(hideSecureContextCrypto);
-  afterEach(restoreSecureContextCrypto);
-
-  test('still generates a request id and posts the request', async () => {
-    const worker = new FakeWorker();
-    const transport = new WorkerBffTransport({ worker: worker as any, timeoutMs: 5_000 });
-
-    const fetchPromise = transport.fetch({ request: new Request('http://example.test/hello') });
-
-    await flushMicrotasks();
-    expect(worker.posted).toHaveLength(1);
-
-    const sentEnvelope = worker.posted[0] as IBffRequestEnvelope;
-    // Not merely non-empty: `RequestIdGenerator` falls back to assembling an RFC 9562 v4 from
-    // `crypto.getRandomValues()`, so the id a non-secure origin gets must be indistinguishable from
-    // the one `crypto.randomUUID()` would have returned. Anything weaker would pass on a fallback
-    // that quietly emitted a different shape, which is the bug this whole channel exists to avoid.
-    expect(sentEnvelope.id).toMatch(
-      /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/,
+  // A fresh process with `crypto.randomUUID` removed BEFORE anything loads - what a page on a
+  // plain-http LAN origin gets. The id generator is chosen once, at import, so removing the method
+  // afterwards would leave the native path running and prove nothing.
+  test('request ids come from getRandomValues and still read as RFC 9562 v4', () => {
+    const script = `
+      Object.defineProperty(globalThis.crypto, 'randomUUID', { value: undefined, configurable: true, writable: true });
+      let draws = 0;
+      const getRandomValues = globalThis.crypto.getRandomValues.bind(globalThis.crypto);
+      globalThis.crypto.getRandomValues = array => { draws += 1; return getRandomValues(array); };
+      const { WorkerBffTransport } = await import('${TRANSPORT_SOURCE}');
+      const posted = [];
+      const worker = { addEventListener() {}, removeEventListener() {}, postMessage(message) { posted.push(message); } };
+      const transport = new WorkerBffTransport({ worker, timeoutMs: 5_000 });
+      transport.fetch({ request: new Request('http://example.test/one') }).catch(() => {});
+      transport.fetch({ request: new Request('http://example.test/two') }).catch(() => {});
+      await new Promise(resolve => setTimeout(resolve, 20));
+      console.log(JSON.stringify({ ids: posted.map(envelope => envelope.id), draws }));
+      process.exit(0);
+    `;
+    const run = Bun.spawnSync({ cmd: [process.execPath, '-e', script], stderr: 'pipe' });
+    const report: { ids: Array<string>; draws: number } = JSON.parse(
+      lastJsonLine({ output: run.stdout.toString() }),
     );
 
-    worker.respond({ id: sentEnvelope.id, status: 204, headers: [] });
-    expect((await fetchPromise).status).toBe(204);
-  });
-
-  test('gives concurrent requests distinct ids', async () => {
-    const worker = new FakeWorker();
-    const transport = new WorkerBffTransport({ worker: worker as any, timeoutMs: 5_000 });
-
-    const first = transport.fetch({ request: new Request('http://example.test/one') });
-    const second = transport.fetch({ request: new Request('http://example.test/two') });
-
-    await flushMicrotasks();
-    const [firstEnvelope, secondEnvelope] = worker.posted as IBffRequestEnvelope[];
-    expect(firstEnvelope!.id).not.toBe(secondEnvelope!.id);
-
-    worker.respond({ id: firstEnvelope!.id, status: 204, headers: [] });
-    worker.respond({ id: secondEnvelope!.id, status: 204, headers: [] });
-    await Promise.all([first, second]);
+    expect(report.ids).toHaveLength(2);
+    for (const id of report.ids) {
+      expect(id).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/);
+    }
+    expect(report.ids[0]).not.toBe(report.ids[1]);
+    expect(report.draws).toBeGreaterThan(0);
   });
 });
