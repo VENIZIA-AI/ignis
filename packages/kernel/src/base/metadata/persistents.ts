@@ -4,8 +4,8 @@ import type {
   IDataSourceMetadata,
   IInjectMetadata,
   IModelMetadata,
-  IRepositoryMetadata,
   IResolvedRepositoryMetadata,
+  TRepositoryMetadata,
 } from '@/helpers/inversion';
 import {
   ArtifactTypes,
@@ -19,6 +19,7 @@ import { getError } from '@venizia/ignis-helpers/core';
 import type { IDataSource } from '../datasources';
 import { isDataSourceClass } from '../datasources';
 import type { AbstractEntity } from '../models';
+import { RepositoryTypes } from '../repositories/common/constants';
 import { injectable, pickRegistrationOptions } from './injectable';
 
 /** Registers a model class with its static schema and relations. */
@@ -63,19 +64,32 @@ export const datasource = (metadata?: IDataSourceMetadata): ClassDecorator => {
   };
 };
 
-/** Validates that both model and dataSource are provided together. */
+/** Mirrors the `TRepositoryMetadata` union for JavaScript callers: a known type, a dataSource always, a model exactly when the type is RepositoryTypes.MODEL. */
 const validateRepositoryMetadata = <
   Model extends AbstractEntity = AbstractEntity,
   DataSource extends IDataSource = IDataSource,
 >(opts: {
-  metadata: IRepositoryMetadata<Model, DataSource>;
+  metadata: TRepositoryMetadata<Model, DataSource>;
   target: Function;
 }): void => {
   const { metadata, target } = opts;
+  const type = metadata.type ?? RepositoryTypes.MODEL;
 
-  if (!metadata.model) {
+  if (!RepositoryTypes.isValid(type)) {
+    throw getError({
+      message: `[validateRepositoryMetadata][@repository][${target.name}] Invalid metadata | Unknown 'type': ${type} | Expected one of: ${[...RepositoryTypes.SCHEME_SET].join(', ')}`,
+    });
+  }
+
+  if (type === RepositoryTypes.MODEL && !metadata.model) {
     throw getError({
       message: `[validateRepositoryMetadata][@repository][${target.name}] Invalid metadata | Missing 'model'`,
+    });
+  }
+
+  if (type === RepositoryTypes.REMOTE && metadata.model) {
+    throw getError({
+      message: `[validateRepositoryMetadata][@repository][${target.name}] Invalid metadata | A '${RepositoryTypes.REMOTE}' repository takes no 'model'`,
     });
   }
 
@@ -166,12 +180,7 @@ const registerDataSourceInjection = (opts: {
     typeof resolvedDataSource === 'string' ? resolvedDataSource : resolvedDataSource.name;
   const dsBindingKey = BindingKeys.build({ namespace: BindingNamespaces.DATASOURCE, key: dsName });
 
-  // Copy-on-write for the same reason: setInjectMetadata mutates the array it reads through the prototype chain, which would rewrite the base repository's param[0] with this class's key.
-  if (!ownInjects) {
-    const inheritedInjects = registry.getInjectMetadata({ target });
-    Reflect.defineMetadata(MetadataKeys.INJECT, [...(inheritedInjects ?? [])], target);
-  }
-
+  // setInjectMetadata copies the inherited list on first write, so the base repository keeps its own param[0].
   registry.setInjectMetadata({
     target,
     index: 0,
@@ -184,20 +193,27 @@ const resolveRepositoryMetadata = <
   Model extends AbstractEntity = AbstractEntity,
   DataSource extends IDataSource = IDataSource,
 >(opts: {
-  metadata: IRepositoryMetadata<Model, DataSource>;
+  metadata: TRepositoryMetadata<Model, DataSource>;
   target: Function;
   registry: MetadataRegistry;
-}): IResolvedRepositoryMetadata<Model, DataSource> | undefined => {
+}): IResolvedRepositoryMetadata<Model, DataSource> => {
   const { metadata, target, registry } = opts;
 
   validateRepositoryMetadata({ metadata, target });
 
-  if (!metadata.model || !metadata.dataSource) {
-    return undefined;
+  const resolvedDataSource = resolveClass({ ref: metadata.dataSource });
+
+  // No model, so no binding: the datasource owns no schema through this repository.
+  if (metadata.type === RepositoryTypes.REMOTE) {
+    registerDataSourceInjection({ target, registry, resolvedDataSource });
+    return {
+      type: RepositoryTypes.REMOTE,
+      dataSource: resolvedDataSource,
+      operationScope: metadata.operationScope,
+    };
   }
 
   const resolvedModel = resolveValue({ value: metadata.model });
-  const resolvedDataSource = resolveClass({ ref: metadata.dataSource });
 
   registry.registerRepositoryBinding({
     repository: target,
@@ -208,18 +224,18 @@ const resolveRepositoryMetadata = <
   registerDataSourceInjection({ target, registry, resolvedDataSource });
 
   return {
+    type: RepositoryTypes.MODEL,
     model: resolvedModel,
     dataSource: resolvedDataSource,
     operationScope: metadata.operationScope,
   };
 };
 
-/** Binds a repository to a model and datasource for schema auto-discovery. */
-/** A bare `@repository()` on a subclass reuses the model and datasource its nearest decorated parent declared; the registration options (`binding`, `when`, ...) are never inherited, so the subclass registers under its own name. */
+/** A bare `@repository()` on a subclass reuses the type, model and datasource its nearest decorated parent declared; the registration options (`binding`, `when`, ...) are never inherited, so the subclass registers under its own name. */
 const inheritRepositoryMetadata = (opts: {
   target: Function;
   registry: MetadataRegistry;
-}): IRepositoryMetadata => {
+}): TRepositoryMetadata => {
   // Own metadata does not exist yet at decoration time, so this read walks the prototype chain.
   const inherited = opts.registry.getRepositoryMetadata({ target: opts.target });
   if (!inherited) {
@@ -228,15 +244,20 @@ const inheritRepositoryMetadata = (opts: {
     });
   }
 
-  const { model: parentModel, dataSource: parentDataSource, operationScope } = inherited;
-  return { model: parentModel, dataSource: parentDataSource, operationScope };
+  if (inherited.type === RepositoryTypes.REMOTE) {
+    const { type, dataSource, operationScope } = inherited;
+    return { type, dataSource, operationScope };
+  }
+
+  const { type, model: parentModel, dataSource, operationScope } = inherited;
+  return { type, model: parentModel, dataSource, operationScope };
 };
 
 const applyRepositoryMetadata = <
   Model extends AbstractEntity = AbstractEntity,
   DataSource extends IDataSource = IDataSource,
 >(opts: {
-  metadata: IRepositoryMetadata<Model, DataSource>;
+  metadata: TRepositoryMetadata<Model, DataSource>;
   registration: IArtifactRegistrationOptions;
   target: Function;
   registry: MetadataRegistry;
@@ -249,10 +270,10 @@ const applyRepositoryMetadata = <
 
   const resolved = resolveRepositoryMetadata({ metadata, target, registry });
 
-  // `_resolved` is an internal cache field, not part of the public IRepositoryMetadata surface callers author - it is added here, so the merged literal needs the widened local type.
+  // `_resolved` is an internal cache field, not part of the public TRepositoryMetadata surface callers author - it is added here, so the merged literal needs the widened local type.
   registry.setRepositoryMetadata({
     target,
-    metadata: { ...metadata, _resolved: resolved } as IRepositoryMetadata<Model, DataSource> & {
+    metadata: { ...metadata, _resolved: resolved } as TRepositoryMetadata<Model, DataSource> & {
       _resolved?: IResolvedRepositoryMetadata<Model, DataSource>;
     },
   });
@@ -262,7 +283,7 @@ export const repository = <
   Model extends AbstractEntity = AbstractEntity,
   DataSource extends IDataSource = IDataSource,
 >(
-  metadata?: IRepositoryMetadata<Model, DataSource>,
+  metadata?: TRepositoryMetadata<Model, DataSource>,
 ): ClassDecorator => {
   return target => {
     const registry = MetadataRegistry.getInstance();

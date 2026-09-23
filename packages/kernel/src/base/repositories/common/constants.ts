@@ -32,6 +32,20 @@ export class RepositoryOperationScopes {
 /** Valid repository operation scope values. */
 export type TRepositoryOperationScope = TConstValue<typeof RepositoryOperationScopes>;
 
+/** What `@repository` binds: MODEL, a model this application declares (the default); REMOTE, data behind another service's API, with no model. */
+export class RepositoryTypes {
+  static readonly MODEL = 'model';
+  static readonly REMOTE = 'remote';
+  static readonly SCHEME_SET = new Set([this.MODEL, this.REMOTE]);
+
+  static isValid(orgType: string): boolean {
+    return this.SCHEME_SET.has(orgType);
+  }
+}
+
+/** Valid repository type values. */
+export type TRepositoryType = TConstValue<typeof RepositoryTypes>;
+
 /** What a row-scope filter (`@model` settings.scopeFilter) does when `resolve()` returns null/undefined. */
 export class ScopeFilterMissingBehaviors {
   /** An unresolved scope matches ZERO rows - the safe reading of "caller's scope is unknown". */

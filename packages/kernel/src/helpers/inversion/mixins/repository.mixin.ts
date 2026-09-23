@@ -10,8 +10,8 @@ import type {
   IModelMetadata,
   IModelRegistryEntry,
   IRepositoryBinding,
-  IRepositoryMetadata,
   IResolvedRepositoryMetadata,
+  TRepositoryMetadata,
 } from '../common/types';
 
 export const RepositoryMetadataMixin = <
@@ -37,14 +37,14 @@ export const RepositoryMetadataMixin = <
       Target extends object = object,
       Model extends AbstractEntity = AbstractEntity,
       DataSource extends IDataSource = IDataSource,
-    >(opts: { target: Target; metadata: IRepositoryMetadata<Model, DataSource> }): void {
+    >(opts: { target: Target; metadata: TRepositoryMetadata<Model, DataSource> }): void {
       const { target, metadata } = opts;
       Reflect.defineMetadata(MetadataKeys.REPOSITORY, metadata, target);
     }
 
     getRepositoryMetadata<Target extends object = object>(opts: {
       target: Target;
-    }): (IRepositoryMetadata & { _resolved?: IResolvedRepositoryMetadata }) | undefined {
+    }): (TRepositoryMetadata & { _resolved?: IResolvedRepositoryMetadata }) | undefined {
       const { target } = opts;
       return Reflect.getMetadata(MetadataKeys.REPOSITORY, target);
     }

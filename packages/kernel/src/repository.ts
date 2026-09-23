@@ -34,7 +34,9 @@ export {
   DEFAULT_LIMIT,
   DEFAULT_MAX_LIMIT,
   RepositoryOperationScopes,
+  RepositoryTypes,
 } from '@/base/repositories/common/constants';
+export type { TRepositoryType } from '@/base/repositories/common/constants';
 export { CoreErrorCodes, SearchErrorCodes } from '@/common/error-codes';
 export { throwNotSupported } from '@/utilities/error.utility';
 export type { TCount, TDataRange, TDataWithRange } from '@/base/repositories/common/types/results';
