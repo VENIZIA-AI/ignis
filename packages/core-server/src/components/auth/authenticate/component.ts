@@ -32,6 +32,7 @@ import {
   JWKSVerifierTokenService,
   JWSTokenService,
 } from './services';
+import { JoseLoader } from './services/jose-loader';
 import { ServiceAssertionSignerService } from './services/service/signer.service';
 import { ServiceAssertionVerifierService } from './services/service/verifier.service';
 import { ServiceAuthenticationStrategy } from './strategies/service.strategy';
@@ -106,6 +107,31 @@ export class AuthenticateComponent extends BaseComponent {
     this.defineControllers({ options });
 
     this.defineOAuth2();
+
+    return this.preloadJose({ options });
+  }
+
+  /**
+   * Loads `jose` at boot when a configured service signs or verifies with it, so a missing or broken
+   * install fails the boot instead of answering every token check with a 401.
+   */
+  private async preloadJose(opts: { options: IAuthenticateOptions }): Promise<void> {
+    const { jwtOptions, serviceOptions } = opts.options;
+    if (!jwtOptions && !serviceOptions) {
+      return;
+    }
+
+    try {
+      await JoseLoader.load();
+    } catch (error) {
+      const reason = error instanceof Error ? error.message : String(error);
+      this.logger.for(this.preloadJose.name).error("Failed to load 'jose' | Error: %s", reason);
+
+      throw getError({
+        message: `[AuthenticateComponent] Cannot load 'jose', which JWT and service authentication need. Please install it | Error: ${reason}`,
+        cause: error,
+      });
+    }
   }
 
   private defineJWSAuth(opts: { options: IJWSTokenServiceOptions }): void {

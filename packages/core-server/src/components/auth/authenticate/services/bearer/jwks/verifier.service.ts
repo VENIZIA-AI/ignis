@@ -8,7 +8,8 @@ import {
   TGetTokenExpiresFn,
 } from '@venizia/ignis-kernel';
 import { Env } from 'hono';
-import { createRemoteJWKSet, jwtVerify, SignJWT } from 'jose';
+import type { createRemoteJWKSet, SignJWT } from 'jose';
+import { JoseLoader } from '../../jose-loader';
 import { AbstractJWKSTokenService } from './abstract.service';
 
 export class JWKSVerifierTokenService<E extends Env = Env> extends AbstractJWKSTokenService<E> {
@@ -28,6 +29,7 @@ export class JWKSVerifierTokenService<E extends Env = Env> extends AbstractJWKST
   }
 
   protected override async initialize(): Promise<void> {
+    const { createRemoteJWKSet } = await JoseLoader.load();
     const jwksUrl = new URL(this.options.jwksUrl);
     this.jwksVerifier = createRemoteJWKSet(jwksUrl, {
       cacheMaxAge: this.options.cacheTtlMs ?? 43_200_000,
@@ -43,6 +45,7 @@ export class JWKSVerifierTokenService<E extends Env = Env> extends AbstractJWKST
 
   protected override async doVerify(token: string): Promise<IJWTTokenPayload> {
     await this.ensureInitialized();
+    const { jwtVerify } = await JoseLoader.load();
     const result = await jwtVerify<IJWTTokenPayload>(
       token,
       this.jwksVerifier!,

@@ -9,7 +9,7 @@ import {
   TGetTokenExpiresFn,
 } from '@venizia/ignis-kernel';
 import { Env } from 'hono';
-import { jwtVerify, SignJWT } from 'jose';
+import { JoseLoader } from '../jose-loader';
 import { AbstractBearerTokenService } from './abstract.service';
 
 /** Symmetric JWT (JWS) token service with optional AES-encrypted payloads. */
@@ -49,6 +49,7 @@ export class JWSTokenService<E extends Env = Env> extends AbstractBearerTokenSer
   }
 
   protected override async doVerify(token: string): Promise<IJWTTokenPayload> {
+    const { jwtVerify } = await JoseLoader.load();
     const decodedToken = await jwtVerify<IJWTTokenPayload>(
       token,
       this.jwtSecret,
@@ -62,6 +63,7 @@ export class JWSTokenService<E extends Env = Env> extends AbstractBearerTokenSer
     getTokenExpiresFn: TGetTokenExpiresFn;
     claims?: IJWTIssueClaims;
   }) {
+    const { SignJWT } = await JoseLoader.load();
     const now = Math.floor(Date.now() / 1000);
     const expiresIn = await opts.getTokenExpiresFn();
 

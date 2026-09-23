@@ -3,10 +3,10 @@ import { AuthenticateBindingKeys, BaseService, ServiceAssertion } from '@venizia
 import type { IServiceAuthOptions } from '@venizia/ignis-kernel';
 import { getError, RequestIdGenerator } from '@venizia/ignis-helpers/core';
 import { HTTP } from '@venizia/ignis-helpers/common';
-import { exportJWK, importPKCS8, importSPKI, SignJWT } from 'jose';
 import type { CryptoKey, JWK } from 'jose';
 import { readFile } from 'node:fs/promises';
 import { JWKSKeyDrivers, JWKSKeyFormats } from '@venizia/ignis-kernel';
+import { JoseLoader } from '../jose-loader';
 
 /**
  * Mints the outgoing assertion, and publishes the public half for callees to verify against.
@@ -51,6 +51,7 @@ export class ServiceAssertionSignerService extends BaseService {
 
     this.assertEnabled();
 
+    const { SignJWT } = await JoseLoader.load();
     const now = Math.floor(Date.now() / 1000);
     const lifetime =
       this.options.signLifetimeSeconds ?? ServiceAssertion.DEFAULT_SIGN_LIFETIME_SECONDS;
@@ -85,6 +86,7 @@ export class ServiceAssertionSignerService extends BaseService {
 
     this.assertEnabled();
 
+    const { exportJWK, importSPKI } = await JoseLoader.load();
     const raw = await this.readKey({ source: this.options.keys!.public });
     const publicKey = await importSPKI(raw, ServiceAssertion.ALGORITHM);
     const jwk = await exportJWK(publicKey);
@@ -108,6 +110,7 @@ export class ServiceAssertionSignerService extends BaseService {
       return this.privateKey;
     }
 
+    const { importPKCS8 } = await JoseLoader.load();
     const raw = await this.readKey({ source: this.options.keys!.private });
     this.privateKey = await importPKCS8(raw, ServiceAssertion.ALGORITHM);
     return this.privateKey;

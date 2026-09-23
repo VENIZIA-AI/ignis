@@ -7,7 +7,8 @@ import {
 } from '@venizia/ignis-kernel';
 import type { IServiceAssertionClaims, IServiceAuthOptions } from '@venizia/ignis-kernel';
 import { getError } from '@venizia/ignis-helpers/core';
-import { createRemoteJWKSet, decodeJwt, jwtVerify } from 'jose';
+import type { createRemoteJWKSet } from 'jose';
+import { JoseLoader } from '../jose-loader';
 
 type TRemoteKeySet = ReturnType<typeof createRemoteJWKSet>;
 
@@ -41,9 +42,10 @@ export class ServiceAssertionVerifierService extends BaseService {
   async verify(opts: { token: string; method: string; path: string }): Promise<{ issuer: string }> {
     const { token, method, path } = opts;
 
-    const issuer = this.readIssuer({ token });
-    const keySet = this.resolveKeySet({ issuer });
-    const payload = await this.runVerify({ token, issuer, keySet });
+    const jose = await JoseLoader.load();
+    const issuer = this.readIssuer({ token, jose });
+    const keySet = this.resolveKeySet({ issuer, jose });
+    const payload = await this.runVerify({ token, issuer, keySet, jose });
 
     this.assertRequestBinding({ payload, method, path });
 
@@ -55,11 +57,11 @@ export class ServiceAssertionVerifierService extends BaseService {
    * is then enforced as the expected issuer, so a forged `iss` buys nothing beyond selecting the key
    * set that will reject it.
    */
-  private readIssuer(opts: { token: string }): string {
+  private readIssuer(opts: { token: string; jose: typeof import('jose') }): string {
     let issuer: unknown;
 
     try {
-      ({ iss: issuer } = decodeJwt(opts.token));
+      ({ iss: issuer } = opts.jose.decodeJwt(opts.token));
     } catch (error) {
       this.logger.for(this.readIssuer.name).warn('Undecodable assertion | error: %s', error);
       throw getError({ error: AuthenticationErrors.ASSERTION_INVALID });
@@ -76,8 +78,8 @@ export class ServiceAssertionVerifierService extends BaseService {
     return issuer;
   }
 
-  private resolveKeySet(opts: { issuer: string }): TRemoteKeySet {
-    const { issuer } = opts;
+  private resolveKeySet(opts: { issuer: string; jose: typeof import('jose') }): TRemoteKeySet {
+    const { issuer, jose } = opts;
 
     const cached = this.keySets.get(issuer);
     if (cached) {
@@ -107,7 +109,7 @@ export class ServiceAssertionVerifierService extends BaseService {
       }),
     );
 
-    const keySet = createRemoteJWKSet(new URL(jwksUrl), {
+    const keySet = jose.createRemoteJWKSet(new URL(jwksUrl), {
       cacheMaxAge:
         this.options.jwks?.cacheMaxAgeMs ?? ServiceAssertion.DEFAULT_JWKS_CACHE_MAX_AGE_MS,
       cooldownDuration: this.options.jwks?.cooldownMs ?? ServiceAssertion.DEFAULT_JWKS_COOLDOWN_MS,
@@ -121,8 +123,9 @@ export class ServiceAssertionVerifierService extends BaseService {
     token: string;
     issuer: string;
     keySet: TRemoteKeySet;
+    jose: typeof import('jose');
   }): Promise<IServiceAssertionClaims> {
-    const { token, issuer, keySet } = opts;
+    const { token, issuer, keySet, jose } = opts;
 
     // Resolved when the key set was, so a per-caller override is already folded in.
     const maxTokenAge =
@@ -135,7 +138,7 @@ export class ServiceAssertionVerifierService extends BaseService {
       this.options.clockToleranceSeconds ?? ServiceAssertion.DEFAULT_CLOCK_TOLERANCE_SECONDS;
 
     try {
-      const { payload } = await jwtVerify<IServiceAssertionClaims>(token, keySet, {
+      const { payload } = await jose.jwtVerify<IServiceAssertionClaims>(token, keySet, {
         algorithms: [ServiceAssertion.ALGORITHM],
         typ: ServiceAssertion.TYP,
         issuer,

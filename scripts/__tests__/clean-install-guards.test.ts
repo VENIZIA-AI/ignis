@@ -1,16 +1,49 @@
 import { afterEach, describe, expect, test } from 'bun:test';
-import { mkdirSync, mkdtempSync, rmSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import {
+  checkImportOrder,
   findStrayModuleRoots,
   findUnmatchedBrowserEntries,
   findUnpinnedWorkspaceEntries,
   isBuildStale,
 } from '../clean-install/cli';
+import type { IInstallRow } from '../clean-install/manifest';
 
 const TARBALL = '/tmp/gate/tarballs/kernel/venizia-ignis-kernel-0.2.0-44.tgz';
 const HELPERS_TARBALL = '/tmp/gate/tarballs/helpers/venizia-ignis-helpers-0.2.0-39.tgz';
+
+const ORDER_ROW: IInstallRow = {
+  package: 'probe',
+  name: 'probe',
+  subpath: '.',
+  specifier: './counted.mjs',
+  extras: [],
+  bunOnly: true,
+  hasRequire: false,
+  importedAfter: ['./peer.mjs'],
+};
+
+/** The row's entry counts its loads in `runs.txt` and fails on load `failOnRun`, as a load race fails only some runs. */
+const writeOrderFixture = (opts: { sandbox: string; failOnRun?: number }): void => {
+  writeFileSync(
+    join(opts.sandbox, 'counted.mjs'),
+    [
+      "import { existsSync, readFileSync, writeFileSync } from 'node:fs';",
+      "const counter = new URL('./runs.txt', import.meta.url);",
+      "const run = existsSync(counter) ? Number(readFileSync(counter, 'utf8')) + 1 : 1;",
+      'writeFileSync(counter, String(run));',
+      `if (run === ${opts.failOnRun ?? 0}) {`,
+      // Not console.error: under FORCE_COLOR Bun wraps it in color codes.
+      "  process.stderr.write('error: load failed on run ' + run + '\\n');",
+      '  process.exit(1);',
+      '}',
+      '',
+    ].join('\n'),
+  );
+  writeFileSync(join(opts.sandbox, 'peer.mjs'), 'export const peer = true;\n');
+};
 
 const lockWith = (opts: { kernel: string; helpers: string }): string => `{
   "lockfileVersion": 2,
@@ -136,5 +169,31 @@ describe('clean-install guards', () => {
     expect(isBuildStale({ newestSourceMs: 2_000, newestDistMs: 2_000 })).toBe(false);
     expect(isBuildStale({ newestSourceMs: 3_000, newestDistMs: 2_000 })).toBe(true);
     expect(isBuildStale({ newestSourceMs: 3_000 })).toBe(true);
+  });
+
+  test('the import-order check fails on the first failing run and names it', async () => {
+    const sandbox = mkdtempSync(join(tmpdir(), 'ign-order-'));
+    scratch.push(sandbox);
+    writeOrderFixture({ sandbox, failOnRun: 3 });
+
+    const result = await checkImportOrder({ row: ORDER_ROW, sandbox, runs: 5 });
+
+    expect(result).toEqual({
+      name: 'bun-order',
+      ok: false,
+      detail: 'run 3/5: error: load failed on run 3',
+    });
+    expect(readFileSync(join(sandbox, 'runs.txt'), 'utf8')).toBe('3');
+  });
+
+  test('the import-order check passes only after every run loaded', async () => {
+    const sandbox = mkdtempSync(join(tmpdir(), 'ign-order-'));
+    scratch.push(sandbox);
+    writeOrderFixture({ sandbox });
+
+    const result = await checkImportOrder({ row: ORDER_ROW, sandbox, runs: 5 });
+
+    expect(result).toEqual({ name: 'bun-order', ok: true, detail: '' });
+    expect(readFileSync(join(sandbox, 'runs.txt'), 'utf8')).toBe('5');
   });
 });

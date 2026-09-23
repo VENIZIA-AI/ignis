@@ -19,6 +19,12 @@ export interface IInstallClaim {
   requires?: Record<string, string[]>;
   /** Sub-paths that exist for one runtime only, keyed as spelled in `exports`. */
   bunOnly?: string[];
+  /**
+   * Granted or required peers an application imports itself right AFTER a sub-path, keyed as
+   * spelled in `exports`. Bun loads both from one ESM entry, in that order: a CommonJS sub-path that
+   * `require`s a peer Bun is still loading as ESM crashes only then, never when loaded alone.
+   */
+  importedAfter?: Record<string, string[]>;
   /** Published for config files a tool reads, never imported at runtime - so it gets no row. */
   configOnly?: boolean;
 }
@@ -80,6 +86,7 @@ export const INSTALL_CLAIMS: IInstallClaim[] = [
       './typesense': ['typesense'],
       './socket-io': ['socket.io', '@socket.io/redis-adapter', '@socket.io/redis-emitter'],
     },
+    importedAfter: { '.': ['jose'], './postgres/postgres-js': ['postgres'] },
   },
   { package: 'atlas' },
   { package: 'dev-configs', configOnly: true },
@@ -106,6 +113,7 @@ export interface IInstallRow {
   extras: string[];
   bunOnly: boolean;
   hasRequire: boolean;
+  importedAfter: string[];
 }
 
 const REPOSITORY_ROOT = join(import.meta.dir, '../..');
@@ -146,6 +154,15 @@ export const assertEveryPackageClaimed = (opts: {
   return published;
 };
 
+/** Peers not marked optional, with their ranges: the gate installs them beside every sub-path of the package. */
+export const getRequiredPeers = (opts: { manifest: IPackageManifest }): Record<string, string> => {
+  const optional = opts.manifest.peerDependenciesMeta ?? {};
+  const peers = Object.entries(opts.manifest.peerDependencies ?? {}).filter(
+    ([name]) => !optional[name]?.optional,
+  );
+  return Object.fromEntries(peers);
+};
+
 /** A runtime entry: not the manifest itself, not a JSON config, not a pattern. */
 const isCodeSubpath = (subpath: string): boolean =>
   subpath !== './package.json' && !subpath.endsWith('.json') && !subpath.includes('*');
@@ -164,7 +181,11 @@ export const deriveInstallRows = (opts: { claims: IInstallClaim[] }): IInstallRo
     const exportsMap = manifest.exports ?? {};
     const peers = manifest.peerDependencies ?? {};
 
-    const claimedSubpaths = [...Object.keys(claim.requires ?? {}), ...(claim.bunOnly ?? [])];
+    const claimedSubpaths = [
+      ...Object.keys(claim.requires ?? {}),
+      ...(claim.bunOnly ?? []),
+      ...Object.keys(claim.importedAfter ?? {}),
+    ];
     for (const subpath of claimedSubpaths) {
       if (!(subpath in exportsMap)) {
         throw new Error(
@@ -184,6 +205,20 @@ export const deriveInstallRows = (opts: { claims: IInstallClaim[] }): IInstallRo
       }
     }
 
+    // Only a granted or a required peer is installed beside the sub-path; any other would fail as missing.
+    const requiredPeers = getRequiredPeers({ manifest });
+    const importOrderEntries = Object.entries(claim.importedAfter ?? {});
+    for (const [subpath, importedPeers] of importOrderEntries) {
+      for (const peer of importedPeers) {
+        const isGranted = (claim.requires?.[subpath] ?? []).includes(peer);
+        if (!isGranted && !(peer in requiredPeers)) {
+          throw new Error(
+            `[clean-install][manifest] '${claim.package}${subpath.slice(1)}' is imported before '${peer}', which the claim does not grant that sub-path`,
+          );
+        }
+      }
+    }
+
     const subpaths = Object.keys(exportsMap).filter(isCodeSubpath);
     for (const subpath of subpaths) {
       const target = exportsMap[subpath];
@@ -195,6 +230,7 @@ export const deriveInstallRows = (opts: { claims: IInstallClaim[] }): IInstallRo
         extras: [...(claim.requires?.[subpath] ?? [])].sort(),
         bunOnly: (claim.bunOnly ?? []).includes(subpath),
         hasRequire: typeof target === 'string' || 'require' in target || 'default' in target,
+        importedAfter: [...(claim.importedAfter?.[subpath] ?? [])],
       });
     }
   }

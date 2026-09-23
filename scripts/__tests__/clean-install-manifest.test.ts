@@ -2,6 +2,7 @@ import { describe, expect, test } from 'bun:test';
 import {
   assertEveryPackageClaimed,
   deriveInstallRows,
+  getRequiredPeers,
   INSTALL_CLAIMS,
   listPublishedPackages,
   readPackageManifest,
@@ -35,6 +36,48 @@ describe('clean-install manifest', () => {
     expect(() =>
       deriveInstallRows({ claims: [{ package: 'kernel', requires: { './nope': ['hono'] } }] }),
     ).toThrow(/does not publish/);
+  });
+
+  test('the postgres-js alias is loaded under Bun with postgres imported after it', () => {
+    const rows = deriveInstallRows({ claims: INSTALL_CLAIMS });
+    const postgresJs = rows.find(row => row.specifier === '@venizia/ignis/postgres/postgres-js');
+
+    expect(postgresJs?.importedAfter).toEqual(['postgres']);
+    expect(postgresJs?.extras).toContain('postgres');
+  });
+
+  test('the root entry is loaded under Bun with jose imported after it', () => {
+    const rows = deriveInstallRows({ claims: INSTALL_CLAIMS });
+    const root = rows.find(row => row.specifier === '@venizia/ignis');
+
+    expect(root?.importedAfter).toEqual(['jose']);
+    expect(root?.extras).toEqual([]);
+  });
+
+  test('the required peers are the peers not marked optional, with their ranges', () => {
+    const manifest = {
+      name: 'probe',
+      peerDependencies: { unmarked: '^1.0.0', optional: '^2.0.0', explicit: '^3.0.0' },
+      peerDependenciesMeta: { optional: { optional: true }, explicit: { optional: false } },
+    };
+
+    expect(getRequiredPeers({ manifest })).toEqual({ unmarked: '^1.0.0', explicit: '^3.0.0' });
+  });
+
+  test('a required peer is imported after a sub-path without a grant', () => {
+    expect(() =>
+      deriveInstallRows({ claims: [{ package: 'core-server', importedAfter: { '.': ['jose'] } }] }),
+    ).not.toThrow();
+  });
+
+  test('a peer imported after a sub-path that the claim does not grant it is refused', () => {
+    expect(() =>
+      deriveInstallRows({
+        claims: [
+          { package: 'core-server', importedAfter: { './postgres/postgres-js': ['postgres'] } },
+        ],
+      }),
+    ).toThrow(/does not grant that sub-path/);
   });
 
   test('a claim granting a peer the package does not declare is refused', () => {

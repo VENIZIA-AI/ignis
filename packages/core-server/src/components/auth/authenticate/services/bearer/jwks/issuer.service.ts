@@ -11,17 +11,9 @@ import {
   TGetTokenExpiresFn,
 } from '@venizia/ignis-kernel';
 import { Env } from 'hono';
-import {
-  CryptoKey,
-  exportJWK,
-  importJWK,
-  importPKCS8,
-  importSPKI,
-  JWK,
-  jwtVerify,
-  SignJWT,
-} from 'jose';
+import type { CryptoKey, JWK } from 'jose';
 import { readFile } from 'node:fs/promises';
+import { JoseLoader } from '../../jose-loader';
 import { AbstractJWKSTokenService } from './abstract.service';
 
 export class JWKSIssuerTokenService<E extends Env = Env> extends AbstractJWKSTokenService<E> {
@@ -53,6 +45,7 @@ export class JWKSIssuerTokenService<E extends Env = Env> extends AbstractJWKSTok
     this.privateKey = built.priv;
     this.publicKey = built.pub;
 
+    const { exportJWK } = await JoseLoader.load();
     const publicJWK = await exportJWK(this.publicKey!);
 
     // Belt and braces. `assertPublicJWK` already refused a private JWK on the way IN, but this is
@@ -152,6 +145,8 @@ export class JWKSIssuerTokenService<E extends Env = Env> extends AbstractJWKSTok
       });
     }
 
+    const { importJWK, importPKCS8, importSPKI } = await JoseLoader.load();
+
     switch (keys.format) {
       case JWKSKeyFormats.PEM: {
         const priv = await importPKCS8(raw.priv, algorithm);
@@ -191,6 +186,7 @@ export class JWKSIssuerTokenService<E extends Env = Env> extends AbstractJWKSTok
 
   protected override async doVerify(token: string): Promise<IJWTTokenPayload> {
     await this.ensureInitialized();
+    const { jwtVerify } = await JoseLoader.load();
     const result = await jwtVerify<IJWTTokenPayload>(token, this.publicKey!, this.options.verify);
     return this.decryptPayload({ result });
   }
@@ -201,6 +197,7 @@ export class JWKSIssuerTokenService<E extends Env = Env> extends AbstractJWKSTok
     claims?: IJWTIssueClaims;
   }) {
     await this.ensureInitialized();
+    const { SignJWT } = await JoseLoader.load();
 
     const now = Math.floor(Date.now() / 1000);
     const expiresIn = await opts.getTokenExpiresFn();
