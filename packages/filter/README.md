@@ -1,12 +1,8 @@
 # @venizia/ignis-filter
 
-The engine-neutral query filter vocabulary shared across IGNIS: the filter shape, the operator set,
-and the sort direction constants.
-
-It is **isomorphic by construction**. The package resolves to no node builtin and no server-only
-peer - its built barrel imports `@venizia/ignis-inversion` and nothing else - so the same filter
-language describes a query against a Postgres repository on the server and against a WASM database in
-a browser worker.
+The query filter language of IGNIS: the `TFilter` shape, its operators, and the zod schemas that
+validate it. Install it directly when you want the language without the server framework, for
+example in a browser.
 
 ## Install
 
@@ -14,72 +10,98 @@ a browser worker.
 bun add @venizia/ignis-filter
 ```
 
-Applications on `@venizia/ignis` already get everything here re-exported from the core barrel - there
-is no need to add this package to reach `TFilter` or `QueryOperators`. Install it directly when you
-want the vocabulary **without** the server framework, which is the browser case.
+An application on `@venizia/ignis` does not need it: `TFilter`, `QueryOperators`, `Sorts` and the
+schemas are re-exported from `@venizia/ignis`.
 
-## What it carries
+## Use it
 
-| Export | Purpose |
-|---|---|
-| `TFilter` | `{ where, order, limit, offset, skip, fields, include }` |
-| `TWhere` | Query conditions, with nested `and` / `or` |
-| `TFields` | Field selection - array of names, or an object keyed by name |
-| `TInclusion` | One relation to include, with an optional nested `scope` |
-| `TLimit`, `TOffset`, `TSkip`, `TOrderBy` | The scalar members of the shape |
-| `QueryOperators` | Comparison, pattern, null, array and logical operators, plus `isValid` |
-| `TQueryOperator` | The operator union, derived from the const class |
-| `Sorts` | `ASC` / `DESC`, plus `isValid` |
+A filter is a plain object. Type it against your entity, and an unknown field in `where` is a
+compile error.
 
-```ts
+```typescript
 import { QueryOperators, Sorts, type TFilter } from '@venizia/ignis-filter';
 
-const filter: TFilter = {
-  where: { status: 'active', createdAt: { [QueryOperators.GTE]: '2026-01-01' } },
+type TUser = { id: number; status: string; createdAt: string };
+
+const filter: TFilter<TUser> = {
+  where: {
+    status: 'active',
+    createdAt: { [QueryOperators.GTE]: '2026-01-01' },
+    or: [{ id: { [QueryOperators.IN]: [1, 2, 3] } }, { status: 'pending' }],
+  },
   order: [`createdAt ${Sorts.DESC}`],
   limit: 20,
 };
 ```
 
-## Validation - the `/schemas` sub-path
+A bare value means `eq`, and `null` means `is`. The same object works against every IGNIS
+repository. Each connector translates it for its engine and throws on an operator the engine does
+not support.
 
-```ts
+## Validate a filter from the wire
+
+Import the schemas from the `/schemas` entry point. `FilterSchema` and `WhereSchema` accept an
+object or a JSON string.
+
+```typescript
 import { FilterSchema, WhereSchema } from '@venizia/ignis-filter/schemas';
 
-const parsed = FilterSchema.parse({ where: { status: 'active' }, limit: 20 });
-const where = WhereSchema.parse('{"status":"active"}'); // a JSON string parses too
+const filter = FilterSchema.parse('{"where":{"status":"active"},"limit":20}');
+const where = WhereSchema.safeParse('not-json'); // success: false - a validation issue, not a throw
 ```
 
-A separate entry point on purpose: importing the vocabulary must not drag `zod` into a bundle that
-only needs `QueryOperators`. Available: `FilterSchema`, `WhereSchema`, `FieldsSchema`,
-`InclusionSchema`, `LimitSchema`, `OffsetSchema`, `SkipSchema`, `OrderBySchema`.
+A negative or fractional `limit`, `offset` or `skip` fails validation. `include[].scope` takes a
+nested filter.
 
-> **On a server, import these from `@venizia/ignis-core` instead.** The instances here carry no
-> OpenAPI metadata - they validate identically but document nothing, so a route built on them
-> produces an API reference with no descriptions.
+## What it carries
 
-Need your own metadata layer? `buildQuerySchemas({ decorate })` takes a decorator applied to every
-node, including nested ones:
+| Export | What it is |
+| :--- | :--- |
+| `TFilter<T>` | `{ where, fields, include, order, limit, offset, skip }` |
+| `TWhere<T>` | Conditions keyed by the fields of `T`, with nested `and` / `or` |
+| `TWhereOperators<V>`, `TWhereValue<V>` | The operator object and what one field accepts |
+| `TFields<T>` | An array of field names, or `{ field: true \| false }` |
+| `TInclusion` | `{ relation, scope? }`: a relation to load, with its own filter |
+| `TIsoTimestamp` | A branded string for ISO timestamp columns; `where` also accepts a `Date` for it |
+| `QueryOperators` | The operator names, plus `isValid()` |
+| `Sorts` | `ASC` / `DESC`, plus `isValid()` |
 
-```ts
-import { buildQuerySchemas } from '@venizia/ignis-filter/schemas';
+| Operators | Names |
+| :--- | :--- |
+| Comparison | `eq`, `ne`, `neq`, `gt`, `gte`, `lt`, `lte` |
+| Pattern | `like`, `nlike`, `ilike`, `nilike`, `regexp`, `iregexp` |
+| Null | `is`, `isn` |
+| List and range | `in`, `inq`, `nin`, `between`, `notBetween` |
+| Array columns | `contains`, `containedBy`, `overlaps` |
+| Other | `exists`, `notExists`, `not`, `and`, `or` |
 
-const { FilterSchema } = buildQuerySchemas({
-  decorate: (schema, metadata) => schema.describe(metadata.description ?? ''),
-});
-```
+## Entry points
 
-## What it deliberately does not carry
+| Entry point | What it gives | Extra peers |
+| :--- | :--- | :--- |
+| `@venizia/ignis-filter` | Types, `QueryOperators`, `Sorts`. Does not load zod | none |
+| `@venizia/ignis-filter/schemas` | `FilterSchema`, `WhereSchema`, `FieldsSchema`, `InclusionSchema`, `LimitSchema`, `OffsetSchema`, `SkipSchema`, `OrderBySchema`, `buildQuerySchemas` | none (`zod` is a dependency) |
 
-- **Any translation to a query language.** Turning a `TFilter` into SQL is engine-specific - the
-  Postgres translator is Drizzle-coupled and lives with its connector. Operator support differs per
-  engine, and an unsupported operator throws at translation time rather than being dropped from this
-  list.
-- **Types inferred from the schemas.** `TFilter<T>` is generic over the entity, so `TFilter<User>`
-  rejects `{ where: { notAField: 1 } }`; `z.infer<typeof FilterSchema>` accepts it, because the
-  recursive where-clause is `z.ZodType<any>`. The schema describes what arrives over the wire, the
-  type describes what application code builds, and they only overlap in the middle.
+Both ship CommonJS and ES module builds, with no node builtin, so they load in a browser.
 
-## License
+The schemas here carry no OpenAPI descriptions. On a server, import them from `@venizia/ignis`
+instead: the same schemas, built through `buildQuerySchemas({ decorate })` with an OpenAPI
+decorator, so your API reference documents them.
 
-MIT
+The schema's inferred type is looser than `TFilter<T>`. It describes what arrives over the wire,
+so it accepts any field name in `where`.
+
+## Where it sits
+
+Depends on inversion. Used by kernel and connectors: dev-configs -> inversion -> {**filter**,
+helpers} -> {boot, kernel} -> connectors -> {core-worker, core-server} -> atlas.
+
+## Links
+
+- [Filter system](https://ignis.venizia.ai/references/base/filter-system/)
+- [Filter quick reference](https://ignis.venizia.ai/references/base/filter-system/quick-reference)
+- [Changelog: the filter package](https://ignis.venizia.ai/changelogs/2026-07-25-ignis-filter-package)
+- [Changelog](https://ignis.venizia.ai/changelogs/)
+- [Source](https://github.com/VENIZIA-AI/ignis/blob/main/packages/filter)
+
+MIT licensed - see [LICENSE.md](./LICENSE.md).

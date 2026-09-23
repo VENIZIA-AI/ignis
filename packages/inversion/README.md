@@ -1,47 +1,23 @@
-<div align="center">
+# @venizia/ignis-inversion
 
-<br />
-
-# :fire: @venizia/ignis-inversion
-
-**A small IoC container that works anywhere.**
-
-[![Docs](https://img.shields.io/badge/Docs-ignis.venizia.ai-2563EB.svg?style=flat-square)](https://ignis.venizia.ai/references/base/dependency-injection)
-[![npm](https://img.shields.io/npm/v/@venizia/ignis-inversion.svg?style=flat-square&color=cb3837&label=@venizia/ignis-inversion)](https://www.npmjs.com/package/@venizia/ignis-inversion)
-[![License: MIT](https://img.shields.io/badge/License-MIT-3DA639.svg?style=flat-square)](https://opensource.org/licenses/MIT)
-[![TypeScript](https://img.shields.io/badge/TypeScript-6.x-3178C6.svg?style=flat-square&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
-
-[Documentation](https://ignis.venizia.ai/references/base/dependency-injection) &#8226;
-[Core API](https://ignis.venizia.ai/references/) &#8226;
-[Changelog](https://ignis.venizia.ai/changelogs/)
-
-</div>
-
----
-
-The dependency injection container behind [IGNIS](https://ignis.venizia.ai) - decorator-driven
-constructor and property injection, a fluent binding API, singleton/transient scopes, and tag-based
-discovery, in roughly 350 lines.
-
-It has no framework dependency. Reach for it when you want LoopBack 4-style DI without adopting a
-framework, and it is small enough to ship into a browser bundle. IGNIS itself uses nothing more than
-what is documented here.
+The dependency injection container under IGNIS, and the error type every IGNIS package throws. It
+depends on no other IGNIS package, so you can install it alone to get LoopBack 4-style bindings
+without the framework.
 
 ## Install
 
 ```bash
-bun add @venizia/ignis-inversion reflect-metadata
+bun add @venizia/ignis-inversion
 ```
 
-> [!IMPORTANT]
-> `experimentalDecorators` and `emitDecoratorMetadata` must be `true` in your `tsconfig.json`,
-> declared **inline**. Bun does not resolve them through `extends`, and `@inject` is silently
-> dropped without them.
+`reflect-metadata` comes as a dependency, and the package entry imports it. Your `tsconfig.json`
+must declare `experimentalDecorators: true` itself (see [Decorators](#decorators)).
 
-## Usage
+## Use it
+
+Bind values and classes under string keys, then ask the container for a key.
 
 ```typescript
-import 'reflect-metadata';
 import { BindingScopes, Container, inject } from '@venizia/ignis-inversion';
 
 class GreetingService {
@@ -55,7 +31,7 @@ class GreetingService {
   }
 }
 
-const container = new Container({ scope: 'app' });
+const container = new Container();
 
 container.bind({ key: 'config.prefix' }).toValue('Hello');
 container
@@ -66,119 +42,109 @@ container
 const service = container.get<GreetingService>({ key: 'services.GreetingService' });
 console.log(service.greet('IGNIS')); // Hello IGNIS (en)
 
-// A key's first segment becomes a tag, so bindings are discoverable as a group.
-container.findByTag({ tag: 'services' }); // [Binding('services.GreetingService')]
+// The first segment of a dotted key becomes a tag.
+container.findByTag({ tag: 'services' }); // [the 'services.GreetingService' binding]
 ```
+
+Notice that `config.locale` is never bound. `isOptional: true` makes it resolve to `undefined`
+instead of throwing.
 
 ## API
 
-Every method takes an options object - `container.get({ key })`, never `container.get(key)`.
+Every method takes an options object: `container.get({ key })`, never `container.get(key)`.
 
-### Container
-
-| Member | What it does |
+| Container member | What it does |
 | :--- | :--- |
-| `new Container({ scope })` | The default container. `AbstractContainer` (contract) and `BaseContainer` (storage) are exported for custom implementations |
 | `bind<T>({ key })` | Creates and registers a `Binding`, returned for chaining |
-| `get<T>({ key, isOptional })` | Resolves a value. Throws when unbound unless `isOptional` is true |
-| `gets<T>({ bindings })` | Resolves several keys at once; every result is optional |
-| `getBinding<T>({ key })` | The binding itself, not its value. Accepts `{ namespace, key }` too |
-| `isBound({ key })` / `unbind({ key })` | Membership test / removal |
-| `set({ binding })` | Registers an externally constructed `Binding` under its own key |
-| `instantiate<T>(cls)` | Builds a class from its decorator metadata - `resolve(cls)` is an alias |
-| `findByTag({ tag, exclude })` | All bindings carrying a tag. `exclude` takes an array or a `Set` of keys |
-| `clear()` / `reset()` | Drops cached singleton instances / drops all bindings |
+| `get<T>({ key, isOptional })` | Resolves a key. Throws when the key is unbound, unless `isOptional` is `true`. `key` may also be `{ namespace, key }` |
+| `gets({ bindings })` | Resolves several keys; every entry is optional |
+| `getBinding({ key })`, `isBound({ key })`, `unbind({ key })`, `set({ binding })` | Read, test, remove, or register a `Binding` |
+| `instantiate(cls)` / `resolve(cls)` | Builds a class from its `@inject` metadata without binding it |
+| `findByTag({ tag, exclude })` | Every binding with a tag; `exclude` takes an array or a `Set` of keys |
+| `clear()` / `reset()` | Drops cached singletons / drops every binding |
+| `startResolutionCounting()`, `getResolutionCounts()`, `stopResolutionCounting()` | Counts how often each key is resolved, off by default |
 
-### Binding
-
-| Member | What it does |
+| Binding member | What it does |
 | :--- | :--- |
-| `.toValue(value)` | Binds a ready value - returned as-is |
-| `.toClass(Class)` | Binds a class, instantiated through the container on resolution |
-| `.toProvider(fn \| ProviderClass)` | Binds a factory `(container) => T`, or a class implementing `IProvider<T>` with a `value(container)` method |
-| `.setScope(scope)` / `.getScope()` | `BindingScopes.TRANSIENT` (default) or `BindingScopes.SINGLETON` |
-| `.setTags(...tags)` / `.hasTag(tag)` / `.getTags()` | Tagging for `findByTag` |
-| `.getValue(container)` | Resolves the binding; a container is required for class and provider resolvers |
-| `.clearCache()` | Discards a cached singleton instance |
+| `toValue(value)` | Returns the value as-is |
+| `toClass(Class)` | Instantiates the class through the container |
+| `toProvider(factory)` | Calls `(container) => T`, or instantiates a class with a `value(container)` method |
+| `setScope(scope)` | `BindingScopes.TRANSIENT` (default) or `BindingScopes.SINGLETON` |
+| `setTags(...tags)`, `hasTag(tag)`, `getTags()` | Tags for `findByTag` |
+| `clearCache()` | Discards the cached singleton |
 
-### Decorators
+`AbstractContainer` (the contract) and `BaseContainer` (the storage) are exported for custom
+containers. `BindingKeys.build({ namespace, key })` joins a namespace and a key with a dot.
 
-| Decorator | Where | Notes |
+## Decorators
+
+`@inject` marks a constructor parameter or a property. Pass a `key`, or a `target` class to
+resolve through the key that class was registered under.
+
+| Option | Type | Meaning |
 | :--- | :--- | :--- |
-| `@inject({ key, isOptional? })` | Constructor parameter | Resolved by index and passed to the constructor |
-| `@inject({ key, isOptional? })` | Property | Assigned after construction |
+| `key` | `string \| symbol` | The binding key to resolve |
+| `target` | class, or a function returning one | Resolve the class's recorded key. The function form survives an import cycle |
+| `isOptional` | `boolean` | Resolve an unbound key to `undefined` instead of throwing |
 
-Both write into the shared `metadataRegistry` (a `MetadataRegistry` instance). Pass your own through
-the `registry` option to isolate metadata - in tests, for example.
+Constructor parameters resolve before construction. Properties are assigned after it.
 
-### Keys and scopes
+> [!IMPORTANT]
+> Declare `experimentalDecorators: true` in your own `tsconfig.json`, not only through `extends`.
+> Bun can miss an inherited flag when it runs source, and then drops parameter decorators with no
+> error. `emitDecoratorMetadata` is not needed: `@inject` records the parameter index itself.
 
-| Symbol | Notes |
-| :--- | :--- |
-| `BindingKeys.build({ namespace, key })` | Joins the two with a dot. `key` is required; an empty namespace yields the bare key |
-| Namespace auto-tagging | A dotted key tags its binding with the first segment - `services.UserService` is tagged `services` |
-| `BindingScopes` | `SINGLETON`, `TRANSIENT` |
-| `BindingValueTypes` | `CLASS`, `VALUE`, `PROVIDER` - the resolver kinds |
-
-Conventional namespaces across IGNIS: `controllers`, `services`, `repositories`, `datasources`.
-
-Full reference: [Dependency injection](https://ignis.venizia.ai/references/base/dependency-injection).
+Decorate every constructor parameter of a class the container builds. An undecorated parameter
+before a decorated one is refused with `Constructor parameter N has no @inject`. An undecorated
+trailing parameter receives `undefined`.
 
 ## Errors
 
-This package also ships the error module the whole framework throws through, so a standalone
-consumer gets it for free. Never throw a raw `new Error`.
+The package also holds the error type the whole framework throws.
 
 ```typescript
 import { getError, isApplicationError } from '@venizia/ignis-inversion';
 
-throw getError({
-  message: { text: 'User not found', code: 'user.not_found', args: { id: 42 } },
-  statusCode: 404,
-});
+try {
+  throw getError({
+    message: { text: 'User not found', code: 'user.not_found', args: { id: 42 } },
+    statusCode: 404,
+  });
+} catch (error) {
+  if (isApplicationError(error)) {
+    console.log(error.statusCode, error.normalized); // 404 { text, code, args }
+  }
+}
 ```
 
-`getError` returns an `ApplicationError` - a real `Error` subclass carrying `statusCode`, an
-optional `extra` bag, and `normalized`, which is always the same three fields:
+`getError` returns an `ApplicationError`, an `Error` subclass. It carries `statusCode` (default
+`400`), `normalized` (`{ text, code, args }`) and an optional `extra` bag. A bare string `message`
+becomes `text`. A missing code becomes `MessageCode.DEFAULT` (`core.system_error`). Unknown
+top-level keys go into `extra`.
 
-| Field | Meaning |
-| :--- | :--- |
-| `text` | The human-readable message |
-| `code` | A dotted, lower snake_case message code. Falls back to `MessageCode.DEFAULT` (`core.system_error`) |
-| `args` | Interpolation arguments, `{}` when there are none |
+Test with `isApplicationError(error)`, not `instanceof ApplicationError`. A CommonJS copy and an
+ES module copy of the package can both be loaded, and `instanceof` fails across them.
 
-`message` also accepts a bare string, which becomes `text`. Unknown top-level keys are swept into
-`extra`, so a throw site can attach context the framework does not model.
+## Entry points
 
-> [!IMPORTANT]
-> Check errors with `isApplicationError(error)`, never `instanceof ApplicationError`. Several
-> packages can carry their own copy of the class, so `instanceof` fails across package boundaries.
+| Entry point | What it gives | Extra peers |
+| :--- | :--- | :--- |
+| `@venizia/ignis-inversion` | Everything: container, bindings, `@inject`, `MetadataRegistry`, errors | none |
 
-Also exported: `ApplicationError`, `MessageCode`, `ErrorScopes`, and the `TError*` types. Catalogued
-errors are declared as `TErrorDefinition` objects and thrown with `getError({ error: Definition })`.
+The package ships both CommonJS (`dist/cjs`) and ES modules (`dist/esm`). `import` resolves the ES
+build, `require` the CommonJS one. The ES build is what a browser bundle takes.
 
-## Rules that will burn you
+## Where it sits
 
-**Every constructor parameter of a container-instantiated class must carry `@inject`.** There is no
-channel for the container to supply an undecorated one, so a mixed constructor is refused at
-instantiation with `[Class] Constructor parameter N has no @inject`. Options a class needs go into
-`super({ ... })` or onto a binding, never as a bare parameter.
-
-**This package keeps a dual CJS + ESM build on purpose.** Frontend consumers import it into browser
-bundles, so `dist/esm` is load-bearing. Do not "simplify" the build to ESM-only or CJS-only.
-
-**`import 'reflect-metadata'` once, at your entrypoint.** The package imports it, but a consumer
-that loads two copies gets two metadata stores and silently empty injection.
-
-**Singleton caching keys on `undefined`.** A singleton binding that resolves to `undefined` is
-re-resolved on every `get` rather than cached.
+Depends on nothing in IGNIS. Used by filter, helpers and kernel: dev-configs -> **inversion** ->
+{filter, helpers} -> {boot, kernel} -> connectors -> {core-worker, core-server} -> atlas.
 
 ## Links
 
-[Documentation](https://ignis.venizia.ai) &#8226;
-[Dependency injection](https://ignis.venizia.ai/references/base/dependency-injection) &#8226;
-[Core API](https://ignis.venizia.ai/references/) &#8226;
-[Best practices](https://ignis.venizia.ai/best-practices/) &#8226;
-[Changelog](https://ignis.venizia.ai/changelogs/)
+- [Inversion (DI) guide](https://ignis.venizia.ai/extensions/helpers/inversion/)
+- [Dependency injection reference](https://ignis.venizia.ai/references/base/dependency-injection)
+- [Error handling](https://ignis.venizia.ai/extensions/helpers/error/)
+- [Changelog](https://ignis.venizia.ai/changelogs/)
+- [Source](https://github.com/VENIZIA-AI/ignis/blob/main/packages/inversion)
 
-MIT licensed. Questions: [GitHub Issues](https://github.com/VENIZIA-AI/ignis/issues) &#8226; developer@venizia.ai
+MIT licensed - see [LICENSE.md](./LICENSE.md).

@@ -1,31 +1,15 @@
-<div align="center">
+# @venizia/ignis-atlas
 
-<br />
+An MCP server that lets an AI agent search and read the IGNIS documentation - the wiki, the
+changelogs and the knowledge bundle - and look up exported symbols and versions. Every hit carries
+an id the agent can read in full and cite.
 
-# :fire: IGNIS - `@venizia/ignis-atlas`
+You do not import it. You register it with an MCP client (Claude Code, an IDE agent, ...), which
+starts it over stdio.
 
-**MCP server for IGNIS: search the wiki, changelogs and knowledge bundle, look up an exported symbol, and read what changed between two versions.**
+## Register it
 
-[![Docs](https://img.shields.io/badge/Docs-ignis.venizia.ai-2563EB.svg?style=flat-square)](https://ignis.venizia.ai/extensions/atlas)
-[![npm](https://img.shields.io/npm/v/@venizia/ignis-atlas.svg?style=flat-square&color=cb3837&label=@venizia/ignis-atlas)](https://www.npmjs.com/package/@venizia/ignis-atlas)
-[![License: MIT](https://img.shields.io/badge/License-MIT-3DA639.svg?style=flat-square)](LICENSE.md)
-
-[Atlas on the wiki](https://ignis.venizia.ai/extensions/atlas) &#8226;
-[Changelog](https://ignis.venizia.ai/changelogs/2026-09-06-ignis-atlas)
-
-</div>
-
----
-
-`@venizia/ignis-atlas` answers "what does the manual say" over three corpora - the wiki, the
-changelogs and the agent-facing knowledge bundle - with a citation on every hit, over stdio
-JSON-RPC.
-
-**Bun-only.** The index runs on `bun:sqlite` FTS5, so a Node host cannot start this server.
-
-## Add it to an MCP client
-
-For a published release, run it with `bunx`:
+Add it to the client's MCP config. `bunx` runs the published release:
 
 ```json
 {
@@ -38,10 +22,7 @@ For a published release, run it with `bunx`:
 }
 ```
 
-This reads the wiki and the changelogs packaged with the release you installed, not your working
-tree.
-
-Working inside the IGNIS monorepo, point `command` at the checkout instead:
+Inside an IGNIS checkout, run it from source instead. The repository's own `.mcp.json` does this:
 
 ```json
 {
@@ -54,180 +35,59 @@ Working inside the IGNIS monorepo, point `command` at the checkout instead:
 }
 ```
 
-A checkout also indexes the knowledge bundle, and re-checks the corpus for changes before every
-call.
+The server needs Bun: its search index is an in-memory `bun:sqlite` FTS5 table. It has no
+dependency on an MCP SDK - it speaks JSON-RPC over stdio itself.
+
+## What it serves
+
+The directory the server starts in decides what it reads.
+
+| Started in | Corpora | Freshness |
+|---|---|---|
+| An IGNIS checkout | `wiki`, `changelog`, `knowledge` - read from `docs/wiki/content` and `.agents/knowledge` | Re-indexes before a tool call when a file changed |
+| Anywhere else | `wiki` and `changelog`, as packaged with the installed release | Fixed at the release |
+
+The knowledge bundle is not shipped in the npm package, so `corpus: "knowledge"` returns nothing
+outside a checkout. A checkout of a sibling framework built the same way (its root `package.json`
+named `@venizia/<family>-workspace`) is served too, under the name `<family>-atlas`.
 
 ## Tools
 
-### `search`
+| Tool | Input | Returns |
+|---|---|---|
+| `search` | `query` (2+ characters), `corpus?` (`all`, `wiki`, `changelog`, `knowledge`), `limit?` (1-50, default 10), `offset?` | A ranked page of hits: `id`, `corpus`, `title`, `headingPath`, `anchor`, `snippet`, `score`; plus `total`, `returned`, and `nextOffset` when more remain |
+| `get` | `id` (from a hit), `maxChars?` (500-50000, default 8000), `cursor?` | The section's `body`, with `next` when it continues |
+| `symbol` | `name`, `package?` (`helpers` or `@venizia/ignis-helpers`) | Where an exported symbol is declared (`file`, `line`, `signature`, the import `specifier`) and the pages that document it; `matches` when several packages export it |
+| `version` | `cwd?` (a project directory) | The IGNIS versions installed there, the newest this release knows, and which are `behind` |
+| `changes` | `package?`, `from?`, `to?` (versions, or dates) | The changelog entries between two versions |
 
-Search for chunks matching a keyword query, ranked by relevance.
+Page `search` with `offset: nextOffset`, not `offset + limit`: the reply-size budget can return fewer
+hits than `limit`. Pass a hit's `id` to `get` to read the whole section.
 
-```
-search({ query: "hidden fields on write" })
-```
+## Command line
 
-```json
-{
-  "total": 395,
-  "returned": 3,
-  "hits": [
-    {
-      "id": "okf:architecture/search-typesense.md#hidden-fields-on-the-write-path",
-      "corpus": "knowledge",
-      "title": "Hidden fields on the write path",
-      "headingPath": "Typesense search connector > Hidden fields on the write path",
-      "anchor": "hidden-fields-on-the-write-path",
-      "snippet": "... Search write responses therefore used to leak hidden properties ...",
-      "score": -16.03
-    }
-  ]
-}
+```bash
+ignis-atlas [mcp] [--root <dir>]
 ```
 
-| Input | Type | Default |
-| :--- | :--- | :--- |
-| `query` | string, 2+ characters | required |
-| `corpus` | `all`, `wiki`, `changelog`, `knowledge` | `all` |
-| `limit` | integer, 1-50 | `10` |
-| `offset` | integer, 0+ | `0` |
+`--root` names the checkout to serve. When you pass it, the directory must be a checkout - the
+server exits rather than falling back to the packaged corpus.
 
-The reply-size budget can return fewer hits than `limit`. Page with `offset: nextOffset`, not
-`offset + limit` - a page the budget trimmed would otherwise be skipped.
+| Exit code | Meaning |
+|---|---|
+| `0` | The client closed the connection |
+| `1` | A failure at startup or while running |
+| `2` | Bad arguments, `--root` is not a checkout, or no corpus was found |
 
-### `get`
+## Where it sits
 
-Read one chunk's body by an id a search hit returned, or a whole document with its `#anchor`
-dropped.
-
-```
-get({ id: "okf:architecture/search-typesense.md#hidden-fields-on-the-write-path" })
-```
-
-```json
-{
-  "id": "okf:architecture/search-typesense.md#hidden-fields-on-the-write-path",
-  "title": "Hidden fields on the write path",
-  "headingPath": "Typesense search connector > Hidden fields on the write path",
-  "body": "This is the non-derivable one. Reads exclude `@model({ settings: { hiddenProperties } })` at query time via the engine's exclude-fields parameter - but a write response comes back from the write itself and never passes through that filter. ..."
-}
-```
-
-| Input | Type | Default |
-| :--- | :--- | :--- |
-| `id` | string, from a search hit | required |
-| `maxChars` | integer, 500-50000 | `8000` |
-| `cursor` | string, from a previous reply's `next` | start of the body |
-
-A body longer than `maxChars` returns `next`; pass it back as `cursor` for the following page.
-
-### `symbol`
-
-Look up an exported symbol: what it is, where it is declared, and which pages document it.
-
-```
-symbol({ name: "getError", package: "inversion" })
-```
-
-```json
-{
-  "name": "getError",
-  "package": "@venizia/ignis-inversion",
-  "specifier": "@venizia/ignis-inversion",
-  "kind": "const",
-  "file": "packages/inversion/src/modules/error/app-error.ts",
-  "line": 89,
-  "signature": "getError: (opts: TError) => ApplicationError",
-  "docs": ["okf:conventions/error-handling.md#", "wiki:extensions/helpers/error/index.md#in-one-example"]
-}
-```
-
-| Input | Type | Default |
-| :--- | :--- | :--- |
-| `name` | string, the exported name | required |
-| `package` | `helpers` or `@venizia/ignis-helpers` | every package |
-
-The table is generated from each package's built declarations, so `file` and `line` name the
-source. A name exported from several packages returns `matches`. An unknown name is an error
-naming the closest candidates. `docs` ids go straight into `get`.
-
-### `version`
-
-Compare what a project has installed with what this build knows.
-
-```
-version({ cwd: "/path/to/your/project" })
-```
-
-```json
-{
-  "installed": { "@venizia/ignis-kernel": "0.2.0-19" },
-  "snapshot": { "kernel": "0.2.0-21", "helpers": "0.2.0-15" },
-  "behind": [{ "package": "kernel", "installed": "0.2.0-19", "newest": "0.2.0-21" }]
-}
-```
-
-| Input | Type | Default |
-| :--- | :--- | :--- |
-| `cwd` | string, a project directory | the process working directory |
-
-`installed` reads the real version out of `node_modules`, never a dependency range; a package it
-cannot resolve is `null`. These are the versions this build knows about, not the registry.
-
-### `changes`
-
-List the changelog entries between two versions of a package.
-
-```
-changes({ package: "kernel", from: "0.2.0-13", to: "0.2.0-16" })
-```
-
-```json
-{
-  "package": "kernel",
-  "from": "0.2.0-13",
-  "to": "0.2.0-16",
-  "entries": [
-    {
-      "id": "changelog:2026-09-05-boot-checks",
-      "date": "2026-09-05",
-      "title": "Boot Checks - Every Binding Resolves ...",
-      "kind": "New Feature",
-      "packages": ["kernel"]
-    }
-  ]
-}
-```
-
-| Input | Type | Default |
-| :--- | :--- | :--- |
-| `package` | a package directory name | every package |
-| `from` | a version of `package`, or a date without one | the newest version released on an earlier day |
-| `to` | a version of `package`, or a date without one | the newest known version |
-
-Each `id` reads in full through `get`. A window wider than the reply budget is trimmed to the
-newest entries and marked `truncated`.
-
-## `--root`
-
-`--root <dir>` points the server at an IGNIS checkout. Given explicitly, it must be one: the server
-exits 2 rather than falling back to the packaged snapshot, which would answer from the wrong corpus.
-Without the flag the working directory decides, and a directory that is not a checkout uses the
-snapshot packaged with the release.
-
-## Exit codes
-
-| Code | Meaning |
-| :--- | :--- |
-| `0` | The client closed the connection. |
-| `1` | An error during startup, or while running a tool call. |
-| `2` | Bad arguments, or neither a checkout nor a packaged snapshot was found. |
+Of the IGNIS packages, it depends on `@venizia/ignis-helpers` only. It is a tool for working on
+IGNIS applications, not part of an application's runtime.
 
 ## Links
 
-[Documentation](https://ignis.venizia.ai) &#8226;
-[Atlas on the wiki](https://ignis.venizia.ai/extensions/atlas) &#8226;
-[Changelog](https://ignis.venizia.ai/changelogs/2026-09-06-ignis-atlas)
+- [Atlas on the wiki](https://ignis.venizia.ai/extensions/atlas)
+- [Changelog: IGNIS Atlas](https://ignis.venizia.ai/changelogs/2026-09-06-ignis-atlas)
+- [All changelogs](https://ignis.venizia.ai/changelogs/)
 
-MIT licensed - see [LICENSE.md](LICENSE.md).
-Questions: [GitHub Issues](https://github.com/VENIZIA-AI/ignis/issues) &#8226; developer@venizia.ai
+MIT licensed - see [LICENSE.md](https://github.com/VENIZIA-AI/ignis/blob/main/packages/atlas/LICENSE.md).

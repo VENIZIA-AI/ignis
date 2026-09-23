@@ -1,64 +1,52 @@
-<div align="center">
+# @venizia/ignis
 
-# :fire: @venizia/ignis
+The IGNIS server framework for Bun and Node.js. Install this package to build a REST API: it brings
+the application class, controllers, repositories, the built-in components, and the Bun or Node server
+that runs them.
 
-**The IGNIS framework core - LoopBack 4's architecture on Hono's speed.**
-
-[![npm](https://img.shields.io/npm/v/@venizia/ignis.svg?style=flat-square&color=cb3837)](https://www.npmjs.com/package/@venizia/ignis)
-[![Docs](https://img.shields.io/badge/Docs-ignis.venizia.ai-2563EB.svg?style=flat-square)](https://ignis.venizia.ai)
-[![License: MIT](https://img.shields.io/badge/License-MIT-3DA639.svg?style=flat-square)](LICENSE.md)
-[![TypeScript](https://img.shields.io/badge/TypeScript-6.x-3178C6.svg?style=flat-square&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
-
-[Documentation](https://ignis.venizia.ai) &#8226;
-[Quickstart](https://ignis.venizia.ai/guides/get-started/5-minute-quickstart) &#8226;
-[API Reference](https://ignis.venizia.ai/references/)
-
-</div>
-
----
-
-This is the framework itself: the application class, controllers, repositories, models, datasources,
-the decorator set, and the component system. You extend the base classes; IGNIS wires them through
-its IoC container, validates every request against Zod, and generates the OpenAPI spec from the same
-schemas.
-
-Reach for it when you are building a structured API - real auth, several models, more than a handful
-of endpoints - and you want that structure to survive team growth. For a 3-endpoint service, plain
-Hono is lighter.
+IGNIS takes its application model from LoopBack 4 - an IoC container with binding keys, components,
+and the controller, service, repository, datasource layering - and runs it on Hono. Drizzle ORM builds
+the SQL. Zod schemas, through `@hono/zod-openapi`, validate each request and generate the OpenAPI
+document.
 
 ## Install
 
 ```bash
-bun add @venizia/ignis @venizia/ignis-helpers hono @hono/zod-openapi drizzle-orm pg
-bun add -d typescript tsc-alias @venizia/dev-configs @types/bun
+bun add @venizia/ignis hono @hono/zod-openapi @asteasolutions/zod-to-openapi drizzle-orm drizzle-zod jose
+bun add @scalar/hono-api-reference   # the API explorer UI in the example
 ```
 
-`@venizia/ignis-boot`, `@venizia/ignis-helpers` and `@venizia/ignis-inversion` come along as
-dependencies. `hono`, `@hono/zod-openapi`, `@asteasolutions/zod-to-openapi`, `drizzle-orm` and
-`drizzle-zod` are required peers. Everything else in `peerDependencies` is optional - install only
-what the components and connectors you actually use need.
+The first line is the package and its required peers. Every other peer is optional - install the
+one a component or a database driver needs (see [Entry points](#entry-points)). On Node.js, add
+`@hono/node-server`.
 
-> [!IMPORTANT]
-> `experimentalDecorators` and `emitDecoratorMetadata` must be `true` in your `tsconfig.json`,
-> declared **inline**. Bun does not resolve them through `extends`, and `@inject` metadata is
-> silently dropped without them - bindings then fail at boot with no obvious cause. Copy them from
-> `@venizia/dev-configs/tsconfig.common.json`.
+In your `tsconfig.json`, set these two flags directly in `compilerOptions`:
 
-## Minimal application
+```json
+{ "compilerOptions": { "experimentalDecorators": true, "emitDecoratorMetadata": true } }
+```
+
+Bun ignores them when they only arrive through an `extends` of a package path, and then drops
+`@inject` parameter decorators without an error.
+
+## Example
 
 ```typescript
 import { z } from '@hono/zod-openapi';
 import {
-  ApiReferenceComponent, BaseApplication, BaseRestController,
-  controller, get, IApplicationInfo, jsonContent,
+  ApiReferenceComponent,
+  BaseApplication,
+  BaseRestController,
+  controller,
+  get,
+  jsonResponse,
 } from '@venizia/ignis';
-import { HTTP } from '@venizia/ignis-helpers';
-import { Context } from 'hono';
+import type { Context } from 'hono';
 
 @controller({ path: '/hello' })
 class HelloController extends BaseRestController {
   constructor() {
-    super({ scope: 'HelloController', path: '/hello' });
+    super({ scope: HelloController.name });
   }
 
   override binding() {}
@@ -66,150 +54,122 @@ class HelloController extends BaseRestController {
   @get({
     configs: {
       path: '/',
-      responses: {
-        [HTTP.ResultCodes.RS_2.Ok]: jsonContent({
-          description: 'Says hello',
-          schema: z.object({ message: z.string() }),
-        }),
-      },
+      responses: jsonResponse({ schema: z.object({ message: z.string() }) }),
     },
   })
-  sayHello(c: Context) {
-    return c.json({ message: 'Hello from IGNIS!' }, HTTP.ResultCodes.RS_2.Ok);
+  sayHello(context: Context) {
+    return context.json({ message: 'Hello from IGNIS' });
   }
 }
 
-class App extends BaseApplication {
-  getAppInfo(): IApplicationInfo {
-    return { name: 'my-app', version: '1.0.0', description: 'My first IGNIS app' };
+class Application extends BaseApplication {
+  getAppInfo() {
+    return { name: 'hello', version: '1.0.0', description: 'The smallest IGNIS application' };
   }
 
   staticConfigure() {}
-  postConfigure() {}
   setupMiddlewares() {}
+  postConfigure() {}
 
   preConfigure() {
-    this.component(ApiReferenceComponent); // interactive docs at /doc/explorer
+    this.component(ApiReferenceComponent);
     this.controller(HelloController);
   }
 }
 
-new App({
-  scope: 'App',
+const application = new Application({
+  scope: Application.name,
   config: { host: '0.0.0.0', port: 3000, path: { base: '/api', isStrict: false } },
-})
-  .start()
-  .catch((error: unknown) => {
-    console.error('[main] Application start failed | Error:', error);
-    process.exit(1);
-  });
+});
+
+application.init();
+await application.start();
 ```
 
 ```bash
 bun run src/index.ts
-curl http://localhost:3000/api/hello   # {"message":"Hello from IGNIS!"}
+curl http://localhost:3000/api/hello   # {"message":"Hello from IGNIS"}
 ```
 
-`getAppInfo`, `preConfigure`, `postConfigure`, `staticConfigure` and `setupMiddlewares` are abstract -
-implement all five, even when empty.
+The OpenAPI document is at `/api/doc/openapi.json` and the explorer at `/api/doc/explorer`.
 
-## The surface
+Three things to notice:
 
-| Layer | Extend / use | Docs |
-| :--- | :--- | :--- |
-| Application | `BaseApplication` - lifecycle, config, `component()`, `controller()`, `start()` | [Application](https://ignis.venizia.ai/references/base/application) |
-| REST controller | `BaseRestController` - decorated routes, or `bindRoute` / `defineRoute` | [Controllers](https://ignis.venizia.ai/references/base/controllers) |
-| gRPC controller | `BaseGrpcController` with `@rpc` - pair it with `GrpcComponent` | [Controllers](https://ignis.venizia.ai/references/base/controllers) |
-| CRUD controller | `ControllerFactory.defineCrudController({ controller, entity, routes })` | [Controllers](https://ignis.venizia.ai/references/base/controllers) |
-| Service | `BaseService` | [References](https://ignis.venizia.ai/references/) |
-| Repository | `DefaultRelationalRepository`, or the readable / persistable / soft-deletable variants | [Repositories](https://ignis.venizia.ai/references/base/repositories/) |
-| Model | `BaseRelationalEntity` over a Drizzle `pgTable` | [Repositories](https://ignis.venizia.ai/references/base/repositories/) |
-| DataSource | `BaseRelationalDataSource` | [Repositories](https://ignis.venizia.ai/references/base/repositories/) |
-| Component | `BaseComponent` - bundle bindings, controllers and middlewares as one unit | [Components](https://ignis.venizia.ai/extensions/components/) |
-| Provider | `BaseProvider<T>` - a lazily resolved binding value | [DI](https://ignis.venizia.ai/references/base/dependency-injection) |
+- `getAppInfo`, `staticConfigure`, `preConfigure`, `postConfigure` and `setupMiddlewares` are
+  abstract. Implement all five, even when empty.
+- `application.init()` registers the application's own bindings. Call it before `start()`, or the
+  first component that injects the application fails the boot.
+- `preConfigure()` is where you register components, controllers, services, repositories and
+  datasources by hand. The `ignis-artifacts` generator in `@venizia/ignis-boot` can write that list
+  for you at build time.
 
-Decorators, all from the root barrel:
+## Built-in components
 
-| Decorator | Target | Purpose |
-| :--- | :--- | :--- |
-| `@controller({ path })` | class | Register a controller under a base path |
-| `@get` `@post` `@put` `@patch` `@del` `@api` | method | Declare a REST route from a Zod-typed config |
-| `@rpc` | method | Declare a gRPC method |
-| `@model` `@datasource` `@repository` | class | Register persistence classes for boot discovery |
-| `@inject({ key, isOptional })` | constructor parameter | Resolve a binding by namespaced key |
-
-> [!WARNING]
-> **Every** constructor parameter of a container-instantiated class must carry `@inject`. Mixing
-> decorated and undecorated parameters is refused at boot - the container has no channel to supply an
-> undecorated one. Options a controller needs belong in `super({ scope })`.
-
-`BaseRelationalEntity`, `DefaultRelationalRepository` and `BaseRelationalDataSource` are the
-canonical, paradigm-family names. `BasePostgresEntity`, `DefaultCRUDRepository`,
-`BasePostgresDataSource`, `BaseEntity` and `BaseDataSource` still resolve to the same classes as
-back-compat aliases - prefer the family names in new code.
-
-## Components
-
-Register with `this.component(X)` in `preConfigure()`.
+Register a component with `this.component(...)` in `preConfigure()`.
 
 | Component | Import from | What it adds |
-| :--- | :--- | :--- |
-| `ApiReferenceComponent` | `@venizia/ignis` | OpenAPI spec plus a Scalar or Swagger UI explorer |
-| `AuthenticateComponent` | `@venizia/ignis` | JWT and Basic authentication strategies |
-| `AuthorizeComponent` | `@venizia/ignis` | Casbin-backed authorization enforcement |
-| `HealthCheckComponent` | `@venizia/ignis` | Liveness and readiness endpoints |
-| `RequestTrackerComponent` | `@venizia/ignis` | Request IDs and body parsing - registered automatically |
-| `RestComponent` | `@venizia/ignis` | Binds discovered REST controllers - internal, registered automatically |
-| `GrpcComponent` | `@venizia/ignis/grpc` | ConnectRPC transport for `@rpc` controllers |
-| `MailComponent` | `@venizia/ignis/mail` | Nodemailer and Mailgun senders |
-| `SocketIOComponent` | `@venizia/ignis/socket-io` | Socket.IO server with an optional Redis adapter |
-| `WebSocketComponent` | `@venizia/ignis/websocket` | Native WebSocket transport |
-| `StaticAssetComponent` | `@venizia/ignis/static-asset` | Static file serving and asset controllers |
+|---|---|---|
+| `ApiReferenceComponent` | `@venizia/ignis` | The OpenAPI document and a Scalar or Swagger UI explorer (`@scalar/hono-api-reference` or `@hono/swagger-ui`) |
+| `HealthCheckComponent` | `@venizia/ignis` | `GET /health`, `POST /health/ping`, and `GET /health/stats` (closed outside development unless you enable it) |
+| `AuthenticateComponent` | `@venizia/ignis` | JWT, Basic, and service-to-service authentication strategies |
+| `AuthorizeComponent` | `@venizia/ignis` | Casbin-based authorization (`casbin`) |
+| `RequestTrackerComponent` | `@venizia/ignis` | Logs each request and response - registered for you by `BaseApplication` |
+| `GrpcComponent` | `@venizia/ignis/grpc` | ConnectRPC transport for `@rpc` controllers (`@connectrpc/connect`) |
+| `MailComponent` | `@venizia/ignis/mail` | Mail through Nodemailer, Mailgun or Amazon SES, with an optional BullMQ queue |
+| `SocketIOComponent` | `@venizia/ignis/socket-io` | A Socket.IO server with the Redis adapter |
+| `WebSocketComponent` | `@venizia/ignis/websocket` | Bun's native WebSocket server |
+| `StaticAssetComponent` | `@venizia/ignis/static-asset` | Upload and download controllers over object storage, with a file-record table |
 
+To serve files from disk, you need no component. Call `this.static({ restPath: '/public/*', folderPath: '.' })`
+in `staticConfigure()`: the request path is resolved under `folderPath`, so `/public/logo.png` serves
+`./public/logo.png`.
 
-Full configuration for each: [Components](https://ignis.venizia.ai/extensions/components/).
+## Entry points
 
-## Sub-path exports
+The root barrel leaves out the optional transports and engines, so a bundle only pulls in the peers
+you use.
 
-The root barrel deliberately excludes optional transports and connectors, so a bundler never pulls in
-a peer you did not install.
+| Import | What it gives | Extra peers |
+|---|---|---|
+| `@venizia/ignis` | `BaseApplication`, the kernel in full, the root components, and everything in `/postgres` | none |
+| `/postgres` | Postgres datasources, entities, repositories, `ModelFactory` | none |
+| `/postgres/node-postgres` | `NodePostgresDriver` | `pg` |
+| `/postgres/postgres-js` | `PostgresJsDriver` | `postgres` |
+| `/postgres/pglite` | `PGliteDriver` | `@electric-sql/pglite` |
+| `/postgres/supabase` | Supabase auth context and pooler helpers | none |
+| `/relational` | The engine-neutral SQL tier (`DefaultRelationalRepository`, `BaseRelationalDataSource`) | none |
+| `/sqlite` | SQLite datasources and repositories | none |
+| `/sqlite/libsql` | `LibSqlDriver` | `@libsql/client` |
+| `/search`, `/search/controllers` | The engine-neutral search tier and its controllers | none |
+| `/typesense`, `/typesense/controllers` | The Typesense engine, and the search controllers | `typesense` for `/typesense` |
+| `/meilisearch` | The Meilisearch engine | `meilisearch` |
+| `/grpc` | `GrpcComponent` (`BaseGrpcController` and `@rpc` come from the root) | none to load |
+| `/mail` | `MailComponent` | none to load |
+| `/socket-io` | `SocketIOComponent` | `socket.io`, `@socket.io/redis-adapter`, `@socket.io/redis-emitter` |
+| `/websocket` | `WebSocketComponent` | none |
+| `/static-asset` | `StaticAssetComponent` | none |
 
-| Sub-path | Contents |
-| :--- | :--- |
-| `@venizia/ignis/postgres` | Relational models, datasources, repositories, dialect |
-| `@venizia/ignis/postgres/node-postgres` | `pg` driver (the supported default) |
-| `@venizia/ignis/postgres/postgres-js` | `postgres` driver |
-| `@venizia/ignis/postgres/supabase` | Supabase driver and RLS auth context |
-| `@venizia/ignis/search` (+ `/controllers`) | Engine-agnostic search connector |
-| `@venizia/ignis/typesense` (+ `/controllers`) | Typesense engine |
-| `@venizia/ignis/meilisearch` | Meilisearch engine |
-| `@venizia/ignis/grpc`, `/socket-io`, `/websocket`, `/mail`, `/static-asset` | Optional components |
+"None to load" means the entry imports cleanly; the component loads its client library (for example
+`nodemailer` or `@connectrpc/connect`) when you configure it.
 
-Note that `@venizia/ignis/postgres` is also re-exported from the root barrel; the other sub-paths are
-not.
+The connector entries re-export `@venizia/ignis-connectors` under the same names. The kernel is
+re-exported in full from the root.
 
-## Things that will burn you
+## Where it sits
 
-- **Errors**: always `getError()` / `ApplicationError` from `@venizia/ignis-helpers`, never raw
-  `new Error`. The error shape is one object - `{ text, code, args }`. Across package boundaries use
-  `isApplicationError()`, never `instanceof`.
-- **Logging**: type your loggers as `ILogger`. Get one from `BaseHelper.logger`,
-  `LoggerFactory.getLogger(['A','B'])` or `ApplicationLogger.get('Scope')`, and `.for('method')` for a
-  method-scoped child. Five levels only: `debug`, `info`, `warn`, `error`, `emerg`.
-- **Runtime**: Bun >= 1.3 first-class. Node.js works through the optional `@hono/node-server` peer.
-- **Version**: 0.x - minor versions can break. Pin exact versions and read the
-  [changelog](https://ignis.venizia.ai/changelogs/) before upgrading.
+Top of the chain. Depends on `@venizia/ignis-kernel`, `@venizia/ignis-connectors`,
+`@venizia/ignis-filter`, `@venizia/ignis-helpers` and `@venizia/ignis-inversion`.
+`@venizia/ignis-boot` is separate - add it as a dev dependency for the artifact generator.
 
 ## Links
 
-[Quickstart](https://ignis.venizia.ai/guides/get-started/5-minute-quickstart) &#8226;
-[API reference](https://ignis.venizia.ai/references/) &#8226;
-[Bootstrapping](https://ignis.venizia.ai/references/base/bootstrapping) &#8226;
-[Dependency injection](https://ignis.venizia.ai/references/base/dependency-injection) &#8226;
-[Extensions](https://ignis.venizia.ai/extensions/) &#8226;
-[Helpers](https://ignis.venizia.ai/extensions/helpers/) &#8226;
-[Best practices](https://ignis.venizia.ai/best-practices/) &#8226;
-[Changelog](https://ignis.venizia.ai/changelogs/)
+- [5-minute quickstart](https://ignis.venizia.ai/guides/get-started/5-minute-quickstart)
+- [Philosophy](https://ignis.venizia.ai/guides/get-started/philosophy)
+- [Application](https://ignis.venizia.ai/references/base/application)
+- [Bootstrapping](https://ignis.venizia.ai/references/base/bootstrapping)
+- [Components](https://ignis.venizia.ai/extensions/components/)
+- [All changelogs](https://ignis.venizia.ai/changelogs/)
 
-MIT licensed - see [LICENSE.md](LICENSE.md).
-Questions: [GitHub Issues](https://github.com/VENIZIA-AI/ignis/issues) &#8226; developer@venizia.ai
+IGNIS is 0.x: a minor version can break. Pin exact versions and read the changelog before upgrading.
+
+MIT licensed - see [LICENSE.md](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/LICENSE.md).
