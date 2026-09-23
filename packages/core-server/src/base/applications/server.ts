@@ -251,9 +251,18 @@ export abstract class ServerApplication<
     await this.executePostStartHooks();
   }
 
+  /** Post-stop hooks, then the server, then the datasources - closed even when the server fails to, so a stopped application holds no connection. */
   async stop() {
     await this.executePostStopHooks();
 
+    try {
+      await this.stopServer();
+    } finally {
+      await this.closeDataSources();
+    }
+  }
+
+  protected async stopServer(): Promise<void> {
     const instance = this.serverInstance;
     if (!instance) {
       this.logger.for(this.stop.name).info('Server was not started | Nothing to stop');

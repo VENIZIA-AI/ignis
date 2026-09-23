@@ -61,6 +61,11 @@ export abstract class AbstractDataSource<
     return { transactions: false };
   }
 
+  /** Nothing to release at this root; a family that holds a connection overrides it. */
+  close(): Promise<void> {
+    return Promise.resolve();
+  }
+
   /** Defaults to throwing NotSupported - only connectors with real transaction support override this; async so callers get a rejected promise, not a synchronous throw that skips try/catch. */
   async beginTransaction(_opts?: ITransactionOptions): Promise<ITransaction> {
     return throwNotSupported({

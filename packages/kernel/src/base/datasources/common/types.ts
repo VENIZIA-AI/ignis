@@ -61,6 +61,9 @@ export interface IDataSource<
 
   getSettings(): Settings;
   getSchema(): Schema;
+
+  /** Releases what `configure()` opened. `stop()` calls it on every datasource the boot configured. */
+  close?(): Promise<void>;
 }
 
 /**

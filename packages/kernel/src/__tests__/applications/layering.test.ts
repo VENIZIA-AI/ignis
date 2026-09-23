@@ -24,6 +24,7 @@ const REST_APPLICATION_MEMBERS = [
   'assertNoBindingCollision',
   'bindProvidedKeys',
   'buildErrorMiddleware',
+  'closeDataSources',
   'component',
   'configuration',
   'constructor',

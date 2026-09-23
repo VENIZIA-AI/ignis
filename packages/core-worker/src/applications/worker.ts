@@ -236,14 +236,14 @@ export abstract class WorkerApplication<
   }
 
   /**
-   * The counterpart to `listen()`, and to `ServerApplication.stop()`: without it nothing drains the
-   * post-stop hooks, so a datasource's `end()` never runs and the OPFS exclusive lock a PGlite
-   * holds is never released - the next Worker then fails with `NoModificationAllowedError` until a
-   * full page reload. The Vite recipe is `import.meta.hot?.dispose(() => application.stop())`.
+   * The counterpart to `listen()`, and to `ServerApplication.stop()`: runs the post-stop hooks, then
+   * closes every datasource the boot configured. Without it the OPFS exclusive lock a PGlite holds
+   * is never released - the next Worker then fails with `NoModificationAllowedError` until a full
+   * page reload. The Vite recipe is `import.meta.hot?.dispose(() => application.stop())`.
    *
    * Detaches BEFORE draining, unlike the server: here the listener IS the socket, and a request
-   * admitted while the hooks are closing a datasource has nothing left to run against. A stopped
-   * application is not restartable - build a new one.
+   * admitted while a datasource is closing has nothing left to run against. A stopped application
+   * is not restartable - build a new one.
    */
   async stop(): Promise<void> {
     this.isStopped = true;
@@ -252,6 +252,7 @@ export abstract class WorkerApplication<
     this.detachFromScope = undefined;
 
     await this.executePostStopHooks();
+    await this.closeDataSources();
 
     this.logger.for(this.stop.name).info('Worker application STOPPED');
   }

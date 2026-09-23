@@ -36,6 +36,8 @@ export abstract class AbstractRelationalDataSource<
   protected client?: Client;
   protected driver?: IRelationalDriver<TConnector>;
 
+  private closePromise?: Promise<void>;
+
   /**
    * Lazy and idempotent: builds the driver named by `@datasource({ driver })` over the client
    * `configure()` assigned, then the connector from it.
@@ -124,6 +126,42 @@ export abstract class AbstractRelationalDataSource<
 
   abstract getQueryDialect(): IRelationalQueryDialect;
   abstract getQueryExecutor(): IRelationalQueryExecutor<TConnector>;
+
+  /**
+   * Ends the connection `configure()` opened. Runs once: every later call returns the first call's
+   * promise. Goes through the driver, wired now if nothing queried yet, because its `end()` is the
+   * engine's whole teardown - PGlite also clears the exit status it plants on the host process.
+   */
+  override close(): Promise<void> {
+    this.closePromise ??= this.endConnection();
+    return this.closePromise;
+  }
+
+  private async endConnection(): Promise<void> {
+    if (!this.driver && this.client === undefined) {
+      return;
+    }
+
+    let driver: IRelationalDriver<TConnector>;
+    try {
+      driver = this.resolveDriver();
+    } catch (error) {
+      this.logger
+        .for(this.close.name)
+        .warn('No driver to end the connection with | draining the client | error: %s', error);
+      await this.drainClient({ client: this.client });
+      return;
+    }
+
+    // A hand-made driver cast past `IRelationalDriver` can lack the `end()` its type promises.
+    if (typeof driver.end !== 'function') {
+      this.logger.for(this.close.name).warn('The driver has no end() | draining the client');
+      await this.drainClient({ client: this.client });
+      return;
+    }
+
+    await driver.end();
+  }
 
   /**
    * Soft-evicts the pool after a secret rotation: rebuilds against the rotated credentials without

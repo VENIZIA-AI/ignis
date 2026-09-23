@@ -13,6 +13,11 @@ import type { TArtifactIndexInput } from './artifacts';
 
 /** No `host`/`port`: a browser Worker has neither, and carrying them here made one silently configured with `localhost:3000`. `@venizia/ignis` widens this shape with both - see its `IServerApplicationConfigs`. */
 export interface IApplicationConfigs {
+  /**
+   * `isStrict` (default `true`) makes `/users` and `/users/` different routes; `false` answers both.
+   * Under `false`, declare routes without a trailing slash: a route declared as `/users/` answers
+   * neither `/users` nor `/users/`.
+   */
   path: { base: string; isStrict: boolean };
   requestId?: { isStrict: boolean };
   favicon?: string;
@@ -36,6 +41,9 @@ export interface IApplicationConfigs {
 
   asyncContext?: { enable: boolean };
   debug?: { shouldShowRoutes?: boolean };
+
+  /** How long `stop()` waits for one datasource's `close()` before it logs and moves on. Default `10_000`; `0` waits without limit. */
+  dataSourceCloseTimeoutMs?: number;
   [key: string]: any;
 }
 

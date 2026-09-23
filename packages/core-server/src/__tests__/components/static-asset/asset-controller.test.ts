@@ -28,7 +28,8 @@ import { FakeStorageHelper } from './fake-storage.helper';
 const TEST_CONFIGS: IApplicationConfigs = {
   host: '0.0.0.0',
   port: 0,
-  path: { base: '/', isStrict: false },
+  // `objects/..` normalizes to the bucket route with a trailing slash; strict routing keeps it a 404.
+  path: { base: '/', isStrict: true },
   transports: [ControllerTransports.REST],
 };
 
@@ -981,6 +982,26 @@ describe('StaticAsset controller — the OpenAPI document', () => {
 
     expect(paths).not.toContain('/assets/buckets');
     expect(paths).not.toContain('/assets/buckets/{bucketName}');
+  });
+
+  test('file-stream and JSON routes reference the one ErrorResponse component under 4XX and 5XX', async () => {
+    const router = await mountAssetController({ helper: new FakeStorageHelper() });
+    const document = router.getOpenAPIDocument({
+      openapi: '3.1.0',
+      info: { title: 'assets', version: '1.0.0' },
+    });
+    const errorContent = {
+      'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' } },
+    };
+
+    for (const path of ['/assets/buckets/{bucketName}/objects/{objectName}', '/assets/buckets']) {
+      const responses = document.paths?.[path]?.get?.responses ?? {};
+
+      expect(Object.keys(responses).sort()).toEqual(['200', '4XX', '5XX']);
+      expect(responses['4XX']).toMatchObject({ content: errorContent });
+      expect(responses['5XX']).toMatchObject({ content: errorContent });
+    }
+    expect(document.components?.schemas?.ErrorResponse).toMatchObject({ type: 'object' });
   });
 });
 

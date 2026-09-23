@@ -8,6 +8,7 @@ import {
   executeWithPerformanceMeasure,
   getError,
   RequestIdGenerator,
+  RetryHelper,
 } from '@venizia/ignis-helpers/core';
 import type { Env, Schema } from 'hono';
 import { showRoutes as showApplicationRoutes } from 'hono/dev';
@@ -60,14 +61,18 @@ export abstract class RestApplication<
       });
     }
 
+    // The index signature accepts any key, so a leftover `strictPath` would compile and be ignored.
+    if (this.configs.strictPath !== undefined) {
+      throw getError({
+        message: `[${opts.scope}] configs.strictPath was removed | value: ${String(this.configs.strictPath)} | Use configs.path.isStrict`,
+      });
+    }
+
     this.requestIdGenerator = new RequestIdGenerator({ scope: opts.scope });
 
-    const honoServer = new OpenAPIHono<AppEnv, AppSchema, BasePath>({
-      strict: this.configs.strictPath ?? true,
-    });
-    this.rootRouter = new OpenAPIHono({
-      strict: this.configs.strictPath ?? true,
-    });
+    const strict = this.configs.path.isStrict ?? true;
+    const honoServer = new OpenAPIHono<AppEnv, AppSchema, BasePath>({ strict });
+    this.rootRouter = new OpenAPIHono({ strict });
 
     this.server = { hono: honoServer };
   }
@@ -671,5 +676,39 @@ export abstract class RestApplication<
         await this.registerDynamicBindings({ namespace: BindingNamespaces.DATASOURCE });
       },
     });
+  }
+
+  /**
+   * Closes every datasource the boot configured, so a stopped application holds no pool, socket or
+   * WASM instance. A failure, or a `close()` still pending after `dataSourceCloseTimeoutMs`, is logged
+   * and never stops the rest. A datasource configured by hand is closed by whoever configured it.
+   */
+  protected async closeDataSources(): Promise<void> {
+    const keys = this.registeredBindings[BindingNamespaces.DATASOURCE] ?? new Set<string>();
+    const timeoutMs = this.configs.dataSourceCloseTimeoutMs ?? 10_000;
+    const logger = this.logger.for(this.closeDataSources.name);
+
+    for (const key of keys) {
+      try {
+        const dataSource = this.get<IDataSource>({ key, isOptional: true });
+        if (!dataSource?.close) {
+          logger.debug('Nothing to close | key: %s', key);
+          continue;
+        }
+
+        const closing = dataSource.close();
+        await RetryHelper.runWithTimeout({ operation: key, timeoutMs, execution: () => closing });
+      } catch (error) {
+        if (RetryHelper.isRetryTimeoutError(error)) {
+          logger.error('Close timed out | key: %s | timeoutMs: %d', key, timeoutMs);
+          continue;
+        }
+
+        logger.error('Failed to close datasource | key: %s | error: %s', key, error);
+        continue;
+      }
+
+      logger.info('Closed datasource | key: %s', key);
+    }
   }
 }
