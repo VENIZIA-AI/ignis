@@ -37,7 +37,12 @@ export const RepositoryMetadataMixin = <
       Target extends object = object,
       Model extends AbstractEntity = AbstractEntity,
       DataSource extends IDataSource = IDataSource,
-    >(opts: { target: Target; metadata: TRepositoryMetadata<Model, DataSource> }): void {
+    >(opts: {
+      target: Target;
+      metadata: TRepositoryMetadata<Model, DataSource> & {
+        _resolved?: IResolvedRepositoryMetadata<Model, DataSource>;
+      };
+    }): void {
       const { target, metadata } = opts;
       Reflect.defineMetadata(MetadataKeys.REPOSITORY, metadata, target);
     }

@@ -38,8 +38,8 @@ export class RepositoryTypes {
   static readonly REMOTE = 'remote';
   static readonly SCHEME_SET = new Set([this.MODEL, this.REMOTE]);
 
-  static isValid(orgType: string): boolean {
-    return this.SCHEME_SET.has(orgType);
+  static isValid(value: string): boolean {
+    return this.SCHEME_SET.has(value);
   }
 }
 

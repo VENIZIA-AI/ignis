@@ -180,7 +180,15 @@ const registerDataSourceInjection = (opts: {
     typeof resolvedDataSource === 'string' ? resolvedDataSource : resolvedDataSource.name;
   const dsBindingKey = BindingKeys.build({ namespace: BindingNamespaces.DATASOURCE, key: dsName });
 
-  // setInjectMetadata copies the inherited list on first write, so the base repository keeps its own param[0].
+  // The inherited list is the base repository's own, and setInjectMetadata may write straight into it.
+  if (!ownInjects) {
+    Reflect.defineMetadata(
+      MetadataKeys.INJECT,
+      [...(registry.getInjectMetadata({ target }) ?? [])],
+      target,
+    );
+  }
+
   registry.setInjectMetadata({
     target,
     index: 0,
@@ -270,13 +278,7 @@ const applyRepositoryMetadata = <
 
   const resolved = resolveRepositoryMetadata({ metadata, target, registry });
 
-  // `_resolved` is an internal cache field, not part of the public TRepositoryMetadata surface callers author - it is added here, so the merged literal needs the widened local type.
-  registry.setRepositoryMetadata({
-    target,
-    metadata: { ...metadata, _resolved: resolved } as TRepositoryMetadata<Model, DataSource> & {
-      _resolved?: IResolvedRepositoryMetadata<Model, DataSource>;
-    },
-  });
+  registry.setRepositoryMetadata({ target, metadata: { ...metadata, _resolved: resolved } });
 };
 
 export const repository = <
