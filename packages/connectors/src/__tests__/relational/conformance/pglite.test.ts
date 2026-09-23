@@ -7,7 +7,7 @@ import { DefaultCRUDRepository } from '@/relational/postgres/repositories';
 import { PGlite } from '@electric-sql/pglite';
 import type { AnyType, ValueOrPromise } from '@venizia/ignis-helpers/common';
 import { afterAll, beforeAll } from 'bun:test';
-import { integer, pgTable, serial, text } from 'drizzle-orm/pg-core';
+import { integer, jsonb, pgTable, serial, text } from 'drizzle-orm/pg-core';
 import type { IConformanceHarness, TConformanceRepository } from './repository-conformance';
 import { runRepositoryConformance } from './repository-conformance';
 
@@ -24,6 +24,7 @@ const conformanceTable = pgTable(TABLE_NAME, {
   score: integer('score'),
   secret: text('secret'),
   tags: text('tags').array(),
+  metadata: jsonb('metadata'),
 });
 
 @model({ type: 'entity', settings: { hiddenProperties: ['secret'] } })
@@ -87,7 +88,8 @@ beforeAll(async () => {
       tenant text not null,
       score integer,
       secret text,
-      tags text[]
+      tags text[],
+      metadata jsonb
     );
   `);
 
@@ -116,6 +118,8 @@ runRepositoryConformance({
     arrayOperators: true,
     caseInsensitiveLike: false,
     nullsSortHigh: true,
+    jsonPathAppendsPastArrayEnd: true,
+    jsonPathRaisesOnScalarRoot: true,
   },
   build: () => harness,
 });

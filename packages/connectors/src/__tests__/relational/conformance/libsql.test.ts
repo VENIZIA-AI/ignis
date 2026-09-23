@@ -28,6 +28,7 @@ const conformanceTable = sqliteTable(TABLE_NAME, {
   score: integer('score'),
   secret: text('secret'),
   tags: text('tags', { mode: 'json' }).$type<string[]>(),
+  metadata: text('metadata', { mode: 'json' }),
 });
 
 @model({ type: 'entity', settings: { hiddenProperties: ['secret'] } })
@@ -79,7 +80,8 @@ beforeAll(async () => {
       tenant text not null,
       score integer,
       secret text,
-      tags text
+      tags text,
+      metadata text
     )
   `);
 
@@ -108,6 +110,8 @@ runRepositoryConformance({
     arrayOperators: false,
     caseInsensitiveLike: true,
     nullsSortHigh: false,
+    jsonPathAppendsPastArrayEnd: false,
+    jsonPathRaisesOnScalarRoot: false,
   },
   build: () => harness,
 });

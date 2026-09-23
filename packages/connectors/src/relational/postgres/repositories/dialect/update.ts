@@ -7,6 +7,10 @@ import { sql } from 'drizzle-orm';
  * The neutral base owns the split and the path validation.
  */
 export class UpdateBuilder extends RelationalUpdateBuilder {
+  private static readonly SOURCE_TABLE = sql.raw('json_update_source');
+  private static readonly DOCUMENT_COLUMN = sql.raw('document');
+  private static readonly SOURCE_DOCUMENT = sql.raw('json_update_source.document');
+
   constructor() {
     super({ scope: UpdateBuilder.name });
   }
@@ -19,10 +23,39 @@ export class UpdateBuilder extends RelationalUpdateBuilder {
   protected override composeJsonSet(opts: { target: SQL; path: string[]; value: any }): SQL {
     const { target, path, value } = opts;
 
-    const pathLiteral = sql.raw(`'{${path.join(',')}}'`);
     const valueLiteral = sql.raw(this.serializeJsonValue(value));
 
-    return sql`jsonb_set(${target}, ${pathLiteral}, ${valueLiteral}, true)`;
+    if (path.length === 1) {
+      return sql`jsonb_set(${target}, ${this.toPathLiteral({ path })}, ${valueLiteral}, true)`;
+    }
+
+    // `create_missing` creates only the LAST key, so each level is set from the inside out onto its
+    // parent, a missing parent read as `{}`. `target` is aliased once so a chained target is not
+    // repeated per level.
+    let composed = valueLiteral;
+    for (let depth = path.length; depth > 0; depth--) {
+      const parent = this.toParentNode({ path: path.slice(0, depth - 1) });
+      const key = this.toPathLiteral({ path: [path[depth - 1]] });
+      composed = sql`jsonb_set(${parent}, ${key}, ${composed}, true)`;
+    }
+
+    // A scalar parent yields NULL through the chain; coalescing keeps the document as it was.
+    return sql`(SELECT coalesce(${composed}, ${UpdateBuilder.SOURCE_DOCUMENT}) FROM (SELECT ${target} AS ${UpdateBuilder.DOCUMENT_COLUMN}) AS ${UpdateBuilder.SOURCE_TABLE})`;
+  }
+
+  private toPathLiteral(opts: { path: string[] }): SQL {
+    return sql.raw(`'{${opts.path.join(',')}}'`);
+  }
+
+  /** The document at `path`: `{}` when missing, NULL when it is a scalar nothing can be set inside. */
+  private toParentNode(opts: { path: string[] }): SQL {
+    if (opts.path.length === 0) {
+      return UpdateBuilder.SOURCE_DOCUMENT;
+    }
+
+    const node = sql`${UpdateBuilder.SOURCE_DOCUMENT} #> ${this.toPathLiteral(opts)}`;
+
+    return sql`CASE WHEN ${node} IS NULL THEN '{}'::jsonb WHEN jsonb_typeof(${node}) IN ('object', 'array') THEN ${node} END`;
   }
 
   /** Serializes a JavaScript value to a PostgreSQL JSONB literal. */

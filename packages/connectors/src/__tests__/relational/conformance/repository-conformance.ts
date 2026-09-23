@@ -9,8 +9,8 @@ import { expectRejection } from '@/__tests__/rejection.helper';
 
 /**
  * The columns every engine's conformance table declares. Types differ per engine - `tags` is a
- * `text[]` on Postgres and a JSON-mode `text` on SQLite - so the suite names columns and never
- * spells a type.
+ * `text[]` on Postgres and a JSON-mode `text` on SQLite, `metadata` is `jsonb` on Postgres and a
+ * JSON-mode `text` on SQLite - so the suite names columns and never spells a type.
  */
 export interface IConformanceRow {
   id: number;
@@ -19,6 +19,7 @@ export interface IConformanceRow {
   score: number;
   secret: string;
   tags: string[];
+  metadata?: Record<string, unknown> | null;
 }
 
 /**
@@ -30,8 +31,9 @@ export type TConformanceRepository = DefaultRelationalRepository<AnyType>;
 /**
  * Two kinds of engine difference, both ASSERTED rather than skipped. A refusal (`rowLocking`,
  * `regexp`, `arrayOperators`) is pinned as a NotSupported throw. A divergence
- * (`caseInsensitiveLike`, `nullsSortHigh`) is worse - identical code succeeds on both engines and
- * answers differently - so each engine pins the answer it gives.
+ * (`caseInsensitiveLike`, `nullsSortHigh`, `jsonPathAppendsPastArrayEnd`,
+ * `jsonPathRaisesOnScalarRoot`) is worse - identical code runs on both engines and answers
+ * differently - so each engine pins the answer it gives.
  */
 export interface IConformanceCapabilities {
   /** `SELECT ... FOR UPDATE`. SQLite locks the database file, never a row. */
@@ -54,6 +56,19 @@ export interface IConformanceCapabilities {
    * every value, SQLite smaller. Inverts by direction.
    */
   nullsSortHigh: boolean;
+
+  /**
+   * A JSON-path index past the end of an array, mid-path: Postgres appends the element
+   * (`jsonb_set`'s array rule), SQLite leaves the document unchanged. An index equal to the
+   * length appends on both.
+   */
+  jsonPathAppendsPastArrayEnd: boolean;
+
+  /**
+   * A JSON-path update on a column whose whole value is a scalar: Postgres raises
+   * `cannot set path in scalar`, SQLite leaves the value unchanged.
+   */
+  jsonPathRaisesOnScalarRoot: boolean;
 }
 
 export interface IConformanceHarness {
@@ -503,6 +518,116 @@ export const runRepositoryConformance = (opts: {
         }
 
         expect((await execution()).map(row => row.name)).toEqual(['alpha', 'beta']);
+      },
+    );
+
+    /** Creates a row carrying `metadata` (SQL NULL when absent), applies one JSON-path update, and reads the column back. */
+    const updateMetadata = async (update: {
+      metadata?: unknown;
+      data: Record<string, unknown>;
+    }) => {
+      const { metadata, data } = update;
+      const created = await repository.create<IConformanceRow>({
+        data: { name: 'json', tenant: 'acme', score: 1, secret: 'json-secret', tags: [], metadata },
+      });
+      const updated = await repository.updateById<IConformanceRow>({ id: created.data.id, data });
+      const found = await repository.findById<IConformanceRow>({ id: created.data.id });
+
+      return { count: updated.count, metadata: found?.metadata };
+    };
+
+    test('a JSON-path update creates every missing intermediate key', async () => {
+      const result = await updateMetadata({
+        metadata: {},
+        data: { 'metadata.deeply.nested.path.value': 'created' },
+      });
+
+      expect(result).toEqual({
+        count: 1,
+        metadata: { deeply: { nested: { path: { value: 'created' } } } },
+      });
+    });
+
+    test('a JSON-path update keeps the values beside the keys it creates', async () => {
+      const result = await updateMetadata({
+        metadata: { deeply: { kept: 1 }, other: 'x' },
+        data: { 'metadata.deeply.nested.path.value': 'created' },
+      });
+
+      expect(result.metadata).toEqual({
+        deeply: { kept: 1, nested: { path: { value: 'created' } } },
+        other: 'x',
+      });
+    });
+
+    test('two JSON paths through the same missing parent both land', async () => {
+      const result = await updateMetadata({
+        metadata: {},
+        data: { 'metadata.a.b.c': 1, 'metadata.a.b.d': 2, 'metadata.e': true },
+      });
+
+      expect(result.metadata).toEqual({ a: { b: { c: 1, d: 2 } }, e: true });
+    });
+
+    test('a JSON-path update through a scalar leaves the scalar intact', async () => {
+      const result = await updateMetadata({
+        metadata: { a: 's', b: 2 },
+        data: { 'metadata.a.c': 1, 'metadata.b': 3 },
+      });
+
+      expect(result.metadata).toEqual({ a: 's', b: 3 });
+    });
+
+    test('a JSON-path update on a NULL column leaves it NULL', async () => {
+      const result = await updateMetadata({ data: { 'metadata.a.b': 1 } });
+
+      expect(result).toEqual({ count: 1, metadata: null });
+    });
+
+    test('a JSON-path update through a JSON null parent leaves the document unchanged', async () => {
+      const result = await updateMetadata({
+        metadata: { a: null, b: 2 },
+        data: { 'metadata.a.c': 1 },
+      });
+
+      expect(result.metadata).toEqual({ a: null, b: 2 });
+    });
+
+    test(
+      capabilities.jsonPathAppendsPastArrayEnd
+        ? 'a JSON-path index past the end of an array appends the element'
+        : 'a JSON-path index past the end of an array leaves the document unchanged',
+      async () => {
+        const result = await updateMetadata({
+          metadata: { a: [{ x: 0 }] },
+          data: { 'metadata.a.3.x': 1 },
+        });
+
+        if (capabilities.jsonPathAppendsPastArrayEnd) {
+          expect(result.metadata).toEqual({ a: [{ x: 0 }, { x: 1 }] });
+          return;
+        }
+
+        expect(result.metadata).toEqual({ a: [{ x: 0 }] });
+      },
+    );
+
+    test(
+      capabilities.jsonPathRaisesOnScalarRoot
+        ? 'a JSON-path update on a scalar root raises'
+        : 'a JSON-path update on a scalar root leaves the value unchanged',
+      async () => {
+        const execution = () => updateMetadata({ metadata: 5, data: { 'metadata.a': 1 } });
+
+        // The engine's own message rides on `cause`; the driver wraps it in "Failed query: ...".
+        if (capabilities.jsonPathRaisesOnScalarRoot) {
+          expect(await captureRejection(execution)).toMatchObject({
+            cause: { message: 'cannot set path in scalar' },
+          });
+          return;
+        }
+
+        expect<unknown>(await execution()).toEqual({ count: 1, metadata: 5 });
       },
     );
   });
