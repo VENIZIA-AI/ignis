@@ -326,11 +326,13 @@ Tests for automatic user audit tracking (createdBy/modifiedBy fields).
 
 ## Running Tests
 
-Tests are executed when the server starts. To run:
+The suites are opt-in: they write, delete and lock rows, so a normal boot never runs them, and
+production refuses the flag. To run all 14 at boot, against your local database:
 
 ```bash
 cd examples/vert
-bun run server:dev
+APP_ENV_RUN_REPOSITORY_TESTS=true bun run server:dev
 ```
 
-All test output is logged with PASSED/FAILED status for each case.
+Each case logs PASSED or FAILED. JsonUpdateTestService CASE 10 fails on a known framework defect: a
+JSON-path update does not create missing intermediate keys. It is not a regression.

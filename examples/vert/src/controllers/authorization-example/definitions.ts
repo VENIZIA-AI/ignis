@@ -3,26 +3,26 @@ import { AuthenticateStrategy, IAuthRouteConfig, jsonContent } from '@venizia/ig
 import { HTTP } from '@venizia/ignis-helpers';
 
 export const RouteConfigs: Record<string, IAuthRouteConfig> = {
-  // Public — no authentication, no authorization
+  // Public - no authentication, no authorization
   ['/public']: {
     path: '/public',
     method: 'get',
     responses: {
       [HTTP.ResultCodes.RS_2.Ok]: jsonContent({
-        description: 'Public endpoint — no auth required',
+        description: 'Public endpoint - no auth required',
         schema: z.object({ message: z.string() }),
       }),
     },
   },
 
-  // JWT auth only — no authorization check
+  // JWT auth only - no authorization check
   ['/profile']: {
     path: '/profile',
     method: 'get',
     authenticate: { strategies: [AuthenticateStrategy.JWT] },
     responses: {
       [HTTP.ResultCodes.RS_2.Ok]: jsonContent({
-        description: 'User profile — JWT authentication only',
+        description: 'User profile - JWT authentication only',
         schema: z.object({ message: z.string(), userId: z.string() }),
       }),
     },
@@ -36,7 +36,7 @@ export const RouteConfigs: Record<string, IAuthRouteConfig> = {
     authorize: { action: 'read', resource: 'configuration' },
     responses: {
       [HTTP.ResultCodes.RS_2.Ok]: jsonContent({
-        description: 'Configurations — requires authorization (read:configuration)',
+        description: 'Configurations - requires authorization (read:configuration)',
         schema: z.object({ message: z.string(), data: z.array(z.string()) }),
       }),
     },
@@ -50,7 +50,7 @@ export const RouteConfigs: Record<string, IAuthRouteConfig> = {
     authorize: { action: 'create', resource: 'user' },
     responses: {
       [HTTP.ResultCodes.RS_2.Ok]: jsonContent({
-        description: 'Create user — requires authorization (create:user)',
+        description: 'Create user - requires authorization (create:user)',
         schema: z.object({ message: z.string() }),
       }),
     },
@@ -68,7 +68,7 @@ export const RouteConfigs: Record<string, IAuthRouteConfig> = {
     },
     responses: {
       [HTTP.ResultCodes.RS_2.Ok]: jsonContent({
-        description: 'Admin dashboard — requires admin role',
+        description: 'Admin dashboard - requires admin role',
         schema: z.object({ message: z.string(), stats: z.object({}) }),
       }),
     },

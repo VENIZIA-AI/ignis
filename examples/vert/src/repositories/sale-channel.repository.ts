@@ -1,27 +1,23 @@
 import { PostgresDataSource } from '@/datasources/postgres.datasource';
-import { SaleChannel } from '@/models/entities';
+import { SaleChannel, saleChannelTable } from '@/models/entities';
 import { repository } from '@venizia/ignis';
 import { DefaultCRUDRepository } from '@venizia/ignis/postgres';
 
-/**
- * SaleChannelRepository with auto-resolution.
- *
- * Uses @repository decorator to bind to model and datasource.
- */
 @repository({ model: SaleChannel, dataSource: PostgresDataSource })
-export class SaleChannelRepository extends DefaultCRUDRepository<typeof SaleChannel.schema> {
-  async findByCode(code: string) {
-    return this.findOne({ filter: { where: { code } } });
+export class SaleChannelRepository extends DefaultCRUDRepository<typeof saleChannelTable> {
+  findByCode(opts: { code: string }) {
+    return this.findOne({ filter: { where: { code: opts.code } } });
   }
 
-  async findActiveChannels() {
+  findActiveChannels() {
     return this.find({ filter: { where: { isActive: true } } });
   }
 
-  async findWithProducts(saleChannelId: string) {
+  /** A nested include: the channel, its junction rows, and the product behind each. */
+  findWithProducts(opts: { saleChannelId: string }) {
     return this.findOne({
       filter: {
-        where: { id: saleChannelId },
+        where: { id: opts.saleChannelId },
         include: [
           { relation: 'saleChannelProducts', scope: { include: [{ relation: 'product' }] } },
         ],

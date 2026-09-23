@@ -1,11 +1,4 @@
-import { BindingKeys, BindingNamespaces, inject } from '@venizia/ignis';
-import {
-  ConfigurationRepository,
-  ProductRepository,
-  SaleChannelProductRepository,
-  SaleChannelRepository,
-  UserRepository,
-} from '../../../repositories';
+import { service } from '@venizia/ignis';
 import { BaseTestService } from '../base-test.service';
 import { CreatedByCases } from './created-by.cases';
 import { EdgeCases } from './edge.cases';
@@ -36,54 +29,8 @@ import { QueriesCases } from './queries.cases';
  * 6. Transaction behavior
  */
 // ----------------------------------------------------------------
+@service()
 export class UserAuditTestService extends BaseTestService {
-  constructor(
-    @inject({
-      key: BindingKeys.build({
-        namespace: BindingNamespaces.REPOSITORY,
-        key: ConfigurationRepository.name,
-      }),
-    })
-    configurationRepository: ConfigurationRepository,
-    @inject({
-      key: BindingKeys.build({
-        namespace: BindingNamespaces.REPOSITORY,
-        key: ProductRepository.name,
-      }),
-    })
-    productRepository: ProductRepository,
-    @inject({
-      key: BindingKeys.build({
-        namespace: BindingNamespaces.REPOSITORY,
-        key: SaleChannelRepository.name,
-      }),
-    })
-    saleChannelRepository: SaleChannelRepository,
-    @inject({
-      key: BindingKeys.build({
-        namespace: BindingNamespaces.REPOSITORY,
-        key: SaleChannelProductRepository.name,
-      }),
-    })
-    saleChannelProductRepository: SaleChannelProductRepository,
-    @inject({
-      key: BindingKeys.build({
-        namespace: BindingNamespaces.REPOSITORY,
-        key: UserRepository.name,
-      }),
-    })
-    userRepository: UserRepository,
-  ) {
-    super(
-      UserAuditTestService.name,
-      configurationRepository,
-      productRepository,
-      saleChannelRepository,
-      saleChannelProductRepository,
-      userRepository,
-    );
-  }
-
   // ----------------------------------------------------------------
   async run(): Promise<void> {
     const context = this.caseContext();

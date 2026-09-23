@@ -15,11 +15,8 @@ interface IDataSourceConfigs {
 }
 
 /**
- * Schema is auto-discovered from the repositories that reference this datasource: `@repository`
- * binds a model to a datasource, and `getSchema()` collects them.
- *
- * `configure()` only builds the client. Naming NodePostgresDriver in `@datasource` is what wires
- * the driver and the connector - and what carries `pg` into the bundle.
+ * The schema is discovered from the repositories bound here. Naming NodePostgresDriver in
+ * `@datasource` wires the driver and carries `pg` into a compiled binary.
  */
 @datasource({ driver: NodePostgresDriver })
 export class PostgresDataSource extends BasePostgresDataSource<IDataSourceConfigs> {
@@ -36,7 +33,6 @@ export class PostgresDataSource extends BasePostgresDataSource<IDataSourceConfig
         password: applicationEnvironment.get<string>(EnvironmentKeys.APP_ENV_POSTGRES_PASSWORD),
         ssl: false,
       },
-      // NO schema property - auto-discovered from @repository bindings!
     });
   }
 

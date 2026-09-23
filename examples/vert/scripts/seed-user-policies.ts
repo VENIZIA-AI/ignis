@@ -7,7 +7,6 @@
  */
 import 'dotenv-flow/config';
 
-import { randomUUID } from 'crypto';
 import { readFileSync } from 'fs';
 import path from 'path';
 import { Pool } from 'pg';
@@ -18,6 +17,7 @@ import {
   AuthorizationPolicyBuilder,
 } from '@venizia/ignis';
 import { blankToUndefined } from '@venizia/ignis-helpers';
+import { uuidV7 } from '@venizia/ignis-helpers/uuid';
 
 const pool = new Pool({
   host: blankToUndefined(process.env.APP_ENV_POSTGRES_HOST) ?? '0.0.0.0',
@@ -65,7 +65,7 @@ interface PolicyRow {
  * and `domainId`, and `domain_id` stores the bare id; the `<Type>_<id>` casbin token is assembled at
  * read time by the adapter, never stored.
  */
-function toRow(policy: {
+const toRow = (policy: {
   variant: string;
   subjectType: string;
   subjectId: IdType;
@@ -75,7 +75,7 @@ function toRow(policy: {
   effect?: string | null;
   domainType?: string | null;
   domainId?: IdType | null;
-}): PolicyRow {
+}): PolicyRow => {
   return {
     variant: policy.variant,
     subjectType: policy.subjectType,
@@ -87,9 +87,9 @@ function toRow(policy: {
     domainType: policy.domainType ?? null,
     domainId: policy.domainId == null ? null : String(policy.domainId),
   };
-}
+};
 
-function buildPolicies(opts: { userId: string; ids: SeedIds }): PolicyRow[] {
+const buildPolicies = (opts: { userId: string; ids: SeedIds }): PolicyRow[] => {
   const { userId, ids } = opts;
   const { organizations: orgs, roles, permissions: perms } = ids;
 
@@ -97,7 +97,7 @@ function buildPolicies(opts: { userId: string; ids: SeedIds }): PolicyRow[] {
   const orgBetaDomain = { type: PolicyPrincipalTypes.ORGANIZATION, id: orgs.orgBeta };
 
   const policyMap: Record<string, PolicyRow[]> = {
-    // Super admin — alwaysAllowRoles bypass
+    // Super admin - alwaysAllowRoles bypass
     test_superadmin: [
       toRow(
         AuthorizationPolicyBuilder.assignRole({
@@ -108,7 +108,7 @@ function buildPolicies(opts: { userId: string; ids: SeedIds }): PolicyRow[] {
       ),
     ],
 
-    // Admin — has create:user via role policy in org_alpha
+    // Admin - has create:user via role policy in org_alpha
     test_admin: [
       toRow(
         AuthorizationPolicyBuilder.assignRole({
@@ -128,7 +128,7 @@ function buildPolicies(opts: { userId: string; ids: SeedIds }): PolicyRow[] {
       ),
     ],
 
-    // Regular user — has read:configuration via role policy in org_alpha
+    // Regular user - has read:configuration via role policy in org_alpha
     test_user: [
       toRow(
         AuthorizationPolicyBuilder.assignRole({
@@ -148,7 +148,7 @@ function buildPolicies(opts: { userId: string; ids: SeedIds }): PolicyRow[] {
       ),
     ],
 
-    // Guest — role assigned but no permission policies
+    // Guest - role assigned but no permission policies
     test_guest: [
       toRow(
         AuthorizationPolicyBuilder.assignRole({
@@ -159,7 +159,7 @@ function buildPolicies(opts: { userId: string; ids: SeedIds }): PolicyRow[] {
       ),
     ],
 
-    // Beta admin — has read:configuration in org_beta (different tenant)
+    // Beta admin - has read:configuration in org_beta (different tenant)
     test_beta_admin: [
       toRow(
         AuthorizationPolicyBuilder.assignRole({
@@ -179,7 +179,7 @@ function buildPolicies(opts: { userId: string; ids: SeedIds }): PolicyRow[] {
       ),
     ],
 
-    // No-org user — role assigned with no domain, so the g-line is "*" (every domain). Still 403:
+    // No-org user - role assigned with no domain, so the g-line is "*" (every domain). Still 403:
     // there is no org-scoped grant for it to match against.
     test_no_org: [
       toRow(
@@ -190,7 +190,7 @@ function buildPolicies(opts: { userId: string; ids: SeedIds }): PolicyRow[] {
       ),
     ],
 
-    // Denied user — has allow via role + explicit deny at user level
+    // Denied user - has allow via role + explicit deny at user level
     test_denied: [
       toRow(
         AuthorizationPolicyBuilder.assignRole({
@@ -228,9 +228,9 @@ function buildPolicies(opts: { userId: string; ids: SeedIds }): PolicyRow[] {
   }
 
   return policies;
-}
+};
 
-async function seedUserPolicies() {
+const seedUserPolicies = async () => {
   const idsPath = path.resolve(import.meta.dir, '../app_data/seed-ids.json');
   const ids: SeedIds = JSON.parse(readFileSync(idsPath, 'utf-8'));
 
@@ -255,7 +255,7 @@ async function seedUserPolicies() {
            (id, variant, subject_type, subject_id, target_type, target_id, action, effect, domain_type, domain_id)
          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`,
         [
-          randomUUID(),
+          uuidV7(),
           p.variant,
           p.subjectType,
           p.subjectId,
@@ -281,6 +281,6 @@ async function seedUserPolicies() {
     client.release();
     await pool.end();
   }
-}
+};
 
 seedUserPolicies();

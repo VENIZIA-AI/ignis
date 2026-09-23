@@ -1,11 +1,4 @@
-import { BindingKeys, BindingNamespaces, inject } from '@venizia/ignis';
-import {
-  ConfigurationRepository,
-  ProductRepository,
-  SaleChannelProductRepository,
-  SaleChannelRepository,
-  UserRepository,
-} from '../../../repositories';
+import { service } from '@venizia/ignis';
 import { BaseTestService } from '../base-test.service';
 import { EdgeCases } from './edge.cases';
 import { IntegrityCases } from './integrity.cases';
@@ -16,54 +9,8 @@ import { PathsCases } from './paths.cases';
 // JSON Update Test Service - Tests nested JSON/JSONB field updates
 // Uses ConfigurationRepository which has the jValue JSONB column
 // ----------------------------------------------------------------
+@service()
 export class JsonUpdateTestService extends BaseTestService {
-  constructor(
-    @inject({
-      key: BindingKeys.build({
-        namespace: BindingNamespaces.REPOSITORY,
-        key: ConfigurationRepository.name,
-      }),
-    })
-    configurationRepository: ConfigurationRepository,
-    @inject({
-      key: BindingKeys.build({
-        namespace: BindingNamespaces.REPOSITORY,
-        key: ProductRepository.name,
-      }),
-    })
-    productRepository: ProductRepository,
-    @inject({
-      key: BindingKeys.build({
-        namespace: BindingNamespaces.REPOSITORY,
-        key: SaleChannelRepository.name,
-      }),
-    })
-    saleChannelRepository: SaleChannelRepository,
-    @inject({
-      key: BindingKeys.build({
-        namespace: BindingNamespaces.REPOSITORY,
-        key: SaleChannelProductRepository.name,
-      }),
-    })
-    saleChannelProductRepository: SaleChannelProductRepository,
-    @inject({
-      key: BindingKeys.build({
-        namespace: BindingNamespaces.REPOSITORY,
-        key: UserRepository.name,
-      }),
-    })
-    userRepository: UserRepository,
-  ) {
-    super(
-      JsonUpdateTestService.name,
-      configurationRepository,
-      productRepository,
-      saleChannelRepository,
-      saleChannelProductRepository,
-      userRepository,
-    );
-  }
-
   // ----------------------------------------------------------------
   async run(): Promise<void> {
     const context = this.caseContext();

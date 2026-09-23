@@ -1,30 +1,27 @@
 import { Authentication, BaseRestController, controller } from '@venizia/ignis';
-import type { IControllerOptions, ValueOrPromise } from '@venizia/ignis';
+import type { ValueOrPromise } from '@venizia/ignis';
 import { HTTP } from '@venizia/ignis-helpers';
 import { RouteConfigs } from './definitions';
 
 @controller({ path: '/authz-example' })
 export class AuthorizationExampleController extends BaseRestController {
-  constructor(opts: IControllerOptions) {
-    super({
-      ...opts,
-      scope: AuthorizationExampleController.name,
-    });
+  constructor() {
+    super({ scope: AuthorizationExampleController.name });
   }
 
   override binding(): ValueOrPromise<void> {
-    // Public — no auth, no authz
+    // Public - no auth, no authz
     this.defineRoute({
       configs: RouteConfigs['/public'],
       handler: context => {
         return context.json(
-          { message: 'This is a public endpoint — no authentication required' },
+          { message: 'This is a public endpoint - no authentication required' },
           HTTP.ResultCodes.RS_2.Ok,
         );
       },
     });
 
-    // JWT auth only — no authorization check
+    // JWT auth only - no authorization check
     this.defineRoute({
       configs: RouteConfigs['/profile'],
       handler: context => {

@@ -1,45 +1,24 @@
 import { extraUserColumns, model } from '@venizia/ignis';
 import {
-  BasePostgresEntity,
   generateIdColumnDefs,
   generateTzColumnDefs,
+  ModelFactory,
+  TEntityObject,
 } from '@venizia/ignis/postgres';
 import { pgTable, text } from 'drizzle-orm/pg-core';
 
-// ----------------------------------------------------------------
-/**
- * User model using static schema pattern (Option A - Power Users)
- *
- * The schema is defined as a static property on the class.
- * Relations can be added via static relations property.
- * No constructor needed - BasePostgresEntity auto-discovers from static properties.
- *
- * Features:
- * - User audit tracking: createdBy/modifiedBy automatically populated
- * - Timestamps: createdAt/modifiedAt automatically managed
- * - Hidden properties: password and secret excluded from queries
- */
-@model({
-  type: 'entity',
-  settings: {
-    hiddenProperties: ['password', 'secret'],
-  },
-})
-export class User extends BasePostgresEntity<typeof User.schema> {
-  static override schema = pgTable('User', {
-    ...generateIdColumnDefs({ id: { dataType: 'string' } }),
-    ...generateTzColumnDefs(),
-    ...extraUserColumns({ idType: 'string' }),
+export const userTable = pgTable('User', {
+  ...generateIdColumnDefs({ id: { dataType: 'string' } }),
+  ...generateTzColumnDefs(),
+  ...extraUserColumns({ idType: 'string' }),
+  username: text('username').notNull().unique(),
+  email: text('email').notNull().unique(),
+  password: text('password'),
+  secret: text('secret'),
+});
 
-    // Authentication fields
-    username: text('username').notNull().unique(),
-    email: text('email').notNull().unique(),
+/** `hiddenProperties` keeps `password` and `secret` out of every repository read and write response. */
+@model({ type: 'entity', settings: { hiddenProperties: ['password', 'secret'] } })
+export class User extends ModelFactory.defineEntity({ table: userTable }) {}
 
-    // Hidden properties - excluded from all repository queries
-    password: text('password'),
-    secret: text('secret'),
-  });
-
-  // Define relations as a static method (empty for User)
-  static override relations = () => [];
-}
+export type TUser = TEntityObject<typeof User>;

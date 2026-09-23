@@ -36,7 +36,7 @@ export class ScenariosCases extends BaseTestCases {
       });
       this.context.logger.info('[CASE 7] TX1 locked first row');
 
-      // TX2: Find with SKIP LOCKED — should skip locked row
+      // TX2: Find with SKIP LOCKED - should skip locked row
       const results = await repo.find({
         filter: { where: { group } },
         options: {
@@ -101,7 +101,7 @@ export class ScenariosCases extends BaseTestCases {
       });
       this.context.logger.info('[CASE 8] TX1 acquired lock');
 
-      // TX2: Try NOWAIT — should fail immediately
+      // TX2: Try NOWAIT - should fail immediately
       try {
         await repo.findOne({
           filter: { where: { code } },
@@ -288,7 +288,7 @@ export class ScenariosCases extends BaseTestCases {
         },
       });
 
-      // TX2: Also acquire SHARE lock (should succeed — shared locks don't conflict)
+      // TX2: Also acquire SHARE lock (should succeed - shared locks don't conflict)
       const r2 = await repo.findOne({
         filter: { where: { code } },
         options: {

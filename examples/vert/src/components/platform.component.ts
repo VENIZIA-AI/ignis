@@ -43,7 +43,7 @@ import type {
   TJWTTokenServiceOptions,
 } from '@venizia/ignis';
 import type { TStaticAssetsComponentOptions } from '@venizia/ignis/static-asset';
-import { applicationEnvironment, DiskHelper, getError } from '@venizia/ignis-helpers';
+import { applicationEnvironment, DiskHelper, getError, int } from '@venizia/ignis-helpers';
 import { MetaLinkRepository } from '@/repositories/meta-link.repository';
 
 /**
@@ -58,9 +58,8 @@ export class PlatformComponent extends BaseComponent {
     super({ scope: PlatformComponent.name });
   }
 
-  override binding(): void {
-    // Nothing eager: every option below is a provider resolved on first read.
-  }
+  // Nothing eager: every option below is a provider resolved on first read.
+  override binding(): void {}
 
   /**
    * Two asset stores on one component. `staticAsset` turns on `useMetaLink`, so every upload also
@@ -78,10 +77,7 @@ export class PlatformComponent extends BaseComponent {
         metaLink: {
           model: BaseMetaLinkModel,
           repository: this.application.get<MetaLinkRepository>({
-            key: BindingKeys.build({
-              namespace: BindingNamespaces.REPOSITORY,
-              key: MetaLinkRepository.name,
-            }),
+            key: { namespace: BindingNamespaces.REPOSITORY, key: MetaLinkRepository.name },
           }),
         },
         extra: { parseMultipartBody: { storage: 'memory' } },
@@ -149,16 +145,13 @@ export class PlatformComponent extends BaseComponent {
         },
         kid: applicationEnvironment.get<string>(EnvironmentKeys.APP_ENV_JWKS_KID),
         getTokenExpiresFn: () => {
-          const jwtExpiresIn = applicationEnvironment.get<string>(
+          const expiresIn = applicationEnvironment.get<string>(
             EnvironmentKeys.APP_ENV_JWT_EXPIRES_IN,
           );
-          if (!jwtExpiresIn) {
-            throw getError({
-              message: `[getTokenExpiresFn] Invalid APP_ENV_JWT_EXPIRES_IN | jwtExpiresIn: ${jwtExpiresIn}`,
-            });
+          if (!expiresIn) {
+            throw getError({ message: '[getTokenExpiresFn] APP_ENV_JWT_EXPIRES_IN is not set' });
           }
-
-          return parseInt(jwtExpiresIn);
+          return int(expiresIn);
         },
       },
     };
@@ -169,10 +162,7 @@ export class PlatformComponent extends BaseComponent {
     return {
       verifyCredentials: async opts => {
         const authenticationService = this.application.get<AuthenticationService>({
-          key: BindingKeys.build({
-            namespace: BindingNamespaces.SERVICE,
-            key: AuthenticationService.name,
-          }),
+          key: { namespace: BindingNamespaces.SERVICE, key: AuthenticationService.name },
         });
         return authenticationService.signIn(opts.context, {
           identifier: { scheme: 'username', value: opts.credentials.username },

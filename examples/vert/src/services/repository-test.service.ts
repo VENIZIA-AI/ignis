@@ -1,7 +1,15 @@
-import { BaseService, BindingKeys, BindingNamespaces, inject } from '@venizia/ignis';
+import {
+  BaseApplication,
+  BaseService,
+  BindingNamespaces,
+  CoreBindings,
+  inject,
+  service,
+} from '@venizia/ignis';
 import {
   AdvancedFilterQueryTestService,
   ArrayOperatorTestService,
+  BaseTestService,
   ComprehensiveOperatorTestService,
   CrudTestService,
   DefaultFilterTestService,
@@ -10,203 +18,49 @@ import {
   InclusionTestService,
   JsonFilterTestService,
   JsonOrderByTestService,
+  JsonUpdateTestService,
   RowLockingTestService,
   TransactionTestService,
+  UserAuditTestService,
 } from './tests';
-import { UserAuditTestService } from './tests/user-audit';
-import { JsonUpdateTestService } from './tests/json-update';
 
-// ----------------------------------------------------------------
-// Repository Test Service - Orchestrates all repository test suites
-// ----------------------------------------------------------------
+/**
+ * Runs every repository suite against the live database, in order. Each case logs PASSED or FAILED;
+ * `src/services/tests/TEST_CASES.md` lists them. The application runs this at boot when
+ * `APP_ENV_RUN_REPOSITORY_TESTS=true`.
+ */
+@service()
 export class RepositoryTestService extends BaseService {
+  static readonly SUITES = [
+    CrudTestService,
+    TransactionTestService,
+    JsonOrderByTestService,
+    JsonFilterTestService,
+    ArrayOperatorTestService,
+    FieldSelectionTestService,
+    InclusionTestService,
+    HiddenPropertiesTestService,
+    ComprehensiveOperatorTestService,
+    AdvancedFilterQueryTestService,
+    DefaultFilterTestService,
+    UserAuditTestService,
+    JsonUpdateTestService,
+    RowLockingTestService,
+  ];
+
   constructor(
-    @inject({
-      key: BindingKeys.build({
-        namespace: BindingNamespaces.SERVICE,
-        key: CrudTestService.name,
-      }),
-    })
-    private readonly crudTestService: CrudTestService,
-    @inject({
-      key: BindingKeys.build({
-        namespace: BindingNamespaces.SERVICE,
-        key: TransactionTestService.name,
-      }),
-    })
-    private readonly transactionTestService: TransactionTestService,
-    @inject({
-      key: BindingKeys.build({
-        namespace: BindingNamespaces.SERVICE,
-        key: JsonOrderByTestService.name,
-      }),
-    })
-    private readonly jsonOrderByTestService: JsonOrderByTestService,
-    @inject({
-      key: BindingKeys.build({
-        namespace: BindingNamespaces.SERVICE,
-        key: FieldSelectionTestService.name,
-      }),
-    })
-    private readonly fieldSelectionTestService: FieldSelectionTestService,
-    @inject({
-      key: BindingKeys.build({
-        namespace: BindingNamespaces.SERVICE,
-        key: InclusionTestService.name,
-      }),
-    })
-    private readonly inclusionTestService: InclusionTestService,
-    @inject({
-      key: BindingKeys.build({
-        namespace: BindingNamespaces.SERVICE,
-        key: HiddenPropertiesTestService.name,
-      }),
-    })
-    private readonly hiddenPropertiesTestService: HiddenPropertiesTestService,
-    @inject({
-      key: BindingKeys.build({
-        namespace: BindingNamespaces.SERVICE,
-        key: JsonFilterTestService.name,
-      }),
-    })
-    private readonly jsonFilterTestService: JsonFilterTestService,
-    @inject({
-      key: BindingKeys.build({
-        namespace: BindingNamespaces.SERVICE,
-        key: ArrayOperatorTestService.name,
-      }),
-    })
-    private readonly arrayOperatorTestService: ArrayOperatorTestService,
-    @inject({
-      key: BindingKeys.build({
-        namespace: BindingNamespaces.SERVICE,
-        key: ComprehensiveOperatorTestService.name,
-      }),
-    })
-    private readonly comprehensiveOperatorTestService: ComprehensiveOperatorTestService,
-    @inject({
-      key: BindingKeys.build({
-        namespace: BindingNamespaces.SERVICE,
-        key: AdvancedFilterQueryTestService.name,
-      }),
-    })
-    private readonly advancedFilterQueryTestService: AdvancedFilterQueryTestService,
-    @inject({
-      key: BindingKeys.build({
-        namespace: BindingNamespaces.SERVICE,
-        key: DefaultFilterTestService.name,
-      }),
-    })
-    private readonly defaultFilterTestService: DefaultFilterTestService,
-    @inject({
-      key: BindingKeys.build({
-        namespace: BindingNamespaces.SERVICE,
-        key: UserAuditTestService.name,
-      }),
-    })
-    private readonly userAuditTestService: UserAuditTestService,
-    @inject({
-      key: BindingKeys.build({
-        namespace: BindingNamespaces.SERVICE,
-        key: JsonUpdateTestService.name,
-      }),
-    })
-    private readonly jsonUpdateTestService: JsonUpdateTestService,
-    @inject({
-      key: BindingKeys.build({
-        namespace: BindingNamespaces.SERVICE,
-        key: RowLockingTestService.name,
-      }),
-    })
-    private readonly rowLockingTestService: RowLockingTestService,
+    @inject({ key: CoreBindings.APPLICATION_INSTANCE })
+    private readonly application: BaseApplication,
   ) {
     super({ scope: RepositoryTestService.name });
   }
 
-  // ----------------------------------------------------------------
-  // Run all repository test suites
-  // ----------------------------------------------------------------
   async runAllTests(): Promise<void> {
-    this.logger.for('runAllTests').info('='.repeat(80));
-    this.logger.for('runAllTests').info(' Starting all repository test suites...');
-    this.logger.for('runAllTests').info('='.repeat(80));
-
-    // await this.runRepositoryTests();
-    // await this.runTransactionTests();
-    // await this.runJsonOrderByTests();
-    // await this.runJsonFilterTests();
-    // await this.runArrayOperatorTests();
-    // await this.runFieldSelectionTests();
-    // await this.runInclusionTests();
-    // await this.runHiddenPropertiesTests();
-    // await this.runComprehensiveOperatorTests();
-    // await this.runAdvancedFilterQueryTests();
-    // await this.runDefaultFilterTests();
-    // await this.runUserAuditTests();
-    // await this.runJsonUpdateTestService();
-    await this.runRowLockingTests();
-
-    this.logger.for('runAllTests').info('='.repeat(80));
-    this.logger.for('runAllTests').info(' All repository test suites completed!');
-    this.logger.for('runAllTests').info('='.repeat(80));
-  }
-
-  // ----------------------------------------------------------------
-  // Individual test suite runners
-  // ----------------------------------------------------------------
-  async runRepositoryTests(): Promise<void> {
-    await this.crudTestService.run();
-  }
-
-  async runTransactionTests(): Promise<void> {
-    await this.transactionTestService.run();
-  }
-
-  async runJsonOrderByTests(): Promise<void> {
-    await this.jsonOrderByTestService.run();
-  }
-
-  async runJsonFilterTests(): Promise<void> {
-    await this.jsonFilterTestService.run();
-  }
-
-  async runArrayOperatorTests(): Promise<void> {
-    await this.arrayOperatorTestService.run();
-  }
-
-  async runFieldSelectionTests(): Promise<void> {
-    await this.fieldSelectionTestService.run();
-  }
-
-  async runInclusionTests(): Promise<void> {
-    await this.inclusionTestService.run();
-  }
-
-  async runHiddenPropertiesTests(): Promise<void> {
-    await this.hiddenPropertiesTestService.run();
-  }
-
-  async runComprehensiveOperatorTests(): Promise<void> {
-    await this.comprehensiveOperatorTestService.run();
-  }
-
-  async runAdvancedFilterQueryTests(): Promise<void> {
-    await this.advancedFilterQueryTestService.run();
-  }
-
-  async runDefaultFilterTests(): Promise<void> {
-    await this.defaultFilterTestService.run();
-  }
-
-  async runUserAuditTests(): Promise<void> {
-    await this.userAuditTestService.run();
-  }
-
-  async runJsonUpdateTestService(): Promise<void> {
-    await this.jsonUpdateTestService.run();
-  }
-
-  async runRowLockingTests(): Promise<void> {
-    await this.rowLockingTestService.run();
+    for (const suite of RepositoryTestService.SUITES) {
+      const instance = this.application.get<BaseTestService>({
+        key: { namespace: BindingNamespaces.SERVICE, key: suite.name },
+      });
+      await instance.run();
+    }
   }
 }

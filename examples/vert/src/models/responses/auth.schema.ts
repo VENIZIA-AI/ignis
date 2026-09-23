@@ -2,7 +2,7 @@ import { z } from '@hono/zod-openapi';
 
 // ================================================================================
 export const SignInResponseSchema = z.object({
-  userId: z.number().openapi({
+  userId: z.string().openapi({
     description: 'User ID',
   }),
   roles: z.array(z.string()).openapi({
@@ -34,7 +34,3 @@ export const ChangePasswordResponseSchema = z.object({
   }),
 });
 export type TChangePasswordResponseSchema = z.infer<typeof ChangePasswordResponseSchema>;
-
-// ================================================================================
-export const GetUserInformationResponseSchema = z.object({});
-export type TGetUserInformationResponseSchema = z.infer<typeof GetUserInformationResponseSchema>;

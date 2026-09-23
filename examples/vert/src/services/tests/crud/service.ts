@@ -1,11 +1,4 @@
-import { BindingKeys, BindingNamespaces, inject } from '@venizia/ignis';
-import {
-  ConfigurationRepository,
-  ProductRepository,
-  SaleChannelProductRepository,
-  SaleChannelRepository,
-  UserRepository,
-} from '../../../repositories';
+import { service } from '@venizia/ignis';
 import { BaseTestService } from '../base-test.service';
 import { CreateCases } from './create.cases';
 import { DeleteCases } from './delete.cases';
@@ -16,54 +9,8 @@ import { ValueCases } from './values.cases';
 // ----------------------------------------------------------------
 // CRUD Test Service - Basic repository operations (no transaction)
 // ----------------------------------------------------------------
+@service()
 export class CrudTestService extends BaseTestService {
-  constructor(
-    @inject({
-      key: BindingKeys.build({
-        namespace: BindingNamespaces.REPOSITORY,
-        key: ConfigurationRepository.name,
-      }),
-    })
-    configurationRepository: ConfigurationRepository,
-    @inject({
-      key: BindingKeys.build({
-        namespace: BindingNamespaces.REPOSITORY,
-        key: ProductRepository.name,
-      }),
-    })
-    productRepository: ProductRepository,
-    @inject({
-      key: BindingKeys.build({
-        namespace: BindingNamespaces.REPOSITORY,
-        key: SaleChannelRepository.name,
-      }),
-    })
-    saleChannelRepository: SaleChannelRepository,
-    @inject({
-      key: BindingKeys.build({
-        namespace: BindingNamespaces.REPOSITORY,
-        key: SaleChannelProductRepository.name,
-      }),
-    })
-    saleChannelProductRepository: SaleChannelProductRepository,
-    @inject({
-      key: BindingKeys.build({
-        namespace: BindingNamespaces.REPOSITORY,
-        key: UserRepository.name,
-      }),
-    })
-    userRepository: UserRepository,
-  ) {
-    super(
-      CrudTestService.name,
-      configurationRepository,
-      productRepository,
-      saleChannelRepository,
-      saleChannelProductRepository,
-      userRepository,
-    );
-  }
-
   // ----------------------------------------------------------------
   async run(): Promise<void> {
     const context = this.caseContext();

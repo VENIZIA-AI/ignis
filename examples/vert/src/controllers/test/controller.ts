@@ -1,15 +1,13 @@
 import { Authentication, BaseRestController, controller, get, post } from '@venizia/ignis';
-import type { IControllerOptions, TRouteContext, ValueOrPromise } from '@venizia/ignis';
+import type { TRouteContext, ValueOrPromise } from '@venizia/ignis';
 import { Environment, HTTP } from '@venizia/ignis-helpers';
+import { uuidV7 } from '@venizia/ignis-helpers/uuid';
 import { RouteConfigs, TRoute5Body } from './definitions';
 
 @controller({ path: '/test', when: () => !Environment.is({ name: Environment.PRODUCTION }) })
 export class TestController extends BaseRestController {
-  constructor(opts: IControllerOptions) {
-    super({
-      ...opts,
-      scope: TestController.name,
-    });
+  constructor() {
+    super({ scope: TestController.name });
   }
 
   override binding(): ValueOrPromise<void> {
@@ -34,7 +32,7 @@ export class TestController extends BaseRestController {
       configs: RouteConfigs['/3'],
     }).to({
       handler: context => {
-        console.log(context.get(Authentication.CURRENT_USER));
+        this.logger.for('/3').info('Current user | %j', context.get(Authentication.CURRENT_USER));
         return context.json({ message: 'Hello 3' }, HTTP.ResultCodes.RS_2.Ok);
       },
     });
@@ -63,7 +61,7 @@ export class TestController extends BaseRestController {
     // { id: string, name: string, age: number }
     return context.json(
       {
-        id: crypto.randomUUID(),
+        id: uuidV7(),
         name: body.name,
         age: body.age,
       },

@@ -1,26 +1,15 @@
-/**
- * Migration schema file for drizzle-kit.
- *
- * drizzle-kit expects raw pgTable() exports, not class references.
- * This file re-exports the `.schema` static properties from each entity model
- * so drizzle-kit can detect and manage them.
- */
-import { Configuration } from './models/entities/configuration.model';
-import { User } from './models/entities/user.model';
-import { Product } from './models/entities/product.model';
-import { SaleChannel } from './models/entities/sale-channel.model';
-import { SaleChannelProduct } from './models/entities/sale-channel-product.model';
-import { Organization } from './models/entities/organization.model';
-import { Role } from './models/entities/role.model';
-import { Permission } from './models/entities/permission.model';
-import { PolicyDefinition } from './models/entities/policy-definition.model';
+// The tables drizzle-kit generates migrations from: every model table, plus the static-asset
+// component's MetaLink table, which this application writes through MetaLinkRepository.
+import { BaseMetaLinkModel } from '@venizia/ignis/static-asset';
 
-export const configuration = Configuration.schema;
-export const user = User.schema;
-export const product = Product.schema;
-export const saleChannel = SaleChannel.schema;
-export const saleChannelProduct = SaleChannelProduct.schema;
-export const organization = Organization.schema;
-export const role = Role.schema;
-export const permission = Permission.schema;
-export const policyDefinition = PolicyDefinition.schema;
+export { configurationTable } from './models/entities/configuration.model';
+export { organizationTable } from './models/entities/organization.model';
+export { permissionTable } from './models/entities/permission.model';
+export { policyDefinitionTable } from './models/entities/policy-definition.model';
+export { productTable } from './models/entities/product.model';
+export { roleTable } from './models/entities/role.model';
+export { saleChannelProductTable } from './models/entities/sale-channel-product.model';
+export { saleChannelTable } from './models/entities/sale-channel.model';
+export { userTable } from './models/entities/user.model';
+
+export const metaLinkTable = BaseMetaLinkModel.schema;

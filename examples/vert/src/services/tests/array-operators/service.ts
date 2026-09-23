@@ -1,11 +1,4 @@
-import { BindingKeys, BindingNamespaces, inject } from '@venizia/ignis';
-import {
-  ConfigurationRepository,
-  ProductRepository,
-  SaleChannelProductRepository,
-  SaleChannelRepository,
-  UserRepository,
-} from '../../../repositories';
+import { service } from '@venizia/ignis';
 import { BaseTestService } from '../base-test.service';
 import { CompositionCases } from './composition.cases';
 import { ContainsCases } from './contains.cases';
@@ -15,54 +8,8 @@ import { OverlapsCases } from './overlaps.cases';
 // ----------------------------------------------------------------
 // Array Operator Test Service - PostgreSQL array column operator tests
 // ----------------------------------------------------------------
+@service()
 export class ArrayOperatorTestService extends BaseTestService {
-  constructor(
-    @inject({
-      key: BindingKeys.build({
-        namespace: BindingNamespaces.REPOSITORY,
-        key: ConfigurationRepository.name,
-      }),
-    })
-    configurationRepository: ConfigurationRepository,
-    @inject({
-      key: BindingKeys.build({
-        namespace: BindingNamespaces.REPOSITORY,
-        key: ProductRepository.name,
-      }),
-    })
-    productRepository: ProductRepository,
-    @inject({
-      key: BindingKeys.build({
-        namespace: BindingNamespaces.REPOSITORY,
-        key: SaleChannelRepository.name,
-      }),
-    })
-    saleChannelRepository: SaleChannelRepository,
-    @inject({
-      key: BindingKeys.build({
-        namespace: BindingNamespaces.REPOSITORY,
-        key: SaleChannelProductRepository.name,
-      }),
-    })
-    saleChannelProductRepository: SaleChannelProductRepository,
-    @inject({
-      key: BindingKeys.build({
-        namespace: BindingNamespaces.REPOSITORY,
-        key: UserRepository.name,
-      }),
-    })
-    userRepository: UserRepository,
-  ) {
-    super(
-      ArrayOperatorTestService.name,
-      configurationRepository,
-      productRepository,
-      saleChannelRepository,
-      saleChannelProductRepository,
-      userRepository,
-    );
-  }
-
   // ----------------------------------------------------------------
   async run(): Promise<void> {
     const context = this.caseContext();

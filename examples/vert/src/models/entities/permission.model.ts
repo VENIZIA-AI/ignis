@@ -1,18 +1,19 @@
 import { extraPermissionColumns, model } from '@venizia/ignis';
 import {
-  BasePostgresEntity,
   generateIdColumnDefs,
   generateTzColumnDefs,
+  ModelFactory,
+  TEntityObject,
 } from '@venizia/ignis/postgres';
 import { pgTable } from 'drizzle-orm/pg-core';
 
-@model({ type: 'entity' })
-export class Permission extends BasePostgresEntity<typeof Permission.schema> {
-  static override schema = pgTable('Permission', {
-    ...generateIdColumnDefs({ id: { dataType: 'string' } }),
-    ...generateTzColumnDefs(),
-    ...extraPermissionColumns({ idType: 'string' }),
-  });
+export const permissionTable = pgTable('Permission', {
+  ...generateIdColumnDefs({ id: { dataType: 'string' } }),
+  ...generateTzColumnDefs(),
+  ...extraPermissionColumns({ idType: 'string' }),
+});
 
-  static override relations = () => [];
-}
+@model({ type: 'entity' })
+export class Permission extends ModelFactory.defineEntity({ table: permissionTable }) {}
+
+export type TPermission = TEntityObject<typeof Permission>;

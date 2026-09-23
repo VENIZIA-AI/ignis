@@ -1,40 +1,27 @@
 import { PostgresDataSource } from '@/datasources/postgres.datasource';
-import { SaleChannelProduct } from '@/models/entities';
+import { SaleChannelProduct, saleChannelProductTable } from '@/models/entities';
 import { repository } from '@venizia/ignis';
 import { DefaultCRUDRepository } from '@venizia/ignis/postgres';
 
-/**
- * SaleChannelProductRepository (Junction Table Repository)
- *
- * Manages the many-to-many relationship between Product and SaleChannel.
- */
 @repository({ model: SaleChannelProduct, dataSource: PostgresDataSource })
 export class SaleChannelProductRepository extends DefaultCRUDRepository<
-  typeof SaleChannelProduct.schema
+  typeof saleChannelProductTable
 > {
-  async findByProductId(productId: string) {
+  findByProductId(opts: { productId: string }) {
     return this.find({
-      filter: {
-        where: { productId },
-        include: [{ relation: 'saleChannel' }],
-      },
+      filter: { where: { productId: opts.productId }, include: [{ relation: 'saleChannel' }] },
     });
   }
 
-  async findBySaleChannelId(saleChannelId: string) {
+  findBySaleChannelId(opts: { saleChannelId: string }) {
     return this.find({
-      filter: {
-        where: { saleChannelId },
-        include: [{ relation: 'product' }],
-      },
+      filter: { where: { saleChannelId: opts.saleChannelId }, include: [{ relation: 'product' }] },
     });
   }
 
-  async findWithBothRelations() {
+  findWithBothRelations() {
     return this.find({
-      filter: {
-        include: [{ relation: 'product' }, { relation: 'saleChannel' }],
-      },
+      filter: { include: [{ relation: 'product' }, { relation: 'saleChannel' }] },
     });
   }
 }

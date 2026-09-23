@@ -1,19 +1,20 @@
 import {
+  organizationTable,
+  policyDefinitionTable,
+  Role,
+  roleTable,
   TChangePasswordRequestSchema,
   TChangePasswordResponseSchema,
-  TGetUserInformationRequestSchema,
-  TGetUserInformationResponseSchema,
   TSignInRequestSchema,
   TSignInResponseSchema,
   TSignUpRequestSchema,
   TSignUpResponseSchema,
+  userTable,
 } from '@/models';
-import { Organization, PolicyDefinition, Role, User } from '@/models';
+import { Organization } from '@/models';
 import { UserRepository } from '@/repositories';
 import {
   BaseService,
-  BindingKeys,
-  BindingNamespaces,
   IAuthService,
   inject,
   JWKSIssuerTokenService,
@@ -23,10 +24,17 @@ import {
   UserTypes,
 } from '@venizia/ignis';
 import { getError, HTTP } from '@venizia/ignis-helpers';
-import { hash, compare, genSalt } from 'bcrypt';
+import { compare, genSalt, hash } from 'bcrypt';
 import { and, eq } from 'drizzle-orm';
 import { Env } from 'hono';
 
+/** The principal type a user's policy rows carry; the Casbin adapter in application.ts maps it. */
+const USER_PRINCIPAL = 'user';
+
+/**
+ * Sign-up, sign-in and change-password for the framework's `/auth` routes. The signed token carries
+ * the user's roles and organization: the organization is the Casbin domain every check runs in.
+ */
 @service()
 export class AuthenticationService
   extends BaseService
@@ -38,23 +46,13 @@ export class AuthenticationService
       TSignUpRequestSchema,
       TSignUpResponseSchema,
       TChangePasswordRequestSchema,
-      TChangePasswordResponseSchema,
-      TGetUserInformationRequestSchema,
-      TGetUserInformationResponseSchema
+      TChangePasswordResponseSchema
     >
 {
   constructor(
-    @inject({
-      key: BindingKeys.build({ namespace: BindingNamespaces.REPOSITORY, key: UserRepository.name }),
-    })
-    private userRepository: UserRepository,
-    @inject({
-      key: BindingKeys.build({
-        namespace: BindingNamespaces.SERVICE,
-        key: JWKSIssuerTokenService.name,
-      }),
-    })
-    private jwksTokenService: JWKSIssuerTokenService,
+    @inject({ target: UserRepository }) private readonly userRepository: UserRepository,
+    @inject({ target: JWKSIssuerTokenService })
+    private readonly tokenService: JWKSIssuerTokenService,
   ) {
     super({ scope: AuthenticationService.name });
   }
@@ -63,34 +61,25 @@ export class AuthenticationService
     _context: TContext<Env>,
     opts: TSignUpRequestSchema,
   ): Promise<TSignUpResponseSchema> {
-    this.logger.info('SignUp called | username: %s', opts.username);
-
-    // Check if user already exists
-    const existingUser = await this.userRepository.findByUsername(opts.username);
-    if (existingUser) {
+    const existing = await this.userRepository.findByUsername({ username: opts.username });
+    if (existing) {
       throw getError({
         statusCode: HTTP.ResultCodes.RS_4.Conflict,
         message: 'Username already exists',
       });
     }
 
-    // Hash password
-    const salt = await genSalt();
-    const hashedPassword = await hash(opts.credential, salt);
-
-    // Create user - createdBy will be automatically set from context (if authenticated)
-    const { data: newUser } = await this.userRepository.create({
+    const password = await hash(opts.credential, await genSalt());
+    await this.userRepository.create({
       data: {
         username: opts.username,
-        email: `${opts.username}@example.com`, // In real app, get from request
-        password: hashedPassword,
+        email: `${opts.username}@example.com`,
+        password,
         status: UserStatuses.ACTIVATED,
         type: UserTypes.SYSTEM,
         realm: 'default',
       },
     });
-
-    this.logger.info('User created successfully | userId: %s', newUser?.id);
 
     return { message: 'User registered successfully' };
   }
@@ -99,72 +88,44 @@ export class AuthenticationService
     _context: TContext<Env>,
     opts: TSignInRequestSchema,
   ): Promise<TSignInResponseSchema> {
-    this.logger.info('SignIn called | identifier: %j', opts.identifier);
-
-    // Find user by username/email
-    const user = await this.userRepository.findByUsername(opts.identifier.value);
-
-    if (!user) {
-      throw getError({
-        statusCode: HTTP.ResultCodes.RS_4.Unauthorized,
-        message: 'Invalid credentials',
-      });
-    }
-
-    // Password is a hidden property, must use connector directly to retrieve it
-    const usersWithPassword = await this.userRepository.connector
+    // `password` is a hidden property, so the repository never returns it: read it with the connector.
+    const [user] = await this.userRepository.connector
       .select({
-        id: User.schema.id,
-        password: User.schema.password,
-        email: User.schema.email,
-        username: User.schema.username,
+        id: userTable.id,
+        email: userTable.email,
+        username: userTable.username,
+        password: userTable.password,
       })
-      .from(User.schema)
-      .where(eq(User.schema.username, opts.identifier.value));
+      .from(userTable)
+      .where(eq(userTable.username, opts.identifier.value))
+      .limit(1);
 
-    const userWithPassword = usersWithPassword[0];
-
-    if (!userWithPassword?.password) {
+    const isValid = user?.password ? await compare(opts.credential.value, user.password) : false;
+    if (!user || !isValid) {
       throw getError({
         statusCode: HTTP.ResultCodes.RS_4.Unauthorized,
         message: 'Invalid credentials',
       });
     }
 
-    const isPasswordValid = await compare(opts.credential.value, userWithPassword.password);
+    const roles = await this.getUserRoles({ userId: user.id });
+    const organizationId = await this.getUserOrganizationId({ userId: user.id });
 
-    if (!isPasswordValid) {
-      throw getError({
-        statusCode: HTTP.ResultCodes.RS_4.Unauthorized,
-        message: 'Invalid credentials',
-      });
-    }
-
-    // Query user roles and organization from PolicyDefinition
-    const userRoles = await this.getUserRoles({ userId: user.id as string });
-    const userOrg = await this.getUserOrganization({ userId: user.id as string });
-
-    // Generate JWT token with roles + organization
-    const token = await this.jwksTokenService.generate({
+    const token = await this.tokenService.generate({
       payload: {
         userId: user.id,
         email: user.email,
         username: user.username,
-        principalType: 'user',
-        roles: userRoles,
-        organizationId: userOrg?.id ?? null, // Organization.id for domain-scoped RBAC
+        principalType: USER_PRINCIPAL,
+        roles,
+        organizationId,
       },
     });
 
-    this.logger.info('User signed in successfully | userId: %s', user.id);
-
     return {
-      userId: user.id as any, // Type assertion needed as schema expects number
-      roles: userRoles.map(r => r.identifier),
-      token: {
-        value: token,
-        type: 'Bearer',
-      },
+      userId: user.id,
+      roles: roles.map(role => role.identifier),
+      token: { value: token, type: 'Bearer' },
     };
   }
 
@@ -172,111 +133,60 @@ export class AuthenticationService
     _context: TContext<Env>,
     opts: TChangePasswordRequestSchema,
   ): Promise<TChangePasswordResponseSchema> {
-    this.logger.info('ChangePassword called | userId: %s', opts.userId);
+    const [user] = await this.userRepository.connector
+      .select({ password: userTable.password })
+      .from(userTable)
+      .where(eq(userTable.id, opts.userId))
+      .limit(1);
 
-    // Password is a hidden property, must use connector directly to retrieve it
-    const usersWithPassword = await this.userRepository.connector
-      .select()
-      .from(User.schema)
-      .where(eq(User.schema.id, opts.userId));
-
-    const userWithPassword = usersWithPassword[0];
-
-    if (!userWithPassword?.password) {
-      throw getError({
-        statusCode: HTTP.ResultCodes.RS_4.NotFound,
-        message: 'User not found',
-      });
+    if (!user?.password) {
+      throw getError({ statusCode: HTTP.ResultCodes.RS_4.NotFound, message: 'User not found' });
     }
 
-    // Verify old password
-    const isOldPasswordValid = await compare(opts.oldCredential, userWithPassword.password);
-
-    if (!isOldPasswordValid) {
+    if (!(await compare(opts.oldCredential, user.password))) {
       throw getError({
         statusCode: HTTP.ResultCodes.RS_4.Unauthorized,
         message: 'Invalid old password',
       });
     }
 
-    // Hash new password
-    const salt = await genSalt();
-    const hashedPassword = await hash(opts.newCredential, salt);
-
-    // Update password - modifiedBy will be automatically set from context
-    await this.userRepository.updateById({
-      id: opts.userId,
-      data: {
-        password: hashedPassword,
-      },
-    });
-
-    this.logger.info('Password changed successfully | userId: %s', opts.userId);
+    const password = await hash(opts.newCredential, await genSalt());
+    await this.userRepository.updateById({ id: opts.userId, data: { password } });
 
     return { message: 'Password changed successfully' };
   }
 
-  async getUserInformation(
-    _context: TContext<Env>,
-    _opts: TGetUserInformationRequestSchema,
-  ): Promise<TGetUserInformationResponseSchema> {
-    this.logger.info('GetUserInformation called');
-    // Implement based on your needs
-    return {};
-  }
-
-  // --------------------------------------------------------------------------------
-  // Private helpers for role/organization resolution
-  // --------------------------------------------------------------------------------
-
-  private async getUserRoles(opts: { userId: string }) {
-    const rows = await this.userRepository.connector
-      .select({
-        id: Role.schema.id,
-        identifier: Role.schema.identifier,
-        priority: Role.schema.priority,
-      })
-      .from(PolicyDefinition.schema)
-      .innerJoin(Role.schema, eq(PolicyDefinition.schema.targetId, Role.schema.id))
+  /** The roles assigned to the user: PolicyDefinition rows from the user to a Role. */
+  private getUserRoles(opts: { userId: string }) {
+    return this.userRepository.connector
+      .select({ id: roleTable.id, identifier: roleTable.identifier, priority: roleTable.priority })
+      .from(policyDefinitionTable)
+      .innerJoin(roleTable, eq(policyDefinitionTable.targetId, roleTable.id))
       .where(
         and(
-          eq(PolicyDefinition.schema.subjectType, 'user'),
-          eq(PolicyDefinition.schema.subjectId, opts.userId),
-          eq(PolicyDefinition.schema.targetType, Role.name),
+          eq(policyDefinitionTable.subjectType, USER_PRINCIPAL),
+          eq(policyDefinitionTable.subjectId, opts.userId),
+          eq(policyDefinitionTable.targetType, Role.name),
         ),
       );
-    return rows;
   }
 
-  private async getUserOrganization(opts: { userId: string }) {
-    const roleAssignments = await this.userRepository.connector
-      .select({ organizationId: PolicyDefinition.schema.domainId })
-      .from(PolicyDefinition.schema)
+  /** The organization of the user's first role assignment, or null when the user has none. */
+  private async getUserOrganizationId(opts: { userId: string }): Promise<string | null> {
+    const [organization] = await this.userRepository.connector
+      .select({ id: organizationTable.id })
+      .from(policyDefinitionTable)
+      .innerJoin(organizationTable, eq(policyDefinitionTable.domainId, organizationTable.id))
       .where(
         and(
-          eq(PolicyDefinition.schema.subjectType, 'user'),
-          eq(PolicyDefinition.schema.subjectId, opts.userId),
-          eq(PolicyDefinition.schema.targetType, Role.name),
-          eq(PolicyDefinition.schema.domainType, Organization.name),
+          eq(policyDefinitionTable.subjectType, USER_PRINCIPAL),
+          eq(policyDefinitionTable.subjectId, opts.userId),
+          eq(policyDefinitionTable.targetType, Role.name),
+          eq(policyDefinitionTable.domainType, Organization.name),
         ),
       )
       .limit(1);
 
-    const organizationId = roleAssignments[0]?.organizationId;
-    if (!organizationId) {
-      return null;
-    }
-
-    const organizations = await this.userRepository.connector
-      .select({
-        id: Organization.schema.id,
-        identifier: Organization.schema.identifier,
-        name: Organization.schema.name,
-      })
-      .from(Organization.schema)
-      .where(eq(Organization.schema.id, organizationId))
-      .limit(1);
-
-    return organizations[0] ?? null;
+    return organization?.id ?? null;
   }
 }

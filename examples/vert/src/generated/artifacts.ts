@@ -15,7 +15,21 @@ import { SaleChannelProductRepository } from '../repositories/sale-channel-produ
 import { SaleChannelRepository } from '../repositories/sale-channel.repository';
 import { UserRepository } from '../repositories/user.repository';
 import { AuthenticationService } from '../services/authentication.service';
+import { RepositoryTestService } from '../services/repository-test.service';
+import { AdvancedFilterQueryTestService } from '../services/tests/advanced-filter/service';
+import { ArrayOperatorTestService } from '../services/tests/array-operators/service';
+import { CrudTestService } from '../services/tests/crud/service';
+import { DefaultFilterTestService } from '../services/tests/default-filter/service';
+import { FieldSelectionTestService } from '../services/tests/field-selection-test.service';
+import { HiddenPropertiesTestService } from '../services/tests/hidden-properties/service';
+import { InclusionTestService } from '../services/tests/inclusion/service';
+import { JsonFilterTestService } from '../services/tests/json-filter/service';
+import { JsonOrderByTestService } from '../services/tests/json-orderby-test.service';
+import { JsonUpdateTestService } from '../services/tests/json-update/service';
+import { ComprehensiveOperatorTestService } from '../services/tests/operators/service';
 import { RowLockingTestService } from '../services/tests/row-locking/service';
+import { TransactionTestService } from '../services/tests/transaction/service';
+import { UserAuditTestService } from '../services/tests/user-audit/service';
 
 export const GeneratedArtifacts = {
   configurations: [],
@@ -33,6 +47,23 @@ export const GeneratedArtifacts = {
     SaleChannelRepository,
     UserRepository,
   ],
-  services: [AuthenticationService, RowLockingTestService],
+  services: [
+    AdvancedFilterQueryTestService,
+    ArrayOperatorTestService,
+    AuthenticationService,
+    ComprehensiveOperatorTestService,
+    CrudTestService,
+    DefaultFilterTestService,
+    FieldSelectionTestService,
+    HiddenPropertiesTestService,
+    InclusionTestService,
+    JsonFilterTestService,
+    JsonOrderByTestService,
+    JsonUpdateTestService,
+    RepositoryTestService,
+    RowLockingTestService,
+    TransactionTestService,
+    UserAuditTestService,
+  ],
   controllers: [AuthorizationExampleController, ConfigurationController, TestController],
 };

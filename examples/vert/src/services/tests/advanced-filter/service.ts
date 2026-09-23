@@ -1,12 +1,5 @@
-import { BindingKeys, BindingNamespaces, inject } from '@venizia/ignis';
+import { service } from '@venizia/ignis';
 import { DataTypes, getUID } from '@venizia/ignis-helpers';
-import {
-  ConfigurationRepository,
-  ProductRepository,
-  SaleChannelProductRepository,
-  SaleChannelRepository,
-  UserRepository,
-} from '../../../repositories';
 import { BaseTestService } from '../base-test.service';
 import { CompositionCases } from './composition.cases';
 import { EdgeCases } from './edge.cases';
@@ -16,54 +9,8 @@ import { ScenariosCases } from './scenarios.cases';
 // Advanced Filter Query Test Service
 // Complex scenarios, deep nesting, stress tests, and security edge cases
 // ----------------------------------------------------------------
+@service()
 export class AdvancedFilterQueryTestService extends BaseTestService {
-  constructor(
-    @inject({
-      key: BindingKeys.build({
-        namespace: BindingNamespaces.REPOSITORY,
-        key: ConfigurationRepository.name,
-      }),
-    })
-    configurationRepository: ConfigurationRepository,
-    @inject({
-      key: BindingKeys.build({
-        namespace: BindingNamespaces.REPOSITORY,
-        key: ProductRepository.name,
-      }),
-    })
-    productRepository: ProductRepository,
-    @inject({
-      key: BindingKeys.build({
-        namespace: BindingNamespaces.REPOSITORY,
-        key: SaleChannelRepository.name,
-      }),
-    })
-    saleChannelRepository: SaleChannelRepository,
-    @inject({
-      key: BindingKeys.build({
-        namespace: BindingNamespaces.REPOSITORY,
-        key: SaleChannelProductRepository.name,
-      }),
-    })
-    saleChannelProductRepository: SaleChannelProductRepository,
-    @inject({
-      key: BindingKeys.build({
-        namespace: BindingNamespaces.REPOSITORY,
-        key: UserRepository.name,
-      }),
-    })
-    userRepository: UserRepository,
-  ) {
-    super(
-      AdvancedFilterQueryTestService.name,
-      configurationRepository,
-      productRepository,
-      saleChannelRepository,
-      saleChannelProductRepository,
-      userRepository,
-    );
-  }
-
   async run(): Promise<void> {
     const context = this.caseContext();
     const compositionCases = new CompositionCases(context);
@@ -199,7 +146,14 @@ export class AdvancedFilterQueryTestService extends BaseTestService {
   private async cleanupData() {
     this.logCase('[CLEANUP] Removing advanced test data');
     await this.configurationRepository.deleteAll({ where: { group: 'ADVANCED_TEST' } });
+    // The relation scenario links a product to a channel; the junction row goes first.
+    const products = await this.productRepository.find({
+      filter: { where: { code: { like: 'P_ADV_%' } } },
+    });
+    await this.saleChannelProductRepository.deleteAll({
+      where: { productId: { inq: products.map(product => product.id) } },
+    });
+    await this.saleChannelRepository.deleteAll({ where: { name: 'AdvChannel' } });
     await this.productRepository.deleteAll({ where: { code: { like: 'P_ADV_%' } } });
-    // Cleanup junction/channels if needed (handled by cascade or manual cleanup usually)
   }
 }

@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # -----------------------------------------------------------------------------
-# Comprehensive Authorization Test Suite — 25 test cases
+# Comprehensive Authorization Test Suite - 25 test cases
 #
 # Tests all authorization paths: alwaysAllowRoles bypass, allowedRoles check,
 # policy-based allow/deny, multi-tenant isolation, deny-override, and no-org.
@@ -11,7 +11,7 @@
 # Prerequisites:
 #   - Server running (bun run server:dev)
 #   - PostgreSQL reachable
-#   - Redis reachable (optional — flush will be skipped if not)
+#   - Redis reachable (optional - flush will be skipped if not)
 #   - jq installed
 # -----------------------------------------------------------------------------
 set -euo pipefail
@@ -184,7 +184,7 @@ echo "-> Step 4: Flushing Redis authorization cache (db ${REDIS_DB})..."
 if redis-cli -h "$REDIS_HOST" -p "$REDIS_PORT" -n "$REDIS_DB" FLUSHDB >/dev/null 2>&1; then
   echo "  Redis cache flushed."
 else
-  echo "  (Redis flush skipped — not reachable)"
+  echo "  (Redis flush skipped - not reachable)"
 fi
 echo ""
 
@@ -216,7 +216,7 @@ test_case "A2" GET "/authz-example/public" "${TOKENS[test_user]}" "200" \
   "Valid token -> 200 (public ignores auth)"
 echo ""
 
-# --- B. Profile — Auth-Only: GET /authz-example/profile ---
+# --- B. Profile - Auth-Only: GET /authz-example/profile ---
 echo "--- B. Profile (GET /authz-example/profile) ---"
 test_case "B1" GET "/authz-example/profile" "" "401" \
   "No token -> 401"
@@ -228,7 +228,7 @@ test_case "B4" GET "/authz-example/profile" "${TOKENS[test_guest]}" "200" \
   "test_guest -> 200 (auth-only)"
 echo ""
 
-# --- C. Configurations — read:configuration: GET /authz-example/configurations ---
+# --- C. Configurations - read:configuration: GET /authz-example/configurations ---
 echo "--- C. Configurations (GET /authz-example/configurations) ---"
 test_case "C1" GET "/authz-example/configurations" "" "401" \
   "No token -> 401"
@@ -248,7 +248,7 @@ test_case "C8" GET "/authz-example/configurations" "${TOKENS[test_denied]}" "403
   "test_denied -> 403 (explicit deny overrides allow)"
 echo ""
 
-# --- D. Create User — create:user: POST /authz-example/users ---
+# --- D. Create User - create:user: POST /authz-example/users ---
 echo "--- D. Create User (POST /authz-example/users) ---"
 test_case "D1" POST "/authz-example/users" "" "401" \
   "No token -> 401"
@@ -262,7 +262,7 @@ test_case "D5" POST "/authz-example/users" "${TOKENS[test_guest]}" "403" \
   "test_guest -> 403 (no permissions)"
 echo ""
 
-# --- E. Admin Dashboard — allowedRoles: GET /authz-example/admin/dashboard ---
+# --- E. Admin Dashboard - allowedRoles: GET /authz-example/admin/dashboard ---
 echo "--- E. Admin Dashboard (GET /authz-example/admin/dashboard) ---"
 test_case "E1" GET "/authz-example/admin/dashboard" "" "401" \
   "No token -> 401"

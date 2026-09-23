@@ -7,12 +7,12 @@
  */
 import 'dotenv-flow/config';
 
-import { randomUUID } from 'crypto';
 import { mkdirSync, writeFileSync } from 'fs';
 import Redis from 'ioredis';
 import path from 'path';
 import { Pool } from 'pg';
 import { blankToUndefined } from '@venizia/ignis-helpers';
+import { uuidV7 } from '@venizia/ignis-helpers/uuid';
 
 const pool = new Pool({
   host: blankToUndefined(process.env.APP_ENV_POSTGRES_HOST) ?? '0.0.0.0',
@@ -22,7 +22,7 @@ const pool = new Pool({
   password: blankToUndefined(process.env.APP_ENV_POSTGRES_PASSWORD) ?? 'password',
 });
 
-async function seed() {
+const seed = async () => {
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
@@ -34,8 +34,8 @@ async function seed() {
     await client.query('DELETE FROM "Organization"');
 
     // --- Organizations ---
-    const orgAlphaId = randomUUID();
-    const orgBetaId = randomUUID();
+    const orgAlphaId = uuidV7();
+    const orgBetaId = uuidV7();
 
     for (const [id, identifier, name] of [
       [orgAlphaId, 'org_alpha', 'Alpha Corp'],
@@ -48,10 +48,10 @@ async function seed() {
     }
 
     // --- Roles ---
-    const roleSuperAdminId = randomUUID();
-    const roleAdminId = randomUUID();
-    const roleUserId = randomUUID();
-    const roleGuestId = randomUUID();
+    const roleSuperAdminId = uuidV7();
+    const roleAdminId = uuidV7();
+    const roleUserId = uuidV7();
+    const roleGuestId = uuidV7();
 
     for (const [id, identifier, name, priority] of [
       [roleSuperAdminId, '999_super-admin', 'Super Admin', 999],
@@ -66,18 +66,18 @@ async function seed() {
     }
 
     // --- Permissions ---
-    const permReadConfigId = randomUUID();
-    const permCreateUserId = randomUUID();
-    const permReadDashboardId = randomUUID();
+    const permReadConfigId = uuidV7();
+    const permCreateUserId = uuidV7();
+    const permReadDashboardId = uuidV7();
 
-    for (const [id, code, name, subject, action] of [
-      [permReadConfigId, 'configuration', 'Read Configuration', 'configuration', 'read'],
-      [permCreateUserId, 'user', 'Create User', 'user', 'create'],
-      [permReadDashboardId, 'dashboard', 'Read Dashboard', 'dashboard', 'read'],
+    for (const [id, code, name, subject, action, method] of [
+      [permReadConfigId, 'configuration', 'Read Configuration', 'configuration', 'read', 'GET'],
+      [permCreateUserId, 'user', 'Create User', 'user', 'create', 'POST'],
+      [permReadDashboardId, 'dashboard', 'Read Dashboard', 'dashboard', 'read', 'GET'],
     ] as const) {
       await client.query(
-        `INSERT INTO "Permission" (id, code, name, subject, action, scope) VALUES ($1, $2, $3, $4, $5, $6)`,
-        [id, code, name, subject, action, 'global'],
+        `INSERT INTO "Permission" (id, code, name, subject, action, method, scope) VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+        [id, code, name, subject, action, method, 'global'],
       );
     }
 
@@ -132,6 +132,6 @@ async function seed() {
   } catch {
     console.log('[seed-authz] Redis flush skipped (not reachable)');
   }
-}
+};
 
 seed();

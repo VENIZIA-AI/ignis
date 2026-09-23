@@ -1,47 +1,38 @@
-import { model, RelationTypes } from '@venizia/ignis';
+import { model } from '@venizia/ignis';
 import {
-  BasePostgresEntity,
   generateIdColumnDefs,
   generateTzColumnDefs,
-  TRelationConfig,
+  many,
+  ModelFactory,
+  TEntityObject,
 } from '@venizia/ignis/postgres';
 import { boolean, index, pgTable, text, unique } from 'drizzle-orm/pg-core';
-import { SaleChannelProduct } from './sale-channel-product.model';
+import { saleChannelProductTable } from './sale-channel-product.model';
 
-// ----------------------------------------------------------------
-/**
- * SaleChannel model
- *
- * Demonstrates many-to-many relationship with Product through SaleChannelProduct.
- * - SaleChannel hasMany SaleChannelProduct
- */
+export const saleChannelTable = pgTable(
+  'SaleChannel',
+  {
+    ...generateIdColumnDefs({ id: { dataType: 'string' } }),
+    ...generateTzColumnDefs(),
+    code: text('code').notNull(),
+    name: text('name').notNull(),
+    description: text('description'),
+    isActive: boolean('is_active').notNull().default(true),
+  },
+  table => [
+    unique('UQ_SaleChannel_code').on(table.code),
+    index('IDX_SaleChannel_name').on(table.name),
+    index('IDX_SaleChannel_isActive').on(table.isActive),
+  ],
+);
+
+/** Many-to-many with Product through SaleChannelProduct. */
 @model({ type: 'entity' })
-export class SaleChannel extends BasePostgresEntity<typeof SaleChannel.schema> {
-  static override schema = pgTable(
-    'SaleChannel',
-    {
-      ...generateIdColumnDefs({ id: { dataType: 'string' } }),
-      ...generateTzColumnDefs(),
-      code: text('code').notNull(),
-      name: text('name').notNull(),
-      description: text('description'),
-      isActive: boolean('is_active').notNull().default(true),
-    },
-    def => [
-      unique('UQ_SaleChannel_code').on(def.code),
-      index('IDX_SaleChannel_name').on(def.name),
-      index('IDX_SaleChannel_isActive').on(def.isActive),
-    ],
-  );
+export class SaleChannel extends ModelFactory.defineEntity({
+  table: saleChannelTable,
+  relations: () => ({
+    saleChannelProducts: many(saleChannelProductTable, { relationName: 'saleChannel' }),
+  }),
+}) {}
 
-  static override relations = (): TRelationConfig[] => [
-    {
-      name: 'saleChannelProducts',
-      type: RelationTypes.MANY,
-      schema: SaleChannelProduct.schema,
-      metadata: {
-        relationName: 'saleChannel', // Points to the 'one' relation name on SaleChannelProduct
-      },
-    },
-  ];
-}
+export type TSaleChannel = TEntityObject<typeof SaleChannel>;

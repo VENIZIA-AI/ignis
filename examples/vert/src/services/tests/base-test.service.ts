@@ -1,4 +1,4 @@
-import { BaseService, BindingKeys, BindingNamespaces, inject } from '@venizia/ignis';
+import { BaseService, inject } from '@venizia/ignis';
 import {
   ConfigurationRepository,
   ProductRepository,
@@ -8,62 +8,34 @@ import {
 } from '../../repositories';
 import type { ITestCaseContext } from './base-test.cases';
 
-// ----------------------------------------------------------------
-// Base Test Service - Provides common repositories for all test services
-// ----------------------------------------------------------------
+/**
+ * The repositories every suite reads. A suite declares no constructor: the container reads these
+ * injections off the base class, and the logger scope is the suite's own class name.
+ */
 export abstract class BaseTestService extends BaseService {
   constructor(
-    scope: string,
-    @inject({
-      key: BindingKeys.build({
-        namespace: BindingNamespaces.REPOSITORY,
-        key: ConfigurationRepository.name,
-      }),
-    })
+    @inject({ target: ConfigurationRepository })
     protected readonly configurationRepository: ConfigurationRepository,
-    @inject({
-      key: BindingKeys.build({
-        namespace: BindingNamespaces.REPOSITORY,
-        key: ProductRepository.name,
-      }),
-    })
+    @inject({ target: ProductRepository })
     protected readonly productRepository: ProductRepository,
-    @inject({
-      key: BindingKeys.build({
-        namespace: BindingNamespaces.REPOSITORY,
-        key: SaleChannelRepository.name,
-      }),
-    })
+    @inject({ target: SaleChannelRepository })
     protected readonly saleChannelRepository: SaleChannelRepository,
-    @inject({
-      key: BindingKeys.build({
-        namespace: BindingNamespaces.REPOSITORY,
-        key: SaleChannelProductRepository.name,
-      }),
-    })
+    @inject({ target: SaleChannelProductRepository })
     protected readonly saleChannelProductRepository: SaleChannelProductRepository,
-    @inject({
-      key: BindingKeys.build({
-        namespace: BindingNamespaces.REPOSITORY,
-        key: UserRepository.name,
-      }),
-    })
+    @inject({ target: UserRepository })
     protected readonly userRepository: UserRepository,
   ) {
-    super({ scope });
+    super({ scope: new.target.name });
   }
 
-  // Run all tests in this service
   abstract run(): Promise<void>;
 
-  // Helper to log section headers
   protected logSection(title: string): void {
     this.logger.info('='.repeat(80));
     this.logger.info(title);
     this.logger.info('='.repeat(80));
   }
 
-  // Helper to log case headers
   protected logCase(title: string): void {
     this.logger.info('-'.repeat(80));
     this.logger.info(title);

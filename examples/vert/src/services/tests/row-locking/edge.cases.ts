@@ -135,7 +135,7 @@ export class EdgeCases extends BaseTestCases {
     }
 
     if (!LockStrengths.isValid('invalid_strength')) {
-      // Good — invalid should return false
+      // Good - invalid should return false
     } else {
       this.context.logger.error(
         '[CASE 15] FAILED - isValid("invalid_strength") should return false',
