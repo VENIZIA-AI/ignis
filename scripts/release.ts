@@ -55,6 +55,12 @@ const RELEASE_ORDER = [
 type TReleaseMode =
   'patch' | 'minor' | 'major' | 'prepatch' | 'preminor' | 'premajor' | 'prerelease';
 
+/** The workflow publishes a stable bump under `latest` and a pre* bump under `next`. */
+const STABLE_MODES: ReadonlySet<TReleaseMode> = new Set(['patch', 'minor', 'major']);
+
+const toDistTag = (opts: { mode: TReleaseMode }): string =>
+  STABLE_MODES.has(opts.mode) ? 'latest' : 'next';
+
 interface IPackageState {
   name: string;
   packageName: string;
@@ -84,15 +90,18 @@ const readJson = async (path: string): Promise<Record<string, string>> => {
 };
 
 /**
- * The published `next` version, or null when the package has never been released.
+ * The version `distTag` points at, or null when the package has never been released under it.
  *
  * `--prefer-online` is not decoration: `npm view` serves a cached metadata document by default, so
  * a poll that repeats every five seconds can re-read the same stale answer for its whole window and
  * report a live publish as missing.
  */
-const resolvePublishedVersion = async (opts: { packageName: string }): Promise<string | null> => {
+const resolvePublishedVersion = async (opts: {
+  packageName: string;
+  distTag: string;
+}): Promise<string | null> => {
   const { stdout, exitCode } = await run({
-    command: ['npm', 'view', '--prefer-online', `${opts.packageName}@next`, 'version'],
+    command: ['npm', 'view', '--prefer-online', `${opts.packageName}@${opts.distTag}`, 'version'],
     allowFailure: true,
   });
 
@@ -153,7 +162,10 @@ const countChangedSinceRelease = async (opts: { name: string }): Promise<number>
   return files.size;
 };
 
-const collectState = async (opts: { names: readonly string[] }): Promise<IPackageState[]> => {
+const collectState = async (opts: {
+  names: readonly string[];
+  distTag: string;
+}): Promise<IPackageState[]> => {
   const states: IPackageState[] = [];
 
   for (const name of opts.names) {
@@ -168,7 +180,10 @@ const collectState = async (opts: { names: readonly string[] }): Promise<IPackag
       name,
       packageName: manifest.name,
       localVersion: manifest.version,
-      publishedVersion: await resolvePublishedVersion({ packageName: manifest.name }),
+      publishedVersion: await resolvePublishedVersion({
+        packageName: manifest.name,
+        distTag: opts.distTag,
+      }),
       changedFiles: await countChangedSinceRelease({ name }),
     });
   }
@@ -278,7 +293,10 @@ const waitForCompletion = async (opts: { runId: string }): Promise<string> => {
  * publishes BEFORE it commits: a run can put a version on npm and still fail afterwards, and the
  * reverse - a green run whose publish silently did nothing - is exactly what this catches.
  */
-const assertPublished = async (opts: { state: IPackageState }): Promise<string> => {
+const assertPublished = async (opts: {
+  state: IPackageState;
+  distTag: string;
+}): Promise<string> => {
   // Ten minutes, not four, and not one. The `next` dist-tag lags the publish, and the lag is longer
   // than it looks: measured 2026-09-12, `@venizia/ignis@0.2.0-28` published at 08:53:04 and did not
   // appear on registry.npmjs.org until 09:00:41 - seven and a half minutes. The four-minute window
@@ -287,7 +305,10 @@ const assertPublished = async (opts: { state: IPackageState }): Promise<string> 
   // than the registry's own propagation is worse than no check, because the next person stops
   // believing the check.
   for (let attempt = 0; attempt < 120; attempt += 1) {
-    const published = await resolvePublishedVersion({ packageName: opts.state.packageName });
+    const published = await resolvePublishedVersion({
+      packageName: opts.state.packageName,
+      distTag: opts.distTag,
+    });
 
     if (published && published !== opts.state.publishedVersion) {
       return published;
@@ -334,7 +355,7 @@ const releasePackage = async (opts: {
     );
   }
 
-  const published = await assertPublished({ state });
+  const published = await assertPublished({ state, distTag: toDistTag({ mode }) });
   console.log(`  published ${state.packageName}@${published}`);
 
   // The workflow pushes its own release commit. Without this the next package reads a stale local
@@ -394,7 +415,7 @@ const main = async (): Promise<void> => {
 
   await assertReleasable({ isDryRun });
 
-  const states = await collectState({ names: candidates });
+  const states = await collectState({ names: candidates, distTag: toDistTag({ mode }) });
   // An explicit request is honoured as given; a full sweep releases only what actually changed.
   const changed =
     withAtlasTail.length > 0 ? states : states.filter(state => state.changedFiles > 0);
