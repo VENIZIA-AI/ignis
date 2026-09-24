@@ -14,6 +14,12 @@
   "releases": {
     "atlas": [
       {
+        "version": "0.1.0-31",
+        "date": "2026-09-24",
+        "sha": "18def006",
+        "order": 1500
+      },
+      {
         "version": "0.1.0-30",
         "date": "2026-09-23",
         "sha": "aadc2712",
@@ -725,6 +731,12 @@
       }
     ],
     "connectors": [
+      {
+        "version": "0.2.0-46",
+        "date": "2026-09-24",
+        "sha": "38cba35e",
+        "order": 1504
+      },
       {
         "version": "0.2.0-45",
         "date": "2026-09-23",
@@ -1852,6 +1864,12 @@
     ],
     "core-server": [
       {
+        "version": "0.2.0-50",
+        "date": "2026-09-24",
+        "sha": "4ffe667c",
+        "order": 1506
+      },
+      {
         "version": "0.2.0-49",
         "date": "2026-09-24",
         "sha": "5db6ef0e",
@@ -2153,6 +2171,12 @@
       }
     ],
     "core-worker": [
+      {
+        "version": "0.2.0-46",
+        "date": "2026-09-24",
+        "sha": "84ba59aa",
+        "order": 1505
+      },
       {
         "version": "0.2.0-45",
         "date": "2026-09-23",
@@ -4034,6 +4058,12 @@
     ],
     "kernel": [
       {
+        "version": "0.2.0-47",
+        "date": "2026-09-24",
+        "sha": "6877e4fd",
+        "order": 1503
+      },
+      {
         "version": "0.2.0-46",
         "date": "2026-09-23",
         "sha": "6b4b735d",
@@ -4318,6 +4348,15 @@
     ]
   },
   "changelogs": [
+    {
+      "id": "changelog:2026-09-24-repository-datasource-registered-by-hand",
+      "file": "2026-09-24-repository-datasource-registered-by-hand.md",
+      "date": "2026-09-24",
+      "title": "A Repository Can Inject a Datasource Registered by Hand",
+      "packages": [],
+      "kind": "Bug Fix",
+      "order": 1502
+    },
     {
       "id": "changelog:2026-09-23-repository-types",
       "file": "2026-09-23-repository-types.md",
