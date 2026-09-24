@@ -451,6 +451,16 @@ const config = defineConfig({
           collapsed: false,
           items: [
             {
+              text: '2026-09-24',
+              collapsed: true,
+              items: [
+                {
+                  text: 'A Repository Can Inject a Datasource Registered by Hand',
+                  link: '/changelogs/2026-09-24-repository-datasource-registered-by-hand',
+                },
+              ],
+            },
+            {
               text: '2026-09-23',
               collapsed: true,
               items: [

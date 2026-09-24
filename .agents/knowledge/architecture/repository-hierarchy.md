@@ -169,7 +169,10 @@ and it is strict:
 - If the constructor declares a first parameter, its `design:paramtypes` entry must extend
   `AbstractDataSource` and be compatible with the class named in `@repository({ dataSource })`. Both
   mismatches throw by class name at decoration time.
-- If an explicit `@inject` sits at index 0, its key must start with the `datasources.` namespace.
+- If an explicit `@inject` sits at index 0, it must name a datasource. A key (given, or recorded on
+  the `target` class) must start with the `datasources.` namespace. A `target` with no recorded key
+  yet - a datasource registered by hand, whose key `this.dataSource()` records after the decorator
+  ran - is judged by `isDataSourceClass` instead. Parameter 0 is always a datasource.
 - It reads **own** metadata only (`Reflect.getOwnMetadata`). `getInjectMetadata` walks the prototype
   chain, so a repository extending another `@repository` class would otherwise see the base class's
   injection at param[0], skip its own auto-injection, and silently resolve the base's datasource.

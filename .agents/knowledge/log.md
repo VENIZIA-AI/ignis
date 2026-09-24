@@ -6,6 +6,11 @@ not how.
 This file and `index.md` are reserved OKF filenames - they carry no `type:` frontmatter and are not
 counted as concepts.
 
+## 2026-09-24 - a repository may inject a datasource registered by hand
+
+Parameter 0 stays a datasource; `@inject({ target })` with no recorded key yet is judged by
+`isDataSourceClass` instead of being refused. Updated [repository hierarchy](/architecture/repository-hierarchy.md).
+
 ## 2026-09-24 - the entity reports what it stamps; stop() is bounded; jose retries and preloads at boot
 
 Updated [kernel](/packages/kernel.md), [core-server](/packages/core-server.md),
