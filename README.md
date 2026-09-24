@@ -7,7 +7,7 @@
 **LoopBack 4's architecture, on Hono, with Drizzle for SQL.**
 
 [![Docs](https://img.shields.io/badge/Docs-ignis.venizia.ai-2563EB.svg?style=flat-square)](https://ignis.venizia.ai)
-[![npm](https://img.shields.io/npm/v/@venizia/ignis/next.svg?style=flat-square&color=cb3837&label=@venizia/ignis@next)](https://www.npmjs.com/package/@venizia/ignis)
+[![npm](https://img.shields.io/npm/v/@venizia/ignis.svg?style=flat-square&color=cb3837&label=@venizia/ignis)](https://www.npmjs.com/package/@venizia/ignis)
 [![License: MIT](https://img.shields.io/badge/License-MIT-3DA639.svg?style=flat-square)](LICENSE.md)
 [![Bun](https://img.shields.io/badge/Bun-%E2%89%A51.4-f472b6.svg?style=flat-square&logo=bun&logoColor=white)](https://bun.sh)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5%20%7C%206-3178C6.svg?style=flat-square&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
@@ -30,14 +30,13 @@ against the route's Zod schema, and builds the OpenAPI document from the same sc
 
 ```bash
 bun init -y
-bun add @venizia/ignis@next @venizia/ignis-helpers@next hono @hono/zod-openapi \
+bun add @venizia/ignis @venizia/ignis-helpers hono @hono/zod-openapi \
   @scalar/hono-api-reference winston winston-transport winston-daily-rotate-file
-bun add -d typescript@^6 @types/bun @venizia/dev-configs@next
+bun add -d typescript@^6 @types/bun @venizia/dev-configs
 ```
 
 `winston` is the default logger - the application refuses to start without a logger provider
 (register pino instead if you prefer). `@scalar/hono-api-reference` renders the API docs page.
-`@next` is the line this repository and the docs track; `latest` still points at the older 0.1 line.
 
 Replace the generated `tsconfig.json`:
 
