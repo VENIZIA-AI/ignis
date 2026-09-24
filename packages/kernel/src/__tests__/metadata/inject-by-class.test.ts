@@ -199,16 +199,73 @@ describe('a repository may name its datasource by class at parameter 0', () => {
     }).not.toThrow();
   });
 
-  /** Negative control: the class is a datasource but was never given a key, so the assertion still refuses it. */
-  test('refuses a datasource class that carries no recorded key', () => {
+  /** A datasource registered by hand gets its key from `this.dataSource()`, after this decorator ran. */
+  test('accepts a datasource class that has no recorded key yet', () => {
     expect(() => {
-      @repository({ model: ProbeModel, dataSource: NamedDataSource })
+      @repository({ model: ProbeModel, dataSource: ImperativeDataSource })
       class UnkeyedRepository {
         constructor(
-          @inject({ target: ImperativeDataSource }) readonly dataSource: AbstractDataSource,
+          @inject({ target: ImperativeDataSource }) readonly dataSource: ImperativeDataSource,
         ) {}
       }
       return UnkeyedRepository;
+    }).not.toThrow();
+  });
+
+  test('resolves that datasource once the application registers it by hand', () => {
+    @repository({ model: ProbeModel, dataSource: ImperativeDataSource })
+    class HandRegisteredRepository {
+      constructor(
+        @inject({ target: ImperativeDataSource }) readonly dataSource: ImperativeDataSource,
+      ) {}
+    }
+
+    const application = buildApplication();
+    application.dataSource(ImperativeDataSource);
+
+    expect(application.instantiate(HandRegisteredRepository).dataSource).toBeInstanceOf(
+      ImperativeDataSource,
+    );
+  });
+
+  test('accepts the same datasource named through a function, the import-cycle form', () => {
+    @repository({ model: ProbeModel, dataSource: ImperativeDataSource })
+    class ThunkRepository {
+      constructor(
+        @inject({ target: () => ImperativeDataSource }) readonly dataSource: ImperativeDataSource,
+      ) {}
+    }
+
+    const application = buildApplication();
+    application.dataSource(ImperativeDataSource);
+
+    expect(application.instantiate(ThunkRepository).dataSource).toBeInstanceOf(
+      ImperativeDataSource,
+    );
+  });
+
+  test('refuses a class that is not a datasource, with or without a recorded key', () => {
+    /** Never registered anywhere, so it carries no key and only its class can be judged. */
+    class UnregisteredHelper {}
+
+    expect(() => {
+      @repository({ model: ProbeModel, dataSource: NamedDataSource })
+      class KeyedServiceRepository {
+        constructor(
+          @inject({ target: DecoratedService }) readonly dataSource: AbstractDataSource,
+        ) {}
+      }
+      return KeyedServiceRepository;
+    }).toThrow(/First parameter must be a DataSource/);
+
+    expect(() => {
+      @repository({ model: ProbeModel, dataSource: NamedDataSource })
+      class UnkeyedServiceRepository {
+        constructor(
+          @inject({ target: UnregisteredHelper }) readonly dataSource: AbstractDataSource,
+        ) {}
+      }
+      return UnkeyedServiceRepository;
     }).toThrow(/First parameter must be a DataSource/);
   });
 });
