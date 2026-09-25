@@ -1,6 +1,6 @@
 # Mail - Usage & Examples
 
-> Practical examples for sending emails, using templates, queue executors, and verification generators.
+> Practical examples for sending emails and attachments, using templates, queue executors, and verification generators.
 
 ## Sending emails
 
@@ -79,6 +79,7 @@ async sendBulkNotifications(users: Array<{ email: string; name: string }>) {
 | `to` is missing or an empty array | `MailErrorCodes.INVALID_RECIPIENT` | `Recipient email address is required` |
 | `subject` is missing | `MailErrorCodes.INVALID_CONFIGURATION` | `Email subject is required` |
 | Both `text` and `html` are missing | `MailErrorCodes.INVALID_CONFIGURATION` | `Email must have either text or html content` |
+| `text` or `html` is neither a string nor `null` (a `Buffer`, a stream, `{ path }`, `{ href }`) | `MailErrorCodes.BODY_SOURCE_REFUSED` | `Mail body refused \| text and html must be strings; ...` |
 
 ```typescript
 // Throws before reaching the transport
@@ -90,6 +91,69 @@ await mailService.send({
 // Error: { statusCode: 400, message: 'Email subject is required',
 //          normalized: { code: 'core.mail.invalid_configuration', args: {}, text: 'Email subject is required' } }
 ```
+
+### Attachments
+
+Pass the bytes as `content` - a `Buffer`, a `Uint8Array`, a string, a Node `Readable` or a web `ReadableStream`:
+
+```typescript
+await this.mailService.send({
+  to: 'user@example.com',
+  subject: 'Your invoice',
+  html: '<p>Invoice attached.</p>',
+  attachments: [
+    { filename: 'invoice.pdf', content: pdfBuffer, contentType: 'application/pdf' },
+    { filename: 'notes.txt', content: 'Paid in full' },
+    { filename: 'report.csv', content: createReadStream('./tmp/report.csv') },
+  ],
+});
+```
+
+To attach a file by `path` instead, set `attachmentRoot` on the mail options. A `path` is then read only from inside that directory:
+
+```typescript
+this.component(MailComponent, {
+  options: {
+    provider: MailProviders.NODEMAILER,
+    config: { host, port, secure, auth },
+    attachmentRoot: '/srv/app/mail-assets',
+  },
+});
+
+// Reads /srv/app/mail-assets/logo.png; filename and contentType follow from the path
+await this.mailService.send({
+  to: 'user@example.com',
+  subject: 'Hello',
+  html: '<img src="cid:logo">',
+  attachments: [{ path: 'logo.png', cid: 'logo' }],
+});
+```
+
+`MailService.send()` turns every attachment into `content` bytes before the transport sees it, so no transport ever reads a path on its own. The rules:
+
+| Attachment | Result |
+|---|---|
+| `path` with no `attachmentRoot` set | Refused - `core.mail.attachment_path_refused` (400) |
+| `path` that resolves outside the root (`..`, an absolute path elsewhere, a symlink pointing out) | Refused - `core.mail.attachment_path_refused` (400) |
+| `path` to a missing file, a directory, a FIFO or an unreadable file | Refused - the same error and message, so a caller cannot probe which files exist |
+| `path` to a file inside the root | Read and sent as `content`; `filename` and `contentType` default from the path |
+| `path` as a URL (`https://...`, `data:...`) | Treated as a file name under the root, never fetched |
+| `href` or `raw` (Nodemailer sources) | Refused - `core.mail.attachment_path_refused` (400) |
+| `content` that is not bytes, text or a stream | Refused - `core.mail.invalid_configuration` (400) |
+| All attachments of one message over `maxAttachmentBytes` (default 25 MB) | Refused - `core.mail.attachment_too_large` (413) |
+
+The size limit counts every attachment of the message together, so it also bounds each one. A file is sized before it is opened and counted again while it is read. A stream is counted while it drains: once the running total passes the limit, the read stops and the rest is never buffered. When a send is refused, every attachment stream it was given is destroyed.
+
+The limit counts decoded bytes, and base64 adds about 37% on the wire. The 25 MB default therefore sends about 34 MB, over the 25 MB cap of Gmail and of Mailgun - set `maxAttachmentBytes: 18 * 1024 * 1024` for those. Plan memory for about four times the limit per send in flight.
+
+Both options are checked when the component starts. `maxAttachmentBytes` must be a positive integer, and `attachmentRoot` an absolute path to an existing directory. Anything else fails the boot with `Invalid mail options`.
+
+> [!WARNING]
+> Never copy `attachments` from a request body into a message. Map what the caller uploaded to `content` yourself. `path` names a file on your server, so a caller who controls it chooses which file gets mailed. `attachmentRoot` limits that choice to one directory. It does not make `path` safe to hand over.
+>
+> Keep the root writable only by code you trust. Anything that can create links inside it - an archive extraction, a shared upload folder - can swap a directory for a symlink between the check and the read, and a hard link is followed like the file it points to.
+>
+> The same goes for the body. Nodemailer reads a `text` or `html` given as `{ path }` or `{ href }`, so `send()` accepts only strings there - `null` counts as absent - and refuses anything else, a `Buffer` or a stream included, with `core.mail.body_source_refused` (400). The Nodemailer transport also sets Nodemailer's own `disableFileAccess` and `disableUrlAccess`.
 
 ## Template engine
 
@@ -137,7 +201,8 @@ export class NotificationService extends BaseService {
       data: { userName, verificationCode, appName: 'My Application' },
       recipients: userEmail,
       options: {
-        attachments: [{ filename: 'logo.png', path: '/path/to/logo.png', cid: 'logo' }],
+        // `path` is read under `attachmentRoot` - see Attachments above
+        attachments: [{ path: 'logo.png', cid: 'logo' }],
       },
     });
   }

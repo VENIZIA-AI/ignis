@@ -78,6 +78,8 @@ export class UserService extends BaseService {
   | Transport throws | Wrapped as `SEND_FAILED` (`500`) |
   | Nodemailer / Mailgun transport | Never throws - returns `{ success: false, error }` instead |
 
+- **Attachments reach the transport as bytes, never as a path.** `send()` reads every attachment into `content` first. A `path` is read only inside the `attachmentRoot` option, and refused when that option is unset. A message's attachments together may not pass `maxAttachmentBytes` (default 25 MB). `text` and `html` must be strings for the same reason. See [Attachments](./usage#attachments).
+
 - **The queue executor is a separate subsystem, not a mail queue.** `IMailQueueExecutor` (`direct` / `internal-queue` / `bullmq`) exposes only `enqueueVerificationEmail()` and `setProcessor()`, and never touches `MailService`. Call `setProcessor()` before `enqueueVerificationEmail()`, with your own function - typically one wrapping `mailService.send()`.
 
 - **Templates are a simple substitution engine.** `TemplateEngineService` stores templates in an in-memory `Map`. It replaces <code v-pre>{{variable}}</code> placeholders, with dot-notation for nested values. A missing value is logged and left as the literal placeholder text, not blanked out.

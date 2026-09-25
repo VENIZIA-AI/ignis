@@ -134,6 +134,41 @@ and - through the wholesale kernel re-export, not from `src/components/` - `Rest
 when it builds a queue or worker, not at import. A compiled binary using that executor passes both
 peers in `IBullMQMailExecutorOpts` - `module` (bullmq) and `redis.module` (ioredis) - or registers
 them with `ModuleUtility.register({ modules: { ioredis, bullmq } })`.
+Mail attachments are resolved in ONE place, `MailService.send()` via `resolveMailAttachments`
+(`mail/utilities/attachment.utility.ts`, internal - not in the `/mail` barrel): every attachment
+becomes `content` bytes and loses `path`/`href`/`raw`/`encoding` before any transport sees it.
+Nodemailer would otherwise read a `path`, an `href` URL or `raw.path` itself; the old Mailgun
+mapping forwarded the `path` string as `data`.
+- `path` is read only under the `attachmentRoot` option: both sides go through realpath, the file
+  opens with `O_NOFOLLOW | O_NONBLOCK` (a FIFO cannot hang the open), then fstat must say regular
+  file. Unset root = every `path` refused. Missing, directory, FIFO, unreadable and escape answer
+  ONE message and `400 core.mail.attachment_path_refused` - no existence oracle; the fs reason rides
+  in `cause` (development responses only). `href`/`raw` are refused.
+- Known limit, documented not fixed: an intermediate directory swapped for a symlink between
+  realpath and open is followed. It needs write access inside the root; a portable fix does not exist
+  (fd-to-path is `/proc`-only).
+- A path attachment defaults `filename` to `basename(path)` and `contentType` to
+  `ContentTypeTable.resolve` - nodemailer used to derive both from `path`.
+- `maxAttachmentBytes` (default `MailDefaults.MAX_ATTACHMENT_BYTES`, 25 MB, decoded bytes) is ONE
+  budget per message (`413 core.mail.attachment_too_large`). A file is sized by fstat, then read
+  through the same per-chunk counter with `end` one byte past the budget, so a file grown after
+  fstat is still capped. Streams (Node `Readable` or web `ReadableStream`) are counted per chunk;
+  the `for await` exit destroys/cancels them - never call `.destroy()` directly, a web stream has none.
+  `Uint8Array` is bytes; any other `content` is `400 core.mail.invalid_configuration`.
+- A refused send releases EVERY attachment stream (`releaseAttachmentStreams`, in the
+  `MailService.send()` catch and in each transport's catch) - otherwise an unread stream keeps its fd.
+- `attachmentRoot` (absolute, existing directory) and `maxAttachmentBytes` (positive safe integer)
+  are validated in `MailComponent.createAndBindInstances()`; a bad value fails the boot (500).
+- `text`/`html` must be a string, or `null`/`undefined` (absent): `assertMailBodyIsText`
+  (`mail/utilities/body.utility.ts`) runs in `MailService.validateMessage()` and in the nodemailer
+  transport; `400 core.mail.body_source_refused`. The nodemailer transport also sets nodemailer's
+  `disableFileAccess`/`disableUrlAccess` on every send.
+- The nodemailer and mailgun transports resolve again with no root and no limit, and the SES MIME
+  builder reads with no root: a direct transport call refuses `path` too, but has no size cap. Do
+  not give the transports a default limit - a second, smaller cap would reject what the configured
+  one allowed.
+- `SEND_FAILED`/`BATCH_SEND_FAILED`/`VERIFICATION_FAILED` carry a fixed message; the original
+  error goes to `cause` (S-03 - the envelope sends an ApplicationError's message in production).
 `StaticAssetComponent`'s generated controller takes three optional extension hooks rather than being
 copied: `resolveObjectName({ originalName, defaultName, bucket })` decides the stored object name
 (`defaultName` is what the storage helper would have written), `defineExtraRoutes({ controller,

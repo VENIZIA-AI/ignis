@@ -17,6 +17,7 @@ This section tracks the history of significant changes, refactors, and updates t
 
 | Date | Title | Type |
 |------|-------|------|
+| 2026-09-25 | [Mail Attachments Read Only Under a Root, and Stop at a Size Limit](./2026-09-25-mail-attachment-limits) | Breaking, Security, Enhancement |
 | 2026-09-25 | [Static Asset Scoping, a Real Body Limit, and Storage File Names](./2026-09-25-static-asset-and-storage-fixes) | Bug Fix, Enhancement, Behavior Change |
 | 2026-09-24 | [A Repository Can Inject a Datasource Registered by Hand](./2026-09-24-repository-datasource-registered-by-hand) | Bug Fix |
 | 2026-09-23 | [Fixes Found While Rebuilding the Examples](./2026-09-23-fixes-from-the-examples) | Breaking, Bug Fix, Security, Behavior Change |

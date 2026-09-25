@@ -455,6 +455,10 @@ const config = defineConfig({
               collapsed: true,
               items: [
                 {
+                  text: 'Mail Attachments Read Only Under a Root, and Stop at a Size Limit',
+                  link: '/changelogs/2026-09-25-mail-attachment-limits',
+                },
+                {
                   text: 'Static Asset Scoping, a Real Body Limit, and Storage File Names',
                   link: '/changelogs/2026-09-25-static-asset-and-storage-fixes',
                 },

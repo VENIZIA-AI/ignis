@@ -199,6 +199,8 @@ A discriminated union on `provider`, extending `IBaseMailOptions`:
 interface IBaseMailOptions {
   from?: string;
   fromName?: string;
+  attachmentRoot?: string;
+  maxAttachmentBytes?: number;
 }
 
 interface INodemailerMailOptions extends IBaseMailOptions {
@@ -236,6 +238,19 @@ type TMailOptions =
   | ICustomMailOptions
   | IGenericMailOptions;
 ```
+
+Every provider shares the `IBaseMailOptions` fields:
+
+| Option | Type | Default | Meaning |
+|---|---|---|---|
+| `from` | `string` | - | Default sender when a message sets no `from` |
+| `fromName` | `string` | - | Display name rendered around `from` as `"fromName" <from>` |
+| `attachmentRoot` | `string` | - | The only directory an `attachment.path` is read from. Unset, every `path` is refused. Must be an absolute path to an existing directory |
+| `maxAttachmentBytes` | `number` | `26214400` (25 MB) | Decoded bytes of attachment content one message may carry, all attachments together. Must be a positive integer |
+
+Both are checked when the component starts; a bad value fails the boot with `Invalid mail options | <option> ...` (`INVALID_CONFIGURATION`, 500).
+
+See [Attachments](./usage#attachments) for how both apply.
 
 **Nodemailer (SMTP with basic auth):**
 
@@ -404,6 +419,7 @@ interface IMailQueueExecutorConfig {
 |----------|-------|-------------|
 | `MailDefaults.BATCH_CONCURRENCY` | `5` | Default concurrent sends in `sendBatch()` |
 | `MailDefaults.FALLBACK_FROM` | `'noreply@example.com'` | Used by `getDefaultFrom()` when `options.from` is unset |
+| `MailDefaults.MAX_ATTACHMENT_BYTES` | `25 * 1024 * 1024` | Default `maxAttachmentBytes` |
 | `MailExecutorErrors.PROCESSOR_NOT_SET` | `'Processor not set. Call setProcessor() first.'` | Thrown by all three queue executors |
 | `MailQueueExecutorTypes.DIRECT` | `'direct'` | Immediate execution |
 | `MailQueueExecutorTypes.INTERNAL_QUEUE` | `'internal-queue'` | In-memory queue |
@@ -433,6 +449,9 @@ Built through `MessageCode.build()`, so every value is lower-case (`ApplicationE
 | `MailErrorCodes.INVALID_RECIPIENT` | `'core.mail.invalid_recipient'` | Missing or empty recipient address |
 | `MailErrorCodes.BATCH_SEND_FAILED` | `'core.mail.batch_send_failed'` | Batch email operation failed |
 | `MailErrorCodes.TEMPLATE_NOT_FOUND` | `'core.mail.template_not_found'` | Template name not found in registry |
+| `MailErrorCodes.ATTACHMENT_PATH_REFUSED` | `'core.mail.attachment_path_refused'` | An attachment `path` outside `attachmentRoot`, with no root set, or an `href`/`raw` source |
+| `MailErrorCodes.BODY_SOURCE_REFUSED` | `'core.mail.body_source_refused'` | `text` or `html` is not a string |
+| `MailErrorCodes.ATTACHMENT_TOO_LARGE` | `'core.mail.attachment_too_large'` | A message's attachments are over `maxAttachmentBytes` |
 
 **Source:** [`common/constants.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/components/mail/common/constants.ts)
 
@@ -522,7 +541,7 @@ interface IMailMessage {
 | `to`, `cc`, `bcc` | Single string or array. Nodemailer joins arrays with `', '`; Mailgun passes `to` as-is (always coerced to an array), `cc`/`bcc` pass through unmodified. |
 | `replyTo` | Nodemailer passes it directly; Mailgun maps it to `h:Reply-To`. |
 | `subject` | Rendered through the template engine when set via `sendTemplate()`. |
-| `text`, `html` | At least one is required (`validateMessage()`). |
+| `text`, `html` | At least one is required (`validateMessage()`). Each must be a string - an object such as `{ path }` is refused with `core.mail.body_source_refused`, because Nodemailer would read it as a file or URL. |
 | `attachments` | See `IMailAttachment` below. |
 | `headers` | Nodemailer passes them directly; Mailgun prefixes every key with `h:`. |
 | `requireValidate` | `true` makes template rendering throw on missing placeholders instead of preserving them as literal text. Defaults to `false`. |
@@ -531,17 +550,22 @@ interface IMailMessage {
 interface IMailAttachment {
   filename?: string;
   contentType?: string;
-  path?: string;
-  content?: string | Buffer | Readable;
+  path?: string;                        // Read only under attachmentRoot
+  content?: string | Buffer | Uint8Array | Readable | ReadableStream<Uint8Array>;
+  encoding?: BufferEncoding;            // How a string content decodes; default utf-8
   cid?: string;
   [key: string]: any;
 }
 ```
 
-- File path: `{ filename: 'doc.pdf', path: '/path/to/doc.pdf' }`
 - Buffer: `{ filename: 'data.txt', content: Buffer.from('...') }`
-- Inline image: `{ filename: 'logo.png', path: '...', cid: 'logo' }`
-- Mailgun maps each attachment to `{ filename, data: att.path ?? att.content ?? Buffer.from('') }`.
+- File under `attachmentRoot`: `{ filename: 'doc.pdf', path: 'invoices/doc.pdf' }`
+- Inline image: `{ filename: 'logo.png', path: 'logo.png', cid: 'logo' }`
+
+`send()` resolves every attachment to `content` bytes before the transport sees it, and drops `path`, `href`, `raw` and `encoding`. The other fields pass through. An attachment read from `path` keeps the file's name as `filename` and gets a `contentType` from its extension, when neither is set. A `content` that is not bytes, text or a stream is refused with `core.mail.invalid_configuration` (400). A `path` without `attachmentRoot`, or one resolving outside it, is refused with `core.mail.attachment_path_refused`; attachments over `maxAttachmentBytes` are refused with `core.mail.attachment_too_large`. See [Attachments](./usage#attachments).
+
+> [!WARNING]
+> `path` names a file on your server. Never copy `attachments` from a request body - map an upload to `content` yourself.
 
 **Source:** [`common/types/`](https://github.com/VENIZIA-AI/ignis/tree/main/packages/core-server/src/components/mail/common/types)
 
@@ -672,14 +696,14 @@ this.bind({ key: MailKeys.MAIL_OPTIONS }).toValue({
 **Nodemailer (`NodemailerTransportHelper`, extends `BaseHelper`):**
 
 - `configure()` builds the transporter via `nodemailer.createTransport(config)`.
-- `send()` maps `IMailMessage` fields to Nodemailer's mail options, joining array recipients with `', '`. It catches transport errors and returns `{ success: false, error }` - it never throws.
+- `send()` maps `IMailMessage` fields to Nodemailer's mail options, joining array recipients with `', '`. Attachments are resolved to bytes first, so Nodemailer is handed bytes, never a `path` to read. A `text`/`html` that is neither a string nor `null` is refused, for the same reason. Every send also sets Nodemailer's `disableFileAccess` and `disableUrlAccess`, so no field can make Nodemailer open a file or fetch a URL. It catches transport errors and returns `{ success: false, error }` - it never throws.
 - `verify()` delegates to `transporter.verify()` (SMTP handshake). It catches errors and returns `false` - it never throws.
 - `close()` calls `transporter.close()`.
 
 **Mailgun (`MailgunTransportHelper`, extends `BaseHelper`):**
 
 - `configure()` calls `validateConfig()` **before** building the client. `username`, `key`, and `domain` must all be present in `config`, or it throws `Invalid Mailgun configuration | Missing required keys: <keys>` (`INVALID_CONFIGURATION`, 500). This check runs even though `TMailgunConfig`'s type only requires `domain`.
-- `send()` converts `IMailMessage` to Mailgun's format: `to` is coerced to an array, `replyTo` becomes `h:Reply-To`, and every custom header is prefixed `h:`. Attachments map to `{ filename, data: path ?? content ?? Buffer.from('') }`.
+- `send()` converts `IMailMessage` to Mailgun's format: `to` is coerced to an array, `replyTo` becomes `h:Reply-To`, and every custom header is prefixed `h:`. Attachments are resolved to bytes first, then map to `{ filename, data: content }`.
   - It catches send errors and returns `{ success: false, error }` - it never throws.
 - `verify()` sends a test message to `verify@<domain>` with `o:testmode: 'yes'`, since Mailgun has no dedicated verify endpoint. It catches errors and returns `false` - it never throws.
 - No `close()` - the HTTP API is stateless.
@@ -688,9 +712,11 @@ this.bind({ key: MailKeys.MAIL_OPTIONS }).toValue({
 
 - `configure()` calls `validateConfig()` first. `region` must be present, or it throws `Invalid Amazon SES Configuration | Missing region` (`INVALID_CONFIGURATION`, 500). `credentials` is optional - omit it and the AWS SDK falls back to its own credential chain.
 - `buildClient()` constructs `SESv2Client` from `module`, or from `ModuleUtility.loadSync({ module: '@aws-sdk/client-sesv2' })`.
-- `send()` builds a raw MIME message and issues `SendEmailCommand` with `Content.Raw`. `FromEmailAddress` is RFC 2047-encoded separately, so a non-ASCII display name does not reach the API as raw UTF-8. It sets no `ReplyToAddresses` - the raw content already carries one encoded `Reply-To` header. It catches errors and returns `{ success: false, error }` - it never throws.
+- `send()` builds a raw MIME message and issues `SendEmailCommand` with `Content.Raw`. The MIME builder reads attachments with no root, so a `path` reaching it is refused, never read. `FromEmailAddress` is RFC 2047-encoded separately, so a non-ASCII display name does not reach the API as raw UTF-8. It sets no `ReplyToAddresses` - the raw content already carries one encoded `Reply-To` header. It catches errors and returns `{ success: false, error }` - it never throws.
 - `verify()` issues `GetAccountCommand` and returns `result.SendingEnabled === true`. It catches errors and returns `false` - it never throws.
 - `close()` calls `client.destroy?.()`.
+
+Called directly, outside `MailService`, a built-in transport still refuses a `path` - it has no `attachmentRoot` - and applies no size limit. Send through `MailService` to get both. A refused send destroys every attachment stream it was given.
 
 **Custom transport:** set `provider: MailProviders.CUSTOM` and pass an object implementing `IMailTransport` as `config`. Reach for it when you need a provider IGNIS does not ship - SendGrid, Postmark, or a house SMTP relay with its own protocol. Amazon SES already has a first-class provider above; use that instead.
 
