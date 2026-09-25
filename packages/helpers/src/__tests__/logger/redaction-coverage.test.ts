@@ -134,16 +134,19 @@ describe('redactSecrets - the depth bound', () => {
     expect(JSON.stringify(redacted).split('nested').length - 1).toBeLessThan(6);
   });
 
-  /** A very deep chain used to blow the stack; the logger's own bound is what keeps it off that path. */
-  test('a very deep chain does not throw', () => {
-    // 100k, not 20k. The first line asserts a stack overflow HAPPENS, and how much stack is left
-    // depends on what else the machine is doing - so the depth has to clear the threshold, not sit
-    // on it. Measured on an idle machine: 20k overflowed 19 times in 20, and this test duly failed
-    // twice in eight full `make test-all` runs; 100k overflowed 20 in 20, and 50k was already the
-    // floor. The whole loop costs ~8ms. A shallower chain proves nothing anyway - it would pass
-    // with or without the bound.
-    expect(() => redactSecrets(buildChain(100_000))).toThrow(RangeError);
-    expect(() => redactSecrets(buildChain(100_000), undefined, 4)).not.toThrow();
+  /**
+   * The bound is the only thing between a deep graph and a stack overflow, so the assertion is the
+   * exact shape it leaves: walked above the bound, cut at it, never reached below it. Whether the
+   * unbounded walk overflows depends on the engine's stack size, so it is not asserted here.
+   */
+  test('a very deep chain is cut exactly at the bound', () => {
+    expect(redactSecrets(buildChain(100_000), undefined, 3)).toEqual({
+      password: REDACTED,
+      nested: {
+        password: REDACTED,
+        nested: { password: REDACTED, nested: '[Object]' },
+      },
+    });
   });
 
   /**

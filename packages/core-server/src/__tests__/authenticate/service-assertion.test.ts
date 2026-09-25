@@ -1,4 +1,13 @@
-import { afterAll, beforeAll, describe, expect, test } from 'bun:test';
+import {
+  afterAll,
+  afterEach,
+  beforeAll,
+  beforeEach,
+  describe,
+  expect,
+  setSystemTime,
+  test,
+} from 'bun:test';
 import { exportPKCS8, exportSPKI, generateKeyPair, SignJWT } from 'jose';
 import { ServiceAssertion } from '@venizia/ignis-kernel';
 import type { IServiceAuthOptions } from '@venizia/ignis-kernel';
@@ -25,6 +34,23 @@ const buildSigner = (options: IServiceAuthOptions): ServiceAssertionSignerServic
 
 const buildVerifier = (options: IServiceAuthOptions): ServiceAssertionVerifierService =>
   new ServiceAssertionVerifierService(options as AnyType);
+
+/**
+ * The window tests sit exactly on a second boundary, and jose reads the verifier's clock from
+ * `new Date()`. So minting and verifying share one frozen instant: on a live clock, a second that
+ * ticks between the two flips the result.
+ */
+const FROZEN_NOW_SECONDS = 1_900_000_000;
+
+const freezeClock = () => {
+  beforeEach(() => {
+    setSystemTime(new Date(FROZEN_NOW_SECONDS * 1000));
+  });
+
+  afterEach(() => {
+    setSystemTime();
+  });
+};
 
 const calleeOptions = (overrides?: Partial<IServiceAuthOptions>): IServiceAuthOptions => ({
   name: CALLEE,
@@ -294,8 +320,10 @@ describe('the callee decides the window, per caller', () => {
  * window for old tokens is the side effect, not the purpose.
  */
 describe('the clock tolerance window', () => {
+  freezeClock();
+
   const mint = async (opts: { iatOffsetSeconds: number }) => {
-    const iat = Math.floor(Date.now() / 1000) + opts.iatOffsetSeconds;
+    const iat = FROZEN_NOW_SECONDS + opts.iatOffsetSeconds;
 
     return new SignJWT({ htm: 'GET', htu: '/v1/api/x' })
       .setProtectedHeader({
@@ -366,8 +394,10 @@ describe('the clock tolerance window', () => {
  * is a security knob, not an operational one.
  */
 describe('the replay window is wider than the acceptance window', () => {
+  freezeClock();
+
   const mintSkewed = async (opts: { mintedAgoOnOurClock: number; callerSkewSeconds: number }) => {
-    const iat = Math.floor(Date.now() / 1000) - opts.mintedAgoOnOurClock + opts.callerSkewSeconds;
+    const iat = FROZEN_NOW_SECONDS - opts.mintedAgoOnOurClock + opts.callerSkewSeconds;
 
     return new SignJWT({ htm: 'GET', htu: '/v1/api/x' })
       .setProtectedHeader({
