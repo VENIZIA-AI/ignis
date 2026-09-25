@@ -155,15 +155,16 @@ git checkout -b feature/your-feature-name
 
 ### Step 3: Commit
 
-Use [Conventional Commits](https://www.conventionalcommits.org/):
+Every commit serves a GitHub issue. Open the issue first in `VENIZIA-AI/ignis` and add it to the [IGNIS project](https://github.com/orgs/VENIZIA-AI/projects/6). Then write one line: the issue number, then a [Conventional Commits](https://www.conventionalcommits.org/) subject.
 
 ```bash
 # Examples
-git commit -m "feat: add Redis caching helper"
-git commit -m "fix: correct JWT token validation"
-git commit -m "docs: update controller examples"
-git commit -m "chore: upgrade Hono to v4.0"
+git commit -m "[#38] fix(helpers): copyObject encodes the copy source, so a non-ASCII key copies"
+git commit -m "[#40] feat(helpers): the MIME table knows the office formats"
+git commit -m "[#46] docs: static-asset MetaLink schema and route list"
 ```
+
+A commit that serves several issues it cannot be split between lists each: `[#42][#44] ...`.
 
 **Commit types:**
 - `feat:` - New feature
@@ -205,9 +206,9 @@ git push origin feature/your-feature-name
 
 | Item | Description |
 |------|-------------|
-| **Title** | Use conventional commit format: `feat: add Redis caching` |
+| **Title** | The issue number, then a conventional commit subject: `[#123] feat: add Redis caching` |
 | **Description** | Explain what and why (not just how) |
-| **Link issues** | Reference related issues: `Closes #123` |
+| **Link issues** | One `Closes #123` line per issue the PR finishes, so merging closes them and moves them to Done on the project |
 | **Screenshots** | Include for UI changes |
 | **Breaking changes** | Clearly mark and explain |
 
@@ -230,7 +231,7 @@ git push origin feature/your-feature-name
 ```bash
 # Make requested changes
 git add .
-git commit -m "fix: address review feedback"
+git commit -m "[#123] fix: address review feedback"
 git push origin feature/your-feature-name
 ```
 

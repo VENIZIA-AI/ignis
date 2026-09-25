@@ -15,7 +15,11 @@ tags: [process, git, contributing]
    - `fix/description` for bug fixes
    - `docs/description` for documentation-only changes
    - `chore/description` for maintenance (deps, config)
-3. Commit using Conventional Commits: `feat:`, `fix:`, `docs:`, `chore:`, `refactor:`, `test:`.
+3. Every change starts from an issue in `VENIZIA-AI/ignis`, added to the IGNIS project (org project 6).
+   Commit in one line: `[#N] type(scope): subject`, a Conventional Commits type (`feat`, `fix`,
+   `docs`, `chore`, `refactor`, `test`) after the issue number. A commit that serves several issues it
+   cannot be split between lists each: `[#42][#44] ...`. The repository is public, so an issue
+   describes the framework defect, never a consumer's internals.
 4. Before committing, run `bun run --filter "*" lint:fix` and `make build` to catch style and type
    issues early - `lint:fix` is defined per package, so a bare `bun run lint:fix` at the repo root
    finds no script. `make lint-all` is the check-only equivalent, and the pre-commit hook (below)
@@ -34,9 +38,9 @@ tags: [process, git, contributing]
    only accepts merges FROM `develop`, and releases off it are tagged in git (see
    [release and publish](/process/release-publish.md) for the actual per-package release
    mechanism, which is separate from `main`/`develop` merges).
-8. PR title should also follow Conventional Commits format (e.g. `feat: add Redis caching`).
-   Include what and why in the description, link related issues, and clearly call out breaking
-   changes.
+8. The PR title carries the issue number too (e.g. `[#123] feat: add Redis caching`). The body
+   explains what and why, calls out breaking changes, and ends with one `Closes #N` line per issue it
+   finishes - merging then closes them. Nothing is committed straight to `develop`.
 
 ## Related
 

@@ -6,6 +6,11 @@ not how.
 This file and `index.md` are reserved OKF filenames - they carry no `type:` frontmatter and are not
 counted as concepts.
 
+## 2026-09-25 - every commit references a GitHub issue
+
+Updated [git workflow](/process/git-workflow.md): work starts from an issue on the IGNIS project, a
+commit reads `[#N] type(scope): subject`, and changes land through a pull request with `Closes #N`.
+
 ## 2026-09-24 - a repository may inject a datasource registered by hand
 
 Parameter 0 stays a datasource; `@inject({ target })` with no recorded key yet is judged by
