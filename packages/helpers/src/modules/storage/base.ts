@@ -89,6 +89,9 @@ export abstract class BaseStorageHelper extends BaseHelper implements IStorageHe
 
   static readonly DEFAULT_MAX_FOLDER_DEPTH = 2;
 
+  /** Control characters and lone surrogates: never part of a file name, and not encodable into a header. */
+  private static readonly UNSAFE_NAME_CHARACTERS = /[\p{Cc}\p{Cs}]/u;
+
   /** A bucket name is one segment; a separator in it would silently address a different bucket. */
   isValidBucketName(opts: { bucket: IBucketRef }): boolean {
     return this.isValidSegment({ segment: opts.bucket.name });
@@ -203,19 +206,51 @@ export abstract class BaseStorageHelper extends BaseHelper implements IStorageHe
     return `${this.defaultLinkPrefix}${bucketName}/${encodedName}`;
   }
 
-  protected validateUploadFiles(opts: { files: IUploadFile[]; maxFolderDepth?: number }): void {
-    const { files, maxFolderDepth } = opts;
+  /** An original name that is only metadata - the key is resolved elsewhere and validated on its own. */
+  protected isValidOriginalName(opts: { name: string }): boolean {
+    const { name } = opts;
+
+    if (typeof name !== 'string' || name.trim().length === 0 || name.length > 255) {
+      this.logger.for(this.isValidOriginalName.name).error('Invalid original name: %j', name);
+      return false;
+    }
+
+    if (BaseStorageHelper.UNSAFE_NAME_CHARACTERS.test(name)) {
+      this.logger
+        .for(this.isValidOriginalName.name)
+        .error('Original name contains a control character or a lone surrogate: %j', name);
+      return false;
+    }
+
+    return true;
+  }
+
+  /** `isKeyResolvedByCaller`: a `normalizeNameFn` decides the key, so the original name is metadata and meets the metadata rule, not the key rule. */
+  protected validateUploadFiles(opts: {
+    files: IUploadFile[];
+    maxFolderDepth?: number;
+    isKeyResolvedByCaller?: boolean;
+  }): void {
+    const { files, maxFolderDepth, isKeyResolvedByCaller = false } = opts;
 
     for (const file of files) {
-      this.validateUploadFile({ file, maxFolderDepth });
+      this.validateUploadFile({ file, maxFolderDepth, isKeyResolvedByCaller });
     }
   }
 
-  private validateUploadFile(opts: { file: IUploadFile; maxFolderDepth?: number }): void {
-    const { file, maxFolderDepth } = opts;
+  private validateUploadFile(opts: {
+    file: IUploadFile;
+    maxFolderDepth?: number;
+    isKeyResolvedByCaller: boolean;
+  }): void {
+    const { file, maxFolderDepth, isKeyResolvedByCaller } = opts;
     const { originalName, size, folderPath } = file;
 
-    if (!this.isValidSegment({ segment: originalName })) {
+    const isNameValid = isKeyResolvedByCaller
+      ? this.isValidOriginalName({ name: originalName })
+      : this.isValidSegment({ segment: originalName });
+
+    if (!isNameValid) {
       throw getError({ message: '[upload] Invalid original file name' });
     }
 
@@ -263,26 +298,37 @@ export abstract class BaseStorageHelper extends BaseHelper implements IStorageHe
       });
     }
 
-    this.validateUploadFiles({ files, maxFolderDepth });
+    this.validateUploadFiles({
+      files,
+      maxFolderDepth,
+      isKeyResolvedByCaller: normalizeNameFn !== undefined,
+    });
+
+    // Every key is resolved and validated before the first write, so one bad key stores nothing.
+    const keys = files.map(file => {
+      const naming: TUploadNaming = {
+        originalName: file.originalName,
+        folderPath: file.folderPath,
+      };
+      const key = normalizeNameFn
+        ? normalizeNameFn({ file: naming })
+        : this.normalizeObjectName({ file: naming });
+
+      if (!this.isValidObjectKey({ object: { key }, maxDepth: maxFolderDepth })) {
+        throw getError({
+          message: `[upload] Invalid normalized object name | name: ${key}`,
+        });
+      }
+
+      return key;
+    });
 
     return this.mapWithConcurrency({
       items: files,
-      task: async ({ item: file }) => {
-        const { originalName, mimetype: mimeType, size, encoding, folderPath } = file;
+      task: async ({ item: file, index }) => {
+        const { mimetype: mimeType, size, encoding } = file;
         const t = performance.now();
-
-        const naming: TUploadNaming = { originalName, folderPath };
-        const key = normalizeNameFn
-          ? normalizeNameFn({ file: naming })
-          : this.normalizeObjectName({ file: naming });
-
-        // `normalizeNameFn` output is what reaches the filesystem; the original name was validated
-        // above, this validates what a caller's own normalizer produced.
-        if (!this.isValidObjectKey({ object: { key }, maxDepth: maxFolderDepth })) {
-          throw getError({
-            message: `[upload] Invalid normalized object name | name: ${key}`,
-          });
-        }
+        const key = keys[index];
 
         const object: IObjectRef = { key };
         const link = normalizeLinkFn
