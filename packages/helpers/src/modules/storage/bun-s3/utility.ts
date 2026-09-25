@@ -43,6 +43,10 @@ const encodeSigV4Path = (opts: { path: string }): string =>
     .map(segment => encodeSigV4Component({ value: segment }))
     .join('/');
 
+/** `x-amz-copy-source`: S3 URL-decodes it once and splits `?versionId=` off, so a raw `?`, `%` or `+` names another object and a non-Latin-1 key is not a legal header value. */
+export const buildCopySource = (opts: { bucket: string; key: string }): string =>
+  encodeSigV4Path({ path: `/${opts.bucket}/${opts.key}` });
+
 /** Empty or absent query must sign identically to today - callers of getBuckets/createBucket/removeBucket depend on it. */
 const buildCanonicalQueryString = (query?: Record<string, string>): string => {
   if (!query) {
