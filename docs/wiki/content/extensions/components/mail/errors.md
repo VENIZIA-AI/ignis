@@ -15,10 +15,16 @@ The 4xx rows below come from the `MailErrors` catalog, which holds the status an
 | `to` is missing or an empty array | 400 | `core.mail.invalid_recipient` | `Recipient email address is required` |
 | `subject` is falsy | 400 | `core.mail.invalid_configuration` | `Email subject is required` |
 | Both `text` and `html` are falsy | 400 | `core.mail.invalid_configuration` | `Email must have either text or html content` |
-| Transport throws during `send()` | 500 | `core.mail.send_failed` | `Failed to send email: <error>` |
-| Batch operation fails | 500 | `core.mail.batch_send_failed` | `Failed to send batch emails: <error>` |
+| `text` or `html` is not a string | 400 | `core.mail.body_source_refused` | `Mail body refused \| text and html must be strings; ...` |
+| An attachment `path` with no `attachmentRoot` set | 400 | `core.mail.attachment_path_refused` | `Mail attachment path refused \| attachment.path is read only under attachmentRoot, which is not set \| ...` |
+| An attachment `path` outside `attachmentRoot`, missing, a directory, a FIFO or unreadable | 400 | `core.mail.attachment_path_refused` | `Mail attachment path refused \| attachment.path must name a readable file inside attachmentRoot \| ...` (one message for every case) |
+| An attachment `content` that is not bytes, text or a stream | 400 | `core.mail.invalid_configuration` | `Invalid mail attachment \| attachment.content must be a Buffer, a Uint8Array, a string or a stream` |
+| An attachment with `href` or `raw` | 400 | `core.mail.attachment_path_refused` | `Mail attachment path refused \| attachment.href and attachment.raw are not supported \| ...` |
+| A message's attachments over `maxAttachmentBytes` | 413 | `core.mail.attachment_too_large` | `Mail attachments are over maxAttachmentBytes (<n> bytes per message) \| ...` |
+| Transport throws during `send()` | 500 | `core.mail.send_failed` | `Failed to send email` (the original error is logged and rides in `cause`) |
+| Batch operation fails | 500 | `core.mail.batch_send_failed` | `Failed to send batch emails` (original in `cause`) |
 | Template engine not configured for `sendTemplate()` | 500 | `core.mail.invalid_configuration` | `Template engine not configured` |
-| Transport throws during `verify()` | 500 | `core.mail.verification_failed` | `Mail transport verification failed: <error>` |
+| Transport throws during `verify()` | 500 | `core.mail.verification_failed` | `Mail transport verification failed` (original in `cause`) |
 
 > [!NOTE]
 > "Transport throws during `send()`/`verify()`" only fires for a **custom** transport. The built-in `NodemailerTransportHelper`, `MailgunTransportHelper` and `AmazonSesTransportHelper` never throw from `send()` or `verify()`. They catch internally and return `{ success: false, error }` (or `false` for `verify()`). A 400 validation error raised by `validateMessage()` is re-thrown unchanged, not wrapped as `SEND_FAILED`.
@@ -28,6 +34,9 @@ The 4xx rows below come from the `MailErrors` catalog, which holds the status an
 | Condition | Status | Error code | Message |
 |-----------|--------|-----------|---------|
 | `MAIL_OPTIONS` still unbound when `binding()` runs | -- | -- | `Mail options not configured` |
+| `maxAttachmentBytes` is not a positive integer | 500 | `core.mail.invalid_configuration` | `Invalid mail options \| maxAttachmentBytes must be a positive integer` |
+| `attachmentRoot` is not an absolute path | 500 | `core.mail.invalid_configuration` | `Invalid mail options \| attachmentRoot must be an absolute path` |
+| `attachmentRoot` is missing or not a directory | 500 | `core.mail.invalid_configuration` | `Invalid mail options \| attachmentRoot must be an existing directory` |
 
 ### `MailTransportProvider` errors
 
@@ -129,6 +138,29 @@ this.templateEngine.registerTemplate({
   content: '<h1>Welcome {{userName}}</h1>',
 });
 ```
+
+### `core.mail.attachment_path_refused` from `send()`
+
+- **Cause.** An attachment names a `path`, and either the mail options set no `attachmentRoot`, or the path resolves outside it. A missing file, a directory, a FIFO and an unreadable file answer the same way, so a caller cannot probe which files exist. `href` and `raw` sources are refused too.
+- **Fix.** Pass the bytes as `content` (a `Buffer`, a string, or a stream). Or set `attachmentRoot` and keep the files under it:
+
+```typescript
+this.component(MailComponent, {
+  options: { provider: MailProviders.NODEMAILER, config, attachmentRoot: '/srv/app/mail-assets' },
+});
+```
+
+In `development`, the error's `cause` carries the filesystem reason (`ENOENT`, `ELOOP`); other environments hide it.
+
+### `core.mail.body_source_refused` from `send()`
+
+- **Cause.** `text` or `html` is an object - typically `{ path }` or `{ href }` copied from a request body. Nodemailer would read that file or URL into the email.
+- **Fix.** Pass the body itself as a string. To send a file's contents as the body, read it yourself first.
+
+### `core.mail.attachment_too_large` from `send()`
+
+- **Cause.** The attachments of one message add up to more than `maxAttachmentBytes` (default 25 MB).
+- **Fix.** Send smaller attachments, or raise `maxAttachmentBytes` on the mail options. The limit counts decoded bytes; base64 adds about 37% on the wire, so stay well under your provider's own message limit - `18 * 1024 * 1024` for the 25 MB cap of Gmail and Mailgun.
 
 ### Emails silently fail with `success: false`
 

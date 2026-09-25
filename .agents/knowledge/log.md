@@ -6,6 +6,20 @@ not how.
 This file and `index.md` are reserved OKF filenames - they carry no `type:` frontmatter and are not
 counted as concepts.
 
+## 2026-09-25 - mail attachments: path confined to attachmentRoot, size capped per message
+
+Updated [core-server](/packages/core-server.md).
+
+- `MailService.send()` resolves every attachment to `content` bytes; `path` is read only under the
+  new `attachmentRoot` option and refused without one (`core.mail.attachment_path_refused`).
+- New `maxAttachmentBytes` option, default 25 MB, one budget per message
+  (`core.mail.attachment_too_large`, 413); streams stop draining at the limit.
+- `text`/`html` must be strings (nodemailer reads `{ path }`/`{ href }` bodies):
+  `core.mail.body_source_refused`, 400.
+- Review fixes: refused sends release every attachment stream; path attachments keep filename and
+  content type; `null` bodies are absent; FIFO/grown-file/web-stream cases bounded; one refusal message;
+  options validated at boot; `send_failed` no longer echoes raw error text; attachment helpers internal.
+
 ## 2026-09-25 - a shared bucket can be scoped; bodyLimit and the form-body reader are wired; storage carries real file names; HTTPException keeps its status
 
 Updated [helpers](/packages/helpers.md), [core-server](/packages/core-server.md),

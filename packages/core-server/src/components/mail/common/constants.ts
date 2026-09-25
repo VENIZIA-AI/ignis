@@ -4,6 +4,8 @@ import { MessageCode } from '@venizia/ignis-helpers/core';
 export class MailDefaults {
   static readonly BATCH_CONCURRENCY = 5;
   static readonly FALLBACK_FROM = 'noreply@example.com';
+  /** Bytes of attachment content one message may carry, all attachments together. */
+  static readonly MAX_ATTACHMENT_BYTES = 25 * 1024 * 1024;
 }
 
 /** Built via {@link MessageCode.build}: `ApplicationError` lower-cases codes, so a SCREAMING_CASE literal would reach the client in a spelling no const here matches. */
@@ -23,6 +25,15 @@ export class MailErrorCodes {
   });
   static readonly TEMPLATE_NOT_FOUND = MessageCode.build({
     parts: ['core', 'mail', 'template_not_found'],
+  });
+  static readonly ATTACHMENT_PATH_REFUSED = MessageCode.build({
+    parts: ['core', 'mail', 'attachment_path_refused'],
+  });
+  static readonly ATTACHMENT_TOO_LARGE = MessageCode.build({
+    parts: ['core', 'mail', 'attachment_too_large'],
+  });
+  static readonly BODY_SOURCE_REFUSED = MessageCode.build({
+    parts: ['core', 'mail', 'body_source_refused'],
   });
 }
 

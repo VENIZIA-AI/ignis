@@ -11,6 +11,7 @@ import {
   type TAmazonSesModule,
 } from '../../common';
 import { buildRawMimeMessage, formatAddressHeader, splitAddressList } from '../../utilities';
+import { releaseAttachmentStreams } from '../../utilities/attachment.utility';
 
 export class AmazonSesTransportHelper extends BaseHelper implements IMailTransport {
   private client: AnyType;
@@ -66,6 +67,7 @@ export class AmazonSesTransportHelper extends BaseHelper implements IMailTranspo
         'Amazon SES send failed | error: %s',
         error instanceof Error ? error.message : error,
       );
+      releaseAttachmentStreams({ attachments: message.attachments });
 
       return {
         success: false,

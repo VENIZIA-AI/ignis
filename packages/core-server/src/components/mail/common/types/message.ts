@@ -3,8 +3,9 @@ import type { Readable } from 'node:stream';
 export interface IMailAttachment {
   filename?: string;
   contentType?: string;
+  /** A file under the mail options' `attachmentRoot`; refused when no root is set. */
   path?: string;
-  content?: string | Buffer | Readable;
+  content?: string | Buffer | Uint8Array | Readable | ReadableStream<Uint8Array>;
   encoding?: BufferEncoding;
   cid?: string;
   [key: string]: any;
