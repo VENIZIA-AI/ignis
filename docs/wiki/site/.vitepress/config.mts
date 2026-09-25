@@ -451,6 +451,16 @@ const config = defineConfig({
           collapsed: false,
           items: [
             {
+              text: '2026-09-25',
+              collapsed: true,
+              items: [
+                {
+                  text: 'Static Asset Scoping, a Real Body Limit, and Storage File Names',
+                  link: '/changelogs/2026-09-25-static-asset-and-storage-fixes',
+                },
+              ],
+            },
+            {
               text: '2026-09-24',
               collapsed: true,
               items: [

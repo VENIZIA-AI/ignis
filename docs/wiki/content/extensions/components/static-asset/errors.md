@@ -26,9 +26,13 @@ These carry a machine code a client can branch on, alongside the human message. 
 | `core.static_asset.invalid_commit_token` | `"Invalid commit token"` | `400` | `VALIDATION` |
 | `core.static_asset.expired_commit_token` | `"Commit token has expired"` | `400` | `VALIDATION` |
 | `core.static_asset.labels_in_query` | `"Upload labels belong in the request body, not the query"` | `400` | `VALIDATION` |
+| `core.static_asset.object_key_out_of_scope` | `"Object key is outside the key prefix of this controller"` | `400` | `VALIDATION` |
 | `core.storage.object_not_found` | `"Object not found"` | `404` | `BUSINESS` |
 
-The seven `core.static_asset.*` codes live on `StaticAssetErrors`; `core.storage.object_not_found` lives on `StorageErrors` in the helpers package. Both register with the shared key registry, so `messageCode` autocompletes.
+The eight `core.static_asset.*` codes live on `StaticAssetErrors`; `core.storage.object_not_found` lives on `StorageErrors` in the helpers package. Both register with the shared key registry, so `messageCode` autocompletes.
+
+> [!NOTE]
+> `core.request.body_too_large` (`413`) and `core.request.body_malformed` (`400`) are not static-asset codes - they live on the kernel's `RequestErrors`, alongside every other route. See [Middlewares Reference](/references/base/middlewares#body-limit-configs-middlewares-bodylimit).
 
 ## Error conditions
 
@@ -42,8 +46,10 @@ The seven `core.static_asset.*` codes live on `StaticAssetErrors`; `core.storage
 | <code v-pre>"Empty file content \| name: {originalName}"</code> | The uploaded file's buffer is empty after multipart parsing (or after re-reading a disk-spooled file) | `core.static_asset.file_empty` | `400` |
 | <code v-pre>"Invalid maxKeys \| Expected a positive integer \| value: {value}"</code> | `listObjects`'s `maxKeys` query param does not parse to a positive integer | `core.static_asset.max_keys_invalid` | `400` |
 | <code v-pre>[getObject] Object not found \| bucket: {bucket} \| key: {key}</code> (also `[getObjectStream]`, `[getStat]`, `[removeObject]`) | No object at that bucket and key. `DiskHelper` throws it directly; `BunS3Helper` and `MinioHelper` map the backend's own failure onto it through `asStorageError` | `core.storage.object_not_found` | `404` |
+| <code v-pre>Object not found \| key: {key}</code> | The key does not start with `controller.keyPrefix` - answered before any storage call, so a caller learns nothing about a key outside its scope | `core.storage.object_not_found` | `404` |
+| `"Object key is outside the key prefix of this controller"` | A `resolveObjectName` or `extra.normalizeNameFn` key falls outside `controller.keyPrefix` | `core.static_asset.object_key_out_of_scope` | `400` |
 | <code v-pre>[upload] Bucket does not exist \| name: {bucket}</code> | `helper.upload()` found no matching bucket via `hasBucket()` | - | `400` (default) |
-| `[upload] Invalid original file name` | A file's `originalName` fails `isValidSegment()`, checked inside `helper.upload()` | - | `400` (default) |
+| `[upload] Invalid original file name` | With no naming hook, a file's `originalName` becomes the key and fails `isValidSegment()` (single segment: no `/`). The static-asset controller with `resolveObjectName` or `extra.normalizeNameFn` set relaxes this - `originalName` is then metadata, checked by the looser `isValidOriginalName()` (not blank, at most 255 characters, no control character or lone surrogate). **One exception:** `controller.keyPrefix` set with *neither* hook (the component's own default naming under a scope) keeps the strict, single-segment rule - a `keyPrefix` alone does not relax it | - | `400` (default) |
 | <code v-pre>[upload] Invalid folder path \| depth: {n} \| max: {m}</code> | `helper.upload()`'s own check found more `folderPath` segments than `maxFolderDepth` allows | - | `400` (default) |
 | `[upload] Invalid folder path` | `helper.upload()`'s own path check failed for any other reason | - | `400` (default) |
 | <code v-pre>[upload] Invalid file size \| size: {size}</code> | A file's `size` is `undefined`, `null`, or negative | - | `400` (default) |
@@ -116,6 +122,26 @@ await fetch('/assets/buckets/user-uploads', { method: 'POST' });
 url.searchParams.set('maxKeys', '50'); // OK
 // url.searchParams.set('maxKeys', 'all'); // 400
 ```
+
+### A key that should exist answers "Object not found" (404)
+
+- **Cause:** the controller has `controller.keyPrefix` set, and the requested key does not start with it. The route answers exactly as it would for a real miss, before calling storage, so a caller learns nothing about a key it does not own.
+- **Fix:** request the key with its full prefix, for example `tenant-a/photos/2026/f.jpg` on a controller scoped to `tenant-a`.
+
+### "Object key is outside the key prefix of this controller"
+
+- **Cause:** `controller.keyPrefix` is set, and `resolveObjectName` or `extra.normalizeNameFn` returned a key outside it. The component never rewrites the key into scope - the application may have recorded the out-of-scope key elsewhere.
+- **Fix:** have the hook build keys under the prefix, or drop `controller.keyPrefix` if the hook already scopes keys on its own.
+
+### "[upload] Invalid original file name" under `controller.keyPrefix`
+
+- **Cause:** `controller.keyPrefix` is set with neither `resolveObjectName` nor `extra.normalizeNameFn` - the component's own default naming under a scope. That path keeps the strict, single-segment rule a name has without any scope; `keyPrefix` alone does not relax it.
+- **Fix:** rename the file (drop the `/`), or set `resolveObjectName`/`extra.normalizeNameFn` to build the key yourself, which frees the original name to be metadata.
+
+### "keyPrefix needs controller.bucket"
+
+- **Cause:** `controller.keyPrefix` is set without `controller.bucket` (bucket-in-URL mode). With no configured bucket, the four bucket-management routes cannot be scoped, so `keyPrefix` would isolate only part of the controller's surface - the controller refuses to register rather than isolate less than its name promises.
+- **Fix:** add `controller.bucket`, the same requirement `directUpload` already has.
 
 ### "[upload] Bucket does not exist"
 

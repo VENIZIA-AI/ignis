@@ -31,7 +31,10 @@ application.component(StaticAssetComponent, {
 });
 ```
 
-Two routes appear. Leave `directUpload` out and neither exists.
+Two routes appear - `routes.uploadPolicy` and `routes.uploadCommit` in `controller.routes`, each overridable and each with its own `enabled` switch. Leave `directUpload` out and neither exists.
+
+> [!TIP]
+> `controller.keyPrefix` scopes direct upload too: the pending key and the policy's `starts-with` condition both become `pendingPrefix + keyPrefix`, so the committed key lands inside the scope. The commit route re-checks the scope as well, in case a token was signed by another controller with the same `secretKey`. See [`controller.keyPrefix`](./api#controller-keyprefix).
 
 ## The three round trips
 

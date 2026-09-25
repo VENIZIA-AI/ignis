@@ -112,7 +112,7 @@ const { success } = await fetch(
 
 ## Sync a MetaLink record manually
 
-`PUT /assets/buckets/:bucketName/meta-links/:objectName` is only registered when `useMetaLink: true`. It re-reads the file's current storage metadata via `helper.getStat()` and creates or updates the matching MetaLink row.
+`PUT /assets/buckets/:bucketName/meta-links/:objectName` is only registered when `useMetaLink: true`. It re-reads the file's current storage metadata via `helper.getStat()`, then refreshes every existing row for that object, or creates one if none exists.
 
 ```typescript
 const objectName = 'invoices/2026/document.pdf';
@@ -121,8 +121,15 @@ const response = await fetch(
   `/assets/buckets/user-uploads/meta-links/${encodeURIComponent(objectName)}`,
   { method: 'PUT' },
 );
-const { success, metaLink } = await response.json();
+const { success, action, count, metaLink, metaLinks } = await response.json();
+// action: 'refreshed' when rows for the object existed, 'created' when none did
 ```
+
+- **Refresh, not overwrite-one.** When rows exist for `(bucketName, objectName)`, every one of them is updated - `mimetype`, `size`, `etag`, and `isSynced: true` always - and each row keeps its own `storageType` and labels (`variant`, `principalType`, `principalId`, `sequence`). One product image attached to the product and to a variant syncs both rows in one call.
+- **A `createMetaLink` hook keeps its own `link` and `metadata`.** With `metaLink.createMetaLink` configured, a refresh writes only `mimetype`, `size`, `etag`, `isSynced` - it leaves `link` and `metadata` untouched, because the hook already owns what those fields mean, and a recreate no longer erases an enrichment the hook wrote (dimensions, a placeholder, anything beyond what `getStat()` reports).
+- **Without a hook, `metadata` merges per row, and `link` is rewritten.** One statement refreshes `link` plus the stat columns on every row; then one more statement per row merges that row's own `metadata` with the stat's - the stat's keys win, everything else the row had survives. A concurrent write to that row's `metadata` landing between the two statements is lost.
+- **Create only when nothing was there to refresh.** The new row goes through the same `createMetaLink` hook an upload uses, so it gets your `storageType` and defaults, not the component's raw guess.
+- **`count`** is how many rows were touched; **`metaLinks`** holds all of them; **`metaLink`** is kept for existing callers and is `metaLinks[0]`. `action` is `'refreshed'` or `'created'` - a real OpenAPI enum, not a free string.
 
 Useful for backfilling MetaLink rows for files that already exist in storage, or after a database restore.
 
@@ -158,6 +165,7 @@ CREATE TABLE "MetaLink" (
   storage_type    TEXT NOT NULL,
   is_synced       BOOLEAN NOT NULL DEFAULT false,
   variant         TEXT,
+  sequence        INTEGER NOT NULL DEFAULT 0,
   principal_type  TEXT,
   principal_id    TEXT
 );
@@ -166,7 +174,11 @@ CREATE INDEX "IDX_MetaLink_bucketName" ON "MetaLink"(bucket_name);
 CREATE INDEX "IDX_MetaLink_objectName" ON "MetaLink"(object_name);
 CREATE INDEX "IDX_MetaLink_storageType" ON "MetaLink"(storage_type);
 CREATE INDEX "IDX_MetaLink_isSynced" ON "MetaLink"(is_synced);
+CREATE INDEX "IDX_MetaLink_principal_sequence" ON "MetaLink"(principal_type, principal_id, sequence);
 ```
+
+> [!IMPORTANT]
+> The MetaLink type contract checks the **select row** only - the columns above, on whatever table you point `metaLink.model`/`metaLink.repository` at. A column you add of your own must be nullable or carry a default: the component's default insert writes exactly the columns above, so a NOT NULL column with no default passes the type check and then fails every insert the component makes without your own `createMetaLink` hook.
 
 **3. Register the repository and wire it into the component options:**
 
@@ -262,6 +274,48 @@ const userFiles = await metaLinkRepository.find({ filter: { where: { principalTy
 const thumbnails = await metaLinkRepository.find({ filter: { where: { variant: 'thumbnail' } } });
 const pdfs = await metaLinkRepository.find({ filter: { where: { mimetype: 'application/pdf' } } });
 ```
+
+## Share one bucket between controllers
+
+`controller.keyPrefix` scopes every key a controller touches, and `routes.<key>.enabled: false` drops a built-in route entirely. Together they let two controllers - or two tenants - share one bucket without seeing each other's keys. `keyPrefix` requires `controller.bucket`: without a configured bucket, the four bucket-management routes stay unscoped, so the controller throws at registration rather than isolating only part of its surface.
+
+```typescript
+this.bind<TStaticAssetsComponentOptions>({
+  key: StaticAssetComponentBindingKeys.STATIC_ASSET_COMPONENT_OPTIONS,
+}).toValue({
+  tenantA: {
+    controller: {
+      name: 'TenantAAssets',
+      basePath: '/tenant-a/assets',
+      bucket: 'shared-uploads',
+      keyPrefix: 'tenant-a',
+      routes: {
+        deleteObject: { enabled: false },
+      },
+    },
+    storage: StaticAssetStorageTypes.BUN_S3,
+    helper: bunS3Helper,
+  },
+  tenantB: {
+    controller: {
+      name: 'TenantBAssets',
+      basePath: '/tenant-b/assets',
+      bucket: 'shared-uploads',
+      keyPrefix: 'tenant-b',
+    },
+    storage: StaticAssetStorageTypes.BUN_S3,
+    helper: bunS3Helper,
+  },
+});
+```
+
+- `tenantA`'s routes only ever see keys under `tenant-a/` - a request for a `tenant-b/...` key answers `404`, the same as a real miss, and `listObjects` never returns a `tenant-b/` key even without a `prefix` query.
+- An upload with no naming hook writes under `tenant-a/` automatically; a `resolveObjectName` or `extra.normalizeNameFn` that returns a key outside the prefix is refused, not rewritten.
+- **With no naming hook, the original file name still has to be one segment.** A `keyPrefix` alone does not relax it: `document.pdf` is fine, `folder/document.pdf` is `400 [upload] Invalid original file name`, exactly as it would be without `tenantA`'s prefix at all. Set `resolveObjectName` or `extra.normalizeNameFn` to accept a name carrying `/`.
+- `enabled: false` needs no `keyPrefix` - it works on any controller, to drop a route your application does not want exposed at all.
+- `keyPrefix` needs `bucket` - the earlier example, and this one, both set it. Leaving `bucket` unset (bucket-in-URL mode) with `keyPrefix` set throws when the controller is defined: the four bucket-management routes cannot be scoped, so `keyPrefix` would isolate only part of the surface.
+
+See [`controller.keyPrefix`](./api#controller-keyprefix) for the full per-route behavior.
 
 ## Frontend integration
 

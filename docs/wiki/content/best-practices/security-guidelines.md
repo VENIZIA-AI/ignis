@@ -427,22 +427,30 @@ this.getServer().use('*', secureHeaders({
 
 ## 11. Request Size Limits
 
-Prevent denial of service through large payloads:
+Prevent denial of service through large payloads. Prefer `configs.middlewares.bodyLimit` over
+registering `hono/body-limit` yourself in `setupMiddlewares()`: the framework installs it right
+after the request id, ahead of every other middleware, including the request spy - a limit
+registered in `setupMiddlewares()` runs after all of that.
 
 ```typescript
-import { bodyLimit } from 'hono/body-limit';
-
-// Limit request body size
-this.getServer().use('/api/*', bodyLimit({
-  maxSize: 1024 * 1024, // 1MB for general API
-  onError: (c) => c.json({ message: 'Request body too large' }, 413),
-}));
-
-// Allow larger uploads for file endpoints
-this.getServer().use('/api/upload/*', bodyLimit({
-  maxSize: 50 * 1024 * 1024, // 50MB for file uploads
-}));
+const application = new MyApplication({
+  scope: 'MyApp',
+  config: {
+    // ...the rest of IApplicationConfigs
+    middlewares: { bodyLimit: { enable: true, maxSize: 1024 * 1024 } }, // 1MB
+  },
+});
 ```
+
+`configs.middlewares` is read before `staticConfigure()` runs. Pass it through the constructor's
+`config` - or an application-config factory that builds that object - never by assigning
+`this.configs.middlewares` inside `staticConfigure()` or a later hook: it is read too late to take
+effect, and the application refuses to boot when it detects the value changed after the fact.
+
+Over the limit answers `413` with `core.request.body_too_large`, or your own `onError`. See
+[Body limit](/references/base/middlewares#body-limit-configs-middlewares-bodylimit) for `path`
+scoping and the full option table - `path` lets a file-upload route carry a higher ceiling than the
+rest of the API.
 
 ## 12. Logging Security Events
 

@@ -49,7 +49,8 @@ Every public method takes one options object with nested refs: a bucket is `{ na
 - **Everything else is per-backend.** `hasBucket`, `getBuckets`, `createBucket`, `getObject`, `getStat`, `removeObject`, `listObjects`, and the rest of `IStorageHelper` are implemented independently per backend. A filesystem `stat()` and an S3 `stat()` share nothing beyond the return shape.
 - **The object-storage backends are interchangeable.** Write services against `IStorageHelper`, not a concrete class, and swap backends by construction only.
 - **`MemoryStorageHelper` is unrelated.** It's a standalone generic key-value store for in-process caching, extending `BaseHelper` directly - no bucket or file concept.
-- **Every write path is validated first.** `originalName` runs through `isValidSegment()`, and `folderPath` through the same path rule `isValidObjectKey()` enforces, before anything touches the filesystem or object store.
+- **Every write path is validated first.** Every key and every `folderPath` runs through the path rule `isValidObjectKey()` enforces, before anything touches the filesystem or object store.
+- **The original file name is checked by what it becomes.** Without `normalizeNameFn` it is the key, so it must pass `isValidSegment()`. With one, it is only metadata: `Báo cáo [Q3] & tổng hợp #1!.xlsx` is accepted, and only control characters, an empty name or more than 255 characters are refused.
 - **Validation blocks four kinds of bad input:** path traversal (`../`), shell-injection characters, hidden files, and folder nesting beyond `maxFolderDepth` (default `2`).
 - **A custom `normalizeNameFn` doesn't get a free pass.** Its output runs through the same check, so a traversal payload smuggled back from application code is rejected too.
 - **The S3 backend stays optional.** `BunS3Helper` lives behind a separate sub-path export, so an app that only needs `DiskHelper` or `MemoryStorageHelper` never requires the Bun runtime.

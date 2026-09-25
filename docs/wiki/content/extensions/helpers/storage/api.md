@@ -137,6 +137,10 @@ The extension-to-content-type table lives on `ContentTypeTable` in `@venizia/ign
 | `.json` | `application/json` | `.xml` | `application/xml` |
 | `.txt` | `text/plain` | `.html` | `text/html` |
 | `.css` | `text/css` | `.js` | `text/javascript` |
+| `.xlsx` | `application/vnd.openxmlformats-officedocument.spreadsheetml.sheet` | `.xls` | `application/vnd.ms-excel` |
+| `.docx` | `application/vnd.openxmlformats-officedocument.wordprocessingml.document` | `.doc` | `application/msword` |
+| `.pptx` | `application/vnd.openxmlformats-officedocument.presentationml.presentation` | `.ppt` | `application/vnd.ms-powerpoint` |
+| `.odt` | `application/vnd.oasis.opendocument.text` | `.ods` | `application/vnd.oasis.opendocument.spreadsheet` |
 
 Falls back to `application/octet-stream` for unrecognized extensions.
 
@@ -270,19 +274,21 @@ Implemented once on `BaseStorageHelper`; no backend overrides it. Steps, in orde
 1. Returns `[]` immediately if `files` is empty.
 2. Calls `hasBucket({ bucket })`; throws if the bucket does not exist.
 3. Validates every file (`validateUploadFiles`, below).
-4. For each file, with bounded concurrency of `StorageConcurrency.DEFAULT_LIMIT` (`16`):
-   - Computes the object `key` via `normalizeNameFn` if provided. Otherwise the default normalizer lowercases the name, replaces spaces with `_`, and prefixes `{folderPath}/` if set.
-   - Re-validates the key with `isValidObjectKey({ object: { key }, maxDepth: maxFolderDepth })`. This catches a traversal payload returned by a **custom** `normalizeNameFn`, even though `originalName` already passed validation.
+4. Computes every object `key`, then validates each one with `isValidObjectKey({ object: { key }, maxDepth: maxFolderDepth })`. One bad key throws before anything is written.
+   - The key comes from `normalizeNameFn` if provided. Otherwise the default normalizer lowercases the name, replaces spaces with `_`, and prefixes `{folderPath}/` if set.
+   - The key check catches a traversal payload returned by a **custom** `normalizeNameFn`.
+5. For each file, with bounded concurrency of `StorageConcurrency.DEFAULT_LIMIT` (`16`):
    - Computes `link` via `normalizeLinkFn` if provided. Otherwise it builds the default: `{defaultLinkPrefix}{bucket.name}/{key}`, with each `/`-segment run through `encodeURIComponent`.
    - Calls the backend's `writeObject({ bucket, object, file })`.
    - Logs an info line with `key`, `link`, `mimeType`, `encoding`, `size`, and elapsed time.
-5. Returns `{ bucket: { name }, object: { key, size, contentType }, link }` per file.
+6. Returns `{ bucket: { name }, object: { key, size, contentType }, link }` per file.
 
 **`validateUploadFiles` (per file, in order):**
 
 | Check | Throws |
 |---|---|
-| `isValidSegment({ segment: originalName })` | `'[upload] Invalid original file name'` |
+| Without `normalizeNameFn`: `isValidSegment({ segment: originalName })`, because the name becomes the key | `'[upload] Invalid original file name'` |
+| With `normalizeNameFn`: `originalName` is metadata, so it only has to be non-empty, at most 255 characters, and free of control characters | `'[upload] Invalid original file name'` |
 | If `folderPath` set: segment count vs. `maxFolderDepth ?? DEFAULT_MAX_FOLDER_DEPTH` | `` `[upload] Invalid folder path | depth: {depth} | max: {max}` `` |
 | If `folderPath` set: the same path rule `isValidObjectKey` enforces | `'[upload] Invalid folder path'` |
 | `size` must be a number `>= 0`. `undefined`, `null`, and negative values are rejected; `0` is a legal empty file. | `` `[upload] Invalid file size | size: {size}` `` |
@@ -1184,9 +1190,9 @@ await storage.upload({ bucket, files: [/* ... */] });
 
 ### "[upload] Invalid original file name"
 
-**Cause:** A file's `originalName` failed `isValidSegment()`.
+**Cause:** No `normalizeNameFn` was given, so the original name is the key, and it failed `isValidSegment()`. With a `normalizeNameFn`, only an empty name, a name over 255 characters or a control character triggers it.
 
-**Fix:** Sanitize before uploading, or override the name entirely with `normalizeNameFn`.
+**Fix:** Generate the key with `normalizeNameFn`. The original name then stays metadata.
 
 ```typescript
 await storage.upload({

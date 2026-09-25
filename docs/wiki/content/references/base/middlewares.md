@@ -11,9 +11,13 @@ IGNIS provides built-in middleware functions and a provider-based middleware cla
 
 **Files:**
 - `packages/core-server/src/base/middlewares/app-error/app-error.middleware.ts`
+- `packages/kernel/src/base/middlewares/app-error/app-error.middleware.ts`
 - `packages/kernel/src/base/middlewares/not-found/not-found.middleware.ts`
 - `packages/core-server/src/base/middlewares/request-spy/request-spy.middleware.ts`
 - `packages/kernel/src/base/middlewares/emoji-favicon/emoji-favicon.middleware.ts`
+- `packages/kernel/src/base/middlewares/form-body/form-body.middleware.ts`
+- `packages/kernel/src/base/applications/rest.ts`
+- `packages/kernel/src/base/middlewares/common/errors.ts`
 
 ## Prerequisites
 
@@ -39,35 +43,97 @@ Before reading this document, you should understand:
 protected async registerDefaultMiddlewares() {
   const server = this.getServer();
 
-  // The kernel's three, from RestApplication.registerDefaultMiddlewares():
+  // The kernel's four, from RestApplication.registerDefaultMiddlewares():
   // 1. Request id
   server.use(requestId({ generator: () => this.generateRequestId() }));
 
-  // 2. Global error handler
+  // 2. Body limit - only when configs.middlewares.bodyLimit is set and enable !== false.
+  // Ahead of every middleware a host adds after this one, the request spy included.
+  if (bodyLimitOptions && bodyLimitOptions.enable !== false) {
+    server.use(bodyLimit({ maxSize, onError }));
+  }
+
+  // 3. Global error handler
   server.onError(new AppErrorMiddleware({ logger, rootKey }).value());
 
-  // 3. Not-found handler
+  // 4. Not-found handler
   server.notFound(notFoundHandler({ logger }));
 
   // Then what only a listening server adds:
-  // 4. Async context storage (if enabled)
+  // 5. Async context storage (if enabled)
   if (this.configs.asyncContext?.enable) {
     server.use(contextStorage());
   }
 
-  // 5. RequestTrackerComponent (RequestSpyMiddleware; the requestId it reads is already installed)
+  // 6. RequestTrackerComponent (RequestSpyMiddleware; the requestId it reads is already installed)
   this.component(RequestTrackerComponent);
 
-  // 6. Emoji favicon
+  // 7. Emoji favicon
   server.use(emojiFavicon({ icon: this.configs.favicon ?? '🔥' }));
 }
 ```
 
-Steps 1 to 3 live on the kernel's `RestApplication`, so a browser Worker answers with the same
-envelope. `BaseApplication` calls `super.registerDefaultMiddlewares()` first, then adds steps 4 to
-6.
+Steps 1 to 4 live on the kernel's `RestApplication`, so a browser Worker answers with the same
+envelope. `BaseApplication` calls `super.registerDefaultMiddlewares()` first, then adds steps 5 to
+7.
+
+> [!NOTE]
+> `configs.middlewares.bodyLimit` is the one `IMiddlewareConfigs` key the framework installs by itself - see [Body limit](#body-limit-configs-middlewares-bodylimit) below. Every other key in `IMiddlewareConfigs` is a shape for your own `setupMiddlewares()` to read; the framework does not wire it.
 
 After `registerDefaultMiddlewares()`, the application calls user-defined `staticConfigure()`, `preConfigure()`, and so on. The user's `setupMiddlewares()` hook runs after `initialize()` but before the server starts.
+
+## Body limit (`configs.middlewares.bodyLimit`)
+
+`RestApplication.registerDefaultMiddlewares()` reads `configs.middlewares.bodyLimit` and, when it is set and `enable !== false`, installs Hono's `hono/body-limit` right after the request id - ahead of every middleware a host adds afterward, the request spy included. Left unset, there is no body-size limit from the framework.
+
+```typescript
+interface IBodyLimitOptions extends IBaseMiddlewareOptions {
+  maxSize: number;
+  onError?: (c: Context) => Response | Promise<Response>;
+}
+```
+
+| Option | Type | Default | Meaning |
+|---|---|---|---|
+| `maxSize` | `number` | - | Byte ceiling. Must be a finite number `>= 0`, or the application throws at boot. |
+| `enable` | `boolean` | applies the limit unless `false` | A missing `enable` still applies the limit - fail-closed for a security control. |
+| `path` | `string` | every path | Passed to `server.use(path, limiter)` when set. |
+| `onError` | `(c: Context) => Response \| Promise<Response>` | throws `RequestErrors.BODY_TOO_LARGE` | Your own handler for the over-limit case. |
+
+```typescript
+const application = new MyApplication({
+  scope: 'MyApp',
+  config: {
+    // ...the rest of IApplicationConfigs
+    middlewares: {
+      bodyLimit: { enable: true, maxSize: 10 * 1024 * 1024 },
+    },
+  },
+});
+```
+
+> [!IMPORTANT]
+> `registerDefaultMiddlewares()` reads `configs.middlewares` **before `staticConfigure()` runs** - it is one of the first steps in the boot sequence, ahead of every hook you override. Pass `middlewares` through the constructor's `config` (or an application-config factory that builds that object), never by assigning `this.configs.middlewares` inside `staticConfigure()` or a later hook: it is read too late to take effect, and the application refuses to boot when it detects the value changed after the fact.
+
+Over the limit, and with no `onError`, the request answers `413` with `core.request.body_too_large` (`RequestErrors.BODY_TOO_LARGE`). Every other `IMiddlewareConfigs` key - `compress`, `cors`, `csrf`, `ipRestriction` - is a type only; wire it yourself in `setupMiddlewares()`, as in [User-Defined Middlewares](#user-defined-middlewares).
+
+> [!WARNING]
+> `extra.maxBytes` on a static-asset upload route only bounds a declared `Content-Length` - a chunked request with none skips it. Pair `extra.maxBytes` with `configs.middlewares.bodyLimit` for a ceiling nothing can skip. Raise `configs.server.maxRequestBodySize` above `bodyLimit.maxSize`, or Bun's own limit (default 128 MiB) answers `413` first, with no IGNIS envelope and no `core.request.body_too_large` code. Keep `bodyLimit.path` away from a route that streams a body through - the limiter buffers the whole body on any path it is scoped to, chunked or not.
+
+## Form body reader
+
+A route whose `request.body.content` declares `multipart/form-data` or `application/x-www-form-urlencoded` gets one more middleware appended, after every application middleware and after the static-asset length guard, and before the route's own validator:
+
+```
+authenticate -> authorize -> application middleware -> (static-asset maxBytes guard) -> formBodyReader -> validator
+```
+
+`formBodyReader` reads the form through `readFormBody` (from `@venizia/ignis-helpers`) and caches the result, so the validator that runs next reads the same `FormData` instead of the stream, and never gets a chance to throw its own generic parse failure. Read here, a malformed form is `400 core.request.body_malformed` - the same code `RequestSpyMiddleware`'s own JSON check throws, and the one `parseMultipartBody` throws when a handler parses a form by hand. See [Error Handling Logic](#error-handling-logic) for what a Hono `HTTPException` your own code throws (or a validator's) renders as.
+
+`AbstractRestController.buildRouteMiddlewares` decides whether to append it, with `hasFormBody({ content })` reading `restConfig.request?.body?.content`. Neither `hasFormBody` nor `formBodyReader` is exported from `@venizia/ignis` - they run for every declared form route automatically.
+
+> [!WARNING]
+> Middleware that reads a form body itself - an upload guard running before the route's own validator - is not covered by this reader. Call `readFormBody({ req: context.req })` there too; see [Request Utility](/references/utilities/request#notes).
 
 ## AppErrorMiddleware
 
@@ -175,7 +241,7 @@ In **production** the message is the base message only - `Detail:`/`Table:`/`Con
 
 #### 3. Generic Errors
 
-All other errors use the `statusCode` property from the error if present, otherwise default to HTTP `500 Internal Server Error`.
+All other errors use the `statusCode` property from the error if present, otherwise default to HTTP `500 Internal Server Error`. A Hono `HTTPException` - thrown by `@hono/zod-openapi`'s own request validator, or by your own code - carries its status on `.status`, not `.statusCode`; the handler reads that too, so a validator's or your own `HTTPException` with a 4xx status renders as that status and keeps its own message, sanitized environment or not. A 5xx `HTTPException` stays an unexpected `500` whose message never reaches the client, the same as any other unclassified error.
 
 ### Response Format
 
@@ -362,7 +428,13 @@ After the handler completes:
 
 ### Body Parsing
 
-The `parseBody` method parses the request body based on `Content-Type`:
+`value()` calls `parseBody` for every request in a development environment. Outside development it
+calls `parseBody` only when `Content-Type` includes `application/json` - the table below applies in
+full only in development; elsewhere only the `application/json` row is reachable from this
+middleware. A form body outside development is read by [Form body reader](#form-body-reader) instead,
+just ahead of the route's own validator, or not at all on a route with no declared form body.
+
+The `parseBody` method itself parses the request body based on `Content-Type`:
 
 | Content-Type | Match | Parse Method |
 |-------------|-------|-------------|
@@ -449,6 +521,7 @@ interface IApplicationConfigs {
   favicon?: string;                    // Emoji for emojiFavicon (default: '🔥')
   error?: { rootKey: string };         // Root key wrapper for AppErrorMiddleware
   asyncContext?: { enable: boolean };  // Enable Hono contextStorage() middleware
+  middlewares?: IMiddlewareConfigs;    // Only bodyLimit is installed by the framework - see Body limit
   // ...
 }
 ```
@@ -588,7 +661,7 @@ export class MyApplication extends BaseApplication {
 
 ### Request Spy in Production
 
-`RequestSpyMiddleware` logs every request. Body logging is off outside a development environment, but the middleware still runs and still parses the body. For ultra-high-traffic workloads consider sampling strategies or externalizing log aggregation.
+`RequestSpyMiddleware` logs every request. Body logging is off outside a development environment, and the middleware only parses a JSON body there - see [Body Parsing](#body-parsing). It still runs on every request either way. For ultra-high-traffic workloads consider sampling strategies or externalizing log aggregation.
 
 ### Error Logging Volume
 
