@@ -3,8 +3,11 @@ import { BaseComponent } from '@venizia/ignis-kernel';
 import { inject } from '@/base/metadata';
 import { CoreBindings } from '@/common';
 import { getError } from '@venizia/ignis-helpers/core';
+import { HTTP } from '@venizia/ignis-helpers/common';
+import { statSync } from 'node:fs';
+import { isAbsolute } from 'node:path';
 import type { IMailQueueExecutorConfig, TMailOptions } from './common';
-import { MailKeys, MailQueueExecutorTypes } from './common';
+import { MailErrorCodes, MailKeys, MailQueueExecutorTypes } from './common';
 import type { TGetMailQueueExecutorFn, TGetMailTransportFn } from './providers';
 import { MailQueueExecutorProvider, MailTransportProvider } from './providers';
 import {
@@ -97,12 +100,57 @@ export class MailComponent extends BaseComponent<TMailOptions> {
       .setScope('singleton');
   }
 
+  /** A bad limit or root would otherwise surface on every send, as a 400 that blames the caller. */
+  private validateAttachmentOptions(opts: { options: TMailOptions }): void {
+    const { attachmentRoot, maxAttachmentBytes } = opts.options;
+    const buildOptionError = (details: { message: string; cause?: unknown }) => {
+      return getError({
+        statusCode: HTTP.ResultCodes.RS_5.InternalServerError,
+        messageCode: MailErrorCodes.INVALID_CONFIGURATION,
+        message: `Invalid mail options | ${details.message}`,
+        cause: details.cause,
+      });
+    };
+
+    const isValidLimit =
+      maxAttachmentBytes === undefined ||
+      (Number.isSafeInteger(maxAttachmentBytes) && maxAttachmentBytes > 0);
+
+    if (!isValidLimit) {
+      throw buildOptionError({ message: 'maxAttachmentBytes must be a positive integer' });
+    }
+
+    if (attachmentRoot === undefined) {
+      return;
+    }
+
+    if (typeof attachmentRoot !== 'string' || !isAbsolute(attachmentRoot)) {
+      throw buildOptionError({ message: 'attachmentRoot must be an absolute path' });
+    }
+
+    let isDirectory: boolean;
+
+    try {
+      isDirectory = statSync(attachmentRoot).isDirectory();
+    } catch (error) {
+      throw buildOptionError({
+        message: 'attachmentRoot must be an existing directory',
+        cause: error,
+      });
+    }
+
+    if (!isDirectory) {
+      throw buildOptionError({ message: 'attachmentRoot must be an existing directory' });
+    }
+  }
+
   createAndBindInstances(): void {
     // Transport
     const transportGetter = this.application.get<TGetMailTransportFn>({
       key: MailKeys.MAIL_TRANSPORT_PROVIDER,
     });
     const mailOptions = this.application.get<TMailOptions>({ key: MailKeys.MAIL_OPTIONS });
+    this.validateAttachmentOptions({ options: mailOptions });
 
     // Only the provider is logged: the options carry SMTP / API credentials, which must never reach a log sink.
     this.logger

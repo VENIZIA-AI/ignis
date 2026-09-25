@@ -2,7 +2,6 @@ import { HTTP } from '@venizia/ignis-helpers/common';
 import type { AnyType } from '@venizia/ignis-helpers/common';
 import { BaseHelper, getError } from '@venizia/ignis-helpers/core';
 import { ModuleUtility } from '@venizia/ignis-helpers';
-import type { Stream } from 'node:stream';
 import type {
   IMailAttachment,
   IMailMessage,
@@ -12,6 +11,10 @@ import type {
   TMailgunModule,
 } from '../../common';
 import { MailErrorCodes } from '../../common';
+import {
+  releaseAttachmentStreams,
+  resolveMailAttachments,
+} from '../../utilities/attachment.utility';
 
 export class MailgunTransportHelper extends BaseHelper implements IMailTransport {
   private client: AnyType; // IMessagesClient from mailgun.js
@@ -85,15 +88,11 @@ export class MailgunTransportHelper extends BaseHelper implements IMailTransport
       }
 
       if (message.attachments && message.attachments.length > 0) {
-        mailgunMessage.attachment = message.attachments.map((att: IMailAttachment) => {
-          const attachment: {
-            filename?: string;
-            data: string | Buffer | Stream.Readable;
-          } = {
-            filename: att.filename,
-            data: att.path ?? att.content ?? Buffer.from(''),
-          };
-          return attachment;
+        // No root: MailService resolved paths already; one that reaches here is refused, not read.
+        const attachments = await resolveMailAttachments({ attachments: message.attachments });
+
+        mailgunMessage.attachment = attachments.map((attachment: IMailAttachment) => {
+          return { filename: attachment.filename, data: attachment.content };
         });
       }
 
@@ -107,6 +106,7 @@ export class MailgunTransportHelper extends BaseHelper implements IMailTransport
       };
     } catch (error) {
       this.logger.for(this.send.name).error('Mailgun send failed: %s', error);
+      releaseAttachmentStreams({ attachments: message.attachments });
       return {
         success: false,
         error: error instanceof Error ? error.message : 'Unknown error',

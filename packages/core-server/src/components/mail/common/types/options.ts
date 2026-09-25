@@ -5,6 +5,13 @@ import type { IMailTransport } from './message';
 export interface IBaseMailOptions {
   from?: string;
   fromName?: string;
+  /**
+   * The only directory an `attachment.path` may be read from; `path` is resolved against it and
+   * refused if it lands outside, symlinks included. Unset, every `path` is refused.
+   */
+  attachmentRoot?: string;
+  /** Bytes of attachment content one message may carry, all attachments together. Default 25 MB. */
+  maxAttachmentBytes?: number;
 }
 
 export interface INodemailerMailOptions extends IBaseMailOptions {

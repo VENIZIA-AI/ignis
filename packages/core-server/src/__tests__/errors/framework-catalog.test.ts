@@ -66,6 +66,9 @@ const PINNED = [
   'core.mail.template_not_found',
   'core.mail.invalid_configuration',
   'core.mail.invalid_recipient',
+  'core.mail.attachment_path_refused',
+  'core.mail.attachment_too_large',
+  'core.mail.body_source_refused',
 ];
 
 const allDefinitions = Object.values(CATALOGS).flatMap(catalog => Object.values(catalog));

@@ -8,6 +8,11 @@ import type {
   TNodemailerConfig,
   TNodemailerModule,
 } from '../../common';
+import {
+  releaseAttachmentStreams,
+  resolveMailAttachments,
+} from '../../utilities/attachment.utility';
+import { assertMailBodyIsText } from '../../utilities/body.utility';
 
 export class NodemailerTransportHelper extends BaseHelper implements IMailTransport {
   private transporter: AnyType;
@@ -32,6 +37,13 @@ export class NodemailerTransportHelper extends BaseHelper implements IMailTransp
 
   async send(message: IMailMessage): Promise<IMailSendResult> {
     try {
+      assertMailBodyIsText({ message });
+
+      // No root: MailService resolved paths already; one that reaches here is refused, not read.
+      const attachments = message.attachments
+        ? await resolveMailAttachments({ attachments: message.attachments })
+        : undefined;
+
       const mailOptions = {
         from: message.from,
         to: Array.isArray(message.to) ? message.to.join(', ') : message.to,
@@ -41,8 +53,11 @@ export class NodemailerTransportHelper extends BaseHelper implements IMailTransp
         subject: message.subject,
         text: message.text,
         html: message.html,
-        attachments: message.attachments,
+        attachments,
         headers: message.headers,
+        // Nodemailer's own switches: no field it is handed can make it open a file or fetch a URL.
+        disableFileAccess: true,
+        disableUrlAccess: true,
       };
 
       this.logger.for(this.send.name).debug('Sending email with nodemailer to: %s', mailOptions.to);
@@ -55,6 +70,7 @@ export class NodemailerTransportHelper extends BaseHelper implements IMailTransp
       };
     } catch (error) {
       this.logger.for(this.send.name).error('Nodemailer send failed: %s', error);
+      releaseAttachmentStreams({ attachments: message.attachments });
       return {
         success: false,
         error: error instanceof Error ? error.message : 'Unknown error',

@@ -13,6 +13,8 @@ import { inject } from '@/base/metadata';
 import { getError, isApplicationError } from '@venizia/ignis-helpers/core';
 import { AnyType } from '@venizia/ignis-helpers/common';
 import { executePromiseWithLimit } from '@venizia/ignis-helpers';
+import { releaseAttachmentStreams, resolveMailAttachments } from '../utilities/attachment.utility';
+import { assertMailBodyIsText } from '../utilities/body.utility';
 
 export class MailService extends BaseService implements IMailService {
   constructor(
@@ -38,6 +40,15 @@ export class MailService extends BaseService implements IMailService {
         from: message.from ?? this.getDefaultFrom(),
       };
 
+      // The one place the attachment policy applies: every transport receives bytes, never a path.
+      if (message.attachments) {
+        emailMessage.attachments = await resolveMailAttachments({
+          attachments: message.attachments,
+          attachmentRoot: this.options.attachmentRoot,
+          maxBytes: this.options.maxAttachmentBytes ?? MailDefaults.MAX_ATTACHMENT_BYTES,
+        });
+      }
+
       this.logger.for(this.send.name).debug('Sending email to: %s', emailMessage.to);
       const result = await this.transport.send(emailMessage);
 
@@ -52,6 +63,7 @@ export class MailService extends BaseService implements IMailService {
       return result;
     } catch (error) {
       this.logger.for(this.send.name).error('Error sending email: %s', error);
+      releaseAttachmentStreams({ attachments: message.attachments });
 
       // An error the framework already shaped carries its own status and message code; re-wrapping as 500 would report a caller mistake as a server fault.
       if (isApplicationError(error)) {
@@ -61,7 +73,9 @@ export class MailService extends BaseService implements IMailService {
       throw getError({
         statusCode: HTTP.ResultCodes.RS_5.InternalServerError,
         messageCode: MailErrorCodes.SEND_FAILED,
-        message: `Failed to send email: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        // The raw text can carry a file path or a provider detail; it rides in `cause`, which only development responses show.
+        message: 'Failed to send email',
+        cause: error,
       });
     }
   }
@@ -107,7 +121,8 @@ export class MailService extends BaseService implements IMailService {
       throw getError({
         statusCode: HTTP.ResultCodes.RS_5.InternalServerError,
         messageCode: MailErrorCodes.BATCH_SEND_FAILED,
-        message: `Failed to send batch emails: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        message: 'Failed to send batch emails',
+        cause: error,
       });
     }
   }
@@ -171,7 +186,8 @@ export class MailService extends BaseService implements IMailService {
       throw getError({
         statusCode: HTTP.ResultCodes.RS_5.InternalServerError,
         messageCode: MailErrorCodes.VERIFICATION_FAILED,
-        message: `Mail transport verification failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        message: 'Mail transport verification failed',
+        cause: error,
       });
     }
   }
@@ -197,6 +213,8 @@ export class MailService extends BaseService implements IMailService {
         message: 'Email must have either text or html content',
       });
     }
+
+    assertMailBodyIsText({ message });
   }
 
   protected getDefaultFrom(): string {

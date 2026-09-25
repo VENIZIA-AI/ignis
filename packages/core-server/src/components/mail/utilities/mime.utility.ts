@@ -1,10 +1,9 @@
 import { HTTP } from '@venizia/ignis-helpers/common';
 import { randomBytes } from 'node:crypto';
-import { readFile } from 'node:fs/promises';
-import type { Readable } from 'node:stream';
 import { getError } from '@venizia/ignis-helpers/core';
 import { MailErrorCodes, type IMailAttachment, type IMailMessage } from '../common';
 import { splitAddressList } from './address.utility';
+import { readAttachmentContent } from './attachment.utility';
 
 const CRLF = '\r\n';
 const BASE64_LINE_LENGTH = 76;
@@ -175,39 +174,6 @@ function encodeBufferBase64(buffer: Buffer): string {
   return foldBase64(buffer.toString('base64'));
 }
 
-async function streamToBuffer(stream: Readable): Promise<Buffer> {
-  const chunks: Buffer[] = [];
-
-  for await (const chunk of stream) {
-    chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
-  }
-
-  return Buffer.concat(chunks);
-}
-
-/** A string `content` is raw text unless `encoding` says otherwise (nodemailer's convention) - a
- * caller that already holds a base64 payload sets `encoding: 'base64'` instead of handing over
- * decoded bytes. */
-async function readAttachmentContent(attachment: IMailAttachment): Promise<Buffer> {
-  if (attachment.content !== undefined) {
-    if (Buffer.isBuffer(attachment.content)) {
-      return attachment.content;
-    }
-
-    if (typeof attachment.content === 'string') {
-      return Buffer.from(attachment.content, attachment.encoding ?? 'utf-8');
-    }
-
-    return streamToBuffer(attachment.content);
-  }
-
-  if (attachment.path) {
-    return readFile(attachment.path);
-  }
-
-  return Buffer.alloc(0);
-}
-
 /** A literal CR/LF/NUL inside a header-bound value would let it break out of its own header line and forge additional headers or smuggle body content - classic email header injection. Every value spliced into a raw header line is checked here first, so an attempt fails loudly instead of silently reaching the wire.
  *
  * `value` is `unknown`, not `string`: `IMailMessage`/`IMailAttachment` both end in
@@ -353,7 +319,8 @@ function attachmentNameParams(attribute: 'name' | 'filename', value: string): st
 }
 
 async function attachmentPart(attachment: IMailAttachment, boundary: string): Promise<string> {
-  const content = await readAttachmentContent(attachment);
+  // No root here: a `path` that did not go through `resolveMailAttachments` is refused, never read.
+  const content = await readAttachmentContent({ attachment });
   const contentType = attachment.contentType ?? 'application/octet-stream';
   assertNoHeaderInjection({ field: 'attachment.contentType', value: contentType });
 

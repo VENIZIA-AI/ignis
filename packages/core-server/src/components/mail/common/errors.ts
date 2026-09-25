@@ -20,6 +20,28 @@ export const MailErrors = {
     statusCode: HTTP.ResultCodes.RS_4.BadRequest,
     category: ErrorScopes.VALIDATION,
   },
+  /** One answer for every refused source - outside the root, missing, not a file - so a caller cannot probe which files exist. */
+  ATTACHMENT_PATH_REFUSED: {
+    message: {
+      text: 'Mail attachment path refused',
+      code: 'core.mail.attachment_path_refused',
+    },
+    statusCode: HTTP.ResultCodes.RS_4.BadRequest,
+    category: ErrorScopes.VALIDATION,
+  },
+  ATTACHMENT_TOO_LARGE: {
+    message: {
+      text: 'Mail attachments are larger than the maximum allowed',
+      code: 'core.mail.attachment_too_large',
+    },
+    statusCode: HTTP.ResultCodes.RS_4.ContentTooLarge,
+    category: ErrorScopes.VALIDATION,
+  },
+  BODY_SOURCE_REFUSED: {
+    message: { text: 'Mail body must be text', code: 'core.mail.body_source_refused' },
+    statusCode: HTTP.ResultCodes.RS_4.BadRequest,
+    category: ErrorScopes.VALIDATION,
+  },
 } as const satisfies Record<string, TErrorDefinition>;
 
 /** Registers these codes with the shared key registry so a consumer gets autocomplete on `messageCode`. */
