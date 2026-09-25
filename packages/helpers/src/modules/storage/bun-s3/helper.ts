@@ -312,7 +312,7 @@ export class BunS3Helper extends BaseStorageHelper {
 
     // The browser posts to the BUCKET, not to an object - the key travels as a form field, because
     // the policy only constrains its prefix.
-    const { endpoint } = this.objectEndpoint({
+    const { endpoint, pathPrefix } = this.objectEndpoint({
       bucket: bucket.name,
       audience: S3Audiences.BROWSER,
     });
@@ -328,7 +328,7 @@ export class BunS3Helper extends BaseStorageHelper {
       contentType,
     });
 
-    return { postURL: `${endpoint.replace(/\/$/, '')}/${bucket.name}`, formData, expiresAt };
+    return { postURL: `${endpoint.replace(/\/$/, '')}${pathPrefix}`, formData, expiresAt };
   }
 
   override async presignPut(
