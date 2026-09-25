@@ -11,7 +11,7 @@ import { z } from '@hono/zod-openapi';
 import type { OpenAPIHono } from '@hono/zod-openapi';
 import { HTTP, type AnyType, type ValueOrPromise } from '@venizia/ignis-helpers/common';
 import { parseMultipartBody } from '@venizia/ignis-helpers';
-import { describe, expect, test } from 'bun:test';
+import { afterEach, describe, expect, test } from 'bun:test';
 
 const TEST_CONFIGS: IApplicationConfigs = {
   host: '0.0.0.0',
@@ -94,8 +94,13 @@ class TestApplication extends BaseApplication {
 }
 
 /** Boots an application with the RequestTrackerComponent + an echo controller mounted. */
-const bootTrackedApplication = async (): Promise<OpenAPIHono> => {
-  const application = new TestApplication({ scope: 'RequestTrackerTestApp', config: TEST_CONFIGS });
+const bootTrackedApplication = async (opts?: {
+  config?: Partial<IApplicationConfigs>;
+}): Promise<OpenAPIHono> => {
+  const application = new TestApplication({
+    scope: 'RequestTrackerTestApp',
+    config: { ...TEST_CONFIGS, ...opts?.config },
+  });
   application.init();
 
   const server = application.getServer() as OpenAPIHono;
@@ -221,6 +226,46 @@ describe('RequestTrackerComponent — body parsing', () => {
     });
     expect(response.status).toBe(200);
     expect(await response.json()).toEqual({ names: ['photo.jpg'] });
+  });
+});
+
+describe('configs.middlewares.bodyLimit runs before the spy reads a body', () => {
+  const ORIGINAL_NODE_ENV = process.env.NODE_ENV;
+  // Development, where the spy parses every form body: a malformed one is its 400, so a 413 proves
+  // the limit answered before the spy read anything.
+  const MALFORMED_FORM = {
+    method: 'POST',
+    headers: { ...CLIENT_HEADERS, 'content-type': 'multipart/form-data; boundary=missing' },
+    body: 'x'.repeat(2048),
+  };
+
+  afterEach(() => {
+    if (ORIGINAL_NODE_ENV === undefined) {
+      delete process.env.NODE_ENV;
+      return;
+    }
+    process.env.NODE_ENV = ORIGINAL_NODE_ENV;
+  });
+
+  test('a body over the limit is a 413 before the spy parses it', async () => {
+    process.env.NODE_ENV = 'development';
+    const router = await bootTrackedApplication({
+      config: { middlewares: { bodyLimit: { enable: true, maxSize: 1024 } } },
+    });
+
+    const response = await router.request('/echo/upload', MALFORMED_FORM);
+
+    expect(response.status).toBe(HTTP.ResultCodes.RS_4.ContentTooLarge);
+    expect(JSON.stringify(await response.json())).toContain('core.request.body_too_large');
+  });
+
+  test('without a limit the same body reaches the spy, which refuses it', async () => {
+    process.env.NODE_ENV = 'development';
+    const router = await bootTrackedApplication();
+
+    const response = await router.request('/echo/upload', MALFORMED_FORM);
+
+    expect(response.status).toBe(HTTP.ResultCodes.RS_4.BadRequest);
   });
 });
 

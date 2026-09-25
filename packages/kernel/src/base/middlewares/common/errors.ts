@@ -6,6 +6,11 @@ import { HTTP } from '@venizia/ignis-helpers/common';
 export const RequestErrors = {
   // Defined in helpers, whose `readFormBody` throws it: one definition for every body parser.
   BODY_MALFORMED: RequestBodyErrors.BODY_MALFORMED,
+  BODY_TOO_LARGE: {
+    message: { text: 'Request body is too large', code: 'core.request.body_too_large' },
+    statusCode: HTTP.ResultCodes.RS_4.ContentTooLarge,
+    category: ErrorScopes.VALIDATION,
+  },
   NOTHING_TO_UPDATE: {
     message: { text: 'Nothing to update', code: 'core.request.nothing_to_update' },
     statusCode: HTTP.ResultCodes.RS_4.BadRequest,
