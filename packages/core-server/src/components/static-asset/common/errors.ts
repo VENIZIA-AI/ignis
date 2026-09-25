@@ -54,6 +54,15 @@ export const StaticAssetErrors = {
     statusCode: HTTP.ResultCodes.RS_4.BadRequest,
     category: ErrorScopes.VALIDATION,
   },
+  /** The application's naming hook produced a key outside `controller.keyPrefix`; nothing is written. */
+  OBJECT_KEY_OUT_OF_SCOPE: {
+    message: {
+      text: 'Object key is outside the key prefix of this controller',
+      code: 'core.static_asset.object_key_out_of_scope',
+    },
+    statusCode: HTTP.ResultCodes.RS_4.BadRequest,
+    category: ErrorScopes.VALIDATION,
+  },
   FOLDER_PATH_INVALID: {
     message: { text: 'Invalid folder path', code: 'core.static_asset.folder_path_invalid' },
     statusCode: HTTP.ResultCodes.RS_4.BadRequest,

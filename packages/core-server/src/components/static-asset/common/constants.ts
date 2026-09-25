@@ -47,6 +47,20 @@ export class StaticAssetStorageTypes {
 
 export type TStaticAssetStorageType = TConstValue<typeof StaticAssetStorageTypes>;
 
+/** What `recreate-metalink` did: refreshed the rows of an object, or created its first one. */
+export class MetaLinkRecreateActions {
+  static readonly CREATED = 'created';
+  static readonly REFRESHED = 'refreshed';
+
+  static readonly SCHEME_SET = new Set([this.CREATED, this.REFRESHED]);
+
+  static isValid(value: string): boolean {
+    return this.SCHEME_SET.has(value);
+  }
+}
+
+export type TMetaLinkRecreateAction = TConstValue<typeof MetaLinkRecreateActions>;
+
 /** Where a signed policy may write. The final key is never inside it, so content cannot be replaced after the commit. */
 export const DEFAULT_PENDING_PREFIX = 'pending/';
 

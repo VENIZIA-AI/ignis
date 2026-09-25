@@ -48,7 +48,7 @@ const readJson = async (response: Response): Promise<Record<string, any>> => {
   return (await response.json()) as Record<string, any>;
 };
 
-/** Minimal in-memory stand-in for the MetaLink repository (create/findOne/findById/updateById/deleteAll). */
+/** Minimal in-memory stand-in for the MetaLink repository (create/findOne/findById/updateById/updateAll/deleteAll). */
 class FakeMetaLinkRepository {
   readonly rows: Array<Record<string, AnyType>> = [];
   private sequence = 0;
@@ -81,6 +81,17 @@ class FakeMetaLinkRepository {
 
     Object.assign(row, opts.data);
     return { count: 1, data: row };
+  }
+
+  /** recreate-metalink refreshes every row of a pair through this, not findOne + updateById. */
+  async updateAll(opts: { data: Record<string, AnyType>; where: Record<string, AnyType> }) {
+    const matched = this.rows.filter(row =>
+      Object.entries(opts.where).every(([key, value]) => row[key] === value),
+    );
+    for (const row of matched) {
+      Object.assign(row, opts.data);
+    }
+    return { count: matched.length, data: matched };
   }
 
   async deleteAll(opts: { where?: Record<string, AnyType> }) {
