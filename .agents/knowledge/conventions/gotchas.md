@@ -489,6 +489,21 @@ Read a `req.raw.clone()`, or describe the body (`<N bytes, content-type>`) witho
 earlier middleware already read cannot be cloned (`req.raw.bodyUsed`): read it through Hono's cache
 (`req.text()`) instead, or `clone()` throws and a valid request becomes a 400.
 
+## Outside development, only the request spy's JSON check parses a body
+
+`RequestSpyMiddleware.value()` calls `parseBody` for every content type in a development
+environment, and for `application/json` only elsewhere - its own malformed-JSON `400` is a contract,
+the rest is unread. A route whose `request.body.content` declares a form type gets its own
+`formBodyReader` middleware, appended after every application middleware and just ahead of the
+validator, and `parseMultipartBody` maps its own parse failure - both land on
+`400 core.request.body_malformed`, the same object as the spy's. Application middleware that calls
+`context.req.formData()` itself, ahead of any framework reader (an upload authorization guard, for
+example), is covered by NONE of this: a malformed body there is a raw `TypeError` outside
+development, which the error envelope renders as a `500`, not a `400`. Call helpers'
+`readFormBody({ req: context.req })` instead - it reads through the request's own cache, so a
+route's later `formData()`/`parseMultipartBody()` call gets the same result, and maps the parse
+failure itself.
+
 ## Under `path.isStrict: false`, a route declared with a trailing slash is unreachable
 
 Hono's non-strict mode strips the trailing slash from the REQUEST path only. A route declared as

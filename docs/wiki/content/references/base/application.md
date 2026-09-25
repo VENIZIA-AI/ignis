@@ -400,6 +400,7 @@ interface IApplicationConfigs {
   favicon?: string;                       // Favicon emoji (default: '🔥')
   error?: { rootKey?: string; environment?: string }; // Error envelope root key, ambient environment name
   asyncContext?: { enable: boolean };     // Hono async context storage
+  middlewares?: IMiddlewareConfigs;       // Only bodyLimit is installed by the framework; see Middlewares Reference
   artifacts?: TArtifactIndexInput;        // Generated indexes registered before preConfigure
   bootChecks?: {                          // Boot-time checks; absent means nothing is verified
     binding?: { doVerify: boolean; allowManual: boolean; allowOverride: boolean };
@@ -524,7 +525,10 @@ The same file declares three more mixin interfaces that `IRestApplication` does 
 
 ## Middleware Configuration Types
 
-These types are used when configuring middlewares via `setupMiddlewares()`:
+Bind `middlewares` under `configs` and the framework installs `bodyLimit` for you, right after the
+request id and ahead of every other middleware - see [Body limit](/references/base/middlewares#body-limit-configs-middlewares-bodylimit).
+Every other key below is a type only; read it from `this.configs.middlewares` inside your own
+`setupMiddlewares()`.
 
 ```typescript
 interface IMiddlewareConfigs {

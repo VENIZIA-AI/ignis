@@ -35,6 +35,14 @@ export class FileExtensions {
   static readonly ZIP = '.zip';
   static readonly CSV = '.csv';
   static readonly XML = '.xml';
+  static readonly XLSX = '.xlsx';
+  static readonly XLS = '.xls';
+  static readonly DOCX = '.docx';
+  static readonly DOC = '.doc';
+  static readonly PPTX = '.pptx';
+  static readonly PPT = '.ppt';
+  static readonly ODT = '.odt';
+  static readonly ODS = '.ods';
 
   static readonly SCHEME_SET = new Set<string>([
     this.PNG,
@@ -56,6 +64,14 @@ export class FileExtensions {
     this.ZIP,
     this.CSV,
     this.XML,
+    this.XLSX,
+    this.XLS,
+    this.DOCX,
+    this.DOC,
+    this.PPTX,
+    this.PPT,
+    this.ODT,
+    this.ODS,
   ]);
 
   static isValid(value: string): boolean {
@@ -85,6 +101,15 @@ export class ContentTypes {
   static readonly ZIP = 'application/zip';
   static readonly CSV = 'text/csv';
   static readonly XML = 'application/xml';
+  static readonly XLSX = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+  static readonly XLS = 'application/vnd.ms-excel';
+  static readonly DOCX = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
+  static readonly DOC = 'application/msword';
+  static readonly PPTX =
+    'application/vnd.openxmlformats-officedocument.presentationml.presentation';
+  static readonly PPT = 'application/vnd.ms-powerpoint';
+  static readonly ODT = 'application/vnd.oasis.opendocument.text';
+  static readonly ODS = 'application/vnd.oasis.opendocument.spreadsheet';
 
   static readonly SCHEME_SET = new Set<string>([
     this.OCTET_STREAM,
@@ -106,6 +131,14 @@ export class ContentTypes {
     this.ZIP,
     this.CSV,
     this.XML,
+    this.XLSX,
+    this.XLS,
+    this.DOCX,
+    this.DOC,
+    this.PPTX,
+    this.PPT,
+    this.ODT,
+    this.ODS,
   ]);
 
   static isValid(value: string): boolean {
@@ -137,6 +170,14 @@ export class ContentTypeTable {
     [FileExtensions.ZIP]: ContentTypes.ZIP,
     [FileExtensions.CSV]: ContentTypes.CSV,
     [FileExtensions.XML]: ContentTypes.XML,
+    [FileExtensions.XLSX]: ContentTypes.XLSX,
+    [FileExtensions.XLS]: ContentTypes.XLS,
+    [FileExtensions.DOCX]: ContentTypes.DOCX,
+    [FileExtensions.DOC]: ContentTypes.DOC,
+    [FileExtensions.PPTX]: ContentTypes.PPTX,
+    [FileExtensions.PPT]: ContentTypes.PPT,
+    [FileExtensions.ODT]: ContentTypes.ODT,
+    [FileExtensions.ODS]: ContentTypes.ODS,
   } satisfies Readonly<Record<TFileExtension, TContentType>>;
 
   /**

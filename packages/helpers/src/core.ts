@@ -50,6 +50,7 @@ export { BuildInfoRegistry } from './utilities/build-info.utility';
 export type { IBuildInfo, TBuildInfoRecord } from './utilities/build-info.utility';
 export { blankToUndefined, int, keysToCamel, toBoolean, toCamel } from './utilities/parse.utility';
 export { executeWithPerformanceMeasure } from './utilities/performance.utility';
+export { readFormBody, RequestBodyErrors } from './utilities/form-body.utility';
 export { ProjectRootRegistry } from './utilities/project-root.utility';
 
 // Type-only: erased at compile time, so re-exporting these carries no runtime/bundle cost even

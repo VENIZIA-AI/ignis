@@ -1,4 +1,5 @@
 import { getError } from '@/modules/error';
+import { readFormBody } from './form-body.utility';
 import fs from 'node:fs';
 import path from 'node:path';
 
@@ -41,7 +42,7 @@ export const parseMultipartBody = async <C extends { req: any } = { req: any }>(
     fs.mkdirSync(uploadDir, { recursive: true });
   }
 
-  const formData = await context.req.formData();
+  const formData = await readFormBody({ req: context.req });
   const files: IParsedFile[] = [];
   const fields: Record<string, string> = {};
 
@@ -97,10 +98,10 @@ export const parseMultipartBody = async <C extends { req: any } = { req: any }>(
   return { files, fields };
 };
 
-/** Sanitizes a filename by removing path components and dangerous characters. */
+/** Sanitizes a filename by removing path components and dangerous characters. The result is printable ASCII. */
 export const sanitizeFilename = (filename: string): string => {
   const basename = path.basename(filename);
-  let sanitized = basename.replace(/[^\w\s.-]/g, '_');
+  let sanitized = basename.replace(/[^\w .-]/g, '_');
   sanitized = sanitized.replace(/^\.+/, '');
   sanitized = sanitized.replace(/\.{2,}/g, '.');
   sanitized = sanitized.replace(/\.\./g, '.');
@@ -116,13 +117,21 @@ export const encodeRFC5987 = (filename: string): string => {
     .replace(/\*/g, '%2A');
 };
 
+/** Control, format (bidi overrides, zero-width space) and lone surrogate characters: a format character reorders the name a client shows, a lone surrogate makes `encodeURIComponent` throw. The zero-width joiner and non-joiner stay: they build emoji sequences and Persian words, and reorder nothing. */
+const UNENCODABLE_FILENAME_CHARACTERS = /(?![\u200C\u200D])[\p{Cc}\p{Cf}\p{Cs}]/gu;
+const LEADING_DOTS = /^\.+/;
+
 export const createContentDispositionHeader = (opts: {
   filename: string;
   type: 'attachment' | 'inline';
 }): string => {
   const { filename, type } = opts;
   const sanitized = sanitizeFilename(filename);
-  const encoded = encodeRFC5987(sanitized);
+  const extendedName = path
+    .basename(filename)
+    .replace(UNENCODABLE_FILENAME_CHARACTERS, '_')
+    .replace(LEADING_DOTS, '');
+  const encoded = encodeRFC5987(extendedName || sanitized);
 
   // filename= is the ASCII fallback for old browsers, filename*= the UTF-8 form for modern ones.
   return `${type}; filename="${sanitized}"; filename*=UTF-8''${encoded}`;

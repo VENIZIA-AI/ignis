@@ -12,6 +12,7 @@ import {
 } from '@venizia/ignis-helpers/core';
 import type { Env, Schema } from 'hono';
 import { showRoutes as showApplicationRoutes } from 'hono/dev';
+import { bodyLimit } from 'hono/body-limit';
 import { requestId } from 'hono/request-id';
 import type { BaseComponent } from '../components';
 import { RestComponent } from '../components/controller/rest/rest.component';
@@ -19,6 +20,7 @@ import type { BaseConfiguration } from '../configurations';
 import { ControllerTransports } from '../controllers/common/constants';
 import type { IDataSource } from '../datasources';
 import { BaseAppErrorMiddleware } from '../middlewares/app-error/app-error.middleware';
+import { RequestErrors } from '../middlewares/common/errors';
 import { notFoundHandler } from '../middlewares/not-found/not-found.middleware';
 import type { TMixinOpts } from '../mixins/common';
 import type { IRepository } from '../repositories';
@@ -27,7 +29,7 @@ import { AbstractApplication } from './abstract';
 import { ArtifactIndexHelper } from './artifact-index';
 import type { IBootSequenceStep } from './boot-sequence';
 import { BootSteps } from './boot-sequence';
-import type { IApplicationConfigs, TArtifactIndexInput } from './common';
+import type { IApplicationConfigs, IBodyLimitOptions, TArtifactIndexInput } from './common';
 
 interface IRegisterDynamicBindingsOptions<T extends IConfigurable = IConfigurable> {
   namespace: TBindingNamespace;
@@ -50,6 +52,9 @@ export abstract class RestApplication<
 
   protected rootRouter: OpenAPIHono<AppEnv, AppSchema, BasePath>;
   protected readonly requestIdGenerator: RequestIdGenerator;
+
+  /** A copy of the `bodyLimit` the default stack installed, absent until `registerDefaultMiddlewares()` ran. */
+  private installedBodyLimit?: { options?: IBodyLimitOptions };
 
   constructor(opts: { scope: string; config: IApplicationConfigs }) {
     super(opts);
@@ -123,8 +128,92 @@ export abstract class RestApplication<
     const server = this.getServer();
 
     server.use(requestId({ generator: () => this.generateRequestId() }));
+
+    // Ahead of every middleware a host adds after this one, so none of them buffers a body over it.
+    const bodyLimitOptions = this.configs.middlewares?.bodyLimit;
+    this.installedBodyLimit = { options: this.toInstalledBodyLimit({ options: bodyLimitOptions }) };
+
+    if (bodyLimitOptions && bodyLimitOptions.enable !== false) {
+      const { maxSize, path, onError } = bodyLimitOptions;
+
+      if (typeof maxSize !== 'number' || !Number.isFinite(maxSize) || maxSize < 0) {
+        throw getError({
+          message: `[registerDefaultMiddlewares] configs.middlewares.bodyLimit.maxSize must be a non-negative number of bytes | value: ${String(maxSize)}`,
+        });
+      }
+
+      const limiter = bodyLimit({
+        maxSize,
+        onError:
+          onError ??
+          (() => {
+            throw getError({
+              error: RequestErrors.BODY_TOO_LARGE,
+              message: `Request body exceeds the maximum of ${maxSize} bytes`,
+            });
+          }),
+      });
+
+      if (path) {
+        server.use(path, limiter);
+      } else {
+        server.use(limiter);
+      }
+    }
+
     server.onError(this.buildErrorMiddleware().value());
     server.notFound(notFoundHandler({ logger: this.logger }));
+  }
+
+  /** What a `bodyLimit` config installs: nothing when absent or disabled, else a copy, so a later in-place edit shows. */
+  private toInstalledBodyLimit(opts: {
+    options?: IBodyLimitOptions;
+  }): IBodyLimitOptions | undefined {
+    const { options } = opts;
+
+    if (!options || options.enable === false) {
+      return undefined;
+    }
+
+    return { ...options };
+  }
+
+  private isSameBodyLimit(opts: { left?: IBodyLimitOptions; right?: IBodyLimitOptions }): boolean {
+    const { left, right } = opts;
+
+    if (!left || !right) {
+      return left === right;
+    }
+
+    const keys = new Set([...Object.keys(left), ...Object.keys(right)]);
+    for (const key of keys) {
+      if (!Object.is(left[key], right[key])) {
+        return false;
+      }
+    }
+
+    return true;
+  }
+
+  /**
+   * `configs.middlewares` is read by `registerDefaultMiddlewares()`, which runs before `staticConfigure()`.
+   * A limit assigned in a boot hook would read back as configured while every request ran unlimited.
+   */
+  private assertBodyLimitUnchanged(opts: { step: string }): void {
+    if (!this.installedBodyLimit) {
+      return;
+    }
+
+    const installed = this.installedBodyLimit.options;
+    const current = this.toInstalledBodyLimit({ options: this.configs.middlewares?.bodyLimit });
+
+    if (this.isSameBodyLimit({ left: installed, right: current })) {
+      return;
+    }
+
+    throw getError({
+      message: `[${opts.step}] configs.middlewares.bodyLimit changed after registerDefaultMiddlewares() installed it | installed maxSize: ${installed?.maxSize ?? 'none'} | now maxSize: ${current?.maxSize ?? 'none'} | Pass it through the constructor config: new Application({ config: { middlewares: { bodyLimit } } })`,
+    });
   }
 
   /**
@@ -134,15 +223,24 @@ export abstract class RestApplication<
    */
   protected getBootSequence(): IBootSequenceStep[] {
     return [
-      { name: BootSteps.STATIC_CONFIGURE, run: () => this.staticConfigure() },
+      {
+        name: BootSteps.STATIC_CONFIGURE,
+        run: async () => {
+          // Declared `void`, but an override may be async; the step has always waited on it.
+          await Promise.resolve(this.staticConfigure());
+          this.assertBodyLimitUnchanged({ step: BootSteps.STATIC_CONFIGURE });
+        },
+      },
       { name: BootSteps.REGISTER_ARTIFACTS, run: () => this.registerConfiguredArtifacts() },
       {
         name: BootSteps.PRE_CONFIGURE,
-        run: () =>
-          this.runApplicationHook({
+        run: async () => {
+          await this.runApplicationHook({
             name: BootSteps.PRE_CONFIGURE,
             hook: () => this.preConfigure(),
-          }),
+          });
+          this.assertBodyLimitUnchanged({ step: BootSteps.PRE_CONFIGURE });
+        },
       },
       {
         name: BootSteps.REGISTER_CONFIGURATIONS,

@@ -52,7 +52,10 @@ The HTTP method is padded to 8 characters for consistent alignment.
 
 > [!WARNING]
 > This rule used to be "anything that is not `production`", which logged full request bodies in `staging`, `uat` and with `NODE_ENV` unset. If you relied on bodies appearing outside a development environment, set `NODE_ENV` to one of the five values above.
-- **Body parsing follows Content-Type.** See the outcomes table below for what each Content-Type resolves to. A parse failure throws `'Malformed Body Payload'` (HTTP 400).
+- **Body parsing follows Content-Type, but only in a development environment.** There, `value()` calls `parseBody` for every request - see the outcomes table below for what each Content-Type resolves to. Outside development, `value()` calls `parseBody` only when the Content-Type includes `application/json`; every other body reaches the route unread. A parse failure throws `'Malformed Body Payload'` (HTTP 400).
+
+> [!WARNING]
+> A form body (`multipart/form-data` or `application/x-www-form-urlencoded`) is not parsed here outside development. A route that declares a form body gets its own `formBodyReader` middleware, and `parseMultipartBody` maps its own parse failure - both land on the same `400 core.request.body_malformed`. Application code that calls `context.req.formData()` itself, ahead of any framework reader, gets a raw `TypeError` outside development - a `500`, not a `400`. Call `readFormBody({ req: context.req })` from `@venizia/ignis-helpers` instead; see [Request Utility](/references/utilities/request).
 - **The middleware is an `IProvider`, not a plain function.** `RequestSpyMiddleware` implements `IProvider<MiddlewareHandler>` from `@venizia/ignis-inversion`. The container instantiates the class, so it can hold `isDebugMode` state as an instance field. It then calls `.value()` to obtain the actual Hono handler.
 
 > [!TIP]
@@ -83,6 +86,9 @@ async parseBody(opts: { req: TContext['req'] }): Promise<unknown>
 | 4 | `'unknown'` | Logged when none of the above resolve - the request still proceeds |
 
 ### Understand body-parsing outcomes
+
+`parseBody` itself behaves the same regardless of environment; what changes is whether `value()` calls it. In a development environment it is called for every request. Outside development it is called only when `Content-Type` includes `application/json` - every other row below is reachable only in development.
+
 | Condition | Result |
 |-----------|--------|
 | No `Content-Type` header | `null` |

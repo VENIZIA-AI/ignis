@@ -1,12 +1,14 @@
 import type { TErrorDefinition, TRegisterErrors } from '@venizia/ignis-helpers/core';
-import { ErrorScopes } from '@venizia/ignis-helpers/core';
+import { ErrorScopes, RequestBodyErrors } from '@venizia/ignis-helpers/core';
 import { HTTP } from '@venizia/ignis-helpers/common';
 
 /** Codes a client branches on for a request refused before any repository ran - by the middleware layer, or by a handler reading the validated body. */
 export const RequestErrors = {
-  BODY_MALFORMED: {
-    message: { text: 'Malformed body payload', code: 'core.request.body_malformed' },
-    statusCode: HTTP.ResultCodes.RS_4.BadRequest,
+  // Defined in helpers, whose `readFormBody` throws it: one definition for every body parser.
+  BODY_MALFORMED: RequestBodyErrors.BODY_MALFORMED,
+  BODY_TOO_LARGE: {
+    message: { text: 'Request body is too large', code: 'core.request.body_too_large' },
+    statusCode: HTTP.ResultCodes.RS_4.ContentTooLarge,
     category: ErrorScopes.VALIDATION,
   },
   NOTHING_TO_UPDATE: {

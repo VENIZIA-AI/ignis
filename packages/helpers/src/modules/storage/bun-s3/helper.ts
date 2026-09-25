@@ -19,6 +19,7 @@ import type {
 import { S3Audiences, isNotFoundError, StoragePresignDefaults, toExpirySeconds } from '../common';
 import type { TS3Audience } from '../common';
 import {
+  buildCopySource,
   buildPostPolicy,
   buildPresignedUrl,
   buildSignedRequest,
@@ -273,7 +274,7 @@ export class BunS3Helper extends BaseStorageHelper {
     });
 
     // `x-amz-copy-source` is what makes this server side: S3 reads the source itself, so a 500 MB
-    // object never travels through this process.
+    // object never travels through this process. The encoded value is both signed and sent.
     const request = await buildSignedRequest({
       method: 'PUT',
       endpoint,
@@ -282,7 +283,7 @@ export class BunS3Helper extends BaseStorageHelper {
       secretKey,
       region,
       sessionToken,
-      headers: { 'x-amz-copy-source': `/${bucket.name}/${source.key}` },
+      headers: { 'x-amz-copy-source': buildCopySource({ bucket: bucket.name, key: source.key }) },
     });
 
     const response = await fetch(request.url, { method: 'PUT', headers: request.headers });
@@ -311,7 +312,7 @@ export class BunS3Helper extends BaseStorageHelper {
 
     // The browser posts to the BUCKET, not to an object - the key travels as a form field, because
     // the policy only constrains its prefix.
-    const { endpoint } = this.objectEndpoint({
+    const { endpoint, pathPrefix } = this.objectEndpoint({
       bucket: bucket.name,
       audience: S3Audiences.BROWSER,
     });
@@ -327,7 +328,7 @@ export class BunS3Helper extends BaseStorageHelper {
       contentType,
     });
 
-    return { postURL: `${endpoint.replace(/\/$/, '')}/${bucket.name}`, formData, expiresAt };
+    return { postURL: `${endpoint.replace(/\/$/, '')}${pathPrefix}`, formData, expiresAt };
   }
 
   override async presignPut(

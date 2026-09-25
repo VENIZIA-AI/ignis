@@ -118,7 +118,7 @@ tags: [reference, exports, api]
 
 ## helpers
 
-### `@venizia/ignis-helpers` (418)
+### `@venizia/ignis-helpers` (419)
 
 - `AbstractCryptoAlgorithm` class
 - `AbstractLogger` class
@@ -374,6 +374,7 @@ tags: [reference, exports, api]
 - `PropsWithChildren` type
 - `QueryStringSeparators` class
 - `QueueStatuses` class
+- `readFormBody` const
 - `REDACTED` const
 - `redactSecrets` const
 - `redactUrlCredentials` const
@@ -604,7 +605,7 @@ tags: [reference, exports, api]
 - `ValueOptionalExcept` type
 - `ValueOrPromise` type
 
-### `@venizia/ignis-helpers/core` (130)
+### `@venizia/ignis-helpers/core` (132)
 
 - `AbstractNetworkFetchableHelper` class
 - `AbstractPoolHelper` class
@@ -685,6 +686,8 @@ tags: [reference, exports, api]
 - `OpaqueUidHelper` class
 - `ProjectRootRegistry` class
 - `QueryStringSeparators` class
+- `readFormBody` const
+- `RequestBodyErrors` const
 - `RequestIdGenerator` class
 - `RetryBackoffStrategies` class
 - `RetryHelper` class
@@ -2022,7 +2025,7 @@ tags: [reference, exports, api]
 
 ## core-server
 
-### `@venizia/ignis` (1001)
+### `@venizia/ignis` (1002)
 
 - `AbstractApplication` class
 - `AbstractAuthRegistry` class
@@ -2618,6 +2621,7 @@ tags: [reference, exports, api]
 - `ReadableRepository` class
 - `readAffectedRowCount` const
 - `readDeclarative` const
+- `readFormBody` const
 - `readResultRows` const
 - `RecursiveTreeDirections` class
 - `RecursiveTreeSql` class
@@ -3468,7 +3472,7 @@ tags: [reference, exports, api]
 - `IConnectRpcModule` interface
 - `IGrpcComponentConfig` interface
 
-### `@venizia/ignis/static-asset` (37)
+### `@venizia/ignis/static-asset` (40)
 
 - `AssetControllerFactory` class
 - `AssetIngest` class
@@ -3483,6 +3487,7 @@ tags: [reference, exports, api]
 - `IIngestFromUrlOptions` interface
 - `IIngestFromUrlResult` interface
 - `META_LINK_CREATE_FAILED` const
+- `MetaLinkRecreateActions` class
 - `readCommitToken` const
 - `RENDERABLE_CONTENT_TYPES` const
 - `resolveServedContentType` const
@@ -3497,10 +3502,12 @@ tags: [reference, exports, api]
 - `TMetaLink` type
 - `TMetaLinkCompatibleSchema` type
 - `TMetaLinkConfig` type
+- `TMetaLinkRecreateAction` type
 - `TMetaLinkSchema` type
 - `TObjectNameResolver` type
 - `TObjectParams` type
 - `TStaticAssetExtraOptions` type
+- `TStaticAssetRouteConfig` type
 - `TStaticAssetRoutes` type
 - `TStaticAssetsComponentOptions` type
 - `TStaticAssetStorageType` type

@@ -10,6 +10,7 @@ import type {
   IStaticServeMixin,
 } from '../../../mixins/common';
 import type { TArtifactIndexInput } from './artifacts';
+import type { IMiddlewareConfigs } from './middlewares';
 
 /** No `host`/`port`: a browser Worker has neither, and carrying them here made one silently configured with `localhost:3000`. `@venizia/ignis` widens this shape with both - see its `IServerApplicationConfigs`. */
 export interface IApplicationConfigs {
@@ -41,6 +42,9 @@ export interface IApplicationConfigs {
 
   asyncContext?: { enable: boolean };
   debug?: { shouldShowRoutes?: boolean };
+
+  /** Only `bodyLimit` is installed by the framework: right after the request id, ahead of every other middleware, so none of them reads a body over it. Every other key is the application's to wire in `setupMiddlewares()`. */
+  middlewares?: IMiddlewareConfigs;
 
   /** How long `stop()` waits for one datasource's `close()` before it logs and moves on. Default `10_000`; `0` waits without limit. */
   dataSourceCloseTimeoutMs?: number;

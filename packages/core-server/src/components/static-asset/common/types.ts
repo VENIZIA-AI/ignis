@@ -107,22 +107,30 @@ export type TMetaLinkConfig<Schema extends TMetaLinkCompatibleSchema = TMetaLink
   }) => ValueOrPromise<{ count: number; data: TTableObject<Schema> }>;
 };
 
+/** The part of a built-in route an application may change. */
+export type TStaticAssetRouteConfig = Partial<
+  Omit<IAuthRouteConfig, 'method' | 'request' | 'responses'>
+> & {
+  /** Whether this route is registered. Defaults to true. */
+  enabled?: boolean;
+};
+
 export type TStaticAssetRoutes = {
-  getBuckets?: Partial<Omit<IAuthRouteConfig, 'method' | 'request' | 'responses'>>;
-  getBucketByName?: Partial<Omit<IAuthRouteConfig, 'method' | 'request' | 'responses'>>;
-  createBucket?: Partial<Omit<IAuthRouteConfig, 'method' | 'request' | 'responses'>>;
-  deleteBucket?: Partial<Omit<IAuthRouteConfig, 'method' | 'request' | 'responses'>>;
+  getBuckets?: TStaticAssetRouteConfig;
+  getBucketByName?: TStaticAssetRouteConfig;
+  createBucket?: TStaticAssetRouteConfig;
+  deleteBucket?: TStaticAssetRouteConfig;
 
-  upload?: Partial<Omit<IAuthRouteConfig, 'method' | 'request' | 'responses'>>;
-  listObjects?: Partial<Omit<IAuthRouteConfig, 'method' | 'request' | 'responses'>>;
-  deleteObject?: Partial<Omit<IAuthRouteConfig, 'method' | 'request' | 'responses'>>;
-  getObjectByName?: Partial<Omit<IAuthRouteConfig, 'method' | 'request' | 'responses'>>;
-  downloadObjectByName?: Partial<Omit<IAuthRouteConfig, 'method' | 'request' | 'responses'>>;
+  upload?: TStaticAssetRouteConfig;
+  listObjects?: TStaticAssetRouteConfig;
+  deleteObject?: TStaticAssetRouteConfig;
+  getObjectByName?: TStaticAssetRouteConfig;
+  downloadObjectByName?: TStaticAssetRouteConfig;
 
-  uploadPolicy?: Partial<Omit<IAuthRouteConfig, 'method' | 'request' | 'responses'>>;
-  uploadCommit?: Partial<Omit<IAuthRouteConfig, 'method' | 'request' | 'responses'>>;
+  uploadPolicy?: TStaticAssetRouteConfig;
+  uploadCommit?: TStaticAssetRouteConfig;
 
-  recreateMetaLink?: Partial<Omit<IAuthRouteConfig, 'method' | 'request' | 'responses'>>;
+  recreateMetaLink?: TStaticAssetRouteConfig;
 };
 
 export type TStaticAssetsComponentOptions<
@@ -139,6 +147,15 @@ export type TStaticAssetsComponentOptions<
 
       /** The single bucket every object route uses. It leaves the URL (`/objects/{objectName}`) and the four bucket-management routes are not registered. The function form is read per request, so an environment variable can be read lazily. */
       bucket?: TValueOrAsyncResolver<string>;
+
+      /**
+       * The key scope this controller owns, e.g. `inventory/`. Every route refuses a key outside it
+       * as a 404 without calling the storage, `listObjects` lists only inside it, and an upload key
+       * must land inside it: the default name is placed there, a `resolveObjectName` or
+       * `extra.normalizeNameFn` key outside it is refused. `maxFolderDepth` counts the folders below
+       * it. Absent: every key in the bucket.
+       */
+      keyPrefix?: string;
 
       routes?: TStaticAssetRoutes;
 

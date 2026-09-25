@@ -92,7 +92,7 @@ this.bind<TStaticAssetsComponentOptions>({
 
 ### Lock down individual routes
 
-Each key under `controller.routes` accepts a partial `authenticate`/`authorize`/`middleware`/`path` override; unset routes stay public.
+Each key under `controller.routes` accepts a partial `authenticate`/`authorize`/`middleware`/`path` override, plus `enabled` to drop the route entirely; unset routes stay public and registered.
 
 ```typescript
 {
@@ -102,11 +102,15 @@ Each key under `controller.routes` accepts a partial `authenticate`/`authorize`/
     routes: {
       upload: { authenticate: { strategies: ['jwt'], mode: 'required' } },
       deleteObject: { authenticate: { strategies: ['jwt'], mode: 'required' } },
-      deleteBucket: { authenticate: { strategies: ['jwt'], mode: 'required' } },
+      deleteBucket: { enabled: false },
     },
   },
 }
 ```
+
+### Split a shared bucket between controllers
+
+`controller.keyPrefix` scopes every key a controller touches: a key outside the prefix answers `404` before any storage call, `listObjects` never lists outside it, and an upload key outside it is refused. See [Share one bucket between controllers](./usage#share-one-bucket-between-controllers) for the full example.
 
 ### Switch multipart parsing to disk for large uploads
 

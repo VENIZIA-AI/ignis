@@ -21,6 +21,7 @@ const ABSTRACT_APPLICATION_MEMBERS = [
 
 /** What moved DOWN onto `RestApplication` when the kernel was carved out - the router surface, every artifact registration, and the default middleware stack every host shares. */
 const REST_APPLICATION_MEMBERS = [
+  'assertBodyLimitUnchanged',
   'assertNoBindingCollision',
   'bindProvidedKeys',
   'buildErrorMiddleware',
@@ -38,6 +39,7 @@ const REST_APPLICATION_MEMBERS = [
   'getUnresolvedBindings',
   'initialize',
   'inspectRoutes',
+  'isSameBodyLimit',
   'registerArtifact',
   'registerArtifacts',
   'registerComponents',
@@ -54,6 +56,7 @@ const REST_APPLICATION_MEMBERS = [
   'runApplicationHook',
   'runBootSequence',
   'service',
+  'toInstalledBodyLimit',
   'verifyBindings',
 ];
 

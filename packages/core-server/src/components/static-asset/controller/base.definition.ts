@@ -2,6 +2,7 @@ import type { IAuthRouteConfig } from '@/base';
 import { errorResponses, jsonResponse } from '@venizia/ignis-kernel';
 import { z } from '@hono/zod-openapi';
 import { HTTP } from '@venizia/ignis-helpers/common';
+import { MetaLinkRecreateActions } from '../common/constants';
 
 type TRouteRequest = NonNullable<IAuthRouteConfig['request']>;
 
@@ -331,7 +332,15 @@ export const buildAssetDefinitions = (opts: {
       responses: jsonResponse({
         schema: z.object({
           success: z.boolean(),
-          metaLink: z.any().optional(),
+          action: z
+            .enum([MetaLinkRecreateActions.REFRESHED, MetaLinkRecreateActions.CREATED])
+            .openapi({
+              description: '`refreshed` when rows for the object existed, `created` when none did',
+              example: 'refreshed',
+            }),
+          count: z.number().openapi({ description: 'Rows refreshed or created' }),
+          metaLink: z.any().optional().openapi({ description: 'The first of `metaLinks`' }),
+          metaLinks: z.array(z.any()),
         }),
       }),
     },

@@ -93,8 +93,9 @@ Two traps, both recorded in the code:
 Absent, neither route exists.
 
 1. The browser asks for a policy. IGNIS runs `authorize`, refuses a size over `maxBytes` **before
-   signing anything**, generates `pending/<uuid>/<name>`, and signs both the policy and a commit
-   token.
+   signing anything**, generates `pending/<keyPrefix><uuid>/<name>` (the scope rides inside the
+   pending key, so the commit - which strips `pendingPrefix` - lands inside `controller.keyPrefix`
+   too), and signs both the policy and a commit token.
 2. The browser posts the form straight to storage. No byte passes through IGNIS.
 3. The browser presents the commit token. IGNIS verifies it, runs `onCommit`, copies server-side to
    the final key, removes the temporary object, and writes the MetaLink row.
@@ -119,10 +120,26 @@ derives one, because reading `max(sequence)` and writing `max + 1` is the same n
 `recreate-metalink` below. It defaults to 0, so `ORDER BY sequence, createdAt` reproduces the order
 legacy rows already had; drop the tiebreak and they come back arbitrary.
 
-`recreate-metalink` therefore does `findOne` then `create` non-atomically, and stays that way.
-Without a unique index two concurrent transactions both read "no row" and both insert - `FOR UPDATE`
-locks nothing that does not exist, `ON CONFLICT` needs the index the data forbids. Closing it takes
-`pg_advisory_xact_lock`: Postgres-only, and the application's.
+`recreate-metalink` refreshes, then creates. `updateAll` over `(bucketName, objectName)` rewrites
+stored-object facts on EVERY row of the pair, and keeps each row's own labels and `storageType`; the
+earlier `findOne` + `updateById` touched only the first row found and overwrote its `storageType`
+with the controller's own backend. What a refresh writes depends on `metaLink.createMetaLink`: with
+one configured, ONE `updateAll` writes only `mimetype`, `size`, `etag`, `isSynced` - the hook owns
+`link` and `metadata` on that row (an enrichment such as BANA inventory's width/height/placeholder
+survives a recreate); without one, that same `updateAll` also writes `link`, and then ONE `updateById`
+PER ROW merges `metadata: { ...row.metadata, ...fileStat.metadata }` (the stat's keys win, skipped
+entirely when the stat carries none) - fed from the first statement's own `RETURNING`, not a second
+read, because `find` applies `DEFAULT_LIMIT` (10) and would silently refresh only part of a larger
+pair. That merge is a read-then-write: a concurrent write to a row's `metadata` landing between the
+two statements is lost. Only when the refresh counts zero rows does it create one, through
+`createMetaLinkRow` - the same builder `upload` uses, so `createMetaLink` and the entry's `storage`
+apply. The response carries `MetaLinkRecreateActions.REFRESHED`/`.CREATED` (a real
+`z.enum(...)` in the OpenAPI document, not `string`), `count`, and every touched row as `metaLinks`
+(`metaLink` stays `metaLinks[0]`, for existing callers). The two steps are still not atomic: two
+concurrent calls on an object with no existing row can both create. Without a unique index two
+concurrent transactions both read "no row" and both insert - `FOR UPDATE` locks nothing that does not
+exist, `ON CONFLICT` needs the index the data forbids. Closing it takes `pg_advisory_xact_lock`:
+Postgres-only, and the application's.
 
 ### Four security properties, each with its reason
 
@@ -159,6 +176,12 @@ JavaScript. Anything outside the list is served as `application/octet-stream` wi
 `Content-Disposition: attachment`, plus `nosniff` and `Content-Security-Policy: sandbox`.
 
 Serving assets from a separate domain is the structural defence, and the one IGNIS cannot impose.
+
+The extension table knows the common office formats (xlsx, xls, docx, doc, pptx, ppt, odt, ods), but
+none of them is renderable, so they still serve as `application/octet-stream` plus `attachment` -
+only the MetaLink `mimetype` fallback, `DiskHelper.getStat`, `writeStream`'s default type, and
+`AssetIngest` change. `text/csv` and `text/plain` ARE on the renderable list and serve inline under
+`sandbox`.
 
 ## Deliberately not built
 

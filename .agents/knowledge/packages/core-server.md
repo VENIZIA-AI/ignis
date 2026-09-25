@@ -145,14 +145,38 @@ Its URL shape is two more options, both off by default and independent: `control
 (`string | (() => string)`, read per request) takes the bucket out of the path AND leaves the four
 bucket-management routes unregistered, and `controller.rawObjectPath` widens the object segment to
 the `{objectName}{.+}` catch-all so a raw nested path resolves - the percent-encoded form keeps
-working either way. `buildAssetDefinitions(opts)` builds the ten route configs from those two flags;
-`StaticAssetDefinitions` is `buildAssetDefinitions({})` and is unchanged.
+working either way. `buildAssetDefinitions(opts)` builds the twelve route configs from those two
+flags; `StaticAssetDefinitions` is `buildAssetDefinitions({})` and is unchanged.
 The upload labels - `principalType`, `principalId`, `variant`, `sequence`, `folderPath` - travel in
 the BODY, not the query: form fields on `POST {base}/objects`, and beside the commit token in the
 JSON body on `upload-commit`. A query string is logged everywhere it passes, and an identifier
 describing the payload belongs with the payload; the cost is that they are unreadable until the body
 is parsed, so `folderPath` is validated after parsing. `extra.maxBytes` is the upload ceiling and
-answers `413` with `core.static_asset.upload_too_large` - one code for both upload paths.
+answers `413` with `core.static_asset.upload_too_large` - one code for both upload paths. Its
+`content-length` check is route middleware (`appendDeclaredLengthGuard`), appended AFTER the
+application's own `routes.upload.middleware`: `@hono/zod-openapi`'s form validator reads the whole
+body before any handler runs, so a check in the handler saved no memory. The per-file
+`buffer.length` check - the authoritative one - stays in the handler.
+Every built-in route takes `routes.<key>.enabled` (default `true`; `readRouteOverride` strips it
+before the rest reaches `createRoute`). `controller.keyPrefix` scopes a controller inside a shared
+bucket: a key outside the prefix answers `404 core.storage.object_not_found` before any storage
+call; `listObjects` clamps to the prefix and lists `[]` for a disjoint one; the component's own
+default upload name lands under the prefix, and a `resolveObjectName`/`normalizeNameFn` key outside
+it is refused (`400 core.static_asset.object_key_out_of_scope`), never rewritten - the application
+may have recorded that key elsewhere; `maxFolderDepth` counts folders below the prefix. With
+`keyPrefix` set and neither `resolveObjectName` nor `extra.normalizeNameFn` (`isScopedDefaultNaming`
+in `factory.ts`), the component's own default naming keeps the original file name to one segment -
+a `/` in it is still `400 [upload] Invalid original file name`, exactly as without a scope; either
+hook relaxes it. `keyPrefix` requires `controller.bucket` (throws at registration without it, the
+same requirement `directUpload` already has): with no configured bucket the four bucket-management
+routes stay unscoped, so `keyPrefix` alone would isolate only part of the surface. Once `bucket` is
+set those four routes are not registered at all. Not scoped: `defineRoutesBefore`, `defineExtraRoutes`.
+`recreateMetaLink`'s refresh, in `meta-link.ts`: with `metaLink.createMetaLink` configured, one
+`updateAll` writes only `mimetype`/`size`/`etag`/`isSynced` and leaves `link`/`metadata` to the hook;
+without one, that same statement also writes `link`, and one `updateById` per returned row then
+merges `metadata: { ...row.metadata, ...fileStat.metadata }` (skipped when the stat carries none) -
+a read-then-write, so a concurrent write to that row's `metadata` between the two statements is
+lost. `action` in the OpenAPI response is `z.enum([...REFRESHED, ...CREATED])`, not a bare `string`.
 See [object storage](/architecture/object-storage.md) for the signing model behind the second path.
 See [component model](/architecture/component-model.md) and the
 [components catalog](/reference/components.md).

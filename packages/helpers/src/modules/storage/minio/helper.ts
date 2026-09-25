@@ -21,6 +21,8 @@ export interface IMinioHelperOptions extends IStorageHelperOptions, ClientOption
 export class MinioHelper extends BaseStorageHelper {
   private client: Client;
 
+  private static readonly PRINTABLE_ASCII = /^[\x20-\x7e]*$/;
+
   constructor(options: IMinioHelperOptions) {
     super({
       scope: options.scope ?? MinioHelper.name,
@@ -84,13 +86,24 @@ export class MinioHelper extends BaseStorageHelper {
     return '/static-assets/';
   }
 
+  /** Metadata travels as a header, which cannot carry a non-Latin-1 name. Outside printable ASCII the value is RFC 2047-encoded, the form S3 uses for such metadata. */
+  private toMetadataValue(opts: { value: string }): string {
+    const { value } = opts;
+
+    if (MinioHelper.PRINTABLE_ASCII.test(value)) {
+      return value;
+    }
+
+    return `=?UTF-8?B?${Buffer.from(value, 'utf8').toString('base64')}?=`;
+  }
+
   protected async writeObject(opts: IObjectLocation & { file: IUploadFile }): Promise<void> {
     const { bucket, object, file } = opts;
     const { originalName, mimetype: mimeType, buffer, size, encoding } = file;
 
     await this.client.putObject(bucket.name, object.key, buffer, size, {
-      originalName,
-      normalizeName: object.key,
+      originalName: this.toMetadataValue({ value: originalName }),
+      normalizeName: this.toMetadataValue({ value: object.key }),
       size,
       encoding,
       mimeType,

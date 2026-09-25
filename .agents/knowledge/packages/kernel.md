@@ -114,13 +114,36 @@ is underneath and which socket is bound belong to `ServerApplication`.
 
 ## One default middleware stack
 
-`RestApplication.registerDefaultMiddlewares()` installs the three registrations every host shares:
-`requestId()` fed by `RequestIdGenerator`, the framework error handler, and `notFoundHandler`.
-`WorkerApplication` inherits it untouched; `BaseApplication` calls `super()` and adds
-`contextStorage`, `RequestTrackerComponent` and the favicon on top. `buildErrorMiddleware()` is the
-one seam inside it, which core overrides to swap in the `ErrorPrettier`-backed formatter; it feeds
-`config.error.environment` through as the middleware's `environment` option, which is how a browser
-application declares the ambient environment it has no `process.env` to read.
+`RestApplication.registerDefaultMiddlewares()` installs the registrations every host shares:
+`requestId()` fed by `RequestIdGenerator`, `configs.middlewares.bodyLimit` when set, the framework
+error handler, and `notFoundHandler`. `WorkerApplication` inherits it untouched; `BaseApplication`
+calls `super()` and adds `contextStorage`, `RequestTrackerComponent` and the favicon on top.
+`buildErrorMiddleware()` is the one seam inside it, which core overrides to swap in the
+`ErrorPrettier`-backed formatter; it feeds `config.error.environment` through as the middleware's
+`environment` option, which is how a browser application declares the ambient environment it has no
+`process.env` to read.
+
+`configs.middlewares.bodyLimit` (`IMiddlewareConfigs`, `IBodyLimitOptions`) is the only middleware
+config the framework installs by itself - every other key in `IMiddlewareConfigs` is a type only,
+for an application's own `setupMiddlewares()`. Set and `enable !== false` (a missing `enable` still
+applies it, fail-closed) installs `hono/body-limit` right after `requestId()`, ahead of every
+middleware a host adds afterward, the request spy included. A `maxSize` that is not a finite
+non-negative number throws at boot. Over the limit answers `RequestErrors.BODY_TOO_LARGE`
+(`413 core.request.body_too_large`) unless `onError` is given.
+
+A route whose `request.body.content` declares `multipart/form-data` or
+`application/x-www-form-urlencoded` gets `formBodyReader` (`base/middlewares/form-body/`, not on any
+barrel) appended LAST to its middleware chain, in `AbstractRestController.buildRouteMiddlewares` -
+after authenticate, authorize, and every application middleware. It parses the form through helpers'
+`readFormBody` and caches the result, so the route's own validator reads the same `FormData` instead
+of the stream, and never gets a chance to throw its own generic parse failure. Read here, a malformed
+form is `RequestErrors.BODY_MALFORMED` - `400 core.request.body_malformed` - the same object as
+helpers' `RequestBodyErrors.BODY_MALFORMED`, so every form parser in the stack throws one definition.
+
+The error middleware's `classify()` reads `'statusCode' in error` to decide `INTENTIONAL` vs.
+`UNEXPECTED` - a Hono `HTTPException` (from `@hono/zod-openapi`'s own validator, or thrown by hand)
+carries its status on `.status`, which that check reads too, so a 4xx `HTTPException` renders as its
+own status instead of a generic `500`.
 
 `RequestContextRegistry` (`base/request-context/`) is the same idea for code that only wants to READ
 the ambient request context. `setResolver({ resolver })` takes a synchronous

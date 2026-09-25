@@ -6,6 +6,55 @@ not how.
 This file and `index.md` are reserved OKF filenames - they carry no `type:` frontmatter and are not
 counted as concepts.
 
+## 2026-09-25 - a shared bucket can be scoped; bodyLimit and the form-body reader are wired; storage carries real file names; HTTPException keeps its status
+
+Updated [helpers](/packages/helpers.md), [core-server](/packages/core-server.md),
+[kernel](/packages/kernel.md), [object storage](/architecture/object-storage.md),
+[gotchas](/conventions/gotchas.md).
+
+- `controller.keyPrefix` scopes a static-asset controller inside a shared bucket: a key outside it
+  answers `404` before any storage call, `listObjects` clamps to it, and an upload key outside it is
+  refused (`400 core.static_asset.object_key_out_of_scope`), never rewritten. With no naming hook,
+  the component's own default naming under a scope keeps the original name to one segment, same as
+  without a scope. `keyPrefix` requires `controller.bucket` - throws at registration without it,
+  because the four bucket-management routes cannot be scoped otherwise. Every built-in route takes
+  `routes.<key>.enabled` (default `true`), the CRUD factory's switch name.
+- `PUT .../meta-links/{objectName}` (`recreateMetaLink`) refreshes every row of an `(bucketName,
+  objectName)` pair through `updateAll`, keeping each row's own `storageType` and labels, and creates
+  one only when none existed - replacing the old `findOne` + `updateById`, which touched one row and
+  overwrote its `storageType`. With a `createMetaLink` hook, that `updateAll` writes only `mimetype`,
+  `size`, `etag`, `isSynced` and leaves the hook's own `link`/`metadata` alone; without one it also
+  writes `link`, then merges `metadata` per row with one `updateById` each - a read-then-write, so a
+  concurrent write to a row's `metadata` between the two statements is lost. The response gains
+  `action` (a real `z.enum`, not `string`), `count`, `metaLinks`.
+- `configs.middlewares.bodyLimit` is now installed by `RestApplication.registerDefaultMiddlewares()`,
+  right after `requestId()` and ahead of every other middleware; every other `IMiddlewareConfigs` key
+  stays a type only. It is read before `staticConfigure()` runs, and assigning or mutating it in a
+  boot hook now fails the boot instead of silently doing nothing - pass it through the constructor
+  `config`. `extra.maxBytes`'s `content-length` check moved into route middleware, after the
+  application's own upload middleware; it bounds only a declared length, so pair it with `bodyLimit`
+  against a chunked client.
+- A Hono `HTTPException` with a 4xx status now keeps that status and its own message through the
+  error envelope, in every environment - the handler used to read only `statusCode`, so every 4xx
+  `HTTPException` (a validator's own failure, or one thrown by hand) rendered as a generic `500`. A
+  5xx `HTTPException` still sanitizes to `500`. Malformed JSON on any JSON-body route is the clearest
+  case: `400 Malformed JSON in request body` instead of `500 core.system_error`.
+- Outside development, the request spy parses only a JSON body. A route with a declared form body
+  gets a new `formBodyReader` middleware instead, and `parseMultipartBody` maps its own parse
+  failure; both go through the new `readFormBody` (root barrel and `/core`), which the kernel's
+  `RequestErrors.BODY_MALFORMED` now IS. `RequestBodyErrors`, the definition itself, is `/core`-only
+  - narrowed off the root barrel. Application code calling `context.req.formData()` itself, ahead of
+  any framework reader, is not covered and must call `readFormBody` too.
+- `copyObject` sends `x-amz-copy-source` through `buildCopySource` (per-segment SigV4 encoding); the
+  raw key was an illegal Bun header value for a non-Latin-1 name and ambiguous for `+ % ? #`.
+  `presignPost`'s `postURL` no longer names the bucket twice under `virtualHostedStyle: true`.
+  `upload` validates the original name by what it becomes - the key (`isValidSegment`) with no naming
+  hook, metadata (`isValidOriginalName`) with one - and resolves and validates every key before the
+  first write. `MinioHelper` RFC 2047-encodes non-ASCII metadata; `createContentDispositionHeader`
+  puts the real UTF-8 name in `filename*`, replacing every control/format/lone-surrogate character
+  with `_` except the zero-width joiner and non-joiner, which build emoji sequences and Persian
+  words and stay. `ContentTypeTable` gains xlsx, xls, docx, doc, pptx, ppt, odt, ods.
+
 ## 2026-09-25 - every commit references a GitHub issue
 
 Updated [git workflow](/process/git-workflow.md): work starts from an issue on the IGNIS project, a

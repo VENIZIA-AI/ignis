@@ -172,3 +172,34 @@ describe('BunS3Helper - default is for this process, public is for a browser', (
     expect(new URL(attempted).host).toBe('minio:9000');
   });
 });
+
+/** A POST policy targets the bucket itself, so the bucket is named exactly once - in the host or in the path. */
+describe('BunS3Helper.presignPost - the form posts to the bucket in either addressing style', () => {
+  test('path style names the bucket in the path', async () => {
+    const helper = buildHelper({ endpoint: 'http://minio:9000' });
+
+    const { postURL } = await helper.presignPost({
+      bucket: { name: 'uploads' },
+      keyPrefix: 'pending/',
+      maxBytes: 1024,
+    });
+
+    expect(postURL).toBe('http://minio:9000/uploads');
+  });
+
+  test('virtual hosted style names the bucket in the host only', async () => {
+    const helper = buildHelper({
+      endpoint: 'https://s3.us-east-1.amazonaws.com',
+      virtualHostedStyle: true,
+    });
+
+    const { postURL } = await helper.presignPost({
+      bucket: { name: 'uploads' },
+      keyPrefix: 'pending/',
+      maxBytes: 1024,
+    });
+
+    expect(new URL(postURL).host).toBe('uploads.s3.us-east-1.amazonaws.com');
+    expect(new URL(postURL).pathname).toBe('/');
+  });
+});
