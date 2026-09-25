@@ -5,6 +5,8 @@ import { HTTP } from '@venizia/ignis-helpers/common';
 import type { ILogger, TLogLevel } from '@venizia/ignis-helpers/core';
 import { getError, MessageCode } from '@venizia/ignis-helpers/core';
 import { Hono } from 'hono';
+import { HTTPException } from 'hono/http-exception';
+import { validator } from 'hono/validator';
 // The middleware reads the id from the context; both hosts put it there with this exact middleware,
 // and importing it here is also what brings `requestId` into hono's `ContextVariableMap`.
 import { requestId } from 'hono/request-id';
@@ -233,6 +235,61 @@ describe('the error envelope - the exact body every IGNIS host returns', () => {
 
     expect(Object.keys(wrapped.body)).toEqual(['error']);
     expect(wrapped.body.error).toEqual(unwrapped.body);
+  });
+});
+
+/** Hono's own middlewares and validators throw `HTTPException`, which carries `status`, not `statusCode`. */
+describe('a Hono HTTPException keeps its client status', () => {
+  test('a 4xx keeps its status and its message, sanitized environment or not', async () => {
+    const { status, body } = await probe({
+      thrower: () => {
+        throw new HTTPException(HTTP.ResultCodes.RS_4.Unauthorized, { message: 'Unauthorized' });
+      },
+    });
+
+    expect(status).toBe(HTTP.ResultCodes.RS_4.Unauthorized);
+    expect(body).toEqual({
+      message: 'Unauthorized',
+      statusCode: HTTP.ResultCodes.RS_4.Unauthorized,
+      normalized: { text: 'Unauthorized', code: MessageCode.DEFAULT, args: {} },
+      requestId: REQUEST_ID,
+      details: { url: REQUEST_URL, path: REQUEST_PATH },
+    });
+  });
+
+  test("Hono's validator on a malformed JSON body is a 400, not a 500", async () => {
+    const application = new Hono();
+    application.use('*', requestId({ generator: () => REQUEST_ID }));
+    application.post(
+      REQUEST_PATH,
+      validator('json', value => value),
+      context => context.json({ reached: true }),
+    );
+    application.onError(new BaseAppErrorMiddleware({ logger: new RecordingLogger() }).value());
+
+    const response = await application.request(REQUEST_URL, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: '{"broken":',
+    });
+    const body = (await response.json()) as Record<string, AnyType>;
+
+    expect(response.status).toBe(HTTP.ResultCodes.RS_4.BadRequest);
+    expect(body.message).toBe('Malformed JSON in request body');
+  });
+
+  test('a 5xx stays an unexpected 500 whose message never reaches the client', async () => {
+    const { status, body } = await probe({
+      thrower: () => {
+        throw new HTTPException(HTTP.ResultCodes.RS_5.ServiceUnavailable, {
+          message: 'upstream 10.0.0.7:5432 refused',
+        });
+      },
+    });
+
+    expect(status).toBe(HTTP.ResultCodes.RS_5.InternalServerError);
+    expect(body.message).toBe('Internal Server Error');
+    expect(JSON.stringify(body)).not.toContain('10.0.0.7');
   });
 });
 

@@ -231,11 +231,37 @@ export class BaseAppErrorMiddleware extends BaseHelper implements IProvider<Erro
       return ApplicationErrorTypes.DATABASE_RETRYABLE;
     }
 
-    if ('statusCode' in error) {
+    if ('statusCode' in error || this.readClientErrorStatus({ error }) !== undefined) {
       return ApplicationErrorTypes.INTENTIONAL;
     }
 
     return ApplicationErrorTypes.UNEXPECTED;
+  }
+
+  /** Hono's `HTTPException` carries `status`, not `statusCode`. Only a 4xx is the caller's fault; a 5xx stays unexpected, so its message is sanitized. */
+  private readClientErrorStatus(opts: { error: TThrown }): number | undefined {
+    const { error } = opts;
+
+    if (!('getResponse' in error) || !('status' in error) || typeof error.status !== 'number') {
+      return undefined;
+    }
+
+    const isClientError =
+      error.status >= HTTP.ResultCodes.RS_4.BadRequest &&
+      error.status < HTTP.ResultCodes.RS_5.InternalServerError;
+
+    return isClientError ? error.status : undefined;
+  }
+
+  /** `getError` sets `statusCode`, and it wins when a foreign error carries both. Neither usable is a 500. */
+  private readIntentionalStatus(opts: { error: TThrown }): number {
+    const { error } = opts;
+
+    if ('statusCode' in error && typeof error.statusCode === 'number') {
+      return error.statusCode;
+    }
+
+    return this.readClientErrorStatus({ error }) ?? HTTP.ResultCodes.RS_5.InternalServerError;
   }
 
   /** An ApplicationError's `normalized` is authoritative - a `transform` may have reworded `text`. */
@@ -291,7 +317,7 @@ export class BaseAppErrorMiddleware extends BaseHelper implements IProvider<Erro
         return this.build({
           error,
           type,
-          statusCode: (error as Error & { statusCode: number }).statusCode,
+          statusCode: this.readIntentionalStatus({ error }),
           message: error.message,
         });
       }
