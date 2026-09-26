@@ -22,10 +22,20 @@ Updated [connectors](/packages/connectors.md), [Relational connector](/architect
   must never drift onto two definitions of "already ended".
 - New test-only entry `@venizia/ignis-connectors/testing` (core-server: `@venizia/ignis/testing`):
   `TransactionStates`, `TransactionDouble`, `PostgresTransactionDouble`, `SqliteTransactionDouble`.
-  Never in a root barrel; a guard fails the build if a production file imports it.
-- Additive, not breaking. The real handle's runtime shape changed (a class instance, not a
-  closure-built object literal) but its type and behavior did not - only `{ ...transaction }` or
-  `Object.keys(transaction)` would see a difference, and no IGNIS or BANA code does that.
+  Never in a root barrel; a guard fails the connectors test suite if a production file imports it.
+- If `execute` ends the owned transaction itself, `runInTransaction` never ends it again: committed
+  by `execute` returns its result with a `warn` line (no second commit); rolled back or failed throws
+  naming the early end (no rollback attempt); a rejection after `execute` already ended it rethrows
+  as-is. `TransactionLifecycle.getState()` reads the outcome and returns `undefined` for a foreign
+  `ITransaction`, so a handle not built on this class always reports "ended before it could be
+  committed", even after a real commit.
+- Additive, not breaking. `#dataSource`, `#connection`, and `#state` became ES private fields during
+  fix round 1, after review found them as TypeScript-`private` - an ordinary enumerable own property
+  at runtime that serialized the whole datasource, settings included. ES-private is invisible to
+  `JSON.stringify`, `util.inspect`, `Object.keys`, and a spread copy - matching the old closure
+  literal's exposure. The one real difference: `isActive` now lives on the prototype, so a spread
+  copy no longer carries it and now throws "Transaction is no longer active"; no IGNIS or BANA code
+  spreads a handle.
 
 ## 2026-09-25 - mail attachments: path confined to attachmentRoot, size capped per message
 

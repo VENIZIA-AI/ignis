@@ -161,11 +161,19 @@ that is why the state machine is shared rather than copied per class. One parity
 same 15 cases run against both engines' real handles (PGlite, libsql) and all three doubles
 (`__tests__/relational/transaction/parity-suite.ts`).
 
-The real handle's runtime shape changed - `isActive` is now a prototype getter rather than an own
-one, and `commit`/`rollback` stay own arrow properties so a detached `transaction.commit` keeps
-working - but `beginTransaction()`'s return type is unchanged (`IRelationalTransaction<TConnector>`),
-so this is invisible to typed callers. Only code that spreads the handle (`{ ...transaction }`) or
-enumerates it (`Object.keys(transaction)`) would see a difference; nothing in IGNIS or BANA does.
+**`#dataSource`, `#connection` (on `ConnectionTransaction`) and `#state` (on `TransactionLifecycle`)
+are ES private fields, not TypeScript-`private` ones - the first review round caught a TypeScript-only
+`private` on these that was an ordinary enumerable own property at runtime, serializing the whole
+datasource (settings included) through any `JSON.stringify`, `util.inspect`, or logger call that
+touched the handle.** ES-private fields are invisible to all of those, and to `Object.keys` and a
+spread copy - the same as the pre-lifecycle closure literal, which held no such references at all.
+Measured own keys on a Postgres handle today: `connector`, `commit`, `rollback`, `isolationLevel` -
+one property short of the old shape's `connector`, `isActive`, `commit`, `rollback`, because
+`isActive` is now a prototype getter rather than an own one. `beginTransaction()`'s return type is
+unchanged (`IRelationalTransaction<TConnector>`), so this is invisible to typed callers. The one real
+effect: a spread copy (`{ ...transaction }`) no longer carries `isActive`, so passing one to a
+repository now throws "Transaction is no longer active" where it used to work; nothing in IGNIS or
+BANA does this.
 
 ## `runInTransaction` - join or own, never both
 
@@ -178,6 +186,16 @@ an inactive handle throws before `execute` runs. Passing none OWNS one: it begin
 try/catch, always rethrowing the ORIGINAL error - a rollback failure is only logged. It is declared
 only on `RelationalBaseRepository`, never on `IRelationalDataSource` or any kernel interface: a
 repository-level convenience over `beginTransaction()`, not a new capability.
+
+**If `execute` ends the owned transaction itself**, `runInTransaction` never ends it a second time.
+`TransactionLifecycle.getState({ transaction })` (a static, brand-checked with `#state in transaction`)
+reads the outcome: COMMITTED returns `execute`'s result with a `warn` line and no second commit; any
+other state (ROLLED_BACK, FAILED, or unreadable) throws naming that `execute` ended the transaction
+before it could be committed, with no rollback attempt. If `execute` rejects after already ending the
+transaction, `runInTransaction` rethrows that rejection as-is, with no rollback attempt either.
+`getState` returns `undefined` for any `ITransaction` not built on `TransactionLifecycle` - so given a
+foreign handle, `runInTransaction` cannot tell a self-commit from a self-rollback and always reports
+the "ended before it could be committed" error, even when `execute` committed successfully.
 
 ## Relation building crosses the kernel boundary through a registry
 

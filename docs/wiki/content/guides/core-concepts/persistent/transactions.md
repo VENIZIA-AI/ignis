@@ -104,17 +104,35 @@ That makes a repository or service method that must work stand-alone AND nested 
 transaction a one-line forward, not two code paths:
 
 ```typescript
-async function createOrder(opts: { data: TOrderCreate; transaction?: IDatabaseTransaction }) {
-  return orderRepository.runInTransaction({
+const createOrder = (opts: { data: TOrderCreate; transaction?: IDatabaseTransaction }) =>
+  orderRepository.runInTransaction({
     transaction: opts.transaction,
     execute: async ({ transaction }) =>
       orderRepository.create({ data: opts.data, options: { transaction } }),
   });
-}
 ```
 
 `runInTransaction` never commits or rolls back a joined handle - that stays the job of whoever began
 it.
+
+### If `execute` ends the owned transaction itself
+
+`runInTransaction` expects `execute` to leave an owned transaction open, for `runInTransaction` to
+commit. If `execute` calls `commit()` or `rollback()` on it directly, `runInTransaction` never ends
+it a second time:
+
+| `execute` outcome | What `runInTransaction` does |
+|---|---|
+| Resolves, and `execute` already committed the transaction | Returns `execute`'s result. No second commit is attempted |
+| Resolves, but `execute` rolled back the transaction or left it failed | Throws a dedicated error naming that `execute` ended the transaction before it could be committed. No rollback is attempted |
+| Rejects, after `execute` already ended the transaction | Rethrows the ORIGINAL rejection, with no further rollback attempt |
+
+> [!WARNING] Reliable only for a handle IGNIS built
+> Telling the three outcomes apart means reading the transaction's own internal state. Given a handle
+> from another `ITransaction` implementation - never the real handle or `TransactionDouble` -
+> `runInTransaction` cannot read that state, and reports the "ended before it could be committed"
+> error even when `execute` committed it successfully. Simplest: let `runInTransaction` own the
+> commit and rollback, and never call them from inside `execute`.
 
 ## Transaction Object
 

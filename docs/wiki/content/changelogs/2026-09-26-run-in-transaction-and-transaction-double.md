@@ -63,7 +63,8 @@ rules, including what happens to an inactive handle and a failed rollback.
 <Badge type="tip" text="Feature" />
 
 Unit-testing `runInTransaction` used to mean standing up Postgres or SQLite. `TransactionDouble`,
-from the new `@venizia/ignis/testing` entry, is a transaction handle with no database behind it:
+from the new `@venizia/ignis/testing` entry (`@venizia/ignis-connectors/testing` in the connectors
+package), is a transaction handle with no database behind it:
 
 ```typescript
 import { spyOn } from 'bun:test';
@@ -82,16 +83,32 @@ too. Inject `commitError` or `rollbackError` to test a failed end. See
 [Transaction Doubles](/best-practices/testing-strategies#transaction-doubles) for the full guide,
 including the limit: a double proves control flow, not SQL atomicity.
 
+## If `execute` ends the owned transaction itself
+
+`runInTransaction` expects `execute` to leave an owned transaction open for it to commit. Call
+`commit()` or `rollback()` from inside `execute` instead, and `runInTransaction` never ends it a
+second time: committed by `execute` - the result is returned, with no second commit attempt. Rolled
+back or left failed by `execute` - a dedicated error, naming that `execute` ended the transaction
+before it could be committed, with no rollback attempt. `execute` rejects after ending the
+transaction itself - the ORIGINAL rejection, with no further rollback attempt. This reads the
+transaction's own internal state, so it is reliable only for a handle IGNIS built (the real handle or
+`TransactionDouble`) - given a transaction from another `ITransaction` implementation,
+`runInTransaction` cannot tell whether `execute` already committed it, and reports the
+"ended before it could be committed" error regardless.
+
 ## Who is affected
 
 Additive. Nothing existing changes behavior, and adopting either API is optional.
 
-One shape changed under the hood, not in behavior: the handle `beginTransaction()` returns is now
-backed by a class, `ConnectionTransaction`, instead of a closure building a fresh object literal each
-time. `commit()`, `rollback()`, `isActive`, and `connector` behave exactly as before. The only visible
-difference is to code that treats the handle as a plain object - `{ ...transaction }` or
-`Object.keys(transaction)` now see the class's own fields and a prototype getter for `isActive`,
-not a flat object literal. No production IGNIS or BANA code does this.
+One shape changed under the hood, not in behavior: the handle `beginTransaction()` returns is now a
+class, `ConnectionTransaction`, instead of a closure building a fresh object literal each time. Its
+datasource, connection, and internal state are ES private fields - invisible to `JSON.stringify`,
+`util.inspect`, `Object.keys`, and a spread copy, exactly as before. `commit()`, `rollback()`, and
+`connector` behave exactly as before, and reading `isActive` on the handle itself still works.
+
+The one real difference: `isActive` now lives on the shared prototype, not as an own property. A
+spread copy - `{ ...transaction }` - no longer carries it, so passing a spread copy to a repository
+now throws "Transaction is no longer active" instead of working. Nothing in IGNIS does this.
 
 **Files:**
 

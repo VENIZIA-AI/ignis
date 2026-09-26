@@ -585,8 +585,9 @@ from `@venizia/ignis/testing`, stubs the handle instead: stub `beginTransaction`
 assert what commit or rollback happened.
 
 ```typescript
-import { spyOn } from 'bun:test';
+import { expect, it, spyOn } from 'bun:test';
 import { PostgresTransactionDouble, TransactionStates } from '@venizia/ignis/testing';
+import { getError } from '@venizia/ignis-helpers';
 
 it('commits when execute succeeds', async () => {
   const double = new PostgresTransactionDouble();
@@ -606,7 +607,7 @@ it('rolls back when execute throws', async () => {
   await expect(
     orderRepository.runInTransaction({
       execute: async () => {
-        throw new Error('boom');
+        throw getError({ message: 'boom' });
       },
     }),
   ).rejects.toThrow('boom');
@@ -619,7 +620,7 @@ it('rolls back when execute throws', async () => {
 Inject `commitError` (or `rollbackError`) to test a failed commit or rollback:
 
 ```typescript
-const double = new PostgresTransactionDouble({ commitError: new Error('deadlock') });
+const double = new PostgresTransactionDouble({ commitError: getError({ message: 'deadlock' }) });
 ```
 
 The double never touches a database. Its `connector` getter throws - a repository method that

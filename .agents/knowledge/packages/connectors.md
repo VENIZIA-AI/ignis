@@ -93,8 +93,8 @@ string "undefined".
 four runtime names: `TransactionStates`, `TransactionDouble`, `PostgresTransactionDouble`, and
 `SqliteTransactionDouble`. None of the four is exported from the root barrel, `/relational`,
 `/postgres`, `/sqlite`, or core-server's root - a test scans every `src/**` file outside `testing/`
-and `__tests__/` for an import of `@/testing` or the published specifier and fails the build if one
-exists.
+and `__tests__/` for an import of `@/testing` or the published specifier and fails the connectors
+test suite if one exists.
 
 `TransactionDouble` extends the same `TransactionLifecycle` state machine the real transaction handle
 does (see [Relational connector](/architecture/relational-connector.md)), so
