@@ -14,6 +14,12 @@
   "releases": {
     "atlas": [
       {
+        "version": "0.1.0",
+        "date": "2026-09-24",
+        "sha": "519f1f90",
+        "order": 1520
+      },
+      {
         "version": "0.1.0-32",
         "date": "2026-09-24",
         "sha": "d5b2707a",
@@ -4408,6 +4414,40 @@
     ]
   },
   "changelogs": [
+    {
+      "id": "changelog:2026-09-26-order-entry-parsing-and-sort-expressions",
+      "file": "2026-09-26-order-entry-parsing-and-sort-expressions.md",
+      "date": "2026-09-26",
+      "title": "Order Entries Get One Parser, and toOrderBy Can Sort by an Expression",
+      "packages": [
+        "connectors",
+        "core-server",
+        "filter",
+        "kernel"
+      ],
+      "kind": "Feature",
+      "order": 1527
+    },
+    {
+      "id": "changelog:2026-09-25-static-asset-and-storage-fixes",
+      "file": "2026-09-25-static-asset-and-storage-fixes.md",
+      "date": "2026-09-25",
+      "title": "Static Asset Scoping, a Real Body Limit, and Storage File Names",
+      "packages": [
+        "helpers"
+      ],
+      "kind": "Enhancement",
+      "order": 1523
+    },
+    {
+      "id": "changelog:2026-09-25-mail-attachment-limits",
+      "file": "2026-09-25-mail-attachment-limits.md",
+      "date": "2026-09-25",
+      "title": "Mail Attachments Read Only Under a Root, and Stop at a Size Limit",
+      "packages": [],
+      "kind": "Security",
+      "order": 1525
+    },
     {
       "id": "changelog:2026-09-24-repository-datasource-registered-by-hand",
       "file": "2026-09-24-repository-datasource-registered-by-hand.md",

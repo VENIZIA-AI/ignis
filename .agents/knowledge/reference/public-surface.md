@@ -84,8 +84,9 @@ tags: [reference, exports, api]
 
 ## filter
 
-### `@venizia/ignis-filter` (14)
+### `@venizia/ignis-filter` (17)
 
+- `parseOrderEntry` const
 - `QueryOperators` class
 - `Sorts` class
 - `TFields` type
@@ -95,8 +96,10 @@ tags: [reference, exports, api]
 - `TLimit` type
 - `TOffset` type
 - `TOrderBy` type
+- `TParsedOrderEntry` type
 - `TQueryOperator` type
 - `TSkip` type
+- `TSortDirection` type
 - `TWhere` type
 - `TWhereOperators` type
 - `TWhereValue` type
@@ -971,7 +974,7 @@ tags: [reference, exports, api]
 
 ## kernel
 
-### `@venizia/ignis-kernel` (402)
+### `@venizia/ignis-kernel` (405)
 
 - `AbstractApplication` class
 - `AbstractAuthRegistry` class
@@ -1194,6 +1197,7 @@ tags: [reference, exports, api]
 - `NumberIdType` type
 - `OffsetSchema` const
 - `OrderBySchema` const
+- `parseOrderEntry` const
 - `patch` const
 - `PersistableCrudController` class
 - `pickRegistrationOptions` const
@@ -1334,6 +1338,7 @@ tags: [reference, exports, api]
 - `TOffset` type
 - `TOrderBy` type
 - `TOrigin` type
+- `TParsedOrderEntry` type
 - `TPlannedGrantRow` type
 - `TPolicyDomainInput` type
 - `TQueryOperator` type
@@ -1365,6 +1370,7 @@ tags: [reference, exports, api]
 - `TSignInRequest` type
 - `TSignUpRequest` type
 - `TSkip` type
+- `TSortDirection` type
 - `TSubsetGrantMetadata` type
 - `TUpdateData` type
 - `TWhere` type
@@ -2025,7 +2031,7 @@ tags: [reference, exports, api]
 
 ## core-server
 
-### `@venizia/ignis` (1002)
+### `@venizia/ignis` (1005)
 
 - `AbstractApplication` class
 - `AbstractAuthRegistry` class
@@ -2597,6 +2603,7 @@ tags: [reference, exports, api]
 - `parseArrayToMapWithKey` const
 - `parseContentDisposition` const
 - `parseMultipartBody` const
+- `parseOrderEntry` const
 - `patch` const
 - `PersistableCrudController` class
 - `PersistableRepository` class
@@ -2888,6 +2895,7 @@ tags: [reference, exports, api]
 - `toRelationConfigs` const
 - `TOrigin` type
 - `toTrimmed` const
+- `TParsedOrderEntry` type
 - `TPermissionCommonColumns` type
 - `TPermissionOptions` type
 - `TPlannedGrantRow` type
@@ -2957,6 +2965,7 @@ tags: [reference, exports, api]
 - `TSignUpRequest` type
 - `TSkip` type
 - `TSoftDeletableTableSchema` type
+- `TSortDirection` type
 - `TStringConstValue` type
 - `TSubsetGrantMetadata` type
 - `TTableColumns` type

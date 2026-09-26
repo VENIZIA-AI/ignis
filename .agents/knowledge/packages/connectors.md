@@ -404,9 +404,44 @@ created_at DESC, id ASC` is no longer satisfied by a single-column `created_at` 
 Postgres 13+ finishes it with an incremental sort, and a composite `(created_at, id)` index removes
 even that.
  Postgres breaks ties per page, so paging
-over a non-unique column repeated and skipped rows (PGlite: 60 read, 50 distinct). Each column's
-`asc`/`desc` SQL node is built once and reused - drizzle 0.45 wraps order nodes, never mutates them -
-which took `build()` with one include from 870 to 446 ns.
+over a non-unique column repeated and skipped rows (PGlite: 60 read, 50 distinct). Each column's or
+expression's `asc`/`desc` SQL node is built once and reused in a `WeakMap` keyed by the column/`SQL`
+object (`_orderNodeCache`) - drizzle 0.45 wraps order nodes, never mutates them - which took `build()`
+with one include from 870 to 446 ns.
+
+**Each entry is read through `parseOrderEntry` (`@venizia/ignis-filter`), not a private parser.**
+`FilterBuilder`, `TypesenseQueryDialect` and `MeilisearchQueryDialect` used to each carry their own
+copy of the same `entry.trim().split(/\s+/)` logic; all three now call the one shared function (C-16
+in `.agents/rules.md`). It throws a `400` naming the whole entry for an empty field, an invalid
+direction, or more than two tokens - the last one is a genuine behavior change: an entry like
+`'createdAt DESC NULLS LAST'` used to silently sort on `createdAt DESC` and drop the tail, since
+`NULLS LAST`/`FIRST` was never wired to any clause. Only ASCII whitespace separates tokens; the old
+`split(/\s+/)` also split on a non-breaking space, so `'name<NBSP>DESC'` now reads as one field name
+instead of two tokens.
+
+**`toOrderBy`'s `expressions` option resolves a key that a schema column cannot: a column on a joined
+table, or a computed `SQL` (a `COALESCE`, for instance).** It is `Readonly<Record<string, AnyColumn |
+SQLWrapper>>`; a key is checked with `Object.hasOwn` before the JSON-path and schema-column checks, so
+an inherited name like `constructor` never resolves through the prototype chain. An expression keyed
+`id` never counts toward suppressing the `id ASC` tie-breaker - the tie-breaker question is "does an
+entry sort by the real `id` column", not "does an entry's key spell `id`".
+
+**`FilterBuilder` also caches the *parsed* entry, not only the order node** - a constraint the code
+does not show anywhere in one place: `_orderEntryCache` is a plain `Map<string, TParsedOrderEntry>`,
+one per engine class, not per instance - `AbstractPostgresDataSource.queryDialect ??= new
+PostgresQueryDialect()` (and the same shape for SQLite) makes the dialect a process-wide static
+singleton, so the cache is shared by every datasource, tenant, and request in the process. It is
+capped at `ORDER_ENTRY_CACHE_CAP = 1024` entries and, since fix round 1, at
+`ORDER_ENTRY_CACHE_MAX_LENGTH = 256` characters per entry - memory is bounded by count *and* by
+length together (roughly 1024 x 256 characters, about 0.25-0.5 MB per engine class), not by count
+alone. The map is cleared (not LRU-evicted) once it reaches the cap: deleting from the front of a
+JSC `Map` measured slower than accepting one extra parse on the next miss. An entry is cached as soon
+as it parses and fits the length bound - before the column or expression it names is looked up - so
+an entry naming an unknown column is cached too, as long as it is 256 characters or fewer. Only a
+value `parseOrderEntry` itself rejects (empty field, invalid direction, more than two tokens) is
+never cached. Measured on the built dist (`score DESC`, request-shaped): about 53 ns/call before
+this change, about 250 ns/call for the parser running uncached on every call, about 37 ns/call with
+the cache.
 
 ## Every published sub-path is probed, and eight rows are waived
 
@@ -517,6 +552,7 @@ catch rather than prove it absent.
 - [core](/packages/core-server.md)
 - [kernel](/packages/kernel.md)
 - [core-worker](/packages/core-worker.md)
+- [Filter system](/architecture/filter-system.md)
 - [Relational connector](/architecture/relational-connector.md)
 - [SQLite connector](/architecture/sqlite-connector.md)
 - [Typesense search connector](/architecture/search-typesense.md)

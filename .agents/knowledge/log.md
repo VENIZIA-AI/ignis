@@ -6,6 +6,32 @@ not how.
 This file and `index.md` are reserved OKF filenames - they carry no `type:` frontmatter and are not
 counted as concepts.
 
+## 2026-09-26 - order entries share one parser; toOrderBy gains an expressions option
+
+Updated [filter](/packages/filter.md), [connectors](/packages/connectors.md),
+[filter system](/architecture/filter-system.md).
+
+- New `parseOrderEntry` export (`@venizia/ignis-filter`), plus `TSortDirection`/`TParsedOrderEntry`
+  types. Replaces three private copies of the same parse logic in the relational, Typesense, and
+  Meilisearch dialects (C-16).
+- Behavior change: an order entry with more than two tokens, or an empty entry, is now a `400` in
+  every dialect - previously silently accepted (extra tokens dropped, an empty entry read as an
+  unknown column). Direction-error messages now come from `parseOrderEntry` and carry the whole
+  entry, not the table name.
+- Only ASCII whitespace separates tokens; a non-breaking space no longer splits an entry.
+- `toOrderBy` (relational) gains `expressions?: Readonly<Record<string, AnyColumn | SQLWrapper>>` -
+  sorts by a joined column or a computed `SQL`, resolved by `Object.hasOwn` before the JSON-path and
+  schema-column checks.
+- `FilterBuilder` caches the parsed entry (`_orderEntryCache`), one cache per engine class - the
+  query dialect is a process-wide static singleton, shared by every datasource, tenant, and request,
+  not per instance. Capped at 1024 entries and, since fix round 1, 256 characters per entry, so
+  memory is bounded by count and by length - a performance addition beyond the two issues, documented
+  since the code alone does not show the bound or why clearing beats eviction.
+- Fix round 1 (review I2, I3, M1, M2; security F1, F2): the cache skips entries over 256 characters
+  (`ORDER_ENTRY_CACHE_MAX_LENGTH`); the three parser messages quote the entry with `JSON.stringify`
+  instead of raw interpolation; `getOrderNode` types `direction` as `TSortDirection`; unverified cost
+  numbers dropped from code comments and corrected in the knowledge prose above.
+
 ## 2026-09-25 - mail attachments: path confined to attachmentRoot, size capped per message
 
 Updated [core-server](/packages/core-server.md).
