@@ -455,6 +455,10 @@ const config = defineConfig({
               collapsed: true,
               items: [
                 {
+                  text: 'Order Entries Get One Parser, and toOrderBy Can Sort by an Expression',
+                  link: '/changelogs/2026-09-26-order-entry-parsing-and-sort-expressions',
+                },
+                {
                   text: 'JSON-Path Where and Order Keys Are Now Qualified With the Table',
                   link: '/changelogs/2026-09-26-json-path-column-qualification',
                 },

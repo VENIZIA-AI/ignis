@@ -12,6 +12,12 @@ tags: [packages, filter, query, isomorphic, browser]
 sort direction constants (`Sorts`). It was extracted from the repository base that now lives in
 `kernel/src/base/repositories/` so the vocabulary can be shared with a browser data layer.
 
+`common/order.ts` adds `parseOrderEntry(opts: { entry: string }): TParsedOrderEntry` - the one parser
+every relational and search dialect now shares for a `'field'`/`'field ASC|DESC'` order entry, and the
+`TSortDirection`/`TParsedOrderEntry` types it returns. See
+[filter system - order entries share one parser](/architecture/filter-system.md#order-entries-share-one-parser)
+for the 400 cases and the `toOrderBy` `expressions` option that consumes it.
+
 ## `TWhere<T>` types the value, not only the column
 
 `TWhere<T> = { [key in keyof T]?: TWhereValue<T[key]> } & { and?; or? }`. A key not on `T` was always
