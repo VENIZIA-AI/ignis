@@ -4,11 +4,13 @@ import type {
   TFields,
   TFilter,
   TInclusion,
+  TParsedOrderEntry,
   TQueryOperatorHandlers,
   TWhere,
 } from '@venizia/ignis-kernel';
 import {
   DEFAULT_LIMIT,
+  parseOrderEntry,
   QueryOperators,
   RelationTypes,
   ScopeFilterMissingBehaviors,
@@ -31,7 +33,9 @@ import {
   not,
   or,
   sql,
+  type AnyColumn,
   type SQL,
+  type SQLWrapper,
 } from 'drizzle-orm';
 import type { TRelationConfig, TTableColumns } from '../common';
 import { ScopeFilterDenial, TableColumnCache } from '../common';
@@ -46,22 +50,8 @@ import {
 /** What one registry lookup yields - named so the three setting readers can accept an already-resolved entry instead of each repeating the lookup. */
 type TResolvedModelEntry = ReturnType<MetadataRegistry['getModelEntry']>;
 
-// The spellings callers write, compared without allocating; anything else is lowercased.
-const normalizeSortDirection = (opts: { direction: string }): string => {
-  switch (opts.direction) {
-    case 'ASC':
-    case 'asc': {
-      return Sorts.ASC;
-    }
-    case 'DESC':
-    case 'desc': {
-      return Sorts.DESC;
-    }
-    default: {
-      return opts.direction.toLowerCase();
-    }
-  }
-};
+/** Most order entries an instance remembers; entries come from requests, so the cache is bounded. */
+const ORDER_ENTRY_CACHE_CAP = 1024;
 
 const SCALAR_EQUALITY_OPERATORS = new Set<string>([
   QueryOperators.EQ,
@@ -93,11 +83,11 @@ export abstract class FilterBuilder extends BaseHelper {
     Record<string, TRelationConfig>
   >();
 
-  /** `asc`/`desc` allocate an SQL node (~75 ns) that drizzle never mutates - built once per column. */
-  private readonly _columnOrderCache = new WeakMap<
-    TTableColumns[string],
-    { asc: SQL; desc: SQL }
-  >();
+  /** `asc`/`desc` allocate an SQL node (~75 ns) that drizzle never mutates - built once per column or expression. */
+  private readonly _orderNodeCache = new WeakMap<AnyColumn | SQLWrapper, { asc: SQL; desc: SQL }>();
+
+  /** A freshly sliced field costs ~40 ns to hash on every column lookup; a remembered one is hashed once. */
+  private readonly _orderEntryCache = new Map<string, TParsedOrderEntry>();
 
   constructor() {
     super({ scope: FilterBuilder.name });
@@ -486,13 +476,17 @@ export abstract class FilterBuilder extends BaseHelper {
     return this.buildOperatorConditions({ column, value });
   }
 
-  /** Converts order strings to Drizzle SQL order expressions (supports JSON paths). */
+  /**
+   * Converts order entries to Drizzle SQL order nodes. A key resolves against `expressions` first
+   * (a joined column or a computed `SQL`), then as a JSON path, then as a schema column.
+   */
   toOrderBy<Schema extends TTableSchemaWithId>(opts: {
     tableName: string;
     schema: Schema;
     order: string[];
+    expressions?: Readonly<Record<string, AnyColumn | SQLWrapper>>;
   }): SQL[] {
-    const { tableName, schema, order } = opts;
+    const { tableName, schema, order, expressions } = opts;
 
     if (!Array.isArray(order) || order.length === 0) {
       return [];
@@ -504,18 +498,17 @@ export abstract class FilterBuilder extends BaseHelper {
     const orderBy: SQL[] = [];
     let namesId = false;
 
-    for (const orderStr of order) {
-      const [key, direction = Sorts.ASC] = orderStr.trim().split(/\s+/);
-      const sortDirection = normalizeSortDirection({ direction });
+    for (const entry of order) {
+      const { field: key, direction } = this.readOrderEntry({ entry });
 
-      if (sortDirection !== Sorts.ASC && sortDirection !== Sorts.DESC) {
-        throw getError({
-          message: `[FilterBuilder][toOrderBy] Table: ${tableName} | Invalid direction: '${direction}' | Expected: 'ASC' or 'DESC'`,
-        });
+      // The key comes from the request: an inherited name like `constructor` must not resolve.
+      if (expressions && Object.hasOwn(expressions, key)) {
+        orderBy.push(this.getOrderNode({ target: expressions[key], direction }));
+        continue;
       }
 
       if (isJsonPath({ key })) {
-        orderBy.push(this.buildJsonOrderBy({ key, direction: sortDirection, columns, tableName }));
+        orderBy.push(this.buildJsonOrderBy({ key, direction, columns, tableName }));
         continue;
       }
 
@@ -527,27 +520,44 @@ export abstract class FilterBuilder extends BaseHelper {
       }
 
       namesId ||= column === idColumn;
-      orderBy.push(this.getColumnOrder({ column, direction: sortDirection }));
+      orderBy.push(this.getOrderNode({ target: column, direction }));
     }
 
     // A tie left to the engine is broken per page, so paging repeats and skips rows.
     if (idColumn && !namesId) {
-      orderBy.push(this.getColumnOrder({ column: idColumn, direction: Sorts.ASC }));
+      orderBy.push(this.getOrderNode({ target: idColumn, direction: Sorts.ASC }));
     }
 
     return orderBy;
   }
 
-  private getColumnOrder(opts: {
-    column: TTableColumns[string];
+  private readOrderEntry(opts: { entry: string }): TParsedOrderEntry {
+    const { entry } = opts;
+    let parsed = this._orderEntryCache.get(entry);
+
+    if (!parsed) {
+      parsed = parseOrderEntry({ entry });
+
+      // Clearing, not evicting the oldest: a JSC Map deleted from its front costs ~250 ns per call.
+      if (this._orderEntryCache.size >= ORDER_ENTRY_CACHE_CAP) {
+        this._orderEntryCache.clear();
+      }
+      this._orderEntryCache.set(entry, parsed);
+    }
+
+    return parsed;
+  }
+
+  private getOrderNode(opts: {
+    target: AnyColumn | SQLWrapper;
     direction: TConstValue<typeof Sorts>;
   }): SQL {
-    const { column, direction } = opts;
-    let pair = this._columnOrderCache.get(column);
+    const { target, direction } = opts;
+    let pair = this._orderNodeCache.get(target);
 
     if (!pair) {
-      pair = { asc: asc(column), desc: desc(column) };
-      this._columnOrderCache.set(column, pair);
+      pair = { asc: asc(target), desc: desc(target) };
+      this._orderNodeCache.set(target, pair);
     }
 
     return direction === Sorts.DESC ? pair.desc : pair.asc;

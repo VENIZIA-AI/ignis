@@ -10,7 +10,13 @@ import type {
   IRelationalTransaction,
 } from '@/relational/core/datasources/common';
 import type { TTableObject, TTableSchemaWithId } from '@/relational/core/models/common';
-import type { createTableRelationsHelpers, getTableColumns, SQL } from 'drizzle-orm';
+import type {
+  AnyColumn,
+  createTableRelationsHelpers,
+  getTableColumns,
+  SQL,
+  SQLWrapper,
+} from 'drizzle-orm';
 
 /** Entity relationship config (one-to-one/many-to-one, one-to-many); Drizzle-specific. */
 export type TRelationConfig = {
@@ -50,10 +56,12 @@ export interface IRelationalQueryDialect {
     schema: Schema;
     where: TWhere<TTableObject<Schema>>;
   }): SQL | undefined;
+  /** `expressions` names sort targets the schema cannot: a joined column or a computed `SQL`, keyed by the name an order entry uses. */
   toOrderBy<Schema extends TTableSchemaWithId>(opts: {
     tableName: string;
     schema: Schema;
     order: string[];
+    expressions?: Readonly<Record<string, AnyColumn | SQLWrapper>>;
   }): SQL[];
 
   /** Splits update data into plain column assignments and engine-specific JSON-path expressions. Postgres composes `jsonb_set`; another engine composes its own. */
