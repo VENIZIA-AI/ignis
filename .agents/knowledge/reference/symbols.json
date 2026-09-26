@@ -11961,7 +11961,7 @@
       "specifier": "@venizia/ignis/relational",
       "kind": "class",
       "file": "packages/connectors/src/relational/core/datasources/base.ts",
-      "line": 17,
+      "line": 67,
       "signature": "class BaseRelationalDataSource<Settings extends object = {}, Schema extends TAnyDataSourceSchema = TAnyDataSourceSchema, ConfigurableOptions extends object = {}, Client = unknown, TConnector = unknown> extends AbstractRelationalDataSource<Settings, Schema, ConfigurableOptions, Client, TConnector>"
     },
     {
@@ -14475,6 +14475,86 @@
       "signature": "resolveServedContentType: (opts: { helper: IStorageHelper; object: IObjectRef; }) => { contentType: string; isRenderable: boolean; }"
     },
     {
+      "name": "IPostgresTransactionDoubleOptions",
+      "package": "@venizia/ignis",
+      "subpath": "./testing",
+      "specifier": "@venizia/ignis/testing",
+      "kind": "interface",
+      "file": "packages/connectors/src/testing/transaction-double.ts",
+      "line": 24,
+      "signature": "interface IPostgresTransactionDoubleOptions extends ITransactionDoubleOptions"
+    },
+    {
+      "name": "ISqliteTransactionDoubleOptions",
+      "package": "@venizia/ignis",
+      "subpath": "./testing",
+      "specifier": "@venizia/ignis/testing",
+      "kind": "interface",
+      "file": "packages/connectors/src/testing/transaction-double.ts",
+      "line": 28,
+      "signature": "interface ISqliteTransactionDoubleOptions extends ITransactionDoubleOptions"
+    },
+    {
+      "name": "ITransactionDoubleOptions",
+      "package": "@venizia/ignis",
+      "subpath": "./testing",
+      "specifier": "@venizia/ignis/testing",
+      "kind": "interface",
+      "file": "packages/connectors/src/testing/transaction-double.ts",
+      "line": 16,
+      "signature": "interface ITransactionDoubleOptions"
+    },
+    {
+      "name": "PostgresTransactionDouble",
+      "package": "@venizia/ignis",
+      "subpath": "./testing",
+      "specifier": "@venizia/ignis/testing",
+      "kind": "class",
+      "file": "packages/connectors/src/testing/transaction-double.ts",
+      "line": 93,
+      "signature": "class PostgresTransactionDouble extends TransactionDouble"
+    },
+    {
+      "name": "SqliteTransactionDouble",
+      "package": "@venizia/ignis",
+      "subpath": "./testing",
+      "specifier": "@venizia/ignis/testing",
+      "kind": "class",
+      "file": "packages/connectors/src/testing/transaction-double.ts",
+      "line": 104,
+      "signature": "class SqliteTransactionDouble extends TransactionDouble"
+    },
+    {
+      "name": "TTransactionState",
+      "package": "@venizia/ignis",
+      "subpath": "./testing",
+      "specifier": "@venizia/ignis/testing",
+      "kind": "type",
+      "file": "packages/connectors/src/relational/core/datasources/transaction-lifecycle.ts",
+      "line": 23,
+      "signature": "type TTransactionState = TConstValue<typeof TransactionStates>"
+    },
+    {
+      "name": "TransactionDouble",
+      "package": "@venizia/ignis",
+      "subpath": "./testing",
+      "specifier": "@venizia/ignis/testing",
+      "kind": "class",
+      "file": "packages/connectors/src/testing/transaction-double.ts",
+      "line": 37,
+      "signature": "class TransactionDouble extends TransactionLifecycle implements IRelationalTransaction<never>"
+    },
+    {
+      "name": "TransactionStates",
+      "package": "@venizia/ignis",
+      "subpath": "./testing",
+      "specifier": "@venizia/ignis/testing",
+      "kind": "class",
+      "file": "packages/connectors/src/relational/core/datasources/transaction-lifecycle.ts",
+      "line": 5,
+      "signature": "class TransactionStates"
+    },
+    {
       "name": "AbstractSearchDataSource",
       "package": "@venizia/ignis",
       "subpath": "./typesense",
@@ -15811,7 +15891,7 @@
       "specifier": "@venizia/ignis-connectors",
       "kind": "class",
       "file": "packages/connectors/src/relational/core/datasources/base.ts",
-      "line": 17,
+      "line": 67,
       "signature": "class BaseRelationalDataSource<Settings extends object = {}, Schema extends TAnyDataSourceSchema = TAnyDataSourceSchema, ConfigurableOptions extends object = {}, Client = unknown, TConnector = unknown> extends AbstractRelationalDataSource<Settings, Schema, ConfigurableOptions, Client, TConnector>"
     },
     {
@@ -18350,7 +18430,7 @@
       "specifier": "@venizia/ignis-connectors/relational",
       "kind": "class",
       "file": "packages/connectors/src/relational/core/datasources/base.ts",
-      "line": 17,
+      "line": 67,
       "signature": "class BaseRelationalDataSource<Settings extends object = {}, Schema extends TAnyDataSourceSchema = TAnyDataSourceSchema, ConfigurableOptions extends object = {}, Client = unknown, TConnector = unknown> extends AbstractRelationalDataSource<Settings, Schema, ConfigurableOptions, Client, TConnector>"
     },
     {
@@ -20442,6 +20522,86 @@
       "file": "packages/connectors/src/relational/sqlite/drivers/libsql.ts",
       "line": 26,
       "signature": "type TLibSqlDriverOptions = Omit<IPoolControlOptions, 'size'> & { client: Client; }"
+    },
+    {
+      "name": "IPostgresTransactionDoubleOptions",
+      "package": "@venizia/ignis-connectors",
+      "subpath": "./testing",
+      "specifier": "@venizia/ignis-connectors/testing",
+      "kind": "interface",
+      "file": "packages/connectors/src/testing/transaction-double.ts",
+      "line": 24,
+      "signature": "interface IPostgresTransactionDoubleOptions extends ITransactionDoubleOptions"
+    },
+    {
+      "name": "ISqliteTransactionDoubleOptions",
+      "package": "@venizia/ignis-connectors",
+      "subpath": "./testing",
+      "specifier": "@venizia/ignis-connectors/testing",
+      "kind": "interface",
+      "file": "packages/connectors/src/testing/transaction-double.ts",
+      "line": 28,
+      "signature": "interface ISqliteTransactionDoubleOptions extends ITransactionDoubleOptions"
+    },
+    {
+      "name": "ITransactionDoubleOptions",
+      "package": "@venizia/ignis-connectors",
+      "subpath": "./testing",
+      "specifier": "@venizia/ignis-connectors/testing",
+      "kind": "interface",
+      "file": "packages/connectors/src/testing/transaction-double.ts",
+      "line": 16,
+      "signature": "interface ITransactionDoubleOptions"
+    },
+    {
+      "name": "PostgresTransactionDouble",
+      "package": "@venizia/ignis-connectors",
+      "subpath": "./testing",
+      "specifier": "@venizia/ignis-connectors/testing",
+      "kind": "class",
+      "file": "packages/connectors/src/testing/transaction-double.ts",
+      "line": 93,
+      "signature": "class PostgresTransactionDouble extends TransactionDouble"
+    },
+    {
+      "name": "SqliteTransactionDouble",
+      "package": "@venizia/ignis-connectors",
+      "subpath": "./testing",
+      "specifier": "@venizia/ignis-connectors/testing",
+      "kind": "class",
+      "file": "packages/connectors/src/testing/transaction-double.ts",
+      "line": 104,
+      "signature": "class SqliteTransactionDouble extends TransactionDouble"
+    },
+    {
+      "name": "TTransactionState",
+      "package": "@venizia/ignis-connectors",
+      "subpath": "./testing",
+      "specifier": "@venizia/ignis-connectors/testing",
+      "kind": "type",
+      "file": "packages/connectors/src/relational/core/datasources/transaction-lifecycle.ts",
+      "line": 23,
+      "signature": "type TTransactionState = TConstValue<typeof TransactionStates>"
+    },
+    {
+      "name": "TransactionDouble",
+      "package": "@venizia/ignis-connectors",
+      "subpath": "./testing",
+      "specifier": "@venizia/ignis-connectors/testing",
+      "kind": "class",
+      "file": "packages/connectors/src/testing/transaction-double.ts",
+      "line": 37,
+      "signature": "class TransactionDouble extends TransactionLifecycle implements IRelationalTransaction<never>"
+    },
+    {
+      "name": "TransactionStates",
+      "package": "@venizia/ignis-connectors",
+      "subpath": "./testing",
+      "specifier": "@venizia/ignis-connectors/testing",
+      "kind": "class",
+      "file": "packages/connectors/src/relational/core/datasources/transaction-lifecycle.ts",
+      "line": 5,
+      "signature": "class TransactionStates"
     },
     {
       "name": "AbstractSearchDataSource",
