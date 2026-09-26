@@ -4420,6 +4420,7 @@
       "date": "2026-09-26",
       "title": "Order Entries Get One Parser, and toOrderBy Can Sort by an Expression",
       "packages": [
+        "connectors",
         "core-server",
         "filter",
         "kernel"

@@ -416,7 +416,7 @@ in `.agents/rules.md`). It throws a `400` naming the whole entry for an empty fi
 direction, or more than two tokens - the last one is a genuine behavior change: an entry like
 `'createdAt DESC NULLS LAST'` used to silently sort on `createdAt DESC` and drop the tail, since
 `NULLS LAST`/`FIRST` was never wired to any clause. Only ASCII whitespace separates tokens; the old
-`split(/\s+/)` also split on a non-breaking space, so `'name DESC'` now reads as one field name
+`split(/\s+/)` also split on a non-breaking space, so `'name<NBSP>DESC'` now reads as one field name
 instead of two tokens.
 
 **`toOrderBy`'s `expressions` option resolves a key that a schema column cannot: a column on a joined
@@ -428,13 +428,20 @@ entry sort by the real `id` column", not "does an entry's key spell `id`".
 
 **`FilterBuilder` also caches the *parsed* entry, not only the order node** - a constraint the code
 does not show anywhere in one place: `_orderEntryCache` is a plain `Map<string, TParsedOrderEntry>`,
-one per `FilterBuilder` instance, capped at `ORDER_ENTRY_CACHE_CAP = 1024` and cleared (not
-LRU-evicted) once it reaches the cap. Entries come from request filters, so the cache is
-attacker-influenced; clearing bounds memory without paying to evict the single oldest key (measured
-at ~250 ns per call on a JSC `Map`, against ~40 ns saved per repeated lookup). Only entries that parse
-without throwing are cached. The cache exists because a freshly-sliced `field` string costs ~40 ns to
-hash on every property lookup against `columns[key]`, enough to regress a plain `'score DESC'` entry
-from ~50 ns to ~250 ns per call when the parser runs uncached on every request.
+one per engine class, not per instance - `AbstractPostgresDataSource.queryDialect ??= new
+PostgresQueryDialect()` (and the same shape for SQLite) makes the dialect a process-wide static
+singleton, so the cache is shared by every datasource, tenant, and request in the process. It is
+capped at `ORDER_ENTRY_CACHE_CAP = 1024` entries and, since fix round 1, at
+`ORDER_ENTRY_CACHE_MAX_LENGTH = 256` characters per entry - memory is bounded by count *and* by
+length together (roughly 1024 x 256 characters, about 0.25-0.5 MB per engine class), not by count
+alone. The map is cleared (not LRU-evicted) once it reaches the cap: deleting from the front of a
+JSC `Map` measured slower than accepting one extra parse on the next miss. An entry is cached as soon
+as it parses and fits the length bound - before the column or expression it names is looked up - so
+an entry naming an unknown column is cached too, as long as it is 256 characters or fewer. Only a
+value `parseOrderEntry` itself rejects (empty field, invalid direction, more than two tokens) is
+never cached. Measured on the built dist (`score DESC`, request-shaped): about 53 ns/call before
+this change, about 250 ns/call for the parser running uncached on every call, about 37 ns/call with
+the cache.
 
 ## Every published sub-path is probed, and eight rows are waived
 
