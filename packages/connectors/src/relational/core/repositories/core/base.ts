@@ -23,6 +23,10 @@ import {
 // Deep import, not the `@/relational/core/datasources` barrel: the barrel pulls the datasource classes, which import the engine branch's dialect and executor - an init cycle back into this tier.
 import type { IRelationalDataSource } from '@/relational/core/datasources/common';
 import { isRelationalTransaction } from '@/relational/core/datasources/common';
+import {
+  TransactionLifecycle,
+  TransactionStates,
+} from '@/relational/core/datasources/transaction-lifecycle';
 import type {
   BaseRelationalEntity,
   TTableInsert,
@@ -255,7 +259,8 @@ export abstract class RelationalBaseRepository<
   /**
    * Runs `execute` inside a transaction. Given a `transaction`, joins it: its owner commits or rolls
    * back, so this never does. Given none, owns one: begins it, commits when `execute` resolves, and
-   * rolls back when `execute` or the commit throws - rethrowing the original error either way.
+   * rolls back when `execute` or the commit throws - rethrowing the original error either way. An
+   * owned transaction that `execute` already ended is never ended a second time.
    */
   async runInTransaction<ResultType>(opts: {
     transaction?: TRelationalTransactionOf<TDataSource>;
@@ -282,25 +287,61 @@ export abstract class RelationalBaseRepository<
 
     const ownedTransaction = await this.beginTransaction(transactionOptions);
 
+    let result: ResultType;
     try {
-      const result = await execute({ transaction: ownedTransaction });
-      await ownedTransaction.commit();
-      return result;
+      result = await execute({ transaction: ownedTransaction });
     } catch (error) {
-      try {
-        await ownedTransaction.rollback();
-      } catch (rollbackError) {
-        // The rollback failure is only logged: the caller needs the error that caused it.
-        this.logger
-          .for('runInTransaction')
-          .error(
-            'Rollback failed | Error: %s | Original error, rethrown: %s',
-            rollbackError,
-            error,
-          );
+      if (ownedTransaction.isActive) {
+        await this.rollbackOwnedTransaction({ transaction: ownedTransaction });
       }
 
       throw error;
+    }
+
+    if (!ownedTransaction.isActive) {
+      return this.resolveEndedByExecute({ transaction: ownedTransaction, result });
+    }
+
+    try {
+      await ownedTransaction.commit();
+    } catch (error) {
+      await this.rollbackOwnedTransaction({ transaction: ownedTransaction });
+      throw error;
+    }
+
+    return result;
+  }
+
+  /** `execute` resolved after ending the owned transaction itself: its work stands only if it committed. */
+  private resolveEndedByExecute<ResultType>(opts: {
+    transaction: ITransaction;
+    result: ResultType;
+  }): ResultType {
+    const { transaction, result } = opts;
+
+    if (TransactionLifecycle.getState({ transaction }) === TransactionStates.COMMITTED) {
+      this.logger
+        .for('runInTransaction')
+        .warn('execute committed the owned transaction itself | Skipped the commit');
+      return result;
+    }
+
+    throw getError({
+      message: `[${this.constructor.name}][runInTransaction] execute ended the owned transaction before it could be committed`,
+    });
+  }
+
+  /** A rollback failure is only logged: the caller needs the error that made the rollback necessary. */
+  private async rollbackOwnedTransaction(opts: { transaction: ITransaction }): Promise<void> {
+    try {
+      await opts.transaction.rollback();
+    } catch (rollbackError) {
+      this.logger
+        .for('runInTransaction')
+        .error(
+          'Rollback failed, rethrowing the original error | Rollback error: %s',
+          rollbackError,
+        );
     }
   }
 

@@ -11,6 +11,7 @@ import {
   buildRealHandleProbe,
 } from './engine-fixtures';
 import { TransactionEndStatements, captureRejection, runTransactionParity } from './parity-suite';
+import { RecordingLogger } from './recording-logger';
 
 /**
  * The real handle's end-of-transaction rules, pinned on both in-process engines. Green before the
@@ -122,6 +123,74 @@ for (const { engine, begin, dataSource } of ENGINES) {
       await Promise.allSettled([transaction.commit(), transaction.rollback()]);
 
       expect(recorder.releases).toEqual([{ isDestroyed: false }]);
+    });
+  });
+
+  describe(`Real handle log lines - ${engine}`, () => {
+    /** A fresh recorder per test, installed through the datasource's logger setter. */
+    const installLogger = (): RecordingLogger => {
+      const logger = new RecordingLogger();
+      dataSource().logger = logger;
+      return logger;
+    };
+
+    test('a failed COMMIT logs one error under commit, then the rollback no-op logs one debug under rollback', async () => {
+      const logger = installLogger();
+      const error = getError({ message: '[TransactionParity] COMMIT injected to fail' });
+      dataSource().recorder.reset({
+        failure: { statement: TransactionEndStatements.COMMIT, error },
+      });
+
+      const transaction = await dataSource().beginTransaction();
+      await captureRejection({ task: transaction.commit() });
+      await transaction.rollback();
+
+      expect(logger.calls).toEqual([
+        {
+          level: 'error',
+          method: 'commit',
+          message: 'Failed to %s transaction | Error: %s',
+          args: [TransactionEndStatements.COMMIT, error],
+        },
+        {
+          level: 'debug',
+          method: 'rollback',
+          message: 'Rollback after a failure-ended transaction - no-op, already torn down',
+          args: [],
+        },
+      ]);
+    });
+
+    test('a failed ROLLBACK logs one error under rollback', async () => {
+      const logger = installLogger();
+      const error = getError({ message: '[TransactionParity] ROLLBACK injected to fail' });
+      dataSource().recorder.reset({
+        failure: { statement: TransactionEndStatements.ROLLBACK, error },
+      });
+
+      const transaction = await dataSource().beginTransaction();
+      await captureRejection({ task: transaction.rollback() });
+
+      expect(logger.calls).toEqual([
+        {
+          level: 'error',
+          method: 'rollback',
+          message: 'Failed to %s transaction | Error: %s',
+          args: [TransactionEndStatements.ROLLBACK, error],
+        },
+      ]);
+    });
+
+    test('a successful commit and a successful rollback log nothing', async () => {
+      const logger = installLogger();
+      dataSource().recorder.reset();
+
+      const committed = await dataSource().beginTransaction();
+      await committed.commit();
+      const rolledBack = await dataSource().beginTransaction();
+      await rolledBack.rollback();
+
+      expect(logger.calls).toEqual([]);
     });
   });
 }

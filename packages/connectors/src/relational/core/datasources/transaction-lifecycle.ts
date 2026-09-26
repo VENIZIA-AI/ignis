@@ -46,33 +46,42 @@ export abstract class TransactionLifecycle implements ITransaction {
     endedState: TransactionStates.ROLLED_BACK,
   };
 
-  private _state: TTransactionState = TransactionStates.ACTIVE;
+  // ES-private, not TS-private: a handle that is logged, spread or serialised must not carry its internals.
+  #state: TTransactionState = TransactionStates.ACTIVE;
+
+  /** The state of a handle built on this class; `undefined` for any other `ITransaction`. */
+  static getState(opts: { transaction: object }): TTransactionState | undefined {
+    const { transaction } = opts;
+    return #state in transaction ? transaction.#state : undefined;
+  }
 
   get isActive(): boolean {
-    return this._state === TransactionStates.ACTIVE;
+    return this.#state === TransactionStates.ACTIVE;
   }
 
   protected get lifecycleState(): TTransactionState {
-    return this._state;
+    return this.#state;
   }
 
   // Own properties, not prototype methods, so a detached `transaction.commit` still works.
-  readonly commit = (): Promise<void> => this.end(TransactionLifecycle.COMMIT);
-  readonly rollback = (): Promise<void> => this.end(TransactionLifecycle.ROLLBACK);
+  readonly commit = (): Promise<void> => this.end({ end: TransactionLifecycle.COMMIT });
+  readonly rollback = (): Promise<void> => this.end({ end: TransactionLifecycle.ROLLBACK });
 
   /** Runs the end statement. Called at most once per transaction, after the state has left ACTIVE. */
-  protected abstract executeEnd(end: ITransactionEnd): Promise<unknown>;
+  protected abstract executeEnd(opts: { end: ITransactionEnd }): Promise<unknown>;
 
-  protected onEnded(_end: ITransactionEnd): void {}
+  protected onEnded(_opts: { end: ITransactionEnd }): void {}
 
   protected onEndFailed(_opts: { end: ITransactionEnd; error: unknown }): void {}
 
   protected onRollbackAfterFailure(): void {}
 
-  private async end(end: ITransactionEnd): Promise<void> {
-    if (this._state !== TransactionStates.ACTIVE) {
+  private async end(opts: { end: ITransactionEnd }): Promise<void> {
+    const { end } = opts;
+
+    if (this.#state !== TransactionStates.ACTIVE) {
       // After a FAILED end the transaction is already torn down, so rollback is satisfied by construction - throwing here would replace the caller's original error in `catch { await tx.rollback(); throw error; }`.
-      if (this._state === TransactionStates.FAILED && end === TransactionLifecycle.ROLLBACK) {
+      if (this.#state === TransactionStates.FAILED && end === TransactionLifecycle.ROLLBACK) {
         this.onRollbackAfterFailure();
         return;
       }
@@ -81,16 +90,16 @@ export abstract class TransactionLifecycle implements ITransaction {
     }
 
     // Left ACTIVE BEFORE the await: commit racing rollback would otherwise both pass the guard, issue two end statements, and double-release the same connection.
-    this._state = end.endedState;
+    this.#state = end.endedState;
 
     try {
-      await this.executeEnd(end);
+      await this.executeEnd({ end });
     } catch (error) {
-      this._state = TransactionStates.FAILED;
       this.onEndFailed({ end, error });
+      this.#state = TransactionStates.FAILED;
       throw error;
     }
 
-    this.onEnded(end);
+    this.onEnded({ end });
   }
 }
