@@ -8,7 +8,7 @@ tags: [reference, source-map, packages]
 
 > Generated from source - do not edit; run `make okf-gen`. Layout: [monorepo layout](/overview/monorepo-layout.md).
 
-**1057 source files across 10 packages.**
+**1058 source files across 10 packages.**
 
 ## atlas  (45 source files)
 
@@ -33,11 +33,11 @@ tags: [reference, source-map, packages]
 | `clis/` | 2 |
 | `common/` | 2 |
 
-## connectors  (220 source files)
+## connectors  (221 source files)
 
 | Subsystem | Files |
 |---|---|
-| `relational/` | 134 |
+| `relational/` | 135 |
 | `search/` | 77 |
 | `http/` | 4 |
 | `common/` | 2 |
