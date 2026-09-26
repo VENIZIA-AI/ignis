@@ -6,6 +6,18 @@ not how.
 This file and `index.md` are reserved OKF filenames - they carry no `type:` frontmatter and are not
 counted as concepts.
 
+## 2026-09-26 - framework work splits into six roles, so no agent both writes and approves
+
+New [framework roles](/process/framework-roles.md): Planner, Dev, Test, Reviewer, Security, and
+Docs and knowledge, each owning one stage of the flow from issue to merge. Test writes tests before
+Dev and separately from Dev; Docs runs before review; Security also checks the issue and pull
+request text. Only the owner approves an API change, a dependency, a merge or a release. New rule
+P-16 cites the concept, and W-01 now makes the `[#N]` commits, the feature-branch push and the pull
+request routine Planner steps, with the merge on the owner's "merge". Five Claude subagent files
+under `.agents/plugin/claude/agents/` carry the role instructions; `make agent-setup` symlinks them
+the same way it links a skill (see `.agents/plugin/PLUGIN.md`). Updated
+[build system](/process/build-system.md) with the shared build lock, `mkdir -p` included.
+
 ## 2026-09-25 - mail attachments: path confined to attachmentRoot, size capped per message
 
 Updated [core-server](/packages/core-server.md).

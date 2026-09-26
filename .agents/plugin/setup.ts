@@ -1,7 +1,8 @@
 #!/usr/bin/env bun
 /**
  * Per-developer agent setup: tool file -> tracked AGENTS.md symlink, tracked skills -> agent skills
- * dir, and for Claude the shared `.agents/plugin/claude/settings.json` merged into `.claude/settings.json`.
+ * dir, and for Claude the shared `.agents/plugin/claude/settings.json` merged into `.claude/settings.json`
+ * plus each `.agents/plugin/claude/agents/*.md` linked into `.claude/agents/`.
  * All targets are gitignored, so run it on every clone: `bun .agents/plugin/setup.ts [claude]`.
  */
 import {
@@ -19,9 +20,12 @@ import { basename, join, resolve } from 'node:path';
 const ROOT = resolve(import.meta.dir, '..', '..');
 const SKILLS_SRC = join(ROOT, '.agents', 'plugin', 'skills');
 const CLAUDE_SETTINGS_SRC = join(ROOT, '.agents', 'plugin', 'claude', 'settings.json');
+const CLAUDE_AGENTS_SRC = join(ROOT, '.agents', 'plugin', 'claude', 'agents');
 const HOME = process.env.HOME ?? process.env.USERPROFILE ?? '';
 
 type TDict = Record<string, unknown>;
+/** `skipped` counts sources left alone because a real file or directory already holds the name. */
+type TLinkCount = { linked: number; skipped: number };
 
 const isDict = (value: unknown): value is TDict => {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
@@ -130,17 +134,18 @@ const findSkillDirs = (opts: { dir: string }): string[] => {
   return out;
 };
 
-const installSkills = (opts: { skillsDir: string }): number => {
+const installSkills = (opts: { skillsDir: string }): TLinkCount => {
   const { skillsDir } = opts;
 
   const sources = findSkillDirs({ dir: SKILLS_SRC });
   if (!sources.length) {
-    return 0;
+    return { linked: 0, skipped: 0 };
   }
 
   mkdirSync(skillsDir, { recursive: true });
 
-  let count = 0;
+  let linked = 0;
+  let skipped = 0;
 
   // Skills link in flat (Claude Code discovers `<skillsDir>/<name>/SKILL.md`), even when the
   // source is grouped by discipline under `.agents/plugin/skills/<group>/`.
@@ -149,13 +154,49 @@ const installSkills = (opts: { skillsDir: string }): number => {
 
     if (result === 'skipped-realfile') {
       console.log(`  ${dim('!')} skill ${basename(source)} exists as a real directory - left untouched.`);
+      skipped++;
       continue;
     }
 
-    count++;
+    linked++;
   }
 
-  return count;
+  return { linked, skipped };
+};
+
+/** Subagents link in per file, so a developer's own agent in the same dir survives. */
+const installClaudeAgents = (opts: { agentsDir: string }): TLinkCount => {
+  const { agentsDir } = opts;
+
+  if (!existsSync(CLAUDE_AGENTS_SRC)) {
+    return { linked: 0, skipped: 0 };
+  }
+
+  const sources = readdirSync(CLAUDE_AGENTS_SRC, { withFileTypes: true })
+    .filter((entry) => entry.isFile() && entry.name.endsWith('.md'))
+    .map((entry) => entry.name);
+  if (!sources.length) {
+    return { linked: 0, skipped: 0 };
+  }
+
+  mkdirSync(agentsDir, { recursive: true });
+
+  let linked = 0;
+  let skipped = 0;
+
+  for (const name of sources) {
+    const result = linkSafely({ linkPath: join(agentsDir, name), target: join(CLAUDE_AGENTS_SRC, name) });
+
+    if (result === 'skipped-realfile') {
+      console.log(`  ${dim('!')} agent ${name} exists as a real file - left untouched.`);
+      skipped++;
+      continue;
+    }
+
+    linked++;
+  }
+
+  return { linked, skipped };
 };
 
 /** Shared entries always win; a settings file that is not valid JSON is reported and left alone. */
@@ -267,12 +308,15 @@ if (toolFile) {
 
 // 2. Skills
 if (agent.skillsDir) {
-  const count = installSkills({ skillsDir: agent.skillsDir });
+  const { linked, skipped } = installSkills({ skillsDir: agent.skillsDir });
 
-  if (count) {
-    console.log(`  ${green('✓')} ${count} skill(s) linked into ${agent.skillsDir.replace(HOME, '~')}`);
-  } else {
+  if (linked + skipped === 0) {
     console.log(`  ${dim('!')} no skills found in .agents/plugin/skills - nothing to link.`);
+  } else {
+    const skippedNote = skipped ? `, ${skipped} skipped` : '';
+    console.log(
+      `  ${green('✓')} ${linked} skill(s) linked into ${agent.skillsDir.replace(HOME, '~')}${skippedNote}`,
+    );
   }
 } else if (agent.note) {
   console.log(`  ${dim('!')} ${agent.note}`);
@@ -280,9 +324,20 @@ if (agent.skillsDir) {
 
 // 3. Shared Claude settings - the session hook that prints the rules. `.claude/` is gitignored, so
 //    the shared keys are merged into each person's file and anything personal is left alone.
+// 4. Claude subagents - the framework roles, linked per file like the skills.
 if (agent.key === 'claude') {
   const { ok, message } = installClaudeSettings();
   console.log(`  ${ok ? green('✓') : dim('!')} ${message}`);
+
+  const agentsDir = join(ROOT, '.claude', 'agents');
+  const { linked, skipped } = installClaudeAgents({ agentsDir });
+
+  if (linked + skipped === 0) {
+    console.log(`  ${dim('!')} no agents found in .agents/plugin/claude/agents - nothing to link.`);
+  } else {
+    const skippedNote = skipped ? `, ${skipped} skipped` : '';
+    console.log(`  ${green('✓')} ${linked} agent(s) linked into ${agentsDir.replace(HOME, '~')}${skippedNote}`);
+  }
 }
 
 console.log(

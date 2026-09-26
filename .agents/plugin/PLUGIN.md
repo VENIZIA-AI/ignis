@@ -16,12 +16,18 @@ Project-specific assets for working on the IGNIS monorepo. The rules themselves 
 
 ```
 .agents/plugin/
-├── setup.ts                    # make agent-setup - links the tool file, the skills, merges settings
+├── setup.ts                    # make agent-setup - links the tool file, skills, agents; merges settings
 ├── skills/<name>/SKILL.md      # tracked project skills, symlinked into the agent's skills dir
 └── claude/
+    ├── agents/<name>.md        # ignis-dev, ignis-test, ignis-reviewer, ignis-security, ignis-docs
     ├── settings.json           # shared Claude settings - today one SessionStart hook
     └── hooks/session-start.ts  # prints the W rules, the often-dropped rules and the minimap shape
 ```
+
+`claude/agents/<name>.md` holds five subagent definitions, one per role; the sixth role, the
+Planner, is the main session (see [framework roles](../knowledge/process/framework-roles.md)).
+Setup symlinks each one into `.claude/agents/`, the same way it links a skill into
+`.claude/skills/`.
 
 Everything here is **tracked**. `.claude/` is gitignored, so anything living only there is
 invisible to the rest of the team; setup copies nothing, it links and merges.
@@ -43,9 +49,10 @@ bun .agents/plugin/setup.ts claude   # non-interactive
 Reading `.agents/rules.md` is honour-system: nothing forces a session to open it, and a session that
 skips it invents its own boundaries. `hooks/session-start.ts` puts the part that costs the most when
 missed in front of every session - the W write boundaries, the rules sessions drop most (P-09 the
-minimap, P-10 reporting, B-03 verify, B-05 dist-not-src, P-05 BANA crosscheck, W-02 no checkout
-over dirty files) and the minimap shape. Everything is extracted from `rules.md` at run time, never
-copied, so the digest cannot drift from the file it quotes.
+minimap, P-10 reporting, B-03 verify, B-05 dist-not-src, P-05 BANA crosscheck, P-15 evidence,
+P-16 the framework roles, W-02 no checkout over dirty files) and the minimap shape. Everything is
+extracted from `rules.md` at run time, never copied, so the digest cannot drift from the file it
+quotes.
 
 `settings.json` registers that hook and nothing else. It carries **no `permissions.deny`**: git is
 allowed in this repo (rule W-01 says *when*, not *never*), so the hook reminds and never blocks.

@@ -93,6 +93,20 @@ tags: [process, build]
     required peers (granting `@hono/zod-openapi` also installs `hono`), so the gate cannot see a
     leak of such a transitive peer into the entry it was granted to.
 
+## The shared build lock
+
+Several agent sessions share one working tree, and `make <pkg>` cleans `dist/` before it emits. Two
+builds at once can leave a package half-built. Wrap every build, and every gate that builds, in one
+machine-wide lock:
+
+```bash
+mkdir -p ~/.cache/ignis-verify && flock ~/.cache/ignis-verify/build.lock make <pkg>
+```
+
+Keep the `mkdir -p`. `flock` never creates the lock's folder: where `~/.cache/ignis-verify/` is
+missing, it prints "cannot open lock file" and exits 66 without running the build. The same lock
+wraps `make docs` and any other target that builds.
+
 ## Related
 
 - [Makefile targets](/reference/makefile-targets.md)
@@ -100,3 +114,4 @@ tags: [process, build]
 - [Testing](/process/testing.md)
 - [Debugging](/process/debugging.md)
 - [Git workflow](/process/git-workflow.md)
+- [Framework roles](/process/framework-roles.md)

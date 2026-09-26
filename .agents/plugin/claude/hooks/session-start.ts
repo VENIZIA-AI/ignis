@@ -54,7 +54,7 @@ const writeBoundaries = section({ heading: 'W - Write boundaries' }).filter(line
 );
 
 /** The rules sessions drop most, quoted from the rule file so they cannot drift. */
-const OFTEN_DROPPED = ['P-09', 'P-10', 'B-03', 'B-05', 'P-05', 'P-15', 'W-02'];
+const OFTEN_DROPPED = ['P-09', 'P-10', 'B-03', 'B-05', 'P-05', 'P-15', 'P-16', 'W-02'];
 const oftenDropped = OFTEN_DROPPED.map(id => lines.find(line => line.startsWith(`| **${id}**`))).filter(
   (line): line is string => Boolean(line),
 );
@@ -70,7 +70,7 @@ console.log('whole floor.');
 console.log();
 console.log(groupTable.join('\n'));
 console.log();
-console.log('## Write boundaries - the default is: produce the change, hand it over');
+console.log('## Write boundaries - outside the W-01 flow, produce the change and hand it over');
 console.log();
 console.log(writeBoundaries.join('\n'));
 
