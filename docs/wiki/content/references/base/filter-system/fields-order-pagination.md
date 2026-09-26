@@ -48,7 +48,7 @@ await userRepository.find({
 
 ## Ordering
 
-Each entry in `order` is a `'field'` or `'field DIRECTION'` string, read by `parseOrderEntry`. Direction defaults to `ASC` and only `ASC`/`DESC` (case-insensitive) are valid. Only ASCII whitespace separates the two tokens - a non-breaking space does not split them, so `'name DESC'` is one token, not two:
+Each entry in `order` is a `'field'` or `'field DIRECTION'` string, read by `parseOrderEntry`. Direction defaults to `ASC` and only `ASC`/`DESC` (case-insensitive) are valid. Only ASCII whitespace separates the two tokens - a non-breaking space does not split them, so `'name<NBSP>DESC'` is one token, not two:
 
 ```typescript
 await userRepository.find({ filter: { order: ['createdAt DESC'] } });
@@ -107,7 +107,7 @@ See [JSON Filtering](./json-filtering) for the full path syntax.
 
 ### Sorting by a joined column or a computed expression
 
-`order` only names a column on the model's own schema, or a JSON path inside one. To sort by a column on a joined table, or by a computed value, pass `toOrderBy`'s `expressions` option - a map from the name an order entry uses to a Drizzle column or `SQL`:
+`filter.order` only names a column on the model's own schema, or a JSON path inside one - it never takes `expressions`; there is no such key on `TFilter`. `expressions` is a separate option on the query dialect's own `toOrderBy`, for repository code that builds its `ORDER BY` clauses directly instead of going through `find()`'s `filter`. Pass it as a map from the name an order entry uses to a Drizzle column or `SQL`:
 
 ```typescript
 import { sql } from 'drizzle-orm';
@@ -123,10 +123,13 @@ const orderBy = queryDialect.toOrderBy({
     displayName: sql`COALESCE(${itemTable.nickname}, ${itemTable.name})`, // a computed value
   },
 });
-// ORDER BY "group"."label" ASC, COALESCE("item"."nickname", "item"."name") DESC, "item"."id" ASC
+// ORDER BY "group"."label" asc, COALESCE("item"."nickname", "item"."name") desc, "item"."id" asc
 ```
 
 A key resolves in this order: an own key of `expressions`, then a JSON path, then a schema column. "Own key" means `Object.hasOwn` - an inherited name such as `constructor` or `__proto__` in an order entry is treated as an unknown column, never as a match. The `id ASC` tie-breaker still closes the list unless an entry names `id` - an expression keyed `id` never counts as naming it, since it sorts by whatever the expression computes, not the `id` column.
+
+> [!WARNING]
+> Build every `expressions` value from a Drizzle column or a `sql` template in your own code - never `sql.raw` of anything a request sent. Every key you put in the map becomes something a caller's `order` entry can select: the map has no permission check of its own, so treat it as sortable-by-anyone and never add a column a caller must not be able to probe by sort order (a joined table's sensitive column, for instance).
 
 Passing no `expressions` costs nothing extra; the option only adds a lookup when it is set.
 

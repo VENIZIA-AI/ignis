@@ -1,6 +1,7 @@
 ---
 title: Order Entries Get One Parser, and toOrderBy Can Sort by an Expression
 description: "parseOrderEntry is now a public export every relational and search dialect shares, toOrderBy gains an expressions option for sorting by a joined column or a computed SQL expression, and a malformed order entry is now a 400 instead of a silent truncation."
+packages: [connectors, core-server, filter, kernel]
 ---
 
 # Changelog - 2026-09-26
@@ -24,16 +25,17 @@ parseOrderEntry({ entry: 'name' }); // { field: 'name', direction: 'asc' }
 - **An entry with more than two tokens is now a 400.** `'createdAt DESC NULLS LAST'` used to sort on `createdAt DESC` and silently drop `NULLS LAST` - IGNIS order entries never gave a `NULLS LAST`/`FIRST` clause any effect, so the tail was always dead weight, just quietly accepted. It now throws before the query runs.
 - **An empty entry (`''`, or all whitespace) is now a 400.** It used to reach the relational dialect as an empty field name and read as "column not found"; it now fails at the parser with a clearer message.
 - **Direction error messages changed.** They now come from `parseOrderEntry` and carry the whole entry text, not the table name or the field alone. See the table below.
-- **Only ASCII whitespace separates a field from its direction.** A non-breaking space (` `) or another Unicode space no longer splits `'name<NBSP>DESC'` into two tokens - the old `split(/\s+/)` did split on it. The whole string is now read as one field name.
+- **The entry in a message is now `JSON.stringify`-quoted**, not interpolated raw - `entry: "name DESC NULLS LAST"` rather than `entry: 'name DESC NULLS LAST'`. A newline or other control character inside a malformed entry is escaped instead of reaching the log or the response as a literal character.
+- **Only ASCII whitespace separates a field from its direction.** A non-breaking space (`<NBSP>`) or another Unicode space no longer splits `'name<NBSP>DESC'` into two tokens - the old `split(/\s+/)` did split on it. The whole string is now read as one field name.
 - **`toOrderBy` (relational dialects) gains an `expressions` option**, for sorting by a column on a joined table or a computed SQL expression - see the next section.
 
 ## Error messages, before and after
 
 | Case | Relational, before | Relational, after |
 |---|---|---|
-| Invalid direction | `[FilterBuilder][toOrderBy] Table: <t> \| Invalid direction: 'RANDOM' \| Expected: 'ASC' or 'DESC'` | `[parseOrderEntry] Invalid direction \| entry: 'name RANDOM' \| Expected: 'ASC' or 'DESC'` |
-| Extra tokens | Silently accepted; the tail was dropped | `[parseOrderEntry] Too many tokens \| entry: 'name DESC NULLS LAST' \| Expected: '<field>' or '<field> ASC\|DESC'` |
-| Empty entry | Reached the dialect as an unknown column | `[parseOrderEntry] Order entry has no field \| entry: ''` |
+| Invalid direction | `[FilterBuilder][toOrderBy] Table: <t> \| Invalid direction: 'RANDOM' \| Expected: 'ASC' or 'DESC'` | `[parseOrderEntry] Invalid direction \| entry: "name RANDOM" \| Expected: 'ASC' or 'DESC'` |
+| Extra tokens | Silently accepted; the tail was dropped | `[parseOrderEntry] Too many tokens \| entry: "name DESC NULLS LAST" \| Expected: '<field>' or '<field> ASC\|DESC'` |
+| Empty entry | Reached the dialect as an unknown column | `[parseOrderEntry] Order entry has no field \| entry: ""` |
 
 | Case | Search (Typesense/Meilisearch), before | Search, after |
 |---|---|---|
@@ -41,7 +43,7 @@ parseOrderEntry({ entry: 'name' }); // { field: 'name', direction: 'asc' }
 | Extra tokens | Silently accepted; the tail was dropped | Same `[parseOrderEntry] Too many tokens` message |
 | Empty entry | Silently accepted as an empty field | Same `[parseOrderEntry] Order entry has no field` message |
 
-Status codes are unchanged: every case above was already `400` and still is. Unknown-column messages (`Column NOT FOUND | key: '<key>'`) are unchanged and still name the key.
+Status codes: every case that was already an error was a `400` and still is; the "silently accepted" cases (extra tokens, an empty entry) are now `400` for the first time. Unknown-column messages (`Column NOT FOUND | key: '<key>'`) are unchanged and still name the key.
 
 ## `toOrderBy` can sort by a joined column or a computed expression
 
@@ -61,7 +63,7 @@ const orderBy = queryDialect.toOrderBy({
     displayName: sql`COALESCE(${itemTable.nickname}, ${itemTable.name})`, // a computed value
   },
 });
-// ORDER BY "group"."label" ASC, COALESCE("item"."nickname", "item"."name") DESC, "item"."id" ASC
+// ORDER BY "group"."label" asc, COALESCE("item"."nickname", "item"."name") desc, "item"."id" asc
 ```
 
 A key resolves as an own key of `expressions` first (`Object.hasOwn`, so an inherited name like `constructor` never matches), then as a JSON path, then as a schema column. The `id ASC` tie-breaker still closes the list unless an entry names `id`; an expression keyed `id` never counts as naming it. Omitting `expressions` costs nothing extra. See [Fields, Order & Pagination](/references/base/filter-system/fields-order-pagination#sorting-by-a-joined-column-or-a-computed-expression) for the full reference.
