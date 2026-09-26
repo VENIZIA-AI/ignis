@@ -1,11 +1,17 @@
-import type { Sorts, TQueryOperatorHandlers } from '@venizia/ignis-kernel';
+import type { TQueryOperatorHandlers } from '@venizia/ignis-kernel';
+import { Sorts } from '@venizia/ignis-kernel';
 import type { TTableColumns } from '@/relational/core/repositories/common';
 import { FilterBuilder } from '@/relational/core/repositories/dialect/filter';
 import type { TConstValue } from '@venizia/ignis-helpers/common';
 import type { SQL } from 'drizzle-orm';
-import { sql } from 'drizzle-orm';
-import { assertNotBlobJsonColumn, toSqliteJsonExtraction } from './internal';
+import { sql, StringChunk } from 'drizzle-orm';
+import { assertNotBlobJsonColumn, toSqliteJsonExtractionChunks } from './internal';
 import { SqliteQueryOperators } from './query';
+
+const SORT_DIRECTIONS: Record<TConstValue<typeof Sorts>, StringChunk> = {
+  [Sorts.ASC]: new StringChunk(' ASC'),
+  [Sorts.DESC]: new StringChunk(' DESC'),
+};
 
 /**
  * Adds the SQLite operator table and `json_extract` path syntax; everything else - merging,
@@ -62,10 +68,10 @@ export class SqliteFilterBuilder extends FilterBuilder {
       methodName: 'buildJsonWhereCondition',
     });
 
-    const extraction = toSqliteJsonExtraction({ columnName: column.name, path });
+    const extraction = sql.fromList(toSqliteJsonExtractionChunks({ column, path }));
 
     if (!this.isOperatorObject({ value })) {
-      return [this.buildValueCondition({ column: sql.raw(extraction), value })];
+      return [this.buildValueCondition({ column: extraction, value })];
     }
 
     // Both arguments are the same expression: `json_extract` is already
@@ -92,8 +98,9 @@ export class SqliteFilterBuilder extends FilterBuilder {
       methodName: 'buildJsonOrderBy',
     });
 
-    const extraction = toSqliteJsonExtraction({ columnName: column.name, path });
+    const chunks = toSqliteJsonExtractionChunks({ column, path });
+    chunks.push(SORT_DIRECTIONS[direction]);
 
-    return sql.raw(`${extraction} ${direction.toUpperCase()}`);
+    return sql.fromList(chunks);
   }
 }

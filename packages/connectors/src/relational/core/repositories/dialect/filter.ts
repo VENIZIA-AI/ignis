@@ -881,11 +881,17 @@ export abstract class FilterBuilder extends BaseHelper {
    * `{ gte: 1, like: '%a%' }` (-> `numeric ~~ text`).
    */
   protected buildJsonOperatorConditions(opts: {
-    jsonPath: string;
-    safeNumericCast: string;
+    jsonPath: string | SQL;
+    safeNumericCast: string | SQL;
     operators: Record<string, any>;
   }): SQL[] {
-    const { jsonPath, safeNumericCast, operators } = opts;
+    const { operators } = opts;
+    // Raw text stays accepted for subclasses; wrapped once so every operator shares one fragment.
+    const jsonPath = typeof opts.jsonPath === 'string' ? sql.raw(opts.jsonPath) : opts.jsonPath;
+    const safeNumericCast =
+      typeof opts.safeNumericCast === 'string'
+        ? sql.raw(opts.safeNumericCast)
+        : opts.safeNumericCast;
     const conditions: SQL[] = [];
 
     for (const op in operators) {
@@ -912,7 +918,7 @@ export abstract class FilterBuilder extends BaseHelper {
           : jsonPath;
 
         conditions.push(
-          not(this.buildValueCondition({ column: sql.raw(negatedExtraction), value: operand })),
+          not(this.buildValueCondition({ column: negatedExtraction, value: operand })),
         );
         continue;
       }
@@ -925,8 +931,8 @@ export abstract class FilterBuilder extends BaseHelper {
       }
 
       const extraction = this.jsonNeedsNumericCast({ operators: { [op]: operand } })
-        ? sql.raw(safeNumericCast)
-        : sql.raw(jsonPath);
+        ? safeNumericCast
+        : jsonPath;
 
       const result = opFn({ column: extraction, value: operand });
       if (result) {
