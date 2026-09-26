@@ -48,7 +48,7 @@ await userRepository.find({
 
 ## Ordering
 
-Each entry in `order` is a `'column DIRECTION'` string. Direction defaults to `ASC` and only `ASC`/`DESC` (case-insensitive) are valid:
+Each entry in `order` is a `'field'` or `'field DIRECTION'` string, read by `parseOrderEntry`. Direction defaults to `ASC` and only `ASC`/`DESC` (case-insensitive) are valid. Only ASCII whitespace separates the two tokens - a non-breaking space does not split them, so `'name DESC'` is one token, not two:
 
 ```typescript
 await userRepository.find({ filter: { order: ['createdAt DESC'] } });
@@ -58,11 +58,30 @@ await userRepository.find({ filter: { order: ['name'] } }); // same as 'name ASC
 
 When the order does not name `id`, the relational repository appends `id ASC`, so pages over a tied column never repeat or skip a row.
 
-An invalid direction throws before the query runs:
+### `parseOrderEntry`
 
+```typescript
+parseOrderEntry(opts: { entry: string }): { field: string; direction: 'asc' | 'desc' }
 ```
-Error: Invalid direction: 'RANDOM' | Expected: 'ASC' or 'DESC'
+
+Every relational and search dialect (Postgres, SQLite, Typesense, Meilisearch) reads each `order` entry through this one parser, so the same 400s apply everywhere `order` is accepted. It throws a `400`, naming the whole entry, in three cases:
+
+| Case | Example entry | Thrown message contains |
+|---|---|---|
+| Empty field | `''` or `'   '` | `Order entry has no field` |
+| Invalid direction | `'name sideways'` | `Invalid direction` |
+| More than two tokens | `'name DESC NULLS LAST'` | `Too many tokens` |
+
+```typescript
+import { parseOrderEntry } from '@venizia/ignis-filter';
+
+parseOrderEntry({ entry: 'createdAt DESC' }); // { field: 'createdAt', direction: 'desc' }
+parseOrderEntry({ entry: 'name' }); // { field: 'name', direction: 'asc' }
+parseOrderEntry({ entry: 'name DESC NULLS LAST' }); // throws - 400, two tokens max
 ```
+
+> [!NOTE]
+> Before this parser, extra tokens past the direction were silently dropped - `'createdAt DESC NULLS LAST'` sorted on `createdAt DESC` and lost `NULLS LAST` without warning. An entry like that is now a 400. See the [2026-09-26 changelog](/changelogs/2026-09-26-order-entry-parsing-and-sort-expressions) for the full behavior change.
 
 Order by a nested key inside a JSON column with dot-path notation:
 
@@ -85,6 +104,31 @@ JSONB values sort by type first, then by value within the type:
 | `object` | Key-value order |
 
 See [JSON Filtering](./json-filtering) for the full path syntax.
+
+### Sorting by a joined column or a computed expression
+
+`order` only names a column on the model's own schema, or a JSON path inside one. To sort by a column on a joined table, or by a computed value, pass `toOrderBy`'s `expressions` option - a map from the name an order entry uses to a Drizzle column or `SQL`:
+
+```typescript
+import { sql } from 'drizzle-orm';
+
+const queryDialect = dataSource.getQueryDialect();
+
+const orderBy = queryDialect.toOrderBy({
+  tableName: 'item',
+  schema: itemTable,
+  order: ['groupLabel ASC', 'displayName DESC'],
+  expressions: {
+    groupLabel: groupTable.label, // a column on a joined table
+    displayName: sql`COALESCE(${itemTable.nickname}, ${itemTable.name})`, // a computed value
+  },
+});
+// ORDER BY "group"."label" ASC, COALESCE("item"."nickname", "item"."name") DESC, "item"."id" ASC
+```
+
+A key resolves in this order: an own key of `expressions`, then a JSON path, then a schema column. "Own key" means `Object.hasOwn` - an inherited name such as `constructor` or `__proto__` in an order entry is treated as an unknown column, never as a match. The `id ASC` tie-breaker still closes the list unless an entry names `id` - an expression keyed `id` never counts as naming it, since it sorts by whatever the expression computes, not the `id` column.
+
+Passing no `expressions` costs nothing extra; the option only adds a lookup when it is set.
 
 ## Pagination
 
@@ -268,9 +312,11 @@ console.log(`Showing ${range.start}-${range.end} of ${range.total}`);
 
 **Files:**
 
-- [`packages/connectors/src/relational/core/repositories/dialect/filter.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/connectors/src/relational/core/repositories/dialect/filter.ts) - `FilterBuilder`, `toColumns`/`toOrderBy`
+- [`packages/connectors/src/relational/core/repositories/dialect/filter.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/connectors/src/relational/core/repositories/dialect/filter.ts) - `FilterBuilder`, `toColumns`/`toOrderBy`, the `expressions` resolution
+- [`packages/connectors/src/relational/core/repositories/common/types.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/connectors/src/relational/core/repositories/common/types.ts) - `IRelationalQueryDialect.toOrderBy`'s `expressions` option
 - [`packages/connectors/src/relational/core/repositories/core/readable.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/connectors/src/relational/core/repositories/core/readable.ts) - `find()`'s `filter.limit ?? getDefaultLimit() ?? DEFAULT_LIMIT` resolution
 - [`packages/kernel/src/base/repositories/core/abstract.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/kernel/src/base/repositories/core/abstract.ts) - `assertLimitWithinCeiling`/`assertFilterLimits`, the `maxLimit` check
+- [`packages/filter/src/common/order.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/filter/src/common/order.ts) - `parseOrderEntry`
 - [`packages/filter/src/common/operators.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/filter/src/common/operators.ts) - `Sorts` constants
 - [`packages/kernel/src/base/repositories/common/constants.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/kernel/src/base/repositories/common/constants.ts) - `DEFAULT_LIMIT`, `DEFAULT_MAX_LIMIT`
 - [`packages/kernel/src/base/repositories/common/types/results.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/kernel/src/base/repositories/common/types/results.ts) - `TDataRange`, `buildDataRange`

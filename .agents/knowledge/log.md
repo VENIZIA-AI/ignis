@@ -6,6 +6,26 @@ not how.
 This file and `index.md` are reserved OKF filenames - they carry no `type:` frontmatter and are not
 counted as concepts.
 
+## 2026-09-26 - order entries share one parser; toOrderBy gains an expressions option
+
+Updated [filter](/packages/filter.md), [connectors](/packages/connectors.md),
+[filter system](/architecture/filter-system.md).
+
+- New `parseOrderEntry` export (`@venizia/ignis-filter`), plus `TSortDirection`/`TParsedOrderEntry`
+  types. Replaces three private copies of the same parse logic in the relational, Typesense, and
+  Meilisearch dialects (C-16).
+- Behavior change: an order entry with more than two tokens, or an empty entry, is now a `400` in
+  every dialect - previously silently accepted (extra tokens dropped, an empty entry read as an
+  unknown column). Direction-error messages now come from `parseOrderEntry` and carry the whole
+  entry, not the table name.
+- Only ASCII whitespace separates tokens; a non-breaking space no longer splits an entry.
+- `toOrderBy` (relational) gains `expressions?: Readonly<Record<string, AnyColumn | SQLWrapper>>` -
+  sorts by a joined column or a computed `SQL`, resolved by `Object.hasOwn` before the JSON-path and
+  schema-column checks.
+- `FilterBuilder` caches the parsed entry per instance (`_orderEntryCache`, capped at 1024, cleared
+  when full) - a performance addition beyond the two issues, documented since the code alone does
+  not show the bound or why clearing beats eviction.
+
 ## 2026-09-25 - mail attachments: path confined to attachmentRoot, size capped per message
 
 Updated [core-server](/packages/core-server.md).

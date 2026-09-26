@@ -404,9 +404,37 @@ created_at DESC, id ASC` is no longer satisfied by a single-column `created_at` 
 Postgres 13+ finishes it with an incremental sort, and a composite `(created_at, id)` index removes
 even that.
  Postgres breaks ties per page, so paging
-over a non-unique column repeated and skipped rows (PGlite: 60 read, 50 distinct). Each column's
-`asc`/`desc` SQL node is built once and reused - drizzle 0.45 wraps order nodes, never mutates them -
-which took `build()` with one include from 870 to 446 ns.
+over a non-unique column repeated and skipped rows (PGlite: 60 read, 50 distinct). Each column's or
+expression's `asc`/`desc` SQL node is built once and reused in a `WeakMap` keyed by the column/`SQL`
+object (`_orderNodeCache`) - drizzle 0.45 wraps order nodes, never mutates them - which took `build()`
+with one include from 870 to 446 ns.
+
+**Each entry is read through `parseOrderEntry` (`@venizia/ignis-filter`), not a private parser.**
+`FilterBuilder`, `TypesenseQueryDialect` and `MeilisearchQueryDialect` used to each carry their own
+copy of the same `entry.trim().split(/\s+/)` logic; all three now call the one shared function (C-16
+in `.agents/rules.md`). It throws a `400` naming the whole entry for an empty field, an invalid
+direction, or more than two tokens - the last one is a genuine behavior change: an entry like
+`'createdAt DESC NULLS LAST'` used to silently sort on `createdAt DESC` and drop the tail, since
+`NULLS LAST`/`FIRST` was never wired to any clause. Only ASCII whitespace separates tokens; the old
+`split(/\s+/)` also split on a non-breaking space, so `'name DESC'` now reads as one field name
+instead of two tokens.
+
+**`toOrderBy`'s `expressions` option resolves a key that a schema column cannot: a column on a joined
+table, or a computed `SQL` (a `COALESCE`, for instance).** It is `Readonly<Record<string, AnyColumn |
+SQLWrapper>>`; a key is checked with `Object.hasOwn` before the JSON-path and schema-column checks, so
+an inherited name like `constructor` never resolves through the prototype chain. An expression keyed
+`id` never counts toward suppressing the `id ASC` tie-breaker - the tie-breaker question is "does an
+entry sort by the real `id` column", not "does an entry's key spell `id`".
+
+**`FilterBuilder` also caches the *parsed* entry, not only the order node** - a constraint the code
+does not show anywhere in one place: `_orderEntryCache` is a plain `Map<string, TParsedOrderEntry>`,
+one per `FilterBuilder` instance, capped at `ORDER_ENTRY_CACHE_CAP = 1024` and cleared (not
+LRU-evicted) once it reaches the cap. Entries come from request filters, so the cache is
+attacker-influenced; clearing bounds memory without paying to evict the single oldest key (measured
+at ~250 ns per call on a JSC `Map`, against ~40 ns saved per repeated lookup). Only entries that parse
+without throwing are cached. The cache exists because a freshly-sliced `field` string costs ~40 ns to
+hash on every property lookup against `columns[key]`, enough to regress a plain `'score DESC'` entry
+from ~50 ns to ~250 ns per call when the parser runs uncached on every request.
 
 ## Every published sub-path is probed, and eight rows are waived
 
@@ -517,6 +545,7 @@ catch rather than prove it absent.
 - [core](/packages/core-server.md)
 - [kernel](/packages/kernel.md)
 - [core-worker](/packages/core-worker.md)
+- [Filter system](/architecture/filter-system.md)
 - [Relational connector](/architecture/relational-connector.md)
 - [SQLite connector](/architecture/sqlite-connector.md)
 - [Typesense search connector](/architecture/search-typesense.md)

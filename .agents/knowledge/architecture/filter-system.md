@@ -28,6 +28,37 @@ The zod schemas that validate a filter arriving over HTTP come in two layers. `p
 
 `Sorts` carries `asc`/`desc`. `DEFAULT_LIMIT` is `10` - `find()` applies `filter.limit ?? getDefaultLimit() ?? DEFAULT_LIMIT`, so an unbounded query is not the default.
 
+## Order entries share one parser
+
+Every `order` entry - relational and both search dialects (Typesense, Meilisearch) - is read by
+`parseOrderEntry` (`packages/filter/src/common/order.ts`), a single exported function replacing three
+private copies of the same `entry.trim().split(/\s+/)` logic (C-16). It returns `TParsedOrderEntry`
+(`{ field: string; direction: TSortDirection }`) and throws a `400` naming the whole entry for:
+
+| Case | Example | Before this parser |
+|---|---|---|
+| Empty field | `''`, `'   '` | Relational: read as an unknown column. Search: an empty field, silently |
+| Invalid direction | `'name sideways'` | Same 400, table name or field name in the message instead of the whole entry |
+| More than two tokens | `'name DESC NULLS LAST'` | Silently accepted - the tail was dropped, since IGNIS never gave `NULLS LAST`/`FIRST` any effect |
+
+Only ASCII whitespace (space, tab, `\n`, `\v`, `\f`, `\r`) separates the two tokens. The replaced
+`split(/\s+/)` matched a non-breaking space too, so `'name DESC'` used to split into two tokens
+and now reads as one field name.
+
+`toOrderBy` also gained an `expressions?: Readonly<Record<string, AnyColumn | SQLWrapper>>` option -
+a way to sort by a column on a joined table or a computed `SQL` (a `COALESCE`, for instance), which no
+schema column can name. A key resolves as an own key of `expressions` first (`Object.hasOwn`, so an
+inherited name like `constructor` never resolves), then a JSON path, then a schema column. The `id
+ASC` tie-breaker still closes the list unless an entry names `id`; an expression keyed `id` never
+counts as naming it.
+
+**A constraint the code alone does not show:** `FilterBuilder` keeps a per-instance
+`_orderEntryCache` (`Map<string, TParsedOrderEntry>`), capped at 1024 entries and **cleared**, not
+LRU-evicted, once full. Entries come from request filters, so the cache is attacker-influenced;
+clearing was chosen over evicting the single oldest key because deleting from the front of a JSC
+`Map` measured ~250 ns per call, more than the ~40 ns per repeated lookup the cache exists to save.
+Only entries that parse without throwing are cached.
+
 The vocabulary is shared, the support is not. An operator an engine cannot express throws
 NotSupported (HTTP 501) at translation time rather than being dropped from the list:
 
