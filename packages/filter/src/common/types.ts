@@ -54,8 +54,30 @@ export type TWhereOperators<V> = {
  */
 export type TWhereValue<V> = TWidenIsoTimestamp<V> | null | TWhereOperators<TWidenIsoTimestamp<V>>;
 
-/** Query conditions for selecting data, with nested `and` / `or`. */
+/** `true` when a column value can hold JSON: `unknown`, `any` or an object other than a `Date` or a `TIsoTimestamp`. */
+type TIsJsonValue<V> = unknown extends V
+  ? true
+  : V extends Date | TIsoTimestamp
+    ? false
+    : V extends object
+      ? true
+      : false;
+
+/** The columns of `T` whose value can hold JSON - the only columns a JSON-path key may start with. */
+export type TJsonColumnKey<T> = {
+  [K in keyof T & string]: TIsJsonValue<NonNullable<T[K]>> extends true ? K : never;
+}[keyof T & string];
+
+/** A JSON-path key on a JSON column of `T`: `metadata.a.b` or `metadata[0]`. */
+export type TJsonPathKey<T> = `${TJsonColumnKey<T>}.${string}` | `${TJsonColumnKey<T>}[${string}`;
+
+/**
+ * Query conditions for selecting data - column keys, JSON-path keys on JSON columns, and nested
+ * `and` / `or`. A JSON-path value is `unknown` so a `Record<string, unknown>` still assigns.
+ */
 export type TWhere<T = any> = { [key in keyof T]?: TWhereValue<T[key]> } & {
+  [key in TJsonPathKey<T>]?: unknown;
+} & {
   and?: TWhere<T>[];
   or?: TWhere<T>[];
 };
@@ -84,6 +106,15 @@ export type TSortDirection = TConstValue<typeof Sorts>;
 
 /** One order entry read by `parseOrderEntry`: the field as written, the direction lower-cased. */
 export type TParsedOrderEntry = { field: string; direction: TSortDirection };
+
+/** An order direction in either case. */
+type TOrderDirection = TSortDirection | Uppercase<TSortDirection>;
+
+/** A column of `T` or a JSON-path key on one of its JSON columns. */
+type TOrderKey<T> = (keyof T & string) | TJsonPathKey<T>;
+
+/** One typed order entry, opt-in through `satisfies TOrderEntry<T>[]` - `TFilter.order` stays `string[]`. */
+export type TOrderEntry<T> = TOrderKey<T> | `${TOrderKey<T>} ${TOrderDirection}`;
 
 /** Comprehensive filter configuration used across all repository query methods. */
 export type TFilter<T = any> = {
