@@ -4423,7 +4423,7 @@
         "core-server"
       ],
       "kind": "Feature",
-      "order": 9007199254740991
+      "order": 1527
     },
     {
       "id": "changelog:2026-09-25-static-asset-and-storage-fixes",
