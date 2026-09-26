@@ -129,6 +129,9 @@ try {
 
 See [DataSources](/references/base/datasources) for the rollback-safe pattern (`rollback()` itself can throw). See [Advanced Features](./advanced) for isolation levels and other transaction options.
 
+`runInTransaction({ transaction?, transactionOptions?, execute })` writes the try/catch above for
+you - see [Transactions - runInTransaction](/guides/core-concepts/persistent/transactions#runintransaction).
+
 ### Retry a read behind a replicated pool
 
 A read right after a write can hit a replica that has not caught up. Pass `retry` to re-read until the result is fresh:
