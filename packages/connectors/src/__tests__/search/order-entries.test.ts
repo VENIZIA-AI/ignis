@@ -55,6 +55,15 @@ describe.each(DIALECTS)('$name dialect - order entries', ({ dialect }) => {
     expect(error.message).toContain('price desc NULLS LAST');
   });
 
+  test('a line break in the entry reaches the message escaped, on one line', () => {
+    const entry = 'price\nFAKE LOG LINE desc';
+    const error = captureError(() => sortBy([entry]));
+
+    expect(error.statusCode).toBe(400);
+    expect(error.message).toContain(JSON.stringify(entry));
+    expect(error.message).not.toContain('\n');
+  });
+
   test('an entry with no field is a 400', () => {
     const error = captureError(() => sortBy(['   ']));
 

@@ -135,6 +135,15 @@ describe('toOrderBy - order entries', () => {
     expect(error.message).toContain('name sideways');
   });
 
+  test('a line break in the entry reaches the message escaped, on one line', () => {
+    const entry = 'name\nFAKE LOG LINE desc';
+    const error = captureError(() => toPostgresOrderBy([entry]));
+
+    expect(error.statusCode).toBe(400);
+    expect(error.message).toContain(JSON.stringify(entry));
+    expect(error.message).not.toContain('\n');
+  });
+
   test('an unknown column is still a 400 naming the key', () => {
     const error = captureError(() => toPostgresOrderBy(['missing DESC']));
 
@@ -280,6 +289,29 @@ describe('toOrderBy - entries remembered between calls', () => {
     expect(compileOn(dialect, ['metadata.key0 ASC'])[0]).toBe(`"metadata" #> '{key0}' ASC`);
     expect(compileOn(dialect, ['metadata.key1 DESC'])[0]).toBe(`"metadata" #> '{key1}' DESC`);
     expect(compileOn(dialect, ['score DESC'])[0]).toBe(`"${ITEM_TABLE}"."score" desc`);
+  });
+
+  test('an entry longer than the cache takes still resolves correctly on every call', () => {
+    const dialect = new PostgresQueryDialect();
+    const longKey = `sortKey${'x'.repeat(300)}`;
+    const expressions = { [longKey]: pgGroups.label };
+    const label = `"order_entries_group"."label"`;
+    const run = (entry: string): string[] =>
+      compilePostgres(
+        dialect.toOrderBy({ tableName: ITEM_TABLE, schema: pgItems, order: [entry], expressions }),
+      );
+
+    expect(run(`${longKey} DESC`)[0]).toBe(`${label} desc`);
+    expect(run(`${longKey} DESC`)[0]).toBe(`${label} desc`);
+    expect(run(`${longKey} asc`)[0]).toBe(`${label} asc`);
+    expect(run(longKey)[0]).toBe(`${label} asc`);
+    expect(run(`${longKey} DESC`)[0]).toBe(`${label} desc`);
+
+    const unknown = `${longKey}Missing DESC`;
+    for (let attempt = 0; attempt < 2; attempt++) {
+      const error = captureError(() => run(unknown));
+      expect(error.message).toContain(`Column NOT FOUND | key: '${longKey}Missing'`);
+    }
   });
 
   test('a rejected entry stays rejected on every call', () => {
