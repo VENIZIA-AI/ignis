@@ -2023,6 +2023,17 @@ tags: [reference, exports, api]
 - `MeilisearchTaskStatuses` class
 - `TMeilisearchTaskStatus` type
 
+### `@venizia/ignis-connectors/testing` (8)
+
+- `IPostgresTransactionDoubleOptions` interface
+- `ISqliteTransactionDoubleOptions` interface
+- `ITransactionDoubleOptions` interface
+- `PostgresTransactionDouble` class
+- `SqliteTransactionDouble` class
+- `TransactionDouble` class
+- `TransactionStates` class
+- `TTransactionState` type
+
 ## core-server
 
 ### `@venizia/ignis` (1002)
@@ -3606,6 +3617,17 @@ tags: [reference, exports, api]
 - `ISearchControllerOptions` interface
 - `ISearchCustomizableRoutes` interface
 - `SearchControllerFactory` class
+
+### `@venizia/ignis/testing` (8)
+
+- `IPostgresTransactionDoubleOptions` interface
+- `ISqliteTransactionDoubleOptions` interface
+- `ITransactionDoubleOptions` interface
+- `PostgresTransactionDouble` class
+- `SqliteTransactionDouble` class
+- `TransactionDouble` class
+- `TransactionStates` class
+- `TTransactionState` type
 
 ## core-worker
 

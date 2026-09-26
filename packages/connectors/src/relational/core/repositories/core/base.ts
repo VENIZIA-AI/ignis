@@ -252,6 +252,58 @@ export abstract class RelationalBaseRepository<
     return this.dataSource.beginTransaction(opts) as Promise<TRelationalTransactionOf<TDataSource>>;
   }
 
+  /**
+   * Runs `execute` inside a transaction. Given a `transaction`, joins it: its owner commits or rolls
+   * back, so this never does. Given none, owns one: begins it, commits when `execute` resolves, and
+   * rolls back when `execute` or the commit throws - rethrowing the original error either way.
+   */
+  async runInTransaction<ResultType>(opts: {
+    transaction?: TRelationalTransactionOf<TDataSource>;
+    transactionOptions?: TRelationalTransactionOptionsOf<TDataSource>;
+    execute: (opts: { transaction: TRelationalTransactionOf<TDataSource> }) => Promise<ResultType>;
+  }): Promise<ResultType> {
+    const { transaction, transactionOptions, execute } = opts;
+
+    if (transaction) {
+      if (!transaction.isActive) {
+        throw getError({
+          message: `[${this.constructor.name}][runInTransaction] Transaction is no longer active`,
+        });
+      }
+
+      if (transactionOptions) {
+        this.logger
+          .for('runInTransaction')
+          .debug('Joined transaction | transactionOptions ignored: %j', transactionOptions);
+      }
+
+      return execute({ transaction });
+    }
+
+    const ownedTransaction = await this.beginTransaction(transactionOptions);
+
+    try {
+      const result = await execute({ transaction: ownedTransaction });
+      await ownedTransaction.commit();
+      return result;
+    } catch (error) {
+      try {
+        await ownedTransaction.rollback();
+      } catch (rollbackError) {
+        // The rollback failure is only logged: the caller needs the error that caused it.
+        this.logger
+          .for('runInTransaction')
+          .error(
+            'Rollback failed | Error: %s | Original error, rethrown: %s',
+            rollbackError,
+            error,
+          );
+      }
+
+      throw error;
+    }
+  }
+
   /** Builds Drizzle query options from a filter, excluding hidden properties. */
   buildQuery(opts: { filter: TFilter<DataObject> }): TDrizzleQueryOptions {
     const result = this.queryDialect.build({
