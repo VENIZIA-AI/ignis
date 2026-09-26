@@ -138,11 +138,13 @@ JSON paths use the same dot notation as Postgres and compile to SQLite syntax:
 
 ```typescript
 { where: { 'metadata.tier': { eq: 'gold' } } }
-// SQL: json_extract("metadata", '$."tier"') = ?
+// SQL: json_extract("Product"."metadata", '$."tier"') = ?
 
 { where: { 'metadata.score': { gt: 50 } } }
-// SQL: json_extract("metadata", '$."score"') > ?  -- no cast; json_extract is already typed
+// SQL: json_extract("Product"."metadata", '$."score"') > ?  -- no cast; json_extract is already typed
 ```
+
+The column is qualified with the table (`"Product"`) exactly like a plain column - `json_extract` takes the same Drizzle column object a `where`/`order` on a non-JSON field would.
 
 Postgres needs a numeric cast because `#>>` always returns text. SQLite does not, because `json_extract` hands back a JSON number as `INTEGER` or `REAL`. See [JSON/JSONB Filtering](/references/base/filter-system/json-filtering) for the path grammar.
 

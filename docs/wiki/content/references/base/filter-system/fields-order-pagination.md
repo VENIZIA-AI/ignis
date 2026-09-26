@@ -67,8 +67,9 @@ Error: Invalid direction: 'RANDOM' | Expected: 'ASC' or 'DESC'
 Order by a nested key inside a JSON column with dot-path notation:
 
 ```typescript
+// Table: User, column: metadata jsonb
 await userRepository.find({ filter: { order: ['metadata.priority DESC'] } });
-// SQL: ORDER BY "metadata" #> '{priority}' DESC
+// SQL: ORDER BY "User"."metadata" #> '{priority}' DESC
 
 await userRepository.find({ filter: { order: ['settings.display.theme ASC'] } });
 ```
