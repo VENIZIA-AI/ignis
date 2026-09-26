@@ -91,10 +91,15 @@ second time: committed by `execute` - the result is returned, with no second com
 back or left failed by `execute` - a dedicated error, naming that `execute` ended the transaction
 before it could be committed, with no rollback attempt. `execute` rejects after ending the
 transaction itself - the ORIGINAL rejection, with no further rollback attempt. This reads the
-transaction's own internal state, so it is reliable only for a handle IGNIS built (the real handle or
-`TransactionDouble`) - given a transaction from another `ITransaction` implementation,
-`runInTransaction` cannot tell whether `execute` already committed it, and reports the
-"ended before it could be committed" error regardless.
+transaction's own internal state through a registry symbol, so it recognises the real handle or
+`TransactionDouble` even across a CommonJS/ESM mix (a `@venizia/ignis/testing` double with an
+`@venizia/ignis-connectors` repository, or the reverse) - only a transaction from an entirely
+different `ITransaction` implementation is unreadable, and reports the "ended before it could be
+committed" error even when `execute` committed it successfully.
+
+Always `await` `commit()`/`rollback()` when calling them from inside `execute`. A commit call that
+`execute` does not await is read as COMMITTED before the COMMIT statement itself has settled, so
+`runInTransaction` returns `execute`'s result while that commit can still go on to fail.
 
 ## Who is affected
 
@@ -108,7 +113,9 @@ datasource, connection, and internal state are ES private fields - invisible to 
 
 The one real difference: `isActive` now lives on the shared prototype, not as an own property. A
 spread copy - `{ ...transaction }` - no longer carries it, so passing a spread copy to a repository
-now throws "Transaction is no longer active" instead of working. Nothing in IGNIS does this.
+now throws "Transaction is no longer active" instead of working. Reading `isActive` through a `Proxy`
+or an `Object.create(transaction)` wrapper now throws a `TypeError` too - ES private fields are not
+proxyable and are not inherited. Nothing in IGNIS does either.
 
 **Files:**
 
