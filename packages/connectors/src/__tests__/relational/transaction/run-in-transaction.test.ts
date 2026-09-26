@@ -1,7 +1,7 @@
 import type { ITransaction } from '@venizia/ignis-kernel';
 import { IsolationLevels } from '@/relational/postgres/datasources';
 import { PostgresTransactionDouble, TransactionStates } from '@/testing';
-import { getError } from '@venizia/ignis-helpers/core';
+import { getError, isApplicationError } from '@venizia/ignis-helpers/core';
 import { describe, expect, mock, spyOn, test } from 'bun:test';
 import { PostgresTransactionRepository } from './engine-fixtures';
 import { captureRejection } from './parity-suite';
@@ -171,7 +171,10 @@ describe('runInTransaction - joined (a transaction passed)', () => {
       task: repository.runInTransaction({ transaction: joined, execute }),
     });
 
-    expect(caught).toBeDefined();
+    expect(isApplicationError(caught)).toBe(true);
+    expect(caught).toMatchObject({
+      message: '[PostgresTransactionRepository][runInTransaction] Transaction is no longer active',
+    });
     expect(execute).not.toHaveBeenCalled();
     expect(beginSpy).not.toHaveBeenCalled();
     expect(joined.commitCount).toBe(1);
@@ -194,5 +197,126 @@ describe('runInTransaction - joined (a transaction passed)', () => {
     expect(execute).toHaveBeenCalledTimes(1);
     expect(joined.commitCount).toBe(0);
     expect(logger.countAt({ level: 'debug' })).toBeGreaterThanOrEqual(1);
+  });
+});
+
+/**
+ * `execute` receives the owned handle, so it can end it. runInTransaction must then neither end it a
+ * second time nor report a rollback failure that is only the already-ended guard answering.
+ */
+describe('runInTransaction - owned, when execute ends the transaction itself', () => {
+  /** The house message shape, `[<Repository>][runInTransaction] ...`, naming `execute` as the cause. */
+  const EXECUTE_ENDED_MESSAGE = /^\[PostgresTransactionRepository\]\[runInTransaction\] .*execute/;
+
+  const spyOnEnds = (opts: { double: PostgresTransactionDouble }) => ({
+    commitSpy: spyOn(opts.double, 'commit'),
+    rollbackSpy: spyOn(opts.double, 'rollback'),
+  });
+
+  test('execute committed: returns its result, commits no second time, logs no rollback failure', async () => {
+    const { repository, logger, double } = buildRepository({});
+    const { commitSpy, rollbackSpy } = spyOnEnds({ double });
+
+    const result = await repository.runInTransaction({
+      execute: async ({ transaction }) => {
+        await transaction.commit();
+        return 'execute-result';
+      },
+    });
+
+    expect(result).toBe('execute-result');
+    expect(commitSpy).toHaveBeenCalledTimes(1);
+    expect(rollbackSpy).not.toHaveBeenCalled();
+    expect(double.commitCount).toBe(1);
+    expect(double.state).toBe(TransactionStates.COMMITTED);
+    expect(logger.countAt({ level: 'error' })).toBe(0);
+  });
+
+  test('execute rolled back: throws a clear error naming execute, attempts no rollback of its own', async () => {
+    const { repository, logger, double } = buildRepository({});
+    const { commitSpy, rollbackSpy } = spyOnEnds({ double });
+
+    const caught = await captureRejection({
+      task: repository.runInTransaction({
+        execute: async ({ transaction }) => {
+          await transaction.rollback();
+          return 'execute-result';
+        },
+      }),
+    });
+
+    expect(isApplicationError(caught)).toBe(true);
+    expect(caught).toMatchObject({ message: expect.stringMatching(EXECUTE_ENDED_MESSAGE) });
+    expect(commitSpy).not.toHaveBeenCalled();
+    expect(rollbackSpy).toHaveBeenCalledTimes(1);
+    expect(double.state).toBe(TransactionStates.ROLLED_BACK);
+    expect(logger.countAt({ level: 'error' })).toBe(0);
+  });
+
+  test('execute ended it by a failed commit it caught: throws the clear error, attempts no rollback', async () => {
+    const commitError = getError({
+      message: '[RunInTransactionTest] commit failed inside execute',
+    });
+    const { repository, logger, double } = buildRepository({
+      double: new PostgresTransactionDouble({ commitError }),
+    });
+    const { commitSpy, rollbackSpy } = spyOnEnds({ double });
+
+    const caught = await captureRejection({
+      task: repository.runInTransaction({
+        execute: async ({ transaction }) => {
+          await captureRejection({ task: transaction.commit() });
+          return 'execute-result';
+        },
+      }),
+    });
+
+    expect(isApplicationError(caught)).toBe(true);
+    expect(caught).toMatchObject({ message: expect.stringMatching(EXECUTE_ENDED_MESSAGE) });
+    expect(commitSpy).toHaveBeenCalledTimes(1);
+    expect(rollbackSpy).not.toHaveBeenCalled();
+    expect(double.state).toBe(TransactionStates.FAILED);
+    expect(logger.countAt({ level: 'error' })).toBe(0);
+  });
+
+  test('execute committed and then threw: the ORIGINAL error, no rollback attempted, no rollback-failure log', async () => {
+    const { repository, logger, double } = buildRepository({});
+    const { commitSpy, rollbackSpy } = spyOnEnds({ double });
+    const original = getError({ message: '[RunInTransactionTest] execute failed after commit' });
+
+    const caught = await captureRejection({
+      task: repository.runInTransaction({
+        execute: async ({ transaction }) => {
+          await transaction.commit();
+          throw original;
+        },
+      }),
+    });
+
+    expect(caught).toBe(original);
+    expect(commitSpy).toHaveBeenCalledTimes(1);
+    expect(rollbackSpy).not.toHaveBeenCalled();
+    expect(double.state).toBe(TransactionStates.COMMITTED);
+    expect(logger.countAt({ level: 'error' })).toBe(0);
+  });
+
+  test('execute rolled back and then threw: the ORIGINAL error, no second rollback, no rollback-failure log', async () => {
+    const { repository, logger, double } = buildRepository({});
+    const { rollbackSpy } = spyOnEnds({ double });
+    const original = getError({ message: '[RunInTransactionTest] execute failed after rollback' });
+
+    const caught = await captureRejection({
+      task: repository.runInTransaction({
+        execute: async ({ transaction }) => {
+          await transaction.rollback();
+          throw original;
+        },
+      }),
+    });
+
+    expect(caught).toBe(original);
+    expect(rollbackSpy).toHaveBeenCalledTimes(1);
+    expect(double.rollbackCount).toBe(1);
+    expect(logger.countAt({ level: 'error' })).toBe(0);
   });
 });

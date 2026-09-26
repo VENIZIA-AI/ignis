@@ -24,9 +24,9 @@ class ConnectionTransaction<TConnector>
 {
   readonly connector: TConnector;
 
-  // The datasource, not its logger: the logger is read only when an end fails or is a no-op.
-  private readonly dataSource: { readonly logger: ILogger };
-  private readonly connection: IRelationalConnection<TConnector>;
+  // ES-private so a logged, spread or serialised handle never reaches the datasource settings. The datasource, not its logger: the logger is read only when an end fails or is a no-op.
+  readonly #dataSource: { readonly logger: ILogger };
+  readonly #connection: IRelationalConnection<TConnector>;
 
   constructor(opts: {
     dataSource: { readonly logger: ILogger };
@@ -34,30 +34,30 @@ class ConnectionTransaction<TConnector>
   }) {
     super();
 
-    this.dataSource = opts.dataSource;
-    this.connection = opts.connection;
+    this.#dataSource = opts.dataSource;
+    this.#connection = opts.connection;
     this.connector = opts.connection.connector;
   }
 
-  protected override executeEnd(end: ITransactionEnd): Promise<unknown> {
-    return this.connection.execute({ statement: end.statement });
+  protected override executeEnd(opts: { end: ITransactionEnd }): Promise<unknown> {
+    return this.#connection.execute({ statement: opts.end.statement });
   }
 
   protected override onEnded(): void {
-    this.connection.release();
+    this.#connection.release();
   }
 
   protected override onEndFailed(opts: { end: ITransactionEnd; error: unknown }): void {
     const { end, error } = opts;
 
-    this.dataSource.logger
+    this.#dataSource.logger
       .for(end.verb)
       .error('Failed to %s transaction | Error: %s', end.statement, error);
-    this.connection.release({ destroy: true });
+    this.#connection.release({ destroy: true });
   }
 
   protected override onRollbackAfterFailure(): void {
-    this.dataSource.logger
+    this.#dataSource.logger
       .for('rollback')
       .debug('Rollback after a failure-ended transaction - no-op, already torn down');
   }

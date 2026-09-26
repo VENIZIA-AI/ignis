@@ -38,17 +38,17 @@ export class TransactionDouble
   extends TransactionLifecycle
   implements IRelationalTransaction<never>
 {
-  private readonly commitError?: Error;
-  private readonly rollbackError?: Error;
+  readonly #commitError?: Error;
+  readonly #rollbackError?: Error;
 
-  private _commitCount = 0;
-  private _rollbackCount = 0;
+  #commitCount = 0;
+  #rollbackCount = 0;
 
   constructor(opts?: ITransactionDoubleOptions) {
     super();
 
-    this.commitError = opts?.commitError;
-    this.rollbackError = opts?.rollbackError;
+    this.#commitError = opts?.commitError;
+    this.#rollbackError = opts?.rollbackError;
   }
 
   get state(): TTransactionState {
@@ -56,11 +56,11 @@ export class TransactionDouble
   }
 
   get commitCount(): number {
-    return this._commitCount;
+    return this.#commitCount;
   }
 
   get rollbackCount(): number {
-    return this._rollbackCount;
+    return this.#rollbackCount;
   }
 
   get connector(): never {
@@ -70,21 +70,21 @@ export class TransactionDouble
     });
   }
 
-  protected override async executeEnd(end: ITransactionEnd): Promise<void> {
-    if (end.endedState === TransactionStates.COMMITTED) {
-      this._commitCount++;
+  protected override async executeEnd(opts: { end: ITransactionEnd }): Promise<void> {
+    if (opts.end.endedState === TransactionStates.COMMITTED) {
+      this.#commitCount++;
 
-      if (this.commitError) {
-        throw this.commitError;
+      if (this.#commitError) {
+        throw this.#commitError;
       }
 
       return;
     }
 
-    this._rollbackCount++;
+    this.#rollbackCount++;
 
-    if (this.rollbackError) {
-      throw this.rollbackError;
+    if (this.#rollbackError) {
+      throw this.#rollbackError;
     }
   }
 }

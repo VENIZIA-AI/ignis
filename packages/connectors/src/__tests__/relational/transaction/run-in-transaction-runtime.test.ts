@@ -105,6 +105,58 @@ describe('runInTransaction runtime - postgres (PGlite)', () => {
     );
   });
 
+  test('owned: execute that commits the handle itself gets its result back, with one COMMIT', async () => {
+    postgresDataSource.recorder.reset();
+
+    const result = await postgresRepository.runInTransaction({
+      execute: async ({ transaction }) => {
+        await postgresRepository.create({
+          data: { name: 'execute-committed' },
+          options: { transaction },
+        });
+        await transaction.commit();
+        return 'execute-result';
+      },
+    });
+
+    expect(result).toBe('execute-result');
+    expect(await countNamed({ name: 'execute-committed' })).toBe(1);
+    expect(
+      postgresDataSource.recorder.statements.filter(statement =>
+        TransactionEndStatements.isValid(statement),
+      ),
+    ).toEqual([TransactionEndStatements.COMMIT]);
+  });
+
+  test('owned: execute that rolls the handle back itself gets a clear error, with one ROLLBACK', async () => {
+    postgresDataSource.recorder.reset();
+
+    const caught = await captureRejection({
+      task: postgresRepository.runInTransaction({
+        execute: async ({ transaction }) => {
+          await postgresRepository.create({
+            data: { name: 'execute-rolled-back' },
+            options: { transaction },
+          });
+          await transaction.rollback();
+          return 'execute-result';
+        },
+      }),
+    });
+
+    expect(caught).toMatchObject({
+      message: expect.stringMatching(
+        /^\[PostgresTransactionRepository\]\[runInTransaction\] .*execute/,
+      ),
+    });
+    expect(await countNamed({ name: 'execute-rolled-back' })).toBe(0);
+    expect(
+      postgresDataSource.recorder.statements.filter(statement =>
+        TransactionEndStatements.isValid(statement),
+      ),
+    ).toEqual([TransactionEndStatements.ROLLBACK]);
+  });
+
   test('joined: the caller keeps ownership - nothing commits until the caller does', async () => {
     const transaction = await postgresDataSource.beginTransaction();
     postgresDataSource.recorder.reset();
@@ -140,7 +192,9 @@ describe('runInTransaction runtime - postgres (PGlite)', () => {
       task: postgresRepository.runInTransaction({ transaction, execute }),
     });
 
-    expect(caught).toBeDefined();
+    expect(caught).toMatchObject({
+      message: '[PostgresTransactionRepository][runInTransaction] Transaction is no longer active',
+    });
     expect(execute).not.toHaveBeenCalled();
   });
 });
@@ -196,6 +250,58 @@ describe('runInTransaction runtime - sqlite (libsql :memory:)', () => {
     expect(sqliteDataSource.recorder.statements[0]).toBe('BEGIN DEFERRED');
   });
 
+  test('owned: execute that commits the handle itself gets its result back, with one COMMIT', async () => {
+    sqliteDataSource.recorder.reset();
+
+    const result = await sqliteRepository.runInTransaction({
+      execute: async ({ transaction }) => {
+        await sqliteRepository.create({
+          data: { name: 'execute-committed' },
+          options: { transaction },
+        });
+        await transaction.commit();
+        return 'execute-result';
+      },
+    });
+
+    expect(result).toBe('execute-result');
+    expect(await countNamed({ name: 'execute-committed' })).toBe(1);
+    expect(
+      sqliteDataSource.recorder.statements.filter(statement =>
+        TransactionEndStatements.isValid(statement),
+      ),
+    ).toEqual([TransactionEndStatements.COMMIT]);
+  });
+
+  test('owned: execute that rolls the handle back itself gets a clear error, with one ROLLBACK', async () => {
+    sqliteDataSource.recorder.reset();
+
+    const caught = await captureRejection({
+      task: sqliteRepository.runInTransaction({
+        execute: async ({ transaction }) => {
+          await sqliteRepository.create({
+            data: { name: 'execute-rolled-back' },
+            options: { transaction },
+          });
+          await transaction.rollback();
+          return 'execute-result';
+        },
+      }),
+    });
+
+    expect(caught).toMatchObject({
+      message: expect.stringMatching(
+        /^\[SqliteTransactionRepository\]\[runInTransaction\] .*execute/,
+      ),
+    });
+    expect(await countNamed({ name: 'execute-rolled-back' })).toBe(0);
+    expect(
+      sqliteDataSource.recorder.statements.filter(statement =>
+        TransactionEndStatements.isValid(statement),
+      ),
+    ).toEqual([TransactionEndStatements.ROLLBACK]);
+  });
+
   test('joined: the caller keeps ownership - nothing commits until the caller does', async () => {
     const transaction = await sqliteDataSource.beginTransaction();
     sqliteDataSource.recorder.reset();
@@ -231,7 +337,9 @@ describe('runInTransaction runtime - sqlite (libsql :memory:)', () => {
       task: sqliteRepository.runInTransaction({ transaction, execute }),
     });
 
-    expect(caught).toBeDefined();
+    expect(caught).toMatchObject({
+      message: '[SqliteTransactionRepository][runInTransaction] Transaction is no longer active',
+    });
     expect(execute).not.toHaveBeenCalled();
   });
 });
