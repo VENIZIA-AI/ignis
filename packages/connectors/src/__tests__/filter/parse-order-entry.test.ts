@@ -74,6 +74,10 @@ describe('parseOrderEntry - whitespace', () => {
     ['name    DESC', 'several spaces between tokens'],
     ['name\tDESC', 'a tab between tokens'],
     ['name \t DESC', 'mixed spaces and a tab between tokens'],
+    ['name\vDESC', 'a vertical tab between tokens'],
+    ['name\fDESC', 'a form feed between tokens'],
+    ['name\rDESC', 'a carriage return between tokens'],
+    ['name\r\nDESC', 'CRLF between tokens'],
   ])('%p (%s) parses to name/desc', entry => {
     expect(parse(entry)).toEqual({ field: 'name', direction: Sorts.DESC });
   });
@@ -84,6 +88,20 @@ describe('parseOrderEntry - whitespace', () => {
       expect(parse(entry)).toEqual({ field: 'name', direction: Sorts.ASC });
     },
   );
+});
+
+describe('parseOrderEntry - only ASCII whitespace separates tokens', () => {
+  test.each([
+    ['name\u00a0DESC', 'a non-breaking space'],
+    ['name\u2003DESC', 'an em space'],
+    ['name\u3000DESC', 'an ideographic space'],
+  ])('%p (%s) is one field named as written, defaulting to ascending', entry => {
+    expect(parse(entry)).toEqual({ field: entry, direction: Sorts.ASC });
+  });
+
+  test('Unicode whitespace at the ends is still trimmed', () => {
+    expect(parse('\u00a0name DESC\u00a0')).toEqual({ field: 'name', direction: Sorts.DESC });
+  });
 });
 
 describe('parseOrderEntry - rejected entries are 400s', () => {
@@ -118,6 +136,46 @@ describe('parseOrderEntry - rejected entries are 400s', () => {
 
     expect(error.statusCode).toBe(400);
   });
+});
+
+/** Whether a message carries a C0 control (line break, ESC, NUL...) - what JSON.stringify escapes. */
+const hasControlCharacter = (text: string): boolean => {
+  for (let index = 0; index < text.length; index++) {
+    const code = text.charCodeAt(index);
+    if (code < 32) {
+      return true;
+    }
+  }
+
+  return false;
+};
+
+describe('parseOrderEntry - the entry is quoted with JSON.stringify in every message', () => {
+  test.each([
+    ['\n\t\n', 'no field, only line breaks'],
+    ['a\nFAKE LOG LINE b', 'too many tokens, one a forged log line'],
+    ['name \u001b[31mdesc', 'invalid direction carrying an ESC sequence'],
+    ['name ASC\u0000', 'invalid direction carrying a NUL'],
+  ])('%p (%s) is a single-line 400 with the entry escaped', entry => {
+    const error = captureError(() => parse(entry));
+
+    expect(error.statusCode).toBe(400);
+    expect(error.message).toContain(JSON.stringify(entry));
+    expect(hasControlCharacter(error.message)).toBe(false);
+  });
+
+  test('the escapes appear literally, so a reader sees what was sent', () => {
+    expect(captureError(() => parse('a\nFAKE LOG LINE b')).message).toContain('\\n');
+    expect(captureError(() => parse('name \u001b[31mdesc')).message).toContain('\\u001b');
+    expect(captureError(() => parse('name ASC\u0000')).message).toContain('\\u0000');
+  });
+
+  test.each([['name sideways'], ['name DESC NULLS LAST']])(
+    'a plain entry %p is quoted as a JSON string',
+    entry => {
+      expect(captureError(() => parse(entry)).message).toContain(`"${entry}"`);
+    },
+  );
 });
 
 describe('parseOrderEntry - result type', () => {

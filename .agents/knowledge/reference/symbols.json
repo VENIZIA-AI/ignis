@@ -11991,7 +11991,7 @@
       "specifier": "@venizia/ignis/relational",
       "kind": "class",
       "file": "packages/connectors/src/relational/core/repositories/dialect/filter.ts",
-      "line": 76,
+      "line": 80,
       "signature": "class FilterBuilder extends BaseHelper"
     },
     {
@@ -15881,7 +15881,7 @@
       "specifier": "@venizia/ignis-connectors",
       "kind": "class",
       "file": "packages/connectors/src/relational/core/repositories/dialect/filter.ts",
-      "line": 76,
+      "line": 80,
       "signature": "class FilterBuilder extends BaseHelper"
     },
     {
@@ -18380,7 +18380,7 @@
       "specifier": "@venizia/ignis-connectors/relational",
       "kind": "class",
       "file": "packages/connectors/src/relational/core/repositories/dialect/filter.ts",
-      "line": 76,
+      "line": 80,
       "signature": "class FilterBuilder extends BaseHelper"
     },
     {

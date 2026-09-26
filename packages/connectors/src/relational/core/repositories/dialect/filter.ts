@@ -6,6 +6,7 @@ import type {
   TInclusion,
   TParsedOrderEntry,
   TQueryOperatorHandlers,
+  TSortDirection,
   TWhere,
 } from '@venizia/ignis-kernel';
 import {
@@ -53,6 +54,9 @@ type TResolvedModelEntry = ReturnType<MetadataRegistry['getModelEntry']>;
 /** Most order entries an instance remembers; entries come from requests, so the cache is bounded. */
 const ORDER_ENTRY_CACHE_CAP = 1024;
 
+/** Longest order entry the cache keeps, so its memory is bounded by bytes as well as by count. */
+const ORDER_ENTRY_CACHE_MAX_LENGTH = 256;
+
 const SCALAR_EQUALITY_OPERATORS = new Set<string>([
   QueryOperators.EQ,
   QueryOperators.NE,
@@ -86,7 +90,7 @@ export abstract class FilterBuilder extends BaseHelper {
   /** `asc`/`desc` allocate an SQL node (~75 ns) that drizzle never mutates - built once per column or expression. */
   private readonly _orderNodeCache = new WeakMap<AnyColumn | SQLWrapper, { asc: SQL; desc: SQL }>();
 
-  /** A freshly sliced field costs ~40 ns to hash on every column lookup; a remembered one is hashed once. */
+  /** A freshly sliced field is hashed again on every column lookup; a remembered one is hashed once. */
   private readonly _orderEntryCache = new Map<string, TParsedOrderEntry>();
 
   constructor() {
@@ -538,20 +542,19 @@ export abstract class FilterBuilder extends BaseHelper {
     if (!parsed) {
       parsed = parseOrderEntry({ entry });
 
-      // Clearing, not evicting the oldest: a JSC Map deleted from its front costs ~250 ns per call.
-      if (this._orderEntryCache.size >= ORDER_ENTRY_CACHE_CAP) {
-        this._orderEntryCache.clear();
+      if (entry.length <= ORDER_ENTRY_CACHE_MAX_LENGTH) {
+        // Clearing, not evicting the oldest: deleting from the front of a JSC Map is slow.
+        if (this._orderEntryCache.size >= ORDER_ENTRY_CACHE_CAP) {
+          this._orderEntryCache.clear();
+        }
+        this._orderEntryCache.set(entry, parsed);
       }
-      this._orderEntryCache.set(entry, parsed);
     }
 
     return parsed;
   }
 
-  private getOrderNode(opts: {
-    target: AnyColumn | SQLWrapper;
-    direction: TConstValue<typeof Sorts>;
-  }): SQL {
+  private getOrderNode(opts: { target: AnyColumn | SQLWrapper; direction: TSortDirection }): SQL {
     const { target, direction } = opts;
     let pair = this._orderNodeCache.get(target);
 

@@ -38,7 +38,7 @@ export const parseOrderEntry = (opts: { entry: string }): TParsedOrderEntry => {
   if (length === 0) {
     throw getError({
       statusCode: 400,
-      message: `[parseOrderEntry] Order entry has no field | entry: '${entry}'`,
+      message: `[parseOrderEntry] Order entry has no field | entry: ${JSON.stringify(entry)}`,
     });
   }
 
@@ -65,7 +65,7 @@ export const parseOrderEntry = (opts: { entry: string }): TParsedOrderEntry => {
   if (directionEnd !== length) {
     throw getError({
       statusCode: 400,
-      message: `[parseOrderEntry] Too many tokens | entry: '${entry}' | Expected: '<field>' or '<field> ASC|DESC'`,
+      message: `[parseOrderEntry] Too many tokens | entry: ${JSON.stringify(entry)} | Expected: '<field>' or '<field> ASC|DESC'`,
     });
   }
 
@@ -74,7 +74,7 @@ export const parseOrderEntry = (opts: { entry: string }): TParsedOrderEntry => {
   if (!direction) {
     throw getError({
       statusCode: 400,
-      message: `[parseOrderEntry] Invalid direction | entry: '${entry}' | Expected: 'ASC' or 'DESC'`,
+      message: `[parseOrderEntry] Invalid direction | entry: ${JSON.stringify(entry)} | Expected: 'ASC' or 'DESC'`,
     });
   }
 
