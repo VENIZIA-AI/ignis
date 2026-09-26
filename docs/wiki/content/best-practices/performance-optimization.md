@@ -98,7 +98,7 @@ await repository.find({
   },
 });
 
-// Ordering uses the #> operator: metadata #> '{nested,0,field}'
+// Ordering uses the #> operator, qualified with the table like a plain column: "table"."metadata" #> '{nested,0,field}'
 // Where clauses on JSON paths use #>> (text extraction)
 ```
 

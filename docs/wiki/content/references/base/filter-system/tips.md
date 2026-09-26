@@ -53,8 +53,9 @@ Store numbers as JSON numbers (`{ "priority": 3 }`), not numeric strings, to avo
 ## A missing JSON path is a null-safe miss, not an error
 
 ```typescript
+// Table: Product, column: metadata jsonb
 { where: { 'metadata.nonexistent.field': 'value' } }
-// SQL: "metadata" #>> '{nonexistent,field}' = 'value'
+// SQL: "Product"."metadata" #>> '{nonexistent,field}' = 'value'
 // No rows match (NULL != 'value') - no exception either
 ```
 
@@ -63,8 +64,9 @@ Store numbers as JSON numbers (`{ "priority": 3 }`), not numeric strings, to avo
 `#>` returns JSONB and preserves the value's type; the equality/comparison operators above use `#>>` (text) instead, because sorting needs JSONB's native ordering:
 
 ```typescript
+// Table: Product, column: metadata jsonb
 { order: ['metadata.priority DESC'] }
-// SQL: "metadata" #> '{priority}' DESC
+// SQL: "Product"."metadata" #> '{priority}' DESC
 
 // JSONB comparison order: null < boolean < number < string < array < object
 ```

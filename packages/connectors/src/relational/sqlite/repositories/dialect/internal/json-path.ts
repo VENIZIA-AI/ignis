@@ -1,4 +1,7 @@
+import type { TTableColumns } from '@/relational/core/repositories/common';
 import { getError } from '@venizia/ignis-helpers/core';
+import type { SQLChunk } from 'drizzle-orm';
+import { StringChunk } from 'drizzle-orm';
 
 /** Every all-digit component doubles the candidate paths, and filter keys arrive from callers. */
 const MAX_AMBIGUOUS_COMPONENTS = 4;
@@ -32,20 +35,35 @@ export const toSqliteJsonPaths = (opts: { path: string[] }): string[] => {
   return literals;
 };
 
+const EXTRACTION_OPEN = new StringChunk('json_extract(');
+const COALESCED_EXTRACTION_OPEN = new StringChunk('coalesce(json_extract(');
+
 /**
- * The raw `json_extract` expression the neutral walk feeds to `sql.raw`. Safe as text only because
- * the caller has already resolved the column against the schema and passed every component through
- * `validateJsonPathComponents`, whose pattern admits no quote.
+ * The `json_extract` expression for one JSON-path key, as the chunks of one flat fragment (every
+ * nested `SQL` level costs a render pass); a caller may append a chunk before `sql.fromList`. The
+ * Drizzle column chunk is qualified or aliased like a plain key. The path literal is raw text, safe
+ * only because every component has passed `validateJsonPathComponents`, which admits no quote.
  *
  * Coalescing loses nothing: a container is either an array or an object, so at most one candidate
  * resolves to non-NULL.
  */
-export const toSqliteJsonExtraction = (opts: { columnName: string; path: string[] }): string => {
-  const { columnName, path } = opts;
+export const toSqliteJsonExtractionChunks = (opts: {
+  column: TTableColumns[string];
+  path: string[];
+}): SQLChunk[] => {
+  const { column, path } = opts;
 
-  const extractions = toSqliteJsonPaths({ path }).map(
-    literal => `json_extract("${columnName}", '${literal}')`,
-  );
+  const literals = toSqliteJsonPaths({ path });
+  const lastIndex = literals.length - 1;
+  // json_extract(col, 'L') | coalesce(json_extract(col, 'L0'), ..., json_extract(col, 'Ln'))
+  const chunks: SQLChunk[] = [lastIndex === 0 ? EXTRACTION_OPEN : COALESCED_EXTRACTION_OPEN];
 
-  return extractions.length > 1 ? `coalesce(${extractions.join(', ')})` : extractions.join('');
+  for (let index = 0; index < lastIndex; index++) {
+    chunks.push(column, new StringChunk(`, '${literals[index]}'), json_extract(`));
+  }
+
+  const closing = lastIndex === 0 ? ')' : '))';
+  chunks.push(column, new StringChunk(`, '${literals[lastIndex]}'${closing}`));
+
+  return chunks;
 };

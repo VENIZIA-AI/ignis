@@ -23,50 +23,51 @@ const compile = (where: any): string => {
 
 /**
  * Numeric eq/ne/neq/inq/nin must route through the same numeric cast as the bare-value branch - a
- * text extraction produces 'operator does not exist: text = integer'.
+ * text extraction produces 'operator does not exist: text = integer'. The cast marker is `::numeric`,
+ * not `numeric`: the qualified column carries the table name, which contains `numeric` itself.
  */
 describe('FilterBuilder - JSON path numeric equality operators cast to numeric', () => {
   test('eq with a numeric value casts the extraction to numeric', () => {
-    expect(compile({ 'metadata.score': { eq: 50 } })).toContain('numeric');
+    expect(compile({ 'metadata.score': { eq: 50 } })).toContain('::numeric');
   });
 
   test('neq with a numeric value casts the extraction to numeric', () => {
-    expect(compile({ 'metadata.score': { neq: 50 } })).toContain('numeric');
+    expect(compile({ 'metadata.score': { neq: 50 } })).toContain('::numeric');
   });
 
   test('inq with numeric values casts the extraction to numeric', () => {
-    expect(compile({ 'metadata.score': { inq: [10, 20] } })).toContain('numeric');
+    expect(compile({ 'metadata.score': { inq: [10, 20] } })).toContain('::numeric');
   });
 
   test('nin with numeric values casts the extraction to numeric', () => {
-    expect(compile({ 'metadata.score': { nin: [10, 20] } })).toContain('numeric');
+    expect(compile({ 'metadata.score': { nin: [10, 20] } })).toContain('::numeric');
   });
 
   test('bare numeric value still casts to numeric (unchanged)', () => {
-    expect(compile({ 'metadata.score': 50 })).toContain('numeric');
+    expect(compile({ 'metadata.score': 50 })).toContain('::numeric');
   });
 
   test('eq with a string value stays text (no numeric cast)', () => {
-    expect(compile({ 'metadata.status': { eq: 'active' } })).not.toContain('numeric');
+    expect(compile({ 'metadata.status': { eq: 'active' } })).not.toContain('::numeric');
   });
 
   test('inq with string values stays text (no numeric cast)', () => {
-    expect(compile({ 'metadata.status': { inq: ['a', 'b'] } })).not.toContain('numeric');
+    expect(compile({ 'metadata.status': { inq: ['a', 'b'] } })).not.toContain('::numeric');
   });
 
   test('bare numeric array casts to numeric like its inq equivalent', () => {
-    expect(compile({ 'metadata.score': [10, 20] })).toContain('numeric');
+    expect(compile({ 'metadata.score': [10, 20] })).toContain('::numeric');
   });
 
   test('bare mixed array stays text (no numeric cast)', () => {
-    expect(compile({ 'metadata.score': [10, 'x'] })).not.toContain('numeric');
+    expect(compile({ 'metadata.score': [10, 'x'] })).not.toContain('::numeric');
   });
 
   test('bare empty array stays text (no numeric cast)', () => {
-    expect(compile({ 'metadata.score': [] })).not.toContain('numeric');
+    expect(compile({ 'metadata.score': [] })).not.toContain('::numeric');
   });
 
   test('bare string array stays text (no numeric cast)', () => {
-    expect(compile({ 'metadata.status': ['a', 'b'] })).not.toContain('numeric');
+    expect(compile({ 'metadata.status': ['a', 'b'] })).not.toContain('::numeric');
   });
 });

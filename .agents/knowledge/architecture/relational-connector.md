@@ -209,7 +209,7 @@ the rest only when your JSON semantics differ. You inherit the other ~700 lines 
 | `get operators()` | **Required.** Return your own `TQueryOperatorHandlers` table |
 | `buildJsonWhereCondition()` | **Required.** Emit your JSON path syntax, and the cast variant if your extraction is text |
 | `buildJsonOrderBy()` | **Required.** Emit your JSON path syntax for one order key |
-| `buildJsonOperatorConditions()` | Only if per-operator cast placement differs; it takes both extractions as arguments and names no engine |
+| `buildJsonOperatorConditions()` | Only if per-operator cast placement differs; it takes both extractions as arguments and names no engine. Both are typed `string \| SQL` - the shipped engines pass `SQL` built from the Drizzle column object, so it renders qualified with the table; a plain `string` is still accepted and wrapped with `sql.raw` once, but renders unqualified. An override still typed `jsonPath: string` compiles (parameters are bivariant): one that only forwards the value keeps working, qualified; one that treats it as text (`sql.raw`, a template string) now receives an `SQL` object and emits `[object Object]`, failing the query - retype it to `string \| SQL` and pass the value through |
 | `jsonNeedsNumericCast()` | Only if your extraction is not text-typed; it picks between the two extractions you passed in |
 | `validateJsonColumn()` | Only if your JSON column type check differs |
 | `buildOperatorConditions()` | Only if `not` needs different composition; it already resolves handlers via `operators` |
