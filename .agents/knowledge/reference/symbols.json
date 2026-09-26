@@ -189,7 +189,7 @@
       "specifier": "@venizia/ignis",
       "kind": "class",
       "file": "packages/kernel/src/base/controllers/rest/abstract.ts",
-      "line": 29,
+      "line": 30,
       "signature": "class AbstractRestController<RouteEnv extends Env = Env, RouteSchema extends Schema = {}, BasePath extends string = '/', ConfigurableOptions extends object = {}, Definitions extends Record<string, IAuthRouteConfig> = Record<string, IAuthRouteConfig>> extends BaseHelper implements IController<RouteEn"
     },
     {
@@ -1029,7 +1029,7 @@
       "specifier": "@venizia/ignis",
       "kind": "const",
       "file": "packages/helpers/src/common/constants/mime.ts",
-      "line": 157,
+      "line": 198,
       "signature": "CONTENT_TYPE_BY_EXTENSION: Readonly<Partial<Record<string, TContentType>>>"
     },
     {
@@ -1140,7 +1140,7 @@
       "specifier": "@venizia/ignis",
       "kind": "class",
       "file": "packages/helpers/src/common/constants/mime.ts",
-      "line": 118,
+      "line": 151,
       "signature": "class ContentTypeTable"
     },
     {
@@ -1150,7 +1150,7 @@
       "specifier": "@venizia/ignis",
       "kind": "class",
       "file": "packages/helpers/src/common/constants/mime.ts",
-      "line": 68,
+      "line": 84,
       "signature": "class ContentTypes"
     },
     {
@@ -1851,7 +1851,7 @@
       "specifier": "@venizia/ignis",
       "kind": "interface",
       "file": "packages/kernel/src/base/applications/common/types/application.ts",
-      "line": 59,
+      "line": 63,
       "signature": "interface IApplication<AppEnv extends Env = Env, AppSchema extends Schema = Schema, BasePath extends string = '/'>"
     },
     {
@@ -1881,7 +1881,7 @@
       "specifier": "@venizia/ignis",
       "kind": "interface",
       "file": "packages/kernel/src/base/applications/common/types/application.ts",
-      "line": 50,
+      "line": 54,
       "signature": "interface IApplicationInfo"
     },
     {
@@ -3121,7 +3121,7 @@
       "specifier": "@venizia/ignis",
       "kind": "interface",
       "file": "packages/helpers/src/utilities/request.utility.ts",
-      "line": 30,
+      "line": 31,
       "signature": "interface IParsedMultipartBody"
     },
     {
@@ -3601,7 +3601,7 @@
       "specifier": "@venizia/ignis",
       "kind": "interface",
       "file": "packages/helpers/src/utilities/request.utility.ts",
-      "line": 5,
+      "line": 6,
       "signature": "interface IRequestedRemark"
     },
     {
@@ -3621,7 +3621,7 @@
       "specifier": "@venizia/ignis",
       "kind": "interface",
       "file": "packages/kernel/src/base/applications/common/types/application.ts",
-      "line": 74,
+      "line": 78,
       "signature": "interface IRestApplication extends IApplication, IComponentMixin, IControllerMixin, IRepositoryMixin, IServiceMixin, IStaticServeMixin"
     },
     {
@@ -5153,7 +5153,7 @@
       "kind": "const",
       "file": "packages/kernel/src/base/middlewares/common/errors.ts",
       "line": 6,
-      "signature": "RequestErrors: { readonly BODY_MALFORMED: { readonly message: { readonly text: \"Malformed body payload\"; readonly code: \"core.request.body_malformed\"; }; readonly statusCode: 400; readonly category: \"validation\"; }; readonly NOTHING_TO_UPDATE: { readonly message: { readonly text: \"Nothing to update\""
+      "signature": "RequestErrors: { readonly BODY_MALFORMED: { readonly message: { readonly text: \"Malformed body payload\"; readonly code: \"core.request.body_malformed\"; }; readonly statusCode: 400; readonly category: \"validation\"; }; readonly BODY_TOO_LARGE: { readonly message: { readonly text: \"Request body is too l"
     },
     {
       "name": "RequestIdGenerator",
@@ -5202,7 +5202,7 @@
       "specifier": "@venizia/ignis",
       "kind": "class",
       "file": "packages/kernel/src/base/applications/rest.ts",
-      "line": 40,
+      "line": 42,
       "signature": "class RestApplication<AppEnv extends Env = Env, AppSchema extends Schema = {}, BasePath extends string = '/'> extends AbstractApplication"
     },
     {
@@ -6102,7 +6102,7 @@
       "specifier": "@venizia/ignis",
       "kind": "type",
       "file": "packages/helpers/src/common/constants/mime.ts",
-      "line": 115,
+      "line": 148,
       "signature": "type TContentType = TConstValue<typeof ContentTypes>"
     },
     {
@@ -6602,7 +6602,7 @@
       "specifier": "@venizia/ignis",
       "kind": "type",
       "file": "packages/helpers/src/common/constants/mime.ts",
-      "line": 65,
+      "line": 81,
       "signature": "type TFileExtension = TConstValue<typeof FileExtensions>"
     },
     {
@@ -8742,7 +8742,7 @@
       "specifier": "@venizia/ignis",
       "kind": "const",
       "file": "packages/helpers/src/utilities/request.utility.ts",
-      "line": 119,
+      "line": 124,
       "signature": "createContentDispositionHeader: (opts: { filename: string; type: \"attachment\" | \"inline\"; }) => string"
     },
     {
@@ -8872,7 +8872,7 @@
       "specifier": "@venizia/ignis",
       "kind": "const",
       "file": "packages/helpers/src/utilities/request.utility.ts",
-      "line": 113,
+      "line": 114,
       "signature": "encodeRFC5987: (filename: string) => string"
     },
     {
@@ -9492,7 +9492,7 @@
       "specifier": "@venizia/ignis",
       "kind": "const",
       "file": "packages/helpers/src/utilities/request.utility.ts",
-      "line": 141,
+      "line": 150,
       "signature": "parseContentDisposition: (opts: { header: string | null | undefined; }) => { type?: string; filename?: string; }"
     },
     {
@@ -9502,7 +9502,7 @@
       "specifier": "@venizia/ignis",
       "kind": "const",
       "file": "packages/helpers/src/utilities/request.utility.ts",
-      "line": 35,
+      "line": 36,
       "signature": "parseMultipartBody: <C extends { req: any; } = { req: any; }>(opts: IParseMultipartOptions<C>) => Promise<IParsedMultipartBody>"
     },
     {
@@ -9584,6 +9584,16 @@
       "file": "packages/kernel/src/base/auth/authorize/providers/request-domain.ts",
       "line": 12,
       "signature": "readDeclarative: (opts: { source: IAuthorizationDomainSource; context: TContext<Env, string>; }) => TNullable<string>"
+    },
+    {
+      "name": "readFormBody",
+      "package": "@venizia/ignis",
+      "subpath": ".",
+      "specifier": "@venizia/ignis",
+      "kind": "const",
+      "file": "packages/helpers/src/utilities/form-body.utility.ts",
+      "line": 18,
+      "signature": "readFormBody: (opts: { req: { formData: () => Promise<FormData>; }; }) => Promise<FormData>"
     },
     {
       "name": "readResultRows",
@@ -9782,7 +9792,7 @@
       "specifier": "@venizia/ignis",
       "kind": "const",
       "file": "packages/helpers/src/utilities/request.utility.ts",
-      "line": 101,
+      "line": 102,
       "signature": "sanitizeFilename: (filename: string) => string"
     },
     {
@@ -10072,7 +10082,7 @@
       "specifier": "@venizia/ignis/mail",
       "kind": "class",
       "file": "packages/core-server/src/components/mail/helpers/transporters/amazon-ses-transporter.helper.ts",
-      "line": 15,
+      "line": 16,
       "signature": "class AmazonSesTransportHelper extends BaseHelper implements IMailTransport"
     },
     {
@@ -10082,7 +10092,7 @@
       "specifier": "@venizia/ignis/mail",
       "kind": "class",
       "file": "packages/core-server/src/components/mail/common/constants.ts",
-      "line": 44,
+      "line": 55,
       "signature": "class BullMQExecutorModes"
     },
     {
@@ -10122,7 +10132,7 @@
       "specifier": "@venizia/ignis/mail",
       "kind": "interface",
       "file": "packages/core-server/src/components/mail/common/types/options.ts",
-      "line": 22,
+      "line": 29,
       "signature": "interface IAmazonSesMailOptions extends IBaseMailOptions"
     },
     {
@@ -10152,7 +10162,7 @@
       "specifier": "@venizia/ignis/mail",
       "kind": "interface",
       "file": "packages/core-server/src/components/mail/common/types/options.ts",
-      "line": 28,
+      "line": 35,
       "signature": "interface ICustomMailOptions extends IBaseMailOptions"
     },
     {
@@ -10162,7 +10172,7 @@
       "specifier": "@venizia/ignis/mail",
       "kind": "interface",
       "file": "packages/core-server/src/components/mail/common/types/options.ts",
-      "line": 33,
+      "line": 40,
       "signature": "interface IGenericMailOptions extends IBaseMailOptions"
     },
     {
@@ -10192,7 +10202,7 @@
       "specifier": "@venizia/ignis/mail",
       "kind": "interface",
       "file": "packages/core-server/src/components/mail/common/types/message.ts",
-      "line": 13,
+      "line": 14,
       "signature": "interface IMailMessage"
     },
     {
@@ -10252,7 +10262,7 @@
       "specifier": "@venizia/ignis/mail",
       "kind": "interface",
       "file": "packages/core-server/src/components/mail/common/types/message.ts",
-      "line": 28,
+      "line": 29,
       "signature": "interface IMailSendResult"
     },
     {
@@ -10262,7 +10272,7 @@
       "specifier": "@venizia/ignis/mail",
       "kind": "interface",
       "file": "packages/core-server/src/components/mail/common/types/message.ts",
-      "line": 41,
+      "line": 42,
       "signature": "interface IMailService"
     },
     {
@@ -10282,7 +10292,7 @@
       "specifier": "@venizia/ignis/mail",
       "kind": "interface",
       "file": "packages/core-server/src/components/mail/common/types/message.ts",
-      "line": 35,
+      "line": 36,
       "signature": "interface IMailTransport"
     },
     {
@@ -10292,7 +10302,7 @@
       "specifier": "@venizia/ignis/mail",
       "kind": "interface",
       "file": "packages/core-server/src/components/mail/common/types/options.ts",
-      "line": 16,
+      "line": 23,
       "signature": "interface IMailgunMailOptions extends IBaseMailOptions"
     },
     {
@@ -10302,7 +10312,7 @@
       "specifier": "@venizia/ignis/mail",
       "kind": "interface",
       "file": "packages/core-server/src/components/mail/common/types/options.ts",
-      "line": 10,
+      "line": 17,
       "signature": "interface INodemailerMailOptions extends IBaseMailOptions"
     },
     {
@@ -10392,7 +10402,7 @@
       "specifier": "@venizia/ignis/mail",
       "kind": "class",
       "file": "packages/core-server/src/components/mail/component.ts",
-      "line": 18,
+      "line": 21,
       "signature": "class MailComponent extends BaseComponent<TMailOptions>"
     },
     {
@@ -10412,7 +10422,7 @@
       "specifier": "@venizia/ignis/mail",
       "kind": "class",
       "file": "packages/core-server/src/components/mail/common/constants.ts",
-      "line": 10,
+      "line": 12,
       "signature": "class MailErrorCodes"
     },
     {
@@ -10432,7 +10442,7 @@
       "specifier": "@venizia/ignis/mail",
       "kind": "class",
       "file": "packages/core-server/src/components/mail/common/constants.ts",
-      "line": 29,
+      "line": 40,
       "signature": "class MailExecutorErrors"
     },
     {
@@ -10452,7 +10462,7 @@
       "specifier": "@venizia/ignis/mail",
       "kind": "class",
       "file": "packages/core-server/src/components/mail/common/constants.ts",
-      "line": 55,
+      "line": 66,
       "signature": "class MailProviders"
     },
     {
@@ -10472,7 +10482,7 @@
       "specifier": "@venizia/ignis/mail",
       "kind": "class",
       "file": "packages/core-server/src/components/mail/common/constants.ts",
-      "line": 33,
+      "line": 44,
       "signature": "class MailQueueExecutorTypes"
     },
     {
@@ -10482,7 +10492,7 @@
       "specifier": "@venizia/ignis/mail",
       "kind": "class",
       "file": "packages/core-server/src/components/mail/services/mail.service.ts",
-      "line": 17,
+      "line": 19,
       "signature": "class MailService extends BaseService implements IMailService"
     },
     {
@@ -10502,7 +10512,7 @@
       "specifier": "@venizia/ignis/mail",
       "kind": "class",
       "file": "packages/core-server/src/components/mail/helpers/transporters/mailgun-transporter.helper.ts",
-      "line": 16,
+      "line": 19,
       "signature": "class MailgunTransportHelper extends BaseHelper implements IMailTransport"
     },
     {
@@ -10512,7 +10522,7 @@
       "specifier": "@venizia/ignis/mail",
       "kind": "class",
       "file": "packages/core-server/src/components/mail/helpers/transporters/nodemail-transporter.helper.ts",
-      "line": 12,
+      "line": 17,
       "signature": "class NodemailerTransportHelper extends BaseHelper implements IMailTransport"
     },
     {
@@ -10542,7 +10552,7 @@
       "specifier": "@venizia/ignis/mail",
       "kind": "type",
       "file": "packages/core-server/src/components/mail/common/types/options.ts",
-      "line": 79,
+      "line": 86,
       "signature": "type TAmazonSesClient = Pick<TAmazonSesModule, 'SendEmailCommand' | 'GetAccountCommand'> & { client: AnyType; }"
     },
     {
@@ -10552,7 +10562,7 @@
       "specifier": "@venizia/ignis/mail",
       "kind": "type",
       "file": "packages/core-server/src/components/mail/common/types/options.ts",
-      "line": 63,
+      "line": 70,
       "signature": "type TAmazonSesConfig = { region: string; credentials?: { accessKeyId: string; secretAccessKey: string; sessionToken?: string; }; endpoint?: string; }"
     },
     {
@@ -10562,7 +10572,7 @@
       "specifier": "@venizia/ignis/mail",
       "kind": "type",
       "file": "packages/core-server/src/components/mail/common/types/options.ts",
-      "line": 70,
+      "line": 77,
       "signature": "type TAmazonSesModule<TConfig extends AnyType = AnyType, TClient extends AnyType = AnyType> = { SESv2Client: new (config: TConfig) => TClient; SendEmailCommand: new (input: AnyType) => AnyType; GetAccountCommand: new (input?: AnyType) => AnyType; }"
     },
     {
@@ -10592,7 +10602,7 @@
       "specifier": "@venizia/ignis/mail",
       "kind": "type",
       "file": "packages/core-server/src/components/mail/common/types/options.ts",
-      "line": 38,
+      "line": 45,
       "signature": "type TMailOptions = INodemailerMailOptions | IAmazonSesMailOptions | IMailgunMailOptions | ICustomMailOptions | IGenericMailOptions"
     },
     {
@@ -10602,7 +10612,7 @@
       "specifier": "@venizia/ignis/mail",
       "kind": "type",
       "file": "packages/core-server/src/components/mail/common/constants.ts",
-      "line": 63,
+      "line": 74,
       "signature": "type TMailProvider = TConstValue<typeof MailProviders>"
     },
     {
@@ -10612,7 +10622,7 @@
       "specifier": "@venizia/ignis/mail",
       "kind": "type",
       "file": "packages/core-server/src/components/mail/common/types/options.ts",
-      "line": 48,
+      "line": 55,
       "signature": "type TMailgunConfig = AnyType & { domain: string; }"
     },
     {
@@ -10622,7 +10632,7 @@
       "specifier": "@venizia/ignis/mail",
       "kind": "type",
       "file": "packages/core-server/src/components/mail/common/types/options.ts",
-      "line": 61,
+      "line": 68,
       "signature": "type TMailgunModule = new (formData: AnyType) => AnyType"
     },
     {
@@ -10632,7 +10642,7 @@
       "specifier": "@venizia/ignis/mail",
       "kind": "type",
       "file": "packages/core-server/src/components/mail/common/types/options.ts",
-      "line": 45,
+      "line": 52,
       "signature": "type TNodemailerConfig = SMTPTransport | SMTPTransport.Options | string"
     },
     {
@@ -10642,7 +10652,7 @@
       "specifier": "@venizia/ignis/mail",
       "kind": "type",
       "file": "packages/core-server/src/components/mail/common/types/options.ts",
-      "line": 57,
+      "line": 64,
       "signature": "type TNodemailerModule = { createTransport: (config: AnyType, defaults?: AnyType) => AnyType; }"
     },
     {
@@ -10662,7 +10672,7 @@
       "specifier": "@venizia/ignis/mail",
       "kind": "function",
       "file": "packages/core-server/src/components/mail/utilities/mime.utility.ts",
-      "line": 407,
+      "line": 374,
       "signature": "function buildRawMimeMessage(message: IMailMessage): Promise<Buffer>"
     },
     {
@@ -10672,7 +10682,7 @@
       "specifier": "@venizia/ignis/mail",
       "kind": "function",
       "file": "packages/core-server/src/components/mail/utilities/mime.utility.ts",
-      "line": 100,
+      "line": 99,
       "signature": "function formatAddressHeader(value: string | string[]): string"
     },
     {
@@ -11921,7 +11931,7 @@
       "specifier": "@venizia/ignis/relational",
       "kind": "class",
       "file": "packages/connectors/src/relational/core/datasources/base.ts",
-      "line": 17,
+      "line": 67,
       "signature": "class BaseRelationalDataSource<Settings extends object = {}, Schema extends TAnyDataSourceSchema = TAnyDataSourceSchema, ConfigurableOptions extends object = {}, Client = unknown, TConnector = unknown> extends AbstractRelationalDataSource<Settings, Schema, ConfigurableOptions, Client, TConnector>"
     },
     {
@@ -12241,7 +12251,7 @@
       "specifier": "@venizia/ignis/relational",
       "kind": "class",
       "file": "packages/connectors/src/relational/core/repositories/core/base.ts",
-      "line": 46,
+      "line": 47,
       "signature": "class RelationalBaseRepository<EntitySchema extends TTableSchemaWithId = TTableSchemaWithId, DataObject extends TTableObject<EntitySchema> = TTableObject<EntitySchema>, PersistObject extends TTableInsert<EntitySchema> = TTableInsert<EntitySchema>, ExtraOptions extends IExtraOptions = IRelationalExtr"
     },
     {
@@ -14041,7 +14051,7 @@
       "specifier": "@venizia/ignis/static-asset",
       "kind": "class",
       "file": "packages/core-server/src/components/static-asset/controller/factory.ts",
-      "line": 285,
+      "line": 249,
       "signature": "class AssetControllerFactory extends BaseHelper"
     },
     {
@@ -14081,7 +14091,7 @@
       "specifier": "@venizia/ignis/static-asset",
       "kind": "const",
       "file": "packages/core-server/src/components/static-asset/common/constants.ts",
-      "line": 51,
+      "line": 65,
       "signature": "DEFAULT_PENDING_PREFIX = \"pending/\""
     },
     {
@@ -14091,7 +14101,7 @@
       "specifier": "@venizia/ignis/static-asset",
       "kind": "interface",
       "file": "packages/core-server/src/components/static-asset/controller/factory.ts",
-      "line": 44,
+      "line": 51,
       "signature": "interface IAssetControllerOptions"
     },
     {
@@ -14131,8 +14141,18 @@
       "specifier": "@venizia/ignis/static-asset",
       "kind": "const",
       "file": "packages/core-server/src/components/static-asset/common/constants.ts",
-      "line": 54,
+      "line": 68,
       "signature": "META_LINK_CREATE_FAILED = \"META_LINK_CREATE_FAILED\""
+    },
+    {
+      "name": "MetaLinkRecreateActions",
+      "package": "@venizia/ignis",
+      "subpath": "./static-asset",
+      "specifier": "@venizia/ignis/static-asset",
+      "kind": "class",
+      "file": "packages/core-server/src/components/static-asset/common/constants.ts",
+      "line": 51,
+      "signature": "class MetaLinkRecreateActions"
     },
     {
       "name": "RENDERABLE_CONTENT_TYPES",
@@ -14255,6 +14275,16 @@
       "signature": "type TMetaLinkConfig<Schema extends TMetaLinkCompatibleSchema = TMetaLinkSchema> = { model: TValueOrAsyncResolver<typeof BaseRelationalEntity<Schema>>; repository: TValueOrAsyncResolver<DefaultCRUDRepository<Schema>>; createMetaLink?: (opts: { uploadResult: IUploadResult; fileStat: IFileStat; /** Th"
     },
     {
+      "name": "TMetaLinkRecreateAction",
+      "package": "@venizia/ignis",
+      "subpath": "./static-asset",
+      "specifier": "@venizia/ignis/static-asset",
+      "kind": "type",
+      "file": "packages/core-server/src/components/static-asset/common/constants.ts",
+      "line": 62,
+      "signature": "type TMetaLinkRecreateAction = TConstValue<typeof MetaLinkRecreateActions>"
+    },
+    {
       "name": "TMetaLinkSchema",
       "package": "@venizia/ignis",
       "subpath": "./static-asset",
@@ -14295,14 +14325,24 @@
       "signature": "type TStaticAssetExtraOptions = { parseMultipartBody?: { storage?: 'memory' | 'disk'; uploadDir?: string; }; /** `folderPath` carries the upload query's target folder - dropping it flattens nested uploads. */ normalizeNameFn?: (opts: { file: TUploadNaming; }) => string; normalizeLinkFn?: (opts: IObj"
     },
     {
+      "name": "TStaticAssetRouteConfig",
+      "package": "@venizia/ignis",
+      "subpath": "./static-asset",
+      "specifier": "@venizia/ignis/static-asset",
+      "kind": "type",
+      "file": "packages/core-server/src/components/static-asset/common/types.ts",
+      "line": 111,
+      "signature": "type TStaticAssetRouteConfig = Partial<Omit<IAuthRouteConfig, 'method' | 'request' | 'responses'>> & { /** Whether this route is registered. Defaults to true. */ enabled?: boolean; }"
+    },
+    {
       "name": "TStaticAssetRoutes",
       "package": "@venizia/ignis",
       "subpath": "./static-asset",
       "specifier": "@venizia/ignis/static-asset",
       "kind": "type",
       "file": "packages/core-server/src/components/static-asset/common/types.ts",
-      "line": 110,
-      "signature": "type TStaticAssetRoutes = { getBuckets?: Partial<Omit<IAuthRouteConfig, 'method' | 'request' | 'responses'>>; getBucketByName?: Partial<Omit<IAuthRouteConfig, 'method' | 'request' | 'responses'>>; createBucket?: Partial<Omit<IAuthRouteConfig, 'method' | 'request' | 'responses'>>; deleteBucket?: Part"
+      "line": 118,
+      "signature": "type TStaticAssetRoutes = { getBuckets?: TStaticAssetRouteConfig; getBucketByName?: TStaticAssetRouteConfig; createBucket?: TStaticAssetRouteConfig; deleteBucket?: TStaticAssetRouteConfig; upload?: TStaticAssetRouteConfig; listObjects?: TStaticAssetRouteConfig; deleteObject?: TStaticAssetRouteConfig"
     },
     {
       "name": "TStaticAssetStorageType",
@@ -14321,7 +14361,7 @@
       "specifier": "@venizia/ignis/static-asset",
       "kind": "type",
       "file": "packages/core-server/src/components/static-asset/common/types.ts",
-      "line": 128,
+      "line": 136,
       "signature": "type TStaticAssetsComponentOptions<Schema extends TMetaLinkCompatibleSchema = TMetaLinkSchema> = { [key: string]: { controller: { name: string; basePath: string; isStrict?: boolean; /** `true` serves a raw nested object path (`/objects/photos/2024/f.jpg`) - a URL shape change; a percent-encoded path"
     },
     {
@@ -14371,7 +14411,7 @@
       "specifier": "@venizia/ignis/static-asset",
       "kind": "const",
       "file": "packages/core-server/src/components/static-asset/controller/factory.ts",
-      "line": 140,
+      "line": 147,
       "signature": "buildObjectLink: (opts: IObjectLocation & { basePath: string; hasConfiguredBucket?: boolean; rawObjectPath?: boolean; }) => string"
     },
     {
@@ -14381,7 +14421,7 @@
       "specifier": "@venizia/ignis/static-asset",
       "kind": "const",
       "file": "packages/core-server/src/components/static-asset/controller/factory.ts",
-      "line": 74,
+      "line": 81,
       "signature": "findLabelsInQuery: (opts: { query: Record<string, string>; names?: ReadonlyArray<(typeof UPLOAD_LABEL_NAMES)[number]>; }) => string[]"
     },
     {
@@ -14401,8 +14441,88 @@
       "specifier": "@venizia/ignis/static-asset",
       "kind": "const",
       "file": "packages/core-server/src/components/static-asset/controller/factory.ts",
-      "line": 173,
+      "line": 180,
       "signature": "resolveServedContentType: (opts: { helper: IStorageHelper; object: IObjectRef; }) => { contentType: string; isRenderable: boolean; }"
+    },
+    {
+      "name": "IPostgresTransactionDoubleOptions",
+      "package": "@venizia/ignis",
+      "subpath": "./testing",
+      "specifier": "@venizia/ignis/testing",
+      "kind": "interface",
+      "file": "packages/connectors/src/testing/transaction-double.ts",
+      "line": 24,
+      "signature": "interface IPostgresTransactionDoubleOptions extends ITransactionDoubleOptions"
+    },
+    {
+      "name": "ISqliteTransactionDoubleOptions",
+      "package": "@venizia/ignis",
+      "subpath": "./testing",
+      "specifier": "@venizia/ignis/testing",
+      "kind": "interface",
+      "file": "packages/connectors/src/testing/transaction-double.ts",
+      "line": 28,
+      "signature": "interface ISqliteTransactionDoubleOptions extends ITransactionDoubleOptions"
+    },
+    {
+      "name": "ITransactionDoubleOptions",
+      "package": "@venizia/ignis",
+      "subpath": "./testing",
+      "specifier": "@venizia/ignis/testing",
+      "kind": "interface",
+      "file": "packages/connectors/src/testing/transaction-double.ts",
+      "line": 16,
+      "signature": "interface ITransactionDoubleOptions"
+    },
+    {
+      "name": "PostgresTransactionDouble",
+      "package": "@venizia/ignis",
+      "subpath": "./testing",
+      "specifier": "@venizia/ignis/testing",
+      "kind": "class",
+      "file": "packages/connectors/src/testing/transaction-double.ts",
+      "line": 93,
+      "signature": "class PostgresTransactionDouble extends TransactionDouble"
+    },
+    {
+      "name": "SqliteTransactionDouble",
+      "package": "@venizia/ignis",
+      "subpath": "./testing",
+      "specifier": "@venizia/ignis/testing",
+      "kind": "class",
+      "file": "packages/connectors/src/testing/transaction-double.ts",
+      "line": 104,
+      "signature": "class SqliteTransactionDouble extends TransactionDouble"
+    },
+    {
+      "name": "TTransactionState",
+      "package": "@venizia/ignis",
+      "subpath": "./testing",
+      "specifier": "@venizia/ignis/testing",
+      "kind": "type",
+      "file": "packages/connectors/src/relational/core/datasources/transaction-lifecycle.ts",
+      "line": 23,
+      "signature": "type TTransactionState = TConstValue<typeof TransactionStates>"
+    },
+    {
+      "name": "TransactionDouble",
+      "package": "@venizia/ignis",
+      "subpath": "./testing",
+      "specifier": "@venizia/ignis/testing",
+      "kind": "class",
+      "file": "packages/connectors/src/testing/transaction-double.ts",
+      "line": 37,
+      "signature": "class TransactionDouble extends TransactionLifecycle implements IRelationalTransaction<never>"
+    },
+    {
+      "name": "TransactionStates",
+      "package": "@venizia/ignis",
+      "subpath": "./testing",
+      "specifier": "@venizia/ignis/testing",
+      "kind": "class",
+      "file": "packages/connectors/src/relational/core/datasources/transaction-lifecycle.ts",
+      "line": 5,
+      "signature": "class TransactionStates"
     },
     {
       "name": "AbstractSearchDataSource",
@@ -15741,7 +15861,7 @@
       "specifier": "@venizia/ignis-connectors",
       "kind": "class",
       "file": "packages/connectors/src/relational/core/datasources/base.ts",
-      "line": 17,
+      "line": 67,
       "signature": "class BaseRelationalDataSource<Settings extends object = {}, Schema extends TAnyDataSourceSchema = TAnyDataSourceSchema, ConfigurableOptions extends object = {}, Client = unknown, TConnector = unknown> extends AbstractRelationalDataSource<Settings, Schema, ConfigurableOptions, Client, TConnector>"
     },
     {
@@ -16341,7 +16461,7 @@
       "specifier": "@venizia/ignis-connectors",
       "kind": "class",
       "file": "packages/connectors/src/relational/core/repositories/core/base.ts",
-      "line": 46,
+      "line": 47,
       "signature": "class RelationalBaseRepository<EntitySchema extends TTableSchemaWithId = TTableSchemaWithId, DataObject extends TTableObject<EntitySchema> = TTableObject<EntitySchema>, PersistObject extends TTableInsert<EntitySchema> = TTableInsert<EntitySchema>, ExtraOptions extends IExtraOptions = IRelationalExtr"
     },
     {
@@ -18280,7 +18400,7 @@
       "specifier": "@venizia/ignis-connectors/relational",
       "kind": "class",
       "file": "packages/connectors/src/relational/core/datasources/base.ts",
-      "line": 17,
+      "line": 67,
       "signature": "class BaseRelationalDataSource<Settings extends object = {}, Schema extends TAnyDataSourceSchema = TAnyDataSourceSchema, ConfigurableOptions extends object = {}, Client = unknown, TConnector = unknown> extends AbstractRelationalDataSource<Settings, Schema, ConfigurableOptions, Client, TConnector>"
     },
     {
@@ -18600,7 +18720,7 @@
       "specifier": "@venizia/ignis-connectors/relational",
       "kind": "class",
       "file": "packages/connectors/src/relational/core/repositories/core/base.ts",
-      "line": 46,
+      "line": 47,
       "signature": "class RelationalBaseRepository<EntitySchema extends TTableSchemaWithId = TTableSchemaWithId, DataObject extends TTableObject<EntitySchema> = TTableObject<EntitySchema>, PersistObject extends TTableInsert<EntitySchema> = TTableInsert<EntitySchema>, ExtraOptions extends IExtraOptions = IRelationalExtr"
     },
     {
@@ -20374,6 +20494,86 @@
       "signature": "type TLibSqlDriverOptions = Omit<IPoolControlOptions, 'size'> & { client: Client; }"
     },
     {
+      "name": "IPostgresTransactionDoubleOptions",
+      "package": "@venizia/ignis-connectors",
+      "subpath": "./testing",
+      "specifier": "@venizia/ignis-connectors/testing",
+      "kind": "interface",
+      "file": "packages/connectors/src/testing/transaction-double.ts",
+      "line": 24,
+      "signature": "interface IPostgresTransactionDoubleOptions extends ITransactionDoubleOptions"
+    },
+    {
+      "name": "ISqliteTransactionDoubleOptions",
+      "package": "@venizia/ignis-connectors",
+      "subpath": "./testing",
+      "specifier": "@venizia/ignis-connectors/testing",
+      "kind": "interface",
+      "file": "packages/connectors/src/testing/transaction-double.ts",
+      "line": 28,
+      "signature": "interface ISqliteTransactionDoubleOptions extends ITransactionDoubleOptions"
+    },
+    {
+      "name": "ITransactionDoubleOptions",
+      "package": "@venizia/ignis-connectors",
+      "subpath": "./testing",
+      "specifier": "@venizia/ignis-connectors/testing",
+      "kind": "interface",
+      "file": "packages/connectors/src/testing/transaction-double.ts",
+      "line": 16,
+      "signature": "interface ITransactionDoubleOptions"
+    },
+    {
+      "name": "PostgresTransactionDouble",
+      "package": "@venizia/ignis-connectors",
+      "subpath": "./testing",
+      "specifier": "@venizia/ignis-connectors/testing",
+      "kind": "class",
+      "file": "packages/connectors/src/testing/transaction-double.ts",
+      "line": 93,
+      "signature": "class PostgresTransactionDouble extends TransactionDouble"
+    },
+    {
+      "name": "SqliteTransactionDouble",
+      "package": "@venizia/ignis-connectors",
+      "subpath": "./testing",
+      "specifier": "@venizia/ignis-connectors/testing",
+      "kind": "class",
+      "file": "packages/connectors/src/testing/transaction-double.ts",
+      "line": 104,
+      "signature": "class SqliteTransactionDouble extends TransactionDouble"
+    },
+    {
+      "name": "TTransactionState",
+      "package": "@venizia/ignis-connectors",
+      "subpath": "./testing",
+      "specifier": "@venizia/ignis-connectors/testing",
+      "kind": "type",
+      "file": "packages/connectors/src/relational/core/datasources/transaction-lifecycle.ts",
+      "line": 23,
+      "signature": "type TTransactionState = TConstValue<typeof TransactionStates>"
+    },
+    {
+      "name": "TransactionDouble",
+      "package": "@venizia/ignis-connectors",
+      "subpath": "./testing",
+      "specifier": "@venizia/ignis-connectors/testing",
+      "kind": "class",
+      "file": "packages/connectors/src/testing/transaction-double.ts",
+      "line": 37,
+      "signature": "class TransactionDouble extends TransactionLifecycle implements IRelationalTransaction<never>"
+    },
+    {
+      "name": "TransactionStates",
+      "package": "@venizia/ignis-connectors",
+      "subpath": "./testing",
+      "specifier": "@venizia/ignis-connectors/testing",
+      "kind": "class",
+      "file": "packages/connectors/src/relational/core/datasources/transaction-lifecycle.ts",
+      "line": 5,
+      "signature": "class TransactionStates"
+    },
+    {
       "name": "AbstractSearchDataSource",
       "package": "@venizia/ignis-connectors",
       "subpath": "./typesense",
@@ -21770,7 +21970,7 @@
       "specifier": "@venizia/ignis-helpers",
       "kind": "const",
       "file": "packages/helpers/src/common/constants/mime.ts",
-      "line": 157,
+      "line": 198,
       "signature": "CONTENT_TYPE_BY_EXTENSION: Readonly<Partial<Record<string, TContentType>>>"
     },
     {
@@ -21801,7 +22001,7 @@
       "specifier": "@venizia/ignis-helpers",
       "kind": "class",
       "file": "packages/helpers/src/common/constants/mime.ts",
-      "line": 118,
+      "line": 151,
       "signature": "class ContentTypeTable"
     },
     {
@@ -21811,7 +22011,7 @@
       "specifier": "@venizia/ignis-helpers",
       "kind": "class",
       "file": "packages/helpers/src/common/constants/mime.ts",
-      "line": 68,
+      "line": 84,
       "signature": "class ContentTypes"
     },
     {
@@ -22642,7 +22842,7 @@
       "specifier": "@venizia/ignis-helpers",
       "kind": "interface",
       "file": "packages/helpers/src/utilities/request.utility.ts",
-      "line": 30,
+      "line": 31,
       "signature": "interface IParsedMultipartBody"
     },
     {
@@ -22942,7 +23142,7 @@
       "specifier": "@venizia/ignis-helpers",
       "kind": "interface",
       "file": "packages/helpers/src/utilities/request.utility.ts",
-      "line": 5,
+      "line": 6,
       "signature": "interface IRequestedRemark"
     },
     {
@@ -23983,7 +24183,7 @@
       "specifier": "@venizia/ignis-helpers",
       "kind": "type",
       "file": "packages/helpers/src/common/constants/mime.ts",
-      "line": 115,
+      "line": 148,
       "signature": "type TContentType = TConstValue<typeof ContentTypes>"
     },
     {
@@ -24163,7 +24363,7 @@
       "specifier": "@venizia/ignis-helpers",
       "kind": "type",
       "file": "packages/helpers/src/common/constants/mime.ts",
-      "line": 65,
+      "line": 81,
       "signature": "type TFileExtension = TConstValue<typeof FileExtensions>"
     },
     {
@@ -25063,7 +25263,7 @@
       "specifier": "@venizia/ignis-helpers",
       "kind": "const",
       "file": "packages/helpers/src/utilities/request.utility.ts",
-      "line": 119,
+      "line": 124,
       "signature": "createContentDispositionHeader: (opts: { filename: string; type: \"attachment\" | \"inline\"; }) => string"
     },
     {
@@ -25123,7 +25323,7 @@
       "specifier": "@venizia/ignis-helpers",
       "kind": "const",
       "file": "packages/helpers/src/utilities/request.utility.ts",
-      "line": 113,
+      "line": 114,
       "signature": "encodeRFC5987: (filename: string) => string"
     },
     {
@@ -25393,7 +25593,7 @@
       "specifier": "@venizia/ignis-helpers",
       "kind": "const",
       "file": "packages/helpers/src/utilities/request.utility.ts",
-      "line": 141,
+      "line": 150,
       "signature": "parseContentDisposition: (opts: { header: string | null | undefined; }) => { type?: string; filename?: string; }"
     },
     {
@@ -25403,8 +25603,18 @@
       "specifier": "@venizia/ignis-helpers",
       "kind": "const",
       "file": "packages/helpers/src/utilities/request.utility.ts",
-      "line": 35,
+      "line": 36,
       "signature": "parseMultipartBody: <C extends { req: any; } = { req: any; }>(opts: IParseMultipartOptions<C>) => Promise<IParsedMultipartBody>"
+    },
+    {
+      "name": "readFormBody",
+      "package": "@venizia/ignis-helpers",
+      "subpath": ".",
+      "specifier": "@venizia/ignis-helpers",
+      "kind": "const",
+      "file": "packages/helpers/src/utilities/form-body.utility.ts",
+      "line": 18,
+      "signature": "readFormBody: (opts: { req: { formData: () => Promise<FormData>; }; }) => Promise<FormData>"
     },
     {
       "name": "redactSecrets",
@@ -25483,7 +25693,7 @@
       "specifier": "@venizia/ignis-helpers",
       "kind": "const",
       "file": "packages/helpers/src/utilities/request.utility.ts",
-      "line": 101,
+      "line": 102,
       "signature": "sanitizeFilename: (filename: string) => string"
     },
     {
@@ -25693,7 +25903,7 @@
       "specifier": "@venizia/ignis-helpers/bun-s3",
       "kind": "class",
       "file": "packages/helpers/src/modules/storage/bun-s3/helper.ts",
-      "line": 47,
+      "line": 48,
       "signature": "class BunS3Helper extends BaseStorageHelper"
     },
     {
@@ -25703,7 +25913,7 @@
       "specifier": "@venizia/ignis-helpers/bun-s3",
       "kind": "interface",
       "file": "packages/helpers/src/modules/storage/bun-s3/helper.ts",
-      "line": 30,
+      "line": 31,
       "signature": "interface IBunS3HelperOptions extends IStorageHelperOptions"
     },
     {
@@ -25733,7 +25943,7 @@
       "specifier": "@venizia/ignis-helpers/common",
       "kind": "const",
       "file": "packages/helpers/src/common/constants/mime.ts",
-      "line": 157,
+      "line": 198,
       "signature": "CONTENT_TYPE_BY_EXTENSION: Readonly<Partial<Record<string, TContentType>>>"
     },
     {
@@ -25743,7 +25953,7 @@
       "specifier": "@venizia/ignis-helpers/common",
       "kind": "class",
       "file": "packages/helpers/src/common/constants/mime.ts",
-      "line": 118,
+      "line": 151,
       "signature": "class ContentTypeTable"
     },
     {
@@ -25753,7 +25963,7 @@
       "specifier": "@venizia/ignis-helpers/common",
       "kind": "class",
       "file": "packages/helpers/src/common/constants/mime.ts",
-      "line": 68,
+      "line": 84,
       "signature": "class ContentTypes"
     },
     {
@@ -25973,7 +26183,7 @@
       "specifier": "@venizia/ignis-helpers/common",
       "kind": "type",
       "file": "packages/helpers/src/common/constants/mime.ts",
-      "line": 115,
+      "line": 148,
       "signature": "type TContentType = TConstValue<typeof ContentTypes>"
     },
     {
@@ -26013,7 +26223,7 @@
       "specifier": "@venizia/ignis-helpers/common",
       "kind": "type",
       "file": "packages/helpers/src/common/constants/mime.ts",
-      "line": 65,
+      "line": 81,
       "signature": "type TFileExtension = TConstValue<typeof FileExtensions>"
     },
     {
@@ -27017,6 +27227,16 @@
       "signature": "class QueryStringSeparators"
     },
     {
+      "name": "RequestBodyErrors",
+      "package": "@venizia/ignis-helpers",
+      "subpath": "./core",
+      "specifier": "@venizia/ignis-helpers/core",
+      "kind": "const",
+      "file": "packages/helpers/src/utilities/form-body.utility.ts",
+      "line": 5,
+      "signature": "RequestBodyErrors: { readonly BODY_MALFORMED: { readonly message: { readonly text: \"Malformed body payload\"; readonly code: \"core.request.body_malformed\"; }; readonly statusCode: 400; readonly category: \"validation\"; }; }"
+    },
+    {
       "name": "RequestIdGenerator",
       "package": "@venizia/ignis-helpers",
       "subpath": "./core",
@@ -27565,6 +27785,16 @@
       "file": "packages/helpers/src/utilities/parse.utility.ts",
       "line": 53,
       "signature": "keysToCamel: (object: object) => any"
+    },
+    {
+      "name": "readFormBody",
+      "package": "@venizia/ignis-helpers",
+      "subpath": "./core",
+      "specifier": "@venizia/ignis-helpers/core",
+      "kind": "const",
+      "file": "packages/helpers/src/utilities/form-body.utility.ts",
+      "line": 18,
+      "signature": "readFormBody: (opts: { req: { formData: () => Promise<FormData>; }; }) => Promise<FormData>"
     },
     {
       "name": "toBoolean",
@@ -29643,7 +29873,7 @@
       "specifier": "@venizia/ignis-kernel",
       "kind": "class",
       "file": "packages/kernel/src/base/controllers/rest/abstract.ts",
-      "line": 29,
+      "line": 30,
       "signature": "class AbstractRestController<RouteEnv extends Env = Env, RouteSchema extends Schema = {}, BasePath extends string = '/', ConfigurableOptions extends object = {}, Definitions extends Record<string, IAuthRouteConfig> = Record<string, IAuthRouteConfig>> extends BaseHelper implements IController<RouteEn"
     },
     {
@@ -30303,7 +30533,7 @@
       "specifier": "@venizia/ignis-kernel",
       "kind": "interface",
       "file": "packages/kernel/src/base/applications/common/types/application.ts",
-      "line": 59,
+      "line": 63,
       "signature": "interface IApplication<AppEnv extends Env = Env, AppSchema extends Schema = Schema, BasePath extends string = '/'>"
     },
     {
@@ -30313,7 +30543,7 @@
       "specifier": "@venizia/ignis-kernel",
       "kind": "interface",
       "file": "packages/kernel/src/base/applications/common/types/application.ts",
-      "line": 15,
+      "line": 16,
       "signature": "interface IApplicationConfigs"
     },
     {
@@ -30323,7 +30553,7 @@
       "specifier": "@venizia/ignis-kernel",
       "kind": "interface",
       "file": "packages/kernel/src/base/applications/common/types/application.ts",
-      "line": 50,
+      "line": 54,
       "signature": "interface IApplicationInfo"
     },
     {
@@ -31133,7 +31363,7 @@
       "specifier": "@venizia/ignis-kernel",
       "kind": "interface",
       "file": "packages/kernel/src/base/applications/common/types/application.ts",
-      "line": 74,
+      "line": 78,
       "signature": "interface IRestApplication extends IApplication, IComponentMixin, IControllerMixin, IRepositoryMixin, IServiceMixin, IStaticServeMixin"
     },
     {
@@ -31564,7 +31794,7 @@
       "kind": "const",
       "file": "packages/kernel/src/base/middlewares/common/errors.ts",
       "line": 6,
-      "signature": "RequestErrors: { readonly BODY_MALFORMED: { readonly message: { readonly text: \"Malformed body payload\"; readonly code: \"core.request.body_malformed\"; }; readonly statusCode: 400; readonly category: \"validation\"; }; readonly NOTHING_TO_UPDATE: { readonly message: { readonly text: \"Nothing to update\""
+      "signature": "RequestErrors: { readonly BODY_MALFORMED: { readonly message: { readonly text: \"Malformed body payload\"; readonly code: \"core.request.body_malformed\"; }; readonly statusCode: 400; readonly category: \"validation\"; }; readonly BODY_TOO_LARGE: { readonly message: { readonly text: \"Request body is too l"
     },
     {
       "name": "ResponseFormats",
@@ -31583,7 +31813,7 @@
       "specifier": "@venizia/ignis-kernel",
       "kind": "class",
       "file": "packages/kernel/src/base/applications/rest.ts",
-      "line": 40,
+      "line": 42,
       "signature": "class RestApplication<AppEnv extends Env = Env, AppSchema extends Schema = {}, BasePath extends string = '/'> extends AbstractApplication"
     },
     {

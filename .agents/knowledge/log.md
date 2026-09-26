@@ -6,6 +6,46 @@ not how.
 This file and `index.md` are reserved OKF filenames - they carry no `type:` frontmatter and are not
 counted as concepts.
 
+## 2026-09-26 - runInTransaction commits/rolls back for you; TransactionDouble stubs a handle for tests
+
+Updated [connectors](/packages/connectors.md), [Relational connector](/architecture/relational-connector.md),
+[Transactions](/architecture/transactions.md).
+
+- `RelationalBaseRepository.runInTransaction({ transaction?, transactionOptions?, execute })`
+  (`relational/core/repositories/core/base.ts`) replaces the hand-written begin/commit/rollback
+  block. Passing `transaction` joins it (never commits/rolls back, `transactionOptions` ignored);
+  passing none owns one (begins, commits, rolls back on failure and rethrows the original error even
+  when the rollback itself fails). Not on `IRelationalDataSource` or any kernel interface.
+- The real handle's `commit`/`rollback` closures are gone. `TransactionLifecycle`
+  (`relational/core/datasources/transaction-lifecycle.ts`) now holds the four end-of-transaction
+  rules once; the real handle (`ConnectionTransaction`) and the new test double both extend it, and
+  must never drift onto two definitions of "already ended".
+- New test-only entry `@venizia/ignis-connectors/testing` (core-server: `@venizia/ignis/testing`):
+  `TransactionStates`, `TransactionDouble`, `PostgresTransactionDouble`, `SqliteTransactionDouble`.
+  Never in a root barrel; a guard fails the connectors test suite if a production file imports it.
+- If `execute` ends the owned transaction itself, `runInTransaction` never ends it again: committed
+  by `execute` returns its result with a `warn` line (no second commit); rolled back or failed throws
+  naming the early end (no rollback attempt); a rejection after `execute` already ended it rethrows
+  as-is. The outcome is read through `TRANSACTION_STATE_KEY`, a
+  `Symbol.for('@venizia/ignis-connectors/transaction-state')` well-known symbol (fix round 2,
+  replacing a first attempt keyed on `#state in transaction`, which only recognised a handle from the
+  SAME loaded module copy) - so a handle or double built on `TransactionLifecycle` is now recognised
+  even when the repository and the transaction come from different module copies (a CommonJS
+  `@venizia/ignis/testing` double with an ESM `@venizia/ignis-connectors` repository, or the
+  reverse). Only a transaction from an entirely different `ITransaction` implementation is
+  unreadable, and always reports "ended before it could be committed", even after a real commit.
+  `execute` must `await` its own `commit()`/`rollback()`: an unawaited call is read as COMMITTED
+  before the statement has settled, so `runInTransaction` can return success while that commit still
+  fails.
+- Additive, not breaking. `#dataSource`, `#connection`, and `#state` became ES private fields during
+  fix round 1, after review found them as TypeScript-`private` - an ordinary enumerable own property
+  at runtime that serialized the whole datasource, settings included. ES-private is invisible to
+  `JSON.stringify`, `util.inspect`, `Object.keys`, and a spread copy - matching the old closure
+  literal's exposure. Two real differences: `isActive` now lives on the prototype, so a spread copy
+  no longer carries it and now throws "Transaction is no longer active"; and reading `isActive`
+  through a `Proxy` or an `Object.create(transaction)` wrapper now throws a `TypeError`, since ES
+  private fields are neither proxyable nor inherited. No IGNIS or BANA code does either.
+
 ## 2026-09-25 - mail attachments: path confined to attachmentRoot, size capped per message
 
 Updated [core-server](/packages/core-server.md).

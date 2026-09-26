@@ -1,6 +1,7 @@
 import { MetadataRegistry } from '@venizia/ignis-kernel';
 import { RelationBuilderRegistry, type TRelationBuilder } from '@venizia/ignis-kernel';
 import type { TClass } from '@venizia/ignis-helpers/common';
+import type { ILogger } from '@venizia/ignis-helpers/core';
 import { getError } from '@venizia/ignis-helpers/core';
 import type { IDataSource, TAnyDataSourceSchema } from '@venizia/ignis-kernel';
 // Deep import, not a barrel: `discoverSchema()` below is the only production call site that needs
@@ -9,9 +10,58 @@ import type { IDataSource, TAnyDataSourceSchema } from '@venizia/ignis-kernel';
 // unused export's module body even when it is reachable through a barrel `export *` chain (verified
 // with `bun build --target=browser`, the tool `make purity` uses).
 import { createRelations } from '@/relational/core/repositories/dialect/relations/create';
+import type { IRelationalConnection } from '@/relational/core/drivers';
 import { AbstractRelationalDataSource } from './abstract';
 import type { IRelationalTransaction, TRelationalTransactionOptions } from './common';
 import { RelationPairing } from './relation-pairing';
+import type { ITransactionEnd } from './transaction-lifecycle';
+import { TransactionLifecycle } from './transaction-lifecycle';
+
+/** The handle `beginTransaction()` returns: the shared end rules over one acquired connection. On a failed end the connection is discarded rather than pooled - the next borrower would inherit an open transaction - and the error rethrown: a caller must never believe a failed COMMIT succeeded. */
+class ConnectionTransaction<TConnector>
+  extends TransactionLifecycle
+  implements IRelationalTransaction<TConnector>
+{
+  readonly connector: TConnector;
+
+  // ES-private so a logged, spread or serialised handle never reaches the datasource settings. The datasource, not its logger: the logger is read only when an end fails or is a no-op.
+  readonly #dataSource: { readonly logger: ILogger };
+  readonly #connection: IRelationalConnection<TConnector>;
+
+  constructor(opts: {
+    dataSource: { readonly logger: ILogger };
+    connection: IRelationalConnection<TConnector>;
+  }) {
+    super();
+
+    this.#dataSource = opts.dataSource;
+    this.#connection = opts.connection;
+    this.connector = opts.connection.connector;
+  }
+
+  protected override executeEnd(opts: { end: ITransactionEnd }): Promise<unknown> {
+    return this.#connection.execute({ statement: opts.end.statement });
+  }
+
+  protected override onEnded(): void {
+    this.#connection.release();
+  }
+
+  protected override onEndFailed(opts: { end: ITransactionEnd; error: unknown }): void {
+    const { end, error } = opts;
+
+    this.#dataSource.logger
+      .for(end.verb)
+      .error('Failed to %s transaction | Error: %s', end.statement, error);
+    this.#connection.release({ destroy: true });
+  }
+
+  protected override onRollbackAfterFailure(): void {
+    this.#dataSource.logger
+      .for('rollback')
+      .debug('Rollback after a failure-ended transaction - no-op, already torn down');
+  }
+}
 
 /** Base DataSource with schema auto-discovery from registered repositories. */
 export abstract class BaseRelationalDataSource<
@@ -111,50 +161,7 @@ export abstract class BaseRelationalDataSource<
       throw error;
     }
 
-    let isActive = true;
-    let isEndedByFailure = false;
-
-    /** On failure the connection is discarded rather than pooled - the next borrower would inherit an open transaction - and the error rethrown: a caller must never believe a failed COMMIT succeeded. */
-    const finish = async (finishOpts: { statement: string; verb: string }): Promise<void> => {
-      const { statement, verb } = finishOpts;
-
-      if (!isActive) {
-        // After a FAILED commit/rollback the transaction is already torn down, so rollback is satisfied by construction - throwing here would replace the caller's original error in `catch { await tx.rollback(); throw error; }`.
-        if (isEndedByFailure && verb === 'rollback') {
-          this.logger
-            .for(verb)
-            .debug('Rollback after a failure-ended transaction - no-op, already torn down');
-          return;
-        }
-
-        throw getError({ message: `[Transaction][${verb}] Transaction already ended` });
-      }
-
-      // Flipped BEFORE the await: commit racing rollback would otherwise both pass the guard, issue two control statements, and double-release the same physical connection.
-      isActive = false;
-
-      try {
-        await connection.execute({ statement });
-      } catch (error) {
-        this.logger.for(verb).error('Failed to %s transaction | Error: %s', statement, error);
-        isEndedByFailure = true;
-        connection.release({ destroy: true });
-        throw error;
-      }
-
-      connection.release();
-    };
-
-    return {
-      connector: connection.connector,
-
-      get isActive() {
-        return isActive;
-      },
-
-      commit: () => finish({ statement: 'COMMIT', verb: 'commit' }),
-      rollback: () => finish({ statement: 'ROLLBACK', verb: 'rollback' }),
-    };
+    return new ConnectionTransaction({ dataSource: this, connection });
   }
 
   /** The engine's own BEGIN. Postgres interpolates an isolation level; SQLite has none and uses `BEGIN IMMEDIATE`. Never parameterized - `BEGIN ... ISOLATION LEVEL $1` is not valid SQL. */

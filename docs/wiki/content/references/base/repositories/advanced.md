@@ -53,6 +53,8 @@ try {
 - `beginTransaction()` delegates to `dataSource.beginTransaction()`.
 - The returned `IDatabaseTransaction` exposes `isActive`, `commit()`, `rollback()`, `connector`, and `isolationLevel`.
 - Pass the same `tx` as `options.transaction` on every call that belongs to the unit of work.
+- `runInTransaction({ transaction?, transactionOptions?, execute })` writes this begin/commit/rollback
+  block for you - see [Transactions - runInTransaction](/guides/core-concepts/persistent/transactions#runintransaction).
 
 > [!WARNING] `rollback()` can throw
 > A failed `COMMIT` or `ROLLBACK` throws rather than resolving as success - a poisoned connection is destroyed rather than returned to the pool. Because `rollback()` can throw and is normally called from a `catch`, nest it in its own `try...catch` if the rollback error matters. A `rollback()` called after the transaction already failed is a silent no-op. The `catch { await tx.rollback(); throw error; }` pattern in the basic transaction example is always safe. See [DataSources - Full Reference](/references/base/datasources-reference#transaction-support) for the full commit/rollback lifecycle.
@@ -625,6 +627,7 @@ Write operations additionally support:
 | Use transaction | `options: { transaction: tx }` |
 | Commit | `await tx.commit()` |
 | Rollback | `await tx.rollback()` |
+| Run inside a transaction, begin/commit/rollback for you | `await repository.runInTransaction({ execute: async ({ transaction }) => ... })` |
 | Bypass default filter | `options: { shouldSkipDefaultFilter: true }` |
 | Lock rows for update | `options: { transaction: tx, lock: { strength: 'update' } }` |
 | Lock + skip locked | `options: { transaction: tx, lock: { strength: 'update', config: { skipLocked: true } } }` |

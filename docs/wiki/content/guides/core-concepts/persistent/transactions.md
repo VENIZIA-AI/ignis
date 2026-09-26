@@ -66,6 +66,80 @@ try {
 > postgres-js driver the connection returns to the pool anyway. See
 > [Postgres Drivers & Supabase](./postgres-drivers) for the full asymmetry.
 
+## runInTransaction
+
+The try/catch above repeats wherever a repository method needs a transaction. `runInTransaction`
+writes it once: pass a callback, and it commits on success or rolls back on failure - rethrowing the
+original error either way.
+
+```typescript
+const order = await orderRepository.runInTransaction({
+  execute: async ({ transaction }) => {
+    const { data: created } = await orderRepository.create({
+      data: orderData,
+      options: { transaction },
+    });
+
+    await orderItemRepository.create({
+      data: { orderId: created.id, ...itemData },
+      options: { transaction },
+    });
+
+    return created;
+  },
+});
+```
+
+Call it two ways, and it behaves differently depending on which. Pass a `transaction` and it JOINS
+the existing one; pass none and it OWNS one:
+
+| | Joined (`transaction` passed) | Owned (no `transaction`) |
+|---|---|---|
+| Begin | Never - throws before `execute` runs if the handle is no longer active | `beginTransaction(transactionOptions)` |
+| `transactionOptions` | Ignored (a debug log line records it) | Used to begin |
+| Commit | Never - the caller that began the transaction commits it | After `execute` resolves |
+| Rollback | Never - the error reaches the caller untouched | On failure, in its own try/catch. A rollback failure is only logged; the ORIGINAL error is rethrown |
+
+That makes a repository or service method that must work stand-alone AND nested inside a caller's
+transaction a one-line forward, not two code paths:
+
+```typescript
+const createOrder = (opts: { data: TOrderCreate; transaction?: IDatabaseTransaction }) =>
+  orderRepository.runInTransaction({
+    transaction: opts.transaction,
+    execute: async ({ transaction }) =>
+      orderRepository.create({ data: opts.data, options: { transaction } }),
+  });
+```
+
+`runInTransaction` never commits or rolls back a joined handle - that stays the job of whoever began
+it.
+
+### If `execute` ends the owned transaction itself
+
+`runInTransaction` expects `execute` to leave an owned transaction open, for `runInTransaction` to
+commit. If `execute` calls `commit()` or `rollback()` on it directly, `runInTransaction` never ends
+it a second time:
+
+| `execute` outcome | What `runInTransaction` does |
+|---|---|
+| Resolves, and `execute` already committed the transaction | Returns `execute`'s result. No second commit is attempted |
+| Resolves, but `execute` rolled back the transaction or left it failed | Throws a dedicated error naming that `execute` ended the transaction before it could be committed. No rollback is attempted |
+| Rejects, after `execute` already ended the transaction | Rethrows the ORIGINAL rejection, with no further rollback attempt |
+
+> [!WARNING] Reliable for any IGNIS handle - even across a CommonJS/ESM mix
+> Telling the three outcomes apart means reading the transaction's own internal state, through a
+> registry symbol rather than a class check - so it recognises the real handle or `TransactionDouble`
+> even when the repository and the transaction come from different module copies (say, a CommonJS
+> `@venizia/ignis/testing` double used with an ESM `@venizia/ignis-connectors` repository). Only a
+> transaction from an entirely different `ITransaction` implementation is unreadable, and reports the
+> "ended before it could be committed" error even when `execute` committed it successfully.
+>
+> Also `await` `commit()`/`rollback()` when calling them from inside `execute`. An unawaited commit is
+> read as committed before the COMMIT statement has settled - `runInTransaction` then returns
+> `execute`'s result while that commit can still go on to fail. Simplest: let `runInTransaction` own
+> the commit and rollback, and never call them from inside `execute`.
+
 ## Transaction Object
 
 `beginTransaction()` returns an `IDatabaseTransaction` with the following properties:
