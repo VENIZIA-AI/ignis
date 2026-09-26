@@ -87,6 +87,23 @@ string "undefined".
 12.8 KB gzipped against the root barrel's 144.2 KB, with no drizzle and no zod - guarded by
 `__tests__/http/weight.test.ts`.
 
+## `./testing` - test doubles, never a production import
+
+`@venizia/ignis-connectors/testing` (re-exported by core-server as `@venizia/ignis/testing`) exports
+four runtime names: `TransactionStates`, `TransactionDouble`, `PostgresTransactionDouble`, and
+`SqliteTransactionDouble`. None of the four is exported from the root barrel, `/relational`,
+`/postgres`, `/sqlite`, or core-server's root - a test scans every `src/**` file outside `testing/`
+and `__tests__/` for an import of `@/testing` or the published specifier and fails the build if one
+exists.
+
+`TransactionDouble` extends the same `TransactionLifecycle` state machine the real transaction handle
+does (see [Relational connector](/architecture/relational-connector.md)), so
+`spyOn(repository, 'beginTransaction').mockResolvedValue(new PostgresTransactionDouble())` behaves by
+the same already-ended and rollback-after-failure rules a real handle would, with no cast needed at
+the call site. It imports no driver: `scripts/purity/manifest.ts` measures the entry like every other
+sub-path (`connectors/testing [import] 44.4 KB`), even though nothing ships it to a browser on
+purpose - it exists for `bun test`, not for an application bundle.
+
 ## The 15 published sub-paths
 
 Every peer is optional in `peerDependenciesMeta`; a sub-path needs what it imports. Measured on

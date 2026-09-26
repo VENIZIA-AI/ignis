@@ -451,6 +451,16 @@ const config = defineConfig({
           collapsed: false,
           items: [
             {
+              text: '2026-09-26',
+              collapsed: true,
+              items: [
+                {
+                  text: 'A Repository Method Runs Its Own Transaction, and a Double Stubs One In Tests',
+                  link: '/changelogs/2026-09-26-run-in-transaction-and-transaction-double',
+                },
+              ],
+            },
+            {
               text: '2026-09-25',
               collapsed: true,
               items: [

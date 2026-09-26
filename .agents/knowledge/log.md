@@ -6,6 +6,27 @@ not how.
 This file and `index.md` are reserved OKF filenames - they carry no `type:` frontmatter and are not
 counted as concepts.
 
+## 2026-09-26 - runInTransaction commits/rolls back for you; TransactionDouble stubs a handle for tests
+
+Updated [connectors](/packages/connectors.md), [Relational connector](/architecture/relational-connector.md),
+[Transactions](/architecture/transactions.md).
+
+- `RelationalBaseRepository.runInTransaction({ transaction?, transactionOptions?, execute })`
+  (`relational/core/repositories/core/base.ts`) replaces the hand-written begin/commit/rollback
+  block. Passing `transaction` joins it (never commits/rolls back, `transactionOptions` ignored);
+  passing none owns one (begins, commits, rolls back on failure and rethrows the original error even
+  when the rollback itself fails). Not on `IRelationalDataSource` or any kernel interface.
+- The real handle's `commit`/`rollback` closures are gone. `TransactionLifecycle`
+  (`relational/core/datasources/transaction-lifecycle.ts`) now holds the four end-of-transaction
+  rules once; the real handle (`ConnectionTransaction`) and the new test double both extend it, and
+  must never drift onto two definitions of "already ended".
+- New test-only entry `@venizia/ignis-connectors/testing` (core-server: `@venizia/ignis/testing`):
+  `TransactionStates`, `TransactionDouble`, `PostgresTransactionDouble`, `SqliteTransactionDouble`.
+  Never in a root barrel; a guard fails the build if a production file imports it.
+- Additive, not breaking. The real handle's runtime shape changed (a class instance, not a
+  closure-built object literal) but its type and behavior did not - only `{ ...transaction }` or
+  `Object.keys(transaction)` would see a difference, and no IGNIS or BANA code does that.
+
 ## 2026-09-25 - mail attachments: path confined to attachmentRoot, size capped per message
 
 Updated [core-server](/packages/core-server.md).

@@ -66,6 +66,56 @@ try {
 > postgres-js driver the connection returns to the pool anyway. See
 > [Postgres Drivers & Supabase](./postgres-drivers) for the full asymmetry.
 
+## runInTransaction
+
+The try/catch above repeats wherever a repository method needs a transaction. `runInTransaction`
+writes it once: pass a callback, and it commits on success or rolls back on failure - rethrowing the
+original error either way.
+
+```typescript
+const order = await orderRepository.runInTransaction({
+  execute: async ({ transaction }) => {
+    const { data: created } = await orderRepository.create({
+      data: orderData,
+      options: { transaction },
+    });
+
+    await orderItemRepository.create({
+      data: { orderId: created.id, ...itemData },
+      options: { transaction },
+    });
+
+    return created;
+  },
+});
+```
+
+Call it two ways, and it behaves differently depending on which. Pass a `transaction` and it JOINS
+the existing one; pass none and it OWNS one:
+
+| | Joined (`transaction` passed) | Owned (no `transaction`) |
+|---|---|---|
+| Begin | Never - throws before `execute` runs if the handle is no longer active | `beginTransaction(transactionOptions)` |
+| `transactionOptions` | Ignored (a debug log line records it) | Used to begin |
+| Commit | Never - the caller that began the transaction commits it | After `execute` resolves |
+| Rollback | Never - the error reaches the caller untouched | On failure, in its own try/catch. A rollback failure is only logged; the ORIGINAL error is rethrown |
+
+That makes a repository or service method that must work stand-alone AND nested inside a caller's
+transaction a one-line forward, not two code paths:
+
+```typescript
+async function createOrder(opts: { data: TOrderCreate; transaction?: IDatabaseTransaction }) {
+  return orderRepository.runInTransaction({
+    transaction: opts.transaction,
+    execute: async ({ transaction }) =>
+      orderRepository.create({ data: opts.data, options: { transaction } }),
+  });
+}
+```
+
+`runInTransaction` never commits or rolls back a joined handle - that stays the job of whoever began
+it.
+
 ## Transaction Object
 
 `beginTransaction()` returns an `IDatabaseTransaction` with the following properties:

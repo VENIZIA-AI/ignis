@@ -137,6 +137,48 @@ exists but has no call site on the BEGIN path, so an untyped JavaScript caller c
 arbitrary string into `BEGIN TRANSACTION ISOLATION LEVEL ...`. Both `buildBeginStatement` overrides
 live on the `Base*` classes; the `Abstract*` ones supply the dialect and executor instead.
 
+## The transaction handle is a shared state machine
+
+`beginTransaction()` used to build its returned handle's `commit`/`rollback` as a closure over one
+acquired connection. `TransactionLifecycle` (`relational/core/datasources/transaction-lifecycle.ts`)
+holds that logic now instead, as an abstract class carrying the four end-of-transaction rules: the
+state leaves ACTIVE before the `await` (so a commit racing a rollback cannot both pass); ending an
+already-ended transaction throws; a rollback after a transaction that ended BY FAILURE is a logged
+no-op; a failed end marks the transaction FAILED and rethrows.
+
+Two classes extend it, and neither is exported from a barrel by name:
+
+- `ConnectionTransaction` (`relational/core/datasources/base.ts`, not exported) is the real handle.
+  Its `executeEnd` runs the connection's `COMMIT`/`ROLLBACK`; its hooks release the connection on
+  success and destroy it on a failed end, and log the failure or the no-op rollback.
+- `TransactionDouble` (`connectors/src/testing/transaction-double.ts`, the `/testing` sub-path - see
+  [connectors](/packages/connectors.md)) is the test double. Its `executeEnd` counts the call and
+  throws an injected `commitError`/`rollbackError` instead of touching a connection.
+
+**Constraint: the two must never drift onto two definitions of "already ended".** A unit test that
+stubs `beginTransaction` with the double proves nothing about the real handle if the rules diverge -
+that is why the state machine is shared rather than copied per class. One parity suite pins this: the
+same 15 cases run against both engines' real handles (PGlite, libsql) and all three doubles
+(`__tests__/relational/transaction/parity-suite.ts`).
+
+The real handle's runtime shape changed - `isActive` is now a prototype getter rather than an own
+one, and `commit`/`rollback` stay own arrow properties so a detached `transaction.commit` keeps
+working - but `beginTransaction()`'s return type is unchanged (`IRelationalTransaction<TConnector>`),
+so this is invisible to typed callers. Only code that spreads the handle (`{ ...transaction }`) or
+enumerates it (`Object.keys(transaction)`) would see a difference; nothing in IGNIS or BANA does.
+
+## `runInTransaction` - join or own, never both
+
+`RelationalBaseRepository.runInTransaction({ transaction?, transactionOptions?, execute })`
+(`relational/core/repositories/core/base.ts`) replaces the hand-written begin/commit/rollback block a
+caller used to write around `beginTransaction()`. Passing a `transaction` JOINS it: `runInTransaction`
+never begins, commits, or rolls it back, and `transactionOptions` is ignored (with a debug log line);
+an inactive handle throws before `execute` runs. Passing none OWNS one: it begins with
+`transactionOptions`, commits after `execute` resolves, and rolls back on failure in its own
+try/catch, always rethrowing the ORIGINAL error - a rollback failure is only logged. It is declared
+only on `RelationalBaseRepository`, never on `IRelationalDataSource` or any kernel interface: a
+repository-level convenience over `beginTransaction()`, not a new capability.
+
 ## Relation building crosses the kernel boundary through a registry
 
 `RepositoryMetadataMixin` builds Drizzle relations but must never import Drizzle: one value import
