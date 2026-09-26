@@ -25,7 +25,8 @@ Both are mandatory, for every agent, on every task. The two rules that cost the 
 
 Nothing lives in two places. Every piece of project information has exactly one home:
 
-- **`.agents/`** - what agents read: the rules, the knowledge bundle, the project skills, the setup.
+- **`.agents/`** - what agents read: the rules, the knowledge bundle, the project skills, the role
+  subagents, the setup.
 - **`docs/wiki/`** - the human-facing VitePress site: guides, references, changelogs.
 
 Source code is the ground truth for both. When prose and code disagree, the code wins and the prose
@@ -57,9 +58,10 @@ gate. The `knowledge-sync` skill re-verifies the bundle against the code periodi
 .agents/
 ├── rules.md          # THE rules - W · S · P · B · C, cited by ID
 ├── knowledge/        # THE knowledge bundle; knowledge-tools/ holds gen · check · coverage · viz
-├── plugin/           # setup.ts, the project skills, the shared Claude settings and session hook
+├── plugin/           # setup.ts, the project skills, the shared Claude settings, hook and subagents
 │   ├── skills/       # knowledge-sync · update-wiki - symlinked into your agent by setup
 │   └── claude/       # settings.json + hooks/session-start.ts - merged into .claude/ by setup
+│       └── agents/   # the five framework-role subagents - symlinked into .claude/agents/ by setup
 └── plans/            # gitignored - saved specs and plans, local to each developer
 ```
 
@@ -70,8 +72,10 @@ Code ships.
 ## Per-tool files (CLAUDE.md, GEMINI.md, ...)
 
 This `AGENTS.md` is the single source. Each tool that needs its own filename gets a **symlink** to
-it, never a copy; `make agent-setup` creates it. `.claude/` is gitignored, so the parts everyone
-must share are tracked under `.agents/plugin/claude/` and merged into your `.claude/settings.json`
-by the same setup - today that is one hook, which prints the write boundaries and the minimap rule
-into every session. Nothing in it blocks a command. Re-run `make agent-setup` after a pull that
-touched `.agents/plugin/`.
+it, never a copy; `make agent-setup` creates it and links the project skills. `.claude/` is
+gitignored, so the parts everyone must share are tracked under `.agents/plugin/claude/`, and the
+same setup installs them. Today that is one hook, merged into your `.claude/settings.json`, which
+prints the write boundaries and the minimap rule into every session; and five subagents, one per
+framework role, linked into `.claude/agents/` (the sixth role, the Planner, is the main session).
+Nothing in it blocks a command. Re-run `make agent-setup` after a pull that touched
+`.agents/plugin/`.

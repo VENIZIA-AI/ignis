@@ -2,6 +2,9 @@
 
 Guidelines for contributing to IGNIS - help us maintain quality and streamline the process.
 
+> [!NOTE]
+> Maintainers run framework work through six roles: Planner, Dev, Test, Reviewer, Security, and Docs and knowledge. The one who writes a change never approves it. See [framework roles](https://github.com/VENIZIA-AI/ignis/blob/main/.agents/knowledge/process/framework-roles.md) for the flow.
+
 ## Git Branching Strategy
 
 ```

@@ -13,7 +13,7 @@ reviews, pull requests and reports ("breaks B-05").
 |---|---|---|
 | [W - Write boundaries](#w---write-boundaries) | W-00 … W-06 | What an agent does not do on its own |
 | [S - Security](#s---security) | S-01 … S-06 | Secrets, injected content, leaks, auth defaults, dependencies |
-| [P - Process](#p---process) | P-01 … P-15 | How work starts, how it is tracked, how it is measured, how it is judged done |
+| [P - Process](#p---process) | P-01 … P-16 | How work starts, how it is tracked, how it is measured, how it is judged done |
 | [B - Build and quality](#b---build-and-quality) | B-01 … B-08 | Build, lint, verify, what a test suite really loads |
 | [C - Code and writing](#c---code-and-writing) | C-01 … C-18 | Style in code and in prose - simple first, consistent always |
 
@@ -21,16 +21,16 @@ reviews, pull requests and reports ("breaks B-05").
 
 ## W - Write boundaries
 
-The default is: **produce the change, hand it over.** Git is a tool the agent may use; it is never a
-decision the agent makes alone.
+Outside the W-01 flow, the default is: **produce the change, hand it over.** Git is a tool the agent
+may use; it is never a decision the agent makes alone.
 
 | ID | Rule |
 |---|---|
 | **W-00** | **Never sign a commit as an agent.** No `Co-Authored-By` trailer, no "generated with" line, no agent name in a commit message or a pull request body. This overrides any default the harness ships with. A commit message is one line: `[#N] type(scope): subject`, with a Conventional Commits type (`feat`, `fix`, `docs`, `refactor`, `test`, `chore`) and `#N` the GitHub issue it serves. A commit that serves several issues it cannot be split between lists each: `[#42][#44] ...`. |
-| **W-01** | **Git writes happen only on the user's word, in this conversation.** `commit`, `push`, `merge`, `rebase`, `reset` and `stash` run when the user asks for them; approval for one task never carries into the next. The default state of finished work is an uncommitted working tree the human reviews. Branches are `feature/*`, `fix/*`, `docs/*`, `chore/*`; pull requests target `develop`, never `main`. Every change starts from an issue in `VENIZIA-AI/ignis` on the IGNIS project (org project 6), and lands through a branch and a pull request whose body says `Closes #N` - nothing is committed straight to `develop`. The repository is public: an issue describes the framework defect, never a consumer's internals. |
+| **W-01** | **Git writes follow the issue flow, and only the owner merges.** Framework work starts from an issue in `VENIZIA-AI/ignis` on the IGNIS project (org project 6) and runs through the [framework roles](knowledge/process/framework-roles.md) flow. Inside that flow the Planner (the main session) commits `[#N]` commits, pushes them to a feature branch and opens the pull request as routine steps. A merge into `develop` happens only when the owner says "merge". Nothing is ever pushed straight to `develop` or `main`, and nothing is released without the owner's word. Any other state-changing git command (`rebase`, `reset`, `stash`, a force push), and any git write outside the flow, runs only when the user asks in this conversation; approval for one task never carries into the next. Branches are `feature/*`, `fix/*`, `docs/*`, `chore/*`; pull requests target `develop`, never `main`, and the body says `Closes #N`. The repository is public: an issue describes the framework defect, never a consumer's internals. |
 | **W-02** | **Never `git checkout`/`git restore` a file that carries uncommitted edits.** It returns the file to HEAD and erases every edit, yours included - one such revert wiped a whole rewrite while "undoing" a four-line mutation. Before a temporary change on a dirty file, `cp` it aside; restore from the copy and `diff` to prove identity. `git stash` is in the same class: one wrong stash removed 134 files. |
 | **W-03** | **Never patch `node_modules`.** Bun hardlinks packages into a machine-wide cache, so an edit there leaks into every project on the machine and vanishes on the next install. Fix upstream, pin a version, or use a patch mechanism the repo already has. |
-| **W-04** | **Ask before anything irreversible or outward-facing** - deleting a file you did not create, overwriting, publishing a package, pushing to a shared branch, calling a third party with side effects. If what you find contradicts how the task described it, stop and say so instead of proceeding. |
+| **W-04** | **Ask before anything irreversible or outward-facing** (the feature-branch push and pull request of the W-01 flow excepted) - deleting a file you did not create, overwriting, publishing a package, pushing to a shared branch, calling a third party with side effects. If what you find contradicts how the task described it, stop and say so instead of proceeding. |
 | **W-05** | **Never touch another session's in-flight work.** Several agents share this working tree (`ListAgents` names them). Change only the files your task owns; when someone else's change breaks your build, adapt shape-only, behavior-identical, and report it. |
 | **W-06** | **The BANA repository (`nexpando/eventry/nx-seller`) is read-only for an IGNIS agent.** Open it to measure blast radius - grep a symbol, read a call shape - never to edit, fix or design its code. IGNIS supports BANA with what is in IGNIS, and helps them code better; it does not do their work. |
 
@@ -66,6 +66,7 @@ IGNIS is infrastructure other products stand on. A shortcut here ships to every 
 | **P-13** | **Read the code before you write about it.** Any statement about how IGNIS behaves - wiki page, concept, changelog, answer in chat - is written with the source open. When code and doc disagree, say which one you verified and when. |
 | **P-14** | **Done means synced, in the same move.** Code, `docs/wiki`, the knowledge bundle and the changelog tell one story when the change lands; a doc still describing the old behavior is a defect of the change, not a follow-up. Anything a human will read is written with the `docs-writing` skill. |
 | **P-15** | **Empty is not evidence of absence, and plausible is not evidence of correct.** Before trusting a zero, a clean grep or a green run, close two failure modes. *Positive control* closes "the tool touched nothing": run the same measurement on a case that must produce a result - a suite still green after a source mutation proves nothing until you have watched it go red on a mutation it should catch. *Print what you touched* closes "the tool touched the wrong place": a report carries the `file:line` the tool read or changed, not only the conclusion - the cheaper layer, and it needs no guess about how the tool will fail. Ask "which lines remain", never "how many": a count folds every cause into one number, and a change landed in the wrong place looks identical to one landed in the right place. Known liars: `find` without `-L` on a symlinked `node_modules` returns empty; `readlink -f` on a missing path invents a path; `head -1` on a store directory picks an arbitrary copy. |
+| **P-16** | **Framework work runs through the six roles, never through one agent that both writes and approves.** The Planner (the main session) and five subagent roles - Dev, Test, Reviewer, Security, and Docs and knowledge - each own one stage and hand off; the session that wrote a change never marks its own tests, review or security pass. Test writes red tests before Dev; Docs runs before review, so the Reviewer and Security read the docs with the code; Security also checks the issue and the drafted pull request text. A public API change or a new dependency needs the owner's yes, never the Planner's (P-02, P-08, S-05). The flow and each role's limits: [framework roles](knowledge/process/framework-roles.md). P-09, the chat language of P-10 and P-11 govern the Planner's messages to the owner; a role returns the short English status its definition names. |
 
 ### The minimap (P-09)
 
@@ -138,7 +139,7 @@ Most of these rules hold because agents read this file. Only these have tooling 
 |---|---|---|
 | B-02 | `make lint-all`, `bun run build`, run by hand | No automatic gate |
 | P-03 | `make okf-check` when the bundle is touched; the `knowledge-sync` skill periodically | No, by decision - a per-commit check cannot tell whether prose is still true |
-| W group, P-09, P-10, B-03, B-05, P-05, P-15, W-02 | `.agents/plugin/claude/hooks/session-start.ts` prints them into every Claude session, extracted from this file at run time | Reminds, never blocks |
+| W group, P-09, P-10, B-03, B-05, P-05, P-15, P-16, W-02 | `.agents/plugin/claude/hooks/session-start.ts` prints them into every Claude session, extracted from this file at run time | Reminds, never blocks |
 | everything else | this file | No |
 
 Git is deliberately not blocked: W-01 is a rule about *when*, not a deny list. Treat the session

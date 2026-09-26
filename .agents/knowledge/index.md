@@ -86,6 +86,7 @@ How the work gets done.
 - [Testing](/process/testing.md)
 - [Debugging](/process/debugging.md)
 - [Git workflow](/process/git-workflow.md)
+- [Framework roles](/process/framework-roles.md)
 - [Release and publish](/process/release-publish.md)
 - [Adding a component](/process/adding-a-component.md)
 - [Adding a helper](/process/adding-a-helper.md)
