@@ -22,6 +22,11 @@ export class TransactionStates {
 
 export type TTransactionState = TConstValue<typeof TransactionStates>;
 
+/** Registry symbol, not a module-private one: the CommonJS and ESM builds each load their own copy of this class, and a handle from one must still be read by the other. */
+export const TRANSACTION_STATE_KEY: unique symbol = Symbol.for(
+  '@venizia/ignis-connectors/transaction-state',
+);
+
 export interface ITransactionEnd {
   verb: string;
   statement: string;
@@ -49,10 +54,9 @@ export abstract class TransactionLifecycle implements ITransaction {
   // ES-private, not TS-private: a handle that is logged, spread or serialised must not carry its internals.
   #state: TTransactionState = TransactionStates.ACTIVE;
 
-  /** The state of a handle built on this class; `undefined` for any other `ITransaction`. */
-  static getState(opts: { transaction: object }): TTransactionState | undefined {
-    const { transaction } = opts;
-    return #state in transaction ? transaction.#state : undefined;
+  /** Symbol-keyed so the state stays off the handle's string-keyed surface. */
+  get [TRANSACTION_STATE_KEY](): TTransactionState {
+    return this.#state;
   }
 
   get isActive(): boolean {

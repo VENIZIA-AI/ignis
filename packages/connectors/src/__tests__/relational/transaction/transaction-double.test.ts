@@ -269,3 +269,37 @@ describe('A double handed to a real repository', () => {
     expect(caught).toMatchObject({ message: CONNECTOR_UNAVAILABLE });
   });
 });
+
+/**
+ * How runInTransaction reads a handle's state is internal: the /testing classes publish no
+ * `getState`, as a static or on an instance.
+ */
+describe('The testing classes carry no state-reading API', () => {
+  test('no getState on TransactionDouble or the engine doubles, static or instance', () => {
+    const subjects = [
+      { name: 'TransactionDouble', target: TransactionDouble, instance: new TransactionDouble() },
+      {
+        name: 'PostgresTransactionDouble',
+        target: PostgresTransactionDouble,
+        instance: new PostgresTransactionDouble(),
+      },
+      {
+        name: 'SqliteTransactionDouble',
+        target: SqliteTransactionDouble,
+        instance: new SqliteTransactionDouble(),
+      },
+    ];
+
+    for (const { name, target, instance } of subjects) {
+      expect({
+        name,
+        isStatic: 'getState' in target,
+        isOnInstance: 'getState' in instance,
+      }).toEqual({
+        name,
+        isStatic: false,
+        isOnInstance: false,
+      });
+    }
+  });
+});

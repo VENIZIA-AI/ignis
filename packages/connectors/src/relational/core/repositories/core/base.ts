@@ -23,10 +23,7 @@ import {
 // Deep import, not the `@/relational/core/datasources` barrel: the barrel pulls the datasource classes, which import the engine branch's dialect and executor - an init cycle back into this tier.
 import type { IRelationalDataSource } from '@/relational/core/datasources/common';
 import { isRelationalTransaction } from '@/relational/core/datasources/common';
-import {
-  TransactionLifecycle,
-  TransactionStates,
-} from '@/relational/core/datasources/transaction-lifecycle';
+import { isTransactionCommitted } from '@/relational/core/datasources/transaction-state';
 import type {
   BaseRelationalEntity,
   TTableInsert,
@@ -319,7 +316,7 @@ export abstract class RelationalBaseRepository<
   }): ResultType {
     const { transaction, result } = opts;
 
-    if (TransactionLifecycle.getState({ transaction }) === TransactionStates.COMMITTED) {
+    if (isTransactionCommitted({ transaction })) {
       this.logger
         .for('runInTransaction')
         .warn('execute committed the owned transaction itself | Skipped the commit');
