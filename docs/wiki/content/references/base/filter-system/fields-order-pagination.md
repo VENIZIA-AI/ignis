@@ -134,6 +134,28 @@ A key resolves in this order: an own key of `expressions`, then a JSON path, the
 
 Passing no `expressions` costs nothing extra; the option only adds a lookup when it is set.
 
+### Typed order entries (opt-in)
+
+`TOrderEntry<T>` checks a whole order list at once - a column or a JSON-path key on a JSON column, optionally followed by one space and a direction (`asc`, `desc`, `ASC`, `DESC`):
+
+```typescript
+import type { TOrderEntry } from '@venizia/ignis-filter';
+
+type Product = { id: number; name: string; metadata: unknown };
+
+const order = ['name DESC', 'metadata.rank asc'] satisfies TOrderEntry<Product>[];
+
+await productRepository.find({ filter: { order } });
+
+// @ts-expect-error 'nmae' is not a column.
+const typo = ['nmae DESC'] satisfies TOrderEntry<Product>[];
+```
+
+`TFilter<T>.order` itself stays `string[]` - `satisfies` checks the list without changing the property's own type, so an entry built at runtime from a plain string still assigns.
+
+> [!NOTE]
+> `TOrderEntry<T>` checks the key, not the direction that follows a JSON-path entry - `'metadata.rank sideways'` still satisfies the type. The runtime parser rejects an invalid direction regardless.
+
 ## Pagination
 
 `limit` caps the row count; `skip` (or its alias `offset`) sets how many rows to skip. Combine them for page N:
@@ -322,5 +344,6 @@ console.log(`Showing ${range.start}-${range.end} of ${range.total}`);
 - [`packages/kernel/src/base/repositories/core/abstract.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/kernel/src/base/repositories/core/abstract.ts) - `assertLimitWithinCeiling`/`assertFilterLimits`, the `maxLimit` check
 - [`packages/filter/src/common/order.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/filter/src/common/order.ts) - `parseOrderEntry`
 - [`packages/filter/src/common/operators.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/filter/src/common/operators.ts) - `Sorts` constants
+- [`packages/filter/src/common/types.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/filter/src/common/types.ts) - `TOrderEntry`
 - [`packages/kernel/src/base/repositories/common/constants.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/kernel/src/base/repositories/common/constants.ts) - `DEFAULT_LIMIT`, `DEFAULT_MAX_LIMIT`
 - [`packages/kernel/src/base/repositories/common/types/results.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/kernel/src/base/repositories/common/types/results.ts) - `TDataRange`, `buildDataRange`

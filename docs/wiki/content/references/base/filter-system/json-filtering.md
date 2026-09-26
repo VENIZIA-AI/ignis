@@ -20,6 +20,28 @@ Query nested fields within JSON/JSONB columns using dot notation. PostgreSQL-spe
 > A key is recognized as a JSON path if it contains a `.` or `[`. The column named by the first path segment must be a `json`/`jsonb` column, or the query throws.
 
 
+## Typed JSON-path keys
+
+`TWhere<T>` type-checks a JSON-path key against the columns of `T` - no cast, no `TWhere<any>`:
+
+```typescript
+import type { TWhere } from '@venizia/ignis-filter';
+
+type Product = { id: number; metadata: unknown };
+
+const where: TWhere<Product> = { 'metadata.a.b': 'value' }; // compiles - metadata is a JSON column
+```
+
+| Checked | Not checked |
+|---|---|
+| The column part of the key. A typo (`'metdata.a'`) or a path on a non-JSON column (`'score.a'` when `score` is a number) is a compile error. | The value on a JSON path - its type is `unknown`, so any value compiles. Runtime validation ([Path Validation](#path-validation), [Numeric Casting](#numeric-casting)) still checks it at query time. |
+
+A column counts as a JSON column when its value can hold JSON: `unknown`, `any`, or an object other than `Date` or `TIsoTimestamp`.
+
+> [!NOTE]
+> A relation-shaped object field counts as a JSON column at the type level - `'creator.name'` type-checks when `creator` is a related entity's shape, not a real column. The runtime still throws `Column 'creator' is not a JSON column`, since a relation is never a JSON column at the database level.
+
+
 ## Basic Usage
 
 ```typescript
@@ -123,3 +145,4 @@ Every path component must match `/^[a-zA-Z_][a-zA-Z0-9_-]*$|^\d+$/` - a letter/u
 - [`packages/connectors/src/relational/core/repositories/dialect/filter.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/connectors/src/relational/core/repositories/dialect/filter.ts) - `FilterBuilder`, `buildJsonWhereCondition`/`buildJsonOperatorConditions`/`buildJsonOrderBy`
 - [`packages/connectors/src/relational/core/repositories/dialect/internal/json-utils.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/connectors/src/relational/core/repositories/dialect/internal/json-utils.ts) - `isJsonPath`, `parseJsonPath`, path validation regex
 - [`packages/filter/src/common/operators.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/filter/src/common/operators.ts) - `QueryOperators` constants
+- [`packages/filter/src/common/types.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/filter/src/common/types.ts) - `TJsonColumnKey`, `TJsonPathKey`, `TWhere`

@@ -6,6 +6,21 @@ not how.
 This file and `index.md` are reserved OKF filenames - they carry no `type:` frontmatter and are not
 counted as concepts.
 
+## 2026-09-26 - TWhere<T> types a JSON-path key; TOrderEntry<T> added, opt-in
+
+Updated [filter](/packages/filter.md) and [filter system](/architecture/filter-system.md).
+
+- `TJsonColumnKey<T>` and `TJsonPathKey<T>` let `TWhere<T>` accept `{ 'metadata.a.b': value }` for a
+  JSON column with no cast and no `TWhere<any>`. The key is checked; the value is `unknown` on
+  purpose - a typed value broke `Record<string, unknown>` where clauses for a row with a JSON column
+  (`IMetaLinkRows` and similar downstream shapes), so only the key check shipped.
+- Known false positive, pinned by a test: a relation-shaped object field type-checks as a JSON
+  column, so `'creator.name'` compiles though the runtime rejects it as not a JSON column.
+- `TOrderEntry<T>`, opt-in through `satisfies TOrderEntry<T>[]` - `TFilter<T>.order` stays `string[]`.
+  A JSON-path entry's direction is not type-checked.
+- Additive, no runtime change. See the
+  [2026-09-26 changelog](/changelogs/2026-09-26-typed-json-path-keys-and-order-entries).
+
 ## 2026-09-26 - runInTransaction commits/rolls back for you; TransactionDouble stubs a handle for tests
 
 Updated [connectors](/packages/connectors.md), [Relational connector](/architecture/relational-connector.md),

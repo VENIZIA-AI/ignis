@@ -32,9 +32,49 @@ only a runtime one - `core-server`'s `postgres-query-operators-between.test.ts` 
 on its two deliberately-wrong-arity cases, to reach the runtime guard from a type the compiler would
 otherwise reject.
 
-**Does not cover JSON/JSONB.** A `metadata`/`jValue` column is `any` in application schemas, so
-`TWhereValue<any>` accepts anything under it - a typo inside a JSON path stays silent. Dot-path key
-typing needs the application to declare `$type<>()` on its jsonb columns first; not done here.
+**JSON-path keys are typed too, as of 2026-09-26.** `TJsonColumnKey<T>` picks the columns of `T`
+whose value can hold JSON - `unknown`, `any`, or an object other than `Date` or `TIsoTimestamp`
+(`TIsJsonValue<V>`). `TJsonPathKey<T>` is a dotted or bracketed key on one of those columns
+(`` `${TJsonColumnKey<T>}.${string}` | `${TJsonColumnKey<T>}[${string}` ``), and `TWhere<T>` adds
+`{ [key in TJsonPathKey<T>]?: unknown }` alongside its column keys - no cast, no `TWhere<any>`,
+needed to write `{ 'metadata.a.b': value }` against a row that has a `metadata` column.
+
+The value is typed `unknown` on purpose, not `TWhereValue<string | number | boolean>` as the design
+first shipped: a typed value made `TWhere<T>` reject a `Record<string, unknown>` where clause for any
+row with a JSON column - the pattern index signature `` `${string}.${string}` `` then checked the
+loose object's `unknown` values against the narrower type, and that shape is common downstream
+(`IMetaLinkRows`, a use case's `Record<string, unknown>[]` conjuncts). Typing the value `unknown`
+keeps a loose where assignable while still checking the key - the two questions turned out to be
+independent, and only the second one needed a stricter type. The `0 extends 1 & T` any-guard the
+first design needed to keep `TWhere<any>` open is gone with it: an `unknown`-valued pattern index
+signature already accepts everything, so the guard bought nothing once the value stopped narrowing.
+
+Two things this key check cannot tell apart, both pinned by tests rather than fixed:
+
+- **A relation-shaped object field type-checks as a JSON column.** A model type that carries a
+  relation (`{ creator?: { id; name } }`) makes `'creator.name'` a valid `TJsonPathKey`, though
+  `creator` is never a real column - `validateJsonColumnType()` still throws
+  `Column 'creator' is not a JSON column` at runtime. The type layer only sees shapes, not the schema
+  registry.
+- **A column typed purely `TIsoTimestamp` needs the explicit exclusion.** The brand
+  (`string & { readonly isoTimestampBrand: unique symbol }`) is an object type, so without excluding
+  it from `TIsJsonValue<V>` a hand-written or `$type<TIsoTimestamp>()` column would count as JSON. A
+  column that reads `string | TIsoTimestamp` (drizzle's real `isoTimestamp` shape) was already
+  excluded by accident - the plain `string` member alone made the distributive conditional land on
+  "not JSON" - so this case is invisible until a column is typed with the bare brand.
+
+See the [2026-09-26 changelog](/changelogs/2026-09-26-typed-json-path-keys-and-order-entries) and
+[JSON/JSONB Filtering](/references/base/filter-system/json-filtering.md#typed-json-path-keys).
+
+## `TOrderEntry<T>`, opt-in
+
+`TOrderEntry<T> = TOrderKey<T> | `${TOrderKey<T>} ${TOrderDirection}`` where `TOrderKey<T>` is a
+column of `T` or one of its `TJsonPathKey<T>` entries, and `TOrderDirection` is `asc | desc | ASC |
+DESC`. It checks a list built with `satisfies TOrderEntry<T>[]`; `TFilter<T>.order` itself stays
+`string[]` - typing it strictly would break every caller that builds an order entry from a plain
+`string` at runtime (measured, an owner ruling). The direction after a JSON-path key is not
+type-checked: `'metadata.rank sideways'` satisfies the type, and the runtime order parser is what
+rejects it.
 
 **One narrow, branded exception: `TIsoTimestamp`.** `connectors`' `isoTimestamp` column
 (`relational/{postgres,sqlite}/models/common/columns.ts`) reads back as `string`, but its `toDriver`
