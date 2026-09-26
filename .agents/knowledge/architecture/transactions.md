@@ -6,7 +6,14 @@ resource: packages/connectors/src/relational/postgres/datasources/base.ts
 tags: [architecture, transactions, postgres, correctness]
 ---
 
-Transactions are a **relational-only** capability. `AbstractDataSource.getCapabilities()` returns `{ transactions: false }` and its `beginTransaction()` throws NotSupported (async, so callers get a rejected promise rather than a synchronous throw that skips their `try`/`catch`). Only the relational branch overrides both, split across two classes (see [Relational connector](/architecture/relational-connector.md)): the engine-neutral `BaseRelationalDataSource` (`connectors/relational`) acquires the connection, runs the BEGIN statement, and builds the `commit`/`rollback` closures; `BasePostgresDataSource` (`connectors/postgres`) supplies the BEGIN text itself and patches `isolationLevel` onto the returned handle.
+Transactions are a **relational-only** capability. `AbstractDataSource.getCapabilities()` returns `{ transactions: false }` and its `beginTransaction()` throws NotSupported (async, so callers get a rejected promise rather than a synchronous throw that skips their `try`/`catch`). Only the relational branch overrides both, split across two classes (see [Relational connector](/architecture/relational-connector.md)): the engine-neutral `BaseRelationalDataSource` (`connectors/relational`) acquires the connection, runs the BEGIN statement, and returns a `ConnectionTransaction` handle built on the shared `TransactionLifecycle` state machine; `BasePostgresDataSource` (`connectors/postgres`) supplies the BEGIN text itself and patches `isolationLevel` onto the returned handle.
+
+`RelationalBaseRepository.runInTransaction({ transaction?, transactionOptions?, execute })` wraps
+`beginTransaction()` with the begin/commit/rollback block callers used to write by hand, and
+`TransactionDouble` (`@venizia/ignis-connectors/testing`) stubs the same handle with no database
+behind it for unit tests. Both share the state machine below with the real handle - see
+[Relational connector](/architecture/relational-connector.md) for the class split and the
+join-or-own rules.
 
 ## The API
 
@@ -27,7 +34,7 @@ Repositories consume it through the options object. `RelationalBaseRepository.re
 
 ## A failed COMMIT does not resolve successfully
 
-Both `commit()` and `rollback()` are the same `finish()` closure. On a failed control statement it logs, marks the transaction failure-ended, destroys the connection, and **rethrows**. There is no path where a caller believes a failed COMMIT succeeded.
+Both `commit()` and `rollback()` route through the same `TransactionLifecycle.end()`. On a failed control statement it logs, marks the transaction FAILED, destroys the connection, and **rethrows**. There is no path where a caller believes a failed COMMIT succeeded.
 
 ## Poisoned connections are never pooled
 
@@ -40,7 +47,7 @@ Every failure path releases with `{ destroy: true }` rather than returning the c
 
 ## rollback() throws - so nest it
 
-Because `finish()` rethrows, `rollback()` can throw. A bare `await transaction.rollback()` inside a `catch` will replace the original error with the rollback error. Handle it:
+Because `end()` rethrows, `rollback()` can throw. A bare `await transaction.rollback()` inside a `catch` will replace the original error with the rollback error. Handle it:
 
 ```typescript
 catch (error) {
@@ -53,11 +60,11 @@ catch (error) {
 }
 ```
 
-There is one deliberate exception. `finish()` treats a **rollback after a failure-ended transaction** as a logged no-op instead of throwing `Transaction already ended`. The canonical caller pattern is `catch { await tx.rollback(); throw error; }`; after a failed commit the transaction is already torn down - nothing committed, connection destroyed - so the rollback request is satisfied by construction, and throwing would replace the caller's original error in every such catch block. A rollback on a *successfully* ended transaction still throws.
+There is one deliberate exception. `end()` treats a **rollback after a failure-ended transaction** as a logged no-op instead of throwing `Transaction already ended`. The canonical caller pattern is `catch { await tx.rollback(); throw error; }`; after a failed commit the transaction is already torn down - nothing committed, connection destroyed - so the rollback request is satisfied by construction, and throwing would replace the caller's original error in every such catch block. A rollback on a *successfully* ended transaction still throws.
 
-## Concurrency inside finish()
+## Concurrency inside end()
 
-`isActive` is flipped to `false` **before** the `await`, not after. Two concurrent `finish()` calls (a commit racing a rollback) would otherwise both pass the guard, issue two control statements, and double-release the same physical connection.
+`isActive` is flipped to `false` **before** the `await`, not after. Two concurrent `end()` calls (a commit racing a rollback) would otherwise both pass the guard, issue two control statements, and double-release the same physical connection.
 
 ## Interactions worth knowing
 

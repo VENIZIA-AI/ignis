@@ -17,6 +17,7 @@ This section tracks the history of significant changes, refactors, and updates t
 
 | Date | Title | Type |
 |------|-------|------|
+| 2026-09-26 | [A Repository Method Runs Its Own Transaction, and a Double Stubs One In Tests](./2026-09-26-run-in-transaction-and-transaction-double) | Feature |
 | 2026-09-26 | [Order Entries Get One Parser, and toOrderBy Can Sort by an Expression](./2026-09-26-order-entry-parsing-and-sort-expressions) | Feature, Behavior Change |
 | 2026-09-26 | [JSON-Path Where and Order Keys Are Now Qualified With the Table](./2026-09-26-json-path-column-qualification) | Bug Fix |
 | 2026-09-25 | [Mail Attachments Read Only Under a Root, and Stop at a Size Limit](./2026-09-25-mail-attachment-limits) | Breaking, Security, Enhancement |

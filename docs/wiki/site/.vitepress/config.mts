@@ -455,6 +455,10 @@ const config = defineConfig({
               collapsed: true,
               items: [
                 {
+                  text: 'A Repository Method Runs Its Own Transaction, and a Double Stubs One In Tests',
+                  link: '/changelogs/2026-09-26-run-in-transaction-and-transaction-double',
+                },
+                {
                   text: 'Order Entries Get One Parser, and toOrderBy Can Sort by an Expression',
                   link: '/changelogs/2026-09-26-order-entry-parsing-and-sort-expressions',
                 },
