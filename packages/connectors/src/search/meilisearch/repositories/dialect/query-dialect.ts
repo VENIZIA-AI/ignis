@@ -17,7 +17,7 @@ import {
   toFilterClause,
   toSearchPage,
 } from '@/search/core/repositories/common/dialect-helpers';
-import { QueryOperators, type TFilter, type TWhere } from '@venizia/ignis-filter';
+import { parseOrderEntry, QueryOperators, type TFilter, type TWhere } from '@venizia/ignis-filter';
 import { BaseHelper, getError } from '@venizia/ignis-helpers/core';
 import type { IMeilisearchSearchQuery } from '../common';
 
@@ -411,16 +411,9 @@ export class MeilisearchQueryDialect extends BaseHelper implements ISearchQueryD
   private toOrderBy(opts: { order: string[] }): string {
     return opts.order
       .map(entry => {
-        const [field, direction = 'asc'] = entry.trim().split(/\s+/);
-        const normalizedDirection = direction.toLowerCase();
+        const { field, direction } = parseOrderEntry({ entry });
 
-        if (normalizedDirection !== 'asc' && normalizedDirection !== 'desc') {
-          throw getError({
-            message: `[MeilisearchQueryDialect][build] Invalid sort direction '${direction}' for field '${field}'`,
-          });
-        }
-
-        return `${field}:${normalizedDirection}`;
+        return `${field}:${direction}`;
       })
       .join(',');
   }

@@ -1,5 +1,8 @@
 /** The filter shape, free of any runtime import. The zod schemas that validate this shape over HTTP stay in `@venizia/ignis-core` - they parse query strings and pull in the OpenAPI layer, which is a server concern. Do not import a value here; the purity guard fails if this file resolves to anything. */
 
+import type { TConstValue } from '@venizia/ignis-inversion';
+import type { Sorts } from './operators';
+
 /** Fields selection - an array of field names to include, or an object keyed by field name (`true` includes, `false` excludes). */
 export type TFields<T = any> = Partial<{ [K in keyof T]: boolean }> | Array<keyof T>;
 
@@ -75,6 +78,12 @@ export type TSkip = number | undefined;
 
 /** Sorting order for results - regular columns (`fieldName ASC`) and JSON/JSONB paths (`metadata.field DESC`). */
 export type TOrderBy = string[] | undefined;
+
+/** A sort direction, exactly the `Sorts` values. */
+export type TSortDirection = TConstValue<typeof Sorts>;
+
+/** One order entry read by `parseOrderEntry`: the field as written, the direction lower-cased. */
+export type TParsedOrderEntry = { field: string; direction: TSortDirection };
 
 /** Comprehensive filter configuration used across all repository query methods. */
 export type TFilter<T = any> = {
