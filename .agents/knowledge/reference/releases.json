@@ -4426,7 +4426,16 @@
         "kernel"
       ],
       "kind": "Feature",
-      "order": 1527
+      "order": 1528
+    },
+    {
+      "id": "changelog:2026-09-26-json-path-column-qualification",
+      "file": "2026-09-26-json-path-column-qualification.md",
+      "date": "2026-09-26",
+      "title": "JSON-Path Where and Order Keys Are Now Qualified With the Table",
+      "packages": [],
+      "kind": "Bug Fix",
+      "order": 1526
     },
     {
       "id": "changelog:2026-09-25-static-asset-and-storage-fixes",

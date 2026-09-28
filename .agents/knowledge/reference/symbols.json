@@ -4841,7 +4841,7 @@
       "specifier": "@venizia/ignis",
       "kind": "class",
       "file": "packages/connectors/src/relational/postgres/repositories/dialect/filter.ts",
-      "line": 10,
+      "line": 20,
       "signature": "class PostgresFilterBuilder extends FilterBuilder"
     },
     {
@@ -11162,7 +11162,7 @@
       "specifier": "@venizia/ignis/postgres",
       "kind": "class",
       "file": "packages/connectors/src/relational/postgres/repositories/dialect/filter.ts",
-      "line": 10,
+      "line": 20,
       "signature": "class PostgresFilterBuilder extends FilterBuilder"
     },
     {
@@ -13551,7 +13551,7 @@
       "specifier": "@venizia/ignis/sqlite",
       "kind": "class",
       "file": "packages/connectors/src/relational/sqlite/repositories/dialect/filter.ts",
-      "line": 17,
+      "line": 23,
       "signature": "class SqliteFilterBuilder extends FilterBuilder"
     },
     {
@@ -17551,7 +17551,7 @@
       "specifier": "@venizia/ignis-connectors/postgres",
       "kind": "class",
       "file": "packages/connectors/src/relational/postgres/repositories/dialect/filter.ts",
-      "line": 10,
+      "line": 20,
       "signature": "class PostgresFilterBuilder extends FilterBuilder"
     },
     {
@@ -19920,7 +19920,7 @@
       "specifier": "@venizia/ignis-connectors/sqlite",
       "kind": "class",
       "file": "packages/connectors/src/relational/sqlite/repositories/dialect/filter.ts",
-      "line": 17,
+      "line": 23,
       "signature": "class SqliteFilterBuilder extends FilterBuilder"
     },
     {
