@@ -190,7 +190,7 @@ describe('toOrderBy - expressions', () => {
       ),
     ).toEqual([
       `"order_entries_group"."label" desc`,
-      `"metadata" #> '{rank}' ASC`,
+      `"${ITEM_TABLE}"."metadata" #> '{rank}' ASC`,
       `"${ITEM_TABLE}"."score" desc`,
       ID_TIE_BREAKER,
     ]);
@@ -283,11 +283,17 @@ describe('toOrderBy - entries remembered between calls', () => {
         `metadata.key${index} ${isDescending ? 'DESC' : 'asc'}`,
       ]);
 
-      expect(compiled).toBe(`"metadata" #> '{key${index}}' ${isDescending ? 'DESC' : 'ASC'}`);
+      expect(compiled).toBe(
+        `"${ITEM_TABLE}"."metadata" #> '{key${index}}' ${isDescending ? 'DESC' : 'ASC'}`,
+      );
     }
 
-    expect(compileOn(dialect, ['metadata.key0 ASC'])[0]).toBe(`"metadata" #> '{key0}' ASC`);
-    expect(compileOn(dialect, ['metadata.key1 DESC'])[0]).toBe(`"metadata" #> '{key1}' DESC`);
+    expect(compileOn(dialect, ['metadata.key0 ASC'])[0]).toBe(
+      `"${ITEM_TABLE}"."metadata" #> '{key0}' ASC`,
+    );
+    expect(compileOn(dialect, ['metadata.key1 DESC'])[0]).toBe(
+      `"${ITEM_TABLE}"."metadata" #> '{key1}' DESC`,
+    );
     expect(compileOn(dialect, ['score DESC'])[0]).toBe(`"${ITEM_TABLE}"."score" desc`);
   });
 
