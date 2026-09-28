@@ -4415,6 +4415,18 @@
   },
   "changelogs": [
     {
+      "id": "changelog:2026-09-26-run-in-transaction-and-transaction-double",
+      "file": "2026-09-26-run-in-transaction-and-transaction-double.md",
+      "date": "2026-09-26",
+      "title": "A Repository Method Runs Its Own Transaction, and a Double Stubs One In Tests",
+      "packages": [
+        "connectors",
+        "core-server"
+      ],
+      "kind": "Feature",
+      "order": 1529
+    },
+    {
       "id": "changelog:2026-09-26-order-entry-parsing-and-sort-expressions",
       "file": "2026-09-26-order-entry-parsing-and-sort-expressions.md",
       "date": "2026-09-26",
@@ -4426,7 +4438,7 @@
         "kernel"
       ],
       "kind": "Feature",
-      "order": 1528
+      "order": 1527
     },
     {
       "id": "changelog:2026-09-26-json-path-column-qualification",
