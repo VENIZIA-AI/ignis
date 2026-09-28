@@ -100,6 +100,12 @@
       "require": "./dist/cjs/search/meilisearch/index.js",
       "default": "./dist/cjs/search/meilisearch/index.js"
     },
+    "./testing": {
+      "types": "./dist/cjs/testing/index.d.ts",
+      "import": "./dist/esm/testing/index.js",
+      "require": "./dist/cjs/testing/index.js",
+      "default": "./dist/cjs/testing/index.js"
+    },
     "./package.json": "./package.json"
   },
   "files": [

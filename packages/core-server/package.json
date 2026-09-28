@@ -171,6 +171,10 @@
       "types": "./dist/connectors/typesense/controllers/index.d.ts",
       "default": "./dist/connectors/typesense/controllers/index.js"
     },
+    "./testing": {
+      "types": "./dist/testing/index.d.ts",
+      "default": "./dist/testing/index.js"
+    },
     "./package.json": "./package.json"
   },
   "files": [

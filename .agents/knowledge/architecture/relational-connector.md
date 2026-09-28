@@ -137,6 +137,70 @@ exists but has no call site on the BEGIN path, so an untyped JavaScript caller c
 arbitrary string into `BEGIN TRANSACTION ISOLATION LEVEL ...`. Both `buildBeginStatement` overrides
 live on the `Base*` classes; the `Abstract*` ones supply the dialect and executor instead.
 
+## The transaction handle is a shared state machine
+
+`beginTransaction()` used to build its returned handle's `commit`/`rollback` as a closure over one
+acquired connection. `TransactionLifecycle` (`relational/core/datasources/transaction-lifecycle.ts`)
+holds that logic now instead, as an abstract class carrying the four end-of-transaction rules: the
+state leaves ACTIVE before the `await` (so a commit racing a rollback cannot both pass); ending an
+already-ended transaction throws; a rollback after a transaction that ended BY FAILURE is a logged
+no-op; a failed end marks the transaction FAILED and rethrows.
+
+Two classes extend it, and neither is exported from a barrel by name:
+
+- `ConnectionTransaction` (`relational/core/datasources/base.ts`, not exported) is the real handle.
+  Its `executeEnd` runs the connection's `COMMIT`/`ROLLBACK`; its hooks release the connection on
+  success and destroy it on a failed end, and log the failure or the no-op rollback.
+- `TransactionDouble` (`connectors/src/testing/transaction-double.ts`, the `/testing` sub-path - see
+  [connectors](/packages/connectors.md)) is the test double. Its `executeEnd` counts the call and
+  throws an injected `commitError`/`rollbackError` instead of touching a connection.
+
+**Constraint: the two must never drift onto two definitions of "already ended".** A unit test that
+stubs `beginTransaction` with the double proves nothing about the real handle if the rules diverge -
+that is why the state machine is shared rather than copied per class. One parity suite pins this: the
+same 15 cases run against both engines' real handles (PGlite, libsql) and all three doubles
+(`__tests__/relational/transaction/parity-suite.ts`).
+
+**`#dataSource`, `#connection` (on `ConnectionTransaction`) and `#state` (on `TransactionLifecycle`)
+are ES private fields, not TypeScript-`private` ones.** ES-private fields are invisible to
+`JSON.stringify`, `util.inspect`, `Object.keys`, and a spread copy - the same as the pre-lifecycle
+closure literal, which held no such references at all. Measured own keys on a Postgres handle today:
+`connector`, `commit`, `rollback`, `isolationLevel` - one property short of the old shape's
+`connector`, `isActive`, `commit`, `rollback`, because `isActive` is now a prototype getter rather
+than an own one. `beginTransaction()`'s return type is unchanged (`IRelationalTransaction<TConnector>`),
+so this is invisible to typed callers. Two effects follow: a spread copy (`{ ...transaction }`) no
+longer carries `isActive`, so passing one to a repository now throws "Transaction is no longer
+active" where it used to work; and reading `isActive` through a `Proxy` or an
+`Object.create(transaction)` wrapper now throws a `TypeError` instead - ES private fields are neither
+proxyable nor inherited. Nothing in IGNIS or BANA does either.
+
+## `runInTransaction` - join or own, never both
+
+`RelationalBaseRepository.runInTransaction({ transaction?, transactionOptions?, execute })`
+(`relational/core/repositories/core/base.ts`) replaces the hand-written begin/commit/rollback block a
+caller used to write around `beginTransaction()`. Passing a `transaction` JOINS it: `runInTransaction`
+never begins, commits, or rolls it back, and `transactionOptions` is ignored (with a debug log line);
+an inactive handle throws before `execute` runs. Passing none OWNS one: it begins with
+`transactionOptions`, commits after `execute` resolves, and rolls back on failure in its own
+try/catch, always rethrowing the ORIGINAL error - a rollback failure is only logged. It is declared
+only on `RelationalBaseRepository`, never on `IRelationalDataSource` or any kernel interface: a
+repository-level convenience over `beginTransaction()`, not a new capability.
+
+**If `execute` ends the owned transaction itself**, `runInTransaction` never ends it a second time.
+It tells the outcome apart through `TRANSACTION_STATE_KEY` (`transaction-lifecycle.ts`), a
+`Symbol.for('@venizia/ignis-connectors/transaction-state')` well-known symbol read by
+`isTransactionCommitted({ transaction })` (`transaction-state.ts`) - a registry symbol rather than a
+class check, so it recognises a handle or double built on `TransactionLifecycle` even when the
+repository and the transaction load from different module copies (a CommonJS
+`@venizia/ignis/testing` double with an ESM `@venizia/ignis-connectors` repository, or the reverse).
+COMMITTED returns `execute`'s result with a `warn` line and no second commit; any other state
+(ROLLED_BACK, FAILED, or a transaction not built on `TransactionLifecycle` at all) throws naming that
+`execute` ended the transaction before it could be committed, with no rollback attempt. If `execute`
+rejects after already ending the transaction, `runInTransaction` rethrows that rejection as-is, with
+no rollback attempt either. `execute` must `await` `commit()`/`rollback()`: an unawaited commit call
+sets the state to COMMITTED before the COMMIT statement itself has settled, so `runInTransaction`
+returns success while that commit can still go on to fail.
+
 ## Relation building crosses the kernel boundary through a registry
 
 `RepositoryMetadataMixin` builds Drizzle relations but must never import Drizzle: one value import

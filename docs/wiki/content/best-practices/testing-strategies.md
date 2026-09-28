@@ -577,6 +577,68 @@ it('should call logger on error', async () => {
 });
 ```
 
+### Transaction Doubles
+
+Testing `runInTransaction` (see [Transactions](/guides/core-concepts/persistent/transactions#runintransaction))
+against a real datasource means standing up Postgres or SQLite for every unit test. `TransactionDouble`,
+from `@venizia/ignis/testing`, stubs the handle instead: stub `beginTransaction` to return it, then
+assert what commit or rollback happened.
+
+```typescript
+import { expect, it, spyOn } from 'bun:test';
+import { PostgresTransactionDouble, TransactionStates } from '@venizia/ignis/testing';
+import { getError } from '@venizia/ignis-helpers';
+
+it('commits when execute succeeds', async () => {
+  const double = new PostgresTransactionDouble();
+  spyOn(orderRepository, 'beginTransaction').mockResolvedValue(double);
+
+  await orderRepository.runInTransaction({ execute: async () => 'ok' });
+
+  expect(double.commitCount).toBe(1);
+  expect(double.rollbackCount).toBe(0);
+  expect(double.state).toBe(TransactionStates.COMMITTED);
+});
+
+it('rolls back when execute throws', async () => {
+  const double = new PostgresTransactionDouble();
+  spyOn(orderRepository, 'beginTransaction').mockResolvedValue(double);
+
+  await expect(
+    orderRepository.runInTransaction({
+      execute: async () => {
+        throw getError({ message: 'boom' });
+      },
+    }),
+  ).rejects.toThrow('boom');
+
+  expect(double.rollbackCount).toBe(1);
+  expect(double.state).toBe(TransactionStates.ROLLED_BACK);
+});
+```
+
+Inject `commitError` (or `rollbackError`) to test a failed commit or rollback:
+
+```typescript
+const double = new PostgresTransactionDouble({ commitError: getError({ message: 'deadlock' }) });
+```
+
+The double never touches a database. Its `connector` getter throws - a repository method that
+reaches for `transaction.connector` must be stubbed too, because the double has none to give:
+
+```
+[TransactionDouble] connector is not available - stub the repository method that reached the database
+```
+
+`SqliteTransactionDouble` carries `beginMode` the same way `PostgresTransactionDouble` carries
+`isolationLevel` - both default to what the real `BEGIN` would have used.
+
+> [!WARNING] A double proves control flow, not SQL atomicity
+> `TransactionDouble` tells you whether your code called commit or rollback on the right branch. It
+> cannot tell you whether two statements really ran in one transaction, or whether a constraint fires
+> at commit time. For that, run the code against a real engine - [PGlite](/guides/core-concepts/persistent/pglite)
+> is the fast, in-process option for tests.
+
 ## 6. Test Organization
 
 ### File Structure

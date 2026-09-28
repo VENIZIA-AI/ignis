@@ -578,7 +578,7 @@ The loop lives on `BaseRelationalDataSource.beginTransaction()`; only the BEGIN 
 3. On a failed `BEGIN`, destroys the connection (`release({ destroy: true })`) and rethrows - it is never leaked back to the pool in an unknown state
 4. Returns a transaction object exposing `isActive`, `commit()`, `rollback()`, and the connection-scoped `connector`. `BasePostgresDataSource` then attaches `isolationLevel`, producing an `IDatabaseTransaction`
 
-- **Shared `finish()`.** `commit()`/`rollback()` share one internal `finish()`. It flips `isActive` to `false` **before** issuing the statement, so a commit racing a rollback cannot double-release the same connection, then runs `COMMIT`/`ROLLBACK`.
+- **Shared `end()`.** `commit()`/`rollback()` share one end path, `TransactionLifecycle.end()`. It flips `isActive` to `false` **before** issuing the statement, so a commit racing a rollback cannot double-release the same connection, then runs `COMMIT`/`ROLLBACK`.
 - **Outcome handling.** On success the connection is released back to the pool; on failure it is destroyed and the error is rethrown.
 
 > [!WARNING] `commit()`/`rollback()` throw on failure
