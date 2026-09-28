@@ -6,6 +6,20 @@ not how.
 This file and `index.md` are reserved OKF filenames - they carry no `type:` frontmatter and are not
 counted as concepts.
 
+## 2026-09-26 - a JSON-path where/order key renders qualified, like a plain column
+
+Updated [filter system](/architecture/filter-system.md).
+
+- `buildJsonWhereCondition`/`buildJsonOrderBy` (Postgres and SQLite) now build the column part of a
+  JSON-path extraction through the Drizzle column object, not a hand-quoted name - so it is qualified
+  with the table or the query alias, exactly like a plain key. Before, a hand-quoted bare name made a
+  query joining a second table with a same-named JSON column fail with `column reference "metadata"
+  is ambiguous` in Postgres. The path literal (`'{a,b}'`, `'$."a"."b"'`) is unchanged - still built
+  only from segments `validateJsonPathComponents` already passed.
+- `FilterBuilder.buildJsonOperatorConditions()` (core, protected) widened its `jsonPath`/
+  `safeNumericCast` parameters to `string | SQL`; a string is still accepted and wrapped once, so an
+  existing engine subclass passing strings keeps working unchanged.
+
 ## 2026-09-25 - mail attachments: path confined to attachmentRoot, size capped per message
 
 Updated [core-server](/packages/core-server.md).

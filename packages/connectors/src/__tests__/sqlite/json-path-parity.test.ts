@@ -98,8 +98,8 @@ describe('SqliteFilterBuilder - a numeric JSON path component addresses BOTH rea
   test('the emitted extraction offers the array subscript AND the object key', () => {
     const emitted = toWhere({ 'metadata.counts.0': { gt: 5 } }).sql;
 
-    expect(emitted).toContain(`json_extract("meta_data", '$."counts"[0]')`);
-    expect(emitted).toContain(`json_extract("meta_data", '$."counts"."0"')`);
+    expect(emitted).toContain(`json_extract("json_parity_fixture"."meta_data", '$."counts"[0]')`);
+    expect(emitted).toContain(`json_extract("json_parity_fixture"."meta_data", '$."counts"."0"')`);
   });
 
   // Verified against PGlite: `'{"counts":{"0":9}}'::jsonb #>>
@@ -120,7 +120,7 @@ describe('SqliteFilterBuilder - a numeric JSON path component addresses BOTH rea
   test('a non-numeric component keeps emitting a single extraction', () => {
     const emitted = toWhere({ 'metadata.tier': 'gold' }).sql;
 
-    expect(emitted).toBe(`json_extract("meta_data", '$."tier"') = ?`);
+    expect(emitted).toBe(`json_extract("json_parity_fixture"."meta_data", '$."tier"') = ?`);
   });
 
   test('order by a numeric component offers both readings too', () => {

@@ -451,6 +451,16 @@ const config = defineConfig({
           collapsed: false,
           items: [
             {
+              text: '2026-09-26',
+              collapsed: true,
+              items: [
+                {
+                  text: 'JSON-Path Where and Order Keys Are Now Qualified With the Table',
+                  link: '/changelogs/2026-09-26-json-path-column-qualification',
+                },
+              ],
+            },
+            {
               text: '2026-09-25',
               collapsed: true,
               items: [

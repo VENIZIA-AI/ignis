@@ -68,7 +68,7 @@ describe('SqliteFilterBuilder - JSON-path where', () => {
   test('a JSON path becomes json_extract over the DB column, never Postgres #>>', () => {
     const emitted = toWhere({ 'metadata.tier': { eq: 'gold' } });
 
-    expect(emitted).toContain(`json_extract("meta_data", '$."tier"')`);
+    expect(emitted).toContain(`json_extract("sqlite_dialect_fixture"."meta_data", '$."tier"')`);
     expect(emitted).not.toContain('#>>');
   });
 
@@ -84,7 +84,7 @@ describe('SqliteFilterBuilder - JSON-path where', () => {
 
   test('a numeric component becomes a bracket subscript - $."items"."0" reads an object key, not an array element', () => {
     expect(toWhere({ 'metadata.items[0].name': 'a' })).toContain(
-      `json_extract("meta_data", '$."items"[0]."name"')`,
+      `json_extract("sqlite_dialect_fixture"."meta_data", '$."items"[0]."name"')`,
     );
   });
 
@@ -93,7 +93,7 @@ describe('SqliteFilterBuilder - JSON-path where', () => {
 
     expect(emitted).not.toContain('CAST');
     expect(emitted).not.toContain('::numeric');
-    expect(emitted).toContain(`json_extract("meta_data", '$."score"') >`);
+    expect(emitted).toContain(`json_extract("sqlite_dialect_fixture"."meta_data", '$."score"') >`);
   });
 
   test('a nested not keeps the same cast-free extraction', () => {
@@ -116,7 +116,9 @@ describe('SqliteFilterBuilder - JSON-path where', () => {
 
 describe('SqliteFilterBuilder - JSON-path order by', () => {
   test('order by a JSON path compiles to json_extract plus a direction', () => {
-    expect(toOrderBy(['metadata.tier DESC'])[0]).toBe(`json_extract("meta_data", '$."tier"') DESC`);
+    expect(toOrderBy(['metadata.tier DESC'])[0]).toBe(
+      `json_extract("sqlite_dialect_fixture"."meta_data", '$."tier"') DESC`,
+    );
   });
 
   test('a plain column order by is inherited unchanged', () => {

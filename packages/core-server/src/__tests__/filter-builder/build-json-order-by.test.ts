@@ -1,8 +1,8 @@
 import { describe, test, expect } from 'bun:test';
 import type { SQL } from 'drizzle-orm';
 import { getTableColumns } from 'drizzle-orm';
-import { jsonb, pgTable, serial, varchar } from 'drizzle-orm/pg-core';
-import type { AnyType, TConstValue } from '@venizia/ignis-helpers/common';
+import { jsonb, PgDialect, pgTable, serial, varchar } from 'drizzle-orm/pg-core';
+import type { TConstValue } from '@venizia/ignis-helpers/common';
 
 import { Sorts } from '@venizia/ignis-kernel';
 import { PostgresFilterBuilder } from '@venizia/ignis-connectors/postgres';
@@ -31,12 +31,10 @@ class TestableFilterBuilder extends PostgresFilterBuilder {
   }
 }
 
-/** `sql.raw` output has no meaningful `toString` - the emitted text lives in the chunk values. */
-const toRawSql = (value: SQL): string => {
-  const chunks = (value as AnyType).queryChunks as { value: string[] }[];
+const dialect = new PgDialect();
 
-  return chunks.map(chunk => chunk.value.join('')).join('');
-};
+/** Compiled by the dialect, so a Drizzle column chunk renders as its qualified name. */
+const toRawSql = (value: SQL): string => dialect.sqlToQuery(value).sql;
 
 interface ITestCaseBase {
   input: string;
@@ -56,49 +54,49 @@ const testCases: TTestCase[] = [
     direction: Sorts.ASC,
     shouldPass: true,
     description: 'Simple field path',
-    expectedSql: `"metadata" #> '{field}' ASC`,
+    expectedSql: `"test_table"."metadata" #> '{field}' ASC`,
   },
   {
     input: 'metadata.nested_field',
     direction: Sorts.DESC,
     shouldPass: true,
     description: 'Underscore in field name',
-    expectedSql: `"metadata" #> '{nested_field}' DESC`,
+    expectedSql: `"test_table"."metadata" #> '{nested_field}' DESC`,
   },
   {
     input: 'data.items[0]',
     direction: Sorts.ASC,
     shouldPass: true,
     description: 'Array index',
-    expectedSql: `"data" #> '{items,0}' ASC`,
+    expectedSql: `"test_table"."data" #> '{items,0}' ASC`,
   },
   {
     input: 'metadata.items[0].name',
     direction: Sorts.ASC,
     shouldPass: true,
     description: 'Array index with nested field',
-    expectedSql: `"metadata" #> '{items,0,name}' ASC`,
+    expectedSql: `"test_table"."metadata" #> '{items,0,name}' ASC`,
   },
   {
     input: 'data.a.b.c.d',
     direction: Sorts.ASC,
     shouldPass: true,
     description: 'Deep nesting',
-    expectedSql: `"data" #> '{a,b,c,d}' ASC`,
+    expectedSql: `"test_table"."data" #> '{a,b,c,d}' ASC`,
   },
   {
     input: 'metadata._private',
     direction: Sorts.ASC,
     shouldPass: true,
     description: 'Starts with underscore',
-    expectedSql: `"metadata" #> '{_private}' ASC`,
+    expectedSql: `"test_table"."metadata" #> '{_private}' ASC`,
   },
   {
     input: 'data.field123',
     direction: Sorts.ASC,
     shouldPass: true,
     description: 'Field with numbers',
-    expectedSql: `"data" #> '{field123}' ASC`,
+    expectedSql: `"test_table"."data" #> '{field123}' ASC`,
   },
 
   {
@@ -129,7 +127,7 @@ const testCases: TTestCase[] = [
     // Kebab-case is a legal JSON key, allowed on purpose: the component is interpolated inside a
     // quoted `'{...}'` array literal it cannot escape.
     description: 'Hyphen in field name (kebab-case)',
-    expectedSql: `"metadata" #> '{field-name}' ASC`,
+    expectedSql: `"test_table"."metadata" #> '{field-name}' ASC`,
   },
   {
     input: 'metadata.field name',
