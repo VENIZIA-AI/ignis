@@ -28,6 +28,46 @@ The zod schemas that validate a filter arriving over HTTP come in two layers. `p
 
 `Sorts` carries `asc`/`desc`. `DEFAULT_LIMIT` is `10` - `find()` applies `filter.limit ?? getDefaultLimit() ?? DEFAULT_LIMIT`, so an unbounded query is not the default.
 
+## Order entries share one parser
+
+Every `order` entry - relational and both search dialects (Typesense, Meilisearch) - is read by
+`parseOrderEntry` (`packages/filter/src/common/order.ts`), a single exported function replacing three
+private copies of the same `entry.trim().split(/\s+/)` logic (C-16). It returns `TParsedOrderEntry`
+(`{ field: string; direction: TSortDirection }`) and throws a `400` naming the whole entry for:
+
+| Case | Example | Before this parser |
+|---|---|---|
+| Empty field | `''`, `'   '` | Relational: read as an unknown column. Search: an empty field, silently |
+| Invalid direction | `'name sideways'` | Same 400, table name or field name in the message instead of the whole entry |
+| More than two tokens | `'name DESC NULLS LAST'` | Silently accepted - the tail was dropped, since IGNIS never gave `NULLS LAST`/`FIRST` any effect |
+
+Only ASCII whitespace (space, tab, `\n`, `\v`, `\f`, `\r`) separates the two tokens. The replaced
+`split(/\s+/)` matched a non-breaking space too, so `'name<NBSP>DESC'` used to split into two tokens
+and now reads as one field name.
+
+`toOrderBy` also gained an `expressions?: Readonly<Record<string, AnyColumn | SQLWrapper>>` option -
+a way to sort by a column on a joined table or a computed `SQL` (a `COALESCE`, for instance), which no
+schema column can name. A key resolves as an own key of `expressions` first (`Object.hasOwn`, so an
+inherited name like `constructor` never resolves), then a JSON path, then a schema column. The `id
+ASC` tie-breaker still closes the list unless an entry names `id`; an expression keyed `id` never
+counts as naming it.
+
+**A constraint the code alone does not show:** `_orderEntryCache` (`Map<string,
+TParsedOrderEntry>`) lives on `FilterBuilder`, but each engine's query dialect is a process-wide
+static singleton, not one per instance - `AbstractPostgresDataSource.queryDialect ??= new
+PostgresQueryDialect()`, the same shape for SQLite - so one cache is shared by every datasource,
+tenant, and request in the process. It is capped at 1024 entries and, since fix round 1, at 256
+characters per entry, so memory is bounded by count *and* by length together (roughly 1024 x 256
+characters, about 0.25-0.5 MB per engine class) - the entry-count cap alone only bounded the count,
+not the bytes. The map is **cleared**, not LRU-evicted, once full: deleting from the front of a JSC
+`Map` measured slower than accepting one more parse on the next miss. An entry is cached as soon as
+its tokens parse and it fits the length bound - before the column or expression it names is looked
+up - so an entry naming an unknown column is cached too, as long as it is 256 characters or fewer;
+only a value `parseOrderEntry` itself rejects (empty field, invalid direction, more than two tokens)
+is never cached. Measured on the built dist (`score DESC`, request-shaped): about 53 ns/call before
+this change, about 250 ns/call for the parser running uncached on every call, about 37 ns/call with
+the cache.
+
 The vocabulary is shared, the support is not. An operator an engine cannot express throws
 NotSupported (HTTP 501) at translation time rather than being dropped from the list:
 
