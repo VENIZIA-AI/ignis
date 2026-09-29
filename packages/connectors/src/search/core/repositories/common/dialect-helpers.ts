@@ -1,3 +1,4 @@
+import { toSafeEcho } from '@/common/internal';
 import { QueryOperators, type TFields } from '@venizia/ignis-filter';
 import { getError } from '@venizia/ignis-helpers/core';
 import { SearchErrors } from '@/search/core/common/errors';
@@ -187,7 +188,7 @@ export const assertKnownField = (opts: {
 
   throw getError({
     error: SearchErrors.UNKNOWN_FIELD,
-    message: `[${engine}QueryDialect][${method}] search() Field NOT FOUND | field: '${field}' | engine: '${engine}' | the collection definition declares no such field`,
+    message: `[${engine}QueryDialect][${method}] search() Field NOT FOUND | field: '${toSafeEcho({ value: field })}' | engine: '${engine}' | the collection definition declares no such field`,
   });
 };
 

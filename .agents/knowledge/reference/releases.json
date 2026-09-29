@@ -4423,7 +4423,16 @@
         "connectors"
       ],
       "kind": "Bug Fix",
-      "order": 1531
+      "order": 1530
+    },
+    {
+      "id": "changelog:2026-09-29-escaped-input-in-filter-errors",
+      "file": "2026-09-29-escaped-input-in-filter-errors.md",
+      "date": "2026-09-29",
+      "title": "Filter and Update Errors Quote the Rejected Key on One Line",
+      "packages": [],
+      "kind": "Bug Fix",
+      "order": 1534
     },
     {
       "id": "changelog:2026-09-26-typed-json-path-keys-and-order-entries",

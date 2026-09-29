@@ -9562,7 +9562,7 @@
       "specifier": "@venizia/ignis",
       "kind": "const",
       "file": "packages/filter/src/common/order.ts",
-      "line": 33,
+      "line": 43,
       "signature": "parseOrderEntry: (opts: { entry: string; }) => TParsedOrderEntry"
     },
     {
@@ -12021,7 +12021,7 @@
       "specifier": "@venizia/ignis/relational",
       "kind": "class",
       "file": "packages/connectors/src/relational/core/repositories/dialect/filter.ts",
-      "line": 80,
+      "line": 81,
       "signature": "class FilterBuilder extends BaseHelper"
     },
     {
@@ -12251,7 +12251,7 @@
       "specifier": "@venizia/ignis/relational",
       "kind": "const",
       "file": "packages/connectors/src/relational/core/repositories/dialect/internal/json-utils.ts",
-      "line": 4,
+      "line": 5,
       "signature": "JSON_PATH_PATTERN: RegExp"
     },
     {
@@ -12331,7 +12331,7 @@
       "specifier": "@venizia/ignis/relational",
       "kind": "class",
       "file": "packages/connectors/src/relational/core/repositories/dialect/update.ts",
-      "line": 21,
+      "line": 22,
       "signature": "class RelationalUpdateBuilder extends BaseHelper"
     },
     {
@@ -12631,7 +12631,7 @@
       "specifier": "@venizia/ignis/relational",
       "kind": "const",
       "file": "packages/connectors/src/relational/core/repositories/dialect/internal/json-utils.ts",
-      "line": 6,
+      "line": 7,
       "signature": "isJsonPath: (opts: { key: string; }) => boolean"
     },
     {
@@ -12671,7 +12671,7 @@
       "specifier": "@venizia/ignis/relational",
       "kind": "const",
       "file": "packages/connectors/src/relational/core/repositories/dialect/internal/json-utils.ts",
-      "line": 10,
+      "line": 11,
       "signature": "parseJsonPath: (opts: { key: string; }) => { columnName: string; path: string[]; }"
     },
     {
@@ -12701,7 +12701,7 @@
       "specifier": "@venizia/ignis/relational",
       "kind": "const",
       "file": "packages/connectors/src/relational/core/repositories/dialect/internal/json-utils.ts",
-      "line": 37,
+      "line": 38,
       "signature": "validateJsonColumnType: (opts: { column: { dataType: string; }; columnName: string; tableName: string; methodName: string; }) => void"
     },
     {
@@ -12711,7 +12711,7 @@
       "specifier": "@venizia/ignis/relational",
       "kind": "const",
       "file": "packages/connectors/src/relational/core/repositories/dialect/internal/json-utils.ts",
-      "line": 17,
+      "line": 18,
       "signature": "validateJsonPathComponents: (opts: { path: string[]; tableName: string; methodName: string; }) => void"
     },
     {
@@ -15991,7 +15991,7 @@
       "specifier": "@venizia/ignis-connectors",
       "kind": "class",
       "file": "packages/connectors/src/relational/core/repositories/dialect/filter.ts",
-      "line": 80,
+      "line": 81,
       "signature": "class FilterBuilder extends BaseHelper"
     },
     {
@@ -16421,7 +16421,7 @@
       "specifier": "@venizia/ignis-connectors",
       "kind": "const",
       "file": "packages/connectors/src/relational/core/repositories/dialect/internal/json-utils.ts",
-      "line": 4,
+      "line": 5,
       "signature": "JSON_PATH_PATTERN: RegExp"
     },
     {
@@ -16541,7 +16541,7 @@
       "specifier": "@venizia/ignis-connectors",
       "kind": "class",
       "file": "packages/connectors/src/relational/core/repositories/dialect/update.ts",
-      "line": 21,
+      "line": 22,
       "signature": "class RelationalUpdateBuilder extends BaseHelper"
     },
     {
@@ -17081,7 +17081,7 @@
       "specifier": "@venizia/ignis-connectors",
       "kind": "const",
       "file": "packages/connectors/src/relational/core/repositories/dialect/internal/json-utils.ts",
-      "line": 6,
+      "line": 7,
       "signature": "isJsonPath: (opts: { key: string; }) => boolean"
     },
     {
@@ -17121,7 +17121,7 @@
       "specifier": "@venizia/ignis-connectors",
       "kind": "const",
       "file": "packages/connectors/src/relational/core/repositories/dialect/internal/json-utils.ts",
-      "line": 10,
+      "line": 11,
       "signature": "parseJsonPath: (opts: { key: string; }) => { columnName: string; path: string[]; }"
     },
     {
@@ -17161,7 +17161,7 @@
       "specifier": "@venizia/ignis-connectors",
       "kind": "const",
       "file": "packages/connectors/src/relational/core/repositories/dialect/internal/json-utils.ts",
-      "line": 37,
+      "line": 38,
       "signature": "validateJsonColumnType: (opts: { column: { dataType: string; }; columnName: string; tableName: string; methodName: string; }) => void"
     },
     {
@@ -17171,7 +17171,7 @@
       "specifier": "@venizia/ignis-connectors",
       "kind": "const",
       "file": "packages/connectors/src/relational/core/repositories/dialect/internal/json-utils.ts",
-      "line": 17,
+      "line": 18,
       "signature": "validateJsonPathComponents: (opts: { path: string[]; tableName: string; methodName: string; }) => void"
     },
     {
@@ -18490,7 +18490,7 @@
       "specifier": "@venizia/ignis-connectors/relational",
       "kind": "class",
       "file": "packages/connectors/src/relational/core/repositories/dialect/filter.ts",
-      "line": 80,
+      "line": 81,
       "signature": "class FilterBuilder extends BaseHelper"
     },
     {
@@ -18720,7 +18720,7 @@
       "specifier": "@venizia/ignis-connectors/relational",
       "kind": "const",
       "file": "packages/connectors/src/relational/core/repositories/dialect/internal/json-utils.ts",
-      "line": 4,
+      "line": 5,
       "signature": "JSON_PATH_PATTERN: RegExp"
     },
     {
@@ -18800,7 +18800,7 @@
       "specifier": "@venizia/ignis-connectors/relational",
       "kind": "class",
       "file": "packages/connectors/src/relational/core/repositories/dialect/update.ts",
-      "line": 21,
+      "line": 22,
       "signature": "class RelationalUpdateBuilder extends BaseHelper"
     },
     {
@@ -19100,7 +19100,7 @@
       "specifier": "@venizia/ignis-connectors/relational",
       "kind": "const",
       "file": "packages/connectors/src/relational/core/repositories/dialect/internal/json-utils.ts",
-      "line": 6,
+      "line": 7,
       "signature": "isJsonPath: (opts: { key: string; }) => boolean"
     },
     {
@@ -19140,7 +19140,7 @@
       "specifier": "@venizia/ignis-connectors/relational",
       "kind": "const",
       "file": "packages/connectors/src/relational/core/repositories/dialect/internal/json-utils.ts",
-      "line": 10,
+      "line": 11,
       "signature": "parseJsonPath: (opts: { key: string; }) => { columnName: string; path: string[]; }"
     },
     {
@@ -19170,7 +19170,7 @@
       "specifier": "@venizia/ignis-connectors/relational",
       "kind": "const",
       "file": "packages/connectors/src/relational/core/repositories/dialect/internal/json-utils.ts",
-      "line": 37,
+      "line": 38,
       "signature": "validateJsonColumnType: (opts: { column: { dataType: string; }; columnName: string; tableName: string; methodName: string; }) => void"
     },
     {
@@ -19180,7 +19180,7 @@
       "specifier": "@venizia/ignis-connectors/relational",
       "kind": "const",
       "file": "packages/connectors/src/relational/core/repositories/dialect/internal/json-utils.ts",
-      "line": 17,
+      "line": 18,
       "signature": "validateJsonPathComponents: (opts: { path: string[]; tableName: string; methodName: string; }) => void"
     },
     {
@@ -21640,7 +21640,7 @@
       "specifier": "@venizia/ignis-filter",
       "kind": "const",
       "file": "packages/filter/src/common/order.ts",
-      "line": 33,
+      "line": 43,
       "signature": "parseOrderEntry: (opts: { entry: string; }) => TParsedOrderEntry"
     },
     {
@@ -33753,7 +33753,7 @@
       "specifier": "@venizia/ignis-kernel",
       "kind": "const",
       "file": "packages/filter/src/common/order.ts",
-      "line": 33,
+      "line": 43,
       "signature": "parseOrderEntry: (opts: { entry: string; }) => TParsedOrderEntry"
     },
     {
