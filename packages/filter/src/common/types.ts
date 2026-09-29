@@ -17,6 +17,12 @@ export type TIsoTimestamp = string & { readonly isoTimestampBrand: unique symbol
 /** Adds `Date` to a branded `TIsoTimestamp` value type; every other type passes through unchanged. */
 type TWidenIsoTimestamp<V> = V extends TIsoTimestamp ? V | Date : V;
 
+/**
+ * A SQL fragment built in code - a Drizzle `SQL` or `SQLWrapper` - named structurally so this
+ * package stays free of Drizzle. JSON from a request can never satisfy it.
+ */
+export type TSqlFragment = { getSQL(): unknown };
+
 /** Field-level comparison operators, mirrored 1:1 from `QueryOperators` in `common/operators.ts`. */
 export type TWhereOperators<V> = {
   eq?: V;
@@ -41,6 +47,8 @@ export type TWhereOperators<V> = {
   notExists?: boolean;
   between?: [V, V];
   notBetween?: [V, V];
+  inSql?: TSqlFragment;
+  ninSql?: TSqlFragment;
   contains?: V | V[];
   containedBy?: V | V[];
   overlaps?: V | V[];

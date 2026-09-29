@@ -58,6 +58,10 @@ export class QueryOperators {
   static readonly BETWEEN = 'between';
   static readonly NOT_BETWEEN = 'notBetween';
 
+  // Subquery operators: the operand is a Drizzle SQL object built in code, never a request value.
+  static readonly IN_SQL = 'inSql';
+  static readonly NOT_IN_SQL = 'ninSql';
+
   // Array Column Operators (PostgreSQL specific)
   static readonly CONTAINS = 'contains'; // @> array contains
   static readonly CONTAINED_BY = 'containedBy'; // <@ array is contained by
@@ -90,6 +94,8 @@ export class QueryOperators {
     this.NOT_EXISTS,
     this.BETWEEN,
     this.NOT_BETWEEN,
+    this.IN_SQL,
+    this.NOT_IN_SQL,
     this.CONTAINS,
     this.CONTAINED_BY,
     this.OVERLAPS,
