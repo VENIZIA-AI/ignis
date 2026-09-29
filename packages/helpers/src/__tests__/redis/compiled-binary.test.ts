@@ -42,6 +42,9 @@ try {
 process.exit(0);
 `;
 
+/** A binary that never exits must fail its test, not stall the suite. */
+const BINARY_TIMEOUT_MS = 30_000;
+
 let workDirectory: string;
 let binary: string;
 
@@ -51,7 +54,13 @@ const runBinary = (opts: { mode: string }): string => {
     cwd: workDirectory,
     stdout: 'pipe',
     stderr: 'pipe',
+    timeout: BINARY_TIMEOUT_MS,
   });
+  if (run.exitedDueToTimeout) {
+    throw new Error(
+      `probe did not exit within ${BINARY_TIMEOUT_MS} ms | mode: ${opts.mode} | ${run.stderr.toString().slice(0, 300)}`,
+    );
+  }
   return (
     run.stdout
       .toString()
@@ -88,19 +97,35 @@ describe('optional peers inside a compiled binary', () => {
     await rm(workDirectory, { recursive: true, force: true });
   });
 
-  test('without the module passed or registered, the binary says which peer and why', () => {
-    expect(runBinary({ mode: 'none' })).toContain('ioredis is required');
-  });
+  test(
+    'without the module passed or registered, the binary says which peer and why',
+    () => {
+      expect(runBinary({ mode: 'none' })).toContain('ioredis is required');
+    },
+    BINARY_TIMEOUT_MS + 5_000,
+  );
 
-  test('ioredis passed as the module option: the client builds', () => {
-    expect(runBinary({ mode: 'seam' })).toBe('RESULT ok');
-  });
+  test(
+    'ioredis passed as the module option: the client builds',
+    () => {
+      expect(runBinary({ mode: 'seam' })).toBe('RESULT ok');
+    },
+    BINARY_TIMEOUT_MS + 5_000,
+  );
 
-  test('ioredis registered once at the entry: the client builds', () => {
-    expect(runBinary({ mode: 'register' })).toBe('RESULT ok');
-  });
+  test(
+    'ioredis registered once at the entry: the client builds',
+    () => {
+      expect(runBinary({ mode: 'register' })).toBe('RESULT ok');
+    },
+    BINARY_TIMEOUT_MS + 5_000,
+  );
 
-  test('bullmq passed as the module option: the queue builds', () => {
-    expect(runBinary({ mode: 'bullmq' })).toBe('RESULT ok');
-  });
+  test(
+    'bullmq passed as the module option: the queue builds',
+    () => {
+      expect(runBinary({ mode: 'bullmq' })).toBe('RESULT ok');
+    },
+    BINARY_TIMEOUT_MS + 5_000,
+  );
 });

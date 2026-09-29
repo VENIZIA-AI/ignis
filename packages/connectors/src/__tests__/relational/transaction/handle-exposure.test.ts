@@ -7,7 +7,7 @@ import { PGlite } from '@electric-sql/pglite';
 import type { Client } from '@libsql/client';
 import { createClient } from '@libsql/client';
 import { formatLogMessage } from '@venizia/ignis-helpers';
-import { afterAll, beforeAll, describe, expect, test } from 'bun:test';
+import { afterAll, beforeAll, describe, expect, setDefaultTimeout, test } from 'bun:test';
 import util from 'node:util';
 import {
   POSTGRES_TABLE_DDL,
@@ -150,6 +150,9 @@ let pgliteClient: PGlite;
 let libsqlClient: Client;
 let postgresDataSource: ExposurePostgresDataSource;
 let sqliteDataSource: ExposureSqliteDataSource;
+
+// Every test renders a handle bound to a live PGlite connector; under a parallel suite that can pass 5 s.
+setDefaultTimeout(30_000);
 
 beforeAll(async () => {
   pgliteClient = new PGlite();
