@@ -4841,7 +4841,7 @@
       "specifier": "@venizia/ignis",
       "kind": "class",
       "file": "packages/connectors/src/relational/postgres/repositories/dialect/filter.ts",
-      "line": 20,
+      "line": 21,
       "signature": "class PostgresFilterBuilder extends FilterBuilder"
     },
     {
@@ -8372,7 +8372,7 @@
       "specifier": "@venizia/ignis",
       "kind": "class",
       "file": "packages/connectors/src/relational/postgres/repositories/dialect/update.ts",
-      "line": 9,
+      "line": 10,
       "signature": "class UpdateBuilder extends RelationalUpdateBuilder"
     },
     {
@@ -11192,7 +11192,7 @@
       "specifier": "@venizia/ignis/postgres",
       "kind": "class",
       "file": "packages/connectors/src/relational/postgres/repositories/dialect/filter.ts",
-      "line": 20,
+      "line": 21,
       "signature": "class PostgresFilterBuilder extends FilterBuilder"
     },
     {
@@ -11602,7 +11602,7 @@
       "specifier": "@venizia/ignis/postgres",
       "kind": "class",
       "file": "packages/connectors/src/relational/postgres/repositories/dialect/update.ts",
-      "line": 9,
+      "line": 10,
       "signature": "class UpdateBuilder extends RelationalUpdateBuilder"
     },
     {
@@ -17661,7 +17661,7 @@
       "specifier": "@venizia/ignis-connectors/postgres",
       "kind": "class",
       "file": "packages/connectors/src/relational/postgres/repositories/dialect/filter.ts",
-      "line": 20,
+      "line": 21,
       "signature": "class PostgresFilterBuilder extends FilterBuilder"
     },
     {
@@ -18071,7 +18071,7 @@
       "specifier": "@venizia/ignis-connectors/postgres",
       "kind": "class",
       "file": "packages/connectors/src/relational/postgres/repositories/dialect/update.ts",
-      "line": 9,
+      "line": 10,
       "signature": "class UpdateBuilder extends RelationalUpdateBuilder"
     },
     {

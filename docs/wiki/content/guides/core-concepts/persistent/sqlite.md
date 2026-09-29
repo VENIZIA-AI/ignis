@@ -13,7 +13,7 @@ They do not all *do* the same thing. Read this table first - it is what a Postgr
 | `lock` (`SELECT ... FOR UPDATE`) | row locks | file locks only | Throws `501` `core.not_supported` |
 | Isolation levels | three (`IsolationLevels`) | none | `isolationLevel` throws; pass `beginMode` instead |
 | Storage classes | ~28 types | five | `jsonb` -> json-mode `text`, `bytea` -> `blob`, `boolean` -> 0/1 `integer` |
-| JSON paths | `col #>> '{a,b}'` | `json_extract(col, '$."a"."b"')` | Same filter syntax, different SQL |
+| JSON paths | `col #>> '{"a","b"}'` | `json_extract(col, '$."a"."b"')` | Same filter syntax, different SQL |
 | Timestamps | `timestamptz` | no date type | ISO 8601 UTC strings in a `text` column |
 | NULL sort order | NULL sorts **high** | NULL sorts **low** | `order: ['score ASC']` puts NULLs last on Postgres, first here |
 

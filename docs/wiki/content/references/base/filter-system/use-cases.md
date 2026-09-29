@@ -224,10 +224,10 @@ const lowStockProducts = await productRepository.find({
 // FROM "Product"
 // WHERE "status" = 'active'
 //   AND "quantity" <= 10
-//   AND "Product"."metadata" #>> '{reorderPoint}' IS NOT NULL
+//   AND "Product"."metadata" #>> '{"reorderPoint"}' IS NOT NULL
 //   AND (
 //     "quantity" < 5
-//     OR ("quantity" <= 10 AND "Product"."metadata" #>> '{fastMoving}' = 'true')
+//     OR ("quantity" <= 10 AND "Product"."metadata" #>> '{"fastMoving"}' = 'true')
 //   )
 // ORDER BY "quantity" ASC
 // LIMIT 10
@@ -307,7 +307,7 @@ const searchProducts = async (
 // SELECT * FROM "Product"
 // WHERE "status" = 'active'
 //   AND "deleted_at" IS NULL
-//   AND ("name" ILIKE '%wireless%' OR "description" ILIKE '%wireless%' OR "Product"."metadata" #>> '{keywords}' ILIKE '%wireless%')
+//   AND ("name" ILIKE '%wireless%' OR "description" ILIKE '%wireless%' OR "Product"."metadata" #>> '{"keywords"}' ILIKE '%wireless%')
 //   AND "rating" >= 4
 //   AND "price" <= 200
 //   AND "categories"::text[] @> ARRAY['electronics']::text[]
@@ -364,19 +364,19 @@ const products = await productRepository.find({ filter: massiveFilter });
 //   AND "price" >= 50 AND "price" <= 500
 //   AND "quantity" > 0
 //   AND "tags"::text[] @> ARRAY['electronics', 'portable']::text[]
-//   AND CASE WHEN ("Product"."metadata" #>> '{priority}') ~ '^-?[0-9]+(\.[0-9]+)?$'
-//       THEN ("Product"."metadata" #>> '{priority}')::numeric ELSE NULL END >= 3
-//   AND "Product"."metadata" #>> '{features,wireless}' = 'true'
+//   AND CASE WHEN ("Product"."metadata" #>> '{"priority"}') ~ '^-?[0-9]+(\.[0-9]+)?$'
+//       THEN ("Product"."metadata" #>> '{"priority"}')::numeric ELSE NULL END >= 3
+//   AND "Product"."metadata" #>> '{"features","wireless"}' = 'true'
 //   AND (
 //     "rating" >= 4.5
-//     OR ("is_featured" = true AND "Product"."metadata" #>> '{promotion,active}' = 'true'
-//         AND CASE WHEN ("Product"."metadata" #>> '{promotion,discount}') ~ '^-?[0-9]+(\.[0-9]+)?$'
-//             THEN ("Product"."metadata" #>> '{promotion,discount}')::numeric ELSE NULL END >= 20)
-//     OR ("created_at" >= '2024-12-01T00:00:00.000Z' AND "Product"."metadata" #>> '{isNewArrival}' = 'true')
+//     OR ("is_featured" = true AND "Product"."metadata" #>> '{"promotion","active"}' = 'true'
+//         AND CASE WHEN ("Product"."metadata" #>> '{"promotion","discount"}') ~ '^-?[0-9]+(\.[0-9]+)?$'
+//             THEN ("Product"."metadata" #>> '{"promotion","discount"}')::numeric ELSE NULL END >= 20)
+//     OR ("created_at" >= '2024-12-01T00:00:00.000Z' AND "Product"."metadata" #>> '{"isNewArrival"}' = 'true')
 //   )
 //   AND "category" NOT IN ('discontinued', 'recalled')
 //   AND "suppliers"::text[] && ARRAY['supplier-a', 'supplier-b']::text[]
-// ORDER BY "Product"."metadata" #> '{priority}' DESC, "rating" DESC, "created_at" DESC
+// ORDER BY "Product"."metadata" #> '{"priority"}' DESC, "rating" DESC, "created_at" DESC
 // LIMIT 20 OFFSET 0
 //
 // -- Separate queries for relations:

@@ -65,7 +65,7 @@ describe('a MIXED operator object casts per operator, not per object', () => {
 
     expect(statement).toContain('::numeric');
     expect(statement.toLowerCase()).not.toContain('end like');
-    expect(statement.toLowerCase()).toContain("#>> '{score}' like");
+    expect(statement.toLowerCase()).toContain(`#>> '{"score"}' like`);
   });
 });
 
