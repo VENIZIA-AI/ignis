@@ -1,3 +1,4 @@
+import { toSafeEcho } from '@/common/internal';
 import { getError } from '@venizia/ignis-helpers/core';
 
 /** Regex for validating JSON path components (identifiers, kebab-case, array indices). */
@@ -24,7 +25,7 @@ export const validateJsonPathComponents = (opts: {
   for (const part of path) {
     if (!JSON_PATH_PATTERN.test(part)) {
       throw getError({
-        message: `[${methodName}] Table: ${tableName} | Invalid JSON path component: '${part}'`,
+        message: `[${methodName}] Table: ${tableName} | Invalid JSON path component: '${toSafeEcho({ value: part })}'`,
       });
     }
   }

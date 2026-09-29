@@ -2,6 +2,16 @@ import { getError } from '@venizia/ignis-inversion';
 import { Sorts } from './operators';
 import type { TParsedOrderEntry, TSortDirection } from './types';
 
+/** Characters `JSON.stringify` leaves raw that still break a log line: DEL, C1 controls, U+2028, U+2029. */
+const RAW_AFTER_JSON = /[\u007f-\u009f\u2028\u2029]/g;
+
+/** The entry quoted for an error message: JSON-escaped, and on one line whatever it holds. */
+const quoteEntry = (opts: { entry: string }): string =>
+  JSON.stringify(opts.entry).replace(
+    RAW_AFTER_JSON,
+    character => `\\u${character.charCodeAt(0).toString(16).padStart(4, '0')}`,
+  );
+
 // ASCII whitespace: space, tab, line feed, vertical tab, form feed, carriage return.
 const isSeparator = (code: number): boolean => code === 32 || (code >= 9 && code <= 13);
 
@@ -38,7 +48,7 @@ export const parseOrderEntry = (opts: { entry: string }): TParsedOrderEntry => {
   if (length === 0) {
     throw getError({
       statusCode: 400,
-      message: `[parseOrderEntry] Order entry has no field | entry: ${JSON.stringify(entry)}`,
+      message: `[parseOrderEntry] Order entry has no field | entry: ${quoteEntry({ entry })}`,
     });
   }
 
@@ -65,7 +75,7 @@ export const parseOrderEntry = (opts: { entry: string }): TParsedOrderEntry => {
   if (directionEnd !== length) {
     throw getError({
       statusCode: 400,
-      message: `[parseOrderEntry] Too many tokens | entry: ${JSON.stringify(entry)} | Expected: '<field>' or '<field> ASC|DESC'`,
+      message: `[parseOrderEntry] Too many tokens | entry: ${quoteEntry({ entry })} | Expected: '<field>' or '<field> ASC|DESC'`,
     });
   }
 
@@ -74,7 +84,7 @@ export const parseOrderEntry = (opts: { entry: string }): TParsedOrderEntry => {
   if (!direction) {
     throw getError({
       statusCode: 400,
-      message: `[parseOrderEntry] Invalid direction | entry: ${JSON.stringify(entry)} | Expected: 'ASC' or 'DESC'`,
+      message: `[parseOrderEntry] Invalid direction | entry: ${quoteEntry({ entry })} | Expected: 'ASC' or 'DESC'`,
     });
   }
 

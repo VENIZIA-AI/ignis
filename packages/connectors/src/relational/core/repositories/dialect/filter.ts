@@ -1,3 +1,4 @@
+import { toSafeEcho } from '@/common/internal';
 import type {
   IScopeFilterSettings,
   TDrizzleQueryOptions,
@@ -469,7 +470,7 @@ export abstract class FilterBuilder extends BaseHelper {
     const column = columns[key];
     if (!column) {
       throw getError({
-        message: `[FilterBuilder][toWhere] Table: ${tableName} | Column NOT FOUND | key: '${key}'`,
+        message: `[FilterBuilder][toWhere] Table: ${tableName} | Column NOT FOUND | key: '${toSafeEcho({ value: key })}'`,
       });
     }
 
@@ -519,7 +520,7 @@ export abstract class FilterBuilder extends BaseHelper {
       const column = columns[key];
       if (!column) {
         throw getError({
-          message: `[FilterBuilder][toOrderBy] Table: ${tableName} | Column NOT FOUND | key: '${key}'`,
+          message: `[FilterBuilder][toOrderBy] Table: ${tableName} | Column NOT FOUND | key: '${toSafeEcho({ value: key })}'`,
         });
       }
 
@@ -815,7 +816,7 @@ export abstract class FilterBuilder extends BaseHelper {
     const column = columns[parsed.columnName];
     if (!column) {
       throw getError({
-        message: `[FilterBuilder][${methodName}] Table: ${tableName} | Column NOT FOUND | key: '${parsed.columnName}'`,
+        message: `[FilterBuilder][${methodName}] Table: ${tableName} | Column NOT FOUND | key: '${toSafeEcho({ value: parsed.columnName })}'`,
       });
     }
 

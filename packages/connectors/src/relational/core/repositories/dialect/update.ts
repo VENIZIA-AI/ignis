@@ -1,3 +1,4 @@
+import { toSafeEcho } from '@/common/internal';
 import type { TTableSchemaWithId } from '@/relational/core/models/common';
 import { BaseHelper, getError } from '@venizia/ignis-helpers/core';
 import type { SQL } from 'drizzle-orm';
@@ -53,7 +54,7 @@ export abstract class RelationalUpdateBuilder extends BaseHelper {
       if (!isJsonPath({ key })) {
         if (!columns[key]) {
           throw getError({
-            message: `[${this.scope}][transform] Table: ${tableName} | Column NOT FOUND | key: '${key}'`,
+            message: `[${this.scope}][transform] Table: ${tableName} | Column NOT FOUND | key: '${toSafeEcho({ value: key })}'`,
           });
         }
 
@@ -97,7 +98,7 @@ export abstract class RelationalUpdateBuilder extends BaseHelper {
 
     if (!column) {
       throw getError({
-        message: `[${this.scope}][transform] Table: ${tableName} | Column NOT FOUND | key: '${parsed.columnName}'`,
+        message: `[${this.scope}][transform] Table: ${tableName} | Column NOT FOUND | key: '${toSafeEcho({ value: parsed.columnName })}'`,
       });
     }
 
